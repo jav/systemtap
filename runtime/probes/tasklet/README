@@ -1,0 +1,6 @@
+Sample probe.  Useful for interrupt context testing.
+
+> ./build
+> insmod stp_tasklet.ko
+> rmmod stp_tasklet.ko
+

@@ -1,0 +1,19 @@
+This is a silly little instrumentation routine to instrument functions
+entry by name. It makes use of the SystemTap runime libraries break
+down the number of times the function by caller. It also uses
+__print_symbol to map the address back to locations in functions.
+
+By default it instruments schedule().
+
+The instrumentation module is built by having the kernel that is going
+to be instrumented currently on the machine and doing "./build"
+
+The instrumentation is inserted as root with:
+
+/sbin/insmod kprobe_funct_where.ko funct_name=function_name
+
+The instrumentation is removed as root with:
+
+/sbin/rmmod kprobe_funct_where
+
+-Will Cohen

@@ -1,0 +1,67 @@
+Sample probe.
+
+This is a translation of on an old dtr probe:
+
+# shellsnoop.probe - snoop shell execution as it occurs.
+# clone of dtrace shellsnoop example
+
+global {
+  long @pids[long];
+}
+
+probe do_execve:entry {
+  char __user *vstr;
+  char str[256];
+  int len;
+
+  /* watch shells only */
+  /* FIXME: detect more shells, like csh, tcsh, zsh */
+
+  if (!strcmp(current->comm,"bash") || !strcmp(current->comm,"sh") || !strcmp(current->comm, "zsh")
+      || !strcmp(current->comm, "tcsh") || !strcmp(current->comm, "pdksh"))
+    {
+      dlog ("%d\t%d\t%d\t%s ", current->uid, current->pid, current->parent->pid, filename);
+      @pids[current->pid] = 1;
+
+      /* print out argv, ignoring argv[0] */
+      if (argv) argv++;
+      while (argv != NULL)
+        {
+          if (get_user (vstr, argv))
+            break;
+          if (!vstr)
+            break;
+          len = dtr_strncpy_from_user(str, vstr, 256);
+          str[len] = 0;
+          printk ("%s ", str);
+          argv++;
+        }
+      printk ("\n");
+    }
+}
+
+# use filp_open because copy_from_user not needed there
+probe filp_open:entry {
+  if (@pids[current->pid])
+    dlog ("%d\t%d\t%s\tO %s\n", current->pid, current->parent->pid, current->comm, filename);
+}
+
+probe sys_read:entry {
+  if (@pids[current->pid])
+    dlog ("%d\t%d\t%s\tR %d\n", current->pid, current->parent->pid, current->comm, fd);
+}
+
+probe sys_write:entry {
+  size_t len;
+  char str[256];
+  if (@pids[current->pid])
+    {
+      if (count < 64) len = count;
+      else len = 64;
+      if (len = dtr_strncpy_from_user(str, buf, len)) {
+        str[len] = 0;
+        dlog ("%d\t%d\t%s\tW %s\n", current->pid, current->parent->pid, current->comm, str);
+        }
+    }
+}
+

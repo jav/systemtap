@@ -1,0 +1,20 @@
+Sample probe.
+
+This is a translation of on an old dtr probe:
+
+global {
+  long @opens[string];
+  sum @reads[string], @writes[string];
+}
+
+probe sys_open:entry {
+  @opens[current->comm]++;
+}
+
+probe sys_read:entry {
+  @reads[current->comm] << count;
+}
+
+probe sys_write:entry {
+  @writes[current->comm] << count;
+}
