@@ -1,12 +1,23 @@
 LANGUAGE
- - lock (var) { block }
- - /* */ and // comments
+  lock (var) { block }  (http://tinyurl.com/5rpzg)
+  /* */ and // comments
+  builtin functions
+  varargs/overloaded functions (?)
+  syntax for dereferencing C structures (http://tinyurl.com/4tpgh)
+  syntax for embedded C (?)
+
+RUNTIME
+  lifecycle control (http://tinyurl.com/6ub2a)
+  better map/string memory management
+  user-level 
+  dtrace-flavoured utility functions
 
 PROVIDERS
   lkst("process_contextswitch")
   syscall("name").return
   syscall("*")
   kernel.function("wait_for_godot")
+  kernel.function("wait_for_godot").callees
   kernel.function("name").line(10)
   kernel.source("mempool.c").line(5004)
   kernel.address(0xdeadbeef)
@@ -23,5 +34,7 @@ PROVIDERS
   end
 
 KPROBES
- - smp friendliness: no kprobes-wide lock held during probe execution
+  smp friendliness: no kprobes-wide lock held during probe execution
+  multiple probes at same address
+  user-level probe points (via ptrace mechanism?)
 
