@@ -1,6 +1,12 @@
+#ifndef _MAP_H_
+#define _MAP_H_
 /* -*- linux-c -*- */
+
 /** @file map.h
- *  @brief Header file for maps and lists
+ * @brief Header file for maps and lists 
+ */
+/** @addtogroup maps 
+ * @{ 
  */
 
 #include <linux/types.h>
@@ -152,20 +158,7 @@ typedef struct map_root *MAP;
       _stp_map_set_int64 (map, (int64_t)(val));			\
   })
 
-/** Macro to call the proper _stp_list_add function based on the
- * types of the argument. 
- * @note May cause compiler warning on some GCCs 
- */
-#define _stp_list_add(map, val)				\
-  ({								\
-    if (__builtin_types_compatible_p (typeof (val), char[]))	\
-      _stp_list_add_str (map, (char *)(val));				\
-    else							\
-      _stp_list_add_int64 (map, (int64_t)(val));			\
-  })
-
-
-/** Loop through all elements of a map.
+/** Loop through all elements of a map or list.
  * @param map 
  * @param ptr pointer to a map_node_stat, map_node_int64 or map_node_str
  *
@@ -177,3 +170,20 @@ typedef struct map_root *MAP;
   for (ptr = (typeof(ptr))_stp_map_start(map); ptr; \
        ptr = (typeof(ptr))_stp_map_iter (map, (struct map_node *)ptr))
 
+/** @} */
+
+/** @ingroup lists
+ * @brief Macro to call the proper _stp_list_add function based on the
+ * types of the argument. 
+ *
+ * @note May cause compiler warning on some GCCs 
+ */
+#define _stp_list_add(map, val)				\
+  ({								\
+    if (__builtin_types_compatible_p (typeof (val), char[]))	\
+      _stp_list_add_str (map, (char *)(val));				\
+    else							\
+      _stp_list_add_int64 (map, (int64_t)(val));			\
+  })
+
+#endif /* _MAP_H_ */

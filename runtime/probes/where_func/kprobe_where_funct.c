@@ -11,6 +11,8 @@
 #include "io.c"
 #include "map.c"
 #include "probes.c"
+#include "current.c"
+#include "sym.c"
 
 MODULE_DESCRIPTION("SystemTap probe: where_func");
 MODULE_AUTHOR("Will Cohen and Martin Hunt");
@@ -26,7 +28,7 @@ MAP funct_locations;
 
 static int inst_funct(struct kprobe *p, struct pt_regs *regs)
 {
-	long ret_addr = cur_ret_addr(regs);
+	long ret_addr = _stp_ret_addr(regs);
 	++count_funct;
 	_stp_map_key_long(funct_locations, ret_addr);
 	_stp_map_add_int64(funct_locations, 1);
@@ -67,9 +69,9 @@ void cleanup_module(void)
 
 	/* now walk the hash table and print out all the information */
 	foreach(funct_locations, ptr) {
-		_stp_print_buf_init();
-		_stp_print_symbol("%s\n", key1int(ptr));
-		dlog("%lld\t0x%p\t(%s)\n", ptr->val, key1int(ptr), _stp_pbuf);
+		_stp_scbuf_clear();
+		_stp_symbol_sprint (key1int(ptr));
+		dlog("%lld\t0x%p\t(%s)\n", ptr->val, key1int(ptr), _stp_scbuf);
 	}
 
 	_stp_map_del(funct_locations);

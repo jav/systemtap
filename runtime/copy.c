@@ -1,6 +1,17 @@
+#ifndef _COPY_C_
+#define _COPY_C_
+
 /* -*- linux-c -*- */
 /** @file copy.c
  * @brief Functions to copy from user space.
+ */
+
+/** @addtogroup copy Functions to copy from user space.
+ * Functions to copy from user space.
+ * None of these functions will sleep (for example to allow pages
+ * to be swapped in). It is possible (although rare) that the data
+ * in user space will not present and these functions will return an error.
+ * @{
  */
 
 long _stp_strncpy_from_user(char *dst, const char __user *src, long count);
@@ -139,3 +150,5 @@ int _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
 	}
 	return list->num;
 }
+/** @} */
+#endif /* _COPY_C_ */

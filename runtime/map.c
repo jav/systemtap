@@ -1,7 +1,13 @@
+#ifndef _MAP_C_
+#define _MAP_C_
+
 /* -*- linux-c -*- */
 /** @file map.c
  * @brief Implements maps (associative arrays) and lists
  */
+
+#include "map.h"
+#include "alloc.c"
 
 static int map_sizes[] = {
 	sizeof(struct map_node_int64),
@@ -32,6 +38,11 @@ static unsigned mixed_hash(const char *key1, long key2)
 		hash += *v++;
 	return hash_long((unsigned long)(hash ^ key2), HASH_TABLE_BITS);
 }
+
+/** @addtogroup maps 
+ * Implements maps (associative arrays) and lists
+ * @{ 
+ */
 
 /** Create a new map.
  * Maps must be created at module initialization time.
@@ -766,7 +777,15 @@ void _stp_map_stat_add(MAP map, int64_t val)
 	/* histogram */
 }
 
+/** @} */
+
 /**********************  List Functions *********************/
+
+/** @addtogroup lists
+ * Lists are special cases of maps.
+ * @b Example:
+ * @include list.c
+ * @{ */
 
 /** Create a new list.
  * A list is a map that internally has an incrementing long key for each member.
@@ -857,3 +876,5 @@ inline int _stp_list_size(MAP map)
 {
 	return map->num;
 }
+/** @} */
+#endif /* _MAP_C_ */

@@ -1,7 +1,20 @@
+#ifndef _ALLOC_C_
+#define _ALLOC_C_
+
 /* -*- linux-c -*- */
-/** @file alloc.h
- * @brief Memory allocation functions.
- * @todo Should really be alloc.c for consistency.
+/** @file alloc.c
+ * @brief Memory functions.
+ */
+/** @addtogroup alloc Memory Functions
+ * Basic malloc/calloc/free functions. These will be changed so 
+ * that memory allocation errors will call a handler.  The default will
+ * send a signal to the user-space daemon that will trigger the module to
+ * be unloaded.
+ * @todo Need error handling for memory allocations
+ * @todo Some of these currently use kmalloc (GFP_ATOMIC) for
+ * small allocations.  This should be evaluated for performance
+ * and stability.
+ * @{
  */
 
 enum errorcode { ERR_NONE=0, ERR_NO_MEM };
@@ -75,3 +88,6 @@ void _stp_vfree(void *ptr)
 	if (likely(ptr))
 		vfree(ptr);
 }
+
+/** @} */
+#endif /* _ALLOC_C_ */

@@ -1,3 +1,8 @@
+#ifndef _RUNTIME_H_
+#define _RUNTIME_H_
+/** @file runtime.h
+ * @brief Main include file for runtime functions.
+ */
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -14,8 +19,6 @@
 #include <asm/uaccess.h>
 #include <linux/kallsyms.h>
 
-#include "alloc.h"
-#include "map.h"
-
 #define dbug(args...) ;
 
+#endif /* _RUNTIME_H_ */

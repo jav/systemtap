@@ -32,7 +32,7 @@
  *
  * @subsection list_sec Lists
  * A list is a special map which has internally ascending long integer keys.  Adding a value to
- * a list does not require setting a key first. Create a list with _stp_map_new(). Add to it
+ * a list does not require setting a key first. Create a list with _stp_list_new(). Add to it
  * with _stp_list_add_str() and _stp_list_add_int64().  Clear it with _stp_list_clear().
  *
  * @section status_sec Status
@@ -50,4 +50,7 @@
  * 
  * @section todo_sec ToDo 
  * \link todo Click Here for Complete List \endlink
+ *
+ * @section links Links
+ * <a href="http://sources.redhat.com/systemtap/">SystemTap Project Page</a>
  */

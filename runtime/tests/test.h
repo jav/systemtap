@@ -8,6 +8,9 @@
 #include <limits.h>
 #include <errno.h>
 
+#define likely(x)       __builtin_expect(!!(x), 1)
+#define unlikely(x)     __builtin_expect(!!(x), 0)
+
 static inline unsigned long hash_long(unsigned long val, unsigned int bits)
 {
     unsigned long hash = val;
