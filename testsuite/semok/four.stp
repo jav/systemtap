@@ -17,7 +17,7 @@ function stamp (syscall)
 # probe kernel:syscall:read = kernel:function("sys_read");
 
 
-probe kernel:syscall:read
+probe syscall ("read")
 { 
   stamp ("read");
 }

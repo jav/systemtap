@@ -364,18 +364,26 @@ struct stapfile
 };
 
 
-struct probe_point_spec // inherit from something or other?
+class provider;
+struct probe_point
 {
-  string functor;
-  const token* tok;
-  literal* arg;
+  struct component // XXX: sort of a restricted functioncall
+  { 
+    string functor;
+    literal* arg;
+    component ();
+  };
+  vector<component*> components;
+  const token* tok; // points to first component's functor
+  provider* prov;
   void print (ostream& o);
+  probe_point ();
 };
 
 
 struct probe
 {
-  vector<probe_point_spec*> location;
+  vector<probe_point*> locations;
   const token* tok;
   block* body;
   vector<vardecl*> locals;

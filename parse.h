@@ -82,7 +82,7 @@ private:
 
 private: // nonterminals
   probe* parse_probe ();
-  probe_point_spec* parse_probe_point_spec ();
+  probe_point* parse_probe_point ();
   literal* parse_literal ();
   void parse_global (vector<vardecl*>&);
   functiondecl* parse_functiondecl ();

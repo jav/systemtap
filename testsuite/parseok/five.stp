@@ -1,0 +1,19 @@
+#! parsetest
+
+probe lkst("process_contextswitch") {}
+probe syscall("name").return {}
+probe syscall("*") {}
+probe kernel.function("wait_for_godot") {}
+probe kernel.function("name").line(10) {}
+probe kernel.source("mempool.c").line(5004) {}
+probe kernel.address(0xdeadbeef) {}
+probe kernel.module("driver.ko").function("name").return {}
+probe kernel.module("cpqarray.ko").jumptable("ida_fops") {}
+probe kernel.watch("datasymbol").write {}
+probe user("fche").inode("/bin/vi").function("refresh") {}
+probe user.inode("/lib/libc.so.6").function("malloc").return {}
+probe time.real.hz(500) {}
+probe time.virtual.jiffies(100) {}
+probe perfcounter("tlbmiss").count(4000) {}
+probe resource.freemembelow(50) {} # pages?
+probe begin {}

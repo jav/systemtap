@@ -5,4 +5,4 @@ function stamp (syscall)
   # no return expression => unknown function type
 }
 
-probe kernel:syscall:read { stamp ("read"); }
+probe syscall (read) { stamp ("read"); }

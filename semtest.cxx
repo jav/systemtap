@@ -133,52 +133,49 @@ main (int argc, char *argv [])
   rc += semantic_pass_1 (files);
   rc += semantic_pass_2 (files);
 
-  if (argc == 1) // processed stdin only
+  for (unsigned i=0; i<files.size(); i++)
     {
-      for (unsigned i=0; i<files.size(); i++)
+      stapfile* f = files[i];
+      for (unsigned j=0; j<f->functions.size(); j++)
         {
-          stapfile* f = files[i];
-          for (unsigned j=0; j<f->functions.size(); j++)
+          functiondecl* fn = f->functions[j];
+          cerr << "Function ";
+          fn->printsig (cerr);
+          cerr << endl << "locals:" << endl;
+          for (unsigned k=0; k<fn->locals.size(); k++)
             {
-              functiondecl* fn = f->functions[j];
-              cerr << "Function ";
-              fn->printsig (cerr);
-              cerr << endl << "locals:" << endl;
-              for (unsigned k=0; k<fn->locals.size(); k++)
-                {
-                  vardecl* fa = fn->locals[k];
-                  cerr << "\t";
-                  fa->printsig (cerr);
-                  cerr << endl;
-                }
-              cerr << endl;
-            }
-
-          for (unsigned j=0; j<f->probes.size(); j++)
-            {
-              probe* pn = f->probes[j];
-              cerr << "Probe " << *pn->tok << endl; // XXX: print probespec
-              cerr << "locals:" << endl;
-              for (unsigned k=0; k<pn->locals.size(); k++)
-                {
-                  vardecl* fa = pn->locals[k];
-                  cerr << "\t";
-                  fa->printsig (cerr);
-                  cerr << endl;
-                }
-              cerr << endl;
-            }
-
-          cerr << "globals:" << endl;
-          for (unsigned k=0; k<f->globals.size(); k++)
-            {
-              vardecl* fa = f->globals[k];
+              vardecl* fa = fn->locals[k];
               cerr << "\t";
               fa->printsig (cerr);
               cerr << endl;
             }
           cerr << endl;
         }
+      
+      for (unsigned j=0; j<f->probes.size(); j++)
+        {
+          probe* pn = f->probes[j];
+          cerr << "Probe " << *pn->tok << endl; // XXX: print probespec
+          cerr << "locals:" << endl;
+          for (unsigned k=0; k<pn->locals.size(); k++)
+            {
+              vardecl* fa = pn->locals[k];
+              cerr << "\t";
+              fa->printsig (cerr);
+              cerr << endl;
+            }
+          cerr << endl;
+        }
+      
+      cerr << "globals:" << endl;
+      for (unsigned k=0; k<f->globals.size(); k++)
+        {
+          vardecl* fa = f->globals[k];
+          cerr << "\t";
+          fa->printsig (cerr);
+          cerr << endl;
+        }
+      cerr << endl;
     }
 
   return rc;

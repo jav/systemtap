@@ -6,7 +6,10 @@
 #include "staptree.h"
 #include "parse.h"
 #include <cctype>
+#include <cstdlib>
 #include <fstream>
+#include <cerrno>
+#include <climits>
 
 using namespace std;
 
@@ -179,17 +182,22 @@ lexer::scan ()
 
   else if (isdigit (c))
     {
-      // XXX: support 0xHEX etc.
       n->type = tok_number;
-      n->content = c;
+      n->content = (char) c;
+
       while (1)
 	{
 	  int c2 = input.peek ();
 	  if (! input)
 	    break;
-	  if (isdigit(c2))
+
+          // NB: isalnum is very permissive.  We rely on strtol, called in
+          // parser::parse_literal below, to confirm that the number string
+          // is correctly formatted and in range.
+
+	  if (isalnum (c2))
 	    {
-	      n->content.push_back(c2);
+	      n->content.push_back (c2);
 	      input_get ();
 	    }
 	  else
@@ -344,10 +352,10 @@ parser::parse_probe ()
       if (t && t->type == tok_identifier)
 	{
           p->tok = t;
-	  p->location.push_back (parse_probe_point_spec ());
+	  p->locations.push_back (parse_probe_point ());
 
 	  t = peek ();
-	  if (t && t->type == tok_operator && t->content == ":")
+	  if (t && t->type == tok_operator && t->content == ",")
 	    {
 	      next ();
 	      continue;
@@ -355,11 +363,11 @@ parser::parse_probe ()
 	  else if (t && t->type == tok_operator && t->content == "{")
 	    break;
 	  else
-            throw parse_error ("expected ':' or '{'");
+            throw parse_error ("expected ',' or '{'");
           // XXX: unify logic with that in parse_symbol()
 	}
       else
-	throw parse_error ("expected probe location specifier");
+	throw parse_error ("expected probe point specifier");
     }
   
   p->body = parse_stmt_block ();
@@ -524,25 +532,49 @@ parser::parse_functiondecl ()
 }
 
 
-probe_point_spec*
-parser::parse_probe_point_spec ()
+probe_point*
+parser::parse_probe_point ()
 {
-  probe_point_spec* pl = new probe_point_spec;
+  probe_point* pl = new probe_point;
 
-  const token* t = next ();
-  if (t->type != tok_identifier)
-    throw parse_error ("expected identifier");
-  pl->functor = t->content;
-  pl->tok = t;
-
-  t = peek ();
-  if (t && t->type == tok_operator && t->content == "(")
+  while (1)
     {
-      next (); // consume "("
-      pl->arg = parse_literal ();
-      const token* tt = next ();
-      if (! (tt->type == tok_operator && tt->content == ")"))
-	throw parse_error ("expected ')'");
+      const token* t = next ();
+      if (t->type != tok_identifier)
+        throw parse_error ("expected identifier");
+
+      if (pl->tok == 0) pl->tok = t;
+
+      probe_point::component* c = new probe_point::component;
+      c->functor = t->content;
+      pl->components.push_back (c);
+      // NB though we still may add c->arg soon
+
+      t = peek ();
+      if (t && t->type == tok_operator 
+          && (t->content == "{" || t->content == ","))
+        break;
+      
+      if (t && t->type == tok_operator && t->content == "(")
+        {
+          next (); // consume "("
+          c->arg = parse_literal ();
+
+          t = next ();
+          if (! (t->type == tok_operator && t->content == ")"))
+            throw parse_error ("expected ')'");
+
+          t = peek ();
+          if (t && t->type == tok_operator 
+              && (t->content == "{" || t->content == ","))
+            break;
+        }
+      // fall through
+
+      if (t && t->type == tok_operator && t->content == ".")
+        next ();
+      else
+        throw parse_error ("expected '.'");
     }
 
   return pl;
@@ -557,7 +589,20 @@ parser::parse_literal ()
   if (t->type == tok_string)
     l = new literal_string (t->content);
   else if (t->type == tok_number)
-    l = new literal_number (atol (t->content.c_str ()));
+    {
+      const char* startp = t->content.c_str ();
+      char* endp = (char*) startp;
+
+      // NB: we allow controlled overflow from LONG_MIN .. ULONG_MAX
+      errno = 0;
+      long long value = strtoll (startp, & endp, 0);
+      if (errno == ERANGE || errno == EINVAL || *endp != '\0'
+          || value > ULONG_MAX || value < LONG_MIN)
+        throw parse_error ("number invalid or out of range"); 
+
+      long value2 = (long) value;
+      l = new literal_number (value2);
+    }
   else
     throw parse_error ("expected literal string or number");
 

@@ -25,3 +25,5 @@ s=$(srcdir)/testsuite/sem
 TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
 	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp)
 XFAIL_TESTS = $(wildcard $(p)ko/*.stp) $(wildcard $(s)ko/*.stp)
+
+TESTS_ENVIRONMENT = $(srcdir)/runtest.sh

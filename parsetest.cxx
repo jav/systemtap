@@ -14,20 +14,18 @@ int main (int argc, char *argv [])
 
   if (argc > 1)
     {
-      // quietly parse all listed input files
       for (int i = 1; i < argc; i ++)
         {
           parser p (argv[i]);
           stapfile* f = p.parse ();
           if (f)
-            cout << "file '" << argv[i] << "' parsed ok." << endl;
+            f->print (cout);
           else
             rc = 1;
         }
     }
   else
     {
-      // parse then print just stdin
       parser p (cin);
       stapfile* f = p.parse ();
       if (f)

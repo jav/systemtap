@@ -1,6 +1,6 @@
 #! parsetest
 
-probe kernel:systemcall("foo") 
+probe syscall ("foo")
 {
   $a = a$a = a$a$ = 0;
 }

@@ -61,6 +61,18 @@ symboldecl::~symboldecl ()
 }
 
 
+probe_point::probe_point ():
+  tok (0), prov (0)
+{
+}
+
+
+probe_point::component::component ():
+  arg (0)
+{
+}
+
+
 vardecl::vardecl ()
 {
 }
@@ -301,21 +313,26 @@ void stapfile::print (ostream& o)
 void probe::print (ostream& o)
 {
   o << "probe ";
-  for (unsigned i=0; i<location.size(); i++)
+  for (unsigned i=0; i<locations.size(); i++)
     {
-      o << (i>0 ? ":" : "");
-      location[i]->print (o);
+      o << (i>0 ? ", " : "");
+      locations[i]->print (o);
     }
   o << endl;
   o << *body;
 }
 
 
-void probe_point_spec::print (ostream& o)
+void probe_point::print (ostream& o)
 {
-  o << functor;
-  if (arg)
-    o << "(" << *arg << ")";
+  for (unsigned i=0; i<components.size(); i++)
+    {
+      if (i>0) o << ".";
+      probe_point::component* c = components[i];
+      o << c->functor;
+      if (c->arg)
+        o << "(" << *c->arg << ")";
+    }
 }
 
 

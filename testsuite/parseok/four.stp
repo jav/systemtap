@@ -1,0 +1,7 @@
+#! parsetest
+
+probe syscall ("foo").foo.bar , syscall ("bar"), syscall ("*").return
+{
+  $a = a$a = a$a$ = 0;
+}
+

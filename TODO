@@ -1,0 +1,27 @@
+LANGUAGE
+ - lock (var) { block }
+ - /* */ and // comments
+
+PROVIDERS
+  lkst("process_contextswitch")
+  syscall("name").return
+  syscall("*")
+  kernel.function("wait_for_godot")
+  kernel.function("name").line(10)
+  kernel.source("mempool.c").line(5004)
+  kernel.address(0xdeadbeef)
+  kernel.module("driver.ko").function("name").return
+  kernel.module("cpqarray.ko").jumptable("ida_fops")
+  kernel.watch("datasymbol").write
+  user("fche").inode("/bin/vi").function("refresh")
+  user.inode("/lib/libc.so.6").function("malloc").return
+  time.real.hz(500)
+  time.virtual.jiffies(100)
+  perfcounter("tlbmiss").count(4000)
+  resource.freemembelow(50) # pages?
+  begin
+  end
+
+KPROBES
+ - smp friendliness: no kprobes-wide lock held during probe execution
+

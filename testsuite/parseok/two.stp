@@ -1,6 +1,6 @@
 #! parsetest
 
-probe kernel:systemcall("foo") 
+probe syscall (231)
 {
   array[idx] << value;
   if (global > 5) { global -- } else ;
@@ -11,7 +11,7 @@ function foo () {
   return 0;
 }
 
-probe systemtap:end
+probe end
 {
   foo ("value", 4+8);
 }

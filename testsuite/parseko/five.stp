@@ -1,0 +1,16 @@
+#! semtest
+
+probe foo( {
+}
+
+probe bar() {
+}
+
+probe baz.(1) {
+}
+
+probe faz(2), {
+}
+
+probe kaz,goo. {
+}
