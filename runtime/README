@@ -37,9 +37,15 @@
  * If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
  * I expect to implement a function to tell the system to either ignore it or unload the module and quit.
  *
- * Working sample probe code using the runtime is in tests/test4_probe and tests/shellprobe.
+ * @section probe_sec Example Probes
+ * 
+ * Working sample probe code using the runtime is in runtime/probes.
  *
- * @todo The Runtime Library is not actually a library yet.  It is just a collection of functions 
- * included in the probe boilerplate.
+ * 
+ * @section todo_sec ToDo 
+ * \link todo Click Here for Complete List \endlink
+ * The Runtime Library is not actually a library yet.  It is just a collection of functions 
+ * included in the probe boilerplate. Maybe it should stay that way to allow the translator
+ * more flexibility in what is included.
  *
  */

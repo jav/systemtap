@@ -458,17 +458,7 @@ static void map_copy_keys(MAP map, struct map_node *m)
 	map->num++;
 }
 
-/** Set the current element's value to an int64.
- * This sets the current element's value to an int64. The map must have been created
- * to hold int64s using _stp_map_new()
- *
- * If the element doesn't exist, it is created.  If no current element (key)
- * is set for the map, this function does nothing.
- * @param map
- * @param val new value
- */
-
-void _stp_map_set_int64(MAP map, int64_t val)
+static void __stp_map_set_int64(MAP map, int64_t val, int add)
 {
 	struct map_node_int64 *m;
 
@@ -512,12 +502,45 @@ void _stp_map_set_int64(MAP map, int64_t val)
 
 		if (val) {
 			m = (struct map_node_int64 *)map->key;
-			m->val = val;
-		} else {
+			if (add)
+				m->val += val;
+			else
+				m->val = val;
+		} else if (!add) {
 			/* setting value to 0 is the same as deleting */
 			_stp_map_key_del(map);
 		}
 	}
+}
+
+/** Set the current element's value to an int64.
+ * This sets the current element's value to an int64. The map must have been created
+ * to hold int64s using _stp_map_new()
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val new value
+ */
+void _stp_map_set_int64(MAP map, int64_t val)
+{
+	__stp_map_set_int64 (map, val, 0);
+}
+
+
+/** Adds an int64 to the current element's value.
+ * This adds an int64 to the current element's value. The map must have been created
+ * to hold int64s using _stp_map_new()
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val value
+ */
+
+void _stp_map_add_int64(MAP map, int64_t val)
+{
+	__stp_map_set_int64 (map, val, 1);
 }
 
 /** Gets the current element's value.

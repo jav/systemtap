@@ -1,8 +1,18 @@
 BODY,H1,H2,H3,H4,H5,H6,P,CENTER,TD,TH,UL,DL,DIV {
 	font-family: Geneva, Arial, Helvetica, sans-serif;
 }
+BODY,TD {
+       font-size: 90%;
+}
 H1 {
 	text-align: center;
+       font-size: 160%;
+}
+H2 {
+       font-size: 120%;
+}
+H3 {
+       font-size: 110%;
 }
 CAPTION { font-weight: bold }
 DIV.qindex {
@@ -75,6 +85,11 @@ PRE.fragment {
 }
 DIV.ah { background-color: black; font-weight: bold; color: #ffffff; margin-bottom: 3px; margin-top: 3px }
 TD.md { background-color: #F4F4FB; font-weight: bold; }
+TD.mdPrefix {
+       background-color: #F4F4FB;
+       color: #606060;
+	font-size: 80%;
+}
 TD.mdname1 { background-color: #F4F4FB; font-weight: bold; color: #602020; }
 TD.mdname { background-color: #F4F4FB; font-weight: bold; color: #602020; width: 600px; }
 DIV.groupHeader {
@@ -83,7 +98,7 @@ DIV.groupHeader {
        margin-bottom: 6px;
        font-weight: bold;
 }
-DIV.groupText { margin-left: 16px; font-style: italic; font-size: 14px }
+DIV.groupText { margin-left: 16px; font-style: italic; font-size: 90% }
 BODY {
 	background: white;
 	color: black;
@@ -138,7 +153,7 @@ SPAN.charliteral   { color: #008080 }
 }
 .mdescLeft {
        padding: 0px 8px 4px 8px;
-	font-size: 12px;
+	font-size: 80%;
 	font-style: italic;
 	background-color: #FAFAFA;
 	border-top: 1px none #E0E0E0;
@@ -149,7 +164,7 @@ SPAN.charliteral   { color: #008080 }
 }
 .mdescRight {
        padding: 0px 8px 4px 8px;
-	font-size: 12px;
+	font-size: 80%;
 	font-style: italic;
 	background-color: #FAFAFA;
 	border-top: 1px none #E0E0E0;
@@ -174,7 +189,7 @@ SPAN.charliteral   { color: #008080 }
 	border-bottom-style: none;
 	border-left-style: none;
 	background-color: #FAFAFA;
-	font-size: 12px;
+	font-size: 80%;
 }
 .memItemRight {
 	padding: 1px 8px 0px 8px;
@@ -192,7 +207,7 @@ SPAN.charliteral   { color: #008080 }
 	border-bottom-style: none;
 	border-left-style: none;
 	background-color: #FAFAFA;
-	font-size: 13px;
+	font-size: 80%;
 }
 .memTemplItemLeft {
 	padding: 1px 0px 0px 8px;
@@ -210,7 +225,7 @@ SPAN.charliteral   { color: #008080 }
 	border-bottom-style: none;
 	border-left-style: none;
 	background-color: #FAFAFA;
-	font-size: 12px;
+	font-size: 80%;
 }
 .memTemplItemRight {
 	padding: 1px 8px 0px 8px;
@@ -228,7 +243,7 @@ SPAN.charliteral   { color: #008080 }
 	border-bottom-style: none;
 	border-left-style: none;
 	background-color: #FAFAFA;
-	font-size: 13px;
+	font-size: 80%;
 }
 .memTemplParams {
 	padding: 1px 0px 0px 8px;
@@ -247,7 +262,7 @@ SPAN.charliteral   { color: #008080 }
 	border-left-style: none;
        color: #606060;
 	background-color: #FAFAFA;
-	font-size: 12px;
+	font-size: 80%;
 }
 .search     { color: #003399;
               font-weight: bold;
@@ -268,4 +283,15 @@ a {
 }
 a:visited {
 	color: #3D2185;
+}
+.dirtab { padding: 4px;
+          border-collapse: collapse;
+          border: 1px solid #b0b0b0;
+}
+TH.dirtab { background: #eeeeff;
+            font-weight: bold;
+}
+HR { height: 1px;
+     border: none;
+     border-top: 1px solid black;
 }
