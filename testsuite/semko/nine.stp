@@ -1,0 +1,6 @@
+#! semtest
+
+probe foo {
+  a[4] = 1;
+  a = 2;
+}
