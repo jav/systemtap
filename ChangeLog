@@ -1,5 +1,10 @@
 2005-03-15  Frank Ch. Eigler  <fche@redhat.com>
 
+	* semtest.cxx: Print probe signatures properly.
+	* staptree.cxx (probe::printsig): New function.
+
+2005-03-15  Frank Ch. Eigler  <fche@redhat.com>
+
 	* TODO: New file.  Include some probe-point-provider syntax examples.
 	* parse.cxx (lexer::scan, parser::parse_literal): Support hex, octal
 	numbers via strtol.

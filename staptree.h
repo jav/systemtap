@@ -388,4 +388,5 @@ struct probe
   block* body;
   vector<vardecl*> locals;
   void print (ostream& o);
+  void printsig (ostream &o);
 };

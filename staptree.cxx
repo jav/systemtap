@@ -313,13 +313,19 @@ void stapfile::print (ostream& o)
 void probe::print (ostream& o)
 {
   o << "probe ";
+  printsig (o);
+  o << *body;
+}
+
+
+void probe::printsig (ostream& o)
+{
   for (unsigned i=0; i<locations.size(); i++)
     {
       o << (i>0 ? ", " : "");
       locations[i]->print (o);
     }
   o << endl;
-  o << *body;
 }
 
 

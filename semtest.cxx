@@ -155,7 +155,8 @@ main (int argc, char *argv [])
       for (unsigned j=0; j<f->probes.size(); j++)
         {
           probe* pn = f->probes[j];
-          cerr << "Probe " << *pn->tok << endl; // XXX: print probespec
+          cerr << "Probe ";
+          pn->printsig (cerr);
           cerr << "locals:" << endl;
           for (unsigned k=0; k<pn->locals.size(); k++)
             {
