@@ -1,3 +1,14 @@
+2005-03-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx (scan): Support '$' characters in identifiers.
+	(parse_symbol): Support thread-> / process-> shorthand.
+	* staptree.cxx (symresolution_info::find): Split up into
+	find_scalar, find_array, find_function.
+	(resolve_symbols): Call the above for symbol/arrayindex/functioncall.
+	(find_scalar): Add stub support for synthetic builtin variables.
+	* staptree.h: Corresponding changes.
+	* testsuite/*: Some new tests.
+
 2005-03-03  Frank Ch. Eigler  <fche@redhat.com>
 
 	* parse.cxx (parse_assignment): Assert lvalueness of left

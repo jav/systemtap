@@ -22,12 +22,14 @@ enum token_type
     tok_junk, tok_identifier, tok_operator, tok_string, tok_number 
   };
 
+
 struct token
 {
   source_loc location;
   token_type type;
   std::string content;
 };
+
 
 std::ostream& operator << (std::ostream& o, const token& t);
 

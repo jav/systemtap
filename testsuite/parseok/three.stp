@@ -1,0 +1,7 @@
+#! parsetest
+
+probe kernel:systemcall("foo") 
+{
+  $a = a$a = a$a$ = 0;
+}
+

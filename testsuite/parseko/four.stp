@@ -1,0 +1,5 @@
+#! semtest
+
+probe foo {
+  somethingawful->foo = 1;
+}

@@ -1,0 +1,7 @@
+#! parsetest
+
+probe foo
+{
+ thread->bar = 4;
+ process->baz = "5";
+}

@@ -209,7 +209,9 @@ struct symresolution_info
                       vector<stapfile*>& f,
                       stapfile* cfil);
 
-  vardecl* find (const string& name);
+  vardecl* find_scalar (const string& name);
+  vardecl* find_array (const string& name, const vector<expression*>&);
+  functiondecl* find_function (const string& name, const vector<expression*>&);
 
   void unresolved (const token* tok);
   unsigned num_unresolved;
@@ -254,6 +256,11 @@ struct vardecl: public symboldecl
   vardecl ();
   vardecl (unsigned arity);
   vector<exp_type> index_types; // for arrays only
+};
+
+
+struct vardecl_builtin: public vardecl
+{
 };
 
 

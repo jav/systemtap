@@ -157,7 +157,7 @@ lexer::scan ()
   if (isspace (c))
     goto skip;
 
-  else if (isalpha (c))
+  else if (isalpha (c) || c == '$')
     {
       n->type = tok_identifier;
       n->content = (char) c;
@@ -166,7 +166,7 @@ lexer::scan ()
 	  int c2 = input.peek ();
 	  if (! input)
 	    break;
-	  if ((isalnum(c2) || c2 == '_'))
+	  if ((isalnum(c2) || c2 == '_' || c2 == '$'))
 	    {
 	      n->content.push_back(c2);
 	      input_get ();
@@ -247,6 +247,7 @@ lexer::scan ()
           (c == '+' && c2 == '=') ||
           (c == '-' && c2 == '=') ||
           (c == ':' && c2 == ':') ||
+          (c == '-' && c2 == '>') ||
 	  false) // XXX: etc.
         n->content.push_back((char) input_get ());
 
@@ -947,8 +948,9 @@ parser::parse_value ()
 }
 
 
+// var, var[index], func(parms), thread->var, process->var
 expression*
-parser::parse_symbol () // var, var[index], func(parms)
+parser::parse_symbol () 
 {
   const token* t = next ();
   if (t->type != tok_identifier)
@@ -957,7 +959,34 @@ parser::parse_symbol () // var, var[index], func(parms)
   string name = t->content;
   
   t = peek ();
-  if (t && t->type == tok_operator && t->content == "[") // array
+  if (t && t->type == tok_operator && t->content == "->")
+    {
+      // shorthand for process- or thread-specific array element
+      // map "thread->VAR" to "VAR[$tid]",
+      // and "process->VAR" to "VAR[$pid]"
+      symbol* sym = new symbol;
+      if (name == "thread")
+        sym->name = "$tid";
+      else if (name == "process") 
+        sym->name = "$pid";
+      else 
+        throw parse_error ("expected 'thread->' or 'process->'");
+      struct token* t2prime = new token (*t2);
+      t2prime->content = sym->name;
+      sym->tok = t2prime;
+
+      next (); // swallow "->"
+      t = next ();
+      if (! (t->type == tok_identifier))
+        throw parse_error ("expected identifier");
+
+      struct arrayindex* ai = new arrayindex;
+      ai->tok = t;
+      ai->base = t->content;
+      ai->indexes.push_back (sym);
+      return ai;
+    }
+  else if (t && t->type == tok_operator && t->content == "[") // array
     {
       next ();
       struct arrayindex* ai = new arrayindex;

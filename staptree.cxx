@@ -387,7 +387,7 @@ symbol::resolve_symbols (symresolution_info& r)
   if (referent)
     return;
 
-  vardecl* d = r.find (name);
+  vardecl* d = r.find_scalar (name);
   if (d)
     referent = d;
   else
@@ -398,7 +398,6 @@ symbol::resolve_symbols (symresolution_info& r)
       v->tok = tok;
       r.locals.push_back (v);
       referent = v;
-      // XXX: check for conflicting function name
     }
 }
 
@@ -412,7 +411,7 @@ arrayindex::resolve_symbols (symresolution_info& r)
   if (referent)
     return;
 
-  vardecl* d = r.find (base);
+  vardecl* d = r.find_array (base, indexes);
   if (d)
     referent = d;
   else
@@ -423,7 +422,6 @@ arrayindex::resolve_symbols (symresolution_info& r)
       v->tok = tok;
       r.locals.push_back (v);
       referent = v;
-      // XXX: check for conflicting function name
     }
 }
 
@@ -437,19 +435,7 @@ functioncall::resolve_symbols (symresolution_info& r)
   if (referent)
     return;
 
-  // find global functiondecl
-  functiondecl* d = 0;
-  for (unsigned j = 0; j < r.current_file->functions.size(); j++)
-    {
-      functiondecl* fd = r.current_file->functions[j];
-      if (fd->name == function)
-        {
-          d = fd;
-          break;
-        }
-    }
-  // XXX: check for conflicting variable name
-
+  functiondecl* d = r.find_function (function, args);
   if (d)
     referent = d;
   else
@@ -492,7 +478,53 @@ expr_statement::resolve_symbols (symresolution_info& r)
 
 
 vardecl* 
-symresolution_info::find (const string& name)
+symresolution_info::find_scalar (const string& name)
+{
+  // search locals
+  for (unsigned i=0; i<locals.size(); i++)
+    if (locals[i]->name == name)
+      return locals[i];
+
+  // search builtins that become locals
+  // XXX: need to invent a proper formalism for this
+  if (name == "$pid" || name == "$tid")
+    {
+      vardecl_builtin* vb = new vardecl_builtin;
+      vb->name = name;
+      vb->type = pe_long;
+
+      // XXX: need a better way to synthesize tokens
+      token* t = new token;
+      t->type = tok_identifier;
+      t->content = name;
+      t->location.file = "<builtin>";
+      vb->tok = t;
+
+      locals.push_back (vb);
+      return vb;
+    }
+
+  // search function formal parameters (if any)
+  if (current_function)
+    {
+      for (unsigned i=0; i<current_function->formal_args.size(); i++)
+        if (current_function->formal_args [i]->name == name)
+          return current_function->formal_args [i];
+    }
+
+  // search globals
+  for (unsigned i=0; i<globals.size(); i++)
+    if (globals[i]->name == name)
+      return globals[i];
+
+  return 0;
+  // XXX: add checking for conflicting array or function
+}
+
+
+vardecl* 
+symresolution_info::find_array (const string& name, 
+                                const vector<expression*>& indexes)
 {
   // search locals
   for (unsigned i=0; i<locals.size(); i++)
@@ -513,7 +545,25 @@ symresolution_info::find (const string& name)
       return globals[i];
 
   return 0;
+  // XXX: add checking for conflicting scalar or function
 }
+
+
+functiondecl* 
+symresolution_info::find_function (const string& name,
+                                   const vector<expression*>& args)
+{
+  for (unsigned j = 0; j < current_file->functions.size(); j++)
+    {
+      functiondecl* fd = current_file->functions[j];
+      if (fd->name == name)
+        return fd;
+    }
+
+  return 0;
+  // XXX: add checking for conflicting variables
+}
+
 
 
 void
