@@ -28,6 +28,7 @@ int inst_do_execve (char * filename, char __user *__user *argv, char __user *__u
       _stp_map_key_long (pids, current->pid);
       _stp_map_set_int64 (pids, 1);
       
+      _stp_list_clear (arglist);
       _stp_copy_argv_from_user (arglist, argv);
       foreach (arglist, ptr)
 	printk ("%s ", ptr->str);
