@@ -1,4 +1,8 @@
 /* -*- linux-c -*- */
+/** @file map.c
+ * @brief Implements maps (associative arrays) and lists
+ */
+
 
 static int map_sizes[] = {
 	sizeof(struct map_node_int64),
@@ -7,7 +11,7 @@ static int map_sizes[] = {
 	0
 };
 
-static inline unsigned string_hash(const char *key1, const char *key2)
+static unsigned string_hash(const char *key1, const char *key2)
 {
 	int hash = 0, count = 0;
 	char *v1 = (char *)key1;
@@ -21,7 +25,7 @@ static inline unsigned string_hash(const char *key1, const char *key2)
 	return hash_long((unsigned long)hash, HASH_TABLE_BITS);
 }
 
-static inline unsigned mixed_hash(const char *key1, long key2)
+static unsigned mixed_hash(const char *key1, long key2)
 {
 	int hash = 0, count = 0;
 	char *v = (char *)key1;
@@ -174,7 +178,8 @@ struct map_node *_stp_map_iter(MAP map, struct map_node *m)
 	if (map == NULL)
 		return NULL;
 
-	dbug ("%lx next=%lx  prev=%lx  map->head.next=%lx\n", (long)m, (long)m->lnode.next, (long)m->lnode.prev, (long)map->head.next);
+	dbug ("%lx next=%lx  prev=%lx  map->head.next=%lx\n", (long)m, 
+	      (long)m->lnode.next, (long)m->lnode.prev, (long)map->head.next);
 
 	if (m->lnode.next == &map->head)
 		return NULL;
@@ -521,6 +526,7 @@ static void __stp_map_set_int64(MAP map, int64_t val, int add)
  * is set for the map, this function does nothing.
  * @param map
  * @param val new value
+ * @sa _stp_map_add_int64
  */
 void _stp_map_set_int64(MAP map, int64_t val)
 {
@@ -536,6 +542,7 @@ void _stp_map_set_int64(MAP map, int64_t val)
  * is set for the map, this function does nothing.
  * @param map
  * @param val value
+ * @sa _stp_map_set_int64
  */
 
 void _stp_map_add_int64(MAP map, int64_t val)
@@ -785,7 +792,7 @@ MAP _stp_list_new(unsigned max_entries, enum valtype type)
  * @param map 
  */
 
-inline void _stp_list_clear(MAP map)
+void _stp_list_clear(MAP map)
 {
 	if (map == NULL)
 		return;

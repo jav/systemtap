@@ -124,7 +124,7 @@ int _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
 	while (argv != NULL) {
 		if (get_user (vstr, argv))
 			break;
-
+		
 		if (vstr == NULL)
 			break;
 		

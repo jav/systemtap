@@ -15,7 +15,7 @@ MAP opens, reads, writes;
 asmlinkage long inst_sys_open (const char __user * filename, int flags, int mode)
 {
   _stp_map_key_str (opens, current->comm);
-  _stp_map_set_int64 (opens, _stp_map_get_int64(opens) + 1);
+  _stp_map_add_int64 (opens, 1);
   jprobe_return();
   return 0;
 }

@@ -1,6 +1,10 @@
-Sample probe.  Useful for interrupt context testing.
+/** @dir tasklet
+Sample probe in a tasklet.  Useful for interrupt context testing.
 
+\verbatim
 > ./build
 > insmod stp_tasklet.ko
 > rmmod stp_tasklet.ko
+\endverbatim
 
+*/

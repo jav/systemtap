@@ -1,7 +1,9 @@
-Sample probe.
+/** @dir test4
+This example probe tracks file opens, reads and writes.
+It demonstrates maps, stats, and iterators.
 
-This is a translation of on an old dtr probe:
-
+This is a translation of on an old dtr probe.  Original source is
+\verbatim
 global {
   long @opens[string];
   sum @reads[string], @writes[string];
@@ -18,3 +20,5 @@ probe sys_read:entry {
 probe sys_write:entry {
   @writes[current->comm] << count;
 }
+\endverbatim
+*/

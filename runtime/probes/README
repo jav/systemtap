@@ -1,0 +1,4 @@
+/** @dir probes
+This directory contains working example probes that demonstrate and test
+the runtime library. They are tested on i386 and x86_64.
+*/

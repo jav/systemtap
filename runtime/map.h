@@ -1,6 +1,12 @@
 /* -*- linux-c -*- */
+/** @file map.h
+ * @brief Header file for maps and lists
+ */
+
 #include <linux/types.h>
 
+/** Statistics are stored in this struct
+*/
 typedef struct {
 	int64_t count;
 	int64_t sum;
@@ -8,6 +14,8 @@ typedef struct {
 	int64_t histogram[BUCKETS];
 } stat;
 
+/** Keys are either longs or char *
+ */
 union key_data {
 	long val;
 	char *str;
@@ -16,7 +24,8 @@ union key_data {
 enum keytype { NONE, LONG, STR } __attribute__ ((packed));
 enum valtype { INT64, STAT, STRING, END };
 
-/* all map nodes have the following structure */
+/** all map nodes have the following structure 
+*/
 struct map_node {
 	struct list_head lnode;
 	struct hlist_node hnode;
@@ -42,12 +51,12 @@ struct map_node_stat {
 	stat stats;
 };
 
+/** This structure contains all information about a map.
+ * It is allocated once when _stp_map_new() is called.
+ */
 struct map_root {
-	/* type of the values stored in the array */
-	enum valtype type;
-
-	/* maximum number of elements allowed in the array. */
-	int maxnum;
+	enum valtype type;  /** type of the values stored in the array */
+	int maxnum; 	/** maximum number of elements allowed in the array. */
 
 	/* current number of elements */
 	int num;
@@ -81,6 +90,8 @@ struct map_root {
 	void *membuf;
 };
 
+/** All maps are of this type.
+ */
 typedef struct map_root *MAP;
 
 #define key1str(ptr) (ptr->n.key1.str)

@@ -1,7 +1,12 @@
-Sample probe.
+/** @dir shellsnoop
+Snoops on what commands are being run by shells.
 
-This is a translation of on an old dtr probe:
+This is a translation of on an old dtr probe. It demonstrates maps,
+lists, and how to use _stp_copy_argv_from_user() and  _stp_strncpy_from_user().
 
+Original dtr source:
+
+\verbatim
 # shellsnoop.probe - snoop shell execution as it occurs.
 # clone of dtrace shellsnoop example
 
@@ -64,4 +69,5 @@ probe sys_write:entry {
         }
     }
 }
-
+\endverbatim
+*/

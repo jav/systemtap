@@ -7,6 +7,10 @@
  * include in building a kernel module using kprobes.
  *
  * @section design_sec Design
+ * @subsection impl_sec Implementation
+ * The library is written in \c C and is really not a library but a collection of code
+ * That can be conditionally included in a modules. It will probably become a library later.
+ *
  * @subsection map_sec Maps (Associative Arrays)
  * Maps are implemented as hash lists. It is not expected that users will
  * attempt to collect so much data in kernel space that performance problems will require
@@ -26,26 +30,24 @@
  * to something nonzero.  This means that querying for the existance of a key is inexpensive because
  * no element is created, just a hash table lookup.
  *
+ * @subsection list_sec Lists
  * A list is a special map which has internally ascending long integer keys.  Adding a value to
- * a list does not require setting a key first. See _stp_list_add_str() and _stp_list_add_int64().
+ * a list does not require setting a key first. Create a list with _stp_map_new(). Add to it
+ * with _stp_list_add_str() and _stp_list_add_int64().  Clear it with _stp_list_clear().
  *
  * @section status_sec Status
- * Maps are implemented and tested. Histograms are not yet finished.
- * 
- * Copy_From_User functions are done.
- *
- * If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
+ * @li Maps are implemented and tested. Histograms are not yet finished.
+ * @li Copy_From_User functions are done.
+ * @li If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
  * I expect to implement a function to tell the system to either ignore it or unload the module and quit.
+ * @li Locking and per-cpu data are not yet implemented to be SMP-safe.  This is not yet necessary because the
+ * current kprobes implementation single-threads probes for us. 
  *
  * @section probe_sec Example Probes
  * 
  * Working sample probe code using the runtime is in runtime/probes.
- *
+ * <a href="dir_000000.html"> Browse probes.</a>
  * 
  * @section todo_sec ToDo 
  * \link todo Click Here for Complete List \endlink
- * The Runtime Library is not actually a library yet.  It is just a collection of functions 
- * included in the probe boilerplate. Maybe it should stay that way to allow the translator
- * more flexibility in what is included.
- *
  */

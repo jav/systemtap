@@ -1,3 +1,5 @@
+/* -*- linux-c -*- */
+
 enum errorcode { ERR_NONE=0, ERR_NO_MEM };
 enum errorcode _stp_error = ERR_NONE;
 
@@ -9,10 +11,10 @@ enum errorcode _stp_error = ERR_NONE;
  * @bug Currently uses kmalloc (GFP_ATOMIC).
  */
 
-inline void *_stp_alloc(size_t len)
+void *_stp_alloc(size_t len)
 {
 	void *ptr = kmalloc(len, GFP_ATOMIC);
-	if (ptr == NULL)
+	if (unlikely(ptr == NULL))
 		_stp_error = ERR_NO_MEM;
 	return ptr;
 }
@@ -25,10 +27,10 @@ inline void *_stp_alloc(size_t len)
  * @bug Currently uses kmalloc (GFP_ATOMIC).
  */
 
-inline void *_stp_calloc(size_t len)
+void *_stp_calloc(size_t len)
 {
 	void *ptr = _stp_alloc(len);
-	if (ptr)
+	if (likely(ptr))
 		memset(ptr, 0, len);
 	return ptr;
 }
@@ -40,10 +42,10 @@ inline void *_stp_calloc(size_t len)
  * @return a valid pointer on success or NULL on failure.
  */
 
-inline void *_stp_valloc(size_t len)
+void *_stp_valloc(size_t len)
 {
 	void *ptr = vmalloc(len);
-	if (ptr)
+	if (likely(ptr))
 		memset(ptr, 0, len);
 	else
 		_stp_error = ERR_NO_MEM;
@@ -54,9 +56,9 @@ inline void *_stp_valloc(size_t len)
  * @param ptr pointer to memory to free
  */
 
-inline void _stp_free(void *ptr)
+void _stp_free(void *ptr)
 {
-	if (ptr)
+	if (likely(ptr))
 		kfree(ptr);
 }
 
@@ -64,8 +66,8 @@ inline void _stp_free(void *ptr)
  * @param ptr pointer to memory to free
  */
 
-inline void _stp_vfree(void *ptr)
+void _stp_vfree(void *ptr)
 {
-	if (ptr)
+	if (likely(ptr))
 		vfree(ptr);
 }
