@@ -1,3 +1,20 @@
+2005-03-01  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx: Implement left-associativity for several types of
+	operators.  Add some more statement types.  Parse functions.
+	Be able to print tokens.  Simplify error generating functions.
+	Save tokens in all parse tree nodes.
+	* parse.h: Corresponding changes.
+	* staptree.cxx: Move tree-printing functions here.  Add many
+	new functions for symbol and type resolution.
+	* staptree.h: Corresponding changes.
+	* semtest.cxx: New semantic analysis pass & test driver.
+	* testsuite/sem*/*: New tests.
+	* parsetest.cxx: Separated parse test driver.
+	* testsuite/parse*/*: Adapt tests to parsetest driver.
+	* Makefile.am: Build semtest.  Run its tests.
+	* Makefile.in: Regenerated.
+
 2005-02-11  Frank Ch. Eigler  <fche@redhat.com>
 
 	* parse.cxx, parse.h: New files: parser.

@@ -3,8 +3,10 @@
 
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
-bin_PROGRAMS = stap
-stap_SOURCES = parse.cxx staptree.cxx
+bin_PROGRAMS = 
+noinst_PROGRAMS = parsetest semtest
+parsetest_SOURCES = parse.cxx staptree.cxx parsetest.cxx
+semtest_SOURCES = parse.cxx staptree.cxx semtest.cxx
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
@@ -18,7 +20,8 @@ stapdatadir = @datadir@/systemtap
 DEFPATH="\".$(PATH_SEPARATOR)$(stapdatadir)\""
 DEFS= -DDEFPATH=$(DEFPATH) -DHAVE_CONFIG_H
 
-pok=$(srcdir)/testsuite/parseok
-pko=$(srcdir)/testsuite/parseko
-TESTS = $(wildcard $(pok)/*.stp) $(wildcard $(pko)/*.stp)
-XFAIL_TESTS = $(wildcard $(pko)/*.stp)
+p=$(srcdir)/testsuite/parse
+s=$(srcdir)/testsuite/sem
+TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
+	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp)
+XFAIL_TESTS = $(wildcard $(p)ko/*.stp) $(wildcard $(s)ko/*.stp)

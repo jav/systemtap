@@ -1,0 +1,12 @@
+#! semtest
+
+global a, b; # types unknown
+
+function bar ()
+{
+  # no return statement
+}
+
+probe foo {
+  a = b;
+}

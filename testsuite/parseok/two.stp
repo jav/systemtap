@@ -1,4 +1,4 @@
-#! stap
+#! parsetest
 
 probe kernel:systemcall("foo") 
 {
@@ -6,7 +6,12 @@ probe kernel:systemcall("foo")
   if (global > 5) { global -- } else ;
 }
 
+function foo () {
+  delete array[4];
+  return 0;
+}
+
 probe systemtap:end
 {
-  function("value", 4+8);
+  foo ("value", 4+8);
 }

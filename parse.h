@@ -29,6 +29,8 @@ struct token
   std::string content;
 };
 
+std::ostream& operator << (std::ostream& o, const token& t);
+
 
 struct parse_error: public std::runtime_error
 {
@@ -80,10 +82,13 @@ private: // nonterminals
   probe* parse_probe ();
   probe_point_spec* parse_probe_point_spec ();
   literal* parse_literal ();
-  symbol* parse_global ();
+  void parse_global (vector<vardecl*>&);
+  functiondecl* parse_functiondecl ();
   block* parse_stmt_block ();
   statement* parse_statement ();
   if_statement* parse_if_statement ();
+  return_statement* parse_return_statement ();
+  delete_statement* parse_delete_statement ();
   expression* parse_expression ();
   expression* parse_assignment ();
   expression* parse_ternary ();
@@ -99,4 +104,5 @@ private: // nonterminals
   expression* parse_crement ();
   expression* parse_value ();
   expression* parse_symbol ();
+  symbol* parse_symbol_plain ();
 };

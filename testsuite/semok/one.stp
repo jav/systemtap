@@ -1,0 +1,25 @@
+#! semtest
+
+# these will ultimately be somehow associated with "providers"
+# and have a syntax of their own
+global kernel_jiffies, kernel_current_comm;
+
+function kernel_netlink(a, b) {
+  # this should be a builtin function
+  return 0
+}
+
+function stamp (syscall)
+{
+  kernel_netlink (4, kernel_jiffies . " " .
+		     kernel_current_comm . " " . syscall);
+  return 0
+}
+
+# probe kernel:syscall:read = kernel:function("sys_read");
+
+
+probe kernel:syscall:read
+{ 
+  stamp ("read");
+}

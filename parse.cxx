@@ -29,6 +29,33 @@ parser::~parser()
 }
 
 
+ostream&
+operator << (ostream& o, const token& t)
+{
+  o << (t.type == tok_junk ? "junk" :
+        t.type == tok_identifier ? "identifier" :
+        t.type == tok_operator ? "operator" :
+        t.type == tok_string ? "string" :
+        t.type == tok_number ? "number" :
+        "unknown token");
+
+  o << " '";
+  for (unsigned i=0; i<t.content.length(); i++)
+    {
+      char c = t.content[i];
+      o << (isprint (c) ? c : '?');
+    }
+  o << "'";
+
+  o << " at " 
+    << t.location.file << ":" 
+    << t.location.line << ":"
+    << t.location.column;
+
+  return o;
+}
+
+
 void 
 parser::print_error  (const parse_error &pe)
 {
@@ -36,27 +63,9 @@ parser::print_error  (const parse_error &pe)
 
   const token* t = last_t;
   if (t)
-    {
-      cerr << "\tsaw "
-	   << (t->type == tok_junk ? "junk" :
-	       t->type == tok_identifier ? "identifier" :
-	       t->type == tok_operator ? "operator" :
-	       t->type == tok_string ? "string" :
-	       t->type == tok_number ? "number" :
-	       "unknown token") << " '";
-      for (unsigned i=0; i<t->content.length(); i++)
-	{
-	  char c = t->content[i];
-	  cerr << (isprint (c) ? c : '?');
-	}
-      cerr << "'"
-	   << " at " 
-	   << t->location.file << ":" 
-	   << t->location.line << ":"
-	   << t->location.column << endl;
-    }
+    cerr << "\tsaw: " << *t << endl;
   else
-    cerr << "\tsaw " << input_name << " EOF" << endl;
+    cerr << "\tsaw: " << input_name << " EOF" << endl;
 
   // XXX: make it possible to print the last input line,
   // so as to line up an arrow with the specific error column
@@ -237,6 +246,7 @@ lexer::scan ()
           (c == '<' && c2 == '<') ||
           (c == '+' && c2 == '=') ||
           (c == '-' && c2 == '=') ||
+          (c == ':' && c2 == ':') ||
 	  false) // XXX: etc.
         n->content.push_back((char) input_get ());
 
@@ -259,27 +269,36 @@ parser::parse ()
 {
   stapfile* f = new stapfile;
   f->name = input_name;
-  
+
+  bool empty = true;
+
   while (1)
     {
       try
 	{
 	  const token* t = peek ();
-	  if (! t) // EOF
+	  if (! t) // nice clean EOF
 	    break;
 
+          empty = false;
 	  if (t->type == tok_identifier && t->content == "probe")
 	    {
-	      next (); // advance
+	      next ();
 	      f->probes.push_back (parse_probe ());
 	    }
 	  else if (t->type == tok_identifier && t->content == "global")
 	    {
-	      next (); // advance
-	      f->globals.push_back (parse_global ());
+	      next ();
+              parse_global (f->globals);
+	    }
+	  else if (t->type == tok_identifier && t->content == "function")
+	    {
+	      next ();
+	      f->functions.push_back (parse_functiondecl ());
+              // XXX: check for duplicate function decl
 	    }
 	  else
-	    throw parse_error ("expected 'probe' or 'global'");
+	    throw parse_error ("expected 'probe', 'global', or 'function'");
 	}
       catch (parse_error& pe)
 	{
@@ -297,11 +316,17 @@ parser::parse ()
 	}
     }
 
-  if (num_errors > 0)
+  if (empty)
+    {
+      cerr << "Input file '" << input_name << "' is empty or missing." << endl;
+      delete f;
+      return 0;
+    }
+  else if (num_errors > 0)
     {
       cerr << num_errors << " parse error(s)." << endl;
       delete f;
-      f = 0;
+      return 0;
     }
   
   return f;
@@ -317,12 +342,16 @@ parser::parse_probe ()
       const token *t = peek ();
       if (t && t->type == tok_identifier)
 	{
+          p->tok = t;
 	  p->location.push_back (parse_probe_point_spec ());
 
-	  t = next ();
-	  if (t->type == tok_operator && t->content == ":")
-	    continue;
-	  else if (t->type == tok_operator && t->content == "{")
+	  t = peek ();
+	  if (t && t->type == tok_operator && t->content == ":")
+	    {
+	      next ();
+	      continue;
+	    }
+	  else if (t && t->type == tok_operator && t->content == "{")
 	    break;
 	  else
             throw parse_error ("expected ':' or '{'");
@@ -339,16 +368,21 @@ parser::parse_probe ()
 
 
 block*
-parser::parse_stmt_block ()  // "{" already consumed
+parser::parse_stmt_block ()
 {
   block* pb = new block;
 
+  const token* t = next ();
+  if (! (t->type == tok_operator && t->content == "{"))
+    throw parse_error ("expected '{'");
+
+  pb->tok = t;
   while (1)
     {
       try
 	{
           // handle empty blocks
-          const token* t = peek ();
+          t = peek ();
           if (t && t->type == tok_operator && t->content == "}")
             {
               next ();
@@ -397,23 +431,22 @@ parser::parse_statement ()
       return new null_statement ();
     }
   else if (t && t->type == tok_operator && t->content == "{")  
-    {
-      next ();
-      return parse_stmt_block ();
-    }
+    return parse_stmt_block ();
   else if (t && t->type == tok_identifier && t->content == "if")
-    {
-      next ();
-      return parse_if_statement ();
-    }
+    return parse_if_statement ();
+  else if (t && t->type == tok_identifier && t->content == "return")
+    return parse_return_statement ();
+  else if (t && t->type == tok_identifier && t->content == "delete")
+    return parse_delete_statement ();
   // XXX: other control constructs ("for", "delete", "while", "do",
-  // "break", "continue", "exit")
+  // "break", "continue", "exit", "return")
   else if (t && (t->type == tok_operator || // expressions are flexible
                  t->type == tok_identifier ||
                  t->type == tok_number ||
                  t->type == tok_string))
     {
       expr_statement *es = new expr_statement;
+      es->tok = t;
       es->value = parse_expression ();
       return es;
     }
@@ -422,10 +455,71 @@ parser::parse_statement ()
 }
 
 
-symbol*
-parser::parse_global ()
+void
+parser::parse_global (vector <vardecl*>& globals)
 {
-  throw parse_error ("cannot parse global block yet");
+  while (1)
+    {
+      const token* t = next ();
+      if (! (t->type == tok_identifier))
+        throw parse_error ("expected identifier");
+
+      vardecl* d = new vardecl;
+      d->name = t->content;
+      d->tok = t;
+      globals.push_back (d); // XXX: check for duplicates
+
+      t = next ();
+      if (t->type == tok_operator && t->content == ";")
+        break;
+      else if (t->type == tok_operator && t->content == ",")
+        continue;
+      else
+        throw parse_error ("expected ';' or ','");
+    }
+}
+
+
+functiondecl*
+parser::parse_functiondecl ()
+{
+  functiondecl *fd = new functiondecl ();
+
+  const token* t = next ();
+  if (! (t->type == tok_identifier))
+    throw parse_error ("expected identifier");
+  fd->name = t->content;
+  fd->tok = t;
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == "("))
+    throw parse_error ("expected '('");
+
+  while (1)
+    {
+      t = next ();
+
+      // permit zero-argument fuctions
+      if (t->type == tok_operator && t->content == ")")
+        break;
+      else if (! (t->type == tok_identifier))
+	throw parse_error ("expected identifier");
+      vardecl* vd = new vardecl;
+      vd->name = t->content;
+      vd->tok = t;
+      fd->formal_args.push_back (vd);
+
+      t = next ();
+      if (t->type == tok_operator && t->content == ")")
+	break;
+      if (t->type == tok_operator && t->content == ",")
+	continue;
+      else
+	throw parse_error ("expected ',' or ')'");
+    }
+
+  fd->body = parse_stmt_block ();
+  return fd;
 }
 
 
@@ -438,6 +532,7 @@ parser::parse_probe_point_spec ()
   if (t->type != tok_identifier)
     throw parse_error ("expected identifier");
   pl->functor = t->content;
+  pl->tok = t;
 
   t = peek ();
   if (t && t->type == tok_operator && t->content == "(")
@@ -457,12 +552,16 @@ literal*
 parser::parse_literal ()
 {
   const token* t = next ();
+  literal* l;
   if (t->type == tok_string)
-    return new literal_string (t->content);
+    l = new literal_string (t->content);
   else if (t->type == tok_number)
-    return new literal_number (atol (t->content.c_str ()));
+    l = new literal_number (atol (t->content.c_str ()));
   else
     throw parse_error ("expected literal string or number");
+
+  l->tok = t;
+  return l;
 }
 
 
@@ -470,10 +569,15 @@ if_statement*
 parser::parse_if_statement ()
 {
   const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "if"))
+    throw parse_error ("expected 'if'");
+  if_statement* s = new if_statement;
+  s->tok = t;
+
+  t = next ();
   if (! (t->type == tok_operator && t->content == "("))
     throw parse_error ("expected '('");
 
-  if_statement* s = new if_statement;
   s->condition = parse_expression ();
 
   t = next ();
@@ -489,6 +593,32 @@ parser::parse_if_statement ()
       s->elseblock = parse_statement ();
     }
 
+  return s;
+}
+
+
+return_statement*
+parser::parse_return_statement ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "return"))
+    throw parse_error ("expected 'return'");
+  return_statement* s = new return_statement;
+  s->tok = t;
+  s->value = parse_expression ();
+  return s;
+}
+
+
+delete_statement*
+parser::parse_delete_statement ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "delete"))
+    throw parse_error ("expected 'delete'");
+  delete_statement* s = new delete_statement;
+  s->tok = t;
+  s->value = parse_expression ();
   return s;
 }
 
@@ -511,21 +641,24 @@ parser::parse_assignment ()
   expression* op1 = parse_ternary ();
 
   const token* t = peek ();
-  if (t && t->type == tok_operator 
+  // left-associative operators
+  while (t && t->type == tok_operator 
       && (t->content == "=" ||
 	  t->content == "<<" ||
 	  t->content == "+=" ||
 	  false)) // XXX: add /= etc.
     {
       assignment* e = new assignment;
-      e->lvalue = op1;
+      e->left = op1;
       e->op = t->content;
+      e->tok = t;
       next ();
-      e->rvalue = parse_expression ();
-      return e;
+      e->right = parse_ternary ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -537,16 +670,17 @@ parser::parse_ternary ()
   const token* t = peek ();
   if (t && t->type == tok_operator && t->content == "?")
     {
-      next ();
       ternary_expression* e = new ternary_expression;
+      e->tok = t;
       e->cond = op1;
-      e->truevalue = parse_expression ();
+      next ();
+      e->truevalue = parse_expression (); // XXX
 
       t = next ();
       if (! (t->type == tok_operator && t->content == ":"))
         throw parse_error ("expected ':'");
 
-      e->falsevalue = parse_expression ();
+      e->falsevalue = parse_expression (); // XXX
       return e;
     }
   else
@@ -560,16 +694,19 @@ parser::parse_logical_or ()
   expression* op1 = parse_logical_and ();
   
   const token* t = peek ();
-  if (t && t->type == tok_operator && t->content == "||")
+  while (t && t->type == tok_operator && t->content == "||")
     {
-      next ();
       logical_or_expr* e = new logical_or_expr;
+      e->tok = t;
+      e->op = t->content;
       e->left = op1;
-      e->right = parse_expression ();
-      return e;
+      next ();
+      e->right = parse_logical_and ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -579,16 +716,19 @@ parser::parse_logical_and ()
   expression* op1 = parse_array_in ();
 
   const token* t = peek ();
-  if (t && t->type == tok_operator && t->content == "&&")
+  while (t && t->type == tok_operator && t->content == "&&")
     {
-      next ();
       logical_and_expr *e = new logical_and_expr;
       e->left = op1;
-      e->right = parse_expression ();
-      return e;
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_array_in ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -600,10 +740,12 @@ parser::parse_array_in ()
   const token* t = peek ();
   if (t && t->type == tok_identifier && t->content == "in")
     {
-      next ();
       array_in *e = new array_in;
       e->left = op1;
-      e->right = parse_symbol (); // XXX: restrict to identifiers
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_symbol_plain ();
       return e;
     }
   else
@@ -617,18 +759,20 @@ parser::parse_comparison ()
   expression* op1 = parse_concatenation ();
 
   const token* t = peek ();
-  if (t && t->type == tok_operator 
+  while (t && t->type == tok_operator 
       && (t->content == ">" || t->content == "==")) // xxx: more
     {
       comparison* e = new comparison;
       e->left = op1;
       e->op = t->content;
+      e->tok = t;
       next ();
-      e->right = parse_expression ();
-      return e;
+      e->right = parse_concatenation ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -640,17 +784,19 @@ parser::parse_concatenation ()
   const token* t = peek ();
   // XXX: the actual awk string-concatenation operator is *whitespace*.
   // I don't know how to easily to model that here.
-  if (t && t->type == tok_operator && t->content == ".")
+  while (t && t->type == tok_operator && t->content == ".")
     {
       concatenation* e = new concatenation;
       e->left = op1;
       e->op = t->content;
+      e->tok = t;
       next ();
-      e->right = parse_expression ();
-      return e;
+      e->right = parse_additive ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -660,18 +806,20 @@ parser::parse_additive ()
   expression* op1 = parse_multiplicative ();
 
   const token* t = peek ();
-  if (t && t->type == tok_operator 
+  while (t && t->type == tok_operator 
       && (t->content == "+" || t->content == "-"))
     {
       binary_expression* e = new binary_expression;
       e->op = t->content;
       e->left = op1;
+      e->tok = t;
       next ();
-      e->right = parse_expression ();
-      return e;
+      e->right = parse_multiplicative ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -681,18 +829,20 @@ parser::parse_multiplicative ()
   expression* op1 = parse_unary ();
 
   const token* t = peek ();
-  if (t && t->type == tok_operator 
+  while (t && t->type == tok_operator 
       && (t->content == "*" || t->content == "/" || t->content == "%"))
     {
       binary_expression* e = new binary_expression;
       e->op = t->content;
       e->left = op1;
+      e->tok = t;
       next ();
-      e->right = parse_expression ();
-      return e;
+      e->right = parse_unary ();
+      op1 = e;
+      t = peek ();
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -705,6 +855,7 @@ parser::parse_unary ()
     {
       unary_expression* e = new unary_expression;
       e->op = t->content;
+      e->tok = t;
       next ();
       e->operand = parse_expression ();
       return e;
@@ -720,18 +871,20 @@ parser::parse_exponentiation ()
   expression* op1 = parse_crement ();
 
   const token* t = peek ();
+  // right associative: no loop
   if (t && t->type == tok_operator 
       && (t->content == "^" || t->content == "**"))
     {
       exponentiation* e = new exponentiation;
       e->op = t->content;
       e->left = op1;
+      e->tok = t;
       next ();
       e->right = parse_expression ();
-      return e;
+      op1 = e;
     }
-  else
-    return op1;
+
+  return op1;
 }
 
 
@@ -744,6 +897,7 @@ parser::parse_crement () // as in "increment" / "decrement"
     {
       pre_crement* e = new pre_crement;
       e->op = t->content;
+      e->tok = t;
       next ();
       e->operand = parse_value ();
       return e;
@@ -758,6 +912,7 @@ parser::parse_crement () // as in "increment" / "decrement"
     {
       post_crement* e = new post_crement;
       e->op = t->content;
+      e->tok = t;
       next ();
       e->operand = op1;
       return e;
@@ -796,14 +951,16 @@ parser::parse_symbol () // var, var[index], func(parms)
   const token* t = next ();
   if (t->type != tok_identifier)
     throw parse_error ("expected identifier");
+  const token* t2 = t;
   string name = t->content;
-
+  
   t = peek ();
   if (t && t->type == tok_operator && t->content == "[") // array
     {
       next ();
       struct arrayindex* ai = new arrayindex;
-      ai->name = name;
+      ai->tok = t2;
+      ai->base = name;
       while (1)
         {
           ai->indexes.push_back (parse_expression ());
@@ -821,7 +978,8 @@ parser::parse_symbol () // var, var[index], func(parms)
     {
       next ();
       struct functioncall* f = new functioncall;
-      f->name = name;
+      f->tok = t2;
+      f->function = name;
       while (1)
         {
           f->args.push_back (parse_expression ());
@@ -837,8 +995,22 @@ parser::parse_symbol () // var, var[index], func(parms)
     }
   else
     {
-      symbol *s = new symbol;
-      s->name = name;
-      return s;
+      symbol* sym = new symbol;
+      sym->name = name;
+      sym->tok = t2;
+      return sym;
     }
+}
+
+
+symbol*
+parser::parse_symbol_plain () // var only
+{
+  symbol *s = new symbol;
+  const token* t = next ();
+  if (t->type != tok_identifier)
+    throw parse_error ("expected identifier");
+  s->name = t->content;
+  s->tok = t;
+  return s;
 }

@@ -1,0 +1,13 @@
+#! semtest
+
+global bar, baz;
+
+function koo (p) {
+  baz [p, "p", p] ++;
+  return p + 2; 
+} 
+
+probe foo {
+  bar = 2 + koo (4);
+  foo = bar + koo;
+}

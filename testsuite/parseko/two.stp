@@ -1,4 +1,4 @@
-#! stap
+#! parsetest
 probe foo {
    a +
 }

@@ -10,46 +10,53 @@
 using namespace std;
 
 
-struct source_location
-{
-  // source co-ordinates
-  string lexeme;
-  string source_file;
-  unsigned source_line;
-};
+enum exp_type
+  {
+    pe_unknown,
+    pe_long,
+    pe_string, 
+    pe_stats 
+  };
 
+ostream& operator << (ostream& o, const exp_type& e);
 
+struct token;
+struct symresolution_info;
+struct typeresolution_info;
 struct expression
 {
-  enum { pe_void, pe_unknown, pe_long, pe_string } type;
-  source_location loc;
+  exp_type type;
+  const token* tok;
   virtual void print (ostream& o) = 0;
+  expression ();
   virtual ~expression ();
+  virtual void resolve_symbols (symresolution_info& r) = 0;
+  virtual void resolve_types (typeresolution_info& r, exp_type t) = 0;
 };
 
+ostream& operator << (ostream& o, expression& k);
 
-inline ostream& operator << (ostream& o, expression& k)
-{
-  k.print (o);
-  return o;
-}
 
 struct literal: public expression
 {
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
+
 
 struct literal_string: public literal
 {
   string value;
-  literal_string (const string& v): value (v) {}
-  void print (ostream& o) { o << '"' << value << '"'; }
+  literal_string (const string& v);
+  void print (ostream& o);
 };
+
 
 struct literal_number: public literal
 {
   long value;
-  literal_number (long v): value(v) {}
-  void print (ostream& o) { o << value; }
+  literal_number (long v);
+  void print (ostream& o);
 };
 
 
@@ -58,48 +65,57 @@ struct binary_expression: public expression
   expression* left;
   string op;
   expression* right;
-  void print (ostream& o) { o << '(' << *left << ")" 
-                                 << op 
-                                 << '(' << *right << ")"; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
+
 
 struct unary_expression: public expression
 {
   string op;
   expression* operand;
-  void print (ostream& o) { o << op << '(' << *operand << ")"; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
+
 
 struct pre_crement: public unary_expression
 {
 };
 
+
 struct post_crement: public unary_expression
 {
-  void print (ostream& o) { o << '(' << *operand << ")" << op; }
-                                 
-
+  void print (ostream& o);
 };
+
 
 struct logical_or_expr: public binary_expression
 {
 };
 
+
 struct logical_and_expr: public binary_expression
 {
 };
+
 
 struct array_in: public binary_expression
 {
 };
 
+
 struct comparison: public binary_expression
 {
 };
 
+
 struct concatenation: public binary_expression
 {
 };
+
 
 struct exponentiation: public binary_expression
 {
@@ -111,70 +127,160 @@ struct ternary_expression: public expression
   expression* cond;
   expression* truevalue;
   expression* falsevalue;
-  void print (ostream& o) { o << "(" << *cond << ") ? ("
-                                 << *truevalue << ") : ("
-                                 << *falsevalue << ")"; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
 
 
+struct assignment: public binary_expression
+{
+};
+
+
+class vardecl;
 struct symbol: public expression
 {
   string name;
-  void print (ostream& o) { o << name; }
+  vardecl *referent;
+  symbol ();
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
 
-struct arrayindex: public symbol
+
+struct arrayindex: public expression
 {
+  string base;
   vector<expression*> indexes;
-  void print (ostream& o) 
-  {
-    symbol::print(o);
-    o << "[";
-    for (unsigned i=0; i<indexes.size(); i++)
-      o << (i>0 ? ", " : "") << *indexes[i];
-    o << "]";
-  }  
+  vardecl *referent;
+  arrayindex ();
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
 
-struct functioncall: public symbol
+
+
+class functiondecl;
+struct functioncall: public expression
 {
+  string function;
   vector<expression*> args;
-  void print (ostream& o) 
-  {
-    symbol::print(o);
-    o << "(";
-    for (unsigned i=0; i<args.size(); i++)
-      o << (i>0 ? ", " : "") << *args[i];
-    o << ")";
-  }  
+  functiondecl *referent;
+  functioncall ();
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r, exp_type t);
 };
+
+
+// ------------------------------------------------------------------------
+
+
+struct stapfile;
+struct symboldecl;
+struct symresolution_info
+{
+  vector<vardecl*>& locals; // includes incoming function parameters
+  vector<vardecl*>& globals;
+  vector<stapfile*>& files;
+  stapfile* current_file;
+  functiondecl* current_function;
+
+  symresolution_info (vector<vardecl*>& l,
+                      vector<vardecl*>& g,
+                      vector<stapfile*>& f,
+                      stapfile* cfil,
+                      functiondecl* cfun);
+  symresolution_info (vector<vardecl*>& l,
+                      vector<vardecl*>& g,
+                      vector<stapfile*>& f,
+                      stapfile* cfil);
+
+  vardecl* find (const string& name);
+
+  void unresolved (const token* tok);
+  unsigned num_unresolved;
+};
+
+
+struct typeresolution_info
+{
+  unsigned num_newly_resolved;
+  unsigned num_still_unresolved;
+  bool assert_resolvability;
+  functiondecl* current_function;
+
+  void mismatch (const token* tok, exp_type t1,
+                 exp_type t2);
+  void unresolved (const token* tok);
+  void resolved (const token* tok, exp_type t);
+  void invalid (const token* tok, exp_type t);
+};
+
+
+struct symboldecl // unique object per (possibly implicit) 
+		  // symbol declaration
+{
+  const token* tok;
+  string name;
+  exp_type type;
+  symboldecl ();
+  virtual ~symboldecl ();
+  virtual void print (ostream &o) = 0;
+  virtual void printsig (ostream &o) = 0;
+};
+
+
+ostream& operator << (ostream& o, symboldecl& k);
+
+
+struct vardecl: public symboldecl
+{
+  void print (ostream& o);
+  void printsig (ostream& o);
+  vardecl ();
+  vardecl (unsigned arity);
+  vector<exp_type> index_types; // for arrays only
+};
+
+
+struct block;
+struct functiondecl: public symboldecl
+{
+  vector<vardecl*> formal_args;
+  vector<vardecl*> locals;
+  block* body;
+  functiondecl ();
+  void print (ostream& o);
+  void printsig (ostream& o);
+};
+
+
+// ------------------------------------------------------------------------
 
 
 struct statement
 {
-  source_location loc;
   virtual void print (ostream& o) = 0;
+  const token* tok;
+  statement ();
   virtual ~statement ();
+  virtual void resolve_symbols (symresolution_info& r) = 0;
+  virtual void resolve_types (typeresolution_info& r) = 0;
 };
 
-
-inline ostream& operator << (ostream& o, statement& k)
-{
-  k.print (o);
-  return o;
-}
+ostream& operator << (ostream& o, statement& k);
 
 
 struct block: public statement
 {
   vector<statement*> statements;
-  void print (ostream& o)
-  {
-    o << "{" << endl;
-    for (unsigned i=0; i<statements.size(); i++)
-      o << *statements [i] << ";" << endl;
-    o << "}" << endl;
-  }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r);
 };
 
 struct for_loop: public statement
@@ -183,54 +289,60 @@ struct for_loop: public statement
   expression* cond;
   expression* incr;
   statement* block;
-  void print (ostream& o)
-  { o << "<for_loop>" << endl; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r);
 };
+
 
 struct null_statement: public statement
 {
-  void print (ostream& o)
-  { o << ";"; }
-
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r) {}
+  void resolve_types (typeresolution_info& r) {}
 };
 
-struct assignment: public expression
-{
-  expression* lvalue; // XXX: consider type for lvalues; see parse_variable ()
-  string op;
-  expression* rvalue;
-
-  void print (ostream& o)
-  { o << *lvalue << " " << op << " " << *rvalue; }
-};
 
 struct expr_statement: public statement
 {
   expression* value;  // executed for side-effects
-  void print (ostream& o)
-  { o << *value; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r);
 };
+
 
 struct if_statement: public statement
 {
   expression* condition;
   statement* thenblock;
   statement* elseblock;
-  void print (ostream& o)
-  { o << "if (" << *condition << ") " << endl
-      << *thenblock << endl;
-  if (elseblock)
-    o << "else " << *elseblock << endl; }
+  void print (ostream& o);
+  void resolve_symbols (symresolution_info& r);
+  void resolve_types (typeresolution_info& r);
 };
 
-struct probe;
 
+struct return_statement: public expr_statement
+{
+  void print (ostream& o);
+  void resolve_types (typeresolution_info& r);
+};
+
+
+struct delete_statement: public expr_statement
+{
+  void print (ostream& o);
+};
+
+
+struct probe;
 struct stapfile
 {
   string name;
   vector<probe*> probes;
-  vector<symbol*> globals;
-
+  vector<functiondecl*> functions;
+  vector<vardecl*> globals;
   void print (ostream& o);
 };
 
@@ -238,41 +350,17 @@ struct stapfile
 struct probe_point_spec // inherit from something or other?
 {
   string functor;
+  const token* tok;
   literal* arg;
-
-  void print (ostream& o)
-  { o << functor;
-  if (arg)
-    o << "(" << *arg << ")";
-  }
+  void print (ostream& o);
 };
 
 
 struct probe
 {
-  // map<string,psymbol*> locals;
   vector<probe_point_spec*> location;
+  const token* tok;
   block* body;
-
-  void print (ostream& o)
-  { o << "probe " << endl;
-  for(unsigned i=0; i<location.size(); i++)
-    {
-      o << (i>0 ? ":" : "");
-      location[i]->print (o);
-    }
-  o << endl;
-  o << *body;
-  }
+  vector<vardecl*> locals;
+  void print (ostream& o);
 };
-
-
-
-inline void stapfile::print (ostream& o)
-{ o << "# file " << name << endl;
-  for(unsigned i=0; i<probes.size(); i++)
-    {
-      probes[i]->print (o);
-      o << endl;
-    }
-  }
