@@ -1,0 +1,6 @@
+2005-02-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx, parse.h: New files: parser.
+	* staptree.h: New file: semantic object declarations.
+	* staptree.cxx: New dummy driver file.
+

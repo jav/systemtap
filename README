@@ -1,0 +1,10 @@
+systemtap prototype #3
+
+- demonstrates partial parsing of hypothetical systemtap script
+  language using hand-written simpe LL(1) recursive-descent parser
+  and similar little lexer: parse.cxx, parse.h
+- baby grammar examples under testsuite/parseok
+- only "probe" top-level construct is parsed; "global" missing;
+  no provider-oriented syntax provided yet
+- use autotools-style configure; make; make check
+- to see parse tree dump, use stdin: echo 'SCRIPT FRAGMENT' | ./stap

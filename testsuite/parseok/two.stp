@@ -1,0 +1,12 @@
+#! stap
+
+probe kernel:systemcall("foo") 
+{
+  array[idx] << value;
+  if (global > 5) { global -- } else ;
+}
+
+probe systemtap:end
+{
+  function("value", 4+8);
+}

@@ -1,0 +1,4 @@
+#! stap
+probe foo {
+   a +
+}
