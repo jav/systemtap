@@ -1,0 +1,6 @@
+#! semtest
+
+probe foo {
+  baz[1] = 4;
+  baz["1"] = 5;   # inconsistent index types
+}

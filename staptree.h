@@ -32,6 +32,7 @@ struct expression
   virtual ~expression ();
   virtual void resolve_symbols (symresolution_info& r) = 0;
   virtual void resolve_types (typeresolution_info& r, exp_type t) = 0;
+  virtual bool is_lvalue () = 0;
 };
 
 ostream& operator << (ostream& o, expression& k);
@@ -41,6 +42,7 @@ struct literal: public expression
 {
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return false; }
 };
 
 
@@ -68,6 +70,7 @@ struct binary_expression: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return false; }
 };
 
 
@@ -78,16 +81,19 @@ struct unary_expression: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return false; }
 };
 
 
 struct pre_crement: public unary_expression
 {
+  bool is_lvalue ();
 };
 
 
 struct post_crement: public unary_expression
 {
+  bool is_lvalue ();
   void print (ostream& o);
 };
 
@@ -130,11 +136,13 @@ struct ternary_expression: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return false; }
 };
 
 
 struct assignment: public binary_expression
 {
+  bool is_lvalue ();
 };
 
 
@@ -147,6 +155,7 @@ struct symbol: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return true; }
 };
 
 
@@ -159,8 +168,8 @@ struct arrayindex: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return true; }
 };
-
 
 
 class functiondecl;
@@ -173,6 +182,7 @@ struct functioncall: public expression
   void print (ostream& o);
   void resolve_symbols (symresolution_info& r);
   void resolve_types (typeresolution_info& r, exp_type t);
+  bool is_lvalue () { return false; }
 };
 
 

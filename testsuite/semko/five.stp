@@ -1,0 +1,10 @@
+#! semtest
+
+function bar ()
+{
+  return 0
+}
+
+probe foo {
+  bar (1, 2)  # arg count mismatch
+}

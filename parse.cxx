@@ -648,6 +648,8 @@ parser::parse_assignment ()
 	  t->content == "+=" ||
 	  false)) // XXX: add /= etc.
     {
+      if (op1->is_lvalue () == 0)
+        throw parse_error ("assignment not to lvalue");
       assignment* e = new assignment;
       e->left = op1;
       e->op = t->content;

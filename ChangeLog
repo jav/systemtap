@@ -1,3 +1,13 @@
+2005-03-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx (parse_assignment): Assert lvalueness of left
+	operand.
+	* staptree.h (expression): Add is_lvalue member.
+	* staptree.cxx (functioncall::resolve_types): Don't crash on
+	formal-vs-actual argument count mismatch.
+	(*): Add some is_lvalue stub functions. 	
+	* testsuite/*: Some new tests.
+
 2005-03-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	* parse.cxx: Implement left-associativity for several types of

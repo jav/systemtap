@@ -1,0 +1,5 @@
+#! semtest
+
+probe foo {
+  stats << "string"  # stats only collect numbers
+}

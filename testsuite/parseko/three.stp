@@ -1,0 +1,5 @@
+#! semtest
+
+probe foo {
+  1 + 2 = 3;  # bad lvalue
+}

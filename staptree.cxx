@@ -753,7 +753,7 @@ functioncall::resolve_types (typeresolution_info& r, exp_type t)
   // now resolve the function parameters
   if (args.size() != referent->formal_args.size())
     r.unresolved (tok);
-  for (unsigned i=0; i<args.size(); i++)
+  else for (unsigned i=0; i<args.size(); i++)
     {
       expression* e = args[i];
       exp_type& ft = referent->formal_args[i]->type;
@@ -901,3 +901,29 @@ typeresolution_info::resolved (const token* tok, exp_type t)
   num_newly_resolved ++;
   // cerr << "resolved " << *tok << " type " << t << endl;
 }
+
+
+// ------------------------------------------------------------------------
+// semantic processing: lvalue checking
+
+bool
+pre_crement::is_lvalue ()
+{
+  return operand->is_lvalue ();
+}
+
+
+bool
+post_crement::is_lvalue ()
+{
+  return operand->is_lvalue ();
+}
+
+
+bool
+assignment::is_lvalue ()
+{
+  return left->is_lvalue ();
+}
+
+
