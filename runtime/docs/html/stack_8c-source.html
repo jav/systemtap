@@ -19,7 +19,7 @@
 00012         <span class="keywordtype">char</span> *delim = <span class="stringliteral">":"</span>; 
 00013         <span class="keywordtype">char</span> namebuf[128];
 00014         
-00015         symname = _stp_kallsyms_lookup(address, &amp;symsize, &amp;offset, &amp;modname, namebuf); 
+00015         symname = <a class="code" href="io_8c.html#a1">_stp_kallsyms_lookup</a>(address, &amp;symsize, &amp;offset, &amp;modname, namebuf); 
 00016         <span class="keywordflow">if</span> (!symname) 
 00017                 return printk("[&lt;%016lx&gt;]", address);
 00018         if (!modname)
@@ -180,5 +180,5 @@
 00173 <span class="stringliteral">}</span>
 00174 <span class="stringliteral">#endif</span>
 </pre></div><hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

@@ -17,9 +17,9 @@
 00008 <span class="preprocessor"></span><span class="preprocessor">#define BUCKETS 16              </span><span class="comment">/* largest histogram width */</span>
 00009 
 00010 <span class="preprocessor">#include "runtime.h"</span>
-00011 <span class="preprocessor">#include "io.c"</span>
+00011 <span class="preprocessor">#include "<a class="code" href="io_8c.html">io.c</a>"</span>
 00012 <span class="preprocessor">#include "<a class="code" href="map_8c.html">map.c</a>"</span>
-00013 <span class="preprocessor">#include "probes.c"</span>
+00013 <span class="preprocessor">#include "<a class="code" href="probes_8c.html">probes.c</a>"</span>
 00014 
 00015 MODULE_DESCRIPTION(<span class="stringliteral">"SystemTap probe: where_func"</span>);
 00016 MODULE_AUTHOR(<span class="stringliteral">"Will Cohen and Martin Hunt"</span>);
@@ -35,7 +35,7 @@
 00026 
 00027 <span class="keyword">static</span> <span class="keywordtype">int</span> inst_funct(<span class="keyword">struct</span> kprobe *p, <span class="keyword">struct</span> pt_regs *regs)
 00028 {
-00029         <span class="keywordtype">long</span> ret_addr = cur_ret_addr(regs);
+00029         <span class="keywordtype">long</span> ret_addr = <a class="code" href="io_8c.html#a8">cur_ret_addr</a>(regs);
 00030         ++count_funct;
 00031         <a class="code" href="map_8c.html#a14">_stp_map_key_long</a>(funct_locations, ret_addr);
 00032         <a class="code" href="map_8c.html#a18">_stp_map_add_int64</a>(funct_locations, 1);
@@ -67,18 +67,18 @@
 00058 
 00059 <span class="keywordtype">void</span> cleanup_module(<span class="keywordtype">void</span>)
 00060 {
-00061         <span class="keyword">struct </span>map_node_int64 *ptr;
+00061         <span class="keyword">struct </span><a class="code" href="structmap__node__int64.html">map_node_int64</a> *ptr;
 00062 
-00063         _stp_unregister_kprobes (kp, MAX_KPROBES);
+00063         <a class="code" href="probes_8c.html#a3">_stp_unregister_kprobes</a> (kp, MAX_KPROBES);
 00064 
-00065         dlog(<span class="stringliteral">"%s() called %d times.\n"</span>, funct_name, count_funct);
-00066         dlog(<span class="stringliteral">"NUM\tCaller Addr\tCaller Name\n"</span>, funct_name);
+00065         <a class="code" href="io_8c.html#a4">dlog</a>(<span class="stringliteral">"%s() called %d times.\n"</span>, funct_name, count_funct);
+00066         <a class="code" href="io_8c.html#a4">dlog</a>(<span class="stringliteral">"NUM\tCaller Addr\tCaller Name\n"</span>, funct_name);
 00067 
 00068         <span class="comment">/* now walk the hash table and print out all the information */</span>
 00069         <a class="code" href="map_8h.html#a8">foreach</a>(funct_locations, ptr) {
-00070                 _stp_print_buf_init();
-00071                 _stp_print_symbol(<span class="stringliteral">"%s\n"</span>, key1int(ptr));
-00072                 dlog(<span class="stringliteral">"%lld\t0x%p\t(%s)\n"</span>, ptr-&gt;val, key1int(ptr), _stp_pbuf);
+00070                 <a class="code" href="io_8c.html#a6">_stp_print_buf_init</a>();
+00071                 <a class="code" href="io_8c.html#a7">_stp_print_symbol</a>(<span class="stringliteral">"%s\n"</span>, <a class="code" href="map_8h.html#a2">key1int</a>(ptr));
+00072                 <a class="code" href="io_8c.html#a4">dlog</a>(<span class="stringliteral">"%lld\t0x%p\t(%s)\n"</span>, ptr-&gt;<a class="code" href="structmap__node__int64.html#o1">val</a>, <a class="code" href="map_8h.html#a2">key1int</a>(ptr), _stp_pbuf);
 00073         }
 00074 
 00075         <a class="code" href="map_8c.html#a8">_stp_map_del</a>(funct_locations);
@@ -86,5 +86,5 @@
 00077 
 00078 MODULE_LICENSE(<span class="stringliteral">"GPL"</span>);
 </pre></div><hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

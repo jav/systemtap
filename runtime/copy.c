@@ -1,3 +1,8 @@
+/* -*- linux-c -*- */
+/** @file copy.c
+ * @brief Functions to copy from user space.
+ */
+
 long _stp_strncpy_from_user(char *dst, const char __user *src, long count);
 //static long __stp_strncpy_from_user(char *dst, const char __user *src, long count);
 
@@ -73,7 +78,6 @@ do {									   \
  * If <i>count</i> is smaller than the length of the string, copies 
  * <i>count</i> bytes and returns <i>count</i>.
  */
-
 
 long
 _stp_strncpy_from_user(char *dst, const char __user *src, long count)

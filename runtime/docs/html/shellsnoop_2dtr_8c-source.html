@@ -12,10 +12,10 @@
 00003 <span class="preprocessor"></span><span class="preprocessor">#define BUCKETS 16 </span><span class="comment">/* largest histogram width */</span>
 00004 
 00005 <span class="preprocessor">#include "runtime.h"</span>
-00006 <span class="preprocessor">#include "io.c"</span>
+00006 <span class="preprocessor">#include "<a class="code" href="io_8c.html">io.c</a>"</span>
 00007 <span class="preprocessor">#include "<a class="code" href="map_8c.html">map.c</a>"</span>
-00008 <span class="preprocessor">#include "copy.c"</span>
-00009 <span class="preprocessor">#include "probes.c"</span>
+00008 <span class="preprocessor">#include "<a class="code" href="copy_8c.html">copy.c</a>"</span>
+00009 <span class="preprocessor">#include "<a class="code" href="probes_8c.html">probes.c</a>"</span>
 00010 
 00011 MODULE_DESCRIPTION(<span class="stringliteral">"SystemTap probe: shellsnoop"</span>);
 00012 MODULE_AUTHOR(<span class="stringliteral">"Martin Hunt &lt;hunt@redhat.com&gt;"</span>);
@@ -24,7 +24,7 @@
 00015 
 00016 <span class="keywordtype">int</span> inst_do_execve (<span class="keywordtype">char</span> * filename, <span class="keywordtype">char</span> __user *__user *argv, <span class="keywordtype">char</span> __user *__user *envp, <span class="keyword">struct</span> pt_regs * regs)
 00017 {
-00018   <span class="keyword">struct </span>map_node_str *ptr;
+00018   <span class="keyword">struct </span><a class="code" href="structmap__node__str.html">map_node_str</a> *ptr;
 00019 
 00020   <span class="comment">/* watch shells only */</span>
 00021   <span class="comment">/* FIXME: detect more shells, like csh, tcsh, zsh */</span>
@@ -32,13 +32,13 @@
 00023   <span class="keywordflow">if</span> (!strcmp(current-&gt;comm,<span class="stringliteral">"bash"</span>) || !strcmp(current-&gt;comm,<span class="stringliteral">"sh"</span>) || !strcmp(current-&gt;comm, <span class="stringliteral">"zsh"</span>)
 00024       || !strcmp(current-&gt;comm, <span class="stringliteral">"tcsh"</span>) || !strcmp(current-&gt;comm, <span class="stringliteral">"pdksh"</span>))
 00025     {
-00026       dlog (<span class="stringliteral">"%d\t%d\t%d\t%s "</span>, current-&gt;uid, current-&gt;pid, current-&gt;parent-&gt;pid, filename);
+00026       <a class="code" href="io_8c.html#a4">dlog</a> (<span class="stringliteral">"%d\t%d\t%d\t%s "</span>, current-&gt;uid, current-&gt;pid, current-&gt;parent-&gt;pid, filename);
 00027 
 00028       <a class="code" href="map_8c.html#a14">_stp_map_key_long</a> (pids, current-&gt;pid);
 00029       <a class="code" href="map_8c.html#a17">_stp_map_set_int64</a> (pids, 1);
 00030       
 00031       <a class="code" href="map_8c.html#a26">_stp_list_clear</a> (arglist);
-00032       _stp_copy_argv_from_user (arglist, argv);
+00032       <a class="code" href="copy_8c.html#a2">_stp_copy_argv_from_user</a> (arglist, argv);
 00033       <a class="code" href="map_8h.html#a8">foreach</a> (arglist, ptr)
 00034         printk ("%s ", ptr-&gt;str);
 00035       printk ("\n");
@@ -51,7 +51,7 @@
 00042 {
 00043   <a class="code" href="map_8c.html#a14">_stp_map_key_long</a> (pids, current-&gt;pid);
 00044   <span class="keywordflow">if</span> (_stp_map_get_int64 (pids))
-00045     dlog (<span class="stringliteral">"%d\t%d\t%s\tO %s\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, filename);
+00045     <a class="code" href="io_8c.html#a4">dlog</a> (<span class="stringliteral">"%d\t%d\t%s\tO %s\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, filename);
 00046   
 00047   jprobe_return();
 00048   <span class="keywordflow">return</span> 0;
@@ -61,7 +61,7 @@
 00052 {
 00053   <a class="code" href="map_8c.html#a14">_stp_map_key_long</a> (pids, current-&gt;pid);
 00054   <span class="keywordflow">if</span> (_stp_map_get_int64 (pids))
-00055     dlog (<span class="stringliteral">"%d\t%d\t%s\tR %d\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, fd);
+00055     <a class="code" href="io_8c.html#a4">dlog</a> (<span class="stringliteral">"%d\t%d\t%s\tR %d\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, fd);
 00056   
 00057   jprobe_return();
 00058   <span class="keywordflow">return</span> 0;
@@ -116,17 +116,17 @@
 00107   pids = <a class="code" href="map_8c.html#a3">_stp_map_new</a> (10000, INT64);
 00108   arglist = <a class="code" href="map_8c.html#a25">_stp_list_new</a> (10, STRING);
 00109 
-00110   ret = _stp_register_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+00110   ret = <a class="code" href="probes_8c.html#a2">_stp_register_jprobes</a> (dtr_probes, MAX_DTR_ROUTINE);
 00111 
-00112   dlog(<span class="stringliteral">"instrumentation is enabled...\n"</span>);
+00112   <a class="code" href="io_8c.html#a4">dlog</a>(<span class="stringliteral">"instrumentation is enabled...\n"</span>);
 00113   <span class="keywordflow">return</span> ret;
 00114 }
 00115 
 00116 <span class="keyword">static</span> <span class="keywordtype">void</span> cleanup_dtr(<span class="keywordtype">void</span>)
 00117 {
-00118   _stp_unregister_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+00118   <a class="code" href="probes_8c.html#a1">_stp_unregister_jprobes</a> (dtr_probes, MAX_DTR_ROUTINE);
 00119   <a class="code" href="map_8c.html#a8">_stp_map_del</a> (pids);
-00120   dlog(<span class="stringliteral">"EXIT\n"</span>);
+00120   <a class="code" href="io_8c.html#a4">dlog</a>(<span class="stringliteral">"EXIT\n"</span>);
 00121 }
 00122 
 00123 module_init(init_dtr);
@@ -134,5 +134,5 @@
 00125 MODULE_LICENSE(<span class="stringliteral">"GPL"</span>);
 00126 
 </pre></div><hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

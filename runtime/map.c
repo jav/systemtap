@@ -3,7 +3,6 @@
  * @brief Implements maps (associative arrays) and lists
  */
 
-
 static int map_sizes[] = {
 	sizeof(struct map_node_int64),
 	sizeof(struct map_node_stat),

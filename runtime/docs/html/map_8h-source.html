@@ -7,156 +7,183 @@
 <div class="qindex"><a class="qindex" href="index.html">Main&nbsp;Page</a> | <a class="qindex" href="annotated.html">Data&nbsp;Structures</a> | <a class="qindex" href="dirs.html">Directories</a> | <a class="qindex" href="files.html">File&nbsp;List</a> | <a class="qindex" href="functions.html">Data&nbsp;Fields</a> | <a class="qindex" href="globals.html">Globals</a> | <a class="qindex" href="pages.html">Related&nbsp;Pages</a></div>
 <h1>map.h</h1><a href="map_8h.html">Go to the documentation of this file.</a><div class="fragment"><pre class="fragment">00001 <span class="comment">/* -*- linux-c -*- */</span><span class="comment"></span>
 00002 <span class="comment">/** @file map.h</span>
-00003 <span class="comment"> * @brief Header file for maps and lists</span>
+00003 <span class="comment"> *  @brief Header file for maps and lists</span>
 00004 <span class="comment"> */</span>
 00005 
 00006 <span class="preprocessor">#include &lt;linux/types.h&gt;</span>
 00007 <span class="comment"></span>
-00008 <span class="comment">/** Statistics are stored in this struct</span>
-00009 <span class="comment">*/</span>
-<a name="l00010"></a><a class="code" href="structstat.html">00010</a> <span class="keyword">typedef</span> <span class="keyword">struct </span>{
-00011         int64_t count;
-00012         int64_t sum;
-00013         int64_t min, max;
-00014         int64_t histogram[BUCKETS];
-00015 } <a class="code" href="structstat.html">stat</a>;
-00016 <span class="comment"></span>
-00017 <span class="comment">/** Keys are either longs or char *</span>
-00018 <span class="comment"> */</span>
-<a name="l00019"></a><a class="code" href="unionkey__data.html">00019</a> <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> {
-00020         <span class="keywordtype">long</span> val;
-00021         <span class="keywordtype">char</span> *str;
-00022 };
-00023 
-00024 <span class="keyword">enum</span> keytype { NONE, LONG, STR } __attribute__ ((packed));
-00025 <span class="keyword">enum</span> valtype { INT64, STAT, STRING, END };
-00026 <span class="comment"></span>
-00027 <span class="comment">/** all map nodes have the following structure </span>
-00028 <span class="comment">*/</span>
-<a name="l00029"></a><a class="code" href="structmap__node.html">00029</a> <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> {
-00030         <span class="keyword">struct </span>list_head lnode;
-00031         <span class="keyword">struct </span>hlist_node hnode;
-00032         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> key1;
-00033         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> key2;
-00034         <span class="keyword">enum</span> keytype key1type;
-00035         <span class="keyword">enum</span> keytype key2type;
-00036 };
-00037 
-00038 <span class="comment">/* specific map nodes with data attached */</span>
-00039 <span class="keyword">struct </span>map_node_int64 {
-00040         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
-00041         int64_t val;
-00042 };
-00043 
-00044 <span class="keyword">struct </span>map_node_str {
-00045         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
-00046         <span class="keywordtype">char</span> *str;
-00047 };
-00048 
-00049 <span class="keyword">struct </span>map_node_stat {
-00050         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
-00051         <a class="code" href="structstat.html">stat</a> stats;
-00052 };
-00053 <span class="comment"></span>
-00054 <span class="comment">/** This structure contains all information about a map.</span>
-00055 <span class="comment"> * It is allocated once when _stp_map_new() is called.</span>
-00056 <span class="comment"> */</span>
-<a name="l00057"></a><a class="code" href="structmap__root.html">00057</a> <span class="keyword">struct </span><a class="code" href="structmap__root.html">map_root</a> {
-00058         <span class="keyword">enum</span> valtype type;  <span class="comment">/** type of the values stored in the array */</span>
-<a name="l00059"></a><a class="code" href="structmap__root.html#o1">00059</a>         <span class="keywordtype">int</span> <a class="code" href="structmap__root.html#o1">maxnum</a>;     <span class="comment">/** maximum number of elements allowed in the array. */</span>
-00060 
-00061         <span class="comment">/* current number of elements */</span>
-<a name="l00062"></a><a class="code" href="structmap__root.html#o2">00062</a>         <span class="keywordtype">int</span> <a class="code" href="structmap__root.html#o2">num</a>;
-00063 
-00064         <span class="comment">/* when more than maxnum elements, wrap or discard */</span>
-00065         <span class="keywordtype">int</span> no_wrap;
-00066 
-00067         <span class="comment">/* linked list of current entries */</span>
-00068         <span class="keyword">struct </span>list_head head;
-00069 
-00070         <span class="comment">/* pool of unused entries.  Used only when entries are statically allocated */</span>
-00071         <span class="comment">/* at startup. */</span>
-00072         <span class="keyword">struct </span>list_head pool;
-00073 
-00074         <span class="comment">/* saved key entry for lookups */</span>
-00075         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> *key;
-00076 
-00077         <span class="comment">/* this is the creation data saved between the key functions and the */</span>
-00078         <span class="comment">/* set/get functions */</span>
-00079         u_int8_t create;
-00080         <span class="keyword">enum</span> keytype c_key1type;
-00081         <span class="keyword">enum</span> keytype c_key2type;
-00082         <span class="keyword">struct </span>hlist_head *c_keyhead;
-00083         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> c_key1;
-00084         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> c_key2;
-00085 
-00086         <span class="comment">/* the hash table for this array */</span>
-00087         <span class="keyword">struct </span>hlist_head hashes[HASH_TABLE_SIZE];
-00088 
-00089         <span class="comment">/* pointer to allocated memory space */</span>
-00090         <span class="keywordtype">void</span> *membuf;
-00091 };
-00092 <span class="comment"></span>
-00093 <span class="comment">/** All maps are of this type.</span>
-00094 <span class="comment"> */</span>
-<a name="l00095"></a><a class="code" href="map_8h.html#a10">00095</a> <span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code" href="structmap__root.html">map_root</a> *<a class="code" href="structmap__root.html">MAP</a>;
-00096 
-00097 <span class="preprocessor">#define key1str(ptr) (ptr-&gt;n.key1.str)</span>
-00098 <span class="preprocessor"></span><span class="preprocessor">#define key2str(ptr) (ptr-&gt;n.key2.str)</span>
-00099 <span class="preprocessor"></span><span class="preprocessor">#define key1int(ptr) (ptr-&gt;n.key1.val)</span>
-00100 <span class="preprocessor"></span><span class="preprocessor">#define key2int(ptr) (ptr-&gt;n.key2.val)</span>
-00101 <span class="preprocessor"></span>
-00102 <span class="preprocessor">#define _stp_map_key2(map, key1, key2)                          \</span>
-00103 <span class="preprocessor">  ({                                                            \</span>
-00104 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (key1), char[]))   \</span>
-00105 <span class="preprocessor">      if (__builtin_types_compatible_p (typeof (key2), char[])) \</span>
-00106 <span class="preprocessor">        _stp_map_key_str_str (map, (char *)(key1), (char *)(key2));     \</span>
-00107 <span class="preprocessor">      else                                                      \</span>
-00108 <span class="preprocessor">        _stp_map_key_str_long (map, (char *)(key1), (long)(key2));      \</span>
-00109 <span class="preprocessor">    else                                                        \</span>
-00110 <span class="preprocessor">      if (__builtin_types_compatible_p (typeof (key2), char[])) \</span>
-00111 <span class="preprocessor">        _stp_map_key_long_str (map, (long)(key1), (char *)(key2));      \</span>
-00112 <span class="preprocessor">      else                                                      \</span>
-00113 <span class="preprocessor">        _stp_map_key_long_long (map, (long)(key1), (long)(key2));       \</span>
-00114 <span class="preprocessor">  })</span>
-00115 <span class="preprocessor"></span>
-00116 <span class="preprocessor">#define _stp_map_key(map, key)                          \</span>
-00117 <span class="preprocessor">  ({                                                            \</span>
-00118 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (key), char[]))    \</span>
-00119 <span class="preprocessor">      _stp_map_key_str (map, (char *)(key));                            \</span>
-00120 <span class="preprocessor">    else                                                        \</span>
-00121 <span class="preprocessor">      _stp_map_key_long (map, (long)(key));                             \</span>
-00122 <span class="preprocessor">  })</span>
-00123 <span class="preprocessor"></span>
-00124 <span class="preprocessor">#define _stp_map_set(map, val)                          \</span>
-00125 <span class="preprocessor">  ({                                                            \</span>
-00126 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (val), char[]))    \</span>
-00127 <span class="preprocessor">      _stp_map_set_str (map, (char *)(val));                            \</span>
-00128 <span class="preprocessor">    else                                                        \</span>
-00129 <span class="preprocessor">      _stp_map_set_int64 (map, (int64_t)(val));                 \</span>
-00130 <span class="preprocessor">  })</span>
-00131 <span class="preprocessor"></span>
-00132 <span class="preprocessor">#define _stp_list_add(map, val)                         \</span>
-00133 <span class="preprocessor">  ({                                                            \</span>
-00134 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (val), char[]))    \</span>
-00135 <span class="preprocessor">      _stp_list_add_str (map, (char *)(val));                           \</span>
-00136 <span class="preprocessor">    else                                                        \</span>
-00137 <span class="preprocessor">      _stp_list_add_int64 (map, (int64_t)(val));                        \</span>
-00138 <span class="preprocessor">  })</span>
-00139 <span class="preprocessor"></span>
-00140 <span class="comment"></span>
-00141 <span class="comment">/** Loop through all elements of a map.</span>
-00142 <span class="comment"> * @param map </span>
-00143 <span class="comment"> * @param ptr pointer to a map_node_stat, map_node_int64 or map_node_str</span>
-00144 <span class="comment"> *</span>
-00145 <span class="comment"> * @b Example:</span>
-00146 <span class="comment"> * @include foreach.c</span>
-00147 <span class="comment"> */</span>
-00148 
-<a name="l00149"></a><a class="code" href="map_8h.html#a8">00149</a> <span class="preprocessor">#define foreach(map, ptr)                               \</span>
-00150 <span class="preprocessor">  for (ptr = (typeof(ptr))_stp_map_start(map); ptr; \</span>
-00151 <span class="preprocessor">       ptr = (typeof(ptr))_stp_map_iter (map, (struct map_node *)ptr))</span>
-00152 <span class="preprocessor"></span>
+00008 <span class="comment">/** Statistics are stored in this struct */</span>
+<a name="l00009"></a><a class="code" href="structstat.html">00009</a> <span class="keyword">typedef</span> <span class="keyword">struct </span>{
+00010         int64_t count;
+00011         int64_t sum;
+00012         int64_t min, max;
+00013         int64_t histogram[BUCKETS];
+00014 } <a class="code" href="structstat.html">stat</a>;
+00015 <span class="comment"></span>
+00016 <span class="comment">/** Keys are either longs or char * */</span>
+<a name="l00017"></a><a class="code" href="unionkey__data.html">00017</a> <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> {
+00018         <span class="keywordtype">long</span> val;
+00019         <span class="keywordtype">char</span> *str;
+00020 };
+00021 <span class="comment"></span>
+00022 <span class="comment">/** keys can be longs or strings */</span>
+<a name="l00023"></a><a class="code" href="map_8h.html#a18">00023</a> <span class="keyword">enum</span> <a class="code" href="map_8h.html#a18">keytype</a> { NONE, LONG, STR } __attribute__ ((packed));<span class="comment"></span>
+00024 <span class="comment">/** values can be either int64, stats or strings */</span>
+<a name="l00025"></a><a class="code" href="map_8h.html#a19">00025</a> <span class="keyword">enum</span> <a class="code" href="map_8h.html#a19">valtype</a> { INT64, STAT, STRING, END };
+00026 
+00027 <span class="comment"></span>
+00028 <span class="comment">/** basic map element */</span>
+<a name="l00029"></a><a class="code" href="structmap__node.html">00029</a> <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> {<span class="comment"></span>
+00030 <span class="comment">        /** list of other nodes in the map */</span>
+<a name="l00031"></a><a class="code" href="structmap__node.html#o0">00031</a>         <span class="keyword">struct </span>list_head lnode;<span class="comment"></span>
+00032 <span class="comment">        /** list of nodes with the same hash value */</span>
+<a name="l00033"></a><a class="code" href="structmap__node.html#o1">00033</a>         <span class="keyword">struct </span>hlist_node hnode; 
+00034         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> key1;
+00035         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> key2;
+00036         <span class="keyword">enum</span> <a class="code" href="map_8h.html#a18">keytype</a> key1type;
+00037         <span class="keyword">enum</span> <a class="code" href="map_8h.html#a18">keytype</a> key2type;
+00038 };
+00039 <span class="comment"></span>
+00040 <span class="comment">/** map element containing int64 */</span>
+<a name="l00041"></a><a class="code" href="structmap__node__int64.html">00041</a> <span class="keyword">struct </span><a class="code" href="structmap__node__int64.html">map_node_int64</a> {
+00042         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
+00043         int64_t val;
+00044 };
+00045 <span class="comment"></span>
+00046 <span class="comment">/** map element containing string */</span>
+<a name="l00047"></a><a class="code" href="structmap__node__str.html">00047</a> <span class="keyword">struct </span><a class="code" href="structmap__node__str.html">map_node_str</a> {
+00048         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
+00049         <span class="keywordtype">char</span> *str;
+00050 };
+00051 <span class="comment"></span>
+00052 <span class="comment">/** map element containing stats */</span>
+<a name="l00053"></a><a class="code" href="structmap__node__stat.html">00053</a> <span class="keyword">struct </span><a class="code" href="structmap__node__stat.html">map_node_stat</a> {
+00054         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> n;
+00055         <a class="code" href="structstat.html">stat</a> stats;
+00056 };
+00057 <span class="comment"></span>
+00058 <span class="comment">/** This structure contains all information about a map.</span>
+00059 <span class="comment"> * It is allocated once when _stp_map_new() is called. </span>
+00060 <span class="comment"> */</span>
+<a name="l00061"></a><a class="code" href="structmap__root.html">00061</a> <span class="keyword">struct </span><a class="code" href="structmap__root.html">map_root</a> {<span class="comment"></span>
+00062 <span class="comment">        /** type of the values stored in the array */</span>
+<a name="l00063"></a><a class="code" href="structmap__root.html#o0">00063</a>         <span class="keyword">enum</span> <a class="code" href="map_8h.html#a19">valtype</a> <a class="code" href="structmap__root.html#o0">type</a>;
+00064         <span class="comment"></span>
+00065 <span class="comment">        /** maximum number of elements allowed in the array. */</span>
+<a name="l00066"></a><a class="code" href="structmap__root.html#o1">00066</a>         <span class="keywordtype">int</span> <a class="code" href="structmap__root.html#o1">maxnum</a>;
+00067 <span class="comment"></span>
+00068 <span class="comment">        /** current number of used elements */</span>
+<a name="l00069"></a><a class="code" href="structmap__root.html#o2">00069</a>         <span class="keywordtype">int</span> <a class="code" href="structmap__root.html#o2">num</a>;
+00070 <span class="comment"></span>
+00071 <span class="comment">        /** when more than maxnum elements, wrap or discard? */</span>
+<a name="l00072"></a><a class="code" href="structmap__root.html#o3">00072</a>         <span class="keywordtype">int</span> <a class="code" href="structmap__root.html#o3">no_wrap</a>;
+00073 <span class="comment"></span>
+00074 <span class="comment">        /** linked list of current entries */</span>
+<a name="l00075"></a><a class="code" href="structmap__root.html#o4">00075</a>         <span class="keyword">struct </span>list_head head;
+00076 <span class="comment"></span>
+00077 <span class="comment">        /** pool of unused entries.  Used only when entries are statically allocated</span>
+00078 <span class="comment">            at startup. */</span>
+<a name="l00079"></a><a class="code" href="structmap__root.html#o5">00079</a>         <span class="keyword">struct </span>list_head pool;
+00080 <span class="comment"></span>
+00081 <span class="comment">        /** saved key entry for lookups */</span>
+<a name="l00082"></a><a class="code" href="structmap__root.html#o6">00082</a>         <span class="keyword">struct </span><a class="code" href="structmap__node.html">map_node</a> *<a class="code" href="structmap__root.html#o6">key</a>;
+00083 <span class="comment"></span>
+00084 <span class="comment">        /** this is the creation data saved between the key functions and the</span>
+00085 <span class="comment">            set/get functions </span>
+00086 <span class="comment">            @todo Needs to be per-cpu data for SMP support */</span>
+<a name="l00087"></a><a class="code" href="structmap__root.html#o7">00087</a>         u_int8_t <a class="code" href="structmap__root.html#o7">create</a>;
+00088         <span class="keyword">enum</span> <a class="code" href="map_8h.html#a18">keytype</a> c_key1type;
+00089         <span class="keyword">enum</span> <a class="code" href="map_8h.html#a18">keytype</a> c_key2type;
+00090         <span class="keyword">struct </span>hlist_head *c_keyhead;
+00091         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> c_key1;
+00092         <span class="keyword">union </span><a class="code" href="unionkey__data.html">key_data</a> c_key2;
+00093 <span class="comment"></span>
+00094 <span class="comment">        /** the hash table for this array */</span>
+<a name="l00095"></a><a class="code" href="structmap__root.html#o13">00095</a>         <span class="keyword">struct </span>hlist_head hashes[HASH_TABLE_SIZE];
+00096 <span class="comment"></span>
+00097 <span class="comment">        /** pointer to allocated memory space. Used for freeing memory. */</span>
+<a name="l00098"></a><a class="code" href="structmap__root.html#o14">00098</a>         <span class="keywordtype">void</span> *<a class="code" href="structmap__root.html#o14">membuf</a>;
+00099 };
+00100 <span class="comment"></span>
+00101 <span class="comment">/** All maps are of this type. */</span>
+<a name="l00102"></a><a class="code" href="map_8h.html#a10">00102</a> <span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code" href="structmap__root.html">map_root</a> *<a class="code" href="structmap__root.html">MAP</a>;
+00103 <span class="comment"></span>
+00104 <span class="comment">/** Extracts string from key1 union */</span>
+<a name="l00105"></a><a class="code" href="map_8h.html#a0">00105</a> <span class="preprocessor">#define key1str(ptr) (ptr-&gt;n.key1.str)</span>
+00106 <span class="preprocessor"></span><span class="comment">/** Extracts string from key2 union */</span>
+<a name="l00107"></a><a class="code" href="map_8h.html#a1">00107</a> <span class="preprocessor">#define key2str(ptr) (ptr-&gt;n.key2.str)</span>
+00108 <span class="preprocessor"></span><span class="comment">/** Extracts int from key1 union */</span>
+<a name="l00109"></a><a class="code" href="map_8h.html#a2">00109</a> <span class="preprocessor">#define key1int(ptr) (ptr-&gt;n.key1.val)</span>
+00110 <span class="preprocessor"></span><span class="comment">/** Extracts int from key2 union */</span>
+<a name="l00111"></a><a class="code" href="map_8h.html#a3">00111</a> <span class="preprocessor">#define key2int(ptr) (ptr-&gt;n.key2.val)</span>
+00112 <span class="preprocessor"></span><span class="comment"></span>
+00113 <span class="comment">/** Macro to call the proper _stp_map_key functions based on the</span>
+00114 <span class="comment"> * types of the arguments. </span>
+00115 <span class="comment"> * @note May cause compiler warning on some GCCs </span>
+00116 <span class="comment"> */</span>
+<a name="l00117"></a><a class="code" href="map_8h.html#a4">00117</a> <span class="preprocessor">#define _stp_map_key2(map, key1, key2)                          \</span>
+00118 <span class="preprocessor">  ({                                                            \</span>
+00119 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (key1), char[]))   \</span>
+00120 <span class="preprocessor">      if (__builtin_types_compatible_p (typeof (key2), char[])) \</span>
+00121 <span class="preprocessor">        _stp_map_key_str_str (map, (char *)(key1), (char *)(key2));     \</span>
+00122 <span class="preprocessor">      else                                                      \</span>
+00123 <span class="preprocessor">        _stp_map_key_str_long (map, (char *)(key1), (long)(key2));      \</span>
+00124 <span class="preprocessor">    else                                                        \</span>
+00125 <span class="preprocessor">      if (__builtin_types_compatible_p (typeof (key2), char[])) \</span>
+00126 <span class="preprocessor">        _stp_map_key_long_str (map, (long)(key1), (char *)(key2));      \</span>
+00127 <span class="preprocessor">      else                                                      \</span>
+00128 <span class="preprocessor">        _stp_map_key_long_long (map, (long)(key1), (long)(key2));       \</span>
+00129 <span class="preprocessor">  })</span>
+00130 <span class="preprocessor"></span><span class="comment"></span>
+00131 <span class="comment">/** Macro to call the proper _stp_map_key function based on the</span>
+00132 <span class="comment"> * type of the argument. </span>
+00133 <span class="comment"> * @note May cause compiler warning on some GCCs </span>
+00134 <span class="comment"> */</span>
+<a name="l00135"></a><a class="code" href="map_8h.html#a5">00135</a> <span class="preprocessor">#define _stp_map_key(map, key)                          \</span>
+00136 <span class="preprocessor">  ({                                                            \</span>
+00137 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (key), char[]))    \</span>
+00138 <span class="preprocessor">      _stp_map_key_str (map, (char *)(key));                            \</span>
+00139 <span class="preprocessor">    else                                                        \</span>
+00140 <span class="preprocessor">      _stp_map_key_long (map, (long)(key));                             \</span>
+00141 <span class="preprocessor">  })</span>
+00142 <span class="preprocessor"></span><span class="comment"></span>
+00143 <span class="comment">/** Macro to call the proper _stp_map_set function based on the</span>
+00144 <span class="comment"> * type of the argument. </span>
+00145 <span class="comment"> * @note May cause compiler warning on some GCCs </span>
+00146 <span class="comment"> */</span>
+<a name="l00147"></a><a class="code" href="map_8h.html#a6">00147</a> <span class="preprocessor">#define _stp_map_set(map, val)                          \</span>
+00148 <span class="preprocessor">  ({                                                            \</span>
+00149 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (val), char[]))    \</span>
+00150 <span class="preprocessor">      _stp_map_set_str (map, (char *)(val));                            \</span>
+00151 <span class="preprocessor">    else                                                        \</span>
+00152 <span class="preprocessor">      _stp_map_set_int64 (map, (int64_t)(val));                 \</span>
+00153 <span class="preprocessor">  })</span>
+00154 <span class="preprocessor"></span><span class="comment"></span>
+00155 <span class="comment">/** Macro to call the proper _stp_list_add function based on the</span>
+00156 <span class="comment"> * types of the argument. </span>
+00157 <span class="comment"> * @note May cause compiler warning on some GCCs </span>
+00158 <span class="comment"> */</span>
+<a name="l00159"></a><a class="code" href="map_8h.html#a7">00159</a> <span class="preprocessor">#define _stp_list_add(map, val)                         \</span>
+00160 <span class="preprocessor">  ({                                                            \</span>
+00161 <span class="preprocessor">    if (__builtin_types_compatible_p (typeof (val), char[]))    \</span>
+00162 <span class="preprocessor">      _stp_list_add_str (map, (char *)(val));                           \</span>
+00163 <span class="preprocessor">    else                                                        \</span>
+00164 <span class="preprocessor">      _stp_list_add_int64 (map, (int64_t)(val));                        \</span>
+00165 <span class="preprocessor">  })</span>
+00166 <span class="preprocessor"></span>
+00167 <span class="comment"></span>
+00168 <span class="comment">/** Loop through all elements of a map.</span>
+00169 <span class="comment"> * @param map </span>
+00170 <span class="comment"> * @param ptr pointer to a map_node_stat, map_node_int64 or map_node_str</span>
+00171 <span class="comment"> *</span>
+00172 <span class="comment"> * @b Example:</span>
+00173 <span class="comment"> * @include foreach.c</span>
+00174 <span class="comment"> */</span>
+00175 
+<a name="l00176"></a><a class="code" href="map_8h.html#a8">00176</a> <span class="preprocessor">#define foreach(map, ptr)                               \</span>
+00177 <span class="preprocessor">  for (ptr = (typeof(ptr))_stp_map_start(map); ptr; \</span>
+00178 <span class="preprocessor">       ptr = (typeof(ptr))_stp_map_iter (map, (struct map_node *)ptr))</span>
+00179 <span class="preprocessor"></span>
 </pre></div><hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

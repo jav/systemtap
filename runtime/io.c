@@ -1,3 +1,8 @@
+/* -*- linux-c -*- */
+/** @file io.c
+ * @brief I/O functions
+ */
+
 /** Logs data.
  * This function is compatible with printk.  In fact it currently
  * sends all output to vprintk, after sending "STP: ". This allows
@@ -18,6 +23,11 @@ void dlog (const char *fmt, ...)
 }
 
 
+/** Lookup symbol.
+ * This simply calls the kernel function kallsyms_lookup().
+ * That function is not exported, so this workaround is required.
+ * See the kernel source, kernel/kallsyms.c for more information.
+ */
 static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 			    unsigned long *symbolsize,
 			    unsigned long *offset,
@@ -26,9 +36,21 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 
 #define STP_BUF_LEN 8191
 
-/* FIXME. These need to be per-cpu */
+/** Static buffer for printing */
 static char _stp_pbuf[STP_BUF_LEN+1];
 static int _stp_pbuf_len = STP_BUF_LEN;
+
+/** Print into the print buffer.
+ * Like printf, except output goes into  _stp_pbuf,
+ * which will contain the null-terminated output.
+ * Safe because overflowing _stp_pbuf is not allowed.
+ * Size is limited by length of print buffer.
+ *
+ * @param fmt A variable number of args.
+ * @note Formatting output should never be done within
+ * a probe. Use at module exit time.
+ * @sa _stp_print_buf_init
+ */
 
 void _stp_print_buf (const char *fmt, ...)
 {
@@ -42,11 +64,23 @@ void _stp_print_buf (const char *fmt, ...)
     _stp_pbuf_len -= num;
 }
 
+/** Clear the print buffer.
+ * Output from _stp_print_buf() will accumulate in the buffer
+ * until this is called.
+ */
+
 void _stp_print_buf_init (void)
 {
   _stp_pbuf_len = STP_BUF_LEN;
   _stp_pbuf[0] = 0;
 }
+
+/** Print addresses symbolically into the print buffer.
+ * @param fmt A variable number of args.
+ * @param address The address to lookup.
+ * @note Formatting output should never be done within
+ * a probe. Use at module exit time.
+ */
 
 void _stp_print_symbol(const char *fmt, unsigned long address)
 {
@@ -68,6 +102,12 @@ void _stp_print_symbol(const char *fmt, unsigned long address)
         }
 }
 
+/** Get the current return address.
+ * Call from kprobes (not jprobes).
+ * @param regs The pt_regs saved by the kprobe.
+ * @return The return address saved in esp or rsp.
+ * @note i386 and x86_64 only.
+ */
  
 unsigned long cur_ret_addr (struct pt_regs *regs)
 {

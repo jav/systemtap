@@ -1,15 +1,19 @@
 /* -*- linux-c -*- */
-
-/** Create a new map.
- * Maps must be created at module initialization time.
- * @param max_entries The maximum number of entries allowed. Currently that 
- * will be allocated dynamically.
- * @param type Type of values stored in this map. 
- * @return A MAP on success or NULL on failure.
+/** @file probes.c
+ * @brief Functions to assist loading and unloading groups of probes.
  */
 
-
+/** Lookup name.
+ * This simply calls the kernel function kallsyms_lookup_name().
+ * That function is not exported, so this workaround is required.
+ * See the kernel source, kernel/kallsyms.c for more information.
+ */
 static unsigned long (*_stp_lookup_name)(char *name)=(void *)KALLSYMS_LOOKUP_NAME;
+
+/** Unregister a group of jprobes.
+ * @param probes Pointer to an array of struct jprobe.
+ * @param num_probes Number of probes in the array.
+ */
 
 void _stp_unregister_jprobes (struct jprobe *probes, int num_probes)
 {
@@ -18,6 +22,12 @@ void _stp_unregister_jprobes (struct jprobe *probes, int num_probes)
 		unregister_jprobe(&probes[i]);
 	dlog ("All jprobes removed\n");
 }
+
+/** Register a group of jprobes.
+ * @param probes Pointer to an array of struct jprobe.
+ * @param num_probes Number of probes in the array.
+ * @return 0 on success.
+ */
 
 int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 {
@@ -45,6 +55,11 @@ out:
 	return ret;
 }
 
+/** Unregister a group of kprobes.
+ * @param probes Pointer to an array of struct kprobe.
+ * @param num_probes Number of probes in the array.
+ */
+
 void _stp_unregister_kprobes (struct kprobe *probes, int num_probes)
 {
 	int i;
@@ -52,6 +67,12 @@ void _stp_unregister_kprobes (struct kprobe *probes, int num_probes)
 		unregister_kprobe(&probes[i]);
 	dlog ("All kprobes removed\n");
 }
+
+/** Register a group of kprobes.
+ * @param probes Pointer to an array of struct kprobe.
+ * @param num_probes Number of probes in the array.
+ * @return 0 on success.
+ */
 
 int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 {

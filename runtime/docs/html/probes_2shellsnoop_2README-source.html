@@ -34,7 +34,7 @@
 00025   <span class="keywordflow">if</span> (!strcmp(current-&gt;comm,<span class="stringliteral">"bash"</span>) || !strcmp(current-&gt;comm,<span class="stringliteral">"sh"</span>) || !strcmp(current-&gt;comm, <span class="stringliteral">"zsh"</span>)
 00026       || !strcmp(current-&gt;comm, <span class="stringliteral">"tcsh"</span>) || !strcmp(current-&gt;comm, <span class="stringliteral">"pdksh"</span>))
 00027     {
-00028       dlog (<span class="stringliteral">"%d\t%d\t%d\t%s "</span>, current-&gt;uid, current-&gt;pid, current-&gt;parent-&gt;pid, filename);
+00028       <a class="code" href="io_8c.html#a4">dlog</a> (<span class="stringliteral">"%d\t%d\t%d\t%s "</span>, current-&gt;uid, current-&gt;pid, current-&gt;parent-&gt;pid, filename);
 00029       @pids[current-&gt;pid] = 1;
 00030 
 00031       <span class="comment">/* print out argv, ignoring argv[0] */</span>
@@ -74,12 +74,12 @@
 00065       else len = 64;
 00066       if (len = dtr_strncpy_from_user(str, buf, len)) {
 00067         str[len] = 0;
-00068         dlog (<span class="stringliteral">"%d\t%d\t%s\tW %s\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, str);
+00068         <a class="code" href="io_8c.html#a4">dlog</a> (<span class="stringliteral">"%d\t%d\t%s\tW %s\n"</span>, current-&gt;pid, current-&gt;parent-&gt;pid, current-&gt;comm, str);
 00069         }
 00070     }
 00071 }
 00072 \endverbatim
 00073 */
 </pre></div><hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

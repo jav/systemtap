@@ -20,11 +20,11 @@
 This is a silly little instrumentation routine to instrument functions entry by name. 
 <p>
 It makes use of the SystemTap runtime libraries to break down the number of times the function by caller.<p>
-It demonstrates kprobes, passing a module parameter, using the print buffer, and using _stp_print_symbol() to map the addresses back to locations in functions.<p>
+It demonstrates kprobes, passing a module parameter, using the print buffer, and using <a class="el" href="io_8c.html#a7">_stp_print_symbol()</a> to map the addresses back to locations in functions.<p>
 By default it instruments schedule().<p>
 The instrumentation module is built by having the kernel that is going to be instrumented currently on the machine and doing <div class="fragment"><pre class="fragment">./build
 </pre></div> The instrumentation is inserted as root with: <div class="fragment"><pre class="fragment">/sbin/insmod kprobe_funct_where.ko funct_name=function_name
 </pre></div> The instrumentation is removed as root with: <div class="fragment"><pre class="fragment">/sbin/rmmod kprobe_funct_where
 </pre></div> -Will Cohen <hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

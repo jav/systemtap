@@ -12,9 +12,18 @@
 <a href="map_8c-source.html">Go to the source code of this file.</a><table border="0" cellpadding="0" cellspacing="0">
 <tr><td></td></tr>
 <tr><td colspan="2"><br><h2>Functions</h2></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="structmap__root.html">MAP</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a3">_stp_map_new</a> (unsigned max_entries, enum valtype type)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a1" doxytag="map.c::string_hash"></a>
+static unsigned&nbsp;</td><td class="memItemRight" valign="bottom"><b>string_hash</b> (const char *key1, const char *key2)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a2" doxytag="map.c::mixed_hash"></a>
+static unsigned&nbsp;</td><td class="memItemRight" valign="bottom"><b>mixed_hash</b> (const char *key1, long key2)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="structmap__root.html">MAP</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a3">_stp_map_new</a> (unsigned max_entries, enum <a class="el" href="map_8h.html#a19">valtype</a> type)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a new map.  <a href="#a3"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a4" doxytag="map.c::map_free_strings"></a>
+static void&nbsp;</td><td class="memItemRight" valign="bottom"><b>map_free_strings</b> (<a class="el" href="structmap__root.html">MAP</a> map, struct <a class="el" href="structmap__node.html">map_node</a> *n)</td></tr>
+
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a5">_stp_map_key_del</a> (<a class="el" href="structmap__root.html">MAP</a> map)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Deletes the current element.  <a href="#a5"></a><br></td></tr>
@@ -45,6 +54,12 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a14">_stp_map_key_long</a> (<a class="el" href="structmap__root.html">MAP</a> map, long key)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set the map's key to a long.  <a href="#a14"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a15" doxytag="map.c::map_copy_keys"></a>
+static void&nbsp;</td><td class="memItemRight" valign="bottom"><b>map_copy_keys</b> (<a class="el" href="structmap__root.html">MAP</a> map, struct <a class="el" href="structmap__node.html">map_node</a> *m)</td></tr>
+
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="a16" doxytag="map.c::__stp_map_set_int64"></a>
+static void&nbsp;</td><td class="memItemRight" valign="bottom"><b>__stp_map_set_int64</b> (<a class="el" href="structmap__root.html">MAP</a> map, int64_t val, int add)</td></tr>
+
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a17">_stp_map_set_int64</a> (<a class="el" href="structmap__root.html">MAP</a> map, int64_t val)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Set the current element's value to an int64.  <a href="#a17"></a><br></td></tr>
@@ -69,7 +84,7 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a24">_stp_map_stat_add</a> (<a class="el" href="structmap__root.html">MAP</a> map, int64_t val)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Add to the current element's statistics.  <a href="#a24"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="structmap__root.html">MAP</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a25">_stp_list_new</a> (unsigned max_entries, enum valtype type)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="el" href="structmap__root.html">MAP</a>&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a25">_stp_list_new</a> (unsigned max_entries, enum <a class="el" href="map_8h.html#a19">valtype</a> type)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Create a new list.  <a href="#a25"></a><br></td></tr>
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a26">_stp_list_clear</a> (<a class="el" href="structmap__root.html">MAP</a> map)</td></tr>
@@ -84,6 +99,9 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">int&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="map_8c.html#a29">_stp_list_size</a> (<a class="el" href="structmap__root.html">MAP</a> map)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Get the number of elements in a list.  <a href="#a29"></a><br></td></tr>
+<tr><td colspan="2"><br><h2>Variables</h2></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">static int&nbsp;</td><td class="memItemRight" valign="bottom"><b>map_sizes</b> []</td></tr>
+
 </table>
 <hr><a name="_details"></a><h2>Detailed Description</h2>
 Implements maps (associative arrays) and lists. 
@@ -135,9 +153,9 @@ Adds an int64 to a list.
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00846">846</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00845">845</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00420">_stp_map_key_long()</a>, <a class="el" href="map_8c-source.html#l00531">_stp_map_set_int64()</a>, and <a class="el" href="map_8h-source.html#l00062">map_root::num</a>.    </td>
+References <a class="el" href="map_8c-source.html#l00419">_stp_map_key_long()</a>, <a class="el" href="map_8c-source.html#l00530">_stp_map_set_int64()</a>, and <a class="el" href="map_8h-source.html#l00069">map_root::num</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a27" doxytag="map.c::_stp_list_add_str"></a><p>
@@ -184,9 +202,11 @@ Adds a string to a list.
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00835">835</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00834">834</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00420">_stp_map_key_long()</a>, <a class="el" href="map_8c-source.html#l00578">_stp_map_set_str()</a>, and <a class="el" href="map_8h-source.html#l00062">map_root::num</a>.    </td>
+References <a class="el" href="map_8c-source.html#l00419">_stp_map_key_long()</a>, <a class="el" href="map_8c-source.html#l00577">_stp_map_set_str()</a>, and <a class="el" href="map_8h-source.html#l00069">map_root::num</a>.
+<p>
+Referenced by <a class="el" href="copy_8c-source.html#l00119">_stp_copy_argv_from_user()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a26" doxytag="map.c::_stp_list_clear"></a><p>
@@ -223,9 +243,9 @@ All elements in the list are deleted. <dl compact><dt><b>Parameters:</b></dt><dd
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00795">795</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00794">794</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a class="el" href="map_8h-source.html#l00031">map_node::hnode</a>, <a class="el" href="map_8h-source.html#l00030">map_node::lnode</a>, <a class="el" href="map_8h-source.html#l00059">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00062">map_root::num</a>, and <a class="el" href="map_8h-source.html#l00072">map_root::pool</a>.    </td>
+References <a class="el" href="alloc_8h-source.html#l00063">_stp_free()</a>, <a class="el" href="io_8c-source.html#l00016">dlog()</a>, <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, <a class="el" href="map_8h-source.html#l00033">map_node::hnode</a>, <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>, <a class="el" href="map_8h-source.html#l00066">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00069">map_root::num</a>, and <a class="el" href="map_8h-source.html#l00079">map_root::pool</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a25" doxytag="map.c::_stp_list_new"></a><p>
@@ -242,7 +262,7 @@ References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a
         <tr>
           <td class="md" nowrap align="right"></td>
           <td class="md"></td>
-          <td class="md" nowrap>enum valtype&nbsp;</td>
+          <td class="md" nowrap>enum <a class="el" href="map_8h.html#a19">valtype</a>&nbsp;</td>
           <td class="mdname" nowrap> <em>type</em></td>
         </tr>
         <tr>
@@ -274,9 +294,9 @@ A list is a map that internally has an incrementing long key for each member. Li
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="map_8h.html#a8">foreach</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00783">783</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00782">782</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00047">_stp_map_new()</a>, and <a class="el" href="map_8h-source.html#l00065">map_root::no_wrap</a>.    </td>
+References <a class="el" href="map_8c-source.html#l00046">_stp_map_new()</a>, and <a class="el" href="map_8h-source.html#l00072">map_root::no_wrap</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a29" doxytag="map.c::_stp_list_size"></a><p>
@@ -314,9 +334,9 @@ Get the number of elements in a list.
 <dl compact><dt><b>Returns:</b></dt><dd>The number of elements in a list. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00857">857</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00856">856</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00062">map_root::num</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00069">map_root::num</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a18" doxytag="map.c::_stp_map_add_int64"></a><p>
@@ -365,7 +385,7 @@ If the element doesn't exist, it is created. If no current element (key) is set 
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="map_8c.html#a17">_stp_map_set_int64</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00548">548</a> of file <a class="el" href="map_8c-source.html">map.c</a>.    </td>
+Definition at line <a class="el" href="map_8c-source.html#l00547">547</a> of file <a class="el" href="map_8c-source.html">map.c</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a8" doxytag="map.c::_stp_map_del"></a><p>
@@ -402,9 +422,9 @@ Deletes a map, freeing all memory in all elements. Normally done only when the m
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00195">195</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00194">194</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a class="el" href="map_8h-source.html#l00030">map_node::lnode</a>, and <a class="el" href="map_8h-source.html#l00090">map_root::membuf</a>.    </td>
+References <a class="el" href="alloc_8h-source.html#l00073">_stp_vfree()</a>, <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>, and <a class="el" href="map_8h-source.html#l00098">map_root::membuf</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a19" doxytag="map.c::_stp_map_get_int64"></a><p>
@@ -442,9 +462,9 @@ Gets the current element's value.
 <dl compact><dt><b>Returns:</b></dt><dd>The value. If the current element is not set or doesn't exist, returns 0. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00558">558</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00557">557</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, and <a class="el" href="map_8h-source.html#l00075">map_root::key</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, and <a class="el" href="map_8h-source.html#l00043">map_node_int64::val</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a23" doxytag="map.c::_stp_map_get_stat"></a><p>
@@ -482,9 +502,9 @@ Gets the current element's value.
 <dl compact><dt><b>Returns:</b></dt><dd>A pointer to the stats struct. If the current element is not set or doesn't exist, returns NULL. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00722">722</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00721">721</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, and <a class="el" href="map_8h-source.html#l00075">map_root::key</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, and <a class="el" href="map_8h-source.html#l00055">map_node_stat::stats</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a21" doxytag="map.c::_stp_map_get_str"></a><p>
@@ -522,9 +542,9 @@ Gets the current element's value.
 <dl compact><dt><b>Returns:</b></dt><dd>A string pointer. If the current element is not set or doesn't exist, returns NULL. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00639">639</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00638">638</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, and <a class="el" href="map_8h-source.html#l00075">map_root::key</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, and <a class="el" href="map_8h-source.html#l00049">map_node_str::str</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a7" doxytag="map.c::_stp_map_iter"></a><p>
@@ -573,9 +593,9 @@ Get the next element in a map.
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="map_8h.html#a8">foreach</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00176">176</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00175">175</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, and <a class="el" href="map_8h-source.html#l00030">map_node::lnode</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, and <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a5" doxytag="map.c::_stp_map_key_del"></a><p>
@@ -612,11 +632,11 @@ If no current element (key) for this map is set, this function does nothing. <dl
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00108">108</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00107">107</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00031">map_node::hnode</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, and <a class="el" href="map_8h-source.html#l00030">map_node::lnode</a>.
+References <a class="el" href="alloc_8h-source.html#l00063">_stp_free()</a>, <a class="el" href="map_8h-source.html#l00033">map_node::hnode</a>, and <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00663">_stp_map_set_stat()</a>, and <a class="el" href="map_8c-source.html#l00578">_stp_map_set_str()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00662">_stp_map_set_stat()</a>, and <a class="el" href="map_8c-source.html#l00577">_stp_map_set_str()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a14" doxytag="map.c::_stp_map_key_long"></a><p>
@@ -663,11 +683,11 @@ This sets the current element based on a long key. If the key is not found, a ne
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00420">420</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00419">419</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00223">_stp_map_key_long_long()</a>, and <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>.
+References <a class="el" href="map_8c-source.html#l00222">_stp_map_key_long_long()</a>, and <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00846">_stp_list_add_int64()</a>, and <a class="el" href="map_8c-source.html#l00835">_stp_list_add_str()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00845">_stp_list_add_int64()</a>, and <a class="el" href="map_8c-source.html#l00834">_stp_list_add_str()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a9" doxytag="map.c::_stp_map_key_long_long"></a><p>
@@ -721,11 +741,11 @@ This sets the current element based on a key of two strings. If the keys are not
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00223">223</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00222">222</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00083">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00080">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00084">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00082">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00087">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00032">map_node::key1</a>, and <a class="el" href="map_8h-source.html#l00020">key_data::val</a>.
+References <a class="el" href="map_8h-source.html#l00091">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00088">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00092">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00090">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00095">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00034">map_node::key1</a>, and <a class="el" href="map_8h-source.html#l00018">key_data::val</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00420">_stp_map_key_long()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00419">_stp_map_key_long()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a12" doxytag="map.c::_stp_map_key_long_str"></a><p>
@@ -779,9 +799,9 @@ This sets the current element based on a key of a long and a string. If the keys
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00363">363</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00362">362</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00083">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00080">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00084">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00082">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00087">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00032">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00033">map_node::key2</a>, <a class="el" href="map_8h-source.html#l00021">key_data::str</a>, and <a class="el" href="map_8h-source.html#l00020">key_data::val</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00091">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00088">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00092">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00090">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00095">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00034">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00035">map_node::key2</a>, <a class="el" href="map_8h-source.html#l00019">key_data::str</a>, and <a class="el" href="map_8h-source.html#l00018">key_data::val</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a13" doxytag="map.c::_stp_map_key_str"></a><p>
@@ -828,9 +848,9 @@ This sets the current element based on a string key. If the key is not found, a 
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00404">404</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00403">403</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00266">_stp_map_key_str_str()</a>, and <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>.    </td>
+References <a class="el" href="map_8c-source.html#l00265">_stp_map_key_str_str()</a>, and <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a11" doxytag="map.c::_stp_map_key_str_long"></a><p>
@@ -884,9 +904,9 @@ This sets the current element based on a key of a string and a long. If the keys
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00315">315</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00314">314</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00083">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00080">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00084">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00082">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00087">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00032">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00033">map_node::key2</a>, <a class="el" href="map_8h-source.html#l00021">key_data::str</a>, and <a class="el" href="map_8h-source.html#l00020">key_data::val</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00091">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00088">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00092">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00090">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00095">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00034">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00035">map_node::key2</a>, <a class="el" href="map_8h-source.html#l00019">key_data::str</a>, and <a class="el" href="map_8h-source.html#l00018">key_data::val</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a10" doxytag="map.c::_stp_map_key_str_str"></a><p>
@@ -940,11 +960,11 @@ This sets the current element based on a key of two strings. If the keys are not
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00266">266</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00265">265</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00083">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00080">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00084">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00081">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00082">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00087">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00032">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00033">map_node::key2</a>, and <a class="el" href="map_8h-source.html#l00021">key_data::str</a>.
+References <a class="el" href="map_8h-source.html#l00091">map_root::c_key1</a>, <a class="el" href="map_8h-source.html#l00088">map_root::c_key1type</a>, <a class="el" href="map_8h-source.html#l00092">map_root::c_key2</a>, <a class="el" href="map_8h-source.html#l00089">map_root::c_key2type</a>, <a class="el" href="map_8h-source.html#l00090">map_root::c_keyhead</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00095">map_root::hashes</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00034">map_node::key1</a>, <a class="el" href="map_8h-source.html#l00035">map_node::key2</a>, and <a class="el" href="map_8h-source.html#l00019">key_data::str</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00404">_stp_map_key_str()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00403">_stp_map_key_str()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a3" doxytag="map.c::_stp_map_new"></a><p>
@@ -961,7 +981,7 @@ Referenced by <a class="el" href="map_8c-source.html#l00404">_stp_map_key_str()<
         <tr>
           <td class="md" nowrap align="right"></td>
           <td class="md"></td>
-          <td class="md" nowrap>enum valtype&nbsp;</td>
+          <td class="md" nowrap>enum <a class="el" href="map_8h.html#a19">valtype</a>&nbsp;</td>
           <td class="mdname" nowrap> <em>type</em></td>
         </tr>
         <tr>
@@ -992,11 +1012,11 @@ Maps must be created at module initialization time. <dl compact><dt><b>Parameter
 <dl compact><dt><b>Returns:</b></dt><dd>A MAP on success or NULL on failure. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00047">47</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00046">46</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a class="el" href="map_8h-source.html#l00059">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00090">map_root::membuf</a>, <a class="el" href="map_8h-source.html#l00072">map_root::pool</a>, and <a class="el" href="map_8h-source.html#l00058">map_root::type</a>.
+References <a class="el" href="alloc_8h-source.html#l00049">_stp_valloc()</a>, <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, <a class="el" href="map_8h-source.html#l00066">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00098">map_root::membuf</a>, <a class="el" href="map_8h-source.html#l00079">map_root::pool</a>, and <a class="el" href="map_8h-source.html#l00063">map_root::type</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00783">_stp_list_new()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00782">_stp_list_new()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a17" doxytag="map.c::_stp_map_set_int64"></a><p>
@@ -1045,9 +1065,9 @@ If the element doesn't exist, it is created. If no current element (key) is set 
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="map_8c.html#a18">_stp_map_add_int64</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00531">531</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00530">530</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00846">_stp_list_add_int64()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00845">_stp_list_add_int64()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a22" doxytag="map.c::_stp_map_set_stat"></a><p>
@@ -1093,14 +1113,14 @@ If the element doesn't exist, it is created. If no current element (key) is set 
     <tr><td valign="top"></td><td valign="top"><em>stats</em>&nbsp;</td><td>pointer to stats struct. </td></tr>
   </table>
 </dl>
-<dl compact><dt><b><a class="el" href="todo.html#_todo000002">Todo:</a></b></dt><dd>Histograms don't work yet. </dd></dl>
+<dl compact><dt><b><a class="el" href="todo.html#_todo000003">Todo:</a></b></dt><dd>Histograms don't work yet. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00663">663</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00662">662</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00108">_stp_map_key_del()</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00059">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00065">map_root::no_wrap</a>, and <a class="el" href="map_8h-source.html#l00072">map_root::pool</a>.
+References <a class="el" href="alloc_8h-source.html#l00034">_stp_calloc()</a>, <a class="el" href="map_8c-source.html#l00107">_stp_map_key_del()</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, <a class="el" href="map_8h-source.html#l00033">map_node::hnode</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>, <a class="el" href="map_8h-source.html#l00066">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00054">map_node_stat::n</a>, <a class="el" href="map_8h-source.html#l00072">map_root::no_wrap</a>, <a class="el" href="map_8h-source.html#l00079">map_root::pool</a>, and <a class="el" href="map_8h-source.html#l00055">map_node_stat::stats</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00743">_stp_map_stat_add()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00742">_stp_map_stat_add()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a20" doxytag="map.c::_stp_map_set_str"></a><p>
@@ -1148,11 +1168,11 @@ If the element doesn't exist, it is created. If no current element (key) is set 
 </dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00578">578</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00577">577</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00108">_stp_map_key_del()</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, <a class="el" href="map_8h-source.html#l00068">map_root::head</a>, <a class="el" href="map_8h-source.html#l00075">map_root::key</a>, <a class="el" href="map_8h-source.html#l00059">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00065">map_root::no_wrap</a>, and <a class="el" href="map_8h-source.html#l00072">map_root::pool</a>.
+References <a class="el" href="alloc_8h-source.html#l00018">_stp_alloc()</a>, <a class="el" href="alloc_8h-source.html#l00034">_stp_calloc()</a>, <a class="el" href="alloc_8h-source.html#l00063">_stp_free()</a>, <a class="el" href="map_8c-source.html#l00107">_stp_map_key_del()</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00075">map_root::head</a>, <a class="el" href="map_8h-source.html#l00033">map_node::hnode</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00031">map_node::lnode</a>, <a class="el" href="map_8h-source.html#l00066">map_root::maxnum</a>, <a class="el" href="map_8h-source.html#l00048">map_node_str::n</a>, <a class="el" href="map_8h-source.html#l00072">map_root::no_wrap</a>, <a class="el" href="map_8h-source.html#l00079">map_root::pool</a>, and <a class="el" href="map_8h-source.html#l00049">map_node_str::str</a>.
 <p>
-Referenced by <a class="el" href="map_8c-source.html#l00835">_stp_list_add_str()</a>.    </td>
+Referenced by <a class="el" href="map_8c-source.html#l00834">_stp_list_add_str()</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a6" doxytag="map.c::_stp_map_start"></a><p>
@@ -1191,9 +1211,9 @@ Get the first element in a map.
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="map_8h.html#a8">foreach</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00153">153</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00152">152</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8h-source.html#l00068">map_root::head</a>.    </td>
+References <a class="el" href="map_8h-source.html#l00075">map_root::head</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="a24" doxytag="map.c::_stp_map_stat_add"></a><p>
@@ -1239,14 +1259,46 @@ If the element doesn't exist, it is created. If no current element (key) is set 
     <tr><td valign="top"></td><td valign="top"><em>val</em>&nbsp;</td><td>value to add to the statistics </td></tr>
   </table>
 </dl>
-<dl compact><dt><b><a class="el" href="todo.html#_todo000003">Todo:</a></b></dt><dd>Histograms don't work yet. </dd></dl>
+<dl compact><dt><b><a class="el" href="todo.html#_todo000004">Todo:</a></b></dt><dd>Histograms don't work yet. </dd></dl>
 
 <p>
-Definition at line <a class="el" href="map_8c-source.html#l00743">743</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
+Definition at line <a class="el" href="map_8c-source.html#l00742">742</a> of file <a class="el" href="map_8c-source.html">map.c</a>.
 <p>
-References <a class="el" href="map_8c-source.html#l00663">_stp_map_set_stat()</a>, <a class="el" href="map_8h-source.html#l00079">map_root::create</a>, and <a class="el" href="map_8h-source.html#l00075">map_root::key</a>.    </td>
+References <a class="el" href="map_8c-source.html#l00662">_stp_map_set_stat()</a>, <a class="el" href="map_8h-source.html#l00010">stat::count</a>, <a class="el" href="map_8h-source.html#l00087">map_root::create</a>, <a class="el" href="map_8h-source.html#l00082">map_root::key</a>, <a class="el" href="map_8h-source.html#l00012">stat::max</a>, <a class="el" href="map_8h-source.html#l00012">stat::min</a>, <a class="el" href="map_8h-source.html#l00055">map_node_stat::stats</a>, and <a class="el" href="map_8h-source.html#l00011">stat::sum</a>.    </td>
+  </tr>
+</table>
+<hr><h2>Variable Documentation</h2>
+<a class="anchor" name="a0" doxytag="map.c::map_sizes"></a><p>
+<table class="mdTable" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top">int map_sizes[]<code> [static]</code>          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing="5" cellpadding="0" border="0">
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+<b>Initial value:</b><div class="fragment"><pre class="fragment"> {
+        <span class="keyword">sizeof</span>(<span class="keyword">struct </span><a class="code" href="structmap__node__int64.html">map_node_int64</a>),
+        sizeof(struct map_node_stat),
+        sizeof(struct map_node_str),
+        0
+}
+</pre></div>
+<p>
+Definition at line <a class="el" href="map_8c-source.html#l00006">6</a> of file <a class="el" href="map_8c-source.html">map.c</a>.    </td>
   </tr>
 </table>
 <hr size="1"><address style="align: right;"><small>
-Generated on Tue Mar 22 00:32:02 2005 for SystemTap.</small></body>
+Generated on Tue Mar 22 10:27:36 2005 for SystemTap.</small></body>
 </html>

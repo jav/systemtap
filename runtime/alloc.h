@@ -1,4 +1,8 @@
 /* -*- linux-c -*- */
+/** @file alloc.h
+ * @brief Memory allocation functions.
+ * @todo Should really be alloc.c for consistency.
+ */
 
 enum errorcode { ERR_NONE=0, ERR_NO_MEM };
 enum errorcode _stp_error = ERR_NONE;
