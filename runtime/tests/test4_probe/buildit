@@ -1,0 +1,1 @@
+make -C /lib/modules/2.6.10-1.770_FC3smp/build M=`pwd`

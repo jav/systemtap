@@ -1,0 +1,45 @@
+/** @mainpage SystemTap Runtime Library
+ *
+ * @section intro_sec Introduction
+ *
+ * The SystemTap Runtime Library consists of all functions
+ * and code fragments needed by the compiler/translator to
+ * include in building a kernel module using kprobes.
+ *
+ * @section design_sec Design
+ * @subsection map_sec Maps (Associative Arrays)
+ * Maps are implemented as hash lists. It is not expected that users will
+ * attempt to collect so much data in kernel space that performance problems will require
+ * more complex solutions such as AVL trees.
+ *
+ * Maps are created with _stp_map_new().  Each map can hold only one type of 
+ * data; int64, string, or statistics.  Each element belonging to a map can have up to 2 keys
+ * and a value.  Implemented key types are strings and longs.
+ *	
+ * To simplify the implementation, the functions to set the key and the functions to set the data are separated.
+ * That means we need only 4 functions to set the key and 3 functions to set the value. 
+ *
+ * For example:
+ * @include map.c
+
+ * All elements have a default value of 0 (or NULL).  Elements are only saved to the map when their value is set
+ * to something nonzero.  This means that querying for the existance of a key is inexpensive because
+ * no element is created, just a hash table lookup.
+ *
+ * A list is a special map which has internally ascending long integer keys.  Adding a value to
+ * a list does not require setting a key first. See _stp_list_add_str() and _stp_list_add_int64().
+ *
+ * @section status_sec Status
+ * Maps are implemented and tested. Histograms are not yet finished.
+ * 
+ * Copy_From_User functions are done.
+ *
+ * If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
+ * I expect to implement a function to tell the system to either ignore it or unload the module and quit.
+ *
+ * Working sample probe code using the runtime is in tests/test4_probe and tests/shellprobe.
+ *
+ * @todo The Runtime Library is not actually a library yet.  It is just a collection of functions 
+ * included in the probe boilerplate.
+ *
+ */

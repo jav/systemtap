@@ -1,0 +1,4 @@
+The *.c files test associative arrays (maps).  "make tests" to run.
+
+test4_probe and shellsnoop are sample probes that use the new runtime.
+
