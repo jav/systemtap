@@ -2,15 +2,24 @@
 #define HASH_TABLE_SIZE (1<<HASH_TABLE_BITS)
 #define BUCKETS 16 /* largest histogram width */
 
+#define STP_NETLINK_ONLY
+#define STP_NUM_STRINGS 1
+
+#include <linux/module.h>
+#include <linux/interrupt.h>
+#include <net/sock.h>
+#include <linux/netlink.h>
+
 #include "runtime.h"
-#include "io.c"
 #include "map.c"
 #include "probes.c"
+#include "stack.c"
 
 MODULE_DESCRIPTION("SystemTap probe: test4");
 MODULE_AUTHOR("Martin Hunt <hunt@redhat.com>");
 
-MAP opens, reads, writes;
+
+MAP opens, reads, writes, traces;
 
 asmlinkage long inst_sys_open (const char __user * filename, int flags, int mode)
 {
@@ -36,6 +45,18 @@ asmlinkage ssize_t inst_sys_write (unsigned int fd, const char __user * buf, siz
   return 0;
 }
 
+int inst_show_cpuinfo(struct seq_file *m, void *v)
+{
+  String str = _stp_string_init (0);
+  _stp_stack_print (0,0);
+  _stp_stack_print (1,0);
+  _stp_list_add (traces, _stp_stack_sprint(str, 0, 0));
+
+  jprobe_return();
+  return 0;
+}
+
+
 static struct jprobe dtr_probes[] = {
   {
     .kp.addr = (kprobe_opcode_t *)"sys_open",
@@ -49,6 +70,10 @@ static struct jprobe dtr_probes[] = {
     .kp.addr = (kprobe_opcode_t *)"sys_write",
     .entry = (kprobe_opcode_t *) inst_sys_write
   },
+  {
+    .kp.addr = (kprobe_opcode_t *)"show_cpuinfo",
+    .entry = (kprobe_opcode_t *) inst_show_cpuinfo,
+  },
 };
 
 #define MAX_DTR_ROUTINE (sizeof(dtr_probes)/sizeof(struct jprobe))
@@ -57,46 +82,58 @@ static int init_dtr(void)
 {
   int ret;
   
+  if (_stp_netlink_open() < 0)
+    return -1;
+  
   opens = _stp_map_new (1000, INT64);
   reads = _stp_map_new (1000, STAT);
   writes = _stp_map_new (1000, STAT);
+  traces = _stp_list_new (1000, STRING);
 
   ret = _stp_register_jprobes (dtr_probes, MAX_DTR_ROUTINE);
 
-  dlog("instrumentation is enabled...\n");
+  _stp_log("instrumentation is enabled...\n");
   return ret;
-
 }
 
-static void cleanup_dtr(void)
+static void probe_exit (void)
 {
   struct map_node_stat *st;
   struct map_node_int64 *ptr;
+  struct map_node_str *sptr;
 
   _stp_unregister_jprobes (dtr_probes, MAX_DTR_ROUTINE);
 
-  for (ptr = (struct map_node_int64 *)_stp_map_start(opens); ptr; 
-       ptr = (struct map_node_int64 *)_stp_map_iter (opens,(struct map_node *)ptr))
-    dlog ("opens[%s] = %lld\n", key1str(ptr), ptr->val); 
-  dlog ("\n");
+  foreach (traces, sptr) {
+    _stp_printf ("trace: %s\n", sptr->str);
+    _stp_print_flush ();
+  }
 
-  for (st = (struct map_node_stat *)_stp_map_start(reads); st; 
-       st = (struct map_node_stat *)_stp_map_iter (reads,(struct map_node *)st))
-    dlog ("reads[%s] = [count=%lld  sum=%lld   min=%lld   max=%lld]\n", key1str(st), st->stats.count, st->stats.sum,
-	    st->stats.min, st->stats.max);
-  dlog ("\n");
+  foreach (opens, ptr) {
+    _stp_printf ("opens[%s] = %lld\n", key1str(ptr), ptr->val); 
+    _stp_print_flush ();
+  }
 
-  for (st = (struct map_node_stat *)_stp_map_start(writes); st; 
-       st = (struct map_node_stat *)_stp_map_iter (writes,(struct map_node *)st))
-    dlog ("writes[%s] = [count=%lld  sum=%lld   min=%lld   max=%lld]\n", key1str(st), st->stats.count, st->stats.sum,
-	    st->stats.min, st->stats.max);
-  dlog ("\n");
+  foreach (reads, st) {
+    _stp_printf ("reads[%s] = [count=%lld  sum=%lld   min=%lld   max=%lld]\n", key1str(st), 
+		st->stats.count, st->stats.sum, st->stats.min, st->stats.max);
+    _stp_print_flush ();
+  }
+  
+  foreach (writes, st) {
+    _stp_printf ("writes[%s] = [count=%lld  sum=%lld   min=%lld   max=%lld]\n", key1str(st), 
+		st->stats.count, st->stats.sum, st->stats.min, st->stats.max);
+    _stp_print_flush();
+  }
 
   _stp_map_del (opens);
   _stp_map_del (reads);
   _stp_map_del (writes);
+}
 
-  dlog("EXIT\n");
+static void cleanup_dtr(void)
+{
+  _stp_netlink_close();
 }
 
 module_init(init_dtr);

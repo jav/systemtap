@@ -6,9 +6,10 @@
 #define HASH_TABLE_BITS 8
 #define HASH_TABLE_SIZE (1<<HASH_TABLE_BITS)
 #define BUCKETS 16		/* largest histogram width */
+#define STP_NETLINK_ONLY
+#define STP_NUM_STRINGS 1
 
 #include "runtime.h"
-#include "io.c"
 #include "map.c"
 #include "probes.c"
 #include "current.c"
@@ -47,7 +48,10 @@ static struct kprobe kp[] = {
 int init_module(void)
 {
 	int ret;
-
+ 
+	if (_stp_netlink_open() < 0)
+		return -1;
+  
 	funct_locations = _stp_map_new(1000, INT64);
 
 	if (funct_name)
@@ -58,23 +62,28 @@ int init_module(void)
 	return ret;
 }
 
-void cleanup_module(void)
+static void probe_exit (void)
 {
 	struct map_node_int64 *ptr;
 
 	_stp_unregister_kprobes (kp, MAX_KPROBES);
 
-	dlog("%s() called %d times.\n", funct_name, count_funct);
-	dlog("NUM\tCaller Addr\tCaller Name\n", funct_name);
+	_stp_printf("%s() called %d times.\n", funct_name, count_funct);
+	_stp_printf("NUM\tCaller\n", funct_name);
 
 	/* now walk the hash table and print out all the information */
 	foreach(funct_locations, ptr) {
-		_stp_scbuf_clear();
-		_stp_symbol_sprint (key1int(ptr));
-		dlog("%lld\t0x%p\t(%s)\n", ptr->val, key1int(ptr), _stp_scbuf);
+		_stp_printf("%lld\t", ptr->val);
+		_stp_symbol_print (key1int(ptr));
+		_stp_print_flush();
 	}
-
+	
 	_stp_map_del(funct_locations);
+}
+
+void cleanup_module(void)
+{
+  _stp_netlink_close();	
 }
 
 MODULE_LICENSE("GPL");
