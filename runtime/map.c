@@ -1,7 +1,6 @@
-#ifndef _MAP_C_
+#ifndef _MAP_C_ /* -*- linux-c -*- */
 #define _MAP_C_
 
-/* -*- linux-c -*- */
 /** @file map.c
  * @brief Implements maps (associative arrays) and lists
  */
@@ -538,6 +537,7 @@ static void __stp_map_set_int64(MAP map, int64_t val, int add)
  * @param map
  * @param val new value
  * @sa _stp_map_add_int64
+ * @sa _stp_map_set()
  */
 void _stp_map_set_int64(MAP map, int64_t val)
 {
@@ -576,14 +576,15 @@ int64_t _stp_map_get_int64(MAP map)
 	return m->val;
 }
 
-/** Set the current element's value to a string.
- * This sets the current element's value to an string. The map must have been created
+/** Set the current element's value to a C string.
+ * This sets the current element's value to an C string. The map must have been created
  * to hold int64s using <i>_stp_map_new(xxx, STRING)</i>
  *
  * If the element doesn't exist, it is created.  If no current element (key)
  * is set for the map, this function does nothing.
  * @param map
  * @param val new string
+ * @sa _stp_map_set()
  */
 
 void _stp_map_set_str(MAP map, char *val)
@@ -641,6 +642,17 @@ void _stp_map_set_str(MAP map, char *val)
 		}
 	}
 }
+
+/** Set the current element's value to String.
+ * This sets the current element's value to a String. The map must have been created
+ * to hold int64s using <i>_stp_map_new(xxx, STRING)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param str String containing new value.
+ * @sa _stp_map_set()
+ */
 
 void _stp_map_set_string (MAP map, String str)
 {
@@ -851,9 +863,10 @@ void _stp_list_clear(MAP map)
 	}
 }
 
-/** Adds a string to a list.
+/** Adds a C string to a list.
  * @param map
  * @param str
+ * @sa _stp_list_add()
  */
 
 inline void _stp_list_add_str(MAP map, char *str)
@@ -861,6 +874,12 @@ inline void _stp_list_add_str(MAP map, char *str)
 	_stp_map_key_long(map, map->num);
 	_stp_map_set_str(map, str);
 }
+
+/** Adds a String to a list.
+ * @param map
+ * @param str String to add.
+ * @sa _stp_list_add()
+ */
 
 inline void _stp_list_add_string (MAP map, String str)
 {
@@ -871,6 +890,7 @@ inline void _stp_list_add_string (MAP map, String str)
 /** Adds an int64 to a list.
  * @param map
  * @param val
+ * @sa _stp_list_add()
  */
 
 inline void _stp_list_add_int64(MAP map, int64_t val)

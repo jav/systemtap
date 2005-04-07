@@ -20,11 +20,11 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 			    char **modname, char *namebuf)=(void *)KALLSYMS_LOOKUP;
 
 
-/** Print addresses symbolically into a string
+/** Write addresses symbolically into a String
+ * @param str String
  * @param address The address to lookup.
- * @note Symbolic lookups should not be done within
+ * @note Symbolic lookups should not normally be done within
  * a probe because it is too time-consuming. Use at module exit time.
- * @note Uses scbuf.
  */
 
 String _stp_symbol_sprint (String str, unsigned long address)
@@ -45,9 +45,9 @@ String _stp_symbol_sprint (String str, unsigned long address)
 }
 
 
-/** Print addresses symbolically to the trace buffer.
+/** Print addresses symbolically to the print buffer.
  * @param address The address to lookup.
- * @note Symbolic lookups should not be done within
+ * @note Symbolic lookups should not normally be done within
  * a probe because it is too time-consuming. Use at module exit time.
  */
 

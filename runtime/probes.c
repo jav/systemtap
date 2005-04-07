@@ -1,4 +1,6 @@
-/* -*- linux-c -*- */
+#ifndef _PROBES_C_ /* -*- linux-c -*- */
+#define _PROBES_C
+
 /** @file probes.c
  * @brief Functions to assist loading and unloading groups of probes.
  */
@@ -100,3 +102,4 @@ out:
 	return ret;
 }
 
+#endif /* _PROBES_C */

@@ -1,56 +1,111 @@
-/** @mainpage SystemTap Runtime Library
- *
- * @section intro_sec Introduction
- *
- * The SystemTap Runtime Library consists of all functions
- * and code fragments needed by the compiler/translator to
- * include in building a kernel module using kprobes.
- *
- * @section design_sec Design
- * @subsection impl_sec Implementation
- * The library is written in \c C and is really not a library but a collection of code
- * That can be conditionally included in a modules. It will probably become a library later.
- *
- * @subsection map_sec Maps (Associative Arrays)
- * Maps are implemented as hash lists. It is not expected that users will
- * attempt to collect so much data in kernel space that performance problems will require
- * more complex solutions such as AVL trees.
- *
- * Maps are created with _stp_map_new().  Each map can hold only one type of 
- * data; int64, string, or statistics.  Each element belonging to a map can have up to 2 keys
- * and a value.  Implemented key types are strings and longs.
- *	
- * To simplify the implementation, the functions to set the key and the functions to set the data are separated.
- * That means we need only 4 functions to set the key and 3 functions to set the value. 
- *
- * For example:
- * @include map.c
+/** @mainpage SystemTap Runtime
 
- * All elements have a default value of 0 (or NULL).  Elements are only saved to the map when their value is set
- * to something nonzero.  This means that querying for the existance of a key is inexpensive because
- * no element is created, just a hash table lookup.
- *
- * @subsection list_sec Lists
- * A list is a special map which has internally ascending long integer keys.  Adding a value to
- * a list does not require setting a key first. Create a list with _stp_list_new(). Add to it
- * with _stp_list_add_str() and _stp_list_add_int64().  Clear it with _stp_list_clear().
- *
- * @section status_sec Status
- * @li Maps are implemented and tested. Histograms are not yet finished.
- * @li Copy_From_User functions are done.
- * @li If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
- * I expect to implement a function to tell the system to either ignore it or unload the module and quit.
- * @li Locking and per-cpu data are not yet implemented to be SMP-safe.  This is not yet necessary because the
- * current kprobes implementation single-threads probes for us. 
- *
- * @section probe_sec Example Probes
- * 
- * Working sample probe code using the runtime is in runtime/probes.
- * <a href="dir_000000.html"> Browse probes.</a>
- * 
- * @section todo_sec ToDo 
- * \link todo Click Here for Complete List \endlink
- *
- * @section links Links
- * <a href="http://sources.redhat.com/systemtap/">SystemTap Project Page</a>
+@section intro_sec Introduction
+
+This document describes the implementation of the SystemTap Runtime. It is intended for developers
+of the SystemTap Language translator or, possibly TapSet authors. These functions are not directly
+available from the SystemTap Language.
+
+The SystemTap Runtime Library consists of all functions
+and code fragments needed by the compiler/translator to
+include in building a kernel module using kprobes. It
+also include I/O code to transmit its output from the kernel to userspace.
+ 
+In addition to the library, the runtime includes a SystemTap user-space daemon
+(stpd).  Stpd grabs data sent from the I/O code in the runtime and displays it
+and/or saves it to files. Stpd (or a script invoking it) will handle other issues like
+inserting and removing modules.
+
+Stpd and the I/O code make use of both relayfs and netlink for communication.  For
+kernels without relayfs builtin, it is provided as a standalone module under the runtime directory.
+
+@section design_sec Design
+@subsection impl_sec Implementation
+The library is written in C and is really not a library but a collection of code
+That can be conditionally included in a modules. It may become a library later, but for now
+there are some advantages to being able to change the sizes of static items with simple #defines.
+
+@subsection map_sec Maps (Associative Arrays)
+Maps are implemented as hash lists. It is not expected that users will
+attempt to collect so much data in kernel space that performance problems will require
+more complex solutions such as AVL trees.
+
+Maps are created with _stp_map_new().  Each map can hold only one type of 
+data; int64, string, or statistics.  Each element belonging to a map can have up to 2 keys
+and a value.  Implemented key types are strings and longs.
+	
+To simplify the implementation, the functions to set the key and the functions to set the data are separated.
+That means we need only 4 functions to set the key and 3 functions to set the value. 
+
+For example:
+\code
+/* create a map with a max of 100 elements */
+MAP mymap = map_new(100, INT64);
+
+/* mymap[birth year] = 2000 */
+map_key_str (mymap, "birth year");
+map_set_int64 (mymap, 2000);
+\endcode
+
+All elements have a default value of 0 (or NULL).  Elements are only saved to the map when their value is set
+to something nonzero.  This means that querying for the existance of a key is inexpensive because
+no element is created, just a hash table lookup.
+
+@subsection list_sec Lists
+A list is a special map which has internally ascending long integer keys.  Adding a value to
+a list does not require setting a key first. Create a list with _stp_list_new(). Add to it
+with _stp_list_add_str() and _stp_list_add_int64().  Clear it with _stp_list_clear().
+
+@subsection string_sec Strings
+One of the biggest restrictions the library has is that it cannot allocate things like strings off the stack.
+It is also not a good idea to dynamically allocate space for strings with kmalloc().  That leaves us with 
+statically allocated space for strings. This is what is implemented in the String module.  Strings use
+preallocated per-cpu buffers and are safe to use (unlike C strings).
+
+@subsection io_sec I/O
+Generally things are written to a "print buffer" using the internal
+functions _stp_print_xxx().
+\code
+_stp_print ("Output is: ");
+_stp_printf ("pid is %d ", current->pid);
+_stp_printf ("name is %s", current->comm);
+\endcode
+before the probe returns it must call _stp_print_flush().  This
+timestamps the accumulated print buffer and sends it to relayfs.
+When relayfs fills an internal buffer, the user-space daemon is notified
+data is ready and reads a bug per-cpu chunk, which contains a line like:
+\verbatim
+[123456.000002] Output is: pid is 1234 name is bash
+\endverbatim
+
+The user-daemon (stpd) saves this data to a file named something like
+"stpd_cpu2".  When the user hits ^c, a timer expires, or the probe
+module notifies stpd (through a netlink command channel) that it wants
+to terminate, stpd does "system(rmmod)" then collects the last output
+before exiting.
+As an option, if we don't need bulk per-cpu data, we can put
+\code
+#define STP_NETLINK_ONLY
+\endcode
+at the top of the module and all output will go over a netlink channel.
+In the SystemTap language, we will provide some simple functions to control the buffering policy, which
+will control the use of netlink and parameters to relayfs and stpd.
+
+@section status_sec Status
+@li Maps are implemented and tested. Histograms are not yet finished.
+@li Copy_From_User functions are done.
+@li If maps overflow or memory runs out for some reason, globals are set but nothing is done yet.
+I expect to implement a function to tell the system to either ignore it or unload the module and quit.
+@li Stack functions need much improvement.
+
+@section probe_sec Example Probes
+
+Working sample probe code using the runtime is in runtime/probes.
+<a href="dir_000000.html"> Browse probes.</a>
+
+@section todo_sec ToDo 
+\link todo Click Here for Complete List \endlink
+
+@section links Links
+<a href="http://sources.redhat.com/systemtap/">SystemTap Project Page</a>
  */

@@ -89,6 +89,7 @@ do {									   \
  * 
  * If <i>count</i> is smaller than the length of the string, copies 
  * <i>count</i> bytes and returns <i>count</i>.
+ * @deprecated I can't think of why you wouldn't use _stp_string_from_user() instead.
  */
 
 long
@@ -98,6 +99,16 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 	__stp_strncpy_from_user(dst, src, count, res);
 	return res;
 }
+
+/** Copy a String from userspace.
+ * Copies a string of up to \e count bytes from userspace into a String. 
+ * If access to userspace fails, returns -EFAULT (some data may have been
+ * copied).
+ * @param str Destination String.
+ * @param src Source address, in user space.
+ * @param count Maximum number of bytes to copy, including the trailing NULL.
+ * 
+ */
 
 void _stp_string_from_user (String str,  const char __user *src, long count)
 {
@@ -124,7 +135,7 @@ void _stp_string_from_user (String str,  const char __user *src, long count)
  *
  */
 
-unsigned long inline
+unsigned long
 _stp_copy_from_user (char *dst, const char __user *src, unsigned long count)
 {
 	return __copy_from_user_inatomic(dst, src, count);

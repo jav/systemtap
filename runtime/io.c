@@ -12,20 +12,18 @@
  * @{
  */
 
+/** private buffer for _stp_log() */
 #define STP_LOG_BUF_LEN 2047
 static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 
 /** Logs Data.
- * This function is compatible with printk.  In fact it currently
- * sends all output to vprintk, after sending "STP: ". This allows
- * us to easily detect SystemTap output in the log file. 
- *
+ * This function prints to the system log if stpd has not connected
+ * yet.  Otherwise it sends the message immediately to stpd.
  * @param fmt A variable number of args.
- * @bug Lines are limited in length by printk buffer. If there is
+ * @note Lines are limited in length by printk buffer. If there is
  * no newline in the format string, then other syslog output could
  * get appended to the SystemTap line.
- * @todo Either deprecate or redefine this as a way to log debug or 
- * status messages, separate from the normal program output.
+ * @todo Evaluate if this function is necessary.
  */
 
 void _stp_log (const char *fmt, ...)
@@ -82,6 +80,10 @@ static struct relay_app_callbacks stp_callbacks =
 	.user_command = stpd_command
 };
 
+/** Opens netlink and relayfs connections to stpd.
+ * This must be called before any I/O is done, probably 
+ * at the start of module initialization.
+ */
 int _stp_netlink_open(void)
 {
 	if (init_relay_app("stpd", "cpu", &stp_callbacks)) {
@@ -90,6 +92,13 @@ int _stp_netlink_open(void)
 	}
 	return 0;
 }
+
+/** Closes netlink and relayfs connections to stpd.
+ * This must be called after all I/O is done, probably 
+ * at the end of module cleanup.
+ * @returns 0 on success.  -1 if there is a problem establishing
+ * a connection.
+ */
 	
 void _stp_netlink_close (void)
 {

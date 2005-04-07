@@ -11,6 +11,10 @@
  * The print buffer is for collecting output to send to the user daemon.
  * This is a per-cpu static buffer.  The buffer is sent when
  * _stp_print_flush() is called.
+ *
+ * The reason to do this is to allow multiple small prints to be combined then
+ * timestamped and sent together to stpd. It could flush automatically on newlines,
+ * but what about stack traces which span many lines?  So try this and see how it works for us.
  * @{
  */
 
@@ -53,6 +57,11 @@ void _stp_print_flush (void)
 #define STP_PRINT_BUF_START (TIMESTAMP_SIZE + 1)
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
 
+/** Send the print buffer now.
+ * Output accumulates in the print buffer until this is called.
+ * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
+ */
+
 void _stp_print_flush (void)
 {
 	int cpu = smp_processor_id();
@@ -77,15 +86,14 @@ void _stp_print_flush (void)
 }
 #endif /* STP_NETLINK_ONLY */
 
-/** Sprint into the scratch buffer.
- * Like printf, except output goes into a global scratch buffer
- * which will contain the null-terminated output.
+/** Print into the print buffer.
+ * Like printf, except output goes to the print buffer.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of scratch buffer, STP_BUF_LEN.
- *
+ * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
+ * 
  * @param fmt A printf-style format string followed by a 
  * variable number of args.
- * @sa _stp_pbuf_clear
+ * @sa _stp_print_flush()
  */
 
 void _stp_printf (const char *fmt, ...)
@@ -101,6 +109,11 @@ void _stp_printf (const char *fmt, ...)
 		_stp_pbuf_len[cpu] += num;
 }
 
+/** Print into the print buffer.
+ * Use this if your function already has a va_list.
+ * You probably want _stp_printf().
+ */
+
 void _stp_vprintf (const char *fmt, va_list args)
 {
 	int num;
@@ -111,13 +124,15 @@ void _stp_vprintf (const char *fmt, va_list args)
 		_stp_pbuf_len[cpu] += num;
 }
 
-/** Write a string into the scratch buffer.
- * Copies a string into a global scratch buffer.
+/** Write a C string into the print buffer.
+ * Copies a string into a print buffer.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of scratch buffer, STP_BUF_LEN.
- * This is more efficient than using _stp_sprint().
+ * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
+ * This is more efficient than using _stp_printf() if you don't
+ * need fancy formatting.
  *
- * @param str A string.
+ * @param str A C string.
+ * @sa _stp_print
  */
 
 void _stp_print_cstr (const char *str)
@@ -147,11 +162,28 @@ char *_stp_print_clear (void)
 
 #include "string.c"
 
+/** Write a String into the print buffer.
+ * Copies a String into a print buffer.
+ * Safe because overflowing the buffer is not allowed.
+ * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
+ * This is more efficient than using _stp_printf() if you don't
+ * need fancy formatting.
+ *
+ * @param str A String.
+ * @sa _stp_print
+ */
+
 void _stp_print_string (String str)
 {
 	if (str->len)
 		_stp_print_cstr (str->buf);
 }
+
+/** Write a String or C string into the print buffer.
+ * This macro selects the proper function to call.
+ * @param str A String or C string (char *)
+ * @sa _stp_print_cstr _stp_print_string
+ */
 
 #define _stp_print(str)							\
 	({								\

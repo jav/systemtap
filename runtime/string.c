@@ -4,15 +4,18 @@
 #include <linux/config.h>
 
 /** @file string.c
- * @addtogroup scbuf Scratch Buffer
- * Scratch Buffer Functions.
- * The scratch buffer is for collecting output before storing in a map,
- * printing, etc. This is a per-cpu static buffer.  It is necessary because 
- * of the limited stack space available in the kernel.
- * @todo Need careful review of these to insure safety.
+ * @brief Implements String type.
+ */
+/** @addtogroup string String Functions
+ *
+ * One of the biggest restrictions the library has is that it cannot allocate things like strings off the stack.
+ * It is also not a good idea to dynamically allocate space for strings with kmalloc().  That leaves us with 
+ * statically allocated space for strings. This is what is implemented in the String module.  Strings use
+ * preallocated per-cpu buffers and are safe to use (unlike C strings).
  * @{
  */
 
+/** Maximum string size allowed in Strings */
 #ifndef STP_STRING_SIZE
 #define STP_STRING_SIZE 2048
 #endif
@@ -26,6 +29,15 @@ struct string {
 static struct string _stp_string[STP_NUM_STRINGS][NR_CPUS];
 
 typedef struct string *String;
+
+/** Initialize a String for our use.
+ * This grabs one of the global Strings for our use.
+ *
+ * @param num Number of the preallocated String to use. 
+ * #STP_NUM_STRINGS are statically allocated for our use. The
+ * translator (or author) should be sure to grab a free one.
+ * @todo Global (and static) Strings not implemented yet. 
+ */
 
 String _stp_string_init (int num)
 {
@@ -53,17 +65,15 @@ String _stp_string_init (int num)
 }
 
 
-/** Sprint into the scratch buffer.
- * Like printf, except output goes into a global scratch buffer
- * which will contain the null-terminated output.
+/** Sprintf into a String.
+ * Like printf, except output goes into a String.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of scratch buffer, STP_BUF_LEN.
+ * Size is limited by length of String, #STP_STRING_SIZE.
  *
+ * @param str String
  * @param fmt A printf-style format string followed by a 
  * variable number of args.
- * @sa _stp_scbuf_clear
  */
-
 void _stp_sprintf (String str, const char *fmt, ...)
 {
 	int num;
@@ -75,6 +85,10 @@ void _stp_sprintf (String str, const char *fmt, ...)
 		str->len += num;
 }
 
+/** Vsprintf into a String
+ * Use this if your function already has a va_list.
+ * You probably want _stp_sprintf().
+ */
 void _stp_vsprintf (String str, const char *fmt, va_list args)
 {
 	int num;
@@ -83,24 +97,27 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 		str->len += num;
 }
 
-/** Write a string into the scratch buffer.
- * Copies a string into a global scratch buffer.
- * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of scratch buffer, STP_BUF_LEN.
- * This is more efficient than using _stp_sprint().
- *
- * @param str A string.
+/** ConCATenate (append) a C string to a String.
+ * Like strcat().
+ * @param str1 String
+ * @param str2 C string (char *)
+ * @sa _stp_string_cat
  */
-
-void _stp_string_cat_cstr (String str, const char *newstr)
+void _stp_string_cat_cstr (String str1, const char *str2)
 {
-	int num = strlen (newstr);
-	if (num > STP_STRING_SIZE - str->len - 1)
-		num = STP_STRING_SIZE - str->len - 1;
-	strncpy (str->buf + str->len, newstr, num+1);
-	str->len += num;
+	int num = strlen (str2);
+	if (num > STP_STRING_SIZE - str1->len - 1)
+		num = STP_STRING_SIZE - str1->len - 1;
+	strncpy (str1->buf + str1->len, str2, num+1);
+	str1->len += num;
 }
 
+/** ConCATenate (append) a String to a String.
+ * Like strcat().
+ * @param str1 String
+ * @param str2 String
+ * @sa _stp_string_cat
+ */
 void _stp_string_cat_string (String str1, String str2)
 {
 	int num = str2->len;
@@ -110,11 +127,26 @@ void _stp_string_cat_string (String str1, String str2)
 	str1->len += num;
 }
 
+/** Get a pointer to String's buffer
+ * For rare cases when a C string is needed and you have a String.
+ * One example is when you want to print a String with _stp_printf().
+ * @param str String
+ * @returns A C string (char *)
+ * @note Readonly. Don't write to this pointer or it will mess up
+ * the internal String state and probably mess up your output or crash something.
+ */
 char * _stp_string_ptr (String str)
 {
 	return str->buf;
 }
 
+
+/** ConCATenate (append) a String or C string to a String.
+ * This macro selects the proper function to call.
+ * @param str1 A String
+ * @param str2 A String or C string (char *)
+ * @sa _stp_string_cat_cstr _stp_string_cat_string
+ */
 #define _stp_string_cat(str1, str2)					\
   ({                                                            \
 	  if (__builtin_types_compatible_p (typeof (str2), char[])) {	\

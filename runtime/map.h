@@ -1,17 +1,17 @@
-#ifndef _MAP_H_
+#ifndef _MAP_H_ /* -*- linux-c -*- */
 #define _MAP_H_
-/* -*- linux-c -*- */
 
 /** @file map.h
  * @brief Header file for maps and lists 
  */
 /** @addtogroup maps 
+ * @todo Needs to be made SMP-safe for when the big lock is removed from kprobes.
  * @{ 
  */
 
 #include <linux/types.h>
 
-/** Statistics are stored in this struct */
+/* Statistics are stored in this struct */
 typedef struct {
 	int64_t count;
 	int64_t sum;
@@ -19,7 +19,7 @@ typedef struct {
 	int64_t histogram[BUCKETS];
 } stat;
 
-/** Keys are either longs or char * */
+/* Keys are either longs or char * */
 union key_data {
 	long val;
 	char *str;
@@ -31,11 +31,11 @@ enum keytype { NONE, LONG, STR } __attribute__ ((packed));
 enum valtype { INT64, STAT, STRING, END };
 
 
-/** basic map element */
+/* basic map element */
 struct map_node {
-	/** list of other nodes in the map */
+	/* list of other nodes in the map */
 	struct list_head lnode;
-	/** list of nodes with the same hash value */
+	/* list of nodes with the same hash value */
 	struct hlist_node hnode; 
 	union key_data key1;
 	union key_data key2;
@@ -43,48 +43,48 @@ struct map_node {
 	enum keytype key2type;
 };
 
-/** map element containing int64 */
+/* map element containing int64 */
 struct map_node_int64 {
 	struct map_node n;
 	int64_t val;
 };
 
-/** map element containing string */
+/* map element containing string */
 struct map_node_str {
 	struct map_node n;
 	char *str;
 };
 
-/** map element containing stats */
+/* map element containing stats */
 struct map_node_stat {
 	struct map_node n;
 	stat stats;
 };
 
-/** This structure contains all information about a map.
+/* This structure contains all information about a map.
  * It is allocated once when _stp_map_new() is called. 
  */
 struct map_root {
-	/** type of the values stored in the array */
+	/* type of the values stored in the array */
 	enum valtype type;
 	
- 	/** maximum number of elements allowed in the array. */
+ 	/* maximum number of elements allowed in the array. */
 	int maxnum;
 
-	/** current number of used elements */
+	/* current number of used elements */
 	int num;
 
-	/** when more than maxnum elements, wrap or discard? */
+	/* when more than maxnum elements, wrap or discard? */
 	int no_wrap;
 
-	/** linked list of current entries */
+	/* linked list of current entries */
 	struct list_head head;
 
-	/** pool of unused entries.  Used only when entries are statically allocated
+	/* pool of unused entries.  Used only when entries are statically allocated
 	    at startup. */
 	struct list_head pool;
 
-	/** saved key entry for lookups */
+	/* saved key entry for lookups */
 	struct map_node *key;
 
 	/** this is the creation data saved between the key functions and the

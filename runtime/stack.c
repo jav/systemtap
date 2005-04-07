@@ -145,8 +145,11 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 #endif /* i386 */
 
 /** Print stack dump.
- * Prints a stack dump to the trace buffer.
- * @param verbose Verbosity:
+ * Prints a stack dump to the print buffer.
+ * @param verbose Verbosity
+ * @param levels Number of levels to trace.
+ * @todo Implement verbosity and levels parameters.
+ * @bug levels parameter is not functional
  */
 
 void _stp_stack_print (int verbose, int levels)
@@ -154,6 +157,16 @@ void _stp_stack_print (int verbose, int levels)
   unsigned long stack;
   __stp_stack_print (&stack, verbose, levels);
 }
+
+/** Writes stack dump to a String
+ *
+ * @param str String
+ * @param verbose Verbosity
+ * @param levels Number of levels to trace.
+ * @returns Same String as was input.
+ * @todo Implement verbosity and levels parameters.
+ * @bug levels parameter is not functional
+ */
 
 String _stp_stack_sprint (String str, int verbose, int levels)
 {
