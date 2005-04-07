@@ -1,7 +1,8 @@
-#ifndef _COPY_C_
+#ifndef _COPY_C_ /* -*- linux-c -*- */
 #define _COPY_C_
 
-/* -*- linux-c -*- */
+#include "string.c"
+
 /** @file copy.c
  * @brief Functions to copy from user space.
  */
@@ -96,6 +97,18 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 	long res;
 	__stp_strncpy_from_user(dst, src, count, res);
 	return res;
+}
+
+void _stp_string_from_user (String str,  const char __user *src, long count)
+{
+	long res;
+	if (count > STP_STRING_SIZE - str->len - 1)
+		count = STP_STRING_SIZE - str->len - 1;
+	__stp_strncpy_from_user(str->buf + str->len, src, count, res);
+	if (res > 0) {
+		str->len += res;
+		str->buf[str->len] = '\0';
+	}
 }
 
 /** Copy a block of data from user space.

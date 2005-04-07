@@ -1,7 +1,7 @@
 #ifndef _SYM_C_ /* -*- linux-c -*- */
 #define _SYM_C_
 
-#include "scbuf.c"
+#include "string.c"
 
 /** @file sym.c
  * @addtogroup sym Symbolic Functions
@@ -19,21 +19,6 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 			    unsigned long *offset,
 			    char **modname, char *namebuf)=(void *)KALLSYMS_LOOKUP;
 
-static void __stp_symbol_print (unsigned long address, void (*prtfunc)(const char *fmt, ...))
-{
-        char *modname;
-        const char *name;
-        unsigned long offset, size;
-        char namebuf[KSYM_NAME_LEN+1];
-
-        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
-
-	(*prtfunc)("0x%lx : ", address);
-	if (modname)
-		(*prtfunc)("%s+%#lx/%#lx [%s]", name, offset, size, modname);
-	else
-		(*prtfunc)("%s+%#lx/%#lx", name, offset, size);
-}
 
 /** Print addresses symbolically into a string
  * @param address The address to lookup.
@@ -42,11 +27,21 @@ static void __stp_symbol_print (unsigned long address, void (*prtfunc)(const cha
  * @note Uses scbuf.
  */
 
-char * _stp_symbol_sprint (unsigned long address)
+String _stp_symbol_sprint (String str, unsigned long address)
 { 
-	char *ptr = _stp_scbuf_cur();
-	__stp_symbol_print (address, _stp_sprint);
-	return ptr;
+	char *modname;
+        const char *name;
+        unsigned long offset, size;
+        char namebuf[KSYM_NAME_LEN+1];
+
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
+
+	_stp_sprintf (str, "0x%lx : ", address);
+	if (modname)
+		_stp_sprintf (str, "%s+%#lx/%#lx [%s]", name, offset, size, modname);
+	else
+		_stp_sprintf (str, "%s+%#lx/%#lx", name, offset, size);
+	return str;
 }
 
 
@@ -58,7 +53,18 @@ char * _stp_symbol_sprint (unsigned long address)
 
 void _stp_symbol_print (unsigned long address)
 {
-	__stp_symbol_print (address, _stp_print);
+	char *modname;
+        const char *name;
+        unsigned long offset, size;
+        char namebuf[KSYM_NAME_LEN+1];
+
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
+
+	_stp_printf ("0x%lx : ", address);
+	if (modname)
+		_stp_printf ("%s+%#lx/%#lx [%s]", name, offset, size, modname);
+	else
+		_stp_printf ("%s+%#lx/%#lx", name, offset, size);
 }
 
 /** @} */

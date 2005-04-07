@@ -20,7 +20,7 @@ void _stp_unregister_jprobes (struct jprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_jprobe(&probes[i]);
-	dlog ("All jprobes removed\n");
+	_stp_log ("All jprobes removed\n");
 }
 
 /** Register a group of jprobes.
@@ -37,12 +37,12 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 	for (i = 0; i < num_probes; i++) {
 		addr =_stp_lookup_name((char *)probes[i].kp.addr);
 		if (addr == 0) {
-			dlog ("ERROR: function %s not found!\n", 
+			_stp_log ("ERROR: function %s not found!\n", 
 			      (char *)probes[i].kp.addr);
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		dlog("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
+		_stp_log("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
 		probes[i].kp.addr = (kprobe_opcode_t *)addr;
 		ret = register_jprobe(&probes[i]);
 		if (ret)
@@ -50,7 +50,7 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 	}
 	return 0;
 out:
-	dlog ("probe module initialization failed.  Exiting...\n");
+	_stp_log ("probe module initialization failed.  Exiting...\n");
 	_stp_unregister_jprobes(probes, i);
 	return ret;
 }
@@ -65,7 +65,7 @@ void _stp_unregister_kprobes (struct kprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_kprobe(&probes[i]);
-	dlog ("All kprobes removed\n");
+	_stp_log ("All kprobes removed\n");
 }
 
 /** Register a group of kprobes.
@@ -82,12 +82,12 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 	for (i = 0; i < num_probes; i++) {
 		addr =_stp_lookup_name((char *)probes[i].addr);
 		if (addr == 0) {
-			dlog ("ERROR: function %s not found!\n", 
+			_stp_log ("ERROR: function %s not found!\n", 
 			      (char *)probes[i].addr);
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		dlog("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
+		_stp_log("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
 		probes[i].addr = (kprobe_opcode_t *)addr;
 		ret = register_kprobe(&probes[i]);
 		if (ret)
@@ -95,7 +95,7 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 	}
 	return 0;
 out:
-	dlog ("probe module initialization failed.  Exiting...\n");
+	_stp_log ("probe module initialization failed.  Exiting...\n");
 	_stp_unregister_kprobes(probes, i);
 	return ret;
 }

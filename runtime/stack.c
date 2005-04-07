@@ -1,6 +1,6 @@
-#ifndef _STACK_C_
+#ifndef _STACK_C_ /* -*- linux-c -*- */
 #define _STACK_C_
-/* -*- linux-c -*- */
+
 
 /** @file stack.c
  * @brief Stack Tracing Functions
@@ -20,35 +20,34 @@ static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
 	unsigned long addr;
 
 	if (verbose)
-		_stp_print ("trace for %d (%s)\n", current->pid, current->comm);
+		_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
 
 	while (((long) stack & (THREAD_SIZE-1)) != 0) {
 		addr = *stack++;
 		if (_stp_kta(addr)) {
-			if (verbose)
+			if (verbose) {
 				_stp_symbol_print (addr);
-			else
-				_stp_print ("0x%lx ", addr);
+				_stp_print ("\n");
+			} else
+				_stp_printf ("0x%lx ", addr);
 		}
 	}
-	_stp_print_str ("\n");
+	_stp_print_flush();
 }
 
 
-static char *__stp_stack_sprint (unsigned long *stack, int verbose, int levels)
+static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
 {
 	unsigned long addr;
-	char *ptr = _stp_scbuf_cur();
 	while (((long) stack & (THREAD_SIZE-1)) != 0) {
 		addr = *stack++;
 		if (_stp_kta(addr)) {
 			if (verbose)
-				_stp_symbol_sprint (addr);
+				_stp_symbol_sprint (str, addr);
 			else
-				_stp_sprint ("0x%lx ", addr);
+				_stp_sprintf (str, "0x%lx ", addr);
 		}
 	}
-	return ptr;
 }
 
 #else  /* i386 */
@@ -70,7 +69,7 @@ static inline unsigned long _stp_print_context_stack (
 	while (valid_stack_ptr(tinfo, (void *)ebp)) {
 		addr = *(unsigned long *)(ebp + 4);
 		_stp_symbol_print (addr);
-		_stp_print_str("\n");
+		_stp_print_cstr("\n");
 		ebp = *(unsigned long *)ebp;
 	}
 #else
@@ -78,14 +77,16 @@ static inline unsigned long _stp_print_context_stack (
 		addr = *stack++;
 		if (_stp_kta (addr)) {
 			_stp_symbol_print (addr);
-			_stp_print_str ("\n");
+			_stp_print_cstr ("\n");
 		}
 	}
 #endif
+	_stp_print_flush();
 	return ebp;
 }
 
 static inline unsigned long _stp_sprint_context_stack (
+	String str,
 	struct thread_info *tinfo,
 	unsigned long *stack, 
 	unsigned long ebp )
@@ -95,8 +96,8 @@ static inline unsigned long _stp_sprint_context_stack (
 #ifdef	CONFIG_FRAME_POINTER
 	while (valid_stack_ptr(tinfo, (void *)ebp)) {
 		addr = *(unsigned long *)(ebp + 4);
-		_stp_symbol_sprint (addr);
-		_stp_sprint_str("\n");
+		_stp_symbol_sprint (str, addr);
+		_stp_string_cat ("\n");
 		ebp = *(unsigned long *)ebp;
 	}
 #else
@@ -104,7 +105,7 @@ static inline unsigned long _stp_sprint_context_stack (
 		addr = *stack++;
 		if (_stp_kta (addr)) {
 			_stp_symbol_sprint (addr);
-			_stp_sprint_str ("\n");
+			_stp_string_cat ("\n");
 		}
 	}
 #endif
@@ -126,7 +127,7 @@ static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
 	}
 }
 
-static void __stp_stack_sprint (unsigned long *stack, int verbose, int levels)
+static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
 {
 	unsigned long ebp;
 
@@ -136,25 +137,30 @@ static void __stp_stack_sprint (unsigned long *stack, int verbose, int levels)
 	while (stack) {
 		struct thread_info *context = (struct thread_info *)
 			((unsigned long)stack & (~(THREAD_SIZE - 1)));
-		ebp = _stp_sprint_context_stack (context, stack, ebp);
+		ebp = _stp_sprint_context_stack (str, context, stack, ebp);
 		stack = (unsigned long*)context->previous_esp;
 	}
 }
 
 #endif /* i386 */
 
+/** Print stack dump.
+ * Prints a stack dump to the trace buffer.
+ * @param verbose Verbosity:
+ */
+
 void _stp_stack_print (int verbose, int levels)
 {
   unsigned long stack;
-  return __stp_stack_print (&stack, verbose, levels);
+  __stp_stack_print (&stack, verbose, levels);
 }
 
-char *_stp_stack_sprint (int verbose, int levels)
+String _stp_stack_sprint (String str, int verbose, int levels)
 {
   unsigned long stack;
-  char *ptr = _stp_scbuf_cur();
-  __stp_stack_sprint (&stack, verbose, levels);
-  return ptr;
+  __stp_stack_sprint (str, &stack, verbose, levels);
+  _stp_log ("sss: str=%s\n", str->buf);
+  return str;
 }
 
 /** @} */

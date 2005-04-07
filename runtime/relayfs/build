@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make V=1 -C /lib/modules/`uname -r`/build M=`pwd` modules \
+	RELAYFS_INCLUDE=`pwd`

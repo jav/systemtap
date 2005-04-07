@@ -8,6 +8,7 @@
 
 #include "map.h"
 #include "alloc.c"
+#include "string.c"
 
 static int map_sizes[] = {
 	sizeof(struct map_node_int64),
@@ -641,6 +642,11 @@ void _stp_map_set_str(MAP map, char *val)
 	}
 }
 
+void _stp_map_set_string (MAP map, String str)
+{
+  _stp_map_set_str (map, str->buf);
+}
+
 /** Gets the current element's value.
  * @param map
  * @returns A string pointer. If the current element is not set or doesn't exist, returns NULL.
@@ -841,7 +847,7 @@ void _stp_list_clear(MAP map)
 	}
 
 	if (map->num != 0) {
-		dlog ("ERROR: list is supposed to be empty (has %d)\n", map->num);
+		_stp_log ("ERROR: list is supposed to be empty (has %d)\n", map->num);
 	}
 }
 
@@ -854,6 +860,12 @@ inline void _stp_list_add_str(MAP map, char *str)
 {
 	_stp_map_key_long(map, map->num);
 	_stp_map_set_str(map, str);
+}
+
+inline void _stp_list_add_string (MAP map, String str)
+{
+	_stp_map_key_long(map, map->num);
+	_stp_map_set_str(map, str->buf);
 }
 
 /** Adds an int64 to a list.

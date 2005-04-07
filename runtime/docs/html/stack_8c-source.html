@@ -103,7 +103,7 @@
 00096 <span class="preprocessor"></span>        <span class="keywordflow">while</span> (valid_stack_ptr(tinfo, (<span class="keywordtype">void</span> *)ebp)) {
 00097                 addr = *(<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> *)(ebp + 4);
 00098                 <a class="code" href="group__sym.html#ga2">_stp_symbol_sprint</a> (addr);
-00099                 _stp_sprint_str(<span class="stringliteral">"\n"</span>);
+00099                 <a class="code" href="group__scbuf.html#ga3">_stp_sprint_str</a>(<span class="stringliteral">"\n"</span>);
 00100                 ebp = *(<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> *)ebp;
 00101         }
 00102 <span class="preprocessor">#else</span>
@@ -111,7 +111,7 @@
 00104                 addr = *stack++;
 00105                 <span class="keywordflow">if</span> (_stp_kta (addr)) {
 00106                         <a class="code" href="group__sym.html#ga2">_stp_symbol_sprint</a> (addr);
-00107                         _stp_sprint_str (<span class="stringliteral">"\n"</span>);
+00107                         <a class="code" href="group__scbuf.html#ga3">_stp_sprint_str</a> (<span class="stringliteral">"\n"</span>);
 00108                 }
 00109         }
 00110 <span class="preprocessor">#endif</span>
@@ -149,21 +149,26 @@
 00142 }
 00143 
 00144 <span class="preprocessor">#endif </span><span class="comment">/* i386 */</span>
-00145 
-00146 <span class="keywordtype">void</span> _stp_stack_print (<span class="keywordtype">int</span> verbose, <span class="keywordtype">int</span> levels)
-00147 {
-00148   <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> stack;
-00149   <span class="keywordflow">return</span> __stp_stack_print (&amp;stack, verbose, levels);
-00150 }
-00151 
-00152 <span class="keywordtype">char</span> *_stp_stack_sprint (<span class="keywordtype">int</span> verbose, <span class="keywordtype">int</span> levels)
-00153 {
-00154   <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> stack;
-00155   <span class="keywordtype">char</span> *ptr = _stp_scbuf_cur();
-00156   __stp_stack_sprint (&amp;stack, verbose, levels);
-00157   <span class="keywordflow">return</span> ptr;
-00158 }
-00159 <span class="comment"></span>
-00160 <span class="comment">/** @} */</span>
-00161 <span class="preprocessor">#endif </span><span class="comment">/* _STACK_C_ */</span>
+00145 <span class="comment"></span>
+00146 <span class="comment">/** Print stack dump.</span>
+00147 <span class="comment"> * Prints a stack dump to the trace buffer.</span>
+00148 <span class="comment"> * @param verbose Verbosity:</span>
+00149 <span class="comment"> */</span>
+00150 
+<a name="l00151"></a><a class="code" href="group__stack.html#ga6">00151</a> <span class="keywordtype">void</span> <a class="code" href="group__stack.html#ga6">_stp_stack_print</a> (<span class="keywordtype">int</span> verbose, <span class="keywordtype">int</span> levels)
+00152 {
+00153   <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> stack;
+00154   <span class="keywordflow">return</span> __stp_stack_print (&amp;stack, verbose, levels);
+00155 }
+00156 
+00157 <span class="keywordtype">char</span> *_stp_stack_sprint (<span class="keywordtype">int</span> verbose, <span class="keywordtype">int</span> levels)
+00158 {
+00159   <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> stack;
+00160   <span class="keywordtype">char</span> *ptr = _stp_scbuf_cur();
+00161   __stp_stack_sprint (&amp;stack, verbose, levels);
+00162   <span class="keywordflow">return</span> ptr;
+00163 }
+00164 <span class="comment"></span>
+00165 <span class="comment">/** @} */</span>
+00166 <span class="preprocessor">#endif </span><span class="comment">/* _STACK_C_ */</span>
 </pre></div></body></html>

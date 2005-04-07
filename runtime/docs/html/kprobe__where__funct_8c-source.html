@@ -78,9 +78,9 @@
 00069 
 00070         <span class="comment">/* now walk the hash table and print out all the information */</span>
 00071         <a class="code" href="group__maps.html#ga31">foreach</a>(funct_locations, ptr) {
-00072                 <a class="code" href="group__scbuf.html#ga4">_stp_scbuf_clear</a>();
+00072                 <span class="keywordtype">char</span> *str =<a class="code" href="group__scbuf.html#ga4">_stp_scbuf_clear</a>();
 00073                 <a class="code" href="group__sym.html#ga2">_stp_symbol_sprint</a> (<a class="code" href="group__maps.html#ga26">key1int</a>(ptr));
-00074                 <a class="code" href="group__io.html#ga0">dlog</a>(<span class="stringliteral">"%lld\t0x%p\t(%s)\n"</span>, ptr-&gt;<a class="code" href="structmap__node__int64.html#o1">val</a>, <a class="code" href="group__maps.html#ga26">key1int</a>(ptr), _stp_scbuf);
+00074                 <a class="code" href="group__io.html#ga0">dlog</a>(<span class="stringliteral">"%lld\t0x%p\t(%s)\n"</span>, ptr-&gt;<a class="code" href="structmap__node__int64.html#o1">val</a>, <a class="code" href="group__maps.html#ga26">key1int</a>(ptr), str);
 00075         }
 00076 
 00077         <a class="code" href="group__maps.html#ga7">_stp_map_del</a>(funct_locations);

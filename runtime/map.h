@@ -150,12 +150,14 @@ typedef struct map_root *MAP;
  * type of the argument. 
  * @note May cause compiler warning on some GCCs 
  */
-#define _stp_map_set(map, val)				\
+#define _stp_map_set(map, val)					\
   ({								\
-    if (__builtin_types_compatible_p (typeof (val), char[]))	\
+    if (__builtin_types_compatible_p (typeof (val), char[]))		\
       _stp_map_set_str (map, (char *)(val));				\
-    else							\
-      _stp_map_set_int64 (map, (int64_t)(val));			\
+    else  if (__builtin_types_compatible_p (typeof (val), String))	\
+      _stp_map_set_string (map, (String)(val));				\
+    else								\
+      _stp_map_set_int64 (map, (int64_t)(val));				\
   })
 
 /** Loop through all elements of a map or list.
@@ -178,11 +180,13 @@ typedef struct map_root *MAP;
  *
  * @note May cause compiler warning on some GCCs 
  */
-#define _stp_list_add(map, val)				\
-  ({								\
-    if (__builtin_types_compatible_p (typeof (val), char[]))	\
+#define _stp_list_add(map, val)					\
+  ({									\
+    if (__builtin_types_compatible_p (typeof (val), char[]))		\
       _stp_list_add_str (map, (char *)(val));				\
-    else							\
+    else if (__builtin_types_compatible_p (typeof (val), String))	\
+      _stp_list_add_string (map, (String)(val));			\
+    else								\
       _stp_list_add_int64 (map, (int64_t)(val));			\
   })
 

@@ -21,4 +21,6 @@
 
 #define dbug(args...) ;
 
+#include "print.c"
+
 #endif /* _RUNTIME_H_ */

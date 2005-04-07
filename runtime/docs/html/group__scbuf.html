@@ -17,29 +17,26 @@
 <tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__scbuf.html#ga2">_stp_sprint</a> (const char *fmt,...)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Sprint into the scratch buffer.  <a href="#ga2"></a><br></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="ga3" doxytag="scbuf::_stp_sprint_str"></a>
-void&nbsp;</td><td class="memItemRight" valign="bottom"><b>_stp_sprint_str</b> (const char *str)</td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__scbuf.html#ga3">_stp_sprint_str</a> (const char *str)</td></tr>
 
-<tr><td class="memItemLeft" nowrap align="right" valign="top">void&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__scbuf.html#ga4">_stp_scbuf_clear</a> (void)</td></tr>
+<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Write a string into the scratch buffer.  <a href="#ga3"></a><br></td></tr>
+<tr><td class="memItemLeft" nowrap align="right" valign="top">char *&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__scbuf.html#ga4">_stp_scbuf_clear</a> (void)</td></tr>
 
 <tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Clear the scratch buffer.  <a href="#ga4"></a><br></td></tr>
-<tr><td colspan="2"><br><h2>Variables</h2></td></tr>
-<tr><td class="memItemLeft" nowrap align="right" valign="top"><a class="anchor" name="ga0" doxytag="scbuf::_stp_scbuf"></a>
-char&nbsp;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__scbuf.html#ga0">_stp_scbuf</a> [8191+1]</td></tr>
-
-<tr><td class="mdescLeft">&nbsp;</td><td class="mdescRight">Scratch buffer for printing, building strings, etc. <br></td></tr>
 </table>
 <hr><a name="_details"></a><h2>Detailed Description</h2>
 Scratch Buffer Functions. 
 <p>
-The scratch buffer is for collecting output before storing in a map, printing, etc. This is a per-cpu static buffer. It is necessary because of the limited stack space available in the kernel. <hr><h2>Function Documentation</h2>
+The scratch buffer is for collecting output before storing in a map, printing, etc. This is a per-cpu static buffer. It is necessary because of the limited stack space available in the kernel. <p>
+<dl compact><dt><b><a class="el" href="todo.html#_todo000008">Todo:</a></b></dt><dd>Need careful review of these to insure safety.</dd></dl>
+<hr><h2>Function Documentation</h2>
 <a class="anchor" name="ga4" doxytag="scbuf.c::_stp_scbuf_clear"></a><p>
 <table class="mdTable" cellpadding="2" cellspacing="0">
   <tr>
     <td class="mdRow">
       <table cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td class="md" nowrap valign="top">void _stp_scbuf_clear           </td>
+          <td class="md" nowrap valign="top">char* _stp_scbuf_clear           </td>
           <td class="md" valign="top">(&nbsp;</td>
           <td class="md" nowrap valign="top">void&nbsp;</td>
           <td class="mdname1" valign="top" nowrap>          </td>
@@ -60,11 +57,12 @@ The scratch buffer is for collecting output before storing in a map, printing, e
 <p>
 Clear the scratch buffer. 
 <p>
-Output from <a class="el" href="group__scbuf.html#ga2">_stp_sprint()</a> will accumulate in the buffer until this is called. 
+This function should be called before anything is written to the scratch buffer. Output will accumulate in the buffer until this function is called again. <dl compact><dt><b>Returns:</b></dt><dd>A pointer to the buffer. </dd></dl>
+
 <p>
-Definition at line <a class="el" href="scbuf_8c-source.html#l00059">59</a> of file <a class="el" href="scbuf_8c-source.html">scbuf.c</a>.
+Definition at line <a class="el" href="scbuf_8c-source.html#l00074">74</a> of file <a class="el" href="scbuf_8c-source.html">scbuf.c</a>.
 <p>
-References <a class="el" href="scbuf_8c-source.html#l00018">_stp_scbuf</a>, and <a class="el" href="scbuf_8c-source.html#l00015">STP_BUF_LEN</a>.    </td>
+References <a class="el" href="scbuf_8c-source.html#l00017">STP_BUF_LEN</a>.    </td>
   </tr>
 </table>
 <a class="anchor" name="ga2" doxytag="scbuf.c::_stp_sprint"></a><p>
@@ -103,7 +101,7 @@ References <a class="el" href="scbuf_8c-source.html#l00018">_stp_scbuf</a>, and 
 <p>
 Sprint into the scratch buffer. 
 <p>
-Like printf, except output goes into <a class="el" href="group__scbuf.html#ga0">_stp_scbuf</a>, which will contain the null-terminated output. Safe because overflowing <a class="el" href="group__scbuf.html#ga0">_stp_scbuf</a> is not allowed. Size is limited by length of scratch buffer, STP_BUF_LEN.<p>
+Like printf, except output goes into a global scratch buffer which will contain the null-terminated output. Safe because overflowing the buffer is not allowed. Size is limited by length of scratch buffer, STP_BUF_LEN.<p>
 <dl compact><dt><b>Parameters:</b></dt><dd>
   <table border="0" cellspacing="2" cellpadding="0">
     <tr><td valign="top"></td><td valign="top"><em>fmt</em>&nbsp;</td><td>A printf-style format string followed by a variable number of args. </td></tr>
@@ -112,11 +110,51 @@ Like printf, except output goes into <a class="el" href="group__scbuf.html#ga0">
 <dl compact><dt><b>See also:</b></dt><dd><a class="el" href="group__scbuf.html#ga4">_stp_scbuf_clear</a> </dd></dl>
 
 <p>
-Definition at line <a class="el" href="scbuf_8c-source.html#l00032">32</a> of file <a class="el" href="scbuf_8c-source.html">scbuf.c</a>.
+Definition at line <a class="el" href="scbuf_8c-source.html#l00034">34</a> of file <a class="el" href="scbuf_8c-source.html">scbuf.c</a>.
 <p>
-References <a class="el" href="scbuf_8c-source.html#l00018">_stp_scbuf</a>, and <a class="el" href="scbuf_8c-source.html#l00015">STP_BUF_LEN</a>.
+References <a class="el" href="scbuf_8c-source.html#l00017">STP_BUF_LEN</a>.
 <p>
 Referenced by <a class="el" href="sym_8c-source.html#l00045">_stp_symbol_sprint()</a>.    </td>
+  </tr>
+</table>
+<a class="anchor" name="ga3" doxytag="scbuf.c::_stp_sprint_str"></a><p>
+<table class="mdTable" cellpadding="2" cellspacing="0">
+  <tr>
+    <td class="mdRow">
+      <table cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td class="md" nowrap valign="top">void _stp_sprint_str           </td>
+          <td class="md" valign="top">(&nbsp;</td>
+          <td class="md" nowrap valign="top">const char *&nbsp;</td>
+          <td class="mdname1" valign="top" nowrap> <em>str</em>          </td>
+          <td class="md" valign="top">&nbsp;)&nbsp;</td>
+          <td class="md" nowrap></td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table cellspacing="5" cellpadding="0" border="0">
+  <tr>
+    <td>
+      &nbsp;
+    </td>
+    <td>
+
+<p>
+Write a string into the scratch buffer. 
+<p>
+Copies a string into a global scratch buffer. Safe because overflowing the buffer is not allowed. Size is limited by length of scratch buffer, STP_BUF_LEN. This is more efficient than using <a class="el" href="group__scbuf.html#ga2">_stp_sprint()</a>.<p>
+<dl compact><dt><b>Parameters:</b></dt><dd>
+  <table border="0" cellspacing="2" cellpadding="0">
+    <tr><td valign="top"></td><td valign="top"><em>str</em>&nbsp;</td><td>A string. </td></tr>
+  </table>
+</dl>
+
+<p>
+Definition at line <a class="el" href="scbuf_8c-source.html#l00056">56</a> of file <a class="el" href="scbuf_8c-source.html">scbuf.c</a>.
+<p>
+References <a class="el" href="scbuf_8c-source.html#l00017">STP_BUF_LEN</a>.    </td>
   </tr>
 </table>
 </body></html>
