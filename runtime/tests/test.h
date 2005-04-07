@@ -216,8 +216,19 @@ void *vmalloc (size_t len)
 #endif
 
 #define dlog(args...) printf(args);
+#define _stp_log(args...) printf(args);
 
-#include "../alloc.h"
+#define STP_NUM_STRINGS 5
+#define NR_CPUS 2
+
+int smp_processor_id(void)
+{
+  return 0;
+}
+
+#define vscnprintf vsnprintf
+
+#include "../alloc.c"
 #include "../map.h"
 #include "../map.c"
 
