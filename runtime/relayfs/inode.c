@@ -30,7 +30,11 @@ static kmem_cache_t *			relayfs_inode_cachep;
 
 static struct backing_dev_info		relayfs_backing_dev_info = {
 	.ra_pages	= 0,	/* No readahead */
+#ifdef BDI_CAP_NO_ACCT_DIRTY
+	.capabilities	= BDI_CAP_NO_ACCT_DIRTY | BDI_CAP_NO_WRITEBACK,
+#else
 	.memory_backed  = 1,    /* Does not contribute to dirty memory */
+#endif
 };
 
 static struct inode *relayfs_get_inode(struct super_block *sb, int mode,

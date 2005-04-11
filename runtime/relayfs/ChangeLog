@@ -1,0 +1,6 @@
+2005-04-11  Martin Hunt  <hunt@redhat.com>
+
+	* inode.c: Latest kernels have modified backing_dev_info. Detect
+	newer version and set appropriately.
+	
+
