@@ -151,10 +151,10 @@ char * _stp_string_ptr (String str)
   ({                                                            \
 	  if (__builtin_types_compatible_p (typeof (str2), char[])) {	\
 		  char *x = (char *)str2;				\
-		  _str_string_cat_cstr(str1,x);				\
+		  _stp_string_cat_cstr(str1,x);				\
 	  } else {							\
 		  String x = (String)str2;				\
-		  _str_string_cat_string(str1,x);			\
+		  _stp_string_cat_string(str1,x);			\
 	  }								\
   })
 

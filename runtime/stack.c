@@ -97,15 +97,15 @@ static inline unsigned long _stp_sprint_context_stack (
 	while (valid_stack_ptr(tinfo, (void *)ebp)) {
 		addr = *(unsigned long *)(ebp + 4);
 		_stp_symbol_sprint (str, addr);
-		_stp_string_cat ("\n");
+		_stp_string_cat (str, "\n");
 		ebp = *(unsigned long *)ebp;
 	}
 #else
 	while (valid_stack_ptr(tinfo, stack)) {
 		addr = *stack++;
 		if (_stp_kta (addr)) {
-			_stp_symbol_sprint (addr);
-			_stp_string_cat ("\n");
+			_stp_symbol_sprint (str, addr);
+			_stp_string_cat (str, "\n");
 		}
 	}
 #endif
@@ -125,6 +125,7 @@ static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
 		ebp = _stp_print_context_stack (context, stack, ebp);
 		stack = (unsigned long*)context->previous_esp;
 	}
+	_stp_print_flush ();
 }
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
@@ -172,7 +173,6 @@ String _stp_stack_sprint (String str, int verbose, int levels)
 {
   unsigned long stack;
   __stp_stack_sprint (str, &stack, verbose, levels);
-  _stp_log ("sss: str=%s\n", str->buf);
   return str;
 }
 
