@@ -5,14 +5,27 @@ LANGUAGE
   /* */ and // comments
   builtin functions
   varargs/overloaded functions (?)
-  syntax for dereferencing C structures (http://tinyurl.com/4tpgh)
-  syntax for embedded C (?)
+  syntax for dereferencing C structures (http://tinyurl.com/4tpgh); 
+     but what about iterative pointer following (linked list traversal?)
+  syntax for embedded C (?); or at least C interface mechanism
+  decide on numeric type size; probably need 64-bit
+  need error builtin function to bump errorcount and abort session
+
+TRANSLATOR
+  lots of "XXX" markers
+  use "restrict" pointers for context*
+  deal with (warn/elide?) local variables only written or read
 
 RUNTIME
   lifecycle control (http://tinyurl.com/6ub2a)
   better map/string memory management
-  user-level 
+  extending map key arity beyond 2
+  user-level alternative implementation
   dtrace-flavoured utility functions
+  interface with LTT, LKST, KGEM, perfmon, timer event sources
+
+OPROFILE/timers
+  kprobes-like event setting and callback API
 
 PROVIDERS
   lkst("process_contextswitch")
@@ -40,7 +53,11 @@ KPROBES
   smp friendliness: no kprobes-wide lock held during probe execution
   multiple probes at same address
   user-level probe points (via ptrace mechanism?)
+  separate stack
+  treatment of nested probe hits (prefer no permanent disablement; require
+     flagging of occurrence)
+  self-monitoring of performance overhead
 
-OPROFILE/timers
-  kprobes-like event setting and callback API
-
+SAMPLES
+  all-inclusive top-style interactive program that subsumes
+     top, lsof, netstat, ...
