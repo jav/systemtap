@@ -1,0 +1,30 @@
+
+probe.kernel.sys_open.entry()
+{
+  $dynamic_call_graph =1;
+}
+
+# What you would see in the output would be something of this kind
+# call sys_open
+#     call getname
+#          call do_getname
+#           return do_getname
+#     return getname
+#     call get_unused_fd
+#         call find_next_zero_bit
+#         return find_next_zero_bit
+#     return get_unused_fd
+#     call filep_open
+      .....
+return sys_open
+
+# The above probe could be customized to a particular process as well,
+# like in the following
+
+probe.kernel.sys_open.entry()
+{
+if ($PID == 1234)
+    $dynamic_call_graph =1;
+}
+
+
