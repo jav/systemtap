@@ -21,7 +21,7 @@ semantic_pass_1 (vector<stapfile*>& files)
       for (unsigned j=0; j<f->functions.size(); j++)
         {
           functiondecl* fn = f->functions[j];
-          symresolution_info ri (fn->locals, f->globals, files, f, fn);
+          symresolution_info ri (fn->locals, f->globals, f->functions, fn);
 
           fn->body->resolve_symbols (ri);
           if (ri.num_unresolved)
@@ -32,7 +32,7 @@ semantic_pass_1 (vector<stapfile*>& files)
       for (unsigned j=0; j<f->probes.size(); j++)
         {
           probe* pn = f->probes[j];
-          symresolution_info ri (pn->locals, f->globals, files, f);
+          symresolution_info ri (pn->locals, f->globals, f->functions);
 
           pn->body->resolve_symbols (ri);
           if (ri.num_unresolved)
@@ -113,8 +113,7 @@ main (int argc, char *argv [])
   vector<stapfile*> files;
   if (argc == 1)
     {
-      parser p (cin);
-      stapfile* f = p.parse ();
+      stapfile* f = parser::parse (cin);
       if (f)
         files.push_back (f);
       else
@@ -122,8 +121,7 @@ main (int argc, char *argv [])
     }
   else for (int i = 1; i < argc; i ++)
     {
-      parser p (argv[i]);
-      stapfile* f = p.parse ();
+      stapfile* f = parser::parse (argv[i]);
       if (f)
         files.push_back (f);
       else
@@ -131,7 +129,8 @@ main (int argc, char *argv [])
     }
 
   rc += semantic_pass_1 (files);
-  rc += semantic_pass_2 (files);
+  if (rc == 0)
+    rc += semantic_pass_2 (files);
 
   for (unsigned i=0; i<files.size(); i++)
     {

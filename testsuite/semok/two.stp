@@ -1,6 +1,6 @@
 #! semtest
 
-global bar, baz;
+global bar, baz
 
 function koo (p) {
   baz [p, "p", p] ++;

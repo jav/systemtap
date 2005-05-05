@@ -32,6 +32,22 @@ parser::~parser()
 }
 
 
+stapfile*
+parser::parse (std::istream& i)
+{
+  parser p (i);
+  return p.parse ();
+}
+
+
+stapfile*
+parser::parse (const std::string& n)
+{
+  parser p (n);
+  return p.parse ();
+}
+
+
 ostream&
 operator << (ostream& o, const token& t)
 {
@@ -257,7 +273,15 @@ lexer::scan ()
           (c == ':' && c2 == ':') ||
           (c == '-' && c2 == '>') ||
 	  false) // XXX: etc.
-        n->content.push_back((char) input_get ());
+        n->content.push_back ((char) input_get ());
+
+      // handle three-character operator
+      if (c == '<' && c2 == '<')
+        {
+          int c3 = input.peek ();
+          if (c3 == '<')
+            n->content.push_back ((char) input_get ());
+        }
 
       return n;
     }
@@ -291,21 +315,11 @@ parser::parse ()
 
           empty = false;
 	  if (t->type == tok_identifier && t->content == "probe")
-	    {
-	      next ();
-	      f->probes.push_back (parse_probe ());
-	    }
+	    f->probes.push_back (parse_probe ());
 	  else if (t->type == tok_identifier && t->content == "global")
-	    {
-	      next ();
-              parse_global (f->globals);
-	    }
+	    parse_global (f->globals);
 	  else if (t->type == tok_identifier && t->content == "function")
-	    {
-	      next ();
-	      f->functions.push_back (parse_functiondecl ());
-              // XXX: check for duplicate function decl
-	    }
+	    f->functions.push_back (parse_functiondecl ());
 	  else
 	    throw parse_error ("expected 'probe', 'global', or 'function'");
 	}
@@ -345,13 +359,18 @@ parser::parse ()
 probe*
 parser::parse_probe ()
 {
+  const token* t0 = next ();
+  if (! (t0->type == tok_identifier && t0->content == "probe"))
+    throw parse_error ("expected 'probe'");
+
   probe *p = new probe;
+  p->tok = t0;
+
   while (1)
     {
       const token *t = peek ();
       if (t && t->type == tok_identifier)
 	{
-          p->tok = t;
 	  p->locations.push_back (parse_probe_point ());
 
 	  t = peek ();
@@ -467,6 +486,10 @@ parser::parse_statement ()
 void
 parser::parse_global (vector <vardecl*>& globals)
 {
+  const token* t0 = next ();
+  if (! (t0->type == tok_identifier && t0->content == "global"))
+    throw parse_error ("expected 'global'");
+
   while (1)
     {
       const token* t = next ();
@@ -478,13 +501,14 @@ parser::parse_global (vector <vardecl*>& globals)
       d->tok = t;
       globals.push_back (d); // XXX: check for duplicates
 
-      t = next ();
-      if (t->type == tok_operator && t->content == ";")
-        break;
-      else if (t->type == tok_operator && t->content == ",")
-        continue;
+      t = peek ();
+      if (t && t->type == tok_operator && t->content == ",")
+	{
+	  next ();
+	  continue;
+	}
       else
-        throw parse_error ("expected ';' or ','");
+	break;
     }
 }
 
@@ -492,9 +516,13 @@ parser::parse_global (vector <vardecl*>& globals)
 functiondecl*
 parser::parse_functiondecl ()
 {
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "function"))
+    throw parse_error ("expected 'function'");
+
   functiondecl *fd = new functiondecl ();
 
-  const token* t = next ();
+  t = next ();
   if (! (t->type == tok_identifier))
     throw parse_error ("expected identifier");
   fd->name = t->content;
@@ -675,11 +703,6 @@ parser::parse_expression ()
   return parse_assignment ();
 }
 
-// XXX: in all subsequent calls to parse_expression(),
-// check whether operator priority / associativity
-// suggests that a different expression subtype parser
-// should be called instead
-
 
 expression*
 parser::parse_assignment ()
@@ -687,10 +710,10 @@ parser::parse_assignment ()
   expression* op1 = parse_ternary ();
 
   const token* t = peek ();
-  // left-associative operators
-  while (t && t->type == tok_operator 
+  // right-associative operators
+  if (t && t->type == tok_operator 
       && (t->content == "=" ||
-	  t->content == "<<" ||
+	  t->content == "<<<" ||
 	  t->content == "+=" ||
 	  false)) // XXX: add /= etc.
     {
@@ -701,9 +724,10 @@ parser::parse_assignment ()
       e->op = t->content;
       e->tok = t;
       next ();
-      e->right = parse_ternary ();
+      e->right = parse_expression ();
       op1 = e;
-      t = peek ();
+      // XXX: map assign/accumlate operators like +=, /=
+      // to ordinary assignment + nested binary_expression
     }
 
   return op1;
@@ -1056,17 +1080,24 @@ parser::parse_symbol ()
       struct functioncall* f = new functioncall;
       f->tok = t2;
       f->function = name;
+      // Allow empty actual parameter list
+      const token* t3 = peek ();
+      if (t3 && t3->type == tok_operator && t3->content == ")")
+	{
+	  next ();
+	  return f;
+	}
       while (1)
-        {
-          f->args.push_back (parse_expression ());
-          t = next ();
-          if (t->type == tok_operator && t->content == ")")
-            break;
-          if (t->type == tok_operator && t->content == ",")
-            continue;
-          else
-            throw parse_error ("expected ',' or ')'");
-        }
+	{
+	  f->args.push_back (parse_expression ());
+	  t = next ();
+	  if (t->type == tok_operator && t->content == ")")
+	    break;
+	  if (t->type == tok_operator && t->content == ",")
+	    continue;
+	  else
+	    throw parse_error ("expected ',' or ')'");
+	}
       return f;
     }
   else

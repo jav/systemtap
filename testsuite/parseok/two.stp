@@ -2,7 +2,7 @@
 
 probe syscall (231)
 {
-  array[idx] << value;
+  array[idx] <<< value;
   if (global > 5) { global -- } else ;
 }
 

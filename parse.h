@@ -64,6 +64,9 @@ public:
 
   stapfile* parse ();
 
+  static stapfile* parse (std::istream& i);
+  static stapfile* parse (const std::string& n);
+
 private:
   std::string input_name;
   std::istream* free_input;

@@ -2,7 +2,7 @@
 
 # these will ultimately be somehow associated with "providers"
 # and have a syntax of their own
-global kernel_jiffies, kernel_current_comm;
+global kernel_jiffies, kernel_current_comm
 
 function kernel_netlink(a, b) {
   # this should be a builtin function

@@ -62,7 +62,13 @@ symboldecl::~symboldecl ()
 
 
 probe_point::probe_point ():
-  tok (0), prov (0)
+  tok (0)
+{
+}
+
+
+probe::probe ():
+  body (0), tok (0)
 {
 }
 
@@ -342,6 +348,13 @@ void probe_point::print (ostream& o)
 }
 
 
+ostream& operator << (ostream& o, probe_point& k)
+{
+  k.print (o);
+  return o;
+}
+
+
 ostream& operator << (ostream& o, symboldecl& k)
 {
   k.print (o);
@@ -355,9 +368,8 @@ ostream& operator << (ostream& o, symboldecl& k)
 
 symresolution_info::symresolution_info (vector<vardecl*>& l,
                                         vector<vardecl*>& g,
-                                        vector<stapfile*>& f,
-                                        stapfile* tf):
-  locals (l), globals (g), files (f), current_file (tf), current_function (0)
+                                        vector<functiondecl*>& f):
+  locals (l), globals (g), functions (f), current_function (0)
 {
   num_unresolved = 0;
 }
@@ -365,10 +377,9 @@ symresolution_info::symresolution_info (vector<vardecl*>& l,
 
 symresolution_info::symresolution_info (vector<vardecl*>& l,
                                         vector<vardecl*>& g,
-                                        vector<stapfile*>& f,
-                                        stapfile* tf,
+                                        vector<functiondecl*>& f,
                                         functiondecl* cf):
-  locals (l), globals (g), files (f), current_file (tf), current_function (cf)
+  locals (l), globals (g), functions (f), current_function (cf)
 {
   num_unresolved = 0;
 }
@@ -576,9 +587,9 @@ functiondecl*
 symresolution_info::find_function (const string& name,
                                    const vector<expression*>& args)
 {
-  for (unsigned j = 0; j < current_file->functions.size(); j++)
+  for (unsigned j = 0; j < functions.size(); j++)
     {
-      functiondecl* fd = current_file->functions[j];
+      functiondecl* fd = functions[j];
       if (fd->name == name)
         return fd;
     }
@@ -621,15 +632,15 @@ literal::resolve_types (typeresolution_info& r, exp_type t)
 void
 binary_expression::resolve_types (typeresolution_info& r, exp_type t)
 {
-  if (op == "<<")
+  if (op == "<<<") // stats aggregation
     {
       left->resolve_types (r, pe_stats);
       right->resolve_types (r, pe_long);
-      if (t == pe_long || t == pe_string)
-        r.mismatch (tok, t, pe_stats);
+      if (t == pe_stats || t == pe_string)
+        r.mismatch (tok, t, pe_long);
       else if (type == pe_unknown)
         {
-          type = pe_stats;
+          type = pe_long;
           r.resolved (tok, type);
         }
     }
@@ -645,7 +656,9 @@ binary_expression::resolve_types (typeresolution_info& r, exp_type t)
           r.resolved (tok, type);
         }
     }
-  else if (op == "==") // XXX: other comparison operators
+  else if (op == "=="
+           || op == "in" // XXX: really a unary operator
+           || false) // XXX: other comparison operators
     {
       left->resolve_types (r, pe_unknown);
       right->resolve_types (r, pe_unknown);
@@ -977,20 +990,7 @@ typeresolution_info::resolved (const token* tok, exp_type t)
 
 
 // ------------------------------------------------------------------------
-// semantic processing: lvalue checking
-
-bool
-pre_crement::is_lvalue ()
-{
-  return operand->is_lvalue ();
-}
-
-
-bool
-post_crement::is_lvalue ()
-{
-  return operand->is_lvalue ();
-}
+// semantic processing: lvalue checking: XXX: unneeded?
 
 
 bool
@@ -1000,3 +1000,509 @@ assignment::is_lvalue ()
 }
 
 
+// ------------------------------------------------------------------------
+// unparser
+
+
+translator_output::translator_output (ostream& f):
+  o (f), tablevel (0)
+{
+}
+
+
+ostream&
+translator_output::newline (int indent)
+{
+  assert (indent > 0 || tablevel >= (unsigned)-indent);
+  tablevel += indent;
+  o << endl;
+  for (unsigned i=0; i<tablevel; i++)
+    o << "  ";
+  return o;
+}
+
+
+void
+translator_output::indent (int indent)
+{
+  assert (indent > 0 || tablevel >= (unsigned)-indent);
+  tablevel += indent;
+}
+
+
+ostream&
+translator_output::line ()
+{
+  return o;
+}
+
+
+
+// ------------------------------------------------------------------------
+// visitors
+
+
+void
+block::visit (visitor* u)
+{
+  u->visit_block (this);
+}
+
+void
+for_loop::visit (visitor* u)
+{
+  u->visit_for_loop (this);
+}
+
+void
+null_statement::visit (visitor* u)
+{
+  u->visit_null_statement (this);
+}
+
+void
+expr_statement::visit (visitor* u)
+{
+  u->visit_expr_statement (this);
+}
+
+void
+return_statement::visit (visitor* u)
+{
+  u->visit_return_statement (this);
+}
+
+void
+delete_statement::visit (visitor* u)
+{
+  u->visit_delete_statement (this);
+}
+
+void
+if_statement::visit (visitor* u)
+{
+  u->visit_if_statement (this);
+}
+
+void
+literal_string::visit(visitor* u)
+{
+  u->visit_literal_string (this);
+}
+
+void
+literal_number::visit(visitor* u)
+{
+  u->visit_literal_number (this);
+}
+
+void
+binary_expression::visit (visitor* u)
+{
+  u->visit_binary_expression (this);
+}
+
+void
+unary_expression::visit (visitor* u)
+{
+  u->visit_unary_expression (this);
+}
+
+void
+pre_crement::visit (visitor* u)
+{
+  u->visit_pre_crement (this);
+}
+
+void
+post_crement::visit (visitor* u)
+{
+  u->visit_post_crement (this);
+}
+
+void
+logical_or_expr::visit (visitor* u)
+{
+  u->visit_logical_or_expr (this);
+}
+
+void
+logical_and_expr::visit (visitor* u)
+{
+  u->visit_logical_and_expr (this);
+}
+
+void
+array_in::visit (visitor* u)
+{
+  u->visit_array_in (this);
+}
+
+void
+comparison::visit (visitor* u)
+{
+  u->visit_comparison (this);
+}
+
+void
+concatenation::visit (visitor* u)
+{
+  u->visit_concatenation (this);
+}
+
+void
+exponentiation::visit (visitor* u)
+{
+  u->visit_exponentiation (this);
+}
+
+void
+ternary_expression::visit (visitor* u)
+{
+  u->visit_ternary_expression (this);
+}
+
+void
+assignment::visit (visitor* u)
+{
+  u->visit_assignment (this);
+}
+
+void
+symbol::visit (visitor* u)
+{
+  u->visit_symbol (this);
+}
+
+void
+arrayindex::visit (visitor* u)
+{
+  u->visit_arrayindex (this);
+}
+
+void
+functioncall::visit (visitor* u)
+{
+  u->visit_functioncall (this);
+}
+
+
+// ------------------------------------------------------------------------
+
+void
+traversing_visitor::visit_block (block *s)
+{
+  for (unsigned i=0; i<s->statements.size(); i++)
+    s->statements[i]->visit (this);
+}
+
+void
+traversing_visitor::visit_null_statement (null_statement *s)
+{
+}
+
+void
+traversing_visitor::visit_expr_statement (expr_statement *s)
+{
+  s->value->visit (this);
+}
+
+void
+traversing_visitor::visit_if_statement (if_statement* s)
+{
+  s->condition->visit (this);
+  s->thenblock->visit (this);
+  s->elseblock->visit (this);
+}
+
+void
+traversing_visitor::visit_for_loop (for_loop* s)
+{
+  s->init->visit (this);
+  s->cond->visit (this);
+  s->incr->visit (this);
+  s->block->visit (this);
+}
+
+void
+traversing_visitor::visit_return_statement (return_statement* s)
+{
+  s->value->visit (this);
+}
+
+void
+traversing_visitor::visit_delete_statement (delete_statement* s)
+{
+  s->value->visit (this);
+}
+
+void
+traversing_visitor::visit_literal_string (literal_string* e)
+{
+}
+
+void
+traversing_visitor::visit_literal_number (literal_number* e)
+{
+}
+
+void
+traversing_visitor::visit_binary_expression (binary_expression* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_unary_expression (unary_expression* e)
+{
+  e->operand->visit (this);
+}
+
+void
+traversing_visitor::visit_pre_crement (pre_crement* e)
+{
+  e->operand->visit (this);
+}
+
+void
+traversing_visitor::visit_post_crement (post_crement* e)
+{
+  e->operand->visit (this);
+}
+
+
+void
+traversing_visitor::visit_logical_or_expr (logical_or_expr* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_logical_and_expr (logical_and_expr* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_array_in (array_in* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_comparison (comparison* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_concatenation (concatenation* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_exponentiation (exponentiation* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_ternary_expression (ternary_expression* e)
+{
+  e->cond->visit (this);
+  e->truevalue->visit (this);
+  e->falsevalue->visit (this);
+}
+
+void
+traversing_visitor::visit_assignment (assignment* e)
+{
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+void
+traversing_visitor::visit_symbol (symbol* e)
+{
+}
+
+void
+traversing_visitor::visit_arrayindex (arrayindex* e)
+{
+  for (unsigned i=0; i<e->indexes.size(); i++)
+    e->indexes[i]->visit (this);
+}
+
+void
+traversing_visitor::visit_functioncall (functioncall* e)
+{
+  for (unsigned i=0; i<e->args.size(); i++)
+    e->args[i]->visit (this);
+}
+
+
+// ------------------------------------------------------------------------
+
+
+throwing_visitor::throwing_visitor (const std::string& m): msg (m) {}
+throwing_visitor::throwing_visitor (): msg ("invalid element") {}
+
+
+void
+throwing_visitor::throwone (const token* t)
+{
+  throw semantic_error (msg, t);
+}
+
+void
+throwing_visitor::visit_block (block *s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_null_statement (null_statement *s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_expr_statement (expr_statement *s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_if_statement (if_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_for_loop (for_loop* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_return_statement (return_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_delete_statement (delete_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_literal_string (literal_string* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_literal_number (literal_number* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_binary_expression (binary_expression* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_unary_expression (unary_expression* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_pre_crement (pre_crement* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_post_crement (post_crement* e)
+{
+  throwone (e->tok);
+}
+
+
+void
+throwing_visitor::visit_logical_or_expr (logical_or_expr* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_logical_and_expr (logical_and_expr* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_array_in (array_in* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_comparison (comparison* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_concatenation (concatenation* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_exponentiation (exponentiation* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_ternary_expression (ternary_expression* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_assignment (assignment* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_symbol (symbol* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_arrayindex (arrayindex* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_functioncall (functioncall* e)
+{
+  throwone (e->tok);
+}

@@ -1,3 +1,22 @@
+2005-05-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx (parse): Add helper methods.
+	(lexer::scan, parse_assignment): Parse "<<<" operator.  Fix assignment
+	associativity.
+	(parse_symbol): Permit function with empty arg list.
+	(parse_global, parse_statement, parse_functiondecl): Expect
+	unconsumed leading keyword.
+	(parse_global): Don't use ";" termination.
+	* parse.h: Corresponding changes.
+	* staptree.cxx (binary_expression::resolve_types): Fix <<<
+	type inference.
+	(translator_output): Improve pretty-printing.
+	(*): Add general visitors to statement/expression types.
+	* staptree.h: Corresponding changes.  Tweak symresolution_info fields.
+	Add semantic_error class.
+	* semtest.cxx: Adapt to this.
+	* testsuite/parseok/two.stp, semok/*.stp: Adapt to syntax changes.
+
 2005-03-15  Frank Ch. Eigler  <fche@redhat.com>
 
 	* semtest.cxx: Print probe signatures properly.

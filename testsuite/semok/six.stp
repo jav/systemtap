@@ -1,4 +1,4 @@
-#! parsetest
+#! semtest
 
 probe foo
 {
