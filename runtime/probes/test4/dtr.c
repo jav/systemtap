@@ -78,12 +78,31 @@ static struct jprobe dtr_probes[] = {
 
 #define MAX_DTR_ROUTINE (sizeof(dtr_probes)/sizeof(struct jprobe))
 
+static unsigned n_subbufs = 4;
+module_param(n_subbufs, uint, 0);
+MODULE_PARM_DESC(n_subbufs, "number of sub-buffers per per-cpu buffer");
+
+static unsigned subbuf_size = 65536;
+module_param(subbuf_size, uint, 0);
+MODULE_PARM_DESC(subbuf_size, "size of each per-cpu sub-buffers");
+
+static int pid;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "daemon pid");
+
 static int init_dtr(void)
 {
   int ret;
   
-  if (_stp_netlink_open() < 0)
-    return -1;
+  if (!pid) {
+	  printk("init_dtr: Can't start without daemon pid\n");		
+	  return -1;
+  }
+
+  if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
+	  printk("init_dtr: Couldn't open transport\n");		
+	  return -1;
+  }
   
   opens = _stp_map_new (1000, INT64);
   reads = _stp_map_new (1000, STAT);
@@ -96,11 +115,16 @@ static int init_dtr(void)
   return ret;
 }
 
+static int exited; /* FIXME: this is a stopgap - if we don't do this
+		    * and are manually removed, bad things happen */
+
 static void probe_exit (void)
 {
   struct map_node_stat *st;
   struct map_node_int64 *ptr;
   struct map_node_str *sptr;
+
+  exited = 1;
 
   _stp_unregister_jprobes (dtr_probes, MAX_DTR_ROUTINE);
 
@@ -133,7 +157,10 @@ static void probe_exit (void)
 
 static void cleanup_dtr(void)
 {
-  _stp_netlink_close();
+	if (!exited)
+		probe_exit();
+	
+	_stp_transport_close();
 }
 
 module_init(init_dtr);

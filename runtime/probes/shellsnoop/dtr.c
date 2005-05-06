@@ -100,36 +100,62 @@ static struct jprobe dtr_probes[] = {
 
 #define MAX_DTR_ROUTINE (sizeof(dtr_probes)/sizeof(struct jprobe))
 
+static unsigned n_subbufs = 4;
+module_param(n_subbufs, uint, 0);
+MODULE_PARM_DESC(n_subbufs, "number of sub-buffers per per-cpu buffer");
+
+static unsigned subbuf_size = 65536;
+module_param(subbuf_size, uint, 0);
+MODULE_PARM_DESC(subbuf_size, "size of each per-cpu sub-buffers");
+
+static int pid;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "daemon pid");
+
 static int init_dtr(void)
 {
-  int ret;
+	int ret;
 
-  if (_stp_netlink_open() < 0)
-    return -1;
+	if (!pid) {
+		printk("init_dtr: Can't start without daemon pid\n");		
+		return -1;
+	}
 
-  pids = _stp_map_new (10000, INT64);
-  arglist = _stp_list_new (10, STRING);
+	if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
+		printk("init_dtr: Couldn't open transport\n");		
+		return -1;
+	}
 
-  ret = _stp_register_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+	pids = _stp_map_new (10000, INT64);
+	arglist = _stp_list_new (10, STRING);
 
-  _stp_log("instrumentation is enabled... %s\n", __this_module.name);
-  return ret;
+	ret = _stp_register_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+	
+	printk("instrumentation is enabled... %s\n", __this_module.name);
+
+	return ret;
 }
+
+static int exited; /* FIXME: this is a stopgap - if we don't do this
+		    * and are manually removed, bad things happen */
 
 static void probe_exit (void)
 {
-  _stp_unregister_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+	exited = 1;
 
-  _stp_print ("In probe_exit now.");
-  _stp_map_del (pids);
-  _stp_print_flush();
+	_stp_unregister_jprobes (dtr_probes, MAX_DTR_ROUTINE);
+
+	_stp_print ("In probe_exit now.");
+	_stp_map_del (pids);
+	_stp_print_flush();
 }
-
 
 static void cleanup_dtr(void)
 {
-  _stp_netlink_close();
-
+	if (!exited)
+		probe_exit();
+	
+	_stp_transport_close();
 }
 
 module_init(init_dtr);

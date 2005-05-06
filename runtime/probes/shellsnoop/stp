@@ -24,13 +24,25 @@ then
 	mount -t relayfs relayfs /mnt/relay
 fi
 
-/sbin/insmod $modulename
+STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+if [ "$STP_CONTROL" != "stp_control" ] 
+then
+	/sbin/insmod ../../transport/stp-control.ko
+fi
+
+#/sbin/insmod $modulename
 
 # print to screen only, 4 8K buffers
 #../../stpd/stpd -p -b 8192 -n 4 
 
+# print to screen
+../../stpd/stpd -b 8192 -n 4 $modulename
+
+# log to files (relayfs), 4 8K buffers
+#../../stpd/stpd -r -b 8192 -n 4 $modulename
+
 # print to screen and log to files, 4 8K buffers
-../../stpd/stpd -b 8192 -n 4 
+#../../stpd/stpd -b 8192 -n 4 
 
 # no screen or log
 #../../stpd/stpd -q -b 8192 -n 4 

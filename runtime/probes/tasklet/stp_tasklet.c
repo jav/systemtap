@@ -30,27 +30,54 @@ static struct jprobe stp_probes[] = {
 };
 #define MAX_STP_PROBES (sizeof(stp_probes)/sizeof(struct jprobe))
 
+static unsigned n_subbufs = 4;
+module_param(n_subbufs, uint, 0);
+MODULE_PARM_DESC(n_subbufs, "number of sub-buffers per per-cpu buffer");
+
+static unsigned subbuf_size = 65536;
+module_param(subbuf_size, uint, 0);
+MODULE_PARM_DESC(subbuf_size, "size of each per-cpu sub-buffers");
+
+static int pid;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "daemon pid");
 
 static int init_stp(void)
 {
-  int ret;
+	int ret;
 
-  if (_stp_netlink_open() < 0)
-    return -1;
-  ret = _stp_register_jprobes (stp_probes, MAX_STP_PROBES);
-  _stp_log ("instrumentation is enabled...\n");
-  return ret;
+	if (!pid) {
+		printk("init_dtr: Can't start without daemon pid\n");		
+		return -1;
+	}
+
+	if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
+		printk("init_dtr: Couldn't open transport\n");		
+		return -1;
+	}
+
+	ret = _stp_register_jprobes (stp_probes, MAX_STP_PROBES);
+	printk("instrumentation is enabled...\n");
+	return ret;
 }
+
+static int exited; /* FIXME: this is a stopgap - if we don't do this
+		    * and are manually removed, bad things happen */
 
 static void probe_exit (void)
 {
-  _stp_unregister_jprobes (stp_probes, MAX_STP_PROBES);
-  _stp_log ("EXIT\n");
+	exited = 1;
+
+	_stp_unregister_jprobes (stp_probes, MAX_STP_PROBES);
+	_stp_log ("EXIT\n");
 
 }
 static void cleanup_stp(void)
 {
-  _stp_netlink_close();
+	if (!exited)
+		probe_exit();
+	
+	_stp_transport_close();
 }
 
 module_init(init_stp);
