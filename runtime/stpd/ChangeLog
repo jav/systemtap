@@ -1,0 +1,6 @@
+2005-05-16  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (sigproc): If STP_EXIT send fails, keep retrying 
+	every 10ms.
+	(init_stp): Don't set n_subbufs and subbuf_size params.
+

@@ -117,6 +117,10 @@ int send_request(int type, void *data, int len)
 	int err;
 
 	req = (struct nlmsghdr *)malloc(NLMSG_SPACE(len));
+	if (req == 0) {
+	  fprintf(stderr, "send_request malloc failed\n");
+	  return -1;
+	}
 	memset(req, 0, NLMSG_SPACE(len));
 	req->nlmsg_len = NLMSG_LENGTH(len);
 	req->nlmsg_type = type;
@@ -124,11 +128,7 @@ int send_request(int type, void *data, int len)
 	req->nlmsg_pid = getpid();
 	memcpy(NLMSG_DATA(req), data, len);
 	
-	err = send(control_channel, req, req->nlmsg_len, 0);
-#if 0
-	if (err < 0)
-		fprintf(stderr, "netlink send error\n");
-#endif
+	err = send(control_channel, req, req->nlmsg_len, MSG_DONTWAIT);
 	return err;
 }
 
@@ -278,7 +278,7 @@ static void close_files(int cpu)
 static void close_all_files(void)
 {
 	int i;
-	
+	close(control_channel);
 	for (i = 0; i < ncpus; i++)
 		close_files(i);
 }
@@ -293,7 +293,8 @@ static void sigalarm(int signum)
 
 static void sigproc(int signum)
 {
-	send_request(STP_EXIT, NULL, 0);
+  while (send_request(STP_EXIT, NULL, 0) < 0)
+    usleep (10000);
 }
 
 /**
@@ -370,24 +371,25 @@ int init_stp(const char *modname,
 	n_subbufs = n_sub_bufs;
 	print_totals = print_summary;
 
+
 	daemon_pid = getpid();
-	sprintf(buf, "insmod %s n_subbufs=%u subbuf_size=%u pid=%d",
-		modname, n_subbufs, subbuf_size, daemon_pid);
+	sprintf(buf, "insmod %s pid=%d", modname, daemon_pid);
 	if (system(buf)) {
 		printf("Couldn't insmod probe module %s\n", modname);
 		return -1;
 	}
-	
+
 	control_channel = open_control_channel();
 	if (control_channel < 0)
 		return -1;
-
+	
 	if (streaming)
 		return 0;
 	
 	for (i = 0; i < ncpus; i++) {
 		if (open_files(i, relay_filebase, out_filebase) < 0) {
 			printf("Couldn't open files\n");
+			close (control_channel);
 			return -1;
 		}
 	}
