@@ -23,6 +23,36 @@
 
 static int _stp_pbuf_len[NR_CPUS];
 
+#ifdef STP_NETLINK_ONLY
+#define STP_PRINT_BUF_START 0
+static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + 1];
+
+void _stp_print_flush (void)
+{
+	int cpu = smp_processor_id();
+	char *buf = &_stp_pbuf[cpu][0];
+	int len = _stp_pbuf_len[cpu];
+	int ret;
+
+	if (len == 0)
+		return;
+
+	/* enforce newline at end  */
+	if (buf[len - 1] != '\n') {
+		buf[len++] = '\n';
+		buf[len] = '\0';
+	}
+	
+	ret = _stp_transport_write(t, buf, len + 1);
+	if (ret < 0) {
+		printk("flush: ret=%d.\n", ret);
+		atomic_inc (&_stp_transport_failures);
+	}
+
+	_stp_pbuf_len[cpu] = 0;
+}
+
+#else /* ! STP_NETLINK_ONLY */
 /* size of timestamp, in bytes, including space */
 #define TIMESTAMP_SIZE 19
 #define STP_PRINT_BUF_START (TIMESTAMP_SIZE + 1)
@@ -32,9 +62,10 @@ static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
  * Output accumulates in the print buffer until this is called.
  * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
  */
+
 void _stp_print_flush (void)
 {
-	int cpu = smp_processor_id();
+	int ret, cpu = smp_processor_id();
 	char *buf = &_stp_pbuf[cpu][0];
 	char *ptr = buf + STP_PRINT_BUF_START;
 	struct timeval tv;
@@ -51,9 +82,15 @@ void _stp_print_flush (void)
 	do_gettimeofday(&tv);
 	scnprintf (buf, TIMESTAMP_SIZE+1, "[%li.%06li] ", tv.tv_sec, tv.tv_usec);
 	buf[TIMESTAMP_SIZE] = ' ';
-	_stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 2);
+	ret = _stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 2);
+	if (ret < 0) {
+		printk("flush: ret=%d\n", ret);
+		atomic_inc (&_stp_transport_failures);
+	}
+
 	_stp_pbuf_len[cpu] = 0;
 }
+#endif /* STP_NETLINK_ONLY */
 
 /** Print into the print buffer.
  * Like printf, except output goes to the print buffer.

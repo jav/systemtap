@@ -27,7 +27,7 @@ static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 
 void _stp_log (const char *fmt, ...)
 {
-	int num;
+	int num, ret;
 	char *buf = &_stp_lbuf[smp_processor_id()][0];
 	va_list args;
 	va_start(args, fmt);
@@ -35,7 +35,9 @@ void _stp_log (const char *fmt, ...)
 	va_end(args);
 	buf[num] = '\0';
 
-	_stp_ctrl_send(STP_REALTIME_DATA, buf, num + 1, t->pid);
+	ret = _stp_ctrl_send(STP_REALTIME_DATA, buf, num + 1, t->pid);
+	if (ret < 0)
+		atomic_inc (&_stp_transport_failures);
 }
 
 /** @} */

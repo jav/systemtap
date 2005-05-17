@@ -127,6 +127,15 @@ void _stp_string_cat_string (String str1, String str2)
 	str1->len += num;
 }
 
+
+void _stp_string_to_ascii (String str)
+{
+	char *ptr = str->buf;
+	int num = str->len;
+	while (num--)
+		*ptr = toascii(*ptr);
+}
+
 /** Get a pointer to String's buffer
  * For rare cases when a C string is needed and you have a String.
  * One example is when you want to print a String with _stp_printf().

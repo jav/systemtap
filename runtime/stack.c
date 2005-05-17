@@ -14,16 +14,85 @@
 
 static int (*_stp_kta)(unsigned long addr)=(void *)KTA;
 
+
+struct frame_head {
+	struct frame_head * ebp;
+	unsigned long ret;
+} __attribute__((packed));
+
+static struct frame_head *
+dump_backtrace(struct frame_head * head)
+{
+	_stp_printf ("db: %lx\n", head->ret);
+
+	/* frame pointers should strictly progress back up the stack
+	 * (towards higher addresses) */
+	if (head >= head->ebp)
+		return NULL;
+
+	return head->ebp;
+}
+
+static int pages_present(struct frame_head * head)
+{
+	struct mm_struct * mm = current->mm;
+
+	/* FIXME: only necessary once per page */
+	if (!check_user_page_readable(mm, (unsigned long)head))
+		return 0;
+
+	return check_user_page_readable(mm, (unsigned long)(head + 1));
+}
+
+static int valid_kernel_stack(struct frame_head * head, struct pt_regs * regs)
+{
+	unsigned long headaddr = (unsigned long)head;
+	unsigned long stack = (unsigned long)regs;
+	unsigned long stack_base = (stack & ~(THREAD_SIZE - 1)) + THREAD_SIZE;
+	_stp_log ("%lx %lx %lx\n", headaddr, stack, stack_base);
+	return headaddr < stack_base;
+}
+
+void
+x86_backtrace(struct pt_regs * const regs, unsigned int depth)
+{
+	struct frame_head *head;
+
+#ifdef CONFIG_X86_64
+	head = (struct frame_head *)regs->rbp;
+#else
+	head = (struct frame_head *)regs->ebp;
+#endif
+
+	if (!user_mode(regs)) {
+		_stp_log ("kernel mode\n");
+		while (depth-- && valid_kernel_stack(head, regs))
+			head = dump_backtrace(head);
+		_stp_print_flush();
+		return;
+	}
+
+#ifdef CONFIG_SMP
+	if (!spin_trylock(&current->mm->page_table_lock))
+		return;
+#endif
+
+	while (depth-- && head && pages_present(head))
+		head = dump_backtrace(head);
+
+#ifdef CONFIG_SMP
+	spin_unlock(&current->mm->page_table_lock);
+#endif
+	_stp_print_flush();
+}
+
+
 #ifdef __x86_64__
 static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
 {
 	unsigned long addr;
-
-	if (verbose)
-		_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
-
 	while (((long) stack & (THREAD_SIZE-1)) != 0) {
-		addr = *stack++;
+		addr = *stack;
 		if (_stp_kta(addr)) {
 			if (verbose) {
 				_stp_symbol_print (addr);
@@ -31,6 +100,7 @@ static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
 			} else
 				_stp_printf ("0x%lx ", addr);
 		}
+		stack++;
 	}
 	_stp_print_flush();
 }
@@ -42,10 +112,11 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 	while (((long) stack & (THREAD_SIZE-1)) != 0) {
 		addr = *stack++;
 		if (_stp_kta(addr)) {
-			if (verbose)
+			if (verbose) {
 				_stp_symbol_sprint (str, addr);
-			else
-				_stp_sprintf (str, "0x%lx ", addr);
+				_stp_sprintf (str, "\n");
+			} else
+				_stp_sprintf (str, "0x%lx\n", addr);
 		}
 	}
 }
@@ -153,10 +224,22 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
  * @bug levels parameter is not functional
  */
 
-void _stp_stack_print (int verbose, int levels)
+void _stp_stack_jprint (int verbose, int levels)
 {
   unsigned long stack;
   __stp_stack_print (&stack, verbose, levels);
+}
+
+void _stp_stack_print (struct pt_regs *regs, int verbose, int levels)
+{
+	if (verbose) {
+		_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
+		_stp_symbol_print (regs->rip);
+		_stp_print ("\n");
+	} else
+		_stp_printf ("0x%lx ", regs->rip);
+
+	__stp_stack_print ((unsigned long *)regs->rsp, verbose, levels);
 }
 
 /** Writes stack dump to a String
