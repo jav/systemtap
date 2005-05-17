@@ -2,9 +2,8 @@
 Sample probe in a tasklet.  Useful for interrupt context testing.
 
 \verbatim
-> ./build
-> insmod stp_tasklet.ko
-> rmmod stp_tasklet.ko
+> make
+> ./stp stp_tasklet.ko
 \endverbatim
 
 */
