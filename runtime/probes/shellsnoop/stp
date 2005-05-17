@@ -7,8 +7,8 @@ else
     exit
 fi
 
-RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
-if [ "$RELAYFS" != "relayfs" ] 
+RELAYFS=`grep " relayfs_mmap" /proc/kallsyms`
+if [ "$RELAYFS" == "" ] 
 then
 	/sbin/insmod ../../relayfs/relayfs.ko
 fi
@@ -47,5 +47,3 @@ fi
 # no screen or log
 #../../stpd/stpd -q -b 8192 -n 4 
 
-# stpd will remove module when it exits
-#/sbin/rmmod $modulename
