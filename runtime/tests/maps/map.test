@@ -1,0 +1,269 @@
+package require tcltest
+namespace import -force tcltest::*
+
+cd $tcltest::testsDirectory
+
+set CFLAGS "-Os"
+set KPATH "/lib/modules/[exec uname -r]/build/include"
+set PATH "../../user"
+
+test ii {Test of int64 keys and int64 values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test ii.c
+} -body {
+	exec ./test
+} -result {map[1]=2
+map[1] = 2
+
+map[1] = 2
+map[3] = 4
+
+map[1] = 2
+map[3] = 4
+
+map[1] = 2
+map[3] = 4
+
+map[1] = 2
+map[3] = 4
+
+map[0]=0
+map[1] = 2
+map[3] = 4
+map[5] = 6
+
+map[6] = 106
+map[7] = 107
+map[8] = 108
+map[9] = 109
+
+map[5] = 1005
+map[382] = 1382
+map[526] = 1526
+map[903] = 1903
+
+map[5] = 1005
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+
+}
+
+test is {Test of int64 keys and string values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test is.c
+} -body {
+	exec ./test
+} -result {map[1]=one
+map[1] = one
+
+map[1] = one
+map[3] = three
+
+map[1] = one
+map[3] = three
+
+map[1] = one
+map[3] = three
+
+map[1] = one
+map[3] = three
+
+map[0]=0
+map[1] = one
+map[3] = three
+map[5] = five
+
+map[1] = one
+map[3] = three
+map[5] = 
+
+map[6] = value of 6
+map[7] = value of 7
+map[8] = value of 8
+map[9] = value of 9
+
+map[5] = 1005
+map[382] = 1382
+map[526] = 1526
+map[903] = 1903
+
+map[5] = 1005
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+
+}
+
+test si {Test of string keys and int64 values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test si.c
+} -body {
+	exec ./test
+} -result {map[Ohio]=1
+map[Ohio] = 1
+
+map[Ohio] = 1
+map[Washington] = 2
+
+map[Ohio] = 1
+map[Washington] = 2
+
+map[Ohio] = 1
+map[Washington] = 2
+
+map[Ohio] = 1
+map[Washington] = 2
+
+map[0]=0
+map[Ohio] = 1
+map[Washington] = 2
+map[California] = 3
+
+map[Ohio] = 1
+map[Washington] = 2
+map[California] = 3
+map[] = 7777
+
+map[Ohio] = 1
+map[Washington] = 2
+map[California] = 3
+map[] = 8888
+
+map[String 6] = 106
+map[String 7] = 107
+map[String 8] = 108
+map[String 9] = 109
+
+map[5] = 1005
+map[382] = 1382
+map[526] = 1526
+map[903] = 1903
+
+map[5] = 1005
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+map[903] = 1903
+
+map[526] = 1526
+
+}
+
+test ist {Test of int64 keys and stat values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test ist.c
+} -body {
+	exec ./test
+} -result {map[3] = count:49600  sum:3288450  avg:66  min:0  max:99
+value |-------------------------------------------------- count
+    0 |@@                                                  460
+   10 |@@@@@@@                                            1460
+   20 |@@@@@@@@@@@@                                       2460
+   30 |@@@@@@@@@@@@@@@@@@                                 3460
+   40 |@@@@@@@@@@@@@@@@@@@@@@@                            4460
+   50 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       5460
+   60 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                 6460
+   70 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            7460
+   80 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@       8460
+   90 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  9460
+
+map[2] = count:100  sum:2025  avg:20  min:0  max:81
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@         42
+   10 |@@@@@@@@@@@@@@@@@                                  17
+   20 |@@@@@@@@@@@@@                                      13
+   30 |@@@@@@@@@                                           9
+   40 |@@@@@@@@@                                           9
+   50 |@@@@                                                4
+   60 |@@@                                                 3
+   70 |@@                                                  2
+   80 |@                                                   1
+   90 |                                                    0
+
+map[1] = count:45  sum:2850  avg:63  min:10  max:90
+value |-------------------------------------------------- count
+    0 |                                                   0
+   10 |@                                                  1
+   20 |@@                                                 2
+   30 |@@@                                                3
+   40 |@@@@                                               4
+   50 |@@@@@                                              5
+   60 |@@@@@@                                             6
+   70 |@@@@@@@                                            7
+   80 |@@@@@@@@                                           8
+   90 |@@@@@@@@@                                          9
+
+
+map2[1] = count:16384  sum:1040384  avg:63  min:0  max:127
+value |-------------------------------------------------- count
+    0 |                                                    128
+    1 |                                                    128
+    2 |@                                                   256
+    4 |@@@                                                 512
+    8 |@@@@@@                                             1024
+   16 |@@@@@@@@@@@@                                       2048
+   32 |@@@@@@@@@@@@@@@@@@@@@@@@                           4096
+   64 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  8192
+  128 |                                                      0
+  256 |                                                      0
+  512 |                                                      0
+
+map2[2] = count:1048576  sum:536346624  avg:511  min:0  max:1023
+value |-------------------------------------------------- count
+    0 |                                                     1024
+    1 |                                                     1024
+    2 |                                                     2048
+    4 |                                                     4096
+    8 |                                                     8192
+   16 |@                                                   16384
+   32 |@@@                                                 32768
+   64 |@@@@@@                                              65536
+  128 |@@@@@@@@@@@@                                       131072
+  256 |@@@@@@@@@@@@@@@@@@@@@@@@                           262144
+  512 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  524288
+
+}
+
+test iiss {Test of int64,int64,string keys and string values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test iiss.c
+} -body {
+	exec ./test
+} -result {map[1, 2, Ohio] = Columbus
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Seattle
+map[7, 8, Oregon] = Salem
+
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Seattle
+map[7, 8, Oregon] = Salem
+map[-9, -10, Nevada] = Carson City
+
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Olymp
+map[7, 8, Oregon] = Salem
+map[-9, -10, Nevada] = Carson City
+
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Olympia
+map[7, 8, Oregon] = Salem
+map[-9, -10, Nevada] = Carson City
+
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Olympia
+map[7, 8, Oregon] = Salem
+
+map[3, 4, California] = Sacramento
+map[5, 6, Washington] = Olympia
+map[7, 8, Oregon] = Salem
+map[0, 0, ] = XX
+}
+
+exec rm test
+
+cleanupTests

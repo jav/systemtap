@@ -1,0 +1,2 @@
+The *.c files test associative arrays (maps).  "make tests" to run.
+
