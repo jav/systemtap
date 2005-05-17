@@ -1,7 +1,7 @@
 # Makes stp-control.ko
 
 PWD     := $(shell pwd)
-KDIR   := /usr/local/src/linux-$(shell uname -r)
+KDIR   := /lib/modules/$(shell uname -r)/build include
 
 stp-control-objs	:= control.o netlink.o
 

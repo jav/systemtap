@@ -1,0 +1,17 @@
+2005-05-16  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_cmd_handler): For STP_EXIT, schedule a 
+	work queue to do the exit functions.
+	(_stp_transport_close): Call work queue for STP_EXIT.
+	(_stp_transport_send): Call _stp_ctrl_send() like before, except
+	when in probe_exit().  In that case, keep retrying on send errors
+	until we succeed. 
+
+	* transport.h (_stp_transport_write): Change to call 
+	_stp_transport_send() for NETLINK_ONLY.
+
+	* Makefile (KDIR): set to /lib/modules/... instead of
+	/usr/local/src/...
+
+	
+

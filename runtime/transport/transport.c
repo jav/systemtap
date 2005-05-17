@@ -61,16 +61,29 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 	relay_subbufs_consumed(t->chan, info->cpu, info->consumed);
 }
 
-/**
- *	_stp_handle_exit - handle exit command
- */
-static void _stp_handle_exit(int pid)
+int _stp_exit_called = 0;
+
+static int global_pid;
+static void stp_exit_helper (void *data);
+static DECLARE_WORK(stp_exit, stp_exit_helper, &global_pid);
+
+extern atomic_t _stp_transport_failures;
+static void stp_exit_helper (void *data)
 {
-	BUG_ON(!t);
-	probe_exit();
-	_stp_transport_flush();
-	_stp_ctrl_send(STP_EXIT, __this_module.name,
-		       strlen(__this_module.name) + 1, pid);
+	int err, pid = *(int *)data;
+
+	if (_stp_exit_called == 0) {
+		_stp_exit_called = 1;
+		probe_exit();
+		_stp_transport_flush();
+	}
+
+	//printk("stp_handle_exit: sending STP_EXIT.  pid=%d\n",(int)pid);
+	while ((err =_stp_ctrl_send(STP_EXIT, __this_module.name,
+				    strlen(__this_module.name) + 1, pid)) < 0) {
+		//printk("stp_handle_exit: sent STP_EXIT.  err=%d\n", err);
+		msleep (5);
+	}
 }
 
 /**
@@ -94,7 +107,7 @@ static int _stp_cmd_handler(int pid, int cmd, void *data)
 		_stp_handle_subbufs_consumed(pid, data);
 		break;
 	case STP_EXIT:
-		_stp_handle_exit(pid);
+		schedule_work (&stp_exit);
 		break;
 	default:
 		err = -1;
@@ -119,9 +132,7 @@ void _stp_transport_close()
 	if (!_stp_streaming())
 		_stp_relayfs_close(t->chan, t->dir);
 
-	/* in case the module has been manually removed */
-	_stp_ctrl_send(STP_EXIT, __this_module.name,
-		       strlen(__this_module.name) + 1, t->pid);
+	schedule_work (&stp_exit);
 	kfree(t);
 }
 
@@ -147,6 +158,7 @@ int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size, int pid)
 		return -ENOMEM;
 
 	t->pid = pid;
+	global_pid = pid;
 	_stp_ctrl_register(t->pid, _stp_cmd_handler);
 
 	if (_stp_streaming())
@@ -162,5 +174,16 @@ int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size, int pid)
 	return 0;
 }
 
+int _stp_transport_send (int pid, void *data, int len)
+{
+	int err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid);
+	if (err < 0 && _stp_exit_called) {
+		do {
+			msleep (5);
+			err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid);
+		} while (err < 0);
+	}
+	return err;
+}
 /** @} */
 #endif /* _TRANSPORT_C_ */

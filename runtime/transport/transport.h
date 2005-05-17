@@ -31,6 +31,7 @@ struct consumed_info
 	unsigned consumed;
 };
 
+
 /**
  *	_stp_transport_write - write data to the transport
  *	@t: the transport struct
@@ -38,11 +39,9 @@ struct consumed_info
  *	@len: length of the data to send
  */
 #ifdef STP_NETLINK_ONLY
-#define _stp_transport_write(t, data, len) \
-	_stp_ctrl_send(STP_REALTIME_DATA, data, len, t->pid)
+#define _stp_transport_write(t, data, len)  _stp_transport_send (t->pid, data, len)
 #else
-#define _stp_transport_write(t, data, len) \
-	relay_write(t->chan, data, len)
+#define _stp_transport_write(t, data, len)  relay_write(t->chan, data, len)
 #endif
 
 /**
@@ -71,5 +70,5 @@ static inline void _stp_transport_flush(void)
 extern int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size,
 			       int pid);
 extern void _stp_transport_close(void);
-
+extern int _stp_transport_send (int pid, void *data, int len);
 #endif /* _TRANSPORT_TRANSPORT_H_ */
