@@ -14,7 +14,7 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/string.h>
-#include <linux/relayfs_fs.h>
+#include "linux/relayfs_fs.h"
 #include "relay.h"
 #include "buffers.h"
 

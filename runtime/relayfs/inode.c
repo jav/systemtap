@@ -18,7 +18,7 @@
 #include <linux/backing-dev.h>
 #include <linux/namei.h>
 #include <linux/poll.h>
-#include <linux/relayfs_fs.h>
+#include "linux/relayfs_fs.h"
 #include "relay.h"
 #include "buffers.h"
 

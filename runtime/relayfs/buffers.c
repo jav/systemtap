@@ -10,7 +10,7 @@
 #include <linux/module.h>
 #include <linux/vmalloc.h>
 #include <linux/mm.h>
-#include <linux/relayfs_fs.h>
+#include "linux/relayfs_fs.h"
 #include "relay.h"
 #include "buffers.h"
 
