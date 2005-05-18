@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ln -s ../map.h .
+ln -s ../map.c .
+ln -s ../map-values.c .
+ln -s ../map-keys.c .
+ln -s ../list.c .
+ln -s ../string.c .
