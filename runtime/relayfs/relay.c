@@ -378,7 +378,10 @@ unsigned relay_switch_subbuf(struct rchan_buf *buf, unsigned length)
 	int new, old, produced = atomic_read(&buf->subbufs_produced);
 	unsigned padding;
 
-	if (atomic_read(&buf->unfull)) {
+	if (unlikely(length > buf->chan->subbuf_size))
+	  goto toobig;
+	
+	if (unlikely(atomic_read(&buf->unfull))) {
 		atomic_set(&buf->unfull, 0);
 		new = produced % buf->chan->n_subbufs;
 		old = (produced - 1) % buf->chan->n_subbufs;
@@ -410,7 +413,15 @@ unsigned relay_switch_subbuf(struct rchan_buf *buf, unsigned length)
 	new = (produced + 1) % buf->chan->n_subbufs;
 	do_switch(buf, new, old);
 
+	if (unlikely(length + buf->offset > buf->chan->subbuf_size))
+	  goto toobig;
+
 	return length;
+	
+ toobig:
+	printk(KERN_WARNING "relayfs: event too large (%u)\n", length);
+	WARN_ON(1);
+	return 0;
 }
 
 /**
