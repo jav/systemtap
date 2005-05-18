@@ -434,7 +434,8 @@ static int needed_space(int64_t v)
 		v = -v;
 	}
 	while (v) {
-		v /= 10;
+		/* v /= 10; */
+		do_div (v, 10);
 		space++;
 	}
 	return space;
@@ -466,8 +467,10 @@ void _stp_map_print_histogram (MAP map, stat *s)
 	if (max <= HIST_WIDTH)
 		scale = 1;
 	else {
-		scale = max / HIST_WIDTH;
-		if (max % HIST_WIDTH) scale++;
+		int64_t tmp = max;
+		int rem = do_div (tmp, HIST_WIDTH);
+		scale = tmp;
+		if (rem) scale++;
 	}
 
 	cnt_space = needed_space (max);
@@ -497,7 +500,11 @@ void _stp_map_print_histogram (MAP map, stat *s)
 		reprint (val_space - needed_space(val), " ");
 		_stp_printf("%d", val);
 		_stp_print_cstr (" |");
-		v = s->histogram[i] / scale;
+
+		/* v = s->histogram[i] / scale; */
+		v = s->histogram[i];
+		do_div (v, scale);
+		
 		reprint (v, "@");
 		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(s->histogram[i]), " ");
 		_stp_printf ("%lld\n", s->histogram[i]);
@@ -544,8 +551,10 @@ void _stp_map_print (MAP map, const char *name)
 #ifdef NEED_STAT_VALS
 		else {
 			stat *s = _stp_get_stat(ptr);
+			int64_t avg = s->sum;
+			do_div (avg, (int)s->count); /* FIXME: check for overflow */
 			_stp_printf("count:%lld  sum:%lld  avg:%lld  min:%lld  max:%lld\n",
-				    s->count, s->sum, s->sum/s->count, s->min, s->max);
+				    s->count, s->sum, avg, s->min, s->max);
 			_stp_print_flush();
 			_stp_map_print_histogram (map, s);
 		}

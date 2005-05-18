@@ -1,3 +1,15 @@
+2005-05-17  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (needed_space): Use do_div().
+	(_stp_map_print_histogram): Ditto.
+	(_stp_map_print): Ditto.
+
+	* map-values.c (_stp_map_add_int64_stat): Use do_div() when 
+	computing histogram bucket.
+
+	* map-keys.c (_stp_map_key): Fix some warnings on 32-bit machines
+	by using key_data casts.
+	
 2005-03-30  Martin Hunt  <hunt@redhat.com>
 
 	* scbuf.c:  Make functions use per-cpu buffers as documented.

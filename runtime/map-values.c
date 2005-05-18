@@ -103,7 +103,10 @@ void VALSYM(_stp_map_add_int64) (MAP map, int64_t val)
 		d->histogram[n]++;
 		break;
 	case HIST_LINEAR:
-		n = (val - map->hist_start) / map->hist_int;
+		/* n = (val - map->hist_start) / map->hist_int; */
+		val -= map->hist_start;
+		do_div (val, map->hist_int);
+		n = val;
 		if (n < 0)
 			n = 0;
 		if (n >= map->hist_buckets)

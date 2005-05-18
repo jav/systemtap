@@ -6,7 +6,7 @@
 #endif
 
 #if !defined(NEED_STRING_VALS) && !defined(NEED_INT64_VALS)
-#error Before including list.c, "#define VALUE_TYPE" to "INT64" or "STRING and include "map-values.c"
+#error Before including list.c, "#define VALUE_TYPE" to "INT64" or "STRING" and include "map-values.c"
 #endif
 
 #include "map.c"

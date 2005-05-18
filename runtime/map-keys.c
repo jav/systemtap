@@ -323,14 +323,6 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 }
 
 
-#define SETKEYS2(key, n) {						\
-		if (__builtin_types_compatible_p (typeof (key), char[])) { \
-			map->c_key[n].strp = (char *)key;		\
-		} else {						\
-			map->c_key[n].val = (int64_t)key;			\
-		}							\
-	}
-
 void KEYSYM(_stp_map_key) (MAP map, ALLKEYSD(key))
 {
 	unsigned int hv;
@@ -369,15 +361,15 @@ void KEYSYM(_stp_map_key) (MAP map, ALLKEYSD(key))
 	}
 
 	dbug ("key not found\n");
-	SETKEYS2 (key1, 0);
+	map->c_key[0] = (key_data)key1;
 #if KEY_ARITY > 1
-	SETKEYS2 (key2, 1);
+	map->c_key[1] = (key_data)key2;
 #if KEY_ARITY > 2
-	SETKEYS2 (key3, 2);
+	map->c_key[2] = (key_data)key3;
 #if KEY_ARITY > 3
-	SETKEYS2 (key4, 3);
+	map->c_key[3] = (key_data)key4;
 #if KEY_ARITY > 4
-	SETKEYS2 (key5, 4);
+	map->c_key[4] = (key_data)key5;
 #endif
 #endif
 #endif
