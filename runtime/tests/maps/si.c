@@ -74,7 +74,7 @@ int main ()
     {
       char buf[32];
       sprintf (buf, "String %d", i);
-      _stp_map_key (map, buf);
+      _stp_map_key_str (map, buf);
       _stp_map_set_int64 (map, 100 + i);
     }
 

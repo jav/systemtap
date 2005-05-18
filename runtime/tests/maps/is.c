@@ -55,7 +55,7 @@ int main ()
 
   /* check that unset values are 0 */
   _stp_map_key_int64 (map, 5);
-  printf ("map[%lld]=%lld\n", key1int(map->key), _stp_map_get_str(map));
+  printf ("map[%lld]=%ld\n", key1int(map->key), (long)_stp_map_get_str(map));
 
   /* map[5] = "five" */
   _stp_map_set (map, "five");

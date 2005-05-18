@@ -264,6 +264,79 @@ map[7, 8, Oregon] = Salem
 map[0, 0, ] = XX
 }
 
+test test_list_int64 {Test of lists of int64s} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test test_list_int64.c
+} -body {
+	exec ./test
+} -result {list[0] = 0
+list[1] = 1
+list[2] = 2
+list[3] = 3
+list[4] = 4
+list[5] = 5
+list[6] = 6
+list[7] = 7
+list[8] = 8
+list[9] = 9
+
+size is 10
+
+list[0] = 0
+list[1] = 1
+list[2] = 2
+list[3] = 3
+list[4] = 4
+list[5] = 5
+list[6] = 6
+list[7] = 7
+list[8] = 8
+list[9] = 9
+
+
+newlist[0] = 50
+newlist[1] = 51
+newlist[2] = 52
+newlist[3] = 53
+newlist[4] = 54
+}
+
+
+test test_list_string {Test of lists of strings} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test test_list_string.c
+} -body {
+	exec ./test
+} -result {list[0] = Item0
+list[1] = Item1
+list[2] = Item2
+list[3] = Item3
+list[4] = Item4
+list[5] = Item5
+list[6] = Item6
+list[7] = Item7
+list[8] = Item8
+list[9] = Item9
+
+size is 10
+
+list[0] = Item0
+list[1] = Item1
+list[2] = Item2
+list[3] = Item3
+list[4] = Item4
+list[5] = Item5
+list[6] = Item6
+list[7] = Item7
+list[8] = Item8
+list[9] = Item9
+
+
+newlist[0] = Item50
+newlist[1] = Item51
+newlist[2] = Item52
+newlist[3] = Item53
+newlist[4] = Item54
+}
+
 exec rm test
 
 cleanupTests
