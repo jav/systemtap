@@ -132,7 +132,7 @@ void _stp_transport_close()
 	if (!_stp_streaming())
 		_stp_relayfs_close(t->chan, t->dir);
 
-	schedule_work (&stp_exit);
+	stp_exit_helper (&t->pid);
 	kfree(t);
 }
 

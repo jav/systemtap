@@ -1,3 +1,8 @@
+2005-05-17  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_transport_close): Call stp_exit_helper()
+	directly instead of using work queue.
+
 2005-05-16  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_cmd_handler): For STP_EXIT, schedule a 
