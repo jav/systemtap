@@ -5,10 +5,11 @@ cd $tcltest::testsDirectory
 
 set CFLAGS "-Os"
 set KPATH "/lib/modules/[exec uname -r]/build/include"
+set MPATH "/lib/modules/[exec uname -r]/build/include/asm/mach-default"
 set PATH "../../user"
 
 test printf_A {Basic printf test} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test printf_A.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test printf_A.c
 } -body {
 	exec ./test
 } -result {ABCDE
@@ -24,7 +25,7 @@ abcde
 Q}
 
 test printf_B {More printf test} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test printf_B.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test printf_B.c
 } -body {
 	exec ./test
 } -result {i=0 i=1 i=2 i=3 i=4 i=5 i=6 i=7 i=8 i=9 i=10 i=11 i=12 i=13 i=14 i=15 i=16 i=17 i=18 i=19 
@@ -32,7 +33,7 @@ test printf_B {More printf test} -setup {
 9223372036854775807 (7fffffffffffffff) -9223372036854775808(8000000000000000) }
 
 test print_cstr {Test of _stp_print_cstr()} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test print_cstr.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test print_cstr.c
 } -body {
 	exec ./test
 } -result {ABCDE
@@ -48,7 +49,7 @@ abcde
 Q}
 
 test string1 {Basic String test} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string1.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test string1.c
 } -body {
 	exec ./test
 } -result {Hello worldRed HatIntelIBM
@@ -58,7 +59,7 @@ Hello world Red Hat
 IntelIBM}
 
 test string2 {More String tests} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string2.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test string2.c
 } -body {
 	exec ./test
 } -result {ABCDE
@@ -73,7 +74,7 @@ abcde
 1234567890abcdefghi
 Q}
 test string3 {Even More String tests} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string3.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test string3.c
 } -body {
 	exec ./test
 } -result {1234567890abcABCDEvwxyz
