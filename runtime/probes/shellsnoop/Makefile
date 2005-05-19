@@ -11,7 +11,7 @@ KTA	:= $(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVERS
 CFLAGS += -I $(STP_RUNTIME) -I $(STP_RUNTIME)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) \
 	-D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP)
 
-obj-m := shellprobe.o
+obj-m := shellsnoop.o
 
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules \

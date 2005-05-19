@@ -39,7 +39,7 @@ fi
 ../../stpd/stpd -b 8192 -n 4 $modulename
 
 # log to files (relayfs), 4 8K buffers
-#../../stpd/stpd -r -b 8192 -n 4 $modulename
+#../../stpd/stpd -r -b 65536 -n 4 $modulename
 
 # print to screen and log to files, 4 8K buffers
 #../../stpd/stpd -b 8192 -n 4 

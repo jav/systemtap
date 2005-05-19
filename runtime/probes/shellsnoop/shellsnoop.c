@@ -40,7 +40,8 @@ int inst_do_execve (char * filename, char __user *__user *argv, char __user *__u
       
       foreach (arglist, ptr)
 	_stp_printf ("%s ", _stp_get_str(ptr));
-      
+      _stp_print("\n");
+
       _stp_print_flush();
     }
   jprobe_return();
@@ -51,7 +52,7 @@ struct file * inst_filp_open (const char * filename, int flags, int mode)
 {
   _stp_map_key_int64 (pids, current->pid);
   if (_stp_map_get_int64 (pids))
-    _stp_printf ("%d\t%d\t%s\tO %s", current->pid, current->parent->pid, current->comm, filename);
+    _stp_printf ("%d\t%d\t%s\tO %s\n", current->pid, current->parent->pid, current->comm, filename);
 
   _stp_print_flush();
   jprobe_return();
@@ -62,7 +63,7 @@ asmlinkage ssize_t inst_sys_read (unsigned int fd, char __user * buf, size_t cou
 {
   _stp_map_key_int64 (pids, current->pid);
   if (_stp_map_get_int64 (pids))
-    _stp_printf ("%d\t%d\t%s\tR %d", current->pid, current->parent->pid, current->comm, fd);
+    _stp_printf ("%d\t%d\t%s\tR %d\n", current->pid, current->parent->pid, current->comm, fd);
   
   _stp_print_flush();
   jprobe_return();
@@ -106,7 +107,6 @@ static struct jprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
-
 static int pid;
 module_param(pid, int, 0);
 MODULE_PARM_DESC(pid, "daemon pid");
@@ -140,6 +140,7 @@ static void probe_exit (void)
 {
 	_stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
 	_stp_map_del (pids);
+	_stp_printf("dropped %d packets\n", atomic_read(&_stp_transport_failures));
 	_stp_print_flush();
 }
 
