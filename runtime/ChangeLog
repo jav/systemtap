@@ -1,3 +1,14 @@
+2005-05-18  Martin Hunt  <hunt@redhat.com>
+
+	* print.c: All functions except _stp_print_flush() are
+	now macros which use _stp_stdout.
+
+	* string.c: Add _stp_stdout support.  Data written to
+	_stp_stdout is automatically flushed when the print buffer
+	is full.
+
+	* runtime.h: Always include string.c.
+	
 2005-05-17  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (needed_space): Use do_div().

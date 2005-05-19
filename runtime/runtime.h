@@ -30,5 +30,7 @@ static unsigned n_subbufs = 4;
 static unsigned subbuf_size = 65536;
 
 #include "print.c"
+#include "string.c"
+
 
 #endif /* _RUNTIME_H_ */
