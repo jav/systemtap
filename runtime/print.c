@@ -13,18 +13,24 @@
  * _stp_print_flush() is called.
  *
  * The reason to do this is to allow multiple small prints to be combined then
- * timestamped and sent together to stpd. It could flush automatically on newlines,
- * but what about stack traces which span many lines?  So try this and see how it works for us.
+ * timestamped and sent together to stpd. This is more efficient than sending
+ * numerous small packets.
+ *
+ * This function is called automatically when the print buffer is full.
+ * It MUST also be called at the end of every probe that prints something.
  * @{
  */
-
-/** Size of buffer, not including terminating NULL */
-#define STP_PRINT_BUF_LEN 8000
 
 static int _stp_pbuf_len[NR_CPUS];
 
 #ifdef STP_NETLINK_ONLY
 #define STP_PRINT_BUF_START 0
+
+/** Size of buffer, not including terminating NULL */
+#ifndef STP_PRINT_BUF_LEN
+#define STP_PRINT_BUF_LEN 8191
+#endif
+
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + 1];
 
 void _stp_print_flush (void)
@@ -37,25 +43,25 @@ void _stp_print_flush (void)
 	if (len == 0)
 		return;
 
-	/* enforce newline at end  */
-	if (buf[len - 1] != '\n') {
-		buf[len++] = '\n';
-		buf[len] = '\0';
-	}
-	
-	ret = _stp_transport_write(t, buf, len + 1);
-	if (ret < 0) {
-		printk("flush: ret=%d.\n", ret);
+	ret =_stp_transport_write(t, buf, len + 1);
+	if (unlikely(ret < 0))
 		atomic_inc (&_stp_transport_failures);
-	}
 
 	_stp_pbuf_len[cpu] = 0;
+	*buf = 0;
 }
 
 #else /* ! STP_NETLINK_ONLY */
+
 /* size of timestamp, in bytes, including space */
 #define TIMESTAMP_SIZE 19
 #define STP_PRINT_BUF_START (TIMESTAMP_SIZE + 1)
+
+/** Size of buffer, not including terminating NULL */
+#ifndef STP_PRINT_BUF_LEN
+#define STP_PRINT_BUF_LEN (8192 - TIMESTAMP_SIZE - 2)
+#endif
+
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
 
 /** Send the print buffer now.
@@ -65,7 +71,7 @@ static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
 
 void _stp_print_flush (void)
 {
-	int ret, cpu = smp_processor_id();
+	int cpu = smp_processor_id();
 	char *buf = &_stp_pbuf[cpu][0];
 	char *ptr = buf + STP_PRINT_BUF_START;
 	struct timeval tv;
@@ -73,22 +79,12 @@ void _stp_print_flush (void)
 	if (_stp_pbuf_len[cpu] == 0)
 		return;
 	
-	/* enforce newline at end  */
-	if (ptr[_stp_pbuf_len[cpu]-1] != '\n') {
-		ptr[_stp_pbuf_len[cpu]++] = '\n';
-		ptr[_stp_pbuf_len[cpu]] = '\0';
-	}
-	
 	do_gettimeofday(&tv);
 	scnprintf (buf, TIMESTAMP_SIZE+1, "[%li.%06li] ", tv.tv_sec, tv.tv_usec);
 	buf[TIMESTAMP_SIZE] = ' ';
-	ret = _stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 2);
-	if (ret < 0) {
-		printk("flush: ret=%d\n", ret);
-		atomic_inc (&_stp_transport_failures);
-	}
-
+	_stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 2);
 	_stp_pbuf_len[cpu] = 0;
+	*ptr = 0;
 }
 #endif /* STP_NETLINK_ONLY */
 
@@ -96,39 +92,19 @@ void _stp_print_flush (void)
  * Like printf, except output goes to the print buffer.
  * Safe because overflowing the buffer is not allowed.
  * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
- * 
+ *
  * @param fmt A printf-style format string followed by a 
  * variable number of args.
  * @sa _stp_print_flush()
  */
-
-void _stp_printf (const char *fmt, ...)
-{
-	int num;
-	va_list args;
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	va_start(args, fmt);
-	num = vscnprintf(buf, STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu], fmt, args);
-	va_end(args);
-	if (num > 0)
-		_stp_pbuf_len[cpu] += num;
-}
+#define _stp_printf(args...) _stp_sprintf(_stp_stdout,args)
 
 /** Print into the print buffer.
  * Use this if your function already has a va_list.
  * You probably want _stp_printf().
  */
 
-void _stp_vprintf (const char *fmt, va_list args)
-{
-	int num;
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	num = vscnprintf(buf, STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu], fmt, args);
-	if (num > 0)
-		_stp_pbuf_len[cpu] += num;
-}
+#define _stp_vprintf(fmt,args) _stp_vsprintf(stdout,fmt,args)
 
 /** Write a C string into the print buffer.
  * Copies a string into a print buffer.
@@ -140,33 +116,8 @@ void _stp_vprintf (const char *fmt, va_list args)
  * @param str A C string.
  * @sa _stp_print
  */
+#define _stp_print_cstr(str) _stp_string_cat_cstr(_stp_stdout,str)
 
-void _stp_print_cstr (const char *str)
-{
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	int num = strlen (str);
-	if (num > STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu])
-		num = STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu];
-	strncpy (buf, str, num+1);
-	_stp_pbuf_len[cpu] += num;
-}
-
-/** Clear the scratch buffer.
- * This function should be called before anything is written to 
- * the scratch buffer.  Output will accumulate in the buffer
- * until this function is called again.  
- * @returns A pointer to the buffer.
- */
-
-char *_stp_print_clear (void)
-{
-	int cpu = smp_processor_id();
-	_stp_pbuf_len[cpu] = 0;
-	return &_stp_pbuf[cpu][STP_PRINT_BUF_START];
-}
-
-#include "string.c"
 
 /** Write a String into the print buffer.
  * Copies a String into a print buffer.
@@ -178,12 +129,7 @@ char *_stp_print_clear (void)
  * @param str A String.
  * @sa _stp_print
  */
-
-void _stp_print_string (String str)
-{
-	if (str->len)
-		_stp_print_cstr (str->buf);
-}
+#define _stp_print_string(str) _stp_string_cat_string(_stp_stdout,str)
 
 /** Write a String or C string into the print buffer.
  * This macro selects the proper function to call.
@@ -195,10 +141,10 @@ void _stp_print_string (String str)
 	({								\
 	  if (__builtin_types_compatible_p (typeof (str), char[])) {	\
 		  char *x = (char *)str;				\
-		  _stp_print_cstr(x);					\
+		  _stp_string_cat_cstr(_stp_stdout,x);			\
 	  } else {							\
 		  String x = (String)str;				\
-		  _stp_print_string(x);					\
+		  _stp_string_cat_string(_stp_stdout,x);		\
 	  }								\
   })
 
