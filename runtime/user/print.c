@@ -18,7 +18,9 @@
  */
 
 /** Size of buffer, not including terminating NULL */
+#ifndef STP_PRINT_BUF_LEN
 #define STP_PRINT_BUF_LEN 8000
+#endif
 
 static int _stp_pbuf_len[NR_CPUS];
 
@@ -34,112 +36,14 @@ void _stp_print_flush (void)
 	if (len == 0)
 		return;
 
-	/* enforce newline at end  */
-	if (buf[len - 1] != '\n') {
-		buf[len++] = '\n';
-		buf[len] = '\0';
-	}
-	
 	fwrite (buf, len, 1, stdout);
 	_stp_pbuf_len[cpu] = 0;
 }
 
-
-/** Print into the print buffer.
- * Like printf, except output goes to the print buffer.
- * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
- * 
- * @param fmt A printf-style format string followed by a 
- * variable number of args.
- * @sa _stp_print_flush()
- */
-
-void _stp_printf (const char *fmt, ...)
-{
-	int num;
-	va_list args;
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	va_start(args, fmt);
-//	dbug ("%d bytes to %lx %lx\n", STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu], buf, &_stp_pbuf[cpu][STP_PRINT_BUF_START]);
-	num = vsnprintf(buf, STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu], fmt, args);
-//	dbug ("num = %d\n", num);
-	va_end(args);
-	if (num > 0 && num <= STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu])
-		_stp_pbuf_len[cpu] += num;
-}
-
-/** Print into the print buffer.
- * Use this if your function already has a va_list.
- * You probably want _stp_printf().
- */
-
-void _stp_vprintf (const char *fmt, va_list args)
-{
-	int num;
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	num = vsnprintf(buf, STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu], fmt, args);
-	if (num > 0)
-		_stp_pbuf_len[cpu] += num;
-}
-
-/** Write a C string into the print buffer.
- * Copies a string into a print buffer.
- * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
- * This is more efficient than using _stp_printf() if you don't
- * need fancy formatting.
- *
- * @param str A C string.
- * @sa _stp_print
- */
-
-void _stp_print_cstr (const char *str)
-{
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-	int num = strlen (str);
-	if (num > STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu])
-		num = STP_PRINT_BUF_LEN - _stp_pbuf_len[cpu];
-	strncpy (buf, str, num+1);
-	_stp_pbuf_len[cpu] += num;
-}
-
-/** Clear the scratch buffer.
- * This function should be called before anything is written to 
- * the scratch buffer.  Output will accumulate in the buffer
- * until this function is called again.  
- * @returns A pointer to the buffer.
- */
-
-char *_stp_print_clear (void)
-{
-	int cpu = smp_processor_id();
-	_stp_pbuf_len[cpu] = 0;
-	return &_stp_pbuf[cpu][STP_PRINT_BUF_START];
-}
-
-#include "string.c"
-
-/** Write a String into the print buffer.
- * Copies a String into a print buffer.
- * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
- * This is more efficient than using _stp_printf() if you don't
- * need fancy formatting.
- *
- * @param str A String.
- * @sa _stp_print
- */
-
-void _stp_print_string (String str)
-{
-	if (str->len)
-		_stp_print_cstr (str->buf);
-}
-
+#define _stp_printf(args...) _stp_sprintf(_stp_stdout,args)
+#define _stp_vprintf(fmt,args) _stp_vsprintf(_stp_stdout,fmt,args)
+#define _stp_print_cstr(str) _stp_string_cat_cstr(_stp_stdout,str)
+#define _stp_print_string(str) _stp_string_cat_string(_stp_stdout,str)
 /** Write a String or C string into the print buffer.
  * This macro selects the proper function to call.
  * @param str A String or C string (char *)
@@ -150,10 +54,10 @@ void _stp_print_string (String str)
 	({								\
 	  if (__builtin_types_compatible_p (typeof (str), char[])) {	\
 		  char *x = (char *)str;				\
-		  _stp_print_cstr(x);					\
+		  _stp_string_cat_cstr(_stp_stdout,x);				\
 	  } else {							\
 		  String x = (String)str;				\
-		  _stp_print_string(x);					\
+		  _stp_string_cat_string(_stp_stdout,x);				\
 	  }								\
   })
 

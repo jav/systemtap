@@ -35,5 +35,6 @@
 #define memcpy __builtin_memcpy
 
 #include "print.c"
+#include "string.c"
 
 #endif /* _RUNTIME_H_ */
