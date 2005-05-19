@@ -1,6 +1,10 @@
 #ifndef _STRING_C_ /* -*- linux-c -*- */
 #define _STRING_C_
 
+#ifndef STP_NUM_STRINGS
+#define STP_NUM_STRINGS 0
+#endif
+
 #include <linux/config.h>
 
 /** @file string.c
@@ -21,8 +25,7 @@
 #endif
 
 struct string {
-	short len;
-	short global;
+	int len;
 	char buf[STP_STRING_SIZE];
 };
 
@@ -30,37 +33,31 @@ static struct string _stp_string[STP_NUM_STRINGS][NR_CPUS];
 
 typedef struct string *String;
 
+/* set up a special stdout string */
+struct string __stp_stdout;
+String _stp_stdout = &__stp_stdout;
+
+void _stp_vsprintf (String str, const char *fmt, va_list args);
+
 /** Initialize a String for our use.
- * This grabs one of the global Strings for our use.
+ * This grabs one of the global Strings for our temporary use.
  *
  * @param num Number of the preallocated String to use. 
  * #STP_NUM_STRINGS are statically allocated for our use. The
  * translator (or author) should be sure to grab a free one.
- * @todo Global (and static) Strings not implemented yet. 
  */
 
 String _stp_string_init (int num)
 {
-	int global = 0;
 	String str;
 
-	if (num  < 0) {
-		num = -num;
-		global = 1;
-	}
-	
-	if (num >= STP_NUM_STRINGS) {
-		_stp_log ("_stp_string_init internal error: requested string exceeded allocated number");
+	if (num >= STP_NUM_STRINGS || num < 0) {
+		_stp_log ("_stp_string_init internal error: requested string exceeded allocated number or was negative");
 		return NULL;
 	}
-
-	if (global)
-		str = &_stp_string[num][0];
-	else
-		str = &_stp_string[num][smp_processor_id()];
-
-	str->global = global;
+	str = &_stp_string[num][smp_processor_id()];
 	str->len = 0;
+	str->buf[0] = 0;
 	return str;
 }
 
@@ -78,11 +75,35 @@ void _stp_sprintf (String str, const char *fmt, ...)
 {
 	int num;
 	va_list args;
-	va_start(args, fmt);
-	num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len - 1, fmt, args);
-	va_end(args);
-	if (num > 0)
-		str->len += num;
+	if (str == _stp_stdout) {
+		int cpu = smp_processor_id();
+		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
+		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
+		va_start(args, fmt);
+		num = vsnprintf(buf, size, fmt, args);
+		va_end(args);
+		if (unlikely(num >= size)) { 
+			/* overflowed the buffer */
+			if (_stp_pbuf_len[cpu] == 0) {
+				_stp_pbuf_len[cpu] = STP_PRINT_BUF_LEN;
+				_stp_print_flush();
+			} else {
+				_stp_print_flush();
+				va_start(args, fmt);
+				_stp_vsprintf(_stp_stdout, fmt, args); 
+				va_end(args);
+			}
+		} else {
+			_stp_pbuf_len[cpu] += num;
+		}
+
+	} else {
+		va_start(args, fmt);
+		num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
+		va_end(args);
+		if (likely(num > 0))
+			str->len += num;
+	}
 }
 
 /** Vsprintf into a String
@@ -92,9 +113,22 @@ void _stp_sprintf (String str, const char *fmt, ...)
 void _stp_vsprintf (String str, const char *fmt, va_list args)
 {
 	int num;
-	num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len - 1, fmt, args);
-	if (num > 0)
-		str->len += num;
+	if (str == _stp_stdout) {
+		int cpu = smp_processor_id();
+		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
+		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
+		num = vsnprintf(buf, size, fmt, args);
+		if (num < size)
+			_stp_pbuf_len[cpu] += num;
+		else {
+			_stp_pbuf_len[cpu] = STP_PRINT_BUF_LEN;
+			_stp_print_flush();
+		}
+	} else {
+		num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
+		if (num > 0)
+			str->len += num;
+	}
 }
 
 /** ConCATenate (append) a C string to a String.
@@ -106,10 +140,25 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 void _stp_string_cat_cstr (String str1, const char *str2)
 {
 	int num = strlen (str2);
-	if (num > STP_STRING_SIZE - str1->len - 1)
-		num = STP_STRING_SIZE - str1->len - 1;
-	strncpy (str1->buf + str1->len, str2, num+1);
-	str1->len += num;
+	if (str1 == _stp_stdout) {
+		char *buf;
+		int cpu = smp_processor_id();
+		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu];
+		if (num >= size) {
+			_stp_print_flush();
+			if (num > STP_PRINT_BUF_LEN)
+				num = STP_PRINT_BUF_LEN;
+		}
+		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
+		strncpy (buf, str2, num + 1);
+		_stp_pbuf_len[cpu] += num;
+	} else {
+		int size = STP_STRING_SIZE - str1->len - 1; 
+		if (num > size)
+			num = size;
+		strncpy (str1->buf + str1->len, str2, num);
+		str1->len += num;
+	}
 }
 
 /** ConCATenate (append) a String to a String.
@@ -120,21 +169,10 @@ void _stp_string_cat_cstr (String str1, const char *str2)
  */
 void _stp_string_cat_string (String str1, String str2)
 {
-	int num = str2->len;
-	if (num > STP_STRING_SIZE - str1->len - 1)
-		num = STP_STRING_SIZE - str1->len - 1;
-	strncpy (str1->buf + str1->len, str2->buf, num);
-	str1->len += num;
+	if (str2->len)
+		_stp_string_cat_cstr (str1, str2->buf);
 }
 
-
-void _stp_string_to_ascii (String str)
-{
-	char *ptr = str->buf;
-	int num = str->len;
-	while (num--)
-		*ptr = toascii(*ptr);
-}
 
 /** Get a pointer to String's buffer
  * For rare cases when a C string is needed and you have a String.
