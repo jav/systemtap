@@ -1,0 +1,88 @@
+package require tcltest
+namespace import -force tcltest::*
+
+cd $tcltest::testsDirectory
+
+set CFLAGS "-Os"
+set KPATH "/lib/modules/[exec uname -r]/build/include"
+set PATH "../../user"
+
+test printf_A {Basic printf test} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test printf_A.c
+} -body {
+	exec ./test
+} -result {ABCDE
+12345678901234567890XYZZY
+XYZZY
+12345678901234567890
+abcdefghij1234567890
+abcdefghij1234567890X
+12345
+67890
+abcde
+1234567890abcdefghij
+Q}
+
+test printf_B {More printf test} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test printf_B.c
+} -body {
+	exec ./test
+} -result {i=0 i=1 i=2 i=3 i=4 i=5 i=6 i=7 i=8 i=9 i=10 i=11 i=12 i=13 i=14 i=15 i=16 i=17 i=18 i=19 
+[0  0  0] [1  1  1] [2  4  8] [3  9  27] [4  16  64] 
+9223372036854775807 (7fffffffffffffff) -9223372036854775808(8000000000000000) }
+
+test print_cstr {Test of _stp_print_cstr()} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test print_cstr.c
+} -body {
+	exec ./test
+} -result {ABCDE
+12345678901234567890XYZZY
+XYZZY
+12345678901234567890
+abcdefghij1234567890
+abcdefghij1234567890X
+12345
+67890
+abcde
+1234567890abcdefghij
+Q}
+
+test string1 {Basic String test} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string1.c
+} -body {
+	exec ./test
+} -result {Hello worldRed HatIntelIBM
+Hello world / Red Hat / Intel / IBM / 
+Red Hat Inc.
+Hello world Red Hat 
+IntelIBM}
+
+test string2 {More String tests} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string2.c
+} -body {
+	exec ./test
+} -result {ABCDE
+1234567890123456789
+XYZZY
+1234567890123
+abcdefghij123456789
+abcdefghij123456789
+12345
+67890
+abcde
+1234567890abcdefghi
+Q}
+test string3 {Even More String tests} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -o test string3.c
+} -body {
+	exec ./test
+} -result {1234567890abcABCDEvwxyz
+abcde
+1234567890abcde
+1234567890abcdeABCD
+1234567890abcdeABCD
+ABCDEvwxyz}
+
+exec rm test
+
+cleanupTests
