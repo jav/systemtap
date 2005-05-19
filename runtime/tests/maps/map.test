@@ -5,10 +5,11 @@ cd $tcltest::testsDirectory
 
 set CFLAGS "-Os"
 set KPATH "/lib/modules/[exec uname -r]/build/include"
+set MPATH "/lib/modules/[exec uname -r]/build/include/asm/mach-default"
 set PATH "../../user"
 
 test ii {Test of int64 keys and int64 values} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test ii.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ii.c
 } -body {
 	exec ./test
 } -result {map[1]=2
@@ -53,7 +54,7 @@ map[526] = 1526
 }
 
 test is {Test of int64 keys and string values} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test is.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test is.c
 } -body {
 	exec ./test
 } -result {map[1]=one
@@ -102,7 +103,7 @@ map[526] = 1526
 }
 
 test si {Test of string keys and int64 values} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test si.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test si.c
 } -body {
 	exec ./test
 } -result {map[Ohio]=1
@@ -157,7 +158,7 @@ map[526] = 1526
 }
 
 test ist {Test of int64 keys and stat values} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test ist.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ist.c
 } -body {
 	exec ./test
 } -result {map[3] = count:49600  sum:3288450  avg:66  min:0  max:99
@@ -231,7 +232,7 @@ value |-------------------------------------------------- count
 }
 
 test iiss {Test of int64,int64,string keys and string values} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test iiss.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test iiss.c
 } -body {
 	exec ./test
 } -result {map[1, 2, Ohio] = Columbus
@@ -265,7 +266,7 @@ map[0, 0, ] = XX
 }
 
 test test_list_int64 {Test of lists of int64s} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test test_list_int64.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test test_list_int64.c
 } -body {
 	exec ./test
 } -result {list[0] = 0
@@ -302,7 +303,7 @@ newlist[4] = 54
 
 
 test test_list_string {Test of lists of strings} -setup {
-        exec gcc $CFLAGS -I $KPATH -I $PATH -o test test_list_string.c
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test test_list_string.c
 } -body {
 	exec ./test
 } -result {list[0] = Item0
