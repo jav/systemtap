@@ -1,0 +1,10 @@
+-q
+elaborate.cxx
+elaborate.h
+main.cxx
+parse.cxx
+parse.h
+staptree.cxx
+staptree.h
+translate.cxx
+translate.h

@@ -1,4 +1,4 @@
-#! semtest
+#! stap -p2
 
 function zoo (p) { p << 5; return 0 }  # passing stats as function arg
 

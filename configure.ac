@@ -22,6 +22,11 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
+dnl Need elfutils 0.102+ from <drepper@redhat.com>
+AC_CHECK_HEADERS([libelf.h elfutils/libdw.h])
+AC_CHECK_LIB(dw, dwarf_begin)
+AC_CHECK_LIB(elf, elf_begin)
+
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

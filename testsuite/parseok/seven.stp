@@ -1,0 +1,26 @@
+#! stap -p1
+
+probe one { if (1) {} }
+probe two { if (2) {;} }
+probe three { if (3) ; }
+probe four { if (4) {} else ; }
+probe five { if (5) ; else {} }
+probe six { if (6) {} else {;} }
+probe seven { ; }
+probe eight { {} }
+probe nine { {;} }
+probe ten { a=1; }
+
+probe all
+{
+  if (1) {}                ;
+  if (2) {;}               ;
+  if (3) ;                 ;
+  if (4) {} else ;         ;
+  if (5) ; else {}         ;
+  if (6) {} else {;}       ;
+  ;                        ;
+  {}                       ;
+  {;}                      ;
+  a=1
+}

@@ -16,7 +16,7 @@
 
 # Makefile.am --- automake input file for systemtap
 
-SOURCES = $(parsetest_SOURCES) $(semtest_SOURCES)
+SOURCES = $(stap_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -39,7 +39,7 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS =
-noinst_PROGRAMS = parsetest$(EXEEXT) semtest$(EXEEXT)
+noinst_PROGRAMS = stap$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.in \
@@ -57,16 +57,11 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-am_parsetest_OBJECTS = parse.$(OBJEXT) staptree.$(OBJEXT) \
-	parsetest.$(OBJEXT)
-parsetest_OBJECTS = $(am_parsetest_OBJECTS)
-parsetest_LDADD = $(LDADD)
-parsetest_DEPENDENCIES =
-am_semtest_OBJECTS = parse.$(OBJEXT) staptree.$(OBJEXT) \
-	semtest.$(OBJEXT)
-semtest_OBJECTS = $(am_semtest_OBJECTS)
-semtest_LDADD = $(LDADD)
-semtest_DEPENDENCIES =
+am_stap_OBJECTS = parse.$(OBJEXT) staptree.$(OBJEXT) \
+	elaborate.$(OBJEXT) translate.$(OBJEXT) main.$(OBJEXT)
+stap_OBJECTS = $(am_stap_OBJECTS)
+stap_LDADD = $(LDADD)
+stap_DEPENDENCIES =
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -75,8 +70,8 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(parsetest_SOURCES) $(semtest_SOURCES)
-DIST_SOURCES = $(parsetest_SOURCES) $(semtest_SOURCES)
+SOURCES = $(stap_SOURCES)
+DIST_SOURCES = $(stap_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -104,6 +99,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -177,8 +173,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
-parsetest_SOURCES = parse.cxx staptree.cxx parsetest.cxx
-semtest_SOURCES = parse.cxx staptree.cxx semtest.cxx
+stap_SOURCES = parse.cxx staptree.cxx elaborate.cxx translate.cxx main.cxx
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
@@ -275,12 +270,9 @@ clean-binPROGRAMS:
 
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-parsetest$(EXEEXT): $(parsetest_OBJECTS) $(parsetest_DEPENDENCIES) 
-	@rm -f parsetest$(EXEEXT)
-	$(CXXLINK) $(parsetest_LDFLAGS) $(parsetest_OBJECTS) $(parsetest_LDADD) $(LIBS)
-semtest$(EXEEXT): $(semtest_OBJECTS) $(semtest_DEPENDENCIES) 
-	@rm -f semtest$(EXEEXT)
-	$(CXXLINK) $(semtest_LDFLAGS) $(semtest_OBJECTS) $(semtest_LDADD) $(LIBS)
+stap$(EXEEXT): $(stap_OBJECTS) $(stap_DEPENDENCIES) 
+	@rm -f stap$(EXEEXT)
+	$(CXXLINK) $(stap_LDFLAGS) $(stap_OBJECTS) $(stap_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -288,10 +280,11 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elaborate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parsetest.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/semtest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staptree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/translate.Po@am__quote@
 
 .cxx.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

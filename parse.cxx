@@ -2,12 +2,13 @@
 // Copyright 2005 Red Hat Inc.
 // GPL
 
-#include <iostream>
+#include "config.h"
 #include "staptree.h"
 #include "parse.h"
+#include <iostream>
+#include <fstream>
 #include <cctype>
 #include <cstdlib>
-#include <fstream>
 #include <cerrno>
 #include <climits>
 
@@ -405,28 +406,38 @@ parser::parse_stmt_block ()
     throw parse_error ("expected '{'");
 
   pb->tok = t;
+
   while (1)
     {
       try
 	{
-          // handle empty blocks
-          t = peek ();
-          if (t && t->type == tok_operator && t->content == "}")
-            {
-              next ();
-              break;
-            }
-          
+	  // handle empty blocks
+	  t = peek ();
+	  if (t && t->type == tok_operator && t->content == "}")
+	    {
+	      next ();
+	      break;
+	    }
+
           pb->statements.push_back (parse_statement ());
 
           // ';' is a statement separator in awk, not a terminator.
           // Note that ';' is also a possible null statement.
           t = peek ();
-          if (t && t->type == tok_operator && t->content == ";")
+	  if (t && t->type == tok_operator && t->content == "}")
+	    {
+	      next ();
+	      break;
+	    }
+          else if (t && t->type == tok_operator && t->content == ";")
             {
               next ();
               continue;
+	      // this also accepts semicolon as a terminator:
+	      // { a=1; }
             }
+	  else
+	    throw parse_error ("expected ';' or '}'");
 	}
       catch (parse_error& pe)
 	{
@@ -496,10 +507,18 @@ parser::parse_global (vector <vardecl*>& globals)
       if (! (t->type == tok_identifier))
         throw parse_error ("expected identifier");
 
-      vardecl* d = new vardecl;
-      d->name = t->content;
-      d->tok = t;
-      globals.push_back (d); // XXX: check for duplicates
+      bool dupe = false;
+      for (unsigned i=0; i<globals.size(); i++)
+	if (globals[i]->name == t->content)
+	  dupe = true;
+
+      if (! dupe)
+	{
+	  vardecl* d = new vardecl;
+	  d->name = t->content;
+	  d->tok = t;
+	  globals.push_back (d);
+	}
 
       t = peek ();
       if (t && t->type == tok_operator && t->content == ",")
@@ -565,6 +584,8 @@ parser::parse_probe_point ()
 {
   probe_point* pl = new probe_point;
 
+  // XXX: add support for probe point aliases
+  // e.g.   probe   a.b = a.c = a.d = foo
   while (1)
     {
       const token* t = next ();
@@ -596,13 +617,16 @@ parser::parse_probe_point ()
           if (t && t->type == tok_operator 
               && (t->content == "{" || t->content == ","))
             break;
+          else if (t && t->type == tok_operator &&
+                   t->content == "(")
+            throw parse_error ("unexpected '.' or ',' or '{'");
         }
       // fall through
 
       if (t && t->type == tok_operator && t->content == ".")
         next ();
       else
-        throw parse_error ("expected '.'");
+        throw parse_error ("expected '.' or ',' or '(' or '{'");
     }
 
   return pl;
@@ -717,8 +741,7 @@ parser::parse_assignment ()
 	  t->content == "+=" ||
 	  false)) // XXX: add /= etc.
     {
-      if (op1->is_lvalue () == 0)
-        throw parse_error ("assignment not to lvalue");
+      // NB: lvalueness is checked during translation / elaboration
       assignment* e = new assignment;
       e->left = op1;
       e->op = t->content;

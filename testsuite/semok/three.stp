@@ -1,5 +1,6 @@
-#! semtest
+#! stap -p2
 
+global b
 probe foo {
   a <<< 2;
   b[4] <<< 4;

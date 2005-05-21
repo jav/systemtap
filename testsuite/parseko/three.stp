@@ -1,5 +1,7 @@
-#! semtest
+#! stap -p1
 
 probe foo {
-  1 + 2 = 3;  # bad lvalue
+  a(1)
+# need ;
+  b(2)
 }

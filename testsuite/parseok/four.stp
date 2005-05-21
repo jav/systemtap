@@ -1,4 +1,4 @@
-#! parsetest
+#! stap -p1
 
 probe syscall ("foo").foo.bar , syscall ("bar"), syscall ("*").return
 {

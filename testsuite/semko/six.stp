@@ -1,4 +1,4 @@
-#! semtest
+#! stap -p2
 
 probe foo {
   bar[1] = 2;

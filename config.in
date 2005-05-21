@@ -1,7 +1,19 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the <elfutils/libdw.h> header file. */
+#undef HAVE_ELFUTILS_LIBDW_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `dw' library (-ldw). */
+#undef HAVE_LIBDW
+
+/* Define to 1 if you have the `elf' library (-lelf). */
+#undef HAVE_LIBELF
+
+/* Define to 1 if you have the <libelf.h> header file. */
+#undef HAVE_LIBELF_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

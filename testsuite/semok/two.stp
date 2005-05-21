@@ -1,4 +1,4 @@
-#! semtest
+#! stap -p2
 
 global bar, baz
 

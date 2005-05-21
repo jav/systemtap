@@ -2,6 +2,9 @@
 // Copyright 2005 Red Hat Inc.
 // GPL
 
+#ifndef PARSE_H
+#define PARSE_H
+
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -20,6 +23,7 @@ struct source_loc
 enum token_type 
   {
     tok_junk, tok_identifier, tok_operator, tok_string, tok_number 
+    // XXX: add tok_keyword throughout
   };
 
 
@@ -87,7 +91,7 @@ private: // nonterminals
   probe* parse_probe ();
   probe_point* parse_probe_point ();
   literal* parse_literal ();
-  void parse_global (vector<vardecl*>&);
+  void parse_global (std::vector<vardecl*>&);
   functiondecl* parse_functiondecl ();
   block* parse_stmt_block ();
   statement* parse_statement ();
@@ -111,3 +115,7 @@ private: // nonterminals
   expression* parse_symbol ();
   symbol* parse_symbol_plain ();
 };
+
+
+
+#endif // PARSE_H

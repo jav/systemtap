@@ -1,0 +1,27 @@
+#! stap -p2
+
+global ar1, ar2
+
+function string (v) { num=v+0; return "stringify me" } # to become a built-in
+function printk (s) { str=s.""; return 0 } # to become a built-in
+
+function search (key) 
+{
+  if (1) # (key in ar1)
+    { ar1[key] ++; return ar2[ar1[key]] }
+  else
+    return "no can do"  # implies ar2[]: string
+}
+
+probe syscall("zamboni")
+{
+  thread->ar2 = string ($tgid);
+  search ($pid)
+}
+
+probe end
+{
+  # for (key in ar2)
+  if (1) # (key in ar2)
+    printk ("this: " . string (key) . " was " . ar2[key])
+}

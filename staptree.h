@@ -7,28 +7,24 @@
 
 #include <string>
 #include <vector>
-#include <map>
 #include <iostream>
 #include <stdexcept>
-
-
-using namespace std;
 
 
 struct token; // parse.h
 struct semantic_error: public std::runtime_error
 {
   const token* tok1;
-  const string msg2;
+  const std::string msg2;
   const token* tok2;
 
   ~semantic_error () throw () {}
-  semantic_error (const string& msg):
+  semantic_error (const std::string& msg):
     runtime_error (msg), tok1 (0), tok2 (0) {}
-  semantic_error (const string& msg, const token* t1): 
+  semantic_error (const std::string& msg, const token* t1): 
     runtime_error (msg), tok1 (t1), tok2 (0) {}
-  semantic_error (const string& msg, const token* t1, 
-                  const string& m2, const token* t2): 
+  semantic_error (const std::string& msg, const token* t1, 
+                  const std::string& m2, const token* t2): 
     runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2) {}
 };
 
@@ -42,11 +38,9 @@ enum exp_type
     pe_stats 
   };
 
-ostream& operator << (ostream& o, const exp_type& e);
+std::ostream& operator << (std::ostream& o, const exp_type& e);
 
 struct token;
-struct symresolution_info;
-struct typeresolution_info;
 struct visitor;
 
 struct expression
@@ -55,38 +49,33 @@ struct expression
   const token* tok;
   expression ();
   virtual ~expression ();
-  virtual void print (ostream& o) = 0;
-  virtual void resolve_symbols (symresolution_info& r) = 0;
-  virtual void resolve_types (typeresolution_info& r, exp_type t) = 0;
-  virtual bool is_lvalue () = 0; // XXX: deprecate
+  virtual void print (std::ostream& o) = 0;
   virtual void visit (visitor* u) = 0;
 };
 
-ostream& operator << (ostream& o, expression& k);
+std::ostream& operator << (std::ostream& o, expression& k);
 
 
 struct literal: public expression
 {
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return false; }
 };
 
 
 struct literal_string: public literal
 {
-  string value;
-  literal_string (const string& v);
-  void print (ostream& o);
+  std::string value;
+  literal_string (const std::string& v);
+  void print (std::ostream& o);
   void visit (visitor* u);
 };
 
 
 struct literal_number: public literal
 {
+  // XXX: s/long/long long/ throughout
   long value;
   literal_number (long v);
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
 };
 
@@ -94,25 +83,19 @@ struct literal_number: public literal
 struct binary_expression: public expression
 {
   expression* left;
-  string op;
+  std::string op;
   expression* right;
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return false; }
 };
 
 
 struct unary_expression: public expression
 {
-  string op;
+  std::string op;
   expression* operand;
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return false; }
 };
 
 
@@ -124,7 +107,7 @@ struct pre_crement: public unary_expression
 
 struct post_crement: public unary_expression
 {
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
 };
 
@@ -170,17 +153,13 @@ struct ternary_expression: public expression
   expression* cond;
   expression* truevalue;
   expression* falsevalue;
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return false; }
 };
 
 
 struct assignment: public binary_expression
 {
-  bool is_lvalue ();
   void visit (visitor* u);
 };
 
@@ -188,112 +167,64 @@ struct assignment: public binary_expression
 class vardecl;
 struct symbol: public expression
 {
-  string name;
+  std::string name;
   vardecl *referent;
   symbol ();
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return true; }
 };
 
 
 struct arrayindex: public expression
 {
-  string base;
-  vector<expression*> indexes;
+  std::string base;
+  std::vector<expression*> indexes;
   vardecl *referent;
   arrayindex ();
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return true; }
 };
 
 
 class functiondecl;
 struct functioncall: public expression
 {
-  string function;
-  vector<expression*> args;
+  std::string function;
+  std::vector<expression*> args;
   functiondecl *referent;
   functioncall ();
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r, exp_type t);
-  bool is_lvalue () { return false; }
 };
 
 
 // ------------------------------------------------------------------------
 
 
-struct stapfile;
-struct symboldecl;
-struct symresolution_info
-{
-  vector<vardecl*>& locals; // includes incoming function parameters
-  vector<vardecl*>& globals;
-  vector<functiondecl*>& functions;
-  functiondecl* current_function;
-
-  symresolution_info (vector<vardecl*>& l,
-                      vector<vardecl*>& g,
-                      vector<functiondecl*>& f,
-                      functiondecl* cfun);
-  symresolution_info (vector<vardecl*>& l,
-                      vector<vardecl*>& g,
-                      vector<functiondecl*>& f);
-
-  vardecl* find_scalar (const string& name);
-  vardecl* find_array (const string& name, const vector<expression*>&);
-  functiondecl* find_function (const string& name, const vector<expression*>&);
-
-  void unresolved (const token* tok);
-  unsigned num_unresolved;
-};
-
-
-struct typeresolution_info
-{
-  unsigned num_newly_resolved;
-  unsigned num_still_unresolved;
-  bool assert_resolvability;
-  functiondecl* current_function;
-
-  void mismatch (const token* tok, exp_type t1, exp_type t2);
-  void unresolved (const token* tok);
-  void resolved (const token* tok, exp_type t);
-  void invalid (const token* tok, exp_type t);
-};
-
-
 struct symboldecl // unique object per (possibly implicit) 
 		  // symbol declaration
 {
   const token* tok;
-  string name;
+  std::string name;
   exp_type type;
   symboldecl ();
   virtual ~symboldecl ();
-  virtual void print (ostream &o) = 0;
-  virtual void printsig (ostream &o) = 0;
+  virtual void print (std::ostream &o) = 0;
+  virtual void printsig (std::ostream &o) = 0;
 };
 
 
-ostream& operator << (ostream& o, symboldecl& k);
+std::ostream& operator << (std::ostream& o, symboldecl& k);
 
 
 struct vardecl: public symboldecl
 {
-  void print (ostream& o);
-  void printsig (ostream& o);
+  void print (std::ostream& o);
+  void printsig (std::ostream& o);
   vardecl ();
-  vardecl (unsigned arity);
-  vector<exp_type> index_types; // for arrays only
+  void set_arity (int arity);
+  int arity; // -1: unknown; 0: scalar; >0: array
+  std::vector<exp_type> index_types; // for arrays only
 };
 
 
@@ -305,12 +236,12 @@ struct vardecl_builtin: public vardecl
 struct block;
 struct functiondecl: public symboldecl
 {
-  vector<vardecl*> formal_args;
-  vector<vardecl*> locals;
+  std::vector<vardecl*> formal_args;
+  std::vector<vardecl*> locals;
   block* body;
   functiondecl ();
-  void print (ostream& o);
-  void printsig (ostream& o);
+  void print (std::ostream& o);
+  void printsig (std::ostream& o);
 };
 
 
@@ -319,25 +250,21 @@ struct functiondecl: public symboldecl
 
 struct statement
 {
-  virtual void print (ostream& o) = 0;
+  virtual void print (std::ostream& o) = 0;
   virtual void visit (visitor* u) = 0;
   const token* tok;
   statement ();
   virtual ~statement ();
-  virtual void resolve_symbols (symresolution_info& r) = 0;
-  virtual void resolve_types (typeresolution_info& r) = 0;
 };
 
-ostream& operator << (ostream& o, statement& k);
+std::ostream& operator << (std::ostream& o, statement& k);
 
 
 struct block: public statement
 {
-  vector<statement*> statements;
-  void print (ostream& o);
+  std::vector<statement*> statements;
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r);
 };
 
 struct for_loop: public statement
@@ -346,29 +273,23 @@ struct for_loop: public statement
   expression* cond;
   expression* incr;
   statement* block;
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r);
 };
 
 
 struct null_statement: public statement
 {
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r) {}
-  void resolve_types (typeresolution_info& r) {}
 };
 
 
 struct expr_statement: public statement
 {
   expression* value;  // executed for side-effects
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r);
 };
 
 
@@ -377,24 +298,21 @@ struct if_statement: public statement
   expression* condition;
   statement* thenblock;
   statement* elseblock;
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_symbols (symresolution_info& r);
-  void resolve_types (typeresolution_info& r);
 };
 
 
 struct return_statement: public expr_statement
 {
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
-  void resolve_types (typeresolution_info& r);
 };
 
 
 struct delete_statement: public expr_statement
 {
-  void print (ostream& o);
+  void print (std::ostream& o);
   void visit (visitor* u);
 };
 
@@ -402,11 +320,11 @@ struct delete_statement: public expr_statement
 struct probe;
 struct stapfile
 {
-  string name;
-  vector<probe*> probes;
-  vector<functiondecl*> functions;
-  vector<vardecl*> globals;
-  void print (ostream& o);
+  std::string name;
+  std::vector<probe*> probes;
+  std::vector<functiondecl*> functions;
+  std::vector<vardecl*> globals;
+  void print (std::ostream& o);
 };
 
 
@@ -414,46 +332,31 @@ struct probe_point
 {
   struct component // XXX: sort of a restricted functioncall
   { 
-    string functor;
+    std::string functor;
     literal* arg; // optional
     component ();
   };
-  vector<component*> components;
+  std::vector<component*> components;
+  // XXX: probe aliases
   const token* tok; // points to first component's functor
-  void print (ostream& o);
+  void print (std::ostream& o);
   probe_point ();
 };
 
-ostream& operator << (ostream& o, probe_point& k);
+std::ostream& operator << (std::ostream& o, probe_point& k);
 
 
 struct probe
 {
-  vector<probe_point*> locations;
+  std::vector<probe_point*> locations;
   block* body;
   const token* tok;
-  vector<vardecl*> locals;
+  std::vector<vardecl*> locals;
   probe ();
-  void print (ostream& o);
-  void printsig (ostream &o);
+  void print (std::ostream& o);
+  void printsig (std::ostream &o);
 };
 
-
-
-// Output context for systemtap translation, intended to allow
-// pretty-printing.
-class translator_output
-{
-  ostream& o;
-  unsigned tablevel;
-
-public:
-  translator_output (ostream& file);
-
-  ostream& newline (int indent = 0);
-  void indent (int indent = 0);
-  ostream& line();
-};
 
 
 // An derived visitor instance is used to visit the entire

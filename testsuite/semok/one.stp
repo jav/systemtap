@@ -1,4 +1,4 @@
-#! semtest
+#! stap -p2
 
 # these will ultimately be somehow associated with "providers"
 # and have a syntax of their own

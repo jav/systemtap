@@ -1,3 +1,13 @@
+2005-05-20  Frank Ch. Eigler  <fche@redhat.com>
+
+	Many changes throughout.  Partial sketch of translation output.
+	* elaborate.*: Elaboration pass.
+	* translate.*: Translation pass.
+	* staptree.*: Simplified for visitor concept.
+	* main.cxx: Translator mainline.
+	* *test.cxx: Removed.
+	* testsuite/*: Some new tests, some changed for newer syntax.
+
 2005-05-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	* parse.cxx (parse): Add helper methods.

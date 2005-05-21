@@ -1,5 +1,6 @@
-#! semtest
+#! stap -p2
 
+global array
 probe foo
 {
   array[1] = array[2] = 3;

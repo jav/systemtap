@@ -4,9 +4,8 @@
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
 bin_PROGRAMS = 
-noinst_PROGRAMS = parsetest semtest
-parsetest_SOURCES = parse.cxx staptree.cxx parsetest.cxx
-semtest_SOURCES = parse.cxx staptree.cxx semtest.cxx
+noinst_PROGRAMS = stap
+stap_SOURCES = parse.cxx staptree.cxx elaborate.cxx translate.cxx main.cxx
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
