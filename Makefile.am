@@ -26,3 +26,14 @@ TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
 XFAIL_TESTS = $(wildcard $(p)ko/*.stp) $(wildcard $(s)ko/*.stp)
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
+
+gcov:
+	@$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
+	@gcov *.gcno >/dev/null 2>&1
+	@rm -f *.gcno *.gcda
+	@rm -f `ls -1 *.gcov | fgrep -v .cxx.gcov`
+	ls -l *.cxx.gcov
+
+clean-local:
+	rm -f *.gcov *.gcno *.gcda
+

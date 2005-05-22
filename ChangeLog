@@ -1,3 +1,9 @@
+2005-05-22  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (gcov): New target to generate test-coverage data from
+	a testsuite run.
+	* Makefile.in: Regenerated.
+
 2005-05-20  Frank Ch. Eigler  <fche@redhat.com>
 
 	Many changes throughout.  Partial sketch of translation output.
