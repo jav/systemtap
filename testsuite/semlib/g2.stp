@@ -1,0 +1,2 @@
+global g2
+probe begin { g2 = f1() }
