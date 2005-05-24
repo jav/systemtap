@@ -352,9 +352,12 @@ symresolution_info::find_array (const string& name, unsigned arity)
     {
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
-        if (f->globals[j]->name == name &&
-            f->globals[j]->index_types.size() == arity)
+        if (f->globals[j]->name == name)
+          if ((f->globals[j]->arity == (int) arity) ||
+              f->globals[j]->arity < 0)
           {
+            f->globals[j]->set_arity (arity);
+
             // put library into the queue if not already there
             if (0) // (session.verbose_resolution)
               cerr << "      array " << name << " "

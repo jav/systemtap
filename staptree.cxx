@@ -193,7 +193,7 @@ void symbol::print (ostream& o)
 void vardecl::print (ostream& o)
 {
   o << name;
-  if (index_types.size() > 0)
+  if (arity > 0 || index_types.size() > 0)
     o << "[...]";
 }
 
@@ -310,7 +310,14 @@ void stapfile::print (ostream& o)
 {
   o << "# file " << name << endl;
 
-  for(unsigned i=0; i<probes.size(); i++)
+  for (unsigned i=0; i<globals.size(); i++)
+    {
+      o << "global ";
+      globals[i]->print (o);
+      o << endl;
+    }
+
+  for (unsigned i=0; i<probes.size(); i++)
     {
       probes[i]->print (o);
       o << endl;
