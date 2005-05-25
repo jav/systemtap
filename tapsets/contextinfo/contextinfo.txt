@@ -1,0 +1,67 @@
+* Application name: probe context information ariables
+* Contact: fche
+* Motivation: let probes know where/how they were fired; introspective
+              probe handlers
+* Background: discussions on mailing lists
+* Target software: various
+* Type of description: tapset variables
+* Interesting probe points: n/a
+* Interesting values:
+
+  $pp_alias: string: the string specification of the probe point, as found
+                     in the original .stp file, before alias and other
+                     expansion
+  $pp: string: representation of this probe point, after alias and wildcard
+               expansion
+  $pp_function: string: source function (if available)
+  $pp_srcfile: string: source file name (if available)
+  $pp_srcline: number: line number in source file (if available)
+
+  $function[pc]: string: function name containing given address
+  $module[pc]: string: kernel module name containing given address
+  $address[sym]: number: base address of given function symbol
+
+  $pc: number: PC snapshot at invocation
+  $stack[depth]: number: PC of caller at given depth, if available
+
+* Dependencies:
+
+  Debug-info files
+
+* Restrictions:
+
+  The $pp series of variables are computed at translation time, and thus
+  are only applicable to those probes that have related debug-info points.
+
+  $pc should be directly available.
+
+  The $function series of read-only pseudo-arrays are calculated at
+  run time, from symbol table information passed in some way.
+  $stack[0] might take some probing in the registers, or (eek!) on the
+  target stack frame.  Conservatively returning 0 instead may be okay.
+
+* Data collection:
+
+  Several of the variables are translation-time constants, so these don't
+  have run-time collection needs.
+
+  For a kernel/module probe, $function[] could be computed from the kallsyms
+  lookup functions.  Alternately, the translator could emit a copy of the
+  target symbol table into the probe C code, which $function[] could
+  search.  The $stack[] elements would be served by the runtime on a
+  best-effort basis.
+
+* Data presentation:
+
+  n/a: variables are simple
+
+* Competition:
+
+  unknown
+
+* Cross-references:
+
+  http://sources.redhat.com/ml/systemtap/2005-q2/msg00395.html
+  http://sources.redhat.com/ml/systemtap/2005-q2/msg00281.html
+
+* Associated files:
