@@ -64,9 +64,10 @@ void _stp_print_flush (void)
 
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
 
-/** Send the print buffer now.
- * Output accumulates in the print buffer until this is called.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
+/** Send the print buffer to the transport now.
+ * Output accumulates in the print buffer until it
+ * is filled, or this is called. This MUST be called before returning
+ * from a probe or accumulated output in the print buffer will be lost.
  */
 
 void _stp_print_flush (void)
@@ -91,10 +92,7 @@ void _stp_print_flush (void)
 /** Print into the print buffer.
  * Like printf, except output goes to the print buffer.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
  *
- * @param fmt A printf-style format string followed by a 
- * variable number of args.
  * @sa _stp_print_flush()
  */
 #define _stp_printf(args...) _stp_sprintf(_stp_stdout,args)
@@ -109,7 +107,6 @@ void _stp_print_flush (void)
 /** Write a C string into the print buffer.
  * Copies a string into a print buffer.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
  * This is more efficient than using _stp_printf() if you don't
  * need fancy formatting.
  *
@@ -122,7 +119,6 @@ void _stp_print_flush (void)
 /** Write a String into the print buffer.
  * Copies a String into a print buffer.
  * Safe because overflowing the buffer is not allowed.
- * Size is limited by length of print buffer, #STP_PRINT_BUF_LEN.
  * This is more efficient than using _stp_printf() if you don't
  * need fancy formatting.
  *

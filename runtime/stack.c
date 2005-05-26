@@ -7,104 +7,22 @@
  */
 
 /** @addtogroup stack Stack Tracing Functions
+ * Without frames the best that can be done here is to scan the stack and
+ * display everything that fits in the range of a valid IP. Things like function pointers
+ * on the stack will certainly result in bogus addresses in the backtrace.
+ *
+ * With debug info, we could get a proper backtrace, but it would be too slow to do
+ * during a probe.  We can eventually make this a postprocessing feature.
+ *
  * @{
  */
 
 #include "sym.c"
+#include "regs.h"
 
 static int (*_stp_kta)(unsigned long addr)=(void *)KTA;
 
-
-struct frame_head {
-	struct frame_head * ebp;
-	unsigned long ret;
-} __attribute__((packed));
-
-static struct frame_head *
-dump_backtrace(struct frame_head * head)
-{
-	_stp_printf ("db: %lx\n", head->ret);
-
-	/* frame pointers should strictly progress back up the stack
-	 * (towards higher addresses) */
-	if (head >= head->ebp)
-		return NULL;
-
-	return head->ebp;
-}
-
-static int pages_present(struct frame_head * head)
-{
-	struct mm_struct * mm = current->mm;
-
-	/* FIXME: only necessary once per page */
-	if (!check_user_page_readable(mm, (unsigned long)head))
-		return 0;
-
-	return check_user_page_readable(mm, (unsigned long)(head + 1));
-}
-
-static int valid_kernel_stack(struct frame_head * head, struct pt_regs * regs)
-{
-	unsigned long headaddr = (unsigned long)head;
-	unsigned long stack = (unsigned long)regs;
-	unsigned long stack_base = (stack & ~(THREAD_SIZE - 1)) + THREAD_SIZE;
-	_stp_log ("%lx %lx %lx\n", headaddr, stack, stack_base);
-	return headaddr < stack_base;
-}
-
-void
-x86_backtrace(struct pt_regs * const regs, unsigned int depth)
-{
-	struct frame_head *head;
-
-#ifdef CONFIG_X86_64
-	head = (struct frame_head *)regs->rbp;
-#else
-	head = (struct frame_head *)regs->ebp;
-#endif
-
-	if (!user_mode(regs)) {
-		_stp_log ("kernel mode\n");
-		while (depth-- && valid_kernel_stack(head, regs))
-			head = dump_backtrace(head);
-		_stp_print_flush();
-		return;
-	}
-
-#ifdef CONFIG_SMP
-	if (!spin_trylock(&current->mm->page_table_lock))
-		return;
-#endif
-
-	while (depth-- && head && pages_present(head))
-		head = dump_backtrace(head);
-
-#ifdef CONFIG_SMP
-	spin_unlock(&current->mm->page_table_lock);
-#endif
-	_stp_print_flush();
-}
-
-
-#ifdef __x86_64__
-static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
-{
-	unsigned long addr;
-	while (((long) stack & (THREAD_SIZE-1)) != 0) {
-		addr = *stack;
-		if (_stp_kta(addr)) {
-			if (verbose) {
-				_stp_symbol_print (addr);
-				_stp_print ("\n");
-			} else
-				_stp_printf ("0x%lx ", addr);
-		}
-		stack++;
-	}
-	_stp_print_flush();
-}
-
+#if defined (__x86_64__)
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
 {
@@ -113,90 +31,47 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 		addr = *stack++;
 		if (_stp_kta(addr)) {
 			if (verbose) {
+				_stp_string_cat(str, " ");
 				_stp_symbol_sprint (str, addr);
-				_stp_sprintf (str, "\n");
-			} else
-				_stp_sprintf (str, "0x%lx\n", addr);
+				_stp_string_cat (str, "\n");
+			} else 
+				_stp_sprintf (str, " 0x%lx\n", addr);
 		}
 	}
 }
 
-#else  /* i386 */
+#elif  defined (__i386__)
 
-static inline int valid_stack_ptr (struct thread_info *tinfo, void *p)
+static inline int valid_stack_ptr(struct thread_info *tinfo, void *p)
 {
 	return	p > (void *)tinfo &&
 		p < (void *)tinfo + THREAD_SIZE - 3;
 }
 
-static inline unsigned long _stp_print_context_stack (
-	struct thread_info *tinfo,
-	unsigned long *stack, 
-	unsigned long ebp )
+static inline unsigned long print_context_stack(String str, struct thread_info *tinfo,
+				unsigned long *stack, unsigned long ebp)
 {
 	unsigned long addr;
 
 #ifdef	CONFIG_FRAME_POINTER
 	while (valid_stack_ptr(tinfo, (void *)ebp)) {
 		addr = *(unsigned long *)(ebp + 4);
-		_stp_symbol_print (addr);
-		_stp_print_cstr("\n");
-		ebp = *(unsigned long *)ebp;
-	}
-#else
-	while (valid_stack_ptr(tinfo, stack)) {
-		addr = *stack++;
-		if (_stp_kta (addr)) {
-			_stp_symbol_print (addr);
-			_stp_print_cstr ("\n");
-		}
-	}
-#endif
-	_stp_print_flush();
-	return ebp;
-}
-
-static inline unsigned long _stp_sprint_context_stack (
-	String str,
-	struct thread_info *tinfo,
-	unsigned long *stack, 
-	unsigned long ebp )
-{
-	unsigned long addr;
-
-#ifdef	CONFIG_FRAME_POINTER
-	while (valid_stack_ptr(tinfo, (void *)ebp)) {
-		addr = *(unsigned long *)(ebp + 4);
+		_stp_string_cat(str, " ");
 		_stp_symbol_sprint (str, addr);
-		_stp_string_cat (str, "\n");
+		_stp_string_cat(str, "\n");
 		ebp = *(unsigned long *)ebp;
 	}
 #else
 	while (valid_stack_ptr(tinfo, stack)) {
 		addr = *stack++;
-		if (_stp_kta (addr)) {
-			_stp_symbol_sprint (str, addr);
-			_stp_string_cat (str, "\n");
+		if (_stp_kta(addr)) {
+			_stp_string_cat(str, " ");
+			_stp_symbol_sprint(str, addr);
+			_stp_string_cat(str, "\n");
 		}
 	}
 #endif
 	return ebp;
-}
-
-static void __stp_stack_print (unsigned long *stack, int verbose, int levels)
-{
-	unsigned long ebp;
-
-	/* Grab ebp right from our regs */
-	asm ("movl %%ebp, %0" : "=r" (ebp) : );
-
-	while (stack) {
-		struct thread_info *context = (struct thread_info *)
-			((unsigned long)stack & (~(THREAD_SIZE - 1)));
-		ebp = _stp_print_context_stack (context, stack, ebp);
-		stack = (unsigned long*)context->previous_esp;
-	}
-	_stp_print_flush ();
 }
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
@@ -206,58 +81,103 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 	/* Grab ebp right from our regs */
 	asm ("movl %%ebp, %0" : "=r" (ebp) : );
 
-	while (stack) {
-		struct thread_info *context = (struct thread_info *)
+	while (1) {
+		struct thread_info *context;
+		context = (struct thread_info *)
 			((unsigned long)stack & (~(THREAD_SIZE - 1)));
-		ebp = _stp_sprint_context_stack (str, context, stack, ebp);
+		ebp = print_context_stack(str, context, stack, ebp);
 		stack = (unsigned long*)context->previous_esp;
+		if (!stack)
+			break;
 	}
 }
 
-#endif /* i386 */
 
-/** Print stack dump.
- * Prints a stack dump to the print buffer.
- * @param verbose Verbosity
- * @param levels Number of levels to trace.
- * @todo Implement verbosity and levels parameters.
- * @bug levels parameter is not functional
- */
+#else
+#error "Unsupported architecture"
+#endif
 
-void _stp_stack_jprint (int verbose, int levels)
-{
-  unsigned long stack;
-  __stp_stack_print (&stack, verbose, levels);
-}
 
-void _stp_stack_print (struct pt_regs *regs, int verbose, int levels)
-{
-	if (verbose) {
-		_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
-		_stp_symbol_print (regs->rip);
-		_stp_print ("\n");
-	} else
-		_stp_printf ("0x%lx ", regs->rip);
-
-	__stp_stack_print ((unsigned long *)regs->rsp, verbose, levels);
-}
-
-/** Writes stack dump to a String
+/** Writes stack backtrace to a String
  *
  * @param str String
- * @param verbose Verbosity
- * @param levels Number of levels to trace.
- * @returns Same String as was input.
- * @todo Implement verbosity and levels parameters.
- * @bug levels parameter is not functional
+ * @param regs A pointer to the struct pt_regs.
+ * @returns Same String as was input with trace info appended,
+ */
+String _stp_stack_sprint (String str, struct pt_regs *regs)
+{
+	_stp_sprintf (str, "trace for %d (%s)\n ", current->pid, current->comm);
+	_stp_symbol_sprint (str, REG_IP(regs));
+	_stp_string_cat(str, "\n");
+	__stp_stack_sprint (str, (unsigned long *)&REG_SP(regs), 1, 0);
+	return str;
+}
+
+/** Prints the stack backtrace
+ * @param regs A pointer to the struct pt_regs.
+ * @note Calls _stp_print_flush().
  */
 
-String _stp_stack_sprint (String str, int verbose, int levels)
+#define _stp_stack_print(regs)					\
+	{							\
+		(void)_stp_stack_sprint(_stp_stdout,regs);	\
+		_stp_print_flush();				\
+	}
+
+/** Writes stack backtrace to a String.
+ * Use this when calling from a jprobe.
+ * @param str String
+ * @returns Same String as was input with trace info appended,
+ * @sa _stp_stack_sprint()
+ */
+String _stp_stack_sprintj(String str)
 {
-  unsigned long stack;
-  __stp_stack_sprint (str, &stack, verbose, levels);
-  return str;
+	unsigned long stack;
+	_stp_sprintf (str, "trace for %d (%s)\n", current->pid, current->comm);
+	__stp_stack_sprint (str, &stack, 1, 0);
+	return str;
 }
+
+/** Prints the stack backtrace.
+ * Use this when calling from a jprobe.
+ * @sa _stp_stack_print()
+ * @note Calls _stp_print_flush().
+ */
+#define _stp_stack_printj()					\
+	{							\
+		(void)_stp_stack_sprintj(_stp_stdout);		\
+		_stp_print_flush();				\
+	}
+
+/** Writes the user stack backtrace to a String
+ * @param str String
+ * @returns Same String as was input with trace info appended,
+ * @note Currently limited to a depth of two. Works from jprobes and kprobes.
+ */
+String _stp_ustack_sprint (String str)
+{
+	struct pt_regs *nregs = ((struct pt_regs *) (THREAD_SIZE + (unsigned long) current->thread_info)) - 1;
+#if BITS_PER_LONG == 64
+	_stp_sprintf (str, " 0x%016lx : [user]\n", REG_IP(nregs));
+	if (REG_SP(nregs))
+		_stp_sprintf (str, " 0x%016lx : [user]\n", *(unsigned long *)REG_SP(nregs));
+#else
+	_stp_sprintf (str, " 0x%08lx : [user]\n", REG_IP(nregs));
+	if (REG_SP(nregs))
+		_stp_sprintf (str, " 0x%08lx : [user]\n", *(unsigned long *)REG_SP(nregs));
+#endif
+	return str;
+}
+
+/** Prints the user stack backtrace
+ * @note Currently limited to a depth of two. Works from jprobes and kprobes.
+ * Calls _stp_print_flush().
+ */
+#define _stp_ustack_print()					\
+	{							\
+		(void)_stp_ustack_sprint(_stp_stdout);		\
+		_stp_print_flush();				\
+	}
 
 /** @} */
 #endif /* _STACK_C_ */

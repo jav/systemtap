@@ -271,8 +271,8 @@ static unsigned int KEYSYM(hash) (ALLKEYSD(key))
 	return (unsigned int) hash;
 }
 
-/* _stp_map_new_key1_key2 (num, STAT, LINEAR, start, end, interval) */
-/* _stp_map_new_key1_key2 (num, STAT, LOG, buckets) */ 
+/* _stp_map_new_key1_key2 (num, HSTAT_LINEAR, start, end, interval) */
+/* _stp_map_new_key1_key2 (num, HSTAT_LOG, buckets) */ 
 
 MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 {

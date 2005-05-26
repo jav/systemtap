@@ -1,3 +1,11 @@
+2005-05-26  Martin Hunt  <hunt@redhat.com>
+
+	* current.c (_stp_sprint_regs): Implement for i386.
+
+	* sym.c (_stp_symbol_sprint): Check name before trying to 
+	print it.
+	(_stp_symbol_print): Change to macro that calls _stp_symbol_sprint().
+
 2005-05-18  Martin Hunt  <hunt@redhat.com>
 
 	* print.c: All functions except _stp_print_flush() are

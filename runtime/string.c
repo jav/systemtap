@@ -34,7 +34,7 @@ static struct string _stp_string[STP_NUM_STRINGS][NR_CPUS];
 typedef struct string *String;
 
 /* set up a special stdout string */
-struct string __stp_stdout;
+static struct string __stp_stdout;
 String _stp_stdout = &__stp_stdout;
 
 void _stp_vsprintf (String str, const char *fmt, va_list args);
@@ -45,6 +45,7 @@ void _stp_vsprintf (String str, const char *fmt, va_list args);
  * @param num Number of the preallocated String to use. 
  * #STP_NUM_STRINGS are statically allocated for our use. The
  * translator (or author) should be sure to grab a free one.
+ * @returns An empty String.
  */
 
 String _stp_string_init (int num)

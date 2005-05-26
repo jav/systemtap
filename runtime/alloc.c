@@ -1,7 +1,6 @@
-#ifndef _ALLOC_C_
+#ifndef _ALLOC_C_ /* -*- linux-c -*- */
 #define _ALLOC_C_
 
-/* -*- linux-c -*- */
 /** @file alloc.c
  * @brief Memory functions.
  */
@@ -11,9 +10,6 @@
  * send a signal to the user-space daemon that will trigger the module to
  * be unloaded.
  * @todo Need error handling for memory allocations
- * @todo Some of these currently use kmalloc (GFP_ATOMIC) for
- * small allocations.  This should be evaluated for performance
- * and stability.
  * @{
  */
 
@@ -25,7 +21,7 @@ enum errorcode _stp_error = ERR_NONE;
  * probe where the process cannot sleep. 
  * @param len Number of bytes to allocate.
  * @return a valid pointer on success or NULL on failure.
- * @bug Currently uses kmalloc (GFP_ATOMIC).
+ * @note Not currently used by the runtime. Deprecate?
  */
 
 void *_stp_alloc(size_t len)
@@ -41,7 +37,7 @@ void *_stp_alloc(size_t len)
  * probe where the process cannot sleep. 
  * @param len Number of bytes to allocate.
  * @return a valid pointer on success or NULL on failure.
- * @bug Currently uses kmalloc (GFP_ATOMIC).
+ * @note Not currently used by the runtime. Deprecate?
  */
 
 void *_stp_calloc(size_t len)
@@ -71,6 +67,7 @@ void *_stp_valloc(size_t len)
 
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free
+ * @note Not currently used by the runtime. Deprecate?
  */
 
 void _stp_free(void *ptr)

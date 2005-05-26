@@ -5,19 +5,25 @@
  * @brief Header file for maps and lists 
  */
 /** @addtogroup maps 
- * @todo Needs to be made SMP-safe for when the big lock is removed from kprobes.
+ * @todo Needs a spinlock variable to help when locks are required on the map.
  * @{
  */
 
+/** This sets the size of the hash table. */
 #ifndef HASH_TABLE_BITS
 #define HASH_TABLE_BITS 8
+/** This sets the size of the hash table. */
 #define HASH_TABLE_SIZE (1<<HASH_TABLE_BITS)
 #endif
 
+/** The maximum number of keys allowed. Reducing this can save a small
+amount of memory. Do not increase above 5. */
 #ifndef MAX_KEY_ARITY
 #define MAX_KEY_ARITY 5
 #endif
 
+/** Maximum length of strings in maps. This sets the amount of space reserved
+    for each string. */
 #ifndef MAP_STRING_LENGTH
 #define MAP_STRING_LENGTH 256
 #endif
@@ -25,15 +31,19 @@
 /** histogram type */
 enum histtype { HIST_NONE, HIST_LOG, HIST_LINEAR };
 
+/** @cond DONT_INCLUDE */
 #define INT64 0
 #define STRING 1
 #define STAT 2
-#define END 3 /* end marker */
+#define END 3
+/** @endcond */
 
+/** Histogram is log 2 */
 #define HSTAT_LOG (STAT | (HIST_LOG << 8))
+/** Histogram is linear */
 #define HSTAT_LINEAR (STAT | (HIST_LINEAR <<  8))
 
-/* Statistics are stored in this struct */
+/** Statistics are stored in this struct */
 typedef struct {
 	int64_t count;
 	int64_t sum;
@@ -42,7 +52,7 @@ typedef struct {
 } stat;
 
 
-/* Keys are either int64 or strings */
+/** Keys are either int64 or strings */
 typedef union {
 	int64_t val;
 	char *strp;
@@ -125,25 +135,23 @@ typedef struct map_root *MAP;
 
 /** Macro to call the proper _stp_map_key functions based on the
  * types of the arguments. 
- * @note May cause compiler warning on some GCCs 
  */
 #define _stp_map_key2(map, key1, key2)				\
-  ({								\
-    if (__builtin_types_compatible_p (typeof (key1), char[]))	\
-      if (__builtin_types_compatible_p (typeof (key2), char[])) \
-	_stp_map_key_str_str (map, (char *)(key1), (char *)(key2));	\
-      else							\
-	_stp_map_key_str_long (map, (char *)(key1), (long)(key2));	\
-    else							\
-      if (__builtin_types_compatible_p (typeof (key2), char[])) \
-	_stp_map_key_long_str (map, (long)(key1), (char *)(key2));	\
-      else							\
-	_stp_map_key_long_long (map, (long)(key1), (long)(key2));	\
-  })
+({								\
+	if (__builtin_types_compatible_p (typeof (key1), char[]))	\
+		if (__builtin_types_compatible_p (typeof (key2), char[])) \
+			_stp_map_key_str_str (map, (char *)(key1), (char *)(key2)); \
+		else							\
+			_stp_map_key_str_int64 (map, (char *)(key1), (int64_t)(key2)); \
+	else								\
+		if (__builtin_types_compatible_p (typeof (key2), char[])) \
+			_stp_map_key_int64_str (map, (int64_t)(key1), (char *)(key2)); \
+		else							\
+			_stp_map_key_int64_int64 (map, (int64_t)(key1), (int64_t)(key2)); \
+})
 
 /** Macro to call the proper _stp_map_key function based on the
  * type of the argument. 
- * @note May cause compiler warning on some GCCs 
  */
 #define _stp_map_key(map, key)				\
   ({								\
@@ -155,7 +163,6 @@ typedef struct map_root *MAP;
 
 /** Macro to call the proper _stp_map_set function based on the
  * type of the argument. 
- * @note May cause compiler warning on some GCCs 
  */
 #define _stp_map_set(map, val)					\
   ({								\
@@ -199,6 +206,7 @@ typedef struct map_root *MAP;
   })
 
 
+/** @cond DONT_INCLUDE */
 /************* prototypes for map.c ****************/
 
 int int64_eq_p(int64_t key1, int64_t key2);
@@ -241,4 +249,5 @@ void _stp_list_add_string(MAP, String);
 void _stp_map_key_int64(MAP, int64_t);
 void _stp_map_set_int64(MAP, int64_t);
 int64_t _stp_map_get_int64(MAP);
+/** @endcond */
 #endif /* _MAP_H_ */

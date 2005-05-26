@@ -36,11 +36,15 @@ String _stp_symbol_sprint (String str, unsigned long address)
 
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
 
-	_stp_sprintf (str, "0x%lx : ", address);
-	if (modname)
-		_stp_sprintf (str, "%s+%#lx/%#lx [%s]", name, offset, size, modname);
-	else
-		_stp_sprintf (str, "%s+%#lx/%#lx", name, offset, size);
+	_stp_sprintf (str, "0x%lx", address);
+
+	if (name) {		
+		if (modname)
+			_stp_sprintf (str, " : %s+%#lx/%#lx [%s]", name, offset, size, modname);
+		else
+			_stp_sprintf (str, " : %s+%#lx/%#lx", name, offset, size);
+	}
+
 	return str;
 }
 
@@ -51,21 +55,7 @@ String _stp_symbol_sprint (String str, unsigned long address)
  * a probe because it is too time-consuming. Use at module exit time.
  */
 
-void _stp_symbol_print (unsigned long address)
-{
-	char *modname;
-        const char *name;
-        unsigned long offset, size;
-        char namebuf[KSYM_NAME_LEN+1];
-
-        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
-
-	_stp_printf ("0x%lx : ", address);
-	if (modname)
-		_stp_printf ("%s+%#lx/%#lx [%s]", name, offset, size, modname);
-	else
-		_stp_printf ("%s+%#lx/%#lx", name, offset, size);
-}
+#define _stp_symbol_print(address) _stp_symbol_sprint(_stp_stdout,address)
 
 /** @} */
 #endif /* _SYM_C_ */
