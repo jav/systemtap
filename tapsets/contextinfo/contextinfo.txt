@@ -24,6 +24,8 @@
   $pc: number: PC snapshot at invocation
   $stack[depth]: number: PC of caller at given depth, if available
 
+  $pid, $tgid, $uid, $comm : number/string : current-> fields
+
 * Dependencies:
 
   Debug-info files
@@ -39,6 +41,9 @@
   run time, from symbol table information passed in some way.
   $stack[0] might take some probing in the registers, or (eek!) on the
   target stack frame.  Conservatively returning 0 instead may be okay.
+
+  The current-based series of values ($pid etc.), for kernel-targeted
+  probes, need to check for !in_interrupt() before dereferencing current->.
 
 * Data collection:
 
