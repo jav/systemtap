@@ -1,0 +1,191 @@
+/* This is for documentation only.  Do not compile. */
+/* -*- linux-c -*- */
+
+*/
+/** @addtogroup maps
+ *
+ * @{
+ */
+
+#include "map.h"
+
+/** @defgroup map_create Creating Maps
+ * This documents the _stp_map_new_ functions that are
+ * dynamically created based on the needed keys and values.
+ * @{
+*/
+
+/** Create a new map.
+* The exact name of this function depends on the defined key types.
+* See the map overview.
+* This functions accepts a variable number of arguments depending on 
+* the value of valtype.  
+* @param num_entries The maximum number of entries. Space for these
+* entries are allocated when the SystemTap module is loaded.
+* @param valtype Valid values are INT64, STRING, and STAT. 
+*/
+MAP _stp_map_new_KEY1 (int num_entries, int valtype){}
+
+/** Create a new map with values of stats with log histograms.
+* When valtype is HSTAT_LOG, the following parameters are expected.
+* @param num_entries The maximum number of entries. Space for these
+* entries are allocated when the SystemTap module is loaded.
+* @param buckets Number of buckets in the histogram. The maximum values
+* for each bucket are 0, 1, 2, 4, 8, 16, 32, ... So if buckets is 8 the
+* histogram will go from 0 - 64.
+*/
+MAP _stp_map_new_KEY1_ (int num_entries, HSTAT_LOG, int buckets){}
+
+/** Create a new map with values of stats with linear histograms.
+* When valtype is HSTAT_LOG, the following parameters are expected.
+* @param num_entries The maximum number of entries. Space for these
+* entries are allocated when the SystemTap module is loaded.
+* @param start The starting value of the histogram.
+* @param stop The stopping value of the histogram.
+* @param interval The interval.
+* @todo Check for reasonable values.
+*/
+MAP _stp_map_new_KEY1__ (int num_entries, HSTAT_LINEAR, int start, int stop, int interval) {}
+
+/** @} end of map_create group */
+
+/** @defgroup map_set Setting the Values in Maps
+ * This documents the _stp_map_set_ and _stp_map_add_ functions that are
+ * dynamically created based on the needed keys and values.
+ * @{
+*/
+
+/** Set the current element's value to a C string.
+ * This sets the current element's value to an C string. The map must have been created
+ * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val new string
+ * @sa _stp_map_set()
+ */
+void _stp_map_set_str (MAP map, char *val) {}
+
+/** Set the current element's value to a String.
+ * This sets the current element's value to a String. The map must have been created
+ * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param str String containing new value.
+ * @sa _stp_map_set()
+ */
+void _stp_map_set_string (MAP map, String str){}
+
+/** Set the current element's value to an int64.
+ * This sets the current element's value to an int64. The map must have been created
+ * to hold int64s using <i>_stp_map_new_(xxx, INT64)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val new value
+ * @sa _stp_map_add_int64()
+ * @sa _stp_map_set()
+ */
+void _stp_map_set_int64 (MAP map, int64_t val) {}
+
+/** Set the current element's value to a stat.
+ * This sets the current element's value to an stat struct. The map must have been created
+ * to hold stats using <i>_stp_map_new_(xxx, STAT)</i> (or HSTAT_LOG or HSTAT_LINEAR).  This function would only be used
+ * if you want to set stats to something other than the normal initial values (count = 0,
+ * sum = 0, etc).
+ * @sa _stp_map_add_stat
+ * @sa _stp_map_add_int64_stat
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val pointer to stats struct.
+ */
+void _stp_map_set_stat (MAP map, stat *val) {}
+
+/** Appends a C string to the current element's value
+ * This appends a C string to the current element's value. The map must have been created
+ * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val string to append
+ * @sa _stp_map_set()
+ */
+void _stp_map_add_str (MAP map, char *val) {}
+
+/** Adds an int64 to the current element's value.
+ * This adds an int64 to the current element's value. The map must have been created
+ * to hold int64s using <i>_stp_map_new_(xxx, INT64)</i>
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val value
+ * @sa _stp_map_set_int64()
+ */
+void _stp_map_add_int64 (MAP map, int64_t val) {}
+
+/** Add stats to the current element's value.
+ * This adds stats to the current element's value to an stat struct. The map must have been created
+ * to hold stats using <i>_stp_map_new_(xxx, STAT)</i> (or HSTAT_LOG or HSTAT_LINEAR).  This function would only be used
+ * to combine stats from multiple sources into a single stats struct.
+ * @sa _stp_map_add_stat
+ * @sa _stp_map_add_int64_stat
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val pointer to stats struct.
+ */
+void _stp_map_add_stat (MAP map, stat *val) {}
+
+/** Add an int64 to the current element's statistics.
+ * Increments the statistics counter by one and the sum by <i>val</i>.
+ * Adjusts minimum, maximum, and histogram.
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val value to add to the statistics
+ */
+void _stp_map_add_int64_stat (MAP map, int64_t val){}
+/** @} end of map_set group*/
+
+/** @defgroup map_get Getting the Values from Maps
+ * This documents the _stp_map_get_ functions that are
+ * dynamically created based on the needed keys and values.
+ * @{
+ */
+
+/** Gets the current element's value.
+ * This returns the current element's value. The map must have been created
+ * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>.
+ * @param map
+ * @returns A string pointer. If the current element is not set or doesn't exist, returns NULL.
+ */
+char  *_stp_map_get_str (MAP map) {}
+
+/** Gets the current element's value.
+ * This returns the current element's value. The map must have been created
+ * to hold stats using <i>_stp_map_new_(xxx, STAT)</i> (or HSTAT_LOG or HSTAT_LINEAR).  This function would only be used
+ * @param map
+ * @returns A stat pointer. If the current element is not set or doesn't exist, returns NULL.
+ */
+stat  *_stp_map_get_stat (MAP map) {}
+
+/** Gets the current element's value.
+ * This returns the current element's value. The map must have been created
+ * to hold int64s using <i>_stp_map_new_(xxx, INT64)</i>.
+ * @param map
+ * @returns The value. If the current element is not set or doesn't exist, returns 0.
+ */
+int64_t _stp_map_get_int64 (MAP map) {}
+
+/** @} end of map_get group */
+/** @} */
