@@ -1,3 +1,11 @@
+2005-05-26  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx: Traverse trees just for common-header generation,
+	to emit explicit temp variables into context.  Switch to explicit
+	"frame" pointer in generated function/probe bodies.  Initialize
+	locals in function bodies.  Rename "test_unparser" to "c_unparser"
+	throughout.
+
 2005-05-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	* elaborate.cxx (find_array): Support automagic tapset globals.

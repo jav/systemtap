@@ -37,11 +37,7 @@ symresolution_info::derive_probes (probe *p, vector<derived_probe*>& dps)
 
 
 
-// unique name generator
-static unsigned tmpidxgen;
-
-
-struct test_unparser: public unparser, public visitor
+struct c_unparser: public unparser, public visitor
 {
   systemtap_session* session;
   translator_output* o;
@@ -49,10 +45,12 @@ struct test_unparser: public unparser, public visitor
   derived_probe* current_probe;
   unsigned current_probenum;
   functiondecl* current_function;
+  unsigned tmpvar_counter;
 
-  test_unparser (systemtap_session *ss): session (ss), o (ss->op),
-  current_probe(0), current_function (0) {}
-  ~test_unparser () {}
+  c_unparser (systemtap_session *ss):
+    session (ss), o (ss->op), current_probe(0), current_function (0),
+  tmpvar_counter (0) {}
+  ~c_unparser () {}
 
   void emit_common_header ();
   void emit_global (vardecl* v);
@@ -228,8 +226,39 @@ test_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 // ------------------------------------------------------------------------
 
 
+// A shadow visitor, meant to generate temporary variable declarations
+// for function or probe bodies.  Member functions should exactly match
+// the corresponding c_unparser logic and traversal sequence,
+// to ensure interlocking naming and declaration of temp variables.
+struct c_tmpcounter: public traversing_visitor
+{
+  c_unparser* parent;
+  unsigned tmpvar_counter;
+  c_tmpcounter (c_unparser* p): parent (p), tmpvar_counter (0) {}
+
+  // void visit_for_loop (for_loop* s);
+  // void visit_return_statement (return_statement* s);
+  // void visit_delete_statement (delete_statement* s);
+  // void visit_binary_expression (binary_expression* e);
+  // void visit_unary_expression (unary_expression* e);
+  // void visit_pre_crement (pre_crement* e);
+  // void visit_post_crement (post_crement* e);
+  // void visit_logical_or_expr (logical_or_expr* e);
+  // void visit_logical_and_expr (logical_and_expr* e);
+  // void visit_array_in (array_in* e);
+  // void visit_comparison (comparison* e);
+  // void visit_concatenation (concatenation* e);
+  // void visit_exponentiation (exponentiation* e);
+  // void visit_ternary_expression (ternary_expression* e);
+  void visit_assignment (assignment* e);
+  void visit_arrayindex (arrayindex* e);
+  void visit_functioncall (functioncall* e);
+};
+
+
+
 void
-test_unparser::emit_common_header ()
+c_unparser::emit_common_header ()
 {
   o->newline() << "#include <string.h>"; 
   o->newline() << "#define NR_CPU 1"; 
@@ -253,8 +282,8 @@ test_unparser::emit_common_header ()
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
-      o->newline() << "struct {";
       derived_probe* dp = session->probes[i];
+      o->newline() << "struct probe_" << i << "_locals {";
       o->newline(1) << "/* local variables */";
       for (unsigned j=0; j<dp->locals.size(); j++)
         {
@@ -262,19 +291,23 @@ test_unparser::emit_common_header ()
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
+      o->newline() << "/* temporary variables */";
+      c_tmpcounter ct (this);
+      dp->body->visit (& ct);
       o->newline(-1) << "} probe_" << i << ";";
     }
 
   for (unsigned i=0; i<session->functions.size(); i++)
     {
-      o->newline() << "struct {";
       functiondecl* fd = session->functions[i];
+      o->newline()
+        << "struct function_" << c_varname (fd->name) << "_locals {";
       o->newline(1) << "/* local variables */";
       for (unsigned j=0; j<fd->locals.size(); j++)
         {
           vardecl* v = fd->locals[j];
           o->newline() << c_typename (v->type) << " " 
-		    << c_varname (v->name) << ";";
+  		       << c_varname (v->name) << ";";
         }
       o->newline() << "/* formal arguments */";
       for (unsigned j=0; j<fd->formal_args.size(); j++)
@@ -283,25 +316,25 @@ test_unparser::emit_common_header ()
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
+      o->newline() << "/* temporary variables */";
+      c_tmpcounter ct (this);
+      fd->body->visit (& ct);
       if (fd->type == pe_unknown)
 	o->newline() << "/* no return value */";
       else
 	{
 	  o->newline() << "/* return value */";
-	  o->newline() << c_typename (fd->type) << " retvalue;";
+	  o->newline() << c_typename (fd->type) << " __retvalue;";
 	}
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
     }
-
-  // XXX: must allocate context temporary pool
-
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "} contexts [MAXCONCURRENCY];" << endl;
 }
 
 
 void
-test_unparser::emit_global (vardecl *v)
+c_unparser::emit_global (vardecl *v)
 {
   o->newline() << "static "
 	       << c_typename (v->type)
@@ -317,7 +350,7 @@ test_unparser::emit_global (vardecl *v)
 
 
 void
-test_unparser::emit_functionsig (functiondecl* v)
+c_unparser::emit_functionsig (functiondecl* v)
 {
   o->newline() << "static void function_" << v->name
 	       << " (struct context *c);";
@@ -325,9 +358,9 @@ test_unparser::emit_functionsig (functiondecl* v)
 
 
 void
-test_unparser::emit_module_init ()
+c_unparser::emit_module_init ()
 {
-  o->newline() << "static int STARTUP () {";
+  o->newline() << "int STARTUP () {";
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
   // XXX: initialize globals
@@ -352,9 +385,9 @@ test_unparser::emit_module_init ()
 
 
 void
-test_unparser::emit_module_exit ()
+c_unparser::emit_module_exit ()
 {
-  o->newline() << "static int SHUTDOWN () {";
+  o->newline() << "int SHUTDOWN () {";
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
   for (unsigned i=0; i<session->probes.size(); i++)
@@ -369,7 +402,7 @@ test_unparser::emit_module_exit ()
 
 
 void
-test_unparser::emit_function (functiondecl* v)
+c_unparser::emit_function (functiondecl* v)
 {
   o->newline() << "static void function_" << c_varname (v->name)
             << " (struct context* c) {";
@@ -377,6 +410,36 @@ test_unparser::emit_function (functiondecl* v)
   this->current_probe = 0;
   this->current_probenum = 0;
   this->current_function = v;
+
+  o->newline()
+    << "struct function_" << c_varname (v->name) << "_locals * "
+    << " __restrict__ l =";
+  o->newline(1)
+    << "& c->locals[c->nesting].function_" << c_varname (v->name) << ";";
+  o->newline(-1);
+
+  // initialize locals
+  for (unsigned i=0; i<v->locals.size(); i++)
+    {
+      if (v->locals[i]->index_types.size() > 0) // array?
+	throw semantic_error ("not yet implemented", v->tok);
+      else if (v->locals[i]->type == pe_long)
+	o->newline() << "l->" << c_varname (v->locals[i]->name)
+		     << " = 0;";
+      else if (v->locals[i]->type == pe_string)
+	o->newline() << "l->" << c_varname (v->locals[i]->name)
+		     << "[0] = '\\0';";
+      else
+	throw semantic_error ("unsupported local variable type",
+			      v->locals[i]->tok);
+    }
+
+  // initialize return value, if any
+  if (v->type == pe_long)
+    o->newline() << "l->__retvalue = 0;";
+  else if (v->type == pe_string)
+    o->newline() << "l->__retvalue[0] = '\\0';";
+
   v->body->visit (this);
   this->current_function = 0;
 
@@ -388,25 +451,26 @@ test_unparser::emit_function (functiondecl* v)
 
 
 void
-test_unparser::emit_probe (derived_probe* v, unsigned i)
+c_unparser::emit_probe (derived_probe* v, unsigned i)
 {
   o->newline() << "static void probe_" << i << " (struct context *c) {";
   o->indent(1);
 
-  o->newline() << "/* initialize locals */";
+  // initialize frame pointer
+  o->newline() << "struct probe_" << i << "_locals * __restrict__ l =";
+  o->newline(1) << "& c->locals[c->nesting].probe_" << i << ";";
+  o->indent(-1);
+
+  // initialize locals
   for (unsigned j=0; j<v->locals.size(); j++)
     {
       if (v->locals[j]->index_types.size() > 0) // array?
 	throw semantic_error ("not yet implemented", v->tok);
       else if (v->locals[j]->type == pe_long)
-	o->newline() << "c->locals[c->nesting]"
-		     << ".probe_" << i
-		     << "." << c_varname (v->locals[j]->name)
+	o->newline() << "l->" << c_varname (v->locals[j]->name)
 		     << " = 0;";
       else if (v->locals[j]->type == pe_string)
-	o->newline() << "c->locals[c->nesting]"
-		     << ".probe_" << i
-		     << "." << c_varname (v->locals[j]->name)
+	o->newline() << "l->" << c_varname (v->locals[j]->name)
 		     << "[0] = '\\0';";
       else
 	throw semantic_error ("unsupported local variable type",
@@ -432,7 +496,7 @@ test_unparser::emit_probe (derived_probe* v, unsigned i)
 
 
 string
-test_unparser::c_typename (exp_type e)
+c_unparser::c_typename (exp_type e)
 {
   switch (e)
     {
@@ -447,15 +511,16 @@ test_unparser::c_typename (exp_type e)
 
 
 string
-test_unparser::c_varname (const string& e)
+c_unparser::c_varname (const string& e)
 {
   // XXX: safeify, uniquefy, given name
   return e;
 }
 
 
+
 void
-test_unparser::visit_block (block *s)
+c_unparser::visit_block (block *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -463,16 +528,16 @@ test_unparser::visit_block (block *s)
 
   o->newline() << "{";
   o->indent (1);
+  o->newline() << "c->actioncount += " << s->statements.size() << ";";
+  o->newline() << "if (c->actioncount > MAXACTION)";
+  o->newline(1) << "errorcount ++;";
+  o->indent(-1);
+
   for (unsigned i=0; i<s->statements.size(); i++)
     {
       try
         {
-	  /* XXX: don't define an individual statement as an action
-	  o->newline() << "c->actioncount ++;";
-	  o->newline() << "if (c->actioncount > MAXACTION)";
-	  o->newline(1) << "errorcount ++;";
-	  o->indent(-1);
-	  */
+          // XXX: it's probably not necessary to check this so frequently
 	  o->newline() << "if (errorcount)";
 	  o->newline(1) << "goto out;" << endl;
 	  o->indent(-1);
@@ -490,7 +555,7 @@ test_unparser::visit_block (block *s)
 
 
 void
-test_unparser::visit_null_statement (null_statement *s)
+c_unparser::visit_null_statement (null_statement *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -500,7 +565,7 @@ test_unparser::visit_null_statement (null_statement *s)
 
 
 void
-test_unparser::visit_expr_statement (expr_statement *s)
+c_unparser::visit_expr_statement (expr_statement *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -512,7 +577,7 @@ test_unparser::visit_expr_statement (expr_statement *s)
 
 
 void
-test_unparser::visit_if_statement (if_statement *s)
+c_unparser::visit_if_statement (if_statement *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -536,7 +601,7 @@ test_unparser::visit_if_statement (if_statement *s)
 
 
 void
-test_unparser::visit_for_loop (for_loop *s)
+c_unparser::visit_for_loop (for_loop *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -546,7 +611,7 @@ test_unparser::visit_for_loop (for_loop *s)
 
 
 void
-test_unparser::visit_return_statement (return_statement* s)
+c_unparser::visit_return_statement (return_statement* s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -561,17 +626,13 @@ test_unparser::visit_return_statement (return_statement* s)
   o->newline() << "/* " << *s->tok << " */";
   if (s->value->type == pe_long)
     {
-      o->newline() << "c->locals[c->nesting]"
-                << ".function_" << c_varname (current_function->name)
-                << ".retvalue = ";
+      o->newline() << "l->__retvalue = ";
       s->value->visit (this);
       o->line() << ";";
     }
   else if (s->value->type == pe_string)
     {
-      o->newline() << "strncpy (c->locals[c->nesting]"
-                << ".function_" << c_varname (current_function->name)
-                << ".retvalue = ";
+      o->newline() << "strncpy (l->__retvalue, ";
       s->value->visit (this);
       o->line() << ", MAXSTRINGLEN);";
       o->line() << ";";
@@ -584,7 +645,7 @@ test_unparser::visit_return_statement (return_statement* s)
 
 
 void
-test_unparser::visit_delete_statement (delete_statement* s)
+c_unparser::visit_delete_statement (delete_statement* s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -593,101 +654,129 @@ test_unparser::visit_delete_statement (delete_statement* s)
 }
 
 void
-test_unparser::visit_literal_string (literal_string* e)
+c_unparser::visit_literal_string (literal_string* e)
 {
   o->line() << '"' << e->value << '"'; // XXX: escape special chars
 }
 
 void
-test_unparser::visit_literal_number (literal_number* e)
+c_unparser::visit_literal_number (literal_number* e)
 {
   o->line() << e->value;
 }
 
 void
-test_unparser::visit_binary_expression (binary_expression* e)
+c_unparser::visit_binary_expression (binary_expression* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_unary_expression (unary_expression* e)
+c_unparser::visit_unary_expression (unary_expression* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_pre_crement (pre_crement* e)
+c_unparser::visit_pre_crement (pre_crement* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_post_crement (post_crement* e)
+c_unparser::visit_post_crement (post_crement* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_logical_or_expr (logical_or_expr* e)
+c_unparser::visit_logical_or_expr (logical_or_expr* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_logical_and_expr (logical_and_expr* e)
+c_unparser::visit_logical_and_expr (logical_and_expr* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 void
-test_unparser::visit_array_in (array_in* e)
+c_unparser::visit_array_in (array_in* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
+
 
 void
-test_unparser::visit_comparison (comparison* e)
+c_unparser::visit_comparison (comparison* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
+
 
 void
-test_unparser::visit_concatenation (concatenation* e)
+c_unparser::visit_concatenation (concatenation* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
+
 
 void
-test_unparser::visit_exponentiation (exponentiation* e)
+c_unparser::visit_exponentiation (exponentiation* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
+
 
 void
-test_unparser::visit_ternary_expression (ternary_expression* e)
+c_unparser::visit_ternary_expression (ternary_expression* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 
 
-struct test_unparser_assignment: public throwing_visitor
+struct c_unparser_assignment: public throwing_visitor
 {
-  test_unparser* parent;
+  c_unparser* parent;
   string op;
   expression* rvalue;
-  test_unparser_assignment (test_unparser* p, const string& o, expression* e):
+  c_unparser_assignment (c_unparser* p, const string& o, expression* e):
     parent (p), op (o), rvalue (e) {}
 
-  // only symbols and arrayindex nodes are lvalues
+  // only symbols and arrayindex nodes are possible lvalues
   void visit_symbol (symbol *e);
   void visit_arrayindex (arrayindex *e);
 };
 
 
+struct c_tmpcounter_assignment: public traversing_visitor
+// leave throwing for illegal lvalues to the c_unparser_assignment instance
+{
+  c_tmpcounter* parent;
+  const string& op;
+  expression* rvalue;
+  c_tmpcounter_assignment (c_tmpcounter* p, const string& o, expression* e):
+    parent (p), op (o), rvalue (e) {}
+
+  // only symbols and arrayindex nodes are possible lvalues
+  void visit_symbol (symbol *e);
+  void visit_arrayindex (arrayindex *e);
+};
+
+
+
 void
-test_unparser::visit_assignment (assignment* e)
+c_tmpcounter::visit_assignment (assignment *e)
+{
+  c_tmpcounter_assignment tav (this, e->op, e->right);
+  e->left->visit (& tav);
+}
+
+
+void
+c_unparser::visit_assignment (assignment* e)
 {
   if (e->type != e->left->type)
     throw semantic_error ("type mismatch", e->tok,
@@ -696,11 +785,10 @@ test_unparser::visit_assignment (assignment* e)
     throw semantic_error ("type mismatch", e->right->tok,
                          "vs", e->left->tok);
 
-  if (e->op == "=" || e->op == "<<")
+  if (e->op == "=" || e->op == "<<<")
     {
-      test_unparser_assignment* tav =
-	new test_unparser_assignment (this, e->op, e->right);
-      e->left->visit (tav);
+      c_unparser_assignment tav (this, e->op, e->right);
+      e->left->visit (& tav);
     }
   else
     throw semantic_error ("not yet implemented ", e->tok);
@@ -708,7 +796,7 @@ test_unparser::visit_assignment (assignment* e)
 
 
 void
-test_unparser::visit_symbol (symbol* e)
+c_unparser::visit_symbol (symbol* e)
 {
   vardecl* r = e->referent;
 
@@ -725,9 +813,7 @@ test_unparser::visit_symbol (symbol* e)
 	  vardecl* rr = current_probe->locals[i];
 	  if (rr == r) // comparison of pointers is sufficient
 	    {
-	      o->line() << "c->locals[c->nesting]"
-			<< ".probe_" << current_probenum
-			<< "." << c_varname (r->name);
+	      o->line() << "l->" << c_varname (r->name);
 	      return;
 	    }
 	}
@@ -739,10 +825,7 @@ test_unparser::visit_symbol (symbol* e)
 	  vardecl* rr = current_function->locals[i];
 	  if (rr == r) // comparison of pointers is sufficient
 	    {
-	      o->line() << "c->locals[c->nesting]"
-			<< ".function_" 
-			<< c_varname (current_function->name)
-			<< "." << c_varname (r->name);
+	      o->line() << "l->" << c_varname (r->name);
 	      return;
 	    }
 	}
@@ -765,13 +848,20 @@ test_unparser::visit_symbol (symbol* e)
 
 
 void
-test_unparser_assignment::visit_symbol (symbol *e)
+c_tmpcounter_assignment::visit_symbol (symbol *e)
+{
+  parent->parent->o->newline() << parent->parent->c_typename (e->type)
+                               << " __tmp" << parent->tmpvar_counter ++ << ";";
+}
+
+
+void
+c_unparser_assignment::visit_symbol (symbol *e)
 {
   vardecl* r = e->referent;
   translator_output* o = parent->o;
   functiondecl* current_function = parent->current_function;
   derived_probe* current_probe = parent->current_probe;
-  unsigned current_probenum = parent->current_probenum;
   systemtap_session* session = parent->session;
 
   if (op != "=")
@@ -781,7 +871,9 @@ test_unparser_assignment::visit_symbol (symbol *e)
     throw semantic_error ("invalid reference to array", e->tok);
 
   // XXX: handle special macro symbols
-  unsigned tmpidx = ++ tmpidxgen;
+
+  unsigned tmpidx = parent->tmpvar_counter ++;
+  string tmp_base = "l->__tmp";
 
   // NB: because assignments are nestable expressions, we have
   // to emit C constructs that are nestable expressions too.
@@ -791,15 +883,11 @@ test_unparser_assignment::visit_symbol (symbol *e)
   o->line() << "({ ";
   o->indent(1);
 
-  // XXX: muse use context temporary pool instead
-  o->newline() << parent->c_typename (e->type)
-	       << " tmp" << tmpidx << ";";
-
   if (e->type == pe_string)
     o->newline() << "strncpy (";
   else
     o->newline();
-  o->line() << "tmp" << tmpidx;
+  o->line() << tmp_base << tmpidx;
   o->line() << (e->type == pe_long ? " = " : ", ");
   rvalue->visit (parent);
   if (e->type == pe_string)
@@ -821,15 +909,13 @@ test_unparser_assignment::visit_symbol (symbol *e)
 		o->newline() << "strncpy (";
 	      else
 		o->newline();
-	      o->line() << "c->locals[c->nesting]"
-			<< ".probe_" << current_probenum
-			<< "." << parent->c_varname (r->name);
+	      o->line() << "l->" << parent->c_varname (r->name);
 	      o->line() << (e->type == pe_long ? " = " : ", ")
-			<< "tmp" << tmpidx;
+			<< tmp_base << tmpidx;
 	      if (e->type == pe_string)
 		o->line() << ", MAXSTRINGLEN)";
 	      o->line() << ";";
-	      o->newline() << "tmp" << tmpidx << ";";
+              o->newline() << tmp_base << tmpidx << ";";
 	      o->newline(-1) << "})";
 	      return;
 	    }
@@ -846,16 +932,13 @@ test_unparser_assignment::visit_symbol (symbol *e)
 		o->newline() << "strncpy (";
 	      else
 		o->newline();
-	      o->line() << "c->locals[c->nesting]"
-			<< ".function_" 
-			<< parent->c_varname (current_function->name)
-			<< "." << parent->c_varname (r->name);
+	      o->line() << "l->" << parent->c_varname (r->name);
 	      o->line() << (e->type == pe_long ? " = " : ", ")
-			<< "tmp" << tmpidx;
+			<< tmp_base << tmpidx;
 	      if (e->type == pe_string)
 		o->line() << ", MAXSTRINGLEN)";
 	      o->line() << ";";
-	      o->newline() << "tmp" << tmpidx << ";";
+	      o->newline() << tmp_base << tmpidx << ";";
 	      o->newline(-1) << "})";
 	      return;
 	    }
@@ -874,11 +957,11 @@ test_unparser_assignment::visit_symbol (symbol *e)
 	    o->newline();
 	  o->line() << "global_" << parent->c_varname (r->name);
 	  o->line() << (e->type == pe_long ? " = " : ", ")
-		    << "tmp" << tmpidx;
+		    << tmp_base << tmpidx;
 	  if (e->type == pe_string)
 	    o->line() << ", MAXSTRINGLEN)";
 	  o->line() << ";";
-	  o->newline() << "tmp" << tmpidx << ";";
+	  o->newline() << tmp_base << tmpidx << ";";
 	  o->newline(-1) << "})";
 	  return;
 	}
@@ -889,7 +972,23 @@ test_unparser_assignment::visit_symbol (symbol *e)
 
 
 void
-test_unparser::visit_arrayindex (arrayindex* e)
+c_tmpcounter::visit_arrayindex (arrayindex *e)
+{
+  vardecl* r = e->referent;
+  // one temporary per index dimension
+  for (unsigned i=0; i<r->index_types.size(); i++)
+    parent->o->newline()
+      << parent->c_typename (r->index_types[i])
+      << " __tmp" << tmpvar_counter ++ << ";";
+  // now the result
+  parent->o->newline()
+    << parent->c_typename (r->type)
+    << " __tmp" << tmpvar_counter ++ << ";";
+}
+
+
+void
+c_unparser::visit_arrayindex (arrayindex* e)
 {
   vardecl* r = e->referent;
 
@@ -900,15 +999,6 @@ test_unparser::visit_arrayindex (arrayindex* e)
   o->line() << "({";
   o->indent(1);
 
-  o->newline() << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION)";
-  o->newline(1) << "errorcount ++;";
-  o->indent(-1);
-
-  o->newline() << "if (errorcount)";
-  o->newline(1) << "goto out;";
-  o->indent(-1);
-
   // NB: because these expressions are nestable, emit this construct
   // thusly:
   // ({ tmp0=(idx0); ... tmpN=(idxN);
@@ -918,22 +1008,23 @@ test_unparser::visit_arrayindex (arrayindex* e)
   // we store all indices in temporary variables to avoid nasty
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
-  
-  vector<unsigned> idxtmps;
+
+  unsigned tmpidx_base = tmpvar_counter;
+  tmpvar_counter += r->index_types.size() + 1 /* result */;
+  string tmp_base = "l->__tmp";
+  unsigned residx = tmpidx_base + r->index_types.size();
+
   for (unsigned i=0; i<r->index_types.size(); i++)
     {
     if (r->index_types[i] != e->indexes[i]->type)
       throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
 
-    unsigned tmpidx = ++ tmpidxgen;
-    idxtmps.push_back (tmpidx);
-    // XXX: muse use context temporary pool instead
-    o->newline() << c_typename (r->index_types[i]) << " tmp" << tmpidx << ";";
+    unsigned tmpidx = tmpidx_base + i;
     if (e->indexes[i]->type == pe_string)
       o->newline() << "strncpy (";
     else
       o->newline();
-    o->line() << "tmp" << tmpidx;
+    o->line() << tmp_base << tmpidx;
     o->line() << (e->indexes[i]->type == pe_long ? " = " : ", ");
     e->indexes[i]->visit (this);
     if (e->indexes[i]->type == pe_string)
@@ -945,40 +1036,7 @@ test_unparser::visit_arrayindex (arrayindex* e)
   o->newline(1) << "goto out;";
   o->indent(-1);
 
-  o->newline() << c_typename (r->type) << " result;";
-
 #if 0
-  // maybe the variable is a local
-  if (current_probe)
-    {
-      for (unsigned i=0; i<current_probe->locals.size(); i++)
-	{
-	  vardecl* rr = current_probe->locals[i];
-	  if (rr == r) // comparison of pointers is sufficient
-	    {
-	      o->line() << "c->locals[c->nesting]"
-			<< ".probe_" << current_probenum
-			<< "." << c_varname (r->name);
-	      return;
-	    }
-	}
-    }
-  else if (current_function)
-    {
-      for (unsigned i=0; i<current_function->locals.size(); i++)
-	{
-	  vardecl* rr = current_function->locals[i];
-	  if (rr == r) // comparison of pointers is sufficient
-	    {
-	      o->line() << "c->locals[c->nesting]"
-			<< ".function_" 
-			<< c_varname (current_function->name)
-			<< "." << c_varname (r->name);
-	      return;
-	    }
-	}
-    }
-
   // it better be a global
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -995,20 +1053,37 @@ test_unparser::visit_arrayindex (arrayindex* e)
 #endif
 
 
-  o->newline() << "result;";
+  o->newline() << tmp_base << residx << ";";
   o->newline(-1) << "})";
 }
 
 
 void
-test_unparser_assignment::visit_arrayindex (arrayindex *e)
+c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
+{
+}
+
+void
+c_unparser_assignment::visit_arrayindex (arrayindex *e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
 
 void
-test_unparser::visit_functioncall (functioncall* e)
+c_tmpcounter::visit_functioncall (functioncall *e)
+{
+  functiondecl* r = e->referent;
+  // one temporary per argument
+  for (unsigned i=0; i<r->formal_args.size(); i++)
+    parent->o->newline()
+      << parent->c_typename (r->formal_args[i]->type)
+      << " __tmp" << tmpvar_counter ++ << ";";
+}
+
+
+void
+c_unparser::visit_functioncall (functioncall* e)
 {
   functiondecl* r = e->referent;
 
@@ -1023,20 +1098,24 @@ test_unparser::visit_functioncall (functioncall* e)
   // nested function calls: f(f(f(1)))
 
   o->newline() << "/* compute actual arguments */";
+
+  unsigned tmpidx_base = tmpvar_counter;
+  tmpvar_counter += r->formal_args.size();
+  string tmp_base = "l->__tmp";
+
   for (unsigned i=0; i<e->args.size(); i++)
     {
+      unsigned tmpidx = tmpidx_base + i;
+
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
       
-      // XXX: muse use context temporary pool instead
-      o->newline() << c_typename (r->formal_args[i]->type)
-		   << " tmp_" << r->formal_args[i]->name << ";";
       if (e->args[i]->type == pe_string)
 	o->newline() << "strncpy (";
       else
 	o->newline();
-      o->line() << "tmp_" << c_varname (r->formal_args[i]->name);
+      o->line() << tmp_base << tmpidx;
       o->line() << (e->args[i]->type == pe_long ? " = " : ", ");
       e->args[i]->visit (this);
       if (e->args[i]->type == pe_string)
@@ -1053,33 +1132,11 @@ test_unparser::visit_functioncall (functioncall* e)
   o->newline(1) << "goto out;";
   o->indent(-1);
 
-  o->newline() << "/* initialize locals */";
-  for (unsigned i=0; i<r->locals.size(); i++)
-    {
-      if (r->locals[i]->index_types.size() > 0) // array?
-	throw semantic_error ("not yet implemented", r->tok);
-      else if (r->locals[i]->type == pe_long)
-	o->newline() << "c->locals[c->nesting+1]"
-		     << ".function_" << c_varname (r->name)
-		     << "." << c_varname (r->locals[i]->name)
-		     << " = 0;";
-      else if (r->locals[i]->type == pe_string)
-	o->newline() << "c->locals[c->nesting+1]"
-		     << ".function_" << c_varname (r->name)
-		     << "." << c_varname (r->locals[i]->name)
-		     << "[0] = '\\0';";
-      else
-	throw semantic_error ("unsupported local variable type",
-			      r->locals[i]->tok);
-    }
-
-  o->newline() << "if (errorcount)";
-  o->newline(1) << "goto out;";
-  o->indent(-1);
-
-  o->newline() << "/* copy in stored actual arguments */";
+  // copy in actual arguments
   for (unsigned i=0; i<e->args.size(); i++)
     {
+      unsigned tmpidx = tmpidx_base + i;
+
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
@@ -1092,7 +1149,7 @@ test_unparser::visit_functioncall (functioncall* e)
 		<< ".function_" << c_varname (r->name)
 		<< "." << c_varname (r->formal_args[i]->name);
       o->line() << (e->args[i]->type == pe_long ? " = " : ", ");
-      o->line() << "tmp_" << c_varname (r->formal_args[i]->name);
+      o->line() << tmp_base << tmpidx;
       if (e->args[i]->type == pe_string)
 	o->line() << ", MAXSTRINGLEN)";
       o->line() << ";";
@@ -1102,14 +1159,17 @@ test_unparser::visit_functioncall (functioncall* e)
   o->newline() << "c->nesting ++;";
   o->newline() << "function_" << c_varname (r->name) << " (c);";
   o->newline() << "c->nesting --;";
-
-  // XXX: clean up any locals that need it (arrays)
-
+  
   // return result from retvalue slot
-  o->newline() << "c->locals[c->nesting+1]"
-                << ".function_" << c_varname (r->name)
-                << ".retvalue;";
-
+  
+  if (r->type == pe_unknown)
+    // If we passed typechecking, then nothing will use this return value
+    o->newline() << "(void) 0;";
+  else
+    o->newline() << "c->locals[c->nesting+1]"
+                 << ".function_" << c_varname (r->name)
+                 << ".__retvalue;";
+  
   o->newline(-1) << "})";
 }
 
@@ -1120,7 +1180,8 @@ translate_pass (systemtap_session& s)
 {
   int rc = 0;
 
-  s.up = new test_unparser (& s);
+  c_unparser cup (& s);
+  s.up = & cup;
 
   try
     {
@@ -1149,6 +1210,6 @@ translate_pass (systemtap_session& s)
       s.print_error (e);
     }
 
-  delete s.up;
+  s.up = 0;
   return rc + s.num_errors;
 }
