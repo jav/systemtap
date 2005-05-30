@@ -1,3 +1,20 @@
+2005-05-30  Frank Ch. Eigler  <fche@redhat.com>
+	
+	More fully parse & elaborate "expr in array" construct.
+	* staptree.h (array_in): Make this unary.  Update .cxx to match.
+	* parse.cxx (parse_array_in): Rewrite.
+	(parse_symbol_plain): Removed.  Update .h to match.
+	* elaborate.cxx (typeresolution_info::visit_array_in): New function.
+	(find_array): Tentatively, accept arity=0.
+	* translate.cxx (c_unparser::c_assign): New functions to eliminate
+	much ugly duplication.  Use throughout.
+	(visit_symbol): Correct function formal argument search.
+	(c_tmpcounter*::visit): Add missing recursion in several functions.
+	* testsuite/*: Add new tests for array-in construct.  Add the
+	first "transok" test.
+	* Makefile.am: Add transok tests.
+	* Makefile.in: Regenerated.
+
 2005-05-26  Frank Ch. Eigler  <fche@redhat.com>
 
 	* translate.cxx: Traverse trees just for common-header generation,

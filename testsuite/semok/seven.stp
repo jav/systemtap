@@ -7,7 +7,7 @@ function printk (s) { str=s.""; return 0 } # to become a built-in
 
 function search (key) 
 {
-  if (1) # (key in ar1)
+  if (key in ar1)
     { ar1[key] ++; return ar2[ar1[key]] }
   else
     return "no can do"  # implies ar2[]: string
@@ -22,6 +22,6 @@ probe syscall("zamboni")
 probe end
 {
   # for (key in ar2)
-  if (1) # (key in ar2)
+  if (key in ar2)
     printk ("this: " . string (key) . " was " . ar2[key])
 }

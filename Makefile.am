@@ -21,9 +21,13 @@ DEFS= -DDEFPATH=$(DEFPATH) -DHAVE_CONFIG_H
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
+t=$(srcdir)/testsuite/trans
 TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
-	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp)
-XFAIL_TESTS = $(wildcard $(p)ko/*.stp) $(wildcard $(s)ko/*.stp)
+	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp) \
+	$(wildcard $(t)ok/*.stp) $(wildcard $(t)ko/*.stp)
+XFAIL_TESTS = $(wildcard $(p)ko/*.stp) \
+	$(wildcard $(s)ko/*.stp) \
+	$(wildcard $(t)ko/*.stp)
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 

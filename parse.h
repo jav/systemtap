@@ -113,7 +113,6 @@ private: // nonterminals
   expression* parse_crement ();
   expression* parse_value ();
   expression* parse_symbol ();
-  symbol* parse_symbol_plain ();
 };
 
 

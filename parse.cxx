@@ -830,21 +830,67 @@ parser::parse_logical_and ()
 expression*
 parser::parse_array_in ()
 {
-  expression* op1 = parse_comparison ();
+  // This is a very tricky case.  All these are legit expressions:
+  // "a in b"  "a+0 in b" "(a,b) in c" "(c,(d+0)) in b"
+  vector<expression*> indexes;
+  bool parenthesized = false;
 
   const token* t = peek ();
+  if (t && t->type == tok_operator && t->content == "(")
+    {
+      next ();
+      parenthesized = true;
+    }
+
+  while (1)
+    {
+      expression* op1 = parse_comparison ();
+      indexes.push_back (op1);
+
+      if (parenthesized)
+        {
+          const token* t = peek ();
+          if (t && t->type == tok_operator && t->content == ",")
+            {
+              next ();
+              continue;
+            }
+          else if (t && t->type == tok_operator && t->content == ")")
+            {
+              next ();
+              break;
+            }
+          else 
+            throw parse_error ("expected ',' or ')'");
+        }
+      else
+        break; // expecting only one expression
+    }
+
+  t = peek ();
   if (t && t->type == tok_identifier && t->content == "in")
     {
       array_in *e = new array_in;
-      e->left = op1;
       e->op = t->content;
       e->tok = t;
-      next ();
-      e->right = parse_symbol_plain ();
+      next (); // swallow "in"
+
+      arrayindex* a = new arrayindex;
+      a->indexes = indexes;
+
+      t = next ();
+      if (t->type != tok_identifier)
+        throw parse_error ("expected identifier");
+      a->tok = t;
+      a->base = t->content;
+
+      e->operand = a;
       return e;
     }
+  else if (indexes.size() == 1) // no "in" - need one expression only
+    return indexes[0];
   else
-    return op1;
+    throw parse_error ("unexpected comma-separated expression list");
 }
 
 
@@ -1132,15 +1178,3 @@ parser::parse_symbol ()
     }
 }
 
-
-symbol*
-parser::parse_symbol_plain () // var only
-{
-  symbol *s = new symbol;
-  const token* t = next ();
-  if (t->type != tok_identifier)
-    throw parse_error ("expected identifier");
-  s->name = t->content;
-  s->tok = t;
-  return s;
-}

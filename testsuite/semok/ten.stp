@@ -1,0 +1,10 @@
+#! stap -p1
+
+global a1, a2, a3
+
+probe all
+{
+  a = "1" in a1;
+  a = ("1", a) in a2;  
+  a = (a, a+a, a1[a], a2[0+a]) in a3;
+}

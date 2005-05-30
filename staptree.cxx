@@ -630,8 +630,7 @@ traversing_visitor::visit_logical_and_expr (logical_and_expr* e)
 void
 traversing_visitor::visit_array_in (array_in* e)
 {
-  e->left->visit (this);
-  e->right->visit (this);
+  e->operand->visit (this);
 }
 
 void

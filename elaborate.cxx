@@ -220,7 +220,8 @@ symresolution_info::visit_symbol (symbol* e)
       else if (current_probe)
         current_probe->locals.push_back (v);
       else
-        throw semantic_error ("no current probe/function for unresolved scalar", e->tok);
+        // must not happen
+        throw semantic_error ("no current probe/function", e->tok);
       e->referent = v;
     }
 }
@@ -340,10 +341,11 @@ symresolution_info::find_array (const string& name, unsigned arity)
   // search processed globals
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name)
-      if ((session.globals[i]->arity == (int) arity) ||
+      if ((arity > 0 && (session.globals[i]->arity == (int) arity)) ||
 	  session.globals[i]->arity < 0)
 	{
-	  session.globals[i]->set_arity (arity);
+          if (arity > 0)
+            session.globals[i]->set_arity (arity);
 	  return session.globals[i];
 	}
 
@@ -353,10 +355,11 @@ symresolution_info::find_array (const string& name, unsigned arity)
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
         if (f->globals[j]->name == name)
-          if ((f->globals[j]->arity == (int) arity) ||
+          if ((arity > 0 && (f->globals[j]->arity == (int) arity)) ||
               f->globals[j]->arity < 0)
           {
-            f->globals[j]->set_arity (arity);
+            if (arity > 0)
+              f->globals[j]->set_arity (arity);
 
             // put library into the queue if not already there
             if (0) // (session.verbose_resolution)
@@ -925,8 +928,20 @@ typeresolution_info::visit_delete_statement (delete_statement* e)
 void
 typeresolution_info::visit_array_in (array_in* e)
 {
-  // XXX: not yet supported
-  unresolved (e->tok);
+  // all unary operators only work on numerics
+  exp_type t1 = t;
+  t = pe_unknown; // array value can be anything
+  e->operand->visit (this);
+
+  if (t1 == pe_unknown && e->type != pe_unknown)
+    ; // already resolved
+  else if (t1 == pe_string || t1 == pe_stats)
+    mismatch (e->tok, t1, pe_long);
+  else if (e->type == pe_unknown)
+    {
+      e->type = pe_long;
+      resolved (e->tok, e->type);
+    }
 }
 
 

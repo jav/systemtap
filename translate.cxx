@@ -7,8 +7,23 @@
 #include "elaborate.h"
 #include "translate.h"
 #include <iostream>
+#include <sstream>
 
 using namespace std;
+
+
+
+// little utility function
+
+template <typename T>
+static string
+stringify(T t)
+{
+  ostringstream s;
+  s << t;
+  return s.str ();
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -66,6 +81,9 @@ struct c_unparser: public unparser, public visitor
 
   string c_typename (exp_type e);
   string c_varname (const string& e);
+  void c_assign (const string& lvalue, expression* rvalue, const string& msg);
+  void c_assign (const string& lvalue, const string& rvalue, exp_type type,
+                 const string& msg, const token* tok);
 
   void visit_block (block *s);
   void visit_null_statement (null_statement *s);
@@ -410,6 +428,7 @@ c_unparser::emit_function (functiondecl* v)
   this->current_probe = 0;
   this->current_probenum = 0;
   this->current_function = v;
+  this->tmpvar_counter = 0;
 
   o->newline()
     << "struct function_" << c_varname (v->name) << "_locals * "
@@ -480,6 +499,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   this->current_function = 0;
   this->current_probe = v;
   this->current_probenum = i;
+  this->tmpvar_counter = 0;
   v->body->visit (this);
   this->current_probe = 0;
   this->current_probenum = 0; // not essential
@@ -515,6 +535,51 @@ c_unparser::c_varname (const string& e)
 {
   // XXX: safeify, uniquefy, given name
   return e;
+}
+
+
+void
+c_unparser::c_assign (const string& lvalue, expression* rvalue,
+                      const string& msg)
+{
+  if (rvalue->type == pe_long)
+    {
+      o->newline() << lvalue << " = ";
+      rvalue->visit (this);
+      o->line() << ";";
+    }
+  else if (rvalue->type == pe_string)
+    {
+      o->newline() << "strncpy (" << lvalue << ", ";
+      rvalue->visit (this);
+      o->line() << ", MAXSTRINGLEN);";
+    }
+  else
+    {
+      string fullmsg = msg + " type unsupported";
+      throw semantic_error (fullmsg, rvalue->tok);
+    }
+}
+
+
+void
+c_unparser::c_assign (const string& lvalue, const string& rvalue,
+                      exp_type type, const string& msg, const token* tok)
+{
+  if (type == pe_long)
+    {
+      o->newline() << lvalue << " = " << rvalue << ";";
+    }
+  else if (type == pe_string)
+    {
+      o->newline() << "strncpy (" << lvalue << ", "
+                   << rvalue << ", MAXSTRINGLEN);";
+    }
+  else
+    {
+      string fullmsg = msg + " type unsupported";
+      throw semantic_error (fullmsg, tok);
+    }
 }
 
 
@@ -624,21 +689,7 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   o->newline() << "/* " << *s->tok << " */";
-  if (s->value->type == pe_long)
-    {
-      o->newline() << "l->__retvalue = ";
-      s->value->visit (this);
-      o->line() << ";";
-    }
-  else if (s->value->type == pe_string)
-    {
-      o->newline() << "strncpy (l->__retvalue, ";
-      s->value->visit (this);
-      o->line() << ", MAXSTRINGLEN);";
-      o->line() << ";";
-    }
-  else
-    throw semantic_error ("return type unsupported", s->tok);
+  c_assign ("l->__retvalue", s->value, "return value");
 
   o->newline() << "goto out;";
 }
@@ -820,9 +871,21 @@ c_unparser::visit_symbol (symbol* e)
     }
   else if (current_function)
     {
+      // check locals
       for (unsigned i=0; i<current_function->locals.size(); i++)
 	{
 	  vardecl* rr = current_function->locals[i];
+	  if (rr == r) // comparison of pointers is sufficient
+	    {
+	      o->line() << "l->" << c_varname (r->name);
+	      return;
+	    }
+	}
+
+      // check formal args
+      for (unsigned i=0; i<current_function->formal_args.size(); i++)
+	{
+	  vardecl* rr = current_function->formal_args[i];
 	  if (rr == r) // comparison of pointers is sufficient
 	    {
 	      o->line() << "l->" << c_varname (r->name);
@@ -850,8 +913,11 @@ c_unparser::visit_symbol (symbol* e)
 void
 c_tmpcounter_assignment::visit_symbol (symbol *e)
 {
-  parent->parent->o->newline() << parent->parent->c_typename (e->type)
-                               << " __tmp" << parent->tmpvar_counter ++ << ";";
+  parent->parent->o->newline()
+    << parent->parent->c_typename (e->type)
+    << " __tmp" << parent->tmpvar_counter ++ << ";"
+    << " /* " << e->name << " rvalue */";
+  rvalue->visit (parent);
 }
 
 
@@ -883,16 +949,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
   o->line() << "({ ";
   o->indent(1);
 
-  if (e->type == pe_string)
-    o->newline() << "strncpy (";
-  else
-    o->newline();
-  o->line() << tmp_base << tmpidx;
-  o->line() << (e->type == pe_long ? " = " : ", ");
-  rvalue->visit (parent);
-  if (e->type == pe_string)
-    o->line() << ", MAXSTRINGLEN)";
-  o->line() << ";";
+  parent->c_assign (tmp_base + stringify (tmpidx), rvalue, "assignment");
 
   // XXX: strings may be passed safely via a char*, without
   // a full copy in tmpNNN
@@ -905,16 +962,11 @@ c_unparser_assignment::visit_symbol (symbol *e)
 	  vardecl* rr = current_probe->locals[i];
 	  if (rr == r) // comparison of pointers is sufficient
 	    {
-	      if (e->type == pe_string)
-		o->newline() << "strncpy (";
-	      else
-		o->newline();
-	      o->line() << "l->" << parent->c_varname (r->name);
-	      o->line() << (e->type == pe_long ? " = " : ", ")
-			<< tmp_base << tmpidx;
-	      if (e->type == pe_string)
-		o->line() << ", MAXSTRINGLEN)";
-	      o->line() << ";";
+              parent->c_assign ("l->" + parent->c_varname (r->name),
+                                tmp_base + stringify (tmpidx),
+                                rvalue->type,
+                                "local variable assignment", rvalue->tok); 
+
               o->newline() << tmp_base << tmpidx << ";";
 	      o->newline(-1) << "})";
 	      return;
@@ -928,16 +980,27 @@ c_unparser_assignment::visit_symbol (symbol *e)
 	  vardecl* rr = current_function->locals[i];
 	  if (rr == r) // comparison of pointers is sufficient
 	    {
-	      if (e->type == pe_string)
-		o->newline() << "strncpy (";
-	      else
-		o->newline();
-	      o->line() << "l->" << parent->c_varname (r->name);
-	      o->line() << (e->type == pe_long ? " = " : ", ")
-			<< tmp_base << tmpidx;
-	      if (e->type == pe_string)
-		o->line() << ", MAXSTRINGLEN)";
-	      o->line() << ";";
+              parent->c_assign ("l->" + parent->c_varname (r->name),
+                                tmp_base + stringify (tmpidx),
+                                rvalue->type,
+                                "local variable assignment", rvalue->tok); 
+
+	      o->newline() << tmp_base << tmpidx << ";";
+	      o->newline(-1) << "})";
+	      return;
+	    }
+	}
+
+      for (unsigned i=0; i<current_function->formal_args.size(); i++)
+	{
+	  vardecl* rr = current_function->formal_args[i];
+	  if (rr == r) // comparison of pointers is sufficient
+	    {
+              parent->c_assign ("l->" + parent->c_varname (r->name),
+                                tmp_base + stringify (tmpidx),
+                                rvalue->type,
+                                "formal argument assignment", rvalue->tok); 
+
 	      o->newline() << tmp_base << tmpidx << ";";
 	      o->newline(-1) << "})";
 	      return;
@@ -951,16 +1014,12 @@ c_unparser_assignment::visit_symbol (symbol *e)
       if (session->globals[i] == r)
 	{
 	  // XXX: acquire write lock on global
-	  if (e->type == pe_string)
-	    o->newline() << "strncpy (";
-	  else
-	    o->newline();
-	  o->line() << "global_" << parent->c_varname (r->name);
-	  o->line() << (e->type == pe_long ? " = " : ", ")
-		    << tmp_base << tmpidx;
-	  if (e->type == pe_string)
-	    o->line() << ", MAXSTRINGLEN)";
-	  o->line() << ";";
+
+          parent->c_assign ("global_" + parent->c_varname (r->name),
+                            tmp_base + stringify (tmpidx),
+                            rvalue->type,
+                            "global variable assignment", rvalue->tok); 
+
 	  o->newline() << tmp_base << tmpidx << ";";
 	  o->newline(-1) << "})";
 	  return;
@@ -979,11 +1038,16 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
   for (unsigned i=0; i<r->index_types.size(); i++)
     parent->o->newline()
       << parent->c_typename (r->index_types[i])
-      << " __tmp" << tmpvar_counter ++ << ";";
+      << " __tmp" << tmpvar_counter ++ << ";"
+      << " /* " << e->base << " idx #" << i << " */";
   // now the result
   parent->o->newline()
     << parent->c_typename (r->type)
-    << " __tmp" << tmpvar_counter ++ << ";";
+    << " __tmp" << tmpvar_counter ++ << ";"
+    << " /* " << e->base << "value */";
+
+  for (unsigned i=0; i<e->indexes.size(); i++)
+    e->indexes[i]->visit (this);
 }
 
 
@@ -1020,16 +1084,9 @@ c_unparser::visit_arrayindex (arrayindex* e)
       throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
 
     unsigned tmpidx = tmpidx_base + i;
-    if (e->indexes[i]->type == pe_string)
-      o->newline() << "strncpy (";
-    else
-      o->newline();
-    o->line() << tmp_base << tmpidx;
-    o->line() << (e->indexes[i]->type == pe_long ? " = " : ", ");
-    e->indexes[i]->visit (this);
-    if (e->indexes[i]->type == pe_string)
-      o->line() << ", MAXSTRINGLEN)";
-    o->line() << ";";
+
+    c_assign (tmp_base + stringify (tmpidx),
+              e->indexes[i], "array index copy");
     }
 
   o->newline() << "if (errorcount)";
@@ -1078,7 +1135,11 @@ c_tmpcounter::visit_functioncall (functioncall *e)
   for (unsigned i=0; i<r->formal_args.size(); i++)
     parent->o->newline()
       << parent->c_typename (r->formal_args[i]->type)
-      << " __tmp" << tmpvar_counter ++ << ";";
+      << " __tmp" << tmpvar_counter ++ << ";"
+      << " /* " << e->function << " arg #" << i << " */";
+
+  for (unsigned i=0; i<e->args.size(); i++)
+    e->args[i]->visit (this);
 }
 
 
@@ -1110,17 +1171,9 @@ c_unparser::visit_functioncall (functioncall* e)
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
-      
-      if (e->args[i]->type == pe_string)
-	o->newline() << "strncpy (";
-      else
-	o->newline();
-      o->line() << tmp_base << tmpidx;
-      o->line() << (e->args[i]->type == pe_long ? " = " : ", ");
-      e->args[i]->visit (this);
-      if (e->args[i]->type == pe_string)
-	o->line() << ", MAXSTRINGLEN)";
-      o->line() << ";";
+
+      c_assign (tmp_base + stringify(tmpidx),
+                e->args[i], "function actual argument evaluation");
     }
 
   o->newline() << "if (c->nesting+2 >= MAXNESTING)";
@@ -1140,19 +1193,14 @@ c_unparser::visit_functioncall (functioncall* e)
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
-      
-      if (e->args[i]->type == pe_string)
-	o->newline() << "strncpy (";
-      else
-	o->newline();
-      o->line() << "c->locals[c->nesting+1]"
-		<< ".function_" << c_varname (r->name)
-		<< "." << c_varname (r->formal_args[i]->name);
-      o->line() << (e->args[i]->type == pe_long ? " = " : ", ");
-      o->line() << tmp_base << tmpidx;
-      if (e->args[i]->type == pe_string)
-	o->line() << ", MAXSTRINGLEN)";
-      o->line() << ";";
+
+      c_assign ("c->locals[c->nesting+1].function_" +
+		c_varname (r->name) + "." +
+                c_varname (r->formal_args[i]->name),
+                tmp_base + stringify (tmpidx),
+                e->args[i]->type,
+                "function actual argument copy",
+                e->args[i]->tok);
     }
 
   // call function

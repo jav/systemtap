@@ -124,7 +124,7 @@ struct logical_and_expr: public binary_expression
 };
 
 
-struct array_in: public binary_expression
+struct array_in: public unary_expression
 {
   void visit (visitor* u);
 };

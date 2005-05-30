@@ -1,0 +1,5 @@
+#! stap -p2
+
+global foo
+probe p1 { foo = 1 }
+probe p2 { if (4 in foo) { } }

@@ -1,0 +1,6 @@
+#! stap -p1
+
+probe all
+{
+  "1" in a1;  ("1", 2) in a2;  (a) in a3;
+}
