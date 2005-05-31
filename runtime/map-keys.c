@@ -406,3 +406,6 @@ void KEYSYM(_stp_map_key) (MAP map, ALLKEYSD(key))
 #undef KEY5STOR
 
 #undef KEY_ARITY
+#undef KEYSYM
+#undef ALLKEYS
+#undef ALLKEYSD

@@ -1,3 +1,7 @@
+2005-05-31  Martin Hunt  <hunt@redhat.com>
+
+	* map-keys.c: Don't forget to undef KEYSYM, ALLKEYS and ALLKEYSD.
+
 2005-05-26  Martin Hunt  <hunt@redhat.com>
 
 	* current.c (_stp_sprint_regs): Implement for i386.
