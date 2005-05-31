@@ -6,3 +6,4 @@ ln -s ../map-values.c .
 ln -s ../map-keys.c .
 ln -s ../list.c .
 ln -s ../string.c .
+ln -s ../sym.c .
