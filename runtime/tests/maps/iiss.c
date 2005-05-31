@@ -25,26 +25,26 @@ int main ()
   _stp_map_key_int64_int64_str (map, 7,8,"Oregon");
   _stp_map_set_str (map, "Salem" );
 
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_key_int64_int64_str (map, -9,-10,"Nevada");
   _stp_map_set_str (map, "Carson City" );
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_key_int64_int64_str (map, 5,6,"Washington");  
   _stp_map_set (map, "Olymp" );
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_add_str (map, "ia" );
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_key_int64_int64_str (map, -9,-10,"Nevada");
   _stp_map_key_del (map);
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_key_int64_int64_str (map, 0,0,"");
   _stp_map_set_str (map, "XX" );
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
   _stp_map_del (map);
   return 0;

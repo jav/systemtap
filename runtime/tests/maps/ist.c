@@ -41,8 +41,8 @@ int main ()
     for (j = 0; j < 1024 ; j++ )
       _stp_map_add_int64_stat (map2, i);      
 
-  _stp_map_print (map, "map");
-  _stp_map_print (map2, "map2");
+  _stp_map_print (map, "map[%1d] = count:%C  sum:%S  avg:%A  min:%m  max:%M\n%H");
+  _stp_map_print (map2, "map2[%1d] = count:%C  sum:%S  avg:%A  min:%m  max:%M\n%H");
 
   _stp_map_del (map);
   _stp_map_del (map2);

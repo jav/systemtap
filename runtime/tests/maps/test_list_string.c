@@ -24,7 +24,7 @@ int main ()
       _stp_list_add_str (map, buf);
     }
 
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %s");
   printf ("size is %d\n\n", _stp_list_size(map));
 
   /* we set a limit of 10 elements so these */
@@ -34,18 +34,18 @@ int main ()
       sprintf (buf, "Item%d", i);
       _stp_list_add_str (map, buf);
     }
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %s");
 
 
   _stp_list_clear (map);
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %s");
 
   for (i = 50; i < 55; i++)
     {
       sprintf (buf, "Item%d", i);
       _stp_list_add_str (map, buf);
     }
-  _stp_map_print(map, "newlist");
+  _stp_map_print(map, "newlist[%1d] = %s");
 
   _stp_map_del (map);
 

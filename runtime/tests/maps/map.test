@@ -338,6 +338,96 @@ newlist[3] = Item53
 newlist[4] = Item54
 }
 
+test map_format {Torture test of map formatting} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test map_format.c
+} -body {
+	exec ./test
+} -result {Columbus -> mapiis 1 2 Ohio
+Sacramento -> mapiis 3 4 California
+Olympia -> mapiis 5 6 Washington
+Salem -> mapiis 7 8 Oregon
+
+Columbus % Ohio
+Sacramento % California
+Olympia % Washington
+Salem % Oregon
+
+Columbus -> mapiis    
+Sacramento -> mapiis    
+Olympia -> mapiis    
+Salem -> mapiis    
+
+The capitol of Riga is Latvia and the nerd population is 212063400820736
+The capitol of Sofia is Bulgaria and the nerd population is -2400999087387945352
+The capitol of Valletta is Malta and the nerd population is 1
+The capitol of Nicosia is Cyprus and the nerd population is -1
+
+The capitol of Riga is Latvia and the nerd population is c0dedbad0000
+The capitol of Sofia is Bulgaria and the nerd population is deadf00d12345678
+The capitol of Valletta is Malta and the nerd population is 1
+The capitol of Nicosia is Cyprus and the nerd population is ffffffffffffffff
+
+The capitol of Riga is Latvia and the nerd population is C0DEDBAD0000
+The capitol of Sofia is Bulgaria and the nerd population is DEADF00D12345678
+The capitol of Valletta is Malta and the nerd population is 1
+The capitol of Nicosia is Cyprus and the nerd population is FFFFFFFFFFFFFFFF
+
+The capitol of Riga is Latvia and the nerd population is 0000c0dedbad0000
+The capitol of Sofia is Bulgaria and the nerd population is deadf00d12345678
+The capitol of Valletta is Malta and the nerd population is 0000000000000001
+The capitol of Nicosia is Cyprus and the nerd population is ffffffffffffffff
+
+Bogons per packet for Riga
+count:49600  sum:3288450  avg:66  min:0  max:99
+value |-------------------------------------------------- count
+    0 |@@                                                  460
+   10 |@@@@@@@                                            1460
+   20 |@@@@@@@@@@@@                                       2460
+   30 |@@@@@@@@@@@@@@@@@@                                 3460
+   40 |@@@@@@@@@@@@@@@@@@@@@@@                            4460
+   50 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       5460
+   60 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                 6460
+   70 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            7460
+   80 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@       8460
+   90 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  9460
+
+Bogons per packet for Sofia
+count:100  sum:2025  avg:20  min:0  max:81
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@         42
+   10 |@@@@@@@@@@@@@@@@@                                  17
+   20 |@@@@@@@@@@@@@                                      13
+   30 |@@@@@@@@@                                           9
+   40 |@@@@@@@@@                                           9
+   50 |@@@@                                                4
+   60 |@@@                                                 3
+   70 |@@                                                  2
+   80 |@                                                   1
+   90 |                                                    0
+
+Bogons per packet for Valletta
+count:45  sum:2850  avg:63  min:10  max:90
+value |-------------------------------------------------- count
+    0 |                                                   0
+   10 |@                                                  1
+   20 |@@                                                 2
+   30 |@@@                                                3
+   40 |@@@@                                               4
+   50 |@@@@@                                              5
+   60 |@@@@@@                                             6
+   70 |@@@@@@@                                            7
+   80 |@@@@@@@@                                           8
+   90 |@@@@@@@@@                                          9
+
+
+49600 was the count for Riga, Latvia
+100 was the count for Sofia, Bulgaria
+45 was the count for Valletta, Malta
+
+mapsst[     Riga,   Latvia] = 322D82
+mapsst[    Sofia, Bulgaria] = 7E9
+mapsst[ Valletta,    Malta] = B22}
+
 exec rm test
 
 cleanupTests

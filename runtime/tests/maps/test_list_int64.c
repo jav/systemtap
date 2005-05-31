@@ -20,23 +20,23 @@ int main ()
     _stp_list_add_int64 (map, (int64_t)i);
 
 
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %d");
   printf ("size is %d\n\n", _stp_list_size(map));
 
   /* we set a limit of 10 elements so these */
   /* won't be added to the list */
   for (i = 50; i < 55; i++)
     _stp_list_add_int64 (map, i);
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %d");
 
 
   _stp_list_clear (map);
-  _stp_map_print(map, "list");
+  _stp_map_print(map, "list[%1d] = %d");
 
   for (i = 50; i < 55; i++)
     _stp_list_add_int64 (map, i);
 
-  _stp_map_print(map, "newlist");
+  _stp_map_print(map, "newlist[%1d] = %d");
 
   _stp_map_del (map);
 

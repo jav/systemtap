@@ -18,13 +18,13 @@ int main ()
   _stp_map_key_str (map, "Ohio");
   _stp_map_set_int64 (map, 1);
   printf ("map[%s]=%lld\n", key1str(map->key), _stp_map_get_int64(map));
-  _stp_map_print(map,"map");
+  _stp_map_print(map,"map[%1s] = %d");
 
   /* map[Washington] = 2 */
   /* try it with macros this time */
   _stp_map_key (map, "Washington");
   _stp_map_set (map, 2);  
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* now try to confuse things */
   /* These won't do anything useful, but shouldn't crash */
@@ -35,7 +35,7 @@ int main ()
   _stp_map_key_del (map);
   _stp_map_set_int64 (map,1000000);
 
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* create and delete a key */
   _stp_map_key_str (map, "1024");
@@ -43,14 +43,14 @@ int main ()
   _stp_map_key_str (map, "1024");
   _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* create and delete a key again*/
   _stp_map_key_str (map, "1024");
   _stp_map_set_int64 (map, 2048);  
   _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* check that unset values are 0 */
   _stp_map_key_str (map, "California");
@@ -58,15 +58,15 @@ int main ()
 
   /* map[California] = 3 */
   _stp_map_set (map, 3);
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* test an empty string as key */
   _stp_map_key (map, "");
   _stp_map_set_int64 (map, 7777);
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
   _stp_map_key (map, "");
   _stp_map_set_int64 (map, 8888);
-  _stp_map_print (map, "map");
+  _stp_map_print (map, "map[%1s] = %d");
 
   /* add 4 new entries, pushing the others out */
   int i;
@@ -78,7 +78,7 @@ int main ()
       _stp_map_set_int64 (map, 100 + i);
     }
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
 
   /* 5, 382, 526, and 903 all hash to the same value (23) */
@@ -88,24 +88,24 @@ int main ()
   _stp_map_key (map, "526"); _stp_map_set_int64 (map, 1526);
   _stp_map_key (map, "903"); _stp_map_set_int64 (map, 1903);
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
   /* now delete all 4 nodes, one by one */
   _stp_map_key (map, "382"); _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
   _stp_map_key (map, "5"); _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
   _stp_map_key (map, "903"); _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
   _stp_map_key (map, "526"); _stp_map_key_del (map);
 
-  _stp_map_print (map, "map");  
+  _stp_map_print (map, "map[%1s] = %d");  
 
   _stp_map_del (map);
   return 0;
