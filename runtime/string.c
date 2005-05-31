@@ -175,6 +175,29 @@ void _stp_string_cat_string (String str1, String str2)
 }
 
 
+void _stp_string_cat_char (String str1, const char c)
+{
+	if (str1 == _stp_stdout) {
+		char *buf;
+		int cpu = smp_processor_id();
+		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu];
+		if (1 >= size)
+			_stp_print_flush();
+		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
+		buf[0] = c;
+		buf[1] = 0;
+		_stp_pbuf_len[cpu] ++;
+	} else {
+		int size = STP_STRING_SIZE - str1->len - 1; 
+		if (size > 0) {
+			char *buf = str1->buf + str1->len;
+			buf[0] = c;
+			buf[1] = 0;
+			str1->len ++;
+		}
+	}
+}
+
 /** Get a pointer to String's buffer
  * For rare cases when a C string is needed and you have a String.
  * One example is when you want to print a String with _stp_printf().

@@ -6,6 +6,7 @@
  */
 
 #include "alloc.c"
+#include "sym.c"
 
 static int map_sizes[] = {
         sizeof(int64_t),
@@ -514,53 +515,178 @@ void _stp_map_print_histogram (MAP map, stat *s)
 			val = 1;
 		else
 			val *= 2;
-		_stp_print_flush();
 	}
 }
 #endif /* NEED_STAT_VALS */
 
-void _stp_map_print (MAP map, const char *name)
+/* Print stuff until a format specification is found. */
+/* Return pointer to that. */
+static char *next_fmt(char *fmt, int *num)
 {
-	struct map_node *ptr;
-	int type, n, first;
-	key_data kd;
+	char *f = fmt;
+	int in_fmt = 0;
+	dbug ("next_fmt %s\n", fmt);
+	*num = 0;
+	while (*f) {
+		if (in_fmt) {
+			if (*f == '%') {
+				_stp_string_cat_char(_stp_stdout,'%');
+				in_fmt = 0;
+			} else if (*f > '0' && *f <= '9') {
+				*num = *f - '0';
+				f++;
+				return f;
+			} else
+				return f;
+		} else if (*f == '%')
+			in_fmt = 1;
+		else
+			_stp_string_cat_char(_stp_stdout,*f);
+		f++;
+	}
+	return f;
+}
 
-	dbug ("print map %lx\n", (long)map);
-	for (ptr = _stp_map_start(map); ptr; ptr = _stp_map_iter (map, ptr)) {
-		n = 1; first = 1;
-		_stp_print_cstr (name);
-		_stp_print_cstr ("[");
-		do {
-			kd = (*map->get_key)(ptr, n, &type);
-			if (type == END)
-				break;
-			if (!first) 
-				_stp_print_cstr (", ");
-			first = 0;
-			if (type == STRING) 
-				_stp_print_cstr (kd.strp);
-			else 
-				_stp_printf("%lld", kd.val);
-			n++;
-		} while (1);
-		_stp_print_cstr ("] = ");
-		if (map->type == STRING)
+/* print type based on format.  Valid formats are: 
+--- KEYS and RESULTS ---
+%p - address (hex padded to sizeof(void *))
+%P - symbolic address
+%x - hex int64
+%X - HEX int64
+%d - decimal int64
+%s - string
+--- STATS ---
+%m - min
+%M - max
+%A - avg
+%S - sum
+%H - histogram
+%C - count
+--- MISC ---
+%% - print '%'
+*/
+static int print_keytype (char *fmt, int type, key_data *kd)
+{
+	dbug ("*fmt = %c\n", *fmt);
+	switch (type) {
+	case STRING:
+		if (*fmt != 's')
+			return 1;
+		_stp_print_cstr (kd->strp);
+		break;
+	case INT64:
+		if (*fmt == 'x')
+			_stp_printf("%llx", kd->val);
+		else if (*fmt == 'X')
+			_stp_printf("%llX", kd->val);
+		else if (*fmt == 'd')
+			_stp_printf("%lld", kd->val);
+		else if (*fmt == 'p') {
+#if BITS_PER_LONG == 64
+			_stp_printf("%016llx", kd->val);
+#else
+			_stp_printf("%08llx", kd->val);
+#endif
+		} else if (*fmt == 'P')
+			_stp_symbol_print ((unsigned long)kd->val);
+		else
+			return 1;
+		break;
+	default:
+		return 1;
+		break;
+	}
+	return 0;
+}
+
+static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
+{
+	switch (map->type) {
+	case STRING:
+		if (*fmt == 's')
 			_stp_print_cstr(_stp_get_str(ptr));
-		else if (map->type == INT64)
-			_stp_printf("%d", _stp_get_int64(ptr));
+		break;
+	case INT64:
+	{
+		int64_t val = _stp_get_int64(ptr);
+		if (*fmt == 'x')
+			_stp_printf("%llx", val);
+		else if (*fmt == 'X')
+			_stp_printf("%llX", val);
+		else if (*fmt == 'd')
+			_stp_printf("%lld", val);
+		else if (*fmt == 'p') {
+#if BITS_PER_LONG == 64
+			_stp_printf("%016llx", val);
+#else
+			_stp_printf("%08llx", val);
+#endif
+		} else if (*fmt == 'P')
+			_stp_symbol_print ((unsigned long)val);
+		break;
+	}
 #ifdef NEED_STAT_VALS
-		else {
-			stat *s = _stp_get_stat(ptr);
+	case STAT:
+	{
+		stat *s = _stp_get_stat(ptr);
+		switch (*fmt) {
+		case 'C':
+			_stp_printf("%lld", s->count);
+			break;
+		case 'm':
+			_stp_printf("%lld", s->min);
+			break;
+		case 'M':
+			_stp_printf("%lld", s->max);
+			break;
+		case 'S':
+			_stp_printf("%lld", s->sum);
+			break;
+		case 'A':
+		{
 			int64_t avg = s->sum;
 			do_div (avg, (int)s->count); /* FIXME: check for overflow */
-			_stp_printf("count:%lld  sum:%lld  avg:%lld  min:%lld  max:%lld\n",
-				    s->count, s->sum, avg, s->min, s->max);
-			_stp_print_flush();
-			_stp_map_print_histogram (map, s);
+			_stp_printf("%lld", avg);
+			break;
 		}
+		case 'H':
+			_stp_map_print_histogram (map, s);
+			_stp_print_flush();
+			break;
+		}
+		break;
+	}
+
 #endif
+	default:
+		break;
+	}
+}
+
+void _stp_map_print (MAP map, const char *fmt)
+{
+	struct map_node *ptr;
+	int type, num;
+	key_data kd;
+	dbug ("print map %lx fmt=%s\n", (long)map, fmt);
+
+	foreach (map, ptr) {
+		char *f = (char *)fmt;
+		while (*f) {
+			f = next_fmt (f, &num);
+			if (num) {
+				/* key */
+				kd = (*map->get_key)(ptr, num, &type);
+				if (type != END)
+					print_keytype (f, type, &kd);
+			} else {
+				/* value */
+				print_valtype (map, f, ptr);
+			}
+			if (*f)
+				f++;
+		}
 		_stp_print_cstr ("\n");
-		_stp_print_flush();
 	}
 	_stp_print_cstr ("\n");
 	_stp_print_flush();

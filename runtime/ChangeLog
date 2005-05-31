@@ -1,5 +1,12 @@
 2005-05-31  Martin Hunt  <hunt@redhat.com>
 
+	* map.c (_stp_map_print): Now takes a format string instead of a name.
+	
+	* map.h (foreach): Update macro.
+
+	* string.c (_stp_string_cat_char): New function.  Append a char
+	to a string.
+
 	* map-keys.c: Don't forget to undef KEYSYM, ALLKEYS and ALLKEYSD.
 
 2005-05-26  Martin Hunt  <hunt@redhat.com>

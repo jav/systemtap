@@ -182,9 +182,8 @@ typedef struct map_root *MAP;
  * @include foreach.c
  */
 
-#define foreach(map, ptr)				\
-  for (ptr = (typeof(ptr))_stp_map_start(map); ptr; \
-       ptr = (typeof(ptr))_stp_map_iter (map, (struct map_node *)ptr))
+#define foreach(map, ptr)						\
+	for (ptr = _stp_map_start(map); ptr; ptr = _stp_map_iter (map, ptr))
 
 /** @} */
 
@@ -236,7 +235,7 @@ struct map_node * _stp_map_start(MAP map);
 struct map_node * _stp_map_iter(MAP map, struct map_node *m);
 void _stp_map_del(MAP map);
 void _stp_map_print_histogram(MAP map, stat *s);
-void _stp_map_print(MAP map, const char *name);
+void _stp_map_print(MAP map, const char *fmt);
 static struct map_node * __stp_map_create(MAP map);
 
 /* these prototypes suppress warnings from macros */
