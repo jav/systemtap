@@ -92,9 +92,9 @@ static void probe_exit (void)
 {
   _stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
 
-  _stp_map_print (opens,"opens");
-  _stp_map_print (reads,"reads");
-  _stp_map_print (writes,"writes");
+  _stp_map_print (opens,"%d opens by process \"%1s\"");
+  _stp_map_print (reads,"reads by process \"%1s\": %C.  Total bytes=%S.  Average: %A\n%H");
+  _stp_map_print (writes,"writes by process \"%1s\": %C.  Total bytes=%S.  Average: %A\n%H");
 
   _stp_map_del (opens);
   _stp_map_del (reads);

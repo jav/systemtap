@@ -79,7 +79,7 @@ static void probe_exit (void)
 {
 	_stp_unregister_kprobes (kp, MAX_KPROBES);
 
-	_stp_map_print (funct_locations, "locations");
+	_stp_map_print (funct_locations, "Count: %d\tCaller: %1P");
 	_stp_map_del(funct_locations);
 }
 
