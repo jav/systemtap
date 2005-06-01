@@ -1,23 +1,21 @@
 # Makefile
 
 PWD     := $(shell pwd)
+RT	:= $(PWD)/../..
 KVERSION	:= $(shell uname -r)
 KDIR	:= /lib/modules/$(KVERSION)/build include
 
-KALLSYMS_LOOKUP_NAME	:= $(firstword $(shell grep " kallsyms_lookup_name" /boot/System.map-$(KVERSION)))
-KALLSYMS_LOOKUP	:= $(firstword $(shell grep " kallsyms_lookup$$" /boot/System.map-$(KVERSION)))
-KTA	:= $(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVERSION)))
+KALLSYMS_LOOKUP_NAME	:= 0x$(firstword $(shell grep " kallsyms_lookup_name" /boot/System.map-$(KVERSION)))
+KALLSYMS_LOOKUP	:= 0x$(firstword $(shell grep " kallsyms_lookup$$" /boot/System.map-$(KVERSION)))
+KTA	:= 0x$(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVERSION)))
 
-CFLAGS += -I $(STP_RUNTIME) -I $(STP_RUNTIME)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) \
-	-D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP)
+EXTRA_CFLAGS := -I $(RT) -I $(RT)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) -D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP) -DKTA=$(KTA)
 
 obj-m := test4.o
 
+
 default:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules \
-	KALLSYMS_LOOKUP_NAME=0x$(KALLSYMS_LOOKUP_NAME) \
-	KALLSYMS_LOOKUP=0x$(KALLSYMS_LOOKUP)  KTA=0x$(KTA)\
-	STP_RUNTIME=$(PWD)/../..
+	$(MAKE) V=1 -C $(KDIR) M=$(PWD) RT=$(RT) modules
 
 clean:
 	/bin/rm -rf *.o *.ko *~ *.mod.c .*.cmd .tmp_versions
