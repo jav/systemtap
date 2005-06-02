@@ -717,7 +717,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       e->right->visit (this);
       o->line() << ")";
     }
-  // % and / need a division-by-zero check
+  // XXX: % and / need a division-by-zero check
   else
     throw semantic_error ("not yet implemented", e->tok); 
 }

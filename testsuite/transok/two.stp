@@ -1,0 +1,5 @@
+#! stap
+probe k,l { 2; }
+function poo (zoo) { n = poo2 (8); return "foo" . zoo }
+function poo2 (zoo) { return poo3 (2 + 4 * zoo) }
+function poo3 (zoo) { return zoo }
