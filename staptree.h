@@ -1,6 +1,10 @@
 // -*- C++ -*-
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #ifndef STAPTREE_H
 #define STAPTREE_H
@@ -124,8 +128,11 @@ struct logical_and_expr: public binary_expression
 };
 
 
-struct array_in: public unary_expression
+struct arrayindex;
+struct array_in: public expression
 {
+  arrayindex* operand;
+  void print (std::ostream& o);
   void visit (visitor* u);
 };
 
@@ -267,11 +274,25 @@ struct block: public statement
   void visit (visitor* u);
 };
 
+
 struct for_loop: public statement
 {
   expression* init;
   expression* cond;
   expression* incr;
+  statement* block;
+  void print (std::ostream& o);
+  void visit (visitor* u);
+};
+
+
+struct foreach_loop: public statement
+{
+  // this part is a specialization of arrayindex
+  std::vector<symbol*> indexes;
+  std::string base;
+  vardecl* base_referent;
+
   statement* block;
   void print (std::ostream& o);
   void visit (visitor* u);
@@ -369,6 +390,7 @@ struct visitor
   virtual void visit_expr_statement (expr_statement *s) = 0;
   virtual void visit_if_statement (if_statement* s) = 0;
   virtual void visit_for_loop (for_loop* s) = 0;
+  virtual void visit_foreach_loop (foreach_loop* s) = 0;
   virtual void visit_return_statement (return_statement* s) = 0;
   virtual void visit_delete_statement (delete_statement* s) = 0;
   virtual void visit_literal_string (literal_string* e) = 0;
@@ -401,6 +423,7 @@ struct traversing_visitor: public visitor
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
   void visit_literal_string (literal_string* e);
@@ -438,6 +461,7 @@ struct throwing_visitor: public visitor
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
   void visit_literal_string (literal_string* e);

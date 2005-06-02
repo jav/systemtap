@@ -1,6 +1,10 @@
 // parse tree functions
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #include "config.h"
 #include "staptree.h"
@@ -169,6 +173,16 @@ void unary_expression::print (ostream& o)
   o << op << '(' << *operand << ")"; 
 }
 
+void array_in::print (ostream& o)
+{
+  o << "[";
+  for (unsigned i=0; i<operand->indexes.size(); i++)
+    {
+      if (i > 0) o << ", ";
+      operand->indexes[i]->print (o);
+    }
+  o << "] in " << operand->base;
+}
 
 void post_crement::print (ostream& o)
 {
@@ -262,7 +276,7 @@ void block::print (ostream& o)
 {
   o << "{" << endl;
   for (unsigned i=0; i<statements.size(); i++)
-    o << *statements [i] << ";" << endl;
+    o << *statements [i] << endl;
   o << "}" << endl;
 }
 
@@ -270,6 +284,19 @@ void block::print (ostream& o)
 void for_loop::print (ostream& o)
 {
   o << "<for_loop>" << endl;
+}
+
+
+void foreach_loop::print (ostream& o)
+{
+  o << "foreach ([";
+  for (unsigned i=0; i<indexes.size(); i++)
+    {
+      if (i > 0) o << ", ";
+      indexes[i]->print (o);
+    }
+  o << "] in " << base << ")" << endl;
+  block->print (o);
 }
 
 
@@ -392,6 +419,12 @@ void
 for_loop::visit (visitor* u)
 {
   u->visit_for_loop (this);
+}
+
+void
+foreach_loop::visit (visitor* u)
+{
+  u->visit_foreach_loop (this);
 }
 
 void
@@ -566,6 +599,14 @@ traversing_visitor::visit_for_loop (for_loop* s)
 }
 
 void
+traversing_visitor::visit_foreach_loop (foreach_loop* s)
+{
+  for (unsigned i=0; i<s->indexes.size(); i++)
+    s->indexes[i]->visit (this);
+  s->block->visit (this);
+}
+
+void
 traversing_visitor::visit_return_statement (return_statement* s)
 {
   s->value->visit (this);
@@ -728,6 +769,12 @@ throwing_visitor::visit_if_statement (if_statement* s)
 
 void
 throwing_visitor::visit_for_loop (for_loop* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_foreach_loop (foreach_loop* s)
 {
   throwone (s->tok);
 }

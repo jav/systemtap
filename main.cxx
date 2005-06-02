@@ -1,6 +1,10 @@
 // systemtap translator driver
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #include "config.h"
 #include "staptree.h"
@@ -20,9 +24,13 @@ extern "C" {
 using namespace std;
 
 
-
 void usage ()
 {
+  cerr << "SystemTap translator "
+       << "(version " << VERSION << " built " << DATE << ")" << endl;
+  cerr << "Copyright (C) 2005 Red Hat, Inc." << endl;
+  cerr << "This is free software; see the source for copying conditions." << endl;
+  cerr << endl;
   cerr << "Usage: stap [options] FILE [ARGS ...]  \tRun script files." << endl;
   cerr << "   or: stap [options] -e PROGRAM [ARGS ...]\tRun script." << endl;
   cerr << endl;
@@ -118,7 +126,9 @@ main (int argc, char * const argv [])
   // PASS 1a: PARSING USER SCRIPT
   // XXX: pass args vector, so parser (or lexer?) can substitute
   // $1..$NN with actual arguments
-  if (script_file != "")
+  if (script_file == "-")
+    s.user_file = parser::parse (cin);
+  else if (script_file != "")
     s.user_file = parser::parse (script_file);
   else
     {

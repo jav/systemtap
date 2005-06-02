@@ -1,7 +1,10 @@
 // elaboration functions
-// Copyright 2005 Red Hat Inc.
-// GPL
-
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #include "config.h"
 #include "elaborate.h"
@@ -197,6 +200,25 @@ symresolution_info::visit_block (block* e)
 	  session.print_error (e);
         }
     }
+}
+
+
+void
+symresolution_info::visit_foreach_loop (foreach_loop* e)
+{
+  for (unsigned i=0; i<e->indexes.size(); i++)
+    e->indexes[i]->visit (this);
+
+  if (e->base_referent)
+    return;
+
+  vardecl* d = find_array (e->base, e->indexes.size ());
+  if (d)
+    e->base_referent = d;
+  else
+    throw semantic_error ("unresolved global array " + e->base, e->tok);
+
+  e->block->visit (this);
 }
 
 
@@ -773,14 +795,10 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
   resolve_2types (e, e->referent, this, t);
 
   // now resolve the array indexes
-  if (e->referent->index_types.size() == 0)
-    {
-      // redesignate referent as array
-      e->referent->index_types.resize (e->indexes.size());
-      for (unsigned i=0; i<e->indexes.size(); i++)
-        e->referent->index_types[i] = pe_unknown;
-      // NB: we "fall through" to for loop
-    }
+
+  // if (e->referent->index_types.size() == 0)
+  //   // redesignate referent as array
+  //   e->referent->set_arity (e->indexes.size ());
 
   if (e->indexes.size() != e->referent->index_types.size())
     unresolved (e->tok); // symbol resolution should prevent this
@@ -898,6 +916,49 @@ typeresolution_info::visit_for_loop (for_loop* e)
   e->cond->visit (this);
   t = pe_unknown;
   e->incr->visit (this);  
+  t = pe_unknown;
+  e->block->visit (this);  
+}
+
+
+void
+typeresolution_info::visit_foreach_loop (foreach_loop* e)
+{
+  // See also visit_arrayindex.
+  // This is different in that, being a statement, we can't assign
+  // a type to the outer array, only propagate to/from the indexes
+
+  // if (e->referent->index_types.size() == 0)
+  //   // redesignate referent as array
+  //   e->referent->set_arity (e->indexes.size ());
+
+  if (e->indexes.size() != e->base_referent->index_types.size())
+    unresolved (e->tok); // symbol resolution should prevent this
+  else for (unsigned i=0; i<e->indexes.size(); i++)
+    {
+      expression* ee = e->indexes[i];
+      exp_type& ft = e->base_referent->index_types [i];
+      t = ft;
+      ee->visit (this);
+      exp_type at = ee->type;
+
+      if ((at == pe_string || at == pe_long) && ft == pe_unknown)
+        {
+          // propagate to formal type
+          ft = at;
+          resolved (e->base_referent->tok, ft);
+          // uses array decl as there is no token for "formal type"
+        }
+      if (at == pe_stats)
+        invalid (ee->tok, at);
+      if (ft == pe_stats)
+        invalid (ee->tok, ft);
+      if (at != pe_unknown && ft != pe_unknown && ft != at)
+        mismatch (e->tok, at, ft);
+      if (at == pe_unknown)
+        unresolved (ee->tok);
+    }
+
   t = pe_unknown;
   e->block->visit (this);  
 }

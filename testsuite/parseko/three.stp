@@ -1,7 +1,4 @@
 #! stap -p1
-
 probe foo {
-  a(1)
-# need ;
-  b(2)
+  foreach (a) ;
 }

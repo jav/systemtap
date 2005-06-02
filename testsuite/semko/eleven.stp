@@ -3,13 +3,13 @@
 global arr,rra
 
 probe begin {
-  arr["key"]=0
-  rra[0]="value"
+  arr[0]="value"
+  rra["key"]=0
 }
 probe end {
   # confirm that typechecking works the same way for all array indexing
   if (k in arr) { k.""; arr[k]+0 }
   foreach (l in arr) { l.""; arr[l]+0 }
-  if (m in rra) { m+0; rra[m]."" }
+  if (m in rra) { m+1; rra[m]."" }
   foreach (n in rra) { n+0; rra[n]."" }
 }

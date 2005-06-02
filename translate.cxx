@@ -1,6 +1,10 @@
 // semantic analysis pass, beginnings of elaboration
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #include "config.h"
 #include "staptree.h"
@@ -90,6 +94,7 @@ struct c_unparser: public unparser, public visitor
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
   void visit_literal_string (literal_string* e);
@@ -594,19 +599,14 @@ c_unparser::visit_block (block *s)
   o->newline() << "{";
   o->indent (1);
   o->newline() << "c->actioncount += " << s->statements.size() << ";";
-  o->newline() << "if (c->actioncount > MAXACTION)";
-  o->newline(1) << "errorcount ++;";
-  o->indent(-1);
+  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;" << endl;
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
       try
         {
           // XXX: it's probably not necessary to check this so frequently
-	  o->newline() << "if (errorcount)";
-	  o->newline(1) << "goto out;" << endl;
-	  o->indent(-1);
-
+	  o->newline() << "if (errorcount) goto out;" << endl;
           s->statements[i]->visit (this);
 	  o->newline();
         }
@@ -667,6 +667,16 @@ c_unparser::visit_if_statement (if_statement *s)
 
 void
 c_unparser::visit_for_loop (for_loop *s)
+{
+  const token* t = s->tok;
+  o->newline() << "# " << t->location.line
+	       << " \"" << t->location.file << "\" " << endl;
+  throw semantic_error ("not yet implemented", s->tok);
+}
+
+
+void
+c_unparser::visit_foreach_loop (foreach_loop *s)
 {
   const token* t = s->tok;
   o->newline() << "# " << t->location.line
@@ -787,13 +797,13 @@ c_unparser::visit_ternary_expression (ternary_expression* e)
 }
 
 
-
 struct c_unparser_assignment: public throwing_visitor
 {
   c_unparser* parent;
   string op;
   expression* rvalue;
   c_unparser_assignment (c_unparser* p, const string& o, expression* e):
+    throwing_visitor ("invalid lvalue type"),
     parent (p), op (o), rvalue (e) {}
 
   // only symbols and arrayindex nodes are possible lvalues
@@ -1014,11 +1024,12 @@ c_unparser_assignment::visit_symbol (symbol *e)
       if (session->globals[i] == r)
 	{
 	  // XXX: acquire write lock on global
-
+          o->newline() << "/* wlock global_" << parent->c_varname (r->name) << " */";
           parent->c_assign ("global_" + parent->c_varname (r->name),
                             tmp_base + stringify (tmpidx),
                             rvalue->type,
                             "global variable assignment", rvalue->tok); 
+          o->newline() << "/* unlock global_" << parent->c_varname (r->name) << " */";
 
 	  o->newline() << tmp_base << tmpidx << ";";
 	  o->newline(-1) << "})";
@@ -1089,10 +1100,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
               e->indexes[i], "array index copy");
     }
 
-  o->newline() << "if (errorcount)";
-  o->newline(1) << "goto out;";
-  o->indent(-1);
-
+  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "/* XXX: write to array  */";
 #if 0
   // it better be a global
   for (unsigned i=0; i<session->globals.size(); i++)
@@ -1158,8 +1167,7 @@ c_unparser::visit_functioncall (functioncall* e)
   // to avoid colliding sharing of context variables with
   // nested function calls: f(f(f(1)))
 
-  o->newline() << "/* compute actual arguments */";
-
+  // compute actual arguments
   unsigned tmpidx_base = tmpvar_counter;
   tmpvar_counter += r->formal_args.size();
   string tmp_base = "l->__tmp";
@@ -1176,14 +1184,12 @@ c_unparser::visit_functioncall (functioncall* e)
                 e->args[i], "function actual argument evaluation");
     }
 
-  o->newline() << "if (c->nesting+2 >= MAXNESTING)";
-  o->newline(1) << "errorcount ++;";
-  o->newline(-1) << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION)";
-  o->newline(1) << "errorcount ++;";
-  o->newline(-1) << "if (errorcount)";
-  o->newline(1) << "goto out;";
-  o->indent(-1);
+  o->newline();
+  o->newline() << "if (c->nesting+2 >= MAXNESTING) errorcount ++;";
+  o->newline() << "c->actioncount ++;";
+  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
+  o->newline() << "if (errorcount) goto out;";
+  o->newline();
 
   // copy in actual arguments
   for (unsigned i=0; i<e->args.size(); i++)

@@ -1,8 +1,8 @@
 #! stap -p1
 
 probe foo {
-  (a,) in b;
-  (,c) in d;
-  () in e;
+  [a,] in b;
+  [,c] in d;
+  [] in e;
   a in e[2];
 }

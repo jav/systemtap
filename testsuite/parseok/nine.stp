@@ -1,0 +1,15 @@
+#! stap -p1
+
+probe one
+{
+  if (a) if (b) d else e
+}
+
+probe two
+{
+  a = b
+  c = d
+  e = f();
+  g = h;
+  ;
+}

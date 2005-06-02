@@ -1,5 +1,8 @@
 /* config.in.  Generated from configure.ac by autoheader.  */
 
+/* Configuration/build date */
+#undef DATE
+
 /* Define to 1 if you have the <elfutils/libdw.h> header file. */
 #undef HAVE_ELFUTILS_LIBDW_H
 

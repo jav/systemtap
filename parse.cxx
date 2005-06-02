@@ -1,6 +1,10 @@
 // recursive descent parser for systemtap scripts
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #include "config.h"
 #include "staptree.h"
@@ -108,8 +112,6 @@ parser::next ()
     next_t = input.scan ();
   if (! next_t)
     throw parse_error ("unexpected end-of-file");
-
-  // cerr << "[" << next_t->content << "]" << endl;
 
   last_t = next_t;
   // advance by zeroing next_t
@@ -411,7 +413,6 @@ parser::parse_stmt_block ()
     {
       try
 	{
-	  // handle empty blocks
 	  t = peek ();
 	  if (t && t->type == tok_operator && t->content == "}")
 	    {
@@ -420,24 +421,6 @@ parser::parse_stmt_block ()
 	    }
 
           pb->statements.push_back (parse_statement ());
-
-          // ';' is a statement separator in awk, not a terminator.
-          // Note that ';' is also a possible null statement.
-          t = peek ();
-	  if (t && t->type == tok_operator && t->content == "}")
-	    {
-	      next ();
-	      break;
-	    }
-          else if (t && t->type == tok_operator && t->content == ";")
-            {
-              next ();
-              continue;
-	      // this also accepts semicolon as a terminator:
-	      // { a=1; }
-            }
-	  else
-	    throw parse_error ("expected ';' or '}'");
 	}
       catch (parse_error& pe)
 	{
@@ -466,29 +449,31 @@ parser::parse_statement ()
   const token* t = peek ();
   if (t && t->type == tok_operator && t->content == ";")
     {
-      next ();
-      return new null_statement ();
+      null_statement* n = new null_statement ();
+      n->tok = next ();
+      return n;
     }
   else if (t && t->type == tok_operator && t->content == "{")  
     return parse_stmt_block ();
   else if (t && t->type == tok_identifier && t->content == "if")
     return parse_if_statement ();
+  /*
+  else if (t && t->type == tok_identifier && t->content == "for")
+    return parse_for_loop ();
+  */
+  else if (t && t->type == tok_identifier && t->content == "foreach")
+    return parse_foreach_loop ();
   else if (t && t->type == tok_identifier && t->content == "return")
     return parse_return_statement ();
   else if (t && t->type == tok_identifier && t->content == "delete")
     return parse_delete_statement ();
-  // XXX: other control constructs ("for", "delete", "while", "do",
-  // "break", "continue", "exit", "return")
+  // XXX: other control constructs ("delete", "while", "do",
+  // "break", "continue", "exit")
   else if (t && (t->type == tok_operator || // expressions are flexible
                  t->type == tok_identifier ||
                  t->type == tok_number ||
                  t->type == tok_string))
-    {
-      expr_statement *es = new expr_statement;
-      es->tok = t;
-      es->value = parse_expression ();
-      return es;
-    }
+    return parse_expr_statement ();
   else
     throw parse_error ("expected statement");
 }
@@ -695,6 +680,17 @@ parser::parse_if_statement ()
 }
 
 
+expr_statement*
+parser::parse_expr_statement ()
+{
+  expr_statement *es = new expr_statement;
+  const token* t = peek ();
+  es->tok = t;
+  es->value = parse_expression ();
+  return es;
+}
+
+
 return_statement*
 parser::parse_return_statement ()
 {
@@ -717,6 +713,84 @@ parser::parse_delete_statement ()
   delete_statement* s = new delete_statement;
   s->tok = t;
   s->value = parse_expression ();
+  return s;
+}
+
+
+for_loop*
+parser::parse_for_loop ()
+{
+  throw parse_error ("not yet implemented");
+}
+
+
+foreach_loop*
+parser::parse_foreach_loop ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "foreach"))
+    throw parse_error ("expected 'foreach'");
+  foreach_loop* s = new foreach_loop;
+  s->tok = t;
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == "("))
+    throw parse_error ("expected '('");
+
+  // see also parse_array_in
+
+  bool parenthesized = false;
+  t = peek ();
+  if (t && t->type == tok_operator && t->content == "[")
+    {
+      next ();
+      parenthesized = true;
+    }
+
+  while (1)
+    {
+      t = next ();
+      if (! (t->type == tok_identifier))
+        throw parse_error ("expected identifier");
+      symbol* sym = new symbol;
+      sym->tok = t;
+      sym->name = t->content;
+      s->indexes.push_back (sym);
+
+      if (parenthesized)
+        {
+          const token* t = peek ();
+          if (t && t->type == tok_operator && t->content == ",")
+            {
+              next ();
+              continue;
+            }
+          else if (t && t->type == tok_operator && t->content == "]")
+            {
+              next ();
+              break;
+            }
+          else 
+            throw parse_error ("expected ',' or ']'");
+        }
+      else
+        break; // expecting only one expression
+    }
+
+  t = next ();
+  if (! (t->type == tok_identifier && t->content == "in"))
+    throw parse_error ("expected 'in'");
+
+  t = next ();
+  if (t->type != tok_identifier)
+    throw parse_error ("expected identifier");
+  s->base = t->content;
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == ")"))
+    throw parse_error ("expected ')'");
+
+  s->block = parse_statement ();
   return s;
 }
 
@@ -831,12 +905,12 @@ expression*
 parser::parse_array_in ()
 {
   // This is a very tricky case.  All these are legit expressions:
-  // "a in b"  "a+0 in b" "(a,b) in c" "(c,(d+0)) in b"
+  // "a in b"  "a+0 in b" "[a,b] in c" "[c,(d+0)] in b"
   vector<expression*> indexes;
   bool parenthesized = false;
 
   const token* t = peek ();
-  if (t && t->type == tok_operator && t->content == "(")
+  if (t && t->type == tok_operator && t->content == "[")
     {
       next ();
       parenthesized = true;
@@ -855,13 +929,13 @@ parser::parse_array_in ()
               next ();
               continue;
             }
-          else if (t && t->type == tok_operator && t->content == ")")
+          else if (t && t->type == tok_operator && t->content == "]")
             {
               next ();
               break;
             }
           else 
-            throw parse_error ("expected ',' or ')'");
+            throw parse_error ("expected ',' or ']'");
         }
       else
         break; // expecting only one expression
@@ -871,7 +945,6 @@ parser::parse_array_in ()
   if (t && t->type == tok_identifier && t->content == "in")
     {
       array_in *e = new array_in;
-      e->op = t->content;
       e->tok = t;
       next (); // swallow "in"
 

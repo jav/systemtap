@@ -1,0 +1,38 @@
+#! stap -p2
+
+global entry_time, my_count, my_fd, read_times
+
+# future built-ins
+function string (v) { return "" }
+function hexstring (v) { return "" }
+function trace (s) { return 0 }
+
+probe kernel.syscall("read") {
+      $count=0 $timestamp=0 $fd=0
+
+      thread->entry_time = $timestamp # "macro" variable
+      thread->my_count = $count # function argument
+      thread->my_fd = $fd # function argument
+      trace ("my_count = " . string(thread->my_count) .
+             "my_fd = " . string(thread->my_fd))
+}
+
+probe kernel.syscall("read").return {
+      $syscall_name="" $retvalue=0
+
+      if (thread->entry_time) {
+         read_times[$syscall_name]    # variable from provider alias
+            += $timestamp - thread->entry_time
+      }
+      trace ("syscall " . $syscall_name .
+             " return value = " .
+             hexstring ($retvalue))  # function pseudo-argument
+}
+
+probe end {
+      foreach (syscall in read_times) {
+          trace ("syscall " . syscall .
+                 " total-time=" . string (read_times[syscall]))
+      }
+}
+

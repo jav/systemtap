@@ -1,6 +1,11 @@
 // -*- C++ -*-
-// Copyright 2005 Red Hat Inc.
-// GPL
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 
 #ifndef PARSE_H
 #define PARSE_H
@@ -96,6 +101,9 @@ private: // nonterminals
   block* parse_stmt_block ();
   statement* parse_statement ();
   if_statement* parse_if_statement ();
+  for_loop* parse_for_loop ();
+  foreach_loop* parse_foreach_loop ();
+  expr_statement* parse_expr_statement ();
   return_statement* parse_return_statement ();
   delete_statement* parse_delete_statement ();
   expression* parse_expression ();

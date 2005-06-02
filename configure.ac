@@ -27,6 +27,11 @@ AC_CHECK_HEADERS([libelf.h elfutils/libdw.h])
 AC_CHECK_LIB(dw, dwarf_begin)
 AC_CHECK_LIB(elf, elf_begin)
 
+dnl Plop in the build (configure) date
+date=`date +%Y-%m-%d`
+AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
+AC_SUBST(DATE)
+
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

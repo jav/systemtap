@@ -1,7 +1,10 @@
 // -*- C++ -*-
-// Copyright 2005 Red Hat Inc.
-// GPL
-
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 #ifndef ELABORATE_H
 #define ELABORATE_H
@@ -36,6 +39,7 @@ protected:
 
   void visit_block (block *s);
   void visit_symbol (symbol* e);
+  void visit_foreach_loop (foreach_loop* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
 };
@@ -62,6 +66,7 @@ struct typeresolution_info: public visitor
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
   void visit_literal_string (literal_string* e);

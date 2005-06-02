@@ -1,0 +1,4 @@
+#! stap -p1
+probe foo {
+  foreach ([a, b, c] in) ;
+}
