@@ -102,7 +102,7 @@ void _stp_print_flush (void)
  * You probably want _stp_printf().
  */
 
-#define _stp_vprintf(fmt,args) _stp_vsprintf(stdout,fmt,args)
+#define _stp_vprintf(fmt,args) _stp_vsprintf(_stp_stdout,fmt,args)
 
 /** Write a C string into the print buffer.
  * Copies a string into a print buffer.

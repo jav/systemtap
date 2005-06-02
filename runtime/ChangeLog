@@ -1,3 +1,10 @@
+2005-06-02  Martin Hunt  <hunt@redhat.com>
+
+	* string.c (_stp_string_cat_cstr): Be sure result is
+	always terminated.
+
+	* print.c (_stp_vprintf): Fix typo.
+
 2005-05-31  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_map_print): Now takes a format string instead of a name.

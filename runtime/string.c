@@ -159,6 +159,7 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 			num = size;
 		strncpy (str1->buf + str1->len, str2, num);
 		str1->len += num;
+		str1->buf[str1->len] = 0;
 	}
 }
 
