@@ -23,5 +23,5 @@ probe z {
 
 probe x,y {
   f2 ();
-  f1 (f1 (3, "foo"), "canoe")
+  f1 (f1 (3 * 2 + 1, "foo"), "canoe")
 }

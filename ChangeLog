@@ -1,5 +1,11 @@
 2005-06-02  Frank Ch. Eigler  <fche@redhat.com>
 
+	* translate.cxx (visit_concatenation, visit_binary_expression):
+	New basic implementation.
+	(*): Reduce emitted whitespace and remove `# LINE "FILE"' lines.
+
+2005-06-02  Frank Ch. Eigler  <fche@redhat.com>
+
 	Parse foreach construct.  Added fuller copyright notices throughout.
 	* staptree.h (foreach_loop): New tree node type.
 	* staptree.cxx: Print it, visit it, love it, leave it.

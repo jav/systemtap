@@ -260,6 +260,7 @@ struct c_tmpcounter: public traversing_visitor
   c_tmpcounter (c_unparser* p): parent (p), tmpvar_counter (0) {}
 
   // void visit_for_loop (for_loop* s);
+  // void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
   // void visit_delete_statement (delete_statement* s);
   // void visit_binary_expression (binary_expression* e);
@@ -270,7 +271,7 @@ struct c_tmpcounter: public traversing_visitor
   // void visit_logical_and_expr (logical_and_expr* e);
   // void visit_array_in (array_in* e);
   // void visit_comparison (comparison* e);
-  // void visit_concatenation (concatenation* e);
+  void visit_concatenation (concatenation* e);
   // void visit_exponentiation (exponentiation* e);
   // void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
@@ -307,14 +308,13 @@ c_unparser::emit_common_header ()
     {
       derived_probe* dp = session->probes[i];
       o->newline() << "struct probe_" << i << "_locals {";
-      o->newline(1) << "/* local variables */";
+      o->indent(1);
       for (unsigned j=0; j<dp->locals.size(); j++)
         {
           vardecl* v = dp->locals[j];
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
-      o->newline() << "/* temporary variables */";
       c_tmpcounter ct (this);
       dp->body->visit (& ct);
       o->newline(-1) << "} probe_" << i << ";";
@@ -325,28 +325,25 @@ c_unparser::emit_common_header ()
       functiondecl* fd = session->functions[i];
       o->newline()
         << "struct function_" << c_varname (fd->name) << "_locals {";
-      o->newline(1) << "/* local variables */";
+      o->indent(1);
       for (unsigned j=0; j<fd->locals.size(); j++)
         {
           vardecl* v = fd->locals[j];
           o->newline() << c_typename (v->type) << " " 
   		       << c_varname (v->name) << ";";
         }
-      o->newline() << "/* formal arguments */";
       for (unsigned j=0; j<fd->formal_args.size(); j++)
         {
           vardecl* v = fd->formal_args[j];
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
-      o->newline() << "/* temporary variables */";
       c_tmpcounter ct (this);
       fd->body->visit (& ct);
       if (fd->type == pe_unknown)
 	o->newline() << "/* no return value */";
       else
 	{
-	  o->newline() << "/* return value */";
 	  o->newline() << c_typename (fd->type) << " __retvalue;";
 	}
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
@@ -439,8 +436,9 @@ c_unparser::emit_function (functiondecl* v)
     << "struct function_" << c_varname (v->name) << "_locals * "
     << " __restrict__ l =";
   o->newline(1)
-    << "& c->locals[c->nesting].function_" << c_varname (v->name) << ";";
-  o->newline(-1);
+    << "& c->locals[c->nesting].function_" << c_varname (v->name)
+    << ";";
+  o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
   // initialize locals
   for (unsigned i=0; i<v->locals.size(); i++)
@@ -483,7 +481,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   // initialize frame pointer
   o->newline() << "struct probe_" << i << "_locals * __restrict__ l =";
   o->newline(1) << "& c->locals[c->nesting].probe_" << i << ";";
-  o->indent(-1);
+  o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
   // initialize locals
   for (unsigned j=0; j<v->locals.size(); j++)
@@ -592,10 +590,6 @@ c_unparser::c_assign (const string& lvalue, const string& rvalue,
 void
 c_unparser::visit_block (block *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
-
   o->newline() << "{";
   o->indent (1);
   o->newline() << "c->actioncount += " << s->statements.size() << ";";
@@ -606,7 +600,7 @@ c_unparser::visit_block (block *s)
       try
         {
           // XXX: it's probably not necessary to check this so frequently
-	  o->newline() << "if (errorcount) goto out;" << endl;
+	  o->newline() << "if (errorcount) goto out;";
           s->statements[i]->visit (this);
 	  o->newline();
         }
@@ -622,9 +616,6 @@ c_unparser::visit_block (block *s)
 void
 c_unparser::visit_null_statement (null_statement *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   o->newline() << "/* null */;";
 }
 
@@ -632,9 +623,6 @@ c_unparser::visit_null_statement (null_statement *s)
 void
 c_unparser::visit_expr_statement (expr_statement *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   o->newline() << "(void) ";
   s->value->visit (this);
   o->line() << ";";
@@ -644,9 +632,6 @@ c_unparser::visit_expr_statement (expr_statement *s)
 void
 c_unparser::visit_if_statement (if_statement *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   o->newline() << "if (";
   o->indent (1);
   s->condition->visit (this);
@@ -668,9 +653,6 @@ c_unparser::visit_if_statement (if_statement *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   throw semantic_error ("not yet implemented", s->tok);
 }
 
@@ -678,9 +660,6 @@ c_unparser::visit_for_loop (for_loop *s)
 void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   throw semantic_error ("not yet implemented", s->tok);
 }
 
@@ -688,9 +667,6 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_return_statement (return_statement* s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   if (current_function == 0)
     throw semantic_error ("cannot return from non-function", s->tok);
 
@@ -698,9 +674,7 @@ c_unparser::visit_return_statement (return_statement* s)
     throw semantic_error ("return type mismatch", current_function->tok,
                          "vs", s->tok);
 
-  o->newline() << "/* " << *s->tok << " */";
   c_assign ("l->__retvalue", s->value, "return value");
-
   o->newline() << "goto out;";
 }
 
@@ -708,9 +682,6 @@ c_unparser::visit_return_statement (return_statement* s)
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
-  const token* t = s->tok;
-  o->newline() << "# " << t->location.line
-	       << " \"" << t->location.file << "\" " << endl;
   throw semantic_error ("not yet implemented", s->tok);
 }
 
@@ -726,10 +697,29 @@ c_unparser::visit_literal_number (literal_number* e)
   o->line() << e->value;
 }
 
+
 void
 c_unparser::visit_binary_expression (binary_expression* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->op == "+" ||
+      e->op == "-" ||
+      e->op == "*" ||
+      false)           // XXX: other simple arithmetic operators
+    {
+      if (e->type != pe_long ||
+          e->left->type != pe_long ||
+          e->right->type != pe_long)
+        throw semantic_error ("expected string types", e->tok);
+
+      o->line() << "(";
+      e->left->visit (this);
+      o->line() << " " << e->op << " ";
+      e->right->visit (this);
+      o->line() << ")";
+    }
+  // % and / need a division-by-zero check
+  else
+    throw semantic_error ("not yet implemented", e->tok); 
 }
 
 void
@@ -777,9 +767,37 @@ c_unparser::visit_comparison (comparison* e)
 
 
 void
+c_tmpcounter::visit_concatenation (concatenation* e)
+{
+  parent->o->newline() << parent->c_typename (e->type)
+                       << " __tmp" << tmpvar_counter ++ << ";"
+                       << " /* " << e->op << " result */";
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+
+void
 c_unparser::visit_concatenation (concatenation* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->op != ".")
+    throw semantic_error ("unexpected concatenation operator", e->tok);
+
+  if (e->type != pe_string ||
+      e->left->type != pe_string ||
+      e->right->type != pe_string)
+    throw semantic_error ("expected string types", e->tok);
+
+  string tmpvar = "l->__tmp" + stringify (tmpvar_counter ++);
+  
+  o->line() << "({ ";
+  o->indent(1);
+  c_assign (tmpvar, e->left, "assignment");
+  o->newline() << "strncat (" << tmpvar << ", ";
+  e->right->visit (this);
+  o->line() << ", MAXSTRINGLEN);";
+  o->newline() << tmpvar << ";";
+  o->newline(-1) << "})";
 }
 
 

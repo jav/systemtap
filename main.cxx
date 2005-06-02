@@ -31,8 +31,9 @@ void usage ()
   cerr << "Copyright (C) 2005 Red Hat, Inc." << endl;
   cerr << "This is free software; see the source for copying conditions." << endl;
   cerr << endl;
-  cerr << "Usage: stap [options] FILE [ARGS ...]  \tRun script files." << endl;
-  cerr << "   or: stap [options] -e PROGRAM [ARGS ...]\tRun script." << endl;
+  cerr << "Usage: stap [options] FILE [ARGS ...]        Run script in file." << endl;
+  cerr << "   or: stap [options] - [ARGS ...]           Run script on stdin." << endl;
+  cerr << "   or: stap [options] -e SCRIPT [ARGS ...]   Run given script." << endl;
   cerr << endl;
   cerr << "Arguments:" << endl;
   cerr << "   --\tNo more options after this" << endl;
