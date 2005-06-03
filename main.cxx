@@ -175,26 +175,49 @@ main (int argc, char * const argv [])
     rc = semantic_pass (s);
   if (last_pass == 2 && rc == 0)
     {
-      s.op->line() << "# globals";
+      if (s.globals.size() > 0)
+        s.op->line() << "# globals";
       for (unsigned i=0; i<s.globals.size(); i++)
 	{
 	  vardecl* v = s.globals[i];
 	  v->printsig (s.op->newline());
 	}
 
-      s.op->newline() << "# functions";
+      if (s.functions.size() > 0)
+        s.op->newline() << "# functions";
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
 	  functiondecl* f = s.functions[i];
 	  f->printsig (s.op->newline());
+          s.op->indent(1);
+          if (f->locals.size() > 0)
+            s.op->newline(1) << "# locals";
+          for (unsigned j=0; j<f->locals.size(); j++)
+            {
+              vardecl* v = f->locals[j];
+              v->printsig (s.op->newline());
+            }
+          s.op->indent(-1);          
 	}
 
-      s.op->newline() << "# probes";
+      if (s.probes.size() > 0)
+        s.op->newline() << "# probes";
       for (unsigned i=0; i<s.probes.size(); i++)
 	{
 	  derived_probe* p = s.probes[i];
 	  p->printsig (s.op->newline());
+          s.op->indent(1);
+          if (p->locals.size() > 0)
+            s.op->newline() << "# locals";
+          for (unsigned j=0; j<p->locals.size(); j++)
+            {
+              vardecl* v = p->locals[j];
+              v->printsig (s.op->newline());
+            }
+          s.op->indent(-1);          
 	}
+
+      s.op->newline();
     }
 
   // PASS 3: TRANSLATION

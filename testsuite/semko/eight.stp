@@ -1,5 +1,5 @@
 #! stap -p2
 
 probe foo {
-  stats << "string"  # stats only collect numbers
+  stats <<< "string"  # stats only collect numbers
 }

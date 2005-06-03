@@ -709,7 +709,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       if (e->type != pe_long ||
           e->left->type != pe_long ||
           e->right->type != pe_long)
-        throw semantic_error ("expected string types", e->tok);
+        throw semantic_error ("expected numeric types", e->tok);
 
       o->line() << "(";
       e->left->visit (this);
@@ -722,11 +722,19 @@ c_unparser::visit_binary_expression (binary_expression* e)
     throw semantic_error ("not yet implemented", e->tok); 
 }
 
+
 void
 c_unparser::visit_unary_expression (unary_expression* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->type != pe_long ||
+      e->operand->type != pe_long)
+    throw semantic_error ("expected numeric types", e->tok);
+
+  o->line() << e->op << " (";
+  e->operand->visit (this);
+  o->line() << ")";
 }
+
 
 void
 c_unparser::visit_pre_crement (pre_crement* e)
@@ -734,23 +742,45 @@ c_unparser::visit_pre_crement (pre_crement* e)
   throw semantic_error ("not yet implemented", e->tok);
 }
 
+
 void
 c_unparser::visit_post_crement (post_crement* e)
 {
   throw semantic_error ("not yet implemented", e->tok);
 }
 
+
 void
 c_unparser::visit_logical_or_expr (logical_or_expr* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->type != pe_long ||
+      e->left->type != pe_long ||
+      e->right->type != pe_long)
+    throw semantic_error ("expected numeric types", e->tok);
+
+  o->line() << "(";
+  e->left->visit (this);
+  o->line() << ") " << e->op << " (";
+  e->right->visit (this);
+  o->line() << ")";
 }
+
 
 void
 c_unparser::visit_logical_and_expr (logical_and_expr* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->type != pe_long ||
+      e->left->type != pe_long ||
+      e->right->type != pe_long)
+    throw semantic_error ("expected numeric types", e->tok);
+
+  o->line() << "(";
+  e->left->visit (this);
+  o->line() << ") " << e->op << " (";
+  e->right->visit (this);
+  o->line() << ")";
 }
+
 
 void
 c_unparser::visit_array_in (array_in* e)
@@ -762,7 +792,37 @@ c_unparser::visit_array_in (array_in* e)
 void
 c_unparser::visit_comparison (comparison* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  o->line() << "(";
+
+  if (e->left->type == pe_string)
+    {
+      if (e->left->type != pe_string ||
+          e->right->type != pe_string)
+        throw semantic_error ("expected string types", e->tok);
+
+      o->line() << "strncmp (";
+      e->left->visit (this);
+      o->line() << ", ";
+      e->right->visit (this);
+      o->line() << ", MAXSTRINGLEN";
+      o->line() << ") " << e->op << " 0";
+    }
+  else if (e->left->type == pe_long)
+    {
+      if (e->left->type != pe_long ||
+          e->right->type != pe_long)
+        throw semantic_error ("expected numeric types", e->tok);
+
+      o->line() << "(";
+      e->left->visit (this);
+      o->line() << ") " << e->op << " (";
+      e->right->visit (this);
+      o->line() << ")";
+    }
+  else
+    throw semantic_error ("unexpected type", e->left->tok);
+
+  o->line() << ")";
 }
 
 
@@ -811,7 +871,21 @@ c_unparser::visit_exponentiation (exponentiation* e)
 void
 c_unparser::visit_ternary_expression (ternary_expression* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  if (e->cond->type != pe_long)
+    throw semantic_error ("expected numeric condition", e->cond->tok);
+
+  if (e->truevalue->type != e->falsevalue->type ||
+      e->type != e->truevalue->type ||
+      (e->truevalue->type != pe_long && e->truevalue->type != pe_string))
+    throw semantic_error ("expected matching types", e->tok);
+
+  o->line() << "((";
+  e->cond->visit (this);
+  o->line() << ") ? (";
+  e->truevalue->visit (this);
+  o->line() << ") : (";
+  e->falsevalue->visit (this);
+  o->line() << "))";
 }
 
 

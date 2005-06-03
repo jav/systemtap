@@ -1,0 +1,13 @@
+#! stap
+
+function f () {
+  return 0
+}
+
+probe end {
+  a = 0                                 as = ""
+  b = a * (b + c) - d                   bs = as . "bs" . as
+  c = (a > b) ? (a == b) : (a != b)     cs = (as > bs) ? (as == bs) : (as != bs)
+  d = (a > b) + (a >= b) + (a < b) + (a <= b)
+  if (a) b else c                       if (cs) 0 else 1
+}

@@ -1,6 +1,6 @@
 #! stap -p2
 
-global a, b; # types unknown
+global a, b # types unknown
 
 function bar ()
 {

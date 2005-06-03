@@ -373,7 +373,6 @@ void probe::printsig (ostream& o)
       o << (i>0 ? ", " : "");
       locations[i]->print (o);
     }
-  o << endl;
 }
 
 

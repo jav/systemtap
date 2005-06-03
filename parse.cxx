@@ -286,14 +286,17 @@ lexer::scan ()
 
       // handle two-character operators
       if ((c == '=' && c2 == '=') ||
+          (c == '!' && c2 == '=') ||
+          (c == '<' && c2 == '=') ||
+          (c == '>' && c2 == '=') ||
           (c == '+' && c2 == '+') ||
           (c == '-' && c2 == '-') ||
           (c == '|' && c2 == '|') ||
           (c == '&' && c2 == '&') ||
-          (c == '<' && c2 == '<') ||
+          // (c == '<' && c2 == '<') ||
+          // (c == '>' && c2 == '>') ||
           (c == '+' && c2 == '=') ||
           (c == '-' && c2 == '=') ||
-          (c == ':' && c2 == ':') ||
           (c == '-' && c2 == '>') ||
 	  false) // XXX: etc.
         n->content.push_back ((char) input_get ());
@@ -301,9 +304,15 @@ lexer::scan ()
       // handle three-character operator
       if (c == '<' && c2 == '<')
         {
+          input_get (); // swallow c2
           int c3 = input.peek ();
           if (c3 == '<')
-            n->content.push_back ((char) input_get ());
+            {
+              input_get (); // swallow c3
+              n->content = "<<<";
+            }
+          else
+            n->content = "<<";
         }
 
       return n;
@@ -843,7 +852,7 @@ parser::parse_assignment ()
       next ();
       e->right = parse_expression ();
       op1 = e;
-      // XXX: map assign/accumlate operators like +=, /=
+      // XXX: map assign/accumulate operators like +=, /=
       // to ordinary assignment + nested binary_expression
     }
 
@@ -994,7 +1003,13 @@ parser::parse_comparison ()
 
   const token* t = peek ();
   while (t && t->type == tok_operator 
-      && (t->content == ">" || t->content == "==")) // xxx: more
+      && (t->content == ">" ||
+          t->content == "<" ||
+          t->content == "==" ||
+          t->content == "!=" ||
+          t->content == "<=" ||
+          t->content == ">=" ||
+          false )) // xxx: more
     {
       comparison* e = new comparison;
       e->left = op1;

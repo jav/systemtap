@@ -546,14 +546,43 @@ typeresolution_info::visit_logical_and_expr (logical_and_expr *e)
 void
 typeresolution_info::visit_comparison (comparison *e)
 {
-  visit_binary_expression (e);
+  if (t == pe_stats || t == pe_string)
+    invalid (e->tok, t);
+
+  t = (e->right->type != pe_unknown) ? e->right->type : pe_unknown;
+  e->left->visit (this);
+  t = (e->left->type != pe_unknown) ? e->left->type : pe_unknown;
+  e->right->visit (this);
+  
+  if (e->left->type != pe_unknown &&
+      e->right->type != pe_unknown &&
+      e->left->type != e->right->type)
+    mismatch (e->tok, e->left->type, e->right->type);
+  
+  if (e->type == pe_unknown)
+    {
+      e->type = pe_long;
+      resolved (e->tok, e->type);
+    }
 }
 
 
 void
 typeresolution_info::visit_concatenation (concatenation *e)
 {
-  visit_binary_expression (e);
+  if (t != pe_unknown && t != pe_string)
+    invalid (e->tok, t);
+
+  t = pe_string;
+  e->left->visit (this);
+  t = pe_string;
+  e->right->visit (this);
+
+  if (e->type == pe_unknown)
+    {
+      e->type = pe_string;
+      resolved (e->tok, e->type);
+    }
 }
 
 
@@ -567,89 +596,86 @@ typeresolution_info::visit_exponentiation (exponentiation *e)
 void
 typeresolution_info::visit_assignment (assignment *e)
 {
-  visit_binary_expression (e);
+  if (t == pe_stats)
+    invalid (e->tok, t);
+
+  if (e->op == "<<<") // stats aggregation
+    {
+      if (t == pe_string)
+        invalid (e->tok, t);
+
+      t = pe_stats;
+      e->left->visit (this);
+      t = pe_long;
+      e->right->visit (this);
+      if (e->type == pe_unknown)
+        {
+          e->type = pe_long;
+          resolved (e->tok, e->type);
+        }
+    }
+  else if (e->op == "+=" || // numeric only
+           false)
+    {
+      visit_binary_expression (e);
+    }
+  else // overloaded for string & numeric operands
+    {
+      // logic similar to ternary_expression
+      exp_type sub_type = t;
+
+      // Infer types across the l/r values
+      if (sub_type == pe_unknown && e->type != pe_unknown)
+        sub_type = e->type;
+
+      t = (sub_type != pe_unknown) ? sub_type :
+        (e->right->type != pe_unknown) ? e->right->type :
+        pe_unknown;
+      e->left->visit (this);
+      t = (sub_type != pe_unknown) ? sub_type :
+        (e->left->type != pe_unknown) ? e->left->type :
+        pe_unknown;
+      e->right->visit (this);
+      
+      if ((sub_type != pe_unknown) && (e->type == pe_unknown))
+        {
+          e->type = sub_type;
+          resolved (e->tok, e->type);
+        }
+      if ((sub_type == pe_unknown) && (e->left->type != pe_unknown))
+        {
+          e->type = e->left->type;
+          resolved (e->tok, e->type);
+        }
+
+      if (e->left->type != pe_unknown &&
+          e->right->type != pe_unknown &&
+          e->left->type != e->right->type)
+        mismatch (e->tok, e->left->type, e->right->type);
+    }
 }
 
 
 void
 typeresolution_info::visit_binary_expression (binary_expression* e)
 {
-  if (e->op == "<<<") // stats aggregation
-    {
-      exp_type t1 = t;
-      t = pe_stats;
-      e->left->visit (this);
-      t = pe_long;
-      e->right->visit (this);
-      if (t1 == pe_stats || t1 == pe_string)
-        invalid (e->tok, t1);
-      else if (e->type == pe_unknown)
-        {
-          e->type = pe_long;
-          resolved (e->tok, e->type);
-        }
-    }
-  else if (e->op == ".") // string concatenation
-    {
-      exp_type t1 = t;
-      t = pe_string;
-      e->left->visit (this);
-      t = pe_string;
-      e->right->visit (this);
-      if (t1 == pe_long || t1 == pe_stats)
-        mismatch (e->tok, t1, pe_string);
-      else if (e->type == pe_unknown)
-        {
-          e->type = pe_string;
-          resolved (e->tok, e->type);
-        }
-    }
-  else if (e->op == "=="
-           || false) // XXX: other comparison operators
-    {
-      exp_type t1 = t;
-      t = pe_unknown;
-      e->left->visit (this);
-      t = pe_unknown;
-      e->right->visit (this);
-      if (t1 == pe_string || t1 == pe_stats)
-        mismatch (e->tok, t1, pe_long);
-      else if (e->type == pe_unknown)
-        {
-          e->type = pe_long;
-          resolved (e->tok, e->type);
-        }
-    }
-  else // general arithmetic operators?
-    {
-      // propagate e->type downward 
-      exp_type sub_type = t;
-      if ((sub_type == pe_unknown) && (e->type != pe_unknown))
-        sub_type = e->type;
-      t = sub_type;
-      e->left->visit (this);
-      t = sub_type;
-      e->right->visit (this);
+  if (t == pe_stats || t == pe_string)
+    invalid (e->tok, t);
 
-      if ((sub_type == pe_unknown) && (e->type != pe_unknown))
-        ; // already resolved
-      else if ((sub_type != pe_unknown) && (e->type == pe_unknown))
-        {
-          e->type = sub_type;
-          resolved (e->tok, e->type);
-        }
-      else if ((sub_type == pe_unknown) && (e->left->type != pe_unknown))
-        {
-          e->type = e->left->type;
-          resolved (e->tok, e->type);
-        }
-      else if ((sub_type == pe_unknown) && (e->right->type != pe_unknown))
-        {
-          e->type = e->right->type;
-          resolved (e->tok, e->type);
-        }
-      else if (e->type != sub_type)
-        mismatch (e->tok, sub_type, e->type);
+  t = pe_long;
+  e->left->visit (this);
+  t = pe_long;
+  e->right->visit (this);
+
+  if (e->left->type != pe_unknown &&
+      e->right->type != pe_unknown &&
+      e->left->type != e->right->type)
+    mismatch (e->tok, e->left->type, e->right->type);
+  
+  if (e->type == pe_unknown)
+    {
+      e->type = pe_long;
+      resolved (e->tok, e->type);
     }
 }
 
@@ -671,22 +697,18 @@ typeresolution_info::visit_post_crement (post_crement *e)
 void
 typeresolution_info::visit_unary_expression (unary_expression* e)
 {
-  // all unary operators only work on numerics
-  exp_type t1 = t;
+  if (t == pe_stats || t == pe_string)
+    invalid (e->tok, t);
+
   t = pe_long;
   e->operand->visit (this);
 
-  if (t1 == pe_unknown && e->type != pe_unknown)
-    ; // already resolved
-  else if (t1 == pe_string || t1 == pe_stats)
-    mismatch (e->tok, t1, pe_long);
-  else if (e->type == pe_unknown)
+  if (e->type == pe_unknown)
     {
       e->type = pe_long;
       resolved (e->tok, e->type);
     }
 }
-
 
 
 void
@@ -697,8 +719,7 @@ typeresolution_info::visit_ternary_expression (ternary_expression* e)
   t = pe_long;
   e->cond->visit (this);
 
-  // Match ordinary binary_expression type inference for the true/false
-  // arms of the ternary expression.
+  // Infer types across the true/false arms of the ternary expression.
 
   if (sub_type == pe_unknown && e->type != pe_unknown)
     sub_type = e->type;

@@ -1,6 +1,7 @@
 #! stap -p2
 
+global b
 probe foo {
-  a << 2;
+  a <<< 2;
   b[a] = 4; # must not index with stats variable
 }

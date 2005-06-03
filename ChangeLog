@@ -1,5 +1,18 @@
 2005-06-03  Frank Ch. Eigler  <fche@redhat.com>
 
+	* TODO: Removed entries already represented in bugzilla.
+	* elaborate.cxx: Rewrite type inference for several operators.
+	* main.cxx (main): For -p2 runs, print types of function/probe locals.
+	* parse.cxx (scan): Identify more two-character operators.
+	(parse_comparison): Support the whole suite.
+	* translate.cxx (visit_unary_expression, logical_or_expr,
+	logical_and_expr, comparison,ternary_expression): New support.
+	* testsuite/parseok/semok.stp: Clever new test.
+	* testsuite/transok/four.stp: New test.
+	* testsuite/*: Some tweaked tests for syntax changes.
+
+2005-06-03  Frank Ch. Eigler  <fche@redhat.com>
+
 	* parse.cxx (scan): Support C and C++ comment styles.
 	* testsuite/parseok/four.stp: Test them some ...
 	* testsuite/parseko/nine.stp: ... and some more.
