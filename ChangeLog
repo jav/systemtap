@@ -1,3 +1,9 @@
+2005-06-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx (scan): Support C and C++ comment styles.
+	* testsuite/parseok/four.stp: Test them some ...
+	* testsuite/parseko/nine.stp: ... and some more.
+
 2005-06-02  Frank Ch. Eigler  <fche@redhat.com>
 
 	* translate.cxx (visit_concatenation, visit_binary_expression):

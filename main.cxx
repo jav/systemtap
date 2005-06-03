@@ -40,7 +40,7 @@ void usage ()
   cerr << "   -p NUM\tStop after pass NUM 1-3" << endl;
   cerr << "         \t(parse, elaborate, translate)" << endl;
   cerr << "   -I DIR\tLook in DIR for additional .stp script files." << endl;
-  cerr << "   -o FILE\tSend translator output to file instead of stdout." << endl;
+  cerr << "   -o FILE\tSend output to file instead of stdout." << endl;
   // XXX: other options:
   // -s: safe mode
   // -d: dump safety-related external references 

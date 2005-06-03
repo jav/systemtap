@@ -1,7 +1,10 @@
 #! stap -p1
 
 probe syscall ("foo").foo.bar , syscall ("bar"), syscall ("*").return
-{
-  $a = a$a = a$a$ = 0;
+{ # no comment
+  $a = /* comment */ a$a = /**/ a$a$ = 0; // more comment
 }
-
+/* empty comment lines */
+/**/
+#
+//

@@ -253,13 +253,33 @@ lexer::scan ()
     {
       int c2 = input.peek ();
 
-      if (c == '#') // comment to end-of-line
+      if (c == '#') // shell comment
         {
           unsigned this_line = cursor_line;
           while (input && cursor_line == this_line)
             input_get ();
           goto skip;
         }
+      else if (c == '/' && c2 == '/') // C++ comment
+        {
+          unsigned this_line = cursor_line;
+          while (input && cursor_line == this_line)
+            input_get ();
+          goto skip;
+        }
+      else if (c == '/' && c2 == '*') // C comment
+	{
+          c2 = input_get ();
+          unsigned chars = 0;
+          while (input)
+            {
+              chars ++; // track this to prevent "/*/" from being accepted
+              c = c2;
+              c2 = input_get ();
+              if (chars > 1 && c == '*' && c2 == '/')
+                goto skip;
+            }
+	}
 
       n->type = tok_operator;
       n->content = (char) c;
