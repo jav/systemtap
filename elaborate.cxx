@@ -292,43 +292,48 @@ symresolution_info::find_scalar (const string& name)
                               current_probe->locals);
   for (unsigned i=0; i<locals.size(); i++)
     if (locals[i]->name == name)
-      // NB: no need to check arity here: locals always scalar
-      return locals[i];
+      {
+	// NB: no need to check arity here: formal args always scalar
+	locals[i]->set_arity (0);
+	return locals[i];
+      }
 
   // search function formal parameters (if any)
   if (current_function)
     for (unsigned i=0; i<current_function->formal_args.size(); i++)
       if (current_function->formal_args[i]->name == name)
-        // NB: no need to check arity here: formal args always scalar
-        return current_function->formal_args[i];
+	{
+	  // NB: no need to check arity here: formal args always scalar
+	  current_function->formal_args[i]->set_arity (0);
+	  return current_function->formal_args[i];
+	}
 
   // search globals
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name)
-      if (session.globals[i]->arity <= 0)
-	  {
-	    session.globals[i]->set_arity (0);
-	    return session.globals[i];
-	  }
+      {
+	session.globals[i]->set_arity (0);
+	return session.globals[i];
+      }
 
   // search library globals
   for (unsigned i=0; i<session.library_files.size(); i++)
     {
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
-        if (f->globals[j]->name == name &&
-            f->globals[j]->index_types.size() == 0)
+        if (f->globals[j]->name == name)
           {
             // put library into the queue if not already there
             if (0) // (session.verbose_resolution)
               cerr << "      scalar " << name << " "
                    << "is defined from " << f->name << endl;
-
+	    
             if (find (session.files.begin(), session.files.end(), f) 
                 == session.files.end())
               session.files.push_back (f);
             // else .. print different message?
 
+	    f->globals[j]->set_arity (0);
             return f->globals[j];
           }
     }
@@ -353,7 +358,6 @@ symresolution_info::find_scalar (const string& name)
     }
 
   return 0;
-  // XXX: add checking for conflicting array or function
 }
 
 
@@ -363,13 +367,10 @@ symresolution_info::find_array (const string& name, unsigned arity)
   // search processed globals
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name)
-      if ((arity > 0 && (session.globals[i]->arity == (int) arity)) ||
-	  session.globals[i]->arity < 0)
-	{
-          if (arity > 0)
-            session.globals[i]->set_arity (arity);
-	  return session.globals[i];
-	}
+      {
+	session.globals[i]->set_arity (arity);
+	return session.globals[i];
+      }
 
   // search library globals
   for (unsigned i=0; i<session.library_files.size(); i++)
@@ -377,28 +378,24 @@ symresolution_info::find_array (const string& name, unsigned arity)
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
         if (f->globals[j]->name == name)
-          if ((arity > 0 && (f->globals[j]->arity == (int) arity)) ||
-              f->globals[j]->arity < 0)
           {
-            if (arity > 0)
-              f->globals[j]->set_arity (arity);
+	    f->globals[j]->set_arity (arity);
 
             // put library into the queue if not already there
             if (0) // (session.verbose_resolution)
               cerr << "      array " << name << " "
                    << "is defined from " << f->name << endl;
-
+	    
             if (find (session.files.begin(), session.files.end(), f) 
                 == session.files.end())
               session.files.push_back (f);
             // else .. print different message?
-
+	    
             return f->globals[j];
           }
     }
 
   return 0;
-  // XXX: add checking for conflicting scalar or function
 }
 
 
@@ -436,7 +433,6 @@ symresolution_info::find_function (const string& name, unsigned arity)
     }
 
   return 0;
-  // XXX: add checking for conflicting variables
 }
 
 

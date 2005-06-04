@@ -1,5 +1,6 @@
 #! stap -p2
 
+global bar
 probe foo {
   bar[1] = 2;
   bar[1, 2] = 3;  # inconsistent array dimensions

@@ -96,10 +96,17 @@ void
 vardecl::set_arity (int a)
 {
   assert (a >= 0);
-  arity = a;
-  index_types.resize (arity);
-  for (int i=0; i<arity; i++)
-    index_types[i] = pe_unknown;
+
+  if (arity != a && arity >= 0)
+    throw semantic_error ("inconsistent arity", tok);
+
+  if (arity != a)
+    {
+      arity = a;
+      index_types.resize (arity);
+      for (int i=0; i<arity; i++)
+	index_types[i] = pe_unknown;
+    }
 }
 
 

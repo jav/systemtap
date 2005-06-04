@@ -1,5 +1,7 @@
 #! stap -p2
 
+global a
+
 probe foo {
   a[4] = 1;
   a = 2;

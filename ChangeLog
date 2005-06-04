@@ -1,3 +1,10 @@
+2005-06-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (find_*): Remove arity checks from here ...
+	* staptree.cxx (set_arity): Put arity match assertion here.
+	* testsuite/semko/{six,nine}.stp: Confirm logic.
+	* testsuite/transko/one.stp: First translation-time ko test.
+
 2005-06-03  Frank Ch. Eigler  <fche@redhat.com>
 
 	* TODO: Removed entries already represented in bugzilla.
