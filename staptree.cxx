@@ -161,6 +161,7 @@ void literal_string::print (ostream& o)
   o << '"' << value << '"';
 }
 
+
 void literal_number::print (ostream& o)
 {
   o << value;
@@ -290,7 +291,14 @@ void block::print (ostream& o)
 
 void for_loop::print (ostream& o)
 {
-  o << "<for_loop>" << endl;
+  o << "for (";
+  init->print (o);
+  o << "; ";
+  cond->print (o);
+  o << "; ";
+  incr->print (o);
+  o << ")" << endl;
+  block->print (o);
 }
 
 
@@ -330,6 +338,20 @@ void delete_statement::print (ostream& o)
   o << "delete " << *value;
 }
 
+void next_statement::print (ostream& o)
+{
+  o << "next";
+}
+
+void break_statement::print (ostream& o)
+{
+  o << "break";
+}
+
+void continue_statement::print (ostream& o)
+{
+  o << "continue";
+}
 
 void if_statement::print (ostream& o)
 {
@@ -461,6 +483,24 @@ void
 if_statement::visit (visitor* u)
 {
   u->visit_if_statement (this);
+}
+
+void
+next_statement::visit (visitor* u)
+{
+  u->visit_next_statement (this);
+}
+
+void
+break_statement::visit (visitor* u)
+{
+  u->visit_break_statement (this);
+}
+
+void
+continue_statement::visit (visitor* u)
+{
+  u->visit_continue_statement (this);
 }
 
 void
@@ -622,6 +662,21 @@ void
 traversing_visitor::visit_delete_statement (delete_statement* s)
 {
   s->value->visit (this);
+}
+
+void
+traversing_visitor::visit_next_statement (next_statement* s)
+{
+}
+
+void
+traversing_visitor::visit_break_statement (break_statement* s)
+{
+}
+
+void
+traversing_visitor::visit_continue_statement (continue_statement* s)
+{
 }
 
 void
@@ -793,6 +848,24 @@ throwing_visitor::visit_return_statement (return_statement* s)
 
 void
 throwing_visitor::visit_delete_statement (delete_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_next_statement (next_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_break_statement (break_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_continue_statement (continue_statement* s)
 {
   throwone (s->tok);
 }

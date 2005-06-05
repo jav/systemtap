@@ -1,0 +1,17 @@
+#! stap
+
+probe two
+{
+  for (;;) ;
+  for (a=0;;) { if (a > 4) break }
+  for (;a>0;) { a + 5 }
+  for (;;a=a+1) { a + 5 }
+  for (a=0;a>0;) { if (a < 4) continue }
+  for (;a>0;a=a+1) { a + 5 }
+  for (a=0;;a=a+1) { a + 5 }
+  for (a=0; a<=4; a=a+1) ;
+  for (a=0; a<=4; a=a+1) { b = a }
+
+  while (99) next
+  while (99) {}
+}

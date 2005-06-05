@@ -1,4 +1,4 @@
-// semantic analysis pass, beginnings of elaboration
+// translation pass
 // Copyright (C) 2005 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -65,10 +65,11 @@ struct c_unparser: public unparser, public visitor
   unsigned current_probenum;
   functiondecl* current_function;
   unsigned tmpvar_counter;
+  unsigned label_counter;
 
   c_unparser (systemtap_session *ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
-  tmpvar_counter (0) {}
+  tmpvar_counter (0), label_counter (0) {}
   ~c_unparser () {}
 
   void emit_common_header ();
@@ -79,9 +80,9 @@ struct c_unparser: public unparser, public visitor
   void emit_function (functiondecl* v);
   void emit_probe (derived_probe* v, unsigned i);
 
-  // XXX: for use by loop/nesting constructs
-  // vector<string> loop_break_labels;
-  // vector<string> loop_continue_labels;
+  // for use by looping constructs
+  vector<string> loop_break_labels;
+  vector<string> loop_continue_labels;
 
   string c_typename (exp_type e);
   string c_varname (const string& e);
@@ -97,6 +98,9 @@ struct c_unparser: public unparser, public visitor
   void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
+  void visit_next_statement (next_statement* s);
+  void visit_break_statement (break_statement* s);
+  void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
   void visit_binary_expression (binary_expression* e);
@@ -593,7 +597,7 @@ c_unparser::visit_block (block *s)
   o->newline() << "{";
   o->indent (1);
   o->newline() << "c->actioncount += " << s->statements.size() << ";";
-  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;" << endl;
+  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
@@ -653,7 +657,33 @@ c_unparser::visit_if_statement (if_statement *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
-  throw semantic_error ("not yet implemented", s->tok);
+  s->init->visit (this);
+  string ctr = stringify (label_counter++);
+  string contlabel = "continue_" + ctr;
+  string breaklabel = "break_" + ctr;
+
+  o->newline() << contlabel << ":";
+
+  o->newline() << "c->actioncount ++;";
+  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
+  o->newline() << "if (errorcount) goto out;";
+
+  o->newline() << "if (! (";
+  if (s->cond->type != pe_long)
+    throw semantic_error ("expected numeric type", s->cond->tok);
+  s->cond->visit (this);
+  o->line() << ")) goto " << breaklabel << ";";
+
+  loop_break_labels.push_back (breaklabel);
+  loop_continue_labels.push_back (contlabel);
+  s->block->visit (this);
+  loop_break_labels.pop_back ();
+  loop_continue_labels.pop_back ();
+
+  s->incr->visit (this);
+  o->newline() << "goto " << contlabel << ";";
+
+  o->newline() << breaklabel << ": ; /* dummy statement */";
 }
 
 
@@ -680,16 +710,51 @@ c_unparser::visit_return_statement (return_statement* s)
 
 
 void
+c_unparser::visit_next_statement (next_statement* s)
+{
+  if (current_probe == 0)
+    throw semantic_error ("cannot 'next' from non-probe", s->tok);
+
+  o->newline() << "goto out;";
+}
+
+
+void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
   throw semantic_error ("not yet implemented", s->tok);
 }
+
+
+void
+c_unparser::visit_break_statement (break_statement* s)
+{
+  if (loop_break_labels.size() == 0)
+    throw semantic_error ("cannot 'break' outside loop", s->tok);
+
+  string label = loop_break_labels[loop_break_labels.size()-1];
+  o->newline() << "goto " << label << ";";
+}
+
+
+void
+c_unparser::visit_continue_statement (continue_statement* s)
+{
+  if (loop_continue_labels.size() == 0)
+    throw semantic_error ("cannot 'continue' outside loop", s->tok);
+
+  string label = loop_continue_labels[loop_continue_labels.size()-1];
+  o->newline() << "goto " << label << ";";
+}
+
+
 
 void
 c_unparser::visit_literal_string (literal_string* e)
 {
   o->line() << '"' << e->value << '"'; // XXX: escape special chars
 }
+
 
 void
 c_unparser::visit_literal_number (literal_number* e)

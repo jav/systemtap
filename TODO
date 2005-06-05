@@ -1,5 +1,4 @@
 LANGUAGE
-  for/while/break/continue statements
   lock (var) { block }  (http://tinyurl.com/5rpzg)
   builtin functions
   varargs/overloaded functions (?)

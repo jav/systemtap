@@ -102,10 +102,14 @@ private: // nonterminals
   statement* parse_statement ();
   if_statement* parse_if_statement ();
   for_loop* parse_for_loop ();
+  for_loop* parse_while_loop ();
   foreach_loop* parse_foreach_loop ();
   expr_statement* parse_expr_statement ();
   return_statement* parse_return_statement ();
   delete_statement* parse_delete_statement ();
+  next_statement* parse_next_statement ();
+  break_statement* parse_break_statement ();
+  continue_statement* parse_continue_statement ();
   expression* parse_expression ();
   expression* parse_assignment ();
   expression* parse_ternary ();

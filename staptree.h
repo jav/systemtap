@@ -275,11 +275,12 @@ struct block: public statement
 };
 
 
+struct expr_statement;
 struct for_loop: public statement
 {
-  expression* init;
+  expr_statement* init;
   expression* cond;
-  expression* incr;
+  expr_statement* incr;
   statement* block;
   void print (std::ostream& o);
   void visit (visitor* u);
@@ -332,6 +333,27 @@ struct return_statement: public expr_statement
 
 
 struct delete_statement: public expr_statement
+{
+  void print (std::ostream& o);
+  void visit (visitor* u);
+};
+
+
+struct break_statement: public statement
+{
+  void print (std::ostream& o);
+  void visit (visitor* u);
+};
+
+
+struct continue_statement: public statement
+{
+  void print (std::ostream& o);
+  void visit (visitor* u);
+};
+
+
+struct next_statement: public statement
 {
   void print (std::ostream& o);
   void visit (visitor* u);
@@ -393,6 +415,9 @@ struct visitor
   virtual void visit_foreach_loop (foreach_loop* s) = 0;
   virtual void visit_return_statement (return_statement* s) = 0;
   virtual void visit_delete_statement (delete_statement* s) = 0;
+  virtual void visit_next_statement (next_statement* s) = 0;
+  virtual void visit_break_statement (break_statement* s) = 0;
+  virtual void visit_continue_statement (continue_statement* s) = 0;
   virtual void visit_literal_string (literal_string* e) = 0;
   virtual void visit_literal_number (literal_number* e) = 0;
   virtual void visit_binary_expression (binary_expression* e) = 0;
@@ -426,6 +451,9 @@ struct traversing_visitor: public visitor
   void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
+  void visit_next_statement (next_statement* s);
+  void visit_break_statement (break_statement* s);
+  void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
   void visit_binary_expression (binary_expression* e);
@@ -464,6 +492,9 @@ struct throwing_visitor: public visitor
   void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
+  void visit_next_statement (next_statement* s);
+  void visit_break_statement (break_statement* s);
+  void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
   void visit_binary_expression (binary_expression* e);

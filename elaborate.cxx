@@ -1004,6 +1004,24 @@ typeresolution_info::visit_delete_statement (delete_statement* e)
 
 
 void
+typeresolution_info::visit_next_statement (next_statement* s)
+{
+}
+
+
+void
+typeresolution_info::visit_break_statement (break_statement* s)
+{
+}
+
+
+void
+typeresolution_info::visit_continue_statement (continue_statement* s)
+{
+}
+
+
+void
 typeresolution_info::visit_array_in (array_in* e)
 {
   // all unary operators only work on numerics

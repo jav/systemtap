@@ -69,6 +69,9 @@ struct typeresolution_info: public visitor
   void visit_foreach_loop (foreach_loop* s);
   void visit_return_statement (return_statement* s);
   void visit_delete_statement (delete_statement* s);
+  void visit_next_statement (next_statement* s);
+  void visit_break_statement (break_statement* s);
+  void visit_continue_statement (continue_statement* s);
   void visit_literal_string (literal_string* e);
   void visit_literal_number (literal_number* e);
   void visit_binary_expression (binary_expression* e);

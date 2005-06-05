@@ -486,18 +486,23 @@ parser::parse_statement ()
     return parse_stmt_block ();
   else if (t && t->type == tok_identifier && t->content == "if")
     return parse_if_statement ();
-  /*
   else if (t && t->type == tok_identifier && t->content == "for")
     return parse_for_loop ();
-  */
   else if (t && t->type == tok_identifier && t->content == "foreach")
     return parse_foreach_loop ();
   else if (t && t->type == tok_identifier && t->content == "return")
     return parse_return_statement ();
   else if (t && t->type == tok_identifier && t->content == "delete")
     return parse_delete_statement ();
-  // XXX: other control constructs ("delete", "while", "do",
-  // "break", "continue", "exit")
+  else if (t && t->type == tok_identifier && t->content == "while")
+    return parse_while_loop ();
+  else if (t && t->type == tok_identifier && t->content == "break")
+    return parse_break_statement ();
+  else if (t && t->type == tok_identifier && t->content == "continue")
+    return parse_continue_statement ();
+  else if (t && t->type == tok_identifier && t->content == "next")
+    return parse_next_statement ();
+  // XXX: "do/while" statement?
   else if (t && (t->type == tok_operator || // expressions are flexible
                  t->type == tok_identifier ||
                  t->type == tok_number ||
@@ -746,10 +751,153 @@ parser::parse_delete_statement ()
 }
 
 
+next_statement*
+parser::parse_next_statement ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "next"))
+    throw parse_error ("expected 'next'");
+  next_statement* s = new next_statement;
+  s->tok = t;
+  return s;
+}
+
+
+break_statement*
+parser::parse_break_statement ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "break"))
+    throw parse_error ("expected 'break'");
+  break_statement* s = new break_statement;
+  s->tok = t;
+  return s;
+}
+
+
+continue_statement*
+parser::parse_continue_statement ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "continue"))
+    throw parse_error ("expected 'continue'");
+  continue_statement* s = new continue_statement;
+  s->tok = t;
+  return s;
+}
+
+
 for_loop*
 parser::parse_for_loop ()
 {
-  throw parse_error ("not yet implemented");
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "for"))
+    throw parse_error ("expected 'for'");
+  for_loop* s = new for_loop;
+  s->tok = t;
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == "("))
+    throw parse_error ("expected '('");
+
+  // initializer + ";"
+  t = peek ();
+  if (t && t->type == tok_operator && t->content == ";")
+    {
+      literal_number* l = new literal_number(0);
+      expr_statement* es = new expr_statement;
+      es->value = l;
+      s->init = es;
+      es->value->tok = es->tok = next ();
+    }
+  else
+    {
+      s->init = parse_expr_statement ();
+      t = next ();
+      if (! (t->type == tok_operator && t->content == ";"))
+	throw parse_error ("expected ';'");
+    }
+
+  // condition + ";"
+  t = peek ();
+  if (t && t->type == tok_operator && t->content == ";")
+    {
+      literal_number* l = new literal_number(1);
+      s->cond = l;
+      s->cond->tok = next ();
+    }
+  else
+    {
+      s->cond = parse_expression ();
+      t = next ();
+      if (! (t->type == tok_operator && t->content == ";"))
+	throw parse_error ("expected ';'");
+    }
+  
+  // increment + ")"
+  t = peek ();
+  if (t && t->type == tok_operator && t->content == ")")
+    {
+      literal_number* l = new literal_number(2);
+      expr_statement* es = new expr_statement;
+      es->value = l;
+      s->incr = es;
+      es->value->tok = es->tok = next ();
+    }
+  else
+    {
+      s->incr = parse_expr_statement ();
+      t = next ();
+      if (! (t->type == tok_operator && t->content == ")"))
+	throw parse_error ("expected ';'");
+    }
+
+  // block
+  s->block = parse_statement ();
+
+  return s;
+}
+
+
+for_loop*
+parser::parse_while_loop ()
+{
+  const token* t = next ();
+  if (! (t->type == tok_identifier && t->content == "while"))
+    throw parse_error ("expected 'while'");
+  for_loop* s = new for_loop;
+  s->tok = t;
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == "("))
+    throw parse_error ("expected '('");
+
+  // dummy init and incr fields
+  literal_number* l = new literal_number(0);
+  expr_statement* es = new expr_statement;
+  es->value = l;
+  s->init = es;
+  es->value->tok = es->tok = t;
+
+  l = new literal_number(2);
+  es = new expr_statement;
+  es->value = l;
+  s->incr = es;
+  es->value->tok = es->tok = t;
+
+
+  // condition
+  s->cond = parse_expression ();
+
+
+  t = next ();
+  if (! (t->type == tok_operator && t->content == ")"))
+    throw parse_error ("expected ')'");
+  
+  // block
+  s->block = parse_statement ();
+
+  return s;
 }
 
 
