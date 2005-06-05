@@ -1047,12 +1047,9 @@ typeresolution_info::visit_return_statement (return_statement* e)
   // This is like symbol, where the referent is
   // the return value of the function.
 
-  // XXX: need control flow semantic checking; until then:
+  // translation pass will print error 
   if (current_function == 0)
-    {
-      unresolved (e->tok);
-      return;
-    }
+    return;
 
   exp_type& e_type = current_function->type;
   t = current_function->type;

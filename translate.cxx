@@ -698,7 +698,7 @@ void
 c_unparser::visit_return_statement (return_statement* s)
 {
   if (current_function == 0)
-    throw semantic_error ("cannot return from non-function", s->tok);
+    throw semantic_error ("cannot 'return' from probe", s->tok);
 
   if (s->value->type != current_function->type)
     throw semantic_error ("return type mismatch", current_function->tok,
@@ -713,7 +713,7 @@ void
 c_unparser::visit_next_statement (next_statement* s)
 {
   if (current_probe == 0)
-    throw semantic_error ("cannot 'next' from non-probe", s->tok);
+    throw semantic_error ("cannot 'next' from function", s->tok);
 
   o->newline() << "goto out;";
 }
