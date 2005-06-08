@@ -57,8 +57,10 @@ public:
 
 private:
   int input_get ();
+  int input_peek (unsigned n=0);
   std::istream& input;
   std::string input_name;
+  std::vector<int> lookahead;
   unsigned cursor_line;
   unsigned cursor_column;
 };
@@ -115,13 +117,16 @@ private: // nonterminals
   expression* parse_ternary ();
   expression* parse_logical_or ();
   expression* parse_logical_and ();
+  expression* parse_boolean_or ();
+  expression* parse_boolean_xor ();
+  expression* parse_boolean_and ();
   expression* parse_array_in ();
   expression* parse_comparison ();
+  expression* parse_shift ();
   expression* parse_concatenation ();
   expression* parse_additive ();
   expression* parse_multiplicative ();
   expression* parse_unary ();
-  expression* parse_exponentiation ();
   expression* parse_crement ();
   expression* parse_value ();
   expression* parse_symbol ();

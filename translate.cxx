@@ -112,7 +112,6 @@ struct c_unparser: public unparser, public visitor
   void visit_array_in (array_in* e);
   void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
-  void visit_exponentiation (exponentiation* e);
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);
@@ -142,8 +141,6 @@ resolution_pass (systemtap_session& s)
       s.probes.push_back (dp);
     }
 
-  // XXX: merge functiondecls
-  // XXX: handle library files
   // XXX: add builtin variables/functions
   return rc;
 }
@@ -267,16 +264,15 @@ struct c_tmpcounter: public traversing_visitor
   // void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
   // void visit_delete_statement (delete_statement* s);
-  // void visit_binary_expression (binary_expression* e);
+  void visit_binary_expression (binary_expression* e);
   // void visit_unary_expression (unary_expression* e);
-  // void visit_pre_crement (pre_crement* e);
-  // void visit_post_crement (post_crement* e);
+  void visit_pre_crement (pre_crement* e);
+  void visit_post_crement (post_crement* e);
   // void visit_logical_or_expr (logical_or_expr* e);
   // void visit_logical_and_expr (logical_and_expr* e);
   // void visit_array_in (array_in* e);
   // void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
-  // void visit_exponentiation (exponentiation* e);
   // void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_arrayindex (arrayindex* e);
@@ -387,7 +383,23 @@ c_unparser::emit_module_init ()
   o->newline() << "int STARTUP () {";
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
-  // XXX: initialize globals
+
+  for (unsigned i=0; i<session->globals.size(); i++)
+    {
+      vardecl* v = session->globals[i];
+      if (v->index_types.size() > 0) // array?
+	throw semantic_error ("array init not yet implemented", v->tok);
+      else if (v->type == pe_long)
+	o->newline() << "global_" << c_varname (v->name)
+		     << " = 0;";
+      else if (v->type == pe_string)
+	o->newline() << "global_" << c_varname (v->name)
+		     << "[0] = '\\0';";
+      else
+	throw semantic_error ("unsupported global variable type",
+			      v->tok);
+    }
+
   for (unsigned i=0; i<session->probes.size(); i++)
     {
       session->probes[i]->emit_registrations (o, i);
@@ -401,8 +413,7 @@ c_unparser::emit_module_init ()
       o->newline() << "goto out;";
       o->newline(-1) << "}";
     }
-  o->newline(-1) << "out:";
-  o->indent(1);
+  o->newline() << "out:";
   o->newline() << "return anyrc; /* if (anyrc) log badness */";
   o->newline(-1) << "}" << endl;
 }
@@ -448,7 +459,7 @@ c_unparser::emit_function (functiondecl* v)
   for (unsigned i=0; i<v->locals.size(); i++)
     {
       if (v->locals[i]->index_types.size() > 0) // array?
-	throw semantic_error ("not yet implemented", v->tok);
+	throw semantic_error ("array locals not supported", v->tok);
       else if (v->locals[i]->type == pe_long)
 	o->newline() << "l->" << c_varname (v->locals[i]->name)
 		     << " = 0;";
@@ -491,7 +502,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   for (unsigned j=0; j<v->locals.size(); j++)
     {
       if (v->locals[j]->index_types.size() > 0) // array?
-	throw semantic_error ("not yet implemented", v->tok);
+	throw semantic_error ("array locals not supported", v->tok);
       else if (v->locals[j]->type == pe_long)
 	o->newline() << "l->" << c_varname (v->locals[j]->name)
 		     << " = 0;";
@@ -690,7 +701,7 @@ c_unparser::visit_for_loop (for_loop *s)
 void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
-  throw semantic_error ("not yet implemented", s->tok);
+  throw semantic_error ("foreach loop not yet implemented", s->tok);
 }
 
 
@@ -722,7 +733,7 @@ c_unparser::visit_next_statement (next_statement* s)
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
-  throw semantic_error ("not yet implemented", s->tok);
+  throw semantic_error ("delete statement not yet implemented", s->tok);
 }
 
 
@@ -763,28 +774,77 @@ c_unparser::visit_literal_number (literal_number* e)
 }
 
 
+
+void
+c_tmpcounter::visit_binary_expression (binary_expression* e)
+{
+  if (e->op == "/" || e->op == "%")
+    {
+      parent->o->newline()
+        << parent->c_typename (pe_long)
+        << " __tmp" << tmpvar_counter ++ << ";";
+      parent->o->newline()
+        << parent->c_typename (pe_long)
+        << " __tmp" << tmpvar_counter ++ << ";";
+    }
+
+  e->left->visit (this);
+  e->right->visit (this);
+}
+
+
 void
 c_unparser::visit_binary_expression (binary_expression* e)
 {
+  if (e->type != pe_long ||
+      e->left->type != pe_long ||
+      e->right->type != pe_long)
+    throw semantic_error ("expected numeric types", e->tok);
+  
   if (e->op == "+" ||
       e->op == "-" ||
       e->op == "*" ||
-      false)           // XXX: other simple arithmetic operators
+      e->op == "&" ||
+      e->op == "|" ||
+      e->op == "^" ||
+      e->op == "<<" ||
+      e->op == ">>")
     {
-      if (e->type != pe_long ||
-          e->left->type != pe_long ||
-          e->right->type != pe_long)
-        throw semantic_error ("expected numeric types", e->tok);
-
-      o->line() << "(";
+      o->line() << "((";
       e->left->visit (this);
-      o->line() << " " << e->op << " ";
+      o->line() << ") " << e->op << " (";
       e->right->visit (this);
-      o->line() << ")";
+      o->line() << "))";
     }
-  // XXX: % and / need a division-by-zero check
+  else if (e->op == "/" ||
+           e->op == "%")
+    {
+      // % and / need a division-by-zero check; and thus two temporaries
+      // for proper evaluation order
+      unsigned tmpidx1 = tmpvar_counter++;
+      unsigned tmpidx2 = tmpvar_counter++;
+      string tmp1 = "l->__tmp" + stringify (tmpidx1);
+      string tmp2 = "l->__tmp" + stringify (tmpidx2);
+      o->line() << "({";
+
+      o->newline(1) << tmp1 << " = ";
+      e->left->visit (this);
+      o->line() << ";";
+
+      o->newline() << tmp2 << " = ";
+      e->right->visit (this);
+      o->line() << ";";
+
+      o->newline() << "if (" << tmp2 << " == 0) {";
+      o->newline(1) << "errorcount ++;";
+      o->newline() << tmp2 << " = 1;";
+      o->newline(-1) << "}";
+
+      o->newline() << tmp1 << " " << e->op << " " << tmp2 << ";";
+      o->newline(-1) << "})";
+    }
   else
-    throw semantic_error ("not yet implemented", e->tok); 
+    throw semantic_error ("operator not yet implemented", e->tok); 
 }
 
 
@@ -795,25 +855,10 @@ c_unparser::visit_unary_expression (unary_expression* e)
       e->operand->type != pe_long)
     throw semantic_error ("expected numeric types", e->tok);
 
-  o->line() << e->op << " (";
+  o->line() << "(" << e->op << " (";
   e->operand->visit (this);
-  o->line() << ")";
+  o->line() << "))";
 }
-
-
-void
-c_unparser::visit_pre_crement (pre_crement* e)
-{
-  throw semantic_error ("not yet implemented", e->tok);
-}
-
-
-void
-c_unparser::visit_post_crement (post_crement* e)
-{
-  throw semantic_error ("not yet implemented", e->tok);
-}
-
 
 void
 c_unparser::visit_logical_or_expr (logical_or_expr* e)
@@ -823,11 +868,11 @@ c_unparser::visit_logical_or_expr (logical_or_expr* e)
       e->right->type != pe_long)
     throw semantic_error ("expected numeric types", e->tok);
 
-  o->line() << "(";
+  o->line() << "((";
   e->left->visit (this);
   o->line() << ") " << e->op << " (";
   e->right->visit (this);
-  o->line() << ")";
+  o->line() << "))";
 }
 
 
@@ -839,18 +884,18 @@ c_unparser::visit_logical_and_expr (logical_and_expr* e)
       e->right->type != pe_long)
     throw semantic_error ("expected numeric types", e->tok);
 
-  o->line() << "(";
+  o->line() << "((";
   e->left->visit (this);
   o->line() << ") " << e->op << " (";
   e->right->visit (this);
-  o->line() << ")";
+  o->line() << "))";
 }
 
 
 void
 c_unparser::visit_array_in (array_in* e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  throw semantic_error ("array-in expression not yet implemented", e->tok);
 }
 
 
@@ -878,11 +923,11 @@ c_unparser::visit_comparison (comparison* e)
           e->right->type != pe_long)
         throw semantic_error ("expected numeric types", e->tok);
 
-      o->line() << "(";
+      o->line() << "((";
       e->left->visit (this);
       o->line() << ") " << e->op << " (";
       e->right->visit (this);
-      o->line() << ")";
+      o->line() << "))";
     }
   else
     throw semantic_error ("unexpected type", e->left->tok);
@@ -895,8 +940,7 @@ void
 c_tmpcounter::visit_concatenation (concatenation* e)
 {
   parent->o->newline() << parent->c_typename (e->type)
-                       << " __tmp" << tmpvar_counter ++ << ";"
-                       << " /* " << e->op << " result */";
+                       << " __tmp" << tmpvar_counter ++ << ";";
   e->left->visit (this);
   e->right->visit (this);
 }
@@ -927,13 +971,6 @@ c_unparser::visit_concatenation (concatenation* e)
 
 
 void
-c_unparser::visit_exponentiation (exponentiation* e)
-{
-  throw semantic_error ("not yet implemented", e->tok);
-}
-
-
-void
 c_unparser::visit_ternary_expression (ternary_expression* e)
 {
   if (e->cond->type != pe_long)
@@ -959,9 +996,13 @@ struct c_unparser_assignment: public throwing_visitor
   c_unparser* parent;
   string op;
   expression* rvalue;
+  bool pre;
   c_unparser_assignment (c_unparser* p, const string& o, expression* e):
     throwing_visitor ("invalid lvalue type"),
-    parent (p), op (o), rvalue (e) {}
+    parent (p), op (o), rvalue (e), pre (false) {}
+  c_unparser_assignment (c_unparser* p, const string& o, bool pp):
+    throwing_visitor ("invalid lvalue type"),
+    parent (p), op (o), rvalue (0), pre (pp) {}
 
   // only symbols and arrayindex nodes are possible lvalues
   void visit_symbol (symbol *e);
@@ -1003,13 +1044,46 @@ c_unparser::visit_assignment (assignment* e)
     throw semantic_error ("type mismatch", e->right->tok,
                          "vs", e->left->tok);
 
-  if (e->op == "=" || e->op == "<<<")
-    {
-      c_unparser_assignment tav (this, e->op, e->right);
-      e->left->visit (& tav);
-    }
-  else
-    throw semantic_error ("not yet implemented ", e->tok);
+  c_unparser_assignment tav (this, e->op, e->right);
+  e->left->visit (& tav);
+}
+
+
+void
+c_tmpcounter::visit_pre_crement (pre_crement* e)
+{
+  c_tmpcounter_assignment tav (this, e->op, 0);
+  e->operand->visit (& tav);
+}
+
+void
+c_unparser::visit_pre_crement (pre_crement* e)
+{
+  if (e->type != pe_long ||
+      e->type != e->operand->type)
+    throw semantic_error ("expected numeric type", e->tok);
+
+  c_unparser_assignment tav (this, e->op, true);
+  e->operand->visit (& tav);
+}
+
+
+void
+c_tmpcounter::visit_post_crement (post_crement* e)
+{
+  c_tmpcounter_assignment tav (this, e->op, 0);
+  e->operand->visit (& tav);
+}
+
+void
+c_unparser::visit_post_crement (post_crement* e)
+{
+  if (e->type != pe_long ||
+      e->type != e->operand->type)
+    throw semantic_error ("expected numeric type", e->tok);
+
+  c_unparser_assignment tav (this, e->op, false);
+  e->operand->visit (& tav);
 }
 
 
@@ -1077,16 +1151,46 @@ c_unparser::visit_symbol (symbol* e)
 }
 
 
+
+
+// Assignment expansion is tricky.
+//
+// Because assignments are nestable expressions, we have
+// to emit C constructs that are nestable expressions too.
+// We have to evaluate the given expressions the proper number of times,
+// including array indices.
+// We have to lock the lvalue (if global) against concurrent modification,
+// especially with modify-assignment operations (+=, ++).
+// We have to check the rvalue (for division-by-zero checks).
+
+// In the normal "pre=false" case, for (A op B) emit:
+// ({ tmp = B; check(B); lock(A); res = A op tmp; A = res; unlock(A); res; })
+// In the "pre=true" case, emit instead:
+// ({ tmp = B; check(B); lock(A); res = A; A = res op tmp; unlock(A); res; })
+//
+// (op is the plain operator portion of a combined calculate/assignment:
+// "+" for "+=", and so on.  It is in the "macop" variable below.)
+//
+// For array assignments, additional temporaries are used for each
+// index, which are expanded before the "tmp=B" expression, in order
+// to consistently order evaluation of lhs before rhs.
+//
+
 void
 c_tmpcounter_assignment::visit_symbol (symbol *e)
 {
+  // tmp
   parent->parent->o->newline()
     << parent->parent->c_typename (e->type)
-    << " __tmp" << parent->tmpvar_counter ++ << ";"
-    << " /* " << e->name << " rvalue */";
-  rvalue->visit (parent);
-}
+    << " __tmp" << parent->tmpvar_counter ++ << ";";
+  // res
+  parent->parent->o->newline()
+    << parent->parent->c_typename (e->type)
+    << " __tmp" << parent->tmpvar_counter ++ << ";";
 
+  if (rvalue)
+    rvalue->visit (parent);
+}
 
 void
 c_unparser_assignment::visit_symbol (symbol *e)
@@ -1097,104 +1201,152 @@ c_unparser_assignment::visit_symbol (symbol *e)
   derived_probe* current_probe = parent->current_probe;
   systemtap_session* session = parent->session;
 
-  if (op != "=")
-    throw semantic_error ("not yet implemented", e->tok);
-
   if (r->index_types.size() != 0)
-    throw semantic_error ("invalid reference to array", e->tok);
-
-  // XXX: handle special macro symbols
+    throw semantic_error ("unexpected reference to array", e->tok);
 
   unsigned tmpidx = parent->tmpvar_counter ++;
+  unsigned residx = parent->tmpvar_counter ++;
   string tmp_base = "l->__tmp";
-
-  // NB: because assignments are nestable expressions, we have
-  // to emit C constructs that are nestable expressions too.
-  // ... (A = B) ... ==>
-  // ... ({ tmp = B; store(A,tmp); tmp; }) ...
-
+  string tmpvar = tmp_base + stringify (tmpidx);
+  string resvar = tmp_base + stringify (residx);
   o->line() << "({ ";
   o->indent(1);
 
-  parent->c_assign (tmp_base + stringify (tmpidx), rvalue, "assignment");
+  // part 1: "tmp = B"
+  if (rvalue)
+    parent->c_assign (tmpvar, rvalue, "assignment");
+  else
+    {
+      if (op == "++" || op == "--")
+        o->newline() << tmpvar << " = 1;";
+      else
+        // internal error
+        throw semantic_error ("need rvalue for assignment", e->tok);
+    }
+  // OPT: literal rvalues could be used without a tmp* copy
 
-  // XXX: strings may be passed safely via a char*, without
-  // a full copy in tmpNNN
+  // part 2: "check (B)"
+  if (op == "/=" || op == "%=") 
+    {
+      // need division-by-zero check
+      o->newline() << "if (" << tmpvar << " == 0) {";
+      o->newline(1) << "errorcount ++;";
+      o->newline() << tmpvar << " = 1;";
+      o->newline(-1) << "}";
+    }
 
   // maybe the variable is a local
-  if (current_probe)
-    {
-      for (unsigned i=0; i<current_probe->locals.size(); i++)
-	{
-	  vardecl* rr = current_probe->locals[i];
-	  if (rr == r) // comparison of pointers is sufficient
-	    {
-              parent->c_assign ("l->" + parent->c_varname (r->name),
-                                tmp_base + stringify (tmpidx),
-                                rvalue->type,
-                                "local variable assignment", rvalue->tok); 
+  string lvaluename;
+  bool lock_global = false;
 
-              o->newline() << tmp_base << tmpidx << ";";
-	      o->newline(-1) << "})";
-	      return;
-	    }
-	}
-    }
-  else if (current_function)
+  if (current_probe)
+    for (unsigned i=0; i<current_probe->locals.size(); i++)
+      if (current_probe->locals[i] == r)
+        lvaluename = "l->" + parent->c_varname (r->name);
+  if (current_function)
     {
       for (unsigned i=0; i<current_function->locals.size(); i++)
-	{
-	  vardecl* rr = current_function->locals[i];
-	  if (rr == r) // comparison of pointers is sufficient
-	    {
-              parent->c_assign ("l->" + parent->c_varname (r->name),
-                                tmp_base + stringify (tmpidx),
-                                rvalue->type,
-                                "local variable assignment", rvalue->tok); 
-
-	      o->newline() << tmp_base << tmpidx << ";";
-	      o->newline(-1) << "})";
-	      return;
-	    }
-	}
-
+        if (current_function->locals[i] == r)
+          lvaluename = "l->" + parent->c_varname (r->name);
+      
       for (unsigned i=0; i<current_function->formal_args.size(); i++)
-	{
-	  vardecl* rr = current_function->formal_args[i];
-	  if (rr == r) // comparison of pointers is sufficient
-	    {
-              parent->c_assign ("l->" + parent->c_varname (r->name),
-                                tmp_base + stringify (tmpidx),
-                                rvalue->type,
-                                "formal argument assignment", rvalue->tok); 
-
-	      o->newline() << tmp_base << tmpidx << ";";
-	      o->newline(-1) << "})";
-	      return;
-	    }
-	}
+        if (current_function->formal_args[i] == r)
+          lvaluename = "l->" + parent->c_varname (r->name);
     }
-
-  // it better be a global
-  for (unsigned i=0; i<session->globals.size(); i++)
-    {
+  if (lvaluename == "")
+    for (unsigned i=0; i<session->globals.size(); i++)
       if (session->globals[i] == r)
-	{
-	  // XXX: acquire write lock on global
-          o->newline() << "/* wlock global_" << parent->c_varname (r->name) << " */";
-          parent->c_assign ("global_" + parent->c_varname (r->name),
-                            tmp_base + stringify (tmpidx),
-                            rvalue->type,
-                            "global variable assignment", rvalue->tok); 
-          o->newline() << "/* unlock global_" << parent->c_varname (r->name) << " */";
+        {
+          lvaluename = "global_" + parent->c_varname (r->name);
+          lock_global = true;
+        }
 
-	  o->newline() << tmp_base << tmpidx << ";";
-	  o->newline(-1) << "})";
-	  return;
-	}
+  if (lvaluename == "")
+    throw semantic_error ("unresolved assignment to ", e->tok);
+
+  // part 3: "lock(A)"
+  if (lock_global)
+    o->newline() << "/* XXX lock " << lvaluename << " */";
+
+  // part 4/5
+  if (e->type == pe_string)
+    {
+      if (pre)
+        throw semantic_error ("pre assignment on strings not supported", 
+                              e->tok);
+      if (op == "=")
+        {
+          o->newline() << "strncpy (" << lvaluename
+                       << ", " << tmpvar
+                       << ", MAXSTRINGLEN);";
+          // no need for second copy
+          resvar = tmpvar;
+        }
+      else if (op == ".=")
+        {
+          // shortcut two-step construction of concatenated string in
+          // empty resvar, then copy to tmpvar: instead concatenate
+          // to lvalue directly, then copy back to resvar
+          o->newline() << "strncat (" << lvaluename
+                       << ", " << tmpvar
+                       << ", MAXSTRINGLEN);";
+          o->newline() << "strncpy (" << resvar
+                       << ", " << lvaluename
+                       << ", MAXSTRINGLEN);";
+        }
+      else
+        throw semantic_error ("string assignment operator " +
+                              op + " unsupported", e->tok);
     }
+  else if (e->type == pe_long)
+    {
+      // a lot of operators come through this "gate":
+      // - vanilla assignment "="
+      // - stats aggregation "<<<"
+      // - modify-accumulate "+=" and many friends
+      // - pre/post-crement "++"/"--"
 
-  throw semantic_error ("unresolved symbol", e->tok);
+      // compute the modify portion of a modify-accumulate
+      string macop;
+      unsigned oplen = op.size();
+      if (op == "=")
+        macop = "* 0 +"; // clever (?) trick to select rvalue (tmp) only
+      else if (oplen > 1 && op[oplen-1] == '=') // for +=, %=, <<=, etc...
+        macop = op.substr(0, oplen-1);
+      else if (op == "<<<")
+        throw semantic_error ("stats aggregation not yet implemented", e->tok);
+      else if (op == "++")
+        macop = "+";
+      else if (op == "--")
+        macop = "-";
+      else
+        // internal error
+        throw semantic_error ("unknown macop for assignment", e->tok);
+
+      // part 4
+      if (pre)
+        o->newline() << resvar << " = " << lvaluename << ";";
+      else
+        o->newline() << resvar << " = "
+                     << lvaluename << " " << macop << " " << tmpvar << ";";
+
+      // part 5
+      if (pre)
+        o->newline() << lvaluename << " = "
+                     << resvar << " " << macop << " " << tmpvar << ";";
+      else
+        o->newline() << lvaluename << " = " << resvar << ";";        
+    }
+  else
+    throw semantic_error ("assignment type not yet implemented", e->tok);
+
+  // part 6: "unlock(A)"
+  if (lock_global)
+    o->newline() << "/* XXX unlock " << lvaluename << " */";
+
+  // part 7: "res"
+  o->newline() << resvar << ";";
+  o->newline(-1) << "})";
 }
 
 
@@ -1206,13 +1358,11 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
   for (unsigned i=0; i<r->index_types.size(); i++)
     parent->o->newline()
       << parent->c_typename (r->index_types[i])
-      << " __tmp" << tmpvar_counter ++ << ";"
-      << " /* " << e->base << " idx #" << i << " */";
+      << " __tmp" << tmpvar_counter ++ << ";";
   // now the result
   parent->o->newline()
     << parent->c_typename (r->type)
-    << " __tmp" << tmpvar_counter ++ << ";"
-    << " /* " << e->base << "value */";
+    << " __tmp" << tmpvar_counter ++ << ";";
 
   for (unsigned i=0; i<e->indexes.size(); i++)
     e->indexes[i]->visit (this);
@@ -1228,6 +1378,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
       r->index_types.size() != e->indexes.size())
     throw semantic_error ("invalid array reference", e->tok);
 
+  throw semantic_error ("array read not supported", e->tok);
+
   o->line() << "({";
   o->indent(1);
 
@@ -1240,6 +1392,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // we store all indices in temporary variables to avoid nasty
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
+
 
   unsigned tmpidx_base = tmpvar_counter;
   tmpvar_counter += r->index_types.size() + 1 /* result */;
@@ -1258,23 +1411,6 @@ c_unparser::visit_arrayindex (arrayindex* e)
     }
 
   o->newline() << "if (errorcount) goto out;";
-  o->newline() << "/* XXX: write to array  */";
-#if 0
-  // it better be a global
-  for (unsigned i=0; i<session->globals.size(); i++)
-    {
-      if (session->globals[i] == r)
-	{
-	  // XXX: acquire read lock on global; copy value
-	  // into local temporary
-	  o->line() << "global_" << c_varname (r->name);
-	  return;
-	}
-    }
-
-  throw semantic_error ("unresolved symbol", e->tok);
-#endif
-
 
   o->newline() << tmp_base << residx << ";";
   o->newline(-1) << "})";
@@ -1289,7 +1425,7 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 void
 c_unparser_assignment::visit_arrayindex (arrayindex *e)
 {
-  throw semantic_error ("not yet implemented", e->tok);
+  throw semantic_error ("array write not supported", e->tok);
 }
 
 
@@ -1301,8 +1437,7 @@ c_tmpcounter::visit_functioncall (functioncall *e)
   for (unsigned i=0; i<r->formal_args.size(); i++)
     parent->o->newline()
       << parent->c_typename (r->formal_args[i]->type)
-      << " __tmp" << tmpvar_counter ++ << ";"
-      << " /* " << e->function << " arg #" << i << " */";
+      << " __tmp" << tmpvar_counter ++ << ";";
 
   for (unsigned i=0; i<e->args.size(); i++)
     e->args[i]->visit (this);

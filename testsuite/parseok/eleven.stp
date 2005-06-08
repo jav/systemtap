@@ -1,0 +1,54 @@
+#! stap -p1
+
+probe two
+{
+  # all assignment operators
+  a = b
+  a <<< b
+  a += b
+  a -= b
+  a *= b
+  a /= b
+  a %= b
+  a <<= b
+  a >>= b
+  a &= b
+  a ^= b
+  a |= b
+
+  # all ternary operators
+  a ? b : c
+
+  # all binary operators
+  a || b
+  a && b
+  a | b
+  a & b
+  a ^ b
+  a < b
+  a > b
+  a == b
+  a != b
+  a <= b
+  a >= b
+  a << b
+  a >> b
+  a . b
+  a + b
+  a - b
+  a * b
+  a / b
+  a % b
+
+  # all unary operators
+  a ++
+  a --
+  -- a
+  ++ a
+  ~ a
+  ! a
+  ;  # grammar glitch
+  + a
+  ;  # grammar glitch
+  - a
+}

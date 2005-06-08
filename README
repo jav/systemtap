@@ -1,14 +1,15 @@
-systemtap prototype #3.2
+systemtap prototype #3.3
 
-- demonstrates partial parsing of hypothetical systemtap script
+- demonstrates parsing of hypothetical systemtap script
   language using hand-written simpe LL(1) recursive-descent parser
   and similar little lexer: parse.cxx, parse.h
-- semantic analysis in elaborate.cxx, driven from main.cxx
-- examples under testsuite
+- semantic analysis in elaborate.cxx; translation in translate.cxx;
+  driven from main.cxx
+- examples under testsuite/*
 - "probe", "global", "function" top-level constructs parsed
-  no provider-oriented syntax provided yet
 - some tapset library auto-inclusion supported
 - use autotools-style configure; make; make check
 - to see parse tree: stap -p1 -e 'SCRIPT FRAGMENT'
 - to see semantic/type analysis results: stap -p2 -e 'SCRIPT FRAGMENT'
-- to see translation of subset of constructs: stap -e 'SCRIPT FRAGMENT'
+- to see translation of constructs: stap -e 'SCRIPT FRAGMENT';
+  try compiling result with "gcc -c"!

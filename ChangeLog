@@ -1,3 +1,18 @@
+2005-06-08  Frank Ch. Eigler  <fche@redhat.com>
+
+	systemtap/916
+	Implement all basic scalar operators, including modify-assignment.
+	* parse.cxx (lexer): Allow multi-character lookahead in order to
+	scan 1/2/3-character operators.
+	(parse_boolean_or/and/xor/shift): New routines.
+	* translate.cxx (visit_assignment, visit_binary_expression,
+	visit_*_crement): Generally rewrote.
+	(visit_*): Added more parentheses in output.
+	(emit_module_init): Initialize globals.
+	* staptree.h, elaborate.cxx, elaborate.h: Remove exponentiation.
+	* main.cxx (main): Add an end-of-line to output file.
+	* testsuite/*: Several new tests.
+
 2005-06-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	Implement for/next/continue/break/while statements.

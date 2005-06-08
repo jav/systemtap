@@ -149,12 +149,6 @@ struct concatenation: public binary_expression
 };
 
 
-struct exponentiation: public binary_expression
-{
-  void visit (visitor* u);
-};
-
-
 struct ternary_expression: public expression
 {
   expression* cond;
@@ -429,7 +423,6 @@ struct visitor
   virtual void visit_array_in (array_in* e) = 0;
   virtual void visit_comparison (comparison* e) = 0;
   virtual void visit_concatenation (concatenation* e) = 0;
-  virtual void visit_exponentiation (exponentiation* e) = 0;
   virtual void visit_ternary_expression (ternary_expression* e) = 0;
   virtual void visit_assignment (assignment* e) = 0;
   virtual void visit_symbol (symbol* e) = 0;
@@ -465,7 +458,6 @@ struct traversing_visitor: public visitor
   void visit_array_in (array_in* e);
   void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
-  void visit_exponentiation (exponentiation* e);
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);
@@ -506,7 +498,6 @@ struct throwing_visitor: public visitor
   void visit_array_in (array_in* e);
   void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
-  void visit_exponentiation (exponentiation* e);
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);

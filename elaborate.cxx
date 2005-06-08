@@ -583,13 +583,6 @@ typeresolution_info::visit_concatenation (concatenation *e)
 
 
 void
-typeresolution_info::visit_exponentiation (exponentiation *e)
-{
-  visit_binary_expression (e);
-}
-
-
-void
 typeresolution_info::visit_assignment (assignment *e)
 {
   if (t == pe_stats)

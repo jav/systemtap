@@ -5,7 +5,7 @@ function f1 (a, b) {
   d = "hello";
   # poo[c] = bab[d] = "hi"
   bab = "hi";
-  bab = poo[c];
+  # bab = poo[c];
   return 0
 } 
 
@@ -14,14 +14,13 @@ function f2 () {
 }
 
 global koo
-global poo, bab
 
-probe z {
+probe begin {
   f2 ();
   koo = 1
 }
 
-probe x,y {
+probe begin, end {
   f2 ();
   f1 (f1 (3 * 2 + 1, "foo"), "canoe")
 }

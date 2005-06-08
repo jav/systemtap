@@ -224,6 +224,7 @@ main (int argc, char * const argv [])
   if (rc == 0 && last_pass > 2)
     rc = translate_pass (s);
 
+  s.op->line() << endl;
   delete s.op;
 
   return rc;

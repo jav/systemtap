@@ -20,6 +20,8 @@ using namespace std;
 
 // ------------------------------------------------------------------------
 
+
+
 parser::parser (istream& i):
   input_name ("<input>"), free_input (0), input (i, input_name),
   last_t (0), next_t (0), num_errors (0)
@@ -138,14 +140,27 @@ lexer::lexer (istream& i, const string& in):
   input (i), input_name (in), cursor_line (1), cursor_column (1)
 { }
 
+
+int
+lexer::input_peek (unsigned n)
+{
+  while (lookahead.size() <= n)
+    {
+      int c = input.get ();
+      lookahead.push_back (input ? c : -1);
+    }
+  return lookahead[n];
+}
+
+
 int 
 lexer::input_get ()
 {
-  int c = input.get();
-  
-  if (! input)
-    return -1;
-  
+  int c = input_peek (0);
+  lookahead.erase (lookahead.begin ());
+
+  if (c < 0) return c; // EOF
+
   // update source cursor
   if (c == '\n')
     {
@@ -185,7 +200,7 @@ lexer::scan ()
       n->content = (char) c;
       while (1)
 	{
-	  int c2 = input.peek ();
+	  int c2 = input_peek ();
 	  if (! input)
 	    break;
 	  if ((isalnum(c2) || c2 == '_' || c2 == '$'))
@@ -206,7 +221,7 @@ lexer::scan ()
 
       while (1)
 	{
-	  int c2 = input.peek ();
+	  int c2 = input_peek ();
 	  if (! input)
 	    break;
 
@@ -251,68 +266,79 @@ lexer::scan ()
 
   else if (ispunct (c))
     {
-      int c2 = input.peek ();
+      int c2 = input_peek ();
+      int c3 = input_peek (1);
+      string s1 = string("") + (char) c;
+      string s2 = (c2 > 0 ? s1 + (char) c2 : s1);
+      string s3 = (c3 > 0 ? s2 + (char) c3 : s2);
 
-      if (c == '#') // shell comment
+      if (s1 == "#") // shell comment
         {
           unsigned this_line = cursor_line;
-          while (input && cursor_line == this_line)
-            input_get ();
+          do { c = input_get (); }
+          while (c >= 0 && cursor_line == this_line);
           goto skip;
         }
-      else if (c == '/' && c2 == '/') // C++ comment
+      else if (s2 == "//") // C++ comment
         {
           unsigned this_line = cursor_line;
-          while (input && cursor_line == this_line)
-            input_get ();
+          do { c = input_get (); }
+          while (c >= 0 && cursor_line == this_line);
           goto skip;
         }
       else if (c == '/' && c2 == '*') // C comment
 	{
           c2 = input_get ();
           unsigned chars = 0;
-          while (input)
+          while (c2 >= 0)
             {
               chars ++; // track this to prevent "/*/" from being accepted
               c = c2;
               c2 = input_get ();
               if (chars > 1 && c == '*' && c2 == '/')
-                goto skip;
+                break;
             }
+          goto skip;
 	}
 
+      // We're committed to recognizing at least the first character
+      // as an operator.
       n->type = tok_operator;
-      n->content = (char) c;
 
-      // handle two-character operators
-      if ((c == '=' && c2 == '=') ||
-          (c == '!' && c2 == '=') ||
-          (c == '<' && c2 == '=') ||
-          (c == '>' && c2 == '=') ||
-          (c == '+' && c2 == '+') ||
-          (c == '-' && c2 == '-') ||
-          (c == '|' && c2 == '|') ||
-          (c == '&' && c2 == '&') ||
-          // (c == '<' && c2 == '<') ||
-          // (c == '>' && c2 == '>') ||
-          (c == '+' && c2 == '=') ||
-          (c == '-' && c2 == '=') ||
-          (c == '-' && c2 == '>') ||
-	  false) // XXX: etc.
-        n->content.push_back ((char) input_get ());
-
-      // handle three-character operator
-      if (c == '<' && c2 == '<')
+      // match all valid operators, in decreasing size order
+      if (s3 == "<<<" ||
+          s3 == "<<=" ||
+          s3 == ">>=")
         {
-          input_get (); // swallow c2
-          int c3 = input.peek ();
-          if (c3 == '<')
-            {
-              input_get (); // swallow c3
-              n->content = "<<<";
-            }
-          else
-            n->content = "<<";
+          n->content = s3;
+          input_get (); input_get (); // swallow other two characters
+        }
+      else if (s2 == "==" ||
+               s2 == "!=" ||
+               s2 == "<=" ||
+               s2 == ">=" ||
+               s2 == "+=" ||
+               s2 == "-=" ||
+               s2 == "*=" ||
+               s2 == "/=" ||
+               s2 == "%=" ||
+               s2 == "&=" ||
+               s2 == "^=" ||
+               s2 == "|=" ||
+               s2 == "&&" ||
+               s2 == "||" ||
+               s2 == "++" ||
+               s2 == "--" ||
+               s2 == "->" ||
+               s2 == "<<" ||
+               s2 == ">>")
+        {
+          n->content = s2;
+          input_get (); // swallow other character
+        }   
+      else
+        {
+          n->content = s1;
         }
 
       return n;
@@ -990,9 +1016,18 @@ parser::parse_assignment ()
       && (t->content == "=" ||
 	  t->content == "<<<" ||
 	  t->content == "+=" ||
-	  false)) // XXX: add /= etc.
+	  t->content == "-=" ||
+	  t->content == "*=" ||
+	  t->content == "/=" ||
+	  t->content == "%=" ||
+	  t->content == "<<=" ||
+	  t->content == ">>=" ||
+	  t->content == "&=" ||
+	  t->content == "^=" ||
+	  t->content == "|=" ||
+	  false)) 
     {
-      // NB: lvalueness is checked during translation / elaboration
+      // NB: lvalueness is checked during elaboration / translation
       assignment* e = new assignment;
       e->left = op1;
       e->op = t->content;
@@ -1000,8 +1035,6 @@ parser::parse_assignment ()
       next ();
       e->right = parse_expression ();
       op1 = e;
-      // XXX: map assign/accumulate operators like +=, /=
-      // to ordinary assignment + nested binary_expression
     }
 
   return op1;
@@ -1059,12 +1092,78 @@ parser::parse_logical_or ()
 expression*
 parser::parse_logical_and ()
 {
-  expression* op1 = parse_array_in ();
+  expression* op1 = parse_boolean_or ();
 
   const token* t = peek ();
   while (t && t->type == tok_operator && t->content == "&&")
     {
       logical_and_expr *e = new logical_and_expr;
+      e->left = op1;
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_boolean_or ();
+      op1 = e;
+      t = peek ();
+    }
+
+  return op1;
+}
+
+
+expression*
+parser::parse_boolean_or ()
+{
+  expression* op1 = parse_boolean_xor ();
+
+  const token* t = peek ();
+  while (t && t->type == tok_operator && t->content == "|")
+    {
+      binary_expression* e = new binary_expression;
+      e->left = op1;
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_boolean_xor ();
+      op1 = e;
+      t = peek ();
+    }
+
+  return op1;
+}
+
+
+expression*
+parser::parse_boolean_xor ()
+{
+  expression* op1 = parse_boolean_and ();
+
+  const token* t = peek ();
+  while (t && t->type == tok_operator && t->content == "^")
+    {
+      binary_expression* e = new binary_expression;
+      e->left = op1;
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_boolean_and ();
+      op1 = e;
+      t = peek ();
+    }
+
+  return op1;
+}
+
+
+expression*
+parser::parse_boolean_and ()
+{
+  expression* op1 = parse_array_in ();
+
+  const token* t = peek ();
+  while (t && t->type == tok_operator && t->content == "&")
+    {
+      binary_expression* e = new binary_expression;
       e->left = op1;
       e->op = t->content;
       e->tok = t;
@@ -1147,7 +1246,7 @@ parser::parse_array_in ()
 expression*
 parser::parse_comparison ()
 {
-  expression* op1 = parse_concatenation ();
+  expression* op1 = parse_shift ();
 
   const token* t = peek ();
   while (t && t->type == tok_operator 
@@ -1156,10 +1255,32 @@ parser::parse_comparison ()
           t->content == "==" ||
           t->content == "!=" ||
           t->content == "<=" ||
-          t->content == ">=" ||
-          false )) // xxx: more
+          t->content == ">="))
     {
       comparison* e = new comparison;
+      e->left = op1;
+      e->op = t->content;
+      e->tok = t;
+      next ();
+      e->right = parse_shift ();
+      op1 = e;
+      t = peek ();
+    }
+
+  return op1;
+}
+
+
+expression*
+parser::parse_shift ()
+{
+  expression* op1 = parse_concatenation ();
+
+  const token* t = peek ();
+  while (t && t->type == tok_operator && 
+         (t->content == "<<" || t->content == ">>"))
+    {
+      binary_expression* e = new binary_expression;
       e->left = op1;
       e->op = t->content;
       e->tok = t;
@@ -1248,7 +1369,11 @@ parser::parse_unary ()
 {
   const token* t = peek ();
   if (t && t->type == tok_operator 
-      && (t->content == "+" || t->content == "-" || t->content == "!"))
+      && (t->content == "+" || 
+          t->content == "-" || 
+          t->content == "!" ||
+          t->content == "~" ||
+          false))
     {
       unary_expression* e = new unary_expression;
       e->op = t->content;
@@ -1258,30 +1383,7 @@ parser::parse_unary ()
       return e;
     }
   else
-    return parse_exponentiation ();
-}
-
-
-expression*
-parser::parse_exponentiation ()
-{
-  expression* op1 = parse_crement ();
-
-  const token* t = peek ();
-  // right associative: no loop
-  if (t && t->type == tok_operator 
-      && (t->content == "^" || t->content == "**"))
-    {
-      exponentiation* e = new exponentiation;
-      e->op = t->content;
-      e->left = op1;
-      e->tok = t;
-      next ();
-      e->right = parse_expression ();
-      op1 = e;
-    }
-
-  return op1;
+    return parse_crement ();
 }
 
 

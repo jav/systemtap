@@ -83,7 +83,6 @@ struct typeresolution_info: public visitor
   void visit_array_in (array_in* e);
   void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
-  void visit_exponentiation (exponentiation* e);
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);

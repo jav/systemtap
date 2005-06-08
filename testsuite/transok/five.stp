@@ -1,6 +1,6 @@
 #! stap
 
-probe two
+probe begin
 {
   for (;;) ;
   for (a=0;;) { if (a > 4) break }

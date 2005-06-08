@@ -285,7 +285,7 @@ void block::print (ostream& o)
   o << "{" << endl;
   for (unsigned i=0; i<statements.size(); i++)
     o << *statements [i] << endl;
-  o << "}" << endl;
+  o << "}";
 }
 
 
@@ -297,7 +297,7 @@ void for_loop::print (ostream& o)
   cond->print (o);
   o << "; ";
   incr->print (o);
-  o << ")" << endl;
+  o << ") ";
   block->print (o);
 }
 
@@ -310,7 +310,7 @@ void foreach_loop::print (ostream& o)
       if (i > 0) o << ", ";
       indexes[i]->print (o);
     }
-  o << "] in " << base << ")" << endl;
+  o << "] in " << base << ") ";
   block->print (o);
 }
 
@@ -355,7 +355,7 @@ void continue_statement::print (ostream& o)
 
 void if_statement::print (ostream& o)
 {
-  o << "if (" << *condition << ") " << endl
+  o << "if (" << *condition << ") "
     << *thenblock << endl;
   if (elseblock)
     o << "else " << *elseblock << endl;
@@ -570,12 +570,6 @@ concatenation::visit (visitor* u)
 }
 
 void
-exponentiation::visit (visitor* u)
-{
-  u->visit_exponentiation (this);
-}
-
-void
 ternary_expression::visit (visitor* u)
 {
   u->visit_ternary_expression (this);
@@ -744,13 +738,6 @@ traversing_visitor::visit_comparison (comparison* e)
 
 void
 traversing_visitor::visit_concatenation (concatenation* e)
-{
-  e->left->visit (this);
-  e->right->visit (this);
-}
-
-void
-traversing_visitor::visit_exponentiation (exponentiation* e)
 {
   e->left->visit (this);
   e->right->visit (this);
@@ -933,12 +920,6 @@ throwing_visitor::visit_comparison (comparison* e)
 
 void
 throwing_visitor::visit_concatenation (concatenation* e)
-{
-  throwone (e->tok);
-}
-
-void
-throwing_visitor::visit_exponentiation (exponentiation* e)
 {
   throwone (e->tok);
 }
