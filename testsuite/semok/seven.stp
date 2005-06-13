@@ -13,7 +13,7 @@ function search (key)
     return "no can do"  # implies ar2[]: string
 }
 
-probe syscall("zamboni")
+probe begin /* syscall("zamboni") */
 {
   thread->ar2 = string ($tgid);
   search ($pid)

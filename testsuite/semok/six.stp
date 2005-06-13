@@ -2,7 +2,7 @@
 
 global bar, baz
 
-probe foo
+probe begin
 {
  thread->bar = 4;
  process->baz = "5";

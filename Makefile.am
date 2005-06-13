@@ -5,7 +5,8 @@ AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
 bin_PROGRAMS = 
 noinst_PROGRAMS = stap
-stap_SOURCES = parse.cxx staptree.cxx elaborate.cxx translate.cxx main.cxx
+stap_SOURCES = main.cxx \
+	parse.cxx staptree.cxx elaborate.cxx translate.cxx tapsets.cxx
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed

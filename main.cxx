@@ -36,11 +36,11 @@ void usage ()
   cerr << "   or: stap [options] -e SCRIPT [ARGS ...]   Run given script." << endl;
   cerr << endl;
   cerr << "Arguments:" << endl;
-  cerr << "   --\tNo more options after this" << endl;
-  cerr << "   -p NUM\tStop after pass NUM 1-3" << endl;
-  cerr << "         \t(parse, elaborate, translate)" << endl;
-  cerr << "   -I DIR\tLook in DIR for additional .stp script files." << endl;
-  cerr << "   -o FILE\tSend output to file instead of stdout." << endl;
+  cerr << "   --         No more options after this" << endl;
+  cerr << "   -p NUM     Stop after pass NUM 1-3" << endl;
+  cerr << "              (parse, elaborate, translate)" << endl;
+  cerr << "   -I DIR     Look in DIR for additional .stp script files." << endl;
+  cerr << "   -o FILE    Send output to file instead of stdout." << endl;
   // XXX: other options:
   // -s: safe mode
   // -d: dump safety-related external references 

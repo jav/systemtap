@@ -1,3 +1,13 @@
+2005-06-13  Frank Ch. Eigler  <fche@redhat.com>
+
+	Start separating out translator-side probe point recognition.
+	* tapsets.cxx: New file.
+	(be_derived_probe): Support for begin/end probes.
+	(derive_probe): Ditto.  Reject anything unrecognized.
+	* translator.cxx: Move out old code.
+	* Makefile.am: Add new source file.
+	* testsuite/semok/*: Switch to begin/end probes only.
+
 2005-06-08  Frank Ch. Eigler  <fche@redhat.com>
 
 	systemtap/916

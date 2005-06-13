@@ -7,7 +7,7 @@ function koo (p) {
   return p + 2; 
 } 
 
-probe foo {
+probe end {
   bar = 2 + koo (4);
   foo = bar + koo;
 }

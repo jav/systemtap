@@ -29,33 +29,6 @@ stringify(T t)
 }
 
 
-
-// ------------------------------------------------------------------------
-// toy provider/unparser pair
-
-
-struct test_derived_probe: public derived_probe
-{
-  test_derived_probe (probe* p);
-  test_derived_probe (probe* p, probe_point* l);
-
-  void emit_registrations (translator_output* o, unsigned i);
-  void emit_deregistrations (translator_output* o, unsigned i);
-  void emit_probe_entries (translator_output* o, unsigned i);
-};
-
-
-
-void
-symresolution_info::derive_probes (probe *p, vector<derived_probe*>& dps)
-{
-  // XXX: there will be real ones coming later
-  for (unsigned i=0; i<p->locations.size(); i++)
-    dps.push_back (new test_derived_probe (p, p->locations[i]));
-}
-
-
-
 struct c_unparser: public unparser, public visitor
 {
   systemtap_session* session;
@@ -120,32 +93,6 @@ struct c_unparser: public unparser, public visitor
 };
 
 
-
-// ------------------------------------------------------------------------
-
-
-// Perform inter-script dependency analysis [XXX: later],
-// then provider elaboration and derived probe construction
-// and finally semantic analysis
-// on the reachable set of probes/functions from the user_file
-int
-resolution_pass (systemtap_session& s)
-{
-  int rc = 0;
-
-  for (unsigned i=0; i<s.user_file->probes.size(); i++)
-    {
-      probe* p = s.user_file->probes[i];
-      // XXX: should of course be based on each probe_point
-      derived_probe *dp = new test_derived_probe (p);
-      s.probes.push_back (dp);
-    }
-
-  // XXX: add builtin variables/functions
-  return rc;
-}
-
-
 // ------------------------------------------------------------------------
 
 
@@ -194,60 +141,6 @@ translator_output::line ()
 }
 
 
-
-// ------------------------------------------------------------------------
-
-
-test_derived_probe::test_derived_probe (probe* p): derived_probe (p)
-{
-}
-
-
-test_derived_probe::test_derived_probe (probe* p, probe_point* l):
-  derived_probe (p, l)
-{
-}
-
-
-void 
-test_derived_probe::emit_registrations (translator_output* o, unsigned i)
-{
-  // XXX
-  o->newline() << "rc = 0; /* no registration for probe " << i << " */";
-}
-
-void 
-test_derived_probe::emit_deregistrations (translator_output* o, unsigned i)
-{
-  // XXX
-  o->newline() << "rc = 0; /* no deregistration for probe " << i << " */";
-}
-
-
-void
-test_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
-{
-  for (unsigned i=0; i<locations.size(); i++)
-    {
-      probe_point *l = locations[i];
-      o->newline() << "/* location " << i << ": " << *l << " */";
-      o->newline() << "static void enter_" << j << "_" << i << " ()";
-      o->newline() << "{";
-      o->newline(1) << "struct context* c = & contexts [0];";
-      // XXX: assert #0 is free; need locked search instead
-      o->newline() << "if (c->busy) { errorcount ++; return; }";
-      o->newline() << "c->busy ++;";
-      o->newline() << "c->actioncount = 0;";
-      o->newline() << "c->nesting = 0;";
-      // NB: locals are initialized by probe function itself
-      o->newline() << "probe_" << j << " (c);";
-      o->newline() << "c->busy --;";
-      o->newline(-1) << "}" << endl;
-    }
-}
-
-
-// ------------------------------------------------------------------------
 
 
 // A shadow visitor, meant to generate temporary variable declarations

@@ -7,7 +7,7 @@ function string (v) { return "" }
 function hexstring (v) { return "" }
 function trace (s) { return 0 }
 
-probe kernel.syscall("read") {
+probe begin /* kernel.syscall("read") */ {
       $count=0 $timestamp=0 $fd=0
 
       thread->entry_time = $timestamp # "macro" variable
@@ -17,7 +17,7 @@ probe kernel.syscall("read") {
              "my_fd = " . string(thread->my_fd))
 }
 
-probe kernel.syscall("read").return {
+probe end /* kernel.syscall("read").return */ {
       $syscall_name="" $retvalue=0
 
       if (thread->entry_time) {

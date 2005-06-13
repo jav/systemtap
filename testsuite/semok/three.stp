@@ -1,7 +1,7 @@
 #! stap -p2
 
 global b
-probe foo {
+probe begin {
   a <<< 2;
   b[4] <<< 4;
 }
