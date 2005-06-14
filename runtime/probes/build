@@ -1,0 +1,81 @@
+#!/usr/bin/tclsh
+# -*- tcl -*-
+
+# simple script to do a make or "make clean" in each probe directory
+
+proc usage {} {
+  puts "Usage: build \[clean\]"
+  exit
+}
+
+set clean 0
+
+foreach arg $argv {
+  if {$arg == "clean"} {
+    set clean 1
+  } else {
+    usage
+  }
+}
+
+set dirs {shellsnoop test4 where_func scf}
+
+foreach i $dirs {
+  cd $i
+  if {$clean} {
+    puts "Cleaning $i"
+    if {[catch {exec make clean >& compile.errors} res]} {
+      [exec cat compile.errors]
+      exit
+    }
+  } else {
+    puts "Building $i"
+    if {[catch {exec make >& compile.errors} res]} {
+      puts "\n------------ Compile error in $i -------------------\n"
+      if {[catch {open compile.errors r} fd]} {
+	puts "Compile failed for unknown reasons"
+	exit
+      }
+      while {[gets $fd line] >= 0} {
+	puts $line
+      }
+      close $fd
+      exit 
+    } else {
+      if {![catch {open compile.errors r} fd]} {
+	# search for warnings
+	set bad 0
+	while {[gets $fd line] >= 0} {
+	  if {[regexp {[^W]*([A-Za-z][A-Za-z0-9_]*)[^\"]*\"([^\"]*)} $line match warn var]} {
+	    if {$warn == "Warning"} {
+	      switch $var {
+		_stp_ctrl_unregister -
+		_stp_ctrl_register -
+		relay_subbufs_consumed -
+		_stp_ctrl_send -
+		relay_open -
+		relayfs_create_dir -
+		relayfs_remove_dir -
+		relay_close {}
+		default {
+		  if {$bad == 0} {
+		    puts "\n------------ Unexpected Warnings in $i -------------------\n"
+		  }
+		  puts $line
+		  set bad 1
+		}
+	      }
+	    }
+	  }
+	}
+	close $fd
+      }
+      if {$bad} {
+	exit
+      }
+    }
+  }
+  catch {exec /bin/rm compile.errors}
+  cd ..
+}
+

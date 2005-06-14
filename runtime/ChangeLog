@@ -1,3 +1,16 @@
+2005-06-14  Martin Hunt  <hunt@redhat.com>
+
+	* README: Removed old docs and replaced with simple build 
+	instructions.
+
+	* Makefile: New file.
+
+	* probes/build: New file.
+	
+2005-06-13  Martin Hunt  <hunt@redhat.com>
+
+	* print.c (next_fmt): Move this func to print.c.
+
 2005-06-02  Martin Hunt  <hunt@redhat.com>
 
 	* string.c (_stp_string_cat_cstr): Be sure result is
