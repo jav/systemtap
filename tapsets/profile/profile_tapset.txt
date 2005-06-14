@@ -1,0 +1,503 @@
+* Application name: Stopwatch and Profiling for systemtap
+
+* Contact:
+    Will Cohen          wcohen@redhat.com
+    Charles Spirakis    charles.spirakis@intel.com
+
+* Motivation:
+    Allow SW developers to improve the performance of their
+    code. The metholodies used are stopwatch (sometimes known
+    as event counting) and profiling.
+
+* Background:
+    Will has experience with oprofile
+    Charles has experience with vtune
+
+* Target software:
+    Initially the kernel, but longer term, both kernel and user.
+
+* Type of description:
+   General information regarding requirements and usage models.
+
+* Interesting probe points:
+    When doing profiling you have "asynchronous-event" probe points
+    (aka you get an interrupt and you'll want to capture information
+    about where that interrupt happened).
+
+    When doing stopwatch, interesting probe points will be
+    function entry/exits, queue add/remove, queue entity lifecycle,
+    and any other code where you want to measure time
+    or events (cpu resource utilization) associated with a path of code
+    (frame buffer drawing measurements, graphic T&L pipeline
+    measurements, etc).
+
+* Interesting values:
+    For profiling, the pt_regs structure from the interrupt handler. The
+    most commonly used items would be the instruction pointer and the
+    call stack pointer.
+
+    For stopwatch, most of the accesses are likely to be pmu read
+    operations.
+    
+    In addition, given the large variety of pmu capabilities, access
+    to the pmu registers themselves (read and write) would be very
+    important.
+
+    Different pmu's have different events, but for script portability,
+    we may want to have a subset of predefined events and have something
+    map that into a pmu's particular event (similar to what papi does).
+
+    Given the variety of performance events and pmu architectures, we
+    may want to try and have a standardized library/api as part of the
+    translator to map events (or specialzed event information) into
+    register/value pairs used during the actual systemtap run.
+
+   ??? Classify values as consumed from lower level vs. provided to higher
+   level ???
+
+* Dependencies:
+    Need some form of arbitration of the pmu to make sure the data provided
+    is valid (see perfmon below).
+    
+    Two common usage models are aggregated data (oprofile) and
+    trace history (papi/vtune). Currently these tools all do the
+    aggregation in user-mode and we may want to look at what
+    they do and why.
+    
+    The unofficial rule of thumb is that profiling should be
+    as unobtrusive as possible and definitely < 1% overhead.
+
+    When doing stopwatch or profiling, there is a need to be able to
+    sequence the data. For timing this is important to be able to 
+    accurately compute start/stop deltas and watch control/data flow.
+    For profiling, it is needed to support trace history.
+
+    There needs to be a timesource that has reasonable granularity
+    and is reasonably precise.
+
+    Per-thread virtualization (of time and events)
+
+    System wide mode for pmu events
+
+* Restrictions:
+    Currently access to the pmu is a bit of a free for all with no
+    single entity providing arbitration. The perfmon2 patch for 2.6
+    (see the cross reference section below) is attempting to
+    provide much of the infrastructure needed by profiling tools
+    (like oprofile and papi) across architectures (pentium M, ia64
+    and x86_64 initially, though I understand Stephane has contacted
+    someone at IBM for a powerpc version as well).
+
+    Andrew Morton wants a perfmon and perfcntr to be merged. Regardless
+    of what happens, both pmu libraries are geared more for
+    user->kernel access rather than kernel->kernel access and we
+    will need to see what can be EXPORT()'ed to make it more
+    kernel module friendly.
+
+* Data collection:
+    Pmu counters tend to be different widths on different
+    architectures. It would be useful to standardize the
+    width (in software) to 64-bits to make math operations
+    (such as comparisons, delta's, etc) easier.
+
+    The goal of profiling is to go from:
+        pid/ip -> path/image -> source file/line number
+
+    This implies the need to have a (reasonably quick) mechanism to
+    translate pid/ip to path/image. Potentially reuse the dcookie
+    methodology from oprofile but may need to extend that model if there
+    is a goal to support anonymous maps (dynamically generated code).
+
+    Need the ability to map the current pid to a process name.
+
+    Need to make a decision on how much will be handled via associative
+    arrays in the kernel and how much will be handled in user space
+    (potentially part of post processing). Given the volume of data that
+    can be generated during profiling, it may make sense to follow the
+    trend of current perfomrance tools and attempt to put merging and
+    aggregation in the user space instead of kernel space.
+
+    To keep the overhead of collection low, it may be useful to look
+    into having some of the information needed be collected at interrupt
+    time and other pieces of information be collected after the
+    interrupt (top/bottom style). For example, although it may be
+    convienent to have a syntax like:
+    
+    val = associate_image($pt_regs->eip)
+
+    it may be preferable to use a marker in the output stream instead
+    (oprofile used a dcookie) and then do a lookup later (either in the
+    kernel and add a marker->name entry to the output stream or in user
+    space similar to what oprofile did). This concept could be extended
+    to cover the lookup of the pid name as well.
+
+    Stack information will need to be collected at interrupt time
+    (based on the interrupted pt_regs->esp) so the routine to obtain
+    the stack trace should be reasonably fast. Due to asynchronous probes,
+    the stack may be in user space.
+    
+    Depending on whether support of anonymous maps is important, it may
+    be useful to have a more generic method of mapping ip->path/module
+    which would allow dynamic code generates (usually found in user
+    space) to be able to provide ip->image map information as part of
+    the regular systemtap data stream. If we allow for a user-mode api
+    to add data to a systemtap stream, we could have a very general
+    purpose merge/aggregation tool for profiling from a variety of
+    sources.
+
+* Data presentation:
+    Generally data will be presented to the user as either an inorder
+    stream (trace history) or aggregated in some form to produce a
+    histogram or min/max/average/std. 
+    
+    When aggregated, the data may be clumped by pid (each running of
+    the app provides unique data), process name (the data for an app
+    is merged for all runs), or it may be clumped by the loaded image
+    (to get information about shared libraries regardless of the app
+    that loaded it). Assuming an increase in multi processor and
+    multi threaded applications, grouping the data by thread group
+    id is likely to be useful as well. Ideally, if symbols/debug
+    information is available, additional aggregation could be done
+    at the function, basic block or source line.
+
+* Competition:
+    See the cross-reference list below
+
+* Cross-references:
+	Oprofile
+
+    Oprofile is a profiling tool that provides time and event based
+    sampling. Its collection methodology has a "file view" of the
+    world and only captures the minimum information needed to get
+    the image that corresponds to the interrupted instruction
+    address. It aggregates the data (no time information) to keep
+    the total data size to a minimum even on long runs. Oprofile
+    allows for optional "escape" sequences in a data stream to add
+    information. It can handle non-maskable interrupts (NMI) as well
+    as maskable interrupts to obtain samples in areas where
+    maskable interrupts are normally disabled. Work is being done
+    to allow oprofile to handle anonymous maps (ie. dynamically
+    generated code from jvm's).
+
+    http://oprofile.sourceforge.net/news/
+    
+    Papi
+
+    Papi is a profiling tool that can aggregate data or keep a trace
+    history. It uses tables to map generic event concepts (for example,
+    PAPI_TOT_CYC) into architecture specific events (for example,
+    CPU_CLK_UNHALTED, value 0x79 on the Pentium M). Interrupts can be
+    time based and it can capture event counts (i.e. every 5ms,
+    capture cpu cycles and instructions retired) in addition to
+    the instruction pointer.  Papi is built on top of other performance
+    monitoring support such as ia64 perfmon and i386 perfctr in the Linux
+    kernel.
+
+    http://icl.cs.utk.edu/papi/
+
+	Perfmon2 infrastructure
+
+    Perfmon2 is a profiling infrastructure currently in the linux 2.6
+    kernel for ia64. It handles arbitration and virtualization
+    of the pmu resources, extends
+    the pmu's to a logical 64-bits regardless of the underlying hardware
+    size, context switches of the counters when needed to allow for
+    per-process or system-wide use, and has the ability to choose a subset
+    of the cpu's on a system when doing system-wide profiling. Oprofile on
+    Linux 2.6 for ia64 has been ported to use the perfmon2 interface. Currently,
+    there are patches submitted for the Linux Kernel Mailing List for
+    the 2.6 kernel to port the perfmon2
+    infrastructure to the Pentium M and x86_64.
+
+    http://www.hpl.hp.com/techreports/2004/HPL-2004-200R1.html
+
+    Shark
+
+    Shark is a profiling tool from Apple that focuses on time and event
+    based statistical stack sampling. On each profile interrupt, in
+    addition to capturing the instruction pointer, it also captures
+    a stack trace so you know both where you were and how you got there.
+
+    http://developer.apple.com/tools/sharkoptimize.html
+
+    Vtune
+
+    Vtune is a profiling tool that provides time and event based
+    sampling. It does collection based on a "process view" of the
+    world. It keeps a trace history so that you can aggregate the
+    data during post processing in various ways, it can capture
+    architectural specific data in addition to ip (such as branch
+    history buffers), and it can use architectural specific abilities
+    to get exact ip addresses for certain events. Currently handles
+    anonymous mappings (dynamically generated code from jvm's).
+
+    http://www.intel.com/software/products/vtune/vlin/index.htm
+
+
+* Associated files:
+  Should the usage models be split into a separate file?
+
+Usage Models:
+   Below are some typical usage models. This isn't an attempt
+   to propose syntax, it's an attempt to create something
+   concrete enough to help people understand the goals:
+   (description, psuedo code, desired output).
+
+Description:    Statistical stack sampling (ala shark)
+
+    probe kernel.time_ms(10)
+    {
+        i = associate_image($pt_regs->eip);
+        s = stack($pt_regs->esp);
+        stp($current->pid, $pid_name, $pt_regs->eip, i, s)
+    }
+
+    Output desired:
+    For each process/prcess name, aggregate (histogram) based
+    on eip (regardless how I got there), stack (what was the
+    most common calling path), or both (what was the most common
+    path to the most common eip).
+    Could be implemented by generating a trace history and let the
+    user post process (eats disk space, but one run can be viewed
+    multiple ways) or could have the user define what was wanted
+    in the script and do the post processing ourselves (saves disk space,
+    but more work for us).
+
+Description:    Time based aggregation (ala oprofile)
+
+    probe kernel.time_ms(10)
+    {
+        i = associate_image($pt_regs->eip);
+        stp($current->pid, $pid_name, $ptregs->eip, i);
+    }
+
+    Output desired:
+    Histogram separated by process name, pid/eip, pid/image
+
+Description:    Time a routine part 1
+                time between the function call and return:
+
+    probe kernel.function("sys_exec")
+    {
+        $thread->mystart = $timestamp
+    }
+    probe kernel.function("sys_exec").return
+    {
+        delta = $timestamp - $thread->mystart
+
+        // do statistical operations...
+    }
+
+    Output desired:
+    Be able to do statistics for the time it takes for an exec
+    function to execute. The time needs to have a fine enough
+    granularity to have meaning (i.e. using jiffies probably wouldn't work)
+    and the time needs to be smp correct even if the probe entry
+    and the return execute on different processors.
+
+Description:    Time a routine part 2
+                count the number of events between the
+                function call and return:
+
+    probe kernel.virtual.startwatch("cpu_cycles").virtual.startwatch("instructions_retired").function("sys_execve")
+    {
+        $thread->myclocks = $pmu[0];
+        $thread->myinstr_ret = $pmu[1];
+    }
+    probe kernel.virtual.startwatch("cpu_cycles").virtual.startwatch("instructions_retired").function("sys_execve").return
+    {
+        $thread->myclocks = $pmu[0] - $thread->myclocks;
+        $thread->myinstr_ret = $pmu[1] - $thread->myinstr_ret;
+
+        cycles_per_instruction = $thread->myclocks / $thread->myinstr_ret
+
+        // Do statistical operations...
+    }
+
+    Desired Output:
+    Produce min/max/average for cycles, instructions retired,
+    and cycles_per_instruction. The pmu must be virtualized if the
+    probe entry and probe exit can happen on different processors. The
+    pmu should be virtualized if there can be pre-emtption (or waits) in
+    the function itself to get more useful information (the actual count
+    of events in the function vs. a count of events in the whole system
+    between when the function starts and when it ended)
+
+Description:    Time a routine part 3
+                reminder of threading issues
+
+    probe kernel.function("sys_fork")
+    {
+        $thread->mystart = $timestamp
+    }
+    probe kernel.function("sys_fork").return
+    {
+        delta = $timestamp - $thread->mystart
+
+        If (parent) {
+            // do statistical operations for time it takes parent
+        } else {
+            // do statistical operations for time it takes child
+        }
+    }
+
+    Desired Output:
+    Produce min/max/average for the parent and the child. The
+    time needs to have a fine enough granularity to have
+    meaning (i.e. using jiffies probably wouldn't work)
+    and the time needs to be smp correct even if the probe entry
+    and the probe return execute on different processors.
+
+Description:    Time a routine part 4
+                reminder of threading issues
+
+    probe kernel.virtual.startwatch("cpu_cycles").virtual.startwatch("instructions_retired").function("sys_fork")
+    {
+        $thread->myclocks = $pmu[0];
+        $thread->myinstr = $pmu[1];
+    }
+    probe kernel.virtual.startwatch("cpu_cycles").virtual.startwatch("instructions_retired").function("sys_fork").return
+    {
+        $thread->myclocks = $pmu[0] - $thread->myclocks;
+        $thread->myinstr = $pmu[1] - $thread->myinstr;
+
+        cycles_per_instruction = $thread->myclocks / $thread->myinstr
+
+        If (parent) {
+            // Do statistical operations...
+        } else {
+            // Do statistical operations...
+        }
+    }
+
+    Desired Output:
+    Produce min/max/average for cycles, instructions retired,
+    and cycles_per_instruction. The pmu must be virtualized if the
+    probe entry and probe exit can happen on different processors. The
+    pmu should be virtualized if there can be pre-emtption (or waits) in
+    the function itself to get more useful information (the actual count
+    of events in the function vs. a count of events in the whole system
+    between when the function starts and when it ended)
+
+Description:    Beginnings of "papi" style collection
+
+    probe kernel.startwatch("cpu_cycles").startwatch("instructions_retired").time_ms(10)
+    {
+        i = associate_image($pt_regs->eip);
+        stp($current->pid, $pid_name, $ptregs->eip, i, $pmu[0], $pmu[1]);
+    }
+
+    Desired output:
+    Trace history or aggregation based on process name, image
+
+Description:    Find the path leading to high latency cache miss
+                that stalled for more than 128 cycles (ia64 only)
+
+    probe kernel.startwatch("branch_event,pmc[12]=0x3e0f").pmu_profile("data_ear_event:1000,pmc[11]=0x5000f")
+    {
+        // 
+        // on ia64, when using the data ear event, the precise eip is
+        // saved in pmd[17], so no need for pt_regs->eip (and the
+        // associated skid)...
+        //
+        i = associate_image($pmu->pmd[17]);
+        stp($current->pid, $pid_name, $pmu->pmd[17], i,      // the basics
+        $pmu->pmd[2],       // precise data address
+        $pmu->pmd[3],       // latency information
+        $pmu->pmd[8],       // branch history buffer
+        $pmu->pmd[9],       //  "
+        $pmu->pmd[10],      //  "
+        $pmu->pmd[11],      //  "
+        $pmu->pmd[12],      //  "
+        $pmu->pmd[13],      //  "
+        $pmu->pmd[14],      //  "
+        $pmu->pmd[15],      //  "
+        $pmu->pmd[16]);     // indication of which was most recent branch
+    }
+
+    Desired output:
+    Aggregate data based on pid, process name, eip, latency, and
+    data address. Each pmd on ia64 is 64 bits long, thus the capturing
+    of just the 12 pmd's listed hear is 96 bytes of information every
+    interrupt for each cpu. Profiling can have a very high amount of
+    data collected...
+
+Description:    Pmu event collection of data but use NMI
+                instead of the regular interrupt.
+
+NMI is useful for getting visibily on locks and other code which is
+normally hidden behind interrupt disable code. However, handling an
+NMI is more difficult to do properly. Potentially the compiler can be
+more restrictive on what's allowed in the handler when NMI's are
+selected as the interrupt method.
+
+
+    probe kernel.nmi.pmu_profile("instructions_retired:1000000")
+    {
+        i = associate_image($pt_regs->eip);
+        stp($pid_name, $ptregs->eip, i);
+    }
+
+    Desired Output:
+    Same as the earlier oprofile style example
+
+
+Description:    Timing items in a queue
+
+    Two possibilities - use associative arrays or post process
+
+Associative arrays:
+
+    probe kernel.function("add queue function")
+    {
+        start[$arg->queue_entry] = $timestamp;
+    }
+    probe kernel.function("remove queue function")
+    {
+        delta = $timestamp - start[$arg->queue_entry];
+
+        // Do statistics on the delta value and the queue entry
+    }
+
+Post process:
+
+    probe kernel.function("add queue function")
+    {
+        stp("add", $timestamp, $arg->queue_entry)
+    }
+    probe kernel.function("remove queue function")
+    {
+        stp("remove", $timestamp, $arg->queue_entry)
+    }
+
+Desired Output:
+    For each queue_entry, calculate the delta and do appropriate
+    statistics.
+
+
+Description:    Following an item as it moves to different queues/lists
+
+    Two possibilities - use associative arrays or post process
+    This exam
+
+Associative arrays:
+
+    probe kernel.function("list_add")
+    {
+        delta = $timestamp - start[$arg->head, $arg->new];
+        start[$arg->head, $arg->new] = $timestamp;
+        // Do statistics on the delta value and queue
+    }
+
+
+Post process:
+
+    probe kernel.function("list_add")
+    {
+        stp("add", $timestamp, $arg->head, $arg->new)
+    }
+
+Desired Output:
+    For each (queue, queue_entry) pair, calculate the delta and do appropriate
+    statistics.
+
