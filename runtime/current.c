@@ -21,12 +21,17 @@
  
 unsigned long _stp_ret_addr (struct pt_regs *regs)
 {
-	unsigned long *ra = (unsigned long *)REG_SP(regs);
-
+#ifdef __x86_64__
+	unsigned long *ra = (unsigned long *)regs->rsp;
 	if (ra)
 		return *ra;
 	else
 		return 0;
+#elif defined (__i386__)
+	return regs->esp;
+#else
+	#error Unimplemented architecture
+#endif
 }
 
 #ifdef  __x86_64__

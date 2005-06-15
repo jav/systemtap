@@ -1,3 +1,7 @@
+2005-06-15  Martin Hunt  <hunt@redhat.com>
+
+	* current.c (_stp_ret_addr): Fix computation for i386.
+
 2005-06-14  Martin Hunt  <hunt@redhat.com>
 
 	* README: Removed old docs and replaced with simple build 
