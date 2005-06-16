@@ -1,3 +1,14 @@
+2005-06-14  Graydon Hoare  <graydon@redhat.com>
+
+	* tapsets.h: New file.
+	(derived_probe_builder): Callback for making derived probes.
+	(match_key): Component of pattern-matching tree.
+	(match_node): Other component of pattern-matching tree.	
+	* tapsets.cxx: Add pattern-matching system for probes.
+	(alias_derived_probe): Skeleton for alias probes.
+	(dwarf_derived_probe): Skeleton for dwarf probes.
+	(register_standard_tapsets): Registry for standard tapsets.
+
 2005-06-13  Frank Ch. Eigler  <fche@redhat.com>
 
 	Start separating out translator-side probe point recognition.
