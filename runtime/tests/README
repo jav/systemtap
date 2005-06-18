@@ -1,2 +1,2 @@
-
-maps/ tests for associative arrays (maps) and lists
+This directory contains the user-levels tests.
+To run, just type "make".

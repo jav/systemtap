@@ -1,12 +1,9 @@
 #include "runtime.h"
 
 /* test of maps with keys of int64 and value of string */
-
+#define NEED_STRING_VALS
 #define KEY1_TYPE INT64
 #include "map-keys.c"
-
-#define VALUE_TYPE STRING
-#include "map-values.c"
 
 #include "map.c"
 

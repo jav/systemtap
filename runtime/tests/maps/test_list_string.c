@@ -1,14 +1,10 @@
 #include "runtime.h"
 
 /* test of list with value of STRING */
-
+#define NEED_STRING_VALS
 #define KEY1_TYPE INT64
 #include "map-keys.c"
 
-#define VALUE_TYPE STRING
-#include "map-values.c"
-
-#include "map.c"
 #include "list.c"
 
 int main ()

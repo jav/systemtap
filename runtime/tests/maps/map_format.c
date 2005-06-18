@@ -1,6 +1,9 @@
 #include "runtime.h"
 
 /* torture test of map formatting */
+#define NEED_INT64_VALS
+#define NEED_STRING_VALS
+#define NEED_STAT_VALS
 
 #define KEY1_TYPE INT64
 #define KEY2_TYPE INT64
@@ -10,15 +13,6 @@
 #define KEY1_TYPE STRING
 #define KEY2_TYPE STRING
 #include "map-keys.c"
-
-#define VALUE_TYPE STRING
-#include "map-values.c"
-
-#define VALUE_TYPE INT64
-#include "map-values.c"
-
-#define VALUE_TYPE STAT
-#include "map-values.c"
 
 #include "map.c"
 
@@ -61,17 +55,17 @@ int main ()
   _stp_map_key_str_str (mapsst, "Riga", "Latvia");
   for (i = 0; i < 100; i++)
     for (j = 0; j <= i*10 ; j++ )
-      _stp_map_add_int64_stat (mapsst, i);
+      _stp_map_add_int64 (mapsst, i);
   
   _stp_map_key_str_str (mapsst, "Sofia", "Bulgaria");
   for (i = 0; i < 10; i++)
     for (j = 0; j < 10 ; j++ )
-      _stp_map_add_int64_stat (mapsst, j * i );
+      _stp_map_add_int64 (mapsst, j * i );
 
   _stp_map_key_str_str (mapsst, "Valletta", "Malta");
   for (i = 0; i < 100; i += 10)
     for (j = 0; j < i/10 ; j++ )  
-      _stp_map_add_int64_stat (mapsst, i);
+      _stp_map_add_int64 (mapsst, i);
 
     _stp_map_print (mapsst, "Bogons per packet for %1s\ncount:%C  sum:%S  avg:%A  min:%m  max:%M\n%H");
 
