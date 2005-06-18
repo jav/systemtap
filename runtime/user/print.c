@@ -22,6 +22,8 @@
 #define STP_PRINT_BUF_LEN 8000
 #endif
 
+#include "string.h"
+
 static int _stp_pbuf_len[NR_CPUS];
 
 #define STP_PRINT_BUF_START 0
@@ -49,6 +51,35 @@ void _stp_print_flush (void)
  * @param str A String or C string (char *)
  * @sa _stp_print_cstr _stp_print_string
  */
+
+
+/* Print stuff until a format specification is found. */
+/* Return pointer to that. */
+static char *next_fmt(char *fmt, int *num)
+{
+	char *f = fmt;
+	int in_fmt = 0;
+	dbug ("next_fmt %s\n", fmt);
+	*num = 0;
+	while (*f) {
+		if (in_fmt) {
+			if (*f == '%') {
+				_stp_string_cat_char(_stp_stdout,'%');
+				in_fmt = 0;
+			} else if (*f > '0' && *f <= '9') {
+				*num = *f - '0';
+				f++;
+				return f;
+			} else
+				return f;
+		} else if (*f == '%')
+			in_fmt = 1;
+		else
+			_stp_string_cat_char(_stp_stdout,*f);
+		f++;
+	}
+	return f;
+}
 
 #define _stp_print(str)							\
 	({								\

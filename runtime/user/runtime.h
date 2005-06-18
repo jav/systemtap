@@ -6,6 +6,10 @@
 
 #define __KERNEL__
 #include <linux/module.h>
+#undef CONFIG_NR_CPUS
+#undef CONFIG_SMP
+#define CONFIG_NR_CPUS 8
+#define CONFIG_SMP
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
@@ -17,7 +21,7 @@
 #include <linux/spinlock.h>
 #include <asm/uaccess.h>
 #include <linux/kallsyms.h>
-
+#include <linux/percpu.h>
 
 #ifdef DEBUG
 #define dbug(args...) \
@@ -33,6 +37,9 @@
 
 #undef memcpy
 #define memcpy __builtin_memcpy
+
+#define NEED_STAT_LOCKS 0
+#define NEED_COUNTER_LOCKS 0
 
 #include "print.c"
 #include "string.c"

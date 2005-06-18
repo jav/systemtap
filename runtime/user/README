@@ -1,1 +1,3 @@
 These files are for user-space testing of SystemTap code.
+
+You need to run ./recreate_links here before running tests.
