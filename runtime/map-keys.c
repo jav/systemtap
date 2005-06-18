@@ -1,4 +1,9 @@
 /* -*- linux-c -*- */
+/** @file map-keys.c
+ * @brief Map functions to set and get keys
+ * This file is a template designed to be included as many times as
+ * needed to generate the necessary functions to set map keys.
+ */
 
 #include "map.h"
 
@@ -302,6 +307,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 		m = _stp_map_new (max_entries, valtype & 0x0f, 
 				  sizeof(struct KEYSYM(map_node)), 0);
 		break;
+#ifdef NEED_STAT_VALS
 	case HIST_LOG:
 		m = _stp_map_new_hstat_log (max_entries, sizeof(struct KEYSYM(map_node)), 
 					    buckets);
@@ -310,6 +316,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 		m = _stp_map_new_hstat_linear (max_entries, sizeof(struct KEYSYM(map_node)),
 					       start, stop, interval);
 		break;
+#endif
 	default:
 		dbug ("ERROR: unknown histogram type %d\n", htype);
 		m = NULL;
@@ -409,3 +416,5 @@ void KEYSYM(_stp_map_key) (MAP map, ALLKEYSD(key))
 #undef KEYSYM
 #undef ALLKEYS
 #undef ALLKEYSD
+
+#include "map-values.c"

@@ -2,12 +2,14 @@
 #define _PRINT_C_
 
 #include <linux/config.h>
-
+#include "string.h"
 #include "io.c"
 
 /** @file print.c
- * @addtogroup print Print Buffer
- * Print Buffer Functions.
+ * Printing Functions.
+ */
+
+/** @addtogroup print Print Functions
  * The print buffer is for collecting output to send to the user daemon.
  * This is a per-cpu static buffer.  The buffer is sent when
  * _stp_print_flush() is called.
@@ -126,6 +128,38 @@ void _stp_print_flush (void)
  * @sa _stp_print
  */
 #define _stp_print_string(str) _stp_string_cat_string(_stp_stdout,str)
+
+/* This function is used when printing maps or stats. */
+/* Probably belongs elsewhere, but is here for now. */
+/* It takes a format specification like those used for */
+/* printing maps and stats. It prints chars until it sees */
+/* a special format char (beginning with '%'. Then it */
+/* returns a pointer to that. */
+static char *next_fmt(char *fmt, int *num)
+{
+	char *f = fmt;
+	int in_fmt = 0;
+	dbug ("next_fmt %s\n", fmt);
+	*num = 0;
+	while (*f) {
+		if (in_fmt) {
+			if (*f == '%') {
+				_stp_string_cat_char(_stp_stdout,'%');
+				in_fmt = 0;
+			} else if (*f > '0' && *f <= '9') {
+				*num = *f - '0';
+				f++;
+				return f;
+			} else
+				return f;
+		} else if (*f == '%')
+			in_fmt = 1;
+		else
+			_stp_string_cat_char(_stp_stdout,*f);
+		f++;
+	}
+	return f;
+}
 
 /** Write a String or C string into the print buffer.
  * This macro selects the proper function to call.

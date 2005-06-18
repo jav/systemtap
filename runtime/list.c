@@ -12,6 +12,9 @@
 #include "map.c"
 
 /**********************  List Functions *********************/
+/** @file list.c
+ * @brief List Functions
+ */
 
 /** @addtogroup lists
  * Lists are special cases of maps.

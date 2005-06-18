@@ -1,138 +1,50 @@
-/* -*- linux-c -*- */
+#ifndef _MAP_VALUES_C_ /* -*- linux-c -*- */
+#define _MAP_VALUES_C_
+
+/** @file map-values.c
+ * @brief Includes the proper value functions for maps.
+ */
 
 #include "map.h"
 
-#if VALUE_TYPE == STRING
-#define VALUETYPE char*
-#define VALUENAME str
-#define NEED_STRING_VALS
-#elif VALUE_TYPE == INT64
-#define VALUETYPE int64_t
-#define VALUENAME int64
-#define NEED_INT64_VALS
-#elif VALUE_TYPE == STAT
-#define VALUETYPE stat*
-#define VALUENAME stat
-#define NEED_STAT_VALS
-#else
-#error VALUE_TYPE has unimplemented value.
+#if !defined(NEED_STRING_VALS) && !defined(NEED_INT64_VALS) && !defined(NEED_STAT_VALS)
+#error Need to define at least one of NEED_STRING_VALS, NEED_INT64_VALS and NEED_STAT_VALS
 #endif
 
-#define VALSYM(x) JOIN(x,VALUENAME)
-#define VALUE_TYPE_COPY JOIN(VALUENAME,copy)
-#define VALUE_TYPE_ADD JOIN(VALUENAME,add)
-#define VALUE_GET JOIN(VALUENAME,get)
+#ifdef NEED_STRING_VALS
+#include "map-str.c"
+#endif
 
-void VALSYM(__stp_map_set) (MAP map, VALUETYPE val, int add)
+#ifdef NEED_STAT_VALS
+#include "map-stat.c"
+#endif
+
+#ifdef NEED_INT64_VALS
+#include "map-int.c"
+#endif
+
+
+#if defined(NEED_INT64_VALS) || defined (NEED_STAT_VALS)
+/** Add an int64 to a map.
+ * @ingroup map_set
+ * @param map 
+ * @param val int64 value to add
+ */
+void _stp_map_add_int64 (MAP map, int64_t val)
 {
-	struct map_node *m;
-
 	if (map == NULL)
 		return;
 
-	if (map->create) {
-		if (val == 0 && !map->no_wrap)
-			return;
-
-		m = __stp_map_create (map);
-		if (!m)
-			return;
-		
-		/* set the value */
-		dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
-		VALUE_TYPE_COPY((void *)((long)m + map->data_offset), val);
-		//m->val = val;
-	} else {
-		if (map->key == NULL)
-			return;
-		
-		if (val) {
-			if (add)
-				VALUE_TYPE_ADD((void *)((long)map->key + map->data_offset), val);
-			else
-				VALUE_TYPE_COPY((void *)((long)map->key + map->data_offset), val);
-		} else if (!add) {
-			/* setting value to 0 is the same as deleting */
-			_stp_map_key_del(map);
-		}
-	}
+#ifdef NEED_INT64_VALS
+	if (map->type == INT64) 
+		__stp_map_set_int64 (map, val, 1);
+#endif
+#ifdef NEED_STAT_VALS
+	if (map->type == STAT) 
+		_stp_map_add_stat (map, val);
+#endif
 }
+#endif
 
-void VALSYM(_stp_map_set) (MAP map, VALUETYPE val)
-{
-	VALSYM(__stp_map_set)(map, val, 0);
-}
+#endif /* _MAP_VALUES_C_ */
 
-
-#if VALUE_TYPE == STAT
-/** Adds an int64 to a stats map */
-void VALSYM(_stp_map_add_int64) (MAP map, int64_t val)
-{
-	stat *d;
-	int n;
-
-	if (map == NULL)
-		return;
-	
-	if (map->create) {
-		struct map_node *m = __stp_map_create (map);
-		if (!m)
-			return;
-		
-		/* set the value */
-		d = (stat *)((long)m + map->data_offset);
-		d->count = 1;
-		d->sum = d->min = d->max = val;
-	} else {
-		if (map->key == NULL)
-			return;
-		d = (stat *)((long)map->key + map->data_offset);
-		d->count++;
-		d->sum += val;
-		if (val > d->max)
-			d->max = val;
-		if (val < d->min)
-			d->min = val;
-	}
-	/* histogram */
-	switch (map->hist_type) {
-	case HIST_LOG:
-		n = msb64 (val);
-		if (n >= map->hist_buckets)
-			n = map->hist_buckets - 1;
-		d->histogram[n]++;
-		break;
-	case HIST_LINEAR:
-		/* n = (val - map->hist_start) / map->hist_int; */
-		val -= map->hist_start;
-		do_div (val, map->hist_int);
-		n = val;
-		if (n < 0)
-			n = 0;
-		if (n >= map->hist_buckets)
-			n = map->hist_buckets - 1;
-		d->histogram[n]++;
-	default:
-		break;
-	}
-}
-#endif /* VALUE_TYPE == STAT */
-
-void VALSYM(_stp_map_add) (MAP map, VALUETYPE val)
-{
-	VALSYM(__stp_map_set)(map, val, 1);
-}
-
-VALUETYPE VALSYM(_stp_map_get) (MAP map)
-{
-	struct map_node *m;
-	if (map == NULL || map->create || map->key == NULL)
-		return 0;
-	dbug ("key %lx\n", (long)map->key);
-	m = (struct map_node *)map->key;
-	return VALUE_GET ((void *)((long)m + map->data_offset));
-}
-
-#undef VALUE_TYPE
-#undef VALUETYPE
-#undef VALUENAME

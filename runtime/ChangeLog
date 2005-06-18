@@ -1,3 +1,27 @@
+2005-06-18  Martin Hunt  <hunt@redhat.com>
+
+	* counter.c: New file. Counter aggregations.
+
+	* stat.c: New file. Stat aggregations.
+
+	* stat.h: Header file for stats.
+	
+	* map-int.c: New file. Support for int64 values.
+
+	* map-stat.c: New file. Support for stat values.
+
+	* map-str.c: New file. Support for string values.
+
+	* map-values.c: Now just includes the necessary map-*.c files.
+
+	* stat-common.c: New file. Stats stuff common to Stats and maps
+	containing stats.
+
+	* Doxyfile: Bumped version to 0.6. 
+
+	* README: Renamed README.doc and reorganized.
+	
+
 2005-06-15  Martin Hunt  <hunt@redhat.com>
 
 	* current.c (_stp_ret_addr): Fix computation for i386.

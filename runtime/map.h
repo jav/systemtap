@@ -9,14 +9,14 @@
  * @{
  */
 
-/** This sets the size of the hash table. */
+/* This sets the size of the hash table. */
 #ifndef HASH_TABLE_BITS
 #define HASH_TABLE_BITS 8
-/** This sets the size of the hash table. */
+/* This sets the size of the hash table. */
 #define HASH_TABLE_SIZE (1<<HASH_TABLE_BITS)
 #endif
 
-/** The maximum number of keys allowed. Reducing this can save a small
+/* The maximum number of keys allowed. Reducing this can save a small
 amount of memory. Do not increase above 5. */
 #ifndef MAX_KEY_ARITY
 #define MAX_KEY_ARITY 5
@@ -28,9 +28,6 @@ amount of memory. Do not increase above 5. */
 #define MAP_STRING_LENGTH 256
 #endif
 
-/** histogram type */
-enum histtype { HIST_NONE, HIST_LOG, HIST_LINEAR };
-
 /** @cond DONT_INCLUDE */
 #define INT64 0
 #define STRING 1
@@ -38,21 +35,14 @@ enum histtype { HIST_NONE, HIST_LOG, HIST_LINEAR };
 #define END 3
 /** @endcond */
 
-/** Histogram is log 2 */
+#include "stat.h"
+
+/* Histogram is log 2 */
 #define HSTAT_LOG (STAT | (HIST_LOG << 8))
-/** Histogram is linear */
+/* Histogram is linear */
 #define HSTAT_LINEAR (STAT | (HIST_LINEAR <<  8))
 
-/** Statistics are stored in this struct */
-typedef struct {
-	int64_t count;
-	int64_t sum;
-	int64_t min, max;
-	int64_t histogram[];
-} stat;
-
-
-/** Keys are either int64 or strings */
+/* Keys are either int64 or strings */
 typedef union {
 	int64_t val;
 	char *strp;
@@ -163,6 +153,7 @@ typedef struct map_root *MAP;
 
 /** Macro to call the proper _stp_map_set function based on the
  * type of the argument. 
+ * @ingroup map_set
  */
 #define _stp_map_set(map, val)					\
   ({								\
@@ -225,16 +216,18 @@ int str_eq_p(char *key1, char *key2);
 int64_t _stp_get_int64(struct map_node *m);
 char * _stp_get_str(struct map_node *m);
 stat * _stp_get_stat(struct map_node *m);
-int msb64(int64_t x);
 unsigned int str_hash(const char *key1);
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size);
-MAP _stp_map_new_hstat_log(unsigned max_entries, int key_size, int buckets);
-MAP _stp_map_new_hstat_linear(unsigned max_entries, int ksize, int start, int stop, int interval);
+#ifdef NEED_STAT_VALS
+static int msb64(int64_t x);
+static MAP _stp_map_new_hstat_log(unsigned max_entries, int key_size, int buckets);
+static MAP _stp_map_new_hstat_linear(unsigned max_entries, int ksize, int start, int stop, int interval);
+static void _stp_map_print_histogram(MAP map, stat *s);
+#endif
 void _stp_map_key_del(MAP map);
 struct map_node * _stp_map_start(MAP map);
 struct map_node * _stp_map_iter(MAP map, struct map_node *m);
 void _stp_map_del(MAP map);
-void _stp_map_print_histogram(MAP map, stat *s);
 void _stp_map_print(MAP map, const char *fmt);
 static struct map_node * __stp_map_create(MAP map);
 

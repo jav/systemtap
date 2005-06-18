@@ -2,7 +2,6 @@
 #define _IO_C_
 
 #include "transport/transport.c"
-#include "print.c"
 
 /** @file io.c
  * @brief I/O functions
@@ -28,7 +27,7 @@ static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 void _stp_log (const char *fmt, ...)
 {
 	int num, ret;
-	char *buf = &_stp_lbuf[smp_processor_id()][0];
+	char *buf = &_stp_lbuf[get_cpu()][0];
 	va_list args;
 	va_start(args, fmt);
 	num = vscnprintf (buf, STP_LOG_BUF_LEN, fmt, args);
@@ -38,6 +37,7 @@ void _stp_log (const char *fmt, ...)
 	ret = _stp_ctrl_send(STP_REALTIME_DATA, buf, num + 1, t->pid);
 	if (ret < 0)
 		atomic_inc (&_stp_transport_failures);
+	put_cpu();
 }
 
 /** @} */

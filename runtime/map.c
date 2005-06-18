@@ -28,120 +28,8 @@ int int64_eq_p (int64_t key1, int64_t key2)
 #endif /* NEED_INT64_KEYS */
 
 
-#ifdef NEED_INT64_VALS
-void int64_copy (void *dest, int64_t val)
-{
-	*(int64_t *)dest = val;
-}
 
-void int64_add (void *dest, int64_t val)
-{
-	*(int64_t *)dest += val;
-}
-
-int64_t int64_get (void *ptr)
-{
-	return *(int64_t *)ptr;
-}
-#endif /* NEED_INT64_VALS */
-
-
-#ifdef NEED_STAT_VALS
-void stat_copy (void *dest, stat *src)
-{
-	memcpy (dest, src, sizeof(stat));
-}
-
-void stat_add (void *dest, stat *src)
-{
-	stat *d = (stat *)dest;
-
-	d->count =+ src->count;
-        d->sum += src->sum;
-        if (src->max > d->max)
-                d->max = src->max;
-        if (src->min < d->min)
-                d->min = src->min;
-	/* FIXME: do histogram */
-}
-
-stat *stat_get(void *ptr)
-{
-	return (stat *)ptr;
-}
-
-/* implements a log base 2 function, or Most Significant Bit */
-/* with bits from 1 (lsb) to 64 (msb) */
-/* msb64(0) = 0 */
-/* msb64(1) = 1 */
-/* msb64(8) = 4 */
-/* msb64(512) = 10 */
-
-int msb64(int64_t val)
-{
-  int res = 64;
-
-  if (val == 0)
-    return 0;
-
-  /* shortcut. most values will be 16-bit */
-  if (val & 0xffffffffffff0000ull) {
-    if (!(val & 0xffffffff00000000ull)) {
-      val <<= 32;
-      res -= 32;
-    }
-
-    if (!(val & 0xffff000000000000ull)) {
-      val <<= 16;
-      res -= 16;
-    }
-  } else {
-      val <<= 48;
-      res -= 48;
-  }
-
-  if (!(val & 0xff00000000000000ull)) {
-    val <<= 8;
-    res -= 8;
-  }
-
-  if (!(val & 0xf000000000000000ull)) {
-    val <<= 4;
-    res -= 4;
-  }
-
-  if (!(val & 0xc000000000000000ull)) {
-    val <<= 2;
-    res -= 2;
-  }
-
-  if (!(val & 0x8000000000000000ull)) {
-    val <<= 1;
-    res -= 1;
-  }
-
-  return res;
-}
-
-#endif /* NEED_STAT_VALS */
-
-int64_t _stp_key_get_int64 (struct map_node *mn, int n)
-{
-	if (mn)
-		return (*mn->map->get_key)(mn, n, NULL).val;
-	return 0;
-}
-
-char *_stp_key_get_str (struct map_node *mn, int n)
-{
-	if (mn)
-		return (*mn->map->get_key)(mn, n, NULL).strp;
-	return "";
-}
-
-
-
-#if defined(NEED_STRING_VALS) || defined (NEED_STRING_KEYS)
+#if defined (NEED_STRING_KEYS) || defined (NEED_STRING_VALS)
 void str_copy(char *dest, char *src)
 {
 	int len = strlen(src);
@@ -151,43 +39,6 @@ void str_copy(char *dest, char *src)
 	dest[len] = 0;
 }
 #endif
-
-#ifdef NEED_STRING_VALS
-void str_add(void *dest, char *val)
-{
-	char *dst = (char *)dest;
-	int len = strlen(val);
-	int len1 = strlen(dst);
-	int num = MAP_STRING_LENGTH - 1 - len1;
-
-	if (len > num)
-		len = num;
-	strncpy (&dst[len1], val, len);
-	dst[len + len1] = 0;
-}
-
-char *str_get (void *ptr)
-{
-  return ptr;
-}
-
-/** Set the current element's value to String.
- * This sets the current element's value to a String. The map must have been created
- * to hold int64s using <i>_stp_map_new(xxx, STRING)</i>
- *
- * If the element doesn't exist, it is created.  If no current element (key)
- * is set for the map, this function does nothing.
- * @param map
- * @param str String containing new value.
- * @sa _stp_map_set()
- */
-
-void _stp_map_set_string (MAP map, String str)
-{
-  _stp_map_set_str (map, str->buf);
-}
-
-#endif /* NEED_STRING_VALS */
 
 #ifdef NEED_STRING_KEYS
 int str_eq_p (char *key1, char *key2)
@@ -206,26 +57,74 @@ unsigned int str_hash(const char *key1)
 }
 #endif /* NEED_STRING_KEYS */
 
+/** @addtogroup maps 
+ * Implements maps (associative arrays) and lists
+ * @{ 
+ */
+
+/** Return an int64 from a map node.
+ * This function will return the int64 value of a map_node
+ * from a map containing int64s. You can get the map_nodes in a map
+ * with _stp_map_start(), _stp_map_iter() and foreach().
+ * @param m pointer to the map_node. 
+ * @returns an int64 value.
+ */
 int64_t _stp_get_int64(struct map_node *m)
 {
 	return *(int64_t *)((long)m + m->map->data_offset);
 }
 
+/** Return a string from a map node.
+ * This function will return the string value of a map_node
+ * from a map containing strings. You can get the map_nodes in a map
+ * with _stp_map_start(), _stp_map_iter() and foreach().
+ * @param m pointer to the map_node.
+ * @returns a pointer to a string. 
+ */
 char *_stp_get_str(struct map_node *m)
 {
 	return (char *)((long)m + m->map->data_offset);
 }
 
+/** Return a stat pointer from a map node.
+ * This function will return the stats of a map_node
+ * from a map containing stats. You can get the map_nodes in a map
+ * with _stp_map_start(), _stp_map_iter() and foreach().
+ * @param m pointer to the map_node.
+ * @returns A pointer to the stats.  
+ */
 stat *_stp_get_stat(struct map_node *m)
 {
 	return (stat *)((long)m + m->map->data_offset);
 }
 
-
-/** @addtogroup maps 
- * Implements maps (associative arrays) and lists
- * @{ 
+/** Return an int64 key from a map node.
+ * This function will return an int64 key from a map_node.
+ * @param m pointer to the map_node.
+ * @param n key number
+ * @returns an int64
+ * @sa key1int(), key2int()
  */
+int64_t _stp_key_get_int64 (struct map_node *mn, int n)
+{
+	if (mn)
+		return (*mn->map->get_key)(mn, n, NULL).val;
+	return 0;
+}
+
+/** Return a string key from a map node.
+ * This function will return an string key from a map_node.
+ * @param m pointer to the map_node.
+ * @param n key number
+ * @returns a pointer to a string
+ * @sa key1str(), key2str()
+ */
+char *_stp_key_get_str (struct map_node *mn, int n)
+{
+	if (mn)
+		return (*mn->map->get_key)(mn, n, NULL).strp;
+	return "";
+}
 
 /** Create a new map.
  * Maps must be created at module initialization time.
@@ -235,6 +134,7 @@ stat *_stp_get_stat(struct map_node *m)
  * will be allocated dynamically.
  * @param type Type of values stored in this map. 
  * @return A MAP on success or NULL on failure.
+ * @ingroup map_create
  */
 
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
@@ -283,49 +183,6 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 	return m;
 }
 
-MAP _stp_map_new_hstat_log (unsigned max_entries, int key_size, int buckets)
-{
-	/* add size for buckets */
-	int size = buckets * sizeof(int64_t) + sizeof(stat);
-	MAP m = _stp_map_new (max_entries, STAT, key_size, size);
-	if (m) {
-		m->hist_type = HIST_LOG;
-		m->hist_buckets = buckets;
-		if (buckets < 1 || buckets > 64) {
-			dbug ("histogram: Bad number of buckets.  Must be between 1 and 64\n");
-			m->hist_type = HIST_NONE;
-			return m;
-		}
-	}
-	return m;
-}
-
-MAP _stp_map_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
-{
-	MAP m;
-	int size;
-	int buckets = (stop - start) / interval;
-	if ((stop - start) % interval) buckets++;
-
-        /* add size for buckets */
-	size = buckets * sizeof(int64_t) + sizeof(stat);
-
-	m = _stp_map_new (max_entries, STAT, ksize, size);
-	if (m) {
-		m->hist_type = HIST_LINEAR;
-		m->hist_start = start;
-		m->hist_stop = stop;
-		m->hist_int = interval;
-		m->hist_buckets = buckets;
-		if (m->hist_buckets <= 0) {
-			dbug ("histogram: bad stop, start and/or interval\n");
-			m->hist_type = HIST_NONE;
-			return m;
-		}
-		
-	}
-	return m;
-}
 
 /** Deletes the current element.
  * If no current element (key) for this map is set, this function does nothing.
@@ -421,150 +278,6 @@ void _stp_map_del(MAP map)
 	_stp_vfree(map);
 }
 
-#ifdef NEED_STAT_VALS
-
-static int needed_space(int64_t v)
-{
-	int space = 0;
-
-	if (v == 0)
-		return 1;
-
-	if (v < 0) {
-		space++;
-		v = -v;
-	}
-	while (v) {
-		/* v /= 10; */
-		do_div (v, 10);
-		space++;
-	}
-	return space;
-}
-
-static void reprint (int num, char *s)
-{
-	while (num > 0) {
-		_stp_print_cstr (s);
-		num--;
-	}
-}
-
-#define HIST_WIDTH 50
-
-void _stp_map_print_histogram (MAP map, stat *s)
-{
-	int scale, i, j, val_space, cnt_space;
-	int64_t val, v, max = 0;
-
-	if (map->hist_type != HIST_LOG && map->hist_type != HIST_LINEAR)
-		return;
-	/* get the maximum value, for scaling */
-
-	for (i = 0; i < map->hist_buckets; i++)
-		if (s->histogram[i] > max)
-			max = s->histogram[i];
-	
-	if (max <= HIST_WIDTH)
-		scale = 1;
-	else {
-		int64_t tmp = max;
-		int rem = do_div (tmp, HIST_WIDTH);
-		scale = tmp;
-		if (rem) scale++;
-	}
-
-	cnt_space = needed_space (max);
-	if (map->hist_type == HIST_LINEAR)
-		val_space = needed_space (map->hist_start +  map->hist_int * (map->hist_buckets - 1));
-	else
-		val_space = needed_space (1 << (map->hist_buckets - 1));
-	dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
-
-	/* print header */
-	j = 0;
-	if (val_space > 5)		/* 5 = sizeof("value") */
-		j = val_space - 5;
-	else
-		val_space = 5;
-	for ( i = 0; i < j; i++)
-		_stp_print_cstr (" ");
-	_stp_print_cstr("value |");
-	reprint (HIST_WIDTH, "-");
-	_stp_print_cstr (" count\n");
-	_stp_print_flush();
-	if (map->hist_type == HIST_LINEAR)
-		val = map->hist_start;
-	else
-		val = 0;
-	for (i = 0; i < map->hist_buckets; i++) {
-		reprint (val_space - needed_space(val), " ");
-		_stp_printf("%d", val);
-		_stp_print_cstr (" |");
-
-		/* v = s->histogram[i] / scale; */
-		v = s->histogram[i];
-		do_div (v, scale);
-		
-		reprint (v, "@");
-		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(s->histogram[i]), " ");
-		_stp_printf ("%lld\n", s->histogram[i]);
-		if (map->hist_type == HIST_LINEAR) 
-			val += map->hist_int;
-		else if (val == 0)
-			val = 1;
-		else
-			val *= 2;
-	}
-}
-#endif /* NEED_STAT_VALS */
-
-/* Print stuff until a format specification is found. */
-/* Return pointer to that. */
-static char *next_fmt(char *fmt, int *num)
-{
-	char *f = fmt;
-	int in_fmt = 0;
-	dbug ("next_fmt %s\n", fmt);
-	*num = 0;
-	while (*f) {
-		if (in_fmt) {
-			if (*f == '%') {
-				_stp_string_cat_char(_stp_stdout,'%');
-				in_fmt = 0;
-			} else if (*f > '0' && *f <= '9') {
-				*num = *f - '0';
-				f++;
-				return f;
-			} else
-				return f;
-		} else if (*f == '%')
-			in_fmt = 1;
-		else
-			_stp_string_cat_char(_stp_stdout,*f);
-		f++;
-	}
-	return f;
-}
-
-/* print type based on format.  Valid formats are: 
---- KEYS and RESULTS ---
-%p - address (hex padded to sizeof(void *))
-%P - symbolic address
-%x - hex int64
-%X - HEX int64
-%d - decimal int64
-%s - string
---- STATS ---
-%m - min
-%M - max
-%A - avg
-%S - sum
-%H - histogram
-%C - count
---- MISC ---
-%% - print '%'
-*/
 static int print_keytype (char *fmt, int type, key_data *kd)
 {
 	dbug ("*fmt = %c\n", *fmt);
@@ -628,41 +341,23 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
 #ifdef NEED_STAT_VALS
 	case STAT:
 	{
-		stat *s = _stp_get_stat(ptr);
-		switch (*fmt) {
-		case 'C':
-			_stp_printf("%lld", s->count);
-			break;
-		case 'm':
-			_stp_printf("%lld", s->min);
-			break;
-		case 'M':
-			_stp_printf("%lld", s->max);
-			break;
-		case 'S':
-			_stp_printf("%lld", s->sum);
-			break;
-		case 'A':
-		{
-			int64_t avg = s->sum;
-			do_div (avg, (int)s->count); /* FIXME: check for overflow */
-			_stp_printf("%lld", avg);
-			break;
-		}
-		case 'H':
-			_stp_map_print_histogram (map, s);
-			_stp_print_flush();
-			break;
-		}
+		Stat st = (Stat)((long)map + offsetof(struct map_root, hist_type));
+		stat *sd = _stp_get_stat(ptr);
+		_stp_stat_print_valtype (fmt, st, sd, 0); 
 		break;
 	}
-
 #endif
 	default:
 		break;
 	}
 }
 
+/** Print a Map.
+ * Print a Map using a format string.
+ *
+ * @param map Map
+ * @param fmt @ref format_string
+ */
 void _stp_map_print (MAP map, const char *fmt)
 {
 	struct map_node *ptr;

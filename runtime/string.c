@@ -1,43 +1,16 @@
 #ifndef _STRING_C_ /* -*- linux-c -*- */
 #define _STRING_C_
 
-#ifndef STP_NUM_STRINGS
-#define STP_NUM_STRINGS 0
-#endif
-
 #include <linux/config.h>
+#include "string.h"
 
 /** @file string.c
  * @brief Implements String type.
  */
 /** @addtogroup string String Functions
  *
- * One of the biggest restrictions the library has is that it cannot allocate things like strings off the stack.
- * It is also not a good idea to dynamically allocate space for strings with kmalloc().  That leaves us with 
- * statically allocated space for strings. This is what is implemented in the String module.  Strings use
- * preallocated per-cpu buffers and are safe to use (unlike C strings).
  * @{
  */
-
-/** Maximum string size allowed in Strings */
-#ifndef STP_STRING_SIZE
-#define STP_STRING_SIZE 2048
-#endif
-
-struct string {
-	int len;
-	char buf[STP_STRING_SIZE];
-};
-
-static struct string _stp_string[STP_NUM_STRINGS][NR_CPUS];
-
-typedef struct string *String;
-
-/* set up a special stdout string */
-static struct string __stp_stdout;
-String _stp_stdout = &__stp_stdout;
-
-void _stp_vsprintf (String str, const char *fmt, va_list args);
 
 /** Initialize a String for our use.
  * This grabs one of the global Strings for our temporary use.
@@ -211,7 +184,6 @@ char * _stp_string_ptr (String str)
 {
 	return str->buf;
 }
-
 
 /** ConCATenate (append) a String or C string to a String.
  * This macro selects the proper function to call.

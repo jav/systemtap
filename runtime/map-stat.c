@@ -1,0 +1,84 @@
+/* -*- linux-c -*- */
+
+/** @file map-stat.c
+ * @brief Map functions to set and get stats
+ */
+
+#include "stat-common.c"
+
+/* Adds an int64 to a stats map */
+static void _stp_map_add_stat (MAP map, int64_t val)
+{
+	stat *d;
+	Stat st;
+
+	if (map == NULL)
+		return;
+		
+	if (map->create) {
+		struct map_node *m = __stp_map_create (map);
+		if (!m)
+			return;
+		
+		/* set the value */
+		d = (stat *)((long)m + map->data_offset);
+		d->count = 0;
+	} else {
+		if (map->key == NULL)
+			return;
+		d = (stat *)((long)map->key + map->data_offset);
+	}
+	st = (Stat)((long)map + offsetof(struct map_root, hist_type));
+	__stp_stat_add (st, d, val);
+}
+
+
+static void _stp_map_print_histogram (MAP map, stat *sd)
+{
+	Stat st = (Stat)((long)map + offsetof(struct map_root, hist_type));
+	_stp_stat_print_histogram (st, sd);
+}
+
+static MAP _stp_map_new_hstat_log (unsigned max_entries, int key_size, int buckets)
+{
+	/* add size for buckets */
+	int size = buckets * sizeof(int64_t) + sizeof(stat);
+	MAP m = _stp_map_new (max_entries, STAT, key_size, size);
+	if (m) {
+		m->hist_type = HIST_LOG;
+		m->hist_buckets = buckets;
+		if (buckets < 1 || buckets > 64) {
+			dbug ("histogram: Bad number of buckets.  Must be between 1 and 64\n");
+			m->hist_type = HIST_NONE;
+			return m;
+		}
+	}
+	return m;
+}
+
+static MAP _stp_map_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
+{
+	MAP m;
+	int size;
+	int buckets = (stop - start) / interval;
+	if ((stop - start) % interval) buckets++;
+
+        /* add size for buckets */
+	size = buckets * sizeof(int64_t) + sizeof(stat);
+
+	m = _stp_map_new (max_entries, STAT, ksize, size);
+	if (m) {
+		m->hist_type = HIST_LINEAR;
+		m->hist_start = start;
+		m->hist_stop = stop;
+		m->hist_int = interval;
+		m->hist_buckets = buckets;
+		if (m->hist_buckets <= 0) {
+			dbug ("histogram: bad stop, start and/or interval\n");
+			m->hist_type = HIST_NONE;
+			return m;
+		}
+		
+	}
+	return m;
+}

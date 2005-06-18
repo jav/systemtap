@@ -1,0 +1,176 @@
+/** @mainpage SystemTap Runtime
+
+@section intro_sec Introduction
+
+This document describes the implementation of the SystemTap Runtime. It is intended for developers
+of the SystemTap Language translator, TapSet authors or kprobes programmers. 
+These functions are not directly available from the SystemTap Language.
+
+The SystemTap Runtime Library consists of all functions
+and code fragments needed by the compiler/translator to
+include in building a kernel module using kprobes. It
+also includes I/O code to transmit its output from the kernel to userspace.
+ 
+In addition to the library, the runtime includes a SystemTap user-space daemon
+(stpd).  Stpd grabs data sent from the I/O code in the runtime and displays it
+and/or saves it to files. Stpd will handle other issues like
+inserting and removing modules.
+
+Stpd and the I/O code make use of both relayfs and netlink for communication.  For
+kernels without relayfs builtin, it is provided as a standalone module under the runtime directory.
+
+@ref start_page
+
+@ref maps
+
+@ref lists
+
+@ref string
+
+@ref counter
+
+@ref stat
+
+@ref io_page
+
+<a href="http://sources.redhat.com/systemtap/"><b>SystemTap Project Page</b></a>
+*/
+
+/**
+@page start_page Getting Started
+The library is written in C and is really not a library but a collection of code
+that can be conditionally included in a modules. This allows for a high degree of 
+customization and efficiency. To get started, first compile everything.
+
+@verbatim
+>cd stp/src/runtime
+> make
+make -w -C relayfs
+make[1]: Entering directory `/home/hunt/stp/src/runtime/relayfs'
+make -C /lib/modules/2.6.11-1.27_FC3.huntsmp/build SUBDIRS=/home/hunt/stp/src/runtime/relayfs modules
+make[2]: Entering directory `/lib/modules/2.6.11-1.27_FC3.huntsmp/build'
+  Building modules, stage 2.
+  MODPOST
+make[2]: Leaving directory `/lib/modules/2.6.11-1.27_FC3.huntsmp/build'
+make[1]: Leaving directory `/home/hunt/stp/src/runtime/relayfs'
+make -w -C transport
+make[1]: Entering directory `/home/hunt/stp/src/runtime/transport'
+make -C /lib/modules/2.6.11-1.27_FC3.huntsmp/build include SUBDIRS=/home/hunt/stp/src/runtime/transport modules
+make[2]: Entering directory `/lib/modules/2.6.11-1.27_FC3.huntsmp/build'
+make[2]: Nothing to be done for `include'.
+  Building modules, stage 2.
+  MODPOST
+make[2]: Leaving directory `/lib/modules/2.6.11-1.27_FC3.huntsmp/build'
+make[1]: Leaving directory `/home/hunt/stp/src/runtime/transport'
+make -w -C stpd
+make[1]: Entering directory `/home/hunt/stp/src/runtime/stpd'
+make[1]: Nothing to be done for `all'.
+make[1]: Leaving directory `/home/hunt/stp/src/runtime/stpd'
+cd probes; ./build
+Building shellsnoop
+Building test4
+Building where_func
+Building scf
+@endverbatim
+
+You might want to test things out.  To do this:
+@verbatim
+> cd probes/shellsnoop
+> su
+> ./stp shellsnoop.ko
+@endverbatim
+Now from another shell, type some commands.  You should see information about the command displayed
+in the shellsnoop window.
+
+Hit ^C to exit from a probe.
+
+To write your own probe, look through the example probes.  You can start writing your 
+own by editing this one or one of the examples.
+
+@include template.c
+*/
+
+/** @page io_page I/O
+Generally things are written to a "print buffer" using the internal
+functions _stp_print_xxx().
+@code
+_stp_print ("Output is: ");
+_stp_printf ("pid is %d ", current->pid);
+_stp_printf ("name is %s", current->comm);
+@endcode
+before the probe returns it must call _stp_print_flush().  
+<b>(This behaviour is expected to change soon!)</b>
+This timestamps the accumulated print buffer and sends it to relayfs.
+When relayfs fills an internal buffer, the user-space daemon is notified
+data is ready and reads a big per-cpu chunk.
+
+The user-daemon (stpd) saves this data to a file named something like
+"stpd_cpu2".  When the user hits ^c, a timer expires, or the probe
+module notifies stpd (through a netlink command channel) that it wants
+to terminate, stpd does "system(rmmod)" then collects the last output
+before exiting.
+As an option, if we don't need bulk per-cpu data, we can put
+\code
+#define STP_NETLINK_ONLY
+\endcode
+at the top of the module and all output will go over a netlink channel.
+In the SystemTap language, we will provide some simple functions to control the buffering policy, which
+will control the use of netlink and parameters to relayfs and stpd.
+
+*/
+
+/** @addtogroup string
+
+One of the biggest restrictions the library has is that it cannot put large things like 
+strings on the stack. And allocating memory from within a probe is a very bad idea.
+It is also not a good idea to dynamically allocate space for strings with kmalloc().  That leaves us with 
+statically allocated space for strings. This is what is implemented in the String module.  Strings use
+preallocated per-cpu buffers and are safe to use (unlike C strings) because operations which manipulate
+them all check to prevent overflowing their allocated space. 
+
+Every probe function that uses a string needs to call _stp_string_init() with
+a unique number. For example, here is a bit of code that grabs a string, puts a stack
+trace into it and then uses that for a map key. 
+
+@code
+  String str = _stp_string_init (0);
+  _stp_stack_sprint (str, regs);
+  _stp_map_key_str(map1, _stp_string_ptr(str));
+@endcode
+
+If the same probe needs a another String, you would create it with
+@code
+  String str = _stp_string_init (1);
+@endcode
+
+Be sure to declare how many strings you need the top of your sources, before including "runtime.h".
+@code
+#define STP_NUM_STRINGS 2
+@endcode
+
+Note that STP_NUM_STRINGS should be set to the maximum number of strings a probe needs.
+Probes are per-cpu so many different probes can all call _stp_string_init(0) without fear that
+of collisions.  Each CPU that could be in a probe will get a different buffer for String 0.
+*/
+
+/** @addtogroup lists
+A list is a special map which has internally ascending int64 keys. Adding a value to
+a list does not require setting a key first. 
+
+Create a list with _stp_list_new(). 
+
+Add to it with _stp_list_add_str() or _stp_list_add_int64().  
+
+You can read the list by calling _stp_list_size() and then using _stp_map_key_int64() with
+keys from 0 to the size.  Or better yet, use foreach().
+
+For example, if you have a list of strings called "mylist"
+@code
+struct map_node *ptr;
+foreach (mylist, ptr)
+	_stp_print(_stp_get_str(ptr));
+
+@endcode
+	
+Clear it with _stp_list_clear().
+*/
