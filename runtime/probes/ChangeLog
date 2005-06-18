@@ -1,0 +1,16 @@
+2005-06-18  Martin Hunt  <hunt@redhat.com>
+
+	* build: Modified to use build_probe.
+
+	* build_probe: New file. This does the work of building
+	a single probe or set of probes in a directory.
+
+	* Makefile.template: New file. Template used by
+	build_probe to create Makefiles.
+
+	* agg: New set of probes to test/demonstrate 
+	Counter and Stat aggregations.
+
+	* all probes modified for latest changes and new build
+	process.
+

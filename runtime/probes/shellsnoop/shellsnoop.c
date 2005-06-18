@@ -1,17 +1,14 @@
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
-
 #include "runtime.h"
+
+#define NEED_INT64_VALS
+#define NEED_STRING_VALS
 
 #define KEY1_TYPE INT64
 #include "map-keys.c"
 
-#define VALUE_TYPE INT64
-#include "map-values.c"
-
-#define VALUE_TYPE STRING
-#include "map-values.c"
-
+#include "map.c"
 #include "list.c"
 #include "copy.c"
 #include "probes.c"
@@ -24,6 +21,7 @@ MAP pids, arglist ;
 int inst_do_execve (char * filename, char __user *__user *argv, char __user *__user *envp, struct pt_regs * regs)
 {
   struct map_node *ptr;
+
   /* watch shells only */
   /* FIXME: detect more shells, like csh, tcsh, zsh */
   

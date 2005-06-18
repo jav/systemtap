@@ -23,4 +23,7 @@ The instrumentation is removed as root with:
 /sbin/rmmod kprobe_funct_where
 \endcode
 -Will Cohen
+
+Note that this module is broken now because we don't pass the module parameter
+tp stpd.  FIXME
 */

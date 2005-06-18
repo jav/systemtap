@@ -1,5 +1,4 @@
 # Makefile
-
 PWD     := $(shell pwd)
 RT	:= $(PWD)/../..
 KVERSION	:= $(shell uname -r)
@@ -11,11 +10,10 @@ KTA	:= 0x$(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVE
 
 EXTRA_CFLAGS := -I $(RT) -I $(RT)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) -D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP) -DKTA=$(KTA)
 
-obj-m := scf.o
-
+obj-m := XXX.o
 
 default:
 	$(MAKE) V=1 -C $(KDIR) M=$(PWD) RT=$(RT) modules
 
 clean:
-	/bin/rm -rf *.o *.ko *~ *.mod.c .*.cmd .tmp_versions
+	/bin/rm -rf *.o *.o.d *.ko *~ *.mod.c .*.cmd .tmp_versions

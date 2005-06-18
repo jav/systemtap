@@ -1,0 +1,126 @@
+#!/usr/bin/tclsh
+# -*- tcl -*-
+
+proc usage {} {
+  puts "Usage: build \[-v\] \[clean\]"
+  exit -1
+}
+
+# use Makefile.template to generate a Makefile
+proc create_makefile {target} {
+  if {[catch {open ../Makefile.template r} fd]} {
+    puts "ERROR opening ../Makefile.template"
+    exit -1
+  }
+  if {[catch {open Makefile w} mfd]} {
+    puts "ERROR creating Makefile"
+    exit -1
+  }
+  while {[gets $fd line] >= 0} {
+    if {[regsub XXX $line $target newline]} {
+      set line $newline
+    }
+    puts $mfd $line
+  }
+  close $fd
+  close $mfd
+}
+
+proc build {{target ""}} {
+  global clean verbose
+  if {$target == ""} {
+    set target [file tail [pwd]]
+  }
+  if {$clean} {
+    puts "Cleaning $target"
+    if {[catch {exec make clean >& compile.errors} res]} {
+      [exec cat compile.errors]
+      exit -1
+    }
+  } else {
+    puts "Building $target"
+    if {[catch {exec make >& compile.errors} res]} {
+      puts "\n------------ Compile error in $target -------------------\n"
+      if {[catch {open compile.errors r} fd]} {
+	puts "Compile failed for unknown reasons"
+	exit -1
+      }
+      while {[gets $fd line] >= 0} {
+	puts $line
+      }
+      close $fd
+      exit -1 
+    } else {
+      if {![catch {open compile.errors r} fd]} {
+	# search for warnings
+	set bad 0
+	while {[gets $fd line] >= 0} {
+	  if {$verbose} {
+	    puts $line
+	  } else {
+	    if {[regexp {[^W]*([A-Za-z][A-Za-z0-9_]*)[^\"]*\"([^\"]*)} $line match warn var]} {
+	      if {$warn == "Warning"} {
+		switch $var {
+		  _stp_ctrl_unregister -
+		  _stp_ctrl_register -
+		  relay_subbufs_consumed -
+		  _stp_ctrl_send -
+		  relay_open -
+		  relayfs_create_dir -
+		  relayfs_remove_dir -
+		  relay_close {}
+		  default {
+		    if {$bad == 0} {
+		      puts "\n------------ Unexpected Warnings in $target -------------------\n"
+		    }
+		  puts $line
+		  set bad 1
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      close $fd
+      }
+      if {$bad} {
+	exit -1
+      }
+    }
+  }
+}
+
+set clean 0
+set verbose 0
+
+foreach arg $argv {
+  if {$arg == "clean"} {
+    set clean 1
+  } elseif {$arg == "-v"} {
+    set verbose 1
+  } elseif {$arg != ""} {
+    usage
+  }
+}
+
+if {![catch {open targets r} tfd]} {
+    while {[gets $tfd line] >= 0} {
+      set target [lindex $line 0]
+      create_makefile $target
+      build $target
+      catch {exec /bin/rm Makefile}
+    }
+  close $tfd
+} else {
+  if {![file exists Makefile]} {
+    puts "Now in [pwd]"
+    puts "ERROR: No targets file found and no Makefile either"
+    exit -1
+  }
+  build
+}
+
+puts "Done"
+catch {exec /bin/rm compile.errors}
+
+

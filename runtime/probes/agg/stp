@@ -1,0 +1,45 @@
+#!/bin/bash
+if [ -n "$1" ]
+then
+    modulename=$1
+else
+    echo "Usage: stp modulename"
+    exit
+fi
+
+RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
+if [ "$RELAYFS" != "relayfs" ] 
+then
+	/sbin/insmod ../../relayfs/relayfs.ko
+fi
+
+if [ ! -d "/mnt/relay" ]
+then
+    mkdir /mnt/relay
+fi
+
+MOUNT=`mount | grep relayfs |awk '{print $1}'`
+if [ "$MOUNT" != "relayfs" ]
+then
+	mount -t relayfs relayfs /mnt/relay
+fi
+
+STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+if [ "$STP_CONTROL" != "stp_control" ] 
+then
+	/sbin/insmod ../../transport/stp-control.ko
+fi
+
+#/sbin/insmod $modulename
+
+# print to screen only, 4 8K buffers
+#../../stpd/stpd -p -b 8192 -n 4 
+
+# print to screen and log to files, 4 8K buffers
+../../stpd/stpd -b 8192 -n 4 $modulename
+
+# no screen or log
+#../../stpd/stpd -q -b 8192 -n 4 
+
+# stpd will remove module when it exits
+#/sbin/rmmod $modulename

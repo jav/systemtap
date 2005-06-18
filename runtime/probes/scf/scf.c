@@ -1,13 +1,11 @@
 #define STP_NETLINK_ONLY
-#define STP_NUM_STRINGS 2
+#define STP_NUM_STRINGS 1
 #include "runtime.h"
 
 #define MAP_STRING_LENGTH 512
+#define NEED_INT64_VALS
 #define KEY1_TYPE STRING
 #include "map-keys.c"
-
-#define VALUE_TYPE INT64
-#include "map-values.c"
 
 #include "map.c"
 #include "sym.c"

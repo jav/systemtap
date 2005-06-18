@@ -1,0 +1,3 @@
+/** @dir agg
+Test probes to use the Counter and Stat aggregations.
+*/
