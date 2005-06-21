@@ -1,3 +1,10 @@
+2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* added transport_mode, subbuf_size, n_subbufs to all
+	probes and changed _stp_transport_open() calls.
+
+	* removed all obsolete params from stp scripts.
+
 2005-06-18  Martin Hunt  <hunt@redhat.com>
 
 	* build: Modified to use build_probe.

@@ -1,6 +1,21 @@
+2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* librelay.c: Large refactoring, important changes are
+	added transport_mode command, for relayfs transport
+	display results only when probe completes and/or write
+	output file, merge, sort and delete the per-cpu files
+	in postprocessing, refactor so that relayfs files aren't
+	created until transport command received, removed sigalrm,
+	read the final subbuffers on exit
+
+	* stpd.c: Remove all command-line args except for -p
+	and -q as well as all code related to buffer sizes.
+
+	* librelay.h: Add transport mode command and struct.
+
 2005-05-16  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (sigproc): If STP_EXIT send fails, keep retrying 
 	every 10ms.
 	(init_stp): Don't set n_subbufs and subbuf_size params.
-
+	

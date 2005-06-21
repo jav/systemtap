@@ -6,7 +6,17 @@
 
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
+
+static unsigned n_subbufs = 4;
+static unsigned subbuf_size = 65536;
+
 #include "runtime.h"
+
+#ifdef STP_NETLINK_ONLY
+static int transport_mode = STP_TRANSPORT_NETLINK;
+#else
+static int transport_mode = STP_TRANSPORT_RELAYFS;
+#endif
 
 #define NEED_INT64_VALS
 
@@ -59,7 +69,7 @@ int init_module(void)
 		return -1;
 	}
 
-	if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
+	if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {
 		printk("init_dtr: Couldn't open transport\n");		
 		return -1;
 	}

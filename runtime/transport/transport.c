@@ -38,6 +38,17 @@ struct stp_transport *t;
 static void probe_exit(void);
 
 /**
+ *	_stp_streaming - boolean, are we using 'streaming' output?
+ */
+static inline int _stp_streaming(void)
+{
+	if (t->transport_mode == STP_TRANSPORT_NETLINK)
+		return 1;
+	
+	return 0;
+}
+
+/**
  *	_stp_handle_buf_info - handle relayfs buffer info command
  */
 static void _stp_handle_buf_info(int pid, struct buf_info *in)
@@ -61,16 +72,47 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 	relay_subbufs_consumed(t->chan, info->cpu, info->consumed);
 }
 
+/**
+ *	_stp_handle_subbufs_consumed - handle relayfs subbufs consumed command
+ */
+static void _stp_handle_transport(int pid)
+{
+	struct transport_info out;
+	BUG_ON(!(t));
+
+	out.transport_mode = t->transport_mode;
+	if (t->transport_mode == STP_TRANSPORT_RELAYFS) {
+		out.subbuf_size = subbuf_size;
+		out.n_subbufs = n_subbufs;
+	}
+
+	_stp_ctrl_send(STP_TRANSPORT_MODE, &out, sizeof(out), pid);
+}
+
 int _stp_exit_called = 0;
 
 static int global_pid;
 static void stp_exit_helper (void *data);
 static DECLARE_WORK(stp_exit, stp_exit_helper, &global_pid);
 
+/**
+ *	_stp_transport_flush - flush the transport, if applicable
+ */
+static inline void _stp_transport_flush(void)
+{
+	extern struct stp_transport *t;
+
+	if (t->transport_mode == STP_TRANSPORT_RELAYFS) {
+		BUG_ON(!t->chan);
+		relay_flush(t->chan);
+		ssleep(1); /* FIXME: time for data to be flushed */
+	}
+}
+
 extern atomic_t _stp_transport_failures;
 static void stp_exit_helper (void *data)
 {
-	int err, pid = *(int *)data;
+	int err, trylimit = 50, pid = *(int *)data;
 
 	if (_stp_exit_called == 0) {
 		_stp_exit_called = 1;
@@ -78,11 +120,12 @@ static void stp_exit_helper (void *data)
 		_stp_transport_flush();
 	}
 
-	//printk("stp_handle_exit: sending STP_EXIT.  pid=%d\n",(int)pid);
 	while ((err =_stp_ctrl_send(STP_EXIT, __this_module.name,
 				    strlen(__this_module.name) + 1, pid)) < 0) {
 		//printk("stp_handle_exit: sent STP_EXIT.  err=%d\n", err);
 		msleep (5);
+		if (!trylimit--) /* limit e.g. if user died */
+			break;
 	}
 }
 
@@ -106,6 +149,9 @@ static int _stp_cmd_handler(int pid, int cmd, void *data)
 	case STP_SUBBUFS_CONSUMED:
 		_stp_handle_subbufs_consumed(pid, data);
 		break;
+	case STP_TRANSPORT_MODE:
+		_stp_handle_transport(pid);
+		break;
 	case STP_EXIT:
 		schedule_work (&stp_exit);
 		break;
@@ -128,11 +174,13 @@ void _stp_transport_close()
 	if (!t)
 		return;
 
+	stp_exit_helper (&t->pid);
+
 	_stp_ctrl_unregister(t->pid);
 	if (!_stp_streaming())
 		_stp_relayfs_close(t->chan, t->dir);
 
-	stp_exit_helper (&t->pid);
+//	stp_exit_helper (&t->pid);
 	kfree(t);
 }
 
@@ -149,7 +197,10 @@ void _stp_transport_close()
  *	relayfs channel for it.  This must be called before any I/O is
  *	done, probably at the start of module initialization.
  */
-int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size, int pid)
+int _stp_transport_open(int transport_mode,
+			unsigned n_subbufs,
+			unsigned subbuf_size,
+			int pid)
 {
 	BUG_ON(!(n_subbufs && subbuf_size));
 	
@@ -160,6 +211,8 @@ int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size, int pid)
 	t->pid = pid;
 	global_pid = pid;
 	_stp_ctrl_register(t->pid, _stp_cmd_handler);
+
+	t->transport_mode = transport_mode;
 
 	if (_stp_streaming())
 		return 0;
@@ -185,5 +238,6 @@ int _stp_transport_send (int pid, void *data, int len)
 	}
 	return err;
 }
+
 /** @} */
 #endif /* _TRANSPORT_C_ */

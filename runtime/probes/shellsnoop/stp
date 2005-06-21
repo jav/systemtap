@@ -7,8 +7,8 @@ else
     exit
 fi
 
-RELAYFS=`grep " relayfs_mmap" /proc/kallsyms`
-if [ "$RELAYFS" == "" ] 
+RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
+if [ "$RELAYFS" != "relayfs" ] 
 then
 	/sbin/insmod ../../relayfs/relayfs.ko
 fi
@@ -32,18 +32,11 @@ fi
 
 #/sbin/insmod $modulename
 
-# print to screen only, 4 8K buffers
-#../../stpd/stpd -p -b 8192 -n 4 
+# print to screen only
+#../../stpd/stpd -p $modulename
 
-# print to screen
-../../stpd/stpd -b 8192 -n 4 $modulename
+# print to screen and log to files (file logging only if #define STP_NETLINK_ONLY commented out in module)
+../../stpd/stpd $modulename
 
-# log to files (relayfs), 4 8K buffers
-#../../stpd/stpd -r -b 65536 -n 4 $modulename
-
-# print to screen and log to files, 4 8K buffers
-#../../stpd/stpd -b 8192 -n 4 
-
-# no screen or log
-#../../stpd/stpd -q -b 8192 -n 4 
-
+# no screen, log to files (file logging only if #define STP_NETLINK_ONLY commented out in module)
+#../../stpd/stpd -q $modulename

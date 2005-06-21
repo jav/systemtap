@@ -25,12 +25,16 @@
 /* atomic globals */
 static atomic_t _stp_transport_failures = ATOMIC_INIT (0);
 
-/* some relayfs defaults that don't belong here */
-static unsigned n_subbufs = 4;
-static unsigned subbuf_size = 65536;
+#ifndef STP_NETLINK_ONLY
+static struct
+{
+	atomic_t ____cacheline_aligned_in_smp seq;
+} _stp_seq = { ATOMIC_INIT (0) };
+
+#define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
+#endif
 
 #include "print.c"
 #include "string.c"
-
 
 #endif /* _RUNTIME_H_ */

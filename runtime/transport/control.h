@@ -22,6 +22,7 @@ enum
 	STP_BUF_INFO = 1,
 	STP_SUBBUFS_CONSUMED,
         STP_REALTIME_DATA,
+        STP_TRANSPORT_MODE,
         STP_EXIT,
 };
 

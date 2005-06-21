@@ -56,8 +56,8 @@ void _stp_print_flush (void)
 #else /* ! STP_NETLINK_ONLY */
 
 /* size of timestamp, in bytes, including space */
-#define TIMESTAMP_SIZE 19
-#define STP_PRINT_BUF_START (TIMESTAMP_SIZE + 1)
+#define TIMESTAMP_SIZE 11
+#define STP_PRINT_BUF_START (TIMESTAMP_SIZE)
 
 /** Size of buffer, not including terminating NULL */
 #ifndef STP_PRINT_BUF_LEN
@@ -77,15 +77,15 @@ void _stp_print_flush (void)
 	int cpu = smp_processor_id();
 	char *buf = &_stp_pbuf[cpu][0];
 	char *ptr = buf + STP_PRINT_BUF_START;
-	struct timeval tv;
+	int seq;
 
 	if (_stp_pbuf_len[cpu] == 0)
 		return;
-	
-	do_gettimeofday(&tv);
-	scnprintf (buf, TIMESTAMP_SIZE+1, "[%li.%06li] ", tv.tv_sec, tv.tv_usec);
-	buf[TIMESTAMP_SIZE] = ' ';
-	_stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 2);
+
+	seq = _stp_seq_inc();
+	scnprintf (buf, TIMESTAMP_SIZE, "%10d", seq);
+	buf[TIMESTAMP_SIZE - 1] = ' ';
+	_stp_transport_write(t, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
 	_stp_pbuf_len[cpu] = 0;
 	*ptr = 0;
 }

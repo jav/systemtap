@@ -4,9 +4,19 @@
 
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
-#include "runtime.h"
-#include "probes.c"
 
+static unsigned n_subbufs = 4;
+static unsigned subbuf_size = 65536;
+
+#include "runtime.h"
+
+#ifdef STP_NETLINK_ONLY
+static int transport_mode = STP_TRANSPORT_NETLINK;
+#else
+static int transport_mode = STP_TRANSPORT_RELAYFS;
+#endif
+
+#include "probes.c"
 
 MODULE_DESCRIPTION("test jprobes of tasklets");
 MODULE_AUTHOR("Martin Hunt <hunt@redhat.com>");
@@ -42,7 +52,7 @@ int init_module(void)
       return -1;
     }
   
-  if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
+  if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {
     printk("init_dtr: Couldn't open transport\n");		
     return -1;
   }

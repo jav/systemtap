@@ -1,3 +1,17 @@
+2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* control.h: Added STP_TRANSPORT_MODE command.
+
+	* transport.c: Lots of changes, most importantly
+	added transport mode command, which also sends buffer
+	sizes to daemon, added limit to number of attempts to
+	sending STP_EXIT (in case there is no daemon), moved
+	exit helper call.
+
+	* transport.h: Added transport type enum and transport
+	info struct for communication with userspace, changed and
+	moved a couple functions to transport.c.
+
 2005-05-17  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_transport_close): Call stp_exit_helper()

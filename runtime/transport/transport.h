@@ -9,11 +9,19 @@
 #include "netlink.h"
 #include "relayfs.h"
 
+/* SystemTap transport values */
+enum
+{
+	STP_TRANSPORT_NETLINK = 1,
+	STP_TRANSPORT_RELAYFS
+};
+
 /* transport data structure */
 struct stp_transport
 {
 	struct rchan *chan;
 	struct dentry *dir;
+	int transport_mode;
 	int pid;
 };
 
@@ -31,6 +39,12 @@ struct consumed_info
 	unsigned consumed;
 };
 
+struct transport_info
+{
+	int transport_mode;
+	unsigned subbuf_size;
+	unsigned n_subbufs;
+};
 
 /**
  *	_stp_transport_write - write data to the transport
@@ -44,30 +58,9 @@ struct consumed_info
 #define _stp_transport_write(t, data, len)  relay_write(t->chan, data, len)
 #endif
 
-/**
- *	_stp_streaming - boolean, are we using 'streaming' output?
- */
-#ifdef STP_NETLINK_ONLY
-#define _stp_streaming()	(1)
-#else
-#define _stp_streaming()	(0)
-#endif
-
-/**
- *	_stp_transport_flush - flush the transport, if applicable
- */
-static inline void _stp_transport_flush(void)
-{
-#ifndef STP_NETLINK_ONLY
-	extern struct stp_transport *t;
-
-	BUG_ON(!t->chan);
-	relay_flush(t->chan);
-	ssleep(1); /* FIXME: time for data to be flushed */
-#endif
-}
-
-extern int _stp_transport_open(unsigned n_subbufs, unsigned subbuf_size,
+extern int _stp_transport_open(int transport_mode,
+			       unsigned n_subbufs,
+			       unsigned subbuf_size,
 			       int pid);
 extern void _stp_transport_close(void);
 extern int _stp_transport_send (int pid, void *data, int len);
