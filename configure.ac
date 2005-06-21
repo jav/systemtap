@@ -23,9 +23,10 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
 dnl Need elfutils 0.102+ from <drepper@redhat.com>
-AC_CHECK_HEADERS([libelf.h elfutils/libdw.h])
+AC_CHECK_HEADERS([libelf.h elfutils/libdw.h elfutils/libdwfl.h])
 AC_CHECK_LIB(dw, dwarf_begin)
 AC_CHECK_LIB(elf, elf_begin)
+AC_CHECK_LIB(dwfl, dwfl_begin)
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

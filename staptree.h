@@ -14,6 +14,7 @@
 #include <iostream>
 #include <stdexcept>
 
+extern bool verbose;
 
 struct token; // parse.h
 struct semantic_error: public std::runtime_error

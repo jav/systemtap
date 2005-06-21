@@ -1,3 +1,15 @@
+2005-06-20  Graydon Hoare  <graydon@redhat.com>
+
+	* configure.ac: Scan for libdwfl.
+	* staptree.h (verbose): New global.
+	* main.cxx (usage, main): Implement -v option.
+	* tapsets.cxx (dwflpp): New struct.
+	(query_statement): New function.
+	(query_function): New function.
+	(query_cu): New function.
+	(query_module): New function.
+	(dwarf_derived_probe): Implement primary forms.
+
 2005-06-14  Graydon Hoare  <graydon@redhat.com>
 
 	* tapsets.h: New file.

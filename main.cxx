@@ -23,6 +23,7 @@ extern "C" {
 
 using namespace std;
 
+bool verbose = false;
 
 void usage ()
 {
@@ -37,6 +38,7 @@ void usage ()
   cerr << endl;
   cerr << "Arguments:" << endl;
   cerr << "   --         No more options after this" << endl;
+  cerr << "   -v         verbose" << endl;
   cerr << "   -p NUM     Stop after pass NUM 1-3" << endl;
   cerr << "              (parse, elaborate, translate)" << endl;
   cerr << "   -I DIR     Look in DIR for additional .stp script files." << endl;
@@ -61,11 +63,15 @@ main (int argc, char * const argv [])
   vector<string> args; // ARGS
   while (true)
     {
-      int grc = getopt (argc, argv, "p:I:e:o:");
+      int grc = getopt (argc, argv, "vp:I:e:o:");
       if (grc < 0)
         break;
       switch (grc)
         {
+        case 'v':
+	  verbose = true;
+	  break;
+
         case 'p':
           last_pass = atoi (optarg);
           if (last_pass < 1 || last_pass > 3)
