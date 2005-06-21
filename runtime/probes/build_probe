@@ -68,6 +68,8 @@ proc build {{target ""}} {
 		  relay_open -
 		  relayfs_create_dir -
 		  relayfs_remove_dir -
+		  relay_flush -
+		  relay_switch_subbuf -
 		  relay_close {}
 		  default {
 		    if {$bad == 0} {
