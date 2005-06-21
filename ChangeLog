@@ -1,3 +1,8 @@
+2005-06-21  Frank Ch. Eigler  <fche@redhat.com>
+
+	* config.in, configure: Regenerated.
+	* tapsets.cxx: Make dwarf code conditional on new elfutils header.
+
 2005-06-20  Graydon Hoare  <graydon@redhat.com>
 
 	* configure.ac: Scan for libdwfl.

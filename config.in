@@ -3,6 +3,9 @@
 /* Configuration/build date */
 #undef DATE
 
+/* Define to 1 if you have the <elfutils/libdwfl.h> header file. */
+#undef HAVE_ELFUTILS_LIBDWFL_H
+
 /* Define to 1 if you have the <elfutils/libdw.h> header file. */
 #undef HAVE_ELFUTILS_LIBDW_H
 
@@ -11,6 +14,9 @@
 
 /* Define to 1 if you have the `dw' library (-ldw). */
 #undef HAVE_LIBDW
+
+/* Define to 1 if you have the `dwfl' library (-ldwfl). */
+#undef HAVE_LIBDWFL
 
 /* Define to 1 if you have the `elf' library (-lelf). */
 #undef HAVE_LIBELF

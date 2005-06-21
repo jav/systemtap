@@ -19,9 +19,11 @@
 #include <stdexcept>
 #include <vector>
 
+#ifdef HAVE_ELFUTILS_LIBDWFL_H
 extern "C" {
 #include <elfutils/libdwfl.h>
 }
+#endif
 
 #include <fnmatch.h>
 
@@ -334,7 +336,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
 // ------------------------------------------------------------------------
-
+#ifdef HAVE_ELFUTILS_LIBDWFL_H
 
 // Helper for dealing with selected portions of libdwfl in a more readable
 // fashion, and with specific cleanup / checking / logging options.
@@ -1220,6 +1222,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned i)
 {
 }
 
+#endif /* HAVE_ELFUTILS_LIBDWFL_H */
 
 
 // ------------------------------------------------------------------------
@@ -1232,6 +1235,8 @@ register_standard_tapsets(match_node & root)
   // Rudimentary binders for begin and end targets
   root.bind("begin").bind(new be_builder(true));
   root.bind("end").bind(new be_builder(false));
-  
+
+#ifdef HAVE_ELFUTILS_LIBDWFL_H
   dwarf_derived_probe::register_patterns(root);
+#endif /* HAVE_ELFUTILS_LIBDWFL_H */
 }

@@ -5311,7 +5311,8 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
 
-for ac_header in libelf.h elfutils/libdw.h
+
+for ac_header in libelf.h elfutils/libdw.h elfutils/libdwfl.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if eval "test \"\${$as_ac_Header+set}\" = set"; then
@@ -5605,6 +5606,80 @@ if test $ac_cv_lib_elf_elf_begin = yes; then
 _ACEOF
 
   LIBS="-lelf $LIBS"
+
+fi
+
+
+echo "$as_me:$LINENO: checking for dwfl_begin in -ldwfl" >&5
+echo $ECHO_N "checking for dwfl_begin in -ldwfl... $ECHO_C" >&6
+if test "${ac_cv_lib_dwfl_dwfl_begin+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldwfl  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dwfl_begin ();
+int
+main ()
+{
+dwfl_begin ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_dwfl_dwfl_begin=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_dwfl_dwfl_begin=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_dwfl_dwfl_begin" >&5
+echo "${ECHO_T}$ac_cv_lib_dwfl_dwfl_begin" >&6
+if test $ac_cv_lib_dwfl_dwfl_begin = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBDWFL 1
+_ACEOF
+
+  LIBS="-ldwfl $LIBS"
 
 fi
 
