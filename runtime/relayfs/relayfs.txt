@@ -190,6 +190,14 @@ within the kernel application, such as enabling/disabling logging to
 the channel.
 
 
+Resources
+=========
+
+For news, example code, mailing list, etc. see the relayfs homepage:
+
+    http://relayfs.sourceforge.net
+
+
 Credits
 =======
 

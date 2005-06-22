@@ -155,6 +155,10 @@ static inline void __relay_reset(struct rchan_buf *buf, int init)
 	if (init) {
 		init_waitqueue_head(&buf->read_wait);
 		kref_init(&buf->kref);
+		INIT_WORK(&buf->wake_readers, NULL, NULL);
+	} else {
+		cancel_delayed_work(&buf->wake_readers);
+		flush_scheduled_work();
 	}
 
 	atomic_set(&buf->subbufs_produced, 0);
@@ -171,8 +175,6 @@ static inline void __relay_reset(struct rchan_buf *buf, int init)
 
 	buf->offset = buf->chan->cb->subbuf_start(buf, buf->data, 0, NULL);
 	buf->commit[0] = buf->offset;
-
-	INIT_WORK(&buf->wake_readers, NULL, NULL);
 }
 
 /**
@@ -238,6 +240,8 @@ static inline void relay_close_buf(struct rchan_buf *buf)
 {
 	buf->finalized = 1;
 	buf->chan->cb = &default_channel_callbacks;
+	cancel_delayed_work(&buf->wake_readers);
+	flush_scheduled_work();
 	kref_put(&buf->kref, relay_remove_buf);
 }
 

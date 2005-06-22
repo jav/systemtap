@@ -59,6 +59,7 @@ struct rchan
 	int overwrite;			/* overwrite buffer when full? */
 	struct rchan_callbacks *cb;	/* client callbacks */
 	struct kref kref;		/* channel refcount */
+	void *private_data;		/* for user-defined data */
 	struct rchan_buf *buf[NR_CPUS]; /* per-cpu channel buffers */
 };
 
@@ -87,6 +88,9 @@ struct rchan_callbacks
 	 * @subbuf: the start of the new sub-buffer
 	 * @prev_subbuf_idx: the previous sub-buffer's index
 	 * @prev_subbuf: the start of the previous sub-buffer
+	 *
+	 * The client should return the number of bytes it reserves at
+	 * the beginning of the sub-buffer, 0 if none.
 	 *
 	 * NOTE: subbuf_start will also be invoked when the buffer is
 	 *       created, so that the first sub-buffer can be initialized
