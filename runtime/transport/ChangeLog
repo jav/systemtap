@@ -1,3 +1,8 @@
+2005-06-23  Martin Hunt  <hunt@redhat.com>
+
+	* control.c: Replace macro DEFINE_SPINLOCK because
+	some kernels don't have it.
+	
 2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* control.h: Added STP_TRANSPORT_MODE command.

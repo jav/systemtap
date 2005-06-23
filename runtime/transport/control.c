@@ -40,7 +40,7 @@ struct sock *stp_control;
 static struct hlist_head *handlers;
 
 /* protection for the handlers table */
-static DEFINE_SPINLOCK(handlers_lock);
+static spinlock_t handlers_lock = SPIN_LOCK_UNLOCKED;
 
 /**
  *	_stp_lookup_handler - look up the command handler in the handlers table
