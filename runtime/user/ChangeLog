@@ -1,0 +1,5 @@
+2005-06-22  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Include config.h first then redefine CONFIG_SMP
+	and NR_CPUS.
+

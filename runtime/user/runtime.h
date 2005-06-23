@@ -5,11 +5,12 @@
  */
 
 #define __KERNEL__
-#include <linux/module.h>
+#include <linux/config.h>
 #undef CONFIG_NR_CPUS
 #undef CONFIG_SMP
 #define CONFIG_NR_CPUS 8
 #define CONFIG_SMP
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/miscdevice.h>
 #include <linux/init.h>
