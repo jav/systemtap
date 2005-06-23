@@ -9,12 +9,31 @@
 #include "netlink.h"
 #include "relayfs.h"
 
+static unsigned n_subbufs = 4;
+static unsigned subbuf_size = 65536;
+
 /* SystemTap transport values */
 enum
 {
 	STP_TRANSPORT_NETLINK = 1,
 	STP_TRANSPORT_RELAYFS
 };
+
+#ifdef STP_NETLINK_ONLY
+static int transport_mode = STP_TRANSPORT_NETLINK;
+#else
+static int transport_mode = STP_TRANSPORT_RELAYFS;
+#endif
+
+static int pid;
+module_param(pid, int, 0);
+MODULE_PARM_DESC(pid, "daemon pid");
+
+#define TRANSPORT_OPEN \
+	if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {\
+		printk("init_module: Couldn't open transport\n");		\
+		return -1; \
+	}
 
 /* transport data structure */
 struct stp_transport

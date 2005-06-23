@@ -1,5 +1,8 @@
 2005-06-23  Martin Hunt  <hunt@redhat.com>
 
+	* transport.h: Move all the transport open stuff here
+	and provide a convenient macro.
+
 	* control.c: Replace macro DEFINE_SPINLOCK because
 	some kernels don't have it.
 	
