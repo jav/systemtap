@@ -7,16 +7,7 @@
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 
-static unsigned n_subbufs = 4;
-static unsigned subbuf_size = 65536;
-
 #include "runtime.h"
-
-#ifdef STP_NETLINK_ONLY
-static int transport_mode = STP_TRANSPORT_NETLINK;
-#else
-static int transport_mode = STP_TRANSPORT_RELAYFS;
-#endif
 
 #define NEED_INT64_VALS
 
@@ -55,24 +46,11 @@ static struct kprobe kp[] = {
 };
 #define MAX_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
-
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 int init_module(void)
 {
 	int ret;
 
-	if (!pid) {
-		printk("init_dtr: Can't start without daemon pid\n");		
-		return -1;
-	}
-
-	if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {
-		printk("init_dtr: Couldn't open transport\n");		
-		return -1;
-	}
+	TRANSPORT_OPEN;
   
 	funct_locations = _stp_map_new_int64 (1000, INT64);
 

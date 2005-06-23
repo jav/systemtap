@@ -1,16 +1,7 @@
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 
-static unsigned n_subbufs = 4;
-static unsigned subbuf_size = 65536;
-
 #include "runtime.h"
-
-#ifdef STP_NETLINK_ONLY
-static int transport_mode = STP_TRANSPORT_NETLINK;
-#else
-static int transport_mode = STP_TRANSPORT_RELAYFS;
-#endif
 
 #define NEED_INT64_VALS
 #define NEED_STAT_VALS
@@ -68,23 +59,11 @@ static struct jprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 int init_module(void)
 {
   int ret;
   
-  if (!pid) {
-	  printk("init: Can't start without daemon pid\n");		
-	  return -1;
-  }
-
-  if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {
-	  printk("init: Couldn't open transport\n");		
-	  return -1;
-  }
+  TRANSPORT_OPEN;
 
   /* FIXME. Check return values  */
   opens = _stp_map_new_str (1000, INT64);

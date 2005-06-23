@@ -1,3 +1,12 @@
+2005-06-23  Martin Hunt  <hunt@redhat.com>
+
+	* all probes: MOdified to use latest changes to transport.h.
+
+2005-06-21  Martin Hunt  <hunt@redhat.com>
+
+	* build_probe (build): Add relay_flush and relay_switch_subbuf to the
+	list of undefines to ignore.
+
 2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* added transport_mode, subbuf_size, n_subbufs to all

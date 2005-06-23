@@ -5,7 +5,7 @@
 #include "counter.c"
 #include "probes.c"
 
-MODULE_DESCRIPTION("SystemTap probe: count1");
+MODULE_DESCRIPTION("SystemTap probe: count2");
 MODULE_AUTHOR("Martin Hunt <hunt@redhat.com>");
 
 Counter opens;
@@ -54,23 +54,11 @@ static struct jprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 int init_module(void)
 {
   int ret;
   
-  if (!pid) {
-	  printk("init: Can't start without daemon pid\n");		
-	  return -1;
-  }
-
-  if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
-	  printk("init: Couldn't open transport\n");		
-	  return -1;
-  }
+  TRANSPORT_OPEN;
 
   opens = _stp_counter_init();
   reads = _stp_counter_init();

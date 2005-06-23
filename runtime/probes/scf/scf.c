@@ -36,28 +36,14 @@ static struct kprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct kprobe))
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 int init_module(void)
 {
   int ret;
   
-  if (!pid) {
-	  printk("init: Can't start without daemon pid\n");		
-	  return -1;
-  }
-
-  if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
-	  printk("init: Couldn't open transport\n");		
-	  return -1;
-  }
+  TRANSPORT_OPEN;
 
   map1 = _stp_map_new_str (100, INT64);
-
   ret = _stp_register_kprobes (stp_probes, MAX_STP_ROUTINE);
-
   return ret;
 }
 

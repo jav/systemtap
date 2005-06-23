@@ -5,17 +5,7 @@
 #define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 
-static unsigned n_subbufs = 4;
-static unsigned subbuf_size = 65536;
-
 #include "runtime.h"
-
-#ifdef STP_NETLINK_ONLY
-static int transport_mode = STP_TRANSPORT_NETLINK;
-#else
-static int transport_mode = STP_TRANSPORT_RELAYFS;
-#endif
-
 #include "probes.c"
 
 MODULE_DESCRIPTION("test jprobes of tasklets");
@@ -38,25 +28,11 @@ static struct jprobe stp_probes[] = {
 };
 #define MAX_STP_PROBES (sizeof(stp_probes)/sizeof(struct jprobe))
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 int init_module(void)
 {
   int ret;
   
-  if (!pid) 
-    {
-      printk("init_dtr: Can't start without daemon pid\n");		
-      return -1;
-    }
-  
-  if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {
-    printk("init_dtr: Couldn't open transport\n");		
-    return -1;
-  }
-  
+  TRANSPORT_OPEN;
   ret = _stp_register_jprobes (stp_probes, MAX_STP_PROBES);
   return ret;
 }
