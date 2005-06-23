@@ -37,9 +37,9 @@ int main ()
 
   MAP mapss = _stp_map_new_str_str(4, INT64);
   _stp_map_key_str_str (mapss, "Riga", "Latvia");
-  _stp_map_set_int64 (mapss, 0x0000c0dedbad0000);
+  _stp_map_set_int64 (mapss, 0x0000c0dedbad0000LL);
   _stp_map_key_str_str (mapss, "Sofia", "Bulgaria");
-  _stp_map_set_int64 (mapss, 0xdeadf00d12345678);
+  _stp_map_set_int64 (mapss, 0xdeadf00d12345678LL);
   _stp_map_key_str_str (mapss, "Valletta", "Malta");
   _stp_map_set_int64 (mapss, 1);
   _stp_map_key_str_str (mapss, "Nicosia", "Cyprus");
@@ -47,7 +47,6 @@ int main ()
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %d");
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %x");
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %X");
-  _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %p");
 
   MAP mapsst = _stp_map_new_str_str(4, HSTAT_LINEAR, 0, 100, 10 );
   int i,j;
