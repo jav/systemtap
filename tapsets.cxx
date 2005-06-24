@@ -15,6 +15,7 @@
 #include <deque>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
@@ -672,6 +673,28 @@ function_spec_type
     function_file_and_line 
   };
 
+enum
+probe_type 
+  { 
+    probe_address,
+    probe_function_return
+  };
+
+struct 
+probe_spec
+{
+  probe_spec(Dwarf_Addr a, probe_type ty) 
+    : address(a), type(ty)
+  {}
+  Dwarf_Addr address;
+  probe_type type;
+  bool operator<(probe_spec const & other) const
+  {
+    return ((address < other.address) ||
+	    ((address == other.address) && (type < other.type)));
+  }
+};
+
 struct dwarf_builder;
 struct dwarf_derived_probe : public derived_probe
 {
@@ -707,16 +730,19 @@ struct dwarf_derived_probe : public derived_probe
   static bool get_number_param(map<string, literal *> const & params, 
 			       string const & k, long & v);
 
-  // The results of all our hard work go in this vector.
-  vector<Dwarf_Addr> addresses;
+  // The results of all our hard work go in these vectors.
+  set<probe_spec> kernel_probes;
+  map<string, set<probe_spec>*> module_probes;
+
+  void add_kernel_probe(probe_spec const & p);
+  void add_module_probe(string const & module, probe_spec const & p);
 
   // Helper struct to thread through the dwfl callbacks.
   struct 
   dwarf_query
   {
-    dwarf_query(dwflpp & d,
-		vector<Dwarf_Addr> & a, 
-		token const * tok,
+    dwarf_query(dwarf_derived_probe & probe,
+		dwflpp & d,
 		map<string, literal *> const & params);
 
     bool has_kernel;
@@ -753,9 +779,8 @@ struct dwarf_derived_probe : public derived_probe
     int line;
 
 
+    dwarf_derived_probe & probe;
     dwflpp & dw;
-    vector<Dwarf_Addr> & addrs;
-    token const * tok;
   };
   
   virtual void emit_registrations (translator_output* o, unsigned i);
@@ -818,12 +843,39 @@ dwarf_derived_probe::get_number_param(map<string, literal *> const & params,
   return true;
 }
 
+void 
+dwarf_derived_probe::add_kernel_probe(probe_spec const & p)
+{
+  kernel_probes.insert(p);
+}
 
-dwarf_derived_probe::dwarf_query::dwarf_query(dwflpp & d, 
-					      vector<Dwarf_Addr> & a, 
-					      token const * tok,
+void 
+dwarf_derived_probe::add_module_probe(string const & module, 
+				      probe_spec const & p)
+{
+  set<probe_spec>* specs;
+
+  map<string, set<probe_spec>*>::const_iterator i 
+    = module_probes.find(module);
+
+  if (i == module_probes.end())
+    {
+      specs = new set<probe_spec>();
+      module_probes.insert(make_pair(module, specs));
+    }
+  else
+    {
+      specs = i->second;
+    }
+  specs->insert(p);
+}
+
+
+dwarf_derived_probe::dwarf_query::dwarf_query(dwarf_derived_probe & probe,
+					      dwflpp & d,
 					      map<string, literal *> const & params)
-  : dw(d), addrs(a), tok(tok)
+  : probe(probe), 
+    dw(d)
 {
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
@@ -924,7 +976,7 @@ dwarf_derived_probe::dwarf_query::parse_function_spec(string & spec)
     }
 
  bad:
-    throw semantic_error("malformed specification '" + spec + "'", tok);
+    throw semantic_error("malformed specification '" + spec + "'", probe.tok);
 }
 
 
@@ -933,8 +985,17 @@ query_statement(Dwarf_Addr stmt_addr, dwarf_derived_probe::dwarf_query *q)
 {
   // XXX: implement 
   if (q->has_relative)
-    throw semantic_error("incomplete: do not know how to interpret .relative", q->tok);
-  q->addrs.push_back(stmt_addr);
+    throw semantic_error("incomplete: do not know how to interpret .relative", q->probe.tok);
+
+  probe_type ty = (((q->has_function_str || q->has_function_num) && q->has_return) 
+		   ? probe_function_return 
+		   : probe_address);
+
+  if (q->has_module)
+    q->probe.add_module_probe(q->dw.module_name, 
+			      probe_spec(q->dw.global_address_to_module(stmt_addr), ty));
+  else
+    q->probe.add_kernel_probe(probe_spec(stmt_addr, ty));
 }
 
 static int
@@ -946,19 +1007,22 @@ query_function(Dwarf_Func * func, void * arg)
 
   // XXX: implement 
   if (q->has_callees)
-    throw semantic_error("incomplete: do not know how to interpret .callees", q->tok);
-
-  if (q->has_return)
-    throw semantic_error("incomplete: do not know how to interpret .return", q->tok);
+    throw semantic_error("incomplete: do not know how to interpret .callees", q->probe.tok);
 
   if (q->has_label)
-    throw semantic_error("incomplete: do not know how to interpret .label", q->tok);
+    throw semantic_error("incomplete: do not know how to interpret .label", q->probe.tok);
 
   q->dw.focus_on_function(func);
 
+  // XXX: We assume addr is a global address here. Is it?
   Dwarf_Addr addr;
   if (!q->dw.function_entrypc(&addr))
-    return DWARF_CB_OK;
+    {
+      if (verbose)
+	clog << "WARNING: cannot find entry PC for function " 
+	     << q->dw.function_name << endl;
+      return DWARF_CB_OK;
+    }
 
   if ((q->has_statement_str || q->has_function_str) 
       && q->dw.function_name_matches(q->function))
@@ -1077,7 +1141,8 @@ dwarf_derived_probe::dwarf_derived_probe (probe* p, probe_point* l,
   : derived_probe (p, l)
 {
   dwflpp dw;
-  dwarf_query q(dw, addresses, p->tok, params);
+  dwarf_query q(*this, dw, params);
+
   dw.setup(q.has_kernel || q.has_module);
 
   if (q.has_kernel && q.has_statement_num)
@@ -1199,27 +1264,254 @@ dwarf_derived_probe::register_patterns(match_node & root)
   register_function_and_statement_variants(root.bind_str(TOK_PROCESS), dw);
 }
 
-void 
-dwarf_derived_probe::emit_registrations (translator_output* o, unsigned i)
+static string 
+probe_entry_function_name(unsigned probenum)
 {
-  // XXX: Emit code to register prope properly.
-  for (unsigned j=0; j<addresses.size(); j++)
+  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_enter";
+}
+
+static string 
+probe_entry_struct_kprobe_name(unsigned probenum, 
+			       unsigned entrynum)
+{
+  return "dwarf_kprobe_" + lex_cast<string>(probenum) 
+    + "_entry_" + lex_cast<string>(entrynum);
+}
+
+static string 
+end_of_block(unsigned probenum)
+{
+  return "block_end_" + lex_cast<string>(probenum);
+}
+
+typedef unsigned module_index;
+typedef unsigned probe_index;
+typedef unsigned entry_index;
+
+static void 
+foreach_dwarf_probe_entry(dwarf_derived_probe const & p,
+			  translator_output *o,
+			  probe_index probenum,
+			  void (*kernel_entry_cb)(translator_output *,
+						  probe_index, 
+						  entry_index,
+						  probe_spec const &),
+			  void (*module_cb)(translator_output *,
+					    probe_index, 
+					    module_index,
+					    string const &),
+			  void (*module_entry_cb)(translator_output *,
+						  probe_index,
+						  string const &,
+						  module_index,
+						  entry_index,
+						  probe_spec const &))
+{
+  // Just a helper function for an ugly iteration task.
+  
+  entry_index entrynum = 0;
+  
+  for (set<probe_spec>::const_iterator i = p.kernel_probes.begin();
+       i != p.kernel_probes.end(); ++i, ++entrynum)
     {
-      o->newline() << "// probe " 
-		   << i << ", addr " 
-		   << j << ", at kernel address: 0x" 
-		   << hex << addresses[i];
+      if (kernel_entry_cb)
+	kernel_entry_cb(o, probenum, entrynum, *i);
+    }
+
+  module_index modnum = 0;
+
+  for (map<string, set<probe_spec>*>::const_iterator i = p.module_probes.begin();
+       i != p.module_probes.end(); ++i, ++modnum)
+    {
+      string modname = i->first;
+      set<probe_spec>* probes = i->second;
+      if (module_cb)
+	module_cb(o, probenum, modnum, modname);
+      for (set<probe_spec>::const_iterator j = probes->begin(); 
+	   j != probes->end(); ++j, ++entrynum)
+	{
+	  if (module_entry_cb)
+	    module_entry_cb(o, probenum, modname, modnum, entrynum, *j);
+	}
     }
 }
 
-void 
-dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned i)
+
+static void 
+declare_dwarf_kernel_entry(translator_output *o,
+			   probe_index probenum, 
+			   entry_index entrynum,
+			   probe_spec const & probe)
+{  
+  o->newline() << "/* probe for "
+	       << (probe.type == probe_function_return ? "return from " : "")
+	       << "function at 0x" << hex << probe.address << " in kernel */";  
+  o->newline() << "static struct kprobe " 
+	       << probe_entry_struct_kprobe_name(probenum, entrynum);
+  o->newline() << "{";
+  o->indent(1);
+  o->newline() << ".addr        = 0x" << hex << probe.address << ",";
+  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
+  o->indent(-1);
+  o->newline() << "}";
+}
+
+static void 
+register_dwarf_kernel_entry(translator_output *o,
+			    probe_index probenum, 
+			    entry_index entrynum,
+			    probe_spec const & probe)
+{  
+  o->newline() << "register_probe (&" 
+	       << probe_entry_struct_kprobe_name(probenum, entrynum)
+	       << ");";
+}
+
+static void 
+deregister_dwarf_kernel_entry(translator_output *o,
+			      probe_index probenum, 
+			      entry_index entrynum,
+			      probe_spec const & probe)
+{  
+  o->newline() << "deregister_probe (&" 
+	       << probe_entry_struct_kprobe_name(probenum, entrynum)
+	       << ");";
+}
+
+static void 
+register_dwarf_module(translator_output *o,
+		      probe_index probenum, 
+		      module_index modnum,
+		      string const & modname)
 {
+  o->newline() << "mod = get_module(\"" << modname << "\");";
+  o->newline() << "if (!mod)";
+  o->newline() << "{";
+  o->indent(1);
+  o->newline() << "rc = 1;";
+  o->newline() << "goto " << end_of_block(probenum) << ";";
+  o->indent(-1);
+  o->newline() << "}";
+    
+}
+
+static void 
+declare_dwarf_module_entry(translator_output *o,
+			   probe_index probenum, 
+			   string const & modname,
+			   module_index modnum,
+			   entry_index entrynum,
+			   probe_spec const & probe)
+{
+  o->newline();
+  o->newline() << "/* probe for "
+	       << (probe.type == probe_function_return ? "return from " : "")
+	       << "function at 0x" << hex << probe.address 
+	       << " in module " << modname << " */";
+  
+  o->newline() << "static struct kprobe ";
+  o->newline() << probe_entry_struct_kprobe_name(probenum, entrynum);
+  o->newline() << "{";
+  o->indent(1);
+  o->newline() << "/* .addr is calculated at init-time */"; 
+  o->newline() << ".addr        = 0,";
+  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
+  o->indent(-1);
+  o->newline() << "}";
+  o->newline();
+}
+
+static void 
+register_dwarf_module_entry(translator_output *o,
+			    probe_index probenum,
+			    string const & modname, 
+			    module_index modnum,
+			    entry_index entrynum,
+			    probe_spec const & probe)
+{
+  o->newline();
+  o->newline() << probe_entry_struct_kprobe_name(probenum, entrynum) 
+	       << ".addr = mod->module_core + 0x" << hex << probe.address << ";";
+  o->newline() << "register_probe (&" 
+	       << probe_entry_struct_kprobe_name(probenum, entrynum)
+	       << ");";  
+}
+
+static void 
+deregister_dwarf_module_entry(translator_output *o,
+			      probe_index probenum, 
+			      string const & modname,
+			      module_index modnum,
+			      entry_index entrynum,
+			      probe_spec const & probe)
+{
+  o->newline() << "deregister_probe (&" 
+	       << probe_entry_struct_kprobe_name(probenum, entrynum)
+	       << ");";  
+}
+		    
+
+void 
+dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
+{
+  o->newline() << "{";
+  o->indent(1);
+  o->newline() << "struct module *mod = NULL;";
+  foreach_dwarf_probe_entry(*this, o, probenum,
+			    &register_dwarf_kernel_entry,
+			    &register_dwarf_module,
+			    &register_dwarf_module_entry);
+  o->newline();
+  o->newline() << end_of_block(probenum) << ":";
+  o->newline();
+  o->indent(-1);
+  o->newline() << "}";
 }
 
 void 
-dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned i)
+dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
 {
+  o->newline();
+  foreach_dwarf_probe_entry(*this, o, probenum,
+			    &deregister_dwarf_kernel_entry,
+			    NULL,
+			    &deregister_dwarf_module_entry);
+  o->newline();
+}
+
+void 
+dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
+{
+  // We should have expanded each location in the initial probe to a
+  // separate derived_probe instance; each derived_probe should only
+  // have one location.
+  assert(locations.size() == 1);
+
+  // Construct a single entry function, and a struct kprobe for each
+  // address this derived probe will match, all of which point into
+  // the entry function.
+
+  // First the entry function
+  o->newline() << "/* probe " << probenum << " entry function */";
+  o->newline() << "static void ";
+  o->newline() << probe_entry_function_name(probenum) << " ()";
+  o->newline() << "{";
+  o->newline(1) << "struct context* c = & contexts [0];";
+  // XXX: assert #0 is free; need locked search instead
+  o->newline() << "if (c->busy) { errorcount ++; return; }";
+  o->newline() << "c->busy ++;";
+  o->newline() << "c->actioncount = 0;";
+  o->newline() << "c->nesting = 0;";
+  // NB: locals are initialized by probe function itself
+  o->newline() << "probe_" << probenum << " (c);";
+  o->newline() << "c->busy --;";
+  o->newline(-1) << "}" << endl;
+
+  foreach_dwarf_probe_entry(*this, o, probenum,
+			    &declare_dwarf_kernel_entry,
+			    NULL,
+			    &declare_dwarf_module_entry);
+
 }
 
 #endif /* HAVE_ELFUTILS_LIBDWFL_H */
