@@ -54,9 +54,6 @@ static struct params
 /* temporary per-cpu output written here, filebase0...N */
 static char *percpu_tmpfilebase = "stpd_cpu";
 
-/* temporary merged/sorted output written here */
-static char *tmpfile_name = "sorted.tmp";
-
 /* probe output written here  */
 static char *outfile_name = "probe.out";
 
@@ -79,6 +76,7 @@ static int control_channel;
 /* flags */
 extern int print_only;
 extern int quiet;
+extern int merge;
 
 /* used to communicate with kernel over control channel */
 
@@ -443,7 +441,7 @@ int init_relayfs(void)
 			goto err;
 		}
 		/* create a thread for each per-cpu buffer */
-		if (pthread_create(&reader[i], NULL, reader_thread, (void *)i) < 0) {
+		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
 			close_relayfs_files(i);
 			fprintf(stderr, "ERROR: Couldn't create reader thread, cpu = %d\n", i);
 			goto err;
@@ -500,107 +498,89 @@ int init_stp(const char *modname,
 /* length of timestamp in output field 0 - TODO: make binary, variable */
 #define TIMESTAMP_SIZE 11
 
-/**
- *	write_output - either to screen, outfile or both
- */
-static int write_output(void)
-{
-	struct stat sbuf;
-	int i, len, err = 0;
-	const char *subbuf_ptr;
-	int tmpfile;
-	FILE *outfile = NULL;
-	char *tmpbuf;
-	const char *rec_txt = subbuf_ptr + i;
-	const char * rec_cnt;
-
-	tmpfile = open(tmpfile_name, O_RDONLY);
-	if (tmpfile < 0) {
-		fprintf(stderr, "ERROR: couldn't open tmp file %s: errcode = %s\n", tmpfile_name, strerror(errno));
-		return -1;
-	}
-
-	if (fstat(tmpfile, &sbuf)) {
-		fprintf(stderr, "ERROR: couldn't stat tmp file %s: errcode = %s\n", tmpfile_name, strerror(errno));
-		return -1;
-	}
-	len = sbuf.st_size;
-	if (len <= TIMESTAMP_SIZE)
-		goto rm_tmp;
-	
-	tmpbuf = mmap(NULL, len, PROT_READ, MAP_PRIVATE, tmpfile, 0);
-	if(tmpbuf == MAP_FAILED)
-	{
-		close(tmpfile);
-		fprintf(stderr, "ERROR: couldn't mmap tmp file %s: errcode = %s\n", tmpfile_name, strerror(errno));
-		err = -1;
-		goto rm_tmp;
-	}
-	subbuf_ptr = tmpbuf;
-	i = TIMESTAMP_SIZE;
-	rec_txt = subbuf_ptr + i;
-	
-	if (!print_only) {
-		outfile = fopen(outfile_name, "w");
-		if (!outfile) {
-			fprintf(stderr, "ERROR: couldn't open output file %s: errcode = %s\n", outfile_name, strerror(errno));
-			err = -1;
-			goto unmap_rm_tmp;
-		}
-	}
-
-	while (i < len) {
-		if (subbuf_ptr[i] == '\0') {
-			rec_cnt = rec_txt - TIMESTAMP_SIZE;
-			if (!quiet) {
-#if 0
-				fwrite(rec_cnt, TIMESTAMP_SIZE, 1, stdout);
-#endif
-				fwrite(rec_txt, (subbuf_ptr + i) - rec_txt, 1, stdout);
-			}
-			if (!print_only) {
-#if 0
-				fwrite(rec_cnt, TIMESTAMP_SIZE, 1, outfile);
-#endif
-				fwrite(rec_txt, (subbuf_ptr + i) - rec_txt, 1, outfile);
-			}
-			rec_txt = subbuf_ptr + i + 1 + TIMESTAMP_SIZE;
-			i += TIMESTAMP_SIZE;
-		}
-		i++;
-	}
-
-	if (!print_only)
-		fclose(outfile);
-unmap_rm_tmp:
-	munmap(tmpbuf, len);
-rm_tmp:
-	close(tmpfile);
-	if (unlink(tmpfile_name) < 0) {
-		fprintf(stderr, "Couldn't unlink tmp file %s: errcode = %s\n",
-		       tmpfile_name, strerror(errno));
-		err = -1;
-	}
-	
-	return err;
-}
 
 /**
- *	sort_output - merge and sort per-cpu output
+ *	merge_output - merge per-cpu output
  *
- *	TODO: replace this with our own sort
  */
-static int sort_output(void)
+#define MERGE_BUF_SIZE 32768
+
+static int merge_output(void)
 {
-	char tmpbuf[PATH_MAX];
-	
-	sprintf(tmpbuf, "sort -z -b -n -o %s %s*", tmpfile_name, percpu_tmpfilebase);
-	system(tmpbuf);
-	if (system(tmpbuf)) {
-		fprintf(stderr, "ERROR: couldn't sort output: %s failed.  No output will be written.\n", tmpbuf);
+	int c, i, j, dropped=0;
+	long count=0, min, num[NR_CPUS];
+	char *ptr, tmp[PATH_MAX];
+	FILE *ofp, *fp[NR_CPUS];
+
+	char *buf = malloc (MERGE_BUF_SIZE);
+	if (!buf) {
+		perror("malloc in merge_ouptut:");
 		return -1;
 	}
 	
+	for (i = 0; i < ncpus; i++) {
+		sprintf(tmp, "%s%d", percpu_tmpfilebase, i);
+		fp[i] = fopen(tmp, "r");
+		if (!fp[i]) {
+			fprintf(stderr, "error opening file %s.\n", tmp);
+			return -1;
+		}
+		if (fread (buf, TIMESTAMP_SIZE, 1, fp[i]))
+			num[i] = strtoul (buf, NULL, 10);
+		else
+			num[i] = 0;
+	}
+	ofp = fopen(outfile_name, "w");
+	if (!ofp) {
+		fprintf(stderr, "ERROR: couldn't open output file %s: errcode = %s\n", 
+			outfile_name, strerror(errno));
+		return -1;
+	}
+	
+	do {
+		min = num[0];
+		j = 0;
+		for (i = 1; i < ncpus; i++) {
+			if (min == 0 || (num[i] && num[i] < min)) {
+				min = num[i];
+				j = i;
+			}
+		}
+
+		ptr = buf;
+		while (1) {
+			c = fgetc(fp[j]);
+			if (c == 0 || c == EOF)
+				break;
+			*ptr++ = c;
+		}
+		if (min && ++count != min) {
+			// fprintf(stderr, "got %ld. expected %ld\n", min, count);
+			count = min;
+			dropped++ ;
+		}
+
+		*ptr = 0;
+		if (!quiet)
+			fputs (buf, stdout);
+		if (!print_only)
+			fputs (buf, ofp);
+
+		if (fread (buf, TIMESTAMP_SIZE, 1, fp[j]))
+			num[j] = strtoul (buf, NULL, 10);
+		else
+			num[j] = 0;
+	} while (min);
+
+	if (!quiet)
+		fputs ("\n", stdout);
+	if (!print_only)
+		fputs ("\n", ofp);
+
+	for (i = 0; i < ncpus; i++)
+		fclose (fp[i]);
+	fclose (ofp);
+	printf ("sequence had %d drops\n", dropped);
 	return 0;
 }
 
@@ -612,10 +592,9 @@ static void postprocess_and_exit(void)
 	if (print_totals)
 		summarize();
 
-	if (!streaming()) {
-		if (sort_output() == 0)
-			write_output();
+	if (!streaming() && merge) {
 		close_all_relayfs_files();
+		merge_output();
 		delete_percpu_files();
 	}
 	
@@ -626,8 +605,9 @@ static void postprocess_and_exit(void)
 
 static void sigproc(int signum)
 {
-	while (send_request(STP_EXIT, NULL, 0) < 0)
+	while (send_request(STP_EXIT, NULL, 0) < 0) {
 		usleep (10000);
+	}
 }
 
 /**
@@ -726,7 +706,8 @@ int stp_main_loop(void)
 			printf ("Executing \"system %s\"\n", tmpbuf);
 #endif
 			if (system(tmpbuf)) {
-				fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n", (char *)ptr);
+				fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n", 
+					(char *)ptr);
 				close_all_relayfs_files();
 				delete_percpu_files();
 				exit(1);

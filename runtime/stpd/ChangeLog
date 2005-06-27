@@ -1,3 +1,12 @@
+2005-06-27  Martin Hunt  <hunt@redhat.com>
+
+	* stpd.c (main): Add new command line arg, "-m"
+	to disable the per-cpu merging.
+
+	* librelay.c (merge_output): Replacement for sort_output().
+	Efficiently merges per-cpu streams.
+
+	
 2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* librelay.c: Large refactoring, important changes are

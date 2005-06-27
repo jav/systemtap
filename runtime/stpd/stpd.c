@@ -31,7 +31,7 @@ extern int optind;
 
 int print_only = 0;
 int quiet = 0;
-int transport_mode = 0;
+int merge = 1;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
@@ -39,6 +39,7 @@ static char stpd_filebase[1024];
 static void usage(char *prog)
 {
 	fprintf(stderr, "%s [-p] [-q] kmod-name\n", prog);
+	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
 	exit(1);
@@ -49,9 +50,12 @@ int main(int argc, char **argv)
 	int c;
 	char *modname = NULL;
 
-	while ((c = getopt(argc, argv, "pq")) != EOF) 
+	while ((c = getopt(argc, argv, "mpq")) != EOF) 
 	{
 		switch (c) {
+		case 'm':
+			merge = 0;
+			break;
 		case 'p':
 			print_only = 1;
 			break;
