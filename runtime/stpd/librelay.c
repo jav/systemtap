@@ -619,6 +619,8 @@ static void postprocess_and_exit(void)
 		delete_percpu_files();
 	}
 	
+	close(control_channel);
+
 	exit(0);
 }
 
@@ -705,8 +707,12 @@ int stp_main_loop(void)
 			fputs ((char *)ptr, stdout);
 			break;
 		case STP_EXIT:
-			if (!streaming() && !exiting) {
-				exiting = 1;
+			if (exiting)
+				break;
+			
+			exiting = 1;
+			
+			if (!streaming()) {
 				kill_percpu_threads(ncpus);
 				if (request_last_buffers() < 0)
 					exit(1);
@@ -728,7 +734,6 @@ int stp_main_loop(void)
 			if (!streaming() && (final_cpus_processed < ncpus))
 				break;
 
-			close(control_channel);
 			postprocess_and_exit();
 			break;
 		default:
