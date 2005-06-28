@@ -508,21 +508,15 @@ int init_stp(const char *modname,
 static int merge_output(void)
 {
 	int c, i, j, dropped=0;
-	long count=0, min, num[NR_CPUS];
-	char *ptr, tmp[PATH_MAX];
-	FILE *ofp, *fp[NR_CPUS];
+	long count=0, min, num[ncpus];
+	char buf[32], tmp[PATH_MAX];
+	FILE *ofp, *fp[ncpus];
 
-	char *buf = malloc (MERGE_BUF_SIZE);
-	if (!buf) {
-		perror("malloc in merge_ouptut:");
-		return -1;
-	}
-	
 	for (i = 0; i < ncpus; i++) {
-		sprintf(tmp, "%s%d", percpu_tmpfilebase, i);
-		fp[i] = fopen(tmp, "r");
+		sprintf (tmp, "%s%d", percpu_tmpfilebase, i);
+		fp[i] = fopen (tmp, "r");
 		if (!fp[i]) {
-			fprintf(stderr, "error opening file %s.\n", tmp);
+			fprintf (stderr, "error opening file %s.\n", tmp);
 			return -1;
 		}
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[i]))
@@ -530,9 +524,10 @@ static int merge_output(void)
 		else
 			num[i] = 0;
 	}
-	ofp = fopen(outfile_name, "w");
+
+	ofp = fopen (outfile_name, "w");
 	if (!ofp) {
-		fprintf(stderr, "ERROR: couldn't open output file %s: errcode = %s\n", 
+		fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n", 
 			outfile_name, strerror(errno));
 		return -1;
 	}
@@ -547,24 +542,20 @@ static int merge_output(void)
 			}
 		}
 
-		ptr = buf;
 		while (1) {
-			c = fgetc(fp[j]);
+			c = fgetc_unlocked (fp[j]);
 			if (c == 0 || c == EOF)
 				break;
-			*ptr++ = c;
+			if (!quiet)
+			  fputc_unlocked (c, stdout);
+			if (!print_only)
+			  fputc_unlocked (c, ofp);
 		}
 		if (min && ++count != min) {
 			// fprintf(stderr, "got %ld. expected %ld\n", min, count);
 			count = min;
 			dropped++ ;
 		}
-
-		*ptr = 0;
-		if (!quiet)
-			fputs (buf, stdout);
-		if (!print_only)
-			fputs (buf, ofp);
 
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[j]))
 			num[j] = strtoul (buf, NULL, 10);
@@ -595,7 +586,7 @@ static void postprocess_and_exit(void)
 	if (!streaming() && merge) {
 		close_all_relayfs_files();
 		merge_output();
-		delete_percpu_files();
+		//delete_percpu_files();
 	}
 	
 	close(control_channel);

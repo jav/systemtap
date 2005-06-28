@@ -1,3 +1,12 @@
+2005-06-28  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (merge_output): Use unlocked stdio
+	to improve speed.
+
+	* stp_merge.c: New file. 
+
+	* Makefile: Add stp_merge.
+
 2005-06-27  Martin Hunt  <hunt@redhat.com>
 
 	* stpd.c (main): Add new command line arg, "-m"
