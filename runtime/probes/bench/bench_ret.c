@@ -8,23 +8,18 @@
 MODULE_DESCRIPTION("SystemTap probe: bench_ret");
 MODULE_AUTHOR("Martin Hunt");
 
-int entries = 0;
-int returns = 0;
-
 static int inst_sys_read (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
-static int inst_sys_write_ret (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_write_ret (struct kretprobe_instance *ri, struct pt_regs *regs)
 {
-  returns++;
   return 0;
 }
 
 static int inst_sys_write (struct kprobe *p, struct pt_regs *regs)
 {
-  entries++;
   return 0;
 }
 
@@ -64,7 +59,6 @@ static void probe_exit (void)
 {
   _stp_unregister_kretprobes (kpr, NUM_KPROBES); 
   _stp_unregister_kprobes (kp, 1); 
-  printk("entries=%d returns=%d\n", entries, returns);
 }
 
 void cleanup_module(void)

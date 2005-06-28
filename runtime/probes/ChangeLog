@@ -1,5 +1,7 @@
 2005-06-28  Martin Hunt  <hunt@redhat.com>
 
+	* bench/bench_ret.c (inst_sys_write_ret): Fix prototype.
+
 	* bench: New probe to do benchmarks.
 
 2005-06-23  Martin Hunt  <hunt@redhat.com>
