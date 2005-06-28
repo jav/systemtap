@@ -1,6 +1,10 @@
+2005-06-28  Martin Hunt  <hunt@redhat.com>
+
+	* bench: New probe to do benchmarks.
+
 2005-06-23  Martin Hunt  <hunt@redhat.com>
 
-	* all probes: MOdified to use latest changes to transport.h.
+	* all probes: Modified to use latest changes to transport.h.
 
 2005-06-21  Martin Hunt  <hunt@redhat.com>
 

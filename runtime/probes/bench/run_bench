@@ -1,0 +1,105 @@
+#!/usr/bin/tclsh
+# -*- tcl -*-
+
+proc do_time {module} {  
+  # start kprobes
+  if {[catch {exec ../../stpd/stpd -mq $module.ko > xxx &} pid]} {
+    puts $pid
+    exit -1
+  }
+  
+  exec sleep 2
+
+  # get the timings while kprobes running
+  if {[catch {exec ./time} res2]} {
+    puts $res2
+    exit -1
+  }
+  
+  # terminate kprobes
+  if {[catch {exec kill -s SIGINT $pid} res]} {
+    puts $res
+  }
+
+  return $res2
+}
+
+
+set nproc [exec grep processor /proc/cpuinfo | wc -l]
+if {![catch {exec grep "physical id" /proc/cpuinfo} phyid]} {
+    foreach phy [split $phyid \n] {
+	set cpu($phy) 1
+    }
+}
+set model [exec grep "model name" /proc/cpuinfo]
+set model [lindex [split $model \n] 0]
+set model [string range $model [expr [string first : $model]+1] end]
+set model [string trimleft $model]
+
+puts "STP BENCH for [exec uname -r] on [exec uname -m]"
+puts "[exec uptime]"
+if {$nproc > 1} { 
+    puts "processors: $nproc ([array size cpu] physical) $model"
+} else {
+    puts "processors: $nproc $model"
+}
+puts "--------------------------------------"
+
+# load the modules
+if {[catch {exec ./check_modules} res]} {
+    puts $res
+    exit -1
+}
+
+# get the timings without kprobes
+if {[catch {exec ./time} res1]} {
+  puts $res1
+  exit -1
+}
+
+set res2 [do_time bench]
+set t_kprobe [expr [lindex $res2 0] - [lindex $res1 0]]
+set t_jprobe [expr [lindex $res2 1] - [lindex $res1 1]]
+
+puts "Jprobes overhead = $t_jprobe ns"
+puts "Kprobes overhead = $t_kprobe ns"
+puts "--------------------------------------"
+
+if {[file exists bench_ret.ko]} {
+  set res2 [do_time bench_ret]
+  set t_ret [expr [lindex $res2 0] - [lindex $res1 0]]
+  set t_entret [expr [lindex $res2 1] - [lindex $res1 1]]
+  
+  puts "Return probe overhead       = $t_ret ns"
+  puts "Entry+Return probe overhead = $t_entret ns"
+  puts "--------------------------------------"
+}
+
+set res2 [do_time bench_multi]
+set t_k2 [expr [lindex $res2 0] - [lindex $res1 0]]
+set t_k4 [expr [lindex $res2 1] - [lindex $res1 1]]
+
+puts "2 kprobes on same func       = $t_k2 ns"
+puts "4 kprobes on same func       = $t_k4 ns"
+puts "--------------------------------------"
+
+set res2 [do_time bench_io1]
+set t_printf [expr [lindex $res2 0] - [lindex $res1 0] - $t_kprobe]
+set t_print [expr [lindex $res2 1] - [lindex $res1 1] - $t_kprobe]
+
+puts "NETLINK"
+puts "_stp_printf on 100 chars = $t_printf ns"
+puts "_stp_print  on 100 chars = $t_print ns"
+puts "--------------------------------------"
+exec sleep 4
+
+set res2 [do_time bench_io2]
+set t_printf [expr [lindex $res2 0] - [lindex $res1 0] - $t_kprobe]
+set t_print [expr [lindex $res2 1] - [lindex $res1 1] - $t_kprobe]
+
+puts "RELAYFS"
+puts "_stp_printf on 100 chars = $t_printf ns"
+puts "_stp_print  on 100 chars = $t_print ns"
+puts "--------------------------------------"
+
+exec rm xxx

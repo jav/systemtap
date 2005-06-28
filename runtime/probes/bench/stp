@@ -1,0 +1,42 @@
+#!/bin/bash
+if [ -n "$1" ]
+then
+    modulename=$1
+else
+    echo "Usage: stp modulename"
+    exit
+fi
+
+RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
+if [ "$RELAYFS" != "relayfs" ] 
+then
+	/sbin/insmod ../../relayfs/relayfs.ko
+fi
+
+if [ ! -d "/mnt/relay" ]
+then
+    mkdir /mnt/relay
+fi
+
+MOUNT=`mount | grep relayfs |awk '{print $1}'`
+if [ "$MOUNT" != "relayfs" ]
+then
+	mount -t relayfs relayfs /mnt/relay
+fi
+
+STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+if [ "$STP_CONTROL" != "stp_control" ] 
+then
+	/sbin/insmod ../../transport/stp-control.ko
+fi
+
+#/sbin/insmod $modulename
+
+# print to screen only
+#../../stpd/stpd -p $modulename
+
+# print to screen and log to files (file logging only if #define STP_NETLINK_ONLY commented out in module)
+#../../stpd/stpd $modulename
+
+# no screen, log to files (file logging only if #define STP_NETLINK_ONLY commented out in module)
+../../stpd/stpd -q $modulename

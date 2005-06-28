@@ -1,0 +1,24 @@
+#!/bin/bash
+
+RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
+if [ "$RELAYFS" != "relayfs" ] 
+then
+	/sbin/insmod ../../relayfs/relayfs.ko
+fi
+
+if [ ! -d "/mnt/relay" ]
+then
+    mkdir /mnt/relay
+fi
+
+MOUNT=`mount | grep relayfs |awk '{print $1}'`
+if [ "$MOUNT" != "relayfs" ]
+then
+	mount -t relayfs relayfs /mnt/relay
+fi
+
+STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+if [ "$STP_CONTROL" != "stp_control" ] 
+then
+	/sbin/insmod ../../transport/stp-control.ko
+fi
