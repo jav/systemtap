@@ -57,9 +57,12 @@ if {[catch {exec ./time} res1]} {
   exit -1
 }
 
+set r_overhead [lindex $res1 0]
+set w_overhead [lindex $res1 1]
+
 set res2 [do_time bench]
-set t_kprobe [expr [lindex $res2 0] - [lindex $res1 0]]
-set t_jprobe [expr [lindex $res2 1] - [lindex $res1 1]]
+set t_kprobe [expr [lindex $res2 0] - $r_overhead]
+set t_jprobe [expr [lindex $res2 1] - $w_overhead]
 
 puts "Jprobes overhead = $t_jprobe ns"
 puts "Kprobes overhead = $t_kprobe ns"
@@ -67,8 +70,8 @@ puts "--------------------------------------"
 
 if {[file exists bench_ret.ko]} {
   set res2 [do_time bench_ret]
-  set t_ret [expr [lindex $res2 0] - [lindex $res1 0]]
-  set t_entret [expr [lindex $res2 1] - [lindex $res1 1]]
+  set t_ret [expr [lindex $res2 0] - $r_overhead]
+  set t_entret [expr [lindex $res2 1] - $w_overhead]
   
   puts "Return probe overhead       = $t_ret ns"
   puts "Entry+Return probe overhead = $t_entret ns"
@@ -76,16 +79,17 @@ if {[file exists bench_ret.ko]} {
 }
 
 set res2 [do_time bench_multi]
-set t_k2 [expr [lindex $res2 0] - [lindex $res1 0]]
-set t_k4 [expr [lindex $res2 1] - [lindex $res1 1]]
+set t_k2 [expr [lindex $res2 0] - $r_overhead]
+set t_k4 [expr [lindex $res2 1] - $w_overhead]
 
 puts "2 kprobes on same func       = $t_k2 ns"
 puts "4 kprobes on same func       = $t_k4 ns"
 puts "--------------------------------------"
 
 set res2 [do_time bench_io1]
-set t_printf [expr [lindex $res2 0] - [lindex $res1 0] - $t_kprobe]
-set t_print [expr [lindex $res2 1] - [lindex $res1 1] - $t_kprobe]
+# subtract function call overhead and kprobe overhead
+set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
+set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
 
 puts "NETLINK"
 puts "_stp_printf on 100 chars = $t_printf ns"
@@ -94,8 +98,9 @@ puts "--------------------------------------"
 exec sleep 4
 
 set res2 [do_time bench_io2]
-set t_printf [expr [lindex $res2 0] - [lindex $res1 0] - $t_kprobe]
-set t_print [expr [lindex $res2 1] - [lindex $res1 1] - $t_kprobe]
+# subtract function call overhead and kprobe overhead
+set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
+set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
 
 puts "RELAYFS"
 puts "_stp_printf on 100 chars = $t_printf ns"
