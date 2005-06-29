@@ -1,3 +1,9 @@
+2005-06-29  Martin Hunt  <hunt@redhat.com>
+
+	* current.c (_stp_ret_addr_r): New function.
+	(_stp_probe_addr): New function.
+	(_stp_probe_addr_r): New function.
+
 2005-06-27  Martin Hunt  <hunt@redhat.com>
 
 	* Doxyfile (PREDEFINED): Added USE_RET_PROBES.

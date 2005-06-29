@@ -34,6 +34,29 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 #endif
 }
 
+/** Get the current return address for a return probe.
+ * Call from kprobe return probe.
+ * @param ri Pointer to the struct kretprobe_instance.
+ * @return The return address
+ */
+#define _stp_ret_addr_r(ri) (ri->ret_addr)
+
+/** Get the probe address for a kprobe.
+ * Call from a kprobe. This will return the
+ * address of the function that is being probed.
+ * @param kp Pointer to the struct kprobe.
+ * @return The function's address
+ */
+#define _stp_probe_addr(kp) (kp->addr)
+
+/** Get the probe address for a return probe.
+ * Call from kprobe return probe. This will return the
+ * address of the function that is being probed.
+ * @param ri Pointer to the struct kretprobe_instance.
+ * @return The function's address
+ */
+#define _stp_probe_addr_r(ri) (ri->rp->kp.addr)
+
 #ifdef  __x86_64__
 void _stp_sprint_regs(String str, struct pt_regs * regs)
 {
@@ -78,7 +101,7 @@ void _stp_sprint_regs(String str, struct pt_regs * regs)
 
 /** Write the registers to a string.
  * @param regs The pt_regs saved by the kprobe.
- * @note i386 and x86_64 only so far.
+ * @note i386 and x86_64 only so far. 
  */
 void _stp_sprint_regs(String str, struct pt_regs * regs)
 {
