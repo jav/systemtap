@@ -74,7 +74,7 @@ void __stp_map_set_str (MAP map, char *val, int add)
  * If the element doesn't exist, it is created.  If no current element (key)
  * is set for the map, this function does nothing.
  * @param map
- * @param str String containing value to append.
+ * @param val String containing value to append.
  * @ingroup map_set
  */
 #define _stp_map_add_str(map,val) __stp_map_set_str(map,val,1)

@@ -100,7 +100,7 @@ stat *_stp_get_stat(struct map_node *m)
 
 /** Return an int64 key from a map node.
  * This function will return an int64 key from a map_node.
- * @param m pointer to the map_node.
+ * @param mn pointer to the map_node.
  * @param n key number
  * @returns an int64
  * @sa key1int(), key2int()
@@ -114,7 +114,7 @@ int64_t _stp_key_get_int64 (struct map_node *mn, int n)
 
 /** Return a string key from a map node.
  * This function will return an string key from a map_node.
- * @param m pointer to the map_node.
+ * @param mn pointer to the map_node.
  * @param n key number
  * @returns a pointer to a string
  * @sa key1str(), key2str()

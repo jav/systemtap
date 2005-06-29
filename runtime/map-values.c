@@ -25,10 +25,15 @@
 
 
 #if defined(NEED_INT64_VALS) || defined (NEED_STAT_VALS)
-/** Add an int64 to a map.
+/** Adds an int64 to the current element's value.
+ * This adds an int64 to the current element's value. The map must have been created
+ * to hold int64s or stats.
+ *
+ * If the element doesn't exist, it is created.  If no current element (key)
+ * is set for the map, this function does nothing.
+ * @param map
+ * @param val value
  * @ingroup map_set
- * @param map 
- * @param val int64 value to add
  */
 void _stp_map_add_int64 (MAP map, int64_t val)
 {

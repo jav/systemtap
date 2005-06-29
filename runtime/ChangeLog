@@ -1,5 +1,10 @@
 2005-06-29  Martin Hunt  <hunt@redhat.com>
 
+	* map-values.c (_stp_map_add_int64): Fix docs.
+	* map-str.c: Fix some docs
+	* map.c: Ditto.
+	* map.doc: Ditto.
+
 	* current.c (_stp_ret_addr_r): New function.
 	(_stp_probe_addr): New function.
 	(_stp_probe_addr_r): New function.
