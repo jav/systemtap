@@ -3,7 +3,7 @@
 /* likely will only want one. */
 
 /* define this if you don't want to use relayfs.  Normally */
-/* you want relayfs, although it is broken at the moment. */
+/* you want relayfs, unless you need a realtime stream of data */
 
 #define STP_NETLINK_ONLY
 
@@ -94,27 +94,12 @@ static struct kprobe kp[] = {
 #define NUM_JPROBES (sizeof(jp)/sizeof(struct jprobe))
 #define NUM_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
-/* these are currently required. May be eliminated later */
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
-
 /* called when the module loads. */
 int init_module(void)
 {
   int ret;
 
-  /* currently required */
-  if (!pid) {
-    printk("init_module: Can't start without daemon pid\n");
-    return -1;
-  }
-
-  /* open the transport to stpd */
-  if (_stp_transport_open(n_subbufs, subbuf_size, pid) < 0) {
-    printk("init_module: Couldn't open transport\n");
-    return -1;
-  }
+  TRANSPORT_OPEN;
 
   /* register any jprobes */
   ret = _stp_register_jprobes (jp, NUM_JPROBES);
