@@ -13,12 +13,16 @@
 #include "parse.h"
 #include <string>
 #include <vector>
-
+#include <iostream>
+#include <sstream>
+#include <map>
 
 // ------------------------------------------------------------------------
 
 struct systemtap_session;
 struct derived_probe;
+struct match_node;
+
 struct symresolution_info: public traversing_visitor 
 {
 protected:
@@ -30,7 +34,7 @@ public:
   symresolution_info (systemtap_session& s);
 
   // XXX: instead in systemtap_session?
-  void derive_probes (probe *p, std::vector<derived_probe*>& dps);
+  void derive_probes (match_node * root, probe *p, std::vector<derived_probe*>& dps);
 
 protected:
   vardecl* find_scalar (const std::string& name);
@@ -130,6 +134,57 @@ struct derived_probe: public probe
   // }
 };
 
+// ------------------------------------------------------------------------
+
+struct
+derived_probe_builder
+{
+  virtual void build(probe * base, 
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     std::vector<probe *> & results_to_expand_further,
+		     std::vector<derived_probe *> & finished_results) = 0;
+  virtual ~derived_probe_builder() {}
+};
+
+
+struct
+match_key
+{
+  std::string name;
+  bool have_parameter;
+  token_type parameter_type;
+
+  match_key(std::string const & n);
+  match_key(probe_point::component const & c);
+
+  match_key & with_number();
+  match_key & with_string();
+  std::string str() const;
+  bool operator<(match_key const & other) const;
+};
+
+
+class
+match_node
+{
+  std::map<match_key, match_node *> sub;
+  derived_probe_builder * end;
+
+ public:
+  match_node();
+  derived_probe_builder * find_builder(std::vector<probe_point::component *> const & components,
+				       unsigned pos,
+				       std::vector< std::pair<std::string, literal *> > & parameters);
+  
+  match_node * bind(match_key const & k);
+  match_node * bind(std::string const & k);
+  match_node * bind_str(std::string const & k);
+  match_node * bind_num(std::string const & k);
+  void bind(derived_probe_builder * e);
+};
+
+// ------------------------------------------------------------------------
 
 
 class unparser;
@@ -138,6 +193,9 @@ class translator_output;
 struct systemtap_session
 {
   systemtap_session ();
+
+  match_node * pattern_root;
+  void register_library_aliases();
 
   // parse trees for the various script files
   stapfile* user_file;

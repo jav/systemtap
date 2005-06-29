@@ -356,10 +356,12 @@ struct next_statement: public statement
 
 
 struct probe;
+struct probe_alias;
 struct stapfile
 {
   std::string name;
   std::vector<probe*> probes;
+  std::vector<probe_alias*> aliases;
   std::vector<functiondecl*> functions;
   std::vector<vardecl*> globals;
   void print (std::ostream& o);
@@ -392,9 +394,18 @@ struct probe
   std::vector<vardecl*> locals;
   probe ();
   void print (std::ostream& o);
-  void printsig (std::ostream &o);
+  virtual void printsig (std::ostream &o);
+  virtual ~probe() {}
 };
 
+struct probe_alias 
+  : public probe
+{
+  probe_alias(std::vector<probe_point*> const & aliases);
+  std::vector<probe_point*> alias_names;  
+  virtual void printsig (std::ostream &o);
+  virtual ~probe_alias() {}
+};
 
 
 // An derived visitor instance is used to visit the entire

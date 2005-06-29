@@ -95,7 +95,7 @@ private:
   unsigned num_errors;
 
 private: // nonterminals
-  probe* parse_probe ();
+  void parse_probe (probe *&, probe_alias *&);
   probe_point* parse_probe_point ();
   literal* parse_literal ();
   void parse_global (std::vector<vardecl*>&);

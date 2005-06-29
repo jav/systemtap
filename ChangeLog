@@ -1,3 +1,18 @@
+2005-06-27  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.{h,cxx} (probe_alias): New structure.
+	* parse.{h,cxx} (parser::parse): Parse probes or probe aliases.
+	(parser::parse_probe): Likewise.
+	* tapsets.{h,cxx}:
+	(derived_probe_builder):
+	(match_key): 
+	(match_node): 
+	(alias_derived_probe): Move from here,
+	* elaborate.{h,cxx}: to here.
+	* elaborate.h (systemtap_session::pattern_root): New member.
+	(register_library_aliases): New function.
+	* tapsets.cxx: Build one dwarf_derived_probe per target address.
+
 2005-06-23  Graydon Hoare  <graydon@redhat.com>
 
 	* tapsets.cxx 

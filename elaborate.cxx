@@ -9,6 +9,7 @@
 #include "config.h"
 #include "elaborate.h"
 #include "parse.h"
+#include "tapsets.h"
 
 extern "C" {
 #include <sys/utsname.h>
@@ -50,8 +51,305 @@ derived_probe::derived_probe (probe *p, probe_point *l):
   this->locals = p->locals;
 }
 
+// ------------------------------------------------------------------------
+
+// Members of match_key.
+
+match_key::match_key(string const & n) 
+  : name(n), 
+    have_parameter(false), 
+    parameter_type(tok_junk)
+{
+}
+
+match_key::match_key(probe_point::component const & c)
+  : name(c.functor),
+    have_parameter(c.arg != NULL),
+    parameter_type(c.arg ? c.arg->tok->type : tok_junk)
+{
+}
+
+match_key &
+match_key::with_number() 
+{
+  have_parameter = true;
+  parameter_type = tok_number;
+  return *this;
+}
+
+match_key &
+match_key::with_string() 
+{
+  have_parameter = true;
+  parameter_type = tok_string;
+  return *this;
+}
+
+string 
+match_key::str() const
+{
+  if (have_parameter)
+    switch (parameter_type)
+      {
+      case tok_string: return name + "(string)";
+      case tok_number: return name + "(number)";
+      default: return name + "(...)";
+      }
+  return name;
+}
+
+bool 
+match_key::operator<(match_key const & other) const
+{
+  return ((name < other.name)
+	  
+	  || (name == name 
+	      && have_parameter < other.have_parameter)
+	  
+	  || (name == name 
+	      && have_parameter == other.have_parameter 
+	      && parameter_type < other.parameter_type));
+}
 
 // ------------------------------------------------------------------------
+// Members of match_node
+// ------------------------------------------------------------------------
+
+match_node::match_node()
+  : end(NULL)
+{}
+
+match_node *
+match_node::bind(match_key const & k) 
+{
+  map<match_key, match_node *>::const_iterator i = sub.find(k);
+  if (i != sub.end())
+    return i->second;
+  match_node * n = new match_node();
+  sub.insert(make_pair(k, n));
+  return n;
+}
+
+void 
+match_node::bind(derived_probe_builder * e)
+{
+  if (end)
+    throw semantic_error("already have a pattern ending");
+  end = e;
+}
+
+match_node * 
+match_node::bind(string const & k)
+{
+  return bind(match_key(k));
+}
+
+match_node *
+match_node::bind_str(string const & k)
+{
+  return bind(match_key(k).with_string());
+}
+
+match_node * 
+match_node::bind_num(string const & k)
+{
+  return bind(match_key(k).with_number());
+}
+
+derived_probe_builder * 
+match_node::find_builder(vector<probe_point::component *> const & components,
+			 unsigned pos,
+			 vector< pair<string, literal *> > & parameters)
+{
+  assert(pos <= components.size());
+  if (pos == components.size())
+    {
+      // Probe_point ends here. We match iff we have
+      // an "end" entry here. If we don't, it'll be null.
+      return end;
+    }
+  else
+    {
+      // Probe_point contains a component here. We match iff there's
+      // an entry in the sub table, and its value matches the rest
+      // of the probe_point.
+      match_key k(*components[pos]);
+      if (verbose)
+	clog << "searching for component " << k.str() << endl;
+      map<match_key, match_node *>::const_iterator i = sub.find(k);
+      if (i == sub.end())
+	{
+	  if (verbose)
+	    clog << "no match found" << endl;
+	  return NULL;
+	}
+      else
+	{
+	  if (verbose)
+	    clog << "matched " << k.str() << endl;
+	  derived_probe_builder * builder = NULL;
+	  if (k.have_parameter)
+	    {
+	      assert(components[pos]->arg);
+	      parameters.push_back(make_pair(components[pos]->functor, 
+					     components[pos]->arg));
+	    }
+	  else
+	    {
+	      // store a "null parameter" for any component we run into, anyways
+	      literal_string *empty = NULL;
+	      parameters.push_back(make_pair(components[pos]->functor, empty));
+	    }
+	  builder = i->second->find_builder(components, pos+1, parameters);
+	  if (k.have_parameter && !builder)
+	    parameters.pop_back();
+	  return builder;
+	}
+    }
+}
+
+
+static void
+param_vec_to_map(vector< pair<string, literal *> > const & param_vec, 
+		   map<string, literal *> & param_map)
+{
+  for (vector< pair<string, literal *> >::const_iterator i = param_vec.begin();
+       i != param_vec.end(); ++i)
+    {
+      param_map[i->first] = i->second;
+    }
+}
+
+// ------------------------------------------------------------------------
+// Alias probes
+// ------------------------------------------------------------------------
+
+struct
+alias_expansion_builder 
+  : public derived_probe_builder
+{
+  probe_alias * alias;
+
+  alias_expansion_builder(probe_alias * a) 
+    : alias(a)
+  {}
+
+  virtual void build(probe * use, 
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<probe *> & results_to_expand_further,
+		     vector<derived_probe *> & finished_results)
+  {
+    // We're going to build a new probe and wrap it up in an
+    // alias_expansion_probe so that the expansion loop recognizer it as
+    // such and re-expands its expansion.
+    
+    probe * n = new probe();
+    n->body = new block();
+
+    // The new probe gets the location list of the alias,
+    n->locations = alias->locations;
+  
+    // the token location of the use,
+    n->tok = use->tok;
+
+    // and a set of locals and statements representing the 
+    // concatenation of the alias' body with the use's.
+    copy(alias->locals.begin(), alias->locals.end(), back_inserter(n->locals));
+    copy(use->locals.begin(), use->locals.end(), back_inserter(n->locals));
+    copy(alias->body->statements.begin(), 
+	 alias->body->statements.end(),
+	 back_inserter(n->body->statements));
+    copy(use->body->statements.begin(), 
+	 use->body->statements.end(),
+	 back_inserter(n->body->statements));
+  
+    results_to_expand_further.push_back(n);
+  }
+};
+
+
+// ------------------------------------------------------------------------
+// Pattern matching
+// ------------------------------------------------------------------------
+
+
+// Register all the aliases we've seen in library files, and the user
+// file, as patterns.
+
+void
+systemtap_session::register_library_aliases()
+{
+  vector<stapfile*> files(library_files);
+  files.push_back(user_file);
+
+  for (unsigned f = 0; f < files.size(); ++f)
+    {
+      stapfile * file = files[f];
+      for (unsigned a = 0; a < file->aliases.size(); ++a)
+	{
+	  probe_alias * alias = file->aliases[a];
+	  for (unsigned n = 0; n < alias->alias_names.size(); ++n)
+	    {
+	      probe_point * name = alias->alias_names[n];
+	      if (verbose)
+		{
+		  clog << "registering probe alias ";
+		  for (unsigned c = 0; c < name->components.size(); ++c)
+		    clog << (c > 0 ? "." : "") << name->components[c]->functor;
+		  clog << endl;
+		}
+	      match_node * n = pattern_root;
+	      for (unsigned c = 0; c < name->components.size(); ++c)
+		{
+		  probe_point::component * comp = name->components[c];
+		  // XXX: alias parameters
+		  if (comp->arg)
+		    throw semantic_error("alias component " 
+					 + comp->functor 
+					 + " contains illegal parameter");
+		  n = n->bind(comp->functor);
+		}
+	      n->bind(new alias_expansion_builder(alias));
+	    }
+	}
+    }
+}
+
+
+// The match-and-expand loop.
+void
+symresolution_info::derive_probes (match_node * root, 
+				   probe *p, vector<derived_probe*>& dps)
+{
+  for (unsigned i = 0; i < p->locations.size(); ++i)
+    {
+      probe_point *loc = p->locations[i];
+      vector< pair<string, literal *> > param_vec;
+      map<string, literal *> param_map;
+      vector<probe *> re_expand;
+
+      derived_probe_builder * builder = 
+	root->find_builder(loc->components, 0, param_vec);
+
+      if (!builder)
+	throw semantic_error ("no match for probe point", loc->tok);
+
+      param_vec_to_map(param_vec, param_map);
+
+      builder->build(p, loc, param_map, re_expand, dps);
+      
+      // Recursively expand any further-expanding results
+      if (!re_expand.empty())
+	{
+	  for (unsigned j = 0; j < re_expand.size(); ++j)
+	    derive_probes(root, re_expand[j], dps);
+	}
+    }
+}
+
+// ------------------------------------------------------------------------
+
 
 
 static int semantic_pass_symbols (systemtap_session&);
@@ -62,7 +360,7 @@ static int semantic_pass_types (systemtap_session&);
 // Link up symbols to their declarations.  Set the session's
 // files/probes/functions/globals vectors from the transitively
 // reached set of stapfiles in s.library_files, starting from
-// s.user_file.  Perform automatic tapset inclusion and XXX: probe
+// s.user_file.  Perform automatic tapset inclusion and probe
 // alias expansion.
 static int
 semantic_pass_symbols (systemtap_session& s)
@@ -114,7 +412,7 @@ semantic_pass_symbols (systemtap_session& s)
             {
               // much magic happens here: probe alias expansion,
               // provider identification
-              sym.derive_probes (p, dps);
+              sym.derive_probes (s.pattern_root, p, dps);
             }
           catch (const semantic_error& e)
             {
@@ -149,6 +447,9 @@ semantic_pass_symbols (systemtap_session& s)
 int
 semantic_pass (systemtap_session& s)
 {
+  s.register_library_aliases();
+  register_standard_tapsets(s.pattern_root);
+
   int rc = semantic_pass_symbols (s);
   if (rc == 0) rc = semantic_pass_types (s);
   return rc;
@@ -159,6 +460,7 @@ semantic_pass (systemtap_session& s)
 
 
 systemtap_session::systemtap_session ():
+  pattern_root(new match_node),
   user_file (0), op (0), up (0), num_errors (0)
 {
 }

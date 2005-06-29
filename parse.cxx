@@ -373,7 +373,15 @@ parser::parse ()
 
           empty = false;
 	  if (t->type == tok_identifier && t->content == "probe")
-	    f->probes.push_back (parse_probe ());
+	    {
+	      probe * p;
+	      probe_alias * a;
+	      parse_probe (p, a);
+	      if (a)
+		f->aliases.push_back(a);
+	      else
+		f->probes.push_back (p);
+	    }
 	  else if (t->type == tok_identifier && t->content == "global")
 	    parse_global (f->globals);
 	  else if (t->type == tok_identifier && t->content == "function")
@@ -414,31 +422,49 @@ parser::parse ()
 }
 
 
-probe*
-parser::parse_probe ()
+void
+parser::parse_probe (probe * & probe_ret,
+		     probe_alias * & alias_ret)
 {
   const token* t0 = next ();
   if (! (t0->type == tok_identifier && t0->content == "probe"))
     throw parse_error ("expected 'probe'");
 
-  probe *p = new probe;
-  p->tok = t0;
+  probe_ret = NULL;
+  alias_ret = NULL;
+
+  vector<probe_point *> aliases;
+  vector<probe_point *> locations;
+
+  bool equals_ok = true;
 
   while (1)
     {
       const token *t = peek ();
       if (t && t->type == tok_identifier)
 	{
-	  p->locations.push_back (parse_probe_point ());
+	  probe_point * pp = parse_probe_point ();
 
 	  t = peek ();
-	  if (t && t->type == tok_operator && t->content == ",")
+	  if (equals_ok && t 
+	      && t->type == tok_operator && t->content == "=")
 	    {
+	      aliases.push_back(pp);
+	      next ();
+	      continue;
+	    }
+	  else if (t && t->type == tok_operator && t->content == ",")
+	    {
+	      locations.push_back(pp);
+	      equals_ok = false;
 	      next ();
 	      continue;
 	    }
 	  else if (t && t->type == tok_operator && t->content == "{")
-	    break;
+	    {
+	      locations.push_back(pp);
+	      break;
+	    }
 	  else
             throw parse_error ("expected ',' or '{'");
           // XXX: unify logic with that in parse_symbol()
@@ -446,10 +472,22 @@ parser::parse_probe ()
       else
 	throw parse_error ("expected probe point specifier");
     }
-  
+
+  probe *p;
+  if (aliases.empty())
+    {
+      probe_ret = new probe;
+      p = probe_ret;
+    }
+  else
+    {
+      alias_ret = new probe_alias(aliases);;
+      p = alias_ret;
+    }
+
+  p->tok = t0;
+  p->locations = locations;
   p->body = parse_stmt_block ();
-  
-  return p;
 }
 
 
@@ -646,7 +684,7 @@ parser::parse_probe_point ()
 
       t = peek ();
       if (t && t->type == tok_operator 
-          && (t->content == "{" || t->content == ","))
+          && (t->content == "{" || t->content == "," || t->content == "="))
         break;
       
       if (t && t->type == tok_operator && t->content == "(")
@@ -660,7 +698,7 @@ parser::parse_probe_point ()
 
           t = peek ();
           if (t && t->type == tok_operator 
-              && (t->content == "{" || t->content == ","))
+              && (t->content == "{" || t->content == "," || t->content == "="))
             break;
           else if (t && t->type == tok_operator &&
                    t->content == "(")
@@ -671,7 +709,7 @@ parser::parse_probe_point ()
       if (t && t->type == tok_operator && t->content == ".")
         next ();
       else
-        throw parse_error ("expected '.' or ',' or '(' or '{'");
+        throw parse_error ("expected '.' or ',' or '(' or '{' or '='");
     }
 
   return pl;

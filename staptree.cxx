@@ -373,6 +373,12 @@ void stapfile::print (ostream& o)
       o << endl;
     }
 
+  for (unsigned i=0; i<aliases.size(); i++)
+    {
+      aliases[i]->print (o);
+      o << endl;
+    }
+
   for (unsigned i=0; i<probes.size(); i++)
     {
       probes[i]->print (o);
@@ -414,6 +420,25 @@ void probe_point::print (ostream& o)
       o << c->functor;
       if (c->arg)
         o << "(" << *c->arg << ")";
+    }
+}
+
+probe_alias::probe_alias(std::vector<probe_point*> const & aliases):
+  probe (), alias_names (aliases)
+{
+}
+
+void probe_alias::printsig (ostream& o)
+{
+  for (unsigned i=0; i<alias_names.size(); i++)
+    {
+      o << (i>0 ? " = " : "");
+      alias_names[i]->print (o);
+    }
+  for (unsigned i=0; i<locations.size(); i++)
+    {
+      o << (i>0 ? ", " : "");
+      locations[i]->print (o);
     }
 }
 

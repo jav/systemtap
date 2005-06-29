@@ -30,227 +30,6 @@ extern "C" {
 
 using namespace std;
 
-// Members of match_key.
-
-match_key::match_key(string const & n) 
-  : name(n), 
-    have_parameter(false), 
-    parameter_type(tok_junk)
-{
-}
-
-match_key::match_key(probe_point::component const & c)
-  : name(c.functor),
-    have_parameter(c.arg != NULL),
-    parameter_type(c.arg ? c.arg->tok->type : tok_junk)
-{
-}
-
-match_key &
-match_key::with_number() 
-{
-  have_parameter = true;
-  parameter_type = tok_number;
-  return *this;
-}
-
-match_key &
-match_key::with_string() 
-{
-  have_parameter = true;
-  parameter_type = tok_string;
-  return *this;
-}
-
-string 
-match_key::str() const
-{
-  if (have_parameter)
-    switch (parameter_type)
-      {
-      case tok_string: return name + "(string)";
-      case tok_number: return name + "(number)";
-      default: return name + "(...)";
-      }
-  return name;
-}
-
-bool 
-match_key::operator<(match_key const & other) const
-{
-  return ((name < other.name)
-	  
-	  || (name == name 
-	      && have_parameter < other.have_parameter)
-	  
-	  || (name == name 
-	      && have_parameter == other.have_parameter 
-	      && parameter_type < other.parameter_type));
-}
-
-
-// Members of match_node.
-
-match_node::match_node()
-  : end(NULL)
-{}
-
-match_node & 
-match_node::bind(match_key const & k) 
-{
-  map<match_key, match_node *>::const_iterator i = sub.find(k);
-  if (i != sub.end())
-    return *i->second;
-  match_node * n = new match_node();
-  sub.insert(make_pair(k, n));
-  return *n;
-}
-
-void 
-match_node::bind(derived_probe_builder * e)
-{
-  if (end)
-    throw semantic_error("already have a pattern ending");
-  end = e;
-}
-
-match_node & 
-match_node::bind(string const & k)
-{
-  return bind(match_key(k));
-}
-
-match_node & 
-match_node::bind_str(string const & k)
-{
-  return bind(match_key(k).with_string());
-}
-
-match_node & 
-match_node::bind_num(string const & k)
-{
-  return bind(match_key(k).with_number());
-}
-
-derived_probe_builder * 
-match_node::find_builder(vector<probe_point::component *> const & components,
-			 unsigned pos,
-			 vector< pair<string, literal *> > & parameters)
-{
-  assert(pos <= components.size());
-  if (pos == components.size())
-    {
-      // Probe_point ends here. We match iff we have
-      // an "end" entry here. If we don't, it'll be null.
-      return end;
-    }
-  else
-    {
-      // Probe_point contains a component here. We match iff there's
-      // an entry in the sub table, and its value matches the rest
-      // of the probe_point.
-      match_key k(*components[pos]);
-      map<match_key, match_node *>::const_iterator i = sub.find(k);
-      if (i == sub.end())
-	return NULL;
-      else
-	{
-	  derived_probe_builder * builder = NULL;
-	  if (k.have_parameter)
-	    {
-	      assert(components[pos]->arg);
-	      parameters.push_back(make_pair(components[pos]->functor, 
-					     components[pos]->arg));
-	    }
-	  else
-	    {
-	      // store a "null parameter" for any component we run into, anyways
-	      literal_string *empty = NULL;
-	      parameters.push_back(make_pair(components[pos]->functor, empty));
-	    }
-	  builder = i->second->find_builder(components, pos+1, parameters);
-	  if (k.have_parameter && !builder)
-	    parameters.pop_back();
-	  return builder;
-	}
-    }
-}
-
-
-static void
-param_vec_to_map(vector< pair<string, literal *> > const & param_vec, 
-		   map<string, literal *> & param_map)
-{
-  for (vector< pair<string, literal *> >::const_iterator i = param_vec.begin();
-       i != param_vec.end(); ++i)
-    {
-      param_map[i->first] = i->second;
-    }
-}
-
-// XXX: bind patterns for probe aliases found in AST
-
-struct 
-alias_derived_probe
-{
-  alias_derived_probe(probe_point * expansion) 
-    : alias_expansion(expansion) {}
-  probe_point * alias_expansion;
-  void emit_registrations (translator_output* o, unsigned i) {}
-  void emit_deregistrations (translator_output* o, unsigned i) {}
-  void emit_probe_entries (translator_output* o, unsigned i) {}
-};
-
-// The root of the global pattern-matching tree.
-static match_node * root_node;
-
-
-// The match-and-expand loop.
-void
-symresolution_info::derive_probes (probe *p, vector<derived_probe*>& dps)
-{
-  if (!root_node)
-    {
-      root_node = new match_node();
-      register_standard_tapsets(*root_node);
-    }
-
-  assert(root_node);
-
-  deque<probe_point *> work(p->locations.begin(), p->locations.end());
-
-  while(!work.empty())
-    {
-      probe_point *loc = work.front();
-      work.pop_front();
-
-      vector< pair<string, literal *> > param_vec;
-      map<string, literal *> param_map;
-
-      derived_probe_builder * builder = 
-	root_node->find_builder(loc->components, 0, param_vec);
-
-      if (!builder)
-	throw semantic_error ("no match for probe point", loc->tok);
-
-      param_vec_to_map(param_vec, param_map);
-
-      derived_probe *derived = builder->build(p, loc, param_map);
-      assert(derived);
-
-      // Append to worklist if it's an alias; append to result otherwise.
-      alias_derived_probe *as_alias = dynamic_cast<alias_derived_probe *>(derived);
-      if (as_alias)
-	{
-	  work.push_back(as_alias->alias_expansion);
-	  delete derived;
-	}
-      else
-	dps.push_back (derived);      
-    }
-}
-
-
 // ------------------------------------------------------------------------
 // begin/end probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
@@ -273,11 +52,13 @@ be_builder
 {
   bool begin;
   be_builder(bool b) : begin(b) {}
-  virtual derived_probe * build(probe * base, 
-				probe_point * location,
-				map<string, literal *> const & parameters)
+  virtual void build(probe * base, 
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<probe *> & results_to_expand_further,
+		     vector<derived_probe *> & finished_results)
   {
-    return new be_derived_probe(base, location, begin);
+    finished_results.push_back(new be_derived_probe(base, location, begin));
   }
   virtual ~be_builder() {}
 };
@@ -334,10 +115,10 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 }
 
 
+#ifdef HAVE_ELFUTILS_LIBDWFL_H
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
 // ------------------------------------------------------------------------
-#ifdef HAVE_ELFUTILS_LIBDWFL_H
 
 // Helper for dealing with selected portions of libdwfl in a more readable
 // fashion, and with specific cleanup / checking / logging options.
@@ -665,6 +446,19 @@ dwflpp
   }
 };
 
+static string TOK_PROCESS("process");
+static string TOK_KERNEL("kernel");
+static string TOK_MODULE("module");
+
+static string TOK_FUNCTION("function");
+static string TOK_RETURN("return");
+static string TOK_CALLEES("callees");
+
+static string TOK_STATEMENT("statement");
+static string TOK_LABEL("label");
+static string TOK_RELATIVE("relative");
+
+
 enum 
 function_spec_type
   { 
@@ -674,53 +468,51 @@ function_spec_type
   };
 
 enum
-probe_type 
+dwarf_probe_type 
   { 
     probe_address,
-    probe_function_return
+    probe_function_return,
   };
-
-struct 
-probe_spec
-{
-  probe_spec(Dwarf_Addr a, probe_type ty) 
-    : address(a), type(ty)
-  {}
-  Dwarf_Addr address;
-  probe_type type;
-  bool operator<(probe_spec const & other) const
-  {
-    return ((address < other.address) ||
-	    ((address == other.address) && (type < other.type)));
-  }
-};
 
 struct dwarf_builder;
 struct dwarf_derived_probe : public derived_probe
 {
-  dwarf_derived_probe (probe* p, probe_point* l, 
-		       map<string, literal *> const & params);
-  
-  static string TOK_PROCESS;
-  static string TOK_KERNEL;
-  static string TOK_MODULE;
-  static string TOK_FUNCTION;
-  static string TOK_STATEMENT;
-  static string TOK_CALLEES;
-  static string TOK_RETURN;
-  static string TOK_RELATIVE;
-  static string TOK_LABEL;
+  dwarf_derived_probe (probe * p, 
+		       probe_point * l, 
+		       string const & module_name,
+		       dwarf_probe_type type,
+		       Dwarf_Addr addr);
 
+  string module_name;
+  dwarf_probe_type type;
+  Dwarf_Addr addr;
+  
   // Pattern registration helpers.
-  static void register_relative_variants(match_node & root, 
+  static void register_relative_variants(match_node * root, 
 					 dwarf_builder * dw);
-  static void register_statement_variants(match_node & root, 
+  static void register_statement_variants(match_node * root, 
 					  dwarf_builder * dw);
-  static void register_callee_variants(match_node & root, 
+  static void register_callee_variants(match_node * root, 
 				       dwarf_builder * dw);
-  static void register_function_and_statement_variants(match_node & root, 
+  static void register_function_and_statement_variants(match_node * root, 
 						       dwarf_builder * dw);
-  static void register_patterns(match_node & root);
+  static void register_patterns(match_node * root);
+  
+  virtual void emit_registrations (translator_output * o, unsigned i);
+  virtual void emit_deregistrations (translator_output * o, unsigned i);
+  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  virtual ~dwarf_derived_probe() {}
+};
+
+// Helper struct to thread through the dwfl callbacks.
+struct 
+dwarf_query
+{
+  dwarf_query(probe * base_probe,
+	      probe_point * base_loc,
+	      dwflpp & dw,
+	      map<string, literal *> const & params,
+	      vector<derived_probe *> & results);
 
   // Parameter extractors.
   static bool has_null_param(map<string, literal *> const & params, 
@@ -730,63 +522,47 @@ struct dwarf_derived_probe : public derived_probe
   static bool get_number_param(map<string, literal *> const & params, 
 			       string const & k, long & v);
 
-  // The results of all our hard work go in these vectors.
-  set<probe_spec> kernel_probes;
-  map<string, set<probe_spec>*> module_probes;
+  vector<derived_probe *> & results;
+  void add_kernel_probe(dwarf_probe_type type, Dwarf_Addr addr);
+  void add_module_probe(string const & module, 
+			dwarf_probe_type type, Dwarf_Addr addr);
 
-  void add_kernel_probe(probe_spec const & p);
-  void add_module_probe(string const & module, probe_spec const & p);
+  bool has_kernel;
+  bool has_process;
+  bool has_module;
+  string process_val; 
+  string module_val; 
+  string function_val; 
 
-  // Helper struct to thread through the dwfl callbacks.
-  struct 
-  dwarf_query
-  {
-    dwarf_query(dwarf_derived_probe & probe,
-		dwflpp & d,
-		map<string, literal *> const & params);
+  bool has_function_str;
+  bool has_statement_str;
+  bool has_function_num;
+  bool has_statement_num;
+  string statement_str_val; 
+  string function_str_val; 
+  long statement_num_val; 
+  long function_num_val; 
 
-    bool has_kernel;
-    bool has_process;
-    bool has_module;
-    string process_val; 
-    string module_val; 
-    string function_val; 
+  bool has_callees;
+  long callee_val; 
 
-    bool has_function_str;
-    bool has_statement_str;
-    bool has_function_num;
-    bool has_statement_num;
-    string statement_str_val; 
-    string function_str_val; 
-    long statement_num_val; 
-    long function_num_val; 
+  bool has_return;
 
-    bool has_callees;
-    long callee_val; 
+  bool has_label;
+  string label_val;
 
-    bool has_return;
+  bool has_relative;
+  long relative_val;
 
-    bool has_label;
-    string label_val;
+  function_spec_type parse_function_spec(string & spec);
+  function_spec_type spec_type;
+  string function;
+  string file;
+  int line;
 
-    bool has_relative;
-    long relative_val;
-
-    function_spec_type parse_function_spec(string & spec);
-    function_spec_type spec_type;
-    string function;
-    string file;
-    int line;
-
-
-    dwarf_derived_probe & probe;
-    dwflpp & dw;
-  };
-  
-  virtual void emit_registrations (translator_output* o, unsigned i);
-  virtual void emit_deregistrations (translator_output* o, unsigned i);
-  virtual void emit_probe_entries (translator_output* o, unsigned i);
-  virtual ~dwarf_derived_probe() {}
+  probe * base_probe;
+  probe_point * base_loc;
+  dwflpp & dw;
 };
 
 struct
@@ -794,18 +570,17 @@ dwarf_builder
   : public derived_probe_builder
 {
   dwarf_builder() {}
-  virtual derived_probe * build(probe * base, 
-				probe_point * location,
-				map<string, literal *> const & parameters)
-  {
-    return new dwarf_derived_probe(base, location, parameters);
-  }
+  virtual void build(probe * base, 
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<probe *> & results_to_expand_further,
+		     vector<derived_probe *> & finished_results);
   virtual ~dwarf_builder() {}
 };
 
 bool 
-dwarf_derived_probe::has_null_param(map<string, literal *> const & params, 
-				    string const & k)
+dwarf_query::has_null_param(map<string, literal *> const & params, 
+			    string const & k)
 {
   map<string, literal *>::const_iterator i = params.find(k);
   if (i != params.end() && i->second == NULL)
@@ -814,8 +589,8 @@ dwarf_derived_probe::has_null_param(map<string, literal *> const & params,
 }
 
 bool 
-dwarf_derived_probe::get_string_param(map<string, literal *> const & params, 
-				      string const & k, string & v)
+dwarf_query::get_string_param(map<string, literal *> const & params, 
+			      string const & k, string & v)
 {
   map<string, literal *>::const_iterator i = params.find(k);
   if (i == params.end())
@@ -828,8 +603,8 @@ dwarf_derived_probe::get_string_param(map<string, literal *> const & params,
 }
 
 bool 
-dwarf_derived_probe::get_number_param(map<string, literal *> const & params, 
-				      string const & k, long & v)
+dwarf_query::get_number_param(map<string, literal *> const & params, 
+			      string const & k, long & v)
 {
   map<string, literal *>::const_iterator i = params.find(k);
   if (i == params.end())
@@ -844,39 +619,34 @@ dwarf_derived_probe::get_number_param(map<string, literal *> const & params,
 }
 
 void 
-dwarf_derived_probe::add_kernel_probe(probe_spec const & p)
+dwarf_query::add_kernel_probe(dwarf_probe_type type,
+			      Dwarf_Addr addr)
 {
-  kernel_probes.insert(p);
+  results.push_back(new dwarf_derived_probe(base_probe, base_loc,
+					    "", type, addr));
 }
 
 void 
-dwarf_derived_probe::add_module_probe(string const & module, 
-				      probe_spec const & p)
+dwarf_query::add_module_probe(string const & module, 
+			      dwarf_probe_type type,
+			      Dwarf_Addr addr)
 {
-  set<probe_spec>* specs;
-
-  map<string, set<probe_spec>*>::const_iterator i 
-    = module_probes.find(module);
-
-  if (i == module_probes.end())
-    {
-      specs = new set<probe_spec>();
-      module_probes.insert(make_pair(module, specs));
-    }
-  else
-    {
-      specs = i->second;
-    }
-  specs->insert(p);
+  results.push_back(new dwarf_derived_probe(base_probe, base_loc,
+					    module, type, addr));
 }
 
 
-dwarf_derived_probe::dwarf_query::dwarf_query(dwarf_derived_probe & probe,
-					      dwflpp & d,
-					      map<string, literal *> const & params)
-  : probe(probe), 
-    dw(d)
+dwarf_query::dwarf_query(probe * base_probe,
+			 probe_point * base_loc,
+			 dwflpp & dw,
+			 map<string, literal *> const & params,
+			 vector<derived_probe *> & results)
+  : results(results),
+    base_probe(base_probe), 
+    base_loc(base_loc),
+    dw(dw)
 {
+
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
 
@@ -917,10 +687,10 @@ lex_cast(IN const & in)
 }
 
 function_spec_type
-dwarf_derived_probe::dwarf_query::parse_function_spec(string & spec)
+dwarf_query::parse_function_spec(string & spec)
 {
   string::const_iterator i = spec.begin(), e = spec.end();
-
+  
   function.clear();
   file.clear();
   line = 0;
@@ -976,41 +746,44 @@ dwarf_derived_probe::dwarf_query::parse_function_spec(string & spec)
     }
 
  bad:
-    throw semantic_error("malformed specification '" + spec + "'", probe.tok);
+    throw semantic_error("malformed specification '" + spec + "'", 
+			 base_probe->tok);
 }
 
 
 static void
-query_statement(Dwarf_Addr stmt_addr, dwarf_derived_probe::dwarf_query *q)
+query_statement(Dwarf_Addr stmt_addr, dwarf_query * q)
 {
   // XXX: implement 
   if (q->has_relative)
-    throw semantic_error("incomplete: do not know how to interpret .relative", q->probe.tok);
+    throw semantic_error("incomplete: do not know how to interpret .relative", 
+			 q->base_probe->tok);
 
-  probe_type ty = (((q->has_function_str || q->has_function_num) && q->has_return) 
-		   ? probe_function_return 
-		   : probe_address);
+  dwarf_probe_type ty = (((q->has_function_str || q->has_function_num) && q->has_return) 
+			 ? probe_function_return 
+			 : probe_address);
 
   if (q->has_module)
-    q->probe.add_module_probe(q->dw.module_name, 
-			      probe_spec(q->dw.global_address_to_module(stmt_addr), ty));
+    q->add_module_probe(q->dw.module_name, 
+			ty, q->dw.global_address_to_module(stmt_addr));
   else
-    q->probe.add_kernel_probe(probe_spec(stmt_addr, ty));
+    q->add_kernel_probe(ty, stmt_addr);
 }
 
 static int
 query_function(Dwarf_Func * func, void * arg)
 {
   
-  dwarf_derived_probe::dwarf_query *q = 
-    static_cast<dwarf_derived_probe::dwarf_query *>(arg);
+  dwarf_query * q = static_cast<dwarf_query *>(arg);
 
   // XXX: implement 
   if (q->has_callees)
-    throw semantic_error("incomplete: do not know how to interpret .callees", q->probe.tok);
+    throw semantic_error("incomplete: do not know how to interpret .callees", 
+			 q->base_probe->tok);
 
   if (q->has_label)
-    throw semantic_error("incomplete: do not know how to interpret .label", q->probe.tok);
+    throw semantic_error("incomplete: do not know how to interpret .label", 
+			 q->base_probe->tok);
 
   q->dw.focus_on_function(func);
 
@@ -1059,8 +832,7 @@ query_function(Dwarf_Func * func, void * arg)
 static int
 query_cu (Dwarf_Die * cudie, void * arg)
 {
-  dwarf_derived_probe::dwarf_query *q = 
-    static_cast<dwarf_derived_probe::dwarf_query *>(arg);
+  dwarf_query * q = static_cast<dwarf_query *>(arg);
   
   q->dw.focus_on_cu(cudie);
 
@@ -1099,8 +871,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	      void *arg __attribute__ ((unused)))
 {
 
-  dwarf_derived_probe::dwarf_query *q = 
-    static_cast<dwarf_derived_probe::dwarf_query *>(arg);
+  dwarf_query * q = static_cast<dwarf_query *>(arg);
 
   q->dw.focus_on_module(mod);
 
@@ -1136,12 +907,198 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   return DWARF_CB_OK;
 }
 
-dwarf_derived_probe::dwarf_derived_probe (probe* p, probe_point* l, 
-					  map<string, literal *> const & params)
-  : derived_probe (p, l)
+dwarf_derived_probe::dwarf_derived_probe (probe * p, 
+					  probe_point * l, 
+					  string const & module_name,
+					  dwarf_probe_type type,
+					  Dwarf_Addr addr)
+  : derived_probe (p, l),
+    module_name(module_name),
+    type(type),
+    addr(addr)
 {
+}
+
+void 
+dwarf_derived_probe::register_relative_variants(match_node * root,
+						dwarf_builder * dw)
+{
+  // Here we match 2 forms:
+  //
+  // .
+  // .relative(NN)
+
+  root->bind(dw);
+  root->bind_num(TOK_RELATIVE)->bind(dw);
+}
+
+void 
+dwarf_derived_probe::register_statement_variants(match_node * root,
+						 dwarf_builder * dw)
+{
+  // Here we match 3 forms:
+  //
+  // .
+  // .return
+  // .label("foo")
+  
+  register_relative_variants(root, dw);
+  register_relative_variants(root->bind(TOK_RETURN), dw);
+  register_relative_variants(root->bind_str(TOK_LABEL), dw);
+}
+
+void 
+dwarf_derived_probe::register_callee_variants(match_node * root,						
+					      dwarf_builder * dw)
+{
+  // Here we match 3 forms:
+  //
+  // .
+  // .callees
+  // .callees(N)
+  //
+  // The last form permits N-level callee resolving without any
+  // recursive .callees.callees.callees... pattern-matching on our part.
+
+  register_statement_variants(root, dw);
+  register_statement_variants(root->bind(TOK_CALLEES), dw);
+  register_statement_variants(root->bind_num(TOK_CALLEES), dw);
+}
+
+void 
+dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
+							      dwarf_builder * dw)
+{
+  // Here we match 4 forms:
+  //
+  // .function("foo")
+  // .function(0xdeadbeef)
+  // .statement("foo")
+  // .statement(0xdeadbeef)
+
+  register_callee_variants(root->bind_str(TOK_FUNCTION), dw);  
+  register_callee_variants(root->bind_num(TOK_FUNCTION), dw);
+  register_statement_variants(root->bind_str(TOK_STATEMENT), dw);
+  register_statement_variants(root->bind_num(TOK_STATEMENT), dw);
+}
+
+void
+dwarf_derived_probe::register_patterns(match_node * root)
+{
+  dwarf_builder *dw = new dwarf_builder();
+
+  // Here we match 3 forms:
+  //
+  // .kernel
+  // .module("foo")
+  // .process("foo")
+
+  register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
+  register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
+}
+
+static string 
+probe_entry_function_name(unsigned probenum)
+{
+  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_enter";
+}
+
+static string 
+probe_entry_struct_kprobe_name(unsigned probenum)
+{
+  return "dwarf_kprobe_" + lex_cast<string>(probenum);
+}
+
+void 
+dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
+{
+  if (module_name.empty())
+    {
+      o->newline() << probe_entry_struct_kprobe_name(probenum) 
+		   << ".addr = 0x" << hex << addr << ";";
+      o->newline() << "register_probe (&" 
+		   << probe_entry_struct_kprobe_name(probenum)
+		   << ");";
+    }
+  else
+    {
+      o->newline() << "{";
+      o->indent(1);
+      o->newline() << "struct module *mod = get_module(\"" << module_name << "\");";
+      o->newline() << "if (!mod)";
+      o->indent(1);
+      o->newline() << "rc++";
+      o->indent(-1);
+      o->newline() << "else";
+      o->newline() << "{";
+      o->indent(1);
+      o->newline() << probe_entry_struct_kprobe_name(probenum) 
+		   << ".addr = mod->module_core + 0x" << hex << addr << ";";
+      o->newline() << "register_probe (&" 
+		   << probe_entry_struct_kprobe_name(probenum)
+		   << ");";
+      o->indent(-1);
+      o->newline() << "}";
+      o->indent(-1);
+      o->newline() << "}";
+    }
+}
+
+void 
+dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
+{
+  o->newline();
+  o->newline() << "deregister_probe (&" 
+	       << probe_entry_struct_kprobe_name(probenum)
+	       << ");";  
+}
+
+void 
+dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
+{
+
+  // Construct a single entry function, and a struct kprobe pointing into 
+  // the entry function. The entry function will call the probe function.
+
+  o->newline();
+  o->newline() << "static void ";
+  o->newline() << probe_entry_function_name(probenum) << " ()";
+  o->newline() << "{";
+  o->newline(1) << "struct context* c = & contexts [0];";
+  // XXX: assert #0 is free; need locked search instead
+  o->newline() << "if (c->busy) { errorcount ++; return; }";
+  o->newline() << "c->busy ++;";
+  o->newline() << "c->actioncount = 0;";
+  o->newline() << "c->nesting = 0;";
+  // NB: locals are initialized by probe function itself
+  o->newline() << "probe_" << probenum << " (c);";
+  o->newline() << "c->busy --;";
+  o->newline(-1) << "}" << endl;
+
+  o->newline();
+  o->newline() << "static struct kprobe " 
+	       << probe_entry_struct_kprobe_name(probenum);
+  o->newline() << "{";
+  o->indent(1);
+  o->newline() << ".addr        = 0x0, /* filled in during module init */" ;
+  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
+  o->indent(-1);
+  o->newline() << "}";
+  o->newline();
+}
+
+
+void
+dwarf_builder::build(probe * base, 
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<probe *> & results_to_expand_further,
+		     vector<derived_probe *> & finished_results)
+{
+
   dwflpp dw;
-  dwarf_query q(*this, dw, params);
+  dwarf_query q(base, location, dw, parameters, finished_results);
 
   dw.setup(q.has_kernel || q.has_module);
 
@@ -1172,348 +1129,6 @@ dwarf_derived_probe::dwarf_derived_probe (probe* p, probe_point* l,
     }
 }
 
-string dwarf_derived_probe::TOK_PROCESS("process");
-string dwarf_derived_probe::TOK_KERNEL("kernel");
-string dwarf_derived_probe::TOK_MODULE("module");
-
-string dwarf_derived_probe::TOK_FUNCTION("function");
-string dwarf_derived_probe::TOK_RETURN("return");
-string dwarf_derived_probe::TOK_CALLEES("callees");
-
-string dwarf_derived_probe::TOK_STATEMENT("statement");
-string dwarf_derived_probe::TOK_LABEL("label");
-string dwarf_derived_probe::TOK_RELATIVE("relative");
-
-
-void 
-dwarf_derived_probe::register_relative_variants(match_node & root,
-						dwarf_builder * dw)
-{
-  // Here we match 2 forms:
-  //
-  // .
-  // .relative(NN)
-
-  root.bind(dw);
-  root.bind_num(TOK_RELATIVE).bind(dw);
-}
-
-void 
-dwarf_derived_probe::register_statement_variants(match_node & root,
-						 dwarf_builder * dw)
-{
-  // Here we match 3 forms:
-  //
-  // .
-  // .return
-  // .label("foo")
-  
-  register_relative_variants(root, dw);
-  register_relative_variants(root.bind(TOK_RETURN), dw);
-  register_relative_variants(root.bind_str(TOK_LABEL), dw);
-}
-
-void 
-dwarf_derived_probe::register_callee_variants(match_node & root,						
-					      dwarf_builder * dw)
-{
-  // Here we match 3 forms:
-  //
-  // .
-  // .callees
-  // .callees(N)
-  //
-  // The last form permits N-level callee resolving without any
-  // recursive .callees.callees.callees... pattern-matching on our part.
-
-  register_statement_variants(root, dw);
-  register_statement_variants(root.bind(TOK_CALLEES), dw);
-  register_statement_variants(root.bind_num(TOK_CALLEES), dw);
-}
-
-void 
-dwarf_derived_probe::register_function_and_statement_variants(match_node & root,
-							      dwarf_builder * dw)
-{
-  // Here we match 4 forms:
-  //
-  // .function("foo")
-  // .function(0xdeadbeef)
-  // .statement("foo")
-  // .statement(0xdeadbeef)
-
-  register_callee_variants(root.bind_str(TOK_FUNCTION), dw);  
-  register_callee_variants(root.bind_num(TOK_FUNCTION), dw);
-  register_statement_variants(root.bind_str(TOK_STATEMENT), dw);
-  register_statement_variants(root.bind_num(TOK_STATEMENT), dw);
-}
-
-void
-dwarf_derived_probe::register_patterns(match_node & root)
-{
-  dwarf_builder *dw = new dwarf_builder();
-
-  // Here we match 3 forms:
-  //
-  // .kernel
-  // .module("foo")
-  // .process("foo")
-
-  register_function_and_statement_variants(root.bind(TOK_KERNEL), dw);
-  register_function_and_statement_variants(root.bind_str(TOK_MODULE), dw);
-  register_function_and_statement_variants(root.bind_str(TOK_PROCESS), dw);
-}
-
-static string 
-probe_entry_function_name(unsigned probenum)
-{
-  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_enter";
-}
-
-static string 
-probe_entry_struct_kprobe_name(unsigned probenum, 
-			       unsigned entrynum)
-{
-  return "dwarf_kprobe_" + lex_cast<string>(probenum) 
-    + "_entry_" + lex_cast<string>(entrynum);
-}
-
-static string 
-end_of_block(unsigned probenum)
-{
-  return "block_end_" + lex_cast<string>(probenum);
-}
-
-typedef unsigned module_index;
-typedef unsigned probe_index;
-typedef unsigned entry_index;
-
-static void 
-foreach_dwarf_probe_entry(dwarf_derived_probe const & p,
-			  translator_output *o,
-			  probe_index probenum,
-			  void (*kernel_entry_cb)(translator_output *,
-						  probe_index, 
-						  entry_index,
-						  probe_spec const &),
-			  void (*module_cb)(translator_output *,
-					    probe_index, 
-					    module_index,
-					    string const &),
-			  void (*module_entry_cb)(translator_output *,
-						  probe_index,
-						  string const &,
-						  module_index,
-						  entry_index,
-						  probe_spec const &))
-{
-  // Just a helper function for an ugly iteration task.
-  
-  entry_index entrynum = 0;
-  
-  for (set<probe_spec>::const_iterator i = p.kernel_probes.begin();
-       i != p.kernel_probes.end(); ++i, ++entrynum)
-    {
-      if (kernel_entry_cb)
-	kernel_entry_cb(o, probenum, entrynum, *i);
-    }
-
-  module_index modnum = 0;
-
-  for (map<string, set<probe_spec>*>::const_iterator i = p.module_probes.begin();
-       i != p.module_probes.end(); ++i, ++modnum)
-    {
-      string modname = i->first;
-      set<probe_spec>* probes = i->second;
-      if (module_cb)
-	module_cb(o, probenum, modnum, modname);
-      for (set<probe_spec>::const_iterator j = probes->begin(); 
-	   j != probes->end(); ++j, ++entrynum)
-	{
-	  if (module_entry_cb)
-	    module_entry_cb(o, probenum, modname, modnum, entrynum, *j);
-	}
-    }
-}
-
-
-static void 
-declare_dwarf_kernel_entry(translator_output *o,
-			   probe_index probenum, 
-			   entry_index entrynum,
-			   probe_spec const & probe)
-{  
-  o->newline() << "/* probe for "
-	       << (probe.type == probe_function_return ? "return from " : "")
-	       << "function at 0x" << hex << probe.address << " in kernel */";  
-  o->newline() << "static struct kprobe " 
-	       << probe_entry_struct_kprobe_name(probenum, entrynum);
-  o->newline() << "{";
-  o->indent(1);
-  o->newline() << ".addr        = 0x" << hex << probe.address << ",";
-  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
-  o->indent(-1);
-  o->newline() << "}";
-}
-
-static void 
-register_dwarf_kernel_entry(translator_output *o,
-			    probe_index probenum, 
-			    entry_index entrynum,
-			    probe_spec const & probe)
-{  
-  o->newline() << "register_probe (&" 
-	       << probe_entry_struct_kprobe_name(probenum, entrynum)
-	       << ");";
-}
-
-static void 
-deregister_dwarf_kernel_entry(translator_output *o,
-			      probe_index probenum, 
-			      entry_index entrynum,
-			      probe_spec const & probe)
-{  
-  o->newline() << "deregister_probe (&" 
-	       << probe_entry_struct_kprobe_name(probenum, entrynum)
-	       << ");";
-}
-
-static void 
-register_dwarf_module(translator_output *o,
-		      probe_index probenum, 
-		      module_index modnum,
-		      string const & modname)
-{
-  o->newline() << "mod = get_module(\"" << modname << "\");";
-  o->newline() << "if (!mod)";
-  o->newline() << "{";
-  o->indent(1);
-  o->newline() << "rc = 1;";
-  o->newline() << "goto " << end_of_block(probenum) << ";";
-  o->indent(-1);
-  o->newline() << "}";
-    
-}
-
-static void 
-declare_dwarf_module_entry(translator_output *o,
-			   probe_index probenum, 
-			   string const & modname,
-			   module_index modnum,
-			   entry_index entrynum,
-			   probe_spec const & probe)
-{
-  o->newline();
-  o->newline() << "/* probe for "
-	       << (probe.type == probe_function_return ? "return from " : "")
-	       << "function at 0x" << hex << probe.address 
-	       << " in module " << modname << " */";
-  
-  o->newline() << "static struct kprobe ";
-  o->newline() << probe_entry_struct_kprobe_name(probenum, entrynum);
-  o->newline() << "{";
-  o->indent(1);
-  o->newline() << "/* .addr is calculated at init-time */"; 
-  o->newline() << ".addr        = 0,";
-  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
-  o->indent(-1);
-  o->newline() << "}";
-  o->newline();
-}
-
-static void 
-register_dwarf_module_entry(translator_output *o,
-			    probe_index probenum,
-			    string const & modname, 
-			    module_index modnum,
-			    entry_index entrynum,
-			    probe_spec const & probe)
-{
-  o->newline();
-  o->newline() << probe_entry_struct_kprobe_name(probenum, entrynum) 
-	       << ".addr = mod->module_core + 0x" << hex << probe.address << ";";
-  o->newline() << "register_probe (&" 
-	       << probe_entry_struct_kprobe_name(probenum, entrynum)
-	       << ");";  
-}
-
-static void 
-deregister_dwarf_module_entry(translator_output *o,
-			      probe_index probenum, 
-			      string const & modname,
-			      module_index modnum,
-			      entry_index entrynum,
-			      probe_spec const & probe)
-{
-  o->newline() << "deregister_probe (&" 
-	       << probe_entry_struct_kprobe_name(probenum, entrynum)
-	       << ");";  
-}
-		    
-
-void 
-dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
-{
-  o->newline() << "{";
-  o->indent(1);
-  o->newline() << "struct module *mod = NULL;";
-  foreach_dwarf_probe_entry(*this, o, probenum,
-			    &register_dwarf_kernel_entry,
-			    &register_dwarf_module,
-			    &register_dwarf_module_entry);
-  o->newline();
-  o->newline() << end_of_block(probenum) << ":";
-  o->newline();
-  o->indent(-1);
-  o->newline() << "}";
-}
-
-void 
-dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
-{
-  o->newline();
-  foreach_dwarf_probe_entry(*this, o, probenum,
-			    &deregister_dwarf_kernel_entry,
-			    NULL,
-			    &deregister_dwarf_module_entry);
-  o->newline();
-}
-
-void 
-dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
-{
-  // We should have expanded each location in the initial probe to a
-  // separate derived_probe instance; each derived_probe should only
-  // have one location.
-  assert(locations.size() == 1);
-
-  // Construct a single entry function, and a struct kprobe for each
-  // address this derived probe will match, all of which point into
-  // the entry function.
-
-  // First the entry function
-  o->newline() << "/* probe " << probenum << " entry function */";
-  o->newline() << "static void ";
-  o->newline() << probe_entry_function_name(probenum) << " ()";
-  o->newline() << "{";
-  o->newline(1) << "struct context* c = & contexts [0];";
-  // XXX: assert #0 is free; need locked search instead
-  o->newline() << "if (c->busy) { errorcount ++; return; }";
-  o->newline() << "c->busy ++;";
-  o->newline() << "c->actioncount = 0;";
-  o->newline() << "c->nesting = 0;";
-  // NB: locals are initialized by probe function itself
-  o->newline() << "probe_" << probenum << " (c);";
-  o->newline() << "c->busy --;";
-  o->newline(-1) << "}" << endl;
-
-  foreach_dwarf_probe_entry(*this, o, probenum,
-			    &declare_dwarf_kernel_entry,
-			    NULL,
-			    &declare_dwarf_module_entry);
-
-}
-
 #endif /* HAVE_ELFUTILS_LIBDWFL_H */
 
 
@@ -1522,11 +1137,11 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
 // ------------------------------------------------------------------------
 
 void 
-register_standard_tapsets(match_node & root)
+register_standard_tapsets(match_node * root)
 {
   // Rudimentary binders for begin and end targets
-  root.bind("begin").bind(new be_builder(true));
-  root.bind("end").bind(new be_builder(false));
+  root->bind("begin")->bind(new be_builder(true));
+  root->bind("end")->bind(new be_builder(false));
 
 #ifdef HAVE_ELFUTILS_LIBDWFL_H
   dwarf_derived_probe::register_patterns(root);
