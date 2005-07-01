@@ -22,7 +22,7 @@ void _stp_unregister_jprobes (struct jprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_jprobe(&probes[i]);
-	_stp_log ("All jprobes removed\n");
+	dbug("All jprobes removed\n");
 }
 
 /** Register a group of jprobes.
@@ -39,12 +39,11 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 	for (i = 0; i < num_probes; i++) {
 		addr =_stp_lookup_name((char *)probes[i].kp.addr);
 		if (addr == 0) {
-			_stp_log ("ERROR: function %s not found!\n", 
-			      (char *)probes[i].kp.addr);
+			_stp_warn("function %s not found!\n", (char *)probes[i].kp.addr);
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		_stp_log("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
+		dbug("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
 		probes[i].kp.addr = (kprobe_opcode_t *)addr;
 		ret = register_jprobe(&probes[i]);
 		if (ret)
@@ -52,7 +51,7 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 	}
 	return 0;
 out:
-	_stp_log ("probe module initialization failed.  Exiting...\n");
+	_stp_warn("probe module initialization failed.  Exiting...\n");
 	_stp_unregister_jprobes(probes, i);
 	return ret;
 }
@@ -67,7 +66,7 @@ void _stp_unregister_kprobes (struct kprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_kprobe(&probes[i]);
-	_stp_log ("All kprobes removed\n");
+	dbug("All kprobes removed\n");
 }
 
 
@@ -81,7 +80,7 @@ void _stp_unregister_kretprobes (struct kretprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_kretprobe(&probes[i]);
-	_stp_log ("All kretprobes removed\n");
+	dbug("All return probes removed\n");
 }
 #endif
 
@@ -98,12 +97,11 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 	for (i = 0; i < num_probes; i++) {
 		addr =_stp_lookup_name((char *)probes[i].addr);
 		if (addr == 0) {
-			_stp_log ("ERROR: function %s not found!\n", 
-			      (char *)probes[i].addr);
-			ret = -1; /* FIXME */
+			_stp_warn("function %s not found!\n", (char *)probes[i].addr);
+			ret = -1;
 			goto out;
 		}
-		_stp_log("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
+		dbug("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
 		probes[i].addr = (kprobe_opcode_t *)addr;
 		ret = register_kprobe(&probes[i]);
 		if (ret)
@@ -111,7 +109,7 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 	}
 	return 0;
 out:
-	_stp_log ("probe module initialization failed.  Exiting...\n");
+	_stp_warn("probe module initialization failed.  Exiting...\n");
 	_stp_unregister_kprobes(probes, i);
 	return ret;
 }
@@ -130,12 +128,12 @@ int _stp_register_kretprobes (struct kretprobe *probes, int num_probes)
 	for (i = 0; i < num_probes; i++) {
 		addr =_stp_lookup_name((char *)probes[i].kp.addr);
 		if (addr == 0) {
-			_stp_log ("ERROR: function %s not found!\n", 
-			      (char *)probes[i].kp.addr);
+			_stp_warn("function %s not found!\n", 
+				   (char *)probes[i].kp.addr);
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		_stp_log("inserting kretprobe at %s (%p)\n", probes[i].kp.addr, addr);
+		dbug("inserting kretprobe at %s (%p)\n", probes[i].kp.addr, addr);
 		probes[i].kp.addr = (kprobe_opcode_t *)addr;
 		ret = register_kretprobe(&probes[i]);
 		if (ret)
@@ -143,7 +141,7 @@ int _stp_register_kretprobes (struct kretprobe *probes, int num_probes)
 	}
 	return 0;
 out:
-	_stp_log ("probe module initialization failed.  Exiting...\n");
+	_stp_warn("probe module initialization failed.  Exiting...\n");
 	_stp_unregister_kretprobes(probes, i);
 	return ret;
 }

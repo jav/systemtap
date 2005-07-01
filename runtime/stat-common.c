@@ -116,7 +116,7 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 		val_space = needed_space (st->hist_start +  st->hist_int * (st->hist_buckets - 1));
 	else
 		val_space = needed_space (1 << (st->hist_buckets - 1));
-	dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
+	//dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
 
 	/* print header */
 	j = 0;
@@ -157,7 +157,6 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 
 static void _stp_stat_print_valtype (char *fmt, Stat st, struct stat_data *sd, int cpu)
 {
-	dbug ("fmt=%c\n", *fmt);
 	switch (*fmt) {
 	case 'C':
 		_stp_printf("%lld", sd->count);

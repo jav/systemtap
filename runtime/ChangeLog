@@ -1,5 +1,12 @@
 2005-07-01  Martin Hunt  <hunt@redhat.com>
 
+	* probes.c: Convert all _stp_log() calls to either stp_warn() or
+	dbug().
+	
+	* print.c: Comment out dbug()s.	
+
+	* stat-common.c: Comment out dbug()s.		
+	
 	* map.c (_stp_map_new): Call _stp_error() on a bad map type.
 	Comment out dbug()s.
 
