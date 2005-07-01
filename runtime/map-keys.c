@@ -1,4 +1,13 @@
-/* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * map functions to handle keys
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
 /** @file map-keys.c
  * @brief Map functions to set and get keys
  * This file is a template designed to be included as many times as
@@ -168,7 +177,7 @@ static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
 	key_data ptr;
 	struct KEYSYM(map_node) *m = (struct KEYSYM(map_node) *)mn;	
 
-	dbug ("m=%lx\n", (long)m);
+	// dbug ("m=%lx\n", (long)m);
 	if (n > KEY_ARITY || n < 1) {
 		if (type)
 			*type = END;
@@ -285,7 +294,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 	MAP m;
 
 	htype = valtype >> 8;
-	dbug ("htype=%d\n", htype);
+	// dbug ("htype=%d\n", htype);
 
 	if (htype != HIST_NONE) {
 		va_list ap;
@@ -293,12 +302,12 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 		
 		if (htype == HIST_LOG) {
 			buckets = va_arg(ap, int);
-			dbug ("buckets=%d\n", buckets);
+			// dbug ("buckets=%d\n", buckets);
 		} else {
 			start = va_arg(ap, int);
 			stop = va_arg(ap, int);
 			interval = va_arg(ap, int);
-			dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
+			// dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
 		}
 		va_end (ap);
 	}
@@ -318,7 +327,7 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int valtype, ...)
 		break;
 #endif
 	default:
-		dbug ("ERROR: unknown histogram type %d\n", htype);
+		_stp_warn ("Unknown histogram type %d\n", htype);
 		m = NULL;
 	}
 
@@ -361,13 +370,11 @@ void KEYSYM(_stp_map_key) (MAP map, ALLKEYSD(key))
 #endif
 			) {
 			map->key = (struct map_node *)n;
-			dbug ("saving key %lx\n", (long)map->key);
+			// dbug ("saving key %lx\n", (long)map->key);
 			map->create = 0;
 			return;
 		}
 	}
-
-	dbug ("key not found\n");
 	map->c_key[0] = (key_data)key1;
 #if KEY_ARITY > 1
 	map->c_key[1] = (key_data)key2;

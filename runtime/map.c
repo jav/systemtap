@@ -149,7 +149,7 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 	m->maxnum = max_entries;
 	m->type = type;
 	if (type >= END) {
-		dbug ("map_new: unknown type %d\n", type);
+		_stp_error("map_new: unknown type %d\n", type);
 		return NULL;
 	}
 	if (max_entries) {
@@ -172,7 +172,7 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 
 		for (i = max_entries - 1; i >= 0; i--) {
 			e = i * size + tmp;
-			dbug ("e=%lx\n", (long)e);
+			//dbug ("e=%lx\n", (long)e);
 			list_add(e, &m->pool);
 			((struct map_node *)e)->map = m;
 		}
@@ -193,7 +193,7 @@ void _stp_map_key_del(MAP map)
 {
 	struct map_node *m;
 
-	dbug ("create=%d key=%lx\n", map->create, (long)map->key);
+	//dbug("create=%d key=%lx\n", map->create, (long)map->key);
 	if (map == NULL)
 		return;
 
@@ -233,7 +233,7 @@ struct map_node *_stp_map_start(MAP map)
 	if (map == NULL)
 		return NULL;
 
-	dbug ("%lx\n", (long)map->head.next);
+	//dbug ("%lx\n", (long)map->head.next);
 
 	if (list_empty(&map->head))
 		return NULL;
@@ -256,9 +256,6 @@ struct map_node *_stp_map_iter(MAP map, struct map_node *m)
 	if (map == NULL)
 		return NULL;
 
-	dbug ("%lx next=%lx  prev=%lx  map->head.next=%lx\n", (long)m, 
-	      (long)m->lnode.next, (long)m->lnode.prev, (long)map->head.next);
-
 	if (m->lnode.next == &map->head)
 		return NULL;
 
@@ -280,7 +277,7 @@ void _stp_map_del(MAP map)
 
 static int print_keytype (char *fmt, int type, key_data *kd)
 {
-	dbug ("*fmt = %c\n", *fmt);
+	//dbug ("*fmt = %c\n", *fmt);
 	switch (type) {
 	case STRING:
 		if (*fmt != 's')
@@ -363,7 +360,7 @@ void _stp_map_print (MAP map, const char *fmt)
 	struct map_node *ptr;
 	int type, num;
 	key_data kd;
-	dbug ("print map %lx fmt=%s\n", (long)map, fmt);
+	//dbug ("print map %lx fmt=%s\n", (long)map, fmt);
 
 	foreach (map, ptr) {
 		char *f = (char *)fmt;
@@ -397,10 +394,10 @@ static struct map_node *__stp_map_create (MAP map)
 		}
 		m = (struct map_node *)map->head.next;
 		hlist_del_init(&m->hnode);
-		dbug ("got %lx off head\n", (long)m);
+		//dbug ("got %lx off head\n", (long)m);
 	} else {
 		m = (struct map_node *)map->pool.next;
-		dbug ("got %lx off pool\n", (long)m);
+		//dbug ("got %lx off pool\n", (long)m);
 	}
 	list_move_tail(&m->lnode, &map->head);
 	

@@ -1,4 +1,12 @@
-/* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * map functions to handle statistics
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
 
 /** @file map-stat.c
  * @brief Map functions to set and get stats
@@ -48,7 +56,7 @@ static MAP _stp_map_new_hstat_log (unsigned max_entries, int key_size, int bucke
 		m->hist_type = HIST_LOG;
 		m->hist_buckets = buckets;
 		if (buckets < 1 || buckets > 64) {
-			dbug ("histogram: Bad number of buckets.  Must be between 1 and 64\n");
+			_stp_warn("histogram: Bad number of buckets.  Must be between 1 and 64\n");
 			m->hist_type = HIST_NONE;
 			return m;
 		}
@@ -74,7 +82,7 @@ static MAP _stp_map_new_hstat_linear (unsigned max_entries, int ksize, int start
 		m->hist_int = interval;
 		m->hist_buckets = buckets;
 		if (m->hist_buckets <= 0) {
-			dbug ("histogram: bad stop, start and/or interval\n");
+			_stp_warn("histogram: bad stop, start and/or interval\n");
 			m->hist_type = HIST_NONE;
 			return m;
 		}

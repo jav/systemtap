@@ -1,4 +1,12 @@
-/* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * map functions to handle integer values
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
 
 /** @file map-int.c
  * @brief Map functions to set and get int64s
@@ -20,7 +28,7 @@ void __stp_map_set_int64 (MAP map, int64_t val, int add)
 			return;
 		
 		/* set the value */
-		dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
+		//dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
 		*(int64_t *)((long)m + map->data_offset) = val;
 	} else {
 		if (map->key == NULL)
@@ -66,7 +74,7 @@ int64_t _stp_map_get_int64 (MAP map)
 	struct map_node *m;
 	if (map == NULL || map->create || map->key == NULL)
 		return 0;
-	dbug ("key %lx\n", (long)map->key);
+	//dbug ("key %lx\n", (long)map->key);
 	m = (struct map_node *)map->key;
 	return *(int64_t *)((long)m + map->data_offset);
 }

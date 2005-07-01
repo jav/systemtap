@@ -36,7 +36,7 @@ void __stp_map_set_str (MAP map, char *val, int add)
 			return;
 		
 		/* set the value */
-		dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
+		//dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
 		str_copy((void *)((long)m + map->data_offset), val);
 	} else {
 		if (map->key == NULL)
@@ -94,7 +94,7 @@ char *_stp_map_get_str (MAP map)
 	struct map_node *m;
 	if (map == NULL || map->create || map->key == NULL)
 		return 0;
-	dbug ("key %lx\n", (long)map->key);
+	//dbug ("key %lx\n", (long)map->key);
 	m = (struct map_node *)map->key;
 	return (char *)((long)m + map->data_offset);
 }

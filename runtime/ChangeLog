@@ -1,5 +1,17 @@
 2005-07-01  Martin Hunt  <hunt@redhat.com>
 
+	* map.c (_stp_map_new): Call _stp_error() on a bad map type.
+	Comment out dbug()s.
+
+	* map-stat.c (_stp_map_new_hstat_log): Call _stp_warn().
+	(_stp_map_new_hstat_linear): Ditto.
+
+	* map-int.c: Comment out dbug()s.
+
+	* map-str.c: Comment out dbug()s.
+	
+	* map-keys.c: Use _stp_warn().  Comment out dbug()s.
+	
 	* alloc.c (_stp_alloc): Call _stp_error().
 	(_stp_valloc): Ditto.
 
