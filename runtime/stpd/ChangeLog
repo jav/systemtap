@@ -1,3 +1,7 @@
+2005-07-01  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c: Removed the color coding of cpu output.
+
 2005-06-28  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (merge_output): Use unlocked stdio

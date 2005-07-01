@@ -123,16 +123,6 @@ static struct buf_status
 	unsigned max_backlog; /* max # sub-buffers ready at one time */
 } status[NR_CPUS];
 
-/* colors for printing */
-static char *color[] = {
-  "\033[31m", /* red */
-  "\033[32m", /* green */
-  "\033[33m", /* yellow */
-  "\033[34m", /* blue */
-  "\033[35m", /* magenta */
-  "\033[36m", /* cyan */
-};
-
 /**
  *	streaming - is the current transport mode streaming or not?
  *
@@ -212,7 +202,7 @@ static void summarize(void)
 	
 	printf("summary:\n");
 	for (i = 0; i < ncpus; i++) {
-		printf("%s  cpu %u:\n", color[i % 4], i);
+		printf("cpu %u:\n", i);
 		printf("    %u sub-buffers processed\n",
 		       status[i].info.consumed);
 		printf("    %u max backlog\n", status[i].max_backlog);
@@ -571,7 +561,8 @@ static int merge_output(void)
 	for (i = 0; i < ncpus; i++)
 		fclose (fp[i]);
 	fclose (ofp);
-	printf ("sequence had %d drops\n", dropped);
+	if (dropped)
+	  printf ("\033[33mSequence had %d drops.\033[0m\n", dropped);
 	return 0;
 }
 
@@ -674,7 +665,6 @@ int stp_main_loop(void)
 			break;
 		case STP_REALTIME_DATA:
 			ptr = NLMSG_DATA(nlh);
-			fputs ( color[5], stdout);
 			fputs ((char *)ptr, stdout);
 			break;
 		case STP_EXIT:
