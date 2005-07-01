@@ -27,7 +27,7 @@ proc create_makefile {target} {
 }
 
 proc build {{target ""}} {
-  global clean verbose
+  global clean verbose debug
   if {$target == ""} {
     set target [file tail [pwd]]
   }
@@ -39,79 +39,97 @@ proc build {{target ""}} {
     }
   } else {
     puts "Building $target"
-    if {[catch {exec make >& compile.errors} res]} {
-      puts "\n------------ Compile error in $target -------------------\n"
-      if {[catch {open compile.errors r} fd]} {
-	puts "Compile failed for unknown reasons"
-	exit -1
-      }
-      while {[gets $fd line] >= 0} {
-	puts $line
-      }
-      close $fd
-      exit -1 
-    } else {
-      if {![catch {open compile.errors r} fd]} {
-	# search for warnings
-	set bad 0
+
+    if {$debug == ""} {
+      if {[catch {exec make >& compile.errors} res]} {
+	puts "\n------------ Compile error in $target -------------------\n"
+	if {[catch {open compile.errors r} fd]} {
+	  puts "Compile failed for unknown reasons"
+	  exit -1
+	}
 	while {[gets $fd line] >= 0} {
-	  if {$verbose} {
-	    puts $line
-	  } else {
-	    if {[regexp {[^W]*([A-Za-z][A-Za-z0-9_]*)[^\"]*\"([^\"]*)} $line match warn var]} {
-	      if {$warn == "Warning"} {
-		switch $var {
-		  _stp_ctrl_unregister -
-		  _stp_ctrl_register -
-		  relay_subbufs_consumed -
-		  _stp_ctrl_send -
-		  relay_open -
-		  relayfs_create_dir -
-		  relayfs_remove_dir -
-		  relay_flush -
-		  relay_switch_subbuf -
-		  relay_close {}
-		  default {
-		    if {$bad == 0} {
-		      puts "\n------------ Unexpected Warnings in $target -------------------\n"
-		    }
+	  puts $line
+	}
+	close $fd
+	exit -1 
+      } 
+    } else {
+      if {[catch {exec make debug >& compile.errors} res]} {
+	puts "\n------------ Compile error in $target -------------------\n"
+	if {[catch {open compile.errors r} fd]} {
+	  puts "Compile failed for unknown reasons"
+	  exit -1
+	}
+	while {[gets $fd line] >= 0} {
+	  puts $line
+	}
+	close $fd
+	exit -1 
+      }
+    }
+
+    if {![catch {open compile.errors r} fd]} {
+      # search for warnings
+      set bad 0
+      while {[gets $fd line] >= 0} {
+	if {$verbose} {
+	  puts $line
+	} else {
+	  if {[regexp {[^W]*([A-Za-z][A-Za-z0-9_]*)[^\"]*\"([^\"]*)} $line match warn var]} {
+	    if {$warn == "Warning"} {
+	      switch $var {
+		_stp_ctrl_unregister -
+		_stp_ctrl_register -
+		relay_subbufs_consumed -
+		_stp_ctrl_send -
+		relay_open -
+		relayfs_create_dir -
+		relayfs_remove_dir -
+		relay_flush -
+		relay_switch_subbuf -
+		relay_close {}
+		default {
+		  if {$bad == 0} {
+		    puts "\n------------ Unexpected Warnings in $target -------------------\n"
+		  }
 		  puts $line
 		  set bad 1
-		  }
 		}
 	      }
 	    }
 	  }
 	}
+      }
       close $fd
-      }
-      if {$bad} {
-	exit -1
-      }
+    }
+    if {$bad} {
+      exit -1
     }
   }
 }
 
 set clean 0
 set verbose 0
-
+set debug ""
 foreach arg $argv {
   if {$arg == "clean"} {
     set clean 1
   } elseif {$arg == "-v"} {
     set verbose 1
+  } elseif {$arg == "debug"} {
+    set debug $arg
   } elseif {$arg != ""} {
     usage
   }
 }
 
 if {![catch {open targets r} tfd]} {
-    while {[gets $tfd line] >= 0} {
-      set target [lindex $line 0]
-      create_makefile $target
-      build $target
-      catch {exec /bin/rm Makefile}
-    }
+  while {[gets $tfd line] >= 0} {
+    set target [lindex $line 0]
+    create_makefile $target
+    build $target
+    catch {exec /bin/rm Makefile}
+  }
   close $tfd
 } else {
   if {![file exists Makefile]} {

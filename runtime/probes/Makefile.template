@@ -8,12 +8,18 @@ KALLSYMS_LOOKUP_NAME	:= 0x$(firstword $(shell grep " kallsyms_lookup_name" /boot
 KALLSYMS_LOOKUP	:= 0x$(firstword $(shell grep " kallsyms_lookup$$" /boot/System.map-$(KVERSION)))
 KTA	:= 0x$(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVERSION)))
 
-EXTRA_CFLAGS := -I $(RT) -I $(RT)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) -D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP) -DKTA=$(KTA)
+FLAGS := -I $(RT) -I $(RT)/relayfs -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) -D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP) -DKTA=$(KTA)
+
+DFLAGS := $(FLAGS) -D DEBUG
 
 obj-m := XXX.o
 
 default:
-	$(MAKE) V=1 -C $(KDIR) M=$(PWD) RT=$(RT) modules
+	$(MAKE) V=1 -C $(KDIR) M=$(PWD) RT=$(RT) EXTRA_CFLAGS="$(FLAGS)" modules
+
+debug:
+	$(MAKE) V=1 -C $(KDIR) M=$(PWD) RT=$(RT) EXTRA_CFLAGS="$(DFLAGS)" modules
+
 
 clean:
 	/bin/rm -rf *.o *.o.d *.ko *~ *.mod.c .*.cmd .tmp_versions
