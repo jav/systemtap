@@ -1,3 +1,15 @@
+2005-07-01  Martin Hunt  <hunt@redhat.com>
+
+	* alloc.c (_stp_alloc): Call _stp_error().
+	(_stp_valloc): Ditto.
+
+	* io.c (_stp_warn): New function.
+	(_stp_exit): New function.
+	(_stp_error): New function.
+	(_stp_dbug): New function.
+
+	* runtime.h (dbug): Call _stp_dbug() if	DEBUG is defined.
+	
 2005-06-29  Martin Hunt  <hunt@redhat.com>
 
 	* map-values.c (_stp_map_add_int64): Fix docs.

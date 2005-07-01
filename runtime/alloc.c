@@ -1,4 +1,13 @@
-#ifndef _ALLOC_C_ /* -*- linux-c -*- */
+/* Memory allocation functions
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
+#ifndef _ALLOC_C_
 #define _ALLOC_C_
 
 /** @file alloc.c
@@ -9,12 +18,8 @@
  * that memory allocation errors will call a handler.  The default will
  * send a signal to the user-space daemon that will trigger the module to
  * be unloaded.
- * @todo Need error handling for memory allocations
  * @{
  */
-
-enum errorcode { ERR_NONE=0, ERR_NO_MEM };
-enum errorcode _stp_error = ERR_NONE;
 
 /** Allocates memory within a probe.
  * This is used for small allocations from within a running
@@ -28,7 +33,7 @@ void *_stp_alloc(size_t len)
 {
 	void *ptr = kmalloc(len, GFP_ATOMIC);
 	if (unlikely(ptr == NULL))
-		_stp_error = ERR_NO_MEM;
+		_stp_error("_stp_alloc failed.\n");
 	return ptr;
 }
 
@@ -61,7 +66,7 @@ void *_stp_valloc(size_t len)
 	if (likely(ptr))
 		memset(ptr, 0, len);
 	else
-		_stp_error = ERR_NO_MEM;
+		_stp_error("_stp_valloc failed.\n");
 	return ptr;
 }
 
