@@ -12,6 +12,9 @@
 
 #include "transport/transport.c"
 
+void _stp_print_flush (void);
+void _stp_string_cat_cstr (String str1, const char *str2);
+
 /** @file io.c
  * @brief I/O for printing warnings, errors and debug messages.
  */
@@ -27,9 +30,6 @@
 static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 
 enum code { INFO=0, WARN, ERROR, DBUG };
-
-void _stp_print_flush (void);
-void _stp_string_cat_cstr (String str1, const char *str2);
 
 static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va_list args)
 {

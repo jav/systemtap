@@ -70,7 +70,7 @@ void _stp_list_clear(MAP map)
 	}
 
 	if (map->num != 0) {
-		_stp_log ("ERROR: list is supposed to be empty (has %d)\n", map->num);
+		_stp_warn ("list is supposed to be empty (has %d)\n", map->num);
 	}
 }
 

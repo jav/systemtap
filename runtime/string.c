@@ -26,7 +26,7 @@ String _stp_string_init (int num)
 	String str;
 
 	if (num >= STP_NUM_STRINGS || num < 0) {
-		_stp_log ("_stp_string_init internal error: requested string exceeded allocated number or was negative");
+		_stp_error ("_stp_string_init internal error: requested string exceeded allocated number or was negative");
 		return NULL;
 	}
 	str = &_stp_string[num][smp_processor_id()];

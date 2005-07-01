@@ -1,5 +1,10 @@
 2005-07-01  Martin Hunt  <hunt@redhat.com>
 
+	* string.c (_stp_string_init): CAll stp_error() on bad
+	init.
+
+	* list.c (_stp_list_clear): Call _stp_warn().
+
 	* probes.c: Convert all _stp_log() calls to either stp_warn() or
 	dbug().
 	
