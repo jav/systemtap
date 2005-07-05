@@ -1,3 +1,12 @@
+2005-07-04  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.h (symresolution_info::current_derived_probe): New field.
+	(symresolution_info::current_probe): Change type.
+	* elaborate.cxx (semantic_pass_symbols): Add passes for resolving
+	locals in pre-derivation base probes and pre-expansion aliases.
+	(symresolution_info::visit_symbol):
+	(symresolution_info::find_scalar): Update to match new field.
+
 2005-06-27  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.{h,cxx} (probe_alias): New structure.

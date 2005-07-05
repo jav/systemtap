@@ -393,6 +393,7 @@ semantic_pass_symbols (systemtap_session& s)
             {
               sym.current_function = fd;
               sym.current_probe = 0;
+              sym.current_derived_probe = 0;
               fd->body->visit (& sym);
             }
           catch (const semantic_error& e)
@@ -401,7 +402,36 @@ semantic_pass_symbols (systemtap_session& s)
             }
         }
 
-      // Pass 3: process probes
+      // Pass 3: resolve symbols in probes (pre-derivation).  Symbols
+      // used in a probe are bound to vardecls in the probe's "locals"
+      // vector.
+
+      for (unsigned i=0; i<dome->probes.size(); i++)
+	{
+	  probe *p = dome->probes[i];
+	  sym.current_function = 0;
+	  sym.current_probe = p;
+	  sym.current_derived_probe = 0;
+	  p->body->visit (& sym);
+	}
+
+      // Pass 4: resolve symbols in aliases (pre-expansion).  Symbols
+      // used in an alias probe are bound to vardecls in the alias'
+      // "locals" vector.
+
+      for (unsigned i=0; i<dome->aliases.size(); i++)
+	{
+	  probe *p = dome->aliases[i];
+	  sym.current_function = 0;
+	  sym.current_probe = p;
+	  sym.current_derived_probe = 0;
+	  p->body->visit (& sym);
+	}
+
+      // Pass 5: derive probes and resolve any further symbols in the
+      // derived results. Symbols used in a derived probe (but not
+      // already bound to the base probe) are bound to vardecls in the
+      // derived probe's "locals" vector.
 
       for (unsigned i=0; i<dome->probes.size(); i++)
         {
@@ -428,7 +458,8 @@ semantic_pass_symbols (systemtap_session& s)
               try 
                 {
                   sym.current_function = 0;
-                  sym.current_probe = dp;
+                  sym.current_probe = 0;
+		  sym.current_derived_probe = dp;
                   dp->body->visit (& sym);
                 }
               catch (const semantic_error& e)
@@ -483,7 +514,8 @@ systemtap_session::print_error (const semantic_error& e)
 
 
 symresolution_info::symresolution_info (systemtap_session& s):
-  session (s), current_function (0), current_probe (0)
+  session (s), current_function (0), 
+  current_probe (0), current_derived_probe(0)
 {
 }
 
@@ -543,6 +575,8 @@ symresolution_info::visit_symbol (symbol* e)
         current_function->locals.push_back (v);
       else if (current_probe)
         current_probe->locals.push_back (v);
+      else if (current_derived_probe)
+        current_derived_probe->locals.push_back (v);
       else
         // must not happen
         throw semantic_error ("no current probe/function", e->tok);
@@ -591,7 +625,10 @@ symresolution_info::find_scalar (const string& name)
   // search locals
   vector<vardecl*>& locals = (current_function ? 
                               current_function->locals :
-                              current_probe->locals);
+			      (current_probe ? 
+			       current_probe->locals :
+			       current_derived_probe->locals));    
+
   for (unsigned i=0; i<locals.size(); i++)
     if (locals[i]->name == name)
       {

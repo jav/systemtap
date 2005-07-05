@@ -30,7 +30,8 @@ protected:
 
 public:
   functiondecl* current_function;
-  derived_probe* current_probe;
+  probe* current_probe;
+  derived_probe* current_derived_probe;
   symresolution_info (systemtap_session& s);
 
   // XXX: instead in systemtap_session?
