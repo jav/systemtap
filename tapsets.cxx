@@ -70,7 +70,7 @@ be_derived_probe::emit_registrations (translator_output* o, unsigned j)
   if (begin)
     for (unsigned i=0; i<locations.size(); i++)
       {
-        o->newline() << "enter_" << j << "_" << i << " ()";
+        o->newline() << "enter_" << j << "_" << i << " ();";
         o->newline() << "rc = errorcount;";
       }
   else
@@ -86,7 +86,7 @@ be_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
   else
     for (unsigned i=0; i<locations.size(); i++)
       {
-        o->newline() << "enter_" << j << "_" << i << " ()";
+        o->newline() << "enter_" << j << "_" << i << " ();";
         o->newline() << "rc = errorcount;";
       }
 }
@@ -99,8 +99,8 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
     {
       probe_point *l = locations[i];
       o->newline() << "/* location " << i << ": " << *l << " */";
-      o->newline() << "static void enter_" << j << "_" << i << " ()";
-      o->newline() << "{";
+      o->newline() << "static void enter_" << j << "_" << i << " (void);";
+      o->newline() << "void enter_" << j << "_" << i << " () {";
       o->newline(1) << "struct context* c = & contexts [0];";
       // XXX: assert #0 is free; need locked search instead
       o->newline() << "if (c->busy) { errorcount ++; return; }";
@@ -1063,6 +1063,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
 
   o->newline();
   o->newline() << "static void ";
+  o->newline() << probe_entry_function_name(probenum) << " (void);";
+  o->newline() << "void ";
   o->newline() << probe_entry_function_name(probenum) << " ()";
   o->newline() << "{";
   o->newline(1) << "struct context* c = & contexts [0];";

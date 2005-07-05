@@ -14,7 +14,6 @@
 #include <iostream>
 #include <stdexcept>
 
-extern bool verbose;
 
 struct token; // parse.h
 struct semantic_error: public std::runtime_error
@@ -377,7 +376,6 @@ struct probe_point
     component ();
   };
   std::vector<component*> components;
-  // XXX: probe aliases
   const token* tok; // points to first component's functor
   void print (std::ostream& o);
   probe_point ();
@@ -408,7 +406,7 @@ struct probe_alias
 };
 
 
-// An derived visitor instance is used to visit the entire
+// A derived visitor instance is used to visit the entire
 // statement/expression tree.
 struct visitor
 {

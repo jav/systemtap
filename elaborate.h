@@ -195,15 +195,28 @@ struct systemtap_session
 {
   systemtap_session ();
 
+  // command line args
+  std::vector<std::string> include_path;
+  std::vector<std::string> args;
+  std::string kernel_release;
+  std::string runtime_path;
+  std::string module_name;
+  int last_pass;
+  bool test_mode;
+  bool verbose;
+  bool keep_tmpdir;
+
+  // temporary directory for module builds etc.
+  // hazardous - it is "rm -rf"'d at exit
+  std::string tmpdir;
+  std::string translated_source; // C source code
+
   match_node * pattern_root;
   void register_library_aliases();
 
   // parse trees for the various script files
   stapfile* user_file;
   std::vector<stapfile*> library_files;
-
-  // configuration options
-  // bool verbose_resolution;
 
   // resolved globals/functions/probes for the run as a whole
   std::vector<stapfile*> files;

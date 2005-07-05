@@ -174,18 +174,18 @@ match_node::find_builder(vector<probe_point::component *> const & components,
       // an entry in the sub table, and its value matches the rest
       // of the probe_point.
       match_key k(*components[pos]);
-      if (verbose)
+      if (0) // session.verbose
 	clog << "searching for component " << k.str() << endl;
       map<match_key, match_node *>::const_iterator i = sub.find(k);
       if (i == sub.end())
 	{
-	  if (verbose)
+	  if (0) // session.verbose
 	    clog << "no match found" << endl;
 	  return NULL;
 	}
       else
 	{
-	  if (verbose)
+	  if (0) // session.verbose
 	    clog << "matched " << k.str() << endl;
 	  derived_probe_builder * builder = NULL;
 	  if (k.have_parameter)

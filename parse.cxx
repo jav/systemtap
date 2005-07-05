@@ -668,7 +668,7 @@ parser::parse_probe_point ()
   probe_point* pl = new probe_point;
 
   // XXX: add support for probe point aliases
-  // e.g.   probe   a.b = a.c = a.d = foo
+  // e.g.   probe   alias = foo    { ... }
   while (1)
     {
       const token* t = next ();

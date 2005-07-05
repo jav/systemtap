@@ -177,7 +177,13 @@ struct c_tmpcounter: public traversing_visitor
 void
 c_unparser::emit_common_header ()
 {
-  o->newline() << "#include <string.h>"; 
+  o->newline() << "#if TEST_MODE";
+  o->newline() << "#include <string.h>";
+  o->newline() << "#else";
+  o->newline() << "#include <linux/string.h>";
+  // XXX: tapsets.cxx should be able to add additional definitions
+  o->newline() << "#endif";
+
   o->newline() << "#define NR_CPU 1"; 
   o->newline() << "#define MAXNESTING 30";
   o->newline() << "#define MAXCONCURRENCY NR_CPU";
@@ -273,9 +279,13 @@ c_unparser::emit_functionsig (functiondecl* v)
 void
 c_unparser::emit_module_init ()
 {
-  o->newline() << "int STARTUP () {";
+  o->newline() << "static int systemtap_module_init (void);";
+  o->newline() << "int systemtap_module_init () {";
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
+
+  // XXX: yuck runtime
+  o->newline() << "TRANSPORT_OPEN;";
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -315,7 +325,15 @@ c_unparser::emit_module_init ()
 void
 c_unparser::emit_module_exit ()
 {
-  o->newline() << "int SHUTDOWN () {";
+  // XXX: double-yuck runtime
+  o->newline() << "void probe_exit () {";
+  // need to reference these static functions for -Werror avoidance
+  o->newline(1) << "if (0) next_fmt ((void *) 0, (void *) 0);";
+  o->newline() << "if (0) _stp_dbug(\"\", 0, \"\");";
+  o->newline(-1) << "}";
+  //
+  o->newline() << "static void systemtap_module_exit (void);";
+  o->newline() << "void systemtap_module_exit () {";
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
   for (unsigned i=0; i<session->probes.size(); i++)
@@ -324,7 +342,8 @@ c_unparser::emit_module_exit ()
       o->newline() << "anyrc |= rc;";
     }
   // XXX: uninitialize globals
-  o->newline() << "return anyrc; /* if (anyrc) log badness */";
+  o->newline() << "_stp_transport_close ();";
+  // XXX: if anyrc, log badness
   o->newline(-1) << "}" << endl;
 }
 
@@ -332,7 +351,7 @@ c_unparser::emit_module_exit ()
 void
 c_unparser::emit_function (functiondecl* v)
 {
-  o->newline() << "static void function_" << c_varname (v->name)
+  o->newline() << "void function_" << c_varname (v->name)
             << " (struct context* c) {";
   o->indent(1);
   this->current_probe = 0;
@@ -383,7 +402,8 @@ c_unparser::emit_function (functiondecl* v)
 void
 c_unparser::emit_probe (derived_probe* v, unsigned i)
 {
-  o->newline() << "static void probe_" << i << " (struct context *c) {";
+  o->newline() << "static void probe_" << i << " (struct context *c);";
+  o->newline() << "void probe_" << i << " (struct context *c) {";
   o->indent(1);
 
   // initialize frame pointer
@@ -1419,36 +1439,83 @@ translate_pass (systemtap_session& s)
 {
   int rc = 0;
 
+  s.op = new translator_output (s.translated_source);
   c_unparser cup (& s);
   s.up = & cup;
 
   try
     {
-      s.op->newline() << "/* common header */";
+      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0)
+                   << endl;
+      
+      // XXX: until the runtime can handle user-level tests properly
+      s.op->newline() << "#if ! TEST_MODE";
+      s.op->newline() << "#define STP_NETLINK_ONLY"; // XXX
+      s.op->newline() << "#include \"runtime.h\"";
+      s.op->newline() << "#endif" << endl;
+
       s.up->emit_common_header ();
+
       s.op->newline() << "/* globals */";
       for (unsigned i=0; i<s.globals.size(); i++)
         s.up->emit_global (s.globals[i]);
+
       s.op->newline() << "/* function signatures */";
       for (unsigned i=0; i<s.functions.size(); i++)
         s.up->emit_functionsig (s.functions[i]);
+
       s.op->newline() << "/* functions */";
       for (unsigned i=0; i<s.functions.size(); i++)
         s.up->emit_function (s.functions[i]);
+
       s.op->newline() << "/* probes */";
       for (unsigned i=0; i<s.probes.size(); i++)
         s.up->emit_probe (s.probes[i], i);
-      s.op->newline() << "/* module init */";
+
       s.up->emit_module_init ();
-      s.op->newline() << "/* module exit */";
       s.up->emit_module_exit ();
+
       s.op->newline();
+      s.op->newline() << "#if TEST_MODE";
+
+      s.op->newline() << "/* test mode mainline */";
+      s.op->newline() << "int main () {";
+      s.op->newline(1) << "int rc = systemtap_module_init ();";
+      s.op->newline() << "if (!rc) rc = systemtap_module_exit ();";
+      s.op->newline() << "return rc;";
+      s.op->newline(-1) << "}";
+
+      s.op->newline() << "#else";
+
+      s.op->newline();
+      s.op->newline() << "static int __init _systemtap_module_init (void);";
+      s.op->newline() << "int _systemtap_module_init () {";
+      s.op->newline(1) << "return systemtap_module_init ();";
+      s.op->newline(-1) << "}";
+
+      s.op->newline();
+      s.op->newline() << "static void __exit _systemtap_module_exit (void);";
+      s.op->newline() << "void _systemtap_module_exit () {";
+      s.op->newline(1) << "systemtap_module_exit ();";
+      s.op->newline(-1) << "}";
+
+      s.op->newline();
+      s.op->newline() << "module_init (_systemtap_module_init);";
+      s.op->newline() << "module_exit (_systemtap_module_exit);";
+      s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
+      s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
+
+      s.op->newline() << "#endif";
+
+      s.op->line() << endl;
     }
   catch (const semantic_error& e)
     {
       s.print_error (e);
     }
 
+  delete s.op;
+  s.op = 0;
   s.up = 0;
   return rc + s.num_errors;
 }

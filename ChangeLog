@@ -1,3 +1,17 @@
+2005-07-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	* elaborate.h (systemtap_session): Add more command-line arguments.
+	* staptree.h (verbose): Bad global, no donut.
+	* elaborate.cxx: Temporarily disable verbose variable access.
+	* main.cxx: Support more arguments, build/run passes.  Revamp
+	temporary file generation and partial-pass output generation.
+	* tapsets.cxx, translate.cxx: Emit just enough extra punctuation
+	and fluff to make generated probe pass -Werror.
+	* buildrun.cxx, buildrun.h: New files for passes 4/5.  Partial
+	support for build pass, nothing on probe execution yet.
+	* testsuite/transok/*.stp: Force just -p3, now that -p4/5 exist.
+	* Makefile.am, Makefile.in: Corresponding changes.
+
 2005-07-04  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.h (symresolution_info::current_derived_probe): New field.
