@@ -1,4 +1,4 @@
-#! stap
+#! stap -p3
 probe begin, end { 2; }
 function poo (zoo) { n = poo2 (8); return "foo" . zoo }
 function poo2 (zoo) { return poo3 (2 + 4 * zoo) }

@@ -1,4 +1,4 @@
-#! stap
+#! stap -p3
 
 function f1 (a, b) {
   c = 1;
