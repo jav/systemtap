@@ -30,8 +30,7 @@ protected:
 
 public:
   functiondecl* current_function;
-  probe* current_probe;
-  derived_probe* current_derived_probe;
+  derived_probe* current_probe;
   symresolution_info (systemtap_session& s);
 
   // XXX: instead in systemtap_session?
@@ -140,7 +139,8 @@ struct derived_probe: public probe
 struct
 derived_probe_builder
 {
-  virtual void build(probe * base, 
+  virtual void build(systemtap_session & sess,
+		     probe * base, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
 		     std::vector<probe *> & results_to_expand_further,

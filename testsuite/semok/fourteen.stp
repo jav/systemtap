@@ -1,0 +1,30 @@
+#! stap -p2
+
+function trace (s) { return 0 }
+
+# recursive alias expansion
+
+probe foo = begin
+{
+	trace("hello")
+}
+
+probe bar = foo 
+{
+	x=1
+}
+
+probe baz = bar
+{
+	y=2
+}
+
+probe quux = baz
+{
+	z = x + y
+}
+
+probe quux, end
+{
+	trace("goodbye")
+}

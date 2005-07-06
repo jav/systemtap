@@ -234,7 +234,8 @@ alias_expansion_builder
     : alias(a)
   {}
 
-  virtual void build(probe * use, 
+  virtual void build(systemtap_session & sess,
+		     probe * use, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<probe *> & results_to_expand_further,
@@ -253,10 +254,14 @@ alias_expansion_builder
     // the token location of the use,
     n->tok = use->tok;
 
-    // and a set of locals and statements representing the 
-    // concatenation of the alias' body with the use's.
-    copy(alias->locals.begin(), alias->locals.end(), back_inserter(n->locals));
-    copy(use->locals.begin(), use->locals.end(), back_inserter(n->locals));
+    // and statements representing the concatenation of the alias'
+    // body with the use's. 
+    //
+    // NB: locals are *not* copied forward, from either alias or
+    // use. The expansion should have its locals re-inferred since
+    // there's concatenated code here and we only want one vardecl per
+    // resulting variable.
+
     copy(alias->body->statements.begin(), 
 	 alias->body->statements.end(),
 	 back_inserter(n->body->statements));
@@ -317,11 +322,32 @@ systemtap_session::register_library_aliases()
 }
 
 
+static unsigned max_recursion = 100;
+
+struct 
+recursion_guard
+{
+  unsigned & i;
+  recursion_guard(unsigned & i) : i(i)
+    {
+      if (i > max_recursion)
+	throw semantic_error("recursion limit reached");
+      ++i;
+    }
+  ~recursion_guard() 
+    {
+      --i;
+    }
+};
+
 // The match-and-expand loop.
 void
 symresolution_info::derive_probes (match_node * root, 
 				   probe *p, vector<derived_probe*>& dps)
 {
+  static unsigned depth=0;
+  recursion_guard guard(depth);
+
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
       probe_point *loc = p->locations[i];
@@ -337,7 +363,7 @@ symresolution_info::derive_probes (match_node * root,
 
       param_vec_to_map(param_vec, param_map);
 
-      builder->build(p, loc, param_map, re_expand, dps);
+      builder->build(session, p, loc, param_map, re_expand, dps);
       
       // Recursively expand any further-expanding results
       if (!re_expand.empty())
@@ -393,7 +419,6 @@ semantic_pass_symbols (systemtap_session& s)
             {
               sym.current_function = fd;
               sym.current_probe = 0;
-              sym.current_derived_probe = 0;
               fd->body->visit (& sym);
             }
           catch (const semantic_error& e)
@@ -402,36 +427,8 @@ semantic_pass_symbols (systemtap_session& s)
             }
         }
 
-      // Pass 3: resolve symbols in probes (pre-derivation).  Symbols
-      // used in a probe are bound to vardecls in the probe's "locals"
-      // vector.
-
-      for (unsigned i=0; i<dome->probes.size(); i++)
-	{
-	  probe *p = dome->probes[i];
-	  sym.current_function = 0;
-	  sym.current_probe = p;
-	  sym.current_derived_probe = 0;
-	  p->body->visit (& sym);
-	}
-
-      // Pass 4: resolve symbols in aliases (pre-expansion).  Symbols
-      // used in an alias probe are bound to vardecls in the alias'
-      // "locals" vector.
-
-      for (unsigned i=0; i<dome->aliases.size(); i++)
-	{
-	  probe *p = dome->aliases[i];
-	  sym.current_function = 0;
-	  sym.current_probe = p;
-	  sym.current_derived_probe = 0;
-	  p->body->visit (& sym);
-	}
-
-      // Pass 5: derive probes and resolve any further symbols in the
-      // derived results. Symbols used in a derived probe (but not
-      // already bound to the base probe) are bound to vardecls in the
-      // derived probe's "locals" vector.
+      // Pass 3: derive probes and resolve any further symbols in the
+      // derived results. 
 
       for (unsigned i=0; i<dome->probes.size(); i++)
         {
@@ -458,8 +455,7 @@ semantic_pass_symbols (systemtap_session& s)
               try 
                 {
                   sym.current_function = 0;
-                  sym.current_probe = 0;
-		  sym.current_derived_probe = dp;
+                  sym.current_probe = dp;
                   dp->body->visit (& sym);
                 }
               catch (const semantic_error& e)
@@ -514,8 +510,7 @@ systemtap_session::print_error (const semantic_error& e)
 
 
 symresolution_info::symresolution_info (systemtap_session& s):
-  session (s), current_function (0), 
-  current_probe (0), current_derived_probe(0)
+  session (s), current_function (0), current_probe (0)
 {
 }
 
@@ -575,8 +570,6 @@ symresolution_info::visit_symbol (symbol* e)
         current_function->locals.push_back (v);
       else if (current_probe)
         current_probe->locals.push_back (v);
-      else if (current_derived_probe)
-        current_derived_probe->locals.push_back (v);
       else
         // must not happen
         throw semantic_error ("no current probe/function", e->tok);
@@ -625,9 +618,7 @@ symresolution_info::find_scalar (const string& name)
   // search locals
   vector<vardecl*>& locals = (current_function ? 
                               current_function->locals :
-			      (current_probe ? 
-			       current_probe->locals :
-			       current_derived_probe->locals));    
+			      current_probe->locals);
 
   for (unsigned i=0; i<locals.size(); i++)
     if (locals[i]->name == name)

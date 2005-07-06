@@ -435,6 +435,7 @@ void probe_alias::printsig (ostream& o)
       o << (i>0 ? " = " : "");
       alias_names[i]->print (o);
     }
+  o << " = ";
   for (unsigned i=0; i<locations.size(); i++)
     {
       o << (i>0 ? ", " : "");

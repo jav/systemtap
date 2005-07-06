@@ -52,7 +52,8 @@ be_builder
 {
   bool begin;
   be_builder(bool b) : begin(b) {}
-  virtual void build(probe * base, 
+  virtual void build(systemtap_session & sess,
+		     probe * base, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<probe *> & results_to_expand_further,
@@ -126,7 +127,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 struct
 dwflpp
 {
-
+  systemtap_session & sess;
   Dwfl * dwfl;
 
   // These are "current" values we focus on.
@@ -145,22 +146,28 @@ dwflpp
   {
     if (in) 
       return in;
-    if (verbose)
+    if (sess.verbose)
       clog << "WARNING: no name found for " << type << endl;
     return string("default_anonymous_" ) + type;
+  }
+
+  void get_module_dwarf()
+  {
+    if (!module_dwarf)
+      module_dwarf = dwfl_module_getdwarf(module, &module_bias);
   }
 
   void focus_on_module(Dwfl_Module * m)
   {
     assert(m);
     module = m;
-    module_dwarf = dwfl_module_getdwarf(module, &module_bias);
+    module_dwarf = NULL;
     module_name = default_name(dwfl_module_info(module, NULL, 
 						NULL, NULL,
 						NULL, NULL,
 						NULL, NULL),
 			       "module");
-    if (verbose)
+    if (sess.verbose)
       clog << "focused on module " << module_name << endl;
   }
 
@@ -169,7 +176,7 @@ dwflpp
     assert(c);
     cu = c;
     cu_name = default_name(dwarf_diename(c), "cu");
-    if (verbose)
+    if (sess.verbose)
       clog << "focused on CU " << cu_name 
 	   << ", in module " << module_name << endl;
   }
@@ -180,7 +187,7 @@ dwflpp
     function = f;
     function_name = default_name(dwarf_func_name(function), 
 				 "function");
-    if (verbose)
+    if (sess.verbose)
       clog << "focused on function " << function_name 
 	   << ", in CU " << cu_name 
 	   << ", module " << module_name << endl;
@@ -189,7 +196,7 @@ dwflpp
   void focus_on_module_containing_global_address(Dwarf_Addr a)
   {
     assert(dwfl);
-    if (verbose)
+    if (sess.verbose)
       clog << "focusing on module containing global addr " << a << endl;
     focus_on_module(dwfl_addrmodule(dwfl, a));
   }
@@ -199,7 +206,8 @@ dwflpp
     assert(dwfl);
     assert(module);
     Dwarf_Addr bias;
-    if (verbose)
+    get_module_dwarf();
+    if (sess.verbose)
       clog << "focusing on cu containing module addr " << a << endl;
     focus_on_cu(dwfl_module_addrdie(module, a, &bias));
     assert(bias == module_bias);
@@ -208,7 +216,8 @@ dwflpp
   void focus_on_cu_containing_global_address(Dwarf_Addr a)
   {
     assert(dwfl);
-    if (verbose)
+    get_module_dwarf();
+    if (sess.verbose)
       clog << "focusing on cu containing global addr " << a << endl;
     focus_on_module_containing_global_address(a);
     assert(a > module_bias);
@@ -219,7 +228,8 @@ dwflpp
   Dwarf_Addr module_address_to_global(Dwarf_Addr a)
   {
     assert(module);
-    if (verbose)
+    get_module_dwarf();
+    if (sess.verbose)
       clog << "module addr " << a 
 	   << " + bias " << module_bias 
 	   << " -> global addr " << a + module_bias << endl;
@@ -229,7 +239,8 @@ dwflpp
   Dwarf_Addr global_address_to_module(Dwarf_Addr a)
   {
     assert(module);
-    if (verbose)
+    get_module_dwarf();
+    if (sess.verbose)
       clog << "global addr " << a 
 	   << " - bias " << module_bias 
 	   << " -> module addr " << a - module_bias << endl;
@@ -240,8 +251,9 @@ dwflpp
   bool module_name_matches(string pattern)
   {
     assert(module);
+    get_module_dwarf();
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
-    if (verbose)
+    if (sess.verbose)
       clog << "pattern '" << pattern << "' "
 	   << (t ? "matches " : "does not match ") 
 	   << "module '" << module_name << "'" << endl;
@@ -252,7 +264,7 @@ dwflpp
   {
     assert(function);
     bool t = (fnmatch(pattern.c_str(), function_name.c_str(), 0) == 0);
-    if (verbose)
+    if (sess.verbose)
       clog << "pattern '" << pattern << "' "
 	   << (t ? "matches " : "does not match ") 
 	   << "function '" << function_name << "'" << endl;
@@ -263,7 +275,7 @@ dwflpp
   {
     assert(cu);
     bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0);
-    if (verbose)
+    if (sess.verbose)
       clog << "pattern '" << pattern << "' "
 	   << (t ? "matches " : "does not match ") 
 	   << "CU '" << cu_name << "'" << endl;
@@ -276,8 +288,9 @@ dwflpp
       throw semantic_error(string("dwfl failure: ") + dwfl_errmsg(rc));
   }
 
-  dwflpp()
+  dwflpp(systemtap_session & sess)
     :
+    sess(sess),
     dwfl(NULL),
     module(NULL),
     module_dwarf(NULL),
@@ -330,7 +343,7 @@ dwflpp
 					     Dwarf *, Dwarf_Addr, void *),
 			    void * data)
   {
-    if (verbose)
+    if (sess.verbose)
       clog << "iterating over modules" << endl;
     ptrdiff_t off = 0;
     do
@@ -338,7 +351,7 @@ dwflpp
 	off = dwfl_getdwarf(dwfl, callback, data, off);
       }
     while (off > 0);
-    if (verbose)
+    if (sess.verbose)
       clog << "finished iterating over modules" << endl;
     dwflpp_assert(off);
   }
@@ -346,13 +359,15 @@ dwflpp
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg), 
 			 void * data)
   {
+    get_module_dwarf();
+
     if (!module_dwarf)
       {
 	cerr << "WARNING: no dwarf info found for module " << module_name << endl;
 	return;
       }
 
-    if (verbose)
+    if (sess.verbose)
       clog << "iterating over CUs in module " << module_name << endl;
 
     Dwarf *dw = module_dwarf;
@@ -375,7 +390,7 @@ dwflpp
   {
     assert(module);
     assert(cu);
-    if (verbose)
+    if (sess.verbose)
       clog << "iterating over functions in CU " << cu_name << endl;
     dwarf_getfuncs(cu, callback, data, 0);
   }
@@ -393,20 +408,20 @@ dwflpp
     Dwarf_Addr lo, hi;
     if (dwarf_func_lowpc(function, &lo) != 0)
       {
-	if (verbose)
+	if (sess.verbose)
 	  clog << "WARNING: cannot find low PC value for function " << function_name << endl;
 	return false;
       }
     
     if (dwarf_func_highpc(function, &hi) != 0)
     {
-      if (verbose)
+      if (sess.verbose)
 	clog << "WARNING: cannot find high PC value for function " << function_name << endl;
       return false;
     }
     
     bool t = lo <= addr && addr <= hi;
-    if (verbose)
+    if (sess.verbose)
       clog << "function " << function_name << " = [" << lo << "," << hi << "] "
 	   << (t ? "contains " : "does not contain ") 
 	   << " global addr " << addr << endl;
@@ -430,7 +445,7 @@ dwflpp
     dwflpp_assert(dwarf_getsrclines(cu, &lines, &nlines));
     linep = dwarf_onesrcline(lines, line);
     dwflpp_assert(dwarf_lineaddr(linep, &addr));
-    if (verbose)
+    if (sess.verbose)
       clog << "line " << line 
 	   << " of cu " << cu_name 
 	   << " has module address " << addr 
@@ -508,11 +523,14 @@ struct dwarf_derived_probe : public derived_probe
 struct 
 dwarf_query
 {
-  dwarf_query(probe * base_probe,
+  dwarf_query(systemtap_session & sess,
+	      probe * base_probe,
 	      probe_point * base_loc,
 	      dwflpp & dw,
 	      map<string, literal *> const & params,
 	      vector<derived_probe *> & results);
+
+  systemtap_session & sess;
 
   // Parameter extractors.
   static bool has_null_param(map<string, literal *> const & params, 
@@ -570,7 +588,8 @@ dwarf_builder
   : public derived_probe_builder
 {
   dwarf_builder() {}
-  virtual void build(probe * base, 
+  virtual void build(systemtap_session & sess,
+		     probe * base, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<probe *> & results_to_expand_further,
@@ -636,12 +655,14 @@ dwarf_query::add_module_probe(string const & module,
 }
 
 
-dwarf_query::dwarf_query(probe * base_probe,
+dwarf_query::dwarf_query(systemtap_session & sess,
+			 probe * base_probe,
 			 probe_point * base_loc,
 			 dwflpp & dw,
 			 map<string, literal *> const & params,
 			 vector<derived_probe *> & results)
-  : results(results),
+  : sess(sess),
+    results(results),
     base_probe(base_probe), 
     base_loc(base_loc),
     dw(dw)
@@ -704,7 +725,7 @@ dwarf_query::parse_function_spec(string & spec)
 
   if (i == e)
     {
-      if (verbose)
+      if (sess.verbose)
 	clog << "parsed '" << spec 
 	     << "' -> func '" << function 
 	     << "'" << endl;
@@ -719,7 +740,7 @@ dwarf_query::parse_function_spec(string & spec)
   
   if (i == e)
     {
-      if (verbose)
+      if (sess.verbose)
 	clog << "parsed '" << spec 
 	     << "' -> func '"<< function 
 	     << "', file '" << file 
@@ -733,7 +754,7 @@ dwarf_query::parse_function_spec(string & spec)
   try
     {
       line = lex_cast<int>(string(i, e));
-      if (verbose)
+      if (sess.verbose)
 	clog << "parsed '" << spec 
 	     << "' -> func '"<< function 
 	     << "', file '" << file 
@@ -791,7 +812,7 @@ query_function(Dwarf_Func * func, void * arg)
   Dwarf_Addr addr;
   if (!q->dw.function_entrypc(&addr))
     {
-      if (verbose)
+      if (q->sess.verbose)
 	clog << "WARNING: cannot find entry PC for function " 
 	     << q->dw.function_name << endl;
       return DWARF_CB_OK;
@@ -877,7 +898,11 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 
   // If we have enough information in the pattern to skip a module and
   // the module does not match that information, return early.
-  if (!q->dw.module_name_matches(q->module_val))
+
+  if (q->has_kernel && !q->dw.module_name_matches("kernel"))
+    return DWARF_CB_OK;
+
+  if (q->has_module && !q->dw.module_name_matches(q->module_val))
     return DWARF_CB_OK;
 
   if (q->has_function_num || q->has_statement_num)
@@ -903,6 +928,13 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       assert(q->has_function_str || q->has_statement_str);
       q->dw.iterate_over_cus(&query_cu, q);
     }
+
+  // If we just processed the module "kernel", and the user asked for
+  // the kernel patterh, there's no need to iterate over any further
+  // modules
+
+  if (q->has_kernel && q->dw.module_name_matches("kernel"))
+    return DWARF_CB_ABORT;
 
   return DWARF_CB_OK;
 }
@@ -1092,15 +1124,16 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
 
 
 void
-dwarf_builder::build(probe * base, 
+dwarf_builder::build(systemtap_session & sess,
+		     probe * base, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results)
 {
 
-  dwflpp dw;
-  dwarf_query q(base, location, dw, parameters, finished_results);
+  dwflpp dw(sess);
+  dwarf_query q(sess, base, location, dw, parameters, finished_results);
 
   dw.setup(q.has_kernel || q.has_module);
 

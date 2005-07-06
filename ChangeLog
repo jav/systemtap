@@ -1,3 +1,12 @@
+2005-07-05  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.{h,cxx}: Revert previous changes.
+	* tapsets.{h,cxx}: Adapt to verbose as a member of session.
+	* elaborate.cxx (alias_expansion_builder::build): Avoid copying
+	locals between alias definition and use.
+	* testsuite/semok/{twelve,thirteen,fourteen}.stp: New tests.
+	* staptree.cxx (probe_alias::printsig): Print equals sign.
+
 2005-07-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	* elaborate.h (systemtap_session): Add more command-line arguments.

@@ -1,0 +1,17 @@
+#! stap -p2
+
+function trace (s) { return 0 }
+
+# resolve to a set of kernel functions
+
+probe kernel.function("pipe_*")
+{
+	trace("doing something with a pipe")
+}
+
+# resolve to a set of module functions
+
+probe module("jbd").function("journal_get_*_access@*/transaction.c")
+{
+	trace("inside journal_get_*_access, in transaction.c")
+}
