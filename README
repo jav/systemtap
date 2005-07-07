@@ -9,7 +9,7 @@ See the INSTALL file for generic build instructions.
 
 Prerequisites:
 
-- linux kernel 2.6.11+ with IBM kprobes
+- linux kernel 2.6.11+ with kprobes
 - kernel module build environment
 - C compiler
 - elfutils with libdwfl
