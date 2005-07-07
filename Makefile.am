@@ -21,6 +21,10 @@ stapdatadir = @datadir@/systemtap
 DEFPATH="\".$(PATH_SEPARATOR)$(stapdatadir)\""
 DEFS= -DDEFPATH=$(DEFPATH) -DHAVE_CONFIG_H
 
+EXTRA_DIST=testsuite runtime
+dist-hook:
+	find $(distdir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
 t=$(srcdir)/testsuite/trans

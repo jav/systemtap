@@ -177,12 +177,8 @@ struct c_tmpcounter: public traversing_visitor
 void
 c_unparser::emit_common_header ()
 {
-  o->newline() << "#if TEST_MODE";
-  o->newline() << "#include <string.h>";
-  o->newline() << "#else";
   o->newline() << "#include <linux/string.h>";
   // XXX: tapsets.cxx should be able to add additional definitions
-  o->newline() << "#endif";
 
   o->newline() << "#define NR_CPU 1"; 
   o->newline() << "#define MAXNESTING 30";
@@ -1445,14 +1441,8 @@ translate_pass (systemtap_session& s)
 
   try
     {
-      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0)
-                   << endl;
-      
-      // XXX: until the runtime can handle user-level tests properly
-      s.op->newline() << "#if ! TEST_MODE";
-      s.op->newline() << "#define STP_NETLINK_ONLY"; // XXX
+      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#endif" << endl;
 
       s.up->emit_common_header ();
 

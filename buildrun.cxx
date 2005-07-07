@@ -24,6 +24,8 @@ compile_pass (systemtap_session& s)
       string makefile_nm = s.tmpdir + "/Makefile";
       ofstream o (makefile_nm.c_str());
       o << "CFLAGS += -Werror" << endl;
+      if (s.test_mode)
+        o << "CFLAGS += -I \"" << s.runtime_path << "/user\"" << endl;
       o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
       o << "CFLAGS += -I \"" << s.runtime_path << "/relayfs\"" << endl;
       o << "obj-m := " << s.module_name << ".o" << endl;
@@ -36,9 +38,14 @@ compile_pass (systemtap_session& s)
   if (! s.verbose) make_cmd += " -s";
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
-  if (s.verbose) cerr << "Running " << make_cmd << endl;
+  if (s.verbose) clog << "Running " << make_cmd << endl;
   int rc = system (make_cmd.c_str());
-  if (s.verbose) cerr << "rc=" << rc << endl;
+
+
+  if (s.verbose) clog << "Pass 4: compiled into \""
+                      << s.module_name << ".ko"
+                      << "\"" << endl;
+
   return rc;
 }
 

@@ -31,7 +31,7 @@ using namespace std;
 void
 usage (systemtap_session& s)
 {
-  cerr 
+  clog 
     << "SystemTap translator "
     << "(version " << VERSION << " built " << DATE << ")" << endl
     << "Copyright (C) 2005 Red Hat, Inc." << endl
@@ -55,12 +55,12 @@ usage (systemtap_session& s)
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
   if (s.include_path.size() == 0)
-    cerr << endl;
+    clog << endl;
   else
-    cerr << ", instead of" << endl;
+    clog << ", instead of" << endl;
   for (unsigned i=0; i<s.include_path.size(); i++)
-    cerr << "              " << s.include_path[i] << endl;
-  cerr
+    clog << "              " << s.include_path[i] << endl;
+  clog
     << "   -R DIR     look in DIR for runtime, instead of "
     << s.runtime_path
     << endl
@@ -207,6 +207,9 @@ main (int argc, char * const argv [])
       }
     else
       s.tmpdir = tmpdir;
+
+    if (s.verbose)
+      clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   }
 
 
@@ -260,10 +263,14 @@ main (int argc, char * const argv [])
         }
     }
 
+  if (s.verbose) clog << "Pass 1: parsed user script and "
+                      << s.library_files.size()
+                      << " library script(s)." << endl;
+
+  if (rc || s.last_pass == 1) goto cleanup;
 
   // PASS 2: ELABORATION
-  if (rc == 0 && s.last_pass > 1)
-    rc = semantic_pass (s);
+  rc = semantic_pass (s);
 
   if (rc == 0 && s.last_pass == 2)
     {
@@ -313,51 +320,52 @@ main (int argc, char * const argv [])
 	}
     }
 
+  if (s.verbose) clog << "Pass 2: analyzed user script.  "
+                      << s.probes.size() << " probe(s), "
+                      << s.functions.size() << " function(s), "
+                      << s.globals.size() << " global(s)." << endl;
+
+  if (rc || s.last_pass == 2) goto cleanup;
 
   // PASS 3: TRANSLATION
-  if (rc == 0 && s.last_pass > 2)
-    {
-      s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
-      rc = translate_pass (s);
-    }
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
+  rc = translate_pass (s);
 
   if (rc == 0 && s.last_pass == 3)
     {
       ifstream i (s.translated_source.c_str());
       cout << i.rdbuf();
     }
+
+  if (s.verbose) clog << "Pass 3: translated to C into \""
+                      << s.translated_source
+                      << "\"" << endl;
+
+  if (rc || s.last_pass == 3) goto cleanup;
   
   // PASS 4: COMPILATION
-  if (rc == 0 && s.last_pass > 3)
-    {
-      rc = compile_pass (s);
-    }
+  rc = compile_pass (s);
+
+  if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
-  if (rc == 0 && s.last_pass > 4)
-    {
-      rc = run_pass (s);
-    }
+  rc = run_pass (s);
 
-  // Pull out saved output
-  if (output_file != "-")
-    s.op = new translator_output (output_file);
-  else
-    s.op = new translator_output (cout);
+  // if (rc) goto cleanup;
 
-
+ cleanup:
   // Clean up temporary directory.  Obviously, be careful with this.
   if (s.tmpdir == "")
     ; // do nothing
   else
     {
       if (s.keep_tmpdir)
-        cerr << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
+        clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
           string cleanupcmd = "/bin/rm -rf ";
           cleanupcmd += s.tmpdir;
-          if (s.verbose) cerr << "Running " << cleanupcmd << endl;
+          if (s.verbose) clog << "Running " << cleanupcmd << endl;
           (void) system (cleanupcmd.c_str());
         }
     }

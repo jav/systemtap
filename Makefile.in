@@ -187,6 +187,7 @@ stapdatadir = @datadir@/systemtap
 
 # stuff for compiling gawk/pgawk
 DEFPATH = "\".$(PATH_SEPARATOR)$(stapdatadir)\""
+EXTRA_DIST = testsuite runtime
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
 t = $(srcdir)/testsuite/trans
@@ -463,6 +464,9 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	$(MAKE) $(AM_MAKEFLAGS) \
+	  top_distdir="$(top_distdir)" distdir="$(distdir)" \
+	  dist-hook
 	-find $(distdir) -type d ! -perm -777 -exec chmod a+rwx {} \; -o \
 	  ! -type d ! -perm -444 -links 1 -exec chmod a+r {} \; -o \
 	  ! -type d ! -perm -400 -exec chmod a+r {} \; -o \
@@ -648,7 +652,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 .PHONY: CTAGS GTAGS all all-am am--refresh check check-TESTS check-am \
 	clean clean-binPROGRAMS clean-generic clean-local \
 	clean-noinstPROGRAMS ctags dist dist-all dist-bzip2 dist-gzip \
-	dist-shar dist-tarZ dist-zip distcheck distclean \
+	dist-hook dist-shar dist-tarZ dist-zip distcheck distclean \
 	distclean-compile distclean-generic distclean-hdr \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
@@ -660,6 +664,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 	tags uninstall uninstall-am uninstall-binPROGRAMS \
 	uninstall-info-am
 
+dist-hook:
+	find $(distdir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 
 gcov:
 	@$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check

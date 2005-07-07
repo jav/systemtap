@@ -1,15 +1,17 @@
-systemtap prototype #3.3
+systemtap: a linux trace/probe tool
 
-- demonstrates parsing of hypothetical systemtap script
-  language using hand-written simpe LL(1) recursive-descent parser
-  and similar little lexer: parse.cxx, parse.h
-- semantic analysis in elaborate.cxx; translation in translate.cxx;
-  driven from main.cxx
-- examples under testsuite/*
-- "probe", "global", "function" top-level constructs parsed
-- some tapset library auto-inclusion supported
-- use autotools-style configure; make; make check
-- to see parse tree: stap -p1 -e 'SCRIPT FRAGMENT'
-- to see semantic/type analysis results: stap -p2 -e 'SCRIPT FRAGMENT'
-- to see translation of constructs: stap -e 'SCRIPT FRAGMENT';
-  try compiling result with "gcc -c"!
+Visit the project web site at <http://sources.redhat.com/systemtap>,
+for documentation and mailing lists for developers and users.
+
+This is free software.
+See the COPYING file for redistribution/modification terms.
+See the INSTALL file for generic build instructions.
+
+Prerequisites:
+
+- linux kernel 2.6.11+ with IBM kprobes
+- kernel module build environment
+- C compiler
+- elfutils with libdwfl
+- root privileges
+

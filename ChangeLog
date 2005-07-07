@@ -1,3 +1,13 @@
+2005-07-07  Frank Ch. Eigler  <fche@redhat.com>
+
+	* Makefile.am (dist): Package up the source tree, including
+	testsuite and runtime.
+	* main.cxx: Use clog instead of cerr for logging messages.
+	* buildrun.cxx: Ditto.
+	(compile_pass): Add -Iruntime/user for test mode.
+	* translate.cxx (*): Commonalize test/real mode output.
+	* Makefile.in: Regenerated.
+
 2005-07-05  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.{h,cxx}: Revert previous changes.
