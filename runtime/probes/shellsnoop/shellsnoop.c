@@ -124,7 +124,7 @@ int init_module(void)
 	if (ret < 0) {
 	  _stp_map_del (pids);
 	  _stp_map_del (arglist);
-	  //	  _stp_transport_close();
+	  _stp_transport_close();
 	  return ret;
 	}
 	
