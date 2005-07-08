@@ -1,4 +1,4 @@
-//#define STP_NETLINK_ONLY
+#define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 
 #include "runtime.h"
@@ -61,10 +61,10 @@ struct file * inst_filp_open (const char * filename, int flags, int mode)
 asmlinkage ssize_t inst_sys_read (unsigned int fd, char __user * buf, size_t count)
 {
   _stp_map_key_int64 (pids, current->pid);
-  if (_stp_map_get_int64 (pids))
-    _stp_printf ("%d\t%d\t%s\tR %d\n", current->pid, current->parent->pid, current->comm, fd);
-  
-  _stp_print_flush();
+  if (_stp_map_get_int64 (pids)) {
+    _stp_printf ("%d\t%d\t%s\tR %d\n", current->pid, current->parent->pid, current->comm, fd);    
+    _stp_print_flush();
+  }
   jprobe_return();
   return 0;
 }
@@ -111,15 +111,25 @@ int init_module(void)
 {
 	int ret;
 
+	/* First open connection. This exits on failure. */
 	TRANSPORT_OPEN;
 
+	/* now initialize any data or variables */
 	pids = _stp_map_new_int64 (10000, INT64);
 	arglist = _stp_list_new (10, STRING);
 
+	/* now we are ready to enable the probes */
 	ret = _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
 	
-	printk("instrumentation is enabled... %s\n", __this_module.name);
-
+	if (ret < 0) {
+	  _stp_map_del (pids);
+	  _stp_map_del (arglist);
+	  //	  _stp_transport_close();
+	  return ret;
+	}
+	
+	_stp_printf("instrumentation is enabled... %s\n", __this_module.name);
+	_stp_print_flush();
 	return ret;
 }
 
@@ -128,12 +138,14 @@ static void probe_exit (void)
 {
 	_stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
 	_stp_map_del (pids);
-	_stp_printf("dropped %d packets\n", atomic_read(&_stp_transport_failures));
+	_stp_map_del (arglist);
+	_stp_printf("\nDropped %d packets\n", atomic_read(&_stp_transport_failures));
 	_stp_print_flush();
 }
 
 void cleanup_module(void)
 {
+	_stp_transport_cleanup();
 	_stp_transport_close();
 }
 
