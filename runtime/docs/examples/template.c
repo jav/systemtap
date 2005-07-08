@@ -95,18 +95,19 @@ static struct kprobe kp[] = {
 #define NUM_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
 /* called when the module loads. */
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
+  /* initialize any data or variables */
 
-  TRANSPORT_OPEN;
 
   /* register any jprobes */
-  ret = _stp_register_jprobes (jp, NUM_JPROBES);
+  int ret = _stp_register_jprobes (jp, NUM_JPROBES);
 
-  /* register any kprobes */
+  /* Register any kprobes and jprobes. */
+  /* You probably only have one type */
   if (ret >= 0)
-    ret = _stp_register_kprobes (kp, NUM_KPROBES);
+    if ((ret = _stp_register_kprobes (kp, NUM_KPROBES)) < 0)
+      _stp_unregister_jprobes (jp, NUM_JPROBES);
 
   return ret;
 }
@@ -122,11 +123,3 @@ static void probe_exit (void)
   _stp_printf ("whatever I want to say\n");
   _stp_print_flush();
 }
-
-/* required */
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
