@@ -25,12 +25,12 @@ static int transport_mode = STP_TRANSPORT_NETLINK;
 static int transport_mode = STP_TRANSPORT_RELAYFS;
 #endif
 
-static int pid;
-module_param(pid, int, 0);
-MODULE_PARM_DESC(pid, "daemon pid");
+static int _stp_pid;
+module_param(_stp_pid, int, 0);
+MODULE_PARM_DESC(_stp_pid, "daemon pid");
 
 #define TRANSPORT_OPEN \
-	if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, pid) < 0) {\
+	if (_stp_transport_open(transport_mode, n_subbufs, subbuf_size, _stp_pid) < 0) {\
 		printk("init_module: Couldn't open transport\n");		\
 		return -1; \
 	}
@@ -76,6 +76,8 @@ struct transport_info
 #else
 #define _stp_transport_write(t, data, len)  relay_write(t->chan, data, len)
 #endif
+
+extern void _stp_transport_cleanup(void);
 
 extern int _stp_transport_open(int transport_mode,
 			       unsigned n_subbufs,

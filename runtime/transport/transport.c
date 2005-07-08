@@ -32,7 +32,7 @@
  */
 
 /* transport-related data for this probe */
-struct stp_transport *t;
+struct stp_transport *_stp_tport;
 
 /* forward declaration of probe-defined exit function */
 static void probe_exit(void);
@@ -42,7 +42,7 @@ static void probe_exit(void);
  */
 static inline int _stp_streaming(void)
 {
-	if (t->transport_mode == STP_TRANSPORT_NETLINK)
+	if (_stp_tport->transport_mode == STP_TRANSPORT_NETLINK)
 		return 1;
 	
 	return 0;
@@ -54,11 +54,11 @@ static inline int _stp_streaming(void)
 static void _stp_handle_buf_info(int pid, struct buf_info *in)
 {
 	struct buf_info out;
-	BUG_ON(!(t && t->chan));
+	BUG_ON(!(_stp_tport && _stp_tport->chan));
 
 	out.cpu = in->cpu;
-	out.produced = atomic_read(&t->chan->buf[in->cpu]->subbufs_produced);
-	out.consumed = atomic_read(&t->chan->buf[in->cpu]->subbufs_consumed);
+	out.produced = atomic_read(&_stp_tport->chan->buf[in->cpu]->subbufs_produced);
+	out.consumed = atomic_read(&_stp_tport->chan->buf[in->cpu]->subbufs_consumed);
 
 	_stp_ctrl_send(STP_BUF_INFO, &out, sizeof(out), pid);
 }
@@ -68,8 +68,8 @@ static void _stp_handle_buf_info(int pid, struct buf_info *in)
  */
 static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 {
-	BUG_ON(!(t && t->chan));
-	relay_subbufs_consumed(t->chan, info->cpu, info->consumed);
+	BUG_ON(!(_stp_tport && _stp_tport->chan));
+	relay_subbufs_consumed(_stp_tport->chan, info->cpu, info->consumed);
 }
 
 /**
@@ -78,41 +78,40 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 static void _stp_handle_transport(int pid)
 {
 	struct transport_info out;
-	BUG_ON(!(t));
+	int trylimit = 50;
 
-	out.transport_mode = t->transport_mode;
-	if (t->transport_mode == STP_TRANSPORT_RELAYFS) {
+	BUG_ON(!(_stp_tport));
+
+	out.transport_mode = _stp_tport->transport_mode;
+	if (_stp_tport->transport_mode == STP_TRANSPORT_RELAYFS) {
 		out.subbuf_size = subbuf_size;
 		out.n_subbufs = n_subbufs;
 	}
 
-	_stp_ctrl_send(STP_TRANSPORT_MODE, &out, sizeof(out), pid);
+	while (_stp_ctrl_send(STP_TRANSPORT_MODE, &out, sizeof(out), pid) < 0 && trylimit--)
+		msleep (5);
 }
 
-int _stp_exit_called = 0;
-
-static int global_pid;
-static void stp_exit_helper (void *data);
-static DECLARE_WORK(stp_exit, stp_exit_helper, &global_pid);
 
 /**
  *	_stp_transport_flush - flush the transport, if applicable
  */
 static inline void _stp_transport_flush(void)
 {
-	extern struct stp_transport *t;
-
-	if (t->transport_mode == STP_TRANSPORT_RELAYFS) {
-		BUG_ON(!t->chan);
-		relay_flush(t->chan);
+	if (_stp_tport->transport_mode == STP_TRANSPORT_RELAYFS) {
+		BUG_ON(!_stp_tport->chan);
+		relay_flush(_stp_tport->chan);
 		ssleep(1); /* FIXME: time for data to be flushed */
 	}
 }
 
-extern atomic_t _stp_transport_failures;
-static void stp_exit_helper (void *data)
+int _stp_exit_called = 0;
+static void stp_exit_helper (void *data);
+static DECLARE_WORK(stp_exit, stp_exit_helper, NULL);
+
+static void _stp_cleanup_and_exit (char *name)
 {
-	int err, trylimit = 50, pid = *(int *)data;
+	int trylimit = 50;
 
 	if (_stp_exit_called == 0) {
 		_stp_exit_called = 1;
@@ -120,13 +119,24 @@ static void stp_exit_helper (void *data)
 		_stp_transport_flush();
 	}
 
-	while ((err =_stp_ctrl_send(STP_EXIT, __this_module.name,
-				    strlen(__this_module.name) + 1, pid)) < 0) {
-		//printk("stp_handle_exit: sent STP_EXIT.  err=%d\n", err);
+	while (_stp_ctrl_send(STP_EXIT, name, strlen(name)+1, _stp_tport->pid) < 0 && trylimit--)
 		msleep (5);
-		if (!trylimit--) /* limit e.g. if user died */
-			break;
-	}
+}
+
+/*
+ * Call probe_exit() if necessary and send a message to stpd to unload the module.
+ */
+static void stp_exit_helper (void *data)
+{
+	_stp_cleanup_and_exit(__this_module.name);
+}
+
+/*
+ * Call probe_exit() if necessary and send a message to stpd to exit.
+ */
+void _stp_transport_cleanup()
+{
+	_stp_cleanup_and_exit("");
 }
 
 /**
@@ -149,9 +159,6 @@ static int _stp_cmd_handler(int pid, int cmd, void *data)
 	case STP_SUBBUFS_CONSUMED:
 		_stp_handle_subbufs_consumed(pid, data);
 		break;
-	case STP_TRANSPORT_MODE:
-		_stp_handle_transport(pid);
-		break;
 	case STP_EXIT:
 		schedule_work (&stp_exit);
 		break;
@@ -171,17 +178,14 @@ static int _stp_cmd_handler(int pid, int cmd, void *data)
  */
 void _stp_transport_close()
 {
-	if (!t)
+	if (!_stp_tport)
 		return;
 
-	stp_exit_helper (&t->pid);
-
-	_stp_ctrl_unregister(t->pid);
+	_stp_ctrl_unregister(_stp_tport->pid);
 	if (!_stp_streaming())
-		_stp_relayfs_close(t->chan, t->dir);
+		_stp_relayfs_close(_stp_tport->chan, _stp_tport->dir);
 
-//	stp_exit_helper (&t->pid);
-	kfree(t);
+	kfree(_stp_tport);
 }
 
 /**
@@ -204,38 +208,40 @@ int _stp_transport_open(int transport_mode,
 {
 	BUG_ON(!(n_subbufs && subbuf_size));
 	
-	t = kcalloc(1, sizeof(struct stp_transport), GFP_KERNEL);
-	if (!t)
+	_stp_tport = kcalloc(1, sizeof(struct stp_transport), GFP_KERNEL);
+	if (!_stp_tport)
 		return -ENOMEM;
 
-	t->pid = pid;
-	global_pid = pid;
-	_stp_ctrl_register(t->pid, _stp_cmd_handler);
+	_stp_tport->pid = pid;
+	_stp_ctrl_register(_stp_tport->pid, _stp_cmd_handler);
 
-	t->transport_mode = transport_mode;
+	_stp_tport->transport_mode = transport_mode;
 
 	if (_stp_streaming())
-		return 0;
+		goto done;
 
-	t->chan = _stp_relayfs_open(n_subbufs, subbuf_size, t->pid, &t->dir);
-	if (!t->chan) {
-		_stp_ctrl_unregister(t->pid);
-		kfree(t);
+	_stp_tport->chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_tport->pid, &_stp_tport->dir);
+	if (!_stp_tport->chan) {
+		_stp_ctrl_unregister(_stp_tport->pid);
+		kfree(_stp_tport);
 		return -ENOMEM;
 	}
 
+done:
+	_stp_handle_transport(pid);
 	return 0;
 }
 
 int _stp_transport_send (int pid, void *data, int len)
 {
-	int err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid);
-	if (err < 0 && _stp_exit_called) {
-		do {
-			msleep (5);
-			err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid);
-		} while (err < 0);
-	}
+	int err, trylimit;
+	if (_stp_exit_called)
+		trylimit = 50;
+	else
+		trylimit = 0;
+
+	while ((err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid)) < 0 && trylimit--)
+		msleep (5);
 	return err;
 }
 

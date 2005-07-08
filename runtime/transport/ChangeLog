@@ -1,3 +1,21 @@
+2005-07-08  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c: Rename pid to _stp_pid.
+	Rename t to _stp_tport.
+	(_stp_cleanup_and_exit): New internal function.
+	(stp_exit_helper): Call _stp_cleanup_and_exit().
+	(_stp_transport_cleanup): New function.
+	(_stp_cmd_handler): Remove handler for STP_TRANSPORT_MODE.
+	The transport now notifies the daemon of the transport.
+	(_stp_transport_close): No longer calls _stp_exit_helper().
+	That is done by _stp_transport_cleanup().
+	(_stp_transport_open): When done, call _stp_handle_transport()
+	to notify the daemon what our transport is.
+	(_stp_transport_send): Put a retry limit on sends.
+
+	* transport.h: Rename pid to _stp_pid.
+	(_stp_transport_cleanup): Add prototype.
+	
 2005-06-23  Martin Hunt  <hunt@redhat.com>
 
 	* transport.h: Move all the transport open stuff here
