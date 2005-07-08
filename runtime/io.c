@@ -55,7 +55,7 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 		}
 		buf[num + start] = '\0';
 		
-		ret = _stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, t->pid);
+		ret = _stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_tport->pid);
 		if (ret < 0)
 			atomic_inc(&_stp_transport_failures);
 #ifndef STP_NETLINK_ONLY
@@ -101,7 +101,11 @@ void _stp_warn (const char *fmt, ...)
 
 /** Exits and unloads the module.
  * This function sends a signal to stpd to tell it to
- * unload the module and exit.
+ * unload the module and exit. The module will not be 
+ * unloaded until after the current probe returns.
+ * @note Be careful to not treat this like the Linux exit() 
+ * call. You should probably call return immediately after
+ * calling _stp_exit().
  */
 void _stp_exit (void)
 {
@@ -116,6 +120,7 @@ void _stp_exit (void)
  *
  * After the error message is displayed, the module will be unloaded.
  * @param fmt A variable number of args.
+ * @sa _stp_exit().
  */
 void _stp_error (const char *fmt, ...)
 {
