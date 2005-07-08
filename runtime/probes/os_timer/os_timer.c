@@ -88,12 +88,8 @@ static void os_timer_callback(unsigned long val)
 }
 
 /* called when the module loads. */
-int init_module(void)
+int probe_start(void)
 {
-    int ret;
-
-    TRANSPORT_OPEN;
-
     addr = _stp_stat_init(HIST_LINEAR, 0, 1000, 100);
 
     cur_addr = _stp_map_new_int64(1000, INT64);
@@ -108,10 +104,7 @@ int init_module(void)
     timer.data = 50;
 
     add_timer(&timer);
-
-    ret = 0;
-
-    return ret;
+    return 0;
 }
 
 static void probe_exit (void)
@@ -129,10 +122,3 @@ static void probe_exit (void)
     _stp_print_flush();
 }
 
-/* required */
-void cleanup_module(void)
-{
-    _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
