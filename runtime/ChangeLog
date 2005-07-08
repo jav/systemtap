@@ -1,5 +1,8 @@
 2005-07-08  Martin Hunt  <hunt@redhat.com>
 
+	* runtime.h: Move some common pieces of modules into this file.
+	Includes MODULE_LICENSE, cleanup_module and init_module.
+
 	* print.c (_stp_print_flush): Rename "t" to "_stp_tport".
 
 	* io.c (_stp_vlog): Ditto.

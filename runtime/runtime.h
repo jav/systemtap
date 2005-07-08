@@ -55,4 +55,27 @@ static struct
 #include "print.c"
 #include "string.c"
 
+/************* Module Stuff ********************/
+int probe_start(void);
+
+int init_module(void)
+{
+  int ret;
+  
+  /* First open connection. This exits on failure. */
+  TRANSPORT_OPEN;
+  
+  ret = probe_start();
+  if (ret < 0)
+    _stp_transport_close();
+}
+
+void cleanup_module(void)
+{
+  _stp_transport_cleanup();
+  _stp_transport_close();
+}
+
+MODULE_LICENSE("GPL");
+
 #endif /* _RUNTIME_H_ */
