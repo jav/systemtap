@@ -43,7 +43,7 @@
 /* maximum number of CPUs we can handle - change if more */
 #define NR_CPUS 256
 
- /* relayfs parameters */
+/* relayfs parameters */
 static struct params
 {
 	unsigned subbuf_size;
@@ -151,8 +151,8 @@ int send_request(int type, void *data, int len)
 
 	req = (struct nlmsghdr *)malloc(NLMSG_SPACE(len));
 	if (req == 0) {
-	  fprintf(stderr, "WARNING: send_request malloc failed\n");
-	  return -1;
+		fprintf(stderr, "WARNING: send_request malloc failed\n");
+		return -1;
 	}
 	memset(req, 0, NLMSG_SPACE(len));
 	req->nlmsg_len = NLMSG_LENGTH(len);
@@ -160,7 +160,6 @@ int send_request(int type, void *data, int len)
 	req->nlmsg_flags = NLM_F_REQUEST;
 	req->nlmsg_pid = getpid();
 	memcpy(NLMSG_DATA(req), data, len);
-	
 	err = send(control_channel, req, req->nlmsg_len, MSG_DONTWAIT);
 	return err;
 }
@@ -197,7 +196,7 @@ static void summarize(void)
 {
 	int i;
 	
-	if (streaming())
+	if (transport_mode != STP_TRANSPORT_RELAYFS)
 		return;
 	
 	printf("summary:\n");
@@ -450,6 +449,24 @@ err:
 	return -1;
 }
 
+#include <sys/wait.h>
+static void cleanup_and_exit (char *mod_name);
+static int module_loaded = 0;
+static void sigchld(int signum)
+{
+	int status;
+	pid_t pid = wait(&status);
+	if (pid > 0 && WIFEXITED(status) && WEXITSTATUS(status))
+		cleanup_and_exit("");
+	signal(SIGCHLD, SIG_DFL);
+	module_loaded = 1;
+
+	if (quiet)
+		printf("Logging... Press Control-C to stop.\n");
+	else
+		printf("Press Control-C to stop.\n");
+}
+
 /**
  *	init_stp - initialize the app
  *	@modname: the name of the stp module to load
@@ -464,17 +481,25 @@ int init_stp(const char *modname,
 {
 	int daemon_pid;
 	char buf[1024];
+	pid_t pid;
 	
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	print_totals = print_summary;
 
 	daemon_pid = getpid();
-	sprintf(buf, "insmod %s pid=%d", modname, daemon_pid);
-	if (system(buf)) {
-		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modname);
-		return -1;
-	}
 
+	sprintf(buf, "_stp_pid=%d", daemon_pid);
+	signal(SIGCHLD, sigchld);
+
+	if ((pid = vfork()) < 0) {
+		perror ("vfork");
+		exit(-1);
+	} else if (pid == 0) {
+		execl("/sbin/insmod",  "insmod", modname, buf, 0);
+		perror ("exec");
+		exit(-1);
+	}
+	
 	control_channel = open_control_channel();
 	if (control_channel < 0)
 		return -1;
@@ -518,7 +543,7 @@ static int merge_output(void)
 	ofp = fopen (outfile_name, "w");
 	if (!ofp) {
 		fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n", 
-			outfile_name, strerror(errno));
+			 outfile_name, strerror(errno));
 		return -1;
 	}
 	
@@ -537,9 +562,9 @@ static int merge_output(void)
 			if (c == 0 || c == EOF)
 				break;
 			if (!quiet)
-			  fputc_unlocked (c, stdout);
+				fputc_unlocked (c, stdout);
 			if (!print_only)
-			  fputc_unlocked (c, ofp);
+				fputc_unlocked (c, ofp);
 		}
 		if (min && ++count != min) {
 			// fprintf(stderr, "got %ld. expected %ld\n", min, count);
@@ -562,7 +587,7 @@ static int merge_output(void)
 		fclose (fp[i]);
 	fclose (ofp);
 	if (dropped)
-	  printf ("\033[33mSequence had %d drops.\033[0m\n", dropped);
+		printf ("\033[33mSequence had %d drops.\033[0m\n", dropped);
 	return 0;
 }
 
@@ -574,10 +599,10 @@ static void postprocess_and_exit(void)
 	if (print_totals)
 		summarize();
 
-	if (!streaming() && merge) {
+	if (transport_mode == STP_TRANSPORT_RELAYFS && merge) {
 		close_all_relayfs_files();
 		merge_output();
-		//delete_percpu_files();
+		delete_percpu_files();
 	}
 	
 	close(control_channel);
@@ -585,10 +610,48 @@ static void postprocess_and_exit(void)
 	exit(0);
 }
 
+static void cleanup_and_exit (char *mod_name)
+{
+	char tmpbuf[128];
+
+	if (exiting)
+		return;
+  
+	exiting = 1;
+  
+	if (transport_mode == STP_TRANSPORT_RELAYFS) {
+		kill_percpu_threads(ncpus);
+		if (request_last_buffers() < 0)
+			exit(1);
+	}
+
+	if (mod_name && *mod_name) {
+		/* FIXME. overflow check */
+		strcpy (tmpbuf, "/sbin/rmmod ");
+		strcpy (tmpbuf + strlen(tmpbuf), mod_name);
+		if (system(tmpbuf)) {
+			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n", 
+				mod_name);
+			close_all_relayfs_files();
+			delete_percpu_files();
+			exit(1);
+		}
+
+		if ( transport_mode == STP_TRANSPORT_RELAYFS && final_cpus_processed < ncpus)
+			return;
+	}
+	postprocess_and_exit();
+}
+
 static void sigproc(int signum)
 {
-	while (send_request(STP_EXIT, NULL, 0) < 0) {
-		usleep (10000);
+	if (transport_mode && module_loaded) {
+		int trylimit = 50;
+		while (send_request(STP_EXIT, NULL, 0) < 0 && trylimit--)
+			usleep (10000);
+	} else {
+		close(control_channel);
+		exit(0);
 	}
 }
 
@@ -602,13 +665,9 @@ int stp_main_loop(void)
 	struct transport_msg *transport_msg;
 	unsigned short *ptr;
 	unsigned subbufs_consumed;
-	char tmpbuf[128];
 	
 	signal(SIGINT, sigproc);
 	signal(SIGTERM, sigproc);
-
-	send_request(STP_TRANSPORT_MODE, &transport_mode,
-		     sizeof(transport_mode));
 
 	while (1) { /* handle messages from control channel */
 		nb = recv(control_channel, recvbuf, sizeof(recvbuf), 0);
@@ -668,35 +727,9 @@ int stp_main_loop(void)
 			fputs ((char *)ptr, stdout);
 			break;
 		case STP_EXIT:
-			if (exiting)
-				break;
-			
-			exiting = 1;
-			
-			if (!streaming()) {
-				kill_percpu_threads(ncpus);
-				if (request_last_buffers() < 0)
-					exit(1);
-			}
 			/* module asks us to unload it and exit */
 			ptr = NLMSG_DATA(nlh);
-			/* FIXME. overflow check */
-			strcpy (tmpbuf, "/sbin/rmmod ");
-			strcpy (tmpbuf + strlen(tmpbuf), (char *)ptr);
-#if 0
-			printf ("Executing \"system %s\"\n", tmpbuf);
-#endif
-			if (system(tmpbuf)) {
-				fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n", 
-					(char *)ptr);
-				close_all_relayfs_files();
-				delete_percpu_files();
-				exit(1);
-			}
-			if (!streaming() && (final_cpus_processed < ncpus))
-				break;
-
-			postprocess_and_exit();
+			cleanup_and_exit((char *)ptr);
 			break;
 		default:
 			fprintf(stderr, "WARNING: ignored netlink message of type %d\n", (nlh->nlmsg_type));

@@ -1,3 +1,19 @@
+2005-07-08  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (sigchld): Signal handler to detect
+	completion of module loading.
+	(init_stp): Use fork/exec instead of system() so
+	we can get async signal of module load success/failure.
+	(cleanup_and_exit): New function. 
+	(sigproc): If module is not loaded, don't send message to it.
+	(stp_main_loop): Call cleanup_and_exit() when STP_EXIT
+	is received. Don't send a request for the transport
+	mode. The module will send notification to the daemon
+	when it is ready.
+
+	* stpd.c (main): Don't print message until module
+	is loaded.
+
 2005-07-01  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c: Removed the color coding of cpu output.

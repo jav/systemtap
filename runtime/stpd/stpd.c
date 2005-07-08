@@ -86,11 +86,6 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (quiet)
-		printf("Logging... Press Control-C to stop.\n");
-	else
-		printf("Press Control-C to stop.\n");
-
 	if (stp_main_loop()) {
 		printf("Couldn't enter main loop. Exiting.\n");
 		exit(1);
