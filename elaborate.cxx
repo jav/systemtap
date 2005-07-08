@@ -37,8 +37,7 @@ derived_probe::derived_probe (probe *p):
 {
   this->locations = p->locations;
   this->tok = p->tok;
-  this->body = p->body;
-  this->locals = p->locals;
+  this->body = deep_copy_visitor::deep_copy(p->body);
 }
 
 
@@ -47,8 +46,7 @@ derived_probe::derived_probe (probe *p, probe_point *l):
 {
   this->locations.push_back (l);
   this->tok = p->tok;
-  this->body = p->body;
-  this->locals = p->locals;
+  this->body = deep_copy_visitor::deep_copy(p->body);
 }
 
 // ------------------------------------------------------------------------
@@ -262,12 +260,17 @@ alias_expansion_builder
     // there's concatenated code here and we only want one vardecl per
     // resulting variable.
 
-    copy(alias->body->statements.begin(), 
-	 alias->body->statements.end(),
-	 back_inserter(n->body->statements));
-    copy(use->body->statements.begin(), 
-	 use->body->statements.end(),
-	 back_inserter(n->body->statements));
+    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
+      {
+	statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
+	n->body->statements.push_back(s);
+      }
+
+    for (unsigned i = 0; i < use->body->statements.size(); ++i)
+      {
+	statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
+	n->body->statements.push_back(s);
+      }
   
     results_to_expand_further.push_back(n);
   }

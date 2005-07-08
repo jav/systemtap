@@ -9,6 +9,7 @@
 #ifndef STAPTREE_H
 #define STAPTREE_H
 
+#include <stack>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -485,6 +486,48 @@ struct throwing_visitor: public visitor
   throwing_visitor ();
 
   virtual void throwone (const token* t);
+
+  void visit_block (block *s);
+  void visit_null_statement (null_statement *s);
+  void visit_expr_statement (expr_statement *s);
+  void visit_if_statement (if_statement* s);
+  void visit_for_loop (for_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
+  void visit_return_statement (return_statement* s);
+  void visit_delete_statement (delete_statement* s);
+  void visit_next_statement (next_statement* s);
+  void visit_break_statement (break_statement* s);
+  void visit_continue_statement (continue_statement* s);
+  void visit_literal_string (literal_string* e);
+  void visit_literal_number (literal_number* e);
+  void visit_binary_expression (binary_expression* e);
+  void visit_unary_expression (unary_expression* e);
+  void visit_pre_crement (pre_crement* e);
+  void visit_post_crement (post_crement* e);
+  void visit_logical_or_expr (logical_or_expr* e);
+  void visit_logical_and_expr (logical_and_expr* e);
+  void visit_array_in (array_in* e);
+  void visit_comparison (comparison* e);
+  void visit_concatenation (concatenation* e);
+  void visit_ternary_expression (ternary_expression* e);
+  void visit_assignment (assignment* e);
+  void visit_symbol (symbol* e);
+  void visit_arrayindex (arrayindex* e);
+  void visit_functioncall (functioncall* e);
+};
+
+// A visitor which performs a deep copy of the root node it's applied
+// to. NB: It does not copy any of the variable or function
+// declarations; those fields are set to NULL, assuming you want to
+// re-infer the declarations in a new context (the one you're copying
+// to).
+
+struct deep_copy_visitor: public visitor
+{
+  std::stack<void *> targets;
+
+  static statement *deep_copy (statement *s);
+  static block *deep_copy (block *s);
 
   void visit_block (block *s);
   void visit_null_statement (null_statement *s);

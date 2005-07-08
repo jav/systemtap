@@ -1,3 +1,11 @@
+2005-07-07  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.{h,cxx} (deep_copy_visitor): New visitor.
+	* elaborate.cxx 
+	(derived_probe::derived_probe):
+	(alias_expansion_builder::build): Use it.
+	* testsuite/semok/fifteen.stp: New test which relies on deep copy.
+
 2005-07-07  Frank Ch. Eigler  <fche@redhat.com>
 
 	* Makefile.am (dist): Package up the source tree, including

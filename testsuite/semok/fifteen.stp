@@ -1,0 +1,12 @@
+#! stap -p2
+
+function trace (n) { return 0 }
+
+# multiple independent derived probes using the "same" variable
+# (this used to crash before we deep-copied the body)
+
+probe begin, begin, begin
+{
+	base_num = 10
+	trace(base_num)
+}
