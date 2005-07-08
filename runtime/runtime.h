@@ -34,6 +34,7 @@
  * This function prints a debug message immediately to stpd. 
  * If the last character is not a newline, then one is added. 
  * @param args A variable number of args in a format like printf.
+ * @ingroup io
  */
 #define dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 #else
