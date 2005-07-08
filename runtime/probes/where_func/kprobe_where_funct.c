@@ -46,20 +46,14 @@ static struct kprobe kp[] = {
 };
 #define MAX_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-	int ret;
-
-	TRANSPORT_OPEN;
-  
 	funct_locations = _stp_map_new_int64 (1000, INT64);
 
 	if (funct_name)
 		kp[0].addr = funct_name;
 
-	ret = _stp_register_kprobes (kp, MAX_KPROBES);
-
-	return ret;
+	return _stp_register_kprobes (kp, MAX_KPROBES);
 }
 
 static void probe_exit (void)
@@ -69,10 +63,3 @@ static void probe_exit (void)
 	_stp_map_print (funct_locations, "Count: %d\tCaller: %1P");
 	_stp_map_del(funct_locations);
 }
-
-void cleanup_module(void)
-{
-	_stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");

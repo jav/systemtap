@@ -44,14 +44,13 @@ static struct kprobe kp[] = {
 
 #define NUM_KPROBES (sizeof(kpr)/sizeof(struct kretprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-
-  TRANSPORT_OPEN;
-  
-  ret = _stp_register_kretprobes (kpr, NUM_KPROBES);
-  ret = _stp_register_kprobes (kp, 1);
+  int ret = _stp_register_kretprobes (kpr, NUM_KPROBES);
+  if (ret >= 0) {
+    if ((ret = _stp_register_kprobes (kp, 1)) < 0)
+      _stp_unregister_kretprobes (kpr, NUM_KPROBES);
+  }
   return ret;
 }
 
@@ -60,10 +59,3 @@ static void probe_exit (void)
   _stp_unregister_kretprobes (kpr, NUM_KPROBES); 
   _stp_unregister_kprobes (kp, 1); 
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");

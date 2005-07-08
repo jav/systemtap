@@ -36,14 +36,9 @@ static struct kprobe kp[] = {
 
 #define NUM_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-
-  TRANSPORT_OPEN;
-  
-  ret = _stp_register_kprobes (kp, NUM_KPROBES);
-  return ret;
+  return _stp_register_kprobes (kp, NUM_KPROBES);
 }
 
 static void probe_exit (void)
@@ -52,10 +47,3 @@ static void probe_exit (void)
   _stp_printf("dropped %d packets\n", atomic_read(&_stp_transport_failures));
   _stp_print_flush();
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");

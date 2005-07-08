@@ -59,20 +59,12 @@ static struct jprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-  
-  TRANSPORT_OPEN;
-
-  /* FIXME. Check return values  */
   opens = _stp_map_new_str (1000, INT64);
   reads = _stp_map_new_str (1000, HSTAT_LOG, 8);
   writes = _stp_map_new_str (1000, HSTAT_LOG, 8);
-
-  ret = _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
-
-  return ret;
+  return _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
 }
 
 static void probe_exit (void)
@@ -82,16 +74,9 @@ static void probe_exit (void)
   _stp_map_print (opens,"%d opens by process \"%1s\"");
   _stp_map_print (reads,"reads by process \"%1s\": %C.  Total bytes=%S.  Average: %A\n%H");
   _stp_map_print (writes,"writes by process \"%1s\": %C.  Total bytes=%S.  Average: %A\n%H");
-
+  _stp_printf("\nDropped %d packets\n", atomic_read(&_stp_transport_failures));
+  _stp_print_flush();
   _stp_map_del (opens);
   _stp_map_del (reads);
   _stp_map_del (writes);
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
-

@@ -36,15 +36,10 @@ static struct kprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct kprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-  
-  TRANSPORT_OPEN;
-
   map1 = _stp_map_new_str (100, INT64);
-  ret = _stp_register_kprobes (stp_probes, MAX_STP_ROUTINE);
-  return ret;
+  return _stp_register_kprobes (stp_probes, MAX_STP_ROUTINE);
 }
 
 static void probe_exit (void)
@@ -53,11 +48,4 @@ static void probe_exit (void)
   _stp_map_print (map1, "trace[%1s] = %d\n");
   _stp_map_del (map1);
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
 

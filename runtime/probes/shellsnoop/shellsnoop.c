@@ -107,12 +107,9 @@ static struct jprobe stp_probes[] = {
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
 
-int init_module(void)
+int probe_start(void)
 {
 	int ret;
-
-	/* First open connection. This exits on failure. */
-	TRANSPORT_OPEN;
 
 	/* now initialize any data or variables */
 	pids = _stp_map_new_int64 (10000, INT64);
@@ -124,7 +121,6 @@ int init_module(void)
 	if (ret < 0) {
 	  _stp_map_del (pids);
 	  _stp_map_del (arglist);
-	  _stp_transport_close();
 	  return ret;
 	}
 	
@@ -134,7 +130,7 @@ int init_module(void)
 }
 
 
-static void probe_exit (void)
+void probe_exit (void)
 {
 	_stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
 	_stp_map_del (pids);
@@ -143,11 +139,4 @@ static void probe_exit (void)
 	_stp_print_flush();
 }
 
-void cleanup_module(void)
-{
-	_stp_transport_cleanup();
-	_stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
 

@@ -35,16 +35,13 @@ static struct kprobe kp[] = {
 #define NUM_JPROBES (sizeof(jp)/sizeof(struct jprobe))
 #define NUM_KPROBES (sizeof(kp)/sizeof(struct kprobe))
 
-int init_module(void)
+int probe_start(void)
 {
   int ret;
-
-  TRANSPORT_OPEN;
-  
   ret = _stp_register_jprobes (jp, NUM_JPROBES);
   if (ret >= 0)
-    ret = _stp_register_kprobes (kp, NUM_KPROBES);
-  
+    if ((ret = _stp_register_kprobes (kp, NUM_KPROBES)) < 0)
+      _stp_unregister_jprobes (jp, NUM_JPROBES)      ;
   return ret;
 }
 
@@ -53,10 +50,3 @@ static void probe_exit (void)
   _stp_unregister_jprobes (jp, NUM_JPROBES); 
   _stp_unregister_kprobes (kp, NUM_KPROBES); 
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");

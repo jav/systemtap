@@ -51,18 +51,13 @@ static struct jprobe stp_probes[] = {
 
 #define MAX_STP_ROUTINE (sizeof(stp_probes)/sizeof(struct jprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-  
-  TRANSPORT_OPEN;
-
   opens = _stp_counter_init();
   reads = _stp_stat_init(HIST_LOG,24);
   writes = _stp_stat_init(HIST_LINEAR,0,1000,50);
 
-  ret = _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
-  return ret;
+  return _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
 }
 
 static void probe_exit (void)
@@ -75,11 +70,3 @@ static void probe_exit (void)
 
   _stp_print_flush();
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
-

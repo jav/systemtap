@@ -28,24 +28,13 @@ static struct jprobe stp_probes[] = {
 };
 #define MAX_STP_PROBES (sizeof(stp_probes)/sizeof(struct jprobe))
 
-int init_module(void)
+int probe_start(void)
 {
-  int ret;
-  
-  TRANSPORT_OPEN;
-  ret = _stp_register_jprobes (stp_probes, MAX_STP_PROBES);
-  return ret;
+  return _stp_register_jprobes (stp_probes, MAX_STP_PROBES);
 }
 
 static void probe_exit (void)
 {
   _stp_unregister_jprobes (stp_probes, MAX_STP_PROBES);
 }
-
-void cleanup_module(void)
-{
-  _stp_transport_close();
-}
-
-MODULE_LICENSE("GPL");
 
