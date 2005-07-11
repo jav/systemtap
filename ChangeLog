@@ -1,3 +1,9 @@
+2005-07-11  Frank Ch. Eigler  <fche@redhat.com>
+
+	* parse.cxx (parse_literal): Compile cleanly on 64-bit host.
+	* staptree.cxx (deep_copy_visitor::visit_if_statement): Don't
+	freak on a null if_statement.elseblock.
+
 2005-07-07  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.{h,cxx} (deep_copy_visitor): New visitor.

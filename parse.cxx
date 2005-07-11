@@ -732,7 +732,7 @@ parser::parse_literal ()
       errno = 0;
       long long value = strtoll (startp, & endp, 0);
       if (errno == ERANGE || errno == EINVAL || *endp != '\0'
-          || value > ULONG_MAX || value < LONG_MIN)
+          || value > 4294967295LL || value < (-2147483647LL-1))
         throw parse_error ("number invalid or out of range"); 
 
       long value2 = (long) value;

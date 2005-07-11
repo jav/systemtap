@@ -1033,7 +1033,10 @@ deep_copy_visitor::visit_if_statement (if_statement* s)
   if_statement *n = new if_statement;
   require <expression*> (this, &(n->condition), s->condition);
   require <statement*> (this, &(n->thenblock), s->thenblock);
-  require <statement*> (this, &(n->elseblock), s->elseblock);
+  if (s->elseblock)
+    require <statement*> (this, &(n->elseblock), s->elseblock);
+  else
+    n->elseblock = 0;
   provide <if_statement*> (this, n);
 }
 
