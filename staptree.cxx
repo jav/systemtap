@@ -987,10 +987,13 @@ template <typename T> static void
 require (deep_copy_visitor *v, T *dst, T src)
 {
   *dst = NULL;
-  v->targets.push(static_cast<void *>(dst));
-  src->visit(v);
-  v->targets.pop();
-  assert(*dst);
+  if (src != NULL)
+    {
+      v->targets.push(static_cast<void *>(dst));
+      src->visit(v);
+      v->targets.pop();
+      assert(*dst);
+    }
 }
 
 template <typename T> static void
@@ -1033,10 +1036,7 @@ deep_copy_visitor::visit_if_statement (if_statement* s)
   if_statement *n = new if_statement;
   require <expression*> (this, &(n->condition), s->condition);
   require <statement*> (this, &(n->thenblock), s->thenblock);
-  if (s->elseblock)
-    require <statement*> (this, &(n->elseblock), s->elseblock);
-  else
-    n->elseblock = 0;
+  require <statement*> (this, &(n->elseblock), s->elseblock);
   provide <if_statement*> (this, n);
 }
 
