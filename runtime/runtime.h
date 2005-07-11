@@ -69,6 +69,8 @@ int init_module(void)
   ret = probe_start();
   if (ret < 0)
     _stp_transport_close();
+
+  return ret;
 }
 
 void cleanup_module(void)

@@ -1,3 +1,7 @@
+2005-07-10  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (init_module): Fix return value.
+
 2005-07-08  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Move some common pieces of modules into this file.
