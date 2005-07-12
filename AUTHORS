@@ -2,6 +2,6 @@
 Frank Ch. Eigler <fche@redhat.com>
 Graydon Hoare <graydon@redhat.com>
 
-../runtime
+./runtime
 Martin Hunt <hunt@redhat.com>
 Tom Zanussi <zanussi@us.ibm.com>
