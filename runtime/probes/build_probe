@@ -7,7 +7,7 @@ proc usage {} {
 }
 
 # use Makefile.template to generate a Makefile
-proc create_makefile {target} {
+proc create_makefile {target relayfs} {
   if {[catch {open ../Makefile.template r} fd]} {
     puts "ERROR opening ../Makefile.template"
     exit -1
@@ -18,6 +18,9 @@ proc create_makefile {target} {
   }
   while {[gets $fd line] >= 0} {
     if {[regsub XXX $line $target newline]} {
+      set line $newline
+    }
+    if {[regsub RELAYFS $line $relayfs newline]} {
       set line $newline
     }
     puts $mfd $line
@@ -123,10 +126,15 @@ foreach arg $argv {
   }
 }
 
+set relayfs ""
+if {![file exists /lib/modules/[exec uname -r]/build/include/linux/relayfs_fs.h]} {
+  set relayfs {-I $(RT)/relayfs}
+}
+
 if {![catch {open targets r} tfd]} {
   while {[gets $tfd line] >= 0} {
     set target [lindex $line 0]
-    create_makefile $target
+    create_makefile $target $relayfs
     build $target
     catch {exec /bin/rm Makefile}
   }

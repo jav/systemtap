@@ -1,3 +1,13 @@
+2005-07-11  Martin Hunt  <hunt@redhat.com>
+
+	* build_probe: Set RELAYFS correctly.
+
+	* Makefile.template: Fix for RELAYFS.
+
+	* stp: Moved here.  All probes now use this copy.
+
+	* ALL/stp: source the master copy of stp.
+
 2005-07-08  Martin Hunt  <hunt@redhat.com>
 
 	* ALL: Use new runtime.h. Change init_module()
