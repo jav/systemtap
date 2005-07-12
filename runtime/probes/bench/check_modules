@@ -1,9 +1,13 @@
 #!/bin/bash
 
-RELAYFS=`lsmod | grep relayfs |awk '{print $1}'`
-if [ "$RELAYFS" != "relayfs" ] 
+RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``
+if [ -z "$RELAYFS" ]
 then
-	/sbin/insmod ../../relayfs/relayfs.ko
+    RELAYFS=`lsmod | grep relayfs`
+    if [ -z "$RELAYFS" ]
+    then
+        /sbin/insmod ../../relayfs/relayfs.ko
+    fi
 fi
 
 if [ ! -d "/mnt/relay" ]
