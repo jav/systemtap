@@ -1,3 +1,12 @@
+2005-07-12  Frank Ch. Eigler  <fche@redhat.com>
+
+	* buildrun.cxx (compile_pass): Make non-verbose mode quieter.
+	(run_pass): Spawn stpd for dirty work.
+	* Makefile.am: Also build stpd into libexecdir.
+	* configure.ac: Pass LIBEXECDIR.
+	* Makefile.in, configure, config.in: Regenerated.
+	* AUTHORS: Update.
+
 2005-07-11  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.cxx (require): Generally handle null pointers in src.

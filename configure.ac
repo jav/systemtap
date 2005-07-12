@@ -33,6 +33,15 @@ date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE)
 
+
+# wha?? autoconf 2.59 does not expand these in the expected way
+# my_libexecdir=`eval echo $libexecdir`
+# my_libexecdir="$libexecdir"
+
+my_libexecdir=${prefix}/libexec
+AC_DEFINE_UNQUOTED(LIBEXECDIR, "$my_libexecdir", [libexecdir])
+AC_SUBST(LIBEXECDIR)
+
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)
 AC_OUTPUT

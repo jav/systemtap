@@ -10,8 +10,15 @@
 #include "buildrun.h"
 
 #include <fstream>
+#include <sstream>
+
+extern "C" {
+#include "signal.h"
+}
+
 
 using namespace std;
+
 
 
 int
@@ -35,8 +42,9 @@ compile_pass (systemtap_session& s)
   string module_dir = string("/lib/modules/") + s.kernel_release + "/build";
   string make_cmd = string("make")
     + string (" -C \"") + module_dir + string("\"");
-  if (! s.verbose) make_cmd += " -s";
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
+  if (! s.verbose)
+    make_cmd += " -s >/dev/null 2>&1";
 
   if (s.verbose) clog << "Running " << make_cmd << endl;
   int rc = system (make_cmd.c_str());
@@ -50,8 +58,24 @@ compile_pass (systemtap_session& s)
 }
 
 
+
 int
 run_pass (systemtap_session& s)
 {
-  return 1;
+  if (s.test_mode)
+    return 1; // XXX: don't know how to do this yet
+  else // real run
+    {
+      // leave parent process alone
+      sighandler_t oldsig = signal (SIGINT, SIG_IGN);
+
+      // for now, just spawn stpd
+      string stpd_cmd = string("/usr/bin/sudo ") +
+        string(LIBEXECDIR) + "/stpd " + s.tmpdir + "/" + s.module_name + ".ko";
+      if (s.verbose) clog << "Running " << stpd_cmd << endl;
+      int rc = system (stpd_cmd.c_str ());
+      
+      signal (SIGINT, oldsig);
+      return rc;
+    }      
 }

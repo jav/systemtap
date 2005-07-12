@@ -32,7 +32,7 @@ void
 usage (systemtap_session& s)
 {
   clog 
-    << "SystemTap translator "
+    << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
     << "Copyright (C) 2005 Red Hat, Inc." << endl
     << "This is free software; see the source for copying conditions."

@@ -3,11 +3,15 @@
 
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
-bin_PROGRAMS = 
-noinst_PROGRAMS = stap
+bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx
+
+libexec_PROGRAMS = stpd
+stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
+stpd_LDADD = -lpthread
+
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
