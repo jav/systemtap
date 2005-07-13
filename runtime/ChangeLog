@@ -1,3 +1,7 @@
+2005-07-11  Graydon Hoare  <graydon@redhat.com>
+
+	* builtin_functions.h: New file.
+
 2005-07-10  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (init_module): Fix return value.

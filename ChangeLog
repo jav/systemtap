@@ -1,3 +1,20 @@
+2005-07-12  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx
+	(semantic_pass_symbols): Only enter body if non-null.
+	(semantic_pass_types): Likewise.
+	(semantic_pass): Pass session to register_standard_tapsets.
+	* translate.cxx
+	(builtin_collector): New struct.
+	(hookup_builtins): New function.
+	(translate_pass): Only translate functions with bodies.
+	(c_unparser::emit_common_header): Likewise, and call hookup_builtins.
+	* tapsets.hh (builtin_function): New class.
+	(register_standard_tapsets): Change parameter to session.
+	* tapsets.cc (bultin_function::*): Implement class.
+	(register_standard_tapsets): Register printk, log, warn.
+	* testsuite/transok/six.stp: New test.
+
 2005-07-12  Frank Ch. Eigler  <fche@redhat.com>
 
 	* buildrun.cxx (compile_pass): Make non-verbose mode quieter.

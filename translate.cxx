@@ -11,7 +11,9 @@
 #include "elaborate.h"
 #include "translate.h"
 #include <iostream>
+#include <set>
 #include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -173,6 +175,50 @@ struct c_tmpcounter: public traversing_visitor
 };
 
 
+struct builtin_collector: public traversing_visitor
+{
+  set<string> called_builtins;
+  void visit_functioncall (functioncall* e);
+};
+
+void
+builtin_collector::visit_functioncall(functioncall* e)
+{
+  if (e->referent && !e->referent->body)
+    called_builtins.insert(e->referent->name);
+}
+
+void
+hookup_builtins(systemtap_session *session,
+		translator_output *o)
+{
+  builtin_collector bc;
+  for (unsigned i=0; i<session->functions.size(); i++)
+    {
+      functiondecl* fd = session->functions[i];
+      if (fd->body)
+	fd->body->visit(&bc);
+    }
+  for (unsigned i=0; i<session->probes.size(); i++)
+    {
+      derived_probe* dp = session->probes[i];
+      dp->body->visit(&bc);
+    }
+
+  for (set<string>::const_iterator i = bc.called_builtins.begin();
+       i != bc.called_builtins.end(); ++i)
+    {
+      o->newline() << "#define _BUILTIN_FUNCTION_" << *i << "_";
+    }
+
+  o->newline() << "#include \"builtin_functions.h\"";
+
+  for (set<string>::const_iterator i = bc.called_builtins.begin();
+       i != bc.called_builtins.end(); ++i)
+    {
+      o->newline() << "#undef _BUILTIN_FUNCTION_" << *i << "_";
+    }
+}
 
 void
 c_unparser::emit_common_header ()
@@ -234,7 +280,8 @@ c_unparser::emit_common_header ()
 		       << c_varname (v->name) << ";";
         }
       c_tmpcounter ct (this);
-      fd->body->visit (& ct);
+      if (fd->body)
+	fd->body->visit (& ct);
       if (fd->type == pe_unknown)
 	o->newline() << "/* no return value */";
       else
@@ -245,6 +292,7 @@ c_unparser::emit_common_header ()
     }
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "} contexts [MAXCONCURRENCY];" << endl;
+  hookup_builtins(session, o);
 }
 
 
@@ -1452,11 +1500,13 @@ translate_pass (systemtap_session& s)
 
       s.op->newline() << "/* function signatures */";
       for (unsigned i=0; i<s.functions.size(); i++)
-        s.up->emit_functionsig (s.functions[i]);
+	if (s.functions[i]->body)
+	  s.up->emit_functionsig (s.functions[i]);
 
       s.op->newline() << "/* functions */";
       for (unsigned i=0; i<s.functions.size(); i++)
-        s.up->emit_function (s.functions[i]);
+	if (s.functions[i]->body)
+	  s.up->emit_function (s.functions[i]);
 
       s.op->newline() << "/* probes */";
       for (unsigned i=0; i<s.probes.size(); i++)

@@ -1,0 +1,8 @@
+#! stap -p3
+
+probe begin
+{
+	printk("kernel time")
+	log("hello there")
+	warn("this is a builtin")
+}
