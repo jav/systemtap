@@ -1,7 +1,7 @@
 #!/usr/bin/tclsh
 # -*- tcl -*-
 
-proc do_time {module} {  
+proc do_time {module n} {  
   # start kprobes
   if {[catch {exec ../../stpd/stpd -mq $module.ko > xxx &} pid]} {
     puts $pid
@@ -11,7 +11,7 @@ proc do_time {module} {
   exec sleep 2
 
   # get the timings while kprobes running
-  if {[catch {exec ./time} res2]} {
+  if {[catch {exec ./ttest $n} res2]} {
     puts $res2
     exit -1
   }
@@ -25,7 +25,7 @@ proc do_time {module} {
 }
 
 
-set nproc [exec grep processor /proc/cpuinfo | wc -l]
+set nproc [exec grep ^processor /proc/cpuinfo | wc -l]
 if {![catch {exec grep "physical id" /proc/cpuinfo} phyid]} {
     foreach phy [split $phyid \n] {
 	set cpu($phy) 1
@@ -52,7 +52,7 @@ if {[catch {exec ./check_modules} res]} {
 }
 
 # get the timings without kprobes
-if {[catch {exec ./time} res1]} {
+if {[catch {exec ./ttest 4} res1]} {
   puts $res1
   exit -1
 }
@@ -60,7 +60,7 @@ if {[catch {exec ./time} res1]} {
 set r_overhead [lindex $res1 0]
 set w_overhead [lindex $res1 1]
 
-set res2 [do_time bench]
+set res2 [do_time bench 4]
 set t_kprobe [expr [lindex $res2 0] - $r_overhead]
 set t_jprobe [expr [lindex $res2 1] - $w_overhead]
 
@@ -69,7 +69,7 @@ puts "Kprobes overhead = $t_kprobe ns"
 puts "--------------------------------------"
 
 if {[file exists bench_ret.ko]} {
-  set res2 [do_time bench_ret]
+  set res2 [do_time bench_ret 4]
   set t_ret [expr [lindex $res2 0] - $r_overhead]
   set t_entret [expr [lindex $res2 1] - $w_overhead]
   
@@ -78,7 +78,7 @@ if {[file exists bench_ret.ko]} {
   puts "--------------------------------------"
 }
 
-set res2 [do_time bench_multi]
+set res2 [do_time bench_multi 4]
 set t_k2 [expr [lindex $res2 0] - $r_overhead]
 set t_k4 [expr [lindex $res2 1] - $w_overhead]
 
@@ -86,7 +86,7 @@ puts "2 kprobes on same func       = $t_k2 ns"
 puts "4 kprobes on same func       = $t_k4 ns"
 puts "--------------------------------------"
 
-set res2 [do_time bench_io1]
+set res2 [do_time bench_io1 1]
 # subtract function call overhead and kprobe overhead
 set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
 set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
@@ -97,7 +97,7 @@ puts "_stp_print  on 100 chars = $t_print ns"
 puts "--------------------------------------"
 exec sleep 4
 
-set res2 [do_time bench_io2]
+set res2 [do_time bench_io2 1]
 # subtract function call overhead and kprobe overhead
 set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
 set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
@@ -108,3 +108,4 @@ puts "_stp_print  on 100 chars = $t_print ns"
 puts "--------------------------------------"
 
 exec rm xxx
+exec /bin/rm -f stpd_cpu*

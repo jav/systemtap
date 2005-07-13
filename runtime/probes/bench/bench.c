@@ -37,11 +37,10 @@ static struct kprobe kp[] = {
 
 int probe_start(void)
 {
-  int ret;
-  ret = _stp_register_jprobes (jp, NUM_JPROBES);
+  int ret = _stp_register_jprobes (jp, NUM_JPROBES);
   if (ret >= 0)
     if ((ret = _stp_register_kprobes (kp, NUM_KPROBES)) < 0)
-      _stp_unregister_jprobes (jp, NUM_JPROBES)      ;
+      _stp_unregister_jprobes (jp, NUM_JPROBES);
   return ret;
 }
 

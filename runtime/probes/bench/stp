@@ -43,4 +43,4 @@ fi
 #../../stpd/stpd $modulename
 
 # no screen, log to files (file logging only if #define STP_NETLINK_ONLY commented out in module)
-../../stpd/stpd -q $modulename
+../../stpd/stpd -mq $modulename
