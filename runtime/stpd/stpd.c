@@ -38,7 +38,7 @@ static char stpd_filebase[1024];
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "%s [-p] [-q] kmod-name\n", prog);
+	fprintf(stderr, "%s [-m] [-p] [-q] kmod-name\n", prog);
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
