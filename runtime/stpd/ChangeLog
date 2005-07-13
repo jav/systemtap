@@ -1,3 +1,7 @@
+2005-07-13  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (init_stp): Change last arg to NULL, not 0.
+
 2005-07-08  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (sigchld): Signal handler to detect

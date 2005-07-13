@@ -495,7 +495,7 @@ int init_stp(const char *modname,
 		perror ("vfork");
 		exit(-1);
 	} else if (pid == 0) {
-		execl("/sbin/insmod",  "insmod", modname, buf, 0);
+		execl("/sbin/insmod",  "insmod", modname, buf, NULL);
 		perror ("exec");
 		exit(-1);
 	}
