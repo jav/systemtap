@@ -21,7 +21,7 @@ void *malloc(size_t size);
 void free(void *ptr);
 
 enum errorcode { ERR_NONE=0, ERR_NO_MEM };
-enum errorcode _stp_error = ERR_NONE;
+enum errorcode _stp_errorcode = ERR_NONE;
 
 /** Allocates memory within a probe.
  * This is used for small allocations from within a running
@@ -35,7 +35,7 @@ void *_stp_alloc(size_t len)
 {
 	void *ptr = malloc(len);
 	if (unlikely(ptr == NULL))
-		_stp_error = ERR_NO_MEM;
+		_stp_errorcode = ERR_NO_MEM;
 	return ptr;
 }
 
@@ -68,7 +68,7 @@ void *_stp_valloc(size_t len)
 	if (likely(ptr))
 		memset(ptr, 0, len);
 	else
-		_stp_error = ERR_NO_MEM;
+		_stp_errorcode = ERR_NO_MEM;
 	return ptr;
 }
 
