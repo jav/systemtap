@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 	}
 
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
-	if (init_stp(modname, stpd_filebase, 1)) {
+	if (init_stp(modname, stpd_filebase, !quiet)) {
 		fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);
 	}

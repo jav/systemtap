@@ -437,8 +437,9 @@ int init_relayfs(void)
 		}
 	}
 
-	printf("Using channel with %u sub-buffers of size %u.\n",
-	       params.n_subbufs, params.subbuf_size);
+        if (print_totals)
+          printf("Using channel with %u sub-buffers of size %u.\n",
+                 params.n_subbufs, params.subbuf_size);
 
 	return 0;
 err:
