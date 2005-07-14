@@ -152,6 +152,8 @@ struct sock *_stp_netlink_open(int unit,
 	}
 	nl->sk_user_data = handler;
 
+        skb_queue_head_init(&delayed_pkts);
+
 	return nl;
 }
 
