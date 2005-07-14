@@ -394,6 +394,7 @@ static void *reader_thread(void *data)
 		send_request(STP_BUF_INFO, &status[cpu].info,
 			     sizeof(struct buf_info));
 
+		pthread_mutex_lock(&status[cpu].ready_mutex);
 		if (status[cpu].info.produced == status[cpu].info.consumed)
 			pthread_cond_wait(&status[cpu].ready_cond,
 					  &status[cpu].ready_mutex);
