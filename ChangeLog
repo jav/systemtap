@@ -1,5 +1,12 @@
 2005-07-14  Frank Ch. Eigler  <fche@redhat.com>
 
+	* buildrun.cxx (compile_pass, run_pass): Get closer to a working
+	test_mode.
+	* translate.cxx (emit_module_init, emit_common_header): Ditto.
+	(translate_pass): Ditto.
+
+2005-07-14  Frank Ch. Eigler  <fche@redhat.com>
+
 	* Makefile.am (stpd): Install in $pkglibdir.
 	(runtime): Copy to $pkgdatadir.
 	* configure.ac: Pass along pkgdatadir and pkglibdir.

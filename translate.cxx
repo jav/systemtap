@@ -223,7 +223,6 @@ hookup_builtins(systemtap_session *session,
 void
 c_unparser::emit_common_header ()
 {
-  o->newline() << "#include <linux/string.h>";
   // XXX: tapsets.cxx should be able to add additional definitions
 
   o->newline() << "#define NR_CPU 1"; 
@@ -329,7 +328,9 @@ c_unparser::emit_module_init ()
   o->newline() << "int rc;";
 
   // XXX: yuck runtime
+  o->newline() << "#if !TEST_MODE";
   o->newline() << "TRANSPORT_OPEN;";
+  o->newline() << "#endif";
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -386,7 +387,13 @@ c_unparser::emit_module_exit ()
       o->newline() << "anyrc |= rc;";
     }
   // XXX: uninitialize globals
+
+
+  // XXX: yuck runtime
+  o->newline() << "#if !TEST_MODE";
   o->newline() << "_stp_transport_close ();";
+  o->newline() << "#endif";
+
   // XXX: if anyrc, log badness
   o->newline(-1) << "}" << endl;
 }
@@ -1490,7 +1497,13 @@ translate_pass (systemtap_session& s)
   try
     {
       s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
+
+      s.op->newline() << "#if TEST_MODE";
       s.op->newline() << "#include \"runtime.h\"";
+      s.op->newline() << "#else";
+      s.op->newline() << "#include \"runtime.h\"";
+      s.op->newline() << "#include <linux/string.h>";
+      s.op->newline() << "#endif";
 
       s.up->emit_common_header ();
 
@@ -1521,7 +1534,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "/* test mode mainline */";
       s.op->newline() << "int main () {";
       s.op->newline(1) << "int rc = systemtap_module_init ();";
-      s.op->newline() << "if (!rc) rc = systemtap_module_exit ();";
+      s.op->newline() << "if (!rc) systemtap_module_exit ();";
       s.op->newline() << "return rc;";
       s.op->newline(-1) << "}";
 
