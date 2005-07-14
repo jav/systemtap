@@ -38,9 +38,13 @@ AC_SUBST(DATE)
 # my_libexecdir=`eval echo $libexecdir`
 # my_libexecdir="$libexecdir"
 
-my_libexecdir=${prefix}/libexec
-AC_DEFINE_UNQUOTED(LIBEXECDIR, "$my_libexecdir", [libexecdir])
-AC_SUBST(LIBEXECDIR)
+my_pkglibdir=${prefix}/lib/systemtap
+AC_DEFINE_UNQUOTED(PKGLIBDIR, "$my_pkglibdir", [pkglibdir])
+AC_SUBST(PKGLIBDIR)
+
+my_pkgdatadir=${prefix}/share/systemtap
+AC_DEFINE_UNQUOTED(PKGDATADIR, "$my_pkgdatadir", [datadir])
+AC_SUBST(PKGDATADIR)
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile)

@@ -48,9 +48,6 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* libexecdir */
-#undef LIBEXECDIR
-
 /* Name of package */
 #undef PACKAGE
 
@@ -68,6 +65,12 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* datadir */
+#undef PKGDATADIR
+
+/* pkglibdir */
+#undef PKGLIBDIR
 
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES

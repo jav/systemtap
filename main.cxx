@@ -108,7 +108,7 @@ main (int argc, char * const argv [])
   s.verbose = false;
   s.test_mode = false;
   s.last_pass = 5;
-  s.runtime_path = "/usr/share/systemtap/runtime"; // XXX
+  s.runtime_path = string(PKGDATADIR) + "/runtime";
   s.module_name = "stap_" + stringify(getuid()) + "_" + stringify(time(0));
   s.keep_tmpdir = false;
 

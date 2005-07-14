@@ -1,3 +1,12 @@
+2005-07-14  Frank Ch. Eigler  <fche@redhat.com>
+
+	* Makefile.am (stpd): Install in $pkglibdir.
+	(runtime): Copy to $pkgdatadir.
+	* configure.ac: Pass along pkgdatadir and pkglibdir.
+	* main.cxx: Default runtime_path from pkgdatadir.
+	* buildrun.cxx (run_pass): Correct stpd directory.
+	* Makefile.in, configure, config.in: Regenerated.
+
 2005-07-12  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.cxx

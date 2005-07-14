@@ -70,8 +70,10 @@ run_pass (systemtap_session& s)
       sighandler_t oldsig = signal (SIGINT, SIG_IGN);
 
       // for now, just spawn stpd
-      string stpd_cmd = string("/usr/bin/sudo ") +
-        string(LIBEXECDIR) + "/stpd " + s.tmpdir + "/" + s.module_name + ".ko";
+      string stpd_cmd = string("/usr/bin/sudo ") 
+        + string(PKGLIBDIR) + "/stpd "
+        + (s.verbose ? "" : "-q ")
+        + s.tmpdir + "/" + s.module_name + ".ko";
       if (s.verbose) clog << "Running " << stpd_cmd << endl;
       int rc = system (stpd_cmd.c_str ());
       

@@ -8,7 +8,7 @@ stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx
 
-libexec_PROGRAMS = stpd
+pkglib_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 
@@ -17,17 +17,14 @@ AM_CXXFLAGS = -Wall
 # Get extra libs as needed
 LDADD =
 
-# Set autoconf Makefile.in variables correctly
-datadir = @datadir@
-stapdatadir = @datadir@/systemtap
-
-# stuff for compiling gawk/pgawk
-DEFPATH="\".$(PATH_SEPARATOR)$(stapdatadir)\""
-DEFS= -DDEFPATH=$(DEFPATH) -DHAVE_CONFIG_H
-
 EXTRA_DIST=testsuite runtime
 dist-hook:
 	find $(distdir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+
+install-data-local:
+	mkdir -p $(DESTDIR)$(pkgdatadir)
+	cp -rp $(srcdir)/runtime $(DESTDIR)$(pkgdatadir)
+	find $(DESTDIR)$(pkgdatadir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
