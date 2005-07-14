@@ -1,3 +1,8 @@
+2005-07-14  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* netlink.c (_stp_netlink_open): Add missing delayed_pkts
+	initialization.
+	
 2005-07-08  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c: Rename pid to _stp_pid.
