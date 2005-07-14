@@ -34,7 +34,7 @@
 static void
 function_printk (struct context *c)
 {
-  printk (KERN_INFO, c->locals[c->nesting].function_printk.message);
+  printk (KERN_INFO "%s\n", c->locals[c->nesting].function_printk.message);
 }
 #endif /* _BUILTIN_FUNCTION_printk_ */
 
