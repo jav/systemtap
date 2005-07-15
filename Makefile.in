@@ -745,7 +745,7 @@ dist-hook:
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)
 	cp -rp $(srcdir)/runtime $(DESTDIR)$(pkgdatadir)
-	find $(DESTDIR)$(pkgdatadir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(DESTDIR)$(pkgdatadir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 
 gcov:
 	@$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check

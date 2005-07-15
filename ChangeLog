@@ -1,3 +1,9 @@
+2005-07-15  Frank Ch. Eigler  <fche@redhat.com>
+
+	* Makefile.am (install-data-local): Correct typo.
+	* buildrun.cxx (compile_pass): Ditto.
+	* main.cxx (main): Print errors if passes 4 or 5 fail.
+
 2005-07-14  Frank Ch. Eigler  <fche@redhat.com>
 
 	* buildrun.cxx (compile_pass, run_pass): Get closer to a working

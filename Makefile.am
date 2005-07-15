@@ -24,7 +24,7 @@ dist-hook:
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)
 	cp -rp $(srcdir)/runtime $(DESTDIR)$(pkgdatadir)
-	find $(DESTDIR)$(pkgdatadir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(DESTDIR)$(pkgdatadir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem

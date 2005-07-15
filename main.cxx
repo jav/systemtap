@@ -263,6 +263,7 @@ main (int argc, char * const argv [])
         }
     }
 
+  // syntax errors, if any, are already printed
   if (s.verbose) clog << "Pass 1: parsed user script and "
                       << s.library_files.size()
                       << " library script(s)." << endl;
@@ -325,6 +326,7 @@ main (int argc, char * const argv [])
                       << s.functions.size() << " function(s), "
                       << s.globals.size() << " global(s)." << endl;
 
+  // semantic errors, if any, are already printed
   if (rc || s.last_pass == 2) goto cleanup;
 
   // PASS 3: TRANSLATION
@@ -341,15 +343,24 @@ main (int argc, char * const argv [])
                       << s.translated_source
                       << "\"" << endl;
 
+  // translation errors, if any, are already printed
   if (rc || s.last_pass == 3) goto cleanup;
   
   // PASS 4: COMPILATION
   rc = compile_pass (s);
 
+  if (rc)
+    cerr << "Pass 4: compilation failed.  "
+         << "Try again with '-v' (verbose) option." << endl;
+
   if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
   rc = run_pass (s);
+
+  if (rc)
+    cerr << "Pass 5: run failed.  "
+         << "Try again with '-v' (verbose) option." << endl;
 
   // if (rc) goto cleanup;
 
