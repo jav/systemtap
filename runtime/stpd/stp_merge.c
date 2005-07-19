@@ -99,9 +99,9 @@ int main (int argc, char *argv[])
 			fputc_unlocked (c, ofp);
 		}
 		if (min && ++count != min) {
-			// fprintf(stderr, "got %ld. expected %ld\n", min, count);
+			//fprintf(stderr, "got %ld. expected %ld\n", min, count);
+			dropped += min - count ;
 			count = min;
-			dropped++ ;
 		}
 
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[j]))

@@ -1,3 +1,7 @@
+2005-07-18  Martin Hunt  <hunt@redhat.com>
+
+	* stp_merge.c (main): Fix dropped count calculation.
+
 2005-07-14  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* librelay.c (reader_thread): Add missing pthread_mutex_lock
