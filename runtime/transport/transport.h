@@ -9,6 +9,8 @@
 #include "netlink.h"
 #include "relayfs.h"
 
+void _stp_warn (const char *fmt, ...);
+
 static unsigned n_subbufs = 4;
 static unsigned subbuf_size = 65536;
 
@@ -74,7 +76,7 @@ struct transport_info
 #ifdef STP_NETLINK_ONLY
 #define _stp_transport_write(t, data, len)  _stp_transport_send (t->pid, data, len)
 #else
-#define _stp_transport_write(t, data, len)  relay_write(t->chan, data, len)
+#define _stp_transport_write(t, data, len)  _stp_relay_write(t->chan, data, len)
 #endif
 
 extern void _stp_transport_cleanup(void);

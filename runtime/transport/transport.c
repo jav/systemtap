@@ -114,11 +114,15 @@ static void _stp_cleanup_and_exit (char *name)
 	int trylimit = 50;
 
 	if (_stp_exit_called == 0) {
+		
+		int failures = atomic_read(&_stp_transport_failures);
 		_stp_exit_called = 1;
 		probe_exit();
+		if (failures)
+			_stp_warn ("There were %d transport failures.\n", failures);
 		_stp_transport_flush();
 	}
-
+	
 	while (_stp_ctrl_send(STP_EXIT, name, strlen(name)+1, _stp_tport->pid) < 0 && trylimit--)
 		msleep (5);
 }
@@ -126,6 +130,9 @@ static void _stp_cleanup_and_exit (char *name)
 /*
  * Call probe_exit() if necessary and send a message to stpd to unload the module.
  */
+
+
+
 static void stp_exit_helper (void *data)
 {
 	_stp_cleanup_and_exit(__this_module.name);
@@ -180,7 +187,7 @@ void _stp_transport_close()
 {
 	if (!_stp_tport)
 		return;
-
+		
 	_stp_ctrl_unregister(_stp_tport->pid);
 	if (!_stp_streaming())
 		_stp_relayfs_close(_stp_tport->chan, _stp_tport->dir);
@@ -243,6 +250,32 @@ int _stp_transport_send (int pid, void *data, int len)
 	while ((err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, pid)) < 0 && trylimit--)
 		msleep (5);
 	return err;
+}
+
+/* like relay_write except returns an error code */
+
+static int _stp_relay_write (struct rchan *chan,
+			     const void *data,
+			     unsigned length)
+{
+	unsigned long flags;
+	struct rchan_buf *buf;
+
+	if (unlikely(length == 0))
+		return 0;
+
+	local_irq_save(flags);
+	buf = chan->buf[smp_processor_id()];
+	if (unlikely(buf->offset + length > chan->subbuf_size))
+		length = relay_switch_subbuf(buf, length);
+	memcpy(buf->data + buf->offset, data, length);
+	buf->offset += length;
+	local_irq_restore(flags);
+	
+	if (unlikely(length == 0))
+		return -1;
+
+	return length;
 }
 
 /** @} */
