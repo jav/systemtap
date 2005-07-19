@@ -20,7 +20,7 @@ LDADD =
 EXTRA_DIST=testsuite runtime $(wildcard $(srcdir)/*.h)
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
-	find $(distdir) -name '*.o' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
+	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)
