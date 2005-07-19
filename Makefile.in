@@ -193,7 +193,7 @@ AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
 LDADD = 
-EXTRA_DIST = testsuite runtime
+EXTRA_DIST = testsuite runtime $(wildcard $(srcdir)/*.h)
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
 t = $(srcdir)/testsuite/trans
@@ -511,6 +511,7 @@ check-TESTS: $(TESTS)
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
+	$(mkdir_p) $(distdir)/$(srcdir)
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -740,7 +741,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-info-am uninstall-pkglibPROGRAMS
 
 dist-hook:
-	find $(distdir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(distdir) -name '*.o' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)

@@ -17,9 +17,10 @@ AM_CXXFLAGS = -Wall
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST=testsuite runtime
+EXTRA_DIST=testsuite runtime $(wildcard $(srcdir)/*.h)
 dist-hook:
-	find $(distdir)/testsuite -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(distdir) -name '*.o' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)

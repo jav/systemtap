@@ -1,5 +1,10 @@
 2005-07-19  Frank Ch. Eigler  <fche@redhat.com>
 
+	* Makefile.am (dist-hook): Complete the resulting tarball.
+	* Makefile.in: Regenerated.
+
+2005-07-19  Frank Ch. Eigler  <fche@redhat.com>
+
 	* translate.cxx (emit_module_init/exit, translate_pass): Conform
 	to newer runtime startup/shutdown hooks.
 
