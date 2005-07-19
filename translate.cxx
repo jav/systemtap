@@ -327,11 +327,6 @@ c_unparser::emit_module_init ()
   o->newline(1) << "int anyrc = 0;";
   o->newline() << "int rc;";
 
-  // XXX: yuck runtime
-  o->newline() << "#if !TEST_MODE";
-  o->newline() << "TRANSPORT_OPEN;";
-  o->newline() << "#endif";
-
   for (unsigned i=0; i<session->globals.size(); i++)
     {
       vardecl* v = session->globals[i];
@@ -370,13 +365,6 @@ c_unparser::emit_module_init ()
 void
 c_unparser::emit_module_exit ()
 {
-  // XXX: double-yuck runtime
-  o->newline() << "void probe_exit () {";
-  // need to reference these static functions for -Werror avoidance
-  o->newline(1) << "if (0) next_fmt ((void *) 0, (void *) 0);";
-  o->newline() << "if (0) _stp_dbug(\"\", 0, \"\");";
-  o->newline(-1) << "}";
-  //
   o->newline() << "static void systemtap_module_exit (void);";
   o->newline() << "void systemtap_module_exit () {";
   o->newline(1) << "int anyrc = 0;";
@@ -387,12 +375,6 @@ c_unparser::emit_module_exit ()
       o->newline() << "anyrc |= rc;";
     }
   // XXX: uninitialize globals
-
-
-  // XXX: yuck runtime
-  o->newline() << "#if !TEST_MODE";
-  o->newline() << "_stp_transport_close ();";
-  o->newline() << "#endif";
 
   // XXX: if anyrc, log badness
   o->newline(-1) << "}" << endl;
@@ -1541,20 +1523,20 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#else";
 
       s.op->newline();
-      s.op->newline() << "static int __init _systemtap_module_init (void);";
-      s.op->newline() << "int _systemtap_module_init () {";
+      // XXX
+      s.op->newline() << "int probe_start () {";
       s.op->newline(1) << "return systemtap_module_init ();";
       s.op->newline(-1) << "}";
 
       s.op->newline();
-      s.op->newline() << "static void __exit _systemtap_module_exit (void);";
-      s.op->newline() << "void _systemtap_module_exit () {";
-      s.op->newline(1) << "systemtap_module_exit ();";
+      s.op->newline() << "void probe_exit () {";
+      // XXX: need to reference these static functions for -Werror avoidance
+      s.op->newline(1) << "if (0) next_fmt ((void *) 0, (void *) 0);";
+      s.op->newline() << "if (0) _stp_dbug(\"\", 0, \"\");";
+      s.op->newline() << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
 
       s.op->newline();
-      s.op->newline() << "module_init (_systemtap_module_init);";
-      s.op->newline() << "module_exit (_systemtap_module_exit);";
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
 

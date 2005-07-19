@@ -1,3 +1,8 @@
+2005-07-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx (emit_module_init/exit, translate_pass): Conform
+	to newer runtime startup/shutdown hooks.
+
 2005-07-15  Frank Ch. Eigler  <fche@redhat.com>
 
 	* Makefile.am (install-data-local): Correct typo.
