@@ -77,7 +77,7 @@ void _stp_print_flush (void)
 	int cpu = smp_processor_id();
 	char *buf = &_stp_pbuf[cpu][0];
 	char *ptr = buf + STP_PRINT_BUF_START;
-	int seq;
+	int ret, seq;
 
 	if (_stp_pbuf_len[cpu] == 0)
 		return;
@@ -85,7 +85,10 @@ void _stp_print_flush (void)
 	seq = _stp_seq_inc();
 	scnprintf (buf, TIMESTAMP_SIZE, "%10d", seq);
 	buf[TIMESTAMP_SIZE - 1] = ' ';
-	_stp_transport_write(_stp_tport, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
+	ret = _stp_transport_write(_stp_tport, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
+	if (unlikely(ret < 0))
+		atomic_inc (&_stp_transport_failures);
+
 	_stp_pbuf_len[cpu] = 0;
 	*ptr = 0;
 }
