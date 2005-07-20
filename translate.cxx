@@ -225,20 +225,25 @@ c_unparser::emit_common_header ()
 {
   // XXX: tapsets.cxx should be able to add additional definitions
 
-  o->newline() << "#define NR_CPU 1"; 
   o->newline() << "#define MAXNESTING 30";
-  o->newline() << "#define MAXCONCURRENCY NR_CPU";
+  o->newline() << "#define MAXCONCURRENCY NR_CPUS";
   o->newline() << "#define MAXSTRINGLEN 128";
   o->newline() << "#define MAXACTION 1000";
   o->newline();
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
-  o->newline() << "typedef struct { int a; } stats_t;";
+  o->newline() << "typedef struct { } stats_t;";
   o->newline();
-  o->newline() << "unsigned errorcount;";
+  o->newline() << "#define STAP_SESSION_STARTING 0";
+  o->newline() << "#define STAP_SESSION_RUNNING 1";
+  o->newline() << "#define STAP_SESSION_ERROR 2";
+  o->newline() << "#define STAP_SESSION_STOPPING 3";
+  o->newline() << "#define STAP_SESSION_STOPPED 4";
+  o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
+  o->newline();
   o->newline() << "struct context {";
-  o->indent(1);
-  o->newline() << "unsigned busy;";
+  o->newline(1) << "unsigned busy;";
   o->newline() << "unsigned actioncount;";
+  o->newline() << "unsigned errorcount;";
   o->newline() << "unsigned nesting;";
   o->newline() << "union {";
   o->indent(1);
@@ -324,8 +329,12 @@ c_unparser::emit_module_init ()
 {
   o->newline() << "static int systemtap_module_init (void);";
   o->newline() << "int systemtap_module_init () {";
-  o->newline(1) << "int anyrc = 0;";
-  o->newline() << "int rc;";
+  o->newline(1) << "int rc = 0;";
+
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_STARTING);";
+  // This signals any other probes that may be invoked in the next little
+  // while to abort right away.  Currently running probes are allowed to
+  // terminate.  These may set STAP_SESSION_ERROR!
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -345,19 +354,41 @@ c_unparser::emit_module_init ()
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
+      o->newline() << "/* register " << i << " */";
       session->probes[i]->emit_registrations (o, i);
-      o->newline() << "anyrc |= rc;";
+
       o->newline() << "if (rc) {";
-      o->indent(1);
+      // In case it's just a lower-layer (kprobes) error that set rc
+      // but not session_state, do that here to prevent any other BEGIN
+      // probe from attempting to run.
+      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
       if (i > 0)
+        // NB: This may be an END probe.  It may refuse to run
+        // if the session_state was ERRORed
         for (unsigned j=i; j>0; j--)
-          session->probes[j-1]->emit_deregistrations (o, j-1);
+          {
+            o->newline() << "/* deregister " << j-1 << " */";
+            session->probes[j-1]->emit_deregistrations (o, j-1);
+          }
       // XXX: ignore rc
       o->newline() << "goto out;";
       o->newline(-1) << "}";
     }
+
+  // BEGIN probes would have all been run by now.  One of them may
+  // have triggered a STAP_SESSION_ERROR (which would incidentally
+  // block later BEGIN ones).  If so, let that indication stay, and
+  // otherwise act like probe insertion was a success.
+  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
+  // XXX: else maybe set anyrc and thus return a failure from module_init?
+  o->indent(-1);
+
   o->newline() << "out:";
-  o->newline() << "return anyrc; /* if (anyrc) log badness */";
+  o->newline() << "return rc;";
   o->newline(-1) << "}" << endl;
 }
 
@@ -367,16 +398,41 @@ c_unparser::emit_module_exit ()
 {
   o->newline() << "static void systemtap_module_exit (void);";
   o->newline() << "void systemtap_module_exit () {";
-  o->newline(1) << "int anyrc = 0;";
-  o->newline() << "int rc;";
+  // rc?
+  o->newline(1) << "int holdon;";
+  
+  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_RUNNING)";
+  // NB: only other valid state value is ERROR, in which case we don't 
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_STOPPING);";
+  o->indent(-1);
+  // This signals any other probes that may be invoked in the next little
+  // while to abort right away.  Currently running probes are allowed to
+  // terminate.  These may set STAP_SESSION_ERROR!
+
+  // NB: systemtap_module_exit is assumed to be called from ordinary
+  // user context, say during module unload.  Among other things, this
+  // means we can sleep a while.
+  o->newline() << "do {";
+  o->newline(1) << "int i;";
+  o->newline() << "holdon = 0;";
+  o->newline() << "mb ();";
+  o->newline() << "for (i=0; i<NR_CPUS; i++)";
+  o->newline(1) << "if (contexts[i].busy) holdon = 1;";
+  // o->newline(-1) << "if (holdon) msleep (5);";
+  o->newline(-1) << "} while (holdon);";
+  o->newline(-1);
+
+  // XXX: might like to have an escape hatch, in case some probe is
+  // genuinely stuck
+
   for (unsigned i=0; i<session->probes.size(); i++)
     {
+      o->newline() << "/* deregister " << i << " */";
       session->probes[i]->emit_deregistrations (o, i);
-      o->newline() << "anyrc |= rc;";
     }
   // XXX: uninitialize globals
 
-  // XXX: if anyrc, log badness
+  // XXX: printk if (rc)
   o->newline(-1) << "}" << endl;
 }
 
@@ -554,14 +610,14 @@ c_unparser::visit_block (block *s)
   o->newline() << "{";
   o->indent (1);
   o->newline() << "c->actioncount += " << s->statements.size() << ";";
-  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
+  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
       try
         {
           // XXX: it's probably not necessary to check this so frequently
-	  o->newline() << "if (errorcount) goto out;";
+	  o->newline() << "if (c->errorcount) goto out;";
           s->statements[i]->visit (this);
 	  o->newline();
         }
@@ -622,8 +678,7 @@ c_unparser::visit_for_loop (for_loop *s)
   o->newline() << contlabel << ":";
 
   o->newline() << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
-  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -782,7 +837,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       o->line() << ";";
 
       o->newline() << "if (" << tmp2 << " == 0) {";
-      o->newline(1) << "errorcount ++;";
+      o->newline(1) << "c->errorcount ++;";
       o->newline() << tmp2 << " = 1;";
       o->newline(-1) << "}";
 
@@ -1176,7 +1231,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
     {
       // need division-by-zero check
       o->newline() << "if (" << tmpvar << " == 0) {";
-      o->newline(1) << "errorcount ++;";
+      o->newline(1) << "c->errorcount ++;";
       o->newline() << tmpvar << " = 1;";
       o->newline(-1) << "}";
     }
@@ -1356,7 +1411,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
               e->indexes[i], "array index copy");
     }
 
-  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "if (c->errorcount) goto out;";
 
   o->newline() << tmp_base << residx << ";";
   o->newline(-1) << "})";
@@ -1423,10 +1478,9 @@ c_unparser::visit_functioncall (functioncall* e)
     }
 
   o->newline();
-  o->newline() << "if (c->nesting+2 >= MAXNESTING) errorcount ++;";
+  o->newline() << "if (c->nesting+2 >= MAXNESTING) goto out;";
   o->newline() << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION) errorcount ++;";
-  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
   o->newline();
 
   // copy in actual arguments
@@ -1489,25 +1543,35 @@ translate_pass (systemtap_session& s)
 
       s.up->emit_common_header ();
 
-      s.op->newline() << "/* globals */";
       for (unsigned i=0; i<s.globals.size(); i++)
-        s.up->emit_global (s.globals[i]);
+        {
+          s.op->newline();
+          s.up->emit_global (s.globals[i]);
+        }
 
-      s.op->newline() << "/* function signatures */";
       for (unsigned i=0; i<s.functions.size(); i++)
 	if (s.functions[i]->body)
-	  s.up->emit_functionsig (s.functions[i]);
+          {
+            s.op->newline();
+            s.up->emit_functionsig (s.functions[i]);
+          }
 
-      s.op->newline() << "/* functions */";
       for (unsigned i=0; i<s.functions.size(); i++)
 	if (s.functions[i]->body)
-	  s.up->emit_function (s.functions[i]);
+          {
+            s.op->newline();
+            s.up->emit_function (s.functions[i]);
+          }
 
-      s.op->newline() << "/* probes */";
       for (unsigned i=0; i<s.probes.size(); i++)
-        s.up->emit_probe (s.probes[i], i);
+        {
+          s.op->newline();
+          s.up->emit_probe (s.probes[i], i);
+        }
 
+      s.op->newline();
       s.up->emit_module_init ();
+      s.op->newline();
       s.up->emit_module_exit ();
 
       s.op->newline();

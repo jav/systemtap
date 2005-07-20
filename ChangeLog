@@ -1,3 +1,10 @@
+2005-07-20  Frank Ch. Eigler  <fche@redhat.com>
+
+	* tapsets.cxx (*::emit_[de]registrations): Add logic for probe
+	lifecycle control (session_state).
+	* translate.cxx (emit_common_header,emit_module_{init,exit}): Ditto.
+	(visit_*): Use per-context errorcount.
+
 2005-07-19  Frank Ch. Eigler  <fche@redhat.com>
 
 	* Makefile.am (dist-hook): Complete the resulting tarball.

@@ -70,26 +70,16 @@ be_derived_probe::emit_registrations (translator_output* o, unsigned j)
 {
   if (begin)
     for (unsigned i=0; i<locations.size(); i++)
-      {
-        o->newline() << "enter_" << j << "_" << i << " ();";
-        o->newline() << "rc = errorcount;";
-      }
-  else
-    o->newline() << "rc = 0;";
+      o->newline() << "enter_" << j << "_" << i << " ();";
 }
 
 
 void 
 be_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
 {
-  if (begin)
-    o->newline() << "rc = 0;";
-  else
+  if (!begin)
     for (unsigned i=0; i<locations.size(); i++)
-      {
-        o->newline() << "enter_" << j << "_" << i << " ();";
-        o->newline() << "rc = errorcount;";
-      }
+      o->newline() << "enter_" << j << "_" << i << " ();";
 }
 
 
@@ -102,15 +92,45 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       o->newline() << "/* location " << i << ": " << *l << " */";
       o->newline() << "static void enter_" << j << "_" << i << " (void);";
       o->newline() << "void enter_" << j << "_" << i << " () {";
-      o->newline(1) << "struct context* c = & contexts [0];";
-      // XXX: assert #0 is free; need locked search instead
-      o->newline() << "if (c->busy) { errorcount ++; return; }";
+
+      // While begin/end probes are executed single-threaded, we 
+      // still code defensively and use a per-cpu context.
+      o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+
+      // A precondition for running a probe handler is that we're in STARTING
+      // or STOPPING state (not ERROR), and that no one else is already using
+      // this context.
+      o->newline() << "if (atomic_read (&session_state) != ";
+      if (begin) o->line() << "STAP_SESSION_STARTING)";
+      else o->line() << "STAP_SESSION_STOPPING)";
+      o->newline(1) << "return;";
+      o->newline(-1) << "if (c->busy) {";
+      o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+      o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline() << "return;";
+      o->newline(-1) << "}";
+      o->newline();
+      
       o->newline() << "c->busy ++;";
+      o->newline() << "mb ();"; // for smp
+      o->newline() << "c->errorcount = 0;";
       o->newline() << "c->actioncount = 0;";
       o->newline() << "c->nesting = 0;";
+
       // NB: locals are initialized by probe function itself
       o->newline() << "probe_" << j << " (c);";
+
+      // see translate.cxx: visit_functioncall and elsewhere to see all the
+      // possible context indications that a probe exited prematurely
+      o->newline() << "if (c->errorcount || c->actioncount > MAXACTION";
+      o->newline(1) << "|| c->nesting+2 >= MAXNESTING) {";
+      o->newline() << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
+      o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
+      o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline(-1) << "}";
+
       o->newline() << "c->busy --;";
+      o->newline() << "mb ();";
       o->newline(-1) << "}" << endl;
     }
 }
@@ -1092,22 +1112,46 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
 
   // Construct a single entry function, and a struct kprobe pointing into 
   // the entry function. The entry function will call the probe function.
-
   o->newline();
   o->newline() << "static void ";
   o->newline() << probe_entry_function_name(probenum) << " (void);";
   o->newline() << "void ";
   o->newline() << probe_entry_function_name(probenum) << " ()";
   o->newline() << "{";
-  o->newline(1) << "struct context* c = & contexts [0];";
-  // XXX: assert #0 is free; need locked search instead
-  o->newline() << "if (c->busy) { errorcount ++; return; }";
+  o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+  o->newline();
+
+  // A precondition for running a probe handler is that we're in RUNNING
+  // state (not ERROR), and that no one else is already using this context.
+  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
+  o->newline(1) << "return;";
+  o->newline(-1) << "if (c->busy) {";
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "return;";
+  o->newline(-1) << "}";
+  o->newline();
+
   o->newline() << "c->busy ++;";
+  o->newline() << "mb ();"; // for smp
+  o->newline() << "c->errorcount = 0;";
   o->newline() << "c->actioncount = 0;";
   o->newline() << "c->nesting = 0;";
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << probenum << " (c);";
+
+  // see translate.cxx: visit_functioncall and elsewhere to see all the
+  // possible context indications that a probe exited prematurely
+  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION";
+  o->newline(1) << "|| c->nesting+2 >= MAXNESTING) {";
+  o->newline() << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
+  o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
+  o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline(-1) << "}";
+
   o->newline() << "c->busy --;";
+  o->newline() << "mb ();";
+
   o->newline(-1) << "}" << endl;
 
   o->newline();
