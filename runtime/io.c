@@ -33,7 +33,7 @@ enum code { INFO=0, WARN, ERROR, DBUG };
 
 static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va_list args)
 {
-	int num, ret;
+	int num;
 	char *buf = &_stp_lbuf[get_cpu()][0];
 	int start = 0;
 
@@ -55,9 +55,7 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 		}
 		buf[num + start] = '\0';
 		
-		ret = _stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_tport->pid);
-		if (ret < 0)
-			atomic_inc(&_stp_transport_failures);
+		_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_tport->pid);
 #ifndef STP_NETLINK_ONLY
 		_stp_string_cat_cstr(_stp_stdout,buf);
 		_stp_print_flush();
