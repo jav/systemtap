@@ -547,7 +547,7 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
   if (e->base_referent)
     return;
 
-  vardecl* d = find_array (e->base, e->indexes.size ());
+  vardecl* d = find_var (e->base, e->indexes.size ());
   if (d)
     e->base_referent = d;
   else
@@ -563,7 +563,7 @@ symresolution_info::visit_symbol (symbol* e)
   if (e->referent)
     return;
 
-  vardecl* d = find_scalar (e->name);
+  vardecl* d = find_var (e->name, 0);
   if (d)
     e->referent = d;
   else
@@ -593,11 +593,25 @@ symresolution_info::visit_arrayindex (arrayindex* e)
   if (e->referent)
     return;
 
-  vardecl* d = find_array (e->base, e->indexes.size ());
+  vardecl* d = find_var (e->base, e->indexes.size ());
   if (d)
     e->referent = d;
   else
-    throw semantic_error ("unresolved global array", e->tok);
+    {
+      // new local
+      vardecl* v = new vardecl;
+      v->set_arity(e->indexes.size());
+      v->name = e->base;
+      v->tok = e->tok;
+      if (current_function)
+        current_function->locals.push_back (v);
+      else if (current_probe)
+        current_probe->locals.push_back (v);
+      else
+        // must not happen
+        throw semantic_error ("no current probe/function", e->tok);
+      e->referent = v;
+    }
 }
 
 
@@ -619,23 +633,25 @@ symresolution_info::visit_functioncall (functioncall* e)
 
 
 vardecl* 
-symresolution_info::find_scalar (const string& name)
+symresolution_info::find_var (const string& name, unsigned arity)
 {
+
   // search locals
   vector<vardecl*>& locals = (current_function ? 
                               current_function->locals :
 			      current_probe->locals);
 
+
   for (unsigned i=0; i<locals.size(); i++)
-    if (locals[i]->name == name)
+    if (locals[i]->name == name 
+	&& locals[i]->compatible_arity(arity))
       {
-	// NB: no need to check arity here: formal args always scalar
-	locals[i]->set_arity (0);
+	locals[i]->set_arity (arity);
 	return locals[i];
       }
 
-  // search function formal parameters (if any)
-  if (current_function)
+  // search function formal parameters (for scalars)
+  if (arity == 0 && current_function)
     for (unsigned i=0; i<current_function->formal_args.size(); i++)
       if (current_function->formal_args[i]->name == name)
 	{
@@ -644,11 +660,12 @@ symresolution_info::find_scalar (const string& name)
 	  return current_function->formal_args[i];
 	}
 
-  // search globals
+  // search processed globals
   for (unsigned i=0; i<session.globals.size(); i++)
-    if (session.globals[i]->name == name)
+    if (session.globals[i]->name == name
+	&& session.globals[i]->compatible_arity(arity))
       {
-	session.globals[i]->set_arity (0);
+	session.globals[i]->set_arity (arity);
 	return session.globals[i];
       }
 
@@ -657,26 +674,23 @@ symresolution_info::find_scalar (const string& name)
     {
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
-        if (f->globals[j]->name == name)
+        if (f->globals[j]->name == name
+	    && f->globals[i]->compatible_arity(arity))
           {
-            // put library into the queue if not already there
-            if (0) // (session.verbose_resolution)
-              cerr << "      scalar " << name << " "
-                   << "is defined from " << f->name << endl;
-	    
+	    f->globals[j]->set_arity (arity);
+
+            // put library into the queue if not already there	    
             if (find (session.files.begin(), session.files.end(), f) 
                 == session.files.end())
               session.files.push_back (f);
-            // else .. print different message?
-
-	    f->globals[j]->set_arity (0);
+	    
             return f->globals[j];
           }
     }
 
   // search builtins that become locals
   // XXX: need to invent a proper formalism for this
-  if (name == "$pid" || name == "$tid")
+  if (arity == 0 && (name == "$pid" || name == "$tid"))
     {
       vardecl_builtin* vb = new vardecl_builtin;
       vb->name = name;
@@ -691,44 +705,6 @@ symresolution_info::find_scalar (const string& name)
 
       locals.push_back (vb);
       return vb;
-    }
-
-  return 0;
-}
-
-
-vardecl* 
-symresolution_info::find_array (const string& name, unsigned arity)
-{
-  // search processed globals
-  for (unsigned i=0; i<session.globals.size(); i++)
-    if (session.globals[i]->name == name)
-      {
-	session.globals[i]->set_arity (arity);
-	return session.globals[i];
-      }
-
-  // search library globals
-  for (unsigned i=0; i<session.library_files.size(); i++)
-    {
-      stapfile* f = session.library_files[i];
-      for (unsigned j=0; j<f->globals.size(); j++)
-        if (f->globals[j]->name == name)
-          {
-	    f->globals[j]->set_arity (arity);
-
-            // put library into the queue if not already there
-            if (0) // (session.verbose_resolution)
-              cerr << "      array " << name << " "
-                   << "is defined from " << f->name << endl;
-	    
-            if (find (session.files.begin(), session.files.end(), f) 
-                == session.files.end())
-              session.files.push_back (f);
-            // else .. print different message?
-	    
-            return f->globals[j];
-          }
     }
 
   return 0;
@@ -1173,7 +1149,7 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
       if (at != pe_unknown && ft != pe_unknown && ft != at)
         mismatch (e->tok, at, ft);
       if (at == pe_unknown)
-        unresolved (ee->tok);
+	  unresolved (ee->tok);
     }
 }
 

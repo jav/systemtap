@@ -225,6 +225,7 @@ struct vardecl: public symboldecl
   void printsig (std::ostream& o);
   vardecl ();
   void set_arity (int arity);
+  bool compatible_arity (int a);
   int arity; // -1: unknown; 0: scalar; >0: array
   std::vector<exp_type> index_types; // for arrays only
 };

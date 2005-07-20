@@ -109,6 +109,14 @@ vardecl::set_arity (int a)
     }
 }
 
+bool 
+vardecl::compatible_arity (int a)
+{
+  if (arity == -1)
+    return true;
+  return arity == a;
+}
+
 
 functiondecl::functiondecl ():
   body (0)

@@ -37,8 +37,8 @@ public:
   void derive_probes (match_node * root, probe *p, std::vector<derived_probe*>& dps);
 
 protected:
-  vardecl* find_scalar (const std::string& name);
-  vardecl* find_array (const std::string& name, unsigned arity);
+  
+  vardecl* find_var (const std::string& name, unsigned arity);
   functiondecl* find_function (const std::string& name, unsigned arity);
 
   void visit_block (block *s);

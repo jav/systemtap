@@ -1,11 +1,13 @@
 #! stap -p3
 
+global poo
+
 function f1 (a, b) {
   c = 1;
   d = "hello";
   # poo[c] = bab[d] = "hi"
   bab = "hi";
-  # bab = poo[c];
+  bab = poo[c];
   return 0
 } 
 

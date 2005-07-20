@@ -1,3 +1,12 @@
+2005-07-20  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.{cxx,h} (find_array): Remove.
+	(find_scalar): Rename to find_var, add array support.
+	* staptree.{cxx,h} (vardecl::compatible_arity): New method.
+	* translate.cxx: Refactor, add array read/write support.
+	* testsuite/transok/three.stp: Uncomment array uses.
+	* testsuite/transok/seven.stp: New test of array r/w.
+
 2005-07-20  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (*::emit_[de]registrations): Add logic for probe
