@@ -1,3 +1,15 @@
+2005-07-21  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): Add systemtap.spec.
+	(install-data-local): Install docs and probes.
+	(docs): New target.
+	(rpm): New target.
+	
+	* configure.ac: Set initial version to 0.1.1.
+	(pkglibdir): Set to libexec.
+
+	* Makefile.in: Regenerated.
+	
 2005-07-20  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.{cxx,h} (find_array): Remove.

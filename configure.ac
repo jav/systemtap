@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 1.0, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.1.1, systemtap@sources.redhat.com, systemtap)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -38,7 +38,7 @@ AC_SUBST(DATE)
 # my_libexecdir=`eval echo $libexecdir`
 # my_libexecdir="$libexecdir"
 
-my_pkglibdir=${prefix}/lib/systemtap
+my_pkglibdir=${prefix}/libexec/systemtap
 AC_DEFINE_UNQUOTED(PKGLIBDIR, "$my_pkglibdir", [pkglibdir])
 AC_SUBST(PKGLIBDIR)
 
@@ -47,5 +47,5 @@ AC_DEFINE_UNQUOTED(PKGDATADIR, "$my_pkgdatadir", [datadir])
 AC_SUBST(PKGDATADIR)
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES(Makefile systemtap.spec)
 AC_OUTPUT

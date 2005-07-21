@@ -39,12 +39,12 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = stap$(EXEEXT)
-pkglib_PROGRAMS = stpd$(EXEEXT)
+libexec_PROGRAMS = stpd$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.in \
-	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	TODO depcomp install-sh missing
+	$(srcdir)/systemtap.spec.in $(top_srcdir)/configure AUTHORS \
+	COPYING ChangeLog INSTALL NEWS TODO depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -53,11 +53,11 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES =
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)"
+CONFIG_CLEAN_FILES = systemtap.spec
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-pkglibPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-PROGRAMS = $(bin_PROGRAMS) $(pkglib_PROGRAMS)
+libexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
+PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
 am_stap_OBJECTS = main.$(OBJEXT) parse.$(OBJEXT) staptree.$(OBJEXT) \
 	elaborate.$(OBJEXT) translate.$(OBJEXT) tapsets.$(OBJEXT) \
 	buildrun.$(OBJEXT)
@@ -193,7 +193,8 @@ AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
 LDADD = 
-EXTRA_DIST = testsuite runtime $(wildcard $(srcdir)/*.h)
+EXTRA_DIST = testsuite runtime $(wildcard $(srcdir)/*.h) systemtap.spec
+pkgdocdir = ${prefix}/share/doc/systemtap
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
 t = $(srcdir)/testsuite/trans
@@ -261,6 +262,8 @@ $(srcdir)/config.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+systemtap.spec: $(top_builddir)/config.status $(srcdir)/systemtap.spec.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(mkdir_p) "$(DESTDIR)$(bindir)"
@@ -284,29 +287,29 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-install-pkglibPROGRAMS: $(pkglib_PROGRAMS)
+install-libexecPROGRAMS: $(libexec_PROGRAMS)
 	@$(NORMAL_INSTALL)
-	test -z "$(pkglibdir)" || $(mkdir_p) "$(DESTDIR)$(pkglibdir)"
-	@list='$(pkglib_PROGRAMS)'; for p in $$list; do \
+	test -z "$(libexecdir)" || $(mkdir_p) "$(DESTDIR)$(libexecdir)"
+	@list='$(libexec_PROGRAMS)'; for p in $$list; do \
 	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
 	  if test -f $$p \
 	  ; then \
 	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
-	   echo " $(INSTALL_PROGRAM_ENV) $(pkglibPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(pkglibdir)/$$f'"; \
-	   $(INSTALL_PROGRAM_ENV) $(pkglibPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(pkglibdir)/$$f" || exit 1; \
+	   echo " $(INSTALL_PROGRAM_ENV) $(libexecPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(libexecdir)/$$f'"; \
+	   $(INSTALL_PROGRAM_ENV) $(libexecPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(libexecdir)/$$f" || exit 1; \
 	  else :; fi; \
 	done
 
-uninstall-pkglibPROGRAMS:
+uninstall-libexecPROGRAMS:
 	@$(NORMAL_UNINSTALL)
-	@list='$(pkglib_PROGRAMS)'; for p in $$list; do \
+	@list='$(libexec_PROGRAMS)'; for p in $$list; do \
 	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
-	  echo " rm -f '$(DESTDIR)$(pkglibdir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(pkglibdir)/$$f"; \
+	  echo " rm -f '$(DESTDIR)$(libexecdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(libexecdir)/$$f"; \
 	done
 
-clean-pkglibPROGRAMS:
-	-test -z "$(pkglib_PROGRAMS)" || rm -f $(pkglib_PROGRAMS)
+clean-libexecPROGRAMS:
+	-test -z "$(libexec_PROGRAMS)" || rm -f $(libexec_PROGRAMS)
 stap$(EXEEXT): $(stap_OBJECTS) $(stap_DEPENDENCIES) 
 	@rm -f stap$(EXEEXT)
 	$(CXXLINK) $(stap_LDFLAGS) $(stap_OBJECTS) $(stap_LDADD) $(LIBS)
@@ -511,7 +514,7 @@ check-TESTS: $(TESTS)
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/$(srcdir)
+	$(mkdir_p) $(distdir)/$(srcdir) $(distdir)/.
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -643,7 +646,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -672,8 +675,8 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-binPROGRAMS clean-generic clean-local \
-	clean-pkglibPROGRAMS mostlyclean-am
+clean-am: clean-binPROGRAMS clean-generic clean-libexecPROGRAMS \
+	clean-local mostlyclean-am
 
 distclean: distclean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -694,7 +697,7 @@ info-am:
 
 install-data-am: install-data-local
 
-install-exec-am: install-binPROGRAMS install-pkglibPROGRAMS
+install-exec-am: install-binPROGRAMS install-libexecPROGRAMS
 
 install-info: install-info-am
 
@@ -722,32 +725,36 @@ ps: ps-am
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
-	uninstall-pkglibPROGRAMS
+	uninstall-libexecPROGRAMS
 
 .PHONY: CTAGS GTAGS all all-am am--refresh check check-TESTS check-am \
-	clean clean-binPROGRAMS clean-generic clean-local \
-	clean-pkglibPROGRAMS ctags dist dist-all dist-bzip2 dist-gzip \
-	dist-hook dist-shar dist-tarZ dist-zip distcheck distclean \
+	clean clean-binPROGRAMS clean-generic clean-libexecPROGRAMS \
+	clean-local ctags dist dist-all dist-bzip2 dist-gzip dist-hook \
+	dist-shar dist-tarZ dist-zip distcheck distclean \
 	distclean-compile distclean-generic distclean-hdr \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-binPROGRAMS install-data install-data-am \
 	install-data-local install-exec install-exec-am install-info \
-	install-info-am install-man install-pkglibPROGRAMS \
+	install-info-am install-libexecPROGRAMS install-man \
 	install-strip installcheck installcheck-am installdirs \
 	maintainer-clean maintainer-clean-generic mostlyclean \
 	mostlyclean-compile mostlyclean-generic pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-info-am uninstall-pkglibPROGRAMS
+	uninstall-info-am uninstall-libexecPROGRAMS
 
 dist-hook:
-	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' -o name ChangeLog | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
-	mkdir -p $(DESTDIR)$(pkgdatadir)
-	cp -rp $(srcdir)/runtime $(DESTDIR)$(pkgdatadir)
+	mkdir -p $(DESTDIR)$(pkgdatadir) $(DESTDIR)$(pkgdocdir) $(DESTDIR)$(pkgdocdir)/runtime
+	mkdir -p $(DESTDIR)$(pkgdocdir)/runtime/docs $(DESTDIR)$(pkgdatadir)/runtime/docs
+	cp -rp $(srcdir)/runtime/*.[ch] $(srcdir)/runtime/Doxyfile $(DESTDIR)$(pkgdatadir)
+	cp -rp $(srcdir)/runtime/probes $(DESTDIR)$(pkgdatadir)/probes
+	cp -rp $(srcdir)/runtime/docs/html/* $(DESTDIR)$(pkgdocdir)/runtime
 	find $(DESTDIR)$(pkgdatadir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	find $(DESTDIR)$(pkgdocdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 
 gcov:
 	@$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
@@ -756,8 +763,15 @@ gcov:
 	@rm -f `ls -1 *.gcov | fgrep -v .cxx.gcov`
 	ls -l *.cxx.gcov
 
+docs:	runtime/Doxyfile
+	cd runtime && doxygen Doxyfile
+
+rpm:	dist docs
+	rpmbuild -ta @PACKAGE_TARNAME@-@PACKAGE_VERSION@.tar.gz
+
 clean-local:
-	rm -f *.gcov *.gcno *.gcda
+	rm -f *.gcov *.gcno *.gcda @PACKAGE_TARNAME@-*.tar.gz
+	rm -rf @PACKAGE_TARNAME@-@PACKAGE_VERSION@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
