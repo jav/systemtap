@@ -31,10 +31,11 @@
 /* always include this.  Put all non-map defines above it. */
 #include "runtime.h"
 
-/* since we don't have aggregation maps yet, try regular maps */
+/* @todo since we don't have aggregation maps yet, try regular maps */
 #define NEED_INT64_VALS
 
-#define KEY1_TYPE INT64
+#define KEY1_TYPE STRING
+#define KEY2_TYPE INT64
 #include "map-keys.c"
 
 #include "map.c"
@@ -51,14 +52,16 @@ MAP cur_addr;
 /* A generic asynchorous probe entry point */
 void inst_async(struct pt_regs *regs)
 {
-    unsigned long ip = regs->eip;
+    unsigned long ip;
+    
+    ip = REG_IP(regs);
 
     /* can we generate a histogram of ip addresses seen? */
     _stp_stat_add(addr, 1);
 
     /* Create a map of interrupted addresses seen */
     /* really want a map of image name / address */
-    _stp_map_key_int64(cur_addr, ip);
+    _stp_map_key_str_int64(cur_addr, current->comm, ip);
     _stp_map_add_int64(cur_addr, 1);
 
     /* Need _stp_stack() and _stp_ustack()? */
@@ -92,7 +95,7 @@ int probe_start(void)
 {
     addr = _stp_stat_init(HIST_LINEAR, 0, 1000, 100);
 
-    cur_addr = _stp_map_new_int64(1000, INT64);
+    cur_addr = _stp_map_new_str_int64(1000, INT64);
 
     /* register the os_timer */
     init_timer(&timer);
@@ -113,10 +116,12 @@ static void probe_exit (void)
     del_timer_sync(&timer);
 
     /* print out any colledted data, etc */
-    _stp_printf ("os timer done. Currently an issue with tast_pt_regs() call so data below may not be valid\n");
+    _stp_printf ("os timer done.\n");
+    _stp_printf ("WARNING: Currently using task_pt_regs() to get the pt_regs struct\n");
+    _stp_printf ("during the timer interrupt, but there seems to be issues with that...\n\n");
     _stp_stat_print (addr, "addr: count:%C  sum:%S  avg:%A  min:%m  max:%M\n%H", 0);
 
-    _stp_map_print (cur_addr, "Count: %d\tInterrupts: %1P");
+    _stp_map_print (cur_addr, "Process: %1s\tIp: %2P\tCount: %d");
     _stp_map_del(cur_addr);
 
     _stp_print_flush();
