@@ -1,0 +1,103 @@
+%define bundled_elfutils 0
+%define elfutils_version 0.XXX
+
+Release: 1
+Version: @VERSION@
+Summary: Instrumentation System
+Name: systemtap
+License: GPL
+Group: Development/System
+#
+Source0: %{name}-%{version}.tar.gz
+
+%if %{bundled_elfutils}
+Source1: elfutils-%{elfutils_version}.tar.gz
+Patch1: elfutils-portability.patch
+%define setup_elfutils -a1
+%endif
+
+URL: http://sourceware.org/systemtap/
+ExclusiveArch: %{ix86} x86_64
+
+Requires: kernel >= 2.6.9-11
+Requires: tcl gcc make
+BuildRequires: kernel-devel doxygen 
+BuildRoot: %{_tmppath}/%{name}-root
+
+%description
+SystemTap is a instrumentation system for systems running
+Linux 2.6.  Developers can write instrumentation to collect data on
+the operation of the system.
+
+See the HTML documentation for further details.
+
+%prep
+%setup -q -n %{name}-%{version} %{?setup_elfutils}
+%if %{bundled_elfutils}
+cd elfutils-%{elfutils_version}
+%patch1 -p1
+cd ..
+%endif
+
+%build
+%if %{bundled_elfutils}
+# Build our own copy of elfutils.
+elfutils_includedir="`pwd`/include-elfutils"
+elfutils_libdir="`pwd`/lib-elfutils"
+mkdir build-elfutils
+cd build-elfutils
+cat > configure <<\EOF
+#!/bin/sh
+exec ../elfutils-%{elfutils_version}/configure "$@"
+EOF
+chmod +x configure
+%configure --enable-libebl-subdir=%{name}
+make %{?_smp_mflags}
+for dir in libelf libebl libdw libdwfl; do
+  make -C $dir install includedir=$elfutils_includedir libdir=$elfutils_libdir
+done
+cd ..
+
+# We'll configure with these options to use the local headers and libraries.
+CPPFLAGS="-I${elfutils_includedir}"
+LDFLAGS="-L${elfutils_libdir} -Wl,-rpath-link,${elfutils_libdir}"
+export CPPFLAGS LDFLAGS
+%endif
+
+%configure
+make
+
+%install
+rm -rf ${RPM_BUILD_ROOT}
+make DESTDIR=${RPM_BUILD_ROOT} install
+
+%if %{bundled_elfutils}
+installed_elfutils=${RPM_BUILD_ROOT}%{_libdir}/%{name}
+mkdir -p ${installed_elfutils}
+cp -P lib-elfutils/*.so* lib-elfutils/%{name}/*.so* ${installed_elfutils}/
+%endif
+
+
+%clean
+rm -rf ${RPM_BUILD_ROOT}
+
+%files
+%defattr(-,root,root)
+%if %{bundled_elfutils}
+%dir %{_libdir}/%{name}
+%{_libdir}/%{name}/lib*.so*
+%endif
+%{_bindir}/stap
+/usr/libexec/stpd
+/usr/share/systemtap
+/usr/share/doc/systemtap
+
+%changelog
+* Thu Jul 21 2005 Martin Hunt <hunt@redhat.com>
+- Set Version to use version from autoconf.
+- Fix up some of the path names.
+- Addes Requires and BuildRequires.
+* Thu Jul 21 2005 Roland McGrath <roland@redhat.com> - 0.1-1
+- Clean up spec file, build bundled elfutils.
+* Tue Jul 19 2005 Will Cohen <wcohen@redhat.com>
+- Initial creation of RPM.
