@@ -46,18 +46,18 @@
 MODULE_DESCRIPTION("SystemTap probe: os_timer");
 MODULE_AUTHOR("Charles Spirakis <charles.spirakis@intel.com>");
 
-Stat addr;
+Stat timing;
 MAP cur_addr;
 
 /* A generic asynchorous probe entry point */
 void inst_async(struct pt_regs *regs)
 {
+    u64 start;
+    u64 end;
     unsigned long ip;
     
+    rdtscll(start);
     ip = REG_IP(regs);
-
-    /* can we generate a histogram of ip addresses seen? */
-    _stp_stat_add(addr, 1);
 
     /* Create a map of interrupted addresses seen */
     /* really want a map of image name / address */
@@ -66,6 +66,9 @@ void inst_async(struct pt_regs *regs)
 
     /* Need _stp_stack() and _stp_ustack()? */
     /* _stp_image() and aggregation maps */
+
+    rdtscll(end);
+    _stp_stat_add(timing, end - start);
 }
 
 static struct timer_list timer;
@@ -93,7 +96,7 @@ static void os_timer_callback(unsigned long val)
 /* called when the module loads. */
 int probe_start(void)
 {
-    addr = _stp_stat_init(HIST_LINEAR, 0, 1000, 100);
+    timing = _stp_stat_init(HIST_LINEAR, 0, 5000, 250);
 
     cur_addr = _stp_map_new_str_int64(1000, INT64);
 
@@ -119,9 +122,10 @@ static void probe_exit (void)
     _stp_printf ("os timer done.\n");
     _stp_printf ("WARNING: Currently using task_pt_regs() to get the pt_regs struct\n");
     _stp_printf ("during the timer interrupt, but there seems to be issues with that...\n\n");
-    _stp_stat_print (addr, "addr: count:%C  sum:%S  avg:%A  min:%m  max:%M\n%H", 0);
+    _stp_stat_print (timing, "timing (cpu cycles): # calls:%C  avg:%A  min:%m  max:%M\n%H", 0);
 
-    _stp_map_print (cur_addr, "Process: %1s\tIp: %2P\tCount: %d");
+    _stp_print("Process\tIp\tCount\n");
+    _stp_map_print (cur_addr, "%1s\t%2P\t%d");
     _stp_map_del(cur_addr);
 
     _stp_print_flush();
