@@ -33,6 +33,7 @@ stringify(T t)
 struct var;
 struct tmpvar;
 struct mapvar;
+struct itervar;
 
 struct c_unparser: public unparser, public visitor
 {
@@ -67,6 +68,7 @@ struct c_unparser: public unparser, public visitor
   string c_typename (exp_type e);
   string c_varname (const string& e);
 
+  void c_assign (var& lvalue, const string& rvalue, const token *tok);
   void c_assign (const string& lvalue, expression* rvalue, const string& msg);
   void c_assign (const string& lvalue, const string& rvalue, exp_type type,
                  const string& msg, const token* tok);
@@ -84,6 +86,7 @@ struct c_unparser: public unparser, public visitor
 
   tmpvar gensym(exp_type ty);
   var getvar(vardecl *v, token const *tok = NULL);
+  itervar getiter(foreach_loop *f);
   mapvar getmap(vardecl *v, token const *tok = NULL);
 
   void load_map_indices(arrayindex *e,
@@ -131,10 +134,13 @@ struct c_tmpcounter:
 {
   c_unparser* parent;
   c_tmpcounter (c_unparser* p): 
-    parent (p) {}
+    parent (p) 
+  {
+    parent->tmpvar_counter = 0;
+  }
 
   // void visit_for_loop (for_loop* s);
-  // void visit_foreach_loop (foreach_loop* s);
+  void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
   // void visit_delete_statement (delete_statement* s);
   void visit_binary_expression (binary_expression* e);
@@ -170,7 +176,7 @@ struct c_unparser_assignment:
 		       tmpvar const & rval,
 		       token const * tok);
 
-  void c_assignop(tmpvar const & dst, 
+  void c_assignop(tmpvar & res, 
 		  var const & lvar, 
 		  tmpvar const & tmp,
 		  token const * tok);
@@ -240,13 +246,13 @@ public:
     if (ty == pe_long)
       {
 	c.o->newline() << "if (" << qname() << " == 0) {";
-	c.o->newline(1) << "errorcount++;";
+	c.o->newline(1) << "c->errorcount++;";
 	c.o->newline() << qname() << " = 1;";
 	c.o->newline(-1) << "}";
       }
   }
 
-  string init()
+  string init() const
   {
     switch (type())
       {
@@ -377,6 +383,65 @@ struct mapvar
   
 };
 
+class itervar
+{
+  exp_type referent_ty;
+  string name;
+
+public:
+
+  itervar (foreach_loop *e, unsigned & counter)
+    : referent_ty(e->base_referent->type), 
+      name("__tmp" + stringify(counter++))
+  {
+    if (referent_ty != pe_long && referent_ty != pe_string)
+      throw semantic_error("iterating over illegal reference type", e->tok);
+  }
+  
+  string declare () const
+  {
+    return "struct map_node *" + name + ";";
+  }
+
+  string start (mapvar const & mv) const
+  {
+    if (mv.type() != referent_ty)
+      throw semantic_error("inconsistent iterator type in itervar::start()");
+
+    return "_stp_map_start (" + mv.qname() + ")";
+  }
+
+  string next (mapvar const & mv) const
+  {
+    if (mv.type() != referent_ty)
+      throw semantic_error("inconsistent iterator type in itervar::next()");
+
+    return "_stp_map_iter (" + mv.qname() + ", " + qname() + ")";
+  }
+
+  string qname () const
+  {
+    return "l->" + name;
+  }
+  
+  string get_key (exp_type ty, unsigned i) const
+  {
+    switch (ty)
+      {
+      case pe_long:
+	return "_stp_key_get_int64 ("+ qname() + ", " + stringify(i) + ")";
+      case pe_string:
+	return "_stp_key_get_str ("+ qname() + ", " + stringify(i) + ")";
+      default:
+	throw semantic_error("illegal key type");
+      }
+  }
+};
+
+ostream & operator<<(ostream & o, itervar const & v)
+{
+  return o << v.qname();
+}
 
 // ------------------------------------------------------------------------
 
@@ -915,6 +980,21 @@ c_unparser::c_varname (const string& e)
   return e;
 }
 
+void 
+c_unparser::c_assign (var& lvalue, const string& rvalue, const token *tok)
+{
+  switch (lvalue.type())
+    {
+    case pe_string:
+      c_strcpy(lvalue.qname(), rvalue);
+      break;
+    case pe_long:
+      o->newline() << lvalue << " = " << rvalue << ";";
+      break;
+    default:
+      throw semantic_error ("unknown rvalue type in assignment", tok);
+    }
+}
 
 void
 c_unparser::c_assign (const string& lvalue, expression* rvalue,
@@ -959,7 +1039,7 @@ c_unparser::c_assign (const string& lvalue, const string& rvalue,
 
 
 void 
-c_unparser_assignment::c_assignop(tmpvar const & _res, 
+c_unparser_assignment::c_assignop(tmpvar & res, 
 				  var const & lval, 
 				  tmpvar const & rval,
 				  token const * tok)
@@ -975,7 +1055,7 @@ c_unparser_assignment::c_assignop(tmpvar const & _res,
 
   // we'd like to work with a local tmpvar so we can overwrite it in 
   // some optimized cases
-  tmpvar res = _res;
+
   translator_output* o = parent->o;
 
   if (res.type() == pe_string)
@@ -1152,6 +1232,13 @@ c_unparser::getmap(vardecl *v, token const *tok)
 }
 
 
+itervar 
+c_unparser::getiter(foreach_loop *f)
+{ 
+  return itervar (f, tmpvar_counter);
+}
+
+
 void
 c_unparser::visit_block (block *s)
 {
@@ -1248,9 +1335,40 @@ c_unparser::visit_for_loop (for_loop *s)
 
 
 void
+c_tmpcounter::visit_foreach_loop (foreach_loop *s)
+{
+  itervar iv = parent->getiter (s);
+  parent->o->newline() << iv.declare();
+  s->block->visit (this);
+}
+
+void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
-  throw semantic_error ("foreach loop not yet implemented", s->tok);
+  mapvar mv = getmap (s->base_referent, s->tok);
+  itervar iv = getiter (s);
+  vector<var> keys;
+    
+  varlock guard (*this, mv);
+    
+  o->newline() << "for ("
+	       << iv << " = " << iv.start (mv) << "; ";
+  o->newline() << "     " << iv << "; ";
+  o->newline() << "     " << iv << " = " << iv.next (mv) << ")";
+  o->newline() << "{";
+  o->indent (1);
+    
+  for (unsigned i = 0; i < s->indexes.size(); ++i)
+    {
+      // copy the iter values into the specified locals
+      var v = getvar (s->indexes[i]->referent);
+      c_assign (v, iv.get_key (v.type(), i), s->tok);
+    }
+    
+  s->block->visit (this);
+    
+  o->indent (-1);
+  o->newline() << "}";
 }
 
 
@@ -1760,13 +1878,13 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
   
-  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "if (c->errorcount) goto out;";
   
   {
     mapvar mvar = getmap (e->referent, e->tok);
     varlock guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
-    o->newline() << res << " = " << mvar.get() << ";";
+    c_assign (res, mvar.get(), e->tok);
   }
 
   o->newline() << res << ";";
@@ -1836,7 +1954,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. ++a[a[c]=5] could deadlock
   
-  o->newline() << "if (errorcount) goto out;";
+  o->newline() << "if (c->errorcount) goto out;";
   
   prepare_rvalue (op, rvar, e->tok);
   
@@ -1844,7 +1962,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
     mapvar mvar = parent->getmap (e->referent, e->tok);
     varlock guard (*parent, mvar);
     o->newline() << mvar.seek (idx) << ";";
-    o->newline() << lvar << " = " << mvar.get() << ";";
+    parent->c_assign (lvar, mvar.get(), e->tok);
     c_assignop (res, lvar, rvar, e->tok); 
     o->newline() << mvar.set (lvar) << ";";
   }

@@ -15,8 +15,11 @@ extern "C" {
 #include <sys/utsname.h>
 }
 
-#include <fstream>
 #include <algorithm>
+#include <fstream>
+#include <map>
+#include <set>
+#include <vector>
 
 #if 0
 #ifdef HAVE_ELFUTILS_LIBDW_H
@@ -378,11 +381,176 @@ symresolution_info::derive_probes (match_node * root,
 }
 
 // ------------------------------------------------------------------------
+//
+// Map usage checks
+//
 
+class lvalue_aware_traversing_visitor
+  : public traversing_visitor
+{
+  unsigned lval_depth;
+public:
+
+  lvalue_aware_traversing_visitor() : lval_depth(0) {}
+
+  bool is_in_lvalue()
+  {
+    return lval_depth > 0;
+  }
+
+  virtual void visit_pre_crement (pre_crement* e)
+  {
+    ++lval_depth;
+    e->operand->visit (this);
+    --lval_depth;
+  }
+
+  virtual void visit_post_crement (post_crement* e)
+  {
+    ++lval_depth;
+    e->operand->visit (this);
+    --lval_depth;
+  }
+  
+  virtual void visit_assignment (assignment* e)
+  {
+    ++lval_depth;
+    e->left->visit (this);
+    --lval_depth;
+    e->right->visit (this);
+  }
+
+  virtual void visit_delete_statement (delete_statement* s)
+  {
+    ++lval_depth;
+    s->value->visit (this);
+    --lval_depth;
+  }
+
+};
+
+
+struct mutated_map_collector
+  : public lvalue_aware_traversing_visitor
+{
+  set<vardecl *> * mutated_maps;
+
+  mutated_map_collector(set<vardecl *> * mm) 
+    : mutated_maps (mm)
+  {}
+
+  void visit_arrayindex (arrayindex *e)
+  {
+    if (is_in_lvalue())
+      mutated_maps->insert(e->referent);
+  }
+};
+
+
+struct no_map_mutation_during_iteration_check
+  : public lvalue_aware_traversing_visitor
+{
+  systemtap_session & session;
+  map<functiondecl *,set<vardecl *> *> & function_mutates_maps;
+  vector<vardecl *> maps_being_iterated;
+  
+  no_map_mutation_during_iteration_check 
+  (systemtap_session & sess,
+   map<functiondecl *,set<vardecl *> *> & fmm)
+    : session(sess), function_mutates_maps (fmm)
+  {}
+
+  void visit_arrayindex (arrayindex *e)
+  {
+    if (is_in_lvalue())
+      {
+	for (unsigned i = 0; i < maps_being_iterated.size(); ++i)
+	  {
+	    vardecl *m = maps_being_iterated[i];
+	    if (m == e->referent)
+	      {
+		string err = ("map '" + m->name +
+			      "' modified during 'foreach' iteration");
+		session.print_error (semantic_error (err, e->tok));
+	      }
+	  }
+      }
+  }
+
+  void visit_functioncall (functioncall* e)
+  {
+    map<functiondecl *,set<vardecl *> *>::const_iterator i 
+      = function_mutates_maps.find (e->referent);
+
+    if (i != function_mutates_maps.end())
+      {
+	for (unsigned j = 0; j < maps_being_iterated.size(); ++j)
+	  {
+	    vardecl *m = maps_being_iterated[j];
+	    if (i->second->find (m) != i->second->end())
+	      {
+		string err = ("function call modifies map '" + m->name +
+			      "' during 'foreach' iteration");
+		session.print_error (semantic_error (err, e->tok));
+	      }
+	  }
+      }
+
+    for (unsigned i=0; i<e->args.size(); i++)
+      e->args[i]->visit (this);
+  }
+
+  void visit_foreach_loop(foreach_loop* s)
+  {
+    maps_being_iterated.push_back (s->base_referent);
+    for (unsigned i=0; i<s->indexes.size(); i++)
+      s->indexes[i]->visit (this);
+    s->block->visit (this);
+    maps_being_iterated.pop_back();
+  }
+};
+
+
+static int
+semantic_pass_maps (systemtap_session & sess)
+{
+  
+  map<functiondecl *, set<vardecl *> *> fmm;
+  no_map_mutation_during_iteration_check chk(sess, fmm);
+  
+  for (unsigned i = 0; i < sess.functions.size(); ++i)
+    {
+      functiondecl * fn = sess.functions[i];
+      if (fn->body)
+	{
+	  set<vardecl *> * m = new set<vardecl *>();
+	  mutated_map_collector mc (m);
+	  fn->body->visit (&mc);
+	  fmm[fn] = m;
+	}
+    }
+
+  for (unsigned i = 0; i < sess.functions.size(); ++i)
+    {
+      if (sess.functions[i]->body)
+	sess.functions[i]->body->visit (&chk);
+    }
+
+  for (unsigned i = 0; i < sess.probes.size(); ++i)
+    {
+      if (sess.probes[i]->body)
+	sess.probes[i]->body->visit (&chk);
+    }  
+
+  return sess.num_errors;
+}
+
+// ------------------------------------------------------------------------
 
 
 static int semantic_pass_symbols (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
+static int semantic_pass_maps (systemtap_session&);
 
 
 
@@ -485,6 +653,7 @@ semantic_pass (systemtap_session& s)
 
   int rc = semantic_pass_symbols (s);
   if (rc == 0) rc = semantic_pass_types (s);
+  if (rc == 0) rc = semantic_pass_maps (s);
   return rc;
 }
 

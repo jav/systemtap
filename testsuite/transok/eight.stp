@@ -1,0 +1,30 @@
+#! stap -p3
+
+global foo
+global baz
+
+function bar()
+{
+	return foo["hello"]
+}
+
+probe begin
+{
+	foo["hello"] = 10
+	foreach (a in foo) 
+	{
+		bar()
+	}
+
+	baz[1,"hello",a] = "chicken"
+	baz[1,"goodbye",a] = "supreme"
+
+	foreach ([x,y,z] in baz)
+	{
+		printk(baz[x,y,z] . y)
+	}
+
+	printk("hello from systemtap")
+}
+
+

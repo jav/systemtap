@@ -1,3 +1,18 @@
+2005-07-22  Graydon Hoare  <graydon@redhat.com>
+
+	* translate.cxx (itervar): New class.
+	(*::visit_foreach_loop): Implement.
+	Various bug fixes.
+	* staptree.cxx (deep_copy_visitor::*): Copy tok fields.
+	* elaborate.cxx (lvalue_aware_traversing_visitor):
+	(mutated_map_collector):
+	(no_map_mutation_during_iteration_check): New classes.
+	(semantic_pass_maps): New function to check map usage.
+	(semantic_pass): Call it.
+	* testsuite/transok/eight.stp: Test 'foreach' loop translation.
+	* testsuite/semko/{thirteen,fourteen,fifteen}.stp: 
+	Test prohibited forms of foreach loops.
+
 2005-07-21  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (EXTRA_DIST): Add systemtap.spec.

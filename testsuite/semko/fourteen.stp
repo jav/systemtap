@@ -1,0 +1,20 @@
+#! stap -p2
+
+global foo
+
+function bar()
+{
+	a = foo["hello"]++
+	return 10
+}
+
+probe begin
+{
+	foreach (a in foo) 
+	{
+		bar()
+	}
+	printk("hello from systemtap")
+}
+
+

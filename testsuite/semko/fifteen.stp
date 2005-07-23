@@ -1,0 +1,14 @@
+#! stap -p2
+
+global tangle
+
+probe begin
+{
+	foreach (state in tangle) 
+	{
+		state = tangle[state]++
+	}
+	printk("hello from systemtap")
+}
+
+
