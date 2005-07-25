@@ -1,3 +1,12 @@
+2005-07-25  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac: Don't define PKGLIBDIR and PKGDATADIR here.
+	* Makefile.am (AM_CPPFLAGS): New variable, use -D here instead.
+	(dist-hook): Don't remove ChangeLog files.
+	(install-data-local): Don't install docs, just runtime stuff.
+	(rpm, clean-local): Use make variables instead of @substitution@s.
+	* configure, config.in, aclocal.m4, Makefile.in: Regenerated
+
 2005-07-22  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx (itervar): New class.
@@ -10,7 +19,7 @@
 	(semantic_pass_maps): New function to check map usage.
 	(semantic_pass): Call it.
 	* testsuite/transok/eight.stp: Test 'foreach' loop translation.
-	* testsuite/semko/{thirteen,fourteen,fifteen}.stp: 
+	* testsuite/semko/{thirteen,fourteen,fifteen}.stp:
 	Test prohibited forms of foreach loops.
 
 2005-07-21  Martin Hunt  <hunt@redhat.com>
@@ -19,12 +28,12 @@
 	(install-data-local): Install docs and probes.
 	(docs): New target.
 	(rpm): New target.
-	
+
 	* configure.ac: Set initial version to 0.1.1.
 	(pkglibdir): Set to libexec.
 
 	* Makefile.in: Regenerated.
-	
+
 2005-07-20  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.{cxx,h} (find_array): Remove.
@@ -113,7 +122,7 @@
 2005-07-07  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.{h,cxx} (deep_copy_visitor): New visitor.
-	* elaborate.cxx 
+	* elaborate.cxx
 	(derived_probe::derived_probe):
 	(alias_expansion_builder::build): Use it.
 	* testsuite/semok/fifteen.stp: New test which relies on deep copy.
@@ -167,8 +176,8 @@
 	(parser::parse_probe): Likewise.
 	* tapsets.{h,cxx}:
 	(derived_probe_builder):
-	(match_key): 
-	(match_node): 
+	(match_key):
+	(match_node):
 	(alias_derived_probe): Move from here,
 	* elaborate.{h,cxx}: to here.
 	* elaborate.h (systemtap_session::pattern_root): New member.
@@ -177,7 +186,7 @@
 
 2005-06-23  Graydon Hoare  <graydon@redhat.com>
 
-	* tapsets.cxx 
+	* tapsets.cxx
 	(probe_type): New enum.
 	(probe_spec): New struct.
 	(dwarf_derived_probe): Reorganize a bit, interpret .return.
@@ -192,8 +201,8 @@
 	(declare_dwarf_module_entry):
 	(deregister_dwarf_module_entry):
 	(register_dwarf_module_entry): New functions.
-	(dwarf_derived_probes::emit_probe_entries): 
-	(dwarf_derived_probes::emit_registrations): 
+	(dwarf_derived_probes::emit_probe_entries):
+	(dwarf_derived_probes::emit_registrations):
 	(dwarf_derived_probes::emit_deregistrations): Implement.
 
 2005-06-21  Frank Ch. Eigler  <fche@redhat.com>
@@ -218,7 +227,7 @@
 	* tapsets.h: New file.
 	(derived_probe_builder): Callback for making derived probes.
 	(match_key): Component of pattern-matching tree.
-	(match_node): Other component of pattern-matching tree.	
+	(match_node): Other component of pattern-matching tree.
 	* tapsets.cxx: Add pattern-matching system for probes.
 	(alias_derived_probe): Skeleton for alias probes.
 	(dwarf_derived_probe): Skeleton for dwarf probes.
@@ -258,7 +267,7 @@
 	(visit_for_loop, *_statement): New implementations.
 	* elaborate.*, staptree.cxx: Mechanical changes.
 	* testsuite/parseok/ten.stp, semko/twelve.stp, transko/two.stp,
-	transok/five.stp: New tests.	
+	transok/five.stp: New tests.
 
 2005-06-03  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -309,7 +318,7 @@
 	* testsuite/*: New/updated tests for syntax changes, foreach ().
 
 2005-05-30  Frank Ch. Eigler  <fche@redhat.com>
-	
+
 	More fully parse & elaborate "expr in array" construct.
 	* staptree.h (array_in): Make this unary.  Update .cxx to match.
 	* parse.cxx (parse_array_in): Rewrite.
@@ -416,7 +425,7 @@
 	* staptree.h (expression): Add is_lvalue member.
 	* staptree.cxx (functioncall::resolve_types): Don't crash on
 	formal-vs-actual argument count mismatch.
-	(*): Add some is_lvalue stub functions. 	
+	(*): Add some is_lvalue stub functions.
 	* testsuite/*: Some new tests.
 
 2005-03-01  Frank Ch. Eigler  <fche@redhat.com>
@@ -441,4 +450,3 @@
 	* parse.cxx, parse.h: New files: parser.
 	* staptree.h: New file: semantic object declarations.
 	* staptree.cxx: New dummy driver file.
-

@@ -3,6 +3,9 @@
 
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
+AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
+	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
+
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -19,19 +22,16 @@ LDADD =
 
 EXTRA_DIST=testsuite runtime $(wildcard $(srcdir)/*.h) systemtap.spec
 dist-hook:
-	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' -o name ChangeLog | xargs rm -rf
+	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
-pkgdocdir = ${prefix}/share/doc/systemtap
-
 install-data-local:
-	mkdir -p $(DESTDIR)$(pkgdatadir) $(DESTDIR)$(pkgdocdir) $(DESTDIR)$(pkgdocdir)/runtime
-	mkdir -p $(DESTDIR)$(pkgdocdir)/runtime/docs $(DESTDIR)$(pkgdatadir)/runtime/docs
-	cp -rp $(srcdir)/runtime/*.[ch] $(srcdir)/runtime/Doxyfile $(DESTDIR)$(pkgdatadir)
-	cp -rp $(srcdir)/runtime/probes $(DESTDIR)$(pkgdatadir)/probes
-	cp -rp $(srcdir)/runtime/docs/html/* $(DESTDIR)$(pkgdocdir)/runtime
-	find $(DESTDIR)$(pkgdatadir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
-	find $(DESTDIR)$(pkgdocdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
+	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime
+	cp -rp $(srcdir)/runtime/*.[ch] $(srcdir)/runtime/Doxyfile \
+	       $(DESTDIR)$(pkgdatadir)/runtime
+	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
+	    -C $(srcdir)/runtime probes \
+	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
@@ -56,8 +56,8 @@ docs:	runtime/Doxyfile
 	cd runtime && doxygen Doxyfile
 
 rpm:	dist docs
-	rpmbuild -ta @PACKAGE_TARNAME@-@PACKAGE_VERSION@.tar.gz
+	rpmbuild -ta ${PACKAGE_TARNAME}-${PACKAGE_VERSION}.tar.gz
 
 clean-local:
-	rm -f *.gcov *.gcno *.gcda @PACKAGE_TARNAME@-*.tar.gz
-	rm -rf @PACKAGE_TARNAME@-@PACKAGE_VERSION@
+	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
+	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}

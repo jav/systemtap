@@ -66,12 +66,6 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* datadir */
-#undef PKGDATADIR
-
-/* pkglibdir */
-#undef PKGLIBDIR
-
 /* Define to 1 if the C compiler supports function prototypes. */
 #undef PROTOTYPES
 

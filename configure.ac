@@ -33,19 +33,6 @@ date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE)
 
-
-# wha?? autoconf 2.59 does not expand these in the expected way
-# my_libexecdir=`eval echo $libexecdir`
-# my_libexecdir="$libexecdir"
-
-my_pkglibdir=${prefix}/libexec/systemtap
-AC_DEFINE_UNQUOTED(PKGLIBDIR, "$my_pkglibdir", [pkglibdir])
-AC_SUBST(PKGLIBDIR)
-
-my_pkgdatadir=${prefix}/share/systemtap
-AC_DEFINE_UNQUOTED(PKGDATADIR, "$my_pkgdatadir", [datadir])
-AC_SUBST(PKGDATADIR)
-
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile systemtap.spec)
 AC_OUTPUT
