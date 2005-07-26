@@ -1,9 +1,10 @@
 2005-07-26  Martin Hunt  <hunt@redhat.com>
 
+	* Makefile.am (AM_CPPFLAGS): Set PKGLIBDIR correctly.
+
+2005-07-26  Martin Hunt  <hunt@redhat.com>	
 	* systemtap.spec.in: Stpd goes in libexec/systemtap.
-
 	* Makefile.am (libexecdir): Set to libexecdir/systemtap.
-
 	* aclocal.m4, Makefile.in: Regenerated	
 
 2005-07-25  Roland McGrath  <roland@redhat.com>

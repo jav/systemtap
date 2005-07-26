@@ -5,7 +5,7 @@ libexecdir = @libexecdir@/@PACKAGE@
 
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
-AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
+AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
 bin_PROGRAMS = stap

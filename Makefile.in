@@ -181,7 +181,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
-AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
+AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
 stap_SOURCES = main.cxx \
