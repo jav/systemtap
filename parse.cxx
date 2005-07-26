@@ -63,8 +63,10 @@ operator << (ostream& o, const token& t)
         t.type == tok_operator ? "operator" :
         t.type == tok_string ? "string" :
         t.type == tok_number ? "number" :
+        t.type == tok_embedded ? "embedded-code" :
         "unknown token");
 
+  // XXX: filter out embedded-code contents?
   o << " '";
   for (unsigned i=0; i<t.content.length(); i++)
     {
@@ -194,7 +196,7 @@ lexer::scan ()
   if (isspace (c))
     goto skip;
 
-  else if (isalpha (c) || c == '$')
+  else if (isalpha (c) || c == '$' || c == '_')
     {
       n->type = tok_identifier;
       n->content = (char) c;
@@ -300,6 +302,31 @@ lexer::scan ()
             }
           goto skip;
 	}
+      else if (c == '%' && c2 == '{') // embedded code
+        {
+          n->type = tok_embedded;
+          (void) input_get (); // swallow '{' already in c2
+          while (true)
+            {
+              c = input_get ();
+              if (c == 0) // EOF
+                {
+                  n->type = tok_junk;
+                  break;
+                }
+              if (c == '%')
+                {
+                  c2 = input_peek ();
+                  if (c2 == '}')
+                    {
+                      (void) input_get (); // swallow '}' too
+                      break;
+                    }
+                }
+              n->content += c;
+            }
+          return n;
+        }
 
       // We're committed to recognizing at least the first character
       // as an operator.
@@ -373,21 +400,15 @@ parser::parse ()
 
           empty = false;
 	  if (t->type == tok_identifier && t->content == "probe")
-	    {
-	      probe * p;
-	      probe_alias * a;
-	      parse_probe (p, a);
-	      if (a)
-		f->aliases.push_back(a);
-	      else
-		f->probes.push_back (p);
-	    }
+            parse_probe (f->probes, f->aliases);
 	  else if (t->type == tok_identifier && t->content == "global")
 	    parse_global (f->globals);
 	  else if (t->type == tok_identifier && t->content == "function")
 	    f->functions.push_back (parse_functiondecl ());
+          else if (t->type == tok_embedded)
+            f->embeds.push_back (parse_embeddedcode ());
 	  else
-	    throw parse_error ("expected 'probe', 'global', or 'function'");
+	    throw parse_error ("expected 'probe', 'global', 'function', or embedded code");
 	}
       catch (parse_error& pe)
 	{
@@ -423,15 +444,12 @@ parser::parse ()
 
 
 void
-parser::parse_probe (probe * & probe_ret,
-		     probe_alias * & alias_ret)
+parser::parse_probe (std::vector<probe *> & probe_ret,
+		     std::vector<probe_alias *> & alias_ret)
 {
   const token* t0 = next ();
   if (! (t0->type == tok_identifier && t0->content == "probe"))
     throw parse_error ("expected 'probe'");
-
-  probe_ret = NULL;
-  alias_ret = NULL;
 
   vector<probe_point *> aliases;
   vector<probe_point *> locations;
@@ -473,21 +491,36 @@ parser::parse_probe (probe * & probe_ret,
 	throw parse_error ("expected probe point specifier");
     }
 
-  probe *p;
   if (aliases.empty())
     {
-      probe_ret = new probe;
-      p = probe_ret;
+      probe* p = new probe;
+      p->tok = t0;
+      p->locations = locations;
+      p->body = parse_stmt_block ();
+      probe_ret.push_back (p);
     }
   else
     {
-      alias_ret = new probe_alias(aliases);;
-      p = alias_ret;
+      probe_alias* p = new probe_alias (aliases);
+      p->tok = t0;
+      p->locations = locations;
+      p->body = parse_stmt_block ();
+      alias_ret.push_back (p);
     }
+}
 
-  p->tok = t0;
-  p->locations = locations;
-  p->body = parse_stmt_block ();
+
+embeddedcode*
+parser::parse_embeddedcode ()
+{
+  embeddedcode* e = new embeddedcode;
+  const token* t = next ();
+  if (t->type != tok_embedded)
+    throw parse_error ("expected embedded code");
+
+  e->tok = t;
+  e->code = t->content;
+  return e;
 }
 
 
@@ -518,15 +551,15 @@ parser::parse_stmt_block ()
       catch (parse_error& pe)
 	{
 	  print_error (pe);
+
 	  // Quietly swallow all tokens until the next ';' or '}'.
 	  while (1)
 	    {
 	      const token* t = peek ();
-	      if (! t)
-		return 0;
+	      if (! t) return 0;
 	      next ();
-	      if (t->type == tok_operator && (t->content == "}"
-                                              || t->content == ";"))
+	      if (t->type == tok_operator
+                  && (t->content == "}" || t->content == ";"))
 		break;
 	    }
 	}
@@ -572,6 +605,7 @@ parser::parse_statement ()
                  t->type == tok_number ||
                  t->type == tok_string))
     return parse_expr_statement ();
+  // XXX: consider generally accepting tok_embedded here too
   else
     throw parse_error ("expected statement");
 }
@@ -657,7 +691,11 @@ parser::parse_functiondecl ()
 	throw parse_error ("expected ',' or ')'");
     }
 
-  fd->body = parse_stmt_block ();
+  t = peek ();
+  if (t && t->type == tok_embedded)
+    fd->body = parse_embeddedcode ();
+  else
+    fd->body = parse_stmt_block ();
   return fd;
 }
 

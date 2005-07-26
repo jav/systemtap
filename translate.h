@@ -53,9 +53,9 @@ struct unparser
   //   starting, begin, running, suspended, errored, ending, ended
   // };
   // static atomic_t session_state;
-  // static atomic_t errorcount; /* subcategorize? */
   //
   // struct context {
+  //   unsigned errorcount;
   //   unsigned busy;
   //   unsigned actioncount;
   //   unsigned nesting;

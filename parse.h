@@ -27,7 +27,8 @@ struct source_loc
 
 enum token_type 
   {
-    tok_junk, tok_identifier, tok_operator, tok_string, tok_number 
+    tok_junk, tok_identifier, tok_operator, tok_string, tok_number,
+    tok_embedded
     // XXX: add tok_keyword throughout
   };
 
@@ -95,10 +96,11 @@ private:
   unsigned num_errors;
 
 private: // nonterminals
-  void parse_probe (probe *&, probe_alias *&);
+  void parse_probe (std::vector<probe*>&, std::vector<probe_alias*>&);
+  void parse_global (std::vector<vardecl*>&);
+  embeddedcode* parse_embeddedcode ();
   probe_point* parse_probe_point ();
   literal* parse_literal ();
-  void parse_global (std::vector<vardecl*>&);
   functiondecl* parse_functiondecl ();
   block* parse_stmt_block ();
   statement* parse_statement ();

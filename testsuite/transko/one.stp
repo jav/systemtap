@@ -1,6 +1,6 @@
 #! stap -p3
 
-probe foo {
+probe begin {
   1 = a
   a+1 = 4
 }

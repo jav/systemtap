@@ -65,9 +65,10 @@ struct typeresolution_info: public visitor
 
   exp_type t; // implicit parameter for nested visit call; may clobber
 
-  void visit_block (block *s);
-  void visit_null_statement (null_statement *s);
-  void visit_expr_statement (expr_statement *s);
+  void visit_block (block* s);
+  void visit_embeddedcode (embeddedcode* s);
+  void visit_null_statement (null_statement* s);
+  void visit_expr_statement (expr_statement* s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -140,11 +141,11 @@ struct
 derived_probe_builder
 {
   virtual void build(systemtap_session & sess,
-		     probe * base, 
-		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
-		     std::vector<probe *> & results_to_expand_further,
-		     std::vector<derived_probe *> & finished_results) = 0;
+		     probe* base, 
+		     probe_point* location,
+		     std::map<std::string, literal*> const & parameters,
+		     std::vector<probe*> & results_to_expand_further,
+		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
 };
 
@@ -169,20 +170,20 @@ match_key
 class
 match_node
 {
-  std::map<match_key, match_node *> sub;
-  derived_probe_builder * end;
+  std::map<match_key, match_node*> sub;
+  derived_probe_builder* end;
 
  public:
   match_node();
-  derived_probe_builder * find_builder(std::vector<probe_point::component *> const & components,
+  derived_probe_builder* find_builder(std::vector<probe_point::component*> const & components,
 				       unsigned pos,
-				       std::vector< std::pair<std::string, literal *> > & parameters);
+				       std::vector< std::pair<std::string, literal*> > & parameters);
   
-  match_node * bind(match_key const & k);
-  match_node * bind(std::string const & k);
-  match_node * bind_str(std::string const & k);
-  match_node * bind_num(std::string const & k);
-  void bind(derived_probe_builder * e);
+  match_node* bind(match_key const & k);
+  match_node* bind(std::string const & k);
+  match_node* bind_str(std::string const & k);
+  match_node* bind_num(std::string const & k);
+  void bind(derived_probe_builder* e);
 };
 
 // ------------------------------------------------------------------------
@@ -211,7 +212,7 @@ struct systemtap_session
   std::string tmpdir;
   std::string translated_source; // C source code
 
-  match_node * pattern_root;
+  match_node* pattern_root;
   void register_library_aliases();
 
   // parse trees for the various script files
@@ -223,6 +224,7 @@ struct systemtap_session
   std::vector<vardecl*> globals;
   std::vector<functiondecl*> functions;
   std::vector<derived_probe*> probes;
+  std::vector<embeddedcode*> embeds;
 
   // unparser data
   translator_output* op;

@@ -236,12 +236,12 @@ struct vardecl_builtin: public vardecl
 };
 
 
-struct block;
+struct statement;
 struct functiondecl: public symboldecl
 {
   std::vector<vardecl*> formal_args;
   std::vector<vardecl*> locals;
-  block* body;
+  statement* body;
   functiondecl ();
   void print (std::ostream& o);
   void printsig (std::ostream& o);
@@ -261,6 +261,14 @@ struct statement
 };
 
 std::ostream& operator << (std::ostream& o, statement& k);
+
+
+struct embeddedcode: public statement
+{
+  std::string code;
+  void print (std::ostream& o);
+  void visit (visitor* u);
+};
 
 
 struct block: public statement
@@ -358,6 +366,7 @@ struct next_statement: public statement
 
 struct probe;
 struct probe_alias;
+struct embeddedcode;
 struct stapfile
 {
   std::string name;
@@ -365,8 +374,11 @@ struct stapfile
   std::vector<probe_alias*> aliases;
   std::vector<functiondecl*> functions;
   std::vector<vardecl*> globals;
+  std::vector<embeddedcode*> embeds;
   void print (std::ostream& o);
 };
+
+
 
 
 struct probe_point
@@ -398,13 +410,11 @@ struct probe
   virtual ~probe() {}
 };
 
-struct probe_alias 
-  : public probe
+struct probe_alias: public probe
 {
   probe_alias(std::vector<probe_point*> const & aliases);
   std::vector<probe_point*> alias_names;  
   virtual void printsig (std::ostream &o);
-  virtual ~probe_alias() {}
 };
 
 
@@ -414,6 +424,7 @@ struct visitor
 {
   virtual ~visitor () {}
   virtual void visit_block (block *s) = 0;
+  virtual void visit_embeddedcode (embeddedcode *s) = 0;
   virtual void visit_null_statement (null_statement *s) = 0;
   virtual void visit_expr_statement (expr_statement *s) = 0;
   virtual void visit_if_statement (if_statement* s) = 0;
@@ -449,6 +460,7 @@ struct visitor
 struct traversing_visitor: public visitor
 {
   void visit_block (block *s);
+  void visit_embeddedcode (embeddedcode *s);
   void visit_null_statement (null_statement *s);
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
@@ -489,6 +501,7 @@ struct throwing_visitor: public visitor
   virtual void throwone (const token* t);
 
   void visit_block (block *s);
+  void visit_embeddedcode (embeddedcode *s);
   void visit_null_statement (null_statement *s);
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);
@@ -531,6 +544,7 @@ struct deep_copy_visitor: public visitor
   static block *deep_copy (block *s);
 
   void visit_block (block *s);
+  void visit_embeddedcode (embeddedcode *s);
   void visit_null_statement (null_statement *s);
   void visit_expr_statement (expr_statement *s);
   void visit_if_statement (if_statement* s);

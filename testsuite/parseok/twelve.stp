@@ -1,0 +1,9 @@
+#! stap -p1
+
+%{
+/* hello world */
+%}
+
+function foo (p1, p2) %{
+  /* goodbye world */
+%}

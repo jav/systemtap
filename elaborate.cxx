@@ -580,6 +580,9 @@ semantic_pass_symbols (systemtap_session& s)
       for (unsigned i=0; i<dome->functions.size(); i++)
         s.functions.push_back (dome->functions[i]);
 
+      for (unsigned i=0; i<dome->embeds.size(); i++)
+        s.embeds.push_back (dome->embeds[i]);
+
       // Pass 2: process functions
 
       for (unsigned i=0; i<dome->functions.size(); i++)
@@ -1381,6 +1384,12 @@ typeresolution_info::visit_block (block* e)
 	  session.print_error (e);
         }
     }
+}
+
+
+void
+typeresolution_info::visit_embeddedcode (embeddedcode* e)
+{
 }
 
 

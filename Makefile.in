@@ -198,13 +198,16 @@ EXTRA_DIST = testsuite runtime $(wildcard $(srcdir)/*.h) systemtap.spec
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
 t = $(srcdir)/testsuite/trans
+b = $(srcdir)/testsuite/build
 TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
 	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp) \
-	$(wildcard $(t)ok/*.stp) $(wildcard $(t)ko/*.stp)
+	$(wildcard $(t)ok/*.stp) $(wildcard $(t)ko/*.stp) \
+	$(wildcard $(b)ok/*.stp) $(wildcard $(b)ko/*.stp)
 
 XFAIL_TESTS = $(wildcard $(p)ko/*.stp) \
 	$(wildcard $(s)ko/*.stp) \
-	$(wildcard $(t)ko/*.stp)
+	$(wildcard $(t)ko/*.stp) \
+	$(wildcard $(b)ko/*.stp)
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 all: config.h

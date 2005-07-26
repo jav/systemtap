@@ -1,0 +1,16 @@
+#! stap -p4
+
+global foo, bar
+
+probe begin
+{
+	x = 10
+	foo["hello"] = 25
+	foo["hello"]++
+	++foo["hello"]
+	x = foo["hello"]
+	foo["yo"] *= bar[x, foo["hello"], "goodbye"]++;
+	printk("hello from systemtap")
+}
+
+

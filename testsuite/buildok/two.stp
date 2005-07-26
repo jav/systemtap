@@ -1,0 +1,16 @@
+#! stap -p4
+
+%{
+#include <linux/version.h>
+%}
+
+function get_release () %{
+strncpy(THIS->__retvalue, UTS_RELEASE, MAXSTRINGLEN);
+%}
+
+probe begin
+{
+	printk("hello from systemtap, kernel version " . get_release())
+}
+
+

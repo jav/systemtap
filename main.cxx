@@ -381,5 +381,5 @@ main (int argc, char * const argv [])
         }
     }
 
-  return rc;
+  return rc ? EXIT_FAILURE : EXIT_SUCCESS;
 }

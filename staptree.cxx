@@ -288,6 +288,13 @@ ostream& operator << (ostream& o, statement& k)
 }
 
 
+void embeddedcode::print (ostream &o)
+{
+  o << "%{";
+  o << code;
+  o << "%}";
+}
+
 void block::print (ostream& o)
 {
   o << "{" << endl;
@@ -373,6 +380,9 @@ void if_statement::print (ostream& o)
 void stapfile::print (ostream& o)
 {
   o << "# file " << name << endl;
+
+  for (unsigned i=0; i<embeds.size(); i++)
+    embeds[i]->print (o);
 
   for (unsigned i=0; i<globals.size(); i++)
     {
@@ -476,6 +486,14 @@ block::visit (visitor* u)
 {
   u->visit_block (this);
 }
+
+
+void
+embeddedcode::visit (visitor* u)
+{
+  u->visit_embeddedcode (this);
+}
+
 
 void
 for_loop::visit (visitor* u)
@@ -637,19 +655,24 @@ functioncall::visit (visitor* u)
 // ------------------------------------------------------------------------
 
 void
-traversing_visitor::visit_block (block *s)
+traversing_visitor::visit_block (block* s)
 {
   for (unsigned i=0; i<s->statements.size(); i++)
     s->statements[i]->visit (this);
 }
 
 void
-traversing_visitor::visit_null_statement (null_statement *s)
+traversing_visitor::visit_embeddedcode (embeddedcode* s)
 {
 }
 
 void
-traversing_visitor::visit_expr_statement (expr_statement *s)
+traversing_visitor::visit_null_statement (null_statement* s)
+{
+}
+
+void
+traversing_visitor::visit_expr_statement (expr_statement* s)
 {
   s->value->visit (this);
 }
@@ -826,19 +849,25 @@ throwing_visitor::throwone (const token* t)
 }
 
 void
-throwing_visitor::visit_block (block *s)
+throwing_visitor::visit_block (block* s)
 {
   throwone (s->tok);
 }
 
 void
-throwing_visitor::visit_null_statement (null_statement *s)
+throwing_visitor::visit_embeddedcode (embeddedcode* s)
 {
   throwone (s->tok);
 }
 
 void
-throwing_visitor::visit_expr_statement (expr_statement *s)
+throwing_visitor::visit_null_statement (null_statement* s)
+{
+  throwone (s->tok);
+}
+
+void
+throwing_visitor::visit_expr_statement (expr_statement* s)
 {
   throwone (s->tok);
 }
@@ -992,12 +1021,12 @@ throwing_visitor::visit_functioncall (functioncall* e)
 // ------------------------------------------------------------------------
 
 template <typename T> static void
-require (deep_copy_visitor *v, T *dst, T src)
+require (deep_copy_visitor* v, T* dst, T src)
 {
   *dst = NULL;
   if (src != NULL)
     {
-      v->targets.push(static_cast<void *>(dst));
+      v->targets.push(static_cast<void* >(dst));
       src->visit(v);
       v->targets.pop();
       assert(*dst);
@@ -1005,20 +1034,20 @@ require (deep_copy_visitor *v, T *dst, T src)
 }
 
 template <typename T> static void
-provide (deep_copy_visitor *v, T src)
+provide (deep_copy_visitor* v, T src)
 {
   assert(!v->targets.empty());
   *(static_cast<T*>(v->targets.top())) = src;
 }
 
 void
-deep_copy_visitor::visit_block (block *s)
+deep_copy_visitor::visit_block (block* s)
 {
-  block *n = new block;
+  block* n = new block;
   n->tok = s->tok;
   for (unsigned i = 0; i < s->statements.size(); ++i)
     {
-      statement *ns;
+      statement* ns;
       require <statement*> (this, &ns, s->statements[i]);
       n->statements.push_back(ns);
     }
@@ -1026,17 +1055,26 @@ deep_copy_visitor::visit_block (block *s)
 }
 
 void
-deep_copy_visitor::visit_null_statement (null_statement *s)
+deep_copy_visitor::visit_embeddedcode (embeddedcode* s)
 {
-  null_statement *n = new null_statement;
+  embeddedcode* n = new embeddedcode;
+  n->tok = s->tok;
+  n->code = s->code;
+  provide <embeddedcode*> (this, n);
+}
+
+void
+deep_copy_visitor::visit_null_statement (null_statement* s)
+{
+  null_statement* n = new null_statement;
   n->tok = s->tok;
   provide <null_statement*> (this, n);
 }
 
 void
-deep_copy_visitor::visit_expr_statement (expr_statement *s)
+deep_copy_visitor::visit_expr_statement (expr_statement* s)
 {
-  expr_statement *n = new expr_statement;
+  expr_statement* n = new expr_statement;
   n->tok = s->tok;
   require <expression*> (this, &(n->value), s->value);
   provide <expr_statement*> (this, n);
@@ -1045,7 +1083,7 @@ deep_copy_visitor::visit_expr_statement (expr_statement *s)
 void
 deep_copy_visitor::visit_if_statement (if_statement* s)
 {
-  if_statement *n = new if_statement;
+  if_statement* n = new if_statement;
   n->tok = s->tok;
   require <expression*> (this, &(n->condition), s->condition);
   require <statement*> (this, &(n->thenblock), s->thenblock);
@@ -1056,7 +1094,7 @@ deep_copy_visitor::visit_if_statement (if_statement* s)
 void
 deep_copy_visitor::visit_for_loop (for_loop* s)
 {
-  for_loop *n = new for_loop;
+  for_loop* n = new for_loop;
   n->tok = s->tok;
   require <expr_statement*> (this, &(n->init), s->init);
   require <expression*> (this, &(n->cond), s->cond);
@@ -1068,11 +1106,11 @@ deep_copy_visitor::visit_for_loop (for_loop* s)
 void
 deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
 {
-  foreach_loop *n = new foreach_loop;
+  foreach_loop* n = new foreach_loop;
   n->tok = s->tok;
   for (unsigned i = 0; i < s->indexes.size(); ++i)
     {
-      symbol *sym;
+      symbol* sym;
       require <symbol*> (this, &sym, s->indexes[i]);
       n->indexes.push_back(sym);
     }
@@ -1085,7 +1123,7 @@ deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
 void
 deep_copy_visitor::visit_return_statement (return_statement* s)
 {
-  return_statement *n = new return_statement;
+  return_statement* n = new return_statement;
   n->tok = s->tok;
   require <expression*> (this, &(n->value), s->value);
   provide <return_statement*> (this, n);
@@ -1094,7 +1132,7 @@ deep_copy_visitor::visit_return_statement (return_statement* s)
 void
 deep_copy_visitor::visit_delete_statement (delete_statement* s)
 {
-  delete_statement *n = new delete_statement;
+  delete_statement* n = new delete_statement;
   n->tok = s->tok;
   require <expression*> (this, &(n->value), s->value);
   provide <delete_statement*> (this, n);
@@ -1103,7 +1141,7 @@ deep_copy_visitor::visit_delete_statement (delete_statement* s)
 void
 deep_copy_visitor::visit_next_statement (next_statement* s)
 {
-  next_statement *n = new next_statement;
+  next_statement* n = new next_statement;
   n->tok = s->tok;
   provide <next_statement*> (this, n);
 }
@@ -1111,7 +1149,7 @@ deep_copy_visitor::visit_next_statement (next_statement* s)
 void
 deep_copy_visitor::visit_break_statement (break_statement* s)
 {
-  break_statement *n = new break_statement;
+  break_statement* n = new break_statement;
   n->tok = s->tok;
   provide <break_statement*> (this, n);
 }
@@ -1119,7 +1157,7 @@ deep_copy_visitor::visit_break_statement (break_statement* s)
 void
 deep_copy_visitor::visit_continue_statement (continue_statement* s)
 {
-  continue_statement *n = new continue_statement;
+  continue_statement* n = new continue_statement;
   n->tok = s->tok;
   provide <continue_statement*> (this, n);
 }
@@ -1127,7 +1165,7 @@ deep_copy_visitor::visit_continue_statement (continue_statement* s)
 void
 deep_copy_visitor::visit_literal_string (literal_string* e)
 {
-  literal_string *n = new literal_string(e->value);
+  literal_string* n = new literal_string(e->value);
   n->tok = e->tok;
   provide <literal_string*> (this, n);
 }
@@ -1135,7 +1173,7 @@ deep_copy_visitor::visit_literal_string (literal_string* e)
 void
 deep_copy_visitor::visit_literal_number (literal_number* e)
 {
-  literal_number *n = new literal_number(e->value);
+  literal_number* n = new literal_number(e->value);
   n->tok = e->tok;
   provide <literal_number*> (this, n);
 }
@@ -1143,7 +1181,7 @@ deep_copy_visitor::visit_literal_number (literal_number* e)
 void
 deep_copy_visitor::visit_binary_expression (binary_expression* e)
 {
-  binary_expression *n = new binary_expression;
+  binary_expression* n = new binary_expression;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1154,7 +1192,7 @@ deep_copy_visitor::visit_binary_expression (binary_expression* e)
 void
 deep_copy_visitor::visit_unary_expression (unary_expression* e)
 {
-  unary_expression *n = new unary_expression;
+  unary_expression* n = new unary_expression;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->operand), e->operand);
@@ -1164,7 +1202,7 @@ deep_copy_visitor::visit_unary_expression (unary_expression* e)
 void
 deep_copy_visitor::visit_pre_crement (pre_crement* e)
 {
-  pre_crement *n = new pre_crement;
+  pre_crement* n = new pre_crement;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->operand), e->operand);
@@ -1174,7 +1212,7 @@ deep_copy_visitor::visit_pre_crement (pre_crement* e)
 void
 deep_copy_visitor::visit_post_crement (post_crement* e)
 {
-  post_crement *n = new post_crement;
+  post_crement* n = new post_crement;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->operand), e->operand);
@@ -1185,7 +1223,7 @@ deep_copy_visitor::visit_post_crement (post_crement* e)
 void
 deep_copy_visitor::visit_logical_or_expr (logical_or_expr* e)
 {
-  logical_or_expr *n = new logical_or_expr;
+  logical_or_expr* n = new logical_or_expr;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1196,7 +1234,7 @@ deep_copy_visitor::visit_logical_or_expr (logical_or_expr* e)
 void
 deep_copy_visitor::visit_logical_and_expr (logical_and_expr* e)
 {
-  logical_and_expr *n = new logical_and_expr;
+  logical_and_expr* n = new logical_and_expr;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1207,7 +1245,7 @@ deep_copy_visitor::visit_logical_and_expr (logical_and_expr* e)
 void
 deep_copy_visitor::visit_array_in (array_in* e)
 {
-  array_in *n = new array_in;
+  array_in* n = new array_in;
   n->tok = e->tok;
   require <arrayindex*> (this, &(n->operand), e->operand);
   provide <array_in*> (this, n);
@@ -1216,7 +1254,7 @@ deep_copy_visitor::visit_array_in (array_in* e)
 void
 deep_copy_visitor::visit_comparison (comparison* e)
 {
-  comparison *n = new comparison;
+  comparison* n = new comparison;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1227,7 +1265,7 @@ deep_copy_visitor::visit_comparison (comparison* e)
 void
 deep_copy_visitor::visit_concatenation (concatenation* e)
 {
-  concatenation *n = new concatenation;
+  concatenation* n = new concatenation;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1238,7 +1276,7 @@ deep_copy_visitor::visit_concatenation (concatenation* e)
 void
 deep_copy_visitor::visit_ternary_expression (ternary_expression* e)
 {
-  ternary_expression *n = new ternary_expression;
+  ternary_expression* n = new ternary_expression;
   n->tok = e->tok;
   require <expression*> (this, &(n->cond), e->cond);
   require <expression*> (this, &(n->truevalue), e->truevalue);
@@ -1249,7 +1287,7 @@ deep_copy_visitor::visit_ternary_expression (ternary_expression* e)
 void
 deep_copy_visitor::visit_assignment (assignment* e)
 {
-  assignment *n = new assignment;
+  assignment* n = new assignment;
   n->op = e->op;
   n->tok = e->tok;
   require <expression*> (this, &(n->left), e->left);
@@ -1260,7 +1298,7 @@ deep_copy_visitor::visit_assignment (assignment* e)
 void
 deep_copy_visitor::visit_symbol (symbol* e)
 {
-  symbol *n = new symbol;
+  symbol* n = new symbol;
   n->tok = e->tok;
   n->name = e->name;
   n->referent = NULL;
@@ -1270,13 +1308,13 @@ deep_copy_visitor::visit_symbol (symbol* e)
 void
 deep_copy_visitor::visit_arrayindex (arrayindex* e)
 {
-  arrayindex *n = new arrayindex;
+  arrayindex* n = new arrayindex;
   n->tok = e->tok;
   n->base = e->base;
   n->referent = NULL;
   for (unsigned i = 0; i < e->indexes.size(); ++i)
     {
-      expression *ne;
+      expression* ne;
       require <expression*> (this, &ne, e->indexes[i]);
       n->indexes.push_back(ne);
     }
@@ -1286,32 +1324,32 @@ deep_copy_visitor::visit_arrayindex (arrayindex* e)
 void
 deep_copy_visitor::visit_functioncall (functioncall* e)
 {
-  functioncall *n = new functioncall;
+  functioncall* n = new functioncall;
   n->tok = e->tok;
   n->function = e->function;
   n->referent = NULL;
   for (unsigned i = 0; i < e->args.size(); ++i)
     {
-      expression *na;
+      expression* na;
       require <expression*> (this, &na, e->args[i]);
       n->args.push_back(na);
     }
   provide <functioncall*> (this, n);
 }
 
-block *
-deep_copy_visitor::deep_copy (block *b)
+block* 
+deep_copy_visitor::deep_copy (block* b)
 {
-  block *n;
+  block* n;
   deep_copy_visitor v;
   require <block*> (&v, &n, b);
   return n;
 }
 
-statement *
-deep_copy_visitor::deep_copy (statement *s)
+statement* 
+deep_copy_visitor::deep_copy (statement* s)
 {
-  statement *n;
+  statement* n;
   deep_copy_visitor v;
   require <statement*> (&v, &n, s);
   return n;

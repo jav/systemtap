@@ -46,7 +46,7 @@ struct c_unparser: public unparser, public visitor
   unsigned tmpvar_counter;
   unsigned label_counter;
 
-  c_unparser (systemtap_session *ss):
+  c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
   tmpvar_counter (0), label_counter (0) {}
   ~c_unparser () {}
@@ -68,7 +68,7 @@ struct c_unparser: public unparser, public visitor
   string c_typename (exp_type e);
   string c_varname (const string& e);
 
-  void c_assign (var& lvalue, const string& rvalue, const token *tok);
+  void c_assign (var& lvalue, const string& rvalue, const token* tok);
   void c_assign (const string& lvalue, expression* rvalue, const string& msg);
   void c_assign (const string& lvalue, const string& rvalue, exp_type type,
                  const string& msg, const token* tok);
@@ -82,23 +82,24 @@ struct c_unparser: public unparser, public visitor
   void c_strcpy (const string& lvalue, const string& rvalue);
   void c_strcpy (const string& lvalue, expression* rvalue);
 
-  bool is_local (vardecl const *r, token const *tok);
+  bool is_local (vardecl const* r, token const* tok);
 
   tmpvar gensym(exp_type ty);
-  var getvar(vardecl *v, token const *tok = NULL);
-  itervar getiter(foreach_loop *f);
-  mapvar getmap(vardecl *v, token const *tok = NULL);
+  var getvar(vardecl* v, token const* tok = NULL);
+  itervar getiter(foreach_loop* f);
+  mapvar getmap(vardecl* v, token const* tok = NULL);
 
-  void load_map_indices(arrayindex *e,
+  void load_map_indices(arrayindex* e,
 			vector<tmpvar> & idx);
 
-  void collect_map_index_types(vector<vardecl *> const & vars,
+  void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< exp_type > & value_types,
 			       set< vector<exp_type> > & index_types);
 
-  void visit_block (block *s);
-  void visit_null_statement (null_statement *s);
-  void visit_expr_statement (expr_statement *s);
+  void visit_block (block* s);
+  void visit_embeddedcode (embeddedcode* s);
+  void visit_null_statement (null_statement* s);
+  void visit_expr_statement (expr_statement* s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -174,16 +175,16 @@ struct c_unparser_assignment:
 
   void prepare_rvalue (string const & op, 
 		       tmpvar const & rval,
-		       token const * tok);
+		       token const*  tok);
 
   void c_assignop(tmpvar & res, 
 		  var const & lvar, 
 		  tmpvar const & tmp,
-		  token const * tok);
+		  token const*  tok);
 
   // only symbols and arrayindex nodes are possible lvalues
-  void visit_symbol (symbol *e);
-  void visit_arrayindex (arrayindex *e);
+  void visit_symbol (symbol* e);
+  void visit_arrayindex (arrayindex* e);
 };
 
 
@@ -198,8 +199,8 @@ struct c_tmpcounter_assignment:
     parent (p), op (o), rvalue (e) {}
 
   // only symbols and arrayindex nodes are possible lvalues
-  void visit_symbol (symbol *e);
-  void visit_arrayindex (arrayindex *e);
+  void visit_symbol (symbol* e);
+  void visit_arrayindex (arrayindex* e);
 };
 
 
@@ -390,7 +391,7 @@ class itervar
 
 public:
 
-  itervar (foreach_loop *e, unsigned & counter)
+  itervar (foreach_loop* e, unsigned & counter)
     : referent_ty(e->base_referent->type), 
       name("__tmp" + stringify(counter++))
   {
@@ -742,6 +743,8 @@ c_unparser::emit_function (functiondecl* v)
     << "& c->locals[c->nesting].function_" << c_varname (v->name)
     << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+  o->newline() << "#define THIS l";
+  o->newline() << "if (0) goto out;"; // make sure out: is marked used
 
   // initialize locals
   for (unsigned i=0; i<v->locals.size(); i++)
@@ -762,6 +765,7 @@ c_unparser::emit_function (functiondecl* v)
   o->newline(-1) << "out:";
   o->newline(1) << ";";
 
+  o->newline() << "#undef THIS";
   o->newline(-1) << "}" << endl;
 }
 
@@ -1262,6 +1266,13 @@ c_unparser::visit_block (block *s)
         }
     }
   o->newline(-1) << "}";
+}
+
+
+void
+c_unparser::visit_embeddedcode (embeddedcode *s)
+{
+  o->newline() << s->code;
 }
 
 
@@ -2073,9 +2084,17 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#else";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include <linux/string.h>";
+      // XXX
+      s.op->newline() << "#define KALLSYMS_LOOKUP_NAME \"\"";
+      s.op->newline() << "#define KALLSYMS_LOOKUP 0";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header ();
+
+      for (unsigned i=0; i<s.embeds.size(); i++)
+        {
+          s.op->newline() << s.embeds[i]->code << endl;
+        }
 
       for (unsigned i=0; i<s.globals.size(); i++)
         {
@@ -2113,13 +2132,28 @@ translate_pass (systemtap_session& s)
 
       s.op->newline() << "/* test mode mainline */";
       s.op->newline() << "int main () {";
-      s.op->newline(1) << "int rc = probe_start ();";
-      s.op->newline() << "if (!rc) probe_exit ();";
+      s.op->newline(1) << "int rc = systemtap_module_init ();";
+      s.op->newline() << "if (!rc) systemtap_module_exit ();";
       s.op->newline() << "return rc;";
       s.op->newline(-1) << "}";
 
       s.op->newline() << "#else";
+
+      s.op->newline();
+      // XXX
+      s.op->newline() << "int probe_start () {";
+      s.op->newline(1) << "return systemtap_module_init ();";
+      s.op->newline(-1) << "}";
+      s.op->newline();
+      s.op->newline() << "void probe_exit () {";
+      // XXX: need to reference these static functions for -Werror avoidance
+      s.op->newline(1) << "if (0) next_fmt ((void *) 0, (void *) 0);";
+      s.op->newline() << "if (0) _stp_dbug(\"\", 0, \"\");";
+      s.op->newline() << "systemtap_module_exit ();";
+      s.op->newline(-1) << "}";
+
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
+      s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
       s.op->newline() << "#endif";
 
       s.op->line() << endl;

@@ -1,3 +1,24 @@
+2005-07-26  Frank Ch. Eigler  <fche@redhat.com>
+
+	Support %{ embedded-c %}
+	* staptree.h (embeddedcode): New statement subtype.  Stub support in
+	visitors.
+	* staptree.cxx: Ditto.
+	* parse.cxx: Parse %{ / %}.  Accept "_" as identifier leading char.
+	(parse_probe): Simplify calling convention.
+	* elaborate.h: Store embedded code.
+	* elaborate.cxx: Pass it.
+	* translate.cxx: Transcribe it.  Return some dropped module init/exit
+	code.
+	* Makefile.am: Add buildok/buildko tests.
+	* Makefile.in: Regenerated.
+	* main.cxx: Return EXIT_SUCCESS/FAILURE even for weird rc.
+	* testsuite/parseok/nine.stp: Test _identifiers.
+	* testsuite/transko/*.stp: Tweak to force -p3 rather than -p2 errors.
+	* testsuite/semok/transko.stp: ... and keep it that way in the future.
+	* testsuite/parse*/*: Some new tests for %{ %}.
+	* testsuite/build*/*: New tests for -p4.
+
 2005-07-26  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (AM_CPPFLAGS): Set PKGLIBDIR correctly.
