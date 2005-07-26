@@ -1,0 +1,10 @@
+#! /bin/sh
+
+# make sure that we can *translate* all buildko test files, to ensure
+# that it is build-time checks that fail, not earlier ones errors
+
+set -e
+for file in ${SRCDIR}/testsuite/buildko/*.stp
+do
+  ./stap -p3 $file
+done
