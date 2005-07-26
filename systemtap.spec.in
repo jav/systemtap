@@ -107,7 +107,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc README AUTHORS NEWS runtime/docs/html
 
 %{_bindir}/stap
-%{_libexecdir}/stpd
+%{_libexecdir}/systemtap/stpd
 
 %dir %{_datadir}/systemtap
 %{_datadir}/systemtap/runtime
