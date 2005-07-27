@@ -1,5 +1,10 @@
 2005-07-26  Martin Hunt  <hunt@redhat.com>
 
+	* buildrun.cxx (compile_pass): Add -Wno-unused to CFLAGS because
+	usually a module doesn't use every function in the runtime.
+
+2005-07-26  Martin Hunt  <hunt@redhat.com>
+	
 	* Makefile.am (stpd_LDFLAGS): Set rpath correclty because otherwise 
 	automake doesn't seem to get it right when binaries are in libexec subdirs.
 	(AM_CPPFLAGS): revert.
