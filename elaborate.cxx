@@ -591,12 +591,9 @@ semantic_pass_symbols (systemtap_session& s)
 
           try 
             {
-	      if (fd->body)
-		{
-		  sym.current_function = fd;
-		  sym.current_probe = 0;
-		  fd->body->visit (& sym);
-		}
+              sym.current_function = fd;
+              sym.current_probe = 0;
+              fd->body->visit (& sym);
             }
           catch (const semantic_error& e)
             {
@@ -945,18 +942,15 @@ semantic_pass_types (systemtap_session& s)
       for (unsigned j=0; j<s.functions.size(); j++)
         {
           functiondecl* fn = s.functions[j];
-	  if (fn->body)
-	    {
-	      ti.current_function = fn;
-	      ti.t = pe_unknown;
-	      fn->body->visit (& ti);
-	      // NB: we don't have to assert a known type for
-	      // functions here, to permit a "void" function.
-	      // The translator phase will omit the "retvalue".
-	      //
-	      // if (fn->type == pe_unknown)
-	      //   ti.unresolved (fn->tok);
-	    }
+          ti.current_function = fn;
+          ti.t = pe_unknown;
+          fn->body->visit (& ti);
+	  // NB: we don't have to assert a known type for
+	  // functions here, to permit a "void" function.
+	  // The translator phase will omit the "retvalue".
+	  //
+          // if (fn->type == pe_unknown)
+          //   ti.unresolved (fn->tok);
         }          
 
       for (unsigned j=0; j<s.probes.size(); j++)

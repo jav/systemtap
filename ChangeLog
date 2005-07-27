@@ -1,3 +1,9 @@
+2005-07-26  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx: Revert builtin-function code.
+	* translate.cxx: Likewise.
+	* tapsets.{h,cxx}: Likewise.
+
 2005-07-26  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (compile_pass): Add -Wno-unused to CFLAGS because

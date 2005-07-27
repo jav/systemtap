@@ -1210,50 +1210,6 @@ dwarf_builder::build(systemtap_session & sess,
 
 #endif /* HAVE_ELFUTILS_LIBDWFL_H */
 
-// ------------------------------------------------------------------------
-//  Built-in function support class
-// ------------------------------------------------------------------------
-
-token *
-builtin_function::id(string const & name)
-{
-  token *t = new token;
-  t->type = tok_identifier;
-  t->content = name;
-  t->location.file = "<builtin>";
-  return t;
-}
-
-builtin_function::builtin_function(exp_type ty, string const & name)
-{
-  f = new functiondecl;
-  f->tok = id(name);
-  f->name = name;
-  f->type = ty;
-  f->body = NULL;
-}
-
-builtin_function & 
-builtin_function::arg(exp_type e, string const & name)
-{
-  vardecl *arg = new vardecl;
-  arg->name = name;
-  arg->tok = id(name);
-  arg->type = e;
-  f->formal_args.push_back(arg);
-  return *this;
-}
-
-void 
-builtin_function::bind(systemtap_session & s)
-{
-  for (unsigned i = 0; i < s.functions.size(); ++i)
-    {
-      if (s.functions[i]->name == f->name)
-	throw semantic_error("builtin function " + f->name + " registered twice");
-    }
-  s.functions.push_back(f);
-}
 
 // ------------------------------------------------------------------------
 //  Standard tapset registry.
@@ -1269,9 +1225,4 @@ register_standard_tapsets(systemtap_session & s)
 #ifdef HAVE_ELFUTILS_LIBDWFL_H
   dwarf_derived_probe::register_patterns(s.pattern_root);
 #endif /* HAVE_ELFUTILS_LIBDWFL_H */
-
-  // Some standard builtins
-  builtin_function(pe_long, "printk").arg(pe_string, "message").bind(s);
-  builtin_function(pe_long, "log").arg(pe_string, "message").bind(s);
-  builtin_function(pe_long, "warn").arg(pe_string, "message").bind(s);
 }

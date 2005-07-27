@@ -52,7 +52,6 @@ struct c_unparser: public unparser, public visitor
   ~c_unparser () {}
 
   void emit_map_type_instantiations ();
-  void emit_builtin_function_symbols ();
   void emit_common_header ();
   void emit_global (vardecl* v);
   void emit_functionsig (functiondecl* v);
@@ -203,12 +202,6 @@ struct c_tmpcounter_assignment:
   void visit_arrayindex (arrayindex* e);
 };
 
-
-struct builtin_collector: public traversing_visitor
-{
-  set<string> called_builtins;
-  void visit_functioncall (functioncall* e);
-};
 
 ostream & operator<<(ostream & o, var const & v);
 
@@ -491,14 +484,6 @@ translator_output::line ()
   return o;
 }
 
-// ------------------------------------------------------------------------
-
-void
-builtin_collector::visit_functioncall(functioncall* e)
-{
-  if (e->referent && !e->referent->body)
-    called_builtins.insert(e->referent->name);
-}
 
 // ------------------------------------------------------------------------
 
@@ -567,8 +552,7 @@ c_unparser::emit_common_header ()
 		       << c_varname (v->name) << ";";
         }
       c_tmpcounter ct (this);
-      if (fd->body)
-	fd->body->visit (& ct);
+      fd->body->visit (& ct);
       if (fd->type == pe_unknown)
 	o->newline() << "/* no return value */";
       else
@@ -579,8 +563,6 @@ c_unparser::emit_common_header ()
     }
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "} contexts [MAXCONCURRENCY];" << endl;
-
-  emit_builtin_function_symbols ();
 
   emit_map_type_instantiations ();
 }
@@ -816,37 +798,6 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   v->emit_probe_entries (o, i);
 }
 
-
-void
-c_unparser::emit_builtin_function_symbols ()
-{
-  builtin_collector bc;
-  for (unsigned i=0; i<session->functions.size(); i++)
-    {
-      functiondecl* fd = session->functions[i];
-      if (fd->body)
-	fd->body->visit(&bc);
-    }
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      derived_probe* dp = session->probes[i];
-      dp->body->visit(&bc);
-    }
-
-  for (set<string>::const_iterator i = bc.called_builtins.begin();
-       i != bc.called_builtins.end(); ++i)
-    {
-      o->newline() << "#define _BUILTIN_FUNCTION_" << *i << "_";
-    }
-
-  o->newline() << "#include \"builtin_functions.h\"";
-
-  for (set<string>::const_iterator i = bc.called_builtins.begin();
-       i != bc.called_builtins.end(); ++i)
-    {
-      o->newline() << "#undef _BUILTIN_FUNCTION_" << *i << "_";
-    }
-}
 
 void 
 c_unparser::collect_map_index_types(vector<vardecl *> const & vars,
@@ -2103,18 +2054,16 @@ translate_pass (systemtap_session& s)
         }
 
       for (unsigned i=0; i<s.functions.size(); i++)
-	if (s.functions[i]->body)
-          {
-            s.op->newline();
-            s.up->emit_functionsig (s.functions[i]);
-          }
+	{
+	  s.op->newline();
+	  s.up->emit_functionsig (s.functions[i]);
+	}
 
       for (unsigned i=0; i<s.functions.size(); i++)
-	if (s.functions[i]->body)
-          {
-            s.op->newline();
-            s.up->emit_function (s.functions[i]);
-          }
+	{
+	  s.op->newline();
+	  s.up->emit_function (s.functions[i]);
+	}
 
       for (unsigned i=0; i<s.probes.size(); i++)
         {
