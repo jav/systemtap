@@ -1,11 +1,9 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-libexecdir = @libexecdir@/@PACKAGE@
-
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 
-AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}"' \
+AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
 bin_PROGRAMS = stap
@@ -16,7 +14,8 @@ stap_SOURCES = main.cxx \
 libexec_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
-
+# automake doesn't get rpath right unless we do this
+stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed

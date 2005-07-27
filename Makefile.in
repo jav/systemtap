@@ -169,7 +169,7 @@ includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
-libexecdir = @libexecdir@/@PACKAGE@
+libexecdir = @libexecdir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
@@ -181,7 +181,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
-AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}"' \
+AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
 stap_SOURCES = main.cxx \
@@ -190,6 +190,8 @@ stap_SOURCES = main.cxx \
 
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
+# automake doesn't get rpath right unless we do this
+stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
