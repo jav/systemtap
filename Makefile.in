@@ -753,11 +753,14 @@ dist-hook:
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
-	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime
+	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
 	cp -rp $(srcdir)/runtime/*.[ch] $(srcdir)/runtime/Doxyfile \
 	       $(DESTDIR)$(pkgdatadir)/runtime
 	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
 	    -C $(srcdir)/runtime probes \
+	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
+	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
+	    -C $(srcdir)/runtime transport \
 	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
 
 gcov:

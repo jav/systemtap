@@ -1,3 +1,8 @@
+2005-07-28  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (install-data-local): Add runtime/transport.
+	* Makefile.in: regenerated.
+	
 2005-07-26  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.cxx: Revert builtin-function code.
