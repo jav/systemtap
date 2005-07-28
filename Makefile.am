@@ -6,6 +6,7 @@ AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
+man_MANS = stap.1
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -16,7 +17,7 @@ libexec_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 # automake doesn't get rpath right unless we do this
-stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
+# stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
 
 AM_CXXFLAGS = -Wall
 

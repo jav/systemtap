@@ -39,11 +39,11 @@ usage (systemtap_session& s)
     << "This is free software; see the source for copying conditions."
     << endl
     << endl
-    << "Usage: stap [options] FILE [ARGS ...]        Run script in file."
+    << "Usage: stap [options] FILE         Run script in file."
     << endl
-    << "   or: stap [options] - [ARGS ...]           Run script on stdin."
+    << "   or: stap [options] -            Run script on stdin."
     << endl
-    << "   or: stap [options] -e SCRIPT [ARGS ...]   Run given script." 
+    << "   or: stap [options] -e SCRIPT    Run given script." 
     << endl
     << endl
     << "Arguments:" << endl
@@ -66,12 +66,10 @@ usage (systemtap_session& s)
     <<      "              " << s.runtime_path << endl
     << "   -r RELEASE use kernel RELEASE, instead of" << endl
     <<      "              " << s.kernel_release << endl
-    << "   -m MODULE  set probe module name, insetad of" << endl
+    << "   -m MODULE  set probe module name, instead of" << endl
     <<      "              " << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
     << "   -k         keep temporary directory" << endl;
-  // XXX: other options:
-  // -s: safe mode
   // -d: dump safety-related external references 
 
   exit (0);

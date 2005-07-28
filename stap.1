@@ -1,0 +1,128 @@
+.TH STAP 1 "July 28 2005" "Red Hat" "Utility Commands"
+.SH NAME
+stap \- systemtap script translator/driver
+.SH SYNOPSIS
+.TP
+.B stap
+[
+.I options
+]
+.BI FILE
+.TP
+.B stap
+[
+.I options
+]
+.BI -
+.TP
+.B stap
+[
+.I options
+]
+.BI "-e SCRIPT"
+
+.SH DESCRIPTION
+
+The
+.I stap
+program is the front-end to the SystemTap system.  It accepts probing
+instructions, written in a simple scripting language.  It translates
+the script to C code.  It then compiles this C code, and loads the
+resulting kernel module into a running Linux kernel to perform the
+requested system trace/probe functions.  The script is supplied in a
+named file, or standard input, or on the command line itself,
+respectively.
+.PP
+The language is described in a later section.
+It is strictly typed, largely declaration free, and procedural,
+inspired by
+.IR dtrace 
+and
+.IR awk .
+It allows source code points or events in the kernel to be associated
+with handlers, which are subroutines executed synchronously.  It is
+somewhat similar to "breakpoint command lists" in the
+.IR gdb
+tool.
+
+.SH OPTIONS
+
+.SH PROCESSING
+
+.SH SCRIPT LANGUAGE
+
+.SH EXAMPLES
+
+.SH SAFETY AND SECURITY
+
+SystemTap is an administrative tool at this time.  It exposes kernel
+internal data structures and potentially private user information.
+It acquires root privileges to actually run the kernel objects it
+builds using the
+.IR sudo
+command applied to the
+.IR stpd
+program.  The latter is a part of the SystemTap package, dedicated to
+module loading and unloading (but only in the white zone), and
+kernel-to-user data transfer.  Since 
+.IR stpd
+does not perform any additional security checks on the kernel objects
+it is given, it would be unwise for a system administrator to give
+even targeted
+.IR sudo
+privileges to untrusted users.
+
+.PP
+The translator asserts certain safety constraints.  It aims to ensure
+that no handler routine can run for very long, allocate memory,
+perform unsafe operations, or in unintentionally interfere with the
+kernel.
+
+.SH ENVIRONMENT VARIABLES
+
+The
+.B SYSTEMTAP_RUNTIME
+environment variable provides a default for the
+.B \-R
+option.  Similarly, the
+.B SYSTEMTAP_TAPSET
+environment variable provides a default for the
+.B \-I
+option.
+
+.SH SEE ALSO
+
+.IR dtrace (1)
+.IR dprobes (1)
+.IR awk (1)
+.IR sudo (8)
+.IR libelf (3)
+.IR gdb (1)
+
+.SH BUGS
+
+There are numerous missing features and possibly numerous bugs.  Use
+the Bugzilla link off of the project web page
+.BR http://sources.redhat.com/systemtap/ ,
+or the mailing list
+.BR systemtap@sources.redhat.com .
+
+.SH AUTHORS
+
+The
+.IR stap
+translator was written by Frank Ch. Eigler and Graydon Hoare.  The
+kernel-side runtime library and the user-level
+.IR stpd
+daemon was written by Martin Hunt and Tom Zanussi.
+
+.SH ACKNOWLEDGEMENTS
+
+The script language design was inspired by Sun's 
+.IR dtrace ,
+and refined by numerous participants on the project mailing list.
+The current probing mechanism uses IBM's
+.IR kprobes ,
+and
+.IR relayfs
+packages.

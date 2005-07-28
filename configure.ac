@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.1.1, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.2, systemtap@sources.redhat.com, systemtap)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -23,6 +23,8 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
 dnl Need libdwfl-capable elfutils 0.102+ from <drepper@redhat.com>
+dnl ... except that these libraries are only used by stap, not
+dnl stpd.  The implicit LIBS set from these is too broadly applied.
 AC_CHECK_HEADERS([libelf.h elfutils/libdw.h elfutils/libdwfl.h])
 AC_CHECK_LIB(dw, dwarf_begin)
 AC_CHECK_LIB(elf, elf_begin)
