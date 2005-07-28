@@ -98,8 +98,9 @@ int main (int argc, char *argv[])
 				break;
 			fputc_unlocked (c, ofp);
 		}
+
 		if (min && ++count != min) {
-			//fprintf(stderr, "got %ld. expected %ld\n", min, count);
+			fprintf(stderr, "got %ld. expected %ld\n", min, count);
 			dropped += min - count ;
 			count = min;
 		}
