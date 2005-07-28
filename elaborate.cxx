@@ -617,6 +617,9 @@ semantic_pass_symbols (systemtap_session& s)
             }
           catch (const semantic_error& e)
             {
+              cerr << "while resolving probe point list:" << endl;
+              for (unsigned k=0; k<p->locations.size(); k++)
+                cerr << "  " << *p->locations[k] << endl;
               s.print_error (e);
               // dps.erase (dps.begin(), dps.end());
             }

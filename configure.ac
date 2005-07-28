@@ -22,7 +22,7 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl Need elfutils 0.102+ from <drepper@redhat.com>
+dnl Need libdwfl-capable elfutils 0.102+ from <drepper@redhat.com>
 AC_CHECK_HEADERS([libelf.h elfutils/libdw.h elfutils/libdwfl.h])
 AC_CHECK_LIB(dw, dwarf_begin)
 AC_CHECK_LIB(elf, elf_begin)

@@ -302,10 +302,11 @@ dwflpp
     return t;
   }
 
-  void dwflpp_assert(int rc)
+  void dwflpp_assert(string desc, int rc)
   {
     if (rc != 0)
-      throw semantic_error(string("dwfl failure: ") + dwfl_errmsg(rc));
+      throw semantic_error("dwfl failure (" + desc + "): " 
+                           + dwfl_errmsg(rc));
   }
 
   dwflpp(systemtap_session & sess)
@@ -343,8 +344,8 @@ dwflpp
 	if (!dwfl)
 	  throw semantic_error("cannot open dwfl");
 	dwfl_report_begin(dwfl);
-	dwflpp_assert(dwfl_linux_kernel_report_kernel(dwfl));
-	dwflpp_assert(dwfl_linux_kernel_report_modules(dwfl));
+	dwflpp_assert("report_kernel", dwfl_linux_kernel_report_kernel(dwfl));
+	dwflpp_assert("report_modules", dwfl_linux_kernel_report_modules(dwfl));
       }
     else
       {
@@ -355,7 +356,7 @@ dwflpp
 	// XXX: Find pids or processes, do userspace stuff.
       }
 
-    dwflpp_assert(dwfl_report_end(dwfl, NULL, NULL));
+    dwflpp_assert("report_end", dwfl_report_end(dwfl, NULL, NULL));
   }
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
@@ -373,7 +374,7 @@ dwflpp
     while (off > 0);
     if (sess.verbose)
       clog << "finished iterating over modules" << endl;
-    dwflpp_assert(off);
+    dwflpp_assert("getdwarf", off);
   }
 
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg), 
@@ -462,9 +463,9 @@ dwflpp
 
     assert(module);
     assert(cu);
-    dwflpp_assert(dwarf_getsrclines(cu, &lines, &nlines));
+    dwflpp_assert("getsrclines", dwarf_getsrclines(cu, &lines, &nlines));
     linep = dwarf_onesrcline(lines, line);
-    dwflpp_assert(dwarf_lineaddr(linep, &addr));
+    dwflpp_assert("lineaddr", dwarf_lineaddr(linep, &addr));
     if (sess.verbose)
       clog << "line " << line 
 	   << " of cu " << cu_name 

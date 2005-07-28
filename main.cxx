@@ -49,8 +49,8 @@ usage (systemtap_session& s)
     << "   --         no more options after this" << endl
     << "   -v         verbose" << (s.verbose ? " [set]" : "")
     << endl
-    << "   -t         test mode" << (s.test_mode ? " [set]" : "")
-    << endl
+    << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
+    << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -p NUM     stop after pass NUM 1-5" << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
@@ -107,14 +107,16 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.verbose = false;
   s.test_mode = false;
+  s.guru_mode = false;
   s.last_pass = 5;
   s.runtime_path = string(PKGDATADIR) + "/runtime";
   s.module_name = "stap_" + stringify(getuid()) + "_" + stringify(time(0));
   s.keep_tmpdir = false;
+  s.include_path.push_back (string(PKGDATADIR) + "/tapsets");
 
   while (true)
     {
-      int grc = getopt (argc, argv, "vp:I:e:o:tR:r:m:k");
+      int grc = getopt (argc, argv, "vp:I:e:o:tR:r:m:kg");
       if (grc < 0)
         break;
       switch (grc)
@@ -165,6 +167,10 @@ main (int argc, char * const argv [])
 
         case 'k':
           s.keep_tmpdir = true;
+          break;
+
+        case 'g':
+          s.guru_mode = true;
           break;
 
         case '?':
@@ -228,27 +234,57 @@ main (int argc, char * const argv [])
   if (s.user_file == 0)
     // syntax errors already printed
     rc ++;
+  else
+    s.user_file->privileged = s.guru_mode;
+
+  // Construct kernel-versioning search path
+  vector<string> version_suffixes;
+  const string& kvr = s.kernel_release;
+  // add full kernel-version-release (2.6.NN-FOOBAR)
+  version_suffixes.push_back ("/" + kvr);
+  // add kernel version (2.6.NN)
+  string::size_type dash_rindex = kvr.rfind ('-');
+  if (dash_rindex > 0 && dash_rindex != string::npos)
+    version_suffixes.push_back ("/" + kvr.substr (0, dash_rindex));
+  // add kernel family (2.6)
+  string::size_type dot_index = kvr.find ('.');
+  string::size_type dot2_index = kvr.find ('.', dot_index+1);
+  if (dot2_index > 0 && dot2_index != string::npos)
+    version_suffixes.push_back ("/" + kvr.substr (0, dot2_index));
+  // add empty string as last element
+  version_suffixes.push_back ("");
 
   // PASS 1b: PARSING LIBRARY SCRIPTS
   for (unsigned i=0; i<s.include_path.size(); i++)
     {
-      glob_t globbuf;
-      string dir = s.include_path[i] + "/*.stp";
-      int r = glob(dir.c_str (), 0, NULL, & globbuf);
-      if (r == GLOB_NOSPACE || r == GLOB_ABORTED)
-        rc ++;
-      // GLOB_NOMATCH is acceptable
-
-      for (unsigned j=0; j<globbuf.gl_pathc; j++)
+      // now iterate upon it
+      for (unsigned k=0; k<version_suffixes.size(); k++)
         {
-          stapfile* f = parser::parse (globbuf.gl_pathv[j]);
-          if (f == 0)
+          glob_t globbuf;
+          string dir = s.include_path[i] + version_suffixes[k] + "/*.stp";
+          int r = glob(dir.c_str (), 0, NULL, & globbuf);
+          if (r == GLOB_NOSPACE || r == GLOB_ABORTED)
             rc ++;
-          else
-            s.library_files.push_back (f);
-        }
+          // GLOB_NOMATCH is acceptable
 
-      globfree (& globbuf);
+          if (s.verbose)
+            clog << "Searched '" << dir << "', "
+                 << "match count " << globbuf.gl_pathc << endl;
+
+          for (unsigned j=0; j<globbuf.gl_pathc; j++)
+            {
+              stapfile* f = parser::parse (globbuf.gl_pathv[j]);
+              if (f == 0)
+                rc ++;
+              else
+                {
+                  f->privileged = true; // XXX only for /usr/share/systemtap?
+                  s.library_files.push_back (f);
+                }
+            }
+          
+          globfree (& globbuf);
+        }
     }
 
   if (rc == 0 && s.last_pass == 1)
@@ -326,7 +362,10 @@ main (int argc, char * const argv [])
                       << s.functions.size() << " function(s), "
                       << s.globals.size() << " global(s)." << endl;
 
-  // semantic errors, if any, are already printed
+  if (rc)
+    cerr << "Pass 2: analysis failed.  "
+         << "Try again with '-v' (verbose) option." << endl;
+
   if (rc || s.last_pass == 2) goto cleanup;
 
   // PASS 3: TRANSLATION
@@ -343,7 +382,10 @@ main (int argc, char * const argv [])
                       << s.translated_source
                       << "\"" << endl;
 
-  // translation errors, if any, are already printed
+  if (rc)
+    cerr << "Pass 2: translation failed.  "
+         << "Try again with '-v' (verbose) option." << endl;
+
   if (rc || s.last_pass == 3) goto cleanup;
   
   // PASS 4: COMPILATION

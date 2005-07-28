@@ -206,6 +206,7 @@ struct systemtap_session
   bool test_mode;
   bool verbose;
   bool keep_tmpdir;
+  bool guru_mode;
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
