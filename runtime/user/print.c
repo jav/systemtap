@@ -23,6 +23,7 @@
 #endif
 
 #include "string.h"
+#include "io.c"
 
 static int _stp_pbuf_len[NR_CPUS];
 

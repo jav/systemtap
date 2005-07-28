@@ -9,7 +9,7 @@ int vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	return (i >= size) ? (size - 1) : i;
 }
 
-#define _stp_log printf
+//#define _stp_log printf
 
 /* cpu emulation */
 #undef smp_processor_id
