@@ -1,0 +1,25 @@
+#! stap -p4
+
+# define some aliases which resolve to kernel functions
+
+probe pipe_read = kernel.function("pipe_read")
+{
+	fname = "pipe_read"
+	reading_from_pipe = 1
+}
+
+probe pipe_write = kernel.function("pipe_write")
+{
+	fname = "pipe_write"
+	reading_from_pipe = 0
+}
+
+# use the aliases, including variables defined in them
+
+probe pipe_read, pipe_write
+{
+	if (reading_from_pipe)
+		log ("reading from pipe in " . fname)
+	else
+		log ("writing to pipe in " . fname)
+}

@@ -38,6 +38,9 @@ install-data-local:
 	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
 	    -C $(srcdir)/runtime transport \
 	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
+	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
+	    -C $(srcdir)/runtime relayfs \
+	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
 	-mkdir $(DESTDIR)$(pkgdatadir)/tapset
 	(cd $(srcdir)/tapset ; find . -name '*.stp' | cpio -pdmv $(DESTDIR)$(pkgdatadir)/tapset)
 

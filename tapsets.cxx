@@ -116,15 +116,16 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       o->newline() << "c->errorcount = 0;";
       o->newline() << "c->actioncount = 0;";
       o->newline() << "c->nesting = 0;";
+      o->newline() << "c->regs = 0;";
 
       // NB: locals are initialized by probe function itself
       o->newline() << "probe_" << j << " (c);";
 
       // see translate.cxx: visit_functioncall and elsewhere to see all the
       // possible context indications that a probe exited prematurely
-      o->newline() << "if (c->errorcount || c->actioncount > MAXACTION";
-      o->newline(1) << "|| c->nesting+2 >= MAXNESTING) {";
-      o->newline() << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
+      o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
+                   << " || c->nesting+2 >= MAXNESTING) {";
+      o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
       o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
       o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline(-1) << "}";
@@ -1069,8 +1070,8 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
   if (module_name.empty())
     {
       o->newline() << probe_entry_struct_kprobe_name(probenum) 
-		   << ".addr = 0x" << hex << addr << ";";
-      o->newline() << "register_probe (&" 
+		   << ".addr = (void *) 0x" << hex << addr << ";";
+      o->newline() << "rc = register_kprobe (&" 
 		   << probe_entry_struct_kprobe_name(probenum)
 		   << ");";
     }
@@ -1087,8 +1088,8 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
       o->newline() << "{";
       o->indent(1);
       o->newline() << probe_entry_struct_kprobe_name(probenum) 
-		   << ".addr = mod->module_core + 0x" << hex << addr << ";";
-      o->newline() << "register_probe (&" 
+		   << ".addr = (void *) (mod->module_core + 0x" << hex << addr << ");";
+      o->newline() << "rc = register_kprobe (&" 
 		   << probe_entry_struct_kprobe_name(probenum)
 		   << ");";
       o->indent(-1);
@@ -1102,7 +1103,7 @@ void
 dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
 {
   o->newline();
-  o->newline() << "deregister_probe (&" 
+  o->newline() << "unregister_kprobe (& " 
 	       << probe_entry_struct_kprobe_name(probenum)
 	       << ");";  
 }
@@ -1114,22 +1115,20 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   // Construct a single entry function, and a struct kprobe pointing into 
   // the entry function. The entry function will call the probe function.
   o->newline();
-  o->newline() << "static void ";
-  o->newline() << probe_entry_function_name(probenum) << " (void);";
-  o->newline() << "void ";
-  o->newline() << probe_entry_function_name(probenum) << " ()";
-  o->newline() << "{";
-  o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+  o->newline() << "static int ";
+  o->newline() << probe_entry_function_name(probenum)
+               << " (struct kprobe *_ignored, struct pt_regs *regs) {";
+  o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
   o->newline();
 
   // A precondition for running a probe handler is that we're in RUNNING
   // state (not ERROR), and that no one else is already using this context.
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
-  o->newline(1) << "return;";
+  o->newline(1) << "return 0;";
   o->newline(-1) << "if (c->busy) {";
   o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "return;";
+  o->newline() << "return 0;";
   o->newline(-1) << "}";
   o->newline();
 
@@ -1138,14 +1137,15 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline() << "c->errorcount = 0;";
   o->newline() << "c->actioncount = 0;";
   o->newline() << "c->nesting = 0;";
+  o->newline() << "c->regs = regs;";
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << probenum << " (c);";
 
   // see translate.cxx: visit_functioncall and elsewhere to see all the
   // possible context indications that a probe exited prematurely
-  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION";
-  o->newline(1) << "|| c->nesting+2 >= MAXNESTING) {";
-  o->newline() << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
+  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
+               << " || c->nesting+2 >= MAXNESTING) {";
+  o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
   o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
   o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline(-1) << "}";
@@ -1153,17 +1153,16 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline() << "c->busy --;";
   o->newline() << "mb ();";
 
+  o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
 
   o->newline();
   o->newline() << "static struct kprobe " 
-	       << probe_entry_struct_kprobe_name(probenum);
-  o->newline() << "{";
-  o->indent(1);
-  o->newline() << ".addr        = 0x0, /* filled in during module init */" ;
+	       << probe_entry_struct_kprobe_name(probenum)
+               << "= {";
+  o->newline(1) << ".addr       = 0x0, /* filled in during module init */" ;
   o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
-  o->indent(-1);
-  o->newline() << "}";
+  o->newline(-1) << "};";
   o->newline();
 }
 

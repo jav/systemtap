@@ -513,6 +513,7 @@ c_unparser::emit_common_header ()
   o->newline() << "unsigned actioncount;";
   o->newline() << "unsigned errorcount;";
   o->newline() << "unsigned nesting;";
+  o->newline() << "struct pt_regs *regs;";
   o->newline() << "union {";
   o->indent(1);
   // XXX: this handles only scalars!

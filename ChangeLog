@@ -1,5 +1,14 @@
 2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
 
+	* translate.cxx: Add "pt_regs*" field to context.
+	* tapsets.cxx (*): Correct kprobes API interface.
+	* testsuite/buildok/three.stp: New test, copied from semok.
+	* Makefile.am (install-data-local): Also install runtime/relayfs,
+	so scripts can build against headers located thereunder. 
+	* Makefile.in: Regenerated.
+	
+2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
+
 	translator/1120
 	* main.cxx (main): Preset -R and -I options from environment
 	variables (if set).  Pass guru mode flags to parser.
