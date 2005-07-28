@@ -7,28 +7,28 @@
 MODULE_DESCRIPTION("SystemTap probe: bench");
 MODULE_AUTHOR("Martin Hunt");
 
-asmlinkage ssize_t inst_sys_write (unsigned int fd, const char __user * buf, size_t count)
+asmlinkage ssize_t inst_sys_getgid (unsigned int fd, const char __user * buf, size_t count)
 {
   jprobe_return();
   return 0;
 }
 
-static int inst_sys_read (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getuid (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
 static struct jprobe jp[] = {
   {
-    .kp.addr = (kprobe_opcode_t *)"sys_write",
-    .entry = (kprobe_opcode_t *) inst_sys_write
+    .kp.addr = (kprobe_opcode_t *)"sys_getgid",
+    .entry = (kprobe_opcode_t *) inst_sys_getgid
   },
 };
 
 static struct kprobe kp[] = {
   {
-    .addr = "sys_read",
-    .pre_handler = inst_sys_read
+    .addr = "sys_getuid",
+    .pre_handler = inst_sys_getuid
   }
 };
 

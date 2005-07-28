@@ -7,56 +7,56 @@
 MODULE_DESCRIPTION("SystemTap probe: bench_multi");
 MODULE_AUTHOR("Martin Hunt");
 
-static int inst_sys_read1 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getuid1 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
-static int inst_sys_read2 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getuid2 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
-static int inst_sys_write1 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getgid1 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
-static int inst_sys_write2 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getgid2 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
-static int inst_sys_write3 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getgid3 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
-static int inst_sys_write4 (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getgid4 (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
 static struct kprobe kp[] = {
   {
-    .addr = "sys_read",
-    .pre_handler = inst_sys_read1
+    .addr = "sys_getuid",
+    .pre_handler = inst_sys_getuid1
   },
   {
-    .addr = "sys_read",
-    .pre_handler = inst_sys_read2
+    .addr = "sys_getuid",
+    .pre_handler = inst_sys_getuid2
   },
   {
-    .addr = "sys_write",
-    .pre_handler = inst_sys_write1
+    .addr = "sys_getgid",
+    .pre_handler = inst_sys_getgid1
   },
   {
-    .addr = "sys_write",
-    .pre_handler = inst_sys_write2
+    .addr = "sys_getgid",
+    .pre_handler = inst_sys_getgid2
   },
   {
-    .addr = "sys_write",
-    .pre_handler = inst_sys_write3
+    .addr = "sys_getgid",
+    .pre_handler = inst_sys_getgid3
   },
   {
-    .addr = "sys_write",
-    .pre_handler = inst_sys_write4
+    .addr = "sys_getgid",
+    .pre_handler = inst_sys_getgid4
   }
 };
 

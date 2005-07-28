@@ -1,14 +1,10 @@
 This is a benchmark program for the SystemTap Runtime.
 
-It works by instrumenting sys_read() and sys_write().  It calls each a million
-times and times that.  Then it puts an empty kprobe on one and jprobe on the 
-other and times that.  Subtracting the difference between the two runs gives 
+It works by instrumenting sys_uid() and sys_gid().  It calls each a million
+times and measures how long it takes.  Then it puts an empty kprobe on one and jprobe on the 
+other and measures that.  Subtracting the difference between the two runs gives 
 the kprobe and jprobe overhead.  The process is then repeated for more 
 complicated probes.
-
-Any system has some background activity going on that will generate sys_read 
-and sys_write calls. However, unless some major activity is going on, it 
-should be statistically insignificant.
 
 To Start:
 

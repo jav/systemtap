@@ -8,36 +8,36 @@
 MODULE_DESCRIPTION("SystemTap probe: bench_ret");
 MODULE_AUTHOR("Martin Hunt");
 
-static int inst_sys_read (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getuid (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
-static int inst_sys_write_ret (struct kretprobe_instance *ri, struct pt_regs *regs)
+static int inst_sys_getgid_ret (struct kretprobe_instance *ri, struct pt_regs *regs)
 {
   return 0;
 }
 
-static int inst_sys_write (struct kprobe *p, struct pt_regs *regs)
+static int inst_sys_getgid (struct kprobe *p, struct pt_regs *regs)
 {
   return 0;
 }
 
 static struct kretprobe kpr[] = {
   {
-    .kp.addr = "sys_read",
-    .handler = inst_sys_read
+    .kp.addr = "sys_getuid",
+    .handler = inst_sys_getuid
   },
   {
-    .kp.addr = "sys_write",
-    .handler = inst_sys_write_ret
+    .kp.addr = "sys_getgid",
+    .handler = inst_sys_getgid_ret
   }
 };
 
 static struct kprobe kp[] = {
   {
-    .addr = "sys_write",
-    .pre_handler = inst_sys_write
+    .addr = "sys_getgid",
+    .pre_handler = inst_sys_getgid
   }
 };
 

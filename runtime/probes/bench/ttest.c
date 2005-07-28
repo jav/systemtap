@@ -37,8 +37,7 @@ void usage(char *name)
 
 int main(int argc, char *argv[])
 {
-  int fd, i, n = 1;
-  char buf[1024];
+  int i, n = 1;
   uint64 nsecs;
 
   if (argc > 2)
@@ -50,33 +49,26 @@ int main(int argc, char *argv[])
       usage(argv[0]);
   }
 
-  fd = open ("foo", O_CREAT | O_RDWR);
-
   /* large warmup time */
   for (i = 0; i < n * 1000000; i++) {
-    if (write (fd, buf, 0) < 0)
-      perror("write");
+    getuid();
   }
 
   start();
-  for (i = 0; i < n * 1000000; i++) {
-    if (read (fd, buf, 0) < 0)
-      perror("read");
-  }
+  for (i = 0; i < n * 1000000; i++)
+    getuid();
+
   nsecs = stop() / (n * 1000);
 
   printf("%lld ", nsecs);
 
   start();
-  for (i = 0; i < n * 1000000; i++) {
-    if (write (fd, buf, 0) < 0)
-      perror("write");
-  }
+  for (i = 0; i < n * 1000000; i++) 
+    getgid();
+
   nsecs = stop() / (n * 1000);
-  close (fd);
 
   printf("%lld\n", nsecs);
-  unlink("foo");
 
   return 0;
 }
