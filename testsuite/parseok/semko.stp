@@ -3,4 +3,13 @@
 # make sure that we can *parse* all semko test files, to ensure
 # that it is semantic (elaboration) checks that fail, not parse errors
 
-./stap -p1 -I${SRCDIR}/testsuite/semko -e 'global nothing'
+
+set -e
+for file in ${SRCDIR}/testsuite/semko/*.stp
+do
+  if grep -q /bin/sh $file; then
+    true # can't override stap options
+  else
+    ./stap -p1 $file
+  fi
+done

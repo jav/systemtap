@@ -1,0 +1,7 @@
+function _log (msg) %{
+    _stp_log (THIS->msg);
+%}
+
+function log (msg) {
+    return 0 + _log (msg . "")
+}

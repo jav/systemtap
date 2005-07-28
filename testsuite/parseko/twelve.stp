@@ -1,0 +1,4 @@
+#! stap -p1
+
+global foo
+global foo

@@ -1,6 +1,25 @@
 2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	translator/1120
+	* main.cxx (main): Preset -R and -I options from environment
+	variables (if set).  Pass guru mode flags to parser.
+	* parse.cxx (privileged): New parser operation flag.  Update callers.
+	(parse_embeddedcode): Throw an error if !privileged.
+	(parse_functiondecl): Change signature.  Prevent duplicates.
+	(parse_globals): Ditto.
+	* parse.h: Corresponding changes.
+	* tapset/*.stp: Beginnings of real tapset library, to replace
+	previous builtins.
+	* tapsets.cxx: Greatly reduce verbose mode output.
+	* Makefile.am: Install & dist it.
+	* runtest.sh: Refer to it.
+	* Makefile.in, aclocal.m4: Regenerated.
+	* testsuite/*/*.stp: Set guru mode via /bin/sh if needed.
+	* testusite/*/*ko.stp: Homogenize shell scripts.
+	
+2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	translator/1120
 	translator/1123
 	* elaborate.cxx (semantic_pass_symbols): Print a more helpful
 	error message around exceptions.

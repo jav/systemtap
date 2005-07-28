@@ -70,19 +70,20 @@ private:
 class parser
 {
 public:
-  parser (std::istream& i);
-  parser (const std::string& n);
+  parser (std::istream& i, bool p);
+  parser (const std::string& n, bool p);
   ~parser ();
 
   stapfile* parse ();
 
-  static stapfile* parse (std::istream& i);
-  static stapfile* parse (const std::string& n);
+  static stapfile* parse (std::istream& i, bool privileged);
+  static stapfile* parse (const std::string& n, bool privileged);
 
 private:
   std::string input_name;
   std::istream* free_input;
   lexer input;
+  bool privileged;
 
   // scanning state
   const token* last ();
@@ -98,10 +99,10 @@ private:
 private: // nonterminals
   void parse_probe (std::vector<probe*>&, std::vector<probe_alias*>&);
   void parse_global (std::vector<vardecl*>&);
+  void parse_functiondecl (std::vector<functiondecl*>&);
   embeddedcode* parse_embeddedcode ();
   probe_point* parse_probe_point ();
   literal* parse_literal ();
-  functiondecl* parse_functiondecl ();
   block* parse_stmt_block ();
   statement* parse_statement ();
   if_statement* parse_if_statement ();

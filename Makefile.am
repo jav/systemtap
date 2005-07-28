@@ -10,18 +10,20 @@ bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx
+stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 
 libexec_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 # automake doesn't get rpath right unless we do this
 stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
+
 AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST=testsuite runtime $(wildcard $(srcdir)/*.h) systemtap.spec
+EXTRA_DIST=testsuite runtime tapset $(wildcard $(srcdir)/*.h) systemtap.spec
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
@@ -36,6 +38,8 @@ install-data-local:
 	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
 	    -C $(srcdir)/runtime transport \
 	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
+	-mkdir $(DESTDIR)$(pkgdatadir)/tapset
+	(cd $(srcdir)/tapset ; find . -name '*.stp' | cpio -pdmv $(DESTDIR)$(pkgdatadir)/tapset)
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem

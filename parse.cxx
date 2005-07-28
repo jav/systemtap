@@ -22,14 +22,15 @@ using namespace std;
 
 
 
-parser::parser (istream& i):
-  input_name ("<input>"), free_input (0), input (i, input_name),
+parser::parser (istream& i, bool p):
+  input_name ("<input>"), free_input (0),
+  input (i, input_name), privileged (p),
   last_t (0), next_t (0), num_errors (0)
 { }
 
-parser::parser (const string& fn):
+parser::parser (const string& fn, bool p):
   input_name (fn), free_input (new ifstream (input_name.c_str(), ios::in)),
-  input (* free_input, input_name),
+  input (* free_input, input_name), privileged (p),
   last_t (0), next_t (0), num_errors (0)
 { }
 
@@ -40,17 +41,17 @@ parser::~parser()
 
 
 stapfile*
-parser::parse (std::istream& i)
+parser::parse (std::istream& i, bool pr)
 {
-  parser p (i);
+  parser p (i, pr);
   return p.parse ();
 }
 
 
 stapfile*
-parser::parse (const std::string& n)
+parser::parse (const std::string& n, bool pr)
 {
-  parser p (n);
+  parser p (n, pr);
   return p.parse ();
 }
 
@@ -66,14 +67,16 @@ operator << (ostream& o, const token& t)
         t.type == tok_embedded ? "embedded-code" :
         "unknown token");
 
-  // XXX: filter out embedded-code contents?
-  o << " '";
-  for (unsigned i=0; i<t.content.length(); i++)
+  if (t.type != tok_embedded) // XXX: other types?
     {
-      char c = t.content[i];
-      o << (isprint (c) ? c : '?');
+      o << " '";
+      for (unsigned i=0; i<t.content.length(); i++)
+        {
+          char c = t.content[i];
+          o << (isprint (c) ? c : '?');
+        }
+      o << "'";
     }
-  o << "'";
 
   o << " at " 
     << t.location.file << ":" 
@@ -404,11 +407,11 @@ parser::parse ()
 	  else if (t->type == tok_identifier && t->content == "global")
 	    parse_global (f->globals);
 	  else if (t->type == tok_identifier && t->content == "function")
-	    f->functions.push_back (parse_functiondecl ());
+            parse_functiondecl (f->functions);
           else if (t->type == tok_embedded)
             f->embeds.push_back (parse_embeddedcode ());
 	  else
-	    throw parse_error ("expected 'probe', 'global', 'function', or embedded code");
+	    throw parse_error ("expected 'probe', 'global', 'function', or '%{'");
 	}
       catch (parse_error& pe)
 	{
@@ -516,7 +519,10 @@ parser::parse_embeddedcode ()
   embeddedcode* e = new embeddedcode;
   const token* t = next ();
   if (t->type != tok_embedded)
-    throw parse_error ("expected embedded code");
+    throw parse_error ("expected '%{'");
+
+  if (! privileged)
+    throw parse_error ("embedded code in unprivileged script");
 
   e->tok = t;
   e->code = t->content;
@@ -624,18 +630,14 @@ parser::parse_global (vector <vardecl*>& globals)
       if (! (t->type == tok_identifier))
         throw parse_error ("expected identifier");
 
-      bool dupe = false;
       for (unsigned i=0; i<globals.size(); i++)
 	if (globals[i]->name == t->content)
-	  dupe = true;
+          throw parse_error ("duplicate global name");
 
-      if (! dupe)
-	{
-	  vardecl* d = new vardecl;
-	  d->name = t->content;
-	  d->tok = t;
-	  globals.push_back (d);
-	}
+      vardecl* d = new vardecl;
+      d->name = t->content;
+      d->tok = t;
+      globals.push_back (d);
 
       t = peek ();
       if (t && t->type == tok_operator && t->content == ",")
@@ -649,18 +651,23 @@ parser::parse_global (vector <vardecl*>& globals)
 }
 
 
-functiondecl*
-parser::parse_functiondecl ()
+void
+parser::parse_functiondecl (std::vector<functiondecl*>& functions)
 {
   const token* t = next ();
   if (! (t->type == tok_identifier && t->content == "function"))
     throw parse_error ("expected 'function'");
 
-  functiondecl *fd = new functiondecl ();
 
   t = next ();
   if (! (t->type == tok_identifier))
     throw parse_error ("expected identifier");
+
+  for (unsigned i=0; i<functions.size(); i++)
+    if (functions[i]->name == t->content)
+      throw parse_error ("duplicate function name");
+
+  functiondecl *fd = new functiondecl ();
   fd->name = t->content;
   fd->tok = t;
 
@@ -696,7 +703,8 @@ parser::parse_functiondecl ()
     fd->body = parse_embeddedcode ();
   else
     fd->body = parse_stmt_block ();
-  return fd;
+
+  functions.push_back (fd);
 }
 
 

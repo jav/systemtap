@@ -1,10 +1,14 @@
 #! /bin/sh
 
 # make sure that we can *semcheck* all transko test files, to ensure
-# that it is translation-time checks that fail, not earlier ones errors
+# that it is translation-time checks that fail, not earlier ones
 
 set -e
 for file in ${SRCDIR}/testsuite/transko/*.stp
 do
-  ./stap -p2 $file
+  if grep -q /bin/sh $file; then
+    true # can't override stap options
+  else
+    ./stap -p2 $file
+  fi
 done

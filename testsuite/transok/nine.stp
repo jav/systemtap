@@ -1,4 +1,6 @@
-#! stap -p3
+#! /bin/sh
+
+./stap -p3 -g $@ - <<'END'
 
 %{
 void just_some_declaration () {}
@@ -10,3 +12,5 @@ probe begin
 {
   bar (5) + 0
 }
+
+END

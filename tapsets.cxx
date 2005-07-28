@@ -166,7 +166,7 @@ dwflpp
   {
     if (in) 
       return in;
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "WARNING: no name found for " << type << endl;
     return string("default_anonymous_" ) + type;
   }
@@ -187,7 +187,7 @@ dwflpp
 						NULL, NULL,
 						NULL, NULL),
 			       "module");
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focused on module " << module_name << endl;
   }
 
@@ -196,7 +196,7 @@ dwflpp
     assert(c);
     cu = c;
     cu_name = default_name(dwarf_diename(c), "cu");
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focused on CU " << cu_name 
 	   << ", in module " << module_name << endl;
   }
@@ -207,7 +207,7 @@ dwflpp
     function = f;
     function_name = default_name(dwarf_func_name(function), 
 				 "function");
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focused on function " << function_name 
 	   << ", in CU " << cu_name 
 	   << ", module " << module_name << endl;
@@ -216,7 +216,7 @@ dwflpp
   void focus_on_module_containing_global_address(Dwarf_Addr a)
   {
     assert(dwfl);
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focusing on module containing global addr " << a << endl;
     focus_on_module(dwfl_addrmodule(dwfl, a));
   }
@@ -273,9 +273,9 @@ dwflpp
     assert(module);
     get_module_dwarf();
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
-    if (sess.verbose)
+    if (t && sess.verbose)
       clog << "pattern '" << pattern << "' "
-	   << (t ? "matches " : "does not match ") 
+	   << "matches "
 	   << "module '" << module_name << "'" << endl;
     return t;
   }
@@ -284,9 +284,9 @@ dwflpp
   {
     assert(function);
     bool t = (fnmatch(pattern.c_str(), function_name.c_str(), 0) == 0);
-    if (sess.verbose)
+    if (t && sess.verbose)
       clog << "pattern '" << pattern << "' "
-	   << (t ? "matches " : "does not match ") 
+	   << "matches "
 	   << "function '" << function_name << "'" << endl;
     return t;
   }
@@ -295,9 +295,9 @@ dwflpp
   {
     assert(cu);
     bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0);
-    if (sess.verbose)
+    if (t && sess.verbose)
       clog << "pattern '" << pattern << "' "
-	   << (t ? "matches " : "does not match ") 
+	   << "matches "
 	   << "CU '" << cu_name << "'" << endl;
     return t;
   }
@@ -364,7 +364,7 @@ dwflpp
 					     Dwarf *, Dwarf_Addr, void *),
 			    void * data)
   {
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "iterating over modules" << endl;
     ptrdiff_t off = 0;
     do
@@ -372,7 +372,7 @@ dwflpp
 	off = dwfl_getdwarf(dwfl, callback, data, off);
       }
     while (off > 0);
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "finished iterating over modules" << endl;
     dwflpp_assert("getdwarf", off);
   }
@@ -388,7 +388,7 @@ dwflpp
 	return;
       }
 
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "iterating over CUs in module " << module_name << endl;
 
     Dwarf *dw = module_dwarf;
@@ -411,7 +411,7 @@ dwflpp
   {
     assert(module);
     assert(cu);
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "iterating over functions in CU " << cu_name << endl;
     dwarf_getfuncs(cu, callback, data, 0);
   }
@@ -833,7 +833,7 @@ query_function(Dwarf_Func * func, void * arg)
   Dwarf_Addr addr;
   if (!q->dw.function_entrypc(&addr))
     {
-      if (q->sess.verbose)
+      if (false && q->sess.verbose)
 	clog << "WARNING: cannot find entry PC for function " 
 	     << q->dw.function_name << endl;
       return DWARF_CB_OK;

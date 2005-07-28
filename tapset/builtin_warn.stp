@@ -1,0 +1,7 @@
+function _warn (msg) %{
+    _stp_warn (THIS->msg);
+%}
+
+function warn (msg) {
+    return 0 + _warn (msg . "")
+}

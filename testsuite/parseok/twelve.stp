@@ -1,4 +1,6 @@
-#! stap -p1
+#! /bin/sh
+
+./stap -p1 -g $@ - <<'END'
 
 %{
 /* hello world */
@@ -7,3 +9,5 @@
 function foo (p1, p2) %{
   /* goodbye world */
 %}
+
+END

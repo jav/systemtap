@@ -1,10 +1,14 @@
 #! /bin/sh
 
 # make sure that we can *translate* all buildko test files, to ensure
-# that it is build-time checks that fail, not earlier ones errors
+# that it is build-time checks that fail, not earlier ones
 
 set -e
 for file in ${SRCDIR}/testsuite/buildko/*.stp
 do
-  ./stap -p3 $file
+  if grep -q /bin/sh $file; then
+    true # can't override stap options
+  else
+    ./stap -p3 $file
+  fi
 done

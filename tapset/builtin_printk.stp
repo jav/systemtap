@@ -1,0 +1,7 @@
+function _printk (msg) %{
+    printk (KERN_INFO "%s\n", THIS->msg);
+%}
+
+function printk (msg) {
+    return 0 + _printk (msg . "")
+}

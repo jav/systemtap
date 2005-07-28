@@ -1,5 +1,9 @@
-#! stap -p1
+#! /bin/sh
+
+./stap -p1 -g - <<'END'
 
 probe foo {
   %{ /* not a valid place for embedded code */ %}
 }
+
+END

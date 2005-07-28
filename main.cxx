@@ -17,6 +17,7 @@
 #include <fstream>
 #include <sstream>
 #include <cerrno>
+#include <cstdlib>
 
 extern "C" {
 #include <glob.h>
@@ -57,19 +58,16 @@ usage (systemtap_session& s)
   if (s.include_path.size() == 0)
     clog << endl;
   else
-    clog << ", instead of" << endl;
+    clog << ", in addition to" << endl;
   for (unsigned i=0; i<s.include_path.size(); i++)
     clog << "              " << s.include_path[i] << endl;
   clog
-    << "   -R DIR     look in DIR for runtime, instead of "
-    << s.runtime_path
-    << endl
-    << "   -r RELEASE use kernel RELEASE, instead of "
-    << s.kernel_release
-    << endl
-    << "   -m MODULE  set probe module name, insetad of "
-    << s.module_name
-    << endl
+    << "   -R DIR     look in DIR for runtime, instead of" << endl
+    <<      "              " << s.runtime_path << endl
+    << "   -r RELEASE use kernel RELEASE, instead of" << endl
+    <<      "              " << s.kernel_release << endl
+    << "   -m MODULE  set probe module name, insetad of" << endl
+    <<      "              " << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
     << "   -k         keep temporary directory" << endl;
   // XXX: other options:
@@ -109,10 +107,20 @@ main (int argc, char * const argv [])
   s.test_mode = false;
   s.guru_mode = false;
   s.last_pass = 5;
-  s.runtime_path = string(PKGDATADIR) + "/runtime";
   s.module_name = "stap_" + stringify(getuid()) + "_" + stringify(time(0));
   s.keep_tmpdir = false;
-  s.include_path.push_back (string(PKGDATADIR) + "/tapsets");
+
+  const char* s_p = getenv ("SYSTEMTAP_TAPSET");
+  if (s_p != NULL)
+    s.include_path.push_back (s_p);
+  else
+    s.include_path.push_back (string(PKGDATADIR) + "/tapset");
+
+  const char* s_r = getenv ("SYSTEMTAP_RUNTIME");
+  if (s_r != NULL)
+    s.runtime_path = s_r;
+  else
+    s.runtime_path = string(PKGDATADIR) + "/runtime";
 
   while (true)
     {
@@ -223,19 +231,17 @@ main (int argc, char * const argv [])
   // XXX: pass args vector, so parser (or lexer?) can substitute
   // $1..$NN with actual arguments
   if (script_file == "-")
-    s.user_file = parser::parse (cin);
+    s.user_file = parser::parse (cin, s.guru_mode);
   else if (script_file != "")
-    s.user_file = parser::parse (script_file);
+    s.user_file = parser::parse (script_file, s.guru_mode);
   else
     {
       istringstream ii (cmdline_script);
-      s.user_file = parser::parse (ii);
+      s.user_file = parser::parse (ii, s.guru_mode);
     }
   if (s.user_file == 0)
     // syntax errors already printed
     rc ++;
-  else
-    s.user_file->privileged = s.guru_mode;
 
   // Construct kernel-versioning search path
   vector<string> version_suffixes;
@@ -273,14 +279,12 @@ main (int argc, char * const argv [])
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
-              stapfile* f = parser::parse (globbuf.gl_pathv[j]);
+              // privilege only for /usr/share/systemtap?
+              stapfile* f = parser::parse (globbuf.gl_pathv[j], true);
               if (f == 0)
                 rc ++;
               else
-                {
-                  f->privileged = true; // XXX only for /usr/share/systemtap?
-                  s.library_files.push_back (f);
-                }
+                s.library_files.push_back (f);
             }
           
           globfree (& globbuf);

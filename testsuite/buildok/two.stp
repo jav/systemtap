@@ -1,4 +1,6 @@
-#! stap -p4
+#! /bin/sh
+
+./stap -p4 -g $@ - <<'END'
 
 %{
 #include <linux/version.h>
@@ -13,4 +15,4 @@ probe begin
 	printk("hello from systemtap, kernel version " . get_release())
 }
 
-
+END
