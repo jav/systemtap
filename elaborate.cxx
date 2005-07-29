@@ -852,18 +852,20 @@ symresolution_info::find_var (const string& name, unsigned arity)
     {
       stapfile* f = session.library_files[i];
       for (unsigned j=0; j<f->globals.size(); j++)
-        if (f->globals[j]->name == name
-	    && f->globals[i]->compatible_arity(arity))
-          {
-	    f->globals[j]->set_arity (arity);
-
-            // put library into the queue if not already there	    
-            if (find (session.files.begin(), session.files.end(), f) 
-                == session.files.end())
-              session.files.push_back (f);
-	    
-            return f->globals[j];
-          }
+        {
+          vardecl* g = f->globals[j];
+          if (g->name == name && g->compatible_arity (arity))
+            {
+              g->set_arity (arity);
+              
+              // put library into the queue if not already there	    
+              if (find (session.files.begin(), session.files.end(), f) 
+                  == session.files.end())
+                session.files.push_back (f);
+              
+              return g;
+            }
+        }
     }
 
   // search builtins that become locals
