@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <error.h>
 #include <dwarf.h>
-#include <libdw.h>
+#include <elfutils/libdw.h>
 #include <assert.h>
 
 #define _(x) x
