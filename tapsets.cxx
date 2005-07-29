@@ -1107,29 +1107,33 @@ var_expanding_copy_visitor
   void visit_pre_crement (pre_crement* e)
   {
     ++lval_depth;
-    e->operand->visit (this);
+    deep_copy_visitor::visit_pre_crement (e);
     --lval_depth;
   }
 
   void visit_post_crement (post_crement* e)
   {
     ++lval_depth;
-    e->operand->visit (this);
+    deep_copy_visitor::visit_post_crement (e);
     --lval_depth;
   }
 
   void visit_assignment (assignment* e)
   {
+    assignment* n = new assignment;
+    n->op = e->op;
+    n->tok = e->tok;
     ++lval_depth;
-    e->left->visit (this);
+    require <expression*> (this, &(n->left), e->left);
     --lval_depth;
-    e->right->visit (this);
+    require <expression*> (this, &(n->right), e->right);
+    provide <assignment*> (this, n);
   }
 
   void visit_delete_statement (delete_statement* s)
   {
     ++lval_depth;
-    s->value->visit (this);
+    deep_copy_visitor::visit_delete_statement (s);
     --lval_depth;
   }
 
@@ -1426,7 +1430,6 @@ dwarf_builder::build(systemtap_session & sess,
       dw.iterate_over_modules(&query_module, &q);
     }
 }
-
 
 
 // ------------------------------------------------------------------------

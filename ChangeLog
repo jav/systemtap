@@ -1,5 +1,10 @@
 2005-07-29  Frank Ch. Eigler  <fche@redhat.com>
 
+	From Graydon Hoare <graydon@redhat.com:
+	* tapsets.cxx (var_expanding_copy_visitor): Correct lvalue cases.
+
+2005-07-29  Frank Ch. Eigler  <fche@redhat.com>
+
 	* Makefile.am: Make sure stpd goes into libexec/systemtap/
 	* Makefile.in: Regenerated.
 
