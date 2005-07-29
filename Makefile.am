@@ -1,32 +1,34 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
-
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
-	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
+	      -DPKGDATADIR='"${pkgdatadir}"'
 
-AM_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wshadow -Wunused -Wformat=2 -Wextra -std=gnu99
+AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE \
+	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
+AM_CXXFLAGS = -Wall
 
-man_MANS = stap.1
+dist_man_MANS = stap.1
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx loc2c.c
+	tapsets.cxx buildrun.cxx $(stap_SOURCES_libdw)
+if HAVE_LIBDW
+stap_SOURCES_libdw = loc2c.c
+endif
+stap_LDADD = @stap_LIBS@
+
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 
 libexec_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
-# automake doesn't get rpath right unless we do this
-# stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
-
-AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST=testsuite runtime tapset $(wildcard $(srcdir)/*.h) systemtap.spec
+EXTRA_DIST = testsuite runtest.sh $(wildcard $(srcdir)/*.h) systemtap.spec \
+	     runtime tapset
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
