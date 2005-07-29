@@ -23,19 +23,16 @@ AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
 dnl Need libdwfl-capable elfutils 0.111 or later from Fedora
-dnl ... except that these libraries are only used by stap, not
-dnl stpd.  The implicit LIBS set from these is too broadly applied.
 save_LIBS="$LIBS"
 AC_CHECK_LIB(dw, dwfl_begin)
 stap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 AC_SUBST(stap_LIBS)
-if test $ac_cv_lib_dw_dwfl_begin = yes; then
-  # If we don't have a current library, don't define HAVE_*_H macros either.
-  AC_CHECK_HEADERS([elfutils/libdw.h elfutils/libdwfl.h])
-fi
 
-AM_CONDITIONAL(HAVE_LIBDW, test $ac_cv_lib_dw_dwfl_begin = yes)
+if test $ac_cv_lib_dw_dwfl_begin != yes
+then
+  AC_MSG_ERROR([systemtap requires elfutils 0.111+])
+fi
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

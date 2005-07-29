@@ -20,8 +20,6 @@
 #include <stdexcept>
 #include <vector>
 
-#ifdef HAVE_ELFUTILS_LIBDWFL_H
-
 extern "C" {
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
@@ -30,8 +28,6 @@ extern "C" {
 #include <obstack.h>
 #include "loc2c.h"
 }
-
-#endif
 
 #include <fnmatch.h>
 
@@ -144,7 +140,6 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 }
 
 
-#ifdef HAVE_ELFUTILS_LIBDWFL_H
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
 // ------------------------------------------------------------------------
@@ -1432,7 +1427,6 @@ dwarf_builder::build(systemtap_session & sess,
     }
 }
 
-#endif /* HAVE_ELFUTILS_LIBDWFL_H */
 
 
 // ------------------------------------------------------------------------
@@ -1446,7 +1440,6 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
 
-#ifdef HAVE_ELFUTILS_LIBDWFL_H
+  // kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
-#endif /* HAVE_ELFUTILS_LIBDWFL_H */
 }

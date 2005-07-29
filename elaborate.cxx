@@ -21,14 +21,6 @@ extern "C" {
 #include <set>
 #include <vector>
 
-#if 0
-#ifdef HAVE_ELFUTILS_LIBDW_H
-#include <elfutils/libdw.h>
-#else
-#error "need <elfutils/libdw.h>"
-#endif
-#endif
-
 using namespace std;
 
 

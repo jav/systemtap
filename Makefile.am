@@ -12,10 +12,7 @@ dist_man_MANS = stap.1
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx $(stap_SOURCES_libdw)
-if HAVE_LIBDW
-stap_SOURCES_libdw = loc2c.c
-endif
+	tapsets.cxx buildrun.cxx loc2c.c
 stap_LDADD = @stap_LIBS@
 
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)

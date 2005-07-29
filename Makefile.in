@@ -60,13 +60,10 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 libexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
-am__stap_SOURCES_DIST = main.cxx parse.cxx staptree.cxx elaborate.cxx \
-	translate.cxx tapsets.cxx buildrun.cxx loc2c.c
-@HAVE_LIBDW_TRUE@am__objects_1 = loc2c.$(OBJEXT)
 am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-staptree.$(OBJEXT) stap-elaborate.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
-	stap-buildrun.$(OBJEXT) $(am__objects_1)
+	stap-buildrun.$(OBJEXT) loc2c.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_DEPENDENCIES =
 am_stpd_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
@@ -85,7 +82,7 @@ CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 SOURCES = $(stap_SOURCES) $(stpd_SOURCES)
-DIST_SOURCES = $(am__stap_SOURCES_DIST) $(stpd_SOURCES)
+DIST_SOURCES = $(stap_SOURCES) $(stpd_SOURCES)
 man1dir = $(mandir)/man1
 NROFF = nroff
 MANS = $(dist_man_MANS)
@@ -116,7 +113,6 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
-CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -128,8 +124,6 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
-HAVE_LIBDW_FALSE = @HAVE_LIBDW_FALSE@
-HAVE_LIBDW_TRUE = @HAVE_LIBDW_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -201,9 +195,8 @@ AM_CXXFLAGS = -Wall
 dist_man_MANS = stap.1
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx $(stap_SOURCES_libdw)
+	tapsets.cxx buildrun.cxx loc2c.c
 
-@HAVE_LIBDW_TRUE@stap_SOURCES_libdw = loc2c.c
 stap_LDADD = @stap_LIBS@
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
