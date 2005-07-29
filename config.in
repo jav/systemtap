@@ -15,15 +15,6 @@
 /* Define to 1 if you have the `dw' library (-ldw). */
 #undef HAVE_LIBDW
 
-/* Define to 1 if you have the `dwfl' library (-ldwfl). */
-#undef HAVE_LIBDWFL
-
-/* Define to 1 if you have the `elf' library (-lelf). */
-#undef HAVE_LIBELF
-
-/* Define to 1 if you have the <libelf.h> header file. */
-#undef HAVE_LIBELF_H
-
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
