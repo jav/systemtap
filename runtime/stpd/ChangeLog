@@ -1,3 +1,10 @@
+2005-07-29  Roland McGrath  <roland@redhat.com>
+
+	* librelay.c (process_subbufs): Use unsigned for I.
+	(sigproc): Add  __attribute__((unused)) on parameter.
+	(sigchld): Likewise.  Avoid shadowing global variable name.
+	(stp_main_loop): Add a cast.
+
 2005-07-18  Martin Hunt  <hunt@redhat.com>
 
 	* stp_merge.c (main): Fix dropped count calculation.
@@ -23,7 +30,7 @@
 	completion of module loading.
 	(init_stp): Use fork/exec instead of system() so
 	we can get async signal of module load success/failure.
-	(cleanup_and_exit): New function. 
+	(cleanup_and_exit): New function.
 	(sigproc): If module is not loaded, don't send message to it.
 	(stp_main_loop): Call cleanup_and_exit() when STP_EXIT
 	is received. Don't send a request for the transport
@@ -42,7 +49,7 @@
 	* librelay.c (merge_output): Use unlocked stdio
 	to improve speed.
 
-	* stp_merge.c: New file. 
+	* stp_merge.c: New file.
 
 	* Makefile: Add stp_merge.
 
@@ -54,7 +61,7 @@
 	* librelay.c (merge_output): Replacement for sort_output().
 	Efficiently merges per-cpu streams.
 
-	
+
 2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* librelay.c: Large refactoring, important changes are
@@ -72,7 +79,6 @@
 
 2005-05-16  Martin Hunt  <hunt@redhat.com>
 
-	* librelay.c (sigproc): If STP_EXIT send fails, keep retrying 
+	* librelay.c (sigproc): If STP_EXIT send fails, keep retrying
 	every 10ms.
 	(init_stp): Don't set n_subbufs and subbuf_size params.
-	
