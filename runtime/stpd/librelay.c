@@ -195,10 +195,10 @@ static int open_control_channel()
 static void summarize(void)
 {
 	int i;
-	
+
 	if (transport_mode != STP_TRANSPORT_RELAYFS)
 		return;
-	
+
 	printf("summary:\n");
 	for (i = 0; i < ncpus; i++) {
 		printf("cpu %u:\n", i);
@@ -272,7 +272,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase)
 		close(percpu_tmpfile[cpu]);
 		return -1;
 	}
-	
+
 	return 0;
 }
 
@@ -305,7 +305,7 @@ static int delete_percpu_files(void)
 static int kill_percpu_threads(int n)
 {
 	int i, killed = 0;
-	
+
 	for (i = 0; i < n; i++) {
 		if (pthread_cancel(reader[i]) == 0)
 			killed++;
@@ -340,12 +340,12 @@ static int request_last_buffers(void)
  */
 static int process_subbufs(struct buf_info *info)
 {
-	unsigned subbufs_ready, start_subbuf, end_subbuf, subbuf_idx;
-	int i, len, cpu = info->cpu;
+	unsigned subbufs_ready, start_subbuf, end_subbuf, subbuf_idx, i;
+	int len, cpu = info->cpu;
 	char *subbuf_ptr;
 	int subbufs_consumed = 0;
 	unsigned padding;
-  
+
 	subbufs_ready = info->produced - info->consumed;
 	start_subbuf = info->consumed % params.n_subbufs;
 	end_subbuf = start_subbuf + subbufs_ready;
@@ -357,14 +357,14 @@ static int process_subbufs(struct buf_info *info)
 		subbuf_ptr += sizeof(padding);
 		len = (params.subbuf_size - sizeof(padding)) - padding;
 
-		if (write(percpu_tmpfile[cpu], subbuf_ptr, len) < 0) 
+		if (write(percpu_tmpfile[cpu], subbuf_ptr, len) < 0)
 		{
 			fprintf(stderr, "ERROR: couldn't write to output file for cpu %d, exiting: errcode = %d: %s\n", cpu, errno, strerror(errno));
 			exit(1);
 		}
 		subbufs_consumed++;
 	}
-	
+
 	return subbufs_consumed;
 }
 
@@ -424,7 +424,7 @@ static void *reader_thread(void *data)
 int init_relayfs(void)
 {
 	int i, j;
-	
+
 	for (i = 0; i < ncpus; i++) {
 		if (open_relayfs_files(i, params.relay_filebase) < 0) {
 			fprintf(stderr, "ERROR: couldn't open relayfs files, cpu = %d\n", i);
@@ -447,18 +447,18 @@ err:
 	for (j = 0; j < i; j++)
 		close_relayfs_files(j);
 	kill_percpu_threads(i);
-	
+
 	return -1;
 }
 
 #include <sys/wait.h>
 static void cleanup_and_exit (char *mod_name);
 static int module_loaded = 0;
-static void sigchld(int signum)
+static void sigchld(int signum __attribute__((unused)))
 {
-	int status;
-	pid_t pid = wait(&status);
-	if (pid > 0 && WIFEXITED(status) && WEXITSTATUS(status))
+	int status_code;
+	pid_t pid = wait(&status_code);
+	if (pid > 0 && WIFEXITED(status_code) && WEXITSTATUS(status_code))
 		cleanup_and_exit("");
 	signal(SIGCHLD, SIG_DFL);
 	module_loaded = 1;
@@ -484,7 +484,7 @@ int init_stp(const char *modname,
 	int daemon_pid;
 	char buf[1024];
 	pid_t pid;
-	
+
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	print_totals = print_summary;
 
@@ -501,14 +501,14 @@ int init_stp(const char *modname,
 		perror ("exec");
 		exit(-1);
 	}
-	
+
 	control_channel = open_control_channel();
 	if (control_channel < 0)
 		return -1;
-	
+
 	if (relay_filebase)
 		strcpy(params.relay_filebase, relay_filebase);
-	
+
 	return 0;
 }
 
@@ -544,11 +544,11 @@ static int merge_output(void)
 
 	ofp = fopen (outfile_name, "w");
 	if (!ofp) {
-		fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n", 
+		fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n",
 			 outfile_name, strerror(errno));
 		return -1;
 	}
-	
+
 	do {
 		min = num[0];
 		j = 0;
@@ -606,7 +606,7 @@ static void postprocess_and_exit(void)
 		merge_output();
 		delete_percpu_files();
 	}
-	
+
 	close(control_channel);
 
 	exit(0);
@@ -618,9 +618,9 @@ static void cleanup_and_exit (char *mod_name)
 
 	if (exiting)
 		return;
-  
+
 	exiting = 1;
-  
+
 	if (transport_mode == STP_TRANSPORT_RELAYFS) {
 		kill_percpu_threads(ncpus);
 		if (request_last_buffers() < 0)
@@ -632,7 +632,7 @@ static void cleanup_and_exit (char *mod_name)
 		strcpy (tmpbuf, "/sbin/rmmod ");
 		strcpy (tmpbuf + strlen(tmpbuf), mod_name);
 		if (system(tmpbuf)) {
-			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n", 
+			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n",
 				mod_name);
 			close_all_relayfs_files();
 			delete_percpu_files();
@@ -645,7 +645,7 @@ static void cleanup_and_exit (char *mod_name)
 	postprocess_and_exit();
 }
 
-static void sigproc(int signum)
+static void sigproc(int signum __attribute__((unused)))
 {
 	if (transport_mode && module_loaded) {
 		int trylimit = 50;
@@ -667,25 +667,25 @@ int stp_main_loop(void)
 	struct transport_msg *transport_msg;
 	unsigned short *ptr;
 	unsigned subbufs_consumed;
-	
+
 	signal(SIGINT, sigproc);
 	signal(SIGTERM, sigproc);
 
 	while (1) { /* handle messages from control channel */
 		nb = recv(control_channel, recvbuf, sizeof(recvbuf), 0);
 		struct nlmsghdr *nlh = (struct nlmsghdr *)recvbuf;
-		
+
 		if (nb < 0) {
 			if (errno == EINTR)
 				continue;
 			fprintf(stderr, "WARNING: recv() failed\n");
 		} else if (nb == 0)
 			fprintf(stderr, "WARNING: unexpected EOF on netlink socket\n");
-		if (!NLMSG_OK(nlh, nb)) {
+		if (!NLMSG_OK(nlh, (unsigned int) nb)) {
 			fprintf(stderr, "WARNING: netlink message not ok, nb = %d\n", nb);
 			continue;
 		}
-		if (!transport_mode && 
+		if (!transport_mode &&
 		    nlh->nlmsg_type != STP_TRANSPORT_MODE &&
 		    nlh->nlmsg_type != STP_EXIT)
 		{
