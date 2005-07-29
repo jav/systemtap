@@ -1,31 +1,33 @@
-.TH STAP 1 "July 28 2005" "Red Hat" "Utility Commands"
+.\" t
+.TH STAP 1 "July 28 2005" "Red Hat"
 .SH NAME
 stap \- systemtap script translator/driver
 .SH SYNOPSIS
-.TP
+
+.br
 .B stap
 [
-.I options
+.IR OPTIONS
 ]
 .BI FILE
-.TP
+.br
 .B stap
 [
-.I options
+.IR OPTIONS
 ]
 .BI -
-.TP
+.br
 .B stap
 [
-.I options
+.IR OPTIONS
 ]
-.BI "-e SCRIPT"
+.BI -e " SCRIPT "
 
 .SH DESCRIPTION
 
 The
-.I stap
-program is the front-end to the SystemTap system.  It accepts probing
+.IR stap
+program is the front-end to the Systemtap tool.  It accepts probing
 instructions, written in a simple scripting language.  It translates
 the script to C code.  It then compiles this C code, and loads the
 resulting kernel module into a running Linux kernel to perform the
@@ -33,36 +35,180 @@ requested system trace/probe functions.  The script is supplied in a
 named file, or standard input, or on the command line itself,
 respectively.
 .PP
-The language is described in a later section.
-It is strictly typed, largely declaration free, and procedural,
-inspired by
+The language is described in a later section.  It is strictly typed,
+declaration free, procedural, inspired by
 .IR dtrace 
 and
 .IR awk .
 It allows source code points or events in the kernel to be associated
 with handlers, which are subroutines executed synchronously.  It is
-somewhat similar to "breakpoint command lists" in the
+somewhat similar conceptually to "breakpoint command lists" in the
 .IR gdb
-tool.
+debugger.
 
 .SH OPTIONS
 
-.SH PROCESSING
 
 .SH SCRIPT LANGUAGE
+
+The systemtap script language resembles 
+.IR awk .
+There are four outermost constructs.  Within them, statements
+and expressions use C-like operator syntax and precedence.
+
+.SS GENERAL SYNTAX
+Whitespace is ignored.  Three forms of comments are supported:
+.RS
+.br
+# ... shell style, to the end of line
+.br
+// ... C++ style, to the end of line 
+.br
+/* ... C style ... */
+.RE
+Literals are either strings enclosed in double-quotes (soon supporting
+the usual C escape codes with backslashes), or integers (in decimal,
+hexadecimal, or octal, using the same notation as in C).  All strings
+are limited in length to some reasonable value (a few hundred bytes).
+Integers are 64-bit signed quantities, though the parser also accepts
+(and wraps around) values above positive 2**63.  Identifiers for
+variables and functions are an alphanumeric sequence, and may include
+"_" and "$" characters.  They may not start with a plain digit, as in
+C.
+
+.SS PROBES
+
+The main construct in the scripting language identifies probes.
+Probes associate abstract events with a statement block to execute
+when those events occur.
+.PP
+Events are specified in a special syntax called "probe points".  Some
+refer to specific points in a kernel, identified by module, source
+file, line number, function name, C label name, or some combination of
+these.  These events are deemed to occur when any processor executes
+an instruction matched by the specification.  Here is a list of supported
+probe point specifications:
+
+.PP
+In addition, "probe aliases" may be defined.
+.PP
+When any matching event occurs, a handler is invoked within that
+context.  The handler may have read/write access to "target
+variables", if the kernel's compiler preserved them despite
+optimization.  These variables are exposed to the script handler
+
+.SS FUNCTIONS
+
+.SS GLOBALS
+
+.SS EMBEDDED C
+When in guru mode, the translator accepts embedded code in the
+script.  Such code is enclosed between
+.IR %{
+and
+.IR %}
+markers, and is transcribed verbatim, without analysis, in some
+sequence, into the generated C code.  At the outermost level, this may
+be useful to add
+.IR #include
+instructions, and any auxiliary definitions for use by other embedded
+code.  The other place where embedded code is permitted is as a
+function body.
+
+.SS STATEMENTS
+
+.SS EXPRESSIONS
+
+.SS BUILT-IN FUNCTIONS
+
+
+.SH PROCESSING
+
+The translator begins in pass 1, by parsing the given input script,
+and all scripts (files named
+.IR *.stp )
+found in a tapset directory.  The directories listed
+with
+.BR -I
+are processed in sequence.  For each directory, a number of subdirectories
+are also searched.  These subdirectories are derived from the selected
+kernel version (the
+.BR -R
+option),
+in order to allow more kernel-version-specific scripts to override less
+specific ones.  For example, for a kernel version
+.IR 2.6.12-23.FC3
+the following patterns would be searched, in sequence:
+.IR 2.6.12-23.FC3/*.stp ,
+.IR 2.6.12/*.stp ,
+.IR 2.6/*.stp ,
+and finally
+.IR *.stp
+Stopping the translator after pass 1 causes it to print the parse trees. 
+
+.PP
+In pass 2, the translator analyzes the input script to resolve symbols
+and types.  References to variables, functions, and probe aliases that
+are unresolved internally are satisfied by searching through the
+parsed tapset scripts.  If any tapset script is selected because it
+defines an unresolved symbol, then the entirety of that script is
+added to the translator's resolution queue.  This process iterates
+until all symbols are resolved and a subset of tapset scripts is
+selected.
+.PP
+Next, all probe point descriptions are validated, to match them
+against the wide variety supported by the translator.  Probe points that
+refer to code locations ("synchronous probe points") require the
+appropriate kernel debugging information to be installed.  In the
+associated probe handlers, target-side variables (whose names begin
+with "$") are found and have their run-time locations decoded.
+.PP
+Finally, all variable, function (and parameter), array (and
+index) types are inferred from context (literals and operators).
+Stopping the translator after pass 2 causes it to list all the probes,
+functions, and variables, along with all types.  Any conflicting,
+inconsistent, or unresolved types cause an error.
+
+.PP
+In pass 3, the translator writes C code that represents the actions
+of all selected script files, and a
+.IR Makefile
+to build that into a kernel object.  These files are placed into a
+temporary directory.  Stopping the translator at this point causes
+it to print the contents of the C file.
+
+.PP
+In pass 4, the translator invokes the Linux kernel build system to
+create the actual kernel object file.  This involves running
+.IR make
+in the temporary directory, and requires a kernel module build
+system (headers, config and Makefiles) to be installed in the usual
+spot
+.IR /lib/modules/VERSION/build .
+Stopping the translator after pass 4 is the last chance before
+running the kernel object.  This may be useful if one wants to
+archive the file.
+
+.PP
+In pass 5, the translator invokes the systemtap "daemon"
+.IR stpd
+program for the given kernel object.  This program arranges to load
+the module.  Then it communicates with it, copying trace data from the
+kernel into temporary files, until the user sends an interrupt signal.
+Finally, it unloads the module, and cleans up.
 
 .SH EXAMPLES
 
 .SH SAFETY AND SECURITY
 
-SystemTap is an administrative tool at this time.  It exposes kernel
+Systemtap is an administrative tool at this time.  It exposes kernel
 internal data structures and potentially private user information.
 It acquires root privileges to actually run the kernel objects it
 builds using the
 .IR sudo
 command applied to the
 .IR stpd
-program.  The latter is a part of the SystemTap package, dedicated to
+program.  The latter is a part of the Systemtap package, dedicated to
 module loading and unloading (but only in the white zone), and
 kernel-to-user data transfer.  Since 
 .IR stpd
