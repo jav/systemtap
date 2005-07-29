@@ -1,5 +1,10 @@
 2005-07-29  Frank Ch. Eigler  <fche@redhat.com>
 
+	* Makefile.am: Make sure stpd goes into libexec/systemtap/
+	* Makefile.in: Regenerated.
+
+2005-07-29  Frank Ch. Eigler  <fche@redhat.com>
+
 	* configure.ac: Fail configure stage if elfutils 0.111+ is not found.
 	* Makefile.am, elaborate.cxx, tapsets.cxx: Unconditionalize.
 	* configure, Makefile.in, config.in: Regenerated.

@@ -17,7 +17,9 @@ stap_LDADD = @stap_LIBS@
 
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 
-libexec_PROGRAMS = stpd
+# stpd goes into $libexec/$package, so libexec_PROGRAMS would
+# put it into the wrong location
+noinst_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 
@@ -29,6 +31,10 @@ EXTRA_DIST = testsuite runtest.sh $(wildcard $(srcdir)/*.h) systemtap.spec \
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
+
+install-exec-local:
+	mkdir -p $(DESTDIR)$(libexecdir)/systemtap
+	$(INSTALL) stpd $(DESTDIR)$(libexecdir)/systemtap
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
