@@ -1,4 +1,4 @@
-#include <libdw.h>
+#include <elfutils/libdw.h>
 
 struct obstack;			/* Use <obstack.h> */
 struct location;		/* Opaque */
