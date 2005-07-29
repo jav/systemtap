@@ -22,13 +22,20 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl Need libdwfl-capable elfutils 0.102+ from <drepper@redhat.com>
+dnl Need libdwfl-capable elfutils 0.111 or later from Fedora
 dnl ... except that these libraries are only used by stap, not
 dnl stpd.  The implicit LIBS set from these is too broadly applied.
-AC_CHECK_HEADERS([libelf.h elfutils/libdw.h elfutils/libdwfl.h])
-AC_CHECK_LIB(dw, dwarf_begin)
-AC_CHECK_LIB(elf, elf_begin)
-AC_CHECK_LIB(dwfl, dwfl_begin)
+save_LIBS="$LIBS"
+AC_CHECK_LIB(dw, dwfl_begin)
+stap_LIBS="$LIBS"
+LIBS="$SAVE_LIBS"
+AC_SUBST(stap_LIBS)
+if test $ac_cv_lib_dw_dwfl_begin = yes; then
+  # If we don't have a current library, don't define HAVE_*_H macros either.
+  AC_CHECK_HEADERS([elfutils/libdw.h elfutils/libdwfl.h])
+fi
+
+AM_CONDITIONAL(HAVE_LIBDW, test $ac_cv_lib_dw_dwfl_begin = yes)
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`
