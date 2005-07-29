@@ -1,3 +1,41 @@
+2005-07-29  Roland McGrath  <roland@redhat.com>
+
+	* Version 0.2 distribution.
+
+	* systemtap.spec.in: Include %{_datadir}/systemtap/tapset directory.
+	(%check): Add section, run make check.
+	* Makefile.am (EXTRA_DIST): Add runtest.sh.
+	* Makefile.in: Regenerated.
+
+	* systemtap.spec.in: Include man pages.
+	* Makefile.am (man_MANS): Renamed to dist_man_MANS.
+
+	* configure.ac: Add AM_CONDITIONAL definition of HAVE_LIBDW.
+	* Makefile.am [HAVE_LIBDW] (stap_SOURCES_libdw): New variable.
+	(stap_SOURCES): Use it, moving loc2c.c there.
+	* configure, config.in: Regenerated.
+
+	* tapsets.cxx: <libdw.h> -> <elfutils/libdw.h>
+	* loc2c.c, loc2c.h: Likewise.
+
+	* main.cxx (main): Check return value of system.
+
+	* systemtap.spec.in (LDFLAGS): Punt using $ORIGIN here, just hard-code
+	%{_libdir}.
+	(elfutils_version): Bump to 0.111.
+	[bundled_elfutils]: Don't massage libdwfl.h header any more.
+
+	* configure.ac: Don't check for libelf.h, not actually #include'd.
+	Update -ldw check for merged libdwfl+libdw.
+	(stap_LIBS): New substituted variable.  Set only this, not LIBS,
+	with -ldw check.
+	* Makefile.am (stap_LDADD): New variable, use @stap_LIBS@.
+
+	* Makefile.am (AM_CPPFLAGS): Use ${pkgdatadir}.
+	(AM_CFLAGS): Use -W instead of -Wextra, for gcc 3 compatibility.
+	(stpd_LDFLAGS): Variable removed.
+	(AM_MAKEFLAGS): Variable removed.
+
 2005-07-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	* elaborate.cxx (find_var): Correct array dereferencing thinko.
@@ -7,15 +45,15 @@
 	* elaborate.cxx (derived_probe::derived_probe): Accept NULL probe.
 	* staptree.cxx (provide, require): Move from here...
 	* staptree.h: to here, and virtualize deep-copy methods.
-	* translate.cxx 
-	(c_unparser::emit_common_header): Include loc2c-runtime.h	
-	* tapsets.cxx 
+	* translate.cxx
+	(c_unparser::emit_common_header): Include loc2c-runtime.h
+	* tapsets.cxx
 	(dwflpp::iterate_over_modules): Use new, faster getmodules loop.
 	(dwflpp::literal_stmt_for_local): New method, call loc2c.
 	(var_expanding_copy_visitor): New struct which expands $-vars.
 	(dwarf_derived_probe): Rebuild this->body using var expander.
 	(query_function): Refactor logic a bit for speed.
-	* loc2c.{c,h}: Copies (with minor changes) of Roland's work 
+	* loc2c.{c,h}: Copies (with minor changes) of Roland's work
 	from elfutils CVS.
 	* Makefile.am (AM_CFLAGS): Set to elfutils-style.
 	(stap_SOURCES): Add loc2c.c.
@@ -36,9 +74,9 @@
 	* tapsets.cxx (*): Correct kprobes API interface.
 	* testsuite/buildok/three.stp: New test, copied from semok.
 	* Makefile.am (install-data-local): Also install runtime/relayfs,
-	so scripts can build against headers located thereunder. 
+	so scripts can build against headers located thereunder.
 	* Makefile.in: Regenerated.
-	
+
 2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	translator/1120
@@ -57,7 +95,7 @@
 	* Makefile.in, aclocal.m4: Regenerated.
 	* testsuite/*/*.stp: Set guru mode via /bin/sh if needed.
 	* testusite/*/*ko.stp: Homogenize shell scripts.
-	
+
 2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	translator/1120
@@ -74,7 +112,7 @@
 
 	* Makefile.am (install-data-local): Add runtime/transport.
 	* Makefile.in: regenerated.
-	
+
 2005-07-26  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.cxx: Revert builtin-function code.
@@ -87,13 +125,13 @@
 	usually a module doesn't use every function in the runtime.
 
 2005-07-26  Martin Hunt  <hunt@redhat.com>
-	
-	* Makefile.am (stpd_LDFLAGS): Set rpath correclty because otherwise 
+
+	* Makefile.am (stpd_LDFLAGS): Set rpath correclty because otherwise
 	automake doesn't seem to get it right when binaries are in libexec
 	subdirs.
 	(AM_CPPFLAGS): revert.
-	* systemtap.spec.in (LDFLAGS): Set libexecdir here instead.	
-	
+	* systemtap.spec.in (LDFLAGS): Set libexecdir here instead.
+
 2005-07-26  Frank Ch. Eigler  <fche@redhat.com>
 
 	Support %{ embedded-c %}
@@ -119,10 +157,10 @@
 
 	* Makefile.am (AM_CPPFLAGS): Set PKGLIBDIR correctly.
 
-2005-07-26  Martin Hunt  <hunt@redhat.com>	
+2005-07-26  Martin Hunt  <hunt@redhat.com>
 	* systemtap.spec.in: Stpd goes in libexec/systemtap.
 	* Makefile.am (libexecdir): Set to libexecdir/systemtap.
-	* aclocal.m4, Makefile.in: Regenerated	
+	* aclocal.m4, Makefile.in: Regenerated
 
 2005-07-25  Roland McGrath  <roland@redhat.com>
 
