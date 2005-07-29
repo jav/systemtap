@@ -32,7 +32,7 @@ using namespace std;
 void
 usage (systemtap_session& s)
 {
-  clog 
+  clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
     << "Copyright (C) 2005 Red Hat, Inc." << endl
@@ -43,7 +43,7 @@ usage (systemtap_session& s)
     << endl
     << "   or: stap [options] -            Run script on stdin."
     << endl
-    << "   or: stap [options] -e SCRIPT    Run given script." 
+    << "   or: stap [options] -e SCRIPT    Run given script."
     << endl
     << endl
     << "Arguments:" << endl
@@ -70,7 +70,7 @@ usage (systemtap_session& s)
     <<      "              " << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
     << "   -k         keep temporary directory" << endl;
-  // -d: dump safety-related external references 
+  // -d: dump safety-related external references
 
   exit (0);
 }
@@ -284,7 +284,7 @@ main (int argc, char * const argv [])
               else
                 s.library_files.push_back (f);
             }
-          
+
           globfree (& globbuf);
         }
     }
@@ -389,7 +389,7 @@ main (int argc, char * const argv [])
          << "Try again with '-v' (verbose) option." << endl;
 
   if (rc || s.last_pass == 3) goto cleanup;
-  
+
   // PASS 4: COMPILATION
   rc = compile_pass (s);
 
@@ -421,7 +421,9 @@ main (int argc, char * const argv [])
           string cleanupcmd = "/bin/rm -rf ";
           cleanupcmd += s.tmpdir;
           if (s.verbose) clog << "Running " << cleanupcmd << endl;
-          (void) system (cleanupcmd.c_str());
+	  int status = system (cleanupcmd.c_str());
+	  if (status != 0 && s.verbose)
+	    clog << "Cleanup command failed, status: " << status << endl;
         }
     }
 
