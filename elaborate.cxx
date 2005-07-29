@@ -38,9 +38,12 @@ using namespace std;
 derived_probe::derived_probe (probe *p):
   base (p)
 {
-  this->locations = p->locations;
-  this->tok = p->tok;
-  this->body = deep_copy_visitor::deep_copy(p->body);
+  if (p)
+    {
+      this->locations = p->locations;  
+      this->tok = p->tok;
+      this->body = deep_copy_visitor::deep_copy(p->body);
+    }
 }
 
 
@@ -48,8 +51,11 @@ derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
   this->locations.push_back (l);
-  this->tok = p->tok;
-  this->body = deep_copy_visitor::deep_copy(p->body);
+  if (p)
+    {
+      this->tok = p->tok;
+      this->body = deep_copy_visitor::deep_copy(p->body);
+    }
 }
 
 // ------------------------------------------------------------------------

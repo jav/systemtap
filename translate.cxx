@@ -492,6 +492,7 @@ c_unparser::emit_common_header ()
 {
   // XXX: tapsets.cxx should be able to add additional definitions
 
+  o->newline() << "#include \"loc2c-runtime.h\" ";
   o->newline() << "#define MAXNESTING 30";
   o->newline() << "#define MAXCONCURRENCY NR_CPUS";
   o->newline() << "#define MAXSTRINGLEN 128";

@@ -1,3 +1,22 @@
+2005-07-28  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx (derived_probe::derived_probe): Accept NULL probe.
+	* staptree.cxx (provide, require): Move from here...
+	* staptree.h: to here, and virtualize deep-copy methods.
+	* translate.cxx 
+	(c_unparser::emit_common_header): Include loc2c-runtime.h	
+	* tapsets.cxx 
+	(dwflpp::iterate_over_modules): Use new, faster getmodules loop.
+	(dwflpp::literal_stmt_for_local): New method, call loc2c.
+	(var_expanding_copy_visitor): New struct which expands $-vars.
+	(dwarf_derived_probe): Rebuild this->body using var expander.
+	(query_function): Refactor logic a bit for speed.
+	* loc2c.{c,h}: Copies (with minor changes) of Roland's work 
+	from elfutils CVS.
+	* Makefile.am (AM_CFLAGS): Set to elfutils-style.
+	(stap_SOURCES): Add loc2c.c.
+	* Makefile.in: Regenerate.
+
 2005-07-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	* stap.1: Beginnings of a man page.

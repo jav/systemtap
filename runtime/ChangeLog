@@ -1,3 +1,7 @@
+2005-07-28  Graydon Hoare  <graydon@redhat.com>
+
+	* loc2c-runtime.h: New file from elfutils CVS.
+
 2005-07-20  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (_stp_vlog): Don't count transport failures for 

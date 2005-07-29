@@ -1020,25 +1020,6 @@ throwing_visitor::visit_functioncall (functioncall* e)
 
 // ------------------------------------------------------------------------
 
-template <typename T> static void
-require (deep_copy_visitor* v, T* dst, T src)
-{
-  *dst = NULL;
-  if (src != NULL)
-    {
-      v->targets.push(static_cast<void* >(dst));
-      src->visit(v);
-      v->targets.pop();
-      assert(*dst);
-    }
-}
-
-template <typename T> static void
-provide (deep_copy_visitor* v, T src)
-{
-  assert(!v->targets.empty());
-  *(static_cast<T*>(v->targets.top())) = src;
-}
 
 void
 deep_copy_visitor::visit_block (block* s)

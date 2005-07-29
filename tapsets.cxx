@@ -21,9 +21,16 @@
 #include <vector>
 
 #ifdef HAVE_ELFUTILS_LIBDWFL_H
+
 extern "C" {
 #include <elfutils/libdwfl.h>
+#include <libdw.h>
+#include <dwarf.h>
+#include <elf.h>
+#include <obstack.h>
+#include "loc2c.h"
 }
+
 #endif
 
 #include <fnmatch.h>
@@ -141,6 +148,16 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
 // ------------------------------------------------------------------------
+
+template <typename OUT, typename IN> inline OUT 
+lex_cast(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
 
 // Helper for dealing with selected portions of libdwfl in a more readable
 // fashion, and with specific cleanup / checking / logging options.
@@ -362,7 +379,7 @@ dwflpp
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 					     const char *, Dwarf_Addr,
-					     Dwarf *, Dwarf_Addr, void *),
+					     void *),
 			    void * data)
   {
     if (false && sess.verbose)
@@ -370,7 +387,7 @@ dwflpp
     ptrdiff_t off = 0;
     do
       {
-	off = dwfl_getdwarf(dwfl, callback, data, off);
+	off = dwfl_getmodules (dwfl, callback, data, off);
       }
     while (off > 0);
     if (false && sess.verbose)
@@ -476,6 +493,106 @@ dwflpp
   }
 
 
+  string literal_stmt_for_local(Dwarf_Addr pc,
+				string const & local)
+  {
+    assert (cu);
+
+    Dwarf_Die *scopes;
+    Dwarf_Die vardie;
+
+    int nscopes = dwarf_getscopes (cu, pc, &scopes);    
+    if (nscopes == 0)
+      {
+	throw semantic_error ("unable to find any scopes containing " 
+			      + lex_cast<string>(pc)
+			      + " while searching for local '" + local + "'");
+      }
+    
+    int declaring_scope = dwarf_getscopevar (scopes, nscopes,
+					     local.c_str(), 
+					     0, NULL, 0, 0, 
+					     &vardie);    
+    if (declaring_scope < 0)
+      {
+	throw semantic_error ("unable to find local '" + local + "'"
+			      + " near pc " + lex_cast<string>(pc));
+      }
+    
+    Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
+    for (int inner = 0; inner < nscopes; ++inner)
+      {
+	switch (dwarf_tag (&scopes[inner]))
+	  {
+	  default:
+	    continue;
+	  case DW_TAG_subprogram:
+	  case DW_TAG_entry_point:
+	  case DW_TAG_inlined_subroutine:  /* XXX */
+	    if (inner >= declaring_scope)
+	      fb_attr = dwarf_attr_integrate (&scopes[inner],
+					      DW_AT_frame_base,
+					      &fb_attr_mem);
+	    break;
+	  }
+      }
+
+    if (sess.verbose)
+      clog << "finding location for local '" << local 
+	   << "' near address " << hex << "0x" << pc 
+	   << ", module bias " << hex << "0x" << module_bias 
+	   << endl;
+    
+    Dwarf_Attribute attr_mem;    
+    if (dwarf_attr_integrate (&vardie, DW_AT_location, &attr_mem) == NULL)
+      throw semantic_error("failed to retrieve location "
+			   "attribute for local '" + local + "'");
+    
+#define obstack_chunk_alloc malloc
+#define obstack_chunk_free free
+    
+    struct obstack pool;
+    obstack_init (&pool);    
+    struct location *tail = NULL;
+    struct location *head = c_translate_location (&pool, 1, module_bias, 
+						  &attr_mem, pc,
+						  &tail, fb_attr);
+
+  if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
+      throw semantic_error("failed to retrieve type "
+			   "attribute for local '" + local + "'");
+
+    c_translate_fetch (&pool, 1, module_bias, &vardie,
+		       &attr_mem, &tail, 
+		       "THIS->__retvalue");
+    
+    
+    size_t bufsz = 1024;
+    char *buf = static_cast<char*>(malloc(bufsz));
+    assert(buf);
+    
+    FILE *memstream = open_memstream (&buf, &bufsz);
+    assert(memstream);
+    
+    bool deref = c_emit_location (memstream, head, 1);
+    
+    fprintf(memstream, "goto out;\n");
+    if (deref)
+      {
+	fprintf(memstream, 
+		"deref_fault:\n"
+		"  c->errorcount++; \n"
+		"  goto out;\n\n");
+      }
+    
+    fclose (memstream);
+    string result(buf);
+    free (buf);
+    return result;
+  }
+  
+  
+
   ~dwflpp()
   {
     if (dwfl)
@@ -512,10 +629,11 @@ dwarf_probe_type
   };
 
 struct dwarf_builder;
+struct dwarf_query;
+
 struct dwarf_derived_probe : public derived_probe
 {
-  dwarf_derived_probe (probe * p, 
-		       probe_point * l, 
+  dwarf_derived_probe (dwarf_query & q,
 		       string const & module_name,
 		       dwarf_probe_type type,
 		       Dwarf_Addr addr);
@@ -561,6 +679,8 @@ dwarf_query
 			       string const & k, string & v);
   static bool get_number_param(map<string, literal *> const & params, 
 			       string const & k, long & v);
+
+  string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
 
   vector<derived_probe *> & results;
   void add_kernel_probe(dwarf_probe_type type, Dwarf_Addr addr);
@@ -659,12 +779,12 @@ dwarf_query::get_number_param(map<string, literal *> const & params,
   return true;
 }
 
+
 void 
 dwarf_query::add_kernel_probe(dwarf_probe_type type,
 			      Dwarf_Addr addr)
 {
-  results.push_back(new dwarf_derived_probe(base_probe, base_loc,
-					    "", type, addr));
+  results.push_back(new dwarf_derived_probe(*this, "", type, addr));
 }
 
 void 
@@ -672,8 +792,7 @@ dwarf_query::add_module_probe(string const & module,
 			      dwarf_probe_type type,
 			      Dwarf_Addr addr)
 {
-  results.push_back(new dwarf_derived_probe(base_probe, base_loc,
-					    module, type, addr));
+  results.push_back(new dwarf_derived_probe(*this, module, type, addr));
 }
 
 
@@ -718,16 +837,6 @@ dwarf_query::dwarf_query(systemtap_session & sess,
     spec_type = parse_function_spec(statement_str_val);
 }				  
 
-
-template <typename OUT, typename IN> inline OUT 
-lex_cast(IN const & in)
-{
-  stringstream ss;
-  OUT out;
-  if (!(ss << in && ss >> out))
-    throw runtime_error("bad lexical cast");
-  return out;
-}
 
 function_spec_type
 dwarf_query::parse_function_spec(string & spec)
@@ -830,43 +939,61 @@ query_function(Dwarf_Func * func, void * arg)
 
   q->dw.focus_on_function(func);
 
-  // XXX: We assume addr is a global address here. Is it?
-  Dwarf_Addr addr;
-  if (!q->dw.function_entrypc(&addr))
-    {
-      if (false && q->sess.verbose)
-	clog << "WARNING: cannot find entry PC for function " 
-	     << q->dw.function_name << endl;
-      return DWARF_CB_OK;
+  if (q->has_statement_str || q->has_function_str)
+    {       
+      if (q->dw.function_name_matches(q->function))
+	{
+	  // XXX: We assume addr is a global address here. Is it?
+	  // XXX: This code is duplicated below, but it's important
+	  // for performance reasons to test things in this order.
+	  
+	  Dwarf_Addr addr;
+	  if (!q->dw.function_entrypc(&addr))
+	    {
+	      if (q->sess.verbose)
+		clog << "WARNING: cannot find entry PC for function " 
+		     << q->dw.function_name << endl;
+	      return DWARF_CB_OK;
+	    }
+	  
+	  // If this function's name matches a function or statement
+	  // pattern, we use its entry pc, but we do not abort iteration
+	  // since there might be other functions matching the pattern.
+	  query_statement(addr, q);
+	}
     }
-
-  if ((q->has_statement_str || q->has_function_str) 
-      && q->dw.function_name_matches(q->function))
+  else
     {
-      // If this function's name matches a function or statement
-      // pattern, we use its entry pc, but we do not abort iteration
-      // since there might be other functions matching the pattern.
-      query_statement(addr, q);
-    }
-  else if (q->has_kernel 
-	   && q->has_function_num
-	   && q->dw.function_includes_global_addr(q->function_num_val))
-    {
-      // If this function's address range matches a kernel-relative
-      // function address, we use its entry pc and break out of the
-      // iteration, since there can only be one such function.
-      query_statement(addr, q);
-      return DWARF_CB_ABORT;
-    }
-  else if (q->has_module
-	   && q->has_function_num
-	   && q->dw.function_includes_module_addr(q->function_num_val))
-    {
-      // If this function's address range matches a module-relative
-      // function address, we use its entry pc and break out of the
-      // iteration, since there can only be one such function.
-      query_statement(addr, q);
-      return DWARF_CB_ABORT;
+      // XXX: We assume addr is a global address here. Is it?
+      Dwarf_Addr addr;
+      if (!q->dw.function_entrypc(&addr))
+	{
+	  if (false && q->sess.verbose)
+	    clog << "WARNING: cannot find entry PC for function " 
+		 << q->dw.function_name << endl;
+	  return DWARF_CB_OK;
+	}
+      
+      if (q->has_kernel 
+	  && q->has_function_num
+	  && q->dw.function_includes_global_addr(q->function_num_val))
+	{
+	  // If this function's address range matches a kernel-relative
+	  // function address, we use its entry pc and break out of the
+	  // iteration, since there can only be one such function.
+	  query_statement(addr, q);
+	  return DWARF_CB_ABORT;
+	}
+      else if (q->has_module
+	       && q->has_function_num
+	       && q->dw.function_includes_module_addr(q->function_num_val))
+	{
+	  // If this function's address range matches a module-relative
+	  // function address, we use its entry pc and break out of the
+	  // iteration, since there can only be one such function.
+	  query_statement(addr, q);
+	  return DWARF_CB_ABORT;
+	}
     }
 
   return DWARF_CB_OK;
@@ -910,7 +1037,6 @@ static int
 query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	      void **userdata __attribute__ ((unused)),
 	      const char *name, Dwarf_Addr base,
-	      Dwarf *dw, Dwarf_Addr bias,
 	      void *arg __attribute__ ((unused)))
 {
 
@@ -961,16 +1087,114 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   return DWARF_CB_OK;
 }
 
-dwarf_derived_probe::dwarf_derived_probe (probe * p, 
-					  probe_point * l, 
+struct
+var_expanding_copy_visitor
+  : public deep_copy_visitor
+{
+  // Alas, we cannot easily mixin lvalue_aware_traversing_visitor.
+  // But behold the *awesome power* of copy and paste.
+
+  static unsigned tick;
+
+  dwarf_query & q;
+  unsigned lval_depth;
+  Dwarf_Addr addr;
+
+  var_expanding_copy_visitor(dwarf_query & q, Dwarf_Addr a) 
+    : q(q), lval_depth(0), addr(a)
+  {}
+
+  bool is_in_lvalue()
+  {
+    return lval_depth > 0;
+  }
+
+  void visit_pre_crement (pre_crement* e)
+  {
+    ++lval_depth;
+    e->operand->visit (this);
+    --lval_depth;
+  }
+
+  void visit_post_crement (post_crement* e)
+  {
+    ++lval_depth;
+    e->operand->visit (this);
+    --lval_depth;
+  }
+  
+  void visit_assignment (assignment* e)
+  {
+    ++lval_depth;
+    e->left->visit (this);
+    --lval_depth;
+    e->right->visit (this);
+  }
+
+  void visit_delete_statement (delete_statement* s)
+  {
+    ++lval_depth;
+    s->value->visit (this);
+    --lval_depth;
+  }
+
+  void visit_symbol (symbol* e);
+};
+
+
+unsigned var_expanding_copy_visitor::tick = 0;
+
+
+void
+var_expanding_copy_visitor::visit_symbol (symbol *e)
+{
+  if (e->name.size() > 0 &&
+      e->name[0] == '$')
+    {
+      if (is_in_lvalue())
+	{
+	  throw semantic_error("read-only special variable " 
+			       + e->name + " used in lvalue", e->tok);
+	}
+
+      string fname = "get_" + e->name.substr(1) + "_" + lex_cast<string>(tick++);
+
+      // synthesize a function
+      functiondecl *fdecl = new functiondecl;
+      embeddedcode *ec = new embeddedcode;
+      ec->code = q.dw.literal_stmt_for_local(addr, e->name.substr(1));
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_long;
+      q.sess.functions.push_back(fdecl);
+
+      // synthesize a call
+      functioncall* n = new functioncall;
+      n->tok = e->tok;
+      n->function = fname;
+      n->referent = NULL;
+      provide <functioncall*> (this, n);
+      
+    }
+  else
+    {
+      deep_copy_visitor::visit_symbol (e);
+    }
+}
+
+
+dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q, 
 					  string const & module_name,
 					  dwarf_probe_type type,
 					  Dwarf_Addr addr)
-  : derived_probe (p, l),
+  : derived_probe (NULL, q.base_loc),
     module_name(module_name),
     type(type),
     addr(addr)
 {
+  var_expanding_copy_visitor v (q, addr);
+  require <block*> (&v, &(this->body), q.base_probe->body);
+  this->tok = q.base_probe->tok;
 }
 
 void 

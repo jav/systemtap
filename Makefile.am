@@ -6,11 +6,13 @@ AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
+AM_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wshadow -Wunused -Wformat=2 -Wextra -std=gnu99
+
 man_MANS = stap.1
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx
+	tapsets.cxx buildrun.cxx loc2c.c
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 
 libexec_PROGRAMS = stpd

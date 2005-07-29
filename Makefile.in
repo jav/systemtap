@@ -62,7 +62,7 @@ PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
 am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-staptree.$(OBJEXT) stap-elaborate.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
-	stap-buildrun.$(OBJEXT)
+	stap-buildrun.$(OBJEXT) loc2c.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LDADD = $(LDADD)
 stap_DEPENDENCIES =
@@ -189,10 +189,11 @@ AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
 
+AM_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wshadow -Wunused -Wformat=2 -Wextra -std=gnu99
 man_MANS = stap.1
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx
+	tapsets.cxx buildrun.cxx loc2c.c
 
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
@@ -336,6 +337,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/librelay.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-elaborate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-main.Po@am__quote@
