@@ -41,10 +41,11 @@ POST_UNINSTALL = :
 bin_PROGRAMS = stap$(EXEEXT)
 libexec_PROGRAMS = stpd$(EXEEXT)
 subdir = .
-DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/config.in \
-	$(srcdir)/systemtap.spec.in $(top_srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL NEWS TODO depcomp install-sh missing
+DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/config.in $(srcdir)/systemtap.spec.in \
+	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
+	TODO depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -59,12 +60,14 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libexecdir)" \
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 libexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(libexec_PROGRAMS)
+am__stap_SOURCES_DIST = main.cxx parse.cxx staptree.cxx elaborate.cxx \
+	translate.cxx tapsets.cxx buildrun.cxx loc2c.c
+@HAVE_LIBDW_TRUE@am__objects_1 = loc2c.$(OBJEXT)
 am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-staptree.$(OBJEXT) stap-elaborate.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
-	stap-buildrun.$(OBJEXT) loc2c.$(OBJEXT)
+	stap-buildrun.$(OBJEXT) $(am__objects_1)
 stap_OBJECTS = $(am_stap_OBJECTS)
-stap_LDADD = $(LDADD)
 stap_DEPENDENCIES =
 am_stpd_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
 stpd_OBJECTS = $(am_stpd_OBJECTS)
@@ -82,10 +85,10 @@ CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
 SOURCES = $(stap_SOURCES) $(stpd_SOURCES)
-DIST_SOURCES = $(stap_SOURCES) $(stpd_SOURCES)
+DIST_SOURCES = $(am__stap_SOURCES_DIST) $(stpd_SOURCES)
 man1dir = $(mandir)/man1
 NROFF = nroff
-MANS = $(man_MANS)
+MANS = $(dist_man_MANS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -125,6 +128,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+HAVE_LIBDW_FALSE = @HAVE_LIBDW_FALSE@
+HAVE_LIBDW_TRUE = @HAVE_LIBDW_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -183,28 +188,32 @@ prefix = @prefix@
 program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
+stap_LIBS = @stap_LIBS@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-AM_MAKEFLAGS = 'CXXFLAGS=$(CXXFLAGS)' 'LDFLAGS=$(LDFLAGS)'
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
-	      -DPKGDATADIR='"${datadir}/${PACKAGE}"'
+	      -DPKGDATADIR='"${pkgdatadir}"'
 
-AM_CFLAGS = -D_GNU_SOURCE -Wall -Werror -Wshadow -Wunused -Wformat=2 -Wextra -std=gnu99
-man_MANS = stap.1
+AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE \
+	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
+
+AM_CXXFLAGS = -Wall
+dist_man_MANS = stap.1
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx loc2c.c
+	tapsets.cxx buildrun.cxx $(stap_SOURCES_libdw)
 
+@HAVE_LIBDW_TRUE@stap_SOURCES_libdw = loc2c.c
+stap_LDADD = @stap_LIBS@
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
-# automake doesn't get rpath right unless we do this
-# stpd_LDFLAGS = -Wl,-rpath '$(libdir)/systemtap'
-AM_CXXFLAGS = -Wall
 
 # Get extra libs as needed
 LDADD = 
-EXTRA_DIST = testsuite runtime tapset $(wildcard $(srcdir)/*.h) systemtap.spec
+EXTRA_DIST = testsuite runtest.sh $(wildcard $(srcdir)/*.h) systemtap.spec \
+	     runtime tapset
+
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
 t = $(srcdir)/testsuite/trans
