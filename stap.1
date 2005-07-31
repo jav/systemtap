@@ -9,7 +9,7 @@ stap \- systemtap script translator/driver
 [
 .IR OPTIONS
 ]
-.BI FILE
+.RI FILENAME
 .br
 .B stap
 [
@@ -53,8 +53,9 @@ debugger.
 
 The systemtap script language resembles 
 .IR awk .
-There are four outermost constructs.  Within them, statements
-and expressions use C-like operator syntax and precedence.
+There are two main outermost constructs: probes, functions.  Within
+these, statements and expressions use C-like operator syntax and
+precedence.
 
 .SS GENERAL SYNTAX
 Whitespace is ignored.  Three forms of comments are supported:
@@ -71,31 +72,99 @@ the usual C escape codes with backslashes), or integers (in decimal,
 hexadecimal, or octal, using the same notation as in C).  All strings
 are limited in length to some reasonable value (a few hundred bytes).
 Integers are 64-bit signed quantities, though the parser also accepts
-(and wraps around) values above positive 2**63.  Identifiers for
-variables and functions are an alphanumeric sequence, and may include
-"_" and "$" characters.  They may not start with a plain digit, as in
-C.
+(and wraps around) values above positive 2**63.  
+
+.SS VARIABLES
+Identifiers for variables and functions are an alphanumeric sequence,
+and may include "_" and "$" characters.  They may not start with a
+plain digit, as in C.  Each variable is by default local to the probe
+or function statement block within which it is mentioned, and therefore
+its scope and lifetime is limited to a particular probe or function
+invocation.  Variables may be declared global using a top-level
+declaration, in which case they are shared amongst all probes and live
+as long as the entire systemtap session.
+.PP
+Scalar variables are implicitly typed as either string or integer.
+Associative arrays, which must be declared global, may have a string
+or integer value, and a tuple of strings and/or integers serving as a
+key.
+.\" XXX add statistics type here once it's supported
+
+.SS STATEMENTS
+Statements enable procedural control flow.
+
+.TP
+.BR if " (EXP) STMT1 [ " else " STMT2 ]"
+Compare integer-valued EXP to zero.  Execute the first (non-zero)
+or second STMT (zero).
+.TP
+.BR while " (EXP) STMT"
+While integer-valued EXP evaluates to non-zero, execute STMT.
+.TP
+.BR for " (EXP1; EXP2; EXP2) STMT"
+Execute EXP2 as initialization.  While EXP1 is non-zero, execute
+STMT, then the iteration expression EXP1.
+.TP
+.BR break ", " continue
+Exit or iterate nesting 
+.BR while " or " for
+statement.
+.TP
+EXP
+Execute the string- or integer-valued expression and throw away
+the value.
+
+.SS EXPRESSIONS
 
 .SS PROBES
-
 The main construct in the scripting language identifies probes.
-Probes associate abstract events with a statement block to execute
-when those events occur.
+Probes associate abstract events with a statement block ("probe
+handler") to execute when those events occur.
 .PP
-Events are specified in a special syntax called "probe points".  Some
-refer to specific points in a kernel, identified by module, source
-file, line number, function name, C label name, or some combination of
-these.  These events are deemed to occur when any processor executes
-an instruction matched by the specification.  Here is a list of supported
-probe point specifications:
-
+Events are specified in a special syntax called "probe points".  One
+family refers to specific points in a kernel, identified by module,
+source file, line number, function name, C label name, or some
+combination of these.  This kind of "synchronous" event is deemed to
+occur when any processor executes an instruction matched by the
+specification.  Other families of probe points refer to "asynchronous"
+events like timers/counters rolling over, where there is no fixed
+execution point that is related.
 .PP
-In addition, "probe aliases" may be defined.
+When any matching event occurs, the probe handler is run within that
+context.  For events that are defined by execution of specific parts
+of code, this context may include variables defined in the source code
+at that spot.  These "target variables" are presented to the script as
+variables whose names are prefixed with "$".  They may be read/written
+only if the kernel's compiler preserved them despite optimization.
+This is the same constraint that a debugger user faces when working
+with optimized code.  Asynchronous probes have very little context.
 .PP
-When any matching event occurs, a handler is invoked within that
-context.  The handler may have read/write access to "target
-variables", if the kernel's compiler preserved them despite
-optimization.  These variables are exposed to the script handler
+In addition, "probe aliases" may be defined.  Probe aliases look
+similar to probe definitions, but instead of activating a probe at the
+given point, it defines a new probe point name to alias an existing
+one.  This is identified by the "=" assignment operator.  In addition,
+the probe handler defined with an alias is implicitly added as a
+prologue to any probe that refers to the alias.  For example:
+.RS
+.nf
+probe syscall("read") = kernel.function("sys_read") {
+  fildes = $fd
+}
+.fi
+.RE
+defines a new probe point
+.IR syscall("read") ,
+which expands to
+.IR kernel.function("sys_read") ,
+with the given assignment as a prologue.  Another probe definition
+may use the alias like this:
+.RS
+.nf
+probe syscall("read") {
+  printk ("reading fd=" . decimal (fildes))
+}
+.fi
+.RE
 
 .SS FUNCTIONS
 
@@ -115,15 +184,10 @@ instructions, and any auxiliary definitions for use by other embedded
 code.  The other place where embedded code is permitted is as a
 function body.
 
-.SS STATEMENTS
-
-.SS EXPRESSIONS
-
 .SS BUILT-IN FUNCTIONS
 
 
 .SH PROCESSING
-
 The translator begins in pass 1, by parsing the given input script,
 and all scripts (files named
 .IR *.stp )
@@ -200,7 +264,6 @@ Finally, it unloads the module, and cleans up.
 .SH EXAMPLES
 
 .SH SAFETY AND SECURITY
-
 Systemtap is an administrative tool at this time.  It exposes kernel
 internal data structures and potentially private user information.
 It acquires root privileges to actually run the kernel objects it
@@ -217,7 +280,6 @@ it is given, it would be unwise for a system administrator to give
 even targeted
 .IR sudo
 privileges to untrusted users.
-
 .PP
 The translator asserts certain safety constraints.  It aims to ensure
 that no handler routine can run for very long, allocate memory,
@@ -225,7 +287,6 @@ perform unsafe operations, or in unintentionally interfere with the
 kernel.
 
 .SH ENVIRONMENT VARIABLES
-
 The
 .B SYSTEMTAP_RUNTIME
 environment variable provides a default for the
@@ -237,16 +298,14 @@ environment variable provides a default for the
 option.
 
 .SH SEE ALSO
-
 .IR dtrace (1)
 .IR dprobes (1)
 .IR awk (1)
 .IR sudo (8)
-.IR libelf (3)
+.IR elfutils (3)
 .IR gdb (1)
 
 .SH BUGS
-
 There are numerous missing features and possibly numerous bugs.  Use
 the Bugzilla link off of the project web page
 .BR http://sources.redhat.com/systemtap/ ,
@@ -254,7 +313,6 @@ or the mailing list
 .BR systemtap@sources.redhat.com .
 
 .SH AUTHORS
-
 The
 .IR stap
 translator was written by Frank Ch. Eigler and Graydon Hoare.  The
@@ -263,7 +321,6 @@ kernel-side runtime library and the user-level
 daemon was written by Martin Hunt and Tom Zanussi.
 
 .SH ACKNOWLEDGEMENTS
-
 The script language design was inspired by Sun's 
 .IR dtrace ,
 and refined by numerous participants on the project mailing list.
@@ -271,4 +328,7 @@ The current probing mechanism uses IBM's
 .IR kprobes ,
 and
 .IR relayfs
-packages.
+packages, which were improved and ported by IBM and Intel staff.  Many
+project members contributed to the overall design and priorities of
+the system, including Will Cohen, Jim Keniston, Vara Prasad, and Brad
+Chen.
