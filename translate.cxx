@@ -633,15 +633,8 @@ c_unparser::emit_module_init ()
       // We need to deregister any already probes set up - this is
       // essential for kprobes.
       if (i > 0)
-        // NB: This may be an END probe.  It may refuse to run
-        // if the session_state was ERRORed
-        for (unsigned j=i; j>0; j--)
-          {
-            o->newline() << "/* deregister " << j-1 << " */";
-            session->probes[j-1]->emit_deregistrations (o, j-1);
-          }
-      // XXX: ignore rc
-      o->newline() << "goto out;";
+        o->newline() << "goto unregister_" << (i-1) << ";";
+
       o->newline(-1) << "}";
     }
 
@@ -652,10 +645,22 @@ c_unparser::emit_module_init ()
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
   o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
   // XXX: else maybe set anyrc and thus return a failure from module_init?
-  o->indent(-1);
+  o->newline(-1) << "goto out;";
 
-  o->newline() << "out:";
-  o->newline() << "return rc;";
+  // recovery code for partially successful registration (rc != 0)
+  o->newline();
+  for (int i=session->probes.size()-2; i >= 0; i--) // NB: -2
+    {
+      o->newline(-1) << "unregister_" << i << ":";
+      o->indent(1);
+      session->probes[i]->emit_deregistrations (o, i);
+      // NB: This may be an END probe.  It will refuse to run
+      // if the session_state was ERRORed.
+    }  
+  o->newline();
+
+  o->newline(-1) << "out:";
+  o->newline(1) << "return rc;";
   o->newline(-1) << "}" << endl;
 }
 
@@ -688,15 +693,11 @@ c_unparser::emit_module_exit ()
   // o->newline(-1) << "if (holdon) msleep (5);";
   o->newline(-1) << "} while (holdon);";
   o->newline(-1);
-
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck
 
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      o->newline() << "/* deregister " << i << " */";
-      session->probes[i]->emit_deregistrations (o, i);
-    }
+  for (int i=session->probes.size()-1; i>=0; i--)
+    session->probes[i]->emit_deregistrations (o, i);
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {

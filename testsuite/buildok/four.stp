@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe module("ext3").function("*")
+{
+	log ("ext3 fn")
+}

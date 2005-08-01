@@ -1275,6 +1275,7 @@ dwarf_derived_probe::register_patterns(match_node * root)
   // .process("foo")
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
+  // XXX: may need to disable these for 2005-08 release
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
   register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
@@ -1329,7 +1330,6 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
 void
 dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
 {
-  o->newline();
   o->newline() << "unregister_kprobe (& "
 	       << probe_entry_struct_kprobe_name(probenum)
 	       << ");";

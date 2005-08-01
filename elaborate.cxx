@@ -359,27 +359,35 @@ symresolution_info::derive_probes (match_node * root,
       map<string, literal *> param_map;
       vector<probe *> re_expand;
 
-      derived_probe_builder * builder = 
-	root->find_builder(loc->components, 0, param_vec);
-
-      if (!builder)
-	throw semantic_error ("no match for probe point family");
-
-      param_vec_to_map(param_vec, param_map);
-
-      unsigned num_atbegin = dps.size();
-      builder->build(session, p, loc, param_map, re_expand, dps);
-
-      // Recursively expand any further-expanding results
-      if (!re_expand.empty())
-	{
-	  for (unsigned j = 0; j < re_expand.size(); ++j)
-	    derive_probes(root, re_expand[j], dps);
-	}
-
-      unsigned num_atend = dps.size();
-      if (num_atbegin == num_atend) // nothing new derived!
-        throw semantic_error ("no match for probe point");
+      try
+        {
+          derived_probe_builder * builder = 
+            root->find_builder(loc->components, 0, param_vec);
+          
+          if (!builder)
+            throw semantic_error ("no match for probe point family");
+          
+          param_vec_to_map(param_vec, param_map);
+          
+          unsigned num_atbegin = dps.size();
+          builder->build(session, p, loc, param_map, re_expand, dps);
+          
+          // Recursively expand any further-expanding results
+          if (!re_expand.empty())
+            {
+              for (unsigned j = 0; j < re_expand.size(); ++j)
+                derive_probes(root, re_expand[j], dps);
+            }
+          
+          unsigned num_atend = dps.size();
+          if (num_atbegin == num_atend) // nothing new derived!
+            throw semantic_error ("no match for probe point");
+        }
+      catch (const semantic_error& e)
+        {
+          session.print_error (e);
+          cerr << "         while: resolving probe point " << *loc << endl;
+        }
     }
 }
 
@@ -612,20 +620,9 @@ semantic_pass_symbols (systemtap_session& s)
           probe* p = dome->probes [i];
           vector<derived_probe*> dps;
 
-          try
-            {
-              // much magic happens here: probe alias expansion,
-              // provider identification
-              sym.derive_probes (s.pattern_root, p, dps);
-            }
-          catch (const semantic_error& e)
-            {
-              cerr << "while resolving probe point list:" << endl;
-              for (unsigned k=0; k<p->locations.size(); k++)
-                cerr << "  " << *p->locations[k]  << endl;
-              s.print_error (e);
-              // dps.erase (dps.begin(), dps.end());
-            }
+          // much magic happens here: probe alias expansion,
+          // provider identification
+          sym.derive_probes (s.pattern_root, p, dps);
 
           for (unsigned j=0; j<dps.size(); j++)
             {
@@ -645,7 +642,7 @@ semantic_pass_symbols (systemtap_session& s)
             }
         }
     }
-
+  
   return s.num_errors; // all those print_error calls
 }
 

@@ -1,5 +1,14 @@
 2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
 
+	* elaborate.cxx (derive_probes, semantic_pass_symbols): Improve
+	error message specificity.
+	* translate.cxx (emit_module_init): Compact partial registration
+	recovery code.
+	(emit_module_exit): Invert deregistration sequence.
+	* testsuite/buildok/four.stp: Some module() test case.
+	
+2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
+
 	* elaborate.cxx (derive_probes): Print error if results empty.
 	* tapsets.cxx (dwflpp_assert): Handle positive RCs, which likely
 	came from errno.
