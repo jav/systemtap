@@ -1362,9 +1362,12 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   // the entry function. The entry function will call the probe function.
   o->newline();
   o->newline() << "static int ";
-  o->newline() << probe_entry_function_name(probenum)
-               << " (void *_ignored, struct pt_regs *regs) {";
-  // NB: the void* first param matches both kretprobes and kprobes
+  o->newline() << probe_entry_function_name(probenum) << " (";
+  if (has_return)
+    o->line() << "struct kretprobe_instance *_ignored";
+  else
+    o->line() << "struct kprobe *_ignored";
+  o->line() << ", struct pt_regs *regs) {";
   o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
   o->newline();
 
