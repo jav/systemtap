@@ -1,4 +1,4 @@
 #! stap -p4
 
-probe kernel.function("schedule") { log "arrival" }
-probe kernel.function("schedule").return { log "departure" }
+probe kernel.function("schedule") { log ("arrival") }
+probe kernel.function("schedule").return { log ("departure") }

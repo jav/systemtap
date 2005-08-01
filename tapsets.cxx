@@ -1418,7 +1418,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       o->newline() << "static struct kprobe "
                    << probe_entry_struct_kprobe_name(probenum)
                    << "= {";
-      o->newline(1) << ".addr       = 0x0, */" ;
+      o->newline(1) << ".addr       = 0x0," ;
       o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
       o->newline(-1) << "};";
     }
