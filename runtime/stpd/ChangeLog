@@ -1,3 +1,27 @@
+2005-08-01  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.h: Get structs and enums from 
+	../transport/transport_msgs.h  to eliminate duplication.
+
+	* librelay.c (send_request): Retry if send fails.
+	(open_relayfs_files): Use fopen() instead of open() for the 
+	percpu tmpfiles.
+	(request_last_buffers): Just send cpu number for STP_BUF_INFO request.
+	(reader_thread): Ditto.
+	(process_subbufs): Use fwrite_unlocked() instead of write().
+	(sigchld): Removed.
+	(init_stp): Go back to using system() instead of fork and exec
+	to load module. When done, send a TRANSPORT_INFO request.
+	(cleanup_and_exit): Change parameter to simple flag to 
+	indicate if the module needs removing. 
+	(sigproc): Remove complicated logic and just send STP_EXIT.
+	(stp_main_loop): When receiving STP_TRANSPORT_INFO, set
+	the local params and reply with a STP_START.  When
+	receiving STP_START, there was an error, so cleanup and exit.
+	
+	* stpd.c (main): Added new options to set number of
+	buffers and their size.
+
 2005-07-29  Roland McGrath  <roland@redhat.com>
 
 	* librelay.c (process_subbufs): Use unsigned for I.

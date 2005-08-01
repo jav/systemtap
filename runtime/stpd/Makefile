@@ -1,6 +1,6 @@
 all: stpd stp_merge stp_dump
 
-stpd: stpd.c librelay.c
+stpd: stpd.c librelay.c ../transport/transport_msgs.h
 	gcc -Wall -O3 -o stpd stpd.c librelay.c -lpthread
 
 stp_merge: stp_merge.c

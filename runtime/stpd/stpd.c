@@ -32,25 +32,29 @@ extern int optind;
 int print_only = 0;
 int quiet = 0;
 int merge = 1;
+unsigned int opt_subbuf_size = 0;
+unsigned int opt_n_subbufs = 0;
+char *modname = NULL;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "%s [-m] [-p] [-q] kmod-name\n", prog);
+	fprintf(stderr, "\n%s [-m] [-p] [-q] [-b bufsize] [-n num_subbufs] kmod-name\n", prog);
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
+	fprintf(stderr, "-b subbuf_size  (override the value in the module)\n");
+	fprintf(stderr, "-n subbufs  (override the value in the module)\n");
 	exit(1);
 }
 
 int main(int argc, char **argv)
 {
 	int c;
-	char *modname = NULL;
 
-	while ((c = getopt(argc, argv, "mpq")) != EOF) 
+	while ((c = getopt(argc, argv, "mpqb:n:")) != EOF) 
 	{
 		switch (c) {
 		case 'm':
@@ -62,11 +66,25 @@ int main(int argc, char **argv)
 		case 'q':
 			quiet = 1;
 			break;
+		case 'b':
+			opt_subbuf_size = (unsigned)atoi(optarg);
+			if (!opt_subbuf_size)
+				usage(argv[0]);
+			break;
+		case 'n':
+			opt_n_subbufs = (unsigned)atoi(optarg);
+			if (!opt_n_subbufs)
+				usage(argv[0]);
+			break;
 		default:
 			usage(argv[0]);
 		}
 	}
 	
+	if ((opt_n_subbufs && !opt_subbuf_size) || (opt_subbuf_size && !opt_n_subbufs)) {
+		fprintf (stderr, "You must specify both the number of subbufs and their size.\n");
+		usage(argv[0]);
+	}
 	if (optind < argc)
 		modname = argv[optind++];
   
@@ -81,7 +99,7 @@ int main(int argc, char **argv)
 	}
 
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
-	if (init_stp(modname, stpd_filebase, !quiet)) {
+	if (init_stp(stpd_filebase, !quiet)) {
 		fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);
 	}
