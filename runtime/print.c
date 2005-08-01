@@ -45,7 +45,7 @@ void _stp_print_flush (void)
 	if (len == 0)
 		return;
 
-	ret =_stp_transport_write(_stp_tport, buf, len + 1);
+	ret =_stp_transport_write(buf, len + 1);
 	if (unlikely(ret < 0))
 		atomic_inc (&_stp_transport_failures);
 
@@ -85,7 +85,7 @@ void _stp_print_flush (void)
 	seq = _stp_seq_inc();
 	scnprintf (buf, TIMESTAMP_SIZE, "%10d", seq);
 	buf[TIMESTAMP_SIZE - 1] = ' ';
-	ret = _stp_transport_write(_stp_tport, buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
+	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
 	if (unlikely(ret < 0))
 		atomic_inc (&_stp_transport_failures);
 

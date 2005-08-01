@@ -55,7 +55,7 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 		}
 		buf[num + start] = '\0';
 		
-		_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_tport->pid);
+		_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_pid);
 #ifndef STP_NETLINK_ONLY
 		_stp_string_cat_cstr(_stp_stdout,buf);
 		_stp_print_flush();

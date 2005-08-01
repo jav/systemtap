@@ -1,3 +1,10 @@
+2005-08-01  Martin Hunt  <hunt@redhat.com>
+
+	* io.c (_stp_vlog): Use _stp_pid instead os _stp_tport->pid.
+	* print.c (_stp_print_flush): Don't need _stp_tport.
+	*runtime.h (probe_start): Just call _stp_transport_init().
+	(probe_exit): Just call _stp_transport_close().
+	
 2005-07-28  Graydon Hoare  <graydon@redhat.com>
 
 	* loc2c-runtime.h: New file from elfutils CVS.
