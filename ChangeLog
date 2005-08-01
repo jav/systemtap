@@ -1,5 +1,10 @@
 2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx: Support ".return" option for function probe points.
+	* testuite/buildok/five.stp: Try it.
+
+2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
+
 	* elaborate.cxx (derive_probes, semantic_pass_symbols): Improve
 	error message specificity.
 	* translate.cxx (emit_module_init): Compact partial registration

@@ -640,14 +640,15 @@ struct dwarf_derived_probe : public derived_probe
   string module_name;
   dwarf_probe_type type;
   Dwarf_Addr addr;
+  bool has_return;
 
   // Pattern registration helpers.
   static void register_relative_variants(match_node * root,
 					 dwarf_builder * dw);
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw);
-  static void register_callee_variants(match_node * root,
-				       dwarf_builder * dw);
+  static void register_function_variants(match_node * root,
+					  dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
@@ -1193,7 +1194,8 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
   : derived_probe (NULL, q.base_loc),
     module_name(module_name),
     type(type),
-    addr(addr)
+    addr(addr),
+    has_return (q.has_return)
 {
   var_expanding_copy_visitor v (q, addr);
   require <block*> (&v, &(this->body), q.base_probe->body);
@@ -1224,26 +1226,27 @@ dwarf_derived_probe::register_statement_variants(match_node * root,
   // .label("foo")
 
   register_relative_variants(root, dw);
-  register_relative_variants(root->bind(TOK_RETURN), dw);
   register_relative_variants(root->bind_str(TOK_LABEL), dw);
 }
 
 void
-dwarf_derived_probe::register_callee_variants(match_node * root,
+dwarf_derived_probe::register_function_variants(match_node * root,
 					      dwarf_builder * dw)
 {
   // Here we match 3 forms:
   //
   // .
+  // .return
   // .callees
   // .callees(N)
   //
   // The last form permits N-level callee resolving without any
   // recursive .callees.callees.callees... pattern-matching on our part.
 
-  register_statement_variants(root, dw);
-  register_statement_variants(root->bind(TOK_CALLEES), dw);
-  register_statement_variants(root->bind_num(TOK_CALLEES), dw);
+  root->bind(dw);
+  root->bind(TOK_RETURN)->bind(dw);
+  root->bind(TOK_CALLEES)->bind(dw);
+  root->bind_num(TOK_CALLEES)->bind(dw);
 }
 
 void
@@ -1257,8 +1260,8 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
   // .statement("foo")
   // .statement(0xdeadbeef)
 
-  register_callee_variants(root->bind_str(TOK_FUNCTION), dw);
-  register_callee_variants(root->bind_num(TOK_FUNCTION), dw);
+  register_function_variants(root->bind_str(TOK_FUNCTION), dw);
+  register_function_variants(root->bind_num(TOK_FUNCTION), dw);
   register_statement_variants(root->bind_str(TOK_STATEMENT), dw);
   register_statement_variants(root->bind_num(TOK_STATEMENT), dw);
 }
@@ -1297,11 +1300,22 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
 {
   if (module_name.empty())
     {
-      o->newline() << probe_entry_struct_kprobe_name(probenum)
-		   << ".addr = (void *) 0x" << hex << addr << ";";
-      o->newline() << "rc = register_kprobe (&"
-		   << probe_entry_struct_kprobe_name(probenum)
-		   << ");";
+      if (has_return)
+        {
+          o->newline() << probe_entry_struct_kprobe_name(probenum)
+                       << ".kp.addr = (void *) 0x" << hex << addr << ";";
+          o->newline() << "rc = register_kretprobe (&"
+                       << probe_entry_struct_kprobe_name(probenum)
+                       << ");";
+        }
+      else
+        {
+          o->newline() << probe_entry_struct_kprobe_name(probenum)
+                       << ".addr = (void *) 0x" << hex << addr << ";";
+          o->newline() << "rc = register_kprobe (&"
+                       << probe_entry_struct_kprobe_name(probenum)
+                       << ");";
+        }
     }
   else
     {
@@ -1330,9 +1344,14 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
 void
 dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
 {
-  o->newline() << "unregister_kprobe (& "
-	       << probe_entry_struct_kprobe_name(probenum)
-	       << ");";
+  if (has_return)
+    o->newline() << "unregister_kretprobe (& "
+                 << probe_entry_struct_kprobe_name(probenum)
+                 << ");";
+  else
+    o->newline() << "unregister_kprobe (& "
+                 << probe_entry_struct_kprobe_name(probenum)
+                 << ");";
 }
 
 void
@@ -1344,7 +1363,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline();
   o->newline() << "static int ";
   o->newline() << probe_entry_function_name(probenum)
-               << " (struct kprobe *_ignored, struct pt_regs *regs) {";
+               << " (void *_ignored, struct pt_regs *regs) {";
+  // NB: the void* first param matches both kretprobes and kprobes
   o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
   o->newline();
 
@@ -1384,12 +1404,24 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline(-1) << "}" << endl;
 
   o->newline();
-  o->newline() << "static struct kprobe "
-	       << probe_entry_struct_kprobe_name(probenum)
-               << "= {";
-  o->newline(1) << ".addr       = 0x0, /* filled in during module init */" ;
-  o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum) << ",";
-  o->newline(-1) << "};";
+  if (has_return)
+    {
+      o->newline() << "static struct kretprobe "
+                   << probe_entry_struct_kprobe_name(probenum)
+                   << "= {";
+      o->newline(1) << ".kp.addr = 0x0," ;
+      o->newline() << ".handler = &" << probe_entry_function_name(probenum);
+      o->newline(-1) << "};";
+    }
+  else
+    {
+      o->newline() << "static struct kprobe "
+                   << probe_entry_struct_kprobe_name(probenum)
+                   << "= {";
+      o->newline(1) << ".addr       = 0x0, */" ;
+      o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
+      o->newline(-1) << "};";
+    }
   o->newline();
 }
 
