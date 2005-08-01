@@ -113,7 +113,7 @@ int probe_start(void)
 }
 
 
-static void probe_exit (void)
+void probe_exit (void)
 {
   /* unregister the probes */
   _stp_unregister_jprobes (jp, NUM_JPROBES);
