@@ -67,7 +67,7 @@ int probe_start(void)
   return _stp_register_kprobes (kp, NUM_KPROBES);
 }
 
-static void probe_exit (void)
+void probe_exit (void)
 {
   _stp_unregister_kprobes (kp, NUM_KPROBES); 
 }

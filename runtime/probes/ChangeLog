@@ -1,3 +1,19 @@
+2005-08-01  Martin Hunt  <hunt@redhat.com>
+
+	* agg/stat1.c (probe_exit): Remove "static"
+	* agg/count1.c (probe_exit): Ditto.
+	* agg/count2.c (probe_exit): Ditto.		
+	* bench/bench_io2.c (probe_exit): Ditto.
+	* bench/bench_io1.c (probe_exit): Ditto.
+	* bench/bench.c (probe_exit): Ditto.
+	* bench/bench_ret.c (probe_exit): Ditto.
+	* bench/bench_multi.c (probe_exit): Ditto.
+	* where_func/kprobe_where_funct.c (probe_exit): Ditto.
+	* test4/test4.c (probe_exit): Ditto.
+	* tasklet/stp_tasklet.c (probe_exit): Ditto.
+	* os_timer/os_timer.c (probe_exit): Ditto.
+	* scf/scf.c (probe_exit): Ditto.
+
 2005-07-11  Martin Hunt  <hunt@redhat.com>
 
 	* build_probe: Set RELAYFS correctly.

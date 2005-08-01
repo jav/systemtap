@@ -44,7 +44,7 @@ int probe_start(void)
   return ret;
 }
 
-static void probe_exit (void)
+void probe_exit (void)
 {
   _stp_unregister_jprobes (jp, NUM_JPROBES); 
   _stp_unregister_kprobes (kp, NUM_KPROBES); 

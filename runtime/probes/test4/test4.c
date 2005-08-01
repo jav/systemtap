@@ -67,7 +67,7 @@ int probe_start(void)
   return _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
 }
 
-static void probe_exit (void)
+void probe_exit (void)
 {
   _stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
 

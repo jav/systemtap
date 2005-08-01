@@ -113,7 +113,7 @@ int probe_start(void)
     return 0;
 }
 
-static void probe_exit (void)
+void probe_exit (void)
 {
     /* unregister the os_timer */
     del_timer_sync(&timer);
