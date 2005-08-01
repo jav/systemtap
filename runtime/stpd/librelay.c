@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Redhat Inc, 2005
+ * Copyright (C) Red Hat Inc, 2005
  *
  */
 #include <ctype.h>
@@ -343,7 +343,7 @@ static int process_subbufs(struct buf_info *info)
 		subbuf_ptr += sizeof(padding);
 		len = (params.subbuf_size - sizeof(padding)) - padding;
 		if (len) {
-			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) < 0) {
+			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) != 1) {
 				fprintf(stderr, "ERROR: couldn't write to output file for cpu %d, exiting: errcode = %d: %s\n", cpu, errno, strerror(errno));
 				exit(1);
 			}

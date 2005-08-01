@@ -1,3 +1,8 @@
+2005-08-01  Frank Ch. Eigler  <fche@redhat.com>
+
+	* librelay.c: Correct fwrite api usage.
+	* all: Correct copyright holder name.
+
 2005-08-01  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.h: Get structs and enums from 

@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Redhat Inc, 2005
+ * Copyright (C) Red Hat Inc, 2005
  *
  */
 
