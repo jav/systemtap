@@ -1,3 +1,14 @@
+2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (derive_probes): Print error if results empty.
+	* tapsets.cxx (dwflpp_assert): Handle positive RCs, which likely
+	came from errno.
+	(dwflpp::setup): Improve missing debug-info messages.
+	* testsuite/semko/sixteen,seventeen.stp: New tests.
+	* runtest.sh: Save stdout/stderr of FAIL/XPASS test cases.
+	* Makefile.am (clean-local): Clean up testsuite/.
+	* Makefile.in, aclocal.m4: Regenerated.
+
 2005-07-29  Frank Ch. Eigler  <fche@redhat.com>
 
 	From Graydon Hoare <graydon@redhat.com:

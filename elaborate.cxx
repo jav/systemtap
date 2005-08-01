@@ -363,18 +363,23 @@ symresolution_info::derive_probes (match_node * root,
 	root->find_builder(loc->components, 0, param_vec);
 
       if (!builder)
-	throw semantic_error ("no match for probe point", loc->tok);
+	throw semantic_error ("no match for probe point family");
 
       param_vec_to_map(param_vec, param_map);
 
+      unsigned num_atbegin = dps.size();
       builder->build(session, p, loc, param_map, re_expand, dps);
-      
+
       // Recursively expand any further-expanding results
       if (!re_expand.empty())
 	{
 	  for (unsigned j = 0; j < re_expand.size(); ++j)
 	    derive_probes(root, re_expand[j], dps);
 	}
+
+      unsigned num_atend = dps.size();
+      if (num_atbegin == num_atend) // nothing new derived!
+        throw semantic_error ("no match for probe point");
     }
 }
 
@@ -617,7 +622,7 @@ semantic_pass_symbols (systemtap_session& s)
             {
               cerr << "while resolving probe point list:" << endl;
               for (unsigned k=0; k<p->locations.size(); k++)
-                cerr << "  " << *p->locations[k] << endl;
+                cerr << "  " << *p->locations[k]  << endl;
               s.print_error (e);
               // dps.erase (dps.begin(), dps.end());
             }
@@ -672,7 +677,9 @@ systemtap_session::systemtap_session ():
 void
 systemtap_session::print_error (const semantic_error& e)
 {
-  cerr << "semantic error: " << e.what () << ": ";
+  cerr << "semantic error: " << e.what ();
+  if (e.tok1 || e.tok2)
+    cerr << ": ";
   if (e.tok1) cerr << *e.tok1;
   cerr << e.msg2;
   if (e.tok2) cerr << *e.tok2;

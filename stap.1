@@ -91,8 +91,21 @@ key.
 .\" XXX add statistics type here once it's supported
 
 .SS STATEMENTS
-Statements enable procedural control flow.
+Statements enable procedural control flow.  They may occur within
+functions and probe handlers.
 
+.TP
+EXP
+Execute the string- or integer-valued expression and throw away
+the value.
+.TP
+.BR { " STMT1 STMT2 ... " }
+Execute each statement in sequence in this block.  Note that no
+separators or terminators are necessary between statements.
+.TP
+.BR ;
+Null statement, do nothing.  It is useful as an optional separator between
+statements, in order to improve syntax error reporting.
 .TP
 .BR if " (EXP) STMT1 [ " else " STMT2 ]"
 Compare integer-valued EXP to zero.  Execute the first (non-zero)
@@ -105,16 +118,29 @@ While integer-valued EXP evaluates to non-zero, execute STMT.
 Execute EXP2 as initialization.  While EXP1 is non-zero, execute
 STMT, then the iteration expression EXP1.
 .TP
+.BR foreach " (VAR " in " ARRAY) STMT"
+Loop over each element of the named global array, assigning current
+key to VAR.  The array may not be modified within the statement.
+.TP
+.BR foreach " ((VAR1, VAR2, ...) " in " ARRAY) STMT"
+Same as above, used when the array is indexed with a tuple of keys.
+.TP
 .BR break ", " continue
-Exit or iterate nesting 
-.BR while " or " for
+Exit or iterate the innermost nesting loop
+.RB ( while " or " for " or " foreach )
 statement.
 .TP
-EXP
-Execute the string- or integer-valued expression and throw away
-the value.
+.BR return " EXP"
+Return EXP value from enclosing function.  A return value is mandatory,
+since void functions are not supported.
+.TP
+.BR next
+Return from enclosing probe handler.
 
 .SS EXPRESSIONS
+Systemtap supports a number of operators, with the same general syntax,
+semantics and precedence as in C and awk. 
+
 
 .SS PROBES
 The main construct in the scripting language identifies probes.

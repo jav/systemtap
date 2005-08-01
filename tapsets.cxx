@@ -315,11 +315,13 @@ dwflpp
     return t;
   }
 
-  void dwflpp_assert(string desc, int rc)
+  void dwflpp_assert(string desc, int rc) // NB: "rc == 0" means OK in this case
   {
+    string msg = "dwfl failure (" + desc + "): ";
+    if (rc < 0) msg += dwfl_errmsg (rc);
+    else if (rc > 0) msg += strerror (rc);
     if (rc != 0)
-      throw semantic_error("dwfl failure (" + desc + "): "
-                           + dwfl_errmsg(rc));
+      throw semantic_error (msg);
   }
 
   dwflpp(systemtap_session & sess)
@@ -357,8 +359,10 @@ dwflpp
 	if (!dwfl)
 	  throw semantic_error("cannot open dwfl");
 	dwfl_report_begin(dwfl);
-	dwflpp_assert("report_kernel", dwfl_linux_kernel_report_kernel(dwfl));
-	dwflpp_assert("report_modules", dwfl_linux_kernel_report_modules(dwfl));
+        // XXX: if we have only kernel.* probe points, we shouldn't waste time
+        // looking for module debug-info (and vice versa).
+	dwflpp_assert("find kernel debug-info", dwfl_linux_kernel_report_kernel(dwfl));
+	dwflpp_assert("find modules debug-info", dwfl_linux_kernel_report_modules(dwfl));
       }
     else
       {

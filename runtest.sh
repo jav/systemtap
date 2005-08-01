@@ -1,6 +1,10 @@
 #! /bin/sh
 
-# Redirect stdout/stderr to /dev/null before invoking the given test
+# Collect stdout/stderr someplace else
+
+if [ ! -d testsuite ]; then
+  mkdir -p testsuite
+fi
 
 SRCDIR=`dirname $0`
 export SRCDIR
@@ -11,5 +15,20 @@ export SYSTEMTAP_TAPSET
 SYSTEMTAP_RUNTIME=$SRCDIR/runtime
 export SYSTEMTAP_RUNTIME
 
-exec >/dev/null 2>&1
-exec ${1+"$@"}
+dn=`dirname $1`
+logfile=testsuite/`basename $dn`-`basename $1`
+
+eval $@ >$logfile.out 2>$logfile.err
+rc=$?
+
+if expr $1 : '.*ok/.*' >/dev/null; then
+  if [ $rc -eq 0 ]; then
+     rm -f $logfile.out $logfile.err
+  fi
+else
+  if [ $rc -ne 0 ]; then
+     rm -f $logfile.out $logfile.err
+  fi
+fi
+
+exit $rc

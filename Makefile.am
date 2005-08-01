@@ -82,4 +82,5 @@ rpm:	dist docs
 
 clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
+	rm -rf testsuite
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}

@@ -1,0 +1,3 @@
+#! stap -p2
+
+probe kernel.function("no_such_function_anywhere_guaranteed") { }
