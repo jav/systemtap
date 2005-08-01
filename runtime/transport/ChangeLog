@@ -1,3 +1,17 @@
+2005-08-01  Martin Hunt  <hunt@redhat.com>
+
+	* control.h: Remove STP commands from here and put in
+	transport_msgs.
+
+	* transport_msgs.h: New file containing the structs and
+	values for the messages exchanged between stpd and transport.
+
+	* transport.h: Moved stuff shared with stpd to transport_msgs.h
+
+	* transport.c: Complete rewrite to better handle complicated
+	initialization involving exchanging data with stpd. Supports
+	buffer size negotiation and more.
+	
 2005-07-18  Martin Hunt  <hunt@redhat.com>
 
 	* transport.h (_stp_transport_write): Call _stp_relay_write().
