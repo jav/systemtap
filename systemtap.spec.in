@@ -90,7 +90,7 @@ make docs
 %install
 rm -rf ${RPM_BUILD_ROOT}
 
-%makeinstall libexecdir=${RPM_BUILD_ROOT}%{_libexecdir}/systemtap
+%makeinstall
 
 %if %{bundled_elfutils}
 installed_elfutils=${RPM_BUILD_ROOT}%{_libdir}/%{name}
