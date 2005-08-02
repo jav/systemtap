@@ -1302,7 +1302,7 @@ probe_entry_struct_kprobe_name(unsigned probenum)
 void
 dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
 {
-  if (module_name.empty())
+  if (module_name.empty() || module_name == "kernel")
     {
       if (has_return)
         {
@@ -1327,21 +1327,15 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
       o->indent(1);
       o->newline() << "struct module *mod = get_module(\"" << module_name << "\");";
       o->newline() << "if (!mod)";
-      o->indent(1);
-      o->newline() << "rc++";
-      o->indent(-1);
-      o->newline() << "else";
-      o->newline() << "{";
-      o->indent(1);
-      o->newline() << probe_entry_struct_kprobe_name(probenum)
+      o->newline(1) << "rc++;";
+      o->newline(-1) << "else {";
+      o->newline(1) << probe_entry_struct_kprobe_name(probenum)
 		   << ".addr = (void *) (mod->module_core + 0x" << hex << addr << ");";
       o->newline() << "rc = register_kprobe (&"
 		   << probe_entry_struct_kprobe_name(probenum)
 		   << ");";
-      o->indent(-1);
-      o->newline() << "}";
-      o->indent(-1);
-      o->newline() << "}";
+      o->newline(-1) << "}";
+      o->newline(-1) << "}";
     }
 }
 

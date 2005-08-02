@@ -1,3 +1,8 @@
+2005-08-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (emit_registrations): Treat module_name="kernel"
+	as if module_name="".
+
 2005-08-01  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.{cxx,h} (probe_point::component): Add a ctor.
