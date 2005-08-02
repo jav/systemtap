@@ -1184,6 +1184,7 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
       comps.push_back
 	(new probe_point::component
 	 (TOK_FUNCTION, new literal_string(function_name)));
+      // XXX: add "@filename:linenumber" when able
 
       if (has_return)
 	comps.push_back
