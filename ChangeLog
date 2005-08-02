@@ -1,5 +1,14 @@
 2005-08-02  Frank Ch. Eigler  <fche@elastic.org>
 
+	* loc2.c (emit_loc_address): Emit interleaved declaration into
+	its own nested { } block.
+	* tapsets.cxx (literal_stmt_for_local): Emit deref_fault block
+	unconditionally.
+	* tapset/builtin_hexstring.stp: New builtin.
+	* testsuite/buildok/six.stp: New test.
+
+2005-08-02  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx (emit_registrations): Treat module_name="kernel"
 	as if module_name="".
 

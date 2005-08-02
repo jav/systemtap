@@ -1317,6 +1317,7 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
     emit ("%s", loc->address.program);
   else
     {
+      emit ("{\n");
       emit ("%*s%s " STACKFMT, (indent + 1) * 2, "", STACK_TYPE, 0);
       for (unsigned int i = 1; i < loc->address.stack_depth; ++i)
 	emit (", " STACKFMT, i);
@@ -1324,6 +1325,7 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
 
       emit ("%s%*s%s = " STACKFMT ";\n", loc->address.program,
 	    (indent + 1) * 2, "", target, 0);
+      emit ("}\n");
     }
 }
 

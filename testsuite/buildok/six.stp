@@ -1,0 +1,5 @@
+#! stap -p4
+
+probe kernel.function("context_switch") {
+  log ("switch from=" . hexstring($prev) . " to=" . hexstring($next))
+}

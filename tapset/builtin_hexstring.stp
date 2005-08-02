@@ -1,0 +1,7 @@
+function _hexstring (num) %{
+    sprintf (THIS->__retvalue, "%llx", (long long) THIS->num);
+%}
+
+function hexstring (num) {
+    return "" . _hexstring (num + 0)
+}

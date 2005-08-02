@@ -581,15 +581,17 @@ dwflpp
     assert(memstream);
 
     bool deref = c_emit_location (memstream, head, 1);
+    fprintf(memstream, "  goto out;\n");
 
-    fprintf(memstream, "goto out;\n");
-    if (deref)
-      {
-	fprintf(memstream,
-		"deref_fault:\n"
-		"  c->errorcount++; \n"
-		"  goto out;\n\n");
-      }
+    // dummy use of deref_fault label, to disable warning if deref() not used
+    fprintf(memstream, "if (0) goto deref_fault;\n");
+
+    // XXX: deref flag not reliable; emit fault label unconditionally
+    if (deref) ;
+    fprintf(memstream,
+            "deref_fault:\n"
+            "  c->errorcount++; \n"
+            "  goto out;\n");
 
     fclose (memstream);
     string result(buf);
