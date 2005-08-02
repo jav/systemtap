@@ -1,3 +1,7 @@
+2005-08-02  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in (%install): Remove parameters after %makeinstall.
+
 2005-08-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* loc2.c (emit_loc_address): Emit interleaved declaration into
@@ -35,7 +39,7 @@
 	recovery code.
 	(emit_module_exit): Invert deregistration sequence.
 	* testsuite/buildok/four.stp: Some module() test case.
-	
+
 2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* elaborate.cxx (derive_probes): Print error if results empty.
