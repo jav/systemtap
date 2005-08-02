@@ -27,21 +27,20 @@ stap \- systemtap script translator/driver
 
 The
 .IR stap
-program is the front-end to the Systemtap tool.  It accepts probing
-instructions, written in a simple scripting language.  It translates
-the script to C code.  It then compiles this C code, and loads the
+program is the front-end to the Systemtap tool.  
+It accepts probing instructions (written in a simple scripting language), translates
+those instructions into C code, compiles this C code, and loads the
 resulting kernel module into a running Linux kernel to perform the
-requested system trace/probe functions.  The script is supplied in a
-named file, or standard input, or on the command line itself,
-respectively.
+requested system trace/probe functions.  
+You can supply the script in a named file, from standard input, or from the command line.
 .PP
-The language is described in a later section.  It is strictly typed,
-declaration free, procedural, inspired by
+The language, which is described in a later section, is strictly typed,
+declaration free, procedural, and inspired by
 .IR dtrace 
 and
 .IR awk .
 It allows source code points or events in the kernel to be associated
-with handlers, which are subroutines executed synchronously.  It is
+with handlers, which are subroutines that are executed synchronously.  It is
 somewhat similar conceptually to "breakpoint command lists" in the
 .IR gdb
 debugger.
@@ -53,7 +52,7 @@ debugger.
 
 The systemtap script language resembles 
 .IR awk .
-There are two main outermost constructs: probes, functions.  Within
+There are two main outermost constructs: probes and functions.  Within
 these, statements and expressions use C-like operator syntax and
 precedence.
 
@@ -71,7 +70,7 @@ Literals are either strings enclosed in double-quotes (soon supporting
 the usual C escape codes with backslashes), or integers (in decimal,
 hexadecimal, or octal, using the same notation as in C).  All strings
 are limited in length to some reasonable value (a few hundred bytes).
-Integers are 64-bit signed quantities, though the parser also accepts
+Integers are 64-bit signed quantities, although the parser also accepts
 (and wraps around) values above positive 2**63.  
 
 .SS VARIABLES
@@ -105,7 +104,7 @@ separators or terminators are necessary between statements.
 .TP
 .BR ;
 Null statement, do nothing.  It is useful as an optional separator between
-statements, in order to improve syntax error reporting.
+statements to improve the display of syntax-error reports.
 .TP
 .BR if " (EXP) STMT1 [ " else " STMT2 ]"
 Compare integer-valued EXP to zero.  Execute the first (non-zero)
@@ -138,22 +137,22 @@ since void functions are not supported.
 Return from enclosing probe handler.
 
 .SS EXPRESSIONS
-Systemtap supports a number of operators, with the same general syntax,
-semantics and precedence as in C and awk. 
+Systemtap supports a number of operators that have the same general syntax,
+semantics, and precedence as in C and awk. 
 
 
 .SS PROBES
 The main construct in the scripting language identifies probes.
 Probes associate abstract events with a statement block ("probe
-handler") to execute when those events occur.
+handler") that is to be executed when those events occur.
 .PP
 Events are specified in a special syntax called "probe points".  One
-family refers to specific points in a kernel, identified by module,
+family refers to specific points in a kernel, which are identified by module,
 source file, line number, function name, C label name, or some
 combination of these.  This kind of "synchronous" event is deemed to
 occur when any processor executes an instruction matched by the
 specification.  Other families of probe points refer to "asynchronous"
-events like timers/counters rolling over, where there is no fixed
+events such as timers/counters rolling over, where there is no fixed
 execution point that is related.
 .PP
 When any matching event occurs, the probe handler is run within that
@@ -214,7 +213,7 @@ function body.
 
 
 .SH PROCESSING
-The translator begins in pass 1, by parsing the given input script,
+The translator begins pass 1 by parsing the given input script,
 and all scripts (files named
 .IR *.stp )
 found in a tapset directory.  The directories listed
@@ -246,22 +245,22 @@ added to the translator's resolution queue.  This process iterates
 until all symbols are resolved and a subset of tapset scripts is
 selected.
 .PP
-Next, all probe point descriptions are validated, to match them
+Next, all probe point descriptions are validated 
 against the wide variety supported by the translator.  Probe points that
 refer to code locations ("synchronous probe points") require the
 appropriate kernel debugging information to be installed.  In the
 associated probe handlers, target-side variables (whose names begin
 with "$") are found and have their run-time locations decoded.
 .PP
-Finally, all variable, function (and parameter), array (and
-index) types are inferred from context (literals and operators).
+Finally, all variable, function, parameter, array, and
+index types are inferred from context (literals and operators).
 Stopping the translator after pass 2 causes it to list all the probes,
 functions, and variables, along with all types.  Any conflicting,
 inconsistent, or unresolved types cause an error.
 
 .PP
 In pass 3, the translator writes C code that represents the actions
-of all selected script files, and a
+of all selected script files, and creates a
 .IR Makefile
 to build that into a kernel object.  These files are placed into a
 temporary directory.  Stopping the translator at this point causes
@@ -276,14 +275,14 @@ system (headers, config and Makefiles) to be installed in the usual
 spot
 .IR /lib/modules/VERSION/build .
 Stopping the translator after pass 4 is the last chance before
-running the kernel object.  This may be useful if one wants to
+running the kernel object.  This may be useful if you want to
 archive the file.
 
 .PP
 In pass 5, the translator invokes the systemtap "daemon"
 .IR stpd
 program for the given kernel object.  This program arranges to load
-the module.  Then it communicates with it, copying trace data from the
+the module then communicates with it, copying trace data from the
 kernel into temporary files, until the user sends an interrupt signal.
 Finally, it unloads the module, and cleans up.
 
@@ -358,3 +357,4 @@ packages, which were improved and ported by IBM and Intel staff.  Many
 project members contributed to the overall design and priorities of
 the system, including Will Cohen, Jim Keniston, Vara Prasad, and Brad
 Chen.
+
