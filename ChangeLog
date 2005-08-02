@@ -1,3 +1,13 @@
+2005-08-01  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.{cxx,h} (probe_point::component): Add a ctor.
+	* tapsets.cxx (dwarf_derived_probe): Synthesize concrete
+	probe_point for matched pattern.
+	(dwarf_probe_type)
+	(dwarf_query::add_kernel_probe)
+	(dwarf_query::add_module_probe): Remove, they were noise.
+	(dwflpp::module_name_matches): Don't call get_module_dwarf().
+
 2005-08-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx: Support ".return" option for function probe points.

@@ -390,11 +390,13 @@ struct probe_point
     std::string functor;
     literal* arg; // optional
     component ();
+    component(std::string const & f, literal * a = NULL);
   };
   std::vector<component*> components;
   const token* tok; // points to first component's functor
   void print (std::ostream& o);
   probe_point ();
+  probe_point(std::vector<component*> const & comps,const token * t); 
 };
 
 std::ostream& operator << (std::ostream& o, probe_point& k);

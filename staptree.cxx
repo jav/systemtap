@@ -67,6 +67,11 @@ symboldecl::~symboldecl ()
 {
 }
 
+probe_point::probe_point (std::vector<component*> const & comps,
+			  const token * t):
+  components(comps), tok(t) 
+{
+}
 
 probe_point::probe_point ():
   tok (0)
@@ -82,6 +87,12 @@ probe::probe ():
 
 probe_point::component::component ():
   arg (0)
+{
+}
+
+
+probe_point::component::component (std::string const & f, literal * a): 
+  functor(f), arg(a) 
 {
 }
 

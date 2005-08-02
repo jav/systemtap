@@ -181,13 +181,16 @@ dwflpp
       return in;
     if (false && sess.verbose)
       clog << "WARNING: no name found for " << type << endl;
-    return string("default_anonymous_" ) + type;
+    return string("");
   }
 
   void get_module_dwarf()
   {
     if (!module_dwarf)
       module_dwarf = dwfl_module_getdwarf(module, &module_bias);
+    if (module_dwarf == NULL && sess.verbose)
+      clog << "WARNING: dwfl_module_getdwarf() : " 
+	   << dwfl_errmsg (dwfl_errno ()) << endl;
   }
 
   void focus_on_module(Dwfl_Module * m)
@@ -200,6 +203,9 @@ dwflpp
 						NULL, NULL,
 						NULL, NULL),
 			       "module");
+    cu_name.clear();
+    function_name.clear();
+
     if (false && sess.verbose)
       clog << "focused on module " << module_name << endl;
   }
@@ -209,6 +215,8 @@ dwflpp
     assert(c);
     cu = c;
     cu_name = default_name(dwarf_diename(c), "cu");
+    function_name.clear();
+
     if (false && sess.verbose)
       clog << "focused on CU " << cu_name
 	   << ", in module " << module_name << endl;
@@ -284,7 +292,6 @@ dwflpp
   bool module_name_matches(string pattern)
   {
     assert(module);
-    get_module_dwarf();
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
     if (t && sess.verbose)
       clog << "pattern '" << pattern << "' "
@@ -620,12 +627,6 @@ function_spec_type
     function_file_and_line
   };
 
-enum
-dwarf_probe_type
-  {
-    probe_address,
-    probe_function_return,
-  };
 
 struct dwarf_builder;
 struct dwarf_query;
@@ -633,13 +634,13 @@ struct dwarf_query;
 struct dwarf_derived_probe : public derived_probe
 {
   dwarf_derived_probe (dwarf_query & q,
-		       string const & module_name,
-		       dwarf_probe_type type,
 		       Dwarf_Addr addr);
-
+  
   string module_name;
-  dwarf_probe_type type;
+  string function_name;
+  bool has_statement;
   Dwarf_Addr addr;
+  Dwarf_Addr module_bias;
   bool has_return;
 
   // Pattern registration helpers.
@@ -683,9 +684,6 @@ dwarf_query
   string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
 
   vector<derived_probe *> & results;
-  void add_kernel_probe(dwarf_probe_type type, Dwarf_Addr addr);
-  void add_module_probe(string const & module,
-			dwarf_probe_type type, Dwarf_Addr addr);
 
   bool has_kernel;
   bool has_process;
@@ -777,22 +775,6 @@ dwarf_query::get_number_param(map<string, literal *> const & params,
     return false;
   v = ln->value;
   return true;
-}
-
-
-void
-dwarf_query::add_kernel_probe(dwarf_probe_type type,
-			      Dwarf_Addr addr)
-{
-  results.push_back(new dwarf_derived_probe(*this, "", type, addr));
-}
-
-void
-dwarf_query::add_module_probe(string const & module,
-			      dwarf_probe_type type,
-			      Dwarf_Addr addr)
-{
-  results.push_back(new dwarf_derived_probe(*this, module, type, addr));
 }
 
 
@@ -911,15 +893,7 @@ query_statement(Dwarf_Addr stmt_addr, dwarf_query * q)
     throw semantic_error("incomplete: do not know how to interpret .relative",
 			 q->base_probe->tok);
 
-  dwarf_probe_type ty = (((q->has_function_str || q->has_function_num) && q->has_return)
-			 ? probe_function_return
-			 : probe_address);
-
-  if (q->has_module)
-    q->add_module_probe(q->dw.module_name,
-			ty, q->dw.global_address_to_module(stmt_addr));
-  else
-    q->add_kernel_probe(ty, stmt_addr);
+  q->results.push_back(new dwarf_derived_probe(*q, stmt_addr));
 }
 
 static int
@@ -1188,15 +1162,44 @@ var_expanding_copy_visitor::visit_symbol (symbol *e)
 
 
 dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
-					  string const & module_name,
-					  dwarf_probe_type type,
 					  Dwarf_Addr addr)
-  : derived_probe (NULL, q.base_loc),
-    module_name(module_name),
-    type(type),
+  : derived_probe (NULL),
+    module_name(q.dw.module_name),
+    function_name(q.dw.function_name),
+    has_statement(q.has_statement_str || q.has_statement_num),
     addr(addr),
+    module_bias(q.dw.module_bias),
     has_return (q.has_return)
 {
+  // first synthesize an "expanded" location
+  vector<probe_point::component*> comps;
+  comps.push_back
+    (module_name == TOK_KERNEL
+     ? new probe_point::component(TOK_KERNEL)
+     : new probe_point::component
+     (TOK_MODULE, new literal_string(module_name)));
+  
+  if (!function_name.empty())
+    {
+      comps.push_back
+	(new probe_point::component
+	 (TOK_FUNCTION, new literal_string(function_name)));
+
+      if (has_return)
+	comps.push_back
+	  (new probe_point::component(TOK_RETURN));
+    }
+
+  if (has_statement)
+    comps.push_back
+      (new probe_point::component
+       (TOK_STATEMENT, new literal_number(addr)));
+  
+  
+  assert(q.base_probe->locations.size() > 0);
+  locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
+
+  // Now make a local-variable-expanded copy of the probe body
   var_expanding_copy_visitor v (q, addr);
   require <block*> (&v, &(this->body), q.base_probe->body);
   this->tok = q.base_probe->tok;
@@ -1233,7 +1236,7 @@ void
 dwarf_derived_probe::register_function_variants(match_node * root,
 					      dwarf_builder * dw)
 {
-  // Here we match 3 forms:
+  // Here we match 4 forms:
   //
   // .
   // .return
