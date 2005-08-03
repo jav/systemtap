@@ -1,6 +1,8 @@
 #! stap -p4
 
-probe kernel.function("scheduler_tick") {
-  log ("scheduler_tick (" . string ($user_ticks) . ", " .
-                            string ($sys_ticks) . ")")
+probe kernel.function("rebalance_tick") {
+  log ("rebalance_tick (" . string ($this_cpu) . ", " .
+                            string ($this_rq) . ", " .
+                            string ($idle) .
+			 ")")
 }
