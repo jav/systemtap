@@ -1022,7 +1022,7 @@ c_translate_pointer (struct obstack *pool, int indent,
   if (dwarf_attr_integrate (typedie, DW_AT_byte_size, &attr_mem) == NULL)
     {
       obstack_printf (pool, "uintptr_t ");
-      emit_base_fetch (pool, 0, "tmp", false, *input);
+      deref = emit_base_fetch (pool, 0, "tmp", false, *input);
     }
   else if (dwarf_formudata (&attr_mem, &byte_size) != 0)
     error (2, 0,
@@ -1059,7 +1059,7 @@ base_byte_size (Dwarf_Die *typedie)
 /* Emit a code fragment like:
 	{ uintNN_t tmp = ...; S1 S2 S3, tmp, B0, Bn); }
 */
-static void
+static bool
 emit_bitfield (struct obstack *pool, int indent,
 	       Dwarf_Die *die, Dwarf_Word byte_size, struct location *loc,
 	       const char *s1, const char *s2, const char *s3)
@@ -1076,10 +1076,12 @@ emit_bitfield (struct obstack *pool, int indent,
   /* Emit "{ uintNN_t tmp = ...;" to fetch the base type.  */
 
   obstack_printf (pool, "%*s{ ", indent * 2, "");
-  emit_base_fetch (pool, byte_size, "tmp", true, loc);
+  bool deref = emit_base_fetch (pool, byte_size, "tmp", true, loc);
 
   obstack_printf (pool, "%s%s%s, tmp, %" PRIu64 ", %" PRIu64 "); }\n",
 		  s1, s2, s3, bit_offset, bit_size);
+
+  return deref;
 }
 
 /* Translate a fragment to fetch the value of variable or member DIE
@@ -1107,8 +1109,8 @@ c_translate_fetch (struct obstack *pool, int indent,
   bool deref = false;
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
     /* This is a bit field.  */
-    emit_bitfield (pool, indent, die, byte_size, *input,
-		   "fetch_bitfield (", target, "");
+    deref = emit_bitfield (pool, indent, die, byte_size, *input,
+			   "fetch_bitfield (", target, "");
   else
     switch (byte_size)
       {
@@ -1317,7 +1319,7 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
     emit ("%s", loc->address.program);
   else
     {
-      emit ("{\n");
+      emit ("%*s{\n", indent * 2, "");
       emit ("%*s%s " STACKFMT, (indent + 1) * 2, "", STACK_TYPE, 0);
       for (unsigned int i = 1; i < loc->address.stack_depth; ++i)
 	emit (", " STACKFMT, i);
@@ -1325,7 +1327,7 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
 
       emit ("%s%*s%s = " STACKFMT ";\n", loc->address.program,
 	    (indent + 1) * 2, "", target, 0);
-      emit ("}\n");
+      emit ("%*s}\n", indent * 2, "");
     }
 }
 
