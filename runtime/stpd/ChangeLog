@@ -1,5 +1,7 @@
 2005-08-03  Martin Hunt  <hunt@redhat.com>
+	* librelay.c (init_stp): Change variable name to eliminate shadow warning.
 
+2005-08-03  Martin Hunt  <hunt@redhat.com>	
 	* librelay.c (open_control_channel): Set the receive buffer
 	to 512K, or the max allowed.
 

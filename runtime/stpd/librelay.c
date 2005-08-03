@@ -469,7 +469,7 @@ int init_stp(const char *relay_filebase, int print_summary)
 	char buf[1024];
 	struct transport_info ti;
 	pid_t pid;
-	int status;
+	int rstatus;
 
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	print_totals = print_summary;
@@ -482,11 +482,11 @@ int init_stp(const char *relay_filebase, int print_summary)
 		if (execl("/sbin/insmod",  "insmod", modname, buf, NULL) < 0)
 			exit(-1);
 	}
-	if (waitpid(pid, &status, 0) < 0) {
+	if (waitpid(pid, &rstatus, 0) < 0) {
 		perror("waitpid");
 		exit(-1);
 	}
-	if (WIFEXITED(status) && WEXITSTATUS(status)) {
+	if (WIFEXITED(rstatus) && WEXITSTATUS(rstatus)) {
 		perror ("insmod");
 		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modname);
 		return -1;
