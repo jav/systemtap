@@ -138,14 +138,14 @@ static void _stp_handle_exit (void *data)
  */
 void _stp_transport_close()
 {
-	printk("************** transport_close *************\n");
+	//printk("************** transport_close *************\n");
 	_stp_cleanup_and_exit(1);
 
 	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) 
 		_stp_relayfs_close(_stp_chan, _stp_dir);
 
 	_stp_ctrl_unregister(_stp_pid);
-	printk("---- CLOSED ----\n");
+	//printk("---- CLOSED ----\n");
 }
 
 
@@ -167,7 +167,7 @@ void _stp_transport_close()
 
 int _stp_transport_open(struct transport_info *info)
 {
-	printk ("stp_transport_open: %d bufs of %d bytes. target=%d\n", info->n_subbufs, info->subbuf_size, info->target);
+	//printk ("stp_transport_open: %d bufs of %d bytes. target=%d\n", info->n_subbufs, info->subbuf_size, info->target);
 
 	info->transport_mode = _stp_transport_mode;
 	_stp_target = info->target;

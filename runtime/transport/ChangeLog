@@ -1,3 +1,7 @@
+2005-08-03  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c: Comment out a couple printks.
+
 2005-08-01  Martin Hunt  <hunt@redhat.com>
 
 	* control.h: Remove STP commands from here and put in
