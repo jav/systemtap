@@ -1,3 +1,8 @@
+2005-08-03  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac, systemtap.spec.in: Version 0.2.1.
+	* Makefile.in, aclocal.m4, configure: Regenerated.
+
 2005-08-02  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.c (emit_bitfield): Return bool, value from emit_base_fetch.
