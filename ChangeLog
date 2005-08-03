@@ -1,5 +1,11 @@
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 
+	* stp_check.in : Copy sources to /var/cache/systemtap.	
+	* systemtap.spec.in: Install stp_check.
+	* Makefile.am (install-exec-local): Install stp_check.
+	
+2005-08-03  Martin Hunt  <hunt@redhat.com>
+	
 	* configure.ac: Add stp_check to AC_CONFIG_FILES.
 	* stp_check.in : New file.
 

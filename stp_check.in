@@ -12,6 +12,8 @@ load_module()
     if [ "$ret" -ne 0 ]
     then
 	echo "$MODULE_NAME not in kernel and not built.  Compiling..."
+	mkdir -p $MODULE_DIR
+	cp -dpr $SRC_DIR/* $MODULE_DIR
 	make -w -C $MODULE_DIR
 	if [ "$?" -ne 0 ]
 	then
@@ -28,9 +30,7 @@ load_module()
     fi
 }
 
-VAR_DIR=@localstatedir@/lib/systemtap
-RELAYFS_DIR=$VAR_DIR/relayfs
-STP_CONTROL_DIR=$VAR_DIR/transport
+VAR_DIR=@localstatedir@/cache/systemtap
 
 RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``
 if [ -z "$RELAYFS" ]
@@ -39,8 +39,9 @@ then
     if [ -z "$RELAYFS" ]
     then
 	MODULE_NAME=relayfs
-	MODULE_DIR=$RELAYFS_DIR
+	MODULE_DIR=$VAR_DIR/relayfs
 	MODULE=$MODULE_DIR/relayfs.ko
+	SRC_DIR=@datadir@/systemtap/runtime/relayfs
 	load_module
     fi
 fi
@@ -60,8 +61,9 @@ STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
 if [ "$STP_CONTROL" != "stp_control" ] 
 then
     MODULE_NAME=stp-control
-    MODULE_DIR=$STP_CONTROL_DIR
+    MODULE_DIR=$VAR_DIR/transport
     MODULE=$MODULE_DIR/stp-control.ko
+    SRC_DIR=@datadir@/systemtap/runtime/transport
     load_module
 fi
 

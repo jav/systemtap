@@ -35,6 +35,7 @@ dist-hook:
 install-exec-local:
 	mkdir -p $(DESTDIR)$(libexecdir)/systemtap
 	$(INSTALL) stpd $(DESTDIR)$(libexecdir)/systemtap
+	$(INSTALL) stp_check $(DESTDIR)$(libexecdir)/systemtap
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
