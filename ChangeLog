@@ -1,3 +1,8 @@
+2005-08-03  Graydon Hoare  <graydon@redhat.com>
+
+	* tapsets.cxx (dwflpp): Fix address calculation logic a bit,
+	and use prologue-end addresses for function probes.
+
 2005-08-03  Frank Ch. Eigler  <fche@redhat.com>
 
 	* stap.1: More meat, all stub sections filled.

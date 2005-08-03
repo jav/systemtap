@@ -167,12 +167,18 @@ dwflpp
   Dwfl_Module * module;
   Dwarf * module_dwarf;
   Dwarf_Addr module_bias;
+
+  // These describe the current module's PC address range
+  Dwarf_Addr module_start;
+  Dwarf_Addr module_end;
+
   Dwarf_Die * cu;
   Dwarf_Func * function;
 
   string module_name;
   string cu_name;
   string function_name;
+
 
   string const default_name(char const * in,
 			    char const * type)
@@ -184,6 +190,7 @@ dwflpp
     return string("");
   }
 
+
   void get_module_dwarf()
   {
     if (!module_dwarf)
@@ -193,98 +200,119 @@ dwflpp
 	   << dwfl_errmsg (dwfl_errno ()) << endl;
   }
 
+
   void focus_on_module(Dwfl_Module * m)
   {
     assert(m);
     module = m;
-    module_dwarf = NULL;
     module_name = default_name(dwfl_module_info(module, NULL,
-						NULL, NULL,
+						&module_start, &module_end,
 						NULL, NULL,
 						NULL, NULL),
 			       "module");
-    cu_name.clear();
-    function_name.clear();
 
-    if (false && sess.verbose)
-      clog << "focused on module " << module_name << endl;
+    // Reset existing pointers and names
+
+    module_dwarf = NULL;
+
+    cu_name.clear();
+    cu = NULL;
+
+    function_name.clear();
+    function = NULL;
+
+    if (sess.verbose)
+      clog << "focused on module '" << module_name 
+	   << "' = [" << hex << module_start 
+	   << " ,"    << hex << module_end 
+	   << "]" << endl;
   }
+
 
   void focus_on_cu(Dwarf_Die * c)
   {
     assert(c);
+    assert(module);
+
     cu = c;
-    cu_name = default_name(dwarf_diename(c), "cu");
+    cu_name = default_name(dwarf_diename(c), "CU");
+
+    // Reset existing pointers and names
     function_name.clear();
+    function = NULL;
 
     if (false && sess.verbose)
-      clog << "focused on CU " << cu_name
-	   << ", in module " << module_name << endl;
+      clog << "focused on CU '" << cu_name
+	   << "', in module '" << module_name << "'" << endl;
   }
+
 
   void focus_on_function(Dwarf_Func * f)
   {
     assert(f);
+    assert(module);
+    assert(cu);
+
     function = f;
     function_name = default_name(dwarf_func_name(function),
 				 "function");
+
     if (false && sess.verbose)
-      clog << "focused on function " << function_name
-	   << ", in CU " << cu_name
-	   << ", module " << module_name << endl;
+      clog << "focused on function '" << function_name
+	   << "', in CU '" << cu_name
+	   << "', module '" << module_name << "'" << endl;
   }
+
 
   void focus_on_module_containing_global_address(Dwarf_Addr a)
   {
     assert(dwfl);
+    cu = NULL;
     if (false && sess.verbose)
       clog << "focusing on module containing global addr " << a << endl;
     focus_on_module(dwfl_addrmodule(dwfl, a));
   }
 
-  void focus_on_cu_containing_module_address(Dwarf_Addr a)
-  {
-    assert(dwfl);
-    assert(module);
-    Dwarf_Addr bias;
-    get_module_dwarf();
-    if (sess.verbose)
-      clog << "focusing on cu containing module addr " << a << endl;
-    focus_on_cu(dwfl_module_addrdie(module, a, &bias));
-    assert(bias == module_bias);
-  }
 
   void focus_on_cu_containing_global_address(Dwarf_Addr a)
   {
+    Dwarf_Addr bias;
     assert(dwfl);
     get_module_dwarf();
     if (sess.verbose)
       clog << "focusing on cu containing global addr " << a << endl;
-    focus_on_module_containing_global_address(a);
-    assert(a > module_bias);
-    a = global_address_to_module(a);
-    focus_on_cu_containing_module_address(a);
+    focus_on_cu(dwfl_module_addrdie(module, a, &bias));
+    assert(bias == module_bias);
   }
+
+
+  void focus_on_cu_containing_module_address(Dwarf_Addr a)
+  {
+    focus_on_cu_containing_global_address(module_address_to_global(a));
+  }
+
 
   Dwarf_Addr module_address_to_global(Dwarf_Addr a)
   {
+    assert(dwfl);
     assert(module);
     get_module_dwarf();
     if (sess.verbose)
-      clog << "module addr " << a
-	   << " + bias " << module_bias
-	   << " -> global addr " << a + module_bias << endl;
-    return a + module_bias;
+      clog << "module addr 0x" << hex << a
+	   << " + module start 0x" << hex << module_start
+	   << " -> global addr 0x" << hex << (a + module_start) << endl;
+    return a + module_start;
   }
+
 
   Dwarf_Addr global_address_to_module(Dwarf_Addr a)
   {
     assert(module);
     get_module_dwarf();
     if (sess.verbose)
-      clog << "global addr " << a
-	   << " - bias " << module_bias
-	   << " -> module addr " << a - module_bias << endl;
+      clog << "global addr 0x" << a
+	   << " - module start 0x" << hex << module_start
+	   << " -> module addr 0x" << hex << (a - module_start) << endl;
     return a - module_bias;
   }
 
@@ -300,6 +328,7 @@ dwflpp
     return t;
   }
 
+
   bool function_name_matches(string pattern)
   {
     assert(function);
@@ -310,6 +339,7 @@ dwflpp
 	   << "function '" << function_name << "'" << endl;
     return t;
   }
+
 
   bool cu_name_matches(string pattern)
   {
@@ -322,6 +352,7 @@ dwflpp
     return t;
   }
 
+
   void dwflpp_assert(string desc, int rc) // NB: "rc == 0" means OK in this case
   {
     string msg = "dwfl failure (" + desc + "): ";
@@ -331,6 +362,7 @@ dwflpp
       throw semantic_error (msg);
   }
 
+
   dwflpp(systemtap_session & sess)
     :
     sess(sess),
@@ -338,9 +370,12 @@ dwflpp
     module(NULL),
     module_dwarf(NULL),
     module_bias(0),
+    module_start(0),
+    module_end(0),
     cu(NULL),
     function(NULL)
   {}
+
 
   void setup(bool kernel)
   {
@@ -473,29 +508,102 @@ dwflpp
     return t;
   }
 
-  bool function_includes_module_addr(Dwarf_Addr addr)
-  {
-    return function_includes_global_addr(module_address_to_global(addr));
-  }
 
   Dwarf_Addr global_addr_of_line_in_cu(int line)
   {
     Dwarf_Lines * lines;
     size_t nlines;
     Dwarf_Addr addr;
-    Dwarf_Line * linep;
 
     assert(module);
     assert(cu);
     dwflpp_assert("getsrclines", dwarf_getsrclines(cu, &lines, &nlines));
-    linep = dwarf_onesrcline(lines, line);
-    dwflpp_assert("lineaddr", dwarf_lineaddr(linep, &addr));
+
+    for (size_t i = 0; i < nlines; ++i)
+      {
+	int curr_line;
+	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
+	dwflpp_assert("lineno", dwarf_lineno (line_rec, &curr_line));	
+	if (curr_line == line)
+	  {
+	    dwflpp_assert("lineaddr", dwarf_lineaddr(line_rec, &addr));
+	    if (sess.verbose)
+	      clog << "line " << line
+		   << " of CU " << cu_name
+		   << " has module address " << addr
+		   << " in " << module_name << endl;
+	    return module_address_to_global(addr);
+	  }
+      }
+
     if (sess.verbose)
-      clog << "line " << line
-	   << " of cu " << cu_name
-	   << " has module address " << addr
-	   << " in " << module_name << endl;
-    return module_address_to_global(addr);
+      clog << "WARNING: could not find line " << line 
+	   << " in CU " << cu_name << endl;
+    return 0;
+  }
+
+
+  bool function_prologue_end(Dwarf_Addr * addr)
+  {
+      
+    Dwarf_Lines * lines;
+    size_t nlines;
+
+    assert(addr);
+    dwflpp_assert("getsrclines", dwarf_getsrclines(cu, &lines, &nlines));
+
+
+    // If GCC output the right information we would do this:
+    /*
+
+    for (size_t i = 0; i < nlines; ++i)
+      {
+	bool flag;
+	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
+	
+	dwflpp_assert("lineprologueend", dwarf_lineprologueend (line_rec, &flag));
+
+	if (sess.verbose)
+	  clog << "checked line record " << i 
+	       << ", is " << (flag ? "" : " not") 
+	       << " prologue end" << endl;
+
+	if (flag)
+	  {
+	    dwflpp_assert("lineaddr", dwarf_lineaddr(line_rec, addr));
+	    return true;
+	  }
+      }
+    return false;
+    */
+
+    // Since GCC does not output the right information, we do this:
+    
+    Dwarf_Addr entrypc;
+    if (!function_entrypc(&entrypc))
+      return false;
+
+    bool choose_next_line = false;
+
+    for (size_t i = 0; i < nlines; ++i)
+      {
+	Dwarf_Addr line_addr;
+	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
+	dwflpp_assert("lineaddr", dwarf_lineaddr(line_rec, &line_addr));
+	if (choose_next_line)
+	  {
+	    *addr = line_addr;
+	    if (sess.verbose)
+	      clog << "function " << function_name
+		   << " entrypc: " << entrypc
+		   << " prologue-end: " << line_addr
+		   << endl;
+	    return true;
+	  }
+	else if (line_addr == entrypc)
+	  choose_next_line = true;
+      }
+    return false;
   }
 
 
@@ -915,19 +1023,19 @@ query_function(Dwarf_Func * func, void * arg)
 
   q->dw.focus_on_function(func);
 
+  Dwarf_Addr entry_addr;
+
   if (q->has_statement_str || q->has_function_str)
     {
       if (q->dw.function_name_matches(q->function))
 	{
-	  // XXX: We assume addr is a global address here. Is it?
 	  // XXX: This code is duplicated below, but it's important
 	  // for performance reasons to test things in this order.
 
-	  Dwarf_Addr addr;
-	  if (!q->dw.function_entrypc(&addr))
+	  if (!q->dw.function_prologue_end(&entry_addr))
 	    {
 	      if (q->sess.verbose)
-		clog << "WARNING: cannot find entry PC for function "
+		clog << "WARNING: cannot find prologue-end PC for function "
 		     << q->dw.function_name << endl;
 	      return DWARF_CB_OK;
 	    }
@@ -935,40 +1043,36 @@ query_function(Dwarf_Func * func, void * arg)
 	  // If this function's name matches a function or statement
 	  // pattern, we use its entry pc, but we do not abort iteration
 	  // since there might be other functions matching the pattern.
-	  query_statement(addr, q);
+	  query_statement(entry_addr, q);
 	}
     }
   else
     {
-      // XXX: We assume addr is a global address here. Is it?
-      Dwarf_Addr addr;
-      if (!q->dw.function_entrypc(&addr))
+      if (q->has_function_num || q->has_statement_num)
 	{
-	  if (false && q->sess.verbose)
-	    clog << "WARNING: cannot find entry PC for function "
-		 << q->dw.function_name << endl;
-	  return DWARF_CB_OK;
-	}
+	  Dwarf_Addr query_addr = (q->has_function_num
+				   ? q->function_num_val
+				   : q->statement_num_val);
 
-      if (q->has_kernel
-	  && q->has_function_num
-	  && q->dw.function_includes_global_addr(q->function_num_val))
-	{
-	  // If this function's address range matches a kernel-relative
-	  // function address, we use its entry pc and break out of the
-	  // iteration, since there can only be one such function.
-	  query_statement(addr, q);
-	  return DWARF_CB_ABORT;
-	}
-      else if (q->has_module
-	       && q->has_function_num
-	       && q->dw.function_includes_module_addr(q->function_num_val))
-	{
-	  // If this function's address range matches a module-relative
-	  // function address, we use its entry pc and break out of the
-	  // iteration, since there can only be one such function.
-	  query_statement(addr, q);
-	  return DWARF_CB_ABORT;
+	  // Adjust module-relative address to global
+
+	  if (q->has_module)
+	    query_addr = q->dw.module_address_to_global(query_addr);
+
+	  if (q->dw.function_includes_global_addr(query_addr))
+	    {
+
+	      if (!q->dw.function_prologue_end(&entry_addr))
+		{
+		  if (false && q->sess.verbose)
+		    clog << "WARNING: cannot find prologue-end PC for function "
+			 << q->dw.function_name << endl;
+		  return DWARF_CB_OK;
+		}
+
+	      query_statement(q->has_function_num ? entry_addr : query_addr, q);
+	      return DWARF_CB_ABORT;
+	    }
 	}
     }
 
@@ -1023,7 +1127,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   // If we have enough information in the pattern to skip a module and
   // the module does not match that information, return early.
 
-  if (q->has_kernel && !q->dw.module_name_matches("kernel"))
+  if (q->has_kernel && !q->dw.module_name_matches(TOK_KERNEL))
     return DWARF_CB_OK;
 
   if (q->has_module && !q->dw.module_name_matches(q->module_val))
@@ -1039,9 +1143,13 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       if (q->has_function_num)
 	addr = q->function_num_val;
       else
-	addr = q->function_num_val;
+	addr = q->statement_num_val;
 
-      q->dw.focus_on_cu_containing_module_address(addr);
+      if (q->has_kernel)
+	q->dw.focus_on_cu_containing_global_address(addr);
+      else
+	q->dw.focus_on_cu_containing_module_address(addr);
+
       q->dw.iterate_over_functions(&query_function, q);
     }
   else
@@ -1054,10 +1162,10 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
     }
 
   // If we just processed the module "kernel", and the user asked for
-  // the kernel patterh, there's no need to iterate over any further
+  // the kernel pattern, there's no need to iterate over any further
   // modules
 
-  if (q->has_kernel && q->dw.module_name_matches("kernel"))
+  if (q->has_kernel && q->dw.module_name_matches(TOK_KERNEL))
     return DWARF_CB_ABORT;
 
   return DWARF_CB_OK;
@@ -1443,19 +1551,18 @@ dwarf_builder::build(systemtap_session & sess,
 
   dw.setup(q.has_kernel || q.has_module);
 
-  if (q.has_kernel && q.has_statement_num)
+  if (q.has_kernel 
+      && (q.has_function_num || q.has_statement_num))
     {
-      // If we have kernel.statement(0xbeef), the address is global
-      // (relative to the kernel) and we can seek directly to the
-      // statement in question.
-      query_statement(q.statement_num_val, &q);
-    }
-  else if (q.has_kernel && q.has_function_num)
-    {
-      // If we have kernel.function(0xbeef), the address is global
-      // (relative to the kernel) and we can seek directly to the
-      // cudie in question.
-      dw.focus_on_cu_containing_global_address(q.function_num_val);
+      // If we have kernel.function(0xbeef), or
+      // kernel.statement(0xbeef) the address is global (relative to
+      // the kernel) and we can seek directly to the module and cudie
+      // in question.
+      Dwarf_Addr a = (q.has_function_num 
+		      ? q.function_num_val 
+		      : q.statement_num_val);
+      dw.focus_on_module_containing_global_address(a);
+      dw.focus_on_cu_containing_global_address(a);
       dw.iterate_over_functions(&query_function, &q);
     }
   else
