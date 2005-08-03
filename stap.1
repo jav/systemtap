@@ -209,8 +209,11 @@ instructions, and any auxiliary definitions for use by other embedded
 code.  The other place where embedded code is permitted is as a
 function body.
 
-.SS BUILT-IN FUNCTIONS
-
+.SS BUILT-INS
+A set of builtin functions and probe aliases are provided by the
+scripts installed under the
+.IR /usr/share/systemtap/tapset
+directory.
 
 .SH PROCESSING
 The translator begins pass 1 by parsing the given input script,
@@ -287,6 +290,20 @@ kernel into temporary files, until the user sends an interrupt signal.
 Finally, it unloads the module, and cleans up.
 
 .SH EXAMPLES
+To trace entry and exit from a function, use a pair of probes:
+.RS
+.br
+probe kernel.function("foo") { log ("enter") }
+probe kernel.function("foo").return { log ("exit") }
+.RE
+
+To list the probeable functions in the kernel, use
+.RS
+.br
+stap -p2 -e 'probe kernel.function("*") {}'
+.RE
+
+
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool at this time.  It exposes kernel
