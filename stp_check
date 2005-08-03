@@ -1,0 +1,67 @@
+#!/bin/bash
+
+load_module()
+{
+    ret=1
+    if [ -e "$MODULE" ]
+    then
+	/sbin/insmod $MODULE
+	ret=$?
+    fi
+	
+    if [ "$ret" -ne 0 ]
+    then
+	echo "$MODULE_NAME not in kernel and not built.  Compiling..."
+	make -w -C $MODULE_DIR
+	if [ "$?" -ne 0 ]
+	then
+	    echo "Failed to load module $MODULE_NAME."
+	    exit $?
+	fi
+
+	/sbin/insmod $MODULE
+	if [ "$?" -ne 0 ]
+	then
+	    echo "Failed to load module $MODULE_NAME."
+	    exit $?
+	fi
+    fi
+}
+
+VAR_DIR=${prefix}/var/lib/systemtap
+RELAYFS_DIR=$VAR_DIR/relayfs
+STP_CONTROL_DIR=$VAR_DIR/transport
+
+RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``
+if [ -z "$RELAYFS" ]
+then
+    RELAYFS=`lsmod | grep relayfs`
+    if [ -z "$RELAYFS" ]
+    then
+	MODULE_NAME=relayfs
+	MODULE_DIR=$RELAYFS_DIR
+	MODULE=$MODULE_DIR/relayfs.ko
+	load_module
+    fi
+fi
+
+if [ ! -d "/mnt/relay" ]
+then
+    mkdir /mnt/relay
+fi
+
+MOUNT=`mount | grep relayfs |awk '{print $1}'`
+if [ "$MOUNT" != "relayfs" ]
+then
+	mount -t relayfs relayfs /mnt/relay
+fi
+
+STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+if [ "$STP_CONTROL" != "stp_control" ] 
+then
+    MODULE_NAME=stp-control
+    MODULE_DIR=$STP_CONTROL_DIR
+    MODULE=$MODULE_DIR/stp-control.ko
+    load_module
+fi
+

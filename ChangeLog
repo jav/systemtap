@@ -1,3 +1,8 @@
+2005-08-03  Martin Hunt  <hunt@redhat.com>
+
+	* configure.ac: Add stp_check to AC_CONFIG_FILES.
+	* stp_check.in : New file.
+
 2005-08-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* README: Be more specific about prerequisites.
