@@ -1,5 +1,9 @@
 2005-08-02  Roland McGrath  <roland@redhat.com>
 
+	* loc2c.c (emit_bitfield): Return bool, value from emit_base_fetch.
+	(c_translate_fetch): Update caller.
+	(c_translate_pointer): Never ignore emit_base_fetch return value.
+
 	* systemtap.spec.in (%install): Remove parameters after %makeinstall.
 
 2005-08-02  Frank Ch. Eigler  <fche@elastic.org>
