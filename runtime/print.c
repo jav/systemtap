@@ -46,8 +46,11 @@ void _stp_print_flush (void)
 		return;
 
 	ret =_stp_transport_write(buf, len + 1);
-	if (unlikely(ret < 0))
+	if (unlikely(ret < 0)) {
+		if (!atomic_read(&_stp_transport_failures))
+			_stp_warn("Transport failure - try using a larger buffer size\n");
 		atomic_inc (&_stp_transport_failures);
+	}
 
 	_stp_pbuf_len[cpu] = 0;
 	*buf = 0;
@@ -86,8 +89,11 @@ void _stp_print_flush (void)
 	scnprintf (buf, TIMESTAMP_SIZE, "%10d", seq);
 	buf[TIMESTAMP_SIZE - 1] = ' ';
 	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
-	if (unlikely(ret < 0))
+	if (unlikely(ret < 0)) {
+		if (!atomic_read(&_stp_transport_failures))
+			_stp_warn("Transport failure - try using a larger buffer size\n");
 		atomic_inc (&_stp_transport_failures);
+	}
 
 	_stp_pbuf_len[cpu] = 0;
 	*ptr = 0;
