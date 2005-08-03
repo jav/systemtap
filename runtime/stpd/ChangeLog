@@ -1,3 +1,12 @@
+2005-08-03  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (open_control_channel): Set the receive buffer
+	to 512K, or the max allowed.
+
+	* stpd.c: Remove "-n" subbug option and change "-b" option
+	so you can specify buffering in different ways. Add a verbose option.
+	Exec the "stp_check" script.
+
 2005-08-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	* librelay.c: Correct fwrite api usage.

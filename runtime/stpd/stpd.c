@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <strings.h>
+#include <sys/wait.h>
 #include "librelay.h"
 
 extern char *optarg;
@@ -32,12 +34,21 @@ extern int optind;
 int print_only = 0;
 int quiet = 0;
 int merge = 1;
+int verbose = 0;
 unsigned int opt_subbuf_size = 0;
 unsigned int opt_n_subbufs = 0;
+unsigned int buffer_size = 0;
 char *modname = NULL;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
+
+/* stp_check script */
+#ifdef PKGLIBDIR
+char *stp_check=PKGLIBDIR "/stp_check";
+#else
+char *stp_check="stp_check";
+#endif
 
 static void usage(char *prog)
 {
@@ -45,16 +56,19 @@ static void usage(char *prog)
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
-	fprintf(stderr, "-b subbuf_size  (override the value in the module)\n");
-	fprintf(stderr, "-n subbufs  (override the value in the module)\n");
+	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
+	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
+	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
+	fprintf(stderr, "   buffer size in MB. That value will be per-cpu if relayfs is used.\n");
 	exit(1);
 }
 
 int main(int argc, char **argv)
 {
-	int c;
+	int c, status;
+	pid_t pid;
 
-	while ((c = getopt(argc, argv, "mpqb:n:")) != EOF) 
+	while ((c = getopt(argc, argv, "mpqb:n:v")) != EOF) 
 	{
 		switch (c) {
 		case 'm':
@@ -66,25 +80,44 @@ int main(int argc, char **argv)
 		case 'q':
 			quiet = 1;
 			break;
+		case 'v':
+			verbose = 1;
+			break;
 		case 'b':
-			opt_subbuf_size = (unsigned)atoi(optarg);
-			if (!opt_subbuf_size)
+		{
+			char *ptr;
+			int size = (unsigned)atoi(optarg);
+			if (!size)
 				usage(argv[0]);
+			ptr = index (optarg, 'x');
+			if (ptr) {
+				ptr++;
+				opt_subbuf_size = (unsigned)atoi(ptr);
+				printf("subbuf_size = %d\n", opt_subbuf_size);
+				opt_n_subbufs = size;
+			} else {
+				if (size > 64) {
+					fprintf(stderr, "Maximum buffer size is 64 (MB)\n");
+					exit(1);
+				}
+				buffer_size = size * 1024 * 1024;
+				opt_subbuf_size = ((size >> 2) + 1) * 65536;
+				opt_n_subbufs = buffer_size / opt_subbuf_size;
+			}
 			break;
-		case 'n':
-			opt_n_subbufs = (unsigned)atoi(optarg);
-			if (!opt_n_subbufs)
-				usage(argv[0]);
-			break;
+		}
 		default:
 			usage(argv[0]);
 		}
 	}
 	
-	if ((opt_n_subbufs && !opt_subbuf_size) || (opt_subbuf_size && !opt_n_subbufs)) {
-		fprintf (stderr, "You must specify both the number of subbufs and their size.\n");
-		usage(argv[0]);
+	if (verbose) {
+		if (buffer_size)
+			printf ("Using a buffer of %u bytes.\n", buffer_size);
+		else if (opt_n_subbufs)
+			printf ("Using %u subbufs of %u bytes.\n", opt_n_subbufs, opt_subbuf_size);
 	}
+
 	if (optind < argc)
 		modname = argv[optind++];
   
@@ -98,6 +131,24 @@ int main(int argc, char **argv)
 		usage(argv[0]);
 	}
 
+	/* now run the _stp_check script */
+	if ((pid = vfork()) < 0) {
+		perror ("vfork");
+		exit(-1);
+	} else if (pid == 0) {
+		if (execlp(stp_check, stp_check, NULL) < 0)
+			exit (-1);
+	}
+	if (waitpid(pid, &status, 0) < 0) {
+		perror("waitpid");
+		exit(-1);
+	}
+	if (WIFEXITED(status) && WEXITSTATUS(status)) {
+		perror (stp_check);
+		fprintf(stderr, "Could not execute %s\n", stp_check);
+		exit(1);
+	}
+	
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
 	if (init_stp(stpd_filebase, !quiet)) {
 		fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
@@ -105,7 +156,7 @@ int main(int argc, char **argv)
 	}
 
 	if (stp_main_loop()) {
-		printf("Couldn't enter main loop. Exiting.\n");
+		fprintf(stderr,"Couldn't enter main loop. Exiting.\n");
 		exit(1);
 	}
 	

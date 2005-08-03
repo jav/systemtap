@@ -74,9 +74,7 @@ static pthread_t reader[NR_CPUS];
 static int control_channel;
 
 /* flags */
-extern int print_only;
-extern int quiet;
-extern int merge;
+extern int print_only, quiet, merge, verbose;
 extern unsigned int opt_subbuf_size;
 extern unsigned int opt_n_subbufs;
 extern char *modname;
@@ -153,19 +151,38 @@ int send_request(int type, void *data, int len)
 	return err;
 }
 
+#if 0
+static unsigned int get_rmem(void)
+{
+	char buf[32];
+	FILE *fp = fopen ("/proc/sys/net/core/rmem_max", "r");
+	if (fp == NULL)
+		return 0;
+	if (fgets (buf, 32, fp) == NULL) {
+		fclose(fp);
+		return 0;
+	}
+	fclose(fp);
+	return atoi(buf);
+}
+#endif
+
 /**
  *	open_control_channel - create netlink channel
  */
 static int open_control_channel()
 {
 	struct sockaddr_nl snl;
-	int channel;
+	int channel, rcvsize = 512*1024;
 
 	channel = socket(AF_NETLINK, SOCK_RAW, NETLINK_USERSOCK);
 	if (channel < 0) {
 		fprintf(stderr, "ERROR: socket() failed\n");
 		return channel;
 	}
+
+	if (setsockopt(channel, SOL_SOCKET, SO_RCVBUF, &rcvsize, sizeof(int))) 
+		fprintf(stderr, "WARNING: failed to set socket receive buffer to %d\n", rcvsize);
 
 	memset(&snl, 0, sizeof snl);
 	snl.nl_family = AF_NETLINK;
@@ -451,12 +468,26 @@ int init_stp(const char *relay_filebase, int print_summary)
 {
 	char buf[1024];
 	struct transport_info ti;
+	pid_t pid;
+	int status;
 
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	print_totals = print_summary;
 
-	sprintf(buf, "insmod %s _stp_pid=%d", modname, (int)getpid());
-	if (system(buf)) {
+	sprintf(buf, "_stp_pid=%d", (int)getpid());
+	if ((pid = vfork()) < 0) {
+		perror ("vfork");
+		exit(-1);
+	} else if (pid == 0) {
+		if (execl("/sbin/insmod",  "insmod", modname, buf, NULL) < 0)
+			exit(-1);
+	}
+	if (waitpid(pid, &status, 0) < 0) {
+		perror("waitpid");
+		exit(-1);
+	}
+	if (WIFEXITED(status) && WEXITSTATUS(status)) {
+		perror ("insmod");
 		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modname);
 		return -1;
 	}
