@@ -1,3 +1,10 @@
+2005-08-03  Tom Zanussi  <trz@us.ibm.com>
+
+	* librelay.c: Track subbuf info requests/replies
+	so we know unequivocally when it's ok to do final
+	processing.
+	(reader_thread): Remove buffer-full warning.
+
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 	* librelay.c (init_stp): Change variable name to eliminate shadow warning.
 

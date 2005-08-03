@@ -61,7 +61,6 @@ static char *outfile_name = "probe.out";
 static int transport_mode;
 static int ncpus;
 static int print_totals;
-static int final_cpus_processed;
 static int exiting;
 
 /* per-cpu data */
@@ -69,6 +68,7 @@ static int relay_file[NR_CPUS];
 static FILE *percpu_tmpfile[NR_CPUS];
 static char *relay_buffer[NR_CPUS];
 static pthread_t reader[NR_CPUS];
+static int pending_info[NR_CPUS];
 
 /* netlink control channel */
 static int control_channel;
@@ -334,6 +334,7 @@ static int request_last_buffers(void)
 			fprintf(stderr, "WARNING: couldn't request last buffers for cpu %d\n", cpu);
 			return -1;
 		}
+		pending_info[cpu]++;
 	}
 	return 0;
 }
@@ -394,8 +395,12 @@ static void *reader_thread(void *data)
 			fprintf(stderr, "WARNING: poll warning: %s\n",strerror(errno));
 			rc = 0;
 		}
-		send_request(STP_BUF_INFO, &cpu, sizeof(cpu));
-		
+
+		if (send_request(STP_BUF_INFO, &cpu, sizeof(cpu)) < 0)
+			fprintf(stderr, "WARNING: info request failed for cpu %d\n", cpu);
+		else
+			pending_info[cpu]++;
+
 		pthread_mutex_lock(&status[cpu].ready_mutex);
 		if (status[cpu].info.produced == status[cpu].info.consumed)
 			pthread_cond_wait(&status[cpu].ready_cond,
@@ -405,8 +410,6 @@ static void *reader_thread(void *data)
 
 		subbufs_consumed = process_subbufs(&status[cpu].info);
 		if (subbufs_consumed) {
-			if (subbufs_consumed == params.n_subbufs)
-				fprintf(stderr, "WARNING: cpu %d buffer full.  Consider using a larger buffer size.\n", cpu);
 			if (subbufs_consumed > status[cpu].max_backlog)
 				status[cpu].max_backlog = subbufs_consumed;
 			status[cpu].info.consumed += subbufs_consumed;
@@ -589,6 +592,17 @@ static int merge_output(void)
 	return 0;
 }
 
+static int info_pending(void)
+{
+	int i;
+	
+	for (i = 0; i < ncpus; i++)
+		if (pending_info[i])
+			return 1;
+	
+	return 0;
+}
+
 /**
  *	postprocess_and_exit - postprocess the output and exit
  */
@@ -636,7 +650,7 @@ static void cleanup_and_exit (int closed)
 		}
 	}
 
-	if ( transport_mode == STP_TRANSPORT_RELAYFS && final_cpus_processed < ncpus)
+	if ( transport_mode == STP_TRANSPORT_RELAYFS && info_pending())
 	  return;
 	
 	postprocess_and_exit();
@@ -686,12 +700,13 @@ int stp_main_loop(void)
 		{
 			struct buf_msg *buf_msg = (struct buf_msg *)nlh;
 			cpu = buf_msg->info.cpu;
-			memcpy(&status[cpu].info, &buf_msg->info, sizeof (struct buf_info));
+			status[cpu].info.produced = buf_msg->info.produced;
+			pending_info[cpu]--;
+			
 			if (exiting) {
-				final_cpus_processed++;
 				subbufs_consumed = process_subbufs(&status[cpu].info);
 				status[cpu].info.consumed += subbufs_consumed;
-				if (final_cpus_processed >= ncpus)
+				if (!info_pending())
 					postprocess_and_exit();
 				break;
 			}
