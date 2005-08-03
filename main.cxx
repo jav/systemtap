@@ -50,7 +50,8 @@ usage (systemtap_session& s)
     << "   --         no more options after this" << endl
     << "   -v         verbose" << (s.verbose ? " [set]" : "")
     << endl
-    << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
+    << "   -k         keep temporary directory" << endl
+    // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -p NUM     stop after pass NUM 1-5" << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
@@ -64,12 +65,12 @@ usage (systemtap_session& s)
   clog
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     <<      "              " << s.runtime_path << endl
-    << "   -r RELEASE use kernel RELEASE, instead of" << endl
-    <<      "              " << s.kernel_release << endl
+    // << "   -r RELEASE use kernel RELEASE, instead of" << endl
+    // <<      "              " << s.kernel_release << endl
     << "   -m MODULE  set probe module name, instead of" << endl
     <<      "              " << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
-    << "   -k         keep temporary directory" << endl;
+    ;
   // -d: dump safety-related external references
 
   exit (0);

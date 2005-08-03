@@ -355,6 +355,7 @@ lexer::scan ()
                s2 == "&=" ||
                s2 == "^=" ||
                s2 == "|=" ||
+               s2 == ".=" ||
                s2 == "&&" ||
                s2 == "||" ||
                s2 == "++" ||
@@ -1109,6 +1110,7 @@ parser::parse_assignment ()
 	  t->content == "&=" ||
 	  t->content == "^=" ||
 	  t->content == "|=" ||
+	  t->content == ".=" ||
 	  false)) 
     {
       // NB: lvalueness is checked during elaboration / translation

@@ -1,3 +1,11 @@
+2005-08-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	* stap.1: More meat, all stub sections filled.
+	* elaborate.cxx (visit_assignment): Add numerous missing cases.
+	* parse.cxx: Parse ".=" operator.
+	* testsuite/semok/sixteen.stp: Check them.
+	* main.cxx (usage): Don't show incompletely supported options.
+
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 
 	* stp_check.in : Copy sources to /var/cache/systemtap.	

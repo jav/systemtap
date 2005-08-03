@@ -9,19 +9,19 @@ stap \- systemtap script translator/driver
 [
 .IR OPTIONS
 ]
-.RI FILENAME
+.I FILENAME
 .br
 .B stap
 [
 .IR OPTIONS
 ]
-.BI -
+.BI \-
 .br
 .B stap
 [
-.IR OPTIONS
+.I OPTIONS
 ]
-.BI -e " SCRIPT "
+.BI \-e " SCRIPT "
 
 .SH DESCRIPTION
 
@@ -46,7 +46,43 @@ somewhat similar conceptually to "breakpoint command lists" in the
 debugger.
 
 .SH OPTIONS
-
+The systemtap translator supports the following options.  Any other option
+prints a list of supported options.
+.\" undocumented for now:
+.\" -t test mode
+.\" -r RELEASE
+.TP
+.B \-v
+Verbose mode.  Produces more informative output.
+.TP
+.B \-k
+Keep the temporary directory after all processing.  This may be useful
+in order to examine the generated C code, or to reuse the compiled
+kernel object.
+.TP
+.B \-g
+Guru mode.  Enables parsing of unsafe expert-level constructs like
+embedded C.
+.TP
+.BI \-p NUM
+Stop after pass NUM.  The passes are numbered 1-5: parse, elaborate,
+translate, compile, run.  See the
+.B PROCESSING
+section for details.
+.TP
+.BI \-I DIR
+Add the given directory to the tapset search directory.  See the
+description of pass 2 for details.
+.TP
+.BI \-R DIR
+Look for the systemtap runtime sources in the given directory.
+.TP
+.BI \-m MODULE
+Use the given name for the generated kernel object module, instead
+of a unique randomized name.
+.TP
+.BI \-o FILE
+Send standard output to named file.
 
 .SH SCRIPT LANGUAGE
 
@@ -79,20 +115,36 @@ and may include "_" and "$" characters.  They may not start with a
 plain digit, as in C.  Each variable is by default local to the probe
 or function statement block within which it is mentioned, and therefore
 its scope and lifetime is limited to a particular probe or function
-invocation.  Variables may be declared global using a top-level
-declaration, in which case they are shared amongst all probes and live
-as long as the entire systemtap session.
+invocation.
+.\" XXX add statistics type here once it's supported
 .PP
 Scalar variables are implicitly typed as either string or integer.
-Associative arrays, which must be declared global, may have a string
-or integer value, and a tuple of strings and/or integers serving as a
-key.
+Associative arrays also have a string or integer value, and a
+a tuple of strings and/or integers serving as a key.
+The translator performs
+.I type inference
+on all identifiers, including array indexes and function parameters.
+Inconsistent type-related use of identifiers signals an error.
+.PP
+Variables may be declared global, so that they are shared amongst all
+probes and live as long as the entire systemtap session.  There is one
+namespace for all global variables, regardless of which script file
+they are found within.  A global declaration may be written at the
+outermost level anywhere, not within a block of code.  The following
+declaration marks "var1" and "var2" as global.  The translator will
+infer for each its value type, and if it is used as an array, its key
+types.
+.RS
+global var1, var2
+.RE
 .\" XXX add statistics type here once it's supported
 
 .SS STATEMENTS
 Statements enable procedural control flow.  They may occur within
-functions and probe handlers.
-
+functions and probe handlers.  The total number of statements executed
+in response to any single probe event is limited to some number
+defined by a macro in the translated C code, and is in the
+neighbourhood of 1000.
 .TP
 EXP
 Execute the string- or integer-valued expression and throw away
@@ -121,7 +173,7 @@ STMT, then the iteration expression EXP1.
 Loop over each element of the named global array, assigning current
 key to VAR.  The array may not be modified within the statement.
 .TP
-.BR foreach " ((VAR1, VAR2, ...) " in " ARRAY) STMT"
+.BR foreach " ([VAR1, VAR2, ...] " in " ARRAY) STMT"
 Same as above, used when the array is indexed with a tuple of keys.
 .TP
 .BR break ", " continue
@@ -134,26 +186,128 @@ Return EXP value from enclosing function.  A return value is mandatory,
 since void functions are not supported.
 .TP
 .BR next
-Return from enclosing probe handler.
+Return now from enclosing probe handler.
 
 .SS EXPRESSIONS
 Systemtap supports a number of operators that have the same general syntax,
-semantics, and precedence as in C and awk. 
-
+semantics, and precedence as in C and awk.  Arithmetic is performed as per
+C rules.  Division by zero is detected and results in an error.
+.TP
+binary numeric operators
+.B * / % + - >> << & ^ | && ||
+.TP
+binary string operators
+.B .
+(string concatenation)
+.TP
+numeric assignment operators
+.B = *= /= %= += -= >>= <<= &= ^= |=
+.TP
+string assignment operators
+.B = .=
+.TP
+unary numeric operators
+.B - ! ~ ++ -- 
+.TP
+binary numeric or string comparison operators
+.B < > <= >= == !=
+.TP
+ternary operator
+.RB cond " ? " exp1 " : " exp2
+.TP
+grouping operator
+.BR ( " exp " )
+.TP
+function call
+.RB "fn " ( "[ arg1, arg2, ... ]" )
 
 .SS PROBES
 The main construct in the scripting language identifies probes.
 Probes associate abstract events with a statement block ("probe
-handler") that is to be executed when those events occur.
+handler") that is to be executed when those events occur.  The
+general syntax is as follows:
+.RS
+.br
+.nh
+.nf
+.BR probe " PROBEPOINT [" , " PROBEPOINT] " { " [STMT ...] " }
+.hy
+.fi
+.RE 
 .PP
 Events are specified in a special syntax called "probe points".  One
-family refers to specific points in a kernel, which are identified by module,
-source file, line number, function name, C label name, or some
+family refers to specific points in a kernel, which are identified by
+module, source file, line number, function name, C label name, or some
 combination of these.  This kind of "synchronous" event is deemed to
 occur when any processor executes an instruction matched by the
 specification.  Other families of probe points refer to "asynchronous"
 events such as timers/counters rolling over, where there is no fixed
-execution point that is related.
+execution point that is related.  Each probe point specification may
+match multiple physical locations, all of which are then probed.  A
+probe declaration may also contain several comma-separated
+specifications, all of which are probed.
+.PP
+Here is a list of probe point families currently supported.  The
+.B .function
+variant places a probe near the beginning of the named function, so that
+parameters are available as context variables.  The
+.B .return
+variant places a probe at the moment of return from the named function, so
+the return value is available as the "$retvalue" context variable.
+The
+.B .statement
+variant places a probe at the exact spot, exposing those local variables
+that are visible there.
+.RS
+.nf
+.br
+.BR kernel.function( PATTERN )
+.br
+.BR kernel.function( PATTERN ).return
+.br
+.BR module( MPATTERN ).function( PATTERN )
+.br
+.BR module( MPATTERN ).function( PATTERN ).return
+.br
+.BR kernel.statement( PATTERN )
+.br
+.BR module( MPATTERN ).statement( PATTERN )
+.fi
+.RE
+.PP
+In the above list, MPATTERN stands for a string literal that aims to
+identify the loaded kernel module of interest.  It may include "*" and
+"?" wildcards.  PATTERN stands for a string literal that aims to
+identify a point in the program.  It is made up of three parts.  The
+first part is the name of a function, as would appear in the
+.I nm
+program's output.  This part may use the "*" and "?" wildcarding
+operators to match multiple names.  The second part is optional, and
+begins with the "@" character.  It is followed by a source file name
+wildcard pattern, such as
+.IR mm/slab* .
+Finally, the third part is optional if the file name part was given,
+and identifies the line number in the source file, preceded by a ":".
+As an alternative, PATTERN may be a numeric constant, indicating an
+(module-relative or kernel-absolute) address.
+.PP
+Here are some example probe points:
+.TP
+.B kernel.function("*init*"), kernel.function("*exit*")
+refers to all kernel functions with "init" or "exit" in the name.
+.TP
+.B kernel.function("*@kernel/sched.c:240")
+refers to any functions within the "kernel/sched.c" file that span
+line 240.
+.TP
+.B module("usb*").function("*sync*").return
+refers to the moment of return from all functions with "sync" in the
+name in any of the USB drivers.
+.TP
+.B kernel.statement(0xc0044852)
+refers to the first byte of the statement whose compiled instructions
+include the given address in the kernel.
+
 .PP
 When any matching event occurs, the probe handler is run within that
 context.  For events that are defined by execution of specific parts
@@ -172,28 +326,50 @@ the probe handler defined with an alias is implicitly added as a
 prologue to any probe that refers to the alias.  For example:
 .RS
 .nf
+.nh
 probe syscall("read") = kernel.function("sys_read") {
   fildes = $fd
 }
+.hy
 .fi
 .RE
 defines a new probe point
+.nh
 .IR syscall("read") ,
+.hy
 which expands to
+.nh
 .IR kernel.function("sys_read") ,
+.hy
 with the given assignment as a prologue.  Another probe definition
 may use the alias like this:
 .RS
 .nf
 probe syscall("read") {
-  printk ("reading fd=" . decimal (fildes))
+  printk ("reading fd=" . string (fildes))
 }
 .fi
 .RE
 
 .SS FUNCTIONS
-
-.SS GLOBALS
+Systemtap scripts may define subroutines to factor out common work.
+Functions take any number of scalar (integer or string) arguments, and
+must return a single scalar (integer or string).  An example function
+declaration looks like this:
+.RS
+.nf
+function thisfn (arg1, arg2) {
+   return arg1 + arg2
+}
+.fi
+.RE
+Note the usual absence of type declarations, which are instead
+inferred by the translator.  Because a return value type is required,
+each function must contain at least one
+.I return
+statement.  Functions may call others or themselves recursively, up to
+a fixed nesting limit.  This limit is defined by a macro in the
+translated C code and is in the neighbourhood of 30.
 
 .SS EMBEDDED C
 When in guru mode, the translator accepts embedded code in the
@@ -206,8 +382,38 @@ sequence, into the generated C code.  At the outermost level, this may
 be useful to add
 .IR #include
 instructions, and any auxiliary definitions for use by other embedded
-code.  The other place where embedded code is permitted is as a
-function body.
+code.  
+.PP
+The other place where embedded code is permitted is as a function body.
+In this case, the script language body is replaced entirely by a piece
+of C code enclosed again between
+.IR %{ " and " %}
+markers.
+This C code may do anything reasonable and safe.  There are a number
+of undocumented but complex safety constraints on concurrency,
+resource consumption, and runtime limits, so this is an advanced
+technique.
+.PP
+The memory locations set aside for input and output values
+are made available to it using a macro
+.IR THIS .
+Here are some examples:
+.RS
+.br
+.nf
+function add_one (val) %{
+  THIS->__retvalue = THIS->val + 1;
+%}
+function add_one_str (val) %{
+  strncpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
+  strncat (THIS->__retvalue, "one", MAXSTRINGLEN);
+%}
+.fi
+.RE
+The function argument and return value types have to be inferred by
+the translator from the call sites in order for this to work.  The
+user should examine C code generated for ordinary script-language
+functions in order to write compatible embedded-C ones.
 
 .SS BUILT-INS
 A set of builtin functions and probe aliases are provided by the
@@ -255,11 +461,11 @@ appropriate kernel debugging information to be installed.  In the
 associated probe handlers, target-side variables (whose names begin
 with "$") are found and have their run-time locations decoded.
 .PP
-Finally, all variable, function, parameter, array, and
-index types are inferred from context (literals and operators).
-Stopping the translator after pass 2 causes it to list all the probes,
-functions, and variables, along with all types.  Any conflicting,
-inconsistent, or unresolved types cause an error.
+Finally, all variable, function, parameter, array, and index types are
+inferred from context (literals and operators).  Stopping the
+translator after pass 2 causes it to list all the probes, functions,
+and variables, along with all inferred types.  Any inconsistent or
+unresolved types cause an error.
 
 .PP
 In pass 3, the translator writes C code that represents the actions
@@ -282,28 +488,33 @@ running the kernel object.  This may be useful if you want to
 archive the file.
 
 .PP
-In pass 5, the translator invokes the systemtap "daemon"
-.IR stpd
+In pass 5, the translator invokes the systemtap auxiliary program
+.I stpd
 program for the given kernel object.  This program arranges to load
 the module then communicates with it, copying trace data from the
 kernel into temporary files, until the user sends an interrupt signal.
-Finally, it unloads the module, and cleans up.
+Any run-time error encountered by the probe handlers, such as running
+out of memory, division by zero, exceeding nesting or runtime limits,
+results in an error condition that prevents further probes from
+running.  Finally, stpd unloads the module, and cleans up.
 
 .SH EXAMPLES
 To trace entry and exit from a function, use a pair of probes:
 .RS
 .br
+.nf
 probe kernel.function("foo") { log ("enter") }
 probe kernel.function("foo").return { log ("exit") }
+.fi
 .RE
 
 To list the probeable functions in the kernel, use
 .RS
 .br
+.nf
 stap -p2 -e 'probe kernel.function("*") {}'
+.fi
 .RE
-
-
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool at this time.  It exposes kernel
@@ -326,33 +537,53 @@ privileges to untrusted users.
 The translator asserts certain safety constraints.  It aims to ensure
 that no handler routine can run for very long, allocate memory,
 perform unsafe operations, or in unintentionally interfere with the
-kernel.
+kernel.  Use of guru mode constructs such as embedded C can violate
+these constraints, leading to kernel crash or data corruption.
 
-.SH ENVIRONMENT VARIABLES
-The
-.B SYSTEMTAP_RUNTIME
-environment variable provides a default for the
-.B \-R
-option.  Similarly, the
-.B SYSTEMTAP_TAPSET
-environment variable provides a default for the
-.B \-I
-option.
+.SH FILES
+.\" consider autoconf-substituting these directories
+.TP
+/tmp/stapXXXXXX
+Temporary directory for systemtap files, including translated C code
+and kernel object.
+.TP
+/usr/share/systemtap/tapset 
+The automatic tapset search directory, unless overridden by
+the
+.I SYSTEMTAP_TAPSET
+environment variable.
+.TP
+/usr/share/systemtap/runtime
+The runtime sources, unless overridden by the
+.I SYSTEMTAP_RUNTIME
+environment variable.
+.TP
+/lib/modules/VERSION/build
+The location of kernel module building infrastructure.
+.TP
+/usr/lib/debug/lib/modules/VERSION
+The location of kernel debugging information when packaged into the
+.IR kernel-debuginfo
+RPM.
+.TP
+/usr/libexec/systemtap/stpd
+The auxiliary program supervising module loading, interaction, and
+unloading.
 
 .SH SEE ALSO
-.IR dtrace (1)
-.IR dprobes (1)
-.IR awk (1)
-.IR sudo (8)
-.IR elfutils (3)
+.IR dtrace (1),
+.IR dprobes (1),
+.IR awk (1),
+.IR sudo (8),
+.IR elfutils (3),
 .IR gdb (1)
 
 .SH BUGS
 There are numerous missing features and possibly numerous bugs.  Use
-the Bugzilla link off of the project web page
-.BR http://sources.redhat.com/systemtap/ ,
-or the mailing list
-.BR systemtap@sources.redhat.com .
+the Bugzilla link off of the project web page:
+.nh
+.BR http://sources.redhat.com/systemtap/ .
+.hy
 
 .SH AUTHORS
 The
@@ -360,13 +591,16 @@ The
 translator was written by Frank Ch. Eigler and Graydon Hoare.  The
 kernel-side runtime library and the user-level
 .IR stpd
-daemon was written by Martin Hunt and Tom Zanussi.
+daemon was written by Martin Hunt and Tom Zanussi.  Contact them
+using the public mailing list:
+.nh
+.BR <systemtap@sources.redhat.com> .
+.hy
 
 .SH ACKNOWLEDGEMENTS
 The script language design was inspired by Sun's 
-.IR dtrace ,
-and refined by numerous participants on the project mailing list.
-The current probing mechanism uses IBM's
+.IR dtrace .
+The primary probing mechanism uses IBM's
 .IR kprobes ,
 and
 .IR relayfs

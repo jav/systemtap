@@ -1030,6 +1030,7 @@ typeresolution_info::visit_logical_and_expr (logical_and_expr *e)
 void
 typeresolution_info::visit_comparison (comparison *e)
 {
+  // NB: result of any comparison is an integer!
   if (t == pe_stats || t == pe_string)
     invalid (e->tok, t);
 
@@ -1092,11 +1093,36 @@ typeresolution_info::visit_assignment (assignment *e)
         }
     }
   else if (e->op == "+=" || // numeric only
+           e->op == "-=" ||
+           e->op == "*=" ||
+           e->op == "/=" ||
+           e->op == "%=" ||
+           e->op == "&=" ||
+           e->op == "^=" ||
+           e->op == "|=" ||
+           e->op == "<<=" ||
+           e->op == ">>=" ||
            false)
     {
       visit_binary_expression (e);
     }
-  else // overloaded for string & numeric operands
+  else if (e->op == ".=" || // string only
+           false)
+    {
+      if (t == pe_long || t == pe_stats)
+        invalid (e->tok, t);
+
+      t = pe_string;
+      e->left->visit (this);
+      t = pe_string;
+      e->right->visit (this);
+      if (e->type == pe_unknown)
+        {
+          e->type = pe_string;
+          resolved (e->tok, e->type);
+        }
+    }
+  else if (e->op == "=") // overloaded = for string & numeric operands
     {
       // logic similar to ternary_expression
       exp_type sub_type = t;
@@ -1130,6 +1156,8 @@ typeresolution_info::visit_assignment (assignment *e)
           e->left->type != e->right->type)
         mismatch (e->tok, e->left->type, e->right->type);
     }
+  else
+    throw semantic_error ("unsupported assignment operator " + e->op);
 }
 
 
