@@ -55,7 +55,19 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 		}
 		buf[num + start] = '\0';
 		
-		_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_pid);
+#ifdef STP_NETLINK_ONLY
+		if (type != DBUG)
+			_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_pid);
+		else {
+			_stp_string_cat_cstr(_stp_stdout,buf);
+			_stp_print_flush();
+		}
+#else
+		if (type != DBUG)
+			_stp_ctrl_send(STP_REALTIME_DATA, buf, start + num + 1, _stp_pid);
+		_stp_string_cat_cstr(_stp_stdout,buf);
+		_stp_print_flush();
+#endif
 	}
 	put_cpu();
 }

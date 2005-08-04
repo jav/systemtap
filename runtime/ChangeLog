@@ -1,3 +1,8 @@
+2005-08-03  Martin Hunt  <hunt@redhat.com>
+
+	* io.c 	(_stp_vlog): Revert previous change for now.
+	* print.c (_stp_print_flush): Ditto.
+	
 2005-08-03  Tom Zanussi  <trz@us.ibm.com>
 
 	* io.c (_stp_vlog): Remove call to _stp_print_flush().
