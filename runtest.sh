@@ -26,7 +26,7 @@ if expr $1 : '.*ok/.*' >/dev/null; then
      rm -f $logfile.out $logfile.err
   fi
 else
-  if [ $rc -ne 0 ]; then
+  if [ $rc -eq 1 ]; then
      rm -f $logfile.out $logfile.err
   fi
 fi
