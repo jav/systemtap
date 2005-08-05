@@ -998,85 +998,99 @@ dwarf_query::parse_function_spec(string & spec)
 static void
 query_statement(Dwarf_Addr stmt_addr, dwarf_query * q)
 {
-  // XXX: implement
-  if (q->has_relative)
-    throw semantic_error("incomplete: do not know how to interpret .relative",
-			 q->base_probe->tok);
-
-  q->results.push_back(new dwarf_derived_probe(*q, stmt_addr));
+  try
+    {
+      // XXX: implement
+      if (q->has_relative)
+        throw semantic_error("incomplete: do not know how to interpret .relative",
+                             q->base_probe->tok);
+      
+      q->results.push_back(new dwarf_derived_probe(*q, stmt_addr));
+    }
+  catch (const semantic_error& e)
+    {
+      q->sess.print_error (e);
+    }
 }
 
 static int
 query_function(Dwarf_Func * func, void * arg)
 {
-
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
-  // XXX: implement
-  if (q->has_callees)
-    throw semantic_error("incomplete: do not know how to interpret .callees",
-			 q->base_probe->tok);
-
-  if (q->has_label)
-    throw semantic_error("incomplete: do not know how to interpret .label",
-			 q->base_probe->tok);
-
-  q->dw.focus_on_function(func);
-
-  Dwarf_Addr entry_addr;
-
-  if (q->has_statement_str || q->has_function_str)
+  try
     {
-      if (q->dw.function_name_matches(q->function))
-	{
-	  // XXX: This code is duplicated below, but it's important
-	  // for performance reasons to test things in this order.
-
-	  if (!q->dw.function_prologue_end(&entry_addr))
-	    {
-	      if (q->sess.verbose)
-		clog << "WARNING: cannot find prologue-end PC for function "
-		     << q->dw.function_name << endl;
-	      return DWARF_CB_OK;
-	    }
-
-	  // If this function's name matches a function or statement
-	  // pattern, we use its entry pc, but we do not abort iteration
-	  // since there might be other functions matching the pattern.
-	  query_statement(entry_addr, q);
-	}
+      // XXX: implement
+      if (q->has_callees)
+        throw semantic_error("incomplete: do not know how to interpret .callees",
+                             q->base_probe->tok);
+      
+      if (q->has_label)
+        throw semantic_error("incomplete: do not know how to interpret .label",
+                             q->base_probe->tok);
+      
+      q->dw.focus_on_function(func);
+      
+      Dwarf_Addr entry_addr;
+      
+      if (q->has_statement_str || q->has_function_str)
+        {
+          if (q->dw.function_name_matches(q->function))
+            {
+              // XXX: This code is duplicated below, but it's important
+              // for performance reasons to test things in this order.
+              
+              if (!q->dw.function_prologue_end(&entry_addr))
+                {
+                  if (q->sess.verbose)
+                    clog << "WARNING: cannot find prologue-end PC for function "
+                         << q->dw.function_name << endl;
+                  return DWARF_CB_OK;
+                }
+              
+              // If this function's name matches a function or statement
+              // pattern, we use its entry pc, but we do not abort iteration
+              // since there might be other functions matching the pattern.
+              query_statement(entry_addr, q);
+            }
+        }
+      else
+        {
+          if (q->has_function_num || q->has_statement_num)
+            {
+              Dwarf_Addr query_addr = (q->has_function_num
+                                       ? q->function_num_val
+                                       : q->statement_num_val);
+              
+              // Adjust module-relative address to global
+              
+              if (q->has_module)
+                query_addr = q->dw.module_address_to_global(query_addr);
+              
+              if (q->dw.function_includes_global_addr(query_addr))
+                {
+                  
+                  if (!q->dw.function_prologue_end(&entry_addr))
+                    {
+                      if (false && q->sess.verbose)
+                        clog << "WARNING: cannot find prologue-end PC for function "
+                             << q->dw.function_name << endl;
+                      return DWARF_CB_OK;
+                    }
+                  
+                  query_statement(q->has_function_num ? entry_addr : query_addr, q);
+                  return DWARF_CB_ABORT;
+                }
+            }
+        }
+      
+      return DWARF_CB_OK;
     }
-  else
+  catch (const semantic_error& e)
     {
-      if (q->has_function_num || q->has_statement_num)
-	{
-	  Dwarf_Addr query_addr = (q->has_function_num
-				   ? q->function_num_val
-				   : q->statement_num_val);
-
-	  // Adjust module-relative address to global
-
-	  if (q->has_module)
-	    query_addr = q->dw.module_address_to_global(query_addr);
-
-	  if (q->dw.function_includes_global_addr(query_addr))
-	    {
-
-	      if (!q->dw.function_prologue_end(&entry_addr))
-		{
-		  if (false && q->sess.verbose)
-		    clog << "WARNING: cannot find prologue-end PC for function "
-			 << q->dw.function_name << endl;
-		  return DWARF_CB_OK;
-		}
-
-	      query_statement(q->has_function_num ? entry_addr : query_addr, q);
-	      return DWARF_CB_ABORT;
-	    }
-	}
+      q->sess.print_error (e);
+      return DWARF_CB_ABORT;
     }
-
-  return DWARF_CB_OK;
 }
 
 static int
@@ -1084,33 +1098,41 @@ query_cu (Dwarf_Die * cudie, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
-  q->dw.focus_on_cu(cudie);
-
-  // If we have enough information in the pattern to skip a CU
-  // and the CU does not match that information, return early.
-  if ((q->has_statement_str || q->has_function_str)
-      && (q->spec_type == function_file_and_line ||
-	  q->spec_type == function_and_file)
-      && (!q->dw.cu_name_matches(q->file)))
-    return DWARF_CB_OK;
-
-  if (q->has_statement_str
-      && (q->spec_type == function_file_and_line)
-      && q->dw.cu_name_matches(q->file))
+  try
     {
-      // If we have a complete file:line statement
-      // functor (not function functor) landing on
-      // this CU, we can look up a specific address
-      // for the statement, and skip scanning
-      // the remaining functions within the CU.
-      query_statement(q->dw.global_addr_of_line_in_cu(q->line), q);
+      q->dw.focus_on_cu(cudie);
+      
+      // If we have enough information in the pattern to skip a CU
+      // and the CU does not match that information, return early.
+      if ((q->has_statement_str || q->has_function_str)
+          && (q->spec_type == function_file_and_line ||
+              q->spec_type == function_and_file)
+          && (!q->dw.cu_name_matches(q->file)))
+        return DWARF_CB_OK;
+      
+      if (q->has_statement_str
+          && (q->spec_type == function_file_and_line)
+          && q->dw.cu_name_matches(q->file))
+        {
+          // If we have a complete file:line statement
+          // functor (not function functor) landing on
+          // this CU, we can look up a specific address
+          // for the statement, and skip scanning
+          // the remaining functions within the CU.
+          query_statement(q->dw.global_addr_of_line_in_cu(q->line), q);
+        }
+      else
+        {
+          // Otherwise we need to scan all the functions in this CU.
+          q->dw.iterate_over_functions(&query_function, q);
+        }
+      return DWARF_CB_OK;
     }
-  else
+  catch (const semantic_error& e)
     {
-      // Otherwise we need to scan all the functions in this CU.
-      q->dw.iterate_over_functions(&query_function, q);
+      q->sess.print_error (e);
+      return DWARF_CB_ABORT;
     }
-  return DWARF_CB_OK;
 }
 
 static int
@@ -1119,56 +1141,63 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	      const char *name, Dwarf_Addr base,
 	      void *arg __attribute__ ((unused)))
 {
-
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
-  q->dw.focus_on_module(mod);
-
-  // If we have enough information in the pattern to skip a module and
-  // the module does not match that information, return early.
-
-  if (q->has_kernel && !q->dw.module_name_matches(TOK_KERNEL))
-    return DWARF_CB_OK;
-
-  if (q->has_module && !q->dw.module_name_matches(q->module_val))
-    return DWARF_CB_OK;
-
-  if (q->has_function_num || q->has_statement_num)
+  try
     {
-      // If we have module("foo").function(0xbeef) or
-      // module("foo").statement(0xbeef), the address is relative
-      // to the start of the module, so we seek the function
-      // number plus the module's bias.
-      Dwarf_Addr addr;
-      if (q->has_function_num)
-	addr = q->function_num_val;
+      q->dw.focus_on_module(mod);
+      
+      // If we have enough information in the pattern to skip a module and
+      // the module does not match that information, return early.
+      
+      if (q->has_kernel && !q->dw.module_name_matches(TOK_KERNEL))
+        return DWARF_CB_OK;
+      
+      if (q->has_module && !q->dw.module_name_matches(q->module_val))
+        return DWARF_CB_OK;
+      
+      if (q->has_function_num || q->has_statement_num)
+        {
+          // If we have module("foo").function(0xbeef) or
+          // module("foo").statement(0xbeef), the address is relative
+          // to the start of the module, so we seek the function
+          // number plus the module's bias.
+          Dwarf_Addr addr;
+          if (q->has_function_num)
+            addr = q->function_num_val;
+          else
+            addr = q->statement_num_val;
+          
+          if (q->has_kernel)
+            q->dw.focus_on_cu_containing_global_address(addr);
+          else
+            q->dw.focus_on_cu_containing_module_address(addr);
+          
+          q->dw.iterate_over_functions(&query_function, q);
+        }
       else
-	addr = q->statement_num_val;
-
-      if (q->has_kernel)
-	q->dw.focus_on_cu_containing_global_address(addr);
-      else
-	q->dw.focus_on_cu_containing_module_address(addr);
-
-      q->dw.iterate_over_functions(&query_function, q);
+        {
+          // Otherwise if we have a function("foo") or statement("foo")
+          // specifier, we have to scan over all the CUs looking for
+          // the function in question
+          assert(q->has_function_str || q->has_statement_str);
+          q->dw.iterate_over_cus(&query_cu, q);
+        }
+      
+      // If we just processed the module "kernel", and the user asked for
+      // the kernel pattern, there's no need to iterate over any further
+      // modules
+      
+      if (q->has_kernel && q->dw.module_name_matches(TOK_KERNEL))
+        return DWARF_CB_ABORT;
+      
+      return DWARF_CB_OK;
     }
-  else
+  catch (const semantic_error& e)
     {
-      // Otherwise if we have a function("foo") or statement("foo")
-      // specifier, we have to scan over all the CUs looking for
-      // the function in question
-      assert(q->has_function_str || q->has_statement_str);
-      q->dw.iterate_over_cus(&query_cu, q);
+      q->sess.print_error (e);
+      return DWARF_CB_ABORT;
     }
-
-  // If we just processed the module "kernel", and the user asked for
-  // the kernel pattern, there's no need to iterate over any further
-  // modules
-
-  if (q->has_kernel && q->dw.module_name_matches(TOK_KERNEL))
-    return DWARF_CB_ABORT;
-
-  return DWARF_CB_OK;
 }
 
 struct

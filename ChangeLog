@@ -1,5 +1,11 @@
 2005-08-05  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (query_statement|function|cu|module): Add explicit
+	nested try/catch, since elfutils iteration seems to block
+	exception catching.
+	
+2005-08-05  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR translator/1175
 	* translate.cxx (*): Added unlikely() markers to most emitted error
 	checks.
@@ -12,7 +18,6 @@
 	* systemtap.spec.in: Prereq kernel-devel, kernel-debuginfo,
 	and not tcl.
 	* tapsets.cxx: Make slightly less verbose.
-	* translate.cxx
 
 2005-08-03  Graydon Hoare  <graydon@redhat.com>
 
