@@ -7,21 +7,21 @@ stap \- systemtap script translator/driver
 .br
 .B stap
 [
-.IR OPTIONS
+.I OPTIONS
 ]
 .I FILENAME
 .br
 .B stap
 [
-.IR OPTIONS
+.I OPTIONS
 ]
-.BI \-
+.B \-
 .br
 .B stap
 [
 .I OPTIONS
 ]
-.BI \-e " SCRIPT "
+.BI \-e " SCRIPT"
 
 .SH DESCRIPTION
 
@@ -64,24 +64,24 @@ kernel object.
 Guru mode.  Enables parsing of unsafe expert-level constructs like
 embedded C.
 .TP
-.BI \-p NUM
+.BI \-p " NUM"
 Stop after pass NUM.  The passes are numbered 1-5: parse, elaborate,
 translate, compile, run.  See the
 .B PROCESSING
 section for details.
 .TP
-.BI \-I DIR
+.BI \-I " DIR"
 Add the given directory to the tapset search directory.  See the
 description of pass 2 for details.
 .TP
-.BI \-R DIR
+.BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
 .TP
-.BI \-m MODULE
+.BI \-m " MODULE"
 Use the given name for the generated kernel object module, instead
 of a unique randomized name.
 .TP
-.BI \-o FILE
+.BI \-o " FILE"
 Send standard output to named file.
 
 .SH SCRIPT LANGUAGE
@@ -151,12 +151,13 @@ Execute the string- or integer-valued expression and throw away
 the value.
 .TP
 .BR { " STMT1 STMT2 ... " }
-Execute each statement in sequence in this block.  Note that no
-separators or terminators are necessary between statements.
+Execute each statement in sequence in this block.  Note that 
+separators or terminators are generally not necessary between statements.
 .TP
 .BR ;
 Null statement, do nothing.  It is useful as an optional separator between
-statements to improve the display of syntax-error reports.
+statements to improve syntax-error detection and to handle certain
+grammar ambiguities.
 .TP
 .BR if " (EXP) STMT1 [ " else " STMT2 ]"
 Compare integer-valued EXP to zero.  Execute the first (non-zero)

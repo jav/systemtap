@@ -239,7 +239,7 @@ public:
   {
     if (ty == pe_long)
       {
-	c.o->newline() << "if (" << qname() << " == 0) {";
+	c.o->newline() << "if (unlikely (" << qname() << " == 0)) {";
 	c.o->newline(1) << "c->errorcount++;";
 	c.o->newline() << qname() << " = 1;";
 	c.o->newline(-1) << "}";
@@ -344,13 +344,25 @@ struct mapvar
 
   string get () const
   {
-    return "_stp_map_get_" + shortname(type()) + " (" + qname() + ")";
+    // see also itervar::get_key
+    if (type() == pe_string)
+        // impedance matching: NULL -> empty strings
+      return "({ char *v = "
+        "_stp_map_get_" + shortname(type()) + " (" + qname() + "); "
+        "if (!v) v = \"\"; v; })";
+    else // long?
+      return "_stp_map_get_" + shortname(type()) + " (" + qname() + ")";
   }
 
   string set (tmpvar const & tmp) const
   {
-    return ("_stp_map_set_" + shortname(type()) + " (" + qname()
-	    + ", " + tmp.qname() + ")");
+    // impedance matching: empty strings -> NULL
+    if (type() == pe_string)
+      return ("_stp_map_set_" + shortname(type()) + " (" + qname()
+              + ", (" + tmp.qname() + "[0] ? " + tmp.qname() + " : NULL))");
+    else
+      return ("_stp_map_set_" + shortname(type()) + " (" + qname()
+              + ", " + tmp.qname() + ")");
   }
 
   string mangled_indices() const
@@ -420,12 +432,18 @@ public:
   
   string get_key (exp_type ty, unsigned i) const
   {
+    // bug translator/1175: runtime uses base index 1 for the first dimension
+    // see also mapval::get
     switch (ty)
       {
       case pe_long:
-	return "_stp_key_get_int64 ("+ qname() + ", " + stringify(i) + ")";
+	return "_stp_key_get_int64 ("+ qname() + ", " + stringify(i+1) + ")";
       case pe_string:
-	return "_stp_key_get_str ("+ qname() + ", " + stringify(i) + ")";
+        // impedance matching: NULL -> empty strings
+	return "({ char *v = "
+          "_stp_key_get_str ("+ qname() + ", " + stringify(i+1) + "); "
+          "if (! v) v = \"\"; "
+          "v; })";
       default:
 	throw semantic_error("illegal key type");
       }
@@ -624,7 +642,7 @@ c_unparser::emit_module_init ()
       o->newline() << "/* register " << i << " */";
       session->probes[i]->emit_registrations (o, i);
 
-      o->newline() << "if (rc) {";
+      o->newline() << "if (unlikely (rc)) {";
       // In case it's just a lower-layer (kprobes) error that set rc
       // but not session_state, do that here to prevent any other BEGIN
       // probe from attempting to run.
@@ -1203,14 +1221,14 @@ c_unparser::visit_block (block *s)
   o->newline() << "{";
   o->indent (1);
   o->newline() << "c->actioncount += " << s->statements.size() << ";";
-  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
+  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
       try
         {
           // XXX: it's probably not necessary to check this so frequently
-	  o->newline() << "if (c->errorcount) goto out;";
+	  o->newline() << "if (unlikely (c->errorcount)) goto out;";
           s->statements[i]->visit (this);
 	  o->newline();
         }
@@ -1278,7 +1296,7 @@ c_unparser::visit_for_loop (for_loop *s)
   o->newline() << contlabel << ":";
 
   o->newline() << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
+  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -1843,7 +1861,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
   
-  o->newline() << "if (c->errorcount) goto out;";
+  o->newline() << "if (unlikely (c->errorcount)) goto out;";
   
   {
     mapvar mvar = getmap (e->referent, e->tok);
@@ -1919,7 +1937,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. ++a[a[c]=5] could deadlock
   
-  o->newline() << "if (c->errorcount) goto out;";
+  o->newline() << "if (unlikely (c->errorcount)) goto out;";
   
   prepare_rvalue (op, rvar, e->tok);
   
@@ -1982,9 +2000,9 @@ c_unparser::visit_functioncall (functioncall* e)
     }
 
   o->newline();
-  o->newline() << "if (c->nesting+2 >= MAXNESTING) goto out;";
+  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) goto out;";
   o->newline() << "c->actioncount ++;";
-  o->newline() << "if (c->actioncount > MAXACTION) goto out;";
+  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
   o->newline();
 
   // copy in actual arguments

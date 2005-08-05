@@ -1,15 +1,24 @@
 #! stap -p4
 
-global foo, bar
+global foo, bar, baz
 
 probe begin
 {
 	x = 10
 	foo["hello"] = 25
 	foo["hello"]++
+	foo["hello"] = 0;
 	++foo["hello"]
 	x = foo["hello"]
 	foo["yo"] *= bar[x, foo["hello"], "goodbye"]++;
+	bar[0, 0, ""] = 0
+
+	foreach ([m, o, p] in bar) baz[m] = p
+
+	# empty string treatment
+	baz[10] = ""
+	q = baz[223] 
+
 	printk("hello from systemtap")
 }
 

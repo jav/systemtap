@@ -279,7 +279,7 @@ dwflpp
     Dwarf_Addr bias;
     assert(dwfl);
     get_module_dwarf();
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focusing on cu containing global addr " << a << endl;
     focus_on_cu(dwfl_module_addrdie(module, a, &bias));
     assert(bias == module_bias);

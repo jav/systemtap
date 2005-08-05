@@ -30,6 +30,7 @@ load_module()
     fi
 }
 
+prefix=@prefix@
 VAR_DIR=@localstatedir@/cache/systemtap
 
 RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``

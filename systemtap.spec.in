@@ -15,8 +15,11 @@ ExclusiveArch: %{ix86} x86_64
 BuildRoot: %{_tmppath}/%{name}-root
 
 Requires: kernel >= 2.6.9-11
-Requires: tcl gcc make
-BuildRequires: doxygen
+Requires: kernel-devel
+# or is that kernel-smp-devel?
+Requires: kernel-debuginfo
+Requires: gcc make
+# Requires: tcl
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
