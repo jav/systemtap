@@ -1,0 +1,10 @@
+#! stap -p2
+
+global foo
+probe kernel.function("pipe_write")
+{
+   a = $filp
+   foo [a] = 1
+   # $filp is not an lvalue here
+   foo [$filp] ++
+}
