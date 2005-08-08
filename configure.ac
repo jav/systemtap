@@ -37,8 +37,8 @@ fi
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
-AC_SUBST(DATE)
+AC_SUBST(DATE, "$date")
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check)
+AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1)
 AC_OUTPUT

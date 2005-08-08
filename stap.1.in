@@ -1,5 +1,4 @@
-.\" t
-.TH STAP 1 "July 28 2005" "Red Hat"
+.TH STAP 1 @DATE@ "Red Hat"
 .SH NAME
 stap \- systemtap script translator/driver
 .SH SYNOPSIS
@@ -27,12 +26,12 @@ stap \- systemtap script translator/driver
 
 The
 .IR stap
-program is the front-end to the Systemtap tool.  
-It accepts probing instructions (written in a simple scripting language), translates
+program is the front-end to the Systemtap tool.  It accepts probing
+instructions (written in a simple scripting language), translates
 those instructions into C code, compiles this C code, and loads the
 resulting kernel module into a running Linux kernel to perform the
-requested system trace/probe functions.  
-You can supply the script in a named file, from standard input, or from the command line.
+requested system trace/probe functions.  You can supply the script in
+a named file, from standard input, or from the command line.
 .PP
 The language, which is described in a later section, is strictly typed,
 declaration free, procedural, and inspired by
@@ -44,6 +43,8 @@ with handlers, which are subroutines that are executed synchronously.  It is
 somewhat similar conceptually to "breakpoint command lists" in the
 .IR gdb
 debugger.
+.PP
+This manual corresponds to version @VERSION@.
 
 .SH OPTIONS
 The systemtap translator supports the following options.  Any other option
@@ -96,11 +97,11 @@ precedence.
 Whitespace is ignored.  Three forms of comments are supported:
 .RS
 .br
-# ... shell style, to the end of line
+.BR # " ... shell style, to the end of line"
 .br
-// ... C++ style, to the end of line 
+.BR // " ... C++ style, to the end of line"
 .br
-/* ... C style ... */
+.BR /* " ... C style ... " */
 .RE
 Literals are either strings enclosed in double-quotes (soon supporting
 the usual C escape codes with backslashes), or integers (in decimal,
@@ -135,7 +136,7 @@ declaration marks "var1" and "var2" as global.  The translator will
 infer for each its value type, and if it is used as an array, its key
 types.
 .RS
-global var1, var2
+.BR global " var1" , " var2"
 .RE
 .\" XXX add statistics type here once it's supported
 
@@ -262,17 +263,17 @@ that are visible there.
 .RS
 .nf
 .br
-.BR kernel.function( PATTERN )
+kernel.function(PATTERN)
 .br
-.BR kernel.function( PATTERN ).return
+kernel.function(PATTERN).return
 .br
-.BR module( MPATTERN ).function( PATTERN )
+module(MPATTERN).function(PATTERN)
 .br
-.BR module( MPATTERN ).function( PATTERN ).return
+module(MPATTERN).function(PATTERN).return
 .br
-.BR kernel.statement( PATTERN )
+kernel.statement(PATTERN)
 .br
-.BR module( MPATTERN ).statement( PATTERN )
+module(MPATTERN).statement(PATTERN)
 .fi
 .RE
 .PP
@@ -294,18 +295,18 @@ As an alternative, PATTERN may be a numeric constant, indicating an
 .PP
 Here are some example probe points:
 .TP
-.B kernel.function("*init*"), kernel.function("*exit*")
+kernel.function("*init*"), kernel.function("*exit*")
 refers to all kernel functions with "init" or "exit" in the name.
 .TP
-.B kernel.function("*@kernel/sched.c:240")
+kernel.function("*@kernel/sched.c:240")
 refers to any functions within the "kernel/sched.c" file that span
 line 240.
 .TP
-.B module("usb*").function("*sync*").return
+module("usb*").function("*sync*").return
 refers to the moment of return from all functions with "sync" in the
 name in any of the USB drivers.
 .TP
-.B kernel.statement(0xc0044852)
+kernel.statement(0xc0044852)
 refers to the first byte of the statement whose compiled instructions
 include the given address in the kernel.
 
@@ -419,7 +420,9 @@ functions in order to write compatible embedded-C ones.
 .SS BUILT-INS
 A set of builtin functions and probe aliases are provided by the
 scripts installed under the
+.nh
 .IR /usr/share/systemtap/tapset
+.hy
 directory.
 
 .SH PROCESSING
@@ -518,10 +521,9 @@ stap -p2 -e 'probe kernel.function("*") {}'
 .RE
 
 .SH SAFETY AND SECURITY
-Systemtap is an administrative tool at this time.  It exposes kernel
-internal data structures and potentially private user information.
-It acquires root privileges to actually run the kernel objects it
-builds using the
+Systemtap is an administrative tool.  It exposes kernel internal data
+structures and potentially private user information.  It acquires root
+privileges to actually run the kernel objects it builds using the
 .IR sudo
 command applied to the
 .IR stpd
