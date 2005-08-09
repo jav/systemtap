@@ -106,7 +106,8 @@ vardecl::vardecl ():
 void
 vardecl::set_arity (int a)
 {
-  assert (a >= 0);
+  if (a < 0)
+    return;
 
   if (arity != a && arity >= 0)
     throw semantic_error ("inconsistent arity", tok);
@@ -123,7 +124,7 @@ vardecl::set_arity (int a)
 bool 
 vardecl::compatible_arity (int a)
 {
-  if (arity == -1)
+  if (arity == -1 || a == -1)
     return true;
   return arity == a;
 }

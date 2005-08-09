@@ -35,10 +35,8 @@ public:
 
   // XXX: instead in systemtap_session?
   void derive_probes (match_node * root, probe *p, std::vector<derived_probe*>& dps);
-
-protected:
   
-  vardecl* find_var (const std::string& name, unsigned arity);
+  vardecl* find_var (const std::string& name, int arity);
   functiondecl* find_function (const std::string& name, unsigned arity);
 
   void visit_block (block *s);
@@ -46,6 +44,7 @@ protected:
   void visit_foreach_loop (foreach_loop* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
+  void visit_delete_statement (delete_statement* s);
 };
 
 

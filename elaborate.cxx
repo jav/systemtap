@@ -730,6 +730,45 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
   e->block->visit (this);
 }
 
+struct 
+delete_statement_symresolution_info:
+  public traversing_visitor
+{
+  symresolution_info *parent;
+
+  delete_statement_symresolution_info (symresolution_info *p):
+    parent(p)
+  {}
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    parent->visit_arrayindex (e);
+  }
+  void visit_functioncall (functioncall* e)
+  {
+    parent->visit_functioncall (e);
+  }
+
+  void visit_symbol (symbol* e)
+  {
+    if (e->referent)
+      return;
+    
+    vardecl* d = parent->find_var (e->name, -1);
+    if (d)
+      e->referent = d;
+    else
+      throw semantic_error ("unresolved array in delete statement", e->tok);
+  }
+};
+
+void 
+symresolution_info::visit_delete_statement (delete_statement* s)
+{
+  delete_statement_symresolution_info di (this);
+  s->value->visit (&di);
+}
+
 
 void
 symresolution_info::visit_symbol (symbol* e)
@@ -807,7 +846,7 @@ symresolution_info::visit_functioncall (functioncall* e)
 
 
 vardecl* 
-symresolution_info::find_var (const string& name, unsigned arity)
+symresolution_info::find_var (const string& name, int arity)
 {
 
   // search locals
@@ -837,12 +876,12 @@ symresolution_info::find_var (const string& name, unsigned arity)
   // search processed globals
   for (unsigned i=0; i<session.globals.size(); i++)
     if (session.globals[i]->name == name
-	&& session.globals[i]->compatible_arity(arity))
+	&& session.globals[i]->compatible_arity(arity))  
       {
 	session.globals[i]->set_arity (arity);
 	return session.globals[i];
       }
-
+  
   // search library globals
   for (unsigned i=0; i<session.library_files.size(); i++)
     {
@@ -852,7 +891,7 @@ symresolution_info::find_var (const string& name, unsigned arity)
           vardecl* g = f->globals[j];
           if (g->name == name && g->compatible_arity (arity))
             {
-              g->set_arity (arity);
+	      g->set_arity (arity);
               
               // put library into the queue if not already there	    
               if (find (session.files.begin(), session.files.end(), f) 
@@ -1510,11 +1549,35 @@ typeresolution_info::visit_expr_statement (expr_statement* e)
 }
 
 
+struct delete_statement_typeresolution_info: 
+  public throwing_visitor
+{
+  typeresolution_info *parent;
+  delete_statement_typeresolution_info (typeresolution_info *p):
+    throwing_visitor ("invalid operand of delete expression"),
+    parent (p)
+  {}
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    parent->visit_arrayindex (e);
+  }
+  
+  void visit_symbol (symbol* e)
+  {
+    exp_type ignored = pe_unknown;
+    assert (e->referent != 0);    
+    resolve_2types (e, e->referent, parent, ignored);
+  }
+};
+
+
 void
 typeresolution_info::visit_delete_statement (delete_statement* e)
 {
-  // XXX: not yet supported
-  unresolved (e->tok);
+  delete_statement_typeresolution_info di (this);
+  t = pe_unknown;
+  e->value->visit (&di);
 }
 
 

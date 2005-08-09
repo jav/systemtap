@@ -1,3 +1,20 @@
+2005-08-09  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx: 
+	(delete_statement_symresolution_info): New struct.
+	(symresolution_info::visit_delete_statement): Use it.
+	(delete_statement_typeresolution_info): New struct.
+	(typeresolution_info::visit_delete_statement): Use it.
+	(symresolution_info::find_var): Accept -1 as 'unknown' arity.
+	* elaborate.h: Update to reflect changes in .cxx.
+	* translate.cxx (mapvar::del): New method.
+	(c_unparser::getmap): Check arity >= 1;
+	(delete_statement_operand_visitor): New struct.
+	(c_unparser::visit_delete_statement): Use it.
+	* staptree.cxx (vardecl::set_arity): Accept and ignore -1.
+	(vardecl::compatible_arity): Likewise.
+	* testsuite/buildok/eight.stp: New test for 'delete' operator.
+
 2005-08-08  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-test.c: New file.

@@ -327,6 +327,11 @@ struct mapvar
   static string key_typename(exp_type e);
   static string value_typename(exp_type e);
 
+  string del () const
+  {
+    return "_stp_map_key_del (" + qname() + ")";
+  }
+
   string seek (vector<tmpvar> const & indices) const
   {
     string result = "_stp_map_key" + mangled_indices() + " (";
@@ -1203,7 +1208,9 @@ c_unparser::getvar(vardecl *v, token const *tok)
 
 mapvar 
 c_unparser::getmap(vardecl *v, token const *tok) 
-{ 
+{   
+  if (v->arity < 1)
+    throw new semantic_error("attempt to use scalar where map expected", tok);
   return mapvar (is_local (v, tok), v->type, v->name, v->index_types);
 }
 
@@ -1380,10 +1387,47 @@ c_unparser::visit_next_statement (next_statement* s)
 }
 
 
+struct delete_statement_operand_visitor:
+  public throwing_visitor
+{
+  c_unparser *parent;
+  delete_statement_operand_visitor (c_unparser *p):
+    throwing_visitor ("invalid operand of delete expression"),
+    parent (p)
+  {}
+  void visit_symbol (symbol* e);
+  void visit_arrayindex (arrayindex* e);
+};
+
+void 
+delete_statement_operand_visitor::visit_symbol (symbol* e)
+{
+  mapvar mvar = parent->getmap(e->referent, e->tok);  
+  varlock guard (*parent, mvar);
+  parent->o->newline() << mvar.fini ();
+  parent->o->newline() << mvar.init ();  
+}
+
+void 
+delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
+{
+  vector<tmpvar> idx;
+  parent->load_map_indices (e, idx);
+  parent->o->newline() << "if (unlikely (c->errorcount)) goto out;";
+  {
+    mapvar mvar = parent->getmap (e->referent, e->tok);
+    varlock guard (*parent, mvar);
+    parent->o->newline() << mvar.seek (idx) << ";";
+    parent->o->newline() << mvar.del () << ";";
+  }
+}
+
+
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
-  throw semantic_error ("delete statement not yet implemented", s->tok);
+  delete_statement_operand_visitor dv (this);
+  s->value->visit (&dv);
 }
 
 
