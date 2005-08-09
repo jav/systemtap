@@ -23,6 +23,10 @@ noinst_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 
+noinst_PROGRAMS += loc2c-test
+loc2c_test_SOURCES = loc2c-test.c loc2c.c
+loc2c_test_LDADD = @stap_LIBS@
+
 # Get extra libs as needed
 LDADD =
 
