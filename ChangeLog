@@ -1,7 +1,7 @@
 2005-08-08  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-test.c: New file.
-	* Makefile.am (stpd_LDADD): Add loc2c-test.
+	* Makefile.am (noinst_PROGRAMS): Add loc2c-test.
 	(loc2c_test_SOURCES, loc2c_test_LDADD): New variables.
 	* Makefile.in, aclocal.m4: Regenerated.
 
