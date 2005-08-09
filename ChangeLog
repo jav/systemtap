@@ -1,3 +1,10 @@
+2005-08-08  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-test.c: New file.
+	* Makefile.am (stpd_LDADD): Add loc2c-test.
+	(loc2c_test_SOURCES, loc2c_test_LDADD): New variables.
+	* Makefile.in, aclocal.m4: Regenerated.
+
 2005-08-08  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stap.1.in: Autoconfify old man page.
@@ -9,13 +16,13 @@
 
 	* runtest.sh: Keep around log files from crashed processes,
 	those whose rc is neither 0 nor 1.
-	
+
 2005-08-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_statement|function|cu|module): Add explicit
 	nested try/catch, since elfutils iteration seems to block
 	exception catching.
-	
+
 2005-08-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR translator/1175
@@ -46,12 +53,12 @@
 
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 
-	* stp_check.in : Copy sources to /var/cache/systemtap.	
+	* stp_check.in : Copy sources to /var/cache/systemtap.
 	* systemtap.spec.in: Install stp_check.
 	* Makefile.am (install-exec-local): Install stp_check.
-	
+
 2005-08-03  Martin Hunt  <hunt@redhat.com>
-	
+
 	* configure.ac: Add stp_check to AC_CONFIG_FILES.
 	* stp_check.in : New file.
 
