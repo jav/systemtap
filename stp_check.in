@@ -36,7 +36,7 @@ VAR_DIR=@localstatedir@/cache/systemtap
 RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``
 if [ -z "$RELAYFS" ]
 then
-    RELAYFS=`lsmod | grep relayfs`
+    RELAYFS=`/sbin/lsmod | grep relayfs`
     if [ -z "$RELAYFS" ]
     then
 	MODULE_NAME=relayfs
@@ -58,7 +58,7 @@ then
 	mount -t relayfs relayfs /mnt/relay
 fi
 
-STP_CONTROL=`lsmod | grep stp_control |awk '{print $1}'`
+STP_CONTROL=`/sbin/lsmod | grep stp_control |awk '{print $1}'`
 if [ "$STP_CONTROL" != "stp_control" ] 
 then
     MODULE_NAME=stp-control

@@ -1,3 +1,9 @@
+2005-08-09  Martin Hunt  <hunt@redhat.com>
+
+	PR 1174
+	* stp_check.in: Supply path for lsmod. 
+	* stp_check: Removed.
+
 2005-08-09  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.cxx: 
