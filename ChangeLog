@@ -1,5 +1,11 @@
 2005-08-10  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx: Correct hex/decimal misformatting of verbose messages.
+	* main.cxx: Add formal "-h" and "-V" options.
+	* stap.1.in: Document them.
+
+2005-08-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx: Move around "focusing on ..." messages to print
 	them only for matching functions/modules.
 	(dwflpp ctor): Also add cu (source file) name to derived

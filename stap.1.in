@@ -56,6 +56,12 @@ prints a list of supported options.
 .B \-v
 Verbose mode.  Produces more informative output.
 .TP
+.B \-h
+Show help message.
+.TP
+.B \-V
+Show version message.
+.TP
 .B \-k
 Keep the temporary directory after all processing.  This may be useful
 in order to examine the generated C code, or to reuse the compiled

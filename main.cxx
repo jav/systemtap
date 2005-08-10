@@ -30,14 +30,21 @@ using namespace std;
 
 
 void
-usage (systemtap_session& s)
+version ()
 {
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
     << "Copyright (C) 2005 Red Hat, Inc." << endl
     << "This is free software; see the source for copying conditions."
-    << endl
+    << endl;
+}
+
+void
+usage (systemtap_session& s)
+{
+  version ();
+  clog
     << endl
     << "Usage: stap [options] FILE         Run script in file."
     << endl
@@ -46,9 +53,11 @@ usage (systemtap_session& s)
     << "   or: stap [options] -e SCRIPT    Run given script."
     << endl
     << endl
-    << "Arguments:" << endl
+    << "Options:" << endl
     << "   --         no more options after this" << endl
-    << "   -v         verbose" << (s.verbose ? " [set]" : "")
+    << "   -v         verbose" << (s.verbose ? " [set]" : "") << endl
+    << "   -h         show help" << endl
+    << "   -V         show version" << endl
     << endl
     << "   -k         keep temporary directory" << endl
     // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
@@ -123,11 +132,15 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "vp:I:e:o:tR:r:m:kg");
+      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kg");
       if (grc < 0)
         break;
       switch (grc)
         {
+        case 'V':
+          version ();
+          exit (0);
+
         case 'v':
 	  s.verbose = true;
 	  break;
@@ -180,7 +193,6 @@ main (int argc, char * const argv [])
           s.guru_mode = true;
           break;
 
-        case '?':
         case 'h':
         default:
           usage (s);

@@ -220,12 +220,6 @@ dwflpp
 
     function_name.clear();
     function = NULL;
-
-    if (false && sess.verbose)
-      clog << "focused on module '" << module_name 
-	   << "' = [" << hex << module_start 
-	   << " ,"    << hex << module_end 
-	   << "]" << endl;
   }
 
 
@@ -240,10 +234,6 @@ dwflpp
     // Reset existing pointers and names
     function_name.clear();
     function = NULL;
-
-    if (false && sess.verbose)
-      clog << "focused on CU '" << cu_name
-	   << "', in module '" << module_name << "'" << endl;
   }
 
 
@@ -256,11 +246,6 @@ dwflpp
     function = f;
     function_name = default_name(dwarf_func_name(function),
 				 "function");
-
-    if (false && sess.verbose)
-      clog << "focused on function '" << function_name
-	   << "', in CU '" << cu_name
-	   << "', module '" << module_name << "'" << endl;
   }
 
 
@@ -426,16 +411,12 @@ dwflpp
 					     void *),
 			    void * data)
   {
-    if (false && sess.verbose)
-      clog << "iterating over modules" << endl;
     ptrdiff_t off = 0;
     do
       {
 	off = dwfl_getmodules (dwfl, callback, data, off);
       }
     while (off > 0);
-    if (false && sess.verbose)
-      clog << "finished iterating over modules" << endl;
     dwflpp_assert("getdwarf", off);
   }
 
@@ -449,9 +430,6 @@ dwflpp
 	cerr << "WARNING: no dwarf info found for module " << module_name << endl;
 	return;
       }
-
-    if (false && sess.verbose)
-      clog << "iterating over CUs in module " << module_name << endl;
 
     Dwarf *dw = module_dwarf;
     Dwarf_Off off = 0;
@@ -473,8 +451,6 @@ dwflpp
   {
     assert(module);
     assert(cu);
-    if (false && sess.verbose)
-      clog << "iterating over functions in CU " << cu_name << endl;
     dwarf_getfuncs(cu, callback, data, 0);
   }
 
@@ -598,8 +574,8 @@ dwflpp
 	    *addr = line_addr;
 	    if (sess.verbose)
 	      clog << "function " << function_name
-		   << " entrypc: " << entrypc
-		   << " prologue-end: " << line_addr
+		   << " entrypc: " << hex << entrypc
+		   << " prologue-end: " << line_addr << dec
 		   << endl;
 	    return true;
 	  }
@@ -1176,8 +1152,8 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
     if (q->sess.verbose)
       clog << "focused on module '" << q->dw.module_name 
 	   << "' = [" << hex << q->dw.module_start 
-	   << " ,"    << hex << q->dw.module_end 
-	   << "]" << endl;
+	   << "-" << q->dw.module_end 
+	   << ", bias " << q->dw.module_bias << "]" << dec << endl;
 
       if (q->has_function_num || q->has_statement_num)
         {
