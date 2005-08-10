@@ -221,7 +221,7 @@ dwflpp
     function_name.clear();
     function = NULL;
 
-    if (sess.verbose)
+    if (false && sess.verbose)
       clog << "focused on module '" << module_name 
 	   << "' = [" << hex << module_start 
 	   << " ,"    << hex << module_end 
@@ -379,12 +379,15 @@ dwflpp
 
   void setup(bool kernel)
   {
+    // XXX: this is where the session -R parameter could come in
+    static char* debuginfo_path = "-:.debug:/usr/lib/debug";
+
     static const Dwfl_Callbacks proc_callbacks =
       {
 	dwfl_linux_proc_find_elf,
 	dwfl_standard_find_debuginfo,
 	NULL,
-	NULL
+        & debuginfo_path
       };
 
     static const Dwfl_Callbacks kernel_callbacks =
@@ -392,7 +395,7 @@ dwflpp
 	dwfl_linux_kernel_find_elf,
 	dwfl_standard_find_debuginfo,
 	dwfl_linux_kernel_module_section_address,
-	NULL
+        & debuginfo_path
       };
 
     if (kernel)
@@ -1037,9 +1040,16 @@ query_function(Dwarf_Func * func, void * arg)
         {
           if (q->dw.function_name_matches(q->function))
             {
+              if (q->sess.verbose)
+                clog << "focused on function '" << q->dw.function_name
+                     << "', in CU '" << q->dw.cu_name
+                     << "', module '" << q->dw.module_name << "'" << endl;
+
               // XXX: This code is duplicated below, but it's important
               // for performance reasons to test things in this order.
-              
+
+              // XXX: omit prologue search for statement() and
+              // function().return
               if (!q->dw.function_prologue_end(&entry_addr))
                 {
                   if (q->sess.verbose)
@@ -1070,8 +1080,11 @@ query_function(Dwarf_Func * func, void * arg)
               if (q->dw.function_includes_global_addr(query_addr))
                 {
                   
+                  // XXX: omit prologue search for statement() and
+                  // function().return
                   if (!q->dw.function_prologue_end(&entry_addr))
                     {
+                      // XXX: ... then can reinstate warning
                       if (false && q->sess.verbose)
                         clog << "WARNING: cannot find prologue-end PC for function "
                              << q->dw.function_name << endl;
@@ -1109,6 +1122,10 @@ query_cu (Dwarf_Die * cudie, void * arg)
               q->spec_type == function_and_file)
           && (!q->dw.cu_name_matches(q->file)))
         return DWARF_CB_OK;
+
+      if (false && q->sess.verbose)
+        clog << "focused on CU '" << q->dw.cu_name
+             << "', in module '" << q->dw.module_name << "'" << endl;
       
       if (q->has_statement_str
           && (q->spec_type == function_file_and_line)
@@ -1155,7 +1172,13 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       
       if (q->has_module && !q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
-      
+
+    if (q->sess.verbose)
+      clog << "focused on module '" << q->dw.module_name 
+	   << "' = [" << hex << q->dw.module_start 
+	   << " ,"    << hex << q->dw.module_end 
+	   << "]" << endl;
+
       if (q->has_function_num || q->has_statement_num)
         {
           // If we have module("foo").function(0xbeef) or
@@ -1270,10 +1293,12 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
   
   if (!function_name.empty())
     {
+      string fullname = function_name + "@" + q.dw.cu_name;
+      // XXX: add line number when available
+
       comps.push_back
 	(new probe_point::component
-	 (TOK_FUNCTION, new literal_string(function_name)));
-      // XXX: add "@filename:linenumber" when able
+	 (TOK_FUNCTION, new literal_string(fullname)));
 
       if (has_return)
 	comps.push_back
