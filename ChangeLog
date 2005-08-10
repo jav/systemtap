@@ -1,3 +1,31 @@
+2005-08-09  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.{cxx,h} 	
+	(target_symbol): New struct.	
+	(*_visitor::visit_target_symbol): Support it.
+	(visitor::active_lvalues)
+	(visitor::is_active_lvalue)
+	(visitor::push_active_lvalue)
+	(visitor::pop_active_lvalue): Support lvalue-detection.
+	(delete_statement::visit)
+	(pre_crement::visit)
+	(post_crement::visit)
+	(assignment::visit): Push and pop lvalue expressions.
+	* elaborate.{cxx,h} 
+	(lvalule_aware_traversing_visitor): Remove class.
+	(no_map_mutation_during_iteration_check)
+	(mutated_map_collector): Update lvalue logic.
+	(typeresolution_info::visit_target_symbol): Add, throw error.
+	* parse.{cxx,h}
+	(tt2str)
+	(tok_is)
+	(parser::expect_*)
+	(parser::peek_*): New helpers.
+	(parser::parse_symbol): Rewrite, support target_symbols.
+	* translate.cxx (c_unparser::visit_target_symbol): Implement.
+	* tapsets.cxx (var_expanding_copy_visitor): Update lvalue logic,
+	change visit_symbol to visit_target_symbol.
+
 2005-08-09  Martin Hunt  <hunt@redhat.com>
 
 	PR 1174

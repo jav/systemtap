@@ -1204,58 +1204,15 @@ struct
 var_expanding_copy_visitor
   : public deep_copy_visitor
 {
-  // Alas, we cannot easily mixin lvalue_aware_traversing_visitor.
-  // But behold the *awesome power* of copy and paste.
-
   static unsigned tick;
 
   dwarf_query & q;
-  unsigned lval_depth;
   Dwarf_Addr addr;
 
   var_expanding_copy_visitor(dwarf_query & q, Dwarf_Addr a)
-    : q(q), lval_depth(0), addr(a)
+    : q(q), addr(a)
   {}
-
-  bool is_in_lvalue()
-  {
-    return lval_depth > 0;
-  }
-
-  void visit_pre_crement (pre_crement* e)
-  {
-    ++lval_depth;
-    deep_copy_visitor::visit_pre_crement (e);
-    --lval_depth;
-  }
-
-  void visit_post_crement (post_crement* e)
-  {
-    ++lval_depth;
-    deep_copy_visitor::visit_post_crement (e);
-    --lval_depth;
-  }
-
-  void visit_assignment (assignment* e)
-  {
-    assignment* n = new assignment;
-    n->op = e->op;
-    n->tok = e->tok;
-    ++lval_depth;
-    require <expression*> (this, &(n->left), e->left);
-    --lval_depth;
-    require <expression*> (this, &(n->right), e->right);
-    provide <assignment*> (this, n);
-  }
-
-  void visit_delete_statement (delete_statement* s)
-  {
-    ++lval_depth;
-    deep_copy_visitor::visit_delete_statement (s);
-    --lval_depth;
-  }
-
-  void visit_symbol (symbol* e);
+  void visit_target_symbol (target_symbol* e);
 };
 
 
@@ -1263,40 +1220,33 @@ unsigned var_expanding_copy_visitor::tick = 0;
 
 
 void
-var_expanding_copy_visitor::visit_symbol (symbol *e)
+var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
-  if (e->name.size() > 0 &&
-      e->name[0] == '$')
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+    
+  if (is_active_lvalue(e))
     {
-      if (is_in_lvalue())
-	{
-	  throw semantic_error("read-only special variable "
-			       + e->name + " used in lvalue", e->tok);
-	}
-
-      string fname = "get_" + e->name.substr(1) + "_" + lex_cast<string>(tick++);
-
-      // synthesize a function
-      functiondecl *fdecl = new functiondecl;
-      embeddedcode *ec = new embeddedcode;
-      ec->code = q.dw.literal_stmt_for_local(addr, e->name.substr(1));
-      fdecl->name = fname;
-      fdecl->body = ec;
-      fdecl->type = pe_long;
-      q.sess.functions.push_back(fdecl);
-
-      // synthesize a call
-      functioncall* n = new functioncall;
-      n->tok = e->tok;
-      n->function = fname;
-      n->referent = NULL;
-      provide <functioncall*> (this, n);
-
+      throw semantic_error("read-only special variable "
+			   + e->base_name + " used as lvalue", e->tok);
     }
-  else
-    {
-      deep_copy_visitor::visit_symbol (e);
-    }
+  
+  string fname = "get_" + e->base_name.substr(1) + "_" + lex_cast<string>(tick++);
+
+  // synthesize a function
+  functiondecl *fdecl = new functiondecl;
+  embeddedcode *ec = new embeddedcode;
+  ec->code = q.dw.literal_stmt_for_local(addr, e->base_name.substr(1));
+  fdecl->name = fname;
+  fdecl->body = ec;
+  fdecl->type = pe_long;
+  q.sess.functions.push_back(fdecl);
+  
+  // synthesize a call
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = NULL;
+  provide <functioncall*> (this, n);  
 }
 
 

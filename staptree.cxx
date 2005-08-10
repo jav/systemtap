@@ -232,6 +232,26 @@ void symbol::print (ostream& o)
 }
 
 
+void target_symbol::print (std::ostream& o)
+{
+  o << base_name;
+  for (unsigned i = 0; i < components.size(); ++i)
+    {
+      switch (components[i].first)
+	{
+	case comp_literal_array_index:
+	  o << '[' << components[i].second << ']';
+	  break;
+	case comp_struct_pointer_member:
+	  o << "->" << components[i].second;
+	  break;
+	case comp_struct_member:
+	  o << "." << components[i].second;
+	}
+    }
+}
+
+
 void vardecl::print (ostream& o)
 {
   o << name;
@@ -540,7 +560,9 @@ return_statement::visit (visitor* u)
 void
 delete_statement::visit (visitor* u)
 {
+  u->push_active_lvalue (this->value);
   u->visit_delete_statement (this);
+  u->pop_active_lvalue ();
 }
 
 void
@@ -594,13 +616,17 @@ unary_expression::visit (visitor* u)
 void
 pre_crement::visit (visitor* u)
 {
+  u->push_active_lvalue (this->operand);
   u->visit_pre_crement (this);
+  u->pop_active_lvalue ();
 }
 
 void
 post_crement::visit (visitor* u)
 {
+  u->push_active_lvalue (this->operand);
   u->visit_post_crement (this);
+  u->pop_active_lvalue ();
 }
 
 void
@@ -642,13 +668,21 @@ ternary_expression::visit (visitor* u)
 void
 assignment::visit (visitor* u)
 {
+  u->push_active_lvalue (this->left);
   u->visit_assignment (this);
+  u->pop_active_lvalue ();
 }
 
 void
 symbol::visit (visitor* u)
 {
   u->visit_symbol (this);
+}
+
+void 
+target_symbol::visit (visitor* u)
+{
+  u->visit_target_symbol(this);
 }
 
 void
@@ -662,6 +696,33 @@ functioncall::visit (visitor* u)
 {
   u->visit_functioncall (this);
 }
+
+// ------------------------------------------------------------------------
+
+bool 
+visitor::is_active_lvalue(expression *e)
+{
+  for (unsigned i = 0; i < active_lvalues.size(); ++i)
+    {
+      if (active_lvalues[i] == e)
+	return true;
+    }
+  return false;
+}
+
+void 
+visitor::push_active_lvalue(expression *e)
+{
+  active_lvalues.push_back(e);
+}
+
+void 
+visitor::pop_active_lvalue()
+{
+  assert(!active_lvalues.empty());
+  active_lvalues.pop_back();
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -829,6 +890,11 @@ traversing_visitor::visit_assignment (assignment* e)
 
 void
 traversing_visitor::visit_symbol (symbol* e)
+{
+}
+
+void
+traversing_visitor::visit_target_symbol (target_symbol* e)
 {
 }
 
@@ -1013,6 +1079,12 @@ throwing_visitor::visit_assignment (assignment* e)
 
 void
 throwing_visitor::visit_symbol (symbol* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_target_symbol (target_symbol* e)
 {
   throwone (e->tok);
 }
@@ -1296,6 +1368,16 @@ deep_copy_visitor::visit_symbol (symbol* e)
   n->name = e->name;
   n->referent = NULL;
   provide <symbol*> (this, n);
+}
+
+void
+deep_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  target_symbol* n = new target_symbol;
+  n->tok = e->tok;
+  n->base_name = e->base_name;
+  n->components = e->components;
+  provide <target_symbol*> (this, n);
 }
 
 void

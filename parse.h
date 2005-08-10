@@ -92,6 +92,17 @@ private:
 
   const token* last_t; // the last value returned by peek() or next()
   const token* next_t; // lookahead token
+  
+  // expectations
+  const token* expect_known (token_type tt, std::string const & expected);
+  const token* expect_unknown (token_type tt, std::string & target);
+
+  // convenience forms
+  const token* expect_op (std::string const & expected);
+  const token* expect_kw (std::string const & expected);
+  const token* expect_ident (std::string & target);
+  bool peek_op (std::string const & op);
+  bool peek_kw (std::string const & kw);
 
   void print_error (const parse_error& pe);
   unsigned num_errors;

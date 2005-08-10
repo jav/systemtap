@@ -55,17 +55,25 @@ parser::parse (const std::string& n, bool pr)
   return p.parse ();
 }
 
+static string
+tt2str(token_type tt)
+{
+  switch (tt)
+    {
+    case tok_junk: return "junk";
+    case tok_identifier: return "identifier";
+    case tok_operator: return "operator";
+    case tok_string: return "string";
+    case tok_number: return "number";
+    case tok_embedded: return "embedded-code";
+    }
+  return "unknown token";
+}
 
 ostream&
 operator << (ostream& o, const token& t)
 {
-  o << (t.type == tok_junk ? "junk" :
-        t.type == tok_identifier ? "identifier" :
-        t.type == tok_operator ? "operator" :
-        t.type == tok_string ? "string" :
-        t.type == tok_number ? "number" :
-        t.type == tok_embedded ? "embedded-code" :
-        "unknown token");
+  o << tt2str(t.type);
 
   if (t.type != tok_embedded) // XXX: other types?
     {
@@ -139,6 +147,70 @@ parser::peek ()
   last_t = next_t;
   return next_t;
 }
+
+
+static inline bool
+tok_is(token const * t, token_type tt, string const & expected)
+{
+  return t && t->type == tt && t->content == expected;
+}
+
+
+const token* 
+parser::expect_known (token_type tt, string const & expected)
+{
+  const token *t = next();
+  if (! t && t->type == tt && t->content == expected)
+    throw parse_error ("expected '" + expected + "'");
+  return t;
+}
+
+
+const token* 
+parser::expect_unknown (token_type tt, string & target)
+{
+  const token *t = next();
+  if (!(t && t->type == tt))
+    throw parse_error ("expected " + tt2str(tt));
+  target = t->content;
+  return t;
+}
+
+
+const token* 
+parser::expect_op (std::string const & expected)
+{
+  return expect_known (tok_operator, expected);
+}
+
+
+const token* 
+parser::expect_kw (std::string const & expected)
+{
+  return expect_known (tok_identifier, expected);
+}
+
+
+const token* 
+parser::expect_ident (std::string & target)
+{
+  return expect_unknown (tok_identifier, target);
+}
+
+
+bool 
+parser::peek_op (std::string const & op)
+{
+  return tok_is (peek(), tok_operator, op);
+}
+
+
+bool 
+parser::peek_kw (std::string const & kw)
+{
+  return tok_is (peek(), tok_identifier, kw);
+}
+
 
 
 lexer::lexer (istream& i, const string& in):
@@ -1534,41 +1606,47 @@ parser::parse_value ()
 expression*
 parser::parse_symbol () 
 {
-  const token* t = next ();
-  if (t->type != tok_identifier)
-    throw parse_error ("expected identifier");
+  string name;
+  const token* t = expect_ident (name);
   const token* t2 = t;
-  string name = t->content;
   
-  t = peek ();
-  if (t && t->type == tok_operator && t->content == "->")
+  if (name.size() > 0 && name[0] == '$')
     {
-      // shorthand for process- or thread-specific array element
-      // map "thread->VAR" to "VAR[$tid]",
-      // and "process->VAR" to "VAR[$pid]"
-      symbol* sym = new symbol;
-      if (name == "thread")
-        sym->name = "$tid";
-      else if (name == "process") 
-        sym->name = "$pid";
-      else 
-        throw parse_error ("expected 'thread->' or 'process->'");
-      struct token* t2prime = new token (*t2);
-      t2prime->content = sym->name;
-      sym->tok = t2prime;
-
-      next (); // swallow "->"
-      t = next ();
-      if (! (t->type == tok_identifier))
-        throw parse_error ("expected identifier");
-
-      struct arrayindex* ai = new arrayindex;
-      ai->tok = t;
-      ai->base = t->content;
-      ai->indexes.push_back (sym);
-      return ai;
+      // target_symbol time
+      target_symbol *tsym = new target_symbol;
+      tsym->base_name = name;
+      while (true)
+	{
+	  string c;
+	  if (peek_op ("."))
+	    { 
+	      next();
+	      expect_ident (c);
+	      tsym->components.push_back
+		(make_pair (target_symbol::comp_struct_member, c));
+	    }
+	  else if (peek_op ("->"))
+	    { 
+	      next(); 
+	      expect_ident (c);
+	      tsym->components.push_back
+		(make_pair (target_symbol::comp_struct_pointer_member, c));
+	    }
+	  else if (peek_op ("["))
+	    { 
+	      next();
+	      expect_unknown (tok_number, c);
+	      expect_op ("]");
+	      tsym->components.push_back
+		(make_pair (target_symbol::comp_literal_array_index, c));
+	    }	    
+	  else
+	    break;
+	}
+      return tsym;
     }
-  else if (t && t->type == tok_operator && t->content == "[") // array
+  
+  if (peek_op ("[")) // array
     {
       next ();
       struct arrayindex* ai = new arrayindex;
@@ -1577,25 +1655,29 @@ parser::parse_symbol ()
       while (1)
         {
           ai->indexes.push_back (parse_expression ());
-          t = next ();
-          if (t->type == tok_operator && t->content == "]")
-            break;
-          if (t->type == tok_operator && t->content == ",")
-            continue;
+          if (peek_op ("]"))
+            { 
+	      next(); 
+	      break; 
+	    }
+          else if (peek_op (","))
+	    {
+	      next();
+	      continue;
+	    }
           else
             throw parse_error ("expected ',' or ']'");
         }
       return ai;
     }
-  else if (t && t->type == tok_operator && t->content == "(") // function call
+  else if (peek_op ("(")) // function call
     {
       next ();
       struct functioncall* f = new functioncall;
       f->tok = t2;
       f->function = name;
       // Allow empty actual parameter list
-      const token* t3 = peek ();
-      if (t3 && t3->type == tok_operator && t3->content == ")")
+      if (peek_op (")"))
 	{
 	  next ();
 	  return f;
@@ -1603,11 +1685,16 @@ parser::parse_symbol ()
       while (1)
 	{
 	  f->args.push_back (parse_expression ());
-	  t = next ();
-	  if (t->type == tok_operator && t->content == ")")
-	    break;
-	  if (t->type == tok_operator && t->content == ",")
-	    continue;
+	  if (peek_op (")"))
+	    {
+	      next();
+	      break;
+	    }
+	  else if (peek_op (","))
+	    {
+	      next();
+	      continue;
+	    }
 	  else
 	    throw parse_error ("expected ',' or ')'");
 	}

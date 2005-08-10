@@ -121,6 +121,7 @@ struct c_unparser: public unparser, public visitor
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);
+  void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
 };
@@ -1833,6 +1834,13 @@ c_unparser_assignment::visit_symbol (symbol *e)
   }
 
   parent->o->newline() << res << ";";
+}
+
+
+void 
+c_unparser::visit_target_symbol (target_symbol* e)
+{
+  throw semantic_error("cannot translate general target-symbol expression");
 }
 
 

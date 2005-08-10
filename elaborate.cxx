@@ -396,53 +396,9 @@ symresolution_info::derive_probes (match_node * root,
 // Map usage checks
 //
 
-class lvalue_aware_traversing_visitor
-  : public traversing_visitor
-{
-  unsigned lval_depth;
-public:
-
-  lvalue_aware_traversing_visitor() : lval_depth(0) {}
-
-  bool is_in_lvalue()
-  {
-    return lval_depth > 0;
-  }
-
-  virtual void visit_pre_crement (pre_crement* e)
-  {
-    ++lval_depth;
-    e->operand->visit (this);
-    --lval_depth;
-  }
-
-  virtual void visit_post_crement (post_crement* e)
-  {
-    ++lval_depth;
-    e->operand->visit (this);
-    --lval_depth;
-  }
-  
-  virtual void visit_assignment (assignment* e)
-  {
-    ++lval_depth;
-    e->left->visit (this);
-    --lval_depth;
-    e->right->visit (this);
-  }
-
-  virtual void visit_delete_statement (delete_statement* s)
-  {
-    ++lval_depth;
-    s->value->visit (this);
-    --lval_depth;
-  }
-
-};
-
 
 struct mutated_map_collector
-  : public lvalue_aware_traversing_visitor
+  : public traversing_visitor
 {
   set<vardecl *> * mutated_maps;
 
@@ -452,14 +408,14 @@ struct mutated_map_collector
 
   void visit_arrayindex (arrayindex *e)
   {
-    if (is_in_lvalue())
+    if (is_active_lvalue(e))
       mutated_maps->insert(e->referent);
   }
 };
 
 
 struct no_map_mutation_during_iteration_check
-  : public lvalue_aware_traversing_visitor
+  : public traversing_visitor
 {
   systemtap_session & session;
   map<functiondecl *,set<vardecl *> *> & function_mutates_maps;
@@ -473,7 +429,7 @@ struct no_map_mutation_during_iteration_check
 
   void visit_arrayindex (arrayindex *e)
   {
-    if (is_in_lvalue())
+    if (is_active_lvalue(e))
       {
 	for (unsigned i = 0; i < maps_being_iterated.size(); ++i)
 	  {
@@ -1346,9 +1302,15 @@ typeresolution_info::visit_symbol (symbol* e)
 
   if (e->referent->arity > 0)
     unresolved (e->tok); // symbol resolution should not permit this
-  // XXX: but consider "delete <array>;" and similar constructs
   else
     resolve_2types (e, e->referent, this, t);
+}
+
+
+void
+typeresolution_info::visit_target_symbol (target_symbol* e)
+{
+  throw semantic_error("unresolved target-symbol expression", e->tok);
 }
 
 

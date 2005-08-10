@@ -177,6 +177,21 @@ struct symbol: public expression
 };
 
 
+struct target_symbol : public expression
+{
+  enum component_type
+    {
+      comp_struct_member,
+      comp_struct_pointer_member,
+      comp_literal_array_index
+    };
+  std::string base_name;
+  std::vector<std::pair<component_type, std::string> > components;
+  void print (std::ostream& o);
+  void visit (visitor* u);  
+};
+
+
 struct arrayindex: public expression
 {
   std::string base;
@@ -426,6 +441,12 @@ struct probe_alias: public probe
 // statement/expression tree.
 struct visitor
 {
+  // Machinery for differentiating lvalue visits from non-lvalue.
+  std::vector<expression *> active_lvalues;
+  bool is_active_lvalue(expression *e);
+  void push_active_lvalue(expression *e);
+  void pop_active_lvalue();
+
   virtual ~visitor () {}
   virtual void visit_block (block *s) = 0;
   virtual void visit_embeddedcode (embeddedcode *s) = 0;
@@ -453,6 +474,7 @@ struct visitor
   virtual void visit_ternary_expression (ternary_expression* e) = 0;
   virtual void visit_assignment (assignment* e) = 0;
   virtual void visit_symbol (symbol* e) = 0;
+  virtual void visit_target_symbol (target_symbol* e) = 0;
   virtual void visit_arrayindex (arrayindex* e) = 0;
   virtual void visit_functioncall (functioncall* e) = 0;
 };
@@ -489,6 +511,7 @@ struct traversing_visitor: public visitor
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);
+  void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
 };
@@ -530,6 +553,7 @@ struct throwing_visitor: public visitor
   void visit_ternary_expression (ternary_expression* e);
   void visit_assignment (assignment* e);
   void visit_symbol (symbol* e);
+  void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
 };
@@ -573,6 +597,7 @@ struct deep_copy_visitor: public visitor
   virtual void visit_ternary_expression (ternary_expression* e);
   virtual void visit_assignment (assignment* e);
   virtual void visit_symbol (symbol* e);
+  virtual void visit_target_symbol (target_symbol* e);
   virtual void visit_arrayindex (arrayindex* e);
   virtual void visit_functioncall (functioncall* e);
 };
