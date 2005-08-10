@@ -1252,7 +1252,7 @@ typeresolution_info::visit_ternary_expression (ternary_expression* e)
 
 template <class Referrer, class Referent>
 void resolve_2types (Referrer* referrer, Referent* referent,
-                    typeresolution_info* r, exp_type t)
+                    typeresolution_info* r, exp_type t, bool accept_unknown = false)
 {
   exp_type& re_type = referrer->type;
   const token* re_tok = referrer->tok;
@@ -1290,7 +1290,7 @@ void resolve_2types (Referrer* referrer, Referent* referent,
       r->resolved (te_tok, te_type);
       // catch re_type/t mismatch later
     }
-  else
+  else if (! accept_unknown)
     r->unresolved (re_tok);
 }
 
@@ -1361,7 +1361,7 @@ typeresolution_info::visit_functioncall (functioncall* e)
 {
   assert (e->referent != 0);
 
-  resolve_2types (e, e->referent, this, t);
+  resolve_2types (e, e->referent, this, t, true); // accept unknown type 
 
   if (e->type == pe_stats)
     invalid (e->tok, e->type);

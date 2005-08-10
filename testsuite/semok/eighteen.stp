@@ -1,0 +1,8 @@
+#! stap -p2
+
+function f () { }
+function g (arg) { }
+
+probe begin {
+  f(); g(1)
+}

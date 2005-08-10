@@ -190,8 +190,9 @@ Exit or iterate the innermost nesting loop
 statement.
 .TP
 .BR return " EXP"
-Return EXP value from enclosing function.  A return value is mandatory,
-since void functions are not supported.
+Return EXP value from enclosing function.  If the function's value is
+not taken anywhere, then a return statement is not needed, and the
+function will have a special "unknown" type with no return value.
 .TP
 .BR next
 Return now from enclosing probe handler.
@@ -372,12 +373,9 @@ function thisfn (arg1, arg2) {
 .fi
 .RE
 Note the usual absence of type declarations, which are instead
-inferred by the translator.  Because a return value type is required,
-each function must contain at least one
-.I return
-statement.  Functions may call others or themselves recursively, up to
-a fixed nesting limit.  This limit is defined by a macro in the
-translated C code and is in the neighbourhood of 30.
+inferred by the translator.  Functions may call others or themselves
+recursively, up to a fixed nesting limit.  This limit is defined by
+a macro in the translated C code and is in the neighbourhood of 30.
 
 .SS EMBEDDED C
 When in guru mode, the translator accepts embedded code in the

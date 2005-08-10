@@ -3,5 +3,5 @@ function _printk (msg) %{
 %}
 
 function printk (msg) {
-    return 0 + _printk (msg . "")
+    _printk (msg . "")
 }

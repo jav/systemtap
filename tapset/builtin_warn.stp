@@ -3,5 +3,5 @@ function _warn (msg) %{
 %}
 
 function warn (msg) {
-    return 0 + _warn (msg . "")
+    _warn (msg . "")
 }

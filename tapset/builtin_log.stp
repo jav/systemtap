@@ -3,5 +3,5 @@ function _log (msg) %{
 %}
 
 function log (msg) {
-    return 0 + _log (msg . "")
+   _log (msg . "")
 }

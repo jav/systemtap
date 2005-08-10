@@ -1,5 +1,16 @@
 2005-08-10  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR translator/1186
+	* elaborate.cxx (resolve_2types): Accept a flag to tolerate unresolved
+	expression types.
+	(visit_functioncall): Call it thusly.
+	* translate.cxx (emit_function): Tolerate void functions.
+	* stap.1.in: Document possibility of void functions.
+	* tapset/builtin_{log,printk,warn}.stp: Make these void functions.
+	* testsuite/buildok/nine.stp, semok/eighteen.stp: New tests.
+
+2005-08-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx: Correct hex/decimal misformatting of verbose messages.
 	* main.cxx: Add formal "-h" and "-V" options.
 	* stap.1.in: Document them.

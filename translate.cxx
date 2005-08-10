@@ -765,8 +765,11 @@ c_unparser::emit_function (functiondecl* v)
     }
 
   // initialize return value, if any
-  var retvalue = var(true, v->type, "__retvalue");
-  o->newline() << retvalue.init();
+  if (v->type != pe_unknown)
+    {
+      var retvalue = var(true, v->type, "__retvalue");
+      o->newline() << retvalue.init();
+    }
 
   v->body->visit (this);
   this->current_function = 0;
