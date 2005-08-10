@@ -7,26 +7,30 @@ function string (v) { return "" }
 function hexstring (v) { return "" }
 function trace (s) { return 0 }
 
-probe begin /* kernel.syscall("read") */ {
-      $count=0 $timestamp=0 $fd=0
+global tid
 
-      thread->entry_time = $timestamp # "macro" variable
-      thread->my_count = $count # function argument
-      thread->my_fd = $fd # function argument
-      trace ("my_count = " . string(thread->my_count) .
-             "my_fd = " . string(thread->my_fd))
+probe begin /* kernel.function("read") */ {
+      count=0 timestamp=0 fd=0
+      tid=1
+
+      entry_time[tid] = timestamp # "macro" variable
+      my_count[tid] = count # function argument
+      my_fd[tid] = fd # function argument
+      trace ("my_count = " . string(my_count[tid]) .
+             "my_fd = " . string(my_fd[tid]))
 }
 
-probe end /* kernel.syscall("read").return */ {
-      $syscall_name="" $retvalue=0
+probe end /* kernel.function("read").return */ {
+      syscall_name="" retvalue=0
+      tid=1
 
-      if (thread->entry_time) {
-         read_times[$syscall_name]    # variable from provider alias
-            += $timestamp - thread->entry_time
+      if (entry_time[tid]) {
+         read_times[syscall_name]    # variable from provider alias
+            += timestamp - entry_time[tid]
       }
-      trace ("syscall " . $syscall_name .
+      trace ("syscall " . (syscall_name) .
              " return value = " .
-             hexstring ($retvalue))  # function pseudo-argument
+             hexstring (retvalue))  # function pseudo-argument
 }
 
 probe end {

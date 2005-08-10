@@ -4,6 +4,7 @@ global bar, baz
 
 probe begin
 {
- thread->bar = 4;
- process->baz = "5";
+ tid=0 pid=0
+ bar[tid] = 4;
+ baz[pid] = "5";
 }

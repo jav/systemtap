@@ -15,8 +15,11 @@ function search (key)
 
 probe begin /* syscall("zamboni") */
 {
-  thread->ar2 = string ($tgid);
-  search ($pid)
+  tgid=0
+  pid=0
+  tid=0
+  ar2[tid] = string (tgid);
+  search (pid)
 }
 
 probe end

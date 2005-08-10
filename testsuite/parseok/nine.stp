@@ -9,7 +9,7 @@ probe two
 {
   a = b
   c = d
-  _e = $f();
+  _e = $f;
   _g = h_;
   ;
 }

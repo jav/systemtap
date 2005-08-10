@@ -1,10 +1,10 @@
 #! stap -p2
 
 global foo
-probe kernel.function("pipe_write")
+probe kernel.function("pipe_writev")
 {
-   a = $filp
+   a = $nr_segs
    foo [a] = 1
-   # $filp is not an lvalue here
-   foo [$filp] ++
+   # $nr_segs is not an lvalue here
+   foo [$nr_segs] ++
 }

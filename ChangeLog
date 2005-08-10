@@ -1,5 +1,10 @@
 2005-08-09  Graydon Hoare  <graydon@redhat.com>
 
+	* testsuite/parseok/nine.stp: Update
+	* testsuite/semok/{six,seven,eleven,seventeen}.stp: Update.
+
+2005-08-09  Graydon Hoare  <graydon@redhat.com>
+
 	* staptree.{cxx,h} 	
 	(target_symbol): New struct.	
 	(*_visitor::visit_target_symbol): Support it.
