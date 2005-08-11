@@ -1,3 +1,15 @@
+2005-08-10  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (emit_base_store): New function.
+	(emit_bitfield): Rewritten to handle stores, change parameters.
+	(c_translate_fetch): Update caller.
+	(c_translate_store): New function.
+	* loc2c-test.c (handle_variable): Grok "=" last argument to do a store.
+
+	* loc2c.c (c_translate_location): Increment INDENT.
+	(c_translate_pointer): Likewise.
+	(emit_loc_value): Increment INDENT after emit_header.
+
 2005-08-10  Graydon Hoare  <graydon@redhat.com>
 
 	* tapsets.cxx (dwflpp::literal_stmt_for_local): Copy code from
@@ -5,7 +17,7 @@
 
 2005-08-10  Graydon Hoare  <graydon@redhat.com>
 
-	* tapsets.cxx 
+	* tapsets.cxx
 	(dwflpp::global_addr_of_line_in_cu): Implement next-line heuristic.
 	(dwarf_query::get_number_param): Dwarf_Addr variant.
 	(query_cu): Add line-selecting variant for function iteration.
@@ -41,8 +53,8 @@
 
 2005-08-09  Graydon Hoare  <graydon@redhat.com>
 
-	* staptree.{cxx,h} 	
-	(target_symbol): New struct.	
+	* staptree.{cxx,h}
+	(target_symbol): New struct.
 	(*_visitor::visit_target_symbol): Support it.
 	(visitor::active_lvalues)
 	(visitor::is_active_lvalue)
@@ -52,7 +64,7 @@
 	(pre_crement::visit)
 	(post_crement::visit)
 	(assignment::visit): Push and pop lvalue expressions.
-	* elaborate.{cxx,h} 
+	* elaborate.{cxx,h}
 	(lvalule_aware_traversing_visitor): Remove class.
 	(no_map_mutation_during_iteration_check)
 	(mutated_map_collector): Update lvalue logic.
@@ -70,12 +82,12 @@
 2005-08-09  Martin Hunt  <hunt@redhat.com>
 
 	PR 1174
-	* stp_check.in: Supply path for lsmod. 
+	* stp_check.in: Supply path for lsmod.
 	* stp_check: Removed.
 
 2005-08-09  Graydon Hoare  <graydon@redhat.com>
 
-	* elaborate.cxx: 
+	* elaborate.cxx:
 	(delete_statement_symresolution_info): New struct.
 	(symresolution_info::visit_delete_statement): Use it.
 	(delete_statement_typeresolution_info): New struct.

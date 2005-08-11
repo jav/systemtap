@@ -1,8 +1,13 @@
+2005-08-10  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h (store_bitfield): Fix argument use.
+	(store_deref): New macro (three flavors).
+
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 
 	* io.c 	(_stp_vlog): Revert previous change for now.
 	* print.c (_stp_print_flush): Ditto.
-	
+
 2005-08-03  Tom Zanussi  <trz@us.ibm.com>
 
 	* io.c (_stp_vlog): Remove call to _stp_print_flush().
@@ -15,14 +20,14 @@
 	* print.c (_stp_print_flush): Don't need _stp_tport.
 	*runtime.h (probe_start): Just call _stp_transport_init().
 	(probe_exit): Just call _stp_transport_close().
-	
+
 2005-07-28  Graydon Hoare  <graydon@redhat.com>
 
 	* loc2c-runtime.h: New file from elfutils CVS.
 
 2005-07-20  Martin Hunt  <hunt@redhat.com>
 
-	* io.c (_stp_vlog): Don't count transport failures for 
+	* io.c (_stp_vlog): Don't count transport failures for
 	these messages.
 
 2005-07-19  Martin Hunt  <hunt@redhat.com>
@@ -60,11 +65,11 @@
 
 	* probes.c: Convert all _stp_log() calls to either stp_warn() or
 	dbug().
-	
-	* print.c: Comment out dbug()s.	
 
-	* stat-common.c: Comment out dbug()s.		
-	
+	* print.c: Comment out dbug()s.
+
+	* stat-common.c: Comment out dbug()s.
+
 	* map.c (_stp_map_new): Call _stp_error() on a bad map type.
 	Comment out dbug()s.
 
@@ -74,9 +79,9 @@
 	* map-int.c: Comment out dbug()s.
 
 	* map-str.c: Comment out dbug()s.
-	
+
 	* map-keys.c: Use _stp_warn().  Comment out dbug()s.
-	
+
 	* alloc.c (_stp_alloc): Call _stp_error().
 	(_stp_valloc): Ditto.
 
@@ -86,7 +91,7 @@
 	(_stp_dbug): New function.
 
 	* runtime.h (dbug): Call _stp_dbug() if	DEBUG is defined.
-	
+
 2005-06-29  Martin Hunt  <hunt@redhat.com>
 
 	* map-values.c (_stp_map_add_int64): Fix docs.
@@ -108,9 +113,9 @@
 2005-06-20  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* print.c: Made relayfs _stp_print_flush() use sequence counter.
-	
+
 	* runtime.h: Added sequence counter, moved subbuf_size etc to probes.
-	
+
 2005-06-18  Martin Hunt  <hunt@redhat.com>
 
 	* counter.c: New file. Counter aggregations.
@@ -118,7 +123,7 @@
 	* stat.c: New file. Stat aggregations.
 
 	* stat.h: Header file for stats.
-	
+
 	* map-int.c: New file. Support for int64 values.
 
 	* map-stat.c: New file. Support for stat values.
@@ -130,10 +135,10 @@
 	* stat-common.c: New file. Stats stuff common to Stats and maps
 	containing stats.
 
-	* Doxyfile: Bumped version to 0.6. 
+	* Doxyfile: Bumped version to 0.6.
 
 	* README: Renamed README.doc and reorganized.
-	
+
 
 2005-06-15  Martin Hunt  <hunt@redhat.com>
 
@@ -141,13 +146,13 @@
 
 2005-06-14  Martin Hunt  <hunt@redhat.com>
 
-	* README: Removed old docs and replaced with simple build 
+	* README: Removed old docs and replaced with simple build
 	instructions.
 
 	* Makefile: New file.
 
 	* probes/build: New file.
-	
+
 2005-06-13  Martin Hunt  <hunt@redhat.com>
 
 	* print.c (next_fmt): Move this func to print.c.
@@ -162,7 +167,7 @@
 2005-05-31  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_map_print): Now takes a format string instead of a name.
-	
+
 	* map.h (foreach): Update macro.
 
 	* string.c (_stp_string_cat_char): New function.  Append a char
@@ -174,7 +179,7 @@
 
 	* current.c (_stp_sprint_regs): Implement for i386.
 
-	* sym.c (_stp_symbol_sprint): Check name before trying to 
+	* sym.c (_stp_symbol_sprint): Check name before trying to
 	print it.
 	(_stp_symbol_print): Change to macro that calls _stp_symbol_sprint().
 
@@ -188,22 +193,20 @@
 	is full.
 
 	* runtime.h: Always include string.c.
-	
+
 2005-05-17  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (needed_space): Use do_div().
 	(_stp_map_print_histogram): Ditto.
 	(_stp_map_print): Ditto.
 
-	* map-values.c (_stp_map_add_int64_stat): Use do_div() when 
+	* map-values.c (_stp_map_add_int64_stat): Use do_div() when
 	computing histogram bucket.
 
 	* map-keys.c (_stp_map_key): Fix some warnings on 32-bit machines
 	by using key_data casts.
-	
+
 2005-03-30  Martin Hunt  <hunt@redhat.com>
 
 	* scbuf.c:  Make functions use per-cpu buffers as documented.
 	_stp_scbuf_clear(): Now returns a pointer to the buffer.
-
-	
