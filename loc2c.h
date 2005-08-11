@@ -47,12 +47,20 @@ void c_translate_addressof (struct obstack *pool, int indent,
 			    struct location **input, const char *target);
 
 /* Translate a fragment to fetch the value of variable or member DIE
-   at the *INPUT location and store it in variable TARGET.
+   at the *INPUT location and store it in lvalue TARGET.
    This handles base integer types and bit fields.  */
 void c_translate_fetch (struct obstack *pool, int indent,
 			Dwarf_Addr dwbias __attribute__ ((unused)),
 			Dwarf_Die *die, Dwarf_Attribute *typeattr,
 			struct location **input, const char *target);
+
+/* Translate a fragment to locate the value of variable or member DIE
+   at the *INPUT location and set it to the C expression RVALUE.
+   This handles base integer types and bit fields.  */
+void c_translate_store (struct obstack *pool, int indent,
+			Dwarf_Addr dwbias __attribute__ ((unused)),
+			Dwarf_Die *die, Dwarf_Attribute *typeattr,
+			struct location **input, const char *rvalue);
 
 /* Emit the C fragment built up at LOC (i.e., the return value from the
    first c_translate_location call made).  INDENT should match that
