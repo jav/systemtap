@@ -4,6 +4,7 @@
 	(emit_bitfield): Rewritten to handle stores, change parameters.
 	(c_translate_fetch): Update caller.
 	(c_translate_store): New function.
+	* loc2c.h: Declare it.
 	* loc2c-test.c (handle_variable): Grok "=" last argument to do a store.
 
 	* loc2c.c (c_translate_location): Increment INDENT.
