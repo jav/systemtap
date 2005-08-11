@@ -920,6 +920,8 @@ c_translate_location (struct obstack *pool,
 		      Dwarf_Attribute *loc_attr, Dwarf_Addr address,
 		      struct location **input, Dwarf_Attribute *fb_attr)
 {
+  ++indent;
+
   Dwarf_Loc *expr;
   size_t len;
   switch (dwarf_addrloclists (loc_attr, address - dwbias, &expr, &len, 1))
@@ -1003,6 +1005,39 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
   return false;
 }
 
+/* Emit "... = RVALUE;".  */
+static bool
+emit_base_store (struct obstack *pool, Dwarf_Word byte_size,
+		 const char *rvalue, struct location *loc)
+{
+  switch (loc->type)
+    {
+    case loc_address:
+      if (byte_size != 0 && byte_size != (Dwarf_Word) -1)
+	obstack_printf (pool, "store_deref (%" PRIu64 ", addr, %s); ",
+			byte_size, rvalue);
+      else
+	obstack_printf (pool, "store_deref (sizeof %s, addr, %s); ",
+			rvalue, rvalue);
+      return true;
+
+    case loc_register:
+      obstack_printf (pool, "store_register (%u, %s);", loc->regno, rvalue);
+      break;
+
+    case loc_noncontiguous:
+      /* Could be handled if it ever happened.  */
+      error (2, 0, _("noncontiguous locations not supported"));
+      break;
+
+    default:
+      abort ();
+      break;
+    }
+
+  return false;
+}
+
 /* Translate a fragment to dereference the given pointer type,
    where *INPUT is the location of the pointer with that type.
 
@@ -1014,6 +1049,8 @@ c_translate_pointer (struct obstack *pool, int indent,
 		     Dwarf_Addr dwbias __attribute__ ((unused)),
 		     Dwarf_Die *typedie, struct location **input)
 {
+  ++indent;
+
   obstack_printf (pool, "%*s{ ", (indent + 2) * 2, "");
 
   bool deref = false;
@@ -1057,12 +1094,15 @@ base_byte_size (Dwarf_Die *typedie)
 }
 
 /* Emit a code fragment like:
-	{ uintNN_t tmp = ...; S1 S2 S3, tmp, B0, Bn); }
+	{ uintNN_t tmp = ...; fetch_bitfield (TARGET, tmp, B0, Bn); }
+   or
+	{ uintNN_t tmp = ...; store_bitfield (tmp, TARGET, B0, Bn);
+	  ... = tmp; }
 */
 static bool
 emit_bitfield (struct obstack *pool, int indent,
 	       Dwarf_Die *die, Dwarf_Word byte_size, struct location *loc,
-	       const char *s1, const char *s2, const char *s3)
+	       const char *target, bool store)
 {
   Dwarf_Word bit_offset, bit_size;
   Dwarf_Attribute attr_mem;
@@ -1078,14 +1118,28 @@ emit_bitfield (struct obstack *pool, int indent,
   obstack_printf (pool, "%*s{ ", indent * 2, "");
   bool deref = emit_base_fetch (pool, byte_size, "tmp", true, loc);
 
-  obstack_printf (pool, "%s%s%s, tmp, %" PRIu64 ", %" PRIu64 "); }\n",
-		  s1, s2, s3, bit_offset, bit_size);
+  if (store)
+    {
+      obstack_printf (pool,
+		      "\n%*s"
+		      "store_bitfield (tmp, %s, %" PRIu64 ", %" PRIu64 ");\n"
+		      "\n%*s",
+		      indent * 2, "",
+		      target, bit_offset, bit_size,
+		      (indent + 1) * 2, "");
+      deref = emit_base_store (pool, byte_size, "tmp", loc) || deref;
+      obstack_printf (pool, "}\n");
+    }
+  else
+    obstack_printf (pool,
+		    "fetch_bitfield (%s, tmp, %" PRIu64 ", %" PRIu64 "); }\n",
+		    target, bit_offset, bit_size);
 
   return deref;
 }
 
 /* Translate a fragment to fetch the value of variable or member DIE
-   at the *INPUT location and store it in variable TARGET.  */
+   at the *INPUT location and store it in lvalue TARGET.  */
 
 void
 c_translate_fetch (struct obstack *pool, int indent,
@@ -1110,7 +1164,7 @@ c_translate_fetch (struct obstack *pool, int indent,
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
     /* This is a bit field.  */
     deref = emit_bitfield (pool, indent, die, byte_size, *input,
-			   "fetch_bitfield (", target, "");
+			   target, false);
   else
     switch (byte_size)
       {
@@ -1134,6 +1188,57 @@ c_translate_fetch (struct obstack *pool, int indent,
   (*input)->next = loc;
   *input = loc;
 }
+
+/* Translate a fragment to fetch the value of variable or member DIE
+   at the *INPUT location and store it in rvalue RVALUE.  */
+
+void
+c_translate_store (struct obstack *pool, int indent,
+		   Dwarf_Addr dwbias __attribute__ ((unused)),
+		   Dwarf_Die *die, Dwarf_Attribute *typeattr,
+		   struct location **input, const char *rvalue)
+{
+  ++indent;
+
+  Dwarf_Attribute size_attr;
+  Dwarf_Word byte_size;
+  if (dwarf_attr_integrate (die, DW_AT_byte_size, &size_attr) == NULL
+      || dwarf_formudata (&size_attr, &byte_size) != 0)
+    {
+      Dwarf_Die basedie;
+      if (dwarf_formref_die (typeattr, &basedie) == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+      byte_size = base_byte_size (&basedie);
+    }
+
+  bool deref = false;
+  if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
+    /* This is a bit field.  */
+    deref = emit_bitfield (pool, indent, die, byte_size, *input, rvalue, true);
+  else
+    switch (byte_size)
+      {
+      case 1:
+      case 2:
+      case 4:
+      case 8:
+	obstack_printf (pool, "%*s", indent * 2, "");
+	deref = emit_base_store (pool, byte_size, rvalue, *input);
+	obstack_printf (pool, "\n");
+	break;
+
+      default:
+	/* Could handle this generating call to memcpy equivalent.  */
+	error (2, 0, _("fetch is larger than base integer types"));
+	break;
+      }
+
+  struct location *loc = new_synthetic_loc (pool, *input, deref);
+  loc->type = loc_final;
+  (*input)->next = loc;
+  *input = loc;
+}
+
 
 void
 c_translate_addressof (struct obstack *pool, int indent,
@@ -1340,7 +1445,7 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
   if (declare)
     emit ("%*s%s %s;\n", indent * 2, "", STACK_TYPE, target);
 
-  emit_header (out, loc, indent);
+  emit_header (out, loc, indent++);
 
   switch (loc->type)
     {
@@ -1360,7 +1465,7 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
       break;
     }
 
-  emit ("%*s}\n", indent * 2, "");
+  emit ("%*s}\n", --indent * 2, "");
 }
 
 bool
