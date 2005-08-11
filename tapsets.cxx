@@ -156,6 +156,9 @@ static string TOK_STATEMENT("statement");
 static string TOK_LABEL("label");
 static string TOK_RELATIVE("relative");
 
+
+// XXX: should standardize to these functions throughout translator
+
 template <typename OUT, typename IN> inline OUT
 lex_cast(IN const & in)
 {
@@ -165,6 +168,18 @@ lex_cast(IN const & in)
     throw runtime_error("bad lexical cast");
   return out;
 }
+
+template <typename OUT, typename IN> inline OUT
+lex_cast_hex(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << hex << showbase << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
+
+
 
 // Helper for dealing with selected portions of libdwfl in a more readable
 // fashion, and with specific cleanup / checking / logging options.
@@ -630,7 +645,7 @@ dwflpp
     if (nscopes == 0)
       {
 	throw semantic_error ("unable to find any scopes containing "
-			      + lex_cast<string>(pc)
+			      + lex_cast_hex<string>(pc)
 			      + " while searching for local '" + local + "'");
       }
 
@@ -641,7 +656,7 @@ dwflpp
     if (declaring_scope < 0)
       {
 	throw semantic_error ("unable to find local '" + local + "'"
-			      + " near pc " + lex_cast<string>(pc));
+			      + " near pc " + lex_cast_hex<string>(pc));
       }
 
     Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
@@ -1544,40 +1559,26 @@ probe_entry_struct_kprobe_name(unsigned probenum)
 void
 dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
 {
-  if (module_name.empty() || module_name == "kernel")
+  if (! (module_name.empty() || module_name == "kernel"))
     {
-      if (has_return)
-        {
-          o->newline() << probe_entry_struct_kprobe_name(probenum)
-                       << ".kp.addr = (void *) 0x" << hex << addr << ";";
-          o->newline() << "rc = register_kretprobe (&"
-                       << probe_entry_struct_kprobe_name(probenum)
-                       << ");";
-        }
-      else
-        {
-          o->newline() << probe_entry_struct_kprobe_name(probenum)
-                       << ".addr = (void *) 0x" << hex << addr << ";";
-          o->newline() << "rc = register_kprobe (&"
-                       << probe_entry_struct_kprobe_name(probenum)
-                       << ");";
-        }
+      // XXX: lock module_name in memory
+    }
+
+  if (has_return)
+    {
+      o->newline() << probe_entry_struct_kprobe_name(probenum)
+                   << ".kp.addr = (void *) 0x" << hex << addr << ";";
+      o->newline() << "rc = register_kretprobe (&"
+                   << probe_entry_struct_kprobe_name(probenum)
+                   << ");";
     }
   else
     {
-      o->newline() << "{";
-      o->indent(1);
-      o->newline() << "struct module *mod = get_module(\"" << module_name << "\");";
-      o->newline() << "if (!mod)";
-      o->newline(1) << "rc++;";
-      o->newline(-1) << "else {";
-      o->newline(1) << probe_entry_struct_kprobe_name(probenum)
-		   << ".addr = (void *) (mod->module_core + 0x" << hex << addr << ");";
+      o->newline() << probe_entry_struct_kprobe_name(probenum)
+                   << ".addr = (void *) 0x" << hex << addr << ";";
       o->newline() << "rc = register_kprobe (&"
-		   << probe_entry_struct_kprobe_name(probenum)
-		   << ");";
-      o->newline(-1) << "}";
-      o->newline(-1) << "}";
+                   << probe_entry_struct_kprobe_name(probenum)
+                   << ");";
     }
 }
 
@@ -1592,6 +1593,11 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
     o->newline() << "unregister_kprobe (& "
                  << probe_entry_struct_kprobe_name(probenum)
                  << ");";
+
+  if (! (module_name.empty() || module_name == "kernel"))
+    {
+      // XXX: unlock module_name
+    }
 }
 
 void
