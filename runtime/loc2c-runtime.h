@@ -18,7 +18,7 @@
   target = (target							      \
 	    &~ ((((__typeof (base)) 1 << (nbits)) - 1)			      \
 		<< (sizeof (base) * 8 - (higherbits) - (nbits)))	      \
-	    | ((__typeof (base)) (value)				      \
+	    | ((__typeof (base)) (base)					      \
 	       << (sizeof (base) * 8 - (higherbits) - (nbits))))
 
 
@@ -26,6 +26,8 @@
 #include <asm/uaccess.h>
 
 #define fetch_register(regno) ((intptr_t) c->regs->dwarf_register_##regno)
+#define store_register(regno, value) \
+  (c->regs->dwarf_register_##regno = (value))
 
 #if defined __i386__
 
@@ -61,6 +63,7 @@
 
 #undef fetch_register
 #define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
+#define store_register(regno) (c->regs->gpr[regno] = (value))
 
 #endif
 
@@ -84,6 +87,21 @@
     _v;									      \
   })
 
+#define store_deref(size, addr, value)					      \
+  ({									      \
+    int _bad = 0;							      \
+    switch (size)							      \
+      {									      \
+      case 1: __put_user_asm(((u8)(value),addr,_bad,"b","b","iq",1); break;   \
+      case 2: __put_user_asm(((u16)(value),addr,_bad,"w","w","ir",1); break;  \
+      case 4: __put_user_asm(((u32)(value),addr,_bad,"l","k","ir",1); break;  \
+      case 8: __put_user_asm(((u64)(value),addr,_bad,"q","","ir",1); break;   \
+      default: __put_user_bad();					      \
+      }									      \
+    if (_bad)								      \
+      goto deref_fault;							      \
+  })
+
 #elif defined __powerpc64__
 
 #define deref(size, addr)						      \
@@ -103,6 +121,21 @@
     _v;									      \
   })
 
+#define store_deref(size, addr, value)					      \
+  ({									      \
+    int _bad = 0;							      \
+    switch (size)							      \
+      {									      \
+      case 1: __put_user_asm(((u8)(value),addr,_bad,"stb",1); break;   	      \
+      case 2: __put_user_asm(((u16)(value),addr,_bad,"sth",1); break;  	      \
+      case 4: __put_user_asm(((u32)(value),addr,_bad,"stw",1); break;  	      \
+      case 8: __put_user_asm(((u64)(value),addr,_bad,"std",1); break; 	      \
+      default: __put_user_bad();					      \
+      }									      \
+    if (_bad)								      \
+      goto deref_fault;							      \
+  })
+
 #elif defined __powerpc__
 
 #define deref(size, addr)						      \
@@ -120,6 +153,21 @@
     if (_bad)								      \
       goto deref_fault;							      \
     _v;									      \
+  })
+
+#define store_deref(size, addr, value)					      \
+  ({									      \
+    int _bad = 0;							      \
+    switch (size)							      \
+      {									      \
+      case 1: __put_user_asm(((u8)(value),addr,_bad,"stb"); break;   	      \
+      case 2: __put_user_asm(((u16)(value),addr,_bad,"sth"); break;  	      \
+      case 4: __put_user_asm(((u32)(value),addr,_bad,"stw"); break;  	      \
+      case 8: __put_user_asm2(((u64)(value),addr,_bad); break;		      \
+      default: __put_user_bad();					      \
+      }									      \
+    if (_bad)								      \
+      goto deref_fault;							      \
   })
 
 #endif
