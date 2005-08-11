@@ -1,5 +1,10 @@
 2005-08-10  Graydon Hoare  <graydon@redhat.com>
 
+	* tapsets.cxx (dwflpp::literal_stmt_for_local): Copy code from
+	loc2c-test to implement target member variable access.
+
+2005-08-10  Graydon Hoare  <graydon@redhat.com>
+
 	* tapsets.cxx 
 	(dwflpp::global_addr_of_line_in_cu): Implement next-line heuristic.
 	(dwarf_query::get_number_param): Dwarf_Addr variant.

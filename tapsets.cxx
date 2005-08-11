@@ -169,6 +169,13 @@ lex_cast(IN const & in)
 // Helper for dealing with selected portions of libdwfl in a more readable
 // fashion, and with specific cleanup / checking / logging options.
 
+static const char *
+dwarf_diename_integrate (Dwarf_Die *die)
+{
+  Dwarf_Attribute attr_mem;
+  return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
+}
+
 struct
 dwflpp
 {
@@ -610,7 +617,9 @@ dwflpp
 
 
   string literal_stmt_for_local(Dwarf_Addr pc,
-				string const & local)
+				string const & local,
+				vector<pair<target_symbol::component_type, 
+				std::string> > const & components)
   {
     assert (cu);
 
@@ -678,10 +687,105 @@ dwflpp
       throw semantic_error("failed to retrieve type "
 			   "attribute for local '" + local + "'");
 
-    c_translate_fetch (&pool, 1, module_bias, &vardie,
+  Dwarf_Die die_mem, *die = &vardie;
+  unsigned i = 0;
+  while (i < components.size())
+    {
+      die = dwarf_formref_die (&attr_mem, &die_mem);
+      const int typetag = dwarf_tag (die);
+      switch (typetag)
+	{
+	case DW_TAG_typedef:
+	  /* Just iterate on the referent type.  */
+	  break;
+
+	case DW_TAG_pointer_type:
+	  if (components[i].first == target_symbol::comp_literal_array_index)
+	    goto subscript;
+	  
+	  c_translate_pointer (&pool, 1, module_bias, die, &tail);
+	  break;
+
+	case DW_TAG_array_type:
+	  if (components[i].first == target_symbol::comp_literal_array_index)
+	    {
+	    subscript:
+	      c_translate_array (&pool, 1, module_bias, die, &tail,
+				 NULL, lex_cast<Dwarf_Word>(components[i].second));
+	      ++i;
+	    }
+	  else
+	    throw semantic_error("bad field '" 
+				 + components[i].second 
+				 + "' for array type");
+	  break;
+
+	case DW_TAG_structure_type:
+	case DW_TAG_union_type:
+	  switch (dwarf_child (die, &die_mem))
+	    {
+	    case 1:		/* No children.  */
+	      throw semantic_error ("empty struct " 
+				    + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
+	      break;
+	    case -1:		/* Error.  */
+	    default:		/* Shouldn't happen */
+	      throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
+				    + string (dwarf_diename_integrate (die) ?: "<anonymous>")
+				    + string (dwarf_errmsg (-1)));
+	      break;
+
+	    case 0:
+	      break;
+	    }
+	  
+	  while (dwarf_tag (die) != DW_TAG_member
+		 || ({ const char *member = dwarf_diename_integrate (die);
+		     member == NULL || string(member) != components[i].second; }))
+	    if (dwarf_siblingof (die, &die_mem) != 0)
+	      throw semantic_error ("field name " + components[i].second + " not found");
+
+	  if (dwarf_attr_integrate (die, DW_AT_data_member_location,
+				    &attr_mem) == NULL)
+	    {
+	      /* Union members don't usually have a location,
+		 but just use the containing union's location.  */
+	      if (typetag != DW_TAG_union_type)
+		throw semantic_error ("no location for field " 
+				      + components[i].second 
+				      + " :" + string(dwarf_errmsg (-1)));
+	    }
+	  else
+	    c_translate_location (&pool, 1, module_bias, &attr_mem, pc,
+				  &tail, NULL);
+	  ++i;
+	  break;
+
+	case DW_TAG_base_type:
+	  throw semantic_error ("field " 
+				+ components[i].second 
+				+ " vs base type "
+				+ string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
+	  break;
+	case -1:
+	  throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
+	  break;
+
+	default:
+	  throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
+				+ ": unexpected type tag " 
+				+ lex_cast<string>(dwarf_tag (die)));
+	  break;
+	}
+
+      /* Now iterate on the type in DIE's attribute.  */
+      if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
+	throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+    }
+
+    c_translate_fetch (&pool, 1, module_bias, die,
 		       &attr_mem, &tail,
 		       "THIS->__retvalue");
-
 
     size_t bufsz = 1024;
     char *buf = static_cast<char*>(malloc(bufsz));
@@ -1280,7 +1384,9 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   // synthesize a function
   functiondecl *fdecl = new functiondecl;
   embeddedcode *ec = new embeddedcode;
-  ec->code = q.dw.literal_stmt_for_local(addr, e->base_name.substr(1));
+  ec->code = q.dw.literal_stmt_for_local(addr, 
+					 e->base_name.substr(1),
+					 e->components);
   fdecl->name = fname;
   fdecl->body = ec;
   fdecl->type = pe_long;
