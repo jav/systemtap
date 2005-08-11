@@ -78,10 +78,19 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
     error (2, 0, _("cannot get type of variable: %s"),
 	   dwarf_errmsg (-1));
 
+  bool store = false;
   Dwarf_Die die_mem, *die = vardie;
   while (*fields != NULL)
     {
       die = dwarf_formref_die (&attr_mem, &die_mem);
+
+      if (!strcmp (*fields, "="))
+	{
+	  store = true;
+	  if (fields[1] != NULL)
+	    error (2, 0, _("extra fields after ="));
+	  break;
+	}
 
       const int typetag = dwarf_tag (die);
       switch (typetag)
@@ -179,22 +188,29 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
     }
 
-  c_translate_fetch (&pool, 1, cubias, die, &attr_mem, &tail, "value");
+  if (store)
+    c_translate_store (&pool, 1, cubias, die, &attr_mem, &tail, "value");
+  else
+    c_translate_fetch (&pool, 1, cubias, die, &attr_mem, &tail, "value");
 
   printf ("#define PROBEADDR %#" PRIx64 "ULL\n", pc);
-  puts ("static void print_value(struct pt_regs *regs)\n"
+
+  puts (store
+	? "static void set_value(struct pt_regs *regs, intptr_t value)\n{"
+	: "static void print_value(struct pt_regs *regs)\n"
 	"{\n"
 	"  intptr_t value;");
 
   bool deref = c_emit_location (stdout, head, 1);
 
-  puts ("  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
+  puts (store ? " return;" :
+	"  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
 	"  return;");
 
   if (deref)
     puts ("\n"
 	  " deref_fault:\n"
-	  "  printk (\" => BAD FETCH\\n\");");
+	  "  printk (\" => BAD ACCESS\\n\");");
 
   puts ("}");
 }
