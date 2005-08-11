@@ -144,6 +144,18 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 //  Dwarf derived probes.
 // ------------------------------------------------------------------------
 
+static string TOK_PROCESS("process");
+static string TOK_KERNEL("kernel");
+static string TOK_MODULE("module");
+
+static string TOK_FUNCTION("function");
+static string TOK_RETURN("return");
+static string TOK_CALLEES("callees");
+
+static string TOK_STATEMENT("statement");
+static string TOK_LABEL("label");
+static string TOK_RELATIVE("relative");
+
 template <typename OUT, typename IN> inline OUT
 lex_cast(IN const & in)
 {
@@ -282,6 +294,9 @@ dwflpp
     assert(dwfl);
     assert(module);
     get_module_dwarf();
+    if (module_name == TOK_KERNEL)
+      return a;
+
     if (sess.verbose)
       clog << "module addr 0x" << hex << a
 	   << " + module start 0x" << hex << module_start
@@ -491,8 +506,9 @@ dwflpp
   Dwarf_Addr global_addr_of_line_in_cu(int line)
   {
     Dwarf_Lines * lines;
-    size_t nlines;
     Dwarf_Addr addr;
+    size_t nlines;
+    int best_line = -1;
 
     assert(module);
     assert(cu);
@@ -503,16 +519,23 @@ dwflpp
 	int curr_line;
 	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
 	dwflpp_assert("lineno", dwarf_lineno (line_rec, &curr_line));	
-	if (curr_line == line)
+
+	if (curr_line >= line && (best_line == -1 || curr_line < best_line))
 	  {
+	    best_line = curr_line;
 	    dwflpp_assert("lineaddr", dwarf_lineaddr(line_rec, &addr));
-	    if (sess.verbose)
-	      clog << "line " << line
-		   << " of CU " << cu_name
-		   << " has module address " << addr
-		   << " in " << module_name << endl;
-	    return module_address_to_global(addr);
 	  }
+      }
+    
+    if (best_line != -1)
+      {	
+	if (sess.verbose)
+	  clog << "line " << best_line
+	       << " (given query line " << line << ")"
+	       << " of CU " << cu_name
+	       << " has module address 0x" << hex << addr
+	       << " in " << module_name << endl;
+	    return module_address_to_global(addr);
       }
 
     if (sess.verbose)
@@ -695,18 +718,6 @@ dwflpp
   }
 };
 
-static string TOK_PROCESS("process");
-static string TOK_KERNEL("kernel");
-static string TOK_MODULE("module");
-
-static string TOK_FUNCTION("function");
-static string TOK_RETURN("return");
-static string TOK_CALLEES("callees");
-
-static string TOK_STATEMENT("statement");
-static string TOK_LABEL("label");
-static string TOK_RELATIVE("relative");
-
 
 enum
 function_spec_type
@@ -769,6 +780,8 @@ dwarf_query
 			       string const & k, string & v);
   static bool get_number_param(map<string, literal *> const & params,
 			       string const & k, long & v);
+  static bool get_number_param(map<string, literal *> const & params,
+			       string const & k, Dwarf_Addr & v);
 
   string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
 
@@ -787,8 +800,8 @@ dwarf_query
   bool has_statement_num;
   string statement_str_val;
   string function_str_val;
-  long statement_num_val;
-  long function_num_val;
+  Dwarf_Addr statement_num_val;
+  Dwarf_Addr function_num_val;
 
   bool has_callees;
   long callee_val;
@@ -863,6 +876,22 @@ dwarf_query::get_number_param(map<string, literal *> const & params,
   if (!ln)
     return false;
   v = ln->value;
+  return true;
+}
+
+bool
+dwarf_query::get_number_param(map<string, literal *> const & params,
+			      string const & k, Dwarf_Addr & v)
+{
+  map<string, literal *>::const_iterator i = params.find(k);
+  if (i == params.end())
+    return false;
+  if (i->second == NULL)
+    return false;
+  literal_number * ln = dynamic_cast<literal_number *>(i->second);
+  if (!ln)
+    return false;
+  v = static_cast<Dwarf_Addr>(ln->value);
   return true;
 }
 
@@ -1013,7 +1042,7 @@ query_function(Dwarf_Func * func, void * arg)
       Dwarf_Addr entry_addr;
       
       if (q->has_statement_str || q->has_function_str)
-        {
+        {	  
           if (q->dw.function_name_matches(q->function))
             {
               if (q->sess.verbose)
@@ -1114,9 +1143,26 @@ query_cu (Dwarf_Die * cudie, void * arg)
           // the remaining functions within the CU.
           query_statement(q->dw.global_addr_of_line_in_cu(q->line), q);
         }
+      else if (q->has_function_str
+          && (q->spec_type == function_file_and_line)
+          && q->dw.cu_name_matches(q->file))
+        {
+          // If we have a complete file:line *function* functor
+          // landing on this CU, we need to select only the functions
+          // which land on the line in question. We *could* check each
+          // function individually but the line->addr lookup is
+          // expensive, so we do it once here, then temporarily switch
+          // to a .function(addr) query for the remaining function
+          // iteration, switching back when we complete.
+	  q->function_num_val = q->dw.global_addr_of_line_in_cu(q->line);
+	  swap(q->has_function_str, q->has_function_num);
+          q->dw.iterate_over_functions(&query_function, q);
+	  swap(q->has_function_str, q->has_function_num);
+        }
       else
         {
-          // Otherwise we need to scan all the functions in this CU.
+          // Otherwise we need to scan all the functions in this CU,
+	  // matching by function name or address, as requested.
           q->dw.iterate_over_functions(&query_function, q);
         }
       return DWARF_CB_OK;
