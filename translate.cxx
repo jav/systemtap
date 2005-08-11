@@ -771,7 +771,10 @@ c_unparser::emit_function (functiondecl* v)
       o->newline() << retvalue.init();
     }
 
+  o->newline(1) << "{"; // in case body is embeddedcode with decls
   v->body->visit (this);
+  o->newline(-1) << "}";
+
   this->current_function = 0;
 
   o->newline(-1) << "out:";

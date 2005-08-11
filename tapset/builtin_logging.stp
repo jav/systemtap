@@ -1,0 +1,21 @@
+function _log (msg) %{
+    _stp_log (THIS->msg);
+%}
+
+function log (msg) {
+   _log (msg . "")
+}
+function _printk (msg) %{
+    printk (KERN_INFO "%s\n", THIS->msg);
+%}
+
+function printk (msg) {
+    _printk (msg . "")
+}
+function _warn (msg) %{
+    _stp_warn (THIS->msg);
+%}
+
+function warn (msg) {
+    _warn (msg . "")
+}

@@ -1,7 +1,0 @@
-function _warn (msg) %{
-    _stp_warn (THIS->msg);
-%}
-
-function warn (msg) {
-    _warn (msg . "")
-}

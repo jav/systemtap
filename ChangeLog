@@ -1,5 +1,13 @@
 2005-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
+	* translate.cxx (emit_function): Add an extra { } around the
+	function body visitation.
+	* tapset/timestamp_functions.stp: New file.
+	* tapset/builtin_conversions.stp: Aggregated from [hex]string.
+	* tapset/builtin_logging.stp: Aggregated from log/warn/printk.
+
+2005-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx: Tweak hex/decimal printing for consistency.
 	(emit_registrations): Remove module-specific code, anticipating
 	that libelf gives us run-time addresses already.

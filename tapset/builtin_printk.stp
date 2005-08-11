@@ -1,7 +1,0 @@
-function _printk (msg) %{
-    printk (KERN_INFO "%s\n", THIS->msg);
-%}
-
-function printk (msg) {
-    _printk (msg . "")
-}
