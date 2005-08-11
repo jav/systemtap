@@ -89,3 +89,9 @@ clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
 	rm -rf testsuite
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
+
+uninstall-local:
+	rm -rf $(DESTDIR)$(pkgdatadir)
+	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
+	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
+

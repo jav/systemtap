@@ -874,7 +874,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-info-am uninstall-man
+uninstall-am: uninstall-binPROGRAMS uninstall-info-am uninstall-local \
+	uninstall-man
 
 uninstall-man: uninstall-man1
 
@@ -892,7 +893,7 @@ uninstall-man: uninstall-man1
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
 	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-info-am uninstall-man uninstall-man1
+	uninstall-info-am uninstall-local uninstall-man uninstall-man1
 
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
@@ -936,6 +937,11 @@ clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
 	rm -rf testsuite
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
+
+uninstall-local:
+	rm -rf $(DESTDIR)$(pkgdatadir)
+	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
+	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

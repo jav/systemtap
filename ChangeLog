@@ -1,5 +1,10 @@
 2005-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
+	* Makefile.am (uninstall-local): New target.
+	* Makefile.in: Regenerate.
+
+2005-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
 	* translate.cxx (emit_function): Add an extra { } around the
 	function body visitation.
 	* tapset/timestamp_functions.stp: New file.
