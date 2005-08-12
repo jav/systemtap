@@ -236,17 +236,6 @@ public:
       return "global_" + name;
   }
 
-  void check_dbz(c_unparser &c) const
-  {
-    if (ty == pe_long)
-      {
-	c.o->newline() << "if (unlikely (" << qname() << " == 0)) {";
-	c.o->newline(1) << "c->errorcount++;";
-	c.o->newline() << qname() << " = 1;";
-	c.o->newline(-1) << "}";
-      }
-  }
-
   string init() const
   {
     switch (type())
@@ -752,10 +741,12 @@ c_unparser::emit_function (functiondecl* v)
     << "& c->locals[c->nesting].function_" << c_varname (v->name)
     << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+  o->newline() << "#define CONTEXT c";
   o->newline() << "#define THIS l";
   o->newline() << "if (0) goto out;"; // make sure out: is marked used
 
   // initialize locals
+  // XXX: optimization: use memset instead
   for (unsigned i=0; i<v->locals.size(); i++)
     {
       if (v->locals[i]->index_types.size() > 0) // array?
@@ -780,6 +771,7 @@ c_unparser::emit_function (functiondecl* v)
   o->newline(-1) << "out:";
   o->newline(1) << ";";
 
+  o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
   o->newline(-1) << "}" << endl;
 }
@@ -951,7 +943,7 @@ c_unparser::c_typename (exp_type e)
 {
   switch (e)
     {
-    case pe_long: return string("long");
+    case pe_long: return string("int64_t");
     case pe_string: return string("string_t"); 
     case pe_stats: return string("stats_t");
     case pe_unknown: 
@@ -1076,12 +1068,13 @@ c_unparser_assignment::c_assignop(tmpvar & res,
       // - stats aggregation "<<<"
       // - modify-accumulate "+=" and many friends
       // - pre/post-crement "++"/"--"
+      // - "/" and "%" operators, but these need special handling in kernel
 
       // compute the modify portion of a modify-accumulate
       string macop;
       unsigned oplen = op.size();
       if (op == "=")
-	macop = "* 0 +"; // clever (?) trick to select rvalue (tmp) only
+	macop = "*error*"; // special shortcuts below
       else if (oplen > 1 && op[oplen-1] == '=') // for +=, %=, <<=, etc...
 	macop = op.substr(0, oplen-1);
       else if (op == "<<<")
@@ -1093,16 +1086,35 @@ c_unparser_assignment::c_assignop(tmpvar & res,
       else
 	// internal error
 	throw semantic_error ("unknown macop for assignment", tok);
-	
+
       if (pre)
 	{
+          if (macop == "/" || macop == "%" || op == "=")
+            throw semantic_error ("invalid pre-mode operator", tok);
+
 	  o->newline() << res << " = " << lval << ";";
-	  o->newline() << lval << " = " << res << " " << macop << " " << rval << ";";
+          o->newline() << lval << " = " << res << " " << macop << " " << rval << ";";
 	}
       else
 	{
-	  o->newline() << res << " = " << lval << " " << macop << " " << rval << ";";
-	  o->newline() << lval << " = " << res << ";";
+          if (op == "=") // shortcut simple assignment
+            {
+              o->newline() << lval << " = " << rval << ";";
+              res = rval;
+            }
+          else
+            {
+              if (macop == "/")
+                o->newline() << res << " = _stp_div64 (&c->errorcount, "
+                             << lval << ", " << rval << ");";
+              else if (macop == "%")
+                o->newline() << res << " = _stp_mod64 (&c->errorcount, "
+                             << lval << ", " << rval << ");";
+              else
+                o->newline() << res << " = " << lval << " " << macop << " " << rval << ";";
+
+              o->newline() << lval << " = " << res << ";";
+            }
 	}
     }
     else
@@ -1471,7 +1483,9 @@ c_unparser::visit_literal_string (literal_string* e)
 void
 c_unparser::visit_literal_number (literal_number* e)
 {
-  o->line() << e->value;
+  // This looks ugly, but tries to be warning-free on 32- and 64-bit
+  // hosts.
+  o->line() << "((uint64_t)" << e->value << "LL)";
 }
 
 
@@ -1532,9 +1546,9 @@ c_unparser::visit_binary_expression (binary_expression* e)
       e->right->visit (this);
       o->line() << ";";
 
-      right.check_dbz(*this);
+      o->newline() << ((e->op == "/") ? "_stp_div64" : "_stp_mod64")
+                   << " (&c->errorcount, " << left << ", " << right << ");";
 
-      o->newline() << left << " " << e->op << " " << right << ";";
       o->newline(-1) << "})";
     }
   else
@@ -1815,9 +1829,6 @@ c_unparser_assignment::prepare_rvalue (string const & op,
         throw semantic_error ("need rvalue for assignment", tok);
     }
   // OPT: literal rvalues could be used without a tmp* copy
-
-  if (op == "/=" || op == "%=") 
-    rval.check_dbz (*parent);
 }
 
 void

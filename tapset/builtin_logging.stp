@@ -1,3 +1,5 @@
+# This file contains simple bridging functions to the runtime
+
 function _log (msg) %{
     _stp_log (THIS->msg);
 %}
@@ -5,6 +7,7 @@ function _log (msg) %{
 function log (msg) {
    _log (msg . "")
 }
+
 function _printk (msg) %{
     printk (KERN_INFO "%s\n", THIS->msg);
 %}
@@ -12,10 +15,25 @@ function _printk (msg) %{
 function printk (msg) {
     _printk (msg . "")
 }
+
 function _warn (msg) %{
-    _stp_warn (THIS->msg);
+    _stp_warn ("%s", THIS->msg);
 %}
 
 function warn (msg) {
     _warn (msg . "")
+}
+
+function exit () %{
+    CONTEXT->errorcount ++; /* kill current probe */
+    _stp_exit ();
+%}
+
+function _error (msg) %{
+    CONTEXT->errorcount ++; /* kill current probe */
+    _stp_error ("%s", THIS->msg); /* implies _stp_exit */
+%}
+
+function error (msg) {
+    _error (msg . "")
 }

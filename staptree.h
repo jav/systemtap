@@ -14,7 +14,9 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
-
+extern "C" {
+#include <stdint.h>
+}
 
 struct token; // parse.h
 struct semantic_error: public std::runtime_error
@@ -38,8 +40,8 @@ struct semantic_error: public std::runtime_error
 enum exp_type
   {
     pe_unknown,
-    pe_long,
-    pe_string, 
+    pe_long,   // int64_t
+    pe_string, // std::string
     pe_stats 
   };
 
@@ -77,9 +79,8 @@ struct literal_string: public literal
 
 struct literal_number: public literal
 {
-  // XXX: s/long/long long/ throughout
-  long value;
-  literal_number (long v);
+  int64_t value;
+  literal_number (int64_t v);
   void print (std::ostream& o);
   void visit (visitor* u);
 };

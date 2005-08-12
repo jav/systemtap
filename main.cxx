@@ -410,6 +410,7 @@ main (int argc, char * const argv [])
     cerr << "Pass 4: compilation failed.  "
          << "Try again with '-v' (verbose) option." << endl;
 
+  // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout? 
   if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN

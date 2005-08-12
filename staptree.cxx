@@ -136,7 +136,7 @@ functiondecl::functiondecl ():
 }
 
 
-literal_number::literal_number (long v)
+literal_number::literal_number (int64_t v)
 {
   value = v;
   type = pe_long;

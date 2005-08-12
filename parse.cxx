@@ -291,7 +291,7 @@ lexer::scan ()
       return n;
     }
 
-  else if (isdigit (c))
+  else if (isdigit (c)) // positive literal
     {
       n->type = tok_number;
       n->content = (char) c;
@@ -348,6 +348,11 @@ lexer::scan ()
       string s1 = string("") + (char) c;
       string s2 = (c2 > 0 ? s1 + (char) c2 : s1);
       string s3 = (c3 > 0 ? s2 + (char) c3 : s2);
+
+      // NB: if we were to recognize negative numeric literals here,
+      // we'd introduce another grammar ambiguity:
+      // 1-1 would be parsed as tok_number(1) and tok_number(-1)
+      // instead of tok_number(1) tok_operator('-') tok_number(1)
 
       if (s1 == "#") // shell comment
         {
@@ -847,15 +852,17 @@ parser::parse_literal ()
       const char* startp = t->content.c_str ();
       char* endp = (char*) startp;
 
-      // NB: we allow controlled overflow from LONG_MIN .. ULONG_MAX
+      // NB: we allow controlled overflow from LLONG_MIN .. ULLONG_MAX
+      // Actually, this allows all the way from -ULLONG_MAX to ULLONG_MAX,
+      // since the lexer only gives us positive digit strings.
       errno = 0;
-      long long value = strtoll (startp, & endp, 0);
+      long long value = (long long) strtoull (startp, & endp, 0);
       if (errno == ERANGE || errno == EINVAL || *endp != '\0'
-          || value > 4294967295LL || value < (-2147483647LL-1))
+          || (unsigned long long) value > 18446744073709551615ULL
+          || value < -9223372036854775807LL-1)
         throw parse_error ("number invalid or out of range"); 
 
-      long value2 = (long) value;
-      l = new literal_number (value2);
+      l = new literal_number (value);
     }
   else
     throw parse_error ("expected literal string or number");
@@ -1537,7 +1544,7 @@ parser::parse_unary ()
       e->op = t->content;
       e->tok = t;
       next ();
-      e->operand = parse_expression ();
+      e->operand = parse_crement ();
       return e;
     }
   else

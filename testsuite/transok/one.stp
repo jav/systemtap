@@ -42,15 +42,13 @@ probe begin
   a / b
   a % b
 
-  # all unary operators
-  a ++
-  a --
-  -- a
-  -- b
-  ~ a
-  ! a
-  ;  # grammar glitch
-  + a
-  ;  # grammar glitch
-  - a
+  # all unary operators; use explicit ";" to avoid grammar ambiguities
+  a ++ ;
+  a -- ;
+  ++ a ;
+  -- b ;
+  ~ a ;
+  ! a ;
+  + a ;
+  - a ;
 }

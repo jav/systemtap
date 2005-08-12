@@ -55,6 +55,7 @@ static struct
 
 #include "print.c"
 #include "string.c"
+#include "arith.c"
 
 /************* Module Stuff ********************/
 int probe_start(void);

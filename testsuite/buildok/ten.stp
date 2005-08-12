@@ -1,6 +1,6 @@
-#! stap -p1
+#! stap -p4
 
-probe nothing
+probe begin
 {
   a = 1+01+0x1-1-01-0x1;
 

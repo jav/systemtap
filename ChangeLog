@@ -1,3 +1,21 @@
+2005-08-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR systemtap/1122 et alii
+	* parse.cxx (parse_literal): Parse and range-limit 64-bit numbers.
+	(parse_unary): Correct precedence glitch.
+	* staptree.h (literal_number): Store an int64_t.
+	* staptree.cxx: Corresponding changes.
+	* translate.cxx (check_dbz): Remove - insufficient.
+	(emit_function): Define CONTEXT macro sibling for THIS.
+	(c_typename): pe_long -> int64_t.
+	(visit_literal_number): Format literal rigorously and uglily.
+	(c_assignop, visit_binary_expression): Handle div/mod via new
+	helper functions in runtime.
+	* tapset/builtin_logging.stp: Add error, exit builtins.
+	* testsuite/buildok/ten,eleven.stp: New tests.
+	* testsuite/parse{ko,ok}/six.stp: Modify for larger numbers.
+	* testsuite/transok/one.stp: Add more ";"s, maybe unnecessarily.
+
 2005-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in: Tweak to turn into fedora-flavoured spec.
