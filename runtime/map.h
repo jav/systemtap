@@ -241,5 +241,7 @@ void _stp_list_add_string(MAP, String);
 void _stp_map_key_int64(MAP, int64_t);
 void _stp_map_set_int64(MAP, int64_t);
 int64_t _stp_map_get_int64(MAP);
+
+unsigned _stp_map_entry_exists(MAP);
 /** @endcond */
 #endif /* _MAP_H_ */

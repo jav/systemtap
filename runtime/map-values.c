@@ -51,5 +51,14 @@ void _stp_map_add_int64 (MAP map, int64_t val)
 }
 #endif
 
+unsigned _stp_map_entry_exists (MAP map)
+{
+	struct map_node *m;
+	if (map == NULL || map->create || map->key == NULL)
+		return 0;
+	return 1;
+}
+
+
 #endif /* _MAP_VALUES_C_ */
 

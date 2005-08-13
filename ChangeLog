@@ -1,3 +1,9 @@
+2005-08-12  Graydon Hoare  <graydon@redhat.com>
+
+	* translate.cxx (c_tmpcounter::visit_array_in): Implement.
+	(c_unparser::visit_array_in): Likewise.
+	(mapvar::exists): New method.
+
 2005-08-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR systemtap/1122 et alii

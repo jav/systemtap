@@ -150,7 +150,7 @@ struct c_tmpcounter:
   void visit_post_crement (post_crement* e);
   // void visit_logical_or_expr (logical_or_expr* e);
   // void visit_logical_and_expr (logical_and_expr* e);
-  // void visit_array_in (array_in* e);
+  void visit_array_in (array_in* e);
   // void visit_comparison (comparison* e);
   void visit_concatenation (concatenation* e);
   // void visit_ternary_expression (ternary_expression* e);
@@ -320,6 +320,11 @@ struct mapvar
   string del () const
   {
     return "_stp_map_key_del (" + qname() + ")";
+  }
+
+  string exists () const
+  {
+    return "_stp_map_entry_exists (" + qname() + ")";
   }
 
   string seek (vector<tmpvar> const & indices) const
@@ -1600,10 +1605,45 @@ c_unparser::visit_logical_and_expr (logical_and_expr* e)
 }
 
 
+void 
+c_tmpcounter::visit_array_in (array_in* e)
+{
+  vardecl* r = e->operand->referent;
+
+  // One temporary per index dimension.
+  for (unsigned i=0; i<r->index_types.size(); i++)
+    {
+      tmpvar ix = parent->gensym (r->index_types[i]);
+      ix.declare (*parent);
+      e->operand->indexes[i]->visit(this);
+    }
+ 
+ // A boolean result.
+  tmpvar res = parent->gensym (e->type);
+  res.declare (*parent);
+}
+
+
 void
 c_unparser::visit_array_in (array_in* e)
 {
-  throw semantic_error ("array-in expression not yet implemented", e->tok);
+  stmt_expr block(*this);  
+
+  vector<tmpvar> idx;
+  load_map_indices (e->operand, idx);
+
+  tmpvar res = gensym (pe_long);
+
+  o->newline() << "if (unlikely (c->errorcount)) goto out;";
+
+  {
+    mapvar mvar = getmap (e->operand->referent, e->tok);
+    varlock guard (*this, mvar);
+    o->newline() << mvar.seek (idx) << ";";
+    c_assign (res, mvar.exists(), e->tok);
+  }
+
+  o->newline() << res << ";";
 }
 
 
