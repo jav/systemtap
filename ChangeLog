@@ -1,3 +1,8 @@
+2005-08-14  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in: Update elfutils_version requirement to 0.113;
+	restore bundled_elfutils setting to 1.
+
 2005-08-12  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx (c_tmpcounter::visit_array_in): Implement.
