@@ -127,6 +127,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Wed Aug 16 2005 Frank Ch. Eigler <fche@redhat.com> - 0.3
+- Bump version.
+
 * Wed Aug  3 2005 Martin Hunt <hunt@redhat.com> - 0.2.2-1
 - Add directory /var/cache/systemtap
 - Add stp_check to /usr/libexec/systemtap
