@@ -319,10 +319,10 @@ dwflpp
     if (module_name == TOK_KERNEL)
       return a;
 
-    if (sess.verbose)
-      clog << "module addr 0x" << hex << a
-	   << " + module start 0x" << hex << module_start
-	   << " -> global addr 0x" << hex << (a + module_start) << endl;
+    if (false && sess.verbose)
+      clog << "module addr " << hex << a
+	   << " + module start " << module_start
+	   << " -> global addr " << (a + module_start) << dec << endl;
     return a + module_start;
   }
 
@@ -331,10 +331,10 @@ dwflpp
   {
     assert(module);
     get_module_dwarf();
-    if (sess.verbose)
-      clog << "global addr 0x" << a
-	   << " - module start 0x" << hex << module_start
-	   << " -> module addr 0x" << hex << (a - module_start) << endl;
+    if (false && sess.verbose)
+      clog << "global addr " << a
+	   << " - module start " << hex << module_start
+	   << " -> module addr " << (a - module_start) << dec << endl;
     return a - module_bias;
   }
 
@@ -504,23 +504,22 @@ dwflpp
     Dwarf_Addr lo, hi;
     if (dwarf_func_lowpc(function, &lo) != 0)
       {
-	if (sess.verbose)
+	if (false && sess.verbose)
 	  clog << "WARNING: cannot find low PC value for function " << function_name << endl;
 	return false;
       }
 
     if (dwarf_func_highpc(function, &hi) != 0)
     {
-      if (sess.verbose)
+      if (false && sess.verbose)
 	clog << "WARNING: cannot find high PC value for function " << function_name << endl;
       return false;
     }
 
     bool t = lo <= addr && addr <= hi;
-    if (sess.verbose)
-      clog << "function " << function_name << " = [" << lo << "," << hi << "] "
-	   << (t ? "contains " : "does not contain ")
-	   << " global addr " << addr << endl;
+    if (t && sess.verbose)
+      clog << "function " << function_name << " = [" << hex << lo << "," << hi << "] "
+	   << "contains global addr " << addr << dec << endl;
     return t;
   }
 
@@ -555,8 +554,8 @@ dwflpp
 	  clog << "line " << best_line
 	       << " (given query line " << line << ")"
 	       << " of CU " << cu_name
-	       << " has module address 0x" << hex << addr
-	       << " in " << module_name << endl;
+	       << " has module address " << hex << addr
+	       << " in " << module_name << dec << endl;
 	    return module_address_to_global(addr);
       }
 
@@ -569,7 +568,6 @@ dwflpp
 
   bool function_prologue_end(Dwarf_Addr * addr)
   {
-      
     Dwarf_Lines * lines;
     size_t nlines;
 
@@ -679,8 +677,8 @@ dwflpp
 
     if (sess.verbose)
       clog << "finding location for local '" << local
-	   << "' near address " << hex << "0x" << pc
-	   << ", module bias " << hex << "0x" << module_bias
+	   << "' near address " << hex << pc
+	   << ", module bias " << module_bias << dec
 	   << endl;
 
     Dwarf_Attribute attr_mem;
@@ -1172,14 +1170,39 @@ query_function(Dwarf_Func * func, void * arg)
               // XXX: This code is duplicated below, but it's important
               // for performance reasons to test things in this order.
 
-              // XXX: omit prologue search for statement() and
-              // function().return
-              if (!q->dw.function_prologue_end(&entry_addr))
+              if (q->has_statement_str)
                 {
-                  if (q->sess.verbose)
-                    clog << "WARNING: cannot find prologue-end PC for function "
-                         << q->dw.function_name << endl;
+                  // XXX: look up address corresponding to statement string,
+                  // which could be any old line within a function definition.
+                  cerr << "WARNING: cannot handle statement "
+                       << q->statement_str_val << " address" << endl;
                   return DWARF_CB_OK;
+                }
+              if (q->has_return)
+                {
+                  bool ok = q->dw.function_entrypc (& entry_addr);
+                  if (! ok)
+                    {
+                      if (q->sess.verbose)
+                        cerr << "WARNING: cannot find entry-pc for function "
+                             << q->dw.function_name << endl;
+                      return DWARF_CB_OK;
+                    }
+                  if (q->sess.verbose)
+                    clog << "function " << q->dw.function_name 
+                         << " entrypc: " << hex << entry_addr << dec << endl;
+                }
+              else
+                {
+                  bool ok = q->dw.function_prologue_end(& entry_addr);
+                  if (! ok)
+                    {
+                      // XXX: but this is actually OK for inlined function instances
+                      if (q->sess.verbose)
+                        cerr << "WARNING: cannot find prologue-end PC for function "
+                             << q->dw.function_name << endl;
+                      return DWARF_CB_OK;
+                    }
                 }
               
               // If this function's name matches a function or statement
@@ -1203,16 +1226,33 @@ query_function(Dwarf_Func * func, void * arg)
               
               if (q->dw.function_includes_global_addr(query_addr))
                 {
-                  
-                  // XXX: omit prologue search for statement() and
-                  // function().return
-                  if (!q->dw.function_prologue_end(&entry_addr))
+                  if (q->has_statement_num) // has_statement
+                    entry_addr = 0; // unused, see below
+                  else if (q->has_return) // has_function
                     {
-                      // XXX: ... then can reinstate warning
-                      if (false && q->sess.verbose)
-                        clog << "WARNING: cannot find prologue-end PC for function "
-                             << q->dw.function_name << endl;
-                      return DWARF_CB_OK;
+                      bool ok = q->dw.function_entrypc (& entry_addr);
+                      if (! ok)
+                        {
+                          if (q->sess.verbose)
+                            cerr << "WARNING: cannot find entry-pc for function "
+                                 << q->dw.function_name << endl;
+                          return DWARF_CB_OK;
+                        }
+                      if (q->sess.verbose)
+                        clog << "function " << q->dw.function_name 
+                             << " entrypc: " << hex << entry_addr << dec << endl;
+                    }
+                  else // has_function
+                    {
+                      bool ok = q->dw.function_prologue_end(& entry_addr);
+                      if (! ok)
+                        {
+                          // XXX: but this is actually OK for inlined function instances
+                          if (q->sess.verbose)
+                            cerr << "WARNING: cannot find prologue-end PC for function "
+                                 << q->dw.function_name << endl;
+                          return DWARF_CB_OK;
+                        }
                     }
                   
                   query_statement(q->has_function_num ? entry_addr : query_addr, q);
@@ -1431,28 +1471,46 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
   comps.push_back
     (module_name == TOK_KERNEL
      ? new probe_point::component(TOK_KERNEL)
-     : new probe_point::component
-     (TOK_MODULE, new literal_string(module_name)));
-  
-  if (!function_name.empty())
+     : new probe_point::component(TOK_MODULE, new literal_string(module_name)));
+
+  string fn_or_stmt;
+  if (q.has_function_str || q.has_function_num)
+    fn_or_stmt = "function";
+  else
+    fn_or_stmt = "statement";
+
+  if (q.has_function_str || q.has_statement_str)
+      {
+        string retro_name;;
+        if (! function_name.empty())
+          retro_name = function_name + "@" + q.dw.cu_name; // XXX: add line number
+        else if (q.has_function_str)
+          retro_name = q.function_str_val;
+        else // has_statement_str
+          retro_name = q.statement_str_val;
+        // XXX: actually the statement_str case is not yet adequately
+        // handled in the search code
+
+        comps.push_back
+          (new probe_point::component
+           (fn_or_stmt, new literal_string (retro_name)));
+      }
+  else if (q.has_function_num || q.has_statement_num)
     {
-      string fullname = function_name + "@" + q.dw.cu_name;
-      // XXX: add line number when available
+      Dwarf_Addr retro_addr;
+      if (q.has_function_num)
+        retro_addr = q.function_num_val;
+      else
+        retro_addr = q.statement_num_val;
 
-      comps.push_back
-	(new probe_point::component
-	 (TOK_FUNCTION, new literal_string(fullname)));
-
-      if (has_return)
-	comps.push_back
-	  (new probe_point::component(TOK_RETURN));
+      comps.push_back (new probe_point::component
+                       (fn_or_stmt,
+                        new literal_number(retro_addr))); // XXX: should be hex if possible
     }
 
-  if (has_statement)
+  if (has_return)
     comps.push_back
-      (new probe_point::component
-       (TOK_STATEMENT, new literal_number(addr)));
-  
+      (new probe_point::component(TOK_RETURN));
   
   assert(q.base_probe->locations.size() > 0);
   locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
@@ -1567,7 +1625,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
   if (has_return)
     {
       o->newline() << probe_entry_struct_kprobe_name(probenum)
-                   << ".kp.addr = (void *) 0x" << hex << addr << ";";
+                   << ".kp.addr = (void *) 0x" << hex << addr << ";" << dec;
       o->newline() << "rc = register_kretprobe (&"
                    << probe_entry_struct_kprobe_name(probenum)
                    << ");";
@@ -1575,7 +1633,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum
   else
     {
       o->newline() << probe_entry_struct_kprobe_name(probenum)
-                   << ".addr = (void *) 0x" << hex << addr << ";";
+                   << ".addr = (void *) 0x" << hex << addr << ";" << dec;
       o->newline() << "rc = register_kprobe (&"
                    << probe_entry_struct_kprobe_name(probenum)
                    << ");";
@@ -1658,7 +1716,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       o->newline() << "static struct kretprobe "
                    << probe_entry_struct_kprobe_name(probenum)
                    << "= {";
-      o->newline(1) << ".kp.addr = 0x0," ;
+      o->newline(1) << ".kp.addr = 0," ;
       o->newline() << ".handler = &" << probe_entry_function_name(probenum);
       o->newline(-1) << "};";
     }
@@ -1667,7 +1725,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       o->newline() << "static struct kprobe "
                    << probe_entry_struct_kprobe_name(probenum)
                    << "= {";
-      o->newline(1) << ".addr       = 0x0," ;
+      o->newline(1) << ".addr       = 0," ;
       o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
       o->newline(-1) << "};";
     }
