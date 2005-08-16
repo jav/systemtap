@@ -220,8 +220,8 @@ void post_crement::print (ostream& o)
 
 void ternary_expression::print (ostream& o)
 {
-  o << "(" << *cond << ") ? ("
-    << *truevalue << ") : ("
+  o << "(" << *cond << ")?("
+    << *truevalue << "):("
     << *falsevalue << ")"; 
 }
 

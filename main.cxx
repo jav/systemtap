@@ -307,11 +307,12 @@ main (int argc, char * const argv [])
       cout << "# parse tree dump" << endl;
       s.user_file->print (cout);
       cout << endl;
-      for (unsigned i=0; i<s.library_files.size(); i++)
-        {
-          s.library_files[i]->print (cout);
-          cout << endl;
-        }
+      if (s.verbose)
+        for (unsigned i=0; i<s.library_files.size(); i++)
+          {
+            s.library_files[i]->print (cout);
+            cout << endl;
+          }
     }
 
   // syntax errors, if any, are already printed

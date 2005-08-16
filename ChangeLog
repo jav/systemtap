@@ -1,3 +1,7 @@
+2005-08-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	* main.cxx: Don't print library parse trees if last_pass=1.
+
 2005-08-14  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in: Update elfutils_version requirement to 0.113;
