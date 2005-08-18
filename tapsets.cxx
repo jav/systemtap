@@ -230,7 +230,7 @@ dwflpp
     if (!module_dwarf)
       module_dwarf = dwfl_module_getdwarf(module, &module_bias);
     if (module_dwarf == NULL && sess.verbose)
-      clog << "WARNING: dwfl_module_getdwarf() : " 
+      clog << "WARNING: dwfl_module_getdwarf() : "
 	   << dwfl_errmsg (dwfl_errno ()) << endl;
   }
 
@@ -539,7 +539,7 @@ dwflpp
       {
 	int curr_line;
 	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
-	dwflpp_assert("lineno", dwarf_lineno (line_rec, &curr_line));	
+	dwflpp_assert("lineno", dwarf_lineno (line_rec, &curr_line));
 
 	if (curr_line >= line && (best_line == -1 || curr_line < best_line))
 	  {
@@ -547,9 +547,9 @@ dwflpp
 	    dwflpp_assert("lineaddr", dwarf_lineaddr(line_rec, &addr));
 	  }
       }
-    
+
     if (best_line != -1)
-      {	
+      {
 	if (sess.verbose)
 	  clog << "line " << best_line
 	       << " (given query line " << line << ")"
@@ -560,7 +560,7 @@ dwflpp
       }
 
     if (sess.verbose)
-      clog << "WARNING: could not find line " << line 
+      clog << "WARNING: could not find line " << line
 	   << " in CU " << cu_name << endl;
     return 0;
   }
@@ -582,12 +582,12 @@ dwflpp
       {
 	bool flag;
 	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
-	
+
 	dwflpp_assert("lineprologueend", dwarf_lineprologueend (line_rec, &flag));
 
 	if (sess.verbose)
-	  clog << "checked line record " << i 
-	       << ", is " << (flag ? "" : " not") 
+	  clog << "checked line record " << i
+	       << ", is " << (flag ? "" : " not")
 	       << " prologue end" << endl;
 
 	if (flag)
@@ -600,7 +600,7 @@ dwflpp
     */
 
     // Since GCC does not output the right information, we do this:
-    
+
     Dwarf_Addr entrypc;
     if (!function_entrypc(&entrypc))
       return false;
@@ -631,7 +631,7 @@ dwflpp
 
   string literal_stmt_for_local(Dwarf_Addr pc,
 				string const & local,
-				vector<pair<target_symbol::component_type, 
+				vector<pair<target_symbol::component_type,
 				std::string> > const & components)
   {
     assert (cu);
@@ -696,108 +696,128 @@ dwflpp
 						  &attr_mem, pc,
 						  &tail, fb_attr);
 
-  if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
+    if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
       throw semantic_error("failed to retrieve type "
 			   "attribute for local '" + local + "'");
 
-  Dwarf_Die die_mem, *die = &vardie;
-  unsigned i = 0;
-  while (i < components.size())
-    {
-      die = dwarf_formref_die (&attr_mem, &die_mem);
-      const int typetag = dwarf_tag (die);
-      switch (typetag)
-	{
-	case DW_TAG_typedef:
-	  /* Just iterate on the referent type.  */
+    Dwarf_Die die_mem, *die = &vardie;
+    unsigned i = 0;
+    while (i < components.size())
+      {
+	die = dwarf_formref_die (&attr_mem, &die_mem);
+	const int typetag = dwarf_tag (die);
+	switch (typetag)
+	  {
+	  case DW_TAG_typedef:
+	    /* Just iterate on the referent type.  */
+	    break;
+
+	  case DW_TAG_pointer_type:
+	    if (components[i].first == target_symbol::comp_literal_array_index)
+	      goto subscript;
+
+	    c_translate_pointer (&pool, 1, module_bias, die, &tail);
+	    break;
+
+	  case DW_TAG_array_type:
+	    if (components[i].first == target_symbol::comp_literal_array_index)
+	      {
+	      subscript:
+		c_translate_array (&pool, 1, module_bias, die, &tail,
+				   NULL, lex_cast<Dwarf_Word>(components[i].second));
+		++i;
+	      }
+	    else
+	      throw semantic_error("bad field '"
+				   + components[i].second
+				   + "' for array type");
+	    break;
+
+	  case DW_TAG_structure_type:
+	  case DW_TAG_union_type:
+	    switch (dwarf_child (die, &die_mem))
+	      {
+	      case 1:		/* No children.  */
+		throw semantic_error ("empty struct "
+				      + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
+		break;
+	      case -1:		/* Error.  */
+	      default:		/* Shouldn't happen */
+		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
+				      + string (dwarf_diename_integrate (die) ?: "<anonymous>")
+				      + string (dwarf_errmsg (-1)));
+		break;
+
+	      case 0:
+		break;
+	      }
+
+	    while (dwarf_tag (die) != DW_TAG_member
+		   || ({ const char *member = dwarf_diename_integrate (die);
+		       member == NULL || string(member) != components[i].second; }))
+	      if (dwarf_siblingof (die, &die_mem) != 0)
+		throw semantic_error ("field name " + components[i].second + " not found");
+
+	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
+				      &attr_mem) == NULL)
+	      {
+		/* Union members don't usually have a location,
+		   but just use the containing union's location.  */
+		if (typetag != DW_TAG_union_type)
+		  throw semantic_error ("no location for field "
+					+ components[i].second
+					+ " :" + string(dwarf_errmsg (-1)));
+	      }
+	    else
+	      c_translate_location (&pool, 1, module_bias, &attr_mem, pc,
+				    &tail, NULL);
+	    ++i;
+	    break;
+
+	  case DW_TAG_base_type:
+	    throw semantic_error ("field "
+				  + components[i].second
+				  + " vs base type "
+				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
+	    break;
+	  case -1:
+	    throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
+	    break;
+
+	  default:
+	    throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
+				  + ": unexpected type tag "
+				  + lex_cast<string>(dwarf_tag (die)));
+	    break;
+	  }
+
+	/* Now iterate on the type in DIE's attribute.  */
+	if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
+	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+      }
+
+    /* Fetch the type DIE corresponding to the final location to be accessed.
+       It must be a base type or a typedef for one.  */
+
+    Dwarf_Die typedie_mem;
+    Dwarf_Die *typedie;
+    int typetag;
+    while (1)
+      {
+	typedie = dwarf_formref_die (&attr_mem, &typedie_mem);
+	if (typedie == NULL)
+	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+	typetag = dwarf_tag (typedie);
+	if (typetag != DW_TAG_typedef)
 	  break;
+	if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
+	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+      }
 
-	case DW_TAG_pointer_type:
-	  if (components[i].first == target_symbol::comp_literal_array_index)
-	    goto subscript;
-	  
-	  c_translate_pointer (&pool, 1, module_bias, die, &tail);
-	  break;
+    if (typetag != DW_TAG_base_type)
+      throw semantic_error ("target location not a base type");
 
-	case DW_TAG_array_type:
-	  if (components[i].first == target_symbol::comp_literal_array_index)
-	    {
-	    subscript:
-	      c_translate_array (&pool, 1, module_bias, die, &tail,
-				 NULL, lex_cast<Dwarf_Word>(components[i].second));
-	      ++i;
-	    }
-	  else
-	    throw semantic_error("bad field '" 
-				 + components[i].second 
-				 + "' for array type");
-	  break;
-
-	case DW_TAG_structure_type:
-	case DW_TAG_union_type:
-	  switch (dwarf_child (die, &die_mem))
-	    {
-	    case 1:		/* No children.  */
-	      throw semantic_error ("empty struct " 
-				    + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
-	      break;
-	    case -1:		/* Error.  */
-	    default:		/* Shouldn't happen */
-	      throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
-				    + string (dwarf_diename_integrate (die) ?: "<anonymous>")
-				    + string (dwarf_errmsg (-1)));
-	      break;
-
-	    case 0:
-	      break;
-	    }
-	  
-	  while (dwarf_tag (die) != DW_TAG_member
-		 || ({ const char *member = dwarf_diename_integrate (die);
-		     member == NULL || string(member) != components[i].second; }))
-	    if (dwarf_siblingof (die, &die_mem) != 0)
-	      throw semantic_error ("field name " + components[i].second + " not found");
-
-	  if (dwarf_attr_integrate (die, DW_AT_data_member_location,
-				    &attr_mem) == NULL)
-	    {
-	      /* Union members don't usually have a location,
-		 but just use the containing union's location.  */
-	      if (typetag != DW_TAG_union_type)
-		throw semantic_error ("no location for field " 
-				      + components[i].second 
-				      + " :" + string(dwarf_errmsg (-1)));
-	    }
-	  else
-	    c_translate_location (&pool, 1, module_bias, &attr_mem, pc,
-				  &tail, NULL);
-	  ++i;
-	  break;
-
-	case DW_TAG_base_type:
-	  throw semantic_error ("field " 
-				+ components[i].second 
-				+ " vs base type "
-				+ string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
-	  break;
-	case -1:
-	  throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
-	  break;
-
-	default:
-	  throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
-				+ ": unexpected type tag " 
-				+ lex_cast<string>(dwarf_tag (die)));
-	  break;
-	}
-
-      /* Now iterate on the type in DIE's attribute.  */
-      if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
-	throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
-    }
-
-    c_translate_fetch (&pool, 1, module_bias, die,
-		       &attr_mem, &tail,
+    c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,
 		       "THIS->__retvalue");
 
     size_t bufsz = 1024;
@@ -852,7 +872,7 @@ struct dwarf_derived_probe : public derived_probe
 {
   dwarf_derived_probe (dwarf_query & q,
 		       Dwarf_Addr addr);
-  
+
   string module_name;
   string function_name;
   bool has_statement;
@@ -1129,7 +1149,7 @@ query_statement(Dwarf_Addr stmt_addr, dwarf_query * q)
       if (q->has_relative)
         throw semantic_error("incomplete: do not know how to interpret .relative",
                              q->base_probe->tok);
-      
+
       q->results.push_back(new dwarf_derived_probe(*q, stmt_addr));
     }
   catch (const semantic_error& e)
@@ -1149,17 +1169,17 @@ query_function(Dwarf_Func * func, void * arg)
       if (q->has_callees)
         throw semantic_error("incomplete: do not know how to interpret .callees",
                              q->base_probe->tok);
-      
+
       if (q->has_label)
         throw semantic_error("incomplete: do not know how to interpret .label",
                              q->base_probe->tok);
-      
+
       q->dw.focus_on_function(func);
-      
+
       Dwarf_Addr entry_addr;
-      
+
       if (q->has_statement_str || q->has_function_str)
-        {	  
+        {
           if (q->dw.function_name_matches(q->function))
             {
               if (q->sess.verbose)
@@ -1189,7 +1209,7 @@ query_function(Dwarf_Func * func, void * arg)
                       return DWARF_CB_OK;
                     }
                   if (q->sess.verbose)
-                    clog << "function " << q->dw.function_name 
+                    clog << "function " << q->dw.function_name
                          << " entrypc: " << hex << entry_addr << dec << endl;
                 }
               else
@@ -1204,7 +1224,7 @@ query_function(Dwarf_Func * func, void * arg)
                       return DWARF_CB_OK;
                     }
                 }
-              
+
               // If this function's name matches a function or statement
               // pattern, we use its entry pc, but we do not abort iteration
               // since there might be other functions matching the pattern.
@@ -1218,12 +1238,12 @@ query_function(Dwarf_Func * func, void * arg)
               Dwarf_Addr query_addr = (q->has_function_num
                                        ? q->function_num_val
                                        : q->statement_num_val);
-              
+
               // Adjust module-relative address to global
-              
+
               if (q->has_module)
                 query_addr = q->dw.module_address_to_global(query_addr);
-              
+
               if (q->dw.function_includes_global_addr(query_addr))
                 {
                   if (q->has_statement_num) // has_statement
@@ -1239,7 +1259,7 @@ query_function(Dwarf_Func * func, void * arg)
                           return DWARF_CB_OK;
                         }
                       if (q->sess.verbose)
-                        clog << "function " << q->dw.function_name 
+                        clog << "function " << q->dw.function_name
                              << " entrypc: " << hex << entry_addr << dec << endl;
                     }
                   else // has_function
@@ -1254,13 +1274,13 @@ query_function(Dwarf_Func * func, void * arg)
                           return DWARF_CB_OK;
                         }
                     }
-                  
+
                   query_statement(q->has_function_num ? entry_addr : query_addr, q);
                   return DWARF_CB_ABORT;
                 }
             }
         }
-      
+
       return DWARF_CB_OK;
     }
   catch (const semantic_error& e)
@@ -1278,7 +1298,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
   try
     {
       q->dw.focus_on_cu(cudie);
-      
+
       // If we have enough information in the pattern to skip a CU
       // and the CU does not match that information, return early.
       if ((q->has_statement_str || q->has_function_str)
@@ -1290,7 +1310,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
       if (false && q->sess.verbose)
         clog << "focused on CU '" << q->dw.cu_name
              << "', in module '" << q->dw.module_name << "'" << endl;
-      
+
       if (q->has_statement_str
           && (q->spec_type == function_file_and_line)
           && q->dw.cu_name_matches(q->file))
@@ -1344,20 +1364,20 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   try
     {
       q->dw.focus_on_module(mod);
-      
+
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
-      
+
       if (q->has_kernel && !q->dw.module_name_matches(TOK_KERNEL))
         return DWARF_CB_OK;
-      
+
       if (q->has_module && !q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
 
     if (q->sess.verbose)
-      clog << "focused on module '" << q->dw.module_name 
-	   << "' = [" << hex << q->dw.module_start 
-	   << "-" << q->dw.module_end 
+      clog << "focused on module '" << q->dw.module_name
+	   << "' = [" << hex << q->dw.module_start
+	   << "-" << q->dw.module_end
 	   << ", bias " << q->dw.module_bias << "]" << dec << endl;
 
       if (q->has_function_num || q->has_statement_num)
@@ -1371,12 +1391,12 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
             addr = q->function_num_val;
           else
             addr = q->statement_num_val;
-          
+
           if (q->has_kernel)
             q->dw.focus_on_cu_containing_global_address(addr);
           else
             q->dw.focus_on_cu_containing_module_address(addr);
-          
+
           q->dw.iterate_over_functions(&query_function, q);
         }
       else
@@ -1387,14 +1407,14 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           assert(q->has_function_str || q->has_statement_str);
           q->dw.iterate_over_cus(&query_cu, q);
         }
-      
+
       // If we just processed the module "kernel", and the user asked for
       // the kernel pattern, there's no need to iterate over any further
       // modules
-      
+
       if (q->has_kernel && q->dw.module_name_matches(TOK_KERNEL))
         return DWARF_CB_ABORT;
-      
+
       return DWARF_CB_OK;
     }
   catch (const semantic_error& e)
@@ -1427,32 +1447,32 @@ void
 var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
-    
+
   if (is_active_lvalue(e))
     {
       throw semantic_error("read-only special variable "
 			   + e->base_name + " used as lvalue", e->tok);
     }
-  
+
   string fname = "get_" + e->base_name.substr(1) + "_" + lex_cast<string>(tick++);
 
   // synthesize a function
   functiondecl *fdecl = new functiondecl;
   embeddedcode *ec = new embeddedcode;
-  ec->code = q.dw.literal_stmt_for_local(addr, 
+  ec->code = q.dw.literal_stmt_for_local(addr,
 					 e->base_name.substr(1),
 					 e->components);
   fdecl->name = fname;
   fdecl->body = ec;
   fdecl->type = pe_long;
   q.sess.functions.push_back(fdecl);
-  
+
   // synthesize a call
   functioncall* n = new functioncall;
   n->tok = e->tok;
   n->function = fname;
   n->referent = NULL;
-  provide <functioncall*> (this, n);  
+  provide <functioncall*> (this, n);
 }
 
 
@@ -1511,7 +1531,7 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
   if (has_return)
     comps.push_back
       (new probe_point::component(TOK_RETURN));
-  
+
   assert(q.base_probe->locations.size() > 0);
   locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
 
@@ -1747,15 +1767,15 @@ dwarf_builder::build(systemtap_session & sess,
 
   dw.setup(q.has_kernel || q.has_module);
 
-  if (q.has_kernel 
+  if (q.has_kernel
       && (q.has_function_num || q.has_statement_num))
     {
       // If we have kernel.function(0xbeef), or
       // kernel.statement(0xbeef) the address is global (relative to
       // the kernel) and we can seek directly to the module and cudie
       // in question.
-      Dwarf_Addr a = (q.has_function_num 
-		      ? q.function_num_val 
+      Dwarf_Addr a = (q.has_function_num
+		      ? q.function_num_val
 		      : q.statement_num_val);
       dw.focus_on_module_containing_global_address(a);
       dw.focus_on_cu_containing_global_address(a);

@@ -188,10 +188,31 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
     }
 
+  /* Fetch the type DIE corresponding to the final location to be accessed.
+     It must be a base type or a typedef for one.  */
+
+  Dwarf_Die typedie_mem;
+  Dwarf_Die *typedie;
+  int typetag;
+  while (1)
+    {
+      typedie = dwarf_formref_die (&attr_mem, &typedie_mem);
+      if (typedie == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+      typetag = dwarf_tag (typedie);
+      if (typetag != DW_TAG_typedef)
+	break;
+      if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
+	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
+    }
+
+  if (typetag != DW_TAG_base_type)
+    error (2, 0, _("fetch or store supported only for base type"));
+
   if (store)
-    c_translate_store (&pool, 1, cubias, die, &attr_mem, &tail, "value");
+    c_translate_store (&pool, 1, cubias, die, typedie, &tail, "value");
   else
-    c_translate_fetch (&pool, 1, cubias, die, &attr_mem, &tail, "value");
+    c_translate_fetch (&pool, 1, cubias, die, typedie, &tail, "value");
 
   printf ("#define PROBEADDR %#" PRIx64 "ULL\n", pc);
 
