@@ -1,3 +1,10 @@
+2005-08-18  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (c_translate_addressof): Take TYPEDIE instead of TYPEATTR.
+	* loc2c.h: Update decl.
+	* loc2c-test.c (handle_variable): Handle DW_TAG_pointer_type target
+	for fetch.
+
 2005-08-18  Will Cohen  <wcohen@redhat.com>
 
 	* stp_check.in: See if relayfs available filesystem.
