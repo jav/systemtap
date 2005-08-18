@@ -9,12 +9,20 @@ struct location;		/* Opaque */
    If DW_OP_fbreg is used, it may have a subfragment computing from
    the FB_ATTR location expression.
 
-   On errors, exit and never return (XXX ?).  On success, return the
-   first fragment created, which is also chained onto (*INPUT)->next.
-   *INPUT is then updated with the new tail of that chain.
-   *USED_DEREF is set to true iff the "deref" runtime operation
-   was used, otherwise it is not modified.  */
-struct location *c_translate_location (struct obstack *, int indent,
+   On errors, call FAIL, which should not return.  Any later errors will use
+   FAIL and FAIL_ARG from the first c_translate_location call.
+
+   On success, return the first fragment created, which is also chained
+   onto (*INPUT)->next.  *INPUT is then updated with the new tail of that
+   chain.  *USED_DEREF is set to true iff the "deref" runtime operation was
+   used, otherwise it is not modified.  */
+struct location *c_translate_location (struct obstack *,
+				       void (*fail) (void *arg,
+						     const char *fmt, ...)
+				       __attribute__ ((noreturn,
+						       format (printf, 2, 3))),
+				       void *fail_arg,
+				       int indent,
 				       Dwarf_Addr bias,
 				       Dwarf_Attribute *loc_attr,
 				       Dwarf_Addr address,
