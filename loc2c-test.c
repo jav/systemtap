@@ -85,7 +85,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 #define emit(fmt, ...) printf ("  addr = " fmt "\n", ## __VA_ARGS__)
 
   struct location *head, *tail = NULL;
-  head = c_translate_location (&pool, &fail, NULL, 1, cubias, &attr_mem, pc,
+  head = c_translate_location (&pool, &fail, NULL, NULL,
+			       1, cubias, &attr_mem, pc,
 			       &tail, fb_attr);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
@@ -176,7 +177,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		       *fields, dwarf_errmsg (-1));
 	    }
 	  else
-	    c_translate_location (&pool, NULL, NULL, 1, cubias, &attr_mem, pc,
+	    c_translate_location (&pool, NULL, NULL, NULL,
+				  1, cubias, &attr_mem, pc,
 				  &tail, NULL);
 	  ++fields;
 	  break;

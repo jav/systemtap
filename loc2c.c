@@ -26,6 +26,7 @@ struct location
   void (*fail) (void *arg, const char *fmt, ...)
     __attribute__ ((noreturn, format (printf, 2, 3)));
   void *fail_arg;
+  void (*emit_address) (void *fail_arg, struct obstack *, Dwarf_Addr);
 
   const Dwarf_Loc *ops;
   size_t nops;
@@ -53,11 +54,19 @@ alloc_location (struct obstack *pool, struct location *origin)
   struct location *loc = obstack_alloc (pool, sizeof *loc);
   loc->fail = origin->fail;
   loc->fail_arg = origin->fail_arg;
+  loc->emit_address = origin->emit_address;
   return loc;
 }
 
 #define FAIL(loc, fmt, ...) \
   (*(loc)->fail) ((loc)->fail_arg, fmt, ## __VA_ARGS__)
+
+static void
+default_emit_address (void *fail_arg __attribute__ ((unused)),
+		      struct obstack *pool, Dwarf_Addr address)
+{
+  obstack_printf (pool, AFORMAT, address);
+}
 
 static const char *
 dwarf_diename_integrate (Dwarf_Die *die)
@@ -338,7 +347,10 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  /* Constant-value operations.  */
 
 	case DW_OP_addr:
-	  push (AFORMAT, addrbias + expr[i].number);
+	  emit ("%*s" STACKFMT " = ", indent * 2, "", PUSH);
+	  (*loc->emit_address) (loc->fail_arg, pool,
+				addrbias + expr[i].number);
+	  emit (";\n");
 	  break;
 
 	case DW_OP_lit0 ... DW_OP_lit31:
@@ -510,8 +522,10 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 static struct location *
 location_from_address (struct obstack *pool,
 		       void (*fail) (void *arg, const char *fmt, ...)
-		       __attribute__ ((noreturn, format (printf, 2, 3))),
+		         __attribute__ ((noreturn, format (printf, 2, 3))),
 		       void *fail_arg,
+		       void (*emit_address) (void *fail_arg,
+					     struct obstack *, Dwarf_Addr),
 		       int indent, Dwarf_Addr dwbias,
 		       const Dwarf_Loc *expr, size_t len, Dwarf_Addr address,
 		       struct location **input, Dwarf_Attribute *fb_attr)
@@ -519,6 +533,7 @@ location_from_address (struct obstack *pool,
   struct location *loc = obstack_alloc (pool, sizeof *loc);
   loc->fail = *input == NULL ? fail : (*input)->fail;
   loc->fail_arg = *input == NULL ? fail_arg : (*input)->fail_arg;
+  loc->emit_address = *input == NULL ? emit_address : (*input)->emit_address;
 
   bool need_fb = false;
   size_t loser;
@@ -707,12 +722,13 @@ location_relative (struct obstack *pool,
 
 	  /* This started from a register, but now it's following a pointer.
 	     So we can do the translation starting from address here.  */
-	  return location_from_address (pool, NULL, NULL, indent, dwbias,
+	  return location_from_address (pool, NULL, NULL, NULL, indent, dwbias,
 					expr, len, address, input, fb_attr);
 
 
 	  /* Constant-value operations.  */
 	case DW_OP_addr:
+	  DIE ("static calculation depends on load-time address");
 	  push (dwbias + expr[i].number);
 	  break;
 
@@ -863,7 +879,7 @@ location_relative (struct obstack *pool,
 		    /* This expression keeps going, but further
 		       computations now have an address to start with.
 		       So we can punt to the address computation generator.  */
-		    loc = location_from_address (pool, NULL, NULL,
+		    loc = location_from_address (pool, NULL, NULL, NULL,
 						 indent, dwbias,
 						 &expr[i + 1], len - i - 1,
 						 address, input, fb_attr);
@@ -943,6 +959,8 @@ c_translate_location (struct obstack *pool,
 		      void (*fail) (void *arg, const char *fmt, ...)
 		        __attribute__ ((noreturn, format (printf, 2, 3))),
 		      void *fail_arg,
+		      void (*emit_address) (void *fail_arg,
+					    struct obstack *, Dwarf_Addr),
 		      int indent, Dwarf_Addr dwbias,
 		      Dwarf_Attribute *loc_attr, Dwarf_Addr address,
 		      struct location **input, Dwarf_Attribute *fb_attr)
@@ -976,8 +994,9 @@ c_translate_location (struct obstack *pool,
     case loc_address:
       /* We have a previous address computation.
 	 This expression will compute starting with that on the stack.  */
-      return location_from_address (pool, fail, fail_arg, indent,
-				    dwbias, expr, len, address,
+      return location_from_address (pool, fail, fail_arg,
+				    emit_address ?: &default_emit_address,
+				    indent, dwbias, expr, len, address,
 				    input, fb_attr);
 
     case loc_noncontiguous:

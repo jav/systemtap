@@ -28,6 +28,9 @@ extern "C" {
 #include <elf.h>
 #include <obstack.h>
 #include "loc2c.h"
+
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 }
 
 #include <fnmatch.h>
@@ -639,6 +642,15 @@ dwflpp
     throw semantic_error (msg);
   }
 
+  static void loc2c_emit_address (void *arg, struct obstack *pool,
+				  Dwarf_Addr address)
+  {
+    dwflpp *dwfl = (dwflpp *) arg;
+    obstack_printf (pool, "%#" PRIx64 "UL /* hard-coded %s address */",
+		    address, dwfl_module_info (dwfl->module, NULL, NULL, NULL,
+					       NULL, NULL, NULL, NULL));
+  }
+
   string literal_stmt_for_local(Dwarf_Addr pc,
 				string const & local,
 				vector<pair<target_symbol::component_type,
@@ -703,6 +715,7 @@ dwflpp
     obstack_init (&pool);
     struct location *tail = NULL;
     struct location *head = c_translate_location (&pool, &loc2c_error, this,
+						  &loc2c_emit_address,
 						  1, module_bias,
 						  &attr_mem, pc,
 						  &tail, fb_attr);
@@ -780,7 +793,7 @@ dwflpp
 					+ " :" + string(dwarf_errmsg (-1)));
 	      }
 	    else
-	      c_translate_location (&pool, NULL, NULL, 1,
+	      c_translate_location (&pool, NULL, NULL, NULL, 1,
 				    module_bias, &attr_mem, pc,
 				    &tail, NULL);
 	    ++i;
