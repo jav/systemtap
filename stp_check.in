@@ -33,7 +33,7 @@ load_module()
 prefix=@prefix@
 VAR_DIR=@localstatedir@/cache/systemtap
 
-RELAYFS=`grep " relayfs_poll" /boot/System.map-\`uname -r\``
+RELAYFS=`grep "relayfs" /proc/filesystems`
 if [ -z "$RELAYFS" ]
 then
     RELAYFS=`/sbin/lsmod | grep relayfs`
