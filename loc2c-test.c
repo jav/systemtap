@@ -14,7 +14,8 @@
 #include <elfutils/libdwfl.h>
 #include <dwarf.h>
 #include <obstack.h>
-
+#include <unistd.h>
+#include <stdarg.h>
 #include "loc2c.h"
 
 #define _(msg) msg
@@ -27,6 +28,19 @@ dwarf_diename_integrate (Dwarf_Die *die)
 }
 
 
+static void __attribute__ ((noreturn))
+fail (void *arg __attribute__ ((unused)), const char *fmt, ...)
+{
+  va_list ap;
+
+  fprintf (stderr, "%s: ", program_invocation_short_name);
+
+  va_start (ap, fmt);
+  vfprintf (stderr, _(fmt), ap);
+  va_end (ap);
+
+  exit (2);
+}
 
 static void
 handle_variable (Dwarf_Die *scopes, int nscopes, int out,
@@ -71,7 +85,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 #define emit(fmt, ...) printf ("  addr = " fmt "\n", ## __VA_ARGS__)
 
   struct location *head, *tail = NULL;
-  head = c_translate_location (&pool, 1, cubias, &attr_mem, pc,
+  head = c_translate_location (&pool, &fail, NULL, 1, cubias, &attr_mem, pc,
 			       &tail, fb_attr);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
@@ -162,7 +176,7 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		       *fields, dwarf_errmsg (-1));
 	    }
 	  else
-	    c_translate_location (&pool, 1, cubias, &attr_mem, pc,
+	    c_translate_location (&pool, NULL, NULL, 1, cubias, &attr_mem, pc,
 				  &tail, NULL);
 	  ++fields;
 	  break;

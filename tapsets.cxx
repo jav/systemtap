@@ -19,6 +19,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <cstdarg>
 
 extern "C" {
 #include <elfutils/libdwfl.h>
@@ -628,6 +629,15 @@ dwflpp
     return false;
   }
 
+  static void loc2c_error (void *arg, const char *fmt, ...)
+  {
+    char *msg = NULL;
+    va_list ap;
+    va_start (ap, fmt);
+    vasprintf (&msg, fmt, ap);
+    va_end (ap);
+    throw semantic_error (msg);
+  }
 
   string literal_stmt_for_local(Dwarf_Addr pc,
 				string const & local,
@@ -692,7 +702,8 @@ dwflpp
     struct obstack pool;
     obstack_init (&pool);
     struct location *tail = NULL;
-    struct location *head = c_translate_location (&pool, 1, module_bias,
+    struct location *head = c_translate_location (&pool, &loc2c_error, this,
+						  1, module_bias,
 						  &attr_mem, pc,
 						  &tail, fb_attr);
 
@@ -769,7 +780,8 @@ dwflpp
 					+ " :" + string(dwarf_errmsg (-1)));
 	      }
 	    else
-	      c_translate_location (&pool, 1, module_bias, &attr_mem, pc,
+	      c_translate_location (&pool, NULL, NULL, 1,
+				    module_bias, &attr_mem, pc,
 				    &tail, NULL);
 	    ++i;
 	    break;

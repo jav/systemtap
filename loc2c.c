@@ -10,7 +10,7 @@
 #include <assert.h>
 #include "loc2c.h"
 
-#define _(x) x
+#define N_(x) x
 
 #define STACK_TYPE	"intptr_t"  /* Must be the signed type.  */
 #define UTYPE		"uintptr_t" /* Must be the unsigned type.  */
@@ -22,6 +22,10 @@
 struct location
 {
   struct location *next;
+
+  void (*fail) (void *arg, const char *fmt, ...)
+    __attribute__ ((noreturn, format (printf, 2, 3)));
+  void *fail_arg;
 
   const Dwarf_Loc *ops;
   size_t nops;
@@ -43,6 +47,17 @@ struct location
   };
 };
 
+static struct location *
+alloc_location (struct obstack *pool, struct location *origin)
+{
+  struct location *loc = obstack_alloc (pool, sizeof *loc);
+  loc->fail = origin->fail;
+  loc->fail_arg = origin->fail_arg;
+  return loc;
+}
+
+#define FAIL(loc, fmt, ...) \
+  (*(loc)->fail) ((loc)->fail_arg, fmt, ## __VA_ARGS__)
 
 static const char *
 dwarf_diename_integrate (Dwarf_Die *die)
@@ -58,7 +73,7 @@ new_synthetic_loc (struct obstack *pool, struct location *origin, bool deref)
   obstack_1grow (pool, '\0');
   char *program = obstack_finish (pool);
 
-  struct location *loc = obstack_alloc (pool, sizeof *loc);
+  struct location *loc = alloc_location (pool, origin);
   loc->next = NULL;
   loc->byte_size = 0;
   loc->type = loc_address;
@@ -84,12 +99,13 @@ new_synthetic_loc (struct obstack *pool, struct location *origin, bool deref)
 
 /* Die in the middle of an expression.  */
 static struct location *
-lose (const char *failure, const Dwarf_Loc *lexpr, size_t i)
+lose (struct location *loc,
+      const char *failure, const Dwarf_Loc *lexpr, size_t i)
 {
-  error (2, 0, _("%s in DWARF expression [%Zu] at %" PRIu64
-		 " (%#x: %" PRId64 ", %" PRId64 ")"),
-	 failure, i, lexpr[i].offset,
-	 lexpr[i].atom, lexpr[i].number, lexpr[i].number2);
+  FAIL (loc, N_("%s in DWARF expression [%Zu] at %" PRIu64
+		" (%#x: %" PRId64 ", %" PRId64 ")"),
+	failure, i, lexpr[i].offset,
+	lexpr[i].atom, lexpr[i].number, lexpr[i].number2);
   return NULL;
 }
 
@@ -114,7 +130,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
   loc->ops = expr;
   loc->nops = len;
 
-#define DIE(msg) return (*loser = i, _(msg))
+#define DIE(msg) return (*loser = i, N_(msg))
 
 #define emit(fmt, ...) obstack_printf (pool, fmt, ## __VA_ARGS__)
 
@@ -441,7 +457,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    DIE ("DW_OP_piece left multiple values on stack");
 	  else
 	    {
-	      struct location *piece = obstack_alloc (pool, sizeof *piece);
+	      struct location *piece = alloc_location (pool, input);
 	      const char *failure = finish (piece);
 	      if (failure != NULL)
 		return failure;
@@ -493,17 +509,23 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 /* Translate a location starting from an address or nothing.  */
 static struct location *
 location_from_address (struct obstack *pool,
+		       void (*fail) (void *arg, const char *fmt, ...)
+		       __attribute__ ((noreturn, format (printf, 2, 3))),
+		       void *fail_arg,
 		       int indent, Dwarf_Addr dwbias,
 		       const Dwarf_Loc *expr, size_t len, Dwarf_Addr address,
 		       struct location **input, Dwarf_Attribute *fb_attr)
 {
+  struct location *loc = obstack_alloc (pool, sizeof *loc);
+  loc->fail = *input == NULL ? fail : (*input)->fail;
+  loc->fail_arg = *input == NULL ? fail_arg : (*input)->fail_arg;
+
   bool need_fb = false;
   size_t loser;
-  struct location *loc = obstack_alloc (pool, sizeof *loc);
   const char *failure = translate (pool, indent + 1, dwbias, expr, len,
 				   *input, &need_fb, &loser, loc);
   if (failure != NULL)
-    return lose (failure, expr, loser);
+    return lose (loc, failure, expr, loser);
 
   loc->next = NULL;
   if (need_fb)
@@ -523,21 +545,21 @@ location_from_address (struct obstack *pool,
 
 	default:		/* Shouldn't happen.  */
 	case -1:
-	  error (2, 0, "dwarf_addrloclists (form %#x): %s",
-		 dwarf_whatform (fb_attr), dwarf_errmsg (-1));
+	  FAIL (*input, N_("dwarf_addrloclists (form %#x): %s"),
+		dwarf_whatform (fb_attr), dwarf_errmsg (-1));
 	  return NULL;
 
 	case 0:			/* Shouldn't happen.  */
 	fb_inaccessible:
-	  error (2, 0, "DW_AT_frame_base not accessible at this address");
+	  FAIL (*input, N_("DW_AT_frame_base not accessible at this address"));
 	  return NULL;
 	}
 
-      loc->address.frame_base = obstack_alloc (pool, sizeof *loc);
+      loc->address.frame_base = alloc_location (pool, loc);
       failure = translate (pool, indent + 1, dwbias, fb_expr, fb_len, NULL,
 			   NULL, &loser, loc->address.frame_base);
       if (failure != NULL)
-	return lose (failure, fb_expr, loser);
+	return lose (loc, failure, fb_expr, loser);
     }
 
   if (*input != NULL)
@@ -584,7 +606,7 @@ location_relative (struct obstack *pool,
 #define push(value) (stack[PUSH] = (value))
 
   const char *failure = NULL;
-#define DIE(msg) do { failure = _(msg); goto fail; } while (0)
+#define DIE(msg) do { failure = N_(msg); goto fail; } while (0)
 
   struct location *head = NULL;
   size_t i;
@@ -685,7 +707,7 @@ location_relative (struct obstack *pool,
 
 	  /* This started from a register, but now it's following a pointer.
 	     So we can do the translation starting from address here.  */
-	  return location_from_address (pool, indent, dwbias,
+	  return location_from_address (pool, NULL, NULL, indent, dwbias,
 					expr, len, address, input, fb_attr);
 
 
@@ -816,7 +838,7 @@ location_relative (struct obstack *pool,
 		/* The piece we want is actually in memory.  Use the same
 		   program to compute the address from the preceding input.  */
 
-		struct location *loc = obstack_alloc (pool, sizeof *loc);
+		struct location *loc = alloc_location (pool, *input);
 		*loc = **input;
 		if (head == NULL)
 		  head = loc;
@@ -841,7 +863,8 @@ location_relative (struct obstack *pool,
 		    /* This expression keeps going, but further
 		       computations now have an address to start with.
 		       So we can punt to the address computation generator.  */
-		    loc = location_from_address (pool, indent, dwbias,
+		    loc = location_from_address (pool, NULL, NULL,
+						 indent, dwbias,
 						 &expr[i + 1], len - i - 1,
 						 address, input, fb_attr);
 		    if (loc == NULL)
@@ -902,7 +925,7 @@ location_relative (struct obstack *pool,
     DIE ("cannot handle location expression");
 
  fail:
-  return lose (failure, expr, i);
+  return lose (*input, failure, expr, i);
 }
 
 
@@ -917,6 +940,9 @@ location_relative (struct obstack *pool,
 
 struct location *
 c_translate_location (struct obstack *pool,
+		      void (*fail) (void *arg, const char *fmt, ...)
+		        __attribute__ ((noreturn, format (printf, 2, 3))),
+		      void *fail_arg,
 		      int indent, Dwarf_Addr dwbias,
 		      Dwarf_Attribute *loc_attr, Dwarf_Addr address,
 		      struct location **input, Dwarf_Attribute *fb_attr)
@@ -934,13 +960,13 @@ c_translate_location (struct obstack *pool,
 
     default:			/* Shouldn't happen.  */
     case -1:
-      error (2, 0, "dwarf_addrloclists (form %#x): %s",
-	     dwarf_whatform (fb_attr), dwarf_errmsg (-1));
+      FAIL (*input, N_("dwarf_addrloclists (form %#x): %s"),
+	    dwarf_whatform (fb_attr), dwarf_errmsg (-1));
       return NULL;
 
     case 0:			/* Shouldn't happen.  */
     inaccessible:
-      error (2, 0, "not accessible at this address");
+      FAIL (*input, N_("not accessible at this address"));
       return NULL;
     }
 
@@ -950,7 +976,8 @@ c_translate_location (struct obstack *pool,
     case loc_address:
       /* We have a previous address computation.
 	 This expression will compute starting with that on the stack.  */
-      return location_from_address (pool, indent, dwbias, expr, len, address,
+      return location_from_address (pool, fail, fail_arg, indent,
+				    dwbias, expr, len, address,
 				    input, fb_attr);
 
     case loc_noncontiguous:
@@ -995,7 +1022,7 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
 
     case loc_noncontiguous:
       /* Could be handled if it ever happened.  */
-      error (2, 0, _("noncontiguous locations not supported"));
+      FAIL (loc, N_("noncontiguous locations not supported"));
       break;
 
     default:
@@ -1028,7 +1055,7 @@ emit_base_store (struct obstack *pool, Dwarf_Word byte_size,
 
     case loc_noncontiguous:
       /* Could be handled if it ever happened.  */
-      error (2, 0, _("noncontiguous locations not supported"));
+      FAIL (loc, N_("noncontiguous locations not supported"));
       break;
 
     default:
@@ -1065,10 +1092,10 @@ c_translate_pointer (struct obstack *pool, int indent,
       deref = emit_base_fetch (pool, 0, "tmp", false, *input);
     }
   else if (dwarf_formudata (&attr_mem, &byte_size) != 0)
-    error (2, 0,
-	   _("cannot get byte_size attribute for type %s: %s"),
-	   dwarf_diename_integrate (typedie) ?: "<anonymous>",
-	   dwarf_errmsg (-1));
+    FAIL (*input,
+	  N_("cannot get byte_size attribute for type %s: %s"),
+	  dwarf_diename_integrate (typedie) ?: "<anonymous>",
+	  dwarf_errmsg (-1));
   else
     deref = emit_base_fetch (pool, byte_size, "tmp", true, *input);
 
@@ -1081,7 +1108,7 @@ c_translate_pointer (struct obstack *pool, int indent,
 
 /* Determine the byte size of a base type.  */
 static Dwarf_Word
-base_byte_size (Dwarf_Die *typedie)
+base_byte_size (Dwarf_Die *typedie, struct location *origin)
 {
   assert (dwarf_tag (typedie) == DW_TAG_base_type);
 
@@ -1091,8 +1118,8 @@ base_byte_size (Dwarf_Die *typedie)
       && dwarf_formudata (&attr_mem, &size) == 0)
     return size;
 
-  error (2, 0,
-	 _("cannot get byte_size attribute for type %s: %s"),
+  FAIL (origin,
+	 N_("cannot get byte_size attribute for type %s: %s"),
 	 dwarf_diename_integrate (typedie) ?: "<anonymous>",
 	 dwarf_errmsg (-1));
   return -1;
@@ -1115,8 +1142,7 @@ emit_bitfield (struct obstack *pool, int indent,
       || dwarf_formudata (&attr_mem, &bit_offset) != 0
       || dwarf_attr_integrate (die, DW_AT_bit_size, &attr_mem) == NULL
       || dwarf_formudata (&attr_mem, &bit_size) != 0)
-    error (2, 0, _("cannot get bit field parameters: %s"),
-	   dwarf_errmsg (-1));
+    FAIL (loc, N_("cannot get bit field parameters: %s"), dwarf_errmsg (-1));
 
   /* Emit "{ uintNN_t tmp = ...;" to fetch the base type.  */
 
@@ -1158,7 +1184,7 @@ c_translate_fetch (struct obstack *pool, int indent,
   Dwarf_Word byte_size;
   if (dwarf_attr_integrate (die, DW_AT_byte_size, &size_attr) == NULL
       || dwarf_formudata (&size_attr, &byte_size) != 0)
-    byte_size = base_byte_size (typedie);
+    byte_size = base_byte_size (typedie, *input);
 
   bool deref = false;
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
@@ -1179,7 +1205,7 @@ c_translate_fetch (struct obstack *pool, int indent,
 
       default:
 	/* Could handle this generating call to memcpy equivalent.  */
-	error (2, 0, _("fetch is larger than base integer types"));
+	FAIL (*input, N_("fetch is larger than base integer types"));
 	break;
       }
 
@@ -1204,7 +1230,7 @@ c_translate_store (struct obstack *pool, int indent,
   Dwarf_Word byte_size;
   if (dwarf_attr_integrate (die, DW_AT_byte_size, &size_attr) == NULL
       || dwarf_formudata (&size_attr, &byte_size) != 0)
-    byte_size = base_byte_size (typedie);
+    byte_size = base_byte_size (typedie, *input);
 
   bool deref = false;
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
@@ -1224,7 +1250,7 @@ c_translate_store (struct obstack *pool, int indent,
 
       default:
 	/* Could handle this generating call to memcpy equivalent.  */
-	error (2, 0, _("fetch is larger than base integer types"));
+	FAIL (*input, N_("fetch is larger than base integer types"));
 	break;
       }
 
@@ -1245,7 +1271,7 @@ c_translate_addressof (struct obstack *pool, int indent,
   ++indent;
 
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
-    error (2, 0, _("cannot take the address of a bit field"));
+    FAIL (*input, N_("cannot take the address of a bit field"));
 
   switch ((*input)->type)
     {
@@ -1256,10 +1282,10 @@ c_translate_addressof (struct obstack *pool, int indent,
       break;
 
     case loc_register:
-      error (2, 0, _("cannot take address of object in register"));
+      FAIL (*input, N_("cannot take address of object in register"));
       break;
     case loc_noncontiguous:
-      error (2, 0, _("cannot take address of noncontiguous object"));
+      FAIL (*input, N_("cannot take address of noncontiguous object"));
       break;
 
     default:
@@ -1271,7 +1297,7 @@ c_translate_addressof (struct obstack *pool, int indent,
 
 /* Determine the element stride of an array type.  */
 static Dwarf_Word
-array_stride (Dwarf_Die *typedie)
+array_stride (Dwarf_Die *typedie, struct location *origin)
 {
   Dwarf_Attribute attr_mem;
   if (dwarf_attr_integrate (typedie, DW_AT_stride_size, &attr_mem) != NULL)
@@ -1279,30 +1305,30 @@ array_stride (Dwarf_Die *typedie)
       Dwarf_Word stride;
       if (dwarf_formudata (&attr_mem, &stride) == 0)
 	return stride;
-      error (2, 0, _("cannot get stride_size attribute array type %s: %s"),
-	     dwarf_diename_integrate (typedie) ?: "<anonymous>",
-	     dwarf_errmsg (-1));
+      FAIL (origin, N_("cannot get stride_size attribute array type %s: %s"),
+	    dwarf_diename_integrate (typedie) ?: "<anonymous>",
+	    dwarf_errmsg (-1));
     }
 
   Dwarf_Die die_mem;
   if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL
       || dwarf_formref_die (&attr_mem, &die_mem) == NULL)
-    error (2, 0, _("cannot get element type of array type %s: %s"),
-	   dwarf_diename_integrate (typedie) ?: "<anonymous>",
-	   dwarf_errmsg (-1));
+    FAIL (origin, N_("cannot get element type of array type %s: %s"),
+	  dwarf_diename_integrate (typedie) ?: "<anonymous>",
+	  dwarf_errmsg (-1));
 
   if (dwarf_attr_integrate (&die_mem, DW_AT_byte_size, &attr_mem) != NULL)
     {
       Dwarf_Word stride;
       if (dwarf_formudata (&attr_mem, &stride) == 0)
 	return stride;
-      error (2, 0,
-	     _("cannot get byte_size attribute for array element type %s: %s"),
-	     dwarf_diename_integrate (&die_mem) ?: "<anonymous>",
-	     dwarf_errmsg (-1));
+      FAIL (origin,
+	    N_("cannot get byte_size attribute for array element type %s: %s"),
+	    dwarf_diename_integrate (&die_mem) ?: "<anonymous>",
+	    dwarf_errmsg (-1));
     }
 
-  error (2, 0, _("confused about array element size"));
+  FAIL (origin, N_("confused about array element size"));
   return 0;
 }
 
@@ -1316,13 +1342,13 @@ c_translate_array (struct obstack *pool, int indent,
 
   ++indent;
 
-  Dwarf_Word stride = array_stride (typedie);
+  Dwarf_Word stride = array_stride (typedie, *input);
 
   struct location *loc = *input;
   while (loc->type == loc_noncontiguous)
     {
       if (idx != NULL)
-	error (2, 0, _("cannot dynamically index noncontiguous array"));
+	FAIL (*input, N_("cannot dynamically index noncontiguous array"));
       else
 	{
 	  Dwarf_Word offset = const_idx * stride;
@@ -1333,9 +1359,9 @@ c_translate_array (struct obstack *pool, int indent,
 	      piece = piece->next;
 	    }
 	  if (piece == NULL)
-	    error (2, 0, _("constant index is outside noncontiguous array"));
+	    FAIL (*input, N_("constant index is outside noncontiguous array"));
 	  if (offset % stride != 0)
-	    error (2, 0, _("noncontiguous array splits elements"));
+	    FAIL (*input, N_("noncontiguous array splits elements"));
 	  const_idx = offset / stride;
 	  loc = piece;
 	}
@@ -1355,7 +1381,7 @@ c_translate_array (struct obstack *pool, int indent,
       break;
 
     case loc_register:
-      error (2, 0, _("cannot index array stored in a register"));
+      FAIL (*input, N_("cannot index array stored in a register"));
       break;
 
     default:
