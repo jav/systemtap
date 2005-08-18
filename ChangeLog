@@ -1,5 +1,18 @@
 2005-08-17  Roland McGrath  <roland@redhat.com>
 
+	PR systemtap/1197
+	* loc2c.c (struct location): New members `fail', `fail_arg'.
+	(alloc_location): New function.  Initialize those members.
+	(new_synthetic_loc, translate): Use that instead of obstack_alloc.
+	(location_from_address, location_relative): Likewise.
+	(FAIL): New macro.  Use it everywhere in place of `error'.
+	(c_translate_location): Take new args FAIL, FAIL_ARG.
+	* loc2c.h: Update declaration.
+	* loc2c-test.c (fail): New function.
+	(handle_variable): Pass it to c_translate_location.
+	* tapsets.cxx (dwflpp::loc2c_error): New static method.
+	(dwflpp::literal_stmt_for_local): Pass it to to c_translate_location.
+
 	PR systemtap/1205, systemtap/1206
 	* loc2c.c (c_translate_fetch): Take TYPEDIE instead of TYPEATTR.
 	(c_translate_store): Likewise.
