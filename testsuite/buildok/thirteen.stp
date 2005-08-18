@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe kernel.function("sys_read")
+{
+ log ("count=" . string($count))
+}

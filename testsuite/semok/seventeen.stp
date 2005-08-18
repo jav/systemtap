@@ -5,6 +5,7 @@ probe kernel.function("pipe_writev")
 {
    a = $nr_segs
    foo [a] = 1
-   # $nr_segs is not an lvalue here
+   # $nr_segs is not an lvalue here (foo is), so this should compile
+   # even in non-guru mode
    foo [$nr_segs] ++
 }
