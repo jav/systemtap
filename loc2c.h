@@ -54,7 +54,7 @@ void c_translate_array (struct obstack *pool, int indent,
    is a register or noncontiguous object.  */
 void c_translate_addressof (struct obstack *pool, int indent,
 			    Dwarf_Addr dwbias, Dwarf_Die *die,
-			    Dwarf_Attribute *typeattr,
+			    Dwarf_Die *typedie,
 			    struct location **input, const char *target);
 
 /* Translate a fragment to fetch the value of variable or member DIE

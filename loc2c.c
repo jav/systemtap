@@ -1284,7 +1284,7 @@ void
 c_translate_addressof (struct obstack *pool, int indent,
 		       Dwarf_Addr dwbias __attribute__ ((unused)),
 		       Dwarf_Die *die,
-		       Dwarf_Attribute *typeattr  __attribute__ ((unused)),
+		       Dwarf_Die *typedie __attribute__ ((unused)),
 		       struct location **input, const char *target)
 {
   ++indent;

@@ -222,13 +222,29 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
     }
 
-  if (typetag != DW_TAG_base_type)
-    error (2, 0, _("fetch or store supported only for base type"));
+  switch (typetag)
+    {
+    case DW_TAG_base_type:
+      if (store)
+	c_translate_store (&pool, 1, cubias, die, typedie, &tail, "value");
+      else
+	c_translate_fetch (&pool, 1, cubias, die, typedie, &tail, "value");
+      break;
 
-  if (store)
-    c_translate_store (&pool, 1, cubias, die, typedie, &tail, "value");
-  else
-    c_translate_fetch (&pool, 1, cubias, die, typedie, &tail, "value");
+    case DW_TAG_pointer_type:
+      if (store)
+	error (2, 0, _("store not supported for pointer type"));
+      c_translate_pointer (&pool, 1, cubias, typedie, &tail);
+      c_translate_addressof (&pool, 1, cubias, die, typedie, &tail, "value");
+      break;
+
+    default:
+      if (store)
+	error (2, 0, _("store supported only for base type"));
+      else
+	error (2, 0, _("fetch supported only for base type or pointer"));
+      break;
+    }
 
   printf ("#define PROBEADDR %#" PRIx64 "ULL\n", pc);
 
