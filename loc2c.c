@@ -8,6 +8,7 @@
 #include <dwarf.h>
 #include <elfutils/libdw.h>
 #include <assert.h>
+#include "loc2c.h"
 
 #define _(x) x
 
@@ -1049,6 +1050,8 @@ c_translate_pointer (struct obstack *pool, int indent,
 		     Dwarf_Addr dwbias __attribute__ ((unused)),
 		     Dwarf_Die *typedie, struct location **input)
 {
+  assert (dwarf_tag (typedie) == DW_TAG_pointer_type);
+
   ++indent;
 
   obstack_printf (pool, "%*s{ ", (indent + 2) * 2, "");
@@ -1080,6 +1083,8 @@ c_translate_pointer (struct obstack *pool, int indent,
 static Dwarf_Word
 base_byte_size (Dwarf_Die *typedie)
 {
+  assert (dwarf_tag (typedie) == DW_TAG_base_type);
+
   Dwarf_Attribute attr_mem;
   Dwarf_Word size;
   if (dwarf_attr_integrate (typedie, DW_AT_byte_size, &attr_mem) != NULL
@@ -1144,7 +1149,7 @@ emit_bitfield (struct obstack *pool, int indent,
 void
 c_translate_fetch (struct obstack *pool, int indent,
 		   Dwarf_Addr dwbias __attribute__ ((unused)),
-		   Dwarf_Die *die, Dwarf_Attribute *typeattr,
+		   Dwarf_Die *die, Dwarf_Die *typedie,
 		   struct location **input, const char *target)
 {
   ++indent;
@@ -1153,12 +1158,7 @@ c_translate_fetch (struct obstack *pool, int indent,
   Dwarf_Word byte_size;
   if (dwarf_attr_integrate (die, DW_AT_byte_size, &size_attr) == NULL
       || dwarf_formudata (&size_attr, &byte_size) != 0)
-    {
-      Dwarf_Die basedie;
-      if (dwarf_formref_die (typeattr, &basedie) == NULL)
-	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
-      byte_size = base_byte_size (&basedie);
-    }
+    byte_size = base_byte_size (typedie);
 
   bool deref = false;
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
@@ -1195,7 +1195,7 @@ c_translate_fetch (struct obstack *pool, int indent,
 void
 c_translate_store (struct obstack *pool, int indent,
 		   Dwarf_Addr dwbias __attribute__ ((unused)),
-		   Dwarf_Die *die, Dwarf_Attribute *typeattr,
+		   Dwarf_Die *die, Dwarf_Die *typedie,
 		   struct location **input, const char *rvalue)
 {
   ++indent;
@@ -1204,12 +1204,7 @@ c_translate_store (struct obstack *pool, int indent,
   Dwarf_Word byte_size;
   if (dwarf_attr_integrate (die, DW_AT_byte_size, &size_attr) == NULL
       || dwarf_formudata (&size_attr, &byte_size) != 0)
-    {
-      Dwarf_Die basedie;
-      if (dwarf_formref_die (typeattr, &basedie) == NULL)
-	error (2, 0, _("cannot get type of field: %s"), dwarf_errmsg (-1));
-      byte_size = base_byte_size (&basedie);
-    }
+    byte_size = base_byte_size (typedie);
 
   bool deref = false;
   if (dwarf_hasattr_integrate (die, DW_AT_bit_offset))
@@ -1317,6 +1312,8 @@ c_translate_array (struct obstack *pool, int indent,
 		   Dwarf_Die *typedie, struct location **input,
 		   const char *idx, Dwarf_Word const_idx)
 {
+  assert (dwarf_tag (typedie) == DW_TAG_array_type);
+
   ++indent;
 
   Dwarf_Word stride = array_stride (typedie);
