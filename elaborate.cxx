@@ -373,6 +373,8 @@ symresolution_info::derive_probes (match_node * root,
           builder->build(session, p, loc, param_map, re_expand, dps);
           
           // Recursively expand any further-expanding results
+          // XXX: ... or the build routine could get a reference to
+          // this object and let it call derive_probes() internally
           if (!re_expand.empty())
             {
               for (unsigned j = 0; j < re_expand.size(); ++j)
