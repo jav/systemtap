@@ -21,13 +21,13 @@ struct location *c_translate_location (struct obstack *, int indent,
 				       struct location **input,
 				       Dwarf_Attribute *fb_attr);
 
-/* Translate a fragment to dereference the given pointer type,
+/* Translate a fragment to dereference the given DW_TAG_pointer_type DIE,
    where *INPUT is the location of the pointer with that type.  */
 void c_translate_pointer (struct obstack *pool, int indent,
 			  Dwarf_Addr dwbias, Dwarf_Die *typedie,
 			  struct location **input);
 
-/* Translate a fragment to index an array (turning the location
+/* Translate a fragment to index a DW_TAG_array_type DIE (turning the location
    of the array into the location of an element).  If IDX is non-null,
    it's a string of C code to emit in the fragment as the array index.
    If the index is a known constant, IDX should be null and CONST_IDX
@@ -48,18 +48,18 @@ void c_translate_addressof (struct obstack *pool, int indent,
 
 /* Translate a fragment to fetch the value of variable or member DIE
    at the *INPUT location and store it in lvalue TARGET.
-   This handles base integer types and bit fields.  */
+   This handles base integer types and bit fields, i.e. DW_TAG_base_type.  */
 void c_translate_fetch (struct obstack *pool, int indent,
 			Dwarf_Addr dwbias __attribute__ ((unused)),
-			Dwarf_Die *die, Dwarf_Attribute *typeattr,
+			Dwarf_Die *die, Dwarf_Die *typedie,
 			struct location **input, const char *target);
 
 /* Translate a fragment to locate the value of variable or member DIE
    at the *INPUT location and set it to the C expression RVALUE.
-   This handles base integer types and bit fields.  */
+   This handles base integer types and bit fields, i.e. DW_TAG_base_type.  */
 void c_translate_store (struct obstack *pool, int indent,
 			Dwarf_Addr dwbias __attribute__ ((unused)),
-			Dwarf_Die *die, Dwarf_Attribute *typeattr,
+			Dwarf_Die *die, Dwarf_Die *typedie,
 			struct location **input, const char *rvalue);
 
 /* Emit the C fragment built up at LOC (i.e., the return value from the
