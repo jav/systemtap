@@ -1,3 +1,7 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* stp_check.in: Remove stp-control.
+
 2005-08-18  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.c (c_translate_addressof): Take TYPEDIE instead of TYPEATTR.

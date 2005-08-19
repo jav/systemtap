@@ -33,18 +33,14 @@ load_module()
 prefix=@prefix@
 VAR_DIR=@localstatedir@/cache/systemtap
 
-RELAYFS=`grep "relayfs" /proc/filesystems`
+RELAYFS=`grep relayfs /proc/filesystems`
 if [ -z "$RELAYFS" ]
 then
-    RELAYFS=`/sbin/lsmod | grep relayfs`
-    if [ -z "$RELAYFS" ]
-    then
 	MODULE_NAME=relayfs
 	MODULE_DIR=$VAR_DIR/relayfs
 	MODULE=$MODULE_DIR/relayfs.ko
 	SRC_DIR=@datadir@/systemtap/runtime/relayfs
 	load_module
-    fi
 fi
 
 if [ ! -d "/mnt/relay" ]
@@ -56,15 +52,5 @@ MOUNT=`mount | grep relayfs |awk '{print $1}'`
 if [ "$MOUNT" != "relayfs" ]
 then
 	mount -t relayfs relayfs /mnt/relay
-fi
-
-STP_CONTROL=`/sbin/lsmod | grep stp_control |awk '{print $1}'`
-if [ "$STP_CONTROL" != "stp_control" ] 
-then
-    MODULE_NAME=stp-control
-    MODULE_DIR=$VAR_DIR/transport
-    MODULE=$MODULE_DIR/stp-control.ko
-    SRC_DIR=@datadir@/systemtap/runtime/transport
-    load_module
 fi
 
