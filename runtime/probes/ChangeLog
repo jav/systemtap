@@ -1,3 +1,9 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* shellsnoop/shellsnoop.c: Remove STP_NETLINK_ONLY.
+	* stp: Deleted. Use stpd directly.
+	
+
 2005-08-01  Martin Hunt  <hunt@redhat.com>
 
 	* agg/stat1.c (probe_exit): Remove "static"
@@ -13,6 +19,11 @@
 	* tasklet/stp_tasklet.c (probe_exit): Ditto.
 	* os_timer/os_timer.c (probe_exit): Ditto.
 	* scf/scf.c (probe_exit): Ditto.
+
+2005-07-28  Martin Hunt  <hunt@redhat.com>
+
+	* bench/ALL: Chnage to probe sys_getuid() and sys_getgid()
+	because those aren't used by stpd, unlike sys_read() and sys_write().
 
 2005-07-11  Martin Hunt  <hunt@redhat.com>
 

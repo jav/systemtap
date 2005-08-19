@@ -1,6 +1,6 @@
-#define STP_NETLINK_ONLY
+//#define STP_RELAYFS
 #define STP_NUM_STRINGS 1
-
+#define STP_STRING_SIZE 8192
 #include "runtime.h"
 
 #define NEED_INT64_VALS
@@ -50,10 +50,10 @@ int inst_do_execve (char * filename, char __user *__user *argv, char __user *__u
 struct file * inst_filp_open (const char * filename, int flags, int mode)
 {
   _stp_map_key_int64 (pids, current->pid);
-  if (_stp_map_get_int64 (pids))
+  if (_stp_map_get_int64 (pids)) {
     _stp_printf ("%d\t%d\t%s\tO %s\n", current->pid, current->parent->pid, current->comm, filename);
-
-  _stp_print_flush();
+    _stp_print_flush();
+  }
   jprobe_return();
   return 0;
 }
