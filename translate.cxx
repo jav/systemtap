@@ -1310,7 +1310,7 @@ c_unparser::visit_if_statement (if_statement *s)
     {
       o->newline() << "else {";
       o->indent (1);
-      s->thenblock->visit (this);
+      s->elseblock->visit (this);
       o->newline(-1) << "}";
     }
 }

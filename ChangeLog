@@ -1,7 +1,11 @@
 2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR systemtap/1213
+	* translate.cxx (visit_if_statement): Translate else arms.
+	
+2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR systemtap/1209
-	* tapsets.cxx
 	* elaborate.cxx (derived_probe_builder): Add get_param function.
 	* elaborate.h: Declare them.
 	* tapsets.cxx (dwarf_query::get_*_param): Call them.
