@@ -1,4 +1,4 @@
-/* -*- linux-c -*- */
+/* -*- linux-c -*-
  *
  * /proc transport and control
  * Copyright (C) 2005 Red Hat Inc.
@@ -215,8 +215,8 @@ static int _stp_set_buffers(int num)
 	printk("stp_set_buffers %d\n", num);
 
 	if (num == 0 || num == _stp_current_buffers)
-		return _stp_current_buffers;;
-
+		return _stp_current_buffers;
+	
 	spin_lock(&_stp_pool_lock);
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
