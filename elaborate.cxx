@@ -50,8 +50,46 @@ derived_probe::derived_probe (probe *p, probe_point *l):
     }
 }
 
-// ------------------------------------------------------------------------
 
+// ------------------------------------------------------------------------
+// Members of derived_probe_builder
+
+bool
+derived_probe_builder::get_param (std::map<std::string, literal*> const & params,
+                                  const std::string& key,
+                                  std::string& value)
+{
+  map<string, literal *>::const_iterator i = params.find (key);
+  if (i == params.end())
+    return false;
+  literal_string * ls = dynamic_cast<literal_string *>(i->second);
+  if (!ls)
+    return false;
+  value = ls->value;
+  return true;
+}
+
+
+bool
+derived_probe_builder::get_param (std::map<std::string, literal*> const & params,
+                                  const std::string& key,
+                                  int64_t& value)
+{
+  map<string, literal *>::const_iterator i = params.find (key);
+  if (i == params.end())
+    return false;
+  if (i->second == NULL)
+    return false;
+  literal_number * ln = dynamic_cast<literal_number *>(i->second);
+  if (!ln)
+    return false;
+  value = ln->value;
+  return true;
+}
+
+
+
+// ------------------------------------------------------------------------
 // Members of match_key.
 
 match_key::match_key(string const & n) 
@@ -173,18 +211,18 @@ match_node::find_builder(vector<probe_point::component *> const & components,
       // an entry in the sub table, and its value matches the rest
       // of the probe_point.
       match_key k(*components[pos]);
-      if (0) // session.verbose
+      if (0)
 	clog << "searching for component " << k.str() << endl;
       map<match_key, match_node *>::const_iterator i = sub.find(k);
       if (i == sub.end())
 	{
-	  if (0) // session.verbose
+	  if (0)
 	    clog << "no match found" << endl;
 	  return NULL;
 	}
       else
 	{
-	  if (0) // session.verbose
+	  if (0)
 	    clog << "matched " << k.str() << endl;
 	  derived_probe_builder * builder = NULL;
 	  if (k.have_parameter)

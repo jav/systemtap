@@ -137,8 +137,7 @@ struct derived_probe: public probe
 
 // ------------------------------------------------------------------------
 
-struct
-derived_probe_builder
+struct derived_probe_builder
 {
   virtual void build(systemtap_session & sess,
 		     probe* base, 
@@ -147,6 +146,11 @@ derived_probe_builder
 		     std::vector<probe*> & results_to_expand_further,
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
+
+  static bool get_param (std::map<std::string, literal*> const & parameters,
+                         const std::string& key, std::string& value);
+  static bool get_param (std::map<std::string, literal*> const & parameters,
+                         const std::string& key, int64_t& value);
 };
 
 

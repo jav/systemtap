@@ -1,6 +1,3 @@
-#ifndef TAPSETS_H
-#define TAPSETS_H
-
 // -*- C++ -*-
 // Copyright (C) 2005 Red Hat Inc.
 //
@@ -9,13 +6,13 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+#ifndef TAPSETS_H
+#define TAPSETS_H
+
 #include "config.h"
 #include "staptree.h"
 #include "elaborate.h"
 
-
-void 
-register_standard_tapsets(systemtap_session & sess);
-
+void register_standard_tapsets(systemtap_session & sess);
 
 #endif // TAPSETS_H

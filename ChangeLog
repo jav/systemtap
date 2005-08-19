@@ -1,5 +1,18 @@
 2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR systemtap/1209
+	* tapsets.cxx
+	* elaborate.cxx (derived_probe_builder): Add get_param function.
+	* elaborate.h: Declare them.
+	* tapsets.cxx (dwarf_query::get_*_param): Call them.
+	(timer_derived_probe, timer_builder): New classes.
+	(register_standard_tapsets): Register timer.jiffies(N) and friend.
+	* translate.cxx (translate_pass): #include <linux/timers.h>.
+	* stap.1.in: Document timer.jiffies(N) probe points.
+	* testsuite/buildok/fourteen.stp: New test.
+
+2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
+
 	* elaborate.cxx (find_var): Remove $pid/$tid builtin logic.
 
 2005-08-19  Martin Hunt  <hunt@redhat.com>

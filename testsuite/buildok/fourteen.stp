@@ -1,0 +1,6 @@
+#! stap -p4
+
+global i, j
+probe timer.jiffies(100) { i++ }
+probe timer.jiffies(100).randomize(100) { j++ }
+probe end { log ("i=" . string(i) . " j=" . string(j)) }

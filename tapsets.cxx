@@ -53,9 +53,8 @@ struct be_derived_probe: public derived_probe
   void emit_probe_entries (translator_output* o, unsigned i);
 };
 
-struct
-be_builder
-  : public derived_probe_builder
+
+struct be_builder: public derived_probe_builder
 {
   bool begin;
   be_builder(bool b) : begin(b) {}
@@ -68,7 +67,6 @@ be_builder
   {
     finished_results.push_back(new be_derived_probe(base, location, begin));
   }
-  virtual ~be_builder() {}
 };
 
 
@@ -919,7 +917,6 @@ struct dwarf_derived_probe : public derived_probe
   virtual void emit_registrations (translator_output * o, unsigned i);
   virtual void emit_deregistrations (translator_output * o, unsigned i);
   virtual void emit_probe_entries (translator_output * o, unsigned i);
-  virtual ~dwarf_derived_probe() {}
 };
 
 // Helper struct to thread through the dwfl callbacks.
@@ -987,9 +984,8 @@ dwarf_query
   dwflpp & dw;
 };
 
-struct
-dwarf_builder
-  : public derived_probe_builder
+
+struct dwarf_builder: public derived_probe_builder
 {
   dwarf_builder() {}
   virtual void build(systemtap_session & sess,
@@ -998,7 +994,6 @@ dwarf_builder
 		     std::map<std::string, literal *> const & parameters,
 		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results);
-  virtual ~dwarf_builder() {}
 };
 
 bool
@@ -1015,46 +1010,27 @@ bool
 dwarf_query::get_string_param(map<string, literal *> const & params,
 			      string const & k, string & v)
 {
-  map<string, literal *>::const_iterator i = params.find(k);
-  if (i == params.end())
-    return false;
-  literal_string * ls = dynamic_cast<literal_string *>(i->second);
-  if (!ls)
-    return false;
-  v = ls->value;
-  return true;
+  return derived_probe_builder::get_param (params, k, v);
 }
 
 bool
 dwarf_query::get_number_param(map<string, literal *> const & params,
 			      string const & k, long & v)
 {
-  map<string, literal *>::const_iterator i = params.find(k);
-  if (i == params.end())
-    return false;
-  if (i->second == NULL)
-    return false;
-  literal_number * ln = dynamic_cast<literal_number *>(i->second);
-  if (!ln)
-    return false;
-  v = ln->value;
-  return true;
+  int64_t value;
+  bool present = derived_probe_builder::get_param (params, k, value);
+  v = (long) value;
+  return present;
 }
 
 bool
 dwarf_query::get_number_param(map<string, literal *> const & params,
 			      string const & k, Dwarf_Addr & v)
 {
-  map<string, literal *>::const_iterator i = params.find(k);
-  if (i == params.end())
-    return false;
-  if (i->second == NULL)
-    return false;
-  literal_number * ln = dynamic_cast<literal_number *>(i->second);
-  if (!ln)
-    return false;
-  v = static_cast<Dwarf_Addr>(ln->value);
-  return true;
+  int64_t value;
+  bool present = derived_probe_builder::get_param (params, k, value);
+  v = (Dwarf_Addr) value;
+  return present;
 }
 
 
@@ -1819,6 +1795,138 @@ dwarf_builder::build(systemtap_session & sess,
 }
 
 
+
+// ------------------------------------------------------------------------
+// timer derived probes
+// ------------------------------------------------------------------------
+
+
+struct timer_derived_probe: public derived_probe
+{
+  int64_t interval, randomize;
+
+  timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r);
+
+  virtual void emit_registrations (translator_output * o, unsigned i);
+  virtual void emit_deregistrations (translator_output * o, unsigned i);
+  virtual void emit_probe_entries (translator_output * o, unsigned i);
+};
+
+
+timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r):
+  derived_probe (p, l), interval (i), randomize (r)
+{
+  if (interval <= 0 || interval > 1000000) // make i and r fit into plain ints
+    throw semantic_error ("invalid interval for jiffies timer");
+  // randomize = 0 means no randomization
+  if (randomize < 0 || randomize > interval)
+    throw semantic_error ("invalid randomize for jiffies timer");
+
+  if (locations.size() != 1)
+    throw semantic_error ("expect single probe point");
+  // so we don't have to loop over them in the other functions
+}
+
+
+void
+timer_derived_probe::emit_registrations (translator_output* o, unsigned j)
+{
+  o->newline() << "init_timer (& timer_" << j << ");";
+  o->newline() << "timer_" << j << ".expires = jiffies + " << interval << ";";
+  o->newline() << "timer_" << j << ".function = & enter_" << j << ";";
+  o->newline() << "add_timer (& timer_" << j << ");";
+}
+
+
+void
+timer_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+{
+  o->newline() << "del_timer_sync (& timer_" << j << ");";
+}
+
+
+void
+timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+{
+  o->newline() << "static struct timer_list timer_" << j << ";";
+
+  o->newline() << "void enter_" << j << " (unsigned long val) {";
+  o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+  
+  o->newline() << "(void) val;";
+
+  // A precondition for running a probe handler is that we're in
+  // RUNNING state (not ERROR), and that no one else is already using
+  // this context.
+  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
+  o->newline(1) << "return;";
+
+  o->newline(-1) << "if (c->busy) {";
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "return;";
+  o->newline(-1) << "}";
+  o->newline();
+
+  o->newline() << "mod_timer (& timer_" << j << ", "
+               << "jiffies + " << interval;
+  if (randomize)
+    o->line() << " + _stp_random_pm(" << randomize << ")";
+  o->line() << ");";
+  
+  o->newline() << "c->busy ++;";
+  o->newline() << "mb ();"; // for smp
+  o->newline() << "c->errorcount = 0;";
+  o->newline() << "c->actioncount = 0;";
+  o->newline() << "c->nesting = 0;";
+
+  o->newline() << "if (! in_interrupt())";
+  o->newline(1) << "c->regs = 0;";
+  o->newline(-1) << "else";
+  o->newline(1) << "c->regs = task_pt_regs (current);";
+  o->indent(-1);
+  
+  // NB: locals are initialized by probe function itself
+  o->newline() << "probe_" << j << " (c);";
+  
+  // see translate.cxx: visit_functioncall and elsewhere to see all the
+  // possible context indications that a probe exited prematurely
+  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
+               << " || c->nesting+2 >= MAXNESTING) {";
+  o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
+  o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
+  o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline(-1) << "}";
+  
+  o->newline() << "c->busy --;";
+  o->newline() << "mb ();";
+  o->newline(-1) << "}" << endl;
+}
+
+
+struct timer_builder: public derived_probe_builder
+{
+  timer_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<probe *> &,
+		     vector<derived_probe *> & finished_results)
+  {
+    int64_t jn, rn;
+    bool jn_p, rn_p;
+
+    jn_p = get_param (parameters, "jiffies", jn);
+    rn_p = get_param (parameters, "randomize", rn);
+    
+    finished_results.push_back(new timer_derived_probe(base, location,
+                                                       jn, rn_p ? rn : 0));
+  }
+};
+
+
+
 // ------------------------------------------------------------------------
 //  Standard tapset registry.
 // ------------------------------------------------------------------------
@@ -1829,6 +1937,8 @@ register_standard_tapsets(systemtap_session & s)
   // Rudimentary binders for begin and end targets
   s.pattern_root->bind("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
+  s.pattern_root->bind("timer")->bind_num("jiffies")->bind(new timer_builder());
+  s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());
 
   // kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);

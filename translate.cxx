@@ -2165,6 +2165,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#else";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include <linux/string.h>";
+      s.op->newline() << "#include <linux/timer.h>";
       // XXX
       s.op->newline() << "#define KALLSYMS_LOOKUP_NAME \"\"";
       s.op->newline() << "#define KALLSYMS_LOOKUP 0";

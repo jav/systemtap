@@ -2,8 +2,9 @@
 #define _ARITH_C_
 
 /** @file arith.
- * @brief Implements 64-bit signed division/multiplication.
+ * @brief Implements various arithmetic-related helper functions
  */
+
 
 struct context;
 void _stp_divmod64 (unsigned *errorcount, int64_t x, int64_t y,
@@ -72,6 +73,27 @@ void _stp_divmod64 (unsigned *errorcount, int64_t x, int64_t y,
   (*errorcount) ++;
   if (quo) *quo = 0;
   if (rem) *rem = 0;
+}
+
+
+/** Return a random integer between -n and n.
+ * @param n how far from zero to go.  Make it positive but less than a million or so.
+ */
+int _stp_random_pm (int n)
+{
+  static unsigned long seed;
+  static int initialized_p = 0;
+
+  if (unlikely (! initialized_p))
+    {
+      seed = (unsigned long) jiffies;
+      initialized_p = 1;
+    }
+
+  /* from glibc rand man page */
+  seed = seed * 1103515245 + 12345;
+
+  return (seed % (2*n+1)-n);
 }
 
 

@@ -1,3 +1,7 @@
+2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
+
+	* arith.c (_stp_random_pm): New function.
+
 2005-08-19  Martin Hunt  <hunt@redhat.com>
 
 	* print.c: Change ifdefs to STP_RELAYFS.

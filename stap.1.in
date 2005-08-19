@@ -1,3 +1,4 @@
+.\" -*- nroff -*-
 .TH STAP 1 @DATE@ "Red Hat"
 .SH NAME
 stap \- systemtap script translator/driver
@@ -281,6 +282,10 @@ module(MPATTERN).function(PATTERN).return
 kernel.statement(PATTERN)
 .br
 module(MPATTERN).statement(PATTERN)
+.br
+timer.jiffies(NUM)
+.br
+timer.jiffies(NUM).randomize(RAND)
 .fi
 .RE
 .PP
@@ -300,6 +305,10 @@ and identifies the line number in the source file, preceded by a ":".
 As an alternative, PATTERN may be a numeric constant, indicating an
 (module-relative or kernel-absolute) address.
 .PP
+The timer-based asynchronous probe points run the given handler every
+NUM jiffies.  If given, the random value in the range [-RAND..RAND] is
+added to NUM every time the handler is run.
+.PP
 Here are some example probe points:
 .TP
 kernel.function("*init*"), kernel.function("*exit*")
@@ -316,6 +325,9 @@ name in any of the USB drivers.
 kernel.statement(0xc0044852)
 refers to the first byte of the statement whose compiled instructions
 include the given address in the kernel.
+.TP
+timer.jiffies(1000).randomize(200)
+refers to a periodic interrupt, every 1000 +/- 200 jiffies.
 
 .PP
 When any matching event occurs, the probe handler is run within that
