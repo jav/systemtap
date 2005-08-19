@@ -1,7 +1,7 @@
 /* SystemTap transport values */
 enum
 {
-	STP_TRANSPORT_NETLINK = 1,
+	STP_TRANSPORT_PROC = 1,
 	STP_TRANSPORT_RELAYFS
 };
 
@@ -32,11 +32,14 @@ struct consumed_info
 
 struct transport_info
 {
+	unsigned buf_size;
 	unsigned subbuf_size;
 	unsigned n_subbufs;
 	int transport_mode;
 	int target;		// target pid
+#if 0
 	char cmd[256];		// cmd to process data
+#endif
 };
 
 struct transport_start

@@ -12,19 +12,13 @@
 
 #include <linux/delay.h>
 #include "transport.h"
-#include "control.h"
+
+#ifdef STP_RELAYFS
 #include "relayfs.c"
-
-enum _stp_tstate { STP_TRANS_NONE,
-		   STP_TRANS_LOADED, /* module loaded */
-		   STP_TRANS_PARAM,  /* parameters exchanged */
-		   STP_TRANS_START   /* started */
-};
-
-enum _stp_tstate _stp_transport_state = STP_TRANS_NONE;
-
 static struct rchan *_stp_chan;
 static struct dentry *_stp_dir;
+#endif
+
 static int _stp_dpid;
 static int _stp_pid;
 
@@ -32,18 +26,24 @@ module_param(_stp_pid, int, 0);
 MODULE_PARM_DESC(_stp_pid, "daemon pid");
 
 int _stp_target = 0;
+int _stp_exit_called = 0;
 
 /* forward declarations */
 void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
+void _stp_handle_start (struct transport_start *st);
+static void _stp_handle_exit (void *data);
+int _stp_transport_open(struct transport_info *info);
+
+#include "procfs.c"
 
 /*
  *	_stp_streaming - boolean, are we using 'streaming' output?
  */
 static inline int _stp_streaming(void)
 {
-	if (_stp_transport_mode == STP_TRANSPORT_NETLINK)
+	if (_stp_transport_mode == STP_TRANSPORT_PROC)
 		return 1;
 	return 0;
 }
@@ -52,7 +52,7 @@ static inline int _stp_streaming(void)
 int _stp_transport_send (int type, void *data, int len)
 {
 	int err, trylimit = 50;
-	while ((err = _stp_ctrl_send(type, data, len, _stp_pid)) < 0 && trylimit--)
+	while ((err = _stp_write(type, data, len)) < 0 && trylimit--)
 		msleep (5);
 	return err;
 }
@@ -61,6 +61,7 @@ int _stp_transport_send (int type, void *data, int len)
 /*
  *	_stp_handle_buf_info - handle STP_BUF_INFO
  */
+#ifdef STP_RELAYFS
 static void _stp_handle_buf_info(int *cpuptr)
 {
 	struct buf_info out;
@@ -70,6 +71,7 @@ static void _stp_handle_buf_info(int *cpuptr)
 
 	_stp_transport_send(STP_BUF_INFO, &out, sizeof(out));
 }
+#endif
 
 /*
  *	_stp_handle_start - handle STP_START
@@ -79,14 +81,14 @@ void _stp_handle_start (struct transport_start *st)
 	int err;
 	//printk ("stp_handle_start pid=%d\n", st->pid);
 	err = probe_start();
-	if (err >= 0)
-		_stp_transport_state = STP_TRANS_START;
-	else {
+	if (err < 0) {
 		st->pid = err;
+		_stp_exit_called = 1;
 		_stp_transport_send(STP_START, st, sizeof(*st));
 	}
 }
 
+#ifdef STP_RELAYFS
 /**
  *	_stp_handle_subbufs_consumed - handle STP_SUBBUFS_CONSUMED
  */
@@ -94,14 +96,13 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 {
 	relay_subbufs_consumed(_stp_chan, info->cpu, info->consumed);
 }
-
-
-int _stp_exit_called = 0;
+#endif
 
 static void _stp_cleanup_and_exit (int closing)
 {
 	int failures;
 
+	//printk("cleanup_and_exit (%d)\n", closing);
 	if (!_stp_exit_called) {
 		_stp_exit_called = 1;
 
@@ -111,10 +112,15 @@ static void _stp_cleanup_and_exit (int closing)
 		if (failures)
 			_stp_warn ("There were %d transport failures.\n", failures);
 
-		if (_stp_transport_mode == STP_TRANSPORT_RELAYFS)
+#ifdef STP_RELAYFS
+		if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
 			relay_flush(_stp_chan);
-
-		 _stp_transport_send(STP_EXIT, &closing, sizeof(int));
+			ssleep(2);
+		}
+#endif
+		
+		//printk ("SENDING STP_EXIT\n");
+		_stp_transport_send(STP_EXIT, &closing, sizeof(int));
 	}
 }
 
@@ -129,9 +135,8 @@ static void _stp_handle_exit (void *data)
 	_stp_cleanup_and_exit(0);
 }
 
-
 /**
- *	_stp_transport_close - close netlink and relayfs channels
+ *	_stp_transport_close - close proc and relayfs channels
  *
  *	This must be called after all I/O is done, probably at the end
  *	of module cleanup.
@@ -141,17 +146,18 @@ void _stp_transport_close()
 	//printk("************** transport_close *************\n");
 	_stp_cleanup_and_exit(1);
 
+#ifdef STP_RELAYFS
 	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) 
 		_stp_relayfs_close(_stp_chan, _stp_dir);
+#endif
 
-	_stp_ctrl_unregister(_stp_pid);
+	ssleep(1);
+	_stp_unregister_procfs();
 	//printk("---- CLOSED ----\n");
 }
 
-
-
 /**
- *	_stp_transport_open - open netlink and relayfs channels
+ *	_stp_transport_open - open proc and relayfs channels
  *      with proper parameters
  *	Returns negative on failure, 0 otherwise.
  *
@@ -167,32 +173,37 @@ void _stp_transport_close()
 
 int _stp_transport_open(struct transport_info *info)
 {
-	//printk ("stp_transport_open: %d bufs of %d bytes. target=%d\n", info->n_subbufs, info->subbuf_size, info->target);
+	//printk ("stp_transport_open: %d byte buffer. target=%d\n", info->buf_size, info->target);
 
 	info->transport_mode = _stp_transport_mode;
+	//printk("transport_mode=%d\n", info->transport_mode);
 	_stp_target = info->target;
 
+#ifdef STP_RELAYFS
 	if (!_stp_streaming()) {
-
-		/* if stpd specified subbufs, use those, otherwise use defaults */
-		if (info->n_subbufs) {
-			n_subbufs = info->n_subbufs;
-			subbuf_size = info->subbuf_size;
-		} else {
-			info->n_subbufs = n_subbufs;
-			info->subbuf_size = subbuf_size;
+		if (info->buf_size) {
+			unsigned size = info->buf_size * 1024 * 1024;
+			subbuf_size = ((size >> 2) + 1) * 65536;
+			n_subbufs = size / subbuf_size;
 		}
+		info->n_subbufs = n_subbufs;
+		info->subbuf_size = subbuf_size;
 
 		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir);
 		if (!_stp_chan) {
-			_stp_ctrl_unregister(_stp_pid);
+			_stp_unregister_procfs();
 			return -ENOMEM;
 		}
+	} else 
+#endif
+	{
+		if (info->buf_size) 
+			_stp_set_buffers(info->buf_size * 1024 * 1024 / STP_BUFFER_SIZE);
 	}
 
 	/* send reply */
 	return _stp_transport_send (STP_TRANSPORT_INFO, info, sizeof(*info));
-}
+	}
 
 
 /**
@@ -209,12 +220,14 @@ static int _stp_cmd_handler(int pid, int cmd, void *data)
 	int err = 0;
 
 	switch (cmd) {
+#ifdef STP_RELAYFS
 	case STP_BUF_INFO:
 		_stp_handle_buf_info(data);
 		break;
 	case STP_SUBBUFS_CONSUMED:
 		_stp_handle_subbufs_consumed(pid, data);
 		break;
+#endif
 	case STP_EXIT:
 		_stp_handle_exit (data);
 		break;
@@ -240,29 +253,14 @@ int _stp_transport_init(void)
 {
 	//printk("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
-	_stp_ctrl_register(_stp_pid, _stp_cmd_handler);
-
-	/* register procfs  here */
-
+	_stp_register_procfs();
 	return 0;
 }
 
-/* write DATA via netlink.  used for streaming mode only */
-int _stp_netlink_write (void *data, int len)
-{
-	int err, trylimit;
-	if (_stp_exit_called)
-		trylimit = 50;
-	else
-		trylimit = 0;
-
-	while ((err = _stp_ctrl_send(STP_REALTIME_DATA, data, len, _stp_pid)) < 0 && trylimit--)
-		msleep (5);
-	return err;
-}
 
 /* like relay_write except returns an error code */
 
+#ifdef STP_RELAYFS
 static int _stp_relay_write (const void *data, unsigned length)
 {
 	unsigned long flags;
@@ -284,5 +282,6 @@ static int _stp_relay_write (const void *data, unsigned length)
 	
 	return length;
 }
+#endif
 
 #endif /* _TRANSPORT_C_ */

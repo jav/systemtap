@@ -5,27 +5,21 @@
  * @brief Header file for stp transport
  */
 
-#include "control.h"
-#include "netlink.h"
 #include "relayfs.h"
 #include "transport_msgs.h"
 
 void _stp_warn (const char *fmt, ...);
 
+#define STP_BUFFER_SIZE 8192
+
+#ifdef STP_RELAYFS
 static unsigned n_subbufs = 4;
 static unsigned subbuf_size = 65536;
-
-
-#ifdef STP_NETLINK_ONLY
-static int _stp_transport_mode = STP_TRANSPORT_NETLINK;
-#else
-static int _stp_transport_mode = STP_TRANSPORT_RELAYFS;
-#endif
-
-#ifdef STP_NETLINK_ONLY
-#define _stp_transport_write(data, len)  _stp_netlink_write(data, len)
-#else
 #define _stp_transport_write(data, len)  _stp_relay_write(data, len)
+static int _stp_transport_mode = STP_TRANSPORT_RELAYFS;
+#else
+#define _stp_transport_write(data, len)  _stp_write(STP_REALTIME_DATA, data, len)
+static int _stp_transport_mode = STP_TRANSPORT_PROC;
 #endif
 
 extern void _stp_transport_cleanup(void);

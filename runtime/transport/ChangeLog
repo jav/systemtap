@@ -1,3 +1,14 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* transport.h: Remove netlink references.
+	* transport.c: Remove netlink references. Ifdef relayfs code.
+	* procfs.c: New file.
+	* Makefile: Deleted.
+	* control.c: Deleted.
+	* control.h: Deleted.
+	* netlink.c: Deleted.
+	* netlink.h: Deleted.
+
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c: Comment out a couple printks.
