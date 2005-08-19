@@ -25,7 +25,7 @@
 
 static int _stp_pbuf_len[NR_CPUS];
 
-#ifdef STP_NETLINK_ONLY
+#ifndef STP_RELAYFS
 #define STP_PRINT_BUF_START 0
 
 /** Size of buffer, not including terminating NULL */
@@ -58,7 +58,7 @@ void _stp_print_flush (void)
 	*buf = 0;
 }
 
-#else /* ! STP_NETLINK_ONLY */
+#else /* STP_RELAYFS */
 
 /* size of timestamp, in bytes, including space */
 #define TIMESTAMP_SIZE 11
@@ -102,7 +102,7 @@ void _stp_print_flush (void)
 	_stp_pbuf_len[cpu] = 0;
 	*ptr = 0;
 }
-#endif /* STP_NETLINK_ONLY */
+#endif /* STP_RELAYFS */
 
 /** Print into the print buffer.
  * Like printf, except output goes to the print buffer.

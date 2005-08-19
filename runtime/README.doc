@@ -16,7 +16,7 @@ In addition to the library, the runtime includes a SystemTap user-space daemon
 and/or saves it to files. Stpd will handle other issues like
 inserting and removing modules.
 
-Stpd and the I/O code make use of both relayfs and netlink for communication.  For
+Stpd and the I/O code makes use of /proc (and optionally relayfs) for communications.  For
 kernels without relayfs builtin, it is provided as a standalone module under the runtime directory.
 
 @ref start_page
@@ -106,16 +106,16 @@ data is ready and reads a big per-cpu chunk.
 
 The user-daemon (stpd) saves this data to a file named something like
 "stpd_cpu2".  When the user hits ^c, a timer expires, or the probe
-module notifies stpd (through a netlink command channel) that it wants
+module notifies stpd that it wants
 to terminate, stpd does "system(rmmod)" then collects the last output
 before exiting.
-As an option, if we don't need bulk per-cpu data, we can put
+As an option, if we want high-speed bulk per-cpu data, we can put
 \code
-#define STP_NETLINK_ONLY
+#define STP_RELAYFS
 \endcode
-at the top of the module and all output will go over a netlink channel.
+at the top of the module and all output will go over relayfs.
 In the SystemTap language, we will provide some simple functions to control the buffering policy, which
-will control the use of netlink and parameters to relayfs and stpd.
+will control the parameters to relayfs and stpd.
 
 */
 

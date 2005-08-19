@@ -4,31 +4,9 @@
 
 ***** STPD *****
 
-@todo stpd needs an option to disable ANSI colors.
-
-@todo stpd needs to be able to write netlink REALTIME_DATA to a file.
-
-@todo stpd/stp/io.c stpd needs better startup/shutdown integration with io.c in runtime. 
-Shutdown works, but isn't very clean.  Currently the stp script loads the module, then
-starts stpd.  Data is lost until stpd is active. Maybe stpd needs to load the module. 
-Maybe it needs to signal the module that stpd is ready and the module can proceed to load the probes.
-
-@todo stpd/stp - What if there are multiple probes running? 
-
-@todo stpd/stp - Need something to post-process relayfs files and integrate into a single file.
-
 @todo stpd - Implement command that runtime can send to stpd to tell it to fork a specified program and pass
 the output from the probe module to it.  Create example probe to use it.
 
-***** relayfs *****
-@todo relayfs/build - figure out how to get rid of the linker warnings when building probes. 
-
 ***** runtime *****
-@todo runtime - Clean up #defines. Need to have a clearer way to have the probe writer (translator) 
-see which defines affect what and all defines should have reasonable defaults.
-
 @todo runtime - current.c - implement a memory dump function. Does a hex dump into String or print buffer.
-@todo runtime - put wrappers around current task struct entries, like pid, ppid, comm, etc.
-@todo runtime - Implement stack functions for kprobes (not just jprobes)
-
 */

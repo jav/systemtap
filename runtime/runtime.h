@@ -44,14 +44,14 @@
 /* atomic globals */
 static atomic_t _stp_transport_failures = ATOMIC_INIT (0);
 
-#ifndef STP_NETLINK_ONLY
+#ifdef STP_RELAYFS
 static struct
 {
 	atomic_t ____cacheline_aligned_in_smp seq;
 } _stp_seq = { ATOMIC_INIT (0) };
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
-#endif
+#endif /* RELAYFS */
 
 #include "print.c"
 #include "string.c"

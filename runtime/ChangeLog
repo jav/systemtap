@@ -1,3 +1,13 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* print.c: Change ifdefs to STP_RELAYFS.
+	* runtime.h: Ditto.	 
+	* io.c (_stp_vlog): Call _stp_write instead of
+	_stp_ctrl_send.
+	* Makefile: Don't build stp-control.
+	* README.doc: Update.
+	* TODO: Update.
+	
 2005-08-12  Graydon Hoare  <graydon@redhat.com>
 
 	* map-values.c (_stp_map_entry_exists): New function.
