@@ -359,7 +359,8 @@ static void *reader_thread(void *data)
 			status[cpu].info.consumed += subbufs_consumed;
 			consumed_info.cpu = cpu;
 			consumed_info.consumed = subbufs_consumed;
-			write (proc_file[cpu], &consumed_info, sizeof(struct consumed_info));
+			if (write (proc_file[cpu], &consumed_info, sizeof(struct consumed_info)) < 0)
+				fprintf(stderr,"WARNING: writing consumed info failed.\n");
 		}
 	} while (1);
 }
