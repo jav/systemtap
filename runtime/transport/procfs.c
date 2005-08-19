@@ -55,6 +55,7 @@ static ssize_t _stp_proc_write (struct file *file, const char __user *buf,
 }
 
 static struct file_operations _stp_proc_fops = {
+	.owner = THIS_MODULE,
 	.read = _stp_proc_read,
 	.write = _stp_proc_write,
 };
@@ -87,7 +88,10 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 		break;
 	}
 	case STP_EXIT:
-		_stp_handle_exit(NULL);
+		/* Cannot call _stp_handle_exit() directly here */
+		/* because the buffers may be full and stpd won't be able */
+		/* to empty them until this handler returns. */
+		schedule_work (&stp_exit);
 		break;
 	case STP_TRANSPORT_INFO:
 	{
@@ -191,6 +195,7 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 
 
 static struct file_operations _stp_proc_fops_cmd = {
+	.owner = THIS_MODULE,
 	.read = _stp_proc_read_cmd,
 	.write = _stp_proc_write_cmd,
 //	.poll = _stp_proc_poll_cmd

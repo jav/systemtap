@@ -5,7 +5,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Redhat Inc, 2005
+ * Copyright (C) Red Hat Inc, 2005
  *
  * This file is released under the GPL.
  */
@@ -34,6 +34,7 @@ int probe_start(void);
 void _stp_exit(void);
 void _stp_handle_start (struct transport_start *st);
 static void _stp_handle_exit (void *data);
+static DECLARE_WORK(stp_exit, _stp_handle_exit, NULL);
 int _stp_transport_open(struct transport_info *info);
 
 #include "procfs.c"
@@ -118,14 +119,10 @@ static void _stp_cleanup_and_exit (int closing)
 			ssleep(2);
 		}
 #endif
-		
 		//printk ("SENDING STP_EXIT\n");
 		_stp_transport_send(STP_EXIT, &closing, sizeof(int));
 	}
 }
-
-static void _stp_handle_exit (void *data);
-static DECLARE_WORK(stp_exit, _stp_handle_exit, NULL);
 
 /*
  *	_stp_handle_exit - handle STP_EXIT
@@ -203,46 +200,6 @@ int _stp_transport_open(struct transport_info *info)
 
 	/* send reply */
 	return _stp_transport_send (STP_TRANSPORT_INFO, info, sizeof(*info));
-	}
-
-
-/**
- *	_stp_cmd_handler - control channel command handler callback
- *	@pid: the pid of the daemon the command was sent from
- *	@cmd: the command id
- *	@data: command-specific data
- *
- *	This function must return 0 if the command was handled, nonzero
- *	otherwise.
- */
-static int _stp_cmd_handler(int pid, int cmd, void *data)
-{
-	int err = 0;
-
-	switch (cmd) {
-#ifdef STP_RELAYFS
-	case STP_BUF_INFO:
-		_stp_handle_buf_info(data);
-		break;
-	case STP_SUBBUFS_CONSUMED:
-		_stp_handle_subbufs_consumed(pid, data);
-		break;
-#endif
-	case STP_EXIT:
-		_stp_handle_exit (data);
-		break;
-	case STP_TRANSPORT_INFO:
-		_stp_transport_open (data);
-		break;
-	case STP_START:
-		_stp_handle_start (data);
-		break;
-	default:
-		err = -1;
-		break;
-	}
-	
-	return err;
 }
 
 /**
