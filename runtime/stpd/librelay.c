@@ -84,6 +84,7 @@ static int control_channel;
 extern int print_only, quiet, merge, verbose;
 extern unsigned int buffer_size;
 extern char *modname;
+extern char *modpath;
 
 /* per-cpu buffer info */
 static struct buf_status
@@ -424,7 +425,7 @@ int init_stp(const char *relay_filebase, int print_summary)
 		perror ("vfork");
 		exit(-1);
 	} else if (pid == 0) {
-		if (execl("/sbin/insmod",  "insmod", modname, buf, NULL) < 0)
+		if (execl("/sbin/insmod",  "insmod", modpath, buf, NULL) < 0)
 			exit(-1);
 	}
 	if (waitpid(pid, &rstatus, 0) < 0) {
@@ -432,7 +433,7 @@ int init_stp(const char *relay_filebase, int print_summary)
 		exit(-1);
 	}
 	if (WIFEXITED(rstatus) && WEXITSTATUS(rstatus)) {
-		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modname);
+		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modpath);
 		return -1;
 	}
 

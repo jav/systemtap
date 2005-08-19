@@ -37,6 +37,7 @@ int merge = 1;
 int verbose = 0;
 unsigned int buffer_size = 0;
 char *modname = NULL;
+char *modpath = NULL;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
@@ -104,7 +105,15 @@ int main(int argc, char **argv)
 	}
 
 	if (optind < argc)
-		modname = argv[optind++];
+          {
+            /* Collect both full path and just the trailing module name.  */
+            modpath = argv[optind++];
+            modname = rindex (modpath, '/');
+            if (modname == NULL)
+              modname = modpath;
+            else
+              modname++; /* skip over / */
+          }
   
 	if (!modname) {
 		fprintf (stderr, "Cannot invoke daemon without probe module\n");
