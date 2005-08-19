@@ -861,25 +861,6 @@ symresolution_info::find_var (const string& name, int arity)
         }
     }
 
-  // search builtins that become locals
-  // XXX: need to invent a proper formalism for this
-  if (arity == 0 && (name == "$pid" || name == "$tid"))
-    {
-      vardecl_builtin* vb = new vardecl_builtin;
-      vb->name = name;
-      vb->type = pe_long;
-
-      // XXX: need a better way to synthesize tokens
-      token* t = new token;
-      t->type = tok_identifier;
-      t->content = name;
-      t->location.file = "<builtin>";
-      vb->tok = t;
-
-      locals.push_back (vb);
-      return vb;
-    }
-
   return 0;
 }
 
