@@ -35,8 +35,6 @@ int print_only = 0;
 int quiet = 0;
 int merge = 1;
 int verbose = 0;
-unsigned int opt_subbuf_size = 0;
-unsigned int opt_n_subbufs = 0;
 unsigned int buffer_size = 0;
 char *modname = NULL;
 
@@ -85,25 +83,14 @@ int main(int argc, char **argv)
 			break;
 		case 'b':
 		{
-			char *ptr;
 			int size = (unsigned)atoi(optarg);
 			if (!size)
 				usage(argv[0]);
-			ptr = index (optarg, 'x');
-			if (ptr) {
-				ptr++;
-				opt_subbuf_size = (unsigned)atoi(ptr);
-				printf("subbuf_size = %d\n", opt_subbuf_size);
-				opt_n_subbufs = size;
-			} else {
-				if (size > 64) {
-					fprintf(stderr, "Maximum buffer size is 64 (MB)\n");
-					exit(1);
-				}
-				buffer_size = size * 1024 * 1024;
-				opt_subbuf_size = ((size >> 2) + 1) * 65536;
-				opt_n_subbufs = buffer_size / opt_subbuf_size;
+			if (size > 64) {
+			  fprintf(stderr, "Maximum buffer size is 64 (MB)\n");
+			  exit(1);
 			}
+			buffer_size = size;
 			break;
 		}
 		default:
@@ -114,8 +101,6 @@ int main(int argc, char **argv)
 	if (verbose) {
 		if (buffer_size)
 			printf ("Using a buffer of %u bytes.\n", buffer_size);
-		else if (opt_n_subbufs)
-			printf ("Using %u subbufs of %u bytes.\n", opt_n_subbufs, opt_subbuf_size);
 	}
 
 	if (optind < argc)
@@ -151,7 +136,7 @@ int main(int argc, char **argv)
 	
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
 	if (init_stp(stpd_filebase, !quiet)) {
-		fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
+		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);
 	}
 

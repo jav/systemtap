@@ -1,3 +1,8 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* stpd.c (main): Simplify buffer size code.
+	* librelay.c: Major changes to support procfs instead of netlink.
+
 2005-08-03  Tom Zanussi  <trz@us.ibm.com>
 
 	* librelay.c: Track subbuf info requests/replies
