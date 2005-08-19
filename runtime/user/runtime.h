@@ -42,6 +42,7 @@
 #define NEED_STAT_LOCKS 0
 #define NEED_COUNTER_LOCKS 0
 
+#include "io.c"
 #include "print.c"
 #include "string.c"
 

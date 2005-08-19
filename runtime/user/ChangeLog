@@ -1,3 +1,7 @@
+2005-08-19  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Include io.c.
+
 2005-07-14  Frank Ch. Eigler  <fche@redhat.com>
 
 	* alloc.c (_stp_error): Rename, to avoid name collision with ../io.c.
