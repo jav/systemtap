@@ -1,3 +1,16 @@
+2005-08-21  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR systemtap/1195, systemtap/1193
+	* elaborate.cxx (alias_expansion_builder): Set new block token.
+	* parse.cxx (parse_symbol): Set new target_symbol token.
+	* runtest.sh: Store more pertinent failure data.
+	* tapsets.cxx (emit_probe_entries): Rewrite error-handling path.
+	* translate.cxx (emit_common_header): Goodbye errorcount, hello
+	last_error & last_stmt.
+	(c_unparser::visit_statement): New "header" for all other stmts.
+	(c_assignop, visit_binary_expression): Adapt to last_error.
+	* tapset/builtin_logging.stp: Adapt to last_error.
+
 2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR systemtap/1213

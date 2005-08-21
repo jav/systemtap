@@ -118,21 +118,17 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
       o->newline() << "c->busy ++;";
       o->newline() << "mb ();"; // for smp
-      o->newline() << "c->errorcount = 0;";
-      o->newline() << "c->actioncount = 0;";
+      o->newline() << "c->last_error = 0;";
       o->newline() << "c->nesting = 0;";
       o->newline() << "c->regs = 0;";
+      o->newline() << "c->actioncount = 0;";
 
       // NB: locals are initialized by probe function itself
       o->newline() << "probe_" << j << " (c);";
 
-      // see translate.cxx: visit_functioncall and elsewhere to see all the
-      // possible context indications that a probe exited prematurely
-      o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
-                   << " || c->nesting+2 >= MAXNESTING) {";
-      o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
-      o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
-      o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline() << "if (c->last_error) {";
+      o->newline(1) << "if (c->last_error[0]) _stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
+      o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline(-1) << "}";
 
       o->newline() << "c->busy --;";
@@ -860,7 +856,7 @@ dwflpp
     if (deref) ;
     fprintf(memstream,
             "deref_fault:\n"
-            "  c->errorcount++; \n"
+            "  c->last_error = \"pointer dereference fault\";\n"
             "  goto out;\n");
 
     fclose (memstream);
@@ -1460,6 +1456,7 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   // synthesize a function
   functiondecl *fdecl = new functiondecl;
   embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
   ec->code = q.dw.literal_stmt_for_local(addr,
 					 e->base_name.substr(1),
 					 e->components);
@@ -1709,20 +1706,17 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
 
   o->newline() << "c->busy ++;";
   o->newline() << "mb ();"; // for smp
-  o->newline() << "c->errorcount = 0;";
-  o->newline() << "c->actioncount = 0;";
+  o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = regs;";
+  o->newline() << "c->actioncount = 0;";
+
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << probenum << " (c);";
 
-  // see translate.cxx: visit_functioncall and elsewhere to see all the
-  // possible context indications that a probe exited prematurely
-  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
-               << " || c->nesting+2 >= MAXNESTING) {";
-  o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
-  o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
-  o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "if (c->last_error) {";
+  o->newline(1) << "if (c->last_error[0]) _stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline(-1) << "}";
 
   o->newline() << "c->busy --;";
@@ -1876,26 +1870,21 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   
   o->newline() << "c->busy ++;";
   o->newline() << "mb ();"; // for smp
-  o->newline() << "c->errorcount = 0;";
-  o->newline() << "c->actioncount = 0;";
+  o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
-
   o->newline() << "if (! in_interrupt())";
   o->newline(1) << "c->regs = 0;";
   o->newline(-1) << "else";
   o->newline(1) << "c->regs = task_pt_regs (current);";
   o->indent(-1);
+  o->newline() << "c->actioncount = 0;";
   
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << j << " (c);";
   
-  // see translate.cxx: visit_functioncall and elsewhere to see all the
-  // possible context indications that a probe exited prematurely
-  o->newline() << "if (c->errorcount || c->actioncount > MAXACTION"
-               << " || c->nesting+2 >= MAXNESTING) {";
-  o->newline(1) << "printk (KERN_ERR \"probe execution failure (e%d,n%d,a%d)\",";
-  o->newline(1) << "c->errorcount, c->nesting, c->actioncount);";
-  o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "if (c->last_error) {";
+  o->newline(1) << "if (c->last_error[0]) _stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline(-1) << "}";
   
   o->newline() << "c->busy --;";

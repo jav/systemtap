@@ -18,16 +18,19 @@ export SYSTEMTAP_RUNTIME
 dn=`dirname $1`
 logfile=testsuite/`basename $dn`-`basename $1`
 
+env | grep SYSTEMTAP > $logfile.cmd
+echo "$@" >> $logfile.cmd
 eval $@ >$logfile.out 2>$logfile.err
 rc=$?
+echo "rc=$rc" > $logfile.rc
 
 if expr $1 : '.*ok/.*' >/dev/null; then
   if [ $rc -eq 0 ]; then
-     rm -f $logfile.out $logfile.err
+     rm -f $logfile.*
   fi
 else
   if [ $rc -eq 1 ]; then
-     rm -f $logfile.out $logfile.err
+     rm -f $logfile.*
   fi
 fi
 

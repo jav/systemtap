@@ -1621,6 +1621,7 @@ parser::parse_symbol ()
     {
       // target_symbol time
       target_symbol *tsym = new target_symbol;
+      tsym->tok = t;
       tsym->base_name = name;
       while (true)
 	{

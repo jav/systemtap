@@ -95,6 +95,8 @@ struct c_unparser: public unparser, public visitor
 			       set< exp_type > & value_types,
 			       set< vector<exp_type> > & index_types);
 
+  void visit_statement (statement* s, unsigned actions);
+
   void visit_block (block* s);
   void visit_embeddedcode (embeddedcode* s);
   void visit_null_statement (null_statement* s);
@@ -530,8 +532,9 @@ c_unparser::emit_common_header ()
   o->newline() << "struct context {";
   o->newline(1) << "unsigned busy;";
   o->newline() << "unsigned actioncount;";
-  o->newline() << "unsigned errorcount;";
   o->newline() << "unsigned nesting;";
+  o->newline() << "const char *last_error;";
+  o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "union {";
   o->indent(1);
@@ -767,9 +770,7 @@ c_unparser::emit_function (functiondecl* v)
       o->newline() << retvalue.init();
     }
 
-  o->newline(1) << "{"; // in case body is embeddedcode with decls
   v->body->visit (this);
-  o->newline(-1) << "}";
 
   this->current_function = 0;
 
@@ -1110,10 +1111,10 @@ c_unparser_assignment::c_assignop(tmpvar & res,
           else
             {
               if (macop == "/")
-                o->newline() << res << " = _stp_div64 (&c->errorcount, "
+                o->newline() << res << " = _stp_div64 (&c->last_error, "
                              << lval << ", " << rval << ");";
               else if (macop == "%")
-                o->newline() << res << " = _stp_mod64 (&c->errorcount, "
+                o->newline() << res << " = _stp_mod64 (&c->last_error, "
                              << lval << ", " << rval << ");";
               else
                 o->newline() << res << " = " << lval << " " << macop << " " << rval << ";";
@@ -1246,20 +1247,37 @@ c_unparser::getiter(foreach_loop *f)
 }
 
 
+
+// An artificial common "header" for each statement.  This is where
+// activity counts limits and error state early exits are enforced.
+void
+c_unparser::visit_statement (statement *s, unsigned actions)
+{
+  o->newline() << "if (unlikely (c->last_error)) goto out;";
+  assert (s->tok);
+  o->newline() << "c->last_stmt = \"" << *s->tok << "\";";
+  if (actions > 0)
+    {
+      o->newline() << "c->actioncount += " << actions << ";";
+      o->newline() << "if (unlikely (c->actioncount > MAXACTION)) {";
+      o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
+    }
+}
+
+
 void
 c_unparser::visit_block (block *s)
 {
   o->newline() << "{";
   o->indent (1);
-  o->newline() << "c->actioncount += " << s->statements.size() << ";";
-  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
+  visit_statement (s, 0);
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
       try
         {
-          // XXX: it's probably not necessary to check this so frequently
-	  o->newline() << "if (unlikely (c->errorcount)) goto out;";
           s->statements[i]->visit (this);
 	  o->newline();
         }
@@ -1275,13 +1293,17 @@ c_unparser::visit_block (block *s)
 void
 c_unparser::visit_embeddedcode (embeddedcode *s)
 {
-  o->newline() << s->code;
+  visit_statement (s, 1);
+  o->newline() << "{";
+  o->newline(1) << s->code;
+  o->newline(-1) << "}";
 }
 
 
 void
 c_unparser::visit_null_statement (null_statement *s)
 {
+  visit_statement (s, 0);
   o->newline() << "/* null */;";
 }
 
@@ -1289,6 +1311,7 @@ c_unparser::visit_null_statement (null_statement *s)
 void
 c_unparser::visit_expr_statement (expr_statement *s)
 {
+  visit_statement (s, 1);
   o->newline() << "(void) ";
   s->value->visit (this);
   o->line() << ";";
@@ -1298,6 +1321,7 @@ c_unparser::visit_expr_statement (expr_statement *s)
 void
 c_unparser::visit_if_statement (if_statement *s)
 {
+  visit_statement (s, 1);
   o->newline() << "if (";
   o->indent (1);
   s->condition->visit (this);
@@ -1319,15 +1343,14 @@ c_unparser::visit_if_statement (if_statement *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
+  visit_statement (s, 1);
+
   s->init->visit (this);
   string ctr = stringify (label_counter++);
   string contlabel = "continue_" + ctr;
   string breaklabel = "break_" + ctr;
 
   o->newline() << contlabel << ":";
-
-  o->newline() << "c->actioncount ++;";
-  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -1359,6 +1382,8 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
+  visit_statement (s, 1);
+
   mapvar mv = getmap (s->base_referent, s->tok);
   itervar iv = getiter (s);
   vector<var> keys;
@@ -1378,7 +1403,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       var v = getvar (s->indexes[i]->referent);
       c_assign (v, iv.get_key (v.type(), i), s->tok);
     }
-    
+
   s->block->visit (this);
     
   o->indent (-1);
@@ -1389,6 +1414,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_return_statement (return_statement* s)
 {
+  visit_statement (s, 1);
+
   if (current_function == 0)
     throw semantic_error ("cannot 'return' from probe", s->tok);
 
@@ -1404,6 +1431,8 @@ c_unparser::visit_return_statement (return_statement* s)
 void
 c_unparser::visit_next_statement (next_statement* s)
 {
+  visit_statement (s, 1);
+
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
 
@@ -1437,7 +1466,7 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
 {
   vector<tmpvar> idx;
   parent->load_map_indices (e, idx);
-  parent->o->newline() << "if (unlikely (c->errorcount)) goto out;";
+  parent->o->newline() << "if (unlikely (c->last_error)) goto out;";
   {
     mapvar mvar = parent->getmap (e->referent, e->tok);
     varlock guard (*parent, mvar);
@@ -1450,6 +1479,7 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
+  visit_statement (s, 1);
   delete_statement_operand_visitor dv (this);
   s->value->visit (&dv);
 }
@@ -1458,6 +1488,7 @@ c_unparser::visit_delete_statement (delete_statement* s)
 void
 c_unparser::visit_break_statement (break_statement* s)
 {
+  visit_statement (s, 1);
   if (loop_break_labels.size() == 0)
     throw semantic_error ("cannot 'break' outside loop", s->tok);
 
@@ -1469,6 +1500,7 @@ c_unparser::visit_break_statement (break_statement* s)
 void
 c_unparser::visit_continue_statement (continue_statement* s)
 {
+  visit_statement (s, 1);
   if (loop_continue_labels.size() == 0)
     throw semantic_error ("cannot 'continue' outside loop", s->tok);
 
@@ -1552,7 +1584,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       o->line() << ";";
 
       o->newline() << ((e->op == "/") ? "_stp_div64" : "_stp_mod64")
-                   << " (&c->errorcount, " << left << ", " << right << ");";
+                   << " (&c->last_error, " << left << ", " << right << ");";
 
       o->newline(-1) << "})";
     }
@@ -1634,7 +1666,7 @@ c_unparser::visit_array_in (array_in* e)
 
   tmpvar res = gensym (pe_long);
 
-  o->newline() << "if (unlikely (c->errorcount)) goto out;";
+  o->newline() << "if (unlikely (c->last_error)) goto out;";
 
   {
     mapvar mvar = getmap (e->operand->referent, e->tok);
@@ -1970,7 +2002,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
   
-  o->newline() << "if (unlikely (c->errorcount)) goto out;";
+  o->newline() << "if (unlikely (c->last_error)) goto out;";
   
   {
     mapvar mvar = getmap (e->referent, e->tok);
@@ -2046,7 +2078,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. ++a[a[c]=5] could deadlock
   
-  o->newline() << "if (unlikely (c->errorcount)) goto out;";
+  o->newline() << "if (unlikely (c->last_error)) goto out;";
   
   prepare_rvalue (op, rvar, e->tok);
   
@@ -2109,9 +2141,10 @@ c_unparser::visit_functioncall (functioncall* e)
     }
 
   o->newline();
-  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) goto out;";
-  o->newline() << "c->actioncount ++;";
-  o->newline() << "if (unlikely (c->actioncount > MAXACTION)) goto out;";
+  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
+  o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
+  o->newline() << "goto out;";
+  o->newline(-1) << "}";
   o->newline();
 
   // copy in actual arguments

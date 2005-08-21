@@ -25,12 +25,13 @@ function warn (msg) {
 }
 
 function exit () %{
-    CONTEXT->errorcount ++; /* kill current probe */
+    /* not a NULL pointer, but don't cause _stp_error */
+    CONTEXT->last_error = "";
     _stp_exit ();
 %}
 
 function _error (msg) %{
-    CONTEXT->errorcount ++; /* kill current probe */
+    CONTEXT->last_error = "called error()"; /* kill current probe */
     _stp_error ("%s", THIS->msg); /* implies _stp_exit */
 %}
 

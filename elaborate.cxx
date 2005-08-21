@@ -290,6 +290,7 @@ alias_expansion_builder
   
     // the token location of the use,
     n->tok = use->tok;
+    n->body->tok = use->tok;
 
     // and statements representing the concatenation of the alias'
     // body with the use's. 

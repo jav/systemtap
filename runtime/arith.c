@@ -7,14 +7,14 @@
 
 
 struct context;
-void _stp_divmod64 (unsigned *errorcount, int64_t x, int64_t y,
+void _stp_divmod64 (const char **error, int64_t x, int64_t y,
                     int64_t *quo, int64_t *rem);
 
 
 /** Divide x by y.  In case of overflow or division-by-zero,
- * increment context errorcount, and return any old value.
+ * set context error string, and return any old value.
  */
-inline int64_t _stp_div64 (unsigned *errorcount, int64_t x, int64_t y)
+inline int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 {
   if (likely ((x >= LONG_MIN && x <= LONG_MAX) &&
               (y >= LONG_MIN && y <= LONG_MAX)))
@@ -24,7 +24,7 @@ inline int64_t _stp_div64 (unsigned *errorcount, int64_t x, int64_t y)
       // check for division-by-zero and overflow
       if (unlikely (yy == 0 || (xx == LONG_MIN && yy == -1)))
         {
-          (*errorcount) ++;
+          *error = "divisor out of range";
           return 0;
         }
       return xx / yy;
@@ -32,16 +32,16 @@ inline int64_t _stp_div64 (unsigned *errorcount, int64_t x, int64_t y)
   else
     {
       int64_t quo = 0;
-      _stp_divmod64 (errorcount, x, y, &quo, NULL);
+      _stp_divmod64 (error, x, y, &quo, NULL);
       return quo;
     }
 }
 
 
 /** Modulo x by y.  In case of overflow or division-by-zero,
- * increment context errorcount, and return any old value.
+ * set context error string, and return any old value.
  */
-inline int64_t _stp_mod64 (unsigned *errorcount, int64_t x, int64_t y)
+inline int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 {
   if (likely ((x >= LONG_MIN && x <= LONG_MAX) &&
               (y >= LONG_MIN && y <= LONG_MAX)))
@@ -51,7 +51,7 @@ inline int64_t _stp_mod64 (unsigned *errorcount, int64_t x, int64_t y)
       // check for division-by-zero and overflow
       if (unlikely (yy == 0 || (xx == LONG_MIN && yy == -1)))
         {
-          (*errorcount) ++;
+          *error = "divisor out of range";
           return 0;
         }
       return xx % yy;
@@ -59,18 +59,18 @@ inline int64_t _stp_mod64 (unsigned *errorcount, int64_t x, int64_t y)
   else
     {
       int64_t rem = 0;
-      _stp_divmod64 (errorcount, x, y, NULL, &rem);
+      _stp_divmod64 (error, x, y, NULL, &rem);
       return rem;
     }
 }
 
 
 /** Perform general long division/modulus. */
-void _stp_divmod64 (unsigned *errorcount, int64_t x, int64_t y,
+void _stp_divmod64 (const char **error, int64_t x, int64_t y,
                     int64_t *quo, int64_t *rem)
 {
   // XXX: wimp out for now
-  (*errorcount) ++;
+  *error = "general division unsupported";
   if (quo) *quo = 0;
   if (rem) *rem = 0;
 }
