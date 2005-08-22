@@ -37,8 +37,10 @@
  * @ingroup io
  */
 #define dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
+#define kbug(args...) {printk("%s:%d ",__FUNCTION__, __LINE__); printk(args); }
 #else
 #define dbug(args...) ;
+#define kbug(args...) ;
 #endif /* DEBUG */
 
 /* atomic globals */

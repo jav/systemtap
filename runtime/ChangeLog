@@ -1,3 +1,7 @@
+2005-08-22  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (kbug): New dbug macros that calls printk.
+
 2005-08-21  Frank Ch. Eigler  <fche@redhat.com>
 
 	* arith.c (*): Adapt to last_error context variable.
