@@ -58,7 +58,6 @@ usage (systemtap_session& s)
     << "   -v         verbose" << (s.verbose ? " [set]" : "") << endl
     << "   -h         show help" << endl
     << "   -V         show version" << endl
-    << endl
     << "   -k         keep temporary directory" << endl
     // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
