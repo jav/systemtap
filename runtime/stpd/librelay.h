@@ -1,5 +1,11 @@
 #include "../transport/transport_msgs.h"
 
+#ifdef DEBUG
+#define dbug(args...) {printf("%s:%d ",__FUNCTION__, __LINE__); printf(args); }
+#else
+#define dbug(args...) ;
+#endif /* DEBUG */
+
 /*
  * stp external API functions
  */

@@ -203,7 +203,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase)
 
 #ifdef USE_PROCFS
 	sprintf(tmp, "%s/%d", proc_filebase, cpu);
-	//printf("Opening %s.\n", tmp); 
+	dbug("Opening %s.\n", tmp); 
 	proc_file[cpu] = open(tmp, O_RDWR | O_NONBLOCK);
 	if (proc_file[cpu] < 0) {
 		fprintf(stderr, "ERROR: couldn't open proc file %s: errcode = %s\n", tmp, strerror(errno));
@@ -373,7 +373,7 @@ static void *reader_thread(void *data)
 int init_relayfs(void)
 {
 	int i, j;
-	//printf("initializing relayfs\n");
+	dbug("initializing relayfs\n");
 
 	for (i = 0; i < ncpus; i++) {
 		if (open_relayfs_files(i, params.relay_filebase) < 0) {
@@ -448,7 +448,7 @@ int init_stp(const char *relay_filebase, int print_summary)
 		*ptr = 0;
 
 	sprintf(buf, "%s/cmd", proc_filebase);
-	//printf("Opening %s\n", buf); 
+	dbug("Opening %s\n", buf); 
 	control_channel = open(buf, O_RDWR);
 	if (control_channel < 0) {
 		fprintf(stderr, "ERROR: couldn't open control channel %s: errcode = %s\n", buf, strerror(errno));
@@ -567,7 +567,7 @@ static void cleanup_and_exit (int closed)
 
 	exiting = 1;
 
-	//printf ("CLEANUP AND EXIT  closed=%d mode=%d\n", closed, transport_mode);
+	dbug("CLEANUP AND EXIT  closed=%d mode=%d\n", closed, transport_mode);
 
 	if (transport_mode == STP_TRANSPORT_RELAYFS) {
 		kill_percpu_threads(ncpus);
@@ -590,7 +590,7 @@ static void cleanup_and_exit (int closed)
 		delete_percpu_files();
 	}
 
-	//printf("closing control channel\n");
+	dbug("closing control channel\n");
 	close(control_channel);
 
 	if (!closed) {
@@ -633,7 +633,6 @@ int stp_main_loop(void)
 			fprintf(stderr, "WARNING: unexpected EOF. nb=%d\n", nb);
 			continue;
 		}
-		// printf("read %d bytes\n", nb);
 
 		type = *(int *)recvbuf;
 		data = (void *)(recvbuf + sizeof(int));
@@ -651,7 +650,7 @@ int stp_main_loop(void)
 			transport_mode = info->transport_mode;
 			params.subbuf_size = info->subbuf_size;
 			params.n_subbufs = info->n_subbufs;
-#if 0
+#ifdef DEBUG
 			if (transport_mode == STP_TRANSPORT_RELAYFS)
 				printf ("TRANSPORT_INFO recvd: RELAYFS %d bufs of %d bytes.\n", 
 					params.n_subbufs, 

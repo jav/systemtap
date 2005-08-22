@@ -1,3 +1,9 @@
+2005-08-22  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile (debug): Add debug target.
+	* librelay.h (dbug): Define.
+	* librelay.c: Enable some dbug lines.
+
 2005-08-19  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (reader_thread): Check the return value for write().
