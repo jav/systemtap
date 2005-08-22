@@ -1,3 +1,9 @@
+2005-08-22  Martin Hunt  <hunt@redhat.com>
+
+	* transport.h: Don't define _stp_transport_write.
+	* transport.c (_stp_transport_write): Use
+	_stp_transport_send() when in probe_exit().
+
 2005-08-19  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_cmd_handler): Remove. This was used by 

@@ -18,7 +18,6 @@ static unsigned subbuf_size = 65536;
 #define _stp_transport_write(data, len)  _stp_relay_write(data, len)
 static int _stp_transport_mode = STP_TRANSPORT_RELAYFS;
 #else
-#define _stp_transport_write(data, len)  _stp_write(STP_REALTIME_DATA, data, len)
 static int _stp_transport_mode = STP_TRANSPORT_PROC;
 #endif
 

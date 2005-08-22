@@ -58,6 +58,15 @@ int _stp_transport_send (int type, void *data, int len)
 	return err;
 }
 
+#ifndef STP_RELAYFS
+int _stp_transport_write (data, len)  
+{
+	/* when _stp_exit_called is set, we are in probe_exit() and we can sleep */
+	if (_stp_exit_called)
+		return _stp_transport_send (STP_REALTIME_DATA, data, len);
+	return _stp_write(STP_REALTIME_DATA, data, len);
+}
+#endif /*STP_RELAYFS */
 
 /*
  *	_stp_handle_buf_info - handle STP_BUF_INFO
@@ -80,7 +89,7 @@ static void _stp_handle_buf_info(int *cpuptr)
 void _stp_handle_start (struct transport_start *st)
 {
 	int err;
-	//printk ("stp_handle_start pid=%d\n", st->pid);
+	kbug ("stp_handle_start pid=%d\n", st->pid);
 	err = probe_start();
 	if (err < 0) {
 		st->pid = err;
@@ -103,7 +112,7 @@ static void _stp_cleanup_and_exit (int closing)
 {
 	int failures;
 
-	//printk("cleanup_and_exit (%d)\n", closing);
+	kbug("cleanup_and_exit (%d)\n", closing);
 	if (!_stp_exit_called) {
 		_stp_exit_called = 1;
 
@@ -116,10 +125,10 @@ static void _stp_cleanup_and_exit (int closing)
 #ifdef STP_RELAYFS
 		if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
 			relay_flush(_stp_chan);
-			ssleep(2);
 		}
 #endif
-		//printk ("SENDING STP_EXIT\n");
+		kbug("SENDING STP_EXIT\n");
+		ssleep(2);
 		_stp_transport_send(STP_EXIT, &closing, sizeof(int));
 	}
 }
@@ -140,7 +149,7 @@ static void _stp_handle_exit (void *data)
  */
 void _stp_transport_close()
 {
-	//printk("************** transport_close *************\n");
+	kbug("************** transport_close *************\n");
 	_stp_cleanup_and_exit(1);
 
 #ifdef STP_RELAYFS
@@ -150,7 +159,7 @@ void _stp_transport_close()
 
 	ssleep(1);
 	_stp_unregister_procfs();
-	//printk("---- CLOSED ----\n");
+	kbug("---- CLOSED ----\n");
 }
 
 /**
@@ -170,10 +179,10 @@ void _stp_transport_close()
 
 int _stp_transport_open(struct transport_info *info)
 {
-	//printk ("stp_transport_open: %d byte buffer. target=%d\n", info->buf_size, info->target);
+	kbug ("stp_transport_open: %d byte buffer. target=%d\n", info->buf_size, info->target);
 
 	info->transport_mode = _stp_transport_mode;
-	//printk("transport_mode=%d\n", info->transport_mode);
+	kbug("transport_mode=%d\n", info->transport_mode);
 	_stp_target = info->target;
 
 #ifdef STP_RELAYFS
@@ -208,7 +217,7 @@ int _stp_transport_open(struct transport_info *info)
  */
 int _stp_transport_init(void)
 {
-	//printk("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
+	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
 	_stp_register_procfs();
 	return 0;
