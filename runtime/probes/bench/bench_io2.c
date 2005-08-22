@@ -1,4 +1,4 @@
-//#define STP_NETLINK_ONLY
+#define STP_RELAYFS
 #define STP_NUM_STRINGS 1
 
 #include "runtime.h"

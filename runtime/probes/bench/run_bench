@@ -2,6 +2,8 @@
 # -*- tcl -*-
 
 proc do_time {module n} {  
+  global Failures
+
   # start kprobes
   if {[catch {exec ../../stpd/stpd -mq $module.ko > xxx &} pid]} {
     puts $pid
@@ -21,8 +23,28 @@ proc do_time {module n} {
     puts $res
   }
 
+  exec sleep 2
+
+  # look for warnings 
+  exec tail xxx >xxx.tail
+  if {[catch {open xxx.tail r} fd]} {
+    puts "Cannot open test output\n"
+    exit -1
+  }
+
+  set Failures 0
+  while {[gets $fd line] >= 0} {
+    if {[regexp {^\033\[33mWARNING: \033\[0mThere were ([0-9]*) transport failures.} $line match var]} {
+      set Failures $var
+      break
+    }
+  }
+  close $fd
+  exec /bin/rm -f xxx xxx.out
   return $res2
 }
+
+######## START HERE ###########
 
 
 set nproc [exec grep ^processor /proc/cpuinfo | wc -l]
@@ -37,16 +59,21 @@ set model [string range $model [expr [string first : $model]+1] end]
 set model [string trimleft $model]
 
 puts "STP BENCH for [exec uname -r] on [exec uname -m]"
-puts "[exec uptime]"
+if {[file exists /etc/redhat-release]} {
+  puts [exec cat /etc/redhat-release]
+}
+puts "[exec uname -n]: [exec uptime]"
 if {$nproc > 1} { 
     puts "processors: $nproc ([array size cpu] physical) $model"
 } else {
     puts "processors: $nproc $model"
 }
+set mem [split [exec cat /proc/meminfo] \n]
+puts "[lindex $mem 0]    [lindex $mem 1]"
 puts "--------------------------------------"
 
 # load the modules
-if {[catch {exec ./check_modules} res]} {
+if {[catch {exec stp_check} res]} {
     puts $res
     exit -1
 }
@@ -59,6 +86,9 @@ if {[catch {exec ./ttest 4} res1]} {
 
 set r_overhead [lindex $res1 0]
 set w_overhead [lindex $res1 1]
+
+puts "function call overhead = $r_overhead ns"
+puts "--------------------------------------"
 
 set res2 [do_time bench 4]
 set t_kprobe [expr [lindex $res2 0] - $r_overhead]
@@ -91,9 +121,10 @@ set res2 [do_time bench_io1 1]
 set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
 set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
 
-puts "NETLINK"
-puts "_stp_printf on 100 chars = $t_printf ns"
-puts "_stp_print  on 100 chars = $t_print ns"
+puts "PROCFS"
+puts "_stp_printf on 100 chars = $t_printf ns."
+puts "_stp_print  on 100 chars = $t_print ns."
+puts "Transport failures: $Failures"
 puts "--------------------------------------"
 exec sleep 4
 
@@ -103,9 +134,9 @@ set t_printf [expr [lindex $res2 0] - $r_overhead - $t_kprobe]
 set t_print [expr [lindex $res2 1] - $w_overhead - $t_kprobe]
 
 puts "RELAYFS"
-puts "_stp_printf on 100 chars = $t_printf ns"
-puts "_stp_print  on 100 chars = $t_print ns"
+puts "_stp_printf on 100 chars = $t_printf ns."
+puts "_stp_print  on 100 chars = $t_print ns."
+puts "Transport failures: $Failures"
 puts "--------------------------------------"
 
-exec rm xxx
 exec /bin/rm -f stpd_cpu*

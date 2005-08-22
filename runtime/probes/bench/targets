@@ -1,5 +1,7 @@
 bench
 bench_io1
 bench_io2
+bench_io3
+bench_io4
 bench_ret
 bench_multi
