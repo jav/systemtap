@@ -22,6 +22,7 @@
 #include <cstdarg>
 
 extern "C" {
+#include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
 #include <dwarf.h>
@@ -1484,6 +1485,22 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
     module_bias(q.dw.module_bias),
     has_return (q.has_return)
 {
+  // Lock the kernel module in memory.
+  if (module_name != TOK_KERNEL)
+    {
+      // XXX: There is a race window here, between the time that libdw
+      // opened up this same file for its relocation duties, and now.
+      int fd = q.sess.module_fds[module_name];
+      if (fd == 0)
+        {
+          string sys_module = "/sys/module/" + module_name + "/sections/.text";
+          fd = open (sys_module.c_str(), O_RDONLY);
+          if (fd < 0)
+            throw semantic_error ("error opening module refcount-bumping file.");
+          q.sess.module_fds[module_name] = fd;
+        }
+    }
+
   // first synthesize an "expanded" location
   vector<probe_point::component*> comps;
   comps.push_back
