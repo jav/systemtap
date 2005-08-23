@@ -59,7 +59,7 @@ int _stp_transport_send (int type, void *data, int len)
 }
 
 #ifndef STP_RELAYFS
-int _stp_transport_write (data, len)  
+int _stp_transport_write (void *data, int len)  
 {
 	/* when _stp_exit_called is set, we are in probe_exit() and we can sleep */
 	if (_stp_exit_called)
