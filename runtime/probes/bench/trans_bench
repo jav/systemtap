@@ -2,10 +2,10 @@
 # -*- tcl -*-
 
 proc do_time {module n buf} {  
-  global Failures
+  global Failures Filesize
 
   # start kprobes
-  if {[catch {exec ../../stpd/stpd -vb $buf -mq $module.ko > xxx &} pid]} {
+  if {[catch {exec ../../stpd/stpd -b $buf $module.ko > xxx &} pid]} {
     puts $pid
     exit -1
   }
@@ -41,7 +41,9 @@ proc do_time {module n buf} {
     }
   }
   close $fd
-  #exec /bin/rm -f xxx xxx.out
+
+  set Filesize [file size xxx]
+  exec /bin/rm -f xxx xxx.out
   return $res2
 }
 
@@ -74,7 +76,7 @@ puts "[lindex $mem 0]    [lindex $mem 1]"
 puts "--------------------------------------"
 
 # load the modules
-if {[catch {exec ./check_modules} res]} {
+if {[catch {exec stp_check} res]} {
     puts $res
     exit -1
 }
@@ -107,13 +109,16 @@ while {$buf <= 64 && $n < $max} {
     puts "_stp_printf of [expr $n * 100]MB in $total_print secs real time."
     puts "Transfer rate = [format "%6.2f" [expr ($n * 100)/$total_print]] MB/sec"
     puts "Transport failures: $Failures"
+    if {$Filesize != [expr $n * 100000000]} {
+      puts "WARNING: file size was $Filesize (expected [expr $n * 100000000])."
+    }
     puts "--------------------------------------"
     if {$Failures == 0} {incr n}
   }
   set buf [expr $buf + $buf]
 }
 
-set max 11
+set max 5
 set n 1
 set buf 1
 while {$buf <= 64 && $n < $max} {
@@ -131,6 +136,9 @@ while {$buf <= 64 && $n < $max} {
     puts "_stp_printf of [expr $n * 100]MB in $total_print secs real time."
     puts "Transfer rate = [format "%6.2f" [expr ($n * 100)/$total_print]] MB/sec"
     puts "Transport failures: $Failures"
+    if {$Filesize != [expr $n * 100000000]} {
+      puts "WARNING: file size was $Filesize (expected [expr $n * 100000000])."
+    }
     puts "--------------------------------------"
     if {$Failures == 0} {incr n}
   }
@@ -151,6 +159,9 @@ if {$t_printf < 0} {
 puts "_stp_printf of 1GB in $total_print secs real time."
 puts "Transfer rate = [format "%6.2f" [expr 1000/$total_print]] MB/sec"
 puts "Transport failures: $Failures"
+if {$Filesize != 1000000000} {
+  puts "WARNING: file size was $Filesize (expected 1000000000)."
+}
 puts "--------------------------------------"
 
 set Failures 0
@@ -167,6 +178,9 @@ if {$t_printf < 0} {
 puts "_stp_printf of 1GB in $total_print secs real time."
 puts "Transfer rate = [format "%6.2f" [expr 1000/$total_print]] MB/sec"
 puts "Transport failures: $Failures"
+if {$Filesize != 1000000000} {
+  puts "WARNING: file size was $Filesize (expected 1000000000)."
+}
 puts "--------------------------------------"
 
 exec /bin/rm -f stpd_cpu*
