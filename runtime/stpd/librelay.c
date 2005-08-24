@@ -590,6 +590,9 @@ static void cleanup_and_exit (int closed)
 
 static void sigproc(int signum __attribute__((unused)))
 {
+  signal(SIGINT, sigproc);
+  signal(SIGTERM, sigproc);
+  fprintf(stderr, "Exiting...\n");
   send_request(STP_EXIT, NULL, 0);
 }
 
@@ -655,6 +658,9 @@ int stp_main_loop(void)
 		}
 		case STP_REALTIME_DATA:
 			fputs ((char *)data, stdout);
+			break;
+		case STP_OOB_DATA:
+			fputs ((char *)data, stderr);
 			break;
 		case STP_EXIT: 
 		{

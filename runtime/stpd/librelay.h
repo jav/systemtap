@@ -1,7 +1,7 @@
 #include "../transport/transport_msgs.h"
 
 #ifdef DEBUG
-#define dbug(args...) {printf("%s:%d ",__FUNCTION__, __LINE__); printf(args); }
+#define dbug(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
 #else
 #define dbug(args...) ;
 #endif /* DEBUG */

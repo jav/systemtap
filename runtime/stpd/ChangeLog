@@ -1,3 +1,14 @@
+2005-08-24  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (sigproc): Reestablish signal handler so 
+	impatient people don't hit ^C twice and terminate the 
+	program before it saves the data and removes the module.
+	Also print a message to stderr that it is exiting.
+	(stp_main_loop): Write OOB data (warnings, errors, etc)
+	to stderr instead of stdout.
+	* librelay.h: Write debug info to stderr.
+	* Makefile: add librelay.h to dependencies.
+	
 2005-08-23  Martin Hunt  <hunt@redhat.com>
 	
 	* librelay.c (merge_output): Don't add an extra \n.
