@@ -1,10 +1,14 @@
 2005-08-23  Martin Hunt  <hunt@redhat.com>
+	
+	* librelay.c (merge_output): Don't add an extra \n.
+
+2005-08-23  Martin Hunt  <hunt@redhat.com>	
 
 	* librelay.c (read_last_buffers): New function. Directly grab the
 	last buffers.
 	(info_pending): Deleted.
 	(request_last_buffers): Deleted.
-	
+
 2005-08-22  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile (debug): Add debug target.

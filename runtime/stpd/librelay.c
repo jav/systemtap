@@ -534,8 +534,6 @@ static int merge_output(void)
 			num[j] = 0;
 	} while (min);
 
-	if (!quiet)
-		fputs ("\n", stdout);
 	if (!print_only)
 		fputs ("\n", ofp);
 
