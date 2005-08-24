@@ -1,5 +1,10 @@
 2005-08-24  Martin Hunt  <hunt@redhat.com>
 
+	* librelay.c (sigproc): Removed the "Exiting..."
+	message for now.
+
+2005-08-24  Martin Hunt  <hunt@redhat.com>
+
 	* librelay.c (sigproc): Reestablish signal handler so 
 	impatient people don't hit ^C twice and terminate the 
 	program before it saves the data and removes the module.

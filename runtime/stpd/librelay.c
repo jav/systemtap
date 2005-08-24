@@ -592,7 +592,7 @@ static void sigproc(int signum __attribute__((unused)))
 {
   signal(SIGINT, sigproc);
   signal(SIGTERM, sigproc);
-  fprintf(stderr, "Exiting...\n");
+  //fprintf(stderr, "Exiting...\n");
   send_request(STP_EXIT, NULL, 0);
 }
 
