@@ -142,7 +142,7 @@ struct c_tmpcounter:
     parent->tmpvar_counter = 0;
   }
 
-  // void visit_for_loop (for_loop* s);
+  void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
   // void visit_delete_statement (delete_statement* s);
@@ -272,8 +272,7 @@ struct stmt_expr
   }
   ~stmt_expr()
   {
-    c.o->line() << "})";
-    c.o->indent(-1);
+    c.o->newline(-1) << "})";
   }
 };
 
@@ -281,19 +280,31 @@ struct varlock
 {
   c_unparser & c;
   var const & v;
+  bool w;
 
-  varlock(c_unparser & c, var const & v) : c(c), v(v)
+  varlock(c_unparser & c, var const & v, bool w): c(c), v(v), w(w)
   {
-    if (!v.is_local())
-      c.o->newline() << "/* XXX lock " << v << " */";
+    if (v.is_local()) return;
+    c.o->newline() << (w ? "write_lock" : "read_lock")
+                   << " (& " << v << "_lock);";
   }
 
   ~varlock()
   {
-    if (!v.is_local())
-      c.o->newline() << "/* XXX unlock " << v << " */";
+    if (v.is_local()) return;
+    c.o->newline() << (w ? "write_unlock" : "read_unlock")
+                   << " (& " << v << "_lock);";
   }
 };
+
+struct varlock_r: public varlock {
+  varlock_r (c_unparser& c, var const& v): varlock (c, v, false) {}
+};
+
+struct varlock_w: public varlock {
+  varlock_w (c_unparser& c, var const& v): varlock (c, v, true) {}
+};
+
 
 struct tmpvar
   : public var
@@ -530,10 +541,15 @@ c_unparser::emit_common_header ()
   o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
   o->newline();
   o->newline() << "struct context {";
-  o->newline(1) << "unsigned busy;";
+  o->newline(1) << "unsigned busy;"; // XXX: should be atomic_t ?
   o->newline() << "unsigned actioncount;";
   o->newline() << "unsigned nesting;";
   o->newline() << "const char *last_error;";
+  // NB: last_error is used as a health flag within a probe.
+  // While it's 0, execution continues
+  // When it's "", current function or probe unwinds and returns early
+  // When it's "something", probe code unwinds, _stp_error's, sets error state
+  // See c_unparser::visit_statement()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "union {";
@@ -603,11 +619,9 @@ c_unparser::emit_global (vardecl *v)
   else
     o->newline() << "static MAP global_" 
 		 << c_varname(v->name) << ";";
-  /* XXX
-  o->line() << "static DEFINE_RWLOCK("
-             << c_varname (v->name) << "_lock"
-             << ");";
-  */
+  o->newline() << "static DEFINE_RWLOCK("
+               << "global_" << c_varname (v->name) << "_lock"
+               << ");";
 }
 
 
@@ -1253,7 +1267,18 @@ c_unparser::getiter(foreach_loop *f)
 void
 c_unparser::visit_statement (statement *s, unsigned actions)
 {
-  o->newline() << "if (unlikely (c->last_error)) goto out;";
+  // For some constructs, it is important to avoid an error branch
+  // right to the bottom of the probe/function.  The foreach() locking
+  // construct is one example.  Instead, if we are nested within a
+  // loop, we branch merely to its "break" label.  The next statement
+  // will branch one level higher, and so on, until we can go straight
+  // "out".
+  string outlabel = "out";
+  unsigned loops = loop_break_labels.size();
+  if (loops > 0)
+    outlabel = loop_break_labels[loops-1];
+
+  o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
   assert (s->tok);
   o->newline() << "c->last_stmt = \"" << *s->tok << "\";";
   if (actions > 0)
@@ -1261,7 +1286,7 @@ c_unparser::visit_statement (statement *s, unsigned actions)
       o->newline() << "c->actioncount += " << actions << ";";
       o->newline() << "if (unlikely (c->actioncount > MAXACTION)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
-      o->newline() << "goto out;";
+      o->newline() << "goto " << outlabel << ";";
       o->newline(-1) << "}";
     }
 }
@@ -1341,33 +1366,52 @@ c_unparser::visit_if_statement (if_statement *s)
 
 
 void
+c_tmpcounter::visit_for_loop (for_loop *s)
+{
+  s->init->visit (this);
+  s->cond->visit (this);
+  s->block->visit (this);
+  s->incr->visit (this);
+}
+
+
+void
 c_unparser::visit_for_loop (for_loop *s)
 {
   visit_statement (s, 1);
 
-  s->init->visit (this);
   string ctr = stringify (label_counter++);
+  string toplabel = "top_" + ctr;
   string contlabel = "continue_" + ctr;
   string breaklabel = "break_" + ctr;
 
-  o->newline() << contlabel << ":";
+  // initialization
+  s->init->visit (this);
 
-  o->newline() << "if (! (";
+  // condition
+  o->newline(-1) << toplabel << ":";
+  o->newline(1) << "if (! (";
   if (s->cond->type != pe_long)
     throw semantic_error ("expected numeric type", s->cond->tok);
   s->cond->visit (this);
   o->line() << ")) goto " << breaklabel << ";";
 
+  // body
   loop_break_labels.push_back (breaklabel);
   loop_continue_labels.push_back (contlabel);
   s->block->visit (this);
   loop_break_labels.pop_back ();
   loop_continue_labels.pop_back ();
 
+  // iteration
+  o->newline(-1) << contlabel << ":";
+  o->indent(1);
   s->incr->visit (this);
-  o->newline() << "goto " << contlabel << ";";
+  o->newline() << "goto " << toplabel << ";";
 
-  o->newline() << breaklabel << ": ; /* dummy statement */";
+  // exit
+  o->newline(-1) << breaklabel << ":";
+  o->newline(1) << "; /* dummy statement */";
 }
 
 
@@ -1387,27 +1431,47 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
   mapvar mv = getmap (s->base_referent, s->tok);
   itervar iv = getiter (s);
   vector<var> keys;
-    
-  varlock guard (*this, mv);
-    
-  o->newline() << "for ("
-	       << iv << " = " << iv.start (mv) << "; ";
-  o->newline() << "     " << iv << "; ";
-  o->newline() << "     " << iv << " = " << iv.next (mv) << ")";
+
+  string ctr = stringify (label_counter++);
+  string toplabel = "top_" + ctr;
+  string contlabel = "continue_" + ctr;
+  string breaklabel = "break_" + ctr;
+
+  // NB: structure parallels for_loop
+
+  // initialization
+  varlock_r guard (*this, mv);
+  o->newline() << iv << " = " << iv.start (mv) << ";";
+
+  // condition
+  o->newline(-1) << toplabel << ":";
+  o->newline(1) << "if (! (" << iv << ")) goto " << breaklabel << ";";
+
+  // body
+  loop_break_labels.push_back (breaklabel);
+  loop_continue_labels.push_back (contlabel);
   o->newline() << "{";
   o->indent (1);
-    
   for (unsigned i = 0; i < s->indexes.size(); ++i)
     {
       // copy the iter values into the specified locals
       var v = getvar (s->indexes[i]->referent);
       c_assign (v, iv.get_key (v.type(), i), s->tok);
     }
-
   s->block->visit (this);
+  o->newline(-1) << "}";
+  loop_break_labels.pop_back ();
+  loop_continue_labels.pop_back ();
+
+  // iteration
+  o->newline(-1) << contlabel << ":";
+  o->newline(1) << iv << " = " << iv.next (mv) << ";";
+  o->newline() << "goto " << toplabel << ";";
     
-  o->indent (-1);
-  o->newline() << "}";
+  // exit
+  o->newline(-1) << breaklabel << ":";
+  o->indent(1);
+  // varlock dtor will show up here
 }
 
 
@@ -1424,7 +1488,9 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
-  o->newline() << "goto out;";
+  o->newline() << "c->last_error = \"\";";
+  // NB: last_error needs to get reset to NULL in the caller
+  // probe/function
 }
 
 
@@ -1436,7 +1502,7 @@ c_unparser::visit_next_statement (next_statement* s)
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
 
-  o->newline() << "goto out;";
+  o->newline() << "c->last_error = \"\";";
 }
 
 
@@ -1456,7 +1522,7 @@ void
 delete_statement_operand_visitor::visit_symbol (symbol* e)
 {
   mapvar mvar = parent->getmap(e->referent, e->tok);  
-  varlock guard (*parent, mvar);
+  varlock_w guard (*parent, mvar);
   parent->o->newline() << mvar.fini ();
   parent->o->newline() << mvar.init ();  
 }
@@ -1466,10 +1532,10 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
 {
   vector<tmpvar> idx;
   parent->load_map_indices (e, idx);
-  parent->o->newline() << "if (unlikely (c->last_error)) goto out;";
+
   {
     mapvar mvar = parent->getmap (e->referent, e->tok);
-    varlock guard (*parent, mvar);
+    varlock_w guard (*parent, mvar);
     parent->o->newline() << mvar.seek (idx) << ";";
     parent->o->newline() << mvar.del () << ";";
   }
@@ -1666,11 +1732,9 @@ c_unparser::visit_array_in (array_in* e)
 
   tmpvar res = gensym (pe_long);
 
-  o->newline() << "if (unlikely (c->last_error)) goto out;";
-
-  {
+  { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->operand->referent, e->tok);
-    varlock guard (*this, mvar);
+    varlock_r guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.exists(), e->tok);
   }
@@ -1918,7 +1982,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
 
   {
     var lvar = parent->getvar (e->referent, e->tok);
-    varlock guard (*parent, lvar);
+    varlock_w guard (*parent, lvar);
     c_assignop (res, lvar, rval, e->tok);     
   }
 
@@ -2002,11 +2066,9 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. a[a[c]=5] could deadlock
   
-  o->newline() << "if (unlikely (c->last_error)) goto out;";
-  
-  {
+  { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->referent, e->tok);
-    varlock guard (*this, mvar);
+    varlock_r guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.get(), e->tok);
   }
@@ -2067,8 +2129,8 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // thusly:
   // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
   //    rvar = ...;
-  //    lock (array);n
-  //    lvar = get (array,idx0...N);
+  //    lock (array);
+  //    lvar = get (array,idx0...N); // if necessary
   //    assignop (res, lvar, rvar);
   //    set (array, idx0...N, lvar);
   //    unlock (array);
@@ -2078,15 +2140,14 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // reentrancy issues that pop up with nested expressions:
   // e.g. ++a[a[c]=5] could deadlock
   
-  o->newline() << "if (unlikely (c->last_error)) goto out;";
-  
   prepare_rvalue (op, rvar, e->tok);
   
-  {
+  { // block used to control varlock_w lifespan
     mapvar mvar = parent->getmap (e->referent, e->tok);
-    varlock guard (*parent, mvar);
+    varlock_w guard (*parent, mvar);
     o->newline() << mvar.seek (idx) << ";";
-    parent->c_assign (lvar, mvar.get(), e->tok);
+    if (op != "=") // don't bother fetch slot if we will just overwrite it
+      parent->c_assign (lvar, mvar.get(), e->tok);
     c_assignop (res, lvar, rvar, e->tok); 
     o->newline() << mvar.set (lvar) << ";";
   }
@@ -2143,9 +2204,8 @@ c_unparser::visit_functioncall (functioncall* e)
   o->newline();
   o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
-  o->newline() << "goto out;";
-  o->newline(-1) << "}";
-  o->newline();
+  o->newline(-1) << "} else {";
+  o->indent(1);
 
   // copy in actual arguments
   for (unsigned i=0; i<e->args.size(); i++)
@@ -2167,7 +2227,14 @@ c_unparser::visit_functioncall (functioncall* e)
   o->newline() << "c->nesting ++;";
   o->newline() << "function_" << c_varname (r->name) << " (c);";
   o->newline() << "c->nesting --;";
-  
+
+  // reset last_error to NULL if it was set to "" by return()
+  o->newline() << "if (c->last_error && ! c->last_error[0])";
+  o->newline(1) << "c->last_error = 0;";
+  o->indent(-1);
+
+  o->newline(-1) << "}";
+
   // return result from retvalue slot
   
   if (r->type == pe_unknown)

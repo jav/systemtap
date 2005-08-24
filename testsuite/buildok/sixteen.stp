@@ -1,0 +1,21 @@
+#! stap -p4
+
+global a
+
+function foo () {
+  if (a[k] == "sayonara") { return 2 }
+}
+
+
+probe begin {
+  a[1] = "hello"
+  a[2] = "goodbye"
+  foreach (k in a) {
+    log (a[k])
+    for (i=0; i<10; i++) {
+      log ("k=" . string(k) . " i=" . string(i))
+      if (k % (i+1)) break else continue
+    }
+    if (k % 3) { foo() ; next }
+  }
+}

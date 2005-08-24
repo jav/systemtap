@@ -24,9 +24,8 @@ function warn (msg) {
     _warn (msg . "")
 }
 
+// NB: exit() does *not* cause immediate return from current function/probe
 function exit () %{
-    /* not a NULL pointer, but don't cause _stp_error */
-    CONTEXT->last_error = "";
     _stp_exit ();
 %}
 

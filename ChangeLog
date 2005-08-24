@@ -1,3 +1,22 @@
+2005-08-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (*::emit_probe_entries): Treat NULL and "" last_errors
+	both as clean early returns, not errors.
+	* translate.cxx: Revamp last_error handling logic.  Remove all
+	"goto out" paths from expression context.
+	(visit_statement): Handle last_error exit one nesting level at a time.
+	(visit_return_statement, visit_functioncall): Set/reset last_error="".
+	(c_tmpcounter::visit_for_loop): New routine.
+	(c_unparser::visit_foreach, visit_for_loop): Rewrite to properly
+	support continue/breaks, non-local exits, (foreach) locks.
+	(emit_global): Emit lock variable.
+	(varlock ctor, dtor): Lock/unlock global variable.
+	(varlock_w, varlock_r): New concrete subclasses.  Update all users.
+	* tapset/builtin_logging.stp (exit): Don't set last_error.
+	* src/testsuite/buildok/sixteen.stp: New test.
+	
+	* tapsets.cxx: Temporarily rolled back graydon's changes.
+
 2005-08-23  Graydon Hoare  <graydon@redhat.com>
 
 	* tapsets.cxx: Re-implement dwarf probe-pattern resolution.
