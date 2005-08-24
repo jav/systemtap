@@ -1,3 +1,7 @@
+2005-08-24  Martin Hunt  <hunt@redhat.com>
+
+	* transport_msgs.h (enum): New type, STP_OOB_DATA.
+
 2005-08-23  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_cleanup_and_exit): Remove a 2 second sleep

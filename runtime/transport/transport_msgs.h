@@ -14,6 +14,7 @@ enum
         STP_TRANSPORT_INFO,
 	STP_START,
         STP_EXIT,
+	STP_OOB_DATA,
 };
 
 /* control channel command structs */
