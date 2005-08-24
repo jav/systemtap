@@ -619,9 +619,8 @@ c_unparser::emit_global (vardecl *v)
   else
     o->newline() << "static MAP global_" 
 		 << c_varname(v->name) << ";";
-  o->newline() << "static DEFINE_RWLOCK("
-               << "global_" << c_varname (v->name) << "_lock"
-               << ");";
+  o->newline() << "static rwlock_t "
+               << "global_" << c_varname (v->name) << "_lock;";
 }
 
 
@@ -652,6 +651,7 @@ c_unparser::emit_module_init ()
 	o->newline() << getmap (v).init();
       else
 	o->newline() << getvar (v).init();
+      o->newline() << "rwlock_init (& global_" << c_varname (v->name) << "_lock);";
     }
 
   for (unsigned i=0; i<session->probes.size(); i++)
