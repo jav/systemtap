@@ -1,3 +1,12 @@
+2005-08-23  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_cleanup_and_exit): Remove a 2 second sleep
+	that should no longer be necessary.
+
+	* procfs.c (_stp_write): If the ready queue is not empty
+	then attempt to grab the last buffer in it and append our data 
+	to it.
+
 2005-08-22  Martin Hunt  <hunt@redhat.com>
 
 	* transport.h: Don't define _stp_transport_write.

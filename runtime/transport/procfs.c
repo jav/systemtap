@@ -115,6 +115,7 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 struct _stp_buffer {
 	struct list_head list;
 	int len;
+	int type;
 	char buf[STP_BUFFER_SIZE];
 };
 
@@ -123,6 +124,21 @@ static DECLARE_WAIT_QUEUE_HEAD(_stp_proc_wq);
 static int _stp_write (int type, void *data, int len)
 {
 	struct _stp_buffer *bptr;
+
+#define WRITE_AGG
+#ifdef WRITE_AGG
+	spin_lock(&_stp_ready_lock);
+	if (!list_empty(&_stp_ready_q)) {
+		bptr = (struct _stp_buffer *)_stp_ready_q.prev;
+		if (bptr->len + len <= STP_BUFFER_SIZE && bptr->type == type) {
+			memcpy (bptr->buf + bptr->len - 1, data, len);
+			bptr->len += len - 1;
+			spin_unlock(&_stp_ready_lock);
+			return len;
+		}
+	}
+	spin_unlock(&_stp_ready_lock);
+#endif
 
 	spin_lock(&_stp_pool_lock);
 	if (list_empty(&_stp_pool_q)) {
@@ -135,8 +151,8 @@ static int _stp_write (int type, void *data, int len)
 	list_del_init(&bptr->list);
 	spin_unlock(&_stp_pool_lock);
 
-	memcpy (bptr->buf, &type, 4);
-	memcpy (&bptr->buf[4], data, len);
+	bptr->type = type;
+	memcpy (bptr->buf, data, len);
 	bptr->len = len;
 	
 
@@ -150,7 +166,6 @@ static int _stp_write (int type, void *data, int len)
 
 	return len;
 }
-
 
 static ssize_t
 _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
@@ -176,7 +191,7 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 
 	/* write it out */
 	len = bptr->len + 4;
-	if (copy_to_user(buf, bptr->buf, len)) {
+	if (copy_to_user(buf, &bptr->type, len)) {
 		/* now what?  We took it off the queue then failed to send it */
 		/* we can't put it back on the queue because it will likely be out-of-order */
 		/* fortunately this should never happen */
@@ -191,7 +206,6 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 
 	return len;
 }
-
 
 
 static struct file_operations _stp_proc_fops_cmd = {

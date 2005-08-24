@@ -128,7 +128,6 @@ static void _stp_cleanup_and_exit (int closing)
 		}
 #endif
 		kbug("SENDING STP_EXIT\n");
-		ssleep(2);
 		_stp_transport_send(STP_EXIT, &closing, sizeof(int));
 	}
 }
