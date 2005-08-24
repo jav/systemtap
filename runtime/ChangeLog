@@ -1,3 +1,7 @@
+2005-08-23  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Add a prototype for _stp_dbug().
+
 2005-08-22  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (kbug): New dbug macros that calls printk.

@@ -36,6 +36,7 @@
  * @param args A variable number of args in a format like printf.
  * @ingroup io
  */
+static void _stp_dbug (char *func, int line, const char *fmt, ...);
 #define dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 #define kbug(args...) {printk("%s:%d ",__FUNCTION__, __LINE__); printk(args); }
 #else
