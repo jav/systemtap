@@ -1,3 +1,7 @@
+2005-08-24  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in: Update elfutils requirement.
+
 2005-08-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (emit_global, emit_module_init): Use 2.6.9-compatible
@@ -19,7 +23,7 @@
 	(varlock_w, varlock_r): New concrete subclasses.  Update all users.
 	* tapset/builtin_logging.stp (exit): Don't set last_error.
 	* src/testsuite/buildok/sixteen.stp: New test.
-	
+
 	* tapsets.cxx: Temporarily rolled back graydon's changes.
 
 2005-08-23  Graydon Hoare  <graydon@redhat.com>
@@ -50,7 +54,7 @@
 
 	PR systemtap/1213
 	* translate.cxx (visit_if_statement): Translate else arms.
-	
+
 2005-08-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR systemtap/1209
