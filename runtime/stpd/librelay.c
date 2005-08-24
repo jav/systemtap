@@ -75,7 +75,6 @@ static int relay_file[NR_CPUS];
 static FILE *percpu_tmpfile[NR_CPUS];
 static char *relay_buffer[NR_CPUS];
 static pthread_t reader[NR_CPUS];
-static int pending_info[NR_CPUS];
 
 /* control channel */
 static int control_channel;
@@ -274,26 +273,6 @@ static int kill_percpu_threads(int n)
 }
 
 /**
- *	request_last_buffers - request end-of-trace last buffer processing
- *
- *	Returns 0 if successful, negative otherwise
- */
-static int request_last_buffers(void)
-{
-#if 0
-	int cpu;
-	for (cpu = 0; cpu < ncpus; cpu++) {
-		if (send_request(STP_BUF_INFO, &cpu, sizeof(cpu)) < 0) {
-			fprintf(stderr, "WARNING: couldn't request last buffers for cpu %d\n", cpu);
-			return -1;
-		}
-		pending_info[cpu]++;
-	}
-#endif
-	return 0;
-}
-
-/**
  *	process_subbufs - write ready subbufs to disk
  */
 static int process_subbufs(struct buf_info *info)
@@ -363,6 +342,27 @@ static void *reader_thread(void *data)
 				fprintf(stderr,"WARNING: writing consumed info failed.\n");
 		}
 	} while (1);
+}
+
+static void read_last_buffers(void)
+{
+	int cpu, rc;
+	struct consumed_info consumed_info;
+	unsigned subbufs_consumed;
+
+	for (cpu = 0; cpu < ncpus; cpu++) {
+		rc = read (proc_file[cpu], &status[cpu].info, sizeof(struct buf_info));
+		subbufs_consumed = process_subbufs(&status[cpu].info);
+		if (subbufs_consumed) {
+			if (subbufs_consumed > status[cpu].max_backlog)
+				status[cpu].max_backlog = subbufs_consumed;
+			status[cpu].info.consumed += subbufs_consumed;
+			consumed_info.cpu = cpu;
+			consumed_info.consumed = subbufs_consumed;
+			if (write (proc_file[cpu], &consumed_info, sizeof(struct consumed_info)) < 0)
+				fprintf(stderr,"WARNING: writing consumed info failed.\n");
+		}
+	}
 }
 
 /**
@@ -547,17 +547,6 @@ static int merge_output(void)
 	return 0;
 }
 
-static int info_pending(void)
-{
-	int i;
-	
-	for (i = 0; i < ncpus; i++)
-		if (pending_info[i])
-			return 1;
-	
-	return 0;
-}
-
 static void cleanup_and_exit (int closed)
 {
 	char tmpbuf[128];
@@ -571,16 +560,11 @@ static void cleanup_and_exit (int closed)
 
 	if (transport_mode == STP_TRANSPORT_RELAYFS) {
 		kill_percpu_threads(ncpus);
-		if (request_last_buffers() < 0)
-			exit(1);
+		read_last_buffers();
 	}
 
 	close_proc_files();
 
-
-	if ( transport_mode == STP_TRANSPORT_RELAYFS && info_pending())
-	  return;
-	
 	if (print_totals && verbose)
 		summarize();
 
