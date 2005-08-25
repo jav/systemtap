@@ -30,8 +30,8 @@ loc2c_test_LDADD = @stap_LIBS@
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST = testsuite runtest.sh $(wildcard $(srcdir)/*.h) systemtap.spec \
-	     runtime tapset
+EXTRA_DIST = testsuite runtest.sh $(notdir $(wildcard $(srcdir)/*.h)) \
+	     systemtap.spec runtime tapset
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
@@ -94,4 +94,3 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
-
