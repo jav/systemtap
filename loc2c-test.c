@@ -111,6 +111,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
       switch (typetag)
 	{
 	case DW_TAG_typedef:
+	case DW_TAG_const_type:
+	case DW_TAG_volatile_type:
 	  /* Just iterate on the referent type.  */
 	  break;
 
