@@ -171,3 +171,10 @@
   })
 
 #endif
+
+#define deref_string(dst, addr, maxbytes)
+  ({
+    if (__strncpy_from_user ((dst), (const char __user *) (addr), (maxbytes)))
+      goto deref_fault;
+    (dst);
+  })
