@@ -1,6 +1,7 @@
 2005-08-25  Roland McGrath  <roland@redhat.com>
 
 	* Makefile.am (EXTRA_DIST): Remove directory from wildcard file names.
+	* Makefile.in: Regenerated.
 
 2005-08-24  Graydon Hoare  <graydon@redhat.com>
 

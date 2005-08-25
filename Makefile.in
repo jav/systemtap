@@ -207,8 +207,8 @@ loc2c_test_LDADD = @stap_LIBS@
 
 # Get extra libs as needed
 LDADD = 
-EXTRA_DIST = testsuite runtest.sh $(wildcard $(srcdir)/*.h) systemtap.spec \
-	     runtime tapset
+EXTRA_DIST = testsuite runtest.sh $(notdir $(wildcard $(srcdir)/*.h)) \
+	     systemtap.spec runtime tapset
 
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
