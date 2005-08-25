@@ -1,3 +1,7 @@
+2005-08-25  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h (deref_string): Rewritten using deref.
+
 2005-08-24  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h (deref_string): New macro.
