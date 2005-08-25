@@ -174,7 +174,13 @@
 
 #define deref_string(dst, addr, maxbytes)				      \
   ({									      \
-    if (__strncpy_from_user ((dst), (const char __user *) (addr), (maxbytes)))\
-      goto deref_fault;							      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    unsigned char _c;							      \
+    char *_d = (dst);							      \
+    for (_len = (maxbytes), _addr = (addr);				      \
+	 _len > 1 && (_c = deref (1, _addr)) != '\0';			      \
+	 --_len, ++_addr)						      \
+      *_d++ = _c;							      \
     (dst);								      \
   })
