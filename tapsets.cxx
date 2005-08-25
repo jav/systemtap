@@ -685,7 +685,8 @@ dwflpp
   string literal_stmt_for_local(Dwarf_Addr pc,
 				string const & local,
 				vector<pair<target_symbol::component_type,
-				std::string> > const & components)
+				std::string> > const & components,
+				exp_type & ty)
   {
     assert (cu);
 
@@ -769,6 +770,8 @@ dwflpp
 	switch (typetag)
 	  {
 	  case DW_TAG_typedef:
+	  case DW_TAG_const_type:
+	  case DW_TAG_volatile_type:
 	    /* Just iterate on the referent type.  */
 	    break;
 
@@ -869,17 +872,97 @@ dwflpp
 	if (typedie == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
 	typetag = dwarf_tag (typedie);
-	if (typetag != DW_TAG_typedef)
+	if (typetag != DW_TAG_typedef && 
+	    typetag != DW_TAG_const_type &&
+	    typetag != DW_TAG_volatile_type)
 	  break;
 	if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
 	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
       }
 
-    if (typetag != DW_TAG_base_type)
-      throw semantic_error ("target location not a base type");
 
-    c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,
-		       "THIS->__retvalue");
+    // If we have a base type, we will fetch it into pe_long.
+    //
+    // If we have a pointer to non-char, we will cast it to uintptr_t, and fetch
+    // into pe_long.
+    //
+    // If we have a pointer to char, we will fetch into pe_string, using 
+    // deref_string() over in loc2c-runtime.h
+
+    string prelude, postlude;
+    switch (typetag)
+      {
+
+      default:
+	throw semantic_error ("target location not a base or pointer type");
+	break;
+	
+      case DW_TAG_base_type:
+	ty = pe_long;
+	c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,
+			   "THIS->__retvalue");
+	break;
+
+      case DW_TAG_array_type:
+      case DW_TAG_pointer_type:
+	{
+	  Dwarf_Die pointee_typedie_mem;
+	  Dwarf_Die *pointee_typedie;
+	  Dwarf_Word pointee_encoding;
+	  int pointee_typetag;
+
+	  if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
+	    throw semantic_error ("cannot get type of pointer: " + string(dwarf_errmsg (-1)));
+	  
+	  while (1)
+	    {	      
+	      pointee_typedie = dwarf_formref_die (&attr_mem, &pointee_typedie_mem);
+
+	      if (pointee_typedie == NULL)
+		throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
+	      
+	      pointee_typetag = dwarf_tag (pointee_typedie);
+
+	      if (pointee_typetag != DW_TAG_typedef && 
+		  pointee_typetag != DW_TAG_const_type &&
+		  pointee_typetag != DW_TAG_volatile_type)
+		break;
+	      if (dwarf_attr_integrate (pointee_typedie, DW_AT_type, &attr_mem) == NULL)
+		throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
+	    }
+	  
+	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, &attr_mem), 
+			   &pointee_encoding);
+
+	  if (pointee_typetag == DW_TAG_base_type
+	      && (pointee_encoding == DW_ATE_signed_char
+		  || pointee_encoding == DW_ATE_unsigned_char))
+	    {
+	      // We have an (un)signed char* or (un)signed char[], fetch it into 'tmpc' and
+	      // then copy to the return value via something strcpy-ish.
+	      ty = pe_string;
+	      prelude += "intptr_t tmpc = 0;\n";
+	      if (typetag == DW_TAG_array_type)
+		c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
+	      else
+		c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
+	      c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, "tmpc");
+	      postlude += "deref_string (THIS->__retvalue, tmpc, MAXSTRINGLEN);\n";
+	    }
+	  else
+	    {
+	      // We have some other pointer: cast it to an integral type via &(*(...))
+	      ty = pe_long;
+	      if (typetag == DW_TAG_array_type)
+		c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
+	      else
+		c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
+	      c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, 
+				     "THIS->__retvalue");
+	    }
+	}
+	break;	
+      }
 
     size_t bufsz = 1024;
     char *buf = static_cast<char*>(malloc(bufsz));
@@ -888,7 +971,10 @@ dwflpp
     FILE *memstream = open_memstream (&buf, &bufsz);
     assert(memstream);
 
+    fprintf(memstream, "{\n");
+    fprintf(memstream, prelude.c_str());
     bool deref = c_emit_location (memstream, head, 1);
+    fprintf(memstream, postlude.c_str());
     fprintf(memstream, "  goto out;\n");
 
     // dummy use of deref_fault label, to disable warning if deref() not used
@@ -900,6 +986,7 @@ dwflpp
             "deref_fault:\n"
             "  c->last_error = \"pointer dereference fault\";\n"
             "  goto out;\n");
+    fprintf(memstream, "}\n");
 
     fclose (memstream);
     string result(buf);
@@ -1630,10 +1717,10 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   ec->tok = e->tok;
   ec->code = q.dw.literal_stmt_for_local(addr,
 					 e->base_name.substr(1),
-					 e->components);
+					 e->components,
+					 fdecl->type);
   fdecl->name = fname;
   fdecl->body = ec;
-  fdecl->type = pe_long;
   q.sess.functions.push_back(fdecl);
 
   // synthesize a call

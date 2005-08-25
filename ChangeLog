@@ -1,3 +1,8 @@
+2005-08-24  Graydon Hoare  <graydon@redhat.com>
+
+	* tapsets.cxx (dwflpp::literal_stmt_for_local): Fetch pointer types,
+	array types, strings, from target.
+
 2005-08-24  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-test.c (handle_variable): Iterate on const_type/volatile_type.
