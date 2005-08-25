@@ -207,8 +207,9 @@ loc2c_test_LDADD = @stap_LIBS@
 
 # Get extra libs as needed
 LDADD = 
-EXTRA_DIST = testsuite runtest.sh $(notdir $(wildcard $(srcdir)/*.h)) \
-	     systemtap.spec runtime tapset
+EXTRA_DIST = buildrun.h elaborate.h loc2c.h \
+	     parse.h staptree.h tapsets.h translate.h \
+	     testsuite runtest.sh systemtap.spec runtime tapset
 
 p = $(srcdir)/testsuite/parse
 s = $(srcdir)/testsuite/sem
@@ -664,7 +665,7 @@ check-TESTS: $(TESTS)
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/$(srcdir) $(distdir)/.
+	$(mkdir_p) $(distdir)/.
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
