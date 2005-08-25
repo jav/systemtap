@@ -1,3 +1,9 @@
+2005-08-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Require elfutils 0.114.
+	* tapsets.cxx: Brought back graydon's changes.
+	* configure: Regenerated.
+
 2005-08-24  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in: Update elfutils requirement.

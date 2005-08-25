@@ -22,16 +22,16 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl Need libdwfl-capable elfutils 0.111 or later from Fedora
+dnl Need libdwfl-capable recent elfutils from Fedora
 save_LIBS="$LIBS"
-AC_CHECK_LIB(dw, dwfl_begin)
+AC_CHECK_LIB(dw, dwarf_func_inline)
 stap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 AC_SUBST(stap_LIBS)
 
-if test $ac_cv_lib_dw_dwfl_begin != yes
+if test $ac_cv_lib_dw_dwarf_func_inline != yes
 then
-  AC_MSG_ERROR([systemtap requires elfutils 0.111+])
+  AC_MSG_ERROR([systemtap requires elfutils 0.114+])
 fi
 
 dnl Plop in the build (configure) date
