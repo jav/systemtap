@@ -1,3 +1,14 @@
+2005-08-26  Graydon Hoare  <graydon@redhat.com>
+
+	* parse.cxx (scan): Preserve basic C-ish escapes.
+	* translate.cxx (c_tmpcounter::declaring): New flag.
+	(c_tmpcounter::declare_or_init): New helper method.
+	(c_tmpcounter::visit_*): Use declare_or_init.
+	(c_unparser::emit_function): Run a tmpcounter to initialize tmps.
+	(c_unparser::emit_probe): Likewise.
+	(c_unparser::c_strcpy): Use strlcpy.
+	(c_unparser::c_strcat): Use strlcat.
+
 2005-08-25  Roland McGrath  <roland@redhat.com>
 
 	* Makefile.am (EXTRA_DIST): List .h files explicitly.

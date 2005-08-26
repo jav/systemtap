@@ -136,11 +136,15 @@ struct c_tmpcounter:
   public traversing_visitor
 {
   c_unparser* parent;
-  c_tmpcounter (c_unparser* p): 
-    parent (p) 
+  bool declaring;
+
+  c_tmpcounter (c_unparser* p, bool decl): 
+    parent (p), declaring (decl) 
   {
     parent->tmpvar_counter = 0;
   }
+
+  void declare_or_init (tmpvar const & tv);
 
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -197,6 +201,7 @@ struct c_tmpcounter_assignment:
   c_tmpcounter* parent;
   const string& op;
   expression* rvalue;
+  
   c_tmpcounter_assignment (c_tmpcounter* p, const string& o, expression* e):
     parent (p), op (o), rvalue (e) {}
 
@@ -567,7 +572,7 @@ c_unparser::emit_common_header ()
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
-      c_tmpcounter ct (this);
+      c_tmpcounter ct (this, true);
       dp->body->visit (& ct);
       o->newline(-1) << "} probe_" << i << ";";
     }
@@ -590,7 +595,7 @@ c_unparser::emit_common_header ()
           o->newline() << c_typename (v->type) << " " 
 		       << c_varname (v->name) << ";";
         }
-      c_tmpcounter ct (this);
+      c_tmpcounter ct (this, true);
       fd->body->visit (& ct);
       if (fd->type == pe_unknown)
 	o->newline() << "/* no return value */";
@@ -784,6 +789,15 @@ c_unparser::emit_function (functiondecl* v)
       o->newline() << retvalue.init();
     }
 
+  // initialize temporaries; strings need to be re-nulled on each call
+  // for strcat to work.
+  {
+    c_tmpcounter ct (this, false);
+    v->body->visit (& ct);
+  }
+
+  this->tmpvar_counter = 0;
+
   v->body->visit (this);
 
   this->current_function = 0;
@@ -824,10 +838,19 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
 	throw semantic_error ("unsupported local variable type",
 			      v->locals[j]->tok);
     }
-  
+
   this->current_function = 0;
   this->current_probe = v;
   this->current_probenum = i;
+  this->tmpvar_counter = 0;
+
+  // initialize temporaries; strings need to be re-nulled on each call
+  // for strcat to work.
+  {
+    c_tmpcounter ct (this, false);
+    v->body->visit (& ct);
+  }
+  
   this->tmpvar_counter = 0;
   v->body->visit (this);
   this->current_probe = 0;
@@ -1159,7 +1182,7 @@ c_unparser::c_declare_static(exp_type ty, const string &name)
 void 
 c_unparser::c_strcpy (const string& lvalue, const string& rvalue) 
 {
-  o->newline() << "strncpy (" 
+  o->newline() << "strlcpy (" 
 		   << lvalue << ", " 
 		   << rvalue << ", MAXSTRINGLEN);";
 }
@@ -1168,7 +1191,7 @@ c_unparser::c_strcpy (const string& lvalue, const string& rvalue)
 void 
 c_unparser::c_strcpy (const string& lvalue, expression* rvalue) 
 {
-  o->newline() << "strncpy (" << lvalue << ", ";
+  o->newline() << "strlcpy (" << lvalue << ", ";
   rvalue->visit (this);
   o->line() << ", MAXSTRINGLEN);";
 }
@@ -1177,16 +1200,16 @@ c_unparser::c_strcpy (const string& lvalue, expression* rvalue)
 void 
 c_unparser::c_strcat (const string& lvalue, const string& rvalue) 
 {
-  o->newline() << "strncat (" 
-		   << lvalue << ", " 
-		   << rvalue << ", MAXSTRINGLEN);";
+  o->newline() << "strlcat (" 
+	       << lvalue << ", " 
+	       << rvalue << ", MAXSTRINGLEN);";
 }
 
 
 void 
 c_unparser::c_strcat (const string& lvalue, expression* rvalue) 
 {
-  o->newline() << "strncat (" << lvalue << ", ";
+  o->newline() << "strlcat (" << lvalue << ", ";
   rvalue->visit (this);
   o->line() << ", MAXSTRINGLEN);";
 }
@@ -1364,6 +1387,15 @@ c_unparser::visit_if_statement (if_statement *s)
     }
 }
 
+void
+c_tmpcounter::declare_or_init (tmpvar const & tv)
+{
+  if (declaring)
+    tv.declare (*parent);
+  else
+    parent->o->newline() << tv.init();
+}
+
 
 void
 c_tmpcounter::visit_for_loop (for_loop *s)
@@ -1419,7 +1451,8 @@ void
 c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 {
   itervar iv = parent->getiter (s);
-  parent->o->newline() << iv.declare();
+  if (declaring)
+    parent->o->newline() << iv.declare();
   s->block->visit (this);
 }
 
@@ -1599,8 +1632,8 @@ c_tmpcounter::visit_binary_expression (binary_expression* e)
     {
       tmpvar left = parent->gensym (pe_long);
       tmpvar right = parent->gensym (pe_long);
-      left.declare (*parent);
-      right.declare (*parent);
+      declare_or_init (left);
+      declare_or_init (right);
     }
 
   e->left->visit (this);
@@ -1712,13 +1745,13 @@ c_tmpcounter::visit_array_in (array_in* e)
   for (unsigned i=0; i<r->index_types.size(); i++)
     {
       tmpvar ix = parent->gensym (r->index_types[i]);
-      ix.declare (*parent);
+      declare_or_init (ix);
       e->operand->indexes[i]->visit(this);
     }
  
  // A boolean result.
   tmpvar res = parent->gensym (e->type);
-  res.declare (*parent);
+  declare_or_init (res);
 }
 
 
@@ -1784,7 +1817,7 @@ void
 c_tmpcounter::visit_concatenation (concatenation* e)
 {
   tmpvar t = parent->gensym (e->type);
-  t.declare (*parent);
+  declare_or_init (t);
   e->left->visit (this);
   e->right->visit (this);
 }
@@ -1942,8 +1975,8 @@ c_tmpcounter_assignment::visit_symbol (symbol *e)
   tmpvar tmp = parent->parent->gensym (e->type);
   tmpvar res = parent->parent->gensym (e->type);
 
-  tmp.declare (*(parent->parent));
-  res.declare (*(parent->parent));
+  parent->declare_or_init (tmp);
+  parent->declare_or_init (res);
 
   if (rvalue)
     rvalue->visit (parent);
@@ -2006,13 +2039,13 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
   for (unsigned i=0; i<r->index_types.size(); i++)
     {
       tmpvar ix = parent->gensym (r->index_types[i]);
-      ix.declare (*parent);
+      declare_or_init (ix);
       e->indexes[i]->visit(this);
     }
  
  // The index-expression result.
   tmpvar res = parent->gensym (e->type);
-  res.declare (*parent);
+  declare_or_init (res);
 }
 
 
@@ -2086,19 +2119,19 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
   for (unsigned i=0; i<r->index_types.size(); i++)
     {
       tmpvar ix = parent->parent->gensym (r->index_types[i]);
-      ix.declare (*(parent->parent));
+      parent->declare_or_init (ix);
       e->indexes[i]->visit(parent);
     }
  
  // The expression rval, lval, and result.
   tmpvar rval = parent->parent->gensym (e->type);
-  rval.declare (*(parent->parent));
+  parent->declare_or_init (rval);
 
   tmpvar lval = parent->parent->gensym (e->type);
-  lval.declare (*(parent->parent));
+  parent->declare_or_init (lval);
 
   tmpvar res = parent->parent->gensym (e->type);
-  res.declare (*(parent->parent));
+  parent->declare_or_init (res);
 
   if (rvalue)
     rvalue->visit (parent);
@@ -2164,7 +2197,7 @@ c_tmpcounter::visit_functioncall (functioncall *e)
   for (unsigned i=0; i<r->formal_args.size(); i++)
     {
       tmpvar t = parent->gensym (r->formal_args[i]->type);
-      t.declare (*parent);
+      declare_or_init (t);
     }
 
   for (unsigned i=0; i<e->args.size(); i++)

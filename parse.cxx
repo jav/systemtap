@@ -332,8 +332,32 @@ lexer::scan ()
 	  if (c == '\"') // closing double-quotes
 	    break;
 	  else if (c == '\\')
-	    {
-	      // XXX: handle escape sequences
+	    {	      
+	      c = input_get ();
+	      switch (c)
+		{
+		case 'a':
+		case 'b':
+		case 't':
+		case 'n':
+		case 'v':
+		case 'f':
+		case 'r':
+		case '\\':
+
+		  // Pass these escapes through to the string value
+		  // beign parsed; it will "likely" be emitted into 
+		  // a C literal. 
+		  //
+		  // XXX: verify this assumption.
+
+		  n->content.push_back('\\');
+
+		default:
+
+		  n->content.push_back(c);
+		  break;
+		}
 	    }
 	  else
 	    n->content.push_back(c);
