@@ -1,5 +1,9 @@
 2005-08-26  Graydon Hoare  <graydon@redhat.com>
 
+	* translate.cxx: Revert tmp initialization changes.
+
+2005-08-26  Graydon Hoare  <graydon@redhat.com>
+
 	* parse.cxx (scan): Preserve basic C-ish escapes.
 	* translate.cxx (c_tmpcounter::declaring): New flag.
 	(c_tmpcounter::declare_or_init): New helper method.
