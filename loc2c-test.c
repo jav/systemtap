@@ -291,6 +291,49 @@ paddr (const char *prefix, Dwarf_Addr addr, Dwfl_Line *line)
 }
 
 static void
+print_type (Dwarf_Die *typedie, char space)
+{
+  if (typedie == NULL)
+    printf ("%c<no type>", space);
+  else
+    {
+      const char *name = dwarf_diename (typedie);
+      if (name != NULL)
+	printf ("%c%s", space, name);
+      else
+	{
+	  Dwarf_Attribute attr_mem;
+	  Dwarf_Die die_mem;
+	  Dwarf_Die *die = dwarf_formref_die
+	    (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem), &die_mem);
+	  int tag = dwarf_tag (typedie);
+	  switch (tag)
+	  {
+	  case DW_TAG_pointer_type:
+	    print_type (die, space);
+	    putchar ('*');
+	    break;
+	  case DW_TAG_array_type:
+	    print_type (die, space);
+	    printf ("[]");
+	    break;
+	  case DW_TAG_const_type:
+	    print_type (die, space);
+	    printf (" const");
+	    break;
+	  case DW_TAG_volatile_type:
+	    print_type (die, space);
+	    printf (" volatile");
+	    break;
+	  default:
+	    printf ("%c<unknown %#x>", space, tag);
+	    break;
+	  }
+	}
+    }
+}
+
+static void
 print_vars (unsigned int indent, Dwarf_Die *die)
 {
   Dwarf_Die child;
@@ -300,9 +343,16 @@ print_vars (unsigned int indent, Dwarf_Die *die)
 	{
 	case DW_TAG_variable:
 	case DW_TAG_formal_parameter:
-	  printf ("%*s%-30s[%6" PRIx64 "]\n", indent, "",
+	  printf ("%*s%-30s[%6" PRIx64 "]", indent, "",
 		  dwarf_diename (&child),
 		  (uint64_t) dwarf_dieoffset (&child));
+	  Dwarf_Attribute attr_mem;
+	  Dwarf_Die typedie_mem;
+	  Dwarf_Die *typedie = dwarf_formref_die
+	    (dwarf_attr_integrate (&child, DW_AT_type, &attr_mem),
+	     &typedie_mem);
+	  print_type (typedie, '\t');
+	  puts ("");
 	  break;
 	default:
 	  break;
