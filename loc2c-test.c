@@ -270,6 +270,48 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
   puts ("}");
 }
 
+static void
+paddr (const char *prefix, Dwarf_Addr addr, Dwfl_Line *line)
+{
+  const char *src;
+  int lineno, linecol;
+  if (line != NULL
+      && (src = dwfl_lineinfo (line, &addr, &lineno, &linecol,
+			       NULL, NULL)) != NULL)
+    {
+      if (linecol != 0)
+	printf ("%s%#" PRIx64 " (%s:%d:%d)",
+		prefix, addr, src, lineno, linecol);
+      else
+	printf ("%s%#" PRIx64 " (%s:%d)",
+		prefix, addr, src, lineno);
+    }
+  else
+    printf ("%s%#" PRIx64, prefix, addr);
+}
+
+static void
+print_vars (unsigned int indent, Dwarf_Die *die)
+{
+  Dwarf_Die child;
+  if (dwarf_child (die, &child) == 0)
+    do
+      switch (dwarf_tag (&child))
+	{
+	case DW_TAG_variable:
+	case DW_TAG_formal_parameter:
+	  printf ("%*s%-30s[%6" PRIx64 "]\n", indent, "",
+		  dwarf_diename (&child),
+		  (uint64_t) dwarf_dieoffset (&child));
+	  break;
+	default:
+	  break;
+	}
+    while (dwarf_siblingof (&child, &child) == 0);
+}
+
+#define INDENT 4
+
 int
 main (int argc, char **argv)
 {
@@ -305,36 +347,65 @@ main (int argc, char **argv)
     error (EXIT_FAILURE, 0, "%#" PRIx64 ": not in any scope\n", pc);
 
   if (++argi == argc)
-    error (2, 0, "need variable arguments");
-
-  char *spec = argv[argi++];
-
-  int lineno = 0, colno = 0, shadow = 0;
-  char *at = strchr (spec, '@');
-  if (at != NULL)
     {
-      *at++ = '\0';
-      if (sscanf (at, "%*[^:]:%i:%i", &lineno, &colno) < 1)
-	lineno = 0;
+      unsigned int indent = 0;
+      while (n-- > 0)
+	{
+	  Dwarf_Die *const die = &scopes[n];
+
+	  indent += INDENT;
+	  printf ("%*s%s (%#x)", indent, "",
+		  dwarf_diename (die) ?: "<unnamed>",
+		  dwarf_tag (die));
+
+	  Dwarf_Addr lowpc, highpc;
+	  if (dwarf_lowpc (die, &lowpc) == 0
+	      && dwarf_highpc (die, &highpc) == 0)
+	    {
+	      lowpc += cubias;
+	      highpc += cubias;
+	      Dwfl_Line *loline = dwfl_getsrc (dwfl, lowpc);
+	      Dwfl_Line *hiline = dwfl_getsrc (dwfl, highpc);
+	      paddr (": ", lowpc, loline);
+	      if (highpc != lowpc)
+		paddr (" .. ", lowpc, hiline == loline ? NULL : hiline);
+	    }
+	  puts ("");
+
+	  print_vars (indent + INDENT, die);
+	}
     }
   else
     {
-      int len;
-      if (sscanf (spec, "%*[^+]%n+%i", &len, &shadow) == 2)
-	spec[len] = '\0';
-    }
+      char *spec = argv[argi++];
 
-  Dwarf_Die vardie;
-  int out = dwarf_getscopevar (scopes, n, spec, shadow, at, lineno, colno,
-			       &vardie);
-  if (out == -2)
-    error (0, 0, "no match for %s (+%d, %s:%d:%d)",
-	   spec, shadow, at, lineno, colno);
-  else if (out < 0)
-    error (0, 0, "dwarf_getscopevar: %s (+%d, %s:%d:%d): %s",
-	   spec, shadow, at, lineno, colno, dwarf_errmsg (-1));
-  else
-    handle_variable (scopes, n, out, cubias, &vardie, pc, &argv[argi]);
+      int lineno = 0, colno = 0, shadow = 0;
+      char *at = strchr (spec, '@');
+      if (at != NULL)
+	{
+	  *at++ = '\0';
+	  if (sscanf (at, "%*[^:]:%i:%i", &lineno, &colno) < 1)
+	    lineno = 0;
+	}
+      else
+	{
+	  int len;
+	  if (sscanf (spec, "%*[^+]%n+%i", &len, &shadow) == 2)
+	    spec[len] = '\0';
+	}
+
+      Dwarf_Die vardie;
+      int out = dwarf_getscopevar (scopes, n, spec, shadow, at, lineno, colno,
+				   &vardie);
+      if (out == -2)
+	error (0, 0, "no match for %s (+%d, %s:%d:%d)",
+	       spec, shadow, at, lineno, colno);
+      else if (out < 0)
+	error (0, 0, "dwarf_getscopevar: %s (+%d, %s:%d:%d): %s",
+	       spec, shadow, at, lineno, colno, dwarf_errmsg (-1));
+      else
+	handle_variable (scopes, n, out, cubias, &vardie, pc, &argv[argi]);
+    }
 
   dwfl_end (dwfl);
 
