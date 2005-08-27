@@ -1,5 +1,8 @@
 2005-08-27  Roland McGrath  <roland@redhat.com>
 
+	* loc2c-test.c (print_type): New function.
+	(print_vars): Use it.
+
 	* loc2c-test.c (paddr, print_vars): New functions.
 	(main): If given no variable name argument, print out variables.
 
