@@ -1,3 +1,8 @@
+2005-08-27  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-test.c (paddr, print_vars): New functions.
+	(main): If given no variable name argument, print out variables.
+
 2005-08-26  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx: Revert tmp initialization changes.
