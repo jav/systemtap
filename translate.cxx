@@ -657,6 +657,8 @@ c_unparser::emit_module_init ()
   for (unsigned i=0; i<session->probes.size(); i++)
     {
       o->newline() << "/* register " << i << " */";
+      for (unsigned k=0; k<session->probes[i]->locations.size(); k++)
+	o->newline() << "/* " << *session->probes[i]->locations[k] << " */";
       session->probes[i]->emit_registrations (o, i);
 
       o->newline() << "if (unlikely (rc)) {";

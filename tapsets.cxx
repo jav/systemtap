@@ -892,11 +892,11 @@ dwflpp
     string prelude, postlude;
     switch (typetag)
       {
-
       default:
-	throw semantic_error ("target location not a base or pointer type");
+	throw semantic_error ("unsupported type tag "
+			      + lex_cast<string>(typetag));
 	break;
-	
+
       case DW_TAG_base_type:
 	ty = pe_long;
 	c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,
@@ -1715,10 +1715,19 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   functiondecl *fdecl = new functiondecl;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
-  ec->code = q.dw.literal_stmt_for_local(addr,
-					 e->base_name.substr(1),
-					 e->components,
-					 fdecl->type);
+  try
+    {
+      ec->code = q.dw.literal_stmt_for_local(addr,
+					     e->base_name.substr(1),
+					     e->components,
+					     fdecl->type);
+    }
+  catch (const semantic_error& er)
+    {
+      semantic_error er2 (er);
+      er2.tok1 = e->tok;
+      throw er2;
+    }
   fdecl->name = fname;
   fdecl->body = ec;
   q.sess.functions.push_back(fdecl);
