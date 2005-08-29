@@ -35,6 +35,7 @@ int print_only = 0;
 int quiet = 0;
 int merge = 1;
 int verbose = 0;
+int enable_relayfs = 1;
 unsigned int buffer_size = 0;
 char *modname = NULL;
 char *modpath = NULL;
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
 	int c, status;
 	pid_t pid;
 
-	while ((c = getopt(argc, argv, "mpqb:n:v")) != EOF) 
+	while ((c = getopt(argc, argv, "mpqrb:n:v")) != EOF) 
 	{
 		switch (c) {
 		case 'm':
@@ -81,6 +82,9 @@ int main(int argc, char **argv)
 			break;
 		case 'v':
 			verbose = 1;
+			break;
+		case 'r':
+			enable_relayfs = 0;
 			break;
 		case 'b':
 		{
@@ -125,22 +129,25 @@ int main(int argc, char **argv)
 		usage(argv[0]);
 	}
 
-	/* now run the _stp_check script */
-	if ((pid = vfork()) < 0) {
-		perror ("vfork");
-		exit(-1);
-	} else if (pid == 0) {
-		if (execlp(stp_check, stp_check, NULL) < 0)
-			exit (-1);
-	}
-	if (waitpid(pid, &status, 0) < 0) {
-		perror("waitpid");
-		exit(-1);
-	}
-	if (WIFEXITED(status) && WEXITSTATUS(status)) {
-		perror (stp_check);
-		fprintf(stderr, "Could not execute %s\n", stp_check);
-		exit(1);
+
+	if (enable_relayfs) {
+		/* now run the _stp_check script */
+		if ((pid = vfork()) < 0) {
+			perror ("vfork");
+			exit(-1);
+		} else if (pid == 0) {
+			if (execlp(stp_check, stp_check, NULL) < 0)
+				exit (-1);
+		}
+		if (waitpid(pid, &status, 0) < 0) {
+			perror("waitpid");
+			exit(-1);
+		}
+		if (WIFEXITED(status) && WEXITSTATUS(status)) {
+			perror (stp_check);
+			fprintf(stderr, "Could not execute %s\n", stp_check);
+			exit(1);
+		}
 	}
 	
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
