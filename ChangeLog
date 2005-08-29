@@ -1,6 +1,6 @@
 2005-08-28  Frank Ch. Eigler  <fche@redhat.com>
 
-	* translate.cxx (visit_target): Make target variable exceptions
+	* tapsets.cxx (visit_target): Make target variable exceptions
 	more informative.
 	(literal_stmt_for_local): Improve bad-type exception message.
 	* translate.cxx (emit_module_init): Include probe point in comments.
