@@ -1,0 +1,118 @@
+.\" -*- nroff -*-
+.TH STAPEX 5 @DATE@ "Red Hat"
+.SH NAME
+stapex \- systemtap examples
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH LANGUAGE BASICS
+These examples give a feel for basic systemtap syntax and
+control structures.
+
+.SAMPLE
+global odds, evens
+
+probe begin {
+  # "no" and "ne" are local integers
+  for (i=0; i<10; i++) {
+    if (i % 2) odds [no++] = i
+    else evens [ne++] = i 
+  }
+  delete odds[2]
+  delete evens[3]
+  exit ()
+}
+
+probe end {
+  foreach (x in odds) {
+    log("odds[" . string(x) . "] = " . string(odds[x]))
+  }
+  foreach (x in evens) {
+    log("evens[" . string(x) . "] = " . string(evens[x]))
+  }
+}
+.ESAMPLE
+This prints:
+.SAMPLE
+odds[1] = 1
+odds[3] = 5
+odds[4] = 7
+odds[5] = 9
+evens[2] = 2
+evens[4] = 6
+evens[5] = 8
+.ESAMPLE
+Note that the evens[1] key is missing, since its value was zero.  Any
+array element with an "empty" value (zero or empty string) is
+considered not present in the array, as if it was deleted.  Note that
+all variables types are inferred, and that all locals and globals are
+initialized.
+
+.PP
+This script prints the primes between 0 and 49.
+.SAMPLE
+function isprime (x) {
+  if (x < 2) return 0
+  for (i=2; i<x; i++) {
+    if (x % i == 0) return 0
+    if (i * i > x) break
+  }
+  return 1
+}
+probe begin {
+  for (i=0; i<50; i++)
+    if (isprime (i)) log (string(i))
+  exit()
+}
+.ESAMPLE
+
+.PP
+This script demonstrates recursive functions.
+.SAMPLE
+function fibonacci(i) {
+  if (i < 1) error ("bad number")
+  if (i == 1) return 1
+  if (i == 2) return 2
+  return fibonacci (i-1) + fibonacci (i-2)
+}
+probe begin {
+  log ("11th fibonacci number: " . string (fibonacci (11)))
+  exit ()
+}
+.ESAMPLE
+Any larger number may exceed the MAXACTION or MAXNESTING
+limits, and result in an error.
+
+
+.SH PROBING
+
+To trace entry and exit from a function, use a pair of probes:
+.SAMPLE
+probe kernel.function("sys_mkdir") { log ("enter") }
+probe kernel.function("sys_mkdir").return { log ("exit") }
+.ESAMPLE
+
+To list the probeable functions in the kernel, use the last-pass
+option to the translator.  That output needs to be filtered because
+each inlined function instance is listed separately.
+.SAMPLE
+% stap -p2 -e 'probe kernel.function("*") {}' | sort | uniq
+.ESAMPLE
+
+
+.SH SEE ALSO
+.IR stap (1)
+.IR stapprobes (5)
+.IR stapfuncs (5)
+

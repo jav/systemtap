@@ -1,3 +1,17 @@
+2005-08-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	* stapprobes.5.in, stapfuncs.5.in, stapex.5.in: New man pages.
+	* stap.1.in: Moved some content out.
+	* Makefile.am (man_MANS): Add new man pages.
+	* configure.ac (AC_CONFIG_FILES): Add them.
+	* systemtap.spec.in: Package them.
+	* Makefile.in, configure: Regenerated.
+	* buildrun.cxx (run_pass): Pass "-r" to stpd.
+	* translate.cxx (emit_common_header): Wrap try/catch around
+	variable decls, to improve exception particularity.
+	(visit_literal_number): Emit as unsigned literal, which is
+	actually a subtle correctness issue.
+
 2005-08-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (visit_target): Make target variable exceptions

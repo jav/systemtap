@@ -1,0 +1,92 @@
+.\" -*- nroff -*-
+.TH STAPFUNCS 5 @DATE@ "Red Hat"
+.SH NAME
+stapfuncs \- systemtap functions
+
+.SH DESCRIPTION
+The following sections enumerate the public functions provided by
+standard tapsets installed under /usr/share/systemtap/tapset.  Each
+function is described with a signature, and its behavior/restrictions.
+The signature line includes the name of the function, the type of
+its return value (if any), and the names and types of all parameters.
+The syntax is the same as printed with the 
+.IR stap " option " -p2 .
+Examples:
+
+.TP
+example1:long (v:string, k:long)
+Function "example1" does something with the given string and integer.
+It returns some integer.
+
+.TP
+example2:unknown ()
+Function "example2" does something.  There is no explicit return value
+and it takes no parameters.
+
+.SS LOGGING
+
+.TP
+printk:unknown (msg:string)
+Log the given string to the kernel's printk buffer, at KERN_INFO severity.
+Append an implicit end-of-line.
+
+.TP
+log:unknown (msg:string)
+Log the given string to the common trace buffer.  Append an implicit
+end-of-line.
+
+.TP
+warn:unknown (msg:string)
+Log the given string to the warning stream.  Append an implicit end-of-line.
+.I stpd
+prepends the string "WARNING:". 
+
+.TP
+error:unknown (msg:string)
+A fatal error has occurred.  Log the given string to the error stream.
+Append an implicit end-of-line.
+.I stpd
+prepends the string "ERROR:".
+Block any further execution of statements in this probe, block
+any new probe handlers, and end the systemtap session as soon
+as possible.
+
+.TP
+exit:unknown ()
+Enqueue a request to shut down the systemtap session.  This does
+.B not
+unwind the current probe handler, nor block new probe handlers.
+.I stpd
+will shortly respond to the request and initiate an orderly shutdown.
+
+.SS CONVERSIONS
+
+.TP
+hexstring:string (num:long)
+Return a hexadecimal string representation of the given integer, including
+the leading "0x".
+
+.TP
+string:string (num:long)
+Return a decimal string representation of the given integer.
+
+.SS TIMESTAMP
+
+.TP
+gettimeofday_ms:long ()
+Return the number of milliseconds since the UNIX epoch.
+
+.TP
+gettimeofday_s:long ()
+Return the number of seconds since the UNIX epoch.
+
+.\" .SS CONTEXTINFO
+
+
+.SH FILES
+.nh
+.IR /usr/share/systemtap/tapset
+.hy
+
+.SH SEE ALSO
+.IR stap (1)

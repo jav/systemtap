@@ -40,5 +40,5 @@ AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE, "$date")
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1)
+AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5)
 AC_OUTPUT

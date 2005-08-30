@@ -1,0 +1,181 @@
+.\" -*- nroff -*-
+.TH STAPPROBES 5 @DATE@ "Red Hat"
+.SH NAME
+stapprobes \- systemtap probe points
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+The following sections enumerate the variety of probe points supported
+by the systemtap translator, and additional aliases defined by
+standard tapset scripts.
+.PP
+The general probe point syntax is a "dotted-functor" sequence.  This
+allows a breakdown of the event namespace into parts, somewhat like
+the Domain Name System does on the Internet.  Each component
+identifier may be parametrized by a string or number literal.  These
+are all syntactically valid probe points:
+.SAMPLE
+kernel.function("foo").return
+syscall(22)
+user.inode("/bin/vi").statement(0x2222)
+end
+.ESAMPLE
+
+.SS BEGIN/END
+
+The probe points
+.IR begin " and " end
+are defined by the translator to refer to the time of session startup
+and shutdown.  All "begin" probe handlers are run, in some sequence,
+during the startup of the session.  All global variables will have
+been initialized prior to this point.  All "end" probes are run, in
+some sequence, during the
+.I normal
+shutdown of a session, such as in the aftermath of an
+.I exit ()
+function call, or an interruption from the user.  In the case of an
+error-triggered shutdown, "end" probes are not run.  There are no
+target variables available in either context.
+
+.SS TIMERS
+
+Intervals defined by the standard kernel "jiffies" timer may be used
+to trigger probe handlers asynchronously.  Two probe point variants
+are supported by the translator:
+.SAMPLE
+timer.jiffies(N)
+timer.jiffies(N).randomize(M)
+.ESAMPLE
+The probe handler is run every N jiffies (a kernel-defined unit of
+time, typically between 1 and 60 ms).  If the "randomize" component is
+given, a linearly distributed random value in the range [-M..+M] is
+added to N every time the handler is run.  N is restricted to a
+reasonable range (1 to around a million), and M is restricted to be
+smaller than N.  There are no target variables provided in either
+context.  It is possible for such probes to be run concurrently on
+a multi-processor computer.
+
+.SS DWARF
+
+This family of probe points uses symbolic debugging information for
+the target kernel/module/program, as may be found in unstripped
+executables, or the separate
+.I debuginfo
+packages.  They allow placement of probes logically into the execution
+path of the target program, by specifying a set of points in the
+source or object code.  When a matching statement executes on any
+processor, the probe handler is run in that context.
+.PP
+Points in a kernel, which are identified by
+module, source file, line number, function name, C label name, or some
+combination of these.  This kind of "synchronous" event is deemed to
+occur when any processor executes an instruction matched by the
+specification.  Other families of probe points refer to "asynchronous"
+events such as timers/counters rolling over, where there is no fixed
+execution point that is related.  Each probe point specification may
+match multiple physical locations, all of which are then probed.  A
+probe declaration may also contain several comma-separated
+specifications, all of which are probed.
+.PP
+Here is a list of probe point families currently supported.  The
+.B .function
+variant places a probe near the beginning of the named function, so that
+parameters are available as context variables.  The
+.B .return
+variant places a probe at the moment of return from the named function, so
+the return value is available as the "$retvalue" context variable.
+The
+.B .statement
+variant places a probe at the exact spot, exposing those local variables
+that are visible there.
+.SAMPLE
+kernel.function(PATTERN)
+.br
+kernel.function(PATTERN).return
+.br
+module(MPATTERN).function(PATTERN)
+.br
+module(MPATTERN).function(PATTERN).return
+.br
+kernel.statement(PATTERN)
+.br
+module(MPATTERN).statement(PATTERN)
+.ESAMPLE
+In the above list, MPATTERN stands for a string literal that aims to
+identify the loaded kernel module of interest.  It may include "*" and
+"?" wildcards.  PATTERN stands for a string literal that aims to
+identify a point in the program.  It is made up of three parts.  The
+first part is the name of a function, as would appear in the
+.I nm
+program's output.  This part may use the "*" and "?" wildcarding
+operators to match multiple names.  The second part is optional, and
+begins with the "@" character.  It is followed by a source file name
+wildcard pattern, such as
+.IR mm/slab* .
+Finally, the third part is optional if the file name part was given,
+and identifies the line number in the source file, preceded by a ":".
+As an alternative, PATTERN may be a numeric constant, indicating an
+(module-relative or kernel-absolute) address.
+.PP
+Some of the source-level variables, such as function parameters,
+locals, globals visible in the compilation unit, may be visible to
+probe handlers.  They may refer to these variables by prefixing their
+name with "$" within the scripts.  In addition, a special syntax
+allows limited traversal of structures, pointers, and arrays.
+.TP
+$var
+refers to an in-scope variable "var".  If it's an integer-like type,
+it will be cast to a 64-bit int for systemtap script use.  If it's
+a string-like type (char *), it will be copied into a systemtap
+string.
+.TP
+$var->field
+traversal to a structure's field.  The indirection operator
+may be repeated to follow more levels of pointers.
+.TP
+$var[N]
+indexes into an array.  The index is given with a
+literal number.
+
+.SH EXAMPLES
+.PP
+Here are some example probe points, defining the associated events.
+.TP
+begin, end, end
+refers to the startup and normal shutdown of the session.  In this
+case, the handler would run once during startup and twice during
+shutdown.
+.TP
+timer.jiffies(1000).randomize(200)
+refers to a periodic interrupt, every 1000 +/- 200 jiffies.
+.TP
+kernel.function("*init*"), kernel.function("*exit*")
+refers to all kernel functions with "init" or "exit" in the name.
+.TP
+kernel.function("*@kernel/sched.c:240")
+refers to any functions within the "kernel/sched.c" file that span
+line 240.
+.TP
+module("usb*").function("*sync*").return
+refers to the moment of return from all functions with "sync" in the
+name in any of the USB drivers.
+.TP
+kernel.statement(0xc0044852)
+refers to the first byte of the statement whose compiled instructions
+include the given address in the kernel.
+
+
+.SH SEE ALSO
+.IR stap (1)

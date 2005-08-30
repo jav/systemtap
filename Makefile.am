@@ -8,7 +8,7 @@ AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall
 
-dist_man_MANS = stap.1
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5
 bin_PROGRAMS = stap
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \

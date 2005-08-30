@@ -564,8 +564,15 @@ c_unparser::emit_common_header ()
       for (unsigned j=0; j<dp->locals.size(); j++)
         {
           vardecl* v = dp->locals[j];
-          o->newline() << c_typename (v->type) << " " 
-		       << c_varname (v->name) << ";";
+	  try 
+	    {
+	      o->newline() << c_typename (v->type) << " " 
+			   << c_varname (v->name) << ";";
+	    } catch (const semantic_error& e) {
+	      semantic_error e2 (e);
+	      if (e2.tok1 == 0) e2.tok1 = v->tok;
+	      throw e2;
+	    }
         }
       c_tmpcounter ct (this);
       dp->body->visit (& ct);
@@ -580,15 +587,29 @@ c_unparser::emit_common_header ()
       o->indent(1);
       for (unsigned j=0; j<fd->locals.size(); j++)
         {
-          vardecl* v = fd->locals[j];
-          o->newline() << c_typename (v->type) << " " 
-  		       << c_varname (v->name) << ";";
+	  vardecl* v = fd->locals[j];
+	  try 
+	    {
+	      o->newline() << c_typename (v->type) << " " 
+			   << c_varname (v->name) << ";";
+	    } catch (const semantic_error& e) {
+	      semantic_error e2 (e);
+	      if (e2.tok1 == 0) e2.tok1 = v->tok;
+	      throw e2;
+	    }
         }
       for (unsigned j=0; j<fd->formal_args.size(); j++)
         {
           vardecl* v = fd->formal_args[j];
-          o->newline() << c_typename (v->type) << " " 
-		       << c_varname (v->name) << ";";
+	  try 
+	    {
+	      o->newline() << c_typename (v->type) << " " 
+			   << c_varname (v->name) << ";";
+	    } catch (const semantic_error& e) {
+	      semantic_error e2 (e);
+	      if (e2.tok1 == 0) e2.tok1 = v->tok;
+	      throw e2;
+	    }
         }
       c_tmpcounter ct (this);
       fd->body->visit (& ct);
@@ -1590,7 +1611,8 @@ c_unparser::visit_literal_number (literal_number* e)
 {
   // This looks ugly, but tries to be warning-free on 32- and 64-bit
   // hosts.
-  o->line() << "((uint64_t)" << e->value << "LL)";
+  // NB: this needs to be signed!
+  o->line() << "((int64_t)" << e->value << "LL)";
 }
 
 

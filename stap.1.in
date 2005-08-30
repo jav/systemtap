@@ -2,6 +2,20 @@
 .TH STAP 1 @DATE@ "Red Hat"
 .SH NAME
 stap \- systemtap script translator/driver
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
 .SH SYNOPSIS
 
 .br
@@ -32,7 +46,11 @@ instructions (written in a simple scripting language), translates
 those instructions into C code, compiles this C code, and loads the
 resulting kernel module into a running Linux kernel to perform the
 requested system trace/probe functions.  You can supply the script in
-a named file, from standard input, or from the command line.
+a named file, from standard input, or from the command line.  The
+program runs until it is interrupted by the user, or if the script
+voluntarily invokes the
+.I exit()
+function, or by any fatal error.
 .PP
 The language, which is described in a later section, is strictly typed,
 declaration free, procedural, and inspired by
@@ -234,126 +252,43 @@ function call
 .SS PROBES
 The main construct in the scripting language identifies probes.
 Probes associate abstract events with a statement block ("probe
-handler") that is to be executed when those events occur.  The
+handler") that is to be executed when any of those events occur.  The
 general syntax is as follows:
-.RS
-.br
-.nh
-.nf
+.SAMPLE
 .BR probe " PROBEPOINT [" , " PROBEPOINT] " { " [STMT ...] " }
-.hy
-.fi
-.RE 
+.ESAMPLE
 .PP
-Events are specified in a special syntax called "probe points".  One
-family refers to specific points in a kernel, which are identified by
-module, source file, line number, function name, C label name, or some
-combination of these.  This kind of "synchronous" event is deemed to
-occur when any processor executes an instruction matched by the
-specification.  Other families of probe points refer to "asynchronous"
-events such as timers/counters rolling over, where there is no fixed
-execution point that is related.  Each probe point specification may
-match multiple physical locations, all of which are then probed.  A
-probe declaration may also contain several comma-separated
-specifications, all of which are probed.
+Events are specified in a special syntax called "probe points".  There
+are several varieties of probe points defined by the translator, and
+tapset scripts may define further ones using aliases.  These are
+listed in the
+.IR stapprobes (5)
+manual pages.
 .PP
-Here is a list of probe point families currently supported.  The
-.B .function
-variant places a probe near the beginning of the named function, so that
-parameters are available as context variables.  The
-.B .return
-variant places a probe at the moment of return from the named function, so
-the return value is available as the "$retvalue" context variable.
-The
-.B .statement
-variant places a probe at the exact spot, exposing those local variables
-that are visible there.
-.RS
-.nf
-.br
-kernel.function(PATTERN)
-.br
-kernel.function(PATTERN).return
-.br
-module(MPATTERN).function(PATTERN)
-.br
-module(MPATTERN).function(PATTERN).return
-.br
-kernel.statement(PATTERN)
-.br
-module(MPATTERN).statement(PATTERN)
-.br
-timer.jiffies(NUM)
-.br
-timer.jiffies(NUM).randomize(RAND)
-.fi
-.RE
-.PP
-In the above list, MPATTERN stands for a string literal that aims to
-identify the loaded kernel module of interest.  It may include "*" and
-"?" wildcards.  PATTERN stands for a string literal that aims to
-identify a point in the program.  It is made up of three parts.  The
-first part is the name of a function, as would appear in the
-.I nm
-program's output.  This part may use the "*" and "?" wildcarding
-operators to match multiple names.  The second part is optional, and
-begins with the "@" character.  It is followed by a source file name
-wildcard pattern, such as
-.IR mm/slab* .
-Finally, the third part is optional if the file name part was given,
-and identifies the line number in the source file, preceded by a ":".
-As an alternative, PATTERN may be a numeric constant, indicating an
-(module-relative or kernel-absolute) address.
-.PP
-The timer-based asynchronous probe points run the given handler every
-NUM jiffies.  If given, the random value in the range [-RAND..RAND] is
-added to NUM every time the handler is run.
-.PP
-Here are some example probe points:
-.TP
-kernel.function("*init*"), kernel.function("*exit*")
-refers to all kernel functions with "init" or "exit" in the name.
-.TP
-kernel.function("*@kernel/sched.c:240")
-refers to any functions within the "kernel/sched.c" file that span
-line 240.
-.TP
-module("usb*").function("*sync*").return
-refers to the moment of return from all functions with "sync" in the
-name in any of the USB drivers.
-.TP
-kernel.statement(0xc0044852)
-refers to the first byte of the statement whose compiled instructions
-include the given address in the kernel.
-.TP
-timer.jiffies(1000).randomize(200)
-refers to a periodic interrupt, every 1000 +/- 200 jiffies.
-
-.PP
-When any matching event occurs, the probe handler is run within that
-context.  For events that are defined by execution of specific parts
-of code, this context may include variables defined in the source code
+The probe handler is interpreted relative to the context of each
+event.  For events associated with kernel code, this context may
+include
+.I variables
+defined in the 
+.I source code
 at that spot.  These "target variables" are presented to the script as
-variables whose names are prefixed with "$".  They may be read/written
+variables whose names are prefixed with "$".  They may be accessed
 only if the kernel's compiler preserved them despite optimization.
 This is the same constraint that a debugger user faces when working
-with optimized code.  Asynchronous probes have very little context.
+with optimized code.  Some other events have very little context.
 .PP
-In addition, "probe aliases" may be defined.  Probe aliases look
-similar to probe definitions, but instead of activating a probe at the
-given point, it defines a new probe point name to alias an existing
-one.  This is identified by the "=" assignment operator.  In addition,
-the probe handler defined with an alias is implicitly added as a
-prologue to any probe that refers to the alias.  For example:
-.RS
-.nf
-.nh
+New probe points may be defined using "aliases".  Probe point aliases
+look similar to probe definitions, but instead of activating a probe
+at the given point, it just defines a new probe point name as an alias
+to an existing one.  This is identified by the "=" assignment
+operator.  In addition, the statement block that follows an alias
+definition is implicitly added as a prologue to any probe that refers
+to the alias.  For example:
+.SAMPLE
 probe syscall("read") = kernel.function("sys_read") {
   fildes = $fd
 }
-.hy
-.fi
-.RE
+.ESAMPLE
 defines a new probe point
 .nh
 .IR syscall("read") ,
@@ -364,26 +299,22 @@ which expands to
 .hy
 with the given assignment as a prologue.  Another probe definition
 may use the alias like this:
-.RS
-.nf
+.SAMPLE
 probe syscall("read") {
   printk ("reading fd=" . string (fildes))
 }
-.fi
-.RE
+.ESAMPLE
 
 .SS FUNCTIONS
 Systemtap scripts may define subroutines to factor out common work.
 Functions take any number of scalar (integer or string) arguments, and
 must return a single scalar (integer or string).  An example function
 declaration looks like this:
-.RS
-.nf
+.SAMPLE
 function thisfn (arg1, arg2) {
    return arg1 + arg2
 }
-.fi
-.RE
+.ESAMPLE
 Note the usual absence of type declarations, which are instead
 inferred by the translator.  Functions may call others or themselves
 recursively, up to a fixed nesting limit.  This limit is defined by
@@ -416,9 +347,7 @@ The memory locations set aside for input and output values
 are made available to it using a macro
 .IR THIS .
 Here are some examples:
-.RS
-.br
-.nf
+.SAMPLE
 function add_one (val) %{
   THIS->__retvalue = THIS->val + 1;
 %}
@@ -426,20 +355,21 @@ function add_one_str (val) %{
   strncpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
   strncat (THIS->__retvalue, "one", MAXSTRINGLEN);
 %}
-.fi
-.RE
+.ESAMPLE
 The function argument and return value types have to be inferred by
 the translator from the call sites in order for this to work.  The
 user should examine C code generated for ordinary script-language
 functions in order to write compatible embedded-C ones.
 
 .SS BUILT-INS
-A set of builtin functions and probe aliases are provided by the
-scripts installed under the
+A set of builtin functions and probe point aliases are provided
+by the scripts installed under the
 .nh
 .IR /usr/share/systemtap/tapset
 .hy
-directory.
+directory.  These are described in the
+.IR stapfuncs "(5) and " stapprobes (5)
+manual pages.
 
 .SH PROCESSING
 The translator begins pass 1 by parsing the given input script,
@@ -448,9 +378,9 @@ and all scripts (files named
 found in a tapset directory.  The directories listed
 with
 .BR -I
-are processed in sequence.  For each directory, a number of subdirectories
-are also searched.  These subdirectories are derived from the selected
-kernel version (the
+are processed in sequence, each processed in "guru mode".  For each
+directory, a number of subdirectories are also searched.  These
+subdirectories are derived from the selected kernel version (the
 .BR -R
 option),
 in order to allow more kernel-version-specific scripts to override less
@@ -519,22 +449,10 @@ results in an error condition that prevents further probes from
 running.  Finally, stpd unloads the module, and cleans up.
 
 .SH EXAMPLES
-To trace entry and exit from a function, use a pair of probes:
-.RS
-.br
-.nf
-probe kernel.function("foo") { log ("enter") }
-probe kernel.function("foo").return { log ("exit") }
-.fi
-.RE
+See the 
+.IR stapex (5)
+manual page for a collection of samples.
 
-To list the probeable functions in the kernel, use
-.RS
-.br
-.nf
-stap -p2 -e 'probe kernel.function("*") {}'
-.fi
-.RE
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
@@ -556,8 +474,17 @@ privileges to untrusted users.
 The translator asserts certain safety constraints.  It aims to ensure
 that no handler routine can run for very long, allocate memory,
 perform unsafe operations, or in unintentionally interfere with the
-kernel.  Use of guru mode constructs such as embedded C can violate
-these constraints, leading to kernel crash or data corruption.
+kernel.  Use of script global variables is suitably locked to protect
+against manipulation by concurrent probe handlers.  Use of guru mode
+constructs such as embedded C can violate these constraints, leading
+to kernel crash or data corruption.
+.PP
+In case something goes wrong with 
+.IR stap " or " stpd
+after a probe has already started running, one may safely kill both
+user processes, and remove the active probe kernel module with
+.IR rmmod .
+Any pending trace messages may be lost.
 
 .SH FILES
 .\" consider autoconf-substituting these directories
@@ -590,6 +517,9 @@ The auxiliary program supervising module loading, interaction, and
 unloading.
 
 .SH SEE ALSO
+.IR stapprobes (5),
+.IR stapfuncs (5),
+.IR stapex (5),
 .IR dtrace (1),
 .IR dprobes (1),
 .IR awk (1),

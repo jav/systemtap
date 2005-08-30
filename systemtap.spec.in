@@ -112,6 +112,7 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %{_bindir}/stap
 %{_mandir}/man1/*
+%{_mandir}/man5/*
 %{_libexecdir}/systemtap/*
 
 %dir %{_datadir}/systemtap

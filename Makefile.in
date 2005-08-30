@@ -43,9 +43,11 @@ noinst_PROGRAMS = stpd$(EXEEXT) loc2c-test$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/config.in $(srcdir)/stap.1.in $(srcdir)/stp_check.in \
-	$(srcdir)/systemtap.spec.in $(top_srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL NEWS TODO depcomp install-sh missing
+	$(srcdir)/config.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
+	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
+	$(srcdir)/stp_check.in $(srcdir)/systemtap.spec.in \
+	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
+	TODO depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -54,8 +56,10 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)"
+CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 \
+	stapfuncs.5 stapex.5
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" \
+	"$(DESTDIR)$(man5dir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am_loc2c_test_OBJECTS = loc2c-test.$(OBJEXT) loc2c.$(OBJEXT)
@@ -85,6 +89,7 @@ CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(stpd_SOURCES)
 DIST_SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(stpd_SOURCES)
 man1dir = $(mandir)/man1
+man5dir = $(mandir)/man5
 NROFF = nroff
 MANS = $(dist_man_MANS)
 ETAGS = etags
@@ -193,7 +198,7 @@ AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 
 AM_CXXFLAGS = -Wall
-dist_man_MANS = stap.1
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c
@@ -286,6 +291,12 @@ systemtap.spec: $(top_builddir)/config.status $(srcdir)/systemtap.spec.in
 stp_check: $(top_builddir)/config.status $(srcdir)/stp_check.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stap.1: $(top_builddir)/config.status $(srcdir)/stap.1.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+stapprobes.5: $(top_builddir)/config.status $(srcdir)/stapprobes.5.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+stapfuncs.5: $(top_builddir)/config.status $(srcdir)/stapfuncs.5.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+stapex.5: $(top_builddir)/config.status $(srcdir)/stapex.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
@@ -539,6 +550,51 @@ uninstall-man1:
 	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
 	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
+	done
+install-man5: $(man5_MANS) $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man5dir)" || $(mkdir_p) "$(DESTDIR)$(man5dir)"
+	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.5*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  if test -f $(srcdir)/$$i; then file=$(srcdir)/$$i; \
+	  else file=$$i; fi; \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    5*) ;; \
+	    *) ext='5' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man5dir)/$$inst'"; \
+	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man5dir)/$$inst"; \
+	done
+uninstall-man5:
+	@$(NORMAL_UNINSTALL)
+	@list='$(man5_MANS) $(dist_man5_MANS) $(nodist_man5_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.5*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    5*) ;; \
+	    *) ext='5' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " rm -f '$(DESTDIR)$(man5dir)/$$inst'"; \
+	  rm -f "$(DESTDIR)$(man5dir)/$$inst"; \
 	done
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
@@ -797,7 +853,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(PROGRAMS) $(MANS) config.h
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-am
@@ -852,7 +908,7 @@ install-exec-am: install-binPROGRAMS install-exec-local
 
 install-info: install-info-am
 
-install-man: install-man1
+install-man: install-man1 install-man5
 
 installcheck-am:
 
@@ -878,7 +934,7 @@ ps-am:
 uninstall-am: uninstall-binPROGRAMS uninstall-info-am uninstall-local \
 	uninstall-man
 
-uninstall-man: uninstall-man1
+uninstall-man: uninstall-man1 uninstall-man5
 
 .PHONY: CTAGS GTAGS all all-am am--refresh check check-TESTS check-am \
 	clean clean-binPROGRAMS clean-generic clean-local \
@@ -890,11 +946,12 @@ uninstall-man: uninstall-man1
 	install-binPROGRAMS install-data install-data-am \
 	install-data-local install-exec install-exec-am \
 	install-exec-local install-info install-info-am install-man \
-	install-man1 install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-compile mostlyclean-generic pdf pdf-am \
-	ps ps-am tags uninstall uninstall-am uninstall-binPROGRAMS \
-	uninstall-info-am uninstall-local uninstall-man uninstall-man1
+	install-man1 install-man5 install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-local uninstall-man uninstall-man1 uninstall-man5
 
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf

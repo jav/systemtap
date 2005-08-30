@@ -113,6 +113,7 @@ run_pass (systemtap_session& s)
       // for now, just spawn stpd
       string stpd_cmd = string("/usr/bin/sudo ") 
         + string(PKGLIBDIR) + "/stpd "
+	+ "-r " // disable relayfs
         + (s.verbose ? "" : "-q ")
         + s.tmpdir + "/" + s.module_name + ".ko";
 
