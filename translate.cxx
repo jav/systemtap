@@ -281,12 +281,36 @@ struct varlock
   c_unparser & c;
   var const & v;
   bool w;
+  string post_unlock_label;
 
   varlock(c_unparser & c, var const & v, bool w): c(c), v(v), w(w)
   {
     if (v.is_local()) return;
-    c.o->newline() << (w ? "write_lock" : "read_lock")
-                   << " (& " << v << "_lock);";
+
+    // There may be a few opportunities for deadlock beyond bug #1268
+    // (foreach).  In general, we use a loop with FOO_trylock with a
+    // manual "timeout".  If it takes too many iterations to acquire
+    // the lock, we signal a deadlock error in the context and jump
+    // over all the code, right past the corresponding unlock.
+
+    static unsigned unlock_label_counter = 0;
+    post_unlock_label = string ("post_unlock_")
+      + stringify (unlock_label_counter ++);
+
+    c.o->newline() << "{";
+    c.o->newline(1) << "unsigned trylock_count = 0;";
+    c.o->newline() << "while ("
+                   << "!(" << (w ? "write_trylock" : "read_trylock")
+                   << " (& " << v << "_lock))"
+                   << " && "
+                   << "(trylock_count++ < MAXTRYLOCK)"
+                   << ") ; /* spin */";
+    c.o->newline() << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
+    c.o->newline(1) << "c->last_error = \"deadlock over variable "
+                    << v << "\";";
+    c.o->newline() << "goto " << post_unlock_label << ";";
+    c.o->newline(-1) << "}";
+    c.o->newline(-1) << "}";
   }
 
   ~varlock()
@@ -294,6 +318,8 @@ struct varlock
     if (v.is_local()) return;
     c.o->newline() << (w ? "write_unlock" : "read_unlock")
                    << " (& " << v << "_lock);";
+    c.o->newline(-1) << post_unlock_label << ": ;";
+    c.o->indent(1);
   }
 };
 
@@ -527,6 +553,7 @@ c_unparser::emit_common_header ()
   o->newline() << "#define MAXNESTING 30";
   o->newline() << "#define MAXCONCURRENCY NR_CPUS";
   o->newline() << "#define MAXSTRINGLEN 128";
+  o->newline() << "#define MAXTRYLOCK 20";
   o->newline() << "#define MAXACTION 1000";
   o->newline() << "#define MAXMAPENTRIES 2048";
   o->newline();

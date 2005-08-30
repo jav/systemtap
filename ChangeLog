@@ -1,3 +1,9 @@
+2005-08-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR systemtap/1268
+	* translator (varlock): Add deadlock detection code.
+	(emit_common_header): Add a new MAXTRYLOCK configuration macro.
+
 2005-08-29  Graydon Hoare  <graydon@redhat.com>
 
 	PR translator/1265
