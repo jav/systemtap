@@ -1,3 +1,9 @@
+2005-08-29  Martin Hunt  <hunt@redhat.com>
+
+	* list.c (_stp_copy_argv_from_user): Move to here.
+	* copy.c (_stp_copy_argv_from_user): Delete.
+	* runtime.h: Always include copy.h.
+
 2005-08-25  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h (deref_string): Rewritten using deref.

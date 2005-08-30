@@ -10,6 +10,7 @@
 #endif
 
 #include "map.c"
+#include "copy.c"
 
 /**********************  List Functions *********************/
 /** @file list.c
@@ -123,5 +124,40 @@ inline int _stp_list_size(MAP map)
 {
 	return map->num;
 }
+
+/** Copy an argv from user space to a List.
+ *
+ * @param list A list.
+ * @param argv Source argv, in user space.
+ * @return number of elements in <i>list</i>
+ *
+ * @b Example:
+ * @include argv.c
+ */
+
+int _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
+{
+	char str[128];
+	char __user *vstr;
+	int len;
+
+	if (argv)
+		argv++;
+
+	while (argv != NULL) {
+		if (get_user (vstr, argv))
+			break;
+		
+		if (vstr == NULL)
+			break;
+		
+		len = _stp_strncpy_from_user(str, vstr, 128);
+		str[len] = 0;
+		_stp_list_add_str (list, str);
+		argv++;
+	}
+	return list->num;
+}
+
 /** @} */
 #endif /* _LIST_C_ */
