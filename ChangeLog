@@ -1,3 +1,25 @@
+2005-08-29  Graydon Hoare  <graydon@redhat.com>
+
+	PR translator/1265
+	* tapsets.cxx 
+	(func_info::decl_file)
+	(func_info::decl_line)
+	(inline_instance_info::decl_file)
+	(inline_instance_info::decl_line): New fields.
+	(dwflpp::function_srcfile): Remove.
+	(dwflpp::function_file): Add.
+	(dwflpp::function_line): Add.
+	(dwarf_derived_probe::dwarf_derived_probe): Update.
+	(query_statement): Pass func, file, line through.
+	(query_inline_instance_info): Likewise.
+	(query_func_info): Likewise.
+	(query_srcfile_line): Query statement lines if 
+	statement_str exists, rather than *_info.
+	(query_dwarf_inline_instance): Extract file and line.
+	(query_dwarf_func): Likewise.
+	(query_cu): Pass empty func, file, line, for address-based
+	queries.
+
 2005-08-29  Frank Ch. Eigler  <fche@redhat.com>
 
 	* runtest.sh: Tolerate relative $SRCDIR.

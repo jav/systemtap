@@ -182,6 +182,8 @@ struct
 func_info
 {
   string name;
+  char const * decl_file;
+  int decl_line;
   Dwarf_Die die;
   Dwarf_Addr prologue_end;
 };
@@ -190,6 +192,8 @@ struct
 inline_instance_info
 {
   string name;
+  char const * decl_file;
+  int decl_line;
   Dwarf_Die die;
 };
 
@@ -640,17 +644,23 @@ dwflpp
     return ( dwarf_lowpc (die, addr) == 0);
   }
 
-
-  char const * function_srcfile ()
-  {
-    assert (function);
-    return dwarf_func_file (function);
-  }
-
   void function_die (Dwarf_Die *d)
   {
     assert (function);
     dwarf_func_die (function, d);
+  }
+
+  void function_file (char const ** c)
+  {
+    assert (function);
+    assert (c);
+    *c = dwarf_func_file (function);
+  }
+
+  void function_line (int *linep)
+  {
+    assert (function);
+    dwarf_func_line (function, linep);
   }
 
   bool die_has_pc (Dwarf_Die * die, Dwarf_Addr pc)
@@ -1018,12 +1028,12 @@ struct dwarf_query;
 
 struct dwarf_derived_probe : public derived_probe
 {
-  dwarf_derived_probe (dwarf_query & q,
-		       Dwarf_Addr addr);
+  dwarf_derived_probe (string const & funcname,
+		       char const * filename,
+		       int line,
+		       Dwarf_Addr addr,
+		       dwarf_query & q);
 
-  string module_name;
-  string function_name;
-  bool has_statement;
   Dwarf_Addr addr;
   Dwarf_Addr module_bias;
   bool has_return;
@@ -1302,7 +1312,11 @@ dwarf_query::parse_function_spec(string & spec)
 
 
 static void
-query_statement (Dwarf_Addr stmt_addr, dwarf_query * q)
+query_statement (string const & func,
+		 char const * file, 
+		 int line,
+		 Dwarf_Addr stmt_addr, 
+		 dwarf_query * q)
 {
   try
     {
@@ -1311,7 +1325,7 @@ query_statement (Dwarf_Addr stmt_addr, dwarf_query * q)
         throw semantic_error("incomplete: do not know how to interpret .relative",
                              q->base_probe->tok);
 
-      q->results.push_back(new dwarf_derived_probe(*q, stmt_addr));
+      q->results.push_back(new dwarf_derived_probe(func, file, line, stmt_addr, *q));
     }
   catch (const semantic_error& e)
     {
@@ -1334,7 +1348,7 @@ query_inline_instance_info (Dwarf_Addr entrypc,
 	clog << "querying entrypc " 
 	     << hex << entrypc << dec 
 	     << " of instance of inline '" << ii.name << "'" << endl;
-      query_statement (entrypc, q);
+      query_statement (ii.name, ii.decl_file, ii.decl_line, entrypc, q);
     }
 }
 
@@ -1349,13 +1363,13 @@ query_func_info (Dwarf_Addr entrypc,
       // kretprobe based on the entrypc in this case.
       if (q->sess.verbose)
 	clog << "querying entrypc of function '" << fi.name << "' for return probe" << endl;
-      query_statement (entrypc, q);
+      query_statement (fi.name, fi.decl_file, fi.decl_line, entrypc, q);
     }
   else
     {
       if (q->sess.verbose)
 	clog << "querying prologue-end of function '" << fi.name << "'" << endl;
-      query_statement (fi.prologue_end, q);
+      query_statement (fi.name, fi.decl_file, fi.decl_line, fi.prologue_end, q);
     }
 }
 
@@ -1367,7 +1381,7 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 
   Dwarf_Addr addr;
   dwarf_lineaddr(line, &addr);
-  
+
   for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     {
@@ -1375,20 +1389,26 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	{
 	  if (q->sess.verbose)
 	    clog << "function DIE lands on srcfile" << endl;
-	  query_func_info (i->first, i->second, q);
+	  if (q->has_statement_str)
+	    query_statement (i->second.name, i->second.decl_file, q->line, addr, q);
+	  else
+	    query_func_info (i->first, i->second, q);
 	}
     }  
 
-  for (map<Dwarf_Addr, inline_instance_info>::iterator i = q->filtered_inlines.begin();
-       i != q->filtered_inlines.end(); ++i)
-    {
-      if (q->dw.die_has_pc (&(i->second.die), addr))
+      for (map<Dwarf_Addr, inline_instance_info>::iterator i = q->filtered_inlines.begin();
+	   i != q->filtered_inlines.end(); ++i)
 	{
-	  if (q->sess.verbose)
-	    clog << "inline instance DIE lands on srcfile" << endl;
-	  query_inline_instance_info (i->first, i->second, q);
-	}
-    }  
+	  if (q->dw.die_has_pc (&(i->second.die), addr))
+	    {
+	      if (q->sess.verbose)
+		clog << "inline instance DIE lands on srcfile" << endl;
+	      if (q->has_statement_str)
+		query_statement (i->second.name, i->second.decl_file, q->line, addr, q);
+	      else
+		query_inline_instance_info (i->first, i->second, q);
+	    }
+	}  
 }
 
 
@@ -1430,6 +1450,8 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 	      inline_instance_info inl;
 	      inl.die = *die;
 	      inl.name = q->dw.function_name;
+	      q->dw.function_file (&inl.decl_file);
+	      q->dw.function_line (&inl.decl_line);
 	      q->filtered_inlines[entrypc] = inl;
 	    }
 	}
@@ -1504,6 +1526,8 @@ query_dwarf_func (Dwarf_Func * func, void * arg)
 		  func_info func;
 		  q->dw.function_die (&func.die);
 		  func.name = q->dw.function_name;
+		  q->dw.function_file (&func.decl_file);
+		  q->dw.function_line (&func.decl_line);
 		  q->filtered_functions[entrypc] = func;
 		}
 	    }
@@ -1594,7 +1618,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (q->has_module)
 	    query_addr = q->dw.module_address_to_global(query_addr);
 
-	  query_statement (query_addr, q);
+	  query_statement ("", "", -1, query_addr, q);
         }
       return DWARF_CB_OK;
     }
@@ -1741,16 +1765,17 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 }
 
 
-dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
-					  Dwarf_Addr addr)
+dwarf_derived_probe::dwarf_derived_probe (string const & funcname,
+					  char const * filename,
+					  int line,
+					  Dwarf_Addr addr,
+					  dwarf_query & q)
   : derived_probe (NULL),
-    module_name(q.dw.module_name),
-    function_name(q.dw.function_name),
-    has_statement(q.has_statement_str || q.has_statement_num),
     addr(addr),
     module_bias(q.dw.module_bias),
     has_return (q.has_return)
 {
+  string module_name(q.dw.module_name);
   // Lock the kernel module in memory.
   if (module_name != TOK_KERNEL)
     {
@@ -1782,16 +1807,11 @@ dwarf_derived_probe::dwarf_derived_probe (dwarf_query & q,
 
   if (q.has_function_str || q.has_statement_str)
       {
-        string retro_name;;
-        if (! function_name.empty())
-          retro_name = function_name + "@" + q.dw.cu_name; // XXX: add line number
-        else if (q.has_function_str)
-          retro_name = q.function_str_val;
-        else // has_statement_str
-          retro_name = q.statement_str_val;
-        // XXX: actually the statement_str case is not yet adequately
-        // handled in the search code
-
+        string retro_name = funcname;
+	if (filename && !string (filename).empty())
+	  retro_name += ("@" + string (filename));
+	if (line != -1)
+	  retro_name += (":" + lex_cast<string> (line));
         comps.push_back
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));
