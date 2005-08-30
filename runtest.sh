@@ -7,6 +7,12 @@ if [ ! -d testsuite ]; then
 fi
 
 SRCDIR=`dirname $0`
+if expr "$SRCDIR" : "/.*" >/dev/null
+then 
+   true # already absolute, groovy!
+else
+   SRCDIR="`pwd`/$SRCDIR"
+fi
 export SRCDIR
 
 SYSTEMTAP_TAPSET=$SRCDIR/tapset

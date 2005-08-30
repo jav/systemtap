@@ -1,5 +1,9 @@
 2005-08-29  Frank Ch. Eigler  <fche@redhat.com>
 
+	* runtest.sh: Tolerate relative $SRCDIR.
+
+2005-08-29  Frank Ch. Eigler  <fche@redhat.com>
+
 	* stapprobes.5.in, stapfuncs.5.in, stapex.5.in: New man pages.
 	* stap.1.in: Moved some content out.
 	* Makefile.am (man_MANS): Add new man pages.
