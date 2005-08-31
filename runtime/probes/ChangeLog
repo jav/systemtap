@@ -1,3 +1,8 @@
+2005-08-31  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.template: Remove KTA, KALLSYMS_LOOKUP,
+	and KALLSYMS_LOOKUP_NAME
+
 2005-08-19  Martin Hunt  <hunt@redhat.com>
 
 	* shellsnoop/shellsnoop.c: Remove STP_NETLINK_ONLY.

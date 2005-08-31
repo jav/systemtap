@@ -4,11 +4,7 @@ RT	:= $(PWD)/../..
 KVERSION	:= $(shell uname -r)
 KDIR	:= /lib/modules/$(KVERSION)/build include
 
-KALLSYMS_LOOKUP_NAME	:= 0x$(firstword $(shell grep " kallsyms_lookup_name" /boot/System.map-$(KVERSION)))
-KALLSYMS_LOOKUP	:= 0x$(firstword $(shell grep " kallsyms_lookup$$" /boot/System.map-$(KVERSION)))
-KTA	:= 0x$(firstword $(shell grep "__kernel_text_address" /boot/System.map-$(KVERSION)))
-
-FLAGS := -I $(RT) RELAYFS -D KALLSYMS_LOOKUP_NAME=$(KALLSYMS_LOOKUP_NAME) -D KALLSYMS_LOOKUP=$(KALLSYMS_LOOKUP) -DKTA=$(KTA)
+FLAGS := -I $(RT) RELAYFS
 
 DFLAGS := $(FLAGS) -D DEBUG
 
