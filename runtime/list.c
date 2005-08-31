@@ -125,6 +125,7 @@ inline int _stp_list_size(MAP map)
 	return map->num;
 }
 
+#ifdef NEED_STRING_VALS
 /** Copy an argv from user space to a List.
  *
  * @param list A list.
@@ -158,6 +159,7 @@ int _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
 	}
 	return list->num;
 }
+#endif /* NEED_STRING_VALS */
 
 /** @} */
 #endif /* _LIST_C_ */

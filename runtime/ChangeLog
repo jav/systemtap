@@ -1,3 +1,8 @@
+2005-08-31  Martin Hunt  <hunt@redhat.com>
+
+	* list.c (_stp_copy_argv_from_user): ifdef this function
+	NEED_STRING_VALS.
+
 2005-08-30  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h (fetch_register, store_register): Rewritten to pass
