@@ -1,3 +1,10 @@
+2005-08-30  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h (fetch_register, store_register): Rewritten to pass
+	REGS to dwarf_register_<N> as a macro argument.
+	[__i386__, __x86_64__]: Update dwarf_register_* macros.
+	[__i386__] (dwarf_register_4): Define special case for stack pointer.
+
 2005-08-29  Martin Hunt  <hunt@redhat.com>
 
 	* list.c (_stp_copy_argv_from_user): Move to here.
