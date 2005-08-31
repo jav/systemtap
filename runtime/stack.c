@@ -20,8 +20,6 @@
 #include "sym.c"
 #include "regs.h"
 
-static int (*_stp_kta)(unsigned long addr)=(void *)KTA;
-
 #if defined (__x86_64__)
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)

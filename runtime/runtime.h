@@ -61,11 +61,19 @@ static struct
 #include "arith.c"
 #include "copy.c"
 
+static int (*_stp_kta)(unsigned long addr);
+static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
+					    unsigned long *symbolsize,
+					    unsigned long *offset,
+					    char **modname, char *namebuf);
+
 /************* Module Stuff ********************/
 int probe_start(void);
 
 int init_module (void)
 {
+  _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
+  _stp_kallsyms_lookup = (const char * (*)())kallsyms_lookup_name("kallsyms_lookup");
   return _stp_transport_init();
 }
 

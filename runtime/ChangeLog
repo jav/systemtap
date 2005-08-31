@@ -1,5 +1,10 @@
 2005-08-31  Martin Hunt  <hunt@redhat.com>
 
+	* sym.c (_stp_kallsyms_lookup): Moved to runtime.h. 
+	* stack.c (_stp_kta): Moved to runtime.h.
+	* runtime.h (init_module): Initialize _stp_kallsyms_lookup
+	and _stp_kta.
+	* probes.c (_stp_lookup_name): Replaced by kallsyms_lookup_name().
 	* list.c (_stp_copy_argv_from_user): ifdef this function
 	NEED_STRING_VALS.
 

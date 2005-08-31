@@ -9,17 +9,6 @@
  * @{
  */
 
-/** Lookup symbol.
- * This simply calls the kernel function kallsyms_lookup().
- * That function is not exported, so this workaround is required.
- * See the kernel source, kernel/kallsyms.c for more information.
- */
-static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
-			    unsigned long *symbolsize,
-			    unsigned long *offset,
-			    char **modname, char *namebuf)=(void *)KALLSYMS_LOOKUP;
-
-
 /** Write addresses symbolically into a String
  * @param str String
  * @param address The address to lookup.

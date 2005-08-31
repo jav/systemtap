@@ -5,13 +5,6 @@
  * @brief Functions to assist loading and unloading groups of probes.
  */
 
-/** Lookup name.
- * This simply calls the kernel function kallsyms_lookup_name().
- * That function is not exported, so this workaround is required.
- * See the kernel source, kernel/kallsyms.c for more information.
- */
-static unsigned long (*_stp_lookup_name)(char *name)=(void *)KALLSYMS_LOOKUP_NAME;
-
 /** Unregister a group of jprobes.
  * @param probes Pointer to an array of struct jprobe.
  * @param num_probes Number of probes in the array.
@@ -37,7 +30,7 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 	unsigned long addr;
 
 	for (i = 0; i < num_probes; i++) {
-		addr =_stp_lookup_name((char *)probes[i].kp.addr);
+		addr =kallsyms_lookup_name((char *)probes[i].kp.addr);
 		if (addr == 0) {
 			_stp_warn("function %s not found!\n", (char *)probes[i].kp.addr);
 			ret = -1; /* FIXME */
@@ -95,7 +88,7 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 	unsigned long addr;
 
 	for (i = 0; i < num_probes; i++) {
-		addr =_stp_lookup_name((char *)probes[i].addr);
+		addr = kallsyms_lookup_name((char *)probes[i].addr);
 		if (addr == 0) {
 			_stp_warn("function %s not found!\n", (char *)probes[i].addr);
 			ret = -1;
@@ -126,7 +119,7 @@ int _stp_register_kretprobes (struct kretprobe *probes, int num_probes)
 	unsigned long addr;
 
 	for (i = 0; i < num_probes; i++) {
-		addr =_stp_lookup_name((char *)probes[i].kp.addr);
+		addr = kallsyms_lookup_name((char *)probes[i].kp.addr);
 		if (addr == 0) {
 			_stp_warn("function %s not found!\n", 
 				   (char *)probes[i].kp.addr);
