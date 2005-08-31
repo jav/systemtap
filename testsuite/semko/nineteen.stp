@@ -1,0 +1,8 @@
+#! stap -p4
+
+# PR 1155: should start working when we can resolve the parameters of
+# the inlines.
+
+probe kernel.function("context_switch") {
+  log ("switch from=" . hexstring($prev) . " to=" . hexstring($next))
+}

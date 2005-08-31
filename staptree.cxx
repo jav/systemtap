@@ -242,11 +242,9 @@ void target_symbol::print (std::ostream& o)
 	case comp_literal_array_index:
 	  o << '[' << components[i].second << ']';
 	  break;
-	case comp_struct_pointer_member:
+	case comp_struct_member:
 	  o << "->" << components[i].second;
 	  break;
-	case comp_struct_member:
-	  o << "." << components[i].second;
 	}
     }
 }

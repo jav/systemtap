@@ -183,7 +183,6 @@ struct target_symbol : public expression
   enum component_type
     {
       comp_struct_member,
-      comp_struct_pointer_member,
       comp_literal_array_index
     };
   std::string base_name;

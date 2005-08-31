@@ -1650,19 +1650,12 @@ parser::parse_symbol ()
       while (true)
 	{
 	  string c;
-	  if (peek_op ("."))
-	    { 
-	      next();
-	      expect_ident (c);
-	      tsym->components.push_back
-		(make_pair (target_symbol::comp_struct_member, c));
-	    }
-	  else if (peek_op ("->"))
+	  if (peek_op ("->"))
 	    { 
 	      next(); 
 	      expect_ident (c);
 	      tsym->components.push_back
-		(make_pair (target_symbol::comp_struct_pointer_member, c));
+		(make_pair (target_symbol::comp_struct_member, c));
 	    }
 	  else if (peek_op ("["))
 	    { 

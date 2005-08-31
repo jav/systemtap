@@ -1,3 +1,17 @@
+2005-08-30  Graydon Hoare  <graydon@redhat.com>
+
+	* tapsets.cxx (dwflpp::literal_stmt_for_local): Handle dwarf
+	pointer-to-1-byte-means-char case (found in PR 1187)
+	* parse.cxx (parse_symbol): Eliminate use of "." from target
+	symbol parser, conflicting with string concatenation operator.
+	* staptree.h (target_symbol::component_type) Eliminate 
+	comp_struct_pointer_member, since . and -> are considered the
+	same now.
+	* staptree.cxx (target_symbol::print): Likewise.
+	* testsuite/buildok/seventeen.stp: Test solution on PR 1191.
+	* testsuite/buildok/six.stp: Test working portion of PR 1155.
+	* testsuite/semko/nineteen.stp: Unresolved portion of PR 1155.
+
 2005-08-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR systemtap/1268

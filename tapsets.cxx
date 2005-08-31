@@ -919,6 +919,7 @@ dwflpp
 	  Dwarf_Die pointee_typedie_mem;
 	  Dwarf_Die *pointee_typedie;
 	  Dwarf_Word pointee_encoding;
+	  Dwarf_Word pointee_byte_size = 0;
 	  int pointee_typetag;
 
 	  if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
@@ -940,13 +941,18 @@ dwflpp
 	      if (dwarf_attr_integrate (pointee_typedie, DW_AT_type, &attr_mem) == NULL)
 		throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
 	    }
+
+	  if (dwarf_attr_integrate (pointee_typedie, DW_AT_byte_size, &attr_mem))
+	    dwarf_formudata (&attr_mem, &pointee_byte_size);
 	  
 	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, &attr_mem), 
 			   &pointee_encoding);
 
 	  if (pointee_typetag == DW_TAG_base_type
 	      && (pointee_encoding == DW_ATE_signed_char
-		  || pointee_encoding == DW_ATE_unsigned_char))
+		  || pointee_encoding == DW_ATE_unsigned_char
+		  || ((pointee_encoding == DW_ATE_signed 
+		       || pointee_encoding == DW_ATE_unsigned) && pointee_byte_size == 1)))
 	    {
 	      // We have an (un)signed char* or (un)signed char[], fetch it into 'tmpc' and
 	      // then copy to the return value via something strcpy-ish.

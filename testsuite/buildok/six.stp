@@ -1,5 +1,9 @@
 #! stap -p4
 
+# tests probing of an inline function: note that due to comments
+# listed in PR 1155 we cannot resolve the parameters of the inline
+# at the moment.
+
 probe kernel.function("context_switch") {
-  log ("switch from=" . hexstring($prev) . " to=" . hexstring($next))
+  log ("found an inline function")
 }

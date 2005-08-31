@@ -1,0 +1,9 @@
+#! stap -p4
+
+# this tests access to members of a target global variable
+# (PR 1191)
+
+probe kernel.function("pipe_write")
+{
+	log (hexstring ($write_fifo_fops->llseek))
+}
