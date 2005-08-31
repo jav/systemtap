@@ -1785,7 +1785,8 @@ c_unparser::visit_array_in (array_in* e)
 
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->operand->referent, e->tok);
-    varlock_r guard (*this, mvar);
+    // XXX: should be varlock_r, but runtime arrays reads mutate
+    varlock_w guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.exists(), e->tok);
   }
@@ -2119,7 +2120,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
   
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->referent, e->tok);
-    varlock_r guard (*this, mvar);
+    // XXX: should be varlock_r, but runtime arrays reads mutate
+    varlock_w guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.get(), e->tok);
   }
@@ -2320,6 +2322,12 @@ translate_pass (systemtap_session& s)
       // XXX
       s.op->newline() << "#define KALLSYMS_LOOKUP_NAME \"\"";
       s.op->newline() << "#define KALLSYMS_LOOKUP 0";
+      // some older kernels don't have read_trylock, so pessimize.
+      // XXX: maybe read_trylock is never actually necessary
+      // for deadlock avoidance
+      s.op->newline() << "#ifndef read_trylock";
+      s.op->newline() << "#define read_trylock write_trylock";
+      s.op->newline() << "#endif";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header ();

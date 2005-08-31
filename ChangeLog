@@ -1,3 +1,9 @@
+2005-08-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx (visit_array_in, visit_arrayindex): Use write locks
+	even for array reads, until PR 1275.
+	(translate_pass): Add read_trylock -> write_trylock escalation.
+
 2005-08-30  Roland McGrath  <roland@redhat.com>
 
 	* Makefile.am (install-data-local): Use mkdir -p, not -mkdir.
