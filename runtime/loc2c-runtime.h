@@ -25,39 +25,49 @@
 /* These operations are target-specific.  */
 #include <asm/uaccess.h>
 
-#define fetch_register(regno) ((intptr_t) c->regs->dwarf_register_##regno)
+#define fetch_register(regno) \
+  ((intptr_t) dwarf_register_##regno (c->regs))
 #define store_register(regno, value) \
-  (c->regs->dwarf_register_##regno = (value))
+  (dwarf_register_##regno (c->regs) = (value))
 
 #if defined __i386__
 
-#define dwarf_register_0 eax
-#define dwarf_register_1 ecx
-#define dwarf_register_2 edx
-#define dwarf_register_3 ebx
-#define dwarf_register_4 esp
-#define dwarf_register_5 ebp
-#define dwarf_register_6 esi
-#define dwarf_register_7 edi
+/* The stack pointer is unlike other registers.  When a trap happens in
+   kernel mode, it is not saved in the trap frame (struct pt_regs).
+   The `esp' (and `xss') fields are valid only for a user-mode trap.
+   For a kernel mode trap, the interrupted state's esp is actually an
+   address inside where the `struct pt_regs' on the kernel trap stack points.
+
+   For now we assume all traps are from kprobes in kernel-mode code.
+   For extra paranoia, could do BUG_ON((regs->xcs & 3) == 3).  */
+
+#define dwarf_register_0(regs)	regs->eax
+#define dwarf_register_1(regs)	regs->ecx
+#define dwarf_register_2(regs)	regs->edx
+#define dwarf_register_3(regs)	regs->ebx
+#define dwarf_register_4(regs)	((long) &regs->esp)
+#define dwarf_register_5(regs)	regs->ebp
+#define dwarf_register_6(regs)	regs->esi
+#define dwarf_register_7(regs)	regs->edi
 
 #elif defined __x86_64__
 
-#define dwarf_register_0 eax
-#define dwarf_register_1 edx
-#define dwarf_register_2 ecx
-#define dwarf_register_3 ebx
-#define dwarf_register_4 esi
-#define dwarf_register_5 edi
-#define dwarf_register_6 ebp
-#define dwarf_register_7 esp
-#define dwarf_register_8 r8
-#define dwarf_register_9 r9
-#define dwarf_register_10 r10
-#define dwarf_register_11 r11
-#define dwarf_register_12 r12
-#define dwarf_register_13 r13
-#define dwarf_register_14 r14
-#define dwarf_register_15 r15
+#define dwarf_register_0(regs)	regs->rax
+#define dwarf_register_1(regs)	regs->rdx
+#define dwarf_register_2(regs)	regs->rcx
+#define dwarf_register_3(regs)	regs->rbx
+#define dwarf_register_4(regs)	regs->rsi
+#define dwarf_register_5(regs)	regs->rdi
+#define dwarf_register_6(regs)	regs->rbp
+#define dwarf_register_7(regs)	regs->rsp
+#define dwarf_register_8(regs)	regs->r8
+#define dwarf_register_9(regs)	regs->r9
+#define dwarf_register_10(regs)	regs->r10
+#define dwarf_register_11(regs)	regs->r11
+#define dwarf_register_12(regs)	regs->r12
+#define dwarf_register_13(regs)	regs->r13
+#define dwarf_register_14(regs)	regs->r14
+#define dwarf_register_15(regs)	regs->r15
 
 #elif defined __powerpc__
 
