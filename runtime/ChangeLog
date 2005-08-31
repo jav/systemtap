@@ -1,5 +1,8 @@
 2005-08-31  Martin Hunt  <hunt@redhat.com>
 
+	* runtime.h (init_module): Include full prototype
+	info in function cast to satisfy stap.
+
 	* sym.c (_stp_kallsyms_lookup): Moved to runtime.h. 
 	* stack.c (_stp_kta): Moved to runtime.h.
 	* runtime.h (init_module): Initialize _stp_kallsyms_lookup

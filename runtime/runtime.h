@@ -73,7 +73,8 @@ int probe_start(void);
 int init_module (void)
 {
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
-  _stp_kallsyms_lookup = (const char * (*)())kallsyms_lookup_name("kallsyms_lookup");
+  _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
+    kallsyms_lookup_name("kallsyms_lookup");
   return _stp_transport_init();
 }
 
