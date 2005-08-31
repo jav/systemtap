@@ -62,9 +62,7 @@ free_percpu(const void *objp)
 unsigned long strtoul(const char *nptr, char **endptr, int base);
 #define simple_strtoul strtoul
 
-#define KALLSYMS_LOOKUP kallsyms_lookup
-
-const char *kallsyms_lookup (unsigned long addr,
+const char *_stp_kallsyms_lookup (unsigned long addr,
 			     unsigned long *symbolsize,
 			     unsigned long *offset,
 			     char **modname, 

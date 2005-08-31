@@ -24,6 +24,7 @@
 #include <linux/kallsyms.h>
 #include <linux/percpu.h>
 
+
 #ifdef DEBUG
 #define dbug(args...) \
   {                                             \
@@ -38,6 +39,8 @@
 
 #undef memcpy
 #define memcpy __builtin_memcpy
+
+void exit(int status);
 
 #define NEED_STAT_LOCKS 0
 #define NEED_COUNTER_LOCKS 0

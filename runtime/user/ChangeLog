@@ -1,3 +1,9 @@
+2005-08-31  Martin Hunt  <hunt@redhat.com>
+
+	* emul.h (_stp_kallsyms_lookup): Renamed from kallsyms_lookup.
+	* runtime.h: Add prototype for exit();
+	* copy.c: New file. Just some empty functions.
+
 2005-08-19  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Include io.c.
