@@ -128,7 +128,7 @@ Whitespace is ignored.  Three forms of comments are supported:
 .br
 .BR /* " ... C style ... " */
 .RE
-Literals are either strings enclosed in double-quotes (soon supporting
+Literals are either strings enclosed in double-quotes (passing through
 the usual C escape codes with backslashes), or integers (in decimal,
 hexadecimal, or octal, using the same notation as in C).  All strings
 are limited in length to some reasonable value (a few hundred bytes).
