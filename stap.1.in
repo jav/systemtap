@@ -235,7 +235,7 @@ string assignment operators
 .B = .=
 .TP
 unary numeric operators
-.B - ! ~ ++ -- 
+.B + - ! ~ ++ -- 
 .TP
 binary numeric or string comparison operators
 .B < > <= >= == !=
