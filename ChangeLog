@@ -1,3 +1,8 @@
+2005-08-31  Graydon Hoare  <graydon@redhat.com>
+
+	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines): Correct segv
+	reported in PR 1270.
+
 2005-08-31  Frank Ch. Eigler  <fche@redhat.com>
 
 	* translate.cxx (visit_array_in, visit_arrayindex): Use write locks

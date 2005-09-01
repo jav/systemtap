@@ -547,8 +547,8 @@ dwflpp
 				   void (* callback) (Dwarf_Line * line, void * arg),				   
 				   void *data)
   {
-    Dwarf_Line **srcsp;
-    size_t nsrcs;
+    Dwarf_Line **srcsp = NULL;
+    size_t nsrcs = 0;
 
     get_module_dwarf();
 
@@ -556,11 +556,19 @@ dwflpp
 		  dwarf_getsrc_file (module_dwarf, 
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
-    
-    for (size_t i = 0; i < nsrcs; ++i)
+    try 
       {
-	callback (srcsp[i], data);
+	for (size_t i = 0; i < nsrcs; ++i)
+	  {
+	    callback (srcsp[i], data);
+	  }
       }
+    catch (...)
+      {
+	free (srcsp);
+	throw;
+      }    
+    free (srcsp);
   }
 
 
