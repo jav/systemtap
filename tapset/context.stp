@@ -1,0 +1,102 @@
+function _print_regs () %{
+	if (CONTEXT && CONTEXT->regs) {
+		_stp_print_regs (CONTEXT->regs);
+	}
+%}
+function print_regs(){_print_regs()}
+
+function _print_backtrace () %{
+	if (CONTEXT && CONTEXT->regs) {
+		_stp_stack_print(CONTEXT->regs);
+	}
+%}
+function print_backtrace(){_print_backtrace()}
+
+
+function _backtrace () %{
+	if (CONTEXT && CONTEXT->regs) {
+		String str = _stp_string_init (0);
+		_stp_stack_sprint (str, CONTEXT->regs, 0);	
+		strlcpy (THIS->__retvalue, _stp_string_ptr(str), MAXSTRINGLEN);
+	} else 
+		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
+%}
+function backtrace(){return "" . _backtrace()}
+
+function _execname () %{
+	if(unlikely(in_interrupt()))
+		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	else
+		strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);		
+%}
+function execname(){return ""._execname()}
+
+function _pid() %{
+	if(unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->pid;		
+%}
+function pid(){return 0+_pid()}
+
+function _ppid() %{
+	if(unlikely(in_interrupt() || !current->parent))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->parent->pid;		
+%}
+function ppid(){return 0+_ppid()}
+
+function _pexecname() %{
+	if(unlikely(in_interrupt() || !current->parent || !current->parent->comm))
+		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	else
+		strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
+%}
+function pexecname(){return ""._pexecname()}
+
+function _gid() %{
+	if(unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->gid;		
+%}
+function gid(){return 0+_gid()}
+
+function _egid() %{
+	if(unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->egid;		
+%}
+function egid(){return 0+_egid()}
+
+function _uid() %{
+	if(unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->uid;		
+%}
+function uid(){return 0+_uid()}
+
+function _euid() %{
+	if(unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->euid;		
+%}
+function euid(){return 0+_euid()}
+
+
+function _print_stack(stk) %{
+	char *ptr = THIS->stk;
+	char *tok = strsep(&ptr, " ");
+	_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
+	while (tok && *tok) {
+		_stp_print_cstr(" ");
+		_stp_symbol_print (simple_strtol(tok, NULL, 16));
+		_stp_print_cstr("\n");
+		tok = strsep(&ptr, " ");
+	}
+%}
+function print_stack (stk) {_print_stack("".stk)}
