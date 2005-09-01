@@ -1,3 +1,12 @@
+2005-09-01  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (emit_probe): Add a call to _stp_print_flush
+	at the end of each probe.
+	(translate_pass): Define STP_NUM_STRINGS to be 1 for
+	a scratch string. Include current.c and stack.c. Don't
+	define KALLSYMS_LOOKUP_NAME or KALLSYMS_LOOKUP. Remove
+	references to next_fmt() and stp_dbug(). 
+
 2005-08-31  Graydon Hoare  <graydon@redhat.com>
 
 	PR systemtap/1258

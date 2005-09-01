@@ -888,6 +888,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   
   // XXX: uninitialize locals
 
+  o->newline(1) << "_stp_print_flush();";
   o->newline(-1) << "}" << endl;
   
   v->emit_probe_entries (o, i);
@@ -2316,12 +2317,12 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#if TEST_MODE";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#else";
+      s.op->newline() << "#define STP_NUM_STRINGS 1";
       s.op->newline() << "#include \"runtime.h\"";
+      s.op->newline() << "#include \"current.c\"";
+      s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
-      // XXX
-      s.op->newline() << "#define KALLSYMS_LOOKUP_NAME \"\"";
-      s.op->newline() << "#define KALLSYMS_LOOKUP 0";
       // some older kernels don't have read_trylock, so pessimize.
       // XXX: maybe read_trylock is never actually necessary
       // for deadlock avoidance
@@ -2385,9 +2386,6 @@ translate_pass (systemtap_session& s)
       s.op->newline(-1) << "}";
       s.op->newline();
       s.op->newline() << "void probe_exit () {";
-      // XXX: need to reference these static functions for -Werror avoidance
-      s.op->newline(1) << "if (0) next_fmt ((void *) 0, (void *) 0);";
-      s.op->newline() << "if (0) _stp_dbug(\"\", 0, \"\");";
       s.op->newline() << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
 
