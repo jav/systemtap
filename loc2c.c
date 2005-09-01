@@ -1129,7 +1129,8 @@ c_translate_pointer (struct obstack *pool, int indent,
 static Dwarf_Word
 base_byte_size (Dwarf_Die *typedie, struct location *origin)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_base_type);
+  assert (dwarf_tag (typedie) == DW_TAG_base_type ||
+	  dwarf_tag (typedie) == DW_TAG_enumeration_type);
 
   Dwarf_Attribute attr_mem;
   Dwarf_Word size;

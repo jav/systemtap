@@ -915,6 +915,7 @@ dwflpp
 			      + lex_cast<string>(typetag));
 	break;
 
+      case DW_TAG_enumeration_type:
       case DW_TAG_base_type:
 	ty = pe_long;
 	c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,

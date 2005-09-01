@@ -1,5 +1,14 @@
 2005-08-31  Graydon Hoare  <graydon@redhat.com>
 
+	PR systemtap/1258
+	* tapsets.cxx (dwflpp::literal_stmt_for_local): 
+	Support DW_TAG_enumeration_type tag as synonymous with 
+	DW_TAG_base_type.
+	* loc2c.c (base_byte_size): Likewise.
+	* testsuite/buildok/seven.stp: Adjust to work on UP kernels.
+
+2005-08-31  Graydon Hoare  <graydon@redhat.com>
+
 	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines): Correct segv
 	reported in PR 1270.
 

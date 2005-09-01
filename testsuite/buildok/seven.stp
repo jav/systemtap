@@ -1,8 +1,24 @@
 #! stap -p4
 
-probe kernel.function("rebalance_tick") {
-  log ("rebalance_tick (" . string ($this_cpu) . ", " .
-                            string ($this_rq) . ", " .
-                            string ($idle) .
-			 ")")
+# this tests whether integers, pointers, and enums can be 
+# logged (PR 1258)
+
+
+# first: enums and ints
+
+probe kernel.function("find_pid") 
+{
+  log ("find_pid (" . string($type) . ","
+                    . string($nr) . ")")
 }
+
+# second: opaque pointers and enums
+
+probe kernel.function("detach_pid") 
+{
+  log ("detach_pid (" . hexstring($task) . ","
+              	      . string($type) . ")")
+}
+
+
+
