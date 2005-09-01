@@ -1,5 +1,7 @@
 2005-09-01  Martin Hunt  <hunt@redhat.com>
 
+	* tapset/builtin_logging.stp: Add print.
+
 	* tapset/context.stp: New file. First cut at some
 	context info.
 

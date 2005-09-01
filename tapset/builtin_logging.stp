@@ -1,5 +1,13 @@
 # This file contains simple bridging functions to the runtime
 
+function _print (msg) %{
+    _stp_print (THIS->msg);
+%}
+
+function print (msg) {
+    _print (msg . "\n")
+}
+
 function _log (msg) %{
     _stp_log (THIS->msg);
 %}
