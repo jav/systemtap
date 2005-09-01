@@ -1,3 +1,8 @@
+2005-09-01  Martin Hunt  <hunt@redhat.com>
+
+	* stack.c (_stp_stack_sprint): Add a verbose arg
+	to pass along to underlying funcs.
+
 2005-08-31  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (init_module): Include full prototype

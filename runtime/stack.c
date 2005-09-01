@@ -33,7 +33,7 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 				_stp_symbol_sprint (str, addr);
 				_stp_string_cat (str, "\n");
 			} else 
-				_stp_sprintf (str, " 0x%lx\n", addr);
+				_stp_sprintf (str, "%lx ", addr);
 		}
 	}
 }
@@ -47,25 +47,31 @@ static inline int valid_stack_ptr(struct thread_info *tinfo, void *p)
 }
 
 static inline unsigned long print_context_stack(String str, struct thread_info *tinfo,
-				unsigned long *stack, unsigned long ebp)
+						unsigned long *stack, unsigned long ebp, int verbose)
 {
 	unsigned long addr;
 
 #ifdef	CONFIG_FRAME_POINTER
 	while (valid_stack_ptr(tinfo, (void *)ebp)) {
 		addr = *(unsigned long *)(ebp + 4);
-		_stp_string_cat(str, " ");
-		_stp_symbol_sprint (str, addr);
-		_stp_string_cat(str, "\n");
+		if (verbose) {
+			_stp_string_cat(str, " ");
+			_stp_symbol_sprint (str, addr);
+			_stp_string_cat(str, "\n");
+		} else
+			_stp_sprintf (str, "%lx ", addr);
 		ebp = *(unsigned long *)ebp;
 	}
 #else
 	while (valid_stack_ptr(tinfo, stack)) {
 		addr = *stack++;
 		if (_stp_kta(addr)) {
-			_stp_string_cat(str, " ");
-			_stp_symbol_sprint(str, addr);
-			_stp_string_cat(str, "\n");
+			if (verbose) {
+				_stp_string_cat(str, " ");
+				_stp_symbol_sprint(str, addr);
+				_stp_string_cat(str, "\n");
+			} else
+				_stp_sprintf (str, "%lx ", addr);
 		}
 	}
 #endif
@@ -83,7 +89,7 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 		struct thread_info *context;
 		context = (struct thread_info *)
 			((unsigned long)stack & (~(THREAD_SIZE - 1)));
-		ebp = print_context_stack(str, context, stack, ebp);
+		ebp = print_context_stack(str, context, stack, ebp, verbose);
 		stack = (unsigned long*)context->previous_esp;
 		if (!stack)
 			break;
@@ -102,25 +108,23 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
  * @param regs A pointer to the struct pt_regs.
  * @returns Same String as was input with trace info appended,
  */
-String _stp_stack_sprint (String str, struct pt_regs *regs)
+String _stp_stack_sprint (String str, struct pt_regs *regs, int verbose)
 {
-	_stp_sprintf (str, "trace for %d (%s)\n ", current->pid, current->comm);
-	_stp_symbol_sprint (str, REG_IP(regs));
-	_stp_string_cat(str, "\n");
-	__stp_stack_sprint (str, (unsigned long *)&REG_SP(regs), 1, 0);
+	if (verbose) {
+		_stp_sprintf (str, "trace for %d (%s)\n ", current->pid, current->comm);
+		_stp_symbol_sprint (str, REG_IP(regs));
+		_stp_string_cat(str, "\n");
+	} else
+		_stp_sprintf (str, "%lx ", REG_IP(regs));
+	__stp_stack_sprint (str, (unsigned long *)&REG_SP(regs), verbose, 0);
 	return str;
 }
 
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
- * @note Calls _stp_print_flush().
  */
 
-#define _stp_stack_print(regs)					\
-	{							\
-		(void)_stp_stack_sprint(_stp_stdout,regs);	\
-		_stp_print_flush();				\
-	}
+#define _stp_stack_print(regs)	(void)_stp_stack_sprint(_stp_stdout,regs,1)
 
 /** Writes stack backtrace to a String.
  * Use this when calling from a jprobe.
@@ -139,13 +143,8 @@ String _stp_stack_sprintj(String str)
 /** Prints the stack backtrace.
  * Use this when calling from a jprobe.
  * @sa _stp_stack_print()
- * @note Calls _stp_print_flush().
  */
-#define _stp_stack_printj()					\
-	{							\
-		(void)_stp_stack_sprintj(_stp_stdout);		\
-		_stp_print_flush();				\
-	}
+#define _stp_stack_printj() (void)_stp_stack_sprintj(_stp_stdout)
 
 /** Writes the user stack backtrace to a String
  * @param str String
@@ -169,13 +168,8 @@ String _stp_ustack_sprint (String str)
 
 /** Prints the user stack backtrace
  * @note Currently limited to a depth of two. Works from jprobes and kprobes.
- * Calls _stp_print_flush().
  */
-#define _stp_ustack_print()					\
-	{							\
-		(void)_stp_ustack_sprint(_stp_stdout);		\
-		_stp_print_flush();				\
-	}
+#define _stp_ustack_print() (void)_stp_ustack_sprint(_stp_stdout)
 
 /** @} */
 #endif /* _STACK_C_ */
