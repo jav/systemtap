@@ -1,5 +1,9 @@
 2005-09-02  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx: Temporarily rolled back graydon's changes.
+
+2005-09-02  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapset/*.stp: Renamed several files to simplify names.
 
 2005-09-01  Graydon Hoare  <graydon@redhat.com>
