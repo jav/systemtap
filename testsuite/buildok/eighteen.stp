@@ -1,0 +1,11 @@
+#! stap -p4
+
+# this tests access to parameters from prologue-end PC addresses which
+# land inside the scope of an inline instance; the functionality is
+# provided by searching the function's DIE rather than the by PC
+# proximity. (PR 1244)
+
+probe kernel.function("audit_getname@kernel/auditsc.c")
+{
+        log($name);
+}

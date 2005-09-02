@@ -1,3 +1,13 @@
+2005-09-01  Graydon Hoare  <graydon@redhat.com>
+
+	PR systemtap/1244
+	* testsuite/buildok/eighteen.stp: New test.
+	* tapsets.cxx (dwflpp::literal_stmt_for_local) 
+	(query_statement, query_inline_instance_info)
+	(query_func_info, query_srcfile_line, query_cu)
+	(var_expanding_copy_visitor, visit_target_symbol)
+	(dwarf_derived_probe): Fix 1244.
+
 2005-09-01  Martin Hunt  <hunt@redhat.com>
 
 	* tapset/builtin_logging.stp: Add print.
