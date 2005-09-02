@@ -884,10 +884,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   this->current_probenum = 0; // not essential
 
   o->newline(-1) << "out:";
-  o->newline(1) << ";";
-  
-  // XXX: uninitialize locals
-
+  // NB: no need to uninitialize locals, except if arrays can somedays be local
   o->newline(1) << "_stp_print_flush();";
   o->newline(-1) << "}" << endl;
   
@@ -2386,7 +2383,7 @@ translate_pass (systemtap_session& s)
       s.op->newline(-1) << "}";
       s.op->newline();
       s.op->newline() << "void probe_exit () {";
-      s.op->newline() << "systemtap_module_exit ();";
+      s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
