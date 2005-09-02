@@ -1,3 +1,11 @@
+2005-09-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx (varlock): Use trylock only for write locks.
+	(translate_pass): Remove read_trylock macro hack.
+	(visit_foreach_loop): Remove protective read lock, until PR 1275.
+	(visit_*): Added many more "last_stmt"-setting expressions in the
+	output, to improve last_error message locality.
+
 2005-09-02  Martin Hunt  <hunt@redhat.com>
 
 	* tapset/logging.stp: Make log() be same as print().

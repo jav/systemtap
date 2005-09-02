@@ -287,30 +287,34 @@ struct varlock
   {
     if (v.is_local()) return;
 
-    // There may be a few opportunities for deadlock beyond bug #1268
-    // (foreach).  In general, we use a loop with FOO_trylock with a
-    // manual "timeout".  If it takes too many iterations to acquire
-    // the lock, we signal a deadlock error in the context and jump
-    // over all the code, right past the corresponding unlock.
-
-    static unsigned unlock_label_counter = 0;
-    post_unlock_label = string ("post_unlock_")
-      + stringify (unlock_label_counter ++);
-
-    c.o->newline() << "{";
-    c.o->newline(1) << "unsigned trylock_count = 0;";
-    c.o->newline() << "while ("
-                   << "!(" << (w ? "write_trylock" : "read_trylock")
-                   << " (& " << v << "_lock))"
-                   << " && "
-                   << "(trylock_count++ < MAXTRYLOCK)"
-                   << ") ; /* spin */";
-    c.o->newline() << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
-    c.o->newline(1) << "c->last_error = \"deadlock over variable "
-                    << v << "\";";
-    c.o->newline() << "goto " << post_unlock_label << ";";
-    c.o->newline(-1) << "}";
-    c.o->newline(-1) << "}";
+    if (!w) // read lock - no need to try, just do it
+      c.o->newline() << "read_lock (& " << v << "_lock);";
+    else
+      {
+	// There may be a few opportunities for deadlock beyond bug #1268
+	// (foreach).  In general, we use a loop with FOO_trylock with a
+	// manual "timeout".  If it takes too many iterations to acquire
+	// the lock, we signal a deadlock error in the context and jump
+	// over all the code, right past the corresponding unlock.
+	
+	static unsigned unlock_label_counter = 0;
+	post_unlock_label = string ("post_unlock_")
+	  + stringify (unlock_label_counter ++);
+	
+	c.o->newline() << "{";
+	c.o->newline(1) << "unsigned trylock_count = 0;";
+	c.o->newline() << "while ("
+		       << "!(write_trylock (& " << v << "_lock))"
+		       << " && "
+		       << "(trylock_count++ < MAXTRYLOCK)"
+		       << ") ; /* spin */";
+	c.o->newline() << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
+	c.o->newline(1) << "c->last_error = \"deadlock over variable "
+			<< v << "\";";
+	c.o->newline() << "goto " << post_unlock_label << ";";
+	c.o->newline(-1) << "}";
+	c.o->newline(-1) << "}";
+      }
   }
 
   ~varlock()
@@ -318,8 +322,11 @@ struct varlock
     if (v.is_local()) return;
     c.o->newline() << (w ? "write_unlock" : "read_unlock")
                    << " (& " << v << "_lock);";
-    c.o->newline(-1) << post_unlock_label << ": ;";
-    c.o->indent(1);
+    if (w)
+      {
+	c.o->newline(-1) << post_unlock_label << ": ;";
+	c.o->indent(1);
+      }
   }
 };
 
@@ -1488,7 +1495,13 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
   // NB: structure parallels for_loop
 
   // initialization
-  varlock_r guard (*this, mv);
+
+  // XXX: until bug #1275 is fixed, any reference into a foreach()-iterated
+  // array is an instant deadlock.  For now, don't lock around foreach(),
+  // and hope that no concurrent probe handler will modify this array.
+  //
+  // varlock_r guard (*this, mv);
+
   o->newline() << iv << " = " << iv.start (mv) << ";";
 
   // condition
@@ -1518,7 +1531,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
     
   // exit
   o->newline(-1) << breaklabel << ":";
-  o->indent(1);
+  o->newline(1) << "; /* dummy statement */";
   // varlock dtor will show up here
 }
 
@@ -1690,6 +1703,8 @@ c_unparser::visit_binary_expression (binary_expression* e)
 
       o->line() << "({";
 
+      o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+
       o->newline(1) << left << " = ";
       e->left->visit (this);
       o->line() << ";";
@@ -1778,6 +1793,7 @@ c_unparser::visit_array_in (array_in* e)
 
   vector<tmpvar> idx;
   load_map_indices (e->operand, idx);
+  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
 
   tmpvar res = gensym (pe_long);
 
@@ -1855,6 +1871,7 @@ c_unparser::visit_concatenation (concatenation* e)
   
   o->line() << "({ ";
   o->indent(1);
+  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
   c_assign (t.qname(), e->left, "assignment");
   c_strcat (t.qname(), e->right);
   o->newline() << t << ";";
@@ -1954,10 +1971,6 @@ c_unparser::visit_symbol (symbol* e)
   if (r->index_types.size() != 0)
     throw semantic_error ("invalid reference to array", e->tok);
 
-  // XXX: handle special macro symbols
-  // XXX: acquire read lock on global; copy value
-  // into local temporary
-
   var v = getvar(r, e->tok);
   o->line() << v;
 }
@@ -2025,6 +2038,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
   if (e->referent->index_types.size() != 0)
     throw semantic_error ("unexpected reference to array", e->tok);
 
+  parent->o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
   tmpvar rval = parent->gensym (e->type);
   tmpvar res = parent->gensym (e->type);
 
@@ -2084,6 +2098,7 @@ c_unparser::load_map_indices(arrayindex *e,
 	throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
       
       tmpvar ix = gensym (r->index_types[i]);
+      o->newline() << "c->last_stmt = \"" << *e->indexes[i]->tok << "\";";
       c_assign (ix.qname(), e->indexes[i], "array index copy");
       idx.push_back (ix);
     }
@@ -2119,6 +2134,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->referent, e->tok);
     // XXX: should be varlock_r, but runtime arrays reads mutate
+    o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
     varlock_w guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.get(), e->tok);
@@ -2195,6 +2211,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   
   { // block used to control varlock_w lifespan
     mapvar mvar = parent->getmap (e->referent, e->tok);
+    o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
     varlock_w guard (*parent, mvar);
     o->newline() << mvar.seek (idx) << ";";
     if (op != "=") // don't bother fetch slot if we will just overwrite it
@@ -2249,13 +2266,15 @@ c_unparser::visit_functioncall (functioncall* e)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
 
+      o->newline() << "c->last_stmt = \"" << *e->args[i]->tok << "\";";
       c_assign (t.qname(), e->args[i], "function actual argument evaluation");
     }
 
   o->newline();
   o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
-  o->newline(-1) << "} else {";
+  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+  o->newline(-1) << "} else if (likely (! c->last_error)) {";
   o->indent(1);
 
   // copy in actual arguments
@@ -2320,12 +2339,6 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
-      // some older kernels don't have read_trylock, so pessimize.
-      // XXX: maybe read_trylock is never actually necessary
-      // for deadlock avoidance
-      s.op->newline() << "#ifndef read_trylock";
-      s.op->newline() << "#define read_trylock write_trylock";
-      s.op->newline() << "#endif";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header ();
