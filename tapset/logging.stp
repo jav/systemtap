@@ -8,12 +8,9 @@ function print (msg) {
     _print (msg . "\n")
 }
 
-function _log (msg) %{
-    _stp_log (THIS->msg);
-%}
-
+// same as print
 function log (msg) {
-   _log (msg . "")
+    _print (msg . "\n")
 }
 
 function _printk (msg) %{
