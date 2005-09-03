@@ -1,5 +1,13 @@
 2005-09-03  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 1187 prime
+	* tapset.cxx (literal_stmt_for_local): Don't automgaically copy
+	target char*'s to systemtap strings.
+	* tapset/conversions.stp (user_string, kernel_string): New functions.
+	* stapfuncs.5.in: Document new functions.
+
+2005-09-03  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1292, by popular request.
 	* parse.cxx (parse_functiondecl): Allow optional value/param type
 	declarations.

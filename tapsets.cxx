@@ -957,42 +957,28 @@ dwflpp
 	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, &attr_mem), 
 			   &pointee_encoding);
 
-	  if (pointee_typetag == DW_TAG_base_type
-	      && (pointee_encoding == DW_ATE_signed_char
-		  || pointee_encoding == DW_ATE_unsigned_char
-		  || ((pointee_encoding == DW_ATE_signed 
-		       || pointee_encoding == DW_ATE_unsigned) && pointee_byte_size == 1)))
-	    {
-	      // We have an (un)signed char* or (un)signed char[], fetch it into 'tmpc' and
-	      // then copy to the return value via something strcpy-ish.
-	      ty = pe_string;
-	      prelude += "intptr_t tmpc = 0;\n";
-	      if (typetag == DW_TAG_array_type)
-		c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
-	      else
-		c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
-	      c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, "tmpc");
-	      postlude += "deref_string (THIS->__retvalue, tmpc, MAXSTRINGLEN);\n";
-	    }
+	  // We have the pointer: cast it to an integral type via &(*(...))
+
+	  // NB: per bug #1187, at one point char*-like types were
+	  // automagically converted here to systemtap string values.
+	  // For several reasons, this was taken back out, leaving
+	  // pointer-to-string "conversion" (copying) to tapset functions.
+
+	  ty = pe_long;
+	  if (typetag == DW_TAG_array_type)
+	    c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
 	  else
-	    {
-	      // We have some other pointer: cast it to an integral type via &(*(...))
-	      ty = pe_long;
-	      if (typetag == DW_TAG_array_type)
-		c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
-	      else
-		c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
-	      c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, 
-				     "THIS->__retvalue");
-	    }
+	    c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
+	  c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, 
+				 "THIS->__retvalue");
 	}
 	break;	
       }
-
+    
     size_t bufsz = 1024;
     char *buf = static_cast<char*>(malloc(bufsz));
     assert(buf);
-
+    
     FILE *memstream = open_memstream (&buf, &bufsz);
     assert(memstream);
 

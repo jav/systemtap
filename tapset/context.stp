@@ -10,8 +10,9 @@ function print_backtrace () %{
 	}
 %}
 
-function backtrace () %{
+function backtrace:string () %{
 	if (CONTEXT->regs) {
+                /* XXX: is String really necessary for this? */
 		String str = _stp_string_init (0);
 		_stp_stack_sprint (str, CONTEXT->regs, 0);	
 		strlcpy (THIS->__retvalue, _stp_string_ptr(str), MAXSTRINGLEN);
@@ -79,6 +80,7 @@ function euid:long () %{
 function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
+	/* XXX: is this header really necessary & accurate? */
 	_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
 	while (tok && *tok) {
 		_stp_print_cstr(" ");

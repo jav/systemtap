@@ -6,3 +6,31 @@ function string:string (num:long) %{
     sprintf (THIS->__retvalue, "%lld", (long long) THIS->num);
 %}
 
+
+function kernel_string:string (addr:long) %{
+  char *destination = THIS->__retvalue;
+  deref_string (destination, THIS->addr, MAXSTRINGLEN);
+  goto success;
+deref_fault: /* branched to from deref() */
+  {
+    static char errmsg[40];
+    snprintf (errmsg, 40, "kernel string copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+success: ;
+%}
+
+# NB: accessing user space is hazardous from certain kernel contexts.
+function user_string:string (addr:long) %{
+  long rc = _stp_strncpy_from_user (THIS->__retvalue, 
+		 	            (const char __user*) (uintptr_t) THIS->addr,
+				    MAXSTRINGLEN);
+  if (rc < 0)
+  {
+    static char errmsg[40];
+    snprintf (errmsg, 40, "user string copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+%}

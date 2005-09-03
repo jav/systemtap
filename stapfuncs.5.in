@@ -70,6 +70,16 @@ the leading "0x".
 string:string (num:long)
 Return a decimal string representation of the given integer.
 
+.TP
+kernel_string:string (addr:long)
+Copy a string from kernel space at given address.  The validation of this
+address is only partial at present.
+
+.TP
+user_string:string (addr:long)
+Copy a string from user space at given address.  The validation of this
+address is only partial at present.
+
 .SS TIMESTAMP
 
 .TP
