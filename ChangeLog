@@ -1,3 +1,13 @@
+2005-09-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1292, by popular request.
+	* parse.cxx (parse_functiondecl): Allow optional value/param type
+	declarations.
+	* stap.1.in: Document this.
+	* tapset/*.stp: Convert most functions accordingly.
+	* testsuite/parseok/twelve.stp, semok/seven.stp,
+	semko/twenty.stp: Test this.
+
 2005-09-02  Frank Ch. Eigler  <fche@redhat.com>
 
 	* translate.cxx (varlock): Use trylock only for write locks.

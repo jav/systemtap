@@ -315,8 +315,18 @@ function thisfn (arg1, arg2) {
    return arg1 + arg2
 }
 .ESAMPLE
-Note the usual absence of type declarations, which are instead
-inferred by the translator.  Functions may call others or themselves
+Note the general absence of type declarations, which are instead
+inferred by the translator.  However, if desired, a function
+definition may include explicit type declarations for its return value
+and/or its arguments.  This is especially helpful for embedded-C
+functions.  In the following example, the type inference engine need
+only infer type type of arg2 (a string).
+.SAMPLE
+function thatfn:string (arg1:long, arg2) {
+   return string(arg1) . arg2
+}
+.ESAMPLE
+Functions may call others or themselves
 recursively, up to a fixed nesting limit.  This limit is defined by
 a macro in the translated C code and is in the neighbourhood of 30.
 

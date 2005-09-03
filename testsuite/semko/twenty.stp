@@ -1,0 +1,7 @@
+#! stap -p2
+
+function a:string () { }
+
+probe begin {
+  a() + 1
+}

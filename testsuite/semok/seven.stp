@@ -2,8 +2,8 @@
 
 global ar1, ar2
 
-function string (v) { num=v+0; return "stringify me" } # to become a built-in
-function printk (s) { str=s.""; return 0 } # to become a built-in
+function string:string (v:long) { } # to become a built-in
+function printk (s:string) { return 0 } # to become a built-in
 
 function search (key) 
 {

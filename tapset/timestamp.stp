@@ -3,14 +3,14 @@
 %}
 
 // return in milliseconds since epoch
-function gettimeofday_ms () %{
+function gettimeofday_ms:long () %{
   struct timeval tm;
   do_gettimeofday (& tm);
   THIS->__retvalue = (tm.tv_sec * 1000) + (tm.tv_usec / 1000);
 %}
 
 // return in seconds since epoch
-function gettimeofday_s () %{
+function gettimeofday_s:long () %{
   struct timeval tm;
   do_gettimeofday (& tm);
   THIS->__retvalue = tm.tv_sec;

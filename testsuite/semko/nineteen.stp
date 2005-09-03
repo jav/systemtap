@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -p2
 
 # PR 1155: should start working when we can resolve the parameters of
 # the inlines.

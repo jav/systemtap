@@ -1,44 +1,28 @@
 # This file contains simple bridging functions to the runtime
 
-function _print (msg) %{
+function print (msg:string) %{
     _stp_print (THIS->msg);
 %}
 
-function print (msg) {
-    _print (msg . "\n")
-}
-
-// same as print
+// almost the same as print
 function log (msg) {
-    _print (msg . "\n")
+    print (msg . "\n")
 }
 
-function _printk (msg) %{
+function printk (msg:string) %{
     printk (KERN_INFO "%s\n", THIS->msg);
 %}
 
-function printk (msg) {
-    _printk (msg . "")
-}
-
-function _warn (msg) %{
+function warn (msg:string) %{
     _stp_warn ("%s", THIS->msg);
 %}
-
-function warn (msg) {
-    _warn (msg . "")
-}
 
 // NB: exit() does *not* cause immediate return from current function/probe
 function exit () %{
     _stp_exit ();
 %}
 
-function _error (msg) %{
+function error (msg:string) %{
     CONTEXT->last_error = "called error()"; /* kill current probe */
     _stp_error ("%s", THIS->msg); /* implies _stp_exit */
 %}
-
-function error (msg) {
-    _error (msg . "")
-}

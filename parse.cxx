@@ -774,6 +774,18 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
   fd->tok = t;
 
   t = next ();
+  if (t->type == tok_operator && t->content == ":")
+    {
+      t = next ();
+      if (t->type == tok_identifier && t->content == "string")
+	fd->type = pe_string;
+      else if (t->type == tok_identifier && t->content == "long")
+	fd->type = pe_long;
+      else throw parse_error ("expected 'string' or 'long'");
+
+      t = next ();
+    }
+
   if (! (t->type == tok_operator && t->content == "("))
     throw parse_error ("expected '('");
 
@@ -792,6 +804,17 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
       fd->formal_args.push_back (vd);
 
       t = next ();
+      if (t->type == tok_operator && t->content == ":")
+	{
+	  t = next ();
+	  if (t->type == tok_identifier && t->content == "string")
+	    vd->type = pe_string;
+	  else if (t->type == tok_identifier && t->content == "long")
+	    vd->type = pe_long;
+	  else throw parse_error ("expected 'string' or 'long'");
+	  
+	  t = next ();
+	}
       if (t->type == tok_operator && t->content == ")")
 	break;
       if (t->type == tok_operator && t->content == ",")

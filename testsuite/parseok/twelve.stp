@@ -6,7 +6,7 @@
 /* hello world */
 %}
 
-function foo (p1, p2) %{
+function foo:long (p1:string, p2:long, p3) %{
   /* goodbye world */
 %}
 

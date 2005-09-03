@@ -1,94 +1,82 @@
-function _print_regs () %{
-	if (CONTEXT && CONTEXT->regs) {
+function print_regs () %{
+	if (CONTEXT->regs) {
 		_stp_print_regs (CONTEXT->regs);
 	}
 %}
-function print_regs(){_print_regs()}
 
-function _print_backtrace () %{
-	if (CONTEXT && CONTEXT->regs) {
+function print_backtrace () %{
+	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs);
 	}
 %}
-function print_backtrace(){_print_backtrace()}
 
-
-function _backtrace () %{
-	if (CONTEXT && CONTEXT->regs) {
+function backtrace () %{
+	if (CONTEXT->regs) {
 		String str = _stp_string_init (0);
 		_stp_stack_sprint (str, CONTEXT->regs, 0);	
 		strlcpy (THIS->__retvalue, _stp_string_ptr(str), MAXSTRINGLEN);
 	} else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
-function backtrace(){return "" . _backtrace()}
 
-function _execname () %{
-	if(unlikely(in_interrupt()))
+function execname:string () %{
+	if (unlikely(in_interrupt()))
 		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
 	else
-		strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);		
+		strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
-function execname(){return ""._execname()}
 
-function _pid() %{
-	if(unlikely(in_interrupt()))
+function pid:long () %{
+	if (unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->pid;		
 %}
-function pid(){return 0+_pid()}
 
-function _ppid() %{
-	if(unlikely(in_interrupt() || !current->parent))
+function ppid:long () %{
+	if (unlikely(in_interrupt() || !current->parent))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->parent->pid;		
 %}
-function ppid(){return 0+_ppid()}
 
-function _pexecname() %{
+function pexecname:string () %{
 	if(unlikely(in_interrupt() || !current->parent || !current->parent->comm))
 		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
 	else
 		strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
 %}
-function pexecname(){return ""._pexecname()}
 
-function _gid() %{
+function gid:long () %{
 	if(unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->gid;		
 %}
-function gid(){return 0+_gid()}
 
-function _egid() %{
+function egid:long () %{
 	if(unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->egid;		
 %}
-function egid(){return 0+_egid()}
 
-function _uid() %{
+function uid:long () %{
 	if(unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->uid;		
 %}
-function uid(){return 0+_uid()}
 
-function _euid() %{
+function euid:long () %{
 	if(unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
 		THIS->__retvalue = current->euid;		
 %}
-function euid(){return 0+_euid()}
 
 
-function _print_stack(stk) %{
+function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	_stp_printf ("trace for %d (%s)\n", current->pid, current->comm);
@@ -99,4 +87,3 @@ function _print_stack(stk) %{
 		tok = strsep(&ptr, " ");
 	}
 %}
-function print_stack (stk) {_print_stack("".stk)}
