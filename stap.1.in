@@ -362,8 +362,8 @@ function add_one (val) %{
   THIS->__retvalue = THIS->val + 1;
 %}
 function add_one_str (val) %{
-  strncpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
-  strncat (THIS->__retvalue, "one", MAXSTRINGLEN);
+  strlcpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
+  strlcat (THIS->__retvalue, "one", MAXSTRINGLEN);
 %}
 .ESAMPLE
 The function argument and return value types have to be inferred by
