@@ -31,6 +31,10 @@ Log the given string to the kernel's printk buffer, at KERN_INFO severity.
 Append an implicit end-of-line.
 
 .TP
+print:unknown (msg:string)
+Print the given string to the common trace buffer.
+
+.TP
 log:unknown (msg:string)
 Log the given string to the common trace buffer.  Append an implicit
 end-of-line.
@@ -90,8 +94,56 @@ Return the number of milliseconds since the UNIX epoch.
 gettimeofday_s:long ()
 Return the number of seconds since the UNIX epoch.
 
-.\" .SS CONTEXTINFO
+.SS CONTEXTINFO
 
+.TP
+execname:string ()
+Returns the name of the current process.
+
+.TP
+pexecname:string()
+Returns the name of the parent process.
+
+.TP
+pid:long ()
+Returns the current pid. 
+
+.TP
+ppid:long ()
+Returns the current pid.
+
+.TP
+uid:long ()
+Returns the uid of the current process.
+
+.TP
+euid:long ()
+Returns the effective uid of the current process.
+
+.TP
+gid:long ()
+Returns the gid of the current process.
+
+.TP
+egid:long ()
+Returns the effective gid of the current process.
+
+.TP
+print_regs:unknown ()
+Prints a register dump.
+
+.TP
+print_backtrace:unknown ()
+Prints a symbolic backtrace.  Use with care. May be timeconsuming.
+
+.TP
+backtrace:string ()
+Returns a string of hex addresses that are a backtrace of the stack.
+May be truncated due to maximum string length.
+
+.TP
+print_stack(bt:string)
+Does a symbolic lookup of the addresses in bt and prints one per line.
 
 .SH FILES
 .nh

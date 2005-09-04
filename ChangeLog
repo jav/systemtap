@@ -1,3 +1,10 @@
+2005-09-04  Martin Hunt  <hunt@redhat.com>
+
+	* testsuite/buildok/context_test.stp: New test.
+	* tapset/logging.stp (log): Call _stp_printf().
+	* stapfuncs.5.in: Add contextinfo funcs.
+	* tapset/context.stp: Minor cleanup.
+
 2005-09-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1187 prime

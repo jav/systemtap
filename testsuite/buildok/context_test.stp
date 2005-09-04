@@ -1,0 +1,47 @@
+#! stap -p4
+
+probe kernel.function("uptime_read_proc") {
+	print("NOW IN UPTIME\n")
+	print_regs()
+	print_backtrace()
+	bt = backtrace()
+	print("the stack is " . bt)
+	print("\n\n")
+	print_stack(bt)
+	print("\n\n")
+	log("name is " . execname())
+	log("pid is " . string(pid()))
+	log("parentname is " . pexecname())
+	log("ppid is " . string(ppid()))
+	log("uid is " . string(uid()))
+	log("euid is " . string(euid()))
+	log("gid is " . string(gid()))
+	log("egid is " . string(egid()))
+}
+
+probe kernel.function("uptime_read_proc").return {
+	print("DONE WITH UPTIME\n")
+	print_regs()
+	print_backtrace()
+	bt = backtrace()
+	print("the stack is " . bt)
+	print("\n\n")
+	print_stack(bt)
+	print("\n\n")
+	log("name is " . execname())
+	log("pid is " . string(pid()))
+	log("parentname is " . pexecname())
+	log("ppid is " . string(ppid()))
+	log("uid is " . string(uid()))
+	log("euid is " . string(euid()))
+	log("gid is " . string(gid()))
+	log("egid is " . string(egid()))
+}
+
+probe begin {
+	print ("BEGIN\n")
+}
+
+probe end {
+	print ("END\n")
+}

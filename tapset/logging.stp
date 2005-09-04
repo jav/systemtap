@@ -4,10 +4,10 @@ function print (msg:string) %{
     _stp_print (THIS->msg);
 %}
 
-// almost the same as print
-function log (msg) {
-    print (msg . "\n")
-}
+// like print but with a newline
+function log (msg:string) %{
+    _stp_printf ("%s\n", THIS->msg);
+%}
 
 function printk (msg:string) %{
     printk (KERN_INFO "%s\n", THIS->msg);
