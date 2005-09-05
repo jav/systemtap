@@ -38,6 +38,51 @@ extern "C" {
 
 using namespace std;
 
+
+// XXX: should standardize to these functions throughout translator
+
+template <typename OUT, typename IN> inline OUT
+lex_cast(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
+
+template <typename OUT, typename IN> inline OUT
+lex_cast_hex(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << hex << showbase << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
+
+
+// return as quoted string, with at least '"' backslash-escaped
+template <typename IN> inline string
+lex_cast_qstring(IN const & in)
+{
+  stringstream ss;
+  string out, out2;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+
+  out2 += '"';
+  for (unsigned i=0; i<out.length(); i++)
+    {
+      if (out[i] == '"') // XXX others?
+	out2 += '\\';
+      out2 += out[i];
+    }
+  out2 += '"';
+  return out2;
+}
+
+
 // ------------------------------------------------------------------------
 // begin/end probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
@@ -102,6 +147,8 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       // While begin/end probes are executed single-threaded, we
       // still code defensively and use a per-cpu context.
       o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+      o->newline() << "const char* probe_point = "
+		   << lex_cast_qstring(*l) << ";";
 
       // A precondition for running a probe handler is that we're in STARTING
       // or STOPPING state (not ERROR), and that no one else is already using
@@ -110,16 +157,15 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       if (begin) o->line() << "STAP_SESSION_STARTING)";
       else o->line() << "STAP_SESSION_STOPPING)";
       o->newline(1) << "return;";
-      o->newline(-1) << "if (c->busy) {";
-      o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+      o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
+      o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+		    << "c->probe_point, probe_point);";
       o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline() << "return;";
       o->newline(-1) << "}";
       o->newline();
-
-      o->newline() << "c->busy ++;";
-      o->newline() << "mb ();"; // for smp
       o->newline() << "c->last_error = 0;";
+      o->newline() << "c->probe_point = probe_point;";
       o->newline() << "c->nesting = 0;";
       o->newline() << "c->regs = 0;";
       o->newline() << "c->actioncount = 0;";
@@ -132,8 +178,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline(-1) << "}";
 
-      o->newline() << "c->busy --;";
-      o->newline() << "mb ();";
+      o->newline() << "atomic_dec (&c->busy);";
       o->newline(-1) << "}" << endl;
     }
 }
@@ -156,27 +201,7 @@ static string TOK_LABEL("label");
 static string TOK_RELATIVE("relative");
 
 
-// XXX: should standardize to these functions throughout translator
 
-template <typename OUT, typename IN> inline OUT
-lex_cast(IN const & in)
-{
-  stringstream ss;
-  OUT out;
-  if (!(ss << in && ss >> out))
-    throw runtime_error("bad lexical cast");
-  return out;
-}
-
-template <typename OUT, typename IN> inline OUT
-lex_cast_hex(IN const & in)
-{
-  stringstream ss;
-  OUT out;
-  if (!(ss << hex << showbase << in && ss >> out))
-    throw runtime_error("bad lexical cast");
-  return out;
-}
 
 struct 
 func_info
@@ -1973,7 +1998,6 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
 void
 dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
 {
-
   // Construct a single entry function, and a struct kprobe pointing into
   // the entry function. The entry function will call the probe function.
   o->newline();
@@ -1985,22 +2009,23 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
     o->line() << "struct kprobe *_ignored";
   o->line() << ", struct pt_regs *regs) {";
   o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
-  o->newline();
+  o->newline() << "const char* probe_point = "
+	       << lex_cast_qstring(*locations[0]) << ";";
 
   // A precondition for running a probe handler is that we're in RUNNING
   // state (not ERROR), and that no one else is already using this context.
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
   o->newline(1) << "return 0;";
-  o->newline(-1) << "if (c->busy) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+		    << "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "return 0;";
   o->newline(-1) << "}";
   o->newline();
 
-  o->newline() << "c->busy ++;";
-  o->newline() << "mb ();"; // for smp
   o->newline() << "c->last_error = 0;";
+  o->newline() << "c->probe_point = probe_point;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = regs;";
   o->newline() << "c->actioncount = 0;";
@@ -2013,9 +2038,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline(-1) << "}";
   
-  o->newline() << "c->busy --;";
-  o->newline() << "mb ();";
-
+  o->newline() << "atomic_dec (& c->busy);";
   o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
 
@@ -2140,7 +2163,8 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
   o->newline() << "void enter_" << j << " (unsigned long val) {";
   o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
-  
+  o->newline() << "const char* probe_point = "
+	       << lex_cast_qstring(*locations[0]) << ";";
   o->newline() << "(void) val;";
 
   // A precondition for running a probe handler is that we're in
@@ -2149,8 +2173,9 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
   o->newline(1) << "return;";
 
-  o->newline(-1) << "if (c->busy) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy\");";
+  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+		<< "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "return;";
   o->newline(-1) << "}";
@@ -2162,11 +2187,10 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
     o->line() << " + _stp_random_pm(" << randomize << ")";
   o->line() << ");";
   
-  o->newline() << "c->busy ++;";
-  o->newline() << "mb ();"; // for smp
+  o->newline() << "c->probe_point = probe_point;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
-  o->newline() << "if (! in_interrupt())";
+  o->newline() << "if (in_interrupt())";
   o->newline(1) << "c->regs = 0;";
   o->newline(-1) << "else";
   o->newline(1) << "c->regs = task_pt_regs (current);";
@@ -2181,8 +2205,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline(-1) << "}";
   
-  o->newline() << "c->busy --;";
-  o->newline() << "mb ();";
+  o->newline() << "atomic_dec (&c->busy);";
   o->newline(-1) << "}" << endl;
 }
 

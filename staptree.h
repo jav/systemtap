@@ -56,11 +56,11 @@ struct expression
   const token* tok;
   expression ();
   virtual ~expression ();
-  virtual void print (std::ostream& o) = 0;
+  virtual void print (std::ostream& o) const = 0;
   virtual void visit (visitor* u) = 0;
 };
 
-std::ostream& operator << (std::ostream& o, expression& k);
+std::ostream& operator << (std::ostream& o, const expression& k);
 
 
 struct literal: public expression
@@ -72,7 +72,7 @@ struct literal_string: public literal
 {
   std::string value;
   literal_string (const std::string& v);
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -81,7 +81,7 @@ struct literal_number: public literal
 {
   int64_t value;
   literal_number (int64_t v);
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -91,7 +91,7 @@ struct binary_expression: public expression
   expression* left;
   std::string op;
   expression* right;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -100,7 +100,7 @@ struct unary_expression: public expression
 {
   std::string op;
   expression* operand;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -113,7 +113,7 @@ struct pre_crement: public unary_expression
 
 struct post_crement: public unary_expression
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -134,7 +134,7 @@ struct arrayindex;
 struct array_in: public expression
 {
   arrayindex* operand;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -156,7 +156,7 @@ struct ternary_expression: public expression
   expression* cond;
   expression* truevalue;
   expression* falsevalue;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -173,7 +173,7 @@ struct symbol: public expression
   std::string name;
   vardecl *referent;
   symbol ();
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -187,7 +187,7 @@ struct target_symbol : public expression
     };
   std::string base_name;
   std::vector<std::pair<component_type, std::string> > components;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);  
 };
 
@@ -198,7 +198,7 @@ struct arrayindex: public expression
   std::vector<expression*> indexes;
   vardecl *referent;
   arrayindex ();
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -210,7 +210,7 @@ struct functioncall: public expression
   std::vector<expression*> args;
   functiondecl *referent;
   functioncall ();
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -226,18 +226,18 @@ struct symboldecl // unique object per (possibly implicit)
   exp_type type;
   symboldecl ();
   virtual ~symboldecl ();
-  virtual void print (std::ostream &o) = 0;
-  virtual void printsig (std::ostream &o) = 0;
+  virtual void print (std::ostream &o) const = 0;
+  virtual void printsig (std::ostream &o) const = 0;
 };
 
 
-std::ostream& operator << (std::ostream& o, symboldecl& k);
+std::ostream& operator << (std::ostream& o, const symboldecl& k);
 
 
 struct vardecl: public symboldecl
 {
-  void print (std::ostream& o);
-  void printsig (std::ostream& o);
+  void print (std::ostream& o) const;
+  void printsig (std::ostream& o) const;
   vardecl ();
   void set_arity (int arity);
   bool compatible_arity (int a);
@@ -258,8 +258,8 @@ struct functiondecl: public symboldecl
   std::vector<vardecl*> locals;
   statement* body;
   functiondecl ();
-  void print (std::ostream& o);
-  void printsig (std::ostream& o);
+  void print (std::ostream& o) const;
+  void printsig (std::ostream& o) const;
 };
 
 
@@ -268,20 +268,20 @@ struct functiondecl: public symboldecl
 
 struct statement
 {
-  virtual void print (std::ostream& o) = 0;
+  virtual void print (std::ostream& o) const = 0;
   virtual void visit (visitor* u) = 0;
   const token* tok;
   statement ();
   virtual ~statement ();
 };
 
-std::ostream& operator << (std::ostream& o, statement& k);
+std::ostream& operator << (std::ostream& o, const statement& k);
 
 
 struct embeddedcode: public statement
 {
   std::string code;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -289,7 +289,7 @@ struct embeddedcode: public statement
 struct block: public statement
 {
   std::vector<statement*> statements;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -301,7 +301,7 @@ struct for_loop: public statement
   expression* cond;
   expr_statement* incr;
   statement* block;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -314,14 +314,14 @@ struct foreach_loop: public statement
   vardecl* base_referent;
 
   statement* block;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct null_statement: public statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -329,7 +329,7 @@ struct null_statement: public statement
 struct expr_statement: public statement
 {
   expression* value;  // executed for side-effects
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -339,42 +339,42 @@ struct if_statement: public statement
   expression* condition;
   statement* thenblock;
   statement* elseblock;
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct return_statement: public expr_statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct delete_statement: public expr_statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct break_statement: public statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct continue_statement: public statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
 
 struct next_statement: public statement
 {
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   void visit (visitor* u);
 };
 
@@ -392,7 +392,7 @@ struct stapfile
   std::vector<embeddedcode*> embeds;
   bool privileged;
   stapfile (): privileged (false) {}
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
 };
 
 
@@ -409,12 +409,12 @@ struct probe_point
   };
   std::vector<component*> components;
   const token* tok; // points to first component's functor
-  void print (std::ostream& o);
+  void print (std::ostream& o) const;
   probe_point ();
   probe_point(std::vector<component*> const & comps,const token * t); 
 };
 
-std::ostream& operator << (std::ostream& o, probe_point& k);
+std::ostream& operator << (std::ostream& o, const probe_point& k);
 
 
 struct probe
@@ -424,8 +424,8 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   probe ();
-  void print (std::ostream& o);
-  virtual void printsig (std::ostream &o);
+  void print (std::ostream& o) const;
+  virtual void printsig (std::ostream &o) const;
   virtual ~probe() {}
 };
 
@@ -433,7 +433,7 @@ struct probe_alias: public probe
 {
   probe_alias(std::vector<probe_point*> const & aliases);
   std::vector<probe_point*> alias_names;  
-  virtual void printsig (std::ostream &o);
+  virtual void printsig (std::ostream &o) const;
 };
 
 

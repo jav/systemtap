@@ -1,3 +1,20 @@
+2005-09-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1172.
+	* staptree.h, staptree.cxx: Make all ::print*(), operator<<
+	functions take const staptree objects.
+	(literal_string::print): \-prefix double-quotes.
+	* translate.cxx (emit_common_header): Add context probe_point field.
+	Switch to atomic_t busy flags.
+	(emit_module_exit): Use atomic operations for busy flag.
+	(visit_*): Use lex_cast_qstring for last_stmt strings.
+	* tapsets.cxx (lex_cast_quoted): \-prefix double-quotes too.
+	(*::emit_probe_entries): Populate probe_point.  Use atomic operations
+	for busy flag.
+	* tapset/context.stp (pp): New function.
+	* stapfuncs.5.in: Document it.
+	* testsuite/buildok/context_test.stp: Test it.
+
 2005-09-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (visit_literal_string): \-prefix double-quotes.

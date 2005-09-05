@@ -88,3 +88,7 @@ function print_stack(stk:string) %{
 		tok = strsep(&ptr, " ");
 	}
 %}
+
+function pp:string () %{
+	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
+%}

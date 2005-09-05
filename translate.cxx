@@ -30,6 +30,27 @@ stringify(T t)
   return s.str ();
 }
 
+// return as quoted string, with at least '"' backslash-escaped
+template <typename IN> inline string
+lex_cast_qstring(IN const & in)
+{
+  stringstream ss;
+  string out, out2;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+
+  out2 += '"';
+  for (unsigned i=0; i<out.length(); i++)
+    {
+      if (out[i] == '"') // XXX others?
+	out2 += '\\';
+      out2 += out[i];
+    }
+  out2 += '"';
+  return out2;
+}
+
+
 struct var;
 struct tmpvar;
 struct mapvar;
@@ -575,7 +596,8 @@ c_unparser::emit_common_header ()
   o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
   o->newline();
   o->newline() << "struct context {";
-  o->newline(1) << "unsigned busy;"; // XXX: should be atomic_t ?
+  o->newline(1) << "atomic_t busy;";
+  o->newline() << "const char *probe_point;";
   o->newline() << "unsigned actioncount;";
   o->newline() << "unsigned nesting;";
   o->newline() << "const char *last_error;";
@@ -779,14 +801,13 @@ c_unparser::emit_module_exit ()
   o->newline() << "do {";
   o->newline(1) << "int i;";
   o->newline() << "holdon = 0;";
-  o->newline() << "mb ();";
   o->newline() << "for (i=0; i<NR_CPUS; i++)";
-  o->newline(1) << "if (contexts[i].busy) holdon = 1;";
+  o->newline(1) << "if (atomic_read (&contexts[i].busy)) holdon = 1;";
   // o->newline(-1) << "if (holdon) msleep (5);";
   o->newline(-1) << "} while (holdon);";
   o->newline(-1);
   // XXX: might like to have an escape hatch, in case some probe is
-  // genuinely stuck
+  // genuinely stuck somehow
 
   for (int i=session->probes.size()-1; i>=0; i--)
     session->probes[i]->emit_deregistrations (o, i);
@@ -797,7 +818,6 @@ c_unparser::emit_module_exit ()
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
     }
-  // XXX: if anyrc, log badness
   o->newline(-1) << "}" << endl;
 }
 
@@ -1335,7 +1355,7 @@ c_unparser::visit_statement (statement *s, unsigned actions)
 
   o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
   assert (s->tok);
-  o->newline() << "c->last_stmt = \"" << *s->tok << "\";";
+  o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
   if (actions > 0)
     {
       o->newline() << "c->actioncount += " << actions << ";";
@@ -1709,9 +1729,7 @@ c_unparser::visit_binary_expression (binary_expression* e)
       tmpvar right = gensym (pe_long);
 
       o->line() << "({";
-
-      o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
-
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       o->newline(1) << left << " = ";
       e->left->visit (this);
       o->line() << ";";
@@ -1800,7 +1818,7 @@ c_unparser::visit_array_in (array_in* e)
 
   vector<tmpvar> idx;
   load_map_indices (e->operand, idx);
-  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
   tmpvar res = gensym (pe_long);
 
@@ -1878,7 +1896,7 @@ c_unparser::visit_concatenation (concatenation* e)
   
   o->line() << "({ ";
   o->indent(1);
-  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
   c_assign (t.qname(), e->left, "assignment");
   c_strcat (t.qname(), e->right);
   o->newline() << t << ";";
@@ -2045,7 +2063,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
   if (e->referent->index_types.size() != 0)
     throw semantic_error ("unexpected reference to array", e->tok);
 
-  parent->o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+  parent->o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
   tmpvar rval = parent->gensym (e->type);
   tmpvar res = parent->gensym (e->type);
 
@@ -2105,7 +2123,8 @@ c_unparser::load_map_indices(arrayindex *e,
 	throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
       
       tmpvar ix = gensym (r->index_types[i]);
-      o->newline() << "c->last_stmt = \"" << *e->indexes[i]->tok << "\";";
+      o->newline() << "c->last_stmt = "
+		   << lex_cast_qstring(*e->indexes[i]->tok) << ";";
       c_assign (ix.qname(), e->indexes[i], "array index copy");
       idx.push_back (ix);
     }
@@ -2141,7 +2160,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->referent, e->tok);
     // XXX: should be varlock_r, but runtime arrays reads mutate
-    o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
     varlock_w guard (*this, mvar);
     o->newline() << mvar.seek (idx) << ";";
     c_assign (res, mvar.get(), e->tok);
@@ -2218,7 +2237,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   
   { // block used to control varlock_w lifespan
     mapvar mvar = parent->getmap (e->referent, e->tok);
-    o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
     varlock_w guard (*parent, mvar);
     o->newline() << mvar.seek (idx) << ";";
     if (op != "=") // don't bother fetch slot if we will just overwrite it
@@ -2273,14 +2292,15 @@ c_unparser::visit_functioncall (functioncall* e)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
 
-      o->newline() << "c->last_stmt = \"" << *e->args[i]->tok << "\";";
+      o->newline() << "c->last_stmt = "
+		   << lex_cast_qstring(*e->args[i]->tok) << ";";
       c_assign (t.qname(), e->args[i], "function actual argument evaluation");
     }
 
   o->newline();
   o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
-  o->newline() << "c->last_stmt = \"" << *e->tok << "\";";
+  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
   o->newline(-1) << "} else if (likely (! c->last_error)) {";
   o->indent(1);
 

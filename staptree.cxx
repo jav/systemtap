@@ -168,27 +168,32 @@ operator << (ostream& o, const exp_type& e)
 // ------------------------------------------------------------------------
 // parse tree printing
 
-ostream& operator << (ostream& o, expression& k)
+ostream& operator << (ostream& o, const expression& k)
 {
   k.print (o);
   return o;
 }
 
 
-void literal_string::print (ostream& o)
+void literal_string::print (ostream& o) const
 {
-  // XXX: quote special chars
-  o << '"' << value << '"';
+  o << '"';
+  for (unsigned i=0; i<value.size(); i++)
+    if (value[i] == '"') // or other escapeworthy characters?
+      o << '\\' << '"';
+    else
+      o << value[i];
+  o << '"';
 }
 
 
-void literal_number::print (ostream& o)
+void literal_number::print (ostream& o) const
 {
   o << value;
 }
 
 
-void binary_expression::print (ostream& o)
+void binary_expression::print (ostream& o) const
 {
   o << '(' << *left << ")" 
     << op 
@@ -196,12 +201,12 @@ void binary_expression::print (ostream& o)
 }
 
 
-void unary_expression::print (ostream& o)
+void unary_expression::print (ostream& o) const
 {
   o << op << '(' << *operand << ")"; 
 }
 
-void array_in::print (ostream& o)
+void array_in::print (ostream& o) const
 {
   o << "[";
   for (unsigned i=0; i<operand->indexes.size(); i++)
@@ -212,13 +217,13 @@ void array_in::print (ostream& o)
   o << "] in " << operand->base;
 }
 
-void post_crement::print (ostream& o)
+void post_crement::print (ostream& o) const
 {
   o << '(' << *operand << ")" << op; 
 }
 
 
-void ternary_expression::print (ostream& o)
+void ternary_expression::print (ostream& o) const
 {
   o << "(" << *cond << ")?("
     << *truevalue << "):("
@@ -226,13 +231,13 @@ void ternary_expression::print (ostream& o)
 }
 
 
-void symbol::print (ostream& o)
+void symbol::print (ostream& o) const
 {
   o << name;
 }
 
 
-void target_symbol::print (std::ostream& o)
+void target_symbol::print (std::ostream& o) const
 {
   o << base_name;
   for (unsigned i = 0; i < components.size(); ++i)
@@ -250,7 +255,7 @@ void target_symbol::print (std::ostream& o)
 }
 
 
-void vardecl::print (ostream& o)
+void vardecl::print (ostream& o) const
 {
   o << name;
   if (arity > 0 || index_types.size() > 0)
@@ -258,7 +263,7 @@ void vardecl::print (ostream& o)
 }
 
 
-void vardecl::printsig (ostream& o)
+void vardecl::printsig (ostream& o) const
 {
   o << name << ":" << type;
   if (index_types.size() > 0)
@@ -271,7 +276,7 @@ void vardecl::printsig (ostream& o)
 }
 
 
-void functiondecl::print (ostream& o)
+void functiondecl::print (ostream& o) const
 {
   o << "function " << name << " (";
   for (unsigned i=0; i<formal_args.size(); i++)
@@ -281,7 +286,7 @@ void functiondecl::print (ostream& o)
 }
 
 
-void functiondecl::printsig (ostream& o)
+void functiondecl::printsig (ostream& o) const
 {
   o << name << ":" << type << " (";
   for (unsigned i=0; i<formal_args.size(); i++)
@@ -293,7 +298,7 @@ void functiondecl::printsig (ostream& o)
 }
 
 
-void arrayindex::print (ostream& o)
+void arrayindex::print (ostream& o) const
 {
   o << base << "[";
   for (unsigned i=0; i<indexes.size(); i++)
@@ -302,7 +307,7 @@ void arrayindex::print (ostream& o)
 }
 
 
-void functioncall::print (ostream& o)
+void functioncall::print (ostream& o) const
 {
   o << function << "(";
   for (unsigned i=0; i<args.size(); i++)
@@ -311,21 +316,21 @@ void functioncall::print (ostream& o)
 }  
 
 
-ostream& operator << (ostream& o, statement& k)
+ostream& operator << (ostream& o, const statement& k)
 {
   k.print (o);
   return o;
 }
 
 
-void embeddedcode::print (ostream &o)
+void embeddedcode::print (ostream &o) const
 {
   o << "%{";
   o << code;
   o << "%}";
 }
 
-void block::print (ostream& o)
+void block::print (ostream& o) const
 {
   o << "{" << endl;
   for (unsigned i=0; i<statements.size(); i++)
@@ -334,7 +339,7 @@ void block::print (ostream& o)
 }
 
 
-void for_loop::print (ostream& o)
+void for_loop::print (ostream& o) const
 {
   o << "for (";
   init->print (o);
@@ -347,7 +352,7 @@ void for_loop::print (ostream& o)
 }
 
 
-void foreach_loop::print (ostream& o)
+void foreach_loop::print (ostream& o) const
 {
   o << "foreach ([";
   for (unsigned i=0; i<indexes.size(); i++)
@@ -360,45 +365,45 @@ void foreach_loop::print (ostream& o)
 }
 
 
-void null_statement::print (ostream& o)
+void null_statement::print (ostream& o) const
 {
   o << ";"; 
 }
 
 
-void expr_statement::print (ostream& o)
+void expr_statement::print (ostream& o) const
 {
   o << *value;
 }
 
 
-void return_statement::print (ostream& o)
+void return_statement::print (ostream& o) const
 {
   o << "return " << *value;
 }
 
 
-void delete_statement::print (ostream& o)
+void delete_statement::print (ostream& o) const
 {
   o << "delete " << *value;
 }
 
-void next_statement::print (ostream& o)
+void next_statement::print (ostream& o) const
 {
   o << "next";
 }
 
-void break_statement::print (ostream& o)
+void break_statement::print (ostream& o) const
 {
   o << "break";
 }
 
-void continue_statement::print (ostream& o)
+void continue_statement::print (ostream& o) const
 {
   o << "continue";
 }
 
-void if_statement::print (ostream& o)
+void if_statement::print (ostream& o) const
 {
   o << "if (" << *condition << ") "
     << *thenblock << endl;
@@ -407,7 +412,7 @@ void if_statement::print (ostream& o)
 }
 
 
-void stapfile::print (ostream& o)
+void stapfile::print (ostream& o) const
 {
   o << "# file " << name << endl;
 
@@ -441,7 +446,7 @@ void stapfile::print (ostream& o)
 }
 
 
-void probe::print (ostream& o)
+void probe::print (ostream& o) const
 {
   o << "probe ";
   printsig (o);
@@ -449,7 +454,7 @@ void probe::print (ostream& o)
 }
 
 
-void probe::printsig (ostream& o)
+void probe::printsig (ostream& o) const
 {
   for (unsigned i=0; i<locations.size(); i++)
     {
@@ -459,7 +464,7 @@ void probe::printsig (ostream& o)
 }
 
 
-void probe_point::print (ostream& o)
+void probe_point::print (ostream& o) const
 {
   for (unsigned i=0; i<components.size(); i++)
     {
@@ -471,12 +476,13 @@ void probe_point::print (ostream& o)
     }
 }
 
+
 probe_alias::probe_alias(std::vector<probe_point*> const & aliases):
   probe (), alias_names (aliases)
 {
 }
 
-void probe_alias::printsig (ostream& o)
+void probe_alias::printsig (ostream& o) const
 {
   for (unsigned i=0; i<alias_names.size(); i++)
     {
@@ -492,14 +498,14 @@ void probe_alias::printsig (ostream& o)
 }
 
 
-ostream& operator << (ostream& o, probe_point& k)
+ostream& operator << (ostream& o, const probe_point& k)
 {
   k.print (o);
   return o;
 }
 
 
-ostream& operator << (ostream& o, symboldecl& k)
+ostream& operator << (ostream& o, const symboldecl& k)
 {
   k.print (o);
   return o;
