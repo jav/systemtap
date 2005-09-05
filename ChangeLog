@@ -1,3 +1,7 @@
+2005-09-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (visit_literal_string): \-prefix double-quotes.
+
 2005-09-04  Martin Hunt  <hunt@redhat.com>
 
 	* testsuite/buildok/context_test.stp: New test.

@@ -1640,7 +1640,14 @@ c_unparser::visit_continue_statement (continue_statement* s)
 void
 c_unparser::visit_literal_string (literal_string* e)
 {
-  o->line() << '"' << e->value << '"'; // XXX: escape special chars
+  const string& v = e->value;
+  o->line() << '"';
+  for (unsigned i=0; i<v.size(); i++)
+    if (v[i] == '"') // or other escapeworthy characters?
+      o->line() << '\\' << '"';
+    else
+      o->line() << v[i];
+  o->line() << '"';
 }
 
 
