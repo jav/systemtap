@@ -1,3 +1,7 @@
+2005-09-05  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.h: Comment fix.
+
 2005-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Require elfutils 0.115+.
@@ -100,7 +104,7 @@
 
 	PR systemtap/1244
 	* testsuite/buildok/eighteen.stp: New test.
-	* tapsets.cxx (dwflpp::literal_stmt_for_local) 
+	* tapsets.cxx (dwflpp::literal_stmt_for_local)
 	(query_statement, query_inline_instance_info)
 	(query_func_info, query_srcfile_line, query_cu)
 	(var_expanding_copy_visitor, visit_target_symbol)
@@ -114,19 +118,19 @@
 	context info.
 
 2005-09-01  Martin Hunt  <hunt@redhat.com>
-	
+
 	* translate.cxx (emit_probe): Add a call to _stp_print_flush
 	at the end of each probe.
 	(translate_pass): Define STP_NUM_STRINGS to be 1 for
 	a scratch string. Include current.c and stack.c. Don't
 	define KALLSYMS_LOOKUP_NAME or KALLSYMS_LOOKUP. Remove
-	references to next_fmt() and stp_dbug(). 
+	references to next_fmt() and stp_dbug().
 
 2005-08-31  Graydon Hoare  <graydon@redhat.com>
 
 	PR systemtap/1258
-	* tapsets.cxx (dwflpp::literal_stmt_for_local): 
-	Support DW_TAG_enumeration_type tag as synonymous with 
+	* tapsets.cxx (dwflpp::literal_stmt_for_local):
+	Support DW_TAG_enumeration_type tag as synonymous with
 	DW_TAG_base_type.
 	* loc2c.c (base_byte_size): Likewise.
 	* testsuite/buildok/seven.stp: Adjust to work on UP kernels.
