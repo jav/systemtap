@@ -14,8 +14,7 @@ struct location;		/* Opaque */
 
    On success, return the first fragment created, which is also chained
    onto (*INPUT)->next.  *INPUT is then updated with the new tail of that
-   chain.  *USED_DEREF is set to true iff the "deref" runtime operation was
-   used, otherwise it is not modified.  */
+   chain.  */
 struct location *c_translate_location (struct obstack *,
 				       void (*fail) (void *arg,
 						     const char *fmt, ...)
