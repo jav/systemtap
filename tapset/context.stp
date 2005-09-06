@@ -92,3 +92,8 @@ function print_stack(stk:string) %{
 function pp:string () %{
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
+
+function target:long () %{
+        THIS->__retvalue = _stp_target;
+%}
+

@@ -78,6 +78,8 @@ usage (systemtap_session& s)
     << "   -m MODULE  set probe module name, instead of" << endl
     <<      "              " << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
+    << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
+    << "   -x PID     sets target() to PID" << endl
     ;
   // -d: dump safety-related external references
 
@@ -116,6 +118,8 @@ main (int argc, char * const argv [])
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getuid()) + "_" + stringify(time(0));
   s.keep_tmpdir = false;
+  s.cmd = "";
+  s.target_pid = 0;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
@@ -131,7 +135,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kg");
+      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:");
       if (grc < 0)
         break;
       switch (grc)
@@ -191,6 +195,14 @@ main (int argc, char * const argv [])
         case 'g':
           s.guru_mode = true;
           break;
+
+	case 'c':
+	  s.cmd = string (optarg);
+	  break;
+
+	case 'x':
+	  s.target_pid = atoi(optarg);
+	  break;
 
         case 'h':
         default:

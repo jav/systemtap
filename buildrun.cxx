@@ -92,6 +92,15 @@ compile_pass (systemtap_session& s)
 }
 
 
+template <typename T>
+static string
+stringify(T t)
+{
+  ostringstream s;
+  s << t;
+  return s.str ();
+}
+
 
 int
 run_pass (systemtap_session& s)
@@ -114,8 +123,15 @@ run_pass (systemtap_session& s)
       string stpd_cmd = string("/usr/bin/sudo ") 
         + string(PKGLIBDIR) + "/stpd "
 	+ "-r " // disable relayfs
-        + (s.verbose ? "" : "-q ")
-        + s.tmpdir + "/" + s.module_name + ".ko";
+        + (s.verbose ? "" : "-q ");
+
+      if (s.cmd != "")
+	stpd_cmd += "-c \"" + s.cmd + "\" ";
+
+      if (s.target_pid)
+	stpd_cmd += "-t " + stringify(s.target_pid) + " ";
+
+      stpd_cmd += s.tmpdir + "/" + s.module_name + ".ko";
 
       if (s.verbose) clog << "Running " << stpd_cmd << endl;
       rc = system (stpd_cmd.c_str ());
