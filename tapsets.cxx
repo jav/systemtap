@@ -2075,7 +2075,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       o->newline(1) << ".kp.addr = 0," ;
       o->newline() << ".handler = &"
                    << probe_entry_function_name(probenum) << ",";
-      o->newline() << ".kp.fault_handler = &stap_kprobe_fault_handler,";
+      // XXX: pending PR 1289
+      // o->newline() << ".kp.fault_handler = &stap_kprobe_fault_handler,";
       o->newline() << ".maxactive = 1";
       o->newline(-1) << "};";
     }
@@ -2085,7 +2086,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
                    << probe_entry_struct_kprobe_name(probenum)
                    << "= {";
       o->newline(1) << ".addr       = 0," ;
-      o->newline() << ".fault_handler = &stap_kprobe_fault_handler,";
+      // XXX: pending PR 1289
+      // o->newline() << ".fault_handler = &stap_kprobe_fault_handler,";
       o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
       o->newline(-1) << "};";
     }
