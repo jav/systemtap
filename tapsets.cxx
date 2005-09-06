@@ -68,9 +68,9 @@ lex_cast_qstring(IN const & in)
 {
   stringstream ss;
   string out, out2;
-  if (!(ss << in && ss >> out))
+  if (!(ss << in))
     throw runtime_error("bad lexical cast");
-
+  out = ss.str();
   out2 += '"';
   for (unsigned i=0; i<out.length(); i++)
     {
@@ -158,7 +158,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       else o->line() << "STAP_SESSION_STOPPING)";
       o->newline(1) << "return;";
       o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-      o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+      o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
       o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline() << "return;";
@@ -1998,6 +1998,30 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
 void
 dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
 {
+  static unsigned already_emitted_fault_handler = 0;
+
+  if (! already_emitted_fault_handler)
+    {
+      o->newline() << "int stap_kprobe_fault_handler (struct kprobe* kp, "
+		   << "struct pt_regs* regs, int trapnr) {";
+      o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
+      o->newline() << "printk (KERN_ERR \"systemtap probe fault\\n\");";
+      o->newline() << "printk (KERN_ERR \"cpu %d, probe %s, near %s\\n\", ";
+      o->newline(1) << "smp_processor_id(), ";
+      o->newline() << "c->probe_point ? c->probe_point : \"unknown\", ";
+      o->newline() << "c->last_stmt ? c->last_stmt : \"unknown\");";
+      o->newline() << "c->last_error = \"probe faulted\";";
+      o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+
+      o->newline() << "return 0;"; // defer to kernel fault handler
+      // NB: We might prefer to use "return 1" instead, to consider
+      // the fault "handled".  But we may get into an infinite loop
+      // of traps if the faulting instruction is simply restarted.
+
+      o->newline(-1) << "}";
+      already_emitted_fault_handler ++;
+    }
+
   // Construct a single entry function, and a struct kprobe pointing into
   // the entry function. The entry function will call the probe function.
   o->newline();
@@ -2017,7 +2041,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
   o->newline(1) << "return 0;";
   o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "return 0;";
@@ -2051,6 +2075,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       o->newline(1) << ".kp.addr = 0," ;
       o->newline() << ".handler = &"
                    << probe_entry_function_name(probenum) << ",";
+      o->newline() << ".kp.fault_handler = &stap_kprobe_fault_handler,";
       o->newline() << ".maxactive = 1";
       o->newline(-1) << "};";
     }
@@ -2060,6 +2085,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
                    << probe_entry_struct_kprobe_name(probenum)
                    << "= {";
       o->newline(1) << ".addr       = 0," ;
+      o->newline() << ".fault_handler = &stap_kprobe_fault_handler,";
       o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
       o->newline(-1) << "};";
     }
@@ -2174,7 +2200,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline(1) << "return;";
 
   o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\", "
+  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		<< "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "return;";

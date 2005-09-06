@@ -1,5 +1,14 @@
 2005-09-05  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 1289
+	* translate.cxx (lex_cast_qstring): Correct "cast" of object
+	to string containing more than one word.
+	* tapset.cxx (lex_cast_qstring): Ditto.
+	(dwarf_derived_module::emit_probe_entries): Emit and use
+	a generic fault_handler.
+
+2005-09-05  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1172.
 	* staptree.h, staptree.cxx: Make all ::print*(), operator<<
 	functions take const staptree objects.
@@ -8,7 +17,7 @@
 	Switch to atomic_t busy flags.
 	(emit_module_exit): Use atomic operations for busy flag.
 	(visit_*): Use lex_cast_qstring for last_stmt strings.
-	* tapsets.cxx (lex_cast_quoted): \-prefix double-quotes too.
+	* tapsets.cxx (lex_cast_qstring): New function.
 	(*::emit_probe_entries): Populate probe_point.  Use atomic operations
 	for busy flag.
 	* tapset/context.stp (pp): New function.

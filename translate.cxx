@@ -36,9 +36,9 @@ lex_cast_qstring(IN const & in)
 {
   stringstream ss;
   string out, out2;
-  if (!(ss << in && ss >> out))
+  if (!(ss << in))
     throw runtime_error("bad lexical cast");
-
+  out = ss.str();
   out2 += '"';
   for (unsigned i=0; i<out.length(); i++)
     {
