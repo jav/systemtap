@@ -7,5 +7,5 @@
 
 probe kernel.function("audit_getname@kernel/auditsc.c")
 {
-        log($name);
+        log(kernel_string($name));
 }

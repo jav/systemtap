@@ -1,3 +1,10 @@
+2005-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Require elfutils 0.115+.
+	* tapsets.cxx: Restore graydon's PR 1244 code.
+	* testsuite/buildok/eighteen.stp: Correct typing.
+	* configure: Regenerated.
+
 2005-09-06  Martin Hunt  <hunt@redhat.com>
 
 	* tapset/context.stp: Add function target().

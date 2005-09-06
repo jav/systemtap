@@ -24,15 +24,11 @@ AC_SUBST(CXXFLAGS)
 
 dnl Need libdwfl-capable recent elfutils from Fedora
 save_LIBS="$LIBS"
-AC_CHECK_LIB(dw, dwarf_func_inline)
+AC_CHECK_LIB(dw, dwarf_getscopes_die,,[
+  AC_MSG_ERROR([systemtap requires elfutils 0.115+])])
 stap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 AC_SUBST(stap_LIBS)
-
-if test $ac_cv_lib_dw_dwarf_func_inline != yes
-then
-  AC_MSG_ERROR([systemtap requires elfutils 0.114+])
-fi
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

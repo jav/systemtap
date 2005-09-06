@@ -725,7 +725,8 @@ dwflpp
 					       NULL, NULL, NULL, NULL));
   }
 
-  string literal_stmt_for_local(Dwarf_Addr pc,
+  string literal_stmt_for_local(Dwarf_Die *scope_die,
+				Dwarf_Addr pc,				
 				string const & local,
 				vector<pair<target_symbol::component_type,
 				std::string> > const & components,
@@ -735,8 +736,13 @@ dwflpp
 
     Dwarf_Die *scopes;
     Dwarf_Die vardie;
+    int nscopes = 0;
 
-    int nscopes = dwarf_getscopes (cu, pc, &scopes);
+    if (scope_die)
+      nscopes = dwarf_getscopes_die (scope_die, &scopes);
+    else
+      nscopes = dwarf_getscopes (cu, pc, &scopes);
+
     if (nscopes == 0)
       {
 	throw semantic_error ("unable to find any scopes containing "
@@ -1057,6 +1063,7 @@ struct dwarf_derived_probe : public derived_probe
   dwarf_derived_probe (string const & funcname,
 		       char const * filename,
 		       int line,
+		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr,
 		       dwarf_query & q);
 
@@ -1341,6 +1348,7 @@ static void
 query_statement (string const & func,
 		 char const * file, 
 		 int line,
+		 Dwarf_Die *scope_die,
 		 Dwarf_Addr stmt_addr, 
 		 dwarf_query * q)
 {
@@ -1351,7 +1359,8 @@ query_statement (string const & func,
         throw semantic_error("incomplete: do not know how to interpret .relative",
                              q->base_probe->tok);
 
-      q->results.push_back(new dwarf_derived_probe(func, file, line, stmt_addr, *q));
+      q->results.push_back(new dwarf_derived_probe(func, file, line, 
+						   scope_die, stmt_addr, *q));
     }
   catch (const semantic_error& e)
     {
@@ -1361,7 +1370,7 @@ query_statement (string const & func,
 
 static void
 query_inline_instance_info (Dwarf_Addr entrypc,
-			    inline_instance_info const & ii,
+			    inline_instance_info & ii,
 			    dwarf_query * q)
 {
   if (q->has_return)
@@ -1374,13 +1383,14 @@ query_inline_instance_info (Dwarf_Addr entrypc,
 	clog << "querying entrypc " 
 	     << hex << entrypc << dec 
 	     << " of instance of inline '" << ii.name << "'" << endl;
-      query_statement (ii.name, ii.decl_file, ii.decl_line, entrypc, q);
+      query_statement (ii.name, ii.decl_file, ii.decl_line, 
+		       &ii.die, entrypc, q);
     }
 }
 
 static void
 query_func_info (Dwarf_Addr entrypc,
-		 func_info const & fi,
+		 func_info & fi,
 		 dwarf_query * q)
 {
   if (q->has_return)
@@ -1388,14 +1398,18 @@ query_func_info (Dwarf_Addr entrypc,
       // NB. dwarf_derived_probe::emit_registrations will emit a
       // kretprobe based on the entrypc in this case.
       if (q->sess.verbose)
-	clog << "querying entrypc of function '" << fi.name << "' for return probe" << endl;
-      query_statement (fi.name, fi.decl_file, fi.decl_line, entrypc, q);
+	clog << "querying entrypc of function '" 
+	     << fi.name << "' for return probe" << endl;
+      query_statement (fi.name, fi.decl_file, fi.decl_line, 
+		       &fi.die, entrypc, q);
     }
   else
     {
       if (q->sess.verbose)
-	clog << "querying prologue-end of function '" << fi.name << "'" << endl;
-      query_statement (fi.name, fi.decl_file, fi.decl_line, fi.prologue_end, q);
+	clog << "querying prologue-end of function '" 
+	     << fi.name << "'" << endl;
+      query_statement (fi.name, fi.decl_file, fi.decl_line, 
+		       &fi.die, fi.prologue_end, q);
     }
 }
 
@@ -1416,13 +1430,15 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	  if (q->sess.verbose)
 	    clog << "function DIE lands on srcfile" << endl;
 	  if (q->has_statement_str)
-	    query_statement (i->second.name, i->second.decl_file, q->line, addr, q);
+	    query_statement (i->second.name, i->second.decl_file, 
+			     q->line, NULL, addr, q);
 	  else
 	    query_func_info (i->first, i->second, q);
 	}
     }  
 
-      for (map<Dwarf_Addr, inline_instance_info>::iterator i = q->filtered_inlines.begin();
+      for (map<Dwarf_Addr, inline_instance_info>::iterator i 
+	     = q->filtered_inlines.begin();
 	   i != q->filtered_inlines.end(); ++i)
 	{
 	  if (q->dw.die_has_pc (&(i->second.die), addr))
@@ -1430,7 +1446,8 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	      if (q->sess.verbose)
 		clog << "inline instance DIE lands on srcfile" << endl;
 	      if (q->has_statement_str)
-		query_statement (i->second.name, i->second.decl_file, q->line, addr, q);
+		query_statement (i->second.name, i->second.decl_file, 
+				 q->line, NULL, addr, q);
 	      else
 		query_inline_instance_info (i->first, i->second, q);
 	    }
@@ -1623,12 +1640,12 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  else
 	    {
 	      // Otherwise, simply probe all resolved functions...
-	      for (map<Dwarf_Addr, func_info>::const_iterator i = q->filtered_functions.begin();
+	      for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
 		   i != q->filtered_functions.end(); ++i)
 		query_func_info (i->first, i->second, q);
 
 	      // And all inline instances.
-	      for (map<Dwarf_Addr, inline_instance_info>::const_iterator i 
+	      for (map<Dwarf_Addr, inline_instance_info>::iterator i 
 		     = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
 		query_inline_instance_info (i->first, i->second, q);
 
@@ -1644,7 +1661,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  if (q->has_module)
 	    query_addr = q->dw.module_address_to_global(query_addr);
 
-	  query_statement ("", "", -1, query_addr, q);
+	  query_statement ("", "", -1, NULL, query_addr, q);
         }
       return DWARF_CB_OK;
     }
@@ -1736,10 +1753,11 @@ var_expanding_copy_visitor
   static unsigned tick;
 
   dwarf_query & q;
+  Dwarf_Die *scope_die;
   Dwarf_Addr addr;
 
-  var_expanding_copy_visitor(dwarf_query & q, Dwarf_Addr a)
-    : q(q), addr(a)
+  var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a)
+    : q(q), scope_die(sd), addr(a)
   {}
   void visit_target_symbol (target_symbol* e);
 };
@@ -1766,8 +1784,9 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
   try
-    {
-      ec->code = q.dw.literal_stmt_for_local(addr,
+    {      
+      ec->code = q.dw.literal_stmt_for_local(scope_die, 
+					     addr,
 					     e->base_name.substr(1),
 					     e->components,
 					     fdecl->type);
@@ -1794,6 +1813,7 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 dwarf_derived_probe::dwarf_derived_probe (string const & funcname,
 					  char const * filename,
 					  int line,
+					  Dwarf_Die *scope_die,
 					  Dwarf_Addr addr,
 					  dwarf_query & q)
   : derived_probe (NULL),
@@ -1863,7 +1883,7 @@ dwarf_derived_probe::dwarf_derived_probe (string const & funcname,
   locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
 
   // Now make a local-variable-expanded copy of the probe body
-  var_expanding_copy_visitor v (q, addr);
+  var_expanding_copy_visitor v (q, scope_die, addr);
   require <block*> (&v, &(this->body), q.base_probe->body);
   this->tok = q.base_probe->tok;
 }
