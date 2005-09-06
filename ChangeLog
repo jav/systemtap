@@ -4,7 +4,7 @@
 	* stapfuncs.5.in (target): Document it.
 	* elaborate.h (struct systemtap_session): Add cmd and target_pid to
 	the struct.
-	* main.cxx (usage): Add secriptions of "-c" and "-x" options.
+	* main.cxx (usage): Add descriptions of "-c" and "-x" options.
 	(main): Set s.cmd and s.target_pid.
 	* buildrun.cxx (stringify): Copy this utility func here too.
 	(run_pass): Add new options to set cmd and pid to the stpd
