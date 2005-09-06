@@ -1,3 +1,7 @@
+2005-09-06  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.spec.in: Bump elfutils_version to .115.
+
 2005-09-05  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.h: Comment fix.

@@ -1,5 +1,5 @@
 %define bundled_elfutils 1
-%define elfutils_version 0.114
+%define elfutils_version 0.115
 
 Name: systemtap
 Version: @VERSION@
