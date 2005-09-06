@@ -20,8 +20,6 @@
  *
  */
 
-#define USE_PROCFS 1
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,13 +51,12 @@ static struct params
 	char relay_filebase[256];
 } params;
 
-/* temporary per-cpu output written here, filebase0...N */
+/* temporary per-cpu output written here for relayfs, filebase0...N */
 static char *percpu_tmpfilebase = "stpd_cpu";
 
-#ifdef USE_PROCFS
+/* procfs files */
 static char proc_filebase[128];
 static int proc_file[NR_CPUS];
-#endif
 
 /* probe output written here  */
 static char *outfile_name = "probe.out";
@@ -84,6 +81,8 @@ extern int print_only, quiet, merge, verbose;
 extern unsigned int buffer_size;
 extern char *modname;
 extern char *modpath;
+extern int target_pid;
+extern char *target_cmd;
 
 /* per-cpu buffer info */
 static struct buf_status
@@ -144,16 +143,12 @@ static void summarize(void)
 	}
 }
 
-#ifdef USE_PROCFS
 static void close_proc_files()
 {
 	int i;
 	for (i = 0; i < ncpus; i++)
 	  close(proc_file[i]);
 }
-#else
-static void close_proc_files() {}
-#endif
 
 /**
  *	close_relayfs_files - close and munmap buffer and open output file
@@ -200,7 +195,6 @@ static int open_relayfs_files(int cpu, const char *relay_filebase)
 		return -1;
 	}
 
-#ifdef USE_PROCFS
 	sprintf(tmp, "%s/%d", proc_filebase, cpu);
 	dbug("Opening %s.\n", tmp); 
 	proc_file[cpu] = open(tmp, O_RDWR | O_NONBLOCK);
@@ -208,7 +202,6 @@ static int open_relayfs_files(int cpu, const char *relay_filebase)
 		fprintf(stderr, "ERROR: couldn't open proc file %s: errcode = %s\n", tmp, strerror(errno));
 		return -1;
 	}
-#endif
 
 	sprintf(tmp, "%s%d", percpu_tmpfilebase, cpu);	
 	if((percpu_tmpfile[cpu] = fopen(tmp, "w+")) == NULL) {
@@ -401,6 +394,40 @@ err:
 	return -1;
 }
 
+static volatile sig_atomic_t got_signal;
+static sigset_t usrmask, nullmask, oldmask;
+
+static void sig_usr(int sig __attribute__((unused)))
+{
+	got_signal = 1;
+}
+
+void start_cmd(void)
+{
+	pid_t pid;
+
+	dbug ("execing target_cmd %s\n", target_cmd);
+	if ((pid = fork()) < 0) {
+		perror ("fork");
+		exit(-1);
+	} else if (pid == 0) {
+		/* wait here until signaled */
+		signal(SIGUSR1, sig_usr);
+		sigemptyset(&nullmask);
+		sigemptyset(&usrmask);
+		sigaddset(&usrmask, SIGUSR1);
+		sigprocmask(SIG_BLOCK, &usrmask, &oldmask);
+		while (!got_signal)
+			sigsuspend(&nullmask);
+		sigprocmask(SIG_SETMASK, &oldmask, NULL);
+		if (execl("/bin/sh", "sh", "-c", target_cmd, NULL) < 0)
+			perror(target_cmd);
+		exit(-1);
+	}
+
+	target_pid = pid;
+}
+
 #include <sys/wait.h>
 static void cleanup_and_exit (int);
 
@@ -421,6 +448,7 @@ int init_stp(const char *relay_filebase, int print_summary)
 	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
 	print_totals = print_summary;
 
+	/* insert module */
 	sprintf(buf, "_stp_pid=%d", (int)getpid());
 	if ((pid = vfork()) < 0) {
 		perror ("vfork");
@@ -441,7 +469,6 @@ int init_stp(const char *relay_filebase, int print_summary)
 	if (relay_filebase)
 		strcpy(params.relay_filebase, relay_filebase);
 	
-#ifdef USE_PROCFS
 	sprintf (proc_filebase, "/proc/systemtap/%s", modname);
 	char *ptr = index(proc_filebase,'.');
 	if (ptr)
@@ -454,21 +481,24 @@ int init_stp(const char *relay_filebase, int print_summary)
 		fprintf(stderr, "ERROR: couldn't open control channel %s: errcode = %s\n", buf, strerror(errno));
 		return -1;
 	}
-#endif
+
+	/* start target_cmd if necessary */
+	if (target_cmd)
+		start_cmd();
 
 	/* now send TRANSPORT_INFO */
 	ti.buf_size = buffer_size;
 	ti.subbuf_size = 0;
 	ti.n_subbufs = 0;
-	ti.target = 0;  // FIXME.  not implemented yet
+	ti.target = target_pid;
 	send_request(STP_TRANSPORT_INFO, &ti, sizeof(ti));
 
 	return 0;
 }
 
+
 /* length of timestamp in output field 0 - TODO: make binary, variable */
 #define TIMESTAMP_SIZE 11
-
 
 /**
  *	merge_output - merge per-cpu output
@@ -610,7 +640,9 @@ int stp_main_loop(void)
 
 	signal(SIGINT, sigproc);
 	signal(SIGTERM, sigproc);
-	
+	signal(SIGCHLD, sigproc);
+	dbug("in main loop\n");
+
 	while (1) { /* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		if (nb <= 0) {
@@ -671,10 +703,12 @@ int stp_main_loop(void)
 		}
 		case STP_START: 
 		{
-			/* we only get this if probe_start() errors */
 			struct transport_start *t = (struct transport_start *)data;
-			fprintf(stderr, "probe_start() returned %d\nExiting...\n", t->pid);
-			cleanup_and_exit(0);
+			dbug("probe_start() returned %d\n", t->pid);
+			if (t->pid < 0)
+				cleanup_and_exit(0);
+			else if (target_cmd)
+				kill (target_pid, SIGUSR1);
 			break;
 		}
 		default:

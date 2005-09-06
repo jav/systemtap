@@ -1,3 +1,15 @@
+2005-09-06  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c: Remove all USE_PROCFS ifdefs.
+	(sig_usr): Signal handler for SIGUSR1.
+	(start_cmd): New function to handle "-c" option, forks() 
+	off a new process then waits for SIGUSR1 to exec it.
+	(init_stp): Call start_cmd().
+	(stp_main_loop): Set a signal handler for SIGCHLD.
+	
+	* stpd.c (main): Add "-t" and "-c" options.
+	(usage): Update with new options.
+
 2005-08-29  Martin Hunt  <hunt@redhat.com>
 
 	* stpd.c main): Add enable_relayfs flag. 
