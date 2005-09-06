@@ -1,3 +1,8 @@
+2005-09-06  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_handle_start): Always reply to
+	a start message with STP_START.
+
 2005-08-24  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h (enum): New type, STP_OOB_DATA.

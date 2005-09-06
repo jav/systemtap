@@ -88,14 +88,11 @@ static void _stp_handle_buf_info(int *cpuptr)
  */
 void _stp_handle_start (struct transport_start *st)
 {
-	int err;
 	kbug ("stp_handle_start pid=%d\n", st->pid);
-	err = probe_start();
-	if (err < 0) {
-		st->pid = err;
+	st->pid = probe_start();
+	if (st->pid < 0) 
 		_stp_exit_called = 1;
-		_stp_transport_send(STP_START, st, sizeof(*st));
-	}
+	_stp_transport_send(STP_START, st, sizeof(*st));
 }
 
 #ifdef STP_RELAYFS
