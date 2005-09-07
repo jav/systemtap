@@ -219,9 +219,8 @@ Return now from enclosing probe handler.
 .SS EXPRESSIONS
 Systemtap supports a number of operators that have the same general syntax,
 semantics, and precedence as in C and awk.  Arithmetic is performed as per
-typical C rules for signed integers.  No short-circuiting is performed
-for the boolean operations.  Division by zero is detected and results in
-an error.
+typical C rules for signed integers.  Division by zero or overflow is
+detected and results in an error.
 .TP
 binary numeric operators
 .B * / % + - >> << & ^ | && ||
