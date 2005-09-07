@@ -109,6 +109,13 @@ of a unique randomized name.
 .TP
 .BI \-o " FILE"
 Send standard output to named file.
+.TP
+.BI \-c " CMD"
+Start the probes, runs CMD, and exits when it finishes.
+.TP
+.BI \-x " PID"
+Sets target() to PID. This allows scripts to be written that filter on 
+a specific process.
 
 .SH SCRIPT LANGUAGE
 
