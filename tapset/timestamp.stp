@@ -2,11 +2,19 @@
 #include <linux/time.h>
 %}
 
+
+// return in microseconds since epoch
+function gettimeofday_us:long () %{
+  struct timeval tm;
+  do_gettimeofday (& tm);
+  THIS->__retvalue = (tm.tv_sec * 1000000ULL) + (tm.tv_usec);
+%}
+
 // return in milliseconds since epoch
 function gettimeofday_ms:long () %{
   struct timeval tm;
   do_gettimeofday (& tm);
-  THIS->__retvalue = (tm.tv_sec * 1000) + (tm.tv_usec / 1000);
+  THIS->__retvalue = (tm.tv_sec * 1000ULL) + (tm.tv_usec / 1000);
 %}
 
 // return in seconds since epoch

@@ -849,7 +849,7 @@ c_unparser::emit_function (functiondecl* v)
   for (unsigned i=0; i<v->locals.size(); i++)
     {
       if (v->locals[i]->index_types.size() > 0) // array?
-	throw semantic_error ("array locals not supported", v->tok);
+	throw semantic_error ("array locals not supported", v->locals[i]->tok);
 
       o->newline() << getvar (v->locals[i]).init();
     }

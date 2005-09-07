@@ -1,3 +1,11 @@
+2005-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap.1.in: Clarify absence of short-circuiting in && and ||.
+	* translate.cxx (emit_function): Improve "array locals" message.
+	* tapset/timestamp.stp: Add gettimeofday_us function.  Correct
+	arithmetic typing in other functions.
+	* stapfuncs.5.in: Document new function.
+
 2005-09-06  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.spec.in: Bump elfutils_version to .115.

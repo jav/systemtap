@@ -87,6 +87,10 @@ address is only partial at present.
 .SS TIMESTAMP
 
 .TP
+gettimeofday_us:long ()
+Return the number of microseconds since the UNIX epoch.
+
+.TP
 gettimeofday_ms:long ()
 Return the number of milliseconds since the UNIX epoch.
 
