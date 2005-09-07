@@ -111,7 +111,7 @@ of a unique randomized name.
 Send standard output to named file.
 .TP
 .BI \-c " CMD"
-Start the probes, runs CMD, and exits when it finishes.
+Start the probes, run CMD, and exit when CMD finishes.
 .TP
 .BI \-x " PID"
 Sets target() to PID. This allows scripts to be written that filter on 
