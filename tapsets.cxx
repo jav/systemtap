@@ -2238,11 +2238,13 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "c->probe_point = probe_point;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
-  o->newline() << "if (in_interrupt())";
-  o->newline(1) << "c->regs = 0;";
-  o->newline(-1) << "else";
+  o->newline() << "c->regs = 0;";
+
+  o->newline() << "#ifdef __i386__";   // task_pt_regs is i386-only
+  o->newline() << "if (! in_interrupt())";
   o->newline(1) << "c->regs = task_pt_regs (current);";
-  o->indent(-1);
+  o->newline(-1) << "#endif";
+
   o->newline() << "c->actioncount = 0;";
   
   // NB: locals are initialized by probe function itself

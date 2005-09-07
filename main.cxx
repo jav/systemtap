@@ -116,7 +116,7 @@ main (int argc, char * const argv [])
   s.test_mode = false;
   s.guru_mode = false;
   s.last_pass = 5;
-  s.module_name = "stap_" + stringify(getuid()) + "_" + stringify(time(0));
+  s.module_name = "stap_" + stringify(getpid());
   s.keep_tmpdir = false;
   s.cmd = "";
   s.target_pid = 0;
