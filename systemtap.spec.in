@@ -17,8 +17,8 @@ BuildRoot: %{_tmppath}/%{name}-root
 Requires: kernel >= 2.6.9-11
 Requires: kernel-devel
 # or is that kernel-smp-devel?
-Requires: kernel-debuginfo
 Requires: gcc make
+# Suggest: kernel-debuginfo
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
