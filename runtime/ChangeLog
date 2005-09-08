@@ -1,3 +1,7 @@
+2005-09-08  Martin Hunt  <hunt@redhat.com>
+
+	* map-values.c (_stp_map_entry_exists): Remove unused var.
+
 2005-09-01  Martin Hunt  <hunt@redhat.com>
 
 	* stack.c (_stp_stack_sprint): Add a verbose arg
