@@ -1,6 +1,7 @@
 /* -*- linux-c -*- */
 /* Math functions
  * Copyright (C) 2005 Red Hat Inc.
+ * Portions (C)  Free Software Foundation, Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -30,8 +31,8 @@ long long _mod64 (long long u, long long v);
 int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 {
 #ifdef __LP64__
-	if (unlikely (y == 0)) {	
-		*error = "attempt to divide by 0";
+	if (unlikely (y == 0 || (x == LONG_MIN && y == -1))) {	
+		*error = "divisor out of range";
 		return 0;
 	}
 	return x/y;
@@ -59,8 +60,8 @@ int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 {
 #ifdef __LP64__
-	if (unlikely (y == 0)) {	
-		*error = "attempt to divide by 0";
+	if (unlikely (y == 0 || (x == LONG_MIN && y == -1))) {	
+		*error = "divisor out of range";
 		return 0;
 	}
 	return x%y;
