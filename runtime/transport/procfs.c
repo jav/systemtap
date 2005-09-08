@@ -261,9 +261,12 @@ err:
 
 static int _stp_register_procfs (void)
 {
-	int i, j;
+	int i;
 	const char *dirname = "systemtap";
+#ifdef STP_RELAYFS	
+	int j;
 	char buf[8];
+#endif
 	struct proc_dir_entry *de;
 	struct list_head *p, *tmp;
 
@@ -351,11 +354,12 @@ err0:
 
 static void _stp_unregister_procfs (void)
 {
+	struct list_head *p, *tmp;
+#ifdef STP_RELAYFS
 	int i;
 	char buf[8];
-	struct list_head *p, *tmp;
 	struct proc_dir_entry *de;
-#ifdef STP_RELAYFS
+
 	for (de = _stp_proc_mod->subdir; de; de = de->next)
 		kfree (de->data);
 

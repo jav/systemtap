@@ -1,3 +1,9 @@
+2005-09-08  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_register_procfs): Change ifdefs to eliminate
+	unused variable warnings.
+	(_stp_unregister_procfs): Ditto.
+
 2005-09-06  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_handle_start): Always reply to
