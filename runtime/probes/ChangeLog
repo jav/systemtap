@@ -1,3 +1,8 @@
+2005-09-08  Martin Hunt  <hunt@redhat.com>
+
+	* scf/scf.c (inst_smp_call_function): Add new verbose arg
+	to _stp_stack_sprint() call.
+
 2005-08-31  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.template: Remove KTA, KALLSYMS_LOOKUP,

@@ -1,4 +1,3 @@
-#define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 #include "runtime.h"
 
@@ -21,7 +20,7 @@ MAP map1;
 int inst_smp_call_function (struct kprobe *p, struct pt_regs *regs)
 {
   String str = _stp_string_init (0);
-  _stp_stack_sprint (str,regs);
+  _stp_stack_sprint (str,regs,1);
   _stp_map_key_str(map1, _stp_string_ptr(str));
   _stp_map_add_int64 (map1, 1);
   return 0;
