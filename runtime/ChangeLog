@@ -1,5 +1,11 @@
 2005-09-08  Martin Hunt  <hunt@redhat.com>
 
+	* arith.c (_stp_div64): For 64-bit cpus, just use native
+	division. Otherwise call _div64().
+	(_stp_mod64): Call _mod64() isf necessary.
+	(_div64): 64-bit division for 32-bit cpus. 
+	(_mod64): 64-bit modulo for 32-bit cpus.
+
 	* map-values.c (_stp_map_entry_exists): Remove unused var.
 
 2005-09-01  Martin Hunt  <hunt@redhat.com>
