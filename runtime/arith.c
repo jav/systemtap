@@ -32,24 +32,23 @@ int64_t _stp_div64 (const char **error, int64_t x, int64_t y)
 {
 #ifdef __LP64__
 	if (unlikely (y == 0 || (x == LONG_MIN && y == -1))) {	
-		*error = "divisor out of range";
+		if (error) *error = "divisor out of range";
 		return 0;
 	}
 	return x/y;
 #else
-	if (likely ((x >= LONG_MIN && x <= LONG_MAX) && (y >= LONG_MIN && y <= LONG_MAX))) {
+	if (likely ((x > LONG_MIN && x < LONG_MAX) && (y > LONG_MIN && y < LONG_MAX))) {
 		long xx = (long) x;
 		long yy = (long) y;
 
-		// check for division-by-zero and overflow
-		if (unlikely (yy == 0 || (xx == LONG_MIN && yy == -1))) {
-			*error = "divisor out of range";
+		// check for division-by-zero
+		if (unlikely (yy == 0 )) {
+			if (error) *error = "division by 0";
 			return 0;
 		}
 		return xx / yy;
-	} else {
+	} else
 		return _div64 (x, y);
-	}
 #endif
 }
 
@@ -61,26 +60,25 @@ int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 {
 #ifdef __LP64__
 	if (unlikely (y == 0 || (x == LONG_MIN && y == -1))) {	
-		*error = "divisor out of range";
+		if (error) *error = "divisor out of range";
 		return 0;
 	}
 	return x%y;
 
 #else
 
-	if (likely ((x >= LONG_MIN && x <= LONG_MAX) && (y >= LONG_MIN && y <= LONG_MAX))) {
+	if (likely ((x > LONG_MIN && x < LONG_MAX) && (y > LONG_MIN && y < LONG_MAX))) {
 		long xx = (long) x;
 		long yy = (long) y;
 
-		// check for division-by-zero and overflow
-		if (unlikely (yy == 0 || (xx == LONG_MIN && yy == -1))) {
-			*error = "divisor out of range";
+		// check for division-by-zero
+		if (unlikely (yy == 0)) {
+			if (error) *error = "division by 0";
 			return 0;
 		}
 		return xx % yy;
-	} else {
+	} else
 		return _mod64 (x,y);
-	}
 #endif
 }
 

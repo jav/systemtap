@@ -1,3 +1,11 @@
+2005-09-09  Martin Hunt  <hunt@redhat.com>
+
+	* stat-common.c (_stp_stat_print_valtype): Use _stp_div64().
+	* arith.c (_stp_div64): Check error before writing to it.
+	Remove check against 32-bit LONG_MIN and -1. That only
+	applies to 64-bit.
+	(_stp_mod64): Ditto.
+
 2005-09-08  Martin Hunt  <hunt@redhat.com>
 	* arith.c (_stp_div64): Check for overflow.
 	(_stp_mod64): Ditto.

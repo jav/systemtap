@@ -173,10 +173,8 @@ static void _stp_stat_print_valtype (char *fmt, Stat st, struct stat_data *sd, i
 	case 'A':
 	{
 		int64_t avg = 0;
-		if (sd->count) {
-			avg = sd->sum;
-			do_div (avg, (int)sd->count); /* FIXME: check for overflow */
-		}
+		if (sd->count)
+			avg = _stp_div64 (NULL, sd->sum, sd->count);
 		_stp_printf("%lld", avg);
 		break;
 	}
