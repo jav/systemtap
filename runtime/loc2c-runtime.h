@@ -72,6 +72,7 @@
 #elif defined __powerpc__
 
 #undef fetch_register
+#undef store_register
 #define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
 #define store_register(regno) (c->regs->gpr[regno] = (value))
 
