@@ -80,6 +80,7 @@ int main()
     if (y == 0)
       continue;
 
+#ifndef __LP64__
     for (x = LONG_MIN - 1LL; x < LONG_MIN + 2LL; x++ ) {
       div1 = _stp_div64(&error, x, y);
       mod1 = _stp_mod64(&error, x, y);
@@ -109,10 +110,20 @@ int main()
 	exit (-1);
       }
     }
+#endif
 
     for (x = LLONG_MIN; x <= LLONG_MIN + 1LL; x++ ) {
       div1 = _stp_div64(&error, x, y);
       mod1 = _stp_mod64(&error, x, y);
+#ifdef __LP64__
+      if (x == LLONG_MIN && y == -1) {
+	if (div1 != 0) {
+	  printf ("%lld/%lld was %lld and should have been 0 (overflow)\n", x,y,div1);
+	  exit(-1);
+	}
+	continue;
+      }
+#endif
       div2 = x/y;
       mod2 = x%y;
       if (div1 != div2) {
@@ -125,7 +136,7 @@ int main()
       }
     }
 
-    for (x = LONG_MAX - 1; x <= LONG_MAX; x++ ) {
+    for (x = LONG_MAX - 1; x > 0 && x <= LONG_MAX; x++ ) {
       div1 = _stp_div64(&error, x, y);
       mod1 = _stp_mod64(&error, x, y);
       div2 = x/y;
