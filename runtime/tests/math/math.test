@@ -1,0 +1,19 @@
+package require tcltest
+namespace import -force tcltest::*
+
+cd $tcltest::testsDirectory
+
+set CFLAGS "-Os"
+set KPATH "/lib/modules/[exec uname -r]/build/include"
+set MPATH "/lib/modules/[exec uname -r]/build/include/asm/mach-default"
+set PATH "../../user"
+
+test printf_A {Basic printf test} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test div64.c
+} -body {
+	exec ./test
+} -result {OK}
+
+exec rm test
+
+cleanupTests

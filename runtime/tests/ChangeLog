@@ -1,0 +1,5 @@
+2005-09-09  Martin Hunt  <hunt@redhat.com>
+
+	* README: Update.
+	* math/div64.c: New file. 64-bit division tests.
+

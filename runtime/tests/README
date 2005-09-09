@@ -1,2 +1,7 @@
 This directory contains the user-levels tests.
-To run, just type "make".
+
+Before running these for the first time, 
+> cd ../user
+> ./recreate_links
+
+To run the test here, just type "make".
