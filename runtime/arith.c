@@ -82,7 +82,7 @@ int64_t _stp_mod64 (const char **error, int64_t x, int64_t y)
 #endif
 }
 
-
+#ifndef _STP_TEST_
 /** Return a random integer between -n and n.
  * @param n how far from zero to go.  Make it positive but less than a million or so.
  */
@@ -101,6 +101,7 @@ int _stp_random_pm (int n)
 	
 	return (seed % (2*n+1)-n);
 }
+#endif /* _STP_TEST_ */
 
 #ifdef __i386__
 

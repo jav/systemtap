@@ -19,9 +19,6 @@ int vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 #define for_each_cpu(cpu)			\
   for (cpu = 0; cpu < NR_CPUS; cpu++)
 
-// just to eliminate compile errors
-unsigned long volatile __jiffy_data jiffies = 12345678;
-
 int _processor_number = 0;
 #define smp_processor_id() _processor_number
 #define get_cpu() _processor_number

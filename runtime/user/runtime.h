@@ -4,6 +4,8 @@
  * @brief Main include file for runtime functions.
  */
 
+#define _STP_TEST_ 1
+
 #define __KERNEL__
 #include <linux/config.h>
 #undef CONFIG_NR_CPUS
