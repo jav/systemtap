@@ -1,3 +1,9 @@
+2005-09-09  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Add arith.c
+	* recreate_links: Add arith.c
+	* emul.h: Define jiffies so arith.c will compile.
+
 2005-08-31  Martin Hunt  <hunt@redhat.com>
 
 	* emul.h (_stp_kallsyms_lookup): Renamed from kallsyms_lookup.

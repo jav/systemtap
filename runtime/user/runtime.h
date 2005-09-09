@@ -48,5 +48,6 @@ void exit(int status);
 #include "io.c"
 #include "print.c"
 #include "string.c"
+#include "arith.c"
 
 #endif /* _RUNTIME_H_ */
