@@ -85,7 +85,7 @@ rpm:	dist
 
 clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
-	rm -rf testsuite
+	rm -rf testresults
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
 
 uninstall-local:

@@ -2,8 +2,8 @@
 
 # Collect stdout/stderr someplace else
 
-if [ ! -d testsuite ]; then
-  mkdir -p testsuite
+if [ ! -d testresults ]; then
+  mkdir -p testresults
 fi
 
 SRCDIR=`dirname $0`
@@ -22,7 +22,7 @@ SYSTEMTAP_RUNTIME=$SRCDIR/runtime
 export SYSTEMTAP_RUNTIME
 
 dn=`dirname $1`
-logfile=testsuite/`basename $dn`-`basename $1`
+logfile=testresults/`basename $dn`-`basename $1`
 
 env | grep SYSTEMTAP > $logfile.cmd
 echo "$@" >> $logfile.cmd

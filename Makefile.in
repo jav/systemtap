@@ -47,7 +47,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
 	$(srcdir)/stp_check.in $(srcdir)/systemtap.spec.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
-	TODO depcomp install-sh missing
+	depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -990,7 +990,7 @@ rpm:	dist
 
 clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
-	rm -rf testsuite
+	rm -rf testresults
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
 
 uninstall-local:
