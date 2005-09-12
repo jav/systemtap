@@ -1,3 +1,10 @@
+2005-09-12  Martin Hunt  <hunt@redhat.com>
+
+	* arith.c (_stp_div64): Check for division by 0 or -1 first.
+	This simplifies things and removes the possibility of x86_64
+	trying LLONG_MIN/-1 and faulting.
+	(_stp_mod64): Ditto.
+
 2005-09-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* arith.c: Add some comments explaining why the last change works.
