@@ -24,8 +24,8 @@ void _stp_string_cat_cstr (String str1, const char *str2);
 
 /** private buffer for _stp_log() */
 #define STP_LOG_BUF_LEN 2047
-#define WARN_STRING "\033[33mWARNING: \033[0m"
-#define ERR_STRING "\033[31mERROR: \033[0m"
+#define WARN_STRING "WARNING: "
+#define ERR_STRING "ERROR: "
 
 static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 

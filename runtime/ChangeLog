@@ -1,5 +1,10 @@
 2005-09-12  Martin Hunt  <hunt@redhat.com>
 
+	* io.c (ERR_STRING): Remove ansi codes.
+	 (WARN_STRING): Ditto.
+
+2005-09-12  Martin Hunt  <hunt@redhat.com>
+	
 	* arith.c (_stp_div64): Check for division by 0 or -1 first.
 	This simplifies things and removes the possibility of x86_64
 	trying LLONG_MIN/-1 and faulting.
