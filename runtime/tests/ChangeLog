@@ -1,3 +1,8 @@
+2005-09-12  Martin Hunt  <hunt@redhat.com>
+
+	* math/div64.c (main): Set the expected result for LLONG_MIN/-1 to 
+	be LLONG_MIN (overflow) instead of 0.
+
 2005-09-09  Martin Hunt  <hunt@redhat.com>
 
 	* math/div64.c (main): Fixes for running on 64-bit hardware.

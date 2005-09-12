@@ -1,7 +1,9 @@
 /* test of 64-bit division */
 #include "runtime.h"
-#define LLONG_MAX    9223372036854775807LL
-#define LLONG_MIN    (-LLONG_MAX - 1LL)
+#define LLONG_MAX 0x7fffffffffffffffLL
+#ifndef LLONG_MIN
+#define LLONG_MIN 0x8000000000000000LL
+#endif
 
 /* This tests a lot of edge conditions.*/
 /* Then it does 10 million random divisions, comparing the result */
@@ -87,11 +89,11 @@ int main()
       div2 = x/y;
       mod2 = x%y;
       if (div1 != div2) {
-	printf ("%lld/%lld was %lld and should have been %lld\n", x,y,div1,div2);
+	printf ("%lld/%lld (%llx/%llx) was %lld and should have been %lld\n", x,y,x,y,div1,div2);
 	exit (-1);
       }
       if (mod1 != mod2) {
-	printf ("%lld\%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
+	printf ("%lld\%%%lld (%llx/%llx) was %lld and should have been %lld\n", x,y,x,y,mod1,mod2);
 	exit (-1);
       }
     }
@@ -102,11 +104,11 @@ int main()
       div2 = x/y;
       mod2 = x%y;
       if (div1 != div2) {
-	printf ("%lld/%lld was %lld and should have been %lld\n", x,y,div1,div2);
+	printf ("%lld/%lld (%llx/%llx) was %lld and should have been %lld\n", x,y,x,y,div1,div2);
 	exit (-1);
       }
       if (mod1 != mod2) {
-	printf ("%lld\%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
+	printf ("%lld\%%%lld (%llx/%llx) was %lld and should have been %lld\n", x,y,x,y,mod1,mod2);
 	exit (-1);
       }
     }
@@ -117,8 +119,8 @@ int main()
       mod1 = _stp_mod64(&error, x, y);
 #ifdef __LP64__
       if (x == LLONG_MIN && y == -1) {
-	if (div1 != 0) {
-	  printf ("%lld/%lld was %lld and should have been 0 (overflow)\n", x,y,div1);
+	if (div1 != LLONG_MIN) {
+	  printf ("%lld/%lld was %lld and should have been %lld (overflow)\n", x,y,div1,LLONG_MIN);
 	  exit(-1);
 	}
 	continue;
@@ -131,7 +133,7 @@ int main()
 	exit (-1);
       }
       if (mod1 != mod2) {
-	printf ("%lld\%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
+	printf ("%lld\%%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
 	exit (-1);
       }
     }
@@ -146,13 +148,13 @@ int main()
 	exit (-1);
       }
       if (mod1 != mod2) {
-	printf ("%lld\%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
+	printf ("%lld\%%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
 	exit (-1);
       }
     }
   }
 
-  /* now do ten million random divisions and mods */
+  /* just for fun, do ten million random divisions and mods */
   for (i = 0; i < 10000000; i++)  {
     x = mrand48();
     y = mrand48();
@@ -171,7 +173,7 @@ int main()
       exit (-1);
     }
     if (mod1 != mod2) {
-      printf ("%lld\%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
+      printf ("%lld\%%%lld was %lld and should have been %lld\n", x,y,mod1,mod2);
       exit (-1);
     }
   }
