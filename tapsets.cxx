@@ -567,8 +567,25 @@ dwflpp
   }
 
 
+  bool has_single_line_record (char const * srcfile, int lineno)
+  {
+    if (lineno < 0)
+      return false;
+
+    Dwarf_Line **srcsp = NULL;
+    size_t nsrcs = 0;
+
+    dwarf_assert ("dwarf_getsrc_file",
+		  dwarf_getsrc_file (module_dwarf, 
+				     srcfile, lineno, 0,
+				     &srcsp, &nsrcs));
+    
+    return nsrcs == 1;
+  }
+
   void iterate_over_srcfile_lines (char const * srcfile,
 				   int lineno, 
+				   bool need_single_match,
 				   void (* callback) (Dwarf_Line * line, void * arg),				   
 				   void *data)
   {
@@ -581,6 +598,46 @@ dwflpp
 		  dwarf_getsrc_file (module_dwarf, 
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
+    
+    if (need_single_match && nsrcs > 0)
+      {
+	// We wanted a single line record (a unique address for the
+	// line) and we got a bunch of line records. We're going to
+	// skip this probe (throw an exception) but before we throw
+	// we're going to look around a bit to see if there's a low or
+	// high line number nearby which *doesn't* have this problem,
+	// so we can give the user some advice.
+
+	int lo_try = -1;
+	int hi_try = -1;
+	for (size_t i = 0; i < 5; ++i)
+	  {
+	    if (lo_try == -1 && has_single_line_record(srcfile, lineno - i))
+	      lo_try = lineno - i;
+
+	    if (hi_try == -1 && has_single_line_record(srcfile, lineno + i))
+	      hi_try = lineno + i;
+	  }
+
+	string advice = "";
+	if (lo_try > 0 || hi_try > 0)
+	  advice = " (try " 
+	    + (lo_try > 0 
+	       ? (string(srcfile) + ":" + lex_cast<string>(lo_try))
+	       : string(""))
+	    + (lo_try > 0 && hi_try > 0 ? " or " : "")
+	    + (hi_try > 0 
+	       ? (string(srcfile) + ":"+ lex_cast<string>(hi_try))
+	       : string(""))
+	    + ")";
+
+	throw semantic_error("multiple addresses for " 
+			     + string(srcfile) 
+			     + ":"
+			     + lex_cast<string>(lineno)
+			     + advice);
+      }
+
     try 
       {
 	for (size_t i = 0; i < nsrcs; ++i)
@@ -1436,22 +1493,22 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	    query_func_info (i->first, i->second, q);
 	}
     }  
-
-      for (map<Dwarf_Addr, inline_instance_info>::iterator i 
-	     = q->filtered_inlines.begin();
-	   i != q->filtered_inlines.end(); ++i)
+  
+  for (map<Dwarf_Addr, inline_instance_info>::iterator i 
+	 = q->filtered_inlines.begin();
+       i != q->filtered_inlines.end(); ++i)
+    {
+      if (q->dw.die_has_pc (&(i->second.die), addr))
 	{
-	  if (q->dw.die_has_pc (&(i->second.die), addr))
-	    {
-	      if (q->sess.verbose)
-		clog << "inline instance DIE lands on srcfile" << endl;
-	      if (q->has_statement_str)
-		query_statement (i->second.name, i->second.decl_file, 
-				 q->line, NULL, addr, q);
-	      else
-		query_inline_instance_info (i->first, i->second, q);
-	    }
-	}  
+	  if (q->sess.verbose)
+	    clog << "inline instance DIE lands on srcfile" << endl;
+	  if (q->has_statement_str)
+	    query_statement (i->second.name, i->second.decl_file, 
+			     q->line, NULL, addr, q);
+	  else
+	    query_inline_instance_info (i->first, i->second, q);
+	}
+    }  
 }
 
 
@@ -1635,7 +1692,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      // have to look at lines in all the matched srcfiles. 
 	      for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		   i != q->filtered_srcfiles.end(); ++i)
-		q->dw.iterate_over_srcfile_lines (*i, q->line, query_srcfile_line, q);
+		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
+						  query_srcfile_line, q);
 	    }
 	  else
 	    {

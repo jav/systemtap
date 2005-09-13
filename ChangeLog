@@ -1,3 +1,12 @@
+2005-09-12  Graydon Hoare  <graydon@redhat.com>
+
+	PR 1306
+	* tapsets.cxx (dwflpp::has_single_line_record): New function.
+	(dwflpp::iterate_over_srcfile_lines): Throw when user requests
+	single statement line with multiple records (and provide advice).
+	(query_cu): Adjust call to match.
+	(query_srcfile_line): Fix indentation.
+
 2005-09-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am, runtest.sh: Use a "testresuilt/" directory in build
