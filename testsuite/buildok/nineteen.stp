@@ -1,0 +1,21 @@
+#! stap -p4
+
+function msg1 (x) {
+        log(x)
+}
+function msg2 (x,y) {
+        log(x." ".y)
+}
+
+probe begin {
+        msg1("55");
+        msg1(string(55))
+
+        msg2("100", "GOOD")
+        msg2("GOOD", string(100))
+
+# the next line caused a compile failure when uncommented; PR 1335
+        msg2(string(100), "GOOD")
+
+        exit()
+}

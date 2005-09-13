@@ -2259,10 +2259,8 @@ c_tmpcounter::visit_functioncall (functioncall *e)
     {
       tmpvar t = parent->gensym (r->formal_args[i]->type);
       t.declare (*parent);
+      e->args[i]->visit (this);
     }
-
-  for (unsigned i=0; i<e->args.size(); i++)
-    e->args[i]->visit (this);
 }
 
 
