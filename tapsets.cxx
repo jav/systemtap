@@ -599,7 +599,7 @@ dwflpp
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
     
-    if (need_single_match && nsrcs > 0)
+    if (need_single_match && nsrcs > 1)
       {
 	// We wanted a single line record (a unique address for the
 	// line) and we got a bunch of line records. We're going to
@@ -610,7 +610,7 @@ dwflpp
 
 	int lo_try = -1;
 	int hi_try = -1;
-	for (size_t i = 0; i < 5; ++i)
+	for (size_t i = 1; i < 6; ++i)
 	  {
 	    if (lo_try == -1 && has_single_line_record(srcfile, lineno - i))
 	      lo_try = lineno - i;
