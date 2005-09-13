@@ -137,9 +137,10 @@ allows limited traversal of structures, pointers, and arrays.
 .TP
 $var
 refers to an in-scope variable "var".  If it's an integer-like type,
-it will be cast to a 64-bit int for systemtap script use.  If it's
-a string-like type (char *), it will be copied into a systemtap
-string.
+it will be cast to a 64-bit int for systemtap script use.  String-like
+pointers (char *) may be copied to systemtap string values using the
+.IR kernel_string " or " user_string
+functions.
 .TP
 $var->field
 traversal to a structure's field.  The indirection operator
