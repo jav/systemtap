@@ -2,6 +2,8 @@
 
 	* systemtap.spec.in: Version 0.4.1 cooked.
 
+	* systemtap.spec.in: Build runpath into elfutils libs too.
+
 2005-09-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1257
