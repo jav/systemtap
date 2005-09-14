@@ -4,14 +4,14 @@
 	(_stp_strncpy_from_user): Call access_ok().
 	(_stp_string_from_user): Ditto.
 	(_stp_copy_from_user): Ditto.
-	
+
 2005-09-12  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (ERR_STRING): Remove ansi codes.
 	 (WARN_STRING): Ditto.
 
 2005-09-12  Martin Hunt  <hunt@redhat.com>
-	
+
 	* arith.c (_stp_div64): Check for division by 0 or -1 first.
 	This simplifies things and removes the possibility of x86_64
 	trying LLONG_MIN/-1 and faulting.
@@ -20,6 +20,10 @@
 2005-09-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* arith.c: Add some comments explaining why the last change works.
+
+2005-09-09  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h [__powerpc__] (store_register): Add #undef.
 
 2005-09-09  Martin Hunt  <hunt@redhat.com>
 
@@ -33,12 +37,12 @@
 	* arith.c (_stp_div64): Check for overflow.
 	(_stp_mod64): Ditto.
 
-2005-09-08  Martin Hunt  <hunt@redhat.com>	
+2005-09-08  Martin Hunt  <hunt@redhat.com>
 
 	* arith.c (_stp_div64): For 64-bit cpus, just use native
 	division. Otherwise call _div64().
 	(_stp_mod64): Call _mod64() isf necessary.
-	(_div64): 64-bit division for 32-bit cpus. 
+	(_div64): 64-bit division for 32-bit cpus.
 	(_mod64): 64-bit modulo for 32-bit cpus.
 
 	* map-values.c (_stp_map_entry_exists): Remove unused var.
@@ -53,7 +57,7 @@
 	* runtime.h (init_module): Include full prototype
 	info in function cast to satisfy stap.
 
-	* sym.c (_stp_kallsyms_lookup): Moved to runtime.h. 
+	* sym.c (_stp_kallsyms_lookup): Moved to runtime.h.
 	* stack.c (_stp_kta): Moved to runtime.h.
 	* runtime.h (init_module): Initialize _stp_kallsyms_lookup
 	and _stp_kta.
