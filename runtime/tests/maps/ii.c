@@ -93,6 +93,19 @@ int main ()
 
   _stp_map_print(map,"map[%1d] = %d");  
 
+  /* finally check clearing the map */
+  for (i = 33; i < 77; i+=11)
+    {
+      _stp_map_key_int64 (map, i);
+      _stp_map_set_int64 (map, 100*i+i);
+    }
+  _stp_map_print(map,"map[%1d] = %d");  
+
+  _stp_map_clear(map);
+  _stp_map_print(map,"map[%1d] = %d"); 
+  _stp_map_key_int64 (map, 1970);
+  _stp_map_set_int64 (map, 1799);
+  _stp_map_print(map,"map[%1d] = %d"); 
   _stp_map_del (map);
   return 0;
 }

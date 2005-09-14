@@ -51,6 +51,14 @@ map[903] = 1903
 
 map[526] = 1526
 
+
+map[33] = 3333
+map[44] = 4444
+map[55] = 5555
+map[66] = 6666
+
+
+map[1970] = 1799
 }
 
 test is {Test of int64 keys and string values} -setup {
