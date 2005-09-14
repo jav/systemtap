@@ -262,6 +262,35 @@ struct map_node *_stp_map_iter(MAP map, struct map_node *m)
 	return (struct map_node *)m->lnode.next;
 }
 
+/** Clears all the elements in a map.
+ * @param map 
+ */
+
+void _stp_map_clear(MAP map)
+{
+	struct map_node *m;
+
+	if (map == NULL)
+		return;
+
+	map->create = 0;
+	map->key = NULL;
+	map->num = 0;
+
+	while (!list_empty(&map->head)) {
+		m = (struct map_node *)map->head.next;
+		
+		/* remove node from old hash list */
+		hlist_del_init(&m->hnode);
+		
+		/* remove from entry list */
+		list_del(&m->lnode);
+		
+		/* add to free pool */
+		list_add(&m->lnode, &map->pool);
+	}
+}
+
 /** Deletes a map.
  * Deletes a map, freeing all memory in all elements.  Normally done only when the module exits.
  * @param map
