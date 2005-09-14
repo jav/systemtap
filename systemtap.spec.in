@@ -59,6 +59,8 @@ cat > configure <<\EOF
 exec ../elfutils-%{elfutils_version}/configure "$@"
 EOF
 chmod +x configure
+LDFLAGS=-Wl,--enable-new-dtags,-rpath,%{_libdir}/%{name}
+export LDFLAGS
 %configure --enable-libebl-subdir=%{name}
 make %{?_smp_mflags}
 for dir in libelf libebl libdw libdwfl; do
