@@ -1,3 +1,12 @@
+2005-09-13  Graydon Hoare  <graydon@redhat.com>
+
+	PR 1260
+	* tapsets.cxx (func_info::func_info): Initialize fields.
+	(inline_instance_info::inline_instance_info): Likewise.
+	(query_inline_instance_info): Add try-catch block.
+	(query_func_info): Likewise, and fault when missing prologue-end.
+	(query_dwarf_func): Fault when missing entrypc.
+
 2005-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1335

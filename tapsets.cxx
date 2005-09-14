@@ -206,6 +206,11 @@ static string TOK_RELATIVE("relative");
 struct 
 func_info
 {
+  func_info() 
+    : decl_file(NULL), decl_line(-1), prologue_end(0)
+  {
+    memset(&die, 0, sizeof(die));
+  }
   string name;
   char const * decl_file;
   int decl_line;
@@ -216,6 +221,11 @@ func_info
 struct
 inline_instance_info
 {
+  inline_instance_info() 
+    : decl_file(NULL), decl_line(-1)
+  {
+    memset(&die, 0, sizeof(die));
+  }
   string name;
   char const * decl_file;
   int decl_line;
@@ -1430,18 +1440,25 @@ query_inline_instance_info (Dwarf_Addr entrypc,
 			    inline_instance_info & ii,
 			    dwarf_query * q)
 {
-  if (q->has_return)
+  try
     {
-      throw semantic_error ("cannot probe .return of inline function '" + ii.name + "'");
+      if (q->has_return)
+	{
+	  throw semantic_error ("cannot probe .return of inline function '" + ii.name + "'");
+	}
+      else
+	{
+	  if (q->sess.verbose)
+	    clog << "querying entrypc " 
+		 << hex << entrypc << dec 
+		 << " of instance of inline '" << ii.name << "'" << endl;
+	  query_statement (ii.name, ii.decl_file, ii.decl_line, 
+			   &ii.die, entrypc, q);
+	}
     }
-  else
+  catch (semantic_error &e)
     {
-      if (q->sess.verbose)
-	clog << "querying entrypc " 
-	     << hex << entrypc << dec 
-	     << " of instance of inline '" << ii.name << "'" << endl;
-      query_statement (ii.name, ii.decl_file, ii.decl_line, 
-		       &ii.die, entrypc, q);
+      q->sess.print_error (e);
     }
 }
 
@@ -1450,23 +1467,35 @@ query_func_info (Dwarf_Addr entrypc,
 		 func_info & fi,
 		 dwarf_query * q)
 {
-  if (q->has_return)
+  try
     {
-      // NB. dwarf_derived_probe::emit_registrations will emit a
-      // kretprobe based on the entrypc in this case.
-      if (q->sess.verbose)
-	clog << "querying entrypc of function '" 
-	     << fi.name << "' for return probe" << endl;
-      query_statement (fi.name, fi.decl_file, fi.decl_line, 
-		       &fi.die, entrypc, q);
+      if (q->has_return)
+	{
+	  // NB. dwarf_derived_probe::emit_registrations will emit a
+	  // kretprobe based on the entrypc in this case.
+	  if (q->sess.verbose)
+	    clog << "querying entrypc of function '" 
+		 << fi.name << "' for return probe" << endl;
+	  query_statement (fi.name, fi.decl_file, fi.decl_line, 
+			   &fi.die, entrypc, q);
+	}
+      else
+	{
+	  if (q->sess.verbose)
+	    clog << "querying prologue-end of function '" 
+		 << fi.name << "'" << endl;
+
+	  if (fi.prologue_end == 0)      
+	    throw semantic_error("could not find prologue-end "
+				 "for probed function '" + fi.name + "'");
+
+	  query_statement (fi.name, fi.decl_file, fi.decl_line, 
+			   &fi.die, fi.prologue_end, q);
+	}
     }
-  else
+  catch (semantic_error &e)
     {
-      if (q->sess.verbose)
-	clog << "querying prologue-end of function '" 
-	     << fi.name << "'" << endl;
-      query_statement (fi.name, fi.decl_file, fi.decl_line, 
-		       &fi.die, fi.prologue_end, q);
+      q->sess.print_error (e);
     }
 }
 
@@ -1630,6 +1659,9 @@ query_dwarf_func (Dwarf_Func * func, void * arg)
 		  q->dw.function_line (&func.decl_line);
 		  q->filtered_functions[entrypc] = func;
 		}
+	      else 
+		throw semantic_error("no entrypc found for function '" 
+				     + q->dw.function_name + "'");	      
 	    }
 	}
       return DWARF_CB_OK;
