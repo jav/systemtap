@@ -1,3 +1,10 @@
+2005-09-14  Martin Hunt  <hunt@redhat.com>
+
+	* copy.c (__stp_strncpy_from_user): Add ppc64 support.
+	(_stp_strncpy_from_user): Call access_ok().
+	(_stp_string_from_user): Ditto.
+	(_stp_copy_from_user): Ditto.
+	
 2005-09-12  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (ERR_STRING): Remove ansi codes.

@@ -74,6 +74,9 @@ do {									   \
 		: "i"(-EFAULT), "0"(count), "1"(count), "3"(src), "4"(dst) \
 		: "memory");						   \
 } while (0)
+#elif defined (__powerpc64__)
+#define __stp_strncpy_from_user(dst,src,count,res) \
+	do { res = __strncpy_from_user(dst, src, count); } while(0)
 #endif
 
 /** Copy a NULL-terminated string from userspace.
@@ -89,14 +92,14 @@ do {									   \
  * 
  * If <i>count</i> is smaller than the length of the string, copies 
  * <i>count</i> bytes and returns <i>count</i>.
- * @deprecated I can't think of why you wouldn't use _stp_string_from_user() instead.
  */
 
 long
 _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 {
-	long res;
-	__stp_strncpy_from_user(dst, src, count, res);
+	long res = -EFAULT;
+	if (access_ok(VERIFY_READ, src, count))
+		__stp_strncpy_from_user(dst, src, count, res);
 	return res;
 }
 
@@ -112,13 +115,15 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 
 void _stp_string_from_user (String str,  const char __user *src, long count)
 {
-	long res;
+	long res = -EFAULT;
 	if (count > STP_STRING_SIZE - str->len - 1)
 		count = STP_STRING_SIZE - str->len - 1;
-	__stp_strncpy_from_user(str->buf + str->len, src, count, res);
-	if (res > 0) {
-		str->len += res;
-		str->buf[str->len] = '\0';
+	if (access_ok(VERIFY_READ, src, count)) {
+		__stp_strncpy_from_user(str->buf + str->len, src, count, res);
+		if (res > 0) {
+			str->len += res;
+			str->buf[str->len] = '\0';
+		}
 	}
 }
 
@@ -138,7 +143,13 @@ void _stp_string_from_user (String str,  const char __user *src, long count)
 unsigned long
 _stp_copy_from_user (char *dst, const char __user *src, unsigned long count)
 {
-	return __copy_from_user_inatomic(dst, src, count);
+	if (count) {
+		if (access_ok(VERIFY_READ, src, count))
+			count = __copy_from_user_inatomic(dst, src, count);
+		else
+			memset(dst, 0, count);
+	}
+	return count;
 }
 
 /** @} */
