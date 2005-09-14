@@ -1,8 +1,12 @@
+2005-09-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1344
+	* translate.cxx: Call _stp_map_clear for "delete ARRAY" statement.
+
 2005-09-14  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in: Version 0.4.1 cooked.
-
-	* systemtap.spec.in: Build runpath into elfutils libs too.
+	Build runpath into elfutils libs too.
 
 2005-09-14  Frank Ch. Eigler  <fche@elastic.org>
 

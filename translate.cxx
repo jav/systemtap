@@ -1604,8 +1604,12 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
 {
   mapvar mvar = parent->getmap(e->referent, e->tok);  
   varlock_w guard (*parent, mvar);
+  /* NB: such memory deallocation/allocation operations
+     are not generally legal in all probe contexts.
   parent->o->newline() << mvar.fini ();
   parent->o->newline() << mvar.init ();  
+  */
+  parent->o->newline() << "_stp_map_clear (" << mvar.qname() << ");";
 }
 
 void 
