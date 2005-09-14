@@ -1,3 +1,10 @@
+2005-09-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1257
+	* Makefile.am (AM_CFLAGS): Add -fexceptions.
+	* loc2c.c (c_translate_location): Invoke *fail properly.
+	* Makefile.in: Regenerated.
+
 2005-09-13  Graydon Hoare  <graydon@redhat.com>
 
 	PR 1260

@@ -4,7 +4,7 @@
 AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
 	      -DPKGDATADIR='"${pkgdatadir}"'
 
-AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE \
+AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall
 

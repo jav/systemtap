@@ -978,13 +978,13 @@ c_translate_location (struct obstack *pool,
 
     default:			/* Shouldn't happen.  */
     case -1:
-      FAIL (*input, N_("dwarf_addrloclists (form %#x): %s"),
-	    dwarf_whatform (fb_attr), dwarf_errmsg (-1));
+      (*fail) (fail_arg, N_("dwarf_addrloclists (form %#x): %s"),
+	       dwarf_whatform (fb_attr), dwarf_errmsg (-1));
       return NULL;
 
     case 0:			/* Shouldn't happen.  */
     inaccessible:
-      FAIL (*input, N_("not accessible at this address"));
+      (*fail) (fail_arg, N_("not accessible at this address"));
       return NULL;
     }
 
