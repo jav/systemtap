@@ -716,12 +716,9 @@ dwflpp
 	    choose_next_line = false;
 	  }
 	
-	else 
-	  {
-	    map<Dwarf_Addr, func_info>::const_iterator i = funcs.find (addr);
-	    if (i != funcs.end())
-	      choose_next_line = true;
-	  }
+	map<Dwarf_Addr, func_info>::const_iterator i = funcs.find (addr);
+	if (i != funcs.end())
+	  choose_next_line = true;
 	previous_addr = addr;
       }
   }

@@ -1,3 +1,9 @@
+2005-09-14  Graydon Hoare  <graydon@redhat.com>
+
+	PR 1260
+	* tapsets.cxx (dwflpp::resolve_prologue_endings): Correct logic
+	error triggered by consecutive function-beginning line records.
+
 2005-09-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1344
