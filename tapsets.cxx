@@ -161,6 +161,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
       o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline() << "atomic_dec (&c->busy);";
       o->newline() << "return;";
       o->newline(-1) << "}";
       o->newline();
@@ -2151,6 +2152,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "atomic_dec (&c->busy);";
   o->newline() << "return 0;";
   o->newline(-1) << "}";
   o->newline();
@@ -2312,6 +2314,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
 		<< "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "atomic_dec (&c->busy);";
   o->newline() << "return;";
   o->newline(-1) << "}";
   o->newline();
