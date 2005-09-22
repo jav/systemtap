@@ -458,7 +458,7 @@ void probe::printsig (ostream& o) const
 {
   for (unsigned i=0; i<locations.size(); i++)
     {
-      o << (i>0 ? ", " : "");
+      if (i > 0) o << "," << endl;
       locations[i]->print (o);
     }
 }

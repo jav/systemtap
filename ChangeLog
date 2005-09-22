@@ -1,3 +1,15 @@
+2005-09-22  Graydon Hoare  <graydon@redhat.com>,
+	Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1330.
+	* tapsets.cxx (dwarf_derived_probe): Allow multiple probe_point
+	locations per derived_probe.
+	(dwarf_query): Add probe "flavour" concept, to reuse probe bodies for
+	identical flavours across wildcards.
+	(dwarf::emit_registrations, emit_deregistrations, emit_probe_entries):
+	Reorganize.
+	* staptree (probe::printsig): Put multiple locations on separate lines.
+
 2005-09-22  Will Cohen  <wcohen@redhat.com>
 
 	* stap.1.in: Correct sys_read alias example.

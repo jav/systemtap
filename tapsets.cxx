@@ -1123,18 +1123,21 @@ function_spec_type
 struct dwarf_builder;
 struct dwarf_query;
 
+
 struct dwarf_derived_probe : public derived_probe
 {
-  dwarf_derived_probe (string const & funcname,
-		       char const * filename,
-		       int line,
-		       Dwarf_Die *scope_die,
+  dwarf_derived_probe (Dwarf_Die *scope_die,
 		       Dwarf_Addr addr,
 		       dwarf_query & q);
-
-  Dwarf_Addr addr;
-  Dwarf_Addr module_bias;
+  
+  vector<Dwarf_Addr> probe_points;
   bool has_return;
+
+  void add_probe_point(string const & funcname,
+		       char const * filename,
+		       int line,
+		       Dwarf_Addr addr,
+		       dwarf_query & q);
 
   // Pattern registration helpers.
   static void register_relative_variants(match_node * root,
@@ -1177,8 +1180,17 @@ dwarf_query
 
   string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
 
+  // Result vector and flavour-sorting mechanism.
   vector<derived_probe *> & results;
+  bool probe_has_no_target_variables;
+  map<string, dwarf_derived_probe *> probe_flavours;
+  void add_probe_point(string const & funcname,
+		       char const * filename,
+		       int line,
+		       Dwarf_Die *scope_die,
+		       Dwarf_Addr addr);
 
+  // Extracted parameters.
   bool has_kernel;
   bool has_process;
   bool has_module;
@@ -1283,6 +1295,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 vector<derived_probe *> & results)
   : sess(sess),
     results(results),
+    probe_has_no_target_variables(false),
     base_probe(base_probe),
     base_loc(base_loc),
     dw(dw)
@@ -1383,6 +1396,122 @@ dwarf_query::parse_function_spec(string & spec)
 
 
 
+// Our goal here is to calculate a "flavour", a string which
+// characterizes the way in which this probe body depends on target
+// variables. The flavour is used to separate instances of a dwarf
+// probe which have different contextual bindings for the target
+// variables which occur within the probe body. If two die/addr
+// combinations have the same flavour string, they will be directed
+// into the same probe function.
+
+struct
+target_variable_flavour_calculating_visitor
+  : public traversing_visitor
+{
+  string flavour;
+
+  dwarf_query & q;
+  Dwarf_Die *scope_die;
+  Dwarf_Addr addr;
+
+  target_variable_flavour_calculating_visitor(dwarf_query & q, 
+					      Dwarf_Die *sd, 
+					      Dwarf_Addr a)
+    : q(q), scope_die(sd), addr(a)
+  {}
+  void visit_target_symbol (target_symbol* e);
+};
+
+void
+target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol *e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (is_active_lvalue(e))
+    {
+      throw semantic_error("read-only special variable "
+			   + e->base_name + " used as lvalue", e->tok);
+    }
+
+  try
+    {      
+      exp_type ty;
+      string expr = q.dw.literal_stmt_for_local(scope_die, 
+						addr,
+						e->base_name.substr(1),
+						e->components,
+						ty);      
+      switch (ty)
+	{
+	case pe_unknown: 
+	  flavour += 'U';
+	  break;
+	case pe_long:
+	  flavour += 'L';
+	  break;
+	case pe_string:
+	  flavour += 'S';
+	  break;
+	case pe_stats:
+	  flavour += 'T';
+	  break;
+	}
+      flavour += lex_cast<string>(expr.size());
+      flavour += '{';
+      flavour += expr;
+      flavour += '}';      
+    }
+  catch (const semantic_error& er)
+    {
+      semantic_error er2 (er);
+      er2.tok1 = e->tok;
+      throw er2;
+    }
+}
+
+void
+dwarf_query::add_probe_point(string const & funcname,
+			     char const * filename,
+			     int line,
+			     Dwarf_Die *scope_die,
+			     Dwarf_Addr addr)
+{
+  dwarf_derived_probe *probe = NULL;
+  
+  if (probe_has_no_target_variables)
+    {
+      assert(probe_flavours.size() == 1);
+      probe = probe_flavours.begin()->second;
+    }
+  else
+    {
+      
+      target_variable_flavour_calculating_visitor flav(*this, scope_die, addr);
+      base_probe->body->visit(&flav);
+      
+      map<string, dwarf_derived_probe *>::iterator i 
+	= probe_flavours.find(flav.flavour);
+      
+      if (i != probe_flavours.end())
+	probe = i->second;
+      else
+	{
+	  probe = new dwarf_derived_probe(scope_die, addr, *this);
+	  probe_flavours.insert(make_pair(flav.flavour, probe));
+	  results.push_back(probe);
+	}
+      
+      // Cache result in degenerate case to avoid recomputing.
+      if (flav.flavour.empty())
+	probe_has_no_target_variables = true;
+    }
+
+  probe->add_probe_point(funcname, filename, line, addr, *this);
+}
+
+
+
+
       // The critical determining factor when interpreting a pattern
       // string is, perhaps surprisingly: "presence of a lineno". The
       // presence of a lineno changes the search strategy completely.
@@ -1424,8 +1553,7 @@ query_statement (string const & func,
         throw semantic_error("incomplete: do not know how to interpret .relative",
                              q->base_probe->tok);
 
-      q->results.push_back(new dwarf_derived_probe(func, file, line, 
-						   scope_die, stmt_addr, *q));
+      q->add_probe_point(func, file, line, scope_die, stmt_addr);
     }
   catch (const semantic_error& e)
     {
@@ -1834,6 +1962,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
     }
 }
 
+
 struct
 var_expanding_copy_visitor
   : public deep_copy_visitor
@@ -1898,35 +2027,24 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 }
 
 
-dwarf_derived_probe::dwarf_derived_probe (string const & funcname,
-					  char const * filename,
-					  int line,
-					  Dwarf_Die *scope_die,
-					  Dwarf_Addr addr,
-					  dwarf_query & q)
-  : derived_probe (NULL),
-    addr(addr),
-    module_bias(q.dw.module_bias),
-    has_return (q.has_return)
+void
+dwarf_derived_probe::add_probe_point(string const & funcname,
+				     char const * filename,
+				     int line,
+				     Dwarf_Addr addr,
+				     dwarf_query & q)
 {
   string module_name(q.dw.module_name);
-  // Lock the kernel module in memory.
-  if (module_name != TOK_KERNEL)
-    {
-      // XXX: There is a race window here, between the time that libdw
-      // opened up this same file for its relocation duties, and now.
-      int fd = q.sess.module_fds[module_name];
-      if (fd == 0)
-        {
-          string sys_module = "/sys/module/" + module_name + "/sections/.text";
-          fd = open (sys_module.c_str(), O_RDONLY);
-          if (fd < 0)
-            throw semantic_error ("error opening module refcount-bumping file.");
-          q.sess.module_fds[module_name] = fd;
-        }
-    }
 
-  // first synthesize an "expanded" location
+  // "Adding a probe point" means two things:
+  //
+  //
+  //  1. Adding an addr to the probe-point vector
+
+  probe_points.push_back(addr);
+
+  //  2. Extending the "locations" vector
+
   vector<probe_point::component*> comps;
   comps.push_back
     (module_name == TOK_KERNEL
@@ -1969,6 +2087,31 @@ dwarf_derived_probe::dwarf_derived_probe (string const & funcname,
 
   assert(q.base_probe->locations.size() > 0);
   locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
+}
+
+dwarf_derived_probe::dwarf_derived_probe (Dwarf_Die *scope_die,
+					  Dwarf_Addr addr,
+					  dwarf_query & q)
+  : derived_probe (NULL),
+    has_return (q.has_return)
+{
+  string module_name(q.dw.module_name);
+
+  // Lock the kernel module in memory.
+  if (module_name != TOK_KERNEL)
+    {
+      // XXX: There is a race window here, between the time that libdw
+      // opened up this same file for its relocation duties, and now.
+      int fd = q.sess.module_fds[module_name];
+      if (fd == 0)
+        {
+          string sys_module = "/sys/module/" + module_name + "/sections/.text";
+          fd = open (sys_module.c_str(), O_RDONLY);
+          if (fd < 0)
+            throw semantic_error ("error opening module refcount-bumping file.");
+          q.sess.module_fds[module_name] = fd;
+        }
+    }
 
   // Now make a local-variable-expanded copy of the probe body
   var_expanding_copy_visitor v (q, scope_die, addr);
@@ -2058,53 +2201,85 @@ dwarf_derived_probe::register_patterns(match_node * root)
 }
 
 static string
-probe_entry_function_name(unsigned probenum)
+function_name(unsigned probenum)
 {
   return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_enter";
 }
 
 static string
-probe_entry_struct_kprobe_name(unsigned probenum)
+struct_kprobe_array_name(unsigned probenum)
 {
   return "dwarf_kprobe_" + lex_cast<string>(probenum);
 }
 
-void
-dwarf_derived_probe::emit_registrations (translator_output* o, unsigned probenum)
+
+static string
+string_array_name(unsigned probenum)
 {
+  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_location_names";
+}
+
+
+void
+dwarf_derived_probe::emit_registrations (translator_output* o, 
+                                         unsigned probenum)
+{
+  string func_name = function_name(probenum);
+  o->newline() << "{";
+  o->newline(1) << "int i;";
+  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
+  o->indent(1);
+  string probe_name = struct_kprobe_array_name(probenum) + "[i]";
+
   if (has_return)
     {
-      o->newline() << probe_entry_struct_kprobe_name(probenum)
-                   << ".kp.addr = (void *) 0x" << hex << addr << ";" << dec;
-      o->newline() << "rc = register_kretprobe (&"
-                   << probe_entry_struct_kprobe_name(probenum)
-                   << ");";
+      o->newline() << probe_name << ".handler = &" << func_name << ";";
+      o->newline() << probe_name << ".maxactive = 1;";
+      // XXX: pending PR 1289
+      // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
+      o->newline() << "rc = register_kretprobe (&(" << probe_name << "));";
     }
   else
     {
-      o->newline() << probe_entry_struct_kprobe_name(probenum)
-                   << ".addr = (void *) 0x" << hex << addr << ";" << dec;
-      o->newline() << "rc = register_kprobe (&"
-                   << probe_entry_struct_kprobe_name(probenum)
-                   << ");";
+      o->newline() << probe_name << ".pre_handler = &" << func_name << ";";
+      // XXX: pending PR 1289
+      // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
+      o->newline() << "rc = register_kprobe (&(" << probe_name << "));";
     }
+
+  o->newline() << "if (unlikely (rc)) break;";
+  o->newline(-1) << "}";
+
+  // if one failed, must roll back completed registations for this probe
+  o->newline() << "if (unlikely (rc)) while (--i > 0)";
+  o->indent(1);
+  if (has_return)
+    o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
+  else
+    o->newline() << "unregister_kprobe (&(" << probe_name << "));";
+  o->newline(-2) << "}";
 }
+
 
 void
 dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
 {
+  o->newline() << "{";
+  o->newline(1) << "int i;";
+  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++)";
+  string probe_name = struct_kprobe_array_name(probenum) + "[i]";
+  o->indent(1);
   if (has_return)
-    o->newline() << "unregister_kretprobe (& "
-                 << probe_entry_struct_kprobe_name(probenum)
-                 << ");";
+    o->newline() << "unregister_kretprobe (&(" << probe_name << "));"; 
   else
-    o->newline() << "unregister_kprobe (& "
-                 << probe_entry_struct_kprobe_name(probenum)
-                 << ");";
+    o->newline() << "unregister_kprobe (&(" << probe_name << "));";
+  o->indent(-1);
+  o->newline(-1) << "}";  
 }
 
 void
-dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum)
+dwarf_derived_probe::emit_probe_entries (translator_output* o, 
+                                         unsigned probenum)
 {
   static unsigned already_emitted_fault_handler = 0;
 
@@ -2130,19 +2305,88 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
       already_emitted_fault_handler ++;
     }
 
+
+  // Emit arrays of probes and location names.
+
+  string probe_array = struct_kprobe_array_name(probenum);
+  string string_array = string_array_name(probenum);
+
+  assert(locations.size() == probe_points.size());
+
+  if (has_return)
+      o->newline() << "static struct kretprobe "
+                   << probe_array
+		   << "[" << probe_points.size() << "]"
+                   << "= {";
+  else
+      o->newline() << "static struct kprobe "
+                   << probe_array
+		   << "[" << probe_points.size() << "]"
+                   << "= {";
+
+  o->indent(1);
+  for (vector<Dwarf_Addr>::const_iterator i = probe_points.begin();
+       i != probe_points.end(); 
+       ++i)
+    {
+      if (i != probe_points.begin())
+        o->line() << ",";
+      if (has_return)
+        o->newline() << "{.kp.addr= (void *) 0x" << hex << *i << dec << "}";
+      else
+        o->newline() << "{.addr= (void *) 0x" << hex << *i << dec << "}";
+    }
+  o->newline(-1) << "};";
+
+  o->newline();
+
+  // This is somewhat gross, but it should work: we allocate a
+  // *parallel* array of strings containing the location of each
+  // probe. You can calculate which kprobe or kretprobe you're in by
+  // taking the difference of the struct kprobe pointer and the base
+  // of the kprobe array and dividing by the size of the struct kprobe
+  // (or kretprobe), then you can use this index into the string table
+  // here to work out the *name* of the probe you're in. 
+  //
+  // Sorry.
+
+  assert(probe_points.size() == locations.size());
+
+  o->newline() << "char const * " 
+	       << string_array
+	       << "[" << locations.size() << "] = {";
+  o->indent(1);
+  for (vector<probe_point*>::const_iterator i = locations.begin(); 
+       i != locations.end(); ++i)
+    {
+      if (i != locations.begin())
+	o->line() << ",";
+      o->newline() << lex_cast_qstring(*(*i));
+    }
+  o->newline(-1) << "};";  
+
+    
   // Construct a single entry function, and a struct kprobe pointing into
   // the entry function. The entry function will call the probe function.
   o->newline();
   o->newline() << "static int ";
-  o->newline() << probe_entry_function_name(probenum) << " (";
+  o->newline() << function_name(probenum) << " (";
   if (has_return)
-    o->line() << "struct kretprobe_instance *_ignored";
+    o->line() << "struct kretprobe_instance *probe_instance";
   else
-    o->line() << "struct kprobe *_ignored";
+    o->line() << "struct kprobe *probe_instance";
   o->line() << ", struct pt_regs *regs) {";
   o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
-  o->newline() << "const char* probe_point = "
-	       << lex_cast_qstring(*locations[0]) << ";";
+
+  // Calculate the name of the current probe by finding its index in the probe array.
+  if (has_return)
+    o->newline() << "const char* probe_point = " 
+		 << string_array 
+		 << "[ (probe_instance->rp - &(" << probe_array << "[0]))];";
+  else
+    o->newline() << "const char* probe_point = " 
+		 << string_array 
+		 << "[ (probe_instance - &(" << probe_array << "[0]))];";
 
   // A precondition for running a probe handler is that we're in RUNNING
   // state (not ERROR), and that no one else is already using this context.
@@ -2175,31 +2419,6 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o, unsigned probenum
   o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
 
-  o->newline();
-  if (has_return)
-    {
-      o->newline() << "static struct kretprobe "
-                   << probe_entry_struct_kprobe_name(probenum)
-                   << "= {";
-      o->newline(1) << ".kp.addr = 0," ;
-      o->newline() << ".handler = &"
-                   << probe_entry_function_name(probenum) << ",";
-      // XXX: pending PR 1289
-      // o->newline() << ".kp.fault_handler = &stap_kprobe_fault_handler,";
-      o->newline() << ".maxactive = 1";
-      o->newline(-1) << "};";
-    }
-  else
-    {
-      o->newline() << "static struct kprobe "
-                   << probe_entry_struct_kprobe_name(probenum)
-                   << "= {";
-      o->newline(1) << ".addr       = 0," ;
-      // XXX: pending PR 1289
-      // o->newline() << ".fault_handler = &stap_kprobe_fault_handler,";
-      o->newline() << ".pre_handler = &" << probe_entry_function_name(probenum);
-      o->newline(-1) << "};";
-    }
   o->newline();
 }
 
