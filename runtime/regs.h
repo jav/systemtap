@@ -13,6 +13,12 @@
 #define REG_IP(regs) regs->eip
 #define REG_SP(regs) regs->esp
 
+#elif defined (__powerpc64__)
+
+#define REG_IP(regs) regs->nip
+#define REG_SP(regs) regs->gpr[1]
+#define REG_LINK(regs) regs->link
+
 #else
 #error "Unimplemented architecture"
 #endif

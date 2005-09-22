@@ -1,5 +1,8 @@
 2005-09-22  Martin Hunt  <hunt@redhat.com>
-	
+
+	* regs.h: PPC64 version from 
+	Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+
 	* runtime.h (init_module): Only initialize _stp_kta and 
 	_stp_kallsyms_lookup on i386 and x86_64. Define HAS_LOOKUP.
 
