@@ -61,14 +61,14 @@ static struct
 #include "arith.c"
 #include "copy.c"
 
+/************* Module Stuff ********************/
+#if defined (__x86_64__) || defined (__i386__)
+#define HAS_LOOKUP 1
 static int (*_stp_kta)(unsigned long addr);
 static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 					    unsigned long *symbolsize,
 					    unsigned long *offset,
 					    char **modname, char *namebuf);
-
-/************* Module Stuff ********************/
-int probe_start(void);
 
 int init_module (void)
 {
@@ -77,6 +77,14 @@ int init_module (void)
     kallsyms_lookup_name("kallsyms_lookup");
   return _stp_transport_init();
 }
+#else
+int init_module (void)
+{
+  return _stp_transport_init();
+}
+#endif
+
+int probe_start(void);
 
 void cleanup_module(void)
 {

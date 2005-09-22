@@ -1,3 +1,15 @@
+2005-09-22  Martin Hunt  <hunt@redhat.com>
+	
+	* runtime.h (init_module): Only initialize _stp_kta and 
+	_stp_kallsyms_lookup on i386 and x86_64. Define HAS_LOOKUP.
+
+	* sym.c (_stp_symbol_sprint): If HAS_LOOKUP is not
+	defined, just print address in hex.
+
+	* current.c (_stp_ret_addr): Add ppc64 version.
+	(_stp_sprint_regs): PPC64 version from 
+	Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+
 2005-09-14  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_map_clear): New function. CLears a map but

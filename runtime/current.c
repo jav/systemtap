@@ -29,6 +29,8 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 		return 0;
 #elif defined (__i386__)
 	return regs->esp;
+#elif defined (__powerpc64__)
+	return REG_LINK(regs);
 #else
 	#error Unimplemented architecture
 #endif
@@ -127,6 +129,40 @@ void _stp_sprint_regs(String str, struct pt_regs * regs)
 		".previous			\n"
 		: "=r" (cr4): "0" (0));
 	_stp_sprintf (str, "CR0: %08lx CR2: %08lx CR3: %08lx CR4: %08lx\n", cr0, cr2, cr3, cr4);
+}
+
+#elif defined (__powerpc64__)
+
+void _stp_sprint_regs(String str, struct pt_regs * regs)
+{
+	int i;
+
+	_stp_sprintf(str, "NIP: %016lX XER: %08X LR: %016lX CTR: %016lX\n",
+	       regs->nip, (unsigned int)regs->xer, regs->link, regs->ctr);
+	_stp_sprintf(str, "REGS: %p TRAP: %04lx\n", regs, regs->trap);
+	_stp_sprintf(str, "MSR: %016lx CR: %08X\n",
+			regs->msr, (unsigned int)regs->ccr);
+	_stp_sprintf(str, "DAR: %016lx DSISR: %016lx\n",
+		       	regs->dar, regs->dsisr);
+
+#ifdef CONFIG_SMP
+	_stp_sprintf(str, " CPU: %d", smp_processor_id());
+#endif /* CONFIG_SMP */
+
+	for (i = 0; i < 32; i++) {
+		if ((i % 4) == 0) {
+			_stp_sprintf(str, "\n GPR%02d: ", i);
+		}
+
+		_stp_sprintf(str, "%016lX ", regs->gpr[i]);
+		if (i == 13 && !FULL_REGS(regs))
+			break;
+	}
+	_stp_string_cat(str, "\n");
+	_stp_sprintf(str, "NIP [%016lx] ", regs->nip);
+	_stp_sprintf(str, "LR [%016lx] ", regs->link);
+	_stp_string_cat(str, regs->link);
+	_stp_string_cat(str, "\n");
 }
 
 #endif
