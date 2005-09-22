@@ -293,13 +293,13 @@ operator.  In addition, the statement block that follows an alias
 definition is implicitly added as a prologue to any probe that refers
 to the alias.  For example:
 .SAMPLE
-probe syscall("read") = kernel.function("sys_read") {
+probe syscall.read = kernel.function("sys_read") {
   fildes = $fd
 }
 .ESAMPLE
 defines a new probe point
 .nh
-.IR syscall("read") ,
+.IR syscall.read ,
 .hy
 which expands to
 .nh
@@ -308,7 +308,7 @@ which expands to
 with the given assignment as a prologue.  Another probe definition
 may use the alias like this:
 .SAMPLE
-probe syscall("read") {
+probe syscall.read {
   printk ("reading fd=" . string (fildes))
 }
 .ESAMPLE
