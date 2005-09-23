@@ -347,65 +347,6 @@ static inline void _stp_swap (struct list_head *a, struct list_head *b)
 	b->next = a;
 }
 
-/** Get the top values from an array.
- * Sorts an array such that the start of the array contains the top
- * or bottom 'n' values. Use this when sorting the entire array
- * would be too time-consuming and you are only interested in the
- * highest or lowest values.
- *
- * @param map Map
- * @param n Top (or bottom) number of elements
- * @param keynum 0 for the value, or a positive number for the key number to sort on.
- * @param dir Sort Direction. -1 for low-to-high. 1 for high-to-low.
- * @sa _stp_map_sort()
- */
-void _stp_map_sortn(MAP map, int n, int keynum, int dir)
-{
-	struct list_head *head = &map->head;
-	struct list_head *c, *a, *last, *tmp;
-	int type, num, swaps = 1;
-
-	if (list_empty(head))
-		return;
-
-	if (keynum)
-		(*map->get_key)((struct map_node *)head->next, keynum, &type);
-	else
-		type = ((struct map_node *)head->next)->map->type;
-
-	/* start off with a modified bubble sort of the first n elements */
-	while (swaps) {
-		num = n;
-		swaps = 0;
-		a = head->next;
-		c = a->next->next;
-		while ((a->next != head) && (--num > 0)) {
-			if (_stp_cmp(a, a->next, keynum, dir, type)) {
-				swaps++;
-				_stp_swap(a, a->next);
-			}
-			a = c->prev;
-			c = c->next;
-		}
-	}
-	
-	/* Now use a kind of insertion sort for the rest of the array. */
-	/* Each element is tested to see if it should be be in the top 'n' */
-	last = a;
-	a = a->next;
-	while (a != head) {
-		tmp = a->next;
-		c = last;
-		while (c != head && _stp_cmp(c, a, keynum, dir, type)) 
-			c = c->prev;
-		if (c != last) {
-			list_del(a);
-			list_add(a, c);
-			last = last->prev;
-		}
-		a = tmp;
-	}
-}
 
 /** Sort an entire array.
  * Sorts an entire array using merge sort.
@@ -469,6 +410,69 @@ void _stp_map_sort (MAP map, int keynum, int dir)
         } while (nmerges > 1);
 }
 
+/** Get the top values from an array.
+ * Sorts an array such that the start of the array contains the top
+ * or bottom 'n' values. Use this when sorting the entire array
+ * would be too time-consuming and you are only interested in the
+ * highest or lowest values.
+ *
+ * @param map Map
+ * @param n Top (or bottom) number of elements. 0 sorts the entire array.
+ * @param keynum 0 for the value, or a positive number for the key number to sort on.
+ * @param dir Sort Direction. -1 for low-to-high. 1 for high-to-low.
+ * @sa _stp_map_sort()
+ */
+void _stp_map_sortn(MAP map, int n, int keynum, int dir)
+{
+	if (n == 0) {
+		_stp_map_sort(map, keynum, dir);
+	} else {
+		struct list_head *head = &map->head;
+		struct list_head *c, *a, *last, *tmp;
+		int type, num, swaps = 1;
+		
+		if (list_empty(head))
+			return;
+		
+		if (keynum)
+			(*map->get_key)((struct map_node *)head->next, keynum, &type);
+		else
+			type = ((struct map_node *)head->next)->map->type;
+		
+		/* start off with a modified bubble sort of the first n elements */
+		while (swaps) {
+			num = n;
+			swaps = 0;
+			a = head->next;
+			c = a->next->next;
+			while ((a->next != head) && (--num > 0)) {
+				if (_stp_cmp(a, a->next, keynum, dir, type)) {
+					swaps++;
+					_stp_swap(a, a->next);
+				}
+				a = c->prev;
+				c = c->next;
+			}
+		}
+		
+		/* Now use a kind of insertion sort for the rest of the array. */
+		/* Each element is tested to see if it should be be in the top 'n' */
+		last = a;
+		a = a->next;
+		while (a != head) {
+			tmp = a->next;
+			c = last;
+			while (c != head && _stp_cmp(c, a, keynum, dir, type)) 
+				c = c->prev;
+			if (c != last) {
+				list_del(a);
+				list_add(a, c);
+				last = last->prev;
+			}
+			a = tmp;
+		}
+	}
+}
 
 static int print_keytype (char *fmt, int type, key_data *kd)
 {

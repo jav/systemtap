@@ -1,5 +1,10 @@
 2005-09-23  Martin Hunt  <hunt@redhat.com>
 
+	* map.c (_stp_map_sortn):  Call _stp_map_sort()
+	when n is 0.
+
+2005-09-23  Martin Hunt  <hunt@redhat.com>
+
 	* map.c (_stp_cmp): New comparison function for sorts.
 	(_stp_swap): New swap function for bubble sort.
 	(_stp_map_sortn): New function.
