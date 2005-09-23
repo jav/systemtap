@@ -1,3 +1,12 @@
+2005-09-23  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_cmp): New comparison function for sorts.
+	(_stp_swap): New swap function for bubble sort.
+	(_stp_map_sortn): New function.
+	(_stp_map_sort): New function.	
+	(_stp_map_printn): New function.
+	(_stp_map_print): Convert to a macro.	
+
 2005-09-22  Martin Hunt  <hunt@redhat.com>
 
 	* regs.h: PPC64 version from 

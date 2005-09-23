@@ -304,6 +304,172 @@ void _stp_map_del(MAP map)
 	_stp_vfree(map);
 }
 
+/* comparison function for sorts. */
+static int _stp_cmp (struct list_head *a, struct list_head *b, int keynum, int dir, int type)
+{
+	struct map_node *m1 = (struct map_node *)a;
+	struct map_node *m2 = (struct map_node *)b;
+	if (type == STRING) {
+		int ret;
+		if (keynum)
+			ret = strcmp(_stp_key_get_str(m1, keynum), _stp_key_get_str(m2, keynum));
+		else
+			ret = strcmp(_stp_get_str(m1), _stp_get_str(m2));
+		if ((ret < 0 && dir > 0) || (ret > 0 && dir < 0))
+			ret = 1;
+		else
+			ret = 0;
+		//_stp_log ("comparing %s and %s and returning %d\n", _stp_get_str(m1), _stp_get_str(m2), ret);
+		return ret;
+	} else {
+		int64_t a,b;
+		if (keynum) {
+			a = _stp_key_get_int64(m1, keynum);
+			b = _stp_key_get_int64(m2, keynum);
+		} else {
+			a = _stp_get_int64(m1);
+			b = _stp_get_int64(m2);
+		}
+		if ((a < b && dir > 0) || (a > b && dir < 0))
+			return 1;
+		return 0;
+	}
+}
+
+/* swap function for bubble sort */
+static inline void _stp_swap (struct list_head *a, struct list_head *b)
+{
+	a->prev->next = b;
+	b->next->prev = a;
+	a->next = b->next;
+	b->prev = a->prev;
+	a->prev = b;
+	b->next = a;
+}
+
+/** Get the top values from an array.
+ * Sorts an array such that the start of the array contains the top
+ * or bottom 'n' values. Use this when sorting the entire array
+ * would be too time-consuming and you are only interested in the
+ * highest or lowest values.
+ *
+ * @param map Map
+ * @param n Top (or bottom) number of elements
+ * @param keynum 0 for the value, or a positive number for the key number to sort on.
+ * @param dir Sort Direction. -1 for low-to-high. 1 for high-to-low.
+ * @sa _stp_map_sort()
+ */
+void _stp_map_sortn(MAP map, int n, int keynum, int dir)
+{
+	struct list_head *head = &map->head;
+	struct list_head *c, *a, *last, *tmp;
+	int type, num, swaps = 1;
+
+	if (list_empty(head))
+		return;
+
+	if (keynum)
+		(*map->get_key)((struct map_node *)head->next, keynum, &type);
+	else
+		type = ((struct map_node *)head->next)->map->type;
+
+	/* start off with a modified bubble sort of the first n elements */
+	while (swaps) {
+		num = n;
+		swaps = 0;
+		a = head->next;
+		c = a->next->next;
+		while ((a->next != head) && (--num > 0)) {
+			if (_stp_cmp(a, a->next, keynum, dir, type)) {
+				swaps++;
+				_stp_swap(a, a->next);
+			}
+			a = c->prev;
+			c = c->next;
+		}
+	}
+	
+	/* Now use a kind of insertion sort for the rest of the array. */
+	/* Each element is tested to see if it should be be in the top 'n' */
+	last = a;
+	a = a->next;
+	while (a != head) {
+		tmp = a->next;
+		c = last;
+		while (c != head && _stp_cmp(c, a, keynum, dir, type)) 
+			c = c->prev;
+		if (c != last) {
+			list_del(a);
+			list_add(a, c);
+			last = last->prev;
+		}
+		a = tmp;
+	}
+}
+
+/** Sort an entire array.
+ * Sorts an entire array using merge sort.
+ *
+ * @param map Map
+ * @param keynum 0 for the value, or a positive number for the key number to sort on.
+ * @param dir Sort Direction. -1 for low-to-high. 1 for high-to-low.
+ * @sa _stp_map_sortn()
+ */
+
+void _stp_map_sort (MAP map, int keynum, int dir)
+{
+        struct list_head *p, *q, *e, *tail;
+        int nmerges, psize, qsize, i, type, insize = 1;
+	struct list_head *head = &map->head;
+
+	if (list_empty(head))
+		return;
+
+	if (keynum)
+		(*map->get_key)((struct map_node *)head->next, keynum, &type);
+	else
+		type = ((struct map_node *)head->next)->map->type;
+
+        do {
+		tail = head;
+		p = head->next;
+                nmerges = 0;
+
+                while (p) {
+                        nmerges++;
+                        q = p;
+                        psize = 0;
+                        for (i = 0; i < insize; i++) {
+                                psize++;
+                                q = q->next == head ? NULL : q->next;
+                                if (!q)
+                                        break;
+                        }
+
+                        qsize = insize;
+                        while (psize > 0 || (qsize > 0 && q)) {
+                                if (psize && (!qsize || !q || !_stp_cmp(p, q, keynum, dir, type))) {
+                                        e = p;
+                                        p = p->next == head ? NULL : p->next;
+                                        psize--;
+                                } else {
+                                        e = q;
+                                        q = q->next == head ? NULL : q->next;
+                                        qsize--;
+                                }
+				
+				/* now put 'e' on tail of list and make it our new tail */
+				list_del(e);
+				list_add(e, tail);
+				tail = e;
+                        }
+                        p = q;
+                }
+                insize += insize;
+        } while (nmerges > 1);
+}
+
+
 static int print_keytype (char *fmt, int type, key_data *kd)
 {
 	//dbug ("*fmt = %c\n", *fmt);
@@ -384,12 +550,15 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
  * @param map Map
  * @param fmt @ref format_string
  */
-void _stp_map_print (MAP map, const char *fmt)
+void _stp_map_printn (MAP map, int n, const char *fmt)
 {
 	struct map_node *ptr;
 	int type, num;
 	key_data kd;
 	//dbug ("print map %lx fmt=%s\n", (long)map, fmt);
+
+	if (n < 0)
+		return;
 
 	foreach (map, ptr) {
 		char *f = (char *)fmt;
@@ -408,10 +577,20 @@ void _stp_map_print (MAP map, const char *fmt)
 				f++;
 		}
 		_stp_print_cstr ("\n");
+		if (n && (--n <= 0))
+			break;
 	}
 	_stp_print_cstr ("\n");
 	_stp_print_flush();
 }
+
+/** Print a Map.
+ * Print a Map using a format string.
+ *
+ * @param map Map
+ * @param fmt @ref format_string
+ */
+#define _stp_map_print(map,fmt) _stp_map_printn(map,0,fmt)
 
 static struct map_node *__stp_map_create (MAP map)
 {
