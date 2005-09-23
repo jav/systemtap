@@ -444,6 +444,153 @@ map[3, Chicago, IL, 2000] = 8272768
 3. The population of Chicago, IL in 2000 was 8272768
 }
 
+test map_sort {Test of sorting} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort.c
+} -body {
+	exec ./test
+} -result {sorting from A-Z on value
+Boston -> 5 5 Massachusetts
+Carson City -> 7 8 Nevada
+Columbus -> 1 2 Ohio
+Des Moines -> 8 8 Iowa
+Montpelier -> 2 2 Vermont
+Olympia -> 5 6 Washington
+Raleigh -> -1 9 North Carolina
+Sacramento -> 3 4 California
+Salem -> 7 8 Oregon
+Santa Fe -> 1 4 New Mexico
+
+
+sorting from Z-A on value
+Santa Fe -> 1 4 New Mexico
+Salem -> 7 8 Oregon
+Sacramento -> 3 4 California
+Raleigh -> -1 9 North Carolina
+Olympia -> 5 6 Washington
+Montpelier -> 2 2 Vermont
+Des Moines -> 8 8 Iowa
+Columbus -> 1 2 Ohio
+Carson City -> 7 8 Nevada
+Boston -> 5 5 Massachusetts
+
+
+sorting from low to high on key 1
+-1 9 North Carolina -> Raleigh
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+2 2 Vermont -> Montpelier
+3 4 California -> Sacramento
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+8 8 Iowa -> Des Moines
+
+
+sorting from high to low on key 1
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+3 4 California -> Sacramento
+2 2 Vermont -> Montpelier
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+-1 9 North Carolina -> Raleigh
+
+
+sorting from low to high on key 2
+2 2 Vermont -> Montpelier
+1 2 Ohio -> Columbus
+3 4 California -> Sacramento
+1 4 New Mexico -> Santa Fe
+5 5 Massachusetts -> Boston
+5 6 Washington -> Olympia
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+-1 9 North Carolina -> Raleigh
+
+
+sorting from high to low on key 2
+-1 9 North Carolina -> Raleigh
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+3 4 California -> Sacramento
+1 4 New Mexico -> Santa Fe
+2 2 Vermont -> Montpelier
+1 2 Ohio -> Columbus
+
+
+sorting from low to high on key 3
+California		3 4 -> Sacramento
+Iowa		8 8 -> Des Moines
+Massachusetts		5 5 -> Boston
+Nevada		7 8 -> Carson City
+New Mexico		1 4 -> Santa Fe
+North Carolina		-1 9 -> Raleigh
+Ohio		1 2 -> Columbus
+Oregon		7 8 -> Salem
+Vermont		2 2 -> Montpelier
+Washington		5 6 -> Olympia
+
+
+sorting from high to low on key 3
+Washington		5 6 -> Olympia
+Vermont		2 2 -> Montpelier
+Oregon		7 8 -> Salem
+Ohio		1 2 -> Columbus
+North Carolina		-1 9 -> Raleigh
+New Mexico		1 4 -> Santa Fe
+Nevada		7 8 -> Carson City
+Massachusetts		5 5 -> Boston
+Iowa		8 8 -> Des Moines
+California		3 4 -> Sacramento
+
+
+top 3 alphabetical by value
+Boston -> 5 5 Massachusetts
+Carson City -> 7 8 Nevada
+Columbus -> 1 2 Ohio
+
+
+bottom 2 alphabetical by value
+Santa Fe -> 1 4 New Mexico
+Salem -> 7 8 Oregon
+
+
+top 5 sorted by key 1
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+
+
+bottom 5 sorted by key 1
+-1 9 North Carolina -> Raleigh
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+2 2 Vermont -> Montpelier
+3 4 California -> Sacramento
+
+sorted by population from low to high
+Nicosia is the capitol of Cyprus and the nerd population is -1
+Valletta is the capitol of Malta and the nerd population is 1
+Riga is the capitol of Latvia and the nerd population is 135786
+Sofia is the capitol of Bulgaria and the nerd population is 138740
+
+sorted by population from high to low
+Sofia is the capitol of Bulgaria and the nerd population is 138740
+Riga is the capitol of Latvia and the nerd population is 135786
+Valletta is the capitol of Malta and the nerd population is 1
+Nicosia is the capitol of Cyprus and the nerd population is -1
+}
+
 exec rm test
 
 cleanupTests

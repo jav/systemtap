@@ -1,3 +1,8 @@
+2005-09-23  Martin Hunt  <hunt@redhat.com>
+
+	* maps/map.test: Add sort results.
+	* maps/sort.c: New test.
+
 2005-09-14  Martin Hunt  <hunt@redhat.com>
 
 	* maps/ii.c (main): Add test for _stp_map_clear().
