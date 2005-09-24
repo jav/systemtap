@@ -1,6 +1,5 @@
 function retval:long() %{
-
-       if (CONTEXT && CONTEXT->regs) {
+       if (CONTEXT->regs) {
 #if defined (__i386__)
                THIS->__retvalue = CONTEXT->regs->eax;
 #elif defined (__x86_64__)
