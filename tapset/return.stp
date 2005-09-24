@@ -1,0 +1,20 @@
+function retval:long() %{
+
+       if (CONTEXT && CONTEXT->regs) {
+#if defined (__i386__)
+               THIS->__retvalue = CONTEXT->regs->eax;
+#elif defined (__x86_64__)
+               THIS->__retvalue = CONTEXT->regs->rax;
+#elif defined (__powerpc64__)
+               THIS->__retvalue = CONTEXT->regs->gpr[3];
+#elif defined (__ia64__)
+               THIS->__retvalue = CONTEXT->regs->r8;
+#elif defined (__sparc64__)
+               THIS->__retvalue = CONTEXT->regs->u_regs[UREG_RETPC];
+#else
+               THIS->__retvalue = -1;
+#endif
+       }
+       else
+               THIS->__retvalue = -1;
+%}
