@@ -158,6 +158,12 @@ including alias and wildcard expansion effects.
 target:long ()
 Returns the pid of the target process.
 
+.SS ERROR
+
+.TP
+errno_str:string (e:long)
+Return the symbolic string associated with the given error code. 
+
 .SH FILES
 .nh
 .IR /usr/share/systemtap/tapset
