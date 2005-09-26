@@ -1,0 +1,3144 @@
+# time_____________________________________________
+/* asmlinkage long sys_time(time_t __user * tloc) */
+probe kernel.syscall.time = 
+	kernel.function("sys_time") {
+		name = "time"
+	}
+
+probe kernel.syscall.time.return = 
+	kernel.function("sys_time").return {
+		name = "time.return"
+		/*
+		t = $tloc
+		*/
+	}
+# stime____________________________________________
+/* asmlinkage long sys_stime(time_t __user *tptr) */
+probe kernel.syscall.stime = 
+	kernel.function("sys_stime") {
+		name = "stime"
+		/*
+		t = $tptr
+		*/
+	}
+
+probe kernel.syscall.stime.return = 
+	kernel.function("sys_stime").return {
+		name = "stime.return"
+                /* 
+                t = $tptr
+		*/
+	}
+# gettimeofday_____________________________________
+/* asmlinkage long sys_gettimeofday(struct timeval __user *tv, 
+				    struct timezone __user *tz) */
+probe kernel.syscall.gettimeofday = 
+	kernel.function("sys_gettimeofday") {
+		name = "gettimeofday"
+	}
+
+probe kernel.syscall.gettimeofday.return = 
+	kernel.function("sys_gettimeofday").return {
+		name = "gettimeofday.return"
+		/*
+		tv_sec = $tv->tv_sec
+		tv_usec = $tv->tv_usec
+		tz_minuteswest = $tz->tz_minuteswest
+		tz_dsttime = $tz->tz_dsttime
+		*/
+	}
+# settimeofday_____________________________________
+/* asmlinkage long sys_settimeofday(struct timeval __user *tv, 
+				    struct timezone __user *tz) */
+probe kernel.syscall.settimeofday = 
+	kernel.function("sys_settimeofday") {
+		name = "settimeofday"
+                /*
+                tv_sec = $tv->tv_sec
+                tv_usec = $tv->tv_usec
+                tz_minuteswest = $tz->tz_minuteswest
+                tz_dsttime = $tz->tz_dsttime
+                */
+	}
+
+probe kernel.syscall.settimeofday.return = 
+	kernel.function("sys_settimeofday").return {
+		name = "settimeofday.return"
+                /*
+                tv_sec = $tv->tv_sec
+                tv_usec = $tv->tv_usec
+                tz_minuteswest = $tz->tz_minuteswest
+                tz_dsttime = $tz->tz_dsttime
+                */
+	}
+# adjtimex_________________________________________
+/* asmlinkage long sys_adjtimex(struct timex __user *txc_p) */
+probe kernel.syscall.adjtimex = 
+	kernel.function("sys_adjtimex") {
+		name = "adjtimex"
+		/*
+		modes = $txc_p->modes
+		offset = $txc_p->offset
+		freq = $txc_p->freq
+		maxerror = $txc_p->maxerror
+		esterror = $txc_p->esterror
+		status = $txc_p->status
+		constant = $txc_p->constant
+		precision = $txc_p->precision
+		tolerance = $txc_p->tolerance
+
+		tv_sec = $txc_p->time->tv_sec
+		tv_usec = $txc_p->time->tv_usec
+		tick = $txc_p->tick
+	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		The  modes  field determines which parameters, 
+		if any, to set.  It may contain a bit-wise-or 
+		combination of zero or more of the following bits:
+
+               	#define ADJ_OFFSET            0x0001  time offset 
+               	#define ADJ_FREQUENCY         0x0002  frequency offset 
+               	#define ADJ_MAXERROR          0x0004  maximum time error 
+               	#define ADJ_ESTERROR          0x0008  estimated time error
+               	#define ADJ_STATUS            0x0010  clock status 
+               	#define ADJ_TIMECONST         0x0020  pll time constant 
+               	#define ADJ_TICK              0x4000  tick value 
+               	#define ADJ_OFFSET_SINGLESHOT 0x8001  old-fashioned adjtime 
+
+       		Ordinary users are restricted to a zero value for mode.
+		Only the superuser  may  set any parameters.
+		
+	RETURN VALUE
+       		On success, adjtimex returns the clock state:
+
+               	#define TIME_OK   0  clock synchronized 
+               	#define TIME_INS  1  insert leap second 
+               	#define TIME_DEL  2  delete leap second 
+               	#define TIME_OOP  3  leap second in progress 
+               	#define TIME_WAIT 4  leap second has occurred 
+               	#define TIME_BAD  5  clock not synchronized 
+		*/
+	}
+
+probe kernel.syscall.adjtimex.return = 
+	kernel.function("sys_adjtimex").return {
+		name = "adjtimex.return"
+                /* 
+                modes = $txc_p->modes
+                offset = $txc_p->offset
+                freq = $txc_p->freq
+                maxerror = $txc_p->maxerror
+                esterror = $txc_p->esterror
+                status = $txc_p->status
+                constant = $txc_p->constant
+                precision = $txc_p->precision
+                tolerance = $txc_p->tolerance
+
+                tv_sec = $txc_p->time->tv_sec
+                tv_usec = $txc_p->time->tv_usec
+                tick = $txc_p->tick
+        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                The  modes  field determines which parameters,
+                if any, to set.  It may contain a bit-wise-or
+                combination of zero or more of the following bits:
+
+                #define ADJ_OFFSET            0x0001  time offset
+                #define ADJ_FREQUENCY         0x0002  frequency offset
+                #define ADJ_MAXERROR          0x0004  maximum time error
+                #define ADJ_ESTERROR          0x0008  estimated time error
+                #define ADJ_STATUS            0x0010  clock status
+                #define ADJ_TIMECONST         0x0020  pll time constant
+                #define ADJ_TICK              0x4000  tick value
+                #define ADJ_OFFSET_SINGLESHOT 0x8001  old-fashioned adjtime
+
+                Ordinary users are restricted to a zero value for mode.
+                Only the superuser  may  set any parameters.
+
+        RETURN VALUE
+                On success, adjtimex returns the clock state:
+
+                #define TIME_OK   0  clock synchronized
+                #define TIME_INS  1  insert leap second
+                #define TIME_DEL  2  delete leap second
+                #define TIME_OOP  3  leap second in progress
+                #define TIME_WAIT 4  leap second has occurred
+                #define TIME_BAD  5  clock not synchronized
+                */
+	}
+# times____________________________________________
+/* asmlinkage long sys_times(struct tms __user * tbuf) */
+probe kernel.syscall.times = 
+	kernel.function("sys_times") {
+		name = "times"
+	}
+
+probe kernel.syscall.times.return = 
+	kernel.function("sys_times").return {
+		name = "times.return"
+		/*
+		tms_utime = $tbuf->tms_utime
+		tms_stime = $tbuf->tms_stime
+		tms_cutime = $tbuf->tms_cutime
+		tms_cstime = $tbuf->tms_cstime
+		*/
+	}
+# gettid___________________________________________
+/* asmlinkage long sys_gettid(void) */
+probe kernel.syscall.gettid = 
+	kernel.function("sys_gettid") {
+		name = "gettid"
+	}
+
+probe kernel.syscall.gettid.return = 
+	kernel.function("sys_gettid").return {
+		name = "gettid.return"
+	}
+# nanosleep________________________________________
+/* asmlinkage long sys_nanosleep(struct timespec __user *rqtp, 
+				 struct timespec __user *rmtp) */
+probe kernel.syscall.nanosleep = 
+	kernel.function("sys_nanosleep") {
+		name = "nanosleep"
+		/*
+		req_tv_sec = $rqtp->tv_sec
+		req_tv_usec = $rqtp->tv_usec
+		rem_tv_sec = $rmtp->tv_sec
+		rem_tv_usec = $rmtp->tv_usec
+		*/
+	}
+
+probe kernel.syscall.nanosleep.return = 
+	kernel.function("sys_nanosleep").return {
+		name = "nanosleep.return"
+                /*
+                req_tv_sec = $rqtp->tv_sec
+                req_tv_usec = $rqtp->tv_usec
+                rem_tv_sec = $rmtp->tv_sec
+                rem_tv_usec = $rmtp->tv_usec
+                */
+	}
+# alarm____________________________________________
+/* asmlinkage unsigned long sys_alarm(unsigned int seconds) */
+probe kernel.syscall.alarm = 
+	kernel.function("sys_alarm") {
+		name = "alarm"
+		seconds = $seconds
+	}
+
+probe kernel.syscall.alarm.return = 
+	kernel.function("sys_alarm").return {
+		name = "alarm.return"
+		seconds = $seconds
+	}
+# getpid___________________________________________
+/* asmlinkage long sys_getpid(void) */
+probe kernel.syscall.getpid = 
+	kernel.function("sys_getpid") {
+		name = "getpid"
+	}
+
+probe kernel.syscall.getpid.return = 
+	kernel.function("sys_getpid").return {
+		name = "getpid.return"
+	}
+# getppid__________________________________________
+/* asmlinkage long sys_getppid(void) */
+probe kernel.syscall.getppid = 
+	kernel.function("sys_getppid") {
+		name = "getppid"
+	}
+
+probe kernel.syscall.getppid.return = 
+	kernel.function("sys_getppid").return {
+		name = "getppid.return"
+	}
+# getuid___________________________________________
+/* asmlinkage long sys_getuid(void) */
+probe kernel.syscall.getuid = 
+	kernel.function("sys_getuid") {
+		name = "getuid"
+	}
+
+probe kernel.syscall.getuid.return = 
+	kernel.function("sys_getuid").return {
+		name = "getuid.return"
+	}
+# geteuid__________________________________________
+/* asmlinkage long sys_geteuid(void) */
+probe kernel.syscall.geteuid = 
+	kernel.function("sys_geteuid") {
+		name = "geteuid"
+	}
+
+probe kernel.syscall.geteuid.return = 
+	kernel.function("sys_geteuid").return {
+		name = "geteuid.return"
+	}
+# getgid___________________________________________
+/* asmlinkage long sys_getgid(void) */
+probe kernel.syscall.getgid = 
+	kernel.function("sys_gid") {
+		name = "getgid"
+	}
+
+probe kernel.syscall.getgid.return = 
+	kernel.function("sys_gid").return {
+		name = "getgid.return"
+	}
+# getegid__________________________________________
+/* asmlinkage long sys_getegid(void) */
+probe kernel.syscall.getegid = 
+	kernel.function("sys_getegid") {
+		name = "getegid"
+	}
+
+probe kernel.syscall.getegid.return = 
+	kernel.function("sys_getegid").return {
+		name = "getegid.return"
+	}
+# getresuid________________________________________
+/* asmlinkage long sys_getresuid(uid_t __user *ruid, 
+				 uid_t __user *euid, 
+				 uid_t __user *suid) */
+probe kernel.syscall.getresuid = 
+	kernel.function("sys_getresuid") {
+		name = "getresuid"
+	}
+
+probe kernel.syscall.getresuid.return = 
+	kernel.function("sys_getresuid").return {
+		name = "getresuid.return"
+		/*
+		ruid = $ruid
+		euid = $euid
+		suid = $suid
+		*/
+	}
+# getresgid________________________________________
+/* asmlinkage long sys_getresgid(gid_t __user *rgid, 
+				 gid_t __user *egid, 
+				 gid_t __user *sgid) */
+probe kernel.syscall.getresgid = 
+	kernel.function("sys_retresgid") {
+		name = "getresgid"
+	}
+
+probe kernel.syscall.getresgid.return = 
+	kernel.function("sys_retresgid").return {
+		name = "getresgid.return"
+                /*
+                rgid = $rgid
+                egid = $egid
+                sgid = $sgid
+                */
+	}
+# getpgid__________________________________________
+/* asmlinkage long sys_getpid(void) */
+probe kernel.syscall.getpgid = 
+	kernel.function("sys_getpgid") {
+		name = "getpgid"
+	}
+
+probe kernel.syscall.getpgid.return = 
+	kernel.function("sys_getpgid").return {
+		name = "getpgid.return"
+	}
+# getpgrp__________________________________________
+/* asmlinkage long sys_getpgrp(void) */
+probe kernel.syscall.getpgrp = 
+	kernel.function("sys_getpgrp") {
+		name = "getpgrp"
+	}
+
+probe kernel.syscall.getpgrp.return = 
+	kernel.function("sys_getpgrp").return {
+		name = "getpgrp.return"
+	}
+# getsid___________________________________________
+/* asmlinkage long sys_getsid(pid_t pid) */
+probe kernel.syscall.getsid = 
+	kernel.function("sys_getsid") {
+		name = "getsid"
+		pid = $pid
+	}
+
+probe kernel.syscall.getsid.return = 
+	kernel.function("sys_getsid").return {
+		name = "getsid.return"
+		pid = $pid
+	}
+# getgroups________________________________________
+/* asmlinkage long sys_getgroups(int gidsetsize, 
+				 gid_t __user *grouplist) */
+probe kernel.syscall.getgroups = 
+	kernel.function("sys_getgroups") {
+		name = "getgroups"
+	}
+
+probe kernel.syscall.getgroups.return = 
+	kernel.function("sys_getgroups").return {
+		name = "getgroups.return"
+		/*
+		SUMMARY
+		int getgroups(int size, gid_t list[]);
+       	
+                Up  to  size  supplementary group IDs are returned in list.  
+		It is unspecified whether the effective group ID of the  calling  
+		process  is  included  in  the returned  list.  (Thus,  an 
+		application should also call getegid(2) and add or remove the 
+		resulting value.)  If size is zero, list is not modified,  but  the
+                total number of supplementary group IDs for the process is returned.
+
+		Note: I do not think SystemTap has support for arrays, this may be
+		      able to be delegated to an embedded aux function....
+		*/
+	}
+# setregid_________________________________________
+/* asmlinkage long sys_setregid(gid_t rgid, gid_t egid) */
+probe kernel.syscall.setregid = 
+	kernel.function("sys_setregid") {
+		name = "setregid"
+		rgid = $rgid
+		egid = $egid
+	}
+
+probe kernel.syscall.setregid.return = 
+	kernel.function("sys_setregid").return {
+		name = "setregid.return"
+                rgid = $rgid
+                egid = $egid
+	}
+# setgid___________________________________________
+/* asmlinkage long sys_setgid(gid_t gid) */
+probe kernel.syscall.setgid = 
+	kernel.function("sys_setgid") {
+		name = "setgid"
+		gid = $gid
+	}
+
+probe kernel.syscall.setgid.return = 
+	kernel.function("sys_setgid").return {
+		name = "setgid.return"
+		gid = $gid
+	}
+# setreuid_________________________________________
+/* asmlinkage long sys_setreuid(uid_t ruid, uid_t euid) */
+probe kernel.syscall.setreuid = 
+	kernel.function("sys_setreuid") {
+		name = "setreuid"
+		ruid = $ruid
+		euid = $euid
+	}
+
+probe kernel.syscall.setreuid.return = 
+	kernel.function("sys_setreuid").return {
+		name = "setreuid.return"
+                ruid = $ruid
+                euid = $euid
+	}
+# setuid___________________________________________
+/* asmlinkage long sys_setuid(uid_t uid) */
+probe kernel.syscall.setuid = 
+	kernel.function("sys_setuid") {
+		name = "setuid"
+		uid = $uid
+	}
+
+probe kernel.syscall.setuid.return = 
+	kernel.function("sys_setuid").return {
+		name = "setuid.return"
+		uid = $uid
+	}
+# setresuid________________________________________
+/* asmlinkage long sys_setresuid(uid_t ruid, uid_t euid, uid_t suid) */
+probe kernel.syscall.setresuid = 
+	kernel.function("sys_setresuid") {
+		name = "setresuid"
+		ruid = $ruid
+		euid = $euid
+		suid = $suid
+	}
+
+probe kernel.syscall.setresuid.return = 
+	kernel.function("sys_setresuid").return {
+		name = "setresuid.return"
+                ruid = $ruid
+                euid = $euid
+                suid = $suid
+	}
+# setresgid________________________________________
+/* asmlinkage long sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid) */
+probe kernel.syscall.setresgid = 
+	kernel.function("sys_setresgid") {
+		name = "setresgid"
+		rgid = $rgid
+		egid = $egid
+		sgid = $sgid
+	}
+
+probe kernel.syscall.setresgid.return = 
+	kernel.function("sys_setresgid").return {
+		name = "setresgid.return"
+                rgid = $rgid
+                egid = $egid
+                sgid = $sgid
+	}
+# setfsuid_________________________________________
+/* asmlinkage long sys_setfsuid(uid_t uid) */
+probe kernel.syscall.setfsuid = 
+	kernel.function("sys_setfsuid") {
+		name = "setfsuid"
+		fsuid = $uid
+	}
+
+probe kernel.syscall.setfsuid.return = 
+	kernel.function("sys_setfsuid").return {
+		name = "setfsuid.return"
+		fsuid = $uid
+	}
+# setfsgid_________________________________________
+/* asmlinkage long sys_setfsgid(gid_t gid) */
+probe kernel.syscall.setfsgid = 
+	kernel.function("sys_setfsgid") {
+		name = "setfsgid"
+		fsgid = $gid
+	}
+
+probe kernel.syscall.setfsgid.return = 
+	kernel.function("sys_setfsgid").return {
+		name = "setfsgid.return"
+		fsgid = $gid
+	}
+# setpgid__________________________________________
+/* asmlinkage long sys_setpgid(pid_t pid, pid_t pgid) */
+probe kernel.syscall.setpgid = 
+	kernel.function("sys_setpgid") {
+		name = "setpgid"
+		pid = $pid
+		pgid = $pgid
+	}
+
+probe kernel.syscall.setpgid.return = 
+	kernel.function("sys_setpgid").return {
+		name = "setpgid.return"
+		pid = $pid
+		pgid = $pgid
+	}
+# setsid___________________________________________
+/* asmlinkage long sys_setsid(void) */
+probe kernel.syscall.setsid = 
+	kernel.function("sys_setsid") {
+		name = "setsid"
+	}
+
+probe kernel.syscall.setsid.return = 
+	kernel.function("sys_setsid").return {
+		name = "setsid.return"
+	}
+# setgroups________________________________________
+/* asmlinkage long sys_setgroups(int gidsetsize, 
+				 gid_t __user *grouplist) */
+probe kernel.syscall.setgroups = 
+	kernel.function("sys_setgroups") {
+		name = "setgroups"
+                /*
+                SUMMARY (see getgroups for same issue)
+                int setgroups(size_t size, const gid_t *list);
+
+                Sets the supplementary group IDs for the process.  
+		Only the super-user may use this function.
+
+                Note: I do not think SystemTap has support for arrays, this may be
+                      able to be delegated to an embedded aux function....
+                */
+	}
+
+probe kernel.syscall.setgroups.return = 
+	kernel.function("sys_setgroups").return {
+		name = "setgroups.return"
+                /*
+                SUMMARY (see getgroups for same issue)
+                int setgroups(size_t size, const gid_t *list);
+
+                Sets the supplementary group IDs for the process.
+                Only the super-user may use this function.
+
+                Note: I do not think SystemTap has support for arrays, this may be
+                      able to be delegated to an embedded aux function....
+                */
+	}
+# acct_____________________________________________
+/* asmlinkage long sys_acct(const char __user *name) */
+probe kernel.syscall.acct = 
+	kernel.function("sys_acct") {
+		name = "acct"
+		/*
+		filename = $name
+		*/
+	}
+
+probe kernel.syscall.acct.return = 
+	kernel.function("sys_acct").return {
+		name = "acct.return"
+                /*
+                filename = $name
+                */
+	}
+# capget___________________________________________
+/* asmlinkage long sys_capget(cap_user_header_t header, 
+			     cap_user_data_t dataptr) */
+probe kernel.syscall.capget = 
+	kernel.function("sys_capget") {
+		name = "capget"
+		version = $header->version
+		target_pid = $header->pid
+		effective = $dataptr->effective
+		permitted = $dataptr->permitted
+		inheritable = $dataptr->inheritable
+		/*
+		DESCRIPTION
+       		These  two  functions  are the raw kernel interface 
+		for getting and setting capabilities.  The kernel API 
+		is likely to change and use of these functions  (in  
+		particular the format of the cap_user_*_t types) is 
+		subject to change with each kernel revision.
+
+       		These  system  calls  are  specific  to   Linux.    
+		The   portable   interfaces   are cap_set_proc(3) and 
+		cap_get_proc(3).
+		*/
+	}
+
+probe kernel.syscall.capget.return = 
+	kernel.function("sys_capget").return {
+		name = "capget.return"
+                version = $header->version
+                target_pid = $header->pid
+                effective = $dataptr->effective
+                permitted = $dataptr->permitted
+                inheritable = $dataptr->inheritable
+                /*
+                DESCRIPTION
+                These  two  functions  are the raw kernel interface
+                for getting and setting capabilities.  The kernel API
+		is likely to change and use of these functions  (in
+                particular the format of the cap_user_*_t types) is
+		subject to change with each kernel revision.
+
+                These  system  calls  are  specific  to   Linux.
+                The   portable   interfaces   are cap_set_proc(3) and
+                cap_get_proc(3).
+                */
+	}
+# capset___________________________________________
+/* asmlinkage long sys_capset(cap_user_header_t header, 
+			      const cap_user_data_t data) */
+probe kernel.syscall.capset = 
+	kernel.function("sys_capset") {
+		name = "capset"
+                version = $header->version
+                target_pid = $header->pid
+                effective = $data->effective
+                permitted = $data->permitted
+                inheritable = $data->inheritable
+                /*
+                DESCRIPTION
+                These  two  functions  are the raw kernel interface
+                for getting and setting capabilities.  The kernel API
+		is likely to change and use of these functions  (in
+                particular the format of the cap_user_*_t types) is
+		subject to change with each kernel revision.
+
+                These  system  calls  are  specific  to   Linux.
+                The   portable   interfaces   are cap_set_proc(3) and
+                cap_get_proc(3).
+                */
+	}
+
+probe kernel.syscall.capset.return = 
+	kernel.function("sys_capset").return {
+		name = "capset.return"
+                version = $header->version
+                target_pid = $header->pid
+                effective = $data->effective
+                permitted = $data->permitted
+                inheritable = $data->inheritable
+                /*
+                DESCRIPTION
+                These  two  functions  are the raw kernel interface
+                for getting and setting capabilities.  The kernel API
+		is likely to change and use of these functions  (in
+                particular the format of the cap_user_*_t types) is
+		subject to change with each kernel revision.
+
+                These  system  calls  are  specific  to   Linux.
+                The   portable   interfaces   are cap_set_proc(3) and
+                cap_get_proc(3).
+                */
+	}
+# personality______________________________________
+/* asmlinkage long sys_personality(u_long personality) */
+probe kernel.syscall.personality = 
+	kernel.function("sys_personality") {
+		name = "personality"
+		persona = $personality
+	}
+
+probe kernel.syscall.personality.return = 
+	kernel.function("sys_personality").return {
+		name = "personality.return"
+		persona = $personality
+	}
+# sigpending_______________________________________
+/* asmlinkage long sys_sigpending(old_sigset_t __user *set) */
+probe kernel.syscall.sigpending = 
+	kernel.function("do_sigpending") {
+		name = "sigpending"
+	}
+
+probe kernel.syscall.sigpending.return = 
+	kernel.function("do_sigpending").return {
+		name = "sigpending.return"
+		/*
+		set = $set
+		*/
+	}
+# sigprocmask______________________________________
+probe kernel.syscall.sigprocmask = 
+	kernel.function("sys_sigprocmask") {
+		name = "sigprocmask"
+	}
+
+probe kernel.syscall.sigprocmask.return = 
+	kernel.function("sys_sigprocmask").return {
+		name = "sigprocmask.return"
+	}
+# getitimer________________________________________
+probe kernel.syscall.getitimer = 
+	kernel.function("sys_getitimer") {
+		name = "getitimer"
+	}
+
+probe kernel.syscall.getitimer.return = 
+	kernel.function("sys_getitimer").return {
+		name = "getitimer.return"
+	}
+# setitimer________________________________________
+probe kernel.syscall.setitimer = 
+	kernel.function("sys_setitimer") {
+		name = "setitimer"
+	}
+
+probe kernel.syscall.setitimer.return = 
+	kernel.function("sys_setitimer").return {
+		name = "setitimer.return"
+	}
+# timer_create_____________________________________
+probe kernel.syscall.timer_create = 
+	kernel.function("sys_timer_create") {
+		name = "timer_create"
+	}
+
+probe kernel.syscall.timer_create.return = 
+	kernel.function("sys_timer_create").return {
+		name = "timer_create.return"
+	}
+# timer_gettime____________________________________
+probe kernel.syscall.timer_gettime = 
+	kernel.function("sys_timer_gettime") {
+		name = "timer_gettime"
+	}
+
+probe kernel.syscall.timer_gettime.return = 
+	kernel.function("sys_timer_gettime").return {
+		name = "timer_gettime.return"
+	}
+# timer_getoverrun_________________________________
+probe kernel.syscall.timer_getoverrun = 
+	kernel.function("sys_timer_getoverrun") {
+		name = "timer_getoverrun"
+	}
+
+probe kernel.syscall.timer_getoverrun.return = 
+	kernel.function("sys_timer_getoverrun").return {
+		name = "timer_getoverrun.return"
+	}
+# timer_settime____________________________________
+probe kernel.syscall.timer_settime = 
+	kernel.function("sys_timer_settime") {
+		name = "timer_settime"
+	}
+
+probe kernel.syscall.timer_settime.return = 
+	kernel.function("sys_timer_settime").return {
+		name = "timer_settime.return"
+	}
+# timer_delete_____________________________________
+probe kernel.syscall.timer_delete = 
+	kernel.function("sys_timer_delete") {
+		name = "timer_delete"
+	}
+
+probe kernel.syscall.timer_delete.return = 
+	kernel.function("sys_timer_delete").return {
+		name = "timer_delete.return"
+	}
+# clock_settime____________________________________
+probe kernel.syscall.clock_settime = 
+	kernel.function("sys_clock_settime") {
+		name = "clock_settime"
+	}
+
+probe kernel.syscall.clock_settime.return = 
+	kernel.function("sys_clock_settime").return {
+		name = "clock_settime.return"
+	}
+# clock_gettime____________________________________
+probe kernel.syscall.clock_gettime = 
+	kernel.function("sys_clock_gettime") {
+		name = "clock_gettime"
+	}
+
+probe kernel.syscall.clock_gettime.return = 
+	kernel.function("sys_clock_gettime").return {
+		name = "clock_gettime.return"
+	}
+# clock_getres_____________________________________
+probe kernel.syscall.clock_getres = 
+	kernel.function("sys_clock_getres") {
+		name = "clock_getres"
+	}
+
+probe kernel.syscall.clock_getres.return = 
+	kernel.function("sys_clock_getres").return {
+		name = "clock_getres.return"
+	}
+# clock_nanosleep__________________________________
+probe kernel.syscall.clock_nanosleep = 
+	kernel.function("sys_clock_nanosleep") {
+		name = "clock_nanosleep"
+	}
+
+probe kernel.syscall.clock_nanosleep.return = 
+	kernel.function("sys_clock_nanosleep").return {
+		name = "clock_nanosleep.return"
+	}
+# nice_____________________________________________
+probe kernel.syscall.nice = 
+	kernel.function("sys_nice") {
+		name = "nice"
+	}
+
+probe kernel.syscall.nice.return = 
+	kernel.function("sys_nice").return {
+		name = "nice.return"
+	}
+# sched_setscheduler_______________________________
+probe kernel.syscall.sched_setscheduler = 
+	kernel.function("do_sched_setscheduler") {
+		name = "sched_setscheduler"
+	}
+
+probe kernel.syscall.sched_setscheduler.return = 
+	kernel.function("do_sched_setscheduler").return {
+		name = "sched_setscheduler.return"
+	}
+# sched_setparam___________________________________
+probe kernel.syscall.sched_setparam = 
+	kernel.function("do_sched_setscheduler") {
+		name = "sched_setparam"
+	}
+
+probe kernel.syscall.sched_setparam.return = 
+	kernel.function("do_sched_setscheduler").return {
+		name = "sched_setparam.return"
+	}
+# sched_getscheduler_______________________________
+probe kernel.syscall.sched_getscheduler = 
+	kernel.function("sys_sched_getscheduler") {
+		name = "sched_getscheduler"
+	}
+
+probe kernel.syscall.sched_getscheduler.return = 
+	kernel.function("sys_sched_getscheduler").return {
+		name = "sched_getscheduler.return"
+	}
+# sched_getparam___________________________________
+probe kernel.syscall.sched_getparam = 
+	kernel.function("sys_sched_getparam") {
+		name = "sched_getparam"
+	}
+
+probe kernel.syscall.sched_getparam.return = 
+	kernel.function("sys_sched_getparam").return {
+		name = "sched_getparam.return"
+	}
+# sched_setaffinity________________________________
+probe kernel.syscall.sched_setaffinity = 
+	kernel.function("sys_sched_setaffinity") {
+		name = "sched_setaffinity"
+	}
+
+probe kernel.syscall.sched_setaffinity.return = 
+	kernel.function("sys_sched_setaffinity").return {
+		name = "sched_setaffinity.return"
+	}
+# sched_getaffinity________________________________
+probe kernel.syscall.sched_getaffinity = 
+	kernel.function("sys_sched_getaffinity") {
+		name = "sched_getaffinity"
+	}
+
+probe kernel.syscall.sched_getaffinity.return = 
+	kernel.function("sys_sched_getaffinity").return {
+		name = "sched_getaffinity.return"
+	}
+# sched_yield______________________________________
+probe kernel.syscall.sched_yield = 
+	kernel.function("sys_sched_yield") {
+		name = "sched_yield"
+	}
+
+probe kernel.syscall.sched_yield.return = 
+	kernel.function("sys_sched_yield").return {
+		name = "sched_yield.return"
+	}
+# sched_get_priority_max___________________________
+probe kernel.syscall.sched_get_priority_max = 
+	kernel.function("sys_sched_get_priority_max") {
+		name = "sched_get_priority_max"
+	}
+
+probe kernel.syscall.sched_get_priority_max.return = 
+	kernel.function("sys_sched_get_priority_max").return {
+		name = "sched_get_priority_max.return"
+	}
+# sched_get_priority_min___________________________
+probe kernel.syscall.sched_get_priority_min = 
+	kernel.function("sys_sched_get_priority_min") {
+		name = "sched_get_priority_min"
+	}
+
+probe kernel.syscall.sched_get_priority_min.return = 
+	kernel.function("sys_sched_get_priority_min").return {
+		name = "sched_get_priority_min.return"
+	}
+# sched_rr_get_interval____________________________
+probe kernel.syscall.sched_rr_get_interval = 
+	kernel.function("sys_sched_rr_get_interval") {
+		name = "sched_rr_get_interval"
+	}
+
+probe kernel.syscall.sched_rr_get_interval.return = 
+	kernel.function("sys_sched_rr_get_interval").return {
+		name = "sched_rr_get_interval.return"
+	}
+# setpriority______________________________________
+probe kernel.syscall.setpriority = 
+	kernel.function("sys_setpriority") {
+		name = "setpriority"
+	}
+
+probe kernel.syscall.setpriority.return = 
+	kernel.function("sys_setpriority").return {
+		name = "setpriority.return"
+	}
+# getpriority______________________________________
+probe kernel.syscall.getpriority = 
+	kernel.function("sys_getpriority") {
+		name = "getpriority"
+	}
+
+probe kernel.syscall.getpriority.return = 
+	kernel.function("sys_getpriority").return {
+		name = "getpriority.return"
+	}
+# shutdown_________________________________________
+probe kernel.syscall.shutdown = 
+	kernel.function("sys_shutdown") {
+		name = "shutdown"
+	}
+
+probe kernel.syscall.shutdown.return = 
+	kernel.function("sys_shutdown").return {
+		name = "shutdown.return"
+	}
+# reboot___________________________________________
+probe kernel.syscall.reboot = 
+	kernel.function("sys_reboot") {
+		name = "reboot"
+	}
+
+probe kernel.syscall.reboot.return = 
+	kernel.function("sys_reboot").return {
+		name = "reboot.return"
+	}
+# restart_syscall__________________________________
+probe kernel.syscall.restart_syscall = 
+	kernel.function("sys_restart_syscall") {
+		name = "restart_syscall"
+	}
+
+probe kernel.syscall.restart_syscall.return = 
+	kernel.function("sys_restart_syscall").return {
+		name = "restart_syscall.return"
+	}
+# exit_____________________________________________
+probe kernel.syscall.exit = 
+	kernel.function("do_exit") {
+		name = "exit"
+	}
+
+probe kernel.syscall.exit.return = 
+	kernel.function("do_exit").return {
+		name = "exit.return"
+	}
+# exit_group_______________________________________
+probe kernel.syscall.exit_group = 
+	kernel.function("do_group_exit") {
+		name = "exit_group"
+	}
+
+probe kernel.syscall.exit_group.return = 
+	kernel.function("do_group_exit").return {
+		name = "exit_group.return"
+	}
+# wait4____________________________________________
+probe kernel.syscall.wait4 = 
+	kernel.function("sys_wait4") {
+		name = "wait4"
+	}
+
+probe kernel.syscall.wait4.return = 
+	kernel.function("sys_wait4").return {
+		name = "wait4.return"
+	}
+# waitid___________________________________________
+probe kernel.syscall.waitid = 
+	kernel.function("sys_waitid") {
+		name = "waitid"
+	}
+
+probe kernel.syscall.waitid.return = 
+	kernel.function("sys_waitid").return {
+		name = "waitid.return"
+	}
+# waitpid__________________________________________
+probe kernel.syscall.waitpid = 
+	kernel.function("sys_wait4") {
+		name = "waitpid"
+	}
+
+probe kernel.syscall.waitpid.return = 
+	kernel.function("sys_wait4").return {
+		name = "waitpid.return"
+	}
+# set_tid_address__________________________________
+probe kernel.syscall.set_tid_address = 
+	kernel.function("sys_set_tid_address") {
+		name = "set_tid_address"
+	}
+
+probe kernel.syscall.set_tid_address.return = 
+	kernel.function("sys_set_tid_address").return {
+		name = "set_tid_address.return"
+	}
+# futex____________________________________________
+probe kernel.syscall.futex = 
+	kernel.function("sys_futex") {
+		name = "futex"
+	}
+
+probe kernel.syscall.futex.return = 
+	kernel.function("sys_futex").return {
+		name = "futex.return"
+	}
+# init_module______________________________________
+probe kernel.syscall.init_module = 
+	kernel.function("sys_init_module") {
+		name = "init_module"
+	}
+
+probe kernel.syscall.init_module.return = 
+	kernel.function("sys_init_module").return {
+		name = "init_module.return"
+	}
+# delete_module____________________________________
+probe kernel.syscall.delete_module = 
+	kernel.function("sys_delete_module") {
+		name = "delete_module"
+	}
+
+probe kernel.syscall.delete_module.return = 
+	kernel.function("sys_delete_module").return {
+		name = "delete_module.return"
+	}
+# rt_sigprocmask___________________________________
+probe kernel.syscall.rt_sigprocmask = 
+	kernel.function("sys_rt_sigprocmask") {
+		name = "rt_sigprocmask"
+	}
+
+probe kernel.syscall.rt_sigprocmask.return = 
+	kernel.function("sys_rt_sigprocmask").return {
+		name = "rt_sigprocmask.return"
+	}
+# rt_sigpending____________________________________
+probe kernel.syscall.rt_sigpending = 
+	kernel.function("do_sigpending") {
+		name = "rt_sigpending"
+	}
+
+probe kernel.syscall.rt_sigpending.return = 
+	kernel.function("do_sigpending").return {
+		name = "rt_sigpending.return"
+	}
+# rt_sigtimedwait__________________________________
+probe kernel.syscall.rt_sigtimedwait = 
+	kernel.function("sys_rt_sigtimedwait") {
+		name = "rt_sigtimedwait"
+	}
+
+probe kernel.syscall.rt_sigtimedwait.return = 
+	kernel.function("sys_rt_sigtimedwait").return {
+		name = "rt_sigtimedwait.return"
+	}
+# kill_____________________________________________
+probe kernel.syscall.kill = 
+	kernel.function("sys_kill") {
+		name = "kill"
+	}
+
+probe kernel.syscall.kill.return = 
+	kernel.function("sys_kill").return {
+		name = "kill.return"
+	}
+# tgkill___________________________________________
+probe kernel.syscall.tgkill = 
+	kernel.function("sys_tgkill") {
+		name = "tgkill"
+	}
+
+probe kernel.syscall.tgkill.return = 
+	kernel.function("sys_tgkill").return {
+		name = "tgkill.return"
+	}
+# tkill____________________________________________
+probe kernel.syscall.tkill = 
+	kernel.function("sys_tkill") {
+		name = "tkill"
+	}
+
+probe kernel.syscall.tkill.return = 
+	kernel.function("sys_tkill").return {
+		name = "tkill.return"
+	}
+# rt_sigqueueinfo__________________________________
+probe kernel.syscall.rt_sigqueueinfo = 
+	kernel.function("sys_rt_sigqueueinfo") {
+		name = "rt_sigqueueinfo"
+	}
+
+probe kernel.syscall.rt_sigqueueinfo.return = 
+	kernel.function("sys_rt_sigqueueinfo").return {
+		name = "rt_sigqueueinfo.return"
+	}
+# sgetmask_________________________________________
+probe kernel.syscall.sgetmask = 
+	kernel.function("sys_sgetmask") {
+		name = "sgetmask"
+	}
+
+probe kernel.syscall.sgetmask.return = 
+	kernel.function("sys_sgetmask").return {
+		name = "sgetmask.return"
+	}
+# ssetmask_________________________________________
+probe kernel.syscall.ssetmask = 
+	kernel.function("sys_ssetmask") {
+		name = "ssetmask"
+	}
+
+probe kernel.syscall.ssetmask.return = 
+	kernel.function("sys_ssetmask").return {
+		name = "ssetmask.return"
+	}
+# signal___________________________________________
+probe kernel.syscall.signal = 
+	kernel.function("sys_signal") {
+		name = "signal"
+	}
+
+probe kernel.syscall.signal.return = 
+	kernel.function("sys_signal").return {
+		name = "signal.return"
+	}
+# pause____________________________________________
+probe kernel.syscall.pause = 
+	kernel.function("sys_pause") {
+		name = "pause"
+	}
+
+probe kernel.syscall.pause.return = 
+	kernel.function("sys_pause").return {
+		name = "pause.return"
+	}
+# sync_____________________________________________
+probe kernel.syscall.sync = 
+	kernel.function("do_sync") {
+		name = "sync"
+	}
+
+probe kernel.syscall.sync.return = 
+	kernel.function("do_sync").return {
+		name = "sync.return"
+	}
+# fsync____________________________________________
+probe kernel.syscall.fsync = 
+	kernel.function("sys_fsync") {
+		name = "fsync"
+	}
+
+probe kernel.syscall.fsync.return = 
+	kernel.function("sys_fsync").return {
+		name = "fsync.return"
+	}
+# fdatasync________________________________________
+probe kernel.syscall.fdatasync = 
+	kernel.function("sys_fdatasync") {
+		name = "fdatasync"
+	}
+
+probe kernel.syscall.fdatasync.return = 
+	kernel.function("sys_fdatasync").return {
+		name = "fdatasync.return"
+	}
+# bdflush__________________________________________
+probe kernel.syscall.bdflush = 
+	kernel.function("sys_bdflush") {
+		name = "bdflush"
+	}
+
+probe kernel.syscall.bdflush.return = 
+	kernel.function("sys_bdflush").return {
+		name = "bdflush.return"
+	}
+# mount____________________________________________
+probe kernel.syscall.mount = 
+	kernel.function("sys_mount") {
+		name = "mount"
+	}
+
+probe kernel.syscall.mount.return = 
+	kernel.function("sys_mount").return {
+		name = "mount.return"
+	}
+# umount___________________________________________
+probe kernel.syscall.umount = 
+	kernel.function("sys_umount") {
+		name = "umount"
+	}
+
+probe kernel.syscall.umount.return = 
+	kernel.function("sys_umount").return {
+		name = "umount.return"
+	}
+# oldumount________________________________________
+probe kernel.syscall.oldumount = 
+	kernel.function("sys_umount") {
+		name = "oldumount"
+	}
+
+probe kernel.syscall.oldumount.return = 
+	kernel.function("sys_umount").return {
+		name = "oldumount.return"
+	}
+# truncate_________________________________________
+probe kernel.syscall.truncate = 
+	kernel.function("do_sys_truncate") {
+		name = "truncate"
+	}
+
+probe kernel.syscall.truncate.return = 
+	kernel.function("do_sys_truncate").return {
+		name = "truncate.return"
+	}
+# ftruncate________________________________________
+probe kernel.syscall.ftruncate = 
+	kernel.function("do_sys_ftrancate") {
+		name = "ftruncate"
+	}
+
+probe kernel.syscall.ftruncate.return = 
+	kernel.function("do_sys_ftrancate").return {
+		name = "ftruncate.return"
+	}
+# stat_____________________________________________
+probe kernel.syscall.stat = 
+	kernel.function("sys_stat") {
+		name = "stat"
+	}
+
+probe kernel.syscall.stat.return = 
+	kernel.function("sys_stat").return {
+		name = "stat.return"
+	}
+# statfs___________________________________________
+probe kernel.syscall.statfs = 
+	kernel.function("sys_statfs") {
+		name = "statfs"
+	}
+
+probe kernel.syscall.statfs.return = 
+	kernel.function("sys_statfs").return {
+		name = "statfs.return"
+	}
+# statfs64_________________________________________
+probe kernel.syscall.statfs64 = 
+	kernel.function("sys_statfs64") {
+		name = "statfs64"
+	}
+
+probe kernel.syscall.statfs64.return = 
+	kernel.function("sys_statfs64").return {
+		name = "statfs64.return"
+	}
+# fstatfs__________________________________________
+probe kernel.syscall.fstatfs = 
+	kernel.function("sys_fstatfs") {
+		name = "fstatfs"
+	}
+
+probe kernel.syscall.fstatfs.return = 
+	kernel.function("sys_fstatfs").return {
+		name = "fstatfs.return"
+	}
+# fstatfs64________________________________________
+probe kernel.syscall.fstatfs64 = 
+	kernel.function("sys_fstatfs64") {
+		name = "fstatfs64"
+	}
+
+probe kernel.syscall.fstatfs64.return = 
+	kernel.function("sys_fstatfs64").return {
+		name = "fstatfs64.return"
+	}
+# lstat____________________________________________
+probe kernel.syscall.lstat = 
+	kernel.function("sys_lstat") {
+		name = "lstat"
+	}
+
+probe kernel.syscall.lstat.return = 
+	kernel.function("sys_lstat").return {
+		name = "lstat.return"
+	}
+# fstat____________________________________________
+probe kernel.syscall.fstat = 
+	kernel.function("sys_fstat") {
+		name = "fstat"
+	}
+
+probe kernel.syscall.fstat.return = 
+	kernel.function("sys_fstat").return {
+		name = "fstat.return"
+	}
+# newstat__________________________________________
+probe kernel.syscall.newstat = 
+	kernel.function("sys_newstat") {
+		name = "newstat"
+	}
+
+probe kernel.syscall.newstat.return = 
+	kernel.function("sys_newstat").return {
+		name = "newstat.return"
+	}
+# newlstat_________________________________________
+probe kernel.syscall.newlstat = 
+	kernel.function("sys_newlstat") {
+		name = "newlstat"
+	}
+
+probe kernel.syscall.newlstat.return = 
+	kernel.function("sys_newlstat").return {
+		name = "newlstat.return"
+	}
+# newfstat_________________________________________
+probe kernel.syscall.newfstat = 
+	kernel.function("sys_newfstat") {
+		name = "newfstat"
+	}
+
+probe kernel.syscall.newfstat.return = 
+	kernel.function("sys_newfstat").return {
+		name = "newfstat.return"
+	}
+# ustat____________________________________________
+probe kernel.syscall.ustat = 
+	kernel.function("sys_ustat") {
+		name = "ustat"
+	}
+
+probe kernel.syscall.ustat.return = 
+	kernel.function("sys_ustat").return {
+		name = "ustat.return"
+	}
+# stat64___________________________________________
+probe kernel.syscall.stat64 = 
+	kernel.function("sys_stat64") {
+		name = "stat64"
+	}
+
+probe kernel.syscall.stat64.return = 
+	kernel.function("sys_stat64").return {
+		name = "stat64.return"
+	}
+# fstat64__________________________________________
+probe kernel.syscall.fstat64 = 
+	kernel.function("sys_fstat64") {
+		name = "fstat64"
+	}
+
+probe kernel.syscall.fstat64.return = 
+	kernel.function("sys_fstat64").return {
+		name = "fstat64.return"
+	}
+# lstat64__________________________________________
+probe kernel.syscall.lstat64 = 
+	kernel.function("sys_lstat64") {
+		name = "lstat64"
+	}
+
+probe kernel.syscall.lstat64.return = 
+	kernel.function("sys_lstat64").return {
+		name = "lstat64.return"
+	}
+# truncate64_______________________________________
+probe kernel.syscall.truncate64 = 
+	kernel.function("do_sys_truncate") {
+		name = "truncate64"
+	}
+
+probe kernel.syscall.truncate64.return = 
+	kernel.function("do_sys_truncate").return {
+		name = "truncate64.return"
+	}
+# ftruncate64______________________________________
+probe kernel.syscall.ftruncate64 = 
+	kernel.function("do_sys_ftruncate") {
+		name = "ftruncate64"
+	}
+
+probe kernel.syscall.ftruncate64.return = 
+	kernel.function("do_sys_ftruncate").return {
+		name = "ftruncate64.return"
+	}
+# setxattr_________________________________________
+probe kernel.syscall.setxattr = 
+	kernel.function("sys_setxattr") {
+		name = "setxattr"
+	}
+
+probe kernel.syscall.setxattr.return = 
+	kernel.function("sys_setxattr").return {
+		name = "setxattr.return"
+	}
+# lsetxattr________________________________________
+probe kernel.syscall.lsetxattr = 
+	kernel.function("sys_lsetxattr") {
+		name = "lsetxattr"
+	}
+
+probe kernel.syscall.lsetxattr.return = 
+	kernel.function("sys_lsetxattr").return {
+		name = "lsetxattr.return"
+	}
+# fsetxattr________________________________________
+probe kernel.syscall.fsetxattr = 
+	kernel.function("sys_fsetxattr") {
+		name = "fsetxattr"
+	}
+
+probe kernel.syscall.fsetxattr.return = 
+	kernel.function("sys_fsetxattr").return {
+		name = "fsetxattr.return"
+	}
+# getxattr_________________________________________
+probe kernel.syscall.getxattr = 
+	kernel.function("sys_getxattr") {
+		name = "getxattr"
+	}
+
+probe kernel.syscall.getxattr.return = 
+	kernel.function("sys_getxattr").return {
+		name = "getxattr.return"
+	}
+# lgetxattr________________________________________
+probe kernel.syscall.lgetxattr = 
+	kernel.function("sys_lgetxattr") {
+		name = "lgetxattr"
+	}
+
+probe kernel.syscall.lgetxattr.return = 
+	kernel.function("sys_lgetxattr").return {
+		name = "lgetxattr.return"
+	}
+# fgetxattr________________________________________
+probe kernel.syscall.fgetxattr = 
+	kernel.function("sys_fgetxattr") {
+		name = "fgetxattr"
+	}
+
+probe kernel.syscall.fgetxattr.return = 
+	kernel.function("sys_fgetxattr").return {
+		name = "fgetxattr.return"
+	}
+# listxattr________________________________________
+probe kernel.syscall.listxattr = 
+	kernel.function("sys_listxattr") {
+		name = "listxattr"
+	}
+
+probe kernel.syscall.listxattr.return = 
+	kernel.function("sys_listxattr").return {
+		name = "listxattr.return"
+	}
+# llistxattr_______________________________________
+probe kernel.syscall.llistxattr = 
+	kernel.function("sys_llistxattr") {
+		name = "llistxattr"
+	}
+
+probe kernel.syscall.llistxattr.return = 
+	kernel.function("sys_llistxattr").return {
+		name = "llistxattr.return"
+	}
+# flistxattr_______________________________________
+probe kernel.syscall.flistxattr = 
+	kernel.function("sys_flistxattr") {
+		name = "flistxattr"
+	}
+
+probe kernel.syscall.flistxattr.return = 
+	kernel.function("sys_flistxattr").return {
+		name = "flistxattr.return"
+	}
+# removexattr______________________________________
+probe kernel.syscall.removexattr = 
+	kernel.function("sys_removexattr") {
+		name = "removexattr"
+	}
+
+probe kernel.syscall.removexattr.return = 
+	kernel.function("sys_removexattr").return {
+		name = "removexattr.return"
+	}
+# lremovexattr_____________________________________
+probe kernel.syscall.lremovexattr = 
+	kernel.function("sys_lremovexattr") {
+		name = "lremovexattr"
+	}
+
+probe kernel.syscall.lremovexattr.return = 
+	kernel.function("sys_lremovexattr").return {
+		name = "lremovexattr.return"
+	}
+# fremovexattr_____________________________________
+probe kernel.syscall.fremovexattr = 
+	kernel.function("sys_fremovexattr") {
+		name = "fremovexattr"
+	}
+
+probe kernel.syscall.fremovexattr.return = 
+	kernel.function("sys_fremovexattr").return {
+		name = "fremovexattr.return"
+	}
+# brk______________________________________________
+probe kernel.syscall.brk = 
+	kernel.function("sys_brk") {
+		name = "brk"
+	}
+
+probe kernel.syscall.brk.return = 
+	kernel.function("sys_brk").return {
+		name = "brk.return"
+	}
+# mprotect_________________________________________
+probe kernel.syscall.mprotect = 
+	kernel.function("sys_mprotect") {
+		name = "mprotect"
+	}
+
+probe kernel.syscall.mprotect.return = 
+	kernel.function("sys_mprotect").return {
+		name = "mprotect.return"
+	}
+# mremap___________________________________________
+probe kernel.syscall.mremap = 
+	kernel.function("sys_mremap") {
+		name = "mremap"
+	}
+
+probe kernel.syscall.mremap.return = 
+	kernel.function("sys_mremap").return {
+		name = "mremap.return"
+	}
+# remap_file_pages_________________________________
+probe kernel.syscall.remap_file_pages = 
+	kernel.function("sys_remap_file_pages") {
+		name = "remap_file_pages"
+	}
+
+probe kernel.syscall.remap_file_pages.return = 
+	kernel.function("sys_remap_file_pages").return {
+		name = "remap_file_pages.return"
+	}
+# msync____________________________________________
+probe kernel.syscall.msync = 
+	kernel.function("sys_msync") {
+		name = "msync"
+	}
+
+probe kernel.syscall.msync.return = 
+	kernel.function("sys_msync").return {
+		name = "msync.return"
+	}
+# fadvise64________________________________________
+probe kernel.syscall.fadvise64 = 
+	kernel.function("sys_fadvise64_64") {
+		name = "fadvise64"
+	}
+
+probe kernel.syscall.fadvise64.return = 
+	kernel.function("sys_fadvise64_64").return {
+		name = "fadvise64.return"
+	}
+# fadvise64_64_____________________________________
+probe kernel.syscall.fadvise64_64 = 
+	kernel.function("sys_fadvise64_64") {
+		name = "fadvise64_64"
+	}
+
+probe kernel.syscall.fadvise64_64.return = 
+	kernel.function("sys_fadvise64_64").return {
+		name = "fadvise64_64.return"
+	}
+# munmap___________________________________________
+probe kernel.syscall.munmap = 
+	kernel.function("sys_munmap") {
+		name = "munmap"
+	}
+
+probe kernel.syscall.munmap.return = 
+	kernel.function("sys_munmap").return {
+		name = "munmap.return"
+	}
+# mlock____________________________________________
+probe kernel.syscall.mlock = 
+	kernel.function("sys_mlock") {
+		name = "mlock"
+	}
+
+probe kernel.syscall.mlock.return = 
+	kernel.function("sys_mlock").return {
+		name = "mlock.return"
+	}
+# munlock__________________________________________
+probe kernel.syscall.munlock = 
+	kernel.function("sys_munlock") {
+		name = "munlock"
+	}
+
+probe kernel.syscall.munlock.return = 
+	kernel.function("sys_munlock").return {
+		name = "munlock.return"
+	}
+# mlockall_________________________________________
+probe kernel.syscall.mlockall = 
+	kernel.function("sys_mlockall") {
+		name = "mlockall"
+	}
+
+probe kernel.syscall.mlockall.return = 
+	kernel.function("sys_mlockall").return {
+		name = "mlockall.return"
+	}
+# munlockall_______________________________________
+probe kernel.syscall.munlockall = 
+	kernel.function("sys_munlockall") {
+		name = "munlockall"
+	}
+
+probe kernel.syscall.munlockall.return = 
+	kernel.function("sys_munlockall").return {
+		name = "munlockall.return"
+	}
+# madvise__________________________________________
+probe kernel.syscall.madvise = 
+	kernel.function("sys_madvise") {
+		name = "madvise"
+	}
+
+probe kernel.syscall.madvise.return = 
+	kernel.function("sys_madvise").return {
+		name = "madvise.return"
+	}
+# mincore__________________________________________
+probe kernel.syscall.mincore = 
+	kernel.function("sys_mincore") {
+		name = "mincore"
+	}
+
+probe kernel.syscall.mincore.return = 
+	kernel.function("sys_mincore").return {
+		name = "mincore.return"
+	}
+# pivot_root_______________________________________
+probe kernel.syscall.pivot_root = 
+	kernel.function("sys_pivot_root") {
+		name = "pivot_root"
+	}
+
+probe kernel.syscall.pivot_root.return = 
+	kernel.function("sys_pivot_root").return {
+		name = "pivot_root.return"
+	}
+# chroot___________________________________________
+probe kernel.syscall.chroot = 
+	kernel.function("sys_chroot") {
+		name = "chroot"
+	}
+
+probe kernel.syscall.chroot.return = 
+	kernel.function("sys_chroot").return {
+		name = "chroot.return"
+	}
+# mknod____________________________________________
+probe kernel.syscall.mknod = 
+	kernel.function("sys_mknod") {
+		name = "mknod"
+	}
+
+probe kernel.syscall.mknod.return = 
+	kernel.function("sys_mknod").return {
+		name = "mknod.return"
+	}
+# link_____________________________________________
+probe kernel.syscall.link = 
+	kernel.function("sys_link") {
+		name = "link"
+	}
+
+probe kernel.syscall.link.return = 
+	kernel.function("sys_link").return {
+		name = "link.return"
+	}
+# symlink__________________________________________
+probe kernel.syscall.symlink = 
+	kernel.function("sys_symlink") {
+		name = "symlink"
+	}
+
+probe kernel.syscall.symlink.return = 
+	kernel.function("sys_symlink").return {
+		name = "symlink.return"
+	}
+# unlink___________________________________________
+probe kernel.syscall.unlink = 
+	kernel.function("sys_unlink") {
+		name = "unlink"
+	}
+
+probe kernel.syscall.unlink.return = 
+	kernel.function("sys_unlink").return {
+		name = "unlink.return"
+	}
+# rename___________________________________________
+probe kernel.syscall.rename = 
+	kernel.function("sys_rename") {
+		name = "rename"
+	}
+
+probe kernel.syscall.rename.return = 
+	kernel.function("sys_rename").return {
+		name = "rename.return"
+	}
+# chmod____________________________________________
+probe kernel.syscall.chmod = 
+	kernel.function("sys_chmod") {
+		name = "chmod"
+	}
+
+probe kernel.syscall.chmod.return = 
+	kernel.function("sys_chmod").return {
+		name = "chmod.return"
+	}
+# fchmod___________________________________________
+probe kernel.syscall.fchmod = 
+	kernel.function("sys_fchmod") {
+		name = "fchmod"
+	}
+
+probe kernel.syscall.fchmod.return = 
+	kernel.function("sys_fchmod").return {
+		name = "fchmod.return"
+	}
+# fcntl____________________________________________
+probe kernel.syscall.fcntl = 
+	kernel.function("sys_fcntl") {
+		name = "fcntl"
+	}
+
+probe kernel.syscall.fcntl.return = 
+	kernel.function("sys_fcntl").return {
+		name = "fcntl.return"
+	}
+# fcntl64__________________________________________
+probe kernel.syscall.fcntl64 = 
+	kernel.function("sys_fcntl64") {
+		name = "fcntl64"
+	}
+
+probe kernel.syscall.fcntl64.return = 
+	kernel.function("sys_fcntl64").return {
+		name = "fcntl64.return"
+	}
+# dup______________________________________________
+probe kernel.syscall.dup = 
+	kernel.function("sys_dup") {
+		name = "dup"
+	}
+
+probe kernel.syscall.dup.return = 
+	kernel.function("sys_dup").return {
+		name = "dup.return"
+	}
+# dup2_____________________________________________
+probe kernel.syscall.dup2 = 
+	kernel.function("sys_dup2") {
+		name = "dup2"
+	}
+
+probe kernel.syscall.dup2.return = 
+	kernel.function("sys_dup2").return {
+		name = "dup2.return"
+	}
+# ioperm___________________________________________
+probe kernel.syscall.ioperm = 
+	kernel.function("sys_ioperm") {
+		name = "ioperm"
+	}
+
+probe kernel.syscall.ioperm.return = 
+	kernel.function("sys_ioperm").return {
+		name = "ioperm.return"
+	}
+# ioctl____________________________________________
+probe kernel.syscall.ioctl = 
+	kernel.function("sys_ioctl") {
+		name = "ioctl"
+	}
+
+probe kernel.syscall.ioctl.return = 
+	kernel.function("sys_ioctl").return {
+		name = "ioctl.return"
+	}
+# flock____________________________________________
+probe kernel.syscall.flock = 
+	kernel.function("sys_flock") {
+		name = "flock"
+	}
+
+probe kernel.syscall.flock.return = 
+	kernel.function("sys_flock").return {
+		name = "flock.return"
+	}
+# io_setup_________________________________________
+probe kernel.syscall.io_setup = 
+	kernel.function("sys_io_setup") {
+		name = "io_setup"
+	}
+
+probe kernel.syscall.io_setup.return = 
+	kernel.function("sys_io_setup").return {
+		name = "io_setup.return"
+	}
+# io_destroy_______________________________________
+probe kernel.syscall.io_destroy = 
+	kernel.function("sys_io_destroy") {
+		name = "io_destroy"
+	}
+
+probe kernel.syscall.io_destroy.return = 
+	kernel.function("sys_io_destroy").return {
+		name = "io_destroy.return"
+	}
+# io_getevents_____________________________________
+probe kernel.syscall.io_getevents = 
+	kernel.function("sys_io_getevents") {
+		name = "io_getevents"
+	}
+
+probe kernel.syscall.io_getevents.return = 
+	kernel.function("sys_io_getevents").return {
+		name = "io_getevents.return"
+	}
+# io_submit________________________________________
+probe kernel.syscall.io_submit = 
+	kernel.function("sys_io_submit") {
+		name = "io_submit"
+	}
+
+probe kernel.syscall.io_submit.return = 
+	kernel.function("sys_io_submit").return {
+		name = "io_submit.return"
+	}
+# io_cancel________________________________________
+probe kernel.syscall.io_cancel = 
+	kernel.function("sys_io_cancel") {
+		name = "io_cancel"
+	}
+
+probe kernel.syscall.io_cancel.return = 
+	kernel.function("sys_io_cancel").return {
+		name = "io_cancel.return"
+	}
+# sendfile_________________________________________
+probe kernel.syscall.sendfile = 
+	kernel.function("sys_sendfile") {
+		name = "sendfile"
+	}
+
+probe kernel.syscall.sendfile.return = 
+	kernel.function("sys_sendfile").return {
+		name = "sendfile.return"
+	}
+# sendfile64_______________________________________
+probe kernel.syscall.sendfile64 = 
+	kernel.function("sys_sendfile64") {
+		name = "sendfile64"
+	}
+
+probe kernel.syscall.sendfile64.return = 
+	kernel.function("sys_sendfile64").return {
+		name = "sendfile64.return"
+	}
+# readlink_________________________________________
+probe kernel.syscall.readlink = 
+	kernel.function("sys_readlink") {
+		name = "readlink"
+	}
+
+probe kernel.syscall.readlink.return = 
+	kernel.function("sys_readlink").return {
+		name = "readlink.return"
+	}
+# creat____________________________________________
+probe kernel.syscall.creat = 
+	kernel.function("sys_open") {
+		name = "creat"
+	}
+
+probe kernel.syscall.creat.return = 
+	kernel.function("sys_open").return {
+		name = "creat.return"
+	}
+# open_____________________________________________
+probe kernel.syscall.open = 
+	kernel.function("sys_open") {
+		name = "open"
+	}
+
+probe kernel.syscall.open.return = 
+	kernel.function("sys_open").return {
+		name = "open.return"
+	}
+# close____________________________________________
+probe kernel.syscall.close = 
+	kernel.function("sys_close") {
+		name = "close"
+	}
+
+probe kernel.syscall.close.return = 
+	kernel.function("sys_close").return {
+		name = "close.return"
+	}
+# access___________________________________________
+probe kernel.syscall.access = 
+	kernel.function("sys_access") {
+		name = "access"
+	}
+
+probe kernel.syscall.access.return = 
+	kernel.function("sys_access").return {
+		name = "access.return"
+	}
+# vhangup__________________________________________
+probe kernel.syscall.vhangup = 
+	kernel.function("sys_vhangup") {
+		name = "vhangup"
+	}
+
+probe kernel.syscall.vhangup.return = 
+	kernel.function("sys_vhangup").return {
+		name = "vhangup.return"
+	}
+# chown____________________________________________
+probe kernel.syscall.chown = 
+	kernel.function("sys_chown") {
+		name = "chown"
+	}
+
+probe kernel.syscall.chown.return = 
+	kernel.function("sys_chown").return {
+		name = "chown.return"
+	}
+# lchown___________________________________________
+probe kernel.syscall.lchown = 
+	kernel.function("sys_lchown") {
+		name = "lchown"
+	}
+
+probe kernel.syscall.lchown.return = 
+	kernel.function("sys_lchown").return {
+		name = "lchown.return"
+	}
+# fchown___________________________________________
+probe kernel.syscall.fchown = 
+	kernel.function("sys_fchown") {
+		name = "fchown"
+	}
+
+probe kernel.syscall.fchown.return = 
+	kernel.function("sys_fchown").return {
+		name = "fchown.return"
+	}
+# chown16__________________________________________
+probe kernel.syscall.chown16 = 
+	kernel.function("sys_chown") {
+		name = "chown16"
+	}
+
+probe kernel.syscall.chown16.return = 
+	kernel.function("sys_chown").return {
+		name = "chown16.return"
+	}
+# lchown16_________________________________________
+probe kernel.syscall.lchown16 = 
+	kernel.function("sys_lchown") {
+		name = "lchown16"
+	}
+
+probe kernel.syscall.lchown16.return = 
+	kernel.function("sys_lchown").return {
+		name = "lchown16.return"
+	}
+# fchown16_________________________________________
+probe kernel.syscall.fchown16 = 
+	kernel.function("sys_fchown") {
+		name = "fchown16"
+	}
+
+probe kernel.syscall.fchown16.return = 
+	kernel.function("sys_fchown").return {
+		name = "fchown16.return"
+	}
+# setregid16_______________________________________
+probe kernel.syscall.setregid16 = 
+	kernel.function("sys_setregid") {
+		name = "setregid16"
+	}
+
+probe kernel.syscall.setregid16.return = 
+	kernel.function("sys_setregid").return {
+		name = "setregid16.return"
+	}
+# setgid16_________________________________________
+probe kernel.syscall.setgid16 = 
+	kernel.function("sys_setgid") {
+		name = "setgid16"
+	}
+
+probe kernel.syscall.setgid16.return = 
+	kernel.function("sys_setgid").return {
+		name = "setgid16.return"
+	}
+# setreuid16_______________________________________
+probe kernel.syscall.setreuid16 = 
+	kernel.function("sys_setreuid") {
+		name = "setreuid16"
+	}
+
+probe kernel.syscall.setreuid16.return = 
+	kernel.function("sys_setreuid").return {
+		name = "setreuid16.return"
+	}
+# setuid16_________________________________________
+probe kernel.syscall.setuid16 = 
+	kernel.function("sys_setuid") {
+		name = "setuid16"
+	}
+
+probe kernel.syscall.setuid16.return = 
+	kernel.function("sys_setuid").return {
+		name = "setuid16.return"
+	}
+# setresuid16______________________________________
+probe kernel.syscall.setresuid16 = 
+	kernel.function("sys_setresuid") {
+		name = "setresuid16"
+	}
+
+probe kernel.syscall.setresuid16.return = 
+	kernel.function("sys_setresuid").return {
+		name = "setresuid16.return"
+	}
+# getresuid16______________________________________
+probe kernel.syscall.getresuid16 = 
+	kernel.function("sys_getresuid") {
+		name = "getresuid16"
+	}
+
+probe kernel.syscall.getresuid16.return = 
+	kernel.function("sys_getresuid").return {
+		name = "getresuid16.return"
+	}
+# setresgid16______________________________________
+probe kernel.syscall.setresgid16 = 
+	kernel.function("sys_setresgid") {
+		name = "setresgid16"
+	}
+
+probe kernel.syscall.setresgid16.return = 
+	kernel.function("sys_setresgid").return {
+		name = "setresgid16.return"
+	}
+# getresgid16______________________________________
+probe kernel.syscall.getresgid16 = 
+	kernel.function("sys_getresgid") {
+		name = "getresgid16"
+	}
+
+probe kernel.syscall.getresgid16.return = 
+	kernel.function("sys_getresgid").return {
+		name = "getresgid16.return"
+	}
+# setfsuid16_______________________________________
+probe kernel.syscall.setfsuid16 = 
+	kernel.function("sys_setfsuid") {
+		name = "setfsuid16"
+	}
+
+probe kernel.syscall.setfsuid16.return = 
+	kernel.function("sys_setfsuid").return {
+		name = "setfsuid16.return"
+	}
+# setfsgid16_______________________________________
+probe kernel.syscall.setfsgid16 = 
+	kernel.function("sys_setfsgid") {
+		name = "setfsgid16"
+	}
+
+probe kernel.syscall.setfsgid16.return = 
+	kernel.function("sys_setfsgid").return {
+		name = "setfsgid16.return"
+	}
+# getgroups16______________________________________
+probe kernel.syscall.getgroups16 = 
+	kernel.function("sys_getgroups16") {
+		name = "getgroups16"
+	}
+
+probe kernel.syscall.getgroups16.return = 
+	kernel.function("sys_getgroups16").return {
+		name = "getgroups16.return"
+	}
+# setgroups16______________________________________
+probe kernel.syscall.setgroups16 = 
+	kernel.function("sys_setgroups16") {
+		name = "setgroups16"
+	}
+
+probe kernel.syscall.setgroups16.return = 
+	kernel.function("sys_setgroups16").return {
+		name = "setgroups16.return"
+	}
+# getuid16_________________________________________
+probe kernel.syscall.getuid16 = 
+	kernel.function("sys_getuid16") {
+		name = "getuid16"
+	}
+
+probe kernel.syscall.getuid16.return = 
+	kernel.function("sys_getuid16").return {
+		name = "getuid16.return"
+	}
+# geteuid16________________________________________
+probe kernel.syscall.geteuid16 = 
+	kernel.function("sys_geteuid16") {
+		name = "geteuid16"
+	}
+
+probe kernel.syscall.geteuid16.return = 
+	kernel.function("sys_geteuid16").return {
+		name = "geteuid16.return"
+	}
+# getgid16_________________________________________
+probe kernel.syscall.getgid16 = 
+	kernel.function("sys_getgid16") {
+		name = "getgid16"
+	}
+
+probe kernel.syscall.getgid16.return = 
+	kernel.function("sys_getgid16").return {
+		name = "getgid16.return"
+	}
+# getegid16________________________________________
+probe kernel.syscall.getegid16 = 
+	kernel.function("sys_getegid16") {
+		name = "getegid16"
+	}
+
+probe kernel.syscall.getegid16.return = 
+	kernel.function("sys_getegid16").return {
+		name = "getegid16.return"
+	}
+# utime____________________________________________
+probe kernel.syscall.utime = 
+	kernel.function("sys_utime") {
+		name = "utime"
+	}
+
+probe kernel.syscall.utime.return = 
+	kernel.function("sys_utime").return {
+		name = "utime.return"
+	}
+# utimes___________________________________________
+probe kernel.syscall.utimes = 
+	kernel.function("sys_utimes") {
+		name = "utimes"
+	}
+
+probe kernel.syscall.utimes.return = 
+	kernel.function("sys_utimes").return {
+		name = "utimes.return"
+	}
+# lseek____________________________________________
+probe kernel.syscall.lseek = 
+	kernel.function("sys_lseek") {
+		name = "lseek"
+	}
+
+probe kernel.syscall.lseek.return = 
+	kernel.function("sys_lseek").return {
+		name = "lseek.return"
+	}
+# llseek___________________________________________
+probe kernel.syscall.llseek = 
+	kernel.function("sys_llseek") {
+		name = "llseek"
+	}
+
+probe kernel.syscall.llseek.return = 
+	kernel.function("sys_llseek").return {
+		name = "llseek.return"
+	}
+# read_____________________________________________
+probe kernel.syscall.read = 
+	kernel.function("sys_read") {
+		name = "read"
+	}
+
+probe kernel.syscall.read.return = 
+	kernel.function("sys_read").return {
+		name = "read.return"
+	}
+# readahead________________________________________
+probe kernel.syscall.readahead = 
+	kernel.function("sys_readahead") {
+		name = "readahead"
+	}
+
+probe kernel.syscall.readahead.return = 
+	kernel.function("sys_readahead").return {
+		name = "readahead.return"
+	}
+# readv____________________________________________
+probe kernel.syscall.readv = 
+	kernel.function("sys_readv") {
+		name = "readv"
+	}
+
+probe kernel.syscall.readv.return = 
+	kernel.function("sys_readv").return {
+		name = "readv.return"
+	}
+# write____________________________________________
+probe kernel.syscall.write = 
+	kernel.function("sys_write") {
+		name = "write"
+	}
+
+probe kernel.syscall.write.return = 
+	kernel.function("sys_write").return {
+		name = "write.return"
+	}
+# writev___________________________________________
+probe kernel.syscall.writev = 
+	kernel.function("sys_writev") {
+		name = "writev"
+	}
+
+probe kernel.syscall.writev.return = 
+	kernel.function("sys_writev").return {
+		name = "writev.return"
+	}
+# pread64__________________________________________
+probe kernel.syscall.pread64 = 
+	kernel.function("sys_pread64") {
+		name = "pread64"
+	}
+
+probe kernel.syscall.pread64.return = 
+	kernel.function("sys_pread64").return {
+		name = "pread64.return"
+	}
+# pwrite64_________________________________________
+probe kernel.syscall.pwrite64 = 
+	kernel.function("sys_pwrite64") {
+		name = "pwrite64"
+	}
+
+probe kernel.syscall.pwrite64.return = 
+	kernel.function("sys_pwrite64").return {
+		name = "pwrite64.return"
+	}
+# getcwd___________________________________________
+probe kernel.syscall.getcwd = 
+	kernel.function("sys_getcwd") {
+		name = "getcwd"
+	}
+
+probe kernel.syscall.getcwd.return = 
+	kernel.function("sys_getcwd").return {
+		name = "getcwd.return"
+	}
+# mkdir____________________________________________
+probe kernel.syscall.mkdir = 
+	kernel.function("sys_mkdir") {
+		name = "mkdir"
+	}
+
+probe kernel.syscall.mkdir.return = 
+	kernel.function("sys_mkdir").return {
+		name = "mkdir.return"
+	}
+# chdir____________________________________________
+probe kernel.syscall.chdir = 
+	kernel.function("sys_chdir") {
+		name = "chdir"
+	}
+
+probe kernel.syscall.chdir.return = 
+	kernel.function("sys_chdir").return {
+		name = "chdir.return"
+	}
+# fchdir___________________________________________
+probe kernel.syscall.fchdir = 
+	kernel.function("sys_fchdir") {
+		name = "fchdir"
+	}
+
+probe kernel.syscall.fchdir.return = 
+	kernel.function("sys_fchdir").return {
+		name = "fchdir.return"
+	}
+# rmdir____________________________________________
+probe kernel.syscall.rmdir = 
+	kernel.function("sys_rmdir") {
+		name = "rmdir"
+	}
+
+probe kernel.syscall.rmdir.return = 
+	kernel.function("sys_rmdir").return {
+		name = "rmdir.return"
+	}
+# lookup_dcookie___________________________________
+probe kernel.syscall.lookup_dcookie = 
+	kernel.function("sys_lookup_dcookie") {
+		name = "lookup_dcookie"
+	}
+
+probe kernel.syscall.lookup_dcookie.return = 
+	kernel.function("sys_lookup_dcookie").return {
+		name = "lookup_dcookie.return"
+	}
+# quotactl_________________________________________
+probe kernel.syscall.quotactl = 
+	kernel.function("sys_quotactl") {
+		name = "quotactl"
+	}
+
+probe kernel.syscall.quotactl.return = 
+	kernel.function("sys_quotactl").return {
+		name = "quotactl.return"
+	}
+# getdents_________________________________________
+probe kernel.syscall.getdents = 
+	kernel.function("sys_getdents") {
+		name = "getdents"
+	}
+
+probe kernel.syscall.getdents.return = 
+	kernel.function("sys_getdents").return {
+		name = "getdents.return"
+	}
+# getdents64_______________________________________
+probe kernel.syscall.getdents64 = 
+	kernel.function("sys_getdents64") {
+		name = "getdents64"
+	}
+
+probe kernel.syscall.getdents64.return = 
+	kernel.function("sys_getdents64").return {
+		name = "getdents64.return"
+	}
+# setsockopt_______________________________________
+probe kernel.syscall.setsockopt = 
+	kernel.function("sys_setsockopt") {
+		name = "setsockopt"
+	}
+
+probe kernel.syscall.setsockopt.return = 
+	kernel.function("sys_setsockopt").return {
+		name = "setsockopt.return"
+	}
+# getsockopt_______________________________________
+probe kernel.syscall.getsockopt = 
+	kernel.function("sys_getsockopt") {
+		name = "getsockopt"
+	}
+
+probe kernel.syscall.getsockopt.return = 
+	kernel.function("sys_getsockopt").return {
+		name = "getsockopt.return"
+	}
+# bind_____________________________________________
+probe kernel.syscall.bind = 
+	kernel.function("sys_bind") {
+		name = "bind"
+	}
+
+probe kernel.syscall.bind.return = 
+	kernel.function("sys_bind").return {
+		name = "bind.return"
+	}
+# connect__________________________________________
+probe kernel.syscall.connect = 
+	kernel.function("sys_connect") {
+		name = "connect"
+	}
+
+probe kernel.syscall.connect.return = 
+	kernel.function("sys_connect").return {
+		name = "connect.return"
+	}
+# accept___________________________________________
+probe kernel.syscall.accept = 
+	kernel.function("sys_accept") {
+		name = "accept"
+	}
+
+probe kernel.syscall.accept.return = 
+	kernel.function("sys_accept").return {
+		name = "accept.return"
+	}
+# getsockname______________________________________
+probe kernel.syscall.getsockname = 
+	kernel.function("sys_getsockname") {
+		name = "getsockname"
+	}
+
+probe kernel.syscall.getsockname.return = 
+	kernel.function("sys_getsockname").return {
+		name = "getsockname.return"
+	}
+# getpeername______________________________________
+probe kernel.syscall.getpeername = 
+	kernel.function("sys_getpeername") {
+		name = "getpeername"
+	}
+
+probe kernel.syscall.getpeername.return = 
+	kernel.function("sys_getpeername").return {
+		name = "getpeername.return"
+	}
+# send_____________________________________________
+probe kernel.syscall.send = 
+	kernel.function("sys_sendto") {
+		name = "send"
+	}
+
+probe kernel.syscall.send.return = 
+	kernel.function("sys_sendto").return {
+		name = "send.return"
+	}
+# sendto___________________________________________
+probe kernel.syscall.sendto = 
+	kernel.function("sys_sendto") {
+		name = "sendto"
+	}
+
+probe kernel.syscall.sendto.return = 
+	kernel.function("sys_sendto").return {
+		name = "sendto.return"
+	}
+# sendmsg__________________________________________
+probe kernel.syscall.sendmsg = 
+	kernel.function("sys_sendmsg") {
+		name = "sendmsg"
+	}
+
+probe kernel.syscall.sendmsg.return = 
+	kernel.function("sys_sendmsg").return {
+		name = "sendmsg.return"
+	}
+# recv_____________________________________________
+probe kernel.syscall.recv = 
+	kernel.function("sys_recvfrom") {
+		name = "recv"
+	}
+
+probe kernel.syscall.recv.return = 
+	kernel.function("sys_recvfrom").return {
+		name = "recv.return"
+	}
+# recvfrom_________________________________________
+probe kernel.syscall.recvfrom = 
+	kernel.function("sys_recvfrom") {
+		name = "recvfrom"
+	}
+
+probe kernel.syscall.recvfrom.return = 
+	kernel.function("sys_recvfrom").return {
+		name = "recvfrom.return"
+	}
+# recvmsg__________________________________________
+probe kernel.syscall.recvmsg = 
+	kernel.function("sys_recvmsg") {
+		name = "recvmsg"
+	}
+
+probe kernel.syscall.recvmsg.return = 
+	kernel.function("sys_recvmsg").return {
+		name = "recvmsg.return"
+	}
+# socket___________________________________________
+probe kernel.syscall.socket = 
+	kernel.function("sys_socket") {
+		name = "socket"
+	}
+
+probe kernel.syscall.socket.return = 
+	kernel.function("sys_socket").return {
+		name = "socket.return"
+	}
+# socketpair_______________________________________
+probe kernel.syscall.socketpair = 
+	kernel.function("sys_socketpair") {
+		name = "socketpair"
+	}
+
+probe kernel.syscall.socketpair.return = 
+	kernel.function("sys_socketpair").return {
+		name = "socketpair.return"
+	}
+# socketcall_______________________________________
+probe kernel.syscall.socketcall = 
+	kernel.function("sys_socketcall") {
+		name = "socketcall"
+	}
+
+probe kernel.syscall.socketcall.return = 
+	kernel.function("sys_socketcall").return {
+		name = "socketcall.return"
+	}
+# listen___________________________________________
+probe kernel.syscall.listen = 
+	kernel.function("sys_listen") {
+		name = "listen"
+	}
+
+probe kernel.syscall.listen.return = 
+	kernel.function("sys_listen").return {
+		name = "listen.return"
+	}
+# poll_____________________________________________
+probe kernel.syscall.poll = 
+	kernel.function("sys_poll") {
+		name = "poll"
+	}
+
+probe kernel.syscall.poll.return = 
+	kernel.function("sys_poll").return {
+		name = "poll.return"
+	}
+# select___________________________________________
+probe kernel.syscall.select = 
+	kernel.function("sys_select") {
+		name = "select"
+	}
+
+probe kernel.syscall.select.return = 
+	kernel.function("sys_select").return {
+		name = "select.return"
+	}
+# epoll_create_____________________________________
+probe kernel.syscall.epoll_create = 
+	kernel.function("sys_epoll_create") {
+		name = "epoll_create"
+	}
+
+probe kernel.syscall.epoll_create.return = 
+	kernel.function("sys_epoll_create").return {
+		name = "epoll_create.return"
+	}
+# epoll_ctl________________________________________
+probe kernel.syscall.epoll_ctl = 
+	kernel.function("sys_epoll_ctl") {
+		name = "epoll_ctl"
+	}
+
+probe kernel.syscall.epoll_ctl.return = 
+	kernel.function("sys_epoll_ctl").return {
+		name = "epoll_ctl.return"
+	}
+# epoll_wait_______________________________________
+probe kernel.syscall.epoll_wait = 
+	kernel.function("sys_epoll_wait") {
+		name = "epoll_wait"
+	}
+
+probe kernel.syscall.epoll_wait.return = 
+	kernel.function("sys_epoll_wait").return {
+		name = "epoll_wait.return"
+	}
+# gethostname______________________________________
+probe kernel.syscall.gethostname = 
+	kernel.function("sys_gethostname") {
+		name = "gethostname"
+	}
+
+probe kernel.syscall.gethostname.return = 
+	kernel.function("sys_gethostname").return {
+		name = "gethostname.return"
+	}
+# sethostname______________________________________
+probe kernel.syscall.sethostname = 
+	kernel.function("sys_sethostname") {
+		name = "sethostname"
+	}
+
+probe kernel.syscall.sethostname.return = 
+	kernel.function("sys_sethostname").return {
+		name = "sethostname.return"
+	}
+# setdomainname____________________________________
+probe kernel.syscall.setdomainname = 
+	kernel.function("sys_setdomainname") {
+		name = "setdomainname"
+	}
+
+probe kernel.syscall.setdomainname.return = 
+	kernel.function("sys_setdomainname").return {
+		name = "setdomainname.return"
+	}
+# newuname_________________________________________
+probe kernel.syscall.newuname = 
+	kernel.function("sys_newuname") {
+		name = "newuname"
+	}
+
+probe kernel.syscall.newuname.return = 
+	kernel.function("sys_newuname").return {
+		name = "newuname.return"
+	}
+# getrlimit________________________________________
+probe kernel.syscall.getrlimit = 
+	kernel.function("sys_getrlimit") {
+		name = "getrlimit"
+	}
+
+probe kernel.syscall.getrlimit.return = 
+	kernel.function("sys_getrlimit").return {
+		name = "getrlimit.return"
+	}
+# old_getrlimit____________________________________
+probe kernel.syscall.old_getrlimit = 
+	kernel.function("sys_old_getrlimit") {
+		name = "old_getrlimit"
+	}
+
+probe kernel.syscall.old_getrlimit.return = 
+	kernel.function("sys_old_getrlimit").return {
+		name = "old_getrlimit.return"
+	}
+# setrlimit________________________________________
+probe kernel.syscall.setrlimit = 
+	kernel.function("sys_setrlimit") {
+		name = "setrlimit"
+	}
+
+probe kernel.syscall.setrlimit.return = 
+	kernel.function("sys_setrlimit").return {
+		name = "setrlimit.return"
+	}
+# getrusage________________________________________
+probe kernel.syscall.getrusage = 
+	kernel.function("sys_getrusage") {
+		name = "getrusage"
+	}
+
+probe kernel.syscall.getrusage.return = 
+	kernel.function("sys_getrusage").return {
+		name = "getrusage.return"
+	}
+# umask____________________________________________
+probe kernel.syscall.umask = 
+	kernel.function("sys_umask") {
+		name = "umask"
+	}
+
+probe kernel.syscall.umask.return = 
+	kernel.function("sys_umask").return {
+		name = "umask.return"
+	}
+# msgget___________________________________________
+probe kernel.syscall.msgget = 
+	kernel.function("sys_msgget") {
+		name = "msgget"
+	}
+
+probe kernel.syscall.msgget.return = 
+	kernel.function("sys_msgget").return {
+		name = "msgget.return"
+	}
+# msgsnd___________________________________________
+probe kernel.syscall.msgsnd = 
+	kernel.function("sys_msgsnd") {
+		name = "msgsnd"
+	}
+
+probe kernel.syscall.msgsnd.return = 
+	kernel.function("sys_msgsnd").return {
+		name = "msgsnd.return"
+	}
+# msgrcv___________________________________________
+probe kernel.syscall.msgrcv = 
+	kernel.function("sys_msgrcv") {
+		name = "msgrcv"
+	}
+
+probe kernel.syscall.msgrcv.return = 
+	kernel.function("sys_msgrcv").return {
+		name = "msgrcv.return"
+	}
+# msgctl___________________________________________
+probe kernel.syscall.msgctl = 
+	kernel.function("sys_msgctl") {
+		name = "msgctl"
+	}
+
+probe kernel.syscall.msgctl.return = 
+	kernel.function("sys_msgctl").return {
+		name = "msgctl.return"
+	}
+# semget___________________________________________
+probe kernel.syscall.semget = 
+	kernel.function("sys_semget") {
+		name = "semget"
+	}
+
+probe kernel.syscall.semget.return = 
+	kernel.function("sys_semget").return {
+		name = "semget.return"
+	}
+# semop____________________________________________
+probe kernel.syscall.semop = 
+	kernel.function("sys_semtimedop") {
+		name = "semop"
+	}
+
+probe kernel.syscall.semop.return = 
+	kernel.function("sys_semtimedop").return {
+		name = "semop.return"
+	}
+# semctl___________________________________________
+probe kernel.syscall.semctl = 
+	kernel.function("sys_semctl") {
+		name = "semctl"
+	}
+
+probe kernel.syscall.semctl.return = 
+	kernel.function("sys_semctl").return {
+		name = "semctl.return"
+	}
+# semtimedop_______________________________________
+probe kernel.syscall.semtimedop = 
+	kernel.function("sys_semtimedop") {
+		name = "semtimedop"
+	}
+
+probe kernel.syscall.semtimedop.return = 
+	kernel.function("sys_semtimedop").return {
+		name = "semtimedop.return"
+	}
+# shmat____________________________________________
+probe kernel.syscall.shmat = 
+	kernel.function("sys_shmat") {
+		name = "shmat"
+	}
+
+probe kernel.syscall.shmat.return = 
+	kernel.function("sys_shmat").return {
+		name = "shmat.return"
+	}
+# shmget___________________________________________
+probe kernel.syscall.shmget = 
+	kernel.function("sys_shmget") {
+		name = "shmget"
+	}
+
+probe kernel.syscall.shmget.return = 
+	kernel.function("sys_shmget").return {
+		name = "shmget.return"
+	}
+# shmdt____________________________________________
+probe kernel.syscall.shmdt = 
+	kernel.function("sys_shmdt") {
+		name = "shmdt"
+	}
+
+probe kernel.syscall.shmdt.return = 
+	kernel.function("sys_shmdt").return {
+		name = "shmdt.return"
+	}
+# shmctl___________________________________________
+probe kernel.syscall.shmctl = 
+	kernel.function("sys_shmctl") {
+		name = "shmctl"
+	}
+
+probe kernel.syscall.shmctl.return = 
+	kernel.function("sys_shmctl").return {
+		name = "shmctl.return"
+	}
+# mq_open__________________________________________
+probe kernel.syscall.mq_open = 
+	kernel.function("sys_mq_open") {
+		name = "mq_open"
+	}
+
+probe kernel.syscall.mq_open.return = 
+	kernel.function("sys_mq_open").return {
+		name = "mq_open.return"
+	}
+# mq_unlink________________________________________
+probe kernel.syscall.mq_unlink = 
+	kernel.function("sys_mq_unlink") {
+		name = "mq_unlink"
+	}
+
+probe kernel.syscall.mq_unlink.return = 
+	kernel.function("sys_mq_unlink").return {
+		name = "mq_unlink.return"
+	}
+# mq_timedsend_____________________________________
+probe kernel.syscall.mq_timedsend = 
+	kernel.function("sys_mq_timedsend") {
+		name = "mq_timedsend"
+	}
+
+probe kernel.syscall.mq_timedsend.return = 
+	kernel.function("sys_mq_timedsend").return {
+		name = "mq_timedsend.return"
+	}
+# mq_timedreceive__________________________________
+probe kernel.syscall.mq_timedreceive = 
+	kernel.function("sys_mq_timedreceive") {
+		name = "mq_timedreceive"
+	}
+
+probe kernel.syscall.mq_timedreceive.return = 
+	kernel.function("sys_mq_timedreceive").return {
+		name = "mq_timedreceive.return"
+	}
+# mq_notify________________________________________
+probe kernel.syscall.mq_notify = 
+	kernel.function("sys_mq_notify") {
+		name = "mq_notify"
+	}
+
+probe kernel.syscall.mq_notify.return = 
+	kernel.function("sys_mq_notify").return {
+		name = "mq_notify.return"
+	}
+# mq_getsetattr____________________________________
+probe kernel.syscall.mq_getsetattr = 
+	kernel.function("sys_mq_getsetattr") {
+		name = "mq_getsetattr"
+	}
+
+probe kernel.syscall.mq_getsetattr.return = 
+	kernel.function("sys_mq_getsetattr").return {
+		name = "mq_getsetattr.return"
+	}
+# pciconfig_iobase_________________________________
+probe kernel.syscall.pciconfig_iobase = 
+	kernel.function("sys_pciconfig_iobase") {
+		name = "pciconfig_iobase"
+	}
+
+probe kernel.syscall.pciconfig_iobase.return = 
+	kernel.function("sys_pciconfig_iobase").return {
+		name = "pciconfig_iobase.return"
+	}
+# pciconfig_read___________________________________
+probe kernel.syscall.pciconfig_read = 
+	kernel.function("sys_pciconfig_read") {
+		name = "pciconfig_read"
+	}
+
+probe kernel.syscall.pciconfig_read.return = 
+	kernel.function("sys_pciconfig_read").return {
+		name = "pciconfig_read.return"
+	}
+# pciconfig_write__________________________________
+probe kernel.syscall.pciconfig_write = 
+	kernel.function("sys_pciconfig_write") {
+		name = "pciconfig_write"
+	}
+
+probe kernel.syscall.pciconfig_write.return = 
+	kernel.function("sys_pciconfig_write").return {
+		name = "pciconfig_write.return"
+	}
+# prctl____________________________________________
+probe kernel.syscall.prctl = 
+	kernel.function("sys_prctl") {
+		name = "prctl"
+	}
+
+probe kernel.syscall.prctl.return = 
+	kernel.function("sys_prctl").return {
+		name = "prctl.return"
+	}
+# swapon___________________________________________
+probe kernel.syscall.swapon = 
+	kernel.function("sys_swapon") {
+		name = "swapon"
+	}
+
+probe kernel.syscall.swapon.return = 
+	kernel.function("sys_swapon").return {
+		name = "swapon.return"
+	}
+# swapoff__________________________________________
+probe kernel.syscall.swapoff = 
+	kernel.function("sys_swapoff") {
+		name = "swapoff"
+	}
+
+probe kernel.syscall.swapoff.return = 
+	kernel.function("sys_swapoff").return {
+		name = "swapoff.return"
+	}
+# sysctl___________________________________________
+probe kernel.syscall.sysctl = 
+	kernel.function("sys_sysctl") {
+		name = "sysctl"
+	}
+
+probe kernel.syscall.sysctl.return = 
+	kernel.function("sys_sysctl").return {
+		name = "sysctl.return"
+	}
+# sysinfo__________________________________________
+probe kernel.syscall.sysinfo = 
+	kernel.function("sys_sysinfo") {
+		name = "sysinfo"
+	}
+
+probe kernel.syscall.sysinfo.return = 
+	kernel.function("sys_sysinfo").return {
+		name = "sysinfo.return"
+	}
+# sysfs____________________________________________
+probe kernel.syscall.sysfs = 
+	kernel.function("sys_sysfs") {
+		name = "sysfs"
+	}
+
+probe kernel.syscall.sysfs.return = 
+	kernel.function("sys_sysfs").return {
+		name = "sysfs.return"
+	}
+# nfsservctl_______________________________________
+probe kernel.syscall.nfsservctl = 
+	kernel.function("sys_nfsservctl") {
+		name = "nfsservctl"
+	}
+
+probe kernel.syscall.nfsservctl.return = 
+	kernel.function("sys_nfsservctl").return {
+		name = "nfsservctl.return"
+	}
+# syslog___________________________________________
+probe kernel.syscall.syslog = 
+	kernel.function("do_syslog") {
+		name = "syslog"
+	}
+
+probe kernel.syscall.syslog.return = 
+	kernel.function("do_syslog").return {
+		name = "syslog.return"
+	}
+# uselib___________________________________________
+probe kernel.syscall.uselib = 
+	kernel.function("sys_uselib") {
+		name = "uselib"
+	}
+
+probe kernel.syscall.uselib.return = 
+	kernel.function("sys_uselib").return {
+		name = "uselib.return"
+	}
+# add_key__________________________________________
+probe kernel.syscall.add_key = 
+	kernel.function("sys_add_key") {
+		name = "add_key"
+	}
+
+probe kernel.syscall.add_key.return = 
+	kernel.function("sys_add_key").return {
+		name = "add_key.return"
+	}
+# request_key______________________________________
+probe kernel.syscall.request_key = 
+	kernel.function("sys_request_key") {
+		name = "request_key"
+	}
+
+probe kernel.syscall.request_key.return = 
+	kernel.function("sys_request_key").return {
+		name = "request_key.return"
+	}
+# keyctl___________________________________________
+probe kernel.syscall.keyctl = 
+	kernel.function("sys_keyctl") {
+		name = "keyctl"
+	}
+
+probe kernel.syscall.keyctl.return = 
+	kernel.function("sys_keyctl").return {
+		name = "keyctl.return"
+	}
+# modify_ldt_______________________________________
+probe kernel.syscall.modify_ldt = 
+	kernel.function("sys_modify_ldt") {
+		name = "modify_ldt"
+	}
+
+probe kernel.syscall.modify_ldt.return = 
+	kernel.function("sys_modify_ldt").return {
+		name = "modify_ldt.return"
+	}
+# mmap2____________________________________________
+probe kernel.syscall.mmap2 = 
+	kernel.function("do_mmap2") {
+		name = "mmap2"
+	}
+
+probe kernel.syscall.mmap2.return = 
+	kernel.function("do_mmap2").return {
+		name = "mmap2.return"
+	}
+# execve___________________________________________
+probe kernel.syscall.execve = 
+	kernel.function("sys_execve") {
+		name = "execve"
+	}
+
+probe kernel.syscall.execve.return = 
+	kernel.function("sys_execve").return {
+		name = "execve.return"
+	}
+# clone____________________________________________
+probe kernel.syscall.clone = 
+	kernel.function("do_fork") {
+		name = "clone"
+	}
+
+probe kernel.syscall.clone.return = 
+	kernel.function("do_fork").return {
+		name = "clone.return"
+	}
+# fork_____________________________________________
+probe kernel.syscall.fork = 
+	kernel.function("do_fork") {
+		name = "fork"
+	}
+
+probe kernel.syscall.fork.return = 
+	kernel.function("do_fork").return {
+		name = "fork.return"
+	}
+# vfork____________________________________________
+probe kernel.syscall.vfork = 
+	kernel.function("do_fork") {
+		name = "vfork"
+	}
+
+probe kernel.syscall.vfork.return = 
+	kernel.function("do_fork").return {
+		name = "vfork.return"
+	}
+# pipe_____________________________________________
+probe kernel.syscall.pipe = 
+	kernel.function("sys_pipe") {
+		name = "pipe"
+	}
+
+probe kernel.syscall.pipe.return = 
+	kernel.function("sys_pipe").return {
+		name = "pipe.return"
+	}
+# ptrace___________________________________________
+probe kernel.syscall.ptrace = 
+	kernel.function("sys_ptrace") {
+		name = "ptrace"
+	}
+
+probe kernel.syscall.ptrace.return = 
+	kernel.function("sys_ptrace").return {
+		name = "ptrace.return"
+	}
+# iopl_____________________________________________
+probe kernel.syscall.iopl = 
+	kernel.function("sys_iopl") {
+		name = "iopl"
+	}
+
+probe kernel.syscall.iopl.return = 
+	kernel.function("sys_iopl").return {
+		name = "iopl.return"
+	}
+# rt_sigaction_____________________________________
+probe kernel.syscall.rt_sigaction = 
+	kernel.function("sys_rt_sigaction") {
+		name = "rt_sigaction"
+	}
+
+probe kernel.syscall.rt_sigaction.return = 
+	kernel.function("sys_rt_sigaction").return {
+		name = "rt_sigaction.return"
+	}
