@@ -1,5 +1,10 @@
 2005-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
+	* stapfuncs.5.in: Extend errno_str verbiage.
+	* tapset/errno.stp: Canonicalize script code slightly.
+
+2005-09-26  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1295.
 	* tapsets.cxx (resolve_prologue_endings2): Try another heuristic
 	for end-of-prologue.

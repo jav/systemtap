@@ -158,11 +158,12 @@ including alias and wildcard expansion effects.
 target:long ()
 Returns the pid of the target process.
 
-.SS ERROR
+.SS ERRNO
 
 .TP
 errno_str:string (e:long)
-Return the symbolic string associated with the given error code. 
+Return the symbolic string associated with the given error code, like
+"ENOENT" for the number 2, or "E#3333" for an out-of-range value like 3333.
 
 .SH FILES
 .nh
