@@ -722,6 +722,77 @@ dwflpp
 	  choose_next_line = true;
 	previous_addr = addr;
       }
+
+    // XXX: free lines[] ?
+  }
+
+
+  void resolve_prologue_endings2 (map<Dwarf_Addr, func_info> & funcs)
+  {
+    // This heuristic attempts to pick the first address that has a
+    // source line distinct from the function declaration's (entrypc's).
+    // This should be the first statement *past* the prologue.
+    assert(module);
+    assert(cu);
+
+    size_t nlines;
+    Dwarf_Lines *lines;
+    Dwarf_Addr last_function_entrypc;
+    int choose_next_line_otherthan = -1;
+
+    // XXX: ideally, there would be a dwarf_getfile(line) routine,
+    // so that we compare not just a line number mismatch, but a
+    // file name mismatch too.
+    //
+    // If the first statement of a function is into some inline
+    // function, we'll be scanning over Dwarf_Line objects that have,
+    // chances are, wildly different lineno's.  If luck turns against
+    // us, and that inline function body happens to be defined in a
+    // different file but at the same line number as its caller, then
+    // we will get slightly messed up.
+
+    dwarf_assert ("dwarf_getsrclines", 
+		  dwarf_getsrclines(cu, &lines, &nlines));    
+
+    for (size_t i = 0; i < nlines; ++i)
+      {
+	Dwarf_Addr addr;
+	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
+	dwarf_lineaddr (line_rec, &addr);
+        int this_lineno;
+
+        dwfl_assert ("dwarf_lineno",
+                     dwarf_lineno(line_rec, &this_lineno));
+
+	if (choose_next_line_otherthan >= 0 &&
+            this_lineno != choose_next_line_otherthan)
+	  {
+	    map<Dwarf_Addr, func_info>::iterator i = 
+              funcs.find (last_function_entrypc);
+	    assert (i != funcs.end());
+            Dwarf_Addr addr0 = i->second.prologue_end;
+            if (addr0 != addr)
+              {
+                i->second.prologue_end = addr;
+		if (sess.verbose)
+		  clog << "prologue disagreement: " << i->second.name
+		       << " heur0=" << hex << addr0
+		       << " heur1=" << addr << dec
+		       << endl;
+              }
+	    choose_next_line_otherthan = -1;
+	  }
+	
+	map<Dwarf_Addr, func_info>::const_iterator i = funcs.find (addr);
+	if (i != funcs.end())
+          {
+            dwfl_assert ("dwarf_lineno",
+                         dwarf_lineno(line_rec, &choose_next_line_otherthan));
+            last_function_entrypc = addr;
+          }
+      }
+
+    // XXX: free lines[] ?
   }
 
 
@@ -1842,6 +1913,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // all in a single pass.
 	  q->dw.iterate_over_functions (query_dwarf_func, q);
 	  q->dw.resolve_prologue_endings (q->filtered_functions);
+	  q->dw.resolve_prologue_endings2 (q->filtered_functions);
 
 	  if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type == function_file_and_line))
