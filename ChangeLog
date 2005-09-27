@@ -1,3 +1,11 @@
+2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1311.
+	* tapsets.cxx (target_variable_flavour_calculating_visitor::
+	visit_target_symbol): Print verbose error.
+	(var_expanding_copy_visitor::visit_target_symbol): Throw
+	simple error.
+	
 2005-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stapfuncs.5.in: Extend errno_str verbiage.

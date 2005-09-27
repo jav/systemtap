@@ -1500,8 +1500,9 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 
   if (is_active_lvalue(e))
     {
-      throw semantic_error("read-only special variable "
-			   + e->base_name + " used as lvalue", e->tok);
+      q.sess.print_error (semantic_error("read-only special variable "
+                                         + e->base_name + " used as lvalue",
+                                         e->tok));
     }
 
   try
@@ -1536,7 +1537,7 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
     {
       semantic_error er2 (er);
       er2.tok1 = e->tok;
-      throw er2;
+      q.sess.print_error (er2);
     }
 }
 
@@ -2062,8 +2063,9 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   if (is_active_lvalue(e))
     {
-      throw semantic_error("read-only special variable "
-			   + e->base_name + " used as lvalue", e->tok);
+      // No need to be verbose: the flavour-gathering visitor
+      // already printed a message for this exact case.
+      throw semantic_error ("due to failed target variable resolution");
     }
 
   string fname = "get_" + e->base_name.substr(1) + "_" + lex_cast<string>(tick++);
@@ -2082,9 +2084,9 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      semantic_error er2 (er);
-      er2.tok1 = e->tok;
-      throw er2;
+      // No need to be verbose: the flavour-gathering visitor
+      // already printed a message for this exact case.
+      throw semantic_error ("due to failed target variable resolution");
     }
   fdecl->name = fname;
   fdecl->body = ec;
