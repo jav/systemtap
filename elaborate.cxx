@@ -340,7 +340,7 @@ systemtap_session::register_library_aliases()
 	  for (unsigned n = 0; n < alias->alias_names.size(); ++n)
 	    {
 	      probe_point * name = alias->alias_names[n];
-	      if (verbose)
+	      if (false && verbose)
 		{
 		  clog << "registering probe alias ";
 		  for (unsigned c = 0; c < name->components.size(); ++c)
