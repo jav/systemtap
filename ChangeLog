@@ -1,5 +1,12 @@
 2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 1368.
+	* translate.cxx (emit_common_header): Move some MAX* definitions out ...
+	(translate_pass): ... to here.  Fix probe_start API impedance mismatch.
+	(emit_module_init, exit): Tolerate registration errors, such as absence
+	of kretprobes support.
+
+2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
 	PR 1311.
 	* tapsets.cxx (target_variable_flavour_calculating_visitor::
 	visit_target_symbol): Print verbose error.

@@ -2307,11 +2307,15 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
 
   if (has_return)
     {
+      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << probe_name << ".handler = &" << func_name << ";";
       o->newline() << probe_name << ".maxactive = 1;";
       // XXX: pending PR 1289
       // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
       o->newline() << "rc = register_kretprobe (&(" << probe_name << "));";
+      o->newline() << "#else";
+      o->newline() << "rc = 1;";
+      o->newline() << "#endif";
     }
   else
     {
@@ -2328,7 +2332,13 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
   o->newline() << "if (unlikely (rc)) while (--i > 0)";
   o->indent(1);
   if (has_return)
-    o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
+    {
+      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
+      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
+      o->newline() << "#else";
+      o->newline() << ";";
+      o->newline() << "#endif";
+    }
   else
     o->newline() << "unregister_kprobe (&(" << probe_name << "));";
   o->newline(-2) << "}";
@@ -2344,7 +2354,13 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
   string probe_name = struct_kprobe_array_name(probenum) + "[i]";
   o->indent(1);
   if (has_return)
-    o->newline() << "unregister_kretprobe (&(" << probe_name << "));"; 
+    {
+      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
+      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
+      o->newline() << "#else";
+      o->newline() << ";";
+      o->newline() << "#endif";
+    }
   else
     o->newline() << "unregister_kprobe (&(" << probe_name << "));";
   o->indent(-1);
@@ -2388,10 +2404,13 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   assert(locations.size() == probe_points.size());
 
   if (has_return)
+    {
+      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << "static struct kretprobe "
                    << probe_array
 		   << "[" << probe_points.size() << "]"
                    << "= {";
+    }
   else
       o->newline() << "static struct kprobe "
                    << probe_array
@@ -2411,6 +2430,9 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
         o->newline() << "{.addr= (void *) 0x" << hex << *i << dec << "}";
     }
   o->newline(-1) << "};";
+
+  if (has_return)
+    o->newline() << "#endif /* ARCH_SUPPORTS_KRETPROBES */";
 
   o->newline();
 
@@ -2443,6 +2465,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   // Construct a single entry function, and a struct kprobe pointing into
   // the entry function. The entry function will call the probe function.
   o->newline();
+  if (has_return)
+    o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
   o->newline() << "static int ";
   o->newline() << function_name(probenum) << " (";
   if (has_return)
@@ -2492,6 +2516,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   o->newline() << "atomic_dec (& c->busy);";
   o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
+  if (has_return)
+    o->newline() << "#endif /* ARCH_SUPPORTS_KRETPROBES */";
 
   o->newline();
 }

@@ -577,14 +577,6 @@ c_unparser::emit_common_header ()
 {
   // XXX: tapsets.cxx should be able to add additional definitions
 
-  o->newline() << "#include \"loc2c-runtime.h\" ";
-  o->newline() << "#define MAXNESTING 30";
-  o->newline() << "#define MAXCONCURRENCY NR_CPUS";
-  o->newline() << "#define MAXSTRINGLEN 128";
-  o->newline() << "#define MAXTRYLOCK 20";
-  o->newline() << "#define MAXACTION 1000";
-  o->newline() << "#define MAXMAPENTRIES 2048";
-  o->newline();
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
   o->newline() << "typedef struct { } stats_t;";
   o->newline();
@@ -743,6 +735,12 @@ c_unparser::emit_module_init ()
       // probe from attempting to run.
       o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
 
+      // XXX: would be nice to print failing probe point
+      o->newline() << "_stp_error (\"probe " << i << " registration failed"
+                   << ", rc=%d, %s\\n\", rc, "
+                   << lex_cast_qstring(*session->probes[i]->tok)
+                   << ");";
+
       // We need to deregister any already probes set up - this is
       // essential for kprobes.
       if (i > 0)
@@ -757,10 +755,13 @@ c_unparser::emit_module_init ()
   // otherwise act like probe insertion was a success.
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
   o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
-  // XXX: else maybe set anyrc and thus return a failure from module_init?
   o->newline(-1) << "goto out;";
 
-  // recovery code for partially successful registration (rc != 0)
+  // Recovery code for partially successful registration (rc != 0)
+  // XXX: Do we need to delay here to ensure any triggered probes have
+  // terminated?  Probably not much, as they should all test for
+  // SESSION_STARTING state right at the top and return.  ("begin"
+  // probes don't count, as they return synchronously.)
   o->newline();
   for (int i=session->probes.size()-2; i >= 0; i--) // NB: -2
     {
@@ -771,6 +772,15 @@ c_unparser::emit_module_init ()
       // if the session_state was ERRORed.
     }  
   o->newline();
+
+  // If any registrations failed, we will need to deregister the globals,
+  // as this is our only chance.
+  for (unsigned i=0; i<session->globals.size(); i++)
+    {
+      vardecl* v = session->globals[i];      
+      if (v->index_types.size() > 0)
+	o->newline() << getmap (v).fini();
+    }
 
   o->newline(-1) << "out:";
   o->newline(1) << "return rc;";
@@ -785,6 +795,13 @@ c_unparser::emit_module_exit ()
   o->newline() << "void systemtap_module_exit () {";
   // rc?
   o->newline(1) << "int holdon;";
+
+  // If we aborted startup, then everything has been cleaned up already, and
+  // module_exit shouldn't even have been called.  But since it might be, let's
+  // beat a hasty retreat to avoid double uninitialization.
+  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
+  o->newline(1) << "return;";
+  o->indent(-1);
   
   o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_RUNNING)";
   // NB: only other valid state value is ERROR, in which case we don't 
@@ -2356,18 +2373,30 @@ translate_pass (systemtap_session& s)
 
   try
     {
+      // This is at the very top of the file.
       s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
+
+      s.op->newline() << "#define MAXNESTING 30";
+      s.op->newline() << "#define MAXCONCURRENCY NR_CPUS";
+      s.op->newline() << "#define MAXSTRINGLEN 128";
+      s.op->newline() << "#define MAXTRYLOCK 20";
+      s.op->newline() << "#define MAXACTION 1000";
+      s.op->newline() << "#define MAXMAPENTRIES 2048";
+
+      // impedance mismatch
+      s.op->newline() << "#define STP_STRING_SIZE MAXSTRINGLEN";
+      s.op->newline() << "#define STP_NUM_STRINGS 1";
 
       s.op->newline() << "#if TEST_MODE";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#else";
-      s.op->newline() << "#define STP_NUM_STRINGS 1";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"current.c\"";
       s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#endif";
+      s.op->newline() << "#include \"loc2c-runtime.h\" ";
 
       s.up->emit_common_header ();
 
@@ -2418,9 +2447,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#else";
 
       s.op->newline();
-      // XXX
+      // XXX impedance mismatch
       s.op->newline() << "int probe_start () {";
-      s.op->newline(1) << "return systemtap_module_init ();";
+      s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
       s.op->newline(-1) << "}";
       s.op->newline();
       s.op->newline() << "void probe_exit () {";
