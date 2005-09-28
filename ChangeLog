@@ -1,3 +1,14 @@
+2005-09-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1182.
+	* main.cxx (main): Support -D macro-setting option.
+	* stap.1.in: Document it and related macros.
+	* buildrun.cxx (compile_pass): Emit macro definitions.
+	* translate.cxx (translate_pass): Guard limit macros with #ifdef.
+	Eliminate MAXCONCURRENCY macro.
+	* elaborate.h (systemtap_session): Add "macros" field.
+	* parse.cxx (parse_if_statement): Clear "elseblock" if needed.
+
 2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_cu_containing_global_address): Tolerate

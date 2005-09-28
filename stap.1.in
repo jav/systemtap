@@ -100,6 +100,10 @@ section for details.
 Add the given directory to the tapset search directory.  See the
 description of pass 2 for details.
 .TP
+.BI \-D " NAME=VALUE"
+Add the given preprocessor directive to the module Makefile.  These can 
+be used to override limit parameters described below.
+.TP
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
 .TP
@@ -471,7 +475,6 @@ See the
 .IR stapex (5)
 manual page for a collection of samples.
 
-
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.  It acquires root
@@ -496,6 +499,28 @@ kernel.  Use of script global variables is suitably locked to protect
 against manipulation by concurrent probe handlers.  Use of guru mode
 constructs such as embedded C can violate these constraints, leading
 to kernel crash or data corruption.
+.PP
+The resource use limits are set by macros in the generated C code.
+These may be overridden with the
+.R -D
+flag.  A selection of these is as follows: 
+.TP
+MAXNESTING
+Maximum number of recursive function call levels.
+.TP
+MAXSTRINGLEN
+Maximum length of strings.
+.TP
+MAXTRYLOCK
+Maximum number of iterations to wait for locks on global variables
+before declaring possible deadlock.
+.TP
+MAXACTION
+Maximum number of statements to execute during any single probe hit.
+.TP
+MAXMAPENTRIES
+Maximum number of rows in any single global array.
+
 .PP
 In case something goes wrong with 
 .IR stap " or " stpd

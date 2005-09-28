@@ -71,6 +71,7 @@ usage (systemtap_session& s)
   for (unsigned i=0; i<s.include_path.size(); i++)
     clog << "              " << s.include_path[i] << endl;
   clog
+    << "   -D NM=VAL  emit macro definition into generated C code" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     <<      "              " << s.runtime_path << endl
     // << "   -r RELEASE use kernel RELEASE, instead of" << endl
@@ -135,7 +136,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:");
+      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:D:");
       if (grc < 0)
         break;
       switch (grc)
@@ -202,6 +203,10 @@ main (int argc, char * const argv [])
 
 	case 'x':
 	  s.target_pid = atoi(optarg);
+	  break;
+
+	case 'D':
+	  s.macros.push_back (string (optarg));
 	  break;
 
         case 'h':

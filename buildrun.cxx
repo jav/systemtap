@@ -20,6 +20,26 @@ extern "C" {
 using namespace std;
 
 
+// return as quoted string, with at least '"' backslash-escaped
+template <typename IN> inline string
+lex_cast_qstring(IN const & in)
+{
+  stringstream ss;
+  string out, out2;
+  if (!(ss << in))
+    throw runtime_error("bad lexical cast");
+  out = ss.str();
+  out2 += '"';
+  for (unsigned i=0; i<out.length(); i++)
+    {
+      if (out[i] == '"') // XXX others?
+	out2 += '\\';
+      out2 += out[i];
+    }
+  out2 += '"';
+  return out2;
+}
+
 
 int
 compile_pass (systemtap_session& s)
@@ -30,10 +50,15 @@ compile_pass (systemtap_session& s)
   int rc = 0;
 
   // Create makefile
+
+  for (unsigned i=0; i<s.macros.size(); i++)
+    o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
+
   if (s.test_mode)
     {
       string module_dir = string("/lib/modules/")
         + s.kernel_release + "/build";
+
       o << "CFLAGS += -I \"" << module_dir << "/include\"" << endl;
       o << "CFLAGS += -I \"" << s.runtime_path << "/user\"" << endl;
       o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
@@ -41,7 +66,6 @@ compile_pass (systemtap_session& s)
       o << s.module_name << ": " << s.translated_source << endl;
       o << "\t$(CC) $(CFLAGS) -o " << s.module_name
         << " " << s.translated_source << endl;
-      o.close ();
     }
   else
     {
@@ -50,8 +74,9 @@ compile_pass (systemtap_session& s)
       o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
       o << "CFLAGS += -I \"" << s.runtime_path << "/relayfs\"" << endl;
       o << "obj-m := " << s.module_name << ".o" << endl;
-      o.close ();
     }
+
+  o.close ();
 
   // Run make
   if (s.test_mode)

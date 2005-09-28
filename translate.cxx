@@ -670,7 +670,7 @@ c_unparser::emit_common_header ()
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
     }
   o->newline(-1) << "} locals [MAXNESTING];";
-  o->newline(-1) << "} contexts [MAXCONCURRENCY];" << endl;
+  o->newline(-1) << "} contexts [NR_CPUS];" << endl;
 
   emit_map_type_instantiations ();
 }
@@ -2376,12 +2376,21 @@ translate_pass (systemtap_session& s)
       // This is at the very top of the file.
       s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
 
+      s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 30";
-      s.op->newline() << "#define MAXCONCURRENCY NR_CPUS";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXSTRINGLEN";
       s.op->newline() << "#define MAXSTRINGLEN 128";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXTRYLOCK";
       s.op->newline() << "#define MAXTRYLOCK 20";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXACTION";
       s.op->newline() << "#define MAXACTION 1000";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXMAPENTRIES";
       s.op->newline() << "#define MAXMAPENTRIES 2048";
+      s.op->newline() << "#endif";
 
       // impedance mismatch
       s.op->newline() << "#define STP_STRING_SIZE MAXSTRINGLEN";

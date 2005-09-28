@@ -202,6 +202,7 @@ struct systemtap_session
 
   // command line args
   std::vector<std::string> include_path;
+  std::vector<std::string> macros;
   std::vector<std::string> args;
   std::string kernel_release;
   std::string runtime_path;

@@ -946,6 +946,8 @@ parser::parse_if_statement ()
       next ();
       s->elseblock = parse_statement ();
     }
+  else
+    s->elseblock = 0; // in case not otherwise initialized
 
   return s;
 }
