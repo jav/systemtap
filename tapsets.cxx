@@ -357,7 +357,9 @@ dwflpp
     get_module_dwarf();
     if (false && sess.verbose)
       clog << "focusing on cu containing global addr " << a << endl;
-    query_cu (dwfl_module_addrdie(module, a, &bias), arg);
+    Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
+    if (cudie) // address could be wildly out of range
+      query_cu (cudie, arg);
     assert(bias == module_bias);
   }
 
@@ -2269,9 +2271,8 @@ dwarf_derived_probe::register_patterns(match_node * root)
   // .process("foo")
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
-  // XXX: may need to disable these for 2005-08 release
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
-  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
+  // register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
 
 static string

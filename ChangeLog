@@ -1,5 +1,10 @@
 2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (query_cu_containing_global_address): Tolerate
+	way out of range addresses that result in null cudie pointers.
+
+2005-09-27  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1368.
 	* translate.cxx (emit_common_header): Move some MAX* definitions out ...
 	(translate_pass): ... to here.  Fix probe_start API impedance mismatch.
