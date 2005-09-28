@@ -1,3 +1,11 @@
+// conversions tapset
+// Copyright (C) 2005 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 function hexstring:string (num:long) %{
     sprintf (THIS->__retvalue, "0x%llx", (long long) THIS->num);
 %}
@@ -5,7 +13,6 @@ function hexstring:string (num:long) %{
 function string:string (num:long) %{
     sprintf (THIS->__retvalue, "%lld", (long long) THIS->num);
 %}
-
 
 function kernel_string:string (addr:long) %{
   char *destination = THIS->__retvalue;
