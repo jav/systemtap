@@ -78,6 +78,7 @@ probe kernel.syscall.adjtimex =
 		name = "adjtimex"
 		/*
 		modes = $txc_p->modes
+		modes_str = sys_adjtimex_mode_str($txc_p->modes)
 		offset = $txc_p->offset
 		freq = $txc_p->freq
 		maxerror = $txc_p->maxerror
@@ -90,32 +91,6 @@ probe kernel.syscall.adjtimex =
 		tv_sec = $txc_p->time->tv_sec
 		tv_usec = $txc_p->time->tv_usec
 		tick = $txc_p->tick
-	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		The  modes  field determines which parameters, 
-		if any, to set.  It may contain a bit-wise-or 
-		combination of zero or more of the following bits:
-
-               	#define ADJ_OFFSET            0x0001  time offset 
-               	#define ADJ_FREQUENCY         0x0002  frequency offset 
-               	#define ADJ_MAXERROR          0x0004  maximum time error 
-               	#define ADJ_ESTERROR          0x0008  estimated time error
-               	#define ADJ_STATUS            0x0010  clock status 
-               	#define ADJ_TIMECONST         0x0020  pll time constant 
-               	#define ADJ_TICK              0x4000  tick value 
-               	#define ADJ_OFFSET_SINGLESHOT 0x8001  old-fashioned adjtime 
-
-       		Ordinary users are restricted to a zero value for mode.
-		Only the superuser  may  set any parameters.
-		
-	RETURN VALUE
-       		On success, adjtimex returns the clock state:
-
-               	#define TIME_OK   0  clock synchronized 
-               	#define TIME_INS  1  insert leap second 
-               	#define TIME_DEL  2  delete leap second 
-               	#define TIME_OOP  3  leap second in progress 
-               	#define TIME_WAIT 4  leap second has occurred 
-               	#define TIME_BAD  5  clock not synchronized 
 		*/
 	}
 
@@ -124,6 +99,7 @@ probe kernel.syscall.adjtimex.return =
 		name = "adjtimex.return"
                 /* 
                 modes = $txc_p->modes
+		modes_str = sys_adjtimex_mode_str($txc_p->modes)
                 offset = $txc_p->offset
                 freq = $txc_p->freq
                 maxerror = $txc_p->maxerror
@@ -137,22 +113,7 @@ probe kernel.syscall.adjtimex.return =
                 tv_usec = $txc_p->time->tv_usec
                 tick = $txc_p->tick
         +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                The  modes  field determines which parameters,
-                if any, to set.  It may contain a bit-wise-or
-                combination of zero or more of the following bits:
-
-                #define ADJ_OFFSET            0x0001  time offset
-                #define ADJ_FREQUENCY         0x0002  frequency offset
-                #define ADJ_MAXERROR          0x0004  maximum time error
-                #define ADJ_ESTERROR          0x0008  estimated time error
-                #define ADJ_STATUS            0x0010  clock status
-                #define ADJ_TIMECONST         0x0020  pll time constant
-                #define ADJ_TICK              0x4000  tick value
-                #define ADJ_OFFSET_SINGLESHOT 0x8001  old-fashioned adjtime
-
-                Ordinary users are restricted to a zero value for mode.
-                Only the superuser  may  set any parameters.
-
+		
         RETURN VALUE
                 On success, adjtimex returns the clock state:
 
@@ -162,6 +123,12 @@ probe kernel.syscall.adjtimex.return =
                 #define TIME_OOP  3  leap second in progress
                 #define TIME_WAIT 4  leap second has occurred
                 #define TIME_BAD  5  clock not synchronized
+
+		NOTE: Once $retval built-in is working it would
+		      be nice to export a symbolic name string
+		      corresponding to the return value.
+	
+		      i.e. clockstate = get_clock_state($retval)
                 */
 	}
 # times____________________________________________
@@ -584,8 +551,8 @@ probe kernel.syscall.acct.return =
                 */
 	}
 # capget___________________________________________
-/* asmlinkage long sys_capget(cap_user_header_t header, 
-			     cap_user_data_t dataptr) */
+/* asmlinkage long sys_capget(cap_user_header_t header,
+			      cap_user_data_t dataptr) */
 probe kernel.syscall.capget = 
 	kernel.function("sys_capget") {
 		name = "capget"
@@ -703,114 +670,347 @@ probe kernel.syscall.sigpending.return =
 		*/
 	}
 # sigprocmask______________________________________
+/* asmlinkage long sys_sigprocmask(int how,
+                                   old_sigset_t __user *set,
+                                   old_sigset_t __user *oset) */
 probe kernel.syscall.sigprocmask = 
 	kernel.function("sys_sigprocmask") {
 		name = "sigprocmask"
+		how = $how
+		how_str = ""
+		if (how==0) how_str = "SIG_BLOCK"
+		if (how==1) how_str = "SIG_UNBLOCK"
+		if (how==2) how_str = "SIG_SETMASK"
+		/*
+		set = $set
+		oldset = $oset
+		*/
 	}
 
 probe kernel.syscall.sigprocmask.return = 
 	kernel.function("sys_sigprocmask").return {
 		name = "sigprocmask.return"
+                how = $how
+                how_str = ""
+                if (how==0) how_str = "SIG_BLOCK"
+                if (how==1) how_str = "SIG_UNBLOCK"
+                if (how==2) how_str = "SIG_SETMASK"
+                /*
+                set = $set
+                oldset = $oset
+                */
 	}
 # getitimer________________________________________
+/* asmlinkage long sys_getitimer(int which, 
+				 struct itimerval __user *value) */
 probe kernel.syscall.getitimer = 
 	kernel.function("sys_getitimer") {
 		name = "getitimer"
+		which = $which
+		which_str = ""
+		if (how==0) how_str = "ITIMER_REAL"
+                if (how==1) how_str = "ITIMER_VIRTUAL"
+                if (how==2) how_str = "ITIMER_PROF"
+		/*
+		value_it_interval_tv_sec =  $value->it_interval->tv_sec
+		value_it_interval_tv_usec = $value->it_interval->tv_usec
+		value_it_value_tv_sec =  $value->it_value->tv_sec
+		value_it_value_tv_usec = $value->it_value->tv_usec
+		*/
 	}
 
 probe kernel.syscall.getitimer.return = 
 	kernel.function("sys_getitimer").return {
 		name = "getitimer.return"
+                which = $which
+                which_str = ""
+                if (how==0) how_str = "ITIMER_REAL"
+                if (how==1) how_str = "ITIMER_VIRTUAL"
+                if (how==2) how_str = "ITIMER_PROF"
+                /*
+                value_it_interval_tv_sec =  $value->it_interval->tv_sec
+                value_it_interval_tv_usec = $value->it_interval->tv_usec
+                value_it_value_tv_sec =  $value->it_value->tv_sec
+                value_it_value_tv_usec = $value->it_value->tv_usec
+                */
 	}
 # setitimer________________________________________
+/* asmlinkage long sys_setitimer(int which,
+                                 struct itimerval __user *value,
+                                 struct itimerval __user *ovalue) */
 probe kernel.syscall.setitimer = 
 	kernel.function("sys_setitimer") {
 		name = "setitimer"
+                which = $which
+                which_str = ""
+                if (how==0) how_str = "ITIMER_REAL"
+                if (how==1) how_str = "ITIMER_VIRTUAL"
+                if (how==2) how_str = "ITIMER_PROF"
+                /*
+                value_it_interval_tv_sec =  $value->it_interval->tv_sec
+                value_it_interval_tv_usec = $value->it_interval->tv_usec
+                value_it_value_tv_sec =  $value->it_value->tv_sec
+                value_it_value_tv_usec = $value->it_value->tv_usec
+                */
 	}
 
 probe kernel.syscall.setitimer.return = 
 	kernel.function("sys_setitimer").return {
 		name = "setitimer.return"
+                which = $which
+                which_str = ""
+                if (how==0) how_str = "ITIMER_REAL"
+                if (how==1) how_str = "ITIMER_VIRTUAL"
+                if (how==2) how_str = "ITIMER_PROF"
+                /*
+                value_it_interval_tv_sec =  $value->it_interval->tv_sec
+                value_it_interval_tv_usec = $value->it_interval->tv_usec
+                value_it_value_tv_sec =  $value->it_value->tv_sec
+                value_it_value_tv_usec = $value->it_value->tv_usec
+
+                ovalue_it_interval_tv_sec =  $ovalue->it_interval->tv_sec
+                ovalue_it_interval_tv_usec = $ovalue->it_interval->tv_usec
+                ovalue_it_value_tv_sec =  $ovalue->it_value->tv_sec
+                ovalue_it_value_tv_usec = $ovalue->it_value->tv_usec
+                */
 	}
 # timer_create_____________________________________
+/* asmlinkage long sys_timer_create(clockid_t which_clock,
+				    struct sigevent __user *timer_event_spec,
+				    timer_t __user * created_timer_id) */
 probe kernel.syscall.timer_create = 
 	kernel.function("sys_timer_create") {
 		name = "timer_create"
+		which_clock = $which_clock
+		which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+		/* ...a little unsure about this...
+
+		typedef struct sigevent {
+	 	        sigval_t sigev_value;
+        		int sigev_signo;
+        		int sigev_notify;
+        		union {
+                		int _pad[SIGEV_PAD_SIZE];
+                 		int _tid;
+
+                		struct {
+                        		void (*_function)(sigval_t);
+                        		void *_attribute;       // really pthread_attr_t
+                		} _sigev_thread;
+        		} _sigev_un;
+		} sigevent_t;
+		
+		*/
 	}
 
 probe kernel.syscall.timer_create.return = 
 	kernel.function("sys_timer_create").return {
 		name = "timer_create.return"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                /* ...a little unsure about this...
+
+                typedef struct sigevent {
+                        sigval_t sigev_value;
+                        int sigev_signo;
+                        int sigev_notify;
+                        union {
+                                int _pad[SIGEV_PAD_SIZE];
+                                int _tid;
+
+                                struct {
+                                        void (*_function)(sigval_t);
+                                        void *_attribute;       // really pthread_attr_t
+                                } _sigev_thread;
+                        } _sigev_un;
+                } sigevent_t;
+	+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		created_timer_id = $created_timer_id		
+                */
 	}
 # timer_gettime____________________________________
+/* asmlinkage long sys_timer_gettime(timer_t timer_id,
+				     struct itimerspec __user *setting) */
 probe kernel.syscall.timer_gettime = 
 	kernel.function("sys_timer_gettime") {
 		name = "timer_gettime"
+		timer_id = $timer_id
 	}
 
 probe kernel.syscall.timer_gettime.return = 
 	kernel.function("sys_timer_gettime").return {
 		name = "timer_gettime.return"
+		timer_id = $timer_id
+		/*
+		setting_it_interval_tv_sec =  $setting->it_interval->tv_sec
+		setting_it_interval_tv_usec = $setting->it_interval->tv_usec
+                setting_it_value_tv_sec =  $setting->it_value->tv_sec
+                setting_it_value_tv_usec = $setting->it_value->tv_usec
+		*/
 	}
 # timer_getoverrun_________________________________
+/* asmlinkage long sys_timer_getoverrun(timer_t timer_id) */
 probe kernel.syscall.timer_getoverrun = 
 	kernel.function("sys_timer_getoverrun") {
 		name = "timer_getoverrun"
+		timer_id = $timer_id
 	}
 
 probe kernel.syscall.timer_getoverrun.return = 
 	kernel.function("sys_timer_getoverrun").return {
 		name = "timer_getoverrun.return"
+		timer_id = $timer_id
 	}
 # timer_settime____________________________________
+/* asmlinkage long sys_timer_settime(timer_t timer_id, int flags,
+                  		     const struct itimerspec __user *new_setting,
+                  		     struct itimerspec __user *old_setting) */
 probe kernel.syscall.timer_settime = 
 	kernel.function("sys_timer_settime") {
 		name = "timer_settime"
+		timer_id = $timer_id
+		flags = $flags
+		/*
+                new_setting_it_interval_tv_sec =  $new_setting->it_interval->tv_sec
+                new_setting_it_interval_tv_usec = $new_setting->it_interval->tv_usec
+		*/
 	}
 
 probe kernel.syscall.timer_settime.return = 
 	kernel.function("sys_timer_settime").return {
 		name = "timer_settime.return"
+                name = "timer_settime"
+                timer_id = $timer_id
+                flags = $flags
+                /*
+                new_setting_it_interval_tv_sec =  $new_setting->it_interval->tv_sec
+                new_setting_it_interval_tv_usec = $new_setting->it_interval->tv_usec
+                old_setting_it_interval_tv_sec =  $old_setting->it_interval->tv_sec
+                old_setting_it_interval_tv_usec = $old_setting->it_interval->tv_usec
+                */
 	}
 # timer_delete_____________________________________
+/* asmlinkage long sys_timer_delete(timer_t timer_id) */
 probe kernel.syscall.timer_delete = 
 	kernel.function("sys_timer_delete") {
 		name = "timer_delete"
+		timer_id = $timer_id
 	}
 
 probe kernel.syscall.timer_delete.return = 
 	kernel.function("sys_timer_delete").return {
 		name = "timer_delete.return"
+		timer_id = $timer_id
 	}
 # clock_settime____________________________________
+/* asmlinkage long sys_clock_settime(clockid_t which_clock,
+				     const struct timespec __user *tp) */
 probe kernel.syscall.clock_settime = 
 	kernel.function("sys_clock_settime") {
 		name = "clock_settime"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+		/*
+		tp_tv_sec =  $tp->tv_sec
+		tp_tv_usec = $tp->tv_usec
+		*/
 	}
 
 probe kernel.syscall.clock_settime.return = 
 	kernel.function("sys_clock_settime").return {
 		name = "clock_settime.return"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                /*
+                tp_tv_sec =  $tp->tv_sec
+                tp_tv_usec = $tp->tv_usec
+                */
 	}
 # clock_gettime____________________________________
+/* asmlinkage long sys_clock_gettime(clockid_t which_clock,
+				     struct timespec __user *tp) */
 probe kernel.syscall.clock_gettime = 
 	kernel.function("sys_clock_gettime") {
 		name = "clock_gettime"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
 	}
 
 probe kernel.syscall.clock_gettime.return = 
 	kernel.function("sys_clock_gettime").return {
 		name = "clock_gettime.return"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+		/*
+		tp_tv_sec =  $tp->tv_sec
+                tp_tv_usec = $tp->tv_usec
+                */
 	}
 # clock_getres_____________________________________
 probe kernel.syscall.clock_getres = 
 	kernel.function("sys_clock_getres") {
 		name = "clock_getres"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
 	}
 
 probe kernel.syscall.clock_getres.return = 
 	kernel.function("sys_clock_getres").return {
 		name = "clock_getres.return"
+                which_clock = $which_clock
+                which_clock_str = ""
+                if (how==0) how_str = "CLOCK_REALTIME"
+                if (how==1) how_str = "CLOCK_MONOTONIC"
+                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
+                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
+                if (how==4) how_str = "CLOCK_REALTIME_HR"
+                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                /*
+                tp_tv_sec =  $tp->tv_sec
+                tp_tv_usec = $tp->tv_usec
+                */
 	}
 # clock_nanosleep__________________________________
 probe kernel.syscall.clock_nanosleep = 

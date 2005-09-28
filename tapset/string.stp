@@ -1,0 +1,18 @@
+function strlen:long(s:string) %{
+        THIS->__retvalue=strlen(THIS->s);
+%}
+
+function substr:string(str:string,start:long,stop:long) %{
+	int len=strlen(THIS->str);
+	if(THIS->start<0   || THIS->stop<0   || 
+	   THIS->start>len || THIS->stop>len || 
+	   THIS->start>=THIS->stop)
+	{
+		return;
+	}
+	else {
+		char *s=THIS->str;
+		strncpy(THIS->__retvalue,s+THIS->start,THIS->stop);
+		THIS->__retvalue[THIS->stop]='\0';
+	}
+%}

@@ -84,6 +84,16 @@ user_string:string (addr:long)
 Copy a string from user space at given address.  The validation of this
 address is only partial at present.
 
+.SS STRING
+
+.TP
+strlen:long (str:string)
+Return the number of characters in str.
+
+.TP
+substr:string (str:string,start:long,stop:long)
+Return the substring starting at character start and ending at character stop. 
+
 .SS TIMESTAMP
 
 .TP

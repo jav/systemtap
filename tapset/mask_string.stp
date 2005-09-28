@@ -1,0 +1,58 @@
+global _name
+global _bits
+
+function _bitstring:string(mask:long,sz:long,stop:long) {
+        /* derive bitwise-or'd mask string */
+        for(i=sz;i>=0;i--) {
+                if(mask>=_bits[i]) {
+                        mskstr=_name[i]."|".mskstr;
+                        if(mask<stop)
+                                break;
+                        mask=mask-_bits[i];
+                }
+        }
+        return substr(mskstr,0,(strlen(mskstr)-1));
+}
+
+function sys_adjtimex_mode_str:string(flags:long) {
+        _name[0]= "ADJ_OFFSET";            _bits[0]=1;
+        _name[1]= "ADJ_FREQUENCY";         _bits[1]=2;
+        _name[2]= "ADJ_MAXERROR";          _bits[2]=3;
+        _name[3]= "ADJ_ESTERROR";          _bits[3]=8;
+        _name[4]= "ADJ_STATUS";            _bits[4]=16;
+        _name[5]= "ADJ_TIMECONST";         _bits[5]=32;
+        _name[6]= "ADJ_TICK";    	   _bits[6]=16384;
+        _name[7]= "ADJ_OFFSET_SINGLESHOT"; _bits[7]=32769;
+        return _bitstring(flags,6,0);
+}
+
+function sys_open_flag_str:string(flags:long) {
+        _name[0]= "O_RDONLY";   _bits[0]=0;
+        _name[1]= "O_WRONLY";   _bits[1]=1;
+        _name[2]= "O_RDWR";     _bits[2]=2;
+        _name[3]= "O_CREAT";    _bits[3]=64;
+        _name[4]= "O_EXCL";     _bits[4]=128;
+        _name[5]= "O_NDCTTY";   _bits[5]=256;
+        _name[6]= "O_TRUNC";    _bits[6]=512;
+        _name[7]= "O_APPEND";   _bits[7]=1024;
+        _name[8]= "O_NONBLOCK"; _bits[8]=2048;
+        _name[9]= "O_SYNC";     _bits[9]=4096;
+        _name[10]="O_ASYNC";    _bits[10]=8192;
+        return _bitstring(flags,10,64);
+}
+
+function sys_open_mode_umask_str:string(mode:long) {
+        _name[0]= "S_IXOTH"; _bits[0]=1;
+        _name[1]= "S_IWOTH"; _bits[1]=2;
+        _name[2]= "S_IROTH"; _bits[2]=4;
+        _name[3]= "S_IRWXO"; _bits[3]=7;
+        _name[4]= "S_IXGRP"; _bits[4]=8;
+        _name[5]= "S_IWGRP"; _bits[5]=16;
+        _name[6]= "S_IRGRP"; _bits[6]=32;
+        _name[7]= "S_IRWXG"; _bits[7]=56;
+        _name[8]= "S_IXUSR"; _bits[8]=64;
+        _name[9]= "S_IWUSR"; _bits[9]=128;
+        _name[10]="S_IRUSR"; _bits[10]=256;
+        _name[11]="S_IRWXU"; _bits[11]=448;
+        return _bitstring(mode,11,0);
+}
