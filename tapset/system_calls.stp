@@ -790,13 +790,7 @@ probe kernel.syscall.timer_create =
 	kernel.function("sys_timer_create") {
 		name = "timer_create"
 		which_clock = $which_clock
-		which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+		which_clock_str = _get_wc_str($which_clock)
 		/* ...a little unsure about this...
 
 		typedef struct sigevent {
@@ -821,13 +815,7 @@ probe kernel.syscall.timer_create.return =
 	kernel.function("sys_timer_create").return {
 		name = "timer_create.return"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
                 /* ...a little unsure about this...
 
                 typedef struct sigevent {
@@ -929,13 +917,7 @@ probe kernel.syscall.clock_settime =
 	kernel.function("sys_clock_settime") {
 		name = "clock_settime"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
 		/*
 		tp_tv_sec =  $tp->tv_sec
 		tp_tv_usec = $tp->tv_usec
@@ -946,13 +928,7 @@ probe kernel.syscall.clock_settime.return =
 	kernel.function("sys_clock_settime").return {
 		name = "clock_settime.return"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
                 /*
                 tp_tv_sec =  $tp->tv_sec
                 tp_tv_usec = $tp->tv_usec
@@ -965,142 +941,199 @@ probe kernel.syscall.clock_gettime =
 	kernel.function("sys_clock_gettime") {
 		name = "clock_gettime"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
 	}
 
 probe kernel.syscall.clock_gettime.return = 
 	kernel.function("sys_clock_gettime").return {
 		name = "clock_gettime.return"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
 		/*
 		tp_tv_sec =  $tp->tv_sec
                 tp_tv_usec = $tp->tv_usec
                 */
 	}
 # clock_getres_____________________________________
+/* asmlinkage long sys_clock_getres(clockid_t which_clock, 
+				    struct timespec __user *tp) */
 probe kernel.syscall.clock_getres = 
 	kernel.function("sys_clock_getres") {
 		name = "clock_getres"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
 	}
 
 probe kernel.syscall.clock_getres.return = 
 	kernel.function("sys_clock_getres").return {
 		name = "clock_getres.return"
                 which_clock = $which_clock
-                which_clock_str = ""
-                if (how==0) how_str = "CLOCK_REALTIME"
-                if (how==1) how_str = "CLOCK_MONOTONIC"
-                if (how==2) how_str = "CLOCK_PROCESS_CPUTIME_ID"
-                if (how==3) how_str = "CLOCK_THREAD_CPUTIME_ID"
-                if (how==4) how_str = "CLOCK_REALTIME_HR"
-                if (how==5) how_str = "CLOCK_MONOTONIC_HR"
+                which_clock_str = _get_wc_str($which_clock)
                 /*
                 tp_tv_sec =  $tp->tv_sec
                 tp_tv_usec = $tp->tv_usec
                 */
 	}
 # clock_nanosleep__________________________________
+/* asmlinkage long sys_clock_nanosleep(clockid_t which_clock, int flags,
+                    		       const struct timespec __user *rqtp,
+                    		       struct timespec __user *rmtp) */
 probe kernel.syscall.clock_nanosleep = 
 	kernel.function("sys_clock_nanosleep") {
 		name = "clock_nanosleep"
+                which_clock = $which_clock
+                which_clock_str = _get_wc_str($which_clock)
+		flags = $flags
+		flag_str = "TIMER_ABSTIME"
+		/*
+		rqtp_tv_sec =  $rqtp->tv_sec
+                rqtp_tv_usec = $rqtp->tv_usec
+		*/
 	}
 
 probe kernel.syscall.clock_nanosleep.return = 
 	kernel.function("sys_clock_nanosleep").return {
 		name = "clock_nanosleep.return"
+                which_clock = $which_clock
+                which_clock_str = _get_wc_str($which_clock)
+                flags = $flags
+                flag_str = "TIMER_ABSTIME"
+		/*
+		rqtp_tv_sec =  $rqtp->tv_sec
+                rqtp_tv_usec = $rqtp->tv_usec
+		rmtp_tv_sec =  $rmtp->tv_sec
+                rmtp_tv_usec = $rmtp->tv_usec
+		*/
 	}
 # nice_____________________________________________
+/* asmlinkage long sys_nice(int increment) */
 probe kernel.syscall.nice = 
 	kernel.function("sys_nice") {
 		name = "nice"
+		inc = $increment
 	}
 
 probe kernel.syscall.nice.return = 
 	kernel.function("sys_nice").return {
 		name = "nice.return"
+                inc = $increment
 	}
 # sched_setscheduler_______________________________
+/* asmlinkage long sys_sched_setscheduler(pid_t pid, int policy,
+					  struct sched_param __user *param) */
 probe kernel.syscall.sched_setscheduler = 
 	kernel.function("do_sched_setscheduler") {
 		name = "sched_setscheduler"
+		pid = $pid
+		policy = $policy
+		policy_str = ""
+		if($policy==0) policy_str = "SCHED_OTHER"
+                if($policy==1) policy_str = "SCHED_FIFO"
+                if($policy==2) policy_str = "SCHED_RR"
+		/*
+		p_sched_priority = param->sched_parameter
+		*/
 	}
 
 probe kernel.syscall.sched_setscheduler.return = 
 	kernel.function("do_sched_setscheduler").return {
 		name = "sched_setscheduler.return"
+                pid = $pid
+                policy = $policy
+                policy_str = ""
+                if($policy==0) policy_str = "SCHED_OTHER"
+                if($policy==1) policy_str = "SCHED_FIFO"
+                if($policy==2) policy_str = "SCHED_RR"
+                /*
+                p_sched_priority = param->sched_parameter
+                */
 	}
 # sched_setparam___________________________________
+/* asmlinkage long sys_sched_setparam(pid_t pid, 
+				      struct sched_param __user *param) */
 probe kernel.syscall.sched_setparam = 
 	kernel.function("do_sched_setscheduler") {
 		name = "sched_setparam"
+		pid = $pid
+                /*
+                p_sched_priority = param->sched_parameter
+                */
 	}
 
 probe kernel.syscall.sched_setparam.return = 
 	kernel.function("do_sched_setscheduler").return {
 		name = "sched_setparam.return"
+                pid = $pid
+                /*
+                p_sched_priority = param->sched_parameter
+                */
 	}
 # sched_getscheduler_______________________________
+/* asmlinkage long sys_sched_getscheduler(pid_t pid) */
 probe kernel.syscall.sched_getscheduler = 
 	kernel.function("sys_sched_getscheduler") {
 		name = "sched_getscheduler"
+		pid = $pid
 	}
 
 probe kernel.syscall.sched_getscheduler.return = 
 	kernel.function("sys_sched_getscheduler").return {
 		name = "sched_getscheduler.return"
+		pid = $pid
 	}
 # sched_getparam___________________________________
+/* asmlinkage long sys_sched_getparam(pid_t pid, 
+				      struct sched_param __user *param) */
 probe kernel.syscall.sched_getparam = 
 	kernel.function("sys_sched_getparam") {
 		name = "sched_getparam"
+                pid = $pid
 	}
 
 probe kernel.syscall.sched_getparam.return = 
 	kernel.function("sys_sched_getparam").return {
 		name = "sched_getparam.return"
+                pid = $pid
+		/*
+		p_sched_priority = param->sched_parameter
+		*/
 	}
 # sched_setaffinity________________________________
+/* long sched_setaffinity(pid_t pid, cpumask_t new_mask) */
 probe kernel.syscall.sched_setaffinity = 
 	kernel.function("sys_sched_setaffinity") {
 		name = "sched_setaffinity"
+		pid = $pid
+		mask = $new_mask
 	}
 
 probe kernel.syscall.sched_setaffinity.return = 
 	kernel.function("sys_sched_setaffinity").return {
 		name = "sched_setaffinity.return"
+		pid = $pid
+		mask = $new_mask
 	}
 # sched_getaffinity________________________________
+/* asmlinkage long sys_sched_getaffinity(pid_t pid, unsigned int len,
+                                         unsigned long __user *user_mask_ptr) */
 probe kernel.syscall.sched_getaffinity = 
 	kernel.function("sys_sched_getaffinity") {
 		name = "sched_getaffinity"
+		pid = $pid
+		len = $len
 	}
 
 probe kernel.syscall.sched_getaffinity.return = 
 	kernel.function("sys_sched_getaffinity").return {
 		name = "sched_getaffinity.return"
+      		pid = $pid
+                len = $len
+		/*
+		mask = $user_mask_ptr
+		*/
 	}
 # sched_yield______________________________________
+/* asmlinkage long sys_sched_yield(void) */
 probe kernel.syscall.sched_yield = 
 	kernel.function("sys_sched_yield") {
 		name = "sched_yield"
@@ -1111,34 +1144,48 @@ probe kernel.syscall.sched_yield.return =
 		name = "sched_yield.return"
 	}
 # sched_get_priority_max___________________________
+/* asmlinkage long sys_sched_get_priority_max(int policy) */
 probe kernel.syscall.sched_get_priority_max = 
 	kernel.function("sys_sched_get_priority_max") {
 		name = "sched_get_priority_max"
+		policy = $policy
 	}
 
 probe kernel.syscall.sched_get_priority_max.return = 
 	kernel.function("sys_sched_get_priority_max").return {
 		name = "sched_get_priority_max.return"
+		policy = $policy
 	}
 # sched_get_priority_min___________________________
+/* asmlinkage long sys_sched_get_priority_min(int policy) */
 probe kernel.syscall.sched_get_priority_min = 
 	kernel.function("sys_sched_get_priority_min") {
 		name = "sched_get_priority_min"
+                policy = $policy
 	}
 
 probe kernel.syscall.sched_get_priority_min.return = 
 	kernel.function("sys_sched_get_priority_min").return {
 		name = "sched_get_priority_min.return"
+                policy = $policy
 	}
 # sched_rr_get_interval____________________________
+/* asmlinkage long sys_sched_rr_get_interval(pid_t pid, 
+					     struct timespec __user *interval) */
 probe kernel.syscall.sched_rr_get_interval = 
 	kernel.function("sys_sched_rr_get_interval") {
 		name = "sched_rr_get_interval"
+		pid = $pid
 	}
 
 probe kernel.syscall.sched_rr_get_interval.return = 
 	kernel.function("sys_sched_rr_get_interval").return {
 		name = "sched_rr_get_interval.return"
+		pid = $pid
+		/*
+		tp_tv_sec = $tp->tv_sec
+		tp_tv_usec = $tp->tv_usec
+		*/
 	}
 # setpriority______________________________________
 probe kernel.syscall.setpriority = 
@@ -3350,3 +3397,13 @@ probe kernel.syscall.rt_sigaction.return =
 	kernel.function("sys_rt_sigaction").return {
 		name = "rt_sigaction.return"
 	}
+/* AUX_HELPER FUNCTIONS AUX_HELPER FUNCTIONS AUX_HELPER FUNCTIONS */
+_get_wc_str(wc) {
+	if (wc==0) return "CLOCK_REALTIME"
+        if (wc==1) return "CLOCK_MONOTONIC"
+        if (wc==2) return "CLOCK_PROCESS_CPUTIME_ID"
+        if (wc==3) return "CLOCK_THREAD_CPUTIME_ID"
+        if (wc==4) return "CLOCK_REALTIME_HR"
+        if (wc==5) return "CLOCK_MONOTONIC_HR"
+	return ""
+}

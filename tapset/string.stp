@@ -16,3 +16,10 @@ function substr:string(str:string,start:long,stop:long) %{
 		THIS->__retvalue[THIS->stop]='\0';
 	}
 %}
+
+function isinstr:long(s1:string,s2:string) %{
+	if(strstr(THIS->s1,THIS->s2)!=NULL)
+		THIS->__retvalue = 1;
+	else
+		THIS->__retvalue = 0;
+%}

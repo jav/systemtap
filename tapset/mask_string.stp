@@ -1,58 +1,51 @@
-global _name
-global _bits
+/*
+ These functions construct the bitwise-or'd symbolic string
+ representation of the f param, based on the function arg.
+*/
+function __decf(f,mask){ return ((f-mask)>=0) ? (f-mask) : f }
 
-function _bitstring:string(mask:long,sz:long,stop:long) {
-        /* derive bitwise-or'd mask string */
-        for(i=sz;i>=0;i--) {
-                if(mask>=_bits[i]) {
-                        mskstr=_name[i]."|".mskstr;
-                        if(mask<stop)
-                                break;
-                        mask=mask-_bits[i];
-                }
-        }
-        return substr(mskstr,0,(strlen(mskstr)-1));
+/* `man 2 open` for more information */
+function _sys_open_flag_str(f) {
+   if((f-8192)>=0 && (f=__decf(f,8192))>=0) bs="O_ASYNC|".bs
+   if((f-4096)>=0 && (f=__decf(f,4096))>=0) bs="O_SYNC|".bs
+   if((f-2048)>=0 && (f=__decf(f,2048))>=0) bs="O_NONBLOCK|".bs
+   if((f-1024)>=0 && (f=__decf(f,1024))>=0) bs="O_APPEND|".bs
+   if((f-512)>=0  && (f=__decf(f,512))>=0) bs="O_TRUNC|".bs
+   if((f-256)>=0  && (f=__decf(f,256))>=0) bs="O_NDCTTY|".bs
+   if((f-128)>=0  && (f=__decf(f,128))>=0) bs="O_EXCL|".bs
+   if((f-64)>=0   && (f=__decf(f,64))>=0) bs="O_CREAT|".bs
+   if((f-2)>=0    && (f=__decf(f,2))>=0)
+      return substr("O_RDWR|".bs,0,strlen("O_RDWR|".bs)-1)
+   if((f-1)>=0    && (f=__decf(f,1))>=0)
+      return substr("O_WRONLY|".bs,0,strlen("O_WRONLY|".bs)-1)
+   return substr("O_RDONLY|".bs,0,strlen("O_RDONLY|".bs)-1)
 }
 
-function sys_adjtimex_mode_str:string(flags:long) {
-        _name[0]= "ADJ_OFFSET";            _bits[0]=1;
-        _name[1]= "ADJ_FREQUENCY";         _bits[1]=2;
-        _name[2]= "ADJ_MAXERROR";          _bits[2]=3;
-        _name[3]= "ADJ_ESTERROR";          _bits[3]=8;
-        _name[4]= "ADJ_STATUS";            _bits[4]=16;
-        _name[5]= "ADJ_TIMECONST";         _bits[5]=32;
-        _name[6]= "ADJ_TICK";    	   _bits[6]=16384;
-        _name[7]= "ADJ_OFFSET_SINGLESHOT"; _bits[7]=32769;
-        return _bitstring(flags,6,0);
-}
+/* `man 2 open` for more information */
+function _sys_open_mode_str(f) {
+   if((f-448)>=0 && (f=__decf(f,448))>=0) bs="S_IRWXU|".bs
+   if((f-256)>=0 && (f=__decf(f,256))>=0) bs="S_IRUSR|".bs
+   if((f-128)>=0 && (f=__decf(f,128))>=0) bs="S_IWUSR|".bs
+   if((f-64)>=0 && (f=__decf(f,64))>=0) bs="S_IXUSR|".bs
+   if((f-56)>=0 && (f=__decf(f,56))>=0) bs="S_IRWXG|".bs
+   if((f-32)>=0 && (f=__decf(f,32))>=0) bs="S_IRGRP|".bs
+   if((f-16)>=0 && (f=__decf(f,16))>=0) bs="S_IWGRP|".bs
+   if((f-8)>=0 && (f=__decf(f,8))>=0) bs="S_IXGRP|".bs
+   if((f-7)>=0 && (f=__decf(f,7))>=0) bs="S_IRWXO|".bs
+   if((f-4)>=0 && (f=__decf(f,4))>=0) bs="S_IROTH|".bs
+   if((f-2)>=0 && (f=__decf(f,2))>=0) bs="S_IWOTH|".bs
+   if((f-1)>=0 && (f=__decf(f,1))>=0) bs="S_IXOTH|".bs
+   return substr(bs,0,strlen(bs)-1)
 
-function sys_open_flag_str:string(flags:long) {
-        _name[0]= "O_RDONLY";   _bits[0]=0;
-        _name[1]= "O_WRONLY";   _bits[1]=1;
-        _name[2]= "O_RDWR";     _bits[2]=2;
-        _name[3]= "O_CREAT";    _bits[3]=64;
-        _name[4]= "O_EXCL";     _bits[4]=128;
-        _name[5]= "O_NDCTTY";   _bits[5]=256;
-        _name[6]= "O_TRUNC";    _bits[6]=512;
-        _name[7]= "O_APPEND";   _bits[7]=1024;
-        _name[8]= "O_NONBLOCK"; _bits[8]=2048;
-        _name[9]= "O_SYNC";     _bits[9]=4096;
-        _name[10]="O_ASYNC";    _bits[10]=8192;
-        return _bitstring(flags,10,64);
-}
-
-function sys_open_mode_umask_str:string(mode:long) {
-        _name[0]= "S_IXOTH"; _bits[0]=1;
-        _name[1]= "S_IWOTH"; _bits[1]=2;
-        _name[2]= "S_IROTH"; _bits[2]=4;
-        _name[3]= "S_IRWXO"; _bits[3]=7;
-        _name[4]= "S_IXGRP"; _bits[4]=8;
-        _name[5]= "S_IWGRP"; _bits[5]=16;
-        _name[6]= "S_IRGRP"; _bits[6]=32;
-        _name[7]= "S_IRWXG"; _bits[7]=56;
-        _name[8]= "S_IXUSR"; _bits[8]=64;
-        _name[9]= "S_IWUSR"; _bits[9]=128;
-        _name[10]="S_IRUSR"; _bits[10]=256;
-        _name[11]="S_IRWXU"; _bits[11]=448;
-        return _bitstring(mode,11,0);
+/* `man adjtimex` for more information */
+function _sys_adjtimex_mode_str(f) {
+   if((f-32769)>=0 && (f=__decf(f,32769))>=0) bs="ADJ_OFFSET_SINGLESHOT|".bs
+   if((f-16384)>=0 && (f=__decf(f,16384))>=0) bs="ADJ_TICK|".bs
+   if((f-32)>=0 && (f=__decf(f,32))>=0) bs="ADJ_TIMECONST|".bs
+   if((f-16)>=0 && (f=__decf(f,16))>=0) bs="ADJ_STATUS|".bs
+   if((f-8)>=0 && (f=__decf(f,8))>=0) bs="ADJ_ESTERROR|".bs
+   if((f-3)>=0 && (f=__decf(f,3))>=0) bs="ADJ_MAXERROR|".bs
+   if((f-2)>=0 && (f=__decf(f,2))>=0) bs="ADJ_FREQUENCY|".bs
+   if((f-1)>=0 && (f=__decf(f,1))>=0) bs="ADJ_OFFSET|".bs
+   return substr(bs,0,strlen(bs)-1)
 }
