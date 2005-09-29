@@ -19,6 +19,8 @@ inserting and removing modules.
 Stpd and the I/O code makes use of /proc (and optionally relayfs) for communications.  For
 kernels without relayfs builtin, it is provided as a standalone module under the runtime directory.
 
+@ref start_page
+
 @ref maps
 
 @ref lists
