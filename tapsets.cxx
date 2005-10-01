@@ -281,14 +281,29 @@ dwflpp
   }
 
 
-  void get_module_dwarf()
+  void get_module_dwarf(bool required = true)
   {
     if (!module_dwarf)
       module_dwarf = dwfl_module_getdwarf(module, &module_bias);
 
-    if (module_dwarf == NULL && sess.verbose)
-      clog << "WARNING: dwfl_module_getdwarf() : "
-	   << dwfl_errmsg (dwfl_errno ()) << endl;
+    if (!module_dwarf)
+      {
+	string msg = "cannot find ";
+	if (module_name == "")
+	  msg += "kernel";
+	else
+	  msg += string("module ") + module_name;
+	msg += " debuginfo";
+
+	int i = dwfl_errno();
+	if (i)
+	  msg += string(": ") + dwfl_errmsg (i);
+
+	if (required)
+	  throw semantic_error (msg);
+	else
+	  cerr << "WARNING: " << msg << endl;
+      }
   }
 
 
@@ -346,7 +361,9 @@ dwflpp
     cu = NULL;
     if (false && sess.verbose)
       clog << "focusing on module containing global addr " << a << endl;
-    focus_on_module(dwfl_addrmodule(dwfl, a));
+    Dwfl_Module* mod = dwfl_addrmodule(dwfl, a);
+    if (mod) // address could be wildly out of range
+      focus_on_module(mod);
   }
 
 
@@ -355,8 +372,6 @@ dwflpp
     Dwarf_Addr bias;
     assert(dwfl);
     get_module_dwarf();
-    if (false && sess.verbose)
-      clog << "focusing on cu containing global addr " << a << endl;
     Dwarf_Die* cudie = dwfl_module_addrdie(module, a, &bias);
     if (cudie) // address could be wildly out of range
       query_cu (cudie, arg);
@@ -500,6 +515,9 @@ dwflpp
 		     dwfl_linux_kernel_report_kernel (dwfl));
 	dwfl_assert ("dwfl_linux_kernel_report_modules", 
 		     dwfl_linux_kernel_report_modules (dwfl));
+	// NB: While RH bug #169672 prevents detection of -debuginfo absence
+	// here, the get_module_dwarf() function will throw an exception
+	// before long.
       }
     else
       {
@@ -531,13 +549,10 @@ dwflpp
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
 			 void * data)
   {
-    get_module_dwarf();
+    get_module_dwarf(false);
 
     if (!module_dwarf)
-      {
-	cerr << "WARNING: no dwarf info found for module " << module_name << endl;
-	return;
-      }
+      return;
 
     Dwarf *dw = module_dwarf;
     Dwarf_Off off = 0;
@@ -2024,6 +2039,21 @@ query_cu (Dwarf_Die * cudie, void * arg)
     }
 }
 
+
+static int
+query_kernel_exists (Dwfl_Module *mod __attribute__ ((unused)),
+		     void **userdata __attribute__ ((unused)),
+		     const char *name,
+		     Dwarf_Addr base __attribute__ ((unused)),
+		     void *arg)
+{
+  int *flagp = (int *) arg;
+  if (TOK_KERNEL == name)
+    *flagp = 1;
+  return DWARF_CB_OK;
+}
+
+
 static int
 query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	      void **userdata __attribute__ ((unused)),
@@ -2045,11 +2075,11 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       if (q->has_module && !q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
 
-    if (q->sess.verbose)
-      clog << "focused on module '" << q->dw.module_name
-	   << "' = [" << hex << q->dw.module_start
-	   << "-" << q->dw.module_end
-	   << ", bias " << q->dw.module_bias << "]" << dec << endl;
+      if (q->sess.verbose)
+	clog << "focused on module '" << q->dw.module_name
+	     << "' = [" << hex << q->dw.module_start
+	     << "-" << q->dw.module_end
+	     << ", bias " << q->dw.module_bias << "]" << dec << endl;
 
       if (q->has_function_num || q->has_statement_num)
         {
@@ -2692,12 +2722,20 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else
     {
-      // Otherwise we have module("foo"), kernel.statement("foo"), or
+      // Otherwise we have module("*bar*"), kernel.statement("foo"), or
       // kernel.function("foo"); in these cases we need to scan all
       // the modules.
       assert((q.has_kernel && q.has_function_str) ||
 	     (q.has_kernel && q.has_statement_str) ||
 	     (q.has_module));
+      if (q.has_kernel)
+	{
+	  int flag = 0;
+	  dw.iterate_over_modules(&query_kernel_exists, &flag);
+	  if (! flag)
+	    throw semantic_error ("cannot find kernel debuginfo");
+	}
+
       dw.iterate_over_modules(&query_module, &q);
     }
 }

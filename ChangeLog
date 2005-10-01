@@ -1,3 +1,12 @@
+2005-10-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (get_module_dwarf): Add "required" parameter, which
+	throws an exception if debuginfo is not found.
+	(focus_on_module_containing_global_address): Tolerate miss.
+	(query_kernel_exists): New function to test for "kernel" module in
+	dwfl_getmodules() result set.
+	(dwarf_builder::build): Call it if appropriate.
+
 2005-09-30  Graydon Hoare  <graydon@redhat.com>
 
 	PR 1131.
