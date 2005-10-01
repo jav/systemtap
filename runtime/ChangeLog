@@ -1,3 +1,7 @@
+2005-09-30  Graydon Hoare  <graydon@redhat.com>
+
+	* loc2c-runtime.h (_put_user_asm): Fix bracket-matching.
+
 2005-09-23  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_map_sortn):  Call _stp_map_sort()

@@ -1,3 +1,18 @@
+2005-09-30  Graydon Hoare  <graydon@redhat.com>
+
+	PR 1131.
+	* tapsets.cxx (dwflpp::find_variable_and_frame_base)
+	(dwflpp::translate_components)
+	(dwflpp::resolve_unqualified_inner_typedie)
+	(dwflpp::translate_final_fetch_or_store): New functions.
+	(dwflpp::literal_stmt_for_local): Factor a bit.
+	(variable_flavour_calculating_visitor::visit_target_symbol): 
+	Don't fault on lvalue, just collect an extra char.
+	(var_expanding_copy_visitor::target_symbol_setter_functioncalls): 
+	New member.
+	(var_expanding_copy_visitor::visit_assignment): New method.
+	(var_expanding_copy_visitor::visit_target_symbol): Permit lvalues.
+
 2005-09-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapset/system_calls.stp (*_str): Simplified boolean test logic

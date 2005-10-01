@@ -863,18 +863,18 @@ dwflpp
 					       NULL, NULL, NULL, NULL));
   }
 
-  string literal_stmt_for_local(Dwarf_Die *scope_die,
-				Dwarf_Addr pc,				
+  Dwarf_Attribute *
+  find_variable_and_frame_base (Dwarf_Die *scope_die,
+				Dwarf_Addr pc,		
 				string const & local,
-				vector<pair<target_symbol::component_type,
-				std::string> > const & components,
-				exp_type & ty)
+				Dwarf_Die *vardie,
+				Dwarf_Attribute *fb_attr_mem)
   {
-    assert (cu);
-
     Dwarf_Die *scopes;
-    Dwarf_Die vardie;
     int nscopes = 0;
+    Dwarf_Attribute *fb_attr = NULL;
+
+    assert (cu);
 
     if (scope_die)
       nscopes = dwarf_getscopes_die (scope_die, &scopes);
@@ -891,14 +891,13 @@ dwflpp
     int declaring_scope = dwarf_getscopevar (scopes, nscopes,
 					     local.c_str(),
 					     0, NULL, 0, 0,
-					     &vardie);
+					     vardie);
     if (declaring_scope < 0)
       {
 	throw semantic_error ("unable to find local '" + local + "'"
 			      + " near pc " + lex_cast_hex<string>(pc));
       }
 
-    Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
     for (int inner = 0; inner < nscopes; ++inner)
       {
 	switch (dwarf_tag (&scopes[inner]))
@@ -911,10 +910,249 @@ dwflpp
 	    if (inner >= declaring_scope)
 	      fb_attr = dwarf_attr_integrate (&scopes[inner],
 					      DW_AT_frame_base,
-					      &fb_attr_mem);
+					      fb_attr_mem);
 	    break;
 	  }
       }
+    return fb_attr;
+  }
+
+
+  Dwarf_Die *
+  translate_components(struct obstack *pool,
+		       struct location **tail,		       
+		       Dwarf_Addr pc,				
+		       vector<pair<target_symbol::component_type,
+		       std::string> > const & components,
+		       Dwarf_Die *vardie,
+		       Dwarf_Die *die_mem,
+		       Dwarf_Attribute *attr_mem)
+  {
+    Dwarf_Die *die = vardie;
+    unsigned i = 0;
+    while (i < components.size())
+      {
+	die = dwarf_formref_die (attr_mem, die_mem);
+	const int typetag = dwarf_tag (die);
+	switch (typetag)
+	  {
+	  case DW_TAG_typedef:
+	  case DW_TAG_const_type:
+	  case DW_TAG_volatile_type:
+	    /* Just iterate on the referent type.  */
+	    break;
+
+	  case DW_TAG_pointer_type:
+	    if (components[i].first == target_symbol::comp_literal_array_index)
+	      goto subscript;
+
+	    c_translate_pointer (pool, 1, module_bias, die, tail);
+	    break;
+
+	  case DW_TAG_array_type:
+	    if (components[i].first == target_symbol::comp_literal_array_index)
+	      {
+	      subscript:
+		c_translate_array (pool, 1, module_bias, die, tail,
+				   NULL, lex_cast<Dwarf_Word>(components[i].second));
+		++i;
+	      }
+	    else
+	      throw semantic_error("bad field '"
+				   + components[i].second
+				   + "' for array type");
+	    break;
+
+	  case DW_TAG_structure_type:
+	  case DW_TAG_union_type:
+	    switch (dwarf_child (die, die_mem))
+	      {
+	      case 1:		/* No children.  */
+		throw semantic_error ("empty struct "
+				      + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
+		break;
+	      case -1:		/* Error.  */
+	      default:		/* Shouldn't happen */
+		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
+				      + string (dwarf_diename_integrate (die) ?: "<anonymous>")
+				      + string (dwarf_errmsg (-1)));
+		break;
+
+	      case 0:
+		break;
+	      }
+
+	    while (dwarf_tag (die) != DW_TAG_member
+		   || ({ const char *member = dwarf_diename_integrate (die);
+		       member == NULL || string(member) != components[i].second; }))
+	      if (dwarf_siblingof (die, die_mem) != 0)
+		throw semantic_error ("field name " + components[i].second + " not found");
+
+	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
+				      attr_mem) == NULL)
+	      {
+		/* Union members don't usually have a location,
+		   but just use the containing union's location.  */
+		if (typetag != DW_TAG_union_type)
+		  throw semantic_error ("no location for field "
+					+ components[i].second
+					+ " :" + string(dwarf_errmsg (-1)));
+	      }
+	    else
+	      c_translate_location (pool, NULL, NULL, NULL, 1,
+				    module_bias, attr_mem, pc,
+				    tail, NULL);
+	    ++i;
+	    break;
+
+	  case DW_TAG_base_type:
+	    throw semantic_error ("field "
+				  + components[i].second
+				  + " vs base type "
+				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
+	    break;
+	  case -1:
+	    throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
+	    break;
+
+	  default:
+	    throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
+				  + ": unexpected type tag "
+				  + lex_cast<string>(dwarf_tag (die)));
+	    break;
+	  }
+
+	/* Now iterate on the type in DIE's attribute.  */
+	if (dwarf_attr_integrate (die, DW_AT_type, attr_mem) == NULL)
+	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
+      }
+    return die;
+  }
+
+
+  Dwarf_Die *
+  resolve_unqualified_inner_typedie (Dwarf_Die *typedie_mem,
+				     Dwarf_Attribute *attr_mem)
+  {
+    ;
+    Dwarf_Die *typedie;
+    int typetag = 0;
+    while (1)
+      {	      
+	typedie = dwarf_formref_die (attr_mem, typedie_mem);
+	if (typedie == NULL)
+	  throw semantic_error ("cannot get type: " + string(dwarf_errmsg (-1)));
+	typetag = dwarf_tag (typedie);
+	if (typetag != DW_TAG_typedef && 
+	    typetag != DW_TAG_const_type &&
+	    typetag != DW_TAG_volatile_type)
+	  break;
+	if (dwarf_attr_integrate (typedie, DW_AT_type, attr_mem) == NULL)
+	  throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
+      }
+    return typedie;
+  }
+
+
+  void 
+  translate_final_fetch_or_store (struct obstack *pool,
+				  struct location **tail,
+				  Dwarf_Addr module_bias,
+				  Dwarf_Die *die,
+				  Dwarf_Attribute *attr_mem,
+				  bool lvalue,
+				  string & prelude,
+				  string & postlude,
+				  exp_type & ty)
+  {
+    /* First boil away any qualifiers associated with the type DIE of
+       the final location to be accessed.  */
+
+    Dwarf_Die typedie_mem;
+    Dwarf_Die *typedie;
+    int typetag;
+
+    typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem);
+    typetag = dwarf_tag (typedie);
+
+    /* Then switch behavior depending on the type of fetch/store we
+       want, and the type and pointer-ness of the final location. */
+    
+    switch (typetag)
+      {
+      default:
+	throw semantic_error ("unsupported type tag "
+			      + lex_cast<string>(typetag));
+	break;
+
+      case DW_TAG_enumeration_type:
+      case DW_TAG_base_type:
+	ty = pe_long;
+	if (lvalue)
+	  c_translate_store (pool, 1, module_bias, die, typedie, tail,
+			     "THIS->value");
+	else	  
+	  c_translate_fetch (pool, 1, module_bias, die, typedie, tail,
+			     "THIS->__retvalue");
+	break;
+
+      case DW_TAG_array_type:
+      case DW_TAG_pointer_type:
+
+	if (lvalue)
+	  throw semantic_error ("cannot store into target pointer value");
+
+	{
+	  Dwarf_Die pointee_typedie_mem;
+	  Dwarf_Die *pointee_typedie;
+	  Dwarf_Word pointee_encoding;
+	  Dwarf_Word pointee_byte_size = 0;
+
+	  if (dwarf_attr_integrate (typedie, DW_AT_type, attr_mem) == NULL)
+	    throw semantic_error ("cannot get type of pointer: " + string(dwarf_errmsg (-1)));
+
+	  pointee_typedie = resolve_unqualified_inner_typedie (&pointee_typedie_mem, attr_mem);
+
+	  if (dwarf_attr_integrate (pointee_typedie, DW_AT_byte_size, attr_mem))
+	    dwarf_formudata (attr_mem, &pointee_byte_size);
+	  
+	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, attr_mem), 
+			   &pointee_encoding);
+
+	  // We have the pointer: cast it to an integral type via &(*(...))
+
+	  // NB: per bug #1187, at one point char*-like types were
+	  // automagically converted here to systemtap string values.
+	  // For several reasons, this was taken back out, leaving
+	  // pointer-to-string "conversion" (copying) to tapset functions.
+
+	  ty = pe_long;
+	  if (typetag == DW_TAG_array_type)
+	    c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
+	  else
+	    c_translate_pointer (pool, 1, module_bias, typedie, tail);
+	  c_translate_addressof (pool, 1, module_bias, NULL, pointee_typedie, tail, 
+				 "THIS->__retvalue");
+	}
+	break;	
+      }
+  }  
+
+
+  string 
+  literal_stmt_for_local (Dwarf_Die *scope_die,
+			  Dwarf_Addr pc,				
+			  string const & local,
+			  vector<pair<target_symbol::component_type,
+			  std::string> > const & components,
+			  bool lvalue,
+			  exp_type & ty)
+  {
+    Dwarf_Die vardie;
+    Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
+
+    fb_attr = find_variable_and_frame_base (scope_die, pc, local, 
+					    &vardie, &fb_attr_mem);
 
     if (sess.verbose)
       clog << "finding location for local '" << local
@@ -938,6 +1176,9 @@ dwflpp
     struct obstack pool;
     obstack_init (&pool);
     struct location *tail = NULL;
+
+    /* Given $foo->bar->baz[NN], translate the location of foo. */
+
     struct location *head = c_translate_location (&pool, &loc2c_error, this,
 						  &loc2c_emit_address,
 						  1, module_bias,
@@ -948,201 +1189,25 @@ dwflpp
       throw semantic_error("failed to retrieve type "
 			   "attribute for local '" + local + "'");
 
-    Dwarf_Die die_mem, *die = &vardie;
-    unsigned i = 0;
-    while (i < components.size())
-      {
-	die = dwarf_formref_die (&attr_mem, &die_mem);
-	const int typetag = dwarf_tag (die);
-	switch (typetag)
-	  {
-	  case DW_TAG_typedef:
-	  case DW_TAG_const_type:
-	  case DW_TAG_volatile_type:
-	    /* Just iterate on the referent type.  */
-	    break;
 
-	  case DW_TAG_pointer_type:
-	    if (components[i].first == target_symbol::comp_literal_array_index)
-	      goto subscript;
+    /* Translate the ->bar->baz[NN] parts. */
 
-	    c_translate_pointer (&pool, 1, module_bias, die, &tail);
-	    break;
+    Dwarf_Die die_mem, *die = NULL;
+    die = translate_components (&pool, &tail, pc, components, 
+				&vardie, &die_mem, &attr_mem);
 
-	  case DW_TAG_array_type:
-	    if (components[i].first == target_symbol::comp_literal_array_index)
-	      {
-	      subscript:
-		c_translate_array (&pool, 1, module_bias, die, &tail,
-				   NULL, lex_cast<Dwarf_Word>(components[i].second));
-		++i;
-	      }
-	    else
-	      throw semantic_error("bad field '"
-				   + components[i].second
-				   + "' for array type");
-	    break;
-
-	  case DW_TAG_structure_type:
-	  case DW_TAG_union_type:
-	    switch (dwarf_child (die, &die_mem))
-	      {
-	      case 1:		/* No children.  */
-		throw semantic_error ("empty struct "
-				      + string (dwarf_diename_integrate (die) ?: "<anonymous>"));
-		break;
-	      case -1:		/* Error.  */
-	      default:		/* Shouldn't happen */
-		throw semantic_error (string (typetag == DW_TAG_union_type ? "union" : "struct")
-				      + string (dwarf_diename_integrate (die) ?: "<anonymous>")
-				      + string (dwarf_errmsg (-1)));
-		break;
-
-	      case 0:
-		break;
-	      }
-
-	    while (dwarf_tag (die) != DW_TAG_member
-		   || ({ const char *member = dwarf_diename_integrate (die);
-		       member == NULL || string(member) != components[i].second; }))
-	      if (dwarf_siblingof (die, &die_mem) != 0)
-		throw semantic_error ("field name " + components[i].second + " not found");
-
-	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
-				      &attr_mem) == NULL)
-	      {
-		/* Union members don't usually have a location,
-		   but just use the containing union's location.  */
-		if (typetag != DW_TAG_union_type)
-		  throw semantic_error ("no location for field "
-					+ components[i].second
-					+ " :" + string(dwarf_errmsg (-1)));
-	      }
-	    else
-	      c_translate_location (&pool, NULL, NULL, NULL, 1,
-				    module_bias, &attr_mem, pc,
-				    &tail, NULL);
-	    ++i;
-	    break;
-
-	  case DW_TAG_base_type:
-	    throw semantic_error ("field "
-				  + components[i].second
-				  + " vs base type "
-				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
-	    break;
-	  case -1:
-	    throw semantic_error ("cannot find type: " + string(dwarf_errmsg (-1)));
-	    break;
-
-	  default:
-	    throw semantic_error (string(dwarf_diename_integrate (die) ?: "<anonymous type>")
-				  + ": unexpected type tag "
-				  + lex_cast<string>(dwarf_tag (die)));
-	    break;
-	  }
-
-	/* Now iterate on the type in DIE's attribute.  */
-	if (dwarf_attr_integrate (die, DW_AT_type, &attr_mem) == NULL)
-	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
-      }
-
-    /* Fetch the type DIE corresponding to the final location to be accessed.
-       It must be a base type or a typedef for one.  */
-
-    Dwarf_Die typedie_mem;
-    Dwarf_Die *typedie;
-    int typetag;
-    while (1)
-      {
-	typedie = dwarf_formref_die (&attr_mem, &typedie_mem);
-	if (typedie == NULL)
-	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
-	typetag = dwarf_tag (typedie);
-	if (typetag != DW_TAG_typedef && 
-	    typetag != DW_TAG_const_type &&
-	    typetag != DW_TAG_volatile_type)
-	  break;
-	if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
-	  throw semantic_error ("cannot get type of field: " + string(dwarf_errmsg (-1)));
-      }
-
-
-    // If we have a base type, we will fetch it into pe_long.
-    //
-    // If we have a pointer to non-char, we will cast it to uintptr_t, and fetch
-    // into pe_long.
-    //
-    // If we have a pointer to char, we will fetch into pe_string, using 
-    // deref_string() over in loc2c-runtime.h
+    /* Translate the assignment part, either 
+       x = $foo->bar->baz[NN] 
+       or 
+       $foo->bar->baz[NN] = x
+    */
 
     string prelude, postlude;
-    switch (typetag)
-      {
-      default:
-	throw semantic_error ("unsupported type tag "
-			      + lex_cast<string>(typetag));
-	break;
+    translate_final_fetch_or_store (&pool, &tail, module_bias, 
+				    die, &attr_mem, lvalue,
+				    prelude, postlude, ty);
 
-      case DW_TAG_enumeration_type:
-      case DW_TAG_base_type:
-	ty = pe_long;
-	c_translate_fetch (&pool, 1, module_bias, die, typedie, &tail,
-			   "THIS->__retvalue");
-	break;
-
-      case DW_TAG_array_type:
-      case DW_TAG_pointer_type:
-	{
-	  Dwarf_Die pointee_typedie_mem;
-	  Dwarf_Die *pointee_typedie;
-	  Dwarf_Word pointee_encoding;
-	  Dwarf_Word pointee_byte_size = 0;
-	  int pointee_typetag;
-
-	  if (dwarf_attr_integrate (typedie, DW_AT_type, &attr_mem) == NULL)
-	    throw semantic_error ("cannot get type of pointer: " + string(dwarf_errmsg (-1)));
-	  
-	  while (1)
-	    {	      
-	      pointee_typedie = dwarf_formref_die (&attr_mem, &pointee_typedie_mem);
-
-	      if (pointee_typedie == NULL)
-		throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
-	      
-	      pointee_typetag = dwarf_tag (pointee_typedie);
-
-	      if (pointee_typetag != DW_TAG_typedef && 
-		  pointee_typetag != DW_TAG_const_type &&
-		  pointee_typetag != DW_TAG_volatile_type)
-		break;
-	      if (dwarf_attr_integrate (pointee_typedie, DW_AT_type, &attr_mem) == NULL)
-		throw semantic_error ("cannot get type of pointee: " + string(dwarf_errmsg (-1)));
-	    }
-
-	  if (dwarf_attr_integrate (pointee_typedie, DW_AT_byte_size, &attr_mem))
-	    dwarf_formudata (&attr_mem, &pointee_byte_size);
-	  
-	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, &attr_mem), 
-			   &pointee_encoding);
-
-	  // We have the pointer: cast it to an integral type via &(*(...))
-
-	  // NB: per bug #1187, at one point char*-like types were
-	  // automagically converted here to systemtap string values.
-	  // For several reasons, this was taken back out, leaving
-	  // pointer-to-string "conversion" (copying) to tapset functions.
-
-	  ty = pe_long;
-	  if (typetag == DW_TAG_array_type)
-	    c_translate_array (&pool, 1, module_bias, typedie, &tail, NULL, 0);
-	  else
-	    c_translate_pointer (&pool, 1, module_bias, typedie, &tail);
-	  c_translate_addressof (&pool, 1, module_bias, NULL, pointee_typedie, &tail, 
-				 "THIS->__retvalue");
-	}
-	break;	
-      }
+    /* Write the translation to a string. */
     
     size_t bufsz = 1024;
     char *buf = static_cast<char*>(malloc(bufsz));
@@ -1500,20 +1565,16 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (is_active_lvalue(e))
-    {
-      q.sess.print_error (semantic_error("read-only special variable "
-                                         + e->base_name + " used as lvalue",
-                                         e->tok));
-    }
-
   try
     {      
+      bool lvalue = is_active_lvalue(e);
+      flavour += lvalue ? 'w' : 'r';
       exp_type ty;
       string expr = q.dw.literal_stmt_for_local(scope_die, 
 						addr,
 						e->base_name.substr(1),
 						e->components,
+						lvalue,
 						ty);      
       switch (ty)
 	{
@@ -2043,6 +2104,7 @@ var_expanding_copy_visitor
   : public deep_copy_visitor
 {
   static unsigned tick;
+  stack<functioncall**> target_symbol_setter_functioncalls;
 
   dwarf_query & q;
   Dwarf_Die *scope_die;
@@ -2051,11 +2113,65 @@ var_expanding_copy_visitor
   var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a)
     : q(q), scope_die(sd), addr(a)
   {}
+  void visit_assignment (assignment* e);
   void visit_target_symbol (target_symbol* e);
 };
 
 
 unsigned var_expanding_copy_visitor::tick = 0;
+
+void
+var_expanding_copy_visitor::visit_assignment (assignment* e)
+{
+  // Our job would normally be to require() the left and right sides
+  // into a new assignment. What we're doing is slightly trickier:
+  // we're pushing a functioncall** onto a stack, and if our left
+  // child sets the functioncall* for that value, we're going to
+  // assume our left child was a target symbol -- transformed into a
+  // set_target_foo(value) call, and it wants to take our right child
+  // as the argument "value".
+  //
+  // This is why some people claim that languages with
+  // constructor-decomposing case expressions have a leg up on
+  // visitors.
+
+  functioncall *fcall = NULL;
+  expression *new_left, *new_right;
+
+  target_symbol_setter_functioncalls.push (&fcall);
+  require<expression*> (this, &new_left, e->left);
+  target_symbol_setter_functioncalls.pop ();
+  require<expression*> (this, &new_right, e->right);
+
+  if (fcall != NULL)
+    {
+      // Our left child is informing us that it was a target variable
+      // and it has been replaced with a set_target_foo() function
+      // call; we are going to provide that function call -- with the
+      // right child spliced in as sole argument -- in place of
+      // ourselves, in the deep copy we're in the middle of making.
+
+      // FIXME: for the time being, we only support plan $foo = bar,
+      // not += or any other op= variant. This is fixable, but a bit
+      // ugly.
+      if (e->op != "=")
+	throw semantic_error ("Operator-assign expressions on target "
+			     "variables not implemented", e->tok);
+
+      assert (new_left == fcall);
+      fcall->args.push_back (new_right);
+      provide <expression*> (this, fcall);
+    }
+  else
+    {
+      assignment* n = new assignment;
+      n->op = e->op;
+      n->tok = e->tok;
+      n->left = new_left;
+      n->right = new_right;
+      provide <assignment*> (this, n);
+    }
+}
 
 
 void
@@ -2063,26 +2179,23 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (is_active_lvalue(e))
-    {
-      // No need to be verbose: the flavour-gathering visitor
-      // already printed a message for this exact case.
-      throw semantic_error ("due to failed target variable resolution");
-    }
-
-  string fname = "get_" + e->base_name.substr(1) + "_" + lex_cast<string>(tick++);
-
-  // synthesize a function
+  // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
+  bool lvalue = is_active_lvalue(e);
+  string fname = (string(lvalue ? "set" : "get") 
+		  + "_" + e->base_name.substr(1) 
+		  + "_" + lex_cast<string>(tick++));
+
   try
-    {      
-      ec->code = q.dw.literal_stmt_for_local(scope_die, 
-					     addr,
-					     e->base_name.substr(1),
-					     e->components,
-					     fdecl->type);
+    {
+      ec->code = q.dw.literal_stmt_for_local (scope_die, 
+					      addr,
+					      e->base_name.substr(1),
+					      e->components,
+					      lvalue,
+					      fdecl->type);
     }
   catch (const semantic_error& er)
     {
@@ -2090,15 +2203,42 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // already printed a message for this exact case.
       throw semantic_error ("due to failed target variable resolution");
     }
+
   fdecl->name = fname;
   fdecl->body = ec;
+  if (lvalue)
+    {
+      // Modify the fdecl so it carries a single pe_long formal
+      // argument called "value".
+
+      // FIXME: For the time being we only support setting target
+      // variables which have base types; these are 'pe_long' in
+      // stap's type vocabulary.  Strings and pointers might be
+      // reasonable, some day, but not today.
+
+      vardecl *v = new vardecl;
+      v->type = pe_long;
+      v->name = "value";
+      v->tok = e->tok;
+      fdecl->formal_args.push_back(v);
+    }
   q.sess.functions.push_back(fdecl);
 
-  // synthesize a call
+  // Synthesize a functioncall.
   functioncall* n = new functioncall;
   n->tok = e->tok;
   n->function = fname;
   n->referent = NULL;
+
+  if (lvalue)
+    {
+      // Provide the functioncall to our parent, so that it can be
+      // used to substitute for the assignment node immediately above
+      // us.
+      assert(!target_symbol_setter_functioncalls.empty());
+      *(target_symbol_setter_functioncalls.top()) = n;
+    }
+
   provide <functioncall*> (this, n);
 }
 
