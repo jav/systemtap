@@ -502,7 +502,7 @@ to kernel crash or data corruption.
 .PP
 The resource use limits are set by macros in the generated C code.
 These may be overridden with the
-.R -D
+.R \-D
 flag.  A selection of these is as follows: 
 .TP
 MAXNESTING
