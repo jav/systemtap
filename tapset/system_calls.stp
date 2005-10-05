@@ -4452,314 +4452,912 @@ probe kernel.syscall.getsockopt.return =
 		*/
 	}
 # bind_____________________________________________
+/* asmlinkage long sys_bind(int fd,
+			    struct sockaddr __user *umyaddr,
+			    int addrlen) */
 probe kernel.syscall.bind = 
 	kernel.function("sys_bind") {
 		name = "bind"
+		sockfd = $fd
+		/*
+		my_addr_sa_family = $umyaddr->sa_family
+		my_addr_sa_data = $umyaddr->sa_data
+
+	This alias requires more extensive research before it
+	will be complete...
+
+	The rules used in name binding vary between address families. 
+	Consult the manual entries  in Section  7  for  detailed 
+	information.  For  AF_INET see ip(7), for AF_UNIX see unix(7),
+	for AF_APPLETALK see ddp(7),  for  AF_PACKET  see  packet(7),
+	for  AF_X25  see  x25(7)  and  for AF_NETLINK see netlink(7).
+		*/
+		addrlen = $addrlen		
 	}
 
 probe kernel.syscall.bind.return = 
 	kernel.function("sys_bind").return {
 		name = "bind.return"
+                sockfd = $fd
+                /*
+                my_addr_sa_family = $umyaddr->sa_family
+                my_addr_sa_data = $umyaddr->sa_data
+
+        This alias requires more extensive research before it
+        will be complete...
+
+        The rules used in name binding vary between address families.
+        Consult the manual entries  in Section  7  for  detailed         
+	information.  For  AF_INET see ip(7), for AF_UNIX see unix(7),
+        for AF_APPLETALK see ddp(7),  for  AF_PACKET  see  packet(7),         
+	for  AF_X25  see  x25(7)  and  for AF_NETLINK see netlink(7).
+                */
 	}
 # connect__________________________________________
+/* asmlinkage long sys_socket(int family, int type, int protocol) */
 probe kernel.syscall.connect = 
 	kernel.function("sys_connect") {
 		name = "connect"
+              /*
+                my_addr_sa_family = $umyaddr->sa_family
+                my_addr_sa_data = $umyaddr->sa_data
+
+        This alias requires more extensive research before it
+        will be complete...
+
+        The rules used in name binding vary between address families.
+        Consult the manual entries  in Section  7  for  detailed
+	information.  For  AF_INET see ip(7), for AF_UNIX see unix(7),
+        for AF_APPLETALK see ddp(7),  for  AF_PACKET  see  packet(7),
+	for  AF_X25  see  x25(7)  and  for AF_NETLINK see netlink(7).
+                */
 	}
 
 probe kernel.syscall.connect.return = 
 	kernel.function("sys_connect").return {
 		name = "connect.return"
+              /*
+                my_addr_sa_family = $umyaddr->sa_family
+                my_addr_sa_data = $umyaddr->sa_data
+
+        This alias requires more extensive research before it
+        will be complete...
+
+        The rules used in name binding vary between address families.
+        Consult the manual entries  in Section  7  for  detailed
+	information.  For  AF_INET see ip(7), for AF_UNIX see unix(7),
+        for AF_APPLETALK see ddp(7),  for  AF_PACKET  see  packet(7),
+	for  AF_X25  see  x25(7)  and  for AF_NETLINK see netlink(7).
+                */
 	}
 # accept___________________________________________
+/* asmlinkage long sys_accept(int fd,
+			      struct sockaddr __user *upeer_sockaddr,
+			      int __user *upeer_addrlen) */
 probe kernel.syscall.accept = 
 	kernel.function("sys_accept") {
 		name = "accept"
+		s = $fd
+		/*
+                addr_sa_family = $upeer_sockaddr->sa_family
+                addr_sa_data = $upeer_sockaddr->sa_data
+		addrlen = $upeer_addrlen
+
+		See above ...	
+		*/
 	}
 
 probe kernel.syscall.accept.return = 
 	kernel.function("sys_accept").return {
 		name = "accept.return"
+                s = $fd
+                /*
+                addr_sa_family = $upeer_sockaddr->sa_family
+                addr_sa_data = $upeer_sockaddr->sa_data
+                addrlen = $upeer_addrlen
+
+                See above ...
+                */
 	}
 # getsockname______________________________________
+/* asmlinkage long sys_getsockname(int fd, 
+				   struct sockaddr __user *usockaddr,
+				   int __user *usockaddr_len)*/
 probe kernel.syscall.getsockname = 
 	kernel.function("sys_getsockname") {
 		name = "getsockname"
+                s = $fd
+                /*
+                name_sa_family = $usockaddr->sa_family
+                name_sa_data = $usockaddr->sa_data
+                namelen = $usockaddr_len
+
+                See above ...
+                */
 	}
 
 probe kernel.syscall.getsockname.return = 
 	kernel.function("sys_getsockname").return {
 		name = "getsockname.return"
+		s = $fd
+                /*
+                name_sa_family = $usockaddr->sa_family
+                name_sa_data = $usockaddr->sa_data
+                namelen = $usockaddr_len
+
+                See above ...
+                */
 	}
 # getpeername______________________________________
+/* asmlinkage long sys_getpeername(int fd,
+				   struct sockaddr __user *usockaddr,
+				   int __user *usockaddr_len) */
 probe kernel.syscall.getpeername = 
 	kernel.function("sys_getpeername") {
 		name = "getpeername"
+		s = $fd
+                /*
+                name_sa_family = $usockaddr->sa_family
+                name_sa_data = $usockaddr->sa_data
+                namelen = $usockaddr_len
+
+                See above ...
+                */
 	}
 
 probe kernel.syscall.getpeername.return = 
 	kernel.function("sys_getpeername").return {
 		name = "getpeername.return"
+                /*
+                name_sa_family = $usockaddr->sa_family
+                name_sa_data = $usockaddr->sa_data
+                namelen = $usockaddr_len
+
+                See above ...
+                */
 	}
 # send_____________________________________________
+/* asmlinkage long sys_sendto(int fd, void __user * buff,
+			      size_t len, unsigned flags,
+                              struct sockaddr __user *addr,
+			      int addr_len) */
 probe kernel.syscall.send = 
 	kernel.function("sys_sendto") {
 		name = "send"
+		s = $fd
+		/*
+		buf = $buf
+		*/
+		len = $len
+		flags = $flags
+		flags_str = _send_flags_str($flags)
+		/*
+		to_sa_family = $addr->sa_family
+                to_sa_data = $addr->sa_data
+		tolen = $addr_len
+		*/
 	}
 
 probe kernel.syscall.send.return = 
 	kernel.function("sys_sendto").return {
 		name = "send.return"
+		s = $fd
+                /*
+                buf = $buf
+                */
+                len = $len
+                flags = $flags
+                flags_str = _send_flags_str($flags)
+                /*
+                to_sa_family = $addr->sa_family
+                to_sa_data = $addr->sa_data
+                tolen = $addr_len
+                */
 	}
 # sendto___________________________________________
+/* asmlinkage long sys_sendto(int fd, void __user * buff,
+                              size_t len, unsigned flags,
+                              struct sockaddr __user *addr,
+                              int addr_len) */
 probe kernel.syscall.sendto = 
 	kernel.function("sys_sendto") {
 		name = "sendto"
+		s = $fd
+                /*
+                buf = $buf
+                */
+                len = $len
+                flags = $flags
+                flags_str = _send_flags_str($flags)
+                /*
+                to_sa_family = $addr->sa_family
+                to_sa_data = $addr->sa_data
+                tolen = $addr_len
+                */
 	}
 
 probe kernel.syscall.sendto.return = 
 	kernel.function("sys_sendto").return {
 		name = "sendto.return"
+		s = $fd
+                /*
+                buf = $buf
+                */
+                len = $len
+                flags = $flags
+                flags_str = _send_flags_str($flags)
+                /*
+                to_sa_family = $addr->sa_family
+                to_sa_data = $addr->sa_data
+                tolen = $addr_len
+                */
 	}
 # sendmsg__________________________________________
+/* asmlinkage long sys_sendmsg(int fd,
+			       struct msghdr __user *msg,
+			       unsigned flags) */
 probe kernel.syscall.sendmsg = 
 	kernel.function("sys_sendmsg") {
 		name = "sendmsg"
+		s = $fd
+		/*
+		msg_msg_name = $msg->msg_name
+		msg_msg_namelen = $msg->msg_namelen
+
+		msg_msg_iov_iov_base = $msg->msg_iov->iovbase
+		msg_msg_iov_iov_len = $msg->msg_iov->iov_len
+
+		msg_msg_iovlen = $msg->msg_iovlen
+		msg_msg_control = $msg->msg_control
+		msg_msg_corntollen = $msg->msg_controllen
+		msg_msg_flags = $msg->msg_flags		
+		*/
+		flags = $flags
+		flags_str = _send_flags_str($flags)
 	}
 
 probe kernel.syscall.sendmsg.return = 
 	kernel.function("sys_sendmsg").return {
 		name = "sendmsg.return"
+                s = $fd
+                /*
+                msg_msg_name = $msg->msg_name
+                msg_msg_namelen = $msg->msg_namelen
+
+                msg_msg_iov_iov_base = $msg->msg_iov->iovbase
+                msg_msg_iov_iov_len = $msg->msg_iov->iov_len
+
+                msg_msg_iovlen = $msg->msg_iovlen
+                msg_msg_control = $msg->msg_control
+                msg_msg_corntollen = $msg->msg_controllen
+                msg_msg_flags = $msg->msg_flags
+                */
+                flags = $flags
+                flags_str = _send_flags_str($flags)
 	}
 # recv_____________________________________________
+/* asmlinkage long sys_recvfrom(int fd,
+				void __user * ubuf,
+				size_t size,
+				unsigned flags,
+                           	struct sockaddr __user *addr,
+				int __user *addr_len) */
 probe kernel.syscall.recv = 
 	kernel.function("sys_recvfrom") {
 		name = "recv"
+		s = $fd
+		len = $size
+		flags = $flags
+		flags_str = _recvflags_str($flags)
+		/*
+		fromlen = $addr_len
+		*/
 	}
 
 probe kernel.syscall.recv.return = 
 	kernel.function("sys_recvfrom").return {
 		name = "recv.return"
+                s = $fd
+		/*
+		buf = $buf
+		*/
+                len = $size
+		flags = $flags
+		flags_str = _recvflags_str($flags)
+		/*
+		from_sa_family = $addr->sa_family
+		from_sa_data = $addr->sa_data
+                fromlen = $addr_len
+                */
 	}
 # recvfrom_________________________________________
+/* asmlinkage long sys_recvfrom(int fd,
+                                void __user * ubuf,
+                                size_t size,
+                                unsigned flags,
+                                struct sockaddr __user *addr,
+                                int __user *addr_len) */
 probe kernel.syscall.recvfrom = 
 	kernel.function("sys_recvfrom") {
 		name = "recvfrom"
+                s = $fd
+                len = $size
+                flags = $flags
+                flags_str = _recvflags_str($flags)
+                /*
+                fromlen = $addr_len
+                */
 	}
 
 probe kernel.syscall.recvfrom.return = 
 	kernel.function("sys_recvfrom").return {
 		name = "recvfrom.return"
+                s = $fd
+                /*
+                buf = $buf
+                */
+                len = $size
+                flags = $flags
+                flags_str = _recvflags_str($flags)
+                /*
+                from_sa_family = $addr->sa_family
+                from_sa_data = $addr->sa_data
+                fromlen = $addr_len
+                */
 	}
 # recvmsg__________________________________________
+/* asmlinkage long sys_recvmsg(int fd,
+			       struct msghdr __user *msg,
+			       unsigned int flags) */
 probe kernel.syscall.recvmsg = 
 	kernel.function("sys_recvmsg") {
 		name = "recvmsg"
+		s = $fd
+		flags = $flags
+
+                msg_msg_corntollen = $msg->msg_controllen
+                msg_msg_flags = $msg->msg_flags
+		flags = _recvflags_str($flags)
 	}
 
 probe kernel.syscall.recvmsg.return = 
 	kernel.function("sys_recvmsg").return {
 		name = "recvmsg.return"
+                s = $fd
+                flags = $flags
+		flags = _recvflags_str($flags)
+                /*
+                msg_msg_name = $msg->msg_name
+                msg_msg_namelen = $msg->msg_namelen
+
+                msg_msg_iov_iov_base = $msg->msg_iov->iovbase
+                msg_msg_iov_iov_len = $msg->msg_iov->iov_len
+
+                msg_msg_iovlen = $msg->msg_iovlen
+                msg_msg_control = $msg->msg_control
+                msg_msg_corntollen = $msg->msg_controllen
+                msg_msg_flags = $msg->msg_flags
+                */
 	}
 # socket___________________________________________
+/* asmlinkage long sys_socket(int family, int type, int protocol) */
 probe kernel.syscall.socket = 
 	kernel.function("sys_socket") {
 		name = "socket"
+		family = $family
+		family_str = 
+			_sock_family_str($family)
+		type = type
+		type_str = 
+			_sock_type_str($type)
+		protocol = $protocol
 	}
 
 probe kernel.syscall.socket.return = 
 	kernel.function("sys_socket").return {
 		name = "socket.return"
+                family = $family
+                family_str =
+                        _sock_family_str($family)
+                type = type
+                type_str =
+                        _sock_type_str($type)
+                protocol = $protocol
 	}
 # socketpair_______________________________________
+/* asmlinkage long sys_socketpair(int family, int type, 
+				  int protocol, int __user *usockvec) */
 probe kernel.syscall.socketpair = 
 	kernel.function("sys_socketpair") {
 		name = "socketpair"
+		family = $family
+                family_str =
+                        _sock_family_str($family)
+                type = type
+                type_str =
+                        _sock_type_str($type)
+                protocol = $protocol
 	}
 
 probe kernel.syscall.socketpair.return = 
 	kernel.function("sys_socketpair").return {
 		name = "socketpair.return"
+                family = $family
+                family_str =
+                        _sock_family_str($family)
+                type = type
+                type_str =
+                        _sock_type_str($type)
+                protocol = $protocol
+		/*
+		..of course, accessing sv vector will
+		require some embedded C aux function.
+		sv_0 = $usockvec[0]
+		sv_1 = $usockvec[1]
+		*/
 	}
 # socketcall_______________________________________
+/* asmlinkage long sys_socketcall(int call,
+				  unsigned long __user *args) */
 probe kernel.syscall.socketcall = 
 	kernel.function("sys_socketcall") {
 		name = "socketcall"
+		call = $call
+		/*
+		args = $args
+		*/
 	}
 
 probe kernel.syscall.socketcall.return = 
 	kernel.function("sys_socketcall").return {
 		name = "socketcall.return"
+                call = $call
+                /*
+                args = $args
+                */
 	}
 # listen___________________________________________
+/* asmlinkage long sys_listen(int fd, int backlog) */
 probe kernel.syscall.listen = 
 	kernel.function("sys_listen") {
 		name = "listen"
+		s = $fd
+		backlog = $backlog
 	}
 
 probe kernel.syscall.listen.return = 
 	kernel.function("sys_listen").return {
 		name = "listen.return"
+                s = $fd
+                backlog = $backlog
 	}
 # poll_____________________________________________
+/* asmlinkage long sys_poll(struct pollfd __user * ufds,
+			    unsigned int nfds,
+			    long timeout) */
 probe kernel.syscall.poll = 
 	kernel.function("sys_poll") {
 		name = "poll"
+		nfds = $nfds
+		timeout = $timout
 	}
 
 probe kernel.syscall.poll.return = 
 	kernel.function("sys_poll").return {
 		name = "poll.return"
+		/*
+		ufds = nfds size array of struct pollfd
+               struct pollfd {
+                       int fd;          
+                       short events;    
+                       short revents;   
+               };
+		where revents = 
+           #define POLLIN      0x0001    // There is data to read 
+           #define POLLPRI     0x0002    // There is urgent data to read 
+           #define POLLOUT     0x0004    // Writing now will not block 
+           #define POLLERR     0x0008    // Error condition 
+           #define POLLHUP     0x0010    // Hung up 
+           #define POLLNVAL    0x0020    // Invalid request: fd not open 
+       When compiling XPG4.2 source one also has
+       #ifdef _XOPEN_SOURCE
+           #define POLLRDNORM  0x0040    // Normal data may be read 
+           #define POLLRDBAND  0x0080    // Priority data may be read 
+           #define POLLWRNORM  0x0100    // Writing now will not block 
+           #define POLLWRBAND  0x0200    // Priority data may be written 
+       #endif
+       Finally, Linux knows about
+       #ifdef _GNU_SOURCE
+           #define POLLMSG     0x0400
+       #endif
+		*/
+                nfds = $nfds
+                timeout = $timout
 	}
 # select___________________________________________
+/* asmlinkage long sys_select(int n, fd_set __user *inp,
+			      fd_set __user *outp,
+			      fd_set __user *exp,
+			      struct timeval __user *tvp) */
 probe kernel.syscall.select = 
 	kernel.function("sys_select") {
 		name = "select"
+		n = $n
+		/*
+		readfds = $inp
+		writefds = $outp
+		exceptfds = $exp
+		timeout_tv_sec = $tvp->tv_sec
+		timoute_tv_usec = $tvp->tv_usec
+		*/
 	}
 
 probe kernel.syscall.select.return = 
 	kernel.function("sys_select").return {
 		name = "select.return"
+		n = $n
+                /*
+                readfds = $inp
+                writefds = $outp
+                exceptfds = $exp
+                timeout_tv_sec = $tvp->tv_sec
+                timoute_tv_usec = $tvp->tv_usec
+                */
 	}
 # epoll_create_____________________________________
+/* asmlinkage long sys_epoll_create(int size) */
 probe kernel.syscall.epoll_create = 
 	kernel.function("sys_epoll_create") {
 		name = "epoll_create"
+		size = $size
 	}
 
 probe kernel.syscall.epoll_create.return = 
 	kernel.function("sys_epoll_create").return {
 		name = "epoll_create.return"
+		size = $size
 	}
 # epoll_ctl________________________________________
+/* asmlinkage long sys_epoll_ctl(int epfd, int op,
+				 int fd,
+				 struct epoll_event __user *event) */
 probe kernel.syscall.epoll_ctl = 
 	kernel.function("sys_epoll_ctl") {
 		name = "epoll_ctl"
+		epfd = $epfd
+		op = $op
+		op_str = _opoll_op_str($op)
+		fd = $fd
+		/*
+		event_events = $event->events
+		event_events_str =
+			_epoll_events_str($event->events)
+		event_data_ptr = $event->data->ptr
+		event_data_fd = $event->data->fd
+		event_data_u32 = $event->data->u32
+		event_data_u64 = $event->data->u64
+		*/
 	}
 
 probe kernel.syscall.epoll_ctl.return = 
 	kernel.function("sys_epoll_ctl").return {
 		name = "epoll_ctl.return"
+                epfd = $epfd
+                op = $op
+                op_str = _opoll_op_str($op)
+                fd = $fd
+                /*
+                event_events = $event->events
+                event_events_str =
+                        _epoll_events_str($event->events)
+                event_data_ptr = $event->data->ptr
+                event_data_fd = $event->data->fd
+                event_data_u32 = $event->data->u32
+                event_data_u64 = $event->data->u64
+                */
 	}
 # epoll_wait_______________________________________
+/* asmlinkage long sys_epoll_wait(int epfd,
+				  struct epoll_event __user *events,
+                               	  int maxevents, int timeout) */
 probe kernel.syscall.epoll_wait = 
 	kernel.function("sys_epoll_wait") {
 		name = "epoll_wait"
+		epfd = $epfd
+		/*
+                events_events = $events->events
+                events_events_str =
+                        _epoll_events_str($events->events)
+                events_data_ptr = $events->data->ptr
+                events_data_fd = $events->data->fd
+                events_data_u32 = $events->data->u32
+                events_data_u64 = $events->data->u64
+                */
+		maxevents = $maxevents
+		timeout = $timeout
 	}
 
 probe kernel.syscall.epoll_wait.return = 
 	kernel.function("sys_epoll_wait").return {
 		name = "epoll_wait.return"
+                epfd = $epfd
+                /*
+                events_events = $events->events
+                events_events_str =
+                        _epoll_events_str($events->events)
+                events_data_ptr = $events->data->ptr
+                events_data_fd = $events->data->fd
+                events_data_u32 = $events->data->u32
+                events_data_u64 = $events->data->u64
+                */
+                maxevents = $maxevents
+                timeout = $timeout
 	}
 # gethostname______________________________________
+/* asmlinkage long sys_gethostname(char __user *name,
+				   int len) */
 probe kernel.syscall.gethostname = 
 	kernel.function("sys_gethostname") {
 		name = "gethostname"
+		len = $len
 	}
 
 probe kernel.syscall.gethostname.return = 
 	kernel.function("sys_gethostname").return {
 		name = "gethostname.return"
+		/*
+		hostname = $name
+		*/
+                len = $len
 	}
 # sethostname______________________________________
+/* asmlinkage long sys_sethostname(char __user *name, int len) */
 probe kernel.syscall.sethostname = 
 	kernel.function("sys_sethostname") {
 		name = "sethostname"
+		/*
+		hostname = $name
+		*/
+		len = $len
 	}
 
 probe kernel.syscall.sethostname.return = 
 	kernel.function("sys_sethostname").return {
 		name = "sethostname.return"
+                /*
+                hostname = $name
+                */
+                len = $len
 	}
 # setdomainname____________________________________
+/* asmlinkage long sys_setdomainname(char __user *name, int len) */
 probe kernel.syscall.setdomainname = 
 	kernel.function("sys_setdomainname") {
 		name = "setdomainname"
+                /*
+                hostname = $name
+                */
+                len = $len
 	}
 
 probe kernel.syscall.setdomainname.return = 
 	kernel.function("sys_setdomainname").return {
 		name = "setdomainname.return"
+                /*
+                hostname = $name
+                */
+                len = $len
 	}
 # newuname_________________________________________
+/* asmlinkage long sys_newuname(struct new_utsname __user * name) */
 probe kernel.syscall.newuname = 
 	kernel.function("sys_newuname") {
 		name = "newuname"
+		/*
+		name_sysname = $name->sysname
+		name_nodename = $name->nodename
+		name_release = $name->release
+		name_version = $name->version
+		name_machine = $name->machine
+		name_domainname = $name->domainname
+		*/
 	}
 
 probe kernel.syscall.newuname.return = 
 	kernel.function("sys_newuname").return {
 		name = "newuname.return"
+                /*
+                name_sysname = $name->sysname
+                name_nodename = $name->nodename
+                name_release = $name->release
+                name_version = $name->version
+                name_machine = $name->machine
+                name_domainname = $name->domainname
+                */
 	}
 # getrlimit________________________________________
+/* asmlinkage long sys_getrlimit(unsigned int resource,
+				 struct rlimit __user *rlim) */
 probe kernel.syscall.getrlimit = 
 	kernel.function("sys_getrlimit") {
 		name = "getrlimit"
+		resource = $resource
+                resource_str =
+                        _rlimit_resource_str($resource)
 	}
 
 probe kernel.syscall.getrlimit.return = 
 	kernel.function("sys_getrlimit").return {
 		name = "getrlimit.return"
+		resource = $resource
+		resource_str = 
+			_rlimit_resource_str($resource)
+		/*
+		rlim_rlim_cur = $rlim->rlim_cur
+		rlim_rlim_max = $rlim->rlim_max
+		*/
 	}
 # old_getrlimit____________________________________
+/* asmlinkage long sys_old_getrlimit(unsigned int resource,
+				     struct rlimit __user *rlim) */
 probe kernel.syscall.old_getrlimit = 
 	kernel.function("sys_old_getrlimit") {
 		name = "old_getrlimit"
+                resource = $resource
+                resource_str =
+                        _rlimit_resource_str($resource)
 	}
 
 probe kernel.syscall.old_getrlimit.return = 
 	kernel.function("sys_old_getrlimit").return {
 		name = "old_getrlimit.return"
+                resource = $resource
+                resource_str =
+                        _rlimit_resource_str($resource)
+                /*
+                rlim_rlim_cur = $rlim->rlim_cur
+                rlim_rlim_max = $rlim->rlim_max
+                */
 	}
 # setrlimit________________________________________
+/* asmlinkage long sys_setrlimit(unsigned int resource,
+				 struct rlimit __user *rlim) */
 probe kernel.syscall.setrlimit = 
 	kernel.function("sys_setrlimit") {
 		name = "setrlimit"
+                resource = $resource
+                resource_str =
+                        _rlimit_resource_str($resource)
+                /*
+                rlim_rlim_cur = $rlim->rlim_cur
+                rlim_rlim_max = $rlim->rlim_max
+                */
 	}
 
 probe kernel.syscall.setrlimit.return = 
 	kernel.function("sys_setrlimit").return {
 		name = "setrlimit.return"
+                resource = $resource
+                resource_str =
+                        _rlimit_resource_str($resource)
+                /*
+                rlim_rlim_cur = $rlim->rlim_cur
+                rlim_rlim_max = $rlim->rlim_max
+                */
 	}
 # getrusage________________________________________
+/* asmlinkage long sys_getrusage(int who, struct rusage __user *ru) */
 probe kernel.syscall.getrusage = 
 	kernel.function("sys_getrusage") {
 		name = "getrusage"
+		who = $who
+		who_str = 
+			_rusage_who_str($who)
+		/*
+		usage_ru_utime_tv_sec = $ru->ru_utime->tv_sec
+                usage_ru_utime_tv_usec = $ru->ru_utime->tv_usec
+                usage_ru_stime_tv_sec = $ru->ru_stime->tv_sec
+                usage_ru_stime_tv_sec = $ru->ru_stime->tv_sec
+		usage_ru_maxrss = $ru->ru_maxrss
+		usage_ru_ixrss = $ru->ru_ixrss
+		usage_ru_idrss = $ru->ru_idrss
+		usage_ru_isrss = $ru->ru_isrss
+		usage_ru_minflt = $ru->ru_minflt
+		usage_ru_majflt = $ru->ru_majflt
+		usage_ru_nswap = $ru->ru_nswap
+		usage_ru_inblock = $ru->ru_inblock
+		usage_ru_oublock = $ru->ru_oublock
+		usage_ru_msgsnd = $ru->ru_msgsnd
+		usage_ru_msgrcv = $ru->ru_msgrcv
+		usage_ru_nsignals = $ru->ru_nsignals
+		usage_ru_nvcsw = $ru->ru_nvcsw
+		usage_ru_nivcsw = $ru->ru_nivcsw
+		*/
 	}
 
 probe kernel.syscall.getrusage.return = 
 	kernel.function("sys_getrusage").return {
 		name = "getrusage.return"
+                who = $who
+                who_str =
+                        _rusage_who_str($who)
+                /*
+                usage_ru_utime_tv_sec = $ru->ru_utime->tv_sec
+                usage_ru_utime_tv_usec = $ru->ru_utime->tv_usec
+                usage_ru_stime_tv_sec = $ru->ru_stime->tv_sec
+                usage_ru_stime_tv_sec = $ru->ru_stime->tv_sec
+                usage_ru_maxrss = $ru->ru_maxrss
+                usage_ru_ixrss = $ru->ru_ixrss
+                usage_ru_idrss = $ru->ru_idrss
+                usage_ru_isrss = $ru->ru_isrss
+                usage_ru_minflt = $ru->ru_minflt
+                usage_ru_majflt = $ru->ru_majflt
+                usage_ru_nswap = $ru->ru_nswap
+                usage_ru_inblock = $ru->ru_inblock
+                usage_ru_oublock = $ru->ru_oublock
+                usage_ru_msgsnd = $ru->ru_msgsnd
+                usage_ru_msgrcv = $ru->ru_msgrcv
+                usage_ru_nsignals = $ru->ru_nsignals
+                usage_ru_nvcsw = $ru->ru_nvcsw
+                usage_ru_nivcsw = $ru->ru_nivcsw
+                */
 	}
 # umask____________________________________________
+/* asmlinkage long sys_umask(int mask) */
 probe kernel.syscall.umask = 
 	kernel.function("sys_umask") {
 		name = "umask"
+		mask = $mask
 	}
 
 probe kernel.syscall.umask.return = 
 	kernel.function("sys_umask").return {
 		name = "umask.return"
+                mask = $mask
 	}
 # msgget___________________________________________
+/* asmlinkage long sys_msgget (key_t key, int msgflg) */
 probe kernel.syscall.msgget = 
 	kernel.function("sys_msgget") {
 		name = "msgget"
+		key = $key
+		msgflg = $msgflg
+		msgflg_str = _sys_open_flag_str($msgflg) 
 	}
 
 probe kernel.syscall.msgget.return = 
 	kernel.function("sys_msgget").return {
 		name = "msgget.return"
+                key = $key
+                msgflg = $msgflg
+                msgflg_str = _sys_open_flag_str($msgflg)
 	}
 # msgsnd___________________________________________
+/* asmlinkage long sys_msgsnd (int msqid,
+			       struct msgbuf __user *msgp,
+			       size_t msgsz, int msgflg) */
 probe kernel.syscall.msgsnd = 
 	kernel.function("sys_msgsnd") {
 		name = "msgsnd"
+		msqid = $msqid
+		/*
+		msgp_mtype = $msgp->mtype
+		msgp_mtext = $msgp->mtext
+		*/
+		msgsz = $msgsz
+		msgflg = $msgflg
 	}
 
 probe kernel.syscall.msgsnd.return = 
 	kernel.function("sys_msgsnd").return {
 		name = "msgsnd.return"
+                msqid = $msqid
+                /*
+                msgp_mtype = $msgp->mtype
+                msgp_mtext = $msgp->mtext
+                */
+                msgsz = $msgsz
+                msgflg = $msgflg
 	}
 # msgrcv___________________________________________
 probe kernel.syscall.msgrcv = 
@@ -5283,6 +5881,27 @@ function _msync_flag_str(f) {
    return substr(bs,0,strlen(bs)-1)
 }
 
+/* `man sendmsg` for more information */
+function _send_flags_str(f) {
+   if(f & 0x0001) bs="MSG_OOB|".bs
+   if(f & 0x0080) bs="MSG_EOR|".bs
+   if(f & 0x0004) bs="MSG_DONTROUTE|".bs
+   if(f & 0x0040) bs="MSG_DONTWAIT|".bs
+   if(f & 0x4000) bs="MSG_NOSIGNAL|".bs
+   if(f & 0x0800) bs="MSG_CONFIRM|".bs
+   return substr(bs,0,strlen(bs)-1)
+}
+
+/* `man recv` for more information */
+function _recvflags_str(f) {
+   if(f & 1) bs="MSG_OOB|".bs
+   if(f & 2) bs="MSG_PEEK|".bs
+   if(f & 32) bs="MSG_WAITALL|".bs
+   if(f & 256) bs="MSG_TRUNC|".bs
+   if(f & 8192) bs="MSG_ERRQUEUE|".bs
+   return substr(bs,0,strlen(bs)-1)
+}
+
 /* `man mlockall` for more information */
 function _mlockall_flags_str(f) {
    if(f & 2) bs="MCL_CURRENT|".bs
@@ -5675,4 +6294,87 @@ function _sockopt_level_str(l) {
    if(l==132) return "SCTP"
    if(l==133) return "FC"
    return ""
+}
+
+function _sock_family_str(f) {
+   if(f==0) return "PF_UNSPEC"
+   if(f==1) return "PF_UNIX"
+   if(f==1) return "PF_LOCAL"
+   if(f==2) return "PF_INET"
+   if(f==3) return "PF_AX25"
+   if(f==4) return "PF_IPX"
+   if(f==5) return "PF_APPLETALK"
+   if(f==6) return "PF_NETROM"
+   if(f==7) return "PF_BRIDGE"
+   if(f==8) return "PF_ATMPVC"
+   if(f==9) return "PF_X25"
+   if(f==10) return "PF_INET6"
+   if(f==11) return "PF_ROSE"
+   if(f==12) return "PF_DECnet"
+   if(f==13) return "PF_NETBEUI"
+   if(f==14) return "PF_SECURITY"
+   if(f==15) return "PF_KEY"
+   if(f==16) return "PF_NETLINK"
+   if(f==17) return "PF_PACKET"
+   if(f==18) return "PF_ASH"
+   if(f==19) return "PF_ECONET"
+   if(f==20) return "PF_ATMSVC"
+   if(f==22) return "PF_SNA"
+   if(f==23) return "PF_IRDA"
+   if(f==24) return "PF_PPPOX"
+   if(f==25) return "PF_WANPIPE"
+   if(f==26) return "PF_LLC"
+   if(f==31) return "PF_BLUETOOTH"
+   if(f==32) return "PF_MAX"
+   return ""
+}
+
+function _sock_type_str(t) {
+   if(t==1) return "SOCK_STREAM"
+   if(t==2) return "SOCK_DGRAM"
+   if(t==5) return "SOCK_SEQPACKET"
+   if(t==3) return "SOCK_RAW"
+   if(t==4) return "SOCK_RDM"
+   if(t==10) return "SOCK_PACKET"
+   return ""
+}
+
+function _opoll_op_str(o) {
+   if(o==1) return "EPOLL_CTL_ADD"
+   if(o==3) return "EPOLL_CTL_MOD"
+   if(o==2) return "EPOLL_CTL_DEL"
+   return ""
+}
+
+function _epoll_events_str(e) {
+   if(e==1) return "EPOLLIN"
+   if(e==4) return "EPOLLOUT"
+   if(e==2) return "EPOLLPRI"
+   if(e==8) return "EPOLLERR"
+   if(e==16) return "EPOLLHUP"
+   if(e==-2147483648) return "EPOLLET"
+   if(e==1073741824) return "EPOLLONESHOT"
+   return ""
+}
+
+function _rlimit_resource_str(r) {
+   if(r==-1) return "RLIM_INFINITY"
+   if(r==9) return "RLIMIT_AS"
+   if(r==4) return "RLIMIT_CORE"
+   if(r==0) return "RLIMIT_CPU"
+   if(r==2) return "RLIMIT_DATA"
+   if(r==1) return "RLIMIT_FSIZE"
+   if(r==10) return "RLIMIT_LOCKS"
+   if(r==8) return "RLIMIT_MEMLOCK"
+   if(r==7) return "RLIMIT_NOFILE"
+   if(r==6) return "RLIMIT_NPROC"
+   if(r==5) return "RLIMIT_RSS"
+   if(r==3) return "RLIMIT_STACK"
+   return ""
+}
+
+function _rusage_who_str(w) {
+   if(w==0) return "RUSAGE_SELF"
+   if(w==-1) return "RUSAGE_CHILDREN"
+   return "" 
 }
