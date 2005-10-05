@@ -1,3 +1,14 @@
+2005-10-05  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* buildrun.cxx (run_pass): Add bulk/buffer_size flags to flags
+	passed to stpd.
+	* elaborate.h (run_pass): Add bulk/buffer_size flags to
+	systemtap_session.
+	* main.cxx (usage): Add -b (bulk), -s (buffer_size) cmdline option
+	descriptions.
+	* main.cxx (main): Add -b (bulk), -s (buffer_size) cmdline option
+	processing.
+
 2005-10-04  Graydon Hoare  <graydon@redhat.com>
 
 	PR 1131.

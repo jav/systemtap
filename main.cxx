@@ -61,6 +61,8 @@ usage (systemtap_session& s)
     << "   -k         keep temporary directory" << endl
     // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
+    << "   -b         bulk mode" << (s.bulk_mode ? " [set]" : "") << endl
+    << "   -s         buffer size (in Mb)" << endl
     << "   -p NUM     stop after pass NUM 1-5" << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
@@ -116,6 +118,8 @@ main (int argc, char * const argv [])
   s.verbose = false;
   s.test_mode = false;
   s.guru_mode = false;
+  s.bulk_mode = false;
+  s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
   s.keep_tmpdir = false;
@@ -136,7 +140,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:D:");
+      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:D:bs:");
       if (grc < 0)
         break;
       switch (grc)
@@ -195,6 +199,20 @@ main (int argc, char * const argv [])
 
         case 'g':
           s.guru_mode = true;
+          break;
+
+        case 'b':
+          s.bulk_mode = true;
+	  s.macros.push_back (string ("STP_RELAYFS"));
+          break;
+
+        case 's':
+          s.buffer_size = atoi (optarg);
+          if (s.buffer_size < 1 || s.buffer_size > 64)
+            {
+              cerr << "Invalid buffer size." << endl;
+              usage (s);
+            }
           break;
 
 	case 'c':

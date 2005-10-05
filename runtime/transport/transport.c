@@ -175,7 +175,7 @@ void _stp_transport_close()
 
 int _stp_transport_open(struct transport_info *info)
 {
-	kbug ("stp_transport_open: %d byte buffer. target=%d\n", info->buf_size, info->target);
+	kbug ("stp_transport_open: %d Mb buffer. target=%d\n", info->buf_size, info->target);
 
 	info->transport_mode = _stp_transport_mode;
 	kbug("transport_mode=%d\n", info->transport_mode);
@@ -196,6 +196,8 @@ int _stp_transport_open(struct transport_info *info)
 			_stp_unregister_procfs();
 			return -ENOMEM;
 		}
+		kbug ("stp_transport_open: %u Mb buffers, subbuf_size=%u, n_subbufs=%u\n",
+		      info->buf_size, subbuf_size, n_subbufs);
 	} else 
 #endif
 	{

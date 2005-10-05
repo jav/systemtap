@@ -1,3 +1,8 @@
+2005-10-05  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* transport.c (_stp_transport_open): Add kbug message.
+	* transport.h: Change default n_subbufs to 16.
+
 2005-09-08  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_register_procfs): Change ifdefs to eliminate
