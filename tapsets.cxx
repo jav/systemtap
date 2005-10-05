@@ -1583,6 +1583,9 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
   try
     {      
       bool lvalue = is_active_lvalue(e);
+      if (lvalue && !q.sess.guru_mode)
+	throw semantic_error("Writing to target variable outside of guru mode", e->tok);
+
       flavour += lvalue ? 'w' : 'r';
       exp_type ty;
       string expr = q.dw.literal_stmt_for_local(scope_die, 
@@ -2214,6 +2217,10 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
   bool lvalue = is_active_lvalue(e);
+
+  if (lvalue && !q.sess.guru_mode)
+    throw semantic_error("Illegal target variable access", e->tok);
+
   string fname = (string(lvalue ? "set" : "get") 
 		  + "_" + e->base_name.substr(1) 
 		  + "_" + lex_cast<string>(tick++));

@@ -1,0 +1,8 @@
+#! stap -gp4
+
+# Test for writing to target variables, PR 1131
+
+probe kernel.function("vfs_readdir")
+{
+	$file->f_dentry->d_name->len = 1
+}
