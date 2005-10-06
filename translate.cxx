@@ -2462,6 +2462,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define STP_STRING_SIZE MAXSTRINGLEN";
       s.op->newline() << "#define STP_NUM_STRINGS 1";
 
+      if (s.bulk_mode)
+	s.op->newline() << "#define STP_RELAYFS";
+
       s.op->newline() << "#if TEST_MODE";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#else";

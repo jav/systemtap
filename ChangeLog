@@ -1,5 +1,11 @@
 2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
 
+	* stap.1.in: Document -b/-s options.
+	* main.cxx (usage): Clarify -b/-s blurbs.
+	* translator.cxx (translate_pass): Handle bulk_mode here instead.
+
+2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1332.
 	* translate.cxx (emit_symbol_data): New function to transcribe
 	a processed address->symbol lookup table, based upon /proc/kallsyms.
@@ -8,11 +14,8 @@
 
 	* buildrun.cxx (run_pass): Add bulk/buffer_size flags to flags
 	passed to stpd.
-	* elaborate.h (run_pass): Add bulk/buffer_size flags to
-	systemtap_session.
-	* main.cxx (usage): Add -b (bulk), -s (buffer_size) cmdline option
-	descriptions.
-	* main.cxx (main): Add -b (bulk), -s (buffer_size) cmdline option
+	* elaborate.h (systemtap_session): Add bulk/buffer_size flags.
+	* main.cxx (usage,main): Add -b (bulk), -s (buffer_size) options.
 	processing.
 
 2005-10-04  Graydon Hoare  <graydon@redhat.com>

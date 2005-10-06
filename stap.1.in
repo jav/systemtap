@@ -90,6 +90,13 @@ kernel object.
 Guru mode.  Enables parsing of unsafe expert-level constructs like
 embedded C.
 .TP
+.BI \-b
+Use relayfs-based bulk mode for kernel-to-user data transfer.
+.TP
+.BI \-s NUM
+Use NUM megabyte buffers for kernel-to-user data transfer.  On a
+multiprocessor in bulk mode, this is a per-processor amount.
+.TP
 .BI \-p " NUM"
 Stop after pass NUM.  The passes are numbered 1-5: parse, elaborate,
 translate, compile, run.  See the

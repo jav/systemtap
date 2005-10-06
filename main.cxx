@@ -1,5 +1,6 @@
 // systemtap translator/driver
 // Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005 IBM Corp.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -61,8 +62,8 @@ usage (systemtap_session& s)
     << "   -k         keep temporary directory" << endl
     // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
-    << "   -b         bulk mode" << (s.bulk_mode ? " [set]" : "") << endl
-    << "   -s         buffer size (in Mb)" << endl
+    << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
+    << "   -s NUM     buffer size in megabytes" << endl
     << "   -p NUM     stop after pass NUM 1-5" << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
@@ -78,10 +79,11 @@ usage (systemtap_session& s)
     <<      "              " << s.runtime_path << endl
     // << "   -r RELEASE use kernel RELEASE, instead of" << endl
     // <<      "              " << s.kernel_release << endl
-    << "   -m MODULE  set probe module name, instead of" << endl
-    <<      "              " << s.module_name << endl
+    << "   -m MODULE  set probe module name, instead of "
+    << s.module_name << endl
     << "   -o FILE    send output to file instead of stdout" << endl
-    << "   -c CMD     start the probes, run CMD, and exit when it finishes" << endl
+    << "   -c CMD     start the probes, run CMD, and exit when it finishes" 
+    << endl
     << "   -x PID     sets target() to PID" << endl
     ;
   // -d: dump safety-related external references
@@ -203,7 +205,6 @@ main (int argc, char * const argv [])
 
         case 'b':
           s.bulk_mode = true;
-	  s.macros.push_back (string ("STP_RELAYFS"));
           break;
 
         case 's':
