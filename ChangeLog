@@ -1,3 +1,9 @@
+2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1332.
+	* translate.cxx (emit_symbol_data): New function to transcribe
+	a processed address->symbol lookup table, based upon /proc/kallsyms.
+
 2005-10-05  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* buildrun.cxx (run_pass): Add bulk/buffer_size flags to flags

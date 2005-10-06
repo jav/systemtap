@@ -60,29 +60,79 @@ static struct
 #include "string.c"
 #include "arith.c"
 #include "copy.c"
+#include "sym.h"
+
 
 /************* Module Stuff ********************/
-#if defined (__x86_64__) || defined (__i386__)
-#define HAS_LOOKUP 1
 static int (*_stp_kta)(unsigned long addr);
 static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 					    unsigned long *symbolsize,
 					    unsigned long *offset,
 					    char **modname, char *namebuf);
 
+
+/* This implementation is used if stap_[num_]symbols are available. */
+static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
+						 unsigned long *symbolsize,
+						 unsigned long *offset,
+						 char **modname,
+						 char *namebuf)
+{
+  unsigned begin = 0;
+  unsigned end = stap_num_symbols;
+  /*const*/ struct stap_symbol* s;
+
+  /* binary search on index [begin,end) */
+  do
+    {
+      unsigned mid = (begin + end) / 2;
+      if (addr < stap_symbols[mid].addr)
+	end = mid;
+      else
+	begin = mid;
+    } while (begin + 1 < end);
+  /* result index in $begin, guaranteed between [0,stap_num_symbols) */
+
+  s = & stap_symbols [begin];
+  if (addr < s->addr)
+    return NULL;
+  else
+    {
+      if (offset) *offset = addr - s->addr;
+      if (modname) *modname = (char *) s->modname;
+      if (symbolsize)
+	{
+	  if ((begin + 1) < stap_num_symbols)
+	    *symbolsize = stap_symbols[begin+1].addr - s->addr;
+	  else
+	    *symbolsize = 0;
+	  // NB: This is only a heuristic.  Sometimes there are large
+	  // gaps between text areas of modules.
+	}
+      if (namebuf)
+	{
+	  strlcpy (namebuf, s->symbol, KSYM_NAME_LEN+1);
+	  return namebuf;
+	}
+      else
+	return s->symbol;
+    }
+}
+
+
+
 int init_module (void)
 {
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
-  _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
-    kallsyms_lookup_name("kallsyms_lookup");
+
+  if (stap_num_symbols > 0)
+    _stp_kallsyms_lookup = & _stp_kallsyms_lookup_tabled;
+  else
+    _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
+      kallsyms_lookup_name("kallsyms_lookup");
+
   return _stp_transport_init();
 }
-#else
-int init_module (void)
-{
-  return _stp_transport_init();
-}
-#endif
 
 int probe_start(void);
 

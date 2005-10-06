@@ -1,3 +1,10 @@
+2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1332.
+	* sym.h: New file to declare explicit symbol table struct.
+	* runtime.h (_stp_kallsyms_lookup_tabled): Use it if available.
+	* sym.c (_stp_symbol_sprint): HAS_LOOKUP mooted.
+
 2005-09-30  Graydon Hoare  <graydon@redhat.com>
 
 	* loc2c-runtime.h (_put_user_asm): Fix bracket-matching.

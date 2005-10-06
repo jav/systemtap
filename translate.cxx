@@ -2362,6 +2362,72 @@ c_unparser::visit_functioncall (functioncall* e)
 }
 
 
+
+int
+emit_symbol_data (systemtap_session& s)
+{
+  int rc = 0;
+
+  // Instead of processing elf symbol tables, for now we just snatch
+  // /proc/kallsyms and convert it to our use.  We need it sorted by
+  // address (so we can binary search) , and filtered (to show text
+  // symbols only), a task that we defer to grep(1) and sort(1).  It
+  // may be useful to cache the symbols.sorted file, perhaps indexed
+  // by md5sum(/proc/modules), but let's not until this simple method
+  // proves too costly.  All that LC_ALL=C stuff is there to avoid the
+  // excessive penalty of i18n code in some glibc/coreutils versions.
+
+  string sorted_kallsyms = s.tmpdir + "/symbols.sorted";
+  string sortcmd = "/bin/env LC_ALL=C /bin/grep \" [tT] \" /proc/kallsyms | ";
+ 
+  sortcmd += "/bin/env LC_ALL=C /bin/sort ";
+#if __LP64__
+  sortcmd += "-k 1,16 ";
+#else
+  sortcmd += "-k 1,8 ";
+#endif
+  sortcmd += "-s -o " + sorted_kallsyms;
+
+  if (s.verbose) clog << "Running " << sortcmd << endl;
+  rc = system(sortcmd.c_str());
+  if (rc == 0)
+    {
+      ifstream kallsyms (sorted_kallsyms.c_str());
+
+      unsigned i=0;
+      s.op->newline() << "struct stap_symbol stap_symbols [] = {";
+      s.op->indent(1);
+      string lastaddr;
+      while (! kallsyms.eof())
+	{
+	  string addr, type, sym, module;
+	  kallsyms >> addr >> type >> sym;
+	  kallsyms >> ws;
+	  if (kallsyms.peek() == '[')
+	    {
+	      string bracketed;
+	      kallsyms >> bracketed;
+	      module = bracketed.substr (1, bracketed.length()-2);
+	    }
+	  
+	  // NB: kallsyms includes some duplicate addresses
+	  if ((type == "t" || type == "T") && lastaddr != addr)
+	    {
+	      s.op->newline() << "{ 0x" << addr << ", "
+			      << "\"" << sym << "\", "
+			      << "\"" << module << "\" },";
+	      lastaddr = addr;
+	      i ++;
+	    }
+	}
+      s.op->newline(-1) << "};";
+      s.op->newline() << "unsigned stap_num_symbols = " << i << ";" << endl;
+    }
+
+  return rc;
+}
+
+
 int
 translate_pass (systemtap_session& s)
 {
@@ -2468,16 +2534,18 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
       s.op->newline() << "#endif";
-
-      s.op->line() << endl;
     }
   catch (const semantic_error& e)
     {
       s.print_error (e);
     }
 
+  rc |= emit_symbol_data (s);
+  s.op->line() << endl;
+
   delete s.op;
   s.op = 0;
   s.up = 0;
+
   return rc + s.num_errors;
 }

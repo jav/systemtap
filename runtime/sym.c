@@ -18,7 +18,6 @@
 
 String _stp_symbol_sprint (String str, unsigned long address)
 { 
-#ifdef HAS_LOOKUP
 	char *modname;
         const char *name;
         unsigned long offset, size;
@@ -34,9 +33,6 @@ String _stp_symbol_sprint (String str, unsigned long address)
 		else
 			_stp_sprintf (str, " : %s+%#lx/%#lx", name, offset, size);
 	}
-#else
-	_stp_sprintf (str, "0x%lx", address);
-#endif
 	return str;
 }
 
