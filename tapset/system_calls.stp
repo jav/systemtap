@@ -5360,236 +5360,667 @@ probe kernel.syscall.msgsnd.return =
                 msgflg = $msgflg
 	}
 # msgrcv___________________________________________
+/* asmlinkage long sys_msgrcv (int msqid, struct msgbuf __user *msgp, size_t msgsz,
+                            long msgtyp, int msgflg) */
 probe kernel.syscall.msgrcv = 
 	kernel.function("sys_msgrcv") {
 		name = "msgrcv"
+		msqid = $msqid
+		msgsz = $msgsz
+		msgtyp = $msgtyp
+		msgflg = $msgflg
 	}
 
 probe kernel.syscall.msgrcv.return = 
 	kernel.function("sys_msgrcv").return {
 		name = "msgrcv.return"
+                msqid = $msqid
+		/*
+                msgp_mtype = $msgp->mtype
+                msgp_mtext = $msgp->mtext
+                */
+                msgsz = $msgsz
+                msgtyp = $msgtyp
+                msgflg = $msgflg
 	}
 # msgctl___________________________________________
+/* asmlinkage long sys_msgctl (int msqid, int cmd,
+			       struct msqid_ds __user *buf) */
 probe kernel.syscall.msgctl = 
 	kernel.function("sys_msgctl") {
 		name = "msgctl"
+		msqid = $msqid
+		cmd = $cmd
+		/*
+		buf_msg_perm_key = $buf->msg_perm->key
+		buf_msg_perm_uid = $buf->msg_perm->uid
+                buf_msg_perm_gid = $buf->msg_perm->gid
+		buf_msg_perm_cuid = $buf->msg_perm->cuid
+		buf_msg_perm_cgid = $buf->msg_perm->cgid
+                buf_msg_perm_mode = $buf->msg_perm->mode
+		buf_msg_perm_seq = $buf->msg_perm->seq
+		
+		buf_msg_stime = $buf->msg_stime
+		buf_msg_rtime = $buf->msg_rtime
+                buf_msg_ctime = $buf->msg_ctime
+		buf_msg_lcbytes = $buf->msg_lcbytes
+                buf_msg_lqbytes = $buf->msg_lqbytes
+		buf_msg_cbytes = $buf->msg_cbytes
+		buf_msg_qnum = $buf->msg_qnum
+		buf_msg_qbytes = $buf->msg_qbytes
+		buf_msg_lspid = $msg->msg_lspid
+		*/
 	}
 
 probe kernel.syscall.msgctl.return = 
 	kernel.function("sys_msgctl").return {
 		name = "msgctl.return"
+                msqid = $msqid
+                cmd = $cmd
+                /*
+                buf_msg_perm_key = $buf->msg_perm->key
+                buf_msg_perm_uid = $buf->msg_perm->uid
+                buf_msg_perm_gid = $buf->msg_perm->gid
+                buf_msg_perm_cuid = $buf->msg_perm->cuid
+                buf_msg_perm_cgid = $buf->msg_perm->cgid
+                buf_msg_perm_mode = $buf->msg_perm->mode
+                buf_msg_perm_seq = $buf->msg_perm->seq
+
+                buf_msg_stime = $buf->msg_stime
+                buf_msg_rtime = $buf->msg_rtime
+                buf_msg_ctime = $buf->msg_ctime
+                buf_msg_lcbytes = $buf->msg_lcbytes
+                buf_msg_lqbytes = $buf->msg_lqbytes
+                buf_msg_cbytes = $buf->msg_cbytes
+                buf_msg_qnum = $buf->msg_qnum
+                buf_msg_qbytes = $buf->msg_qbytes
+                buf_msg_lspid = $msg->msg_lspid
+                */
 	}
 # semget___________________________________________
+/* asmlinkage long sys_semget (key_t key,
+			       int nsems,
+			       int semflg) */
 probe kernel.syscall.semget = 
 	kernel.function("sys_semget") {
 		name = "semget"
+		key = $key
+		nsems = $nsems
+		semflg = $semflg
 	}
 
 probe kernel.syscall.semget.return = 
 	kernel.function("sys_semget").return {
 		name = "semget.return"
+                key = $key
+                nsems = $nsems
+                semflg = $semflg
 	}
 # semop____________________________________________
+/* asmlinkage long sys_semop (int semid,
+			      struct sembuf __user *tsops,
+			      unsigned nsops) */
 probe kernel.syscall.semop = 
 	kernel.function("sys_semtimedop") {
 		name = "semop"
+		semid = $semid
+		/*
+		Each of the nsops elements in the array pointed to by sops
+		*/
+		nsops = $nsops
 	}
 
 probe kernel.syscall.semop.return = 
 	kernel.function("sys_semtimedop").return {
 		name = "semop.return"
+                semid = $semid
+                /*
+                Each of the nsops elements in the array pointed to by sops
+                */
+                nsops = $nsops
 	}
 # semctl___________________________________________
+/* asmlinkage long sys_semctl (int semid, int semnum,
+			       int cmd, union semun arg) */
 probe kernel.syscall.semctl = 
 	kernel.function("sys_semctl") {
 		name = "semctl"
+		semid = $semid
+		semnum = $semnum
+		cmd = $cmd
+		/*
+		TODO Implement _semctl_cmd_str()
+		cmd_str = _semctl_cmd_str($cmd)
+		*/
 	}
 
 probe kernel.syscall.semctl.return = 
 	kernel.function("sys_semctl").return {
 		name = "semctl.return"
+                semid = $semid
+                semnum = $semnum
+                cmd = $cmd
+                /*
+                TODO Implement _semctl_cmd_str()
+                cmd_str = _semctl_cmd_str($cmd)
+                */
 	}
 # semtimedop_______________________________________
+/* asmlinkage long sys_semtimedop(int semid, struct sembuf __user *tsops,
+                        unsigned nsops, const struct timespec __user *timeout) */
 probe kernel.syscall.semtimedop = 
 	kernel.function("sys_semtimedop") {
 		name = "semtimedop"
+		semid = $semid
+		/*
+		sops_sem_num = $tsops->sem_num
+		sops_sem_op = $tsops->sem_op
+		sops_sem_flg = $tsops->sem_flg
+		*/
+		nsops = $nsops
+		/*
+		timeout_tv_sec = $timeout->tv_sec
+		timeout_tv_nsec = $timeout->tv_nsec
+		*/
 	}
 
 probe kernel.syscall.semtimedop.return = 
 	kernel.function("sys_semtimedop").return {
 		name = "semtimedop.return"
+                /*
+                sops_sem_num = $tsops->sem_num
+                sops_sem_op = $tsops->sem_op
+                sops_sem_flg = $tsops->sem_flg
+                */
+                nsops = $nsops
+                /*
+                timeout_tv_sec = $timeout->tv_sec
+                timeout_tv_nsec = $timeout->tv_nsec
+                */
 	}
 # shmat____________________________________________
+/* asmlinkage long sys_shmat(int shmid, char __user *shmaddr,
+                          int shmflg, unsigned long *addr) */
 probe kernel.syscall.shmat = 
 	kernel.function("sys_shmat") {
 		name = "shmat"
+		shmid = $shmid
+		/*
+		shmaddr = $shmaddr
+		*/
+		shmflg = $shmflg
+		/*
+		addr = $addr
+		*/
 	}
 
 probe kernel.syscall.shmat.return = 
 	kernel.function("sys_shmat").return {
 		name = "shmat.return"
+                shmid = $shmid
+                /*
+                shmaddr = $shmaddr
+                */
+                shmflg = $shmflg
+                /*
+                addr = $addr
+                */
 	}
 # shmget___________________________________________
+/* asmlinkage long sys_shmget (key_t key, size_t size, int shmflg) */
 probe kernel.syscall.shmget = 
 	kernel.function("sys_shmget") {
 		name = "shmget"
+		key = $key
+		size = $size
+		shmflg = $shmflg
 	}
 
 probe kernel.syscall.shmget.return = 
 	kernel.function("sys_shmget").return {
 		name = "shmget.return"
+                key = $key
+                size = $size
+                shmflg = $shmflg
 	}
 # shmdt____________________________________________
+/* asmlinkage long sys_shmdt(char __user *shmaddr) */
 probe kernel.syscall.shmdt = 
 	kernel.function("sys_shmdt") {
 		name = "shmdt"
+		/*
+		shmaddr = $shmaddr
+		*/
 	}
 
 probe kernel.syscall.shmdt.return = 
 	kernel.function("sys_shmdt").return {
 		name = "shmdt.return"
+                /*
+                shmaddr = $shmaddr
+                */
 	}
 # shmctl___________________________________________
+/* asmlinkage long sys_shmctl (int shmid, int cmd,
+			       struct shmid_ds __user *buf) */
 probe kernel.syscall.shmctl = 
 	kernel.function("sys_shmctl") {
 		name = "shmctl"
+		shmid = $shmid
+		cmd = $cmd
+		/*
+		buf_shm_perm_key = $buf->shm_perm->key
+                buf_shm_perm_uid = $buf->shm_perm->uid
+                buf_shm_perm_gid = $buf->shm_perm->gid
+                buf_shm_perm_cuid = $buf->shm_perm->cuid
+                buf_shm_perm_cgid = $buf->shm_perm->cgid
+                buf_shm_perm_mode = $buf->shm_perm->mode
+                buf_shm_perm_seq = $buf->shm_perm->seq
+
+		buf_shm_segsz = $buf->shm_segsz
+		buf_shm_atime = $buf->shm_atime
+		buf_shm_dtime = $buf->shm_dtime
+		buf_shm_ctime = $buf->shm_ctime
+		buf_shm_cpid = $buf->shm_cpid
+		buf_shm_lpid = $buf->shm_lpid
+		buf_shm_nattch = $buf->shm_nattch
+		*/
 	}
 
 probe kernel.syscall.shmctl.return = 
 	kernel.function("sys_shmctl").return {
 		name = "shmctl.return"
+                shmid = $shmid
+                cmd = $cmd
+                /*
+                buf_shm_perm_key = $buf->shm_perm->key
+                buf_shm_perm_uid = $buf->shm_perm->uid
+                buf_shm_perm_gid = $buf->shm_perm->gid
+                buf_shm_perm_cuid = $buf->shm_perm->cuid
+                buf_shm_perm_cgid = $buf->shm_perm->cgid
+                buf_shm_perm_mode = $buf->shm_perm->mode
+                buf_shm_perm_seq = $buf->shm_perm->seq
+
+                buf_shm_segsz = $buf->shm_segsz
+                buf_shm_atime = $buf->shm_atime
+                buf_shm_dtime = $buf->shm_dtime
+                buf_shm_ctime = $buf->shm_ctime
+                buf_shm_cpid = $buf->shm_cpid
+                buf_shm_lpid = $buf->shm_lpid
+                buf_shm_nattch = $buf->shm_nattch
+                */
 	}
 # mq_open__________________________________________
+/* asmlinkage long sys_mq_open(const char __user *u_name, int oflag, mode_t mode,
+                                struct mq_attr __user *u_attr) */
 probe kernel.syscall.mq_open = 
 	kernel.function("sys_mq_open") {
 		name = "mq_open"
+		/*
+		name = u_name
+		*/
+		oflag = $oflag
+		/* TODO implement _mq_open_oflg_str() */
+		/* oflag_str = _mq_open_oflg_str() */
+		/*
+		u_attr_mq_flags = $u_attr->mq_flags
+		u_attr_mq_maxmsg = $u_attr->mq_maxmsg
+		u_attr_mq_msgsize = $u_attr->mq_msgsize
+		u_attr_mq_curmsgs = $u_attr->mq_curmsgs
+		*/
 	}
 
 probe kernel.syscall.mq_open.return = 
 	kernel.function("sys_mq_open").return {
 		name = "mq_open.return"
+                /*
+                name = u_name
+                */
+                oflag = $oflag
+                /* TODO implement _mq_open_oflg_str() */
+                /* oflag_str = _mq_open_oflg_str() */
+                /*
+                u_attr_mq_flags = $u_attr->mq_flags
+                u_attr_mq_maxmsg = $u_attr->mq_maxmsg
+                u_attr_mq_msgsize = $u_attr->mq_msgsize
+                u_attr_mq_curmsgs = $u_attr->mq_curmsgs
+                */
 	}
 # mq_unlink________________________________________
+/* asmlinkage long sys_mq_unlink(const char __user *u_name) */
 probe kernel.syscall.mq_unlink = 
 	kernel.function("sys_mq_unlink") {
 		name = "mq_unlink"
+		/*
+		u_name = $u_name
+		*/
 	}
 
 probe kernel.syscall.mq_unlink.return = 
 	kernel.function("sys_mq_unlink").return {
 		name = "mq_unlink.return"
+		/*
+		u_name = $u_name
+		*/
 	}
 # mq_timedsend_____________________________________
+/* asmlinkage long sys_mq_timedsend(mqd_t mqdes,
+				    const char __user *u_msg_ptr,
+				    size_t msg_len,
+				    unsigned int msg_prio,
+				    const struct timespec __user *u_abs_timeout) */
 probe kernel.syscall.mq_timedsend = 
 	kernel.function("sys_mq_timedsend") {
 		name = "mq_timedsend"
+		mqdes = $mqdes
+		/*
+		msg_ptr = $u_msg_ptr
+		*/
+		msg_len = $msg_len
+		msg_prio = $msg_prio
+		/*
+		abs_timeout_tv_sec = $u_abs_timeout->tv_sec
+		abs_timeout_tv_usec = $u_abs_timeout->tv_usec
+		*/
 	}
 
 probe kernel.syscall.mq_timedsend.return = 
 	kernel.function("sys_mq_timedsend").return {
 		name = "mq_timedsend.return"
+                mqdes = $mqdes
+                /*
+                msg_ptr = $u_msg_ptr
+                */
+                msg_len = $msg_len
+                msg_prio = $msg_prio
+                /*
+                abs_timeout_tv_sec = $u_abs_timeout->tv_sec
+                abs_timeout_tv_usec = $u_abs_timeout->tv_usec
+                */
 	}
 # mq_timedreceive__________________________________
+/* asmlinkage ssize_t sys_mq_timedreceive(mqd_t mqdes,
+					  char __user *u_msg_ptr,
+        				  size_t msg_len,
+					  unsigned int __user *u_msg_prio,
+        				  const struct timespec __user *u_abs_timeout) */
 probe kernel.syscall.mq_timedreceive = 
 	kernel.function("sys_mq_timedreceive") {
 		name = "mq_timedreceive"
+		mqdes = $mqdes
+		/*	
+		msg_ptr = $u_msg_ptr
+		*/
+		msg_len = $msg_len
+		/*
+		msg_prio = $u_msg_prio
+		abs_timout_tv_sec = $u_abs_timeout->tv_sec
+		abs_timout_tv_usec = $u_abs_timeout->tv_usec
+		*/
 	}
 
 probe kernel.syscall.mq_timedreceive.return = 
 	kernel.function("sys_mq_timedreceive").return {
 		name = "mq_timedreceive.return"
+                mqdes = $mqdes
+                /*
+                msg_ptr = $u_msg_ptr
+                */
+                msg_len = $msg_len
+                /*
+                msg_prio = $u_msg_prio
+                abs_timout_tv_sec = $u_abs_timeout->tv_sec
+                abs_timout_tv_usec = $u_abs_timeout->tv_usec
+                */
 	}
 # mq_notify________________________________________
+/* asmlinkage long sys_mq_notify(mqd_t mqdes,
+                                const struct sigevent __user *u_notification) */
 probe kernel.syscall.mq_notify = 
 	kernel.function("sys_mq_notify") {
 		name = "mq_notify"
+		mqdes = $mqdes
+		/*
+		TODO requires embedded auxf to export
+		typedef struct sigevent {
+        		sigval_t sigev_value;
+        		int sigev_signo;
+        		int sigev_notify;
+        		union {
+                		int _pad[SIGEV_PAD_SIZE];
+                 		int _tid;
+				struct {
+                        		void (*_function)(sigval_t);
+                        		void *_attribute;       // really pthread_attr_t
+                		} _sigev_thread;
+        		} _sigev_un;
+		} sigevent_t;
+		*/
 	}
 
 probe kernel.syscall.mq_notify.return = 
 	kernel.function("sys_mq_notify").return {
 		name = "mq_notify.return"
+                mqdes = $mqdes
+                /*
+                TODO requires embedded auxf to export
+                typedef struct sigevent {
+                        sigval_t sigev_value;
+                        int sigev_signo;
+                        int sigev_notify;
+                        union {
+                                int _pad[SIGEV_PAD_SIZE];
+                                int _tid;
+                                struct {
+                                        void (*_function)(sigval_t);
+                                        void *_attribute;       // really pthread_attr_t
+                                } _sigev_thread;
+                        } _sigev_un;
+                } sigevent_t;
+                */
 	}
 # mq_getsetattr____________________________________
+/* asmlinkage long sys_mq_getsetattr(mqd_t mqdes,
+                        const struct mq_attr __user *u_mqstat,
+                        struct mq_attr __user *u_omqstat) */
 probe kernel.syscall.mq_getsetattr = 
 	kernel.function("sys_mq_getsetattr") {
 		name = "mq_getsetattr"
+		mqdes = $mqdes
+                /*
+                u_mqstat_mq_flags = $u_mqstat->mq_flags
+                u_mqstat_mq_maxmsg = $u_mqstat->mq_maxmsg
+                u_mqstat_mq_msgsize = $u_mqstat->mq_msgsize
+                u_mqstat_mq_curmsgs = $u_mqstat->mq_curmsgs
+
+                u_omqstat_mq_flags = $u_omqstat->mq_flags
+                u_omqstat_mq_maxmsg = $u_omqstat->mq_maxmsg
+                u_omqstat_mq_msgsize = $u_omqstat->mq_msgsize
+                u_omqstat_mq_curmsgs = $u_omqstat->mq_curmsgs
+                */
 	}
 
 probe kernel.syscall.mq_getsetattr.return = 
 	kernel.function("sys_mq_getsetattr").return {
 		name = "mq_getsetattr.return"
+                mqdes = $mqdes
+                /*
+                u_mqstat_mq_flags = $u_mqstat->mq_flags
+                u_mqstat_mq_maxmsg = $u_mqstat->mq_maxmsg
+                u_mqstat_mq_msgsize = $u_mqstat->mq_msgsize
+                u_mqstat_mq_curmsgs = $u_mqstat->mq_curmsgs
+
+                u_omqstat_mq_flags = $u_omqstat->mq_flags
+                u_omqstat_mq_maxmsg = $u_omqstat->mq_maxmsg
+                u_omqstat_mq_msgsize = $u_omqstat->mq_msgsize
+                u_omqstat_mq_curmsgs = $u_omqstat->mq_curmsgs
+                */
 	}
 # pciconfig_iobase_________________________________
+/* asmlinkage long
+   sys_pciconfig_iobase(long which, unsigned long bus, 
+			unsigned long dfn) */
 probe kernel.syscall.pciconfig_iobase = 
 	kernel.function("sys_pciconfig_iobase") {
 		name = "pciconfig_iobase"
+		which = $which
+		bus = $bus
+		dfn = $dfn		
 	}
 
 probe kernel.syscall.pciconfig_iobase.return = 
 	kernel.function("sys_pciconfig_iobase").return {
 		name = "pciconfig_iobase.return"
+                which = $which
+                bus = $bus
+                dfn = $dfn
 	}
 # pciconfig_read___________________________________
+/* NOTE: This is a nop function: PCI interation is 
+         handled at the kernel PCI layer. Not used. */
+/* asmlinkage int sys_pciconfig_read(unsigned long bus, unsigned long dfn,
+                                  unsigned long off, unsigned long len,
+                                  unsigned char *buf) { return 0; } */
 probe kernel.syscall.pciconfig_read = 
 	kernel.function("sys_pciconfig_read") {
 		name = "pciconfig_read"
+		bus = $bus
+		dfn = $dfn
+		off = $off
+		len = $len
+		/*
+		buf = $buf
+		*/
 	}
 
 probe kernel.syscall.pciconfig_read.return = 
 	kernel.function("sys_pciconfig_read").return {
 		name = "pciconfig_read.return"
+                bus = $bus
+                dfn = $dfn
+                off = $off
+                len = $len
+                /*
+                buf = $buf
+                */
 	}
 # pciconfig_write__________________________________
+/* NOTE: This is a nop function: PCI interation is
+         handled at the kernel PCI layer. Not used. */
+/* asmlinkage int sys_pciconfig_write(unsigned long bus, unsigned long dfn,
+                                   unsigned long off, unsigned long len,
+                                   unsigned char *buf) */
 probe kernel.syscall.pciconfig_write = 
 	kernel.function("sys_pciconfig_write") {
 		name = "pciconfig_write"
+		bus = $bus
+                dfn = $dfn
+                off = $off
+                len = $len
+                /*
+                buf = $buf
+                */
 	}
 
 probe kernel.syscall.pciconfig_write.return = 
 	kernel.function("sys_pciconfig_write").return {
 		name = "pciconfig_write.return"
+                bus = $bus
+                dfn = $dfn
+                off = $off
+                len = $len
+                /*
+                buf = $buf
+                */
 	}
 # prctl____________________________________________
+/* asmlinkage long sys_prctl(int option, unsigned long arg2, unsigned long arg3,
+                          unsigned long arg4, unsigned long arg5) */
 probe kernel.syscall.prctl = 
 	kernel.function("sys_prctl") {
 		name = "prctl"
+		options = $options
+		arg2 = $arg2
+		arg3 = $arg3
+		arg4 = $arg4
+		arg5 = $arg5
 	}
 
 probe kernel.syscall.prctl.return = 
 	kernel.function("sys_prctl").return {
 		name = "prctl.return"
+                options = $options
+                arg2 = $arg2
+                arg3 = $arg3
+                arg4 = $arg4
+                arg5 = $arg5
 	}
 # swapon___________________________________________
+/* asmlinkage long sys_swapon(const char __user * specialfile,
+			      int swap_flags) */
 probe kernel.syscall.swapon = 
 	kernel.function("sys_swapon") {
 		name = "swapon"
+		/*	
+		path = $specialfile
+		*/
+		swapflags = $swapflags
 	}
 
 probe kernel.syscall.swapon.return = 
 	kernel.function("sys_swapon").return {
 		name = "swapon.return"
+		/*
+                path = $specialfile
+                */
+                swapflags = $swapflags
 	}
 # swapoff__________________________________________
+/* asmlinkage long sys_swapoff(const char __user * specialfile) */
 probe kernel.syscall.swapoff = 
 	kernel.function("sys_swapoff") {
 		name = "swapoff"
+                /*
+                path = $specialfile
+                */
 	}
 
 probe kernel.syscall.swapoff.return = 
 	kernel.function("sys_swapoff").return {
 		name = "swapoff.return"
+                /*
+                path = $specialfile
+                */
 	}
 # sysctl___________________________________________
+/* asmlinkage long sys_sysctl(struct __sysctl_args __user *args) */
 probe kernel.syscall.sysctl = 
 	kernel.function("sys_sysctl") {
 		name = "sysctl"
+		/*
+		args_name = $args->name
+		args_nlen = $args->nlen
+		args_oldval = $args->oldval
+		args_oldlenp = $args->oldlenp
+		args_newval = $args->newval
+		args_newlen = $args->newlen
+		*/
 	}
 
 probe kernel.syscall.sysctl.return = 
 	kernel.function("sys_sysctl").return {
 		name = "sysctl.return"
+                /*
+                args_name = $args->name
+                args_nlen = $args->nlen
+                args_oldval = $args->oldval
+                args_oldlenp = $args->oldlenp
+                args_newval = $args->newval
+                args_newlen = $args->newlen
+                */
 	}
 # sysinfo__________________________________________
+/* asmlinkage long sys_sysinfo(struct sysinfo __user *info) */
 probe kernel.syscall.sysinfo = 
 	kernel.function("sys_sysinfo") {
 		name = "sysinfo"
@@ -5598,138 +6029,392 @@ probe kernel.syscall.sysinfo =
 probe kernel.syscall.sysinfo.return = 
 	kernel.function("sys_sysinfo").return {
 		name = "sysinfo.return"
+                info_uptime = $info->uptime
+                /*
+                info_loads_1 = $info->loads[0]
+                info_loads_2 = $info->loads[1]
+                info_loads_3 = $info->loads[2]
+                */
+                info_totalram = $info->totalram
+                info_freeram = $info->freeram
+                info_sharedram = $info->sharedram
+                info_bufferram = $info->bufferram
+                info_totalswap = $info->totalswap
+                info_freeswap = $info->freeswap
+                info_procs = $info->prcs
+                info_totalhigh = $info->totalhigh
+                info_freehigh = $info->freehigh
+                info_mem_unit = $info->mem_unit
 	}
 # sysfs____________________________________________
+/* asmlinkage long sys_sysfs(int option,
+			     unsigned long arg1,
+			     unsigned long arg2) */
 probe kernel.syscall.sysfs = 
 	kernel.function("sys_sysfs") {
 		name = "sysfs"
+		option = $option
+		arg1 = $arg1
+		arg2 = $arg2
 	}
 
 probe kernel.syscall.sysfs.return = 
 	kernel.function("sys_sysfs").return {
 		name = "sysfs.return"
+                option = $option
+                arg1 = $arg1
+                arg2 = $arg2
 	}
 # nfsservctl_______________________________________
+/* long asmlinkage sys_nfsservctl(int cmd, 
+				  struct nfsctl_arg __user *arg,
+				  void __user *res) */
 probe kernel.syscall.nfsservctl = 
 	kernel.function("sys_nfsservctl") {
 		name = "nfsservctl"
+		cmd = $cmd
+		/*
+		TODO create embedded auxf to export this stuff
+
+		...from the man page...nfsservctl(int cmd,
+						  struct nfsctl_arg *argp,
+					    	  union nfsctl_res *resp);
+       		struct nfsctl_arg {
+               		int ca_version;     // safeguard
+               		union {
+                       		struct nfsctl_svc    u_svc;
+                       		struct nfsctl_client u_client;
+                       		struct nfsctl_export u_export;
+                       		struct nfsctl_uidmap u_umap;
+                       		struct nfsctl_fhparm u_getfh;
+                       		unsigned int         u_debug;
+               		} u;
+       		}
+	
+	       union nfsctl_res {
+        	       struct knfs_fh cr_getfh;
+        	       unsigned int   cr_debug;
+       		};
+		*/
 	}
 
 probe kernel.syscall.nfsservctl.return = 
 	kernel.function("sys_nfsservctl").return {
 		name = "nfsservctl.return"
+                cmd = $cmd
+                /*
+                TODO create embedded auxf to export this stuff
+
+                ...from the man page...nfsservctl(int cmd,
+						  struct nfsctl_arg *argp,
+                                                  union nfsctl_res *resp);
+                struct nfsctl_arg {
+                        int ca_version;     // safeguard
+                        union {
+                                struct nfsctl_svc    u_svc;
+                                struct nfsctl_client u_client;
+                                struct nfsctl_export u_export;
+                                struct nfsctl_uidmap u_umap;
+                                struct nfsctl_fhparm u_getfh;
+                                unsigned int         u_debug;
+                        } u;
+                }
+
+               union nfsctl_res {
+                       struct knfs_fh cr_getfh;
+                       unsigned int   cr_debug;
+                };
+                */
+
 	}
 # syslog___________________________________________
+/* asmlinkage long sys_syslog(int type, char __user * buf, int len) */
 probe kernel.syscall.syslog = 
 	kernel.function("do_syslog") {
 		name = "syslog"
+		type = $type
+		/*
+		bufp = $buf
+		*/
+		len = $len
 	}
 
 probe kernel.syscall.syslog.return = 
 	kernel.function("do_syslog").return {
 		name = "syslog.return"
+                type = $type
+                /*
+                bufp = $buf
+                */
+                len = $len
 	}
 # uselib___________________________________________
+/* asmlinkage long sys_uselib(const char __user * library) */
 probe kernel.syscall.uselib = 
 	kernel.function("sys_uselib") {
 		name = "uselib"
+		/*
+		library = $library
+		*/
 	}
 
 probe kernel.syscall.uselib.return = 
 	kernel.function("sys_uselib").return {
 		name = "uselib.return"
+                /*
+                library = $library
+                */
 	}
 # add_key__________________________________________
+/* asmlinkage long sys_add_key(const char __user *_type,
+                            const char __user *_description,
+                            const void __user *_payload,
+                            size_t plen,
+                            key_serial_t ringid) */
 probe kernel.syscall.add_key = 
 	kernel.function("sys_add_key") {
 		name = "add_key"
+		/*
+		type = $_type
+		description = $_description
+		payload = $payload
+		*/
+		plen = $plen
+		ringid = $ringid
 	}
 
 probe kernel.syscall.add_key.return = 
 	kernel.function("sys_add_key").return {
 		name = "add_key.return"
+                /*
+                type = $_type
+                description = $_description
+                payload = $payload
+                */
+                plen = $plen
+                ringid = $ringid
 	}
 # request_key______________________________________
+/* asmlinkage long sys_request_key(const char __user *_type,
+                                const char __user *_description,
+                                const char __user *_callout_info,
+                                key_serial_t destringid) */
 probe kernel.syscall.request_key = 
 	kernel.function("sys_request_key") {
 		name = "request_key"
+		/*
+		type = $_type
+		description = $_description
+		callout_info = $_callout_info
+		*/
+		destringid = $destringid
 	}
 
 probe kernel.syscall.request_key.return = 
 	kernel.function("sys_request_key").return {
 		name = "request_key.return"
+                /*
+                type = $_type
+                description = $_description
+                callout_info = $_callout_info
+                */
+                destringid = $destringid
 	}
 # keyctl___________________________________________
+/* asmlinkage long sys_keyctl(int option, unsigned long arg2, unsigned long arg3,
+                           unsigned long arg4, unsigned long arg5) */
 probe kernel.syscall.keyctl = 
 	kernel.function("sys_keyctl") {
 		name = "keyctl"
+		option = $option
+		arg2 = $arg2
+		arg3 = $arg3
+		arg4 = $arg4
+		arg5 = $arg5
 	}
 
 probe kernel.syscall.keyctl.return = 
 	kernel.function("sys_keyctl").return {
 		name = "keyctl.return"
+                option = $option
+                arg2 = $arg2
+                arg3 = $arg3
+                arg4 = $arg4
+                arg5 = $arg5
 	}
 # modify_ldt_______________________________________
+/* asmlinkage int sys_modify_ldt(int func,
+				 void __user *ptr,
+				 unsigned long bytecount) */
 probe kernel.syscall.modify_ldt = 
 	kernel.function("sys_modify_ldt") {
 		name = "modify_ldt"
+		func = $func
+		bytecount = $bytecount
 	}
 
 probe kernel.syscall.modify_ldt.return = 
 	kernel.function("sys_modify_ldt").return {
 		name = "modify_ldt.return"
+                func = $func
+		/*
+		ptr points to a modify_ldt_ldt_s  structure and
+		bytecount must equal the size of this structure
+		*/
+                bytecount = $bytecount
 	}
 # mmap2____________________________________________
+/* static inline unsigned long do_mmap2(unsigned long addr,
+					size_t len,
+					unsigned long prot,
+					unsigned long flags,
+					unsigned long fd,
+					unsigned long pgoff) */ 
 probe kernel.syscall.mmap2 = 
 	kernel.function("do_mmap2") {
 		name = "mmap2"
+		addr = $addr
+		len = $len
+		prot = $prot
+		flags = $flags
+		fd = $fd
+		pgoff = $pgoff
 	}
 
 probe kernel.syscall.mmap2.return = 
 	kernel.function("do_mmap2").return {
 		name = "mmap2.return"
+                addr = $addr
+                len = $len
+                prot = $prot
+                flags = $flags
+                fd = $fd
+                pgoff = $pgoff
 	}
 # execve___________________________________________
+/* NOTE: arch specific */
+/* asmlinkage int sys_execve(struct pt_regs regs) */
 probe kernel.syscall.execve = 
 	kernel.function("sys_execve") {
 		name = "execve"
+		/*
+		TODO figure this one out
+		filename = $regs->ebx
+		argv[] = $regs->ecx
+		envp[] = $regs->edx
+		*/
 	}
 
 probe kernel.syscall.execve.return = 
 	kernel.function("sys_execve").return {
 		name = "execve.return"
+                /*
+		...hmm, if execve() succeedes were in trouble here...
+
+                TODO figure this one out
+                filename = $regs->ebx
+                argv[] = $regs->ecx
+                envp[] = $regs->edx
+                */
 	}
 # clone____________________________________________
+/* long do_fork(unsigned long clone_flags,
+               unsigned long stack_start,
+               struct pt_regs *regs,
+               unsigned long stack_size,
+               int __user *parent_tidptr,
+               int __user *child_tidptr) */
 probe kernel.syscall.clone = 
 	kernel.function("do_fork") {
 		name = "clone"
+		clone_flags = $clone_flags
+		start_stack = $start_stack
+		/* Export this???
+		regs = $regs->...
+		*/
+		stack_size = $stack_size
+		/*
+		parent_tid = $parent_tidptr
+		child_tid = $child_tidptr
+		*/	
 	}
 
 probe kernel.syscall.clone.return = 
 	kernel.function("do_fork").return {
 		name = "clone.return"
+                clone_flags = $clone_flags
+                start_stack = $start_stack
+                /* Export this???
+                regs = $regs->...
+                */
+                stack_size = $stack_size
+                /*
+                parent_tid = $parent_tidptr
+                child_tid = $child_tidptr
+                */
 	}
 # fork_____________________________________________
 probe kernel.syscall.fork = 
 	kernel.function("do_fork") {
 		name = "fork"
+                clone_flags = $clone_flags
+                start_stack = $start_stack
+                /* Export this???
+                regs = $regs->...
+                */
+                stack_size = $stack_size
+                /*
+                parent_tid = $parent_tidptr
+                child_tid = $child_tidptr
+                */
 	}
 
 probe kernel.syscall.fork.return = 
 	kernel.function("do_fork").return {
 		name = "fork.return"
+                clone_flags = $clone_flags
+                start_stack = $start_stack
+                /* Export this???
+                regs = $regs->...
+                */
+                stack_size = $stack_size
+                /*
+                parent_tid = $parent_tidptr
+                child_tid = $child_tidptr
+                */
 	}
 # vfork____________________________________________
 probe kernel.syscall.vfork = 
 	kernel.function("do_fork") {
 		name = "vfork"
+                clone_flags = $clone_flags
+                start_stack = $start_stack
+                /* Export this???
+                regs = $regs->...
+                */
+                stack_size = $stack_size
+                /*
+                parent_tid = $parent_tidptr
+                child_tid = $child_tidptr
+                */
 	}
 
 probe kernel.syscall.vfork.return = 
 	kernel.function("do_fork").return {
 		name = "vfork.return"
+                clone_flags = $clone_flags
+                start_stack = $start_stack
+                /* Export this???
+                regs = $regs->...
+                */
+                stack_size = $stack_size
+                /*
+                parent_tid = $parent_tidptr
+                child_tid = $child_tidptr
+                */
 	}
 # pipe_____________________________________________
+/* asmlinkage int sys_pipe(unsigned long __user * fildes) */
 probe kernel.syscall.pipe = 
 	kernel.function("sys_pipe") {
 		name = "pipe"
@@ -5738,36 +6423,86 @@ probe kernel.syscall.pipe =
 probe kernel.syscall.pipe.return = 
 	kernel.function("sys_pipe").return {
 		name = "pipe.return"
+		/*
+		TODO implement embedded auxf to extract
+		     these fildes
+		fildes_read = $fildes[0]
+		fildes_write = $fildes[1]
+		*/
 	}
 # ptrace___________________________________________
+/* asmlinkage int sys_ptrace(long request,
+			     long pid,
+			     long addr,
+			     long data) */
 probe kernel.syscall.ptrace = 
 	kernel.function("sys_ptrace") {
 		name = "ptrace"
+		pid = $pid
+		addr = $addr
+		data = $data
 	}
 
 probe kernel.syscall.ptrace.return = 
 	kernel.function("sys_ptrace").return {
 		name = "ptrace.return"
+		pid = $pid
+		addr = $addr
+		data = $data
 	}
 # iopl_____________________________________________
+/* asmlinkage long sys_iopl(unsigned long unused) */
 probe kernel.syscall.iopl = 
 	kernel.function("sys_iopl") {
 		name = "iopl"
+		level = $unused
 	}
 
 probe kernel.syscall.iopl.return = 
 	kernel.function("sys_iopl").return {
 		name = "iopl.return"
+		level = $unused
 	}
 # rt_sigaction_____________________________________
+/* asmlinkage long
+   sys_rt_sigaction(int sig, const struct sigaction __user *act,
+                    struct sigaction __user *oact,
+                    size_t sigsetsize, void __user *restorer) */
 probe kernel.syscall.rt_sigaction = 
 	kernel.function("sys_rt_sigaction") {
 		name = "rt_sigaction"
+		sig = $sig
+		/*
+		act_sa_handler = $act->sa_handler
+		act_sa_mask = $act->sa_mask
+		act_sa_flags = $act->sa_flags
+		act_sa_restorer = $act->sa_restorer
+		*/
+		sigsetsize = $sigsetsize
+		/*
+		restorer = $restorer
+		*/
 	}
 
 probe kernel.syscall.rt_sigaction.return = 
 	kernel.function("sys_rt_sigaction").return {
 		name = "rt_sigaction.return"
+                sig = $sig
+                /*
+                act_sa_handler = $act->sa_handler
+                act_sa_mask = $act->sa_mask
+                act_sa_flags = $act->sa_flags
+                act_sa_restorer = $act->sa_restorer
+
+                oact_sa_handler = $oact->sa_handler
+                oact_sa_mask = $oact->sa_mask
+                oact_sa_flags = $oact->sa_flags
+                oact_sa_restorer = $oact->sa_restorer
+                */
+                sigsetsize = $sigsetsize
+		/*
+                restorer = $restorer
+		*/
 	}
 
 

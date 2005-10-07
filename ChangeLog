@@ -1,3 +1,9 @@
+2005-10-07  Kevin Stafford  <kevinrs@us.ibm.com>
+
+        * tapset/system_calls.stp: All 281 syscalls *prototyped*. They
+	are still untested. Many of the aliases useability are contin-
+ 	gent upon resolution of namely: bz #1295 & bz #1382. 
+
 2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stap.1.in: Document -b/-s options.
