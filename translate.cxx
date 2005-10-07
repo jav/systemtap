@@ -1538,6 +1538,12 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
   //
   // varlock_r guard (*this, mv);
 
+  // sort array if desired
+  if (s->sort_direction)
+    o->newline() << "_stp_map_sort (" << mv.qname() << ", "
+		 << s->sort_column << ", " << - s->sort_direction << ");";
+  // NB: sort direction sense is opposite in runtime, thus the negation
+
   o->newline() << iv << " = " << iv.start (mv) << ";";
 
   // condition

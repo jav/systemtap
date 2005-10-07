@@ -35,10 +35,10 @@ probe begin {
 }
 
 probe end {
-  foreach (x in odds) {
+  foreach (x+ in odds) {
     log("odds[" . string(x) . "] = " . string(odds[x]))
   }
-  foreach (x in evens) {
+  foreach (x in evens-) {
     log("evens[" . string(x) . "] = " . string(evens[x]))
   }
 }
@@ -49,9 +49,9 @@ odds[1] = 1
 odds[3] = 5
 odds[4] = 7
 odds[5] = 9
-evens[2] = 2
-evens[4] = 6
 evens[5] = 8
+evens[4] = 6
+evens[2] = 2
 .ESAMPLE
 Note that the evens[1] key is missing, since its value was zero.  Any
 array element with an "empty" value (zero or empty string) is

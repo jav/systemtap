@@ -359,8 +359,13 @@ void foreach_loop::print (ostream& o) const
     {
       if (i > 0) o << ", ";
       indexes[i]->print (o);
+      if (sort_direction != 0 && sort_column == i+1)
+	o << (sort_direction > 0 ? "+" : "-");
     }
-  o << "] in " << base << ") ";
+  o << "] in " << base;
+  if (sort_direction != 0 && sort_column == 0)
+    o << (sort_direction > 0 ? "+" : "-");
+  o << ") ";
   block->print (o);
 }
 
@@ -1185,6 +1190,8 @@ deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
     }
   n->base = s->base;
   n->base_referent = NULL;
+  n->sort_direction = s->sort_direction;
+  n->sort_column = s->sort_column;
   require <statement*> (this, &(n->block), s->block);
   provide <foreach_loop*> (this, n);
 }

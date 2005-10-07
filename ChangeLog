@@ -1,3 +1,14 @@
+2005-10-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1366.
+	* staptree.h (foreach_loop): Add sort_column, sort_direction fields.
+	* parse.cxx (parse_foreach_loop): Parse "+"/"-" suffix operators.
+	* stap.1.in, stapex.5.in: Document them.
+	* staptree.cxx (foreach_loop print, copy): Propagate them.
+	* translate.cxx (visit_foreach_loop): Support them.
+	* testsuite/parseok/fifteen.stp, parseko/thirteen.stp,
+	buildok/twentyone.stp: Test them.
+
 2005-10-07  Kevin Stafford  <kevinrs@us.ibm.com>
 
         * tapset/system_calls.stp: All 281 syscalls *prototyped*. They

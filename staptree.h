@@ -312,6 +312,8 @@ struct foreach_loop: public statement
   std::vector<symbol*> indexes;
   std::string base;
   vardecl* base_referent;
+  int sort_direction; // -1: decreasing, 0: none, 1: increasing
+  unsigned sort_column; // 0: value, 1..N: index
 
   statement* block;
   void print (std::ostream& o) const;

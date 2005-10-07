@@ -1,0 +1,8 @@
+#! stap -p1
+
+probe one
+{
+  foreach ([x+,y] in a) ;
+  foreach ([x,y-] in a) ;
+  foreach ([x,y] in a+) ;
+}

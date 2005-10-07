@@ -1,0 +1,6 @@
+#! stap -p1
+
+probe begin
+{
+  foreach ([x+,y-] in a) {}
+}

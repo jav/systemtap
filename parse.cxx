@@ -1148,6 +1148,7 @@ parser::parse_foreach_loop ()
     throw parse_error ("expected 'foreach'");
   foreach_loop* s = new foreach_loop;
   s->tok = t;
+  s->sort_direction = 0;
 
   t = next ();
   if (! (t->type == tok_operator && t->content == "("))
@@ -1173,9 +1174,20 @@ parser::parse_foreach_loop ()
       sym->name = t->content;
       s->indexes.push_back (sym);
 
+      t = peek ();
+      if (t && t->type == tok_operator &&
+	  (t->content == "+" || t->content == "-"))
+	{
+	  if (s->sort_direction)
+	    throw parse_error ("multiple sort directives");
+	  s->sort_direction = (t->content == "+") ? 1 : -1;
+	  s->sort_column = s->indexes.size();
+	  next();
+	}
+
       if (parenthesized)
         {
-          const token* t = peek ();
+          t = peek ();
           if (t && t->type == tok_operator && t->content == ",")
             {
               next ();
@@ -1201,6 +1213,17 @@ parser::parse_foreach_loop ()
   if (t->type != tok_identifier)
     throw parse_error ("expected identifier");
   s->base = t->content;
+
+  t = peek ();
+  if (t && t->type == tok_operator &&
+      (t->content == "+" || t->content == "-"))
+    {
+      if (s->sort_direction)
+	throw parse_error ("multiple sort directives");
+      s->sort_direction = (t->content == "+") ? 1 : -1;
+      s->sort_column = 0;
+      next();
+    }
 
   t = next ();
   if (! (t->type == tok_operator && t->content == ")"))

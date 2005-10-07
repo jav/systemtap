@@ -1,0 +1,27 @@
+#! stap -p4
+
+global a
+
+probe begin {
+  a[5] = 0
+  a[4] = 2
+  a[3] = 5
+  a[2] = 8
+  a[1] = 1
+  a[0] = -4
+  exit ()
+}
+
+probe end {
+  log ("x+ in a")
+  foreach (x+ in a) log ("a[" . string(x) . "]=" . string(a[x]))
+
+  log ("x- in a")
+  foreach (x- in a) log ("a[" . string(x) . "]=" . string(a[x]))
+
+  log ("x in a+")
+  foreach (x in a+) log ("a[" . string(x) . "]=" . string(a[x]))
+
+  log ("x in a-")
+  foreach (x in a-) log ("a[" . string(x) . "]=" . string(a[x]))
+}

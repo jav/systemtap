@@ -217,9 +217,14 @@ STMT, then the iteration expression EXP1.
 .BR foreach " (VAR " in " ARRAY) STMT"
 Loop over each element of the named global array, assigning current
 key to VAR.  The array may not be modified within the statement.
+By adding a single 
+.BR + " or " -
+operator after the VAR or the ARRAY identifier, the iteration will
+proceed in a sorted order, by ascending or descending index or value.
 .TP
 .BR foreach " ([VAR1, VAR2, ...] " in " ARRAY) STMT"
 Same as above, used when the array is indexed with a tuple of keys.
+A sorting suffix may be used on at most one VAR or ARRAY identifier.
 .TP
 .BR break ", " continue
 Exit or iterate the innermost nesting loop
