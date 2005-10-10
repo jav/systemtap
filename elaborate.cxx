@@ -171,7 +171,7 @@ void
 match_node::bind(derived_probe_builder * e)
 {
   if (end)
-    throw semantic_error("already have a pattern ending");
+    throw semantic_error("duplicate probe point pattern");
   end = e;
 }
 
@@ -337,29 +337,32 @@ systemtap_session::register_library_aliases()
       for (unsigned a = 0; a < file->aliases.size(); ++a)
 	{
 	  probe_alias * alias = file->aliases[a];
-	  for (unsigned n = 0; n < alias->alias_names.size(); ++n)
-	    {
-	      probe_point * name = alias->alias_names[n];
-	      if (false && verbose)
-		{
-		  clog << "registering probe alias ";
-		  for (unsigned c = 0; c < name->components.size(); ++c)
-		    clog << (c > 0 ? "." : "") << name->components[c]->functor;
-		  clog << endl;
-		}
-	      match_node * n = pattern_root;
-	      for (unsigned c = 0; c < name->components.size(); ++c)
-		{
-		  probe_point::component * comp = name->components[c];
-		  // XXX: alias parameters
-		  if (comp->arg)
-		    throw semantic_error("alias component " 
-					 + comp->functor 
-					 + " contains illegal parameter");
-		  n = n->bind(comp->functor);
-		}
-	      n->bind(new alias_expansion_builder(alias));
-	    }
+          try 
+            {
+              for (unsigned n = 0; n < alias->alias_names.size(); ++n)
+                {
+                  probe_point * name = alias->alias_names[n];
+                  match_node * n = pattern_root;
+                  for (unsigned c = 0; c < name->components.size(); ++c)
+                    {
+                      probe_point::component * comp = name->components[c];
+                      // XXX: alias parameters
+                      if (comp->arg)
+                        throw semantic_error("alias component " 
+                                             + comp->functor 
+                                             + " contains illegal parameter");
+                      n = n->bind(comp->functor);
+                    }
+                  n->bind(new alias_expansion_builder(alias));
+                }
+            }
+          catch (const semantic_error& e)
+            {
+              print_error (e);
+              cerr << "         while: registering probe alias ";
+              alias->printsig(cerr);
+              cerr << endl;
+            }
 	}
     }
 }
@@ -648,12 +651,22 @@ semantic_pass_symbols (systemtap_session& s)
 int
 semantic_pass (systemtap_session& s)
 {
-  s.register_library_aliases();
-  register_standard_tapsets(s);
+  int rc = 0;
 
-  int rc = semantic_pass_symbols (s);
-  if (rc == 0) rc = semantic_pass_types (s);
-  if (rc == 0) rc = semantic_pass_maps (s);
+  try 
+    {
+      s.register_library_aliases();
+      register_standard_tapsets(s);
+      
+      rc = semantic_pass_symbols (s);
+      if (rc == 0) rc = semantic_pass_types (s);
+      if (rc == 0) rc = semantic_pass_maps (s);
+    }
+  catch (const semantic_error& e)
+    {
+      s.print_error (e);
+    }
+  
   return rc;
 }
 
