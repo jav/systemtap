@@ -188,13 +188,13 @@ struct c_unparser_assignment:
   c_unparser* parent;
   string op;
   expression* rvalue;
-  bool pre;
+  bool post; // true == value saved before modify operator
   c_unparser_assignment (c_unparser* p, const string& o, expression* e):
     throwing_visitor ("invalid lvalue type"),
-    parent (p), op (o), rvalue (e), pre (false) {}
+    parent (p), op (o), rvalue (e), post (false) {}
   c_unparser_assignment (c_unparser* p, const string& o, bool pp):
     throwing_visitor ("invalid lvalue type"),
-    parent (p), op (o), rvalue (0), pre (pp) {}
+    parent (p), op (o), rvalue (0), post (pp) {}
 
   void prepare_rvalue (string const & op, 
 		       tmpvar const & rval,
@@ -1151,8 +1151,8 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 
   if (res.type() == pe_string)
     {
-      if (pre)
-	throw semantic_error ("pre assignment on strings not supported", 
+      if (post)
+	throw semantic_error ("post assignment on strings not supported", 
 			      tok);
       if (op == "=")
 	{
@@ -1198,10 +1198,10 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	// internal error
 	throw semantic_error ("unknown macop for assignment", tok);
 
-      if (pre)
+      if (post)
 	{
           if (macop == "/" || macop == "%" || op == "=")
-            throw semantic_error ("invalid pre-mode operator", tok);
+            throw semantic_error ("invalid post-mode operator", tok);
 
 	  o->newline() << res << " = " << lval << ";";
           o->newline() << lval << " = " << res << " " << macop << " " << rval << ";";
@@ -1989,7 +1989,7 @@ c_unparser::visit_pre_crement (pre_crement* e)
       e->type != e->operand->type)
     throw semantic_error ("expected numeric type", e->tok);
 
-  c_unparser_assignment tav (this, e->op, true);
+  c_unparser_assignment tav (this, e->op, false);
   e->operand->visit (& tav);
 }
 
@@ -2009,7 +2009,7 @@ c_unparser::visit_post_crement (post_crement* e)
       e->type != e->operand->type)
     throw semantic_error ("expected numeric type", e->tok);
 
-  c_unparser_assignment tav (this, e->op, false);
+  c_unparser_assignment tav (this, e->op, true);
   e->operand->visit (& tav);
 }
 

@@ -1,3 +1,10 @@
+2005-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1456.
+	* translate.cxx (c_unparser_assignment): Rename "pre" field to "post",
+	add blurb to clarify polarity.
+	(visit_pre/post_crement): Flip passed flag value.
+
 2005-10-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1366.
