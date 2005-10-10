@@ -5,6 +5,7 @@
 	(semantic_pass): Provide a back-up exception catcher.
 
 2005-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 1456.
 	* translate.cxx (c_unparser_assignment): Rename "pre" field to "post",
 	add blurb to clarify polarity.
@@ -25,7 +26,7 @@
 
         * tapset/system_calls.stp: All 281 syscalls *prototyped*. They
 	are still untested. Many of the aliases useability are contin-
- 	gent upon resolution of namely: bz #1295 & bz #1382. 
+ 	gent upon resolution of namely: bz #1295 & bz #1382.
 
 2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -52,7 +53,7 @@
 	PR 1131.
 	* tapsets.cxx
 	(target_variable_flavour_calculating_visitor::visit_target_symbol)
-	(var_expanding_copy_visitor::visit_target_symbol): 
+	(var_expanding_copy_visitor::visit_target_symbol):
 	Require guru mode for writing to target vars.
 	* testsuite/buildok/twenty.stp: Test writing to target vars.
 
@@ -73,9 +74,9 @@
 	(dwflpp::resolve_unqualified_inner_typedie)
 	(dwflpp::translate_final_fetch_or_store): New functions.
 	(dwflpp::literal_stmt_for_local): Factor a bit.
-	(variable_flavour_calculating_visitor::visit_target_symbol): 
+	(variable_flavour_calculating_visitor::visit_target_symbol):
 	Don't fault on lvalue, just collect an extra char.
-	(var_expanding_copy_visitor::target_symbol_setter_functioncalls): 
+	(var_expanding_copy_visitor::target_symbol_setter_functioncalls):
 	New member.
 	(var_expanding_copy_visitor::visit_assignment): New method.
 	(var_expanding_copy_visitor::visit_target_symbol): Permit lvalues.
@@ -116,7 +117,7 @@
 	visit_target_symbol): Print verbose error.
 	(var_expanding_copy_visitor::visit_target_symbol): Throw
 	simple error.
-	
+
 2005-09-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stapfuncs.5.in: Extend errno_str verbiage.
