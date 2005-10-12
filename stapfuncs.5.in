@@ -91,8 +91,8 @@ strlen:long (str:string)
 Return the number of characters in str.
 
 .TP
-substr:string (str:string,start:long, offset:long)
-Return the substring of str starting from character start and ending at character start + offset.
+substr:string (str:string,start:long, stop:long)
+Return the substring of str starting from character start and ending at character stop.
 
 .TP
 isinstr:long (s1:string, s2:string)
