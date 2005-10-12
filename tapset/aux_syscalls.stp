@@ -1,0 +1,169 @@
+/*
+ * Return the 64 bit long value of the 
+ * scalar user space pointer parameter
+ * CALLERS:
+ *    kernel.syscall.time
+ *    kernel.syscall.stime
+ */
+function __uget_num:long(u_addr:long)
+%{
+        long long val = 0;
+        if(get_user(val,
+		   (unsigned long *)(unsigned long)THIS->u_addr))
+	{
+                THIS->__retvalue = -EFAULT;
+        } else
+                THIS->__retvalue = val;
+%}
+
+/*
+ * Return a time_t/subseconds_t  member value of 
+ * struct timeval user space  pointer  parameter
+ * CALLERS:
+ *    kernel.syscall.gettimeofday
+ *    kernel.syscall.settimeofday   
+ */
+function __uget_tv_m:long(u_addr:long,member:long)
+%{
+        struct timeval tv;
+        char *ptr = (char *)(unsigned long)THIS->u_addr;
+        size_t sz = sizeof(struct timeval);
+
+        if(copy_from_user(&tv,ptr,sz))
+                THIS->__retvalue = -EFAULT;
+        else if(THIS->member == 0)
+                THIS->__retvalue = tv.tv_sec;
+        else
+                THIS->__retvalue = tv.tv_usec;
+%}
+
+/*
+ * Return a integer member value of struct
+ * timezone user  space pointer  parameter
+ * CALLERS:
+ *    kernel.syscall.gettimeofday
+ *    kernel.syscall.settimeofday
+ */
+function __uget_tz_m:long(u_addr:long,member:long)
+%{
+        struct timezone tz;
+        char *ptr = (char *)(unsigned long)THIS->u_addr;
+        size_t sz = sizeof(struct timezone);
+
+        if(copy_from_user(&tz,ptr,sz))
+                THIS->__retvalue = -EFAULT;
+        else if(THIS->member == 0)
+                THIS->__retvalue = tz.tz_minuteswest;
+        else
+                THIS->__retvalue = tz.tz_dsttime;
+%}
+
+/*
+ * Return integer member value of struct 
+ * timex user  space  pointer  parameter
+ * CALLERS:
+ *    kernel.syscall.adjtimex
+ */
+function __uget_timex_m:long(u_addr:long,member:long)
+%{
+        struct timex tx;
+        char *ptr = (char *)(unsigned long)THIS->u_addr;
+        size_t sz = sizeof(struct timex);
+
+        if(copy_from_user(&tx,ptr,sz))
+                THIS->__retvalue = -EFAULT;
+        switch(THIS->member) {
+		case 0: THIS->__retvalue =  tx.modes;
+			break;
+                case 1: THIS->__retvalue =  tx.offset;
+                        break;
+                case 2: THIS->__retvalue =  tx.freq;
+                        break;
+                case 3: THIS->__retvalue =  tx.maxerror;
+                        break;
+                case 4: THIS->__retvalue =  tx.esterror;
+                        break;
+                case 5: THIS->__retvalue =  tx.status;
+                        break;
+                case 6: THIS->__retvalue =  tx.constant;
+                        break;
+                case 7: THIS->__retvalue =  tx.precision;
+                        break;
+                case 8: THIS->__retvalue =  tx.tolerance;
+                        break;
+                case 9: THIS->__retvalue =  tx.time.tv_sec;
+                        break;
+                case 10: THIS->__retvalue = tx.time.tv_usec;
+                        break;
+                case 11: THIS->__retvalue = tx.tick;
+                        break;
+		default: THIS->__retvalue = -1;
+	}
+%}
+
+/* 
+ * Return the  symbolic string  representation
+ * of the struct timex.mode member of adjtimex
+ * consult `man adjtimex` for more information
+ * CALLERS:
+ *    kernel.syscall.adjtimex
+ */
+function _adjtx_mode_str(f) {
+   if((f & 32769) == 32769) bs="ADJ_OFFSET_SINGLESHOT|".bs
+   if(f  & 16384) bs="ADJ_TICK|".bs
+   if(f  & 32)    bs="ADJ_TIMECONST|".bs
+   if(f  & 16)    bs="ADJ_STATUS|".bs
+   if(f  & 8)     bs="ADJ_ESTERROR|".bs
+   if(f  & 4)     bs="ADJ_MAXERROR|".bs
+   if(f  & 2)     bs="ADJ_FREQUENCY|".bs
+   if(f & 1 && ((f & 32769) != 32769)) bs="ADJ_OFFSET|".bs
+   return substr(bs,0,strlen(bs)-1)
+}
+
+/*
+ * Return the clock_t member  value of the 
+ * struct tms user space pointer parameter
+ * CALLERS:
+ *    kernel.syscall.times 
+ */
+%{ #include <linux/times.h> %}
+function __uget_tms_m:long(u_addr:long,member:long)
+%{
+        struct tms tms;
+        char *ptr = (char *)(unsigned long)THIS->u_addr;
+        size_t sz = sizeof(struct tms);
+
+        if(copy_from_user(&tms,ptr,sz))
+                THIS->__retvalue = -EFAULT;
+        switch(THIS->member) {
+                case 0: THIS->__retvalue =  tms.tms_utime;
+                        break;
+                case 1: THIS->__retvalue =  tms.tms_stime;
+                        break;
+                case 2: THIS->__retvalue =  tms.tms_cutime;
+                        break;
+                case 3: THIS->__retvalue =  tms.tms_cstime;
+                        break;
+                default: THIS->__retvalue = -1;
+        }
+%}
+
+/*
+ * Return a time_t / long  member  value of the
+ * struct timespec user space pointer parameter
+ * CALLERS:
+ *    kernel.syscall.nanosleep
+ */
+function __uget_ts_m:long(u_addr:long,member:long)
+%{
+        struct timespec ts;
+        char *ptr = (char *)(unsigned long)THIS->u_addr;
+        size_t sz = sizeof(struct timespec);
+
+        if(copy_from_user(&ts,ptr,sz))
+                THIS->__retvalue = -EFAULT;
+        else if(THIS->member == 0)
+                THIS->__retvalue = ts.tv_sec;
+        else
+                THIS->__retvalue = ts.tv_nsec;
+%}

@@ -8,271 +8,299 @@
 // later version.
 
 # time_____________________________________________
-/* asmlinkage long sys_time(time_t __user * tloc) */
+/*
+ * asmlinkage long
+ * sys_time(time_t __user * tloc)
+ */
 probe kernel.syscall.time = 
-	kernel.function("sys_time") {
-		name = "time"
-	}
-
+   kernel.function("sys_time") {
+      name = "time"
+      t = __uget_num($tloc)	
+   }
 probe kernel.syscall.time.return = 
-	kernel.function("sys_time").return {
-		name = "time.return"
-		/*
-		t = $tloc
-		*/
-	}
+   kernel.function("sys_time").return {
+      name = "time.return"
+      /*
+      t = __uget_num($tloc)
+      */
+   }
 # stime____________________________________________
-/* asmlinkage long sys_stime(time_t __user *tptr) */
+/*
+ * asmlinkage long
+ * sys_stime(time_t __user *tptr)
+ */
 probe kernel.syscall.stime = 
-	kernel.function("sys_stime") {
-		name = "stime"
-		/*
-		t = $tptr
-		*/
-	}
-
+   kernel.function("sys_stime") {
+      name = "stime"	
+      t = __uget_num($tptr)
+   }
 probe kernel.syscall.stime.return = 
-	kernel.function("sys_stime").return {
-		name = "stime.return"
-                /* 
-                t = $tptr
-		*/
-	}
+   kernel.function("sys_stime").return {
+      name = "stime.return"
+      /* 
+      t = __uget_num($tptr)
+      */
+   }
 # gettimeofday_____________________________________
-/* asmlinkage long 
-   sys_gettimeofday(struct timeval __user *tv, 
-		    struct timezone __user *tz) */
+/* 
+ * asmlinkage long 
+ * sys_gettimeofday(struct timeval  __user *tv, 
+ *		    struct timezone __user *tz)
+ */
 probe kernel.syscall.gettimeofday = 
-	kernel.function("sys_gettimeofday") {
-		name = "gettimeofday"
-	}
-
+   kernel.function("sys_gettimeofday") {
+      name = "gettimeofday"
+      tv_tv_sec         = __uget_tv_m($tv,0)
+      tv_tv_usec        = __uget_tv_m($tv,1)
+      tz_tz_minuteswest = __uget_tz_m($tz,0)
+      tz_tz_dsttime     = __uget_tz_m($tz,1)
+   }
 probe kernel.syscall.gettimeofday.return = 
-	kernel.function("sys_gettimeofday").return {
-		name = "gettimeofday.return"
-		/*
-		tv_sec = $tv->tv_sec
-		tv_usec = $tv->tv_usec
-		tz_minuteswest = $tz->tz_minuteswest
-		tz_dsttime = $tz->tz_dsttime
-		*/
-	}
+   kernel.function("sys_gettimeofday").return {
+      name = "gettimeofday.return"
+      /*
+      tv_tv_sec         = __uget_tv_m($tv,0)
+      tv_tv_usec        = __uget_tv_m($tv,1)
+      tz_tz_minuteswest = __uget_tz_m($tz,0)
+      tz_tz_dsttime     = __uget_tz_m($tz,1)
+      */
+   }
 # settimeofday_____________________________________
-/* asmlinkage long 
-   sys_settimeofday(struct timeval __user *tv, 
-		    struct timezone __user *tz) */
+/* 
+ * asmlinkage long 
+ * sys_settimeofday(struct timeval __user *tv, 
+ *		    struct timezone __user *tz)
+ */
 probe kernel.syscall.settimeofday = 
-	kernel.function("sys_settimeofday") {
-		name = "settimeofday"
-                /*
-                tv_sec = $tv->tv_sec
-                tv_usec = $tv->tv_usec
-                tz_minuteswest = $tz->tz_minuteswest
-                tz_dsttime = $tz->tz_dsttime
-                */
-	}
-
+   kernel.function("sys_settimeofday") {
+      name = "settimeofday"
+      tv_tv_sec         = __uget_tv_m($tv,0)
+      tv_tv_usec        = __uget_tv_m($tv,1)
+      tz_tz_minuteswest = __uget_tz_m($tz,0)
+      tz_tz_dsttime     = __uget_tz_m($tz,1)
+   }
 probe kernel.syscall.settimeofday.return = 
-	kernel.function("sys_settimeofday").return {
-		name = "settimeofday.return"
-                /*
-                tv_sec = $tv->tv_sec
-                tv_usec = $tv->tv_usec
-                tz_minuteswest = $tz->tz_minuteswest
-                tz_dsttime = $tz->tz_dsttime
-                */
-	}
+   kernel.function("sys_settimeofday").return {
+      name = "settimeofday.return"
+      /*
+      tv_tv_sec         = __uget_tv_m($tv,0)
+      tv_tv_usec        = __uget_tv_m($tv,1)
+      tz_tz_minuteswest = __uget_tz_m($tz,0)
+      tz_tz_dsttime     = __uget_tz_m($tz,1)
+      */
+   }
 # adjtimex_________________________________________
-/* asmlinkage long sys_adjtimex(struct timex __user *txc_p) */
+/* 
+ * asmlinkage long 
+ * sys_adjtimex(struct timex __user *txc_p)
+ */
 probe kernel.syscall.adjtimex = 
-	kernel.function("sys_adjtimex") {
-		name = "adjtimex"
-		/*
-		modes = $txc_p->modes
-		modes_str = sys_adjtimex_mode_str($txc_p->modes)
-		offset = $txc_p->offset
-		freq = $txc_p->freq
-		maxerror = $txc_p->maxerror
-		esterror = $txc_p->esterror
-		status = $txc_p->status
-		constant = $txc_p->constant
-		precision = $txc_p->precision
-		tolerance = $txc_p->tolerance
-
-		tv_sec = $txc_p->time->tv_sec
-		tv_usec = $txc_p->time->tv_usec
-		tick = $txc_p->tick
-		*/
-	}
-
+   kernel.function("sys_adjtimex") {
+      name = "adjtimex"
+      buf_modes        = __uget_timex_m($txc_p,0)
+      buf_modes_str  = _adjtx_mode_str(buf_modes)
+      buf_offset       = __uget_timex_m($txc_p,1)
+      buf_freq         = __uget_timex_m($txc_p,2)
+      buf_maxerror     = __uget_timex_m($txc_p,3)
+      buf_esterror     = __uget_timex_m($txc_p,4)
+      buf_status       = __uget_timex_m($txc_p,5)
+      buf_constant     = __uget_timex_m($txc_p,6)
+      buf_precision    = __uget_timex_m($txc_p,7)
+      buf_tolerance    = __uget_timex_m($txc_p,8)
+      buf_time_tv_sec  = __uget_timex_m($txc_p,9)
+      buf_time_tv_usec = __uget_timex_m($txc_p,10)
+      buf_tick         = __uget_timex_m($txc_p,11)
+   }
 probe kernel.syscall.adjtimex.return = 
-	kernel.function("sys_adjtimex").return {
-		name = "adjtimex.return"
-                /* 
-                modes = $txc_p->modes
-		modes_str = sys_adjtimex_mode_str($txc_p->modes)
-                offset = $txc_p->offset
-                freq = $txc_p->freq
-                maxerror = $txc_p->maxerror
-                esterror = $txc_p->esterror
-                status = $txc_p->status
-                constant = $txc_p->constant
-                precision = $txc_p->precision
-                tolerance = $txc_p->tolerance
+   kernel.function("sys_adjtimex").return {
+      name = "adjtimex.return"
+      /* 
+      buf_modes        = __uget_timex_m($txc_p,0)
+      buf_modes_str  = _adjtx_mode_str(buf_modes)
+      buf_offset       = __uget_timex_m($txc_p,1)
+      buf_freq         = __uget_timex_m($txc_p,2)
+      buf_maxerror     = __uget_timex_m($txc_p,3)
+      buf_esterror     = __uget_timex_m($txc_p,4)
+      buf_status       = __uget_timex_m($txc_p,5)
+      buf_constant     = __uget_timex_m($txc_p,6)
+      buf_precision    = __uget_timex_m($txc_p,7)
+      buf_tolerance    = __uget_timex_m($txc_p,8)
+      buf_time_tv_sec  = __uget_timex_m($txc_p,9)
+      buf_time_tv_usec = __uget_timex_m($txc_p,10)
+      buf_tick         = __uget_timex_m($txc_p,11)
 
-                tv_sec = $txc_p->time->tv_sec
-                tv_usec = $txc_p->time->tv_usec
-                tick = $txc_p->tick
-        +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		
-        RETURN VALUE
-                On success, adjtimex returns the clock state:
+      TODO+++++++++++++++++++++++++++++++++++++++++		
+      RETURN VALUE
+      On success, adjtimex returns the clock state:
 
-                #define TIME_OK   0  clock synchronized
-                #define TIME_INS  1  insert leap second
-                #define TIME_DEL  2  delete leap second
-                #define TIME_OOP  3  leap second in progress
-                #define TIME_WAIT 4  leap second has occurred
-                #define TIME_BAD  5  clock not synchronized
+      #define TIME_OK   0  clock synchronized
+      #define TIME_INS  1  insert leap second
+      #define TIME_DEL  2  delete leap second
+      #define TIME_OOP  3  leap second in progress
+      #define TIME_WAIT 4  leap second has occurred
+      #define TIME_BAD  5  clock not synchronized
 
-		NOTE: Once $retval built-in is working it would
-		      be nice to export a symbolic name string
-		      corresponding to the return value.
-	
-		      i.e. clockstate = get_clock_state($retval)
-                */
-	}
+      NOTE: Once $retval built-in is working it would
+            be nice to export a symbolic name string
+	    corresponding to the return value.
+	    i.e. clockstate = get_clock_state($retval)
+      */
+   }
 # times____________________________________________
-/* asmlinkage long sys_times(struct tms __user * tbuf) */
+/*
+ * asmlinkage long
+ * sys_times(struct tms __user * tbuf) 
+ */
 probe kernel.syscall.times = 
-	kernel.function("sys_times") {
-		name = "times"
-	}
-
+   kernel.function("sys_times") {
+      name = "times"
+      buf_tms_utime  = __uget_tms_m($tbuf,0)
+      buf_tms_stime  = __uget_tms_m($tbuf,1)
+      buf_tms_cutime = __uget_tms_m($tbuf,2)
+      buf_tms_cstime = __uget_tms_m($tbuf,3)
+   }
 probe kernel.syscall.times.return = 
-	kernel.function("sys_times").return {
-		name = "times.return"
-		/*
-		tms_utime = $tbuf->tms_utime
-		tms_stime = $tbuf->tms_stime
-		tms_cutime = $tbuf->tms_cutime
-		tms_cstime = $tbuf->tms_cstime
-		*/
-	}
+   kernel.function("sys_times").return {
+      name = "times.return"
+      /*
+      buf_tms_utime  = __uget_tms_m($tbuf,0)
+      buf_tms_stime  = __uget_tms_m($tbuf,1)
+      buf_tms_cutime = __uget_tms_m($tbuf,2)
+      buf_tms_cstime = __uget_tms_m($tbuf,3)
+      */
+   }
 # gettid___________________________________________
-/* asmlinkage long sys_gettid(void) */
+/* 
+ * asmlinkage long
+ * sys_gettid(void) 
+ */
 probe kernel.syscall.gettid = 
-	kernel.function("sys_gettid") {
-		name = "gettid"
-	}
-
+   kernel.function("sys_gettid") {
+      name = "gettid"
+   }
 probe kernel.syscall.gettid.return = 
-	kernel.function("sys_gettid").return {
-		name = "gettid.return"
-	}
+   kernel.function("sys_gettid").return {
+      name = "gettid.return"
+   }
 # nanosleep________________________________________
-/* asmlinkage long sys_nanosleep(struct timespec __user *rqtp, 
-				 struct timespec __user *rmtp) */
+/* 
+ * asmlinkage long 
+ * sys_nanosleep(struct timespec __user *rqtp, 
+ *               struct timespec __user *rmtp)
+ */
 probe kernel.syscall.nanosleep = 
-	kernel.function("sys_nanosleep") {
-		name = "nanosleep"
-		/*
-		req_tv_sec = $rqtp->tv_sec
-		req_tv_usec = $rqtp->tv_usec
-		rem_tv_sec = $rmtp->tv_sec
-		rem_tv_usec = $rmtp->tv_usec
-		*/
-	}
-
+   kernel.function("sys_nanosleep") {
+      name = "nanosleep"
+      req_tv_sec  = __uget_ts_m($rqtp,0)
+      req_tv_nsec = __uget_ts_m($rqtp,1)
+      rem_tv_sec  = __uget_ts_m($rmtp,0)
+      rem_tv_nsec = __uget_ts_m($rmtp,1)
+   }
 probe kernel.syscall.nanosleep.return = 
-	kernel.function("sys_nanosleep").return {
-		name = "nanosleep.return"
-                /*
-                req_tv_sec = $rqtp->tv_sec
-                req_tv_usec = $rqtp->tv_usec
-                rem_tv_sec = $rmtp->tv_sec
-                rem_tv_usec = $rmtp->tv_usec
-                */
-	}
+   kernel.function("sys_nanosleep").return {
+      name = "nanosleep.return"
+      /*
+      req_tv_sec  = __uget_ts_m($rqtp,0)
+      req_tv_nsec = __uget_ts_m($rqtp,1)
+      rem_tv_sec  = __uget_ts_m($rmtp,0)
+      rem_tv_nsec = __uget_ts_m($rmtp,1)
+      */
+   }
 # alarm____________________________________________
-/* asmlinkage unsigned long sys_alarm(unsigned int seconds) */
+/*
+ * asmlinkage unsigned long 
+ * sys_alarm(unsigned int seconds)
+ */
 probe kernel.syscall.alarm = 
-	kernel.function("sys_alarm") {
-		name = "alarm"
-		seconds = $seconds
-	}
-
+   kernel.function("sys_alarm") {
+      name = "alarm"
+      seconds = $seconds
+   }
 probe kernel.syscall.alarm.return = 
-	kernel.function("sys_alarm").return {
-		name = "alarm.return"
-		seconds = $seconds
-	}
+   kernel.function("sys_alarm").return {
+      name = "alarm.return"
+      /*
+      seconds = $seconds
+      */
+   }
 # getpid___________________________________________
-/* asmlinkage long sys_getpid(void) */
+/*
+ * asmlinkage long
+ * sys_getpid(void)
+ */
 probe kernel.syscall.getpid = 
-	kernel.function("sys_getpid") {
-		name = "getpid"
-	}
-
+   kernel.function("sys_getpid") {
+      name = "getpid"
+   }
 probe kernel.syscall.getpid.return = 
-	kernel.function("sys_getpid").return {
-		name = "getpid.return"
-	}
+   kernel.function("sys_getpid").return {
+      name = "getpid.return"
+   }
 # getppid__________________________________________
-/* asmlinkage long sys_getppid(void) */
+/* 
+ * asmlinkage long 
+ * sys_getppid(void)
+ */
 probe kernel.syscall.getppid = 
-	kernel.function("sys_getppid") {
-		name = "getppid"
-	}
-
+   kernel.function("sys_getppid") {
+      name = "getppid"
+   }
 probe kernel.syscall.getppid.return = 
-	kernel.function("sys_getppid").return {
-		name = "getppid.return"
-	}
+   kernel.function("sys_getppid").return {
+      name = "getppid.return"
+   }
 # getuid___________________________________________
-/* asmlinkage long sys_getuid(void) */
+/* 
+ * asmlinkage long 
+ * sys_getuid(void)
+ */
 probe kernel.syscall.getuid = 
-	kernel.function("sys_getuid") {
-		name = "getuid"
-	}
-
+   kernel.function("sys_getuid") {
+      name = "getuid"
+   }
 probe kernel.syscall.getuid.return = 
-	kernel.function("sys_getuid").return {
-		name = "getuid.return"
-	}
+   kernel.function("sys_getuid").return {
+      name = "getuid.return"
+   }
 # geteuid__________________________________________
-/* asmlinkage long sys_geteuid(void) */
+/* 
+ * asmlinkage long 
+ * sys_geteuid(void) 
+ */
 probe kernel.syscall.geteuid = 
-	kernel.function("sys_geteuid") {
-		name = "geteuid"
-	}
-
+   kernel.function("sys_geteuid") {
+      name = "geteuid"
+   }
 probe kernel.syscall.geteuid.return = 
-	kernel.function("sys_geteuid").return {
-		name = "geteuid.return"
-	}
+   kernel.function("sys_geteuid").return {
+      name = "geteuid.return"
+   }
 # getgid___________________________________________
-/* asmlinkage long sys_getgid(void) */
+/* 
+ * asmlinkage long 
+ * sys_getgid(void)
+ */
 probe kernel.syscall.getgid = 
-	kernel.function("sys_gid") {
-		name = "getgid"
-	}
-
+   kernel.function("sys_gid") {
+      name = "getgid"
+   }
 probe kernel.syscall.getgid.return = 
-	kernel.function("sys_gid").return {
-		name = "getgid.return"
-	}
+   kernel.function("sys_gid").return {
+      name = "getgid.return"
+   }
 # getegid__________________________________________
-/* asmlinkage long sys_getegid(void) */
+/* 
+ * asmlinkage long 
+ * sys_getegid(void)
+ */
 probe kernel.syscall.getegid = 
-	kernel.function("sys_getegid") {
-		name = "getegid"
-	}
-
+   kernel.function("sys_getegid") {
+      name = "getegid"
+   }
 probe kernel.syscall.getegid.return = 
-	kernel.function("sys_getegid").return {
-		name = "getegid.return"
-	}
+   kernel.function("sys_getegid").return {
+      name = "getegid.return"
+   }
 # getresuid________________________________________
 /* asmlinkage long sys_getresuid(uid_t __user *ruid, 
 				 uid_t __user *euid, 
@@ -6582,19 +6610,6 @@ function _flock_cmd_str(c) {
    if(c & 2) bs="LOCK_EX|".bs
    if(c & 8) bs="LOCK_UN|".bs
    if(c & 4) bs="LOCK_NB|".bs
-   return substr(bs,0,strlen(bs)-1)
-}
-
-/* `man adjtimex` for more information */
-function _sys_adjtimex_mode_str(f) {
-   if((f & 32769) == 32769) bs="ADJ_OFFSET_SINGLESHOT|".bs
-   if(f & 16384) bs="ADJ_TICK|".bs
-   if(f & 32) bs="ADJ_TIMECONST|".bs
-   if(f & 16) bs="ADJ_STATUS|".bs
-   if(f & 8) bs="ADJ_ESTERROR|".bs
-   if(f & 4) bs="ADJ_MAXERROR|".bs
-   if(f & 2) bs="ADJ_FREQUENCY|".bs
-   if(f & 1 && ((f & 32769) != 32769)) bs="ADJ_OFFSET|".bs
    return substr(bs,0,strlen(bs)-1)
 }
 
