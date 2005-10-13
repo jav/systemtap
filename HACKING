@@ -65,7 +65,7 @@ the <systemtap@sources.redhat.com> mailing list.
   conflicts with user and other tapset code.
 
   It may be necessary to prefix symbols with the tapset name to ensure
-  tapset-wide uniqueness.  All "external interfaces" expected to be
+  systemtap-wide uniqueness.  All "external interfaces" expected to be
   used by user scripts (or perhaps other tapsets) should be documented
   in stapfuncs.5, stapprobes.5.  Internal function, variable, probe
   identifiers should be prefixed with "_" for extra uniqueness, and
