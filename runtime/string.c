@@ -62,6 +62,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 				_stp_pbuf_len[cpu] = STP_PRINT_BUF_LEN;
 				_stp_print_flush();
 			} else {
+				*buf ='\0';
 				_stp_print_flush();
 				va_start(args, fmt);
 				_stp_vsprintf(_stp_stdout, fmt, args); 

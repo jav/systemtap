@@ -1,3 +1,9 @@
+2005-10-14  Tom Zanussi  <zanussi@us.ibm.com>
+
+	PR 1455
+	* string.c (_stp_sprintf): Restore overwritten NULL byte.
+	* print.c: Change STP_PRINT_BUF_LEN to correct size.
+
 2005-10-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1332.

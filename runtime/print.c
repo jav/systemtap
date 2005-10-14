@@ -66,7 +66,7 @@ void _stp_print_flush (void)
 
 /** Size of buffer, not including terminating NULL */
 #ifndef STP_PRINT_BUF_LEN
-#define STP_PRINT_BUF_LEN (8192 - TIMESTAMP_SIZE - 2)
+#define STP_PRINT_BUF_LEN (8192 - TIMESTAMP_SIZE - 1)
 #endif
 
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
