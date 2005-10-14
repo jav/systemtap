@@ -99,8 +99,6 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
   Dwarf_Die die_mem, *die = vardie;
   while (*fields != NULL)
     {
-      die = dwarf_formref_die (&attr_mem, &die_mem);
-
       if (!strcmp (*fields, "="))
 	{
 	  store = true;
@@ -108,6 +106,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 	    error (2, 0, _("extra fields after ="));
 	  break;
 	}
+
+      die = dwarf_formref_die (&attr_mem, &die_mem);
 
       const int typetag = dwarf_tag (die);
       switch (typetag)
