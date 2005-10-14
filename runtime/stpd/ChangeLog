@@ -1,3 +1,12 @@
+2005-10-14  Tom Zanussi  <zanussi@us.ibm.com>
+
+	PR 1476
+	* librelay.c: Add flag for buffer processing.
+	(reader_thread): Disable/enable cancel state around buffer
+	processing, and update flag to show we're busy processing.
+	(cleanup_and_exit): Wait for any threads busy processing.
+	(stp_main_loop): Initialize processing mutex.
+
 2005-09-06  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c: Remove all USE_PROCFS ifdefs.
