@@ -5,7 +5,11 @@
  * @brief Header file for relayfs transport
  */
 
+#ifdef RELAYFS_VERSION_GE_4
 #include <linux/relayfs_fs.h>
+#else
+#include "../relayfs/linux/relayfs_fs.h"
+#endif /* RELAYFS_VERSION_GE_4 */
 
 struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 				unsigned subbuf_size,

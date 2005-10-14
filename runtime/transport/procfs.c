@@ -31,8 +31,13 @@ _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 		return -EINVAL;
 
 	out.cpu = cpu;
+#ifdef RELAYFS_VERSION_GE_4
+	out.produced = _stp_chan->buf[cpu]->subbufs_produced;
+	out.consumed = _stp_chan->buf[cpu]->subbufs_consumed;
+#else
 	out.produced = atomic_read(&_stp_chan->buf[cpu]->subbufs_produced);
 	out.consumed = atomic_read(&_stp_chan->buf[cpu]->subbufs_consumed);
+#endif /* RELAYFS_VERSION_GE_4 */
 
 	num = sizeof(out);
 	if (copy_to_user(buf, &out, num))

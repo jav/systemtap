@@ -75,9 +75,15 @@ int _stp_transport_write (void *data, int len)
 static void _stp_handle_buf_info(int *cpuptr)
 {
 	struct buf_info out;
+
 	out.cpu = *cpuptr;
+#ifdef RELAYFS_VERSION_GE_4
+	out.produced = _stp_chan->buf[*cpuptr]->subbufs_produced;
+	out.consumed = _stp_chan->buf[*cpuptr]->subbufs_consumed;
+#else
 	out.produced = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_produced);
 	out.consumed = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_consumed);
+#endif /* RELAYFS_VERSION_GE_4 */
 
 	_stp_transport_send(STP_BUF_INFO, &out, sizeof(out));
 }

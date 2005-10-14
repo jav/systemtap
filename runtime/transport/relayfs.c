@@ -20,6 +20,29 @@
 
 #include "relayfs.h"
 
+#ifdef RELAYFS_VERSION_GE_4
+
+/**
+ *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
+ */
+static int _stp_subbuf_start(struct rchan_buf *buf,
+			     void *subbuf,
+			     void *prev_subbuf,
+			     unsigned int prev_padding)
+{
+	if (relay_buf_full(buf))
+		return 0;
+
+	if (prev_subbuf)
+		*((unsigned *)prev_subbuf) = prev_padding;
+
+	subbuf_start_reserve(buf, sizeof(prev_padding));
+
+	return 1;
+}
+
+#else
+
 /**
  *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
  */
@@ -46,11 +69,15 @@ static void _stp_buf_full(struct rchan_buf *buf,
 	*((unsigned *)subbuf) = padding;
 }
 
+#endif /* RELAYFS_VERSION_GE_4 */
+
 /* relayfs callback functions */
 static struct rchan_callbacks stp_rchan_callbacks =
 {
 	.subbuf_start = _stp_subbuf_start,
+#ifndef RELAYFS_VERSION_GE_4
 	.buf_full = _stp_buf_full,
+#endif /* RELAYFS_VERSION_GE_4 */
 };
 
 /**
@@ -97,8 +124,14 @@ struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 		return NULL;
 	}
 
+#ifdef RELAYFS_VERSION_GE_4
+	chan = relay_open("cpu", dir, subbuf_size,
+			  n_subbufs, &stp_rchan_callbacks);
+#else
 	chan = relay_open("cpu", dir, subbuf_size,
 			  n_subbufs, 0, &stp_rchan_callbacks);
+#endif /* RELAYFS_VERSION_GE_4 */
+
 	if (!chan) {
 		printk("STP: couldn't create relayfs channel.\n");
 		if (dir)
