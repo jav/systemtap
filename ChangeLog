@@ -1,4 +1,34 @@
+2005-10-14  Roland McGrath  <roland@redhat.com>
+
+	PR 1271.
+	* loc2c.c (translate): Set LOC->byte_size in loc_noncontiguous result.
+	(struct location.address): New member `declare'.
+	(new_synthetic_loc, translate): Initialize it.
+	(struct location.type): Add loc_fragment, loc_decl to enum.
+	(c_emit_location): Emit unadorned code for loc_fragment.
+	(discontiguify): New function.
+	(c_translate_fetch, c_translate_store): Call it.
+	(get_bitfield): New function, broken out of ....
+	(emit_bitfield): ... here.  Function removed.
+	(declare_noncontig_union): New function.
+	(max_fetch_size): New function.
+	(translate_base_fetch): New function, broken out of ...
+	(c_translate_fetch): ... here.  Call it.
+	Use get_bitfield here, not emit_bitfield.
+	(c_translate_store): Likewise.
+	(c_emit_location): Emit declarations first.
+
+	* loc2c.c (dwarf_diename_integrate): Function removed.
+	Change all callers to use dwarf_diename.
+
+	* loc2c-test.c (handle_variable): Check for "=" before fetching DIE
+	from ATTR_MEM.
+
 2005-10-13  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (c_emit_location): Use final location's used_deref flag too.
+
+	* loc2c.c (translate): Pass LOC to alloc_location, not INPUT.
 
 	* loc2c-test.c (fail): Print a newline after the error message.
 
