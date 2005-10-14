@@ -39,6 +39,8 @@ fail (void *arg __attribute__ ((unused)), const char *fmt, ...)
   vfprintf (stderr, _(fmt), ap);
   va_end (ap);
 
+  fprintf (stderr, "\n");
+
   exit (2);
 }
 
