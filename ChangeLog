@@ -1,3 +1,7 @@
+2005-10-13  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-test.c (fail): Print a newline after the error message.
+
 2005-10-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* elaborate.cxx (match_node::bind): Improve error message.
