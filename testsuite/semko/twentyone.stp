@@ -1,0 +1,8 @@
+#! stap -p4
+
+# tests that an inline function is *not* matched using
+# the function() pattern
+
+probe kernel.function("context_switch") {
+  log ("found an inline via function()")
+}

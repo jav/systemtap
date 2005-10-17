@@ -194,6 +194,7 @@ static string TOK_KERNEL("kernel");
 static string TOK_MODULE("module");
 
 static string TOK_FUNCTION("function");
+static string TOK_INLINE("inline");
 static string TOK_RETURN("return");
 static string TOK_CALLEES("callees");
 
@@ -1301,6 +1302,8 @@ struct dwarf_derived_probe : public derived_probe
 					  dwarf_builder * dw);
   static void register_function_variants(match_node * root,
 					  dwarf_builder * dw);
+  static void register_inline_variants(match_node * root,
+				       dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
@@ -1353,14 +1356,18 @@ dwarf_query
   string module_val;
   string function_val;
 
+  bool has_inline_str;
   bool has_function_str;
   bool has_statement_str;
+  bool has_inline_num;
   bool has_function_num;
   bool has_statement_num;
   string statement_str_val;
   string function_str_val;
+  string inline_str_val;
   Dwarf_Addr statement_num_val;
   Dwarf_Addr function_num_val;
+  Dwarf_Addr inline_num_val;
 
   bool has_callees;
   long callee_val;
@@ -1466,6 +1473,9 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   has_function_str = get_string_param(params, TOK_FUNCTION, function_str_val);
   has_function_num = get_number_param(params, TOK_FUNCTION, function_num_val);
 
+  has_inline_str = get_string_param(params, TOK_INLINE, inline_str_val);
+  has_inline_num = get_number_param(params, TOK_INLINE, inline_num_val);
+
   has_statement_str = get_string_param(params, TOK_STATEMENT, statement_str_val);
   has_statement_num = get_number_param(params, TOK_STATEMENT, statement_num_val);
 
@@ -1480,6 +1490,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
+  else if (has_inline_str)
+    spec_type = parse_function_spec(inline_str_val);
   else if (has_statement_str)
     spec_type = parse_function_spec(statement_str_val);
 }
@@ -1836,11 +1848,12 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
       if (q->sess.verbose)
 	clog << "examining inline instance of " << q->dw.function_name << endl;
 
-      if (q->has_function_str || q->has_statement_str)
+      if (q->has_inline_str || q->has_statement_str)
 	record_this_inline = true;
-      else if (q->has_function_num)
+
+      else if (q->has_inline_num)
 	{
-	  Dwarf_Addr query_addr = q->function_num_val;
+	  Dwarf_Addr query_addr = q->inline_num_val;
       
 	  if (q->has_module)
 	    query_addr = q->dw.module_address_to_global(query_addr);
@@ -1894,16 +1907,16 @@ query_dwarf_func (Dwarf_Func * func, void * arg)
       q->dw.focus_on_function (func);
 
       if (q->dw.func_is_inline () 
-	  && (((q->has_statement_str || q->has_function_str)
+	  && (((q->has_statement_str || q->has_inline_str)
 	       && q->dw.function_name_matches(q->function))
-	      || q->has_function_num))
+	      || q->has_inline_num))
 	{
 	  if (q->sess.verbose)
 	    clog << "checking instances of inline " << q->dw.function_name << endl;
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
 	}
-      else
-	{      
+      else if (!q->dw.func_is_inline ())
+	{ 
 	  bool record_this_function = false;
 
 	  if ((q->has_statement_str || q->has_function_str)
@@ -1967,7 +1980,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
         clog << "focused on CU '" << q->dw.cu_name
              << "', in module '" << q->dw.module_name << "'" << endl;
 
-      if (q->has_statement_str || q->has_function_str || q->has_function_num)
+      if (q->has_statement_str 
+	  || q->has_inline_str || q->has_inline_num
+	  || q->has_function_str || q->has_function_num)
 	{
 	  q->filtered_srcfiles.clear();
 	  q->filtered_functions.clear();
@@ -1979,7 +1994,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // associated addresses. Unfortunately the control of this
 	  // cannot easily be turned inside out.
 
-	  if ((q->has_statement_str || q->has_function_str)
+	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
 	      && (q->spec_type != function_alone))
 	    {
 	      // If we have a pattern string with a filename, we need
@@ -1999,7 +2014,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  q->dw.resolve_prologue_endings (q->filtered_functions);
 	  q->dw.resolve_prologue_endings2 (q->filtered_functions);
 
-	  if ((q->has_statement_str || q->has_function_str)
+	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
 	      && (q->spec_type == function_file_and_line))
 	    {
 	      // If we have a pattern string with target *line*, we
@@ -2011,15 +2026,18 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    }
 	  else
 	    {
-	      // Otherwise, simply probe all resolved functions...
-	      for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
-		   i != q->filtered_functions.end(); ++i)
-		query_func_info (i->first, i->second, q);
-
-	      // And all inline instances.
-	      for (map<Dwarf_Addr, inline_instance_info>::iterator i 
-		     = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
-		query_inline_instance_info (i->first, i->second, q);
+	      // Otherwise, simply probe all resolved functions (if
+	      // we're scanning functions)
+	      if (q->has_statement_str || q->has_function_str || q->has_function_num)
+		for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+		     i != q->filtered_functions.end(); ++i)
+		  query_func_info (i->first, i->second, q);
+	      
+	      // Or all inline instances (if we're scanning inlines)
+	      if (q->has_statement_str || q->has_inline_str || q->has_inline_num)
+		for (map<Dwarf_Addr, inline_instance_info>::iterator i 
+		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
+		  query_inline_instance_info (i->first, i->second, q);
 
 	    }
 	}
@@ -2086,7 +2104,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	     << "-" << q->dw.module_end
 	     << ", bias " << q->dw.module_bias << "]" << dec << endl;
 
-      if (q->has_function_num || q->has_statement_num)
+      if (q->has_inline_num || q->has_function_num || q->has_statement_num)
         {
           // If we have module("foo").function(0xbeef) or
           // module("foo").statement(0xbeef), the address is relative
@@ -2096,6 +2114,8 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           Dwarf_Addr addr;
           if (q->has_function_num)
             addr = q->function_num_val;
+          else if (q->has_inline_num)
+            addr = q->inline_num_val;
           else
             addr = q->statement_num_val;
 
@@ -2113,7 +2133,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           // specifier, we have to scan over all the CUs looking for
           // the function(s) in question
 
-          assert(q->has_function_str || q->has_statement_str);
+          assert(q->has_function_str || q->has_inline_str || q->has_statement_str);
           q->dw.iterate_over_cus(&query_cu, q);
 
 	  // If we just processed the module "kernel", and the user asked for
@@ -2309,10 +2329,12 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
   string fn_or_stmt;
   if (q.has_function_str || q.has_function_num)
     fn_or_stmt = "function";
+  if (q.has_inline_str || q.has_inline_num)
+    fn_or_stmt = "inline";
   else
     fn_or_stmt = "statement";
 
-  if (q.has_function_str || q.has_statement_str)
+  if (q.has_function_str || q.has_inline_str || q.has_statement_str)
       {
         string retro_name = funcname;
 	if (filename && !string (filename).empty())
@@ -2323,11 +2345,13 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));
       }
-  else if (q.has_function_num || q.has_statement_num)
+  else if (q.has_function_num || q.has_inline_num || q.has_statement_num)
     {
       Dwarf_Addr retro_addr;
       if (q.has_function_num)
         retro_addr = q.function_num_val;
+      else if (q.has_inline_num)
+	retro_addr = q.inline_num_val;
       else
         retro_addr = q.statement_num_val;
 
@@ -2402,6 +2426,24 @@ dwarf_derived_probe::register_statement_variants(match_node * root,
 }
 
 void
+dwarf_derived_probe::register_inline_variants(match_node * root,
+					      dwarf_builder * dw)
+{
+  // Here we match 4 forms:
+  //
+  // .
+  // .callees
+  // .callees(N)
+  //
+  // The last form permits N-level callee resolving without any
+  // recursive .callees.callees.callees... pattern-matching on our part.
+
+  root->bind(dw);
+  root->bind(TOK_CALLEES)->bind(dw);
+  root->bind_num(TOK_CALLEES)->bind(dw);
+}
+
+void
 dwarf_derived_probe::register_function_variants(match_node * root,
 					      dwarf_builder * dw)
 {
@@ -2429,11 +2471,15 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
   //
   // .function("foo")
   // .function(0xdeadbeef)
+  // .inline("foo")
+  // .inline(0xdeadbeef)
   // .statement("foo")
   // .statement(0xdeadbeef)
 
   register_function_variants(root->bind_str(TOK_FUNCTION), dw);
   register_function_variants(root->bind_num(TOK_FUNCTION), dw);
+  register_inline_variants(root->bind_str(TOK_INLINE), dw);
+  register_inline_variants(root->bind_num(TOK_INLINE), dw);
   register_statement_variants(root->bind_str(TOK_STATEMENT), dw);
   register_statement_variants(root->bind_num(TOK_STATEMENT), dw);
 }
@@ -2717,15 +2763,20 @@ dwarf_builder::build(systemtap_session & sess,
 
   dw.setup(q.has_kernel || q.has_module);
 
-  if (q.has_kernel && (q.has_function_num || q.has_statement_num))
+  if (q.has_kernel && 
+      (q.has_function_num || q.has_inline_num || q.has_statement_num))
     {
       // If we have kernel.function(0xbeef), or
       // kernel.statement(0xbeef) the address is global (relative to
       // the kernel) and we can seek directly to the module and cudie
       // in question.
-      Dwarf_Addr a = (q.has_function_num
-		      ? q.function_num_val
-		      : q.statement_num_val);
+      Dwarf_Addr a;
+      if (q.has_function_num)
+	a = q.function_num_val;
+      else if (q.has_inline_num)
+	a = q.inline_num_val;
+      else 
+	a = q.statement_num_val;
       dw.focus_on_module_containing_global_address(a);
       dw.query_cu_containing_global_address(a, &q);
     }
@@ -2735,6 +2786,7 @@ dwarf_builder::build(systemtap_session & sess,
       // kernel.function("foo"); in these cases we need to scan all
       // the modules.
       assert((q.has_kernel && q.has_function_str) ||
+	     (q.has_kernel && q.has_inline_str) ||
 	     (q.has_kernel && q.has_statement_str) ||
 	     (q.has_module));
       if (q.has_kernel)

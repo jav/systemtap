@@ -1,0 +1,8 @@
+#! stap -p4
+
+# tests that a non-inline function is *not* matched using
+# the inline() pattern
+
+probe kernel.inline("sys_recv") {
+  log ("found a non-inline via inline()")
+}

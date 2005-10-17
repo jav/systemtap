@@ -1,3 +1,30 @@
+2005-10-17  Graydon Hoare  <graydon@redhat.com>
+
+	* testsuite/semko/twentyone.stp: Check function doesn't match inline.
+	
+	* testsuite/semko/twentytwo.stp: Check inline doesn't match function.
+
+	* testsuite/buildok/six.stp: Change "function" to "inline".
+
+	* stapprobes.5.in: Describe "inline" probes.
+
+	* tapsets.cxx (TOK_INLINE): New token "inline".
+	(dwarf_query::has_inline_str) 
+	(dwarf_query::has_inline_num) 
+	(dwarf_query::inline_str_val) 
+	(dwarf_query::inline_num_val): New members.
+	(dwarf_query::dwarf_query): Load new members. 
+	(query_dwarf_inline_instance)
+	(query_dwarf_func)
+	(query_cu)
+	(query_module)
+	(dwarf_derived_probe::add_probe_point)
+	(dwarf_builder::build): 
+	Use inline-related members where appropriate.	
+	(dwarf_derived_probe::register_inline_variants): New method.
+	(dwarf_derived_probe::register_function_and_statement_variants): 
+	Call it.
+
 2005-10-14  Roland McGrath  <roland@redhat.com>
 
 	PR 1271.

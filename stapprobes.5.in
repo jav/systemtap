@@ -95,8 +95,17 @@ variant places a probe near the beginning of the named function, so that
 parameters are available as context variables.  The
 .B .return
 variant places a probe at the moment of return from the named function, so
-the return value is available as the "$retvalue" context variable.
+the return value is available as the "$retvalue" context variable. 
 The
+.B .inline
+variant is similar to 
+.B .function
+but probes inline functions. Inline functions do not have an identifiable
+return point, so 
+.B .return
+is not supported on 
+.B .inline
+probes. The
 .B .statement
 variant places a probe at the exact spot, exposing those local variables
 that are visible there.
@@ -105,9 +114,13 @@ kernel.function(PATTERN)
 .br
 kernel.function(PATTERN).return
 .br
+kernel.inline(PATTERN)
+.br
 module(MPATTERN).function(PATTERN)
 .br
 module(MPATTERN).function(PATTERN).return
+.br
+module(MPATTERN).inline(PATTERN)
 .br
 kernel.statement(PATTERN)
 .br
