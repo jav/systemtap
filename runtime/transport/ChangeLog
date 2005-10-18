@@ -1,3 +1,10 @@
+2005-10-17  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_handle_start): Grab semaphore before
+	calling probe_start() and release after it is done.
+	(_stp_handle_exit): Ditto for exiting. This prevents
+	exiting before probe_start() is finished.
+
 2005-10-14  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* relayfs.h: Add ifdef'ed relayfs_fs.h include for mainline

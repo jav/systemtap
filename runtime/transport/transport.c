@@ -19,6 +19,8 @@ static struct rchan *_stp_chan;
 static struct dentry *_stp_dir;
 #endif
 
+static DECLARE_MUTEX(_stp_start_mutex);
+
 static int _stp_dpid;
 static int _stp_pid;
 
@@ -95,7 +97,11 @@ static void _stp_handle_buf_info(int *cpuptr)
 void _stp_handle_start (struct transport_start *st)
 {
 	kbug ("stp_handle_start pid=%d\n", st->pid);
+
+	down (&_stp_start_mutex);
 	st->pid = probe_start();
+	up (&_stp_start_mutex);
+
 	if (st->pid < 0) 
 		_stp_exit_called = 1;
 	_stp_transport_send(STP_START, st, sizeof(*st));
@@ -140,7 +146,9 @@ static void _stp_cleanup_and_exit (int closing)
  */
 static void _stp_handle_exit (void *data)
 {
+	down (&_stp_start_mutex);
 	_stp_cleanup_and_exit(0);
+	up (&_stp_start_mutex);
 }
 
 /**
