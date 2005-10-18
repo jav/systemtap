@@ -108,7 +108,6 @@ struct be_builder: public derived_probe_builder
 		     probe * base,
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
-		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results)
   {
     finished_results.push_back(new be_derived_probe(base, location, begin));
@@ -1407,7 +1406,6 @@ struct dwarf_builder: public derived_probe_builder
 		     probe * base,
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
-		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results);
 };
 
@@ -2011,8 +2009,11 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
 	  q->dw.iterate_over_functions (query_dwarf_func, q);
-	  q->dw.resolve_prologue_endings (q->filtered_functions);
-	  q->dw.resolve_prologue_endings2 (q->filtered_functions);
+          if (! q->filtered_functions.empty()) // No functions in this CU to worry about?
+            {
+              q->dw.resolve_prologue_endings (q->filtered_functions);
+              q->dw.resolve_prologue_endings2 (q->filtered_functions);
+            }
 
 	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
 	      && (q->spec_type == function_file_and_line))
@@ -2754,7 +2755,6 @@ dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
-		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results)
 {
 
@@ -2916,7 +2916,6 @@ struct timer_builder: public derived_probe_builder
 		     probe * base,
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
-		     vector<probe *> &,
 		     vector<derived_probe *> & finished_results)
   {
     int64_t jn, rn;

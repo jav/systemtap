@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -p2
 
 # tests that a non-inline function is *not* matched using
 # the inline() pattern

@@ -563,35 +563,28 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
 
   while (1)
     {
-      const token *t = peek ();
-      if (t && t->type == tok_identifier)
-	{
-	  probe_point * pp = parse_probe_point ();
-
-	  t = peek ();
-	  if (equals_ok && t 
-	      && t->type == tok_operator && t->content == "=")
-	    {
-	      aliases.push_back(pp);
-	      next ();
-	      continue;
-	    }
-	  else if (t && t->type == tok_operator && t->content == ",")
-	    {
-	      locations.push_back(pp);
-	      equals_ok = false;
-	      next ();
-	      continue;
-	    }
-	  else if (t && t->type == tok_operator && t->content == "{")
-	    {
-	      locations.push_back(pp);
-	      break;
-	    }
-	  else
-            throw parse_error ("expected ',' or '{'");
-          // XXX: unify logic with that in parse_symbol()
-	}
+      probe_point * pp = parse_probe_point ();
+      
+      const token* t = peek ();
+      if (equals_ok && t 
+          && t->type == tok_operator && t->content == "=")
+        {
+          aliases.push_back(pp);
+          next ();
+          continue;
+        }
+      else if (t && t->type == tok_operator && t->content == ",")
+        {
+          locations.push_back(pp);
+          equals_ok = false;
+          next ();
+          continue;
+        }
+      else if (t && t->type == tok_operator && t->content == "{")
+        {
+          locations.push_back(pp);
+          break;
+        }
       else
 	throw parse_error ("expected probe point specifier");
     }
@@ -838,13 +831,12 @@ parser::parse_probe_point ()
 {
   probe_point* pl = new probe_point;
 
-  // XXX: add support for probe point aliases
-  // e.g.   probe   alias = foo    { ... }
   while (1)
     {
       const token* t = next ();
-      if (t->type != tok_identifier)
-        throw parse_error ("expected identifier");
+      if (! (t->type == tok_identifier ||
+             (t->type == tok_operator && t->content == "*")))
+        throw parse_error ("expected identifier or '*'");
 
       if (pl->tok == 0) pl->tok = t;
 

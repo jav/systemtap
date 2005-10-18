@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -p2
 
 # tests that an inline function is *not* matched using
 # the function() pattern

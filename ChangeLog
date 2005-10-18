@@ -1,3 +1,23 @@
+2005-10-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1338.
+	* parse.cx (parse_probe): Unconditionally visit parse_probe_point.
+	(parse_probe_point): Accept "*" as component name.
+	* stapprobes.5.in: Document this.
+	* elaborate.cxx (derive_probes): Rewrite.  Make top-level function.
+	(match_node::find_and_build): New function to replace
+	(find_builder): Removed.
+	(match_key operator <): Correct one nasty typo.
+	(match_node::bind): Refuse to bind "*" component names.
+	(derived_probe_builder::build): Remove recursion output param.
+	(alias_expandion_builder::build): Recurse to derive_probes instead.
+	* elaborate.h: Corresponding changes.
+	* tapsets.cxx: Ditto.
+	(query_cu): Elide prologue finding for uninteresting CUs.
+	* testsuite/semok/nineteen.stp: New test.
+	* testsuite/semko/twentythree.stp: New test.
+	* testsuite/semko/twentyone/two.stp: Fix -p2.
+
 2005-10-17  Graydon Hoare  <graydon@redhat.com>
 
 	* testsuite/semko/twentyone.stp: Check function doesn't match inline.

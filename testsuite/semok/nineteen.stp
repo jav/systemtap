@@ -1,0 +1,10 @@
+#! stap -p2
+
+probe foo.a = bar.a { "alias a" }
+probe foo.b = bar.b { "alias b" }
+probe bar.a = begin { "begin" }
+probe bar.b = end { "end" }
+probe baz = bar.* { "wild aliases" }  # baz expands to multiple aliases
+probe foo.* { "foo" }  # refers to multiple aliases
+probe bar.* { "bar" }  # refers to multiple probes
+probe baz { "baz" }

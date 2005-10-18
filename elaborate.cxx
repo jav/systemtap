@@ -24,6 +24,17 @@ extern "C" {
 using namespace std;
 
 
+template <typename OUT, typename IN> inline OUT
+lex_cast(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
+
+
 // ------------------------------------------------------------------------
 
 
@@ -140,10 +151,10 @@ match_key::operator<(match_key const & other) const
 {
   return ((name < other.name)
 	  
-	  || (name == name 
+	  || (name == other.name 
 	      && have_parameter < other.have_parameter)
 	  
-	  || (name == name 
+	  || (name == other.name 
 	      && have_parameter == other.have_parameter 
 	      && parameter_type < other.parameter_type));
 }
@@ -159,6 +170,9 @@ match_node::match_node()
 match_node *
 match_node::bind(match_key const & k) 
 {
+  if (k.name == "*")
+    throw semantic_error("invalid use of wildcard probe point component");
+
   map<match_key, match_node *>::const_iterator i = sub.find(k);
   if (i != sub.end())
     return i->second;
@@ -193,69 +207,88 @@ match_node::bind_num(string const & k)
   return bind(match_key(k).with_number());
 }
 
-derived_probe_builder * 
-match_node::find_builder(vector<probe_point::component *> const & components,
-			 unsigned pos,
-			 vector< pair<string, literal *> > & parameters)
+
+void
+match_node::find_and_build (systemtap_session& s,
+                            probe* p, probe_point *loc, unsigned pos,
+                            vector<derived_probe *>& results)
 {
-  assert(pos <= components.size());
-  if (pos == components.size())
+  assert (pos <= loc->components.size());
+  if (pos == loc->components.size()) // matched all probe point components so far 
     {
-      // Probe_point ends here. We match iff we have
-      // an "end" entry here. If we don't, it'll be null.
-      return end;
+      derived_probe_builder *b = end; // may be 0 if only nested names are bound
+
+      if (! b)
+        {
+          string alternatives;
+          for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+            alternatives += string(" ") + i->first.str();
+
+          throw semantic_error (string("probe point truncated at position ") + 
+                                lex_cast<string> (pos) +
+                                " (follow:" + alternatives + ")");
+        }
+
+      map<string, literal *> param_map;
+      for (unsigned i=0; i<pos; i++)
+        param_map[loc->components[i]->functor] = loc->components[i]->arg;
+      // maybe 0
+
+      b->build (s, p, loc, param_map, results);
     }
-  else
+  else if (loc->components[pos]->functor == "*") // wildcard?
     {
-      // Probe_point contains a component here. We match iff there's
-      // an entry in the sub table, and its value matches the rest
-      // of the probe_point.
-      match_key k(*components[pos]);
-      if (0)
-	clog << "searching for component " << k.str() << endl;
-      map<match_key, match_node *>::const_iterator i = sub.find(k);
-      if (i == sub.end())
-	{
-	  if (0)
-	    clog << "no match found" << endl;
-	  return NULL;
-	}
-      else
-	{
-	  if (0)
-	    clog << "matched " << k.str() << endl;
-	  derived_probe_builder * builder = NULL;
-	  if (k.have_parameter)
-	    {
-	      assert(components[pos]->arg);
-	      parameters.push_back(make_pair(components[pos]->functor, 
-					     components[pos]->arg));
-	    }
-	  else
-	    {
-	      // store a "null parameter" for any component we run into, anyways
-	      literal_string *empty = NULL;
-	      parameters.push_back(make_pair(components[pos]->functor, empty));
-	    }
-	  builder = i->second->find_builder(components, pos+1, parameters);
-	  if (k.have_parameter && !builder)
-	    parameters.pop_back();
-	  return builder;
-	}
+      // Recursively call derive_probes for all matches of the current
+      // key position.  To do this, we have to perform almost an
+      // alias-level duplication of the probe body and synthesis of
+      // new probe_points.
+
+      probe * n = new probe();
+      n->tok = p->tok;
+      n->body = deep_copy_visitor::deep_copy(p->body);
+
+      // Construct N probe_point instances: one per wildcard match
+      for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+        {
+          const match_key& match = i->first;
+          probe_point *loc2 = new probe_point;
+          loc2->tok = loc->tok;
+
+          // deep-copy probe point components, except for this wildcard position
+          for (unsigned k=0; k<loc->components.size(); k++)
+            if (pos != k)
+              loc2->components.push_back(new probe_point::component(loc->components[k]->functor,
+                                                                    loc->components[k]->arg));
+            else
+              // NB: we retain wildcard arg - foo.*(5).bar => foo.a(5).bar, foo.b(5).bar
+              loc2->components.push_back(new probe_point::component(match.name,
+                                                                    loc->components[k]->arg));
+          n->locations.push_back (loc2);
+        }
+
+      derive_probes (s, n, results, false);
+    }
+  else 
+    {
+      match_key match (* loc->components[pos]);
+      sub_map_iterator_t i = sub.find (match);
+      if (i == sub.end()) // no match
+        {
+          string alternatives;
+          for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+            alternatives += string(" ") + i->first.str();
+          
+          throw semantic_error (string("probe point mismatch at position ") + 
+                                lex_cast<string> (pos) +
+                                " (alternatives:" + alternatives + ")");
+        }
+
+      match_node* subnode = i->second;
+      // recurse
+      subnode->find_and_build (s, p, loc, pos+1, results);
     }
 }
 
-
-static void
-param_vec_to_map(vector< pair<string, literal *> > const & param_vec, 
-		   map<string, literal *> & param_map)
-{
-  for (vector< pair<string, literal *> >::const_iterator i = param_vec.begin();
-       i != param_vec.end(); ++i)
-    {
-      param_map[i->first] = i->second;
-    }
-}
 
 // ------------------------------------------------------------------------
 // Alias probes
@@ -275,7 +308,6 @@ alias_expansion_builder
 		     probe * use, 
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
-		     vector<probe *> & results_to_expand_further,
 		     vector<derived_probe *> & finished_results)
   {
     // We're going to build a new probe and wrap it up in an
@@ -311,8 +343,8 @@ alias_expansion_builder
 	statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
 	n->body->statements.push_back(s);
       }
-  
-    results_to_expand_further.push_back(n);
+
+    derive_probes (sess, n, finished_results, false);
   }
 };
 
@@ -388,58 +420,40 @@ recursion_guard
 
 // The match-and-expand loop.
 void
-symresolution_info::derive_probes (match_node * root, 
-				   probe *p, vector<derived_probe*>& dps)
+derive_probes (systemtap_session& s,
+               probe *p, vector<derived_probe*>& dps,
+               bool exc_outermost)
 {
-  static unsigned depth=0;
-  recursion_guard guard(depth);
-
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
       probe_point *loc = p->locations[i];
-      vector< pair<string, literal *> > param_vec;
-      map<string, literal *> param_map;
-      vector<probe *> re_expand;
-
+      
       try
         {
-          derived_probe_builder * builder = 
-            root->find_builder(loc->components, 0, param_vec);
-          
-          if (!builder)
-            throw semantic_error ("no match for probe point family");
-          
-          param_vec_to_map(param_vec, param_map);
-          
           unsigned num_atbegin = dps.size();
-          builder->build(session, p, loc, param_map, re_expand, dps);
-          
-          // Recursively expand any further-expanding results
-          // XXX: ... or the build routine could get a reference to
-          // this object and let it call derive_probes() internally
-          if (!re_expand.empty())
-            {
-              for (unsigned j = 0; j < re_expand.size(); ++j)
-                derive_probes(root, re_expand[j], dps);
-            }
-          
+          s.pattern_root->find_and_build (s, p, loc, 0, dps);
           unsigned num_atend = dps.size();
-          if (num_atbegin == num_atend) // nothing new derived!
+          
+          if (exc_outermost && (num_atbegin == num_atend)) // nothing new derived!
             throw semantic_error ("no match for probe point");
         }
       catch (const semantic_error& e)
         {
-          session.print_error (e);
+          // XXX: prefer not to print_error at every nest/unroll level
+          s.print_error (e);
           cerr << "         while: resolving probe point " << *loc << endl;
+          //          if (! exc_outermost)
+          //            throw;
         }
     }
 }
+
+
 
 // ------------------------------------------------------------------------
 //
 // Map usage checks
 //
-
 
 struct mutated_map_collector
   : public traversing_visitor
@@ -622,7 +636,7 @@ semantic_pass_symbols (systemtap_session& s)
 
           // much magic happens here: probe alias expansion,
           // provider identification
-          sym.derive_probes (s.pattern_root, p, dps);
+          derive_probes (s, p, dps);
 
           for (unsigned j=0; j<dps.size(); j++)
             {

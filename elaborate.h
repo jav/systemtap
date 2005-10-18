@@ -33,9 +33,6 @@ public:
   derived_probe* current_probe;
   symresolution_info (systemtap_session& s);
 
-  // XXX: instead in systemtap_session?
-  void derive_probes (match_node * root, probe *p, std::vector<derived_probe*>& dps);
-  
   vardecl* find_var (const std::string& name, int arity);
   functiondecl* find_function (const std::string& name, unsigned arity);
 
@@ -143,7 +140,6 @@ struct derived_probe_builder
 		     probe* base, 
 		     probe_point* location,
 		     std::map<std::string, literal*> const & parameters,
-		     std::vector<probe*> & results_to_expand_further,
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
 
@@ -174,15 +170,18 @@ match_key
 class
 match_node
 {
-  std::map<match_key, match_node*> sub;
+  typedef std::map<match_key, match_node*> sub_map_t;
+  typedef std::map<match_key, match_node*>::iterator sub_map_iterator_t;
+  sub_map_t sub;
   derived_probe_builder* end;
 
  public:
   match_node();
-  derived_probe_builder* find_builder(std::vector<probe_point::component*> const & components,
-				       unsigned pos,
-				       std::vector< std::pair<std::string, literal*> > & parameters);
-  
+
+  void find_and_build (systemtap_session& s,
+                       probe* p, probe_point *loc, unsigned pos,
+                       std::vector<derived_probe *>& results);
+
   match_node* bind(match_key const & k);
   match_node* bind(std::string const & k);
   match_node* bind_str(std::string const & k);
@@ -250,6 +249,9 @@ struct systemtap_session
 
 
 int semantic_pass (systemtap_session& s);
+void derive_probes (systemtap_session& s,
+                    probe *p, std::vector<derived_probe*>& dps,
+                    bool exc_outermost = true);
 
 
 #endif // ELABORATE_H
