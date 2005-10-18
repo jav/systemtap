@@ -36,7 +36,7 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
-    << "Copyright (C) 2005 Red Hat, Inc." << endl
+    << "Copyright (C) 2005 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions."
     << endl;
 }
@@ -250,6 +250,18 @@ main (int argc, char * const argv [])
     usage(s);
 
   int rc = 0;
+
+  // override PATH and LC_ALL
+  char* path = "PATH=/bin:/sbin:/usr/bin:/usr/sbin"; 
+  char* lc_all = "LC_ALL=C";
+  rc = putenv (path) || putenv (lc_all);
+  if (rc)
+    {
+      const char* e = strerror (errno);
+      cerr << "setenv (\"" << path << "\" + \"" << lc_all << "\"): "
+           << e << endl;
+    }
+  
 
   // arguments parsed; get down to business
 
@@ -468,7 +480,7 @@ main (int argc, char * const argv [])
         clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
-          string cleanupcmd = "/bin/rm -rf ";
+          string cleanupcmd = "rm -rf ";
           cleanupcmd += s.tmpdir;
           if (s.verbose) clog << "Running " << cleanupcmd << endl;
 	  int status = system (cleanupcmd.c_str());

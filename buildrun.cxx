@@ -81,7 +81,7 @@ compile_pass (systemtap_session& s)
   // Run make
   if (s.test_mode)
     {
-      string make_cmd = string("/usr/bin/make -C \"") + s.tmpdir + "\"";
+      string make_cmd = string("make -C \"") + s.tmpdir + "\"";
 
       if (! s.verbose)
         make_cmd += " -s >/dev/null 2>&1";
@@ -97,7 +97,7 @@ compile_pass (systemtap_session& s)
     {
       string module_dir = string("/lib/modules/")
         + s.kernel_release + "/build";
-      string make_cmd = string("/usr/bin/make")
+      string make_cmd = string("make")
         + string (" -C \"") + module_dir + string("\"");
       make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
@@ -145,7 +145,7 @@ run_pass (systemtap_session& s)
       sighandler_t oldsig = signal (SIGINT, SIG_IGN);
 
       // for now, just spawn stpd
-      string stpd_cmd = string("/usr/bin/sudo ") 
+      string stpd_cmd = string("sudo ") 
         + string(PKGLIBDIR) + "/stpd "
         + (s.bulk_mode ? "" : "-r ")
         + (s.verbose ? "" : "-q ");

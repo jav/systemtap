@@ -2381,13 +2381,13 @@ emit_symbol_data (systemtap_session& s)
   // symbols only), a task that we defer to grep(1) and sort(1).  It
   // may be useful to cache the symbols.sorted file, perhaps indexed
   // by md5sum(/proc/modules), but let's not until this simple method
-  // proves too costly.  All that LC_ALL=C stuff is there to avoid the
+  // proves too costly.  LC_ALL=C is already set to avoid the
   // excessive penalty of i18n code in some glibc/coreutils versions.
 
   string sorted_kallsyms = s.tmpdir + "/symbols.sorted";
-  string sortcmd = "/bin/env LC_ALL=C /bin/grep \" [tT] \" /proc/kallsyms | ";
+  string sortcmd = "grep \" [tT] \" /proc/kallsyms | ";
  
-  sortcmd += "/bin/env LC_ALL=C /bin/sort ";
+  sortcmd += "sort ";
 #if __LP64__
   sortcmd += "-k 1,16 ";
 #else
