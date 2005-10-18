@@ -2556,7 +2556,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
   o->newline(-1) << "}";
 
   // if one failed, must roll back completed registations for this probe
-  o->newline() << "if (unlikely (rc)) while (--i > 0)";
+  o->newline() << "if (unlikely (rc)) while (--i >= 0)";
   o->indent(1);
   if (has_return)
     {
