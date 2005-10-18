@@ -2330,7 +2330,7 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
   string fn_or_stmt;
   if (q.has_function_str || q.has_function_num)
     fn_or_stmt = "function";
-  if (q.has_inline_str || q.has_inline_num)
+  else if (q.has_inline_str || q.has_inline_num)
     fn_or_stmt = "inline";
   else
     fn_or_stmt = "statement";
@@ -2552,7 +2552,10 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
       o->newline() << "rc = register_kprobe (&(" << probe_name << "));";
     }
 
-  o->newline() << "if (unlikely (rc)) break;";
+  o->newline() << "if (unlikely (rc)) {";
+  o->newline(1) << "probe_point = " << string_array_name (probenum) << "[i];";
+  o->newline() << "break;";
+  o->newline(-1) << "}";
   o->newline(-1) << "}";
 
   // if one failed, must roll back completed registations for this probe

@@ -1,4 +1,13 @@
+2005-10-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1482 cont'd.
+	* translator.cxx (emit_module_init): Set aside a variable for
+	detailed probe point id.
+	* tapsets.cxx (emit_registrations): Use it.
+	(add_probe_point): Correct synthesized probe-point typo.
+	
 2005-10-17  Martin Hunt  <hunt@redhat.com>
+	
 	PR 1482
 	* tapsets.cxx (emit_registrations): On failure, don't
 	forget to unregister probe 0;

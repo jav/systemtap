@@ -707,6 +707,7 @@ c_unparser::emit_module_init ()
   o->newline() << "static int systemtap_module_init (void);";
   o->newline() << "int systemtap_module_init () {";
   o->newline(1) << "int rc = 0;";
+  o->newline() << "const char *probe_point = \"\";";
 
   o->newline() << "atomic_set (&session_state, STAP_SESSION_STARTING);";
   // This signals any other probes that may be invoked in the next little
@@ -727,6 +728,9 @@ c_unparser::emit_module_init ()
     {
       o->newline() << "/* register probe #" << i << ", ";
       o->line() << session->probes[i]->locations.size() << " location(s) */";
+      // default
+      o->newline() << "probe_point = " <<
+        lex_cast_qstring (*session->probes[i]->tok) << ";";
       session->probes[i]->emit_registrations (o, i);
 
       o->newline() << "if (unlikely (rc)) {";
@@ -735,11 +739,8 @@ c_unparser::emit_module_init ()
       // probe from attempting to run.
       o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
 
-      // XXX: would be nice to print failing probe point
       o->newline() << "_stp_error (\"probe " << i << " registration failed"
-                   << ", rc=%d, %s\\n\", rc, "
-                   << lex_cast_qstring(*session->probes[i]->tok)
-                   << ");";
+                   << ", rc=%d, %s\\n\", rc, probe_point);";
 
       // We need to deregister any already probes set up - this is
       // essential for kprobes.
