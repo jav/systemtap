@@ -198,26 +198,39 @@ struct dentry *relayfs_create_dir(const char *name, struct dentry *parent)
 /**
  *	relayfs_remove - remove a file or directory in the relay filesystem
  *	@dentry: file or directory dentry
+ *
+ *	Returns 0 if successful, negative otherwise.
  */
 int relayfs_remove(struct dentry *dentry)
 {
-	struct dentry *parent = dentry->d_parent;
+	struct dentry *parent;
+	int error = 0;
+
+	if (!dentry)
+		return -EINVAL;
+	parent = dentry->d_parent;
 	if (!parent)
 		return -EINVAL;
 
 	parent = dget(parent);
 	down(&parent->d_inode->i_sem);
 	if (dentry->d_inode) {
-		simple_unlink(parent->d_inode, dentry);
-		d_delete(dentry);
+		if (S_ISDIR(dentry->d_inode->i_mode))
+			error = simple_rmdir(parent->d_inode, dentry);
+		else
+			error = simple_unlink(parent->d_inode, dentry);
+		if (!error)
+			d_delete(dentry);
 	}
-	dput(dentry);
+	if (!error)
+		dput(dentry);
 	up(&parent->d_inode->i_sem);
 	dput(parent);
 
-	simple_release_fs(&relayfs_mount, &relayfs_mount_count);
+	if (!error)
+		simple_release_fs(&relayfs_mount, &relayfs_mount_count);
 
-	return 0;
+	return error;
 }
 
 /**
@@ -228,9 +241,6 @@ int relayfs_remove(struct dentry *dentry)
  */
 int relayfs_remove_dir(struct dentry *dentry)
 {
-	if (!dentry)
-		return -EINVAL;
-
 	return relayfs_remove(dentry);
 }
 
