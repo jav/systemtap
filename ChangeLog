@@ -1,3 +1,10 @@
+2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
+
+	PR 1194.
+	* elaborate.h: Move output_file variable into systemtap_session.
+	* buildrun.cxx (run_pass): Pass output file to stpd if applicable.
+	* main.cxx (main): Set output_file if -o option specified.
+
 2005-10-18  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 1477.

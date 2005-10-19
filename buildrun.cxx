@@ -148,7 +148,8 @@ run_pass (systemtap_session& s)
       string stpd_cmd = string("sudo ") 
         + string(PKGLIBDIR) + "/stpd "
         + (s.bulk_mode ? "" : "-r ")
-        + (s.verbose ? "" : "-q ");
+        + (s.verbose ? "" : "-q ")
+        + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
 
       if (s.cmd != "")
 	stpd_cmd += "-c \"" + s.cmd + "\" ";

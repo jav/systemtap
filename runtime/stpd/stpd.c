@@ -41,9 +41,13 @@ unsigned int buffer_size = 0;
 char *modname = NULL;
 char *modpath = NULL;
 char *target_cmd = NULL;
+char *outfile_name = NULL;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
+
+/* if no output file name is specified, use this */
+#define DEFAULT_OUTFILE_NAME "probe.out"
 
 /* stp_check script */
 #ifdef PKGLIBDIR
@@ -54,7 +58,7 @@ char *stp_check="stp_check";
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid] [-b bufsize] kmod-name\n", prog);
+	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid] [-b bufsize] [-o FILE] kmod-name\n", prog);
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
@@ -63,6 +67,7 @@ static void usage(char *prog)
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
 	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
+	fprintf(stderr, "-o FILE. Send output to FILE.\n");
 	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
 	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
 	fprintf(stderr, "   buffer size in MB. That value will be per-cpu if relayfs is used.\n");
@@ -74,7 +79,7 @@ int main(int argc, char **argv)
 	int c, status;
 	pid_t pid;
 
-	while ((c = getopt(argc, argv, "mpqrb:n:t:c:v")) != EOF) 
+	while ((c = getopt(argc, argv, "mpqrb:n:t:c:vo:")) != EOF)
 	{
 		switch (c) {
 		case 'm':
@@ -109,6 +114,9 @@ int main(int argc, char **argv)
 			break;
 		case 'c':
 			target_cmd = optarg;
+			break;
+		case 'o':
+			outfile_name = optarg;
 			break;
 		default:
 			usage(argv[0]);
@@ -160,6 +168,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Could not execute %s\n", stp_check);
 			exit(1);
 		}
+		if (!outfile_name)
+			outfile_name = DEFAULT_OUTFILE_NAME;
 	}
 	
 	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());

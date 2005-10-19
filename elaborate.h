@@ -206,6 +206,7 @@ struct systemtap_session
   std::string kernel_release;
   std::string runtime_path;
   std::string module_name;
+  std::string output_file;
   std::string cmd;
   int target_pid;
   int last_pass;

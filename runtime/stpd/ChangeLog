@@ -1,5 +1,15 @@
 2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
 
+	* librelay.c: Move output_file var to stpd.c.
+	(stp_main_loop): If the output_file option was specified,
+	and streaming mode is being used, send output to the file
+	instead of stdout.  If !streaming, send output to the file
+	instead of probe.out.
+	* stpd.c (usage): Add comment for -o option.
+	(main): Add -o option.
+
+2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
+
 	* librelay.c (merge_output): Switch to binary TIMESTAMP.
 	* stp_dump.c (main): Switch to binary TIMESTAMP.
 	* stp_merge.c (main): Switch to binary TIMESTAMP.

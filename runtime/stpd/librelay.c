@@ -58,8 +58,8 @@ static char *percpu_tmpfilebase = "stpd_cpu";
 static char proc_filebase[128];
 static int proc_file[NR_CPUS];
 
-/* probe output written here  */
-static char *outfile_name = "probe.out";
+/* probe output written here, if non-NULL */
+extern char *outfile_name;
 
 /* internal variables */
 static int transport_mode;
@@ -652,6 +652,7 @@ int stp_main_loop(void)
 	struct transport_start ts;
 	void *data;
 	int type;
+	FILE *ofp = stdout;
 
 	pthread_mutex_init(&processing_mutex, NULL);
 
@@ -700,13 +701,20 @@ int stp_main_loop(void)
 					fprintf(stderr, "ERROR: couldn't init relayfs, exiting\n");
 					exit(1);
 				}
+			} else if (outfile_name) {
+				ofp = fopen (outfile_name, "w");
+				if (!ofp) {
+					fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n",
+						 outfile_name, strerror(errno));
+					exit(1);
+				}
 			}
 			ts.pid = 0; // FIXME. not implemented yet
 			send_request(STP_START, &ts, sizeof(ts));
 			break;
 		}
 		case STP_REALTIME_DATA:
-			fputs ((char *)data, stdout);
+			fputs ((char *)data, ofp);
 			break;
 		case STP_OOB_DATA:
 			fputs ((char *)data, stderr);
@@ -732,5 +740,6 @@ int stp_main_loop(void)
 			fprintf(stderr, "WARNING: ignored netlink message of type %d\n", (type));
 		}
 	}
+	fclose(ofp);
 	return 0;
 }

@@ -110,7 +110,6 @@ main (int argc, char * const argv [])
   string cmdline_script; // -e PROGRAM
   string script_file; // FILE
   bool have_script = false;
-  string output_file = "-"; // -o FILE
 
   // Initialize defaults
   systemtap_session s;
@@ -124,6 +123,7 @@ main (int argc, char * const argv [])
   s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
+  s.output_file = ""; // -o FILE
   s.keep_tmpdir = false;
   s.cmd = "";
   s.target_pid = 0;
@@ -176,7 +176,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'o':
-          output_file = string (optarg);
+          s.output_file = string (optarg);
           break;
 
         case 't':
