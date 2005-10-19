@@ -61,7 +61,7 @@ void _stp_print_flush (void)
 #else /* STP_RELAYFS */
 
 /* size of timestamp, in bytes, including space */
-#define TIMESTAMP_SIZE 11
+#define TIMESTAMP_SIZE (sizeof(int))
 #define STP_PRINT_BUF_START (TIMESTAMP_SIZE)
 
 /** Size of buffer, not including terminating NULL */
@@ -82,14 +82,12 @@ void _stp_print_flush (void)
 	int cpu = smp_processor_id();
 	char *buf = &_stp_pbuf[cpu][0];
 	char *ptr = buf + STP_PRINT_BUF_START;
-	int ret, seq;
+	int ret;
 
 	if (_stp_pbuf_len[cpu] == 0)
 		return;
 
-	seq = _stp_seq_inc();
-	scnprintf (buf, TIMESTAMP_SIZE, "%10d", seq);
-	buf[TIMESTAMP_SIZE - 1] = ' ';
+	*((int *)buf) = _stp_seq_inc();
 	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
 	if (unlikely(ret < 0)) {
 #if 0

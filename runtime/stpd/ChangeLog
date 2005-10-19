@@ -1,3 +1,9 @@
+2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* librelay.c (merge_output): Switch to binary TIMESTAMP.
+	* stp_dump.c (main): Switch to binary TIMESTAMP.
+	* stp_merge.c (main): Switch to binary TIMESTAMP.
+
 2005-10-14  Tom Zanussi  <zanussi@us.ibm.com>
 
 	PR 1476

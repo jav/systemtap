@@ -1,3 +1,7 @@
+2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* print.c (_stp_print_flush): Switch to binary TIMESTAMP.
+
 2005-10-14  Tom Zanussi  <zanussi@us.ibm.com>
 
 	PR 1455

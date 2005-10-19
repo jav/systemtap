@@ -31,7 +31,7 @@ static void usage (char *prog)
 	exit(1);
 }
 
-#define TIMESTAMP_SIZE 11
+#define TIMESTAMP_SIZE (sizeof(int))
 
 int main (int argc, char *argv[])
 {
@@ -53,7 +53,7 @@ int main (int argc, char *argv[])
 	  int numbytes = 0;
 
 	  if (fread (buf, TIMESTAMP_SIZE, 1, fp))
-	    seq = strtoul (buf, NULL, 10);
+	    seq = *((int *)buf);
 	  else
 	    break;
 

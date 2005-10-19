@@ -31,7 +31,7 @@ static void usage (char *prog)
 	exit(1);
 }
 
-#define TIMESTAMP_SIZE 11
+#define TIMESTAMP_SIZE (sizeof(int))
 #define NR_CPUS 256
 
 int main (int argc, char *argv[])
@@ -64,7 +64,7 @@ int main (int argc, char *argv[])
 			return -1;
 		}
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[i]))
-			num[i] = strtoul (buf, NULL, 10);
+			num[i] = *((int *)buf);
 		else
 			num[i] = 0;
 		i++;
@@ -106,7 +106,7 @@ int main (int argc, char *argv[])
 		}
 
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[j]))
-			num[j] = strtoul (buf, NULL, 10);
+			num[j] = *((int *)buf);
 		else
 			num[j] = 0;
 	} while (min);

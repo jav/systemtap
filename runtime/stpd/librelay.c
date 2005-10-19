@@ -506,8 +506,8 @@ int init_stp(const char *relay_filebase, int print_summary)
 }
 
 
-/* length of timestamp in output field 0 - TODO: make binary, variable */
-#define TIMESTAMP_SIZE 11
+/* length of timestamp in output field 0 */
+#define TIMESTAMP_SIZE (sizeof(int))
 
 /**
  *	merge_output - merge per-cpu output
@@ -530,7 +530,7 @@ static int merge_output(void)
 			return -1;
 		}
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[i]))
-			num[i] = strtoul (buf, NULL, 10);
+			num[i] = *((int *)buf);
 		else
 			num[i] = 0;
 	}
@@ -567,7 +567,7 @@ static int merge_output(void)
 		}
 
 		if (fread (buf, TIMESTAMP_SIZE, 1, fp[j]))
-			num[j] = strtoul (buf, NULL, 10);
+			num[j] = *((int *)buf);
 		else
 			num[j] = 0;
 	} while (min);
