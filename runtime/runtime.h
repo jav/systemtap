@@ -70,7 +70,12 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 					    unsigned long *offset,
 					    char **modname, char *namebuf);
 
+/* TEST_MODE is always defined by systemtap */
+#ifdef TEST_MODE
+#define SYSTEMTAP 1
+#endif
 
+#ifdef SYSTEMTAP
 /* This implementation is used if stap_[num_]symbols are available. */
 static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
 						 unsigned long *symbolsize,
@@ -118,16 +123,17 @@ static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
 	return s->symbol;
     }
 }
-
-
+#endif
 
 int init_module (void)
 {
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
 
+#ifdef SYSTEMTAP
   if (stap_num_symbols > 0)
     _stp_kallsyms_lookup = & _stp_kallsyms_lookup_tabled;
   else
+#endif
     _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
       kallsyms_lookup_name("kallsyms_lookup");
 
