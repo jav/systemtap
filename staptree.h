@@ -9,6 +9,7 @@
 #ifndef STAPTREE_H
 #define STAPTREE_H
 
+#include <map>
 #include <stack>
 #include <string>
 #include <vector>
@@ -35,7 +36,23 @@ struct semantic_error: public std::runtime_error
     runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2) {}
 };
 
+// ------------------------------------------------------------------------
 
+struct statistic_decl
+{
+  statistic_decl()
+    : type(none), 
+      logarithmic_buckets(0),
+      linear_low(0), linear_high(0), linear_step(0)
+  {}    
+  enum { none, linear, logarithmic } type;
+  int64_t logarithmic_buckets;
+  int64_t linear_low;
+  int64_t linear_high;
+  int64_t linear_step;
+};
+
+// ------------------------------------------------------------------------
 
 enum exp_type
   {
@@ -392,6 +409,7 @@ struct stapfile
   std::vector<functiondecl*> functions;
   std::vector<vardecl*> globals;
   std::vector<embeddedcode*> embeds;
+  std::map<std::string, statistic_decl> stat_decls;
   bool privileged;
   stapfile (): privileged (false) {}
   void print (std::ostream& o) const;

@@ -233,9 +233,14 @@ class var
 {
   bool local;
   exp_type ty;
+  statistic_decl sd;
   string name;
 
 public:
+
+  var(bool local, exp_type ty, statistic_decl const & sd, string const & name)
+    : local(local), ty(ty), sd(sd), name(name)
+  {}
 
   var(bool local, exp_type ty, string const & name)
     : local(local), ty(ty), name(name)
@@ -244,6 +249,11 @@ public:
   bool is_local() const
   {
     return local;
+  }
+
+  statistic_decl const & sdecl() const
+  {
+    return sd;
   }
 
   exp_type type() const
@@ -267,6 +277,29 @@ public:
 	return qname() + "[0] = '\\0';";
       case pe_long:
 	return qname() + " = 0;";
+      case pe_stats:
+	switch (sd.type)
+	  {
+	  case statistic_decl::none:
+	    assert(false);
+	    break;
+	    
+	  case statistic_decl::linear:
+	    return (qname() 
+		    + " = _stp_stat_init (HIST_LINEAR"
+		    + ", " + stringify(sd.linear_low) 
+		    + ", " + stringify(sd.linear_high) 
+		    + ", " + stringify(sd.linear_step)
+		    + ");");
+	    break;
+
+	  case statistic_decl::logarithmic:
+	    return (qname() 
+		    + " = _stp_stat_init (HIST_LOG"
+		    + ", " + stringify(sd.logarithmic_buckets) 
+		    + ");");
+	    break;
+	  }
       default:
 	throw semantic_error("unsupported initializer for " + qname());
       }
@@ -374,9 +407,10 @@ struct mapvar
 {
   vector<exp_type> index_types;
   mapvar (bool local, exp_type ty, 
+	  statistic_decl const & sd,
 	  string const & name, 
 	  vector<exp_type> const & index_types)
-    : var (local, ty, name),
+    : var (local, ty, sd, name),
       index_types (index_types)
   {}
   
@@ -417,8 +451,10 @@ struct mapvar
       return "({ char *v = "
         "_stp_map_get_" + shortname(type()) + " (" + qname() + "); "
         "if (!v) v = \"\"; v; })";
-    else // long?
+    else if (type() == pe_long)
       return "_stp_map_get_" + shortname(type()) + " (" + qname() + ")";
+    else
+      throw semantic_error("getting a value from an unsupported map type");
   }
 
   string set (tmpvar const & tmp) const
@@ -427,9 +463,11 @@ struct mapvar
     if (type() == pe_string)
       return ("_stp_map_set_" + shortname(type()) + " (" + qname()
               + ", (" + tmp.qname() + "[0] ? " + tmp.qname() + " : NULL))");
-    else
+    else if (type() == pe_long)
       return ("_stp_map_set_" + shortname(type()) + " (" + qname()
               + ", " + tmp.qname() + ")");
+    else
+      throw semantic_error("setting a value of an unsupported map type");
   }
 
   string mangled_indices() const
@@ -445,6 +483,39 @@ struct mapvar
 		
   string init () const
   {
+    if (type() == pe_stats)
+      {
+	switch (sdecl().type)
+	  {
+	  case statistic_decl::none:
+	    assert(false);
+	    break;
+
+	  case statistic_decl::linear:
+	    // FIXME: check for "reasonable" values in linear stats
+	    return (qname() 
+		    + " = _stp_map_new" 
+		    + mangled_indices() 		    
+		    + " (MAXMAPENTRIES, HSTAT_LINEAR" 
+		    + ", " + stringify(sdecl().linear_low) 
+		    + ", " + stringify(sdecl().linear_high) 
+		    + ", " + stringify(sdecl().linear_step)
+		    + ");");
+	    break;
+
+	  case statistic_decl::logarithmic:
+	    if (sdecl().logarithmic_buckets > 64)
+	      throw semantic_error("Cannot support > 64 logarithmic buckets");	    
+	    return (qname() 
+		    + " = _stp_map_new" 
+		    + mangled_indices() 
+		    + " (MAXMAPENTRIES, HSTAT_LOG" 
+		    + ", " + stringify(sdecl().logarithmic_buckets) 
+		    + ");");
+	    break;
+	  }
+      }
+
     return (qname() + " = _stp_map_new" + mangled_indices() 
 	    + " (MAXMAPENTRIES, " + value_typename (type()) + ");");
   }
@@ -578,7 +649,6 @@ c_unparser::emit_common_header ()
   // XXX: tapsets.cxx should be able to add additional definitions
 
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
-  o->newline() << "typedef struct { } stats_t;";
   o->newline();
   o->newline() << "#define STAP_SESSION_STARTING 0";
   o->newline() << "#define STAP_SESSION_RUNNING 1";
@@ -673,6 +743,9 @@ c_unparser::emit_common_header ()
   o->newline(-1) << "} contexts [NR_CPUS];" << endl;
 
   emit_map_type_instantiations ();
+
+  if (!session->stat_decls.empty())
+    o->newline() << "#include \"stat.c\"" << endl;
 }
 
 
@@ -984,7 +1057,7 @@ mapvar::key_typename(exp_type e)
       return "STRING";
       break;
     default:
-      throw semantic_error("array type is neither string nor long");
+      throw semantic_error("array key is neither string nor long");
       break;
     }	      
 }
@@ -1026,7 +1099,7 @@ c_unparser::emit_map_type_instantiations ()
   for (set<exp_type>::const_iterator i = value_types.begin();
        i != value_types.end(); ++i)
     {
-      string ktype = mapvar::key_typename(*i);
+      string ktype = mapvar::value_typename(*i);
       o->newline() << "#define NEED_" << ktype << "_VALS";
     }
 
@@ -1057,7 +1130,7 @@ c_unparser::c_typename (exp_type e)
     {
     case pe_long: return string("int64_t");
     case pe_string: return string("string_t"); 
-    case pe_stats: return string("stats_t");
+    case pe_stats: return string("Stat");
     case pe_unknown: 
     default:
       throw semantic_error ("cannot expand unknown type");
@@ -1074,7 +1147,7 @@ c_unparser::c_varname (const string& e)
 
 void 
 c_unparser::c_assign (var& lvalue, const string& rvalue, const token *tok)
-{
+{  
   switch (lvalue.type())
     {
     case pe_string:
@@ -1084,7 +1157,7 @@ c_unparser::c_assign (var& lvalue, const string& rvalue, const token *tok)
       o->newline() << lvalue << " = " << rvalue << ";";
       break;
     default:
-      throw semantic_error ("unknown rvalue type in assignment", tok);
+      throw semantic_error ("unknown lvalue type in assignment", tok);
     }
 }
 
@@ -1173,6 +1246,14 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	throw semantic_error ("string assignment operator " +
 			      op + " unsupported", tok);
     }
+  else if (op == "<<<")
+    {
+      assert(lval.type() == pe_stats);
+      assert(rval.type() == pe_long);
+      assert(res.type() == pe_long);
+      o->newline() << res << " = " << rval << ";";
+      o->newline() << "_stp_stat_add (" << lval << ", " << res << ");";
+    }
   else if (res.type() == pe_long)
     {
       // a lot of operators come through this "gate":
@@ -1189,8 +1270,6 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	macop = "*error*"; // special shortcuts below
       else if (oplen > 1 && op[oplen-1] == '=') // for +=, %=, <<=, etc...
 	macop = op.substr(0, oplen-1);
-      else if (op == "<<<")
-	throw semantic_error ("stats aggregation not yet implemented", tok);
       else if (op == "++")
 	macop = "+";
       else if (op == "--")
@@ -1333,7 +1412,18 @@ c_unparser::gensym(exp_type ty)
 var 
 c_unparser::getvar(vardecl *v, token const *tok) 
 { 
-  return var (is_local (v, tok), v->type, v->name);
+  bool loc = is_local (v, tok);
+  if (loc)    
+    return var (loc, v->type, v->name);
+  else
+    {
+      statistic_decl sd;
+      std::map<std::string, statistic_decl>::const_iterator i;
+      i = session->stat_decls.find(v->name);
+      if (i != session->stat_decls.end())
+	sd = i->second;
+      return var (loc, v->type, sd, v->name);
+    }
 }
 
 
@@ -1342,7 +1432,12 @@ c_unparser::getmap(vardecl *v, token const *tok)
 {   
   if (v->arity < 1)
     throw new semantic_error("attempt to use scalar where map expected", tok);
-  return mapvar (is_local (v, tok), v->type, v->name, v->index_types);
+  statistic_decl sd;
+  std::map<std::string, statistic_decl>::const_iterator i;
+  i = session->stat_decls.find(v->name);
+  if (i != session->stat_decls.end())
+    sd = i->second;
+  return mapvar (is_local (v, tok), v->type, sd, v->name, v->index_types);
 }
 
 
@@ -1963,12 +2058,27 @@ c_tmpcounter::visit_assignment (assignment *e)
 void
 c_unparser::visit_assignment (assignment* e)
 {
-  if (e->type != e->left->type)
-    throw semantic_error ("type mismatch", e->tok,
-                         "vs", e->left->tok);
-  if (e->right->type != e->left->type)
-    throw semantic_error ("type mismatch", e->right->tok,
-                         "vs", e->left->tok);
+  if (e->op == "<<<")
+    {
+      if (e->type != pe_long)
+	throw semantic_error ("non-number <<< expression", e->tok);
+
+      if (e->left->type != pe_stats)
+	throw semantic_error ("non-stats left operand to <<< expression", e->left->tok);
+
+      if (e->right->type != pe_long)
+	throw semantic_error ("non-number right operand to <<< expression", e->right->tok);
+	
+    }
+  else
+    {
+      if (e->type != e->left->type)
+	throw semantic_error ("type mismatch", e->tok,
+			      "vs", e->left->tok);
+      if (e->right->type != e->left->type)
+	throw semantic_error ("type mismatch", e->right->tok,
+			      "vs", e->left->tok);
+    }
 
   c_unparser_assignment tav (this, e->op, e->right);
   e->left->visit (& tav);
@@ -2054,8 +2164,9 @@ c_unparser::visit_symbol (symbol* e)
 void
 c_tmpcounter_assignment::visit_symbol (symbol *e)
 {
-  tmpvar tmp = parent->parent->gensym (e->type);
-  tmpvar res = parent->parent->gensym (e->type);
+  exp_type ty = rvalue ? rvalue->type : e->type;
+  tmpvar tmp = parent->parent->gensym (ty);
+  tmpvar res = parent->parent->gensym (ty);
 
   tmp.declare (*(parent->parent));
   res.declare (*(parent->parent));
@@ -2091,8 +2202,9 @@ c_unparser_assignment::visit_symbol (symbol *e)
     throw semantic_error ("unexpected reference to array", e->tok);
 
   parent->o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-  tmpvar rval = parent->gensym (e->type);
-  tmpvar res = parent->gensym (e->type);
+  exp_type ty = rvalue ? rvalue->type : e->type;
+  tmpvar rval = parent->gensym (ty);
+  tmpvar res = parent->gensym (ty);
 
   prepare_rvalue (op, rval, e->tok);
 
@@ -2161,6 +2273,11 @@ c_unparser::load_map_indices(arrayindex *e,
 void
 c_unparser::visit_arrayindex (arrayindex* e)
 {
+
+  // Visiting an statistic-valued array in a non-lvalue context is prohibited.
+  if (e->referent->type == pe_stats)
+	throw semantic_error ("statistic-valued array in rvalue context", e->tok);
+
   stmt_expr block(*this);  
   
   // NB: Do not adjust the order of the next few lines; the tmpvar
@@ -2211,13 +2328,14 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
     }
  
  // The expression rval, lval, and result.
-  tmpvar rval = parent->parent->gensym (e->type);
+  exp_type ty = rvalue ? rvalue->type : e->type;
+  tmpvar rval = parent->parent->gensym (ty);
   rval.declare (*(parent->parent));
 
-  tmpvar lval = parent->parent->gensym (e->type);
+  tmpvar lval = parent->parent->gensym (ty);
   lval.declare (*(parent->parent));
 
-  tmpvar res = parent->parent->gensym (e->type);
+  tmpvar res = parent->parent->gensym (ty);
   res.declare (*(parent->parent));
 
   if (rvalue)
@@ -2241,14 +2359,14 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   
   vector<tmpvar> idx;
   parent->load_map_indices (e, idx);
-  tmpvar rvar = parent->gensym (e->type);
-  tmpvar lvar = parent->gensym (e->type);
-  tmpvar res = parent->gensym (e->type);
+  exp_type ty = rvalue ? rvalue->type : e->type;
+  tmpvar rvar = parent->gensym (ty);
+  tmpvar lvar = parent->gensym (ty);
+  tmpvar res = parent->gensym (ty);
   
   // NB: because these expressions are nestable, emit this construct
   // thusly:
   // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
-  //    rvar = ...;
   //    lock (array);
   //    lvar = get (array,idx0...N); // if necessary
   //    assignop (res, lvar, rvar);
@@ -2259,19 +2377,49 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   // we store all indices in temporary variables to avoid nasty
   // reentrancy issues that pop up with nested expressions:
   // e.g. ++a[a[c]=5] could deadlock
-  
+  //
+  //
+  // There is an exception to the above form: if we're doign a <<< assigment to 
+  // a statistic-valued map, there's a special form we follow:
+  //
+  // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
+  //    lock (array);
+  //    seek (array,idx0...N);
+  //    _stp_map_add_stat (array, rvar);
+  //    unlock (array);
+  //    rvar; })
+  //
+  // To simplify variable-allocation rules, we assign rvar to lvar and
+  // res in this block as well, even though they are technically
+  // superfluous.
+
   prepare_rvalue (op, rvar, e->tok);
-  
-  { // block used to control varlock_w lifespan
-    mapvar mvar = parent->getmap (e->referent, e->tok);
-    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-    varlock_w guard (*parent, mvar);
-    o->newline() << mvar.seek (idx) << ";";
-    if (op != "=") // don't bother fetch slot if we will just overwrite it
-      parent->c_assign (lvar, mvar.get(), e->tok);
-    c_assignop (res, lvar, rvar, e->tok); 
-    o->newline() << mvar.set (lvar) << ";";
-  }
+
+  if (op == "<<<")
+    {
+      assert (e->type == pe_stats);
+      assert (rvalue->type == pe_long);
+
+      mapvar mvar = parent->getmap (e->referent, e->tok);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      varlock_w guard (*parent, mvar);
+      o->newline() << mvar.seek (idx) << ";";
+      o->newline() << "_stp_map_add_stat (" << mvar << ", " << rvar << ");";
+      // dummy assignments
+      o->newline() << lvar << " = " << rvar << ";";
+      o->newline() << res << " = " << rvar << ";";
+    }
+  else
+    { // block used to control varlock_w lifespan
+      mapvar mvar = parent->getmap (e->referent, e->tok);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      varlock_w guard (*parent, mvar);
+      o->newline() << mvar.seek (idx) << ";";
+      if (op != "=") // don't bother fetch slot if we will just overwrite it
+	parent->c_assign (lvar, mvar.get(), e->tok);
+      c_assignop (res, lvar, rvar, e->tok); 
+      o->newline() << mvar.set (lvar) << ";";
+    }
 
   o->newline() << res << ";";
 }

@@ -1,3 +1,55 @@
+2005-10-20  Graydon Hoare  <graydon@redhat.com>
+
+	PR 917 (incomplete)
+	* staptree.h (struct statistic_decl): New struct.
+	(stapfile::stat_decls): New member.
+
+	* parse.h, parse.cxx 
+	(parser::expect_known): Fix typo.
+	(parser::expect_number): New method.
+	(parser::parse_global): Parse global statistic_decls.
+
+	* elaborate.h (systemtap_session::stat_decls): New member.
+	* elaborate.cxx (semantic_pass_symbols): Copy per-file stat_decls
+	to session-wide.
+	(typeresolution_info::visit_assignment): Detect some semantic stats
+	errors in type resolution pass.
+
+	* translate.cxx (var::sd): New private member.
+	(var::var): Initialize it.
+	(var::sdecl): New accessor.
+	(var::init): Handle stats values.
+	(mapvar::mapvar): Pass through statistic_decl to var ctor.
+	(mapvar::get): Test for long explicitly.
+	(mapvar::set): Likewise.
+	(mapvar::init): Handle stats values.
+	(c_unparser::emit_common_header): Remove typedef of stats_t,
+	include stat.c when necessary.
+	(mapvar::key_typename): Typo.
+	(c_unparser::emit_map_type_instantiations): Thinko: value_typename not key_typename.
+	(c_unparser::c_typename): Implementation typename is "Stat", not "stats_t".
+	(c_unparser::c_assign): Fix bad error message.
+	(c_unparser_assignment::c_assignop): Handle operator <<<.
+	(c_unparser::getvar): Feed session statistic_decl into var.
+	(c_unparser::getmap): Likewise.
+	(c_unparser::visit_assignment): Handle operator <<<.
+	(c_tmpcounter_assignment::visit_symbol): Derive type from rvalue when present.
+	(c_unparser_assignment::visit_symbol) 
+	(c_tmpcounter_assignment::visit_arrayindex)
+	(c_unparser_assignment::load_map_indices): Likewise.
+	(c_unparser::visit_arrayindex): Likewise, and Prohibit statistic rvalues.
+	(c_unparser_assignment::visit_arrayindex): Handle operator <<<.
+
+	* testsuite/semko/twentyfour.stp:
+	* testsuite/semko/twentyfive.stp:
+	* testsuite/semko/twentysix.stp:
+	* testsuite/semko/twentyseven.stp:
+	* testsuite/semko/twentyeight.stp:
+	* testsuite/semko/twentynine.stp:
+	* testsuite/semko/thirty.stp:
+	* testsuite/semko/thirtyone.stp: New tests for prohibited statistic contexts.
+	* testsuite/buildok/twentytwo.stp: New test for legal statistic contexts.
+
 2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
 
 	PR 1194.

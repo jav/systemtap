@@ -100,6 +100,7 @@ private:
   // convenience forms
   const token* expect_op (std::string const & expected);
   const token* expect_kw (std::string const & expected);
+  const token* expect_number (int64_t & expected);
   const token* expect_ident (std::string & target);
   bool peek_op (std::string const & op);
   bool peek_kw (std::string const & kw);
@@ -109,7 +110,8 @@ private:
 
 private: // nonterminals
   void parse_probe (std::vector<probe*>&, std::vector<probe_alias*>&);
-  void parse_global (std::vector<vardecl*>&);
+  void parse_global (std::vector<vardecl*>&,
+		     std::map<std::string, statistic_decl> &stat_decls);
   void parse_functiondecl (std::vector<functiondecl*>&);
   embeddedcode* parse_embeddedcode ();
   probe_point* parse_probe_point ();

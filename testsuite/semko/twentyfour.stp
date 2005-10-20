@@ -1,0 +1,12 @@
+#! stap -p2
+
+# need one of these for each prohibited statistic operation
+
+global log_hist(x, 10), log_hist(y, 10)
+
+
+probe end
+{
+	y = x
+}
+

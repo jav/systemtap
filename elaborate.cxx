@@ -608,6 +608,23 @@ semantic_pass_symbols (systemtap_session& s)
       for (unsigned i=0; i<dome->embeds.size(); i++)
         s.embeds.push_back (dome->embeds[i]);
 
+      for (std::map<std::string, statistic_decl>::const_iterator i = 
+	     dome->stat_decls.begin(); i != dome->stat_decls.end(); ++i)
+	{
+	  try 
+	    {
+	      
+	      if (s.stat_decls.find(i->first) != s.stat_decls.end())
+		throw semantic_error("multiple statistic declarations for " + i->first);
+	      s.stat_decls.insert(std::make_pair(i->first,
+						 i->second));
+	    }
+          catch (const semantic_error& e)
+            {
+              s.print_error (e);
+            }	  
+	}
+
       // Pass 2: process functions
 
       for (unsigned i=0; i<dome->functions.size(); i++)
@@ -1130,12 +1147,20 @@ typeresolution_info::visit_assignment (assignment *e)
       e->left->visit (this);
       t = pe_long;
       e->right->visit (this);
-      if (e->type == pe_unknown)
+      if (e->type == pe_unknown ||
+	  e->type == pe_stats)
         {
           e->type = pe_long;
           resolved (e->tok, e->type);
         }
     }
+
+  else if (e->left->type == pe_stats)
+    invalid (e->left->tok, e->left->type);
+
+  else if (e->right->type == pe_stats)
+    invalid (e->right->tok, e->right->type);
+
   else if (e->op == "+=" || // numeric only
            e->op == "-=" ||
            e->op == "*=" ||

@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <climits>
+#include <sstream>
 
 using namespace std;
 
@@ -160,7 +161,7 @@ const token*
 parser::expect_known (token_type tt, string const & expected)
 {
   const token *t = next();
-  if (! t && t->type == tt && t->content == expected)
+  if (! (t && t->type == tt && t->content == expected))
     throw parse_error ("expected '" + expected + "'");
   return t;
 }
@@ -188,6 +189,16 @@ const token*
 parser::expect_kw (std::string const & expected)
 {
   return expect_known (tok_identifier, expected);
+}
+
+const token* 
+parser::expect_number (int64_t & expected)
+{
+  std::string tmp;  
+  token const * tt = expect_unknown (tok_number, tmp);
+  istringstream iss(tmp);
+  iss >> expected;
+  return tt;
 }
 
 
@@ -507,7 +518,7 @@ parser::parse ()
 	  if (t->type == tok_identifier && t->content == "probe")
             parse_probe (f->probes, f->aliases);
 	  else if (t->type == tok_identifier && t->content == "global")
-	    parse_global (f->globals);
+	    parse_global (f->globals, f->stat_decls);
 	  else if (t->type == tok_identifier && t->content == "function")
             parse_functiondecl (f->functions);
           else if (t->type == tok_embedded)
@@ -713,7 +724,8 @@ parser::parse_statement ()
 
 
 void
-parser::parse_global (vector <vardecl*>& globals)
+parser::parse_global (vector <vardecl*>& globals,
+		      std::map<std::string, statistic_decl> &stat_decls)
 {
   const token* t0 = next ();
   if (! (t0->type == tok_identifier && t0->content == "global"))
@@ -725,14 +737,47 @@ parser::parse_global (vector <vardecl*>& globals)
       if (! (t->type == tok_identifier))
         throw parse_error ("expected identifier");
 
+      statistic_decl sd;
+
+      if (t->content == "log_hist")
+	{
+	  std::string tmp;
+	  expect_op ("(");
+	  t = expect_ident (tmp);
+	  expect_op (",");
+	  expect_number (sd.logarithmic_buckets);
+	  expect_op (")");
+	  sd.type = statistic_decl::logarithmic;
+	}
+      else if (t->content == "linear_hist")
+	{
+	  std::string tmp;
+	  expect_op ("(");
+	  t = expect_ident (tmp);
+	  expect_op (",");
+	  expect_number (sd.linear_low);
+	  expect_op (",");
+	  expect_number (sd.linear_high);
+	  expect_op (",");
+	  expect_number (sd.linear_step);
+	  expect_op (")");
+	  sd.type = statistic_decl::linear;
+	}
+
       for (unsigned i=0; i<globals.size(); i++)
 	if (globals[i]->name == t->content)
-          throw parse_error ("duplicate global name");
-
+	  throw parse_error ("duplicate global name");
+      
       vardecl* d = new vardecl;
       d->name = t->content;
       d->tok = t;
       globals.push_back (d);
+
+      if (sd.type != statistic_decl::none)
+	{
+	  d->type = pe_stats;
+	  stat_decls[d->name] = sd;
+	}
 
       t = peek ();
       if (t && t->type == tok_operator && t->content == ",")
@@ -1701,7 +1746,7 @@ parser::parse_symbol ()
 	    { 
 	      next();
 	      expect_unknown (tok_number, c);
-	      expect_op ("]");
+  	      expect_op ("]");
 	      tsym->components.push_back
 		(make_pair (target_symbol::comp_literal_array_index, c));
 	    }	    

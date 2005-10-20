@@ -235,6 +235,7 @@ struct systemtap_session
   std::vector<functiondecl*> functions;
   std::vector<derived_probe*> probes;
   std::vector<embeddedcode*> embeds;
+  std::map<std::string, statistic_decl> stat_decls;
 
   // module-referencing file handles
   std::map<std::string,int> module_fds;
