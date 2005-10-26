@@ -133,7 +133,7 @@
 #define KEY4NAME int64
 #define KEY4N i
 #define KEY4STOR int64_t key4
-#define KEY4CPY(4) m->key4=key4
+#define KEY4CPY(m) m->key4=key4
 #endif
 #define KEY4_EQ_P JOIN(KEY4NAME,eq_p)
 #define KEY4_HASH JOIN(KEY4NAME,hash)
@@ -178,7 +178,7 @@
 #define KEYSYM(x) JOIN5(x,KEY1N,KEY2N,KEY3N,KEY4N,VALN)
 #define ALLKEYS(x) x##1, x##2, x##3, x##4
 #define ALLKEYSD(x) KEY1TYPE x##1, KEY2TYPE x##2, KEY3TYPE x##3, KEY4TYPE x##4
-#define KEYCPY(m) {KEY1CPY(m);KEY2CPY(m);KEY3CPY(m);KEY4CPY(m)}
+#define KEYCPY(m) {KEY1CPY(m);KEY2CPY(m);KEY3CPY(m);KEY4CPY(m);}
 #elif KEY_ARITY == 5
 #define KEYSYM(x) JOIN6(x,KEY1N,KEY2N,KEY3N,KEY4N,KEY5N,VALN)
 #define ALLKEYS(x) x##1, x##2, x##3, x##4, x##5
@@ -445,9 +445,7 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	n = (struct KEYSYM(map_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
-	dbug("keycpy\n");
 	KEYCPY(n);
-	dbug("done\n");
 #if VALUE_TYPE == STAT
 	return _new_map_set_stat(map,(struct map_node *)n, val, add, 1);
 #else

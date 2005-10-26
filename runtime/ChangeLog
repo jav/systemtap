@@ -1,5 +1,11 @@
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 
+	* map-gen.c (KEY4CPY): Fix typo.
+	(KEYCPY): Add missing semicolon.
+
+2005-10-26  Martin Hunt  <hunt@redhat.com>
+	* map-gen.c: New file.
+	
 	* map.c (_new_map_create, _new_map_del_node, _new_map_del_node,
 	_new_map_set_int64, _new_map_set_str,_new_map_get_int64,
 	_new_map_get_str, _new_map_get_stat, _new_map_set_stat):
