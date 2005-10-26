@@ -20,27 +20,27 @@ void str_add(void *dest, char *val)
 	dst[len + len1] = 0;
 }
 
-void __stp_map_set_str (MAP map, char *val, int add)
+int __stp_map_set_str (MAP map, char *val, int add)
 {
 	struct map_node *m;
 
 	if (map == NULL)
-		return;
+		return -2;
 
 	if (map->create) {
-		if (val == 0 && !map->no_wrap)
-			return;
+		if (val == 0 && !map->list)
+			return 0;
 
 		m = __stp_map_create (map);
 		if (!m)
-			return;
+			return -1;
 		
 		/* set the value */
 		//dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
 		str_copy((void *)((long)m + map->data_offset), val);
 	} else {
 		if (map->key == NULL)
-			return;
+			return -2;
 		
 		if (val) {
 			if (add)
@@ -52,6 +52,7 @@ void __stp_map_set_str (MAP map, char *val, int add)
 			_stp_map_key_del(map);
 		}
 	}
+	return 0;
 }
 
 /** Set the current element's value to a string.
@@ -62,6 +63,7 @@ void __stp_map_set_str (MAP map, char *val, int add)
  * is set for the map, this function does nothing.
  * @param map
  * @param str String containing new value.
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  * @sa _stp_map_set()
  * @ingroup map_set
  */
@@ -75,6 +77,7 @@ void __stp_map_set_str (MAP map, char *val, int add)
  * is set for the map, this function does nothing.
  * @param map
  * @param val String containing value to append.
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  * @ingroup map_set
  */
 #define _stp_map_add_str(map,val) __stp_map_set_str(map,val,1)
@@ -107,6 +110,7 @@ char *_stp_map_get_str (MAP map)
  * is set for the map, this function does nothing.
  * @param map
  * @param str String containing new value.
+ * @returns 0 on success, -1 on error.
  * @sa _stp_map_set()
  * @ingroup map_set
  */

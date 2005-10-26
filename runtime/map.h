@@ -73,7 +73,10 @@ struct map_root {
 	int num;
 
 	/* when more than maxnum elements, wrap or discard? */
-	int no_wrap;
+	int wrap;
+
+	/* is this a list? */
+	int list;
 
 	/* linked list of current entries */
 	struct list_head head;
@@ -218,18 +221,24 @@ char * _stp_get_str(struct map_node *m);
 stat * _stp_get_stat(struct map_node *m);
 unsigned int str_hash(const char *key1);
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size);
-#ifdef NEED_STAT_VALS
 static int msb64(int64_t x);
 static MAP _stp_map_new_hstat_log(unsigned max_entries, int key_size, int buckets);
 static MAP _stp_map_new_hstat_linear(unsigned max_entries, int ksize, int start, int stop, int interval);
 static void _stp_map_print_histogram(MAP map, stat *s);
-#endif
 void _stp_map_key_del(MAP map);
 struct map_node * _stp_map_start(MAP map);
 struct map_node * _stp_map_iter(MAP map, struct map_node *m);
 void _stp_map_del(MAP map);
 void _stp_map_print(MAP map, const char *fmt);
 static struct map_node * __stp_map_create(MAP map);
+
+static struct map_node *_new_map_create (MAP map, struct hlist_head *head);
+static int _new_map_set_int64 (MAP map, struct map_node *n, int64_t val, int add);
+static int64_t _new_map_get_int64 (MAP map, struct map_node *n);
+static char *_new_map_get_str (MAP map, struct map_node *n);
+static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add);
+static stat *_new_map_get_stat (MAP map, struct map_node *n);
+static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add, int new);
 
 /* these prototypes suppress warnings from macros */
 void _stp_map_key_str(MAP, char *);

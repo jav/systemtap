@@ -12,27 +12,27 @@
  * @brief Map functions to set and get int64s
  */
 
-void __stp_map_set_int64 (MAP map, int64_t val, int add)
+int __stp_map_set_int64 (MAP map, int64_t val, int add)
 {
 	struct map_node *m;
 
 	if (map == NULL)
-		return;
+		return -2;
 
 	if (map->create) {
-		if (val == 0 && !map->no_wrap)
-			return;
+		if (val == 0 && !map->list)
+			return 0;
 
 		m = __stp_map_create (map);
 		if (!m)
-			return;
+			return -1;
 		
 		/* set the value */
 		//dbug ("m=%lx offset=%lx\n", (long)m, (long)map->data_offset);
 		*(int64_t *)((long)m + map->data_offset) = val;
 	} else {
 		if (map->key == NULL)
-			return;
+			return -2;
 		
 		if (val) {
 			if (add)
@@ -44,6 +44,7 @@ void __stp_map_set_int64 (MAP map, int64_t val, int add)
 			_stp_map_key_del(map);
 		}
 	}
+	return 0;
 }
 /** Set the current element's value to an int64.
  * This sets the current element's value to an int64. The map must have been created
@@ -53,6 +54,7 @@ void __stp_map_set_int64 (MAP map, int64_t val, int add)
  * is set for the map, this function does nothing.
  * @param map
  * @param val new value
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  * @sa _stp_map_add_int64()
  * @sa _stp_map_set()
  * @ingroup map_set

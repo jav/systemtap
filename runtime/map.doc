@@ -7,8 +7,6 @@ include the proper files.  For example, if you need a map with 3 keys, int64, in
 that stores strings, you need to do
 @code
 
-#define NEED_STRING_VALS
-
 #define KEY1_TYPE INT64
 #define KEY2_TYPE INT64
 #define KEY3_TYPE STRING

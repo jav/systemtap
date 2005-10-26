@@ -1,3 +1,21 @@
+2005-10-26  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_new_map_create, _new_map_del_node, _new_map_del_node,
+	_new_map_set_int64, _new_map_set_str,_new_map_get_int64,
+	_new_map_get_str, _new_map_get_stat, _new_map_set_stat):
+	New internal functions for the new API.
+
+	* map-int.c (__stp_map_set_int64): Modify to return an
+	error code.
+	* map-stat.c (_stp_map_add_stat): Ditto.
+	* map-str (_stp_map_set_str): Ditto.
+
+	* Doxyfile: Remove predefines NEED_STRING_VALS, 
+	NEED_STATS, NEED_INT64.
+	* map-keys.c: Ditto.	
+	* list.c (_stp_list_new): Ditto. Also set map->list.
+	* map-values.c: Ditto.
+
 2005-10-19  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (_stp_kallsyms_lookup_tabled): Only

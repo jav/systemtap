@@ -15,29 +15,30 @@
 #include "stat-common.c"
 
 /* Adds an int64 to a stats map */
-static void _stp_map_add_stat (MAP map, int64_t val)
+static int _stp_map_add_stat (MAP map, int64_t val)
 {
 	stat *d;
 	Stat st;
 
 	if (map == NULL)
-		return;
+		return -2;
 		
 	if (map->create) {
 		struct map_node *m = __stp_map_create (map);
 		if (!m)
-			return;
+			return -1;
 		
 		/* set the value */
 		d = (stat *)((long)m + map->data_offset);
 		d->count = 0;
 	} else {
 		if (map->key == NULL)
-			return;
+			return -2;
 		d = (stat *)((long)map->key + map->data_offset);
 	}
 	st = (Stat)((long)map + offsetof(struct map_root, hist_type));
 	__stp_stat_add (st, d, val);
+	return 0;
 }
 
 

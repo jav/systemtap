@@ -5,6 +5,7 @@
  * @brief Implements maps (associative arrays) and lists
  */
 
+#include "map-values.c"
 #include "alloc.c"
 #include "sym.c"
 
@@ -15,7 +16,6 @@ static int map_sizes[] = {
         0
 };
 
-#ifdef NEED_INT64_KEYS
 unsigned int int64_hash (const int64_t v)
 {
 	return (unsigned int)hash_long ((unsigned long)v, HASH_TABLE_BITS);
@@ -25,11 +25,7 @@ int int64_eq_p (int64_t key1, int64_t key2)
 {
 	return key1 == key2;
 }
-#endif /* NEED_INT64_KEYS */
 
-
-
-#if defined (NEED_STRING_KEYS) || defined (NEED_STRING_VALS)
 void str_copy(char *dest, char *src)
 {
 	int len = strlen(src);
@@ -38,9 +34,7 @@ void str_copy(char *dest, char *src)
 	strncpy (dest, src, len);
 	dest[len] = 0;
 }
-#endif
 
-#ifdef NEED_STRING_KEYS
 int str_eq_p (char *key1, char *key2)
 {
 	return strncmp(key1, key2, MAP_STRING_LENGTH - 1) == 0;
@@ -55,7 +49,6 @@ unsigned int str_hash(const char *key1)
 	}
 	return (unsigned int)hash_long((unsigned long)hash, HASH_TABLE_BITS);
 }
-#endif /* NEED_STRING_KEYS */
 
 /** @addtogroup maps 
  * Implements maps (associative arrays) and lists
@@ -172,7 +165,7 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 
 		for (i = max_entries - 1; i >= 0; i--) {
 			e = i * size + tmp;
-			//dbug ("e=%lx\n", (long)e);
+			dbug ("e=%lx\n", (long)e);
 			list_add(e, &m->pool);
 			((struct map_node *)e)->map = m;
 		}
@@ -534,7 +527,6 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
 			_stp_symbol_print ((unsigned long)val);
 		break;
 	}
-#ifdef NEED_STAT_VALS
 	case STAT:
 	{
 		Stat st = (Stat)((long)map + offsetof(struct map_root, hist_type));
@@ -542,7 +534,6 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
 		_stp_stat_print_valtype (fmt, st, sd, 0); 
 		break;
 	}
-#endif
 	default:
 		break;
 	}
@@ -600,8 +591,8 @@ static struct map_node *__stp_map_create (MAP map)
 {
 	struct map_node *m;
 	if (list_empty(&map->pool)) {
-		if (map->no_wrap) {
-			/* ERROR. FIXME */
+		if (!map->wrap) {
+			/* ERROR. no space left */
 			return NULL;
 		}
 		m = (struct map_node *)map->head.next;
@@ -624,5 +615,131 @@ static struct map_node *__stp_map_create (MAP map)
 	map->num++;
 	return m;
 }
-#endif
+
+static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
+{
+	struct map_node *m;
+	dbug("map=%lx\n", map);
+	if (list_empty(&map->pool)) {
+		if (!map->wrap) {
+			/* ERROR. no space left */
+			return NULL;
+		}
+		m = (struct map_node *)map->head.next;
+		dbug ("got %lx off head\n", (long)m);
+		hlist_del_init(&m->hnode);
+	} else {
+		m = (struct map_node *)map->pool.next;
+		dbug ("got %lx off pool\n", (long)m);
+	}
+	list_move_tail(&m->lnode, &map->head);
+	
+	/* add node to new hash list */
+	hlist_add_head(&m->hnode, head);
+	
+	map->num++;
+	return m;
+}
+
+static void _new_map_del_node (MAP map, struct map_node *n)
+{
+	/* remove node from old hash list */
+	hlist_del_init(&n->hnode);
+	
+	/* remove from entry list */
+	list_del(&n->lnode);
+	
+	/* add it back to the pool */
+	list_add(&n->lnode, &map->pool);
+	
+	map->num--;
+}
+
+static int _new_map_set_int64 (MAP map, struct map_node *n, int64_t val, int add)
+{
+	if (map == NULL || n == NULL)
+		return -2;
+
+	if (val || map->list) {
+		if (add)
+			*(int64_t *)((long)n + map->data_offset) += val;
+		else
+			*(int64_t *)((long)n + map->data_offset) = val;
+	} else if (!add) {
+		/* setting value to 0 is the same as deleting */
+		_new_map_del_node (map, n);
+	}
+	return 0;
+}
+
+static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add)
+{
+	if (map == NULL ||  n == NULL)
+		return -2;
+
+	if (val || map->list) {
+		if (add)
+			str_add((void *)((long)n + map->data_offset), val);
+		else
+			str_copy((void *)((long)n + map->data_offset), val);
+	} else if (!add) {
+		/* setting value to 0 is the same as deleting */
+		_new_map_del_node (map, n);
+	}
+	return 0;
+}
+
+static int64_t _new_map_get_int64 (MAP map, struct map_node *n)
+{
+	if (map == NULL || n == NULL)
+		return 0;
+	return *(int64_t *)((long)n + map->data_offset);
+}
+
+static char *_new_map_get_str (MAP map, struct map_node *n)
+{
+	if (map == NULL || n == NULL)
+		return 0;
+	return (char *)((long)n + map->data_offset);
+}
+
+static stat *_new_map_get_stat (MAP map, struct map_node *n)
+{
+	if (map == NULL || n == NULL)
+		return 0;
+	return (stat *)((long)n + map->data_offset);
+}
+
+static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add, int new)
+{
+	stat *sd;
+	Stat st;
+
+	if (map == NULL || n == NULL)
+		return -2;
+
+	if (val == 0 && !add) {
+		_new_map_del_node (map, n);
+		return 0;
+	}
+
+	sd = (stat *)((long)n + map->data_offset);
+	st = (Stat)((long)map + offsetof(struct map_root, hist_type));
+
+	if (new || !add) {
+		int j;
+		sd->count = sd->sum = sd->min = sd->max = 0;
+		if (st->hist_type != HIST_NONE) {
+			for (j = 0; j < st->hist_buckets; j++)
+				sd->histogram[j] = 0;
+		}
+	}
+
+	__stp_stat_add (st, sd, val);
+
+	return 0;
+}
+
+
+#endif /* _MAP_C_ */
 

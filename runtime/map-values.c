@@ -6,25 +6,10 @@
  */
 
 #include "map.h"
-
-#if !defined(NEED_STRING_VALS) && !defined(NEED_INT64_VALS) && !defined(NEED_STAT_VALS)
-#error Need to define at least one of NEED_STRING_VALS, NEED_INT64_VALS and NEED_STAT_VALS
-#endif
-
-#ifdef NEED_STRING_VALS
 #include "map-str.c"
-#endif
-
-#ifdef NEED_STAT_VALS
 #include "map-stat.c"
-#endif
-
-#ifdef NEED_INT64_VALS
 #include "map-int.c"
-#endif
 
-
-#if defined(NEED_INT64_VALS) || defined (NEED_STAT_VALS)
 /** Adds an int64 to the current element's value.
  * This adds an int64 to the current element's value. The map must have been created
  * to hold int64s or stats.
@@ -33,23 +18,23 @@
  * is set for the map, this function does nothing.
  * @param map
  * @param val value
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  * @ingroup map_set
  */
-void _stp_map_add_int64 (MAP map, int64_t val)
+int _stp_map_add_int64 (MAP map, int64_t val)
 {
 	if (map == NULL)
-		return;
+		return -2;
 
-#ifdef NEED_INT64_VALS
 	if (map->type == INT64) 
-		__stp_map_set_int64 (map, val, 1);
-#endif
-#ifdef NEED_STAT_VALS
+		return __stp_map_set_int64 (map, val, 1);
+
 	if (map->type == STAT) 
-		_stp_map_add_stat (map, val);
-#endif
+		return _stp_map_add_stat (map, val);
+
+	/* shouldn't get here */
+	return -2;
 }
-#endif
 
 unsigned _stp_map_entry_exists (MAP map)
 {

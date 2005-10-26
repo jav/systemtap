@@ -1,14 +1,6 @@
 #ifndef _LIST_C_ /* -*- linux-c -*- */
 #define _LIST_C_
 
-#ifndef NEED_INT64_KEYS
-#error Before including list.c, "#define KEY1_TYPE INT64" and include "map-keys.c"
-#endif
-
-#if !defined(NEED_STRING_VALS) && !defined(NEED_INT64_VALS)
-#error Before including list.c, "#define VALUE_TYPE" to "INT64" or "STRING" and include "map-values.c"
-#endif
-
 #include "map.c"
 #include "copy.c"
 
@@ -37,7 +29,7 @@
 MAP _stp_list_new(unsigned max_entries, int type)
 {
   MAP map = _stp_map_new_int64 (max_entries, type);
-  map->no_wrap = 1;
+  map->list = 1;
   return map;
 }
 
@@ -75,7 +67,6 @@ void _stp_list_clear(MAP map)
 	}
 }
 
-#ifdef NEED_STRING_VALS
 /** Adds a C string to a list.
  * @param map
  * @param str
@@ -99,9 +90,7 @@ inline void _stp_list_add_string (MAP map, String str)
 	_stp_map_key_int64 (map, map->num);
 	_stp_map_set_str(map, str->buf);
 }
-#endif /* NEED_STRING_VALS */
 
-#ifdef NEED_INT64_VALS
 /** Adds an int64 to a list.
  * @param map
  * @param val
@@ -113,7 +102,6 @@ inline void _stp_list_add_int64(MAP map, int64_t val)
 	_stp_map_key_int64 (map, map->num);
 	_stp_map_set_int64(map, val);
 }
-#endif /* NEED_INT64_VALS */
 
 /** Get the number of elements in a list.
  * @param map
@@ -125,7 +113,6 @@ inline int _stp_list_size(MAP map)
 	return map->num;
 }
 
-#ifdef NEED_STRING_VALS
 /** Copy an argv from user space to a List.
  *
  * @param list A list.
@@ -159,7 +146,6 @@ int _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
 	}
 	return list->num;
 }
-#endif /* NEED_STRING_VALS */
 
 /** @} */
 #endif /* _LIST_C_ */
