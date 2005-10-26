@@ -10,6 +10,7 @@
 int main ()
 {
   MAP map = _stp_map_new_int64(4, STRING);
+  map->wrap = 1;
 
   /* map[1] = one */
   _stp_map_key_int64 (map, 1);

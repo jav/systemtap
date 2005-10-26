@@ -9,6 +9,7 @@
 int main ()
 {
   MAP map = _stp_map_new_str(4, INT64);
+  map->wrap = 1;
 
   /* map[Ohio] = 1 */
   _stp_map_key_str (map, "Ohio");

@@ -1,3 +1,10 @@
+2005-10-26  Martin Hunt  <hunt@redhat.com>
+
+	* maps/map.test: Update with results for new tests.
+	* maps/*2.c: Tests for the new API.
+	* maps/ist.c: Renamed isx.c.
+	* maps/setadd.c: New test of adding and setting.
+
 2005-09-23  Martin Hunt  <hunt@redhat.com>
 
 	* maps/map.test: Add sort results.

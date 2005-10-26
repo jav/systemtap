@@ -12,6 +12,7 @@
 int main ()
 {
   MAP map = _stp_map_new_int64_int64_str(4, STRING);
+  map->wrap = 1;
 
   _stp_map_key_int64_int64_str (map, 1,2,"Ohio");
   _stp_map_set_str (map, "Columbus" );
