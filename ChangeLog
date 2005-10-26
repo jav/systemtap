@@ -1,10 +1,17 @@
+2005-10-25  Roland McGrath  <roland@redhat.com>
+
+	PR 1271 cont'd.
+	* testsuite/buildok/twentytwo.stp: New file.
+	* testsuite/buildok/twentythree.stp: New file.
+	* loc2c.c (discontiguify): Add missing ; in output.
+
 2005-10-20  Graydon Hoare  <graydon@redhat.com>
 
 	PR 917 (incomplete)
 	* staptree.h (struct statistic_decl): New struct.
 	(stapfile::stat_decls): New member.
 
-	* parse.h, parse.cxx 
+	* parse.h, parse.cxx
 	(parser::expect_known): Fix typo.
 	(parser::expect_number): New method.
 	(parser::parse_global): Parse global statistic_decls.
@@ -34,7 +41,7 @@
 	(c_unparser::getmap): Likewise.
 	(c_unparser::visit_assignment): Handle operator <<<.
 	(c_tmpcounter_assignment::visit_symbol): Derive type from rvalue when present.
-	(c_unparser_assignment::visit_symbol) 
+	(c_unparser_assignment::visit_symbol)
 	(c_tmpcounter_assignment::visit_arrayindex)
 	(c_unparser_assignment::load_map_indices): Likewise.
 	(c_unparser::visit_arrayindex): Likewise, and Prohibit statistic rvalues.
@@ -71,9 +78,9 @@
 	detailed probe point id.
 	* tapsets.cxx (emit_registrations): Use it.
 	(add_probe_point): Correct synthesized probe-point typo.
-	
+
 2005-10-17  Martin Hunt  <hunt@redhat.com>
-	
+
 	PR 1482
 	* tapsets.cxx (emit_registrations): On failure, don't
 	forget to unregister probe 0;
@@ -101,7 +108,7 @@
 2005-10-17  Graydon Hoare  <graydon@redhat.com>
 
 	* testsuite/semko/twentyone.stp: Check function doesn't match inline.
-	
+
 	* testsuite/semko/twentytwo.stp: Check inline doesn't match function.
 
 	* testsuite/buildok/six.stp: Change "function" to "inline".
@@ -109,20 +116,20 @@
 	* stapprobes.5.in: Describe "inline" probes.
 
 	* tapsets.cxx (TOK_INLINE): New token "inline".
-	(dwarf_query::has_inline_str) 
-	(dwarf_query::has_inline_num) 
-	(dwarf_query::inline_str_val) 
+	(dwarf_query::has_inline_str)
+	(dwarf_query::has_inline_num)
+	(dwarf_query::inline_str_val)
 	(dwarf_query::inline_num_val): New members.
-	(dwarf_query::dwarf_query): Load new members. 
+	(dwarf_query::dwarf_query): Load new members.
 	(query_dwarf_inline_instance)
 	(query_dwarf_func)
 	(query_cu)
 	(query_module)
 	(dwarf_derived_probe::add_probe_point)
-	(dwarf_builder::build): 
-	Use inline-related members where appropriate.	
+	(dwarf_builder::build):
+	Use inline-related members where appropriate.
 	(dwarf_derived_probe::register_inline_variants): New method.
-	(dwarf_derived_probe::register_function_and_statement_variants): 
+	(dwarf_derived_probe::register_function_and_statement_variants):
 	Call it.
 
 2005-10-14  Roland McGrath  <roland@redhat.com>
