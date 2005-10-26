@@ -1,5 +1,11 @@
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 
+	* maps/map.test: Add results for iiiiii and ssssss.
+	* maps/iiiiii.c: New file.
+	* maps/ssssss.c: New file.
+	
+2005-10-26  Martin Hunt  <hunt@redhat.com>
+
 	* maps/map.test: Add results for issii2.
 
 2005-10-26  Martin Hunt  <hunt@redhat.com>

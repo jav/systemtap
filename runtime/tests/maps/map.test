@@ -1055,6 +1055,36 @@ mapx[3] = count:2  sum:-2  avg:-1  min:-1  max:-1
 mapx[4] = count:2  sum:-2  avg:-1  min:-1  max:-1
 }
 
+test iiiiii {Test of 5 int keys and an int value} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test iiiiii.c
+} -body {
+	exec ./test
+} -result {map[1, 2, 3, 4, 5] = 10
+map[10, 20, 30, 40, 50] = 100
+map[-1, -2, -3, -4, -5] = -10
+map[100, 200, 300, 400, 500] = 1000
+1 - 2 - 3 - 4 - 5 *** 10
+10 - 20 - 30 - 40 - 50 *** 100
+-1 - -2 - -3 - -4 - -5 *** -10
+100 - 200 - 300 - 400 - 500 *** 1000
+}
+
+test ssssss {Test of 5 string keys and a string value} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ssssss.c
+} -body {
+	exec ./test
+} -result {map[1ABC, 2ABC, 3ABC, 4ABC, 5ABC] = 666
+map[1QRS, 2QRS, 3QRS, 4QRS, 5QRS] = 777
+map[1abc, 2abc, 3abc, 4abc, 5abc] = 888
+map[1XYZ, 2XYZ, 3XYZ, 4XYZ, 5XYZ] = 999
+1ABC and 2ABC and 3ABC and 4ABC and 5ABC  ---> 666
+1QRS and 2QRS and 3QRS and 4QRS and 5QRS  ---> 777
+1abc and 2abc and 3abc and 4abc and 5abc  ---> 888
+1XYZ and 2XYZ and 3XYZ and 4XYZ and 5XYZ  ---> 999
+}
+
+
+
 
 
 
