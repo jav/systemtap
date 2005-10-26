@@ -603,6 +603,18 @@ map[3, Chicago, IL, 2000] = 8272768
 3. The population of Chicago, IL in 2000 was 8272768
 }
 
+test map_issii2 {Test of int64,string,string,int64 keys and int64 values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test issii2.c
+} -body {
+	exec ./test
+} -result {map[1, Boston, MA, 1970] = 5224303
+map[2, Boston, MA, 2000] = 6057826
+map[3, Chicago, IL, 2000] = 8272768
+1. The population of Boston, MA in 1970 was 5224303
+2. The population of Boston, MA in 2000 was 6057826
+3. The population of Chicago, IL in 2000 was 8272768
+}
+
 test map_sort {Test of sorting} -setup {
         exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort.c
 } -body {
