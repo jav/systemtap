@@ -1,0 +1,9 @@
+#! stap -gp4
+
+# Test for writing 64-bit target variable, PR 1271
+
+probe kernel.function("free_task")
+{
+	$tsk->timestamp = 22;
+	log("set to 22 => " . string($tsk->timestamp));
+}

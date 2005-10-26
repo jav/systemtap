@@ -1139,7 +1139,7 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
 	    if (size > max_piece_bytes)
 	      size = max_piece_bytes;
 
-	    obstack_printf (pool, "%*saddr = container_addr + " UFORMAT "\n",
+	    obstack_printf (pool, "%*saddr = container_addr + " UFORMAT ";\n",
 			    indent * 2, "", offset);
 	    struct location *piece = new_synthetic_loc (pool, loc, false);
 	    piece->byte_size = size;
