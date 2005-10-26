@@ -1312,7 +1312,7 @@ max_fetch_size (struct location *loc, Dwarf_Die *die)
 {
   Dwarf_Die cu_mem;
   uint8_t address_size;
-#define dwarf_diecu(d,m,a,n) (*m = *d, *a = 4, m) /* XXX */
+#define dwarf_diecu(d,m,a,n) (*m = *d, *a = sizeof (void *), m) /* XXX */
   Dwarf_Die *cu = dwarf_diecu (die, &cu_mem, &address_size, NULL);
   if (cu == NULL)
     FAIL (loc, N_("cannot determine CU address size from %s: %s"),
