@@ -1,3 +1,7 @@
+2005-10-26  Martin Hunt  <hunt@redhat.com>
+
+	* recreate_links: Add link to map-gen.c.
+
 2005-09-09  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Add arith.c

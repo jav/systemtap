@@ -16,3 +16,4 @@ ln -s ../stat.c .
 ln -s ../stat.h .
 ln -s ../stat-common.c .
 ln -s ../arith.c .
+ln -s ../map-gen.c .
