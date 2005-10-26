@@ -1,3 +1,8 @@
+2005-10-26  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (max_fetch_size): Default to host pointer size,
+	while still waiting for new libdw entrypoint.
+
 2005-10-25  Roland McGrath  <roland@redhat.com>
 
 	PR 1271 cont'd.
