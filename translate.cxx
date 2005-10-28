@@ -1,5 +1,6 @@
 // translation pass
 // Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -2626,6 +2627,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"current.c\"";
       s.op->newline() << "#include \"stack.c\"";
+      s.op->newline() << "#include \"regs.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#endif";

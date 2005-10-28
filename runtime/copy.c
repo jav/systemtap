@@ -1,3 +1,13 @@
+/* Copy from user space functions
+ * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005 Intel Corporation.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
 #ifndef _COPY_C_ /* -*- linux-c -*- */
 #define _COPY_C_
 
@@ -74,7 +84,7 @@ do {									   \
 		: "i"(-EFAULT), "0"(count), "1"(count), "3"(src), "4"(dst) \
 		: "memory");						   \
 } while (0)
-#elif defined (__powerpc64__)
+#elif defined (__powerpc64__) || defined (__ia64__)
 #define __stp_strncpy_from_user(dst,src,count,res) \
 	do { res = __strncpy_from_user(dst, src, count); } while(0)
 #endif

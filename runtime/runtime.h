@@ -1,5 +1,6 @@
 /* main header file
  * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -125,6 +126,9 @@ static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
 }
 #endif
 
+#ifdef __ia64__	
+  struct fnptr func_entry, *pfunc_entry;
+#endif
 int init_module (void)
 {
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
@@ -134,8 +138,17 @@ int init_module (void)
     _stp_kallsyms_lookup = & _stp_kallsyms_lookup_tabled;
   else
 #endif
+#ifdef __ia64__
+  {
+        func_entry.gp = ((struct fnptr *) kallsyms_lookup_name)->gp;
+        func_entry.ip = kallsyms_lookup_name("kallsyms_lookup");
+        _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))&func_entry;
+
+  }
+#else
     _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
       kallsyms_lookup_name("kallsyms_lookup");
+#endif
 
   return _stp_transport_init();
 }

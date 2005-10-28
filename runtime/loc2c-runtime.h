@@ -1,4 +1,12 @@
-/* target operations */
+/* target operations
+ * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005 Intel Corporation.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
 
 #include <linux/types.h>
 #define intptr_t long
@@ -49,6 +57,13 @@
 #define dwarf_register_5(regs)	regs->ebp
 #define dwarf_register_6(regs)	regs->esi
 #define dwarf_register_7(regs)	regs->edi
+
+#elif defined __ia64__
+#undef fetch_register
+#undef store_register
+
+#define fetch_register(regno)		ia64_fetch_register(regno, c->regs)
+#define store_register(regno, value)	ia64_store_register(regno, c->regs, value)
 
 #elif defined __x86_64__
 
@@ -112,6 +127,37 @@
     if (_bad)								      \
       goto deref_fault;							      \
   })
+
+#elif defined __ia64__								
+#define deref(size, addr)						\
+  ({									\
+     int _bad = 0;							\
+     intptr_t _v=0;							\
+	switch (size){							\
+	case 1: __get_user_size(_v, addr, 1, _bad); break; 		\
+	case 2: __get_user_size(_v, addr, 2, _bad); break;  		\
+	case 4: __get_user_size(_v, addr, 4, _bad); break;  		\
+	case 8: __get_user_size(_v, addr, 8, _bad); break;  		\
+	default: __get_user_unknown(); break;				\
+	}								\
+    if (_bad)  								\
+	goto deref_fault;						\
+     _v;								\
+   })
+
+#define store_deref(size, addr, value)					\
+  ({									\
+    int _bad=0;								\
+	switch (size){							\
+	case 1: __put_user_size(value, addr, 1, _bad); break;		\
+	case 2: __put_user_size(value, addr, 2, _bad); break;		\
+	case 4: __put_user_size(value, addr, 4, _bad); break;		\
+	case 8: __put_user_size(value, addr, 8, _bad); break;		\
+	default: __put_user_unknown(); break;				\
+	}								\
+    if (_bad)								\
+	   goto deref_fault;						\
+   })
 
 #elif defined __powerpc64__
 

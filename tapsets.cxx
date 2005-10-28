@@ -1,5 +1,6 @@
 // tapset resolution
 // Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1772,6 +1773,16 @@ query_func_info (Dwarf_Addr entrypc,
 	}
       else
 	{
+#ifdef __ia64__
+	// In IA64 platform function probe point is set at its
+	// entry point rather than prologue end pointer
+	if (q->sess.verbose)
+	   clog << "querying entrypc of function '"
+		<< fi.name << "'" << endl;
+	   query_statement (fi.name, fi.decl_file, fi.decl_line, 
+		&fi.die, entrypc, q);
+
+#else
 	  if (q->sess.verbose)
 	    clog << "querying prologue-end of function '" 
 		 << fi.name << "'" << endl;
@@ -1782,6 +1793,7 @@ query_func_info (Dwarf_Addr entrypc,
 
 	  query_statement (fi.name, fi.decl_file, fi.decl_line, 
 			   &fi.die, fi.prologue_end, q);
+#endif
 	}
     }
   catch (semantic_error &e)

@@ -1,3 +1,13 @@
+/* Functions to access the members of pt_regs struct
+ * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005 Intel Corporation.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
 #ifndef _CURRENT_C_ /* -*- linux-c -*- */
 #define _CURRENT_C_
 
@@ -31,6 +41,8 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 	return regs->esp;
 #elif defined (__powerpc64__)
 	return REG_LINK(regs);
+#elif defined (__ia64__)
+	return regs->b0;
 #else
 	#error Unimplemented architecture
 #endif
@@ -97,6 +109,36 @@ void _stp_sprint_regs(String str, struct pt_regs * regs)
                fs,fsindex,gs,gsindex,shadowgs);
         _stp_sprintf(str,"CS:  %04x DS: %04x ES: %04x CR0: %016lx\n", cs, ds, es, cr0);
         _stp_sprintf(str,"CR2: %016lx CR3: %016lx CR4: %016lx\n", cr2, cr3, cr4);
+}
+
+#elif defined (__ia64__)
+void _stp_sprint_regs(String str, struct pt_regs * regs)
+{
+     unsigned long ip = regs->cr_iip + ia64_psr(regs)->ri;
+
+	_stp_sprintf(str, "\nPid: %d, CPU %d, comm: %20s\n", current->pid,
+		smp_processor_id(), current->comm);
+	_stp_sprintf(str, "psr : %016lx ifs : %016lx ip  : [<%016lx>]  \n",
+		regs->cr_ipsr, regs->cr_ifs, ip);
+	_stp_sprintf(str, "unat: %016lx pfs : %016lx rsc : %016lx\n",
+		regs->ar_unat, regs->ar_pfs, regs->ar_rsc);
+	_stp_sprintf(str, "rnat: %016lx bsps: %016lx pr  : %016lx\n",
+		regs->ar_rnat, regs->ar_bspstore, regs->pr);
+	_stp_sprintf(str, "ldrs: %016lx ccv : %016lx fpsr: %016lx\n",
+		regs->loadrs, regs->ar_ccv, regs->ar_fpsr);
+	_stp_sprintf(str, "csd : %016lx ssd : %016lx\n",
+		regs->ar_csd, regs->ar_ssd);
+	_stp_sprintf(str, "b0  : %016lx b6  : %016lx b7  : %016lx\n",
+		regs->b0, regs->b6, regs->b7);
+	_stp_sprintf(str, "f6  : %05lx%016lx f7  : %05lx%016lx\n",
+		regs->f6.u.bits[1], regs->f6.u.bits[0],
+		regs->f7.u.bits[1], regs->f7.u.bits[0]);
+	_stp_sprintf(str, "f8  : %05lx%016lx f9  : %05lx%016lx\n",
+		regs->f8.u.bits[1], regs->f8.u.bits[0],
+		regs->f9.u.bits[1], regs->f9.u.bits[0]);
+	_stp_sprintf(str, "f10 : %05lx%016lx f11 : %05lx%016lx\n",
+		regs->f10.u.bits[1], regs->f10.u.bits[0],
+		regs->f11.u.bits[1], regs->f11.u.bits[0]);
 }
 
 #elif defined (__i386__)
