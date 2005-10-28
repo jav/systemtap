@@ -39,21 +39,21 @@
 #define VALNAME str
 #define VALN s
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_str(a,b,c,d)
-#define MAP_GET_VAL(a,b) _new_map_get_str(a,b)
+#define MAP_GET_VAL(n) _stp_get_str(n)
 #elif VALUE_TYPE == INT64
 #define VALTYPE int64_t
 #define VSTYPE int64_t
 #define VALNAME int64
 #define VALN i
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_int64(a,b,c,d)
-#define MAP_GET_VAL(a,b) _new_map_get_int64(a,b)
+#define MAP_GET_VAL(n) _stp_get_int64(n)
 #elif VALUE_TYPE == STAT
 #define VALTYPE stat*
 #define VSTYPE int64_t
 #define VALNAME stat
 #define VALN x
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_stat(a,b,c,d)
-#define MAP_GET_VAL(a,b) _new_map_get_stat(a,b)
+#define MAP_GET_VAL(n) _stp_get_stat(n)
 #else
 #error Need to define VALUE_TYPE as STRING, STAT, or INT64
 #endif /* VALUE_TYPE */
@@ -226,7 +226,7 @@ static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
 	key_data ptr;
 	struct KEYSYM(map_node) *m = (struct KEYSYM(map_node) *)mn;	
 
-	// dbug ("m=%lx\n", (long)m);
+	dbug ("n = %d type=%lx\n", n, type);
 	if (n > KEY_ARITY || n < 1) {
 		if (type)
 			*type = END;
@@ -440,8 +440,14 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	}
 	/* key not found */
 	dbug("key not found\n");
+#if VALUE_TYPE == STRING
+	if ((val == 0 || *val == 0) && !add)
+		return 0;
+#else
 	if (val == 0 && !add)
 		return 0;
+#endif
+
 	n = (struct KEYSYM(map_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
@@ -494,11 +500,15 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 #endif
 #endif
 			) {
-			return MAP_GET_VAL(map,(struct map_node *)n);
+			return MAP_GET_VAL((struct map_node *)n);
 		}
 	}
 	/* key not found */
+#if VALUE_TYPE == STRING
+	return "";
+#else
 	return (VALTYPE)0;
+#endif
 }
 
 

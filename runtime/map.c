@@ -64,6 +64,8 @@ unsigned int str_hash(const char *key1)
  */
 int64_t _stp_get_int64(struct map_node *m)
 {
+	if (!m || m->map->type != INT64)
+		return 0;
 	return *(int64_t *)((long)m + m->map->data_offset);
 }
 
@@ -76,6 +78,8 @@ int64_t _stp_get_int64(struct map_node *m)
  */
 char *_stp_get_str(struct map_node *m)
 {
+	if (!m || m->map->type != STRING)
+		return "bad type";
 	return (char *)((long)m + m->map->data_offset);
 }
 
@@ -88,6 +92,8 @@ char *_stp_get_str(struct map_node *m)
  */
 stat *_stp_get_stat(struct map_node *m)
 {
+	if (!m || m->map->type != STAT)
+		return 0;
 	return (stat *)((long)m + m->map->data_offset);
 }
 
@@ -100,9 +106,16 @@ stat *_stp_get_stat(struct map_node *m)
  */
 int64_t _stp_key_get_int64 (struct map_node *mn, int n)
 {
-	if (mn)
-		return (*mn->map->get_key)(mn, n, NULL).val;
-	return 0;
+	int type;
+	int64_t res = 0;
+
+	if (mn) {
+		res = (*mn->map->get_key)(mn, n, &type).val;
+		dbug("type=%d\n", type);
+		if (type != INT64)
+			res = 0;
+	}
+	return res;
 }
 
 /** Return a string key from a map node.
@@ -114,9 +127,16 @@ int64_t _stp_key_get_int64 (struct map_node *mn, int n)
  */
 char *_stp_key_get_str (struct map_node *mn, int n)
 {
-	if (mn)
-		return (*mn->map->get_key)(mn, n, NULL).strp;
-	return "";
+	int type;
+	char *str = "";
+
+	if (mn) {
+		str = (*mn->map->get_key)(mn, n, &type).strp;
+		dbug("type=%d\n", type);
+		if (type != STRING)
+			str = "bad type";
+	}
+	return str;
 }
 
 /** Create a new map.
@@ -677,7 +697,7 @@ static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add)
 	if (map == NULL ||  n == NULL)
 		return -2;
 
-	if (val || map->list) {
+	if ((val && *val)|| map->list) {
 		if (add)
 			str_add((void *)((long)n + map->data_offset), val);
 		else
@@ -687,27 +707,6 @@ static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add)
 		_new_map_del_node (map, n);
 	}
 	return 0;
-}
-
-static int64_t _new_map_get_int64 (MAP map, struct map_node *n)
-{
-	if (map == NULL || n == NULL)
-		return 0;
-	return *(int64_t *)((long)n + map->data_offset);
-}
-
-static char *_new_map_get_str (MAP map, struct map_node *n)
-{
-	if (map == NULL || n == NULL)
-		return 0;
-	return (char *)((long)n + map->data_offset);
-}
-
-static stat *_new_map_get_stat (MAP map, struct map_node *n)
-{
-	if (map == NULL || n == NULL)
-		return 0;
-	return (stat *)((long)n + map->data_offset);
 }
 
 static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add, int new)

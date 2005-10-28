@@ -1,3 +1,22 @@
+2005-10-28  Martin Hunt  <hunt@redhat.com>
+
+	* map-gen.c (MAP_GET_VAL): Use the _stp_get_*() functions.
+	(_stp_map_set_*): When setting to "", don't create
+	node if key not found.
+	(_stp_map_get_*): Use new MAP_GET_VAL. Return "" when
+	string lookups not found.
+	
+	* map.c (_stp_get_int64): Check args and return
+	0 on bad args or wrong type.
+	(_stp_get_stat): Ditto.	
+	(_stp_key_get_int64): Ditto.
+	(_stp_get_str): Check args and return
+	"bad type" on bad args or wrong type.
+	(_stp_key_get_str): Ditto.
+	(_new_map_set_str): If setting to "", delete node.
+	(_new_map_get_*): Delete. Use _stp_get_*().
+	
+
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 
 	* map-gen.c (KEY4CPY): Fix typo.
