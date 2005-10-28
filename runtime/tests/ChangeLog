@@ -1,3 +1,14 @@
+2005-10-28  Martin Hunt  <hunt@redhat.com>
+	* maps/keys.c: New file. Tests specific to _stp_key_get_*().
+
+	* maps/iiss2.c (main): Add some comments to make clear expected 
+	results.
+	* maps/is2.c (main): _stp_map_get_*s() now returns "" instead
+	of NULL when lookup fails. _stp_map_set_*s() now deletes a node
+	when setting to "" (as well as NULL).
+	* maps/setadd.c (main): Ditto.
+	* maps/map.test: update results.
+
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 
 	* maps/map.test: Add results for iiiiii and ssssss.

@@ -62,9 +62,7 @@ int main ()
 
   for (i = 1; i < 5; i++)
     {
-      char buf[32];
-      sprintf(buf, "*****", i);
-      res = _stp_map_add_is (maps, i, buf);
+      res = _stp_map_add_is (maps, i, "*****");
       if (res)
         printf("ERROR: got result of %d when expected 0\n", res);
     }
@@ -94,6 +92,9 @@ int main ()
       if (res)
         printf("ERROR: got result of %d when expected 0\n", res);
     }
+  _stp_map_print(maps,"maps[%1d] = %s");
+
+  /* adding NULL should be same as adding "" for string values */
   for (i = 1; i < 5; i++)
     {
       res = _stp_map_add_is (maps, i, 0);
@@ -110,6 +111,16 @@ int main ()
     }
   _stp_map_print (mapx, "mapx[%1d] = count:%C  sum:%S  avg:%A  min:%m  max:%M");
 
+  /*************** now add X to strings *******************/
+  printf ("Add 'X' to strings\n");
+  for (i = 1; i < 5; i++)
+    {
+      res = _stp_map_add_is (maps, i, "X");
+      if (res)
+        printf("ERROR: got result of %d when expected 0\n", res);
+    }
+  _stp_map_print(maps,"maps[%1d] = %s");
+
   /*************** now set to 0 (clear) *******************/
   printf ("setting everything to 0\n");
   for (i = 1; i < 5; i++) 
@@ -120,6 +131,25 @@ int main ()
     }
   _stp_map_print(mapi,"mapi[%1d] = %d");
 
+  for (i = 1; i < 5; i++)
+    {
+      res = _stp_map_set_is (maps, i, "");
+      if (res)
+        printf("ERROR: got result of %d when expected 0\n", res);
+    }
+  _stp_map_print(maps,"maps[%1d] = %s");
+
+  /* set it back to something */
+  for (i = 1; i < 5; i++)
+    {
+      char buf[32];
+      sprintf(buf, "%d", i);
+      res = _stp_map_set_is (maps, i, buf);
+      if (res)
+        printf("ERROR: got result of %d when expected 0\n", res);
+    }
+
+  /* setting to NULL also deletes */
   for (i = 1; i < 5; i++)
     {
       res = _stp_map_set_is (maps, i, 0);
@@ -152,9 +182,11 @@ int main ()
       if (res)
         printf("ERROR: got result of %d when expected 0\n", res);
     }
+  _stp_map_print(maps,"maps[%1d] = %s");
+
   for (i = 1; i < 5; i++)
     {
-      res = _stp_map_add_is (maps, i, 0);
+      res = _stp_map_add_is (maps, i, "");
       if (res)
         printf("ERROR: got result of %d when expected 0\n", res);
     }

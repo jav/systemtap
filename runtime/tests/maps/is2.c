@@ -41,15 +41,15 @@ int main ()
   _stp_map_print(map,"map[%1d] = %s");
 
 
-  /* check that unset values are 0 */
-  if (_stp_map_get_is(map, 5))
-    printf("ERROR: unset key has nonzero value\n");
+  /* check that unset values are "" */
+  if (*_stp_map_get_is(map, 5))
+    printf("ERROR: unset key has nonempty value\n");
 
   /* map[5] = "five" */
   _stp_map_set_is (map, 5, "five");
   _stp_map_print(map,"map[%1d] = %s");
 
-  /* test empty string */
+  /* test empty string (should delete)*/
   _stp_map_set_is (map, 5, "");
   _stp_map_print(map,"map[%1d] = %s");
 

@@ -32,9 +32,11 @@ int main ()
   _stp_map_set_iiss (map, 5,6,"Washington", "Olympia" );
   _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
+  /* delete */
   _stp_map_set_iiss (map, -9,-10,"Nevada", 0);
   _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 
+  /* should add nothing */
   _stp_map_set_iiss(map, 0,0,"", "");
   _stp_map_print (map, "map[%1d, %2d, %3s] = %s");
 

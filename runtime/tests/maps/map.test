@@ -836,7 +836,6 @@ map[5] = five
 
 map[1] = one
 map[3] = three
-map[5] = 
 
 map[6] = value of 6
 map[7] = value of 7
@@ -967,7 +966,6 @@ map[7, 8, Oregon] = Salem
 map[3, 4, California] = Sacramento
 map[5, 6, Washington] = Olympia
 map[7, 8, Oregon] = Salem
-map[0, 0, ] = 
 }
 
 test setadd {Test of setting and adding values} -setup {
@@ -1015,16 +1013,29 @@ maps[2] = value of 2*****
 maps[3] = value of 3*****
 maps[4] = value of 4*****
 
+maps[1] = value of 1*****
+maps[2] = value of 2*****
+maps[3] = value of 3*****
+maps[4] = value of 4*****
+
 mapx[1] = count:3  sum:3  avg:1  min:0  max:2
 mapx[2] = count:3  sum:6  avg:2  min:0  max:4
 mapx[3] = count:3  sum:9  avg:3  min:0  max:6
 mapx[4] = count:3  sum:12  avg:4  min:0  max:8
 
+Add 'X' to strings
+maps[1] = value of 1*****X
+maps[2] = value of 2*****X
+maps[3] = value of 3*****X
+maps[4] = value of 4*****X
+
 setting everything to 0
 
 
 
+
 Adding 0
+
 
 
 mapx[1] = count:1  sum:0  avg:0  min:0  max:0
@@ -1083,9 +1094,16 @@ map[1XYZ, 2XYZ, 3XYZ, 4XYZ, 5XYZ] = 999
 1XYZ and 2XYZ and 3XYZ and 4XYZ and 5XYZ  ---> 999
 }
 
-
-
-
+test keys {Test reading keys} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test keys.c
+} -body {
+	exec ./test
+} -result {map[0, Boston, MA, 1970] = 5224303
+map[1, Chicago, IL, 2000] = 8272768
+map[-1, unknown, , 2010] = 1000000000
+map[bad type, 0, 0, bad type] = bad type
+map[bad type, 0, 0, bad type] = bad type
+map[bad type, 0, 0, bad type] = bad type}
 
 
 catch {exec rm test}
