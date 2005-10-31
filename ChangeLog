@@ -1,3 +1,17 @@
+2005-10-31  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac: Update libdw test to require 0.116 with dwarf_diecu.
+	* configure: Regenerated.
+	* systemtap.spec.in: Update elfutils requirement to 0.116.
+	* loc2c.c: Dwarf_Loc -> Dwarf_Op.
+	(location_from_address): dwarf_addrloclists -> dwarf_getlocation_addr.
+	(c_translate_location): Likewise.
+	(max_fetch_size): Remove fakeo dwarf_diecu macro.
+	* tapsets.cxx (dwflpp): Dwarf_Func -> Dwarf_Die;
+	dwarf_func_name -> dwarf_diename;
+	dwarf_func_entrypc -> dwarf_entrypc;
+	dwarf_func_file, dwarf_func_line -> dwarf_decl_file, dwarf_decl_line.
+
 2005-10-26  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.c (max_fetch_size): Default to host pointer size,
