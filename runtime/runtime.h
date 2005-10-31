@@ -1,4 +1,5 @@
-/* main header file
+/* -*- linux-c -*- 
+ * main header file
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *

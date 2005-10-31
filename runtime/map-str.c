@@ -1,4 +1,12 @@
-/* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * Map String Functions
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
 
 /** @file map-str.c
  * @brief Map functions to set and get strings

@@ -1,4 +1,5 @@
-/* register access functions
+/* -*- linux-c -*- 
+ * register access functions
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -7,7 +8,7 @@
  * later version.
  */
 
-#ifndef _REG_C_ /* -*- linux-c -*- */
+#ifndef _REG_C_
 #define _REG_C_
 
 #if defined __ia64__

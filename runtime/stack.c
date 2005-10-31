@@ -1,4 +1,5 @@
-/* Stack tracing functions
+/* -*- linux-c -*- 
+ * Stack tracing functions
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
@@ -10,7 +11,6 @@
 
 #ifndef _STACK_C_ /* -*- linux-c -*- */
 #define _STACK_C_
-
 
 /** @file stack.c
  * @brief Stack Tracing Functions
@@ -50,16 +50,16 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 
 #elif defined (__ia64__)
 struct dump_para{
-  unsigned long *sp;
-  String str;
+	unsigned long *sp;
+	String str;
 };
 
 static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 {
-   unsigned long ip, skip=1;
-   String str = ((struct dump_para*)arg)->str;
-   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
-
+	unsigned long ip, skip=1;
+	String str = ((struct dump_para*)arg)->str;
+	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
+	
 	do {
 		unw_get_ip(info, &ip);
 		if (ip == 0) break;
@@ -76,10 +76,10 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 
 static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 {
-   unsigned long ip, skip=1;
-   String str = ((struct dump_para*)arg)->str;
-   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
-
+	unsigned long ip, skip=1;
+	String str = ((struct dump_para*)arg)->str;
+	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
+	
 	do {
 		unw_get_ip(info, &ip);
 		if (ip == 0) break;
@@ -94,14 +94,14 @@ static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
 {
-  struct dump_para para;
+	struct dump_para para;
 
 	para.str = str;
 	para.sp  = stack; 
 	if (verbose)
-	    unw_init_running(__stp_show_stack_sym, &para);
+		unw_init_running(__stp_show_stack_sym, &para);
         else
-	    unw_init_running(__stp_show_stack_addr, &para);
+		unw_init_running(__stp_show_stack_addr, &para);
 }
 
 #elif  defined (__i386__)

@@ -1,4 +1,5 @@
-/* Memory allocation functions
+/* -*- linux-c -*- 
+ * Memory allocation functions
  * Copyright (C) 2005 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can

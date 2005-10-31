@@ -1,4 +1,14 @@
-#ifndef _PROBES_C_ /* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * Functions for Registering and Unregistering Probes
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
+#ifndef _PROBES_C_
 #define _PROBES_C
 
 /** @file probes.c

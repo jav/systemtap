@@ -1,3 +1,7 @@
+2005-10-31  Martin Hunt  <hunt@redhat.com>
+
+	* ALL: Cleanup copyrights.
+
 2005-10-28  Martin Hunt  <hunt@redhat.com>
 
 	* map-gen.c (MAP_GET_VAL): Use the _stp_get_*() functions.

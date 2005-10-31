@@ -1,4 +1,5 @@
-/* Functions to access the members of pt_regs struct
+/* -*- linux-c -*- 
+ * Functions to access the members of pt_regs struct
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *

@@ -1,4 +1,5 @@
-/* I/O for printing warnings, errors and debug messages
+/* -*- linux-c -*- 
+ * I/O for printing warnings, errors and debug messages
  * Copyright (C) 2005 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can

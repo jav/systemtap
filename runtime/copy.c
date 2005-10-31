@@ -1,4 +1,5 @@
-/* Copy from user space functions
+/* -*- linux-c -*- 
+ * Copy from user space functions
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *

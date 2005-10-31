@@ -1,8 +1,15 @@
-#ifndef _STAT_COMMON_C_ /* -*- linux-c -*- */
+/* -*- linux-c -*- 
+ * common stats functions for aggragations and maps
+ * Copyright (C) 2005 Red Hat Inc.
+ *
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
+
+#ifndef _STAT_COMMON_C_
 #define _STAT_COMMON_C_
-
-/* common stats functions for aggragations and maps */
-
 #include "stat.h"
 
 static int needed_space(int64_t v)
