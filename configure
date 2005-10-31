@@ -5075,9 +5075,9 @@ fi
 save_LIBS="$LIBS"
 
 
-echo "$as_me:$LINENO: checking for dwarf_getscopes_die in -ldw" >&5
-echo $ECHO_N "checking for dwarf_getscopes_die in -ldw... $ECHO_C" >&6
-if test "${ac_cv_lib_dw_dwarf_getscopes_die+set}" = set; then
+echo "$as_me:$LINENO: checking for dwarf_diecu in -ldw" >&5
+echo $ECHO_N "checking for dwarf_diecu in -ldw... $ECHO_C" >&6
+if test "${ac_cv_lib_dw_dwarf_diecu+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -5095,11 +5095,11 @@ extern "C"
 #endif
 /* We use char because int might match the return type of a gcc2
    builtin and then its argument prototype would still apply.  */
-char dwarf_getscopes_die ();
+char dwarf_diecu ();
 int
 main ()
 {
-dwarf_getscopes_die ();
+dwarf_diecu ();
   ;
   return 0;
 }
@@ -5126,20 +5126,20 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_dw_dwarf_getscopes_die=yes
+  ac_cv_lib_dw_dwarf_diecu=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_lib_dw_dwarf_getscopes_die=no
+ac_cv_lib_dw_dwarf_diecu=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_dw_dwarf_getscopes_die" >&5
-echo "${ECHO_T}$ac_cv_lib_dw_dwarf_getscopes_die" >&6
-if test $ac_cv_lib_dw_dwarf_getscopes_die = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_lib_dw_dwarf_diecu" >&5
+echo "${ECHO_T}$ac_cv_lib_dw_dwarf_diecu" >&6
+if test $ac_cv_lib_dw_dwarf_diecu = yes; then
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBDW 1
 _ACEOF
@@ -5148,8 +5148,8 @@ _ACEOF
 
 else
 
-  { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.115+" >&5
-echo "$as_me: error: systemtap requires elfutils 0.115+" >&2;}
+  { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.116+" >&5
+echo "$as_me: error: systemtap requires elfutils 0.116+" >&2;}
    { (exit 1); exit 1; }; }
 fi
 

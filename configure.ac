@@ -24,8 +24,8 @@ AC_SUBST(CXXFLAGS)
 
 dnl Need libdwfl-capable recent elfutils from Fedora
 save_LIBS="$LIBS"
-AC_CHECK_LIB(dw, dwarf_getscopes_die,,[
-  AC_MSG_ERROR([systemtap requires elfutils 0.115+])])
+AC_CHECK_LIB(dw, dwarf_diecu,,[
+  AC_MSG_ERROR([systemtap requires elfutils 0.116+])])
 stap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 AC_SUBST(stap_LIBS)

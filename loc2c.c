@@ -28,7 +28,7 @@ struct location
   void *fail_arg;
   void (*emit_address) (void *fail_arg, struct obstack *, Dwarf_Addr);
 
-  const Dwarf_Loc *ops;
+  const Dwarf_Op *ops;
   size_t nops;
 
   Dwarf_Word byte_size;
@@ -109,7 +109,7 @@ new_synthetic_loc (struct obstack *pool, struct location *origin, bool deref)
 /* Die in the middle of an expression.  */
 static struct location *
 lose (struct location *loc,
-      const char *failure, const Dwarf_Loc *lexpr, size_t i)
+      const char *failure, const Dwarf_Op *lexpr, size_t i)
 {
   FAIL (loc, N_("%s in DWARF expression [%Zu] at %" PRIu64
 		" (%#x: %" PRId64 ", %" PRId64 ")"),
@@ -131,7 +131,7 @@ lose (struct location *loc,
 
 static const char *
 translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
-	   const Dwarf_Loc *expr, const size_t len,
+	   const Dwarf_Op *expr, const size_t len,
 	   struct location *input,
 	   bool *need_fb, size_t *loser,
 	   struct location *loc)
@@ -530,7 +530,7 @@ location_from_address (struct obstack *pool,
 		       void (*emit_address) (void *fail_arg,
 					     struct obstack *, Dwarf_Addr),
 		       int indent, Dwarf_Addr dwbias,
-		       const Dwarf_Loc *expr, size_t len, Dwarf_Addr address,
+		       const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		       struct location **input, Dwarf_Attribute *fb_attr)
 {
   struct location *loc = obstack_alloc (pool, sizeof *loc);
@@ -552,10 +552,10 @@ location_from_address (struct obstack *pool,
       /* The main expression uses DW_OP_fbreg, so we need to compute
 	 the DW_AT_frame_base attribute expression's value first.  */
 
-      Dwarf_Loc *fb_expr;
+      Dwarf_Op *fb_expr;
       size_t fb_len;
-      switch (dwarf_addrloclists (fb_attr, address - dwbias,
-				  &fb_expr, &fb_len, 1))
+      switch (dwarf_getlocation_addr (fb_attr, address - dwbias,
+				      &fb_expr, &fb_len, 1))
 	{
 	case 1:			/* Should always happen.  */
 	  if (fb_len == 0)
@@ -596,7 +596,7 @@ location_from_address (struct obstack *pool,
 static struct location *
 location_relative (struct obstack *pool,
 		   int indent, Dwarf_Addr dwbias,
-		   const Dwarf_Loc *expr, size_t len, Dwarf_Addr address,
+		   const Dwarf_Op *expr, size_t len, Dwarf_Addr address,
 		   struct location **input, Dwarf_Attribute *fb_attr)
 {
   Dwarf_Sword *stack;
@@ -971,9 +971,9 @@ c_translate_location (struct obstack *pool,
 {
   ++indent;
 
-  Dwarf_Loc *expr;
+  Dwarf_Op *expr;
   size_t len;
-  switch (dwarf_addrloclists (loc_attr, address - dwbias, &expr, &len, 1))
+  switch (dwarf_getlocation_addr (loc_attr, address - dwbias, &expr, &len, 1))
     {
     case 1:			/* Should always happen.  */
       if (len == 0)
@@ -1312,7 +1312,6 @@ max_fetch_size (struct location *loc, Dwarf_Die *die)
 {
   Dwarf_Die cu_mem;
   uint8_t address_size;
-#define dwarf_diecu(d,m,a,n) (*m = *d, *a = sizeof (void *), m) /* XXX */
   Dwarf_Die *cu = dwarf_diecu (die, &cu_mem, &address_size, NULL);
   if (cu == NULL)
     FAIL (loc, N_("cannot determine CU address size from %s: %s"),
