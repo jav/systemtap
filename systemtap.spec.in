@@ -130,6 +130,10 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Mon Oct 31 2005 Roland McGrath <roland@redhat.com> - 0.4.2-1
+- Many fixes and improvements: PRs 1344, 1260, 1330, 1295, 1311, 1368,
+  1182, 1131, 1332, 1366, 1456, 1271, 1338, 1482, 1477, 1194.
+
 * Wed Sep 14 2005 Roland McGrath <roland@redhat.com> - 0.4.1-1
 - Many fixes and improvements since 0.2.2; relevant PRs include:
   1122, 1134, 1155, 1172, 1174, 1175, 1180, 1186, 1187, 1191, 1193, 1195,
