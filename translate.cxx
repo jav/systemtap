@@ -114,8 +114,7 @@ struct c_unparser: public unparser, public visitor
 			vector<tmpvar> & idx);
 
   void collect_map_index_types(vector<vardecl* > const & vars,
-			       set< exp_type > & value_types,
-			       set< vector<exp_type> > & index_types);
+			       set< pair<vector<exp_type>, exp_type> > & types);
 
   void visit_statement (statement* s, unsigned actions);
 
@@ -419,20 +418,35 @@ struct mapvar
   static string key_typename(exp_type e);
   static string value_typename(exp_type e);
 
-  string del () const
+  string keysym () const
   {
-    return "_stp_map_key_del (" + qname() + ")";
+    string result;
+    vector<exp_type> tmp = index_types;
+    tmp.push_back (type ());
+    for (unsigned i = 0; i < tmp.size(); ++i)
+      {
+	switch (tmp[i])
+	  {
+	  case pe_long:
+	    result += 'i';
+	    break;
+	  case pe_string:
+	    result += 's';
+	    break;
+	  case pe_stats:
+	    result += 'x';
+	    break;
+	  default:
+	    throw semantic_error("unknown type of map");
+	    break;
+	  }
+      }
+    return result;
   }
 
-  string exists () const
+  string call_prefix (string const & fname, vector<tmpvar> const & indices) const
   {
-    return "_stp_map_entry_exists (" + qname() + ")";
-  }
-
-  string seek (vector<tmpvar> const & indices) const
-  {
-    string result = "_stp_map_key" + mangled_indices() + " (";
-    result += qname();
+    string result = "_stp_map_" + fname + "_" + keysym() + " (" + qname();
     for (unsigned i = 0; i < indices.size(); ++i)
       {
 	if (indices[i].type() != index_types[i])
@@ -440,50 +454,64 @@ struct mapvar
 	result += ", ";
 	result += indices[i].qname();
       }
-    result += ")";
+
     return result;
   }
 
-  string get () const
-  {
-    // see also itervar::get_key
-    if (type() == pe_string)
-        // impedance matching: NULL -> empty strings
-      return "({ char *v = "
-        "_stp_map_get_" + shortname(type()) + " (" + qname() + "); "
-        "if (!v) v = \"\"; v; })";
-    else if (type() == pe_long)
-      return "_stp_map_get_" + shortname(type()) + " (" + qname() + ")";
-    else
-      throw semantic_error("getting a value from an unsupported map type");
-  }
 
-  string set (tmpvar const & tmp) const
-  {
-    // impedance matching: empty strings -> NULL
+  string del (vector<tmpvar> const & indices) const
+  { 
     if (type() == pe_string)
-      return ("_stp_map_set_" + shortname(type()) + " (" + qname()
-              + ", (" + tmp.qname() + "[0] ? " + tmp.qname() + " : NULL))");
+      return (call_prefix("set", indices) + ", NULL)");
     else if (type() == pe_long)
-      return ("_stp_map_set_" + shortname(type()) + " (" + qname()
-              + ", " + tmp.qname() + ")");
+      return (call_prefix("set", indices) + ", 0)");
     else
       throw semantic_error("setting a value of an unsupported map type");
   }
 
-  string mangled_indices() const
+  string exists (vector<tmpvar> const & indices) const
   {
-    string result;
-    for (unsigned i = 0; i < index_types.size(); ++i)
-      {
-	result += "_";
-	result += shortname(index_types[i]);
-      }
-    return result;
+    return "(((int)" + call_prefix("get", indices) + ")) != 0)";
+  }
+
+  string get (vector<tmpvar> const & indices) const
+  {
+    // see also itervar::get_key
+    if (type() == pe_string)
+        // impedance matching: NULL -> empty strings
+      return ("({ char *v = " + call_prefix("get", indices) + ");"
+	      + "if (!v) v = \"\"; v; })");
+    else if (type() == pe_long)
+      return call_prefix("get", indices) + ")";
+    else
+      throw semantic_error("getting a value from an unsupported map type");
+  }
+
+  string add (vector<tmpvar> const & indices, tmpvar const & val) const
+  {
+    // impedance matching: empty strings -> NULL
+    if (type() == pe_stats)
+      return (call_prefix("add", indices) + ", " + val.qname() + ")");
+    else
+      throw semantic_error("adding a value of an unsupported map type");
+  }
+
+  string set (vector<tmpvar> const & indices, tmpvar const & val) const
+  {
+    // impedance matching: empty strings -> NULL
+    if (type() == pe_string)
+      return (call_prefix("set", indices) 
+	      + ", (" + val.qname() + "[0] ? " + val.qname() + " : NULL))");
+    else if (type() == pe_long)
+      return (call_prefix("set", indices) + ", " + val.qname() + ")");
+    else
+      throw semantic_error("setting a value of an unsupported map type");
   }
 		
   string init () const
   {
+    string prefix = qname() + " = _stp_map_new_" + keysym() + " (MAXMAPENTRIES" ;
+
     if (type() == pe_stats)
       {
 	switch (sdecl().type)
@@ -494,10 +522,8 @@ struct mapvar
 
 	  case statistic_decl::linear:
 	    // FIXME: check for "reasonable" values in linear stats
-	    return (qname() 
-		    + " = _stp_map_new" 
-		    + mangled_indices() 		    
-		    + " (MAXMAPENTRIES, HSTAT_LINEAR" 
+	    return (prefix 
+		    + ", HSTAT_LINEAR" 
 		    + ", " + stringify(sdecl().linear_low) 
 		    + ", " + stringify(sdecl().linear_high) 
 		    + ", " + stringify(sdecl().linear_step)
@@ -507,18 +533,15 @@ struct mapvar
 	  case statistic_decl::logarithmic:
 	    if (sdecl().logarithmic_buckets > 64)
 	      throw semantic_error("Cannot support > 64 logarithmic buckets");	    
-	    return (qname() 
-		    + " = _stp_map_new" 
-		    + mangled_indices() 
-		    + " (MAXMAPENTRIES, HSTAT_LOG" 
+	    return (prefix
+		    + ", HSTAT_LOG" 
 		    + ", " + stringify(sdecl().logarithmic_buckets) 
 		    + ");");
 	    break;
 	  }
       }
 
-    return (qname() + " = _stp_map_new" + mangled_indices() 
-	    + " (MAXMAPENTRIES, " + value_typename (type()) + ");");
+    return (prefix + ");");
   }
 
   string fini () const
@@ -1012,16 +1035,14 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
 
 void 
 c_unparser::collect_map_index_types(vector<vardecl *> const & vars,
-				    set< exp_type > & value_types,
-				    set< vector<exp_type> > & index_types)
+				    set< pair<vector<exp_type>, exp_type> > & types)
 {
   for (unsigned i = 0; i < vars.size(); ++i)
     {
       vardecl *v = vars[i];
       if (v->arity > 0)
 	{
-	  value_types.insert(v->type);
-	  index_types.insert(v->index_types);
+	  types.insert(make_pair(v->index_types, v->type));
 	}
     }
 }
@@ -1069,10 +1090,10 @@ mapvar::shortname(exp_type e)
   switch (e)
     {
     case pe_long:
-      return "int64";
+      return "i";
       break;
     case pe_string:
-      return "str";
+      return "s";
       break;
     default:
       throw semantic_error("array type is neither string nor long");
@@ -1084,42 +1105,34 @@ mapvar::shortname(exp_type e)
 void
 c_unparser::emit_map_type_instantiations ()
 {
-  set< exp_type > value_types;
-  set< vector<exp_type> > index_types;
+  set< pair<vector<exp_type>, exp_type> > types;
   
-  collect_map_index_types(session->globals, value_types, index_types);
+  collect_map_index_types(session->globals, types);
 
   for (unsigned i = 0; i < session->probes.size(); ++i)
-    collect_map_index_types(session->probes[i]->locals, 
-			    value_types, index_types);
+    collect_map_index_types(session->probes[i]->locals, types);
 
   for (unsigned i = 0; i < session->functions.size(); ++i)
-    collect_map_index_types(session->functions[i]->locals, 
-			    value_types, index_types);
+    collect_map_index_types(session->functions[i]->locals, types);
 
-  for (set<exp_type>::const_iterator i = value_types.begin();
-       i != value_types.end(); ++i)
+  for (set< pair<vector<exp_type>, exp_type> >::const_iterator i = types.begin();
+       i != types.end(); ++i)
     {
-      string ktype = mapvar::value_typename(*i);
-      o->newline() << "#define NEED_" << ktype << "_VALS";
-    }
-
-  for (set< vector<exp_type> >::const_iterator i = index_types.begin();
-       i != index_types.end(); ++i)
-    {
-      for (unsigned j = 0; j < i->size(); ++j)
+      o->newline() << "#define VALUE_TYPE " << mapvar::value_typename(i->second);
+      for (unsigned j = 0; j < i->first.size(); ++j)
 	{
-	  string ktype = mapvar::key_typename(i->at(j));
+	  string ktype = mapvar::key_typename(i->first.at(j));
 	  o->newline() << "#define KEY" << (j+1) << "_TYPE " << ktype;
 	}
-      o->newline() << "#include \"map-keys.c\"";
-      for (unsigned j = 0; j < i->size(); ++j)
+      o->newline() << "#include \"map-gen.c\"";
+      o->newline() << "#undef VALUE_TYPE";
+      for (unsigned j = 0; j < i->first.size(); ++j)
 	{
 	  o->newline() << "#undef KEY" << (j+1) << "_TYPE";
 	}      
     }
 
-  if (!value_types.empty())
+  if (!types.empty())
     o->newline() << "#include \"map.c\"";
 };
 
@@ -1740,8 +1753,7 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
   {
     mapvar mvar = parent->getmap (e->referent, e->tok);
     varlock_w guard (*parent, mvar);
-    parent->o->newline() << mvar.seek (idx) << ";";
-    parent->o->newline() << mvar.del () << ";";
+    parent->o->newline() << mvar.del (idx) << ";";
   }
 }
 
@@ -1949,8 +1961,7 @@ c_unparser::visit_array_in (array_in* e)
     mapvar mvar = getmap (e->operand->referent, e->tok);
     // XXX: should be varlock_r, but runtime arrays reads mutate
     varlock_w guard (*this, mvar);
-    o->newline() << mvar.seek (idx) << ";";
-    c_assign (res, mvar.exists(), e->tok);
+    c_assign (res, mvar.exists(idx), e->tok);
   }
 
   o->newline() << res << ";";
@@ -2293,8 +2304,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
   // thusly:
   // ({ tmp0=(idx0); ... tmpN=(idxN);
   //    lock (array);
-  //    seek (array, idx0...N);
-  //    res = fetch (array);
+  //    res = fetch (array, idx0...N);
   //    unlock (array);
   //    res; })
   //
@@ -2307,8 +2317,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
     // XXX: should be varlock_r, but runtime arrays reads mutate
     o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
     varlock_w guard (*this, mvar);
-    o->newline() << mvar.seek (idx) << ";";
-    c_assign (res, mvar.get(), e->tok);
+    c_assign (res, mvar.get(idx), e->tok);
   }
 
   o->newline() << res << ";";
@@ -2385,8 +2394,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
   //
   // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
   //    lock (array);
-  //    seek (array,idx0...N);
-  //    _stp_map_add_stat (array, rvar);
+  //    _stp_map_add_stat (array, idx0...N, rvar);
   //    unlock (array);
   //    rvar; })
   //
@@ -2404,8 +2412,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       mapvar mvar = parent->getmap (e->referent, e->tok);
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       varlock_w guard (*parent, mvar);
-      o->newline() << mvar.seek (idx) << ";";
-      o->newline() << "_stp_map_add_stat (" << mvar << ", " << rvar << ");";
+      o->newline() << mvar.add (idx, rvar) << ";";
       // dummy assignments
       o->newline() << lvar << " = " << rvar << ";";
       o->newline() << res << " = " << rvar << ";";
@@ -2415,11 +2422,10 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       mapvar mvar = parent->getmap (e->referent, e->tok);
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       varlock_w guard (*parent, mvar);
-      o->newline() << mvar.seek (idx) << ";";
       if (op != "=") // don't bother fetch slot if we will just overwrite it
-	parent->c_assign (lvar, mvar.get(), e->tok);
+	parent->c_assign (lvar, mvar.get(idx), e->tok);
       c_assignop (res, lvar, rvar, e->tok); 
-      o->newline() << mvar.set (lvar) << ";";
+      o->newline() << mvar.set (idx, lvar) << ";";
     }
 
   o->newline() << res << ";";

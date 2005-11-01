@@ -1,3 +1,13 @@
+2005-11-01  Graydon Hoare  <graydon@redhat.com>
+
+	* translate.cxx (c_unparser::collect_map_index_types)
+	(c_unparser::emit_map_type_instantiations)
+	(c_unparser::visit_arrayindex)
+	(c_unparser::visit_array_in) 
+	(delete_statement_operand_visitor::visit_arrayindex)
+	(c_unparser_assignment::visit_arrayindex)
+	(mapvar::*): Update to new runtime map API.
+
 2005-11-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1425.
