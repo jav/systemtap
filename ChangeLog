@@ -1,5 +1,8 @@
 2005-10-31  Roland McGrath  <roland@redhat.com>
 
+	* systemtap.spec.in, configure.ac: Version 0.4.2 cooked.
+	* configure: Regenerated.
+
 	* configure.ac: Update libdw test to require 0.116 with dwarf_diecu.
 	* configure: Regenerated.
 	* systemtap.spec.in: Update elfutils requirement to 0.116.
