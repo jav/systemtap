@@ -9,6 +9,7 @@
 #include "config.h"
 #include "staptree.h"
 #include "parse.h"
+#include "session.h"
 #include <iostream>
 #include <fstream>
 #include <cctype>
@@ -16,6 +17,7 @@
 #include <cerrno>
 #include <climits>
 #include <sstream>
+#include "rpmlib.h" // for rpmvercmp
 
 using namespace std;
 
@@ -23,13 +25,15 @@ using namespace std;
 
 
 
-parser::parser (istream& i, bool p):
+parser::parser (systemtap_session& s, istream& i, bool p):
+  session (s),
   input_name ("<input>"), free_input (0),
   input (i, input_name), privileged (p),
   last_t (0), next_t (0), num_errors (0)
 { }
 
-parser::parser (const string& fn, bool p):
+parser::parser (systemtap_session& s, const string& fn, bool p):
+  session (s),
   input_name (fn), free_input (new ifstream (input_name.c_str(), ios::in)),
   input (* free_input, input_name), privileged (p),
   last_t (0), next_t (0), num_errors (0)
@@ -42,17 +46,17 @@ parser::~parser()
 
 
 stapfile*
-parser::parse (std::istream& i, bool pr)
+parser::parse (systemtap_session& s, std::istream& i, bool pr)
 {
-  parser p (i, pr);
+  parser p (s, i, pr);
   return p.parse ();
 }
 
 
 stapfile*
-parser::parse (const std::string& n, bool pr)
+parser::parse (systemtap_session& s, const std::string& n, bool pr)
 {
-  parser p (n, pr);
+  parser p (s, n, pr);
   return p.parse ();
 }
 
@@ -101,11 +105,18 @@ parser::print_error  (const parse_error &pe)
 {
   cerr << "parse error: " << pe.what () << endl;
 
-  const token* t = last_t;
-  if (t)
-    cerr << "\tsaw: " << *t << endl;
+  if (pe.tok)
+    {
+      cerr << "\tat: " << *pe.tok << endl;
+    }
   else
-    cerr << "\tsaw: " << input_name << " EOF" << endl;
+    {
+      const token* t = last_t;
+      if (t)
+        cerr << "\tsaw: " << *t << endl;
+      else
+        cerr << "\tsaw: " << input_name << " EOF" << endl;
+    }
 
   // XXX: make it possible to print the last input line,
   // so as to line up an arrow with the specific error column
@@ -121,11 +132,148 @@ parser::last ()
 }
 
 
+// Here, we perform on-the-fly preprocessing.
+// The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
+// where CONDITION is "kernel_v[r]" COMPARISON-OP "version-string", and
+// the %: ELSE-TOKENS part is optional.
+//
+// e.g. %( kernel_v > "2.5" %? "foo" %: "baz" %)
+//
+// Up to an entire %( ... %) expression is processed by a single call
+// to this function.  Tokens included by any nested conditions are
+// enqueued in a private vector.
+
+bool eval_pp_conditional (systemtap_session& s,
+                          const token* l, const token* op, const token* r)
+{
+  if (! (l->type == tok_identifier && (l->content == "kernel_v" ||
+                                       l->content == "kernel_vr")))
+    throw parse_error ("expected 'kernel_v' or 'kernel_vr'", l);
+  string target_kernel_vr = s.kernel_release;
+  string target_kernel_v = target_kernel_vr;
+  // cut off any release code suffix
+  string::size_type dr = target_kernel_vr.rfind ('-');
+  if (dr > 0 && dr != string::npos)
+    target_kernel_v = target_kernel_vr.substr (0, dr);
+
+  if (! (r->type == tok_string))
+    throw parse_error ("expected string literal", r);
+  string query_kernel_vr = r->content;
+
+  // collect acceptable rpmvercmp results.
+  int rvc_ok1, rvc_ok2;
+  if (op->type == tok_operator && op->content == "<=")
+    { rvc_ok1 = -1; rvc_ok2 = 0; }
+  else if (op->type == tok_operator && op->content == ">=")
+    { rvc_ok1 = 1; rvc_ok2 = 0; }
+  else if (op->type == tok_operator && op->content == "<")
+    { rvc_ok1 = -1; rvc_ok2 = -1; }
+  else if (op->type == tok_operator && op->content == ">")
+    { rvc_ok1 = 1; rvc_ok2 = 1; }
+  else if (op->type == tok_operator && op->content == "==")
+    { rvc_ok1 = 0; rvc_ok2 = 0; }
+  else if (op->type == tok_operator && op->content == "!=")
+    { rvc_ok1 = -1; rvc_ok2 = 1; }
+  else
+    throw parse_error ("expected comparison operator", op);
+
+  int rvc_result = rpmvercmp ((l->content == "kernel_vr" ? 
+                               target_kernel_vr.c_str() :
+                               target_kernel_v.c_str()),
+                              query_kernel_vr.c_str());
+  return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+}
+
+
+const token*
+parser::scan_pp ()
+{
+  while (true)
+    {
+      if (enqueued_pp.size() > 0)
+        {
+          const token* t = enqueued_pp[0];
+          enqueued_pp.erase (enqueued_pp.begin());
+          return t;
+        }
+
+      const token* t = input.scan (); // NB: not recursive!
+      if (t == 0) // EOF
+        return t;
+      
+      if (! (t->type == tok_operator && t->content == "%(")) // ordinary token
+        return t;
+
+      // We have a %( - it's time to throw a preprocessing party!
+
+      const token *l, *op, *r;
+      l = input.scan (); // NB: not recursive, though perhaps could be
+      op = input.scan ();
+      r = input.scan ();
+      if (l == 0 || op == 0 || r == 0)
+        throw parse_error ("incomplete condition after '%('", t);
+      // NB: consider generalizing to consume all tokens until %?, and
+      // passing that as a vector to an evaluator.
+
+      bool result = eval_pp_conditional (session, l, op, r);
+      
+      const token *m = input.scan (); // NB: not recursive
+      if (! (m && m->type == tok_operator && m->content == "%?"))
+        throw parse_error ("expected '%?' marker for conditional", t);
+
+      vector<const token*> my_enqueued_pp;
+      
+      while (true) // consume THEN tokens
+        {
+          m = scan_pp (); // NB: recursive
+          if (m == 0)
+            throw parse_error ("missing THEN tokens for conditional", t);
+          
+          if (m->type == tok_operator && (m->content == "%:" || // ELSE
+                                          m->content == "%)")) // END
+            break;
+          // enqueue token
+          if (result) 
+            my_enqueued_pp.push_back (m);
+          // continue
+        }
+      
+      if (m && m->type == tok_operator && m->content == "%:") // ELSE
+        while (true)
+          {
+            m = scan_pp (); // NB: recursive
+            if (m == 0)
+              throw parse_error ("missing ELSE tokens for conditional", t);
+            
+            if (m->type == tok_operator && m->content == "%)") // END
+              break;
+            // enqueue token
+            if (! result) 
+              my_enqueued_pp.push_back (m);
+            // continue
+          }
+
+      // NB: we transcribe the retained tokens here, and not inside
+      // the THEN/ELSE while loops.  If it were done there, each loop
+      // would become infinite (each iteration consuming an ordinary
+      // token the previous one just pushed there).  Guess how I
+      // figured that out.
+      enqueued_pp.insert (enqueued_pp.end(),
+                          my_enqueued_pp.begin(),
+                          my_enqueued_pp.end());
+
+      // Go back to outermost while(true) loop.  We hope that at least
+      // some THEN or ELSE tokens were enqueued.  If not, around we go
+      // again, until EOF.
+    }
+}
+
+
 const token*
 parser::next ()
 {
   if (! next_t)
-    next_t = input.scan ();
+    next_t = scan_pp ();
   if (! next_t)
     throw parse_error ("unexpected end-of-file");
 
@@ -140,9 +288,7 @@ const token*
 parser::peek ()
 {
   if (! next_t)
-    next_t = input.scan ();
-
-  // cerr << "{" << (next_t ? next_t->content : "null") << "}";
+    next_t = scan_pp ();
 
   // don't advance by zeroing next_t
   last_t = next_t;
@@ -474,7 +620,12 @@ lexer::scan ()
                s2 == "--" ||
                s2 == "->" ||
                s2 == "<<" ||
-               s2 == ">>")
+               s2 == ">>" ||
+               // preprocessor tokens
+               s2 == "%(" ||
+               s2 == "%?" ||
+               s2 == "%:" ||
+               s2 == "%)")
         {
           n->content = s2;
           input_get (); // swallow other character
@@ -529,17 +680,25 @@ parser::parse ()
       catch (parse_error& pe)
 	{
 	  print_error (pe);
-	  // Quietly swallow all tokens until the next '}'.
-	  while (1)
-	    {
-	      const token* t = peek ();
-	      if (! t)
-		break;
-	      next ();
-	      if (t->type == tok_operator && t->content == "}")
-		break;
-	    }
-	}
+          try 
+            {
+              // Quietly swallow all tokens until the next '}'.
+              while (1)
+                {
+                  const token* t = peek ();
+                  if (! t)
+                    break;
+                  next ();
+                  if (t->type == tok_operator && t->content == "}")
+                    break;
+                }
+            }
+          catch (parse_error& pe2)
+            {
+              // parse error during recovery ... ugh
+              print_error (pe2);
+            }
+        }
     }
 
   if (empty)

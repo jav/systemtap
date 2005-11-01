@@ -70,7 +70,6 @@ The systemtap translator supports the following options.  Any other option
 prints a list of supported options.
 .\" undocumented for now:
 .\" -t test mode
-.\" -r RELEASE
 .TP
 .B \-v
 Verbose mode.  Produces more informative output.
@@ -108,11 +107,14 @@ Add the given directory to the tapset search directory.  See the
 description of pass 2 for details.
 .TP
 .BI \-D " NAME=VALUE"
-Add the given preprocessor directive to the module Makefile.  These can 
+Add the given C preprocessor directive to the module Makefile.  These can 
 be used to override limit parameters described below.
 .TP
 .BI \-R " DIR"
 Look for the systemtap runtime sources in the given directory.
+.TP
+.BI \-r " RELEASE"
+Build for given kernel release instead of currently running one.
 .TP
 .BI \-m " MODULE"
 Use the given name for the generated kernel object module, instead
@@ -151,7 +153,46 @@ the usual C escape codes with backslashes), or integers (in decimal,
 hexadecimal, or octal, using the same notation as in C).  All strings
 are limited in length to some reasonable value (a few hundred bytes).
 Integers are 64-bit signed quantities, although the parser also accepts
-(and wraps around) values above positive 2**63.  
+(and wraps around) values above positive 2**63.
+.PP
+A simple conditional preprocessing stage is run as a part of parsing.
+The general form is similar to the 
+.RB cond " ? " exp1 " : " exp2
+ternary operator:
+.SAMPLE
+.BR %( " CONDITION " %? " TRUE-TOKENS " %)
+.BR %( " CONDITION " %? " TRUE-TOKENS " %: " FALSE-TOKENS " %)
+.ESAMPLE
+The CONDITION is a very limited expression consisting of three
+parts.  The first part is the identifier
+.BR kernel_vr " or " kernel_v
+to refer to the kernel version number, with ("2.6.13-1.322FC3smp") or
+without ("2.6.13") the release code suffix.
+The second part is one of the six standard numeric comparison operators
+.BR < ", " <= ", " == ", " != ", " > ", and " >= .
+The third part is a string literal that contains an RPM-style
+version-release value.  The condition is deemed satisfied if the
+version of the target kernel (as optionally overridden by the
+.BR \-r
+option) compares to the given version string.  The comparison is
+performed by the RPM library function
+.BR rpmvercmp .
+The TRUE-TOKENS and FALSE-TOKENS are zero or more general parser
+tokens (possibly including nested preprocessor conditionals), and are
+pasted into the input stream if the condition is true or false.  For
+example, the following code induces a parse error unless the target
+kernel version is newer than 2.6.5:
+.SAMPLE
+%( kernel_v <= "2.6.5" %? **ERROR** %) # invalid token sequence
+.ESAMPLE
+The following code might adapt to hypothetical kernel version drift:
+.SAMPLE
+probe kernel.function ( 
+  %( kernel_v <= "2.6.12" %? "__mm_do_fault" %: 
+     %( kernel_vr == "2.6.13-1.8273FC3smp" %? "do_page_fault" %:
+        UNSUPPORTED %) %)
+) { /* ... */ }
+.ESAMPLE
 
 .SS VARIABLES
 Identifiers for variables and functions are an alphanumeric sequence,

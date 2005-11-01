@@ -9,6 +9,7 @@
 #ifndef STAPTREE_H
 #define STAPTREE_H
 
+#include "session.h"
 #include <map>
 #include <stack>
 #include <string>
@@ -38,19 +39,7 @@ struct semantic_error: public std::runtime_error
 
 // ------------------------------------------------------------------------
 
-struct statistic_decl
-{
-  statistic_decl()
-    : type(none), 
-      logarithmic_buckets(0),
-      linear_low(0), linear_high(0), linear_step(0)
-  {}    
-  enum { none, linear, logarithmic } type;
-  int64_t logarithmic_buckets;
-  int64_t linear_low;
-  int64_t linear_high;
-  int64_t linear_step;
-};
+/* struct statistic_decl moved to session.h */
 
 // ------------------------------------------------------------------------
 

@@ -46,7 +46,10 @@ std::ostream& operator << (std::ostream& o, const token& t);
 
 struct parse_error: public std::runtime_error
 {
-  parse_error (const std::string& msg): runtime_error (msg) {}
+  const token* tok;
+  parse_error (const std::string& msg): runtime_error (msg), tok (0) {}
+  parse_error (const std::string& msg, const token* t): runtime_error (msg),
+                                                        tok (t) {}
 };
 
 
@@ -70,20 +73,25 @@ private:
 class parser
 {
 public:
-  parser (std::istream& i, bool p);
-  parser (const std::string& n, bool p);
+  parser (systemtap_session& s, std::istream& i, bool p);
+  parser (systemtap_session& s, const std::string& n, bool p);
   ~parser ();
 
   stapfile* parse ();
 
-  static stapfile* parse (std::istream& i, bool privileged);
-  static stapfile* parse (const std::string& n, bool privileged);
+  static stapfile* parse (systemtap_session& s, std::istream& i, bool privileged);
+  static stapfile* parse (systemtap_session& s, const std::string& n, bool privileged);
 
 private:
+  systemtap_session& session;
   std::string input_name;
   std::istream* free_input;
   lexer input;
   bool privileged;
+
+  // preprocessing subordinate
+  std::vector<const token*> enqueued_pp;
+  const token* scan_pp ();
 
   // scanning state
   const token* last ();

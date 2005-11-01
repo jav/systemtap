@@ -21,6 +21,8 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
+CPPFLAGS="$CPPFLAGS -I/usr/include/rpm"
+AC_SUBST(CPPFLAGS)
 
 dnl Need libdwfl-capable recent elfutils from Fedora
 save_LIBS="$LIBS"
@@ -29,6 +31,12 @@ AC_CHECK_LIB(dw, dwarf_diecu,,[
 stap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 AC_SUBST(stap_LIBS)
+
+dnl Need rpmlib for rpmvercmp
+AC_CHECK_HEADERS([rpmlib.h],,[
+  AC_MSG_ERROR([systemtap requires rpmlib.h])])
+AC_CHECK_LIB([rpm], [rpmvercmp],,[
+  AC_MSG_ERROR([systemtap requires librpm])])
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

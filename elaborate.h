@@ -9,6 +9,7 @@
 #ifndef ELABORATE_H
 #define ELABORATE_H
 
+#include "session.h"
 #include "staptree.h"
 #include "parse.h"
 #include <string>
@@ -19,7 +20,6 @@
 
 // ------------------------------------------------------------------------
 
-struct systemtap_session;
 struct derived_probe;
 struct match_node;
 
@@ -191,64 +191,7 @@ match_node
 
 // ------------------------------------------------------------------------
 
-
-class unparser;
-class translator_output;
-
-struct systemtap_session
-{
-  systemtap_session ();
-
-  // command line args
-  std::vector<std::string> include_path;
-  std::vector<std::string> macros;
-  std::vector<std::string> args;
-  std::string kernel_release;
-  std::string runtime_path;
-  std::string module_name;
-  std::string output_file;
-  std::string cmd;
-  int target_pid;
-  int last_pass;
-  bool test_mode;
-  bool verbose;
-  bool keep_tmpdir;
-  bool guru_mode;
-  bool bulk_mode;
-  int buffer_size;
-
-  // temporary directory for module builds etc.
-  // hazardous - it is "rm -rf"'d at exit
-  std::string tmpdir;
-  std::string translated_source; // C source code
-
-  match_node* pattern_root;
-  void register_library_aliases();
-
-  // parse trees for the various script files
-  stapfile* user_file;
-  std::vector<stapfile*> library_files;
-
-  // resolved globals/functions/probes for the run as a whole
-  std::vector<stapfile*> files;
-  std::vector<vardecl*> globals;
-  std::vector<functiondecl*> functions;
-  std::vector<derived_probe*> probes;
-  std::vector<embeddedcode*> embeds;
-  std::map<std::string, statistic_decl> stat_decls;
-
-  // module-referencing file handles
-  std::map<std::string,int> module_fds;
-
-  // unparser data
-  translator_output* op;
-  unparser* up;
-
-  unsigned num_errors;
-  // void print_error (const parse_error& e);
-  void print_error (const semantic_error& e);
-};
-
+/* struct systemtap_session moved to session.h */
 
 int semantic_pass (systemtap_session& s);
 void derive_probes (systemtap_session& s,

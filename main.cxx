@@ -63,8 +63,10 @@ usage (systemtap_session& s)
     // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
-    << "   -s NUM     buffer size in megabytes" << endl
-    << "   -p NUM     stop after pass NUM 1-5" << endl
+    << "   -s NUM     buffer size in megabytes, instead of "
+    << s.buffer_size << endl
+    << "   -p NUM     stop after pass NUM 1-5, instead of " 
+    << s.last_pass << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
   if (s.include_path.size() == 0)
@@ -77,11 +79,11 @@ usage (systemtap_session& s)
     << "   -D NM=VAL  emit macro definition into generated C code" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     <<      "              " << s.runtime_path << endl
-    // << "   -r RELEASE use kernel RELEASE, instead of" << endl
-    // <<      "              " << s.kernel_release << endl
+    << "   -r RELEASE use kernel RELEASE, instead of "
+    << s.kernel_release << endl
     << "   -m MODULE  set probe module name, instead of "
     << s.module_name << endl
-    << "   -o FILE    send output to file instead of stdout" << endl
+    << "   -o FILE    send output to file, instead of stdout" << endl
     << "   -c CMD     start the probes, run CMD, and exit when it finishes" 
     << endl
     << "   -x PID     sets target() to PID" << endl
@@ -289,13 +291,13 @@ main (int argc, char * const argv [])
   // XXX: pass args vector, so parser (or lexer?) can substitute
   // $1..$NN with actual arguments
   if (script_file == "-")
-    s.user_file = parser::parse (cin, s.guru_mode);
+    s.user_file = parser::parse (s, cin, s.guru_mode);
   else if (script_file != "")
-    s.user_file = parser::parse (script_file, s.guru_mode);
+    s.user_file = parser::parse (s, script_file, s.guru_mode);
   else
     {
       istringstream ii (cmdline_script);
-      s.user_file = parser::parse (ii, s.guru_mode);
+      s.user_file = parser::parse (s, ii, s.guru_mode);
     }
   if (s.user_file == 0)
     // syntax errors already printed
@@ -338,7 +340,7 @@ main (int argc, char * const argv [])
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
               // privilege only for /usr/share/systemtap?
-              stapfile* f = parser::parse (globbuf.gl_pathv[j], true);
+              stapfile* f = parser::parse (s, globbuf.gl_pathv[j], true);
               if (f == 0)
                 rc ++;
               else

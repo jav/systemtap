@@ -1,0 +1,10 @@
+#! stap -p1
+
+global
+%( kernel_v > "2.6" %? /* and */
+   %( kernel_vr != "2.9.77-2873NOTHING" %? /* and */
+      %( kernel_v <= "3.5" %? /* and */
+         %( kernel_vr == "2.3.5-2.43.54.2" %? "FAIL1" %: PASS %)
+      %: "FAIL2" %)
+   %: "FAIL3" %)
+%: "FAIL4" %)

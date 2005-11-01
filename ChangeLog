@@ -1,3 +1,23 @@
+2005-11-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1425.
+	* configure.ac: Look for rpm-devel headers and libs.
+	* configure: Regenerated.
+	* session.h: New file to contain systemtap_session decl.
+	* staptree.h: Likewise evict statistics_decl.
+	* elaborate.h: Corresponding changes.
+	* main.cxx (usage): Elaborate.  Re-enable "-r RELEASE" option.
+	* parse.cxx (parser): Add systemtap_session& field.  Update users.
+	(scan_pp, eval_pp_conditional): New routines for preprocessing.
+	(peek, next): Call it.
+	(lexer::scan): Lex the preprocessor operators.
+	(parser::parse): Include an extra level of exception catching
+	for parse errors that occur during recovery.
+	* parse.h: Corresponding changes.
+	(parse_error): Allow explicit token parameter. 
+	* stap.1.in: Document preprocessing.
+	* testsuite/parseok/fourteen.stp: New test.
+
 2005-10-31  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in, configure.ac: Version 0.4.2 cooked.
