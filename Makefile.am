@@ -30,7 +30,7 @@ loc2c_test_LDADD = @stap_LIBS@
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST = buildrun.h elaborate.h loc2c.h \
+EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     testsuite runtest.sh systemtap.spec runtime tapset
 dist-hook:
