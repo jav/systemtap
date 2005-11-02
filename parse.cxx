@@ -17,7 +17,6 @@
 #include <cerrno>
 #include <climits>
 #include <sstream>
-#include "rpmlib.h" // for rpmvercmp
 
 using namespace std;
 
@@ -160,7 +159,7 @@ bool eval_pp_conditional (systemtap_session& s,
     throw parse_error ("expected string literal", r);
   string query_kernel_vr = r->content;
 
-  // collect acceptable rpmvercmp results.
+  // collect acceptable strverscmp results.
   int rvc_ok1, rvc_ok2;
   if (op->type == tok_operator && op->content == "<=")
     { rvc_ok1 = -1; rvc_ok2 = 0; }
@@ -177,10 +176,14 @@ bool eval_pp_conditional (systemtap_session& s,
   else
     throw parse_error ("expected comparison operator", op);
 
-  int rvc_result = rpmvercmp ((l->content == "kernel_vr" ? 
-                               target_kernel_vr.c_str() :
-                               target_kernel_v.c_str()),
-                              query_kernel_vr.c_str());
+  int rvc_result = strverscmp ((l->content == "kernel_vr" ? 
+                                target_kernel_vr.c_str() :
+                                target_kernel_v.c_str()),
+                               query_kernel_vr.c_str());
+  // normalize rvc_result
+  if (rvc_result < 0) rvc_result = -1;
+  if (rvc_result > 0) rvc_result = 1;
+
   return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
 }
 

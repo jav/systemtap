@@ -175,8 +175,8 @@ version-release value.  The condition is deemed satisfied if the
 version of the target kernel (as optionally overridden by the
 .BR \-r
 option) compares to the given version string.  The comparison is
-performed by the RPM library function
-.BR rpmvercmp .
+performed by the glibc function
+.BR strverscmp .
 The TRUE-TOKENS and FALSE-TOKENS are zero or more general parser
 tokens (possibly including nested preprocessor conditionals), and are
 pasted into the input stream if the condition is true or false.  For
