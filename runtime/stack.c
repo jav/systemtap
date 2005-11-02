@@ -161,7 +161,77 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 			break;
 	}
 }
+#elif defined (__powerpc64__)
+static int kstack_depth_to_print = 5;
 
+static void __stp_stack_sprint (String str, unsigned long *_sp,
+				int verbose, int levels)
+{
+	struct task_struct *p = current;
+	unsigned long ip, newsp, lr = 0;
+	int count = 0;
+	unsigned long sp = (unsigned long)_sp;
+	int firstframe = 1;
+	
+	if (sp == 0) {
+		if (p) {
+			sp = p->thread.ksp;
+		} else {
+			sp = __get_SP();
+			p = current;
+		}
+	}
+	
+	if (!_stp_validate_sp)
+		return;
+
+	lr = 0;
+	do {
+		if (!_stp_validate_sp(sp, p, 112))
+			return;
+
+		_sp = (unsigned long *) sp;
+		newsp = _sp[0];
+		ip = _sp[2];
+		if (!firstframe || ip != lr) {
+			if (verbose) {
+				_stp_sprintf(str, "[%016lx] [%016lx] ", sp, ip);
+				_stp_symbol_sprint(str, ip);
+				if (firstframe)
+					_stp_string_cat(str, " (unreliable)");
+			}
+			else
+				_stp_sprintf(str,"%lx ", ip);
+		}
+		firstframe = 0;
+		/*
+		 * See if this is an exception frame.
+		 * We look for the "regshere" marker in the current frame.
+		 */
+		if (_stp_validate_sp(sp, p, sizeof(struct pt_regs) + 400)
+			&& _sp[12] == 0x7265677368657265ul) {
+			struct pt_regs *regs = (struct pt_regs *)
+				(sp + STACK_FRAME_OVERHEAD);
+			if (verbose) {
+				_stp_sprintf(str, "--- Exception: %lx at ",
+						regs->trap);
+				_stp_symbol_sprint(str, regs->nip);
+				_stp_string_cat(str, "\n");
+				lr = regs->link;
+				_stp_string_cat(str, "    LR =");
+				_stp_symbol_sprint(str, lr);
+				_stp_string_cat(str, "\n");
+				firstframe = 1;
+			}
+			else {
+				_stp_sprintf(str, "%lx ",regs->nip);
+				_stp_sprintf(str, "%lx ",regs->link);
+			}
+		}
+
+		sp = newsp;
+	} while (count++ < kstack_depth_to_print);
+}
 
 #else
 #error "Unsupported architecture"
