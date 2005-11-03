@@ -1658,7 +1658,7 @@ dwarf_query::add_probe_point(string const & funcname,
       Elf_Scn* scn = 0;
       size_t shstrndx;
       dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-      while (scn = elf_nextscn (elf, scn))
+      while ((scn = elf_nextscn (elf, scn)) != NULL)
         {
           GElf_Shdr shdr_mem;
           GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
@@ -1669,7 +1669,7 @@ dwarf_query::add_probe_point(string const & funcname,
           GElf_Addr end = start + shdr->sh_size;
           if (! (rel_addr >= start && rel_addr < end))
             continue;
-          
+
           // check for section name
           const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
           if (name && strncmp (name, ".init.", 6) == 0)
