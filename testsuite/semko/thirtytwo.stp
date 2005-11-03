@@ -1,0 +1,4 @@
+#! stap -p2
+
+// should fail since init_setup should be skipped because it is in .init.text
+probe kernel.function("init_setup") { }
