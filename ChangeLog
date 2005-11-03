@@ -1,3 +1,8 @@
+2005-11-03  Roland McGrath  <roland@redhat.com>
+
+	* tapsets.cxx (add_probe_point): Use explicit test with assignment in
+	while condition.
+
 2005-11-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1329.
@@ -9,7 +14,7 @@
 
 	* Makefile.am (EXTRA_DIST): Add session.h.
 	* Makefile.in: Regenerated.
-	
+
 2005-11-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	Sound advice from <drepper@redhat.com>:
@@ -23,7 +28,7 @@
 	* translate.cxx (c_unparser::collect_map_index_types)
 	(c_unparser::emit_map_type_instantiations)
 	(c_unparser::visit_arrayindex)
-	(c_unparser::visit_array_in) 
+	(c_unparser::visit_array_in)
 	(delete_statement_operand_visitor::visit_arrayindex)
 	(c_unparser_assignment::visit_arrayindex)
 	(mapvar::*): Update to new runtime map API.
@@ -44,7 +49,7 @@
 	(parser::parse): Include an extra level of exception catching
 	for parse errors that occur during recovery.
 	* parse.h: Corresponding changes.
-	(parse_error): Allow explicit token parameter. 
+	(parse_error): Allow explicit token parameter.
 	* stap.1.in: Document preprocessing.
 	* testsuite/parseok/fourteen.stp: New test.
 
