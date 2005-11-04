@@ -1,3 +1,8 @@
+2005-11-04  Roland McGrath  <roland@redhat.com>
+
+	* tapsets.cxx (add_probe_point): Use dwfl_module_relocation_info to
+	get symbol name when dwfl_module_relocations has the info.
+
 2005-11-03  Roland McGrath  <roland@redhat.com>
 
 	* tapsets.cxx (add_probe_point): Use explicit test with assignment in
