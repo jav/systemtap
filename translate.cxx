@@ -825,9 +825,13 @@ c_unparser::emit_module_init ()
     {
       o->newline() << "/* register probe #" << i << ", ";
       o->line() << session->probes[i]->locations.size() << " location(s) */";
-      // default
+
+      // By default, mark the first location as the site of possible
+      // registration failure.  This is helpful since non-dwarf
+      // derived_probes tend to have only a single location.
+      assert (session->probes[i]->locations.size() > 0);
       o->newline() << "probe_point = " <<
-        lex_cast_qstring (*session->probes[i]->tok) << ";";
+        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
       session->probes[i]->emit_registrations (o, i);
 
       o->newline() << "if (unlikely (rc)) {";
@@ -843,6 +847,8 @@ c_unparser::emit_module_init ()
       // essential for kprobes.
       if (i > 0)
         o->newline() << "goto unregister_" << (i-1) << ";";
+      else
+        o->newline() << "goto out;";
 
       o->newline(-1) << "}";
     }

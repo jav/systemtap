@@ -1,3 +1,12 @@
+2005-11-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	* tapsets.cxx (dwarf_derived_probe::emit_registrations): Add
+	possible kprobe address prechecking logic.  Set kretprobes
+	maxactive to zero.
+	* translate.cxx (emit_module_init): Set a more helpful default
+	probe_point value for use in registration errors.  Exit properly
+	after registration failure of probe #0.
+
 2005-11-04  Roland McGrath  <roland@redhat.com>
 
 	* tapsets.cxx (add_probe_point): Use dwfl_module_relocation_info to

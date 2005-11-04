@@ -2601,14 +2601,25 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
   o->indent(1);
   string probe_name = struct_kprobe_array_name(probenum) + "[i]";
 
+#if 0
+  // XXX: triggers false negatives on RHEL4U2 kernel
+  // emit address verification code
+  o->newline() << "void *addr = " << probe_name;
+  if (has_return)
+    o->line() << ".kp.addr;";
+  else
+    o->line() << ".addr;";
+  o->newline() << "rc = ! virt_addr_valid (addr);";
+#endif
+
   if (has_return)
     {
       o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << probe_name << ".handler = &" << func_name << ";";
-      o->newline() << probe_name << ".maxactive = 1;";
+      o->newline() << probe_name << ".maxactive = 0;"; // request default
       // XXX: pending PR 1289
       // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
-      o->newline() << "rc = register_kretprobe (&(" << probe_name << "));";
+      o->newline() << "rc = rc || register_kretprobe (&(" << probe_name << "));";
       o->newline() << "#else";
       o->newline() << "rc = 1;";
       o->newline() << "#endif";
@@ -2618,7 +2629,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
       o->newline() << probe_name << ".pre_handler = &" << func_name << ";";
       // XXX: pending PR 1289
       // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
-      o->newline() << "rc = register_kprobe (&(" << probe_name << "));";
+      o->newline() << "rc = rc || register_kprobe (&(" << probe_name << "));";
     }
 
   o->newline() << "if (unlikely (rc)) {";
