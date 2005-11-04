@@ -1,5 +1,4 @@
-/* -*- linux-c -*- 
- * Stack tracing functions
+/* Stack tracing functions
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
@@ -11,6 +10,7 @@
 
 #ifndef _STACK_C_ /* -*- linux-c -*- */
 #define _STACK_C_
+
 
 /** @file stack.c
  * @brief Stack Tracing Functions
@@ -50,16 +50,16 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 
 #elif defined (__ia64__)
 struct dump_para{
-	unsigned long *sp;
-	String str;
+  unsigned long *sp;
+  String str;
 };
 
 static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 {
-	unsigned long ip, skip=1;
-	String str = ((struct dump_para*)arg)->str;
-	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
-	
+   unsigned long ip, skip=1;
+   String str = ((struct dump_para*)arg)->str;
+   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
+
 	do {
 		unw_get_ip(info, &ip);
 		if (ip == 0) break;
@@ -76,10 +76,10 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 
 static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 {
-	unsigned long ip, skip=1;
-	String str = ((struct dump_para*)arg)->str;
-	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
-	
+   unsigned long ip, skip=1;
+   String str = ((struct dump_para*)arg)->str;
+   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
+
 	do {
 		unw_get_ip(info, &ip);
 		if (ip == 0) break;
@@ -94,14 +94,14 @@ static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
 {
-	struct dump_para para;
+  struct dump_para para;
 
 	para.str = str;
 	para.sp  = stack; 
 	if (verbose)
-		unw_init_running(__stp_show_stack_sym, &para);
+	    unw_init_running(__stp_show_stack_sym, &para);
         else
-		unw_init_running(__stp_show_stack_addr, &para);
+	    unw_init_running(__stp_show_stack_addr, &para);
 }
 
 #elif  defined (__i386__)
@@ -162,34 +162,19 @@ static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, i
 	}
 }
 #elif defined (__powerpc64__)
-static int kstack_depth_to_print = 5;
 
 static void __stp_stack_sprint (String str, unsigned long *_sp,
 				int verbose, int levels)
 {
-	struct task_struct *p = current;
 	unsigned long ip, newsp, lr = 0;
 	int count = 0;
 	unsigned long sp = (unsigned long)_sp;
 	int firstframe = 1;
-	
-	if (sp == 0) {
-		if (p) {
-			sp = p->thread.ksp;
-		} else {
-			sp = __get_SP();
-			p = current;
-		}
-	}
-	
-	if (!_stp_validate_sp)
-		return;
 
 	lr = 0;
 	do {
-		if (!_stp_validate_sp(sp, p, 112))
+		if (sp < KERNELBASE)
 			return;
-
 		_sp = (unsigned long *) sp;
 		newsp = _sp[0];
 		ip = _sp[2];
@@ -208,8 +193,7 @@ static void __stp_stack_sprint (String str, unsigned long *_sp,
 		 * See if this is an exception frame.
 		 * We look for the "regshere" marker in the current frame.
 		 */
-		if (_stp_validate_sp(sp, p, sizeof(struct pt_regs) + 400)
-			&& _sp[12] == 0x7265677368657265ul) {
+		if ( _sp[12] == 0x7265677368657265ul) {
 			struct pt_regs *regs = (struct pt_regs *)
 				(sp + STACK_FRAME_OVERHEAD);
 			if (verbose) {
@@ -230,7 +214,7 @@ static void __stp_stack_sprint (String str, unsigned long *_sp,
 		}
 
 		sp = newsp;
-	} while (count++ < kstack_depth_to_print);
+	} while (str->len < STP_STRING_SIZE);
 }
 
 #else

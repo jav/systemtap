@@ -1,5 +1,4 @@
-/* -*- linux-c -*- 
- * main header file
+/* main header file
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
@@ -71,10 +70,6 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 					    unsigned long *symbolsize,
 					    unsigned long *offset,
 					    char **modname, char *namebuf);
-#if defined (__powerpc64__)
-static int (*_stp_validate_sp)(unsigned long sp, struct task_struct *p,
-				unsigned long nbytes);
-#endif
 
 /* TEST_MODE is always defined by systemtap */
 #ifdef TEST_MODE
@@ -145,11 +140,6 @@ int init_module (void)
  * available with CONFIG_KALLSYMS_ALL=y.
  */
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
-
-#if defined (__powerpc64__)
-_stp_validate_sp = (int (*)(unsigned long, struct task_struct *,
-		unsigned long)) kallsyms_lookup_name("validate_sp");
-#endif
 
 #ifdef SYSTEMTAP
   if (stap_num_symbols > 0)
