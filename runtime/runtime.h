@@ -29,6 +29,7 @@
 #include <linux/hardirq.h>
 #include <asm/uaccess.h>
 #include <linux/kallsyms.h>
+#include <linux/version.h>
 
 #ifdef DEBUG
 /** Prints debug line.
@@ -131,15 +132,9 @@ static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
 #endif
 int init_module (void)
 {
-/*
- * In order for the kallsyms_lookup_name hack to work under ppc64, we need
- * CONFIG_KALLSYMS_ALL=y.
- * On ppc64 the kallsyms_lookup_name(.funcname) returns the function entry,
- * but kallsyms_lookup_name(funcname) returns the function descriptor
- * (func_descr_t). The latter is what we want, and those symbols are only
- * available with CONFIG_KALLSYMS_ALL=y.
- */
+#if defined __i386__ || defined __x86_64__
   _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
+#endif
 
 #ifdef SYSTEMTAP
   if (stap_num_symbols > 0)
