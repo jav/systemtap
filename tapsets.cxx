@@ -1648,39 +1648,57 @@ dwarf_query::add_probe_point(string const & funcname,
   // Check whether the given address points into an .init section,
   // which will have been unmapped by the kernel by the time we get to
   // insert the probe.  In this case, just ignore this call.
-  Dwarf_Addr baseaddr;
-  Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
-  Dwarf_Addr rel_addr = addr - baseaddr;
-  if (elf)
+  if (dwfl_module_relocations (dw.module) > 0)
     {
-      // Iterate through section headers to find which one
-      // contains the given rel_addr.
-      Elf_Scn* scn = 0;
-      size_t shstrndx;
-      dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-      while ((scn = elf_nextscn (elf, scn)) != NULL)
-        {
-          GElf_Shdr shdr_mem;
-          GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-          if (! shdr) continue; // XXX error?
+      // This is a relocatable module; libdwfl has noted its sections.
+      Dwarf_Addr rel_addr = addr;
+      int idx = dwfl_module_relocate_address (dw.module, &rel_addr);
+      const char *name = dwfl_module_relocation_info (dw.module, idx, NULL);
+      if (name && strncmp (name, ".init.", 6) == 0)
+	{
+	  if (sess.verbose)
+	    clog << "skipping function '" << funcname << "' base 0x"
+		 << hex << addr << dec << " is within section '"
+		 << name << "'" << endl;
+	  return;
+	}
+    }
+  else
+    {
+      Dwarf_Addr baseaddr;
+      Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
+      Dwarf_Addr rel_addr = addr - baseaddr;
+      if (elf)
+	{
+	  // Iterate through section headers to find which one
+	  // contains the given rel_addr.
+	  Elf_Scn* scn = 0;
+	  size_t shstrndx;
+	  dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+	  while ((scn = elf_nextscn (elf, scn)) != NULL)
+	    {
+	      GElf_Shdr shdr_mem;
+	      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+	      if (! shdr) continue; // XXX error?
 
-          // check for address inclusion
-          GElf_Addr start = shdr->sh_addr;
-          GElf_Addr end = start + shdr->sh_size;
-          if (! (rel_addr >= start && rel_addr < end))
-            continue;
+	      // check for address inclusion
+	      GElf_Addr start = shdr->sh_addr;
+	      GElf_Addr end = start + shdr->sh_size;
+	      if (! (rel_addr >= start && rel_addr < end))
+		continue;
 
-          // check for section name
-          const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
-          if (name && strncmp (name, ".init.", 6) == 0)
-            {
-              if (sess.verbose)
-                clog << "skipping function '" << funcname << "' base 0x"
-                     << hex << addr << dec << " is within section '"
-                     << name << "'" << endl;
-              return;
-            }
-        }
+	      // check for section name
+	      const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
+	      if (name && strncmp (name, ".init.", 6) == 0)
+		{
+		  if (sess.verbose)
+		    clog << "skipping function '" << funcname << "' base 0x"
+			 << hex << addr << dec << " is within section '"
+			 << name << "'" << endl;
+		  return;
+		}
+	    }
+	}
     }
 
   if (probe_has_no_target_variables)
