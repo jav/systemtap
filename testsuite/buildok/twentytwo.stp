@@ -6,3 +6,8 @@ probe kernel.function("free_task")
 {
 	log("timestamp " . string($tsk->timestamp))
 }
+
+probe kernel.function("vfs_llseek")
+{ 
+	log("offset " . string($offset))
+}
