@@ -1,5 +1,12 @@
 2005-11-07  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR 1828.
+	* tapsets.cxx (blacklisted_p): New function.  Add a few blacklist
+	entries.
+	* testsuite/semko/thirtythree.stp: New test.
+
+2005-11-07  Frank Ch. Eigler  <fche@redhat.com>
+
 	* testsuite/buildok/twentytwo.stp: Add another test for PR 1271.
 
 2005-11-04  Frank Ch. Eigler  <fche@redhat.com>

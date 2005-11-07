@@ -1348,6 +1348,12 @@ dwarf_query
 		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr);
 
+  bool blacklisted_p(string const & funcname,
+                     char const * filename,
+                     int line,
+                     Dwarf_Die *scope_die,
+                     Dwarf_Addr addr);
+
   // Extracted parameters.
   bool has_kernel;
   bool has_process;
@@ -1636,15 +1642,14 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 }
 
 
-void
-dwarf_query::add_probe_point(string const & funcname,
-			     char const * filename,
-			     int line,
-			     Dwarf_Die *scope_die,
-			     Dwarf_Addr addr)
-{
-  dwarf_derived_probe *probe = NULL;
 
+bool
+dwarf_query::blacklisted_p(string const & funcname,
+                           char const * filename,
+                           int line,
+                           Dwarf_Die *scope_die,
+                           Dwarf_Addr addr)
+{
   // Check whether the given address points into an .init section,
   // which will have been unmapped by the kernel by the time we get to
   // insert the probe.  In this case, just ignore this call.
@@ -1660,7 +1665,7 @@ dwarf_query::add_probe_point(string const & funcname,
 	    clog << "skipping function '" << funcname << "' base 0x"
 		 << hex << addr << dec << " is within section '"
 		 << name << "'" << endl;
-	  return;
+	  return true;
 	}
     }
   else
@@ -1695,11 +1700,43 @@ dwarf_query::add_probe_point(string const & funcname,
 		    clog << "skipping function '" << funcname << "' base 0x"
 			 << hex << addr << dec << " is within section '"
 			 << name << "'" << endl;
-		  return;
+		  return true;
 		}
 	    }
 	}
     }
+
+  // Check probe point against blacklist.  XXX: This has to be
+  // properly generalized, perhaps via a table populated from script
+  // files.  A "noprobe kernel.function("...")"  construct might do
+  // the trick.
+  string filename_s = filename ? filename : ""; // is passed as const char*
+  if (funcname == "do_IRQ" ||
+      filename_s == "kernel/kprobes.c" ||
+      0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0))
+    {
+      if (sess.verbose)
+        clog << "skipping function '" << funcname << "' file '"
+             << filename << "' is blacklisted" << endl;
+      return true;
+    }
+
+  // This probe point is not blacklisted.
+  return false;
+}
+
+
+void
+dwarf_query::add_probe_point(string const & funcname,
+			     char const * filename,
+			     int line,
+			     Dwarf_Die *scope_die,
+			     Dwarf_Addr addr)
+{
+  dwarf_derived_probe *probe = NULL;
+
+  if (blacklisted_p (funcname, filename, line, scope_die, addr))
+    return;
 
   if (probe_has_no_target_variables)
     {
