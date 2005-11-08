@@ -1,5 +1,9 @@
 2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
 
+	* translate.cxx (mapvar::exists): Correct some more.
+
+2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
+
 	Patch from "Mao, Bibo" <bibo.mao@intel.com>
 	* translate.cxx (mapvar::exists): Correct 64-bit type mismatch.
 
