@@ -1,0 +1,8 @@
+#! stap -p2
+
+probe kernel.function("*") {}
+probe module("*").function("*") {}
+probe kernel.function("*").return {}
+probe module("*").function("*").return {}
+probe kernel.inline("*") {}
+probe module("*").inline("*") {}

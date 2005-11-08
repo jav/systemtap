@@ -1,5 +1,11 @@
 2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
 
+	* tapsets.cxx (blacklisted_p): Tolerate NULL filename parameter.
+	* src/testsuite/semok/twenty.stp: New test to enumerate everything
+	dwarfly probeable.
+
+2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
+
 	* translate.cxx (c_unparser::visit_foreach_loop): With PR 1275
 	done, add back read lock around foreach loop.  Add a write lock
 	around preceding sort operation.  Leave a race condition window. :-(

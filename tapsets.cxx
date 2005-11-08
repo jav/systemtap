@@ -1710,7 +1710,8 @@ dwarf_query::blacklisted_p(string const & funcname,
   // properly generalized, perhaps via a table populated from script
   // files.  A "noprobe kernel.function("...")"  construct might do
   // the trick.
-  string filename_s = filename ? filename : ""; // is passed as const char*
+  if (filename == 0) filename = ""; // possibly 0
+  string filename_s = filename; // is passed as const char*
   if (funcname == "do_IRQ" ||
       filename_s == "kernel/kprobes.c" ||
       0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0) ||
