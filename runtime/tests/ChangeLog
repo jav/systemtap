@@ -1,3 +1,7 @@
+2005-11-08  Martin Hunt  <hunt@redhat.com>
+
+	* pmaps/*: Add new pmaps tests.
+
 2005-10-28  Martin Hunt  <hunt@redhat.com>
 	* maps/keys.c: New file. Tests specific to _stp_key_get_*().
 
