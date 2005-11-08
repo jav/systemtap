@@ -471,7 +471,7 @@ struct mapvar
 
   string exists (vector<tmpvar> const & indices) const
   {
-    return "(((int)" + call_prefix("get", indices) + ")) != 0)";
+    return "(((int64_t)" + call_prefix("get", indices) + ")) != 0)";
   }
 
   string get (vector<tmpvar> const & indices) const

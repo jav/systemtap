@@ -1,5 +1,10 @@
 2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
 
+	Patch from "Mao, Bibo" <bibo.mao@intel.com>
+	* translate.cxx (mapvar::exists): Correct 64-bit type mismatch.
+
+2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
+
 	* tapsets.cxx (blacklisted_p): Add blacklist for some .return
 	probes to kludge around bug #1345.
 	* tapset/system_calls.stp: Add some %( %? %) conditionals to

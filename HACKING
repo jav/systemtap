@@ -39,7 +39,8 @@ the <systemtap@sources.redhat.com> mailing list.
 - test suites
 
   As far as practicable, changes should be accompanied by test cases
-  to prevent future regressions.  
+  to prevent future regressions.  Tests should be run on at least
+  x86, and ideally also on some 64-bit platform.
 
   Tests that don't require probe execution should go into new or
   modified files under /src/testsuite/, a simple automake-flavoured
