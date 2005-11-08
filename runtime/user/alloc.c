@@ -38,6 +38,7 @@ void *_stp_alloc(size_t len)
 		_stp_errorcode = ERR_NO_MEM;
 	return ptr;
 }
+#define _stp_alloc_cpu(len, cpu) _stp_alloc(len)
 
 /** Allocates and clears memory within a probe.
  * This is used for small allocations from within a running
@@ -71,7 +72,12 @@ void *_stp_valloc(size_t len)
 		_stp_errorcode = ERR_NO_MEM;
 	return ptr;
 }
-
+#define _stp_valloc_cpu(len, cpu) _stp_valloc(len)
+#define __stp_valloc_percpu(size,align) __alloc_percpu(size,align)
+#define _stp_vfree_percpu(objp) free_percpu(objp)
+#define _stp_valloc_percpu(type) \
+	((type *)(__stp_valloc_percpu(sizeof(type), __alignof__(type))))
+#define _stp_percpu_dptr(ptr)  (((struct percpu_data *)~(unsigned long)(ptr))->blkp)
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free
  */

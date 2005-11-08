@@ -60,8 +60,7 @@ static char *next_fmt(char *fmt, int *num)
 {
 	char *f = fmt;
 	int in_fmt = 0;
-	dbug ("next_fmt %s\n", fmt);
-	*num = 0;
+	*num = 0; 
 	while (*f) {
 		if (in_fmt) {
 			if (*f == '%') {
