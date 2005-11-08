@@ -1337,7 +1337,7 @@ probe kernel.syscall.restart_syscall.return =
 probe kernel.syscall.exit = 
 	kernel.function("do_exit") {
 		name = "exit"
-		status = $error_code
+		%( kernel_v > "2.6.9" %? status = $error_code %)
 	}
 
 probe kernel.syscall.exit.return = 
@@ -1350,13 +1350,13 @@ probe kernel.syscall.exit.return =
 probe kernel.syscall.exit_group = 
 	kernel.function("do_group_exit") {
 		name = "exit_group"
-		status = $error_code
+		%( kernel_v > "2.6.9" %? status = $error_code %)
 	}
 
 probe kernel.syscall.exit_group.return = 
 	kernel.function("do_group_exit").return {
 		name = "exit_group.return"
-		status = $error_code
+		%( kernel_v > "2.6.9" %? status = $error_code %)
 	}
 # wait4____________________________________________
 /* asmlinkage long 
@@ -6356,7 +6356,7 @@ probe kernel.syscall.clone =
 	kernel.function("do_fork") {
 		name = "clone"
 		clone_flags = $clone_flags
-		start_stack = $start_stack
+		%( kernel_v > "2.6.9" %? start_stack = $start_stack %)
 		/* Export this???
 		regs = $regs->...
 		*/
