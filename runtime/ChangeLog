@@ -1,6 +1,7 @@
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (__stp_valloc_percpu): Fix call to vmalloc_node.
+	(vmalloc_node): Remove nonworking code.
 
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 	

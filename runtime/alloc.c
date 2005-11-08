@@ -35,27 +35,8 @@
  * switch if is is easily backported.
  */
 #ifdef CONFIG_NUMA
-void *vmalloc_node(unsigned long size, int node)
-{
-	void *result;
-	struct mempolicy *oldpol = current->mempolicy;
-	mm_segment_t oldfs = get_fs();
-	DECLARE_BITMAP(prefnode, MAX_NUMNODES);
-
-	mpol_get(oldpol);
-	bitmap_zero(prefnode, MAX_NUMNODES);
-	set_bit(node, prefnode);
-
-	set_fs(KERNEL_DS);
-	sys_set_mempolicy(MPOL_PREFERRED, prefnode, MAX_NUMNODES);
-	set_fs(oldfs);
-
-	result = vmalloc(size);
-
-	mpol_free(current->mempolicy);
-	current->mempolicy = oldpol;
-	return result;
-}
+/* Until we get something working */
+#define vmalloc_node(size,node) vmalloc(size)
 #else
 #define vmalloc_node(size,node) vmalloc(size)
 #endif /* CONFIG_NUMA */
