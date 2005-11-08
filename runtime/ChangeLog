@@ -1,5 +1,9 @@
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
+	* alloc.c (__stp_valloc_percpu): Fix call to vmalloc_node.
+
+2005-11-08  Martin Hunt  <hunt@redhat.com>
+	
 	* map.c (_stp_map_init): New function. Extracted from _stp_map_new()
 	so it can be used in _stp_pmap_new().
 	(_stp_map_new): Call _stp_map_init().

@@ -157,8 +157,7 @@ static void *__stp_valloc_percpu(size_t size, size_t align)
 	for (i = 0; i < NR_CPUS; i++) {
 		if (!cpu_possible(i))
 			continue;
-		pdata->ptrs[i] = vmalloc_node(size, GFP_KERNEL,
-						cpu_to_node(i));
+		pdata->ptrs[i] = vmalloc_node(size, cpu_to_node(i));
 
 		if (!pdata->ptrs[i])
 			goto unwind_oom;
