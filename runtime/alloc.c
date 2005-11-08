@@ -132,7 +132,7 @@ void *_stp_valloc_cpu(size_t len, int cpu)
 	return ptr;
 }
 
-struct percpu_data {
+struct _stp_percpu_data {
 	void *ptrs[NR_CPUS];
 	void *blkp;
 };
@@ -149,7 +149,7 @@ struct percpu_data {
 static void *__stp_valloc_percpu(size_t size, size_t align)
 {
 	int i;
-	struct percpu_data *pdata = kmalloc(sizeof (*pdata), GFP_KERNEL);
+	struct _stp_percpu_data *pdata = kmalloc(sizeof (*pdata), GFP_KERNEL);
 
 	if (!pdata)
 		return NULL;
@@ -180,7 +180,7 @@ unwind_oom:
 void _stp_vfree_percpu(const void *objp)
 {
 	int i;
-	struct percpu_data *p = (struct percpu_data *) (~(unsigned long) objp);
+	struct _stp_percpu_data *p = (struct _stp_percpu_data *) (~(unsigned long) objp);
 
 	for (i = 0; i < NR_CPUS; i++) {
 		if (!cpu_possible(i))
@@ -206,7 +206,7 @@ void _stp_vfree_percpu(const void *ptr)
 #define _stp_valloc_percpu(type) \
 	((type *)(__stp_valloc_percpu(sizeof(type), __alignof__(type))))
 
-#define _stp_percpu_dptr(ptr)  (((struct percpu_data *)~(unsigned long)(ptr))->blkp)
+#define _stp_percpu_dptr(ptr)  (((struct _stp_percpu_data *)~(unsigned long)(ptr))->blkp)
 
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free
