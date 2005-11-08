@@ -102,6 +102,9 @@ struct map_root {
 	/* space. */
 	void (*copy_keys)(struct map_root *, struct map_node *);
 	key_data (*get_key)(struct map_node *mn, int n, int *type);
+	void (*copy)(struct map_node *dst, struct map_node *src);
+	int (*cmp)(struct map_node *dst, struct map_node *src);
+
 	int data_offset;
 
 	/* this is the creation data saved between the key functions and the
@@ -117,11 +120,7 @@ struct map_root {
 	void *membuf;
 
 	/* used if this map's nodes contain stats */
-	enum histtype hist_type;
-	int hist_start;
-	int hist_stop;
-	int hist_int;
-	int hist_buckets;
+	struct _Hist hist;
 };
 
 /** All maps are of this type. */
@@ -218,7 +217,7 @@ void int64_add(void *dest, int64_t val);
 int64_t int64_get(void *ptr);
 void stat_copy(void *dest, stat *src);
 void stat_add(void *dest, stat *src);
-stat * stat_get(void *ptr);
+stat *stat_get(void *ptr);
 int64_t _stp_key_get_int64(struct map_node *mn, int n);
 char * _stp_key_get_str(struct map_node *mn, int n);
 unsigned int int64_hash(const int64_t v);
@@ -228,9 +227,10 @@ void str_add(void *dest, char *val);
 int str_eq_p(char *key1, char *key2);
 int64_t _stp_get_int64(struct map_node *m);
 char * _stp_get_str(struct map_node *m);
-stat * _stp_get_stat(struct map_node *m);
+stat *_stp_get_stat(struct map_node *m);
 unsigned int str_hash(const char *key1);
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size);
+static MAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data_size);
 static int msb64(int64_t x);
 static MAP _stp_map_new_hstat_log(unsigned max_entries, int key_size, int buckets);
 static MAP _stp_map_new_hstat_linear(unsigned max_entries, int ksize, int start, int stop, int interval);
@@ -248,7 +248,11 @@ static int64_t _new_map_get_int64 (MAP map, struct map_node *n);
 static char *_new_map_get_str (MAP map, struct map_node *n);
 static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add);
 static stat *_new_map_get_stat (MAP map, struct map_node *n);
-static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add, int new);
+static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add);
+static void _new_map_clear_node (struct map_node *);
+static void _new_map_del_node (MAP map, struct map_node *n);
+static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval);
+static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets);
 
 /* these prototypes suppress warnings from macros */
 void _stp_map_key_str(MAP, char *);
@@ -260,6 +264,7 @@ void _stp_list_add_string(MAP, String);
 void _stp_map_key_int64(MAP, int64_t);
 void _stp_map_set_int64(MAP, int64_t);
 int64_t _stp_map_get_int64(MAP);
+
 
 unsigned _stp_map_entry_exists(MAP);
 /** @endcond */

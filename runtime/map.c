@@ -149,6 +149,8 @@ char *_stp_key_get_str (struct map_node *mn, int n)
 	return str;
 }
 
+
+
 /** Create a new map.
  * Maps must be created at module initialization time.
  * @param max_entries The maximum number of entries allowed. Currently that number will
@@ -160,26 +162,22 @@ char *_stp_key_get_str (struct map_node *mn, int n)
  * @ingroup map_create
  */
 
-static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
+static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, int data_size, int cpu)
 {
 	int size;
-	MAP m = (MAP) _stp_valloc(sizeof(struct map_root));
-	if (m == NULL)
-		return NULL;
 
 	INIT_LIST_HEAD(&m->head);
-
 	m->maxnum = max_entries;
 	m->type = type;
 	if (type >= END) {
-		_stp_error("map_new: unknown type %d\n", type);
-		return NULL;
+		_stp_error("unknown map type %d\n", type);
+		return -1;
 	}
 	if (max_entries) {
 		void *tmp;
 		int i;
 		struct list_head *e;
-
+		
 		INIT_LIST_HEAD(&m->pool);
 		
 		/* size is the size of the map_node. */
@@ -190,8 +188,16 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 			data_size = map_sizes[type];
 		data_size = ALIGN(data_size,4);
 		size = key_size + data_size;
-
-		tmp = _stp_valloc(max_entries * size);
+		
+		if (cpu < 0)
+			tmp = _stp_valloc(max_entries * size);
+		else
+			tmp = _stp_valloc_cpu(max_entries * size, cpu);
+		
+		if (!tmp) {
+			_stp_error("Allocating memory while creating map failed.\n");
+			return -1;
+		}
 
 		for (i = max_entries - 1; i >= 0; i--) {
 			e = i * size + tmp;
@@ -202,10 +208,115 @@ static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_s
 		m->membuf = tmp;
 	}
 	if (type == STAT)
-		m->hist_type = HIST_NONE;
+		m->hist.type = HIST_NONE;
+	return 0;
+}
+
+
+static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
+{
+	MAP m = (MAP) _stp_valloc(sizeof(struct map_root));
+	if (m == NULL)
+		return NULL;
+	if (_stp_map_init(m, max_entries, type, key_size, data_size, -1)) {
+		_stp_vfree(m);
+		return NULL;
+	}
 	return m;
 }
 
+static MAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data_size)
+{
+	int i, failed;
+	MAP map, m;
+
+	map = (MAP) _stp_valloc_percpu (struct map_root);
+	if (map == NULL)
+		return NULL;
+
+	for_each_cpu(i) {
+		m = per_cpu_ptr (map, i);
+		if (_stp_map_init(m, max_entries, type, key_size, data_size, i)) {
+			failed = i;
+			goto err;
+		}
+	}
+
+	/* now create a copy of the map data for aggregation */
+	failed = i + 1;
+	m = (MAP) _stp_valloc(sizeof(struct map_root));
+	if (m == NULL)
+		goto err;
+	_stp_percpu_dptr(map) = m;
+	if (_stp_map_init(m, max_entries, type, key_size, data_size, -1))
+		goto err1;
+	
+	return map;
+err1:
+	_stp_vfree(m);
+err:
+	for_each_cpu(i) {
+		if (i >= failed)
+			break;
+		_stp_vfree(m->membuf);
+	}
+	_stp_vfree_percpu(map);
+	return NULL;
+}
+
+static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
+{
+	MAP map;
+	int size;
+	int buckets = (stop - start) / interval;
+	if ((stop - start) % interval) buckets++;
+
+        /* add size for buckets */
+	size = buckets * sizeof(int64_t) + sizeof(stat);
+
+	map = _stp_pmap_new (max_entries, STAT, ksize, size);
+	if (map) {
+		int i;
+		MAP m;
+		for_each_cpu(i) {
+			m = per_cpu_ptr (map, i);
+			m->hist.type = HIST_LINEAR;
+			m->hist.start = start;
+			m->hist.stop = stop;
+			m->hist.interval = interval;
+			m->hist.buckets = buckets;
+		}
+		/* now set agg map  params */
+		m = _stp_percpu_dptr(map);
+		m->hist.type = HIST_LINEAR;
+		m->hist.start = start;
+		m->hist.stop = stop;
+		m->hist.interval = interval;
+		m->hist.buckets = buckets;
+	}
+	return map;
+}
+
+static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets)
+{
+	/* add size for buckets */
+	int size = buckets * sizeof(int64_t) + sizeof(stat);
+	MAP map = _stp_map_new (max_entries, STAT, key_size, size);
+	if (map) {
+		int i;
+		MAP m;
+		for_each_cpu(i) {
+			m = per_cpu_ptr (map, i);
+			m->hist.type = HIST_LOG;
+			m->hist.buckets = buckets;
+		}
+		/* now set agg map  params */
+		m = _stp_percpu_dptr(map);
+		m->hist.type = HIST_LOG;
+		m->hist.buckets = buckets;
+	}
+	return map;
+}
 
 /** Deletes the current element.
  * If no current element (key) for this map is set, this function does nothing.
@@ -325,6 +436,26 @@ void _stp_map_del(MAP map)
 		return;
 	_stp_vfree(map->membuf);
 	_stp_vfree(map);
+}
+
+void _stp_pmap_del(MAP map)
+{
+	int i;
+	MAP m;
+
+	if (map == NULL)
+		return;
+
+	for_each_cpu(i) {
+		m = per_cpu_ptr (map, i);
+		_stp_vfree(m->membuf);
+	}
+
+	m = _stp_percpu_dptr(map);
+	_stp_vfree(m->membuf);
+	_stp_vfree(m);
+
+	free_percpu(map);
 }
 
 /* comparison function for sorts. */
@@ -559,9 +690,8 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
 	}
 	case STAT:
 	{
-		Stat st = (Stat)((long)map + offsetof(struct map_root, hist_type));
 		stat *sd = _stp_get_stat(ptr);
-		_stp_stat_print_valtype (fmt, st, sd, 0); 
+		_stp_stat_print_valtype (fmt, &map->hist, sd, 0); 
 		break;
 	}
 	default:
@@ -580,7 +710,7 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
 	struct map_node *ptr;
 	int type, num;
 	key_data kd;
-	//dbug ("print map %lx fmt=%s\n", (long)map, fmt);
+	dbug ("print map %lx fmt=%s\n", (long)map, fmt);
 
 	if (n < 0)
 		return;
@@ -617,6 +747,142 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
  */
 #define _stp_map_print(map,fmt) _stp_map_printn(map,0,fmt)
 
+void _stp_pmap_printn_cpu (MAP map, int n, const char *fmt, int cpu)
+{
+	MAP m = per_cpu_ptr (map, cpu);
+	_stp_map_printn (m, n, fmt);
+}
+
+static int _stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr)
+{
+	struct map_node *aptr;
+	/* copy keys and aggregate */
+	dbug("creating new entry in %lx\n", (long)agg);
+	aptr = _new_map_create(agg, ahead);
+	if (aptr == NULL)
+		return -1;
+	(*agg->copy)(aptr, ptr);
+	switch (agg->type) {
+	case INT64:
+		_new_map_set_int64(agg, 
+				   aptr, 
+				   *(int64_t *)((long)ptr + ptr->map->data_offset),
+				   0);
+		break;
+	case STRING:
+		_new_map_set_str(agg, 
+				 aptr, 
+				 (char *)((long)ptr + ptr->map->data_offset),
+				 0);
+		break;
+	case STAT: {
+		stat *sd1 = (stat *)((long)aptr + agg->data_offset);
+		stat *sd2 = (stat *)((long)ptr + ptr->map->data_offset);
+		Hist st = &agg->hist;
+		sd1->count = sd2->count;
+		sd1->sum = sd2->sum;
+		sd1->min = sd2->min;
+		sd1->max = sd2->max;
+		if (st->type != HIST_NONE) {
+			int j;
+			for (j = 0; j < st->buckets; j++)
+				sd1->histogram[j] = sd2->histogram[j];
+		}
+		break;
+	}
+	default:
+		_stp_error("Attempted to aggregate map of type %d\n", agg->type);
+	}
+	return 0;
+}
+
+static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
+{
+	switch (aptr->map->type) {
+	case INT64:
+		_new_map_set_int64(aptr->map, 
+				   aptr, 
+				   *(int64_t *)((long)ptr + ptr->map->data_offset),
+				   1);
+		break;
+	case STRING:
+		_new_map_set_str(aptr->map, 
+				 aptr, 
+				 (char *)((long)ptr + ptr->map->data_offset),
+				 1);
+		break;
+	case STAT: {
+		stat *sd1 = (stat *)((long)aptr + aptr->map->data_offset);
+		stat *sd2 = (stat *)((long)ptr + ptr->map->data_offset);
+		Hist st = &aptr->map->hist;
+		sd1->count += sd2->count;
+		sd1->sum += sd2->sum;
+		if (sd2->min < sd1->min)
+			sd1->min = sd2->min;
+		if (sd2->max > sd1->max)
+			sd1->max = sd2->max;
+		if (st->type != HIST_NONE) {
+			int j;
+			for (j = 0; j < st->buckets; j++)
+				sd1->histogram[j] += sd2->histogram[j];
+		}
+		break;
+	}
+	default:
+		_stp_error("Attempted to aggregate map of type %d\n", aptr->map->type);
+	}
+}
+
+void _stp_pmap_agg (MAP map)
+{
+	int i, hash;
+	MAP m, agg;
+	struct map_node *ptr, *aptr;
+	struct hlist_head *head, *ahead;
+	struct hlist_node *e, *f;
+
+	agg = _stp_percpu_dptr(map);
+	
+        /* FIXME. we either clear the aggregation map or clear each local map */
+	/* every time we aggregate. which would be best? */
+	_stp_map_clear (agg);
+
+	for_each_cpu(i) {
+		dbug("cpu %d\n", i);
+		m = per_cpu_ptr (map, i);
+		/* walk the hash chains. */
+		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
+			head = &m->hashes[hash];
+			ahead = &agg->hashes[hash];
+			hlist_for_each(e, head) {
+				int match = 0;
+				ptr = (struct map_node *)((long)e - sizeof(struct list_head));
+				hlist_for_each(f, ahead) {
+					aptr = (struct map_node *)((long)f - sizeof(struct list_head));
+					if ((*m->cmp)(ptr, aptr)) {
+						match = 1;
+						break;
+					}
+				}
+				if (match)
+					_stp_add_agg(aptr, ptr);
+				else
+					_stp_new_agg(agg, ahead, ptr);
+			}
+		}
+	}
+}
+
+#define AGG_PMAP(map) (_stp_percpu_dptr(map))
+
+void _stp_pmap_printn(MAP map, int n, const char *fmt)
+{
+	MAP m = _stp_percpu_dptr(map);
+	_stp_pmap_agg(map);
+	_stp_map_printn (m, n, fmt);
+}
+#define _stp_pmap_print(map,fmt) _stp_pmap_printn(map,0,fmt)
+
 static struct map_node *__stp_map_create (MAP map)
 {
 	struct map_node *m;
@@ -646,6 +912,30 @@ static struct map_node *__stp_map_create (MAP map)
 	return m;
 }
 
+static void _new_map_clear_node (struct map_node *m)
+{
+	switch (m->map->type) {
+	case INT64:
+		*(int64_t *)((long)m + m->map->data_offset) = 0;
+		break;
+	case STRING:
+		*(char *)((long)m + m->map->data_offset) = 0;
+		break;
+	case STAT: 
+	{
+		stat *sd = (stat *)((long)m + m->map->data_offset);
+		Hist st = &m->map->hist;
+		sd->count = 0;
+		if (st->type != HIST_NONE) {
+			int j;
+			for (j = 0; j < st->buckets; j++)
+				sd->histogram[j] = 0;
+		}
+		break;
+	}
+	}
+}
+
 static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
 {
 	struct map_node *m;
@@ -666,7 +956,7 @@ static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
 	
 	/* add node to new hash list */
 	hlist_add_head(&m->hnode, head);
-	
+
 	map->num++;
 	return m;
 }
@@ -695,9 +985,6 @@ static int _new_map_set_int64 (MAP map, struct map_node *n, int64_t val, int add
 			*(int64_t *)((long)n + map->data_offset) += val;
 		else
 			*(int64_t *)((long)n + map->data_offset) = val;
-	} else if (!add) {
-		/* setting value to 0 is the same as deleting */
-		_new_map_del_node (map, n);
 	}
 	return 0;
 }
@@ -712,43 +999,30 @@ static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add)
 			str_add((void *)((long)n + map->data_offset), val);
 		else
 			str_copy((void *)((long)n + map->data_offset), val);
-	} else if (!add) {
-		/* setting value to 0 is the same as deleting */
-		_new_map_del_node (map, n);
 	}
 	return 0;
 }
 
-static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add, int new)
+static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add)
 {
 	stat *sd;
-	Stat st;
 
 	if (map == NULL || n == NULL)
 		return -2;
 
-	if (val == 0 && !add) {
-		_new_map_del_node (map, n);
-		return 0;
-	}
-
 	sd = (stat *)((long)n + map->data_offset);
-	st = (Stat)((long)map + offsetof(struct map_root, hist_type));
-
-	if (new || !add) {
-		int j;
-		sd->count = sd->sum = sd->min = sd->max = 0;
-		if (st->hist_type != HIST_NONE) {
-			for (j = 0; j < st->hist_buckets; j++)
+	if (!add) {
+		Hist st = &map->hist;
+		sd->count = 0;
+		if (st->type != HIST_NONE) {
+			int j;
+			for (j = 0; j < st->buckets; j++)
 				sd->histogram[j] = 0;
 		}
 	}
-
-	__stp_stat_add (st, sd, val);
-
+	__stp_stat_add (&map->hist, sd, val);
 	return 0;
 }
-
 
 #endif /* _MAP_C_ */
 

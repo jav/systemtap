@@ -48,6 +48,18 @@
 #define STAT_UNLOCK(st) ;
 #endif
 
+/** Stat struct for stat.c. Maps do not need this */
+struct _Stat {
+	struct _Hist hist;
+	/* per-cpu data. allocated with alloc_percpu() */
+	stat *sd;
+	/* aggregated data */   
+	stat *agg;  
+};
+
+typedef struct _Stat *Stat;
+
+
 /** Initialize a Stat.
  * Call this during probe initialization to create a Stat.
  *
@@ -64,7 +76,7 @@
 Stat _stp_stat_init (int type, ...)
 {
 	int size, buckets=0, start=0, stop=0, interval=0;
-	struct stat_data *sd, *agg;
+	stat *sd, *agg;
 	Stat st;
 
 	if (type != HIST_NONE) {
@@ -87,8 +99,8 @@ Stat _stp_stat_init (int type, ...)
 	if (st == NULL)
 		return NULL;
 	
-	size = buckets * sizeof(int64_t) + sizeof(struct stat_data);	
-	sd = (struct stat_data *) __alloc_percpu (size, 8);
+	size = buckets * sizeof(int64_t) + sizeof(stat);	
+	sd = (stat *) __alloc_percpu (size, 8);
 	if (sd == NULL)
 		goto exit1;
 
@@ -96,21 +108,21 @@ Stat _stp_stat_init (int type, ...)
 	{
 		int i;
 		for_each_cpu(i) {
-			struct stat_data *sdp = per_cpu_ptr (sd, i);
+			stat *sdp = per_cpu_ptr (sd, i);
 			sdp->lock = SPIN_LOCK_UNLOCKED;
 		}
 	}
 #endif
 	
-	agg = (struct stat_data *)kmalloc (size, GFP_KERNEL);
+	agg = (stat *)kmalloc (size, GFP_KERNEL);
 	if (agg == NULL)
 		goto exit2;
 
-	st->hist_type = type;
-	st->hist_start = start;
-	st->hist_stop = stop;
-	st->hist_int = interval;
-	st->hist_buckets = buckets;
+	st->hist.type = type;
+	st->hist.start = start;
+	st->hist.stop = stop;
+	st->hist.interval = interval;
+	st->hist.buckets = buckets;
 	st->sd = sd;
 	st->agg = agg;
 	return st;
@@ -130,9 +142,9 @@ exit1:
  */
 void _stp_stat_add (Stat st, int64_t val)
 {
-	struct stat_data *sd = per_cpu_ptr (st->sd, get_cpu());
+	stat *sd = per_cpu_ptr (st->sd, get_cpu());
 	STAT_LOCK(sd);
-	__stp_stat_add (st, sd, val);
+	__stp_stat_add (&st->hist, sd, val);
 	STAT_UNLOCK(sd);
 	put_cpu();
 }
@@ -145,21 +157,21 @@ void _stp_stat_add (Stat st, int64_t val)
  *
  * @param st Stat
  * @param cpu CPU number
- * @returns A pointer to a struct stat_data.
+ * @returns A pointer to a stat.
  */
-struct stat_data *_stp_stat_get_cpu (Stat st, int cpu)
+stat *_stp_stat_get_cpu (Stat st, int cpu)
 {
-	struct stat_data *sd = per_cpu_ptr (st->sd, cpu);
+	stat *sd = per_cpu_ptr (st->sd, cpu);
 	STAT_LOCK(sd);
 	return sd;
 }
 
-static void _stp_stat_clear_data (Stat st, struct stat_data *sd)
+static void _stp_stat_clear_data (Stat st, stat *sd)
 {
         int j;
         sd->count = sd->sum = sd->min = sd->max = 0;
-        if (st->hist_type != HIST_NONE) {
-                for (j = 0; j < st->hist_buckets; j++)
+        if (st->hist.type != HIST_NONE) {
+                for (j = 0; j < st->hist.buckets; j++)
                         sd->histogram[j] = 0;
         }
 }
@@ -173,17 +185,17 @@ static void _stp_stat_clear_data (Stat st, struct stat_data *sd)
  * @param st Stat
  * @param clear Set if you want the data cleared after the read. Useful
  * for polling.
- * @returns A pointer to a struct stat_data.
+ * @returns A pointer to a stat.
  */
-struct stat_data *_stp_stat_get (Stat st, int clear)
+stat *_stp_stat_get (Stat st, int clear)
 {
 	int i, j;
-	struct stat_data *agg = st->agg;
+	stat *agg = st->agg;
 	STAT_LOCK(agg);
 	_stp_stat_clear_data (st, agg);
 
 	for_each_cpu(i) {
-		struct stat_data *sd = per_cpu_ptr (st->sd, i);
+		stat *sd = per_cpu_ptr (st->sd, i);
 		STAT_LOCK(sd);
 		if (sd->count) {
 			if (agg->count == 0) {
@@ -196,8 +208,8 @@ struct stat_data *_stp_stat_get (Stat st, int clear)
 				agg->max = sd->max;
 			if (sd->min < agg->min)
 				agg->min = sd->min;
-			if (st->hist_type != HIST_NONE) {
-				for (j = 0; j < st->hist_buckets; j++)
+			if (st->hist.type != HIST_NONE) {
+				for (j = 0; j < st->hist.buckets; j++)
 					agg->histogram[j] += sd->histogram[j];
 			}
 			if (clear)
@@ -209,13 +221,13 @@ struct stat_data *_stp_stat_get (Stat st, int clear)
 }
 
 
-static void __stp_stat_print (char *fmt, Stat st, struct stat_data *sd, int cpu)
+static void __stp_stat_print (char *fmt, Stat st, stat *sd, int cpu)
 {
 	int num;
 	char *f = (char *)fmt;
 	while (*f) {
 		f = next_fmt (f, &num);
-		_stp_stat_print_valtype (f, st, sd, cpu);
+		_stp_stat_print_valtype (f, &st->hist, sd, cpu);
 		if (*f)
 			f++;
 	}
@@ -235,7 +247,7 @@ void _stp_stat_print_cpu (Stat st, char *fmt, int clear)
 {
 	int i;
 	for_each_cpu(i) {
-		struct stat_data *sd = per_cpu_ptr (st->sd, i);
+		stat *sd = per_cpu_ptr (st->sd, i);
 		STAT_LOCK(sd);
 		__stp_stat_print (fmt, st, sd, i);
 		if (clear)

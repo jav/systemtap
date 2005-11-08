@@ -96,16 +96,16 @@ static int msb64(int64_t val)
 #define HIST_WIDTH 50
 #endif
 
-static void _stp_stat_print_histogram (Stat st, stat *sd)
+static void _stp_stat_print_histogram (Hist st, stat *sd)
 {
 	int scale, i, j, val_space, cnt_space;
 	int64_t val, v, max = 0;
 
-	if (st->hist_type != HIST_LOG && st->hist_type != HIST_LINEAR)
+	if (st->type != HIST_LOG && st->type != HIST_LINEAR)
 		return;
 	
 	/* get the maximum value, for scaling */
-	for (i = 0; i < st->hist_buckets; i++)
+	for (i = 0; i < st->buckets; i++)
 		if (sd->histogram[i] > max)
 			max = sd->histogram[i];
 	
@@ -119,10 +119,10 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 	}
 
 	cnt_space = needed_space (max);
-	if (st->hist_type == HIST_LINEAR)
-		val_space = needed_space (st->hist_start +  st->hist_int * (st->hist_buckets - 1));
+	if (st->type == HIST_LINEAR)
+		val_space = needed_space (st->start +  st->interval * (st->buckets - 1));
 	else
-		val_space = needed_space (1 << (st->hist_buckets - 1));
+		val_space = needed_space (1 << (st->buckets - 1));
 	//dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
 
 	/* print header */
@@ -137,11 +137,11 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 	reprint (HIST_WIDTH, "-");
 	_stp_print_cstr (" count\n");
 	_stp_print_flush();
-	if (st->hist_type == HIST_LINEAR)
-		val = st->hist_start;
+	if (st->type == HIST_LINEAR)
+		val = st->start;
 	else
 		val = 0;
-	for (i = 0; i < st->hist_buckets; i++) {
+	for (i = 0; i < st->buckets; i++) {
 		reprint (val_space - needed_space(val), " ");
 		_stp_printf("%d", val);
 		_stp_print_cstr (" |");
@@ -153,8 +153,8 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 		reprint (v, "@");
 		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
 		_stp_printf ("%lld\n", sd->histogram[i]);
-		if (st->hist_type == HIST_LINEAR) 
-			val += st->hist_int;
+		if (st->type == HIST_LINEAR) 
+			val += st->interval;
 		else if (val == 0)
 			val = 1;
 		else
@@ -162,7 +162,7 @@ static void _stp_stat_print_histogram (Stat st, stat *sd)
 	}
 }
 
-static void _stp_stat_print_valtype (char *fmt, Stat st, struct stat_data *sd, int cpu)
+static void _stp_stat_print_valtype (char *fmt, Hist st, stat *sd, int cpu)
 {
 	switch (*fmt) {
 	case 'C':
@@ -195,7 +195,7 @@ static void _stp_stat_print_valtype (char *fmt, Stat st, struct stat_data *sd, i
 	}
 }
 
-static void __stp_stat_add (Stat st, struct stat_data *sd, int64_t val)
+static void __stp_stat_add (Hist st, stat *sd, int64_t val)
 {
 	int n;
 	if (sd->count == 0) {
@@ -209,21 +209,21 @@ static void __stp_stat_add (Stat st, struct stat_data *sd, int64_t val)
 		if (val < sd->min)
 			sd->min = val;
 	}
-	switch (st->hist_type) {
+	switch (st->type) {
 	case HIST_LOG:
 		n = msb64 (val);
-		if (n >= st->hist_buckets)
-			n = st->hist_buckets - 1;
+		if (n >= st->buckets)
+			n = st->buckets - 1;
 		sd->histogram[n]++;
 		break;
 	case HIST_LINEAR:
-		val -= st->hist_start;
-		do_div (val, st->hist_int);
+		val -= st->start;
+		do_div (val, st->interval);
 		n = val;
 		if (n < 0)
 			n = 0;
-		if (n >= st->hist_buckets)
-			n = st->hist_buckets - 1;
+		if (n >= st->buckets)
+			n = st->buckets - 1;
 		sd->histogram[n]++;
 	default:
 		break;

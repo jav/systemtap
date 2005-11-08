@@ -224,12 +224,76 @@ struct KEYSYM(map_node) {
 		ret;							\
 	})
 
+/* returns 1 on match, 0 otherwise */
+static int KEYSYM(map_key_cmp) (struct map_node *m1, struct map_node *m2)
+{
+	struct KEYSYM(map_node) *n1 = (struct KEYSYM(map_node) *)m1;
+	struct KEYSYM(map_node) *n2 = (struct KEYSYM(map_node) *)m2;
+		if (KEY1_EQ_P(n1->key1, n2->key1)
+#if KEY_ARITY > 1
+		    && KEY2_EQ_P(n1->key2, n2->key2)
+#if KEY_ARITY > 2
+		    && KEY3_EQ_P(n1->key3, n2->key3)
+#if KEY_ARITY > 3
+		    && KEY4_EQ_P(n1->key4, n2->key4)
+#if KEY_ARITY > 4
+		    && KEY5_EQ_P(n1->key5, n2->key5)
+#endif
+#endif
+#endif
+#endif
+			)
+			return 1;
+		else
+			return 0;
+}
+
+/* copy keys for m2 -> m1 */
+static void KEYSYM(map_copy_keys) (struct map_node *m1, struct map_node *m2)
+{
+	struct KEYSYM(map_node) *dst = (struct KEYSYM(map_node) *)m1;
+	struct KEYSYM(map_node) *src = (struct KEYSYM(map_node) *)m2;
+	dbug("copy\n");
+#if KEY1_TYPE == STRING
+	str_copy (dst->key1, src->key1); 
+#else
+	dst->key1 = src->key1;
+#endif
+#if KEY_ARITY > 1
+#if KEY2_TYPE == STRING
+	str_copy (dst->key2, src->key2); 
+#else
+	dst->key2 = src->key2;
+#endif
+#if KEY_ARITY > 2
+#if KEY3_TYPE == STRING
+	str_copy (dst->key3, src->key3); 
+#else
+	dst->key3 = src->key3;
+#endif
+#if KEY_ARITY > 3
+#if KEY4_TYPE == STRING
+	str_copy (dst->key4, src->key4); 
+#else
+	dst->key4 = src->key4;
+#endif
+#if KEY_ARITY > 4
+#if KEY5_TYPE == STRING
+	str_copy (dst->key5, src->key5); 
+#else
+	dst->key5 = src->key5;
+#endif
+#endif
+#endif
+#endif
+#endif
+}
+
 static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
 {
 	key_data ptr;
 	struct KEYSYM(map_node) *m = (struct KEYSYM(map_node) *)mn;	
 
-	dbug ("n = %d type=%lx\n", n, type);
 	if (n > KEY_ARITY || n < 1) {
 		if (type)
 			*type = END;
@@ -337,21 +401,33 @@ static unsigned int KEYSYM(hash) (ALLKEYSD(key))
 
 
 #if VALUE_TYPE == INT64 || VALUE_TYPE == STRING
-MAP KEYSYM(_stp_map_new) (unsigned max_entries)
+MAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 {
-	MAP m = _stp_map_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(map_node)), 0);
-	if (m)
+	MAP map = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(map_node)), 0);
+	if (map) {
+		int i;
+		MAP m;
+		for_each_cpu(i) {
+			m = per_cpu_ptr (map, i);
+			m->get_key = KEYSYM(map_get_key);
+			m->copy = KEYSYM(map_copy_keys);
+			m->cmp = KEYSYM(map_key_cmp);
+		}
+		m = _stp_percpu_dptr(map);
 		m->get_key = KEYSYM(map_get_key);
-	return m;
+		m->copy = KEYSYM(map_copy_keys);
+		m->cmp = KEYSYM(map_key_cmp);
+	}
+	return map;
 }
 #else
-/* _stp_map_new_key1_key2...val (num, HSTAT_LINEAR, start, end, interval) */
-/* _stp_map_new_key1_key2...val (num, HSTAT_LOG, buckets) */ 
+/* _stp_pmap_new_key1_key2...val (num, HSTAT_LINEAR, start, end, interval) */
+/* _stp_pmap_new_key1_key2...val (num, HSTAT_LOG, buckets) */ 
 
-MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
+MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
 	int buckets=0, start=0, stop=0, interval=0;
-	MAP m;
+	MAP m, map;
 	va_list ap;
 
 	if (htype != HIST_NONE) {
@@ -370,35 +446,45 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
 
 	switch (htype) {
 	case HIST_NONE:
-		m = _stp_map_new (max_entries, STAT, sizeof(struct KEYSYM(map_node)), 0);
+		map = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(map_node)), 0);
 		break;
 	case HIST_LOG:
-		m = _stp_map_new_hstat_log (max_entries, sizeof(struct KEYSYM(map_node)), 
+		map = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(map_node)), 
 					    buckets);
 		break;
 	case HIST_LINEAR:
-		m = _stp_map_new_hstat_linear (max_entries, sizeof(struct KEYSYM(map_node)),
+		map = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(map_node)),
 					       start, stop, interval);
 		break;
 	default:
 		_stp_warn ("Unknown histogram type %d\n", htype);
-		m = NULL;
+		map = NULL;
 	}
 
-	if (m)
+	if (map) {
+		int i;
+		MAP m;
+		for_each_cpu(i) {
+			m = per_cpu_ptr (map, i);
+			m->get_key = KEYSYM(map_get_key);
+			m->copy = KEYSYM(map_copy_keys);
+			m->cmp = KEYSYM(map_key_cmp);
+		}
+		m = _stp_percpu_dptr(map);
 		m->get_key = KEYSYM(map_get_key);
-
-	return m;
+		m->copy = KEYSYM(map_copy_keys);
+		m->cmp = KEYSYM(map_key_cmp);
+	}
+	return map;
 }
 
 #endif /* VALUE_TYPE */
-int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
+int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 {
 	unsigned int hv;
 	struct hlist_head *head;
 	struct hlist_node *e;
 	struct KEYSYM(map_node) *n;
-	int res;
 
 	if (map == NULL)
 		return -2;
@@ -412,7 +498,6 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
 		dbug("map_node =%lx\n", (long)n);
-		//dbug ("n=%lx  key1=%ld n->key1=%ld\n", (long)n, key1, n->key1);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)
@@ -448,26 +533,36 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 }
 
-int KEYSYM(_stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val)
+int KEYSYM(_stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val)
 {
-	return KEYSYM(__stp_map_set) (map, ALLKEYS(key), val, 0);
+	MAP m = per_cpu_ptr (map, get_cpu());
+	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 0);
+	put_cpu();
+	return res;
 }
 
-int KEYSYM(_stp_map_add) (MAP map, ALLKEYSD(key), VSTYPE val)
+int KEYSYM(_stp_pmap_add) (MAP map, ALLKEYSD(key), VSTYPE val)
 {
-	return KEYSYM(__stp_map_set) (map, ALLKEYS(key), val, 1);
+	MAP m = per_cpu_ptr (map, get_cpu());
+	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 1);
+	put_cpu();
+	return res;
 }
 
 
-VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
+VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
 	struct hlist_node *e;
 	struct KEYSYM(map_node) *n;
+	VALTYPE res;
+	MAP map;
 
-	if (map == NULL)
+	if (pmap == NULL)
 		return (VALTYPE)0;
+
+	map = per_cpu_ptr (pmap, get_cpu());
 
 	hv = KEYSYM(hash) (ALLKEYS(key));
 	head = &map->hashes[hv];
@@ -489,10 +584,13 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 #endif
 #endif
 			) {
-			return MAP_GET_VAL((struct map_node *)n);
+			res = MAP_GET_VAL((struct map_node *)n);
+			put_cpu();
+			return res;
 		}
 	}
 	/* key not found */
+	put_cpu();
 #if VALUE_TYPE == STRING
 	return "";
 #else
@@ -500,6 +598,83 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 #endif
 }
 
+#if 0
+VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
+{
+	unsigned int hv;
+	struct hlist_head *head;
+	struct hlist_node *e;
+	struct KEYSYM(map_node) *n, *anode = NULL;
+	VALTYPE res;
+	MAP map, agg;
+
+	if (pmap == NULL)
+		return (VALTYPE)0;
+
+	hv = KEYSYM(hash) (ALLKEYS(key));
+
+	/* first look it up in the aggregation map */
+	agg = _stp_percpu_dptr(pmap);
+	ahead = &agg->hashes[hv];
+	hlist_for_each(e, ahead) {
+		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+		dbug("map_node =%lx\n", (long)n);
+		if (KEY1_EQ_P(n->key1, key1)
+#if KEY_ARITY > 1
+		    && KEY2_EQ_P(n->key2, key2)
+#if KEY_ARITY > 2
+		    && KEY3_EQ_P(n->key3, key3)
+#if KEY_ARITY > 3
+		    && KEY4_EQ_P(n->key4, key4)
+#if KEY_ARITY > 4
+		    && KEY5_EQ_P(n->key5, key5)
+#endif
+#endif
+#endif
+#endif
+			) {
+			anode = n;
+			break;
+		}
+	}
+	if (anode)
+		return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
+
+	for_each_cpu(cpu) {
+		map = per_cpu_ptr (pmap, get_cpu());
+		head = &map->hashes[hv];
+		hlist_for_each(e, head) {
+			n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+			dbug("map_node =%lx\n", (long)n);
+			if (KEY1_EQ_P(n->key1, key1)
+#if KEY_ARITY > 1
+			    && KEY2_EQ_P(n->key2, key2)
+#if KEY_ARITY > 2
+			    && KEY3_EQ_P(n->key3, key3)
+#if KEY_ARITY > 3
+			    && KEY4_EQ_P(n->key4, key4)
+#if KEY_ARITY > 4
+			    && KEY5_EQ_P(n->key5, key5)
+#endif
+#endif
+#endif
+#endif
+				) {
+				res = MAP_GET_VAL((struct map_node *)n);
+				put_cpu();
+				return res;
+			}
+		}
+	}
+	/* key not found */
+	put_cpu();
+#if VALUE_TYPE == STRING
+	return "";
+#else
+	return (VALTYPE)0;
+#endif
+}
+#endif /* 0 */
 
 #undef KEY1NAME
 #undef KEY1N

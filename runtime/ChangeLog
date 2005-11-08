@@ -1,3 +1,42 @@
+2005-11-08  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_map_init): New function. Extracted from _stp_map_new()
+	so it can be used in _stp_pmap_new().
+	(_stp_map_new): Call _stp_map_init().
+	(_stp_pmap_new): New function.
+	(_stp_pmap_new_hstat_linear): New function.
+	(_stp_pmap_new_hstat_log): New function.
+	(_stp_pmap_del): New function.
+	(_stp_pmap_printn_cpu): New function.
+	(_stp_pmap_printn): New function.	
+	(_stp_new_agg): New function.
+	(_stp_add_agg): New function.	
+	(_stp_pmap_agg): New function.		
+	(_new_map_clear_node): New function.
+	
+	* map.h (struct map_root): Add Hist struct. Add copy
+	and cmp function pointers for pmaps.
+
+	* stat.h: Remove Stat struct. Replace with Hist struct
+	that is limited to only histogram params.
+	* map-stat.c: Fix up references to histogram params in map_root.
+	* stat-common.c: Ditto.
+	* stat.c: Ditto.
+	
+	* pmap-gen.c: New file. Implements per-cpu maps.
+	
+	* map-gen.c: Minor bug fixes. Use new VAL_IS_ZERO() macro.
+
+	* alloc.c (vmalloc_node): For NUMA, provide a vmalloc that
+	does node-local allocations.
+	(_stp_alloc_cpu): A version of _stp_alloc() that does
+	node-local allocations.
+	(_stp_valloc): A version of _stp_valloc() that does
+	node-local allocations.
+	(__stp_valloc_percpu): New function. Like alloc_percpu()
+	except uses _stp_valloc().
+	(_stp_vfree_percpu): New function. Like free_percpu().
+
 2005-11-04  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: #include <linux/version.h>.

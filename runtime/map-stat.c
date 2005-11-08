@@ -18,7 +18,6 @@
 static int _stp_map_add_stat (MAP map, int64_t val)
 {
 	stat *d;
-	Stat st;
 
 	if (map == NULL)
 		return -2;
@@ -36,16 +35,14 @@ static int _stp_map_add_stat (MAP map, int64_t val)
 			return -2;
 		d = (stat *)((long)map->key + map->data_offset);
 	}
-	st = (Stat)((long)map + offsetof(struct map_root, hist_type));
-	__stp_stat_add (st, d, val);
+	__stp_stat_add (&map->hist, d, val);
 	return 0;
 }
 
 
 static void _stp_map_print_histogram (MAP map, stat *sd)
 {
-	Stat st = (Stat)((long)map + offsetof(struct map_root, hist_type));
-	_stp_stat_print_histogram (st, sd);
+	_stp_stat_print_histogram (&map->hist, sd);
 }
 
 static MAP _stp_map_new_hstat_log (unsigned max_entries, int key_size, int buckets)
@@ -54,11 +51,11 @@ static MAP _stp_map_new_hstat_log (unsigned max_entries, int key_size, int bucke
 	int size = buckets * sizeof(int64_t) + sizeof(stat);
 	MAP m = _stp_map_new (max_entries, STAT, key_size, size);
 	if (m) {
-		m->hist_type = HIST_LOG;
-		m->hist_buckets = buckets;
+		m->hist.type = HIST_LOG;
+		m->hist.buckets = buckets;
 		if (buckets < 1 || buckets > 64) {
 			_stp_warn("histogram: Bad number of buckets.  Must be between 1 and 64\n");
-			m->hist_type = HIST_NONE;
+			m->hist.type = HIST_NONE;
 			return m;
 		}
 	}
@@ -77,14 +74,14 @@ static MAP _stp_map_new_hstat_linear (unsigned max_entries, int ksize, int start
 
 	m = _stp_map_new (max_entries, STAT, ksize, size);
 	if (m) {
-		m->hist_type = HIST_LINEAR;
-		m->hist_start = start;
-		m->hist_stop = stop;
-		m->hist_int = interval;
-		m->hist_buckets = buckets;
-		if (m->hist_buckets <= 0) {
+		m->hist.type = HIST_LINEAR;
+		m->hist.start = start;
+		m->hist.stop = stop;
+		m->hist.interval = interval;
+		m->hist.buckets = buckets;
+		if (m->hist.buckets <= 0) {
 			_stp_warn("histogram: bad stop, start and/or interval\n");
-			m->hist_type = HIST_NONE;
+			m->hist.type = HIST_NONE;
 			return m;
 		}
 		

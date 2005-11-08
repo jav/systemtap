@@ -1,58 +1,46 @@
-/** @addtogroup maps Maps (Associative Arrays)
+/** @addtogroup maps 
+Implements maps (associative arrays) and lists
 
-Maps are implemented as hash lists. In order to efficiently handle maps with up to five keys of any combination
-of int64s and strings, the functions to create maps, set keys, and set and get values
+Maps may contains up to five keys and one value.  Keys may 64-bit ints (INT64) or
+strings (STRING). Values may be 64-bit ints, strings or statistics (STAT).
+
+In order to efficiently handle maps with up to five keys of any combination
+of int64s and strings, the functions to create maps and set and get values
 are all generated as needed.  To do this, you must simply do some defines and 
 include the proper files.  For example, if you need a map with 3 keys, int64, int64, and string
 that stores strings, you need to do
-@code
 
+@code
+#define VALUE_TYPE STRING
 #define KEY1_TYPE INT64
 #define KEY2_TYPE INT64
 #define KEY3_TYPE STRING
-#include "map-keys.c"
-
-#include "map.c"
+#include "map-gen.c"
 @endcode
 
-In the above example, maps are created with _stp_map_new_int64_int64_str(). All the
-generated functions start with a base name (such as _stp_map_new) and add the key types separated
-by underscores.
+Repeat the above lines for any other needed maps.
 
-Each map can hold only one type of data; int64, string, or statistics.  Each element belonging to a map can have up to 
-5 keys and a value.  Implemented key types are strings and int64.
-	
-To simplify the implementation, the functions to set the key and the functions to set the data are separated.
-The map remembers what the current key is.
-For example, to continue our previous example,
+In the above example, maps are created with _stp_map_new_iiss(). All the
+generated functions start with a base name (such as _stp_map_new) and add the key and value types where types
+are abbreviated by "i" (int64), "s" (string) and "x" (statistics).
+
+To continue the provious example,
+
 @code
-/* create a map with a max of 100 elements containing strings */
-MAP mymap = _stp_map_new_int64_int64_str(100, STRING);
+//** create a map with a max of 100 elements containing strings **//
+MAP mymap = _stp_map_new_iiss(100);
 
-/* mymap[100, 300, "Ohio"] = "Columbus" */
-_stp_map_key_int64_int64_str (mymap, 100, 300, "Ohio");
-_stp_map_set_str (mymap, "Columbus");
+//** mymap[100, 300, "Ohio"] = "Columbus" **//
+_stp_map_set_iiss (mymap, 100, 300, "Ohio", "Columbus");
 @endcode
 
 All elements have a default value of 0 (or NULL).  Elements are only saved to the map when their value is set
-to something nonzero.  
+to something nonzero.  Setting a map node to 0 (or "") deletes it.
 
 For good examples, see the runtime/tests/maps directory or the example probes.
-*/
-
-
-/** @addtogroup maps
- *
- * @{
- */
+@{ */
 
 #include "map.h"
-
-/** @defgroup map_create Creating Maps
- * This documents the _stp_map_new_ functions that are
- * dynamically created based on the needed keys and values.
- * @{
-*/
 
 /** Create a new map.
 * The exact name of this function depends on the defined key types.
@@ -61,22 +49,22 @@ For good examples, see the runtime/tests/maps directory or the example probes.
 * the value of valtype.  
 * @param num_entries The maximum number of entries. Space for these
 * entries are allocated when the SystemTap module is loaded.
-* @param valtype Valid values are INT64, STRING, and STAT. 
+* @returns A MAP pointer. NULL on error.
 */
-MAP _stp_map_new_KEY1 (int num_entries, int valtype){}
+MAP _stp_map_new_[is]+ (int num_entries){}
 
 /** Create a new map with values of stats with log histograms.
-* When valtype is HSTAT_LOG, the following parameters are expected.
+* When the histogram type is HIST_LOG, the following parameters are expected.
 * @param num_entries The maximum number of entries. Space for these
 * entries are allocated when the SystemTap module is loaded.
 * @param buckets Number of buckets in the histogram. The maximum values
 * for each bucket are 0, 1, 2, 4, 8, 16, 32, ... So if buckets is 8 the
 * histogram will go from 0 - 64.
 */
-MAP _stp_map_new_KEY1_ (int num_entries, HSTAT_LOG, int buckets){}
+MAP _stp_map_new_([is]+)x (int num_entries, HIST_LOG, int buckets){}
 
 /** Create a new map with values of stats with linear histograms.
-* When valtype is HSTAT_LOG, the following parameters are expected.
+* When the histogram type is HIST_LOG, the following parameters are expected.
 * @param num_entries The maximum number of entries. Space for these
 * entries are allocated when the SystemTap module is loaded.
 * @param start The starting value of the histogram.
@@ -84,74 +72,54 @@ MAP _stp_map_new_KEY1_ (int num_entries, HSTAT_LOG, int buckets){}
 * @param interval The interval.
 * @todo Check for reasonable values.
 */
-MAP _stp_map_new_KEY1__ (int num_entries, HSTAT_LINEAR, int start, int stop, int interval) {}
+MAP _stp_map_new_([is]+)x (int num_entries, HIST_LINEAR, int start, int stop, int interval) {}
 
-/** @} end of map_create group */
-
-/** @defgroup map_set Setting the Values in Maps
- * This documents the _stp_map_set_ and _stp_map_add_ functions that are
- * dynamically created based on the needed keys and values.
- * @{
-*/
-
-/** Set the current element's value to a C string.
- * This sets the current element's value to an C string. The map must have been created
- * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>
+/** Set a node's value.
+ * This sets a node's value to either an int64 or string.  If the map
+ * is storing statistics, the statistics are cleared and the value is added to it.
  *
- * If the element doesn't exist, it is created.  If no current element (key)
- * is set for the map, this function does nothing.
- * @param map
- * @param val new string
- * @sa _stp_map_set()
- */
-void _stp_map_set_str (MAP map, char *val) {}
-
-
-/** Appends a C string to the current element's value
- * This appends a C string to the current element's value. The map must have been created
- * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>
+ * If the value is 0 or "", the node is deleted, if it exists.
  *
- * If the element doesn't exist, it is created.  If no current element (key)
- * is set for the map, this function does nothing.
+ * LOCKING: You must hold a writelock on the map when calling this.
+ *
  * @param map
- * @param val string to append
- * @sa _stp_map_set()
+ * @param val new value
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  */
-void _stp_map_add_str (MAP map, char *val) {}
-/** @} end of map_set group*/
+int _stp_map_set_([is]+)x (MAP map, <VALTYPE> val) {}
 
-/** @defgroup map_get Getting the Values from Maps
- * This documents the _stp_map_get_ functions that are
- * dynamically created based on the needed keys and values.
- * @{
- */
-
-/** Gets the current element's value.
- * This returns the current element's value. The map must have been created
- * to hold strings using <i>_stp_map_new_(xxx, STRING)</i>.
+/** Adds to a node's value.
+ * For INT64 maps, this adds to the node's value. 
+ *
+ * For STRING maps, this concatenates to the node's value. 
+ *
+ * For STAT maps, this adds to the node's accumulated stats.
+ *
+ * If no node with the proper key exists, it is created first.
+ *
+ * LOCKING: You must hold a writelock on the map when calling this.
+ *
  * @param map
- * @returns A string pointer. If the current element is not set or doesn't exist, returns NULL.
+ * @param val value to append
+ * @returns \li \c 0 on success \li \c -1 on overflow \li \c -2 on bad map or key
  */
-char  *_stp_map_get_str (MAP map) {}
+int _stp_map_add_([is]+)x (MAP map, <VALTYPE> val) {}
 
-/** Gets the current element's value.
- * This returns the current element's value. The map must have been created
- * to hold stats using <i>_stp_map_new_(xxx, STAT)</i> (or HSTAT_LOG or HSTAT_LINEAR).  This function would only be used
+/** Gets a node's value.
+ * This looks up a node given the specified keys and returns its value.
+ * If the node doesn't exist, it returns 0 or "" (depending on type).
+ *
+ * LOCKING: You must get a readlock on the map before calling this.
+ * Release it when finished processing the returned value.
+ *
  * @param map
- * @returns A stat pointer. If the current element is not set or doesn't exist, returns NULL.
+ * @param key
+ * @returns Depending on VALTYPE, returns \li \c int64_t value
+ * \li \c char *value or \li \c stat *value.
  */
-stat  *_stp_map_get_stat (MAP map) {}
+<VALTYPE> _stp_map_get_([is]+)x (MAP map, <KEY1TYPE> key1,..., <KEYNTYPE> keyn) {}
 
-/** Gets the current element's value.
- * This returns the current element's value. The map must have been created
- * to hold int64s using <i>_stp_map_new_(xxx, INT64)</i>.
- * @param map
- * @returns The value. If the current element is not set or doesn't exist, returns 0.
- */
-int64_t _stp_map_get_int64 (MAP map) {}
-
-/** @} end of map_get group */
-/** @} */
+/** @} end of addtogroup */
 
 /** @page format_string Format Strings
 Format strings for maps and stats use a special format string. Be careful 

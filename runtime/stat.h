@@ -29,19 +29,18 @@ struct stat_data {
 #endif
 	int64_t histogram[];
 };
-
 typedef struct stat_data stat;
 
-struct _Stat {
-	enum histtype hist_type;
-	int hist_start;
-	int hist_stop;
-	int hist_int;
-	int hist_buckets;
-	struct stat_data *sd;
-	struct stat_data *agg;
-};
+/** Information about the histogram data collected. This data 
+    is global and not duplicated per-cpu. */
 
-typedef struct _Stat *Stat;
+struct _Hist {
+	enum histtype type;
+	int start;
+	int stop;
+	int interval;
+	int buckets;
+};
+typedef struct _Hist *Hist;
 
 #endif /* _STAT_H_ */
