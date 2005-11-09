@@ -1,5 +1,7 @@
 2005-11-09  Martin Hunt  <hunt@redhat.com>
+	* map.c: Change order of includes.
 
+2005-11-09  Martin Hunt  <hunt@redhat.com>	
 	* map.h (struct map_root): Delete fields
 	used by old API.
 

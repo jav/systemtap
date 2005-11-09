@@ -15,10 +15,10 @@
  * @brief Implements maps (associative arrays) and lists
  */
 
-#include "stat-common.c"
-#include "map-stat.c"
 #include "alloc.c"
 #include "sym.c"
+#include "stat-common.c"
+#include "map-stat.c"
 
 static int map_sizes[] = {
         sizeof(int64_t),
