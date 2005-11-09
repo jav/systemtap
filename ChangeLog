@@ -1,3 +1,8 @@
+2005-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx: New API uses HIST_LOG and HIST_LINEAR
+	instead of HSTAT_LOG and HSTAT_LINEAR.
+
 2005-11-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	Reported by Guang Lei Li <liguangl@cn.ibm.com>:

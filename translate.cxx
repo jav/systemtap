@@ -523,7 +523,7 @@ struct mapvar
 	  case statistic_decl::linear:
 	    // FIXME: check for "reasonable" values in linear stats
 	    return (prefix 
-		    + ", HSTAT_LINEAR" 
+		    + ", HIST_LINEAR" 
 		    + ", " + stringify(sdecl().linear_low) 
 		    + ", " + stringify(sdecl().linear_high) 
 		    + ", " + stringify(sdecl().linear_step)
@@ -534,7 +534,7 @@ struct mapvar
 	    if (sdecl().logarithmic_buckets > 64)
 	      throw semantic_error("Cannot support > 64 logarithmic buckets");	    
 	    return (prefix
-		    + ", HSTAT_LOG" 
+		    + ", HIST_LOG" 
 		    + ", " + stringify(sdecl().logarithmic_buckets) 
 		    + ");");
 	    break;
