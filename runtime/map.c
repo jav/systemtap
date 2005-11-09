@@ -15,7 +15,8 @@
  * @brief Implements maps (associative arrays) and lists
  */
 
-#include "map-values.c"
+#include "stat-common.c"
+#include "map-stat.c"
 #include "alloc.c"
 #include "sym.c"
 
@@ -43,6 +44,19 @@ void str_copy(char *dest, char *src)
 		len = MAP_STRING_LENGTH - 1;
 	strncpy (dest, src, len);
 	dest[len] = 0;
+}
+
+void str_add(void *dest, char *val)
+{
+	char *dst = (char *)dest;
+	int len = strlen(val);
+	int len1 = strlen(dst);
+	int num = MAP_STRING_LENGTH - 1 - len1;
+
+	if (len > num)
+		len = num;
+	strncpy (&dst[len1], val, len);
+	dst[len + len1] = 0;
 }
 
 int str_eq_p (char *key1, char *key2)
@@ -264,95 +278,6 @@ err:
 	return NULL;
 }
 
-static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
-{
-	MAP map;
-	int size;
-	int buckets = (stop - start) / interval;
-	if ((stop - start) % interval) buckets++;
-
-        /* add size for buckets */
-	size = buckets * sizeof(int64_t) + sizeof(stat);
-
-	map = _stp_pmap_new (max_entries, STAT, ksize, size);
-	if (map) {
-		int i;
-		MAP m;
-		for_each_cpu(i) {
-			m = per_cpu_ptr (map, i);
-			m->hist.type = HIST_LINEAR;
-			m->hist.start = start;
-			m->hist.stop = stop;
-			m->hist.interval = interval;
-			m->hist.buckets = buckets;
-		}
-		/* now set agg map  params */
-		m = _stp_percpu_dptr(map);
-		m->hist.type = HIST_LINEAR;
-		m->hist.start = start;
-		m->hist.stop = stop;
-		m->hist.interval = interval;
-		m->hist.buckets = buckets;
-	}
-	return map;
-}
-
-static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets)
-{
-	/* add size for buckets */
-	int size = buckets * sizeof(int64_t) + sizeof(stat);
-	MAP map = _stp_map_new (max_entries, STAT, key_size, size);
-	if (map) {
-		int i;
-		MAP m;
-		for_each_cpu(i) {
-			m = per_cpu_ptr (map, i);
-			m->hist.type = HIST_LOG;
-			m->hist.buckets = buckets;
-		}
-		/* now set agg map  params */
-		m = _stp_percpu_dptr(map);
-		m->hist.type = HIST_LOG;
-		m->hist.buckets = buckets;
-	}
-	return map;
-}
-
-/** Deletes the current element.
- * If no current element (key) for this map is set, this function does nothing.
- * @param map 
- */
-
-void _stp_map_key_del(MAP map)
-{
-	struct map_node *m;
-
-	//dbug("create=%d key=%lx\n", map->create, (long)map->key);
-	if (map == NULL)
-		return;
-
-	if (map->create) {
-		map->create = 0;
-		map->key = NULL;
-		return;
-	}
-
-	if (map->key == NULL)
-		return;
-
-	m = (struct map_node *)map->key;
-
-	/* remove node from old hash list */
-	hlist_del_init(&m->hnode);
-
-	/* remove from entry list */
-	list_del(&m->lnode);
-
-	list_add(&m->lnode, &map->pool);
-
-	map->key = NULL;
-	map->num--;
-}
 
 /** Get the first element in a map.
  * @param map 
@@ -407,8 +332,6 @@ void _stp_map_clear(MAP map)
 	if (map == NULL)
 		return;
 
-	map->create = 0;
-	map->key = NULL;
 	map->num = 0;
 
 	while (!list_empty(&map->head)) {
@@ -883,34 +806,6 @@ void _stp_pmap_printn(MAP map, int n, const char *fmt)
 }
 #define _stp_pmap_print(map,fmt) _stp_pmap_printn(map,0,fmt)
 
-static struct map_node *__stp_map_create (MAP map)
-{
-	struct map_node *m;
-	if (list_empty(&map->pool)) {
-		if (!map->wrap) {
-			/* ERROR. no space left */
-			return NULL;
-		}
-		m = (struct map_node *)map->head.next;
-		hlist_del_init(&m->hnode);
-		//dbug ("got %lx off head\n", (long)m);
-	} else {
-		m = (struct map_node *)map->pool.next;
-		//dbug ("got %lx off pool\n", (long)m);
-	}
-	list_move_tail(&m->lnode, &map->head);
-	
-	/* copy the key(s) */
-	(map->copy_keys)(map, m);
-	
-	/* add node to new hash list */
-	hlist_add_head(&m->hnode, map->c_keyhead);
-	
-	map->key = m;
-	map->create = 0;
-	map->num++;
-	return m;
-}
 
 static void _new_map_clear_node (struct map_node *m)
 {

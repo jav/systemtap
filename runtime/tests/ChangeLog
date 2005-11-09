@@ -1,5 +1,20 @@
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
+	* maps/map.test: Remove old map API tests.
+	* maps/ii2.c: Renamed ii.c.
+	* maps/iiss2.c: Renamed iiss.c.
+	* maps/is2.c: Renamed is.c.
+	* maps/issii2.c: Renamed issii.c.
+	* maps/isx2.c: Renamed isx.c.
+	* maps/map_format2.c: Renamed map_format.c.
+	* maps/si2.c: Renamed si.c.
+	* maps/keys.c: Deleted
+	* maps/test_list_int64.c: Deleted.
+	* maps/test_list_string.c: Deleted.	
+	* maps/sort.c: Update to use new map API.
+
+2005-11-08  Martin Hunt  <hunt@redhat.com>
+
 	* pmaps/*: Add new pmaps tests.
 
 2005-10-28  Martin Hunt  <hunt@redhat.com>

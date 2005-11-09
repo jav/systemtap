@@ -107,12 +107,6 @@ struct map_root {
 
 	int data_offset;
 
-	/* this is the creation data saved between the key functions and the
-	    set/get functions */
-	u_int8_t create;
-	key_data c_key[MAX_KEY_ARITY];
-	struct hlist_head *c_keyhead;
-
 	/* the hash table for this array */
 	struct hlist_head hashes[HASH_TABLE_SIZE];
 
@@ -235,12 +229,11 @@ static int msb64(int64_t x);
 static MAP _stp_map_new_hstat_log(unsigned max_entries, int key_size, int buckets);
 static MAP _stp_map_new_hstat_linear(unsigned max_entries, int ksize, int start, int stop, int interval);
 static void _stp_map_print_histogram(MAP map, stat *s);
-void _stp_map_key_del(MAP map);
 struct map_node * _stp_map_start(MAP map);
 struct map_node * _stp_map_iter(MAP map, struct map_node *m);
 void _stp_map_del(MAP map);
+void _stp_map_clear(MAP map);
 void _stp_map_print(MAP map, const char *fmt);
-static struct map_node * __stp_map_create(MAP map);
 
 static struct map_node *_new_map_create (MAP map, struct hlist_head *head);
 static int _new_map_set_int64 (MAP map, struct map_node *n, int64_t val, int add);

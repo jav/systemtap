@@ -1,3 +1,18 @@
+2005-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* map.h (struct map_root): Delete fields
+	used by old API.
+
+	* map.c: Remove old map API functions.
+	* map-stat.c (_stp_map_add_stat): Delete.
+	(_stp_pmap_new_hstat_linear): Move here from map.c.
+	(_stp_pmap_new_hstat_log): Ditto.
+
+	* list.c: Deleted.
+	* map-keys.c: Deleted.
+	* map-values.c: Deleted.
+	* map-int.c: Deleted.
+	
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (__stp_valloc_percpu): Fix call to vmalloc_node.

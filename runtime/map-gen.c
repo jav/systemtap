@@ -398,7 +398,6 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	struct hlist_head *head;
 	struct hlist_node *e;
 	struct KEYSYM(map_node) *n;
-	int res;
 
 	if (map == NULL)
 		return -2;
