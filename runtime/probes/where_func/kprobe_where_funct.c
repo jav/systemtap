@@ -4,15 +4,13 @@
    Will Cohen
 */
 
-#define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
 
 #include "runtime.h"
 
-#define NEED_INT64_VALS
-
+#define VALUE_TYPE INT64
 #define KEY1_TYPE INT64
-#include "map-keys.c"
+#include "map-gen.c"
 
 #include "map.c"
 #include "probes.c"
@@ -32,8 +30,7 @@ MAP funct_locations;
 static int inst_funct(struct kprobe *p, struct pt_regs *regs)
 {
   long ret_addr = _stp_ret_addr(regs);
-  _stp_map_key_int64(funct_locations, ret_addr);
-  _stp_map_add_int64(funct_locations, 1);
+  _stp_map_add_ii(funct_locations, ret_addr, 1);
   return 0;
 }
 
@@ -48,7 +45,7 @@ static struct kprobe kp[] = {
 
 int probe_start(void)
 {
-	funct_locations = _stp_map_new_int64 (1000, INT64);
+	funct_locations = _stp_map_new_ii (1000);
 
 	if (funct_name)
 		kp[0].addr = funct_name;

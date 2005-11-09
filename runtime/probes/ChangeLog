@@ -1,3 +1,11 @@
+2005-11-08  Martin Hunt  <hunt@redhat.com>
+
+	* shellsnoop/shellsnoop.c: Updated to use new map API.	
+	* where_func/kprobe_where_funct.c: Ditto.	
+	* os_timer/os_timer.c (probe_start): Ditto.	
+	* test4/test4.c: Ditto.	
+	* scf/scf.c: Ditto.
+
 2005-09-08  Martin Hunt  <hunt@redhat.com>
 
 	* scf/scf.c (inst_smp_call_function): Add new verbose arg

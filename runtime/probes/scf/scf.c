@@ -2,9 +2,10 @@
 #include "runtime.h"
 
 #define MAP_STRING_LENGTH 512
-#define NEED_INT64_VALS
+
+#define VALUE_TYPE INT64
 #define KEY1_TYPE STRING
-#include "map-keys.c"
+#include "map-gen.c"
 
 #include "map.c"
 #include "sym.c"
@@ -20,9 +21,8 @@ MAP map1;
 int inst_smp_call_function (struct kprobe *p, struct pt_regs *regs)
 {
   String str = _stp_string_init (0);
-  _stp_stack_sprint (str,regs,1);
-  _stp_map_key_str(map1, _stp_string_ptr(str));
-  _stp_map_add_int64 (map1, 1);
+  _stp_stack_sprint (str, regs, 1);
+  _stp_map_add_si (map1, _stp_string_ptr(str), 1);
   return 0;
 }
 
@@ -37,7 +37,7 @@ static struct kprobe stp_probes[] = {
 
 int probe_start(void)
 {
-  map1 = _stp_map_new_str (100, INT64);
+  map1 = _stp_map_new_si (100);
   return _stp_register_kprobes (stp_probes, MAX_STP_ROUTINE);
 }
 

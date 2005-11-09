@@ -11,11 +11,6 @@
 /* os includes */
 #include "linux/timer.h"
 
-/* define this if you don't want to use relayfs.  Normally */
-/* you want relayfs, unless you need a realtime stream of data */
-
-/* #define STP_NETLINK_ONLY */
-
 /* How many strings to allocate. see strings.c. Default is 0. */
 #define STP_NUM_STRINGS 1
 
@@ -32,11 +27,10 @@
 #include "runtime.h"
 
 /* @todo since we don't have aggregation maps yet, try regular maps */
-#define NEED_INT64_VALS
-
+#define VALUE_TYPE INT64
 #define KEY1_TYPE STRING
 #define KEY2_TYPE INT64
-#include "map-keys.c"
+#include "map-gen.c"
 
 #include "map.c"
 
@@ -61,8 +55,7 @@ void inst_async(struct pt_regs *regs)
 
     /* Create a map of interrupted addresses seen */
     /* really want a map of image name / address */
-    _stp_map_key_str_int64(cur_addr, current->comm, ip);
-    _stp_map_add_int64(cur_addr, 1);
+    _stp_map_add_sii(cur_addr, current->comm, ip, 1);
 
     /* Need _stp_stack() and _stp_ustack()? */
     /* _stp_image() and aggregation maps */
@@ -98,7 +91,7 @@ int probe_start(void)
 {
     timing = _stp_stat_init(HIST_LINEAR, 0, 5000, 250);
 
-    cur_addr = _stp_map_new_str_int64(1000, INT64);
+    cur_addr = _stp_map_new_sii(1000);
 
     /* register the os_timer */
     init_timer(&timer);

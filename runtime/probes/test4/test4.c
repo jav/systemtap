@@ -1,13 +1,13 @@
-#define STP_NETLINK_ONLY
 #define STP_NUM_STRINGS 1
-
 #include "runtime.h"
 
-#define NEED_INT64_VALS
-#define NEED_STAT_VALS
-
+#define VALUE_TYPE INT64
 #define KEY1_TYPE STRING
-#include "map-keys.c"
+#include "map-gen.c"
+
+#define VALUE_TYPE STAT
+#define KEY1_TYPE STRING
+#include "map-gen.c"
 
 #include "map.c"
 #include "probes.c"
@@ -20,24 +20,21 @@ MAP opens, reads, writes;
 
 asmlinkage long inst_sys_open (const char __user * filename, int flags, int mode)
 {
-  _stp_map_key_str (opens, current->comm);
-  _stp_map_add_int64 (opens, 1);
+  _stp_map_add_si (opens, current->comm, 1);
   jprobe_return();
   return 0;
 }
 
 asmlinkage ssize_t inst_sys_read (unsigned int fd, char __user * buf, size_t count)
 {
-  _stp_map_key_str (reads, current->comm);
-  _stp_map_add_int64 (reads, count);
+  _stp_map_add_sx (reads, current->comm, count);
   jprobe_return();
   return 0;
 }
 
 asmlinkage ssize_t inst_sys_write (unsigned int fd, const char __user * buf, size_t count)
 {
-  _stp_map_key_str (writes, current->comm);
-  _stp_map_add_int64 (writes, count);
+  _stp_map_add_sx (writes, current->comm, count);
   jprobe_return();
   return 0;
 }
@@ -61,9 +58,9 @@ static struct jprobe stp_probes[] = {
 
 int probe_start(void)
 {
-  opens = _stp_map_new_str (1000, INT64);
-  reads = _stp_map_new_str (1000, HSTAT_LOG, 8);
-  writes = _stp_map_new_str (1000, HSTAT_LOG, 8);
+  opens = _stp_map_new_si (1000);
+  reads = _stp_map_new_sx (1000, HIST_LOG, 12);
+  writes = _stp_map_new_sx (1000, HIST_LOG, 12);
   return _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
 }
 

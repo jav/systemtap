@@ -3,14 +3,15 @@
 #define STP_STRING_SIZE 8192
 #include "runtime.h"
 
-#define NEED_INT64_VALS
-#define NEED_STRING_VALS
-
+#define VALUE_TYPE INT64
 #define KEY1_TYPE INT64
-#include "map-keys.c"
+#include "map-gen.c"
+
+#define VALUE_TYPE STRING
+#define KEY1_TYPE INT64
+#include "map-gen.c"
 
 #include "map.c"
-#include "list.c"
 #include "copy.c"
 #include "probes.c"
 
@@ -18,6 +19,29 @@ MODULE_DESCRIPTION("SystemTap probe: shellsnoop");
 MODULE_AUTHOR("Martin Hunt <hunt@redhat.com>");
 
 MAP pids, arglist ;
+
+void _stp_copy_argv_from_user (MAP list, char __user *__user *argv)
+{
+  char str[128];
+  char __user *vstr;
+  int len, i = 0;
+  
+  if (argv)
+    argv++;
+  
+  while (argv != NULL) {
+    if (get_user (vstr, argv))
+      break;
+    
+    if (vstr == NULL)
+      break;
+    
+    len = _stp_strncpy_from_user(str, vstr, 128);
+    str[len] = 0;
+    _stp_map_set_is (list, i++, str);
+    argv++;
+  }
+}
 
 int inst_do_execve (char * filename, char __user *__user *argv, char __user *__user *envp, struct pt_regs * regs)
 {
@@ -30,17 +54,16 @@ int inst_do_execve (char * filename, char __user *__user *argv, char __user *__u
       || !strcmp(current->comm, "tcsh") || !strcmp(current->comm, "pdksh"))
     {
       _stp_printf ("%d\t%d\t%d\t%s ", current->uid, current->pid, current->parent->pid, filename);
-
-      _stp_map_key_int64 (pids, current->pid);
-      _stp_map_set_int64 (pids, 1);
       
-      _stp_list_clear (arglist);
+      _stp_map_set_ii (pids, current->pid, 1);
+      
+      _stp_map_clear (arglist);
       _stp_copy_argv_from_user (arglist, argv);
       
       foreach (arglist, ptr)
 	_stp_printf ("%s ", _stp_get_str(ptr));
       _stp_print("\n");
-
+      
       _stp_print_flush();
     }
   jprobe_return();
@@ -49,8 +72,7 @@ int inst_do_execve (char * filename, char __user *__user *argv, char __user *__u
 
 struct file * inst_filp_open (const char * filename, int flags, int mode)
 {
-  _stp_map_key_int64 (pids, current->pid);
-  if (_stp_map_get_int64 (pids)) {
+  if (_stp_map_get_ii (pids, current->pid)) {
     _stp_printf ("%d\t%d\t%s\tO %s\n", current->pid, current->parent->pid, current->comm, filename);
     _stp_print_flush();
   }
@@ -60,8 +82,7 @@ struct file * inst_filp_open (const char * filename, int flags, int mode)
 
 asmlinkage ssize_t inst_sys_read (unsigned int fd, char __user * buf, size_t count)
 {
-  _stp_map_key_int64 (pids, current->pid);
-  if (_stp_map_get_int64 (pids)) {
+  if (_stp_map_get_ii (pids, current->pid)) {
     _stp_printf ("%d\t%d\t%s\tR %d\n", current->pid, current->parent->pid, current->comm, fd);    
     _stp_print_flush();
   }
@@ -71,15 +92,13 @@ asmlinkage ssize_t inst_sys_read (unsigned int fd, char __user * buf, size_t cou
 
 asmlinkage ssize_t inst_sys_write (unsigned int fd, const char __user * buf, size_t count)
 {
-  _stp_map_key_int64 (pids, current->pid);
-  if (_stp_map_get_int64 (pids))
-    {
-      String str = _stp_string_init (0);
-      _stp_string_from_user(str, buf, count);
-      _stp_printf ("%d\t%d\t%s\tW %s", current->pid, current->parent->pid, 
-		   current->comm, _stp_string_ptr(str));
-      _stp_print_flush();
-    }
+  if (_stp_map_get_ii (pids, current->pid)) {
+    String str = _stp_string_init (0);
+    _stp_string_from_user(str, buf, count);
+    _stp_printf ("%d\t%d\t%s\tW %s", current->pid, current->parent->pid, 
+		 current->comm, _stp_string_ptr(str));
+    _stp_print_flush();
+  }
   
   jprobe_return();
   return 0;
@@ -109,34 +128,34 @@ static struct jprobe stp_probes[] = {
 
 int probe_start(void)
 {
-	int ret;
-
-	/* now initialize any data or variables */
-	pids = _stp_map_new_int64 (10000, INT64);
-	arglist = _stp_list_new (10, STRING);
-
-	/* now we are ready to enable the probes */
-	ret = _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
-	
-	if (ret < 0) {
-	  _stp_map_del (pids);
-	  _stp_map_del (arglist);
-	  return ret;
-	}
-	
-	_stp_printf("instrumentation is enabled... %s\n", __this_module.name);
-	_stp_print_flush();
-	return ret;
+  int ret;
+  
+  /* now initialize any data or variables */
+  pids = _stp_map_new_ii(10000);
+  arglist = _stp_map_new_is (10);
+  
+  /* now we are ready to enable the probes */
+  ret = _stp_register_jprobes (stp_probes, MAX_STP_ROUTINE);
+  
+  if (ret < 0) {
+    _stp_map_del (pids);
+    _stp_map_del (arglist);
+    return ret;
+  }
+  
+  _stp_printf("instrumentation is enabled... %s\n", __this_module.name);
+  _stp_print_flush();
+  return ret;
 }
 
 
 void probe_exit (void)
 {
-	_stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
-	_stp_map_del (pids);
-	_stp_map_del (arglist);
-	_stp_printf("\nDropped %d packets\n", atomic_read(&_stp_transport_failures));
-	_stp_print_flush();
+  _stp_unregister_jprobes (stp_probes, MAX_STP_ROUTINE);
+  _stp_map_del (pids);
+  _stp_map_del (arglist);
+  _stp_printf("\nDropped %d packets\n", atomic_read(&_stp_transport_failures));
+  _stp_print_flush();
 }
 
 
