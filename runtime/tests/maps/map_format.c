@@ -1,32 +1,31 @@
 #include "runtime.h"
 
 /* torture test of map formatting */
-#define NEED_INT64_VALS
-#define NEED_STRING_VALS
-#define NEED_STAT_VALS
-
+#define VALUE_TYPE STRING
 #define KEY1_TYPE INT64
 #define KEY2_TYPE INT64
 #define KEY3_TYPE STRING
-#include "map-keys.c"
+#include "map-gen.c"
 
+#define VALUE_TYPE INT64
 #define KEY1_TYPE STRING
 #define KEY2_TYPE STRING
-#include "map-keys.c"
+#include "map-gen.c"
+
+#define VALUE_TYPE STAT
+#define KEY1_TYPE STRING
+#define KEY2_TYPE STRING
+#include "map-gen.c"
 
 #include "map.c"
 
 int main ()
 {
-  MAP mapiis = _stp_map_new_int64_int64_str(4, STRING);
-  _stp_map_key_int64_int64_str (mapiis, 1,2,"Ohio");
-  _stp_map_set_str (mapiis, "Columbus" );
-  _stp_map_key_int64_int64_str (mapiis, 3,4,"California");
-  _stp_map_add_str (mapiis, "Sacramento" );
-  _stp_map_key_int64_int64_str (mapiis, 5,6,"Washington");
-  _stp_map_set_str (mapiis, "Olympia" );
-  _stp_map_key_int64_int64_str (mapiis, 7,8,"Oregon");
-  _stp_map_set_str (mapiis, "Salem" );
+  MAP mapiis = _stp_map_new_iiss(4);
+  _stp_map_set_iiss (mapiis, 1,2,"Ohio", "Columbus" );
+  _stp_map_set_iiss (mapiis, 3,4,"California", "Sacramento" );
+  _stp_map_set_iiss (mapiis, 5,6,"Washington", "Olympia" );
+  _stp_map_set_iiss (mapiis, 7,8,"Oregon", "Salem" );
   _stp_map_print (mapiis, "%s -> mapiis %1d %2d %3s");
 
   /* test printing of '%' */
@@ -35,36 +34,29 @@ int main ()
   /* very bad string.  don't crash */
   _stp_map_print (mapiis, "%s -> mapiis %1s %2s %3d %4d");
 
-  MAP mapss = _stp_map_new_str_str(4, INT64);
-  _stp_map_key_str_str (mapss, "Riga", "Latvia");
-  _stp_map_set_int64 (mapss, 0x0000c0dedbad0000LL);
-  _stp_map_key_str_str (mapss, "Sofia", "Bulgaria");
-  _stp_map_set_int64 (mapss, 0xdeadf00d12345678LL);
-  _stp_map_key_str_str (mapss, "Valletta", "Malta");
-  _stp_map_set_int64 (mapss, 1);
-  _stp_map_key_str_str (mapss, "Nicosia", "Cyprus");
-  _stp_map_set_int64 (mapss, -1);
+  MAP mapss = _stp_map_new_ssi(4);
+  _stp_map_set_ssi (mapss, "Riga", "Latvia", 0x0000c0dedbad0000LL);
+  _stp_map_set_ssi (mapss, "Sofia", "Bulgaria", 0xdeadf00d12345678LL);
+  _stp_map_set_ssi (mapss, "Valletta", "Malta", 1);
+  _stp_map_set_ssi (mapss, "Nicosia", "Cyprus", -1);
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %d");
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %x");
   _stp_map_print (mapss, "The capitol of %1s is %2s and the nerd population is %X");
 
-  MAP mapsst = _stp_map_new_str_str(4, HSTAT_LINEAR, 0, 100, 10 );
+  MAP mapsst = _stp_map_new_ssx (4, HIST_LINEAR, 0, 100, 10 );
   int i,j;
 
-  _stp_map_key_str_str (mapsst, "Riga", "Latvia");
   for (i = 0; i < 100; i++)
     for (j = 0; j <= i*10 ; j++ )
-      _stp_map_add_int64 (mapsst, i);
+      _stp_map_add_ssx (mapsst, "Riga", "Latvia", i);
   
-  _stp_map_key_str_str (mapsst, "Sofia", "Bulgaria");
   for (i = 0; i < 10; i++)
     for (j = 0; j < 10 ; j++ )
-      _stp_map_add_int64 (mapsst, j * i );
+      _stp_map_add_ssx (mapsst, "Sofia", "Bulgaria", j * i );
 
-  _stp_map_key_str_str (mapsst, "Valletta", "Malta");
   for (i = 0; i < 100; i += 10)
     for (j = 0; j < i/10 ; j++ )  
-      _stp_map_add_int64 (mapsst, i);
+      _stp_map_add_ssx (mapsst, "Valletta", "Malta", i);
 
     _stp_map_print (mapsst, "Bogons per packet for %1s\ncount:%C  sum:%S  avg:%A  min:%m  max:%M\n%H");
 

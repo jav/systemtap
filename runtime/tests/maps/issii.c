@@ -1,27 +1,23 @@
 #include "runtime.h"
 
 /* test of maps with keys of int64,string.string.int64 and value of int64 */
-#define NEED_INT64_VALS
+#define VALUE_TYPE INT64
 #define KEY1_TYPE INT64
 #define KEY2_TYPE STRING
 #define KEY3_TYPE STRING
 #define KEY4_TYPE INT64
-#include "map-keys.c"
+#include "map-gen.c"
 
 #include "map.c"
 
 int main ()
 {
   struct map_node *ptr;
-  MAP map = _stp_map_new_int64_str_str_int64(4, INT64);
+  MAP map = _stp_map_new_issii(4);
 
-  _stp_map_key_int64_str_str_int64(map, 1, "Boston", "MA", 1970);
-  _stp_map_set_int64 (map, 5224303 );
-  _stp_map_key_int64_str_str_int64(map, 2, "Boston", "MA", 2000);
-  _stp_map_set_int64 (map, 6057826 );
-  _stp_map_key_int64_str_str_int64(map, 3, "Chicago", "IL", 2000);
-  _stp_map_set_int64 (map, 8272768 );
-
+  _stp_map_set_issii (map, 1, "Boston", "MA", 1970, 5224303 );
+  _stp_map_set_issii (map, 2, "Boston", "MA", 2000, 6057826 );
+  _stp_map_set_issii (map, 3, "Chicago", "IL", 2000, 8272768 );
 
   foreach (map, ptr)
     printf ("map[%lld, %s, %s, %lld] = %lld\n", 

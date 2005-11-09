@@ -1,69 +1,76 @@
 #include "runtime.h"
 
 /* test of maps with keys of string and value of int64 */
-#define NEED_INT64_VALS
+#define VALUE_TYPE INT64
 #define KEY1_TYPE STRING
-#include "map-keys.c"
+#include "map-gen.c"
 #include "map.c"
 
 int main ()
 {
-  MAP map = _stp_map_new_str(4, INT64);
+  int res;
+  MAP map = _stp_map_new_si(4);
   map->wrap = 1;
 
   /* map[Ohio] = 1 */
-  _stp_map_key_str (map, "Ohio");
-  _stp_map_set_int64 (map, 1);
-  printf ("map[%s]=%lld\n", key1str(map->key), _stp_map_get_int64(map));
+  _stp_map_set_si (map, "Ohio", 1);
+  printf ("map[Ohio]=%lld\n", _stp_map_get_si(map,"Ohio"));
   _stp_map_print(map,"map[%1s] = %d");
 
   /* map[Washington] = 2 */
-  /* try it with macros this time */
-  _stp_map_key (map, "Washington");
-  _stp_map_set (map, 2);  
+  _stp_map_set_si (map, "Washington", 2);
   _stp_map_print (map, "map[%1s] = %d");
 
   /* now try to confuse things */
   /* These won't do anything useful, but shouldn't crash */
-  _stp_map_key_str (map, "");  
-  _stp_map_key_del (map);
-  _stp_map_key_str (map, "77");  
-  _stp_map_key_del (map);
-  _stp_map_key_del (map);
-  _stp_map_set_int64 (map,1000000);
 
+  /* bad map */
+  res = _stp_map_set_si(0,"foo",100);
+  if (res != -2)
+	printf("WARNING: got result of %d when expected -2\n", res);
+
+  /* bad key */
+  res = _stp_map_set_si(map,0,0);
+  if (res != -2)
+	printf("WARNING: got result of %d when expected -2\n", res);
+
+  /* bad key */
+  res = _stp_map_set_si(map,0,42);
+  if (res != -2)
+	printf("WARNING: got result of %d when expected -2\n", res);
+
+  res = _stp_map_set_si(map,"",0);
+  if (res)
+	printf("WARNING: got result of %d when expected 0\n", res);
   _stp_map_print (map, "map[%1s] = %d");
 
   /* create and delete a key */
-  _stp_map_key_str (map, "1024");
-  _stp_map_set_int64 (map, 2048);  
-  _stp_map_key_str (map, "1024");
-  _stp_map_key_del (map);
-
+  _stp_map_set_si (map, "1024", 2048);
   _stp_map_print (map, "map[%1s] = %d");
-
-  /* create and delete a key again*/
-  _stp_map_key_str (map, "1024");
-  _stp_map_set_int64 (map, 2048);  
-  _stp_map_key_del (map);
-
+  _stp_map_set_si (map, "1024", 0);
+  _stp_map_print (map, "map[%1s] = %d");
+  _stp_map_set_si (map, "1024", 2048);
+  _stp_map_print (map, "map[%1s] = %d");
+  _stp_map_set_si (map, "1024", 0);
   _stp_map_print (map, "map[%1s] = %d");
 
   /* check that unset values are 0 */
-  _stp_map_key_str (map, "California");
-  printf ("map[%lld]=%lld\n", key1int(map->key), _stp_map_get_int64(map));
+  res = _stp_map_get_si (map, "California"); 
+  if (res)
+    printf("ERROR: map[California] = %d (should be 0)\n", res);
 
   /* map[California] = 3 */
-  _stp_map_set (map, 3);
+  _stp_map_set_si (map, "California", 3); 
   _stp_map_print (map, "map[%1s] = %d");
 
   /* test an empty string as key */
-  _stp_map_key (map, "");
-  _stp_map_set_int64 (map, 7777);
+  _stp_map_set_si (map, "", 7777); 
   _stp_map_print (map, "map[%1s] = %d");
-  _stp_map_key (map, "");
-  _stp_map_set_int64 (map, 8888);
+  _stp_map_set_si (map, "", 8888);
   _stp_map_print (map, "map[%1s] = %d");
+  _stp_map_set_si (map, "", 0); 
+  _stp_map_print (map, "map[%1s] = %d");
+
 
   /* add 4 new entries, pushing the others out */
   int i;
@@ -71,37 +78,46 @@ int main ()
     {
       char buf[32];
       sprintf (buf, "String %d", i);
-      _stp_map_key_str (map, buf);
-      _stp_map_set_int64 (map, 100 + i);
+      res = _stp_map_set_si (map, buf, 100 + i); 
+      if (res)
+	printf("WARNING: During wrap test, got result of %d when expected 0\n", res);
     }
-
   _stp_map_print (map, "map[%1s] = %d");  
 
-
-  /* 5, 382, 526, and 903 all hash to the same value (23) */
-  /* use them to test the hash chain */
-  _stp_map_key (map, "5"); _stp_map_set_int64 (map, 1005);
-  _stp_map_key (map, "382"); _stp_map_set_int64 (map, 1382);
-  _stp_map_key (map, "526"); _stp_map_set_int64 (map, 1526);
-  _stp_map_key (map, "903"); _stp_map_set_int64 (map, 1903);
-
+  /* turn off wrap and repeat */
+  map->wrap = 0;
+  for (i = 16; i < 20; i++) {
+      char buf[32];
+      sprintf (buf, "BAD String %d", i);
+      res = _stp_map_set_si (map, buf, 100 + i); 
+      if (res != -1)
+	printf("WARNING: During wrap test, got result of %d when expected -1\n", res);
+  }
   _stp_map_print (map, "map[%1s] = %d");  
 
-  /* now delete all 4 nodes, one by one */
-  _stp_map_key (map, "382"); _stp_map_key_del (map);
-
+  /* test addition */
+  for (i = 6; i < 10; i++)
+    {
+      char buf[32];
+      sprintf (buf, "String %d", i);
+      res = _stp_map_add_si (map, buf, 1000 * i); 
+      if (res)
+	printf("WARNING: During wrap test, got result of %d when expected 0\n", res);
+    }
   _stp_map_print (map, "map[%1s] = %d");  
 
-  _stp_map_key (map, "5"); _stp_map_key_del (map);
-
+  /* reset all */
+  for (i = 6; i < 10; i++)
+    {
+      char buf[32];
+      sprintf (buf, "String %d", i);
+      res = _stp_map_set_si (map, buf, i); 
+      if (res)
+	printf("WARNING: During wrap test, got result of %d when expected 0\n", res);
+    }
   _stp_map_print (map, "map[%1s] = %d");  
 
-  _stp_map_key (map, "903"); _stp_map_key_del (map);
-
-  _stp_map_print (map, "map[%1s] = %d");  
-
-  _stp_map_key (map, "526"); _stp_map_key_del (map);
-
+  _stp_map_clear(map);
   _stp_map_print (map, "map[%1s] = %d");  
 
   _stp_map_del (map);
