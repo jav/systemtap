@@ -47,11 +47,6 @@ amount of memory. Do not increase above 5. */
 
 #include "stat.h"
 
-/* Histogram is log 2 */
-#define HSTAT_LOG (STAT | (HIST_LOG << 8))
-/* Histogram is linear */
-#define HSTAT_LINEAR (STAT | (HIST_LINEAR <<  8))
-
 /* Keys are either int64 or strings */
 typedef union {
 	int64_t val;

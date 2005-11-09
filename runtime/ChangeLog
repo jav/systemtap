@@ -1,4 +1,10 @@
 2005-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* map.h: Remove HSTAT_LOG and HSTAT_LINEAR.
+	* map-gen.c: Fix comment.
+	* pmap-gen.c: Ditto.
+	
+2005-11-09  Martin Hunt  <hunt@redhat.com>	
 	* map.c (_stp_cmp): Patch to sort on stats.
 	(_stp_map_sort): Ditto.
 	(_stp_map_sortn): Ditto.

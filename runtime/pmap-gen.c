@@ -421,8 +421,8 @@ MAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 	return map;
 }
 #else
-/* _stp_pmap_new_key1_key2...val (num, HSTAT_LINEAR, start, end, interval) */
-/* _stp_pmap_new_key1_key2...val (num, HSTAT_LOG, buckets) */ 
+/* _stp_pmap_new_key1_key2...val (num, HIST_LINEAR, start, end, interval) */
+/* _stp_pmap_new_key1_key2...val (num, HIST_LOG, buckets) */ 
 
 MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
