@@ -1,6 +1,6 @@
 #include "runtime.h"
 
-/* test of map sorting */
+/* test of map sorting.  Just like sort.c, except test with an odd number of nodes */
 #define VALUE_TYPE STRING
 #define KEY1_TYPE INT64
 #define KEY2_TYPE INT64
@@ -32,7 +32,6 @@ int main ()
   _stp_map_set_iiss (mapiis, 1, 4,"New Mexico","Santa Fe" );
   _stp_map_set_iiss (mapiis, -1,9,"North Carolina","Raleigh" );
   _stp_map_set_iiss (mapiis, 5,5,"Massachusetts","Boston" );
-  _stp_map_set_iiss (mapiis, 2,2,"Vermont","Montpelier" );
   _stp_map_set_iiss (mapiis, 8,8,"Iowa","Des Moines" );
   _stp_map_set_iiss (mapiis, 1,2,"Ohio","Columbus" );
 
@@ -85,11 +84,12 @@ int main ()
   _stp_map_sortn (mapiis, 5, 1, -1);
   _stp_map_printn (mapiis, 5, "%1d %2d %3s -> %s");
 
-  MAP mapss = _stp_map_new_ssi(4);
+  MAP mapss = _stp_map_new_ssi(5);
   _stp_map_set_ssi (mapss, "Riga", "Latvia", 135786);
   _stp_map_set_ssi (mapss, "Sofia", "Bulgaria", 138740);
   _stp_map_set_ssi (mapss, "Valletta", "Malta", 1);
   _stp_map_set_ssi (mapss, "Nicosia", "Cyprus", -1);
+  _stp_map_set_ssi (mapss, "Chisinau", "Moldova", 1024);
 
   _stp_printf("sorted by population from low to high\n");
   _stp_map_sort (mapss, 0, -1);

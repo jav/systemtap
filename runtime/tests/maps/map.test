@@ -181,6 +181,7 @@ map[3, Chicago, IL, 2000] = 8272768
 }
 
 test map_sort {Test of sorting} -setup {
+        puts "gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort.c"
         exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort.c
 } -body {
 	exec ./test
@@ -658,6 +659,343 @@ map[1XYZ, 2XYZ, 3XYZ, 4XYZ, 5XYZ] = 999
 1abc and 2abc and 3abc and 4abc and 5abc  ---> 888
 1XYZ and 2XYZ and 3XYZ and 4XYZ and 5XYZ  ---> 999
 }
+
+test sort_stat {Test of sorting stats} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort_stat.c
+} -body {
+	exec ./test
+} -result {Bogons per packet for California
+count:49600  sum:3288450  avg:66  min:0  max:99
+value |-------------------------------------------------- count
+    0 |@@                                                  460
+   10 |@@@@@@@                                            1460
+   20 |@@@@@@@@@@@@                                       2460
+   30 |@@@@@@@@@@@@@@@@@@                                 3460
+   40 |@@@@@@@@@@@@@@@@@@@@@@@                            4460
+   50 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       5460
+   60 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                 6460
+   70 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            7460
+   80 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@       8460
+   90 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  9460
+
+Bogons per packet for Washington
+count:100  sum:2025  avg:20  min:0  max:81
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@         42
+   10 |@@@@@@@@@@@@@@@@@                                  17
+   20 |@@@@@@@@@@@@@                                      13
+   30 |@@@@@@@@@                                           9
+   40 |@@@@@@@@@                                           9
+   50 |@@@@                                                4
+   60 |@@@                                                 3
+   70 |@@                                                  2
+   80 |@                                                   1
+   90 |                                                    0
+
+Bogons per packet for Oregon
+count:90  sum:5700  avg:63  min:10  max:90
+value |-------------------------------------------------- count
+    0 |                                                    0
+   10 |@@                                                  2
+   20 |@@@@                                                4
+   30 |@@@@@@                                              6
+   40 |@@@@@@@@                                            8
+   50 |@@@@@@@@@@                                         10
+   60 |@@@@@@@@@@@@                                       12
+   70 |@@@@@@@@@@@@@@                                     14
+   80 |@@@@@@@@@@@@@@@@                                   16
+   90 |@@@@@@@@@@@@@@@@@@                                 18
+
+Bogons per packet for Nevada
+count:45  sum:2970  avg:66  min:10  max:98
+value |-------------------------------------------------- count
+    0 |                                                   0
+   10 |@                                                  1
+   20 |@@                                                 2
+   30 |@@@                                                3
+   40 |@@@@                                               4
+   50 |@@@@@                                              5
+   60 |@@@@@@                                             6
+   70 |@@@@@@@                                            7
+   80 |@@@@@@@@                                           8
+   90 |@@@@@@@@@                                          9
+
+Bogons per packet for Ohio
+count:20  sum:1000  avg:50  min:50  max:50
+value |-------------------------------------------------- count
+    0 |                                                    0
+   10 |                                                    0
+   20 |                                                    0
+   30 |                                                    0
+   40 |                                                    0
+   50 |@@@@@@@@@@@@@@@@@@@@                               20
+   60 |                                                    0
+   70 |                                                    0
+   80 |                                                    0
+   90 |                                                    0
+
+Bogons per packet for North Carolina
+count:45  sum:-4200  avg:-93  min:-620  max:100
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@                         26
+   10 |@                                                   1
+   20 |@@                                                  2
+   30 |@                                                   1
+   40 |@@                                                  2
+   50 |@                                                   1
+   60 |@                                                   1
+   70 |@                                                   1
+   80 |@                                                   1
+   90 |@@@@@@@@@                                           9
+
+Bogons per packet for New Mexico
+count:450  sum:8475  avg:18  min:-39  max:50
+value |-------------------------------------------------- count
+    0 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   145
+   10 |@@@@@@@@@@@@@@@@@@@                                 59
+   20 |@@@@@@@@@@@@@@@@@@@@@@@                             69
+   30 |@@@@@@@@@@@@@@@@@@@@@@@@@@                          79
+   40 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       89
+   50 |@@@                                                  9
+   60 |                                                     0
+   70 |                                                     0
+   80 |                                                     0
+   90 |                                                     0
+
+
+SORTED BY COUNT
+49600 California
+450 New Mexico
+100 Washington
+90 Oregon
+45 Nevada
+45 North Carolina
+20 Ohio
+
+SORTED BY COUNT (low to high)
+20 Ohio
+45 Nevada
+45 North Carolina
+90 Oregon
+100 Washington
+450 New Mexico
+49600 California
+
+SORTED BY SUM
+3288450 California
+8475 New Mexico
+5700 Oregon
+2970 Nevada
+2025 Washington
+1000 Ohio
+-4200 North Carolina
+
+SORTED BY SUM (low to high)
+-4200 North Carolina
+1000 Ohio
+2025 Washington
+2970 Nevada
+5700 Oregon
+8475 New Mexico
+3288450 California
+
+SORTED BY MIN
+50 Ohio
+10 Nevada
+10 Oregon
+0 Washington
+0 California
+-39 New Mexico
+-620 North Carolina
+
+SORTED BY MIN (low to high)
+-620 North Carolina
+-39 New Mexico
+0 Washington
+0 California
+10 Nevada
+10 Oregon
+50 Ohio
+
+SORTED BY MAX
+100 North Carolina
+99 California
+98 Nevada
+90 Oregon
+81 Washington
+50 New Mexico
+50 Ohio
+
+SORTED BY MAX (low to high)
+50 New Mexico
+50 Ohio
+81 Washington
+90 Oregon
+98 Nevada
+99 California
+100 North Carolina
+
+SORTED BY AVG
+66 Nevada
+66 California
+63 Oregon
+50 Ohio
+20 Washington
+18 New Mexico
+-93 North Carolina
+
+SORTED BY AVG (low to high)
+-93 North Carolina
+18 New Mexico
+20 Washington
+50 Ohio
+63 Oregon
+66 Nevada
+66 California
+}
+
+test sort2 {Test of sorting (odd number of elements)} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test sort2.c
+} -body {
+	exec ./test
+} -result {sorting from A-Z on value
+Boston -> 5 5 Massachusetts
+Carson City -> 7 8 Nevada
+Columbus -> 1 2 Ohio
+Des Moines -> 8 8 Iowa
+Olympia -> 5 6 Washington
+Raleigh -> -1 9 North Carolina
+Sacramento -> 3 4 California
+Salem -> 7 8 Oregon
+Santa Fe -> 1 4 New Mexico
+
+
+sorting from Z-A on value
+Santa Fe -> 1 4 New Mexico
+Salem -> 7 8 Oregon
+Sacramento -> 3 4 California
+Raleigh -> -1 9 North Carolina
+Olympia -> 5 6 Washington
+Des Moines -> 8 8 Iowa
+Columbus -> 1 2 Ohio
+Carson City -> 7 8 Nevada
+Boston -> 5 5 Massachusetts
+
+
+sorting from low to high on key 1
+-1 9 North Carolina -> Raleigh
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+3 4 California -> Sacramento
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+8 8 Iowa -> Des Moines
+
+
+sorting from high to low on key 1
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+3 4 California -> Sacramento
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+-1 9 North Carolina -> Raleigh
+
+
+sorting from low to high on key 2
+1 2 Ohio -> Columbus
+3 4 California -> Sacramento
+1 4 New Mexico -> Santa Fe
+5 5 Massachusetts -> Boston
+5 6 Washington -> Olympia
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+-1 9 North Carolina -> Raleigh
+
+
+sorting from high to low on key 2
+-1 9 North Carolina -> Raleigh
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+3 4 California -> Sacramento
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+
+
+sorting from low to high on key 3
+California		3 4 -> Sacramento
+Iowa		8 8 -> Des Moines
+Massachusetts		5 5 -> Boston
+Nevada		7 8 -> Carson City
+New Mexico		1 4 -> Santa Fe
+North Carolina		-1 9 -> Raleigh
+Ohio		1 2 -> Columbus
+Oregon		7 8 -> Salem
+Washington		5 6 -> Olympia
+
+
+sorting from high to low on key 3
+Washington		5 6 -> Olympia
+Oregon		7 8 -> Salem
+Ohio		1 2 -> Columbus
+North Carolina		-1 9 -> Raleigh
+New Mexico		1 4 -> Santa Fe
+Nevada		7 8 -> Carson City
+Massachusetts		5 5 -> Boston
+Iowa		8 8 -> Des Moines
+California		3 4 -> Sacramento
+
+
+top 3 alphabetical by value
+Boston -> 5 5 Massachusetts
+Carson City -> 7 8 Nevada
+Columbus -> 1 2 Ohio
+
+
+bottom 2 alphabetical by value
+Santa Fe -> 1 4 New Mexico
+Salem -> 7 8 Oregon
+
+
+top 5 sorted by key 1
+8 8 Iowa -> Des Moines
+7 8 Oregon -> Salem
+7 8 Nevada -> Carson City
+5 6 Washington -> Olympia
+5 5 Massachusetts -> Boston
+
+
+bottom 5 sorted by key 1
+-1 9 North Carolina -> Raleigh
+1 4 New Mexico -> Santa Fe
+1 2 Ohio -> Columbus
+3 4 California -> Sacramento
+5 6 Washington -> Olympia
+
+sorted by population from low to high
+Nicosia is the capitol of Cyprus and the nerd population is -1
+Valletta is the capitol of Malta and the nerd population is 1
+Chisinau is the capitol of Moldova and the nerd population is 1024
+Riga is the capitol of Latvia and the nerd population is 135786
+Sofia is the capitol of Bulgaria and the nerd population is 138740
+
+sorted by population from high to low
+Sofia is the capitol of Bulgaria and the nerd population is 138740
+Riga is the capitol of Latvia and the nerd population is 135786
+Chisinau is the capitol of Moldova and the nerd population is 1024
+Valletta is the capitol of Malta and the nerd population is 1
+Nicosia is the capitol of Cyprus and the nerd population is -1
+}
+
+
 
 catch {exec rm test}
 
