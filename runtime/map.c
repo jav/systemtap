@@ -381,6 +381,13 @@ void _stp_pmap_del(MAP map)
 	free_percpu(map);
 }
 
+/* sort keynum values */
+#define SORT_COUNT -5
+#define SORT_SUM   -4
+#define SORT_MIN   -3
+#define SORT_MAX   -2
+#define SORT_AVG   -1
+
 /* comparison function for sorts. */
 static int _stp_cmp (struct list_head *a, struct list_head *b, int keynum, int dir, int type)
 {
@@ -400,9 +407,37 @@ static int _stp_cmp (struct list_head *a, struct list_head *b, int keynum, int d
 		return ret;
 	} else {
 		int64_t a,b;
-		if (keynum) {
+		if (keynum > 0) {
 			a = _stp_key_get_int64(m1, keynum);
 			b = _stp_key_get_int64(m2, keynum);
+		} else if (keynum < 0) {
+			stat *sd1 = (stat *)((long)m1 + m1->map->data_offset);
+			stat *sd2 = (stat *)((long)m2 + m2->map->data_offset);
+			switch (keynum) {
+			case SORT_COUNT:
+				a = sd1->count;
+				b = sd2->count;
+				break;
+			case SORT_SUM:
+				a = sd1->sum;
+				b = sd2->sum;
+				break;
+			case SORT_MIN:
+				a = sd1->min;
+				b = sd2->min;
+				break;
+			case SORT_MAX:
+				a = sd1->max;
+				b = sd2->max;
+				break;
+			case SORT_AVG:
+				a = sd1->sum / sd1->count;
+				b = sd2->sum / sd2->count;
+				break;
+			default:
+				/* should never happen */
+				a = b = 0;
+			}
 		} else {
 			a = _stp_get_int64(m1);
 			b = _stp_get_int64(m2);
@@ -443,8 +478,10 @@ void _stp_map_sort (MAP map, int keynum, int dir)
 	if (list_empty(head))
 		return;
 
-	if (keynum)
+	if (keynum > 0)
 		(*map->get_key)((struct map_node *)head->next, keynum, &type);
+	else if (keynum < 0)
+		type = INT64;
 	else
 		type = ((struct map_node *)head->next)->map->type;
 
@@ -511,8 +548,10 @@ void _stp_map_sortn(MAP map, int n, int keynum, int dir)
 		if (list_empty(head))
 			return;
 		
-		if (keynum)
+		if (keynum > 0)
 			(*map->get_key)((struct map_node *)head->next, keynum, &type);
+		else if (keynum < 0)
+			type = INT64;
 		else
 			type = ((struct map_node *)head->next)->map->type;
 		
