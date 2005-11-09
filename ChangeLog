@@ -1,3 +1,9 @@
+2005-11-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	Reported by Guang Lei Li <liguangl@cn.ibm.com>:
+	* tapset/context.stp (pid,ppid,tid): Correctly pick tgid vs pid.
+	* testsuite/buildok/context_test.stp: Print out tid() too.
+
 2005-11-08  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (blacklisted_p): Tolerate NULL filename parameter.

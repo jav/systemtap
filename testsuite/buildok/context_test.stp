@@ -10,6 +10,7 @@ function print_stuff () {
 	print("\n\n")
 	log("execname is \"" . execname() . "\"")
 	log("pid is " . string(pid()))
+	log("tid is " . string(tid()))
 	log("pexecname is \"" . pexecname() . "\"")
 	log("ppid is " . string(ppid()))
 	log("uid is " . string(uid()))

@@ -40,14 +40,21 @@ function pid:long () %{
 	if (unlikely(in_interrupt()))
 		THIS->__retvalue = 0;
 	else
-		THIS->__retvalue = current->pid;		
+		THIS->__retvalue = current->tgid;
+%}
+
+function tid:long () %{
+	if (unlikely(in_interrupt()))
+		THIS->__retvalue = 0;
+	else
+		THIS->__retvalue = current->pid;
 %}
 
 function ppid:long () %{
 	if (unlikely(in_interrupt() || !current->parent))
 		THIS->__retvalue = 0;
 	else
-		THIS->__retvalue = current->parent->pid;		
+		THIS->__retvalue = current->parent->tgid;
 %}
 
 function pexecname:string () %{
