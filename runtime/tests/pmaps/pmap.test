@@ -370,6 +370,23 @@ mapssx[     Riga,   Latvia] = 322D82
 mapssx[    Sofia, Bulgaria] = 7E9
 mapssx[ Valletta,    Malta] = B22}
 
+
+test ii2 {Test of maps and pmaps with int64 keys and int64 values} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ii2.c
+} -body {
+	exec ./test
+} -result {map[2] = 288
+map[4] = 8
+map[1] = 28
+map[3] = 140
+
+pmap[2] = 288
+pmap[4] = 8
+pmap[1] = 28
+pmap[3] = 140
+}
+
+
 catch {exec rm test}
 
 cleanupTests

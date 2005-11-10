@@ -81,7 +81,7 @@ int main ()
     /* here's how to print a map without using _stp_pmap_print(). */
     _stp_pmap_agg (mapssx);
     struct map_node *ptr;
-    foreach (AGG_PMAP(mapssx), ptr)
+    foreach (_stp_pmap_get_agg(mapssx), ptr)
       _stp_printf ("mapssx[%09s,%09s] = %llX\n", key1str(ptr), key2str(ptr), _stp_get_stat(ptr)->sum);
     _stp_print_flush();
     

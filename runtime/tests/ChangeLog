@@ -1,3 +1,8 @@
+2005-11-10  Martin Hunt  <hunt@redhat.com>
+
+	* pmaps/ii2.c: New test of maps and pmaps with the same keysym.
+	* pmaps/pmap.test: Update.
+
 2005-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* maps/sort2.c: New file.
