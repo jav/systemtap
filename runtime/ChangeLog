@@ -1,5 +1,9 @@
 2005-11-10  Martin Hunt  <hunt@redhat.com>
-
+	* map.c: Doc updates.
+	* pmap-gen.c: Change a bunch of generated function names to 
+	avoid conflicts with maps with the same key and value types.
+	
+2005-11-10  Martin Hunt  <hunt@redhat.com>	
 	* map.c (_stp_cmp): Use _stp_div64().
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>

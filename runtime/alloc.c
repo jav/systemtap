@@ -115,7 +115,7 @@ void *_stp_valloc_cpu(size_t len, int cpu)
 
 struct _stp_percpu_data {
 	void *ptrs[NR_CPUS];
-	void *blkp;
+	void *data;
 };
 
 #ifdef CONFIG_SMP
@@ -187,7 +187,7 @@ void _stp_vfree_percpu(const void *ptr)
 #define _stp_valloc_percpu(type) \
 	((type *)(__stp_valloc_percpu(sizeof(type), __alignof__(type))))
 
-#define _stp_percpu_dptr(ptr)  (((struct _stp_percpu_data *)~(unsigned long)(ptr))->blkp)
+#define _stp_percpu_dptr(ptr)  (((struct _stp_percpu_data *)~(unsigned long)(ptr))->data)
 
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free

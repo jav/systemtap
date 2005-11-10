@@ -1,5 +1,5 @@
 /* -*- linux-c -*- 
- * map API generator
+ * pmap API generator
  * Copyright (C) 2005 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -8,10 +8,10 @@
  * later version.
  */
 
-/** @file map-gen.c
- * @brief Map function generator
+/** @file pmap-gen.c
+ * @brief Pmap function generator
  * This file is a template designed to be included as many times as
- * needed to generate the necessary map functions.
+ * needed to generate the necessary pmap functions.
  */
 
 #define JOIN(x,y) JOINx(x,y)
@@ -191,7 +191,7 @@
 
 /* */
 
-struct KEYSYM(map_node) {
+struct KEYSYM(pmap_node) {
 	/* list of other nodes in the map */
 	struct list_head lnode;
 	/* list of nodes with the same hash value */
@@ -225,10 +225,10 @@ struct KEYSYM(map_node) {
 	})
 
 /* returns 1 on match, 0 otherwise */
-static int KEYSYM(map_key_cmp) (struct map_node *m1, struct map_node *m2)
+static int KEYSYM(pmap_key_cmp) (struct map_node *m1, struct map_node *m2)
 {
-	struct KEYSYM(map_node) *n1 = (struct KEYSYM(map_node) *)m1;
-	struct KEYSYM(map_node) *n2 = (struct KEYSYM(map_node) *)m2;
+	struct KEYSYM(pmap_node) *n1 = (struct KEYSYM(pmap_node) *)m1;
+	struct KEYSYM(pmap_node) *n2 = (struct KEYSYM(pmap_node) *)m2;
 		if (KEY1_EQ_P(n1->key1, n2->key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n1->key2, n2->key2)
@@ -249,11 +249,10 @@ static int KEYSYM(map_key_cmp) (struct map_node *m1, struct map_node *m2)
 }
 
 /* copy keys for m2 -> m1 */
-static void KEYSYM(map_copy_keys) (struct map_node *m1, struct map_node *m2)
+static void KEYSYM(pmap_copy_keys) (struct map_node *m1, struct map_node *m2)
 {
-	struct KEYSYM(map_node) *dst = (struct KEYSYM(map_node) *)m1;
-	struct KEYSYM(map_node) *src = (struct KEYSYM(map_node) *)m2;
-	dbug("copy\n");
+	struct KEYSYM(pmap_node) *dst = (struct KEYSYM(pmap_node) *)m1;
+	struct KEYSYM(pmap_node) *src = (struct KEYSYM(pmap_node) *)m2;
 #if KEY1_TYPE == STRING
 	str_copy (dst->key1, src->key1); 
 #else
@@ -289,10 +288,10 @@ static void KEYSYM(map_copy_keys) (struct map_node *m1, struct map_node *m2)
 #endif
 }
 
-static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
+static key_data KEYSYM(pmap_get_key) (struct map_node *mn, int n, int *type)
 {
 	key_data ptr;
-	struct KEYSYM(map_node) *m = (struct KEYSYM(map_node) *)mn;	
+	struct KEYSYM(pmap_node) *m = (struct KEYSYM(pmap_node) *)mn;	
 
 	if (n > KEY_ARITY || n < 1) {
 		if (type)
@@ -344,7 +343,7 @@ static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
 }
 
 
-static unsigned int KEYSYM(keycheck) (ALLKEYSD(key))
+static unsigned int KEYSYM(pkeycheck) (ALLKEYSD(key))
 {
 #if KEY1_TYPE == STRING
 	if (key1 == NULL)
@@ -381,7 +380,7 @@ static unsigned int KEYSYM(keycheck) (ALLKEYSD(key))
 	return 1;
 }
 
-static unsigned int KEYSYM(hash) (ALLKEYSD(key))
+static unsigned int KEYSYM(phash) (ALLKEYSD(key))
 {
 	unsigned int hash = KEY1_HASH(key1);
 #if KEY_ARITY > 1
@@ -403,20 +402,20 @@ static unsigned int KEYSYM(hash) (ALLKEYSD(key))
 #if VALUE_TYPE == INT64 || VALUE_TYPE == STRING
 MAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 {
-	MAP map = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(map_node)), 0);
+	MAP map = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(pmap_node)), 0);
 	if (map) {
 		int i;
 		MAP m;
 		for_each_cpu(i) {
 			m = per_cpu_ptr (map, i);
-			m->get_key = KEYSYM(map_get_key);
-			m->copy = KEYSYM(map_copy_keys);
-			m->cmp = KEYSYM(map_key_cmp);
+			m->get_key = KEYSYM(pmap_get_key);
+			m->copy = KEYSYM(pmap_copy_keys);
+			m->cmp = KEYSYM(pmap_key_cmp);
 		}
 		m = _stp_percpu_dptr(map);
-		m->get_key = KEYSYM(map_get_key);
-		m->copy = KEYSYM(map_copy_keys);
-		m->cmp = KEYSYM(map_key_cmp);
+		m->get_key = KEYSYM(pmap_get_key);
+		m->copy = KEYSYM(pmap_copy_keys);
+		m->cmp = KEYSYM(pmap_key_cmp);
 	}
 	return map;
 }
@@ -446,14 +445,14 @@ MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 
 	switch (htype) {
 	case HIST_NONE:
-		map = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(map_node)), 0);
+		map = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(pmap_node)), 0);
 		break;
 	case HIST_LOG:
-		map = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(map_node)), 
+		map = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(pmap_node)), 
 					    buckets);
 		break;
 	case HIST_LINEAR:
-		map = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(map_node)),
+		map = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(pmap_node)),
 					       start, stop, interval);
 		break;
 	default:
@@ -466,14 +465,14 @@ MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 		MAP m;
 		for_each_cpu(i) {
 			m = per_cpu_ptr (map, i);
-			m->get_key = KEYSYM(map_get_key);
-			m->copy = KEYSYM(map_copy_keys);
-			m->cmp = KEYSYM(map_key_cmp);
+			m->get_key = KEYSYM(pmap_get_key);
+			m->copy = KEYSYM(pmap_copy_keys);
+			m->cmp = KEYSYM(pmap_key_cmp);
 		}
 		m = _stp_percpu_dptr(map);
-		m->get_key = KEYSYM(map_get_key);
-		m->copy = KEYSYM(map_copy_keys);
-		m->cmp = KEYSYM(map_key_cmp);
+		m->get_key = KEYSYM(pmap_get_key);
+		m->copy = KEYSYM(pmap_copy_keys);
+		m->cmp = KEYSYM(pmap_key_cmp);
 	}
 	return map;
 }
@@ -484,19 +483,19 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	unsigned int hv;
 	struct hlist_head *head;
 	struct hlist_node *e;
-	struct KEYSYM(map_node) *n;
+	struct KEYSYM(pmap_node) *n;
 
 	if (map == NULL)
 		return -2;
 
-	if (KEYSYM(keycheck) (ALLKEYS(key)) == 0)
+	if (KEYSYM(pkeycheck) (ALLKEYS(key)) == 0)
 		return -2;
 
-	hv = KEYSYM(hash) (ALLKEYS(key));
+	hv = KEYSYM(phash) (ALLKEYS(key));
 	head = &map->hashes[hv];
 
 	hlist_for_each(e, head) {
-		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
@@ -526,7 +525,7 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	if VAL_IS_ZERO(val,add)
 		return 0;
 
-	n = (struct KEYSYM(map_node)*)_new_map_create (map, head);
+	n = (struct KEYSYM(pmap_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
 	KEYCPY(n);
@@ -555,7 +554,7 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 	unsigned int hv;
 	struct hlist_head *head;
 	struct hlist_node *e;
-	struct KEYSYM(map_node) *n;
+	struct KEYSYM(pmap_node) *n;
 	VALTYPE res;
 	MAP map;
 
@@ -564,11 +563,11 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 
 	map = per_cpu_ptr (pmap, get_cpu());
 
-	hv = KEYSYM(hash) (ALLKEYS(key));
+	hv = KEYSYM(phash) (ALLKEYS(key));
 	head = &map->hashes[hv];
 
 	hlist_for_each(e, head) {
-		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
@@ -604,20 +603,20 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 	unsigned int hv;
 	struct hlist_head *head;
 	struct hlist_node *e;
-	struct KEYSYM(map_node) *n, *anode = NULL;
+	struct KEYSYM(pmap_node) *n, *anode = NULL;
 	VALTYPE res;
 	MAP map, agg;
 
 	if (pmap == NULL)
 		return (VALTYPE)0;
 
-	hv = KEYSYM(hash) (ALLKEYS(key));
+	hv = KEYSYM(phash) (ALLKEYS(key));
 
 	/* first look it up in the aggregation map */
 	agg = _stp_percpu_dptr(pmap);
 	ahead = &agg->hashes[hv];
 	hlist_for_each(e, ahead) {
-		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
@@ -644,7 +643,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 		map = per_cpu_ptr (pmap, get_cpu());
 		head = &map->hashes[hv];
 		hlist_for_each(e, head) {
-			n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+			n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 			dbug("map_node =%lx\n", (long)n);
 			if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1

@@ -795,7 +795,16 @@ static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
 	}
 }
 
-void _stp_pmap_agg (MAP map)
+/** Aggregate per-cpu maps.
+ * This function aggregates the per-cpu maps into an aggregated
+ * map. A pointer to that aggregated map is returned.
+ * 
+ * A write lock must be held on the map during this function.
+ *
+ * @param map A pointer to a pmap.
+ * @returns a pointer to an aggregated map. 
+ */
+MAP _stp_pmap_agg (MAP map)
 {
 	int i, hash;
 	MAP m, agg;
@@ -810,7 +819,6 @@ void _stp_pmap_agg (MAP map)
 	_stp_map_clear (agg);
 
 	for_each_cpu(i) {
-		dbug("cpu %d\n", i);
 		m = per_cpu_ptr (map, i);
 		/* walk the hash chains. */
 		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
@@ -833,18 +841,20 @@ void _stp_pmap_agg (MAP map)
 			}
 		}
 	}
+	return agg;
 }
 
-#define AGG_PMAP(map) (_stp_percpu_dptr(map))
+/** Get the aggregation map for a pmap.
+ * This function returns a pointer to the aggregation map.
+ * It does not do any aggregation.
+ * @param map A pointer to a pmap.
+ * @returns a pointer to an aggregated map. 
+ * @sa _stp_pmap_agg()
+ */
+#define _stp_pmap_get_agg(map) (_stp_percpu_dptr(map))
 
-void _stp_pmap_printn(MAP map, int n, const char *fmt)
-{
-	MAP m = _stp_percpu_dptr(map);
-	_stp_pmap_agg(map);
-	_stp_map_printn (m, n, fmt);
-}
-#define _stp_pmap_print(map,fmt) _stp_pmap_printn(map,0,fmt)
-
+#define _stp_pmap_printn(map,n,fmt) _stp_map_printn (_stp_pmap_agg(map), n, fmt)
+#define _stp_pmap_print(map,fmt) _stp_map_printn(_stp_pmap_agg(map),0,fmt)
 
 static void _new_map_clear_node (struct map_node *m)
 {
