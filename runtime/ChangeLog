@@ -1,3 +1,7 @@
+2005-11-10  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_cmp): Use _stp_div64().
+
 2005-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* map.h: Remove HSTAT_LOG and HSTAT_LINEAR.

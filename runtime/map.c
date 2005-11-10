@@ -431,8 +431,8 @@ static int _stp_cmp (struct list_head *a, struct list_head *b, int keynum, int d
 				b = sd2->max;
 				break;
 			case SORT_AVG:
-				a = sd1->sum / sd1->count;
-				b = sd2->sum / sd2->count;
+				a = _stp_div64 (NULL, sd1->sum, sd1->count);
+				b = _stp_div64 (NULL, sd2->sum, sd2->count);
 				break;
 			default:
 				/* should never happen */
