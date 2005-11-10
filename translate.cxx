@@ -1968,8 +1968,7 @@ c_unparser::visit_array_in (array_in* e)
 
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->operand->referent, e->tok);
-    // XXX: should be varlock_r, but runtime arrays reads mutate
-    varlock_w guard (*this, mvar);
+    varlock_r guard (*this, mvar);
     c_assign (res, mvar.exists(idx), e->tok);
   }
 
@@ -2323,9 +2322,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
   
   { // block used to control varlock_r lifespan
     mapvar mvar = getmap (e->referent, e->tok);
-    // XXX: should be varlock_r, but runtime arrays reads mutate
     o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-    varlock_w guard (*this, mvar);
+    varlock_r guard (*this, mvar);
     c_assign (res, mvar.get(idx), e->tok);
   }
 
