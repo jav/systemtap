@@ -241,6 +241,8 @@ static void _new_map_clear_node (struct map_node *);
 static void _new_map_del_node (MAP map, struct map_node *n);
 static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval);
 static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets);
+static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr);
+static struct map_node *_stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr);
 
 /* these prototypes suppress warnings from macros */
 void _stp_map_key_str(MAP, char *);

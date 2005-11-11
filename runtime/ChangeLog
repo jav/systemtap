@@ -1,5 +1,16 @@
 2005-11-10  Martin Hunt  <hunt@redhat.com>
+
+	* pmap-gen.c (_stp_pmap_get()): New function. Aggregates
+	the per-cpu map nodes into an aggregation map node.
+
+	* map.c (_stp_new_agg): Return a struct map_node *.
+	(_stp_add_agg): If count is 0  when adding,
+	just set the stats.
+
+2005-11-10  Martin Hunt  <hunt@redhat.com>	
 	* map.c: Doc updates.
+	(_stp_new_agg): 
+
 	* pmap-gen.c: Change a bunch of generated function names to 
 	avoid conflicts with maps with the same key and value types.
 	

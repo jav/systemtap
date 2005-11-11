@@ -715,14 +715,14 @@ void _stp_pmap_printn_cpu (MAP map, int n, const char *fmt, int cpu)
 	_stp_map_printn (m, n, fmt);
 }
 
-static int _stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr)
+static struct map_node *_stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr)
 {
 	struct map_node *aptr;
 	/* copy keys and aggregate */
 	dbug("creating new entry in %lx\n", (long)agg);
 	aptr = _new_map_create(agg, ahead);
 	if (aptr == NULL)
-		return -1;
+		return NULL;
 	(*agg->copy)(aptr, ptr);
 	switch (agg->type) {
 	case INT64:
@@ -755,7 +755,7 @@ static int _stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr)
 	default:
 		_stp_error("Attempted to aggregate map of type %d\n", agg->type);
 	}
-	return 0;
+	return aptr;
 }
 
 static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
@@ -777,12 +777,19 @@ static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
 		stat *sd1 = (stat *)((long)aptr + aptr->map->data_offset);
 		stat *sd2 = (stat *)((long)ptr + ptr->map->data_offset);
 		Hist st = &aptr->map->hist;
-		sd1->count += sd2->count;
-		sd1->sum += sd2->sum;
-		if (sd2->min < sd1->min)
+		if (sd1->count == 0) {
+			sd1->count = sd2->count;
 			sd1->min = sd2->min;
-		if (sd2->max > sd1->max)
 			sd1->max = sd2->max;
+			sd1->sum = sd2->sum;
+		} else {
+			sd1->count += sd2->count;
+			sd1->sum += sd2->sum;
+			if (sd2->min < sd1->min)
+				sd1->min = sd2->min;
+			if (sd2->max > sd1->max)
+				sd1->max = sd2->max;
+		}
 		if (st->type != HIST_NONE) {
 			int j;
 			for (j = 0; j < st->buckets; j++)
@@ -883,7 +890,6 @@ static void _new_map_clear_node (struct map_node *m)
 static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
 {
 	struct map_node *m;
-	dbug("map=%lx\n", map);
 	if (list_empty(&map->pool)) {
 		if (!map->wrap) {
 			/* ERROR. no space left */

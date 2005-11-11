@@ -426,7 +426,7 @@ MAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
 	int buckets=0, start=0, stop=0, interval=0;
-	MAP m, map;
+	MAP map;
 	va_list ap;
 
 	if (htype != HIST_NONE) {
@@ -597,14 +597,14 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 #endif
 }
 
-#if 0
 VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
-	struct hlist_head *head;
+	int cpu;
+	struct hlist_head *head, *ahead;
 	struct hlist_node *e;
-	struct KEYSYM(pmap_node) *n, *anode = NULL;
-	VALTYPE res;
+	struct KEYSYM(pmap_node) *n;
+	struct map_node *anode = NULL;
 	MAP map, agg;
 
 	if (pmap == NULL)
@@ -617,7 +617,6 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 	ahead = &agg->hashes[hv];
 	hlist_for_each(e, ahead) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
-		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)
@@ -632,19 +631,18 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 #endif
 #endif
 			) {
-			anode = n;
+			anode = (struct map_node *)n;
+			_new_map_clear_node (anode);
 			break;
 		}
 	}
-	if (anode)
-		return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 
+	/* now total each cpu */
 	for_each_cpu(cpu) {
-		map = per_cpu_ptr (pmap, get_cpu());
+		map = per_cpu_ptr (pmap, cpu);
 		head = &map->hashes[hv];
 		hlist_for_each(e, head) {
 			n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
-			dbug("map_node =%lx\n", (long)n);
 			if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 			    && KEY2_EQ_P(n->key2, key2)
@@ -659,21 +657,24 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 #endif
 #endif
 				) {
-				res = MAP_GET_VAL((struct map_node *)n);
-				put_cpu();
-				return res;
+				if (anode == NULL) {
+					dbug("agg=%lx ahead=%lx\n", (long)agg, (long)ahead);
+					anode = _stp_new_agg(agg, ahead, (struct map_node *)n);
+				} else
+					_stp_add_agg(anode, (struct map_node *)n);
 			}
 		}
 	}
+	if (anode) 
+		return MAP_GET_VAL(anode);
+
 	/* key not found */
-	put_cpu();
 #if VALUE_TYPE == STRING
 	return "";
 #else
 	return (VALTYPE)0;
 #endif
 }
-#endif /* 0 */
 
 #undef KEY1NAME
 #undef KEY1N
