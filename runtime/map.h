@@ -124,47 +124,6 @@ typedef struct map_root *MAP;
 /** Extracts int from key2 union */
 #define key2int(ptr) (_stp_key_get_int64(ptr,2))
 
-/** Macro to call the proper _stp_map_key functions based on the
- * types of the arguments. 
- */
-#define _stp_map_key2(map, key1, key2)				\
-({								\
-	if (__builtin_types_compatible_p (typeof (key1), char[]))	\
-		if (__builtin_types_compatible_p (typeof (key2), char[])) \
-			_stp_map_key_str_str (map, (char *)(key1), (char *)(key2)); \
-		else							\
-			_stp_map_key_str_int64 (map, (char *)(key1), (int64_t)(key2)); \
-	else								\
-		if (__builtin_types_compatible_p (typeof (key2), char[])) \
-			_stp_map_key_int64_str (map, (int64_t)(key1), (char *)(key2)); \
-		else							\
-			_stp_map_key_int64_int64 (map, (int64_t)(key1), (int64_t)(key2)); \
-})
-
-/** Macro to call the proper _stp_map_key function based on the
- * type of the argument. 
- */
-#define _stp_map_key(map, key)				\
-  ({								\
-    if (__builtin_types_compatible_p (typeof (key), char[]))	\
-      _stp_map_key_str (map, (char *)(key));				\
-    else							\
-      _stp_map_key_int64 (map, (int64_t)(key));				\
-  })
-
-/** Macro to call the proper _stp_map_set function based on the
- * type of the argument. 
- * @ingroup map_set
- */
-#define _stp_map_set(map, val)					\
-  ({								\
-    if (__builtin_types_compatible_p (typeof (val), char[]))		\
-      _stp_map_set_str (map, (char *)(val));				\
-    else  if (__builtin_types_compatible_p (typeof (val), String))	\
-      _stp_map_set_string (map, (String)(val));				\
-    else								\
-      _stp_map_set_int64 (map, (int64_t)(val));				\
-  })
 
 /** Loop through all elements of a map or list.
  * @param map 
@@ -178,23 +137,6 @@ typedef struct map_root *MAP;
 	for (ptr = _stp_map_start(map); ptr; ptr = _stp_map_iter (map, ptr))
 
 /** @} */
-
-/** @ingroup lists
- * @brief Macro to call the proper _stp_list_add function based on the
- * types of the argument. 
- *
- * @note May cause compiler warning on some GCCs 
- */
-
-#define _stp_list_add(map, val)					\
-  ({									\
-    if (__builtin_types_compatible_p (typeof (val), char[]))		\
-      _stp_list_add_str (map, (char *)(val));				\
-    else if (__builtin_types_compatible_p (typeof (val), String))	\
-      _stp_list_add_string (map, (String)(val));			\
-    else								\
-      _stp_list_add_int64 (map, (int64_t)(val));			\
-  })
 
 
 /** @cond DONT_INCLUDE */
@@ -243,19 +185,5 @@ static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int star
 static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets);
 static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr);
 static struct map_node *_stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr);
-
-/* these prototypes suppress warnings from macros */
-void _stp_map_key_str(MAP, char *);
-void _stp_map_set_str(MAP, char *);
-void _stp_map_set_string(MAP, String);
-void _stp_list_add_str(MAP, char*);
-void _stp_list_add_string(MAP, String);
-
-void _stp_map_key_int64(MAP, int64_t);
-void _stp_map_set_int64(MAP, int64_t);
-int64_t _stp_map_get_int64(MAP);
-
-
-unsigned _stp_map_entry_exists(MAP);
 /** @endcond */
 #endif /* _MAP_H_ */

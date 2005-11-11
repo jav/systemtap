@@ -1,3 +1,7 @@
+2005-11-11  Martin Hunt  <hunt@redhat.com>
+
+	* map.h: Removed old API macros and prototypes.
+
 2005-11-10  Martin Hunt  <hunt@redhat.com>
 
 	* pmap-gen.c (_stp_pmap_get()): New function. Aggregates
