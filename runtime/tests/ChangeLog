@@ -1,5 +1,9 @@
 2005-11-10  Martin Hunt  <hunt@redhat.com>
+	* pmaps/ix2.c: New test. Test _stp_pmap_get_*().
+	* pmaps/iii3.c: New test. Test _stp_pmap_get_*().	
+	* pmaps/pmap.test: Update.
 
+2005-11-10  Martin Hunt  <hunt@redhat.com>	
 	* pmaps/ii2.c: New test of maps and pmaps with the same keysym.
 	* pmaps/pmap.test: Update.
 
