@@ -452,51 +452,121 @@ derive_probes (systemtap_session& s,
 
 // ------------------------------------------------------------------------
 //
-// Map usage checks
+// Indexable usage checks
 //
 
-struct mutated_map_collector
-  : public traversing_visitor
+struct symbol_fetcher
+  : virtual public throwing_visitor
 {
-  set<vardecl *> * mutated_maps;
+  symbol *&sym;
 
-  mutated_map_collector(set<vardecl *> * mm) 
-    : mutated_maps (mm)
+  symbol_fetcher (symbol *&sym)
+    : sym(sym) 
   {}
+
+  void visit_symbol (symbol* e)
+  {
+    sym = e;
+  }
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    e->base->visit_indexable (this);
+  }
+
+  void throwone (const token* t)
+  {
+    throw semantic_error ("Expecting symbol or array index expression", t);
+  }
+};
+
+static symbol *
+get_symbol_within_expression (expression *e)
+{
+  symbol *sym = NULL;
+  symbol_fetcher fetcher(sym);
+  e->visit (&fetcher);
+  if (!sym)
+    throw semantic_error("Unable to find symbol in expression", e->tok);
+  return sym;
+}
+
+static symbol *
+get_symbol_within_indexable (indexable *ix)
+{
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(ix, array, hist);
+  if (array)
+    return array;
+  else
+    return get_symbol_within_expression (hist->stat);
+}
+
+struct mutated_var_collector
+  : virtual public traversing_visitor
+{
+  set<vardecl *> * mutated_vars;
+
+  mutated_var_collector (set<vardecl *> * mm) 
+    : mutated_vars (mm)
+  {}
+
+  void visit_assignment(assignment* e)
+  {
+    if (e->type == pe_stats && e->op == "<<<")
+      {
+	vardecl *vd = get_symbol_within_expression (e->left)->referent;
+	if (vd)
+	  mutated_vars->insert (vd);
+      }
+    e->left->visit (this);
+    e->right->visit (this);
+  }
 
   void visit_arrayindex (arrayindex *e)
   {
-    if (is_active_lvalue(e))
-      mutated_maps->insert(e->referent);
+    if (is_active_lvalue (e))
+      {
+	symbol *sym;
+	if (e->base->is_symbol (sym))
+	  mutated_vars->insert (sym->referent);
+	else
+	  throw semantic_error("Assignment to read-only histogram bucket", e->tok);
+      }
   }
 };
 
 
-struct no_map_mutation_during_iteration_check
-  : public traversing_visitor
+struct no_var_mutation_during_iteration_check
+  : virtual public traversing_visitor
 {
   systemtap_session & session;
-  map<functiondecl *,set<vardecl *> *> & function_mutates_maps;
-  vector<vardecl *> maps_being_iterated;
+  map<functiondecl *,set<vardecl *> *> & function_mutates_vars;
+  vector<vardecl *> vars_being_iterated;
   
-  no_map_mutation_during_iteration_check 
+  no_var_mutation_during_iteration_check 
   (systemtap_session & sess,
-   map<functiondecl *,set<vardecl *> *> & fmm)
-    : session(sess), function_mutates_maps (fmm)
+   map<functiondecl *,set<vardecl *> *> & fmv)
+    : session(sess), function_mutates_vars (fmv)
   {}
 
   void visit_arrayindex (arrayindex *e)
   {
     if (is_active_lvalue(e))
       {
-	for (unsigned i = 0; i < maps_being_iterated.size(); ++i)
+	vardecl *vd = get_symbol_within_indexable (e->base)->referent;
+	if (vd)
 	  {
-	    vardecl *m = maps_being_iterated[i];
-	    if (m == e->referent)
+	    for (unsigned i = 0; i < vars_being_iterated.size(); ++i)
 	      {
-		string err = ("map '" + m->name +
-			      "' modified during 'foreach' iteration");
-		session.print_error (semantic_error (err, e->tok));
+		vardecl *v = vars_being_iterated[i];
+		if (v == vd)
+		  {
+		    string err = ("variable '" + v->name +
+				  "' modified during 'foreach' iteration");
+		    session.print_error (semantic_error (err, e->tok));
+		  }
 	      }
 	  }
       }
@@ -505,16 +575,16 @@ struct no_map_mutation_during_iteration_check
   void visit_functioncall (functioncall* e)
   {
     map<functiondecl *,set<vardecl *> *>::const_iterator i 
-      = function_mutates_maps.find (e->referent);
+      = function_mutates_vars.find (e->referent);
 
-    if (i != function_mutates_maps.end())
+    if (i != function_mutates_vars.end())
       {
-	for (unsigned j = 0; j < maps_being_iterated.size(); ++j)
+	for (unsigned j = 0; j < vars_being_iterated.size(); ++j)
 	  {
-	    vardecl *m = maps_being_iterated[j];
+	    vardecl *m = vars_being_iterated[j];
 	    if (i->second->find (m) != i->second->end())
 	      {
-		string err = ("function call modifies map '" + m->name +
+		string err = ("function call modifies var '" + m->name +
 			      "' during 'foreach' iteration");
 		session.print_error (semantic_error (err, e->tok));
 	      }
@@ -527,21 +597,27 @@ struct no_map_mutation_during_iteration_check
 
   void visit_foreach_loop(foreach_loop* s)
   {
-    maps_being_iterated.push_back (s->base_referent);
+    vardecl *vd = get_symbol_within_indexable (s->base)->referent;
+
+    if (vd)
+      vars_being_iterated.push_back (vd);
+    
     for (unsigned i=0; i<s->indexes.size(); i++)
       s->indexes[i]->visit (this);
     s->block->visit (this);
-    maps_being_iterated.pop_back();
+
+    if (vd)
+      vars_being_iterated.pop_back();
   }
 };
 
 
 static int
-semantic_pass_maps (systemtap_session & sess)
+semantic_pass_vars (systemtap_session & sess)
 {
   
-  map<functiondecl *, set<vardecl *> *> fmm;
-  no_map_mutation_during_iteration_check chk(sess, fmm);
+  map<functiondecl *, set<vardecl *> *> fmv;
+  no_var_mutation_during_iteration_check chk(sess, fmv);
   
   for (unsigned i = 0; i < sess.functions.size(); ++i)
     {
@@ -549,9 +625,9 @@ semantic_pass_maps (systemtap_session & sess)
       if (fn->body)
 	{
 	  set<vardecl *> * m = new set<vardecl *>();
-	  mutated_map_collector mc (m);
+	  mutated_var_collector mc (m);
 	  fn->body->visit (&mc);
-	  fmm[fn] = m;
+	  fmv[fn] = m;
 	}
     }
 
@@ -575,7 +651,7 @@ semantic_pass_maps (systemtap_session & sess)
 
 static int semantic_pass_symbols (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
-static int semantic_pass_maps (systemtap_session&);
+static int semantic_pass_vars (systemtap_session&);
 
 
 
@@ -691,7 +767,7 @@ semantic_pass (systemtap_session& s)
       
       rc = semantic_pass_symbols (s);
       if (rc == 0) rc = semantic_pass_types (s);
-      if (rc == 0) rc = semantic_pass_maps (s);
+      if (rc == 0) rc = semantic_pass_vars (s);
     }
   catch (const semantic_error& e)
     {
@@ -759,17 +835,30 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
   for (unsigned i=0; i<e->indexes.size(); i++)
     e->indexes[i]->visit (this);
 
-  if (e->base_referent)
-    return;
+  symbol *array = NULL;  
+  hist_op *hist = NULL;
+  classify_indexable (e->base, array, hist);
 
-  vardecl* d = find_var (e->base, e->indexes.size ());
-  if (d)
-    e->base_referent = d;
-  else
-    throw semantic_error ("unresolved global array " + e->base, e->tok);
+  if (array)
+    {
+      if (!array->referent)
+	{	  
+	  vardecl* d = find_var (array->name, e->indexes.size ());
+	  if (d)
+	    array->referent = d;
+	  else
+	    throw semantic_error ("unresolved global array " + array->name, e->tok);
+	}
+    }
+  else 
+    {
+      assert (hist);
+      hist->visit (this);
+    }
 
   e->block->visit (this);
 }
+
 
 struct 
 delete_statement_symresolution_info:
@@ -844,27 +933,39 @@ symresolution_info::visit_arrayindex (arrayindex* e)
   for (unsigned i=0; i<e->indexes.size(); i++)
     e->indexes[i]->visit (this);
 
-  if (e->referent)
-    return;
+  symbol *array = NULL;  
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
 
-  vardecl* d = find_var (e->base, e->indexes.size ());
-  if (d)
-    e->referent = d;
+  if (array)
+    {
+      if (array->referent)
+	return;
+
+      vardecl* d = find_var (array->name, e->indexes.size ());
+      if (d)
+	array->referent = d;
+      else
+	{
+	  // new local
+	  vardecl* v = new vardecl;
+	  v->set_arity(e->indexes.size());
+	  v->name = array->name;
+	  v->tok = array->tok;
+	  if (current_function)
+	    current_function->locals.push_back (v);
+	  else if (current_probe)
+	    current_probe->locals.push_back (v);
+	  else
+	    // must not happen
+	    throw semantic_error ("no current probe/function", e->tok);
+	  array->referent = v;
+	}      
+    }
   else
     {
-      // new local
-      vardecl* v = new vardecl;
-      v->set_arity(e->indexes.size());
-      v->name = e->base;
-      v->tok = e->tok;
-      if (current_function)
-        current_function->locals.push_back (v);
-      else if (current_probe)
-        current_probe->locals.push_back (v);
-      else
-        // must not happen
-        throw semantic_error ("no current probe/function", e->tok);
-      e->referent = v;
+      assert (hist);
+      hist->visit (this);
     }
 }
 
@@ -1224,6 +1325,7 @@ typeresolution_info::visit_assignment (assignment *e)
           e->right->type != pe_unknown &&
           e->left->type != e->right->type)
         mismatch (e->tok, e->left->type, e->right->type);
+
     }
   else
     throw semantic_error ("unsupported assignment operator " + e->op);
@@ -1373,11 +1475,7 @@ void
 typeresolution_info::visit_symbol (symbol* e)
 {
   assert (e->referent != 0);
-
-  if (e->referent->arity > 0)
-    unresolved (e->tok); // symbol resolution should not permit this
-  else
-    resolve_2types (e, e->referent, this, t);
+  resolve_2types (e, e->referent, this, t);
 }
 
 
@@ -1391,9 +1489,32 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
 void
 typeresolution_info::visit_arrayindex (arrayindex* e)
 {
-  assert (e->referent != 0);
 
-  resolve_2types (e, e->referent, this, t);
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
+  
+  // Every hist_op has type [int]:int, that is to say, every hist_op
+  // is a pseudo-one-dimensional integer array type indexed by
+  // integers (bucket numbers).
+
+  if (hist)
+    {
+      if (e->indexes.size() != 1)
+	unresolved (e->tok);
+      t = pe_long;
+      e->indexes[0]->visit (this);
+      if (e->indexes[0]->type != pe_long)
+	unresolved (e->tok);
+      hist->stat->visit (this);
+      return;
+    }
+
+  // Now we are left with "normal" map inference and index checking.
+
+  assert (array);
+  assert (array->referent != 0);
+  resolve_2types (e, array->referent, this, t);
 
   // now resolve the array indexes
 
@@ -1401,12 +1522,12 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
   //   // redesignate referent as array
   //   e->referent->set_arity (e->indexes.size ());
 
-  if (e->indexes.size() != e->referent->index_types.size())
+  if (e->indexes.size() != array->referent->index_types.size())
     unresolved (e->tok); // symbol resolution should prevent this
   else for (unsigned i=0; i<e->indexes.size(); i++)
     {
       expression* ee = e->indexes[i];
-      exp_type& ft = e->referent->index_types [i];
+      exp_type& ft = array->referent->index_types [i];
       t = ft;
       ee->visit (this);
       exp_type at = ee->type;
@@ -1415,7 +1536,7 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
         {
           // propagate to formal type
           ft = at;
-          resolved (e->referent->tok, ft);
+          resolved (array->referent->tok, ft);
           // uses array decl as there is no token for "formal type"
         }
       if (at == pe_stats)
@@ -1539,31 +1660,49 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
   //   // redesignate referent as array
   //   e->referent->set_arity (e->indexes.size ());
 
-  if (e->indexes.size() != e->base_referent->index_types.size())
-    unresolved (e->tok); // symbol resolution should prevent this
-  else for (unsigned i=0; i<e->indexes.size(); i++)
-    {
-      expression* ee = e->indexes[i];
-      exp_type& ft = e->base_referent->index_types [i];
-      t = ft;
-      ee->visit (this);
-      exp_type at = ee->type;
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
 
-      if ((at == pe_string || at == pe_long) && ft == pe_unknown)
-        {
-          // propagate to formal type
-          ft = at;
-          resolved (e->base_referent->tok, ft);
-          // uses array decl as there is no token for "formal type"
-        }
-      if (at == pe_stats)
-        invalid (ee->tok, at);
-      if (ft == pe_stats)
-        invalid (ee->tok, ft);
-      if (at != pe_unknown && ft != pe_unknown && ft != at)
-        mismatch (e->tok, at, ft);
-      if (at == pe_unknown)
-        unresolved (ee->tok);
+  if (hist)
+    {      
+      if (e->indexes.size() != 1)
+	unresolved (e->tok);
+      t = pe_long;
+      e->indexes[0]->visit (this);
+      if (e->indexes[0]->type != pe_long)
+	unresolved (e->tok);
+      hist->stat->visit (this);
+    }
+  else
+    {
+      assert (array);  
+      if (e->indexes.size() != array->referent->index_types.size())
+	unresolved (e->tok); // symbol resolution should prevent this
+      else for (unsigned i=0; i<e->indexes.size(); i++)
+	{
+	  expression* ee = e->indexes[i];
+	  exp_type& ft = array->referent->index_types [i];
+	  t = ft;
+	  ee->visit (this);
+	  exp_type at = ee->type;
+	  
+	  if ((at == pe_string || at == pe_long) && ft == pe_unknown)
+	    {
+	      // propagate to formal type
+	      ft = at;
+	      resolved (array->referent->tok, ft);
+	      // uses array decl as there is no token for "formal type"
+	    }
+	  if (at == pe_stats)
+	    invalid (ee->tok, at);
+	  if (ft == pe_stats)
+	    invalid (ee->tok, ft);
+	  if (at != pe_unknown && ft != pe_unknown && ft != at)
+	    mismatch (e->tok, at, ft);
+	  if (at == pe_unknown)
+	    unresolved (ee->tok);
+	}
     }
 
   t = pe_unknown;
@@ -1681,6 +1820,136 @@ typeresolution_info::visit_return_statement (return_statement* e)
     }
   if (e->value->type == pe_stats)
     invalid (e->value->tok, e->value->type);
+}
+
+void 
+typeresolution_info::visit_print_format (print_format* e)
+{
+  size_t unresolved_args = 0;
+
+  if (e->print_with_format)
+    {
+      // If there's a format string, we can do both inference *and*
+      // checking.
+
+      // First we extract the subsequence of formatting components
+      // which are conversions (not just literal string components)
+
+      std::vector<print_format::format_component> components;
+      for (size_t i = 0; i < e->components.size(); ++i)
+	{
+	  if (e->components[i].type == print_format::conv_unspecified)
+	    throw semantic_error ("Unspecified conversion in print operator format string",
+				  e->tok);
+	  else if (e->components[i].type == print_format::conv_literal)
+	    continue;
+	  components.push_back(e->components[i]);
+	}
+
+      // Then we check that the number of conversions and the number
+      // of args agree.
+
+      if (components.size() != e->args.size())
+	throw semantic_error ("Wrong number of args to formatted print operator",
+			      e->tok);
+
+      // Then we check that the types of the conversions match the types
+      // of the args.
+      for (size_t i = 0; i < components.size(); ++i)
+	{
+	  exp_type wanted = pe_unknown;
+
+	  switch (components[i].type)
+	    {
+
+	    case print_format::conv_unspecified:
+	    case print_format::conv_literal:
+	      assert (false);
+	      break;
+
+	    case print_format::conv_signed_decimal:
+	    case print_format::conv_unsigned_decimal:
+	    case print_format::conv_unsigned_octal:
+	    case print_format::conv_unsigned_uppercase_hex:
+	    case print_format::conv_unsigned_lowercase_hex:
+	      wanted = pe_long;
+	      break;
+
+	    case print_format::conv_string:
+	      wanted = pe_string;
+	      break;
+	    }
+
+	  assert (wanted != pe_unknown);
+
+	  t = wanted;
+	  e->args[i]->visit (this);
+
+	  if (e->args[i]->type == pe_unknown)
+	    {
+	      e->args[i]->type = wanted;
+	      resolved (e->args[i]->tok, wanted);
+	    }
+	  else if (e->args[i]->type != wanted)
+	    {
+	      mismatch (e->args[i]->tok, e->args[i]->type, wanted);
+	    }
+	}
+    }
+  else
+    {
+      // Without a format string, the best we can do is require that
+      // each argument resolve to a concrete type.
+      for (size_t i = 0; i < e->args.size(); ++i)
+	{
+	  t = pe_unknown;
+	  e->args[i]->visit (this);
+	  if (e->args[i]->type == pe_unknown)
+	    {
+	      unresolved (e->args[i]->tok);
+	      ++unresolved_args;
+	    }
+	}
+    }
+  
+  if (unresolved_args == 0)
+    {
+      if (e->type == pe_unknown)
+	{
+	  if (e->print_to_stream)
+	    e->type = pe_long;
+	  else
+	    e->type = pe_string;      
+	  resolved (e->tok, e->type);
+	}
+    }
+  else
+    {
+      e->type = pe_unknown;
+      unresolved (e->tok);
+    }
+}
+
+
+void 
+typeresolution_info::visit_stat_op (stat_op* e)
+{
+  t = pe_stats;
+  e->stat->visit (this);
+  if (e->type == pe_unknown)
+    {
+      e->type = pe_long;
+      resolved (e->tok, e->type);
+    }
+  else
+    mismatch (e->tok, e->type, pe_long);
+}
+
+void 
+typeresolution_info::visit_hist_op (hist_op* e)
+{
+  t = pe_stats;
+  e->stat->visit (this);
 }
 
 

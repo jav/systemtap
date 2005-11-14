@@ -1,3 +1,69 @@
+2005-11-13  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.h (struct indexable): New struct.
+	(classify_indexable): New function.
+	(classify_const_indexable): New function.
+	(struct symbol): Implement indexable.
+	(struct arrayindex): Take indexable as base.
+	(struct foreach_loop): Take indexable as base. 
+	(struct print_format): New struct.
+	(enum stat_component_type): New enum.
+	(struct stat_op): New struct.
+	(enum historgram_type): New enum.
+	(struct hist_op): New struct.
+	(struct visitor) 
+	(struct traversing_visitor)
+	(struct throwing_visitor)
+	(struct deep_copy_visitor): Add new visitor methods.
+	(require): Specialize for indexable*.
+
+	* staptree.cxx (print_format::*)
+	(stat_op::*)
+	(hist_op::*)
+	(indexable::*)
+	(traversing_visitor::*)
+	(throwing_visitor::*)
+	(deep_copy_visitor::*)
+	(classify_indexable)
+	(classify_const_indexable): Implement
+	(deep_copy_visitor::*): Update to use indexables.
+
+	* parse.h (parser::parse_indexable): New method.
+	(parser::parse_hist_op_or_bare_name): New method.
+
+	* parse.cxx (lexer::scan): Accept @ in identifiers.
+	(parser::parse_array_in)
+	(parser::parse_foreach_loop): Call parse_indexable.
+	(parser::parse_hist_op_or_bare_name): Implement.
+	(parser::parse_indexable): Implement.
+	(parser::parse_symbol): Accept printf, stat_ops, hist_ops.
+
+	* elaborate.h (struct typeresolution_info): Add methods for
+	visiting print_format, stat_op, hist_op.
+
+	* elaborate.cxx (symbol_fetcher): New class.
+	(get_symbol_within_expression): New function.
+	(get_symbol_within_indexable): New function.
+	(mutated_var_collector): Replace mutated_map_collector.
+	(no_var_mutation_during_iteration_check): Replace
+	no_map_mutation_during_iteration_check.
+	(semantic_pass_vars): Replace semantic_pass_maps.
+	(semantic_pass): Update call accordingly.
+	(symresolution_info::*) Add new visitors, teach about indexables
+	(typeresolution_info::*) Likewise.
+
+	* translate.cxx
+	(c_unparser::getiter): Take symbol, not foreach_loop.
+	(c_unparser::*) Add new visitors, teach about indexables.
+	(c_tmpcounter::*) 
+	(delete_statement_operand_visitor::visit_arrayindex)
+	(c_tmpcounter_assignment::*)
+	(c_unparser_assignment::*): Likewise.
+	(hist_op_downcaster): New struct.
+	(expression_is_hist_op): New function.
+
+	* testsuite/buildok/printf.stp: New test for print_format.
+
 2005-11-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (c_unparser::visit_array_in, visit_arrayindex):

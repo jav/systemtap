@@ -1,0 +1,29 @@
+#! stap -p4
+
+# test the translatability of the formatted printing operators
+
+function foo() { 
+	return 10
+}
+
+probe begin
+{
+	x = sprintf("take %d steps forward, %d steps back\n", 3, 2)
+	printf("take %d steps forward, %d steps back\n", 3, 2)
+	printf("take %d steps forward, %d steps back\n", 3+1, 2*2)
+
+	bob = "bob"
+	alice = "alice"
+	print(bob)
+	print(alice)
+	print("hello")
+	print(10)
+	printf("%s phoned %s %4.4x times\n", bob, alice, 3456)
+	printf("%s phoned %s %+4d times\n", bob . alice, alice, 3456)
+	printf("%s phoned %s %.4x times\n", bob, alice . bob, 3456)
+	printf("%s phoned %s %-i times\n", sprintf("%s%s", bob, bob), sprint(alice), 3456)
+	printf("%s except after %s\n", 
+		sprintf("%s before %s", 
+			sprint(1), sprint(3)), 
+		sprint("C"))
+}

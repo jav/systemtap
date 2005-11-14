@@ -11,6 +11,7 @@
 #include "parse.h"
 #include <iostream>
 #include <typeinfo>
+#include <sstream>
 #include <cassert>
 
 using namespace std;
@@ -45,7 +46,7 @@ symbol::symbol ():
 
 
 arrayindex::arrayindex ():
-  referent (0)
+  base (0)
 {
 }
 
@@ -315,6 +316,377 @@ void functioncall::print (ostream& o) const
   o << ")";
 }  
 
+
+string 
+print_format::components_to_string(vector<format_component> const & components)
+{
+  ostringstream oss;
+
+  for (vector<format_component>::const_iterator i = components.begin();
+       i != components.end(); ++i)
+    {
+
+      assert (i->type != conv_unspecified);
+
+      if (i->type == conv_literal)
+	{
+	  assert(!i->literal_string.empty());
+	  for (string::const_iterator j = i->literal_string.begin();
+	       j != i->literal_string.end(); ++j)
+	    {
+	      if (*j == '%')
+		oss << '%';
+	      oss << *j;
+	    }
+	}
+      else
+	{
+	  oss << '%';
+
+	  if (i->flags & static_cast<unsigned long>(fmt_flag_zeropad))
+	    oss << '0';
+
+	  if (i->flags & static_cast<unsigned long>(fmt_flag_plus))
+	    oss << '+';
+
+	  if (i->flags & static_cast<unsigned long>(fmt_flag_space))
+	    oss << ' ';
+
+	  if (i->flags & static_cast<unsigned long>(fmt_flag_left))
+	    oss << '-';
+
+	  if (i->flags & static_cast<unsigned long>(fmt_flag_special))
+	    oss << '#';
+
+	  if (i->width > 0)
+	    oss << i->width;
+
+	  if (i->precision > 0)
+	    oss << '.' << i->precision;
+
+	  switch (i->type)	
+	    {	  
+	    case conv_signed_decimal:
+	      oss << "lld";
+	      break;
+
+	    case conv_unsigned_decimal:
+	      oss << "llu";
+	      break;
+
+	    case conv_unsigned_octal:
+	      oss << "llo";
+	      break;
+
+	    case conv_unsigned_uppercase_hex:
+	      oss << "llX";
+	      break;
+
+	    case conv_unsigned_lowercase_hex:
+	      oss << "llx";
+	      break;
+
+	    case conv_string:
+	      oss << 's';
+	      break;
+	      
+	    default:
+	      break;
+	    }
+	}
+    }
+  return oss.str ();
+}
+ 
+vector<print_format::format_component> 
+print_format::string_to_components(string const & str)
+{
+  format_component curr;
+  vector<format_component> res;
+
+  enum 
+    {
+      parsing_plain_data,
+      parsing_flags,
+      parsing_width,
+      parsing_precision,
+      parsing_conversion_specifier
+    } 
+  state = parsing_plain_data;
+
+  curr.clear();
+
+  string::const_iterator i = str.begin();
+
+  while (i != str.end())
+    {
+      switch (state)
+	{
+	case parsing_plain_data:
+
+	  if (*i != '%')
+	    {
+	      assert (curr.type == conv_unspecified || curr.type == conv_literal);
+	      curr.type = conv_literal;
+	      curr.literal_string += *i;	      
+	    }
+	  else if (i+1 == str.end() || *(i+1) == '%')
+	    {
+	      assert(*i == '%');
+	      // *i == '%' and *(i+1) == '%'; append only one '%' to the literal string
+	      assert (curr.type == conv_unspecified || curr.type == conv_literal);
+	      curr.type = conv_literal;
+	      curr.literal_string += '%';
+	    }
+	  else 
+	    {
+	      assert(*i == '%');
+	      state = parsing_flags;
+	      if (curr.type != conv_unspecified)
+		{
+		  assert (curr.type == conv_literal);
+		  res.push_back(curr);
+		  curr.clear();
+		}
+	    }
+	  ++i;
+	  break;
+
+	case parsing_flags:
+	  switch (*i)
+	    {
+	    case '0':
+	      curr.flags |= static_cast<unsigned long>(fmt_flag_zeropad);
+	      ++i;
+	      break;
+
+	    case '+':
+	      curr.flags |= static_cast<unsigned long>(fmt_flag_plus);
+	      ++i;
+	      break;
+
+	    case '-':
+	      curr.flags |= static_cast<unsigned long>(fmt_flag_left);
+	      ++i;
+	      break;
+
+	    case ' ':
+	      curr.flags |= static_cast<unsigned long>(fmt_flag_space);
+	      ++i;
+	      break;
+
+	    case '#':
+	      curr.flags |= static_cast<unsigned long>(fmt_flag_special);
+	      ++i;
+	      break;
+
+	    default:
+	      state = parsing_width;
+	      break;
+	    }
+	  break;
+
+	case parsing_width:
+	  while (isdigit(*i))
+	    {
+	      curr.width *= 10;
+	      curr.width += (*i - '0');
+	      ++i;
+	    }
+	  state = parsing_precision;
+	  break;
+	  
+	case parsing_precision:
+	  if (*i == '.')
+	    {
+	      ++i;
+	      while (isdigit(*i))
+		{
+		  curr.precision *= 10;
+		  curr.precision += (*i - '0');
+		  ++i;
+		}
+	    }
+	  state = parsing_conversion_specifier;
+	  break;
+
+	case parsing_conversion_specifier:
+	  switch (*i)
+	    {
+
+	    default:
+	      if (curr.type == conv_unspecified)
+		throw semantic_error("no conversion specifier provided");
+	      
+	      res.push_back(curr);
+	      curr.clear();
+	      state = parsing_plain_data;
+	      break;
+	      
+	      // Valid conversion types
+	    case 's':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_string;
+	      ++i;
+	      break;
+
+	    case 'd':
+	    case 'i':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_signed_decimal;
+	      ++i;
+	      break;
+
+	    case 'o':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_unsigned_octal;
+	      ++i;
+	      break;
+
+	    case 'u':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_unsigned_decimal;
+	      ++i;
+	      break;
+
+	    case 'X':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_unsigned_uppercase_hex;
+	      ++i;
+
+	    case 'x':
+	      if (curr.type != conv_unspecified)
+		throw semantic_error("multiple conversion types supplied");
+	      curr.type = conv_unsigned_lowercase_hex;
+	      ++i;
+	      break;
+
+	      // We prohibit users passing any funny stuff through which might
+	      // make linux's printf function do naughty things.
+	    case 'p':
+	    case 'n':
+	    case 'c':
+	    case 'q':
+	    case 'j':
+	    case 't':
+
+	    case ',':
+	    case '.':
+	    case '*':
+
+	    case 'e':
+	    case 'E':
+	    case 'f':
+	    case 'F':
+	    case 'g':
+	    case 'G':
+	    case 'h':
+	    case 'H':
+	    case 'I':
+	    case 'l':
+	    case 'L':
+	    case 'z':
+	    case 'Z':
+	      string err("prohibited conversion character '");
+	      err += *i;
+	      err += '"';
+	      throw parse_error(err);
+	    }
+	  break;
+	}
+    }
+
+  // Flush final component
+  if (curr.type != conv_unspecified)
+    res.push_back(curr);
+
+  return res;
+}
+
+
+void print_format::print (ostream& o) const
+{
+  string name = (string(print_to_stream ? "" : "s") 
+		 + string("print") 
+		 + string(print_with_format ? "f" : ""));
+  o << name << "(";
+  if (print_with_format)
+    {
+      o << '"' << components_to_string(components) << "\", ";
+    }
+  for (vector<expression*>::const_iterator i = args.begin();
+       i != args.end(); ++i)
+    {
+      if (i != args.begin())
+	o << ", ";
+      (*i)->print(o);
+    }
+  o << ")";
+}
+
+void stat_op::print (ostream& o) const
+{
+  o << '@';
+  switch (ctype)
+    {
+    case sc_average:
+      o << "avg(";
+      break;
+
+    case sc_count:
+      o << "count(";
+      break;
+
+    case sc_sum:
+      o << "sum(";
+      break;
+
+    case sc_min:
+      o << "min(";
+      break;
+      
+    case sc_max:
+      o << "max(";
+      break;
+    }
+  stat->print(o);
+  o << ")";
+}
+
+void 
+hist_op::print (ostream& o) const
+{
+  o << '@';
+  switch (htype)
+    {
+    case hist_linear:
+      assert(params.size() == 3);
+      o << "hist_linear(";
+      stat->print(o);
+      for (size_t i = 0; i < params.size(); ++i)
+	{
+	  o << ", " << params[i];
+	}
+      o << ")";
+      break;
+
+    case hist_log:
+      assert(params.size() == 1);
+      o << "hist_log(";
+      stat->print(o);
+      for (size_t i = 0; i < params.size(); ++i)
+	{
+	  o << ", " << params[i];
+	}
+      o << ")";
+      break;
+    }
+}
 
 ostream& operator << (ostream& o, const statement& k)
 {
@@ -706,6 +1078,147 @@ functioncall::visit (visitor* u)
   u->visit_functioncall (this);
 }
 
+void
+print_format::visit (visitor *u)
+{
+  u->visit_print_format (this);
+}
+
+void
+stat_op::visit (visitor *u)
+{
+  u->visit_stat_op (this);
+}
+
+void
+hist_op::visit (visitor *u)
+{
+  u->visit_hist_op (this);
+}
+
+void 
+indexable::print_indexable (std::ostream& o) const
+{
+  const symbol *sym;
+  const hist_op *hist;
+  classify_const_indexable(this, sym, hist);
+  if (sym)
+    sym->print (o);
+  else
+    {
+      assert (hist);
+      hist->print (o);
+    }  
+}
+
+void 
+indexable::visit_indexable (visitor* u)
+{
+  symbol *sym;
+  hist_op *hist;
+  classify_indexable(this, sym, hist);
+  if (sym)
+    sym->visit (u);
+  else
+    {
+      assert (hist);
+      hist->visit (u);
+    }
+}
+
+
+bool 
+indexable::is_symbol(symbol *& sym_out)
+{
+  sym_out = NULL;
+  return false;
+}
+
+bool 
+indexable::is_hist_op(hist_op *& hist_out)
+{
+  hist_out = NULL;
+  return false;
+}
+
+bool 
+indexable::is_const_symbol(const symbol *& sym_out) const
+{
+  sym_out = NULL;
+  return false;
+}
+
+bool 
+indexable::is_const_hist_op(const hist_op *& hist_out) const
+{
+  hist_out = NULL;
+  return false;
+}
+
+bool 
+symbol::is_symbol(symbol *& sym_out)
+{
+  sym_out = this;
+  return true;
+}
+
+bool 
+symbol::is_const_symbol(const symbol *& sym_out) const
+{
+  sym_out = this;
+  return true;
+}
+
+const token *
+symbol::get_tok() const
+{
+  return tok;
+}
+
+bool 
+hist_op::is_hist_op(hist_op *& hist_out)
+{
+  hist_out = this;
+  return true;
+}
+
+bool 
+hist_op::is_const_hist_op(const hist_op *& hist_out) const
+{
+  hist_out = this;
+  return true;
+}
+
+const token *
+hist_op::get_tok() const
+{
+  return tok;
+}
+
+void
+classify_indexable(indexable* ix,
+		   symbol *& array_out,
+		   hist_op *& hist_out) 
+{
+  array_out = NULL;
+  hist_out = NULL;
+  if (!(ix->is_symbol (array_out) || ix->is_hist_op (hist_out)))
+    throw semantic_error("Expecting symbol or histogram operator", ix->get_tok());
+  if (ix && !(hist_out || array_out))
+    throw semantic_error("Failed to classify indexable", ix->get_tok());
+}
+
+void
+classify_const_indexable(const indexable* ix,
+			 const symbol *& array_out,
+			 const hist_op *& hist_out) 
+{
+  array_out = NULL;
+  hist_out = NULL;
+  if (!(ix->is_const_symbol(array_out) || ix->is_const_hist_op(hist_out)))
+    throw semantic_error("Expecting symbol or histogram operator", ix->get_tok());
+}
+
 // ------------------------------------------------------------------------
 
 bool 
@@ -921,6 +1434,25 @@ traversing_visitor::visit_functioncall (functioncall* e)
     e->args[i]->visit (this);
 }
 
+void
+traversing_visitor::visit_print_format (print_format* e)
+{
+  for (unsigned i=0; i<e->args.size(); i++)
+    e->args[i]->visit (this);
+}
+
+void
+traversing_visitor::visit_stat_op (stat_op* e)
+{
+  e->stat->visit (this);
+}
+
+void
+traversing_visitor::visit_hist_op (hist_op* e)
+{
+  e->stat->visit (this);
+}
+
 
 // ------------------------------------------------------------------------
 
@@ -1110,6 +1642,24 @@ throwing_visitor::visit_functioncall (functioncall* e)
   throwone (e->tok);
 }
 
+void
+throwing_visitor::visit_print_format (print_format* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_stat_op (stat_op* e)
+{
+  throwone (e->tok);
+}
+
+void
+throwing_visitor::visit_hist_op (hist_op* e)
+{
+  throwone (e->tok);
+}
+
 
 // ------------------------------------------------------------------------
 
@@ -1188,10 +1738,12 @@ deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
       require <symbol*> (this, &sym, s->indexes[i]);
       n->indexes.push_back(sym);
     }
-  n->base = s->base;
-  n->base_referent = NULL;
+
+  require <indexable*> (this, &(n->base), s->base);
+
   n->sort_direction = s->sort_direction;
   n->sort_column = s->sort_column;
+
   require <statement*> (this, &(n->block), s->block);
   provide <foreach_loop*> (this, n);
 }
@@ -1396,8 +1948,9 @@ deep_copy_visitor::visit_arrayindex (arrayindex* e)
 {
   arrayindex* n = new arrayindex;
   n->tok = e->tok;
-  n->base = e->base;
-  n->referent = NULL;
+
+  require <indexable*> (this, &(n->base), e->base);
+
   for (unsigned i = 0; i < e->indexes.size(); ++i)
     {
       expression* ne;
@@ -1421,6 +1974,44 @@ deep_copy_visitor::visit_functioncall (functioncall* e)
       n->args.push_back(na);
     }
   provide <functioncall*> (this, n);
+}
+
+void
+deep_copy_visitor::visit_print_format (print_format* e)
+{
+  print_format* n = new print_format;
+  n->tok = e->tok;
+  n->print_with_format = e->print_with_format;
+  n->print_to_stream = e->print_to_stream;
+  n->components = e->components;
+  for (unsigned i = 0; i < e->args.size(); ++i)
+    {
+      expression* na;
+      require <expression*> (this, &na, e->args[i]);
+      n->args.push_back(na);
+    }
+  provide <print_format*> (this, n);
+}
+
+void
+deep_copy_visitor::visit_stat_op (stat_op* e)
+{
+  stat_op* n = new stat_op;
+  n->tok = e->tok;
+  n->ctype = e->ctype;
+  require <expression*> (this, &(n->stat), e->stat);
+  provide <stat_op*> (this, n);
+}
+
+void
+deep_copy_visitor::visit_hist_op (hist_op* e)
+{
+  hist_op* n = new hist_op;
+  n->tok = e->tok;
+  n->htype = e->htype;
+  n->params = e->params;
+  require <expression*> (this, &(n->stat), e->stat);
+  provide <hist_op*> (this, n);
 }
 
 block* 

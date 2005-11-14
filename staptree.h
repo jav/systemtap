@@ -172,15 +172,50 @@ struct assignment: public binary_expression
   void visit (visitor* u);
 };
 
+struct symbol;
+struct hist_op;
+struct indexable
+{
+  // This is a helper class which, type-wise, acts as a disjoint union
+  // of symbols and histograms. You can ask it whether it's a
+  // histogram or a symbol, and downcast accordingly.
+  void print_indexable (std::ostream& o) const;
+  void visit_indexable (visitor* u);
+  virtual bool is_symbol(symbol *& sym_out);
+  virtual bool is_hist_op(hist_op *& hist_out);
+  virtual bool is_const_symbol(const symbol *& sym_out) const;
+  virtual bool is_const_hist_op(const hist_op *& hist_out) const;
+  virtual const token *get_tok() const = 0;
+  virtual ~indexable() {}
+};
+
+// Perform a downcast to one out-value and NULL the other, throwing an
+// exception if neither downcast succeeds. This is (sadly) about the
+// best we can accomplish in C++.
+void
+classify_indexable(indexable* ix,
+		   symbol *& array_out,
+		   hist_op *& hist_out);
+
+void
+classify_const_indexable(const indexable* ix,
+			 symbol const *& array_out,
+			 hist_op const *& hist_out);
 
 class vardecl;
-struct symbol: public expression
+struct symbol: 
+  public expression, 
+  public indexable
 {
   std::string name;
   vardecl *referent;
   symbol ();
   void print (std::ostream& o) const;
   void visit (visitor* u);
+  // overrides of type 'indexable'
+  const token *get_tok() const;
+  bool is_const_symbol(const symbol *& sym_out) const;
+  bool is_symbol(symbol *& sym_out);
 };
 
 
@@ -200,9 +235,8 @@ struct target_symbol : public expression
 
 struct arrayindex: public expression
 {
-  std::string base;
   std::vector<expression*> indexes;
-  vardecl *referent;
+  indexable *base;
   arrayindex ();
   void print (std::ostream& o) const;
   void visit (visitor* u);
@@ -220,6 +254,97 @@ struct functioncall: public expression
   void visit (visitor* u);
 };
 
+
+struct print_format: public expression
+{
+  bool print_with_format;
+  bool print_to_stream;
+
+  enum format_flag
+    {
+      fmt_flag_zeropad = 1,
+      fmt_flag_plus = 2,
+      fmt_flag_space = 4,
+      fmt_flag_left = 8,
+      fmt_flag_special = 16
+    };
+
+  enum conversion_type 
+    {
+      conv_unspecified,
+      conv_signed_decimal,
+      conv_unsigned_decimal,
+      conv_unsigned_octal,
+      conv_unsigned_uppercase_hex,
+      conv_unsigned_lowercase_hex,	
+      conv_string,
+      conv_literal
+    };
+
+  struct format_component
+  {
+    unsigned long flags;
+    unsigned width;
+    unsigned precision;
+    conversion_type type;
+    std::string literal_string;
+    void clear()
+    {
+      flags = 0;
+      width = 0;
+      precision = 0;
+      type = conv_unspecified;
+      literal_string.clear();
+    }
+  };
+
+  std::vector<format_component> components;
+  std::vector<expression*> args;
+
+  static std::string components_to_string(std::vector<format_component> const & components);
+  static std::vector<format_component> string_to_components(std::string const & str);
+
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+
+enum stat_component_type
+  {
+    sc_average,
+    sc_count,
+    sc_sum,
+    sc_min,
+    sc_max,
+  };
+
+struct stat_op: public expression
+{  
+  stat_component_type ctype;
+  expression* stat;
+  void print (std::ostream& o) const;
+  void visit (visitor* u);
+};
+
+enum histogram_type
+  {
+    hist_linear,
+    hist_log
+  };
+
+struct hist_op: public indexable
+{
+  const token* tok;
+  histogram_type htype;
+  expression* stat;
+  std::vector<int64_t> params;
+  void print (std::ostream& o) const;
+  void visit (visitor* u);  
+  // overrides of type 'indexable'
+  const token *get_tok() const;
+  bool is_const_hist_op(const hist_op *& hist_out) const;
+  bool is_hist_op(hist_op *& hist_out);
+};
 
 // ------------------------------------------------------------------------
 
@@ -316,8 +441,7 @@ struct foreach_loop: public statement
 {
   // this part is a specialization of arrayindex
   std::vector<symbol*> indexes;
-  std::string base;
-  vardecl* base_referent;
+  indexable *base;
   int sort_direction; // -1: decreasing, 0: none, 1: increasing
   unsigned sort_column; // 0: value, 1..N: index
 
@@ -486,6 +610,9 @@ struct visitor
   virtual void visit_target_symbol (target_symbol* e) = 0;
   virtual void visit_arrayindex (arrayindex* e) = 0;
   virtual void visit_functioncall (functioncall* e) = 0;
+  virtual void visit_print_format (print_format* e) = 0;
+  virtual void visit_stat_op (stat_op* e) = 0;
+  virtual void visit_hist_op (hist_op* e) = 0;
 };
 
 
@@ -523,6 +650,9 @@ struct traversing_visitor: public visitor
   void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
+  void visit_print_format (print_format* e);
+  void visit_stat_op (stat_op* e);
+  void visit_hist_op (hist_op* e);
 };
 
 
@@ -565,6 +695,9 @@ struct throwing_visitor: public visitor
   void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
+  void visit_print_format (print_format* e);
+  void visit_stat_op (stat_op* e);
+  void visit_hist_op (hist_op* e);
 };
 
 // A visitor which performs a deep copy of the root node it's applied
@@ -609,6 +742,9 @@ struct deep_copy_visitor: public visitor
   virtual void visit_target_symbol (target_symbol* e);
   virtual void visit_arrayindex (arrayindex* e);
   virtual void visit_functioncall (functioncall* e);
+  virtual void visit_print_format (print_format* e);
+  virtual void visit_stat_op (stat_op* e);
+  virtual void visit_hist_op (hist_op* e);
 };
 
 template <typename T> static void
@@ -621,6 +757,32 @@ require (deep_copy_visitor* v, T* dst, T src)
       src->visit(v);
       v->targets.pop();
       assert(*dst);
+    }
+}
+
+template <> static void
+require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
+{
+  if (src != NULL)
+    {
+      symbol *array_src=NULL, *array_dst=NULL;
+      hist_op *hist_src=NULL, *hist_dst=NULL;
+      
+      classify_indexable(src, array_src, hist_src);
+      
+      *dst = NULL;
+      
+      if (array_src)
+	{
+	  require <symbol*> (v, &array_dst, array_src);
+	  *dst = array_dst;
+	}
+      else
+	{
+	  require <hist_op*> (v, &hist_dst, hist_src);
+	  *dst = hist_dst;
+	}
+      assert (*dst);
     }
 }
 

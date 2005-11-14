@@ -107,7 +107,7 @@ struct c_unparser: public unparser, public visitor
 
   tmpvar gensym(exp_type ty);
   var getvar(vardecl* v, token const* tok = NULL);
-  itervar getiter(foreach_loop* f);
+  itervar getiter(symbol* s);
   mapvar getmap(vardecl* v, token const* tok = NULL);
 
   void load_map_indices(arrayindex* e,
@@ -147,6 +147,9 @@ struct c_unparser: public unparser, public visitor
   void visit_target_symbol (target_symbol* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
+  void visit_print_format (print_format* e);
+  void visit_stat_op (stat_op* e);
+  void visit_hist_op (hist_op* e);
 };
 
 // A shadow visitor, meant to generate temporary variable declarations
@@ -180,6 +183,7 @@ struct c_tmpcounter:
   void visit_assignment (assignment* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
+  void visit_print_format (print_format* e);
 };
 
 struct c_unparser_assignment: 
@@ -558,8 +562,8 @@ class itervar
 
 public:
 
-  itervar (foreach_loop* e, unsigned & counter)
-    : referent_ty(e->base_referent->type), 
+  itervar (symbol* e, unsigned & counter)
+    : referent_ty(e->referent->type), 
       name("__tmp" + stringify(counter++))
   {
     if (referent_ty != pe_long && referent_ty != pe_string)
@@ -1462,9 +1466,9 @@ c_unparser::getmap(vardecl *v, token const *tok)
 
 
 itervar 
-c_unparser::getiter(foreach_loop *f)
+c_unparser::getiter(symbol *s)
 { 
-  return itervar (f, tmpvar_counter);
+  return itervar (s, tmpvar_counter);
 }
 
 
@@ -1625,75 +1629,99 @@ c_unparser::visit_for_loop (for_loop *s)
 void
 c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 {
-  itervar iv = parent->getiter (s);
-  parent->o->newline() << iv.declare();
-  s->block->visit (this);
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (s->base, array, hist);
+
+  if (array)
+    {
+      itervar iv = parent->getiter (array);
+      parent->o->newline() << iv.declare();
+      s->block->visit (this);
+    }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 void
 c_unparser::visit_foreach_loop (foreach_loop *s)
 {
-  visit_statement (s, 1);
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (s->base, array, hist);
 
-  mapvar mv = getmap (s->base_referent, s->tok);
-  itervar iv = getiter (s);
-  vector<var> keys;
-
-  string ctr = stringify (label_counter++);
-  string toplabel = "top_" + ctr;
-  string contlabel = "continue_" + ctr;
-  string breaklabel = "break_" + ctr;
-
-  // NB: structure parallels for_loop
-
-  // initialization
-
-  // sort array if desired
-  if (s->sort_direction)
+  if (array)
     {
-      varlock_w sort_guard (*this, mv);
-      o->newline() << "_stp_map_sort (" << mv.qname() << ", "
-                   << s->sort_column << ", " << - s->sort_direction << ");";
+      visit_statement (s, 1);
+      
+      mapvar mv = getmap (array->referent, s->tok);
+      itervar iv = getiter (array);
+      vector<var> keys;
+      
+      string ctr = stringify (label_counter++);
+      string toplabel = "top_" + ctr;
+      string contlabel = "continue_" + ctr;
+      string breaklabel = "break_" + ctr;
+      
+      // NB: structure parallels for_loop
+      
+      // initialization
+      
+      // sort array if desired
+      if (s->sort_direction)
+	{
+	  varlock_w sort_guard (*this, mv);
+	  o->newline() << "_stp_map_sort (" << mv.qname() << ", "
+		       << s->sort_column << ", " << - s->sort_direction << ");";
+	}
+      // NB: sort direction sense is opposite in runtime, thus the negation
+      
+      // XXX: There is a race condition here.  Since we can't convert a
+      // write lock to a read lock, it is possible that another sort or update
+      // may get sandwiched between the release of sort_guard and the
+      // acquisition of guard.
+      
+      varlock_r guard (*this, mv);
+      o->newline() << iv << " = " << iv.start (mv) << ";";
+      
+      // condition
+      o->newline(-1) << toplabel << ":";
+      o->newline(1) << "if (! (" << iv << ")) goto " << breaklabel << ";";
+      
+      // body
+      loop_break_labels.push_back (breaklabel);
+      loop_continue_labels.push_back (contlabel);
+      o->newline() << "{";
+      o->indent (1);
+      for (unsigned i = 0; i < s->indexes.size(); ++i)
+	{
+	  // copy the iter values into the specified locals
+	  var v = getvar (s->indexes[i]->referent);
+	  c_assign (v, iv.get_key (v.type(), i), s->tok);
+	}
+      s->block->visit (this);
+      o->newline(-1) << "}";
+      loop_break_labels.pop_back ();
+      loop_continue_labels.pop_back ();
+      
+      // iteration
+      o->newline(-1) << contlabel << ":";
+      o->newline(1) << iv << " = " << iv.next (mv) << ";";
+      o->newline() << "goto " << toplabel << ";";
+      
+      // exit
+      o->newline(-1) << breaklabel << ":";
+      o->newline(1) << "; /* dummy statement */";
+      // varlock dtor will show up here
     }
-  // NB: sort direction sense is opposite in runtime, thus the negation
-
-  // XXX: There is a race condition here.  Since we can't convert a
-  // write lock to a read lock, it is possible that another sort or update
-  // may get sandwiched between the release of sort_guard and the
-  // acquisition of guard.
-
-  varlock_r guard (*this, mv);
-  o->newline() << iv << " = " << iv.start (mv) << ";";
-
-  // condition
-  o->newline(-1) << toplabel << ":";
-  o->newline(1) << "if (! (" << iv << ")) goto " << breaklabel << ";";
-
-  // body
-  loop_break_labels.push_back (breaklabel);
-  loop_continue_labels.push_back (contlabel);
-  o->newline() << "{";
-  o->indent (1);
-  for (unsigned i = 0; i < s->indexes.size(); ++i)
+  else
     {
-      // copy the iter values into the specified locals
-      var v = getvar (s->indexes[i]->referent);
-      c_assign (v, iv.get_key (v.type(), i), s->tok);
+      // FIXME: fill in some logic here!
+      assert(false);
     }
-  s->block->visit (this);
-  o->newline(-1) << "}";
-  loop_break_labels.pop_back ();
-  loop_continue_labels.pop_back ();
-
-  // iteration
-  o->newline(-1) << contlabel << ":";
-  o->newline(1) << iv << " = " << iv.next (mv) << ";";
-  o->newline() << "goto " << toplabel << ";";
-    
-  // exit
-  o->newline(-1) << breaklabel << ":";
-  o->newline(1) << "; /* dummy statement */";
-  // varlock dtor will show up here
 }
 
 
@@ -1756,14 +1784,26 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
 void 
 delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
 {
-  vector<tmpvar> idx;
-  parent->load_map_indices (e, idx);
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  {
-    mapvar mvar = parent->getmap (e->referent, e->tok);
-    varlock_w guard (*parent, mvar);
-    parent->o->newline() << mvar.del (idx) << ";";
-  }
+  if (array)
+    {
+      vector<tmpvar> idx;
+      parent->load_map_indices (e, idx);
+      
+      {
+	mapvar mvar = parent->getmap (array->referent, e->tok);
+	varlock_w guard (*parent, mvar);
+	parent->o->newline() << mvar.del (idx) << ";";
+      }
+    }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 
@@ -1939,40 +1979,64 @@ c_unparser::visit_logical_and_expr (logical_and_expr* e)
 void 
 c_tmpcounter::visit_array_in (array_in* e)
 {
-  vardecl* r = e->operand->referent;
-
-  // One temporary per index dimension.
-  for (unsigned i=0; i<r->index_types.size(); i++)
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->operand->base, array, hist);
+  
+  if (array)
     {
-      tmpvar ix = parent->gensym (r->index_types[i]);
-      ix.declare (*parent);
-      e->operand->indexes[i]->visit(this);
+      vardecl* r = array->referent;
+
+      // One temporary per index dimension.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->gensym (r->index_types[i]);
+	  ix.declare (*parent);
+	  e->operand->indexes[i]->visit(this);
+	}
+      
+      // A boolean result.
+      tmpvar res = parent->gensym (e->type);
+      res.declare (*parent);
     }
- 
- // A boolean result.
-  tmpvar res = parent->gensym (e->type);
-  res.declare (*parent);
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 
 void
 c_unparser::visit_array_in (array_in* e)
 {
-  stmt_expr block(*this);  
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->operand->base, array, hist);
+  
+  if (array)
+    {
+      stmt_expr block(*this);  
+      
+      vector<tmpvar> idx;
+      load_map_indices (e->operand, idx);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      
+      tmpvar res = gensym (pe_long);
+      
+      { // block used to control varlock_r lifespan
+	mapvar mvar = getmap (array->referent, e->tok);
+	varlock_r guard (*this, mvar);
+	c_assign (res, mvar.exists(idx), e->tok);
+      }
 
-  vector<tmpvar> idx;
-  load_map_indices (e->operand, idx);
-  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-
-  tmpvar res = gensym (pe_long);
-
-  { // block used to control varlock_r lifespan
-    mapvar mvar = getmap (e->operand->referent, e->tok);
-    varlock_r guard (*this, mvar);
-    c_assign (res, mvar.exists(idx), e->tok);
-  }
-
-  o->newline() << res << ";";
+      o->newline() << res << ";";
+    }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 
@@ -2248,19 +2312,31 @@ c_unparser::visit_target_symbol (target_symbol* e)
 void
 c_tmpcounter::visit_arrayindex (arrayindex *e)
 {
-  vardecl* r = e->referent;
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  // One temporary per index dimension.
-  for (unsigned i=0; i<r->index_types.size(); i++)
+  if (array)
     {
-      tmpvar ix = parent->gensym (r->index_types[i]);
-      ix.declare (*parent);
-      e->indexes[i]->visit(this);
+      vardecl* r = array->referent;
+      
+      // One temporary per index dimension.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->gensym (r->index_types[i]);
+	  ix.declare (*parent);
+	  e->indexes[i]->visit(this);
+	}
+      
+      // The index-expression result.
+      tmpvar res = parent->gensym (e->type);
+      res.declare (*parent);
     }
- 
- // The index-expression result.
-  tmpvar res = parent->gensym (e->type);
-  res.declare (*parent);
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 
@@ -2268,174 +2344,224 @@ void
 c_unparser::load_map_indices(arrayindex *e,
 			     vector<tmpvar> & idx)
 {
-  idx.clear();
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  vardecl* r = e->referent;
-
-  if (r->index_types.size() == 0 ||
-      r->index_types.size() != e->indexes.size())
-    throw semantic_error ("invalid array reference", e->tok);
-
-  for (unsigned i=0; i<r->index_types.size(); i++)
+  if (array)
     {
-      if (r->index_types[i] != e->indexes[i]->type)
-	throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
+      idx.clear();
       
-      tmpvar ix = gensym (r->index_types[i]);
-      o->newline() << "c->last_stmt = "
-		   << lex_cast_qstring(*e->indexes[i]->tok) << ";";
-      c_assign (ix.qname(), e->indexes[i], "array index copy");
-      idx.push_back (ix);
+      vardecl* r = array->referent;
+      
+      if (r->index_types.size() == 0 ||
+	  r->index_types.size() != e->indexes.size())
+	throw semantic_error ("invalid array reference", e->tok);
+      
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  if (r->index_types[i] != e->indexes[i]->type)
+	    throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
+	  
+	  tmpvar ix = gensym (r->index_types[i]);
+	  o->newline() << "c->last_stmt = "
+		       << lex_cast_qstring(*e->indexes[i]->tok) << ";";
+	  c_assign (ix.qname(), e->indexes[i], "array index copy");
+	  idx.push_back (ix);
+	}
     }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }  
 }
 
 
 void
 c_unparser::visit_arrayindex (arrayindex* e)
 {
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  // Visiting an statistic-valued array in a non-lvalue context is prohibited.
-  if (e->referent->type == pe_stats)
+  if (array)
+    {
+
+      // Visiting an statistic-valued array in a non-lvalue context is prohibited.
+      if (array->referent->type == pe_stats)
 	throw semantic_error ("statistic-valued array in rvalue context", e->tok);
 
-  stmt_expr block(*this);  
+      stmt_expr block(*this);  
   
-  // NB: Do not adjust the order of the next few lines; the tmpvar
-  // allocation order must remain the same between
-  // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
+      // NB: Do not adjust the order of the next few lines; the tmpvar
+      // allocation order must remain the same between
+      // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
   
-  vector<tmpvar> idx;
-  load_map_indices (e, idx);
-  tmpvar res = gensym (e->type);
+      vector<tmpvar> idx;
+      load_map_indices (e, idx);
+      tmpvar res = gensym (e->type);
   
-  // NB: because these expressions are nestable, emit this construct
-  // thusly:
-  // ({ tmp0=(idx0); ... tmpN=(idxN);
-  //    lock (array);
-  //    res = fetch (array, idx0...N);
-  //    unlock (array);
-  //    res; })
-  //
-  // we store all indices in temporary variables to avoid nasty
-  // reentrancy issues that pop up with nested expressions:
-  // e.g. a[a[c]=5] could deadlock
+      // NB: because these expressions are nestable, emit this construct
+      // thusly:
+      // ({ tmp0=(idx0); ... tmpN=(idxN);
+      //    lock (array);
+      //    res = fetch (array, idx0...N);
+      //    unlock (array);
+      //    res; })
+      //
+      // we store all indices in temporary variables to avoid nasty
+      // reentrancy issues that pop up with nested expressions:
+      // e.g. a[a[c]=5] could deadlock
   
-  { // block used to control varlock_r lifespan
-    mapvar mvar = getmap (e->referent, e->tok);
-    o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-    varlock_r guard (*this, mvar);
-    c_assign (res, mvar.get(idx), e->tok);
-  }
+      { // block used to control varlock_r lifespan
+	mapvar mvar = getmap (array->referent, e->tok);
+	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	varlock_r guard (*this, mvar);
+	c_assign (res, mvar.get(idx), e->tok);
+      }
 
-  o->newline() << res << ";";
+      o->newline() << res << ";";
+    }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 
 void
 c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 {
-  vardecl* r = e->referent;
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  // One temporary per index dimension.
-  for (unsigned i=0; i<r->index_types.size(); i++)
+  if (array)
     {
-      tmpvar ix = parent->parent->gensym (r->index_types[i]);
-      ix.declare (*(parent->parent));
-      e->indexes[i]->visit(parent);
-    }
+
+      vardecl* r = array->referent;
+
+      // One temporary per index dimension.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->parent->gensym (r->index_types[i]);
+	  ix.declare (*(parent->parent));
+	  e->indexes[i]->visit(parent);
+	}
  
- // The expression rval, lval, and result.
-  exp_type ty = rvalue ? rvalue->type : e->type;
-  tmpvar rval = parent->parent->gensym (ty);
-  rval.declare (*(parent->parent));
+      // The expression rval, lval, and result.
+      exp_type ty = rvalue ? rvalue->type : e->type;
+      tmpvar rval = parent->parent->gensym (ty);
+      rval.declare (*(parent->parent));
 
-  tmpvar lval = parent->parent->gensym (ty);
-  lval.declare (*(parent->parent));
+      tmpvar lval = parent->parent->gensym (ty);
+      lval.declare (*(parent->parent));
 
-  tmpvar res = parent->parent->gensym (ty);
-  res.declare (*(parent->parent));
+      tmpvar res = parent->parent->gensym (ty);
+      res.declare (*(parent->parent));
 
-  if (rvalue)
-    rvalue->visit (parent);
+      if (rvalue)
+	rvalue->visit (parent);
+    }
+  else
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
 }
 
 void
 c_unparser_assignment::visit_arrayindex (arrayindex *e)
 {
-  stmt_expr block(*parent);  
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
 
-  translator_output *o = parent->o;
-
-  if (e->referent->index_types.size() == 0)
-    throw semantic_error ("unexpected reference to scalar", e->tok);
-
-  // nb: Do not adjust the order of the next few lines; the tmpvar
-  // allocation order must remain the same between
-  // c_unparser_assignment::visit_arrayindex and
-  // c_tmpcounter_assignment::visit_arrayindex
-  
-  vector<tmpvar> idx;
-  parent->load_map_indices (e, idx);
-  exp_type ty = rvalue ? rvalue->type : e->type;
-  tmpvar rvar = parent->gensym (ty);
-  tmpvar lvar = parent->gensym (ty);
-  tmpvar res = parent->gensym (ty);
-  
-  // NB: because these expressions are nestable, emit this construct
-  // thusly:
-  // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
-  //    lock (array);
-  //    lvar = get (array,idx0...N); // if necessary
-  //    assignop (res, lvar, rvar);
-  //    set (array, idx0...N, lvar);
-  //    unlock (array);
-  //    res; })
-  //
-  // we store all indices in temporary variables to avoid nasty
-  // reentrancy issues that pop up with nested expressions:
-  // e.g. ++a[a[c]=5] could deadlock
-  //
-  //
-  // There is an exception to the above form: if we're doign a <<< assigment to 
-  // a statistic-valued map, there's a special form we follow:
-  //
-  // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
-  //    lock (array);
-  //    _stp_map_add_stat (array, idx0...N, rvar);
-  //    unlock (array);
-  //    rvar; })
-  //
-  // To simplify variable-allocation rules, we assign rvar to lvar and
-  // res in this block as well, even though they are technically
-  // superfluous.
-
-  prepare_rvalue (op, rvar, e->tok);
-
-  if (op == "<<<")
+  if (array)
     {
-      assert (e->type == pe_stats);
-      assert (rvalue->type == pe_long);
 
-      mapvar mvar = parent->getmap (e->referent, e->tok);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-      varlock_w guard (*parent, mvar);
-      o->newline() << mvar.add (idx, rvar) << ";";
-      // dummy assignments
-      o->newline() << lvar << " = " << rvar << ";";
-      o->newline() << res << " = " << rvar << ";";
-    }
+      stmt_expr block(*parent);  
+
+      translator_output *o = parent->o;
+
+      if (array->referent->index_types.size() == 0)
+	throw semantic_error ("unexpected reference to scalar", e->tok);
+
+      // nb: Do not adjust the order of the next few lines; the tmpvar
+      // allocation order must remain the same between
+      // c_unparser_assignment::visit_arrayindex and
+      // c_tmpcounter_assignment::visit_arrayindex
+  
+      vector<tmpvar> idx;
+      parent->load_map_indices (e, idx);
+      exp_type ty = rvalue ? rvalue->type : e->type;
+      tmpvar rvar = parent->gensym (ty);
+      tmpvar lvar = parent->gensym (ty);
+      tmpvar res = parent->gensym (ty);
+  
+      // NB: because these expressions are nestable, emit this construct
+      // thusly:
+      // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
+      //    lock (array);
+      //    lvar = get (array,idx0...N); // if necessary
+      //    assignop (res, lvar, rvar);
+      //    set (array, idx0...N, lvar);
+      //    unlock (array);
+      //    res; })
+      //
+      // we store all indices in temporary variables to avoid nasty
+      // reentrancy issues that pop up with nested expressions:
+      // e.g. ++a[a[c]=5] could deadlock
+      //
+      //
+      // There is an exception to the above form: if we're doign a <<< assigment to 
+      // a statistic-valued map, there's a special form we follow:
+      //
+      // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
+      //    lock (array);
+      //    _stp_map_add_stat (array, idx0...N, rvar);
+      //    unlock (array);
+      //    rvar; })
+      //
+      // To simplify variable-allocation rules, we assign rvar to lvar and
+      // res in this block as well, even though they are technically
+      // superfluous.
+
+      prepare_rvalue (op, rvar, e->tok);
+
+      if (op == "<<<")
+	{
+	  assert (e->type == pe_stats);
+	  assert (rvalue->type == pe_long);
+
+	  mapvar mvar = parent->getmap (array->referent, e->tok);
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  varlock_w guard (*parent, mvar);
+	  o->newline() << mvar.add (idx, rvar) << ";";
+	  // dummy assignments
+	  o->newline() << lvar << " = " << rvar << ";";
+	  o->newline() << res << " = " << rvar << ";";
+	}
+      else
+	{ // block used to control varlock_w lifespan
+	  mapvar mvar = parent->getmap (array->referent, e->tok);
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  varlock_w guard (*parent, mvar);
+	  if (op != "=") // don't bother fetch slot if we will just overwrite it
+	    parent->c_assign (lvar, mvar.get(idx), e->tok);
+	  c_assignop (res, lvar, rvar, e->tok); 
+	  o->newline() << mvar.set (idx, lvar) << ";";
+	}
+
+      o->newline() << res << ";";
+    } 
   else
-    { // block used to control varlock_w lifespan
-      mapvar mvar = parent->getmap (e->referent, e->tok);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-      varlock_w guard (*parent, mvar);
-      if (op != "=") // don't bother fetch slot if we will just overwrite it
-	parent->c_assign (lvar, mvar.get(idx), e->tok);
-      c_assignop (res, lvar, rvar, e->tok); 
-      o->newline() << mvar.set (idx, lvar) << ";";
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
     }
-
-  o->newline() << res << ";";
 }
 
 
@@ -2530,6 +2656,211 @@ c_unparser::visit_functioncall (functioncall* e)
                  << ".__retvalue;";
 }
 
+struct hist_op_downcaster
+  : virtual public traversing_visitor
+{
+  hist_op *& hist;
+
+  hist_op_downcaster (hist_op *& hist)
+    : hist(hist) 
+  {}
+
+  void visit_hist_op (hist_op* e)
+  {
+    hist = e;
+  }
+};
+
+static bool
+expression_is_hist_op (expression *e, 
+		       hist_op *& hist)
+{
+  hist_op *h = NULL;
+  hist_op_downcaster d(h);
+  e->visit (&d);
+  if (static_cast<void*>(h) == static_cast<void*>(e))
+    {
+      hist = h;
+      return true;
+    }
+  return false;
+}
+
+
+void
+c_tmpcounter::visit_print_format (print_format* e)
+{
+  hist_op *hist;
+  if ((!e->print_with_format) &&
+      (e->args.size() == 1) &&
+      expression_is_hist_op (e->args[0], hist))
+    {
+    }
+  else
+    {
+      // One temporary per argument
+      for (unsigned i=0; i < e->args.size(); i++)
+	{
+	  tmpvar t = parent->gensym (e->args[i]->type);
+	  if (e->args[i]->type == pe_unknown)
+	    {
+	      throw semantic_error("unknown type of arg to print operator", 
+				   e->args[i]->tok);
+	    }
+
+	  t.declare (*parent);
+	  e->args[i]->visit (this);
+	}
+
+      // And the result
+      exp_type ty = e->print_to_stream ? pe_long : pe_string;
+      tmpvar res = parent->gensym (ty);      
+      res.declare (*parent);
+    }
+}
+
+
+void 
+c_unparser::visit_print_format (print_format* e)
+{
+  // Print formats can contain a general argument list *or* a special
+  // type of argument which gets its own processing: a single,
+  // non-format-string'ed, histogram-type stat_op expression.
+
+  hist_op *hist;
+  if ((!e->print_with_format) &&
+      (e->args.size() == 1) &&
+      expression_is_hist_op (e->args[0], hist))
+    {
+      // FIXME: fill in some logic here!
+      assert(false);
+    }
+  else
+    {
+      stmt_expr block(*this);  
+
+      // Compute actual arguments
+      vector<tmpvar> tmp;
+      
+      for (unsigned i=0; i<e->args.size(); i++)
+	{
+	  tmpvar t = gensym(e->args[i]->type);
+	  tmp.push_back(t);
+
+	  o->newline() << "c->last_stmt = "
+		       << lex_cast_qstring(*e->args[i]->tok) << ";";
+	  c_assign (t.qname(), e->args[i], "print format actual argument evaluation");	  
+	}
+
+      std::vector<print_format::format_component> components;
+      
+      if (e->print_with_format)
+	{
+	  components = e->components;
+	}
+      else
+	{
+	  // Synthesize a print-format string if the user didn't
+	  // provide one; the synthetic string simply contains one
+	  // directive for each argument.
+	  for (unsigned i = 0; i < e->args.size(); ++i)
+	    {
+	      print_format::format_component curr;
+	      curr.clear();
+	      switch (e->args[i]->type)
+		{
+		case pe_unknown:
+		  throw semantic_error("Cannot print unknown expression type", e->args[i]->tok);
+		case pe_stats:
+		  throw semantic_error("Cannot print a raw stats object", e->args[i]->tok);
+		case pe_long:
+		  curr.type = print_format::conv_signed_decimal;
+		  break;
+		case pe_string:
+		  curr.type = print_format::conv_string;
+		  break;
+		}
+	      components.push_back (curr);
+	    }
+	}
+
+
+      // Allocate the result
+      exp_type ty = e->print_to_stream ? pe_long : pe_string;
+      tmpvar res = gensym (ty);      
+
+      // Make the [s]printf call
+      if (e->print_to_stream)
+	{
+	  o->newline() << res.qname() << " = 0;";
+	  o->newline() << "_stp_printf (";
+	}
+      else
+	o->newline() << "snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
+
+      o->line() << "\"" << print_format::components_to_string(components) << "\"";
+
+      for (unsigned i = 0; i < tmp.size(); ++i)
+	{
+	  o->line() << ", " << tmp[i].qname();
+	}
+      o->line() << ");";
+      o->newline() << res.qname() << ";";
+    }
+}
+
+void 
+c_unparser::visit_stat_op (stat_op* e)
+{
+  //
+  // Stat ops can be *applied* to two types of expression:
+  //
+  //  1. An arrayindex expression on a pe_stats-valued array. 
+  //
+  //  2. A symbol of type pe_stats. 
+  //
+  // Stat ops can only *occur* in a limited set of circumstances:
+  //
+  //  1. Inside an arrayindex expression, as the base referent, when
+  //     the stat_component_type is a histogram type. See
+  //     c_unparser::visit_arrayindex for handling of this case.
+  //
+  //  2. Inside a foreach statement, as the base referent, when the
+  //     stat_component_type is a histogram type. See
+  //     c_unparser::visit_foreach_loop for handling this case.
+  //
+  //  3. Inside a print_format expression, as the sole argument, when
+  //     the stat_component_type is a histogram type. See
+  //     c_unparser::visit_print_format for handling this case.
+  //
+  //  4. Inside a normal rvalue context, when the stat_component_type
+  //     is a scalar. That's this case.
+  //
+
+  // FIXME: classify the expression the stat_op is being applied to,
+  // call appropriate stp_get_stat() / stp_pmap_get_stat() helper,
+  // then reach into resultant struct stat_data.
+
+  switch (e->type)
+    {
+    case sc_average:
+    case sc_count:
+    case sc_sum:
+    case sc_min:
+    case sc_max:
+
+    default:
+      assert(false);
+      break;
+    }  
+}
+
+
+void 
+c_unparser::visit_hist_op (hist_op* e)
+{
+  assert(false);
+}
 
 
 int

@@ -136,6 +136,8 @@ private: // nonterminals
   next_statement* parse_next_statement ();
   break_statement* parse_break_statement ();
   continue_statement* parse_continue_statement ();
+  indexable* parse_indexable ();
+  const token *parse_hist_op_or_bare_name (hist_op *&hop, std::string &name);
   expression* parse_expression ();
   expression* parse_assignment ();
   expression* parse_ternary ();

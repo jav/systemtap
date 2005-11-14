@@ -431,7 +431,7 @@ lexer::scan ()
   if (isspace (c))
     goto skip;
 
-  else if (isalpha (c) || c == '$' || c == '_')
+  else if (isalpha (c) || c == '$' || c == '@' || c == '_')
     {
       n->type = tok_identifier;
       n->content = (char) c;
@@ -1407,11 +1407,8 @@ parser::parse_foreach_loop ()
   t = next ();
   if (! (t->type == tok_identifier && t->content == "in"))
     throw parse_error ("expected 'in'");
-
-  t = next ();
-  if (t->type != tok_identifier)
-    throw parse_error ("expected identifier");
-  s->base = t->content;
+ 
+  s->base = parse_indexable();
 
   t = peek ();
   if (t && t->type == tok_operator &&
@@ -1662,13 +1659,8 @@ parser::parse_array_in ()
 
       arrayindex* a = new arrayindex;
       a->indexes = indexes;
-
-      t = next ();
-      if (t->type != tok_identifier)
-        throw parse_error ("expected identifier");
-      a->tok = t;
-      a->base = t->content;
-
+      a->base = parse_indexable();
+      a->tok = a->base->get_tok();
       e->operand = a;
       return e;
     }
@@ -1880,50 +1872,231 @@ parser::parse_value ()
 }
 
 
-// var, var[index], func(parms), thread->var, process->var
+const token *
+parser::parse_hist_op_or_bare_name (hist_op *&hop, string &name)
+{
+  hop = NULL;
+  const token* t = expect_ident (name);
+  if (name == "@hist_linear" || name == "@hist_log")
+    {
+      hop = new hist_op;
+      if (name == "@hist_linear")
+	hop->htype = hist_linear;
+      else if (name == "@hist_log")
+	hop->htype = hist_log;
+      hop->tok = t;
+      expect_op("(");
+      hop->stat = parse_expression ();
+      int64_t tnum;
+      if (hop->htype == hist_linear)
+	{
+	  for (size_t i = 0; i < 3; ++i)
+	    {
+	      expect_op (",");
+	      expect_number (tnum);
+	      hop->params.push_back (tnum);
+	    }
+	}
+      else
+	{
+	  assert(hop->htype == hist_log);
+	  if (peek_op (","))
+	    {
+	      expect_op (",");
+	      expect_number (tnum);
+	      hop->params.push_back (tnum);
+	    }
+	  else
+	    {
+	      // FIXME (magic value): Logarithmic histograms get 64
+	      // buckets by default.
+	      hop->params.push_back (64);
+	    }	      
+	}
+      expect_op(")");
+    }
+  return t;
+}
+
+
+indexable*
+parser::parse_indexable ()
+{
+  hist_op *hop = NULL;
+  string name;
+  const token *tok = parse_hist_op_or_bare_name(hop, name);
+  if (hop)
+    return hop;
+  else
+    {
+      symbol* sym = new symbol;
+      sym->name = name;
+      sym->tok = tok;
+      return sym;
+    }
+}
+
+
+// var, indexable[index], func(parms), printf("...", ...), $var, $var->member, @stat_op(stat)
 expression*
 parser::parse_symbol () 
 {
+  hist_op *hop = NULL;
+  symbol *sym = NULL;
   string name;
-  const token* t = expect_ident (name);
-  const token* t2 = t;
-  
-  if (name.size() > 0 && name[0] == '$')
+  const token *t = parse_hist_op_or_bare_name(hop, name);
+
+  if (!hop)
     {
-      // target_symbol time
-      target_symbol *tsym = new target_symbol;
-      tsym->tok = t;
-      tsym->base_name = name;
-      while (true)
+      // If we didn't get a hist_op, then we did get an identifier. We can 
+      // now scrutinize this identifier for the various magic forms of identifier
+      // (printf, @stat_op, and $var...)
+
+      if (name.size() > 0 && name[0] == '@')
 	{
-	  string c;
-	  if (peek_op ("->"))
-	    { 
-	      next(); 
-	      expect_ident (c);
-	      tsym->components.push_back
-		(make_pair (target_symbol::comp_struct_member, c));
-	    }
-	  else if (peek_op ("["))
-	    { 
-	      next();
-	      expect_unknown (tok_number, c);
-  	      expect_op ("]");
-	      tsym->components.push_back
-		(make_pair (target_symbol::comp_literal_array_index, c));
-	    }	    
+	  stat_op *sop = new stat_op;
+	  if (name == "@avg")
+	    sop->ctype = sc_average;
+	  else if (name == "@count")
+	    sop->ctype = sc_count;
+	  else if (name == "@sum")
+	    sop->ctype = sc_sum;
+	  else if (name == "@min")
+	    sop->ctype = sc_min;
+	  else if (name == "@max")
+	    sop->ctype = sc_max;
 	  else
-	    break;
+	    throw parse_error("unknown statistic operator " + name);
+	  expect_op("(");
+	  sop->tok = t;
+	  sop->stat = parse_expression ();
+	  expect_op(")");
+	  return sop;
 	}
-      return tsym;
+      
+      else if (name.size() > 0 && (name == "print"
+				   || name == "sprint"
+				   || name == "printf"
+				   || name == "sprintf"))
+	{
+	  print_format *fmt = new print_format;
+	  fmt->tok = t;
+	  fmt->print_with_format = (name[name.size() - 1] == 'f');
+	  fmt->print_to_stream = (name[0] == 'p');
+	  expect_op("(");
+	  if (fmt->print_with_format)
+	    {
+	      // Consume and convert a format string, and any subsequent
+	      // arguments. Agreement between the format string and the
+	      // arguments is postponed to the typechecking phase. 
+	      string tmp;
+	      expect_unknown (tok_string, tmp);
+	      fmt->components = print_format::string_to_components (tmp);
+	      while (!peek_op (")"))
+		{
+		  expect_op(",");
+		  expression *e = parse_expression ();	      
+		  fmt->args.push_back(e);
+		}
+	    }
+	  else
+	    {
+	      // If we are not printing with a format string, we permit
+	      // exactly one argument (of any type).
+	      expression *e = parse_expression ();	      
+	      fmt->args.push_back(e);
+	    }
+	  expect_op(")");
+	  return fmt;
+	}
+      
+      else if (name.size() > 0 && name[0] == '$')
+	{
+	  // target_symbol time
+	  target_symbol *tsym = new target_symbol;
+	  tsym->tok = t;
+	  tsym->base_name = name;
+	  while (true)
+	    {
+	      string c;
+	      if (peek_op ("->"))
+		{ 
+		  next(); 
+		  expect_ident (c);
+		  tsym->components.push_back
+		    (make_pair (target_symbol::comp_struct_member, c));
+		}
+	      else if (peek_op ("["))
+		{ 
+		  next();
+		  expect_unknown (tok_number, c);
+		  expect_op ("]");
+		  tsym->components.push_back
+		    (make_pair (target_symbol::comp_literal_array_index, c));
+		}	    
+	      else
+		break;
+	    }
+	  return tsym;
+	}
+
+      else if (peek_op ("(")) // function call
+	{
+	  next ();
+	  struct functioncall* f = new functioncall;
+	  f->tok = t;
+	  f->function = name;
+	  // Allow empty actual parameter list
+	  if (peek_op (")"))
+	    {
+	      next ();
+	      return f;
+	    }
+	  while (1)
+	    {
+	      f->args.push_back (parse_expression ());
+	      if (peek_op (")"))
+		{
+		  next();
+		  break;
+		}
+	      else if (peek_op (","))
+		{
+		  next();
+		  continue;
+		}
+	      else
+		throw parse_error ("expected ',' or ')'");
+	    }
+	  return f;
+	}
+
+      else
+	{
+	  sym = new symbol;
+	  sym->name = name;
+	  sym->tok = t;
+	}
     }
   
+  // By now, either we had a hist_op in the first place, or else 
+  // we had a plain word and it was converted to a symbol.
+
+  assert (hop || sym);
+
+  // All that remains is to check for array indexing
+
   if (peek_op ("[")) // array
     {
       next ();
       struct arrayindex* ai = new arrayindex;
-      ai->tok = t2;
-      ai->base = name;
+      ai->tok = t;
+
+      if (hop)
+	ai->base = hop;
+      else
+	ai->base = sym;
+
       while (1)
         {
           ai->indexes.push_back (parse_expression ());
@@ -1942,42 +2115,14 @@ parser::parse_symbol ()
         }
       return ai;
     }
-  else if (peek_op ("(")) // function call
-    {
-      next ();
-      struct functioncall* f = new functioncall;
-      f->tok = t2;
-      f->function = name;
-      // Allow empty actual parameter list
-      if (peek_op (")"))
-	{
-	  next ();
-	  return f;
-	}
-      while (1)
-	{
-	  f->args.push_back (parse_expression ());
-	  if (peek_op (")"))
-	    {
-	      next();
-	      break;
-	    }
-	  else if (peek_op (","))
-	    {
-	      next();
-	      continue;
-	    }
-	  else
-	    throw parse_error ("expected ',' or ')'");
-	}
-      return f;
-    }
-  else
-    {
-      symbol* sym = new symbol;
-      sym->name = name;
-      sym->tok = t2;
-      return sym;
-    }
+
+  // If we got to here, we *should* have a symbol; if we have
+  // a hist_op on its own, it doesn't count as an expression,
+  // so we throw a parse error.
+
+  if (hop)
+    throw parse_error("base histogram operator where expression expected", t);
+  
+  return sym;  
 }
 
