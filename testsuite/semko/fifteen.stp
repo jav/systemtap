@@ -8,7 +8,7 @@ probe begin
 	{
 		state = tangle[state]++
 	}
-	printk("hello from systemtap")
+	log("hello from systemtap")
 }
 
 

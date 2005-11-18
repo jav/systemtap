@@ -15,10 +15,6 @@ function log (msg:string) %{
     _stp_printf ("%s\n", THIS->msg);
 %}
 
-function printk (msg:string) %{
-    printk (KERN_INFO "%s\n", THIS->msg);
-%}
-
 function warn (msg:string) %{
     _stp_warn ("%s", THIS->msg);
 %}

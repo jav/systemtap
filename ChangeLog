@@ -1,3 +1,26 @@
+2005-11-18  Martin Hunt  <hunt@redhat.com>
+
+	PR 1837
+	* testsuite/buildko/one.stp: Replace printk.
+	* testsuite/buildok/one.stp: Ditto.
+	* testsuite/buildok/two.stp: Ditto.
+	* testsuite/semko/fifteen.stp: Ditto.	
+	* testsuite/semko/fourteen.stp: Ditto.	
+	* testsuite/semko/thirteen.stp: Ditto.	
+	* testsuite/transok/eight.stp: Ditto.	
+	* testsuite/transok/seven.stp: Ditto.	
+	* testsuite/transok/six.stp: Ditto.	
+
+	* tapsets.cxx (*::emit_probe_entries): Replace printk() calls 
+	with _stp_warn().
+
+	* stap.1.in: Replace printk with printf in example.
+
+	* stapfuncs.5.in: Remove docs for printk and add for
+	print and printf.
+
+	* tapset/logging.stp (printk): Deleted.
+
 2005-11-13  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.h (struct indexable): New struct.

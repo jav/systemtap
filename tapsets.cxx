@@ -158,7 +158,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
       else o->line() << "STAP_SESSION_STOPPING)";
       o->newline(1) << "return;";
       o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-      o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
+      o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
       o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
       o->newline() << "atomic_dec (&c->busy);";
@@ -2729,8 +2729,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
       o->newline() << "int stap_kprobe_fault_handler (struct kprobe* kp, "
 		   << "struct pt_regs* regs, int trapnr) {";
       o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
-      o->newline() << "printk (KERN_ERR \"systemtap probe fault\\n\");";
-      o->newline() << "printk (KERN_ERR \"cpu %d, probe %s, near %s\\n\", ";
+      o->newline() << "_stp_warn (\"systemtap probe fault\\n\");";
+      o->newline() << "_stp_warn (\"cpu %d, probe %s, near %s\\n\", ";
       o->newline(1) << "smp_processor_id(), ";
       o->newline() << "c->probe_point ? c->probe_point : \"unknown\", ";
       o->newline() << "c->last_stmt ? c->last_stmt : \"unknown\");";
@@ -2842,7 +2842,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
   o->newline(1) << "return 0;";
   o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
+  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
 		    << "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "atomic_dec (&c->busy);";
@@ -2994,7 +2994,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline(1) << "return;";
 
   o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "printk (KERN_ERR \"probe reentrancy (%s vs %s)\\n\", "
+  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
 		<< "c->probe_point, probe_point);";
   o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "atomic_dec (&c->busy);";

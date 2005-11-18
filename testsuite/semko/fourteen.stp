@@ -14,7 +14,7 @@ probe begin
 	{
 		bar()
 	}
-	printk("hello from systemtap")
+	log("hello from systemtap")
 }
 
 

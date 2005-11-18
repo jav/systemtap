@@ -2,7 +2,7 @@
 
 probe begin
 {
-	printk("kernel time")
+	print("kernel time\n")
 	log("hello there")
 	warn("this is a builtin")
 }

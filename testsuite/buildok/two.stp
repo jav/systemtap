@@ -12,7 +12,7 @@ strncpy(THIS->__retvalue, UTS_RELEASE, MAXSTRINGLEN);
 
 probe begin
 {
-	printk("hello from systemtap, kernel version " . get_release())
+	log("hello from systemtap, kernel version " . get_release())
 }
 
 END

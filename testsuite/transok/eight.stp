@@ -21,10 +21,10 @@ probe begin
 
 	foreach ([x,y,z] in baz)
 	{
-		printk(baz[x,y,z] . y)
+		log(baz[x,y,z] . y)
 	}
 
-	printk("hello from systemtap")
+	log("hello from systemtap")
 }
 
 

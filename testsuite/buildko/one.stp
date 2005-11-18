@@ -13,7 +13,7 @@ THIS->__retvalue = 5;
 
 probe begin
 {
-	printk("hello from systemtap, kernel version " . get_release())
+	log("hello from systemtap, kernel version " . get_release())
 }
 
 END

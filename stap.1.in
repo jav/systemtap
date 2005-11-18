@@ -366,7 +366,7 @@ with the given assignment as a prologue.  Another probe definition
 may use the alias like this:
 .SAMPLE
 probe syscall.read {
-  printk ("reading fd=" . string (fildes))
+  printf("reading fd=%d\n", fildes)
 }
 .ESAMPLE
 
