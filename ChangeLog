@@ -1,3 +1,12 @@
+2005-11-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1276
+	From Josh Stone <joshua.i.stone@intel.com>:
+	* tapsets.cxx (timer_derived_probe, timer_builder,
+	register_standard_tapsets): Support timer.ms() variety.
+	* stapprobes.5.in: Document it.
+	* testsuite/builok/fourteen.stp: Test its buildability.
+
 2005-11-18  Martin Hunt  <hunt@redhat.com>
 
 	PR 1837

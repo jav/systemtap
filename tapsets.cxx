@@ -2935,8 +2935,9 @@ dwarf_builder::build(systemtap_session & sess,
 struct timer_derived_probe: public derived_probe
 {
   int64_t interval, randomize;
+  bool time_is_msecs;
 
-  timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r);
+  timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r, bool ms=false);
 
   virtual void emit_registrations (translator_output * o, unsigned i);
   virtual void emit_deregistrations (translator_output * o, unsigned i);
@@ -2944,8 +2945,8 @@ struct timer_derived_probe: public derived_probe
 };
 
 
-timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r):
-  derived_probe (p, l), interval (i), randomize (r)
+timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r, bool ms):
+  derived_probe (p, l), interval (i), randomize (r), time_is_msecs(ms)
 {
   if (interval <= 0 || interval > 1000000) // make i and r fit into plain ints
     throw semantic_error ("invalid interval for jiffies timer");
@@ -2963,7 +2964,15 @@ void
 timer_derived_probe::emit_registrations (translator_output* o, unsigned j)
 {
   o->newline() << "init_timer (& timer_" << j << ");";
-  o->newline() << "timer_" << j << ".expires = jiffies + " << interval << ";";
+  o->newline() << "timer_" << j << ".expires = jiffies + ";
+  if (time_is_msecs)
+    o->line() << "msecs_to_jiffies(";
+  o->line() << interval;
+  if (randomize)
+    o->line() << " + _stp_random_pm(" << randomize << ")";
+  if (time_is_msecs)
+    o->line() << ")";
+  o->line() << ";";
   o->newline() << "timer_" << j << ".function = & enter_" << j << ";";
   o->newline() << "add_timer (& timer_" << j << ");";
 }
@@ -3002,10 +3011,14 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline(-1) << "}";
   o->newline();
 
-  o->newline() << "mod_timer (& timer_" << j << ", "
-               << "jiffies + " << interval;
+  o->newline() << "mod_timer (& timer_" << j << ", jiffies + ";
+  if (time_is_msecs)
+    o->line() << "msecs_to_jiffies(";
+  o->line() << interval;
   if (randomize)
     o->line() << " + _stp_random_pm(" << randomize << ")";
+  if (time_is_msecs)
+    o->line() << ")";
   o->line() << ");";
 
   o->newline() << "c->probe_point = probe_point;";
@@ -3035,7 +3048,8 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
 struct timer_builder: public derived_probe_builder
 {
-  timer_builder() {}
+  bool time_is_msecs;
+  timer_builder(bool ms=false): time_is_msecs(ms) {}
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
@@ -3045,11 +3059,12 @@ struct timer_builder: public derived_probe_builder
     int64_t jn, rn;
     bool jn_p, rn_p;
 
-    jn_p = get_param (parameters, "jiffies", jn);
+    jn_p = get_param (parameters, time_is_msecs ? "ms" : "jiffies", jn);
     rn_p = get_param (parameters, "randomize", rn);
 
     finished_results.push_back(new timer_derived_probe(base, location,
-                                                       jn, rn_p ? rn : 0));
+                                                       jn, rn_p ? rn : 0,
+                                                       time_is_msecs));
   }
 };
 
@@ -3067,6 +3082,8 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind("end")->bind(new be_builder(false));
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind(new timer_builder());
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());
+  s.pattern_root->bind("timer")->bind_num("ms")->bind(new timer_builder(true));
+  s.pattern_root->bind("timer")->bind_num("ms")->bind_num("randomize")->bind(new timer_builder(true));
 
   // kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
