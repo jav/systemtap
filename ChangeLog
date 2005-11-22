@@ -1,3 +1,13 @@
+2005-11-21  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (c_translate_location): Take Dwarf_Op vector as argument
+	directly, not Dwarf_Attribute.p
+	* loc2c.h: Update decl.
+	* loc2c-test.c (get_location): New function.
+	(handle_variable): Use it.
+	* tapsets.cxx (dwflpp::translate_location): New method.
+	(dwflpp::translate_components, dwflpp::literal_stmt_for_local): Use it.
+
 2005-11-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1276
@@ -13,14 +23,14 @@
 	* testsuite/buildko/one.stp: Replace printk.
 	* testsuite/buildok/one.stp: Ditto.
 	* testsuite/buildok/two.stp: Ditto.
-	* testsuite/semko/fifteen.stp: Ditto.	
-	* testsuite/semko/fourteen.stp: Ditto.	
-	* testsuite/semko/thirteen.stp: Ditto.	
-	* testsuite/transok/eight.stp: Ditto.	
-	* testsuite/transok/seven.stp: Ditto.	
-	* testsuite/transok/six.stp: Ditto.	
+	* testsuite/semko/fifteen.stp: Ditto.
+	* testsuite/semko/fourteen.stp: Ditto.
+	* testsuite/semko/thirteen.stp: Ditto.
+	* testsuite/transok/eight.stp: Ditto.
+	* testsuite/transok/seven.stp: Ditto.
+	* testsuite/transok/six.stp: Ditto.
 
-	* tapsets.cxx (*::emit_probe_entries): Replace printk() calls 
+	* tapsets.cxx (*::emit_probe_entries): Replace printk() calls
 	with _stp_warn().
 
 	* stap.1.in: Replace printk with printf in example.
@@ -37,13 +47,13 @@
 	(classify_const_indexable): New function.
 	(struct symbol): Implement indexable.
 	(struct arrayindex): Take indexable as base.
-	(struct foreach_loop): Take indexable as base. 
+	(struct foreach_loop): Take indexable as base.
 	(struct print_format): New struct.
 	(enum stat_component_type): New enum.
 	(struct stat_op): New struct.
 	(enum historgram_type): New enum.
 	(struct hist_op): New struct.
-	(struct visitor) 
+	(struct visitor)
 	(struct traversing_visitor)
 	(struct throwing_visitor)
 	(struct deep_copy_visitor): Add new visitor methods.
@@ -87,7 +97,7 @@
 	* translate.cxx
 	(c_unparser::getiter): Take symbol, not foreach_loop.
 	(c_unparser::*) Add new visitors, teach about indexables.
-	(c_tmpcounter::*) 
+	(c_tmpcounter::*)
 	(delete_statement_operand_visitor::visit_arrayindex)
 	(c_tmpcounter_assignment::*)
 	(c_unparser_assignment::*): Likewise.
