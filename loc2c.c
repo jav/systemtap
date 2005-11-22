@@ -965,34 +965,12 @@ c_translate_location (struct obstack *pool,
 		      void *fail_arg,
 		      void (*emit_address) (void *fail_arg,
 					    struct obstack *, Dwarf_Addr),
-		      int indent, Dwarf_Addr dwbias,
-		      Dwarf_Attribute *loc_attr, Dwarf_Addr address,
+		      int indent, Dwarf_Addr dwbias, Dwarf_Addr pc_address,
+		      const Dwarf_Op *expr, size_t len,
 		      struct location **input, Dwarf_Attribute *fb_attr)
 {
-  ++indent;
+  indent += 2;
 
-  Dwarf_Op *expr;
-  size_t len;
-  switch (dwarf_getlocation_addr (loc_attr, address - dwbias, &expr, &len, 1))
-    {
-    case 1:			/* Should always happen.  */
-      if (len == 0)
-	goto inaccessible;
-      break;
-
-    default:			/* Shouldn't happen.  */
-    case -1:
-      (*fail) (fail_arg, N_("dwarf_addrloclists (form %#x): %s"),
-	       dwarf_whatform (fb_attr), dwarf_errmsg (-1));
-      return NULL;
-
-    case 0:			/* Shouldn't happen.  */
-    inaccessible:
-      (*fail) (fail_arg, N_("not accessible at this address"));
-      return NULL;
-    }
-
-  ++indent;
   switch (*input == NULL ? loc_address : (*input)->type)
     {
     case loc_address:
@@ -1000,14 +978,14 @@ c_translate_location (struct obstack *pool,
 	 This expression will compute starting with that on the stack.  */
       return location_from_address (pool, fail, fail_arg,
 				    emit_address ?: &default_emit_address,
-				    indent, dwbias, expr, len, address,
+				    indent, dwbias, expr, len, pc_address,
 				    input, fb_attr);
 
     case loc_noncontiguous:
     case loc_register:
       /* The starting point is not an address computation, but a
 	 register.  We can only handle limited computations from here.  */
-      return location_relative (pool, indent, dwbias, expr, len, address,
+      return location_relative (pool, indent, dwbias, expr, len, pc_address,
 				input, fb_attr);
 
     default:

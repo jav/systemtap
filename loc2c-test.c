@@ -44,6 +44,34 @@ fail (void *arg __attribute__ ((unused)), const char *fmt, ...)
   exit (2);
 }
 
+static const Dwarf_Op *
+get_location (Dwarf_Addr dwbias, Dwarf_Addr pc, Dwarf_Attribute *loc_attr,
+	      size_t *len)
+{
+  Dwarf_Op *expr;
+
+  switch (dwarf_getlocation_addr (loc_attr, pc - dwbias, &expr, len, 1))
+    {
+    case 1:			/* Should always happen.  */
+      if (*len == 0)
+	goto inaccessible;
+      break;
+
+    default:			/* Shouldn't happen.  */
+    case -1:
+      fail (NULL, _("dwarf_addrloclists (form %#x): %s"),
+	    dwarf_whatform (loc_attr), dwarf_errmsg (-1));
+      return NULL;
+
+    case 0:			/* Shouldn't happen.  */
+    inaccessible:
+      fail (NULL, _("not accessible at this address"));
+      return NULL;
+    }
+
+  return expr;
+}
+
 static void
 handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		 Dwarf_Addr cubias, Dwarf_Die *vardie, Dwarf_Addr pc,
@@ -86,9 +114,12 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 #define FIELD "addr"
 #define emit(fmt, ...) printf ("  addr = " fmt "\n", ## __VA_ARGS__)
 
+  size_t locexpr_len;
+  const Dwarf_Op *locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
+
   struct location *head, *tail = NULL;
   head = c_translate_location (&pool, &fail, NULL, NULL,
-			       1, cubias, &attr_mem, pc,
+			       1, cubias, pc, locexpr, locexpr_len,
 			       &tail, fb_attr);
 
   if (dwarf_attr_integrate (vardie, DW_AT_type, &attr_mem) == NULL)
@@ -181,9 +212,12 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 		       *fields, dwarf_errmsg (-1));
 	    }
 	  else
-	    c_translate_location (&pool, NULL, NULL, NULL,
-				  1, cubias, &attr_mem, pc,
-				  &tail, NULL);
+	    {
+	      locexpr = get_location (cubias, pc, &attr_mem, &locexpr_len);
+	      c_translate_location (&pool, NULL, NULL, NULL,
+				    1, cubias, pc, locexpr, locexpr_len,
+				    &tail, NULL);
+	    }
 	  ++fields;
 	  break;
 

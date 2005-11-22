@@ -934,6 +934,37 @@ dwflpp
   }
 
 
+  struct location *
+  translate_location(struct obstack *pool,
+		     Dwarf_Attribute *attr, Dwarf_Addr pc,
+		     Dwarf_Attribute *fb_attr,
+		     struct location **tail)
+  {
+    Dwarf_Op *expr;
+    size_t len;
+
+    switch (dwarf_getlocation_addr (attr, pc - module_bias, &expr, &len, 1))
+      {
+      case 1:			/* Should always happen.  */
+	if (len > 0)
+	  break;
+	/* Fall through.  */
+
+      case 0:			/* Shouldn't happen.  */
+	throw semantic_error ("not accessible at this address");
+
+      default:			/* Shouldn't happen.  */
+      case -1:
+	throw semantic_error (string ("dwarf_getlocation_addr failed") +
+			      string (dwarf_errmsg (-1)));
+      }
+
+    return c_translate_location (pool, &loc2c_error, this,
+				 &loc2c_emit_address,
+				 1, module_bias,
+				 pc, expr, len, tail, fb_attr);
+  }
+
   Dwarf_Die *
   translate_components(struct obstack *pool,
 		       struct location **tail,
@@ -1015,9 +1046,7 @@ dwflpp
 					+ " :" + string(dwarf_errmsg (-1)));
 	      }
 	    else
-	      c_translate_location (pool, NULL, NULL, NULL, 1,
-				    module_bias, attr_mem, pc,
-				    tail, NULL);
+	      translate_location (pool, attr_mem, pc, NULL, tail);
 	    ++i;
 	    break;
 
@@ -1195,11 +1224,8 @@ dwflpp
 
     /* Given $foo->bar->baz[NN], translate the location of foo. */
 
-    struct location *head = c_translate_location (&pool, &loc2c_error, this,
-						  &loc2c_emit_address,
-						  1, module_bias,
-						  &attr_mem, pc,
-						  &tail, fb_attr);
+    struct location *head = translate_location (&pool,
+						&attr_mem, pc, fb_attr, &tail);
 
     if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
       throw semantic_error("failed to retrieve type "

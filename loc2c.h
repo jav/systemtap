@@ -26,8 +26,9 @@ struct location *c_translate_location (struct obstack *,
 							     Dwarf_Addr),
 				       int indent,
 				       Dwarf_Addr bias,
-				       Dwarf_Attribute *loc_attr,
-				       Dwarf_Addr address,
+				       Dwarf_Addr pc_address,
+				       const Dwarf_Op *locexpr,
+				       size_t locexprlen,
 				       struct location **input,
 				       Dwarf_Attribute *fb_attr);
 
