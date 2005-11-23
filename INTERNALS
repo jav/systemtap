@@ -1,0 +1,127 @@
+The Systemtap Translator - a tour on the inside
+
+Outline:
+- general principles
+- main data structures
+- pass 1: parsing
+- pass 2: semantic analysis (parts 1, 2, 3)
+- pass 3: translation (parts 1, 2)
+- pass 4: compilation
+- pass 5: run
+
+------------------------------------------------------------------------
+Translator general principles
+
+- written in standard C++
+- mildly O-O, sparing use of C++ features
+- uses "visitor" concept for type-dependent (virtual) traversal
+
+------------------------------------------------------------------------
+Main data structures
+
+- abstract syntax tree <staptree.h>
+  - family of types and subtypes for language parts: expressions,
+    literals, statements
+  - includes outermost constructs: probes, aliases, functions
+  - an instance of "stapfile" represents an entire script file
+  - each annotated with a token (script source coordinates)
+  - data persists throughout run
+
+- session <session.h>
+  - contains run-time parameters from command line
+  - contains all globals
+  - passed by reference to many functions
+
+------------------------------------------------------------------------
+Pass 1 - parsing
+
+- hand-written recursive-descent <parse.cxx>
+- language specified in man page <stap.1>
+- reads user-specified script file
+- also searches path for all <*.stp> files, parses them too
+- => syntax errors are caught immediately, throughout tapset
+- now includes baby preprocessor
+     probe kernel.
+     %( kernel_v == "2.6.9" %? inline("foo") %: function("bar") %)
+     { }
+- enforces guru mode for embedded code %{ C %}
+
+------------------------------------------------------------------------
+Pass 2 - semantic analysis - step 1: resolve symbols
+
+- code in <elaborate.cxx>
+- want to know all global and per-probe/function local variables
+- one "vardecl" instance interned per variable
+- fills in "referent" field in AST for nodes that refer to it
+- collect "needed" probe/global/function list in session variable
+- loop over file queue, starting with user script "stapfile"
+  - add to "needed" list this file's globals, functions, probes
+  - resolve any symbols used in this file (function calls, variables)
+    against "needed" list
+  - if not resolved, search through all tapset "stapfile" instances;
+    add to file queue if matched
+  - if still not resolved, create as local scalar, or signal an error
+
+------------------------------------------------------------------------
+Pass 2 - semantic analysis - step 2: resolve types
+
+- fills in "type" field in AST
+- iterate along all probes and functions, until convergence
+- infer types of variables from usage context / operators:
+    a = 5   #  a is a pe_long
+    b["foo",a]++  # b is a pe_long array with indexes pe_string and pe_long
+- loop until no further variable types can be inferred
+- signal error if any still unresolved
+
+------------------------------------------------------------------------
+Pass 2 - semantic analysis - step 3: resolve probes
+
+- probe points turned to "derived_probe" instances by code in <tapsets.cxx>
+- derived_probes know how to talk to kernel API for registration/callbacks
+- aliases get expanded at this point
+- some probe points ("begin", "end", "timer*") are very simple
+- dwarf ("kernel*", "module*") implementation very complicated
+  - target-variables "$foo" expanded to getter/setter functions
+    with synthesized embedded-C
+
+------------------------------------------------------------------------
+Pass 3 - translation - step 1: data
+
+- <translate.cxx>
+- we now know all types, all variables
+- strings are everywhere copied by value (MAXSTRINGLEN bytes)
+- emit data storage mega-struct "context" for all probes/functions
+- array instantiated per-CPU, per-nesting-level
+- can be pretty big static data
+
+------------------------------------------------------------------------
+Pass 3 - translation - step 2: code
+
+- map script functions to C functions taking a context pointer
+- map probes to two C functions:
+  - one to interface with the probe point infrastructure (kprobes,
+    kernel timer): reserves per-cpu context
+  - one to implement probe body, just like a script function
+- emit global startup/shutdown routine to manage orderly 
+  registration/deregistration of probes
+- expressions/statements emitted in "natural" evaluation sequence
+- emit code to enforce activity-count limits, simple safety tests
+- global variables protected by locks
+    global k
+    function foo () { k ++ }  # write lock around increment
+    probe bar { if (k>5) ... } # read lock around read
+- same thing for arrays, except foreach/sort take longer-duration locks
+
+------------------------------------------------------------------------
+Pass 4 - compilation
+
+- <buildrun.cxx>
+- write out C code in a temporary directory
+- call into kbuild makefile to build module
+
+Pass 5 - running
+
+- run "sudo stpd"
+- clean up temporary directory
+
+- nothing to it!
