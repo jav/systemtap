@@ -118,6 +118,7 @@ main (int argc, char * const argv [])
   struct utsname buf;
   (void) uname (& buf);
   s.kernel_release = string (buf.release);
+  s.architecture = string (buf.machine);
   s.verbose = false;
   s.test_mode = false;
   s.guru_mode = false;

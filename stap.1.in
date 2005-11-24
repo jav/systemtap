@@ -163,20 +163,31 @@ ternary operator:
 .BR %( " CONDITION " %? " TRUE-TOKENS " %)
 .BR %( " CONDITION " %? " TRUE-TOKENS " %: " FALSE-TOKENS " %)
 .ESAMPLE
-The CONDITION is a very limited expression consisting of three
-parts.  The first part is the identifier
+The CONDITION is a very limited expression whose format is determined
+by its first keyword.
+.PP
+If the first part is the identifier
 .BR kernel_vr " or " kernel_v
 to refer to the kernel version number, with ("2.6.13-1.322FC3smp") or
-without ("2.6.13") the release code suffix.
-The second part is one of the six standard numeric comparison operators
-.BR < ", " <= ", " == ", " != ", " > ", and " >= .
-The third part is a string literal that contains an RPM-style
+without ("2.6.13") the release code suffix, then
+the second part is one of the six standard numeric comparison operators
+.BR < ", " <= ", " == ", " != ", " > ", and " >= ,
+and the third part is a string literal that contains an RPM-style
 version-release value.  The condition is deemed satisfied if the
 version of the target kernel (as optionally overridden by the
 .BR \-r
 option) compares to the given version string.  The comparison is
 performed by the glibc function
 .BR strverscmp .
+.PP
+If, on the other hand, the first part is the identifier
+.BR arch
+to refer to the processor architecture, then the second part
+then the second part is one of the two string comparison operatorsn
+.BR == " or " != ,
+and the third part is a string literal for matching it.  This
+comparison is simple string (in)equality.
+.PP
 The TRUE-TOKENS and FALSE-TOKENS are zero or more general parser
 tokens (possibly including nested preprocessor conditionals), and are
 pasted into the input stream if the condition is true or false.  For
@@ -192,6 +203,10 @@ probe kernel.function (
      %( kernel_vr == "2.6.13-1.8273FC3smp" %? "do_page_fault" %:
         UNSUPPORTED %) %)
 ) { /* ... */ }
+
+%( arch == "ia64" %?
+   probe syscall.vliw = kernel.function("vliw_widget") {} 
+%)
 .ESAMPLE
 
 .SS VARIABLES

@@ -133,10 +133,12 @@ parser::last ()
 
 // Here, we perform on-the-fly preprocessing.
 // The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
-// where CONDITION is "kernel_v[r]" COMPARISON-OP "version-string", and
-// the %: ELSE-TOKENS part is optional.
+// where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
+//                 or: arch COMPARISON-OP "arch-string"
+// The %: ELSE-TOKENS part is optional.
 //
 // e.g. %( kernel_v > "2.5" %? "foo" %: "baz" %)
+// e.g. %( arch != "i686" %? "foo" %: "baz" %)
 //
 // Up to an entire %( ... %) expression is processed by a single call
 // to this function.  Tokens included by any nested conditions are
@@ -145,46 +147,67 @@ parser::last ()
 bool eval_pp_conditional (systemtap_session& s,
                           const token* l, const token* op, const token* r)
 {
-  if (! (l->type == tok_identifier && (l->content == "kernel_v" ||
-                                       l->content == "kernel_vr")))
-    throw parse_error ("expected 'kernel_v' or 'kernel_vr'", l);
-  string target_kernel_vr = s.kernel_release;
-  string target_kernel_v = target_kernel_vr;
-  // cut off any release code suffix
-  string::size_type dr = target_kernel_vr.rfind ('-');
-  if (dr > 0 && dr != string::npos)
-    target_kernel_v = target_kernel_vr.substr (0, dr);
-
-  if (! (r->type == tok_string))
-    throw parse_error ("expected string literal", r);
-  string query_kernel_vr = r->content;
-
-  // collect acceptable strverscmp results.
-  int rvc_ok1, rvc_ok2;
-  if (op->type == tok_operator && op->content == "<=")
-    { rvc_ok1 = -1; rvc_ok2 = 0; }
-  else if (op->type == tok_operator && op->content == ">=")
-    { rvc_ok1 = 1; rvc_ok2 = 0; }
-  else if (op->type == tok_operator && op->content == "<")
-    { rvc_ok1 = -1; rvc_ok2 = -1; }
-  else if (op->type == tok_operator && op->content == ">")
-    { rvc_ok1 = 1; rvc_ok2 = 1; }
-  else if (op->type == tok_operator && op->content == "==")
-    { rvc_ok1 = 0; rvc_ok2 = 0; }
-  else if (op->type == tok_operator && op->content == "!=")
-    { rvc_ok1 = -1; rvc_ok2 = 1; }
+  if (l->type == tok_identifier && (l->content == "kernel_v" ||
+                                    l->content == "kernel_vr"))
+    {
+      string target_kernel_vr = s.kernel_release;
+      string target_kernel_v = target_kernel_vr;
+      // cut off any release code suffix
+      string::size_type dr = target_kernel_vr.rfind ('-');
+      if (dr > 0 && dr != string::npos)
+        target_kernel_v = target_kernel_vr.substr (0, dr);
+      
+      if (! (r->type == tok_string))
+        throw parse_error ("expected string literal", r);
+      string query_kernel_vr = r->content;
+      
+      // collect acceptable strverscmp results.
+      int rvc_ok1, rvc_ok2;
+      if (op->type == tok_operator && op->content == "<=")
+        { rvc_ok1 = -1; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == ">=")
+        { rvc_ok1 = 1; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == "<")
+        { rvc_ok1 = -1; rvc_ok2 = -1; }
+      else if (op->type == tok_operator && op->content == ">")
+        { rvc_ok1 = 1; rvc_ok2 = 1; }
+      else if (op->type == tok_operator && op->content == "==")
+        { rvc_ok1 = 0; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == "!=")
+        { rvc_ok1 = -1; rvc_ok2 = 1; }
+      else
+        throw parse_error ("expected comparison operator", op);
+      
+      int rvc_result = strverscmp ((l->content == "kernel_vr" ? 
+                                    target_kernel_vr.c_str() :
+                                    target_kernel_v.c_str()),
+                                   query_kernel_vr.c_str());
+      // normalize rvc_result
+      if (rvc_result < 0) rvc_result = -1;
+      if (rvc_result > 0) rvc_result = 1;
+      
+      return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+    }
+  else if (l->type == tok_identifier && l->content == "arch")
+    {
+      string target_architecture = s.architecture;
+      if (! (r->type == tok_string))
+        throw parse_error ("expected string literal", r);
+      string query_architecture = r->content;
+      
+      bool result;
+      if (op->type == tok_operator && op->content == "==")
+        result = target_architecture == query_architecture;
+      else if (op->type == tok_operator && op->content == "!=")
+        result = target_architecture != query_architecture;
+      else
+        throw parse_error ("expected '==' or '!='", op);
+      
+      return result;
+    }  
+  // XXX: support other forms?  "CONFIG_SMP" ?
   else
-    throw parse_error ("expected comparison operator", op);
-
-  int rvc_result = strverscmp ((l->content == "kernel_vr" ? 
-                                target_kernel_vr.c_str() :
-                                target_kernel_v.c_str()),
-                               query_kernel_vr.c_str());
-  // normalize rvc_result
-  if (rvc_result < 0) rvc_result = -1;
-  if (rvc_result > 0) rvc_result = 1;
-
-  return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+    throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr'", l);
 }
 
 

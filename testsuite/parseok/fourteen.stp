@@ -8,3 +8,10 @@ global
       %: "FAIL2" %)
    %: "FAIL3" %)
 %: "FAIL4" %)
+
+global
+%( arch == "i386" %? i386
+%: %( arch == "i686" %? i686
+   %: %( arch != "x86_64" %? other %: x86_64 %) 
+   %)
+%)

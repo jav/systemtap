@@ -1,5 +1,14 @@
 2005-11-24  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR 1903
+	* parse.cxx (eval_pp_conditional): Support %( arch == "i686" %) form.
+	* stap.1.in: Document it.
+	* testsuite/parseok/fourteen.stp: Test it.
+	* session.h (architecture): New field.
+	* main.cxx (main): Initialize it.
+
+2005-11-24  Frank Ch. Eigler  <fche@redhat.com>
+
 	PR 1917
 	* translate.cxx (emit_common_header, emit_module_init,
 	emit_module_exit): Switch context array to per-cpu kmalloc variant.
