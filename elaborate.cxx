@@ -456,7 +456,7 @@ derive_probes (systemtap_session& s,
 //
 
 struct symbol_fetcher
-  : virtual public throwing_visitor
+  : public throwing_visitor
 {
   symbol *&sym;
 
@@ -480,7 +480,7 @@ struct symbol_fetcher
   }
 };
 
-static symbol *
+symbol *
 get_symbol_within_expression (expression *e)
 {
   symbol *sym = NULL;
@@ -504,7 +504,7 @@ get_symbol_within_indexable (indexable *ix)
 }
 
 struct mutated_var_collector
-  : virtual public traversing_visitor
+  : public traversing_visitor
 {
   set<vardecl *> * mutated_vars;
 
@@ -539,7 +539,7 @@ struct mutated_var_collector
 
 
 struct no_var_mutation_during_iteration_check
-  : virtual public traversing_visitor
+  : public traversing_visitor
 {
   systemtap_session & session;
   map<functiondecl *,set<vardecl *> *> & function_mutates_vars;
@@ -648,10 +648,113 @@ semantic_pass_vars (systemtap_session & sess)
 
 // ------------------------------------------------------------------------
 
+struct stat_decl_collector
+  : public traversing_visitor
+{
+  systemtap_session & session;
+  
+  stat_decl_collector(systemtap_session & sess)
+    : session(sess)
+  {}
+
+  void visit_stat_op (stat_op* e)
+  {
+    symbol *sym = get_symbol_within_expression (e->stat);
+    if (session.stat_decls.find(sym->name) == session.stat_decls.end())
+      session.stat_decls[sym->name] = statistic_decl();
+  }
+
+  void visit_assignment (assignment* e)
+  {
+    if (e->op == "<<<")
+      {
+	symbol *sym = get_symbol_within_expression (e->left);
+	if (session.stat_decls.find(sym->name) == session.stat_decls.end())
+	  session.stat_decls[sym->name] = statistic_decl();
+      }
+    else
+      traversing_visitor::visit_assignment(e);
+  }
+
+  void visit_hist_op (hist_op* e)
+  {
+    symbol *sym = get_symbol_within_expression (e->stat);
+    statistic_decl new_stat;
+
+    if (e->htype == hist_linear)
+      {
+	new_stat.type = statistic_decl::linear;
+	assert (e->params.size() == 3);
+	new_stat.linear_low = e->params[0];
+	new_stat.linear_high = e->params[1];
+	new_stat.linear_step = e->params[2];
+      }
+    else
+      {
+	assert (e->htype == hist_log);
+	new_stat.type = statistic_decl::logarithmic;
+	assert (e->params.size() == 1);
+	new_stat.logarithmic_buckets = e->params[0];
+      }
+
+    map<string, statistic_decl>::iterator i = session.stat_decls.find(sym->name);
+    if (i == session.stat_decls.end())
+      session.stat_decls[sym->name] = new_stat;
+    else
+      {
+	statistic_decl & old_stat = i->second;
+	if (!(old_stat == new_stat))
+	  {
+	    if (old_stat.type == statistic_decl::none)
+	      i->second = new_stat;
+	    else
+	      {
+		// FIXME: Support multiple co-declared histogram types
+		semantic_error se("multiple histogram types declared on '" + sym->name + "'", 
+				  e->tok);
+		session.print_error (se);
+	      }
+	  }
+      }    
+  }
+
+};
+
+static int
+semantic_pass_stats (systemtap_session & sess)
+{
+  stat_decl_collector sdc(sess);
+
+  for (unsigned i = 0; i < sess.functions.size(); ++i)    
+    sess.functions[i]->body->visit (&sdc);
+
+  for (unsigned i = 0; i < sess.probes.size(); ++i)    
+    sess.probes[i]->body->visit (&sdc);
+
+  for (unsigned i = 0; i < sess.globals.size(); ++i)
+    {
+      vardecl *v = sess.globals[i];
+      if (v->type == pe_stats)
+	{
+	  
+	  if (sess.stat_decls.find(v->name) == sess.stat_decls.end())
+	    {
+	      semantic_error se("unable to infer statistic parameters for global '" + v->name + "'");
+	      sess.print_error (se);
+	    }
+	}
+    }
+  
+  return sess.num_errors;
+}
+
+// ------------------------------------------------------------------------
+
 
 static int semantic_pass_symbols (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
 static int semantic_pass_vars (systemtap_session&);
+static int semantic_pass_stats (systemtap_session&);
 
 
 
@@ -683,23 +786,6 @@ semantic_pass_symbols (systemtap_session& s)
 
       for (unsigned i=0; i<dome->embeds.size(); i++)
         s.embeds.push_back (dome->embeds[i]);
-
-      for (std::map<std::string, statistic_decl>::const_iterator i = 
-	     dome->stat_decls.begin(); i != dome->stat_decls.end(); ++i)
-	{
-	  try 
-	    {
-	      
-	      if (s.stat_decls.find(i->first) != s.stat_decls.end())
-		throw semantic_error("multiple statistic declarations for " + i->first);
-	      s.stat_decls.insert(std::make_pair(i->first,
-						 i->second));
-	    }
-          catch (const semantic_error& e)
-            {
-              s.print_error (e);
-            }	  
-	}
 
       // Pass 2: process functions
 
@@ -768,6 +854,7 @@ semantic_pass (systemtap_session& s)
       rc = semantic_pass_symbols (s);
       if (rc == 0) rc = semantic_pass_types (s);
       if (rc == 0) rc = semantic_pass_vars (s);
+      if (rc == 0) rc = semantic_pass_stats (s);
     }
   catch (const semantic_error& e)
     {
@@ -1941,7 +2028,7 @@ typeresolution_info::visit_stat_op (stat_op* e)
       e->type = pe_long;
       resolved (e->tok, e->type);
     }
-  else
+  else if (e->type != pe_long)
     mismatch (e->tok, e->type, pe_long);
 }
 

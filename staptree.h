@@ -288,6 +288,14 @@ struct print_format: public expression
     unsigned precision;
     conversion_type type;
     std::string literal_string;
+    bool is_empty() const
+    {
+      return flags == 0 
+	&& width == 0
+	&& precision == 0
+	&& type == conv_unspecified
+	&& literal_string.empty();
+    }
     void clear()
     {
       flags = 0;
@@ -522,7 +530,6 @@ struct stapfile
   std::vector<functiondecl*> functions;
   std::vector<vardecl*> globals;
   std::vector<embeddedcode*> embeds;
-  std::map<std::string, statistic_decl> stat_decls;
   bool privileged;
   stapfile (): privileged (false) {}
   void print (std::ostream& o) const;

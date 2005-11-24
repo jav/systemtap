@@ -1,0 +1,27 @@
+#! stap -p4
+
+# test the translatability of the statistic extraction operators
+
+global foo
+global bar
+
+global i
+
+probe timer.ms(100)
+{
+	foo <<< i++
+	bar[10,"hello"] <<< (12 * i)
+	if (@count(foo) > 1000)
+		exit()
+}
+
+probe begin
+{
+	i = 1
+}
+
+probe end
+{
+	printf("foo: min %d, max %d, count %d, sum %d, avg %d\n",
+		@min(foo), @max(foo), @count(foo), @sum(foo), @avg(foo)) 
+}

@@ -2,7 +2,7 @@
 
 # need one of these for each prohibited statistic operation
 
-global log_hist(x, 10)
+global x
 
 function foo(bar)
 {

@@ -54,6 +54,7 @@ lex_cast_qstring(IN const & in)
 
 struct var;
 struct tmpvar;
+struct aggvar;
 struct mapvar;
 struct itervar;
 
@@ -106,6 +107,8 @@ struct c_unparser: public unparser, public visitor
   bool is_local (vardecl const* r, token const* tok);
 
   tmpvar gensym(exp_type ty);
+  aggvar gensym_aggregate();
+
   var getvar(vardecl* v, token const* tok = NULL);
   itervar getiter(symbol* s);
   mapvar getmap(vardecl* v, token const* tok = NULL);
@@ -184,6 +187,7 @@ struct c_tmpcounter:
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
   void visit_print_format (print_format* e);
+  void visit_stat_op (stat_op* e);
 };
 
 struct c_unparser_assignment: 
@@ -233,8 +237,43 @@ struct c_tmpcounter_assignment:
 
 ostream & operator<<(ostream & o, var const & v);
 
+
+/*
+  Some clarification on the runtime structures involved in statistics:
+  
+  The basic type for collecting statistics in the runtime is struct
+  stat_data. This contains the count, min, max, sum, and possibly
+  histogram fields.
+  
+  There are two places struct stat_data shows up.
+  
+  1. If you declare a statistic variable of any sort, you want to make
+  a struct _Stat. A struct _Stat* is also called a Stat. Struct _Stat
+  contains a per-CPU array of struct stat_data values, as well as a
+  struct stat_data which it aggregates into. Writes into a Struct
+  _Stat go into the per-CPU struct stat. Reads involve write-locking
+  the struct _Stat, aggregating into its aggregate struct stat_data,
+  unlocking, read-locking the struct _Stat, then reading values out of
+  the aggregate and unlocking.
+
+  2. If you declare a statistic-valued map, you want to make a
+  pmap. This is a per-CPU array of maps, each of which holds struct
+  stat_data values, as well as an aggregate *map*. Writes into a pmap
+  go into the per-CPU map. Reads involve write-locking the pmap,
+  aggregating into its aggregate map, unlocking, read-locking the
+  pmap, then reading values out of its aggregate (which is a normal
+  map) and unlocking.
+
+  Because, at the moment, the runtime does not support the concept of
+  a statistic which collects multiple histogram types, we may need to
+  instantiate one pmap or struct _Stat for each histogram variation
+  the user wants to track.  
+ */
+
 class var
 {
+
+protected:
   bool local;
   exp_type ty;
   statistic_decl sd;
@@ -285,7 +324,8 @@ public:
 	switch (sd.type)
 	  {
 	  case statistic_decl::none:
-	    assert(false);
+	    return (qname() 
+		    + " = _stp_stat_init (HIST_NONE);");
 	    break;
 	    
 	  case statistic_decl::linear:
@@ -406,6 +446,26 @@ struct tmpvar
   {}
 };
 
+struct aggvar
+  : public var
+{
+  aggvar(unsigned & counter) 
+    : var(true, pe_stats, ("__tmp" + stringify(counter++)))
+  {}
+
+  string init() const
+  {
+    assert (type() == pe_stats);
+    return qname() + " = NULL;";
+  }
+
+  void declare(c_unparser &c) const
+  {
+    assert (type() == pe_stats);
+    c.o->newline() << "struct stat_data *" << name << ";";
+  }
+};
+
 struct mapvar
   : public var
 {
@@ -450,7 +510,8 @@ struct mapvar
 
   string call_prefix (string const & fname, vector<tmpvar> const & indices) const
   {
-    string result = "_stp_map_" + fname + "_" + keysym() + " (" + qname();
+    string mtype = is_parallel() ? "pmap" : "map";
+    string result = "_stp_" + mtype + "_" + fname + "_" + keysym() + " (" + qname();
     for (unsigned i = 0; i < indices.size(); ++i)
       {
 	if (indices[i].type() != index_types[i])
@@ -462,6 +523,26 @@ struct mapvar
     return result;
   }
 
+  bool is_parallel() const
+  {
+    return type() == pe_stats;
+  }
+
+  string calculate_aggregate() const
+  {
+    if (!is_parallel())
+      throw semantic_error("aggregating non-parallel map type");
+    
+    return "_stp_pmap_agg (" + qname() + ")";
+  }
+
+  string fetch_existing_aggregate() const
+  {
+    if (!is_parallel())
+      throw semantic_error("fetching aggregate of non-parallel map type");
+    
+    return "_stp_pmap_get_agg(" + qname() + ")";
+  }
 
   string del (vector<tmpvar> const & indices) const
   { 
@@ -485,7 +566,7 @@ struct mapvar
         // impedance matching: NULL -> empty strings
       return ("({ char *v = " + call_prefix("get", indices) + ");"
 	      + "if (!v) v = \"\"; v; })");
-    else if (type() == pe_long)
+    else if (type() == pe_long || type() == pe_stats)
       return call_prefix("get", indices) + ")";
     else
       throw semantic_error("getting a value from an unsupported map type");
@@ -514,14 +595,16 @@ struct mapvar
 		
   string init () const
   {
-    string prefix = qname() + " = _stp_map_new_" + keysym() + " (MAXMAPENTRIES" ;
+    string mtype = is_parallel() ? "pmap" : "map";
+    string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (MAXMAPENTRIES" ;
 
     if (type() == pe_stats)
       {
 	switch (sdecl().type)
 	  {
 	  case statistic_decl::none:
-	    assert(false);
+	    return (prefix 
+		    + ", HIST_NONE);");
 	    break;
 
 	  case statistic_decl::linear:
@@ -551,9 +634,9 @@ struct mapvar
   string fini () const
   {
     return "_stp_map_del (" + qname() + ");";
-  }
-  
+  }  
 };
+
 
 class itervar
 {
@@ -566,21 +649,26 @@ public:
     : referent_ty(e->referent->type), 
       name("__tmp" + stringify(counter++))
   {
-    if (referent_ty != pe_long && referent_ty != pe_string)
-      throw semantic_error("iterating over illegal reference type", e->tok);
+    if (referent_ty == pe_unknown)
+      throw semantic_error("iterating over unknown reference type", e->tok);
   }
   
   string declare () const
   {
     return "struct map_node *" + name + ";";
   }
-
+  
   string start (mapvar const & mv) const
   {
+    string res;
+
     if (mv.type() != referent_ty)
       throw semantic_error("inconsistent iterator type in itervar::start()");
-
-    return "_stp_map_start (" + mv.qname() + ")";
+    
+    if (mv.is_parallel())
+      return "_stp_map_start (" + mv.fetch_existing_aggregate() + ")";
+    else
+      return "_stp_map_start (" + mv.qname() + ")";
   }
 
   string next (mapvar const & mv) const
@@ -1125,6 +1213,9 @@ c_unparser::emit_map_type_instantiations ()
   for (unsigned i = 0; i < session->functions.size(); ++i)
     collect_map_index_types(session->functions[i]->locals, types);
 
+  if (!types.empty())
+    o->newline() << "#include \"alloc.c\"";
+
   for (set< pair<vector<exp_type>, exp_type> >::const_iterator i = types.begin();
        i != types.end(); ++i)
     {
@@ -1134,7 +1225,10 @@ c_unparser::emit_map_type_instantiations ()
 	  string ktype = mapvar::key_typename(i->first.at(j));
 	  o->newline() << "#define KEY" << (j+1) << "_TYPE " << ktype;
 	}
-      o->newline() << "#include \"map-gen.c\"";
+      if (i->second == pe_stats)
+	o->newline() << "#include \"pmap-gen.c\"";
+      else
+	o->newline() << "#include \"map-gen.c\"";
       o->newline() << "#undef VALUE_TYPE";
       for (unsigned j = 0; j < i->first.size(); ++j)
 	{
@@ -1144,6 +1238,7 @@ c_unparser::emit_map_type_instantiations ()
 
   if (!types.empty())
     o->newline() << "#include \"map.c\"";
+
 };
 
 
@@ -1432,6 +1527,12 @@ c_unparser::gensym(exp_type ty)
   return tmpvar (ty, tmpvar_counter); 
 }
 
+aggvar 
+c_unparser::gensym_aggregate() 
+{ 
+  return aggvar (tmpvar_counter); 
+}
+
 
 var 
 c_unparser::getvar(vardecl *v, token const *tok) 
@@ -1669,14 +1770,28 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // NB: structure parallels for_loop
       
       // initialization
-      
-      // sort array if desired
-      if (s->sort_direction)
+
+      // aggregate array if required
+      if (mv.is_parallel())
 	{
-	  varlock_w sort_guard (*this, mv);
-	  o->newline() << "_stp_map_sort (" << mv.qname() << ", "
-		       << s->sort_column << ", " << - s->sort_direction << ");";
+	  varlock_w agg_and_maybe_sort_guard(*this, mv);
+	  o->newline() << mv.calculate_aggregate() << ";";
+	  // sort array if desired
+	  if (s->sort_direction)
+	    o->newline() << "_stp_map_sort (" << mv.fetch_existing_aggregate() << ", "
+			 << s->sort_column << ", " << - s->sort_direction << ");";
 	}
+      else
+	{      
+	  // sort array if desired
+	  if (s->sort_direction)
+	    {
+	      varlock_w sort_guard (*this, mv);
+	      o->newline() << "_stp_map_sort (" << mv.qname() << ", "
+			   << s->sort_column << ", " << - s->sort_direction << ");";
+	    }
+	}
+
       // NB: sort direction sense is opposite in runtime, thus the negation
       
       // XXX: There is a race condition here.  Since we can't convert a
@@ -2657,7 +2772,7 @@ c_unparser::visit_functioncall (functioncall* e)
 }
 
 struct hist_op_downcaster
-  : virtual public traversing_visitor
+  : public traversing_visitor
 {
   hist_op *& hist;
 
@@ -2809,56 +2924,161 @@ c_unparser::visit_print_format (print_format* e)
     }
 }
 
+struct arrayindex_downcaster
+  : public traversing_visitor
+{
+  arrayindex *& arr;
+  
+  arrayindex_downcaster (arrayindex *& arr)
+    : arr(arr) 
+  {}
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    arr = e;
+  }
+};
+
+static bool
+expression_is_arrayindex (expression *e, 
+			  arrayindex *& hist)
+{
+  arrayindex *h = NULL;
+  arrayindex_downcaster d(h);
+  e->visit (&d);
+  if (static_cast<void*>(h) == static_cast<void*>(e))
+    {
+      hist = h;
+      return true;
+    }
+  return false;
+}
+
+void 
+c_tmpcounter::visit_stat_op (stat_op* e)
+{
+  symbol *sym = get_symbol_within_expression (e->stat);
+  var v = parent->getvar(sym->referent, e->tok);
+  aggvar agg = parent->gensym_aggregate ();
+  tmpvar res = parent->gensym (pe_long);
+
+  agg.declare(*(this->parent));
+  res.declare(*(this->parent));
+
+  if (sym->referent->arity != 0)
+    {
+      // One temporary per index dimension.
+      for (unsigned i=0; i<sym->referent->index_types.size(); i++)
+	{
+	  // Sorry about this, but with no dynamic_cast<> and no
+	  // constructor patterns, this is how things work.
+	  arrayindex *arr = NULL;
+	  if (!expression_is_arrayindex (e->stat, arr))
+	    throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
+
+	  tmpvar ix = parent->gensym (sym->referent->index_types[i]);
+	  ix.declare (*parent);
+	  arr->indexes[i]->visit(this);
+	}
+    }
+}
+
 void 
 c_unparser::visit_stat_op (stat_op* e)
 {
-  //
   // Stat ops can be *applied* to two types of expression:
   //
   //  1. An arrayindex expression on a pe_stats-valued array. 
   //
   //  2. A symbol of type pe_stats. 
-  //
-  // Stat ops can only *occur* in a limited set of circumstances:
-  //
-  //  1. Inside an arrayindex expression, as the base referent, when
-  //     the stat_component_type is a histogram type. See
-  //     c_unparser::visit_arrayindex for handling of this case.
-  //
-  //  2. Inside a foreach statement, as the base referent, when the
-  //     stat_component_type is a histogram type. See
-  //     c_unparser::visit_foreach_loop for handling this case.
-  //
-  //  3. Inside a print_format expression, as the sole argument, when
-  //     the stat_component_type is a histogram type. See
-  //     c_unparser::visit_print_format for handling this case.
-  //
-  //  4. Inside a normal rvalue context, when the stat_component_type
-  //     is a scalar. That's this case.
-  //
 
   // FIXME: classify the expression the stat_op is being applied to,
   // call appropriate stp_get_stat() / stp_pmap_get_stat() helper,
   // then reach into resultant struct stat_data.
 
-  switch (e->type)
-    {
-    case sc_average:
-    case sc_count:
-    case sc_sum:
-    case sc_min:
-    case sc_max:
+  // FIXME: also note that summarizing anything is expensive, and we
+  // really ought to pass a timeout handler into the summary routine,
+  // check its response, possibly exit if it ran out of cycles.
 
-    default:
-      assert(false);
-      break;
-    }  
+  symbol *sym = get_symbol_within_expression (e->stat);
+
+  if (sym->referent->type != pe_stats)
+    throw semantic_error ("non-statistic value in statistic operator context", sym->tok);
+  
+  {
+    stmt_expr block(*this);  
+    aggvar agg = gensym_aggregate ();
+    tmpvar res = gensym (pe_long);      
+    
+    {
+      var v = getvar(sym->referent, e->tok);
+      varlock_w guard(*this, v);
+      
+      if (sym->referent->arity == 0)
+	{
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+	  o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";	  
+	}
+      else
+	{
+	  arrayindex *arr = NULL;
+	  if (!expression_is_arrayindex (e->stat, arr))
+	    throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
+	  
+	  vector<tmpvar> idx;
+	  load_map_indices (arr, idx);
+	  mapvar mvar = getmap (sym->referent, sym->tok);
+	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+	  o->newline() << agg << " = " << mvar.get(idx) << ";";
+	}
+    
+      switch (e->ctype)
+	{
+	case sc_average:
+	  // impedance matching: Have to compupte average ourselves
+	  c_assign(res, ("_stp_div64(&c->last_error, " + agg.qname() + "->sum, " + agg.qname() + "->count)"),
+		   e->tok);
+	  break;
+
+	case sc_count:
+	  c_assign(res, agg.qname() + "->count", e->tok);
+	  break;
+
+	case sc_sum:
+	  c_assign(res, agg.qname() + "->sum", e->tok);
+	  break;
+
+	case sc_min:
+	  c_assign(res, agg.qname() + "->min", e->tok);
+	  break;
+
+	case sc_max:
+	  c_assign(res, agg.qname() + "->max", e->tok);
+	  break;
+	}
+    }    
+    o->newline() << res << ";";
+  }
 }
 
 
 void 
 c_unparser::visit_hist_op (hist_op* e)
 {
+  // Hist ops can only occur in a limited set of circumstances:
+  //
+  //  1. Inside an arrayindex expression, as the base referent. See
+  //     c_unparser::visit_arrayindex for handling of this case.
+  //
+  //  2. Inside a foreach statement, as the base referent. See
+  //     c_unparser::visit_foreach_loop for handling this case.
+  //
+  //  3. Inside a print_format expression, as the sole argument. See
+  //     c_unparser::visit_print_format for handling this case.
+  //
+  // Note that none of these cases involves the c_unparser ever
+  // visiting this node. We should not get here.
+
   assert(false);
 }
 

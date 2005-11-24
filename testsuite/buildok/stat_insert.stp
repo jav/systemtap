@@ -1,0 +1,62 @@
+#! stap -p4
+
+# test the translatability of the statistic insertion operator
+
+global loggy
+global logmap
+global liney
+global linemap
+
+global numbers
+global strings
+
+function wibble()
+{
+	i = 0
+	logmap[i++, "stewed"] <<< 1
+	logmap[i++, "boiled"] <<< 1 + 2
+	logmap[i++, "baked"] <<< x
+	logmap[i++, "fried"] <<< (x * y) + 3
+}
+
+function wobble()
+{
+	foreach (i in numbers)
+	{
+		foreach (j in strings)
+		{
+			linemap[strings[j],2*numbers[i],numbers[2*i]] <<< x * (y + i)
+		}
+	}
+}
+
+
+probe end {
+
+	numbers[1] = 2
+	numbers[2] = 5
+	numbers[3] = 98279
+	numbers[4] = 8739287
+
+	strings[1] = "sun"
+	strings[2] = "moon"
+	strings[3] = "saturn"
+	strings[4] = "venus"
+
+	p = 4
+	q = 5
+
+	liney <<< 1
+	liney <<< 1 + 2
+	liney <<< p
+	liney <<< (p * q) + 3
+
+	loggy <<< 1
+	loggy <<< 1 + 2
+	loggy <<< p
+	loggy <<< (p * q) + 3
+
+	wibble()
+	wobble()
+
+}

@@ -404,206 +404,158 @@ print_format::string_to_components(string const & str)
   format_component curr;
   vector<format_component> res;
 
-  enum 
-    {
-      parsing_plain_data,
-      parsing_flags,
-      parsing_width,
-      parsing_precision,
-      parsing_conversion_specifier
-    } 
-  state = parsing_plain_data;
-
   curr.clear();
 
   string::const_iterator i = str.begin();
-
+  
   while (i != str.end())
     {
-      switch (state)
+      if (*i != '%')
 	{
-	case parsing_plain_data:
-
-	  if (*i != '%')
-	    {
-	      assert (curr.type == conv_unspecified || curr.type == conv_literal);
-	      curr.type = conv_literal;
-	      curr.literal_string += *i;	      
-	    }
-	  else if (i+1 == str.end() || *(i+1) == '%')
-	    {
-	      assert(*i == '%');
-	      // *i == '%' and *(i+1) == '%'; append only one '%' to the literal string
-	      assert (curr.type == conv_unspecified || curr.type == conv_literal);
-	      curr.type = conv_literal;
-	      curr.literal_string += '%';
-	    }
-	  else 
-	    {
-	      assert(*i == '%');
-	      state = parsing_flags;
-	      if (curr.type != conv_unspecified)
-		{
-		  assert (curr.type == conv_literal);
-		  res.push_back(curr);
-		  curr.clear();
-		}
-	    }
+	  assert (curr.type == conv_unspecified || curr.type == conv_literal);
+	  curr.type = conv_literal;
+	  curr.literal_string += *i;	      
 	  ++i;
-	  break;
-
-	case parsing_flags:
-	  switch (*i)
+	  continue;
+	}
+      else if (i+1 == str.end() || *(i+1) == '%')
+	{
+	  assert(*i == '%');
+	  // *i == '%' and *(i+1) == '%'; append only one '%' to the literal string
+	  assert (curr.type == conv_unspecified || curr.type == conv_literal);
+	  curr.type = conv_literal;
+	  curr.literal_string += '%';
+	  ++i;
+	  continue;
+	}
+      else 
+	{
+	  assert(*i == '%');
+	  if (curr.type != conv_unspecified)
 	    {
-	    case '0':
-	      curr.flags |= static_cast<unsigned long>(fmt_flag_zeropad);
-	      ++i;
-	      break;
-
-	    case '+':
-	      curr.flags |= static_cast<unsigned long>(fmt_flag_plus);
-	      ++i;
-	      break;
-
-	    case '-':
-	      curr.flags |= static_cast<unsigned long>(fmt_flag_left);
-	      ++i;
-	      break;
-
-	    case ' ':
-	      curr.flags |= static_cast<unsigned long>(fmt_flag_space);
-	      ++i;
-	      break;
-
-	    case '#':
-	      curr.flags |= static_cast<unsigned long>(fmt_flag_special);
-	      ++i;
-	      break;
-
-	    default:
-	      state = parsing_width;
-	      break;
-	    }
-	  break;
-
-	case parsing_width:
-	  while (isdigit(*i))
-	    {
-	      curr.width *= 10;
-	      curr.width += (*i - '0');
-	      ++i;
-	    }
-	  state = parsing_precision;
-	  break;
-	  
-	case parsing_precision:
-	  if (*i == '.')
-	    {
-	      ++i;
-	      while (isdigit(*i))
-		{
-		  curr.precision *= 10;
-		  curr.precision += (*i - '0');
-		  ++i;
-		}
-	    }
-	  state = parsing_conversion_specifier;
-	  break;
-
-	case parsing_conversion_specifier:
-	  switch (*i)
-	    {
-
-	    default:
-	      if (curr.type == conv_unspecified)
-		throw semantic_error("no conversion specifier provided");
-	      
+	      // Flush any component we were previously accumulating
+	      assert (curr.type == conv_literal);
 	      res.push_back(curr);
 	      curr.clear();
-	      state = parsing_plain_data;
-	      break;
-	      
-	      // Valid conversion types
-	    case 's':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_string;
-	      ++i;
-	      break;
-
-	    case 'd':
-	    case 'i':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_signed_decimal;
-	      ++i;
-	      break;
-
-	    case 'o':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_unsigned_octal;
-	      ++i;
-	      break;
-
-	    case 'u':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_unsigned_decimal;
-	      ++i;
-	      break;
-
-	    case 'X':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_unsigned_uppercase_hex;
-	      ++i;
-
-	    case 'x':
-	      if (curr.type != conv_unspecified)
-		throw semantic_error("multiple conversion types supplied");
-	      curr.type = conv_unsigned_lowercase_hex;
-	      ++i;
-	      break;
-
-	      // We prohibit users passing any funny stuff through which might
-	      // make linux's printf function do naughty things.
-	    case 'p':
-	    case 'n':
-	    case 'c':
-	    case 'q':
-	    case 'j':
-	    case 't':
-
-	    case ',':
-	    case '.':
-	    case '*':
-
-	    case 'e':
-	    case 'E':
-	    case 'f':
-	    case 'F':
-	    case 'g':
-	    case 'G':
-	    case 'h':
-	    case 'H':
-	    case 'I':
-	    case 'l':
-	    case 'L':
-	    case 'z':
-	    case 'Z':
-	      string err("prohibited conversion character '");
-	      err += *i;
-	      err += '"';
-	      throw parse_error(err);
 	    }
+	}
+      ++i;
+      
+      if (i == str.end())
+	break;
+
+      // Now we are definitely parsing a conversion. 
+      // Begin by parsing flags (whicih are optional).
+
+      switch (*i)
+	{
+	case '0':
+	  curr.flags |= static_cast<unsigned long>(fmt_flag_zeropad);
+	  ++i;
+	  break;
+	  
+	case '+':
+	  curr.flags |= static_cast<unsigned long>(fmt_flag_plus);
+	  ++i;
+	  break;
+	  
+	case '-':
+	  curr.flags |= static_cast<unsigned long>(fmt_flag_left);
+	  ++i;
+	  break;
+	  
+	case ' ':
+	  curr.flags |= static_cast<unsigned long>(fmt_flag_space);
+	  ++i;
+	  break;
+	  
+	case '#':
+	  curr.flags |= static_cast<unsigned long>(fmt_flag_special);
+	  ++i;
+	  break;
+	  
+	default:
 	  break;
 	}
+
+      // Parse optional width
+	  
+      while (i != str.end() && isdigit(*i))
+	{
+	  curr.width *= 10;
+	  curr.width += (*i - '0');
+	  ++i;
+	}
+
+      if (i == str.end())
+	break;
+
+      // Parse optional precision
+      if (*i == '.')
+	{
+	  ++i;
+	  if (i == str.end())
+	    break;
+	  while (i != str.end() && isdigit(*i))
+	    {
+	      curr.precision *= 10;
+	      curr.precision += (*i - '0');
+	      ++i;
+	    }
+	}
+
+      if (i == str.end())
+	break;
+
+      // Parse the actual conversion specifier (sdiouxX)
+      switch (*i)
+	{
+	  // Valid conversion types
+	case 's':
+	  curr.type = conv_string;
+	  break;
+	  
+	case 'd':
+	case 'i':
+	  curr.type = conv_signed_decimal;
+	  break;
+	  
+	case 'o':
+	  curr.type = conv_unsigned_octal;
+	  break;
+	  
+	case 'u':
+	  curr.type = conv_unsigned_decimal;
+	  break;
+	  
+	case 'X':
+	  curr.type = conv_unsigned_uppercase_hex;
+	  break;
+	  
+	case 'x':
+	  curr.type = conv_unsigned_lowercase_hex;
+	  break;
+	  
+	default:
+	  break;
+	}
+      
+      if (curr.type == conv_unspecified)
+	throw semantic_error("invalid or missing conversion specifier");
+      
+      ++i;
+      res.push_back(curr);      
+      curr.clear();      
     }
 
-  // Flush final component
-  if (curr.type != conv_unspecified)
-    res.push_back(curr);
+  // If there's a remaining partly-composed conversion, fail.
+  if (!curr.is_empty())
+    {
+      if (curr.type == conv_literal)
+	res.push_back(curr);      
+      else
+	throw semantic_error("trailing incomplete print format conversion");
+    }
 
   return res;
 }

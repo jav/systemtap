@@ -672,7 +672,7 @@ parser::parse ()
 	  if (t->type == tok_identifier && t->content == "probe")
             parse_probe (f->probes, f->aliases);
 	  else if (t->type == tok_identifier && t->content == "global")
-	    parse_global (f->globals, f->stat_decls);
+	    parse_global (f->globals);
 	  else if (t->type == tok_identifier && t->content == "function")
             parse_functiondecl (f->functions);
           else if (t->type == tok_embedded)
@@ -886,8 +886,7 @@ parser::parse_statement ()
 
 
 void
-parser::parse_global (vector <vardecl*>& globals,
-		      std::map<std::string, statistic_decl> &stat_decls)
+parser::parse_global (vector <vardecl*>& globals)
 {
   const token* t0 = next ();
   if (! (t0->type == tok_identifier && t0->content == "global"))
@@ -899,33 +898,6 @@ parser::parse_global (vector <vardecl*>& globals,
       if (! (t->type == tok_identifier))
         throw parse_error ("expected identifier");
 
-      statistic_decl sd;
-
-      if (t->content == "log_hist")
-	{
-	  std::string tmp;
-	  expect_op ("(");
-	  t = expect_ident (tmp);
-	  expect_op (",");
-	  expect_number (sd.logarithmic_buckets);
-	  expect_op (")");
-	  sd.type = statistic_decl::logarithmic;
-	}
-      else if (t->content == "linear_hist")
-	{
-	  std::string tmp;
-	  expect_op ("(");
-	  t = expect_ident (tmp);
-	  expect_op (",");
-	  expect_number (sd.linear_low);
-	  expect_op (",");
-	  expect_number (sd.linear_high);
-	  expect_op (",");
-	  expect_number (sd.linear_step);
-	  expect_op (")");
-	  sd.type = statistic_decl::linear;
-	}
-
       for (unsigned i=0; i<globals.size(); i++)
 	if (globals[i]->name == t->content)
 	  throw parse_error ("duplicate global name");
@@ -934,12 +906,6 @@ parser::parse_global (vector <vardecl*>& globals,
       d->name = t->content;
       d->tok = t;
       globals.push_back (d);
-
-      if (sd.type != statistic_decl::none)
-	{
-	  d->type = pe_stats;
-	  stat_decls[d->name] = sd;
-	}
 
       t = peek ();
       if (t && t->type == tok_operator && t->content == ",")

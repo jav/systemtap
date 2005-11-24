@@ -2,11 +2,12 @@
 
 # need one of these for each prohibited statistic operation
 
-global log_hist(x, 10)
+global x
 
 
 probe end
 {
+	x[10] <<< 1
 	x[10] = 10
 }
 

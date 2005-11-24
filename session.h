@@ -42,6 +42,14 @@ struct statistic_decl
   int64_t linear_low;
   int64_t linear_high;
   int64_t linear_step;
+  bool operator==(statistic_decl const & other)
+  {
+    return type == other.type 
+      && logarithmic_buckets == other.logarithmic_buckets
+      && linear_low == other.linear_low
+      && linear_high == other.linear_high
+      && linear_step == other.linear_step;
+  }
 };
 
 
