@@ -1,3 +1,10 @@
+2005-11-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 1917
+	* translate.cxx (emit_common_header, emit_module_init,
+	emit_module_exit): Switch context array to per-cpu kmalloc variant.
+	* tapsets (*::emit_probe_entires): Use per_cpu_ptr() for my context.
+
 2005-11-23  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.h (get_symbol_within_expression): Make visible.

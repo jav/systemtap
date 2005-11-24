@@ -856,7 +856,8 @@ c_unparser::emit_common_header ()
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
     }
   o->newline(-1) << "} locals [MAXNESTING];";
-  o->newline(-1) << "} contexts [NR_CPUS];" << endl;
+  o->newline(-1) << "};" << endl;
+  o->newline() << "void *contexts; /* alloc_percpu */" << endl;
 
   emit_map_type_instantiations ();
 
@@ -903,8 +904,17 @@ c_unparser::emit_module_init ()
   // while to abort right away.  Currently running probes are allowed to
   // terminate.  These may set STAP_SESSION_ERROR!
 
+  // per-cpu context
+  o->newline() << "contexts = alloc_percpu (struct context);";
+  o->newline() << "if (contexts == NULL) {";
+  o->newline() << "_stp_error (\"percpu context (size %lu) allocation failed\", sizeof (struct context));";
+  o->newline(1) << "rc = -ENOMEM;";
+  o->newline() << "goto out;";
+  o->newline(-1) << "}";
+
   for (unsigned i=0; i<session->globals.size(); i++)
     {
+      // XXX: handle failure!
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).init();
@@ -1013,8 +1023,10 @@ c_unparser::emit_module_exit ()
   o->newline() << "do {";
   o->newline(1) << "int i;";
   o->newline() << "holdon = 0;";
-  o->newline() << "for (i=0; i<NR_CPUS; i++)";
-  o->newline(1) << "if (atomic_read (&contexts[i].busy)) holdon = 1;";
+  o->newline() << "for (i=0; i < NR_CPUS; i++)";
+  o->newline(1) << "if (cpu_possible (i) && " 
+                << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
+                << "holdon = 1;";
   // o->newline(-1) << "if (holdon) msleep (5);";
   o->newline(-1) << "} while (holdon);";
   o->newline(-1);
@@ -1022,7 +1034,7 @@ c_unparser::emit_module_exit ()
   // genuinely stuck somehow
 
   for (int i=session->probes.size()-1; i>=0; i--)
-    session->probes[i]->emit_deregistrations (o, i);
+    session->probes[i]->emit_deregistrations (o, i); // NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -1030,6 +1042,9 @@ c_unparser::emit_module_exit ()
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
     }
+
+  o->newline() << "free_percpu (contexts);";
+
   o->newline(-1) << "}" << endl;
 }
 

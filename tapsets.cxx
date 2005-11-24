@@ -146,7 +146,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
       // While begin/end probes are executed single-threaded, we
       // still code defensively and use a per-cpu context.
-      o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+      o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
       o->newline() << "const char* probe_point = "
 		   << lex_cast_qstring(*l) << ";";
 
@@ -2754,7 +2754,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
     {
       o->newline() << "int stap_kprobe_fault_handler (struct kprobe* kp, "
 		   << "struct pt_regs* regs, int trapnr) {";
-      o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
+      o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
       o->newline() << "_stp_warn (\"systemtap probe fault\\n\");";
       o->newline() << "_stp_warn (\"cpu %d, probe %s, near %s\\n\", ";
       o->newline(1) << "smp_processor_id(), ";
@@ -2851,7 +2851,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   else
     o->line() << "struct kprobe *probe_instance";
   o->line() << ", struct pt_regs *regs) {";
-  o->newline(1) << "struct context *c = & contexts [smp_processor_id()];";
+  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
 
   // Calculate the name of the current probe by finding its index in the probe array.
   if (has_return)
@@ -3017,7 +3017,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "static struct timer_list timer_" << j << ";";
 
   o->newline() << "void enter_" << j << " (unsigned long val) {";
-  o->newline(1) << "struct context* c = & contexts [smp_processor_id()];";
+  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
   o->newline() << "(void) val;";
