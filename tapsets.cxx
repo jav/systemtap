@@ -1153,9 +1153,6 @@ dwflpp
 	  Dwarf_Word pointee_encoding;
 	  Dwarf_Word pointee_byte_size = 0;
 
-	  if (dwarf_attr_integrate (typedie, DW_AT_type, attr_mem) == NULL)
-	    throw semantic_error ("cannot get type of pointer: " + string(dwarf_errmsg (-1)));
-
 	  pointee_typedie = resolve_unqualified_inner_typedie (&pointee_typedie_mem, attr_mem);
 
 	  if (dwarf_attr_integrate (pointee_typedie, DW_AT_byte_size, attr_mem))

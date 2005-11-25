@@ -1,0 +1,8 @@
+#! stap -p3
+
+probe kernel.function("dentry_open")
+{
+   $dentry # is a void pointer
+}
+
+
