@@ -32,9 +32,9 @@
 	(visit_stat_op): Only fail if inferred type is not pe_long.
 
 	* parse.cxx (parser::parse): Don't pass per-file statistic_decl
-	into parse_global.	
+	into parse_global.
 	(parser::parse_global): Don't parse global statistic_decls,
-	they're obsolete.  
+	they're obsolete.
 	* parse.hh (parser::parse_global): Adjust signature to match.
 
 	* session.h (statistic_decl::operator==): New method.
@@ -73,7 +73,7 @@
 2005-11-21  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.c (c_translate_location): Take Dwarf_Op vector as argument
-	directly, not Dwarf_Attribute.p
+	directly, not Dwarf_Attribute.
 	* loc2c.h: Update decl.
 	* loc2c-test.c (get_location): New function.
 	(handle_variable): Use it.
