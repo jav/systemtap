@@ -1,5 +1,14 @@
 2005-11-26  Roland McGrath  <roland@redhat.com>
 
+	* loc2c.c (struct location): Move frame_base member out of the union.
+	(alloc_location): Initialize it.
+	(new_synthetic_loc, translate, location_from_address): Update uses.
+	(emit_loc_value): Don't handle frame_base here.
+	(c_emit_location): Do it here instead.
+	(translate): Track USED_DEREF separately for each piece.
+	Use a temporary struct when allocating a new piece, letting
+	a pending loc_address piece finish up first.
+
 	* loc2c-test.c (main): Free SCOPES at end.
 	(handle_variable): Free POOL at end.
 
