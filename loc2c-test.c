@@ -294,6 +294,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
 
   bool deref = c_emit_location (stdout, head, 1);
 
+  obstack_free (&pool, NULL);
+
   puts (store ? " return;" :
 	"  printk (\" ---> %ld\\n\", (unsigned long) value);\n"
 	"  return;");
@@ -492,6 +494,8 @@ main (int argc, char **argv)
       else
 	handle_variable (scopes, n, out, cubias, &vardie, pc, &argv[argi]);
     }
+
+  free (scopes);
 
   dwfl_end (dwfl);
 
