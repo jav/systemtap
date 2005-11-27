@@ -1,5 +1,6 @@
 2005-11-26  Roland McGrath  <roland@redhat.com>
 
+	PR 1868.
 	* loc2c.c (struct location): Move frame_base member out of the union.
 	(alloc_location): Initialize it.
 	(new_synthetic_loc, translate, location_from_address): Update uses.
