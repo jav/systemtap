@@ -138,6 +138,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 {
   loc->ops = expr;
   loc->nops = len;
+  loc->address.used_deref = false;
 
 #define DIE(msg) return (*loser = i, N_(msg))
 
