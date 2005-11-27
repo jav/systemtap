@@ -38,11 +38,11 @@ struct location
       loc_address, loc_register, loc_noncontiguous,
       loc_decl, loc_fragment, loc_final
     } type;
+  struct location *frame_base;
   union
   {
     struct			/* loc_address, loc_fragment, loc_final */
     {
-      struct location *frame_base;
       const char *declare;	/* Temporary that needs declared.  */
       char *program;		/* C fragment, leaves address in s0.  */
       unsigned int stack_depth;	/* Temporaries "s0..<N>" used by it.  */
@@ -61,6 +61,7 @@ alloc_location (struct obstack *pool, struct location *origin)
   loc->fail_arg = origin->fail_arg;
   loc->emit_address = origin->emit_address;
   loc->byte_size = 0;
+  loc->frame_base = NULL;
   return loc;
 }
 
@@ -88,7 +89,6 @@ new_synthetic_loc (struct obstack *pool, struct location *origin, bool deref)
   loc->address.program = program;
   loc->address.stack_depth = 0;
   loc->address.declare = NULL;
-  loc->address.frame_base = NULL;
   loc->address.used_deref = deref;
 
   if (origin->type == loc_register)
@@ -138,7 +138,6 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 {
   loc->ops = expr;
   loc->nops = len;
-  loc->address.used_deref = false;
 
 #define DIE(msg) return (*loser = i, N_(msg))
 
@@ -193,6 +192,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 
   size_t i;
 
+  bool used_deref = false;
   inline const char *finish (struct location *piece)
     {
       if (stack_depth > 1)
@@ -205,7 +205,8 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  piece->address.declare = NULL;
 	  piece->address.program = program;
 	  piece->address.stack_depth = max_stack;
-	  piece->address.frame_base = NULL;
+	  piece->address.used_deref = used_deref;
+	  used_deref = false;
 	}
       else if (tos_register == -1)
 	DIE ("stack underflow");
@@ -314,7 +315,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	  {
 	    POP (addr);
 	    push ("deref (sizeof (void *), " STACKFMT ")", addr);
-	    loc->address.used_deref = true;
+	    used_deref = true;
 	  }
 	  break;
 
@@ -323,7 +324,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    POP (addr);
 	    push ("deref (" UFORMAT ", " STACKFMT ")",
 		  expr[i].number, addr);
-	    loc->address.used_deref = true;
+	    used_deref = true;
 	  }
 	  break;
 
@@ -333,7 +334,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    POP (as);
 	    push ("xderef (sizeof (void *), " STACKFMT ", " STACKFMT ")",
 		  addr, as);
-	    loc->address.used_deref = true;
+	    used_deref = true;
 	  }
 	  break;
 
@@ -343,7 +344,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    POP (as);
 	    push ("xderef (" UFORMAT ", " STACKFMT ", " STACKFMT ")",
 		  expr[i].number, addr, as);
-	    loc->address.used_deref = true;
+	    used_deref = true;
 	  }
 	  break;
 
@@ -472,13 +473,25 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	    DIE ("DW_OP_piece left multiple values on stack");
 	  else
 	    {
-	      struct location *piece = alloc_location (pool, loc);
-	      const char *failure = finish (piece);
+	      /* The obstack has a pending program for loc_address,
+		 so we must finish that piece off before we can
+		 allocate again.  */
+	      struct location temp_piece =
+		{
+		  .fail = loc->fail,
+		  .fail_arg = loc->fail_arg,
+		  .emit_address = loc->emit_address,
+		  .frame_base = NULL,
+		  .ops = &expr[piece_expr_start],
+		  .nops = i - piece_expr_start,
+		};
+	      const char *failure = finish (&temp_piece);
 	      if (failure != NULL)
 		return failure;
 
-	      piece->ops = &expr[piece_expr_start];
-	      piece->nops = i - piece_expr_start;
+	      struct location *piece = obstack_alloc (pool, sizeof *piece);
+	      *piece = temp_piece;
+
 	      piece_expr_start = i + 1;
 
 	      piece_total_bytes += piece->byte_size = expr[i].number;
@@ -539,6 +552,7 @@ location_from_address (struct obstack *pool,
   loc->fail_arg = *input == NULL ? fail_arg : (*input)->fail_arg;
   loc->emit_address = *input == NULL ? emit_address : (*input)->emit_address;
   loc->byte_size = 0;
+  loc->frame_base = NULL;
 
   bool need_fb = false;
   size_t loser;
@@ -575,9 +589,9 @@ location_from_address (struct obstack *pool,
 	  return NULL;
 	}
 
-      loc->address.frame_base = alloc_location (pool, loc);
+      loc->frame_base = alloc_location (pool, loc);
       failure = translate (pool, indent + 1, dwbias, fb_expr, fb_len, NULL,
-			   NULL, &loser, loc->address.frame_base);
+			   NULL, &loser, loc->frame_base);
       if (failure != NULL)
 	return lose (loc, failure, fb_expr, loser);
     }
@@ -1707,9 +1721,6 @@ emit_loc_value (FILE *out, struct location *loc, unsigned int indent,
       break;
 
     case loc_address:
-      if (loc->address.frame_base != NULL)
-	emit_loc_value (out, loc->address.frame_base, indent,
-			"frame_base", true);
       emit_loc_address (out, loc, indent, target);
       break;
     }
@@ -1752,6 +1763,10 @@ c_emit_location (FILE *out, struct location *loc, int indent)
       }
 
   bool deref = false;
+
+  if (loc->frame_base != NULL)
+    emit_loc_value (out, loc->frame_base, indent, "frame_base", true);
+
   for (; loc->next != NULL; loc = loc->next)
     switch (loc->type)
       {
