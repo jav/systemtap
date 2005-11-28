@@ -567,6 +567,9 @@ location_from_address (struct obstack *pool,
       /* The main expression uses DW_OP_fbreg, so we need to compute
 	 the DW_AT_frame_base attribute expression's value first.  */
 
+      if (fb_attr == NULL)
+	FAIL (loc, N_("required DW_AT_frame_base attribute not supplied"));
+
       Dwarf_Op *fb_expr;
       size_t fb_len;
       switch (dwarf_getlocation_addr (fb_attr, address - dwbias,
