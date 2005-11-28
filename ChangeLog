@@ -1,3 +1,8 @@
+2005-11-28  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx (c_tmpcounter_assignment::visit_symbol): Don't
+	emit unused temporary into context.  Saves mucho space with strings.
+
 2005-11-27  Roland McGrath  <roland@redhat.com>
 
 	* loc2c.c (location_from_address): Diagnose null FB_ATTR specially.

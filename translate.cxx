@@ -2383,7 +2383,9 @@ c_tmpcounter_assignment::visit_symbol (symbol *e)
   tmpvar res = parent->parent->gensym (ty);
 
   tmp.declare (*(parent->parent));
-  res.declare (*(parent->parent));
+
+  if (op != "=") // simple assignment is shortcut both for strings and numbers
+    res.declare (*(parent->parent));
 
   if (rvalue)
     rvalue->visit (parent);
