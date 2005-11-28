@@ -78,6 +78,13 @@ void *_stp_valloc(size_t len)
 #define _stp_valloc_percpu(type) \
 	((type *)(__stp_valloc_percpu(sizeof(type), __alignof__(type))))
 #define _stp_percpu_dptr(ptr)  (((struct percpu_data *)~(unsigned long)(ptr))->blkp)
+#define _stp_per_cpu_ptr(ptr, cpu)		\
+({                                              \
+        struct percpu_data *__p = (struct percpu_data *)~(unsigned long)(ptr); \
+        (__typeof__(ptr))__p->ptrs[(cpu)];      \
+})
+
+
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free
  */

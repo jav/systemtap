@@ -118,7 +118,6 @@ struct _stp_percpu_data {
 	void *data;
 };
 
-#ifdef CONFIG_SMP
 /**
  * __stp_valloc_percpu - allocate one copy of the object for every present
  * cpu in the system, using vmalloc and zeroing them.
@@ -170,24 +169,17 @@ void _stp_vfree_percpu(const void *objp)
 	}
 	kfree(p);
 }
-#else
-static inline void *__stp_valloc_percpu(size_t size, size_t align)
-{
-	void *ret = kmalloc(size, GFP_KERNEL);
-	if (ret)
-		memset(ret, 0, size);
-	return ret;
-}
-void _stp_vfree_percpu(const void *ptr)
-{	
-	kfree(ptr);
-}
-#endif
 
 #define _stp_valloc_percpu(type) \
 	((type *)(__stp_valloc_percpu(sizeof(type), __alignof__(type))))
 
 #define _stp_percpu_dptr(ptr)  (((struct _stp_percpu_data *)~(unsigned long)(ptr))->data)
+
+#define _stp_per_cpu_ptr(ptr, cpu)		\
+({                                              \
+        struct _stp_percpu_data *__p = (struct _stp_percpu_data *)~(unsigned long)(ptr); \
+        (__typeof__(ptr))__p->ptrs[(cpu)];      \
+})
 
 /** Frees memory allocated by _stp_alloc or _stp_calloc.
  * @param ptr pointer to memory to free

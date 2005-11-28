@@ -1,5 +1,14 @@
 2005-11-28  Martin Hunt  <hunt@redhat.com>
 
+	* alloc.c (__stp_valloc_percpu): Use same code for up and smp.
+	(_stp_per_cpu_ptr): New macro.
+	* user/alloc.c: Ditto.	
+	* map.c: Use _stp_map_cpu_ptr().	 
+	* map-stat.c: Ditto.
+	* pmap-gen.c: Ditto.
+	* runtime.h: Include alloc.c	
+	* user/runtime.h: Ditto.
+
 	* map.c (_stp_pmap_del): Use _stp_free_percpu() to
 	free pmaps.
 

@@ -79,7 +79,7 @@ static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int star
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = per_cpu_ptr (map, i);
+			m = _stp_per_cpu_ptr (map, i);
 			m->hist.type = HIST_LINEAR;
 			m->hist.start = start;
 			m->hist.stop = stop;
@@ -106,7 +106,7 @@ static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buck
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = per_cpu_ptr (map, i);
+			m = _stp_per_cpu_ptr (map, i);
 			m->hist.type = HIST_LOG;
 			m->hist.buckets = buckets;
 		}

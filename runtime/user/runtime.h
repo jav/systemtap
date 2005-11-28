@@ -51,5 +51,6 @@ void exit(int status);
 #include "print.c"
 #include "string.c"
 #include "arith.c"
+#include "alloc.c"
 
 #endif /* _RUNTIME_H_ */

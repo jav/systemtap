@@ -249,7 +249,7 @@ static MAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data_
 		return NULL;
 
 	for_each_cpu(i) {
-		m = per_cpu_ptr (map, i);
+		m = _stp_per_cpu_ptr (map, i);
 		if (_stp_map_init(m, max_entries, type, key_size, data_size, i)) {
 			failed = i;
 			goto err;
@@ -370,7 +370,7 @@ void _stp_pmap_del(MAP map)
 		return;
 
 	for_each_cpu(i) {
-		m = per_cpu_ptr (map, i);
+		m = _stp_per_cpu_ptr (map, i);
 		_stp_vfree(m->membuf);
 	}
 
@@ -711,7 +711,7 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
 
 void _stp_pmap_printn_cpu (MAP map, int n, const char *fmt, int cpu)
 {
-	MAP m = per_cpu_ptr (map, cpu);
+	MAP m = _stp_per_cpu_ptr (map, cpu);
 	_stp_map_printn (m, n, fmt);
 }
 
@@ -826,7 +826,7 @@ MAP _stp_pmap_agg (MAP map)
 	_stp_map_clear (agg);
 
 	for_each_cpu(i) {
-		m = per_cpu_ptr (map, i);
+		m = _stp_per_cpu_ptr (map, i);
 		/* walk the hash chains. */
 		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
 			head = &m->hashes[hash];

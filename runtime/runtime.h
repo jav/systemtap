@@ -63,6 +63,7 @@ static struct
 #include "arith.c"
 #include "copy.c"
 #include "sym.h"
+#include "alloc.c"
 
 
 /************* Module Stuff ********************/
