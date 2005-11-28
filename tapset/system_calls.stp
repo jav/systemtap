@@ -1741,7 +1741,7 @@ probe kernel.syscall.statfs =
    kernel.function("sys_statfs") {
       name = "statfs"
       path_uaddr = $path
-      buf_uaddr
+      buf_uaddr = $buf
    }
 probe kernel.syscall.statfs.return = 
    kernel.function("sys_statfs").return {
@@ -3194,9 +3194,9 @@ probe kernel.syscall.setresgid16.return =
 probe kernel.syscall.getresgid16 = 
    kernel.function("sys_getresgid") {
       name = "getresgid16"
-      ruid_uaddr = $ruid
-      euid_uaddr = $euid
-      suid_uaddr = $suid
+      rgid_uaddr = $rgid
+      egid_uaddr = $egid
+      sgid_uaddr = $sgid
    }
 probe kernel.syscall.getresgid16.return = 
    kernel.function("sys_getresgid").return {
@@ -4393,7 +4393,7 @@ probe kernel.syscall.semctl =
       semid = $semid
       semnum = $semnum
       cmd = $cmd
-      arg = $arg
+      //arg = $arg
    }
 probe kernel.syscall.semctl.return = 
    kernel.function("sys_semctl").return {
@@ -4607,6 +4607,7 @@ probe kernel.syscall.mq_getsetattr.return =
  *                      unsigned long bus, 
  *                      unsigned long dfn) 
  */
+/*
 probe kernel.syscall.pciconfig_iobase = 
    kernel.function("sys_pciconfig_iobase") {
       name = "pciconfig_iobase"
@@ -4618,6 +4619,7 @@ probe kernel.syscall.pciconfig_iobase.return =
    kernel.function("sys_pciconfig_iobase").return {
       name = "pciconfig_iobase.return"
    }
+*/
 # pciconfig_read___________________________________
 /* 
  * asmlinkage int 
@@ -4628,6 +4630,7 @@ probe kernel.syscall.pciconfig_iobase.return =
  *                    unsigned char *buf) 
  *                    { return 0; } 
  */
+/*
 probe kernel.syscall.pciconfig_read = 
    kernel.function("sys_pciconfig_read") {
       name = "pciconfig_read"
@@ -4641,6 +4644,7 @@ probe kernel.syscall.pciconfig_read.return =
    kernel.function("sys_pciconfig_read").return {
       name = "pciconfig_read.return"
    }
+*/
 # pciconfig_write__________________________________
 /* 
  * asmlinkage int 
@@ -4650,6 +4654,7 @@ probe kernel.syscall.pciconfig_read.return =
  *                     unsigned long len,
  *                     unsigned char *buf) 
  */
+/*
 probe kernel.syscall.pciconfig_write = 
    kernel.function("sys_pciconfig_write") {
       name = "pciconfig_write"
@@ -4663,6 +4668,7 @@ probe kernel.syscall.pciconfig_write.return =
    kernel.function("sys_pciconfig_write").return {
       name = "pciconfig_write.return"
    }
+*/
 # prctl____________________________________________
 /* 
  * asmlinkage long 
@@ -4825,7 +4831,7 @@ probe kernel.syscall.add_key =
       name = "add_key"
       type_uaddr = $_type
       description_auddr = $_description
-      payload_uaddr = $payload
+      payload_uaddr = $_payload
       plen = $plen
       ringid = $ringid
    }
@@ -4926,7 +4932,7 @@ probe kernel.syscall.mmap2.return =
 probe kernel.syscall.execve = 
    kernel.function("sys_execve") {
       name = "execve"
-      regs = $regs
+      //regs = $regs
    }
 probe kernel.syscall.execve.return = 
    kernel.function("sys_execve").return {
@@ -4945,7 +4951,7 @@ probe kernel.syscall.clone =
    kernel.function("do_fork") {
       name = "clone"
       clone_flags = $clone_flags
-      start_stack = $start_stack
+      //start_stack = $start_stack
       regs_uaddr = $regs
       stack_size = $stack_size
       parent_tid_uaddr = $parent_tidptr
@@ -4968,7 +4974,7 @@ probe kernel.syscall.fork =
    kernel.function("do_fork") {
       name = "fork"
       clone_flags = $clone_flags
-      start_stack = $start_stack
+      //start_stack = $start_stack
       regs_uaddr = $regs
       stack_size = $stack_size
       parent_tid_uaddr = $parent_tidptr
@@ -4991,7 +4997,7 @@ probe kernel.syscall.vfork =
    kernel.function("do_fork") {
       name = "vfork"
       clone_flags = $clone_flags
-      start_stack = $start_stack
+      //start_stack = $start_stack
       regs_uaddr = $regs
       stack_size = $stack_size
       parent_tid_uaddr = $parent_tidptr
