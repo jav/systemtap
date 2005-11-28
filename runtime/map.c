@@ -378,7 +378,7 @@ void _stp_pmap_del(MAP map)
 	_stp_vfree(m->membuf);
 	_stp_vfree(m);
 
-	free_percpu(map);
+	_stp_vfree_percpu(map);
 }
 
 /* sort keynum values */

@@ -1,5 +1,8 @@
 2005-11-28  Martin Hunt  <hunt@redhat.com>
 
+	* map.c (_stp_pmap_del): Use _stp_free_percpu() to
+	free pmaps.
+
 	* map-stat.c (_stp_pmap_new_hstat_log): Fix typo. Call
 	_stp_pmap_new() instead of _stp_map_new().
 
