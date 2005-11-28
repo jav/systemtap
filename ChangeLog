@@ -1,3 +1,7 @@
+2005-11-27  Roland McGrath  <roland@redhat.com>
+
+	* loc2c.c (location_from_address): Fix function name in error message.
+
 2005-11-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* loc2c.c (location_from_address): Tolerate errors with NULL *input.
