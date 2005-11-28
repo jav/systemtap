@@ -580,7 +580,7 @@ location_from_address (struct obstack *pool,
 	default:		/* Shouldn't happen.  */
 	case -1:
 	  FAIL (loc, N_("dwarf_addrloclists (form %#x): %s"),
-		dwarf_whatform(fb_attr), dwarf_errmsg (-1));
+		dwarf_whatform (fb_attr), dwarf_errmsg (-1));
 	  return NULL;
 
 	case 0:			/* Shouldn't happen.  */
