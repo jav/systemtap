@@ -579,13 +579,13 @@ location_from_address (struct obstack *pool,
 
 	default:		/* Shouldn't happen.  */
 	case -1:
-	  FAIL (*input, N_("dwarf_addrloclists (form %#x): %s"),
-		dwarf_whatform (fb_attr), dwarf_errmsg (-1));
+	  FAIL (loc, N_("dwarf_addrloclists (form %#x): %s"),
+		dwarf_whatform(fb_attr), dwarf_errmsg (-1));
 	  return NULL;
 
 	case 0:			/* Shouldn't happen.  */
 	fb_inaccessible:
-	  FAIL (*input, N_("DW_AT_frame_base not accessible at this address"));
+	  FAIL (loc, N_("DW_AT_frame_base not accessible at this address"));
 	  return NULL;
 	}
 
