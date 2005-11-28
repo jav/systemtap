@@ -1,3 +1,8 @@
+2005-11-28  Martin Hunt  <hunt@redhat.com>
+
+	* map-stat.c (_stp_pmap_new_hstat_log): Fix typo. Call
+	_stp_pmap_new() instead of _stp_map_new().
+
 2005-11-11  Martin Hunt  <hunt@redhat.com>
 
 	* map.h: Removed old API macros and prototypes.

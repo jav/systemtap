@@ -101,7 +101,7 @@ static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buck
 {
 	/* add size for buckets */
 	int size = buckets * sizeof(int64_t) + sizeof(stat);
-	MAP map = _stp_map_new (max_entries, STAT, key_size, size);
+	MAP map = _stp_pmap_new (max_entries, STAT, key_size, size);
 	if (map) {
 		int i;
 		MAP m;

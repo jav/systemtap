@@ -1,3 +1,9 @@
+2005-11-28  Martin Hunt  <hunt@redhat.com>
+
+	* pmaps/pmap.test: Add ix_log and ix_none.
+	* pmaps/ix_log.c: Test log histograms.
+	* pmaps/ix_none.c: Test no histograms.	
+
 2005-11-10  Martin Hunt  <hunt@redhat.com>
 	* pmaps/ix2.c: New test. Test _stp_pmap_get_*().
 	* pmaps/iii3.c: New test. Test _stp_pmap_get_*().	

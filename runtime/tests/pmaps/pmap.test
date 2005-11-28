@@ -285,6 +285,154 @@ value |-------------------------------------------------- count
 
 }
 
+test ix_log {Test of int64 keys and stat values (log histogram)} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ix_log.c
+} -body {
+	exec ./test
+} -result {CPU #0
+map[1] = count:1  sum:0  avg:0  min:0  max:0
+map[2] = count:1  sum:1  avg:1  min:1  max:1
+map[3] = count:1  sum:0  avg:0  min:0  max:0
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #1
+map[1] = count:1  sum:1  avg:1  min:1  max:1
+map[2] = count:1  sum:11  avg:11  min:11  max:11
+map[3] = count:1  sum:1  avg:1  min:1  max:1
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #2
+map[1] = count:1  sum:2  avg:2  min:2  max:2
+map[2] = count:1  sum:21  avg:21  min:21  max:21
+map[3] = count:1  sum:4  avg:4  min:4  max:4
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #3
+map[1] = count:1  sum:3  avg:3  min:3  max:3
+map[2] = count:1  sum:31  avg:31  min:31  max:31
+map[3] = count:1  sum:9  avg:9  min:9  max:9
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #4
+map[1] = count:1  sum:4  avg:4  min:4  max:4
+map[2] = count:1  sum:41  avg:41  min:41  max:41
+map[3] = count:1  sum:16  avg:16  min:16  max:16
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #5
+map[1] = count:1  sum:5  avg:5  min:5  max:5
+map[2] = count:1  sum:51  avg:51  min:51  max:51
+map[3] = count:1  sum:25  avg:25  min:25  max:25
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #6
+map[1] = count:1  sum:6  avg:6  min:6  max:6
+map[2] = count:1  sum:61  avg:61  min:61  max:61
+map[3] = count:1  sum:36  avg:36  min:36  max:36
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #7
+map[1] = count:1  sum:7  avg:7  min:7  max:7
+map[2] = count:1  sum:71  avg:71  min:71  max:71
+map[3] = count:1  sum:49  avg:49  min:49  max:49
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+map[2] = count:8  sum:288  avg:36  min:1  max:71
+value |-------------------------------------------------- count
+    0 |                                                   0
+    1 |@                                                  1
+    2 |                                                   0
+    4 |                                                   0
+    8 |@@@@@@@                                            7
+
+map[4] = count:8  sum:8  avg:1  min:1  max:1
+value |-------------------------------------------------- count
+    0 |                                                   0
+    1 |@@@@@@@@                                           8
+    2 |                                                   0
+    4 |                                                   0
+    8 |                                                   0
+
+map[1] = count:8  sum:28  avg:3  min:0  max:7
+value |-------------------------------------------------- count
+    0 |@                                                  1
+    1 |@                                                  1
+    2 |@@                                                 2
+    4 |@@@@                                               4
+    8 |                                                   0
+
+map[3] = count:8  sum:140  avg:17  min:0  max:49
+value |-------------------------------------------------- count
+    0 |@                                                  1
+    1 |@                                                  1
+    2 |                                                   0
+    4 |@                                                  1
+    8 |@@@@@                                              5
+
+}
+
+test ix_none {Test of int64 keys and stat values (no histogram)} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test ix_none.c
+} -body {
+	exec ./test
+} -result {CPU #0
+map[1] = count:1  sum:0  avg:0  min:0  max:0
+map[2] = count:1  sum:1  avg:1  min:1  max:1
+map[3] = count:1  sum:0  avg:0  min:0  max:0
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #1
+map[1] = count:1  sum:1  avg:1  min:1  max:1
+map[2] = count:1  sum:11  avg:11  min:11  max:11
+map[3] = count:1  sum:1  avg:1  min:1  max:1
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #2
+map[1] = count:1  sum:2  avg:2  min:2  max:2
+map[2] = count:1  sum:21  avg:21  min:21  max:21
+map[3] = count:1  sum:4  avg:4  min:4  max:4
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #3
+map[1] = count:1  sum:3  avg:3  min:3  max:3
+map[2] = count:1  sum:31  avg:31  min:31  max:31
+map[3] = count:1  sum:9  avg:9  min:9  max:9
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #4
+map[1] = count:1  sum:4  avg:4  min:4  max:4
+map[2] = count:1  sum:41  avg:41  min:41  max:41
+map[3] = count:1  sum:16  avg:16  min:16  max:16
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #5
+map[1] = count:1  sum:5  avg:5  min:5  max:5
+map[2] = count:1  sum:51  avg:51  min:51  max:51
+map[3] = count:1  sum:25  avg:25  min:25  max:25
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #6
+map[1] = count:1  sum:6  avg:6  min:6  max:6
+map[2] = count:1  sum:61  avg:61  min:61  max:61
+map[3] = count:1  sum:36  avg:36  min:36  max:36
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+CPU #7
+map[1] = count:1  sum:7  avg:7  min:7  max:7
+map[2] = count:1  sum:71  avg:71  min:71  max:71
+map[3] = count:1  sum:49  avg:49  min:49  max:49
+map[4] = count:1  sum:1  avg:1  min:1  max:1
+
+map[2] = count:8  sum:288  avg:36  min:1  max:71
+
+map[4] = count:8  sum:8  avg:1  min:1  max:1
+
+map[1] = count:8  sum:28  avg:3  min:0  max:7
+
+map[3] = count:8  sum:140  avg:17  min:0  max:49
+
+}
+
 test map_format {Test of map formatting and histograms} -setup {
         exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test map_format.c
 } -body {
