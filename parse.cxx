@@ -1988,6 +1988,19 @@ parser::parse_symbol ()
 		  fmt->args.push_back(e);
 		}
 	    }
+	  else if (name == "print" && 
+		   (peek_kw("@hist_linear") || 
+		    peek_kw("@hist_log")))
+	    {
+	      // We have a special case where we recognize
+	      // print(@hist_foo(bar)) as a magic print-the-histogram
+	      // construct. This is sort of gross but it avoids
+	      // promoting histogram references to typeful
+	      // expressions.
+	      fmt->hist = NULL;
+	      t = parse_hist_op_or_bare_name(fmt->hist, name);
+	      assert(fmt->hist);
+	    }
 	  else
 	    {
 	      // If we are not printing with a format string, we permit

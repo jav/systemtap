@@ -306,8 +306,13 @@ struct print_format: public expression
     }
   };
 
+  print_format() 
+    : hist(NULL) 
+  {}
+
   std::vector<format_component> components;
   std::vector<expression*> args;
+  hist_op *hist;
 
   static std::string components_to_string(std::vector<format_component> const & components);
   static std::vector<format_component> string_to_components(std::string const & str);

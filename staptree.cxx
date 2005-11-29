@@ -1391,6 +1391,8 @@ traversing_visitor::visit_print_format (print_format* e)
 {
   for (unsigned i=0; i<e->args.size(); i++)
     e->args[i]->visit (this);
+  if (e->hist)
+    e->hist->visit(this);
 }
 
 void
@@ -1942,6 +1944,8 @@ deep_copy_visitor::visit_print_format (print_format* e)
       require <expression*> (this, &na, e->args[i]);
       n->args.push_back(na);
     }
+  if (e->hist)
+    require <hist_op*> (this, &n->hist, e->hist);
   provide <print_format*> (this, n);
 }
 

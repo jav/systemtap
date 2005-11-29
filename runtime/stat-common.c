@@ -98,17 +98,34 @@ static int msb64(int64_t val)
 
 static void _stp_stat_print_histogram (Hist st, stat *sd)
 {
-	int scale, i, j, val_space, cnt_space;
+	int scale, i, j, val_space, cnt_space, 
+		low_bucket = -1, high_bucket = 0;
 	int64_t val, v, max = 0;
 
 	if (st->type != HIST_LOG && st->type != HIST_LINEAR)
 		return;
-	
-	/* get the maximum value, for scaling */
-	for (i = 0; i < st->buckets; i++)
+
+	/* Get the maximum value, for scaling. Also calculate the low
+	   and high values to bound the reporting range. */
+	for (i = 0; i < st->buckets; i++) {
+		if (sd->histogram[i] > 0 && low_bucket == -1)
+			low_bucket = i;
+		if (sd->histogram[i] > 0)
+			high_bucket = i;
 		if (sd->histogram[i] > max)
 			max = sd->histogram[i];
-	
+	}
+
+	/* Touch up the bucket margin to show up to two zero-slots on
+	   either side of the data range, seems aesthetically pleasant. */
+	for (i = 0; i < 2; i++) {
+		if (low_bucket > 0)
+			low_bucket--;
+		
+		if (high_bucket < (st->buckets-1))
+			high_bucket++;
+	}
+
 	if (max <= HIST_WIDTH)
 		scale = 1;
 	else {
@@ -120,9 +137,9 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 
 	cnt_space = needed_space (max);
 	if (st->type == HIST_LINEAR)
-		val_space = needed_space (st->start +  st->interval * (st->buckets - 1));
+		val_space = needed_space (st->start +  st->interval * high_bucket);
 	else
-		val_space = needed_space (1 << (st->buckets - 1));
+		val_space = needed_space (((int64_t)1) << high_bucket);
 	//dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
 
 	/* print header */
@@ -142,17 +159,19 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	else
 		val = 0;
 	for (i = 0; i < st->buckets; i++) {
-		reprint (val_space - needed_space(val), " ");
-		_stp_printf("%d", val);
-		_stp_print_cstr (" |");
-
-		/* v = s->histogram[i] / scale; */
-		v = sd->histogram[i];
-		do_div (v, scale);
+		if (i >= low_bucket && i <= high_bucket) {
+			reprint (val_space - needed_space(val), " ");
+			_stp_printf("%lld", val);
+			_stp_print_cstr (" |");
+			
+			/* v = s->histogram[i] / scale; */
+			v = sd->histogram[i];
+			do_div (v, scale);
 		
-		reprint (v, "@");
-		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
-		_stp_printf ("%lld\n", sd->histogram[i]);
+			reprint (v, "@");
+			reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
+			_stp_printf ("%lld\n", sd->histogram[i]);
+		}
 		if (st->type == HIST_LINEAR) 
 			val += st->interval;
 		else if (val == 0)
@@ -217,14 +236,14 @@ static void __stp_stat_add (Hist st, stat *sd, int64_t val)
 		sd->histogram[n]++;
 		break;
 	case HIST_LINEAR:
-		val -= st->start;
+		if (val < st->start)
+			val = st->start;
+		else
+			val -= st->start;
 		do_div (val, st->interval);
-		n = val;
-		if (n < 0)
-			n = 0;
-		if (n >= st->buckets)
-			n = st->buckets - 1;
-		sd->histogram[n]++;
+		if (val >= st->buckets)
+			val = st->buckets - 1;
+		sd->histogram[val]++;
 	default:
 		break;
 	}

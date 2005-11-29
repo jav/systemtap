@@ -1,3 +1,25 @@
+2005-11-28  Graydon Hoare  <graydon@redhat.com>
+
+	* translate.cxx (var::assert_hist_compatible): New method.
+	(var::hist): New method.
+	(c_unparser::load_aggregate): New method.
+	(hist_op_downcaster): Remove, it was a mistake.
+	(expression_is_hist_op): Likewise.
+	(c_tmpcounter::visit_print_format): Implement print(@hist(...)).
+	(c_unparser::visit_print_format): Likewise.
+
+	* staptree.h (struct print_format): Add optional hist_op* member.
+	* staptree.cxx (traversing_visitor::visit_functioncall): Visit
+	hist_op if present in print_format.
+	(deep_copy_visitor::visit_print_format): Likewise.
+
+	* parse.cxx (parse_symbol): Special case to consume print(@hist(...)).
+
+	* elaborate.cxx (typeresolution_info::visit_arrayindex): Fix type inference bug.
+	(typeresolution_info::visit_foreach_loop): Likewise.
+
+	* testsuite/buildok/print_histograms.stp: New test.
+
 2005-11-28  Frank Ch. Eigler  <fche@redhat.com>
 
 	* translate.cxx (c_tmpcounter_assignment::visit_symbol): Don't

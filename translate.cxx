@@ -116,6 +116,8 @@ struct c_unparser: public unparser, public visitor
   void load_map_indices(arrayindex* e,
 			vector<tmpvar> & idx);
 
+  void load_aggregate (expression *e, aggvar & agg);
+
   void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< pair<vector<exp_type>, exp_type> > & types);
 
@@ -299,6 +301,29 @@ public:
     return sd;
   }
 
+  void assert_hist_compatible(hist_op const & hop)
+  {
+    // Semantic checks in elaborate should have caught this if it was
+    // false. This is just a double-check.
+    switch (sd.type)
+      {
+      case statistic_decl::linear:
+	assert(hop.htype == hist_linear);
+	assert(hop.params.size() == 3);
+	assert(hop.params[0] == sd.linear_low);
+	assert(hop.params[1] == sd.linear_high);
+	assert(hop.params[2] == sd.linear_step);
+	break;
+      case statistic_decl::logarithmic:
+	assert(hop.htype == hist_log);
+	assert(hop.params.size() == 1);
+	assert(hop.params[0] == sd.logarithmic_buckets);
+	break;
+      case statistic_decl::none:
+	assert(false);
+      }
+  }
+
   exp_type type() const
   {
     return ty;
@@ -310,6 +335,12 @@ public:
       return "l->" + name;
     else
       return "global_" + name;
+  }
+
+  string hist() const
+  {
+    assert (ty == pe_stats);
+    return "&(" + qname() + "->hist)";
   }
 
   string init() const
@@ -2510,6 +2541,67 @@ c_unparser::load_map_indices(arrayindex *e,
 }
 
 
+struct arrayindex_downcaster
+  : public traversing_visitor
+{
+  arrayindex *& arr;
+  
+  arrayindex_downcaster (arrayindex *& arr)
+    : arr(arr) 
+  {}
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    arr = e;
+  }
+};
+
+
+static bool
+expression_is_arrayindex (expression *e, 
+			  arrayindex *& hist)
+{
+  arrayindex *h = NULL;
+  arrayindex_downcaster d(h);
+  e->visit (&d);
+  if (static_cast<void*>(h) == static_cast<void*>(e))
+    {
+      hist = h;
+      return true;
+    }
+  return false;
+}
+
+
+void 
+c_unparser::load_aggregate (expression *e, aggvar & agg)
+{
+  symbol *sym = get_symbol_within_expression (e);
+  
+  if (sym->referent->type != pe_stats)
+    throw semantic_error ("unexpected aggregate of non-statistic", sym->tok);
+  
+  var v = getvar(sym->referent, e->tok);
+
+  if (sym->referent->arity == 0)
+    {
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+      o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";	  
+    }
+  else
+    {
+      arrayindex *arr = NULL;
+      if (!expression_is_arrayindex (e, arr))
+	throw semantic_error("unexpected aggregate of non-arrayindex", e->tok);
+      
+      vector<tmpvar> idx;
+      load_map_indices (arr, idx);
+      mapvar mvar = getmap (sym->referent, sym->tok);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+      o->newline() << agg << " = " << mvar.get(idx) << ";";
+    }
+}
+
 void
 c_unparser::visit_arrayindex (arrayindex* e)
 {
@@ -2788,45 +2880,31 @@ c_unparser::visit_functioncall (functioncall* e)
                  << ".__retvalue;";
 }
 
-struct hist_op_downcaster
-  : public traversing_visitor
-{
-  hist_op *& hist;
-
-  hist_op_downcaster (hist_op *& hist)
-    : hist(hist) 
-  {}
-
-  void visit_hist_op (hist_op* e)
-  {
-    hist = e;
-  }
-};
-
-static bool
-expression_is_hist_op (expression *e, 
-		       hist_op *& hist)
-{
-  hist_op *h = NULL;
-  hist_op_downcaster d(h);
-  e->visit (&d);
-  if (static_cast<void*>(h) == static_cast<void*>(e))
-    {
-      hist = h;
-      return true;
-    }
-  return false;
-}
-
-
 void
 c_tmpcounter::visit_print_format (print_format* e)
 {
-  hist_op *hist;
-  if ((!e->print_with_format) &&
-      (e->args.size() == 1) &&
-      expression_is_hist_op (e->args[0], hist))
+  if (e->hist)
     {
+      symbol *sym = get_symbol_within_expression (e->hist->stat);
+      var v = parent->getvar(sym->referent, sym->tok);
+      aggvar agg = parent->gensym_aggregate ();
+
+      agg.declare(*(this->parent));
+
+      if (sym->referent->arity != 0)
+	{
+	  // One temporary per index dimension.
+	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
+	    {
+	      arrayindex *arr = NULL;
+	      if (!expression_is_arrayindex (e->hist->stat, arr))
+		throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
+	      
+	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
+	      ix.declare (*parent);
+	      arr->indexes[i]->visit(this);
+	    }
+	}
     }
   else
     {
@@ -2859,13 +2937,18 @@ c_unparser::visit_print_format (print_format* e)
   // type of argument which gets its own processing: a single,
   // non-format-string'ed, histogram-type stat_op expression.
 
-  hist_op *hist;
-  if ((!e->print_with_format) &&
-      (e->args.size() == 1) &&
-      expression_is_hist_op (e->args[0], hist))
+  if (e->hist)
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      stmt_expr block(*this);  
+      symbol *sym = get_symbol_within_expression (e->hist->stat);
+      aggvar agg = gensym_aggregate ();
+      var v = getvar(sym->referent, e->tok);
+      v.assert_hist_compatible(*e->hist);
+
+      varlock_w guard(*this, v);
+      load_aggregate(e->hist->stat, agg);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      o->newline() << "_stp_stat_print_histogram (" << v.hist() << ", " << agg.qname() << ");";
     }
   else
     {
@@ -2941,35 +3024,6 @@ c_unparser::visit_print_format (print_format* e)
     }
 }
 
-struct arrayindex_downcaster
-  : public traversing_visitor
-{
-  arrayindex *& arr;
-  
-  arrayindex_downcaster (arrayindex *& arr)
-    : arr(arr) 
-  {}
-
-  void visit_arrayindex (arrayindex* e)
-  {
-    arr = e;
-  }
-};
-
-static bool
-expression_is_arrayindex (expression *e, 
-			  arrayindex *& hist)
-{
-  arrayindex *h = NULL;
-  arrayindex_downcaster d(h);
-  e->visit (&d);
-  if (static_cast<void*>(h) == static_cast<void*>(e))
-    {
-      hist = h;
-      return true;
-    }
-  return false;
-}
 
 void 
 c_tmpcounter::visit_stat_op (stat_op* e)
@@ -3016,38 +3070,16 @@ c_unparser::visit_stat_op (stat_op* e)
   // FIXME: also note that summarizing anything is expensive, and we
   // really ought to pass a timeout handler into the summary routine,
   // check its response, possibly exit if it ran out of cycles.
-
-  symbol *sym = get_symbol_within_expression (e->stat);
-
-  if (sym->referent->type != pe_stats)
-    throw semantic_error ("non-statistic value in statistic operator context", sym->tok);
   
   {
-    stmt_expr block(*this);  
+    stmt_expr block(*this);
+    symbol *sym = get_symbol_within_expression (e->stat);
     aggvar agg = gensym_aggregate ();
-    tmpvar res = gensym (pe_long);      
-    
+    tmpvar res = gensym (pe_long);    
+    var v = getvar(sym->referent, e->tok);
     {
-      var v = getvar(sym->referent, e->tok);
       varlock_w guard(*this, v);
-      
-      if (sym->referent->arity == 0)
-	{
-	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-	  o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";	  
-	}
-      else
-	{
-	  arrayindex *arr = NULL;
-	  if (!expression_is_arrayindex (e->stat, arr))
-	    throw semantic_error("expected arrayindex expression in stat_op of array", e->tok);
-	  
-	  vector<tmpvar> idx;
-	  load_map_indices (arr, idx);
-	  mapvar mvar = getmap (sym->referent, sym->tok);
-	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-	  o->newline() << agg << " = " << mvar.get(idx) << ";";
-	}
+      load_aggregate(e->stat, agg);
     
       switch (e->ctype)
 	{

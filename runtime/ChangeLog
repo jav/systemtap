@@ -1,3 +1,9 @@
+2005-11-28  Graydon Hoare  <graydon@redhat.com>
+
+	* stat-common.c (_stp_stat_print_histogram): Various formatting
+	corrections and aesthetic tweaks.
+	(__stp_stat_add): Correction to linear bucket underflow cases.
+
 2005-11-28  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (__stp_valloc_percpu): Use same code for up and smp.

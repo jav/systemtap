@@ -1593,7 +1593,7 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
       e->indexes[0]->visit (this);
       if (e->indexes[0]->type != pe_long)
 	unresolved (e->tok);
-      hist->stat->visit (this);
+      hist->visit (this);
       return;
     }
 
@@ -1759,7 +1759,7 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
       e->indexes[0]->visit (this);
       if (e->indexes[0]->type != pe_long)
 	unresolved (e->tok);
-      hist->stat->visit (this);
+      hist->visit (this);
     }
   else
     {
