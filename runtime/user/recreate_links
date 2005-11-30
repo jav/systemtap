@@ -2,12 +2,7 @@
 
 ln -s ../map.h .
 ln -s ../map.c .
-ln -s ../map-values.c .
-ln -s ../map-keys.c .
-ln -s ../map-int.c .
-ln -s ../map-str.c .
 ln -s ../map-stat.c .
-ln -s ../list.c .
 ln -s ../string.c .
 ln -s ../string.h .
 ln -s ../sym.c .

@@ -1,3 +1,7 @@
+2005-11-29  Martin Hunt  <hunt@redhat.com>
+
+	* recreate_links: Remove links to deleted files.
+
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
 	* recreate_links: Add link to pmap-gen.c
