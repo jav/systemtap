@@ -29,14 +29,15 @@ MODULE_PARM_DESC(_stp_pid, "daemon pid");
 
 int _stp_target = 0;
 int _stp_exit_called = 0;
+int _stp_exit_flag = 0;
 
 /* forward declarations */
 void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
 void _stp_handle_start (struct transport_start *st);
-static void _stp_handle_exit (void *data);
-static DECLARE_WORK(stp_exit, _stp_handle_exit, NULL);
+static void _stp_work_queue (void *data);
+static DECLARE_WORK(stp_exit, _stp_work_queue, NULL);
 int _stp_transport_open(struct transport_info *info);
 
 #include "procfs.c"
@@ -142,13 +143,29 @@ static void _stp_cleanup_and_exit (int closing)
 }
 
 /*
- *	_stp_handle_exit - handle STP_EXIT
+ *	_stp_work_queue - periodically check for IO or exit
  */
-static void _stp_handle_exit (void *data)
+static void _stp_work_queue (void *data)
 {
-	down (&_stp_start_mutex);
-	_stp_cleanup_and_exit(0);
-	up (&_stp_start_mutex);
+	int do_io = 0;
+
+	spin_lock(&_stp_ready_lock);
+	if (!list_empty(&_stp_ready_q))
+		do_io = 1;
+	spin_unlock(&_stp_ready_lock);
+
+	if (do_io)
+		wake_up_interruptible(&_stp_proc_wq);
+
+	if (_stp_exit_flag) {
+		cancel_delayed_work(&stp_exit);
+		down (&_stp_start_mutex);
+		_stp_cleanup_and_exit(0);
+		up (&_stp_start_mutex);
+		wake_up_interruptible(&_stp_proc_wq);
+	} else
+		schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
+
 }
 
 /**
@@ -232,6 +249,7 @@ int _stp_transport_init(void)
 	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
 	_stp_register_procfs();
+	schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
 	return 0;
 }
 

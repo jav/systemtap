@@ -1,3 +1,12 @@
+2005-11-30  Martin Hunt  <hunt@redhat.com>
+
+	* transport.h (STP_WORK_TIMER): Declare.
+	* transport.c (_stp_work_queue): Wake up every STP_WORK_QUEUE
+	jiffies and check IO and exit status.
+	(_stp_handle_exit): Deleted.
+	* procfs.c (_stp_proc_write_cmd): Just set exit flag on STP_EXIT.
+	(_stp_write): Don't call wake_up_interruptible.
+
 2005-10-17  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_handle_start): Grab semaphore before

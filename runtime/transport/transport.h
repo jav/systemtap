@@ -12,6 +12,9 @@ void _stp_warn (const char *fmt, ...);
 
 #define STP_BUFFER_SIZE 8192
 
+/* how often the work queue wakes up and checks buffers */
+#define STP_WORK_TIMER (HZ/100)
+
 #ifdef STP_RELAYFS
 static unsigned n_subbufs = 16;
 static unsigned subbuf_size = 65536;

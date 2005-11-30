@@ -93,10 +93,7 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 		break;
 	}
 	case STP_EXIT:
-		/* Cannot call _stp_handle_exit() directly here */
-		/* because the buffers may be full and stpd won't be able */
-		/* to empty them until this handler returns. */
-		schedule_work (&stp_exit);
+		_stp_exit_flag = 1;
 		break;
 	case STP_TRANSPORT_INFO:
 	{
@@ -160,14 +157,10 @@ static int _stp_write (int type, void *data, int len)
 	memcpy (bptr->buf, data, len);
 	bptr->len = len;
 	
-
 	/* put it on the pool of ready buffers */
 	spin_lock(&_stp_ready_lock);
 	list_add_tail(&bptr->list, &_stp_ready_q);
 	spin_unlock(&_stp_ready_lock);
-
-	/* now wake up readers */
-	wake_up_interruptible(&_stp_proc_wq);
 
 	return len;
 }
@@ -236,7 +229,7 @@ static int _stp_set_buffers(int num)
 	int i;
 	struct list_head *p;
 	
-	printk("stp_set_buffers %d\n", num);
+	//printk("stp_set_buffers %d\n", num);
 
 	if (num == 0 || num == _stp_current_buffers)
 		return _stp_current_buffers;
