@@ -1,3 +1,8 @@
+2005-11-30  Martin Hunt  <hunt@redhat.com>
+
+	* io.c (_stp_exit): To prevent any possible interactions
+	with the probed function, just set a flag here.
+
 2005-11-28  Graydon Hoare  <graydon@redhat.com>
 
 	* stat-common.c (_stp_stat_print_histogram): Various formatting

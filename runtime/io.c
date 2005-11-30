@@ -116,7 +116,7 @@ void _stp_warn (const char *fmt, ...)
  */
 void _stp_exit (void)
 {
-	schedule_work (&stp_exit);
+	_stp_exit_flag = 1;
 }
 
 /** Prints error message and exits.
