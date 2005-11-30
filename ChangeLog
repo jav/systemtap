@@ -1,3 +1,12 @@
+2005-11-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 1276
+	From Josh Stone <joshua.i.stone@intel.com>:
+	* tapsets.cxx (profile_derived_probe, profile_builder,
+	register_standard_tapsets): Support timer.profile variety.
+	* stapprobes.5.in: Document it.
+	* testsuite/builok/fourteen.stp: Test its buildability.
+
 2005-11-28  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx (var::assert_hist_compatible): New method.

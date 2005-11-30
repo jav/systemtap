@@ -5,4 +5,5 @@ probe timer.jiffies(100) { i++ }
 probe timer.jiffies(100).randomize(100) { j++ }
 probe timer.ms(100) { i++ }
 probe timer.ms(100).randomize(100) { j++ }
+probe timer.profile { i++ }
 probe end { log ("i=" . string(i) . " j=" . string(j)) }

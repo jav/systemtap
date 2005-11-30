@@ -3048,12 +3048,6 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
-
-  o->newline() << "#ifdef __i386__";   // task_pt_regs is i386-only
-  o->newline() << "if (! in_interrupt())";
-  o->newline(1) << "c->regs = task_pt_regs (current);";
-  o->newline(-1) << "#endif";
-
   o->newline() << "c->actioncount = 0;";
 
   // NB: locals are initialized by probe function itself
@@ -3092,6 +3086,131 @@ struct timer_builder: public derived_probe_builder
 };
 
 
+// ------------------------------------------------------------------------
+// profile derived probes
+// ------------------------------------------------------------------------
+//   On kernels < 2.6.10, this uses the register_profile_notifier API to
+//   generate the timed events for profiling; on kernels >= 2.6.10 this
+//   uses the register_timer_hook API.  The latter doesn't currently allow
+//   simultaneous users, so insertion will fail if the profiler is busy.
+//   (Conflicting users may include OProfile, other SystemTap probes, etc.)
+
+
+struct profile_derived_probe: public derived_probe
+{
+  profile_derived_probe (probe* p, probe_point* l): derived_probe(p, l) {}
+
+  virtual void emit_registrations (translator_output * o, unsigned i);
+  virtual void emit_deregistrations (translator_output * o, unsigned i);
+  virtual void emit_probe_entries (translator_output * o, unsigned i);
+};
+
+
+void
+profile_derived_probe::emit_registrations (translator_output* o, unsigned j)
+{
+  // kernels < 2.6.10: use register_profile_notifier API
+  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
+  o->newline() << "rc = register_profile_notifier(&profile_" << j << ");";
+
+  // kernels >= 2.6.10: use register_timer_hook API
+  o->newline() << "#else";
+  o->newline() << "rc = register_timer_hook(enter_" << j << ");";
+
+  o->newline() << "#endif";
+}
+
+
+void
+profile_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+{
+  // kernels < 2.6.10: use register_profile_notifier API
+  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
+  o->newline() << "unregister_profile_notifier(&profile_" << j << ");";
+
+  // kernels >= 2.6.10: use register_timer_hook API
+  o->newline() << "#else";
+  o->newline() << "unregister_timer_hook(enter_" << j << ");";
+
+  o->newline() << "#endif";
+}
+
+
+void
+profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+{
+  // kernels < 2.6.10: use register_profile_notifier API
+  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
+  o->newline() << "static int enter_" << j
+	       << " (struct notifier_block *self, unsigned long val, void *data);";
+  o->newline() << "static struct notifier_block profile_" << j << " = {";
+  o->newline(1) << ".notifier_call = enter_" << j << ",";
+  o->newline(-1) << "};";
+  o->newline() << "int enter_" << j
+	       << " (struct notifier_block *self, unsigned long val, void *data) {";
+  o->newline(1) << "struct pt_regs *regs = (struct pt_regs *)data;";
+
+  // kernels >= 2.6.10: use register_timer_hook API
+  o->newline(-1) << "#else";
+  o->newline() << "static int enter_" << j << " (struct pt_regs *regs);";
+  o->newline() << "int enter_" << j << " (struct pt_regs *regs) {";
+  o->newline(1) << "unsigned long val = 0;";
+  o->newline(-1) << "#endif";
+
+  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->newline() << "const char* probe_point = "
+	       << lex_cast_qstring(*locations[0]) << ";";
+
+  // A precondition for running a probe handler is that we're in
+  // RUNNING state (not ERROR), and that no one else is already using
+  // this context.
+  o->newline() << "(void) val;";
+  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
+  o->newline(1) << "return 0;";
+
+  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
+  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
+		<< "c->probe_point, probe_point);";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "atomic_dec (&c->busy);";
+  o->newline() << "return 0;";
+  o->newline(-1) << "}";
+  o->newline();
+
+  o->newline() << "c->probe_point = probe_point;";
+  o->newline() << "c->last_error = 0;";
+  o->newline() << "c->nesting = 0;";
+  o->newline() << "c->regs = regs;";
+  o->newline() << "c->actioncount = 0;";
+
+  // NB: locals are initialized by probe function itself
+  o->newline() << "probe_" << j << " (c);";
+
+  o->newline() << "if (c->last_error && c->last_error[0]) {";
+  o->newline(1) << "_stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
+  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline(-1) << "}";
+
+  o->newline() << "atomic_dec (&c->busy);";
+  o->newline() << "return 0;";
+  o->newline(-1) << "}" << endl;
+}
+
+
+struct profile_builder: public derived_probe_builder
+{
+  profile_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results)
+  {
+    finished_results.push_back(new profile_derived_probe(base, location));
+  }
+};
+
+
 
 // ------------------------------------------------------------------------
 //  Standard tapset registry.
@@ -3107,6 +3226,7 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());
   s.pattern_root->bind("timer")->bind_num("ms")->bind(new timer_builder(true));
   s.pattern_root->bind("timer")->bind_num("ms")->bind_num("randomize")->bind(new timer_builder(true));
+  s.pattern_root->bind("timer")->bind("profile")->bind(new profile_builder());
 
   // kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);

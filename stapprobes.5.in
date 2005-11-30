@@ -80,6 +80,14 @@ Here, N and M are specified in milliseconds.  The probe intervals will be
 rounded up to the nearest jiffies interval for the actual timer.  If the
 "randomize" component is given, then the random value will be added to the
 interval before the conversion to jiffies.
+.PP
+Profiling timers are also available to provide probes that execute on all
+CPUs at the rate of the system tick.  This probe takes no parameters.
+.SAMPLE
+timer.profile
+.ESAMPLE
+Full context information of the interrupted process is available, making
+this probe suitable for a time-based sampling profiler.
 
 .SS DWARF
 
