@@ -408,7 +408,7 @@ function thatfn:string (arg1:long, arg2) {
 .ESAMPLE
 Functions may call others or themselves
 recursively, up to a fixed nesting limit.  This limit is defined by
-a macro in the translated C code and is in the neighbourhood of 30.
+a macro in the translated C code and is in the neighbourhood of 10.
 
 .SS EMBEDDED C
 When in guru mode, the translator accepts embedded code in the

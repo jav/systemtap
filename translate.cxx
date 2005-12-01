@@ -888,7 +888,7 @@ c_unparser::emit_common_header ()
     }
   o->newline(-1) << "} locals [MAXNESTING];";
   o->newline(-1) << "};" << endl;
-  o->newline() << "void *contexts; /* alloc_percpu */" << endl;
+  o->newline() << "void *contexts = NULL; /* alloc_percpu */" << endl;
 
   emit_map_type_instantiations ();
 
@@ -936,8 +936,9 @@ c_unparser::emit_module_init ()
   // terminate.  These may set STAP_SESSION_ERROR!
 
   // per-cpu context
-  o->newline() << "contexts = alloc_percpu (struct context);";
-  o->newline() << "if (contexts == NULL) {";
+  o->newline() << "if (sizeof (struct context) <= 131072)";
+  o->newline(1) << "contexts = alloc_percpu (struct context);";
+  o->newline(-1) << "if (contexts == NULL) {";
   o->newline() << "_stp_error (\"percpu context (size %lu) allocation failed\", sizeof (struct context));";
   o->newline(1) << "rc = -ENOMEM;";
   o->newline() << "goto out;";
@@ -3212,7 +3213,7 @@ translate_pass (systemtap_session& s)
       s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
 
       s.op->newline() << "#ifndef MAXNESTING";
-      s.op->newline() << "#define MAXNESTING 30";
+      s.op->newline() << "#define MAXNESTING 10";
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXSTRINGLEN";
       s.op->newline() << "#define MAXSTRINGLEN 128";

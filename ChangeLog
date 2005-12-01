@@ -1,3 +1,10 @@
+2005-12-01  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 1944 quick hack.
+	* translator.cxx (translate_pass): Reduce default MAXNESTING to 10.
+	(emit_module_init): Add a paranoid check against oversize contexts.
+	* stap.1.in: Document MAXNESTING change.
+
 2005-11-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 1276
