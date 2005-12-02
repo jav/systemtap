@@ -130,7 +130,7 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
-* 2005-12-02  Frank Ch. Eigler  <fche@redhat.com> - 0.5-1
+* Fri Dec 02 2005  Frank Ch. Eigler  <fche@redhat.com> - 0.5-1
 - Many fixes and improvements: 1425, 1536, 1505, 1380, 1329, 1828, 1271,
   1339, 1340, 1345, 1837, 1917, 1903, 1336, 1868, 1594, 1564, 1276, 1295
 
