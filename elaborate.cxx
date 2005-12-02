@@ -520,8 +520,7 @@ struct mutated_var_collector
 	if (vd)
 	  mutated_vars->insert (vd);
       }
-    e->left->visit (this);
-    e->right->visit (this);
+    traversing_visitor::visit_assignment(e);
   }
 
   void visit_arrayindex (arrayindex *e)
@@ -534,6 +533,7 @@ struct mutated_var_collector
 	else
 	  throw semantic_error("Assignment to read-only histogram bucket", e->tok);
       }
+    traversing_visitor::visit_arrayindex (e);
   }
 };
 
@@ -570,6 +570,7 @@ struct no_var_mutation_during_iteration_check
 	      }
 	  }
       }
+    traversing_visitor::visit_arrayindex (e);
   }
 
   void visit_functioncall (functioncall* e)
@@ -591,8 +592,7 @@ struct no_var_mutation_during_iteration_check
 	  }
       }
 
-    for (unsigned i=0; i<e->args.size(); i++)
-      e->args[i]->visit (this);
+    traversing_visitor::visit_functioncall (e);
   }
 
   void visit_foreach_loop(foreach_loop* s)
@@ -602,9 +602,7 @@ struct no_var_mutation_during_iteration_check
     if (vd)
       vars_being_iterated.push_back (vd);
     
-    for (unsigned i=0; i<s->indexes.size(); i++)
-      s->indexes[i]->visit (this);
-    s->block->visit (this);
+    traversing_visitor::visit_foreach_loop (s);
 
     if (vd)
       vars_being_iterated.pop_back();
@@ -1594,6 +1592,11 @@ typeresolution_info::visit_arrayindex (arrayindex* e)
       if (e->indexes[0]->type != pe_long)
 	unresolved (e->tok);
       hist->visit (this);
+      if (e->type != pe_long)
+	{
+	  e->type = pe_long;
+	  resolved (e->tok, pe_long);
+	}
       return;
     }
 
@@ -1914,7 +1917,12 @@ typeresolution_info::visit_print_format (print_format* e)
 {
   size_t unresolved_args = 0;
 
-  if (e->print_with_format)
+  if (e->hist)
+    {
+      e->hist->visit(this);
+    }
+
+  else if (e->print_with_format)
     {
       // If there's a format string, we can do both inference *and*
       // checking.

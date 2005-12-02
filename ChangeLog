@@ -1,3 +1,31 @@
+2005-12-02  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx (mutated_var_collector): Forward
+	traversal portion of calls to base class.
+	(mutated_var_collector::visit_arrayindex): Resolve
+	arrayindex-into-histogram expression as pe_long.
+	(typeresolution_info::visit_print_format): Traverse
+	into histogram if present.
+
+	* parse.cxx (parse_symbol): Handle parse ambiguity surrounding
+	print(@hist_op(...)[...]).
+
+	* staptree.cxx (traversing_visitor::visit_arrayindex): Visit
+	base member of arrayindex.
+
+	* translate.cxx (c_unparser::histogram_index_check): New method.
+	(var::hist): Fix bug.
+	(var::buckets): New method.
+	(stmt_expr::stmt_expr): Print with newline.
+	(c_unparser::load_map_indices): Handle indexing-histogram case.
+	(c_tmpcounter::visit_arrayindex): Likewise.
+	(c_unparser::visit_arrayindex): Likewise.
+	(c_tmpcounter_assignment::visit_arrayindex): Throw error when
+	user attempts to write to histogram bucket.
+	(c_unparser_assignment::visit_arrayindex): Likewise.
+
+	* testsuite/buildok/print_histogram_entry.stp: New test.
+
 2005-12-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bump version number.

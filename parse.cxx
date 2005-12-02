@@ -1997,9 +1997,31 @@ parser::parse_symbol ()
 	      // construct. This is sort of gross but it avoids
 	      // promoting histogram references to typeful
 	      // expressions.
-	      fmt->hist = NULL;
-	      t = parse_hist_op_or_bare_name(fmt->hist, name);
-	      assert(fmt->hist);
+	      
+	      hop = NULL;
+	      t = parse_hist_op_or_bare_name(hop, name);
+	      assert(hop);
+	      
+	      // It is, sadly, possible that even while parsing a
+	      // hist_op, we *mis-guessed* and the user wishes to
+	      // print(@hist_op(foo)[bucket]), a scalar. In that case
+	      // we must parse the arrayindex and print an expression.
+	      
+	      if (!peek_op ("["))
+		fmt->hist = hop;
+	      else
+		{
+		  // This is simplified version of the
+		  // multi-array-index parser below, because we can
+		  // only ever have one index on a histogram anyways.
+		  expect_op("[");
+		  struct arrayindex* ai = new arrayindex;
+		  ai->tok = t;
+		  ai->base = hop;
+		  ai->indexes.push_back (parse_expression ());
+		  expect_op("]");
+		  fmt->args.push_back(ai);
+		}
 	    }
 	  else
 	    {

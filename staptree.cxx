@@ -1375,6 +1375,13 @@ traversing_visitor::visit_target_symbol (target_symbol* e)
 void
 traversing_visitor::visit_arrayindex (arrayindex* e)
 {
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
+  if (array)
+    return array->visit(this);
+  else
+    return hist->visit(this);
   for (unsigned i=0; i<e->indexes.size(); i++)
     e->indexes[i]->visit (this);
 }

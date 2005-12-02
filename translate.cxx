@@ -117,6 +117,7 @@ struct c_unparser: public unparser, public visitor
 			vector<tmpvar> & idx);
 
   void load_aggregate (expression *e, aggvar & agg);
+  string histogram_index_check(var & vase, tmpvar & idx) const;
 
   void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< pair<vector<exp_type>, exp_type> > & types);
@@ -341,7 +342,15 @@ public:
   string hist() const
   {
     assert (ty == pe_stats);
-    return "&(" + qname() + "->hist)";
+    assert (sd.type != statistic_decl::none);
+    return "(&(" + qname() + "->hist))";
+  }
+
+  string buckets() const
+  {
+    assert (ty == pe_stats);
+    assert (sd.type != statistic_decl::none);
+    return "(" + qname() + "->hist.buckets)";
   }
 
   string init() const
@@ -397,7 +406,7 @@ struct stmt_expr
   c_unparser & c;
   stmt_expr(c_unparser & c) : c(c) 
   {
-    c.o->line() << "({";
+    c.o->newline() << "({";
     c.o->indent(1);
   }
   ~stmt_expr()
@@ -2494,37 +2503,6 @@ c_unparser::visit_target_symbol (target_symbol* e)
 
 
 void
-c_tmpcounter::visit_arrayindex (arrayindex *e)
-{
-  symbol *array;  
-  hist_op *hist;
-  classify_indexable (e->base, array, hist);
-
-  if (array)
-    {
-      vardecl* r = array->referent;
-      
-      // One temporary per index dimension.
-      for (unsigned i=0; i<r->index_types.size(); i++)
-	{
-	  tmpvar ix = parent->gensym (r->index_types[i]);
-	  ix.declare (*parent);
-	  e->indexes[i]->visit(this);
-	}
-      
-      // The index-expression result.
-      tmpvar res = parent->gensym (e->type);
-      res.declare (*parent);
-    }
-  else
-    {
-      // FIXME: fill in some logic here!
-      assert(false);
-    }
-}
-
-
-void
 c_unparser::load_map_indices(arrayindex *e,
 			     vector<tmpvar> & idx)
 {
@@ -2556,8 +2534,13 @@ c_unparser::load_map_indices(arrayindex *e,
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      assert (e->indexes.size() == 1);
+      assert (e->indexes[0]->type == pe_long);
+      tmpvar ix = gensym (pe_long);
+      o->newline() << "c->last_stmt = "
+		   << lex_cast_qstring(*e->indexes[0]->tok) << ";";
+      c_assign (ix.qname(), e->indexes[0], "array index copy");
+      idx.push_back(ix);
     }  
 }
 
@@ -2623,8 +2606,17 @@ c_unparser::load_aggregate (expression *e, aggvar & agg)
     }
 }
 
+
+string 
+c_unparser::histogram_index_check(var & base, tmpvar & idx) const
+{
+  return "((" + idx.qname() + " >= 0)"
+    + " && (" + idx.qname() + " < " + base.buckets() + "))"; 
+}
+
+
 void
-c_unparser::visit_arrayindex (arrayindex* e)
+c_tmpcounter::visit_arrayindex (arrayindex *e)
 {
   symbol *array;  
   hist_op *hist;
@@ -2632,17 +2624,105 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
   if (array)
     {
+      vardecl* r = array->referent;
+      
+      // One temporary per index dimension.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->gensym (r->index_types[i]);
+	  ix.declare (*parent);
+	  e->indexes[i]->visit(this);
+	}
+      
+      // The index-expression result.
+      tmpvar res = parent->gensym (e->type);
+      res.declare (*parent);
+    }
+  else
+    {
 
+      assert(hist);
+
+      // Note: this is a slightly tricker-than-it-looks allocation of
+      // temporaries. The reason is that we're in the branch handling
+      // histogram-indexing, and the histogram might be build over an
+      // indexable entity itself. For example if we have:
+      // 
+      //  global foo
+      //  ...
+      //  foo[getpid(), geteuid()] <<< 1
+      //  ...
+      //  print @log_hist(foo[pid, euid])[bucket]
+      //  
+      // We are looking at the @log_hist(...)[bucket] expression, so
+      // allocating one tmpvar for calculating bucket (the "index" of
+      // this arrayindex expression), and one tmpvar for storing the
+      // result in, just as normal.
+      //      
+      // But we are *also* going to call load_aggregate on foo, which
+      // will itself require tmpvars for each of its indices. Since
+      // this is not handled by delving into the subexpression (it
+      // would be if hist were first-class in the type system, but
+      // it's not) we we allocate all the tmpvars used in such a
+      // subexpression up here: first our own aggvar, then our index
+      // (bucket) tmpvar, then all the index tmpvars of our
+      // pe_stat-valued subexpression, then our result.
+
+      
+      // First all the stuff related to indexing into the histogram
+
+      if (e->indexes.size() != 1)
+	throw semantic_error("Invalid indexing of histogram", e->tok);
+      tmpvar ix = parent->gensym (pe_long);
+      ix.declare (*parent);      
+      e->indexes[0]->visit(this);
+      tmpvar res = parent->gensym (pe_long);
+      res.declare (*parent);
+      
+      // Then the aggregate, and all the tmpvars needed by our call to
+      // load_aggregate().
+
+      aggvar agg = parent->gensym_aggregate ();
+      agg.declare(*(this->parent));
+
+      symbol *sym = get_symbol_within_expression (hist->stat);
+      var v = parent->getvar(sym->referent, sym->tok);
+      if (sym->referent->arity != 0)
+	{
+	  arrayindex *arr = NULL;
+	  if (!expression_is_arrayindex (hist->stat, arr))
+	    throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
+
+	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
+	    {	      
+	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
+	      ix.declare (*parent);
+	      arr->indexes[i]->visit(this);
+	    }
+	}
+    }
+}
+
+
+void
+c_unparser::visit_arrayindex (arrayindex* e)
+{  
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
+
+  if (array)
+    {
       // Visiting an statistic-valued array in a non-lvalue context is prohibited.
       if (array->referent->type == pe_stats)
 	throw semantic_error ("statistic-valued array in rvalue context", e->tok);
 
       stmt_expr block(*this);  
-  
+
       // NB: Do not adjust the order of the next few lines; the tmpvar
       // allocation order must remain the same between
       // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
-  
+      
       vector<tmpvar> idx;
       load_map_indices (e, idx);
       tmpvar res = gensym (e->type);
@@ -2670,8 +2750,45 @@ c_unparser::visit_arrayindex (arrayindex* e)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      // See commentary in c_tmpcounter::visit_arrayindex
+
+      assert(hist);
+      stmt_expr block(*this);  
+
+      // NB: Do not adjust the order of the next few lines; the tmpvar
+      // allocation order must remain the same between
+      // c_unparser::visit_arrayindex and c_tmpcounter::visit_arrayindex
+      
+      vector<tmpvar> idx;
+      load_map_indices (e, idx);
+      tmpvar res = gensym (e->type);
+      
+      aggvar agg = gensym_aggregate ();
+      load_aggregate(hist->stat, agg);
+
+      // These should have faulted during elaboration if not true.
+      assert(idx.size() == 1);
+      assert(idx[0].type() == pe_long);	
+
+      symbol *sym = get_symbol_within_expression (hist->stat);
+      var v = getvar(sym->referent, sym->tok);
+      v.assert_hist_compatible(*hist);
+
+      {
+	varlock_w guard(*this, v);
+	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	o->newline() << "if (" << histogram_index_check(v, idx[0]) << ")";
+	o->newline() << "{";
+	o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
+	o->newline(-1) << "}";
+	o->newline() << "else";
+	o->newline() << "{";
+	o->newline(1)  << "c->last_error = \"Histogram index out of range\";";
+	o->newline()   << res << " = 0;";
+	o->newline(-1) << "}";
+      }
+
+      o->newline() << res << ";";
     }
 }
 
@@ -2712,8 +2829,7 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      throw semantic_error("cannot assign to histogram buckets", e->tok);
     }
 }
 
@@ -2804,8 +2920,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
     } 
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      throw semantic_error("cannot assign to histogram buckets", e->tok);
     }
 }
 
