@@ -171,6 +171,7 @@ struct c_tmpcounter:
     parent->tmpvar_counter = 0;
   }
 
+  void visit_block (block *s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
@@ -939,8 +940,8 @@ c_unparser::emit_module_init ()
   o->newline() << "if (sizeof (struct context) <= 131072)";
   o->newline(1) << "contexts = alloc_percpu (struct context);";
   o->newline(-1) << "if (contexts == NULL) {";
-  o->newline() << "_stp_error (\"percpu context (size %lu) allocation failed\", sizeof (struct context));";
-  o->newline(1) << "rc = -ENOMEM;";
+  o->newline(1) << "_stp_error (\"percpu context (size %lu) allocation failed\", sizeof (struct context));";
+  o->newline() << "rc = -ENOMEM;";
   o->newline() << "goto out;";
   o->newline(-1) << "}";
 
@@ -1723,6 +1724,25 @@ c_unparser::visit_if_statement (if_statement *s)
     }
 }
 
+
+void
+c_tmpcounter::visit_block (block *s)
+{
+  // Key insight: individual statements of a block can reuse
+  // temporary variable slots, since temporaries don't survive
+  // statement boundaries.  So we use gcc's anonymous union/struct
+  // facility to explicitly overlay the temporaries.
+  parent->o->newline() << "union {";
+  parent->o->indent(1);
+  for (unsigned i=0; i<s->statements.size(); i++)
+    {
+      parent->o->newline() << "struct {";
+      parent->o->indent(1);
+      s->statements[i]->visit (this);
+      parent->o->newline(-1) << "};";
+    }
+  parent->o->newline(-1) << "};";
+}
 
 void
 c_tmpcounter::visit_for_loop (for_loop *s)
