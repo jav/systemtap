@@ -237,7 +237,7 @@ static int _stp_set_buffers(int num)
 	spin_lock(&_stp_pool_lock);
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
-			p = (struct list_head *)vmalloc(sizeof(struct _stp_buffer));
+			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),GFP_KERNEL);
 			if (!p)	{
 				_stp_current_buffers += i;
 				goto err;
@@ -248,7 +248,7 @@ static int _stp_set_buffers(int num)
 		for (i = 0; i < _stp_current_buffers - num; i++) {
 			p = _stp_pool_q.next;
 			list_del(p);
-			vfree(p);
+			kfree(p);
 		}
 	}
 	_stp_current_buffers = num;
@@ -273,7 +273,7 @@ static int _stp_register_procfs (void)
 
 	/* allocate buffers */
 	for (i = 0; i < STP_DEFAULT_BUFFERS; i++) {
-		p = (struct list_head *)vmalloc(sizeof(struct _stp_buffer));
+		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),GFP_KERNEL);
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err2;
@@ -328,7 +328,7 @@ static int _stp_register_procfs (void)
 err2:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		vfree(p);
+		kfree(p);
 	}
 
 err1:
@@ -372,11 +372,11 @@ static void _stp_unregister_procfs (void)
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		vfree(p);
+		kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_ready_q) {
 		list_del(p);
-		vfree(p);
+		kfree(p);
 	}
 }
 

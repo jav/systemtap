@@ -1,3 +1,10 @@
+2005-12-02  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_set_buffers): kmalloc the buffers instead
+	of vmalloc.
+	(_stp_register_procfs): Ditto.
+	(_stp_unregister_procfs): kfree the buffers.
+
 2005-11-30  Martin Hunt  <hunt@redhat.com>
 
 	* transport.h (STP_WORK_TIMER): Declare.
