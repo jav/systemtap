@@ -1,3 +1,10 @@
+2005-12-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Bump version number.
+	* stap.1.in: Document some of the new print/stats stuff.
+	* configure: Regenerated.
+	* systemtap.spec.in: Enable ia64 and ppc builds.
+
 2005-12-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1944 improved hack.

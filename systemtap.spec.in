@@ -10,7 +10,7 @@ License: GPL
 URL: http://sourceware.org/systemtap/
 Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 
-ExclusiveArch: %{ix86} x86_64
+ExclusiveArch: %{ix86} x86_64 ppc ia64
 
 BuildRoot: %{_tmppath}/%{name}-root
 

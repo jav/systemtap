@@ -410,6 +410,110 @@ Functions may call others or themselves
 recursively, up to a fixed nesting limit.  This limit is defined by
 a macro in the translated C code and is in the neighbourhood of 10.
 
+.SS PRINTING
+The function names
+.IR print ", " printf ", " sprint ", and " sprintf
+are specially treated by the translator.  They format values for
+printing to the standard systemtap log stream in a more convenient
+way.
+.PP
+.TP
+print
+takes a single value of any type, and prints it
+.TP
+sprint
+operates like
+.IR print ,
+but returns the formatted string instead of logging it.
+.TP
+printf
+takes a formatting string, and a number of values of corresponding types,
+and prints them all.
+.TP
+sprintf
+operates like
+.IR printf ,
+but like
+.IR sprint ,
+returns the formatted string instead of logging it.
+.PP
+The
+.IR printf
+formatting directives similar to those of C, except that they are
+fully type-checked by the translator.
+.SAMPLE
+	x = sprintf("take %d steps forward, %d steps back\\n", 3, 2)
+	printf("take %d steps forward, %d steps back\\n", 3+1, 2*2)
+	bob = "bob"
+	alice = "alice"
+	print(bob)
+	print("hello")
+	print(10)
+	printf("%s phoned %s %.4x times\\n", bob, alice . bob, 3456)
+	printf("%s except after %s\\n", 
+		sprintf("%s before %s", 
+			sprint(1), sprint(3)), 
+		sprint("C"))
+.ESAMPLE
+
+.SS STATISTICS
+It is often desirable to collect statistics in a way that avoids the
+penalties of repeatedly locking the global variables those numbers are
+being put into.  Systemtap provides a solution using a special
+operator to accumulate values, and several pseudo-functions to extract
+the statistical aggregates.
+.PP
+The aggregation operator is
+.IR <<< ,
+and resembles an assignment, or a C++ output-streaming operation.
+The left operand specifies a scalar or array-index lvalue, which must
+be declared global.  The right operand is a numeric expression.  The
+meaning is intuitive: add the given number to the pile of numbers to
+compute statistics of.  (The specific list of statistics to gather
+is given separately, by the extraction functions.)
+.SAMPLE
+    foo <<< 1
+    stats[pid()] <<< memsize
+.ESAMPLE
+.PP
+The extraction functions are also special.  For each appearance of a
+distinct extraction function operating on a given identifier, the
+translator arranges to compute a set of statistics that satisfy it.
+The statistics system is thereby "on-demand".  Each execution of
+an extraction function causes the aggregation to be computed for
+that moment across all processors. 
+.PP
+Here is the set of extractor functions.  The first argument of each is
+the same style of lvalue used on the left hand side of the accumulate
+operation.  The
+.IR @count(v) ", " @sum(v) ", " @min(v) ", " @max(v) ", " @avg(v)
+extractor functions compute the number/total/minimum/maximum/average
+of all accumulated values.  The resulting values are all simple
+integers.
+.PP
+Histograms are also available, but are more complicated because they
+have a vector rather than scalar value.
+.I @hist_linear(v,L,H,W)
+represents a linear histogram whose low/high/width parameters are
+given by the following three literal numbers.  Similarly,
+.I @hist_log(v,N)
+represents a base-2 logarithmic histogram with the given number of
+buckets.  N may be omitted, and defaults to 64.  Printing a histogram
+with the
+.I print
+family of functions renders a histogram object as a tabular
+"ASCII art" bar chart.
+.SAMPLE
+probe foo {
+  x <<< $value
+}
+probe end {  
+  printf ("avg %d = sum %d / count %d\\n",
+          @avg(x), @sum(x), @count(x))
+  print (@hist_log(v))
+}
+.ESAMPLE
+
 .SS EMBEDDED C
 When in guru mode, the translator accepts embedded code in the
 script.  Such code is enclosed between
