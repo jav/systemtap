@@ -14,6 +14,7 @@
 #include <fstream>
 #include <cctype>
 #include <cstdlib>
+#include <cassert>
 #include <cerrno>
 #include <climits>
 #include <sstream>

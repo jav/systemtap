@@ -15,6 +15,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <cassert>
 
 using namespace std;
 

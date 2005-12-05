@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <vector>
 #include <cstdarg>
+#include <cassert>
 
 extern "C" {
 #include <fcntl.h>

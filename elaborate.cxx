@@ -18,6 +18,7 @@ extern "C" {
 #include <algorithm>
 #include <fstream>
 #include <map>
+#include <cassert>
 #include <set>
 #include <vector>
 
