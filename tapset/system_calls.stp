@@ -1004,7 +1004,7 @@ probe kernel.syscall.ftruncate =
       length = $length
    }
 probe kernel.syscall.ftruncate.return =
-   kernel.function("sys_ftrancate").return {
+   kernel.function("sys_ftruncate").return {
       name = "ftruncate.return"
    }
 # ftruncate64 ________________________________________________
