@@ -13,7 +13,7 @@
 
 int main ()
 {
-  MAP map = _stp_pmap_new_is(4);
+  PMAP map = _stp_pmap_new_is(4);
   char *x;
   char buf[32];
 

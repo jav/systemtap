@@ -1,3 +1,12 @@
+2005-12-07  Martin Hunt  <hunt@redhat.com>
+	* pmaps/*.c: Change pmap type from MAP to PMAP.
+	
+	* pmaps/pmap.test: Adjust results to match
+	the more compact histogram format.
+
+	* maps/map.test: Adjust results to match
+	the more compact histogram format.
+
 2005-11-28  Martin Hunt  <hunt@redhat.com>
 
 	* pmaps/pmap.test: Add ix_log and ix_none.

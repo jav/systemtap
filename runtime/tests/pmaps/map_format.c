@@ -30,7 +30,7 @@ void inc_cpu(void)
 
 int main ()
 {
-  MAP mapiis = _stp_pmap_new_iiss(4);
+  PMAP mapiis = _stp_pmap_new_iiss(4);
   _processor_number = 0;
   _stp_pmap_set_iiss (mapiis, 1,2,"Ohio", "Columbus" );
   _stp_pmap_set_iiss (mapiis, 3,4,"California", "Sacramento" );
@@ -44,7 +44,7 @@ int main ()
   /* very bad string.  don't crash */
   _stp_pmap_print (mapiis, "%s -> mapiis %1s %2s %3d %4d");
 
-  MAP mapss = _stp_pmap_new_ssi(4);
+  PMAP mapss = _stp_pmap_new_ssi(4);
   _stp_pmap_set_ssi (mapss, "Riga", "Latvia", 0x0000c0dedbad0000LL);
   _stp_pmap_set_ssi (mapss, "Sofia", "Bulgaria", 0xdeadf00d12345678LL);
   _stp_pmap_set_ssi (mapss, "Valletta", "Malta", 1);
@@ -53,7 +53,7 @@ int main ()
   _stp_pmap_print (mapss, "The capitol of %1s is %2s and the nerd population is %x");
   _stp_pmap_print (mapss, "The capitol of %1s is %2s and the nerd population is %X");
 
-  MAP mapssx = _stp_pmap_new_ssx (4, HIST_LINEAR, 0, 100, 10 );
+  PMAP mapssx = _stp_pmap_new_ssx (4, HIST_LINEAR, 0, 100, 10 );
   int i,j;
 
   for (i = 0; i < 100; i++)

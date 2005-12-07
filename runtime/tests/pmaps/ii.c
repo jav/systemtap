@@ -13,7 +13,7 @@
 
 int main ()
 {
-  MAP map = _stp_pmap_new_ii(4);
+  PMAP map = _stp_pmap_new_ii(4);
   int64_t x;
 
   /* put some data in. _processor_number is a global hack that allows */
@@ -53,9 +53,6 @@ int main ()
   /* print the aggregated data */
   _stp_pmap_print(map,"map[%1d] = %d");
   
- 
-  
- 
   _stp_pmap_del (map);
   return 0;
 }

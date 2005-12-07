@@ -13,8 +13,11 @@
 
 int main ()
 {
-  MAP map = _stp_pmap_new_si(4);
+  PMAP map = _stp_pmap_new_si(4);
   int64_t x;
+
+  if (!map)
+    return -1;
 
   /* put some data in. _processor_number is a global hack that allows */
   /* us to set the current emulated cpu number for our userspace tests. */

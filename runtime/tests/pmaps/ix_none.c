@@ -11,7 +11,7 @@
 
 int main ()
 {
-  MAP map = _stp_pmap_new_ix(4, HIST_NONE);
+  PMAP map = _stp_pmap_new_ix(4, HIST_NONE);
   int64_t x;
 
   /* put some data in. _processor_number is a global hack that allows */

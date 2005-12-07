@@ -10,7 +10,7 @@
 
 int main ()
 {
-  MAP map = _stp_pmap_new_ix(4, HIST_LINEAR, 0, 100, 10);
+  PMAP map = _stp_pmap_new_ix(4, HIST_LINEAR, 0, 100, 10);
   int i;
 
   /* put some data in. _processor_number is a global hack that allows */
