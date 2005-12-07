@@ -1,10 +1,11 @@
 /*
- * Return the 64 bit long value of the 
+ * Return the 64 bit long value of the
  * scalar user space pointer parameter
  * CALLERS:
  *    kernel.syscall.time
  *    kernel.syscall.stime
  */
+/*
 function __uget_num:long(u_addr:long)
 %{
    long long val = 0;
@@ -15,14 +16,15 @@ function __uget_num:long(u_addr:long)
    } else
       THIS->__retvalue = val;
 %}
-
+*/
 /*
- * Return a time_t/subseconds_t  member value of 
+ * Return a time_t/subseconds_t  member value of
  * struct timeval user space  pointer  parameter
  * CALLERS:
  *    kernel.syscall.gettimeofday
- *    kernel.syscall.settimeofday   
+ *    kernel.syscall.settimeofday
  */
+/*
 function __uget_tv_m:long(u_addr:long,member:long)
 %{
    struct timeval tv;
@@ -36,15 +38,16 @@ function __uget_tv_m:long(u_addr:long,member:long)
    else
       THIS->__retvalue = tv.tv_usec;
 %}
-
+*/
 /*
  * Return  a time_t / subseconds_t  member  value  of
- * one of the struct timevals in the struct itimerval 
+ * one of the struct timevals in the struct itimerval
  * user space pointer parameter
  * CALLERS:
  *    kernel.syscall.getitimer
  *    kernel.syscall.setitimer
  */
+/*
 function __uget_itimerval_tv_m:long(u_addr:long,member:long)
 %{
    struct itimerval itv;
@@ -67,7 +70,7 @@ function __uget_itimerval_tv_m:long(u_addr:long,member:long)
       default: THIS->__retvalue = -1;
    }
 %}
-
+*/
 /*
  * Return a integer member value of struct
  * timezone user  space pointer  parameter
@@ -75,6 +78,7 @@ function __uget_itimerval_tv_m:long(u_addr:long,member:long)
  *    kernel.syscall.gettimeofday
  *    kernel.syscall.settimeofday
  */
+/*
 function __uget_tz_m:long(u_addr:long,member:long)
 %{
    struct timezone tz;
@@ -88,13 +92,14 @@ function __uget_tz_m:long(u_addr:long,member:long)
    else
       THIS->__retvalue = tz.tz_dsttime;
 %}
-
+*/
 /*
- * Return integer member value of struct 
+ * Return integer member value of struct
  * timex user  space  pointer  parameter
  * CALLERS:
  *    kernel.syscall.adjtimex
  */
+/*
 function __uget_timex_m:long(u_addr:long,member:long)
 %{
    struct timex tx;
@@ -133,13 +138,14 @@ function __uget_timex_m:long(u_addr:long,member:long)
       default: THIS->__retvalue = -1;
    }
 %}
-
+*/
 /*
- * Return the clock_t member  value of the 
+ * Return the clock_t member  value of the
  * struct tms user space pointer parameter
  * CALLERS:
- *    kernel.syscall.times 
+ *    kernel.syscall.times
  */
+/*
 %{ #include <linux/times.h> %}
 function __uget_tms_m:long(u_addr:long,member:long)
 %{
@@ -161,13 +167,14 @@ function __uget_tms_m:long(u_addr:long,member:long)
       default: THIS->__retvalue = -1;
    }
 %}
-
+*/
 /*
  * Return a time_t / long  member  value of the
  * struct timespec user space pointer parameter
  * CALLERS:
  *    kernel.syscall.nanosleep
  */
+/*
 function __uget_ts_m:long(u_addr:long,member:long)
 %{
    struct timespec ts;
@@ -181,14 +188,15 @@ function __uget_ts_m:long(u_addr:long,member:long)
    else
       THIS->__retvalue = ts.tv_nsec;
 %}
-
+*/
 /*
  * Return a time_t / long  member  value of the
- * struct timespecs  in  struct itimerspec user 
+ * struct timespecs  in  struct itimerspec user
  * space pointer  parameter
  * CALLERS:
  *    kernel.syscall.timer_gettime
  */
+/*
 function __uget_itimerspec_ts_m:long(u_addr:long,member:long)
 %{
    struct itimerspec its;
@@ -211,7 +219,7 @@ function __uget_itimerspec_ts_m:long(u_addr:long,member:long)
       default: THIS->__retvalue = -1;
    }
 %}
-
+*/
 /*
  * Return the  symbolic string  representation
  * of the struct timex.mode member of adjtimex
@@ -844,4 +852,3 @@ function _rusage_who_str(w) {
    if(w==-1) return "RUSAGE_CHILDREN"
    return ""
 }
-
