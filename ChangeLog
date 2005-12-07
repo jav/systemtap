@@ -1,3 +1,10 @@
+2005-12-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1934.
+	* tapsets.cxx (resolve_prologue_endings2): Add new heuristic for
+	tail-call optimized functions.
+	(query_func_info): Make somewhat less verbose.
+
 2005-12-06  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx (visit_print_format): Explicitly Cast int64_t

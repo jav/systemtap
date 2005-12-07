@@ -751,12 +751,22 @@ dwflpp
     // This heuristic attempts to pick the first address that has a
     // source line distinct from the function declaration's (entrypc's).
     // This should be the first statement *past* the prologue.
+    //
+    // However, for some tail-call optimized functions
+    // ("sys_exit_group" in linux 2.6), there might be only a single
+    // line record for the function.  We guess at this situation if
+    // the "next" line record refers to an address past the
+    // dwarf_highpc of the current function.  In this case, we back
+    // down to the address from the previous line record.
+    //
     assert(module);
     assert(cu);
 
-    size_t nlines;
-    Dwarf_Lines *lines;
-    Dwarf_Addr last_function_entrypc;
+    size_t nlines = 0;
+    Dwarf_Lines *lines = NULL;
+    func_info* last_function = NULL;
+    Dwarf_Addr last_function_entrypc = 0;
+    Dwarf_Addr last_function_highpc = 0;
     int choose_next_line_otherthan = -1;
 
     // XXX: ideally, there would be a dwarf_getfile(line) routine,
@@ -778,36 +788,72 @@ dwflpp
 	Dwarf_Addr addr;
 	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
 	dwarf_lineaddr (line_rec, &addr);
-        int this_lineno;
 
+        // If this next line goes past the current function, we have
+        // a probable tail call, and must go back the entrypc
+        if (choose_next_line_otherthan >= 0 &&
+            addr >= last_function_highpc) // NB: >= ; highpc is exclusive
+          {
+            addr = last_function_entrypc; // go back to entrypc
+            Dwarf_Addr addr0 = last_function->prologue_end;
+            if (addr0 != addr)
+              {
+                last_function->prologue_end = addr;
+		if (sess.verbose)
+		  clog << "prologue disagreement (tail call): "
+                       << last_function->name
+		       << " heur0=" << hex << addr0
+		       << " heur1=" << addr << dec
+		       << endl;
+              }
+	    choose_next_line_otherthan = -1;
+            continue;
+          }
+
+        // If this next line maps to a line number beyond the
+        // first one, but still within the same function, pick it!
+        int this_lineno;
         dwfl_assert ("dwarf_lineno",
                      dwarf_lineno(line_rec, &this_lineno));
 
 	if (choose_next_line_otherthan >= 0 &&
             this_lineno != choose_next_line_otherthan)
 	  {
-	    map<Dwarf_Addr, func_info>::iterator i =
-              funcs.find (last_function_entrypc);
-	    assert (i != funcs.end());
-            Dwarf_Addr addr0 = i->second.prologue_end;
+            Dwarf_Addr addr0 = last_function->prologue_end;
             if (addr0 != addr)
               {
-                i->second.prologue_end = addr;
+                last_function->prologue_end = addr;
 		if (sess.verbose)
-		  clog << "prologue disagreement: " << i->second.name
+		  clog << "prologue disagreement: " << last_function->name
 		       << " heur0=" << hex << addr0
 		       << " heur1=" << addr << dec
 		       << endl;
               }
 	    choose_next_line_otherthan = -1;
+            continue;
 	  }
 
-	map<Dwarf_Addr, func_info>::const_iterator i = funcs.find (addr);
+        // Else ... see if this line record refers to the entrypc of
+        // yet another probe-targeted function.  Stash away its entrypc
+        // etc., for the other branches of this loop to process.
+	map<Dwarf_Addr, func_info>::iterator i = funcs.find (addr);
 	if (i != funcs.end())
           {
             dwfl_assert ("dwarf_lineno",
-                         dwarf_lineno(line_rec, &choose_next_line_otherthan));
+                         dwarf_lineno (line_rec, &choose_next_line_otherthan));
+            assert (choose_next_line_otherthan >= 0);
+            last_function = & i->second;
             last_function_entrypc = addr;
+            dwfl_assert ("dwarf_highpc",
+                         dwarf_highpc (& last_function->die, 
+                                       & last_function_highpc));
+
+            if (sess.verbose)
+              clog << "finding prologue for '"
+                   << last_function->name
+                   << "' entrypc=0x" << hex << addr 
+                   << " highpc=0x" << last_function_highpc
+                   << endl;
           }
       }
 
@@ -1887,9 +1933,6 @@ query_func_info (Dwarf_Addr entrypc,
 	{
 	  // NB. dwarf_derived_probe::emit_registrations will emit a
 	  // kretprobe based on the entrypc in this case.
-	  if (q->sess.verbose)
-	    clog << "querying entrypc of function '"
-		 << fi.name << "' for return probe" << endl;
 	  query_statement (fi.name, fi.decl_file, fi.decl_line,
 			   &fi.die, entrypc, q);
 	}
@@ -1898,21 +1941,13 @@ query_func_info (Dwarf_Addr entrypc,
 #ifdef __ia64__
 	// In IA64 platform function probe point is set at its
 	// entry point rather than prologue end pointer
-	if (q->sess.verbose)
-	   clog << "querying entrypc of function '"
-		<< fi.name << "'" << endl;
 	   query_statement (fi.name, fi.decl_file, fi.decl_line,
 		&fi.die, entrypc, q);
 
 #else
-	  if (q->sess.verbose)
-	    clog << "querying prologue-end of function '"
-		 << fi.name << "'" << endl;
-
 	  if (fi.prologue_end == 0)
 	    throw semantic_error("could not find prologue-end "
 				 "for probed function '" + fi.name + "'");
-
 	  query_statement (fi.name, fi.decl_file, fi.decl_line,
 			   &fi.die, fi.prologue_end, q);
 #endif
