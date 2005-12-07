@@ -1,3 +1,31 @@
+2005-12-07  Martin Hunt  <hunt@redhat.com>
+	 PR1923
+	* map.h (struct map_root): Remove membuf.
+	(struct pmap): Define.
+	(PMAP): Declare.
+
+	* map.c (_stp_map_init): Use kmalloc() to allocate individual
+	nodes instead of using vmalloc() to allocate one big chunk.
+	(_stp_map_new): Use kmalloc. 
+	(_stp_pmap_new): Use kmalloc. Return a PMAP.
+	(__stp_map_del): New function. Free all the nodes in a map.
+	(_stp_map_del): Call __stp_map_del() then free map struct.
+	(_stp_pmap_del): Takes a PMAP. Calls __stp_map_del() for
+	each cpu.
+	(_stp_pmap_printn_cpu): Change arg to PMAP.
+	(_stp_pmap_agg): Change arg to PMAP.	
+	(_stp_pmap_get_agg): Change arg to PMAP.		
+
+	* map-stat.c (_stp_pmap_new_hstat_linear): Use PMAP
+	instead of MAP. Fix allocations.
+	(_stp_pmap_new_hstat_log): Ditto.
+
+	* pmap-gen.c Fix all functions to take or return PMAPS
+	instead of MAPS.	
+
+	* alloc.c: Remove everything except kmalloc_node().
+	All runtime code now uses kmalloc() directly.
+
 2005-11-30  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (_stp_exit): To prevent any possible interactions

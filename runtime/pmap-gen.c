@@ -400,33 +400,33 @@ static unsigned int KEYSYM(phash) (ALLKEYSD(key))
 
 
 #if VALUE_TYPE == INT64 || VALUE_TYPE == STRING
-MAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
+PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 {
-	MAP map = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(pmap_node)), 0);
-	if (map) {
+	PMAP pmap = _stp_pmap_new (max_entries, VALUE_TYPE, sizeof(struct KEYSYM(pmap_node)), 0);
+	if (pmap) {
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = _stp_per_cpu_ptr (map, i);
+			m = (MAP)per_cpu_ptr (pmap->map, i);
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
 		}
-		m = _stp_percpu_dptr(map);
+		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
 		m->copy = KEYSYM(pmap_copy_keys);
 		m->cmp = KEYSYM(pmap_key_cmp);
 	}
-	return map;
+	return pmap;
 }
 #else
 /* _stp_pmap_new_key1_key2...val (num, HIST_LINEAR, start, end, interval) */
 /* _stp_pmap_new_key1_key2...val (num, HIST_LOG, buckets) */ 
 
-MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
+PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
 	int buckets=0, start=0, stop=0, interval=0;
-	MAP map;
+	PMAP pmap;
 	va_list ap;
 
 	if (htype != HIST_NONE) {
@@ -445,36 +445,36 @@ MAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 
 	switch (htype) {
 	case HIST_NONE:
-		map = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(pmap_node)), 0);
+		pmap = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(pmap_node)), 0);
 		break;
 	case HIST_LOG:
-		map = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(pmap_node)), 
+		pmap = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(pmap_node)), 
 					    buckets);
 		break;
 	case HIST_LINEAR:
-		map = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(pmap_node)),
+		pmap = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(pmap_node)),
 					       start, stop, interval);
 		break;
 	default:
 		_stp_warn ("Unknown histogram type %d\n", htype);
-		map = NULL;
+		pmap = NULL;
 	}
 
-	if (map) {
+	if (pmap) {
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = _stp_per_cpu_ptr (map, i);
+			m = per_cpu_ptr (pmap->map, i);
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
 		}
-		m = _stp_percpu_dptr(map);
+		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
 		m->copy = KEYSYM(pmap_copy_keys);
 		m->cmp = KEYSYM(pmap_key_cmp);
 	}
-	return map;
+	return pmap;
 }
 
 #endif /* VALUE_TYPE */
@@ -532,24 +532,24 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 }
 
-int KEYSYM(_stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val)
+int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
-	MAP m = _stp_per_cpu_ptr (map, get_cpu());
+	MAP m = per_cpu_ptr (pmap->map, get_cpu());
 	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 0);
 	put_cpu();
 	return res;
 }
 
-int KEYSYM(_stp_pmap_add) (MAP map, ALLKEYSD(key), VSTYPE val)
+int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
-	MAP m = _stp_per_cpu_ptr (map, get_cpu());
+	MAP m = per_cpu_ptr (pmap->map, get_cpu());
 	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 1);
 	put_cpu();
 	return res;
 }
 
 
-VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
+VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
 	struct hlist_head *head;
@@ -561,7 +561,7 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 	if (pmap == NULL)
 		return (VALTYPE)0;
 
-	map = _stp_per_cpu_ptr (pmap, get_cpu());
+	map = per_cpu_ptr (pmap->map, get_cpu());
 
 	hv = KEYSYM(phash) (ALLKEYS(key));
 	head = &map->hashes[hv];
@@ -597,7 +597,7 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (MAP pmap, ALLKEYSD(key))
 #endif
 }
 
-VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
+VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
 	int cpu;
@@ -613,7 +613,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 	hv = KEYSYM(phash) (ALLKEYS(key));
 
 	/* first look it up in the aggregation map */
-	agg = _stp_percpu_dptr(pmap);
+	agg = &pmap->agg;
 	ahead = &agg->hashes[hv];
 	hlist_for_each(e, ahead) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
@@ -639,7 +639,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (MAP pmap, ALLKEYSD(key))
 
 	/* now total each cpu */
 	for_each_cpu(cpu) {
-		map = _stp_per_cpu_ptr (pmap, cpu);
+		map = per_cpu_ptr (pmap->map, cpu);
 		head = &map->hashes[hv];
 		hlist_for_each(e, head) {
 			n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));

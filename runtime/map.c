@@ -180,7 +180,6 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 {
 	int size;
 
-	INIT_LIST_HEAD(&m->head);
 	m->maxnum = max_entries;
 	m->type = type;
 	if (type >= END) {
@@ -190,9 +189,6 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 	if (max_entries) {
 		void *tmp;
 		int i;
-		struct list_head *e;
-		
-		INIT_LIST_HEAD(&m->pool);
 		
 		/* size is the size of the map_node. */
 		/* add space for the value. */
@@ -203,78 +199,89 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		data_size = ALIGN(data_size,4);
 		size = key_size + data_size;
 		
-		if (cpu < 0)
-			tmp = _stp_valloc(max_entries * size);
-		else
-			tmp = _stp_valloc_cpu(max_entries * size, cpu);
 		
-		if (!tmp) {
-			_stp_error("Allocating memory while creating map failed.\n");
-			return -1;
+		for (i = 0; i < max_entries; i++) {
+			if (cpu < 0)
+				tmp = kmalloc(size, GFP_KERNEL);
+			else
+				tmp = kmalloc_node(size, GFP_KERNEL, cpu);
+		
+			if (!tmp) {
+				_stp_error("Allocating memory while creating map failed.\n");
+				return -1;
+			}
+			
+			dbug ("allocated %lx\n", (long)tmp);
+			list_add((struct list_head *)tmp, &m->pool);
+			((struct map_node *)tmp)->map = m;
 		}
-
-		for (i = max_entries - 1; i >= 0; i--) {
-			e = i * size + tmp;
-			dbug ("e=%lx\n", (long)e);
-			list_add(e, &m->pool);
-			((struct map_node *)e)->map = m;
-		}
-		m->membuf = tmp;
 	}
 	if (type == STAT)
 		m->hist.type = HIST_NONE;
 	return 0;
-}
+      }
 
 
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
 {
-	MAP m = (MAP) _stp_valloc(sizeof(struct map_root));
+	MAP m = (MAP) kmalloc(sizeof(struct map_root), GFP_KERNEL);
 	if (m == NULL)
 		return NULL;
+
+	memset (m, 0, sizeof(struct map_root));
+	INIT_LIST_HEAD(&m->pool);
+	INIT_LIST_HEAD(&m->head);
 	if (_stp_map_init(m, max_entries, type, key_size, data_size, -1)) {
-		_stp_vfree(m);
+		_stp_map_del(m);
 		return NULL;
 	}
 	return m;
 }
 
-static MAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data_size)
+static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data_size)
 {
-	int i, failed;
+	int i;
 	MAP map, m;
 
-	map = (MAP) _stp_valloc_percpu (struct map_root);
-	if (map == NULL)
+	PMAP pmap = (PMAP) kmalloc(sizeof(struct pmap), GFP_KERNEL);
+	if (pmap == NULL)
 		return NULL;
 
+	memset (pmap, 0, sizeof(struct pmap));
+	pmap->map = map = (MAP) alloc_percpu (struct map_root);
+	if (map == NULL) 
+		goto err;
+
+	/* initialize the memory lists first so if allocations fail */
+        /* at some point, it is easy to clean up. */
 	for_each_cpu(i) {
-		m = _stp_per_cpu_ptr (map, i);
+		m = per_cpu_ptr (map, i);
+		INIT_LIST_HEAD(&m->pool);
+		INIT_LIST_HEAD(&m->head);
+	}
+	INIT_LIST_HEAD(&pmap->agg.pool);
+	INIT_LIST_HEAD(&pmap->agg.head);
+
+	for_each_cpu(i) {
+		m = per_cpu_ptr (map, i);
 		if (_stp_map_init(m, max_entries, type, key_size, data_size, i)) {
-			failed = i;
-			goto err;
+			goto err1;
 		}
 	}
 
-	/* now create a copy of the map data for aggregation */
-	failed = i + 1;
-	m = (MAP) _stp_valloc(sizeof(struct map_root));
-	if (m == NULL)
-		goto err;
-	_stp_percpu_dptr(map) = m;
-	if (_stp_map_init(m, max_entries, type, key_size, data_size, -1))
+	if (_stp_map_init(&pmap->agg, max_entries, type, key_size, data_size, -1))
 		goto err1;
 	
-	return map;
+	return pmap;
+
 err1:
-	_stp_vfree(m);
-err:
 	for_each_cpu(i) {
-		if (i >= failed)
-			break;
-		_stp_vfree(m->membuf);
+		m = per_cpu_ptr (map, i);
+		__stp_map_del(m);
 	}
-	_stp_vfree_percpu(map);
+	free_percpu(map);
+err:
+	kfree(pmap);
 	return NULL;
 }
 
@@ -348,6 +355,24 @@ void _stp_map_clear(MAP map)
 	}
 }
 
+
+static void __stp_map_del(MAP map)
+{
+	struct list_head *p, *tmp;
+
+	/* free unused pool */
+	list_for_each_safe(p, tmp, &map->pool) {
+		list_del(p);
+		kfree(p);
+	}
+
+	/* free used list */
+	list_for_each_safe(p, tmp, &map->head) {
+		list_del(p);
+		kfree(p);
+	}
+}
+
 /** Deletes a map.
  * Deletes a map, freeing all memory in all elements.  Normally done only when the module exits.
  * @param map
@@ -357,28 +382,29 @@ void _stp_map_del(MAP map)
 {
 	if (map == NULL)
 		return;
-	_stp_vfree(map->membuf);
-	_stp_vfree(map);
+
+	__stp_map_del(map);
+
+	kfree(map);
 }
 
-void _stp_pmap_del(MAP map)
+void _stp_pmap_del(PMAP pmap)
 {
 	int i;
-	MAP m;
 
-	if (map == NULL)
+	if (pmap == NULL)
 		return;
 
 	for_each_cpu(i) {
-		m = _stp_per_cpu_ptr (map, i);
-		_stp_vfree(m->membuf);
+		MAP m = per_cpu_ptr (pmap->map, i);
+		__stp_map_del(m);
 	}
+	free_percpu(pmap->map);
 
-	m = _stp_percpu_dptr(map);
-	_stp_vfree(m->membuf);
-	_stp_vfree(m);
-
-	_stp_vfree_percpu(map);
+	/* free agg map elements */
+	__stp_map_del(&pmap->agg);
+	
+	kfree(pmap);
 }
 
 /* sort keynum values */
@@ -709,9 +735,9 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
  */
 #define _stp_map_print(map,fmt) _stp_map_printn(map,0,fmt)
 
-void _stp_pmap_printn_cpu (MAP map, int n, const char *fmt, int cpu)
+void _stp_pmap_printn_cpu (PMAP pmap, int n, const char *fmt, int cpu)
 {
-	MAP m = _stp_per_cpu_ptr (map, cpu);
+	MAP m = per_cpu_ptr (pmap->map, cpu);
 	_stp_map_printn (m, n, fmt);
 }
 
@@ -811,7 +837,7 @@ static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
  * @param map A pointer to a pmap.
  * @returns a pointer to an aggregated map. 
  */
-MAP _stp_pmap_agg (MAP map)
+MAP _stp_pmap_agg (PMAP pmap)
 {
 	int i, hash;
 	MAP m, agg;
@@ -819,14 +845,14 @@ MAP _stp_pmap_agg (MAP map)
 	struct hlist_head *head, *ahead;
 	struct hlist_node *e, *f;
 
-	agg = _stp_percpu_dptr(map);
+	agg = &pmap->agg;
 	
         /* FIXME. we either clear the aggregation map or clear each local map */
 	/* every time we aggregate. which would be best? */
 	_stp_map_clear (agg);
 
 	for_each_cpu(i) {
-		m = _stp_per_cpu_ptr (map, i);
+		m = per_cpu_ptr (pmap->map, i);
 		/* walk the hash chains. */
 		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
 			head = &m->hashes[hash];
@@ -858,7 +884,7 @@ MAP _stp_pmap_agg (MAP map)
  * @returns a pointer to an aggregated map. 
  * @sa _stp_pmap_agg()
  */
-#define _stp_pmap_get_agg(map) (_stp_percpu_dptr(map))
+#define _stp_pmap_get_agg(pmap) (&pmap->agg)
 
 #define _stp_pmap_printn(map,n,fmt) _stp_map_printn (_stp_pmap_agg(map), n, fmt)
 #define _stp_pmap_print(map,fmt) _stp_map_printn(_stp_pmap_agg(map),0,fmt)

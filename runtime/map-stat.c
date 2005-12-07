@@ -64,9 +64,9 @@ static MAP _stp_map_new_hstat_linear (unsigned max_entries, int ksize, int start
 	return m;
 }
 
-static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
+static PMAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int start, int stop, int interval)
 {
-	MAP map;
+	PMAP pmap;
 	int size;
 	int buckets = (stop - start) / interval;
 	if ((stop - start) % interval) buckets++;
@@ -74,12 +74,12 @@ static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int star
         /* add size for buckets */
 	size = buckets * sizeof(int64_t) + sizeof(stat);
 
-	map = _stp_pmap_new (max_entries, STAT, ksize, size);
-	if (map) {
+	pmap = _stp_pmap_new (max_entries, STAT, ksize, size);
+	if (pmap) {
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = _stp_per_cpu_ptr (map, i);
+			m = (MAP)per_cpu_ptr (pmap->map, i);
 			m->hist.type = HIST_LINEAR;
 			m->hist.start = start;
 			m->hist.stop = stop;
@@ -87,33 +87,33 @@ static MAP _stp_pmap_new_hstat_linear (unsigned max_entries, int ksize, int star
 			m->hist.buckets = buckets;
 		}
 		/* now set agg map  params */
-		m = _stp_percpu_dptr(map);
+		m = &pmap->agg;
 		m->hist.type = HIST_LINEAR;
 		m->hist.start = start;
 		m->hist.stop = stop;
 		m->hist.interval = interval;
 		m->hist.buckets = buckets;
 	}
-	return map;
+	return pmap;
 }
 
-static MAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets)
+static PMAP _stp_pmap_new_hstat_log (unsigned max_entries, int key_size, int buckets)
 {
 	/* add size for buckets */
 	int size = buckets * sizeof(int64_t) + sizeof(stat);
-	MAP map = _stp_pmap_new (max_entries, STAT, key_size, size);
-	if (map) {
+	PMAP pmap = _stp_pmap_new (max_entries, STAT, key_size, size);
+	if (pmap) {
 		int i;
 		MAP m;
 		for_each_cpu(i) {
-			m = _stp_per_cpu_ptr (map, i);
+			m = (MAP)per_cpu_ptr (pmap->map, i);
 			m->hist.type = HIST_LOG;
 			m->hist.buckets = buckets;
 		}
 		/* now set agg map  params */
-		m = _stp_percpu_dptr(map);
+		m = &pmap->agg;
 		m->hist.type = HIST_LOG;
 		m->hist.buckets = buckets;
 	}
-	return map;
+	return pmap;
 }
