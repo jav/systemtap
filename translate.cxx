@@ -675,8 +675,11 @@ struct mapvar
 
   string fini () const
   {
-    return "_stp_map_del (" + qname() + ");";
-  }  
+    if (is_parallel())
+      return "_stp_pmap_del (" + qname() + ");";
+    else
+      return "_stp_map_del (" + qname() + ");";
+  }
 };
 
 
@@ -917,9 +920,16 @@ c_unparser::emit_global (vardecl *v)
 		 << " "
 		 << "global_" << c_varname (v->name)
 		 << ";";
+  else if (v->type == pe_stats)
+    {
+      o->newline() << "static PMAP global_" 
+		   << c_varname(v->name) << ";";
+    }
   else
-    o->newline() << "static MAP global_" 
-		 << c_varname(v->name) << ";";
+    {
+      o->newline() << "static MAP global_" 
+		   << c_varname(v->name) << ";";
+    }
   o->newline() << "static rwlock_t "
                << "global_" << c_varname (v->name) << "_lock;";
 }
