@@ -9,6 +9,7 @@
 
 #ifndef _IO_C_
 #define _IO_C_
+int vprintf(const char *format, va_list ap);
 
 /** Logs Data.
  * This function sends the message immediately to stpd. It
