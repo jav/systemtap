@@ -1245,6 +1245,14 @@ traversing_visitor::visit_for_loop (for_loop* s)
 void
 traversing_visitor::visit_foreach_loop (foreach_loop* s)
 {
+  symbol *array = NULL;  
+  hist_op *hist = NULL;
+  classify_indexable (s->base, array, hist);
+  if (array)
+    array->visit(this);
+  else
+    hist->visit(this);
+
   for (unsigned i=0; i<s->indexes.size(); i++)
     s->indexes[i]->visit (this);
   s->block->visit (this);

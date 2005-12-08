@@ -1,3 +1,15 @@
+2005-12-07  Graydon Hoare  <graydon@redhat.com>
+
+	* staptree.cxx (traversing_visitor::visit_foreach_loop): Visit
+	the base indexable of the foreach loop.
+
+	* translate.cxx (c_tmpcounter::visit_foreach_loop): Implement
+	histogram bucket iteration arm.
+	(c_unparser::visit_foreach_loop): Likewise.
+	(c_tmpcounter::visit_arrayindex): Fix typo.
+
+	* testsuite/buildok/iterate_histogram_buckets.stp: New test.
+
 2005-12-07  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (mapvar::fini): Use _stp_pmap_del() on pmaps.

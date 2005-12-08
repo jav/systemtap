@@ -1814,6 +1814,38 @@ c_unparser::visit_for_loop (for_loop *s)
 }
 
 
+struct arrayindex_downcaster
+  : public traversing_visitor
+{
+  arrayindex *& arr;
+  
+  arrayindex_downcaster (arrayindex *& arr)
+    : arr(arr) 
+  {}
+
+  void visit_arrayindex (arrayindex* e)
+  {
+    arr = e;
+  }
+};
+
+
+static bool
+expression_is_arrayindex (expression *e, 
+			  arrayindex *& hist)
+{
+  arrayindex *h = NULL;
+  arrayindex_downcaster d(h);
+  e->visit (&d);
+  if (static_cast<void*>(h) == static_cast<void*>(e))
+    {
+      hist = h;
+      return true;
+    }
+  return false;
+}
+
+
 void
 c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 {
@@ -1825,13 +1857,44 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
     {
       itervar iv = parent->getiter (array);
       parent->o->newline() << iv.declare();
-      s->block->visit (this);
     }
   else
-    {
-      // FIXME: fill in some logic here!
-      assert(false);
+   { 
+     // See commentary in c_tmpcounter::visit_arrayindex for
+     // discussion of tmpvars required to look into @hist_op(...)
+     // expressions.
+
+     // First make sure we have exactly one pe_long variable to use as
+     // our bucket index.
+     
+     if (s->indexes.size() != 1 || s->indexes[0]->referent->type != pe_long)
+       throw semantic_error("Invalid indexing of histogram", s->tok);
+      
+      // Then declare what we need to form the aggregate we're
+      // iterating over, and all the tmpvars needed by our call to
+      // load_aggregate().
+
+      aggvar agg = parent->gensym_aggregate ();
+      agg.declare(*(this->parent));
+
+      symbol *sym = get_symbol_within_expression (hist->stat);
+      var v = parent->getvar(sym->referent, sym->tok);
+      if (sym->referent->arity != 0)
+	{
+	  arrayindex *arr = NULL;
+	  if (!expression_is_arrayindex (hist->stat, arr))
+	    throw semantic_error("expected arrayindex expression in iterated hist_op", s->tok);
+
+	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
+	    {	      
+	      tmpvar ix = parent->gensym (sym->referent->index_types[i]);
+	      ix.declare (*parent);
+	      arr->indexes[i]->visit(this);
+	    }
+	}
     }
+
+  s->block->visit (this);
 }
 
 void
@@ -1921,8 +1984,24 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      // Iterating over buckets in a histogram.
+      assert(s->indexes.size() == 1);
+      assert(s->indexes[0]->referent->type == pe_long);
+      var bucketvar = getvar (s->indexes[0]->referent);
+
+      aggvar agg = gensym_aggregate ();
+      load_aggregate(hist->stat, agg);
+
+      symbol *sym = get_symbol_within_expression (hist->stat);
+      var v = getvar(sym->referent, sym->tok);
+      v.assert_hist_compatible(*hist);
+
+      o->newline() << "for (" << bucketvar << " = 0; " 
+		   << bucketvar << " < " << v.buckets() << "; "
+		   << bucketvar << "++) { ";
+      o->newline(1);
+      s->block->visit (this);
+      o->newline(-1) << "}";
     }
 }
 
@@ -2556,38 +2635,6 @@ c_unparser::load_map_indices(arrayindex *e,
 }
 
 
-struct arrayindex_downcaster
-  : public traversing_visitor
-{
-  arrayindex *& arr;
-  
-  arrayindex_downcaster (arrayindex *& arr)
-    : arr(arr) 
-  {}
-
-  void visit_arrayindex (arrayindex* e)
-  {
-    arr = e;
-  }
-};
-
-
-static bool
-expression_is_arrayindex (expression *e, 
-			  arrayindex *& hist)
-{
-  arrayindex *h = NULL;
-  arrayindex_downcaster d(h);
-  e->visit (&d);
-  if (static_cast<void*>(h) == static_cast<void*>(e))
-    {
-      hist = h;
-      return true;
-    }
-  return false;
-}
-
-
 void 
 c_unparser::load_aggregate (expression *e, aggvar & agg)
 {
@@ -2702,7 +2749,7 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 	{
 	  arrayindex *arr = NULL;
 	  if (!expression_is_arrayindex (hist->stat, arr))
-	    throw semantic_error("expected arrayindex expression in printed hist_op", e->tok);
+	    throw semantic_error("expected arrayindex expression in indexed hist_op", e->tok);
 
 	  for (unsigned i=0; i<sym->referent->index_types.size(); i++)
 	    {	      
