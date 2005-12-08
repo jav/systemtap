@@ -926,14 +926,13 @@ static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
 		hlist_del_init(&m->hnode);
 	} else {
 		m = (struct map_node *)map->pool.next;
+		map->num++;
 		dbug ("got %lx off pool\n", (long)m);
 	}
 	list_move_tail(&m->lnode, &map->head);
 	
 	/* add node to new hash list */
 	hlist_add_head(&m->hnode, head);
-
-	map->num++;
 	return m;
 }
 
@@ -1000,5 +999,31 @@ static int _new_map_set_stat (MAP map, struct map_node *n, int64_t val, int add)
 	return 0;
 }
 
+/** Return the number of elements in a map
+ * This function will return the number of active elements
+ * in a map.
+ * @param map 
+ * @returns an int
+ */
+#define _stp_map_size(map) (map->num)
+
+/** Return the number of elements in a pmap
+ * This function will return the number of active elements
+ * in all the per-cpu maps in a pmap. This is a quick sum and is
+ * not the same as the number of unique elements that would
+ * be in the aggragated map.
+ * @param pmap 
+ * @returns an int
+ */
+int _stp_pmap_size (PMAP pmap)
+{
+	int i, num = 0;
+
+	for_each_cpu(i) {
+		MAP m = per_cpu_ptr (pmap->map, i);
+		num += m->num;
+	}
+	return num;
+}
 #endif /* _MAP_C_ */
 

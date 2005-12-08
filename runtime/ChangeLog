@@ -1,3 +1,10 @@
+2005-12-08  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_new_map_create): Only increment map size if a node
+	was moved off the free list.
+	(_stp_map_size): New function.
+	(_stp_pmap_size): New function.	
+
 2005-12-07  Martin Hunt  <hunt@redhat.com>
 	 PR1923
 	* map.h (struct map_root): Remove membuf.
