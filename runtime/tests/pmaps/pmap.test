@@ -667,6 +667,11 @@ map[4]  Sum = 8
 }
 
 
+test size {Test _stp_pmap_size()} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test size.c
+} -body {
+	exec ./test
+} -result {}
 
 catch {exec rm test}
 

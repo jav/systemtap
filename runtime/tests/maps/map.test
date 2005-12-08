@@ -988,6 +988,11 @@ Nicosia is the capitol of Cyprus and the nerd population is -1
 }
 
 
+test size {Test of _stp_map_size()} -setup {
+        exec gcc $CFLAGS -I $KPATH -I $PATH -I $MPATH -o test size.c
+} -body {
+	exec ./test
+} -result {}
 
 catch {exec rm test}
 
