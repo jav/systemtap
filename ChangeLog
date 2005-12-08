@@ -1,3 +1,9 @@
+2005-12-08  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1937
+	* buildrun.cxx (run_pass): Pass new "-d PID" option to stpd.
+	Set SIGHUP to SIG_IGN too.
+
 2005-12-07  Graydon Hoare  <graydon@redhat.com>
 
 	* staptree.cxx (traversing_visitor::visit_foreach_loop): Visit

@@ -84,6 +84,7 @@ extern unsigned int buffer_size;
 extern char *modname;
 extern char *modpath;
 extern int target_pid;
+extern int driver_pid;
 extern char *target_cmd;
 
 /* per-cpu buffer info */
@@ -641,6 +642,23 @@ static void sigproc(int signum __attribute__((unused)))
   send_request(STP_EXIT, NULL, 0);
 }
 
+static void driver_poll (int signum __attribute__((unused)))
+{
+  /* See if the driver process is still alive.  If not, time to exit.  */
+  if (kill (driver_pid, 0) < 0)
+    {
+      send_request(STP_EXIT, NULL, 0);
+      return;
+    }
+  else
+    {
+      /* Check again later. */
+      signal (SIGALRM, driver_poll);
+      alarm (10); // any reasonable poll interval
+    }
+}
+
+
 /**
  *	stp_main_loop - loop forever reading data
  */
@@ -659,6 +677,11 @@ int stp_main_loop(void)
 	signal(SIGINT, sigproc);
 	signal(SIGTERM, sigproc);
 	signal(SIGCHLD, sigproc);
+	signal(SIGHUP, sigproc);
+
+        if (driver_pid)
+          driver_poll(0); // And by the way, I'm also the signal handler.
+
 	dbug("in main loop\n");
 
 	while (1) { /* handle messages from control channel */

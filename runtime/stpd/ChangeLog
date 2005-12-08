@@ -1,3 +1,12 @@
+2005-12-08  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1937
+	* stpd.c (main): Support new "-d" option.
+	(usage): Document it.
+	* librelay.c (driver_poll): New function to react to death of
+	driver process.
+	(stp_main_loop): Call it if "-d PID" given.  Treat SIGHUP like others.
+	
 2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* librelay.c: Move output_file var to stpd.c.

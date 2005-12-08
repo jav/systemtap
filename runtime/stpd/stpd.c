@@ -37,6 +37,7 @@ int merge = 1;
 int verbose = 0;
 int enable_relayfs = 1;
 int target_pid = 0;
+int driver_pid = 0;
 unsigned int buffer_size = 0;
 char *modname = NULL;
 char *modpath = NULL;
@@ -66,6 +67,7 @@ static void usage(char *prog)
 	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and stpd will exit when it does.\n");
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
+	fprintf(stderr, "-d pid.  Pass the systemtap driver's pid.\n");
 	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
 	fprintf(stderr, "-o FILE. Send output to FILE.\n");
 	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
 	int c, status;
 	pid_t pid;
 
-	while ((c = getopt(argc, argv, "mpqrb:n:t:c:vo:")) != EOF)
+	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:")) != EOF)
 	{
 		switch (c) {
 		case 'm':
@@ -111,6 +113,9 @@ int main(int argc, char **argv)
 		}
 		case 't':
 			target_pid = atoi(optarg);
+			break;
+		case 'd':
+			driver_pid = atoi(optarg);
 			break;
 		case 'c':
 			target_cmd = optarg;
