@@ -1,0 +1,32 @@
+#! stap -p4
+
+global foo
+global i
+
+probe begin
+{
+	print("starting up\n")
+	i = 0
+}
+
+probe timer.jiffies(100)
+{
+	printf("ping %d\n", i)
+	foo <<< i
+	if (i++ > 15)
+		exit()
+}
+
+probe end
+{
+	print("shutting down\n")
+	printf("count %d, avg %d\n", @count(foo), @avg(foo))
+	for (i = 0; i < 7; ++i)
+	{	
+		if (i in @hist_log(foo))
+		{
+			printf("entry in bucket %d\n", i);
+		}
+	}
+}
+

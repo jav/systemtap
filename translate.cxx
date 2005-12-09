@@ -2082,8 +2082,7 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      throw semantic_error("cannot delete histogram bucket entries\n", e->tok);
     }
 }
 
@@ -2282,8 +2281,14 @@ c_tmpcounter::visit_array_in (array_in* e)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      // By definition:
+      //
+      // 'foo in @hist_op(...)'  is true iff
+      // '@hist_op(...)[foo]'    is nonzero
+      //
+      // so we just delegate to the latter call, since int64_t is also
+      // our boolean type.
+      e->operand->visit(this);
     }
 }
 
@@ -2315,8 +2320,14 @@ c_unparser::visit_array_in (array_in* e)
     }
   else
     {
-      // FIXME: fill in some logic here!
-      assert(false);
+      // By definition:
+      //
+      // 'foo in @hist_op(...)'  is true iff
+      // '@hist_op(...)[foo]'    is nonzero
+      //
+      // so we just delegate to the latter call, since int64_t is also
+      // our boolean type.
+      e->operand->visit(this);
     }
 }
 

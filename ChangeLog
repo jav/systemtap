@@ -1,3 +1,12 @@
+2005-12-08  Graydon Hoare  <graydon@redhat.com>
+
+	* translate.cxx (delete_statement_operand_visitor::visit_arrayindex): 
+	Prohibit deleting histogram buckets.
+	(c_tmpcounter::visit_array_in): Direct to visit_arrayindex.
+	(c_unparser::visit_array_in): Likewise.
+
+	* testsuite/buildok/histogram_operator_in.stp: New test.
+
 2005-12-08  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1937
