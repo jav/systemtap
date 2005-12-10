@@ -312,7 +312,7 @@ alias_expansion_builder
 		     vector<derived_probe *> & finished_results)
   {
     // We're going to build a new probe and wrap it up in an
-    // alias_expansion_probe so that the expansion loop recognizer it as
+    // alias_expansion_probe so that the expansion loop recognizes it as
     // such and re-expands its expansion.
     
     probe * n = new probe();

@@ -235,6 +235,143 @@ inline_instance_info
   Dwarf_Die die;
 };
 
+class
+symbol_cache
+{
+  // For each module, we keep a multimap from function names to
+  // (cudie, funcdie*) pairs.  The first time we pass over a module,
+  // we build up this multimap as an index. Our iteration over the
+  // module's CUs and functions is then driven by the function or
+  // statement pattern string we're scanning for.
+  struct entry
+  {
+    Dwarf_Die cu;
+    Dwarf_Die function;
+  };
+  typedef multimap<string, entry> index;
+  map<Dwarf *, index*> indices;
+  index *curr_index;
+  Dwarf_Die * cu_die;
+  void make_entry_for_function(Dwarf_Die *func_die);
+  static int function_callback(Dwarf_Die * func, void * arg);
+  void index_module(Dwarf * mod);
+public:  
+  void select_die_subsets(Dwarf * mod,
+			  string const & pattern,
+			  set<Dwarf_Die> & cus,
+			  multimap<Dwarf_Die, Dwarf_Die> & funcs);
+};
+
+void
+symbol_cache::make_entry_for_function(Dwarf_Die *func_die)
+{
+  entry e;
+  assert(this->cu_die);
+  assert(this->curr_index);
+  e.cu = *(this->cu_die);
+  e.function = *(func_die);
+  char const * fname = dwarf_diename(func_die);
+  if (fname)
+    curr_index->insert(make_pair(string(fname), e));
+}
+
+int
+symbol_cache::function_callback(Dwarf_Die * func, void * arg)
+{
+  symbol_cache *sym = static_cast<symbol_cache*>(arg);
+  sym->make_entry_for_function(func);
+  return DWARF_CB_OK;
+}
+
+void
+symbol_cache::index_module(Dwarf *module_dwarf)
+{
+  Dwarf_Off off = 0;
+  size_t cuhl = 0;
+  Dwarf_Off noff = 0;
+  this->cu_die = NULL;
+  while (dwarf_nextcu (module_dwarf, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
+    {
+      Dwarf_Die die_mem;
+      this->cu_die = dwarf_offdie (module_dwarf, off + cuhl, &die_mem);
+      dwarf_getfuncs (this->cu_die, function_callback, this, 0);
+      off = noff;
+    }
+  this->cu_die = NULL;
+}
+
+inline bool
+operator<(Dwarf_Die const & a, 
+	  Dwarf_Die const & b)
+{
+  return (a.addr < b.addr)
+    || ((a.addr == b.addr) && (a.cu < b.cu))
+    || ((a.addr == b.addr) && (a.cu == b.cu) && (a.abbrev < b.abbrev));
+}
+
+inline bool
+operator==(Dwarf_Die const & a, 
+	   Dwarf_Die const & b)
+{
+  return !((a < b) || (b < a));
+}
+
+void 
+symbol_cache::select_die_subsets(Dwarf *mod,
+				 string const & pattern,
+				 set<Dwarf_Die> & cus,
+				 multimap<Dwarf_Die, Dwarf_Die> & funcs)
+{
+  cus.clear();
+  funcs.clear();
+  index *ix = NULL;
+
+  // First find the index for this module. If there's no index, build
+  // one.
+  map<Dwarf *, index*>::const_iterator i = indices.find(mod);
+  if (i == indices.end())
+    {
+      this->curr_index = new index;
+      index_module(mod);      
+      indices.insert(make_pair(mod, this->curr_index));
+      ix = this->curr_index;
+      this->curr_index = NULL;
+      this->cu_die = NULL;
+    }
+  else
+    ix = i->second;
+
+  assert(ix);
+
+  // Now stem the pattern such that we have a minimal non-wildcard
+  // prefix to search in the multimap for. We will use the full pattern
+  // to narrow this set further.
+  string stem;
+  for (string::const_iterator i = pattern.begin();
+       i != pattern.end(); ++i)
+    {
+      if (*i == '?' || *i == '*' || *i == '[' || *i == ']')
+	break;
+      stem += *i;
+    }
+
+  // Now perform a lower-bound on the multimap, refine that result
+  // set, and copy the CU and function DIEs into the parameter sets.
+  index::const_iterator j = stem.empty() ? ix->begin() : ix->lower_bound(stem);
+  while (j != ix->end() && 
+	 (stem.empty() || j->first.compare(0, stem.size(), stem) == 0))
+    {
+      if (fnmatch(pattern.c_str(), j->first.c_str(), 0) == 0)
+	{
+	  cus.insert(j->second.cu);
+	  funcs.insert(make_pair(j->second.cu, j->second.function));
+	}
+      ++j;	
+    }
+}
+			   
+
+
 static int
 query_cu (Dwarf_Die * cudie, void * arg);
 
@@ -255,6 +392,8 @@ dwflpp
   systemtap_session & sess;
   Dwfl * dwfl;
 
+  symbol_cache cache;
+
   // These are "current" values we focus on.
   Dwfl_Module * module;
   Dwarf * module_dwarf;
@@ -266,6 +405,9 @@ dwflpp
 
   Dwarf_Die * cu;
   Dwarf_Die * function;
+
+  set<Dwarf_Die> pattern_limited_cus;
+  multimap<Dwarf_Die, Dwarf_Die> pattern_limited_funcs;
 
   string module_name;
   string cu_name;
@@ -308,6 +450,13 @@ dwflpp
       }
   }
 
+  void limit_search_to_function_pattern(string const & pattern)
+  {
+    get_module_dwarf(true);
+    cache.select_die_subsets(module_dwarf, pattern, 
+			     pattern_limited_cus, 
+			     pattern_limited_funcs);
+  }
 
   void focus_on_module(Dwfl_Module * m)
   {
@@ -323,6 +472,9 @@ dwflpp
 
     module_dwarf = NULL;
 
+    pattern_limited_cus.clear();
+    pattern_limited_funcs.clear();
+    
     cu_name.clear();
     cu = NULL;
 
@@ -556,18 +708,12 @@ dwflpp
     if (!module_dwarf)
       return;
 
-    Dwarf *dw = module_dwarf;
-    Dwarf_Off off = 0;
-    size_t cuhl;
-    Dwarf_Off noff;
-    while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
+    for (set<Dwarf_Die>::const_iterator i = pattern_limited_cus.begin();
+	 i != pattern_limited_cus.end(); ++i)
       {
-	Dwarf_Die die_mem;
-	Dwarf_Die *die;
-	die = dwarf_offdie (dw, off + cuhl, &die_mem);
-	if (callback (die, data) != DWARF_CB_OK)
+	Dwarf_Die die = *i;
+	if (callback (&die, data) != DWARF_CB_OK)
 	  break;
-	off = noff;
       }
   }
 
@@ -593,7 +739,15 @@ dwflpp
   {
     assert (module);
     assert (cu);
-    dwarf_getfuncs (cu, callback, data, 0);
+    multimap<Dwarf_Die, Dwarf_Die>::const_iterator i = pattern_limited_funcs.lower_bound(*cu);
+    while (i != pattern_limited_funcs.end() && (i->first == *cu))
+      {
+	Dwarf_Die func_die = i->second;
+	if (callback (&func_die, data) != DWARF_CB_OK)
+	  break;
+
+	++i;
+      }
   }
 
 
@@ -1478,7 +1632,18 @@ dwarf_query
 
 struct dwarf_builder: public derived_probe_builder
 {
-  dwarf_builder() {}
+  dwflpp *kern_dw;  
+  dwflpp *user_dw;  
+  dwarf_builder() 
+    : kern_dw(NULL), user_dw(NULL) 
+  {}
+  ~dwarf_builder() 
+  { 
+    if (kern_dw) 
+      delete kern_dw;
+    if (user_dw) 
+      delete user_dw;
+  }
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
@@ -2256,7 +2421,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
   try
-    {
+    {      
       q->dw.focus_on_module(mod);
 
       // If we have enough information in the pattern to skip a module and
@@ -2302,6 +2467,8 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           // Otherwise if we have a function("foo") or statement("foo")
           // specifier, we have to scan over all the CUs looking for
           // the function(s) in question
+	  
+	  q->dw.limit_search_to_function_pattern(q->function);
 
           assert(q->has_function_str || q->has_inline_str || q->has_statement_str);
           q->dw.iterate_over_cus(&query_cu, q);
@@ -2940,11 +3107,36 @@ dwarf_builder::build(systemtap_session & sess,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<derived_probe *> & finished_results)
 {
+  dwflpp *dw = NULL;
 
-  dwflpp dw(sess);
-  dwarf_query q(sess, base, location, dw, parameters, finished_results);
+  string dummy;
+  bool has_kernel = dwarf_query::has_null_param(parameters, TOK_KERNEL);
+  bool has_module = dwarf_query::get_string_param(parameters, TOK_MODULE, dummy);
 
-  dw.setup(q.has_kernel || q.has_module);
+  if (has_kernel || has_module)
+    {
+      if (!kern_dw)
+	{
+	  kern_dw = new dwflpp(sess);
+	  assert(kern_dw);
+	  kern_dw->setup(true);
+	}
+      dw = kern_dw;
+    }
+  else
+    {
+      if (!user_dw)
+	{
+	  user_dw = new dwflpp(sess);
+	  assert(user_dw);
+	  user_dw->setup(false);
+	}
+      dw = user_dw;
+    }
+  assert(dw);
+
+  dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+
 
   if (q.has_kernel &&
       (q.has_function_num || q.has_inline_num || q.has_statement_num))
@@ -2960,8 +3152,8 @@ dwarf_builder::build(systemtap_session & sess,
 	a = q.inline_num_val;
       else
 	a = q.statement_num_val;
-      dw.focus_on_module_containing_global_address(a);
-      dw.query_cu_containing_global_address(a, &q);
+      dw->focus_on_module_containing_global_address(a);
+      dw->query_cu_containing_global_address(a, &q);
     }
   else
     {
@@ -2975,12 +3167,12 @@ dwarf_builder::build(systemtap_session & sess,
       if (q.has_kernel)
 	{
 	  int flag = 0;
-	  dw.iterate_over_modules(&query_kernel_exists, &flag);
+	  dw->iterate_over_modules(&query_kernel_exists, &flag);
 	  if (! flag)
 	    throw semantic_error ("cannot find kernel debuginfo");
 	}
 
-      dw.iterate_over_modules(&query_module, &q);
+      dw->iterate_over_modules(&query_module, &q);
     }
 }
 

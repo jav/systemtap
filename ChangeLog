@@ -1,3 +1,19 @@
+2005-12-09  Graydon Hoare  <graydon@redhat.com>
+
+	* elaborate.cxx (alias_expansion_builder::build): Fix comment typo.
+	* tapsets.cxx (symbol_cache): New class.
+	(dwflpp::cache): Add cache.
+	(dwflpp::pattern_limited_cus): New member.
+	(dwflpp::pattern_limited_funcs): New member.
+	(dwflpp::limit_search_to_function_pattern): New method.
+	(dwflpp::iterate_over_cus): Modify to use cached, limited sets.
+	(dwflpp::iterate_over_functions): Likewise.
+	(dwarf_builder::user_dw): New member.
+	(dwarf_builder::kern_dw): New member.
+	(dwarf_builder::~dwarf_builder): Add dtor.
+	(query_module): Call dwflpp::limit_search_to_function_pattern.
+	(dwarf_builder::build): Initialize persistent dwflpp members on demand.
+
 2005-12-08  Graydon Hoare  <graydon@redhat.com>
 
 	* translate.cxx (delete_statement_operand_visitor::visit_arrayindex): 
