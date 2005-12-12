@@ -3,6 +3,9 @@
 	* tapset/context.stp (execname,pid,tid,ppid,pexecname,gid,egid,uid,euid):
 	Removed in_interrupt checks and other pointer checks.  We now operate on
 	the assumption that "current" and its related data are always valid.
+	* tapsets.cxx (profile_derived_probe::*,profile_builder::build): Do kernel
+	version checks at translation time, using the same internal mechanisms as
+	the preprocessor - a la %( kernel_v < "2.6.10" %? ... %: ... %)
 
 2005-12-12  Kevin Stafford  <krstaffo@us.ibm.com>
 	* main.cxx (main): Added arch directory to the existing

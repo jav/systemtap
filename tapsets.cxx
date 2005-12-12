@@ -3326,7 +3326,11 @@ struct timer_builder: public derived_probe_builder
 
 struct profile_derived_probe: public derived_probe
 {
-  profile_derived_probe (probe* p, probe_point* l): derived_probe(p, l) {}
+  // kernels < 2.6.10: use register_profile_notifier API
+  // kernels >= 2.6.10: use register_timer_hook API
+  bool using_rpn;
+
+  profile_derived_probe (systemtap_session &s, probe* p, probe_point* l);
 
   virtual void emit_registrations (translator_output * o, unsigned i);
   virtual void emit_deregistrations (translator_output * o, unsigned i);
@@ -3334,65 +3338,72 @@ struct profile_derived_probe: public derived_probe
 };
 
 
+profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, probe_point* l):
+  derived_probe(p, l)
+{
+  string target_kernel_v;
+
+  // cut off any release code suffix
+  string::size_type dash_rindex = s.kernel_release.rfind ('-');
+  if (dash_rindex > 0 && dash_rindex != string::npos)
+    target_kernel_v = s.kernel_release.substr (0, dash_rindex);
+  else
+    target_kernel_v = s.kernel_release;
+
+  using_rpn = (strverscmp(target_kernel_v.c_str(), "2.6.10") < 0);
+}
+
+
 void
 profile_derived_probe::emit_registrations (translator_output* o, unsigned j)
 {
-  // kernels < 2.6.10: use register_profile_notifier API
-  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
-  o->newline() << "rc = register_profile_notifier(&profile_" << j << ");";
-
-  // kernels >= 2.6.10: use register_timer_hook API
-  o->newline() << "#else";
-  o->newline() << "rc = register_timer_hook(enter_" << j << ");";
-
-  o->newline() << "#endif";
+  if (using_rpn)
+    o->newline() << "rc = register_profile_notifier(&profile_" << j << ");";
+  else
+    o->newline() << "rc = register_timer_hook(enter_" << j << ");";
 }
 
 
 void
 profile_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
 {
-  // kernels < 2.6.10: use register_profile_notifier API
-  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
-  o->newline() << "unregister_profile_notifier(&profile_" << j << ");";
-
-  // kernels >= 2.6.10: use register_timer_hook API
-  o->newline() << "#else";
-  o->newline() << "unregister_timer_hook(enter_" << j << ");";
-
-  o->newline() << "#endif";
+  if (using_rpn)
+    o->newline() << "unregister_profile_notifier(&profile_" << j << ");";
+  else
+    o->newline() << "unregister_timer_hook(enter_" << j << ");";
 }
 
 
 void
 profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 {
-  // kernels < 2.6.10: use register_profile_notifier API
-  o->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 10)";
-  o->newline() << "static int enter_" << j
-	       << " (struct notifier_block *self, unsigned long val, void *data);";
-  o->newline() << "static struct notifier_block profile_" << j << " = {";
-  o->newline(1) << ".notifier_call = enter_" << j << ",";
-  o->newline(-1) << "};";
-  o->newline() << "int enter_" << j
-	       << " (struct notifier_block *self, unsigned long val, void *data) {";
-  o->newline(1) << "struct pt_regs *regs = (struct pt_regs *)data;";
-
-  // kernels >= 2.6.10: use register_timer_hook API
-  o->newline(-1) << "#else";
-  o->newline() << "static int enter_" << j << " (struct pt_regs *regs);";
-  o->newline() << "int enter_" << j << " (struct pt_regs *regs) {";
-  o->newline(1) << "unsigned long val = 0;";
-  o->newline(-1) << "#endif";
+  if (using_rpn) {
+    o->newline() << "static int enter_" << j
+                 << " (struct notifier_block *self, unsigned long val, void *data);";
+    o->newline() << "static struct notifier_block profile_" << j << " = {";
+    o->newline(1) << ".notifier_call = enter_" << j << ",";
+    o->newline(-1) << "};";
+    o->newline() << "int enter_" << j
+                 << " (struct notifier_block *self, unsigned long val, void *data) {";
+    o->newline(1) << "struct pt_regs *regs = (struct pt_regs *)data;";
+    o->indent(-1);
+  } else {
+    o->newline() << "static int enter_" << j << " (struct pt_regs *regs);";
+    o->newline() << "int enter_" << j << " (struct pt_regs *regs) {";
+  }
 
   o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
 
+  if (using_rpn) {
+    o->newline() << "(void) self;";
+    o->newline() << "(void) val;";
+  }
+
   // A precondition for running a probe handler is that we're in
   // RUNNING state (not ERROR), and that no one else is already using
   // this context.
-  o->newline() << "(void) val;";
   o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
   o->newline(1) << "return 0;";
 
@@ -3434,7 +3445,7 @@ struct profile_builder: public derived_probe_builder
 		     std::map<std::string, literal *> const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
-    finished_results.push_back(new profile_derived_probe(base, location));
+    finished_results.push_back(new profile_derived_probe(sess, base, location));
   }
 };
 
