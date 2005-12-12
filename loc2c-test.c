@@ -59,7 +59,7 @@ get_location (Dwarf_Addr dwbias, Dwarf_Addr pc, Dwarf_Attribute *loc_attr,
 
     default:			/* Shouldn't happen.  */
     case -1:
-      fail (NULL, _("dwarf_addrloclists (form %#x): %s"),
+      fail (NULL, _("dwarf_getlocation_addr (form %#x): %s"),
 	    dwarf_whatform (loc_attr), dwarf_errmsg (-1));
       return NULL;
 
