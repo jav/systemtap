@@ -30,66 +30,39 @@ function backtrace:string () %{
 %}
 
 function execname:string () %{
-	if (unlikely(in_interrupt()))
-		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
-	else
-		strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
+	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
 
 function pid:long () %{
-	if (unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->tgid;
+	THIS->__retvalue = current->tgid;
 %}
 
 function tid:long () %{
-	if (unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->pid;
+	THIS->__retvalue = current->pid;
 %}
 
 function ppid:long () %{
-	if (unlikely(in_interrupt() || !current->parent))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->parent->tgid;
+	THIS->__retvalue = current->parent->tgid;
 %}
 
 function pexecname:string () %{
-	if(unlikely(in_interrupt() || !current->parent || !current->parent->comm))
-		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
-	else
-		strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
+	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
 %}
 
 function gid:long () %{
-	if(unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->gid;		
+	THIS->__retvalue = current->gid;		
 %}
 
 function egid:long () %{
-	if(unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->egid;		
+	THIS->__retvalue = current->egid;		
 %}
 
 function uid:long () %{
-	if(unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->uid;		
+	THIS->__retvalue = current->uid;		
 %}
 
 function euid:long () %{
-	if(unlikely(in_interrupt()))
-		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = current->euid;		
+	THIS->__retvalue = current->euid;		
 %}
 
 

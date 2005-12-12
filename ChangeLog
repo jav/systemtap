@@ -1,3 +1,9 @@
+2005-12-12  Josh Stone  <joshua.i.stone@intel.com>
+
+	* tapset/context.stp (execname,pid,tid,ppid,pexecname,gid,egid,uid,euid):
+	Removed in_interrupt checks and other pointer checks.  We now operate on
+	the assumption that "current" and its related data are always valid.
+
 2005-12-12  Kevin Stafford  <krstaffo@us.ibm.com>
 	* main.cxx (main): Added arch directory to the existing
 	kernel-version-sensitive search path.
