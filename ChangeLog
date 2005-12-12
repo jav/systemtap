@@ -1,3 +1,7 @@
+2005-12-11  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-test.c (get_location): Fix function name in error message.
+
 2005-12-09  Graydon Hoare  <graydon@redhat.com>
 
 	* elaborate.cxx (alias_expansion_builder::build): Fix comment typo.
@@ -16,7 +20,7 @@
 
 2005-12-08  Graydon Hoare  <graydon@redhat.com>
 
-	* translate.cxx (delete_statement_operand_visitor::visit_arrayindex): 
+	* translate.cxx (delete_statement_operand_visitor::visit_arrayindex):
 	Prohibit deleting histogram buckets.
 	(c_tmpcounter::visit_array_in): Direct to visit_arrayindex.
 	(c_unparser::visit_array_in): Likewise.
