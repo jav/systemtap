@@ -1,5 +1,34 @@
 2005-12-11  Roland McGrath  <roland@redhat.com>
 
+	* configure.ac: Bump version to 0.5.1 for test builds.
+	* systemtap.spec.in: Remove ExclusiveArch.
+	* configure: Regenerated.
+
+	PR 1916
+	* configure.ac: Grok --with-elfutils.
+	* Makefile.am [BUILD_ELFUTILS] (install-elfutils, stamp-elfutils):
+	New targets.
+	[BUILD_ELFUTILS] (stap_LDFLAGS, stap_LDFLAGS): Add flags
+	to point at local elfutils build.
+	[BUILD_ELFUTILS] (BUILT_SOURCES): Add stamp-elfutils.
+	[BUILD_ELFUTILS] (stap_DEPENDENCIES): New variable.
+	[BUILD_ELFUTILS] (lib-elfutils/libdw.so): New target.
+	[BUILD_ELFUTILS] (install-exec-local): Depend on install-elfutils.
+	(loc2c_test_LDADD): Set this to $(stap_LDADD).
+	(loc2c_test_CPPFLAGS, loc2c_test_LDFLAGS): New variables.
+	* Makefile.in: Regenerated.
+	* compile: New file from automakeland.
+	* systemtap.spec.in (elfutils_version): Require 0.118 or later.
+	[bundled_elfutils]: Remove old hacks for building elfutils, and rely
+	on configure --with-elfutils instead.
+
+	* Makefile.am (pkglibexecdir): New variable.
+	(AM_CPPFLAGS): Use it.
+	(pkglibexec_PROGRAMS): Set this instead of noinst_PROGRAMS with stpd.
+	(pkglibexec_SCRIPTS, CLEANFILES): New variables.
+	(install-exec-local): Target removed.
+	* runtest.sh: Set LD_LIBRARY_PATH when lib-elfutils is in use.
+
 	* loc2c-test.c (get_location): Fix function name in error message.
 
 2005-12-09  Graydon Hoare  <graydon@redhat.com>
