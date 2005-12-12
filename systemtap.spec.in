@@ -1,5 +1,5 @@
 %define bundled_elfutils 1
-%define elfutils_version 0.116
+%define elfutils_version 0.118
 
 Name: systemtap
 Version: @VERSION@
@@ -9,8 +9,6 @@ Group: Development/System
 License: GPL
 URL: http://sourceware.org/systemtap/
 Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
-
-ExclusiveArch: %{ix86} x86_64 ppc ia64
 
 BuildRoot: %{_tmppath}/%{name}-root
 
@@ -50,29 +48,7 @@ cd ..
 
 %if %{bundled_elfutils}
 # Build our own copy of elfutils.
-elfutils_includedir="`pwd`/include-elfutils"
-elfutils_libdir="`pwd`/lib-elfutils"
-mkdir build-elfutils
-cd build-elfutils
-cat > configure <<\EOF
-#!/bin/sh
-exec ../elfutils-%{elfutils_version}/configure "$@"
-EOF
-chmod +x configure
-LDFLAGS=-Wl,--enable-new-dtags,-rpath,%{_libdir}/%{name}
-export LDFLAGS
-%configure --enable-libebl-subdir=%{name}
-make %{?_smp_mflags}
-for dir in libelf libebl libdw libdwfl; do
-  make -C $dir install includedir=$elfutils_includedir libdir=$elfutils_libdir
-done
-cd ..
-
-# We'll configure with these options to use the local headers and libraries.
-CPPFLAGS="-I${elfutils_includedir}"
-LDFLAGS="-L${elfutils_libdir} -Wl,-rpath-link,${elfutils_libdir} \
--Wl,--enable-new-dtags,-rpath,%{_libdir}/%{name}"
-export CPPFLAGS LDFLAGS
+%define elfutils_config --with-elfutils=elfutils-%{elfutils_version}
 
 # We have to prevent the standard dependency generation from identifying
 # our private elfutils libraries in our provides and requires.
@@ -85,19 +61,13 @@ export CPPFLAGS LDFLAGS
 %define elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
 %endif
 
-%configure
+%configure %{?elfutils_config}
 make %{?_smp_mflags}
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
 
 %makeinstall
-
-%if %{bundled_elfutils}
-installed_elfutils=${RPM_BUILD_ROOT}%{_libdir}/%{name}
-mkdir -p ${installed_elfutils}
-cp -P lib-elfutils/*.so* lib-elfutils/%{name}/*.so* ${installed_elfutils}/
-%endif
 
 mkdir -p $RPM_BUILD_ROOT/var/cache/systemtap
 
@@ -130,6 +100,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Wed Dec  7 2005 Roland McGrath <roland@redhat.com> - 0.5.1-1
+- elfutils update, build changes
+
 * Fri Dec 02 2005  Frank Ch. Eigler  <fche@redhat.com> - 0.5-1
 - Many fixes and improvements: 1425, 1536, 1505, 1380, 1329, 1828, 1271,
   1339, 1340, 1345, 1837, 1917, 1903, 1336, 1868, 1594, 1564, 1276, 1295

@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.5, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.5.1, systemtap@sources.redhat.com, systemtap)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -22,12 +22,29 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl Need libdwfl-capable recent elfutils from Fedora
-save_LIBS="$LIBS"
-AC_CHECK_LIB(dw, dwarf_diecu,,[
-  AC_MSG_ERROR([systemtap requires elfutils 0.116+])])
-stap_LIBS="$LIBS"
-LIBS="$SAVE_LIBS"
+build_elfutils=no
+AC_ARG_WITH([elfutils],
+            AC_HELP_STRING([--with-elfutils=DIRECTORY],
+                           [find elfutils source code in DIRECTORY]),
+	    [
+case "$with_elfutils" in
+yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
+''|no) ;;
+*) build_elfutils=yes ;;
+esac])
+AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
+
+if test $build_elfutils = yes; then
+  # Need libdwfl-capable recent elfutils from Fedora
+  save_LIBS="$LIBS"
+  AC_CHECK_LIB(dw, dwarf_diecu,,[
+    AC_MSG_ERROR([systemtap requires elfutils 0.116+])])
+  stap_LIBS="$LIBS"
+  LIBS="$SAVE_LIBS"
+else
+  # We built our own and stap_LDFLAGS points at the install.
+  stap_LIBS=-ldw
+fi
 AC_SUBST(stap_LIBS)
 
 dnl Plop in the build (configure) date
@@ -38,3 +55,17 @@ AC_SUBST(DATE, "$date")
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5)
 AC_OUTPUT
+
+if test $build_elfutils = yes; then
+  case "$with_elfutils" in
+  /*) elfutils_srcdir="$with_elfutils" ;;
+  *) elfutils_srcdir="../$with_elfutils" ;;
+  esac
+  AC_MSG_NOTICE([running ${elfutils_srcdir}/configure])
+  here=`pwd`
+  (mkdir -p build-elfutils && cd build-elfutils &&
+   ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
+				--includedir="${here}/include-elfutils" \
+				--libdir="${here}/lib-elfutils"
+  )
+fi
