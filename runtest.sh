@@ -7,12 +7,10 @@ if [ ! -d testresults ]; then
 fi
 
 SRCDIR=`dirname $0`
-if expr "$SRCDIR" : "/.*" >/dev/null
-then 
-   true # already absolute, groovy!
-else
-   SRCDIR="`pwd`/$SRCDIR"
-fi
+case "$SRCDIR" in
+/*) ;; # already absolute, groovy!
+*) SRCDIR="`pwd`/$SRCDIR" ;;
+esac
 export SRCDIR
 
 SYSTEMTAP_TAPSET=$SRCDIR/tapset
@@ -20,6 +18,13 @@ export SYSTEMTAP_TAPSET
 
 SYSTEMTAP_RUNTIME=$SRCDIR/runtime
 export SYSTEMTAP_RUNTIME
+
+if [ -d lib-elfutils ]; then
+  lib_elfutils="`pwd`/lib-elfutils"
+  elfutils_path="${lib_elfutils}:${lib_elfutils}/systemtap"
+  LD_LIBRARY_PATH="${elfutils_path}${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH"
+  export LD_LIBRARY_PATH
+fi
 
 dn=`dirname $1`
 logfile=testresults/`basename $dn`-`basename $1`
