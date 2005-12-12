@@ -1,3 +1,7 @@
+2005-12-12  Frank Ch. Eigler  <fche@redhat.com>
+
+	* translate.cxx (translate_pass): Emit #include <linux/profile.h>.
+
 2005-12-12  Will Cohen  <wcohen@redhat.com>
 
 	* tapset/logging.stp (function_exit): Make sure systemtap probes

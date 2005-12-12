@@ -3460,6 +3460,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"regs.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
+      s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#endif";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
 
