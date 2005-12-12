@@ -5103,7 +5103,7 @@ else
 fi
 
 
-if test $build_elfutils = yes; then
+if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
 

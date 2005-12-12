@@ -34,7 +34,7 @@ yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
 esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 
-if test $build_elfutils = yes; then
+if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
   AC_CHECK_LIB(dw, dwarf_diecu,,[
