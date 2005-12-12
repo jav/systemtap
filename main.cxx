@@ -304,20 +304,28 @@ main (int argc, char * const argv [])
     // syntax errors already printed
     rc ++;
 
-  // Construct kernel-versioning search path
+  // Construct arch / kernel-versioning search path
   vector<string> version_suffixes;
   const string& kvr = s.kernel_release;
-  // add full kernel-version-release (2.6.NN-FOOBAR)
+  const string& arch = s.architecture;
+  // add full kernel-version-release (2.6.NN-FOOBAR) + arch
+  version_suffixes.push_back ("/" + kvr + "/" + arch);
   version_suffixes.push_back ("/" + kvr);
-  // add kernel version (2.6.NN)
+  // add kernel version (2.6.NN) + arch
   string::size_type dash_rindex = kvr.rfind ('-');
-  if (dash_rindex > 0 && dash_rindex != string::npos)
+  if (dash_rindex > 0 && dash_rindex != string::npos) {
+    version_suffixes.push_back ("/" + kvr.substr (0, dash_rindex) + "/" + arch);
     version_suffixes.push_back ("/" + kvr.substr (0, dash_rindex));
-  // add kernel family (2.6)
+  }
+  // add kernel family (2.6) + arch
   string::size_type dot_index = kvr.find ('.');
   string::size_type dot2_index = kvr.find ('.', dot_index+1);
-  if (dot2_index > 0 && dot2_index != string::npos)
+  if (dot2_index > 0 && dot2_index != string::npos) {
+    version_suffixes.push_back ("/" + kvr.substr (0, dot2_index) + "/" + arch);
     version_suffixes.push_back ("/" + kvr.substr (0, dot2_index));
+  }
+  // add architecture search path
+  version_suffixes.push_back("/" + arch);
   // add empty string as last element
   version_suffixes.push_back ("");
 
