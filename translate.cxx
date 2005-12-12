@@ -449,7 +449,7 @@ struct varlock
 		       << "(trylock_count++ < MAXTRYLOCK)"
 		       << ") ; /* spin */";
 	c.o->newline() << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
-	c.o->newline(1) << "c->last_error = \"deadlock over variable "
+	c.o->newline(1) << "c->last_error = \"locking timeout over variable "
 			<< v << "\";";
 	c.o->newline() << "goto " << post_unlock_label << ";";
 	c.o->newline(-1) << "}";
@@ -3218,7 +3218,7 @@ c_unparser::visit_print_format (print_format* e)
       else
 	o->newline() << "snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
 
-      o->line() << "\"" << print_format::components_to_string(components) << "\"";
+      o->line() << lex_cast_qstring(print_format::components_to_string(components));
 
       for (unsigned i = 0; i < tmp.size(); ++i)
 	{

@@ -17,6 +17,27 @@
 using namespace std;
 
 
+// return as quoted string, with at least '"' backslash-escaped
+template <typename IN> inline string
+lex_cast_qstring(IN const & in)
+{
+  stringstream ss;
+  string out, out2;
+  if (!(ss << in))
+    throw runtime_error("bad lexical cast");
+  out = ss.str();
+  out2 += '"';
+  for (unsigned i=0; i<out.length(); i++)
+    {
+      if (out[i] == '"') // XXX others?
+	out2 += '\\';
+      out2 += out[i];
+    }
+  out2 += '"';
+  return out2;
+}
+
+
 expression::expression ():
   type (pe_unknown), tok (0)
 {
@@ -196,9 +217,9 @@ void literal_number::print (ostream& o) const
 
 void binary_expression::print (ostream& o) const
 {
-  o << '(' << *left << ")" 
+  o << "(" << *left << ") " 
     << op 
-    << '(' << *right << ")";
+    << " (" << *right << ")";
 }
 
 
@@ -215,7 +236,8 @@ void array_in::print (ostream& o) const
       if (i > 0) o << ", ";
       operand->indexes[i]->print (o);
     }
-  o << "] in " << operand->base;
+  o << "] in ";
+  operand->base->print_indexable (o);
 }
 
 void post_crement::print (ostream& o) const
@@ -301,7 +323,8 @@ void functiondecl::printsig (ostream& o) const
 
 void arrayindex::print (ostream& o) const
 {
-  o << base << "[";
+  base->print_indexable (o);
+  o << "[";
   for (unsigned i=0; i<indexes.size(); i++)
     o << (i>0 ? ", " : "") << *indexes[i];
   o << "]";
@@ -541,7 +564,7 @@ print_format::string_to_components(string const & str)
 	}
       
       if (curr.type == conv_unspecified)
-	throw semantic_error("invalid or missing conversion specifier");
+	throw parse_error("invalid or missing conversion specifier");
       
       ++i;
       res.push_back(curr);      
@@ -554,7 +577,7 @@ print_format::string_to_components(string const & str)
       if (curr.type == conv_literal)
 	res.push_back(curr);      
       else
-	throw semantic_error("trailing incomplete print format conversion");
+	throw parse_error("trailing incomplete print format conversion");
     }
 
   return res;
@@ -569,12 +592,14 @@ void print_format::print (ostream& o) const
   o << name << "(";
   if (print_with_format)
     {
-      o << '"' << components_to_string(components) << "\", ";
+      o << lex_cast_qstring (raw_components);
     }
+  if (hist)
+    hist->print(o);
   for (vector<expression*>::const_iterator i = args.begin();
        i != args.end(); ++i)
     {
-      if (i != args.begin())
+      if (i != args.begin() || print_with_format)
 	o << ", ";
       (*i)->print(o);
     }
@@ -686,7 +711,8 @@ void foreach_loop::print (ostream& o) const
       if (sort_direction != 0 && sort_column == i+1)
 	o << (sort_direction > 0 ? "+" : "-");
     }
-  o << "] in " << base;
+  o << "] in ";
+  base->print_indexable (o);
   if (sort_direction != 0 && sort_column == 0)
     o << (sort_direction > 0 ? "+" : "-");
   o << ") ";

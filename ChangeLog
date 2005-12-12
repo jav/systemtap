@@ -1,3 +1,20 @@
+2005-12-12  Frank Ch. Eigler  <fche@redhat.com>
+
+	Fix parse tree pretty-printer.
+	* staptree.h (print_format): Add raw_components field.
+	* parse.cxx (parse_symbol): Set it.
+	* staptree.cxx (lex_cast_qstring): Copy it here too.
+	(binary_expression::print): Add a space around operator, due to
+	lexical ambiguity (expr % paren-expr) vs %( preprocessor op.
+	(array_in:: foreach_loop:: arrayindex::print): Print base as indexable.
+	(print_format::string_to_components): Use parse_error, not semantic.
+	(print_format::print): Properly quote formatting string.  Print
+	histogram argument.
+	* translate.cxx (visit_print_format): Properly quote formatting string.
+	(varlock): Reword lock timeout error message.
+	* testsuite/buildok/printf.stp: Add some quoting troublemakers.
+	* testsuite/parseok/unparser.stp: New file.	
+
 2005-12-11  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac: Bump version to 0.5.1 for test builds.

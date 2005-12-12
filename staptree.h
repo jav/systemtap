@@ -310,6 +310,7 @@ struct print_format: public expression
     : hist(NULL) 
   {}
 
+  std::string raw_components;
   std::vector<format_component> components;
   std::vector<expression*> args;
   hist_op *hist;

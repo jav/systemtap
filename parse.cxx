@@ -1981,6 +1981,7 @@ parser::parse_symbol ()
 	      // arguments is postponed to the typechecking phase. 
 	      string tmp;
 	      expect_unknown (tok_string, tmp);
+              fmt->raw_components = tmp;
 	      fmt->components = print_format::string_to_components (tmp);
 	      while (!peek_op (")"))
 		{

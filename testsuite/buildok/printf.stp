@@ -26,4 +26,5 @@ probe begin
 		sprintf("%s before %s", 
 			sprint(1), sprint(3)), 
 		sprint("C"))
+        printf("\"quote\\this\"")
 }
