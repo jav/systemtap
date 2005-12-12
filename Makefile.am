@@ -1,8 +1,9 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
-AM_CPPFLAGS = -DPKGLIBDIR='"${libexecdir}/${PACKAGE}"' \
-	      -DPKGDATADIR='"${pkgdatadir}"'
+pkglibexecdir = ${libexecdir}/${PACKAGE}
+
+AM_CPPFLAGS = -DPKGLIBDIR='"$(pkglibexecdir)"' -DPKGDATADIR='"${pkgdatadir}"'
 
 AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
@@ -16,16 +17,48 @@ stap_SOURCES = main.cxx \
 stap_LDADD = @stap_LIBS@
 
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
+stap_CPPFLAGS = $(AM_CPPFLAGS)
+stap_LDFLAGS = $(AM_LDFLAGS)
+
+CLEANFILES =
+
+if BUILD_ELFUTILS
+stap_CPPFLAGS += -Iinclude-elfutils
+stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
+BUILT_SOURCES = stamp-elfutils
+CLEANFILES += stamp-elfutils
+stamp-elfutils: config.status
+	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all
+	for dir in libelf libebl libdw libdwfl backends; do \
+	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir install; \
+	done
+	touch $@
+stap_DEPENDENCIES = lib-elfutils/libdw.so
+lib-elfutils/libdw.so: stamp-elfutils ;
+
+.PHONY: install-elfutils
+install-elfutils:
+	mkdir -p $(pkglibdir)
+	cp -df lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so* \
+	   $(pkglibdir)
+install-exec-local: install-elfutils
+endif
 
 # stpd goes into $libexec/$package, so libexec_PROGRAMS would
 # put it into the wrong location
-noinst_PROGRAMS = stpd
+pkglibexec_PROGRAMS = stpd
 stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
 stpd_LDADD = -lpthread
 
-noinst_PROGRAMS += loc2c-test
+pkglibexec_SCRIPTS = stp_check
+CLEANFILES += $(pkglibexec_SCRIPTS)
+
+noinst_PROGRAMS = loc2c-test
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
-loc2c_test_LDADD = @stap_LIBS@
+loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
+loc2c_test_LDFLAGS = $(stap_LDFLAGS)
+loc2c_test_LDADD = $(stap_LDADD)
 
 # Get extra libs as needed
 LDADD =
@@ -36,11 +69,6 @@ EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
-
-install-exec-local:
-	mkdir -p $(DESTDIR)$(libexecdir)/systemtap
-	$(INSTALL) stpd $(DESTDIR)$(libexecdir)/systemtap
-	$(INSTALL) stp_check $(DESTDIR)$(libexecdir)/systemtap
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
