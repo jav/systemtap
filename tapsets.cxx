@@ -2573,6 +2573,7 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
   bool lvalue = is_active_lvalue(e);
