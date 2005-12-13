@@ -1,3 +1,8 @@
+2005-12-13  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_map_sortn): Set a limit of 30 for n.  Automatically
+	call _stp_map_sort() if more is requested.
+
 2005-12-08  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_new_map_create): Only increment map size if a node

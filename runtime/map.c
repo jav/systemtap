@@ -564,7 +564,7 @@ void _stp_map_sort (MAP map, int keynum, int dir)
  */
 void _stp_map_sortn(MAP map, int n, int keynum, int dir)
 {
-	if (n == 0) {
+	if (n == 0 || n > 30) {
 		_stp_map_sort(map, keynum, dir);
 	} else {
 		struct list_head *head = &map->head;
