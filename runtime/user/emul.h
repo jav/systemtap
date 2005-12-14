@@ -75,3 +75,16 @@ const char *_stp_kallsyms_lookup (unsigned long addr,
   modname = (char **)&buf;
   return namebuf;
 }
+
+int __lockfunc _spin_trylock(spinlock_t *lock)
+{
+  return 1;
+}
+
+void __lockfunc _spin_lock(spinlock_t *lock)
+{
+}
+
+void __lockfunc _spin_unlock(spinlock_t *lock)
+{
+}
