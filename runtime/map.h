@@ -102,6 +102,8 @@ struct map_root {
 
 	int data_offset;
 
+	spinlock_t lock;
+
 	/* the hash table for this array */
 	struct hlist_head hashes[HASH_TABLE_SIZE];
 

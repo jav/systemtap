@@ -355,6 +355,21 @@ void _stp_map_clear(MAP map)
 	}
 }
 
+void _stp_pmap_clear(PMAP pmap)
+{
+	int i;
+
+	if (pmap == NULL)
+		return;
+
+	for_each_cpu(i) {
+		MAP m = per_cpu_ptr (pmap->map, i);
+		spin_lock(&m->lock);
+		_stp_map_clear(m);
+		spin_unlock(&m->lock);
+	}
+	_stp_map_clear(&pmap->agg);
+}
 
 static void __stp_map_del(MAP map)
 {
@@ -853,6 +868,7 @@ MAP _stp_pmap_agg (PMAP pmap)
 
 	for_each_cpu(i) {
 		m = per_cpu_ptr (pmap->map, i);
+		spin_lock(&m->lock);
 		/* walk the hash chains. */
 		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
 			head = &m->hashes[hash];
@@ -873,6 +889,7 @@ MAP _stp_pmap_agg (PMAP pmap)
 					_stp_new_agg(agg, ahead, ptr);
 			}
 		}
+		spin_unlock(&m->lock);
 	}
 	return agg;
 }

@@ -1,3 +1,16 @@
+2005-12-14  Martin Hunt  <hunt@redhat.com>
+
+	* pmap-gen.c (_stp_pmap_new_*): Initialize lock.
+	(_stp_pmap_set_*): Lock map while in use.
+	(_stp_pmap_add_*): Lock map while in use.	
+	(_stp_pmap_get_cpu): Ditto.
+	(_stp_pmap_get): Lock each per-cpu map.
+	
+	* map-gen.c: Define and use NULLRET for a NULL return value.
+	* map.c (_stp_pmap_clear): New function.
+	(_stp_pmap_agg): Lock each per-cpu map as
+	it gets aggregated.
+
 2005-12-13  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_map_sortn): Set a limit of 30 for n.  Automatically

@@ -41,6 +41,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_str(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_str(n)
 #define VAL_IS_ZERO(val,add) (val == 0 || *val == 0)
+#define NULLRET ""
 #elif VALUE_TYPE == INT64
 #define VALTYPE int64_t
 #define VSTYPE int64_t
@@ -49,6 +50,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_int64(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_int64(n)
 #define VAL_IS_ZERO(val,add) (val == 0)
+#define NULLRET (int64_t)0
 #elif VALUE_TYPE == STAT
 #define VALTYPE stat*
 #define VSTYPE int64_t
@@ -57,6 +59,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_stat(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_stat(n)
 #define VAL_IS_ZERO(val,add) (val == 0 && !add)
+#define NULLRET (stat*)0
 #else
 #error Need to define VALUE_TYPE as STRING, STAT, or INT64
 #endif /* VALUE_TYPE */
@@ -411,6 +414,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
+			m->lock = SPIN_LOCK_UNLOCKED;
 		}
 		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
@@ -468,6 +472,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
+			m->lock = SPIN_LOCK_UNLOCKED;
 		}
 		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
@@ -520,30 +525,41 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 			return MAP_SET_VAL(map,(struct map_node *)n, val, add);
 		}
 	}
+
 	/* key not found */
 	dbug("key not found\n");
+
 	if VAL_IS_ZERO(val,add)
 		return 0;
 
 	n = (struct KEYSYM(pmap_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
+
 	KEYCPY(n);
 	return MAP_SET_VAL(map,(struct map_node *)n, val, 0);
 }
 
 int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
+	int res;
 	MAP m = per_cpu_ptr (pmap->map, get_cpu());
-	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 0);
+	if (!spin_trylock(&m->lock))
+		return -3;
+	res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 0);
+	spin_unlock(&m->lock);
 	put_cpu();
 	return res;
 }
 
 int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
+	int res;
 	MAP m = per_cpu_ptr (pmap->map, get_cpu());
-	int res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 1);
+	if (!spin_trylock(&m->lock))
+		return -3;
+	res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 1);
+	spin_unlock(&m->lock);
 	put_cpu();
 	return res;
 }
@@ -559,12 +575,15 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 	MAP map;
 
 	if (pmap == NULL)
-		return (VALTYPE)0;
+		return NULLRET;
 
 	map = per_cpu_ptr (pmap->map, get_cpu());
 
 	hv = KEYSYM(phash) (ALLKEYS(key));
 	head = &map->hashes[hv];
+
+	if (!spin_trylock(&map->lock))
+		return NULLRET;
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
@@ -584,17 +603,15 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 #endif
 			) {
 			res = MAP_GET_VAL((struct map_node *)n);
+			spin_unlock(&map->lock);
 			put_cpu();
 			return res;
 		}
 	}
 	/* key not found */
+	spin_unlock(&map->lock);
 	put_cpu();
-#if VALUE_TYPE == STRING
-	return "";
-#else
-	return (VALTYPE)0;
-#endif
+	return NULLRET;
 }
 
 VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
@@ -608,7 +625,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 	MAP map, agg;
 
 	if (pmap == NULL)
-		return (VALTYPE)0;
+		return NULLRET;
 
 	hv = KEYSYM(phash) (ALLKEYS(key));
 
@@ -641,6 +658,10 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 	for_each_cpu(cpu) {
 		map = per_cpu_ptr (pmap->map, cpu);
 		head = &map->hashes[hv];
+
+		if (!spin_trylock(&map->lock))
+			return NULLRET;
+
 		hlist_for_each(e, head) {
 			n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 			if (KEY1_EQ_P(n->key1, key1)
@@ -664,16 +685,13 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 					_stp_add_agg(anode, (struct map_node *)n);
 			}
 		}
+		spin_unlock(&map->lock);
 	}
 	if (anode) 
 		return MAP_GET_VAL(anode);
 
 	/* key not found */
-#if VALUE_TYPE == STRING
-	return "";
-#else
-	return (VALTYPE)0;
-#endif
+	return NULLRET;
 }
 
 #undef KEY1NAME
@@ -726,4 +744,4 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 #undef MAP_SET_VAL
 #undef MAP_GET_VAL
 #undef VAL_IS_ZERO
-
+#undef NULLRET

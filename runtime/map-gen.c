@@ -41,6 +41,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_str(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_str(n)
 #define VAL_IS_ZERO(val,add) (val == 0 || *val == 0)
+#define NULLRET ""
 #elif VALUE_TYPE == INT64
 #define VALTYPE int64_t
 #define VSTYPE int64_t
@@ -49,6 +50,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_int64(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_int64(n)
 #define VAL_IS_ZERO(val,add) (val == 0)
+#define NULLRET (int64_t)0
 #elif VALUE_TYPE == STAT
 #define VALTYPE stat*
 #define VSTYPE int64_t
@@ -57,6 +59,7 @@
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_stat(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_stat(n)
 #define VAL_IS_ZERO(val,add) (val == 0 && !add)
+#define NULLRET (stat*)0
 #else
 #error Need to define VALUE_TYPE as STRING, STAT, or INT64
 #endif /* VALUE_TYPE */
@@ -466,7 +469,7 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 	struct KEYSYM(map_node) *n;
 
 	if (map == NULL)
-		return (VALTYPE)0;
+		return NULLRET;
 
 	hv = KEYSYM(hash) (ALLKEYS(key));
 	head = &map->hashes[hv];
@@ -492,11 +495,7 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 		}
 	}
 	/* key not found */
-#if VALUE_TYPE == STRING
-	return "";
-#else
-	return (VALTYPE)0;
-#endif
+	return NULLRET;
 }
 
 
@@ -550,4 +549,4 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 #undef MAP_SET_VAL
 #undef MAP_GET_VAL
 #undef VAL_IS_ZERO
-
+#undef NULLRET
