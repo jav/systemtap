@@ -1,3 +1,10 @@
+2005-12-14  Martin Hunt  <hunt@redhat.com>
+
+	* tapset/system_calls.stp (epoll.ctl): Temporarily remove
+	references to $op and $event because gcc 4.0.2 can't
+	find them.
+	(epoll.wait): Ditto for $maxevents.
+	
 2005-12-13  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (var_expanding_copy_visitor::visit_target):

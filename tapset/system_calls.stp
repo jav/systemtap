@@ -558,10 +558,12 @@ probe kernel.syscall.epoll_ctl =
    kernel.function("sys_epoll_ctl") {
       name = "epoll_ctl"
       epfd = $epfd
-      op = $op
-      op_str = _opoll_op_str($op)
+# gcc 4.0.2 fails on this
+#      op = $op
+#      op_str = _opoll_op_str($op)
       fd = $fd
-      event_uaddr = $event
+# gcc 4.0.2 fails on this
+#      event_uaddr = $event
    }
 probe kernel.syscall.epoll_ctl.return =
    kernel.function("sys_epoll_ctl").return {
@@ -580,7 +582,8 @@ probe kernel.syscall.epoll_wait =
       name = "epoll_wait"
       epfd = $epfd
       events_uaddr = $events
-      maxevents = $maxevents
+# gcc 4.0.2 fails on this
+#      maxevents = $maxevents
       timeout = $timeout
    }
 probe kernel.syscall.epoll_wait.return =
