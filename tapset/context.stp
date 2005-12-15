@@ -65,6 +65,9 @@ function euid:long () %{
 	THIS->__retvalue = current->euid;		
 %}
 
+function cpuid:long () %{
+	THIS->__retvalue = current->thread_info->cpu;
+%}
 
 function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
