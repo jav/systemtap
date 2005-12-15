@@ -51,10 +51,10 @@ probe kernel.syscall.acct =
    kernel.function("sys_acct") {
       name = "acct"
       filename_uaddr = $name
-      /* 
+      /*
        * XXX NOT SAFE -- might sleep
        * filename = user_string($name)
-       */ 
+       */
    }
 probe kernel.syscall.acct.return =
    kernel.function("sys_acct").return {
@@ -97,7 +97,7 @@ probe kernel.syscall.adjtimex =
        */
       buf_modes_str     = _adjtx_mode_str(buf_modes)
       /*
-       * XXX NOT SAFE -- might sleep      
+       * XXX NOT SAFE -- might sleep
        * buf_offset       = __uget_timex_m($txc_p,1)
        * buf_freq         = __uget_timex_m($txc_p,2)
        * buf_maxerror     = __uget_timex_m($txc_p,3)
@@ -558,12 +558,10 @@ probe kernel.syscall.epoll_ctl =
    kernel.function("sys_epoll_ctl") {
       name = "epoll_ctl"
       epfd = $epfd
-# gcc 4.0.2 fails on this
-#      op = $op
-#      op_str = _opoll_op_str($op)
+      op = $op
+      op_str = _opoll_op_str($op)
       fd = $fd
-# gcc 4.0.2 fails on this
-#      event_uaddr = $event
+      event_uaddr = $event
    }
 probe kernel.syscall.epoll_ctl.return =
    kernel.function("sys_epoll_ctl").return {
@@ -582,8 +580,7 @@ probe kernel.syscall.epoll_wait =
       name = "epoll_wait"
       epfd = $epfd
       events_uaddr = $events
-# gcc 4.0.2 fails on this
-#      maxevents = $maxevents
+      maxevents = $maxevents
       timeout = $timeout
    }
 probe kernel.syscall.epoll_wait.return =
@@ -598,7 +595,7 @@ probe kernel.syscall.epoll_wait.return =
 probe kernel.syscall.execve =
    kernel.function("sys_execve") {
       name = "execve"
-      /* 
+      /*
        * unsupported type identifier '$regs'
        * regs = $regs
        */
@@ -761,25 +758,6 @@ probe kernel.syscall.fcntl.return =
    kernel.function("sys_fcntl").return {
       name = "fcntl.return"
    }
-# fcntl64 ____________________________________________________
-/*
- * asmlinkage long
- * sys_fcntl64(unsigned int fd,
- *             unsigned int cmd,
- *             unsigned long arg)
- */
-probe kernel.syscall.fcntl64 =
-   kernel.function("sys_fcntl64") {
-      name = "fcntl64"
-      fd = $fd
-      cmd = $cmd
-      cmd_str = _fcntl_cmd_str($cmd)
-      arg = $arg
-   }
-probe kernel.syscall.fcntl64.return =
-   kernel.function("sys_fcntl64").return {
-      name = "fcntl64.return"
-   }
 # fdatasync __________________________________________________
 /*
  * asmlinkage long
@@ -849,7 +827,7 @@ probe kernel.syscall.flock.return =
       name = "flock.return"
    }
 # fork _______________________________________________________
-/* 
+/*
  * asmlinkage long
  * do_fork(unsigned long clone_flags,
  *         unsigned long stack_start,
@@ -928,22 +906,6 @@ probe kernel.syscall.fstat =
 probe kernel.syscall.fstat.return =
    kernel.function("sys_fstat").return {
       name = "fstat.return"
-   }
-# fstat64 ____________________________________________________
-/*
- * asmlinkage long
- * sys_fstat64(unsigned long fd,
- *             struct stat64 __user * statbuf)
- */
-probe kernel.syscall.fstat64 =
-   kernel.function("sys_fstat64") {
-      name = "fstat64"
-      fd = $fd
-      buf_uaddr = $statbuf
-   }
-probe kernel.syscall.fstat64.return =
-   kernel.function("sys_fstat64").return {
-      name = "fstat64.return"
    }
 # fstatfs ____________________________________________________
 /*
@@ -1261,30 +1223,6 @@ probe kernel.syscall.getitimer.return =
    kernel.function("sys_getitimer").return {
       name = "getitimer.return"
    }
-# get_mempolicy ______________________________________________
-/*
- * asmlinkage long
- * sys_get_mempolicy(int __user *policy,
- *                   unsigned long __user *nmask,
- *                   unsigned long maxnode,
- *                   unsigned long addr,
- *                   unsigned long flags)
- */
-/*
-probe kernel.syscall.get_mempolicy =
-   kernel.function("sys_get_mempolicy") {
-      name = "get_mempolicy"
-      policy_uaddr = $policy
-      nmask_uaddr = $nmask
-      maxnode = $maxnode
-      addr = $addr
-      flags = $flags
-   }
-probe kernel.syscall.get_mempolicy.return =
-   kernel.function("sys_get_mempolicy").return {
-      name = "get_mempolicy.return"
-   }
-*/
 # getpeername ________________________________________________
 /*
  * asmlinkage long
@@ -1546,20 +1484,6 @@ probe kernel.syscall.getsockopt.return =
    kernel.function("sys_getsockopt").return {
       name = "getsockopt.return"
    }
-# get_thread_area ____________________________________________
-/*
- * asmlinkage int
- * sys_get_thread_area(struct user_desc __user *u_info)
- */
-probe kernel.syscall.get_thread_area =
-   kernel.function("sys_get_thread_area") {
-      name = "get_thread_area"
-      u_info_uaddr = $u_info
-   }
-probe kernel.syscall.get_thread_area.return =
-   kernel.function("sys_get_thread_area").return {
-      name = "get_thread_area.return"
-   }
 # gettid _____________________________________________________
 /*
  * asmlinkage long
@@ -1659,54 +1583,6 @@ probe kernel.syscall.init_module.return =
    kernel.function("sys_init_module").return {
       name = "init_module.return"
    }
-# inotify_add_watch __________________________________________
-/*
- * asmlinkage long
- * sys_inotify_add_watch(int fd,
- *                       const char __user *path,
- *                       u32 mask)
- */
-probe kernel.syscall.inotify_add_watch =
-   kernel.function("sys_inotify_add_watch") {
-      name = "inotify_add_watch"
-      fd = $fd
-      path_uaddr = $path
-      mask = $mask
-   }
-probe kernel.syscall.inotify_add_watch.return =
-   kernel.function("sys_inotify_add_watch").return {
-      name = "inotify_add_watch.return"
-   }
-# inotify_init _______________________________________________
-/*
- * asmlinkage long
- * sys_inotify_init(void)
- *
- */
-probe kernel.syscall.inotify_init =
-   kernel.function("sys_inotify_init") {
-      name = "inotify_init"
-   }
-probe kernel.syscall.inotify_init.return =
-   kernel.function("sys_inotify_init").return {
-      name = "inotify_init.return"
-   }
-# inotify_rm_watch ___________________________________________
-/*
- * asmlinkage long
- * sys_inotify_rm_watch(int fd, 
- *                      u32 wd)
- */
-probe kernel.syscall.inotify_rm_watch =
-   kernel.function("sys_inotify_rm_watch") {
-      name = "inotify_rm_watch"
-      fd = $fd
-      wd = $wd
-   }
-probe kernel.syscall.inotify_rm_watch.return =
-   kernel.function("sys_inotify_rm_watch").return {
-      name = "inotify_rm_watch.return"
-   }
 # io_cancel __________________________________________________
 /*
  * asmlinkage long
@@ -1797,54 +1673,6 @@ probe kernel.syscall.ioperm.return =
    kernel.function("sys_ioperm").return {
       name = "ioperm.return"
    }
-# iopl _______________________________________________________
-/*
- * asmlinkage long
- * sys_iopl(unsigned long unused)
- */
-probe kernel.syscall.iopl =
-   kernel.function("sys_iopl") {
-      name = "iopl"
-      level = $unused
-   }
-probe kernel.syscall.iopl.return =
-   kernel.function("sys_iopl").return {
-      name = "iopl.return"
-   }
-# ioprio_get _________________________________________________
-/*
- * asmlinkage long
- * sys_ioprio_get(int which,
- *                int who)
- */
-probe kernel.syscall.ioprio_get =
-   kernel.function("sys_ioprio_get") {
-      name = "ioprio_get"
-      which = $which
-      who = $who
-   }
-probe kernel.syscall.ioprio_get.return =
-   kernel.function("sys_ioprio_get").return {
-      name = "ioprio_get.return"
-   }
-# ioprio_set _________________________________________________
-/*
- * asmlinkage long
- * sys_ioprio_set(int which,
- *                int who,
- *                int ioprio)
- */
-probe kernel.syscall.ioprio_set =
-   kernel.function("sys_ioprio_set") {
-      name = "ioprio_set"
-      which = $which
-      who = $who
-      ioprio = $ioprio
-   }
-probe kernel.syscall.ioprio_set.return =
-   kernel.function("sys_ioprio_set").return {
-      name = "ioprio_set.return"
-   }
 # io_setup ___________________________________________________
 /*
  * asmlinkage long
@@ -1878,30 +1706,6 @@ probe kernel.syscall.io_submit =
 probe kernel.syscall.io_submit.return =
    kernel.function("sys_io_submit").return {
       name = "io_submit.return"
-   }
-# ipc ________________________________________________________
-/*
- * asmlinkage int
- * sys_ipc(uint call,
- *         int first,
- *         int second,
- *         int third,
- *         void __user *ptr,
- *         long fifth)
- */
-probe kernel.syscall.ipc =
-   kernel.function("sys_ipc") {
-      name = "ipc"
-      call = $call
-      first = $first
-      second = $second
-      third = $third
-      ptr_uaddr = $ptr
-      fifth = $fifth
-   }
-probe kernel.syscall.ipc.return =
-   kernel.function("sys_ipc").return {
-      name = "ipc.return"
    }
 # kexec_load _________________________________________________
 /*
@@ -2200,22 +2004,6 @@ probe kernel.syscall.lstat.return =
    kernel.function("sys_lstat").return {
       name = "lstat.return"
    }
-# lstat64 ____________________________________________________
-/*
- * asmlinkage long
- * sys_lstat64(char __user * filename,
- *             struct stat64 __user * statbuf)
- */
-probe kernel.syscall.lstat64 =
-   kernel.function("sys_lstat64") {
-      name = "lstat64"
-      filename_uaddr = $filename
-      buf_uaddr = $statbuf
-   }
-probe kernel.syscall.lstat64.return =
-   kernel.function("sys_lstat64").return {
-      name = "lstat64.return"
-   }
 # madvise ____________________________________________________
 /*
  * asmlinkage long
@@ -2235,32 +2023,6 @@ probe kernel.syscall.madvise.return =
    kernel.function("sys_madvise").return {
       name = "madvise.return"
    }
-# mbind ______________________________________________________
-/*
- * asmlinkage long
- * sys_mbind(unsigned long start,
- *           unsigned long len,
- *           unsigned long mode,
- *           unsigned long __user *nmask,
- *           unsigned long maxnode,
- *           unsigned flags)
- */
-/*
-probe kernel.syscall.mbind =
-   kernel.function("sys_mbind") {
-      name = "mbind"
-      start = $start
-      len = $len
-      mode = $mode
-      nmask_uaddr = $nmask
-      maxnode = $maxnode
-      flags = $flags
-   }
-probe kernel.syscall.mbind.return =
-   kernel.function("sys_mbind").return {
-      name = "mbind.return"
-   }
-*/
 # mincore ____________________________________________________
 /*
  * asmlinkage long
@@ -2344,30 +2106,6 @@ probe kernel.syscall.mlockall =
 probe kernel.syscall.mlockall.return =
    kernel.function("sys_mlockall").return {
       name = "mlockall.return"
-   }
-# mmap2 ______________________________________________________
-/*
- * unsigned long 
- * sys_mmap2(unsigned long addr,
- *           size_t len,
- *           unsigned long prot,
- *           unsigned long flags,
- *           unsigned long fd,
- *           unsigned long pgoff)
- */
-probe kernel.syscall.mmap2 =
-   kernel.function("sys_mmap2") {
-      name = "mmap2"
-      addr = $addr
-      len = $len
-      prot = $prot
-      flags = $flags
-      fd = $fd
-      pgoff = $pgoff
-   }
-probe kernel.syscall.mmap2.return =
-   kernel.function("sys_mmap2").return {
-      name = "mmap2.return"
    }
 # modify_ldt _________________________________________________
 /*
@@ -2733,7 +2471,6 @@ probe kernel.syscall.nanosleep.return =
  * sys_newfstat(unsigned int fd,
  *              struct stat __user * statbuf)
  */
-/*
 probe kernel.syscall.newfstat =
    kernel.function("sys_newfstat") {
       name = "newfstat"
@@ -2744,14 +2481,12 @@ probe kernel.syscall.newfstat.return =
    kernel.function("sys_newfstat").return {
       name = "newfstat.return"
    }
-*/
 # newlstat ___________________________________________________
 /*
  * asmlinkage long
  * sys_newlstat(char __user * filename,
  *              struct stat __user * statbuf)
  */
-/*
 probe kernel.syscall.newlstat =
    kernel.function("sys_newlstat") {
       name = "newlstat"
@@ -2762,14 +2497,12 @@ probe kernel.syscall.newlstat.return =
    kernel.function("sys_newlstat").return {
       name = "newlstat.return"
    }
-*/
 # newstat ____________________________________________________
 /*
  * asmlinkage long
  * sys_newstat(char __user * filename,
  *             struct stat __user * statbuf)
  */
-/*
 probe kernel.syscall.newstat =
    kernel.function("sys_newstat") {
       name = "newstat"
@@ -2780,7 +2513,6 @@ probe kernel.syscall.newstat.return =
    kernel.function("sys_newstat").return {
       name = "newstat.return"
    }
-*/
 # newuname ___________________________________________________
 /*
  * asmlinkage long
@@ -2870,20 +2602,6 @@ probe kernel.syscall.oldumount =
 probe kernel.syscall.oldumount.return =
    kernel.function("sys_umount").return {
       name = "oldumount.return"
-   }
-# olduname ___________________________________________________
-/*
- * asmlinkage long
- * sys_olduname(struct new_utsname __user * name)
- */
-probe kernel.syscall.olduname =
-   kernel.function("sys_olduname") {
-      name = "olduname"
-      name_uaddr = $name
-   }
-probe kernel.syscall.olduname.return =
-   kernel.function("sys_olduname").return {
-      name = "olduname.return"
    }
 # open _______________________________________________________
 /*
@@ -3431,7 +3149,7 @@ probe kernel.syscall.rt_sigaction =
       act_uaddr = $act
       oact_uaddr = $oact
       sigsetsize = $sigsetsize
-      /* 
+      /*
        * unable to find local 'restorer' (maybe i386 specific)
        * restorer_uaddr = $restorer
        */
@@ -3494,20 +3212,6 @@ probe kernel.syscall.rt_sigqueueinfo =
 probe kernel.syscall.rt_sigqueueinfo.return =
    kernel.function("sys_rt_sigqueueinfo").return {
       name = "rt_sigqueueinfo.return"
-   }
-# rt_sigreturn _______________________________________________
-/*
- * asmlinkage int
- * sys_rt_sigreturn(unsigned long __unused)
- */
-probe kernel.syscall.rt_sigreturn =
-   kernel.function("sys_rt_sigreturn") {
-      name = "rt_sigreturn"
-      unused = $__unused
-   }
-probe kernel.syscall.rt_sigreturn.return =
-   kernel.function("sys_rt_sigreturn").return {
-      name = "rt_sigreturn.return"
    }
 # rt_sigsuspend ______________________________________________
 /*
@@ -3638,59 +3342,6 @@ probe kernel.syscall.sched_rr_get_interval.return =
    kernel.function("sys_sched_rr_get_interval").return {
       name = "sched_rr_get_interval.return"
    }
-# sched_setaffinity __________________________________________
-/*
- * asmlinkage long
- * sys_sched_setaffinity(pid_t pid,
- *                       unsigned int len,
- *                       unsigned long __user *user_mask_ptr)
- */
-probe kernel.syscall.sched_setaffinity =
-   kernel.function("sys_sched_setaffinity") {
-      name = "sched_setaffinity"
-      pid = $pid
-      len = $len
-      mask_uaddr = $user_mask_ptr
-   }
-probe kernel.syscall.sched_setaffinity.return =
-   kernel.function("sys_sched_setaffinity").return {
-      name = "sched_setaffinity.return"
-   }
-# sched_setparam _____________________________________________
-/*
- * asmlinkage long
- * sys_sched_setparam(pid_t pid,
- *                    struct sched_param __user *param)
- */
-probe kernel.syscall.sched_setparam =
-   kernel.function("do_sched_setscheduler") {
-      name = "sched_setparam"
-      pid = $pid
-      p_uaddr = $param
-   }
-probe kernel.syscall.sched_setparam.return =
-   kernel.function("do_sched_setscheduler").return {
-      name = "sched_setparam.return"
-   }
-# sched_setscheduler _________________________________________
-/*
- * asmlinkage long
- * sys_sched_setscheduler(pid_t pid,
- *                        int policy,
- *                        struct sched_param __user *param)
- */
-probe kernel.syscall.sched_setscheduler =
-   kernel.function("do_sched_setscheduler") {
-      name = "sched_setscheduler"
-      pid = $pid
-      policy = $policy
-      policy_str = _sched_policy_str($policy)
-      p_uaddr = $param
-   }
-probe kernel.syscall.sched_setscheduler.return =
-   kernel.function("do_sched_setscheduler").return {
-      name = "sched_setscheduler.return"
-   }
 # sched_yield ________________________________________________
 /*
  * asmlinkage long
@@ -3740,8 +3391,8 @@ probe kernel.syscall.semctl =
       semid = $semid
       semnum = $semnum
       cmd = $cmd
-      /* 
-       * unsupported type tag identifier '$arg' 
+      /*
+       * unsupported type tag identifier '$arg'
        * arg = $arg
        */
    }
@@ -4100,26 +3751,6 @@ probe kernel.syscall.setitimer.return =
    kernel.function("sys_setitimer").return {
       name = "setitimer.return"
    }
-# set_mempolicy ______________________________________________
-/*
- * asmlinkage long
- * sys_set_mempolicy(int mode,
- *                   unsigned long __user *nmask,
- *                   unsigned long maxnode)
- */
-/*
-probe kernel.syscall.set_mempolicy =
-   kernel.function("sys_set_mempolicy") {
-      name = "set_mempolicy"
-      mode = $mode
-      nmask_uaddr = $nmask
-      maxnode = $maxnode
-   }
-probe kernel.syscall.set_mempolicy.return =
-   kernel.function("sys_set_mempolicy").return {
-      name = "set_mempolicy.return"
-   }
-*/
 # setpgid ____________________________________________________
 /*
  * asmlinkage long
@@ -4345,20 +3976,6 @@ probe kernel.syscall.setsockopt.return =
    kernel.function("sys_setsockopt").return {
       name = "setsockopt.return"
    }
-# set_thread_area ____________________________________________
-/*
- * asmlinkage int
- * sys_set_thread_area(struct user_desc __user *u_info)
- */
-probe kernel.syscall.set_thread_area =
-   kernel.function("sys_set_thread_area") {
-      name = "set_thread_area"
-      u_info_uaddr = $u_info
-   }
-probe kernel.syscall.set_thread_area.return =
-   kernel.function("sys_set_thread_area").return {
-      name = "set_thread_area.return"
-   }
 # set_tid_address ____________________________________________
 /*
  * asmlinkage long
@@ -4446,24 +4063,6 @@ probe kernel.syscall.setxattr.return =
    kernel.function("sys_setxattr").return {
       name = "setxattr.return"
    }
-# set_zone_reclaim ___________________________________________
-/*
- * asmlinkage long
- * sys_set_zone_reclaim(unsigned int node,
- *                      unsigned int zone,
- *                      unsigned int state)
- */
-probe kernel.syscall.set_zone_reclaim =
-   kernel.function("sys_set_zone_reclaim") {
-      name = "set_zone_reclaim"
-      node = $node
-      zone = $zone
-      state = $state
-   }
-probe kernel.syscall.set_zone_reclaim.return =
-   kernel.function("sys_set_zone_reclaim").return {
-      name = "set_zone_reclaim.return"
-   }
 # sgetmask ___________________________________________________
 /*
  * sys_sgetmask(void)
@@ -4475,25 +4074,6 @@ probe kernel.syscall.sgetmask =
 probe kernel.syscall.sgetmask.return =
    kernel.function("sys_sgetmask").return {
       name = "sgetmask.return"
-   }
-# shmat ______________________________________________________
-/*
- * asmlinkage long
- * sys_shmat(int shmid,
- *           char __user *shmaddr,
- *           int shmflg,
- *           unsigned long *addr)
- */
-probe kernel.syscall.shmat =
-   kernel.function("sys_shmat") {
-      name = "shmat"
-      shmid = $shmid
-      shmaddr_uaddr = $shmaddr
-      shmflg = $shmflg
-   }
-probe kernel.syscall.shmat.return =
-   kernel.function("sys_shmat").return {
-      name = "shmat.return"
    }
 # shmctl _____________________________________________________
 /*
@@ -4561,38 +4141,6 @@ probe kernel.syscall.shutdown =
 probe kernel.syscall.shutdown.return =
    kernel.function("sys_shutdown").return {
       name = "shutdown.return"
-   }
-# sigaction __________________________________________________
-/*
- * asmlinkage int
- * sys_sigaction(int sig,
- *               const struct old_sigaction __user *act,
- *               struct old_sigaction __user *oact)
- */
-probe kernel.syscall.sigaction =
-   kernel.function("sys_sigaction") {
-      name = "sigaction"
-      sig = $sig
-      act_uaddr = $act
-      oact_uaddr = $oact
-   }
-probe kernel.syscall.sigaction.return =
-   kernel.function("sys_sigaction").return {
-      name = "sigaction.return"
-   }
-# sigaltstack ________________________________________________
-/*
- * asmlinkage int
- * sys_sigaltstack(unsigned long ebx)
- */
-probe kernel.syscall.sigaltstack =
-   kernel.function("sys_sigaltstack") {
-      name = "sigaltstack"
-      ebx = $ebx
-   }
-probe kernel.syscall.sigaltstack.return =
-   kernel.function("sys_sigaltstack").return {
-      name = "sigaltstack.return"
    }
 # signal _____________________________________________________
 /*
@@ -4664,38 +4212,6 @@ probe kernel.syscall.sigprocmask =
 probe kernel.syscall.sigprocmask.return =
    kernel.function("sigprocmask").return {
       name = "sigprocmask.return"
-   }
-# sigreturn __________________________________________________
-/*
- * asmlinkage int
- * sys_sigreturn(unsigned long __unused)
- */
-probe kernel.syscall.sigreturn =
-   kernel.function("sys_sigreturn") {
-      name = "sigreturn"
-      unused = $__unused
-   }
-probe kernel.syscall.sigreturn.return =
-   kernel.function("sys_sigreturn").return {
-      name = "sigreturn.return"
-   }
-# sigsuspend _________________________________________________
-/*
- * asmlinkage int
- * sys_sigsuspend(int history0,
- *                int history1,
- *                old_sigset_t mask)
- */
-probe kernel.syscall.sigsuspend =
-   kernel.function("sys_sigsuspend") {
-      name = "sigsuspend"
-      history0 = $history0
-      history1 = $history1
-      mask = $mask
-   }
-probe kernel.syscall.sigsuspend.return =
-   kernel.function("sys_sigsuspend").return {
-      name = "sigsuspend.return"
    }
 # socket _____________________________________________________
 /*
@@ -4784,22 +4300,6 @@ probe kernel.syscall.stat =
 probe kernel.syscall.stat.return =
    kernel.function("sys_stat").return {
       name = "stat.return"
-   }
-# stat64 _____________________________________________________
-/*
- * asmlinkage long
- * sys_stat64(char __user * filename,
- *            struct stat64 __user * statbuf)
- */
-probe kernel.syscall.stat64 =
-   kernel.function("sys_stat64") {
-      name = "stat64"
-      filename_uaddr = $filename
-      buf_uaddr = $statbuf
-   }
-probe kernel.syscall.stat64.return =
-   kernel.function("sys_stat64").return {
-      name = "stat64.return"
    }
 # statfs _____________________________________________________
 /*
@@ -5176,20 +4676,6 @@ probe kernel.syscall.truncate64.return =
    kernel.function("sys_truncate").return {
       name = "truncate64.return"
    }
-# umask ______________________________________________________
-/*
- * asmlinkage long
- * sys_umask(int mask)
- */
-probe kernel.syscall.umask =
-   kernel.function("sys_umask") {
-      name = "umask"
-      mask = $mask
-   }
-probe kernel.syscall.umask.return =
-   kernel.function("sys_umask").return {
-      name = "umask.return"
-   }
 # umount _____________________________________________________
 /*
  * asmlinkage long
@@ -5336,40 +4822,6 @@ probe kernel.syscall.vhangup =
 probe kernel.syscall.vhangup.return =
    kernel.function("sys_vhangup").return {
       name = "vhangup.return"
-   }
-# vm86 _______________________________________________________
-/*
- * asmlinkage int
- * sys_vm86(struct pt_regs regs)
- */
-probe kernel.syscall.vm86 =
-   kernel.function("sys_vm86") {
-      name = "vm86"
-      /*
-       * unsupported type identifier '$regs'
-       * regs = $regs
-       */
-   }
-probe kernel.syscall.vm86.return =
-   kernel.function("sys_vm86").return {
-      name = "vm86.return"
-   }
-# vm86old ____________________________________________________
-/*
- * asmlinkage int
- * sys_vm86old(struct pt_regs regs)
- */
-probe kernel.syscall.vm86old =
-   kernel.function("sys_vm86old") {
-      name = "vm86old"
-      /*
-       * unsupported type identifier '$regs'
-       * regs = $regs
-       */
-   }
-probe kernel.syscall.vm86old.return =
-   kernel.function("sys_vm86old").return {
-      name = "vm86old.return"
    }
 # wait4 ______________________________________________________
 /*
