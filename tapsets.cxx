@@ -1948,6 +1948,7 @@ dwarf_query::blacklisted_p(string const & funcname,
   if (filename == 0) filename = ""; // possibly 0
   string filename_s = filename; // is passed as const char*
   if (funcname == "do_IRQ" ||
+      funcname == "notifier_call_chain" ||
       filename_s == "kernel/kprobes.c" ||
       0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0) ||
       (has_return && (funcname == "sys_execve" || // bug #1345
