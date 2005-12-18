@@ -16,6 +16,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <cassert>
 extern "C" {
 #include <stdint.h>
 }
@@ -26,14 +27,14 @@ struct semantic_error: public std::runtime_error
   const token* tok1;
   const std::string msg2;
   const token* tok2;
-  
+
   ~semantic_error () throw () {}
   semantic_error (const std::string& msg):
     runtime_error (msg), tok1 (0), tok2 (0) {}
-  semantic_error (const std::string& msg, const token* t1): 
+  semantic_error (const std::string& msg, const token* t1):
     runtime_error (msg), tok1 (t1), tok2 (0) {}
-  semantic_error (const std::string& msg, const token* t1, 
-                  const std::string& m2, const token* t2): 
+  semantic_error (const std::string& msg, const token* t1,
+                  const std::string& m2, const token* t2):
     runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2) {}
 };
 
@@ -48,7 +49,7 @@ enum exp_type
     pe_unknown,
     pe_long,   // int64_t
     pe_string, // std::string
-    pe_stats 
+    pe_stats
   };
 
 std::ostream& operator << (std::ostream& o, const exp_type& e);
@@ -203,8 +204,8 @@ classify_const_indexable(const indexable* ix,
 			 hist_op const *& hist_out);
 
 class vardecl;
-struct symbol: 
-  public expression, 
+struct symbol:
+  public expression,
   public indexable
 {
   std::string name;
@@ -229,7 +230,7 @@ struct target_symbol : public expression
   std::string base_name;
   std::vector<std::pair<component_type, std::string> > components;
   void print (std::ostream& o) const;
-  void visit (visitor* u);  
+  void visit (visitor* u);
 };
 
 
@@ -269,14 +270,14 @@ struct print_format: public expression
       fmt_flag_special = 16
     };
 
-  enum conversion_type 
+  enum conversion_type
     {
       conv_unspecified,
       conv_signed_decimal,
       conv_unsigned_decimal,
       conv_unsigned_octal,
       conv_unsigned_uppercase_hex,
-      conv_unsigned_lowercase_hex,	
+      conv_unsigned_lowercase_hex,
       conv_string,
       conv_literal
     };
@@ -290,7 +291,7 @@ struct print_format: public expression
     std::string literal_string;
     bool is_empty() const
     {
-      return flags == 0 
+      return flags == 0
 	&& width == 0
 	&& precision == 0
 	&& type == conv_unspecified
@@ -306,8 +307,8 @@ struct print_format: public expression
     }
   };
 
-  print_format() 
-    : hist(NULL) 
+  print_format()
+    : hist(NULL)
   {}
 
   std::string raw_components;
@@ -333,7 +334,7 @@ enum stat_component_type
   };
 
 struct stat_op: public expression
-{  
+{
   stat_component_type ctype;
   expression* stat;
   void print (std::ostream& o) const;
@@ -353,7 +354,7 @@ struct hist_op: public indexable
   expression* stat;
   std::vector<int64_t> params;
   void print (std::ostream& o) const;
-  void visit (visitor* u);  
+  void visit (visitor* u);
   // overrides of type 'indexable'
   const token *get_tok() const;
   bool is_const_hist_op(const hist_op *& hist_out) const;
@@ -363,7 +364,7 @@ struct hist_op: public indexable
 // ------------------------------------------------------------------------
 
 
-struct symboldecl // unique object per (possibly implicit) 
+struct symboldecl // unique object per (possibly implicit)
 		  // symbol declaration
 {
   const token* tok;
@@ -547,7 +548,7 @@ struct stapfile
 struct probe_point
 {
   struct component // XXX: sort of a restricted functioncall
-  { 
+  {
     std::string functor;
     literal* arg; // optional
     component ();
@@ -557,7 +558,7 @@ struct probe_point
   const token* tok; // points to first component's functor
   void print (std::ostream& o) const;
   probe_point ();
-  probe_point(std::vector<component*> const & comps,const token * t); 
+  probe_point(std::vector<component*> const & comps,const token * t);
 };
 
 std::ostream& operator << (std::ostream& o, const probe_point& k);
@@ -578,7 +579,7 @@ struct probe
 struct probe_alias: public probe
 {
   probe_alias(std::vector<probe_point*> const & aliases);
-  std::vector<probe_point*> alias_names;  
+  std::vector<probe_point*> alias_names;
   virtual void printsig (std::ostream &o) const;
 };
 
@@ -725,7 +726,7 @@ struct deep_copy_visitor: public visitor
 
   static statement *deep_copy (statement *s);
   static block *deep_copy (block *s);
-  
+
   virtual void visit_block (block *s);
   virtual void visit_embeddedcode (embeddedcode *s);
   virtual void visit_null_statement (null_statement *s);
@@ -780,11 +781,11 @@ require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
     {
       symbol *array_src=NULL, *array_dst=NULL;
       hist_op *hist_src=NULL, *hist_dst=NULL;
-      
+
       classify_indexable(src, array_src, hist_src);
-      
+
       *dst = NULL;
-      
+
       if (array_src)
 	{
 	  require <symbol*> (v, &array_dst, array_src);
