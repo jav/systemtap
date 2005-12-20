@@ -100,6 +100,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Mon Dec 19 2005 Roland McGrath <roland@redhat.com> - 0.5.2-1
+- Fixed build with gcc 4.1, various tapset changes.
+
 * Wed Dec  7 2005 Roland McGrath <roland@redhat.com> - 0.5.1-1
 - elfutils update, build changes
 
