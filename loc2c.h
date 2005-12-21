@@ -3,6 +3,10 @@
 struct obstack;			/* Use <obstack.h> */
 struct location;		/* Opaque */
 
+/* G++ 3.3 doesn't seem to like the __attribute__ constructs below. */
+#if (__GNUG__ == 3) && (__GNUC_MINOR__ == 3)
+#define __attribute__(x) /* nothing */
+#endif
 
 /* Translate a C fragment for the location expression, using *INPUT
    as the starting location, begin from scratch if *INPUT is null.
