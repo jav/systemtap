@@ -1,5 +1,6 @@
 2005-12-21  Josh Stone  <joshua.i.stone@intel.com>
 
+	PR 2056
 	* translate.cxx (itervar::next): emit different code for pmaps
 
 2005-12-21  Frank Ch. Eigler  <fche@elastic.org>
