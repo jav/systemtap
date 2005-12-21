@@ -721,7 +721,10 @@ public:
     if (mv.type() != referent_ty)
       throw semantic_error("inconsistent iterator type in itervar::next()");
 
-    return "_stp_map_iter (" + mv.qname() + ", " + qname() + ")";
+    if (mv.is_parallel())
+      return "_stp_map_iter (" + mv.fetch_existing_aggregate() + ", " + qname() + ")";
+    else
+      return "_stp_map_iter (" + mv.qname() + ", " + qname() + ")";
   }
 
   string qname () const
