@@ -62,10 +62,14 @@ if test $build_elfutils = yes; then
   *) elfutils_srcdir="../$with_elfutils" ;;
   esac
   AC_MSG_NOTICE([running ${elfutils_srcdir}/configure])
+  # Our libdw.so's libebl will look in $ORIGIN/../lib/... but that
+  # $ORIGIN is where libdw.so resides, which is not where there is a ../lib.
+  elfutils_rpath="-Wl,--enable-new-dtags,-rpath,${libdir}/${PACKAGE_NAME}"
   here=`pwd`
   (mkdir -p build-elfutils && cd build-elfutils &&
    ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
-				--libdir="${here}/lib-elfutils"
+				--libdir="${here}/lib-elfutils" \
+				LDFLAGS="$LDFLAGS $elfutils_rpath"
   )
 fi
