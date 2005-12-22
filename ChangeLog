@@ -1,3 +1,8 @@
+2005-12-22  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac: Pass LDFLAGS to elfutils configure to force DT_RUNPATH.
+	* configure: Regeneraed.
+
 2005-12-21  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2056
