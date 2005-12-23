@@ -1,0 +1,28 @@
+2.6.14			-	All syscalls resolve, profiled & tested
+2.6.15-rc6		-	All syscalls resolve, profiled & tested
+2.6.13-1.1532_FC4smp	-	sys_epoll_ctl cannot resolve parameters
+				$op & $event
+				sys_epoll_wait cannot resolve parameter
+				$maxevents
+2.6.14-1.1653_FC4smp	-	All syscalls resolve, profiled & tested
+2.6.9-20.ELsmp		-	exit_group cannot resolve parameters
+				$error_code
+				getrusage cannot resolve parameters
+                                $who & $ru
+				sys_inotify_add_watch no match for probe
+ 				point
+				sys_inotify_init no match for probe point
+				sys_inotify_rm_watch no match for probe
+                                point
+				sys_ioprio_get no match for probe point
+				sys_ioprio_set no match for probe point
+				do_sched_setscheduler no match for probe
+                                point
+				set_zone_reclaim no match for probe point
+				shmat no match for probe point
+				sigaltstack cannot resolve parameters
+                                $ebx
+				sys_sysfs cannot resolve parameters $option
+				& $arg1 & $arg2
+				sys_umask cannot resolve parameters $mask
+
