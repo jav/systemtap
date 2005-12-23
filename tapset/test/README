@@ -1,0 +1,27 @@
+To Run:
+   cd tapset/test
+   ./gencfiles.sh
+   ./ctostp.sh cfiles stpdir
+   cd cfiles
+   ./build compile
+   cd ..
+   ./run.sh
+
+SCRIPTS:
+   run.sh - This is the driver for automated testing.
+            To run: ./run.sh stpdirectory c_binaries_directory
+            Result: log/timestamp.log discerpancy report
+
+   ctostp.sh - This script generates corresponding stp probe script
+               files for every C file found in the input directory.
+               To Run: ctostp.sh input output where input is the 
+               directory containing the C files to convert. Output
+               is the directory to store the corresponding stp
+               files.
+
+   build.sh - This script expedites the process of compiling all
+              of the c files. When the "compile" flag is given
+              it creates a directory called bin, which stores the
+              compiled C programs. ./build.sh clean removes the
+              binaries, and ./build.sh run attempts to execute all
+              of the programs in cfiles/bin.
