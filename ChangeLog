@@ -1,3 +1,10 @@
+2005-12-23  Kevin Stafford  <krstaffo@us.ibm.com>
+        * tapset/2.6.9-20.ELsmp/syscalls.stp: added kernel
+          version tapset
+        * tapset/2.6.9-20.ELsmp/i686/syscalls.stp: added kernel
+          version arch specific tapset
+        * tapset/doc/dicrepancies.txt: log of kernel version
+          discrepancies.
 2005-12-22  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac: Pass LDFLAGS to elfutils configure to force DT_RUNPATH.
