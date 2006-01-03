@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -128,11 +128,14 @@ struct derived_probe: public probe
                                    unsigned probeidx) = 0;
   // ... for all probe-points:
   // ELABORATE_SPECIFIC_SIGNATURE ENTRYFN {
-  //   /* allocate context */
+  //   /* allocate context - probe_prologue */
   //   /* copy parameters, initial state into context */
   //   probe_NUMBER (context);
-  //   /* deallocate context */
+  //   /* deallocate context - probe_epilogue */
   // }
+
+  void emit_probe_prologue (translator_output* o, const std::string&);
+  void emit_probe_epilogue (translator_output* o);
 };
 
 // ------------------------------------------------------------------------

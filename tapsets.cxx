@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 // Copyright (C) 2005 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -86,6 +86,63 @@ lex_cast_qstring(IN const & in)
 
 
 // ------------------------------------------------------------------------
+
+void
+derived_probe::emit_probe_prologue (translator_output* o,
+                                    const std::string& statereq)
+{
+  o->newline() << "struct context* c = per_cpu_ptr "
+               << "(contexts, smp_processor_id());";
+  o->newline() << "if (atomic_read (&session_state) != " << statereq << ")";
+  o->newline(1) << "goto probe_epilogue;";
+
+  o->newline(-1) << "if (unlikely (atomic_inc_return (&c->busy) != 1)) {";
+
+  o->newline(1) << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  // NB: We don't assume that we can safely call stp_error etc. in such
+  // a reentrant context.  But this is OK:
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
+
+  o->newline() << "atomic_dec (& c->busy);";
+  o->newline() << "goto probe_epilogue;";
+  o->newline(-1) << "}";
+  o->newline();
+  o->newline() << "c->last_error = 0;";
+  o->newline() << "c->probe_point = probe_point;";
+  o->newline() << "c->nesting = 0;";
+  o->newline() << "c->regs = 0;";
+  o->newline() << "c->actioncount = 0;";
+}
+
+void
+derived_probe::emit_probe_epilogue (translator_output* o)
+{
+  o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
+  o->newline(1) << "if (c->last_stmt != NULL)";
+  o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
+  o->newline(-1) << "else";
+  o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
+  o->indent(-1);
+  o->newline() << "atomic_inc (& error_count);";
+
+  o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
+
+  o->newline(-1) << "}";
+  
+  o->newline() << "atomic_dec (&c->busy);";
+  o->newline(-1) << "probe_epilogue: ;";
+  o->indent(1);
+}
+
+
+
+
+// ------------------------------------------------------------------------
 // begin/end probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
 
@@ -147,40 +204,19 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
       // While begin/end probes are executed single-threaded, we
       // still code defensively and use a per-cpu context.
-      o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
+      o->indent(1);
       o->newline() << "const char* probe_point = "
-		   << lex_cast_qstring(*l) << ";";
-
-      // A precondition for running a probe handler is that we're in STARTING
-      // or STOPPING state (not ERROR), and that no one else is already using
-      // this context.
-      o->newline() << "if (atomic_read (&session_state) != ";
-      if (begin) o->line() << "STAP_SESSION_STARTING)";
-      else o->line() << "STAP_SESSION_STOPPING)";
-      o->newline(1) << "return;";
-      o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-      o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
-		    << "c->probe_point, probe_point);";
-      o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-      o->newline() << "atomic_dec (&c->busy);";
-      o->newline() << "return;";
-      o->newline(-1) << "}";
-      o->newline();
-      o->newline() << "c->last_error = 0;";
-      o->newline() << "c->probe_point = probe_point;";
-      o->newline() << "c->nesting = 0;";
-      o->newline() << "c->regs = 0;";
-      o->newline() << "c->actioncount = 0;";
+                   << lex_cast_qstring(*l) << ";";
+      emit_probe_prologue (o,
+                           (begin ?
+                            "STAP_SESSION_STARTING" :
+                            "STAP_SESSION_STOPPING"));
 
       // NB: locals are initialized by probe function itself
       o->newline() << "probe_" << j << " (c);";
 
-      o->newline() << "if (c->last_error && c->last_error[0]) {";
-      o->newline(1) << "_stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
-      o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-      o->newline(-1) << "}";
+      emit_probe_epilogue (o);
 
-      o->newline() << "atomic_dec (&c->busy);";
       o->newline(-1) << "}" << endl;
     }
 }
@@ -2936,12 +2972,24 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
     {
       o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
+      o->newline() << "atomic_add ("
+                   << probe_name << ".kp.nmissed,"
+                   << "& skipped_count);";
+      o->newline() << "atomic_add ("
+                   << probe_name << ".nmissed,"
+                   << "& skipped_count);";
       o->newline() << "#else";
       o->newline() << ";";
       o->newline() << "#endif";
     }
   else
-    o->newline() << "unregister_kprobe (&(" << probe_name << "));";
+    {
+      o->newline() << "unregister_kprobe (&(" << probe_name << "));";
+      o->newline() << "atomic_add ("
+                   << probe_name << ".nmissed,"
+                   << "& skipped_count);";
+    }
+
   o->indent(-1);
   o->newline(-1) << "}";
 }
@@ -3053,7 +3101,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   else
     o->line() << "struct kprobe *probe_instance";
   o->line() << ", struct pt_regs *regs) {";
-  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->indent(1);
 
   // Calculate the name of the current probe by finding its index in the probe array.
   if (has_return)
@@ -3064,35 +3112,14 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
     o->newline() << "const char* probe_point = "
 		 << string_array
 		 << "[ (probe_instance - &(" << probe_array << "[0]))];";
-
-  // A precondition for running a probe handler is that we're in RUNNING
-  // state (not ERROR), and that no one else is already using this context.
-  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
-  o->newline(1) << "return 0;";
-  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
-		    << "c->probe_point, probe_point);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "atomic_dec (&c->busy);";
-  o->newline() << "return 0;";
-  o->newline(-1) << "}";
-  o->newline();
-
-  o->newline() << "c->last_error = 0;";
-  o->newline() << "c->probe_point = probe_point;";
-  o->newline() << "c->nesting = 0;";
+  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
   o->newline() << "c->regs = regs;";
-  o->newline() << "c->actioncount = 0;";
 
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << probenum << " (c);";
 
-  o->newline() << "if (c->last_error && c->last_error[0]) {";
-  o->newline(1) << "_stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline(-1) << "}";
+  emit_probe_epilogue (o);
 
-  o->newline() << "atomic_dec (& c->busy);";
   o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
   if (has_return)
@@ -3244,26 +3271,12 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "static struct timer_list timer_" << j << ";";
 
   o->newline() << "void enter_" << j << " (unsigned long val) {";
-  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
+  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
+
   o->newline() << "(void) val;";
-
-  // A precondition for running a probe handler is that we're in
-  // RUNNING state (not ERROR), and that no one else is already using
-  // this context.
-  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
-  o->newline(1) << "return;";
-
-  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
-		<< "c->probe_point, probe_point);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "atomic_dec (&c->busy);";
-  o->newline() << "return;";
-  o->newline(-1) << "}";
-  o->newline();
-
   o->newline() << "mod_timer (& timer_" << j << ", jiffies + ";
   if (time_is_msecs)
     o->line() << "msecs_to_jiffies(";
@@ -3274,21 +3287,10 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
     o->line() << ")";
   o->line() << ");";
 
-  o->newline() << "c->probe_point = probe_point;";
-  o->newline() << "c->last_error = 0;";
-  o->newline() << "c->nesting = 0;";
-  o->newline() << "c->regs = 0;";
-  o->newline() << "c->actioncount = 0;";
-
   // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << j << " (c);";
 
-  o->newline() << "if (c->last_error && c->last_error[0]) {";
-  o->newline(1) << "_stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline(-1) << "}";
-
-  o->newline() << "atomic_dec (&c->busy);";
+  emit_probe_epilogue (o);
   o->newline(-1) << "}" << endl;
 }
 
@@ -3394,45 +3396,19 @@ profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
     o->newline() << "int enter_" << j << " (struct pt_regs *regs) {";
   }
 
-  o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
+  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
 
   if (using_rpn) {
     o->newline() << "(void) self;";
     o->newline() << "(void) val;";
   }
 
-  // A precondition for running a probe handler is that we're in
-  // RUNNING state (not ERROR), and that no one else is already using
-  // this context.
-  o->newline() << "if (atomic_read (&session_state) != STAP_SESSION_RUNNING)";
-  o->newline(1) << "return 0;";
-
-  o->newline(-1) << "if (atomic_inc_return (&c->busy) != 1) {";
-  o->newline(1) << "_stp_warn (\"probe reentrancy (%s vs %s)\\n\", "
-		<< "c->probe_point, probe_point);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "atomic_dec (&c->busy);";
-  o->newline() << "return 0;";
-  o->newline(-1) << "}";
-  o->newline();
-
-  o->newline() << "c->probe_point = probe_point;";
-  o->newline() << "c->last_error = 0;";
-  o->newline() << "c->nesting = 0;";
-  o->newline() << "c->regs = regs;";
-  o->newline() << "c->actioncount = 0;";
-
-  // NB: locals are initialized by probe function itself
   o->newline() << "probe_" << j << " (c);";
 
-  o->newline() << "if (c->last_error && c->last_error[0]) {";
-  o->newline(1) << "_stp_error (\"%s near %s\", c->last_error, c->last_stmt);";
-  o->newline() << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline(-1) << "}";
-
-  o->newline() << "atomic_dec (&c->busy);";
+  emit_probe_epilogue (o);
   o->newline() << "return 0;";
   o->newline(-1) << "}" << endl;
 }

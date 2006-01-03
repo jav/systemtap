@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 // Copyright (C) 2005 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -444,11 +444,10 @@ struct varlock
 	c.o->newline() << "{";
 	c.o->newline(1) << "unsigned trylock_count = 0;";
 	c.o->newline() << "while ("
-		       << "!(write_trylock (& " << v << "_lock))"
-		       << " && "
-		       << "(trylock_count++ < MAXTRYLOCK)"
-		       << ") ; /* spin */";
-	c.o->newline() << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
+		       << "!(write_trylock (& " << v << "_lock)) &&";
+        c.o->newline(1) << "(trylock_count++ < MAXTRYLOCK)"
+		       << ") ndelay (TRYLOCKDELAY); /* spin */";
+	c.o->newline(-1) << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
 	c.o->newline(1) << "c->last_error = \"locking timeout over variable "
 			<< v << "\";";
 	c.o->newline() << "goto " << post_unlock_label << ";";
@@ -820,6 +819,8 @@ c_unparser::emit_common_header ()
   o->newline() << "#define STAP_SESSION_STOPPING 3";
   o->newline() << "#define STAP_SESSION_STOPPED 4";
   o->newline() << "atomic_t session_state = ATOMIC_INIT (STAP_SESSION_STARTING);";
+  o->newline() << "atomic_t error_count = ATOMIC_INIT (0);";
+  o->newline() << "atomic_t skipped_count = ATOMIC_INIT (0);";
   o->newline();
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
@@ -942,7 +943,7 @@ void
 c_unparser::emit_functionsig (functiondecl* v)
 {
   o->newline() << "static void function_" << v->name
-	       << " (struct context *c);";
+	       << " (struct context * __restrict__ c);";
 }
 
 
@@ -1101,6 +1102,15 @@ c_unparser::emit_module_exit ()
 
   o->newline() << "free_percpu (contexts);";
 
+  // print final error/reentrancy counts if non-zero
+  o->newline() << "if (atomic_read (& skipped_count) || "
+               << "atomic_read (& error_count))";
+  o->newline(1) << "_stp_warn (\"Number of errors: %d, "
+                << "skipped probes: %d\\n\", "
+                << "(int) atomic_read (& error_count), "
+                << "(int) atomic_read (& skipped_count));";
+  o->indent(-1);
+
   o->newline(-1) << "}" << endl;
 }
 
@@ -1109,7 +1119,7 @@ void
 c_unparser::emit_function (functiondecl* v)
 {
   o->newline() << "void function_" << c_varname (v->name)
-            << " (struct context* c) {";
+            << " (struct context* __restrict__ c) {";
   o->indent(1);
   this->current_probe = 0;
   this->current_probenum = 0;
@@ -1160,8 +1170,8 @@ c_unparser::emit_function (functiondecl* v)
 void
 c_unparser::emit_probe (derived_probe* v, unsigned i)
 {
-  o->newline() << "static void probe_" << i << " (struct context *c);";
-  o->newline() << "void probe_" << i << " (struct context *c) {";
+  // o->newline() << "static void probe_" << i << " (struct context *c);";
+  o->newline() << "static void probe_" << i << " (struct context * __restrict__ c) {";
   o->indent(1);
 
   // initialize frame pointer
@@ -1667,6 +1677,7 @@ c_unparser::visit_statement (statement *s, unsigned actions)
   if (actions > 0)
     {
       o->newline() << "c->actioncount += " << actions << ";";
+      // XXX: This check is inserted too frequently.
       o->newline() << "if (unlikely (c->actioncount > MAXACTION)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
       o->newline() << "goto " << outlabel << ";";
@@ -3437,14 +3448,23 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MAXSTRINGLEN";
       s.op->newline() << "#define MAXSTRINGLEN 128";
       s.op->newline() << "#endif";
-      s.op->newline() << "#ifndef MAXTRYLOCK";
-      s.op->newline() << "#define MAXTRYLOCK 20";
-      s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXACTION";
       s.op->newline() << "#define MAXACTION 1000";
       s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXTRYLOCK";
+      s.op->newline() << "#define MAXTRYLOCK MAXACTION";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef TRYLOCKDELAY";
+      s.op->newline() << "#define TRYLOCKDELAY 100";
+      s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXMAPENTRIES";
       s.op->newline() << "#define MAXMAPENTRIES 2048";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXERRORS";
+      s.op->newline() << "#define MAXERRORS 10";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXSKIPPED";
+      s.op->newline() << "#define MAXSKIPPED 100";
       s.op->newline() << "#endif";
 
       // impedance mismatch
@@ -3463,6 +3483,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"regs.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
+      s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#endif";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";

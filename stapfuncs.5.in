@@ -48,13 +48,13 @@ prepends the string "WARNING:".
 
 .TP
 error:unknown (msg:string)
-A fatal error has occurred.  Log the given string to the error stream.
+An error has occurred.  Log the given string to the error stream.
 Append an implicit end-of-line.
 .I stpd
 prepends the string "ERROR:".
-Block any further execution of statements in this probe, block
-any new probe handlers, and end the systemtap session as soon
-as possible.
+Block any further execution of statements in this probe.  If the number
+of errors so far exceeds the MAXERRORS parameter, also trigger an 
+.IR exit() .
 
 .TP
 exit:unknown ()

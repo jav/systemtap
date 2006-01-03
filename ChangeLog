@@ -1,3 +1,21 @@
+2006-01-03  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 1144, 1379
+	* tapsets.cxx (emit_probe_prologue, _epilogue): New routines.
+	Call from existing derived_probe spots.  Implement soft errors in
+	epilogue code.  Implement reentrancy detection in prologue code.
+	(dwarf_derived_probe::emit_deregistration): Add kprobes layer
+	"nmissed" to skipped_count.
+	* translate.cxx (varlock): Use nsleep(TRYLOCKDELAY) in lock
+	contention loop.
+	(emit_module_exit): Report number of soft errors and skipped probes.
+	(emit_function, _probe): Add __restrict__ marker to context pointer.
+	(translate_pass): Define new MAXTRYLOCK, TRYLOCKDELAY, MAXERRORS,
+	MAXSKIPPED parameters.
+	* tapset/logging.stp (error): Don't stp_error, just set context state.
+	* stap.1.in, stapfuncs.5.in: Document soft errors.
+	* elaborate.h: Corresponding changes.
+
 2005-12-23  Kevin Stafford  <krstaffo@us.ibm.com>
 
 	* tapset/2.6.9-20.ELsmp/syscalls.stp: added kernel

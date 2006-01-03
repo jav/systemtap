@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * I/O for printing warnings, errors and debug messages
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -137,6 +137,25 @@ void _stp_error (const char *fmt, ...)
 	va_end(args);
 	_stp_exit();
 }
+
+
+/** Prints error message.
+ * This function sends an error message immediately to stpd. It
+ * will also be sent over the bulk transport (relayfs) if it is
+ * being used. If the last character is not a newline, then one 
+ * is added. 
+ *
+ * @param fmt A variable number of args.
+ * @sa _stp_error
+ */
+void _stp_softerror (const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	_stp_vlog (ERROR, NULL, 0, fmt, args);
+	va_end(args);
+}
+
 
 static void _stp_dbug (char *func, int line, const char *fmt, ...)
 {

@@ -50,7 +50,7 @@ a named file, from standard input, or from the command line.  The
 program runs until it is interrupted by the user, or if the script
 voluntarily invokes the
 .I exit()
-function, or by any fatal error.
+function, or by sufficient number of soft errors.
 .PP
 The language, which is described in a later section, is strictly typed,
 declaration free, procedural, and inspired by
@@ -639,8 +639,9 @@ the module then communicates with it, copying trace data from the
 kernel into temporary files, until the user sends an interrupt signal.
 Any run-time error encountered by the probe handlers, such as running
 out of memory, division by zero, exceeding nesting or runtime limits,
-results in an error condition that prevents further probes from
-running.  Finally, stpd unloads the module, and cleans up.
+results in a soft error indication.  Soft errors in excess of
+MAXERRORS block of all subsequent probes, and terminate the session.
+Finally, stpd unloads the module, and cleans up.
 
 .SH EXAMPLES
 See the 
@@ -692,6 +693,12 @@ Maximum number of statements to execute during any single probe hit.
 .TP
 MAXMAPENTRIES
 Maximum number of rows in any single global array.
+.TP
+MAXERRORS
+Maximum number of soft errors before an exit is triggered.
+.TP
+MAXSKIPPED
+Maximum number of skipped reentrant probes before an exit is triggered.
 
 .PP
 In case something goes wrong with 

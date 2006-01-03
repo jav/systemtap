@@ -1,5 +1,5 @@
 // logging tapset
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -26,6 +26,12 @@ function exit () %{
 %}
 
 function error (msg:string) %{
-    CONTEXT->last_error = "called error()"; /* kill current probe */
-    _stp_error ("%s", THIS->msg); /* implies _stp_exit */
+    /* This is an assignment of a local char[] to a global char*.
+       It would normally be just as unsafe as returning a pointer to
+       a local variable from a function.  However, the translated
+       code ensures that upon an error (last_error != NULL), the
+       context stack is only ever unwound, and not reused, before
+       the probe-level stp-error call.  */
+    CONTEXT->last_error = THIS->msg;
+    CONTEXT->last_stmt = NULL;
 %}
