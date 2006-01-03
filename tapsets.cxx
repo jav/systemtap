@@ -2965,32 +2965,32 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
 {
   o->newline() << "{";
   o->newline(1) << "int i;";
-  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++)";
+  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
   string probe_name = struct_kprobe_array_name(probenum) + "[i]";
   o->indent(1);
   if (has_return)
     {
       o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
       o->newline() << "atomic_add ("
                    << probe_name << ".kp.nmissed,"
                    << "& skipped_count);";
       o->newline() << "atomic_add ("
                    << probe_name << ".nmissed,"
                    << "& skipped_count);";
+      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
       o->newline() << "#else";
       o->newline() << ";";
       o->newline() << "#endif";
     }
   else
     {
-      o->newline() << "unregister_kprobe (&(" << probe_name << "));";
       o->newline() << "atomic_add ("
                    << probe_name << ".nmissed,"
                    << "& skipped_count);";
+      o->newline() << "unregister_kprobe (&(" << probe_name << "));";
     }
 
-  o->indent(-1);
+  o->newline(-1) << "}";
   o->newline(-1) << "}";
 }
 
