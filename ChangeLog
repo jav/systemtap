@@ -1,3 +1,9 @@
+2006-01-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2057.
+	* translate.cxx (c_unparser_assignment::visit_arrayindex): Don't take
+	write lock around pmap accumulation.
+
 2006-01-04  Will Cohen  <wcohen@redhat.com>
 
 	* testsuite/buildok/printf.stp: Improve test coverage.

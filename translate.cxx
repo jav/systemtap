@@ -2964,9 +2964,9 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       // a statistic-valued map, there's a special form we follow:
       //
       // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
-      //    lock (array);
+      //    *no need to* lock (array);
       //    _stp_map_add_stat (array, idx0...N, rvar);
-      //    unlock (array);
+      //    *no need to* unlock (array);
       //    rvar; })
       //
       // To simplify variable-allocation rules, we assign rvar to lvar and
@@ -2982,7 +2982,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
 	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	  varlock_w guard (*parent, mvar);
+	  // NB: *no need to* varlock_w guard (*parent, mvar);
 	  o->newline() << mvar.add (idx, rvar) << ";";
 	  // dummy assignments
 	  o->newline() << lvar << " = " << rvar << ";";
