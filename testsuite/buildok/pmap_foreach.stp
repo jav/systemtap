@@ -14,9 +14,17 @@ probe begin {
 }
 
 probe end {
-	for (i=1;i<4;i++)
+	for (i=1;i<4;i++) {
 		printf("count of foo[%d] = %d\n", i, @count(foo[i]))
+		printf("first bucket of hist_log of foo[%d] = %d\n",
+				i, @hist_log(foo[i])[0])
+		print(@hist_log(foo[i]))
+	}
 
-	foreach (i in foo)
+	foreach (i in foo) {
 		printf("count of foo[%d] = %d\n", i, @count(foo[i]))
+		printf("first bucket of hist_log of foo[%d] = %d\n",
+				i, @hist_log(foo[i])[0])
+		print(@hist_log(foo[i]))
+    }
 }

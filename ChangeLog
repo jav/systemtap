@@ -1,3 +1,16 @@
+2006-01-05  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2056
+	* translate.cxx (var::~var, var::hist, var::buckets): make these
+	methods virtual, so we can use polymorphism.
+	(mapvar::hist, mapvar::buckets):  Override the corresponding var
+	methods to handle pmaps correctly.
+	(c_unparser::visit_arrayindex, c_unparser::visit_print_format): Make
+	use of the new polymorphic behavior of var & mapvar when dealing with
+	histogram data.
+	* testsuite/buildok/pmap_foreach.stp: Add tests to check histogram
+	accesses with for/foreach.
+
 2006-01-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2057.

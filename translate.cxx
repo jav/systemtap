@@ -1,6 +1,6 @@
 // translation pass
 // Copyright (C) 2005, 2006 Red Hat Inc.
-// Copyright (C) 2005 Intel Corporation
+// Copyright (C) 2005, 2006 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -294,6 +294,8 @@ public:
     : local(local), ty(ty), name(name)
   {}
 
+  virtual ~var() {}
+
   bool is_local() const
   {
     return local;
@@ -340,14 +342,14 @@ public:
       return "global_" + name;
   }
 
-  string hist() const
+  virtual string hist() const
   {
     assert (ty == pe_stats);
     assert (sd.type != statistic_decl::none);
     return "(&(" + qname() + "->hist))";
   }
 
-  string buckets() const
+  virtual string buckets() const
   {
     assert (ty == pe_stats);
     assert (sd.type != statistic_decl::none);
@@ -632,6 +634,20 @@ struct mapvar
       return (call_prefix("set", indices) + ", " + val.qname() + ")");
     else
       throw semantic_error("setting a value of an unsupported map type");
+  }
+
+  string hist() const
+  {
+    assert (ty == pe_stats);
+    assert (sd.type != statistic_decl::none);
+    return "(&(" + fetch_existing_aggregate() + "->hist))";
+  }
+
+  string buckets() const
+  {
+    assert (ty == pe_stats);
+    assert (sd.type != statistic_decl::none);
+    return "(" + fetch_existing_aggregate() + "->hist.buckets)";
   }
 		
   string init () const
@@ -2854,13 +2870,19 @@ c_unparser::visit_arrayindex (arrayindex* e)
       assert(idx[0].type() == pe_long);	
 
       symbol *sym = get_symbol_within_expression (hist->stat);
-      var v = getvar(sym->referent, sym->tok);
-      v.assert_hist_compatible(*hist);
+
+      var *v;
+      if (sym->referent->arity < 1)
+	v = new var(getvar(sym->referent, e->tok));
+      else
+	v = new mapvar(getmap(sym->referent, e->tok));
+
+      v->assert_hist_compatible(*hist);
 
       {
-	varlock_w guard(*this, v);
+	varlock_w guard(*this, *v);
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	o->newline() << "if (" << histogram_index_check(v, idx[0]) << ")";
+	o->newline() << "if (" << histogram_index_check(*v, idx[0]) << ")";
 	o->newline() << "{";
 	o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
 	o->newline(-1) << "}";
@@ -2870,6 +2892,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
 	o->newline()   << res << " = 0;";
 	o->newline(-1) << "}";
       }
+
+      delete v;
 
       o->newline() << res << ";";
     }
@@ -3161,13 +3185,23 @@ c_unparser::visit_print_format (print_format* e)
       stmt_expr block(*this);  
       symbol *sym = get_symbol_within_expression (e->hist->stat);
       aggvar agg = gensym_aggregate ();
-      var v = getvar(sym->referent, e->tok);
-      v.assert_hist_compatible(*e->hist);
 
-      varlock_w guard(*this, v);
-      load_aggregate(e->hist->stat, agg);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-      o->newline() << "_stp_stat_print_histogram (" << v.hist() << ", " << agg.qname() << ");";
+      var *v;
+      if (sym->referent->arity < 1)
+        v = new var(getvar(sym->referent, e->tok));
+      else
+        v = new mapvar(getmap(sym->referent, e->tok));
+
+      v->assert_hist_compatible(*e->hist);
+
+      {
+	varlock_w guard(*this, *v);
+	load_aggregate(e->hist->stat, agg);
+	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	o->newline() << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
+      }
+
+      delete v;
     }
   else
     {
