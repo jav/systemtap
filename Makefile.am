@@ -101,12 +101,19 @@ XFAIL_TESTS = $(wildcard $(p)ko/*.stp) \
 
 TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
 
+TEST_COV_DIR = coverage
+
 gcov:
-	@$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
+	@-$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
 	@gcov *.gcno >/dev/null 2>&1
-	@rm -f *.gcno *.gcda
 	@rm -f `ls -1 *.gcov | fgrep -v .cxx.gcov`
 	ls -l *.cxx.gcov
+
+lcov:
+	@lcov --directory . -z
+	@-$(MAKE) clean CXXFLAGS="-g -fprofile-arcs -ftest-coverage" all check
+	@lcov --directory . -c -o stap.info
+	@genhtml -o ./$(TEST_COV_DIR) stap.info
 
 rpm:	dist
 	rpmbuild -ta ${PACKAGE_TARNAME}-${PACKAGE_VERSION}.tar.gz
@@ -115,6 +122,8 @@ clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
 	rm -rf testresults
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
+	rm -rf $(TEST_COV_DIR)
+	rm -rf stap.info
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
