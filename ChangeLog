@@ -1,3 +1,7 @@
+2006-01-09  Frank Ch. Eigler  <fche@redhat.com>
+
+	* HACKING: Extend guidelines for tapset testing.
+
 2006-01-06  Will Cohen  <wcohen@redhat.com>
 
 	* Makefile.am (gcov,lcov): Don't remove .gcno .gcda files.
