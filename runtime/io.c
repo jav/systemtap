@@ -116,6 +116,9 @@ void _stp_warn (const char *fmt, ...)
  */
 void _stp_exit (void)
 {
+#ifdef SYSTEMTAP
+	atomic_set (&session_state, STAP_SESSION_STOPPING);
+#endif
 	_stp_exit_flag = 1;
 }
 

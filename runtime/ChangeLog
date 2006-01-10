@@ -1,3 +1,7 @@
+2006-01-10  Martin Hunt  <hunt@redhat.com>
+
+	* io.c (_stp_exit): set STAP_SESSION_STOPPING.
+
 2006-01-03  Frank Ch. Eigler  <fche@redhat.com>
 
 	* io.c (_stp_softerror): New function.
