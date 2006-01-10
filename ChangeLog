@@ -1,3 +1,16 @@
+2006-01-10  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 2060.
+	* buildrun.cxx (compile_pass): Add "V=1" to kbuild if verbose.
+	* translate.cxx (translator_output): For output-file constructor,
+	set an explicit output buffer.
+	(emit_module_init, emit_module_exit): Reorganize output, to spit
+	each individual probe registration/deregistration blurb into a
+	separate function.
+	* translate.h: Corresponding changes; set default buffer size to 8K.
+	* translate.cxx, tapsets.cxx: Replace "endl" by buffer-friendly "\n"
+	throughout code generation routines.
+
 2006-01-09  Frank Ch. Eigler  <fche@redhat.com>
 
 	* HACKING: Extend guidelines for tapset testing.

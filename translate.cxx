@@ -776,20 +776,25 @@ ostream & operator<<(ostream & o, itervar const & v)
 
 
 translator_output::translator_output (ostream& f):
-  o2 (0), o (f), tablevel (0)
+  buf(0), o2 (0), o (f), tablevel (0)
 {
 }
 
 
-translator_output::translator_output (const string& filename):
-  o2 (new ofstream (filename.c_str ())), o (*o2), tablevel (0)
+translator_output::translator_output (const string& filename, size_t bufsize):
+  buf (new char[bufsize]),
+  o2 (new ofstream (filename.c_str ())), 
+  o (*o2), 
+  tablevel (0)
 {
+  o2->rdbuf()->pubsetbuf(buf, bufsize);
 }
 
 
 translator_output::~translator_output ()
 {
   delete o2;
+  delete buf;
 }
 
 
@@ -798,7 +803,7 @@ translator_output::newline (int indent)
 {
   assert (indent > 0 || tablevel >= (unsigned)-indent);
   tablevel += indent;
-  o << endl;
+  o << "\n";
   for (unsigned i=0; i<tablevel; i++)
     o << "  ";
   return o;
@@ -921,13 +926,13 @@ c_unparser::emit_common_header ()
       o->newline(-1) << "} function_" << c_varname (fd->name) << ";";
     }
   o->newline(-1) << "} locals [MAXNESTING];";
-  o->newline(-1) << "};" << endl;
-  o->newline() << "void *contexts = NULL; /* alloc_percpu */" << endl;
+  o->newline(-1) << "};\n";
+  o->newline() << "void *contexts = NULL; /* alloc_percpu */\n";
 
   emit_map_type_instantiations ();
 
   if (!session->stat_decls.empty())
-    o->newline() << "#include \"stat.c\"" << endl;
+    o->newline() << "#include \"stat.c\"\n";
 }
 
 
@@ -966,8 +971,45 @@ c_unparser::emit_functionsig (functiondecl* v)
 void
 c_unparser::emit_module_init ()
 {
-  o->newline() << "static int systemtap_module_init (void);";
-  o->newline() << "int systemtap_module_init () {";
+  // Emit the per-probe-point registrations into individual functions,
+  // to avoid forcing the compiler to work too hard at optimizing such
+  // a silly function.  A "don't optimize this function" pragma could
+  // come in handy too.
+  for (unsigned i=0; i<session->probes.size(); i++)
+    {
+      o->newline() << "noinline int register_probe_" << i << " (void) {";
+      o->indent(1);
+      // By default, mark the first location as the site of possible
+      // registration failure.  This is helpful since non-dwarf
+      // derived_probes tend to have only a single location.
+      assert (session->probes[i]->locations.size() > 0);
+      o->newline() << "int rc = 0;";
+      o->newline() << "const char *probe_point = " <<
+        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
+      session->probes[i]->emit_registrations (o, i);
+
+      o->newline() << "if (unlikely (rc)) {";
+      // In case it's just a lower-layer (kprobes) error that set rc
+      // but not session_state, do that here to prevent any other BEGIN
+      // probe from attempting to run.
+      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+
+      o->newline() << "_stp_error (\"probe " << i << " registration failed"
+                   << ", rc=%d, %s\\n\", rc, probe_point);";
+      o->newline(-1) << "}";
+
+      o->newline() << "return rc;";
+      o->newline(-1) << "}";
+      
+      o->newline();
+      o->newline() << "noinline void unregister_probe_" << i << " (void) {";
+      o->indent(1);
+      session->probes[i]->emit_deregistrations (o, i);
+      o->newline(-1) << "}";
+    }
+
+  o->newline();
+  o->newline() << "int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
   o->newline() << "const char *probe_point = \"\";";
 
@@ -998,34 +1040,16 @@ c_unparser::emit_module_init ()
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
-      o->newline() << "/* register probe #" << i << ", ";
-      o->line() << session->probes[i]->locations.size() << " location(s) */";
-
-      // By default, mark the first location as the site of possible
-      // registration failure.  This is helpful since non-dwarf
-      // derived_probes tend to have only a single location.
-      assert (session->probes[i]->locations.size() > 0);
-      o->newline() << "probe_point = " <<
-        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
-      session->probes[i]->emit_registrations (o, i);
-
-      o->newline() << "if (unlikely (rc)) {";
-      // In case it's just a lower-layer (kprobes) error that set rc
-      // but not session_state, do that here to prevent any other BEGIN
-      // probe from attempting to run.
-      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-
-      o->newline() << "_stp_error (\"probe " << i << " registration failed"
-                   << ", rc=%d, %s\\n\", rc, probe_point);";
-
+      o->newline() << "rc = register_probe_" << i << "();";
+      o->newline() << "if (rc)";
+      o->indent(1);
       // We need to deregister any already probes set up - this is
       // essential for kprobes.
       if (i > 0)
         o->newline() << "goto unregister_" << (i-1) << ";";
       else
         o->newline() << "goto out;";
-
-      o->newline(-1) << "}";
+      o->indent(-1);
     }
 
   // BEGIN probes would have all been run by now.  One of them may
@@ -1045,8 +1069,7 @@ c_unparser::emit_module_init ()
   for (int i=session->probes.size()-2; i >= 0; i--) // NB: -2
     {
       o->newline(-1) << "unregister_" << i << ":";
-      o->indent(1);
-      session->probes[i]->emit_deregistrations (o, i);
+      o->newline(1) << "unregister_probe_" << i << "();";
       // NB: This may be an END probe.  It will refuse to run
       // if the session_state was ERRORed.
     }  
@@ -1063,15 +1086,14 @@ c_unparser::emit_module_init ()
 
   o->newline(-1) << "out:";
   o->newline(1) << "return rc;";
-  o->newline(-1) << "}" << endl;
+  o->newline(-1) << "}\n";
 }
 
 
 void
 c_unparser::emit_module_exit ()
 {
-  o->newline() << "static void systemtap_module_exit (void);";
-  o->newline() << "void systemtap_module_exit () {";
+  o->newline() << "void systemtap_module_exit (void) {";
   // rc?
   o->newline(1) << "int holdon;";
 
@@ -1107,7 +1129,7 @@ c_unparser::emit_module_exit ()
   // genuinely stuck somehow
 
   for (int i=session->probes.size()-1; i>=0; i--)
-    session->probes[i]->emit_deregistrations (o, i); // NB: runs "end" probes
+    o->newline() << "unregister_probe_" << i << "();"; // NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -1127,7 +1149,7 @@ c_unparser::emit_module_exit ()
                 << "(int) atomic_read (& skipped_count));";
   o->indent(-1);
 
-  o->newline(-1) << "}" << endl;
+  o->newline(-1) << "}\n";
 }
 
 
@@ -1179,7 +1201,7 @@ c_unparser::emit_function (functiondecl* v)
 
   o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
-  o->newline(-1) << "}" << endl;
+  o->newline(-1) << "}\n";
 }
 
 
@@ -1187,7 +1209,7 @@ void
 c_unparser::emit_probe (derived_probe* v, unsigned i)
 {
   // o->newline() << "static void probe_" << i << " (struct context *c);";
-  o->newline() << "static void probe_" << i << " (struct context * __restrict__ c) {";
+  o->newline() << "void probe_" << i << " (struct context * __restrict__ c) {";
   o->indent(1);
 
   // initialize frame pointer
@@ -1222,7 +1244,8 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   o->newline(-1) << "out:";
   // NB: no need to uninitialize locals, except if arrays can somedays be local
   o->newline(1) << "_stp_print_flush();";
-  o->newline(-1) << "}" << endl;
+
+  o->newline(-1) << "}\n";
   
   v->emit_probe_entries (o, i);
 }
@@ -3455,7 +3478,7 @@ emit_symbol_data (systemtap_session& s)
 	    }
 	}
       s.op->newline(-1) << "};";
-      s.op->newline() << "unsigned stap_num_symbols = " << i << ";" << endl;
+      s.op->newline() << "unsigned stap_num_symbols = " << i << ";\n";
     }
 
   return rc;
@@ -3474,7 +3497,7 @@ translate_pass (systemtap_session& s)
   try
     {
       // This is at the very top of the file.
-      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << endl;
+      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << "\n";
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 10";
@@ -3526,7 +3549,7 @@ translate_pass (systemtap_session& s)
 
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
-          s.op->newline() << s.embeds[i]->code << endl;
+          s.op->newline() << s.embeds[i]->code << "\n";
         }
 
       for (unsigned i=0; i<s.globals.size(); i++)
@@ -3590,7 +3613,7 @@ translate_pass (systemtap_session& s)
     }
 
   rc |= emit_symbol_data (s);
-  s.op->line() << endl;
+  s.op->line() << "\n";
 
   delete s.op;
   s.op = 0;

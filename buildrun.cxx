@@ -66,6 +66,9 @@ compile_pass (systemtap_session& s)
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
 
+  // XXX
+  // o << "CFLAGS += -ftime-report" << endl;
+
   if (s.test_mode)
     {
       string module_dir = string("/lib/modules/")
@@ -95,7 +98,9 @@ compile_pass (systemtap_session& s)
     {
       string make_cmd = string("make -C \"") + s.tmpdir + "\"";
 
-      if (! s.verbose)
+      if (s.verbose)
+        make_cmd += " V=1";
+      else
         make_cmd += " -s >/dev/null 2>&1";
       
       if (s.verbose) clog << "Running " << make_cmd << endl;
@@ -113,7 +118,9 @@ compile_pass (systemtap_session& s)
         + string (" -C \"") + module_dir + string("\"");
       make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
-      if (! s.verbose)
+      if (s.verbose)
+        make_cmd += " V=1";
+      else
         make_cmd += " -s >/dev/null 2>&1";
       
       if (s.verbose) clog << "Running " << make_cmd << endl;

@@ -21,13 +21,14 @@
 // pretty-printing.
 class translator_output
 {
+  char *buf;
   std::ofstream* o2;
   std::ostream& o;
   unsigned tablevel;
 
 public:
   translator_output (std::ostream& file);
-  translator_output (const std::string& filename);
+  translator_output (const std::string& filename, size_t bufsize = 8192);
   ~translator_output ();
 
   std::ostream& newline (int indent = 0);
