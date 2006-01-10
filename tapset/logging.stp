@@ -21,7 +21,6 @@ function warn (msg:string) %{
 
 // NB: exit() does *not* cause immediate return from current function/probe
 function exit () %{
-    atomic_set (&session_state, STAP_SESSION_STOPPING);
     _stp_exit ();
 %}
 
