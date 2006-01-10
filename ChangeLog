@@ -1,5 +1,12 @@
 2006-01-10  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR 1972.
+	* tapsets.cxx (var_expanding_copy_visitor::visit_target_symbol):
+	Produce error message for $var access within .return probes.
+	* testsuite/semko/thirtyfour.stp: New test.
+
+2006-01-10  Frank Ch. Eigler  <fche@redhat.com>
+
 	PR 2060.
 	* buildrun.cxx (compile_pass): Add "V=1" to kbuild if verbose.
 	* translate.cxx (translator_output): For output-file constructor,

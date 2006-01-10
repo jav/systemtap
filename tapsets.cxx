@@ -2616,11 +2616,14 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   bool lvalue = is_active_lvalue(e);
 
   if (lvalue && !q.sess.guru_mode)
-    throw semantic_error("Illegal target variable access", e->tok);
+    throw semantic_error("write to target variable not permitted", e->tok);
 
   string fname = (string(lvalue ? "set" : "get")
 		  + "_" + e->base_name.substr(1)
 		  + "_" + lex_cast<string>(tick++));
+
+  if (q.has_return)
+    throw semantic_error ("target variables not available to .return probes");
 
   try
     {
