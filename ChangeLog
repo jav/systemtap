@@ -1,3 +1,9 @@
+2006-01-11  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2140
+	* testsuite/buildok/delete.stp: Test correct compilation of the
+	'delete' operator for all "legal" variations.
+
 2006-01-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (MAXERRORS): Oops, set back to intended default of 1.
