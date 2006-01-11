@@ -3518,7 +3518,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define MAXMAPENTRIES 2048";
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXERRORS";
-      s.op->newline() << "#define MAXERRORS 10";
+      s.op->newline() << "#define MAXERRORS 1";
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXSKIPPED";
       s.op->newline() << "#define MAXSKIPPED 100";
