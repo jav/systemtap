@@ -1,3 +1,22 @@
+2006-01-12  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2056
+	* translate.cxx (c_unparser::aggregation_locks): Keeps track of
+	foreach's locks on pmaps to avoid extra aggregation.
+	(c_unparser::visit_foreach_loop): Set aggregation_locks appropriately.
+	(c_unparser::load_aggregate, mapvar::call_prefix, mapvar::get):
+	Use a new parameter to indicate that we should read from the
+	already-aggregated map rather than the full pmap..
+	(c_unparser::visit_arrayindex c_unparser::visit_print_format,
+	c_unparser::visit_stat_op): Use aggregation_locks to avoid taking a
+	lock and aggregating the pmap.
+	(c_unparser::emit_map_type_instantiations): To read from a pmap's
+	aggregated map, we need to include map-gen.c for the _stp_map_*
+	functions.
+	(c_unparser::obtained_locks, varlock::varlock, varlock::~varlock):
+	Add simple static checking to detect incompatible nested locks during
+	translation, and flag it as an error.
+
 2006-01-11  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2140

@@ -88,6 +88,14 @@ struct c_unparser: public unparser, public visitor
   vector<string> loop_break_labels;
   vector<string> loop_continue_labels;
 
+  // keeps track when we're in a foreach that already
+  // aggregated & locked the pmap for us.
+  set<string> aggregation_locks;
+
+  // static checking to detect incompatible nested locks
+  //   (e.g. a write-lock within a foreach's read-lock)
+  multiset<pair<string, bool> > obtained_locks;
+
   string c_typename (exp_type e);
   string c_varname (const string& e);
 
@@ -117,7 +125,7 @@ struct c_unparser: public unparser, public visitor
   void load_map_indices(arrayindex* e,
 			vector<tmpvar> & idx);
 
-  void load_aggregate (expression *e, aggvar & agg);
+  void load_aggregate (expression *e, aggvar & agg, bool pre_agg=false);
   string histogram_index_check(var & vase, tmpvar & idx) const;
 
   void collect_map_index_types(vector<vardecl* > const & vars,
@@ -429,6 +437,9 @@ struct varlock
   {
     if (v.is_local()) return;
 
+    if (c.obtained_locks.count(make_pair(v.qname(), true))) // write lock
+      throw semantic_error("incompatible nested locks obtained for "+v.qname());
+
     if (!w) // read lock - no need to try, just do it
       c.o->newline() << "read_lock (& " << v << "_lock);";
     else
@@ -438,6 +449,9 @@ struct varlock
 	// manual "timeout".  If it takes too many iterations to acquire
 	// the lock, we signal a deadlock error in the context and jump
 	// over all the code, right past the corresponding unlock.
+
+	if (c.obtained_locks.count(make_pair(v.qname(), false))) // read lock
+	  throw semantic_error("incompatible nested locks obtained for "+v.qname());
 	
 	static unsigned unlock_label_counter = 0;
 	post_unlock_label = string ("post_unlock_")
@@ -456,6 +470,7 @@ struct varlock
 	c.o->newline(-1) << "}";
 	c.o->newline(-1) << "}";
       }
+    c.obtained_locks.insert(make_pair(v.qname(), w));
   }
 
   ~varlock()
@@ -468,6 +483,9 @@ struct varlock
 	c.o->newline(-1) << post_unlock_label << ": ;";
 	c.o->indent(1);
       }
+
+    assert(c.obtained_locks.count(make_pair(v.qname(), w)) > 0);
+    c.obtained_locks.erase(c.obtained_locks.find(make_pair(v.qname(), w)));
   }
 };
 
@@ -551,10 +569,11 @@ struct mapvar
     return result;
   }
 
-  string call_prefix (string const & fname, vector<tmpvar> const & indices) const
+  string call_prefix (string const & fname, vector<tmpvar> const & indices, bool pre_agg=false) const
   {
-    string mtype = is_parallel() ? "pmap" : "map";
-    string result = "_stp_" + mtype + "_" + fname + "_" + keysym() + " (" + qname();
+    string mtype = (is_parallel() && !pre_agg) ? "pmap" : "map";
+    string result = "_stp_" + mtype + "_" + fname + "_" + keysym() + " (";
+    result += pre_agg? fetch_existing_aggregate() : qname();
     for (unsigned i = 0; i < indices.size(); ++i)
       {
 	if (indices[i].type() != index_types[i])
@@ -602,15 +621,15 @@ struct mapvar
     return "((uintptr_t)" + call_prefix("get", indices) + ") != (uintptr_t) 0)";
   }
 
-  string get (vector<tmpvar> const & indices) const
+  string get (vector<tmpvar> const & indices, bool pre_agg=false) const
   {
     // see also itervar::get_key
     if (type() == pe_string)
         // impedance matching: NULL -> empty strings
-      return ("({ char *v = " + call_prefix("get", indices) + ");"
+      return ("({ char *v = " + call_prefix("get", indices, pre_agg) + ");"
 	      + "if (!v) v = \"\"; v; })");
     else if (type() == pe_long || type() == pe_stats)
-      return call_prefix("get", indices) + ")";
+      return call_prefix("get", indices, pre_agg) + ")";
     else
       throw semantic_error("getting a value from an unsupported map type");
   }
@@ -1354,6 +1373,27 @@ c_unparser::emit_map_type_instantiations ()
 	{
 	  o->newline() << "#undef KEY" << (j+1) << "_TYPE";
 	}      
+
+      /* FIXME
+       * For pmaps, we also need to include map-gen.c, because we might be accessing
+       * the aggregated map.  The better way to handle this is for pmap-gen.c to make
+       * this include, but that's impossible with the way they are set up now.
+       */
+      if (i->second == pe_stats)
+	{
+	  o->newline() << "#define VALUE_TYPE " << mapvar::value_typename(i->second);
+	  for (unsigned j = 0; j < i->first.size(); ++j)
+	    {
+	      string ktype = mapvar::key_typename(i->first.at(j));
+	      o->newline() << "#define KEY" << (j+1) << "_TYPE " << ktype;
+	    }
+	  o->newline() << "#include \"map-gen.c\"";
+	  o->newline() << "#undef VALUE_TYPE";
+	  for (unsigned j = 0; j < i->first.size(); ++j)
+	    {
+	      o->newline() << "#undef KEY" << (j+1) << "_TYPE";
+	    }      
+	}
     }
 
   if (!types.empty())
@@ -2003,6 +2043,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // acquisition of guard.
       
       varlock_r guard (*this, mv);
+      if (mv.is_parallel())
+	aggregation_locks.insert(mv.qname());
       o->newline() << iv << " = " << iv.start (mv) << ";";
       
       // condition
@@ -2033,6 +2075,9 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // exit
       o->newline(-1) << breaklabel << ":";
       o->newline(1) << "; /* dummy statement */";
+
+      if (mv.is_parallel())
+	aggregation_locks.erase(mv.qname());
       // varlock dtor will show up here
     }
   else
@@ -2700,7 +2745,7 @@ c_unparser::load_map_indices(arrayindex *e,
 
 
 void 
-c_unparser::load_aggregate (expression *e, aggvar & agg)
+c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
 {
   symbol *sym = get_symbol_within_expression (e);
   
@@ -2724,7 +2769,7 @@ c_unparser::load_aggregate (expression *e, aggvar & agg)
       load_map_indices (arr, idx);
       mapvar mvar = getmap (sym->referent, sym->tok);
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
-      o->newline() << agg << " = " << mvar.get(idx) << ";";
+      o->newline() << agg << " = " << mvar.get(idx, pre_agg) << ";";
     }
 }
 
@@ -2886,7 +2931,6 @@ c_unparser::visit_arrayindex (arrayindex* e)
       tmpvar res = gensym (e->type);
       
       aggvar agg = gensym_aggregate ();
-      load_aggregate(hist->stat, agg);
 
       // These should have faulted during elaboration if not true.
       assert(idx.size() == 1);
@@ -2902,8 +2946,16 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       v->assert_hist_compatible(*hist);
 
+      varlock_w *guard = NULL;
+      if (aggregation_locks.count(v->qname()))
+	load_aggregate(hist->stat, agg, true);
+      else 
+	{
+	  guard = new varlock_w(*this, *v);
+	  load_aggregate(hist->stat, agg, false);
+	}
+
       {
-	varlock_w guard(*this, *v);
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	o->newline() << "if (" << histogram_index_check(*v, idx[0]) << ")";
 	o->newline() << "{";
@@ -2916,6 +2968,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
 	o->newline(-1) << "}";
       }
 
+      if (guard != NULL)
+	delete guard;
       delete v;
 
       o->newline() << res << ";";
@@ -3218,10 +3272,19 @@ c_unparser::visit_print_format (print_format* e)
       v->assert_hist_compatible(*e->hist);
 
       {
-	varlock_w guard(*this, *v);
-	load_aggregate(e->hist->stat, agg);
+	varlock_w *guard = NULL;
+	if (aggregation_locks.count(v->qname()))
+	  load_aggregate(e->hist->stat, agg, true);
+	else 
+	  {
+	    guard = new varlock_w(*this, *v);
+	    load_aggregate(e->hist->stat, agg, false);
+	  }
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	o->newline() << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
+
+	if (guard != NULL)
+	  delete guard;
       }
 
       delete v;
@@ -3366,8 +3429,14 @@ c_unparser::visit_stat_op (stat_op* e)
     tmpvar res = gensym (pe_long);    
     var v = getvar(sym->referent, e->tok);
     {
-      varlock_w guard(*this, v);
-      load_aggregate(e->stat, agg);
+      varlock_w *guard = NULL;
+      if (aggregation_locks.count(v.qname()))
+	load_aggregate(e->stat, agg, true);
+      else
+	{
+	  guard = new varlock_w(*this, v);
+	  load_aggregate(e->stat, agg, false);
+	}
     
       switch (e->ctype)
 	{
@@ -3393,6 +3462,9 @@ c_unparser::visit_stat_op (stat_op* e)
 	  c_assign(res, agg.qname() + "->max", e->tok);
 	  break;
 	}
+
+      if (guard != NULL)
+	delete guard;
     }    
     o->newline() << res << ";";
   }
