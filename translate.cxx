@@ -1716,7 +1716,7 @@ mapvar
 c_unparser::getmap(vardecl *v, token const *tok) 
 {   
   if (v->arity < 1)
-    throw new semantic_error("attempt to use scalar where map expected", tok);
+    throw semantic_error("attempt to use scalar where map expected", tok);
   statistic_decl sd;
   std::map<std::string, statistic_decl>::const_iterator i;
   i = session->stat_decls.find(v->name);
