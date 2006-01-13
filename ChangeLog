@@ -1,5 +1,10 @@
 2006-01-13  Frank Ch. Eigler  <fche@elastic.org>
 
+	* main.cxx (main): Suppress "Try again with -v" message if already
+	verbose.
+
+2006-01-13  Frank Ch. Eigler  <fche@elastic.org>
+
 	* translate.cxx (c_unparser:getmap): Correct exception throwing typo.
 
 2006-01-12  Josh Stone  <joshua.i.stone@intel.com>

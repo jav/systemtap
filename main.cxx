@@ -378,6 +378,11 @@ main (int argc, char * const argv [])
                       << s.library_files.size()
                       << " library script(s)." << endl;
 
+  if (rc)
+    cerr << "Pass 1: parse failed.  "
+         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << endl;
+
   if (rc || s.last_pass == 1) goto cleanup;
 
   // PASS 2: ELABORATION
@@ -438,7 +443,8 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 2: analysis failed.  "
-         << "Try again with '-v' (verbose) option." << endl;
+         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << endl;
 
   if (rc || s.last_pass == 2) goto cleanup;
 
@@ -457,8 +463,9 @@ main (int argc, char * const argv [])
                       << "\"" << endl;
 
   if (rc)
-    cerr << "Pass 2: translation failed.  "
-         << "Try again with '-v' (verbose) option." << endl;
+    cerr << "Pass 3: translation failed.  "
+         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << endl;
 
   if (rc || s.last_pass == 3) goto cleanup;
 
@@ -467,7 +474,8 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 4: compilation failed.  "
-         << "Try again with '-v' (verbose) option." << endl;
+         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << endl;
 
   // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout? 
   if (rc || s.last_pass == 4) goto cleanup;
@@ -477,7 +485,8 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 5: run failed.  "
-         << "Try again with '-v' (verbose) option." << endl;
+         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << endl;
 
   // if (rc) goto cleanup;
 
