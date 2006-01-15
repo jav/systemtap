@@ -1,6 +1,9 @@
+2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* logging.stp: Revert.
+
 2006-01-10  Martin Hunt  <hunt@redhat.com>
 
 	* logging.stp: Don't set STAP_SESSION_STOPPING.
 	That it done in _stp_exit().
-
 

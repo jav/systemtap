@@ -1,3 +1,9 @@
+2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2148
+	* translate.cxx (MAXERRORS): Actually the max should be 0, so first
+	error aborts session.
+
 2006-01-13  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): Suppress "Try again with -v" message if already

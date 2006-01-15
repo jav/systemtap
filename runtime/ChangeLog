@@ -1,3 +1,7 @@
+2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* io.c (_stp_exit): Revert.
+
 2006-01-10  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (_stp_exit): set STAP_SESSION_STOPPING.
