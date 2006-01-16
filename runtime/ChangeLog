@@ -1,3 +1,8 @@
+2006-01-16  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_pmap_agg): Return NULL when aggregation
+	fails.
+
 2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* io.c (_stp_exit): Revert.

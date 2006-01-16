@@ -850,7 +850,7 @@ static void _stp_add_agg(struct map_node *aptr, struct map_node *ptr)
  * A write lock must be held on the map during this function.
  *
  * @param map A pointer to a pmap.
- * @returns a pointer to an aggregated map. 
+ * @returns a pointer to the aggregated map. Null on failure.
  */
 MAP _stp_pmap_agg (PMAP pmap)
 {
@@ -885,8 +885,12 @@ MAP _stp_pmap_agg (PMAP pmap)
 				}
 				if (match)
 					_stp_add_agg(aptr, ptr);
-				else
-					_stp_new_agg(agg, ahead, ptr);
+				else {
+					if (!_stp_new_agg(agg, ahead, ptr)) {
+						spin_unlock(&m->lock);
+						return NULL;
+					}
+				}
 			}
 		}
 		spin_unlock(&m->lock);
