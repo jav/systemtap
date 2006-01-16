@@ -185,7 +185,7 @@ struct c_tmpcounter:
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
   // void visit_return_statement (return_statement* s);
-  // void visit_delete_statement (delete_statement* s);
+  void visit_delete_statement (delete_statement* s);
   void visit_binary_expression (binary_expression* e);
   // void visit_unary_expression (unary_expression* e);
   void visit_pre_crement (pre_crement* e);
@@ -610,7 +610,7 @@ struct mapvar
   { 
     if (type() == pe_string)
       return (call_prefix("set", indices) + ", NULL)");
-    else if (type() == pe_long)
+    else if ((type() == pe_long) || (type() == pe_stats))
       return (call_prefix("set", indices) + ", 0)");
     else
       throw semantic_error("setting a value of an unsupported map type");
@@ -2135,6 +2135,18 @@ c_unparser::visit_next_statement (next_statement* s)
 }
 
 
+struct delete_statement_operand_tmp_visitor:
+  public traversing_visitor
+{
+  c_tmpcounter *parent;
+  delete_statement_operand_tmp_visitor (c_tmpcounter *p):
+    parent (p)
+  {}
+  //void visit_symbol (symbol* e);
+  void visit_arrayindex (arrayindex* e);
+};
+
+
 struct delete_statement_operand_visitor:
   public throwing_visitor
 {
@@ -2150,14 +2162,65 @@ struct delete_statement_operand_visitor:
 void 
 delete_statement_operand_visitor::visit_symbol (symbol* e)
 {
-  mapvar mvar = parent->getmap(e->referent, e->tok);  
-  varlock_w guard (*parent, mvar);
-  /* NB: such memory deallocation/allocation operations
-     are not generally legal in all probe contexts.
-  parent->o->newline() << mvar.fini ();
-  parent->o->newline() << mvar.init ();  
-  */
-  parent->o->newline() << "_stp_map_clear (" << mvar.qname() << ");";
+  if (e->referent->arity > 0)
+    {
+      mapvar mvar = parent->getmap(e->referent, e->tok);  
+      varlock_w guard (*parent, mvar);
+      /* NB: such memory deallocation/allocation operations
+       are not generally legal in all probe contexts.
+      parent->o->newline() << mvar.fini ();
+      parent->o->newline() << mvar.init ();  
+      */
+      if (mvar.is_parallel())
+	parent->o->newline() << "_stp_pmap_clear (" << mvar.qname() << ");";
+      else
+	parent->o->newline() << "_stp_map_clear (" << mvar.qname() << ");";
+    }
+  else
+    {
+      var v = parent->getvar(e->referent, e->tok);  
+      varlock_w guard (*parent, v);
+      switch (e->type)
+	{
+	case pe_stats:
+	  parent->o->newline() << "_stp_stat_clear (" << v.qname() << ");";
+	  break;
+	case pe_long:
+	  parent->o->newline() << v.qname() << " = 0;";
+	  break;
+	case pe_string:
+	  parent->o->newline() << v.qname() << "[0] = '\\0';";
+	  break;
+	case pe_unknown:
+	default:
+	  throw semantic_error("Cannot delete unknown expression type", e->tok);
+	}
+    }
+}
+
+void 
+delete_statement_operand_tmp_visitor::visit_arrayindex (arrayindex* e)
+{
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
+
+  if (array)
+    {
+      vardecl* r = array->referent;
+
+      // One temporary per index dimension.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->parent->gensym (r->index_types[i]);
+	  ix.declare (*(parent->parent));
+	  e->indexes[i]->visit(parent);
+	}
+    }
+  else
+    {
+      throw semantic_error("cannot delete histogram bucket entries\n", e->tok);
+    }
 }
 
 void 
@@ -2182,6 +2245,14 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
     {
       throw semantic_error("cannot delete histogram bucket entries\n", e->tok);
     }
+}
+
+
+void
+c_tmpcounter::visit_delete_statement (delete_statement* s)
+{
+  delete_statement_operand_tmp_visitor dv (this);
+  s->value->visit (&dv);
 }
 
 

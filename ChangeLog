@@ -1,3 +1,16 @@
+2006-01-16  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2140
+	* translate.cxx (mapvar::del): Add ability to delete an indexed stat
+	from (p)maps.
+	(delete_statement_operand_visitor::visit_symbol): Add ability to
+	delete entire pmaps and scalars.
+	(delete_statement_operand_tmp_visitor): Add a special tmpvar visitor
+	to parallel delete_statement_operand_visitor.
+	(c_tmpcounter::visit_delete_statement): Invoke the new visitor.
+	* testsuite/buildok/delete.stp: Also test scalar deletes.
+	* vim/syntax/stap.vim: Recognize 'delete' operator.
+
 2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2148

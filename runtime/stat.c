@@ -1,6 +1,7 @@
 /* -*- linux-c -*-
  * Statistics Aggregation
  * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2006 Intel Corporation
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -269,6 +270,22 @@ void _stp_stat_print (Stat st, char *fmt, int clear)
 	stat *agg = _stp_stat_get(st, clear);
 	__stp_stat_print (fmt, st, agg, 0);
 	STAT_UNLOCK(agg);
+}
+
+/** Clear Stats.
+ * Clears the Stats.
+ *
+ * @param st Stat
+ */
+void _stp_stat_clear (Stat st)
+{
+	int i;
+	for_each_cpu(i) {
+		stat *sd = per_cpu_ptr (st->sd, i);
+		STAT_LOCK(sd);
+		_stp_stat_clear_data (st, sd);
+		STAT_UNLOCK(sd);
+	}
 }
 /** @} */
 #endif /* _STAT_C_ */

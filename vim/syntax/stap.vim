@@ -11,7 +11,7 @@ elseif exists("b:current_syntax")
   finish
 endif
 
-syn keyword stapStatement   contained break continue return next containedin=stapBlock
+syn keyword stapStatement   contained break continue return next delete containedin=stapBlock
 syn keyword stapRepeat      contained while for foreach in containedin=stapBlock
 syn keyword stapConditional contained if else containedin=stapBlock
 syn keyword stapDeclaration global probe function

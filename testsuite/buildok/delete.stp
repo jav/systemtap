@@ -1,20 +1,17 @@
 #! stap -p4
 #
 # Make sure that 'delete' works in all variations.
-#
-# NOTE: It hasn't been decided yet whether 'delete' should work on scalar
-# numbers and strings, so for now those are commented out.
 
 global a, b, c, d, e, f
 
 probe begin {
-    a = 1; #delete a;
-    b = "b"; #delete b;
+    a = 1; delete a;
+    b = "b"; delete b;
     c <<< 1; delete c;
     d[1] = 1; delete d[1]; delete d; 
     e[1] = "e"; delete e[1]; delete e; 
     f[1] <<< 1; delete f[1]; delete f;
 
-    x = 1; #delete x;
-    y = "y"; #delete y;
+    x = 1; delete x;
+    y = "y"; delete y;
 }

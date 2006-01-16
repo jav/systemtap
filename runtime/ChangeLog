@@ -1,3 +1,8 @@
+2006-01-16  Josh Stone  <joshua.i.stone@intel.com>
+
+	* stat.c (_stp_stat_clear): add a function that just
+	clears a Stat, so we can use delete in the translator.
+
 2006-01-16  Martin Hunt  <hunt@redhat.com>
 
 	* map.c (_stp_pmap_agg): Return NULL when aggregation
