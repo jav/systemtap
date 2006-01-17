@@ -25,6 +25,10 @@ probe end
 	{	
 		if (@hist_log(foo)[bucket] > 0)
 			printf("bucket %d: %d\n", bucket, @hist_log(foo)[bucket])
+#               XXX: both these should work, but histogram for() loops
+#		     are emitted incorrectly
+#               break 
+#		continue
 	}
 }
 

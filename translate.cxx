@@ -17,6 +17,9 @@
 #include <string>
 #include <cassert>
 
+#define EXTRACTORS_PERMISSIVE 0 /* PR 2142 */
+
+
 using namespace std;
 
 
@@ -695,7 +698,7 @@ struct mapvar
 
 	  case statistic_decl::logarithmic:
 	    if (sdecl().logarithmic_buckets > 64)
-	      throw semantic_error("Cannot support > 64 logarithmic buckets");	    
+	      throw semantic_error("cannot support > 64 logarithmic buckets");	    
 	    return (prefix
 		    + ", HIST_LOG" 
 		    + ", " + stringify(sdecl().logarithmic_buckets) 
@@ -2094,6 +2097,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       var v = getvar(sym->referent, sym->tok);
       v.assert_hist_compatible(*hist);
 
+      // XXX: break / continue don't work here yet
       o->newline() << "for (" << bucketvar << " = 0; " 
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
@@ -3026,23 +3030,34 @@ c_unparser::visit_arrayindex (arrayindex* e)
 	  load_aggregate(hist->stat, agg, false);
 	}
 
-      {
-	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	o->newline() << "if (" << histogram_index_check(*v, idx[0]) << ")";
-	o->newline() << "{";
-	o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
-	o->newline(-1) << "}";
-	o->newline() << "else";
-	o->newline() << "{";
-	o->newline(1)  << "c->last_error = \"Histogram index out of range\";";
-	o->newline()   << res << " = 0;";
-	o->newline(-1) << "}";
-      }
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
+      // PR 2142: NULL check for aggregate struct pointer
+      o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
+      o->indent(1);
+#if EXTRACTORS_PERMISSIVE /* Accept all @extractors, return 0.  */
+      c_assign(res, "0", e->tok);
+#else /* Accept @count only, trap on others.  */
+      o->newline() << "c->last_error = \"aggregate element not found\";";
+#endif
+      o->newline(-1) << "else {";
+      o->indent(1);
+
+      o->newline() << "if (" << histogram_index_check(*v, idx[0]) << ")";
+      o->newline() << "{";
+      o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
+      o->newline(-1) << "}";
+      o->newline() << "else";
+      o->newline() << "{";
+      o->newline(1)  << "c->last_error = \"histogram index out of range\";";
+      o->newline()   << res << " = 0;";
+      o->newline(-1) << "}";
+      
       if (guard != NULL)
 	delete guard;
       delete v;
 
+      o->newline(-1) << "}";
       o->newline() << res << ";";
     }
 }
@@ -3352,10 +3367,24 @@ c_unparser::visit_print_format (print_format* e)
 	    load_aggregate(e->hist->stat, agg, false);
 	  }
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+
+        // PR 2142: NULL check for aggregate struct pointer
+        o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
+        o->indent(1);
+#if EXTRACTORS_PERMISSIVE
+        o->newline() << ";"; // ignore print(@hist(foo[bad_index]))
+#else /* Accept @count only, trap on others.  */
+        o->newline() << "c->last_error = \"aggregate element not found\";";
+#endif
+        o->newline(-1) << "else {";
+        o->indent(1);
+
 	o->newline() << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
 
 	if (guard != NULL)
 	  delete guard;
+
+        o->newline(-1) << "}";
       }
 
       delete v;
@@ -3395,9 +3424,9 @@ c_unparser::visit_print_format (print_format* e)
 	      switch (e->args[i]->type)
 		{
 		case pe_unknown:
-		  throw semantic_error("Cannot print unknown expression type", e->args[i]->tok);
+		  throw semantic_error("cannot print unknown expression type", e->args[i]->tok);
 		case pe_stats:
-		  throw semantic_error("Cannot print a raw stats object", e->args[i]->tok);
+		  throw semantic_error("cannot print a raw stats object", e->args[i]->tok);
 		case pe_long:
 		  curr.type = print_format::conv_signed_decimal;
 		  break;
@@ -3508,7 +3537,21 @@ c_unparser::visit_stat_op (stat_op* e)
 	  guard = new varlock_w(*this, v);
 	  load_aggregate(e->stat, agg, false);
 	}
-    
+
+      // PR 2142: NULL check for aggregate struct pointer
+      o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
+      o->indent(1);
+#if EXTRACTORS_PERMISSIVE /* Accept all @extractors, return 0.  */
+      c_assign(res, "0", e->tok);
+#else /* Accept @count only, trap on others.  */
+      if (e->ctype == sc_count)
+        c_assign(res, "0", e->tok);
+      else
+        o->newline() << "c->last_error = \"aggregate element not found\";";
+#endif
+      o->newline(-1) << "else {";
+      o->indent(1);
+
       switch (e->ctype)
 	{
 	case sc_average:
@@ -3533,6 +3576,7 @@ c_unparser::visit_stat_op (stat_op* e)
 	  c_assign(res, agg.qname() + "->max", e->tok);
 	  break;
 	}
+      o->newline(-1) << "}";
 
       if (guard != NULL)
 	delete guard;
