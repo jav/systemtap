@@ -1,5 +1,5 @@
 %define bundled_elfutils 1
-%define elfutils_version 0.118
+%define elfutils_version 0.119
 
 Name: systemtap
 Version: @VERSION@
@@ -100,6 +100,10 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Mon Jan 16 2006 Roland McGrath <roland@redhat.com> - 0.5.3-1
+- Many changes, affected PRs include: 2056, 1144, 1379, 2057,
+  2060, 1972, 2140, 2148
+
 * Mon Dec 19 2005 Roland McGrath <roland@redhat.com> - 0.5.2-1
 - Fixed build with gcc 4.1, various tapset changes.
 
