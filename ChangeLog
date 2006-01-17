@@ -1,3 +1,9 @@
+2006-01-16  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in (elfutils_version): Require 0.119 now.
+	* configure.ac, systemtap.spec.in: Version 0.5.3.
+	* configure: Regenerated.
+
 2006-01-16  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2140
@@ -108,7 +114,7 @@
 2006-01-04  Will Cohen  <wcohen@redhat.com>
 
 	* testsuite/buildok/printf.stp: Improve test coverage.
-	
+
 2006-01-03  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (emit_deregistration): Fix bad thinko on loop nesting.
