@@ -1,3 +1,7 @@
+2006-01-17  Josh Stone  <joshua.i.stone@intel.com>
+
+	* stap.1.in: Document the 'delete' operator.
+
 2006-01-16  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in (elfutils_version): Require 0.119 now.

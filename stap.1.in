@@ -294,6 +294,18 @@ function will have a special "unknown" type with no return value.
 .TP
 .BR next
 Return now from enclosing probe handler.
+.TP
+.BR delete " ARRAY[INDEX1, INDEX2, ...]"
+Remove from ARRAY the element specified by the index tuple.  The value will no
+longer be available, and subsequent iterations will not report the element.
+It is not an error to delete an element that does not exist.
+.TP
+.BR delete " ARRAY"
+Remove all elements from ARRAY.
+.TP
+.BR delete " SCALAR"
+Removes the value of SCALAR.  Integers and strings are cleared to 0 and ""
+respectively, while statistics are reset to the initial empty state.
 
 .SS EXPRESSIONS
 Systemtap supports a number of operators that have the same general syntax,
