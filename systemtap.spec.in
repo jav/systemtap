@@ -13,8 +13,8 @@ Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-root
 
 Requires: kernel >= 2.6.9-11
-Requires: kernel-devel
-# or is that kernel-smp-devel?
+# Requires: kernel-devel
+# or is that kernel-smp-devel?  kernel-hugemem-devel?
 Requires: gcc make
 # Suggest: kernel-debuginfo
 

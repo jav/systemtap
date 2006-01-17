@@ -1,5 +1,11 @@
 2006-01-17  Frank Ch. Eigler  <fche@elastic.org>
 
+	* systemtap.spec.in: Remove explicit kernel-devel dependency,
+	since some old kernel rpm builds don't virtual-provide it for
+	e.g. smp, hugemem.
+
+2006-01-17  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 2142
 	* translate.cxx (EXTRACTORS_PERMISSIVE): New experimental policy
 	parameter.
