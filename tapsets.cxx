@@ -3403,6 +3403,7 @@ profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
+  o->newline() << "c->regs = regs;";
 
   if (using_rpn) {
     o->newline() << "(void) self;";

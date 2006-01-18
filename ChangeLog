@@ -1,5 +1,10 @@
 2006-01-18  Josh Stone  <joshua.i.stone@intel.com>
 
+	* tapsets.cxx (profile_derived_probe::emit_probe_entries): Setup
+	c->regs properly in light of the emit_probe_prologue change.
+
+2006-01-18  Josh Stone  <joshua.i.stone@intel.com>
+
 	* translate.cxx (c_unparser::visit_foreach_loop): improved the error
 	message when _stp_pmap_agg fails.
 
