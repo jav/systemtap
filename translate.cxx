@@ -2022,7 +2022,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	{
 	  varlock_w agg_and_maybe_sort_guard(*this, mv);
 	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << "))";
-	  o->newline(1) << "c->last_error = \"unknown error while aggregating " << mv << "\";";
+	  o->newline(1) << "c->last_error = \"aggregation overflow in " << mv << "\";";
 	  o->indent(-1);
 
 	  // sort array if desired
