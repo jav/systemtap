@@ -16,52 +16,33 @@ Prerequisites:
 - elfutils with libdwfl (from fedora rawhide; include -devel and -libelf-)
 - root privileges
 
-Installation steps for Fedora Core 4:
--------------------------------------
+Installation steps:
 
-As root use yum to install and update the following
-1. yum update kernel or yum update kernel-smp
-2. yum install kernel-debuginfo
-3. yum install kernel-devel or yum install kernel-smp-devel
-4. Update the elfutils, currently the latest elfutils is hosted at the
-   sytemtap's developement server
-   Add a new repository 
-   vi /etc/yum.repos.d/systemtap-elfutils.repo
-   and add the following
-  
-   [systemtap-elfutils]
-   name=FOR SYSTEMTAP DEVELOPMENT ONLY
-   baseurl=ftp://sources.redhat.com/pub/systemtap/elfutils/
-   enabled=1
-   gpgcheck=0 
+- Install the kernel-debuginfo, kernel-[smp-]devel, gcc packages
+- Install the systemtap package, if one already exists.
 
-5. yum update elfutils
-6. yum update elfutils-devel
-7. Get the systemtap src from the cvs
-   cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap login
-   {enter "anoncvs" as the password}
-   cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap co src
+Build steps:
 
-8. Build and install systemtap
-   cd src
-  ./configure
-  make
-  make install (as root)
-
-
-Installation steps for RHEL4 Update 2:
---------------------------------------
-
-1. Install kernel-debuginfo rpm from CDs
-2. Install kernel-smp-devel rpm from CDs
-3. Install systemtap rpm from CDs
-
+- Install the kernel-debuginfo, kernel-[smp-]devel, gcc packages.
+- Download the latest elfutils snapshot
+  ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
+  ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
+- Untar the snapshot in some new directory; apply patch (don't ask, long story)
+- Download systemtap sources snapshot or from CVS
+  ftp://sources.redhat.com/pub/systemtap/snapshots/ 
+  (or)
+  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap login
+  # enter "anoncvs" as the password
+  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap co -c
+- Build it
+  cd src
+  ./configure --with-elfutils=PATCHED-ELFUTILS-DIR [other autoconf options]
+  make all check
+  make install
 
 Tips :
-------
-- Systemtap looks for the debug info in these locations
+
+- systemtap looks for the debug info in these locations:
   /boot/vmlinux-`uname -r`
   /usr/lib/debug/lib/modules/`uname -r`/vmlinux
   /lib/modules/`uname -r`/vmlinux
-
-
