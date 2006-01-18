@@ -2021,11 +2021,17 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       if (mv.is_parallel())
 	{
 	  varlock_w agg_and_maybe_sort_guard(*this, mv);
-	  o->newline() << mv.calculate_aggregate() << ";";
+	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << "))";
+	  o->newline(1) << "c->last_error = \"unknown error while aggregating " << mv << "\";";
+	  o->indent(-1);
+
 	  // sort array if desired
-	  if (s->sort_direction)
-	    o->newline() << "_stp_map_sort (" << mv.fetch_existing_aggregate() << ", "
-			 << s->sort_column << ", " << - s->sort_direction << ");";
+	  if (s->sort_direction) {
+	    o->newline() << "else"; // only sort if aggregation was ok
+	    o->newline(1) << "_stp_map_sort (" << mv.fetch_existing_aggregate() << ", "
+			  << s->sort_column << ", " << - s->sort_direction << ");";
+	    o->indent(-1);
+	  }
 	}
       else
 	{      
