@@ -1,6 +1,11 @@
 2006-01-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2156
+	* testsuite/buildok/pmap_foreach.stp: Add test with sorting
+
+2006-01-17  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2156
 	* translate.cxx (c_unparser::visit_foreach_loop): Check the return
 	value of _stp_pmap_agg() for NULL.
 
