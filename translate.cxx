@@ -3156,7 +3156,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       // There is an exception to the above form: if we're doign a <<< assigment to 
       // a statistic-valued map, there's a special form we follow:
       //
-      // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs); lvar; res;
+      // ({ tmp0=(idx0); ... tmpN=(idxN); rvar=(rhs);
       //    *no need to* lock (array);
       //    _stp_map_add_stat (array, idx0...N, rvar);
       //    *no need to* unlock (array);
@@ -3177,9 +3177,10 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  // NB: *no need to* varlock_w guard (*parent, mvar);
 	  o->newline() << mvar.add (idx, rvar) << ";";
-	  // dummy assignments
-	  o->newline() << lvar << " = " << rvar << ";";
-	  o->newline() << res << " = " << rvar << ";";
+          res = rvar;
+	  // no need for these dummy assignments
+	  // o->newline() << lvar << " = " << rvar << ";";
+	  // o->newline() << res << " = " << rvar << ";";
 	}
       else
 	{ // block used to control varlock_w lifespan
