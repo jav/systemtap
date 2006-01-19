@@ -617,7 +617,7 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 {
 	unsigned int hv;
-	int cpu;
+	int cpu, clear_agg = 0;
 	struct hlist_head *head, *ahead;
 	struct hlist_node *e;
 	struct KEYSYM(pmap_node) *n;
@@ -649,7 +649,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 #endif
 			) {
 			anode = (struct map_node *)n;
-			_new_map_clear_node (anode);
+			clear_agg = 1;
 			break;
 		}
 	}
@@ -681,13 +681,18 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 				if (anode == NULL) {
 					dbug("agg=%lx ahead=%lx\n", (long)agg, (long)ahead);
 					anode = _stp_new_agg(agg, ahead, (struct map_node *)n);
-				} else
+				} else {
+					if (clear_agg) {
+						_new_map_clear_node (anode);
+						clear_agg = 0;
+					}
 					_stp_add_agg(anode, (struct map_node *)n);
+				}
 			}
 		}
 		spin_unlock(&map->lock);
 	}
-	if (anode) 
+	if (anode && !clear_agg) 
 		return MAP_GET_VAL(anode);
 
 	/* key not found */

@@ -1,3 +1,8 @@
+2006-01-19  Martin Hunt  <hunt@redhat.com>
+
+	* pmap-gen.c (_stp_pmap_get): Fix bug where old data
+	from agg map could be returned after element was deleted.
+
 2006-01-16  Josh Stone  <joshua.i.stone@intel.com>
 
 	* stat.c (_stp_stat_clear): add a function that just
