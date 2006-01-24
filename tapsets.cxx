@@ -1987,8 +1987,7 @@ dwarf_query::blacklisted_p(string const & funcname,
       funcname == "notifier_call_chain" ||
       filename_s == "kernel/kprobes.c" ||
       0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0) ||
-      (has_return && (funcname == "sys_execve" || // bug #1345
-                      funcname == "sys_exit" ||
+      (has_return && (funcname == "sys_exit" ||
                       funcname == "sys_groupexit")))
     {
       if (sess.verbose)
