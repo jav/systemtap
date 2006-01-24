@@ -3,5 +3,5 @@
 function a:string () { }
 
 probe begin {
-  a() + 1
+  print (a() + 1)
 }

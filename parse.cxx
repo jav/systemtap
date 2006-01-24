@@ -1232,11 +1232,8 @@ parser::parse_for_loop ()
   t = peek ();
   if (t && t->type == tok_operator && t->content == ";")
     {
-      literal_number* l = new literal_number(0);
-      expr_statement* es = new expr_statement;
-      es->value = l;
-      s->init = es;
-      es->value->tok = es->tok = next ();
+      s->init = 0;
+      next ();
     }
   else
     {
@@ -1266,11 +1263,8 @@ parser::parse_for_loop ()
   t = peek ();
   if (t && t->type == tok_operator && t->content == ")")
     {
-      literal_number* l = new literal_number(2);
-      expr_statement* es = new expr_statement;
-      es->value = l;
-      s->incr = es;
-      es->value->tok = es->tok = next ();
+      s->incr = 0;
+      next ();
     }
   else
     {
@@ -1301,22 +1295,11 @@ parser::parse_while_loop ()
     throw parse_error ("expected '('");
 
   // dummy init and incr fields
-  literal_number* l = new literal_number(0);
-  expr_statement* es = new expr_statement;
-  es->value = l;
-  s->init = es;
-  es->value->tok = es->tok = t;
-
-  l = new literal_number(2);
-  es = new expr_statement;
-  es->value = l;
-  s->incr = es;
-  es->value->tok = es->tok = t;
-
+  s->init = 0;
+  s->incr = 0;
 
   // condition
   s->cond = parse_expression ();
-
 
   t = next ();
   if (! (t->type == tok_operator && t->content == ")"))
@@ -1808,6 +1791,12 @@ parser::parse_unary ()
 expression*
 parser::parse_crement () // as in "increment" / "decrement"
 {
+  // NB: Ideally, we'd parse only a symbol as an operand to the
+  // *crement operators, instead of a general expression value.  We'd
+  // need more complex lookahead code to tell apart the postfix cases.
+  // So we just punt, and leave it to pass-3 to signal errors on
+  // cases like "4++".
+
   const token* t = peek ();
   if (t && t->type == tok_operator 
       && (t->content == "++" || t->content == "--"))

@@ -12,6 +12,7 @@
 #include "session.h"
 #include <map>
 #include <stack>
+#include <set>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -443,9 +444,9 @@ struct block: public statement
 struct expr_statement;
 struct for_loop: public statement
 {
-  expr_statement* init;
+  expr_statement* init; // may be 0
   expression* cond;
-  expr_statement* incr;
+  expr_statement* incr; // may be 0
   statement* block;
   void print (std::ostream& o) const;
   void visit (visitor* u);
@@ -485,7 +486,7 @@ struct if_statement: public statement
 {
   expression* condition;
   statement* thenblock;
-  statement* elseblock;
+  statement* elseblock; // may be 0
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };
@@ -630,9 +631,9 @@ struct visitor
 };
 
 
-// A default kind of visitor, which by default travels down
-// to the leaves of the statement/expression tree, up to
-// but excluding following vardecls (referent pointers).
+// A simple kind of visitor, which travels down to the leaves of the
+// statement/expression tree, up to but excluding following vardecls
+// and functioncalls.
 struct traversing_visitor: public visitor
 {
   void visit_block (block *s);
@@ -668,6 +669,42 @@ struct traversing_visitor: public visitor
   void visit_stat_op (stat_op* e);
   void visit_hist_op (hist_op* e);
 };
+
+
+// A kind of traversing visitor, which also follows function calls.
+// It uses an internal set object to prevent infinite recursion.
+struct functioncall_traversing_visitor: public traversing_visitor
+{
+  std::set<functiondecl*> traversed;
+  void visit_functioncall (functioncall* e);
+};
+
+
+// A kind of traversing visitor, which also follows function calls,
+// and stores the vardecl* referent of each variable read and/or
+// written and other such sundry side-effect data.  It's used by
+// the elaboration-time optimizer pass.
+struct varuse_collecting_visitor: public functioncall_traversing_visitor
+{
+  std::set<vardecl*> read;
+  std::set<vardecl*> written;
+  bool embedded_seen;
+  expression* current_lvalue;
+  expression* current_lrvalue;
+  varuse_collecting_visitor():
+    embedded_seen (false),
+    current_lvalue(0),
+    current_lrvalue(0) {}
+  void visit_embeddedcode (embeddedcode *s);
+  void visit_print_format (print_format *e);
+  void visit_assignment (assignment *e);
+  void visit_arrayindex (arrayindex *e);
+  void visit_symbol (symbol *e);
+  void visit_pre_crement (pre_crement *e);
+  void visit_post_crement (post_crement *e);
+};
+
+
 
 
 // A kind of visitor that throws an semantic_error exception

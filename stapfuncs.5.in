@@ -31,9 +31,9 @@ Log the given string to the common trace buffer.  Append an implicit
 end-of-line.
 
 .TP
-print:unknown (msg:string)
-print:unknown (k:long)
-Print the given integer or string to the common trace buffer.
+print:unknown (...)
+Print the given integer, string, or statistics value to
+the common trace buffer.
 
 .TP
 printf:unknown (fmt:string, ...)

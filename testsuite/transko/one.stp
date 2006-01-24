@@ -1,6 +1,6 @@
 #! stap -p3
 
 probe begin {
-  1 = a
-  a+1 = 4
+  print (1 = a)
+  print (a+1 = 4)
 }

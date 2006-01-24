@@ -1863,10 +1863,10 @@ c_tmpcounter::visit_block (block *s)
 void
 c_tmpcounter::visit_for_loop (for_loop *s)
 {
-  s->init->visit (this);
+  if (s->init) s->init->visit (this);
   s->cond->visit (this);
   s->block->visit (this);
-  s->incr->visit (this);
+  if (s->incr) s->incr->visit (this);
 }
 
 
@@ -1881,7 +1881,7 @@ c_unparser::visit_for_loop (for_loop *s)
   string breaklabel = "break_" + ctr;
 
   // initialization
-  s->init->visit (this);
+  if (s->init) s->init->visit (this);
 
   // condition
   o->newline(-1) << toplabel << ":";
@@ -1901,7 +1901,7 @@ c_unparser::visit_for_loop (for_loop *s)
   // iteration
   o->newline(-1) << contlabel << ":";
   o->indent(1);
-  s->incr->visit (this);
+  if (s->incr) s->incr->visit (this);
   o->newline() << "goto " << toplabel << ";";
 
   // exit
@@ -3644,10 +3644,15 @@ emit_symbol_data (systemtap_session& s)
   if (rc == 0)
     {
       ifstream kallsyms (sorted_kallsyms.c_str());
+      char kallsyms_outbuf [4096];
+      ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
+      kallsyms_out.rdbuf()->pubsetbuf (kallsyms_outbuf,
+                                       sizeof(kallsyms_outbuf));
+      
+      s.op->newline() << "\n\n#include \"stap-symbols.h\"";
 
       unsigned i=0;
-      s.op->newline() << "struct stap_symbol stap_symbols [] = {";
-      s.op->indent(1);
+      kallsyms_out << "struct stap_symbol stap_symbols [] = {";
       string lastaddr;
       while (! kallsyms.eof())
 	{
@@ -3664,15 +3669,16 @@ emit_symbol_data (systemtap_session& s)
 	  // NB: kallsyms includes some duplicate addresses
 	  if ((type == "t" || type == "T") && lastaddr != addr)
 	    {
-	      s.op->newline() << "{ 0x" << addr << ", "
-			      << "\"" << sym << "\", "
-			      << "\"" << module << "\" },";
+	      kallsyms_out << "  { 0x" << addr << ", "
+                           << "\"" << sym << "\", "
+                           << "\"" << module << "\" },"
+                           << "\n";
 	      lastaddr = addr;
 	      i ++;
 	    }
 	}
-      s.op->newline(-1) << "};";
-      s.op->newline() << "unsigned stap_num_symbols = " << i << ";\n";
+      kallsyms_out << "};\n";
+      kallsyms_out << "unsigned stap_num_symbols = " << i << ";\n";
     }
 
   return rc;
@@ -3691,7 +3697,9 @@ translate_pass (systemtap_session& s)
   try
     {
       // This is at the very top of the file.
-      s.op->line() << "#define TEST_MODE " << (s.test_mode ? 1 : 0) << "\n";
+      
+      // XXX: the runtime uses #ifdef TEST_MODE to infer systemtap usage.
+      s.op->line() << "#define TEST_MODE 0\n";
 
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 10";
@@ -3725,9 +3733,6 @@ translate_pass (systemtap_session& s)
       if (s.bulk_mode)
 	s.op->newline() << "#define STP_RELAYFS";
 
-      s.op->newline() << "#if TEST_MODE";
-      s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#else";
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"current.c\"";
       s.op->newline() << "#include \"stack.c\"";
@@ -3736,7 +3741,6 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
-      s.op->newline() << "#endif";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
 
       s.up->emit_common_header ();
@@ -3776,18 +3780,7 @@ translate_pass (systemtap_session& s)
       s.up->emit_module_exit ();
 
       s.op->newline();
-      s.op->newline() << "#if TEST_MODE";
 
-      s.op->newline() << "/* test mode mainline */";
-      s.op->newline() << "int main () {";
-      s.op->newline(1) << "int rc = systemtap_module_init ();";
-      s.op->newline() << "if (!rc) systemtap_module_exit ();";
-      s.op->newline() << "return rc;";
-      s.op->newline(-1) << "}";
-
-      s.op->newline() << "#else";
-
-      s.op->newline();
       // XXX impedance mismatch
       s.op->newline() << "int probe_start () {";
       s.op->newline(1) << "return systemtap_module_init () ? -1 : 0;";
@@ -3799,7 +3792,6 @@ translate_pass (systemtap_session& s)
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
-      s.op->newline() << "#endif";
     }
   catch (const semantic_error& e)
     {

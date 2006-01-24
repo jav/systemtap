@@ -6,11 +6,7 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-function print (msg:string) %{
-    _stp_print (THIS->msg);
-%}
-
-// like print but with a newline
+// send a string out with a newline
 function log (msg:string) %{
     _stp_printf ("%s\n", THIS->msg);
 %}

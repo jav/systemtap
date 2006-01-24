@@ -691,11 +691,11 @@ void block::print (ostream& o) const
 void for_loop::print (ostream& o) const
 {
   o << "for (";
-  init->print (o);
+  if (init) init->print (o);
   o << "; ";
   cond->print (o);
   o << "; ";
-  incr->print (o);
+  if (incr) incr->print (o);
   o << ") ";
   block->print (o);
 }
@@ -1262,9 +1262,9 @@ traversing_visitor::visit_if_statement (if_statement* s)
 void
 traversing_visitor::visit_for_loop (for_loop* s)
 {
-  s->init->visit (this);
+  if (s->init) s->init->visit (this);
   s->cond->visit (this);
-  s->incr->visit (this);
+  if (s->incr) s->incr->visit (this);
   s->block->visit (this);
 }
 
@@ -1409,6 +1409,9 @@ traversing_visitor::visit_target_symbol (target_symbol* e)
 void
 traversing_visitor::visit_arrayindex (arrayindex* e)
 {
+  for (unsigned i=0; i<e->indexes.size(); i++)
+    e->indexes[i]->visit (this);
+
   symbol *array = NULL;
   hist_op *hist = NULL;
   classify_indexable(e->base, array, hist);
@@ -1416,8 +1419,6 @@ traversing_visitor::visit_arrayindex (arrayindex* e)
     return array->visit(this);
   else
     return hist->visit(this);
-  for (unsigned i=0; i<e->indexes.size(); i++)
-    e->indexes[i]->visit (this);
 }
 
 void
@@ -1447,6 +1448,142 @@ traversing_visitor::visit_hist_op (hist_op* e)
 {
   e->stat->visit (this);
 }
+
+
+void
+functioncall_traversing_visitor::visit_functioncall (functioncall* e) 
+{
+  traversing_visitor::visit_functioncall (e);
+
+  // prevent infinite recursion
+  if (traversed.find (e->referent) == traversed.end ())
+    {
+      traversed.insert (e->referent);
+      // recurse
+      e->referent->body->visit (this);
+    }
+}
+
+
+void
+varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
+{
+  embedded_seen = true;
+}
+
+
+void
+varuse_collecting_visitor::visit_print_format (print_format* e)
+{
+  // NB: Instead of being top-level statements, "print" and "printf"
+  // are implemented as statement-expressions containing a
+  // print_format.  They have side-effects, but not via the
+  // embedded-code detection method above. 
+  embedded_seen = true;
+  functioncall_traversing_visitor::visit_print_format (e);
+}
+
+
+void
+varuse_collecting_visitor::visit_assignment (assignment *e)
+{
+  if (e->op == "=" || e->op == "<<<") // pure writes
+    {
+      expression* last_lvalue = current_lrvalue;
+      current_lvalue = e->left; // leave a mark for ::visit_symbol
+      functioncall_traversing_visitor::visit_assignment (e);
+      current_lvalue = last_lvalue;
+    }
+  else // read-modify-writes
+    {
+      expression* last_lrvalue = current_lrvalue;
+      current_lrvalue = e->left; // leave a mark for ::visit_symbol
+      functioncall_traversing_visitor::visit_assignment (e);
+      current_lrvalue = last_lrvalue;
+    }
+}
+
+void
+varuse_collecting_visitor::visit_symbol (symbol *e)
+{
+  if (e->referent == 0)
+    throw semantic_error ("symbol without referent", e->tok);
+
+  if (current_lvalue == e || current_lrvalue == e)
+    {
+      written.insert (e->referent);
+      // clog << "write ";
+    }
+  if (current_lvalue != e || current_lrvalue == e)
+    {
+      read.insert (e->referent);
+      // clog << "read ";
+    }
+  // clog << *e->tok << endl;
+}
+
+// NB: stat_op need not be overridden, since it will get to
+// visit_symbol and only as a possible rvalue.
+
+void
+varuse_collecting_visitor::visit_arrayindex (arrayindex *e)
+{
+  // Hooking this callback is necessary because of the hacky
+  // statistics representation.  For the expression "i[4] = 5", the
+  // incoming lvalue will point to this arrayindex.  However, the
+  // symbol corresponding to the "i[4]" is multiply inherited with
+  // arrayindex.  If the symbol base part of this object is not at
+  // offset 0, then static_cast<symbol*>(e) may result in a different
+  // address, and not match lvalue by number when we recurse that way.
+  // So we explicitly override the incoming lvalue/lrvalue values to
+  // point at the embedded objects' actual base addresses.
+
+  expression* last_lrvalue = current_lrvalue;
+  expression* last_lvalue = current_lvalue;
+
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
+
+  if (array)
+    {
+      if (current_lrvalue == e) current_lrvalue = array;
+      if (current_lvalue == e) current_lvalue = array;
+      functioncall_traversing_visitor::visit_arrayindex (e);
+    }
+  else // if (hist)
+    {
+      if (current_lrvalue == e) current_lrvalue = hist->stat;
+      if (current_lvalue == e) current_lvalue = hist->stat;
+      functioncall_traversing_visitor::visit_arrayindex (e);
+    }
+
+  current_lrvalue = last_lrvalue;
+  current_lvalue = last_lvalue;
+}
+
+
+void
+varuse_collecting_visitor::visit_pre_crement (pre_crement *e)
+{
+  expression* last_lrvalue = current_lrvalue;
+  current_lrvalue = e->operand; // leave a mark for ::visit_symbol
+  functioncall_traversing_visitor::visit_pre_crement (e);
+  current_lrvalue = last_lrvalue;
+}
+
+void
+varuse_collecting_visitor::visit_post_crement (post_crement *e)
+{
+  expression* last_lrvalue = current_lrvalue;
+  current_lrvalue = e->operand; // leave a mark for ::visit_symbol
+  functioncall_traversing_visitor::visit_post_crement (e);
+  current_lrvalue = last_lrvalue;
+}
+
+
+
+
 
 
 // ------------------------------------------------------------------------

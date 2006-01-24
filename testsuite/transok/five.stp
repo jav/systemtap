@@ -13,5 +13,7 @@ probe begin
   for (a=0; a<=4; a=a+1) { b = a }
 
   while (99) next
+  while (99) break
+  while (99) continue
   while (99) {}
 }

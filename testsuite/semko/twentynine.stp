@@ -1,4 +1,4 @@
-#! stap -p2
+#! stap -up2
 
 # need one of these for each prohibited statistic operation
 
@@ -6,6 +6,6 @@ global x
 
 probe end
 {
-	x <<< 10 <<< 11
+	x <<< 10 <<< 11  # but see PR 1922
 }
 

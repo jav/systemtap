@@ -1,0 +1,18 @@
+#! stap -p2
+
+# We count on the optimizer to blow away these ridiculous
+# expressions, since they have no effect on the output.
+
+global b
+
+function zoo (x) {
+  return "tada" + x
+}
+
+probe begin {
+  b <<< "hello"
+  a = b + 2
+  zoo (zoo (5))
+  b = "goodbye"
+  no . $such . $target + $variable
+}

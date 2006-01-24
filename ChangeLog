@@ -1,3 +1,38 @@
+2006-01-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2060 etc.
+	* tapsets.cxx (visit_target_symbol): Tolerate failed resolution by
+	letting target_symbol instance pass through to optimizer and
+	type checker.
+	* elaborate.cxx (semantic_pass_optimize): New family of functions and
+	associated visitor classes.
+	(visit_for_loop): Tolerate absent init/incr clauses.
+	(semantic_pass): Invoke unless unoptimized (-u) option given.
+	* main.cxx, session.h: Add support for flag.
+	* staptree.cxx (visit_for_loop): Tolerate absent init/incr clauses.
+	(traversing_visitor::visit_arrayindex): Visit the index expressions.
+	(functioncall_traversing_visitor): New class.
+	(varuse_tracking_visitor): New class.
+	* staptree.h: Corresponding changes.
+	* parse.cxx (parse_for_loop): Represent absent init/incr expressions
+	with null statement pointer instead of optimized-out dummy numbers.
+	* stap.1.in: Document optimization.
+	* testsuite/{semko,transko}/*.stp: Added "-u" or other code to many
+	tests to check bad code without optimizer elision.
+	* testsuite/semok/optimize.stp: New test.
+
+	* elaborate.cxx (unresolved, invalid, mismatch): Standardize error
+	message wording.
+	* stapfuncs.5.in: Tweak print/printf docs.
+	* tapset/logging.stp: Remove redundant "print" auxiliary function,
+	since it's a translator built-in.
+	* testsuite/transok/five.stp: Extend test.
+	* translate.cxx (emit_symbol_data): Put symbol table into a separate
+	temporary header file, to make "-p3" output easier on the eyes.
+	* buildrun.cxx (compile_pass): Eliminate test-mode support throughout.
+	* main.cxx, session.h, translate.cxx: Ditto.
+	* main.cxx (main): For last-pass=2 runs, print post-optimization ASTs.
+
 2006-01-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (profile_derived_probe::emit_probe_entries): Setup

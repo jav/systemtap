@@ -69,69 +69,34 @@ compile_pass (systemtap_session& s)
   // XXX
   // o << "CFLAGS += -ftime-report" << endl;
 
-  if (s.test_mode)
-    {
-      string module_dir = string("/lib/modules/")
-        + s.kernel_release + "/build";
-
-      o << "CFLAGS += -I \"" << module_dir << "/include\"" << endl;
-      o << "CFLAGS += -I \"" << s.runtime_path << "/user\"" << endl;
-      o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
-      o << "CFLAGS += -I \"" << module_dir << "/include/asm/mach-default\"" << endl;
-      o << s.module_name << ": " << s.translated_source << endl;
-      o << "\t$(CC) $(CFLAGS) -o " << s.module_name
-        << " " << s.translated_source << endl;
-    }
-  else
-    {
-      // Assumes linux 2.6 kbuild
-      o << "CFLAGS += -Wno-unused -Werror" << endl;
-      o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
-      o << "CFLAGS += -I \"" << s.runtime_path << "/relayfs\"" << endl;
-      o << "obj-m := " << s.module_name << ".o" << endl;
-    }
+  // Assumes linux 2.6 kbuild
+  o << "CFLAGS += -Wno-unused -Werror" << endl;
+  o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
+  o << "CFLAGS += -I \"" << s.runtime_path << "/relayfs\"" << endl;
+  o << "obj-m := " << s.module_name << ".o" << endl;
 
   o.close ();
 
   // Run make
-  if (s.test_mode)
-    {
-      string make_cmd = string("make -C \"") + s.tmpdir + "\"";
-
-      if (s.verbose)
-        make_cmd += " V=1";
-      else
-        make_cmd += " -s >/dev/null 2>&1";
-      
-      if (s.verbose) clog << "Running " << make_cmd << endl;
-      rc = system (make_cmd.c_str());
-      
-      if (s.verbose) clog << "Pass 4: compiled into \""
-                          << s.module_name
-                          << "\"" << endl;
-    }
+  string module_dir = string("/lib/modules/")
+    + s.kernel_release + "/build";
+  string make_cmd = string("make")
+    + string (" -C \"") + module_dir + string("\"");
+  make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
+  
+  if (s.verbose)
+    make_cmd += " V=1";
   else
-    {
-      string module_dir = string("/lib/modules/")
-        + s.kernel_release + "/build";
-      string make_cmd = string("make")
-        + string (" -C \"") + module_dir + string("\"");
-      make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
-
-      if (s.verbose)
-        make_cmd += " V=1";
-      else
-        make_cmd += " -s >/dev/null 2>&1";
-      
-      if (s.verbose) clog << "Running " << make_cmd << endl;
-      rc = system (make_cmd.c_str());
-      
-      
-      if (s.verbose) clog << "Pass 4: compiled into \""
-                          << s.module_name << ".ko"
-                          << "\"" << endl;
-    }
-
+    make_cmd += " -s >/dev/null 2>&1";
+  
+  if (s.verbose) clog << "Running " << make_cmd << endl;
+  rc = system (make_cmd.c_str());
+  
+  
+  if (s.verbose) clog << "Pass 4: compiled into \""
+                      << s.module_name << ".ko"
+                      << "\"" << endl;
+  
   return rc;
 }
 
@@ -141,41 +106,31 @@ run_pass (systemtap_session& s)
 {
   int rc = 0;
 
-  if (s.test_mode)
-    {
-      string run_cmd = s.tmpdir + "/" + s.module_name;
-
-      if (s.verbose) clog << "Running " << run_cmd << endl;
-      rc = system (run_cmd.c_str ());
-    }
-  else // real run
-    {
-      // for now, just spawn stpd
-      string stpd_cmd = string("sudo ") 
-        + string(PKGLIBDIR) + "/stpd "
-        + (s.bulk_mode ? "" : "-r ")
-        + (s.verbose ? "" : "-q ")
-        + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
-
-      stpd_cmd += "-d " + stringify(getpid()) + " ";
-
-      if (s.cmd != "")
-	stpd_cmd += "-c \"" + s.cmd + "\" ";
-
-      if (s.target_pid)
-	stpd_cmd += "-t " + stringify(s.target_pid) + " ";
-
-      if (s.buffer_size)
-	stpd_cmd += "-b " + stringify(s.buffer_size) + " ";
-
-      stpd_cmd += s.tmpdir + "/" + s.module_name + ".ko";
-
-      if (s.verbose) clog << "Running " << stpd_cmd << endl;
-
-      signal (SIGHUP, SIG_IGN);
-      signal (SIGINT, SIG_IGN);
-      rc = system (stpd_cmd.c_str ());
-    }      
+  // for now, just spawn stpd
+  string stpd_cmd = string("sudo ") 
+    + string(PKGLIBDIR) + "/stpd "
+    + (s.bulk_mode ? "" : "-r ")
+    + (s.verbose ? "" : "-q ")
+    + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
+  
+  stpd_cmd += "-d " + stringify(getpid()) + " ";
+  
+  if (s.cmd != "")
+    stpd_cmd += "-c \"" + s.cmd + "\" ";
+  
+  if (s.target_pid)
+    stpd_cmd += "-t " + stringify(s.target_pid) + " ";
+  
+  if (s.buffer_size)
+    stpd_cmd += "-b " + stringify(s.buffer_size) + " ";
+  
+  stpd_cmd += s.tmpdir + "/" + s.module_name + ".ko";
+  
+  if (s.verbose) clog << "Running " << stpd_cmd << endl;
+  
+  signal (SIGHUP, SIG_IGN);
+  signal (SIGINT, SIG_IGN);
+  rc = system (stpd_cmd.c_str ());
 
   return rc;
 }

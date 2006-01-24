@@ -751,6 +751,7 @@ semantic_pass_stats (systemtap_session & sess)
 
 
 static int semantic_pass_symbols (systemtap_session&);
+static int semantic_pass_optimize (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
 static int semantic_pass_vars (systemtap_session&);
 static int semantic_pass_stats (systemtap_session&);
@@ -851,6 +852,7 @@ semantic_pass (systemtap_session& s)
       register_standard_tapsets(s);
       
       rc = semantic_pass_symbols (s);
+      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize (s);
       if (rc == 0) rc = semantic_pass_types (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
@@ -1170,6 +1172,300 @@ symresolution_info::find_function (const string& name, unsigned arity)
 
   return 0;
 }
+
+
+
+// ------------------------------------------------------------------------
+// optimization
+
+
+// Do away with functiondecls that are never (transitively) called
+// from probes.
+void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
+{
+  functioncall_traversing_visitor ftv;
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& ftv);
+  for (unsigned i=0; i<s.functions.size(); /* see below */)
+    {
+      if (ftv.traversed.find(s.functions[i]) == ftv.traversed.end())
+        {
+          if (s.verbose)
+            clog << "Eliding unused function " << s.functions[i]->name
+                 << endl;
+          s.functions.erase (s.functions.begin() + i);
+          relaxed_p = false;
+          // NB: don't increment i
+        }
+      else
+        i++;
+    }
+}
+
+
+// ------------------------------------------------------------------------
+
+// Do away with local & global variables that are never
+// written nor read.
+void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
+{
+  varuse_collecting_visitor vut;
+  
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& vut);
+  // NB: Since varuse_collecting_visitor also traverses down
+  // actually called functions, we don't need to explicitly
+  // iterate over them.  Uncalled ones should have been pruned
+  // in _opt1 above.
+  //
+  // for (unsigned i=0; i<s.functions.size(); i++)
+  //   s.functions[i]->body->visit (& vut);
+  
+  // Now in vut.read/written, we have a mixture of all locals, globals
+  
+  for (unsigned i=0; i<s.probes.size(); i++)
+    for (unsigned j=0; j<s.probes[i]->locals.size(); /* see below */)
+      {
+        vardecl* l = s.probes[i]->locals[j];
+        if (vut.read.find (l) == vut.read.end() &&
+            vut.written.find (l) == vut.written.end())
+          {
+            if (s.verbose)
+              clog << "Eliding unused local variable "
+                   << l->name << " in probe #" << i << endl;
+            s.probes[i]->locals.erase(s.probes[i]->locals.begin() + j);
+            relaxed_p = false;
+            // don't increment j
+          }
+        else
+          j++;
+      }
+  for (unsigned i=0; i<s.functions.size(); i++)
+    for (unsigned j=0; j<s.functions[i]->locals.size(); /* see below */)
+      {
+        vardecl* l = s.functions[i]->locals[j];
+        if (vut.read.find (l) == vut.read.end() &&
+            vut.written.find (l) == vut.written.end())
+          {
+            if (s.verbose)
+              clog << "Eliding unused local variable "
+                   << l->name << " in function " << s.functions[i]->name
+                   << endl;
+            s.functions[i]->locals.erase(s.functions[i]->locals.begin() + j);
+            relaxed_p = false;
+            // don't increment j
+          }
+        else
+          j++;
+      }
+  for (unsigned i=0; i<s.globals.size(); /* see below */)
+    {
+      vardecl* l = s.globals[i];
+      if (vut.read.find (l) == vut.read.end() &&
+          vut.written.find (l) == vut.written.end())
+        {
+          if (s.verbose)
+            clog << "Eliding unused global variable "
+                 << l->name << endl;
+          s.globals.erase(s.globals.begin() + i);
+          relaxed_p = false;
+          // don't increment i
+        }
+      else
+        i++;
+    }
+}
+
+
+// ------------------------------------------------------------------------
+
+struct dead_assignment_remover: public traversing_visitor
+{
+  systemtap_session& session;
+  bool& relaxed_p;
+  const varuse_collecting_visitor& vut;
+  expression** current_expr;
+
+  dead_assignment_remover(systemtap_session& s, bool& r,
+                          const varuse_collecting_visitor& v): 
+    session(s), relaxed_p(r), vut(v), current_expr(0) {}
+
+  void visit_expr_statement (expr_statement* s);
+  // XXX: and other places where an assignment may be nested
+
+  void visit_assignment (assignment* e);
+};
+
+
+void
+dead_assignment_remover::visit_expr_statement (expr_statement* s)
+{
+  expression** last_expr = current_expr;
+  current_expr = & s->value;
+  s->value->visit (this);
+  current_expr = last_expr;
+}
+
+
+void
+dead_assignment_remover::visit_assignment (assignment* e)
+{
+  symbol* left = get_symbol_within_expression (e->left);
+  vardecl* leftvar = left->referent;
+  if (*current_expr == e) // we're not nested any deeper than expected 
+    {
+      // clog << "Checking assignment to " << leftvar->name << " at " << *e->tok << endl;
+      if (vut.read.find(leftvar) == vut.read.end()) // var never read?
+        {
+          if (session.verbose)
+            clog << "Eliding assignment to " << leftvar->name 
+                 << " at " << *e->tok << endl;
+          *current_expr = e->right; // goodbye assignment*
+          relaxed_p = false;
+        }
+    }
+}
+
+
+// Let's remove assignments to variables that are never read.  We
+// rewrite "(foo = expr)" as "(expr)".  This makes foo a candidate to
+// be optimized away as an unused variable, and expr a candidate to be
+// removed as a side-effect-free statement expression.  Wahoo!
+void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
+{
+  // Recompute the varuse data, which will probably match the opt2
+  // copy of the computation, except for those totally unused
+  // variables that opt2 removed.
+  varuse_collecting_visitor vut;
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& vut); // includes reachable functions too
+
+  dead_assignment_remover dar (s, relaxed_p, vut);
+  // This instance may be reused for multiple probe/function body trims.
+
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& dar);
+  for (unsigned i=0; i<s.functions.size(); i++)
+    s.functions[i]->body->visit (& dar);
+  // The rewrite operation is performed within the visitor.
+}
+
+
+// ------------------------------------------------------------------------
+
+struct dead_stmtexpr_remover: public traversing_visitor
+{
+  systemtap_session& session;
+  bool& relaxed_p;
+  statement** current_stmt; // pointer to current stmt* being iterated
+
+  dead_stmtexpr_remover(systemtap_session& s, bool& r): 
+    session(s), relaxed_p(r), current_stmt(0) {}
+
+  void visit_block (block *s);
+  // XXX: and other places where stmt_expr's might be nested
+
+  void visit_expr_statement (expr_statement *s);
+};
+
+
+void
+dead_stmtexpr_remover::visit_block (block *s)
+{
+  for (unsigned i=0; i<s->statements.size(); i++)
+    {
+      statement** last_stmt = current_stmt;
+      current_stmt = & s->statements[i];
+      s->statements[i]->visit (this);
+      current_stmt = last_stmt;
+    }
+}
+
+
+void
+dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
+{
+  // Run a varuse query against the operand expression.  If it has no
+  // side-effects, replace the entire statement expression by a null
+  // statement.  This replacement is done by overwriting the
+  // current_stmt pointer.
+  //
+  // Unlike many other visitors, we do *not* traverse this outermost
+  // one into the expression subtrees.  There is no need - no
+  // expr_statement nodes will be found there.  (Function bodies
+  // need to be visited explicitly by our caller.)
+  //
+  // NB.  While we don't share nodes in the parse tree, let's not
+  // deallocate *s anyway, just in case...
+
+  varuse_collecting_visitor vut;
+  s->value->visit (& vut);
+  if (vut.written.empty() && !vut.embedded_seen)
+    {
+      if (session.verbose)
+        clog << "Eliding side-effect-free expression "
+             << *s->tok << endl;
+
+      null_statement* ns = new null_statement;
+      ns->tok = s->tok;
+      * current_stmt = ns;
+      // XXX: A null_statement carries more weight in the translator's
+      // output than a nonexistent statement.  It might be nice to
+      // work a little harder and completely eliminate all traces of
+      // an elided statement.
+      
+      relaxed_p = false;
+    }
+}
+
+
+void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
+{
+  // Finally, let's remove some statement-expressions that have no
+  // side-effect.  These should be exactly those whose private varuse
+  // visitors come back with an empty "written" and "embedded" lists.
+  
+  dead_stmtexpr_remover duv (s, relaxed_p);
+  // This instance may be reused for multiple probe/function body trims.
+
+  for (unsigned i=0; i<s.probes.size(); i++)
+    s.probes[i]->body->visit (& duv);
+  for (unsigned i=0; i<s.functions.size(); i++)
+    s.functions[i]->body->visit (& duv);
+}
+
+
+static int
+semantic_pass_optimize (systemtap_session& s)
+{
+  // In this pass, we attempt to rewrite probe/function bodies to
+  // eliminate some blatantly unnecessary code.  This is run before
+  // type inference, but after symbol resolution and derived_probe
+  // creation.  We run an outer "relaxation" loop that repeats the
+  // optimizations until none of them find anything to remove.
+
+  int rc = 0;
+
+  bool relaxed_p = false;
+  while (! relaxed_p)
+    {
+      relaxed_p = true; // until proven otherwise
+
+      semantic_pass_opt1 (s, relaxed_p);
+      semantic_pass_opt2 (s, relaxed_p);
+      semantic_pass_opt3 (s, relaxed_p);
+      semantic_pass_opt4 (s, relaxed_p);
+    }
+
+  if (s.probes.size() == 0)
+    {
+      cerr << "semantic error: no probes found." << endl;
+      rc = 1;
+    }
+
+  return rc;
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -1568,6 +1864,11 @@ typeresolution_info::visit_symbol (symbol* e)
 void
 typeresolution_info::visit_target_symbol (target_symbol* e)
 {
+  // This occurs only if a target symbol was not resolved over in
+  // tapset.cxx land, that error was properly suppressed, and the
+  // later unused-expression-elimination pass didn't get rid of it
+  // either.  So we have a target symbol that is believed to be of
+  // genuine use, yet unresolved by the provider.
   throw semantic_error("unresolved target-symbol expression", e->tok);
 }
 
@@ -1730,11 +2031,11 @@ void
 typeresolution_info::visit_for_loop (for_loop* e)
 {
   t = pe_unknown;
-  e->init->visit (this);
+  if (e->init) e->init->visit (this);
   t = pe_long;
   e->cond->visit (this);
   t = pe_unknown;
-  e->incr->visit (this);  
+  if (e->incr) e->incr->visit (this);  
   t = pe_unknown;
   e->block->visit (this);  
 }
@@ -2056,7 +2357,7 @@ typeresolution_info::unresolved (const token* tok)
 
   if (assert_resolvability)
     {
-      cerr << "error: unresolved type for ";
+      cerr << "semantic error: unresolved type for ";
       if (tok)
         cerr << *tok;
       else
@@ -2073,7 +2374,7 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 
   if (assert_resolvability)
     {
-      cerr << "error: invalid type " << pe << " for ";
+      cerr << "semantic error: invalid type " << pe << " for ";
       if (tok)
         cerr << *tok;
       else
@@ -2090,7 +2391,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 
   if (assert_resolvability)
     {
-      cerr << "error: type mismatch for ";
+      cerr << "semantic error: type mismatch for ";
       if (tok)
         cerr << *tok;
       else

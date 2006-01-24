@@ -60,7 +60,7 @@ usage (systemtap_session& s)
     << "   -h         show help" << endl
     << "   -V         show version" << endl
     << "   -k         keep temporary directory" << endl
-    // << "   -t         test mode" << (s.test_mode ? " [set]" : "") << endl
+    << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
@@ -120,9 +120,9 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.architecture = string (buf.machine);
   s.verbose = false;
-  s.test_mode = false;
   s.guru_mode = false;
   s.bulk_mode = false;
+  s.unoptimized = false;
   s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
@@ -145,7 +145,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvp:I:e:o:tR:r:m:kgc:x:D:bs:");
+      int grc = getopt (argc, argv, "hVvp:I:e:o:R:r:m:kgc:x:D:bs:u");
       if (grc < 0)
         break;
       switch (grc)
@@ -182,10 +182,6 @@ main (int argc, char * const argv [])
           s.output_file = string (optarg);
           break;
 
-        case 't':
-          s.test_mode = true;
-          break;
-
         case 'R':
           s.runtime_path = string (optarg);
           break;
@@ -209,6 +205,10 @@ main (int argc, char * const argv [])
         case 'b':
           s.bulk_mode = true;
           break;
+
+	case 'u':
+	  s.unoptimized = true;
+	  break;
 
         case 's':
           s.buffer_size = atoi (optarg);
@@ -415,6 +415,11 @@ main (int argc, char * const argv [])
               v->printsig (cout);
               cout << endl;
             }
+          if (s.verbose)
+            {
+              f->body->print (cout);
+              cout << endl;
+            }
 	}
 
       if (s.probes.size() > 0)
@@ -431,6 +436,11 @@ main (int argc, char * const argv [])
               vardecl* v = p->locals[j];
               cout << "  ";
               v->printsig (cout);
+              cout << endl;
+            }
+          if (s.verbose)
+            {
+              p->body->print (cout);
               cout << endl;
             }
 	}

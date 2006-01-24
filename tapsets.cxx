@@ -1868,46 +1868,48 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  try
+  // NB: if for whatever reason this variable does not resolve,
+  // or is illegally used (write in non-guru mode for instance),
+  // just pretend that it's OK anyway.  var_expanding_copy_visitor
+  // will take care of throwing the appropriate exception.
+  
+  bool lvalue = is_active_lvalue(e);
+  flavour += lvalue ? 'w' : 'r';
+  exp_type ty;
+  string expr;
+  try 
     {
-      bool lvalue = is_active_lvalue(e);
-      if (lvalue && !q.sess.guru_mode)
-	throw semantic_error("Writing to target variable outside of guru mode", e->tok);
-
-      flavour += lvalue ? 'w' : 'r';
-      exp_type ty;
-      string expr = q.dw.literal_stmt_for_local(scope_die,
-						addr,
-						e->base_name.substr(1),
-						e->components,
-						lvalue,
-						ty);
-      switch (ty)
-	{
-	case pe_unknown:
-	  flavour += 'U';
-	  break;
-	case pe_long:
-	  flavour += 'L';
-	  break;
-	case pe_string:
-	  flavour += 'S';
-	  break;
-	case pe_stats:
-	  flavour += 'T';
-	  break;
-	}
-      flavour += lex_cast<string>(expr.size());
-      flavour += '{';
-      flavour += expr;
-      flavour += '}';
+      expr = q.dw.literal_stmt_for_local(scope_die,
+                                         addr,
+                                         e->base_name.substr(1),
+                                         e->components,
+                                         lvalue,
+                                         ty);
     }
-  catch (const semantic_error& er)
+  catch (const semantic_error& e)
     {
-      semantic_error er2 (er);
-      er2.tok1 = e->tok;
-      q.sess.print_error (er2);
+      ty = pe_unknown;
     }
+  
+  switch (ty)
+    {
+    case pe_unknown:
+      flavour += 'U';
+      break;
+    case pe_long:
+      flavour += 'L';
+      break;
+    case pe_string:
+      flavour += 'S';
+      break;
+    case pe_stats:
+      flavour += 'T';
+      break;
+    }
+  flavour += lex_cast<string>(expr.size());
+  flavour += '{';
+  flavour += expr;
+  flavour += '}';
 }
 
 
@@ -2636,9 +2638,12 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
     }
   catch (const semantic_error& er)
     {
-      // No need to be verbose: the flavour-gathering visitor
-      // already printed a message for this exact case.
-      throw semantic_error ("due to failed target variable resolution");
+      // We suppress this error message, and pass the unresolved
+      // target_symbol to the next pass.  We hope that this value ends
+      // up not being referenced after all, so it can be optimized out
+      // quietly.
+      provide <target_symbol*> (this, e);
+      return;
     }
 
   fdecl->name = fname;

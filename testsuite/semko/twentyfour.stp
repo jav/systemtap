@@ -1,4 +1,4 @@
-#! stap -p2
+#! stap -up2
 
 # need one of these for each prohibited statistic operation
 

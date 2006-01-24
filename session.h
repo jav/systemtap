@@ -69,11 +69,11 @@ struct systemtap_session
   std::string cmd;
   int target_pid;
   int last_pass;
-  bool test_mode;
   bool verbose;
   bool keep_tmpdir;
   bool guru_mode;
   bool bulk_mode;
+  bool unoptimized;
   int buffer_size;
 
   // temporary directory for module builds etc.

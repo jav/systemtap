@@ -1,15 +1,15 @@
-#! stap -p2
+#! stap -up2
 
 global arr,rra
-
+global s,n
 probe begin {
   arr[0]="value"
   rra["key"]=0
 }
 probe end {
   # confirm that typechecking works the same way for all array indexing
-  if (k in arr) { k.""; arr[k]+0 }
-  foreach (l in arr) { l.""; arr[l]+0 }
-  if (m in rra) { m+1; rra[m]."" }
-  foreach (n in rra) { n+0; rra[n]."" }
+  if (k in arr) { s=k.""; i=arr[k]+0 }
+  foreach (l in arr) { s=l.""; i=arr[l]+0 }
+  if (m in rra) { i=m+1; s=rra[m]."" }
+  foreach (n in rra) { i=n+0; s=rra[n]."" }
 }

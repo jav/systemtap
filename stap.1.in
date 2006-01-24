@@ -72,7 +72,7 @@ prints a list of supported options.
 .\" -t test mode
 .TP
 .B \-v
-Verbose mode.  Produces more informative output.
+Verbose mode.  Produce more informative output.
 .TP
 .B \-h
 Show help message.
@@ -86,8 +86,11 @@ in order to examine the generated C code, or to reuse the compiled
 kernel object.
 .TP
 .B \-g
-Guru mode.  Enables parsing of unsafe expert-level constructs like
+Guru mode.  Enable parsing of unsafe expert-level constructs like
 embedded C.
+.TP
+.B \-u
+Unoptimized mode.  Disable unused code elision during elaboration.
 .TP
 .BI \-b
 Use relayfs-based bulk mode for kernel-to-user data transfer.
@@ -583,11 +586,11 @@ and all scripts (files named
 .IR *.stp )
 found in a tapset directory.  The directories listed
 with
-.BR -I
+.BR \-I
 are processed in sequence, each processed in "guru mode".  For each
 directory, a number of subdirectories are also searched.  These
 subdirectories are derived from the selected kernel version (the
-.BR -R
+.BR \-R
 option),
 in order to allow more kernel-version-specific scripts to override less
 specific ones.  For example, for a kernel version
@@ -616,6 +619,15 @@ refer to code locations ("synchronous probe points") require the
 appropriate kernel debugging information to be installed.  In the
 associated probe handlers, target-side variables (whose names begin
 with "$") are found and have their run-time locations decoded.
+.PP
+Next, all probes and functions are analyzed for optimization
+opportunities, in order to remove variables, expressions, and
+functions that have no useful value and no side-effect.  Since this
+process can hide latent code errors such as type mismatches or invalid
+$target variables, it sometimes may be useful to disable the
+optimizations with the
+.BR \-u
+option. 
 .PP
 Finally, all variable, function, parameter, array, and index types are
 inferred from context (literals and operators).  Stopping the
