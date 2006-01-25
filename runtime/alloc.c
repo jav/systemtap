@@ -18,6 +18,12 @@
 #define kmalloc_node(size,flags,node) kmalloc(size,flags)
 #endif /* LINUX_VERSION_CODE */
 
+#ifdef CONFIG_SMP
+#define _stp_free_percpu(ptr) free_percpu(ptr)
+#else
+#define _stp_free_percpu(ptr) kfree(ptr)
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 #define _stp_alloc_percpu(size) __alloc_percpu(size, 8)
 #else
@@ -74,8 +80,6 @@ void *_stp_alloc_percpu(size_t size)
                 memset(ret, 0, size);
         return ret;
 }
-#define _stp_free_percpu(ptr) kfree(ptr)
-
 #endif /* CONFIG_SMP */
 #endif /* LINUX_VERSION_CODE */
 #endif /* _ALLOC_C_ */
