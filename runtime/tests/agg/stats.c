@@ -55,5 +55,8 @@ int main ()
   _stp_stat_print (st3, "count:%C  sum:%S  avg:%A  min:%m  max:%M\n%H", 1);
 
   _stp_print_flush();
+  _stp_stat_del(st1);
+  _stp_stat_del(st2);
+  _stp_stat_del(st3);
   return 0;
 }

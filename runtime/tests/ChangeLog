@@ -1,3 +1,7 @@
+2006-01-25  Martin Hunt  <hunt@redhat.com>
+
+	* agg/stats.c (main): Delete Stats when done.
+
 2005-12-08  Martin Hunt  <hunt@redhat.com>
 
 	* maps/map.test: Add size test.
