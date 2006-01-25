@@ -1,3 +1,11 @@
+2006-01-25  Martin Hunt  <hunt@redhat.com>
+
+	* stat.c (_stp_stat_init): Use _stp_alloc_percpu().
+	(_stp_stat_del): New function.
+
+	* alloc.c (_stp_alloc_percpu): New function.
+	(_stp_free_percpu): New function.
+
 2006-01-19  Martin Hunt  <hunt@redhat.com>
 
 	* pmap-gen.c (_stp_pmap_get): Fix bug where old data

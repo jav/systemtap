@@ -101,7 +101,7 @@ Stat _stp_stat_init (int type, ...)
 		return NULL;
 	
 	size = buckets * sizeof(int64_t) + sizeof(stat);	
-	sd = (stat *) __alloc_percpu (size, 8);
+	sd = (stat *) _stp_alloc_percpu (size);
 	if (sd == NULL)
 		goto exit1;
 
@@ -135,6 +135,20 @@ exit1:
 	return NULL;
 }
 
+/** Delete Stat.
+ * Call this to free all memory allocated during initialization.
+ *
+ * @param st Stat
+ */
+void _stp_stat_del (Stat st)
+{
+	if (st) {
+		_stp_free_percpu (st->sd);
+		kfree (st->agg);
+		kfree (st);
+	}
+}
+	
 /** Add to a Stat.
  * Add an int64 to a Stat.
  *
