@@ -597,7 +597,7 @@ lexer::scan ()
           while (true)
             {
               c = input_get ();
-              if (c == 0) // EOF
+              if (c < 0) // EOF
                 {
                   n->type = tok_junk;
                   break;
