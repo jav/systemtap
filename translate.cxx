@@ -85,7 +85,9 @@ struct c_unparser: public unparser, public visitor
   void emit_module_init ();
   void emit_module_exit ();
   void emit_function (functiondecl* v);
+  void emit_locks (const varuse_collecting_visitor& v);
   void emit_probe (derived_probe* v, unsigned i);
+  void emit_unlocks (const varuse_collecting_visitor& v);
 
   // for use by looping constructs
   vector<string> loop_break_labels;
@@ -442,7 +444,7 @@ struct varlock
 
     if (c.obtained_locks.count(make_pair(v.qname(), true))) // write lock
       throw semantic_error("incompatible nested locks obtained for "+v.qname());
-
+#if 0
     if (!w) // read lock - no need to try, just do it
       c.o->newline() << "read_lock (& " << v << "_lock);";
     else
@@ -473,12 +475,14 @@ struct varlock
 	c.o->newline(-1) << "}";
 	c.o->newline(-1) << "}";
       }
+#endif
     c.obtained_locks.insert(make_pair(v.qname(), w));
   }
 
   ~varlock()
   {
     if (v.is_local()) return;
+#if 0
     c.o->newline() << (w ? "write_unlock" : "read_unlock")
                    << " (& " << v << "_lock);";
     if (w)
@@ -486,7 +490,7 @@ struct varlock
 	c.o->newline(-1) << post_unlock_label << ": ;";
 	c.o->indent(1);
       }
-
+#endif
     assert(c.obtained_locks.count(make_pair(v.qname(), w)) > 0);
     c.obtained_locks.erase(c.obtained_locks.find(make_pair(v.qname(), w)));
   }
@@ -1230,6 +1234,11 @@ c_unparser::emit_function (functiondecl* v)
 void
 c_unparser::emit_probe (derived_probe* v, unsigned i)
 {
+  this->current_function = 0;
+  this->current_probe = v;
+  this->current_probenum = i;
+  this->tmpvar_counter = 0;
+
   // o->newline() << "static void probe_" << i << " (struct context *c);";
   o->newline() << "void probe_" << i << " (struct context * __restrict__ c) {";
   o->indent(1);
@@ -1238,6 +1247,11 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   o->newline() << "struct probe_" << i << "_locals * __restrict__ l =";
   o->newline(1) << "& c->locals[c->nesting].probe_" << i << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+
+  // emit all read/write locks for global variables
+  varuse_collecting_visitor vut;
+  v->body->visit (& vut);
+  emit_locks (vut);
 
   // initialize locals
   for (unsigned j=0; j<v->locals.size(); j++)
@@ -1255,21 +1269,127 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
 			      v->locals[j]->tok);
     }
   
-  this->current_function = 0;
-  this->current_probe = v;
-  this->current_probenum = i;
-  this->tmpvar_counter = 0;
   v->body->visit (this);
-  this->current_probe = 0;
-  this->current_probenum = 0; // not essential
 
   o->newline(-1) << "out:";
   // NB: no need to uninitialize locals, except if arrays can somedays be local
   o->newline(1) << "_stp_print_flush();";
 
+  emit_unlocks (vut);
+
   o->newline(-1) << "}\n";
   
+  this->current_probe = 0;
+  this->current_probenum = 0; // not essential
+
   v->emit_probe_entries (o, i);
+}
+
+
+void 
+c_unparser::emit_locks(const varuse_collecting_visitor& vut)
+{
+  o->newline() << "{";
+  o->newline(1) << "unsigned numtrylock = 0;";
+  o->newline() << "(void) numtrylock;";
+
+  string last_locked_var;
+  for (unsigned i = 0; i < session->globals.size(); i++)
+    {
+      vardecl* v = session->globals[i];
+      bool read_p = vut.read.find(v) != vut.read.end();
+      bool write_p = vut.written.find(v) != vut.written.end();
+      if (!read_p && !write_p) continue;
+
+      if (v->type == pe_stats) // read and write locks are flipped
+        // Specifically, a "<<<" to a stats object is considered a
+        // "shared-lock" operation, since it's implicitly done
+        // per-cpu.  But a "@op(x)" extraction is an "exclusive-lock"
+        // one, as is a (sorted or unsorted) foreach, so those cases
+        // are excluded by the w & !r condition below.
+        {
+          if (write_p && !read_p) { read_p = true; write_p = false; }
+          else if (read_p && !write_p) { read_p = false; write_p = true; }
+        }
+
+      string lockcall = 
+        string (write_p ? "write" : "read") +
+        "_trylock (& global_" + v->name + "_lock)";
+
+      o->newline() << "while (! " << lockcall
+                   << "&& (++numtrylock < MAXTRYLOCK))";
+      o->newline(1) << "ndelay (TRYLOCKDELAY);";
+      o->newline(-1) << "if (unlikely (numtrylock >= MAXTRYLOCK)) {";
+      o->newline(1) << "atomic_inc (& skipped_count);";
+      // The following works even if i==0.  Note that using
+      // globals[i-1]->name is wrong since that global may not have
+      // been lockworthy by this probe.
+      o->newline() << "goto unlock_" << last_locked_var << ";";
+      o->newline(-1) << "}";
+
+      last_locked_var = v->name;
+    }
+
+  o->newline(-1) << "}";
+}
+
+
+void 
+c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
+{
+  unsigned numvars = 0;
+
+  if (session->verbose)
+    clog << "Probe #" << current_probenum << " locks ";
+
+  for (int i = session->globals.size()-1; i>=0; i--) // in reverse order!
+    {
+      vardecl* v = session->globals[i];
+      bool read_p = vut.read.find(v) != vut.read.end();
+      bool write_p = vut.written.find(v) != vut.written.end();
+      if (!read_p && !write_p) continue;
+
+      numvars ++;
+      o->newline(-1) << "unlock_" << v->name << ":";
+      o->indent(1);
+
+      // Duplicate lock flipping logic from above
+      if (v->type == pe_stats)
+        {
+          if (write_p && !read_p) { read_p = true; write_p = false; }
+          else if (read_p && !write_p) { read_p = false; write_p = true; }
+        }
+
+      if (session->verbose)
+        clog << v->name << "[" << (read_p ? "r" : "")
+             << (write_p ? "w" : "")  << "] ";
+
+      if (write_p) // emit write lock
+        o->newline() << "write_unlock (& global_" << v->name << "_lock);";
+      else // (read_p && !write_p) : emit read lock
+        o->newline() << "read_unlock (& global_" << v->name << "_lock);";
+
+      // fall through to next variable; thus the reverse ordering
+    }
+  
+  // emit plain "unlock" label, used if the very first lock failed.
+  o->newline(-1) << "unlock_: ;";
+  o->indent(1);
+
+  if (numvars) // is there a chance that any lock attempt failed?
+    {
+      o->newline() << "if (atomic_read (& skipped_count) > MAXSKIPPED) {";
+      // XXX: In this known non-reentrant context, we could print a more
+      // informative error.
+      o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      o->newline() << "_stp_exit();";
+      o->newline(-1) << "}";
+
+      if (session->verbose)
+        clog << endl;
+    }
+  else if (session->verbose)
+    clog << "nothing" << endl;
 }
 
 
@@ -3742,6 +3862,11 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
+      
+      // XXX: old 2.6 kernel hack
+      s.op->newline() << "#ifndef read_trylock";
+      s.op->newline() << "#define read_trylock(x) (read_lock(x),1)";
+      s.op->newline() << "#endif";
 
       s.up->emit_common_header ();
 

@@ -676,6 +676,8 @@ struct traversing_visitor: public visitor
 struct functioncall_traversing_visitor: public traversing_visitor
 {
   std::set<functiondecl*> traversed;
+  functiondecl* current_function;
+  functioncall_traversing_visitor(): current_function(0) {}
   void visit_functioncall (functioncall* e);
 };
 
@@ -696,12 +698,14 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
     current_lvalue(0),
     current_lrvalue(0) {}
   void visit_embeddedcode (embeddedcode *s);
+  void visit_delete_statement (delete_statement *s);
   void visit_print_format (print_format *e);
   void visit_assignment (assignment *e);
   void visit_arrayindex (arrayindex *e);
   void visit_symbol (symbol *e);
   void visit_pre_crement (pre_crement *e);
   void visit_post_crement (post_crement *e);
+  void visit_foreach_loop (foreach_loop *s);
 };
 
 

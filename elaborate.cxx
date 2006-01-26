@@ -1303,6 +1303,7 @@ dead_assignment_remover::visit_expr_statement (expr_statement* s)
   expression** last_expr = current_expr;
   current_expr = & s->value;
   s->value->visit (this);
+  s->tok = s->value->tok; // in case it was replaced
   current_expr = last_expr;
 }
 

@@ -1,3 +1,24 @@
+2006-01-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2060: lock elevation, mop-up
+	* staptree.cxx (functioncall_traversing_visitor): Store a
+	current_function pointer during traversal.
+	(visit_embeddedcode): Use it to handle $target-synthesized functions.
+	(varuse_collecting_visitor::visit_assignment): Correct l-lr typo.
+	(visit_foreach_loop): Note added write on sorted foreach.
+	(visit_delete_statement): Note as read+write.
+	* staptree.h: Corresponding changes.
+	* elaborate.cxx (dead_assignment_remover::visit_expr_statement):
+	Correct stmt token after possible expression rewriting.
+	* tapsets.cxx (visit_target_symbol): Create naming convention
+	to recognize $target-synthesized functions.
+	* translate.cxx (emit_locks, emit_unlocks): New functions to
+	emit lock/unlock sequences at the outermost level of a probe.
+	(emit_probe): Call them.
+	(varlock_*): #if-0 out the lock code generation.  Later, these
+	classes should be removed.
+	(translate_pass): Emit read_trylock() kludge macro for old kernels.
+
 2006-01-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2205, patch from <hiramatu@sdl.hitachi.co.jp>:

@@ -1460,7 +1460,10 @@ functioncall_traversing_visitor::visit_functioncall (functioncall* e)
     {
       traversed.insert (e->referent);
       // recurse
+      functiondecl* last_current_function = current_function;
+      current_function = e->referent;
       e->referent->body->visit (this);
+      current_function = last_current_function;
     }
 }
 
@@ -1468,6 +1471,19 @@ functioncall_traversing_visitor::visit_functioncall (functioncall* e)
 void
 varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
 {
+  // In order to elide unused but correct functions generated to
+  // get/set $target variables, we encode our knowledge that such
+  // functions are side-effect-free.  We tell them apart from ordinary
+  // tapset embedded-C functions by the naming prefix.  XXX Something
+  // apart from this heuristic would be nice.  XXX Similarly, some
+  // tapset embedded-C functions are pure and disposable, like
+  // substr().
+  
+  assert (current_function); // only they get embedded code
+  string name = current_function->name;
+  if (name.length() > 6 && name.substr(0, 6) == "_tvar_")
+    return;
+
   embedded_seen = true;
 }
 
@@ -1489,7 +1505,7 @@ varuse_collecting_visitor::visit_assignment (assignment *e)
 {
   if (e->op == "=" || e->op == "<<<") // pure writes
     {
-      expression* last_lvalue = current_lrvalue;
+      expression* last_lvalue = current_lvalue;
       current_lvalue = e->left; // leave a mark for ::visit_symbol
       functioncall_traversing_visitor::visit_assignment (e);
       current_lvalue = last_lvalue;
@@ -1581,9 +1597,37 @@ varuse_collecting_visitor::visit_post_crement (post_crement *e)
   current_lrvalue = last_lrvalue;
 }
 
+void
+varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
+{
+  functioncall_traversing_visitor::visit_foreach_loop (s);
+  // If the collection is sorted, imply a "write" access to the
+  // array in addition to the "read" one already noted in the
+  // base class call above.
+  if (s->sort_direction)
+    {
+      symbol *array = NULL;  
+      hist_op *hist = NULL;
+      classify_indexable (s->base, array, hist);
+      if (array) this->written.insert (array->referent);
+      // XXX: Can hist_op iterations be sorted?
+    }
+}
 
 
-
+void
+varuse_collecting_visitor::visit_delete_statement (delete_statement* s)
+{
+  // Ideally, this would be treated like an assignment: a plain write
+  // to the underlying value ("lvalue").  XXX: However, the
+  // optimization pass is not smart enough to remove an unneeded
+  // "delete" yet, so we pose more like a *crement ("lrvalue").  This
+  // should protect the underlying value from optimizional mischief.
+  expression* last_lrvalue = current_lrvalue;
+  current_lrvalue = s->value; // leave a mark for ::visit_symbol
+  functioncall_traversing_visitor::visit_delete_statement (s);
+  current_lrvalue = last_lrvalue;
+}
 
 
 // ------------------------------------------------------------------------

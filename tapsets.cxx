@@ -1040,7 +1040,7 @@ dwflpp
               clog << "finding prologue for '"
                    << last_function->name
                    << "' entrypc=0x" << hex << addr 
-                   << " highpc=0x" << last_function_highpc
+                   << " highpc=0x" << last_function_highpc << dec
                    << "\n";
           }
       }
@@ -2619,7 +2619,9 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   if (lvalue && !q.sess.guru_mode)
     throw semantic_error("write to target variable not permitted", e->tok);
 
-  string fname = (string(lvalue ? "set" : "get")
+  // NB: This naming convention is used by varuse_collecting_visitor
+  // to make elision of these functions possible.
+  string fname = (string(lvalue ? "_tvar_set" : "_tvar_get")
 		  + "_" + e->base_name.substr(1)
 		  + "_" + lex_cast<string>(tick++));
 
