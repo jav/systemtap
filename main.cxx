@@ -37,7 +37,7 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
-    << "Copyright (C) 2005 Red Hat, Inc. and others" << endl
+    << "Copyright (C) 2005-2006 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions."
     << endl;
 }
