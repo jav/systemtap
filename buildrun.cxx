@@ -92,11 +92,6 @@ compile_pass (systemtap_session& s)
   if (s.verbose) clog << "Running " << make_cmd << endl;
   rc = system (make_cmd.c_str());
   
-  
-  if (s.verbose) clog << "Pass 4: compiled into \""
-                      << s.module_name << ".ko"
-                      << "\"" << endl;
-  
   return rc;
 }
 

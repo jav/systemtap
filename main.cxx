@@ -24,6 +24,7 @@ extern "C" {
 #include <glob.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <sys/times.h>
 #include <time.h>
 }
 
@@ -287,6 +288,8 @@ main (int argc, char * const argv [])
       clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   }
 
+  struct tms tms_before;
+  times (& tms_before);
 
   // PASS 1a: PARSING USER SCRIPT
   // XXX: pass args vector, so parser (or lexer?) can substitute
@@ -373,10 +376,25 @@ main (int argc, char * const argv [])
           }
     }
 
+  struct tms tms_after;
+  times (& tms_after);
+  unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);
+
+#define TIMESPRINT \
+           (tms_after.tms_cutime + tms_after.tms_utime \
+            - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck) << "+" \
+        << (tms_after.tms_cstime + tms_after.tms_stime \
+            - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck) << " (u+s) ms."
+
   // syntax errors, if any, are already printed
-  if (s.verbose) clog << "Pass 1: parsed user script and "
-                      << s.library_files.size()
-                      << " library script(s)." << endl;
+  if (s.verbose)
+    {
+      clog << "Pass 1: parsed user script and "
+           << s.library_files.size()
+           << " library script(s) in "
+           << TIMESPRINT
+           << endl;
+    }
 
   if (rc)
     cerr << "Pass 1: parse failed.  "
@@ -384,6 +402,8 @@ main (int argc, char * const argv [])
          << endl;
 
   if (rc || s.last_pass == 1) goto cleanup;
+
+  times (& tms_before);
 
   // PASS 2: ELABORATION
   rc = semantic_pass (s);
@@ -446,10 +466,13 @@ main (int argc, char * const argv [])
 	}
     }
 
+  times (& tms_after);
   if (s.verbose) clog << "Pass 2: analyzed user script.  "
                       << s.probes.size() << " probe(s), "
                       << s.functions.size() << " function(s), "
-                      << s.globals.size() << " global(s)." << endl;
+                      << s.globals.size() << " global(s) in "
+                      << TIMESPRINT
+                      << endl;
 
   if (rc)
     cerr << "Pass 2: analysis failed.  "
@@ -459,6 +482,8 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 2) goto cleanup;
 
   // PASS 3: TRANSLATION
+
+  times (& tms_before);
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
   rc = translate_pass (s);
 
@@ -468,9 +493,13 @@ main (int argc, char * const argv [])
       cout << i.rdbuf();
     }
 
+  times (& tms_after);
+
   if (s.verbose) clog << "Pass 3: translated to C into \""
                       << s.translated_source
-                      << "\"" << endl;
+                      << "\" in "
+                      << TIMESPRINT
+                      << endl;
 
   if (rc)
     cerr << "Pass 3: translation failed.  "
@@ -480,7 +509,15 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 3) goto cleanup;
 
   // PASS 4: COMPILATION
+  times (& tms_before);
   rc = compile_pass (s);
+  times (& tms_after);
+
+  if (s.verbose) clog << "Pass 4: compiled C into \""
+                      << s.module_name << ".ko"
+                      << "\" in "
+                      << TIMESPRINT
+                      << endl;
 
   if (rc)
     cerr << "Pass 4: compilation failed.  "
@@ -491,7 +528,12 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
+  times (& tms_before);
   rc = run_pass (s);
+  times (& tms_after);
+  if (s.verbose) clog << "Pass 5: run completed in "
+                      << TIMESPRINT
+                      << endl;
 
   if (rc)
     cerr << "Pass 5: run failed.  "
