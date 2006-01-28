@@ -455,8 +455,6 @@ dwflpp
   {
     if (in)
       return in;
-    if (false && sess.verbose)
-      clog << "WARNING: no name found for " << type << "\n";
     return string("");
   }
 
@@ -580,11 +578,6 @@ dwflpp
     get_module_dwarf();
     if (module_name == TOK_KERNEL)
       return a;
-
-    if (false && sess.verbose)
-      clog << "module addr " << hex << a
-	   << " + module start " << module_start
-	   << " -> global addr " << (a + module_start) << dec << "\n";
     return a + module_start;
   }
 
@@ -593,10 +586,6 @@ dwflpp
   {
     assert(module);
     get_module_dwarf();
-    if (false && sess.verbose)
-      clog << "global addr " << a
-	   << " - module start " << hex << module_start
-	   << " -> module addr " << (a - module_start) << dec << "\n";
     return a - module_bias;
   }
 
@@ -605,7 +594,7 @@ dwflpp
   {
     assert(module);
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
-    if (t && sess.verbose)
+    if (t && sess.verbose>2)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "module '" << module_name << "'" << "\n";
@@ -617,7 +606,7 @@ dwflpp
   {
     assert(function);
     bool t = (fnmatch(pattern.c_str(), function_name.c_str(), 0) == 0);
-    if (t && sess.verbose)
+    if (t && sess.verbose>2)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "function '" << function_name << "'" << "\n";
@@ -629,7 +618,7 @@ dwflpp
   {
     assert(cu);
     bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0);
-    if (t && sess.verbose)
+    if (t && sess.verbose>2)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "CU '" << cu_name << "'" << "\n";
@@ -890,7 +879,7 @@ dwflpp
 	if (fnmatch (pattern.c_str(), fname, 0) == 0)
 	  {
 	    filtered_srcfiles.insert (fname);
-	    if (sess.verbose)
+	    if (sess.verbose>2)
 	      clog << "selected source file '" << fname << "'\n";
 	  }
       }
@@ -987,7 +976,7 @@ dwflpp
             if (addr0 != addr)
               {
                 last_function->prologue_end = addr;
-		if (sess.verbose)
+		if (sess.verbose>2)
 		  clog << "prologue disagreement (tail call): "
                        << last_function->name
 		       << " heur0=" << hex << addr0
@@ -1011,7 +1000,7 @@ dwflpp
             if (addr0 != addr)
               {
                 last_function->prologue_end = addr;
-		if (sess.verbose)
+		if (sess.verbose>2)
 		  clog << "prologue disagreement: " << last_function->name
 		       << " heur0=" << hex << addr0
 		       << " heur1=" << addr << dec
@@ -1036,7 +1025,7 @@ dwflpp
                          dwarf_highpc (& last_function->die, 
                                        & last_function_highpc));
 
-            if (sess.verbose)
+            if (sess.verbose>2)
               clog << "finding prologue for '"
                    << last_function->name
                    << "' entrypc=0x" << hex << addr 
@@ -1431,7 +1420,7 @@ dwflpp
     fb_attr = find_variable_and_frame_base (scope_die, pc, local,
 					    &vardie, &fb_attr_mem);
 
-    if (sess.verbose)
+    if (sess.verbose>2)
       clog << "finding location for local '" << local
 	   << "' near address " << hex << pc
 	   << ", module bias " << module_bias << dec
@@ -1789,7 +1778,7 @@ dwarf_query::parse_function_spec(string & spec)
 
   if (i == e)
     {
-      if (sess.verbose)
+      if (sess.verbose>2)
 	clog << "parsed '" << spec
 	     << "' -> func '" << function
 	     << "'\n";
@@ -1804,7 +1793,7 @@ dwarf_query::parse_function_spec(string & spec)
 
   if (i == e)
     {
-      if (sess.verbose)
+      if (sess.verbose>2)
 	clog << "parsed '" << spec
 	     << "' -> func '"<< function
 	     << "', file '" << file
@@ -1818,7 +1807,7 @@ dwarf_query::parse_function_spec(string & spec)
   try
     {
       line = lex_cast<int>(string(i, e));
-      if (sess.verbose)
+      if (sess.verbose>2)
 	clog << "parsed '" << spec
 	     << "' -> func '"<< function
 	     << "', file '" << file
@@ -1932,7 +1921,7 @@ dwarf_query::blacklisted_p(string const & funcname,
       const char *name = dwfl_module_relocation_info (dw.module, idx, NULL);
       if (name && strncmp (name, ".init.", 6) == 0)
 	{
-	  if (sess.verbose)
+	  if (sess.verbose>1)
 	    clog << "skipping function '" << funcname << "' base 0x"
 		 << hex << addr << dec << " is within section '"
 		 << name << "'\n";
@@ -1967,7 +1956,7 @@ dwarf_query::blacklisted_p(string const & funcname,
 	      const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
 	      if (name && strncmp (name, ".init.", 6) == 0)
 		{
-		  if (sess.verbose)
+		  if (sess.verbose>1)
 		    clog << "skipping function '" << funcname << "' base 0x"
 			 << hex << addr << dec << " is within section '"
 			 << name << "'\n";
@@ -1990,7 +1979,7 @@ dwarf_query::blacklisted_p(string const & funcname,
       (has_return && (funcname == "sys_exit" ||
                       funcname == "sys_groupexit")))
     {
-      if (sess.verbose)
+      if (sess.verbose>1)
         clog << "skipping function '" << funcname << "' file '"
              << filename << "' is blacklisted\n";
       return true;
@@ -2109,7 +2098,7 @@ query_inline_instance_info (Dwarf_Addr entrypc,
 	}
       else
 	{
-	  if (q->sess.verbose)
+	  if (q->sess.verbose>2)
 	    clog << "querying entrypc "
 		 << hex << entrypc << dec
 		 << " of instance of inline '" << ii.name << "'\n";
@@ -2174,7 +2163,7 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
     {
       if (q->dw.die_has_pc (&(i->second.die), addr))
 	{
-	  if (q->sess.verbose)
+	  if (q->sess.verbose>3)
 	    clog << "function DIE lands on srcfile\n";
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
@@ -2190,7 +2179,7 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
     {
       if (q->dw.die_has_pc (&(i->second.die), addr))
 	{
-	  if (q->sess.verbose)
+	  if (q->sess.verbose>3)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
@@ -2213,7 +2202,7 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 
       bool record_this_inline = false;
 
-      if (q->sess.verbose)
+      if (q->sess.verbose>2)
 	clog << "examining inline instance of " << q->dw.function_name << "\n";
 
       if (q->has_inline_str || q->has_statement_str)
@@ -2232,7 +2221,7 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 
       if (record_this_inline)
 	{
-	  if (q->sess.verbose)
+	  if (q->sess.verbose>2)
 	    clog << "selected inline instance of " << q->dw.function_name
                  << "\n";
 
@@ -2280,7 +2269,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	       && q->dw.function_name_matches(q->function))
 	      || q->has_inline_num))
 	{
-	  if (q->sess.verbose)
+	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
@@ -2310,7 +2299,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 
 	  if (record_this_function)
 	    {
-	      if (q->sess.verbose)
+	      if (q->sess.verbose>2)
 		clog << "selected function " << q->dw.function_name << "\n";
 
 	      Dwarf_Addr entrypc;
@@ -2346,7 +2335,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
     {
       q->dw.focus_on_cu (cudie);
 
-      if (false && q->sess.verbose)
+      if (false && q->sess.verbose>2)
         clog << "focused on CU '" << q->dw.cu_name
              << "', in module '" << q->dw.module_name << "'\n";
 
@@ -2471,7 +2460,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       if (q->has_module && !q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
 
-      if (q->sess.verbose)
+      if (q->sess.verbose>2)
 	clog << "focused on module '" << q->dw.module_name
 	     << "' = [" << hex << q->dw.module_start
 	     << "-" << q->dw.module_end

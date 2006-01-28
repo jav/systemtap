@@ -1,5 +1,13 @@
 2006-01-27  Frank Ch. Eigler  <fche@elastic.org>
 
+	* main.cxx: Make "-v" (verbose) flag a counter.
+	* stap.1.in: Document this.
+	* session.h: Corresponding changes.
+	* {elaborate,buildrun,tapsets,translate}.cxx: Update all uses of
+	verbose flag to compare it to sensible level for value of message.
+
+2006-01-27  Frank Ch. Eigler  <fche@elastic.org>
+
 	* main.cxx (main): In verbose mode, print user+sys times after
 	each pass.
 	* buildrun.cxx (compile_pass): Move success message back to main().

@@ -1190,7 +1190,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
     {
       if (ftv.traversed.find(s.functions[i]) == ftv.traversed.end())
         {
-          if (s.verbose)
+          if (s.verbose>2)
             clog << "Eliding unused function " << s.functions[i]->name
                  << endl;
           s.functions.erase (s.functions.begin() + i);
@@ -1230,7 +1230,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (s.verbose)
+            if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in probe #" << i << endl;
             s.probes[i]->locals.erase(s.probes[i]->locals.begin() + j);
@@ -1247,7 +1247,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (s.verbose)
+            if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in function " << s.functions[i]->name
                    << endl;
@@ -1264,7 +1264,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
       if (vut.read.find (l) == vut.read.end() &&
           vut.written.find (l) == vut.written.end())
         {
-          if (s.verbose)
+          if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
           s.globals.erase(s.globals.begin() + i);
@@ -1318,7 +1318,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
       // clog << "Checking assignment to " << leftvar->name << " at " << *e->tok << endl;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
-          if (session.verbose)
+          if (session.verbose>2)
             clog << "Eliding assignment to " << leftvar->name 
                  << " at " << *e->tok << endl;
           *current_expr = e->right; // goodbye assignment*
@@ -1403,7 +1403,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
   s->value->visit (& vut);
   if (vut.written.empty() && !vut.embedded_seen)
     {
-      if (session.verbose)
+      if (session.verbose>2)
         clog << "Eliding side-effect-free expression "
              << *s->tok << endl;
 

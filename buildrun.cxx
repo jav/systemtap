@@ -84,12 +84,12 @@ compile_pass (systemtap_session& s)
     + string (" -C \"") + module_dir + string("\"");
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
   
-  if (s.verbose)
+  if (s.verbose > 1)
     make_cmd += " V=1";
   else
     make_cmd += " -s >/dev/null 2>&1";
   
-  if (s.verbose) clog << "Running " << make_cmd << endl;
+  if (s.verbose > 1) clog << "Running " << make_cmd << endl;
   rc = system (make_cmd.c_str());
   
   return rc;
@@ -105,7 +105,7 @@ run_pass (systemtap_session& s)
   string stpd_cmd = string("sudo ") 
     + string(PKGLIBDIR) + "/stpd "
     + (s.bulk_mode ? "" : "-r ")
-    + (s.verbose ? "" : "-q ")
+    + (s.verbose>1 ? "" : "-q ")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   
   stpd_cmd += "-d " + stringify(getpid()) + " ";
@@ -121,7 +121,7 @@ run_pass (systemtap_session& s)
   
   stpd_cmd += s.tmpdir + "/" + s.module_name + ".ko";
   
-  if (s.verbose) clog << "Running " << stpd_cmd << endl;
+  if (s.verbose>1) clog << "Running " << stpd_cmd << endl;
   
   signal (SIGHUP, SIG_IGN);
   signal (SIGINT, SIG_IGN);

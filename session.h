@@ -69,7 +69,7 @@ struct systemtap_session
   std::string cmd;
   int target_pid;
   int last_pass;
-  bool verbose;
+  unsigned verbose;
   bool keep_tmpdir;
   bool guru_mode;
   bool bulk_mode;

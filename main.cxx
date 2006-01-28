@@ -57,7 +57,7 @@ usage (systemtap_session& s)
     << endl
     << "Options:" << endl
     << "   --         no more options after this" << endl
-    << "   -v         verbose" << (s.verbose ? " [set]" : "") << endl
+    << "   -v         increase verbosity [" << s.verbose << "]" << endl
     << "   -h         show help" << endl
     << "   -V         show version" << endl
     << "   -k         keep temporary directory" << endl
@@ -120,7 +120,7 @@ main (int argc, char * const argv [])
   (void) uname (& buf);
   s.kernel_release = string (buf.release);
   s.architecture = string (buf.machine);
-  s.verbose = false;
+  s.verbose = 0;
   s.guru_mode = false;
   s.bulk_mode = false;
   s.unoptimized = false;
@@ -156,7 +156,7 @@ main (int argc, char * const argv [])
           exit (0);
 
         case 'v':
-	  s.verbose = true;
+	  s.verbose ++;
 	  break;
 
         case 'p':
@@ -284,7 +284,7 @@ main (int argc, char * const argv [])
     else
       s.tmpdir = tmpdir;
 
-    if (s.verbose)
+    if (s.verbose>1)
       clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   }
 
@@ -345,7 +345,7 @@ main (int argc, char * const argv [])
             rc ++;
           // GLOB_NOMATCH is acceptable
 
-          if (s.verbose)
+          if (s.verbose>1)
             clog << "Searched '" << dir << "', "
                  << "match count " << globbuf.gl_pathc << endl;
 
@@ -467,7 +467,7 @@ main (int argc, char * const argv [])
     }
 
   times (& tms_after);
-  if (s.verbose) clog << "Pass 2: analyzed user script.  "
+  if (s.verbose) clog << "Pass 2: analyzed script: "
                       << s.probes.size() << " probe(s), "
                       << s.functions.size() << " function(s), "
                       << s.globals.size() << " global(s) in "
@@ -554,9 +554,9 @@ main (int argc, char * const argv [])
         {
           string cleanupcmd = "rm -rf ";
           cleanupcmd += s.tmpdir;
-          if (s.verbose) clog << "Running " << cleanupcmd << endl;
+          if (s.verbose>1) clog << "Running " << cleanupcmd << endl;
 	  int status = system (cleanupcmd.c_str());
-	  if (status != 0 && s.verbose)
+	  if (status != 0 && s.verbose>1)
 	    clog << "Cleanup command failed, status: " << status << endl;
         }
     }

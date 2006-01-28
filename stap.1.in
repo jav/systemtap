@@ -72,7 +72,7 @@ prints a list of supported options.
 .\" -t test mode
 .TP
 .B \-v
-Verbose mode.  Produce more informative output.
+Increase verbosity.  Produce more informative output.
 .TP
 .B \-h
 Show help message.
@@ -473,10 +473,10 @@ fully type-checked by the translator.
 
 .SS STATISTICS
 It is often desirable to collect statistics in a way that avoids the
-penalties of repeatedly locking the global variables those numbers are
-being put into.  Systemtap provides a solution using a special
-operator to accumulate values, and several pseudo-functions to extract
-the statistical aggregates.
+penalties of repeatedly exclusive locking the global variables those
+numbers are being put into.  Systemtap provides a solution using a
+special operator to accumulate values, and several pseudo-functions to
+extract the statistical aggregates.
 .PP
 The aggregation operator is
 .IR <<< ,
@@ -710,7 +710,7 @@ Maximum length of strings.
 .TP
 MAXTRYLOCK
 Maximum number of iterations to wait for locks on global variables
-before declaring possible deadlock.
+before declaring possible deadlock and skipping the probe.
 .TP
 MAXACTION
 Maximum number of statements to execute during any single probe hit.

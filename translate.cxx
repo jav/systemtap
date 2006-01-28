@@ -1339,7 +1339,7 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
 {
   unsigned numvars = 0;
 
-  if (session->verbose)
+  if (session->verbose>1)
     clog << "Probe #" << current_probenum << " locks ";
 
   for (int i = session->globals.size()-1; i>=0; i--) // in reverse order!
@@ -1360,7 +1360,7 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
           else if (read_p && !write_p) { read_p = false; write_p = true; }
         }
 
-      if (session->verbose)
+      if (session->verbose>1)
         clog << v->name << "[" << (read_p ? "r" : "")
              << (write_p ? "w" : "")  << "] ";
 
@@ -1385,10 +1385,10 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
       o->newline() << "_stp_exit();";
       o->newline(-1) << "}";
 
-      if (session->verbose)
+      if (session->verbose>1)
         clog << endl;
     }
-  else if (session->verbose)
+  else if (session->verbose>1)
     clog << "nothing" << endl;
 }
 
@@ -3759,7 +3759,7 @@ emit_symbol_data (systemtap_session& s)
 #endif
   sortcmd += "-s -o " + sorted_kallsyms;
 
-  if (s.verbose) clog << "Running " << sortcmd << endl;
+  if (s.verbose>1) clog << "Running " << sortcmd << endl;
   rc = system(sortcmd.c_str());
   if (rc == 0)
     {
