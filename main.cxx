@@ -25,6 +25,7 @@ extern "C" {
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/times.h>
+#include <sys/time.h>
 #include <time.h>
 }
 
@@ -290,6 +291,8 @@ main (int argc, char * const argv [])
 
   struct tms tms_before;
   times (& tms_before);
+  struct timeval tv_before;
+  gettimeofday (&tv_before, NULL);
 
   // PASS 1a: PARSING USER SCRIPT
   // XXX: pass args vector, so parser (or lexer?) can substitute
@@ -379,12 +382,16 @@ main (int argc, char * const argv [])
   struct tms tms_after;
   times (& tms_after);
   unsigned _sc_clk_tck = sysconf (_SC_CLK_TCK);
+  struct timeval tv_after;
+  gettimeofday (&tv_after, NULL);
 
 #define TIMESPRINT \
            (tms_after.tms_cutime + tms_after.tms_utime \
-            - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck) << "+" \
+            - tms_before.tms_cutime - tms_before.tms_utime) * 1000 / (_sc_clk_tck) << "usr/" \
         << (tms_after.tms_cstime + tms_after.tms_stime \
-            - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck) << " (u+s) ms."
+            - tms_before.tms_cstime - tms_before.tms_stime) * 1000 / (_sc_clk_tck) << "sys/" \
+        << ((tv_after.tv_sec - tv_before.tv_sec) * 1000 + \
+            ((long)tv_after.tv_usec - (long)tv_before.tv_usec) / 1000) << "real ms."
 
   // syntax errors, if any, are already printed
   if (s.verbose)
@@ -404,6 +411,7 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 1) goto cleanup;
 
   times (& tms_before);
+  gettimeofday (&tv_before, NULL);
 
   // PASS 2: ELABORATION
   rc = semantic_pass (s);
@@ -467,6 +475,8 @@ main (int argc, char * const argv [])
     }
 
   times (& tms_after);
+  gettimeofday (&tv_after, NULL);
+
   if (s.verbose) clog << "Pass 2: analyzed script: "
                       << s.probes.size() << " probe(s), "
                       << s.functions.size() << " function(s), "
@@ -484,6 +494,8 @@ main (int argc, char * const argv [])
   // PASS 3: TRANSLATION
 
   times (& tms_before);
+  gettimeofday (&tv_before, NULL);
+
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
   rc = translate_pass (s);
 
@@ -494,6 +506,7 @@ main (int argc, char * const argv [])
     }
 
   times (& tms_after);
+  gettimeofday (&tv_after, NULL);
 
   if (s.verbose) clog << "Pass 3: translated to C into \""
                       << s.translated_source
@@ -510,8 +523,10 @@ main (int argc, char * const argv [])
 
   // PASS 4: COMPILATION
   times (& tms_before);
+  gettimeofday (&tv_before, NULL);
   rc = compile_pass (s);
   times (& tms_after);
+  gettimeofday (&tv_after, NULL);
 
   if (s.verbose) clog << "Pass 4: compiled C into \""
                       << s.module_name << ".ko"
@@ -529,8 +544,10 @@ main (int argc, char * const argv [])
 
   // PASS 5: RUN
   times (& tms_before);
+  gettimeofday (&tv_before, NULL);
   rc = run_pass (s);
   times (& tms_after);
+  gettimeofday (&tv_after, NULL);
   if (s.verbose) clog << "Pass 5: run completed in "
                       << TIMESPRINT
                       << endl;
