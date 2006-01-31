@@ -1,3 +1,9 @@
+2006-01-31  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2252
+	* translate.cxx (translate_pass): Fix legacy definition of
+	read_trylock.
+
 2006-01-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): Also print elapsed real time for each pass. 

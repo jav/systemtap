@@ -3865,7 +3865,7 @@ translate_pass (systemtap_session& s)
       
       // XXX: old 2.6 kernel hack
       s.op->newline() << "#ifndef read_trylock";
-      s.op->newline() << "#define read_trylock(x) (read_lock(x),1)";
+      s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header ();
