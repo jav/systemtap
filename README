@@ -13,7 +13,9 @@ Prerequisites:
 - kernel module build environment (kernel-devel or kernel-smp-devel rpm)
 - kernel debugging information (kernel-debuginfo rpm)
 - C compiler (same as what kernel was compiled with)
-- elfutils with libdwfl (from fedora rawhide; include -devel and -libelf-)
+- elfutils with libdwfl (possible to reuse system elfutils if new and
+  complete enough, otherwise download source snapshot and build
+  together with systemtap as follows)
 - root privileges
 
 Installation steps:
