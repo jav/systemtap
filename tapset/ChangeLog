@@ -1,3 +1,9 @@
+2006-01-30  Martin Hunt  <hunt@redhat.com>
+
+	* context.stp (probefunc): New function.
+	(is_return): New function.
+	(returnval): New function.
+
 2006-01-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* logging.stp: Revert.

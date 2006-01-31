@@ -84,7 +84,32 @@ function pp:string () %{
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
+function probefunc:string () %{
+	char *start = strstr(CONTEXT->probe_point, "function(\"");
+	if (start) {
+		char *ptr = start+10;
+		char *dst = THIS->__retvalue;
+		int len = MAXSTRINGLEN;
+		while (*ptr != '@' && --len > 0 && *ptr)
+			*dst++ = *ptr++;
+		*dst = 0;
+	}
+%}
+
+function is_return:long () %{
+	char *ptr = strrchr(CONTEXT->probe_point, '.');
+	if (ptr) {
+		if (strcmp(ptr+1,"return") == 0)
+			THIS->__retvalue = 1;
+	}
+%}
+
 function target:long () %{
         THIS->__retvalue = _stp_target;
 %}
 
+function returnval:long () %{
+          if (CONTEXT->regs) {
+                  THIS->__retvalue = dwarf_register_0(CONTEXT->regs);
+          }
+%}
