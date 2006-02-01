@@ -1,7 +1,22 @@
+/** @addtogroup library
+* The library tapset is a collection of standard functions.
+* @{
+*/
+
+/** @addtogroup library
+* @code function strlen:long(s:string) @endcode
+* @param s string
+* @return Returns the length of the string.
+*/
 function strlen:long(s:string) %{
         THIS->__retvalue=strlen(THIS->s);
 %}
 
+/** @addtogroup library
+* @code function substr:string(str:string,start:long,stop:long) @endcode
+* @param str string
+* @return Returns the length of the string.
+*/
 function substr:string(str:string,start:long,stop:long) %{
 	int len=strlen(THIS->str);
 	if(THIS->start<0   || THIS->stop<0   || 
@@ -17,9 +32,17 @@ function substr:string(str:string,start:long,stop:long) %{
 	}
 %}
 
+
+/** @addtogroup library
+* @code isinstr:long(s1:string,s2:string) @endcode
+* @param s1 string
+* @param s2 string
+* @return Returns 1 if s2 is in s1.
+*/
 function isinstr:long(s1:string,s2:string) %{
 	if(strstr(THIS->s1,THIS->s2)!=NULL)
 		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
 %}
+/** @} */

@@ -1,0 +1,2417 @@
+// syscalls tapset part 1 [A-M]
+// Copyright (C) 2005 IBM Corp.
+// Copyright (C) 2005, 2006 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/* Each syscall returns the calls parameters. In addition, the following
+* variables are set:
+*
+* name - generally the syscall name minus the "sys_".
+*
+* argstr - a string containing the decoded args in an easy-to-read format.
+*          It doesn't need to contain everything, but should have all the
+*          important args.
+*
+* returnp - set to 1 if return probe
+*/
+
+# accept _____________________________________________________
+# long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr,
+#                 int __user *upeer_addrlen)
+probe syscall.accept = kernel.function("sys_accept") {
+	name = "accept"
+	s = $fd
+	addr_uaddr = $upeer_sockaddr
+	addrlen_uaddr = $upeer_addrlen
+	argstr = string(s)
+}
+probe syscall.accept.return = kernel.function("sys_accept").return {
+	name = "accept"
+	returnp = 1
+}
+
+# access _____________________________________________________
+# long sys_access(const char __user * filename, int mode)
+probe syscall.access = kernel.function("sys_access") {
+	name = "access"
+	pathname = user_string($filename)
+	mode = $mode
+	mode_str = _access_mode_str($mode)
+	argstr = sprintf("\"%s\", %s", pathname, mode_str)
+}
+probe syscall.access.return = kernel.function("sys_access").return {
+	name = "access"
+	returnp = 1
+}
+
+# acct _______________________________________________________
+# long sys_acct(const char __user *name)
+probe syscall.acct = kernel.function("sys_acct") {
+	name = "acct"
+        filename = user_string($name)
+	argstr = filename
+}
+probe syscall.acct.return = kernel.function("sys_acct").return {
+	name = "acct"
+	returnp = 1
+}
+
+# add_key ____________________________________________________
+# long sys_add_key(const char __user *_type,
+#             const char __user *_description,
+#             const void __user *_payload,
+#             size_t plen,
+#             key_serial_t ringid)
+probe syscall.add_key = kernel.function("sys_add_key") {
+	name = "add_key"
+	type_uaddr = $_type
+	description_auddr = $_description
+	payload_uaddr = $_payload
+	plen = $plen
+	ringid = $ringid
+	argstr = "add_key"
+}
+probe syscall.add_key.return = kernel.function("sys_add_key").return {
+	name = "add_key"
+	returnp = 1
+}
+
+# adjtimex ___________________________________________________
+# long sys_adjtimex(struct timex __user *txc_p)
+probe syscall.adjtimex = kernel.function("sys_adjtimex") {
+	name = "adjtimex"
+	buf_uaddr = $txc_p
+	/*
+	* buf_modes        = __uget_timex_m($txc_p,0)
+	*/
+	buf_modes_str     = _adjtx_mode_str(buf_modes)
+	/*
+	* buf_offset       = __uget_timex_m($txc_p,1)
+	* buf_freq         = __uget_timex_m($txc_p,2)
+	* buf_maxerror     = __uget_timex_m($txc_p,3)
+	* buf_esterror     = __uget_timex_m($txc_p,4)
+	* buf_status       = __uget_timex_m($txc_p,5)
+	* buf_constant     = __uget_timex_m($txc_p,6)
+	* buf_precision    = __uget_timex_m($txc_p,7)
+	* buf_tolerance    = __uget_timex_m($txc_p,8)
+	* buf_time_tv_sec  = __uget_timex_m($txc_p,9)
+	* buf_time_tv_usec = __uget_timex_m($txc_p,10)
+	* buf_tick         = __uget_timex_m($txc_p,11)
+	*/
+	argstr = buf_modes_str
+}
+probe syscall.adjtimex.return = kernel.function("sys_adjtimex").return {
+	name = "adjtimex"
+	returnp = 1
+}
+
+# alarm ______________________________________________________
+# unsigned long sys_alarm (unsigned int seconds)
+probe syscall.alarm = kernel.function("sys_alarm") {
+	name = "alarm"
+	seconds = $seconds
+	argstr = string($seconds)
+}
+probe syscall.alarm.return = kernel.function("sys_alarm").return {
+	name = "alarm"
+	returnp = 1
+}
+
+# bdflush ____________________________________________________
+# long sys_bdflush(int func,long data)
+probe syscall.bdflush = kernel.function("sys_bdflush") {
+	name = "bdflush"
+	func = $func
+	data = $data
+	argstr = sprintf("%d 0x%x",func, data)
+}
+probe syscall.bdflush.return = kernel.function("sys_bdflush").return {
+	name = "bdflush"
+	returnp = 1
+}
+
+# bind _______________________________________________________
+# long sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
+probe syscall.bind = kernel.function("sys_bind") {
+	name = "bind"
+	sockfd = $fd
+	my_addr_uaddr = $umyaddr
+	addrlen = $addrlen
+// fixme	
+	argstr = string($fd)
+}
+probe syscall.bind.return = kernel.function("sys_bind").return {
+	name = "bind"
+	returnp = 1
+}
+
+# brk ________________________________________________________
+# unsigned long sys_brk(unsigned long brk)
+probe syscall.brk = kernel.function("sys_brk") {
+	name = "brk"
+	brk = $brk
+	argstr = sprintf("0x%x", brk)
+}
+probe syscall.brk.return = kernel.function("sys_brk").return {
+	name = "brk"
+	returnp = 1
+}
+
+# capget _____________________________________________________
+/*
+ *  NOTE
+ *   this  is  probably not a good function
+ *   to probe. The  structures  are  always
+ *   changing.  It also  seems  like  it is
+ *   not really  used. Cscope  produced  no
+ *   reference  of  this  function  in  the
+ *   kernel  (returned no callers). Perhaps
+ *   cap_get_proc / cap_set_proc are better
+ *   functions to export.
+ */
+/*
+ * asmlinkage long
+ * sys_capget(cap_user_header_t header,
+ *            cap_user_data_t dataptr)
+ */
+probe kernel.syscall.capget =
+   kernel.function("sys_capget") {
+      name = "capget"
+      header_uaddr = $header
+      data_uaddr = $dataptr
+      /*
+       * NOTE
+       *  These  two functions  are the raw  kernel
+       *  interface   for   getting   and   setting
+       *  capabilities.  The  kernel  API is likely
+       *  to change and use  of these functions (in
+       *  particular the format of the cap_user_*_t
+       *  types)  is  subject  to  change with each
+       *  kernel  revision.
+       */
+   }
+probe kernel.syscall.capget.return =
+   kernel.function("sys_capget").return {
+      name = "capget.return"
+   }
+# capset _____________________________________________________
+/*
+ *  NOTE
+ *   this  is  probably not a good function
+ *   to probe. The  structures  are  always
+ *   changing.  It also  seems  like  it is
+ *   not really  used. Cscope  produced  no
+ *   reference  of  this  function  in  the
+ *   kernel  (returned no callers). Perhaps
+ *   cap_get_proc / cap_set_proc are better
+ *   functions to export.
+ */
+/*
+ * asmlinkage long
+ * sys_capset(cap_user_header_t header,
+ *            const cap_user_data_t data)
+ */
+probe kernel.syscall.capset =
+   kernel.function("sys_capset") {
+      name = "capset"
+      header_uaddr = $header
+      data_uaddr = $data
+      /*
+       * NOTE
+       *  These  two functions  are the raw  kernel
+       *  interface   for   getting   and   setting
+       *  capabilities.  The  kernel  API is likely
+       *  to change and use  of these functions (in
+       *  particular the format of the cap_user_*_t
+       *  types)  is  subject  to  change with each
+       *  kernel  revision.
+       *
+       *  These system calls are specific to Linux.
+       *  The  portable interfaces are cap_set_proc
+       *  and cap_get_proc.
+       */
+   }
+probe kernel.syscall.capset.return =
+   kernel.function("sys_capset").return {
+      name = "capset.return"
+   }
+# chdir ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_chdir(const char __user * filename)
+ */
+probe kernel.syscall.chdir =
+   kernel.function("sys_chdir") {
+      name = "chdir"
+      path_uaddr = $filename
+   }
+probe kernel.syscall.chdir.return =
+   kernel.function("sys_chdir").return {
+      name = "chdir.return"
+   }
+# chmod ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_chmod(const char __user * filename,
+ *           mode_t mode)
+ */
+probe kernel.syscall.chmod =
+   kernel.function("sys_chmod") {
+      name = "chmod"
+      path_uaddr = $filename
+      mode = $mode
+      mode_str = _sys_open_mode_str($mode)
+   }
+probe kernel.syscall.chmod.return =
+   kernel.function("sys_chmod").return {
+      name = "chmod.return"
+   }
+# chown ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_chown(const char __user * filename,
+ *           uid_t user,
+ *           gid_t group)
+ */
+probe kernel.syscall.chown =
+   kernel.function("sys_chown") {
+      name = "chown"
+      path_uaddr = $filename
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.chown.return =
+   kernel.function("sys_chown").return {
+      name = "chown.return"
+   }
+# chown16 ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_chown16(const char __user * filename,
+ *             old_uid_t user,
+ *             old_gid_t group)
+ */
+probe kernel.syscall.chown16 =
+   kernel.function("sys_chown") {
+      name = "chown16"
+      path_uaddr = $filename
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.chown16.return =
+   kernel.function("sys_chown").return {
+      name = "chown16.return"
+   }
+# chroot _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_chroot(const char __user * filename)
+ */
+probe kernel.syscall.chroot =
+   kernel.function("sys_chroot") {
+      name = "chroot"
+      path_uaddr = $filename
+   }
+probe kernel.syscall.chroot.return =
+   kernel.function("sys_chroot").return {
+      name = "chroot.return"
+   }
+# clock_getres _______________________________________________
+/*
+ * asmlinkage long
+ * sys_clock_getres(clockid_t which_clock,
+ *                  struct timespec __user *tp)
+ */
+probe kernel.syscall.clock_getres =
+   kernel.function("sys_clock_getres") {
+      name = "clock_getres"
+      clk_id = $which_clock
+      clk_id_str = _get_wc_str($which_clock)
+      res_uaddr = $tp
+   }
+probe kernel.syscall.clock_getres.return =
+   kernel.function("sys_clock_getres").return {
+      name = "clock_getres.return"
+   }
+# clock_gettime ______________________________________________
+/*
+ * asmlinkage long
+ * sys_clock_gettime(clockid_t which_clock,
+ *                   struct timespec __user *tp)
+ */
+probe kernel.syscall.clock_gettime =
+   kernel.function("sys_clock_gettime") {
+      name = "clock_gettime"
+      clk_id = $which_clock
+      clk_id_str = _get_wc_str($which_clock)
+      tp_uaddr = $tp
+}
+probe kernel.syscall.clock_gettime.return =
+   kernel.function("sys_clock_gettime").return {
+      name = "clock_gettime.return"
+   }
+# clock_nanosleep ____________________________________________
+/*
+ * asmlinkage long
+ * sys_clock_nanosleep(clockid_t which_clock,
+ *                     int flags,
+ *                     const struct timespec __user *rqtp,
+ *                     struct timespec __user *rmtp)
+ */
+probe kernel.syscall.clock_nanosleep =
+   kernel.function("sys_clock_nanosleep") {
+      name = "clock_nanosleep"
+      clock_id = $which_clock
+      clock_id_str = _get_wc_str($which_clock)
+      flags = $flags
+      flag_str = "TIMER_ABSTIME"
+      rqtp_uaddr = $rqtp
+      rmtp_uaddr = $rmtp
+   }
+probe kernel.syscall.clock_nanosleep.return =
+   kernel.function("sys_clock_nanosleep").return {
+      name = "clock_nanosleep.return"
+   }
+# clock_settime ______________________________________________
+/*
+ * asmlinkage long
+ * sys_clock_settime(clockid_t which_clock,
+ *                   const struct timespec __user *tp)
+ */
+probe kernel.syscall.clock_settime =
+   kernel.function("sys_clock_settime") {
+      name = "clock_settime"
+      clk_id = $which_clock
+      clk_id_str = _get_wc_str($which_clock)
+      tp_uaddr = $tp
+   }
+probe kernel.syscall.clock_settime.return =
+   kernel.function("sys_clock_settime").return {
+      name = "clock_settime.return"
+   }
+# clone ______________________________________________________
+/*
+ * asmlinkage long
+ * do_fork(unsigned long clone_flags,
+ *         unsigned long stack_start,
+ *         struct pt_regs *regs,
+ *         unsigned long stack_size,
+ *         int __user *parent_tidptr,
+ *         int __user *child_tidptr)
+ */
+probe kernel.syscall.clone =
+   kernel.function("do_fork") {
+      name = "clone"
+      clone_flags = $clone_flags
+      /*
+       * unable to find local 'start_stack' (maybe i386 specific)
+       * start_stack = $start_stack
+       */
+      regs_uaddr = $regs
+      stack_size = $stack_size
+      parent_tid_uaddr = $parent_tidptr
+      child_tid_uaddr = $child_tidptr
+   }
+probe kernel.syscall.clone.return =
+   kernel.function("do_fork").return {
+      name = "clone.return"
+   }
+# close ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_close(unsigned int fd)
+ */
+probe kernel.syscall.close =
+   kernel.function("sys_close") {
+      name = "close"
+      fd = $fd
+}
+probe kernel.syscall.close.return =
+   kernel.function("sys_close").return {
+      name = "close.return"
+   }
+# connect ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_connect(int fd,
+ *             struct sockaddr __user *uservaddr,
+ *             int addrlen)
+ */
+probe kernel.syscall.connect =
+   kernel.function("sys_connect") {
+      name = "connect"
+      sockfd = $fd
+      serv_addr_uaddr = $uservaddr
+      addrlen = $addrlen
+}
+probe kernel.syscall.connect.return =
+   kernel.function("sys_connect").return {
+      name = "connect.return"
+   }
+# creat ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_creat(const char __user * pathname,
+ *           int mode)
+ */
+probe kernel.syscall.creat =
+   kernel.function("sys_open") {
+      name = "creat"
+      pathname_uaddr = $filename
+      mode = $mode
+      mode_str = _sys_open_mode_str($mode)
+   }
+probe kernel.syscall.creat.return =
+   kernel.function("sys_open").return {
+      name = "creat.return"
+   }
+# delete_module ______________________________________________
+/*
+ * asmlinkage long
+ * sys_delete_module(const char __user *name_user,
+ *                   unsigned int flags)
+ */
+probe kernel.syscall.delete_module =
+   kernel.function("sys_delete_module") {
+      name = "delete_module"
+      name_user_uaddr = $name_user
+      flags = $flags
+      flags_str = _module_flags_str($flags)
+   }
+probe kernel.syscall.delete_module.return =
+   kernel.function("sys_delete_module").return {
+      name = "delete_module.return"
+   }
+# dup ________________________________________________________
+/*
+ * asmlinkage long
+ * sys_dup(unsigned int fildes)
+ */
+probe kernel.syscall.dup =
+   kernel.function("sys_dup") {
+      name = "dup"
+      oldfd = $fildes
+   }
+probe kernel.syscall.dup.return =
+   kernel.function("sys_dup").return {
+      name = "dup.return"
+   }
+# dup2 _______________________________________________________
+/*
+ * asmlinkage long
+ * sys_dup2(unsigned int oldfd,
+ *          unsigned int newfd)
+ */
+probe kernel.syscall.dup2 =
+   kernel.function("sys_dup2") {
+      name = "dup2"
+      oldfd = $oldfd
+      newfd = $newfd
+   }
+probe kernel.syscall.dup2.return =
+   kernel.function("sys_dup2").return {
+      name = "dup2.return"
+   }
+# epoll_create _______________________________________________
+/*
+ * asmlinkage long
+ * sys_epoll_create(int size)
+ */
+probe kernel.syscall.epoll_create =
+   kernel.function("sys_epoll_create") {
+      name = "epoll_create"
+      size = $size
+   }
+probe kernel.syscall.epoll_create.return =
+   kernel.function("sys_epoll_create").return {
+      name = "epoll_create.return"
+   }
+# epoll_ctl __________________________________________________
+/*
+ * asmlinkage long
+ * sys_epoll_ctl(int epfd,
+ *               int op,
+ *               int fd,
+ *               struct epoll_event __user *event)
+ */
+probe kernel.syscall.epoll_ctl =
+   kernel.function("sys_epoll_ctl") {
+      name = "epoll_ctl"
+      epfd = $epfd
+      op = $op
+      op_str = _opoll_op_str($op)
+      fd = $fd
+      event_uaddr = $event
+   }
+probe kernel.syscall.epoll_ctl.return =
+   kernel.function("sys_epoll_ctl").return {
+      name = "epoll_ctl.return"
+   }
+# epoll_wait _________________________________________________
+/*
+ * asmlinkage long
+ * sys_epoll_wait(int epfd,
+ *                struct epoll_event __user *events,
+ *                int maxevents,
+ *                int timeout)
+ */
+probe kernel.syscall.epoll_wait =
+   kernel.function("sys_epoll_wait") {
+      name = "epoll_wait"
+      epfd = $epfd
+      events_uaddr = $events
+      maxevents = $maxevents
+      timeout = $timeout
+   }
+probe kernel.syscall.epoll_wait.return =
+   kernel.function("sys_epoll_wait").return {
+      name = "epoll_wait.return"
+   }
+
+# execve _____________________________________________________
+# int sys_execve(struct pt_regs regs)
+probe syscall.execve = kernel.function("sys_execve") {
+	name = "execve"
+	/*
+	* unsupported type identifier '$regs'
+	* regs = $regs
+	*/
+}
+# v2.6.15-rc2 or earlier has problems
+probe syscall.execve.return = kernel.function("sys_execve").return {
+	name = "execve"
+	returnp = 1
+}
+
+# exit _______________________________________________________
+# long sys_exit(int error_code)
+probe syscall.exit = kernel.function("do_exit") {
+	name = "exit"
+	status = $code
+	argstr = string($code)
+}
+probe syscall.exit.return = kernel.function("do_exit").return {
+	name = "exit"
+	returnp = 1
+}
+
+# exit_group _________________________________________________
+/*
+ * asmlinkage void
+ * sys_exit_group(int error_code)
+ */
+probe kernel.syscall.exit_group =
+   kernel.function("sys_exit_group") {
+      name = "exit_group"
+      status = $error_code
+   }
+probe kernel.syscall.exit_group.return =
+   kernel.function("do_group_exit").return {
+      name = "exit_group.return"
+   }
+# fadvise64 __________________________________________________
+/*
+ * asmlinkage long
+ * sys_fadvise64_64(int fd,
+ *                  loff_t offset,
+ *                  loff_t len,
+ *                  int advice)
+ */
+probe kernel.syscall.fadvise64 =
+   kernel.function("sys_fadvise64_64") {
+      name = "fadvise64"
+      fd = $fd
+      offset = $offset
+      len = $len
+      advice = $advice
+   }
+probe kernel.syscall.fadvise64.return =
+   kernel.function("sys_fadvise64_64").return {
+      name = "fadvise64.return"
+   }
+# fadvise64_64 _______________________________________________
+/*
+ * asmlinkage long
+ * sys_fadvise64_64(int fd,
+ *                  loff_t offset,
+ *                  loff_t len,
+ *                  int advice)
+ */
+probe kernel.syscall.fadvise64_64 =
+   kernel.function("sys_fadvise64_64") {
+      name = "fadvise64_64"
+      fs = $fd
+      offset = $offset
+      len = $len
+      advice = $advice
+   }
+probe kernel.syscall.fadvise64_64.return =
+   kernel.function("sys_fadvise64_64").return {
+      name = "fadvise64_64.return"
+   }
+# fchdir _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_fchdir(unsigned int fd)
+ */
+probe kernel.syscall.fchdir =
+   kernel.function("sys_fchdir") {
+      name = "fchdir"
+      fd = $fd
+   }
+probe kernel.syscall.fchdir.return =
+   kernel.function("sys_fchdir").return {
+      name = "fchdir.return"
+   }
+# fchmod _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_fchmod(unsigned int fd,
+ *            mode_t mode)
+ */
+probe kernel.syscall.fchmod =
+   kernel.function("sys_fchmod") {
+      name = "fchmod"
+      fildes = $fd
+      mode = $mode
+      mode_str = _sys_open_mode_str($mode)
+   }
+probe kernel.syscall.fchmod.return =
+   kernel.function("sys_fchmod").return {
+      name = "fchmod.return"
+   }
+# fchown _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_fchown(unsigned int fd,
+ *            uid_t user,
+ *            gid_t group)
+ */
+probe kernel.syscall.fchown =
+   kernel.function("sys_fchown") {
+      name = "fchown"
+      fd = $fd
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.fchown.return =
+   kernel.function("sys_fchown").return {
+      name = "fchown.return"
+   }
+# fchown16 ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_fchown16(unsigned int fd,
+ *              old_uid_t user,
+ *              old_gid_t group)
+ */
+probe kernel.syscall.fchown16 =
+   kernel.function("sys_fchown") {
+      name = "fchown16"
+      fd = $fd
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.fchown16.return =
+   kernel.function("sys_fchown").return {
+      name = "fchown16.return"
+   }
+# fcntl ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_fcntl(int fd,
+ *           unsigned int cmd,
+ *           unsigned long arg)
+ */
+probe kernel.syscall.fcntl =
+   kernel.function("sys_fcntl") {
+      name = "fcntl"
+      fd = $fd
+      cmd = $cmd
+      cmd_str = _fcntl_cmd_str($cmd)
+      arg = $arg
+   }
+probe kernel.syscall.fcntl.return =
+   kernel.function("sys_fcntl").return {
+      name = "fcntl.return"
+   }
+# fdatasync __________________________________________________
+/*
+ * asmlinkage long
+ * sys_fdatasync(unsigned int fd)
+ */
+probe kernel.syscall.fdatasync =
+   kernel.function("sys_fdatasync") {
+      name = "fdatasync"
+      fd = $fd
+   }
+probe kernel.syscall.fdatasync.return =
+   kernel.function("sys_fdatasync").return {
+      name = "fdatasync.return"
+   }
+# fgetxattr __________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_fgetxattr(int fd,
+ *               char __user *name,
+ *               void __user *value,
+ *               size_t size)
+ */
+probe kernel.syscall.fgetxattr =
+   kernel.function("sys_fgetxattr") {
+      name = "fgetxattr"
+      fildes = $fd
+      path_uaddr = $name
+      value_uaddr = $value
+      size  = $size
+   }
+probe kernel.syscall.fgetxattr.return =
+   kernel.function("sys_fgetxattr").return {
+      name = "fgetxattr.return"
+   }
+# flistxattr _________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_flistxattr(int fd,
+ *                char __user *list,
+ *                size_t size)
+ */
+probe kernel.syscall.flistxattr =
+   kernel.function("sys_flistxattr") {
+      name = "flistxattr"
+      fildes = $fd
+      list_uaddr = $list
+      size = $size
+   }
+probe kernel.syscall.flistxattr.return =
+   kernel.function("sys_flistxattr").return {
+      name = "flistxattr.return"
+   }
+# flock ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_flock(unsigned int fd,
+ *           unsigned int cmd)
+ */
+probe kernel.syscall.flock =
+   kernel.function("sys_flock") {
+      name = "flock"
+      fd = $fd
+      operation = $cmd
+   }
+probe kernel.syscall.flock.return =
+   kernel.function("sys_flock").return {
+      name = "flock.return"
+   }
+# fork _______________________________________________________
+# long do_fork(unsigned long clone_flags,
+#	unsigned long stack_start,
+#	struct pt_regs *regs,
+#	unsigned long stack_size,
+#	int __user *parent_tidptr,
+#	int __user *child_tidptr)
+probe syscall.fork = kernel.function("do_fork") {
+	name = "fork"
+	clone_flags = $clone_flags
+	/*
+	* unable to find local 'start_stack' (maybe i386 specific)
+	* start_stack = $start_stack
+	*/
+	regs_uaddr = $regs
+	stack_size = $stack_size
+	parent_tid_uaddr = $parent_tidptr
+	child_tid_uaddr = $child_tidptr
+}
+probe syscall.fork.return = kernel.function("do_fork").return {
+	name = "fork"
+	returnp = 1
+}
+# fremovexattr _______________________________________________
+/*
+ * asmlinkage long
+ * sys_fremovexattr(int fd,
+ *                  char __user *name)
+ */
+probe kernel.syscall.fremovexattr =
+   kernel.function("sys_fremovexattr") {
+      name = "fremovexattr"
+      filedes = $fd
+      name_uaddr = $name
+   }
+probe kernel.syscall.fremovexattr.return =
+   kernel.function("sys_fremovexattr").return {
+      name = "fremovexattr.return"
+   }
+# fsetxattr __________________________________________________
+/*
+ * asmlinkage long
+ * sys_fsetxattr(int fd,
+ *               char __user *name,
+ *               void __user *value,
+ *               size_t size,
+ *               int flags)
+ */
+probe kernel.syscall.fsetxattr =
+   kernel.function("sys_fsetxattr") {
+      name = "fsetxattr"
+      fildes = $fd
+      name_uaddr = $name
+      value_uaddr = $value
+      size = $size
+      flags = $flags
+   }
+probe kernel.syscall.fsetxattr.return =
+   kernel.function("sys_fsetxattr").return {
+      name = "fsetxattr.return"
+   }
+# fstat ______________________________________________________
+# long sys_fstat(unsigned int fd,struct __old_kernel_stat __user * statbuf)
+probe syscall.fstat = kernel.function("sys_fstat") {
+	name = "fstat"
+	fd = $fd
+	buf_uaddr = $statbuf
+	argstr = string($fd)
+}
+probe syscall.fstat.return = kernel.function("sys_fstat").return {
+	name = "fstat"
+	returnp = 1
+}
+# fstatfs ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_fstatfs(unsigned int fd,
+ *             struct statfs __user * buf)
+ */
+probe kernel.syscall.fstatfs =
+   kernel.function("sys_fstatfs") {
+      name = "fstatfs"
+      fd = $fd
+      buf_uaddr = $buf
+   }
+probe kernel.syscall.fstatfs.return =
+   kernel.function("sys_fstatfs").return {
+      name = "fstatfs.return"
+   }
+# fstatfs64 __________________________________________________
+/*
+ * asmlinkage long
+ * sys_fstatfs64(unsigned int fd,
+ *               size_t sz,
+ *               struct statfs64 __user *buf)
+ */
+probe kernel.syscall.fstatfs64 =
+   kernel.function("sys_fstatfs64") {
+      name = "fstatfs64"
+      fd = $fd
+      sz = $sz
+      buf_uaddr = $buf
+   }
+probe kernel.syscall.fstatfs64.return =
+   kernel.function("sys_fstatfs64").return {
+      name = "fstatfs64.return"
+   }
+# fsync ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_fsync(unsigned int fd)
+ */
+probe kernel.syscall.fsync =
+   kernel.function("sys_fsync") {
+      name = "fsync"
+      fd = $fd
+   }
+probe kernel.syscall.fsync.return =
+   kernel.function("sys_fsync").return {
+      name = "fsync.return"
+   }
+# ftruncate __________________________________________________
+/*
+ * static inline long
+ * do_sys_ftruncate(unsigned int fd,
+ *                  loff_t length,
+ *                  int small)
+ */
+probe kernel.syscall.ftruncate =
+   kernel.function("sys_ftruncate") {
+      name = "ftruncate"
+      fd = $fd
+      length = $length
+   }
+probe kernel.syscall.ftruncate.return =
+   kernel.function("sys_ftruncate").return {
+      name = "ftruncate.return"
+   }
+# ftruncate64 ________________________________________________
+/*
+ * asmlinkage long
+ * sys_ftruncate64(unsigned int fd,
+ *                 loff_t length)
+ */
+probe kernel.syscall.ftruncate64 =
+   kernel.function("sys_ftruncate") {
+      name = "ftruncate64"
+      fd = $fd
+      length = $length
+   }
+probe kernel.syscall.ftruncate64.return =
+   kernel.function("sys_ftruncate").return {
+      name = "ftruncate64.return"
+   }
+# futex ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_futex(u32 __user *uaddr,
+ *           int op,
+ *           int val,
+ *           struct timespec __user *utime,
+ *           u32 __user *uaddr2,
+ *           int val3)
+ */
+probe kernel.syscall.futex =
+   kernel.function("sys_futex") {
+      name = "futex"
+      futex_uaddr = $uaddr
+      op = $op
+      op_str = _futex_op_str($op)
+      val = $val
+      timeout_uaddr = $utime
+      uaddr2_uaddr = $uaddr2
+      val3 = $val3
+   }
+probe kernel.syscall.futex.return =
+   kernel.function("sys_futex").return {
+      name = "futex.return"
+   }
+# getcwd _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getcwd(char __user *buf,
+ *            unsigned long size)
+ */
+probe kernel.syscall.getcwd =
+   kernel.function("sys_getcwd") {
+      name = "getcwd"
+      buf_uaddr = $buf
+      size = $size
+   }
+probe kernel.syscall.getcwd.return =
+   kernel.function("sys_getcwd").return {
+      name = "getcwd.return"
+   }
+# getdents ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_getdents(unsigned int fd,
+ *              struct linux_dirent __user * dirent,
+ *              unsigned int count)
+ */
+probe kernel.syscall.getdents =
+   kernel.function("sys_getdents") {
+      name = "getdents"
+      fd = $fd
+      dirp_uaddr = $dirent
+      count = $count
+   }
+probe kernel.syscall.getdents.return =
+   kernel.function("sys_getdents").return {
+      name = "getdents.return"
+   }
+# getdents64 _________________________________________________
+/*
+ * asmlinkage long
+ * sys_getdents64(unsigned int fd,
+ *                struct linux_dirent64 __user * dirent,
+ *                unsigned int count)
+ */
+probe kernel.syscall.getdents64 =
+   kernel.function("sys_getdents64") {
+      name = "getdents64"
+      fd = $fd
+      dirp_uaddr = $dirent
+      count = $count
+   }
+probe kernel.syscall.getdents64.return =
+   kernel.function("sys_getdents64").return {
+      name = "getdents64.return"
+   }
+# getegid ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getegid(void)
+ */
+probe kernel.syscall.getegid =
+   kernel.function("sys_getegid") {
+      name = "getegid"
+   }
+probe kernel.syscall.getegid.return =
+   kernel.function("sys_getegid").return {
+      name = "getegid.return"
+   }
+# getegid16 __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getegid16(void)
+ */
+probe kernel.syscall.getegid16 =
+   kernel.function("sys_getegid16") {
+      name = "getegid16"
+   }
+probe kernel.syscall.getegid16.return =
+   kernel.function("sys_getegid16").return {
+      name = "getegid16.return"
+   }
+# geteuid ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_geteuid(void)
+ */
+probe kernel.syscall.geteuid =
+   kernel.function("sys_geteuid") {
+      name = "geteuid"
+   }
+probe kernel.syscall.geteuid.return =
+   kernel.function("sys_geteuid").return {
+      name = "geteuid.return"
+   }
+# geteuid16 __________________________________________________
+/*
+ * asmlinkage long
+ * sys_geteuid16(void)
+ */
+probe kernel.syscall.geteuid16 =
+   kernel.function("sys_geteuid16") {
+      name = "geteuid16"
+   }
+probe kernel.syscall.geteuid16.return =
+   kernel.function("sys_geteuid16").return {
+      name = "geteuid16.return"
+   }
+# getgid _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getgid(void)
+ */
+probe kernel.syscall.getgid =
+   kernel.function("sys_getgid") {
+      name = "getgid"
+   }
+probe kernel.syscall.getgid.return =
+   kernel.function("sys_getgid").return {
+      name = "getgid.return"
+   }
+# getgid16 ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_getgid16(void)
+ */
+probe kernel.syscall.getgid16 =
+   kernel.function("sys_getgid16") {
+      name = "getgid16"
+   }
+probe kernel.syscall.getgid16.return =
+   kernel.function("sys_getgid16").return {
+      name = "getgid16.return"
+   }
+# getgroups __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getgroups(int gidsetsize,
+ *               gid_t __user *grouplist)
+ */
+probe kernel.syscall.getgroups =
+   kernel.function("sys_getgroups") {
+      name = "getgroups"
+      size = $gidsetsize
+      /*
+       * NOTE
+       *  list defined as "gid_t list[]" there
+       *  is no practical way  to export these
+       *  values.  Therefore just export addr,
+       *  let  the user  take care of  it with
+       *  embedded C if need be.
+       */
+      list_uaddr = $grouplist
+   }
+probe kernel.syscall.getgroups.return =
+   kernel.function("sys_getgroups").return {
+      name = "getgroups.return"
+   }
+# getgroups16 ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getgroups16(int gidsetsize,
+ *                 old_gid_t __user *grouplist)
+ */
+probe kernel.syscall.getgroups16 =
+   kernel.function("sys_getgroups16") {
+      name = "getgroups16"
+      size = $gidsetsize
+      list_uaddr = $grouplist
+   }
+probe kernel.syscall.getgroups16.return =
+   kernel.function("sys_getgroups16").return {
+      name = "getgroups16.return"
+   }
+# gethostname ________________________________________________
+/*
+ * asmlinkage long
+ * sys_gethostname(char __user *name,
+ *                 int len)
+ */
+probe kernel.syscall.gethostname =
+   kernel.function("sys_gethostname") {
+      name = "gethostname"
+      hostname_uaddr = $name
+      len = $len
+   }
+probe kernel.syscall.gethostname.return =
+   kernel.function("sys_gethostname").return {
+      name = "gethostname.return"
+   }
+# getitimer __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getitimer(int which,
+ *               struct itimerval __user *value)
+ */
+probe kernel.syscall.getitimer =
+   kernel.function("sys_getitimer") {
+      name = "getitimer"
+      which = $which
+      which_str = _itimer_which_str($which)
+      value_uaddr = $value
+      /*
+       * XXX NOT SAFE -- might sleep
+       * value_it_interval_tv_sec =  __uget_itimerval_tv_m($value,0)
+       * value_it_interval_tv_usec = __uget_itimerval_tv_m($value,1)
+       * value_it_value_tv_sec =     __uget_itimerval_tv_m($value,2)
+       * value_it_value_tv_usec =    __uget_itimerval_tv_m($value,3)
+       */
+   }
+probe kernel.syscall.getitimer.return =
+   kernel.function("sys_getitimer").return {
+      name = "getitimer.return"
+   }
+# getpeername ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getpeername(int fd,
+ *                 struct sockaddr __user *usockaddr,
+ *                 int __user *usockaddr_len)
+ */
+probe kernel.syscall.getpeername =
+   kernel.function("sys_getpeername") {
+      name = "getpeername"
+      s = $fd
+      name_uaddr = $usockaddr
+      namelen_uaddr = $usockaddr_len
+   }
+probe kernel.syscall.getpeername.return =
+   kernel.function("sys_getpeername").return {
+      name = "getpeername.return"
+   }
+# getpgid ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getpgid(void)
+ */
+probe kernel.syscall.getpgid =
+   kernel.function("sys_getpgid") {
+      name = "getpgid"
+   }
+probe kernel.syscall.getpgid.return =
+   kernel.function("sys_getpgid").return {
+      name = "getpgid.return"
+   }
+# getpgrp ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getpgrp(void)
+ */
+probe kernel.syscall.getpgrp =
+   kernel.function("sys_getpgrp") {
+      name = "getpgrp"
+   }
+probe kernel.syscall.getpgrp.return =
+   kernel.function("sys_getpgrp").return {
+      name = "getpgrp.return"
+   }
+# getpid _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getpid(void)
+ */
+probe kernel.syscall.getpid =
+   kernel.function("sys_getpid") {
+      name = "getpid"
+   }
+probe kernel.syscall.getpid.return =
+   kernel.function("sys_getpid").return {
+      name = "getpid.return"
+   }
+# getppid ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getppid(void)
+ */
+probe kernel.syscall.getppid =
+   kernel.function("sys_getppid") {
+      name = "getppid"
+   }
+probe kernel.syscall.getppid.return =
+   kernel.function("sys_getppid").return {
+      name = "getppid.return"
+   }
+# getpriority ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getpriority(int which,
+ *                 int who)
+ */
+probe kernel.syscall.getpriority =
+   kernel.function("sys_getpriority") {
+      name = "getpriority"
+      which = $which
+      which_str = _priority_which_str($which)
+      who = $who
+   }
+probe kernel.syscall.getpriority.return =
+   kernel.function("sys_getpriority").return {
+      name = "getpriority.return"
+   }
+# getresgid __________________________________________________
+/*
+ * asmlinkage
+ * long sys_getresgid(gid_t __user *rgid,
+ *                    gid_t __user *egid,
+ *                    gid_t __user *sgid)
+ */
+probe kernel.syscall.getresgid =
+   kernel.function("sys_getresgid") {
+      name = "getresgid"
+      rgid_uaddr = $rgid
+      egid_uaddr = $egid
+      sgid_uaddr = $sgid
+      /*
+       * XXX NOT SAFE -- might sleep
+       * rgid = __uget_num($rgid)
+       * egid = __uget_num($egid)
+       * sgid = __uget_num($sgid)
+       */
+   }
+probe kernel.syscall.getresgid.return =
+   kernel.function("sys_getresgid").return {
+      name = "getresgid.return"
+   }
+# getresgid16 ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getresgid16(old_uid_t __user *rgid,
+ *                 old_uid_t __user *egid,
+ *                 old_uid_t __user *sgid)
+ */
+probe kernel.syscall.getresgid16 =
+   kernel.function("sys_getresgid") {
+      name = "getresgid16"
+      rgid_uaddr = $rgid
+      egid_uaddr = $egid
+      sgid_uaddr = $sgid
+   }
+probe kernel.syscall.getresgid16.return =
+   kernel.function("sys_getresgid").return {
+      name = "getresgid16.return"
+   }
+# getresuid __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getresuid(uid_t __user *ruid,
+ *               uid_t __user *euid,
+ *               uid_t __user *suid)
+ */
+probe kernel.syscall.getresuid =
+   kernel.function("sys_getresuid") {
+      name = "getresuid"
+      ruid_uaddr = $ruid
+      euid_uaddr = $euid
+      suid_uaddr = $suid
+      /*
+       * XXX NOT SAFE -- might sleep
+       * ruid = __uget_num($ruid)
+       * euid = __uget_num($euid)
+       * suid = __uget_num($suid)
+       */
+   }
+probe kernel.syscall.getresuid.return =
+   kernel.function("sys_getresuid").return {
+      name = "getresuid.return"
+   }
+# getresuid16 ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getresuid16(old_uid_t __user *ruid,
+ *                 old_uid_t __user *euid,
+ *                 old_uid_t __user *suid)
+ */
+probe kernel.syscall.getresuid16 =
+   kernel.function("sys_getresuid") {
+      name = "getresuid16"
+      ruid_uaddr = $ruid
+      euid_uaddr = $euid
+      suid_uaddr = $suid
+   }
+probe kernel.syscall.getresuid16.return =
+   kernel.function("sys_getresuid").return {
+      name = "getresuid16.return"
+   }
+# getrlimit __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getrlimit(unsigned int resource,
+ *               struct rlimit __user *rlim)
+ */
+probe kernel.syscall.getrlimit =
+   kernel.function("sys_getrlimit") {
+      name = "getrlimit"
+      resource = $resource
+      resource_str = _rlimit_resource_str($resource)
+      rlim_uaddr = $rlim
+   }
+probe kernel.syscall.getrlimit.return =
+   kernel.function("sys_getrlimit").return {
+      name = "getrlimit.return"
+   }
+# getrusage __________________________________________________
+/*
+ * asmlinkage long
+ * sys_getrusage(int who,
+ *               struct rusage __user *ru)
+ */
+probe kernel.syscall.getrusage =
+   kernel.function("sys_getrusage") {
+      name = "getrusage"
+      who = $who
+      who_str = _rusage_who_str($who)
+      usage_uaddr = $ru
+   }
+probe kernel.syscall.getrusage.return =
+   kernel.function("sys_getrusage").return {
+      name = "getrusage.return"
+   }
+# getsid _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getsid(pid_t pid)
+ */
+probe kernel.syscall.getsid =
+   kernel.function("sys_getsid") {
+      name = "getsid"
+      pid = $pid
+   }
+probe kernel.syscall.getsid.return =
+   kernel.function("sys_getsid").return {
+      name = "getsid.return"
+   }
+# getsockname ________________________________________________
+/*
+ * asmlinkage long
+ * sys_getsockname(int fd,
+ *                 struct sockaddr __user *usockaddr,
+ *                 int __user *usockaddr_len)
+ */
+probe kernel.syscall.getsockname =
+   kernel.function("sys_getsockname") {
+      name = "getsockname"
+      s = $fd
+      name_uaddr = $usockaddr
+      namelen_uaddr = $usockaddr_len
+   }
+probe kernel.syscall.getsockname.return =
+   kernel.function("sys_getsockname").return {
+      name = "getsockname.return"
+   }
+# getsockopt _________________________________________________
+/*
+ * asmlinkage long
+ * sys_getsockopt(int fd,
+ *                int level,
+ *                int optname,
+ *                char __user *optval,
+ *                int __user *optlen)
+ */
+probe kernel.syscall.getsockopt =
+   kernel.function("sys_getsockopt") {
+      name = "getsockopt"
+      fd = $fd
+      level = $level
+      level_str = _sockopt_level_str($level)
+      optname = $optname
+      optname_str = _sockopt_optname_str($optname)
+      optval_uaddr = $optval
+      optlen_uaddr = $optlen
+   }
+probe kernel.syscall.getsockopt.return =
+   kernel.function("sys_getsockopt").return {
+      name = "getsockopt.return"
+   }
+# gettid _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_gettid(void)
+ */
+probe kernel.syscall.gettid =
+   kernel.function("sys_gettid") {
+      name = "gettid"
+   }
+probe kernel.syscall.gettid.return =
+   kernel.function("sys_gettid").return {
+      name = "gettid.return"
+   }
+# gettimeofday _______________________________________________
+/*
+ * asmlinkage long
+ * sys_gettimeofday(struct timeval  __user *tv,
+ *                  struct timezone __user *tz)
+ */
+probe kernel.syscall.gettimeofday =
+   kernel.function("sys_gettimeofday") {
+      name = "gettimeofday"
+      tv_uaddr = $tv
+      tz_uaddr = $tz
+      /*
+       * XXX NOT SAFE -- might sleep
+       * tv_tv_sec         = __uget_tv_m($tv,0)
+       * tv_tv_usec        = __uget_tv_m($tv,1)
+       * tz_tz_minuteswest = __uget_tz_m($tz,0)
+       * tz_tz_dsttime     = __uget_tz_m($tz,1)
+       */
+   }
+probe kernel.syscall.gettimeofday.return =
+   kernel.function("sys_gettimeofday").return {
+      name = "gettimeofday.return"
+   }
+# getuid _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_getuid(void)
+ */
+probe kernel.syscall.getuid =
+   kernel.function("sys_getuid") {
+      name = "getuid"
+   }
+probe kernel.syscall.getuid.return =
+   kernel.function("sys_getuid").return {
+      name = "getuid.return"
+   }
+# getuid16 ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_getuid16(void)
+ */
+probe kernel.syscall.getuid16 =
+   kernel.function("sys_getuid16") {
+      name = "getuid16"
+   }
+probe kernel.syscall.getuid16.return =
+   kernel.function("sys_getuid16").return {
+      name = "getuid16.return"
+   }
+# getxattr ___________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_getxattr(char __user *path,
+ *              char __user *name,
+ *              void __user *value,
+ *              size_t size)
+ */
+probe kernel.syscall.getxattr =
+   kernel.function("sys_getxattr") {
+      name = "getxattr"
+      path_uaddr = $path
+      name_uaddr = $name
+      value_uaddr = $value
+      size = $size
+   }
+probe kernel.syscall.getxattr.return =
+   kernel.function("sys_getxattr").return {
+      name = "getxattr.return"
+   }
+# init_module ________________________________________________
+/*
+ * sys_init_module(void __user *umod,
+ *                 unsigned long len,
+ *                 const char __user *uargs)
+ */
+probe kernel.syscall.init_module =
+   kernel.function("sys_init_module") {
+      name = "init_module"
+      umod_uaddr = $umod
+      len = $len
+      uargs_uaddr = $uargs
+   }
+probe kernel.syscall.init_module.return =
+   kernel.function("sys_init_module").return {
+      name = "init_module.return"
+   }
+# io_cancel __________________________________________________
+/*
+ * asmlinkage long
+ * sys_io_cancel(aio_context_t ctx_id,
+ *               struct iocb __user *iocb,
+ *               struct io_event __user *result)
+ */
+probe kernel.syscall.io_cancel =
+   kernel.function("sys_io_cancel") {
+      name = "io_cancel"
+      ctx_id = $ctx_id
+      iocb_uaddr = $iocb
+      result_uaddr = $result
+   }
+probe kernel.syscall.io_cancel.return =
+   kernel.function("sys_io_cancel").return {
+      name = "io_cancel.return"
+   }
+# ioctl ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_ioctl(unsigned int fd,
+ *           unsigned int cmd,
+ *           unsigned long arg)
+ */
+probe kernel.syscall.ioctl =
+   kernel.function("sys_ioctl") {
+      name = "ioctl"
+      fd = $fd
+      request = $cmd
+      argp = $arg
+   }
+probe kernel.syscall.ioctl.return =
+   kernel.function("sys_ioctl").return {
+      name = "ioctl.return"
+   }
+# io_destroy _________________________________________________
+/*
+ * asmlinkage long
+ * sys_io_destroy(aio_context_t ctx)
+ */
+probe kernel.syscall.io_destroy =
+   kernel.function("sys_io_destroy") {
+      name = "io_destroy"
+      ctx = $ctx
+   }
+probe kernel.syscall.io_destroy.return =
+   kernel.function("sys_io_destroy").return {
+      name = "io_destroy.return"
+   }
+# io_getevents _______________________________________________
+/*
+ * asmlinkage long
+ * sys_io_getevents(aio_context_t ctx_id,
+ *                  long min_nr,
+ *                  long nr,
+ *                  struct io_event __user *events,
+ *                  struct timespec __user *timeout)
+ */
+probe kernel.syscall.io_getevents =
+   kernel.function("sys_io_getevents") {
+      name = "io_getevents"
+      ctx_id = $ctx_id
+      min_nr = $min_nr
+      nr = $nr
+      events_uaddr = $events
+      timeout_uaddr = $timeout
+   }
+probe kernel.syscall.io_getevents.return =
+   kernel.function("sys_io_getevents").return {
+      name = "io_getevents.return"
+   }
+# ioperm _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_ioperm(unsigned long from,
+ *            unsigned long num,
+ *            int turn_on)
+ */
+probe kernel.syscall.ioperm =
+   kernel.function("sys_ioperm") {
+      name = "ioperm"
+      from = $from
+      num = $num
+      turn_on = $turn_on
+   }
+probe kernel.syscall.ioperm.return =
+   kernel.function("sys_ioperm").return {
+      name = "ioperm.return"
+   }
+# io_setup ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_io_setup(unsigned nr_events,
+ *              aio_context_t __user *ctxp)
+ */
+probe kernel.syscall.io_setup =
+   kernel.function("sys_io_setup") {
+      name = "io_setup"
+      maxevents = $nr_events
+      ctxp_uaddr = $ctxp
+   }
+probe kernel.syscall.io_setup.return =
+   kernel.function("sys_io_setup").return {
+      name = "io_setup.return"
+   }
+# io_submit __________________________________________________
+/*
+ * asmlinkage long
+ * sys_io_submit(aio_context_t ctx_id,
+ *               long nr,
+ *               struct iocb __user * __user *iocbpp)
+ */
+probe kernel.syscall.io_submit =
+   kernel.function("sys_io_submit") {
+      name = "io_submit"
+      ctx_id = $ctx_id
+      nr = $nr
+      iocbpp_uaddr = $iocbpp
+}
+probe kernel.syscall.io_submit.return =
+   kernel.function("sys_io_submit").return {
+      name = "io_submit.return"
+   }
+# kexec_load _________________________________________________
+/*
+ * asmlinkage long
+ * sys_kexec_load(unsigned long entry,
+ *                unsigned long nr_segments,
+ *                struct kexec_segment __user *segments,
+ *                unsigned long flags)
+ */
+/*
+probe kernel.syscall.kexec_load =
+   kernel.function("sys_kexec_load") {
+      name = "kexec_load"
+      entry = $entry
+      nr_segments = $nr_segments
+      segments_uaddr = $segments_uaddr
+      flags = $flags
+   }
+probe kernel.syscall.kexec_load.return =
+   kernel.function("sys_kexec_load").return {
+      name = "kexec_load.return"
+   }
+*/
+# keyctl _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_keyctl(int option,
+ *            unsigned long arg2,
+ *            unsigned long arg3,
+ *            unsigned long arg4,
+ *            unsigned long arg5)
+ */
+probe kernel.syscall.keyctl =
+   kernel.function("sys_keyctl") {
+      name = "keyctl"
+      option = $option
+      arg2 = $arg2
+      arg3 = $arg3
+      arg4 = $arg4
+      arg5 = $arg5
+   }
+probe kernel.syscall.keyctl.return =
+   kernel.function("sys_keyctl").return {
+      name = "keyctl.return"
+   }
+# kill _______________________________________________________
+/*
+ * asmlinkage long
+ * sys_kill(int pid, int sig)
+ */
+probe kernel.syscall.kill =
+   kernel.function("sys_kill") {
+      name = "kill"
+      pid = $pid
+      sig = $sig
+   }
+probe kernel.syscall.kill.return =
+   kernel.function("sys_kill").return {
+      name = "kill.return"
+   }
+# lchown _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_lchown(const char __user * filename,
+ *            uid_t user,
+ *            gid_t group)
+ */
+probe kernel.syscall.lchown =
+   kernel.function("sys_lchown") {
+      name = "lchown"
+      path_uaddr = $filename
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.lchown.return =
+   kernel.function("sys_lchown").return {
+      name = "lchown.return"
+   }
+# lchown16 ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_lchown16(const char __user * filename,
+ *              old_uid_t user,
+ *              old_gid_t group)
+ */
+probe kernel.syscall.lchown16 =
+   kernel.function("sys_lchown") {
+      name = "lchown16"
+      path_uaddr = $filename
+      owner = $user
+      group = $group
+   }
+probe kernel.syscall.lchown16.return =
+   kernel.function("sys_lchown").return {
+      name = "lchown16.return"
+   }
+# lgetxattr __________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_lgetxattr(char __user *path,
+ *               char __user *name,
+ *               void __user *value,
+ *               size_t size)
+ */
+probe kernel.syscall.lgetxattr =
+   kernel.function("sys_lgetxattr") {
+      name = "lgetxattr"
+      path_uaddr = $path
+      name_uaddr = $name
+      value_uaddr = $value
+      size = $size
+   }
+probe kernel.syscall.lgetxattr.return =
+   kernel.function("sys_lgetxattr").return {
+      name = "lgetxattr.return"
+   }
+# link _______________________________________________________
+/*
+ * asmlinkage long
+ * sys_link(const char __user * oldname,
+ *          const char __user * newname)
+ */
+probe kernel.syscall.link =
+   kernel.function("sys_link") {
+      name = "link"
+      oldpath_uaddr = $oldname
+      newpath_uaddr = $newname
+   }
+probe kernel.syscall.link.return =
+   kernel.function("sys_link").return {
+      name = "link.return"
+   }
+# listen _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_listen(int fd,
+ *            int backlog)
+ */
+probe kernel.syscall.listen =
+   kernel.function("sys_listen") {
+      name = "listen"
+      s = $fd
+      backlog = $backlog
+   }
+probe kernel.syscall.listen.return =
+   kernel.function("sys_listen").return {
+      name = "listen.return"
+   }
+# listxattr __________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_listxattr(char __user *path,
+ *               char __user *list,
+ *               size_t size)
+ */
+probe kernel.syscall.listxattr =
+   kernel.function("sys_listxattr") {
+      name = "listxattr"
+      path_uaddr = $path
+      list_uaddr = $list
+      size = $size
+   }
+probe kernel.syscall.listxattr.return =
+   kernel.function("sys_listxattr").return {
+      name = "listxattr.return"
+   }
+# llistxattr _________________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_llistxattr(char __user *path,
+ *                char __user *list,
+ *                size_t size)
+ */
+probe kernel.syscall.llistxattr =
+   kernel.function("sys_llistxattr") {
+      name = "llistxattr"
+      path_uaddr = $path
+      list_uaddr = $list
+      size = $size
+   }
+probe kernel.syscall.llistxattr.return =
+   kernel.function("sys_llistxattr").return {
+      name = "llistxattr.return"
+   }
+# llseek _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_llseek(unsigned int fd,
+ *            unsigned long offset_high,
+ *            unsigned long offset_low,
+ *            loff_t __user * result,
+ *            unsigned int origin)
+ */
+probe kernel.syscall.llseek =
+   kernel.function("sys_llseek") {
+      name = "llseek"
+      fd = $fd
+      offset_high = $offset_high
+      offset_low = $offset_low
+      result_uaddr = $result
+      whence = $origin
+      whence_str = _seek_whence_str($origin)
+   }
+probe kernel.syscall.llseek.return =
+   kernel.function("sys_llseek").return {
+      name = "llseek.return"
+   }
+# lookup_dcookie _____________________________________________
+/*
+ * asmlinkage long
+ * sys_lookup_dcookie(u64 cookie64,
+ *                    char __user * buf,
+ *                    size_t len)
+ */
+probe kernel.syscall.lookup_dcookie =
+   kernel.function("sys_lookup_dcookie") {
+      name = "lookup_dcookie"
+      cookie = $cookie64
+      buffer_uaddr = $buf
+      len = $len
+   }
+probe kernel.syscall.lookup_dcookie.return =
+   kernel.function("sys_lookup_dcookie").return {
+      name = "lookup_dcookie.return"
+   }
+# lremovexattr _______________________________________________
+/*
+ * asmlinkage long
+ * sys_lremovexattr(char __user *path,
+ *                  char __user *name)
+ */
+probe kernel.syscall.lremovexattr =
+   kernel.function("sys_lremovexattr") {
+      name = "lremovexattr"
+      path_uaddr = $path
+      name_uaddr = $name
+   }
+probe kernel.syscall.lremovexattr.return =
+   kernel.function("sys_lremovexattr").return {
+      name = "lremovexattr.return"
+   }
+# lseek ______________________________________________________
+/*
+ * asmlinkage off_t
+ * sys_lseek(unsigned int fd,
+ *           off_t offset,
+ *           unsigned int origin)
+ */
+probe kernel.syscall.lseek =
+   kernel.function("sys_lseek") {
+      name = "lseek"
+      fildes = $fd
+      offset = $offset
+      whence = $origin
+      whence_str = _seek_whence_str($origin)
+   }
+probe kernel.syscall.lseek.return =
+   kernel.function("sys_lseek").return {
+      name = "lseek.return"
+   }
+# lsetxattr __________________________________________________
+/*
+ * asmlinkage long
+ * sys_lsetxattr(char __user *path,
+ *               char __user *name,
+ *               void __user *value,
+ *               size_t size,
+ *               int flags)
+ */
+probe kernel.syscall.lsetxattr =
+   kernel.function("sys_lsetxattr") {
+      name = "lsetxattr"
+      path_uaddr = $path
+      name_uaddr = $name
+      value_uaddr = $value
+      size = $size
+      flags = $flags
+   }
+probe kernel.syscall.lsetxattr.return =
+   kernel.function("sys_lsetxattr").return {
+      name = "lsetxattr.return"
+   }
+# lstat ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_lstat(char __user * filename,
+ *           struct __old_kernel_stat __user * statbuf)
+ */
+probe kernel.syscall.lstat =
+   kernel.function("sys_lstat") {
+      name = "lstat"
+      filename_uaddr = $filename
+      buf_uaddr = $statbuf
+   }
+probe kernel.syscall.lstat.return =
+   kernel.function("sys_lstat").return {
+      name = "lstat.return"
+   }
+# madvise ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_madvise(unsigned long start,
+ *             size_t len_in,
+ *             int behavior)
+ */
+probe kernel.syscall.madvise =
+   kernel.function("sys_madvise") {
+      name = "madvise"
+      start = $start
+      length = $len_in
+      advice = $behavior
+      advice_str = _madvice_advice_str($behavior)
+   }
+probe kernel.syscall.madvise.return =
+   kernel.function("sys_madvise").return {
+      name = "madvise.return"
+   }
+# mincore ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_mincore(unsigned long start,
+ *             size_t len,
+ *             unsigned char __user * vec)
+ */
+probe kernel.syscall.mincore =
+   kernel.function("sys_mincore") {
+      name = "mincore"
+      start = $start
+      length = $len
+      vec_uaddr = $vec
+   }
+probe kernel.syscall.mincore.return =
+   kernel.function("sys_mincore").return {
+      name = "mincore.return"
+   }
+# mkdir ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_mkdir(const char __user * pathname,
+ *           int mode)
+ */
+probe kernel.syscall.mkdir =
+   kernel.function("sys_mkdir") {
+      name = "mkdir"
+      pathname_uaddr = $pathname
+      mode = $mode
+   }
+probe kernel.syscall.mkdir.return =
+   kernel.function("sys_mkdir").return {
+      name = "mkdir.return"
+   }
+# mknod ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_mknod(const char __user * filename,
+ *           int mode,
+ *           unsigned dev)
+ */
+probe kernel.syscall.mknod =
+   kernel.function("sys_mknod") {
+      name = "mknod"
+      pathname_uaddr = $filename
+      mode = $mode
+      mode_str = _mknod_mode_str($mode)
+      dev = $dev
+   }
+probe kernel.syscall.mknod.return =
+   kernel.function("sys_mknod").return {
+      name = "mknod.return"
+   }
+# mlock ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_mlock(unsigned long start,
+ *           size_t len)
+ */
+probe kernel.syscall.mlock =
+   kernel.function("sys_mlock") {
+      name = "mlock"
+      addr = $start
+      len = $len
+   }
+probe kernel.syscall.mlock.return =
+   kernel.function("sys_mlock").return {
+      name = "mlock.return"
+   }
+# mlockall ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_mlockall(int flags)
+ */
+probe kernel.syscall.mlockall =
+   kernel.function("sys_mlockall") {
+      name = "mlockall"
+      flags = $flags
+      flags_str = _mlockall_flags_str($flags)
+   }
+probe kernel.syscall.mlockall.return =
+   kernel.function("sys_mlockall").return {
+      name = "mlockall.return"
+   }
+# modify_ldt _________________________________________________
+/*
+ * asmlinkage int
+ * sys_modify_ldt(int func,
+ *                void __user *ptr,
+ *                unsigned long bytecount)
+ */
+probe kernel.syscall.modify_ldt =
+   kernel.function("sys_modify_ldt") {
+      name = "modify_ldt"
+      func = $func
+      ptr_uaddr = $ptr
+      bytecount = $bytecount
+   }
+probe kernel.syscall.modify_ldt.return =
+   kernel.function("sys_modify_ldt").return {
+      name = "modify_ldt.return"
+   }
+# mount ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_mount(char __user * dev_name,
+ *           char __user * dir_name,
+ *           char __user * type,
+ *           unsigned long flags,
+ *           void __user * data)
+ */
+probe kernel.syscall.mount =
+   kernel.function("sys_mount") {
+      name = "mount"
+      source_uaddr = $dev_name
+      target_uaddr = $dir_name
+      filesystemtype_uaddr = $type
+      mountflags = $flags
+      mountflags_str = _mountflags_str($flags)
+      data_uaddr = $data
+   }
+probe kernel.syscall.mount.return =
+   kernel.function("sys_mount").return {
+      name = "mount.return"
+   }
+# mprotect ___________________________________________________
+/*
+ * asmlinkage long
+ * sys_mprotect(unsigned long start,
+ *              size_t len,
+ *              unsigned long prot)
+ */
+probe kernel.syscall.mprotect =
+   kernel.function("sys_mprotect") {
+      name = "mprotect"
+      addr = $start
+      len = $len
+      prot = $prot
+      prot_str = _mprotect_prot_str($prot)
+   }
+probe kernel.syscall.mprotect.return =
+   kernel.function("sys_mprotect").return {
+      name = "mprotect.return"
+   }
+# mq_getsetattr ______________________________________________
+/*
+ * asmlinkage long
+ * sys_mq_getsetattr(mqd_t mqdes,
+ *                   const struct mq_attr __user *u_mqstat,
+ *                   struct mq_attr __user *u_omqstat)
+ */
+probe kernel.syscall.mq_getsetattr =
+   kernel.function("sys_mq_getsetattr") {
+      name = "mq_getsetattr"
+      mqdes = $mqdes
+      u_mqstat_uaddr = $u_mqstat
+      u_omqstat_uaddr = $u_omqstat
+   }
+probe kernel.syscall.mq_getsetattr.return =
+   kernel.function("sys_mq_getsetattr").return {
+      name = "mq_getsetattr.return"
+   }
+# mq_notify __________________________________________________
+/*
+ * asmlinkage long
+ * sys_mq_notify(mqd_t mqdes,
+ *               const struct sigevent __user *u_notification)
+ */
+probe kernel.syscall.mq_notify =
+   kernel.function("sys_mq_notify") {
+      name = "mq_notify"
+      mqdes = $mqdes
+      notification_uaddr = $u_notification
+   }
+probe kernel.syscall.mq_notify.return =
+   kernel.function("sys_mq_notify").return {
+      name = "mq_notify.return"
+   }
+# mq_open ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_mq_open(const char __user *u_name,
+ *             int oflag,
+ *             mode_t mode,
+ *             struct mq_attr __user *u_attr)
+ */
+probe kernel.syscall.mq_open =
+   kernel.function("sys_mq_open") {
+      name = "mq_open"
+      name_uaddr = $u_name
+      oflag = $oflag
+      mode = $mode
+      u_attr_uaddr = $u_attr
+   }
+probe kernel.syscall.mq_open.return =
+   kernel.function("sys_mq_open").return {
+      name = "mq_open.return"
+   }
+# mq_timedreceive ____________________________________________
+/*
+ * asmlinkage ssize_t
+ * sys_mq_timedreceive(mqd_t mqdes,
+ *                     char __user *u_msg_ptr,
+ *                     size_t msg_len,
+ *                     unsigned int __user *u_msg_prio,
+ *                     const struct timespec __user *u_abs_timeout)
+ */
+probe kernel.syscall.mq_timedreceive =
+   kernel.function("sys_mq_timedreceive") {
+      name = "mq_timedreceive"
+      mqdes = $mqdes
+      msg_ptr_uaddr = $u_msg_ptr
+      msg_len = $msg_len
+      msg_prio_uaddr = $u_msg_prio
+      abs_timout_uaddr = $u_abs_timeout
+   }
+probe kernel.syscall.mq_timedreceive.return =
+   kernel.function("sys_mq_timedreceive").return {
+      name = "mq_timedreceive.return"
+   }
+# mq_timedsend _______________________________________________
+/*
+ * asmlinkage long
+ * sys_mq_timedsend(mqd_t mqdes,
+ *                  const char __user *u_msg_ptr,
+ *                  size_t msg_len,
+ *                  unsigned int msg_prio,
+ *                  const struct timespec __user *u_abs_timeout)
+ */
+probe kernel.syscall.mq_timedsend =
+   kernel.function("sys_mq_timedsend") {
+      name = "mq_timedsend"
+      mqdes = $mqdes
+      msg_ptr_uaddr = $u_msg_ptr
+      msg_len = $msg_len
+      msg_prio = $msg_prio
+      abs_timeout_uaddr = $u_abs_timeout
+   }
+probe kernel.syscall.mq_timedsend.return =
+   kernel.function("sys_mq_timedsend").return {
+      name = "mq_timedsend.return"
+   }
+# mq_unlink __________________________________________________
+/*
+ * asmlinkage long
+ * sys_mq_unlink(const char __user *u_name)
+ */
+probe kernel.syscall.mq_unlink =
+   kernel.function("sys_mq_unlink") {
+      name = "mq_unlink"
+      u_name_uaddr = $u_name
+   }
+probe kernel.syscall.mq_unlink.return =
+   kernel.function("sys_mq_unlink").return {
+      name = "mq_unlink.return"
+   }
+# mremap _____________________________________________________
+/*
+ * asmlinkage unsigned long
+ * sys_mremap(unsigned long addr,
+ *            unsigned long old_len,
+ *            unsigned long new_len,
+ *            unsigned long flags,
+ *            unsigned long new_addr)
+ */
+probe kernel.syscall.mremap =
+   kernel.function("sys_mremap") {
+      name = "mremap"
+      old_address = $addr
+      old_size = $old_len
+      new_size = $new_len
+      flags = $flags
+      new_address = $new_addr
+   }
+probe kernel.syscall.mremap.return =
+   kernel.function("sys_mremap").return {
+      name = "mremap.return"
+   }
+# msgctl _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_msgctl (int msqid,
+ *             int cmd,
+ *             struct msqid_ds __user *buf)
+ */
+probe kernel.syscall.msgctl =
+   kernel.function("sys_msgctl") {
+      name = "msgctl"
+      msqid = $msqid
+      cmd = $cmd
+      buf_uaddr = $buf
+   }
+probe kernel.syscall.msgctl.return =
+   kernel.function("sys_msgctl").return {
+      name = "msgctl.return"
+   }
+# msgget _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_msgget (key_t key,
+ *             int msgflg)
+ */
+probe kernel.syscall.msgget =
+   kernel.function("sys_msgget") {
+      name = "msgget"
+      key = $key
+      msgflg = $msgflg
+      msgflg_str = _sys_open_flag_str($msgflg)
+   }
+probe kernel.syscall.msgget.return =
+   kernel.function("sys_msgget").return {
+      name = "msgget.return"
+   }
+# msgrcv _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_msgrcv (int msqid,
+ *             struct msgbuf __user *msgp,
+ *             size_t msgsz,
+ *             long msgtyp,
+ *             int msgflg)
+ */
+probe kernel.syscall.msgrcv =
+   kernel.function("sys_msgrcv") {
+      name = "msgrcv"
+      msqid = $msqid
+      msgp_uaddr = $msgp
+      msgsz = $msgsz
+      msgtyp = $msgtyp
+      msgflg = $msgflg
+   }
+probe kernel.syscall.msgrcv.return =
+   kernel.function("sys_msgrcv").return {
+      name = "msgrcv.return"
+   }
+# msgsnd _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_msgsnd (int msqid,
+ *             struct msgbuf __user *msgp,
+ *             size_t msgsz,
+ *             int msgflg)
+ */
+probe kernel.syscall.msgsnd =
+   kernel.function("sys_msgsnd") {
+      name = "msgsnd"
+      msqid = $msqid
+      msgp_uaddr = $msgp
+      msgsz = $msgsz
+      msgflg = $msgflg
+   }
+probe kernel.syscall.msgsnd.return =
+   kernel.function("sys_msgsnd").return {
+      name = "msgsnd.return"
+   }
+# msync ______________________________________________________
+/*
+ * asmlinkage long
+ * sys_msync(unsigned long start,
+ *           size_t len,
+ *           int flags)
+ */
+probe kernel.syscall.msync =
+   kernel.function("sys_msync") {
+      name = "msync"
+      start = $start
+      length = $len
+      flags = $flags
+      flags_str = _msync_flag_str($flags)
+   }
+probe kernel.syscall.msync.return =
+   kernel.function("sys_msync").return {
+      name = "msync.return"
+   }
+# munlock ____________________________________________________
+/*
+ * asmlinkage long
+ * sys_munlock(unsigned long start,
+ *             size_t len)
+ */
+probe kernel.syscall.munlock =
+   kernel.function("sys_munlock") {
+      name = "munlock"
+      addr = $start
+      len = $len
+   }
+probe kernel.syscall.munlock.return =
+   kernel.function("sys_munlock").return {
+      name = "munlock.return"
+   }
+# munlockall _________________________________________________
+/*
+ * asmlinkage long
+ * sys_munlockall(void)
+ */
+probe kernel.syscall.munlockall =
+   kernel.function("sys_munlockall") {
+      name = "munlockall"
+   }
+probe kernel.syscall.munlockall.return =
+   kernel.function("sys_munlockall").return {
+      name = "munlockall.return"
+   }
+# munmap _____________________________________________________
+/*
+ * asmlinkage long
+ * sys_munmap(unsigned long addr,
+ *            size_t len)
+ */
+probe kernel.syscall.munmap =
+   kernel.function("sys_munmap") {
+      name = "munmap"
+      start = $addr
+      length = $len
+   }
+probe kernel.syscall.munmap.return =
+   kernel.function("sys_munmap").return {
+      name = "munmap.return"
+   }

@@ -41,3 +41,19 @@ function user_string:string (addr:long) %{
     CONTEXT->last_error = errmsg;
   }
 %}
+
+function user_string_safe:string (addr:long, n:long) %{
+  long rc;
+  if (n > MAXSTRINGLEN)
+	n = MAXSTRINGLEN;
+  rc = _stp_strncpy_from_user (THIS->__retvalue, 
+		 	            (const char __user*) (uintptr_t) THIS->addr,
+				    MAXSTRINGLEN);
+  if (rc < 0)
+  {
+    static char errmsg[40];
+    snprintf (errmsg, 40, "user string copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+%}

@@ -1,3 +1,10 @@
+2006-02-01  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: New syscall file.
+	* syscall2.stp: More syscalls.
+	* i686/syscalls.stp: x86-specific calls.
+	* x86_64/syscalls.stp: x86_64-specific calls.
+
 2006-01-30  Martin Hunt  <hunt@redhat.com>
 
 	* context.stp (probefunc): New function.
