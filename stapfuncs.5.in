@@ -170,8 +170,20 @@ Return the probe point associated with the currently running probe handler,
 including alias and wildcard expansion effects.
 
 .TP
+probefunc:string ()
+Return the probe point's function name.
+
+.TP
 target:long ()
 Returns the pid of the target process.
+
+.TP
+is_return:long ()
+Returns 1 if the probe point is a return probe.
+
+.TP
+returnval:long ()
+Gets the return value of a probed function. Must be a return probe.
 
 .SS ERRNO
 

@@ -1,0 +1,8 @@
+#! stap -p4
+
+probe syscall.*, syscall.*.return {
+	if (returnp)
+		printf("%d\n", returnval())
+	else
+		printf("%s (%s) = ", name, argstr)
+}
