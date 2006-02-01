@@ -1,3 +1,8 @@
+2006-02-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, systemtap.spec.in: Version 0.5.4.
+	* configure: Regenerated.
+
 2006-01-31  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2252
