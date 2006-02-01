@@ -1,8 +1,8 @@
-#! stap -p2
+#! stap -up2
 
 function stamp (syscall)
 {
   # no return expression => unknown function type
 }
 
-probe syscall.read { stamp ("read"); }
+probe begin { a = stamp ("read"); }
