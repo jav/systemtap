@@ -240,7 +240,6 @@ probe syscall.pciconfig_iobase.return = kernel.function("sys_pciconfig_iobase").
 	name = "pciconfig_iobase"
 	returnp = 1
 }
-*/
 # pciconfig_read _____________________________________________
 #
 # asmlinkage int
@@ -265,7 +264,6 @@ probe syscall.pciconfig_read.return =
 	name = "pciconfig_read"
 	returnp = 1
 }
-*/
 # pciconfig_write ____________________________________________
 #
 # asmlinkage int
@@ -289,7 +287,6 @@ probe syscall.pciconfig_write.return =
 	name = "pciconfig_write"
 	returnp = 1
 }
-*/
 # personality ________________________________________________
 #
 # asmlinkage long
