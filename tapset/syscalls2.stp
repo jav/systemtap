@@ -7,7 +7,7 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-# Each syscall returns the calls parameters. In addition, the following
+/* Each syscall returns the calls parameters. In addition, the following
 * variables are set:
 *
 * name - generally the syscall name minus the "sys_".

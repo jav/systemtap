@@ -1,5 +1,9 @@
 2006-02-06  Will Cohen  <wcohen@redhat.com>
 
+	* tapset/syscall2.stp: Correct opening comment typo.
+
+2006-02-06  Will Cohen  <wcohen@redhat.com>
+
 	* tapset/syscall2.stp: Correct closing comment typos.
 
 2006-02-01  Frank Ch. Eigler  <fche@elastic.org>
