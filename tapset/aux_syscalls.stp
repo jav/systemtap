@@ -1,3 +1,106 @@
+function __fork_flags:string(flags:long)
+%{
+  	long flags = THIS->flags;
+	char *str = THIS->__retvalue;
+	if (flags & CLONE_FS)
+		strlcat(str,"CLONE_FS|", MAXSTRINGLEN);
+	if (flags & CLONE_FILES)
+		strlcat(str, "CLONE_FILES|", MAXSTRINGLEN);
+	if (flags & CLONE_SIGHAND)
+		strlcat(str, "CLONE_SIGHAND|", MAXSTRINGLEN);
+	if (flags & CLONE_PTRACE)
+		strlcat(str, "CLONE_PTRACE|", MAXSTRINGLEN);
+	if (flags & CLONE_VFORK)
+		strlcat(str, "CLONE_VFORK|", MAXSTRINGLEN);
+	if (flags & CLONE_PARENT)
+		strlcat(str, "CLONE_PARENT|", MAXSTRINGLEN);
+	if (flags & CLONE_THREAD)
+		strlcat(str, "CLONE_THREAD|", MAXSTRINGLEN);
+	if (flags & CLONE_SYSVSEM)
+		strlcat(str, "CLONE_SYSVSEM|", MAXSTRINGLEN);
+	if (flags & CLONE_SETTLS)
+		strlcat(str, "CLONE_SETTLS|", MAXSTRINGLEN);
+	if (flags & CLONE_PARENT_SETTID)
+		strlcat(str, "CLONE_PARENT_SETTID|", MAXSTRINGLEN);
+	if (flags & CLONE_CHILD_CLEARTID)
+		strlcat(str, "CLONE_CHILD_CLEARTID|", MAXSTRINGLEN);
+	if (flags & CLONE_UNTRACED)
+		strlcat(str, "CLONE_UNTRACED|", MAXSTRINGLEN);
+	if (flags & CLONE_CHILD_SETTID)
+		strlcat(str, "CLONE_CHILD_SETTID|", MAXSTRINGLEN);
+	if (flags & CLONE_STOPPED)
+		strlcat(str, "CLONE_STOPPED", MAXSTRINGLEN);
+%}
+
+/* This function copies an argv from userspace. */
+function __get_argv:string(a:long)
+%{
+  	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
+	char __user *vstr;
+	int space, rc, len = MAXSTRINGLEN;
+	char *str = THIS->__retvalue;
+	char buf[80];
+	char *ptr = buf;
+
+	if (argv)
+		argv++;
+
+	while (argv != NULL) {
+		if (get_user (vstr, argv))
+      			break;
+
+		if (vstr == NULL)
+			break;
+
+		rc = _stp_strncpy_from_user(buf, vstr, 80);
+		if (rc <= 0)
+			break;
+
+		/* check for whitespace in string */
+		buf[rc] = 0;
+		ptr = buf;
+		space = 0;
+		while (*ptr && rc--) {
+			if (isspace(*ptr++)) {
+				space = 1;
+				break;
+			}
+		}
+
+		if (len != MAXSTRINGLEN && len) {
+			*str++=' ';
+			len--;
+		}
+
+		if (space && len) {
+			*str++='\"';
+			len--;
+		}
+	
+		rc = strlcpy (str, buf, len); 
+		str += rc;
+		len -= rc;
+
+		if (space && len) {
+			*str++='\"';
+			len--;
+		}
+
+		argv++;
+	}
+	*str = 0;
+%}
+
+/*
+* This function is used when a long is really a pointer and we need
+* the string it points to. Should be rarely necessary.
+*/
+function __string:string (a:long)
+%{
+	char *str =(char *)(long)THIS->a;
+	strlcpy(THIS->__retvalue, str, MAXSTRINGLEN);
+%}
+
 /*
  * Return the 64 bit long value of the
  * scalar user space pointer parameter
@@ -316,11 +419,11 @@ function _sys_open_flag_str(f) {
 
 /* `man 2 open` for more information */
 function _access_mode_str(m) {
-   if(m & 4) bs="R_OK|".bs
-   if(m & 2) bs="W_OK|".bs
-   if(m & 1) bs="X_OK|".bs
-   if((m & 3) == 0) bs="F_OK|".bs
-   return substr(bs,0,strlen(bs)-1)
+	if((m & 7) == 0) return "F_OK"	
+	if(m & 4) bs="R_OK |".bs
+	if(m & 2) bs="W_OK |".bs
+	if(m & 1) bs="X_OK |".bs
+	return substr(bs,0,strlen(bs)-2)
 }
 
 /* `man 2 open` for more information */
@@ -549,12 +652,29 @@ function _statfs_f_type_str(f) {
    return ""
 }
 
+function _mmap_flags(flags) {
+	if (flags & 1) msg="MAP_SHARED|"
+	if (flags & 2) msg="MAP_PRIVATE|".msg
+	if (flags & 0x10) msg="MAP_FIXED|".msg
+	if (flags & 0x20) msg="MAP_ANONYMOUS|".msg
+	if (flags & 0x100) msg="MAP_GROWSDOWN|".msg
+	if (flags & 0x800) msg="MAP_DENYWRITE|".msg
+	if (flags & 0x1000) msg="MAP_EXECUTABLE|".msg
+	if (flags & 0x2000) msg="MAP_LOCKED|".msg
+	if (flags & 0x4000) msg="MAP_NORESERVE|".msg
+	if (flags & 0x8000) msg="MAP_POPULATE|".msg
+	if (flags & 0x10000) msg="MAP_NONBLOCK|".msg
+	return substr(msg,0,strlen(msg)-1)
+}
+
 function _mprotect_prot_str(prot) {
-   if(prot==0x00000000) return "PROT_NONE"
-   if(prot==0x00000001) return "PROT_READ"
-   if(prot==0x00000002) return "PROT_WRITE"
-   if(prot==0x00000004) return "PROT_EXEC"
-   return ""
+	if (prot) {
+		if(prot & 1) ps="PROT_READ|"
+		if(prot & 2) ps="PROT_WRITE|".ps
+		if(prot & 4) ps="PROT_EXEC|".ps
+		return substr(ps,0,strlen(ps)-1)	
+	}
+	return "PROT_NONE"
 }
 
 function _madvice_advice_str(behavior) {

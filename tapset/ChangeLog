@@ -1,3 +1,16 @@
+2006-02-07  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: Latest.
+	* syscalls2.stp: Commented out pciconfig calls. Those
+	need to go in arch-specific directories.
+
+	* aux_syscalls.stp (_access_mode_str): Fix.
+	(_mmap_flags): New Function.
+	(_mprotect_prot_str): Fix.
+	(__string): New.
+	(__get_argv): New.
+	(__fork_flags): New.
+
 2006-02-01  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: New syscall file.

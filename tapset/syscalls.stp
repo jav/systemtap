@@ -421,19 +421,16 @@ probe kernel.syscall.clone.return =
       name = "clone.return"
    }
 # close ______________________________________________________
-/*
- * asmlinkage long
- * sys_close(unsigned int fd)
- */
-probe kernel.syscall.close =
-   kernel.function("sys_close") {
-      name = "close"
-      fd = $fd
+# long sys_close(unsigned int fd)
+probe syscall.close = kernel.function("sys_close") {
+	name = "close"
+	fd = $fd
+	argstr = string(fd)
 }
-probe kernel.syscall.close.return =
-   kernel.function("sys_close").return {
-      name = "close.return"
-   }
+probe syscall.close.return = kernel.function("sys_close").return {
+	name = "close"
+	returnp = 1
+}
 # connect ____________________________________________________
 /*
  * asmlinkage long
@@ -574,15 +571,19 @@ probe kernel.syscall.epoll_wait.return =
 
 # execve _____________________________________________________
 # int sys_execve(struct pt_regs regs)
-probe syscall.execve = kernel.function("sys_execve") {
+#   which breaks out the args and immediately calls
+# int do_execve(char * filename,
+#	char __user *__user *argv,
+#	char __user *__user *envp,
+#	struct pt_regs * regs)
+probe syscall.execve = kernel.function("do_execve") {
 	name = "execve"
-	/*
-	* unsupported type identifier '$regs'
-	* regs = $regs
-	*/
+	filename = __string($filename)
+	args = __get_argv($argv)
+	argstr = sprintf("%s %s", filename, args)
 }
-# v2.6.15-rc2 or earlier has problems
-probe syscall.execve.return = kernel.function("sys_execve").return {
+# v2.6.15-rc2 or earlier has problems with sys_execve
+probe syscall.execve.return = kernel.function("do_execve").return {
 	name = "execve"
 	returnp = 1
 }
@@ -807,6 +808,8 @@ probe kernel.syscall.flock.return =
    kernel.function("sys_flock").return {
       name = "flock.return"
    }
+
+
 # fork _______________________________________________________
 # long do_fork(unsigned long clone_flags,
 #	unsigned long stack_start,
@@ -815,16 +818,24 @@ probe kernel.syscall.flock.return =
 #	int __user *parent_tidptr,
 #	int __user *child_tidptr)
 probe syscall.fork = kernel.function("do_fork") {
-	name = "fork"
 	clone_flags = $clone_flags
-	/*
-	* unable to find local 'start_stack' (maybe i386 specific)
-	* start_stack = $start_stack
-	*/
-	regs_uaddr = $regs
+	stack_start = $stack_start
+	regs = $regs
 	stack_size = $stack_size
 	parent_tid_uaddr = $parent_tidptr
 	child_tid_uaddr = $child_tidptr
+	
+	if (stack_start == 0) {
+		name = "fork_kernel_thread"
+		argstr = __fork_flags(clone_flags) 
+	} else if (clone_flags == 17)
+		name = "fork"
+	else if (clone_flags & 0x4000)
+		name = "vfork"
+	else {
+		name = "clone"
+		argstr = __fork_flags(clone_flags)
+	}
 }
 probe syscall.fork.return = kernel.function("do_fork").return {
 	name = "fork"
@@ -868,18 +879,20 @@ probe kernel.syscall.fsetxattr.return =
    kernel.function("sys_fsetxattr").return {
       name = "fsetxattr.return"
    }
+
 # fstat ______________________________________________________
 # long sys_fstat(unsigned int fd,struct __old_kernel_stat __user * statbuf)
 probe syscall.fstat = kernel.function("sys_fstat") {
 	name = "fstat"
 	fd = $fd
 	buf_uaddr = $statbuf
-	argstr = string($fd)
+	argstr = sprintf("%d, [0x%x]", fd, buf_uaddr)
 }
 probe syscall.fstat.return = kernel.function("sys_fstat").return {
 	name = "fstat"
 	returnp = 1
 }
+
 # fstatfs ____________________________________________________
 /*
  * asmlinkage long
@@ -915,19 +928,16 @@ probe kernel.syscall.fstatfs64.return =
       name = "fstatfs64.return"
    }
 # fsync ______________________________________________________
-/*
- * asmlinkage long
- * sys_fsync(unsigned int fd)
- */
-probe kernel.syscall.fsync =
-   kernel.function("sys_fsync") {
-      name = "fsync"
-      fd = $fd
-   }
-probe kernel.syscall.fsync.return =
-   kernel.function("sys_fsync").return {
-      name = "fsync.return"
-   }
+# long sys_fsync(unsigned int fd)
+probe syscall.fsync = kernel.function("sys_fsync") {
+	name = "fsync"
+	fd = $fd
+	argstr = string(fd)
+}
+probe syscall.fsync.return = kernel.function("sys_fsync").return {
+	name = "fsync.return"
+	returnp = 1
+}
 # ftruncate __________________________________________________
 /*
  * static inline long
@@ -2080,6 +2090,28 @@ probe kernel.syscall.mlockall.return =
    kernel.function("sys_mlockall").return {
       name = "mlockall.return"
    }
+
+# mmap2
+# long sys_mmap2(unsigned long addr, unsigned long len,
+#	unsigned long prot, unsigned long flags,
+#	unsigned long fd, unsigned long pgoff)
+probe syscall.mmap2 = kernel.function("sys_mmap2") {
+	name = "mmap2"
+	start = $addr
+	length = $len
+	prot = $prot
+	flags = $flags
+	fd = $fd
+	pgoffset = $pgoff
+	argstr = sprintf("0x%x, %d, %s, %s, %d, 0x%x", start, 
+		length, _mprotect_prot_str(prot), _mmap_flags(flags),
+		fd, pgoffset)
+}
+probe syscall.mmap2.return = kernel.function("sys_mmap2").return {
+	name = "mmap2"
+	returnp = 1
+}
+
 # modify_ldt _________________________________________________
 /*
  * asmlinkage int

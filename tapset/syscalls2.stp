@@ -233,16 +233,16 @@ probe syscall.pause.return = kernel.function("sys_pause").return {
 #			    unsigned long dfn)
 #
 #
-probe syscall.pciconfig_iobase = kernel.function("sys_pciconfig_iobase") {
-	name = "pciconfig_iobase"
-	which = $which
-	bus = $bus
-	dfn = $dfn
-}
-probe syscall.pciconfig_iobase.return = kernel.function("sys_pciconfig_iobase").return {
-	name = "pciconfig_iobase"
-	returnp = 1
-}
+#probe syscall.pciconfig_iobase = kernel.function("sys_pciconfig_iobase") {
+#	name = "pciconfig_iobase"
+#	which = $which
+#	bus = $bus
+#	dfn = $dfn
+#}
+#probe syscall.pciconfig_iobase.return = kernel.function("sys_pciconfig_iobase").return {
+#	name = "pciconfig_iobase"
+#	returnp = 1
+#}
 # pciconfig_read _____________________________________________
 #
 # asmlinkage int
@@ -254,19 +254,19 @@ probe syscall.pciconfig_iobase.return = kernel.function("sys_pciconfig_iobase").
 #			  { return 0; }
 #
 #
-probe syscall.pciconfig_read = kernel.function("sys_pciconfig_read") {
-	name = "pciconfig_read"
-	bus = $bus
-	dfn = $dfn
-	off = $off
-	len = $len
-	buf_uaddr = $buf
-}
-probe syscall.pciconfig_read.return =
-	kernel.function("sys_pciconfig_read").return {
-	name = "pciconfig_read"
-	returnp = 1
-}
+#probe syscall.pciconfig_read = kernel.function("sys_pciconfig_read") {
+#	name = "pciconfig_read"
+#	bus = $bus
+#	dfn = $dfn
+#	off = $off
+#	len = $len
+#	buf_uaddr = $buf
+#}
+#probe syscall.pciconfig_read.return =
+#	kernel.function("sys_pciconfig_read").return {
+#	name = "pciconfig_read"
+#	returnp = 1
+#}
 # pciconfig_write ____________________________________________
 #
 # asmlinkage int
@@ -277,19 +277,19 @@ probe syscall.pciconfig_read.return =
 #			   unsigned char *buf)
 #
 #
-probe syscall.pciconfig_write = kernel.function("sys_pciconfig_write") {
-	name = "pciconfig_write"
-	bus = $bus
-	dfn = $dfn
-	off = $off
-	len = $len
-	buf_uaddr = $buf
-}
-probe syscall.pciconfig_write.return =
-	kernel.function("sys_pciconfig_write").return {
-	name = "pciconfig_write"
-	returnp = 1
-}
+#probe syscall.pciconfig_write = kernel.function("sys_pciconfig_write") {
+#	name = "pciconfig_write"
+#	bus = $bus
+#	dfn = $dfn
+#	off = $off
+#	len = $len
+#	buf_uaddr = $buf
+#}
+#probe syscall.pciconfig_write.return =
+#	kernel.function("sys_pciconfig_write").return {
+#	name = "pciconfig_write"
+#	returnp = 1
+#}
 # personality ________________________________________________
 #
 # asmlinkage long

@@ -35,9 +35,9 @@ function user_string:string (addr:long) %{
 				    MAXSTRINGLEN);
   if (rc < 0)
   {
-    static char errmsg[40];
-    snprintf (errmsg, 40, "user string copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+//    static char errmsg[40];
+//    snprintf (errmsg, 40, "user string copy fault at 0x%p",
+//	 (void *) (uintptr_t) THIS->addr);
+//   CONTEXT->last_error = errmsg;
   }
 %}
