@@ -7,8 +7,11 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-/* Each syscall returns the calls parameters. In addition, the following
-* variables are set:
+/* Each syscall probe collects the call's standard parameters.  Beyond that:
+*
+* User-space pointers, including chacter strings, are stored as
+* integer variables named "foo_uaddr", to which one might apply
+* user_string().
 *
 * name - generally the syscall name minus the "sys_".
 *
