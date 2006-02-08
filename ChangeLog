@@ -1,3 +1,9 @@
+2006-02-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* src/testsuite/buildok/syscalls.stp: Build with "-u" to build-test
+	all auxiliary functions.
+	* tapsets.cxx (dwarf_query::add_probe_point): Add some "-vv" output.
+
 2006-02-07  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2068

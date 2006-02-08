@@ -2031,6 +2031,12 @@ dwarf_query::add_probe_point(string const & funcname,
 	probe_has_no_target_variables = true;
     }
 
+  if (sess.verbose > 1)
+    {
+      clog << "probe " << funcname << "@" << filename << ":" << line
+           << " pc=0x" << hex << addr << dec << endl;
+    }
+
   probe->add_probe_point(funcname, filename, line, addr, *this);
 }
 

@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -up4
 
 probe syscall.*, syscall.*.return {
 	if (returnp)
