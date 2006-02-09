@@ -7,6 +7,8 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+
+
 /* Each syscall returns the calls parameters. In addition, the following
 * variables are set:
 *
@@ -240,86 +242,55 @@ probe kernel.syscall.capset.return =
       name = "capset.return"
    }
 # chdir ______________________________________________________
-/*
- * asmlinkage long
- * sys_chdir(const char __user * filename)
- */
-probe kernel.syscall.chdir =
-   kernel.function("sys_chdir") {
-      name = "chdir"
-      path_uaddr = $filename
-   }
-probe kernel.syscall.chdir.return =
-   kernel.function("sys_chdir").return {
-      name = "chdir.return"
-   }
+# long sys_chdir(const char __user * filename)
+probe syscall.chdir = kernel.function("sys_chdir") {
+	name = "chdir"
+	path = user_string($filename)
+	argstr = path
+}
+probe syscall.chdir.return = kernel.function("sys_chdir").return {
+	name = "chdir"
+	returnp = 1
+}
+
 # chmod ______________________________________________________
-/*
- * asmlinkage long
- * sys_chmod(const char __user * filename,
- *           mode_t mode)
- */
-probe kernel.syscall.chmod =
-   kernel.function("sys_chmod") {
-      name = "chmod"
-      path_uaddr = $filename
-      mode = $mode
-      mode_str = _sys_open_mode_str($mode)
-   }
-probe kernel.syscall.chmod.return =
-   kernel.function("sys_chmod").return {
-      name = "chmod.return"
-   }
+# long sys_chmod(const char __user * filename, mode_t mode)
+probe syscall.chmod = kernel.function("sys_chmod") {
+	name = "chmod"
+	path = user_string($filename)
+	mode = $mode
+	argstr = sprintf("%s, 0%o", path, mode)
+}
+probe syscall.chmod.return = kernel.function("sys_chmod").return {
+	name = "chmod"
+	returnp = 1
+}
+
 # chown ______________________________________________________
-/*
- * asmlinkage long
- * sys_chown(const char __user * filename,
- *           uid_t user,
- *           gid_t group)
- */
-probe kernel.syscall.chown =
-   kernel.function("sys_chown") {
-      name = "chown"
-      path_uaddr = $filename
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.chown.return =
-   kernel.function("sys_chown").return {
-      name = "chown.return"
-   }
-# chown16 ____________________________________________________
-/*
- * asmlinkage long
- * sys_chown16(const char __user * filename,
- *             old_uid_t user,
- *             old_gid_t group)
- */
-probe kernel.syscall.chown16 =
-   kernel.function("sys_chown") {
-      name = "chown16"
-      path_uaddr = $filename
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.chown16.return =
-   kernel.function("sys_chown").return {
-      name = "chown16.return"
-   }
+# long sys_chown(const char __user * filename, uid_t user, gid_t group)
+probe syscall.chown = kernel.function("sys_chown") {
+	name = "chown"
+	path = user_string($filename)
+	owner = $user
+	group = $group
+	argstr = sprintf("%s, %d, %d",path, owner, group) 
+}
+probe syscall.chown.return = kernel.function("sys_chown").return {
+	name = "chown"
+	returnp = 1
+}
+
 # chroot _____________________________________________________
-/*
- * asmlinkage long
- * sys_chroot(const char __user * filename)
- */
-probe kernel.syscall.chroot =
-   kernel.function("sys_chroot") {
-      name = "chroot"
-      path_uaddr = $filename
-   }
-probe kernel.syscall.chroot.return =
-   kernel.function("sys_chroot").return {
-      name = "chroot.return"
-   }
+# long sys_chroot(const char __user * filename)
+probe syscall.chroot = kernel.function("sys_chroot") {
+	name = "chroot"
+	path = user_string($filename)
+	argstr = path
+}
+probe syscall.chroot.return = kernel.function("sys_chroot").return {
+	name = "chroot"
+	returnp = 1
+}
 # clock_getres _______________________________________________
 /*
  * asmlinkage long
@@ -403,23 +374,21 @@ probe kernel.syscall.clock_settime.return =
  *         int __user *parent_tidptr,
  *         int __user *child_tidptr)
  */
-probe kernel.syscall.clone =
-   kernel.function("do_fork") {
+probe syscall.clone = kernel.function("sys_clone") {
       name = "clone"
-      clone_flags = $clone_flags
-      /*
-       * unable to find local 'start_stack' (maybe i386 specific)
-       * start_stack = $start_stack
-       */
-      regs_uaddr = $regs
-      stack_size = $stack_size
-      parent_tid_uaddr = $parent_tidptr
-      child_tid_uaddr = $child_tidptr
    }
-probe kernel.syscall.clone.return =
-   kernel.function("do_fork").return {
-      name = "clone.return"
+probe syscall.clone.return = kernel.function("sys_clone").return {
+      name = "clone"
+	returnp = 1
+}
+probe syscall.vfork = kernel.function("sys_vfork") {
+      name = "vfork"
    }
+probe syscall.vfork.return = kernel.function("sys_vfork").return {
+      name = "vfork"
+	returnp = 1
+}
+
 # close ______________________________________________________
 # long sys_close(unsigned int fd)
 probe syscall.close = kernel.function("sys_close") {
@@ -448,23 +417,6 @@ probe kernel.syscall.connect =
 probe kernel.syscall.connect.return =
    kernel.function("sys_connect").return {
       name = "connect.return"
-   }
-# creat ______________________________________________________
-/*
- * asmlinkage long
- * sys_creat(const char __user * pathname,
- *           int mode)
- */
-probe kernel.syscall.creat =
-   kernel.function("sys_open") {
-      name = "creat"
-      pathname_uaddr = $filename
-      mode = $mode
-      mode_str = _sys_open_mode_str($mode)
-   }
-probe kernel.syscall.creat.return =
-   kernel.function("sys_open").return {
-      name = "creat.return"
    }
 # delete_module ______________________________________________
 /*
@@ -582,7 +534,8 @@ probe syscall.execve = kernel.function("do_execve") {
 	args = __get_argv($argv)
 	argstr = sprintf("%s %s", filename, args)
 }
-# v2.6.15-rc2 or earlier has problems with sys_execve
+# v2.6.15-rc2 or earlier has problems with sys_execve return probes
+# another reason to probe on do_execve
 probe syscall.execve.return = kernel.function("do_execve").return {
 	name = "execve"
 	returnp = 1
@@ -654,55 +607,46 @@ probe kernel.syscall.fadvise64_64.return =
    kernel.function("sys_fadvise64_64").return {
       name = "fadvise64_64.return"
    }
+
 # fchdir _____________________________________________________
-/*
- * asmlinkage long
- * sys_fchdir(unsigned int fd)
- */
-probe kernel.syscall.fchdir =
-   kernel.function("sys_fchdir") {
-      name = "fchdir"
-      fd = $fd
-   }
-probe kernel.syscall.fchdir.return =
-   kernel.function("sys_fchdir").return {
-      name = "fchdir.return"
-   }
+# long sys_fchdir(unsigned int fd)
+probe syscall.fchdir = kernel.function("sys_fchdir") {
+	name = "fchdir"
+	fd = $fd
+	argstr = string($fd)
+}
+probe syscall.fchdir.return = kernel.function("sys_fchdir").return {
+	name = "fchdir"
+	returnp = 1
+}
+
 # fchmod _____________________________________________________
-/*
- * asmlinkage long
- * sys_fchmod(unsigned int fd,
- *            mode_t mode)
- */
-probe kernel.syscall.fchmod =
-   kernel.function("sys_fchmod") {
-      name = "fchmod"
-      fildes = $fd
-      mode = $mode
-      mode_str = _sys_open_mode_str($mode)
-   }
-probe kernel.syscall.fchmod.return =
-   kernel.function("sys_fchmod").return {
-      name = "fchmod.return"
-   }
+# long sys_fchmod(unsigned int fd, mode_t mode)
+probe syscall.fchmod = kernel.function("sys_fchmod") {
+	name = "fchmod"
+	fildes = $fd
+	mode = $mode
+	argstr = sprintf("%d, 0%o", filedes, mode)
+}
+probe syscall.fchmod.return = kernel.function("sys_fchmod").return {
+	name = "fchmod"
+	returnp = 1
+}
+
 # fchown _____________________________________________________
-/*
- * asmlinkage long
- * sys_fchown(unsigned int fd,
- *            uid_t user,
- *            gid_t group)
- */
-probe kernel.syscall.fchown =
-   kernel.function("sys_fchown") {
-      name = "fchown"
-      fd = $fd
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.fchown.return =
-   kernel.function("sys_fchown").return {
-      name = "fchown.return"
-   }
+# long sys_fchown(unsigned int fd, uid_t user, gid_t group)
+probe syscall.fchown = kernel.function("sys_fchown") {
+	name = "fchown"
+	fd = $fd
+	owner = $user
+	group = $group
+	argstr = sprintf("%d, %d, %d",fd, owner, group) 
+}
+probe syscall.fchown.return = kernel.function("sys_fchown").return {
+	name = "fchown"
+	returnp = 1
+}
+
 # fchown16 ___________________________________________________
 /*
  * asmlinkage long
@@ -2383,67 +2327,53 @@ probe kernel.syscall.msgsnd.return =
    kernel.function("sys_msgsnd").return {
       name = "msgsnd.return"
    }
+
 # msync ______________________________________________________
-/*
- * asmlinkage long
- * sys_msync(unsigned long start,
- *           size_t len,
- *           int flags)
- */
-probe kernel.syscall.msync =
-   kernel.function("sys_msync") {
-      name = "msync"
-      start = $start
-      length = $len
-      flags = $flags
-      flags_str = _msync_flag_str($flags)
-   }
-probe kernel.syscall.msync.return =
-   kernel.function("sys_msync").return {
-      name = "msync.return"
-   }
+# long sys_msync(unsigned long start, size_t len, int flags)
+probe syscall.msync = kernel.function("sys_msync") {
+	name = "msync"
+	start = $start
+	length = $len
+	flags = $flags
+	argstr = sprintf("0x%x, %d, %s",start, length, _msync_flag_str(flags))
+}
+probe syscall.msync.return = kernel.function("sys_msync").return {
+	name = "msync.return"
+	returnp = 1
+}
+
 # munlock ____________________________________________________
-/*
- * asmlinkage long
- * sys_munlock(unsigned long start,
- *             size_t len)
- */
-probe kernel.syscall.munlock =
-   kernel.function("sys_munlock") {
-      name = "munlock"
-      addr = $start
-      len = $len
-   }
-probe kernel.syscall.munlock.return =
-   kernel.function("sys_munlock").return {
-      name = "munlock.return"
-   }
+# long sys_munlock(unsigned long start, size_t len)
+probe syscall.munlock = kernel.function("sys_munlock") {
+	name = "munlock"
+	addr = $start
+	len = $len
+	argstr = sprintf("0x%x, %d", addr, len)
+}
+probe syscall.munlock.return = kernel.function("sys_munlock").return {
+	name = "munlock"
+	returnp = 1
+}
+
 # munlockall _________________________________________________
-/*
- * asmlinkage long
- * sys_munlockall(void)
- */
-probe kernel.syscall.munlockall =
-   kernel.function("sys_munlockall") {
-      name = "munlockall"
-   }
-probe kernel.syscall.munlockall.return =
-   kernel.function("sys_munlockall").return {
-      name = "munlockall.return"
-   }
+# long sys_munlockall(void)
+probe syscall.munlockall = kernel.function("sys_munlockall") {
+	name = "munlockall"
+}
+probe syscall.munlockall.return = kernel.function("sys_munlockall").return {
+	name = "munlockall"
+	returnp = 1
+}
+
 # munmap _____________________________________________________
-/*
- * asmlinkage long
- * sys_munmap(unsigned long addr,
- *            size_t len)
- */
-probe kernel.syscall.munmap =
-   kernel.function("sys_munmap") {
-      name = "munmap"
-      start = $addr
-      length = $len
-   }
-probe kernel.syscall.munmap.return =
-   kernel.function("sys_munmap").return {
-      name = "munmap.return"
-   }
+# long sys_munmap(unsigned long addr, size_t len)
+probe syscall.munmap = kernel.function("sys_munmap") {
+	name = "munmap"
+	start = $addr
+	length = $len
+	argstr = sprintf("0x%x, %d", start, length)
+}
+probe syscall.munmap.return = kernel.function("sys_munmap").return {
+	name = "munmap"
+	returnp = 1
+}

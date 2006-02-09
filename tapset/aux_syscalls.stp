@@ -29,7 +29,8 @@ function __fork_flags:string(flags:long)
 	if (flags & CLONE_CHILD_SETTID)
 		strlcat(str, "CLONE_CHILD_SETTID|", MAXSTRINGLEN);
 	if (flags & CLONE_STOPPED)
-		strlcat(str, "CLONE_STOPPED", MAXSTRINGLEN);
+		strlcat(str, "CLONE_STOPPED|", MAXSTRINGLEN);
+	str[strlen(str)-1] = 0;
 %}
 
 /* This function copies an argv from userspace. */
@@ -465,15 +466,16 @@ function _mknod_mode_str(mode) {
 }
 
 /* `man msync` for more information */
-function _wait4_opt_str(f) {
-   if(f & 4) bs="MS_SYNC|".bs
-   if(f & 2) bs="MS_INVALIDATE|".bs
-   if(f & 1) bs="MS_ASYNC|".bs
-   return substr(bs,0,strlen(bs)-1)
+function _msync_flag_str(f) {
+	if (f & 7 == 0) return ""
+	if(f & 4) bs="MS_SYNC|".bs
+	if(f & 2) bs="MS_INVALIDATE|".bs
+	if(f & 1) bs="MS_ASYNC|".bs
+	return substr(bs,0,strlen(bs)-1)
 }
 
 /* `man wait4` for more information */
-function _msync_flag_str(f) {
+function _wait4_opt_str(f) {
    if(f & 0x01000000) bs="WNOWAIT|".bs
    if(f & 8) bs="WCONTINUED|".bs
    if(f & 4) bs="WEXITED|".bs

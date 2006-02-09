@@ -1,3 +1,9 @@
+2006-02-08  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp(_msync_flag_str): Fix.
+	(_wait_opt_str): Fix.
+	* syscalls.stp: Latest.
+	
 2006-02-07  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Latest.
