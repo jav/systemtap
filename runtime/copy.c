@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Copy from user space functions
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -157,10 +157,8 @@ _stp_copy_from_user (char *dst, const char __user *src, unsigned long count)
 	if (count) {
 		if (access_ok(VERIFY_READ, src, count))
 			count = __copy_from_user_inatomic(dst, src, count);
-		else {
+		else
 			memset(dst, 0, count);
-			count = -1;
-		}
 	}
 	return count;
 }
