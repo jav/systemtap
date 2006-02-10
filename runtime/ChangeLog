@@ -1,3 +1,8 @@
+2006-02-09  Martin Hunt  <hunt@redhat.com>
+
+	* copy.c (_stp_copy_from_user): If access fails,
+	return -1.
+
 2006-01-25  Martin Hunt  <hunt@redhat.com>
 
 	* stat.c (_stp_stat_init): Use _stp_alloc_percpu().

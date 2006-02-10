@@ -157,8 +157,10 @@ _stp_copy_from_user (char *dst, const char __user *src, unsigned long count)
 	if (count) {
 		if (access_ok(VERIFY_READ, src, count))
 			count = __copy_from_user_inatomic(dst, src, count);
-		else
+		else {
 			memset(dst, 0, count);
+			count = -1;
+		}
 	}
 	return count;
 }
