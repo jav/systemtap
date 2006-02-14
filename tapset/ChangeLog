@@ -1,3 +1,7 @@
+2006-02-14  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: MOre updates.
+
 2006-02-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	* queue_stats.stp: New tapset.

@@ -434,19 +434,17 @@ probe syscall.dup2.return = kernel.function("sys_dup2").return {
 }
 
 # epoll_create _______________________________________________
-/*
- * asmlinkage long
- * sys_epoll_create(int size)
- */
-probe kernel.syscall.epoll_create =
-   kernel.function("sys_epoll_create") {
-      name = "epoll_create"
-      size = $size
-   }
-probe kernel.syscall.epoll_create.return =
-   kernel.function("sys_epoll_create").return {
-      name = "epoll_create.return"
-   }
+# long sys_epoll_create(int size)
+probe syscall.epoll_create = kernel.function("sys_epoll_create") {
+	name = "epoll_create"
+	size = $size
+	argstr = string($size)
+}
+probe syscall.epoll_create.return = kernel.function("sys_epoll_create").return {
+	name = "epoll_create"
+	returnp = 1
+}
+
 # epoll_ctl __________________________________________________
 /*
  * asmlinkage long
@@ -594,7 +592,7 @@ probe syscall.fchmod = kernel.function("sys_fchmod") {
 	name = "fchmod"
 	fildes = $fd
 	mode = $mode
-	argstr = sprintf("%d, 0%o", filedes, mode)
+	argstr = sprintf("%d, 0%o", $fd, $mode)
 }
 probe syscall.fchmod.return = kernel.function("sys_fchmod").return {
 	name = "fchmod"
@@ -608,7 +606,7 @@ probe syscall.fchown = kernel.function("sys_fchown") {
 	fd = $fd
 	owner = $user
 	group = $group
-	argstr = sprintf("%d, %d, %d",fd, owner, group) 
+	argstr = sprintf("%d, %d, %d", $fd, $user, $group) 
 }
 probe syscall.fchown.return = kernel.function("sys_fchown").return {
 	name = "fchown"
@@ -616,23 +614,19 @@ probe syscall.fchown.return = kernel.function("sys_fchown").return {
 }
 
 # fchown16 ___________________________________________________
-/*
- * asmlinkage long
- * sys_fchown16(unsigned int fd,
- *              old_uid_t user,
- *              old_gid_t group)
- */
-probe kernel.syscall.fchown16 =
-   kernel.function("sys_fchown") {
-      name = "fchown16"
-      fd = $fd
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.fchown16.return =
-   kernel.function("sys_fchown").return {
-      name = "fchown16.return"
-   }
+# long sys_fchown16(unsigned int fd, old_uid_t user, old_gid_t group)
+probe syscall.fchown16 = kernel.function("sys_fchown") {
+	name = "fchown16"
+	fd = $fd
+	owner = $user
+	group = $group
+	argstr = sprintf("%d, %d, %d", $fd, $user, $group)
+}
+probe syscall.fchown16.return = kernel.function("sys_fchown").return {
+	name = "fchown16"
+	returnp = 1
+}
+
 # fcntl ______________________________________________________
 /*
  * asmlinkage long
