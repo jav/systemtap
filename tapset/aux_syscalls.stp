@@ -493,7 +493,7 @@ function _sys_open_flag_str(f) {
    if(f & 2048) bs="O_NONBLOCK|".bs
    if(f & 1024) bs="O_APPEND|".bs
    if(f & 512)  bs="O_TRUNC|".bs
-   if(f & 256)  bs="O_NDCTTY|".bs
+   if(f & 256)  bs="O_NOCTTY|".bs
    if(f & 128)  bs="O_EXCL|".bs
    if(f & 64)   bs="O_CREAT|".bs
    if((f & 3) == 2) bs="O_RDWR|".bs

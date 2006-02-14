@@ -1,3 +1,7 @@
+2006-02-14  Mark McLoughlin  <markmc@redhat.com>
+
+	* aux_syscalls.stp: (_sys_open_flag_str): s/O_NDCTTY/O_NOCTTY/
+
 2006-02-14  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_struct_timeval_u): New function.
