@@ -51,4 +51,7 @@ probe two
   + a
   ;  # grammar glitch
   - a
+
+  # grammar glitch
+  a % b ; -- a ; ++ a ; a ++ ; a --
 }
