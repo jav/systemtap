@@ -1,3 +1,19 @@
+2006-02-14  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_struct_timeval_u): New function.
+	(_struct_timeval): New function.
+	(_struct_timespec_u): New function.
+	(_struct_timespec): New function.	
+	(_struct_itimerval_u): New function:
+	(_struct_itimerval): New function:	
+	(_signal_name): New function.
+	(_module_flags_str): Fixed.
+
+	* syscalls2.stp (syscall.setitimer): Use new function
+	_struct_itimerval_u().
+
+	* syscalls.stp: Latest version. Many changes.
+	
 2006-02-08  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp(_msync_flag_str): Fix.

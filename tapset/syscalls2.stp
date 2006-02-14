@@ -1339,21 +1339,10 @@ probe syscall.sethostname.return = kernel.function("sys_sethostname").return {
 probe syscall.setitimer = kernel.function("sys_setitimer") {
 	name = "setitimer"
 	which = $which
-	which_str = _itimer_which_str($which)
 	value_uaddr = $value
 	ovalue_uaddr = $ovalue
-	/*
-	 * XXX NOT SAFE -- might sleep
-	 * value_it_interval_tv_sec =  __uget_itimerval_tv_m($value,0)
-	 * value_it_interval_tv_usec = __uget_itimerval_tv_m($value,1)
-	 * value_it_value_tv_sec =     __uget_itimerval_tv_m($value,2)
-	 * value_it_value_tv_usec =    __uget_itimerval_tv_m($value,3)
-	 * ovalue_it_interval_tv_sec = __uget_itimerval_tv_m($ovalue,0)
-	 * ovalue_it_interval_tv_usec =__uget_itimerval_tv_m($ovalue,1)
-	 * ovalue_it_value_tv_sec =    __uget_itimerval_tv_m($ovalue,2)
-	 * ovalue_it_value_tv_usec =   __uget_itimerval_tv_m($ovalue,3)
-	 */
-	argstr = ""
+	argstr = sprintf("%s, %s, 0x%x", _itimer_which_str($which), 
+		_struct_itimerval_u($value), $ovalue)
 }
 probe syscall.setitimer.return = kernel.function("sys_setitimer").return {
 	name = "setitimer"
