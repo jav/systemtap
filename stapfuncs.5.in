@@ -65,132 +65,105 @@ unwind the current probe handler, nor block new probe handlers.
 will shortly respond to the request and initiate an orderly shutdown.
 
 .SS CONVERSIONS
-
 .TP
 hexstring:string (num:long)
 Return a hexadecimal string representation of the given integer, including
 the leading "0x".
-
 .TP
 string:string (num:long)
 Return a decimal string representation of the given integer.
-
 .TP
 kernel_string:string (addr:long)
 Copy a string from kernel space at given address.  The validation of this
 address is only partial at present.
-
 .TP
 user_string:string (addr:long)
 Copy a string from user space at given address.  The validation of this
 address is only partial at present.
 
 .SS STRING
-
 .TP
 strlen:long (str:string)
 Return the number of characters in str.
-
 .TP
 substr:string (str:string,start:long, stop:long)
 Return the substring of str starting from character start and ending at character stop.
-
 .TP
 isinstr:long (s1:string, s2:string)
-Returns 1 if string s1 contains string s2, returns 0 otherwise.
+Return 1 if string s1 contains string s2, returns 0 otherwise.
 
 .SS TIMESTAMP
-
 .TP
 gettimeofday_us:long ()
 Return the number of microseconds since the UNIX epoch.
-
 .TP
 gettimeofday_ms:long ()
 Return the number of milliseconds since the UNIX epoch.
-
 .TP
 gettimeofday_s:long ()
 Return the number of seconds since the UNIX epoch.
 
 .SS CONTEXTINFO
-
 .TP
 execname:string ()
 Return the name of the current process.
-
 .TP
 pexecname:string()
 Return the name of the parent process.
-
 .TP
 pid:long ()
 Return the current pid. 
-
 .TP
 ppid:long ()
 Return the current pid.
-
 .TP
 uid:long ()
 Return the uid of the current process.
-
 .TP
 euid:long ()
 Return the effective uid of the current process.
-
 .TP
 gid:long ()
 Return the gid of the current process.
-
 .TP
 egid:long ()
 Return the effective gid of the current process.
-
 .TP
 print_regs:unknown ()
 Print a register dump.
-
 .TP
 print_backtrace:unknown ()
 Print a symbolic backtrace.  Use with care.  May be timeconsuming.
-
 .TP
 backtrace:string ()
 Return a string of hex addresses that are a backtrace of the stack.
 May be truncated due to maximum string length.
-
 .TP
 print_stack (bt:string)
 Perform a symbolic lookup of the addresses in bt and prints one per line.
-
 .TP
 pp:string ()
 Return the probe point associated with the currently running probe handler,
 including alias and wildcard expansion effects.
-
 .TP
 probefunc:string ()
 Return the probe point's function name.
-
 .TP
 target:long ()
 Returns the pid of the target process.
-
 .TP
 is_return:long ()
 Returns 1 if the probe point is a return probe.
-
 .TP
 returnval:long ()
 Gets the return value of a probed function. Must be a return probe.
 
 .SS ERRNO
-
 .TP
 errno_str:string (e:long)
 Return the symbolic string associated with the given error code, like
 "ENOENT" for the number 2, or "E#3333" for an out-of-range value like 3333.
+
 
 .SH FILES
 .nh
