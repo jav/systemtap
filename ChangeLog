@@ -1,3 +1,11 @@
+2006-02-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stapfuncs.5.in: Document new queue_stats tapset.
+	* elaborate.cxx (*): Put "while:" clarification messages before a
+	thrown semantic error.
+	* staptree.cxx (print_format::string_to_components): Correct
+	parse of "%%" formatting element.
+
 2006-02-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* src/testsuite/buildok/syscalls.stp: Build with "-u" to build-test

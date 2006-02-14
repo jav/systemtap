@@ -1,3 +1,7 @@
+2006-02-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	* queue_stats.stp: New tapset.
+
 2006-02-14  Mark McLoughlin  <markmc@redhat.com>
 
 	* aux_syscalls.stp: (_sys_open_flag_str): s/O_NDCTTY/O_NOCTTY/

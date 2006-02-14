@@ -1,0 +1,118 @@
+# qstats.stp: Queue statistics gathering tapset
+
+# ------------------------------------------------------------------------
+
+# The default timing function: microseconds.  This function could
+# go into a separate file (say, qstats_qs_time.stp), so that a user
+# script can override it with another definition.
+
+function qs_time () { return gettimeofday_us () }
+
+# ------------------------------------------------------------------------
+
+global qs_wtime, qs_wlentime, qs_wcount
+global qs_rtime, qs_rlentime, qs_rcount
+global qs_stime, qs_utime, qs_dcount
+
+# ------------------------------------------------------------------------
+
+function _qs_update (qname) {
+  now = qs_time ()
+  then = qs_utime[qname]; if (! then) { then = now }
+  delta = now-then
+
+  qs_wtime[qname] += qs_wcount[qname] ? delta : 0
+  qs_wlentime[qname] += qs_wcount[qname] * delta
+  qs_rtime[qname] += qs_rcount[qname] ? delta : 0
+  qs_rlentime[qname] += qs_rcount[qname] * delta
+  qs_utime[qname] = now  
+}
+
+function qs_wait (qname) { # enqueueing request
+   _qs_update (qname)
+   qs_wcount[qname] ++
+}
+
+function qs_run (qname) { # starting to service request
+  _qs_update (qname)
+  if (qs_wcount[qname] > 0) {
+    qs_wcount[qname] --
+    qs_rcount[qname] ++
+  }
+}
+
+function qs_done (qname) { # done servicing request
+  _qs_update (qname)
+  if (qs_rcount[qname] > 0) {
+    qs_rcount[qname] --
+    qs_dcount[qname] ++
+  }
+}
+
+# ------------------------------------------------------------------------
+
+function qsq_start (qname) {  # reset statistics for new baseline
+  delete qs_rcount[qname]
+  delete qs_rtime[qname]
+  delete qs_rlentime[qname]
+  delete qs_wcount[qname]
+  delete qs_wtime[qname]
+  delete qs_wlentime[qname]
+  delete qs_dcount[qname]
+  qs_stime[qname] = qs_time ()
+}
+
+# ------------------------------------------------------------------------
+# Various query functions.  Each returns the average, taken over the time
+# interval from the last qsq_start().  Most deal with fractions, and so
+# also take a scale parameter (use 100 for percent).
+
+# fraction of time that any request was being serviced
+function qsq_utilization (qname, scale) {
+  elapsed = qs_time() - qs_stime[qname]
+  return (scale * qs_rtime[qname]) / elapsed
+}
+
+# fraction of time that any request was blocked in the wait queue
+function qsq_blocked (qname, scale) {
+  elapsed = qs_time() - qs_stime[qname]
+  return (scale * qs_wtime[qname]) / elapsed
+}
+
+# length of wait queue 
+function qsq_wait_queue_length (qname, scale) {
+  elapsed = qs_time() - qs_stime[qname]
+  return (scale * qs_wlentime[qname]) / elapsed
+}
+
+# service time (amount of time per request service)
+function qsq_service_time (qname, scale) {
+  return (scale * qs_rlentime[qname]) / qs_dcount[qname]
+}
+
+# wait time (amount of time in queue + service per request)
+function qsq_wait_time (qname, scale) {
+  return (scale * (qs_rlentime[qname] + qs_wlentime[qname]))
+    / qs_dcount[qname]
+}
+
+# service rate (number of requests served per unit time)
+function qsq_throughput (qname, scale) {
+  elapsed = qs_time() - qs_stime[qname]
+  return (scale * qs_dcount[qname]) / elapsed
+}
+
+
+# ------------------------------------------------------------------------
+
+function qsq_print (qname) {
+  qwl = qsq_wait_queue_length (qname, 1000)
+  printf("%s: %d ops/s, %d.%03d qlen, %d await, %d svctm, %d%% wait, %d%% util\n", 
+    qname,
+    qsq_throughput (qname, 1000000), # number of qs_time() units per second
+    qwl/1000, qwl%1000,
+    qsq_wait_time (qname, 1),
+    qsq_service_time (qname, 1),
+    qsq_blocked (qname, 100),
+    qsq_utilization (qname, 100))
+}

@@ -164,6 +164,58 @@ errno_str:string (e:long)
 Return the symbolic string associated with the given error code, like
 "ENOENT" for the number 2, or "E#3333" for an out-of-range value like 3333.
 
+.SS QUEUE_STATS
+.PP
+The queue_stats tapset provides functions that, given notifications of
+elementary queuing events (wait, run, done), tracks averages such as
+queue lenghth, service and wait times, utilization.  The following
+three functions should be called from appropriate probes, in sequence.
+.TP
+qs_wait:unknown (qname:string)
+Record that a new request was enqueued for the given queue name.
+.TP
+qs_run:unknown (qname:string)
+Record that a previously enqueued request was removed from the given
+wait queue and is now being serviced.
+.TP
+qs_done:unknown (qname:string)
+Record that a request originally from the given queue has completed
+being serviced.
+.\" XXX: qs_time
+.PP
+Functions with the prefix 
+.BR qsq_
+are for querying the statistics averaged since the first queue operation
+(or when
+.BR qsq_start
+was called). Since statistics are often fractional, a scale parameter
+is multiplies the result to a more useful scale.  For some fractions,
+a scale of 100 will usefully return percentage numbers.
+.TP
+qsq_start:unknown (qname:string)
+Reset the statistics counters for the given queue, and start tracking
+anew from this moment.
+.TP
+qsq_print:unknown (qname:string)
+Print a line containing a selection of the given queue's statistics.
+.TP
+qsq_utilization:long (qname:string, scale:long)
+Return the fraction of elapsed time when the resource was utilized.
+.TP
+qsq_blocked:long (qname:string, scale:long)
+Return the fraction of elapsed time when the wait queue was used.
+.TP
+qsq_wait_queue_length:long (qname:string, scale:long)
+Return the average length of the wait queue.
+.TP
+qsq_service_time:long (qname:string, scale:long)
+Return the average time required to service a request.
+.TP
+qsq_wait_time:long (qname:string, scale:long)
+Return the average time a request took from being enqueued to completed.
+.TP
+qsq_throughput:long (qname:string, scale:long)
+Return the average rate of requests per scale units of time.
 
 .SH FILES
 .nh

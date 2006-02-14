@@ -391,10 +391,10 @@ systemtap_session::register_library_aliases()
             }
           catch (const semantic_error& e)
             {
-              print_error (e);
-              cerr << "         while: registering probe alias ";
+              cerr << "while: registering probe alias ";
               alias->printsig(cerr);
               cerr << endl;
+              print_error (e);
             }
 	}
     }
@@ -442,7 +442,7 @@ derive_probes (systemtap_session& s,
         {
           // XXX: prefer not to print_error at every nest/unroll level
           s.print_error (e);
-          cerr << "         while: resolving probe point " << *loc << endl;
+          cerr << "while: resolving probe point " << *loc << endl;
           //          if (! exc_outermost)
           //            throw;
         }
@@ -935,7 +935,11 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
 	  if (d)
 	    array->referent = d;
 	  else
-	    throw semantic_error ("unresolved global array " + array->name, e->tok);
+            {
+              cerr << "while searching for arity " << e->indexes.size()
+                   << " array:\n";
+              throw semantic_error ("unresolved global array " + array->name, e->tok);
+            }
 	}
     }
   else 
@@ -1071,7 +1075,10 @@ symresolution_info::visit_functioncall (functioncall* e)
   if (d)
     e->referent = d;
   else
-    throw semantic_error ("unresolved function call", e->tok);
+    {
+      cerr << "while searching for arity " << e->args.size() << " function:\n";
+      throw semantic_error ("unresolved function call", e->tok);
+    }
 }
 
 

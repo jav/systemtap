@@ -448,7 +448,7 @@ print_format::string_to_components(string const & str)
 	  assert (curr.type == conv_unspecified || curr.type == conv_literal);
 	  curr.type = conv_literal;
 	  curr.literal_string += '%';
-	  ++i;
+          i += 2;
 	  continue;
 	}
       else 
