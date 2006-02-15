@@ -89,17 +89,12 @@ struct c_unparser: public unparser, public visitor
   void emit_probe (derived_probe* v, unsigned i);
   void emit_unlocks (const varuse_collecting_visitor& v);
 
+  // for use by stats (pmap) foreach
+  set<string> aggregations_active;
+
   // for use by looping constructs
   vector<string> loop_break_labels;
   vector<string> loop_continue_labels;
-
-  // keeps track when we're in a foreach that already
-  // aggregated & locked the pmap for us.
-  set<string> aggregation_locks;
-
-  // static checking to detect incompatible nested locks
-  //   (e.g. a write-lock within a foreach's read-lock)
-  multiset<pair<string, bool> > obtained_locks;
 
   string c_typename (exp_type e);
   string c_varname (const string& e);
@@ -429,79 +424,6 @@ struct stmt_expr
   {
     c.o->newline(-1) << "})";
   }
-};
-
-struct varlock
-{
-  c_unparser & c;
-  var const & v;
-  bool w;
-  string post_unlock_label;
-
-  varlock(c_unparser & c, var const & v, bool w): c(c), v(v), w(w)
-  {
-    if (v.is_local()) return;
-
-    if (c.obtained_locks.count(make_pair(v.qname(), true))) // write lock
-      throw semantic_error("incompatible nested locks obtained for "+v.qname());
-#if 0
-    if (!w) // read lock - no need to try, just do it
-      c.o->newline() << "read_lock (& " << v << "_lock);";
-    else
-      {
-	// There may be a few opportunities for deadlock beyond bug #1268
-	// (foreach).  In general, we use a loop with FOO_trylock with a
-	// manual "timeout".  If it takes too many iterations to acquire
-	// the lock, we signal a deadlock error in the context and jump
-	// over all the code, right past the corresponding unlock.
-
-	if (c.obtained_locks.count(make_pair(v.qname(), false))) // read lock
-	  throw semantic_error("incompatible nested locks obtained for "+v.qname());
-	
-	static unsigned unlock_label_counter = 0;
-	post_unlock_label = string ("post_unlock_")
-	  + stringify (unlock_label_counter ++);
-	
-	c.o->newline() << "{";
-	c.o->newline(1) << "unsigned trylock_count = 0;";
-	c.o->newline() << "while ("
-		       << "!(write_trylock (& " << v << "_lock)) &&";
-        c.o->newline(1) << "(trylock_count++ < MAXTRYLOCK)"
-		       << ") ndelay (TRYLOCKDELAY); /* spin */";
-	c.o->newline(-1) << "if (unlikely (trylock_count >= MAXTRYLOCK)) {";
-	c.o->newline(1) << "c->last_error = \"locking timeout over variable "
-			<< v << "\";";
-	c.o->newline() << "goto " << post_unlock_label << ";";
-	c.o->newline(-1) << "}";
-	c.o->newline(-1) << "}";
-      }
-#endif
-    c.obtained_locks.insert(make_pair(v.qname(), w));
-  }
-
-  ~varlock()
-  {
-    if (v.is_local()) return;
-#if 0
-    c.o->newline() << (w ? "write_unlock" : "read_unlock")
-                   << " (& " << v << "_lock);";
-    if (w)
-      {
-	c.o->newline(-1) << post_unlock_label << ": ;";
-	c.o->indent(1);
-      }
-#endif
-    assert(c.obtained_locks.count(make_pair(v.qname(), w)) > 0);
-    c.obtained_locks.erase(c.obtained_locks.find(make_pair(v.qname(), w)));
-  }
-};
-
-struct varlock_r: public varlock {
-  varlock_r (c_unparser& c, var const& v): varlock (c, v, false) {}
-};
-
-struct varlock_w: public varlock {
-  varlock_w (c_unparser& c, var const& v): varlock (c, v, true) {}
 };
 
 
@@ -2140,7 +2062,6 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // aggregate array if required
       if (mv.is_parallel())
 	{
-	  varlock_w agg_and_maybe_sort_guard(*this, mv);
 	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << "))";
 	  o->newline(1) << "c->last_error = \"aggregation overflow in " << mv << "\";";
 	  o->indent(-1);
@@ -2158,7 +2079,6 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  // sort array if desired
 	  if (s->sort_direction)
 	    {
-	      varlock_w sort_guard (*this, mv);
 	      o->newline() << "_stp_map_sort (" << mv.qname() << ", "
 			   << s->sort_column << ", " << - s->sort_direction << ");";
 	    }
@@ -2166,14 +2086,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
       // NB: sort direction sense is opposite in runtime, thus the negation
       
-      // XXX: There is a race condition here.  Since we can't convert a
-      // write lock to a read lock, it is possible that another sort or update
-      // may get sandwiched between the release of sort_guard and the
-      // acquisition of guard.
-      
-      varlock_r guard (*this, mv);
       if (mv.is_parallel())
-	aggregation_locks.insert(mv.qname());
+	aggregations_active.insert(mv.qname());
       o->newline() << iv << " = " << iv.start (mv) << ";";
       
       // condition
@@ -2206,8 +2120,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       o->newline(1) << "; /* dummy statement */";
 
       if (mv.is_parallel())
-	aggregation_locks.erase(mv.qname());
-      // varlock dtor will show up here
+	aggregations_active.erase(mv.qname());
     }
   else
     {
@@ -2295,9 +2208,8 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
   if (e->referent->arity > 0)
     {
       mapvar mvar = parent->getmap(e->referent, e->tok);  
-      varlock_w guard (*parent, mvar);
-      /* NB: such memory deallocation/allocation operations
-       are not generally legal in all probe contexts.
+      /* NB: Memory deallocation/allocation operations
+       are not generally safe.
       parent->o->newline() << mvar.fini ();
       parent->o->newline() << mvar.init ();  
       */
@@ -2309,7 +2221,6 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
   else
     {
       var v = parent->getvar(e->referent, e->tok);  
-      varlock_w guard (*parent, v);
       switch (e->type)
 	{
 	case pe_stats:
@@ -2367,7 +2278,6 @@ delete_statement_operand_visitor::visit_arrayindex (arrayindex* e)
       
       {
 	mapvar mvar = parent->getmap (array->referent, e->tok);
-	varlock_w guard (*parent, mvar);
 	parent->o->newline() << mvar.del (idx) << ";";
       }
     }
@@ -2608,12 +2518,8 @@ c_unparser::visit_array_in (array_in* e)
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       
       tmpvar res = gensym (pe_long);
-      
-      { // block used to control varlock_r lifespan
-	mapvar mvar = getmap (array->referent, e->tok);
-	varlock_r guard (*this, mvar);
-	c_assign (res, mvar.exists(idx), e->tok);
-      }
+      mapvar mvar = getmap (array->referent, e->tok);
+      c_assign (res, mvar.exists(idx), e->tok);
 
       o->newline() << res << ";";
     }
@@ -2885,11 +2791,8 @@ c_unparser_assignment::visit_symbol (symbol *e)
 
   prepare_rvalue (op, rval, e->tok);
 
-  {
-    var lvar = parent->getvar (e->referent, e->tok);
-    varlock_w guard (*parent, lvar);
-    c_assignop (res, lvar, rval, e->tok);     
-  }
+  var lvar = parent->getvar (e->referent, e->tok);
+  c_assignop (res, lvar, rval, e->tok);     
 
   parent->o->newline() << res << ";";
 }
@@ -3107,12 +3010,9 @@ c_unparser::visit_arrayindex (arrayindex* e)
       // reentrancy issues that pop up with nested expressions:
       // e.g. a[a[c]=5] could deadlock
   
-      { // block used to control varlock_r lifespan
-	mapvar mvar = getmap (array->referent, e->tok);
-	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	varlock_r guard (*this, mvar);
-	c_assign (res, mvar.get(idx), e->tok);
-      }
+      mapvar mvar = getmap (array->referent, e->tok);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      c_assign (res, mvar.get(idx), e->tok);
 
       o->newline() << res << ";";
     }
@@ -3147,14 +3047,10 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       v->assert_hist_compatible(*hist);
 
-      varlock_w *guard = NULL;
-      if (aggregation_locks.count(v->qname()))
+      if (aggregations_active.count(v->qname()))
 	load_aggregate(hist->stat, agg, true);
       else 
-	{
-	  guard = new varlock_w(*this, *v);
-	  load_aggregate(hist->stat, agg, false);
-	}
+        load_aggregate(hist->stat, agg, false);
 
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
@@ -3179,8 +3075,6 @@ c_unparser::visit_arrayindex (arrayindex* e)
       o->newline()   << res << " = 0;";
       o->newline(-1) << "}";
       
-      if (guard != NULL)
-	delete guard;
       delete v;
 
       o->newline(-1) << "}";
@@ -3295,7 +3189,6 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
 	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	  // NB: *no need to* varlock_w guard (*parent, mvar);
 	  o->newline() << mvar.add (idx, rvar) << ";";
           res = rvar;
 	  // no need for these dummy assignments
@@ -3303,10 +3196,9 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  // o->newline() << res << " = " << rvar << ";";
 	}
       else
-	{ // block used to control varlock_w lifespan
+	{
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
 	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-	  varlock_w guard (*parent, mvar);
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
 	  c_assignop (res, lvar, rvar, e->tok); 
@@ -3485,14 +3377,10 @@ c_unparser::visit_print_format (print_format* e)
       v->assert_hist_compatible(*e->hist);
 
       {
-	varlock_w *guard = NULL;
-	if (aggregation_locks.count(v->qname()))
+	if (aggregations_active.count(v->qname()))
 	  load_aggregate(e->hist->stat, agg, true);
 	else 
-	  {
-	    guard = new varlock_w(*this, *v);
-	    load_aggregate(e->hist->stat, agg, false);
-	  }
+          load_aggregate(e->hist->stat, agg, false);
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
         // PR 2142: NULL check for aggregate struct pointer
@@ -3507,9 +3395,6 @@ c_unparser::visit_print_format (print_format* e)
         o->indent(1);
 
 	o->newline() << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
-
-	if (guard != NULL)
-	  delete guard;
 
         o->newline(-1) << "}";
       }
@@ -3656,14 +3541,10 @@ c_unparser::visit_stat_op (stat_op* e)
     tmpvar res = gensym (pe_long);    
     var v = getvar(sym->referent, e->tok);
     {
-      varlock_w *guard = NULL;
-      if (aggregation_locks.count(v.qname()))
+      if (aggregations_active.count(v.qname()))
 	load_aggregate(e->stat, agg, true);
       else
-	{
-	  guard = new varlock_w(*this, v);
-	  load_aggregate(e->stat, agg, false);
-	}
+        load_aggregate(e->stat, agg, false);
 
       // PR 2142: NULL check for aggregate struct pointer
       o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
@@ -3704,9 +3585,6 @@ c_unparser::visit_stat_op (stat_op* e)
 	  break;
 	}
       o->newline(-1) << "}";
-
-      if (guard != NULL)
-	delete guard;
     }    
     o->newline() << res << ";";
   }
