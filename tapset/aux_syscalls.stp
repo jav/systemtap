@@ -10,8 +10,8 @@ function _struct_timeval_u:string(uaddr:long)
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if(_stp_copy_from_user(&tv,ptr,sizeof(struct timeval)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d]", tv.tv_sec, tv.tv_usec);
+		if(_stp_copy_from_user((char*)&tv,ptr,sizeof(struct timeval)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv.tv_sec, tv.tv_usec);
 	   	else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
@@ -184,6 +184,119 @@ function _signal_name:string(sig:long)
 	else
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", sig);
 %}
+
+function _struct_rlimit_u:string(uaddr:long)
+%{
+	struct rlimit rl;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if (_stp_copy_from_user(&rl, ptr, sizeof(struct rlimit)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld,%ld]",
+				rl.rlim_cur, rl.rlim_max);
+		else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
+function _fildes_u(uaddr:long)
+%{
+	int fd[2];
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if (_stp_copy_from_user((char *)&fd, ptr, 2*sizeof(int)) == 0)
+			 snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d, %d]", fd[0], fd[1]);
+		else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
+function _fd_set_u(uaddr:long)
+%{
+	fd_set fdset;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if (_stp_copy_from_user((char *)&fdset, ptr, sizeof(fd_set)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld, %ld, ...", (long) fdset.fds_bits[0],  fdset.fds_bits[1]);
+		else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	} 
+%}
+
+
+function _semctl_cmd:string(cmd:long)
+%{
+	int cmd = THIS->cmd;
+	char *res = 0;
+
+	switch(cmd) {
+		case IPC_INFO:
+			res = "IPC_INFO";
+			break;
+		case SEM_INFO:
+			res = "SEM_INFO";
+			break;
+		case SEM_STAT:
+			res = "SEM_STAT";
+			break;
+		case GETALL:
+			res = "GETALL";
+			break;
+		case GETVAL:
+			res = "GETVAL";
+			break;
+		case GETPID:
+			res = "GETPID";
+			break;
+		case GETNCNT:
+			res = "GETNCNT";
+			break;
+		case GETZCNT:
+			res = "GETZCNT";
+			break;
+		case IPC_STAT:
+			res = "IPC_STAT";
+			break;
+		case SETVAL:
+			res = "SETVAL";
+			break;
+		case SETALL:
+			res = "SETALL";
+			break;
+		case IPC_RMID:
+			res = "IPC_RMID";
+			break;
+		case IPC_SET:
+			res = "IPC_SET";
+			break;
+	}
+	if (res)
+		strlcpy (THIS->__retvalue, res, MAXSTRINGLEN);
+	else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", cmd);	
+%}
+
+function __sem_flags:string(semflg:long)
+%{
+	long semflg = THIS->semflg;
+	char *str = THIS->__retvalue;
+
+	if (semflg & IPC_CREAT)
+		strlcat(str, "IPC_CREAT|", MAXSTRINGLEN);
+	if (semflg & IPC_EXCL)
+		strlcat(str, "IPC_EXCL|", MAXSTRINGLEN);
+
+	str[strlen(str)-1] = 0;
+%}
+
 
 function __fork_flags:string(flags:long)
 %{
