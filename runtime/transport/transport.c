@@ -148,11 +148,12 @@ static void _stp_cleanup_and_exit (int closing)
 static void _stp_work_queue (void *data)
 {
 	int do_io = 0;
+	unsigned long flags;
 
-	spin_lock(&_stp_ready_lock);
+	spin_lock_irqsave(&_stp_ready_lock, flags);
 	if (!list_empty(&_stp_ready_q))
 		do_io = 1;
-	spin_unlock(&_stp_ready_lock);
+	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 
 	if (do_io)
 		wake_up_interruptible(&_stp_proc_wq);

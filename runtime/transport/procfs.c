@@ -170,22 +170,23 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 {
 	struct _stp_buffer *bptr;
 	int len;
+	unsigned long flags;
 
 	/* wait for nonempty ready queue */
-	spin_lock(&_stp_ready_lock);
+	spin_lock_irqsave(&_stp_ready_lock, flags);
 	while (list_empty(&_stp_ready_q)) {
-		spin_unlock(&_stp_ready_lock);
+		spin_unlock_irqrestore(&_stp_ready_lock, flags);
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 		if (wait_event_interruptible(_stp_proc_wq, !list_empty(&_stp_ready_q)))
 			return -ERESTARTSYS;
-		spin_lock(&_stp_ready_lock);
+		spin_lock_irqsave(&_stp_ready_lock, flags);
 	}
   
 	/* get the next buffer off the ready list */
 	bptr = (struct _stp_buffer *)_stp_ready_q.next;
 	list_del_init(&bptr->list);
-	spin_unlock(&_stp_ready_lock);
+	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 
 	/* write it out */
 	len = bptr->len + 4;
@@ -198,9 +199,9 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 	}
 
 	/* put it on the pool of free buffers */
-	spin_lock(&_stp_pool_lock);
+	spin_lock_irqsave(&_stp_pool_lock, flags);
 	list_add_tail(&bptr->list, &_stp_pool_q);
-	spin_unlock(&_stp_pool_lock);
+	spin_unlock_irqrestore(&_stp_pool_lock, flags);
 
 	return len;
 }
@@ -228,13 +229,13 @@ static int _stp_set_buffers(int num)
 {
 	int i;
 	struct list_head *p;
-	
+	unsigned long flags;
+
 	//printk("stp_set_buffers %d\n", num);
 
 	if (num == 0 || num == _stp_current_buffers)
 		return _stp_current_buffers;
 	
-	spin_lock(&_stp_pool_lock);
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
 			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),GFP_KERNEL);
@@ -242,18 +243,21 @@ static int _stp_set_buffers(int num)
 				_stp_current_buffers += i;
 				goto err;
 			}
+			spin_lock_irqsave(&_stp_pool_lock, flags);
 			list_add (p, &_stp_pool_q);
+			spin_unlock_irqrestore(&_stp_pool_lock, flags);
 		}
 	} else {
 		for (i = 0; i < _stp_current_buffers - num; i++) {
+			spin_lock_irqsave(&_stp_pool_lock, flags);
 			p = _stp_pool_q.next;
 			list_del(p);
+			spin_unlock_irqrestore(&_stp_pool_lock, flags);
 			kfree(p);
 		}
 	}
 	_stp_current_buffers = num;
 err:
-	spin_unlock(&_stp_pool_lock);
 	return _stp_current_buffers;
 }
 

@@ -1,3 +1,10 @@
+2006-02-17  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_proc_read_cmd): Change spin_lock()
+	to spin_lock_irqsave(). 
+
+	* transport.c (_stp_work_queue): Ditto.
+	
 2005-12-02  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_set_buffers): kmalloc the buffers instead
