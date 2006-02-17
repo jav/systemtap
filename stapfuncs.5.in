@@ -111,11 +111,14 @@ Return the name of the current process.
 pexecname:string()
 Return the name of the parent process.
 .TP
+tid:long ()
+Return the id of the current thread.
+.TP
 pid:long ()
-Return the current pid. 
+Return the id of the current process.
 .TP
 ppid:long ()
-Return the current pid.
+Return the id of the parent process.
 .TP
 uid:long ()
 Return the uid of the current process.
