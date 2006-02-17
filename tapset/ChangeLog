@@ -1,6 +1,10 @@
+2006-02-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* context.stp (cpu): Clone undocumented cpuid() function.
+
 2006-02-14  Martin Hunt  <hunt@redhat.com>
 
-	* syscalls.stp: MOre updates.
+	* syscalls.stp: More updates.
 
 2006-02-14  Frank Ch. Eigler  <fche@elastic.org>
 

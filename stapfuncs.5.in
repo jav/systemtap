@@ -105,6 +105,9 @@ Return the number of seconds since the UNIX epoch.
 
 .SS CONTEXTINFO
 .TP
+cpu:long ()
+Return the current cpu number.
+.TP
 execname:string ()
 Return the name of the current process.
 .TP

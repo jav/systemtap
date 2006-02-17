@@ -69,6 +69,10 @@ function cpuid:long () %{
 	THIS->__retvalue = current->thread_info->cpu;
 %}
 
+function cpu:long () %{
+	THIS->__retvalue = current->thread_info->cpu; /* smp_processor_id()? */
+%}
+
 function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
