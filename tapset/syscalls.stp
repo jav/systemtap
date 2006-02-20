@@ -772,19 +772,6 @@ probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return {
 	returnp = 1
 }
 
-# fstat ______________________________________________________
-# long sys_fstat(unsigned int fd,struct __old_kernel_stat __user * statbuf)
-probe syscall.fstat = kernel.function("sys_fstat") {
-	name = "fstat"
-	filedes = $fd
-	buf_uaddr = $statbuf
-	argstr = sprintf("%d, [0x%x]", filedes, buf_uaddr)
-}
-probe syscall.fstat.return = kernel.function("sys_fstat").return {
-	name = "fstat"
-	returnp = 1
-}
-
 # fstatfs ____________________________________________________
 # long sys_fstatfs(unsigned int fd, struct statfs __user * buf)
 probe syscall.fstatfs = kernel.function("sys_fstatfs") {
@@ -931,16 +918,6 @@ probe syscall.getegid.return = kernel.function("sys_getegid").return {
 	returnp = 1
 }
 
-# getegid16 __________________________________________________
-# long sys_getegid16(void)
-probe syscall.getegid16 = kernel.function("sys_getegid16") {
-	name = "getegid16"
-}
-probe syscall.getegid16.return = kernel.function("sys_getegid16").return {
-	name = "getegid16"
-	returnp = 1
-}
-
 # geteuid ____________________________________________________
 # long sys_geteuid(void)
 probe syscall.geteuid = kernel.function("sys_geteuid") {
@@ -948,16 +925,6 @@ probe syscall.geteuid = kernel.function("sys_geteuid") {
 }
 probe syscall.geteuid.return = kernel.function("sys_geteuid").return {
 	name = "geteuid"
-	returnp = 1
-}
-
-# geteuid16 __________________________________________________
-# long sys_geteuid16(void)
-probe syscall.geteuid16 = kernel.function("sys_geteuid16") {
-	name = "geteuid16"
-}
-probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return {
-	name = "geteuid16"
 	returnp = 1
 }
 
@@ -971,16 +938,6 @@ probe syscall.getgid.return = kernel.function("sys_getgid").return {
 	returnp = 1
 }
 
-# getgid16 ___________________________________________________
-# long sys_getgid16(void)
-probe syscall.getgid16 = kernel.function("sys_getgid16") {
-	name = "getgid16"
-}
-probe syscall.getgid16.return = kernel.function("sys_getgid16").return {
-	name = "getgid16"
-	returnp = 1
-}
-
 # getgroups __________________________________________________
 # long sys_getgroups(int gidsetsize, gid_t __user *grouplist)
 probe syscall.getgroups = kernel.function("sys_getgroups") {
@@ -991,19 +948,6 @@ probe syscall.getgroups = kernel.function("sys_getgroups") {
 }
 probe syscall.getgroups.return = kernel.function("sys_getgroups").return {
 	name = "getgroups"
-	returnp = 1
-}
-
-# getgroups16 ________________________________________________
-# long sys_getgroups16(int gidsetsize, old_gid_t __user *grouplist)
-probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
-	name = "getgroups16"
-	size = $gidsetsize
-	list_uaddr = $grouplist
-	argstr = sprintf("%d, [0x%x]", size, list_uaddr)
-}
-probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
-	name = "getgroups16"
 	returnp = 1
 }
 
@@ -1278,16 +1222,6 @@ probe syscall.getuid = kernel.function("sys_getuid") {
 }
 probe syscall.getuid.return = kernel.function("sys_getuid").return {
 	name = "getuid"
-	returnp = 1
-}
-
-# getuid16 ___________________________________________________
-# long sys_getuid16(void)
-probe syscall.getuid16 = kernel.function("sys_getuid16") {
-	name = "getuid16"
-}
-probe syscall.getuid16.return = kernel.function("sys_getuid16").return {
-	name = "getuid16"
 	returnp = 1
 }
 
@@ -1721,18 +1655,7 @@ probe kernel.syscall.lsetxattr.return =
    kernel.function("sys_lsetxattr").return {
       name = "lsetxattr.return"
    }
-# lstat ______________________________________________________
-# long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)
-probe syscall.lstat = kernel.function("sys_lstat") {
-	name = "lstat"
-	file_name = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [0x%x]", file_name, buf_uaddr) 
-}
-probe syscall.lstat.return = kernel.function("sys_lstat").return {
-	name = "lstat.return"
-	returnp = 1
-}
+
 # madvise ____________________________________________________
 /*
  * asmlinkage long
@@ -1837,26 +1760,6 @@ probe kernel.syscall.mlockall.return =
       name = "mlockall.return"
    }
 
-# mmap2
-# long sys_mmap2(unsigned long addr, unsigned long len,
-#	unsigned long prot, unsigned long flags,
-#	unsigned long fd, unsigned long pgoff)
-probe syscall.mmap2 = kernel.function("sys_mmap2") {
-	name = "mmap2"
-	start = $addr
-	length = $len
-	prot = $prot
-	flags = $flags
-	fd = $fd
-	pgoffset = $pgoff
-	argstr = sprintf("0x%x, %d, %s, %s, %d, 0x%x", start, 
-		length, _mprotect_prot_str(prot), _mmap_flags(flags),
-		fd, pgoffset)
-}
-probe syscall.mmap2.return = kernel.function("sys_mmap2").return {
-	name = "mmap2"
-	returnp = 1
-}
 
 # modify_ldt _________________________________________________
 /*
