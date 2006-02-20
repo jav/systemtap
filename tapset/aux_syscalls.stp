@@ -19,13 +19,15 @@ function _struct_timeval_u:string(uaddr:long)
 
 function _struct_timeval:string(addr:long)
 %{
-	struct timeval tv;
+	struct timeval *tv;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d]", tv.tv_sec, tv.tv_usec);
+	else {
+		tv=(struct timeval *) ptr;
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv->tv_sec, tv->tv_usec);
+	}
 %}
 
 function _struct_timespec_u:string(uaddr:long)
@@ -46,14 +48,16 @@ function _struct_timespec_u:string(uaddr:long)
 
 function _struct_timespec:string(addr:long)
 %{
-	struct timespec ts;
+	struct timespec *ts;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else
+	else {
+		ts =  (struct timespec *) ptr;
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
-			(unsigned long)ts.tv_sec, (unsigned long)ts.tv_nsec);
+			(unsigned long)ts->tv_sec, (unsigned long)ts->tv_nsec);
+	}
 %}
 
 function _struct_itimerval_u:string(uaddr:long)
@@ -75,15 +79,16 @@ function _struct_itimerval_u:string(uaddr:long)
 
 function _struct_itimerval:string(addr:long)
 %{
-	struct itimerval itv;
+	struct itimerval *itv;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
+		itv = (struct itimerval *) ptr;
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
-			(int)itv.it_interval.tv_sec, (int)itv.it_interval.tv_usec,
-			(int)itv.it_value.tv_sec, (int)itv.it_value.tv_usec);
+			(int)itv->it_interval.tv_sec, (int)itv->it_interval.tv_usec,
+			(int)itv->it_value.tv_sec, (int)itv->it_value.tv_usec);
 	}
 %}
 
@@ -193,7 +198,7 @@ function _struct_rlimit_u:string(uaddr:long)
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if (_stp_copy_from_user(&rl, ptr, sizeof(struct rlimit)) == 0)
+		if (_stp_copy_from_user((char *)&rl, ptr, sizeof(struct rlimit)) == 0)
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld,%ld]",
 				rl.rlim_cur, rl.rlim_max);
 		else
@@ -296,7 +301,6 @@ function __sem_flags:string(semflg:long)
 
 	str[strlen(str)-1] = 0;
 %}
-
 
 function __fork_flags:string(flags:long)
 %{
