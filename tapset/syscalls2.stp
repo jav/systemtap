@@ -1289,22 +1289,7 @@ probe syscall.setgroups.return = kernel.function("sys_setgroups").return {
 	name = "setgroups"
 	returnp = 1
 }
-# setgroups16 ________________________________________________
-#
-# asmlinkage long
-# sys_setgroups16(int gidsetsize,
-#		     old_gid_t __user *grouplist)
-#
-probe syscall.setgroups16 = kernel.function("sys_setgroups16") {
-	name = "setgroups16"
-	size = $gidsetsize
-	list_uaddr = $grouplist
-	argstr = ""
-}
-probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
-	name = "setgroups16"
-	returnp = 1
-}
+
 # sethostname ________________________________________________
 #
 # asmlinkage long
@@ -1876,22 +1861,7 @@ probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 	name = "ssetmask"
 	returnp = 1
 }
-# stat _______________________________________________________
-#
-# asmlinkage long
-# sys_stat(char __user * filename,
-#	    struct __old_stat __user * statbuf)
-#
-probe syscall.stat = kernel.function("sys_stat") {
-	name = "stat"
-	filename_uaddr = $filename
-	buf_uaddr = $statbuf
-	argstr = ""
-}
-probe syscall.stat.return = kernel.function("sys_stat").return {
-	name = "stat"
-	returnp = 1
-}
+
 # statfs _____________________________________________________
 #
 # asmlinkage long
