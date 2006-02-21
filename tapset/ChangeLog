@@ -1,3 +1,8 @@
+2006-02-21  Martin Hunt  <hunt@redhat.com>
+
+	* context.stp: Fix definition of returnval(). Now the same as retval().
+	Cleanup needed. Only one can survive.
+
 2006-02-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp (cpu): Clone undocumented cpuid() function.
