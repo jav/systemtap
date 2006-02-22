@@ -91,8 +91,10 @@ void
 derived_probe::emit_probe_prologue (translator_output* o,
                                     const std::string& statereq)
 {
-  o->newline() << "struct context* c = per_cpu_ptr "
-               << "(contexts, smp_processor_id());";
+  o->newline() << "struct context* c;";
+  o->newline() << "unsigned long flags;";
+  o->newline() << "local_irq_save (flags);";
+  o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "if (atomic_read (&session_state) != " << statereq << ")";
   o->newline(1) << "goto probe_epilogue;";
 
@@ -136,7 +138,7 @@ derived_probe::emit_probe_epilogue (translator_output* o)
   
   o->newline() << "atomic_dec (&c->busy);";
   o->newline(-1) << "probe_epilogue: ;";
-  o->indent(1);
+  o->newline(1) << "local_irq_restore (flags);";
 }
 
 

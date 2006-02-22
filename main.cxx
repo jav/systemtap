@@ -545,6 +545,10 @@ main (int argc, char * const argv [])
   // PASS 5: RUN
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
+  // NB: this message is a judgement call.  The other passes don't emit
+  // a "hello, I'm starting" message, but then the others aren't interactive
+  // and don't take an indefinite amount of time.
+  if (s.verbose) clog << "Pass 5: starting run." << endl;
   rc = run_pass (s);
   times (& tms_after);
   gettimeofday (&tv_after, NULL);
