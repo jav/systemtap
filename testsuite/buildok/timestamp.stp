@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin {
+  log(string(get_cycles() + gettimeofday_us() +
+             gettimeofday_ms() + gettimeofday_s()))
+}

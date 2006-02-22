@@ -94,6 +94,9 @@ Return 1 if string s1 contains string s2, returns 0 otherwise.
 
 .SS TIMESTAMP
 .TP
+get_cycles:long ()
+Return the processor cycle counter value, or 0 if unavailable.
+.TP
 gettimeofday_us:long ()
 Return the number of microseconds since the UNIX epoch.
 .TP

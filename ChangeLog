@@ -1,5 +1,10 @@
 2006-02-22  Frank Ch. Eigler  <fche@elastic.org>
 
+	* stapfuncs.5.in: Document get_cycles().
+	* testsuite/buildok/timestamp.stp: Build it and its friends.
+
+2006-02-22  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 2293.
 	* tapsets.cxx (emit_probe_epilogue): Emit early local_irq_save().
 	(emit_probe_epilogue): ... and matching _restore().

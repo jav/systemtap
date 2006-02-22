@@ -1,5 +1,5 @@
 // timestamp tapset
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005-2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -9,6 +9,13 @@
 
 %{
 #include <linux/time.h>
+%}
+
+
+// return processor cycle counter (if any)
+function get_cycles:long () %{
+  cycles_t c = get_cycles();
+  THIS->__retvalue = (int64_t) c;
 %}
 
 
