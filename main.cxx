@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005-2006 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -405,7 +405,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 1: parse failed.  "
-         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << "Try again with more '-v' (verbose) options."
          << endl;
 
   if (rc || s.last_pass == 1) goto cleanup;
@@ -486,7 +486,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 2: analysis failed.  "
-         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << "Try again with more '-v' (verbose) options."
          << endl;
 
   if (rc || s.last_pass == 2) goto cleanup;
@@ -516,7 +516,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 3: translation failed.  "
-         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << "Try again with more '-v' (verbose) options."
          << endl;
 
   if (rc || s.last_pass == 3) goto cleanup;
@@ -536,7 +536,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 4: compilation failed.  "
-         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << "Try again with more '-v' (verbose) options."
          << endl;
 
   // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout? 
@@ -558,7 +558,7 @@ main (int argc, char * const argv [])
 
   if (rc)
     cerr << "Pass 5: run failed.  "
-         << (s.verbose ? "" : "Try again with '-v' (verbose) option.")
+         << "Try again with more '-v' (verbose) options."
          << endl;
 
   // if (rc) goto cleanup;

@@ -137,7 +137,7 @@ derived_probe::emit_probe_epilogue (translator_output* o)
   o->newline(-1) << "}";
   
   o->newline() << "atomic_dec (&c->busy);";
-  o->newline(-1) << "probe_epilogue: ;";
+  o->newline(-1) << "probe_epilogue:";
   o->newline(1) << "local_irq_restore (flags);";
 }
 

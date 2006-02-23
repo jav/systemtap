@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005-2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -28,14 +28,14 @@ using namespace std;
 parser::parser (systemtap_session& s, istream& i, bool p):
   session (s),
   input_name ("<input>"), free_input (0),
-  input (i, input_name), privileged (p),
+  input (i, input_name, s), privileged (p),
   last_t (0), next_t (0), num_errors (0)
 { }
 
 parser::parser (systemtap_session& s, const string& fn, bool p):
   session (s),
   input_name (fn), free_input (new ifstream (input_name.c_str(), ios::in)),
-  input (* free_input, input_name), privileged (p),
+  input (* free_input, input_name, s), privileged (p),
   last_t (0), next_t (0), num_errors (0)
 { }
 
@@ -397,8 +397,8 @@ parser::peek_kw (std::string const & kw)
 
 
 
-lexer::lexer (istream& i, const string& in):
-  input (i), input_name (in), cursor_line (1), cursor_column (1)
+lexer::lexer (istream& i, const string& in, systemtap_session& s):
+  input (i), input_name (in), cursor_line (1), cursor_column (1), session(s)
 { }
 
 
@@ -472,6 +472,31 @@ lexer::scan ()
 	  else
 	    break;
 	}
+
+      // Expand command line arguments to literals.  $1 .. $999 as
+      // numbers and @1 .. @999 as strings.
+      if (n->content[0] == '@' || n->content[0] == '$')
+        {
+          string idxstr = n->content.substr(1);
+          const char* startp = idxstr.c_str();
+          char *endp;
+          errno = 0;
+          unsigned long idx = strtoul (startp, &endp, 10);
+          if (endp == startp)
+            ; // no numbers at all - leave alone as identifier 
+          else
+            {
+              // Use @1/$1 as the base, not @0/$0.  Thus the idx-1.
+              if (errno == ERANGE || errno == EINVAL || *endp != '\0' ||
+                  idx == 0 || idx-1 >= session.args.size ())
+                throw parse_error ("command line argument index invalid or out of range");
+              
+              string arg = session.args[idx-1];
+              n->type = (n->content[0] == '@') ? tok_string : tok_number;
+              n->content = arg;
+            }
+        }
+
       return n;
     }
 

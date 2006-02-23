@@ -57,7 +57,7 @@ class lexer
 {
 public:
   token* scan ();
-  lexer (std::istream&, const std::string&);
+  lexer (std::istream&, const std::string&, systemtap_session&);
 
 private:
   int input_get ();
@@ -67,6 +67,7 @@ private:
   std::vector<int> lookahead;
   unsigned cursor_line;
   unsigned cursor_column;
+  systemtap_session& session;
 };
 
 

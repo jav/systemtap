@@ -83,6 +83,7 @@ extern int print_only, quiet, merge, verbose;
 extern unsigned int buffer_size;
 extern char *modname;
 extern char *modpath;
+extern char *modoptions[];
 extern int target_pid;
 extern int driver_pid;
 extern char *target_cmd;
@@ -460,11 +461,16 @@ int init_stp(const char *relay_filebase, int print_summary)
 
 	/* insert module */
 	sprintf(buf, "_stp_pid=%d", (int)getpid());
+        modoptions[0] = "insmod";
+        modoptions[1] = modpath;
+        modoptions[2] = buf;
+        /* modoptions[3...N] set by command line parser. */
+
 	if ((pid = vfork()) < 0) {
 		perror ("vfork");
 		exit(-1);
 	} else if (pid == 0) {
-		if (execl("/sbin/insmod",  "insmod", modpath, buf, NULL) < 0)
+		if (execvp("/sbin/insmod",  modoptions) < 0)
 			exit(-1);
 	}
 	if (waitpid(pid, &rstatus, 0) < 0) {

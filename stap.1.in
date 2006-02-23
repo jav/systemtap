@@ -24,18 +24,27 @@ stap \- systemtap script translator/driver
 .I OPTIONS
 ]
 .I FILENAME
+[
+.I ARGUMENTS
+]
 .br
 .B stap
 [
 .I OPTIONS
 ]
 .B \-
+[
+.I ARGUMENTS
+]
 .br
 .B stap
 [
 .I OPTIONS
 ]
 .BI \-e " SCRIPT"
+[
+.I ARGUMENTS
+]
 
 .SH DESCRIPTION
 
@@ -72,7 +81,8 @@ prints a list of supported options.
 .\" -t test mode
 .TP
 .B \-v
-Increase verbosity.  Produce more informative output.
+Increase verbosity.  Produce a larger volume of informative (?) output
+each time option repeated.
 .TP
 .B \-h
 Show help message.
@@ -133,6 +143,11 @@ Start the probes, run CMD, and exit when CMD finishes.
 Sets target() to PID. This allows scripts to be written that filter on 
 a specific process.
 
+.SH ARGUMENTS
+
+Any additional arguments on the command line are passed to the script
+parser for substitution.  See below.
+
 .SH SCRIPT LANGUAGE
 
 The systemtap script language resembles 
@@ -157,6 +172,15 @@ hexadecimal, or octal, using the same notation as in C).  All strings
 are limited in length to some reasonable value (a few hundred bytes).
 Integers are 64-bit signed quantities, although the parser also accepts
 (and wraps around) values above positive 2**63.
+.PP
+In addition, script arguments given at the end of the command line may
+be expanded as literals.  Use
+.B $1 ... $<NN>
+for casting as a numberic literal and
+.B @1 ... @<NN>
+for casting as string literal.  These may be used in all contexts
+where literals are accepted.  Reference to an argument number beyond
+what was actually given is an error.
 .PP
 A simple conditional preprocessing stage is run as a part of parsing.
 The general form is similar to the 

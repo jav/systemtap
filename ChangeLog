@@ -1,3 +1,18 @@
+2006-02-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1304 
+	* parse.cxx (lexer): Take systemtap_session argument.
+	(lexer::scan): Support $1..$NNNN and @1...@NNNN expansion.
+	* stap.1.in: Document this.
+	* testsuite/semok/args.stp: New test.
+	* translate.cxx (var::init, emit_global): Emit code to allow
+	named module parameters to initialize global string/number scalars.
+	* stap.1.in: Don't document this yet.
+	
+	PR 2334
+	* main.cxx (main): Clarify "-v" option repeatibility.
+	* stap.1.in: Ditto.
+
 2006-02-23  Roland McGrath  <roland@redhat.com>
 
 	* Makefile.am (AUTOMAKE_OPTIONS): New variable, set dist-bzip2.

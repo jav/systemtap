@@ -371,7 +371,10 @@ public:
       case pe_string:
 	return qname() + "[0] = '\\0';";
       case pe_long:
-	return qname() + " = 0;";
+        if (! local)
+          return qname() + " = (int64_t) init_" + qname() + ";"; // module_param
+        else
+          return qname() + " = 0;";
       case pe_stats:
 	switch (sd.type)
 	  {
@@ -887,24 +890,44 @@ c_unparser::emit_common_header ()
 void
 c_unparser::emit_global (vardecl *v)
 {
+  string vn = c_varname (v->name);
+
   if (v->arity == 0)
     o->newline() << "static "
 		 << c_typename (v->type)
 		 << " "
-		 << "global_" << c_varname (v->name)
+		 << "global_" << vn
 		 << ";";
   else if (v->type == pe_stats)
     {
       o->newline() << "static PMAP global_" 
-		   << c_varname(v->name) << ";";
+		   << vn << ";";
     }
   else
     {
       o->newline() << "static MAP global_" 
-		   << c_varname(v->name) << ";";
+		   << vn << ";";
     }
   o->newline() << "static rwlock_t "
-               << "global_" << c_varname (v->name) << "_lock;";
+               << "global_" << vn << "_lock;";
+
+  // Emit module_params for this global, if its type is convenient.
+  if (v->arity == 0 && v->type == pe_long)
+    {
+      // XXX: moduleparam.h does not have a 64-bit type, so let's just
+      // take a plain long here, and manually copy/widen during
+      // initialization.  See var::init().
+      o->newline() << "long init_global_" << vn << ";";
+      o->newline() << "module_param_named (" << vn << ", "
+                   << "init_global_" << vn << ", long, 0);";
+    }
+  else if (v->arity == 0 && v->type == pe_string)
+    {
+      // NB: no special copying is needed.
+      o->newline() << "module_param_string (" << vn << ", "
+                   << "global_" << vn
+                   << ", MAXSTRINGLEN, 0);";
+    }
 }
 
 

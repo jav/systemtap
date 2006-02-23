@@ -15,8 +15,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005
+ * Copyright (C) 2005 IBM Corporation
+ * Copyright (C) 2005-2006 Red Hat, Inc.
  *
  */
 
@@ -41,6 +41,8 @@ int driver_pid = 0;
 unsigned int buffer_size = 0;
 char *modname = NULL;
 char *modpath = NULL;
+#define MAXMODOPTIONS 64
+char *modoptions[MAXMODOPTIONS];
 char *target_cmd = NULL;
 char *outfile_name = NULL;
 
@@ -59,7 +61,8 @@ char *stp_check="stp_check";
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid] [-b bufsize] [-o FILE] kmod-name\n", prog);
+	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid]\n"
+                "\t[-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
@@ -68,8 +71,8 @@ static void usage(char *prog)
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
 	fprintf(stderr, "-d pid.  Pass the systemtap driver's pid.\n");
-	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
 	fprintf(stderr, "-o FILE. Send output to FILE.\n");
+	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
 	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
 	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
 	fprintf(stderr, "   buffer size in MB. That value will be per-cpu if relayfs is used.\n");
@@ -142,6 +145,16 @@ int main(int argc, char **argv)
               modname = modpath;
             else
               modname++; /* skip over / */
+          }
+
+        if (optind < argc)
+          {
+            unsigned start_idx = 3; /* reserve three slots in modoptions[] */
+            while (optind < argc && start_idx+1 < MAXMODOPTIONS)
+              modoptions[start_idx++] = argv[optind++];
+            /* Redundantly ensure that there is a NULL pointer at the end
+               of modoptions[]. */
+            modoptions[start_idx] = NULL;
           }
   
 	if (!modname) {
