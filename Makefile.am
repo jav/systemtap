@@ -83,7 +83,9 @@ install-data-local:
 	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
 	    -C $(srcdir)/runtime relayfs \
 	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
-	mkdir -p $(DESTDIR)$(pkgdatadir)/tapset
+	mkdir -p $(DESTDIR)$(pkgdatadir)/tapset \
+	$(DESTDIR)$(pkgdatadir)/tapset/i686 \
+	$(DESTDIR)$(pkgdatadir)/tapset/x86_64
 	(cd $(srcdir)/tapset ; find . -name '*.stp' | cpio -pdmv $(DESTDIR)$(pkgdatadir)/tapset)
 
 p=$(srcdir)/testsuite/parse
