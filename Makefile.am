@@ -1,6 +1,8 @@
 # Makefile.am --- automake input file for systemtap
 ## process this file with automake to produce Makefile.in
 
+AUTOMAKE_OPTIONS = dist-bzip2
+
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 
 AM_CPPFLAGS = -DPKGLIBDIR='"$(pkglibexecdir)"' -DPKGDATADIR='"${pkgdatadir}"'
