@@ -401,6 +401,10 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << "llo";
 	      break;
 
+	    case conv_unsigned_ptr:
+	      oss << "p";
+	      break;
+
 	    case conv_unsigned_uppercase_hex:
 	      oss << "llX";
 	      break;
@@ -551,6 +555,10 @@ print_format::string_to_components(string const & str)
 	  curr.type = conv_unsigned_decimal;
 	  break;
 	  
+	case 'p':
+	  curr.type = conv_unsigned_ptr;
+	  break;
+
 	case 'X':
 	  curr.type = conv_unsigned_uppercase_hex;
 	  break;

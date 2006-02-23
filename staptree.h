@@ -277,6 +277,7 @@ struct print_format: public expression
       conv_signed_decimal,
       conv_unsigned_decimal,
       conv_unsigned_octal,
+      conv_unsigned_ptr,
       conv_unsigned_uppercase_hex,
       conv_unsigned_lowercase_hex,
       conv_string,
