@@ -1074,7 +1074,8 @@ probe syscall.send = kernel.function("sys_sendto") {
 	flags_str = _send_flags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
-	argstr = ""
+	argstr = sprintf("%d, [0x%x], %s, [0x%x], %d", $fd, buf_uaddr,
+			flags_str, to_uaddr, $addr_len)
 }
 probe syscall.send.return = kernel.function("sys_sendto").return {
 	name = "send"
@@ -1094,7 +1095,8 @@ probe syscall.sendfile = kernel.function("sys_sendfile") {
 	in_fd = $in_fd
 	offset_uaddr = $offset
 	count = $count
-	argstr = ""
+	argstr = sprintf("%d, %d, [0x%x], %d", $out_fd, $in_fd, offset_uaddr,
+				$count)
 }
 probe syscall.sendfile.return = kernel.function("sys_sendfile").return {
 	name = "sendfile"
@@ -1114,7 +1116,8 @@ probe syscall.sendfile64 = kernel.function("sys_sendfile64") {
 	in_fd = $in_fd
 	offset_uaddr = $offset
 	count = $count
-	argstr = ""
+	argstr = sprintf("%d, %d, [0x%x], %d", $out_fd, $in_fd, offset_uaddr,
+				$count)
 }
 probe syscall.sendfile64.return = kernel.function("sys_sendfile64").return {
 	name = "sendfile64"
@@ -1133,7 +1136,7 @@ probe syscall.sendmsg = kernel.function("sys_sendmsg") {
 	msg_uaddr = $msg
 	flags = $flags
 	flags_str = _send_flags_str($flags)
-	argstr = ""
+	argstr = sprintf("%d, [0x%x], %s", $fd, msg_uaddr, flags_str)
 }
 probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return {
 	name = "sendmsg"
@@ -1158,7 +1161,8 @@ probe syscall.sendto = kernel.function("sys_sendto") {
 	flags_str = _send_flags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
-	argstr = ""
+	argstr = sprintf("%d, [0x%x], %d, %s, [0x%x], %d", $fd, buf_uaddr,
+			$len, flags_str, to_uaddr, $addr_len)
 }
 probe syscall.sendto.return = kernel.function("sys_sendto").return {
 	name = "sendto"
@@ -1189,7 +1193,7 @@ probe syscall.setdomainname.return =
 probe syscall.setfsgid = kernel.function("sys_setfsgid") {
 	name = "setfsgid"
 	fsgid = $gid
-	argstr = ""
+	argstr = string($gid)
 }
 probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 	name = "setfsgid"
@@ -1203,7 +1207,7 @@ probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 probe syscall.setfsgid16 = kernel.function("sys_setfsgid") {
 	name = "setfsgid16"
 	gid = $gid
-	argstr = ""
+	argstr = string($gid)
 }
 probe syscall.setfsgid16.return = kernel.function("sys_setfsgid").return {
 	name = "setfsgid16"
@@ -1217,7 +1221,7 @@ probe syscall.setfsgid16.return = kernel.function("sys_setfsgid").return {
 probe syscall.setfsuid = kernel.function("sys_setfsuid") {
 	name = "setfsuid"
 	fsuid = $uid
-	argstr = ""
+	argstr = string($uid)
 }
 probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 	name = "setfsuid"
@@ -1231,7 +1235,7 @@ probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 probe syscall.setfsuid16 = kernel.function("sys_setfsuid") {
 	name = "setfsuid16"
 	uid = $uid
-	argstr = ""
+	argstr = string($uid)
 }
 probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
 	name = "setfsuid16"
@@ -1245,7 +1249,7 @@ probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
 probe syscall.setgid = kernel.function("sys_setgid") {
 	name = "setgid"
 	gid = $gid
-	argstr = ""
+	argstr = string($gid)
 }
 probe syscall.setgid.return = kernel.function("sys_setgid").return {
 	name = "setgid"
@@ -1259,7 +1263,7 @@ probe syscall.setgid.return = kernel.function("sys_setgid").return {
 probe syscall.setgid16 = kernel.function("sys_setgid") {
 	name = "setgid16"
 	gid = $gid
-	argstr = ""
+	argstr = string($gid)
 }
 probe syscall.setgid16.return = kernel.function("sys_setgid").return {
 	name = "setgid16"
@@ -1283,7 +1287,7 @@ probe syscall.setgroups = kernel.function("sys_setgroups") {
 	 *  embedded C if need be.
 	 */
 	list_uaddr = $grouplist
-	argstr = ""
+	argstr = sprintf("%d, [0x%x]", $gidsetsize, list_uaddr)
 }
 probe syscall.setgroups.return = kernel.function("sys_setgroups").return {
 	name = "setgroups"
@@ -1299,8 +1303,9 @@ probe syscall.setgroups.return = kernel.function("sys_setgroups").return {
 probe syscall.sethostname = kernel.function("sys_sethostname") {
 	name = "sethostname"
 	hostname_uaddr = $name
+	name_str = user_string($name)
 	len = $len
-	argstr = ""
+	argstr = sprintf("%s, %d", name_str, $len)
 }
 probe syscall.sethostname.return = kernel.function("sys_sethostname").return {
 	name = "sethostname"
@@ -1335,7 +1340,7 @@ probe syscall.setpgid = kernel.function("sys_setpgid") {
 	name = "setpgid"
 	pid = $pid
 	pgid = $pgid
-	argstr = ""
+	argstr = sprintf("%d, %d", $pid, $pgid)
 }
 probe syscall.setpgid.return = kernel.function("sys_setpgid").return {
 	name = "setpgid"
@@ -1354,7 +1359,7 @@ probe syscall.setpriority = kernel.function("sys_setpriority") {
 	which_str = _priority_which_str($which)
 	who = $who
 	prio = $niceval
-	argstr = ""
+	argstr = sprintf("%s, %d, %d", which_str, $who, $niceval)
 }
 probe syscall.setpriority.return = kernel.function("sys_setpriority").return {
 	name = "setpriority"
@@ -1370,7 +1375,7 @@ probe syscall.setregid = kernel.function("sys_setregid") {
 	name = "setregid"
 	rgid = $rgid
 	egid = $egid
-	argstr = ""
+	argstr = sprintf("%d, %d", $rgid, $egid)
 }
 probe syscall.setregid.return = kernel.function("sys_setregid").return {
 	name = "setregid"
@@ -1386,7 +1391,7 @@ probe syscall.setregid16 = kernel.function("sys_setregid") {
 	name = "setregid16"
 	rgid = $rgid
 	egid = $egid
-	argstr = ""
+	argstr = sprintf("%d, %d", $rgid, $egid)
 }
 probe syscall.setregid16.return = kernel.function("sys_setregid").return {
 	name = "setregid16"
@@ -1404,7 +1409,7 @@ probe syscall.setresgid = kernel.function("sys_setresgid") {
 	rgid = $rgid
 	egid = $egid
 	sgid = $sgid
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $rgid, $egid, $sgid)
 }
 probe syscall.setresgid.return = kernel.function("sys_setresgid").return {
 	name = "setresgid"
@@ -1422,7 +1427,7 @@ probe syscall.setresgid16 = kernel.function("sys_setresgid") {
 	rgid = $rgid
 	egid = $egid
 	sgid = $sgid
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $rgid, $egid, $sgid)
 }
 probe syscall.setresgid16.return = kernel.function("sys_setresgid").return {
 	name = "setresgid16"
@@ -1440,7 +1445,7 @@ probe syscall.setresuid = kernel.function("sys_setresuid") {
 	ruid = $ruid
 	euid = $euid
 	suid = $suid
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $ruid, $euid, $suid)
 }
 probe syscall.setresuid.return = kernel.function("sys_setresuid").return {
 	name = "setresuid"
@@ -1458,7 +1463,7 @@ probe syscall.setresuid16 = kernel.function("sys_setresuid") {
 	ruid = $ruid
 	euid = $euid
 	suid = $suid
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $ruid, $euid, $suid)
 }
 probe syscall.setresuid16.return = kernel.function("sys_setresuid").return {
 	name = "setresuid16"
@@ -1474,7 +1479,7 @@ probe syscall.setreuid = kernel.function("sys_setreuid") {
 	name = "setreuid"
 	ruid = $ruid
 	euid = $euid
-	argstr = ""
+	argstr = sprintf("%d, %d", $ruid, $euid)
 }
 probe syscall.setreuid.return = kernel.function("sys_setreuid").return {
 	name = "setreuid"
@@ -1490,7 +1495,7 @@ probe syscall.setreuid16 = kernel.function("sys_setreuid") {
 	name = "setreuid16"
 	ruid = $ruid
 	euid = $euid
-	argstr = ""
+	argstr = sprintf("%d, %d", $ruid, $euid)
 }
 probe syscall.setreuid16.return = kernel.function("sys_setreuid").return {
 	name = "setreuid16"
@@ -1505,9 +1510,9 @@ probe syscall.setreuid16.return = kernel.function("sys_setreuid").return {
 probe syscall.setrlimit = kernel.function("sys_setrlimit") {
 	name = "setrlimit"
 	resource = $resource
-	resource_str = _rlimit_resource_str($resource)
 	rlim_uaddr = $rlim
-	argstr = ""
+	argstr = sprintf("%s, %s", _rlimit_resource_str($resource),
+				_struct_rlimit_u($rlim)) 
 }
 probe syscall.setrlimit.return = kernel.function("sys_setrlimit").return {
 	name = "setrlimit"
@@ -1544,7 +1549,8 @@ probe syscall.setsockopt = kernel.function("sys_setsockopt") {
 	optname_str = _sockopt_optname_str($optname)
 	optval_uaddr = $optval
 	optlen = $optlen
-	argstr = ""
+	argstr = sprintf("%d, %s, %s, [0x%x], %d", $fd, level_str,
+				optname_str, optval_uaddr, $optlen)
 }
 probe syscall.setsockopt.return = kernel.function("sys_setsockopt").return {
 	name = "setsockopt"
@@ -1558,7 +1564,7 @@ probe syscall.setsockopt.return = kernel.function("sys_setsockopt").return {
 probe syscall.set_tid_address = kernel.function("sys_set_tid_address") {
 	name = "set_tid_address"
 	tidptr_uaddr = $tidptr
-	argstr = ""
+	argstr = sprintf("[0x%x]", tidptr_uaddr)
 }
 probe syscall.set_tid_address.return =
 	kernel.function("sys_set_tid_address").return {
@@ -1582,7 +1588,8 @@ probe syscall.settimeofday = kernel.function("sys_settimeofday") {
 	 * tz_tz_minuteswest = __uget_tz_m($tz,0)
 	 * tz_tz_dsttime     = __uget_tz_m($tz,1)
 	 */
-	argstr = ""
+	argstr = sprintf("%s, %s", _struct_timeval_u($tv),
+				_struct_timezone_u($tz))
 }
 probe syscall.settimeofday.return =
 	kernel.function("sys_settimeofday").return {
@@ -1597,7 +1604,7 @@ probe syscall.settimeofday.return =
 probe syscall.setuid = kernel.function("sys_setuid") {
 	name = "setuid"
 	uid = $uid
-	argstr = ""
+	argstr = string($uid)
 }
 probe syscall.setuid.return = kernel.function("sys_setuid").return {
 	name = "setuid"
@@ -1611,7 +1618,7 @@ probe syscall.setuid.return = kernel.function("sys_setuid").return {
 probe syscall.setuid16 = kernel.function("sys_setuid") {
 	name = "setuid16"
 	uid = $uid
-	argstr = ""
+	argstr = string($uid)
 }
 probe syscall.setuid16.return = kernel.function("sys_setuid").return {
 	name = "setuid16"
@@ -1629,11 +1636,14 @@ probe syscall.setuid16.return = kernel.function("sys_setuid").return {
 probe syscall.setxattr = kernel.function("sys_setxattr") {
 	name = "setxattr"
 	path_uaddr = $path
+	path = user_string($path)
 	name_uaddr = $name
+	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
-	argstr = ""
+	argstr = sprintf("%s, %s, [0x%x], %d, %d", path, name_str, value_uaddr,
+				$size, $flags)
 }
 probe syscall.setxattr.return = kernel.function("sys_setxattr").return {
 	name = "setxattr"
@@ -1663,7 +1673,8 @@ probe syscall.shmctl = kernel.function("sys_shmctl") {
 	shmid = $shmid
 	cmd = $cmd
 	buf_uaddr = $buf
-	argstr = ""
+	argstr = sprintf("%d, %s, [0x%x]", $shmid, _semctl_cmd($cmd),
+				buf_uaddr)
 }
 probe syscall.shmctl.return = kernel.function("sys_shmctl").return {
 	name = "shmctl"
@@ -1677,7 +1688,7 @@ probe syscall.shmctl.return = kernel.function("sys_shmctl").return {
 probe syscall.shmdt = kernel.function("sys_shmdt") {
 	name = "shmdt"
 	shmaddr_uaddr = $shmaddr
-	argstr = ""
+	argstr = sprintf("[0x%x]", shmaddr_uaddr)
 }
 probe syscall.shmdt.return = kernel.function("sys_shmdt").return {
 	name = "shmdt"
@@ -1695,7 +1706,7 @@ probe syscall.shmget = kernel.function("sys_shmget") {
 	key = $key
 	size = $size
 	shmflg = $shmflg
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $key, $size, $shmflg)
 }
 probe syscall.shmget.return = kernel.function("sys_shmget").return {
 	name = "shmget"
@@ -1712,7 +1723,7 @@ probe syscall.shutdown = kernel.function("sys_shutdown") {
 	s = $fd
 	how = $how
 	how_str = _shutdown_how_str($how)
-	argstr = ""
+	argstr = sprintf("%d, %s", s, how_str)
 }
 probe syscall.shutdown.return = kernel.function("sys_shutdown").return {
 	name = "shutdown"
@@ -1728,7 +1739,7 @@ probe syscall.signal = kernel.function("sys_signal") {
 	name = "signal"
 	sig = $sig
 	handler = $handler
-	argstr = ""
+	argstr = sprintf("%s, [0x%x]", _signal_name($sig), $handler)
 }
 probe syscall.signal.return = kernel.function("sys_signal").return {
 	name = "signal"
@@ -1752,8 +1763,9 @@ probe syscall.sigpending = kernel.function("do_sigpending") {
 	 *  addr, let  the user take care of  it
 	 *  with  embedded  C  if  need  be.
 	 */
-	 set_uaddr = $set
-	argstr = ""
+	set_uaddr = $set
+	sigsetsize = $sigsetsize
+	argstr = sprintf("[0x%x], %d", set_uaddr, $sigsetsize)
 }
 probe syscall.sigpending.return = kernel.function("do_sigpending").return {
 	name = "sigpending"
@@ -1783,7 +1795,8 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask") {
 	 */
 	set_uaddr    = $set
 	oldset_uaddr = $oset
-	argstr = ""
+	argstr = sprintf("%s, [0x%x], [0x%x]", how_str, set_uaddr,
+			oldset_uaddr)
 }
 probe syscall.sigprocmask.return = kernel.function("sigprocmask").return {
 	name = "sigprocmask"
@@ -1799,11 +1812,11 @@ probe syscall.sigprocmask.return = kernel.function("sigprocmask").return {
 probe syscall.socket = kernel.function("sys_socket") {
 	name = "socket"
 	family = $family
-	family_str = _sock_family_str($family)
 	type = $type
-	type_str = _sock_type_str($type)
 	protocol = $protocol
-	argstr = ""
+	argstr = sprintf("%s, %s, %d", _sock_family_str($family),
+				_sock_type_str($type),
+				$protocol)
 }
 probe syscall.socket.return = kernel.function("sys_socket").return {
 	name = "socket"
@@ -1819,7 +1832,7 @@ probe syscall.socketcall = kernel.function("sys_socketcall") {
 	name = "socketcall"
 	call = $call
 	args_uaddr = $args
-	argstr = ""
+	argstr = sprintf("%d, [0x%x]", $call, args_uaddr)
 }
 probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
 	name = "socketcall"
@@ -1836,12 +1849,13 @@ probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
 probe syscall.socketpair = kernel.function("sys_socketpair") {
 	name = "socketpair"
 	family = $family
-	family_str = _sock_family_str($family)
 	type = $type
-	type_str = _sock_type_str($type)
 	protocol = $protocol
 	sv_uaddr = $usockvec
-	argstr = ""
+	argstr = sprintf("%s, %s, %d, [0x%x]", 
+				_sock_family_str($family),
+				_sock_type_str($type),
+				$protocol, sv_uaddr)
 }
 probe syscall.socketpair.return = kernel.function("sys_socketpair").return {
 	name = "socketpair"
@@ -1855,7 +1869,7 @@ probe syscall.socketpair.return = kernel.function("sys_socketpair").return {
 probe syscall.ssetmask = kernel.function("sys_ssetmask") {
 	name = "ssetmask"
 	newmask = $newmask
-	argstr = ""
+	argstr = string($newmask)
 }
 probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 	name = "ssetmask"
@@ -1871,8 +1885,9 @@ probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 probe syscall.statfs = kernel.function("sys_statfs") {
 	name = "statfs"
 	path_uaddr = $path
+	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = ""
+	argstr = sprintf("%s, [0x%x]", path, buf_uaddr)
 }
 probe syscall.statfs.return = kernel.function("sys_statfs").return {
 	name = "statfs"
@@ -1888,9 +1903,10 @@ probe syscall.statfs.return = kernel.function("sys_statfs").return {
 probe syscall.statfs64 = kernel.function("sys_statfs64") {
 	name = "statfs64"
 	path_uaddr = $path
+	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = ""
+	argstr = sprintf("%s, %d, [0x%x]", path, $sz, buf_uaddr) 
 }
 probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 	name = "statfs64"
@@ -1904,11 +1920,9 @@ probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 probe syscall.stime = kernel.function("sys_stime") {
 	name = "stime"
 	t_uaddr = $tptr
-	/*
-	 * XXX NOT SAFE -- might sleep
-	 * t = __uget_num($tptr)
-	 */
-	argstr = ""
+	
+	/* Fixme, should just use get_user? */
+	argstr = sprintf("[0x%x]", t_uaddr)
 }
 probe syscall.stime.return = kernel.function("sys_stime").return {
 	name = "stime"
@@ -1921,8 +1935,8 @@ probe syscall.stime.return = kernel.function("sys_stime").return {
 #
 probe syscall.swapoff = kernel.function("sys_swapoff") {
 	name = "swapoff"
-	path_uaddr = $specialfile
-	argstr = ""
+	path = user_string($specialfile)
+	argstr = sprintf("%s", path)
 }
 probe syscall.swapoff.return = kernel.function("sys_swapoff").return {
 	name = "swapoff"
@@ -1936,9 +1950,9 @@ probe syscall.swapoff.return = kernel.function("sys_swapoff").return {
 #
 probe syscall.swapon = kernel.function("sys_swapon") {
 	name = "swapon"
-	path_uaddr = $specialfile
+	path = user_string($specialfile)
 	swapflags = $swap_flags
-	argstr = ""
+	argstr = sprintf("%s, %d", path, swapflags)
 }
 probe syscall.swapon.return = kernel.function("sys_swapon").return {
 	name = "swapon"
@@ -1952,9 +1966,9 @@ probe syscall.swapon.return = kernel.function("sys_swapon").return {
 #
 probe syscall.symlink = kernel.function("sys_symlink") {
 	name = "symlink"
-	oldpath_uaddr = $oldname
-	newpath_uaddr = $newname
-	argstr = ""
+	oldpath = user_string($oldname)
+	newpath = user_string($newname)
+	argstr = sprintf("%s, %s", oldpath, newpath)
 }
 probe syscall.symlink.return = kernel.function("sys_symlink").return {
 	name = "symlink"
@@ -1982,7 +1996,7 @@ probe syscall.sync.return = kernel.function("do_sync").return {
 probe syscall.sysctl = kernel.function("sys_sysctl") {
 	name = "sysctl"
 	args_uaddr = $args
-	argstr = ""
+	argstr = sprintf("[0x%x]", args_uaddr)
 }
 probe syscall.sysctl.return = kernel.function("sys_sysctl").return {
 	name = "sysctl"
@@ -2000,7 +2014,7 @@ probe syscall.sysfs = kernel.function("sys_sysfs") {
 	option = $option
 	arg1 = $arg1
 	arg2 = $arg2
-	argstr = ""
+	argstr = sprintf("%d, %d, %d", $option, $arg1, $arg2)
 }
 probe syscall.sysfs.return = kernel.function("sys_sysfs").return {
 	name = "sysfs"
