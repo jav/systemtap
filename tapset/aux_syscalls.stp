@@ -30,6 +30,21 @@ function _struct_timeval:string(addr:long)
 	}
 %}
 
+function _struct_timezone_u:string(uaddr:long)
+%{
+	struct timezone tz;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&tz,ptr,sizeof(struct timezone)) == 0)
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d, %d]", tz.tz_minuteswest, tz.tz_dsttime);
+		else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%} 
+
 function _struct_timespec_u:string(uaddr:long)
 %{
 	struct timespec ts;
