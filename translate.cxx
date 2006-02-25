@@ -81,6 +81,7 @@ struct c_unparser: public unparser, public visitor
   void emit_map_type_instantiations ();
   void emit_common_header ();
   void emit_global (vardecl* v);
+  void emit_global_param (vardecl* v);
   void emit_functionsig (functiondecl* v);
   void emit_module_init ();
   void emit_module_exit ();
@@ -369,7 +370,10 @@ public:
     switch (type())
       {
       case pe_string:
-	return qname() + "[0] = '\\0';";
+        if (! local)
+          return ""; // module_param
+        else
+	  return qname() + "[0] = '\\0';";
       case pe_long:
         if (! local)
           return qname() + " = (int64_t) init_" + qname() + ";"; // module_param
@@ -888,6 +892,34 @@ c_unparser::emit_common_header ()
 
 
 void
+c_unparser::emit_global_param (vardecl *v)
+{
+  string vn = c_varname (v->name);
+
+  // NB: systemtap globals can collide with linux macros,
+  // e.g. VM_FAULT_MAJOR.  We want the parameter name anyway.  This
+  // #undef is spit out at the end of the C file, so that removing the
+  // definition won't affect any other embedded-C or generated code.
+  // XXX: better not have a global variable named module_param_named etc.!
+  o->newline() << "#undef " << vn;
+
+  // Emit module_params for this global, if its type is convenient.
+  if (v->arity == 0 && v->type == pe_long)
+    {
+      o->newline() << "module_param_named (" << vn << ", "
+                   << "init_global_" << vn << ", long, 0);";
+    }
+  else if (v->arity == 0 && v->type == pe_string)
+    {
+      // NB: no special copying is needed.
+      o->newline() << "module_param_string (" << vn << ", "
+                   << "global_" << vn
+                   << ", MAXSTRINGLEN, 0);";
+    }
+}
+
+
+void
 c_unparser::emit_global (vardecl *v)
 {
   string vn = c_varname (v->name);
@@ -911,22 +943,13 @@ c_unparser::emit_global (vardecl *v)
   o->newline() << "static rwlock_t "
                << "global_" << vn << "_lock;";
 
-  // Emit module_params for this global, if its type is convenient.
+  // Emit module_param helper variable
   if (v->arity == 0 && v->type == pe_long)
     {
       // XXX: moduleparam.h does not have a 64-bit type, so let's just
       // take a plain long here, and manually copy/widen during
       // initialization.  See var::init().
       o->newline() << "long init_global_" << vn << ";";
-      o->newline() << "module_param_named (" << vn << ", "
-                   << "init_global_" << vn << ", long, 0);";
-    }
-  else if (v->arity == 0 && v->type == pe_string)
-    {
-      // NB: no special copying is needed.
-      o->newline() << "module_param_string (" << vn << ", "
-                   << "global_" << vn
-                   << ", MAXSTRINGLEN, 0);";
     }
 }
 
@@ -3815,6 +3838,12 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "void probe_exit () {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
+
+      for (unsigned i=0; i<s.globals.size(); i++)
+        {
+          s.op->newline();
+          s.up->emit_global_param (s.globals[i]);
+        }
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX

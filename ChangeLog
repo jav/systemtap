@@ -1,3 +1,10 @@
+2006-02-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (var::init): Don't crush string module_params.
+	(emit_global_param): New function, forked out of emit_global,
+	to put module_param calls at the bottom of C file.
+	* translate.h: Corresponding changes.
+
 2006-02-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1304 

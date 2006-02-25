@@ -70,6 +70,9 @@ struct unparser
   // static TYPE global_NAME;
   // static rwlock_t global_NAME_lock;
 
+  virtual void emit_global_param (vardecl* v) = 0;
+  // module_param_... -- at end of file
+
   virtual void emit_functionsig (functiondecl* v) = 0;
   // static void function_NAME (context* c);
 
