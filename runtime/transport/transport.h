@@ -24,7 +24,6 @@ static int _stp_transport_mode = STP_TRANSPORT_RELAYFS;
 static int _stp_transport_mode = STP_TRANSPORT_PROC;
 #endif
 
-extern void _stp_transport_cleanup(void);
 extern void _stp_transport_close(void);
 
 #endif /* _TRANSPORT_TRANSPORT_H_ */

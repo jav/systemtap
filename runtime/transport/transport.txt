@@ -1,0 +1,85 @@
+INITIALIZATION
+
+init_module() is defined in runtime.h. It returns _stp_transport_init().
+
+int _stp_transport_init(void)
+{
+	/* allocates buffers, creates /proc/systemtap/stuff */
+	if (_stp_register_procfs() < 0)
+		return -1;
+
+	/* starts up the work queue */
+	schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
+
+	/* always succeeds */
+	return 0;
+}
+
+*** Module is now loaded ***
+
+In stpd, librelay.c, init_stp() forks any commands specified with 
+the "-c" parameter. Then it sends STP_TRANSPORT_INFO message with
+the buffer size (if it was specified on the stpd command line) and
+the pid from the fork (or 0 otherwise).
+
+In procfs.c, _stp_proc_write_cmd() receives the message. It calls 
+_stp_transport_open().
+
+_stp_transport_open() initializes relayfs if necessary. It returns a
+STP_TRANSPORT_INFO message with the transport_mode 
+(relayfs or procfs-only), and buffer information.
+
+stpd receives the STP_TRANSPORT_INFO message in stp_main_loop(),
+It initializes relayfs (if necessary) and replies with an
+STP_START message. 
+
+***Communications are now fully established.***
+
+_stp_proc_write_cmd() receives the STP_START. It calls _stp_handle_start().
+
+_stp_handle_start() calls probe_start(), which the translator generates. 
+It allocates memory and registers probes. When that returns, 
+an atomic variable is set indicating probe_start finished. An STP_START 
+message is returned to stpd with the return value from probe_start()
+
+stpd receives the STP_START message in stp_main_loop(). If the return value 
+is < 0 (indicating probe_start failed to register probes, etc) stpd
+cleans up and exits.
+
+*** Probes running. Everything Up. ***
+
+
+SHUTDOWN AND UNLOADING
+
+There are 3 ways to initiate shutdown. 
+
+1. stpd can initiate it. This happens when stpd receives a ^C or
+a child specified with "-c" exits.
+
+2. Something can call _stp_exit().
+
+3. rmmod. This can happen when stpd dies for an unexpected reason
+and the module is still loaded. So the user does an rmmod. Also, when
+STP_START fails, stpd simply rmmods the module.
+
+
+For #1, stpd sends an STP_EXIT message. 
+_stp_proc_write_cmd() receives the STP_EXIT. It sets _stp_exit_flag
+and returns.
+
+The next time _stp_work_queue() runs, it will notice that
+_stp_exit_flag is set. It checks to see if probe_start() finished
+because we don't want to start exiting until then. It will cancel itself, 
+and call  _stp_cleanup_and_exit(0). That will call probe_exit() which
+unregisters the probes. Then it sends an STP_EXIT(0) message to
+stpd. stpd gets the message and calls cleanup_and_exit(0)
+
+For #2, _stp_exit() sets _stp_exit_flag.
+
+For #3, cleanup_module() calls _stp_transport_close().
+_stp_transport_close() cancels the work_queue, then calls
+_stp_cleanup_and_exit(1). The "1" is passed as an argument to
+the STP_EXIT message. Stpd calls cleanup_and_exit(1), which cleans 
+up everything on its side, but does not do an "rmmod". Finally, 
+_stp_unregister_procfs() to remove the procfs stuff.
+

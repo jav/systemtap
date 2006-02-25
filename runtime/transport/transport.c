@@ -1,14 +1,17 @@
-#ifndef _TRANSPORT_TRANSPORT_C_ /* -*- linux-c -*- */
-#define _TRANSPORT_TRANSPORT_C_
-
-/*
+/* -*- linux-c -*- 
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005
+ * Copyright (C) Red Hat Inc, 2005, 2006
  *
- * This file is released under the GPL.
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
  */
+
+#ifndef _TRANSPORT_TRANSPORT_C_
+#define _TRANSPORT_TRANSPORT_C_
 
 #include <linux/delay.h>
 #include "transport.h"
@@ -19,8 +22,7 @@ static struct rchan *_stp_chan;
 static struct dentry *_stp_dir;
 #endif
 
-static DECLARE_MUTEX(_stp_start_mutex);
-
+static atomic_t _stp_start_finished = ATOMIC_INIT (0);
 static int _stp_dpid;
 static int _stp_pid;
 
@@ -45,7 +47,7 @@ int _stp_transport_open(struct transport_info *info);
 /*
  *	_stp_streaming - boolean, are we using 'streaming' output?
  */
-static inline int _stp_streaming(void)
+static int _stp_streaming(void)
 {
 	if (_stp_transport_mode == STP_TRANSPORT_PROC)
 		return 1;
@@ -99,12 +101,14 @@ void _stp_handle_start (struct transport_start *st)
 {
 	kbug ("stp_handle_start pid=%d\n", st->pid);
 
-	down (&_stp_start_mutex);
+	/* note: st->pid is actually the return code for the reply packet */
 	st->pid = probe_start();
-	up (&_stp_start_mutex);
+	atomic_set(&_stp_start_finished,1);
 
-	if (st->pid < 0) 
+	/* if probe_start() failed, suppress calling probe_exit() */
+	if (st->pid < 0)
 		_stp_exit_called = 1;
+
 	_stp_transport_send(STP_START, st, sizeof(*st));
 }
 
@@ -118,11 +122,11 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 }
 #endif
 
-static void _stp_cleanup_and_exit (int closing)
+static void _stp_cleanup_and_exit (int dont_rmmod)
 {
 	int failures;
 
-	kbug("cleanup_and_exit (%d)\n", closing);
+	kbug("cleanup_and_exit (%d)\n", dont_rmmod);
 	if (!_stp_exit_called) {
 		_stp_exit_called = 1;
 
@@ -137,8 +141,7 @@ static void _stp_cleanup_and_exit (int closing)
 			relay_flush(_stp_chan);
 		}
 #endif
-		kbug("SENDING STP_EXIT\n");
-		_stp_transport_send(STP_EXIT, &closing, sizeof(int));
+		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 	}
 }
 
@@ -158,15 +161,13 @@ static void _stp_work_queue (void *data)
 	if (do_io)
 		wake_up_interruptible(&_stp_proc_wq);
 
-	if (_stp_exit_flag) {
+	/* if exit flag is set AND we have finished with probe_start() */
+	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
 		cancel_delayed_work(&stp_exit);
-		down (&_stp_start_mutex);
 		_stp_cleanup_and_exit(0);
-		up (&_stp_start_mutex);
 		wake_up_interruptible(&_stp_proc_wq);
 	} else
 		schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
-
 }
 
 /**
@@ -178,14 +179,13 @@ static void _stp_work_queue (void *data)
 void _stp_transport_close()
 {
 	kbug("************** transport_close *************\n");
+	cancel_delayed_work(&stp_exit);
 	_stp_cleanup_and_exit(1);
-
+	wake_up_interruptible(&_stp_proc_wq);
 #ifdef STP_RELAYFS
 	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) 
 		_stp_relayfs_close(_stp_chan, _stp_dir);
 #endif
-
-	ssleep(1);
 	_stp_unregister_procfs();
 	kbug("---- CLOSED ----\n");
 }
@@ -193,7 +193,7 @@ void _stp_transport_close()
 /**
  *	_stp_transport_open - open proc and relayfs channels
  *      with proper parameters
- *	Returns negative on failure, 0 otherwise.
+ *	Returns negative on failure, >0 otherwise.
  *
  *	This function registers the probe with the control channel,
  *	and if the probe output will not be 'streaming', creates a
@@ -249,7 +249,9 @@ int _stp_transport_init(void)
 {
 	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
-	_stp_register_procfs();
+	if (_stp_register_procfs() < 0)
+		return -1;
+
 	schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
 	return 0;
 }

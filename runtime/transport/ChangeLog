@@ -1,3 +1,26 @@
+2006-02-25  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_proc_write_cmd): Check return code for
+	_stp_transport_open().
+
+	* transport.c (_stp_transport_write): This function 
+	can now sleep because it is
+	(_stp_handle_start): Don't use a mutex when a simple atomic 
+	will do.
+	(_stp_work_queue): Check atomic to see if probe_start()
+	has finished before attempting exit.
+	(_stp_transport_close): PR2391. Cancel work queue.
+	(_stp_transport_init): If _stp_register_procfs() fails,
+	return an error code.
+
+	* transport.txt: New file. Documents transport initialization and 
+	shutdown sequence.
+	
+2006-02-24  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_transport_init): Fail if 
+	_stp_register_procfs() fails.
+
 2006-02-17  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_proc_read_cmd): Change spin_lock()

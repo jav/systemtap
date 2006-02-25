@@ -103,7 +103,8 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 			return 0;
 		if (copy_from_user (&ti, &buf[4], sizeof(struct transport_info)))
 			return -EFAULT;
-		_stp_transport_open (&ti);
+		if (_stp_transport_open (&ti) < 0)
+			return -1;
 		break;
 	}
 	default:
