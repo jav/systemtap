@@ -507,8 +507,13 @@ int init_stp(const char *relay_filebase, int print_summary)
 	ti.subbuf_size = 0;
 	ti.n_subbufs = 0;
 	ti.target = target_pid;
-	send_request(STP_TRANSPORT_INFO, &ti, sizeof(ti));
-
+	if (send_request(STP_TRANSPORT_INFO, &ti, sizeof(ti)) < 0) {
+		fprintf(stderr, "stpd failed because TRANSPORT_INFO returned an error.\n");
+		if (target_cmd)
+			kill (target_pid, SIGKILL);
+		close(control_channel);
+		return -1;
+	}
 	return 0;
 }
 
@@ -629,9 +634,7 @@ static void cleanup_and_exit (int closed)
 	close(control_channel);
 
 	if (!closed) {
-		/* FIXME. overflow check */
-		strcpy (tmpbuf, "/sbin/rmmod ");
-		strcpy (tmpbuf + strlen(tmpbuf), modname);
+		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod %s", modname);
 		if (system(tmpbuf)) {
 			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n",
 				modname);
@@ -728,6 +731,7 @@ int stp_main_loop(void)
 				if (rc < 0) {
 					close(control_channel);
 					fprintf(stderr, "ERROR: couldn't init relayfs, exiting\n");
+					/* FIXME. Need to cleanup properly */
 					exit(1);
 				}
 			} else if (outfile_name) {
@@ -735,10 +739,11 @@ int stp_main_loop(void)
 				if (!ofp) {
 					fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n",
 						 outfile_name, strerror(errno));
+					/* FIXME. Need to cleanup properly */
 					exit(1);
 				}
 			}
-			ts.pid = 0; // FIXME. not implemented yet
+			ts.pid = getpid();
 			send_request(STP_START, &ts, sizeof(ts));
 			break;
 		}
