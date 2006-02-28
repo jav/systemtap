@@ -1,0 +1,10 @@
+This is a static safety-checker for SystemTap modules.  It attempts to
+validate modules by checking the opcodes used and the external references
+against a whitelist.
+
+The script relies on external data files to provide the whitelists, which by
+default are in the <script-dir>/data directory.  The 'references' file
+provides a plain list of allowed references.  The 'opcodes' file provides a
+list of regular expressions that match allowed opcodes.  Either data file may
+have an optional kernel and/or architecture suffix, as in 'opcodes-i686' or
+'references-2.6.9-32.ELsmp-x86_64'.
