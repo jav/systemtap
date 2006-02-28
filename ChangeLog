@@ -1,3 +1,7 @@
+2006-02-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	* safety/*: Add a static safety checker.
+
 2006-02-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (var::init): Don't crush string module_params.
