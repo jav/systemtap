@@ -143,8 +143,7 @@ probe syscall.bind = kernel.function("sys_bind") {
 	sockfd = $fd
 	my_addr_uaddr = $umyaddr
 	addrlen = $addrlen
-// fixme	
-	argstr = string($fd)
+	argstr = sprintf("%d, %s, %d", $fd, _struct_sockaddr_u($umyaddr,$addrlen),$addrlen)
 }
 probe syscall.bind.return = kernel.function("sys_bind").return {
 	name = "bind"

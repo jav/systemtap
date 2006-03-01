@@ -1,3 +1,13 @@
+2006-03-01  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_struct_sockaddr_u): Parse sockaddr. 
+
+	* syscalls.stp (bind): Call _struct_sockaddr_u().
+
+	* errno.stp (errno_str): Complete rewrite in C for speed and
+	accuracy.
+	(returnstr): New function for syscall tapet.
+	
 2006-02-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	* timestamp.stp (get_cycles): New function.

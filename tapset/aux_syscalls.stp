@@ -107,6 +107,79 @@ function _struct_itimerval:string(addr:long)
 	}
 %}
 
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/tcp.h>
+#include <linux/socket.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
+#define LPORT   (inet->inet.num)
+#define DADDR   (&inet->inet.daddr)
+#else
+#define LPORT   (inet->num)
+#define DADDR   (&inet->daddr)
+#endif
+
+//FIXME. Not done yet.
+
+void _stp_sockaddr_u(char *str, int family, char *ptr, int len)
+{
+	switch (family) {
+	case AF_INET: 
+	{
+		struct sockaddr_in sin;
+		unsigned char addr[4];
+		if (len < sizeof(sin) || _stp_copy_from_user((char *)&sin, ptr, sizeof(sin))) {
+			strlcpy(str, "[AF_INET:...]", MAXSTRINGLEN);
+			break;
+		}
+		memcpy(addr, &sin.sin_addr, sizeof(addr));
+		snprintf(str, MAXSTRINGLEN, "[AF_INET:%d.%d.%d.%d]", 
+			addr[0], addr[1], addr[2], addr[3]);
+		break;
+	}
+	case AF_UNIX:
+	{	
+		char path[128];
+		// FIXME: check len < 128
+		if (_stp_copy_from_user(path, ptr+2, len-2)) {
+			strlcpy(str, "[AF_UNIX:...]", MAXSTRINGLEN);
+			break;
+		}
+		path[len-2] = 0;
+		snprintf(str, MAXSTRINGLEN, "[AF_UNIX:%s]", path); 
+		break;
+	}
+	case AF_NETLINK:
+	{
+		struct sockaddr_nl nl;
+		if (_stp_copy_from_user((char *)&nl, ptr, len)) {
+			strlcpy(str, "[AF_NETLINK:...]", MAXSTRINGLEN);
+			break;
+		}
+		snprintf(str, MAXSTRINGLEN, "[AF_NETLINK:%d,0x%x]", nl.nl_pid, nl.nl_groups); 
+		break;
+	}
+	default:
+		snprintf(str, MAXSTRINGLEN, "[unknown family %d]", family);	
+	}
+}
+%}
+
+function _struct_sockaddr_u:string(uaddr:long, len:long)
+%{
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	struct sockaddr sa;
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(THIS->len < 2 || _stp_copy_from_user((char *)&sa, ptr, 2))
+			strlcpy (THIS->__retvalue, "[...]", MAXSTRINGLEN);
+		else
+			_stp_sockaddr_u(THIS->__retvalue,sa.sa_family,ptr,THIS->len);
+	}
+%}
 
 function _signal_name:string(sig:long)
 %{

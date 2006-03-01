@@ -1,142 +1,381 @@
-global _errno_table
+// errno tapset
+// Copyright (C) 2006 Red Hat Inc.
+//
+// This file is part of SystemTap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
-probe begin{
-        _errno_table[1] = "EPERM"
-        _errno_table[2] = "ENOENT"
-        _errno_table[3] = "ESRCH"
-        _errno_table[4] = "EINTR"
-        _errno_table[5] = "EIO"
-        _errno_table[6] = "ENXIO"
-        _errno_table[7] = "E2BIG"
-        _errno_table[8] = "ENOEXEC"
-        _errno_table[9] = "EBADF"
-        _errno_table[10]= "ECHILD"
-        _errno_table[11]= "EAGAIN"
-        _errno_table[12]= "ENOMEM"
-        _errno_table[13]= "EACCES"
-        _errno_table[14]= "EFAULT"
-        _errno_table[15]= "ENOTBLK"
-        _errno_table[16]= "EBUSY"
-        _errno_table[17]= "EEXIST"
-        _errno_table[18]= "EXDEV"
-        _errno_table[19]= "ENODEV"
-        _errno_table[20]= "ENOTDIR"
-        _errno_table[21]= "EISDIR"
-        _errno_table[22]= "EINVAL"
-        _errno_table[23]= "ENFILE"
-        _errno_table[24]= "EMFILE"
-        _errno_table[25]= "ENOTTY"
-        _errno_table[26]= "ETXTBSY"
-        _errno_table[27]= "EFBIG"
-        _errno_table[28]= "ENOSPC"
-        _errno_table[29]= "ESPIPE"
-        _errno_table[30]= "EROFS"
-        _errno_table[31]= "EMLINK"
-        _errno_table[32]= "EPIPE"
-        _errno_table[33]= "EDOM"
-        _errno_table[34]= "ERANGE"
-        _errno_table[35]= "EDEADLK"
-        _errno_table[36]= "ENAMETOOLONG"
-        _errno_table[37]= "ENOLCK"
-        _errno_table[38]= "ENOSYS"
-        _errno_table[39]= "ENOTEMPTY"
-        _errno_table[40]= "ELOOP"
-        _errno_table[41]= "EWOULDBLOCK"
-        _errno_table[42]= "ENOMSG"
-        _errno_table[43]= "EIDRM"
-        _errno_table[44]= "ECHRNG"
-        _errno_table[45]= "EL2NSYNC"
-        _errno_table[46]= "EL3HLT"
-        _errno_table[47]= "EL3RST"
-        _errno_table[48]= "ELNRNG"
-        _errno_table[49]= "EUNATCH"
-        _errno_table[50]= "ENOCSI"
-        _errno_table[51]= "EL2HLT"
-        _errno_table[52]= "EBADE"
-        _errno_table[53]= "EBADR"
-        _errno_table[54]= "EXFULL"
-        _errno_table[55]= "ENOANO"
-        _errno_table[56]= "EBADRQC"
-        _errno_table[57]= "EBADSLT"
-        _errno_table[58]= "EDEADLOCK"
-        _errno_table[59]= "EBFONT"
-        _errno_table[60]= "ENOSTR"
-        _errno_table[61]= "ENODATA"
-        _errno_table[62]= "ETIME"
-        _errno_table[63]= "ENOSR"
-        _errno_table[64]= "ENONET"
-        _errno_table[65]= "ENOPKG"
-        _errno_table[66]= "EREMOTE"
-        _errno_table[67]= "ENOLINK"
-        _errno_table[68]= "EADV"
-        _errno_table[69]= "ESRMNT"
-        _errno_table[70]= "ECOMM"
-        _errno_table[71]= "EPROTO"
-        _errno_table[72]= "EMULTIHOP"
-        _errno_table[73]= "EDOTDOT"
-        _errno_table[74]= "EBADMSG"
-        _errno_table[75]= "EOVERFLOW"
-        _errno_table[76]= "ENOTUNIQ"
-        _errno_table[77]= "EBADFD"
-        _errno_table[78]= "EREMCHG"
-        _errno_table[79]= "ELIBACC"
-        _errno_table[80]= "ELIBBAD"
-        _errno_table[81]= "ELIBSCN"
-        _errno_table[82]= "ELIBMAX"
-        _errno_table[83]= "ELIBEXEC"
-        _errno_table[84]= "EILSEQ"
-        _errno_table[85]= "ERESTART"
-        _errno_table[86]= "ESTRPIPE"
-        _errno_table[87]= "EUSERS"
-        _errno_table[88]= "ENOTSOCK"
-        _errno_table[89]= "EDESTADDRREQ"
-        _errno_table[90]= "EMSGSIZE"
-        _errno_table[91]= "EPROTOTYPE"
-        _errno_table[92]= "ENOPROTOOPT"
-        _errno_table[93]= "EPROTONOSUPPORT"
-        _errno_table[94]= "ESOCKTNOSUPPORT"
-        _errno_table[95]= "EOPNOTSUPP"
-        _errno_table[96]= "EPFNOSUPPORT"
-        _errno_table[97]= "EAFNOSUPPORT"
-        _errno_table[98]= "EADDRINUSE"
-        _errno_table[99]= "EADDRNOTAVAIL"
-        _errno_table[100]="ENETDOWN"
-        _errno_table[101]="ENETUNREACH"
-        _errno_table[102]="ENETRESET"
-        _errno_table[103]="ECONNABORTED"
-        _errno_table[104]="ECONNRESET"
-        _errno_table[105]="ENOBUFS"
-        _errno_table[106]="EISCONN"
-        _errno_table[107]="ENOTCONN"
-        _errno_table[108]="ESHUTDOWN"
-        _errno_table[109]="ETOOMANYREFS"
-        _errno_table[110]="ETIMEDOUT"
-        _errno_table[111]="ECONNREFUSED"
-        _errno_table[112]="EHOSTDOWN"
-        _errno_table[113]="EHOSTUNREACH"
-        _errno_table[114]="EALREADY"
-        _errno_table[115]="EINPROGRESS"
-        _errno_table[116]="ESTALE"
-        _errno_table[117]="EUCLEAN"
-        _errno_table[118]="ENOTNAM"
-        _errno_table[119]="ENAVAIL"
-        _errno_table[120]="EISNAM"
-        _errno_table[121]="EREMOTEIO"
-        _errno_table[122]="EDQUOT"
-        _errno_table[123]="ENOMEDIUM"
-        _errno_table[124]="EMEDIUMTYPE"
-        _errno_table[125]="ECANCELED"
-        _errno_table[126]="ENOKEY"
-        _errno_table[127]="EKEYEXPIRED"
-        _errno_table[128]="EKEYREVOKED"
-        _errno_table[129]="EKEYREJECTED"
-}
+%{
+#define N(a) [a]=#a
 
-function errno_str (e) {
-        if (e < 0 && e > -130)
-                return _errno_table[-e]
-        else if (e > 0 && e < 130)
-                return _errno_table[e]
-        else
-                return "E#".string(e)
-}
+const char * const errlist[] = {
+/* from asm-generic/errno-base.h */
+[1] = "EPERM",
+[2] = "ENOENT",
+[3] = "ESRCH",
+[4] = "EINTR",
+[5] = "EIO",
+[6] = "ENXIO",
+[7] = "E2BIG",
+[8] = "ENOEXEC",
+[9] = "EBADF",
+[10]= "ECHILD",
+[11]= "EAGAIN",
+[12]= "ENOMEM",
+[13]= "EACCES",
+[14]= "EFAULT",
+[15]= "ENOTBLK",
+[16]= "EBUSY",
+[17]= "EEXIST",
+[18]= "EXDEV",
+[19]= "ENODEV",
+[20]= "ENOTDIR",
+[21]= "EISDIR",
+[22]= "EINVAL",
+[23]= "ENFILE",
+[24]= "EMFILE",
+[25]= "ENOTTY",
+[26]= "ETXTBSY",
+[27]= "EFBIG",
+[28]= "ENOSPC",
+[29]= "ESPIPE",
+[30]= "EROFS",
+[31]= "EMLINK",
+[32]= "EPIPE",
+[33]= "EDOM",
+[34]= "ERANGE",
+/* end of errno-base.h */
+/* The rest of this is arch-dependent */
+#ifdef EDEADLK
+	N(EDEADLK),
+#endif
+#ifdef ENAMETOOLONG
+	N(ENAMETOOLONG),
+#endif
+#ifdef ENOLCK
+	N(ENOLCK),
+#endif
+#ifdef ENOSYS
+	N(ENOSYS),
+#endif
+#ifdef ENOTEMPTY
+	N(ENOTEMPTY),
+#endif
+#ifdef ELOOP
+	N(ELOOP),
+#endif
+#ifdef ENOMSG
+	N(ENOMSG),
+#endif
+#ifdef EIDRM
+	N(EIDRM),
+#endif
+#ifdef ECHRNG
+	N(ECHRNG),
+#endif
+#ifdef EL2NSYNC
+	N(EL2NSYNC),
+#endif
+#ifdef EL3HLT
+	N(EL3HLT),
+#endif
+#ifdef EL3RST
+	N(EL3RST),
+#endif
+#ifdef ELNRNG
+	N(ELNRNG),
+#endif
+#ifdef EUNATCH
+	N(EUNATCH),
+#endif
+#ifdef ENOCSI
+	N(ENOCSI),
+#endif
+#ifdef EL2HLT
+	N(EL2HLT),
+#endif
+#ifdef EBADE
+	N(EBADE),
+#endif
+#ifdef EBADR
+	N(EBADR),
+#endif
+#ifdef EXFULL
+	N(EXFULL),
+#endif
+#ifdef ENOANO
+	N(ENOANO),
+#endif
+#ifdef EBADRQC
+	N(EBADRQC),
+#endif
+#ifdef EBADSLT
+	N(EBADSLT),
+#endif
+#ifdef EBFONT
+	N(EBFONT),
+#endif
+#ifdef ENOSTR
+	N(ENOSTR),
+#endif
+#ifdef ENODATA
+	N(ENODATA),
+#endif
+#ifdef ETIME
+	N(ETIME),
+#endif
+#ifdef ENOSR
+	N(ENOSR),
+#endif
+#ifdef ENONET
+	N(ENONET),
+#endif
+#ifdef ENOPKG
+	N(ENOPKG),
+#endif
+#ifdef EREMOTE
+	N(EREMOTE),
+#endif
+#ifdef ENOLINK
+	N(ENOLINK),
+#endif
+#ifdef EAVD
+	N(EADV),
+#endif
+#ifdef ESRMNT
+	N(ESRMNT),
+#endif
+#ifdef ECOMM
+	N(ECOMM),
+#endif
+#ifdef EPROTO
+	N(EPROTO),
+#endif
+#ifdef EMULTIHOP
+	N(EMULTIHOP),
+#endif
+#ifdef EDOTDOT
+	N(EDOTDOT),
+#endif
+#ifdef EBADMSG
+	N(EBADMSG),
+#endif
+#ifdef EOVERFLOW
+	N(EOVERFLOW),
+#endif
+#ifdef ENOTUNIQ
+	N(ENOTUNIQ),
+#endif
+#ifdef EBADFD
+	N(EBADFD),
+#endif
+#ifdef EREMCHG
+	N(EREMCHG),
+#endif
+#ifdef ELIBACC
+	N(ELIBACC),
+#endif
+#ifdef ELIBBAD
+	N(ELIBBAD),
+#endif
+#ifdef ELIBSCN
+	N(ELIBSCN),
+#endif
+#ifdef ELIBMAX
+	N(ELIBMAX),
+#endif
+#ifdef ELIBEXEC
+	N(ELIBEXEC),
+#endif
+#ifdef EILSEQ
+	N(EILSEQ),
+#endif
+#ifdef ERESTART
+	N(ERESTART),
+#endif
+#ifdef ESTRPIPE
+	N(ESTRPIPE),
+#endif
+#ifdef EUSERS
+	N(EUSERS),
+#endif
+#ifdef ENOTSOCK
+	N(ENOTSOCK),
+#endif
+#ifdef EDESTADDRREQ
+	N(EDESTADDRREQ),
+#endif
+#ifdef EMSGSIZE
+	N(EMSGSIZE),
+#endif
+#ifdef EPROTOTYPE
+	N(EPROTOTYPE),
+#endif
+#ifdef ENOPROTOOPT
+	N(ENOPROTOOPT),
+#endif
+#ifdef EPROTONOSUPPORT
+	N(EPROTONOSUPPORT),
+#endif
+#ifdef ESOCKTNOSUPPORT
+	N(ESOCKTNOSUPPORT),
+#endif
+#ifdef EOPNOTSUPP
+	N(EOPNOTSUPP),
+#endif
+#ifdef EPFNOSUPPORT
+	N(EPFNOSUPPORT),
+#endif
+#ifdef EAFNOSUPPORT
+	N(EAFNOSUPPORT),
+#endif
+#ifdef EADDRINUSE
+	N(EADDRINUSE),
+#endif
+#ifdef EADDRNOTAVAIL
+	N(EADDRNOTAVAIL),
+#endif
+#ifdef ENETDOWN
+	N(ENETDOWN),
+#endif
+#ifdef ENETUNREACH
+	N(ENETUNREACH),
+#endif
+#ifdef ENETRESET
+	N(ENETRESET),
+#endif
+#ifdef ECONNABORTED
+	N(ECONNABORTED),
+#endif
+#ifdef ECONNRESET
+	N(ECONNRESET),
+#endif
+#ifdef ENOBUFS
+	N(ENOBUFS),
+#endif
+#ifdef EISCONN
+	N(EISCONN),
+#endif
+#ifdef ENOTCONN
+	N(ENOTCONN),
+#endif
+#ifdef ESHUTDOWN
+	N(ESHUTDOWN),
+#endif
+#ifdef ETOOMANYREFS
+	N(ETOOMANYREFS),
+#endif
+#ifdef ETIMEDOUT
+	N(ETIMEDOUT),
+#endif
+#ifdef ECONNREFUSED
+	N(ECONNREFUSED),
+#endif
+#ifdef EHOSTDOWN
+	N(EHOSTDOWN),
+#endif
+#ifdef EHOSTUNREACH
+	N(EHOSTUNREACH),
+#endif
+#ifdef EALREADY
+	N(EALREADY),
+#endif
+#ifdef EINPROGRESS
+	N(EINPROGRESS),
+#endif
+#ifdef ESTALE
+	N(ESTALE),
+#endif
+#ifdef EUCLEAN
+	N(EUCLEAN),
+#endif
+#ifdef ENOTNAM
+	N(ENOTNAM),
+#endif
+#ifdef ENAVAIL
+	N(ENAVAIL),
+#endif
+#ifdef EISNAM
+	N(EISNAM),
+#endif
+#ifdef EREMOTEIO
+	N(EREMOTEIO),
+#endif
+#ifdef EDQUOT
+	N(EDQUOT),
+#endif
+#ifdef ENOMEDIUM
+	N(ENOMEDIUM),
+#endif
+#ifdef EMEDIUMTYPE
+	N(EMEDIUMTYPE),
+#endif
+#ifdef ECANCELED
+	N(ECANCELED),
+#endif
+#ifdef ENOKEY
+	N(ENOKEY),
+#endif
+#ifdef EKEYEXPIRED
+	N(EKEYEXPIRED),
+#endif
+#ifdef EKEYREVOKED
+	N(EKEYREVOKED),
+#endif
+#ifdef EKEYREJECTED
+	N(EKEYREJECTED),
+#endif
+#ifdef EOWNERDEAD
+	N(EOWNERDEAD),
+#endif
+#ifdef ENOTRECOVERABLE
+	N(ENOTRECOVERABLE),
+#endif
+#if defined (EDEADLOCK) && EDEADLOCK != EDEADLK
+	N(EDEADLOCK),
+#endif
+#ifdef E
+	N(EADV),
+#endif
+};
+#undef N
+const int Maxerrno = sizeof(errlist)/sizeof(char *);
+%}
+
+function errno_str:string (err:long) %{
+	long e = THIS->err;
+	if (e < 0 && e > -Maxerrno && errlist[-e])
+		strlcpy (THIS->__retvalue, errlist[-e], MAXSTRINGLEN);
+	else if (e > 0 && e < Maxerrno && errlist[e])
+		strlcpy (THIS->__retvalue, errlist[e], MAXSTRINGLEN);
+%}
+
+/* for syscall tapset. set returnp = 2 for hex */
+function returnstr:string (returnp:long) %{
+	long ret;
+
+        if (CONTEXT->regs) {
+#if defined (__i386__)
+                ret = CONTEXT->regs->eax;
+#elif defined (__x86_64__)
+                ret = CONTEXT->regs->rax;
+#elif defined (__powerpc64__)
+                ret = CONTEXT->regs->gpr[3];
+#elif defined (__ia64__)
+                ret = CONTEXT->regs->r8;
+#elif defined (__sparc64__)
+                ret = CONTEXT->regs->u_regs[UREG_RETPC];
+#else
+                return;
+#endif
+        } else
+                return;
+	
+	if (ret < 0 && ret > -Maxerrno && errlist[-ret])
+		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
+	else if (THIS->returnp == 2)
+		snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
+	else
+		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
+%}
