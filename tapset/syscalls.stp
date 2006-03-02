@@ -376,23 +376,18 @@ probe syscall.close.return = kernel.function("sys_close").return {
 	returnp = 1
 }
 # connect ____________________________________________________
-/*
- * asmlinkage long
- * sys_connect(int fd,
- *             struct sockaddr __user *uservaddr,
- *             int addrlen)
- */
-probe kernel.syscall.connect =
-   kernel.function("sys_connect") {
-      name = "connect"
-      sockfd = $fd
-      serv_addr_uaddr = $uservaddr
-      addrlen = $addrlen
+# long sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
+probe syscall.connect = kernel.function("sys_connect") {
+	name = "connect"
+	sockfd = $fd
+	serv_addr_uaddr = $uservaddr
+	addrlen = $addrlen
+	argstr = sprintf("%d, %s, %d", $fd, _struct_sockaddr_u($uservaddr,$addrlen),$addrlen)
 }
-probe kernel.syscall.connect.return =
-   kernel.function("sys_connect").return {
-      name = "connect.return"
-   }
+probe syscall.connect.return =	kernel.function("sys_connect").return {
+	name = "connect"
+	returnp = 1
+}
 
 # delete_module ______________________________________________
 # long sys_delete_module(const char __user *name_user, unsigned int flags)
