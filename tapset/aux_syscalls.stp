@@ -75,6 +75,23 @@ function _struct_timespec:string(addr:long)
 	}
 %}
 
+function _struct_itimerspec_u:string(uaddr:long)
+%{
+	struct itimerspec its;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char *)&its, ptr,sizeof(struct itimerspec)))
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]",
+				(int)its.it_interval.tv_sec, (int)its.it_interval.tv_nsec,
+				(int)its.it_value.tv_sec, (int)its.it_value.tv_nsec);
+	}	
+%}
+
 function _struct_itimerval_u:string(uaddr:long)
 %{
 	struct itimerval itv;
