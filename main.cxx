@@ -1,6 +1,7 @@
 // systemtap translator/driver
 // Copyright (C) 2005-2006 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -318,10 +319,10 @@ main (int argc, char * const argv [])
   version_suffixes.push_back ("/" + kvr + "/" + arch);
   version_suffixes.push_back ("/" + kvr);
   // add kernel version (2.6.NN) + arch
-  string::size_type dash_rindex = kvr.rfind ('-');
-  if (dash_rindex > 0 && dash_rindex != string::npos) {
-    version_suffixes.push_back ("/" + kvr.substr (0, dash_rindex) + "/" + arch);
-    version_suffixes.push_back ("/" + kvr.substr (0, dash_rindex));
+  string::size_type dash_index = kvr.find ('-');
+  if (dash_index > 0 && dash_index != string::npos) {
+    version_suffixes.push_back ("/" + kvr.substr (0, dash_index) + "/" + arch);
+    version_suffixes.push_back ("/" + kvr.substr (0, dash_index));
   }
   // add kernel family (2.6) + arch
   string::size_type dot_index = kvr.find ('.');

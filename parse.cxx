@@ -1,5 +1,6 @@
 // recursive descent parser for systemtap scripts
 // Copyright (C) 2005-2006 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -154,7 +155,7 @@ bool eval_pp_conditional (systemtap_session& s,
       string target_kernel_vr = s.kernel_release;
       string target_kernel_v = target_kernel_vr;
       // cut off any release code suffix
-      string::size_type dr = target_kernel_vr.rfind ('-');
+      string::size_type dr = target_kernel_vr.find ('-');
       if (dr > 0 && dr != string::npos)
         target_kernel_v = target_kernel_vr.substr (0, dr);
       

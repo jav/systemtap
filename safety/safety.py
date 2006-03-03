@@ -3,6 +3,14 @@
 # vim: noet sw=4 ts=4 enc=utf-8
 "A static safety-checker for SystemTap modules."
 
+# Copyright (C) 2006 Intel Corporation.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+
 # in python 2.4, set & frozenset are builtins
 # in python 2.3, the equivalents live in the 'sets' module
 from sys import hexversion as __hexversion
@@ -86,7 +94,7 @@ class StaticSafety:
 		ss.add(relsfx + archsfx)
 
 		# add kernel version (2.6.NN) + arch
-		dash_i = relsfx.rfind('-')
+		dash_i = relsfx.find('-')
 		if dash_i > 0:
 			ss.add(relsfx[:dash_i])
 			ss.add(relsfx[:dash_i] + archsfx)

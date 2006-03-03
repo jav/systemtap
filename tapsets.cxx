@@ -1,6 +1,6 @@
 // tapset resolution
 // Copyright (C) 2005, 2006 Red Hat Inc.
-// Copyright (C) 2005 Intel Corporation.
+// Copyright (C) 2005, 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -3355,9 +3355,9 @@ profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, pr
   string target_kernel_v;
 
   // cut off any release code suffix
-  string::size_type dash_rindex = s.kernel_release.rfind ('-');
-  if (dash_rindex > 0 && dash_rindex != string::npos)
-    target_kernel_v = s.kernel_release.substr (0, dash_rindex);
+  string::size_type dash_index = s.kernel_release.find ('-');
+  if (dash_index > 0 && dash_index != string::npos)
+    target_kernel_v = s.kernel_release.substr (0, dash_index);
   else
     target_kernel_v = s.kernel_release;
 

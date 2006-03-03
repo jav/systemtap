@@ -1,3 +1,12 @@
+2006-03-03  Josh Stone  <joshua.i.stone@intel.com>
+
+	* main.cxx (main): search forward for dashes in the kernel release,
+	to work properly with release names with more than one dash.
+	* parse.cxx (eval_pp_conditional): ditto
+	* tapsets.cxx (profile_derived_probe::profile_derived_probe): ditto
+	* safety/safety.py (StaticSafety::__build_search_suffixes): ditto,
+	and add copyright & GPL tag
+
 2006-03-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapset/indent.stp, indent-default.stp: New little tapset.
