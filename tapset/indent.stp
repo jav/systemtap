@@ -1,0 +1,22 @@
+global _indent_counters, _indent_timestamps
+
+function _generic_indent (idx, delta) 
+{
+  ts = __indent_timestamp ()
+  if (! _indent_counters[idx]) _indent_timestamps[idx] = ts
+
+  # pre-increment for positive delta and post-decrement for negative delta
+  x = _indent_counters[idx] + (delta > 0 ? delta : 0)
+  _indent_counters[idx] += delta
+
+  r = sprintf("%6d %s(%d):", (ts - _indent_timestamps[idx]),
+                             execname(), tid())
+  for (i=1; i<x; i++) r .= " "
+
+  return r
+}
+
+function thread_indent (delta) 
+{
+  return _generic_indent (tid(), delta)  
+}

@@ -226,6 +226,23 @@ Return the average time a request took from being enqueued to completed.
 qsq_throughput:long (qname:string, scale:long)
 Return the average rate of requests per scale units of time.
 
+.SS INDENT
+.PP
+The indent tapset provides functions to generate indented lines for
+nested kinds of trace messages.  Each line contains a relative
+timestamp, and the process name / pid.
+.TP
+thread_indent:string (delta:long)
+Return a string with an appropriate indentation for this thread.
+Call it with a small positive or matching negative delta.
+If this is the outermost, initial level of indentation, reset the
+relative timestamp base to zero.
+.TP
+thread_timestamp:long ()
+Return an absolute timestamp value for use by the indentation function.
+The default function uses 
+.IR gettimeofday_us
+
 .SH FILES
 .nh
 .IR /usr/share/systemtap/tapset
