@@ -313,7 +313,7 @@ main (int argc, char * const argv [])
 
   // Construct arch / kernel-versioning search path
   vector<string> version_suffixes;
-  const string& kvr = s.kernel_release;
+  string kvr = s.kernel_release;
   const string& arch = s.architecture;
   // add full kernel-version-release (2.6.NN-FOOBAR) + arch
   version_suffixes.push_back ("/" + kvr + "/" + arch);
@@ -321,15 +321,18 @@ main (int argc, char * const argv [])
   // add kernel version (2.6.NN) + arch
   string::size_type dash_index = kvr.find ('-');
   if (dash_index > 0 && dash_index != string::npos) {
-    version_suffixes.push_back ("/" + kvr.substr (0, dash_index) + "/" + arch);
-    version_suffixes.push_back ("/" + kvr.substr (0, dash_index));
+    kvr.erase(dash_index);
+    version_suffixes.push_back ("/" + kvr + "/" + arch);
+    version_suffixes.push_back ("/" + kvr);
   }
   // add kernel family (2.6) + arch
-  string::size_type dot_index = kvr.find ('.');
-  string::size_type dot2_index = kvr.find ('.', dot_index+1);
-  if (dot2_index > 0 && dot2_index != string::npos) {
-    version_suffixes.push_back ("/" + kvr.substr (0, dot2_index) + "/" + arch);
-    version_suffixes.push_back ("/" + kvr.substr (0, dot2_index));
+  string::size_type dot1_index = kvr.find ('.');
+  string::size_type dot2_index = kvr.rfind ('.');
+  while (dot2_index > dot1_index && dot2_index != string::npos) {
+    kvr.erase(dot2_index);
+    version_suffixes.push_back ("/" + kvr + "/" + arch);
+    version_suffixes.push_back ("/" + kvr);
+    dot2_index = kvr.rfind ('.');
   }
   // add architecture search path
   version_suffixes.push_back("/" + arch);
