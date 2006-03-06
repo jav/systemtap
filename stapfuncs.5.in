@@ -243,6 +243,12 @@ Return an absolute timestamp value for use by the indentation function.
 The default function uses 
 .IR gettimeofday_us
 
+.SS SYSTEM
+.TP
+system (cmd:string)
+Runs a command on the system. The command will run in the background
+when the current probe completes.
+
 .SH FILES
 .nh
 .IR /usr/share/systemtap/tapset

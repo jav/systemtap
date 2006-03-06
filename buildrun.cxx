@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -15,6 +15,7 @@
 extern "C" {
 #include "signal.h"
 #include <sys/wait.h>
+#include <pwd.h>
 }
 
 
@@ -101,11 +102,15 @@ run_pass (systemtap_session& s)
 {
   int rc = 0;
 
+  struct passwd *pw = getpwuid(getuid());
+  string username = string(pw->pw_name);
+
   // for now, just spawn stpd
   string stpd_cmd = string("sudo ") 
     + string(PKGLIBDIR) + "/stpd "
     + (s.bulk_mode ? "" : "-r ")
     + (s.verbose>1 ? "" : "-q ")
+    + "-u " + username + " "
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   
   stpd_cmd += "-d " + stringify(getpid()) + " ";

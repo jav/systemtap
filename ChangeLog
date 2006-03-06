@@ -1,3 +1,8 @@
+2006-03-06  Martin Hunt  <hunt@redhat.com>
+
+	* buildrun.cxx (run_pass): Add "-u username".
+	* stapfuncs.5.in: Document system(). 
+
 2006-03-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stapex.5.in: Use \[aq] for plain single quotes for encoding
