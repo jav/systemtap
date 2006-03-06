@@ -107,7 +107,7 @@ To list the probeable functions in the kernel, use the last-pass
 option to the translator.  That output needs to be filtered because
 each inlined function instance is listed separately.
 .SAMPLE
-% stap -p2 -e 'probe kernel.function("*") {}' | sort | uniq
+% stap -p2 -e \[aq]probe kernel.function("*") {}\[aq] | sort | uniq
 .ESAMPLE
 
 

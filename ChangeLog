@@ -1,3 +1,8 @@
+2006-03-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stapex.5.in: Use \[aq] for plain single quotes for encoding
+	variation tolerance.
+
 2006-03-03  Josh Stone  <joshua.i.stone@intel.com>
 
 	* main.cxx (main): search forward for dashes in the kernel release,
