@@ -1480,7 +1480,7 @@ void
 varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
 {
   // In order to elide unused but correct functions generated to
-  // get/set $target variables, we encode our knowledge that such
+  // get $target variables, we encode our knowledge that such
   // functions are side-effect-free.  We tell them apart from ordinary
   // tapset embedded-C functions by the naming prefix.  XXX Something
   // apart from this heuristic would be nice.  XXX Similarly, some
@@ -1489,8 +1489,9 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
   
   assert (current_function); // only they get embedded code
   string name = current_function->name;
-  if (name.length() > 6 && name.substr(0, 6) == "_tvar_")
+  if (name.length() > 10 && name.substr(0, 10) == "_tvar_get_")
     return;
+  // NB: setter functions naturally have side-effects
 
   embedded_seen = true;
 }
@@ -1548,6 +1549,7 @@ varuse_collecting_visitor::visit_symbol (symbol *e)
 
 // NB: stat_op need not be overridden, since it will get to
 // visit_symbol and only as a possible rvalue.
+
 
 void
 varuse_collecting_visitor::visit_arrayindex (arrayindex *e)

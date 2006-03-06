@@ -1,0 +1,9 @@
+#! /bin/sh
+
+set -e
+
+script='probe kernel.function("kbd_keycode") { if ($keycode==50) $keycode=49 }'
+s1=`./stap -p3 -g    -e "$script" | sum`
+s2=`./stap -p3 -g -u -e "$script" | sum`
+
+test x"$s1" == x"$s2"
