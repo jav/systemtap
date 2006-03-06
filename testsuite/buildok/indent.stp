@@ -1,3 +1,5 @@
+#! stap -p4
+
 probe begin {
   print (thread_indent (1)) print ("yo\n")
   print (thread_indent (-1)) print ("ta\n")
