@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <strings.h>
 #include <sys/wait.h>
+#include <pwd.h>
 #include "librelay.h"
 
 extern char *optarg;
@@ -45,6 +46,9 @@ char *modpath = NULL;
 char *modoptions[MAXMODOPTIONS];
 char *target_cmd = NULL;
 char *outfile_name = NULL;
+char *username = NULL;
+uid_t cmd_uid;
+gid_t cmd_gid;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
@@ -72,6 +76,7 @@ static void usage(char *prog)
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
 	fprintf(stderr, "-d pid.  Pass the systemtap driver's pid.\n");
 	fprintf(stderr, "-o FILE. Send output to FILE.\n");
+	fprintf(stderr, "-u username. Run commands as username.\n");
 	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
 	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
 	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
@@ -84,7 +89,7 @@ int main(int argc, char **argv)
 	int c, status;
 	pid_t pid;
 
-	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:")) != EOF)
+	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:u:")) != EOF)
 	{
 		switch (c) {
 		case 'm':
@@ -125,6 +130,9 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			outfile_name = optarg;
+			break;
+		case 'u':
+			username = optarg;
 			break;
 		default:
 			usage(argv[0]);
@@ -167,15 +175,27 @@ int main(int argc, char **argv)
 		usage(argv[0]);
 	}
 
+	if (username) {
+		struct passwd *pw = getpwnam(username);
+		if (!pw) {
+			fprintf(stderr, "Cannot find user \"%s\".\n", username);
+			exit(1);
+		}
+		cmd_uid = pw->pw_uid;
+		cmd_gid = pw->pw_gid;  
+	} else {
+		cmd_uid = getuid();
+		cmd_gid = getgid();
+	}
 
 	if (enable_relayfs) {
 		/* now run the _stp_check script */
-		if ((pid = vfork()) < 0) {
-			perror ("vfork");
+		if ((pid = fork()) < 0) {
+			perror ("fork of stp_check failed.");
 			exit(-1);
 		} else if (pid == 0) {
 			if (execlp(stp_check, stp_check, NULL) < 0)
-				exit (-1);
+				_exit (-1);
 		}
 		if (waitpid(pid, &status, 0) < 0) {
 			perror("waitpid");

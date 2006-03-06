@@ -16,7 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005
+ * Copyright (C) Red Hat Inc, 2005, 2006
  *
  */
 
@@ -87,6 +87,10 @@ extern char *modoptions[];
 extern int target_pid;
 extern int driver_pid;
 extern char *target_cmd;
+
+/* uid/gid to use when execing external programs */
+extern uid_t cmd_uid;
+extern gid_t cmd_gid;
 
 /* per-cpu buffer info */
 static struct buf_status
@@ -422,6 +426,12 @@ void start_cmd(void)
 		perror ("fork");
 		exit(-1);
 	} else if (pid == 0) {
+		if (setregid(cmd_gid, cmd_gid) < 0) {
+			perror("setregid");
+		}
+		if (setreuid(cmd_uid, cmd_uid) < 0) {
+			perror("setreuid");
+		}
 		/* wait here until signaled */
 		signal(SIGUSR1, sig_usr);
 		sigemptyset(&nullmask);
@@ -433,10 +443,30 @@ void start_cmd(void)
 		sigprocmask(SIG_SETMASK, &oldmask, NULL);
 		if (execl("/bin/sh", "sh", "-c", target_cmd, NULL) < 0)
 			perror(target_cmd);
-		exit(-1);
+		_exit(-1);
 	}
 
 	target_pid = pid;
+}
+
+void system_cmd(char *cmd)
+{
+	pid_t pid;
+
+	dbug ("system %s\n", cmd);
+	if ((pid = fork()) < 0) {
+		perror ("fork");
+	} else if (pid == 0) {
+		if (setregid(cmd_gid, cmd_gid) < 0) {
+			perror("setregid");
+		}
+		if (setreuid(cmd_uid, cmd_uid) < 0) {
+			perror("setreuid");
+		}
+		if (execl("/bin/sh", "sh", "-c", cmd, NULL) < 0)
+			perror(cmd);
+		_exit(-1);
+	}
 }
 
 #include <sys/wait.h>
@@ -466,12 +496,12 @@ int init_stp(const char *relay_filebase, int print_summary)
         modoptions[2] = buf;
         /* modoptions[3...N] set by command line parser. */
 
-	if ((pid = vfork()) < 0) {
-		perror ("vfork");
+	if ((pid = fork()) < 0) {
+		perror ("fork");
 		exit(-1);
 	} else if (pid == 0) {
 		if (execvp("/sbin/insmod",  modoptions) < 0)
-			exit(-1);
+			_exit(-1);
 	}
 	if (waitpid(pid, &rstatus, 0) < 0) {
 		perror("waitpid");
@@ -598,13 +628,19 @@ static int merge_output(void)
 static void cleanup_and_exit (int closed)
 {
 	char tmpbuf[128];
+	pid_t err;
 
 	if (exiting)
 		return;
-
 	exiting = 1;
 
 	dbug("CLEANUP AND EXIT  closed=%d mode=%d\n", closed, transport_mode);
+
+	/* what about child processes? we will wait for them here. */
+	err = waitpid(-1, NULL, WNOHANG);
+	if (err >= 0)
+		fprintf(stderr,"\nWaititing for processes to exit\n");
+	while(wait(NULL) > 0);
 
 	if (transport_mode == STP_TRANSPORT_RELAYFS) {
 		kill_percpu_threads(ncpus);
@@ -634,7 +670,7 @@ static void cleanup_and_exit (int closed)
 	close(control_channel);
 
 	if (!closed) {
-		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod %s", modname);
+		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod -w %s", modname);
 		if (system(tmpbuf)) {
 			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n",
 				modname);
@@ -644,27 +680,27 @@ static void cleanup_and_exit (int closed)
 	exit(0);
 }
 
-static void sigproc(int signum __attribute__((unused)))
+static void sigproc(int signum)
 {
-  signal(SIGINT, sigproc);
-  signal(SIGTERM, sigproc);
-  send_request(STP_EXIT, NULL, 0);
+	if (signum == SIGCHLD) {
+		pid_t pid = waitpid(-1, NULL, WNOHANG);
+		if (pid != target_pid)
+			return;
+	}
+	send_request(STP_EXIT, NULL, 0);
 }
 
 static void driver_poll (int signum __attribute__((unused)))
 {
-  /* See if the driver process is still alive.  If not, time to exit.  */
-  if (kill (driver_pid, 0) < 0)
-    {
-      send_request(STP_EXIT, NULL, 0);
-      return;
-    }
-  else
-    {
-      /* Check again later. */
-      signal (SIGALRM, driver_poll);
-      alarm (10); // any reasonable poll interval
-    }
+	/* See if the driver process is still alive.  If not, time to exit.  */
+	if (kill (driver_pid, 0) < 0) {
+		send_request(STP_EXIT, NULL, 0);
+		return;
+	} else  {
+		/* Check again later. Use any reasonable poll interval */
+		signal (SIGALRM, driver_poll);
+		alarm (10); 
+	}
 }
 
 
@@ -770,8 +806,14 @@ int stp_main_loop(void)
 				kill (target_pid, SIGUSR1);
 			break;
 		}
+		case STP_SYSTEM:
+		{
+			struct cmd_info *c = (struct cmd_info *)data;
+			system_cmd(c->cmd);
+			break;
+		}
 		default:
-			fprintf(stderr, "WARNING: ignored netlink message of type %d\n", (type));
+			fprintf(stderr, "WARNING: ignored message of type %d\n", (type));
 		}
 	}
 	fclose(ofp);

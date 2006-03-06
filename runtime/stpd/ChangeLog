@@ -1,3 +1,13 @@
+2006-03-06  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (start_cmd): Set proper uid/gid before execing
+	command.
+	(system_cmd): New function.
+	(cleanup_and_exit): Wait for any child processes to complete.
+	(stp_main_loop): Recognize STP_SYSTEM message.
+
+	* stpd.c (main): Add support for "-u username".
+
 2006-02-25  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (init_stp): Better error handling and cleanup.
