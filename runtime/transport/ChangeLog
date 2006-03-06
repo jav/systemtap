@@ -1,3 +1,7 @@
+2006-03-06  Martin Hunt  <hunt@redhat.com>
+
+	* transport_msgs.h (struct cmd_info): New message.
+
 2006-02-25  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_proc_write_cmd): Check return code for

@@ -15,6 +15,7 @@ enum
 	STP_START,
         STP_EXIT,
 	STP_OOB_DATA,
+	STP_SYSTEM,
 };
 
 /* control channel command structs */
@@ -46,5 +47,10 @@ struct transport_info
 struct transport_start
 {
 	int pid;	// pid for streaming data
+};
+
+struct cmd_info
+{
+	char cmd[128];
 };
 
