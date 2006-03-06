@@ -1,0 +1,3 @@
+function system (cmd:string) %{
+	_stp_write(STP_SYSTEM, THIS->cmd, strlen(THIS->cmd)+1);
+%}
