@@ -445,6 +445,7 @@ probe syscall.set_thread_area.return =
  *                      unsigned int zone,
  *                      unsigned int state)
  */
+%( kernel_v  < "2.6.15" %?
 probe syscall.set_zone_reclaim =
 	kernel.function("sys_set_zone_reclaim") {
 	name = "set_zone_reclaim"
@@ -458,6 +459,7 @@ probe syscall.set_zone_reclaim.return =
 	name = "set_zone_reclaim"
 	returnp = 1
 }
+%)
 # shmat ______________________________________________________
 /*
  * asmlinkage long
