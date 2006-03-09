@@ -50,38 +50,6 @@ probe syscall.access.return = kernel.function("sys_access").return {
 	returnp = 1
 }
 
-# acct _______________________________________________________
-# long sys_acct(const char __user *name)
-probe syscall.acct = kernel.function("sys_acct") {
-	name = "acct"
-        filename = user_string($name)
-	argstr = filename
-}
-probe syscall.acct.return = kernel.function("sys_acct").return {
-	name = "acct"
-	returnp = 1
-}
-
-# add_key ____________________________________________________
-# long sys_add_key(const char __user *_type,
-#             const char __user *_description,
-#             const void __user *_payload,
-#             size_t plen,
-#             key_serial_t ringid)
-probe syscall.add_key = kernel.function("sys_add_key") {
-	name = "add_key"
-	type_uaddr = $_type
-	description_auddr = $_description
-	payload_uaddr = $_payload
-	plen = $plen
-	ringid = $ringid
-	argstr = "add_key"
-}
-probe syscall.add_key.return = kernel.function("sys_add_key").return {
-	name = "add_key"
-	returnp = 1
-}
-
 # adjtimex ___________________________________________________
 # long sys_adjtimex(struct timex __user *txc_p)
 probe syscall.adjtimex = kernel.function("sys_adjtimex") {
