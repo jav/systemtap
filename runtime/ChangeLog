@@ -1,3 +1,7 @@
+2006-03-09  Martin Hunt  <hunt@redhat.com>
+
+	* bench2: New directory containing a benchmark framework.
+
 2006-02-10  Martin Hunt  <hunt@redhat.com>
 
 	* copy.c (_stp_copy_from_user): Revert previous incorrect change.

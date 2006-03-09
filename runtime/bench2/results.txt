@@ -1,0 +1,32 @@
+SystemTap BENCH2        Thu Mar  9 00:24:53 PST 2006
+kernel: 2.6.15-1.2025_FC5 i686
+Fedora Core release 4.92 (Pre-FC5)
+monkey2:  00:24:53 up  2:48,  3 users,  load average: 0.01, 0.05, 0.01
+processors: 1 Intel(R) Pentium(R) M processor 1.70GHz
+MemTotal:       515200 kB       MemFree:         73264 kB
+----------------------------------------------------------------
+For comparison, function call overhead is 378 nsecs.
+Times below are in nanoseconds and include kprobe overhead.
+----------------------------------------------------------------
+runtime: empty probe            514
+script : empty probe            543
+runtime: printf 100 chars       1932
+script : printf 100 chars       1947
+runtime: printf 5 integers      3078
+script : printf 5 integers      3127
+SystemTap BENCH2        Thu Mar  9 00:30:12 PST 2006
+kernel: 2.6.15-1.1830_FC4.huntsmp i686
+Fedora Core release 4 (Stentz)
+dragon:  00:30:12 up  3:02,  3 users,  load average: 0.00, 0.00, 0.00
+processors: 2 (1 physical) Intel(R) Pentium(R) 4 CPU 2.60GHz
+MemTotal:      2067716 kB       MemFree:       1841188 kB
+----------------------------------------------------------------
+For comparison, function call overhead is 795 nsecs.
+Times below are in nanoseconds and include kprobe overhead.
+----------------------------------------------------------------
+runtime: empty probe            1178
+script : empty probe            1372
+runtime: printf 100 chars       2408
+script : printf 100 chars       2504
+runtime: printf 5 integers      4048
+script : printf 5 integers      3590

@@ -1,0 +1,16 @@
+#!/usr/bin/env ruby
+load './bench.rb'
+
+# run tests on all the files ending in ".st"
+# These must be systemtap scripts.
+# First line of scripts must be a comment with the test description.
+
+Dir["*.st"].each do |file|
+  File.open(file,"r") do |f|
+    desc = f.gets.sub(/^#/,'').strip
+    test = Stapbench.new(desc)
+    test.file = file
+    test.run
+    test.print
+  end
+end
