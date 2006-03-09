@@ -1,7 +1,7 @@
 #!/usr/bin/env stap
 
 # This is an example of profiling a specific command or pid.
-# It works by recordind the time when a system call is entered
+# It works by recording the time when a system call is entered
 # exited. 
 
 # Usage: prof.stp -c "top -n5"
