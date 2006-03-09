@@ -348,7 +348,11 @@ probe syscall.poll = kernel.function("sys_poll") {
 	name = "poll"
 	ufds_uaddr = $ufds
 	nfds = $nfds
+%( kernel_v > "2.6.15" %?
+	timeout = $timeout_msecs
+%:
 	timeout = $timeout
+%)
 	argstr = sprintf("[0x%x], %d, %d", ufds_uaddr, nfds, timeout)
 }
 probe syscall.poll.return = kernel.function("sys_poll").return {
@@ -439,28 +443,6 @@ probe syscall.pwrite64 = kernel.function("sys_pwrite64") {
 }
 probe syscall.pwrite64.return = kernel.function("sys_pwrite64").return {
 	name = "pwrite64"
-	returnp = 1
-}
-# quotactl ___________________________________________________
-#
-# asmlinkage long
-# sys_quotactl(unsigned int cmd,
-#		  const char __user *special,
-#		  qid_t id,
-#		  void __user *addr)
-#
-probe syscall.quotactl = kernel.function("sys_quotactl") {
-	name = "quotactl"
-	cmd = $cmd
-	cmd_str = _quotactl_cmd_str($cmd)
-	special_str = user_string($special)
-	id = $id
-	addr_uaddr = $addr
-	argstr = sprintf("%s, %s, 0x%x, [0x%x]", cmd_str, special_str,
-				id, addr_uaddr)
-}
-probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
-	name = "quotactl"
 	returnp = 1
 }
 # readahead __________________________________________________
@@ -674,27 +656,6 @@ probe syscall.rename = kernel.function("sys_rename") {
 }
 probe syscall.rename.return = kernel.function("sys_rename").return {
 	name = "rename"
-	returnp = 1
-}
-# request_key ________________________________________________
-#
-# asmlinkage long
-# sys_request_key(const char __user *_type,
-#		     const char __user *_description,
-#		     const char __user *_callout_info,
-#		     key_serial_t destringid)
-#
-probe syscall.request_key = kernel.function("sys_request_key") {
-	name = "request_key"
-	type_uaddr = $_type
-	description_uaddr = $_description
-	callout_info_uaddr = $_callout_info
-	destringid = $destringid
-	argstr = sprintf("[0x%x], [0x%x], [0x%x], 0x%x", type_uaddr,
-			description_uaddr, callout_info_uaddr, destringid)
-}
-probe syscall.request_key.return = kernel.function("sys_request_key").return {
-	name = "request_key"
 	returnp = 1
 }
 # restart_syscall ____________________________________________
