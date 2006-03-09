@@ -1,0 +1,28 @@
+#!/usr/bin/env stap 
+#
+# This script continuously lists the top 20 systemcalls on the system
+#
+
+global syscalls
+
+function print_top () {
+	cnt=0
+	log ("SYSCALL\t\t\t\tCOUNT")
+	foreach ([name] in syscalls-) {
+		printf("%-20s\t\t%5d\n",name, syscalls[name])
+		if (cnt++ == 20)
+			break
+	}
+	printf("--------------------------------------\n")
+	delete syscalls
+}
+
+probe kernel.function("sys_*") {
+	syscalls[probefunc()]++
+}
+
+# print top syscalls every 5 seconds
+probe timer.ms(5000) {
+	print_top ()
+}
+

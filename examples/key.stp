@@ -1,0 +1,22 @@
+#! /usr/bin/env stap
+
+# Useless, but amusing. Based on an idea I saw on a
+# dtrace site. (wav files are from emacs).
+
+// KEY_ENTER = 28
+probe kernel.function("kbd_keycode") {
+	if ($down) {
+		if ($keycode == 28)
+			system("play return.wav")
+		else
+			system("play click.wav")
+	}
+}
+
+probe begin {
+	printf("TYPEWRITER ON\n")
+}
+
+probe end {
+	printf("DONE\n")
+}
