@@ -1007,6 +1007,7 @@ c_unparser::emit_module_init ()
   o->newline(1) << "int rc = 0;";
   o->newline() << "const char *probe_point = \"\";";
 
+  o->newline() << "(void) probe_point;";
   o->newline() << "atomic_set (&session_state, STAP_SESSION_STARTING);";
   // This signals any other probes that may be invoked in the next little
   // while to abort right away.  Currently running probes are allowed to
@@ -1297,6 +1298,8 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 
       last_locked_var = v->name;
     }
+
+  o->newline() << "if (0) goto unlock_;";
 
   o->newline(-1) << "}";
 }
