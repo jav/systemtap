@@ -9,7 +9,7 @@ probe syscall.fstat = kernel.function("sys_fstat") {
 }
 probe syscall.fstat.return = kernel.function("sys_fstat").return {
 	name = "fstat"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getegid16 __________________________________________________
@@ -19,7 +19,7 @@ probe syscall.getegid16 = kernel.function("sys_getegid16") {
 }
 probe syscall.getegid16.return = kernel.function("sys_getegid16").return {
 	name = "getegid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # geteuid16 __________________________________________________
@@ -29,7 +29,7 @@ probe syscall.geteuid16 = kernel.function("sys_geteuid16") {
 }
 probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return {
 	name = "geteuid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getgid16 ___________________________________________________
@@ -39,7 +39,7 @@ probe syscall.getgid16 = kernel.function("sys_getgid16") {
 }
 probe syscall.getgid16.return = kernel.function("sys_getgid16").return {
 	name = "getgid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getgroups16 ________________________________________________
@@ -52,7 +52,7 @@ probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
 }
 probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	name = "getgroups16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getuid16 ___________________________________________________
@@ -62,7 +62,7 @@ probe syscall.getuid16 = kernel.function("sys_getuid16") {
 }
 probe syscall.getuid16.return = kernel.function("sys_getuid16").return {
 	name = "getuid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # lstat ______________________________________________________
@@ -75,7 +75,7 @@ probe syscall.lstat = kernel.function("sys_lstat") {
 }
 probe syscall.lstat.return = kernel.function("sys_lstat").return {
 	name = "lstat.return"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # mmap2
@@ -96,7 +96,7 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") {
 }
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return {
 	name = "mmap2"
-	returnp = 1
+	retstr = returnstr(2)
 }
 
 # setgroups16 ________________________________________________
@@ -113,7 +113,7 @@ probe syscall.setgroups16 = kernel.function("sys_setgroups16") {
 }
 probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
 	name = "setgroups16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # stat _______________________________________________________
@@ -131,7 +131,7 @@ probe syscall.stat = kernel.function("sys_stat") {
 }
 probe syscall.stat.return = kernel.function("sys_stat").return {
 	name = "stat"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # acct _______________________________________________________
@@ -143,7 +143,7 @@ probe syscall.acct = kernel.function("sys_acct") {
 }
 probe syscall.acct.return = kernel.function("sys_acct").return {
 	name = "acct"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # add_key ____________________________________________________
@@ -163,7 +163,7 @@ probe syscall.add_key = kernel.function("sys_add_key") {
 }
 probe syscall.add_key.return = kernel.function("sys_add_key").return {
 	name = "add_key"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # quotactl ___________________________________________________
@@ -186,7 +186,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl") {
 }
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
 	name = "quotactl"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # request_key ________________________________________________
 #
@@ -207,7 +207,7 @@ probe syscall.request_key = kernel.function("sys_request_key") {
 }
 probe syscall.request_key.return = kernel.function("sys_request_key").return {
 	name = "request_key"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # fcntl64 ____________________________________________________
@@ -227,7 +227,7 @@ name = "fcntl64"
 }
 probe syscall.fcntl64.return = kernel.function("sys_fcntl64").return {
 	name = "fcntl64"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # fstat64 ____________________________________________________
 /*
@@ -243,7 +243,7 @@ probe syscall.fstat64 = kernel.function("sys_fstat64") {
 }
 probe syscall.fstat64.return = kernel.function("sys_fstat64").return {
 	name = "fstat64"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # get_thread_area ____________________________________________
 /*
@@ -258,7 +258,7 @@ probe syscall.get_thread_area = kernel.function("sys_get_thread_area") {
 probe syscall.get_thread_area.return =
 	kernel.function("sys_get_thread_area").return {
 	name = "get_thread_area"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # inotify_add_watch __________________________________________
 /*
@@ -279,7 +279,7 @@ probe syscall.inotify_add_watch =
 probe syscall.inotify_add_watch.return =
 	kernel.function("sys_inotify_add_watch").return {
 	name = "inotify_add_watch"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # inotify_init _______________________________________________
 /*
@@ -293,7 +293,7 @@ probe syscall.inotify_init = kernel.function("sys_inotify_init") {
 probe syscall.inotify_init.return =
 	kernel.function("sys_inotify_init").return {
 	name = "inotify_init"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # inotify_rm_watch ___________________________________________
 /*
@@ -311,7 +311,7 @@ probe syscall.inotify_rm_watch =
 probe syscall.inotify_rm_watch.return =
 	kernel.function("sys_inotify_rm_watch").return {
 	name = "inotify_rm_watch"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # iopl _______________________________________________________
 /*
@@ -325,7 +325,7 @@ probe syscall.iopl = kernel.function("sys_iopl") {
 }
 probe syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # ioprio_get _________________________________________________
 /*
@@ -342,7 +342,7 @@ probe syscall.ioprio_get = kernel.function("sys_ioprio_get") {
 probe syscall.ioprio_get.return =
 	kernel.function("sys_ioprio_get").return {
 	name = "ioprio_get"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # ioprio_set _________________________________________________
 /*
@@ -361,7 +361,7 @@ probe syscall.ioprio_set = kernel.function("sys_ioprio_set") {
 probe syscall.ioprio_set.return =
 	kernel.function("sys_ioprio_set").return {
 	name = "ioprio_set"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # ipc ________________________________________________________
 /*
@@ -386,7 +386,7 @@ probe syscall.ipc = kernel.function("sys_ipc") {
 }
 probe syscall.ipc.return = kernel.function("sys_ipc").return {
 	name = "ipc"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # lstat64 ____________________________________________________
 /*
@@ -404,7 +404,7 @@ probe syscall.lstat64 = kernel.function("sys_lstat64") {
 probe syscall.lstat64.return =
 	kernel.function("sys_lstat64").return {
 	name = "lstat64"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # olduname ___________________________________________________
 /*
@@ -418,7 +418,7 @@ probe syscall.olduname = kernel.function("sys_olduname") {
 }
 probe syscall.olduname.return = kernel.function("sys_olduname").return {
 	name = "olduname"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # rt_sigreturn _______________________________________________
 /*
@@ -433,7 +433,7 @@ probe syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
 probe syscall.rt_sigreturn.return =
 	kernel.function("sys_rt_sigreturn").return {
 	name = "rt_sigreturn"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sched_setaffinity __________________________________________
 /*
@@ -456,7 +456,7 @@ probe syscall.sched_setaffinity =
 probe syscall.sched_setaffinity.return =
 	kernel.function("sys_sched_setaffinity").return {
 	name = "sched_setaffinity"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sched_setparam _____________________________________________
 /*
@@ -474,7 +474,7 @@ probe syscall.sched_setparam =
 probe syscall.sched_setparam.return =
 	kernel.function("do_sched_setscheduler").return {
 	name = "sched_setparam"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sched_setscheduler _________________________________________
 /*
@@ -495,7 +495,7 @@ probe syscall.sched_setscheduler =
 probe syscall.sched_setscheduler.return =
 	kernel.function("do_sched_setscheduler").return {
 	name = "sched_setscheduler"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # set_thread_area ____________________________________________
 /*
@@ -511,7 +511,7 @@ probe syscall.set_thread_area =
 probe syscall.set_thread_area.return =
 	kernel.function("sys_set_thread_area").return {
 	name = "set_thread_area"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # set_zone_reclaim ___________________________________________
 /*
@@ -532,7 +532,7 @@ probe syscall.set_zone_reclaim =
 probe syscall.set_zone_reclaim.return =
 	kernel.function("sys_set_zone_reclaim").return {
 	name = "set_zone_reclaim"
-	returnp = 1
+	retstr = returnstr(1)
 }
 %)
 # shmat ______________________________________________________
@@ -553,7 +553,7 @@ probe syscall.shmat =
 probe syscall.shmat.return =
 	kernel.function("sys_shmat").return {
 	name = "shmat"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sigaction __________________________________________________
 /*
@@ -574,7 +574,7 @@ probe syscall.sigaction =
 probe syscall.sigaction.return =
 	kernel.function("sys_sigaction").return {
 	name = "sigaction"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sigaltstack ________________________________________________
 /*
@@ -590,7 +590,7 @@ probe syscall.sigaltstack =
 probe syscall.sigaltstack.return =
 	kernel.function("sys_sigaltstack").return {
 	name = "sigaltstack"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sigreturn __________________________________________________
 /*
@@ -625,7 +625,7 @@ probe syscall.sigsuspend =
 probe syscall.sigsuspend.return =
 	kernel.function("sys_sigsuspend").return {
 	name = "sigsuspend"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # stat64 _____________________________________________________
 /*
@@ -642,7 +642,7 @@ probe syscall.stat64 = kernel.function("sys_stat64") {
 }
 probe syscall.stat64.return = kernel.function("sys_stat64").return {
 	name = "stat64"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # umask ______________________________________________________
 /*
@@ -657,7 +657,7 @@ probe syscall.umask = kernel.function("sys_umask") {
 probe syscall.umask.return =
 	kernel.function("sys_umask").return {
 	name = "umask"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # vm86 _______________________________________________________
 /*
@@ -673,7 +673,7 @@ probe syscall.vm86 = kernel.function("sys_vm86") {
 }
 probe syscall.vm86.return = kernel.function("sys_vm86").return {
 	name = "vm86"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # vm86old ____________________________________________________
 /*
@@ -689,6 +689,6 @@ probe syscall.vm86old = kernel.function("sys_vm86old") {
 }
 probe syscall.vm86old.return = kernel.function("sys_vm86old").return {
 	name = "vm86old"
-	returnp = 1
+	retstr = returnstr(1)
 }
 

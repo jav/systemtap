@@ -351,7 +351,7 @@ function errno_str:string (err:long) %{
 		strlcpy (THIS->__retvalue, errlist[e], MAXSTRINGLEN);
 %}
 
-/* for syscall tapset. set returnp = 2 for hex */
+/* for syscall tapset. set returnp = 1 for decimal, 2 for hex */
 function returnstr:string (returnp:long) %{
 	long ret;
 

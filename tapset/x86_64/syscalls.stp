@@ -8,7 +8,7 @@ probe syscall.fstat = kernel.function("sys_fstat") {
 }
 probe syscall.fstat.return = kernel.function("sys_fstat").return {
 	name = "fstat"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getegid16 __________________________________________________
@@ -18,7 +18,7 @@ probe syscall.getegid16 = kernel.function("sys_getegid16") {
 }
 probe syscall.getegid16.return = kernel.function("sys_getegid16").return {
 	name = "getegid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # geteuid16 __________________________________________________
@@ -28,7 +28,7 @@ probe syscall.geteuid16 = kernel.function("sys_geteuid16") {
 }
 probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return {
 	name = "geteuid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getgid16 ___________________________________________________
@@ -38,7 +38,7 @@ probe syscall.getgid16 = kernel.function("sys_getgid16") {
 }
 probe syscall.getgid16.return = kernel.function("sys_getgid16").return {
 	name = "getgid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getgroups16 ________________________________________________
@@ -51,7 +51,7 @@ probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
 }
 probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	name = "getgroups16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # getuid16 ___________________________________________________
@@ -61,7 +61,7 @@ probe syscall.getuid16 = kernel.function("sys_getuid16") {
 }
 probe syscall.getuid16.return = kernel.function("sys_getuid16").return {
 	name = "getuid16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # lstat ______________________________________________________
@@ -74,29 +74,9 @@ probe syscall.lstat = kernel.function("sys_lstat") {
 }
 probe syscall.lstat.return = kernel.function("sys_lstat").return {
 	name = "lstat.return"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
-# mmap2
-# long sys_mmap2(unsigned long addr, unsigned long len,
-#	unsigned long prot, unsigned long flags,
-#	unsigned long fd, unsigned long pgoff)
-probe syscall.mmap2 = kernel.function("sys_mmap2") {
-	name = "mmap2"
-	start = $addr
-	length = $len
-	prot = $prot
-	flags = $flags
-	fd = $fd
-	pgoffset = $pgoff
-	argstr = sprintf("0x%x, %d, %s, %s, %d, 0x%x", start, 
-		length, _mprotect_prot_str(prot), _mmap_flags(flags),
-		fd, pgoffset)
-}
-probe syscall.mmap2.return = kernel.function("sys_mmap2").return {
-	name = "mmap2"
-	returnp = 1
-}
 
 # setgroups16 ________________________________________________
 #
@@ -112,7 +92,7 @@ probe syscall.setgroups16 = kernel.function("sys_setgroups16") {
 }
 probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
 	name = "setgroups16"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # stat _______________________________________________________
@@ -130,7 +110,7 @@ probe syscall.stat = kernel.function("sys_stat") {
 }
 probe syscall.stat.return = kernel.function("sys_stat").return {
 	name = "stat"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # acct _______________________________________________________
@@ -142,7 +122,7 @@ probe syscall.acct = kernel.function("sys_acct") {
 }
 probe syscall.acct.return = kernel.function("sys_acct").return {
 	name = "acct"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # add_key ____________________________________________________
@@ -162,7 +142,7 @@ probe syscall.add_key = kernel.function("sys_add_key") {
 }
 probe syscall.add_key.return = kernel.function("sys_add_key").return {
 	name = "add_key"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 # quotactl ___________________________________________________
@@ -185,7 +165,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl") {
 }
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
 	name = "quotactl"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # request_key ________________________________________________
 #
@@ -206,7 +186,7 @@ probe syscall.request_key = kernel.function("sys_request_key") {
 }
 probe syscall.request_key.return = kernel.function("sys_request_key").return {
 	name = "request_key"
-	returnp = 1
+	retstr = returnstr(1)
 }
 
 #
@@ -227,7 +207,7 @@ probe kernel.syscall.arch_prctl =
 probe kernel.syscall.arch_prctl.return =
    kernel.function("sys_arch_prctl").return {
 	name = "arch_prctl"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # get_mempolicy ______________________________________________
 /*
@@ -252,7 +232,7 @@ probe kernel.syscall.get_mempolicy =
 probe kernel.syscall.get_mempolicy.return =
 	kernel.function("sys_get_mempolicy").return {
 	name = "get_mempolicy"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # iopl _______________________________________________________
 /*
@@ -266,7 +246,7 @@ probe kernel.syscall.iopl = kernel.function("sys_iopl") {
 }
 probe kernel.syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # mbind ______________________________________________________
 /*
@@ -291,7 +271,7 @@ probe kernel.syscall.mbind = kernel.function("sys_mbind") {
 }
 probe kernel.syscall.mbind.return = kernel.function("sys_mbind").return {
 	name = "mbind"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # mmap _______________________________________________________
 /*
@@ -316,7 +296,7 @@ probe kernel.syscall.mmap = kernel.function("sys_mmap") {
 }
 probe kernel.syscall.mmap.return = kernel.function("sys_mmap").return {
 	name = "mmap"
-	returnp = 1
+	retstr = returnstr(2)
 }
 # rt_sigreturn _______________________________________________
 /*
@@ -331,7 +311,7 @@ probe kernel.syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
 probe kernel.syscall.rt_sigreturn.return =
 	kernel.function("sys_rt_sigreturn").return {
 	name = "rt_sigreturn"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sched_setaffinity __________________________________________
 /*
@@ -354,7 +334,7 @@ probe kernel.syscall.sched_setaffinity =
 probe kernel.syscall.sched_setaffinity.return =
 	kernel.function("sys_sched_setaffinity").return {
 	name = "sched_setaffinity"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # set_mempolicy ______________________________________________
 /*
@@ -373,7 +353,7 @@ probe kernel.syscall.set_mempolicy = kernel.function("sys_set_mempolicy") {
 probe kernel.syscall.set_mempolicy.return =
    kernel.function("sys_set_mempolicy").return {
 	name = "set_mempolicy"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # sigaltstack ________________________________________________
 /*
@@ -390,7 +370,7 @@ probe kernel.syscall.sigaltstack = kernel.function("sys_sigaltstack") {
 probe kernel.syscall.sigaltstack.return =
 	kernel.function("sys_sigaltstack").return {
 	name = "sigaltstack"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # time64 _____________________________________________________
 /*
@@ -404,7 +384,7 @@ probe kernel.syscall.time64 = kernel.function("sys_time64") {
 }
 probe kernel.syscall.time64.return = kernel.function("sys_time64").return {
 	name = "time64"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # tux ________________________________________________________
 /*
@@ -420,7 +400,7 @@ probe kernel.syscall.tux = kernel.function("sys_tux") {
 }
 probe kernel.syscall.tux.return = kernel.function("sys_tux").return {
 	name = "tux"
-	returnp = 1
+	retstr = returnstr(1)
 }
 # umask ______________________________________________________
 /*
@@ -436,5 +416,5 @@ probe kernel.syscall.umask = kernel.function("sys_umask") {
 }
 probe kernel.syscall.umask.return = kernel.function("sys_umask").return {
 	name = "umask"
-	returnp = 1
+	retstr = returnstr(1)
 }
