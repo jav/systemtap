@@ -1,3 +1,8 @@
+2006-03-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (emit_globals): Tag globals, especially the locks,
+	as __cacheline_aligned.
+
 2006-03-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (emit_locks): Emit dummy references to unlock_ ...

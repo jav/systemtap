@@ -925,22 +925,22 @@ c_unparser::emit_global (vardecl *v)
   string vn = c_varname (v->name);
 
   if (v->arity == 0)
-    o->newline() << "static "
+    o->newline() << "static __cacheline_aligned "
 		 << c_typename (v->type)
 		 << " "
 		 << "global_" << vn
 		 << ";";
   else if (v->type == pe_stats)
     {
-      o->newline() << "static PMAP global_" 
+      o->newline() << "static __cacheline_aligned PMAP global_" 
 		   << vn << ";";
     }
   else
     {
-      o->newline() << "static MAP global_" 
+      o->newline() << "static __cacheline_aligned MAP global_" 
 		   << vn << ";";
     }
-  o->newline() << "static rwlock_t "
+  o->newline() << "static __cacheline_aligned rwlock_t "
                << "global_" << vn << "_lock;";
 
   // Emit module_param helper variable
