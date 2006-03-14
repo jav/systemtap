@@ -173,8 +173,13 @@ class StaticSafety:
 		skip_ud2a = [0]
 
 		ignore_re = compile(r'^$|^\s+\.{3}$|^.*Disassembly of section|^.*file format')
-		opc = r'(?:(?:lock )|(?:repn?[ze]? )|(?:rex\w+ ))*(\w+)\b'
-		opc_re = compile(r'^[A-Fa-f\d]+ <([^>]+)> %s' % opc)
+		if self.__arch == 'ia64':
+			opc = r'(?:\[[IBFLMX]{3}\]\s+)?(?:\(p\d\d\)\s+)?([\w.]+)\b'
+		elif self.__arch == 'x86_64' or self.__arch == 'i686':
+			opc = r'(?:lock\s+)?|(?:repn?[ze]?\s+)?|(?:rex\w+\s+)?(\w+)\b'
+		else:
+			opc = r'(\w+)\b'
+		opc_re = compile(r'^[A-Fa-f\d]+\s+<([^>]+)>\s+%s' % opc)
 		def check(line):
 			m = ignore_re.match(line)
 			if m:

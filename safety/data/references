@@ -6,6 +6,7 @@ __const_udelay
 copy_from_user
 __copy_from_user_ll
 copy_to_user
+__copy_user
 copy_user_generic
 cpu_callout_map
 cpu_online_map
@@ -13,8 +14,10 @@ cpu_possible_map
 cpu_to_node
 create_proc_entry
 del_timer_sync
+__divdi3
 do_gettimeofday
 __down_failed
+__find_next_bit
 find_next_bit
 finish_wait
 free_percpu
@@ -29,8 +32,10 @@ kmalloc_node
 kmem_cache_alloc
 malloc_sizes
 memcmp
+memcpy
 memset
 __might_sleep
+__moddi3
 __mod_timer
 mod_timer
 msleep
@@ -41,6 +46,7 @@ param_get_string
 param_set_copystring
 param_set_int
 param_set_long
+per_cpu__cpu_info
 prepare_to_wait
 printk
 proc_mkdir
@@ -67,13 +73,19 @@ sprintf
 strcmp
 strlcat
 strlcpy
+strlen
 strncmp
 strncpy
+__strncpy_from_user
 strsep
+__udivdi3
+__umoddi3
 unregister_kprobe
 unregister_kretprobe
 unregister_profile_notifier
 unregister_timer_hook
+unw_init_running
+unw_unwind
 __up_wakeup
 vscnprintf
 vsnprintf
