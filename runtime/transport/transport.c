@@ -82,13 +82,13 @@ static void _stp_handle_buf_info(int *cpuptr)
 	struct buf_info out;
 
 	out.cpu = *cpuptr;
-#ifdef RELAYFS_VERSION_GE_4
+#if RELAYFS_VERSION_GE_4 || defined (CONFIG_RELAY)
 	out.produced = _stp_chan->buf[*cpuptr]->subbufs_produced;
 	out.consumed = _stp_chan->buf[*cpuptr]->subbufs_consumed;
 #else
 	out.produced = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_produced);
 	out.consumed = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_consumed);
-#endif /* RELAYFS_VERSION_GE_4 */
+#endif /* RELAYFS_VERSION_GE_4 || CONFIG_RELAY */
 
 	_stp_transport_send(STP_BUF_INFO, &out, sizeof(out));
 }
@@ -190,6 +190,10 @@ void _stp_transport_close()
 	kbug("---- CLOSED ----\n");
 }
 
+#if defined (STP_RELAYFS) && defined (CONFIG_RELAY)
+extern struct dentry *module_dir_dentry;
+#endif /* STP_RELAYFS && CONFIG_RELAY */
+
 /**
  *	_stp_transport_open - open proc and relayfs channels
  *      with proper parameters
@@ -223,7 +227,11 @@ int _stp_transport_open(struct transport_info *info)
 		info->n_subbufs = n_subbufs;
 		info->subbuf_size = subbuf_size;
 
+#if defined (CONFIG_RELAY)
+		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir, module_dir_dentry);
+#else
 		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir);
+#endif /* CONFIG_RELAY */
 		if (!_stp_chan) {
 			_stp_unregister_procfs();
 			return -ENOMEM;

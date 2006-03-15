@@ -23,8 +23,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <strings.h>
+#include <string.h>
 #include <sys/wait.h>
+#include <sys/statfs.h>
 #include <pwd.h>
 #include "librelay.h"
 
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
 {
 	int c, status;
 	pid_t pid;
+	struct statfs st;
 
 	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:u:")) != EOF)
 	{
@@ -210,7 +212,11 @@ int main(int argc, char **argv)
 			outfile_name = DEFAULT_OUTFILE_NAME;
 	}
 	
-	sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
+	if (statfs("/mnt/relay", &st) < 0)
+		sprintf(stpd_filebase, "/proc/systemtap/stap_%d/cpu", driver_pid);
+	else
+		sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
+	
 	if (init_stp(stpd_filebase, !quiet)) {
 		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);

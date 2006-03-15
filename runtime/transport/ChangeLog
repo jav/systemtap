@@ -1,3 +1,26 @@
+2006-03-15  Tom Zanussi  <zanussi@us.ibm.com>
+ 
+ 	* procfs.c (_stp_proc_read): Add ifdef for CONFIG_RELAY.
+ 	(_stp_get_proc_root): New function.
+ 	(_stp_force_dir_create): New function.
+ 	(_stp_register_procfs): Add support for CONFIG_RELAY files in
+ 	proc.
+ 
+ 	* relayfs.c (_stp_subbuf_start): Fix ppc64 compilation error
+ 	mentioned in bug #2406.
+ 	(_stp_create_buf_file): New function.
+ 	(_stp_remove_buf_file): New function.
+ 	(_stp_relayfs_close): Add support for CONFIG_RELAY.
+ 	(_stp_relayfs_open): Add support for CONFIG_RELAY.
+ 
+ 	* relayfs.h: Add support for CONFIG_RELAY and
+ 	RELAYFS_VERSION_GE_4.
+ 	* transport.c (_stp_handle_buf_info.c): Add support for
+ 	CONFIG_RELAY.
+ 	* transport (_stp_transport_open.c): Add support for CONFIG_RELAY.
+
+ 	* relayfs-config.h.in: New file.
+
 2006-03-15  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (STP_DEFAULT_BUFFERS): Bump up to 256.

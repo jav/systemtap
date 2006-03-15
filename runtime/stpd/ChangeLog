@@ -1,3 +1,7 @@
+2006-03-15  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* stpd.c (main): Add runtime check for relayfs vs relay-on-proc.
+
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (start_cmd): Set proper uid/gid before execing

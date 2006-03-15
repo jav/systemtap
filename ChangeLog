@@ -1,3 +1,10 @@
+2006-03-15 Tom Zanussi  <zanussi@us.ibm.com>
+
+	* configure.ac: Add check for relayfs version.
+	* configure: Regenerated.
+	* stp_check.in: Remove bundled relayfs loading/compilation, add
+	check for relay (vs relayfs).
+
 2006-03-13  Josh Stone  <joshua.i.stone@intel.com>
 
 	* safety/safety.py: Support IA64 disassembly matching.

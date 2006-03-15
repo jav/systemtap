@@ -1,0 +1,2 @@
+/* relayfs version ge 4 */
+#define RELAYFS_VERSION_GE_4 @RELAYFS_VERSION_GE_4@

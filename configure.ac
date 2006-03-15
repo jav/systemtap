@@ -52,8 +52,19 @@ date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE, "$date")
 
+uname_r=`uname -r`
+relayfs_version_ge_4=0
+AC_CHECK_FILE(/lib/modules/$uname_r/build/include/linux/relayfs_fs.h,
+[
+  # grep needs the two tabs in the following line
+  if grep "RELAYFS_CHANNEL_VERSION		[[456]]" /lib/modules/$uname_r/build/include/linux/relayfs_fs.h >/dev/null; then
+    relayfs_version_ge_4=1
+ fi
+])
+AC_SUBST(RELAYFS_VERSION_GE_4, "$relayfs_version_ge_4")
+
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5)
+AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 runtime/transport/relayfs-config.h)
 AC_OUTPUT
 
 if test $build_elfutils = yes; then
