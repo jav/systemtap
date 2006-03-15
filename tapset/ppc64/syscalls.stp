@@ -1,0 +1,1497 @@
+
+# compat_sys_nanosleep ________________________________________
+#
+# asmlinkage long compat_sys_nanosleep(struct compat_timespec __user *rqtp,
+#			struct compat_timespec __user *rmtp)
+#
+probe syscall.compat_sys_nanosleep = kernel.function("compat_sys_nanosleep") {
+	name = "compat_sys_nanosleep"
+	argstr = ""
+}
+probe syscall.compat_sys_nanosleep.return =
+	kernel.function("compat_sys_nanosleep").return {
+	name = "compat_sys_nanosleep"
+	retstr = returnstr(1)
+}
+# compat_sys_getitimer ________________________________________
+#
+# asmlinkage long compat_sys_getitimer(int which,
+#			struct compat_itimerval __user *it)
+#
+probe syscall.compat_sys_getitimer = kernel.function("compat_sys_getitimer") {
+	name = "compat_sys_getitimer"
+	argstr = ""
+}
+probe syscall.compat_sys_getitimer.return =
+	kernel.function("compat_sys_getitimer").return {
+	name = "compat_sys_getitimer"
+	retstr = returnstr(1)
+}
+# compat_sys_setitimer ________________________________________
+#
+# asmlinkage long compat_sys_setitimer(int which,
+#			struct compat_itimerval __user *in,
+#			struct compat_itimerval __user *out)
+#
+probe syscall.compat_sys_setitimer = kernel.function("compat_sys_setitimer") {
+	name = "compat_sys_setitimer"
+	argstr = ""
+}
+probe syscall.compat_sys_setitimer.return =
+	kernel.function("compat_sys_setitimer").return {
+	name = "compat_sys_setitimer"
+	retstr = returnstr(1)
+}
+# compat_sys_times ________________________________________
+#
+# asmlinkage long compat_sys_times(struct compat_tms __user *tbuf)
+#
+probe syscall.compat_sys_times = kernel.function("compat_sys_times") {
+	name = "compat_sys_times"
+	argstr = ""
+}
+probe syscall.compat_sys_times.return =
+	kernel.function("compat_sys_times").return {
+	name = "compat_sys_times"
+	retstr = returnstr(1)
+}
+# compat_sys_sigpending ________________________________________
+#
+# asmlinkage long compat_sys_sigpending(compat_old_sigset_t __user *set)
+#
+probe syscall.compat_sys_sigpending = kernel.function("compat_sys_sigpending") {
+	name = "compat_sys_sigpending"
+	argstr = ""
+}
+probe syscall.compat_sys_sigpending.return =
+	kernel.function("compat_sys_sigpending").return {
+	name = "compat_sys_sigpending"
+	retstr = returnstr(1)
+}
+# compat_sys_sigprocmask ________________________________________
+#
+# asmlinkage long compat_sys_sigprocmask(int how,
+#			compat_old_sigset_t __user *set,
+#			compat_old_sigset_t __user *oset)
+#
+probe syscall.compat_sys_sigprocmask = kernel.function("compat_sys_sigprocmask") {
+	name = "compat_sys_sigprocmask"
+	argstr = ""
+}
+probe syscall.compat_sys_sigprocmask.return =
+	kernel.function("compat_sys_sigprocmask").return {
+	name = "compat_sys_sigprocmask"
+	retstr = returnstr(1)
+}
+# compat_sys_futex ________________________________________
+#
+# asmlinkage long compat_sys_futex(u32 __user *uaddr, int op, int val,
+#		struct compat_timespec __user *utime, u32 __user *uaddr2,
+#		int val3)
+#
+probe syscall.compat_sys_futex = kernel.function("compat_sys_futex") {
+	name = "compat_sys_futex"
+	argstr = ""
+}
+probe syscall.compat_sys_futex.return =
+	kernel.function("compat_sys_futex").return {
+	name = "compat_sys_futex"
+	retstr = returnstr(1)
+}
+# compat_sys_setrlimit ________________________________________
+#
+# asmlinkage long compat_sys_setrlimit(unsigned int resource,
+#			struct compat_rlimit __user *rlim)
+#
+probe syscall.compat_sys_setrlimit = kernel.function("compat_sys_setrlimit") {
+	name = "compat_sys_setrlimit"
+	argstr = ""
+}
+probe syscall.compat_sys_setrlimit.return =
+	kernel.function("compat_sys_setrlimit").return {
+	name = "compat_sys_setrlimit"
+	retstr = returnstr(1)
+}
+# compat_sys_old_getrlimit ________________________________________
+#
+# asmlinkage long compat_sys_old_getrlimit(unsigned int resource,
+#			struct compat_rlimit __user *rlim)
+#
+probe syscall.compat_sys_old_getrlimit =
+	kernel.function("compat_sys_old_getrlimit") {
+	name = "compat_sys_old_getrlimit"
+	argstr = ""
+}
+probe syscall.compat_sys_old_getrlimit.return =
+	kernel.function("compat_sys_old_getrlimit").return {
+	name = "compat_sys_old_getrlimit"
+	retstr = returnstr(1)
+}
+# compat_sys_getrlimit ________________________________________
+#
+# asmlinkage long compat_sys_getrlimit (unsigned int resource,
+#			struct compat_rlimit __user *rlim)
+#
+probe syscall.compat_sys_getrlimit = kernel.function("compat_sys_getrlimit") {
+	name = "compat_sys_getrlimit"
+	resource = $resource
+	rlim_uaddr = $rlim
+	argstr = sprintf("%s, [0x%x]", _rlimit_resource_str($resource),
+					rlim_uaddr)
+}
+probe syscall.compat_sys_getrlimit.return =
+	kernel.function("compat_sys_getrlimit").return {
+	name = "compat_sys_getrlimit"
+	retstr = returnstr(1)
+}
+# compat_sys_getrusage ________________________________________
+#
+# asmlinkage long compat_sys_getrusage(int who, struct compat_rusage __user *ru)
+#
+probe syscall.compat_sys_getrusage = kernel.function("compat_sys_getrusage") {
+	name = "compat_sys_getrusage"
+	argstr = ""
+}
+probe syscall.compat_sys_getrusage.return =
+	kernel.function("compat_sys_getrusage").return {
+	name = "compat_sys_getrusage"
+	retstr = returnstr(1)
+}
+# compat_sys_wait4 ________________________________________
+#
+# long compat_sys_wait4(compat_pid_t pid, compat_uint_t __user *stat_addr,
+#			int options, struct compat_rusage __user *ru)
+#
+probe syscall.compat_sys_wait4 = kernel.function("compat_sys_wait4") {
+	name = "compat_sys_wait4"
+	argstr = ""
+}
+probe syscall.compat_sys_wait4.return =
+	kernel.function("compat_sys_wait4").return {
+	name = "compat_sys_wait4"
+	retstr = returnstr(1)
+}
+# compat_sys_sched_setaffinity ________________________________________
+#
+# asmlinkage long compat_sys_sched_setaffinity(compat_pid_t pid,
+#			unsigned int len,
+#			compat_ulong_t __user *user_mask_ptr)
+#
+probe syscall.compat_sys_sched_setaffinity = kernel.function("compat_sys_sched_setaffinity") {
+	name = "compat_sys_sched_setaffinity"
+	argstr = ""
+}
+probe syscall.compat_sys_sched_setaffinity.return =
+	kernel.function("compat_sys_sched_setaffinity").return {
+	name = "compat_sys_sched_setaffinity"
+	retstr = returnstr(1)
+}
+# compat_sys_sched_getaffinity ________________________________________
+#
+# asmlinkage long compat_sys_sched_getaffinity(compat_pid_t pid,
+#			unsigned int len,
+#			compat_ulong_t __user *user_mask_ptr)
+#
+probe syscall.compat_sys_sched_getaffinity = kernel.function("compat_sys_sched_getaffinity") {
+	name = "compat_sys_sched_getaffinity"
+	argstr = ""
+}
+probe syscall.compat_sys_sched_getaffinity.return =
+	kernel.function("compat_sys_sched_getaffinity").return {
+	name = "compat_sys_sched_getaffinity"
+	retstr = returnstr(1)
+}
+# compat_sys_utime ________________________________________
+#
+# asmlinkage long compat_sys_utime(char __user *filename,
+#			struct compat_utimbuf __user *t)
+#
+probe syscall.compat_sys_utime = kernel.function("compat_sys_utime") {
+	name = "compat_sys_utime"
+	argstr = ""
+}
+probe syscall.compat_sys_utime.return =
+	kernel.function("compat_sys_utime").return {
+	name = "compat_sys_utime"
+	retstr = returnstr(1)
+}
+# compat_sys_utimes ________________________________________
+#
+# asmlinkage long compat_sys_utimes(char __user *filename,
+#			struct compat_timeval __user *t)
+#
+probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes") {
+	name = "compat_sys_utimes"
+	argstr = ""
+}
+probe syscall.compat_sys_utimes.return =
+	kernel.function("compat_sys_utimes").return {
+	name = "compat_sys_utimes"
+	retstr = returnstr(1)
+}
+# compat_sys_newstat ________________________________________
+#
+# asmlinkage long compat_sys_newstat(char __user * filename,
+#			struct compat_stat __user *statbuf)
+#
+probe syscall.compat_sys_newstat = kernel.function("compat_sys_newstat") {
+	name = "compat_sys_newstat"
+	argstr = ""
+}
+probe syscall.compat_sys_newstat.return =
+	kernel.function("compat_sys_newstat").return {
+	name = "compat_sys_newstat"
+	retstr = returnstr(1)
+}
+# compat_sys_newlstat ________________________________________
+#
+# asmlinkage long compat_sys_newlstat(char __user * filename,
+#		struct compat_stat __user *statbuf)
+#
+probe syscall.compat_sys_newlstat = kernel.function("compat_sys_newlstat") {
+	name = "compat_sys_newlstat"
+	argstr = ""
+}
+probe syscall.compat_sys_newlstat.return =
+	kernel.function("compat_sys_newlstat").return {
+	name = "compat_sys_newlstat"
+	retstr = returnstr(1)
+}
+# compat_sys_newfstat ________________________________________
+#
+# asmlinkage long compat_sys_newfstat(unsigned int fd,
+# 			 struct compat_stat __user * statbuf)
+#
+probe syscall.compat_sys_newfstat = kernel.function("compat_sys_newfstat") {
+	name = "compat_sys_newfstat"
+	argstr = ""
+}
+probe syscall.compat_sys_newfstat.return =
+	kernel.function("compat_sys_newfstat").return {
+	name = "compat_sys_newfstat"
+	retstr = returnstr(1)
+}
+# compat_sys_statfs ________________________________________
+#
+# asmlinkage long compat_sys_statfs(const char __user *path,
+#		struct compat_statfs __user *buf)
+#
+probe syscall.compat_sys_statfs = kernel.function("compat_sys_statfs") {
+	name = "compat_sys_statfs"
+	argstr = ""
+}
+probe syscall.compat_sys_statfs.return =
+	kernel.function("compat_sys_statfs").return {
+	name = "compat_sys_statfs"
+	retstr = returnstr(1)
+}
+# compat_sys_fstatfs ________________________________________
+#
+# asmlinkage long compat_sys_fstatfs(unsigned int fd,
+#		struct compat_statfs __user *buf)
+#
+probe syscall.compat_sys_fstatfs = kernel.function("compat_sys_fstatfs") {
+	name = "compat_sys_fstatfs"
+	argstr = ""
+}
+probe syscall.compat_sys_fstatfs.return =
+	kernel.function("compat_sys_fstatfs").return {
+	name = "compat_sys_fstatfs"
+	retstr = returnstr(1)
+}
+# compat_sys_ioctl ________________________________________
+#
+# asmlinkage long compat_sys_ioctl(unsigned int fd, unsigned int cmd,
+#			unsigned long arg)
+#
+probe syscall.compat_sys_ioctl = kernel.function("compat_sys_ioctl") {
+	name = "compat_sys_ioctl"
+	d = $fd
+	request = cmd
+	arg = $arg
+	argstr = sprintf("%d, %d, [0x%x]", fd, request, arg)
+}
+probe syscall.compat_sys_ioctl.return =
+	kernel.function("compat_sys_ioctl").return {
+	name = "compat_sys_ioctl"
+	retstr = returnstr(1)
+}
+# compat_sys_fcntl64 ________________________________________
+#
+# asmlinkage long compat_sys_fcntl64(unsigned int fd, unsigned int cmd,
+#			unsigned long arg)
+#
+probe syscall.compat_sys_fcntl64 = kernel.function("compat_sys_fcntl64") {
+	name = "compat_sys_fcntl64"
+	fd = $fd
+	cmd = $cmd
+	arg = $arg
+	argstr = sprintf("%d, %s, [0x%x]", fd, _fcntl_cmd_str($cmd), arg)
+}
+probe syscall.compat_sys_fcntl64.return =
+	kernel.function("compat_sys_fcntl64").return {
+	name = "compat_sys_fcntl64"
+	retstr = returnstr(1)
+}
+# compat_sys_fcntl ________________________________________
+#
+# asmlinkage long compat_sys_fcntl(unsigned int fd, unsigned int cmd,
+#			unsigned long arg)
+#
+probe syscall.compat_sys_fcntl = kernel.function("compat_sys_fcntl") {
+	name = "compat_sys_fcntl"
+	argstr = ""
+}
+probe syscall.compat_sys_fcntl.return =
+	kernel.function("compat_sys_fcntl").return {
+	name = "compat_sys_fcntl"
+	retstr = returnstr(1)
+}
+# compat_sys_io_setup ________________________________________
+#
+# asmlinkage long compat_sys_io_setup(unsigned nr_reqs, u32 __user *ctx32p)
+#
+probe syscall.compat_sys_io_setup = kernel.function("compat_sys_io_setup") {
+	name = "compat_sys_io_setup"
+	argstr = ""
+}
+probe syscall.compat_sys_io_setup.return =
+	kernel.function("compat_sys_io_setup").return {
+	name = "compat_sys_io_setup"
+	retstr = returnstr(1)
+}
+# compat_sys_io_getevents ________________________________________
+#
+# asmlinkage long compat_sys_io_getevents(aio_context_t ctx_id,
+#				unsigned long min_nr,
+#				unsigned long nr,
+#				struct io_event __user *events,
+#				struct compat_timespec __user *timeout)
+#
+probe syscall.compat_sys_io_getevents = kernel.function("compat_sys_io_getevents") {
+	name = "compat_sys_io_getevents"
+	argstr = ""
+}
+probe syscall.compat_sys_io_getevents.return =
+	kernel.function("compat_sys_io_getevents").return {
+	name = "compat_sys_io_getevents"
+	retstr = returnstr(1)
+}
+# compat_sys_io_submit ________________________________________
+#
+# asmlinkage long compat_sys_io_submit(aio_context_t ctx_id, int nr,
+#				u32 __user *iocb)
+#
+probe syscall.compat_sys_io_submit = kernel.function("compat_sys_io_submit") {
+	name = "compat_sys_io_submit"
+	argstr = ""
+}
+probe syscall.compat_sys_io_submit.return =
+	kernel.function("compat_sys_io_submit").return {
+	name = "compat_sys_io_submit"
+	retstr = returnstr(1)
+}
+# compat_sys_mount ________________________________________
+#
+# asmlinkage long compat_sys_mount(char __user * dev_name,
+#			char __user * dir_name,
+#			char __user * type,
+#			unsigned long flags,
+#			void __user * data)
+#
+probe syscall.compat_sys_mount = kernel.function("compat_sys_mount") {
+	name = "compat_sys_mount"
+	argstr = ""
+}
+probe syscall.compat_sys_mount.return =
+	kernel.function("compat_sys_mount").return {
+	name = "compat_sys_mount"
+	retstr = returnstr(1)
+}
+# compat_sys_getdents ________________________________________
+#
+# asmlinkage long compat_sys_getdents(unsigned int fd,
+#				struct compat_linux_dirent __user *dirent,
+#				unsigned int count)
+#
+probe syscall.compat_sys_getdents = kernel.function("compat_sys_getdents") {
+	name = "compat_sys_getdents"
+	argstr = ""
+}
+probe syscall.compat_sys_getdents.return =
+	kernel.function("compat_sys_getdents").return {
+	name = "compat_sys_getdents"
+	retstr = returnstr(1)
+}
+# compat_sys_getdents64 ________________________________________
+#
+# asmlinkage long compat_sys_getdents64(unsigned int fd,
+#				struct linux_dirent64 __user * dirent,
+#				unsigned int count)
+#
+probe syscall.compat_sys_getdents64 = kernel.function("compat_sys_getdents64") {
+	name = "compat_sys_getdents64"
+	argstr = ""
+}
+probe syscall.compat_sys_getdents64.return =
+	kernel.function("compat_sys_getdents64").return {
+	name = "compat_sys_getdents64"
+	retstr = returnstr(1)
+}
+# compat_sys_readv ________________________________________
+#
+# asmlinkage ssize_t compat_sys_readv(unsigned long fd,
+#				const struct compat_iovec __user *vec,
+#				unsigned long vlen)
+#
+probe syscall.compat_sys_readv = kernel.function("compat_sys_readv") {
+	name = "compat_sys_readv"
+	argstr = ""
+}
+probe syscall.compat_sys_readv.return =
+	kernel.function("compat_sys_readv").return {
+	name = "compat_sys_readv"
+	retstr = returnstr(1)
+}
+# compat_sys_writev ________________________________________
+#
+# asmlinkage ssize_t compat_sys_writev(unsigned long fd,
+#				const struct compat_iovec __user *vec,
+#				unsigned long vlen)
+#
+probe syscall.compat_sys_writev = kernel.function("compat_sys_writev") {
+	name = "compat_sys_writev"
+	argstr = ""
+}
+probe syscall.compat_sys_writev.return =
+	kernel.function("compat_sys_writev").return {
+	name = "compat_sys_writev"
+	retstr = returnstr(1)
+}
+# compat_sys_select ________________________________________
+#
+# asmlinkage long compat_sys_select(int n, compat_ulong_t __user *inp,
+#			compat_ulong_t __user *outp,
+#			compat_ulong_t __user *exp,
+#			struct compat_timeval __user *tvp)
+#
+probe syscall.compat_sys_select = kernel.function("compat_sys_select") {
+	name = "compat_sys_select"
+	n = $n
+	readfds_uaddr = $inp
+	writefds_uaddr = $outp
+	exceptfds_uaddr = $exp
+	timeout_uaddr = $tvp
+	argstr = sprintf("%d, %s, %s, %s, %s", n,
+			_fd_set_u(readfds_uaddr),
+			_fd_set_u(writefds_uaddr),
+			_fd_set_u(exceptfds_uaddr),
+			_struct_timeval_u(timeout_uaddr))
+
+}
+probe syscall.compat_sys_select.return =
+	kernel.function("compat_sys_select").return {
+	name = "compat_sys_select"
+	retstr = returnstr(1)
+}
+# compat_sys_nfsservctl ________________________________________
+#
+# asmlinkage long compat_sys_nfsservctl(int cmd,
+#				struct compat_nfsctl_arg __user *arg,
+#				union compat_nfsctl_res __user *res)
+#
+probe syscall.compat_sys_nfsservctl = kernel.function("compat_sys_nfsservctl") {
+	name = "compat_sys_nfsservctl"
+	argstr = ""
+}
+probe syscall.compat_sys_nfsservctl.return =
+	kernel.function("compat_sys_nfsservctl").return {
+	name = "compat_sys_nfsservctl"
+	retstr = returnstr(1)
+}
+# compat_sys_semctl ________________________________________
+#
+# long compat_sys_semctl(int first, int second, int third, void __user *uptr)
+#
+probe syscall.compat_sys_semctl = kernel.function("compat_sys_semctl") {
+	name = "compat_sys_semctl"
+	argstr = ""
+}
+probe syscall.compat_sys_semctl.return =
+	kernel.function("compat_sys_semctl").return {
+	name = "compat_sys_semctl"
+	retstr = returnstr(1)
+}
+# compat_sys_msgsnd ________________________________________
+#
+# long compat_sys_msgsnd(int first, int second, int third, void __user *uptr)
+#
+probe syscall.compat_sys_msgsnd = kernel.function("compat_sys_msgsnd") {
+	name = "compat_sys_msgsnd"
+	argstr = ""
+}
+probe syscall.compat_sys_msgsnd.return =
+	kernel.function("compat_sys_msgsnd").return {
+	name = "compat_sys_msgsnd"
+	retstr = returnstr(1)
+}
+# compat_sys_msgrcv ________________________________________
+#
+# long compat_sys_msgrcv(int first, int second, int msgtyp, int third,
+#			int version, void __user *uptr)
+#
+probe syscall.compat_sys_msgrcv = kernel.function("compat_sys_msgrcv") {
+	name = "compat_sys_msgrcv"
+	argstr = ""
+}
+probe syscall.compat_sys_msgrcv.return =
+	kernel.function("compat_sys_msgrcv").return {
+	name = "compat_sys_msgrcv"
+	retstr = returnstr(1)
+}
+# compat_sys_msgctl ________________________________________
+#
+# long compat_sys_msgctl(int first, int second, void __user *uptr)
+#
+probe syscall.compat_sys_msgctl = kernel.function("compat_sys_msgctl") {
+	name = "compat_sys_msgctl"
+	argstr = ""
+}
+probe syscall.compat_sys_msgctl.return =
+	kernel.function("compat_sys_msgctl").return {
+	name = "compat_sys_msgctl"
+	retstr = returnstr(1)
+}
+# compat_sys_shmat ________________________________________
+#
+# long compat_sys_shmat(int first, int second, compat_uptr_t third,
+#			int version, void __user *uptr)
+#
+probe syscall.compat_sys_shmat = kernel.function("compat_sys_shmat") {
+	name = "compat_sys_shmat"
+	argstr = ""
+}
+probe syscall.compat_sys_shmat.return =
+	kernel.function("compat_sys_shmat").return {
+	name = "compat_sys_shmat"
+	retstr = returnstr(1)
+}
+# compat_sys_shmctl ________________________________________
+#
+# long compat_sys_shmctl(int first, int second, void __user *uptr)
+#
+probe syscall.compat_sys_shmctl = kernel.function("compat_sys_shmctl") {
+	name = "compat_sys_shmctl"
+	argstr = ""
+}
+probe syscall.compat_sys_shmctl.return =
+	kernel.function("compat_sys_shmctl").return {
+	name = "compat_sys_shmctl"
+	retstr = returnstr(1)
+}
+# compat_sys_semtimedop ________________________________________
+#
+# long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
+#		unsigned nsops, const struct compat_timespec __user *timeout)
+#
+probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop") {
+	name = "compat_sys_semtimedop"
+	argstr = ""
+}
+probe syscall.compat_sys_semtimedop.return =
+	kernel.function("compat_sys_semtimedop").return {
+	name = "compat_sys_semtimedop"
+	retstr = returnstr(1)
+}
+# compat_sys_mq_open ________________________________________
+#
+# asmlinkage long compat_sys_mq_open(const char __user *u_name,
+#			int oflag, compat_mode_t mode,
+#			struct compat_mq_attr __user *u_attr)
+#
+probe syscall.compat_sys_mq_open = kernel.function("compat_sys_mq_open") {
+	name = "compat_sys_mq_open"
+	argstr = ""
+}
+probe syscall.compat_sys_mq_open.return =
+	kernel.function("compat_sys_mq_open").return {
+	name = "compat_sys_mq_open"
+	retstr = returnstr(1)
+}
+# compat_sys_mq_timedsend ________________________________________
+#
+# asmlinkage long compat_sys_mq_timedsend(mqd_t mqdes,
+#			const char __user *u_msg_ptr,
+#			size_t msg_len, unsigned int msg_prio,
+#			const struct compat_timespec __user *u_abs_timeout)
+#
+probe syscall.compat_sys_mq_timedsend = kernel.function("compat_sys_mq_timedsend") {
+	name = "compat_sys_mq_timedsend"
+	argstr = ""
+}
+probe syscall.compat_sys_mq_timedsend.return =
+	kernel.function("compat_sys_mq_timedsend").return {
+	name = "compat_sys_mq_timedsend"
+	retstr = returnstr(1)
+}
+# compat_sys_mq_timedreceive ________________________________________
+#
+# asmlinkage ssize_t compat_sys_mq_timedreceive(mqd_t mqdes,
+#			char __user *u_msg_ptr,
+#			size_t msg_len, unsigned int __user *u_msg_prio,
+#			const struct compat_timespec __user *u_abs_timeout)
+#
+probe syscall.compat_sys_mq_timedreceive = kernel.function("compat_sys_mq_timedreceive") {
+	name = "compat_sys_mq_timedreceive"
+	argstr = ""
+}
+probe syscall.compat_sys_mq_timedreceive.return =
+	kernel.function("compat_sys_mq_timedreceive").return {
+	name = "compat_sys_mq_timedreceive"
+	retstr = returnstr(1)
+}
+# compat_sys_mq_notify ________________________________________
+#
+# asmlinkage long compat_sys_mq_notify(mqd_t mqdes,
+#			const struct compat_sigevent __user *u_notification)
+#
+probe syscall.compat_sys_mq_notify = kernel.function("compat_sys_mq_notify") {
+	name = "compat_sys_mq_notify"
+	argstr = ""
+}
+probe syscall.compat_sys_mq_notify.return =
+	kernel.function("compat_sys_mq_notify").return {
+	name = "compat_sys_mq_notify"
+	retstr = returnstr(1)
+}
+# compat_sys_mq_getsetattr ________________________________________
+#
+# asmlinkage long compat_sys_mq_getsetattr(mqd_t mqdes,
+#			const struct compat_mq_attr __user *u_mqstat,
+#			struct compat_mq_attr __user *u_omqstat)
+#
+probe syscall.compat_sys_mq_getsetattr =
+	kernel.function("compat_sys_mq_getsetattr") {
+	name = "compat_sys_mq_getsetattr"
+	argstr = ""
+}
+probe syscall.compat_sys_mq_getsetattr.return =
+	kernel.function("compat_sys_mq_getsetattr").return {
+	name = "compat_sys_mq_getsetattr"
+	retstr = returnstr(1)
+}
+# compat_sys_keyctl ________________________________________
+#
+# asmlinkage long compat_sys_keyctl(u32 option,
+#			u32 arg2, u32 arg3, u32 arg4, u32 arg5)
+#
+probe syscall.compat_sys_keyctl = kernel.function("compat_sys_keyctl") {
+	name = "compat_sys_keyctl"
+	argstr = ""
+}
+probe syscall.compat_sys_keyctl.return =
+	kernel.function("compat_sys_keyctl").return {
+	name = "compat_sys_keyctl"
+	retstr = returnstr(1)
+}
+# compat_sys_setsockopt ________________________________________
+#
+# asmlinkage long compat_sys_setsockopt(int fd, int level, int optname,
+#			char __user *optval, int optlen)
+#
+probe syscall.compat_sys_setsockopt = kernel.function("compat_sys_setsockopt") {
+	name = "compat_sys_setsockopt"
+	argstr = ""
+}
+probe syscall.compat_sys_setsockopt.return =
+	kernel.function("compat_sys_setsockopt").return {
+	name = "compat_sys_setsockopt"
+	retstr = returnstr(1)
+}
+# compat_sys_getsockopt ________________________________________
+#
+# asmlinkage long compat_sys_getsockopt(int fd, int level, int optname,
+#			char __user *optval, int __user *optlen)
+#
+probe syscall.compat_sys_getsockopt = kernel.function("compat_sys_getsockopt") {
+	name = "compat_sys_getsockopt"
+	argstr = ""
+}
+probe syscall.compat_sys_getsockopt.return =
+	kernel.function("compat_sys_getsockopt").return {
+	name = "compat_sys_getsockopt"
+	retstr = returnstr(1)
+}
+# compat_sys_sendmsg ________________________________________
+#
+# asmlinkage long compat_sys_sendmsg(int fd,
+#				struct compat_msghdr __user *msg,
+#				unsigned flags)
+#
+probe syscall.compat_sys_sendmsg = kernel.function("compat_sys_sendmsg") {
+	name = "compat_sys_sendmsg"
+	argstr = ""
+}
+probe syscall.compat_sys_sendmsg.return =
+	kernel.function("compat_sys_sendmsg").return {
+	name = "compat_sys_sendmsg"
+	retstr = returnstr(1)
+}
+# compat_sys_recvmsg ________________________________________
+#
+# asmlinkage long compat_sys_recvmsg(int fd,
+#				struct compat_msghdr __user *msg,
+#				unsigned int flags)
+#
+probe syscall.compat_sys_recvmsg = kernel.function("compat_sys_recvmsg") {
+	name = "compat_sys_recvmsg"
+	argstr = ""
+}
+probe syscall.compat_sys_recvmsg.return =
+	kernel.function("compat_sys_recvmsg").return {
+	name = "compat_sys_recvmsg"
+	retstr = returnstr(1)
+}
+# compat_sys_socketcall ________________________________________
+#
+# asmlinkage long compat_sys_socketcall(int call, u32 __user *args)
+#
+probe syscall.compat_sys_socketcall = kernel.function("compat_sys_socketcall") {
+	name = "compat_sys_socketcall"
+	argstr = ""
+}
+probe syscall.compat_sys_socketcall.return =
+	kernel.function("compat_sys_socketcall").return {
+	name = "compat_sys_socketcall"
+	retstr = returnstr(1)
+}
+
+#
+# These system calls are removed in kernel version > 2.6.9-34????
+#
+
+%( kernel_vr <= "2.6.9-34" %?
+# acct _______________________________________________________
+# long sys_acct(const char __user *name)
+probe syscall.acct = kernel.function("sys_acct") {
+	name = "acct"
+        filename = user_string($name)
+	argstr = filename
+}
+probe syscall.acct.return = kernel.function("sys_acct").return {
+	name = "acct"
+	retstr = returnstr(1)
+}
+
+# add_key ____________________________________________________
+# long sys_add_key(const char __user *_type,
+#             const char __user *_description,
+#             const void __user *_payload,
+#             size_t plen,
+#             key_serial_t ringid)
+probe syscall.add_key = kernel.function("sys_add_key") {
+	name = "add_key"
+	type_uaddr = $_type
+	description_auddr = $_description
+	payload_uaddr = $_payload
+	plen = $plen
+	ringid = $ringid
+	argstr = "add_key"
+}
+probe syscall.add_key.return = kernel.function("sys_add_key").return {
+	name = "add_key"
+	retstr = returnstr(1)
+}
+
+# quotactl ___________________________________________________
+#
+# asmlinkage long
+# sys_quotactl(unsigned int cmd,
+#		  const char __user *special,
+#		  qid_t id,
+#		  void __user *addr)
+#
+probe syscall.quotactl = kernel.function("sys_quotactl") {
+	name = "quotactl"
+	cmd = $cmd
+	cmd_str = _quotactl_cmd_str($cmd)
+	special_str = user_string($special)
+	id = $id
+	addr_uaddr = $addr
+	argstr = sprintf("%s, %s, 0x%x, [0x%x]", cmd_str, special_str,
+				id, addr_uaddr)
+}
+probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
+	name = "quotactl"
+	retstr = returnstr(1)
+}
+# request_key ________________________________________________
+#
+# asmlinkage long
+# sys_request_key(const char __user *_type,
+#		     const char __user *_description,
+#		     const char __user *_callout_info,
+#		     key_serial_t destringid)
+#
+probe syscall.request_key = kernel.function("sys_request_key") {
+	name = "request_key"
+	type_uaddr = $_type
+	description_uaddr = $_description
+	callout_info_uaddr = $_callout_info
+	destringid = $destringid
+	argstr = sprintf("[0x%x], [0x%x], [0x%x], 0x%x", type_uaddr,
+			description_uaddr, callout_info_uaddr, destringid)
+}
+probe syscall.request_key.return = kernel.function("sys_request_key").return {
+	name = "request_key"
+	retstr = returnstr(1)
+}
+
+# sys32_execve ________________________________________
+#
+# long sys32_execve(unsigned long a0, unsigned long a1, unsigned long a2,
+#                  unsigned long a3, unsigned long a4, unsigned long a5,
+#                  struct pt_regs *regs)
+#
+probe syscall.sys32_execve = kernel.function("sys32_execve") {
+	name = "sys32_execve"
+	argstr = ""
+}
+probe syscall.sys32_execve.return =
+	kernel.function("sys32_execve").return {
+	name = "sys32_execve"
+	retstr = returnstr(1)
+}
+
+# sys32_time ________________________________________
+#
+# asmlinkage long sys32_time(compat_time_t __user * tloc)
+# 
+probe syscall.sys32_time = kernel.function("sys32_time") {
+	name = "sys32_time"
+	argstr = ""
+}
+probe syscall.sys32_time.return = kernel.function("sys32_time").return {
+	name = "sys32_time"
+	retstr = returnstr(1)
+}
+
+# ppc64_sys32_stime ________________________________________
+#
+# long ppc64_sys32_stime(int __user * tptr)
+#
+probe syscall.ppc64_sys32_stime = kernel.function("ppc64_sys32_stime") {
+	name = "ppc64_sys32_stime"
+	argstr = ""
+}
+probe syscall.ppc64_sys32_stime.return =
+	kernel.function("ppc64_sys32_stime").return {
+	name = "ppc64_sys32_stime"
+	retstr = returnstr(1)
+}
+
+# sys32_ptrace ________________________________________
+#
+# int sys32_ptrace(long request, long pid, unsigned long addr,
+#		unsigned long data)
+#
+probe syscall.sys32_ptrace = kernel.function("sys32_ptrace") {
+	name = "sys32_ptrace"
+	argstr = ""
+}
+probe syscall.sys32_ptrace.return = kernel.function("sys32_ptrace").return {
+	name = "sys32_ptrace"
+	retstr = returnstr(1)
+}
+# sys32_pause ________________________________________
+#
+# asmlinkage long sys32_pause(void)
+#
+probe syscall.sys32_pause = kernel.function("sys32_pause") {
+	name = "sys32_pause"
+	argstr = ""
+}
+probe syscall.sys32_pause.return = kernel.function("sys32_pause").return {
+	name = "sys32_pause"
+	retstr = returnstr(1)
+}
+# sys32_olduname ________________________________________
+#
+# asmlinkage int sys32_olduname(struct oldold_utsname __user * name)
+#
+probe syscall.sys32_olduname = kernel.function("sys32_olduname") {
+	name = "sys32_olduname"
+	argstr = ""
+}
+probe syscall.sys32_olduname.return = kernel.function("sys32_olduname").return {
+	name = "sys32_olduname"
+	retstr = returnstr(1)
+}
+# sys32_sigaction ________________________________________
+#
+# long sys32_sigaction(int sig, struct old_sigaction32 __user *act,
+#		struct old_sigaction32 __user *oact)
+#
+probe syscall.sys32_sigaction = kernel.function("sys32_sigaction") {
+	name = "sys32_sigaction"
+	argstr = ""
+}
+probe syscall.sys32_sigaction.return =
+	kernel.function("sys32_sigaction").return {
+	name = "sys32_sigaction"
+	retstr = returnstr(1)
+}
+# sys32_sigsuspend ________________________________________
+#
+# long sys32_sigsuspend(old_sigset_t mask, int p2, int p3, int p4, int p6,
+#			int p7, struct pt_regs *regs)
+#
+probe syscall.sys32_sigsuspend = kernel.function("sys32_sigsuspend") {
+	name = "sys32_sigsuspend"
+	argstr = ""
+}
+probe syscall.sys32_sigsuspend.return =
+	kernel.function("sys32_sigsuspend").return {
+	name = "sys32_sigsuspend"
+	retstr = returnstr(1)
+}
+# sys32_gettimeofday ________________________________________
+#
+# asmlinkage long sys32_gettimeofday(struct compat_timeval __user *tv,
+#		struct timezone __user *tz)
+#
+probe syscall.sys32_gettimeofday = kernel.function("sys32_gettimeofday") {
+	name = "sys32_gettimeofday"
+	argstr = ""
+}
+probe syscall.sys32_gettimeofday.return =
+	kernel.function("sys32_gettimeofday").return {
+	name = "sys32_gettimeofday"
+	retstr = returnstr(1)
+}
+# sys32_settimeofday ________________________________________
+#
+# asmlinkage long sys32_settimeofday(struct compat_timeval __user *tv,
+#		struct timezone __user *tz)
+#
+probe syscall.sys32_settimeofday = kernel.function("sys32_settimeofday") {
+	name = "sys32_settimeofday"
+	argstr = ""
+}
+probe syscall.sys32_settimeofday.return =
+	kernel.function("sys32_settimeofday").return {
+	name = "sys32_settimeofday"
+	retstr = returnstr(1)
+}
+# sys32_sysinfo ________________________________________
+#
+# asmlinkage long sys32_sysinfo(struct sysinfo32 __user *info)
+#
+probe syscall.sys32_sysinfo = kernel.function("sys32_sysinfo") {
+	name = "sys32_sysinfo"
+	argstr = ""
+}
+probe syscall.sys32_sysinfo.return =
+	kernel.function("sys32_sysinfo").return {
+	name = "sys32_sysinfo"
+	retstr = returnstr(1)
+}
+# sys32_ipc ________________________________________
+#
+# long sys32_ipc(u32 call, u32 first, u32 second, u32 third,
+#			compat_uptr_t ptr, u32 fifth)
+#
+probe syscall.sys32_ipc = kernel.function("sys32_ipc") {
+	name = "sys32_ipc"
+	argstr = ""
+}
+probe syscall.sys32_ipc.return = kernel.function("sys32_ipc").return {
+	name = "sys32_ipc"
+	retstr = returnstr(1)
+}
+# sys32_sigreturn ________________________________________
+#
+# long sys32_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
+#			struct pt_regs *regs)
+#
+probe syscall.sys32_sigreturn = kernel.function("sys32_sigreturn") {
+	name = "sys32_sigreturn"
+	argstr = ""
+}
+probe syscall.sys32_sigreturn.return =
+	kernel.function("sys32_sigreturn").return {
+	name = "sys32_sigreturn"
+	retstr = returnstr(1)
+}
+# sys32_adjtimex ________________________________________
+#
+# asmlinkage long sys32_adjtimex(struct timex32 __user *utp)
+#
+probe syscall.sys32_adjtimex = kernel.function("sys32_adjtimex") {
+	name = "sys32_adjtimex"
+	argstr = ""
+}
+probe syscall.sys32_adjtimex.return = kernel.function("sys32_adjtimex").return {
+	name = "sys32_adjtimex"
+	retstr = returnstr(1)
+}
+# sys32_getdents ________________________________________
+#
+# asmlinkage long sys32_getdents(unsigned int fd,
+#			struct linux_dirent32 __user *dirent,
+#			unsigned int count)
+#
+probe syscall.sys32_getdents = kernel.function("sys32_getdents") {
+	name = "sys32_getdents"
+	argstr = ""
+}
+probe syscall.sys32_getdents.return =
+	kernel.function("sys32_getdents").return {
+	name = "sys32_getdents"
+	retstr = returnstr(1)
+}
+# sys32_sysctl ________________________________________
+#
+# asmlinkage long sys32_sysctl(struct __sysctl_args32 __user *args)
+#
+probe syscall.sys32_sysctl = kernel.function("sys32_sysctl") {
+	name = "sys32_sysctl"
+	argstr = ""
+}
+probe syscall.sys32_sysctl.return =
+	kernel.function("sys32_sysctl").return {
+	name = "sys32_sysctl"
+	retstr = returnstr(1)
+}
+# sys32_sched_setparam ________________________________________
+#
+# asmlinkage long sys32_sched_setparam(u32 pid,
+#		struct sched_param __user *param)
+#
+probe syscall.sys32_sched_setparam = kernel.function("sys32_sched_setparam") {
+	name = "sys32_sched_setparam"
+	argstr = ""
+}
+probe syscall.sys32_sched_setparam.return =
+	kernel.function("sys32_sched_setparam").return {
+	name = "sys32_sched_setparam"
+	retstr = returnstr(1)
+}
+# sys32_sched_rr_get_interval ________________________________________
+#
+# asmlinkage long sys32_sched_rr_get_interval(u32 pid,
+#		struct compat_timespec __user *interval)
+#
+probe syscall.sys32_sched_rr_get_interval = kernel.function("sys32_sched_rr_get_interval") {
+	name = "sys32_sched_rr_get_interval"
+	argstr = ""
+}
+probe syscall.sys32_sched_rr_get_interval.return =
+	kernel.function("sys32_sched_rr_get_interval").return {
+	name = "sys32_sched_rr_get_interval"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigreturn ________________________________________
+#
+# long sys32_rt_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
+#			struct pt_regs *regs)
+#
+#
+probe syscall.sys32_rt_sigreturn = kernel.function("sys32_rt_sigreturn") {
+	name = "sys32_rt_sigreturn"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigreturn.return =
+	kernel.function("sys32_rt_sigreturn").return {
+	name = "sys32_rt_sigreturn"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigaction ________________________________________
+#
+# long sys32_rt_sigaction(int sig, const struct sigaction32 __user *act,
+#		struct sigaction32 __user *oact, size_t sigsetsize)
+#
+probe syscall.sys32_rt_sigaction = kernel.function("sys32_rt_sigaction") {
+	name = "sys32_rt_sigaction"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigaction.return =
+	kernel.function("sys32_rt_sigaction").return {
+	name = "sys32_rt_sigaction"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigprocmask ________________________________________
+#
+# long sys32_rt_sigprocmask(u32 how, compat_sigset_t __user *set,
+#		compat_sigset_t __user *oset, size_t sigsetsize)
+#
+probe syscall.sys32_rt_sigprocmask = kernel.function("sys32_rt_sigprocmask") {
+	name = "sys32_rt_sigprocmask"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigprocmask.return =
+	kernel.function("sys32_rt_sigprocmask").return {
+	name = "sys32_rt_sigprocmask"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigpending ________________________________________
+#
+# long sys32_rt_sigpending(compat_sigset_t __user *set,
+#			compat_size_t sigsetsize)
+#
+probe syscall.sys32_rt_sigpending = kernel.function("sys32_rt_sigpending") {
+	name = "sys32_rt_sigpending"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigpending.return =
+	kernel.function("sys32_rt_sigpending").return {
+	name = "sys32_rt_sigpending"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigtimedwait ________________________________________
+#
+# long sys32_rt_sigtimedwait(compat_sigset_t __user *uthese,
+#			compat_siginfo_t __user *uinfo,
+#			struct compat_timespec __user *uts,
+#			compat_size_t sigsetsize)
+#
+probe syscall.sys32_rt_sigtimedwait = kernel.function("sys32_rt_sigtimedwait") {
+	name = "sys32_rt_sigtimedwait"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigtimedwait.return =
+	kernel.function("sys32_rt_sigtimedwait").return {
+	name = "sys32_rt_sigtimedwait"
+	retstr = returnstr(1)
+}
+# sys32_rt_sigqueueinfo ________________________________________
+#
+# long sys32_rt_sigqueueinfo(u32 pid, u32 sig, compat_siginfo_t __user *uinfo)
+#
+probe syscall.sys32_rt_sigqueueinfo = kernel.function("sys32_rt_sigqueueinfo") {
+	name = "sys32_rt_sigqueueinfo"
+	argstr = ""
+}
+probe syscall.sys32_rt_sigqueueinfo.return =
+	kernel.function("sys32_rt_sigqueueinfo").return {
+	name = "sys32_rt_sigqueueinfo"
+	retstr = returnstr(1)
+}
+# sys32_sigaltstack ________________________________________
+#
+# int sys32_sigaltstack(u32 __new, u32 __old, int r5,
+#			int r6, int r7, int r8, struct pt_regs *regs)
+#
+probe syscall.sys32_sigaltstack = kernel.function("sys32_sigaltstack") {
+	name = "sys32_sigaltstack"
+	argstr = ""
+}
+probe syscall.sys32_sigaltstack.return =
+	kernel.function("sys32_sigaltstack").return {
+	name = "sys32_sigaltstack"
+	retstr = returnstr(1)
+}
+# sys32_sendfile64 ________________________________________
+#
+# asmlinkage int sys32_sendfile64(int out_fd, int in_fd,
+#		compat_loff_t __user *offset, s32 count)
+#
+probe syscall.sys32_sendfile64 = kernel.function("sys32_sendfile64") {
+	name = "sys32_sendfile64"
+	argstr = ""
+}
+probe syscall.sys32_sendfile64.return =
+	kernel.function("sys32_sendfile64").return {
+	name = "sys32_sendfile64"
+	retstr = returnstr(1)
+}
+# ppc32_timer_create ________________________________________
+#
+# long ppc32_timer_create(clockid_t clock,
+#			struct compat_sigevent __user *ev32,
+#			timer_t __user *timer_id)
+#
+probe syscall.ppc32_timer_create = kernel.function("ppc32_timer_create") {
+	name = "ppc32_timer_create"
+	argstr = ""
+}
+probe syscall.ppc32_timer_create.return =
+	kernel.function("ppc32_timer_create").return {
+	name = "ppc32_timer_create"
+	retstr = returnstr(1)
+}
+# compat_timer_settime ________________________________________
+#
+# long compat_timer_settime(timer_t timer_id, int flags,
+#			struct compat_itimerspec __user *new,
+#			struct compat_itimerspec __user *old)
+#
+probe syscall.compat_timer_settime = kernel.function("compat_timer_settime") {
+	name = "compat_timer_settime"
+	argstr = ""
+}
+probe syscall.compat_timer_settime.return =
+	kernel.function("compat_timer_settime").return {
+	name = "compat_timer_settime"
+	retstr = returnstr(1)
+}
+# compat_timer_gettime ________________________________________
+#
+# long compat_timer_gettime(timer_t timer_id,
+#		struct compat_itimerspec __user *setting)
+#
+probe syscall.compat_timer_gettime = kernel.function("compat_timer_gettime") {
+	name = "compat_timer_gettime"
+	argstr = ""
+}
+probe syscall.compat_timer_gettime.return =
+	kernel.function("compat_timer_gettime").return {
+	name = "compat_timer_gettime"
+	retstr = returnstr(1)
+}
+# compat_clock_settime ________________________________________
+#
+# long compat_clock_settime(clockid_t which_clock,
+#			struct compat_timespec __user *tp)
+#
+probe syscall.compat_clock_settime = kernel.function("compat_clock_settime") {
+	name = "compat_clock_settime"
+	argstr = ""
+}
+probe syscall.compat_clock_settime.return =
+	kernel.function("compat_clock_settime").return {
+	name = "compat_clock_settime"
+	retstr = returnstr(1)
+}
+# compat_clock_gettime ________________________________________
+#
+# long compat_clock_gettime(clockid_t which_clock,
+#			struct compat_timespec __user *tp)
+#
+probe syscall.compat_clock_gettime = kernel.function("compat_clock_gettime") {
+	name = "compat_clock_gettime"
+	argstr = ""
+}
+probe syscall.compat_clock_gettime.return =
+	kernel.function("compat_clock_gettime").return {
+	name = "compat_clock_gettime"
+	retstr = returnstr(1)
+}
+# compat_clock_getres ________________________________________
+#
+# long compat_clock_getres(clockid_t which_clock,
+#			struct compat_timespec __user *tp)
+#
+probe syscall.compat_clock_getres = kernel.function("compat_clock_getres") {
+	name = "compat_clock_getres"
+	argstr = ""
+}
+probe syscall.compat_clock_getres.return =
+	kernel.function("compat_clock_getres").return {
+	name = "compat_clock_getres"
+	retstr = returnstr(1)
+}
+# compat_clock_nanosleep ________________________________________
+#
+# long compat_clock_nanosleep(clockid_t which_clock, int flags,
+#			struct compat_timespec __user *rqtp,
+#			struct compat_timespec __user *rmtp)
+#
+probe syscall.compat_clock_nanosleep = kernel.function("compat_clock_nanosleep") {
+	name = "compat_clock_nanosleep"
+	clock_id = $which_clock
+	clock_id_str = _get_wc_str($which_clock)
+	flags = $flags
+	flag_str = "TIMER_ABSTIME"
+	rqtp_uaddr = $rqtp
+	rmtp_uaddr = $rmtp
+	argstr = sprintf("%s, %s, [0x%x], [0x%x]", clock_id_str,
+				flag_str, rqtp_uaddr, rmtp_uaddr)
+}
+probe syscall.compat_clock_nanosleep.return =
+	kernel.function("compat_clock_nanosleep").return {
+	name = "compat_clock_nanosleep"
+	retstr = returnstr(1)
+}
+# sys32_swapcontext ________________________________________
+#
+# long sys32_swapcontext(struct ucontext32 __user *old_ctx,
+#			struct ucontext32 __user *new_ctx,
+#			int ctx_size, int r6, int r7, int r8,
+#			struct pt_regs *regs)
+#
+probe syscall.sys32_swapcontext = kernel.function("sys32_swapcontext") {
+	name = "sys32_swapcontext"
+	argstr = ""
+}
+probe syscall.sys32_swapcontext.return =
+	kernel.function("sys32_swapcontext").return {
+	name = "sys32_swapcontext"
+	retstr = returnstr(1)
+}
+# sys32_utimes ________________________________________
+#
+# asmlinkage long sys32_utimes(char __user *filename,
+#			struct compat_timeval __user *tvs)
+#
+probe syscall.sys32_utimes = kernel.function("sys32_utimes") {
+	name = "sys32_utimes"
+	argstr = ""
+}
+probe syscall.sys32_utimes.return = kernel.function("sys32_utimes").return {
+	name = "sys32_utimes"
+	retstr = returnstr(1)
+}
+# compat_statfs64 ________________________________________
+#
+# asmlinkage long compat_statfs64(const char __user *path, compat_size_t sz,
+#		struct compat_statfs64 __user *buf)
+#
+probe syscall.compat_statfs64 = kernel.function("compat_statfs64") {
+	name = "compat_statfs64"
+	argstr = ""
+}
+probe syscall.compat_statfs64.return =
+	kernel.function("compat_statfs64").return {
+	name = "compat_statfs64"
+	retstr = returnstr(1)
+}
+# compat_fstatfs64 ________________________________________
+#
+# asmlinkage long compat_fstatfs64(unsigned int fd, compat_size_t sz,
+#		struct compat_statfs64 __user *buf)
+#
+probe syscall.compat_fstatfs64 = kernel.function("compat_fstatfs64") {
+	name = "compat_fstatfs64"
+	argstr = ""
+}
+probe syscall.compat_fstatfs64.return =
+	kernel.function("compat_fstatfs64").return {
+	name = "compat_fstatfs64"
+	retstr = returnstr(1)
+}
+# compat_mbind ________________________________________
+#
+# asmlinkage long compat_mbind(compat_ulong_t start, compat_ulong_t len,
+#			compat_ulong_t mode, compat_ulong_t __user *nmask,
+#			compat_ulong_t maxnode, compat_ulong_t flags)
+#
+probe syscall.compat_mbind = kernel.function("compat_mbind") {
+	name = "compat_mbind"
+	argstr = ""
+}
+probe syscall.compat_mbind.return = kernel.function("compat_mbind").return {
+	name = "compat_mbind"
+	retstr = returnstr(1)
+}
+# compat_get_mempolicy ________________________________________
+#
+# asmlinkage long compat_get_mempolicy(int __user *policy,
+#				compat_ulong_t __user *nmask,
+#				compat_ulong_t maxnode,
+#				compat_ulong_t addr, compat_ulong_t flags)
+#
+probe syscall.compat_get_mempolicy = kernel.function("compat_get_mempolicy") {
+	name = "compat_get_mempolicy"
+	argstr = ""
+}
+probe syscall.compat_get_mempolicy.return =
+	kernel.function("compat_get_mempolicy").return {
+	name = "compat_get_mempolicy"
+	retstr = returnstr(1)
+}
+# compat_set_mempolicy ________________________________________
+#
+# asmlinkage long compat_set_mempolicy(int mode, compat_ulong_t __user *nmask,
+#				compat_ulong_t maxnode)
+#
+probe syscall.compat_set_mempolicy = kernel.function("compat_set_mempolicy") {
+	name = "compat_set_mempolicy"
+	argstr = ""
+}
+probe syscall.compat_set_mempolicy.return =
+	kernel.function("compat_set_mempolicy").return {
+	name = "compat_set_mempolicy"
+	retstr = returnstr(1)
+}
+# ppc64_sys_stime ________________________________________
+#
+# long ppc64_sys_stime(long __user * tptr)
+#
+probe syscall.ppc64_sys_stime = kernel.function("ppc64_sys_stime") {
+	name = "ppc64_sys_stime"
+	argstr = ""
+}
+probe syscall.ppc64_sys_stime.return =
+	kernel.function("ppc64_sys_stime").return {
+	name = "ppc64_sys_stime"
+	retstr = returnstr(1)
+}
+# ppc64_newuname ________________________________________
+#
+# asmlinkage int ppc64_newuname(struct new_utsname __user * name)
+#
+probe syscall.ppc64_newuname = kernel.function("ppc64_newuname") {
+	name = "ppc64_newuname"
+	argstr = ""
+}
+probe syscall.ppc64_newuname.return = kernel.function("ppc64_newuname").return {
+	name = "ppc64_newuname"
+	retstr = returnstr(1)
+}
+%)
+#
+# 
+
+# old32_readdir ________________________________________
+#
+# asmlinkage int old32_readdir(unsigned int fd,
+#	struct old_linux_dirent32 __user *dirent,
+#	unsigned int count)
+#
+probe syscall.old32_readdir = kernel.function("old32_readdir") {
+	name = "old32_readdir"
+	argstr = ""
+}
+probe syscall.old32_readdir.return =
+	kernel.function("old32_readdir").return {
+	name = "old32_readdir"
+	retstr = returnstr(1)
+}
+# sys64_time ________________________________________
+#
+# time_t sys64_time(time_t __user * tloc)
+#
+probe syscall.sys64_time = kernel.function("sys64_time") {
+	name = "sys64_time"
+	argstr = ""
+}
+probe syscall.sys64_time.return = kernel.function("sys64_time").return {
+	name = "sys64_time"
+	retstr = returnstr(1)
+}
+# ppc64_personality ________________________________________
+#
+# long ppc64_personality(unsigned long personality)
+#
+probe syscall.ppc64_personality = kernel.function("ppc64_personality") {
+	name = "ppc64_personality"
+	argstr = ""
+}
+probe syscall.ppc64_personality.return =
+	kernel.function("ppc64_personality").return {
+	name = "ppc64_personality"
+	retstr = returnstr(1)
+}
+# ppc_rtas ________________________________________
+#
+# asmlinkage int ppc_rtas(struct rtas_args __user *uargs)
+#
+probe syscall.ppc_rtas = kernel.function("ppc_rtas") {
+	name = "ppc_rtas"
+	argstr = ""
+}
+probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
+	name = "ppc_rtas"
+	retstr = returnstr(1)
+}
