@@ -14,3 +14,4 @@ Dir["*.st"].each do |file|
     test.print
   end
 end
+

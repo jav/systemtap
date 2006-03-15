@@ -1,15 +1,31 @@
+# Benchmark Class for SystemTap
+# Copyright (C) 2006 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# Where to fine laptop frequency files
+MAXFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
+MINFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
+
+# more constants
+PROCFS = 1
+RELAYFS= 2
+
+at_exit {Bench.done}
+
 class Bench
   def initialize(desc)
     @desc = desc
     @code = nil
     @file = nil
+    @trans = 1
     @failures = ""
-    @results = 0
+    @results = []
     if @@printed_header == 0
       print_header
-    end
-    if @@ftime == 0
-      @@ftime = `./itest 5`.to_i
     end
     if @@stpd.nil?
       for path in ['/usr/libexec/systemtap/stpd', '/usr/local/libexec/systemtap/stpd'] 
@@ -27,22 +43,30 @@ class Bench
 	end
       end
     end
-  end
-
-  attr_writer :code, :file
-  attr_reader :failures, :results
-
-  def run
     Signal.trap("INT") do
       cleanup
       exit
     end
+  end
+
+  attr_writer :code, :file, :trans
+  attr_reader :failures, :results
+
+  def run
     compile
     load
-    @results = `./itest 1`.to_i - @@ftime
-    sleep 5
+    @results = []
+    @failures = ""
+    @@num_threads.each do |threads|
+      bench = []; sum=0
+      threads.times {|cpu| fork {exec "./itest 1 > #{@dir}/bench#{cpu}"}}
+      threads.times {Process.waitpid(-1)}
+      threads.times {|x| bench[x] = `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
+      threads.times {|x| sum = sum + bench[x]}
+      @results[threads-1] = sum / (threads * threads)
+    end
     `sudo killall -HUP stpd`
-    `tail #{@dir}/xxx > #{@dir}/xxx.out`
+    sleep 5
     File.open("#{@dir}/xxx.out") do |file|
       file.each_line {|line| @failures += line if line =~ /WARNING/}
     end
@@ -52,7 +76,28 @@ class Bench
 
   def print
     if @results
-      printf("runtime: %-20s\t%d\n", @desc, @results)
+      if self.kind_of? Stapbench
+	printf("S")
+      else
+	printf("R")
+      end
+      if @trans == RELAYFS
+	printf("*")
+      else
+	printf(" ")
+      end
+      printf(": %-20s", @desc)
+      @results.each {|x| printf("\t%d",x) unless x.nil? }
+      printf("\n")
+      if @failures != ""
+	printf("%s\n", @failures)
+      end
+    end
+  end
+
+  def Bench.done
+    if @@minfreq != 0
+      `sudo /bin/sh -c \"echo #{@@minfreq} > #{MINFILE}\"`
     end
   end
 
@@ -61,20 +106,24 @@ class Bench
 
   protected
 
-  # function call overhead
   @@ftime = 0
   @@printed_header = 0
   @@stpd = nil
   @@runtime = nil
+  @@num_threads = []
+  @@minfreq = 0
 
   def cleanup
     `/bin/rm -f stap.out` if File.exists?("stap.out")
     `/bin/rm -f bench.stp` if File.exists?("bench.stp")
     `/bin/rm -rf #{@dir}` unless @dir.nil?
+    `/bin/rm -f stpd_cpu* probe.out`
   end
 
   def load
-    fork do exec "sudo #{@@stpd} -rmq #{@dir}/bench.ko > #{@dir}/xxx" end
+    args = "-rmq"
+    if @trans == RELAYFS then args = "-mq" end
+    fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
 
@@ -125,6 +174,17 @@ obj-m := bench.o
   def print_header
     @@printed_header = 1
     nproc=`grep ^processor /proc/cpuinfo`.count("\n")
+    if nproc >= 16
+      @@num_threads = [1,2,4,16]
+    elsif nproc >= 8
+      @@num_threads = [1,2,4,8]
+    elsif nproc >= 4
+      @@num_threads = [1,2,4]
+    elsif nproc >= 2
+      @@num_threads = [1,2]
+    else
+      @@num_threads = [1]
+    end
     physical_cpus=`grep "physical id" /proc/cpuinfo`.split("\n").uniq.length
     model=`grep "model name" /proc/cpuinfo`.match(/(model name\t: )([^\n]*)/)[2]
     puts "SystemTap BENCH2 \t" + `date`
@@ -150,39 +210,35 @@ obj-m := bench.o
     check_cpuspeed
     @@ftime = `./itest 5`.to_i
     puts "For comparison, function call overhead is #@@ftime nsecs."
-    puts "Times below are in nanoseconds and include kprobe overhead."
+      puts "Times below are nanoseconds per probe and include kprobe overhead."
     puts "-"*64
+    puts "+--- S = Script, R = Runtime"
+    puts "|+-- * = Relayfs        \tThreads"
+    printf "|| NAME                 "
+    @@num_threads.each {|n| printf("\t%d",n)}
+    printf "\n"
   end
 
   def check_cpuspeed
-    maxfile = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
-    minfile = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
-    if File.exist?(maxfile)
-      maxfreq = `cat #{maxfile}`.to_i
-      minfreq = `cat #{minfile}`.to_i
-      if minfreq != maxfreq
-	`sudo /bin/sh -c \"echo #{maxfreq} > #{minfile}\"`
-	puts "CPU frequency scaling detected and disabled."
-	puts "After testing, enable it again by typing (as root)"
-	puts "echo #{minfreq} > #{minfile}"
-	puts "-"*64
-	end
+    if @@minfreq == 0 && File.exist?(MAXFILE)
+      maxfreq = `cat #{MAXFILE}`.to_i
+      @@minfreq = `cat #{MINFILE}`.to_i
+      if @@minfreq != maxfreq
+	`sudo /bin/sh -c \"echo #{maxfreq} > #{MINFILE}\"`
+	sleep 1
+      end
     end
   end
 end
 
 class Stapbench < Bench
-  def print
-    if @results
-      printf("script : %-20s\t%d\n", @desc, @results)
-    end
-  end
-
   protected
 
   def load
     # we do this in several steps because the compilation phase can take a long time
-    `stap -kvvp4 -m bench bench.stp &> stap.out`
+    args = "-kvvp4"
+    if @trans == RELAYFS then args = "-bkvvp4" end
+    `stap #{args} -m bench bench.stp &> stap.out`
     IO.foreach("stap.out") {|line| @dir = line if line =~ /Created temporary directory/} 
     @dir = @dir.match(/"([^"]*)/)[1]
     if !File.exist?("#{@dir}/bench.ko")
@@ -190,7 +246,9 @@ class Stapbench < Bench
       cleanup
       exit
     end
-    fork do exec "sudo #{@@stpd} -rmq #{@dir}/bench.ko > #{@dir}/xxx" end
+    args = "-rmq"
+    if @trans == RELAYFS then args = "-mq" end
+    fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
   

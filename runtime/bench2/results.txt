@@ -1,32 +1,43 @@
-SystemTap BENCH2        Thu Mar  9 00:24:53 PST 2006
-kernel: 2.6.15-1.2025_FC5 i686
-Fedora Core release 4.92 (Pre-FC5)
-monkey2:  00:24:53 up  2:48,  3 users,  load average: 0.01, 0.05, 0.01
-processors: 1 Intel(R) Pentium(R) M processor 1.70GHz
-MemTotal:       515200 kB       MemFree:         73264 kB
+SystemTap BENCH2        Wed Mar 15 01:00:52 PST 2006
+kernel: 2.6.9-34.ELsmp x86_64
+Red Hat Enterprise Linux WS release 4 (Nahant Update 3)
+tiger:  01:00:52 up 51 min,  1 user,  load average: 1.46, 1.29, 0.87
+processors: 4 (2 physical)                   Intel(R) Xeon(TM) CPU 2.80GHz
+MemTotal:      1025428 kB       MemFree:        750220 kB
 ----------------------------------------------------------------
-For comparison, function call overhead is 378 nsecs.
-Times below are in nanoseconds and include kprobe overhead.
+For comparison, function call overhead is 721 nsecs.
+Times below are nanoseconds per probe and include kprobe overhead.
 ----------------------------------------------------------------
-runtime: empty probe            514
-script : empty probe            543
-runtime: printf 100 chars       1932
-script : printf 100 chars       1947
-runtime: printf 5 integers      3078
-script : printf 5 integers      3127
-SystemTap BENCH2        Thu Mar  9 00:30:12 PST 2006
++--- S = Script, R = Runtime
+|+-- * = Relayfs                Threads
+|| NAME                         1       2       4
+R : empty probe                 1471    737     559
+S : empty probe                 1556    784     594
+S : printf 100 chars            2178    1445    1148
+S*: printf 100 chars            2184    1290    1108
+R : printf 100 chars            2064    1333    1039
+R : printf 5 integers           3793    2006    1589
+S : printf 5 integers           3930    2136    1644
+
+
+SystemTap BENCH2        Wed Mar 15 01:20:41 PST 2006
 kernel: 2.6.15-1.1830_FC4.huntsmp i686
 Fedora Core release 4 (Stentz)
-dragon:  00:30:12 up  3:02,  3 users,  load average: 0.00, 0.00, 0.00
+dragon:  01:20:41 up 17:06,  8 users,  load average: 0.01, 0.01, 0.00
 processors: 2 (1 physical) Intel(R) Pentium(R) 4 CPU 2.60GHz
-MemTotal:      2067716 kB       MemFree:       1841188 kB
+MemTotal:      2067716 kB       MemFree:       1524232 kB
 ----------------------------------------------------------------
-For comparison, function call overhead is 795 nsecs.
-Times below are in nanoseconds and include kprobe overhead.
+For comparison, function call overhead is 812 nsecs.
+Times below are nanoseconds per probe and include kprobe overhead.
 ----------------------------------------------------------------
-runtime: empty probe            1178
-script : empty probe            1372
-runtime: printf 100 chars       2408
-script : printf 100 chars       2504
-runtime: printf 5 integers      4048
-script : printf 5 integers      3590
++--- S = Script, R = Runtime
+|+-- * = Relayfs                Threads
+|| NAME                         1       2
+R : empty probe                 1172    884
+S : empty probe                 1345    1117
+S : printf 100 chars            2515    2522
+S*: printf 100 chars            1996    1834
+R : printf 100 chars            2896    2735
+R : printf 5 integers           4919    4316
+S : printf 5 integers           5094    4501
+

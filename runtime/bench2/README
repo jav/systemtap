@@ -8,6 +8,7 @@ To try the tests:
 
 You will need ruby installed. "yum install ruby" or "up2date ruby" to get it.
 
+
 ---- FILES ----
 a.st - sample script test file
 b.st - sample script test file
