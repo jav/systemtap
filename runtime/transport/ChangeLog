@@ -1,3 +1,7 @@
+2006-03-15  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (STP_DEFAULT_BUFFERS): Bump up to 256.
+
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h (struct cmd_info): New message.

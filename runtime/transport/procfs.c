@@ -9,7 +9,7 @@
  * later version.
  */
 
-#define STP_DEFAULT_BUFFERS 128
+#define STP_DEFAULT_BUFFERS 256
 static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
 static struct list_head _stp_ready_q;
