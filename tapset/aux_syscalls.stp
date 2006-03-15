@@ -347,7 +347,7 @@ function _fd_set_u(uaddr:long)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
 		if (_stp_copy_from_user((char *)&fdset, ptr, sizeof(fd_set)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld, %ld, ...", (long) fdset.fds_bits[0],  fdset.fds_bits[1]);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[0x%lx, 0x%lx, ...]", (long) fdset.fds_bits[0],  fdset.fds_bits[1]);
 		else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	} 
