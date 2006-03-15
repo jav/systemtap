@@ -9,7 +9,7 @@ See the INSTALL file for generic build instructions.
 
 Prerequisites:
 
-- linux kernel 2.6.11+ with kprobes
+- linux kernel with kprobes (mainline 2.6.11+ or backport)
 - kernel module build environment (kernel-devel or kernel-smp-devel rpm)
 - kernel debugging information (kernel-debuginfo rpm)
 - C compiler (same as what kernel was compiled with)
