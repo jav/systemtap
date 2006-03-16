@@ -1,3 +1,12 @@
+2006-03-16  Tom Zanussi  <zanussi@us.ibm.com>
+
+ 	* procfs.c (_stp_proc_read): Change ifdef for relayfs version.
+ 	* relayfs.c: Change ifdefs for relayfs version.
+ 	* relayfs.h: Remove relayfs-config.h include.
+ 	* transport.c (_stp_handle_buf_info.c): Change ifdef for relayfs
+	version.
+ 	* relayfs-config.h.in: Removed.
+
 2006-03-15  Tom Zanussi  <zanussi@us.ibm.com>
  
  	* procfs.c (_stp_proc_read): Add ifdef for CONFIG_RELAY.

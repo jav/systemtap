@@ -5,8 +5,6 @@
  * @brief Header file for relayfs transport
  */
 
-#include "relayfs-config.h"
-
 #if defined (CONFIG_RELAYFS_FS) || defined (CONFIG_RELAYFS_FS_MODULE)
 #  include <linux/relayfs_fs.h>
 #elif defined (CONFIG_RELAY)

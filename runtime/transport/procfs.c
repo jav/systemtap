@@ -31,13 +31,13 @@ _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 		return -EINVAL;
 
 	out.cpu = cpu;
-#if RELAYFS_VERSION_GE_4 || defined (CONFIG_RELAY)
+#if (RELAYFS_CHANNEL_VERSION >= 4) || defined (CONFIG_RELAY)
 	out.produced = _stp_chan->buf[cpu]->subbufs_produced;
 	out.consumed = _stp_chan->buf[cpu]->subbufs_consumed;
 #else
 	out.produced = atomic_read(&_stp_chan->buf[cpu]->subbufs_produced);
 	out.consumed = atomic_read(&_stp_chan->buf[cpu]->subbufs_consumed);
-#endif  /* RELAYFS_VERSION_GE_4 || CONFIG_RELAY */
+#endif  /* RELAYFS_CHANNEL_VERSION >= 4 || CONFIG_RELAY */
 
 	num = sizeof(out);
 	if (copy_to_user(buf, &out, num))
