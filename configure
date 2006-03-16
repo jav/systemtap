@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE stap_LIBS DATE RELAYFS_VERSION_GE_4 LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5203,41 +5203,9 @@ _ACEOF
 DATE="$date"
 
 
-uname_r=`uname -r`
-relayfs_version_ge_4=0
-as_ac_File=`echo "ac_cv_file_/lib/modules/$uname_r/build/include/linux/relayfs_fs.h" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for /lib/modules/$uname_r/build/include/linux/relayfs_fs.h" >&5
-echo $ECHO_N "checking for /lib/modules/$uname_r/build/include/linux/relayfs_fs.h... $ECHO_C" >&6
-if eval "test \"\${$as_ac_File+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "/lib/modules/$uname_r/build/include/linux/relayfs_fs.h"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-
-  # grep needs the two tabs in the following line
-  if grep "RELAYFS_CHANNEL_VERSION		[456]" /lib/modules/$uname_r/build/include/linux/relayfs_fs.h >/dev/null; then
-    relayfs_version_ge_4=1
- fi
-
-fi
-
-RELAYFS_VERSION_GE_4="$relayfs_version_ge_4"
-
-
           ac_config_headers="$ac_config_headers config.h:config.in"
 
-                                                                                ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 runtime/transport/relayfs-config.h"
+                                                                      ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5823,7 +5791,6 @@ do
   "stapprobes.5" ) CONFIG_FILES="$CONFIG_FILES stapprobes.5" ;;
   "stapfuncs.5" ) CONFIG_FILES="$CONFIG_FILES stapfuncs.5" ;;
   "stapex.5" ) CONFIG_FILES="$CONFIG_FILES stapex.5" ;;
-  "runtime/transport/relayfs-config.h" ) CONFIG_FILES="$CONFIG_FILES runtime/transport/relayfs-config.h" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -5969,7 +5936,6 @@ s,@BUILD_ELFUTILS_TRUE@,$BUILD_ELFUTILS_TRUE,;t t
 s,@BUILD_ELFUTILS_FALSE@,$BUILD_ELFUTILS_FALSE,;t t
 s,@stap_LIBS@,$stap_LIBS,;t t
 s,@DATE@,$DATE,;t t
-s,@RELAYFS_VERSION_GE_4@,$RELAYFS_VERSION_GE_4,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
