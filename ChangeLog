@@ -1,3 +1,9 @@
+2006-03-16 Tom Zanussi  <zanussi@us.ibm.com>
+
+	* configure.ac: Revert relayfs version check.
+	* configure: Reverted.
+	* translate.cxx (compile_pass): Remove relayfs include path.
+
 2006-03-15 Tom Zanussi  <zanussi@us.ibm.com>
 
 	* configure.ac: Add check for relayfs version.
