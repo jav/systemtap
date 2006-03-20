@@ -1,3 +1,7 @@
+2006-03-20  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_write): Combine buffers only for REALTIME_DATA.
+
 2006-03-16  Tom Zanussi  <zanussi@us.ibm.com>
 
  	* procfs.c (_stp_proc_read): Change ifdef for relayfs version.
