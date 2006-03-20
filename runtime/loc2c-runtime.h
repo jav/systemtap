@@ -159,7 +159,47 @@
 	   goto deref_fault;						\
    })
 
-#elif defined __powerpc64__
+#elif defined __powerpc__ || defined __powerpc64__
+#if defined __powerpc64__
+#define STP_PPC_LONG	".llong "
+#else
+#define STP_PPC_LONG	".long "
+#endif
+
+#define __stp_get_user_asm(x, addr, err, op)			\
+	 __asm__ __volatile__(					\
+		"1:     "op" %1,0(%2)   # get_user\n"		\
+		"2:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		"3:     li %0,%3\n"				\
+		"       li %1,0\n"				\
+		"       b 2b\n"					\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		"       .balign %5\n"				\
+		STP_PPC_LONG "1b,3b\n"				\
+		".previous"					\
+		: "=r" (err), "=r" (x)				\
+		: "b" (addr), "i" (-EFAULT), "0" (err),		\
+		  "i"(sizeof(unsigned long)))
+
+
+#define _stp_put_user_asm(x, addr, err, op)                        \
+        __asm__ __volatile__(                                   \
+                "1:     " op " %1,0(%2) # put_user\n"           \
+                "2:\n"                                          \
+                ".section .fixup,\"ax\"\n"                      \
+                "3:     li %0,%3\n"                             \
+                "       b 2b\n"                                 \
+                ".previous\n"                                   \
+                ".section __ex_table,\"a\"\n"                   \
+                "       .balign %5\n"				\
+                STP_PPC_LONG "1b,3b\n"				\
+                ".previous"                                     \
+                : "=r" (err)                                    \
+                : "r" (x), "b" (addr), "i" (-EFAULT), "0" (err),\
+		  "i"(sizeof(unsigned long)))
+
 
 #define deref(size, addr)						      \
   ({									      \
@@ -167,10 +207,10 @@
     intptr_t _v;							      \
     switch (size)							      \
       {									      \
-      case 1: __get_user_asm(_v,addr,_bad,"lbz",1); break;		      \
-      case 2: __get_user_asm(_v,addr,_bad,"lhz",1); break;		      \
-      case 4: __get_user_asm(_v,addr,_bad,"lwz",1); break;		      \
-      case 8: __get_user_asm(_v,addr,_bad,"ld",1); break;		      \
+      case 1: __stp_get_user_asm(_v,addr,_bad,"lbz"); break;		      \
+      case 2: __stp_get_user_asm(_v,addr,_bad,"lhz"); break;		      \
+      case 4: __stp_get_user_asm(_v,addr,_bad,"lwz"); break;		      \
+      case 8: __stp_get_user_asm(_v,addr,_bad,"ld"); break;			      \
       default: _v = __get_user_bad();					      \
       }									      \
     if (_bad)								      \
@@ -183,45 +223,11 @@
     int _bad = 0;							      \
     switch (size)							      \
       {									      \
-      case 1: __put_user_asm(((u8)(value)),addr,_bad,"stb",1); break;	      \
-      case 2: __put_user_asm(((u16)(value)),addr,_bad,"sth",1); break;	      \
-      case 4: __put_user_asm(((u32)(value)),addr,_bad,"stw",1); break;	      \
-      case 8: __put_user_asm(((u64)(value)),addr,_bad,"std",1); break;	      \
-      default: __put_user_bad();					      \
-      }									      \
-    if (_bad)								      \
-      goto deref_fault;							      \
-  })
-
-#elif defined __powerpc__
-
-#define deref(size, addr)						      \
-  ({									      \
-    int _bad = 0;							      \
-    intptr_t _v;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __get_user_asm(_v,addr,_bad,"lbz"); break;		      \
-      case 2: __get_user_asm(_v,addr,_bad,"lhz"); break;		      \
-      case 4: __get_user_asm(_v,addr,_bad,"lwz"); break;		      \
-      case 8: __get_user_asm(_v,addr,_bad,"ld"); break;			      \
-      default: _v = __get_user_bad();					      \
-      }									      \
-    if (_bad)								      \
-      goto deref_fault;							      \
-    _v;									      \
-  })
-
-#define store_deref(size, addr, value)					      \
-  ({									      \
-    int _bad = 0;							      \
-    switch (size)							      \
-      {									      \
-      case 1: __put_user_asm(((u8)(value)),addr,_bad,"stb"); break;	      \
-      case 2: __put_user_asm(((u16)(value)),addr,_bad,"sth"); break;	      \
-      case 4: __put_user_asm(((u32)(value)),addr,_bad,"stw"); break;	      \
-      case 8: __put_user_asm2(((u64)(value)),addr,_bad); break;		      \
-      default: __put_user_bad();					      \
+      case 1: __stp_put_user_asm(((u8)(value)),addr,_bad,"stb"); break;     \
+      case 2: __stp_put_user_asm(((u16)(value)),addr,_bad,"sth"); break;    \
+      case 4: __stp_put_user_asm(((u32)(value)),addr,_bad,"stw"); break;    \
+      case 8: __stp_put_user_asm(((u64)(value)),addr,_bad); break;         \
+      default: __stp_put_user_bad();					      \
       }									      \
     if (_bad)								      \
       goto deref_fault;							      \
