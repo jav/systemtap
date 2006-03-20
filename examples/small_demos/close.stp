@@ -1,0 +1,7 @@
+probe syscall.close {
+	printf("%s: %s(%s) = ", execname(), name, argstr)
+}
+
+probe syscall.close.return {
+	printf("%s\n", returnstr(returnp))
+}

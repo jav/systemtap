@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -133,7 +133,9 @@ static int _stp_write (int type, void *data, int len)
 	spin_lock(&_stp_ready_lock);
 	if (!list_empty(&_stp_ready_q)) {
 		bptr = (struct _stp_buffer *)_stp_ready_q.prev;
-		if (bptr->len + len <= STP_BUFFER_SIZE && bptr->type == type) {
+		if (bptr->len + len <= STP_BUFFER_SIZE 
+		    && type == STP_REALTIME_DATA 
+		    && bptr->type == STP_REALTIME_DATA) {
 			memcpy (bptr->buf + bptr->len - 1, data, len);
 			bptr->len += len - 1;
 			spin_unlock(&_stp_ready_lock);
