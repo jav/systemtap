@@ -7,9 +7,9 @@
 probe kernel.function("kbd_event") {
 	if ($event_type == 1 && $value) {
 		if ($event_code == 28)
-			system("play return.wav")
+			system("play return.wav &> /dev/null")
 		else
-			system("play click.wav")
+			system("play click.wav &> /dev/null")
 	}
 }
 
