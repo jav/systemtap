@@ -6,7 +6,7 @@
 # Public License (GPL); either version 2, or (at your option) any
 # later version.
 
-# Where to fine laptop frequency files
+# Where to find laptop frequency files
 MAXFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
 MINFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
 
@@ -22,7 +22,7 @@ class Bench
     @code = nil
     @file = nil
     @trans = 1
-    @failures = ""
+    @failures = []
     @results = []
     if @@printed_header == 0
       print_header
@@ -33,6 +33,12 @@ class Bench
 	  @@stpd = path
 	  break
 	end
+      end
+      # now do make
+      `make`
+      if $? != 0 || !File.exist?('itest')
+	puts "ERROR: Compiling itest failed\n"
+	exit
       end
     end
     if @@runtime.nil?
@@ -54,23 +60,23 @@ class Bench
 
   def run
     compile
-    load
     @results = []
-    @failures = ""
+    @failures = []
     @@num_threads.each do |threads|
-      bench = []; sum=0
-      threads.times {|cpu| fork {exec "./itest 1 > #{@dir}/bench#{cpu}"}}
-      threads.times {Process.waitpid(-1)}
-      threads.times {|x| bench[x] = `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
-      threads.times {|x| sum = sum + bench[x]}
-      @results[threads-1] = sum / (threads * threads)
+      load
+      sum=0
+      threads.times {|cpu| fork {exec "./itest #{threads} > #{@dir}/bench#{cpu}"}}
+      threads.times {Process.waitpid(-1)}	# wait for itest(s) to exit
+      `sudo killall -HUP stpd`
+      Process.wait	# wait for stpd to exit
+      threads.times {|x| sum = sum + `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
+      @results[threads] = sum / (threads * threads)
+      File.open("#{@dir}/xxx.out") do |file|
+	file.each_line do |line| 
+	  @failures[threads] = line.match(/were ([\d]*)/)[1]
+	end
+      end
     end
-    `sudo killall -HUP stpd`
-    sleep 5
-    File.open("#{@dir}/xxx.out") do |file|
-      file.each_line {|line| @failures += line if line =~ /WARNING/}
-    end
-    Process.wait
     cleanup
   end
 
@@ -87,10 +93,11 @@ class Bench
 	printf(" ")
       end
       printf(": %-20s", @desc)
-      @results.each {|x| printf("\t%d",x) unless x.nil? }
+      @@num_threads.each {|thread| printf("\t%5d",@results[thread])}
       printf("\n")
-      if @failures != ""
-	printf("%s\n", @failures)
+      @@num_threads.each do |thread|
+	printf("WARNING: %d transport failures with %d threads\n", \
+	       @failures[thread], thread) unless @failures[thread].nil?
       end
     end
   end
@@ -121,7 +128,7 @@ class Bench
   end
 
   def load
-    args = "-rmq"
+    args = "-rmq -b 8"
     if @trans == RELAYFS then args = "-mq" end
     fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
@@ -218,14 +225,14 @@ obj-m := bench.o
     end
     puts "-"*64
     check_cpuspeed
-    @@ftime = `./itest 5`.to_i
+    @@ftime = `./itest 1`.to_i
     puts "For comparison, function call overhead is #@@ftime nsecs."
       puts "Times below are nanoseconds per probe and include kprobe overhead."
     puts "-"*64
     puts "+--- S = Script, R = Runtime"
     puts "|+-- * = Relayfs        \tThreads"
     printf "|| NAME                 "
-    @@num_threads.each {|n| printf("\t%d",n)}
+    @@num_threads.each {|n| printf("\t    %d",n)}
     printf "\n"
   end
 
@@ -256,7 +263,7 @@ class Stapbench < Bench
       cleanup
       exit
     end
-    args = "-rmq"
+    args = "-rmq -b 8"
     if @trans == RELAYFS then args = "-mq" end
     fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5

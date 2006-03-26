@@ -28,7 +28,7 @@ uint64 stop()
 
 void usage(char *name)
 {
-    printf ("Usage %s [time]\nWhere \"time\" is millions of times to loop.\n", name);
+    printf ("Usage %s [num_threads]\nitest will call sys_getuid() 1000000/num_threads times.\n", name);
     exit(1);
 }
 
@@ -42,16 +42,15 @@ int main(int argc, char *argv[])
 
   if (argc == 2) {
     n = strtol(argv[1], NULL, 10);
-    if (n == 0)
+    if (n <= 0)
       usage(argv[0]);
   }
 
-
   start();
-  for (i = 0; i < n * 1000000; i++)
+  for (i = 0; i < 1000000/n; i++)
     getuid();
 
-  nsecs = stop() / (n * 1000);
+  nsecs = stop() * n / 1000;
 
   /* returns nanosecs per call  */
   printf("%lld\n", nsecs);
