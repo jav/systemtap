@@ -1,3 +1,18 @@
+2006-03-26  Martin Hunt  <hunt@redhat.com>
+
+	* bench2/bench.rb (Bench::run): Instead of loading the module 
+	once and running against different numbers of threads, load
+	and unload the module each time. Then keep track of failures 
+	per thread. Also use the new itest to keep the tests the same 
+	size regardless of the number of threads.
+	(Bench::initialize): Make itest if needed.
+	(Bench::load, Stapbench::load): Increase buffer size to 8MB.
+	
+	* bench2/itest.c: Change arg to be the number of threads 
+	instead of the number of millions of calls to make. 
+	This makes it easy to divide the work among multiple threads 
+	without making the test run many times longer.
+
 2006-03-09  Martin Hunt  <hunt@redhat.com>
 
 	* bench2: New directory containing a benchmark framework.
