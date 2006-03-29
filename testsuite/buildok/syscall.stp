@@ -1,8 +1,8 @@
 #! stap -up4
 
 probe syscall.*, syscall.*.return {
-	if (returnp)
-		printf("%d\n", returnval())
+	if (retstr != "")
+		printf("%s\n", retstr)
 	else
-		printf("%s (%s) = ", name, argstr)
+		printf("%s: %s (%s) = ", execname(), name, argstr)
 }
