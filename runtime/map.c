@@ -42,7 +42,7 @@ void str_copy(char *dest, char *src)
 	int len = strlen(src);
 	if (len > MAP_STRING_LENGTH - 1)
 		len = MAP_STRING_LENGTH - 1;
-	strncpy (dest, src, len);
+	memcpy (dest, src, len);
 	dest[len] = 0;
 }
 
@@ -55,7 +55,7 @@ void str_add(void *dest, char *val)
 
 	if (len > num)
 		len = num;
-	strncpy (&dst[len1], val, len);
+	memcpy (&dst[len1], val, len);
 	dst[len + len1] = 0;
 }
 

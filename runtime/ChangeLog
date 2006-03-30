@@ -1,3 +1,7 @@
+2006-03-30  Martin Hunt  <hunt@redhat.com>
+
+	* string.c (_stp_string_cat_cstr): Use memcpy() instead of strncpy().
+
 2006-03-26  Martin Hunt  <hunt@redhat.com>
 
 	* bench2/bench.rb (Bench::run): Instead of loading the module 

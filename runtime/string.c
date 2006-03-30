@@ -134,13 +134,13 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 				num = STP_PRINT_BUF_LEN;
 		}
 		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-		strncpy (buf, str2, num + 1);
+		memcpy (buf, str2, num + 1);
 		_stp_pbuf_len[cpu] += num;
 	} else {
 		int size = STP_STRING_SIZE - str1->len - 1; 
 		if (num > size)
 			num = size;
-		strncpy (str1->buf + str1->len, str2, num);
+		memcpy (str1->buf + str1->len, str2, num);
 		str1->len += num;
 		str1->buf[str1->len] = 0;
 	}
