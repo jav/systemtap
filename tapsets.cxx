@@ -2929,7 +2929,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
     {
       o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << probe_name << ".handler = &" << func_name << ";";
-      o->newline() << probe_name << ".maxactive = 0;"; // request default
+      o->newline() << probe_name << ".maxactive = max(10, 4 * NR_CPUS);";
       // XXX: pending PR 1289
       // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
       o->newline() << "rc = rc || register_kretprobe (&(" << probe_name << "));";
