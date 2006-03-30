@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -54,7 +54,8 @@ derived_probe::derived_probe (probe *p):
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
-  this->locations.push_back (l);
+  if (l)
+    this->locations.push_back (l);
   if (p)
     {
       this->tok = p->tok;

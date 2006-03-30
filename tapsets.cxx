@@ -30,13 +30,14 @@ extern "C" {
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
-#include "loc2c.h"
+#include <regex.h>
+#include <fnmatch.h>
 
+#include "loc2c.h"
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 }
 
-#include <fnmatch.h>
 
 using namespace std;
 
@@ -3437,6 +3438,292 @@ struct profile_builder: public derived_probe_builder
 
 
 // ------------------------------------------------------------------------
+// statically inserted macro-based derived probes
+// ------------------------------------------------------------------------
+
+
+struct mark_derived_probe: public derived_probe
+{
+  mark_derived_probe (systemtap_session &s,
+                        const string& probe_name, const string& probe_sig,
+                        uintptr_t address, const string& module,
+                        probe* base_probe);
+
+  string probe_name, probe_sig;
+  uintptr_t address;
+  string module;
+  string probe_sig_expanded;
+
+  virtual void emit_registrations (translator_output * o, unsigned i);
+  virtual void emit_deregistrations (translator_output * o, unsigned i);
+  virtual void emit_probe_entries (translator_output * o, unsigned i);
+};
+
+
+mark_derived_probe::mark_derived_probe (systemtap_session &s,
+                                            const string& p_n,
+                                            const string& p_s,
+                                            uintptr_t a,
+                                            const string& m,
+                                            probe* base):
+  derived_probe (base, 0), probe_name (p_n), probe_sig (p_s),
+  address (a), module (m)
+{
+  // create synthetic probe point
+  probe_point* pp = new probe_point;
+
+  probe_point::component* c;
+  if (module == "") c = new probe_point::component ("kernel");
+  else c = new probe_point::component ("module",
+                                    new literal_string (module));
+  pp->components.push_back (c);
+  c = new probe_point::component ("probe",
+                                  new literal_string (probe_name));
+  pp->components.push_back (c);
+  this->locations.push_back (pp);
+
+  // expand the signature string
+  for (unsigned i=0; i<probe_sig.length(); i++)
+    {
+      if (i > 0)
+        probe_sig_expanded += ", ";
+      switch (probe_sig[i]) 
+        {
+        case 'N': probe_sig_expanded += "int64_t"; break;
+        case 'S': probe_sig_expanded += "const char *"; break;
+        default: 
+          throw semantic_error ("unsupported probe signature " + probe_sig,
+                                this->tok);
+        }
+      probe_sig_expanded += " arg" + lex_cast<string>(i+1); // arg1 ... 
+    }
+}
+
+
+void
+mark_derived_probe::emit_probe_entries (translator_output * o, unsigned i)
+{
+  assert (this->locations.size() == 1);
+
+  o->newline() << "void enter_" << i << " (" << probe_sig_expanded << ")";
+  o->newline() << "{";
+  o->newline(1) << "const char* probe_point = "
+               << lex_cast_qstring(* this->locations[0]) << ";";
+  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
+
+  // XXX: pass incoming parameters
+
+  // NB: locals are initialized by probe function itself
+  o->newline() << "probe_" << i << " (c);";
+
+  emit_probe_epilogue (o);
+  o->newline(-1) << "}";
+}
+
+
+void
+mark_derived_probe::emit_registrations (translator_output * o, unsigned i)
+{
+  assert (this->locations.size() == 1);
+
+  o->newline() << "{";
+  o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
+                << address << "UL;";
+
+  // XXX: need proper synchronization
+  o->newline() << "if (*fn == 0) *fn = & enter_" << i << ";";
+  o->newline() << "mb ();";
+  o->newline() << "if (*fn != & enter_" << i << ") rc = 1;";
+
+  o->newline(-1) << "}";
+ 
+}
+
+void
+mark_derived_probe::emit_deregistrations (translator_output * o, unsigned i)
+{
+  assert (this->locations.size() == 1);
+
+  o->newline() << "{";
+  o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
+                << address << "UL;";
+  o->newline(0) << "*fn = 0;";
+  o->newline(-1) << "}";
+}
+
+
+
+struct symboltable_extract
+{
+  uintptr_t address;
+  string symbol;
+  string module;
+};
+
+
+#define PROBE_SYMBOL_PREFIX "__systemtap_mark_"
+
+
+struct mark_builder: public derived_probe_builder
+{
+private:
+  static const vector<symboltable_extract>* get_symbols (systemtap_session&);
+
+public:
+  mark_builder() {}
+  void build(systemtap_session & sess,
+             probe * base,
+             probe_point * location,
+             std::map<std::string, literal *> const & parameters,
+             vector<derived_probe *> & finished_results);
+};
+
+
+// Until elfutils makes this straightforward, we kludge.
+// See also translate.cxx:emit_symbol_data().
+
+const vector<symboltable_extract>*
+mark_builder::get_symbols (systemtap_session& sess)
+{
+  static vector<symboltable_extract>* syms = 0;
+  if (syms) return syms; // already computed
+
+  syms = new vector<symboltable_extract>;
+
+  // Process /proc/kallsyms - contains reliable module symbols
+  ifstream kallsyms ("/proc/kallsyms");
+  while (! kallsyms.eof())
+    {
+      string addr, type, sym, module;
+      kallsyms >> addr >> type >> sym;
+      kallsyms >> ws;
+      if (kallsyms.peek() == '[')
+        {
+          string bracketed;
+          kallsyms >> bracketed;
+          module = bracketed.substr (1, bracketed.length()-2);
+        }
+      else // kernel symbols come from /boot/System.map*
+        continue;
+
+      if (type == "b" || type == "d") // static data/bss
+        {
+          symboltable_extract e;
+          e.address = strtoul (addr.c_str(), 0, 16);
+          e.symbol = sym;
+          e.module = module;
+          syms->push_back (e);
+        }
+    }
+  kallsyms.close ();
+
+  // grab them kernel symbols
+  string smname = "/boot/System.map-";
+  smname += sess.kernel_release;
+  ifstream systemmap (smname.c_str());
+  while (! systemmap.eof())
+    {
+      string addr, type, sym, module;
+      systemmap >> addr >> type >> sym;
+      module = "";
+
+      if (type == "b" || type == "d") // static data/bss
+        {
+          symboltable_extract e;
+          e.address = strtoul (addr.c_str(), 0, 16);
+          e.symbol = sym;
+          e.module = module;
+          syms->push_back (e);
+        }
+    }
+  systemmap.close ();
+
+  return syms;
+}
+
+
+void
+mark_builder::build(systemtap_session & sess,
+                      probe * base,
+                      probe_point * location,
+                      std::map<std::string, literal *> const & parameters,
+                      vector<derived_probe *> & finished_results)
+{
+  const vector<symboltable_extract>* syms = get_symbols (sess);
+
+  string param_module;
+  bool has_module = get_param (parameters, "module", param_module);
+  bool has_kernel = (parameters.find("kernel") != parameters.end());
+
+  if (! (has_module ^ has_kernel))
+    throw semantic_error ("need kernel. or module() component", location->tok);
+
+  string param_probe;
+  bool has_probe = get_param (parameters, "mark", param_probe);
+  if (! has_probe)
+    throw semantic_error ("need mark() component", location->tok);
+
+  string symbol_regex = PROBE_SYMBOL_PREFIX "([a-zA-Z0-9_]+)_([NS]*)\\.[0-9]+";
+  //                    ^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^   ^^^^^    ^^^^^^
+  //                       common prefix        probe name    types    suffix
+  regex_t symbol_regex_t;
+  int rc = regcomp (& symbol_regex_t, symbol_regex.c_str(), REG_EXTENDED);
+  if (rc)
+    throw semantic_error ("regcomp '" + symbol_regex + "' failed");
+
+  // cout << "searching for " << symbol_regex << endl;
+
+  for (unsigned i=0; i<syms->size(); i++)
+    {
+      regmatch_t match[3];
+      const symboltable_extract& ext = syms->at(i);
+      const char* symstr = ext.symbol.c_str();
+
+      rc = regexec (& symbol_regex_t, symstr, 3, match, 0);
+      if (! rc) // match
+        {
+#if 0
+          cout << "match in " << symstr << ":"
+               << "[" << match[0].rm_so << "-" << match[0].rm_eo << "],"
+               << "[" << match[1].rm_so << "-" << match[1].rm_eo << "],"
+               << "[" << match[2].rm_so << "-" << match[2].rm_eo << "]"
+               << endl;
+#endif
+
+          string probe_name = string (symstr + match[1].rm_so,
+                                      (match[1].rm_eo - match[1].rm_so));
+          string probe_sig = string (symstr + match[2].rm_so,
+                                     (match[2].rm_eo - match[2].rm_so));
+
+          // Below, "rc" has negative polarity: zero iff matching
+          rc = (has_module 
+                ? fnmatch (param_module.c_str(), ext.module.c_str(), 0)
+                : (ext.module != "")); // kernel.*
+          rc |= fnmatch (param_probe.c_str(), probe_name.c_str(), 0);
+            
+          if (! rc)
+            {
+              // cout << "match (" << probe_name << "):" << probe_sig << endl;
+
+              derived_probe *dp 
+                = new mark_derived_probe (sess,
+                                          probe_name, probe_sig,
+                                          ext.address,
+                                          ext.module,
+                                          base);
+              finished_results.push_back (dp);
+            }
+        }
+    }
+
+  //  cout << "done" << endl;
+
+  // It's not a big deal if this is skipped due to an exception.
+  regfree (& symbol_regex_t);
+}
+
+
+// ------------------------------------------------------------------------
 // hrtimer derived probes
 // ------------------------------------------------------------------------
 // This is a new timer interface that provides more flexibility in specifying
@@ -3676,7 +3963,6 @@ bad_time:
 }
 
 
-
 // ------------------------------------------------------------------------
 //  Standard tapset registry.
 // ------------------------------------------------------------------------
@@ -3687,6 +3973,7 @@ register_standard_tapsets(systemtap_session & s)
   // Rudimentary binders for begin and end targets
   s.pattern_root->bind("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
+
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind(new timer_builder());
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());
   s.pattern_root->bind("timer")->bind_num("ms")->bind(new timer_builder(true));
@@ -3695,6 +3982,10 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind_str("hrtimer")->bind(new hrtimer_builder());
   s.pattern_root->bind_str("hrtimer")->bind_str("randomize")->bind(new hrtimer_builder());
 
-  // kernel/module parts
+  // dwarf-based kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
+
+  // marker-based kernel/module parts
+  s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
+  s.pattern_root->bind_str("module")->bind_str("mark")->bind(new mark_builder());
 }

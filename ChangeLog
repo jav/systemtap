@@ -1,3 +1,12 @@
+2006-03-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 953, part 1
+	* tapsets.cxx: (mark_derived_probe*): New classes.
+	(register_standard_tapsets): Register kernel/module.mark() family.
+	* stapmark.h: New header for static instrumentation markers.
+	* gen-stapmark.h: New perl script to generate it.
+	* elaborate.cxx (derived_probe ctor): Ignore null location*.
+
 2006-03-29  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (hrtimer_derived_probe::*): creates a probe point
