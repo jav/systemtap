@@ -1,3 +1,5 @@
+#!/usr/bin/env stap
+
 probe syscall.close {
 	printf("%s: %s(%s) = ", execname(), name, argstr)
 }
