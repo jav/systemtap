@@ -3788,6 +3788,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
+      s.op->newline() << "#include <linux/random.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       
       // XXX: old 2.6 kernel hack

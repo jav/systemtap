@@ -1,3 +1,14 @@
+2006-03-29  Josh Stone  <joshua.i.stone@intel.com>
+
+	* tapsets.cxx (hrtimer_derived_probe::*): creates a probe point
+	based on the hrtimer APIs.
+	* tapsets.cxx (hrtimer_builder::*):  parses the user's time-spec
+	into a 64-bit nanosecond value, and calls the appropriate
+	derived_probe.
+	* tapsets.cxx (register_standard_tapsets): add hrtimer bindings
+	* translate.cxx (translate_pass): add linux/random.h include,
+	used for generating 64-bit random numbers for hrtimers.
+
 2006-03-28  Martin Hunt  <hunt@redhat.com>
 
 	* testsuite/buildok/syscall.stp: Update so
