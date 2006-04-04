@@ -1,3 +1,7 @@
+2006-04-04 Tom Zanussi  <zanussi@us.ibm.com>
+
+	* stp_check: Change test for relay vs relayfs
+
 2006-03-30  Martin Hunt  <hunt@redhat.com>
 
 	* tapsets.cxx (dwarf_derived_probe::emit_registrations): 

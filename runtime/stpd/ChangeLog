@@ -1,3 +1,7 @@
+2006-04-04  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* stpd.c (main): Check that /mnt/relay is actually relayfs.
+
 2006-03-15  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* stpd.c (main): Add runtime check for relayfs vs relay-on-proc.

@@ -53,6 +53,7 @@ gid_t cmd_gid;
 
  /* relayfs base file name */
 static char stpd_filebase[1024];
+#define RELAYFS_MAGIC			0xF0B4A981
 
 /* if no output file name is specified, use this */
 #define DEFAULT_OUTFILE_NAME "probe.out"
@@ -211,11 +212,11 @@ int main(int argc, char **argv)
 		if (!outfile_name)
 			outfile_name = DEFAULT_OUTFILE_NAME;
 	}
-	
-	if (statfs("/mnt/relay", &st) < 0)
-		sprintf(stpd_filebase, "/proc/systemtap/stap_%d/cpu", driver_pid);
-	else
+
+	if ((statfs("/mnt/relay", &st) == 0) && (st.f_type == (long) RELAYFS_MAGIC))
 		sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
+	else
+		sprintf(stpd_filebase, "/proc/systemtap/stap_%d/cpu", driver_pid);
 	
 	if (init_stp(stpd_filebase, !quiet)) {
 		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");

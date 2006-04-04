@@ -1,7 +1,8 @@
 #!/bin/bash
 
-RELAY=`grep sysfs_create_relay_file /proc/kallsyms`
-if [ -n "$RELAY" ]
+RELAYFS_FS=`grep relayfs_create_dir /proc/kallsyms`
+RELAY=`grep relay_open /proc/kallsyms`
+if [ -n "$RELAY" -a -z "$RELAYFS_FS" ]
 then
 	exit 0
 fi
