@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.5.4, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.5.5, systemtap@sources.redhat.com, systemtap)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -37,8 +37,8 @@ AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
-  AC_CHECK_LIB(dw, dwarf_diecu,,[
-    AC_MSG_ERROR([systemtap requires elfutils 0.116+])])
+  AC_CHECK_LIB(dw, dwfl_version,,[
+    AC_MSG_ERROR([systemtap requires elfutils 0.120+])])
   stap_LIBS="$LIBS"
   LIBS="$SAVE_LIBS"
 else

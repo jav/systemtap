@@ -1,5 +1,5 @@
 %define bundled_elfutils 1
-%define elfutils_version 0.119
+%define elfutils_version 0.120
 
 Name: systemtap
 Version: @VERSION@
@@ -100,6 +100,10 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Tue Apr  4 2006 Roland McGrath <roland@redhat.com> - 0.5.5-1
+- Many changes, affected PRs include: 2068, 2293, 1989, 2334,
+  1304, 2390, 2425, 953.
+
 * Wed Feb  1 2006 Frank Ch. Eigler <fche@redhat.com> - 0.5.4-1
 - PRs 1916, 2205, 2142, 2060, 1379
 
