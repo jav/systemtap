@@ -1,3 +1,7 @@
+2006-04-04  Roland McGrath  <roland@redhat.com>
+
+	* stpd.c (main): Cast f_type when comparing; type differs by machine.
+
 2006-04-04  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* stpd.c (main): Check that /mnt/relay is actually relayfs.
@@ -35,7 +39,7 @@
 	* librelay.c (driver_poll): New function to react to death of
 	driver process.
 	(stp_main_loop): Call it if "-d PID" given.  Treat SIGHUP like others.
-	
+
 2005-10-19  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* librelay.c: Move output_file var to stpd.c.
@@ -65,18 +69,18 @@
 
 	* librelay.c: Remove all USE_PROCFS ifdefs.
 	(sig_usr): Signal handler for SIGUSR1.
-	(start_cmd): New function to handle "-c" option, forks() 
+	(start_cmd): New function to handle "-c" option, forks()
 	off a new process then waits for SIGUSR1 to exec it.
 	(init_stp): Call start_cmd().
 	(stp_main_loop): Set a signal handler for SIGCHLD.
-	
+
 	* stpd.c (main): Add "-t" and "-c" options.
 	(usage): Update with new options.
 
 2005-08-29  Martin Hunt  <hunt@redhat.com>
 
-	* stpd.c main): Add enable_relayfs flag. 
-	Turn it off with "-r". 
+	* stpd.c main): Add enable_relayfs flag.
+	Turn it off with "-r".
 
 2005-08-24  Martin Hunt  <hunt@redhat.com>
 
@@ -85,20 +89,20 @@
 
 2005-08-24  Martin Hunt  <hunt@redhat.com>
 
-	* librelay.c (sigproc): Reestablish signal handler so 
-	impatient people don't hit ^C twice and terminate the 
+	* librelay.c (sigproc): Reestablish signal handler so
+	impatient people don't hit ^C twice and terminate the
 	program before it saves the data and removes the module.
 	Also print a message to stderr that it is exiting.
 	(stp_main_loop): Write OOB data (warnings, errors, etc)
 	to stderr instead of stdout.
 	* librelay.h: Write debug info to stderr.
 	* Makefile: add librelay.h to dependencies.
-	
+
 2005-08-23  Martin Hunt  <hunt@redhat.com>
-	
+
 	* librelay.c (merge_output): Don't add an extra \n.
 
-2005-08-23  Martin Hunt  <hunt@redhat.com>	
+2005-08-23  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (read_last_buffers): New function. Directly grab the
 	last buffers.
@@ -136,7 +140,7 @@
 2005-08-03  Martin Hunt  <hunt@redhat.com>
 	* librelay.c (init_stp): Change variable name to eliminate shadow warning.
 
-2005-08-03  Martin Hunt  <hunt@redhat.com>	
+2005-08-03  Martin Hunt  <hunt@redhat.com>
 	* librelay.c (open_control_channel): Set the receive buffer
 	to 512K, or the max allowed.
 
@@ -151,11 +155,11 @@
 
 2005-08-01  Martin Hunt  <hunt@redhat.com>
 
-	* librelay.h: Get structs and enums from 
+	* librelay.h: Get structs and enums from
 	../transport/transport_msgs.h  to eliminate duplication.
 
 	* librelay.c (send_request): Retry if send fails.
-	(open_relayfs_files): Use fopen() instead of open() for the 
+	(open_relayfs_files): Use fopen() instead of open() for the
 	percpu tmpfiles.
 	(request_last_buffers): Just send cpu number for STP_BUF_INFO request.
 	(reader_thread): Ditto.
@@ -163,13 +167,13 @@
 	(sigchld): Removed.
 	(init_stp): Go back to using system() instead of fork and exec
 	to load module. When done, send a TRANSPORT_INFO request.
-	(cleanup_and_exit): Change parameter to simple flag to 
-	indicate if the module needs removing. 
+	(cleanup_and_exit): Change parameter to simple flag to
+	indicate if the module needs removing.
 	(sigproc): Remove complicated logic and just send STP_EXIT.
 	(stp_main_loop): When receiving STP_TRANSPORT_INFO, set
 	the local params and reply with a STP_START.  When
 	receiving STP_START, there was an error, so cleanup and exit.
-	
+
 	* stpd.c (main): Added new options to set number of
 	buffers and their size.
 
