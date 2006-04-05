@@ -1,11 +1,22 @@
+2006-04-04  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac: Bump version to 0.5.5.
+	Require elfutils-0.120.
+	* configure: Regenerated.
+	* systemtap.spec.in: Likewise.
+
+	* main.cxx (version): Use dwfl_version.
+
+	* loc2c.c (array_stride): stride_size -> byte_stride
+
 2006-04-04 Tom Zanussi  <zanussi@us.ibm.com>
 
 	* stp_check: Change test for relay vs relayfs
 
 2006-03-30  Martin Hunt  <hunt@redhat.com>
 
-	* tapsets.cxx (dwarf_derived_probe::emit_registrations): 
-	Change maxactive so single-processor kernels using 
+	* tapsets.cxx (dwarf_derived_probe::emit_registrations):
+	Change maxactive so single-processor kernels using
 	kretprobes don't get lots of dropped probes.
 
 2006-03-30  Frank Ch. Eigler  <fche@elastic.org>
@@ -73,7 +84,7 @@
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (run_pass): Add "-u username".
-	* stapfuncs.5.in: Document system(). 
+	* stapfuncs.5.in: Document system().
 
 2006-03-06  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -112,7 +123,7 @@
 
 2006-02-23  Frank Ch. Eigler  <fche@elastic.org>
 
-	PR 1304 
+	PR 1304
 	* parse.cxx (lexer): Take systemtap_session argument.
 	(lexer::scan): Support $1..$NNNN and @1...@NNNN expansion.
 	* stap.1.in: Document this.
@@ -120,7 +131,7 @@
 	* translate.cxx (var::init, emit_global): Emit code to allow
 	named module parameters to initialize global string/number scalars.
 	* stap.1.in: Don't document this yet.
-	
+
 	PR 2334
 	* main.cxx (main): Clarify "-v" option repeatibility.
 	* stap.1.in: Ditto.
