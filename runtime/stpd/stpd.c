@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 			usage(argv[0]);
 		}
 	}
-	
+
 	if (verbose) {
 		if (buffer_size)
 			printf ("Using a buffer of %u bytes.\n", buffer_size);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
                of modoptions[]. */
             modoptions[start_idx] = NULL;
           }
-  
+
 	if (!modname) {
 		fprintf (stderr, "Cannot invoke daemon without probe module\n");
 		usage(argv[0]);
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
 			exit(1);
 		}
 		cmd_uid = pw->pw_uid;
-		cmd_gid = pw->pw_gid;  
+		cmd_gid = pw->pw_gid;
 	} else {
 		cmd_uid = getuid();
 		cmd_gid = getgid();
@@ -213,11 +213,12 @@ int main(int argc, char **argv)
 			outfile_name = DEFAULT_OUTFILE_NAME;
 	}
 
-	if ((statfs("/mnt/relay", &st) == 0) && (st.f_type == (long) RELAYFS_MAGIC))
+	if (statfs("/mnt/relay", &st) == 0
+	    && (int) st.f_type == (int) RELAYFS_MAGIC)
 		sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
 	else
 		sprintf(stpd_filebase, "/proc/systemtap/stap_%d/cpu", driver_pid);
-	
+
 	if (init_stp(stpd_filebase, !quiet)) {
 		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);
@@ -227,6 +228,6 @@ int main(int argc, char **argv)
 		fprintf(stderr,"Couldn't enter main loop. Exiting.\n");
 		exit(1);
 	}
-	
+
 	return 0;
 }
