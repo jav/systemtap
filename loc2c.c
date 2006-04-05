@@ -1543,12 +1543,12 @@ static Dwarf_Word
 array_stride (Dwarf_Die *typedie, struct location *origin)
 {
   Dwarf_Attribute attr_mem;
-  if (dwarf_attr_integrate (typedie, DW_AT_stride_size, &attr_mem) != NULL)
+  if (dwarf_attr_integrate (typedie, DW_AT_byte_stride, &attr_mem) != NULL)
     {
       Dwarf_Word stride;
       if (dwarf_formudata (&attr_mem, &stride) == 0)
 	return stride;
-      FAIL (origin, N_("cannot get stride_size attribute array type %s: %s"),
+      FAIL (origin, N_("cannot get byte_stride attribute array type %s: %s"),
 	    dwarf_diename (typedie) ?: "<anonymous>",
 	    dwarf_errmsg (-1));
     }
