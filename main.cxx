@@ -28,6 +28,7 @@ extern "C" {
 #include <sys/times.h>
 #include <sys/time.h>
 #include <time.h>
+#include <elfutils/libdwfl.h>
 }
 
 using namespace std;
@@ -39,9 +40,9 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << " built " << DATE << ")" << endl
+    << "(Using " << dwfl_version (NULL) << " libraries.)" << endl
     << "Copyright (C) 2005-2006 Red Hat, Inc. and others" << endl
-    << "This is free software; see the source for copying conditions."
-    << endl;
+    << "This is free software; see the source for copying conditions." << endl;
 }
 
 void
@@ -68,7 +69,7 @@ usage (systemtap_session& s)
     << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
     << s.buffer_size << endl
-    << "   -p NUM     stop after pass NUM 1-5, instead of " 
+    << "   -p NUM     stop after pass NUM 1-5, instead of "
     << s.last_pass << endl
     << "              (parse, elaborate, translate, compile, run)" << endl
     << "   -I DIR     look in DIR for additional .stp script files";
@@ -87,7 +88,7 @@ usage (systemtap_session& s)
     << "   -m MODULE  set probe module name, instead of "
     << s.module_name << endl
     << "   -o FILE    send output to file, instead of stdout" << endl
-    << "   -c CMD     start the probes, run CMD, and exit when it finishes" 
+    << "   -c CMD     start the probes, run CMD, and exit when it finishes"
     << endl
     << "   -x PID     sets target() to PID" << endl
     ;
@@ -258,7 +259,7 @@ main (int argc, char * const argv [])
   int rc = 0;
 
   // override PATH and LC_ALL
-  char* path = "PATH=/bin:/sbin:/usr/bin:/usr/sbin"; 
+  char* path = "PATH=/bin:/sbin:/usr/bin:/usr/sbin";
   char* lc_all = "LC_ALL=C";
   rc = putenv (path) || putenv (lc_all);
   if (rc)
@@ -267,7 +268,7 @@ main (int argc, char * const argv [])
       cerr << "setenv (\"" << path << "\" + \"" << lc_all << "\"): "
            << e << endl;
     }
-  
+
 
   // arguments parsed; get down to business
 
@@ -543,7 +544,7 @@ main (int argc, char * const argv [])
          << "Try again with more '-v' (verbose) options."
          << endl;
 
-  // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout? 
+  // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout?
   if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
