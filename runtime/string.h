@@ -29,7 +29,7 @@ static struct string _stp_string[STP_NUM_STRINGS][NR_CPUS];
 typedef struct string *String;
 
 /* set up a special stdout string */
-static struct string __stp_stdout = {0};
+static struct string __stp_stdout = {.len = 0};
 String _stp_stdout = &__stp_stdout;
 
 void _stp_vsprintf (String str, const char *fmt, va_list args);
