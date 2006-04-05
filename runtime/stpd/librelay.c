@@ -59,6 +59,8 @@ static char proc_filebase[128];
 static int proc_file[NR_CPUS];
 
 /* probe output written here, if non-NULL */
+/* if no output file name is specified, use this */
+#define DEFAULT_RELAYFS_OUTFILE_NAME "probe.out"
 extern char *outfile_name;
 
 /* internal variables */
@@ -576,6 +578,9 @@ static int merge_output(void)
 		else
 			num[i] = 0;
 	}
+
+	if (!outfile_name)
+		outfile_name = DEFAULT_RELAYFS_OUTFILE_NAME;
 
 	ofp = fopen (outfile_name, "w");
 	if (!ofp) {

@@ -55,9 +55,6 @@ gid_t cmd_gid;
 static char stpd_filebase[1024];
 #define RELAYFS_MAGIC			0xF0B4A981
 
-/* if no output file name is specified, use this */
-#define DEFAULT_OUTFILE_NAME "probe.out"
-
 /* stp_check script */
 #ifdef PKGLIBDIR
 char *stp_check=PKGLIBDIR "/stp_check";
@@ -91,7 +88,7 @@ int main(int argc, char **argv)
 	int c, status;
 	pid_t pid;
 	struct statfs st;
-
+	
 	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:u:")) != EOF)
 	{
 		switch (c) {
@@ -209,8 +206,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "Could not execute %s\n", stp_check);
 			exit(1);
 		}
-		if (!outfile_name)
-			outfile_name = DEFAULT_OUTFILE_NAME;
 	}
 
 	if (statfs("/mnt/relay", &st) == 0

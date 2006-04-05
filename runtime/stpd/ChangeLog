@@ -1,3 +1,9 @@
+2006-04-05  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (merge_output): Set the output filename if necessary.
+	* stpd.c (main): Don't reset output_filename just because 
+	relayfs is possible. Move that code to librelay.c.
+
 2006-04-04  Roland McGrath  <roland@redhat.com>
 
 	* stpd.c (main): Cast f_type when comparing; type differs by machine.
