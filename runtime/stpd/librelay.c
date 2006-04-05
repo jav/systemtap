@@ -626,7 +626,7 @@ static int merge_output(void)
 		fclose (fp[i]);
 	fclose (ofp);
 	if (dropped)
-		printf ("\033[33mSequence had %d drops.\033[0m\n", dropped);
+		fprintf (stderr, "Sequence had %d drops.\n", dropped);
 	return 0;
 }
 

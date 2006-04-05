@@ -1,6 +1,11 @@
 2006-04-05  Martin Hunt  <hunt@redhat.com>
+	* librelay.c (merge_output): Remove ANSI codes and write
+	warning to stderr.
 
+2006-04-05  Martin Hunt  <hunt@redhat.com>	
 	* librelay.c (merge_output): Set the output filename if necessary.
+	(merge_output): 
+
 	* stpd.c (main): Don't reset output_filename just because 
 	relayfs is possible. Move that code to librelay.c.
 
