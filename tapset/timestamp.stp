@@ -1,5 +1,6 @@
 // timestamp tapset
 // Copyright (C) 2005-2006 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -9,6 +10,23 @@
 
 %{
 #include <linux/time.h>
+
+/* Try to determine the status of xtime_lock.
+ * Returns: zero if xtime_lock was found valid for reading
+ *          non-zero if we waited too long for availability
+ */
+static inline int __check_xtime_lock(void)
+{
+    unsigned numtrylock = 0;
+    unsigned seq = read_seqbegin(&xtime_lock);
+    while (read_seqretry(&xtime_lock, seq)) {
+        if (++numtrylock >= MAXTRYLOCK)
+            return 1;
+        ndelay(TRYLOCKDELAY);
+        seq = read_seqbegin(&xtime_lock);
+    }
+    return 0;
+}
 %}
 
 
@@ -21,23 +39,50 @@ function get_cycles:long () %{
 
 // return in microseconds since epoch
 function gettimeofday_us:long () %{
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = (tm.tv_sec * 1000000ULL) + (tm.tv_usec);
+  if (__check_xtime_lock())
+    {
+      /* TODO: is there a way to approximate gettimeofday? */
+      CONTEXT->last_error = "unable to call do_gettimeofday";
+      THIS->__retvalue = 0LL;
+    }
+  else
+    {
+      struct timeval tm;
+      do_gettimeofday (& tm);
+      THIS->__retvalue = (tm.tv_sec * 1000000ULL) + (tm.tv_usec);
+    }
 %}
 
 // return in milliseconds since epoch
 function gettimeofday_ms:long () %{
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = (tm.tv_sec * 1000ULL) + (tm.tv_usec / 1000);
+  if (__check_xtime_lock())
+    {
+      /* TODO: is there a way to approximate gettimeofday? */
+      CONTEXT->last_error = "unable to call do_gettimeofday";
+      THIS->__retvalue = 0LL;
+    }
+  else
+    {
+      struct timeval tm;
+      do_gettimeofday (& tm);
+      THIS->__retvalue = (tm.tv_sec * 1000ULL) + (tm.tv_usec / 1000);
+    }
 %}
 
 // return in seconds since epoch
 function gettimeofday_s:long () %{
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = tm.tv_sec;
+  if (__check_xtime_lock())
+    {
+      /* TODO: is there a way to approximate gettimeofday? */
+      CONTEXT->last_error = "unable to call do_gettimeofday";
+      THIS->__retvalue = 0LL;
+    }
+  else
+    {
+      struct timeval tm;
+      do_gettimeofday (& tm);
+      THIS->__retvalue = tm.tv_sec;
+    }
 %}
 
 // likewise jiffies, monotonic_clock ...

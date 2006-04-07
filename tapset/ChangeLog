@@ -1,3 +1,10 @@
+2006-04-07  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR2525
+	* timestamp.stp (__check_xtime_lock): check if xtime is available
+	(gettimeofday_s, gettimeofday_ms, gettimeofday_us): error out if
+	called when xtime is not available, to avoid deadlock
+
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
 	* system.stp: New tapset. 
