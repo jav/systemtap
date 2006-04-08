@@ -1,3 +1,11 @@
+2006-04-08  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (resolve_prologue_endings): Rewrote.
+	(resolve_prologue_endings2): Removed.
+
+	* gen-stapmark.h: Emit a 0-arity marker.
+	* stapmark.h: Regenerated for arities 0..6.
+
 2006-04-04  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac: Bump version to 0.5.5.

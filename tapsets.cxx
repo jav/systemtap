@@ -891,43 +891,6 @@ dwflpp
 
   void resolve_prologue_endings (map<Dwarf_Addr, func_info> & funcs)
   {
-    assert(module);
-    assert(cu);
-
-    size_t nlines;
-    Dwarf_Lines *lines;
-    Dwarf_Addr previous_addr;
-    bool choose_next_line = false;
-
-    dwarf_assert ("dwarf_getsrclines",
-		  dwarf_getsrclines(cu, &lines, &nlines));
-
-    for (size_t i = 0; i < nlines; ++i)
-      {
-	Dwarf_Addr addr;
-	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
-	dwarf_lineaddr (line_rec, &addr);
-
-	if (choose_next_line)
-	  {
-	    map<Dwarf_Addr, func_info>::iterator i = funcs.find (previous_addr);
-	    assert (i != funcs.end());
-	    i->second.prologue_end = addr;
-	    choose_next_line = false;
-	  }
-
-	map<Dwarf_Addr, func_info>::const_iterator i = funcs.find (addr);
-	if (i != funcs.end())
-	  choose_next_line = true;
-	previous_addr = addr;
-      }
-
-    // XXX: free lines[] ?
-  }
-
-
-  void resolve_prologue_endings2 (map<Dwarf_Addr, func_info> & funcs)
-  {
     // This heuristic attempts to pick the first address that has a
     // source line distinct from the function declaration's (entrypc's).
     // This should be the first statement *past* the prologue.
@@ -944,100 +907,122 @@ dwflpp
 
     size_t nlines = 0;
     Dwarf_Lines *lines = NULL;
-    func_info* last_function = NULL;
-    Dwarf_Addr last_function_entrypc = 0;
-    Dwarf_Addr last_function_highpc = 0;
-    int choose_next_line_otherthan = -1;
 
-    // XXX: ideally, there would be a dwarf_getfile(line) routine,
-    // so that we compare not just a line number mismatch, but a
-    // file name mismatch too.
-    //
-    // If the first statement of a function is into some inline
-    // function, we'll be scanning over Dwarf_Line objects that have,
-    // chances are, wildly different lineno's.  If luck turns against
-    // us, and that inline function body happens to be defined in a
-    // different file but at the same line number as its caller, then
-    // we will get slightly messed up.
+    /* trouble cases:
+       malloc do_symlink  in init/initramfs.c    tail-recursive/tiny then no-prologue
+       sys_get?id         in kernel/timer.c      no-prologue
+       sys_exit_group                            tail-recursive
+       {do_,}sys_open                            extra-long-prologue (gcc 3.4)
+       cpu_to_logical_apicid                     NULL-decl_file
+    */
 
+    // Fetch all srcline records, sorted by address.
     dwarf_assert ("dwarf_getsrclines",
 		  dwarf_getsrclines(cu, &lines, &nlines));
+    // XXX: free lines[] later, but how?
 
-    for (size_t i = 0; i < nlines; ++i)
+    for(map<Dwarf_Addr,func_info>::iterator it = funcs.begin(); it != funcs.end(); it++)
       {
-	Dwarf_Addr addr;
-	Dwarf_Line * line_rec = dwarf_onesrcline(lines, i);
-	dwarf_lineaddr (line_rec, &addr);
+#if 0 /* someday */
+        Dwarf_Addr* bkpts = 0;
+        int n = dwarf_entry_breakpoints (& it->second.die, & bkpts);
+        // ...
+        free (bkpts);
+#endif
 
-        // If this next line goes past the current function, we have
-        // a probable tail call, and must go back the entrypc
-        if (choose_next_line_otherthan >= 0 &&
-            addr >= last_function_highpc) // NB: >= ; highpc is exclusive
+        Dwarf_Addr entrypc = it->first;
+        Dwarf_Addr highpc; // NB: highpc is exclusive: [entrypc,highpc)
+        func_info* func = &it->second;
+        dwfl_assert ("dwarf_highpc", dwarf_highpc (& func->die, 
+                                                   & highpc));
+
+        if (func->decl_file == 0) func->decl_file = "";
+        
+        unsigned entrypc_srcline_idx = 0;
+        Dwarf_Line* entrypc_srcline = 0;
+        // open-code binary search for exact match
+        {
+          unsigned l = 0, h = nlines;
+          while (l < h)
+            {
+              entrypc_srcline_idx = (l + h) / 2;
+              Dwarf_Addr addr;
+              Dwarf_Line *lr = dwarf_onesrcline(lines, entrypc_srcline_idx);
+              dwarf_lineaddr (lr, &addr);
+              if (addr == entrypc) { entrypc_srcline = lr; break; }
+              else if (l + 1 == h) { break; } // ran off bottom of tree
+              else if (addr < entrypc) { l = entrypc_srcline_idx; }
+              else { h = entrypc_srcline_idx; }
+            }              
+        }
+        if (entrypc_srcline == 0) 
+          throw semantic_error ("missing entrypc dwarf line record for function '" 
+                                + func->name + "'");
+
+        if (sess.verbose>2)
+          clog << "prologue searching function '" << func->name << "'"
+               << " 0x" << hex << entrypc << dec
+               << "@" << func->decl_file << ":" << func->decl_line
+               << "\n";
+
+        // Now we go searching for the first line record that has a
+        // file/line different from the one in the declaration.
+        // Normally, this will be the next one.  BUT:
+        //
+        // We may have to skip a few because some old compilers plop
+        // in dummy line records for longer prologues.  If we go too
+        // far (addr >= highpc), we take the previous one.  Or, it may
+        // be the first one, if the function had no prologue, and thus
+        // the entrypc maps to a statement in the body rather than the
+        // declaration.
+
+        unsigned postprologue_srcline_idx = entrypc_srcline_idx;
+        bool ranoff_end = false;
+        while (1)
           {
-            addr = last_function_entrypc; // go back to entrypc
-            Dwarf_Addr addr0 = last_function->prologue_end;
-            if (addr0 != addr)
-              {
-                last_function->prologue_end = addr;
-		if (sess.verbose>2)
-		  clog << "prologue disagreement (tail call): "
-                       << last_function->name
-		       << " heur0=" << hex << addr0
-		       << " heur1=" << addr << dec
-		       << "\n";
-              }
-	    choose_next_line_otherthan = -1;
-            continue;
-          }
-
-        // If this next line maps to a line number beyond the
-        // first one, but still within the same function, pick it!
-        int this_lineno;
-        dwfl_assert ("dwarf_lineno",
-                     dwarf_lineno(line_rec, &this_lineno));
-
-	if (choose_next_line_otherthan >= 0 &&
-            this_lineno != choose_next_line_otherthan)
-	  {
-            Dwarf_Addr addr0 = last_function->prologue_end;
-            if (addr0 != addr)
-              {
-                last_function->prologue_end = addr;
-		if (sess.verbose>2)
-		  clog << "prologue disagreement: " << last_function->name
-		       << " heur0=" << hex << addr0
-		       << " heur1=" << addr << dec
-		       << "\n";
-              }
-	    choose_next_line_otherthan = -1;
-            continue;
-	  }
-
-        // Else ... see if this line record refers to the entrypc of
-        // yet another probe-targeted function.  Stash away its entrypc
-        // etc., for the other branches of this loop to process.
-	map<Dwarf_Addr, func_info>::iterator i = funcs.find (addr);
-	if (i != funcs.end())
-          {
+            Dwarf_Addr postprologue_addr;
+            Dwarf_Line *lr = dwarf_onesrcline(lines, postprologue_srcline_idx);
+            dwarf_lineaddr (lr, &postprologue_addr);
+            const char* postprologue_file = dwarf_linesrc (lr, NULL, NULL);
+            int postprologue_lineno;
             dwfl_assert ("dwarf_lineno",
-                         dwarf_lineno (line_rec, &choose_next_line_otherthan));
-            assert (choose_next_line_otherthan >= 0);
-            last_function = & i->second;
-            last_function_entrypc = addr;
-            dwfl_assert ("dwarf_highpc",
-                         dwarf_highpc (& last_function->die, 
-                                       & last_function_highpc));
+                         dwarf_lineno (lr, & postprologue_lineno));
 
             if (sess.verbose>2)
-              clog << "finding prologue for '"
-                   << last_function->name
-                   << "' entrypc=0x" << hex << addr 
-                   << " highpc=0x" << last_function_highpc << dec
-                   << "\n";
-          }
-      }
+              clog << "checking line record 0x" << hex << postprologue_addr << dec
+                   << "@" << postprologue_file << ":" << postprologue_lineno << "\n";
 
-    // XXX: free lines[] ?
+            if (postprologue_addr >= highpc)
+              { 
+                ranoff_end = true; 
+                postprologue_srcline_idx --; 
+                continue;
+              }
+            if (ranoff_end ||
+                (strcmp (postprologue_file, func->decl_file) || // We have a winner!
+                 (postprologue_lineno != func->decl_line)))
+              {
+                func->prologue_end = postprologue_addr;
+
+                if (sess.verbose>2)
+                  {
+                    clog << "prologue found function '" << func->name << "'";
+                    // Add a little classification datum
+                    if (postprologue_srcline_idx == entrypc_srcline_idx) clog << " (naked)";
+                    if (ranoff_end) clog << " (tail-call?)";
+                    clog << " = 0x" << hex << postprologue_addr << dec << "\n";
+                  }
+
+                break;
+              }
+            
+            // Let's try the next srcline.
+            postprologue_srcline_idx ++;
+          } // loop over srclines
+
+        // if (strlen(func->decl_file) == 0) func->decl_file = NULL;
+
+      } // loop over functions
   }
 
 
@@ -2380,11 +2365,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
 	  q->dw.iterate_over_functions (query_dwarf_func, q);
-          if (! q->filtered_functions.empty()) // No functions in this CU to worry about?
-            {
-              q->dw.resolve_prologue_endings (q->filtered_functions);
-              q->dw.resolve_prologue_endings2 (q->filtered_functions);
-            }
+          if (! q->filtered_functions.empty())
+            q->dw.resolve_prologue_endings (q->filtered_functions);
 
 	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
 	      && (q->spec_type == function_file_and_line))
@@ -3477,7 +3459,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   else c = new probe_point::component ("module",
                                     new literal_string (module));
   pp->components.push_back (c);
-  c = new probe_point::component ("probe",
+  c = new probe_point::component ("mark",
                                   new literal_string (probe_name));
   pp->components.push_back (c);
   this->locations.push_back (pp);
@@ -3530,7 +3512,7 @@ mark_derived_probe::emit_registrations (translator_output * o, unsigned i)
   o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
                 << address << "UL;";
 
-  // XXX: need proper synchronization
+  // XXX: need proper synchronization for concurrent registration attempts
   o->newline() << "if (*fn == 0) *fn = & enter_" << i << ";";
   o->newline() << "mb ();";
   o->newline() << "if (*fn != & enter_" << i << ") rc = 1;";
