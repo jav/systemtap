@@ -972,7 +972,7 @@ dwflpp
 
         unsigned postprologue_srcline_idx = entrypc_srcline_idx;
         bool ranoff_end = false;
-        while (1)
+        while (postprologue_srcline_idx < nlines)
           {
             Dwarf_Addr postprologue_addr;
             Dwarf_Line *lr = dwarf_onesrcline(lines, postprologue_srcline_idx);
