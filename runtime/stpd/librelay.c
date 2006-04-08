@@ -753,19 +753,18 @@ int stp_main_loop(void)
 		switch (type) {
 		case STP_TRANSPORT_INFO:
 		{
-			struct transport_info *info = (struct transport_info *)data;
-
+			struct transport_info *info = (struct transport_info *)data;			
 			transport_mode = info->transport_mode;
 			params.subbuf_size = info->subbuf_size;
 			params.n_subbufs = info->n_subbufs;
 #ifdef DEBUG
 			if (transport_mode == STP_TRANSPORT_RELAYFS)
-				printf ("TRANSPORT_INFO recvd: RELAYFS %d bufs of %d bytes.\n", 
-					params.n_subbufs, 
-					params.subbuf_size);
+				fprintf (stderr, "TRANSPORT_INFO recvd: RELAYFS %d bufs of %d bytes.\n", 
+					 params.n_subbufs, 
+					 params.subbuf_size);
 			else
-				printf ("TRANSPORT_INFO recvd: PROC with %d Mbyte buffers.\n", 
-					info->buf_size); 
+				fprintf (stderr, "TRANSPORT_INFO recvd: PROC with %d Mbyte buffers.\n", 
+					 info->buf_size); 
 #endif
 			if (!streaming()) {
 				rc = init_relayfs();
@@ -789,7 +788,7 @@ int stp_main_loop(void)
 			break;
 		}
 		case STP_REALTIME_DATA:
-			fputs ((char *)data, ofp);
+			fwrite_unlocked(data, nb - sizeof(int), 1, ofp);
 			break;
 		case STP_OOB_DATA:
 			fputs ((char *)data, stderr);
