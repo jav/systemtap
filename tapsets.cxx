@@ -892,16 +892,10 @@ dwflpp
   void resolve_prologue_endings (map<Dwarf_Addr, func_info> & funcs)
   {
     // This heuristic attempts to pick the first address that has a
-    // source line distinct from the function declaration's (entrypc's).
-    // This should be the first statement *past* the prologue.
-    //
-    // However, for some tail-call optimized functions
-    // ("sys_exit_group" in linux 2.6), there might be only a single
-    // line record for the function.  We guess at this situation if
-    // the "next" line record refers to an address past the
-    // dwarf_highpc of the current function.  In this case, we back
-    // down to the address from the previous line record.
-    //
+    // source line distinct from the function declaration's.  In a
+    // perfect world, this would be the first statement *past* the
+    // prologue.
+
     assert(module);
     assert(cu);
 
