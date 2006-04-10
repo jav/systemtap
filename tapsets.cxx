@@ -955,7 +955,7 @@ dwflpp
 
         if (sess.verbose>2)
           clog << "prologue searching function '" << func->name << "'"
-               << " 0x" << hex << entrypc << dec
+               << " 0x" << hex << entrypc << "-0x" << highpc << dec
                << "@" << func->decl_file << ":" << func->decl_line
                << "\n";
 
