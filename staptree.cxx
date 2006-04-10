@@ -1,5 +1,5 @@
 // parse tree functions
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -388,7 +388,11 @@ print_format::components_to_string(vector<format_component> const & components)
 	    oss << '.' << i->precision;
 
 	  switch (i->type)	
-	    {	  
+	    {
+	    case conv_binary:
+	      oss << "b";
+	      break;
+
 	    case conv_signed_decimal:
 	      oss << "lld";
 	      break;
@@ -417,6 +421,10 @@ print_format::components_to_string(vector<format_component> const & components)
 	      oss << 's';
 	      break;
 	      
+	    case conv_size:
+	      oss << 'n';
+	      break;
+
 	    default:
 	      break;
 	    }
@@ -441,7 +449,7 @@ print_format::string_to_components(string const & str)
 	{
 	  assert (curr.type == conv_unspecified || curr.type == conv_literal);
 	  curr.type = conv_literal;
-	  curr.literal_string += *i;	      
+	  curr.literal_string += *i;
 	  ++i;
 	  continue;
 	}
@@ -500,7 +508,7 @@ print_format::string_to_components(string const & str)
 	  curr.flags |= static_cast<unsigned long>(fmt_flag_special);
 	  ++i;
 	  break;
-	  
+
 	default:
 	  break;
 	}
@@ -538,6 +546,10 @@ print_format::string_to_components(string const & str)
       switch (*i)
 	{
 	  // Valid conversion types
+	case 'b':
+	  curr.type = conv_binary;
+	  break;
+	  
 	case 's':
 	  curr.type = conv_string;
 	  break;
@@ -566,6 +578,10 @@ print_format::string_to_components(string const & str)
 	case 'x':
 	  curr.type = conv_unsigned_lowercase_hex;
 	  break;
+
+	case 'n':
+	  curr.type = conv_size;
+	  break;
 	  
 	default:
 	  break;
@@ -575,7 +591,7 @@ print_format::string_to_components(string const & str)
 	throw parse_error("invalid or missing conversion specifier");
       
       ++i;
-      res.push_back(curr);      
+      res.push_back(curr);
       curr.clear();      
     }
 

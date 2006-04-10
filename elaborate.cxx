@@ -2247,7 +2247,8 @@ typeresolution_info::visit_print_format (print_format* e)
 	  if (e->components[i].type == print_format::conv_unspecified)
 	    throw semantic_error ("Unspecified conversion in print operator format string",
 				  e->tok);
-	  else if (e->components[i].type == print_format::conv_literal)
+	  else if (e->components[i].type == print_format::conv_literal 
+		   || e->components[i].type == print_format::conv_size)
 	    continue;
 	  components.push_back(e->components[i]);
 	}
@@ -2267,9 +2268,9 @@ typeresolution_info::visit_print_format (print_format* e)
 
 	  switch (components[i].type)
 	    {
-
 	    case print_format::conv_unspecified:
 	    case print_format::conv_literal:
+	    case print_format::conv_size:
 	      assert (false);
 	      break;
 
@@ -2279,6 +2280,7 @@ typeresolution_info::visit_print_format (print_format* e)
 	    case print_format::conv_unsigned_ptr:
 	    case print_format::conv_unsigned_uppercase_hex:
 	    case print_format::conv_unsigned_lowercase_hex:
+	    case print_format::conv_binary:
 	      wanted = pe_long;
 	      break;
 

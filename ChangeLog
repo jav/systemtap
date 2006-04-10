@@ -1,3 +1,20 @@
+2006-04-09  Martin Hunt  <hunt@redhat.com>
+	Add binary printf support.
+	
+	* elaborate.cxx (visit_print_format): Don't include
+	conv_literal or conv_size  in components vector.
+	Add conv_binary to switch statement.
+	
+	* translate.cxx (visit_print_format): Eliminate
+	special cast to (long long) for pe_long because new
+	vsnprintf uses int64_t.
+
+	* staptree.h (struct print_format): Add conv_binary and conv_size.
+
+	* staptree.cxx (components_to_string): Add conv_binary case.
+	Add conv_size case.
+	(string_to_components): Add cases for 'b' and 'n'
+
 2006-04-08  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (resolve_prologue_endings): Rewrote.

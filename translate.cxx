@@ -3516,21 +3516,7 @@ c_unparser::visit_print_format (print_format* e)
       o->line() << lex_cast_qstring(print_format::components_to_string(components));
 
       for (unsigned i = 0; i < tmp.size(); ++i)
-	{
-	  // We must cast our pe_long type (which is int64_t) to "long
-	  // long" here, because the format string type we are using
-	  // is %ll. We use this format string because, at the back
-	  // end of vsnprintf, linux actually implements it using the
-	  // "long long" type as well, not a particular 32 or 64 bit
-	  // width, and it *also* fails to provide any inttype.h-like
-	  // macro machinery to figure out how many bits exist in a
-	  // long long. Using %ll and always casting the argument is
-	  // the most portable target-sensitive solution.
-	  if (tmp[i].type() == pe_long)
-	    o->line() << ", ((long long)(" << tmp[i].qname() << "))";
-	  else
-	    o->line() << ", " << tmp[i].qname();
-	}
+	o->line() << ", " << tmp[i].qname();
       o->line() << ");";
       o->newline() << res.qname() << ";";
     }
