@@ -21,13 +21,13 @@ The following sections enumerate the variety of probe points supported
 by the systemtap translator, and additional aliases defined by
 standard tapset scripts.
 .PP
-The general probe point syntax is a "dotted-functor" sequence.  This
+The general probe point syntax is a dotted-symbol sequence.  This
 allows a breakdown of the event namespace into parts, somewhat like
 the Domain Name System does on the Internet.  Each component
-identifier may be parametrized by a string or number literal.  A
-component part name may be replaced by a "*" character, to expand to
-other matching probe points.  These are all syntactically valid probe
-points:
+identifier may be parametrized by a string or number literal, with a
+syntax like a function call.  A component may be replaced by a "*"
+character, to expand to other matching probe points.  These are all
+syntactically valid probe points:
 .SAMPLE
 kernel.function("foo").return
 syscall(22)
