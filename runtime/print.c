@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -14,6 +14,7 @@
 #include <linux/config.h>
 #include "string.h"
 #include "io.c"
+#include "vsprintf.c"
 
 /** @file print.c
  * Printing Functions.
@@ -55,7 +56,7 @@ void _stp_print_flush (void)
 	if (len == 0)
 		return;
 
-	ret =_stp_transport_write(buf, len + 1);
+	ret =_stp_transport_write(buf, len);
 	if (unlikely(ret < 0)) {
 #if 0
 		if (!atomic_read(&_stp_transport_failures))

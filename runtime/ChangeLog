@@ -1,3 +1,14 @@
+2006-04-09  Martin Hunt  <hunt@redhat.com>
+
+	* print.c (_stp_print_flush): Send 'len" bytes
+	instead of 'len+1', which included terminating 0.
+
+	* string.c (_stp_sprintf): Call _stp_vsnprintf()
+	instead of vsnprintf().
+	(_stp_vsprintf): Ditto.
+
+	* vsprintf.c: New file.
+
 2006-04-05  Will Cohen  <wcohen@redhat.com>
 
 	* string.h (__stp_stdout): Correct initialization.

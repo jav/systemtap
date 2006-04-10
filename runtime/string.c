@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * String Functions
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -63,7 +63,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
 		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
 		va_start(args, fmt);
-		num = vsnprintf(buf, size, fmt, args);
+		num = _stp_vsnprintf(buf, size, fmt, args);
 		va_end(args);
 		if (unlikely(num >= size)) { 
 			/* overflowed the buffer */
@@ -83,7 +83,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 
 	} else {
 		va_start(args, fmt);
-		num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
+		num = _stp_vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
 		va_end(args);
 		if (likely(num > 0))
 			str->len += num;
@@ -101,7 +101,7 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 		int cpu = smp_processor_id();
 		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
 		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
-		num = vsnprintf(buf, size, fmt, args);
+		num = _stp_vsnprintf(buf, size, fmt, args);
 		if (num < size)
 			_stp_pbuf_len[cpu] += num;
 		else {
@@ -109,7 +109,7 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 			_stp_print_flush();
 		}
 	} else {
-		num = vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
+		num = _stp_vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
 		if (num > 0)
 			str->len += num;
 	}
