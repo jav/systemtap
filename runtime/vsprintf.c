@@ -386,4 +386,15 @@ int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 	return (i >= size) ? (size - 1) : i;
 }
 
+int _stp_snprintf(char *buf, size_t size, const char *fmt, ...)
+{
+        va_list args;
+        int i;
+
+        va_start(args, fmt);
+        i=_stp_vsnprintf(buf,size,fmt,args);
+        va_end(args);
+        return i;
+}
+
 #endif /* _VSPRINTF_C_ */

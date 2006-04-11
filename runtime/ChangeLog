@@ -1,5 +1,7 @@
 2006-04-10  Martin Hunt  <hunt@redhat.com>
 
+	* vsprintf.c (_stp_snprintf): New function.
+
 	* stat-common.c (_stp_stat_print_histogram): Write a 
 	newline at the end of the histogram.
 
