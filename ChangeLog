@@ -1,3 +1,8 @@
+2006-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (visit_print_format): Call
+	_stp_snprintf() instead of snprintf().
+
 2006-04-09  Martin Hunt  <hunt@redhat.com>
 	Add binary printf support.
 	

@@ -3511,7 +3511,7 @@ c_unparser::visit_print_format (print_format* e)
 	  o->newline() << "_stp_printf (";
 	}
       else
-	o->newline() << "snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
+	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
 
       o->line() << lex_cast_qstring(print_format::components_to_string(components));
 
