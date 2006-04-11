@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -133,9 +133,11 @@ static int _stp_write (int type, void *data, int len)
 	spin_lock(&_stp_ready_lock);
 	if (!list_empty(&_stp_ready_q)) {
 		bptr = (struct _stp_buffer *)_stp_ready_q.prev;
-		if (bptr->len + len <= STP_BUFFER_SIZE && type == STP_REALTIME_DATA && bptr->type == type) {
-			memcpy (bptr->buf + bptr->len - 1, data, len);
-			bptr->len += len - 1;
+		if (bptr->len + len <= STP_BUFFER_SIZE 
+		    && type == STP_REALTIME_DATA 
+		    && bptr->type == STP_REALTIME_DATA) {
+			memcpy (bptr->buf + bptr->len, data, len);
+			bptr->len += len;
 			spin_unlock(&_stp_ready_lock);
 			return len;
 		}
@@ -172,6 +174,8 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 	struct _stp_buffer *bptr;
 	int len;
 	unsigned long flags;
+
+	/* FIXME FIXME FIXME. assuming count is large enough to hold buffer!! */
 
 	/* wait for nonempty ready queue */
 	spin_lock_irqsave(&_stp_ready_lock, flags);
