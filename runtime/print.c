@@ -72,12 +72,12 @@ void _stp_print_flush (void)
 #else /* STP_RELAYFS */
 
 /* size of timestamp, in bytes, including space */
-#define TIMESTAMP_SIZE (sizeof(int))
-#define STP_PRINT_BUF_START (TIMESTAMP_SIZE)
+#define STP_TIMESTAMP_SIZE (sizeof(int))
+#define STP_PRINT_BUF_START (STP_TIMESTAMP_SIZE)
 
 /** Size of buffer, not including terminating NULL */
 #ifndef STP_PRINT_BUF_LEN
-#define STP_PRINT_BUF_LEN (8192 - TIMESTAMP_SIZE - 1)
+#define STP_PRINT_BUF_LEN (8192 - STP_TIMESTAMP_SIZE - 1)
 #endif
 
 static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
@@ -99,7 +99,7 @@ void _stp_print_flush (void)
 		return;
 
 	*((int *)buf) = _stp_seq_inc();
-	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + TIMESTAMP_SIZE + 1);
+	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + STP_TIMESTAMP_SIZE + 1);
 	if (unlikely(ret < 0)) {
 #if 0
 		if (!atomic_read(&_stp_transport_failures))

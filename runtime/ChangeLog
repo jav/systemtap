@@ -1,3 +1,8 @@
+2006-04-11  Tom Zanussi  <zanussi@us.ibm.com>
+
+	* print.c (_stp_print_flush): Change TIMESTAMP_SIZE to
+	STP_TIMESTAMP_SIZE to avoid conflicts with Suse kernels.
+
 2006-04-10  Martin Hunt  <hunt@redhat.com>
 
 	* string.c (_stp_string_cat_cstr): No need to copy
