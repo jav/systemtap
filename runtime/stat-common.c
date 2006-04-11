@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * common stats functions for aggragations and maps
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -153,7 +153,6 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	_stp_print_cstr("value |");
 	reprint (HIST_WIDTH, "-");
 	_stp_print_cstr (" count\n");
-	_stp_print_flush();
 	if (st->type == HIST_LINEAR)
 		val = st->start;
 	else
@@ -179,6 +178,8 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		else
 			val *= 2;
 	}
+	_stp_print_cstr ("\n");
+	_stp_print_flush();
 }
 
 static void _stp_stat_print_valtype (char *fmt, Hist st, stat *sd, int cpu)

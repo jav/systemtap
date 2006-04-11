@@ -1,3 +1,8 @@
+2006-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* stat-common.c (_stp_stat_print_histogram): Write a 
+	newline at the end of the histogram.
+
 2006-04-09  Martin Hunt  <hunt@redhat.com>
 
 	* print.c (_stp_print_flush): Send 'len" bytes
