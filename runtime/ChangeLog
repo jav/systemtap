@@ -1,5 +1,8 @@
 2006-04-10  Martin Hunt  <hunt@redhat.com>
 
+	* string.c (_stp_string_cat_cstr): No need to copy
+	terminating 0.
+
 	* vsprintf.c (_stp_snprintf): New function.
 
 	* stat-common.c (_stp_stat_print_histogram): Write a 

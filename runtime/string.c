@@ -134,7 +134,7 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 				num = STP_PRINT_BUF_LEN;
 		}
 		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-		memcpy (buf, str2, num + 1);
+		memcpy (buf, str2, num);
 		_stp_pbuf_len[cpu] += num;
 	} else {
 		int size = STP_STRING_SIZE - str1->len - 1; 
