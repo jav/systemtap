@@ -1,0 +1,47 @@
+function big_endian2:long (val:long) %{
+#ifdef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab16(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val & 0xffff;
+#endif
+%}
+
+function big_endian4:long (val:long) %{
+#ifdef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab32(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val & 0xffffffff;
+#endif
+%}
+
+function big_endian8:long (val:long) %{
+#ifdef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab64(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val;
+#endif
+%}
+
+function little_endian2:long (val:long) %{
+#ifndef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab16(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val & 0xffff;
+#endif
+%}
+
+function little_endian4:long (val:long) %{
+#ifndef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab32(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val & 0xffffffff;
+#endif
+%}
+
+function little_endian8:long (val:long) %{
+#ifndef __LITTLE_ENDIAN
+	 THIS->__retvalue = swab64(THIS->val);
+#else
+	 THIS->__retvalue = THIS->val;
+#endif
+%}
