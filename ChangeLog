@@ -1,3 +1,9 @@
+2006-04-12  Martin Hunt  <hunt@redhat.com>
+	PR 2497	 
+	* translate.cxx (translate_pass): Don't
+	reset STP_STRING_SIZE if it was already defined.
+	Set it to 1024 by default.
+
 2006-04-10  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (visit_print_format): Call

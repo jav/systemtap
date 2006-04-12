@@ -3760,7 +3760,11 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#endif";
 
       // impedance mismatch
-      s.op->newline() << "#define STP_STRING_SIZE MAXSTRINGLEN";
+      // STP_STRING_SIZE defines the size of the buffer 
+      // used in stack traces.
+      s.op->newline() << "#ifndef STP_STRING_SIZE";
+      s.op->newline() << "#define STP_STRING_SIZE 1024";
+      s.op->newline() << "#endif";
       s.op->newline() << "#define STP_NUM_STRINGS 1";
 
       if (s.bulk_mode)
