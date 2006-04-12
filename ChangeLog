@@ -1,3 +1,8 @@
+2006-04-12  Tom Zanussi  <zanussi@us.ibm.com>
+	PR 2538
+	* buildrun.cxx (compile_pass): Remove space
+	between -I and runtime path.
+
 2006-04-12  Martin Hunt  <hunt@redhat.com>
 	PR 2497	 
 	* translate.cxx (translate_pass): Don't

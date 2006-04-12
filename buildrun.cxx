@@ -72,7 +72,7 @@ compile_pass (systemtap_session& s)
 
   // Assumes linux 2.6 kbuild
   o << "CFLAGS += -Wno-unused -Werror" << endl;
-  o << "CFLAGS += -I \"" << s.runtime_path << "\"" << endl;
+  o << "CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
   o << "obj-m := " << s.module_name << ".o" << endl;
 
   o.close ();
