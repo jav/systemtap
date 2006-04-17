@@ -3506,8 +3506,15 @@ mark_derived_probe::emit_registrations (translator_output * o, unsigned i)
   o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
                 << address << "UL;";
 
+  o->newline() << "#if __HAVE_ARCH_CMPXCHG";
+  o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
+  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << i << ";";
+  o->newline() << "unsigned long oldval = cmpxchg (fnpp, 0, fnp);";
+  o->newline() << "if (oldval != 0) rc = 1;"; // XXX: could retry a few times
+  o->newline() << "#else";
   // XXX: need proper synchronization for concurrent registration attempts
   o->newline() << "if (*fn == 0) *fn = & enter_" << i << ";";
+  o->newline() << "#endif";
   o->newline() << "mb ();";
   o->newline() << "if (*fn != & enter_" << i << ") rc = 1;";
 
@@ -3523,7 +3530,14 @@ mark_derived_probe::emit_deregistrations (translator_output * o, unsigned i)
   o->newline() << "{";
   o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
                 << address << "UL;";
+  o->newline() << "#if __HAVE_ARCH_CMPXCHG";
+  o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
+  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << i << ";";
+  o->newline() << "unsigned long oldval = cmpxchg (fnpp, fnp, 0);";
+  o->newline() << "if (oldval != fnp) ;"; // XXX: should not happen
+  o->newline() << "#else";
   o->newline(0) << "*fn = 0;";
+  o->newline() << "#endif";
   o->newline(-1) << "}";
 }
 
