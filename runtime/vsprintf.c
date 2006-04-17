@@ -1,5 +1,5 @@
 /* -*- linux-c -*-
- * vsnprintf
+ * vsprintf.c
  * Copyright (C) 2006 Red Hat Inc.
  * Based on code from the Linux kernel
  * Copyright (C) 1991, 1992  Linus Torvalds
@@ -11,6 +11,9 @@
  */
 #ifndef _VSPRINTF_C_
 #define _VSPRINTF_C_
+
+enum endian {STP_NATIVE=0, STP_LITTLE, STP_BIG};
+static enum endian _stp_endian = STP_NATIVE;
 
 static int skip_atoi(const char **s)
 {
@@ -202,32 +205,52 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 
 		switch (*fmt) {
 		case 'b':
-		  num = va_arg(args, int64_t);
-		     switch(field_width) {
-		     case 1:
-			  if(str <= end)
-			       *(int8_t *)str = (int8_t)num;
-			  ++str;
-			  break;
-		     case 2:
-			  if((str + 1) <= end)
-			       *(int16_t *)str = (int16_t)num;
-			  str+=2;
-			  break;
-		     case 8:
-			  if((str + 7) <= end)
-			       *(int64_t *)str = num;
-			  str+=8;
-			  break;
-		     case 4:
-		     default: // "%4b" by default
-			  if((str + 3) <= end)
-			       *(int32_t *)str = num;
-			  str+=4;
-			  break;
-		     }
-		     continue;
-		     
+			num = va_arg(args, int64_t);
+			switch(field_width) {
+			case 1:
+				if(str <= end)
+					*(int8_t *)str = (int8_t)num;
+				++str;
+				break;
+			case 2:
+				if (_stp_endian != STP_NATIVE) {
+					if (_stp_endian == STP_BIG)
+						num = cpu_to_be16(num);
+					else
+						num = cpu_to_le16(num);						
+				}
+				if((str + 1) <= end)
+					*(int16_t *)str = (int16_t)num;
+				str+=2;
+				break;
+			case 8:
+				if (_stp_endian != STP_NATIVE) {
+					if (_stp_endian == STP_BIG)
+						num = cpu_to_be64(num);
+					else
+						num = cpu_to_le64(num);						
+				}
+
+				if((str + 7) <= end)
+					*(int64_t *)str = num;
+				str+=8;
+				break;
+			case 4:
+			default: // "%4b" by default
+				if (_stp_endian != STP_NATIVE) {
+					if (_stp_endian == STP_BIG)
+						num = cpu_to_be32(num);
+					else
+						num = cpu_to_le32(num);						
+				}
+
+				if((str + 3) <= end)
+					*(int32_t *)str = num;
+				str+=4;
+				break;
+			}
+			continue;
+			
 		case 's':
 			s = va_arg(args, char *);
 			if ((unsigned long)s < PAGE_SIZE)
