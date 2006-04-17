@@ -1,3 +1,7 @@
+2006-04-17  Martin Hunt  <hunt@redhat.com>
+
+	* endian.stp (set_endian): New function.
+
 2006-03-06  Martin Hunt  <hunt@redhat.com>
 
 	* system.stp: New tapset. 

@@ -6,9 +6,10 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-// send a string out with a newline
+// Write a message to the console (actually stderr). A newline is appended 
+// if the string does not end in one.
 function log (msg:string) %{
-    _stp_printf ("%s\n", THIS->msg);
+    _stp_log (THIS->msg);
 %}
 
 function warn (msg:string) %{
