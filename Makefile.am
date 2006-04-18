@@ -78,7 +78,8 @@ install-data-local:
 	tar -cf - --mode=644 $(srcdir)/runtime/transport/*.[ch] | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
 	tar -cf - --mode=644 $(srcdir)/runtime/relayfs/*.[ch] $(srcdir)/runtime/relayfs/linux/*.h \
 		| (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
-	tar -cf - --mode=644 $(srcdir)/tapset/*.stp | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
+	tar -cf - --mode=644 $(srcdir)/tapset/*.stp $(srcdir)/tapset/*/*.stp  \
+		| (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
