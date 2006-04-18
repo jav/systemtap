@@ -1,3 +1,10 @@
+2006-04-18  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (install-data-local): Rewrite. Set
+	ownership and permissions for all files and directories
+	under runtime and tapset. Restrict files to source code.
+	* Makefile.in: Rebuilt.
+	
 2006-04-18  Eugene Teo  <eteo@redhat.com>
 
 	PR 1341

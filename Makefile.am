@@ -74,21 +74,11 @@ dist-hook:
 
 install-data-local:
 	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
-	cp -rp $(srcdir)/runtime/*.[ch] $(srcdir)/runtime/Doxyfile \
-	       $(DESTDIR)$(pkgdatadir)/runtime
-	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
-	    -C $(srcdir)/runtime probes \
-	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
-	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
-	    -C $(srcdir)/runtime transport \
-	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
-	tar -f - -c --exclude=CVS --exclude='*~' --exclude='.#*' \
-	    -C $(srcdir)/runtime relayfs \
-	| (cd $(DESTDIR)$(pkgdatadir)/runtime && tar xpf -)
-	mkdir -p $(DESTDIR)$(pkgdatadir)/tapset \
-	$(DESTDIR)$(pkgdatadir)/tapset/i686 \
-	$(DESTDIR)$(pkgdatadir)/tapset/x86_64
-	(cd $(srcdir)/tapset ; find . -name '*.stp' | cpio -pdmv $(DESTDIR)$(pkgdatadir)/tapset)
+	tar -cf - --mode=644 $(srcdir)/runtime/*.[ch] | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
+	tar -cf - --mode=644 $(srcdir)/runtime/transport/*.[ch] | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
+	tar -cf - --mode=644 $(srcdir)/runtime/relayfs/*.[ch] $(srcdir)/runtime/relayfs/linux/*.h \
+		| (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
+	tar -cf - --mode=644 $(srcdir)/tapset/*.stp | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
