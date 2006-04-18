@@ -1,3 +1,7 @@
+2006-04-18  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (install-data-local): Another try.
+
 2006-04-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2220
@@ -10,6 +14,7 @@
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (install-data-local): Tweak previous fix.
+	(install-data-local): 
 
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 

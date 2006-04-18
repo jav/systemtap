@@ -73,13 +73,14 @@ dist-hook:
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 
 install-data-local:
-	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport
-	tar -cf - --mode=644 $(srcdir)/runtime/*.[ch] | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
-	tar -cf - --mode=644 $(srcdir)/runtime/transport/*.[ch] | (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
-	tar -cf - --mode=644 $(srcdir)/runtime/relayfs/*.[ch] $(srcdir)/runtime/relayfs/linux/*.h \
-		| (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
-	tar -cf - --mode=644 $(srcdir)/tapset/*.stp $(srcdir)/tapset/*/*.stp  \
-		| (cd $(DESTDIR)$(pkgdatadir) && tar xopf -)
+#	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport $(DESTDIR)$(pkgdatadir)/runtime/relayfs $(DESTDIR)$(pkgdatadir)/tapset
+	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
+	(cd $(srcdir)/runtime/transport; for f in *.[ch]; \
+		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
+	(cd $(srcdir)/runtime/relayfs; find . -name '*.[ch]' -print \
+		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/relayfs/$$f; done)
+	(cd $(srcdir)/tapset; find . -name '*.stp' -print \
+		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
 
 p=$(srcdir)/testsuite/parse
 s=$(srcdir)/testsuite/sem
