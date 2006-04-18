@@ -275,14 +275,18 @@ main (int argc, char * const argv [])
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
   {
-    char tmpdirt[] = "/tmp/stapXXXXXX";
-    const char* tmpdir = mkdtemp (tmpdirt);
+    char* tmpdir_env = getenv("TMPDIR");
+    if (! tmpdir_env)
+      tmpdir_env = "/tmp";
+    
+    string stapdir = "/stapXXXXXX";
+    string tmpdirt = tmpdir_env + stapdir;
+    const char* tmpdir = mkdtemp((char *)tmpdirt.c_str());
     if (! tmpdir)
       {
         const char* e = strerror (errno);
-        cerr << "mkdtemp (\"" << tmpdir << "\"): " << e << endl;
-        s.tmpdir = "";
-        rc = 1;
+        cerr << "ERROR: cannot create temporary directory (\"" << tmpdirt << "\"): " << e << endl;
+        exit (1); // die
       }
     else
       s.tmpdir = tmpdir;

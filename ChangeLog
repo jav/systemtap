@@ -1,3 +1,8 @@
+2006-04-18  Eugene Teo  <eteo@redhat.com>
+
+	PR 1341
+	* main.cxx (main): Use TMPDIR instead of hard-coded /tmp.
+
 2006-04-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (mark_derived_probe::emit_{de}registrations):
