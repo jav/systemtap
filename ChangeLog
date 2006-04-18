@@ -1,3 +1,12 @@
+2006-04-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2220
+	* translate.cxx (visit_statement): Tolerate 0 first argument.
+	(visit_for_loop, visit_foreach_loop): Call it thusly for condition
+	expression.
+	(visit_embededcode, visit_block, visit_null_statement): Don't
+	call visit_statement() at all.
+
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (install-data-local): Tweak previous fix.

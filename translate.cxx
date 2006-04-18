@@ -1834,19 +1834,23 @@ void
 c_unparser::visit_statement (statement *s, unsigned actions)
 {
   // For some constructs, it is important to avoid an error branch
-  // right to the bottom of the probe/function.  The foreach() locking
-  // construct is one example.  Instead, if we are nested within a
-  // loop, we branch merely to its "break" label.  The next statement
-  // will branch one level higher, and so on, until we can go straight
-  // "out".
+  // right to the bottom of the probe/function.  The foreach()
+  // iteration construct is one example.  Instead, if we are nested
+  // within a loop, we branch merely to its "break" label.  The next
+  // statement will branch one level higher, and so on, until we can
+  // go straight "out".
   string outlabel = "out";
   unsigned loops = loop_break_labels.size();
   if (loops > 0)
     outlabel = loop_break_labels[loops-1];
 
-  o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
-  assert (s->tok);
-  o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
+  if (s)
+    {
+      o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
+      assert (s->tok);
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
+    }
+
   if (actions > 0)
     {
       o->newline() << "c->actioncount += " << actions << ";";
@@ -1864,7 +1868,13 @@ c_unparser::visit_block (block *s)
 {
   o->newline() << "{";
   o->indent (1);
-  visit_statement (s, 0);
+
+  // visit_statement (s, 0);
+  //
+  // NB: this is not necessary, since the last_error can be handled
+  // just as easily by the first real body statement, and the
+  // last_stmt won't be used since this nesting structure cannot
+  // itself cause an error.
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
@@ -1885,7 +1895,12 @@ c_unparser::visit_block (block *s)
 void
 c_unparser::visit_embeddedcode (embeddedcode *s)
 {
-  visit_statement (s, 1);
+  // visit_statement (s, 1); 
+  //
+  // NB: this is not necessary, since this can occur only at the top
+  // level of a function (so no errors can be pending), and the
+  // action-count is already incremented at the point of call.
+
   o->newline() << "{";
   o->newline(1) << s->code;
   o->newline(-1) << "}";
@@ -1895,7 +1910,12 @@ c_unparser::visit_embeddedcode (embeddedcode *s)
 void
 c_unparser::visit_null_statement (null_statement *s)
 {
-  visit_statement (s, 0);
+  // visit_statement (s, 0);
+  //
+  // NB: this is not necessary, since the last_error can be handled just as
+  // easily by the next statement, and the last_stmt won't be used since this
+  // statement cannot cause an error.
+
   o->newline() << "/* null */;";
 }
 
@@ -1976,7 +1996,14 @@ c_unparser::visit_for_loop (for_loop *s)
 
   // condition
   o->newline(-1) << toplabel << ":";
-  o->newline(1) << "if (! (";
+
+  // Emit an explicit actioncount increment here to cover the act of
+  // iteration.  Equivalently, it can stand for the evaluation of the
+  // condition expression.
+  o->indent(1);
+  visit_statement (0, 1);
+
+  o->newline() << "if (! (";
   if (s->cond->type != pe_long)
     throw semantic_error ("expected numeric type", s->cond->tok);
   s->cond->visit (this);
@@ -2141,7 +2168,14 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       
       // condition
       o->newline(-1) << toplabel << ":";
-      o->newline(1) << "if (! (" << iv << ")) goto " << breaklabel << ";";
+
+      // Emit an explicit actioncount increment here to cover the act of
+      // iteration.  Equivalently, it can stand for the evaluation of the
+      // condition expression.
+      o->indent(1);
+      visit_statement (0, 1);
+
+      o->newline() << "if (! (" << iv << ")) goto " << breaklabel << ";";
       
       // body
       loop_break_labels.push_back (breaklabel);
