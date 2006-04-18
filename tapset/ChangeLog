@@ -1,3 +1,7 @@
+2006-04-18  Martin Hunt  <hunt@redhat.com>
+
+	* conversions.stp (user_string): Reenable error message.
+
 2006-04-17  Martin Hunt  <hunt@redhat.com>
 
 	* endian.stp (set_endian): New function.
