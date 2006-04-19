@@ -210,11 +210,7 @@ obj-m := bench.o
     end	
     puts "SystemTap BENCH2 \t" + `date`
     puts "kernel: " + `uname -r`.strip + " " + `uname -m`.strip
-    begin
-      puts IO.read("/etc/redhat-release")
-    rescue
-    end
-
+    puts IO.read("/etc/redhat-release") if File.exists?("/etc/redhat-release")
     puts `uname -n`.strip + ": " + `uptime`
     puts "processors: #{nproc} #{cpuinfo}"
 
@@ -255,7 +251,13 @@ class Stapbench < Bench
     # we do this in several steps because the compilation phase can take a long time
     args = "-kvvp4"
     if @trans == RELAYFS then args = "-bkvvp4" end
-    `stap #{args} -m bench bench.stp &> stap.out`
+    res = `stap #{args} -m bench bench.stp &> stap.out`
+    if $? != 0
+      puts "ERROR running stap\n#{res}"
+      puts IO.read("stap.out") if File.exists?("stap.out")
+      cleanup
+      exit
+    end
     IO.foreach("stap.out") {|line| @dir = line if line =~ /Created temporary directory/} 
     @dir = @dir.match(/"([^"]*)/)[1]
     if !File.exist?("#{@dir}/bench.ko")
