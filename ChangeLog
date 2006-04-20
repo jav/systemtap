@@ -1,3 +1,9 @@
+2006-04-19  Eugene Teo  <eteo@redhat.com>
+
+	PR 2014
+	* parse.cxx (lexer::scan): Added \[0-7]* case to preserve
+	octal escape sequences.
+
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (install-data-local): Another try.

@@ -553,13 +553,11 @@ lexer::scan ()
 		case 'v':
 		case 'f':
 		case 'r':
+		case '0' ... '7': // NB: need only match the first digit
 		case '\\':
 
 		  // Pass these escapes through to the string value
-		  // beign parsed; it will "likely" be emitted into 
-		  // a C literal. 
-		  //
-		  // XXX: verify this assumption.
+		  // beign parsed; it will be emitted into a C literal. 
 
 		  n->content.push_back('\\');
 
