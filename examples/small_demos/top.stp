@@ -7,7 +7,7 @@ global syscalls
 
 function print_top () {
 	cnt=0
-	log ("SYSCALL\t\t\t\tCOUNT")
+	printf ("SYSCALL\t\t\t\tCOUNT\n")
 	foreach ([name] in syscalls-) {
 		printf("%-20s\t\t%5d\n",name, syscalls[name])
 		if (cnt++ == 20)
