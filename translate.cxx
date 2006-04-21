@@ -813,11 +813,12 @@ c_unparser::emit_common_header ()
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "union {";
   o->indent(1);
-  // XXX: this handles only scalars!
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
       derived_probe* dp = session->probes[i];
+      
+      // XXX: probe locals need not be recursion-nested, only function locals
       o->newline() << "struct probe_" << i << "_locals {";
       o->indent(1);
       for (unsigned j=0; j<dp->locals.size(); j++)
@@ -835,7 +836,8 @@ c_unparser::emit_common_header ()
         }
       c_tmpcounter ct (this);
       dp->body->visit (& ct);
-      o->newline(-1) << "} probe_" << i << ";";
+      dp->emit_probe_context_vars (o);
+      o->newline(-1) << "} " << dp->name << ";";
     }
 
   for (unsigned i=0; i<session->functions.size(); i++)
@@ -980,7 +982,7 @@ c_unparser::emit_module_init ()
       o->newline() << "int rc = 0;";
       o->newline() << "const char *probe_point = " <<
         lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
-      session->probes[i]->emit_registrations (o, i);
+      session->probes[i]->emit_registrations (o);
 
       o->newline() << "if (unlikely (rc)) {";
       // In case it's just a lower-layer (kprobes) error that set rc
@@ -998,7 +1000,7 @@ c_unparser::emit_module_init ()
       o->newline();
       o->newline() << "noinline void unregister_probe_" << i << " (void) {";
       o->indent(1);
-      session->probes[i]->emit_deregistrations (o, i);
+      session->probes[i]->emit_deregistrations (o);
       o->newline(-1) << "}";
     }
 
@@ -1214,7 +1216,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
 
   // initialize frame pointer
   o->newline() << "struct probe_" << i << "_locals * __restrict__ l =";
-  o->newline(1) << "& c->locals[c->nesting].probe_" << i << ";";
+  o->newline(1) << "& c->locals[0]." << v->name << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
   // emit all read/write locks for global variables
@@ -1251,7 +1253,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   this->current_probe = 0;
   this->current_probenum = 0; // not essential
 
-  v->emit_probe_entries (o, i);
+  v->emit_probe_entries (o);
 }
 
 
@@ -1311,7 +1313,7 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
   unsigned numvars = 0;
 
   if (session->verbose>1)
-    clog << "Probe #" << current_probenum << " locks ";
+    clog << current_probe->name << " locks ";
 
   for (int i = session->globals.size()-1; i>=0; i--) // in reverse order!
     {

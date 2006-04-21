@@ -39,9 +39,13 @@ lex_cast(IN const & in)
 // ------------------------------------------------------------------------
 
 
+unsigned derived_probe::last_probeidx = 0;
+
 derived_probe::derived_probe (probe *p):
   base (p)
 {
+  this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
+
   if (p)
     {
       this->locations = p->locations;  
@@ -54,8 +58,11 @@ derived_probe::derived_probe (probe *p):
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
+  this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
+
   if (l)
     this->locations.push_back (l);
+
   if (p)
     {
       this->tok = p->tok;

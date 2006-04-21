@@ -67,9 +67,13 @@ compile_pass (systemtap_session& s)
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
 
-  // XXX
-  // o << "CFLAGS += -ftime-report" << endl;
+  if (s.verbose > 2)
+    o << "CFLAGS += -ftime-report -Q" << endl;
 
+  o << "CFLAGS += -freorder-blocks" << endl; // improve on -Os
+
+  // o << "CFLAGS += -fno-unit-at-a-time" << endl;
+    
   // Assumes linux 2.6 kbuild
   o << "CFLAGS += -Wno-unused -Werror" << endl;
   o << "CFLAGS += -I\"" << s.runtime_path << "\"" << endl;

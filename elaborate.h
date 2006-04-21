@@ -112,20 +112,23 @@ struct derived_probe: public probe
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
 
+private:
+  static unsigned last_probeidx;
+
+public:
+  std::string name;
+
   virtual ~derived_probe () {}
 
-  virtual void emit_registrations (translator_output* o,
-                                   unsigned probeidx) = 0;
+  virtual void emit_registrations (translator_output* o) = 0;
   // (from within module_init):
-  // rc = ..... ENTRYFN ;
+  // rc = ..... register_or_whatever (ENTRYFN);
 
-  virtual void emit_deregistrations (translator_output* o,
-                                     unsigned probeidx) = 0;
+  virtual void emit_deregistrations (translator_output* o) = 0;
   // (from within module_exit):
-  // rc = ..... ENTRYFN ;
+  // (void) ..... unregister_or_whatever (ENTRYFN);
 
-  virtual void emit_probe_entries (translator_output* o,
-                                   unsigned probeidx) = 0;
+  virtual void emit_probe_entries (translator_output* o) = 0;
   // ... for all probe-points:
   // ELABORATE_SPECIFIC_SIGNATURE ENTRYFN {
   //   /* allocate context - probe_prologue */
@@ -134,6 +137,11 @@ struct derived_probe: public probe
   //   /* deallocate context - probe_epilogue */
   // }
 
+  virtual void emit_probe_context_vars (translator_output* o) {}
+  // From within unparser::emit_common_header, add any extra variables
+  // to this probe's context locals.
+
+protected:
   void emit_probe_prologue (translator_output* o, const std::string&);
   void emit_probe_epilogue (translator_output* o);
 };

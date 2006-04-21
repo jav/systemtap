@@ -1,3 +1,20 @@
+2006-04-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 953
+	* elaborate.h (derived_probe): Add field "name".  Stop passing
+	"probe index" to other emit_* calls.
+	(emit_probe_context_vars): New member function.
+	* elaborate.cxx (derived_probe ctor): Generate unique name.
+	* translate.cxx (*): Adapt to index->name.
+	(emit_probe): Realize that probe locals only occur at nesting=0.
+	* tapsets.cxx (*derived_probe::emit_*): Adapt to index->name.
+	(mark_var_expanding_copy_visitor): New class to process $argN.
+	(mark_derived_probe ctor): Call it.
+	(mark_derived_probe::emit_probe_context_vars): Do it.
+	* buildrun.cxx (compile_pass): Add more optional gcc verbosity.
+	Add CFLAGS += -freorder-blocks.
+	* testsuite/buildok/marker.stp: New test.
+
 2006-04-19  Eugene Teo  <eteo@redhat.com>
 
 	PR 2014

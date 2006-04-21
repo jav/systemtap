@@ -156,9 +156,9 @@ struct be_derived_probe: public derived_probe
   be_derived_probe (probe* p, probe_point* l, bool b):
     derived_probe (p, l), begin (b) {}
 
-  void emit_registrations (translator_output* o, unsigned i);
-  void emit_deregistrations (translator_output* o, unsigned i);
-  void emit_probe_entries (translator_output* o, unsigned i);
+  void emit_registrations (translator_output* o);
+  void emit_deregistrations (translator_output* o);
+  void emit_probe_entries (translator_output* o);
 };
 
 
@@ -178,32 +178,32 @@ struct be_builder: public derived_probe_builder
 
 
 void
-be_derived_probe::emit_registrations (translator_output* o, unsigned j)
+be_derived_probe::emit_registrations (translator_output* o)
 {
   if (begin)
     for (unsigned i=0; i<locations.size(); i++)
-      o->newline() << "enter_" << j << "_" << i << " ();";
+      o->newline() << "enter_" << name << "_" << i << " ();";
 }
 
 
 void
-be_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+be_derived_probe::emit_deregistrations (translator_output* o)
 {
   if (!begin)
     for (unsigned i=0; i<locations.size(); i++)
-      o->newline() << "enter_" << j << "_" << i << " ();";
+      o->newline() << "enter_" << name << "_" << i << " ();";
 }
 
 
 void
-be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+be_derived_probe::emit_probe_entries (translator_output* o)
 {
   for (unsigned i=0; i<locations.size(); i++)
     {
       probe_point *l = locations[i];
       o->newline() << "/* location " << i << ": " << *l << " */";
-      o->newline() << "static void enter_" << j << "_" << i << " (void);";
-      o->newline() << "void enter_" << j << "_" << i << " () {";
+      o->newline() << "static void enter_" << name << "_" << i << " (void);";
+      o->newline() << "void enter_" << name << "_" << i << " () {";
 
       // While begin/end probes are executed single-threaded, we
       // still code defensively and use a per-cpu context.
@@ -216,7 +216,7 @@ be_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
                             "STAP_SESSION_STOPPING"));
 
       // NB: locals are initialized by probe function itself
-      o->newline() << "probe_" << j << " (c);";
+      o->newline() << name << " (c);";
 
       emit_probe_epilogue (o);
 
@@ -1537,9 +1537,9 @@ struct dwarf_derived_probe : public derived_probe
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
 
-  virtual void emit_registrations (translator_output * o, unsigned i);
-  virtual void emit_deregistrations (translator_output * o, unsigned i);
-  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  virtual void emit_registrations (translator_output * o);
+  virtual void emit_deregistrations (translator_output * o);
+  virtual void emit_probe_entries (translator_output * o);
 };
 
 // Helper struct to thread through the dwfl callbacks.
@@ -1841,7 +1841,7 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 
   // NB: if for whatever reason this variable does not resolve,
   // or is illegally used (write in non-guru mode for instance),
-  // just pretend that it's OK anyway.  var_expanding_copy_visitor
+  // just pretend that it's OK anyway.  dwarf_var_expanding_copy_visitor
   // will take care of throwing the appropriate exception.
   
   bool lvalue = is_active_lvalue(e);
@@ -2504,23 +2504,27 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 }
 
 
-struct
-var_expanding_copy_visitor
-  : public deep_copy_visitor
+struct var_expanding_copy_visitor: public deep_copy_visitor
 {
   static unsigned tick;
   stack<functioncall**> target_symbol_setter_functioncalls;
 
+  var_expanding_copy_visitor() {}
+  void visit_assignment (assignment* e);
+};
+
+
+struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
+{
   dwarf_query & q;
   Dwarf_Die *scope_die;
   Dwarf_Addr addr;
 
-  var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a)
-    : q(q), scope_die(sd), addr(a)
-  {}
-  void visit_assignment (assignment* e);
+  dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
+    q(q), scope_die(sd), addr(a) {}
   void visit_target_symbol (target_symbol* e);
 };
+
 
 
 unsigned var_expanding_copy_visitor::tick = 0;
@@ -2580,7 +2584,7 @@ var_expanding_copy_visitor::visit_assignment (assignment* e)
 
 
 void
-var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
+dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
@@ -2646,7 +2650,7 @@ var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   functioncall* n = new functioncall;
   n->tok = e->tok;
   n->function = fname;
-  n->referent = NULL;
+  n->referent = 0;  // NB: must not resolve yet, to ensure inclusion in session
 
   if (lvalue)
     {
@@ -2752,7 +2756,7 @@ dwarf_derived_probe::dwarf_derived_probe (Dwarf_Die *scope_die,
     }
 
   // Now make a local-variable-expanded copy of the probe body
-  var_expanding_copy_visitor v (q, scope_die, addr);
+  dwarf_var_expanding_copy_visitor v (q, scope_die, addr);
   require <block*> (&v, &(this->body), q.base_probe->body);
   this->tok = q.base_probe->tok;
 }
@@ -2859,36 +2863,16 @@ dwarf_derived_probe::register_patterns(match_node * root)
   // register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
 
-static string
-function_name(unsigned probenum)
-{
-  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_enter";
-}
-
-static string
-struct_kprobe_array_name(unsigned probenum)
-{
-  return "dwarf_kprobe_" + lex_cast<string>(probenum);
-}
-
-
-static string
-string_array_name(unsigned probenum)
-{
-  return "dwarf_kprobe_" + lex_cast<string>(probenum) + "_location_names";
-}
-
 
 void
-dwarf_derived_probe::emit_registrations (translator_output* o,
-                                         unsigned probenum)
+dwarf_derived_probe::emit_registrations (translator_output* o)
 {
-  string func_name = function_name(probenum);
+  string func_name = "enter_" + name;
   o->newline() << "{";
   o->newline(1) << "int i;";
   o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
   o->indent(1);
-  string probe_name = struct_kprobe_array_name(probenum) + "[i]";
+  string probe_name = string("dwarf_kprobe_") + name + string("[i]");
 
 #if 0
   // XXX: triggers false negatives on RHEL4U2 kernel
@@ -2922,7 +2906,8 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
     }
 
   o->newline() << "if (unlikely (rc)) {";
-  o->newline(1) << "probe_point = " << string_array_name (probenum) << "[i];";
+  o->newline(1) << "probe_point = " << string("dwarf_kprobe_") + name 
+    + string("_location_names[i];");
   o->newline() << "break;";
   o->newline(-1) << "}";
   o->newline(-1) << "}";
@@ -2945,12 +2930,12 @@ dwarf_derived_probe::emit_registrations (translator_output* o,
 
 
 void
-dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned probenum)
+dwarf_derived_probe::emit_deregistrations (translator_output* o)
 {
   o->newline() << "{";
   o->newline(1) << "int i;";
   o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
-  string probe_name = struct_kprobe_array_name(probenum) + "[i]";
+  string probe_name = string("dwarf_kprobe_") + name + string("[i]");
   o->indent(1);
   if (has_return)
     {
@@ -2979,8 +2964,7 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o, unsigned proben
 }
 
 void
-dwarf_derived_probe::emit_probe_entries (translator_output* o,
-                                         unsigned probenum)
+dwarf_derived_probe::emit_probe_entries (translator_output* o)
 {
   static unsigned already_emitted_fault_handler = 0;
 
@@ -3009,8 +2993,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
 
   // Emit arrays of probes and location names.
 
-  string probe_array = struct_kprobe_array_name(probenum);
-  string string_array = string_array_name(probenum);
+  string probe_array = string("dwarf_kprobe_") + name;
+  string string_array = probe_array + "_location_names";
 
   assert(locations.size() == probe_points.size());
 
@@ -3079,7 +3063,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   if (has_return)
     o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
   o->newline() << "static int ";
-  o->newline() << function_name(probenum) << " (";
+  o->newline() << "enter_" << name << " (";
   if (has_return)
     o->line() << "struct kretprobe_instance *probe_instance";
   else
@@ -3100,7 +3084,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o,
   o->newline() << "c->regs = regs;";
 
   // NB: locals are initialized by probe function itself
-  o->newline() << "probe_" << probenum << " (c);";
+  o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
 
@@ -3203,9 +3187,9 @@ struct timer_derived_probe: public derived_probe
 
   timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r, bool ms=false);
 
-  virtual void emit_registrations (translator_output * o, unsigned i);
-  virtual void emit_deregistrations (translator_output * o, unsigned i);
-  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  virtual void emit_registrations (translator_output * o);
+  virtual void emit_deregistrations (translator_output * o);
+  virtual void emit_probe_entries (translator_output * o);
 };
 
 
@@ -3225,10 +3209,10 @@ timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, i
 
 
 void
-timer_derived_probe::emit_registrations (translator_output* o, unsigned j)
+timer_derived_probe::emit_registrations (translator_output* o)
 {
-  o->newline() << "init_timer (& timer_" << j << ");";
-  o->newline() << "timer_" << j << ".expires = jiffies + ";
+  o->newline() << "init_timer (& timer_" << name << ");";
+  o->newline() << "timer_" << name << ".expires = jiffies + ";
   if (time_is_msecs)
     o->line() << "msecs_to_jiffies(";
   o->line() << interval;
@@ -3237,31 +3221,31 @@ timer_derived_probe::emit_registrations (translator_output* o, unsigned j)
   if (time_is_msecs)
     o->line() << ")";
   o->line() << ";";
-  o->newline() << "timer_" << j << ".function = & enter_" << j << ";";
-  o->newline() << "add_timer (& timer_" << j << ");";
+  o->newline() << "timer_" << name << ".function = & enter_" << name << ";";
+  o->newline() << "add_timer (& timer_" << name << ");";
 }
 
 
 void
-timer_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+timer_derived_probe::emit_deregistrations (translator_output* o)
 {
-  o->newline() << "del_timer_sync (& timer_" << j << ");";
+  o->newline() << "del_timer_sync (& timer_" << name << ");";
 }
 
 
 void
-timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+timer_derived_probe::emit_probe_entries (translator_output* o)
 {
-  o->newline() << "static struct timer_list timer_" << j << ";";
+  o->newline() << "static struct timer_list timer_" << name << ";";
 
-  o->newline() << "void enter_" << j << " (unsigned long val) {";
+  o->newline() << "void enter_" << name << " (unsigned long val) {";
   o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
 
   o->newline() << "(void) val;";
-  o->newline() << "mod_timer (& timer_" << j << ", jiffies + ";
+  o->newline() << "mod_timer (& timer_" << name << ", jiffies + ";
   if (time_is_msecs)
     o->line() << "msecs_to_jiffies(";
   o->line() << interval;
@@ -3272,7 +3256,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
   o->line() << ");";
 
   // NB: locals are initialized by probe function itself
-  o->newline() << "probe_" << j << " (c);";
+  o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
   o->newline(-1) << "}\n";
@@ -3320,9 +3304,9 @@ struct profile_derived_probe: public derived_probe
 
   profile_derived_probe (systemtap_session &s, probe* p, probe_point* l);
 
-  virtual void emit_registrations (translator_output * o, unsigned i);
-  virtual void emit_deregistrations (translator_output * o, unsigned i);
-  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  virtual void emit_registrations (translator_output * o);
+  virtual void emit_deregistrations (translator_output * o);
+  virtual void emit_probe_entries (translator_output * o);
 };
 
 
@@ -3343,41 +3327,41 @@ profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, pr
 
 
 void
-profile_derived_probe::emit_registrations (translator_output* o, unsigned j)
+profile_derived_probe::emit_registrations (translator_output* o)
 {
   if (using_rpn)
-    o->newline() << "rc = register_profile_notifier(&profile_" << j << ");";
+    o->newline() << "rc = register_profile_notifier(& profile_" << name << ");";
   else
-    o->newline() << "rc = register_timer_hook(enter_" << j << ");";
+    o->newline() << "rc = register_timer_hook(enter_" << name << ");";
 }
 
 
 void
-profile_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+profile_derived_probe::emit_deregistrations (translator_output* o)
 {
   if (using_rpn)
-    o->newline() << "unregister_profile_notifier(&profile_" << j << ");";
+    o->newline() << "unregister_profile_notifier(& profile_" << name << ");";
   else
-    o->newline() << "unregister_timer_hook(enter_" << j << ");";
+    o->newline() << "unregister_timer_hook(enter_" << name << ");";
 }
 
 
 void
-profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+profile_derived_probe::emit_probe_entries (translator_output* o)
 {
   if (using_rpn) {
-    o->newline() << "static int enter_" << j
+    o->newline() << "static int enter_" << name
                  << " (struct notifier_block *self, unsigned long val, void *data);";
-    o->newline() << "static struct notifier_block profile_" << j << " = {";
-    o->newline(1) << ".notifier_call = enter_" << j << ",";
+    o->newline() << "static struct notifier_block profile_" << name << " = {";
+    o->newline(1) << ".notifier_call = enter_" << name << ",";
     o->newline(-1) << "};";
-    o->newline() << "int enter_" << j
+    o->newline() << "int enter_" << name
                  << " (struct notifier_block *self, unsigned long val, void *data) {";
     o->newline(1) << "struct pt_regs *regs = (struct pt_regs *)data;";
     o->indent(-1);
   } else {
-    o->newline() << "static int enter_" << j << " (struct pt_regs *regs);";
-    o->newline() << "int enter_" << j << " (struct pt_regs *regs) {";
+    o->newline() << "static int enter_" << name << " (struct pt_regs *regs);";
+    o->newline() << "int enter_" << name << " (struct pt_regs *regs) {";
   }
 
   o->indent(1);
@@ -3391,7 +3375,7 @@ profile_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
     o->newline() << "(void) val;";
   }
 
-  o->newline() << "probe_" << j << " (c);";
+  o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
   o->newline() << "return 0;";
@@ -3421,28 +3405,91 @@ struct profile_builder: public derived_probe_builder
 struct mark_derived_probe: public derived_probe
 {
   mark_derived_probe (systemtap_session &s,
-                        const string& probe_name, const string& probe_sig,
-                        uintptr_t address, const string& module,
-                        probe* base_probe);
+                      const string& probe_name, const string& probe_sig,
+                      uintptr_t address, const string& module,
+                      probe* base_probe);
 
+  systemtap_session& sess;
   string probe_name, probe_sig;
   uintptr_t address;
   string module;
   string probe_sig_expanded;
 
-  virtual void emit_registrations (translator_output * o, unsigned i);
-  virtual void emit_deregistrations (translator_output * o, unsigned i);
-  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  void emit_registrations (translator_output * o);
+  void emit_deregistrations (translator_output * o);
+  void emit_probe_entries (translator_output * o);
+  void emit_probe_context_vars (translator_output* o);
 };
 
 
+struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
+{
+  mark_var_expanding_copy_visitor(systemtap_session& s,
+                                  const string& ms, const string& pn):
+    sess (s), mark_signature (ms), probe_name (pn) {}
+  systemtap_session& sess;
+  string mark_signature;
+  string probe_name;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+
+void
+mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name.substr(0,4) != "$arg")
+    throw semantic_error ("invalid target symbol for marker, $argN expected", e->tok);
+  string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
+  int argnum = atoi (argnum_s.c_str());
+  if (argnum < 1 || argnum > (int) mark_signature.size())
+    throw semantic_error ("invalid marker argument number", e->tok);
+
+  char argtype = mark_signature[argnum-1];
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+  bool lvalue = is_active_lvalue(e);
+
+  if (lvalue) throw semantic_error("write to marker parameter not permitted", e->tok);
+
+  // NB: This naming convention is used by varuse_collecting_visitor
+  // to make elision of these functions possible.
+  string fname = (string(lvalue ? "_tvar_set" : "_tvar_get")
+		  + "_" + e->base_name.substr(1)
+		  + "_" + lex_cast<string>(tick++));
+
+  ec->code = string("THIS->__retvalue = CONTEXT->locals[0].") + probe_name
+    + string(".__mark_arg") + lex_cast<string>(argnum) + string (";");
+  fdecl->name = fname;
+  fdecl->body = ec;
+  fdecl->type = (argtype == 'N' ? pe_long :
+                 argtype == 'S' ? pe_string :
+                 pe_unknown); // cannot happen
+  sess.functions.push_back(fdecl);
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+  provide <functioncall*> (this, n);
+}
+
+
+
 mark_derived_probe::mark_derived_probe (systemtap_session &s,
-                                            const string& p_n,
-                                            const string& p_s,
-                                            uintptr_t a,
-                                            const string& m,
-                                            probe* base):
-  derived_probe (base, 0), probe_name (p_n), probe_sig (p_s),
+                                        const string& p_n,
+                                        const string& p_s,
+                                        uintptr_t a,
+                                        const string& m,
+                                        probe* base):
+  derived_probe (base, 0), sess (s), probe_name (p_n), probe_sig (p_s),
   address (a), module (m)
 {
   // create synthetic probe point
@@ -3473,24 +3520,61 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
         }
       probe_sig_expanded += " arg" + lex_cast<string>(i+1); // arg1 ... 
     }
+
+  // Now make a local-variable-expanded copy of the probe body
+  mark_var_expanding_copy_visitor v (sess, probe_sig, name);
+  require <block*> (&v, &(this->body), base->body);
+
+  if (sess.verbose > 1)
+    clog << "marker-based " << name << " address=0x" << hex << address << dec
+         << " signature=" << probe_sig << endl;
 }
 
 
 void
-mark_derived_probe::emit_probe_entries (translator_output * o, unsigned i)
+mark_derived_probe::emit_probe_context_vars (translator_output* o)
+{
+  // Save incoming arguments
+  for (unsigned i=0; i<probe_sig.length(); i++)
+    {
+      string localname = "__mark_arg" + lex_cast<string>(i+1);
+      switch (probe_sig[i]) 
+        {
+        case 'S': o->newline() << "string_t " << localname << ";"; break;
+        case 'N': o->newline() << "int64_t " << localname << ";"; break;
+        }
+    }
+}
+
+
+void
+mark_derived_probe::emit_probe_entries (translator_output* o)
 {
   assert (this->locations.size() == 1);
 
-  o->newline() << "void enter_" << i << " (" << probe_sig_expanded << ")";
+  o->newline() << "void enter_" << name << " (" << probe_sig_expanded << ")";
   o->newline() << "{";
   o->newline(1) << "const char* probe_point = "
                << lex_cast_qstring(* this->locations[0]) << ";";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
 
-  // XXX: pass incoming parameters
+  // Save incoming arguments
+  for (unsigned k=0; k<probe_sig.length(); k++)
+    {
+      string locals = "c->locals[0]." + name;
+      string localname = locals + ".__mark_arg" + lex_cast<string>(k+1);
+      string argname = "arg" + lex_cast<string>(k+1);
+      switch (probe_sig[k]) 
+        {
+        case 'S': o->newline() << "strlcpy (" << localname << ", " << argname
+                               << ", MAXSTRINGLEN);"; break;
+          // XXX: dupe with c_unparser::c_strcpy 
+        case 'N': o->newline() << localname << " = " << argname << ";"; break;
+        }
+    }
 
   // NB: locals are initialized by probe function itself
-  o->newline() << "probe_" << i << " (c);";
+  o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
   o->newline(-1) << "}";
@@ -3498,7 +3582,7 @@ mark_derived_probe::emit_probe_entries (translator_output * o, unsigned i)
 
 
 void
-mark_derived_probe::emit_registrations (translator_output * o, unsigned i)
+mark_derived_probe::emit_registrations (translator_output * o)
 {
   assert (this->locations.size() == 1);
 
@@ -3508,22 +3592,23 @@ mark_derived_probe::emit_registrations (translator_output * o, unsigned i)
 
   o->newline() << "#if __HAVE_ARCH_CMPXCHG";
   o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
-  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << i << ";";
+  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << name << ";";
   o->newline() << "unsigned long oldval = cmpxchg (fnpp, 0, fnp);";
   o->newline() << "if (oldval != 0) rc = 1;"; // XXX: could retry a few times
   o->newline() << "#else";
   // XXX: need proper synchronization for concurrent registration attempts
-  o->newline() << "if (*fn == 0) *fn = & enter_" << i << ";";
+  o->newline() << "if (*fn == 0) *fn = & enter_" << name << ";";
   o->newline() << "#endif";
   o->newline() << "mb ();";
-  o->newline() << "if (*fn != & enter_" << i << ") rc = 1;";
+  o->newline() << "if (*fn != & enter_" << name << ") rc = 1;";
 
   o->newline(-1) << "}";
  
 }
 
+
 void
-mark_derived_probe::emit_deregistrations (translator_output * o, unsigned i)
+mark_derived_probe::emit_deregistrations (translator_output * o)
 {
   assert (this->locations.size() == 1);
 
@@ -3532,7 +3617,7 @@ mark_derived_probe::emit_deregistrations (translator_output * o, unsigned i)
                 << address << "UL;";
   o->newline() << "#if __HAVE_ARCH_CMPXCHG";
   o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
-  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << i << ";";
+  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << name << ";";
   o->newline() << "unsigned long oldval = cmpxchg (fnpp, fnp, 0);";
   o->newline() << "if (oldval != fnp) ;"; // XXX: should not happen
   o->newline() << "#else";
@@ -3646,7 +3731,7 @@ mark_builder::build(systemtap_session & sess,
   bool has_kernel = (parameters.find("kernel") != parameters.end());
 
   if (! (has_module ^ has_kernel))
-    throw semantic_error ("need kernel. or module() component", location->tok);
+    throw semantic_error ("need kernel or module() component", location->tok);
 
   string param_probe;
   bool has_probe = get_param (parameters, "mark", param_probe);
@@ -3754,9 +3839,9 @@ struct hrtimer_derived_probe: public derived_probe
 
   virtual void emit_interval (translator_output * o);
 
-  virtual void emit_registrations (translator_output * o, unsigned i);
-  virtual void emit_deregistrations (translator_output * o, unsigned i);
-  virtual void emit_probe_entries (translator_output * o, unsigned i);
+  virtual void emit_registrations (translator_output * o);
+  virtual void emit_deregistrations (translator_output * o);
+  virtual void emit_probe_entries (translator_output * o);
 };
 
 
@@ -3784,31 +3869,31 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
 
 
 void
-hrtimer_derived_probe::emit_registrations (translator_output* o, unsigned j)
+hrtimer_derived_probe::emit_registrations (translator_output* o)
 {
-  o->newline() << "hrtimer_init (& timer_" << j
+  o->newline() << "hrtimer_init (& timer_" << name
     << ", CLOCK_MONOTONIC, HRTIMER_REL);";
-  o->newline() << "timer_" << j << ".function = enter_" << j << ";";
-  o->newline() << "hrtimer_start (& timer_" << j << ", ";
+  o->newline() << "timer_" << name << ".function = enter_" << name << ";";
+  o->newline() << "hrtimer_start (& timer_" << name << ", ";
   emit_interval(o);
   o->line() << ", HRTIMER_REL);";
 }
 
 
 void
-hrtimer_derived_probe::emit_deregistrations (translator_output* o, unsigned j)
+hrtimer_derived_probe::emit_deregistrations (translator_output* o)
 {
-  o->newline() << "hrtimer_cancel (& timer_" << j << ");";
+  o->newline() << "hrtimer_cancel (& timer_" << name << ");";
 }
 
 
 void
-hrtimer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
+hrtimer_derived_probe::emit_probe_entries (translator_output* o)
 {
-  o->newline() << "static int enter_" << j << " (void *data);";
-  o->newline() << "static struct hrtimer timer_" << j << ";";
+  o->newline() << "static int enter_" << name << " (void *data);";
+  o->newline() << "static struct hrtimer timer_" << name << ";";
 
-  o->newline() << "int enter_" << j << " (void *data) {";
+  o->newline() << "int enter_" << name << " (void *data) {";
   o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
@@ -3816,12 +3901,12 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o, unsigned j)
 
   o->newline() << "(void) data;";
 
-  o->newline() << "hrtimer_forward (& timer_" << j << ", ";
+  o->newline() << "hrtimer_forward (& timer_" << name << ", ";
   emit_interval(o);
   o->line() << ");";
 
   // NB: locals are initialized by probe function itself
-  o->newline() << "probe_" << j << " (c);";
+  o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
   o->newline() << "return HRTIMER_RESTART;";
