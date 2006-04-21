@@ -323,7 +323,7 @@ function _struct_rlimit_u:string(uaddr:long)
 	}
 %}
 
-function _fildes_u(uaddr:long)
+function _fildes_u:string (uaddr:long)
 %{
 	int fd[2];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;

@@ -1,3 +1,7 @@
+2006-04-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	* aux_syscalls.stp (_fildes_u): Declare return value type.
+
 2006-04-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	* conversions.stp (string, hex_string): Use snprintf for safety.
