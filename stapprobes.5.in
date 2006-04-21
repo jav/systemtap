@@ -36,6 +36,18 @@ end
 kernel.syscall.*
 .ESAMPLE
 
+Probes may be broadly classified into "synchronous" and
+"asynchronous".  A "synchronous" event is deemed to occur when any
+processor executes an instruction matched by the specification.  This
+gives these probes a reference point (instruction address) from which
+more contextual data may be available.  Other families of probe points
+refer to "asynchronous" events such as timers/counters rolling over,
+where there is no fixed reference point that is related.  Each probe
+point specification may match multiple locations (for example, using
+wildcards or aliases), and all them are then probed.  A probe
+declaration may also contain several comma-separated specifications,
+all of which are probed.
+
 .SS BEGIN/END
 
 The probe points
@@ -102,14 +114,7 @@ processor, the probe handler is run in that context.
 .PP
 Points in a kernel, which are identified by
 module, source file, line number, function name, C label name, or some
-combination of these.  This kind of "synchronous" event is deemed to
-occur when any processor executes an instruction matched by the
-specification.  Other families of probe points refer to "asynchronous"
-events such as timers/counters rolling over, where there is no fixed
-execution point that is related.  Each probe point specification may
-match multiple physical locations, all of which are then probed.  A
-probe declaration may also contain several comma-separated
-specifications, all of which are probed.
+combination of these.  
 .PP
 Here is a list of probe point families currently supported.  The
 .B .function
@@ -149,10 +154,11 @@ kernel.statement(PATTERN)
 module(MPATTERN).statement(PATTERN)
 .ESAMPLE
 In the above list, MPATTERN stands for a string literal that aims to
-identify the loaded kernel module of interest.  It may include "*" and
-"?" wildcards.  PATTERN stands for a string literal that aims to
-identify a point in the program.  It is made up of three parts.  The
-first part is the name of a function, as would appear in the
+identify the loaded kernel module of interest.  It may include "*", "[]",
+and "?" wildcards.  PATTERN stands for a string literal that
+aims to identify a point in the program.  It is made up of three
+parts.  The first part is the name of a function, as would appear in
+the
 .I nm
 program's output.  This part may use the "*" and "?" wildcarding
 operators to match multiple names.  The second part is optional, and
@@ -185,6 +191,32 @@ $var[N]
 indexes into an array.  The index is given with a
 literal number.
 
+.SS MARKERS
+
+This family of probe points hooks up to static probing markers
+inserted into the kernel or modules.  These markers are special macro
+calls inserted by kernel developers to make probing faster and more
+reliable than with DWARF-based probes.  Further, DWARF debugging
+information is 
+.I not
+required to probe markers.
+
+Marker probe points begin with 
+.BR kernel " or " module("name") ,
+just like DWARF probes.  This identifies the source of symbol table
+used for finding markers.  The next part names the marker itself:
+.BR mark("name") .
+The marker name string, which may contain the usual wildcard characters,
+is matched against the names given to the marker macros when the kernel
+or module was compiled.
+
+The handler associated with a marker-based probe may read the
+optional parameters specified at the macro call site.  These are
+named
+.BR $arg1 " through " $argNN ,
+where NN is the number of parameters supplied by the macro.  Number
+and string parameters are passed in a type-safe manner.
+
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.
@@ -203,6 +235,9 @@ refers to all kernel functions with "init" or "exit" in the name.
 kernel.function("*@kernel/sched.c:240")
 refers to any functions within the "kernel/sched.c" file that span
 line 240.
+.TP
+kernel.mark("getuid")
+refers to an STAP_MARK(getuid, ...) macro call in the kernel.
 .TP
 module("usb*").function("*sync*").return
 refers to the moment of return from all functions with "sync" in the
