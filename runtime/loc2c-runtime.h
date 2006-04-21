@@ -184,7 +184,7 @@
 		  "i"(sizeof(unsigned long)))
 
 
-#define _stp_put_user_asm(x, addr, err, op)                        \
+#define __stp_put_user_asm(x, addr, err, op)                        \
         __asm__ __volatile__(                                   \
                 "1:     " op " %1,0(%2) # put_user\n"           \
                 "2:\n"                                          \
@@ -226,8 +226,8 @@
       case 1: __stp_put_user_asm(((u8)(value)),addr,_bad,"stb"); break;     \
       case 2: __stp_put_user_asm(((u16)(value)),addr,_bad,"sth"); break;    \
       case 4: __stp_put_user_asm(((u32)(value)),addr,_bad,"stw"); break;    \
-      case 8: __stp_put_user_asm(((u64)(value)),addr,_bad); break;         \
-      default: __stp_put_user_bad();					      \
+      case 8: __stp_put_user_asm(((u64)(value)),addr,_bad, "std"); break;         \
+      default: __put_user_bad();					      \
       }									      \
     if (_bad)								      \
       goto deref_fault;							      \
