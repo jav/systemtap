@@ -2468,15 +2468,22 @@ c_unparser::visit_binary_expression (binary_expression* e)
       e->op == "*" ||
       e->op == "&" ||
       e->op == "|" ||
-      e->op == "^" ||
-      e->op == "<<" ||
-      e->op == ">>")
+      e->op == "^")
     {
       o->line() << "((";
       e->left->visit (this);
       o->line() << ") " << e->op << " (";
       e->right->visit (this);
       o->line() << "))";
+    }
+  else if (e->op == ">>" ||
+           e->op == "<<")
+    {
+      o->line() << "((";
+      e->left->visit (this);
+      o->line() << ") " << e->op << "max(min(";
+      e->right->visit (this);
+      o->line() << ", (int64_t)64LL), (int64_t)0LL))"; // between 0 and 64
     }
   else if (e->op == "/" ||
            e->op == "%")
