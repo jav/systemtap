@@ -1,5 +1,11 @@
 2006-04-23  Eugene Teo  <eteo@redhat.com>
 
+	PR 2149
+	* translate.cxx (mapvar::set): Test _stp_map_set_xx() for
+	array overflows.
+
+2006-04-23  Eugene Teo  <eteo@redhat.com>
+
 	* small_demos/ansi_colors.stp: Add an example of using octal
 	escape sequences to display all possible ansi colors.
 

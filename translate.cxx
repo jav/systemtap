@@ -581,14 +581,20 @@ struct mapvar
 
   string set (vector<tmpvar> const & indices, tmpvar const & val) const
   {
+    string res = "{ int rc = ";
+
     // impedance matching: empty strings -> NULL
     if (type() == pe_string)
-      return (call_prefix("set", indices) 
+      res += (call_prefix("set", indices) 
 	      + ", (" + val.qname() + "[0] ? " + val.qname() + " : NULL))");
     else if (type() == pe_long)
-      return (call_prefix("set", indices) + ", " + val.qname() + ")");
+      res += (call_prefix("set", indices) + ", " + val.qname() + ")");
     else
       throw semantic_error("setting a value of an unsupported map type");
+
+    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check MAXMAPENTRIES\"; }";
+
+    return res;
   }
 
   string hist() const
