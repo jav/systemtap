@@ -1,0 +1,21 @@
+#! /usr/bin/env stap
+
+probe begin {
+        printf("a \\ b |");
+	for (c = 40; c < 48; c++)
+		printf("   %d   ", c);
+	printf("\12");
+	for (l = 0; l < 71; l++)
+		printf("-");
+	printf("\12");
+
+	for (r = 30; r < 38; r++)
+		for (t = 0; t < 2; t++) {
+			printf("%d    |", r);
+			for (c = 40; c < 48; c++)
+				printf("\033[%d;%d%s %s \033[0;0m",
+					r, c, !t ? "m" : ";1m", !t ? "Normal" : "Bold  ");
+			printf("\12");
+		}
+	exit();
+}
