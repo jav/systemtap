@@ -1,3 +1,9 @@
+2006-04-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2599.
+	* elaborate.cxx (visit_assignment): Tolerate null current_expr.
+	* testsuite/semok/optimize.stp: Add relevant tests.
+
 2006-04-23  Eugene Teo  <eteo@redhat.com>
 
 	PR 2149

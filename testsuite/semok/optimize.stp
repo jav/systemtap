@@ -16,3 +16,8 @@ probe begin {
   b = "goodbye"
   no . $such . $target + $variable
 }
+
+# bug #2599
+probe begin{for(i=1;i-=2;i++);}
+probe begin{while(i+=2);}
+probe begin{if(i=j);}

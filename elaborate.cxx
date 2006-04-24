@@ -1306,7 +1306,10 @@ struct dead_assignment_remover: public traversing_visitor
     session(s), relaxed_p(r), vut(v), current_expr(0) {}
 
   void visit_expr_statement (expr_statement* s);
-  // XXX: and other places where an assignment may be nested
+  // XXX: other places where an assignment may be nested should be
+  // handled too (e.g., loop/if conditionals, array indexes, function
+  // parameters).  Until then, they result in visit_assignment() being
+  // called with null current_expr.
 
   void visit_assignment (assignment* e);
 };
@@ -1328,7 +1331,9 @@ dead_assignment_remover::visit_assignment (assignment* e)
 {
   symbol* left = get_symbol_within_expression (e->left);
   vardecl* leftvar = left->referent;
-  if (*current_expr == e) // we're not nested any deeper than expected 
+  if (current_expr && // see XXX above: this case represents a missed
+                      // optimization opportunity
+      *current_expr == e) // we're not nested any deeper than expected 
     {
       // clog << "Checking assignment to " << leftvar->name << " at " << *e->tok << endl;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
