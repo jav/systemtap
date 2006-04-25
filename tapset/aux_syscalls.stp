@@ -338,7 +338,7 @@ function _fildes_u:string (uaddr:long)
 	}
 %}
 
-function _fd_set_u(uaddr:long)
+function _fd_set_u:string(uaddr:long)
 %{
 	fd_set fdset;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
