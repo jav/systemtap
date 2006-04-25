@@ -8,7 +8,7 @@
 * @param s string
 * @return Returns the length of the string.
 */
-function strlen:long(s:string) %{
+function strlen:long(s:string) %{ /* pure */
         THIS->__retvalue=strlen(THIS->s);
 %}
 
@@ -17,7 +17,7 @@ function strlen:long(s:string) %{
 * @param str string
 * @return Returns the length of the string.
 */
-function substr:string(str:string,start:long,stop:long) %{
+function substr:string(str:string,start:long,stop:long) %{ /* pure */
 	int len=strlen(THIS->str);
 	if(THIS->start<0   || THIS->stop<0   || 
 	   THIS->start>len || THIS->stop>len || 
@@ -39,7 +39,7 @@ function substr:string(str:string,start:long,stop:long) %{
 * @param s2 string
 * @return Returns 1 if s2 is in s1.
 */
-function isinstr:long(s1:string,s2:string) %{
+function isinstr:long(s1:string,s2:string) %{ /* pure */
 	if(strstr(THIS->s1,THIS->s2)!=NULL)
 		THIS->__retvalue = 1;
 	else

@@ -18,7 +18,7 @@ function print_backtrace () %{
 	}
 %}
 
-function backtrace:string () %{
+function backtrace:string () %{ /* pure */
 	if (CONTEXT->regs) {
                 /* XXX: this won't be necessary when runtime and translator */
 		/* agree on what a string is. */
@@ -29,47 +29,47 @@ function backtrace:string () %{
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
-function execname:string () %{
+function execname:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, current->comm, MAXSTRINGLEN);
 %}
 
-function pid:long () %{
+function pid:long () %{ /* pure */
 	THIS->__retvalue = current->tgid;
 %}
 
-function tid:long () %{
+function tid:long () %{ /* pure */
 	THIS->__retvalue = current->pid;
 %}
 
-function ppid:long () %{
+function ppid:long () %{ /* pure */
 	THIS->__retvalue = current->parent->tgid;
 %}
 
-function pexecname:string () %{
+function pexecname:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
 %}
 
-function gid:long () %{
+function gid:long () %{ /* pure */
 	THIS->__retvalue = current->gid;		
 %}
 
-function egid:long () %{
+function egid:long () %{ /* pure */
 	THIS->__retvalue = current->egid;		
 %}
 
-function uid:long () %{
+function uid:long () %{ /* pure */
 	THIS->__retvalue = current->uid;		
 %}
 
-function euid:long () %{
+function euid:long () %{ /* pure */
 	THIS->__retvalue = current->euid;		
 %}
 
-function cpuid:long () %{
+function cpuid:long () %{ /* pure */
 	THIS->__retvalue = current->thread_info->cpu;
 %}
 
-function cpu:long () %{
+function cpu:long () %{ /* pure */
 	THIS->__retvalue = current->thread_info->cpu; /* smp_processor_id()? */
 %}
 
@@ -84,11 +84,11 @@ function print_stack(stk:string) %{
 	}
 %}
 
-function pp:string () %{
+function pp:string () %{ /* pure */
 	strlcpy (THIS->__retvalue, CONTEXT->probe_point, MAXSTRINGLEN);
 %}
 
-function probefunc:string () %{
+function probefunc:string () %{ /* pure */
 	char *start = strstr(CONTEXT->probe_point, "function(\"");
 	if (start) {
 		char *ptr = start+10;
@@ -100,7 +100,7 @@ function probefunc:string () %{
 	}
 %}
 
-function is_return:long () %{
+function is_return:long () %{ /* pure */
 	char *ptr = strrchr(CONTEXT->probe_point, '.');
 	if (ptr) {
 		if (strcmp(ptr+1,"return") == 0)
@@ -108,11 +108,11 @@ function is_return:long () %{
 	}
 %}
 
-function target:long () %{
+function target:long () %{ /* pure */
         THIS->__retvalue = _stp_target;
 %}
 
-function returnval:long () %{
+function returnval:long () %{ /* pure */
 	if (CONTEXT->regs) {
 #if defined (__i386__)
 		THIS->__retvalue = CONTEXT->regs->eax;

@@ -1495,19 +1495,19 @@ functioncall_traversing_visitor::visit_functioncall (functioncall* e)
 void
 varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
 {
-  // In order to elide unused but correct functions generated to
-  // get $target variables, we encode our knowledge that such
-  // functions are side-effect-free.  We tell them apart from ordinary
-  // tapset embedded-C functions by the naming prefix.  XXX Something
-  // apart from this heuristic would be nice.  XXX Similarly, some
-  // tapset embedded-C functions are pure and disposable, like
-  // substr().
+  // We want to elide embedded-C functions when possible.  For
+  // example, each $target variable access is expanded to an
+  // embedded-C function call.  Yet, for safety reasons, we should
+  // presume that embedded-C functions have intentional side-effects.
+  //
+  // To tell these two types of functions apart, we apply a
+  // Kludge(tm): we look for a magic string within the function body.
+  // $target variables as rvalues will have this; lvalues won't.
+  // Also, explicit side-effect-free tapset functions will have this.
   
   assert (current_function); // only they get embedded code
-  string name = current_function->name;
-  if (name.length() > 10 && name.substr(0, 10) == "_tvar_get_")
+  if (s->code.find ("/* pure */") != string::npos)
     return;
-  // NB: setter functions naturally have side-effects
 
   embedded_seen = true;
 }
@@ -1520,7 +1520,12 @@ varuse_collecting_visitor::visit_print_format (print_format* e)
   // are implemented as statement-expressions containing a
   // print_format.  They have side-effects, but not via the
   // embedded-code detection method above. 
-  embedded_seen = true;
+  //
+  // But sprint and sprintf don't have side-effects.
+
+  if (e->print_to_stream)
+    embedded_seen = true; // a proxy for "has unknown side-effects"
+
   functioncall_traversing_visitor::visit_print_format (e);
 }
 
@@ -2185,6 +2190,7 @@ deep_copy_visitor::visit_print_format (print_format* e)
   n->tok = e->tok;
   n->print_with_format = e->print_with_format;
   n->print_to_stream = e->print_to_stream;
+  n->raw_components = e->raw_components;
   n->components = e->components;
   for (unsigned i = 0; i < e->args.size(); ++i)
     {

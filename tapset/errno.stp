@@ -343,7 +343,7 @@ const char * const errlist[] = {
 const int Maxerrno = sizeof(errlist)/sizeof(char *);
 %}
 
-function errno_str:string (err:long) %{
+function errno_str:string (err:long) %{ /* pure */
 	long e = THIS->err;
 	if (e < 0 && e > -Maxerrno && errlist[-e])
 		strlcpy (THIS->__retvalue, errlist[-e], MAXSTRINGLEN);
@@ -352,7 +352,7 @@ function errno_str:string (err:long) %{
 %}
 
 /* for syscall tapset. set returnp = 1 for decimal, 2 for hex */
-function returnstr:string (returnp:long) %{
+function returnstr:string (returnp:long) %{ /* pure */
 	long ret;
 
         if (CONTEXT->regs) {

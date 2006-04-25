@@ -3,7 +3,7 @@
 # copy and decode it and return a string.
 #
 function _struct_timeval_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct timeval tv;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -18,7 +18,7 @@ function _struct_timeval_u:string(uaddr:long)
 %}
 
 function _struct_timeval:string(addr:long)
-%{
+%{ /* pure */
 	struct timeval *tv;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
@@ -31,7 +31,7 @@ function _struct_timeval:string(addr:long)
 %}
 
 function _struct_timezone_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct timezone tz;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 	
@@ -46,7 +46,7 @@ function _struct_timezone_u:string(uaddr:long)
 %} 
 
 function _struct_timespec_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct timespec ts;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -62,7 +62,7 @@ function _struct_timespec_u:string(uaddr:long)
 %}
 
 function _struct_timespec:string(addr:long)
-%{
+%{ /* pure */
 	struct timespec *ts;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
@@ -76,7 +76,7 @@ function _struct_timespec:string(addr:long)
 %}
 
 function _struct_itimerspec_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct itimerspec its;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 	
@@ -93,7 +93,7 @@ function _struct_itimerspec_u:string(uaddr:long)
 %}
 
 function _struct_itimerval_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct itimerval itv;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -110,7 +110,7 @@ function _struct_itimerval_u:string(uaddr:long)
 %}
 
 function _struct_itimerval:string(addr:long)
-%{
+%{ /* pure */
 	struct itimerval *itv;
 	char *ptr = (char *)(unsigned long)THIS->addr;
 
@@ -196,7 +196,7 @@ void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
 %}
 
 function _struct_sockaddr_u:string(uaddr:long, len:long)
-%{
+%{ /* pure */
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
@@ -211,7 +211,7 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 %}
 
 function _signal_name:string(sig:long)
-%{
+%{ /* pure */
   	int sig = THIS->sig;
 	char *res = 0;
 
@@ -308,7 +308,7 @@ function _signal_name:string(sig:long)
 %}
 
 function _struct_rlimit_u:string(uaddr:long)
-%{
+%{ /* pure */
 	struct rlimit rl;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -324,7 +324,7 @@ function _struct_rlimit_u:string(uaddr:long)
 %}
 
 function _fildes_u:string (uaddr:long)
-%{
+%{ /* pure */
 	int fd[2];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -339,7 +339,7 @@ function _fildes_u:string (uaddr:long)
 %}
 
 function _fd_set_u:string(uaddr:long)
-%{
+%{ /* pure */
 	fd_set fdset;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -355,7 +355,7 @@ function _fd_set_u:string(uaddr:long)
 
 
 function _semctl_cmd:string(cmd:long)
-%{
+%{ /* pure */
 	int cmd = THIS->cmd;
 	char *res = 0;
 
@@ -407,7 +407,7 @@ function _semctl_cmd:string(cmd:long)
 %}
 
 function __sem_flags:string(semflg:long)
-%{
+%{ /* pure */
 	long semflg = THIS->semflg;
 	char *str = THIS->__retvalue;
 
@@ -420,7 +420,7 @@ function __sem_flags:string(semflg:long)
 %}
 
 function __fork_flags:string(flags:long)
-%{
+%{ /* pure */
   	long flags = THIS->flags;
 	char *str = THIS->__retvalue;
 	if (flags & CLONE_FS)
@@ -456,7 +456,7 @@ function __fork_flags:string(flags:long)
 
 /* This function copies an argv from userspace. */
 function __get_argv:string(a:long)
-%{
+%{ /* pure */
   	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
 	char __user *vstr;
 	int space, rc, len = MAXSTRINGLEN;
@@ -518,7 +518,7 @@ function __get_argv:string(a:long)
 * the string it points to. Should be rarely necessary.
 */
 function __string:string (a:long)
-%{
+%{ /* pure */
 	char *str =(char *)(long)THIS->a;
 	strlcpy(THIS->__retvalue, str, MAXSTRINGLEN);
 %}

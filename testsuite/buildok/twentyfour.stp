@@ -1,0 +1,14 @@
+#! stap -gp4
+
+# If the optimizer is working, this function will get elided,
+# and thus will compile successfully.
+
+function pure() %{  /* pure */
+#error "should have been elided"
+%}
+
+
+probe begin
+{
+	pure ()
+}

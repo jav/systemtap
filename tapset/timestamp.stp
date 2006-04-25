@@ -13,28 +13,28 @@
 
 
 // return processor cycle counter (if any)
-function get_cycles:long () %{
+function get_cycles:long () %{ /* pure */
   cycles_t c = get_cycles();
   THIS->__retvalue = (int64_t) c;
 %}
 
 
 // return in microseconds since epoch
-function gettimeofday_us:long () %{
+function gettimeofday_us:long () %{ /* pure */
   struct timeval tm;
   do_gettimeofday (& tm);
   THIS->__retvalue = (tm.tv_sec * 1000000ULL) + (tm.tv_usec);
 %}
 
 // return in milliseconds since epoch
-function gettimeofday_ms:long () %{
+function gettimeofday_ms:long () %{ /* pure */
   struct timeval tm;
   do_gettimeofday (& tm);
   THIS->__retvalue = (tm.tv_sec * 1000ULL) + (tm.tv_usec / 1000);
 %}
 
 // return in seconds since epoch
-function gettimeofday_s:long () %{
+function gettimeofday_s:long () %{ /* pure */
   struct timeval tm;
   do_gettimeofday (& tm);
   THIS->__retvalue = tm.tv_sec;

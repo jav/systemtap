@@ -1,3 +1,20 @@
+2006-04-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2427.
+	* staptree.cxx (varuse_collecting_visitor::visit_embeddedcode):
+	Support /* pure */ declaration.  Stop using __tvar_ naming hack.
+	(v_c_u::visit_print_format): Mark sprint and sprintf as
+	side-effect-free.
+	(deep_copy_visitor::visit_print_format): Propagate raw_components.
+	* stap.1.in: Document declaration.
+	* elaborate.cxx (semantic_pass_opt2): Verbose message tweak.
+	(dead_stmtexpr_remover): Extend for more aggressive optimization.
+	* tapsets.cxx (dwarf,mark_var_expanding_copy_visotor): Add
+	/* pure */ declaration to rvalue expansions.  
+	* tapset/*.stp: Added /* pure */ declarations to many functions.
+	* testsuite/parseok/unparsers.stp: Propagate guru mode flag.
+	* testsuite/buildok/twentyfour.stp: New test.
+
 2006-04-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2599.

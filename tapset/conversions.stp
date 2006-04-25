@@ -6,15 +6,15 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-function hexstring:string (num:long) %{
+function hexstring:string (num:long) %{ /* pure */
     snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%llx", (long long) THIS->num);
 %}
 
-function string:string (num:long) %{
+function string:string (num:long) %{ /* pure */
     snprintf (THIS->__retvalue, MAXSTRINGLEN, "%lld", (long long) THIS->num);
 %}
 
-function kernel_string:string (addr:long) %{
+function kernel_string:string (addr:long) %{ /* pure */
   char *destination = THIS->__retvalue;
   deref_string (destination, THIS->addr, MAXSTRINGLEN);
   goto success;
@@ -30,7 +30,7 @@ success: ;
 
 # NB: accessing user space is hazardous from certain kernel contexts.
 # Errors should be returned when this is detected.
-function user_string:string (addr:long) %{
+function user_string:string (addr:long) %{ /* pure */
   long rc = _stp_strncpy_from_user (THIS->__retvalue, 
 		 	            (const char __user*) (uintptr_t) THIS->addr,
 				    MAXSTRINGLEN);

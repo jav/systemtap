@@ -2598,9 +2598,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   if (lvalue && !q.sess.guru_mode)
     throw semantic_error("write to target variable not permitted", e->tok);
 
-  // NB: This naming convention is used by varuse_collecting_visitor
-  // to make elision of these functions possible.
-  string fname = (string(lvalue ? "_tvar_set" : "_tvar_get")
+  string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
 		  + "_" + lex_cast<string>(tick++));
 
@@ -2615,6 +2613,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 					      e->components,
 					      lvalue,
 					      fdecl->type);
+      if (! lvalue)
+        ec->code += "/* pure */";
     }
   catch (const semantic_error& er)
     {
@@ -3454,18 +3454,18 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   fdecl->tok = e->tok;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
-  bool lvalue = is_active_lvalue(e);
 
-  if (lvalue) throw semantic_error("write to marker parameter not permitted", e->tok);
+  if (is_active_lvalue (e))
+    throw semantic_error("write to marker parameter not permitted", e->tok);
 
-  // NB: This naming convention is used by varuse_collecting_visitor
-  // to make elision of these functions possible.
-  string fname = (string(lvalue ? "_tvar_set" : "_tvar_get")
-		  + "_" + e->base_name.substr(1)
-		  + "_" + lex_cast<string>(tick++));
+  string fname = string("_mark_tvar_get")
+    + "_" + e->base_name.substr(1)
+    + "_" + lex_cast<string>(tick++);
 
-  ec->code = string("THIS->__retvalue = CONTEXT->locals[0].") + probe_name
-    + string(".__mark_arg") + lex_cast<string>(argnum) + string (";");
+  ec->code = string("THIS->__retvalue = CONTEXT->locals[0].")
+    + probe_name + string(".__mark_arg")
+    + lex_cast<string>(argnum) + string (";");
+  ec->code += "/* pure */";
   fdecl->name = fname;
   fdecl->body = ec;
   fdecl->type = (argtype == 'N' ? pe_long :

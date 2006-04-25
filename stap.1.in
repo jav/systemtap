@@ -646,10 +646,13 @@ with "$") are found and have their run-time locations decoded.
 .PP
 Next, all probes and functions are analyzed for optimization
 opportunities, in order to remove variables, expressions, and
-functions that have no useful value and no side-effect.  Since this
-process can hide latent code errors such as type mismatches or invalid
-$target variables, it sometimes may be useful to disable the
-optimizations with the
+functions that have no useful value and no side-effect.  Embedded-C
+functions are assumed to have side-effects unless they include the
+magic string
+.BR /*\ pure\ */ .
+Since this optimization can hide latent code errors such as type
+mismatches or invalid $target variables, it sometimes may be useful
+to disable the optimizations with the
 .BR \-u
 option. 
 .PP

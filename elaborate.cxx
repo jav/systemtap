@@ -21,6 +21,9 @@ extern "C" {
 #include <cassert>
 #include <set>
 #include <vector>
+#include <algorithm>
+#include <iterator>
+
 
 using namespace std;
 
@@ -1247,7 +1250,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (s.verbose>2)
               clog << "Eliding unused local variable "
-                   << l->name << " in probe #" << i << endl;
+                   << l->name << " in " << s.probes[i]->name << endl;
             s.probes[i]->locals.erase(s.probes[i]->locals.begin() + j);
             relaxed_p = false;
             // don't increment j
@@ -1379,6 +1382,7 @@ struct dead_stmtexpr_remover: public traversing_visitor
   systemtap_session& session;
   bool& relaxed_p;
   statement** current_stmt; // pointer to current stmt* being iterated
+  set<vardecl*> focal_vars; // vars considered subject to side-effects
 
   dead_stmtexpr_remover(systemtap_session& s, bool& r): 
     session(s), relaxed_p(r), current_stmt(0) {}
@@ -1421,7 +1425,23 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
-  if (vut.written.empty() && !vut.embedded_seen)
+
+  // Note that side-effect-freeness is not simply this test:
+  //
+  // (vut.written.empty() && !vut.embedded_seen)
+  //
+  // That's because the vut.written list may consist of local
+  // variables of called functions.  Visible side-effects occur if
+  // *our* locals, or any *globals* are written-to.
+
+
+  set<vardecl*> intersection;
+  insert_iterator<set<vardecl*> > int_it (intersection, intersection.begin());
+  set_intersection (vut.written.begin(), vut.written.end(),
+                    focal_vars.begin(), focal_vars.end(),
+                    int_it);
+
+  if (intersection.empty() && ! vut.embedded_seen)
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free expression "
@@ -1437,6 +1457,15 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
       
       relaxed_p = false;
     }
+  else if(session.verbose>3)
+    {
+      clog << "keeping expression " << *s->tok 
+           << " because it writes: ";
+      for (std::set<vardecl*>::iterator k = intersection.begin();
+           k != intersection.end(); k++)
+        clog << (*k)->name << " ";
+      clog << "and/or embedded: " << vut.embedded_seen << endl;
+    }  
 }
 
 
@@ -1450,9 +1479,25 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
   // This instance may be reused for multiple probe/function body trims.
 
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body->visit (& duv);
+    {
+      duv.focal_vars.clear ();
+      duv.focal_vars.insert (s.globals.begin(),
+                             s.globals.end());
+      duv.focal_vars.insert (s.probes[i]->locals.begin(),
+                             s.probes[i]->locals.end());
+      s.probes[i]->body->visit (& duv);
+    }
   for (unsigned i=0; i<s.functions.size(); i++)
-    s.functions[i]->body->visit (& duv);
+    {
+      duv.focal_vars.clear ();
+      duv.focal_vars.insert (s.functions[i]->locals.begin(),
+                             s.functions[i]->locals.end());
+      duv.focal_vars.insert (s.functions[i]->formal_args.begin(),
+                             s.functions[i]->formal_args.end());
+      duv.focal_vars.insert (s.globals.begin(),
+                             s.globals.end());
+      s.functions[i]->body->visit (& duv);
+    }
 }
 
 
@@ -1973,9 +2018,6 @@ typeresolution_info::visit_functioncall (functioncall* e)
 
   if (e->type == pe_stats)
     invalid (e->tok, e->type);
-
-  // XXX: but what about functions that return no value,
-  // and are used only as an expression-statement for side effects?
 
   // now resolve the function parameters
   if (e->args.size() != e->referent->formal_args.size())

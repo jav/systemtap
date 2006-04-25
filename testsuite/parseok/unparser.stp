@@ -14,8 +14,12 @@ do
    do
       if head -1 $file | grep -q stap
       then
-	  echo $file
-          ./stap -p1 $file | ./stap -p1 - > /dev/null
+	  if head -1 $file | fgrep -q -- g  # guru mode
+	  then guru=-g
+	  else guru=
+	  fi
+	  echo $file $guru
+          ./stap $guru -p1 $file | ./stap $guru -p1 - > /dev/null
       fi
    done
 done
