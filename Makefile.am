@@ -111,9 +111,6 @@ lcov:
 	@lcov --directory . -c -o stap.info
 	@genhtml -o ./$(TEST_COV_DIR) stap.info
 
-rpm:	dist
-	rpmbuild -ta ${PACKAGE_TARNAME}-${PACKAGE_VERSION}.tar.gz
-
 clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
 	rm -rf testresults
