@@ -1559,6 +1559,7 @@ semantic_pass_types (systemtap_session& s)
       for (unsigned j=0; j<s.functions.size(); j++)
         {
           functiondecl* fn = s.functions[j];
+          ti.current_probe = 0;
           ti.current_function = fn;
           ti.t = pe_unknown;
           fn->body->visit (& ti);
@@ -1574,6 +1575,7 @@ semantic_pass_types (systemtap_session& s)
         {
           derived_probe* pn = s.probes[j];
           ti.current_function = 0;
+          ti.current_probe = pn;
           ti.t = pe_unknown;
           pn->body->visit (& ti);
         }
@@ -1598,6 +1600,13 @@ semantic_pass_types (systemtap_session& s)
     }
   
   return rc + s.num_errors;
+}
+
+
+
+typeresolution_info::typeresolution_info (systemtap_session& s):
+  session(s), current_function(0), current_probe(0)
+{
 }
 
 
@@ -2423,7 +2432,10 @@ typeresolution_info::unresolved (const token* tok)
 
   if (assert_resolvability)
     {
-      cerr << "semantic error: unresolved type for ";
+      string nm = (current_function ? current_function->name :
+                   current_probe ? current_probe->name :
+                   "?");
+      cerr << "semantic error: " + nm + " with unresolved type for ";
       if (tok)
         cerr << *tok;
       else
@@ -2440,7 +2452,10 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 
   if (assert_resolvability)
     {
-      cerr << "semantic error: invalid type " << pe << " for ";
+      string nm = (current_function ? current_function->name :
+                   current_probe ? current_probe->name :
+                   "?");
+      cerr << "semantic error: " + nm + " with invalid type " << pe << " for ";
       if (tok)
         cerr << *tok;
       else
@@ -2457,7 +2472,10 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 
   if (assert_resolvability)
     {
-      cerr << "semantic error: type mismatch for ";
+      string nm = (current_function ? current_function->name :
+                   current_probe ? current_probe->name :
+                   "?");
+      cerr << "semantic error: " + nm + " with type mismatch for ";
       if (tok)
         cerr << *tok;
       else

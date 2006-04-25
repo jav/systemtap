@@ -1,5 +1,12 @@
 2006-04-25  Frank Ch. Eigler  <fche@elastic.org>
 
+	* elaborate.cxx (typeresolution_info::unresolved,invalid,
+	mismatch): Print current function/probe name in error message.
+	(semantic_pass_types): Pass sufficient information.
+	* elaborate.h: Corresponding changes.
+
+2006-04-25  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 2427.
 	* staptree.cxx (varuse_collecting_visitor::visit_embeddedcode):
 	Support /* pure */ declaration.  Stop using __tvar_ naming hack.

@@ -47,12 +47,13 @@ public:
 
 struct typeresolution_info: public visitor
 {
-  typeresolution_info (systemtap_session& s): session (s) {}
+  typeresolution_info (systemtap_session& s);
   systemtap_session& session;
   unsigned num_newly_resolved;
   unsigned num_still_unresolved;
   bool assert_resolvability;
   functiondecl* current_function;
+  derived_probe* current_probe;
 
   void mismatch (const token* tok, exp_type t1, exp_type t2);
   void unresolved (const token* tok);
