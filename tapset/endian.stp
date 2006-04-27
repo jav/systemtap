@@ -2,7 +2,7 @@
 # val:   0 - native (default)
 #        1 - little endian
 #        2 - big endian
-function set_endian:long (val:long) %{ /* pure */
+function set_endian:long (val:long) %{
 	_stp_endian = THIS->val;	
 %}
 
