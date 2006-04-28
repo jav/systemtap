@@ -1,3 +1,7 @@
+2006-04-28  Martin Hunt  <hunt@redhat.com>
+
+	* vsprintf.c (_stp_vsnprintf): Fix argument size for %p.
+
 2006-04-17  Martin Hunt  <hunt@redhat.com>
 
 	* vsprintf.c (_stp_vsnprintf): Fix endian

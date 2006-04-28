@@ -295,7 +295,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				flags |= STP_ZEROPAD;
 			}
 			str = number(str, end,
-				     (unsigned long) va_arg(args, void *),
+				     (unsigned long) va_arg(args, int64_t),
 				     16, field_width, precision, flags);
 			continue;
 
