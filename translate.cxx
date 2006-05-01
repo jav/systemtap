@@ -3535,12 +3535,13 @@ c_unparser::visit_print_format (print_format* e)
       tmpvar res = gensym (ty);      
 
       // Make the [s]printf call, but not if there was an error evaluating the args
-      o->newline() << res.qname() << " = 0;";
-
       o->newline() << "if (likely (! c->last_error))";
       o->indent(1);
       if (e->print_to_stream)
-        o->newline() << "_stp_printf (";
+        {
+          o->newline() << res.qname() << " = 0;";
+          o->newline() << "_stp_printf (";
+        }
       else
 	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
 
