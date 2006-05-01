@@ -1,3 +1,13 @@
+2006-04-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2610.
+	* translate.cxx (c_unparser::visit_arrayindex, visit_stat_op):
+	Detect empty aggregates consistently.
+	(visit_print_format): Ditto.  Also detect errors due to
+	argument evaluation.
+	(translator_output::*): Add a flush before a failing assert,
+	to produce more context when debugging.
+
 2006-04-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am: Removed "rpm" target.

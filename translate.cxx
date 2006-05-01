@@ -17,11 +17,7 @@
 #include <string>
 #include <cassert>
 
-#define EXTRACTORS_PERMISSIVE 0 /* PR 2142 */
-
-
 using namespace std;
-
 
 
 // little utility function
@@ -762,7 +758,9 @@ translator_output::~translator_output ()
 ostream&
 translator_output::newline (int indent)
 {
+  if (!  (indent > 0 || tablevel >= (unsigned)-indent)) o.flush ();
   assert (indent > 0 || tablevel >= (unsigned)-indent);
+
   tablevel += indent;
   o << "\n";
   for (unsigned i=0; i<tablevel; i++)
@@ -774,6 +772,7 @@ translator_output::newline (int indent)
 void
 translator_output::indent (int indent)
 {
+  if (!  (indent > 0 || tablevel >= (unsigned)-indent)) o.flush ();
   assert (indent > 0 || tablevel >= (unsigned)-indent);
   tablevel += indent;
 }
@@ -3152,31 +3151,20 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
-      // PR 2142: NULL check for aggregate struct pointer
-      o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
-      o->indent(1);
-#if EXTRACTORS_PERMISSIVE /* Accept all @extractors, return 0.  */
-      c_assign(res, "0", e->tok);
-#else /* Accept @count only, trap on others.  */
-      o->newline() << "c->last_error = \"aggregate element not found\";";
-#endif
+      // PR 2142+2610: empty aggregates
+      o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
+                   << " || " <<  agg.qname() << "->count == 0)";
+      o->newline(1) << "c->last_error = \"empty aggregate\";";
       o->newline(-1) << "else {";
-      o->indent(1);
-
-      o->newline() << "if (" << histogram_index_check(*v, idx[0]) << ")";
-      o->newline() << "{";
+      o->newline(1) << "if (" << histogram_index_check(*v, idx[0]) << ")";
       o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
-      o->newline(-1) << "}";
-      o->newline() << "else";
-      o->newline() << "{";
+      o->newline(-1) << "else";
       o->newline(1)  << "c->last_error = \"histogram index out of range\";";
-      o->newline()   << res << " = 0;";
-      o->newline(-1) << "}";
-      
-      delete v;
 
       o->newline(-1) << "}";
-      o->newline() << res << ";";
+      o->newline(-1) << res << ";";
+            
+      delete v;
     }
 }
 
@@ -3481,20 +3469,13 @@ c_unparser::visit_print_format (print_format* e)
           load_aggregate(e->hist->stat, agg, false);
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
-        // PR 2142: NULL check for aggregate struct pointer
-        o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
-        o->indent(1);
-#if EXTRACTORS_PERMISSIVE
-        o->newline() << ";"; // ignore print(@hist(foo[bad_index]))
-#else /* Accept @count only, trap on others.  */
-        o->newline() << "c->last_error = \"aggregate element not found\";";
-#endif
-        o->newline(-1) << "else {";
-        o->indent(1);
-
-	o->newline() << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
-
-        o->newline(-1) << "}";
+        // PR 2142+2610: empty aggregates
+        o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
+                     << " || " <<  agg.qname() << "->count == 0)";
+        o->newline(1) << "c->last_error = \"empty aggregate\";";
+        o->newline(-1) << "else";
+	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
+        o->indent(-1);
       }
 
       delete v;
@@ -3553,12 +3534,13 @@ c_unparser::visit_print_format (print_format* e)
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
       tmpvar res = gensym (ty);      
 
-      // Make the [s]printf call
+      // Make the [s]printf call, but not if there was an error evaluating the args
+      o->newline() << res.qname() << " = 0;";
+
+      o->newline() << "if (likely (! c->last_error))";
+      o->indent(1);
       if (e->print_to_stream)
-	{
-	  o->newline() << res.qname() << " = 0;";
-	  o->newline() << "_stp_printf (";
-	}
+        o->newline() << "_stp_printf (";
       else
 	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
 
@@ -3567,6 +3549,7 @@ c_unparser::visit_print_format (print_format* e)
       for (unsigned i = 0; i < tmp.size(); ++i)
 	o->line() << ", " << tmp[i].qname();
       o->line() << ");";
+      o->indent(-1);
       o->newline() << res.qname() << ";";
     }
 }
@@ -3630,45 +3613,44 @@ c_unparser::visit_stat_op (stat_op* e)
       else
         load_aggregate(e->stat, agg, false);
 
-      // PR 2142: NULL check for aggregate struct pointer
-      o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
-      o->indent(1);
-#if EXTRACTORS_PERMISSIVE /* Accept all @extractors, return 0.  */
-      c_assign(res, "0", e->tok);
-#else /* Accept @count only, trap on others.  */
+      // PR 2142+2610: empty aggregates
       if (e->ctype == sc_count)
-        c_assign(res, "0", e->tok);
+        {
+          o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
+          o->indent(1);
+          c_assign(res, "0", e->tok);
+          o->indent(-1);
+        }
       else
-        o->newline() << "c->last_error = \"aggregate element not found\";";
-#endif
-      o->newline(-1) << "else {";
+        {
+          o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
+                       << " || " <<  agg.qname() << "->count == 0)";
+          o->newline(1) << "c->last_error = \"empty aggregate\";";
+          o->indent(-1);
+        }
+      o->newline() << "else";
       o->indent(1);
-
       switch (e->ctype)
-	{
-	case sc_average:
-	  // impedance matching: Have to compupte average ourselves
-	  c_assign(res, ("_stp_div64(&c->last_error, " + agg.qname() + "->sum, " + agg.qname() + "->count)"),
-		   e->tok);
-	  break;
-
-	case sc_count:
-	  c_assign(res, agg.qname() + "->count", e->tok);
-	  break;
-
-	case sc_sum:
-	  c_assign(res, agg.qname() + "->sum", e->tok);
-	  break;
-
-	case sc_min:
-	  c_assign(res, agg.qname() + "->min", e->tok);
-	  break;
-
-	case sc_max:
-	  c_assign(res, agg.qname() + "->max", e->tok);
-	  break;
-	}
-      o->newline(-1) << "}";
+        {
+        case sc_average:
+          c_assign(res, ("_stp_div64(&c->last_error, " + agg.qname() + "->sum, "
+                         + agg.qname() + "->count)"),
+                   e->tok);
+          break;
+        case sc_count:
+          c_assign(res, agg.qname() + "->count", e->tok);
+          break;
+        case sc_sum:
+          c_assign(res, agg.qname() + "->sum", e->tok);
+          break;
+        case sc_min:
+          c_assign(res, agg.qname() + "->min", e->tok);
+          break;
+        case sc_max:
+          c_assign(res, agg.qname() + "->max", e->tok);
+          break;
+        }
+      o->indent(-1);
     }    
     o->newline() << res << ";";
   }
