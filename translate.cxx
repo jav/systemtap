@@ -1024,8 +1024,8 @@ c_unparser::emit_module_init ()
       o->newline() << "_stp_printf (\"time_" << session->probes[i]->name
 		   << " %lld@%lld\\n\"," << "stats->count, avg);";
       o->newline() << "_stp_print_flush();";
-      o->newline() << "#endif";
       o->newline(-1) << "}";
+      o->newline() << "#endif";
       o->newline(-1) << "}";
     }
 

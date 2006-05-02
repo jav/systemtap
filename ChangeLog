@@ -1,5 +1,9 @@
 2006-05-02  Will Cohen  <wcohen@redhat.com>
 
+	* translate.cxx (emit_module_init): Move closing '}' inside #ifdef.
+
+2006-05-02  Will Cohen  <wcohen@redhat.com>
+
 	PR 2228
 	* stap.1.in: Document "-t" option.
 	* main.cxx (main): Add "-t" option for collecting timing information.
