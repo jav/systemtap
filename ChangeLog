@@ -1,3 +1,15 @@
+2006-05-02  Will Cohen  <wcohen@redhat.com>
+
+	PR 2228
+	* stap.1.in: Document "-t" option.
+	* main.cxx (main): Add "-t" option for collecting timing information.
+	* session.h (systemtap_session): Corresponding changes.
+	* tapsets.cxx (emit_probe_prologue, emit_probe_epilogue,
+	emit_probe_entries):
+	* translate.cxx: (emit_common_header, emit_module_init,
+	translate_pass): Add time collection of timing information.
+	
+
 2006-05-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (visit_print_format): Fix regression in

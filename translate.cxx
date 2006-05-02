@@ -895,6 +895,14 @@ c_unparser::emit_common_header ()
 
   if (!session->stat_decls.empty())
     o->newline() << "#include \"stat.c\"\n";
+
+  // XXX: Cannot tell if statistics are being used for the timing collection.
+  o->newline();
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "#include \"stat.c\"";
+  o->newline() << "#include \"arith.c\"";
+  o->newline() << "#endif";
+
 }
 
 
@@ -1006,6 +1014,18 @@ c_unparser::emit_module_init ()
       o->newline() << "noinline void unregister_probe_" << i << " (void) {";
       o->indent(1);
       session->probes[i]->emit_deregistrations (o);
+      o->newline() << "#ifdef STP_TIMING";
+      o->newline(1) << "{";
+      o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
+		   << session->probes[i]->name << ", 0);";
+      o->newline() << "int64_t avg = 0;";
+      o->newline() << "const char *error;";
+      o->newline() << "if (stats->count) avg = _stp_div64(&error, stats->sum, stats->count);";
+      o->newline() << "_stp_printf (\"time_" << session->probes[i]->name
+		   << " %lld@%lld\\n\"," << "stats->count, avg);";
+      o->newline() << "_stp_print_flush();";
+      o->newline() << "#endif";
+      o->newline(-1) << "}";
       o->newline(-1) << "}";
     }
 
@@ -1039,6 +1059,15 @@ c_unparser::emit_module_init ()
 	o->newline() << getvar (v).init();
       o->newline() << "rwlock_init (& global_" << c_varname (v->name) << "_lock);";
     }
+
+  // initialize each Stat used for timing information 
+  o->newline() << "#ifdef STP_TIMING";
+  for (unsigned i=0; i<session->probes.size(); i++)
+    {
+      o->newline() << "time_" << session->probes[i]->name
+		   << " = _stp_stat_init (HIST_NONE);";
+    }
+  o->newline() << "#endif";
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
@@ -3801,6 +3830,9 @@ translate_pass (systemtap_session& s)
 
       if (s.bulk_mode)
 	s.op->newline() << "#define STP_RELAYFS";
+
+      if (s.timing)
+	s.op->newline() << "#define STP_TIMING" << " " << s.timing ;
 
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"current.c\"";

@@ -91,6 +91,7 @@ usage (systemtap_session& s)
     << "   -c CMD     start the probes, run CMD, and exit when it finishes"
     << endl
     << "   -x PID     sets target() to PID" << endl
+    << "   -t         benchmarking timing information generated" << endl
     ;
   // -d: dump safety-related external references
 
@@ -124,6 +125,7 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.architecture = string (buf.machine);
   s.verbose = 0;
+  s.timing = 0;
   s.guru_mode = false;
   s.bulk_mode = false;
   s.unoptimized = false;
@@ -149,7 +151,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvp:I:e:o:R:r:m:kgc:x:D:bs:u");
+      int grc = getopt (argc, argv, "hVvtp:I:e:o:R:r:m:kgc:x:D:bs:u");
       if (grc < 0)
         break;
       switch (grc)
@@ -160,6 +162,10 @@ main (int argc, char * const argv [])
 
         case 'v':
 	  s.verbose ++;
+	  break;
+
+        case 't':
+	  s.timing ++;
 	  break;
 
         case 'p':

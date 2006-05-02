@@ -70,6 +70,7 @@ struct systemtap_session
   int target_pid;
   int last_pass;
   unsigned verbose;
+  unsigned timing;
   bool keep_tmpdir;
   bool guru_mode;
   bool bulk_mode;

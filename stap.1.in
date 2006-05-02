@@ -105,6 +105,10 @@ Unoptimized mode.  Disable unused code elision during elaboration.
 .BI \-b
 Use relayfs-based bulk mode for kernel-to-user data transfer.
 .TP
+.B \-t
+Collect timing information on the number of times probe executes
+and average amount of time spent in each probe.
+.TP
 .BI \-s NUM
 Use NUM megabyte buffers for kernel-to-user data transfer.  On a
 multiprocessor in bulk mode, this is a per-processor amount.

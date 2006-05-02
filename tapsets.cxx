@@ -94,7 +94,13 @@ derived_probe::emit_probe_prologue (translator_output* o,
 {
   o->newline() << "struct context* c;";
   o->newline() << "unsigned long flags;";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "cycles_t cycles_atstart;";
+  o->newline() << "#endif";
   o->newline() << "local_irq_save (flags);";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "cycles_atstart = get_cycles ();";
+  o->newline() << "#endif";
   o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
   o->newline() << "if (atomic_read (&session_state) != " << statereq << ")";
   o->newline(1) << "goto probe_epilogue;";
@@ -139,7 +145,17 @@ derived_probe::emit_probe_epilogue (translator_output* o)
   
   o->newline() << "atomic_dec (&c->busy);";
   o->newline(-1) << "probe_epilogue:";
-  o->newline(1) << "local_irq_restore (flags);";
+  o->newline(1) << "#ifdef STP_TIMING";
+  o->newline() << "{";
+  o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
+  o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
+  o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
+  o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";
+  o->newline() << "_stp_stat_add(time_" << name << ",cycles_elapsed);";
+  o->indent(-1);
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
+  o->newline() << "local_irq_restore (flags);";
 }
 
 
@@ -198,6 +214,10 @@ be_derived_probe::emit_deregistrations (translator_output* o)
 void
 be_derived_probe::emit_probe_entries (translator_output* o)
 {
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "static __cacheline_aligned Stat " << "time_" << name << ";";
+  o->newline() << "#endif";
+
   for (unsigned i=0; i<locations.size(); i++)
     {
       probe_point *l = locations[i];
@@ -3056,6 +3076,10 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o)
     }
   o->newline(-1) << "};";
 
+  o->newline();
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "static __cacheline_aligned Stat " << "time_" << name << ";";
+  o->newline() << "#endif";
 
   // Construct a single entry function, and a struct kprobe pointing into
   // the entry function. The entry function will call the probe function.
