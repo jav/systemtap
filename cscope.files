@@ -4,6 +4,7 @@
 ./config.h
 ./elaborate.cxx
 ./elaborate.h
+./gen-stapmark.h
 ./loc2c.c
 ./loc2c.h
 ./loc2c-test.c
@@ -12,6 +13,7 @@
 ./parse.h
 ./runtime/alloc.c
 ./runtime/arith.c
+./runtime/bench2/itest.c
 ./runtime/copy.c
 ./runtime/counter.c
 ./runtime/current.c
@@ -116,10 +118,13 @@
 ./runtime/user/print.c
 ./runtime/user/runtime.h
 ./runtime/user/test.h
+./runtime/vsprintf.c
 ./session.h
+./stapmark.h
 ./staptree.cxx
 ./staptree.h
 ./tapsets.cxx
 ./tapsets.h
+./tapset/test/master.c
 ./translate.cxx
 ./translate.h
