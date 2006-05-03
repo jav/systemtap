@@ -1,3 +1,9 @@
+2006-05-03  Josh Stone  <joshua.i.stone@intel.com>
+
+	* loc2c-runtime.h (deref_string): resolved gcc "warning:
+	assignment makes integer from pointer without a cast" when
+	using a pointer as the source address.
+
 2006-04-28  Martin Hunt  <hunt@redhat.com>
 
 	* vsprintf.c (_stp_vsnprintf): Fix argument size for %p.

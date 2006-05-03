@@ -1,6 +1,6 @@
 /* target operations
  * Copyright (C) 2005 Red Hat Inc.
- * Copyright (C) 2005 Intel Corporation.
+ * Copyright (C) 2005,2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -241,7 +241,7 @@
     size_t _len;							      \
     unsigned char _c;							      \
     char *_d = (dst);							      \
-    for (_len = (maxbytes), _addr = (addr);				      \
+    for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
 	 _len > 1 && (_c = deref (1, _addr)) != '\0';			      \
 	 --_len, ++_addr)						      \
       *_d++ = _c;							      \
