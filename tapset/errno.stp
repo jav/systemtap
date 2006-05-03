@@ -355,6 +355,8 @@ function errno_str:string (err:long) %{ /* pure */
 function returnstr:string (returnp:long) %{ /* pure */
 	long ret;
 
+	/* XXX: unfortunate duplication with return.stp:retval() */
+
         if (CONTEXT->regs) {
 #if defined (__i386__)
                 ret = CONTEXT->regs->eax;

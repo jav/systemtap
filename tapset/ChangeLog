@@ -1,3 +1,7 @@
+2006-05-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	* context.stp, errno.stp: Note/eliminate some retval() duplication.
+
 2006-04-27  Martin Hunt  <hunt@redhat.com>
 
 	* endian.stp (set_endian): Remove "pure" to prevent
