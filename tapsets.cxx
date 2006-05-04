@@ -1912,7 +1912,7 @@ dwarf_query::blacklisted_p(string const & funcname,
                            Dwarf_Die *scope_die,
                            Dwarf_Addr addr)
 {
-  // Check whether the given address points into an .init section,
+  // Check whether the given address points into an .init/.exit section,
   // which will have been unmapped by the kernel by the time we get to
   // insert the probe.  In this case, just ignore this call.
   if (dwfl_module_relocations (dw.module) > 0)
@@ -1921,7 +1921,8 @@ dwarf_query::blacklisted_p(string const & funcname,
       Dwarf_Addr rel_addr = addr;
       int idx = dwfl_module_relocate_address (dw.module, &rel_addr);
       const char *name = dwfl_module_relocation_info (dw.module, idx, NULL);
-      if (name && strncmp (name, ".init.", 6) == 0)
+      if (name && ((strncmp (name, ".init.", 6) == 0) ||
+		   (strncmp (name, ".exit.", 6) == 0)))
 	{
 	  if (sess.verbose>1)
 	    clog << "skipping function '" << funcname << "' base 0x"
@@ -1956,7 +1957,8 @@ dwarf_query::blacklisted_p(string const & funcname,
 
 	      // check for section name
 	      const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
-	      if (name && strncmp (name, ".init.", 6) == 0)
+	      if (name && ((strncmp (name, ".init.", 6) == 0) ||
+			   (strncmp (name, ".exit.", 6) == 0)))
 		{
 		  if (sess.verbose>1)
 		    clog << "skipping function '" << funcname << "' base 0x"

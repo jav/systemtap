@@ -1,3 +1,8 @@
+2006-05-03  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2506
+	* tapsets.cxx (dwarf_query::blacklisted_p): skip probes in .exit.*
+
 2006-05-02  Will Cohen  <wcohen@redhat.com>
 
 	* translate.cxx (emit_module_init): Move closing '}' inside #ifdef.
