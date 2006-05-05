@@ -1,0 +1,71 @@
+#! /usr/bin/env stap
+# rwtiming.stp
+#
+# This is a simple example to track the amount of time
+# spent doing reads and writes for the various programs running on the
+# system.
+
+probe begin { log("starting probe") }
+
+global names, opens, reads, writes
+global entry_opens, entry_reads, entry_writes
+global time_opens, time_reads, time_writes
+
+probe kernel.function("sys_open") {
+  t=gettimeofday_us(); p=pid(); e=execname();
+  names[e]=1
+  opens[e] ++ # plain integer
+  entry_opens[p] = t;
+}
+
+probe kernel.function("sys_open").return {
+  t=gettimeofday_us(); p=pid(); e=execname();
+  time_opens[e] <<< t - entry_opens[p];
+}
+
+probe kernel.function("sys_read") {
+  t= gettimeofday_us(); p =pid(); e=execname();
+  names[e]=1
+  reads[e] <<< $count # statistics
+  entry_reads[p] = t;
+}
+
+probe kernel.function("sys_read").return {
+  t=gettimeofday_us(); p=pid(); e=execname();
+  time_reads[e] <<< t - entry_reads[p];
+}
+
+probe kernel.function("sys_write") {
+  t=gettimeofday_us(); p=pid(); e=execname();
+  names[e]=1
+  writes[e] <<< $count # statistics
+  entry_writes[p] = t;
+}
+
+probe kernel.function("sys_write").return {
+  t = gettimeofday_us(); p = pid(); e=execname();
+  time_writes[e] <<< t - entry_writes[p];
+}
+
+probe end {
+  foreach(name+ in names) { # sort by names
+    printf ("process: %s\n", name)
+    if (opens[name]) printf ("opens n=%d\n", opens[name])
+    if (@count(reads[name])) {
+      printf ("reads n=%d, sum=%d, avg=%d\n",
+         @count(reads[name]), # extracting stat results
+         @sum(reads[name]),
+         @avg(reads[name]))
+      print ("read timing distribution\n")
+      print (@hist_log(time_reads[name]))
+    }
+    if (@count(writes[name])) {
+      printf ("writes n=%d, sum=%d, avg=%d\n",
+         @count(writes[name]), # extracting stat results
+         @sum(writes[name]),
+         @avg(writes[name]))
+      print ("write timing distribution\n")
+      print (@hist_log(time_writes[name]))
+    }
+  }
+}

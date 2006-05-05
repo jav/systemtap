@@ -1,0 +1,19 @@
+# fileopen.stp
+#
+# This is based on dtrace script from 
+# http://www.gnome.org/~gman/blog/2006/Jan
+#
+#stap  fileopen.stp  -c "zenity --about"
+
+global opens
+
+probe syscall.open {
+  if (target() == pid()) opens[filename] ++
+}
+
+probe end {
+  foreach([name] in opens+) {
+    printf("%-70s%5d\n", name, opens[name])
+  }
+}
+

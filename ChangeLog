@@ -1,3 +1,9 @@
+2006-05-05  Will Cohen  <wcohen@redhat.com>
+
+	* small_demos/fileopen.stp: Shows use of target() to look at pid.
+	* small_demos/rwtiming.stp: Shows per executable histograms of time
+	spent in read and write system calls.
+
 2006-05-05  Eugene Teo  <eteo@redhat.com>
 
 	PR 2433
