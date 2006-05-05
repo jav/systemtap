@@ -1,3 +1,8 @@
+2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, systemtap.spec.in: Bump version to 0.5.6.
+	* configure: Regenerated.
+
 2006-05-05  Will Cohen  <wcohen@redhat.com>
 
 	* small_demos/fileopen.stp: Shows use of target() to look at pid.

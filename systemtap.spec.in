@@ -100,6 +100,10 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Fri May  5 2006 Frank Ch. Eigler <fche@redhat.com> - 0.5.6-1
+- PRs 2511 2453 2307 1813 1944 2497 2538 2476 2568 1341 2058 2220 2437
+  1326 2014 2599 2427 2438 2465 1930 2149 2610 2293 2634 2506 2433
+
 * Tue Apr  4 2006 Roland McGrath <roland@redhat.com> - 0.5.5-1
 - Many changes, affected PRs include: 2068, 2293, 1989, 2334,
   1304, 2390, 2425, 953.
