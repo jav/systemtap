@@ -550,7 +550,14 @@ struct mapvar
 
   string exists (vector<tmpvar> const & indices) const
   {
-    return "((uintptr_t)" + call_prefix("get", indices) + ") != (uintptr_t) 0)";
+    if (type() == pe_string)
+      return ("({ char *v = " + call_prefix("get", indices)
+	      + "); (v != NULL && *v != '\\0');})");
+    else if ((type() == pe_long) || (type() == pe_stats))
+      return ("((uintptr_t)" + call_prefix("get", indices)
+	      + ") != (uintptr_t) 0)");
+    else
+      throw semantic_error("checking existence of an unsupported map type");
   }
 
   string get (vector<tmpvar> const & indices, bool pre_agg=false) const

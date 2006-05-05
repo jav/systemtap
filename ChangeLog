@@ -1,3 +1,8 @@
+2006-05-05  David Smith  <dsmith@redhat.com>
+
+	* translate.cxx (mapvar::exists): Added code for string array
+	handling.  Otherwise, string array elements always exist.
+
 2006-05-03  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2506
