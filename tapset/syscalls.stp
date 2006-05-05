@@ -440,10 +440,6 @@ probe syscall.exit = kernel.function("do_exit") {
 	status = $code
 	argstr = string($code)
 }
-probe syscall.exit.return = kernel.function("do_exit").return {
-	name = "exit"
-	retstr = returnstr(1)
-}
 
 # exit_group _________________________________________________
 /*
@@ -454,10 +450,6 @@ probe kernel.syscall.exit_group =
    kernel.function("sys_exit_group") {
       name = "exit_group"
       status = $error_code
-   }
-probe kernel.syscall.exit_group.return =
-   kernel.function("do_group_exit").return {
-      name = "exit_group.return"
    }
 # fadvise64 __________________________________________________
 /*

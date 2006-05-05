@@ -1981,8 +1981,9 @@ dwarf_query::blacklisted_p(string const & funcname,
       (funcname == "__switch_to" && sess.architecture == "x86_64") ||
       filename_s == "kernel/kprobes.c" ||
       0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0) ||
-      (has_return && (funcname == "sys_exit" ||
-                      funcname == "sys_groupexit")))
+      (has_return && (funcname == "do_exit" ||
+                      funcname == "sys_exit" ||
+                      funcname == "sys_exit_group")))
     {
       if (sess.verbose>1)
         clog << "skipping function '" << funcname << "' file '"

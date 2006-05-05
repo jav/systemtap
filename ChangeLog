@@ -1,3 +1,12 @@
+2006-05-05  Eugene Teo  <eteo@redhat.com>
+
+	PR 2433
+	* tapsets.cxx (dwarf_query::blacklisted_p): Extend the list of
+	blacklisted .return probes to include "do_exit". Correct funcname
+	typo for "sys_groupexit".
+	* tapset/syscalls.stp: Remove .return probe aliases of never-
+	returning syscall.exit and syscall.exit_group calls.
+
 2006-05-05  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx (mapvar::exists): Added code for string array
