@@ -70,6 +70,7 @@ if test $build_elfutils = yes; then
    ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
 				--libdir="${here}/lib-elfutils" \
+				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath"
   )
 fi
