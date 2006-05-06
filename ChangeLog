@@ -1,5 +1,12 @@
 2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 2643
+	* testsuite/buildok/syscalls.stp: Take "-u" away again.
+	* configure.ac, systemtap.spec.in: Bump version to 0.5.7.
+	* configure: Regenerated.
+
+2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
+
 	* configure.ac, systemtap.spec.in: Bump version to 0.5.6.
 	* configure: Regenerated.
 

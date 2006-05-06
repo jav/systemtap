@@ -440,6 +440,7 @@ probe syscall.exit = kernel.function("do_exit") {
 	status = $code
 	argstr = string($code)
 }
+probe syscall.exit.return = end {}
 
 # exit_group _________________________________________________
 /*
@@ -451,6 +452,9 @@ probe kernel.syscall.exit_group =
       name = "exit_group"
       status = $error_code
    }
+
+probe kernel.syscall.exit_group.return = end {}
+
 # fadvise64 __________________________________________________
 /*
  * asmlinkage long

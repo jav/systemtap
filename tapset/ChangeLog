@@ -1,3 +1,8 @@
+2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2643
+	* syscalls.stp: Put back some dummy syscall.exit*.return probes.
+
 2006-05-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp, errno.stp: Note/eliminate some retval() duplication.
