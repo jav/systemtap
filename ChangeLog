@@ -1,3 +1,9 @@
+2006-05-05  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac (build_elfutils): Pass CFLAGS to elfutils configure,
+	editting out -Wall.
+	* configure: Regenerated.
+
 2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2643
@@ -49,7 +55,7 @@
 	emit_probe_entries):
 	* translate.cxx: (emit_common_header, emit_module_init,
 	translate_pass): Add time collection of timing information.
-	
+
 
 2006-05-01  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -90,7 +96,7 @@
 	* elaborate.cxx (semantic_pass_opt2): Verbose message tweak.
 	(dead_stmtexpr_remover): Extend for more aggressive optimization.
 	* tapsets.cxx (dwarf,mark_var_expanding_copy_visotor): Add
-	/* pure */ declaration to rvalue expansions.  
+	/* pure */ declaration to rvalue expansions.
 	* tapset/*.stp: Added /* pure */ declarations to many functions.
 	* testsuite/parseok/unparsers.stp: Propagate guru mode flag.
 	* testsuite/buildok/twentyfour.stp: New test.
@@ -157,7 +163,7 @@
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (install-data-local): Tweak previous fix.
-	(install-data-local): 
+	(install-data-local):
 
 2006-04-18  Martin Hunt  <hunt@redhat.com>
 
@@ -166,7 +172,7 @@
 	under runtime and tapset. Restrict files to source code.
 
 	* Makefile.in: Rebuilt.
-	
+
 2006-04-18  Eugene Teo  <eteo@redhat.com>
 
 	PR 1341
@@ -183,7 +189,7 @@
 	between -I and runtime path.
 
 2006-04-12  Martin Hunt  <hunt@redhat.com>
-	PR 2497	 
+	PR 2497
 	* translate.cxx (translate_pass): Don't
 	reset STP_STRING_SIZE if it was already defined.
 	Set it to 1024 by default.
@@ -195,11 +201,11 @@
 
 2006-04-09  Martin Hunt  <hunt@redhat.com>
 	Add binary printf support.
-	
+
 	* elaborate.cxx (visit_print_format): Don't include
 	conv_literal or conv_size  in components vector.
 	Add conv_binary to switch statement.
-	
+
 	* translate.cxx (visit_print_format): Eliminate
 	special cast to (long long) for pe_long because new
 	vsnprintf uses int64_t.
