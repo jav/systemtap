@@ -1,0 +1,7 @@
+#! stap -p1
+
+/* the epilogue style alias definitions */
+probe syscall.read += kernel.function("sys_read") {
+fildes = $fd
+}
+
