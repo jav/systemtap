@@ -89,15 +89,43 @@ function pp:string () %{ /* pure */
 %}
 
 function probefunc:string () %{ /* pure */
-	char *start = strstr(CONTEXT->probe_point, "function(\"");
+	char *dst, *ptr, *start;
+	String str;
+	int len = MAXSTRINGLEN;
+
+	start = strstr(CONTEXT->probe_point, "function(\"");
 	if (start) {
-		char *ptr = start+10;
-		char *dst = THIS->__retvalue;
-		int len = MAXSTRINGLEN;
+		ptr = start + 10; 
+	} else {
+		start = strstr(CONTEXT->probe_point, "inline(\"");
+		if (start) { 
+			ptr = start + 8;
+		}
+	}
+	if (start) {
+		dst = THIS->__retvalue;
 		while (*ptr != '@' && --len > 0 && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
+		goto out;
 	}
+	if (CONTEXT->regs) {
+		str  = _stp_string_init (0);
+		_stp_symbol_sprint(str, REG_IP(CONTEXT->regs));
+		start = strstr(_stp_string_ptr(str), " : ");
+		if (start) {
+			dst = THIS->__retvalue;
+			ptr = start+3;
+			while (*ptr != '+' && --len > 0 && *ptr)
+				*dst++ = *ptr++;
+			*dst = 0;
+		}
+		else {
+			strlcpy(THIS->__retvalue, _stp_string_ptr(str),MAXSTRINGLEN);
+		}
+		goto out;
+	}
+	THIS->__retvalue[0] = '\0';
 %}
 
 function is_return:long () %{ /* pure */

@@ -1,3 +1,10 @@
+2006-05-08  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2594
+	From Thang P Nguyen <thang.p.nguyen@intel.com>
+	* context.stp (probefunc): expands ability to detect the function
+	for different types of probes.
+
 2006-05-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2643
