@@ -585,6 +585,7 @@ struct probe_alias: public probe
   probe_alias(std::vector<probe_point*> const & aliases);
   std::vector<probe_point*> alias_names;
   virtual void printsig (std::ostream &o) const;
+  bool epilogue_style;
 };
 
 

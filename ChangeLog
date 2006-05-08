@@ -1,3 +1,11 @@
+2006-05-08  Li Guanglei <guanglei@cn.ibm.com>
+	PR 2627
+	* elaborate.cxx: epilogue style alias expansion
+	* parse.cxx: parse += alias definition
+	* staptree.h: add epilogue_style member to probe_alias
+	* stap.1.in: add the description of epilogue style alias
+	* testsuite/parseok/fifteen.stp: testcase for epilogue style alias
+
 2006-05-05  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac (build_elfutils): Pass CFLAGS to elfutils configure,

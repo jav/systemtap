@@ -782,6 +782,8 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
 
   bool equals_ok = true;
 
+  int epilogue_alias = 0;
+
   while (1)
     {
       probe_point * pp = parse_probe_point ();
@@ -794,6 +796,15 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
           next ();
           continue;
         }
+      else if (equals_ok && t 
+          && t->type == tok_operator && t->content == "+=")
+        {
+          aliases.push_back(pp);
+          epilogue_alias = 1;
+          next ();
+          continue;
+        }
+
       else if (t && t->type == tok_operator && t->content == ",")
         {
           locations.push_back(pp);
@@ -821,6 +832,10 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
   else
     {
       probe_alias* p = new probe_alias (aliases);
+      if(epilogue_alias)
+	p->epilogue_style = true;
+      else
+	p->epilogue_style = false;
       p->tok = t0;
       p->locations = locations;
       p->body = parse_stmt_block ();
@@ -1068,7 +1083,8 @@ parser::parse_probe_point ()
 
       t = peek ();
       if (t && t->type == tok_operator 
-          && (t->content == "{" || t->content == "," || t->content == "="))
+          && (t->content == "{" || t->content == "," || t->content == "=" 
+		|| t->content == "+=" ))
         break;
       
       if (t && t->type == tok_operator && t->content == "(")
@@ -1093,7 +1109,7 @@ parser::parse_probe_point ()
       if (t && t->type == tok_operator && t->content == ".")
         next ();
       else
-        throw parse_error ("expected '.' or ',' or '(' or '{' or '='");
+        throw parse_error ("expected '.' or ',' or '(' or '{' or '=' or '+='");
     }
 
   return pl;

@@ -344,17 +344,33 @@ alias_expansion_builder
     // there's concatenated code here and we only want one vardecl per
     // resulting variable.
 
-    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
-      {
-	statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
-	n->body->statements.push_back(s);
-      }
+    if(alias->epilogue_style == true)  {
+	    for (unsigned i = 0; i < use->body->statements.size(); ++i)
+	      {
+		statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
+		n->body->statements.push_back(s);
+	      }
 
-    for (unsigned i = 0; i < use->body->statements.size(); ++i)
-      {
-	statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
-	n->body->statements.push_back(s);
-      }
+	    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
+	      {
+		statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
+		n->body->statements.push_back(s);
+	      }
+
+    }  else  {
+
+	    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
+	      {
+		statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
+		n->body->statements.push_back(s);
+	      }
+
+	    for (unsigned i = 0; i < use->body->statements.size(); ++i)
+	      {
+		statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
+		n->body->statements.push_back(s);
+	      }
+    }
 
     derive_probes (sess, n, finished_results, false);
   }

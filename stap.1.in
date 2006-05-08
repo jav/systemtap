@@ -403,10 +403,16 @@ with optimized code.  Some other events have very little context.
 New probe points may be defined using "aliases".  Probe point aliases
 look similar to probe definitions, but instead of activating a probe
 at the given point, it just defines a new probe point name as an alias
-to an existing one.  This is identified by the "=" assignment
-operator.  In addition, the statement block that follows an alias
+to an existing one. There are two types of alias, i.e. the prologue 
+style and the epilogue style which are identified by "=" and "+="
+respectively. 
+
+For prologue style alias, the statement block that follows an alias
 definition is implicitly added as a prologue to any probe that refers
-to the alias.  For example:
+to the alias. While for the epilogue style alias, the statement block
+that follows an alias definition is implicitly added as an epilogue to
+any probe that refers to the alias. For example:
+
 .SAMPLE
 probe syscall.read = kernel.function("sys_read") {
   fildes = $fd
@@ -420,7 +426,15 @@ which expands to
 .nh
 .IR kernel.function("sys_read") ,
 .hy
-with the given assignment as a prologue.  Another probe definition
+with the given statement as a prologue. And 
+.SAMPLE
+probe syscall.read += kernel.function("sys_read") {
+  fildes = $fd
+}
+.ESAMPLE
+defines a new probe point with the given statement as an epilogue. 
+
+Another probe definition
 may use the alias like this:
 .SAMPLE
 probe syscall.read {
