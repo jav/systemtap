@@ -94,13 +94,10 @@ function probefunc:string () %{ /* pure */
 	int len = MAXSTRINGLEN;
 
 	start = strstr(CONTEXT->probe_point, "function(\"");
-	if (start) {
-		ptr = start + 10; 
-	} else {
+	ptr = start + 10; 
+	if (!start) {
 		start = strstr(CONTEXT->probe_point, "inline(\"");
-		if (start) { 
-			ptr = start + 8;
-		}
+		ptr = start + 8;
 	}
 	if (start) {
 		dst = THIS->__retvalue;
