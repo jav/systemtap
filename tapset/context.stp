@@ -104,9 +104,7 @@ function probefunc:string () %{ /* pure */
 		while (*ptr != '@' && --len > 0 && *ptr)
 			*dst++ = *ptr++;
 		*dst = 0;
-		goto done;
-	}
-	if (CONTEXT->regs) {
+	} else if (CONTEXT->regs) {
 		str  = _stp_string_init (0);
 		_stp_symbol_sprint(str, REG_IP(CONTEXT->regs));
 		start = strstr(_stp_string_ptr(str), " : ");
@@ -120,10 +118,9 @@ function probefunc:string () %{ /* pure */
 		else {
 			strlcpy(THIS->__retvalue, _stp_string_ptr(str),MAXSTRINGLEN);
 		}
-		goto done;
-	}
-	THIS->__retvalue[0] = '\0';
-done:	;
+	} else {
+        THIS->__retvalue[0] = '\0';
+    }
 %}
 
 function is_return:long () %{ /* pure */

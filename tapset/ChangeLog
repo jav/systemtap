@@ -1,6 +1,6 @@
 2006-05-09  Josh Stone  <joshua.i.stone@intel.com>
 
-	* context.stp (probefunc): define our own exit label
+	* context.stp (probefunc): remove use of labels
 
 2006-05-08  Josh Stone  <joshua.i.stone@intel.com>
 
