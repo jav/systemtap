@@ -1,3 +1,7 @@
+2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
+	PR 2647
+	* runtime/vsprintf.c: %0s support to print null-terminated string
+	
 2006-05-08  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2627
 	* elaborate.cxx: epilogue style alias expansion

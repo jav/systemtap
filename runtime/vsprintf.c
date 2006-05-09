@@ -275,6 +275,11 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 					*str = ' ';
 				++str;
 			}
+			if(flags & STP_ZEROPAD) {
+				if (str <= end)
+				       *str = '\0';
+			       ++str;
+			}
 			continue;
 
 		case 'X':
