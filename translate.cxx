@@ -1023,13 +1023,18 @@ c_unparser::emit_module_init ()
       session->probes[i]->emit_deregistrations (o);
       o->newline() << "#ifdef STP_TIMING";
       o->newline(1) << "{";
+      o->newline() << "const char *probe_point = " <<
+        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
       o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
 		   << session->probes[i]->name << ", 0);";
       o->newline() << "int64_t avg = 0;";
       o->newline() << "const char *error;";
       o->newline() << "if (stats->count) avg = _stp_div64(&error, stats->sum, stats->count);";
-      o->newline() << "_stp_printf (\"time_" << session->probes[i]->name
-		   << " %lld@%lld\\n\"," << "stats->count, avg);";
+      o->newline() << "_stp_printf (";
+      o->newline() << "\"probe at " << session->probes[i]->tok->location
+		   << " (%s)\"" ;
+      o->newline() << "\" %lld@%lld (%lld <= t <= %lld)\\n\",";
+      o->newline() << "probe_point, stats->count, avg, stats->min, stats->max);";
       o->newline() << "_stp_print_flush();";
       o->newline(-1) << "}";
       o->newline() << "#endif";

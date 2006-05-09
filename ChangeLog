@@ -1,3 +1,10 @@
+2006-05-09  Will Cohen  <wcohen@redhat.com>
+
+	PR 2228
+	* parse.h:
+	* parse.cxx: Add << operator for struct source_loc.
+	* translate.cxx (emit_module_init): Print location of probe in script.
+
 2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2520
 	* main.cxx: add -M option to stop merge per-cpu files in bulk mode

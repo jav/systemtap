@@ -77,6 +77,16 @@ tt2str(token_type tt)
 }
 
 ostream&
+operator << (ostream& o, const source_loc& loc)
+{
+  o << loc.file << ":" 
+    << loc.line << ":"
+    << loc.column;
+
+  return o;
+}
+
+ostream&
 operator << (ostream& o, const token& t)
 {
   o << tt2str(t.type);
@@ -93,9 +103,7 @@ operator << (ostream& o, const token& t)
     }
 
   o << " at " 
-    << t.location.file << ":" 
-    << t.location.line << ":"
-    << t.location.column;
+    << t.location;
 
   return o;
 }

@@ -24,6 +24,7 @@ struct source_loc
   unsigned column;
 };
 
+std::ostream& operator << (std::ostream& o, const source_loc& loc);
 
 enum token_type 
   {
