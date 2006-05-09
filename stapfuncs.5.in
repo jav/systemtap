@@ -177,7 +177,7 @@ Return the symbolic string associated with the given error code, like
 .PP
 The queue_stats tapset provides functions that, given notifications of
 elementary queuing events (wait, run, done), tracks averages such as
-queue lenghth, service and wait times, utilization.  The following
+queue length, service and wait times, utilization.  The following
 three functions should be called from appropriate probes, in sequence.
 .TP
 qs_wait:unknown (qname:string)

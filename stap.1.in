@@ -184,7 +184,7 @@ Integers are 64-bit signed quantities, although the parser also accepts
 In addition, script arguments given at the end of the command line may
 be expanded as literals.  Use
 .B $1 ... $<NN>
-for casting as a numberic literal and
+for casting as a numeric literal and
 .B @1 ... @<NN>
 for casting as string literal.  These may be used in all contexts
 where literals are accepted.  Reference to an argument number beyond
@@ -218,7 +218,7 @@ performed by the glibc function
 If, on the other hand, the first part is the identifier
 .BR arch
 to refer to the processor architecture, then the second part
-then the second part is one of the two string comparison operatorsn
+then the second part is one of the two string comparison operators
 .BR == " or " != ,
 and the third part is a string literal for matching it.  This
 comparison is simple string (in)equality.
@@ -301,9 +301,9 @@ or second STMT (zero).
 .BR while " (EXP) STMT"
 While integer-valued EXP evaluates to non-zero, execute STMT.
 .TP
-.BR for " (EXP1; EXP2; EXP2) STMT"
-Execute EXP2 as initialization.  While EXP1 is non-zero, execute
-STMT, then the iteration expression EXP1.
+.BR for " (EXP1; EXP2; EXP3) STMT"
+Execute EXP1 as initialization.  While EXP2 is non-zero, execute
+STMT, then the iteration expression EXP3.
 .TP
 .BR foreach " (VAR " in " ARRAY) STMT"
 Loop over each element of the named global array, assigning current
