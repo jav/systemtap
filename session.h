@@ -75,6 +75,7 @@ struct systemtap_session
   bool guru_mode;
   bool bulk_mode;
   bool unoptimized;
+  bool merge;
   int buffer_size;
 
   // temporary directory for module builds etc.

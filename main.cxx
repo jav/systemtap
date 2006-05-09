@@ -67,6 +67,7 @@ usage (systemtap_session& s)
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
+    << "   -M         Don't merge per-cpu files for bulk (relayfs) mode" << (s.merge ? "" : " [set]") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
     << s.buffer_size << endl
     << "   -p NUM     stop after pass NUM 1-5, instead of "
@@ -136,6 +137,7 @@ main (int argc, char * const argv [])
   s.keep_tmpdir = false;
   s.cmd = "";
   s.target_pid = 0;
+  s.merge=true;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)
@@ -151,7 +153,7 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVvtp:I:e:o:R:r:m:kgc:x:D:bs:u");
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgc:x:D:bs:u");
       if (grc < 0)
         break;
       switch (grc)
@@ -159,6 +161,10 @@ main (int argc, char * const argv [])
         case 'V':
           version ();
           exit (0);
+
+        case 'M':
+          s.merge = false;
+          break;
 
         case 'v':
 	  s.verbose ++;
@@ -245,6 +251,18 @@ main (int argc, char * const argv [])
         default:
           usage (s);
         }
+    }
+
+  if(!s.bulk_mode && !s.merge)
+    {
+      cerr << "-M option is valid only for bulk (relayfs) mode." <<endl;
+      exit(1);
+    }
+
+  if(!s.output_file.empty() && s.bulk_mode && !s.merge)
+    {
+      cerr << "You can't specify -M, -b and -o options together." <<endl;
+      exit(1);
     }
 
   for (int i = optind; i < argc; i++)

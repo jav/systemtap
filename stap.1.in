@@ -105,6 +105,10 @@ Unoptimized mode.  Disable unused code elision during elaboration.
 .BI \-b
 Use relayfs-based bulk mode for kernel-to-user data transfer.
 .TP
+.BI \-M
+Don't merge per-cpu files when using bulk (relayfs) mode. This option is
+valid for bulk mode.
+.TP
 .B \-t
 Collect timing information on the number of times probe executes
 and average amount of time spent in each probe.

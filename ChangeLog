@@ -1,5 +1,13 @@
 2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
+	PR 2520
+	* main.cxx: add -M option to stop merge per-cpu files in bulk mode
+	* session.h: add merge member into systemtap_session
+	* buildrun.cxx: generate stpd_cmd to stop merge per-cpu files if -M
+	option is turned on by stap.
+	
+2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2647
+	Patch given by Gui Jian <guij@cn.ibm.com>
 	* runtime/vsprintf.c: %0s support to print null-terminated string
 	
 2006-05-08  Li Guanglei <guanglei@cn.ibm.com>

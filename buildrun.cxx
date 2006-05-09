@@ -113,6 +113,7 @@ run_pass (systemtap_session& s)
     + string(PKGLIBDIR) + "/stpd "
     + (s.bulk_mode ? "" : "-r ")
     + (s.verbose>1 ? "" : "-q ")
+    + (s.merge ? "" : "-m ")
     + "-u " + username + " "
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   
