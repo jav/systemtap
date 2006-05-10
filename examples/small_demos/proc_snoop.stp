@@ -1,0 +1,57 @@
+#!/usr/bin/env stap
+
+global start_ts
+
+probe begin {
+    start_ts = gettimeofday_us()
+    printf("%12s  %5s  %5s  %-16s  ACTION\n",
+            "TIMESTAMP", "PID", "TID", "EXECNAME")
+}
+
+function report(action:string) {
+    printf("%12d  %5d  %5d  %-16s  %s\n", gettimeofday_us() - start_ts,
+            pid(), tid(), execname(), action)
+}
+
+function id:string(task:long) {
+    return sprintf("p:%d t:%d n:%s", task_pid(task), task_tid(task),
+            task_execname(task))
+}
+
+probe process.create {
+    report(sprintf("create %s", id(task)))
+}
+
+probe process.start {
+    report("start")
+}
+
+probe process.exec {
+    report(sprintf("exec %s", filename))
+}
+
+probe process.exec.complete {
+    if (success)
+        report("exec success")
+    else
+        report(sprintf("exec failed %d (%s)", errno, errno_str(errno)))
+}
+
+probe process.exit {
+    report(sprintf("exit %d", code))
+}
+
+probe process.release {
+    report(sprintf("remove %s", id(task)))
+}
+
+probe process.signal.send {
+    report(sprintf("sigsend %d (%s) to %s%s", signal, signal_name, id(task),
+                shared? " [SHARED]" : ""))
+}
+
+/* FIXME this probepoint is not fully implemented
+probe process.signal.handle {
+    report(sprintf("sighandle %d (%s)", signal, signal_name))
+}
+*/

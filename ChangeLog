@@ -1,3 +1,11 @@
+2006-05-09  Josh Stone  <joshua.i.stone@intel.com>
+
+	* examples/small_demos/proc_snoop.stp: monitor all process events.
+	* testsuite/buildok/task_test.stp: test compilation of all task
+	functions.
+	* testsuite/buildok/process_test.stp: test all process events and
+	associated variables.
+
 2006-05-09  Will Cohen  <wcohen@redhat.com>
 
 	PR 2228

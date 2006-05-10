@@ -1,0 +1,40 @@
+#! stap -p4
+
+probe process.create {
+  log(pp())
+  log(string(task))
+}
+
+probe process.start {
+  log(pp())
+}
+
+probe process.exec {
+  log(pp())
+  log(filename)
+}
+
+probe process.exec.complete {
+  log(pp())
+  log(string(errno))
+  log(string(success))
+}
+
+probe process.exit {
+  log(pp())
+  log(string(code))
+}
+
+probe process.release {
+  log(pp())
+  log(string(task))
+}
+
+probe process.signal.send {
+  log(pp())
+  log(string(signal))
+  log(signal_name)
+  log(string(task))
+  log(string(shared))
+}
+
