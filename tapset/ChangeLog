@@ -1,6 +1,8 @@
 2006-05-09  Josh Stone  <joshua.i.stone@intel.com>
 
 	* context.stp (probefunc): remove use of labels
+	* task.stp: functions to retrieve task information
+	* process.stp: tapset for process-related events
 
 2006-05-08  Josh Stone  <joshua.i.stone@intel.com>
 

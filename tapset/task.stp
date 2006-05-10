@@ -1,0 +1,156 @@
+// task information tapset
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
+// Return the task_struct representing the current process
+function task_current:long () %{ /* pure */
+    THIS->__retvalue = (long)current;
+%}
+
+
+// Return the parent task_struct of the given task
+function task_parent:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->parent), &(t->parent));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the state of the given task, one of:
+//   TASK_RUNNING           0
+//   TASK_INTERRUPTIBLE     1
+//   TASK_UNINTERRUPTIBLE   2
+//   TASK_STOPPED           4
+//   TASK_TRACED            8
+//   EXIT_ZOMBIE           16
+//   EXIT_DEAD             32
+function task_state:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->state), &(t->state));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the name of the given task
+function task_execname:string (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    deref_string(THIS->__retvalue, t->comm, MAXSTRINGLEN);
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the process id of the given task
+function task_pid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->tgid), &(t->tgid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the thread id of the given task
+function task_tid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->pid), &(t->pid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the group id of the given task
+function task_gid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->gid), &(t->gid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the effective group id of the given task
+function task_egid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->egid), &(t->egid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the user id of the given task
+function task_uid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->uid), &(t->uid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the effective user id of the given task
+function task_euid:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    THIS->__retvalue = deref(sizeof(t->euid), &(t->euid));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the priority value of the given task
+function task_prio:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    int prio = deref(sizeof(t->prio), &(t->prio));
+    THIS->__retvalue = prio - MAX_RT_PRIO;
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the nice value of the given task
+function task_nice:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    int static_prio = deref(sizeof(t->static_prio), &(t->static_prio));
+    THIS->__retvalue = static_prio - MAX_RT_PRIO - 20;
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
+
+
+// Return the scheduled cpu for the given task
+function task_cpu:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct thread_info *ti =
+        (struct thread_info *)deref(sizeof(t->thread_info), &(t->thread_info));
+    THIS->__retvalue = deref(sizeof(ti->cpu), &(ti->cpu));
+    if (0) {
+deref_fault:
+        CONTEXT->last_error = "pointer dereference fault";
+    }
+%}
