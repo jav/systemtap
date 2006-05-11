@@ -1,0 +1,135 @@
+/*
+ * ctime()
+ *
+ * Takes an argument of seconds since the epoch as returned by
+ * gettimeofday_s(). Returns a string of the form
+ *
+ *   "Wed Jun 30 21:49:008 1993"
+ *
+ * The abbreviations for the days of the week are ‘Sun’, ‘Mon’, ‘Tue’,
+ * ‘Wed’, ‘Thu’, ‘Fri’, and ‘Sat’.  The abbreviations for the months
+ * are ‘Jan’, ‘Feb’, ‘Mar’, ‘Apr’, ‘May’, ‘Jun’, ‘Jul’, ‘Aug’, ‘Sep’,
+ * ‘Oct’, ‘Nov’, and ‘Dec’.
+ *
+ * Note that the real C library ctime() function puts a newline ('\n')
+ * character at the end of the string that this function does not.
+ * Also note that since the kernel has no concept of timezones, the
+ * returned time is always in GMT.
+ *
+ * This code was adapted from the newlib mktm_r() and asctime_r()
+ * functions.  In newlib, mktm_r.c states that it was adapted from
+ * tzcode maintained by Arthur David Olson.  In newlib, asctime_r.c
+ * doesn't have any author/copyright information.
+ *
+ * Changes copyright (C) 2006 Red Hat Inc.
+ */
+
+function ctime:string(epochsecs:long)
+%{
+
+#define SECSPERMIN	60L
+#define MINSPERHOUR	60L
+#define HOURSPERDAY	24L
+#define SECSPERHOUR	(SECSPERMIN * MINSPERHOUR)
+#define SECSPERDAY	(SECSPERHOUR * HOURSPERDAY)
+#define DAYSPERWEEK	7
+#define MONSPERYEAR	12
+
+#define EPOCH_YEAR      1970
+#define EPOCH_WDAY      4
+
+#define isleap(y) ((((y) % 4) == 0 && ((y) % 100) != 0) || ((y) % 400) == 0)
+
+    static const int mon_lengths[2][MONSPERYEAR] = {
+	{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+	{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    } ;
+
+    static const int year_lengths[2] = {
+	365,
+	366
+    } ;
+
+    static const char day_name[7][3] = {
+	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
+    };
+    static const char mon_name[12][3] = {
+	"Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+
+    long days, rem;
+    time_t lcltime;
+    int yleap;
+    const int *ip;
+    int tm_sec;         /* seconds */
+    int tm_min;         /* minutes */
+    int tm_hour;        /* hours */
+    int tm_mday;        /* day of the month */
+    int tm_mon;         /* month */
+    int tm_year;        /* year */
+    int tm_wday;        /* day of the week */
+
+    lcltime = THIS->epochsecs;
+   
+    days = ((long)lcltime) / SECSPERDAY;
+    rem = ((long)lcltime) % SECSPERDAY;
+    while (rem < 0) 
+    {
+	rem += SECSPERDAY;
+	--days;
+    }
+    while (rem >= SECSPERDAY)
+    {
+	rem -= SECSPERDAY;
+	++days;
+    }
+ 
+    /* compute hour, min, and sec */  
+    tm_hour = (int) (rem / SECSPERHOUR);
+    rem %= SECSPERHOUR;
+    tm_min = (int) (rem / SECSPERMIN);
+    tm_sec = (int) (rem % SECSPERMIN);
+
+    /* compute day of week */
+    if ((tm_wday = ((EPOCH_WDAY + days) % DAYSPERWEEK)) < 0)
+	tm_wday += DAYSPERWEEK;
+
+    /* compute year & day of year */
+    tm_year = EPOCH_YEAR;
+    if (days >= 0)
+    {
+	for (;;)
+	{
+	    yleap = isleap(tm_year);
+	    if (days < year_lengths[yleap])
+		break;
+	    tm_year++;
+	    days -= year_lengths[yleap];
+	}
+    }
+    else
+    {
+	do
+	{
+	    --tm_year;
+	    yleap = isleap(tm_year);
+	    days += year_lengths[yleap];
+	} while (days < 0);
+    }
+
+    ip = mon_lengths[yleap];
+    for (tm_mon = 0; days >= ip[tm_mon]; ++tm_mon)
+	days -= ip[tm_mon];
+    tm_mday = days + 1;
+
+    /*
+     * At this point we have all our information.  Now we need to
+     * convert it to an ascii representation.
+     */
+
+    snprintf (THIS->__retvalue, MAXSTRINGLEN, "%.3s %.3s%3d %.2d:%.2d:%.2d %d",
+	      day_name[tm_wday], mon_name[tm_mon],
+	      tm_mday, tm_hour, tm_min,
+	      tm_sec, tm_year);
+%}
