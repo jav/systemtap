@@ -141,15 +141,22 @@ Return the effective gid of the current process.
 print_regs:unknown ()
 Print a register dump.
 .TP
-print_backtrace:unknown ()
-Print a symbolic backtrace.  Use with care.  May be timeconsuming.
-.TP
 backtrace:string ()
 Return a string of hex addresses that are a backtrace of the stack.
-May be truncated due to maximum string length.
+It may be truncated due to maximum string length.
 .TP
-print_stack (bt:string)
-Perform a symbolic lookup of the addresses in bt and prints one per line.
+print_stack:unknown (bt:string)
+Perform a symbolic lookup of the addresses in the given string,
+which is assumed to be the result of a prior call to
+.IR backtrace() .
+Print one line per address, including the address, the name of the
+function containing the address, and an estimate of its position
+within that function.  Return nothing.
+.TP
+print_backtrace:unknown ()
+Equivalent to
+.IR print_stack(backtrace()) ,
+except that deeper stack nesting may be supported.  Return nothing.
 .TP
 pp:string ()
 Return the probe point associated with the currently running probe handler,
