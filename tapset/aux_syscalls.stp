@@ -721,20 +721,76 @@ function _flock_cmd_str(c) {
 }
 
 /* `man 2 open` for more information */
-function _sys_open_flag_str(f) {
-   if(f & 8192) bs="O_ASYNC|".bs
-   if(f & 4096) bs="O_SYNC|".bs
-   if(f & 2048) bs="O_NONBLOCK|".bs
-   if(f & 1024) bs="O_APPEND|".bs
-   if(f & 512)  bs="O_TRUNC|".bs
-   if(f & 256)  bs="O_NOCTTY|".bs
-   if(f & 128)  bs="O_EXCL|".bs
-   if(f & 64)   bs="O_CREAT|".bs
-   if((f & 3) == 2) bs="O_RDWR|".bs
-   else if((f & 3) == 1) bs="O_WRONLY|".bs
-   else if((f & 3) == 0) bs="O_RDONLY|".bs
-   return substr(bs,0,strlen(bs)-1)
-}
+function _sys_open_flag_str:string (f:long)
+%{ /* pure */
+	int flags = (int)THIS->f;
+	int acc = flags & O_ACCMODE;
+
+	switch (acc) {
+	case O_WRONLY:
+		strlcpy (THIS->__retvalue, "O_WRONLY", MAXSTRINGLEN);
+		break;
+	case O_RDWR:
+		strlcpy (THIS->__retvalue, "O_RDWR", MAXSTRINGLEN);
+		break;
+	default:
+		strlcpy (THIS->__retvalue, "O_RDONLY", MAXSTRINGLEN);
+	}
+
+#ifdef O_APPEND
+	if (flags & O_APPEND)
+		strlcat (THIS->__retvalue, "|O_APPEND", MAXSTRINGLEN);
+#endif
+#ifdef O_CREAT
+	if (flags & O_CREAT)
+		strlcat (THIS->__retvalue, "|O_CREAT", MAXSTRINGLEN);
+#endif
+#ifdef O_ASYNC
+	if (flags & O_ASYNC)
+		strlcat (THIS->__retvalue, "|O_ASYNC", MAXSTRINGLEN);
+#endif
+#ifdef O_DIRECT
+	if (flags & O_DIRECT)
+		strlcat (THIS->__retvalue, "|O_DIRECT", MAXSTRINGLEN);
+#endif
+#ifdef O_DIRECTORY
+	if (flags & O_DIRECTORY)
+		strlcat (THIS->__retvalue, "|O_DIRECTORY", MAXSTRINGLEN);
+#endif
+#ifdef O_EXCL
+	if (flags & O_EXCL)
+		strlcat (THIS->__retvalue, "|O_EXCL", MAXSTRINGLEN);
+#endif
+#ifdef O_LARGEFILE
+	if (flags & O_LARGEFILE)
+		strlcat (THIS->__retvalue, "|O_LARGEFILE", MAXSTRINGLEN);
+#endif
+#ifdef O_NOATIME
+	if (flags & O_NOATIME)
+		strlcat (THIS->__retvalue, "|O_NOATIME", MAXSTRINGLEN);
+#endif
+#ifdef O_NOCTTY
+	if (flags & O_NOCTTY)
+		strlcat (THIS->__retvalue, "|O_NOCTTY", MAXSTRINGLEN);
+#endif
+#ifdef O_NOFOLLOW
+	if (flags & O_NOFOLLOW)
+		strlcat (THIS->__retvalue, "|O_NOFOLLOW", MAXSTRINGLEN);
+#endif
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		strlcat (THIS->__retvalue, "|O_NONBLOCK", MAXSTRINGLEN);
+#endif
+#ifdef O_SYNC
+	if (flags & O_SYNC)
+		strlcat (THIS->__retvalue, "|O_SYNC", MAXSTRINGLEN);
+#endif
+#ifdef O_TRUNC
+	if (flags & O_TRUNC)
+		strlcat (THIS->__retvalue, "|O_TRUNC", MAXSTRINGLEN);
+#endif
+%}
+
 
 /* `man 2 open` for more information */
 function _access_mode_str(m) {
