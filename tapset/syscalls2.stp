@@ -774,7 +774,8 @@ probe syscall.rt_sigqueueinfo.return =
 #
 probe syscall.rt_sigsuspend = kernel.function("sys_rt_sigsuspend") {
 	name = "rt_sigsuspend"
-	regs = $regs
+	/* FIXME : i386 can't resolve regs for this function */
+	#regs = $regs
 	argstr = ""
 }
 probe syscall.rt_sigsuspend.return = kernel.function("sys_rt_sigsuspend").return {
