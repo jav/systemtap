@@ -222,8 +222,7 @@ be_derived_probe::emit_probe_entries (translator_output* o)
     {
       probe_point *l = locations[i];
       o->newline() << "/* location " << i << ": " << *l << " */";
-      o->newline() << "static void enter_" << name << "_" << i << " (void);";
-      o->newline() << "void enter_" << name << "_" << i << " () {";
+      o->newline() << "static void enter_" << name << "_" << i << " (void) {";
 
       // While begin/end probes are executed single-threaded, we
       // still code defensively and use a per-cpu context.
@@ -3066,7 +3065,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o)
 
   assert(probe_points.size() == locations.size());
 
-  o->newline() << "char const * "
+  o->newline() << "static char const * "
 	       << string_array
 	       << "[" << locations.size() << "] = {";
   o->indent(1);
@@ -3265,7 +3264,7 @@ timer_derived_probe::emit_probe_entries (translator_output* o)
 {
   o->newline() << "static struct timer_list timer_" << name << ";";
 
-  o->newline() << "void enter_" << name << " (unsigned long val) {";
+  o->newline() << "static void enter_" << name << " (unsigned long val) {";
   o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
@@ -3579,7 +3578,7 @@ mark_derived_probe::emit_probe_entries (translator_output* o)
 {
   assert (this->locations.size() == 1);
 
-  o->newline() << "void enter_" << name << " (" << probe_sig_expanded << ")";
+  o->newline() << "static void enter_" << name << " (" << probe_sig_expanded << ")";
   o->newline() << "{";
   o->newline(1) << "const char* probe_point = "
                << lex_cast_qstring(* this->locations[0]) << ";";

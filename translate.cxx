@@ -993,7 +993,7 @@ c_unparser::emit_module_init ()
   // come in handy too.
   for (unsigned i=0; i<session->probes.size(); i++)
     {
-      o->newline() << "noinline int register_probe_" << i << " (void) {";
+      o->newline() << "static noinline int register_probe_" << i << " (void) {";
       o->indent(1);
       // By default, mark the first location as the site of possible
       // registration failure.  This is helpful since non-dwarf
@@ -1256,8 +1256,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   this->current_probenum = i;
   this->tmpvar_counter = 0;
 
-  // o->newline() << "static void probe_" << i << " (struct context *c);";
-  o->newline() << "void probe_" << i << " (struct context * __restrict__ c) {";
+  o->newline() << "static void probe_" << i << " (struct context * __restrict__ c) {";
   o->indent(1);
 
   // initialize frame pointer
@@ -1290,6 +1289,7 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
 
   o->newline(-1) << "out:";
   // NB: no need to uninitialize locals, except if arrays can somedays be local
+  // XXX: do this flush only if the body included a print/printf/etc. routine!
   o->newline(1) << "_stp_print_flush();";
 
   emit_unlocks (vut);
@@ -3576,7 +3576,7 @@ c_unparser::visit_print_format (print_format* e)
       tmpvar res = gensym (ty);      
 
       // Make the [s]printf call, but not if there was an error evaluating the args
-      o->newline() << "if (likely (! c->last_error))";
+      o->newline() << "if (likely (! c->last_error)) {";
       o->indent(1);
       if (e->print_to_stream)
         {
@@ -3591,7 +3591,7 @@ c_unparser::visit_print_format (print_format* e)
       for (unsigned i = 0; i < tmp.size(); ++i)
 	o->line() << ", " << tmp[i].qname();
       o->line() << ");";
-      o->indent(-1);
+      o->newline(-1) << "}";
       o->newline() << res.qname() << ";";
     }
 }

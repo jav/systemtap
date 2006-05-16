@@ -1,3 +1,12 @@
+2006-05-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx, translator.cxx (*): Designate more emitted
+	functions as static.
+	* translator.cxx (visit_print_format): Correct regression
+	regression from two weeks ago.
+	* stapfuncs.5.in: Tweak wording.  Deprecate returnval() in favour
+	of retval().
+
 2006-05-12  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/probefunc.stp: test probefunc()
