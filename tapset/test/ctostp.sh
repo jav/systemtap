@@ -42,9 +42,9 @@ do
          var=` echo $line|cut -d"\"" -f4`
          if [ `echo $var|grep void|wc -l` -eq 1 ] 
          then
-            echo "      log(\"$func: $var = \".string(0))"    >> $dest/$fn.stp
+            echo "      log(\"$func: $var = \".sprint(0))"    >> $dest/$fn.stp
          else 
-            echo "      log(\"$func: $var = \".string($var))" >> $dest/$fn.stp
+            echo "      log(\"$func: $var = \".sprint($var))" >> $dest/$fn.stp
          fi
       fi
    done < $file

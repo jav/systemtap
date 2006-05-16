@@ -1,3 +1,30 @@
+2006-05-16  David Smith  <dsmith@redhat.com>
+
+	* conversions.stp (hexstring, string): Removed functions.  Because
+	of parser changes, "string" is now a reserved word and cannot be a
+	function name.  Use 'sprintf("0x%x", num)' to replace hexstring()
+	and either 'sprint(num)' or 'sprintf("%d", num)' to replace
+	string().
+
+	* syscalls.stp (syscall.accept, syscall.alarm, syscall.close,
+	syscall.dup, syscall.epoll_create, syscall.exit, syscall.fchdir,
+	syscall.fdatasync, syscall.fsync, syscall.getsid) Changed
+	'string()' calls to 'sprint()' calls.
+	* syscalls2.stp (syscall.sched_get_priority_max,
+	syscall.sched_get_priority_min, syscall.sched_getscheduler,
+	syscall.setfsgid, syscall.setfsgid16, syscall.setfsuid,
+	syscall.setfsuid16, syscall.setgid, syscall.setgid16,
+	syscall.setuid, syscall.setuid16, syscall.ssetmask,
+	syscall.timer_delete, syscall.timer_getoverrun): Ditto.
+	* i686/syscalls.stp (syscall.iopl, syscall.rt_sigreturn,
+	syscall.sigreturn): Ditto.
+	* ppc64/syscalls.stp (syscall.ppc64_personality): Ditto.
+	* x86_64/syscalls.stp (kernel.syscall.iopl, kernel.syscall.umask):
+	Ditto.
+
+	* test/ctostp.sh: Uses 'sprint()' instead of 'string()' in
+	generated systemtap code.
+
 2006-05-14  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_sys_open_flag_str): Rewrite in C so it

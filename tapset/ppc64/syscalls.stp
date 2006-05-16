@@ -1796,7 +1796,7 @@ probe syscall.sys64_time.return = kernel.function("sys64_time").return {
 probe syscall.ppc64_personality = kernel.function("ppc64_personality") {
 	name = "ppc64_personality"
 	persona = $personality
-	argstr = string($personality)
+	argstr = sprint($personality)
 }
 probe syscall.ppc64_personality.return =
 	kernel.function("ppc64_personality").return {

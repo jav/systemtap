@@ -242,7 +242,7 @@ probe kernel.syscall.get_mempolicy.return =
 probe kernel.syscall.iopl = kernel.function("sys_iopl") {
 	name = "iopl"
 	level = $level
-	argstr = string($level)	
+	argstr = sprint($level)	
 }
 probe kernel.syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"
@@ -412,7 +412,7 @@ probe kernel.syscall.umask = kernel.function("sys_umask") {
 	/*
 	 * doesnt like $mask on x86_64 ????
 	 */
-	argstr = string($mask)
+	argstr = sprint($mask)
 }
 probe kernel.syscall.umask.return = kernel.function("sys_umask").return {
 	name = "umask"

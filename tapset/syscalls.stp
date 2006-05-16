@@ -30,7 +30,7 @@ probe syscall.accept = kernel.function("sys_accept") {
 	s = $fd
 	addr_uaddr = $upeer_sockaddr
 	addrlen_uaddr = $upeer_addrlen
-	argstr = string(s)
+	argstr = sprint(s)
 }
 probe syscall.accept.return = kernel.function("sys_accept").return {
 	name = "accept"
@@ -85,7 +85,7 @@ probe syscall.adjtimex.return = kernel.function("sys_adjtimex").return {
 probe syscall.alarm = kernel.function("sys_alarm") {
 	name = "alarm"
 	seconds = $seconds
-	argstr = string($seconds)
+	argstr = sprint($seconds)
 }
 probe syscall.alarm.return = kernel.function("sys_alarm").return {
 	name = "alarm"
@@ -301,7 +301,7 @@ probe kernel.syscall.clock_settime.return =
 probe syscall.close = kernel.function("sys_close") {
 	name = "close"
 	fd = $fd
-	argstr = string(fd)
+	argstr = sprint(fd)
 }
 probe syscall.close.return = kernel.function("sys_close").return {
 	name = "close"
@@ -339,7 +339,7 @@ probe syscall.delete_module.return = kernel.function("sys_delete_module").return
 probe syscall.dup = kernel.function("sys_dup") {
 	name = "dup"
 	oldfd = $fildes
-	argstr = string($fildes)
+	argstr = sprint($fildes)
 }
 probe syscall.dup.return = kernel.function("sys_dup").return {
 	name = "dup"
@@ -364,7 +364,7 @@ probe syscall.dup2.return = kernel.function("sys_dup2").return {
 probe syscall.epoll_create = kernel.function("sys_epoll_create") {
 	name = "epoll_create"
 	size = $size
-	argstr = string($size)
+	argstr = sprint($size)
 }
 probe syscall.epoll_create.return = kernel.function("sys_epoll_create").return {
 	name = "epoll_create"
@@ -438,7 +438,7 @@ probe syscall.execve.return = kernel.function("do_execve").return {
 probe syscall.exit = kernel.function("do_exit") {
 	name = "exit"
 	status = $code
-	argstr = string($code)
+	argstr = sprint($code)
 }
 probe syscall.exit.return = end {}
 
@@ -501,7 +501,7 @@ probe kernel.syscall.fadvise64_64.return =
 probe syscall.fchdir = kernel.function("sys_fchdir") {
 	name = "fchdir"
 	fd = $fd
-	argstr = string($fd)
+	argstr = sprint($fd)
 }
 probe syscall.fchdir.return = kernel.function("sys_fchdir").return {
 	name = "fchdir"
@@ -574,7 +574,7 @@ probe kernel.syscall.fcntl.return =
 probe syscall.fdatasync = kernel.function("sys_fdatasync") {
 	name = "fdatasync"
 	fd = $fd
-	argstr = string(fd)
+	argstr = sprint(fd)
 }
 probe syscall.fdatasync.return = kernel.function("sys_fdatasync").return {
 	name = "fdatasync"
@@ -725,7 +725,7 @@ probe syscall.fstatfs64.return = kernel.function("sys_fstatfs64").return {
 probe syscall.fsync = kernel.function("sys_fsync") {
 	name = "fsync"
 	fd = $fd
-	argstr = string(fd)
+	argstr = sprint(fd)
 }
 probe syscall.fsync.return = kernel.function("sys_fsync").return {
 	name = "fsync.return"
@@ -1065,7 +1065,7 @@ probe syscall.getrusage.return = kernel.function("sys_getrusage").return {
 probe syscall.getsid = kernel.function("sys_getsid") {
 	name = "getsid"
 	pid = $pid
-	argstr = string(pid)
+	argstr = sprint(pid)
 }
 probe syscall.getsid.return = kernel.function("sys_getsid").return {
 	name = "getsid"

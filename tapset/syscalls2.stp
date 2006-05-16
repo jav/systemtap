@@ -848,7 +848,7 @@ probe syscall.sched_get_priority_max =
 	kernel.function("sys_sched_get_priority_max") {
 	name = "sched_get_priority_max"
 	policy = $policy
-	argstr = string(policy)
+	argstr = sprint(policy)
 }
 probe syscall.sched_get_priority_max.return =
 	kernel.function("sys_sched_get_priority_max").return {
@@ -864,7 +864,7 @@ probe syscall.sched_get_priority_min =
 	kernel.function("sys_sched_get_priority_min") {
 	name = "sched_get_priority_min"
 	policy = $policy
-	argstr = string(policy)
+	argstr = sprint(policy)
 }
 probe syscall.sched_get_priority_min.return =
 	kernel.function("sys_sched_get_priority_min").return {
@@ -879,7 +879,7 @@ probe syscall.sched_get_priority_min.return =
 probe syscall.sched_getscheduler = kernel.function("sys_sched_getscheduler") {
 	name = "sched_getscheduler"
 	pid = $pid
-	argstr = string(pid)
+	argstr = sprint(pid)
 }
 probe syscall.sched_getscheduler.return =
 	kernel.function("sys_sched_getscheduler").return {
@@ -1160,7 +1160,7 @@ probe syscall.setdomainname.return =
 probe syscall.setfsgid = kernel.function("sys_setfsgid") {
 	name = "setfsgid"
 	fsgid = $gid
-	argstr = string($gid)
+	argstr = sprint($gid)
 }
 probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 	name = "setfsgid"
@@ -1174,7 +1174,7 @@ probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 probe syscall.setfsgid16 = kernel.function("sys_setfsgid") {
 	name = "setfsgid16"
 	gid = $gid
-	argstr = string($gid)
+	argstr = sprint($gid)
 }
 probe syscall.setfsgid16.return = kernel.function("sys_setfsgid").return {
 	name = "setfsgid16"
@@ -1188,7 +1188,7 @@ probe syscall.setfsgid16.return = kernel.function("sys_setfsgid").return {
 probe syscall.setfsuid = kernel.function("sys_setfsuid") {
 	name = "setfsuid"
 	fsuid = $uid
-	argstr = string($uid)
+	argstr = sprint($uid)
 }
 probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 	name = "setfsuid"
@@ -1202,7 +1202,7 @@ probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 probe syscall.setfsuid16 = kernel.function("sys_setfsuid") {
 	name = "setfsuid16"
 	uid = $uid
-	argstr = string($uid)
+	argstr = sprint($uid)
 }
 probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
 	name = "setfsuid16"
@@ -1216,7 +1216,7 @@ probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
 probe syscall.setgid = kernel.function("sys_setgid") {
 	name = "setgid"
 	gid = $gid
-	argstr = string($gid)
+	argstr = sprint($gid)
 }
 probe syscall.setgid.return = kernel.function("sys_setgid").return {
 	name = "setgid"
@@ -1230,7 +1230,7 @@ probe syscall.setgid.return = kernel.function("sys_setgid").return {
 probe syscall.setgid16 = kernel.function("sys_setgid") {
 	name = "setgid16"
 	gid = $gid
-	argstr = string($gid)
+	argstr = sprint($gid)
 }
 probe syscall.setgid16.return = kernel.function("sys_setgid").return {
 	name = "setgid16"
@@ -1571,7 +1571,7 @@ probe syscall.settimeofday.return =
 probe syscall.setuid = kernel.function("sys_setuid") {
 	name = "setuid"
 	uid = $uid
-	argstr = string($uid)
+	argstr = sprint($uid)
 }
 probe syscall.setuid.return = kernel.function("sys_setuid").return {
 	name = "setuid"
@@ -1585,7 +1585,7 @@ probe syscall.setuid.return = kernel.function("sys_setuid").return {
 probe syscall.setuid16 = kernel.function("sys_setuid") {
 	name = "setuid16"
 	uid = $uid
-	argstr = string($uid)
+	argstr = sprint($uid)
 }
 probe syscall.setuid16.return = kernel.function("sys_setuid").return {
 	name = "setuid16"
@@ -1836,7 +1836,7 @@ probe syscall.socketpair.return = kernel.function("sys_socketpair").return {
 probe syscall.ssetmask = kernel.function("sys_ssetmask") {
 	name = "ssetmask"
 	newmask = $newmask
-	argstr = string($newmask)
+	argstr = sprint($newmask)
 }
 probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 	name = "ssetmask"
@@ -2085,7 +2085,7 @@ probe syscall.timer_create.return =
 probe syscall.timer_delete = kernel.function("sys_timer_delete") {
 	name = "timer_delete"
 	timerid = $timer_id
-	argstr = string($timer_id)
+	argstr = sprint($timer_id)
 }
 probe syscall.timer_delete.return = kernel.function("sys_timer_delete").return {
 	name = "timer_delete"
@@ -2099,7 +2099,7 @@ probe syscall.timer_delete.return = kernel.function("sys_timer_delete").return {
 probe syscall.timer_getoverrun = kernel.function("sys_timer_getoverrun") {
 	name = "timer_getoverrun"
 	timerid = $timer_id
-	argstr = string($timer_id)
+	argstr = sprint($timer_id)
 }
 probe syscall.timer_getoverrun.return =
 	kernel.function("sys_timer_getoverrun").return {
