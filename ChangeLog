@@ -45,30 +45,28 @@
 	* testsuite/buildok/twentyone.stp: Ditto.
 	* testsuite/semok/args.stp: Ditto.
 	* testsuite/semok/seven.stp: Ditto.
-	
 	* testsuite/buildok/fourteen.stp: Calls to log()/string() were
 	converted to a call to printf().
 	* testsuite/buildok/sixteen.stp: Ditto.
 	* testsuite/buildok/thirteen.stp: Ditto.
 	* testsuite/buildok/twentythree.stp: Ditto.
 	* testsuite/buildok/twentytwo.stp: Ditto.
-
 	* testsuite/buildok/seven.stp: Calls to the string()
 	function were converted to sprint() calls.  Calls to the
 	hexstring() function were converted to sprintf() calls.
 	* testsuite/semok/eleven.stp: Ditto.
-
 	* testsuite/buildok/seventeen.stp: Calls to log()/hexstring() were
 	converted to a call to printf().
 	* testsuite/semko/nineteen.stp: Ditto.
-
 	* testsuite/parseok/three.stp: Because keywords are reserved, a
 	variable named 'string' was renamed to 'str'.
-
 	* testsuite/parseok/two.stp: Because keywords are reserved, a
 	variable named 'global' was renamed to 'gbl'.
-
-
+	* testsuite/transko/two.stp: Because the parser now checks for
+	'next' and 'return' statement context, a 'next' statement was
+	removed from a function and a 'return' statement was removed from
+	a probe.
+	
 2006-05-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx, translator.cxx (*): Designate more emitted
