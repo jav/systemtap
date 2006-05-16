@@ -3,6 +3,6 @@
 probe syscall ("foo")
 {
   $a = a$a = a$a$ = 0;
-  string = "a" . $a . "b";
+  str = "a" . $a . "b";
 }
 

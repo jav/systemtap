@@ -5,5 +5,5 @@
 
 probe kernel.function("pipe_write")
 {
-	log (hexstring ($write_fifo_fops->llseek))
+	printf("0x%x\n", $write_fifo_fops->llseek)
 }

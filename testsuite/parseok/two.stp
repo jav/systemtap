@@ -3,7 +3,7 @@
 probe syscall (231)
 {
   array[idx] <<< value;
-  if (global > 5) { global -- } else ;
+  if (gbl > 5) { gbl -- } else ;
 }
 
 function foo () {

@@ -14,14 +14,14 @@ probe begin {
 
 probe end {
   log ("x+ in a")
-  foreach (x+ in a) log ("a[" . string(x) . "]=" . string(a[x]))
+  foreach (x+ in a) log ("a[" . sprint(x) . "]=" . sprint(a[x]))
 
   log ("x- in a")
-  foreach (x- in a) log ("a[" . string(x) . "]=" . string(a[x]))
+  foreach (x- in a) log ("a[" . sprint(x) . "]=" . sprint(a[x]))
 
   log ("x in a+")
-  foreach (x in a+) log ("a[" . string(x) . "]=" . string(a[x]))
+  foreach (x in a+) log ("a[" . sprint(x) . "]=" . sprint(a[x]))
 
   log ("x in a-")
-  foreach (x in a-) log ("a[" . string(x) . "]=" . string(a[x]))
+  foreach (x in a-) log ("a[" . sprint(x) . "]=" . sprint(a[x]))
 }

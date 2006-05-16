@@ -2,7 +2,7 @@
 
 probe process.create {
   log(pp())
-  log(string(task))
+  log(sprint(task))
 }
 
 probe process.start {
@@ -16,25 +16,25 @@ probe process.exec {
 
 probe process.exec.complete {
   log(pp())
-  log(string(errno))
-  log(string(success))
+  log(sprint(errno))
+  log(sprint(success))
 }
 
 probe process.exit {
   log(pp())
-  log(string(code))
+  log(sprint(code))
 }
 
 probe process.release {
   log(pp())
-  log(string(task))
+  log(sprint(task))
 }
 
 probe process.signal.send {
   log(pp())
-  log(string(signal))
+  log(sprint(signal))
   log(signal_name)
-  log(string(task))
-  log(string(shared))
+  log(sprint(task))
+  log(sprint(shared))
 }
 

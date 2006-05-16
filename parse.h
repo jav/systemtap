@@ -26,11 +26,16 @@ struct source_loc
 
 std::ostream& operator << (std::ostream& o, const source_loc& loc);
 
+enum parse_context
+  {
+    con_unknown, con_probe, con_global, con_function, con_embedded
+  };
+
+
 enum token_type 
   {
     tok_junk, tok_identifier, tok_operator, tok_string, tok_number,
-    tok_embedded
-    // XXX: add tok_keyword throughout
+    tok_embedded, tok_keyword
   };
 
 
@@ -90,6 +95,7 @@ private:
   std::istream* free_input;
   lexer input;
   bool privileged;
+  parse_context context;
 
   // preprocessing subordinate
   std::vector<const token*> enqueued_pp;

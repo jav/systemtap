@@ -66,13 +66,6 @@ will shortly respond to the request and initiate an orderly shutdown.
 
 .SS CONVERSIONS
 .TP
-hexstring:string (num:long)
-Return a hexadecimal string representation of the given integer, including
-the leading "0x".
-.TP
-string:string (num:long)
-Return a decimal string representation of the given integer.
-.TP
 kernel_string:string (addr:long)
 Copy a string from kernel space at given address.  The validation of this
 address is only partial at present.

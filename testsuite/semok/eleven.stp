@@ -3,8 +3,6 @@
 global entry_time, my_count, my_fd, read_times
 
 # future built-ins
-function string (v) { return "" }
-function hexstring (v) { return "" }
 function trace (s) { return 0 }
 
 global tid
@@ -16,8 +14,8 @@ probe begin /* kernel.function("read") */ {
       entry_time[tid] = timestamp # "macro" variable
       my_count[tid] = count # function argument
       my_fd[tid] = fd # function argument
-      trace ("my_count = " . string(my_count[tid]) .
-             "my_fd = " . string(my_fd[tid]))
+      trace ("my_count = " . sprint(my_count[tid]) .
+             "my_fd = " . sprint(my_fd[tid]))
 }
 
 probe end /* kernel.function("read").return */ {
@@ -30,13 +28,13 @@ probe end /* kernel.function("read").return */ {
       }
       trace ("syscall " . (syscall_name) .
              " return value = " .
-             hexstring (retvalue))  # function pseudo-argument
+             sprintf ("0x%x", retvalue))  # function pseudo-argument
 }
 
 probe end {
       foreach (syscall in read_times) {
           trace ("syscall " . syscall .
-                 " total-time=" . string (read_times[syscall]))
+                 " total-time=" . sprint (read_times[syscall]))
       }
 }
 

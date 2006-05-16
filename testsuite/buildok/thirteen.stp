@@ -2,5 +2,5 @@
 
 probe kernel.function("sys_read")
 {
- log ("count=" . string($count))
+ printf ("count=%d\n", $count)
 }

@@ -36,10 +36,10 @@ probe begin {
 
 probe end {
   foreach (x+ in odds) {
-    log("odds[" . string(x) . "] = " . string(odds[x]))
+    log("odds[" . sprint(x) . "] = " . sprint(odds[x]))
   }
   foreach (x in evens-) {
-    log("evens[" . string(x) . "] = " . string(evens[x]))
+    log("evens[" . sprint(x) . "] = " . sprint(evens[x]))
   }
 }
 .ESAMPLE
@@ -72,7 +72,7 @@ function isprime (x) {
 }
 probe begin {
   for (i=0; i<50; i++)
-    if (isprime (i)) log (string(i))
+    if (isprime (i)) log (sprint(i))
   exit()
 }
 .ESAMPLE
@@ -87,7 +87,7 @@ function fibonacci(i) {
   return fibonacci (i-1) + fibonacci (i-2)
 }
 probe begin {
-  log ("11th fibonacci number: " . string (fibonacci (11)))
+  log ("11th fibonacci number: " . sprint (fibonacci (11)))
   exit ()
 }
 .ESAMPLE

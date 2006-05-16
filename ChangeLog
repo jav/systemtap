@@ -1,3 +1,74 @@
+2006-05-16  David Smith  <dsmith@redhat.com>
+
+	* parse.cxx (parser::parser): Added initializer for 'context'
+	member variable.
+	(tt2str): Added support for new tok_keyword type.
+	(operator <<): Ignores keyword content when outputting error
+	message.
+	(lexer::scan): Recognizes keywords, such as 'probe', 'global',
+	'function', etc. and classifies them as type 'tok_keyword'.  This
+	causes keywords to become reserved so they cannot be used for
+	function names, variable names, etc.
+	(parser::parse): Changed tok_identifier to tok_keyword when looking
+	for "probe", "global", or "function".  Also sets context member
+	variable which remembers if we're in probe, global, function, or
+	embedded context.
+	(parser::parse_probe, parser::parse_statement)
+	(parser::parse_global, parser::parse_functiondecl)
+	(parser::parse_if_statement, parser::parse_delete_statement)
+	(parser::parse_break_statement, parser::parse_continue_statement)
+	(parser::parse_for_loop, parser::parse_while_loop)
+	(parser::parse_foreach_loop, parser::parse_array_in): Looks for
+	tok_keyword instead of tok_identifier.
+	(parser::parse_probe_point): Allows keywords as part of a probe
+	name, since "return" and "function" are keywords.
+	(parser::parse_return_statement): Looks for tok_keyword instead of
+	tok_identifier.  Make sure we're in function context.
+	(parser::parse_next_statement): Looks for tok_keyword instead of
+	tok_identifier.  Make sure we're in probe context.
+	* parse.h: Added parse_context enum.  Added 'tok_keyword' to
+	token_type enum.  Added parse_context 'context' member variable to
+	parser class.
+	* stap.1.in: Because the string() function has been removed,
+	the 'string()' function reference has been changed to a 'sprint()'
+	function reference.
+	* stapex.5.in: Ditto.
+	* stapfuncs.5.in: The description of the string() and hexstring()
+	functions has been removed.
+	* testsuite/buildok/context_test.stp: Calls to the string()
+	function were converted to sprint() function calls.
+	* testsuite/buildok/fifteen.stp: Ditto.
+	* testsuite/buildok/nineteen.stp: Ditto.
+	* testsuite/buildok/process_test.stp: Ditto.
+	* testsuite/buildok/task_test.stp: Ditto.
+	* testsuite/buildok/timestamp.stp: Ditto.
+	* testsuite/buildok/twentyone.stp: Ditto.
+	* testsuite/semok/args.stp: Ditto.
+	* testsuite/semok/seven.stp: Ditto.
+	
+	* testsuite/buildok/fourteen.stp: Calls to log()/string() were
+	converted to a call to printf().
+	* testsuite/buildok/sixteen.stp: Ditto.
+	* testsuite/buildok/thirteen.stp: Ditto.
+	* testsuite/buildok/twentythree.stp: Ditto.
+	* testsuite/buildok/twentytwo.stp: Ditto.
+
+	* testsuite/buildok/seven.stp: Calls to the string()
+	function were converted to sprint() calls.  Calls to the
+	hexstring() function were converted to sprintf() calls.
+	* testsuite/semok/eleven.stp: Ditto.
+
+	* testsuite/buildok/seventeen.stp: Calls to log()/hexstring() were
+	converted to a call to printf().
+	* testsuite/semko/nineteen.stp: Ditto.
+
+	* testsuite/parseok/three.stp: Because keywords are reserved, a
+	variable named 'string' was renamed to 'str'.
+
+	* testsuite/parseok/two.stp: Because keywords are reserved, a
+	variable named 'global' was renamed to 'gbl'.
+
+
 2006-05-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx, translator.cxx (*): Designate more emitted

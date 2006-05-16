@@ -2,7 +2,6 @@
 
 global ar1, ar2
 
-function string:string (v:long) { } # to become a built-in
 function printk (s:string) { return 0 } # to become a built-in
 
 function search (key) 
@@ -18,7 +17,7 @@ probe begin /* syscall("zamboni") */
   tgid=0
   pid=0
   tid=0
-  ar2[tid] = string (tgid);
+  ar2[tid] = sprint (tgid);
   search (pid)
 }
 
@@ -26,5 +25,5 @@ probe end
 {
   # for (key in ar2)
   if (key in ar2)
-    printk ("this: " . string (key) . " was " . ar2[key])
+    printk ("this: " . sprint (key) . " was " . ar2[key])
 }

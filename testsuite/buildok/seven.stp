@@ -8,16 +8,16 @@
 
 probe kernel.function("find_pid") 
 {
-  log ("find_pid (" . string($type) . ","
-                    . string($nr) . ")")
+  log ("find_pid (" . sprint($type) . ","
+                    . sprint($nr) . ")")
 }
 
 # second: opaque pointers and enums
 
 probe kernel.function("detach_pid") 
 {
-  log ("detach_pid (" . hexstring($task) . ","
-              	      . string($type) . ")")
+  log ("detach_pid (" . sprintf("0x%x", $task) . ","
+              	      . sprint($type) . ")")
 }
 
 

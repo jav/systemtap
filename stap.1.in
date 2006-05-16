@@ -464,7 +464,7 @@ functions.  In the following example, the type inference engine need
 only infer type type of arg2 (a string).
 .SAMPLE
 function thatfn:string (arg1:long, arg2) {
-   return string(arg1) . arg2
+   return sprint(arg1) . arg2
 }
 .ESAMPLE
 Functions may call others or themselves

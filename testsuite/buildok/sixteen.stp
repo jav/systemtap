@@ -13,7 +13,7 @@ probe begin {
   foreach (k in a) {
     log (a[k])
     for (i=0; i<10; i++) {
-      log ("k=" . string(k) . " i=" . string(i))
+      printf("k=%d i=%d\n", k, i)
       if (k % (i+1)) break else continue
     }
     if (k % 3) { foo() ; next }

@@ -24,8 +24,8 @@ probe kernel.function("schedule")
 probe end
 {
         log("systemtap ending probe")
-        log("count = " . string(count));
-        log("count2 = " . string(count));
+        log("count = " . sprint(count));
+        log("count2 = " . sprint(count));
         if ( count == count2) {
                 if ( (count-1) == count2 ) {
                         log("systemtap test failure");

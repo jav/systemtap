@@ -5,5 +5,5 @@
 probe kernel.function("free_task")
 {
 	$tsk->timestamp = 22;
-	log("set to 22 => " . string($tsk->timestamp));
+	printf("set to 22 => %d\n", $tsk->timestamp);
 }

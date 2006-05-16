@@ -30,14 +30,14 @@ parser::parser (systemtap_session& s, istream& i, bool p):
   session (s),
   input_name ("<input>"), free_input (0),
   input (i, input_name, s), privileged (p),
-  last_t (0), next_t (0), num_errors (0)
+  context(con_unknown), last_t (0), next_t (0), num_errors (0)
 { }
 
 parser::parser (systemtap_session& s, const string& fn, bool p):
   session (s),
   input_name (fn), free_input (new ifstream (input_name.c_str(), ios::in)),
   input (* free_input, input_name, s), privileged (p),
-  last_t (0), next_t (0), num_errors (0)
+  context(con_unknown), last_t (0), next_t (0), num_errors (0)
 { }
 
 parser::~parser()
@@ -72,6 +72,7 @@ tt2str(token_type tt)
     case tok_string: return "string";
     case tok_number: return "number";
     case tok_embedded: return "embedded-code";
+    case tok_keyword: return "keyword";
     }
   return "unknown token";
 }
@@ -91,7 +92,7 @@ operator << (ostream& o, const token& t)
 {
   o << tt2str(t.type);
 
-  if (t.type != tok_embedded) // XXX: other types?
+  if (t.type != tok_embedded && t.type != tok_keyword) // XXX: other types?
     {
       o << " '";
       for (unsigned i=0; i<t.content.length(); i++)
@@ -505,6 +506,26 @@ lexer::scan ()
               n->content = arg;
             }
         }
+      else
+        {
+	  if (n->content    == "probe"
+	      || n->content == "global"
+	      || n->content == "function"
+	      || n->content == "if"
+	      || n->content == "else"
+	      || n->content == "for"
+	      || n->content == "foreach"
+	      || n->content == "in"
+	      || n->content == "return"
+	      || n->content == "delete"
+	      || n->content == "while"
+	      || n->content == "break"
+	      || n->content == "continue"
+	      || n->content == "next"
+	      || n->content == "string"
+	      || n->content == "long")
+	    n->type = tok_keyword;
+        }
 
       return n;
     }
@@ -725,16 +746,31 @@ parser::parse ()
 	    break;
 
           empty = false;
-	  if (t->type == tok_identifier && t->content == "probe")
-            parse_probe (f->probes, f->aliases);
-	  else if (t->type == tok_identifier && t->content == "global")
-	    parse_global (f->globals);
-	  else if (t->type == tok_identifier && t->content == "function")
-            parse_functiondecl (f->functions);
+	  if (t->type == tok_keyword && t->content == "probe")
+	    {
+	      context = con_probe;
+	      parse_probe (f->probes, f->aliases);
+	    }
+	  else if (t->type == tok_keyword && t->content == "global")
+	    {
+	      context = con_global;
+	      parse_global (f->globals);
+	    }
+	  else if (t->type == tok_keyword && t->content == "function")
+	    {
+	      context = con_function;
+	      parse_functiondecl (f->functions);
+	    }
           else if (t->type == tok_embedded)
-            f->embeds.push_back (parse_embeddedcode ());
+	    {
+	      context = con_embedded;
+	      f->embeds.push_back (parse_embeddedcode ());
+	    }
 	  else
-	    throw parse_error ("expected 'probe', 'global', 'function', or '%{'");
+	    {
+	      context = con_unknown;
+	      throw parse_error ("expected 'probe', 'global', 'function', or '%{'");
+	    }
 	}
       catch (parse_error& pe)
 	{
@@ -782,7 +818,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
 		     std::vector<probe_alias *> & alias_ret)
 {
   const token* t0 = next ();
-  if (! (t0->type == tok_identifier && t0->content == "probe"))
+  if (! (t0->type == tok_keyword && t0->content == "probe"))
     throw parse_error ("expected 'probe'");
 
   vector<probe_point *> aliases;
@@ -926,23 +962,23 @@ parser::parse_statement ()
     }
   else if (t && t->type == tok_operator && t->content == "{")  
     return parse_stmt_block ();
-  else if (t && t->type == tok_identifier && t->content == "if")
+  else if (t && t->type == tok_keyword && t->content == "if")
     return parse_if_statement ();
-  else if (t && t->type == tok_identifier && t->content == "for")
+  else if (t && t->type == tok_keyword && t->content == "for")
     return parse_for_loop ();
-  else if (t && t->type == tok_identifier && t->content == "foreach")
+  else if (t && t->type == tok_keyword && t->content == "foreach")
     return parse_foreach_loop ();
-  else if (t && t->type == tok_identifier && t->content == "return")
+  else if (t && t->type == tok_keyword && t->content == "return")
     return parse_return_statement ();
-  else if (t && t->type == tok_identifier && t->content == "delete")
+  else if (t && t->type == tok_keyword && t->content == "delete")
     return parse_delete_statement ();
-  else if (t && t->type == tok_identifier && t->content == "while")
+  else if (t && t->type == tok_keyword && t->content == "while")
     return parse_while_loop ();
-  else if (t && t->type == tok_identifier && t->content == "break")
+  else if (t && t->type == tok_keyword && t->content == "break")
     return parse_break_statement ();
-  else if (t && t->type == tok_identifier && t->content == "continue")
+  else if (t && t->type == tok_keyword && t->content == "continue")
     return parse_continue_statement ();
-  else if (t && t->type == tok_identifier && t->content == "next")
+  else if (t && t->type == tok_keyword && t->content == "next")
     return parse_next_statement ();
   // XXX: "do/while" statement?
   else if (t && (t->type == tok_operator || // expressions are flexible
@@ -960,7 +996,7 @@ void
 parser::parse_global (vector <vardecl*>& globals)
 {
   const token* t0 = next ();
-  if (! (t0->type == tok_identifier && t0->content == "global"))
+  if (! (t0->type == tok_keyword && t0->content == "global"))
     throw parse_error ("expected 'global'");
 
   while (1)
@@ -994,12 +1030,14 @@ void
 parser::parse_functiondecl (std::vector<functiondecl*>& functions)
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "function"))
+  if (! (t->type == tok_keyword && t->content == "function"))
     throw parse_error ("expected 'function'");
 
 
   t = next ();
-  if (! (t->type == tok_identifier))
+  if (! (t->type == tok_identifier)
+      && ! (t->type == tok_keyword
+	    && (t->content == "string" || t->content == "long")))
     throw parse_error ("expected identifier");
 
   for (unsigned i=0; i<functions.size(); i++)
@@ -1014,9 +1052,9 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
   if (t->type == tok_operator && t->content == ":")
     {
       t = next ();
-      if (t->type == tok_identifier && t->content == "string")
+      if (t->type == tok_keyword && t->content == "string")
 	fd->type = pe_string;
-      else if (t->type == tok_identifier && t->content == "long")
+      else if (t->type == tok_keyword && t->content == "long")
 	fd->type = pe_long;
       else throw parse_error ("expected 'string' or 'long'");
 
@@ -1044,9 +1082,9 @@ parser::parse_functiondecl (std::vector<functiondecl*>& functions)
       if (t->type == tok_operator && t->content == ":")
 	{
 	  t = next ();
-	  if (t->type == tok_identifier && t->content == "string")
+	  if (t->type == tok_keyword && t->content == "string")
 	    vd->type = pe_string;
-	  else if (t->type == tok_identifier && t->content == "long")
+	  else if (t->type == tok_keyword && t->content == "long")
 	    vd->type = pe_long;
 	  else throw parse_error ("expected 'string' or 'long'");
 	  
@@ -1078,8 +1116,10 @@ parser::parse_probe_point ()
   while (1)
     {
       const token* t = next ();
-      if (! (t->type == tok_identifier ||
-             (t->type == tok_operator && t->content == "*")))
+      if (! (t->type == tok_identifier
+	     // we must allow ".return" and ".function", which are keywords
+	     || t->type == tok_keyword
+	     || (t->type == tok_operator && t->content == "*")))
         throw parse_error ("expected identifier or '*'");
 
       if (pl->tok == 0) pl->tok = t;
@@ -1160,7 +1200,7 @@ if_statement*
 parser::parse_if_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "if"))
+  if (! (t->type == tok_keyword && t->content == "if"))
     throw parse_error ("expected 'if'");
   if_statement* s = new if_statement;
   s->tok = t;
@@ -1178,7 +1218,7 @@ parser::parse_if_statement ()
   s->thenblock = parse_statement ();
 
   t = peek ();
-  if (t && t->type == tok_identifier && t->content == "else")
+  if (t && t->type == tok_keyword && t->content == "else")
     {
       next ();
       s->elseblock = parse_statement ();
@@ -1205,8 +1245,10 @@ return_statement*
 parser::parse_return_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "return"))
+  if (! (t->type == tok_keyword && t->content == "return"))
     throw parse_error ("expected 'return'");
+  if (context != con_function)
+    throw parse_error ("found 'return' not in function context");
   return_statement* s = new return_statement;
   s->tok = t;
   s->value = parse_expression ();
@@ -1218,7 +1260,7 @@ delete_statement*
 parser::parse_delete_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "delete"))
+  if (! (t->type == tok_keyword && t->content == "delete"))
     throw parse_error ("expected 'delete'");
   delete_statement* s = new delete_statement;
   s->tok = t;
@@ -1231,8 +1273,10 @@ next_statement*
 parser::parse_next_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "next"))
+  if (! (t->type == tok_keyword && t->content == "next"))
     throw parse_error ("expected 'next'");
+  if (context != con_probe)
+    throw parse_error ("found 'next' not in probe context");
   next_statement* s = new next_statement;
   s->tok = t;
   return s;
@@ -1243,7 +1287,7 @@ break_statement*
 parser::parse_break_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "break"))
+  if (! (t->type == tok_keyword && t->content == "break"))
     throw parse_error ("expected 'break'");
   break_statement* s = new break_statement;
   s->tok = t;
@@ -1255,7 +1299,7 @@ continue_statement*
 parser::parse_continue_statement ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "continue"))
+  if (! (t->type == tok_keyword && t->content == "continue"))
     throw parse_error ("expected 'continue'");
   continue_statement* s = new continue_statement;
   s->tok = t;
@@ -1267,7 +1311,7 @@ for_loop*
 parser::parse_for_loop ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "for"))
+  if (! (t->type == tok_keyword && t->content == "for"))
     throw parse_error ("expected 'for'");
   for_loop* s = new for_loop;
   s->tok = t;
@@ -1333,7 +1377,7 @@ for_loop*
 parser::parse_while_loop ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "while"))
+  if (! (t->type == tok_keyword && t->content == "while"))
     throw parse_error ("expected 'while'");
   for_loop* s = new for_loop;
   s->tok = t;
@@ -1364,7 +1408,7 @@ foreach_loop*
 parser::parse_foreach_loop ()
 {
   const token* t = next ();
-  if (! (t->type == tok_identifier && t->content == "foreach"))
+  if (! (t->type == tok_keyword && t->content == "foreach"))
     throw parse_error ("expected 'foreach'");
   foreach_loop* s = new foreach_loop;
   s->tok = t;
@@ -1426,7 +1470,7 @@ parser::parse_foreach_loop ()
     }
 
   t = next ();
-  if (! (t->type == tok_identifier && t->content == "in"))
+  if (! (t->type == tok_keyword && t->content == "in"))
     throw parse_error ("expected 'in'");
  
   s->base = parse_indexable();
@@ -1672,7 +1716,7 @@ parser::parse_array_in ()
     }
 
   t = peek ();
-  if (t && t->type == tok_identifier && t->content == "in")
+  if (t && t->type == tok_keyword && t->content == "in")
     {
       array_in *e = new array_in;
       e->tok = t;
