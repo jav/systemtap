@@ -1,0 +1,7 @@
+#! stap -p4
+
+probe ioscheduler.*
+{
+	printf("ppname: %s, elv_name: %s, %d, %d", probefunc(), 
+		elevator_name, disk_major, disk_minor)
+}

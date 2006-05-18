@@ -1,0 +1,28 @@
+#! stap -p4
+probe scsi.ioentry
+{
+	printf("ppname: %s, %d, %d, %d\n", probefunc(),
+		disk_major, disk_minor, device_state)
+}
+
+probe scsi.iodispatching
+{
+	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %p, %d\n", probefunc(), 
+		host_no, channel, lun, dev_id, device_state, data_direction, 
+		request_buffer, req_bufflen)
+}
+
+
+probe scsi.iodone
+{
+	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %d\n", probefunc(), 
+		host_no, channel, lun, dev_id, device_state, data_direction, 
+		scsi_timer_pending)
+}
+
+probe scsi.iocompleted
+{
+	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %d\n", probefunc(), 
+		host_no, channel, lun, dev_id, device_state, data_direction, 
+		goodbytes)
+}

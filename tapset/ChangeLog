@@ -1,9 +1,27 @@
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
+	* testsuite/buildok/ioscheduler.stp: testcase for ioscheduler.stp
+	* testsuite/buildok/memory.stp:      testcase for memory.stp
+	* testsuite/buildok/networking.stp:  testcase for networking.stp
+	* testsuite/buildok/scsi.stp:        testcase for scsi.stp
+	* testsuite/buildok/tskschedule.stp: testcase for tskschedule.stp
+
 2006-05-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* process.stp: Rename signal.send to signal_send and process.complete
 	to process_complete, to allow process.* to work properly.
 	* process.stp (_IS_ERR): declare parameter type
 	* process.stp (process.create): correct new_pid assignment
+
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
+	* tapset/ioscheduler.stp: generic IO scheduler tapsets from LKET
+	* tapset/ioscheduler.stp: generic pagefault tapsets from LKET
+	* tapset/ioscheduler.stp: generic networking tapsets from LKET
+	* tapset/scsi.stp:        generic scsi tapsets from LKET
+	* tapset/tskschedule.stp: generic task scheduler tapsets from LKET
+	* tapset/process.stp:     changes to process.exec alias
+
 
 2006-05-16  David Smith  <dsmith@redhat.com>
 

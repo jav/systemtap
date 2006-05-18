@@ -1,0 +1,5 @@
+#! stap -p4
+probe pagefault
+{
+	printf("ppname: %s, %d, %p\n", probefunc(), write_access, address)
+}

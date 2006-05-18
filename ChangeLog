@@ -1,5 +1,13 @@
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
+	* testsuite/buildok/ioscheduler.stp: testcase for ioscheduler.stp
+	* testsuite/buildok/memory.stp:      testcase for memory.stp
+	* testsuite/buildok/networking.stp:  testcase for networking.stp
+	* testsuite/buildok/scsi.stp:        testcase for scsi.stp
+	* testsuite/buildok/tskschedule.stp: testcase for tskschedule.stp
+
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
 	* tapset/ioscheduler.stp: generic IO scheduler tapsets from LKET
 	* tapset/ioscheduler.stp: generic pagefault tapsets from LKET
 	* tapset/ioscheduler.stp: generic networking tapsets from LKET
