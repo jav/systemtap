@@ -722,6 +722,7 @@ int stp_main_loop(void)
 	int type;
 	FILE *ofp = stdout;
 
+	setvbuf(ofp, (char *)NULL, _IOLBF, 0);
 	pthread_mutex_init(&processing_mutex, NULL);
 
 	signal(SIGINT, sigproc);
