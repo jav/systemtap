@@ -1,0 +1,16 @@
+// memory related tapset
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/* Record the page fault event */
+probe pagefault
+	=  kernel.function(%( kernel_v >= "2.6.13" %? "__handle_mm_fault"
+                                          %: "handle_mm_fault" %))
+{
+	write_access = $write_access
+	address =  $address
+}

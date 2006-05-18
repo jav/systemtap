@@ -1,0 +1,79 @@
+// scsi tapset
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/types.h>
+#include <scsi/scsi_cmnd.h>
+#include <scsi/scsi_device.h>
+#include <scsi/scsi_host.h>
+#include <linux/timer.h>
+#include <linux/blkdev.h>
+%}
+
+/* mid-layer prepare a IO request */
+probe scsi.ioentry
+	= module("*").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")
+{
+	disk_major = $req->rq_disk->major
+	disk_minor = $req->rq_disk->first_minor
+	device_state = get_devstate_from_req($q)
+}
+
+/* Dispatch a command to the low-level driver. */
+probe scsi.iodispatching
+	= module("*").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")
+{
+
+	host_no = $cmd->device->host->host_no
+	channel = $cmd->device->channel
+	lun = $cmd->device->lun
+	dev_id = $cmd->device->id
+	device_state = $cmd->device->sdev_state
+	data_direction = $cmd->sc_data_direction
+	request_buffer = $cmd->request_buffer
+	req_bufflen = $cmd->request_bufflen
+}
+
+/* I/O is done by low-level driver*/
+probe scsi.iodone
+	= module("*").function("scsi_done@drivers/scsi/scsi.c")
+{
+	host_no = $cmd->device->host->host_no
+	channel = $cmd->device->channel
+	lun = $cmd->device->lun
+	dev_id = $cmd->device->id
+	device_state = $cmd->device->sdev_state
+	data_direction = $cmd->sc_data_direction
+	scsi_timer_pending = scsi_timer_pending($cmd);
+}
+
+/* mid-layer processes the completed IO */
+probe scsi.iocompleted
+	= module("*").function("scsi_io_completion@drivers/scsi/scsi_lib.c")
+{
+	host_no = $cmd->device->host->host_no
+	channel = $cmd->device->channel
+	lun = $cmd->device->lun
+	dev_id = $cmd->device->id
+	device_state = $cmd->device->sdev_state
+	data_direction = $cmd->sc_data_direction
+	goodbytes = $good_bytes
+}
+
+function scsi_timer_pending:long(var:long)
+%{
+        struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
+        THIS->__retvalue = timer_pending(&cmd->eh_timeout);
+%}
+
+function get_devstate_from_req:long(var:long)
+%{
+	struct request_queue *q = (struct request_queue *)((long)THIS->var);
+        struct scsi_device *sdev = (struct scsi_device *)(q->queuedata);
+	THIS->__retvalue = sdev->sdev_state;
+%}

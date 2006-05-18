@@ -1,0 +1,27 @@
+// task scheduler tapset
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/* Only applicable to SMP systems */
+probe tskdispatch.cpuidle
+	= kernel.inline("idle_balance")
+{
+}
+
+probe tskdispatch.ctxswitch
+          = kernel.function("__switch_to")
+{
+%( arch == "ppc64" %?
+	prev_pid = $prev->pid
+	next_pid =  $new->pid
+	prevtsk_state = $prev->state
+%: 
+	prev_pid = $prev_p->pid
+	next_pid = $next_p->pid
+	prevtsk_state = $prev_p->pid
+%)
+}

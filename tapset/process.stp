@@ -25,6 +25,7 @@ function _IS_ERR:long(ptr) %{
  */
 probe process.create = kernel.function("copy_process").return {
     task = retval()
+    new_pid = $pid
     if (_IS_ERR(task)) next
 }
 
@@ -50,10 +51,13 @@ probe process.start = kernel.function("schedule_tail") { }
  *  filename - the path to the new executable
  */
 probe process.exec = 
+/*
     kernel.function("do_execve")
 %( arch != "i586" %? %( arch != "i686" %? 
   , kernel.function("compat_do_execve")
 %) %)
+*/
+    kernel.function("*do_execve")
 {
     filename = kernel_string($filename)
 }
@@ -72,10 +76,13 @@ probe process.exec =
  *  success - a boolean indicating whether the exec was successful
  */
 probe process.exec.complete =
+/*
     kernel.function("do_execve").return
 %( arch != "i586" %? %( arch != "i686" %? 
   , kernel.function("compat_do_execve").return
 %) %)
+*/
+    kernel.function("*do_execve").return
 {
     errno = retval()
     success = (errno >= 0)

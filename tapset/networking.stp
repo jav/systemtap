@@ -1,0 +1,31 @@
+// networking tapset
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/netdevice.h>
+%}
+
+/* Main device receive routine, be called when packet arrives on network device */
+probe netdev.receive
+	=  kernel.function("netif_receive_skb")
+{
+	dev_name = kernel_string($skb->dev->name)
+	length = $skb->len
+	protocol = $skb->protocol
+	truesize = $skb->truesize
+}
+
+/* Queue a buffer for transmission to a network device */
+probe netdev.transmit
+	=  kernel.function("dev_queue_xmit")
+{
+	dev_name = kernel_string($skb->dev->name)
+	length = $skb->len
+	protocol = $skb->protocol
+	truesize = $skb->truesize
+}

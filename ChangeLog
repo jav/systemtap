@@ -1,3 +1,12 @@
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
+	* tapset/ioscheduler.stp: generic IO scheduler tapsets from LKET
+	* tapset/ioscheduler.stp: generic pagefault tapsets from LKET
+	* tapset/ioscheduler.stp: generic networking tapsets from LKET
+	* tapset/scsi.stp:        generic scsi tapsets from LKET
+	* tapset/tskschedule.stp: generic task scheduler tapsets from LKET
+	* tapset/process.stp:     changes to process.exec alias
+	
 2006-05-16  David Smith  <dsmith@redhat.com>
 
 	* parse.cxx (parser::parser): Added initializer for 'context'
