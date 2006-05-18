@@ -14,7 +14,7 @@ probe process.exec {
   log(filename)
 }
 
-probe process.exec.complete {
+probe process.exec_complete {
   log(pp())
   log(sprint(errno))
   log(sprint(success))
@@ -30,7 +30,7 @@ probe process.release {
   log(sprint(task))
 }
 
-probe process.signal.send {
+probe process.signal_send {
   log(pp())
   log(sprint(signal))
   log(signal_name)

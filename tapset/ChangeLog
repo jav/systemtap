@@ -1,3 +1,10 @@
+2006-05-17  Josh Stone  <joshua.i.stone@intel.com>
+
+	* process.stp: Rename signal.send to signal_send and process.complete
+	to process_complete, to allow process.* to work properly.
+	* process.stp (_IS_ERR): declare parameter type
+	* process.stp (process.create): correct new_pid assignment
+
 2006-05-16  David Smith  <dsmith@redhat.com>
 
 	* conversions.stp (hexstring, string): Removed functions.  Because

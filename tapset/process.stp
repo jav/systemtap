@@ -7,7 +7,7 @@
 // later version.
 
 
-function _IS_ERR:long(ptr) %{
+function _IS_ERR:long(ptr:long) %{
     THIS->__retvalue = IS_ERR((const void *)(long)THIS->ptr);
 %}
 
@@ -25,7 +25,7 @@ function _IS_ERR:long(ptr) %{
  */
 probe process.create = kernel.function("copy_process").return {
     task = retval()
-    new_pid = $pid
+    new_pid = task_pid(task)
     if (_IS_ERR(task)) next
 }
 
@@ -63,7 +63,7 @@ probe process.exec =
 }
 
 
-/* probe process.exec.complete
+/* probe process.exec_complete
  *
  *  Fires at the completion of an exec call.
  *
@@ -75,7 +75,7 @@ probe process.exec =
  *  errno - the error number resulting from the exec
  *  success - a boolean indicating whether the exec was successful
  */
-probe process.exec.complete =
+probe process.exec_complete =
 /*
     kernel.function("do_execve").return
 %( arch != "i586" %? %( arch != "i686" %? 
@@ -124,7 +124,7 @@ probe process.release = kernel.function("release_task") {
 }
 
 
-/* probe process.signal.send
+/* probe process.signal_send
  *
  *  Fires when a process sends a signal to another process.  This does not
  *  include ignored signals.
@@ -138,12 +138,12 @@ probe process.release = kernel.function("release_task") {
  *  task - a task handle to the signal recipient
  *  shared - indicates whether this signal is shared by the thread group
  */
-probe process.signal.send = _process.signal.send.* {
+probe process.signal_send = _process.signal_send.* {
     signal = $sig
     signal_name = _signal_name($sig)
 }
 
-probe _process.signal.send.part1 =
+probe _process.signal_send.part1 =
         kernel.function("__group_send_sig_info"),
         kernel.function("send_group_sigqueue")
 {
@@ -151,14 +151,14 @@ probe _process.signal.send.part1 =
     shared = 1
 }
 
-probe _process.signal.send.part2 =
+probe _process.signal_send.part2 =
         kernel.function("send_sigqueue")
 {
     task = $p
     shared = 0
 }
 
-probe _process.signal.send.part3 =
+probe _process.signal_send.part3 =
         kernel.function("specific_send_sig_info")
 {
     task = $t
@@ -166,7 +166,7 @@ probe _process.signal.send.part3 =
 }
 
 
-/* probe process.signal.handle
+/* probe process.signal_handle
  *
  *  Fires when a process handles a signal.
  *
@@ -181,7 +181,7 @@ probe _process.signal.send.part3 =
  * compiler.  On FC5 it is inlined, but on RHEL4 it is not.  Until we have a
  * nice way for tapsets to specify "possibly inlined", we can't include this
  * probe point.
-probe process.signal.handle = kernel.function("handle_signal") {
+probe process.signal_handle = kernel.function("handle_signal") {
     signal = $sig
     signal_name = _signal_name($sig)
 }

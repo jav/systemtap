@@ -30,7 +30,7 @@ probe process.exec {
     report(sprintf("exec %s", filename))
 }
 
-probe process.exec.complete {
+probe process.exec_complete {
     if (success)
         report("exec success")
     else
@@ -45,13 +45,13 @@ probe process.release {
     report(sprintf("remove %s", id(task)))
 }
 
-probe process.signal.send {
+probe process.signal_send {
     report(sprintf("sigsend %d (%s) to %s%s", signal, signal_name, id(task),
                 shared? " [SHARED]" : ""))
 }
 
 /* FIXME this probepoint is not fully implemented
-probe process.signal.handle {
+probe process.signal_handle {
     report(sprintf("sighandle %d (%s)", signal, signal_name))
 }
 */
