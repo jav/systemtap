@@ -32,3 +32,7 @@ probe scheduler.balance {
   log(pp())
 }
 
+probe scheduler.ctxswitch
+{
+	printf("%d, %d, %d\n", prev_pid, next_pid, prevtsk_state);
+}

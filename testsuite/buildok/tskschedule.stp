@@ -1,6 +1,0 @@
-#! stap -p4
-
-probe tskdispatch.ctxswitch
-{
-	printf("%d, %d, %d\n", prev_pid, next_pid, prevtsk_state);
-}

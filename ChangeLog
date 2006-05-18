@@ -1,3 +1,11 @@
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
+	* tapset/tskschedule.stp: deleted, merge into scheduler.stp
+	* tapset/scheduler.stp:   incorporate tskschedule.stp
+	* testsuite/buildok/tskschedule.stp: deleted, merge into 
+	  sched_test.stp
+	* testsuite/buildok/sched_test.stp: incorporate tskschedule.stp
+
 2006-05-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* testsuite/buildok/sched_test.stp: test scheduler tapset

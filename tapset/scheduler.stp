@@ -1,5 +1,6 @@
 // scheduler tapset
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2005, 2006 IBM Corp.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -98,8 +99,33 @@ probe scheduler.migrate = kernel.inline("pull_task") {
 /* probe scheduler.balance
  *
  *  Fires when a cpu attempts to find more work.
+ *  Only applicable to SMP systems
  *
  * Context:
  *  The cpu looking for more work.
  */
 probe scheduler.balance = kernel.inline("idle_balance") {}
+
+
+/* probe scheduler.ctxswitch 
+ * 
+ *  Fires when there is a context switch
+ *  
+ *  Arguments:
+ *    prev_pid: The pid of the process to be switched out
+ *    next_pid: The pid of the process to be switched in
+ *    prevtsk_state: the state of the process to be switched out
+ */
+probe scheduler.ctxswitch
+          = kernel.function("__switch_to")
+{
+%( arch == "ppc64" %?
+	prev_pid = $prev->pid
+	next_pid =  $new->pid
+	prevtsk_state = $prev->state
+%: 
+	prev_pid = $prev_p->pid
+	next_pid = $next_p->pid
+	prevtsk_state = $prev_p->pid
+%)
+}
