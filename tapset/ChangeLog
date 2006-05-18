@@ -12,6 +12,7 @@
 	to process_complete, to allow process.* to work properly.
 	* process.stp (_IS_ERR): declare parameter type
 	* process.stp (process.create): correct new_pid assignment
+	* scheduler.stp: New scheduler tapset
 
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 

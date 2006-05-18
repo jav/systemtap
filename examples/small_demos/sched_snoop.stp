@@ -1,0 +1,35 @@
+#!/usr/bin/env stap
+
+global start_ts
+
+probe begin {
+    start_ts = gettimeofday_us()
+    printf("%12s  %3s  %5s  %5s  %-16s  ACTION\n",
+            "TIMESTAMP", "CPU", "PID", "TID", "EXECNAME")
+}
+
+function report(action:string) {
+    printf("%3d  %12d  %5d  %5d  %-16s  %s\n",
+            gettimeofday_us() - start_ts, cpu(),
+            pid(), tid(), execname(), action)
+}
+
+probe scheduler.cpu_off {
+    report(sprintf("cpu_off%s", idle? " [idle]" : ""))
+}
+
+probe scheduler.cpu_on {
+    report(sprintf("cpu_on%s", idle? " [idle]" : ""))
+}
+
+probe scheduler.tick {
+    report(sprintf("tick%s", idle? " [idle]" : ""))
+}
+
+probe scheduler.migrate {
+    report("migrate")
+}
+
+probe scheduler.balance {
+    report("balance")
+}

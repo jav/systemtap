@@ -1,0 +1,34 @@
+#! stap -p4
+
+// there are problems accessing parameters of inline functions,
+// so for now the tapset parameters are commented out.
+
+probe scheduler.cpu_off {
+  log(pp())
+  //log(sprint(task_prev))
+  //log(sprint(task_next))
+  log(sprint(idle))
+}
+
+probe scheduler.cpu_on {
+  log(pp())
+  //log(sprint(task_prev))
+  log(sprint(idle))
+}
+
+probe scheduler.tick {
+  log(pp())
+  log(sprint(idle))
+}
+
+probe scheduler.migrate {
+  log(pp())
+  //log(sprint(task))
+  //log(sprint(cpu_from))
+  //log(sprint(cpu_to))
+}
+
+probe scheduler.balance {
+  log(pp())
+}
+

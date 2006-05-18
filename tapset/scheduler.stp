@@ -1,0 +1,105 @@
+// scheduler tapset
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
+function __is_idle:long()
+%{
+    /* Ways to detect idle-ness:
+     * - pid() or tid() == 0
+     * - current == current->parent
+     * - current == this_rq()->idle
+     * - others?
+     */
+    THIS->__retvalue = (current->pid == 0);
+%}
+
+
+/* probe scheduler.cpu_off
+ *
+ *  Fires when a process is about to stop running on a cpu.
+ *
+ * Context:
+ *  The process leaving the cpu.
+ *
+ * Arguments:
+ *  task_prev - the process leaving the cpu (same as current)
+ *  task_next - the process replacing current
+ *  idle - boolean indicating whether current is the idle process
+ */
+probe scheduler.cpu_off
+    = kernel.inline("context_switch")
+{
+    task_prev = $prev
+    task_next = $next
+    idle = __is_idle()
+}
+
+
+/* probe scheduler.cpu_on
+ *
+ *  Fires when a process is beginning execution on a cpu.
+ *
+ * Context:
+ *  The resuming process.
+ *
+ * Arguments:
+ *  task_prev - the process that was previously running on this cpu.
+ *  idle - boolean indicating whether current is the idle process
+ */
+probe scheduler.cpu_on
+    = kernel.inline("finish_task_switch")
+{
+    task_prev = $prev
+    idle = __is_idle()
+}
+
+
+/* probe scheduler.tick
+ *
+ *  Fires on the schedulers internal tick, when a processes timeslice
+ *  accounting is updated.
+ *
+ * Context:
+ *  The process whose accounting will be updated.
+ *
+ * Arguments:
+ *  idle - boolean indicating whether current is the idle process
+ */
+probe scheduler.tick = kernel.function("scheduler_tick")
+{
+    idle = __is_idle()
+}
+
+
+/* probe scheduler.migrate
+ *
+ *  Fires whenever a task is moved to a different cpu's runqueue.
+ *
+ * Context:
+ *  Unknown (sometimes migration thread, sometimes cpu_to)
+ *
+ * Arguments:
+ *  task - the process that is being migrated
+ *  cpu_from - the cpu that is losing the task
+ *  cpu_to - the cpu that is claiming the task
+ */
+probe scheduler.migrate = kernel.inline("pull_task") {
+    task = $p
+    cpu_from = $p->thread_info->cpu
+    cpu_to = $this_cpu
+}
+
+
+/* probe scheduler.balance
+ *
+ *  Fires when a cpu attempts to find more work.
+ *
+ * Context:
+ *  The cpu looking for more work.
+ */
+probe scheduler.balance = kernel.inline("idle_balance") {}

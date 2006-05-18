@@ -1,3 +1,8 @@
+2006-05-17  Josh Stone  <joshua.i.stone@intel.com>
+
+	* testsuite/buildok/sched_test.stp: test scheduler tapset
+	* examples/small_demos/sched_snoop.stp: demo scheduler tapset
+
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
 	* testsuite/buildok/ioscheduler.stp: testcase for ioscheduler.stp
