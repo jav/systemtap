@@ -151,7 +151,7 @@ derived_probe::emit_probe_epilogue (translator_output* o)
   o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
   o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
   o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";
-  o->newline() << "_stp_stat_add(time_" << name << ",cycles_elapsed);";
+  o->newline() << "_stp_stat_add(time_" << basest()->name << ",cycles_elapsed);";
   o->indent(-1);
   o->newline(-1) << "}";
   o->newline() << "#endif";
@@ -215,7 +215,7 @@ void
 be_derived_probe::emit_probe_entries (translator_output* o)
 {
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "static __cacheline_aligned Stat " << "time_" << name << ";";
+  o->newline() << "static __cacheline_aligned Stat " << "time_" << basest()->name << ";";
   o->newline() << "#endif";
 
   for (unsigned i=0; i<locations.size(); i++)
@@ -2756,7 +2756,7 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
 dwarf_derived_probe::dwarf_derived_probe (Dwarf_Die *scope_die,
 					  Dwarf_Addr addr,
 					  dwarf_query & q)
-  : derived_probe (NULL),
+  : derived_probe (q.base_probe, 0 /* location-less */),
     has_return (q.has_return)
 {
   string module_name(q.dw.module_name);
@@ -3080,7 +3080,7 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o)
 
   o->newline();
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "static __cacheline_aligned Stat " << "time_" << name << ";";
+  o->newline() << "static __cacheline_aligned Stat " << "time_" << basest()->name << ";";
   o->newline() << "#endif";
 
   // Construct a single entry function, and a struct kprobe pointing into

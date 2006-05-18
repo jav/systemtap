@@ -42,13 +42,9 @@ lex_cast(IN const & in)
 // ------------------------------------------------------------------------
 
 
-unsigned derived_probe::last_probeidx = 0;
-
 derived_probe::derived_probe (probe *p):
   base (p)
 {
-  this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
-
   if (p)
     {
       this->locations = p->locations;  
@@ -61,8 +57,6 @@ derived_probe::derived_probe (probe *p):
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
-  this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
-
   if (l)
     this->locations.push_back (l);
 
@@ -306,6 +300,18 @@ match_node::find_and_build (systemtap_session& s,
 // Alias probes
 // ------------------------------------------------------------------------
 
+struct alias_derived_probe: public derived_probe
+{
+  alias_derived_probe (probe* base): derived_probe (base) {}
+
+  // alias probes should be ultimately expanded to other derived_probe
+  // types, and not themselves emitted.
+  void emit_registrations (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
+  void emit_deregistrations (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
+  void emit_probe_entries (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
+};
+
+
 struct
 alias_expansion_builder 
   : public derived_probe_builder
@@ -326,7 +332,7 @@ alias_expansion_builder
     // alias_expansion_probe so that the expansion loop recognizes it as
     // such and re-expands its expansion.
     
-    probe * n = new probe();
+    probe * n = new alias_derived_probe (use);
     n->body = new block();
 
     // The new probe gets the location list of the alias,

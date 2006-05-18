@@ -1,3 +1,26 @@
+2006-05-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	Organize "-t" output by script/parse level probes rather than
+	derived-probes.
+	* elaborate.cxx (derived_probe ctor): Remove name field setting.
+	(alias_derived_probe): New class.
+	(alias_expandion_builder::build): Create an instance of the above
+	instead of parse-tree-level plain probe.
+	* elaborate.h: Corresponding changes.
+	(derived_probe::basest): Define.
+	* staptree.cxx (probe ctor): Set new name field.
+	* staptree.h (probe): Corresponding changes.
+	(probe::basest): New field.
+	* tapsets.cxx (emit_probe_prologue, emit_probe_entries):
+	Switch to basest() probe name for Stat instance.
+	(dwarf_derived_probe ctor): Stash away base probe.
+	* translate.cxx (unparser::emit_probe): Remove index
+	operand, just use probe name to generate symbols.
+	(emit_module_init): Reorganize -t output in unregister functions.
+	(translate_pass): Remove unparser::current_probenum field and all
+	uses.
+	* translate.h: Corresponding changes. 
+
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
 	* tapset/tskschedule.stp: deleted, merge into scheduler.stp

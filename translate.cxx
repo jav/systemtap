@@ -64,7 +64,6 @@ struct c_unparser: public unparser, public visitor
   translator_output* o;
 
   derived_probe* current_probe;
-  unsigned current_probenum;
   functiondecl* current_function;
   unsigned tmpvar_counter;
   unsigned label_counter;
@@ -83,7 +82,7 @@ struct c_unparser: public unparser, public visitor
   void emit_module_exit ();
   void emit_function (functiondecl* v);
   void emit_locks (const varuse_collecting_visitor& v);
-  void emit_probe (derived_probe* v, unsigned i);
+  void emit_probe (derived_probe* v);
   void emit_unlocks (const varuse_collecting_visitor& v);
 
   // for use by stats (pmap) foreach
@@ -831,7 +830,7 @@ c_unparser::emit_common_header ()
       derived_probe* dp = session->probes[i];
       
       // XXX: probe locals need not be recursion-nested, only function locals
-      o->newline() << "struct probe_" << i << "_locals {";
+      o->newline() << "struct " << dp->name << "_locals {";
       o->indent(1);
       for (unsigned j=0; j<dp->locals.size(); j++)
         {
@@ -991,6 +990,8 @@ c_unparser::emit_module_init ()
   // to avoid forcing the compiler to work too hard at optimizing such
   // a silly function.  A "don't optimize this function" pragma could
   // come in handy too.
+
+  set<string> basest_names;
   for (unsigned i=0; i<session->probes.size(); i++)
     {
       o->newline() << "static noinline int register_probe_" << i << " (void) {";
@@ -1021,26 +1022,32 @@ c_unparser::emit_module_init ()
       o->newline() << "noinline void unregister_probe_" << i << " (void) {";
       o->indent(1);
       session->probes[i]->emit_deregistrations (o);
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline(1) << "{";
-      o->newline() << "const char *probe_point = " <<
-        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
-      o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
-		   << session->probes[i]->name << ", 0);";
-      o->newline() << "int64_t avg = 0;";
-      o->newline() << "const char *error;";
-      o->newline() << "if (stats->count) avg = _stp_div64(&error, stats->sum, stats->count);";
-      o->newline() << "_stp_printf (";
-      o->newline() << "\"probe at " << session->probes[i]->tok->location
-		   << " (%s)\"" ;
-      o->newline() << "\" %lld@%lld (%lld <= t <= %lld)\\n\",";
-      o->newline() << "probe_point, stats->count, avg, stats->min, stats->max);";
-      o->newline() << "_stp_print_flush();";
-      o->newline(-1) << "}";
-      o->newline() << "#endif";
+
+      string nm = session->probes[i]->basest()->name;
+      if (basest_names.find(nm) == basest_names.end())
+        {
+          basest_names.insert (nm);
+          o->newline() << "#ifdef STP_TIMING";
+          o->newline() << "{";
+          o->newline(1) << "const char *probe_point = " 
+                        << lex_cast_qstring (*session->probes[i]->basest()->locations[0]) << ";";
+          o->newline() << "const char *decl_location = "
+                        << lex_cast_qstring (session->probes[i]->basest()->tok->location) << ";";
+          o->newline() << "struct stat_data *stats = _stp_stat_get (time_" << session->probes[i]->basest()->name
+                       << ", 0);";
+          o->newline() << "const char *error;";
+          o->newline() << "if (stats->count) {";
+          o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
+          o->newline() << "_stp_printf (\"probe %s (%s), %lld hits, %lld min %lld avg %lld max cycles\\n\",";
+          o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
+          o->newline() << "_stp_print_flush();";
+          o->newline(-1) << "}";
+          o->newline(-1) << "}";
+          o->newline() << "#endif";
+        }
       o->newline(-1) << "}";
     }
-
+  
   o->newline();
   o->newline() << "int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
@@ -1073,13 +1080,20 @@ c_unparser::emit_module_init ()
     }
 
   // initialize each Stat used for timing information 
-  o->newline() << "#ifdef STP_TIMING";
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      o->newline() << "time_" << session->probes[i]->name
-		   << " = _stp_stat_init (HIST_NONE);";
-    }
-  o->newline() << "#endif";
+  {
+    o->newline() << "#ifdef STP_TIMING";
+    set<string> basest_names;
+    for (unsigned i=0; i<session->probes.size(); i++)
+      {
+        string nm = session->probes[i]->basest()->name;
+        if (basest_names.find(nm) == basest_names.end())
+          {
+            o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
+            basest_names.insert (nm);
+          }
+      }
+    o->newline() << "#endif";
+  }
 
   for (unsigned i=0; i<session->probes.size(); i++)
     {
@@ -1203,7 +1217,6 @@ c_unparser::emit_function (functiondecl* v)
             << " (struct context* __restrict__ c) {";
   o->indent(1);
   this->current_probe = 0;
-  this->current_probenum = 0;
   this->current_function = v;
   this->tmpvar_counter = 0;
 
@@ -1249,18 +1262,17 @@ c_unparser::emit_function (functiondecl* v)
 
 
 void
-c_unparser::emit_probe (derived_probe* v, unsigned i)
+c_unparser::emit_probe (derived_probe* v)
 {
   this->current_function = 0;
   this->current_probe = v;
-  this->current_probenum = i;
   this->tmpvar_counter = 0;
 
-  o->newline() << "static void probe_" << i << " (struct context * __restrict__ c) {";
+  o->newline() << "static void " << v->name << " (struct context * __restrict__ c) {";
   o->indent(1);
 
   // initialize frame pointer
-  o->newline() << "struct probe_" << i << "_locals * __restrict__ l =";
+  o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
   o->newline(1) << "& c->locals[0]." << v->name << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
 
@@ -1297,7 +1309,6 @@ c_unparser::emit_probe (derived_probe* v, unsigned i)
   o->newline(-1) << "}\n";
   
   this->current_probe = 0;
-  this->current_probenum = 0; // not essential
 
   v->emit_probe_entries (o);
 }
@@ -3890,7 +3901,7 @@ translate_pass (systemtap_session& s)
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           s.op->newline();
-          s.up->emit_probe (s.probes[i], i);
+          s.up->emit_probe (s.probes[i]);
         }
 
       s.op->newline();

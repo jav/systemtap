@@ -112,12 +112,7 @@ struct derived_probe: public probe
   derived_probe (probe* b);
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
-
-private:
-  static unsigned last_probeidx;
-
-public:
-  std::string name;
+  virtual probe* basest () { return base->basest(); }
 
   virtual ~derived_probe () {}
 

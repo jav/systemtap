@@ -577,7 +577,12 @@ struct probe
   probe ();
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
+  virtual probe* basest () { return this; }
   virtual ~probe() {}
+private:
+  static unsigned last_probeidx;
+public:
+  std::string name;
 };
 
 struct probe_alias: public probe

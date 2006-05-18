@@ -38,6 +38,17 @@ lex_cast_qstring(IN const & in)
 }
 
 
+template <typename OUT, typename IN> inline OUT
+lex_cast(IN const & in)
+{
+  stringstream ss;
+  OUT out;
+  if (!(ss << in && ss >> out))
+    throw runtime_error("bad lexical cast");
+  return out;
+}
+
+
 expression::expression ():
   type (pe_unknown), tok (0)
 {
@@ -101,9 +112,11 @@ probe_point::probe_point ():
 }
 
 
+unsigned probe::last_probeidx = 0;
 probe::probe ():
   body (0), tok (0)
 {
+  this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
 }
 
 

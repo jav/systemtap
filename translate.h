@@ -85,7 +85,7 @@ struct unparser
   //   ....
   // }
 
-  virtual void emit_probe (derived_probe* v, unsigned i) = 0;
+  virtual void emit_probe (derived_probe* v) = 0;
   // void probe_NUMBER (struct context* c) {
   //   ... lifecycle
   //   ....
