@@ -1,0 +1,206 @@
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version
+
+/***********************************************************
+* Trace the following activities of scsi layer:            *
+*  1. I/O Entry                                            *
+*  2. Issuing I/O to LLD                                   *
+*  3. I/O done by LLD                                      *
+*  4. I/O Complete                                         *
+*                                                          *
+***********************************************************/
+
+%{
+#include <linux/types.h>
+#include <scsi/scsi_cmnd.h>
+#include <scsi/scsi_device.h>
+#include <scsi/scsi_host.h>
+#include <linux/timer.h>
+#include <linux/blkdev.h>
+%}
+
+probe addevent.scsi
+	= addevent.scsi.ioentry,
+	addevent.scsi.iodispatching,
+	addevent.scsi.iodone,
+	addevent.scsi.iocompleted
+{
+}
+
+/* mid-layer prepare a IO request */
+probe addevent.scsi.ioentry
+	+= scsi.ioentry
+{
+	log_scsi_ioentry(HOOKID_SCSI_IOENTRY, $q, $req, backtrace)
+}
+
+/* Dispatch a command to the low-level driver. */
+probe addevent.scsi.iodispatching
+	+= scsi.iodispatching
+{
+	log_scsi_dispatch(HOOKID_SCSI_IO_TO_LLD, $cmd, backtrace)
+}
+
+/* I/O is done by low-level driver*/
+probe addevent.scsi.iodone
+	= scsi.iodone
+{
+	/* scsi timer check. We should record the hook only
+	 * when the timer is inactive. But there's a gap between 
+	 * the checking and the actual calling of scsi_delete_timer.
+	 */
+	if( scsi_timer_pending($cmd) == 1) {
+		log_scsi_iodone_extra(HOOKID_SCSI_IODONE_BY_LLD, $cmd)
+	}
+}
+
+/* mid-layer processes the completed IO */
+probe addevent.scsi.iocompleted
+	= scsi.iocompleted
+{
+	log_scsi_iocompleted(HOOKID_SCSI_IOCOMP_BY_MIDLEVEL, $cmd, $good_bytes)
+}
+
+/* log the info about scsi io entry */
+function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long, backtrace:long)
+%{
+	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
+	struct request *rq = (struct request *)((long)THIS->var_rq);
+	struct scsi_device *sdev = (struct scsi_device *)(q->queuedata);
+
+	/* 
+	major|minor|scsi_device_state| 
+	*/
+	if(THIS->backtrace == 1)  {
+		String str = _stp_string_init (0);
+                _stp_stack_sprint (str, CONTEXT->regs, 0);
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b%0s", rq->rq_disk->major, 
+			rq->rq_disk->first_minor, sdev->sdev_state, _stp_string_ptr(str));
+	} else  {
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b", rq->rq_disk->major, 
+			rq->rq_disk->first_minor, sdev->sdev_state);
+	}
+%}
+
+/* log the info about scsi_dispatching_cmd
+ *
+ *
+ * Now we can use cmd->serial_number as cmd identifier
+ * But according to the comments of struct scsi_cmnd, it's 
+ * a better to use cmd->pid since cmd->serial_number will be killed one
+ * day in the future
+ * 
+ * But when scsi_dispatch_cmd is called, cmd->serial_number is still not
+ * initialized. 
+ *
+ * For kernel >= 2.6.12, it will be set later by calling scsi_cmd_get_serial.
+ * So I choose to record cmd->device->host->cmd_pid. But there is a gap between
+ * the time when cmd->device->host->cmd_pid is retrieved at the beginning of
+ * scsi_dispatch_cmd and the actual calling of scsi_cmd_get_serial.
+ *
+ * For kernel <=2.6.9, it will be set by a global counter.
+ *
+ * NOTE: The kernel version need further investigation.
+ */
+
+/* sdev_state|scsi_info|data_direction|request_buffer|request_bufflen|cmd_identifier|  */
+%( kernel_v >= "2.6.12" %?
+function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
+%{
+	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
+	int scsi_info;
+
+	scsi_info = ((cmd->device->host->host_no & 0xFF) << 24) |
+		((cmd->device->channel & 0xFF) << 16) |
+		((cmd->device->lun & 0xFF) <<  8) | 
+		(cmd->device->id & 0xFF);
+
+	/* sdev_state|scsi_info|data_direction|cmd_identifier|request_buffer|request_bufflen
+	 *
+	 * sdev_state could be: SDEV_DEL, SDEV_BLOCK or something else.
+	 * Instead of skipping SDEV_DEL & SDEV_BLOCK, I choose to log them
+	 */
+
+	if(THIS->backtrace == 1)  {
+		String str = _stp_string_init (0);
+                _stp_stack_sprint (str, CONTEXT->regs, 0);
+
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", cmd->device->sdev_state, 
+			scsi_info, cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen,
+			cmd->device->host->cmd_pid, _stp_string_ptr(str));
+	} else  {
+
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", cmd->device->sdev_state, 
+			scsi_info, cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen,
+			cmd->device->host->cmd_pid);
+	}
+
+%}
+%:
+
+function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
+%{
+	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
+	int scsi_info;
+
+	scsi_info = ((cmd->device->host->host_no & 0xFF) << 24) |
+		((cmd->device->channel & 0xFF) << 16) |
+		((cmd->device->lun & 0xFF) <<  8) | 
+		(cmd->device->id & 0xFF);
+
+	/* sdev_state|scsi_info|data_direction|cmd_identifier|request_buffer|request_bufflen
+	 *
+	 * sdev_state could be: SDEV_DEL, SDEV_BLOCK or something else.
+	 * Instead of skipping SDEV_DEL & SDEV_BLOCK, I choose to log them
+	 */
+
+	/* systemTap failed to access global variable. So I temporarily use 0.
+	_stp_printf("%d|", scsi_pid);
+	*/
+	if(THIS->backtrace == 1)  {
+		String str = _stp_string_init (0);
+                _stp_stack_sprint (str, CONTEXT->regs, 0);
+
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", cmd->device->sdev_state, scsi_info, 
+			cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen, 0, _stp_string_ptr(str));
+	} else  {
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", cmd->device->sdev_state, scsi_info, 
+			cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen, 0);
+	}
+%}
+%)
+
+/* log the info about scsi_done */
+function log_scsi_iodone_extra(var_id:long, var:long)
+%{
+	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
+	int scsi_info;
+
+	scsi_info = ((cmd->device->host->host_no & 0xFF) << 24) |
+		((cmd->device->channel & 0xFF) << 16) |
+		((cmd->device->lun & 0xFF) <<  8) | 
+		(cmd->device->id & 0xFF);
+
+	/* scsi_info|data_direction|cmd_identifier| */
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b", scsi_info, cmd->sc_data_direction, cmd->pid);
+%}
+
+/* log the info about scsi_dispatching_cmd */
+function log_scsi_iocompleted(var_id:long, var_cmd:long, var_goodbytes:long)
+%{
+	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var_cmd);
+	int scsi_info;
+	unsigned long goodbytes = (unsigned long)(THIS->var_goodbytes);
+
+	scsi_info = ((cmd->device->host->host_no & 0xFF) << 24) |
+		((cmd->device->channel & 0xFF) << 16) |
+		((cmd->device->lun & 0xFF) <<  8) | 
+		(cmd->device->id & 0xFF);
+
+	/* scsi_info|data_direction|cmd_identifier|goodbytes */
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b%4b", scsi_info, cmd->sc_data_direction, cmd->pid, goodbytes);
+%}

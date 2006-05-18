@@ -110,7 +110,11 @@ probe scheduler.balance = kernel.inline("idle_balance") {}
 /* probe scheduler.ctxswitch 
  * 
  *  Fires when there is a context switch
- *  
+
+ *  Currently systemTap can't access arguments of inline
+ *  functions. So we choose to probe __switch_to instead
+ *  of context_switch()       
+
  *  Arguments:
  *    prev_pid: The pid of the process to be switched out
  *    next_pid: The pid of the process to be switched in

@@ -1,0 +1,129 @@
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+function lket_trace_header_init()
+%{
+
+/* header info for binary format*/
+#if !defined(ASCII_TRACE) && !defined(ASCII_TRACE_LEGACY) 
+
+#define MAGIC_NUMBER           0xAEFCDB6B
+#define LKET_TRACE_VER_MAJOR   0x01
+#define LKET_TRACE_VER_MINOR   0x01 /* used for user customization */
+#define LITTLE_ENDIAN          0x01
+#define BIG_ENDIAN             0x02
+#define BITS_WIDTH             64     /* 32-bit or 64-bit environment*/
+
+#define LKET_HEADER_LEN        0   /* fake number, bin_write will fill in the
+                                     actual length of trace header */
+
+	_stp_printf("%4b%2n%1b%1b%1b%1b", MAGIC_NUMBER, LKET_HEADER_LEN, LKET_TRACE_VER_MAJOR,
+		LKET_TRACE_VER_MINOR, BIG_ENDIAN, BITS_WIDTH);
+	_stp_print_flush();
+#endif
+
+%}
+
+function lket_trace_init() 
+{
+	lket_trace_header_init()
+}
+
+%{
+#ifndef __LKET_TRACE__
+#define __LKET_TRACE__
+
+#define STP_BIN_PACKET 1
+
+
+#define MAX_FMT_LEN 128
+char newfmt[MAX_FMT_LEN] = "\n%d|%d|%d|%d|%d|%d|%d|%d";
+#define NEW_FMT_START 24 
+
+void fmt_change(char *oldfmt)
+{
+	char *old_ptr, *new_ptr;
+
+	old_ptr = oldfmt;
+	new_ptr = newfmt + NEW_FMT_START;
+
+	while(*old_ptr != 0 && (new_ptr - newfmt) < MAX_FMT_LEN)  {
+		if(*old_ptr != '%')  {
+			*new_ptr++ = *old_ptr++;
+			continue;
+		}  else  {
+			*new_ptr++ = '|'; /* delimier to make it readable */ 
+			*new_ptr++ = *old_ptr++;
+			while( *old_ptr == 'L' || *old_ptr == 'l'
+				|| isdigit(*old_ptr) )  {
+				*new_ptr++ = *old_ptr++;
+			}
+			if( *old_ptr == 'b') {
+				if(isdigit(*(old_ptr-1))) {
+					if(*(old_ptr-1) == '1' ||
+					   *(old_ptr-1) == '2' ||
+					   *(old_ptr-1) == '3' ||
+					   *(old_ptr-1) == '4')  {
+						new_ptr--;
+					} else if(*(old_ptr-1) == '8')  {
+						*--new_ptr='l';
+						*++new_ptr='l';
+						new_ptr++;
+					}
+				}
+				*new_ptr++ = 'd';
+				old_ptr++;
+			}
+			else if ( *old_ptr == 's') {
+				if(isdigit(*(old_ptr-1)) && *(old_ptr-1)=='0')
+					new_ptr--;
+				*new_ptr++ = 's';
+				old_ptr++;
+			} else
+				*new_ptr++ = *old_ptr++;
+		}
+	}
+	*new_ptr=0;
+}
+
+/* trace data in ASCII format 
+   Format of the common prefix of the trace data:
+  groupid|subhookid|sec|usec|tgid|ppid|pid|cpuid|
+*/
+#if defined(ASCII_TRACE)
+
+#define _lket_trace(GroupID, hookID, fmt, args...) do { \
+	struct timeval tv; \
+	do_gettimeofday (&tv); \
+	fmt_change(fmt); \
+	_stp_printf(newfmt, \
+		GroupID, hookID, tv.tv_sec, tv.tv_usec, current->tgid, \
+		current->parent->pid, current->pid, \
+		current->thread_info->cpu, args);\
+} while(0)
+
+#else //binary trace
+
+static inline int this_event_len(void)
+{
+	return 0;
+}
+
+/* we use 2 bytes to store the length. 256 may be not enough for backtrace event */
+#define _lket_trace(GroupID, hookID, fmt, args...) do { \
+	struct timeval tv; \
+	do_gettimeofday (&tv); \
+	_stp_printf("%1b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
+		(int64_t)STP_BIN_PACKET, (int64_t)GroupID, (int64_t)hookID, \
+		(int64_t)tv.tv_sec, (int64_t)tv.tv_usec, (int64_t)current->tgid, \
+		(int64_t)current->parent->pid, (int64_t)current->pid, \
+		(int64_t)current->thread_info->cpu, args);\
+} while(0)
+
+#endif
+#endif
+%}

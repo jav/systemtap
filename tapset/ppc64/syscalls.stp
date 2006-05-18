@@ -1779,6 +1779,8 @@ probe syscall.old32_readdir.return =
 #
 # time_t sys64_time(time_t __user * tloc)
 #
+%( kernel_v <= "2.6.15" %?
+
 probe syscall.sys64_time = kernel.function("sys64_time") {
 	name = "sys64_time"
 	/* FIXME */
@@ -1789,6 +1791,7 @@ probe syscall.sys64_time.return = kernel.function("sys64_time").return {
 	name = "sys64_time"
 	retstr = returnstr(1)
 }
+%)
 # ppc64_personality ________________________________________
 #
 # long ppc64_personality(unsigned long personality)

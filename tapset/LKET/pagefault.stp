@@ -1,0 +1,22 @@
+// networking tapset
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+function log_pagefault_tracedata(var_id:long, var_addr:long, var_rwflag:long)
+%{
+	_lket_trace(_GROUP_PAGEFAULT, THIS->var_id, "%8b%1b", (long)(THIS->var_addr), (THIS->var_rwflag)?1:0); 
+%}
+
+
+/* Record the page fault event */
+probe addevent.pagefault
+	=  pagefault
+{
+	if(filter_by_pid() == 1 ) {
+		log_pagefault_tracedata(HOOKID_PAGEFAULT, $address, $write_access)
+	}
+}

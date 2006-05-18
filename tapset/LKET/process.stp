@@ -1,0 +1,68 @@
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/* record the newly created process name */
+function log_execve_tracedata(var_id:long, var:long)
+%{
+	long tmp=(long)THIS->var;
+	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%0s", (char *)tmp); 
+%}
+
+
+/* record the newly forked process id */
+function log_fork_tracedata(var_id:long, var:long)
+%{
+	pid_t pid = (pid_t)THIS->var;	
+	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", pid); 
+%}
+
+
+/************************************************************
+* This function could be used to take a snapshot of all the *
+* processes. It's not a probe, so the data format doesn't   *
+* follow the format used by probe handlers                  *
+************************************************************/
+function process_snapshot()
+%{
+	struct task_struct *tsk;
+	struct list_head *cur, *head;
+	head = &(current->tasks);
+
+	/* iterate all the processes, and record the pid and process
+	name for each entry */
+	list_for_each(cur, head) {
+		tsk = (struct task_struct *)(list_entry(cur, struct task_struct, tasks));
+		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", tsk->pid, tsk->comm);
+		_stp_print_flush();
+	}
+%}
+
+
+probe addevent.process
+	=  addevent.process.fork, addevent.process.execve
+{
+}
+
+/* 
+  we should capture both do_execve for 64-bit app
+  and compat_do_execve for 32-bit app           
+*/
+probe addevent.process.execve
+	=  process.exec
+{
+	if(filter_by_pid() == 1 ) {
+		log_execve_tracedata(HOOKID_PROCESS_EXECVE, $filename)
+	}
+}
+
+probe addevent.process.fork
+	= process.create
+{
+	if(filter_by_pid() == 1 ) {
+		log_fork_tracedata(HOOKID_PROCESS_FORK, new_pid)
+	}
+}

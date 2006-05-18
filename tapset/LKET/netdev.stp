@@ -1,0 +1,66 @@
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version
+
+%{
+#include <linux/netdevice.h>
+%}
+
+probe addevent.netdev
+	=  addevent.netdev.receive, addevent.netdev.transmit
+{
+}
+
+/* Main device receive routine, be called when packet arrives on network device */
+probe addevent.netdev.receive
+	=  netdev.receive
+{
+	/* no need to filter by pid */
+	log_netdev_extra(HOOKID_NETDEV_RECEIVE,$skb, backtrace)
+}
+
+/* Queue a buffer for transmission to a network device */
+probe addevent.netdev.transmit
+	+=  netdev.transmit
+{
+	if(filter_by_pid() == 1 ) {
+		log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb, backtrace)
+	}
+}
+
+function log_netdev_extra(var_id:long, var:long, backtrace:long)
+%{
+	struct sk_buff *skb = (struct sk_buff *)THIS->var;
+
+	/* dev_name | Length of actual data | protocol | Buffer size 
+
+	    skb->protocol is:
+		0800    IP
+		8100    802.1Q VLAN
+		0001    802.3
+		0002    AX.25
+		0004    802.2
+		8035    RARP
+		0005    SNAP
+		0805    X.25
+		0806    ARP
+		8137    IPX
+		0009    Localtalk
+		86DD    IPv6
+	*/
+
+	/* only print backtrace for netdev.transmit */
+	if(THIS->backtrace == 1)  {
+		String str = _stp_string_init (0);
+		_stp_stack_sprint (str, CONTEXT->regs, 0);
+
+		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b%0s", skb->dev->name, 
+			skb->len, skb->protocol, skb->truesize, _stp_string_ptr(str));
+	}  else  {
+		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", skb->dev->name, 
+			skb->len, skb->protocol, skb->truesize);
+	}
+%}

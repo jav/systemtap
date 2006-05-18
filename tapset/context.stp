@@ -136,3 +136,7 @@ function target:long () %{ /* pure */
 %}
 
 function returnval () { return retval () }  # deprecated
+
+function stp_pid:long () %{ /* pure */
+        THIS->__retvalue = _stp_pid;
+%}

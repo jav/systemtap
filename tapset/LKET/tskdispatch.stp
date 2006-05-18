@@ -1,0 +1,71 @@
+// Copyright (C) 2005, 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/**********************************************************
+* Dispatching when the cpu is idle or when a new process  * 
+* is chosen to run.                                       *
+*                                                         *
+* The actual locations for these two kinds of events are  *
+* the labels go_idle and switch_tasks inside the function *
+* schedule. But currently SystemTap doesn't support       *
+* specifying probe points by label.                       *
+*                                                         *
+**********************************************************/
+probe addevent.tskdispatch
+	= addevent.tskdispatch.ctxswitch, 
+	addevent.tskdispatch.cpuidle
+{
+}
+
+/* Only applicable to SMP systems */
+probe addevent.tskdispatch.cpuidle
+	+= scheduler.balance
+{
+	/* we didn't call filter_by_pid() here,
+	 so that we can get all the idle events
+	 despite how the cpu enters idle */
+	log_cpuidle_tracedata(HOOKID_TASK_CPUIDLE, backtrace)
+}
+
+probe addevent.tskdispatch.ctxswitch
+	= scheduler.ctxswitch
+{
+	target_pid = target()
+	cur_pid = pid()
+	if( stp_pid() != cur_pid ) {  /* skip stpd itself */
+		if(target_pid == 0 || (target_pid !=0 && ($prev->pid == target_pid 
+			|| $new->pid == target_pid)))  {
+			log_ctxswitch_tracedata(HOOKID_TASK_CTXSWITCH, $prev, $new)
+		}
+	}
+}
+
+function log_ctxswitch_tracedata(var_id:long, prev:long, next_pid:long)
+%{
+	struct task_struct *prev_tsk, *next_tsk;
+
+	prev_tsk = (struct task_struct *)((long)THIS->prev);
+	next_tsk = (struct task_struct *)((long)THIS->next_pid);
+
+	_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%4b%1b", prev_tsk->pid, next_tsk->pid, prev_tsk->state); 
+%}
+
+function log_cpuidle_tracedata(var_id:long, backtrace:long)
+%{
+	struct task_struct *cur = current;
+
+	if(THIS->backtrace == 1) {
+		String str = _stp_string_init (0);
+                _stp_stack_sprint (str, CONTEXT->regs, 0);
+		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%0s", cur->pid,  _stp_string_ptr(str)); 
+	} else  {
+		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b", cur->pid); 
+	}
+%}
+
+
+

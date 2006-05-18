@@ -1,5 +1,12 @@
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
+	* tapset/LKET/*: tracing tapsets of LKET
+	* tapset/context.stp: add stp_pid() func
+	* tapset/ppc64/syscalls.stp: add conditional preprocessing
+	since sys64_time is removed from kernel >= 2.6.1	
+
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
 	* tapset/tskschedule.stp: deleted, merge into scheduler.stp
 	* tapset/scheduler.stp:   incorporate tskschedule.stp
 	
