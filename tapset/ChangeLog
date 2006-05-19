@@ -1,5 +1,10 @@
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
+	* tapset/ioscheduler.stp: change . to -> operator to get the
+	elevator name
+	
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
 	* tapset/LKET/*: tracing tapsets of LKET
 	* tapset/context.stp: add stp_pid() func
 	* tapset/ppc64/syscalls.stp: add conditional preprocessing

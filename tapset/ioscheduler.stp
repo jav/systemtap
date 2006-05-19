@@ -18,7 +18,7 @@ probe ioscheduler.elv_next_request
 %( kernel_v >= "2.6.10" %?
 	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 %:
-	elevator_name = kernel_string($q->elevator.elevator_name)
+	elevator_name = kernel_string($q->elevator->elevator_name)
 %)
 	disk_major = disk_major_from_request($q)
 	disk_minor = disk_minor_from_request($q)
@@ -31,7 +31,7 @@ probe ioscheduler.elv_add_request
 %( kernel_v >= "2.6.10" %?
 	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 %:
-	elevator_name = kernel_string($q->elevator.elevator_name)
+	elevator_name = kernel_string($q->elevator->elevator_name)
 %)
 	disk_major = $rq->rq_disk->major
 	disk_minor = $rq->rq_disk->first_minor
@@ -44,7 +44,7 @@ probe ioscheduler.elv_completed_request
 %( kernel_v >= "2.6.10" %?
 	elevator_name = kernel_string($q->elevator->elevator_type->elevator_name)
 %:
-	elevator_name = kernel_string($q->elevator.elevator_name)
+	elevator_name = kernel_string($q->elevator->elevator_name)
 %)
 	disk_major = $rq->rq_disk->major
 	disk_minor = $rq->rq_disk->first_minor
