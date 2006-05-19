@@ -3,7 +3,7 @@
 	* tapset/LKET/*: tracing tapsets of LKET
 	* tapset/context.stp: add stp_pid() func
 	* tapset/ppc64/syscalls.stp: add conditional preprocessing
-	since sys64_time is removed from kernel >= 2.6.1	
+	since sys64_time is removed from kernel >= 2.6.16
 
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
@@ -29,8 +29,8 @@
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
 	* tapset/ioscheduler.stp: generic IO scheduler tapsets from LKET
-	* tapset/ioscheduler.stp: generic pagefault tapsets from LKET
-	* tapset/ioscheduler.stp: generic networking tapsets from LKET
+	* tapset/memory.stp:      generic pagefault tapsets from LKET
+	* tapset/networking.stp:  generic networking tapsets from LKET
 	* tapset/scsi.stp:        generic scsi tapsets from LKET
 	* tapset/tskschedule.stp: generic task scheduler tapsets from LKET
 	* tapset/process.stp:     changes to process.exec alias
