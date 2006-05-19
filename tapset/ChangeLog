@@ -1,4 +1,10 @@
-2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+2006-05-19  Li Guanglei <guanglei@cn.ibm.com>
+
+	Patch from Mao Bibo (bibo.mao@intel.com)
+	* tapset/aux_syscalls.stp: change %lx to %llx in snprintf to
+	print the address in IA64
+
+2006-05-19  Li Guanglei <guanglei@cn.ibm.com>
 
 	* tapset/ioscheduler.stp: change . to -> operator to get the
 	elevator name

@@ -177,7 +177,7 @@ void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
 	{
 		/* FIXME. This needs tested */
 		struct sockaddr_ll *sll = (struct sockaddr_ll *)buf;
-#if defined(__powerpc__)
+#if defined(__powerpc__) || defined(__ia64__)
 		snprintf(str, strlen, "{AF_PACKET, proto=%d, ind=%d, hatype=%d, pkttype=%d, halen=%d, addr=0x%lx}", 
 			(int)sll->sll_protocol, sll->sll_ifindex, (int)sll->sll_hatype, (int)sll->sll_pkttype,
 			(int)sll->sll_halen, *(uint64_t *)sll->sll_addr);
