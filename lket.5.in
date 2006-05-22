@@ -1,0 +1,277 @@
+.TH LKET 5 @DATE@ "IBM"
+.SH NAME
+LKET \- Linux Kernel Event Trace tool based on SystemTap
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+The Linux Kernel Event Trace (LKET) tool is an extension to the tapsets
+library available on SystemTap. Its goal is to utilize the dynamic probing
+capabilities provided through SystemTap to create a set of standard hooks
+that probe pre-defined places in the kernel. It can be used to collect
+important information that can be used as a starting point to analyze 
+a performance problem in their system.
+
+The LKET tapsets are designed to only trace the events selected by the
+user. Once the data has been collected, it is then post-processed 
+according to the need of the user. Trace data can be processed in 
+various different ways to generate simple to complex reports.  
+
+.SH EVENT HOOKS
+
+The following sections enumerate the variety of event hooks implemented
+in LKET and their trace data format. Each event hook contains common data
+as well as some data that is specific to that event hook. 
+
+The data common( i.e.
+.I common_data
+) 
+in the following subsecions) to all event hooks is:
+.RS
+.I GroupID, hookID, second, usec, tgid, ppid, pid, cpu_id
+.RE
+
+Each event hook group is a collection of those hooks that have
+similarities of what they could trace. And the ID of each event hook
+is defined in the context of its corresponding group.
+
+.SS SYSTEM CALLS (GROUPID=1)
+You could use 
+.I addevent.syscall
+to trace the entry and return of all system calls.
+It contains two sub event hooks:
+.P
+.TP
+.B addevent.syscall.entry (HOOKID=1)
+Trace entry of all system calls. 
+
+Data format is:
+
+.I common_data, syscall_name
+.TP
+.B addevent.syscall.return (HOOKID=2)
+Trace return of all system calls. 
+
+Data format is:
+
+.I common_data, syscall_name
+
+.SS PROCESS CREATION (GROUPID=2)
+You could use
+.I addevent.process
+to trace fork and execve of processes.
+It contains two sub event hooks:
+.P
+.TP
+.B addevent.process.fork (HOOKID=2)
+Trace fork of processes
+
+Data format is:
+
+.I common_data, new_process_id
+.TP
+.B addevent.process.execve (HOOKID=3)
+Trace execve of new processes
+
+Data format is:
+
+.I common_data, new_process_name
+
+.SS IO SCHEDULER ACTIVITIES (GROUPID=3)
+You could use
+.I addevent.ioscheduler
+to trace the IO scheduler activities. It contains three sub event hooks:
+.P
+.TP
+.B addevent.ioscheduler.elv_next_request (HOOKID=1)
+Trace when a request is retrieved from request queue
+
+Data format is:
+
+.I common_data, elevator_name, disk_major, disk_minor
+.TP
+.B addevent.ioscheduler.elv_add_request (HOOKID=2)
+Trace when a request is added to the request queue
+
+Data format is:
+
+.I common_data, elevator_name, disk_major, disk_minor
+.TP
+.B addevent.ioscheduler.elv_completed_request (HOOKID=3)
+Trace when a request is completed
+
+Data format is:
+
+.I common_data, elevator_name, disk_major, disk_minor
+
+.SS TASK SCHEDULE ACTIVITIES (GROUPID=4)
+You could use
+.I addevent.tskdispatch
+to trace the task scheduler activities. It contains two sub event hooks:
+.P
+.TP
+.B addevent.tskdispatch.ctxswitch (HOOKID=1)
+Trace the process context switch
+
+Data format is:
+
+.I common_data, prev_pid, next_pid, previous_process_state
+.TP
+.B addevent.tskdispatch.cpuidle (HOOKID=2)
+Trace when cpu goes idle
+
+Data format is:
+
+.I common_data, current_pid
+
+.SS SCSI ACTIVITIES (GROUPID=5)
+You could use
+.I addevent.scsi
+to trace the scsi layer activities. It contains four sub event hooks:
+.P
+.TP
+.B addevent.scsi.ioentry (HOOKID=1)
+mid-layer prepares a IO request
+
+Data format is:
+
+.I common_data, disk_major, disk_minor, device_state
+.TP
+.B addevent.scsi.iodispatching (HOOKID=2)
+Dispatch a command to the low-level driver
+
+Data format is:
+
+.I common_data, device_state, scsi_info, data_direction, reqbuf_addr, reqbuf_len, cmd_identifier
+
+Where 
+.I scsi_info
+is the combination of:
+
+.SAMPLE
+((cmd->device->host->host_no & 0xFF) << 24) |
+((cmd->device->channel & 0xFF) << 16) |
+((cmd->device->lun & 0xFF) << 8) |
+(cmd->device->id & 0xFF)
+.ESAMPLE
+
+.TP
+.B addevent.scsi.iodone (HOOKID=3)
+I/O is done by low-level driver
+
+Data format is:
+
+.I common_data, scsi_info, data_direction, cmd_identifier
+.TP
+.B addevent.scsi.iocompleted (HOOKID=4)
+mid-layer processed the completed IO
+
+Data format is:
+
+.I common_data, scsi_info, data_direction, cmd_identifier, bytes_done
+
+.SS PAGE FAULT (GROUPID=6)
+You could use 
+.I addevent.pagefault
+to trace page fault events. It contains only one sub event hooks:
+.P
+.TP
+.B addevent.pagefault (HOOKID=1)
+
+Data format is:
+
+.I common_data, memory_address, write_access
+
+.SS NETWORK DEVICE ACTIVITIES (GROUPID=7)
+You could use
+.I addevent.netdev
+to trace the network device  activities. It contains two sub event hooks:
+.P
+.TP
+.B addevent.netdev.receive (HOOKID=1)
+network device receives a packet
+
+Data format is:
+
+.I netdev_name, data_length, protocol, buffer_length
+
+.TP
+.BR addevent.netdev.transmit (HOOKID=2)
+A packet will be sent out by network device
+
+Data format is:
+
+.I netdev_name, data_length, protocol, buffer_length
+
+.SH BACKTRACE
+
+Some event hooks have the capability of print backtrace. But since
+backtrace printing is costly, it is defaultly turned off.
+
+To print backtrace, you can just add "backtrace=1" into the probes, e.g:
+.SAMPLE
+probe addevent.scsi.ioentry
+{
+	backtrace=1
+}
+.ESAMPLE
+
+By default backtrace=0
+
+Currently the following events could be able to print backtrace:
+.SAMPLE
+.BR addevent.ioscheduler.elv_next_request
+.BR addevent.ioscheduler.elv_add_request
+.BR addevent.netdev.transmit
+.BR addevent.scsi.ioentry
+.BR addevent.scsi.iodispatching
+.BR addevent.tskdispatch.cpuidle
+.BR addevent.syscall.entry
+.BR addevent.syscall.return
+.ESAMPLE
+
+.SH TRACE DATA FORMAT
+
+By default, LKET will log the trace data in binary format.
+
+To get a better performance for binary tracing, the "-b" option should
+be turned on for stap and thus -M option has to be added to stop stpd
+merging per-cpu files.
+
+If you want LKET to log trace data in ASCII format, you should:
+.SAMPLE
+stap -D ASCII_TRACE ...
+.ESAMPLE
+
+.SH EXAMPLES
+
+Here are some examples of using LKET:
+
+.TP
+To turn on all event hooks:
+stap -e "probe addevent.* {}" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+.TP
+To probe syscall:
+stap -e "probe addevent.syscall {}" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+.TP
+To only probe syscall.entry:
+stap -e "probe addevent.syscall.entry {}" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+.TP
+To probe netdev transmition and print the backtrace:
+stap -e "probe addevent.netdev.transmit { backtrace=1 }" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+
+
+.SH SEE ALSO
+.IR stap (1)

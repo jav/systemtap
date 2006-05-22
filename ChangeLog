@@ -1,3 +1,7 @@
+2006-05-22  Li Guanglei <guanglei@cn.ibm.com>
+	* lket.in.5: draft version of manpage for LKET
+	* Makefile.in, configure, stap.1.in: add lket.in.5
+
 2006-05-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	Organize "-t" output by script/parse level probes rather than
@@ -20,6 +24,13 @@
 	(translate_pass): Remove unparser::current_probenum field and all
 	uses.
 	* translate.h: Corresponding changes. 
+
+2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
+
+	* tapset/LKET/*: tracing tapsets of LKET
+	* tapset/context.stp: add stp_pid() func
+	* tapset/ppc64/syscalls.stp: add conditional preprocessing
+	since sys64_time is removed from kernel >= 2.6.16
 
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 

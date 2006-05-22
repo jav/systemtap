@@ -815,6 +815,7 @@ unloading.
 .IR stapprobes (5),
 .IR stapfuncs (5),
 .IR stapex (5),
+.IR lket (5),
 .IR dtrace (1),
 .IR dprobes (1),
 .IR awk (1),

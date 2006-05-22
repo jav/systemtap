@@ -52,6 +52,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/config.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
 	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
 	$(srcdir)/stp_check.in $(srcdir)/systemtap.spec.in \
+	$(srcdir)/lket.5.in \
 	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
 	compile depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -62,7 +63,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 \
+CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 lket.5 \
 	stapfuncs.5 stapex.5
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
 	"$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" \
@@ -211,7 +212,7 @@ AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 
 AM_CXXFLAGS = -Wall
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c
@@ -313,6 +314,8 @@ systemtap.spec: $(top_builddir)/config.status $(srcdir)/systemtap.spec.in
 stp_check: $(top_builddir)/config.status $(srcdir)/stp_check.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stap.1: $(top_builddir)/config.status $(srcdir)/stap.1.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+lket.5: $(top_builddir)/config.status $(srcdir)/lket.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stapprobes.5: $(top_builddir)/config.status $(srcdir)/stapprobes.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
