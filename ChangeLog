@@ -1,3 +1,8 @@
+2006-05-22  David Smith  <dsmith@redhat.com>
+
+	* elaborate.cxx (find_and_build): Fixed issue #2643.  Wildcard
+	code was being too optimistic.
+
 2006-05-22  Li Guanglei <guanglei@cn.ibm.com>
 	* lket.in.5: draft version of manpage for LKET
 	* Makefile.in, configure, stap.1.in: add lket.in.5

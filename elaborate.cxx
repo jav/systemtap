@@ -244,35 +244,37 @@ match_node::find_and_build (systemtap_session& s,
     }
   else if (loc->components[pos]->functor == "*") // wildcard?
     {
-      // Recursively call derive_probes for all matches of the current
-      // key position.  To do this, we have to perform almost an
-      // alias-level duplication of the probe body and synthesis of
-      // new probe_points.
-
-      probe * n = new probe();
-      n->tok = p->tok;
-      n->body = deep_copy_visitor::deep_copy(p->body);
-
-      // Construct N probe_point instances: one per wildcard match
+      // Call find_and_build for each possible match.  Ignore errors -
+      // unless we don't find any match.
+      unsigned int num_results = results.size();
       for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
         {
-          const match_key& match = i->first;
-          probe_point *loc2 = new probe_point;
-          loc2->tok = loc->tok;
-
-          // deep-copy probe point components, except for this wildcard position
-          for (unsigned k=0; k<loc->components.size(); k++)
-            if (pos != k)
-              loc2->components.push_back(new probe_point::component(loc->components[k]->functor,
-                                                                    loc->components[k]->arg));
-            else
-              // NB: we retain wildcard arg - foo.*(5).bar => foo.a(5).bar, foo.b(5).bar
-              loc2->components.push_back(new probe_point::component(match.name,
-                                                                    loc->components[k]->arg));
-          n->locations.push_back (loc2);
+	  match_node* subnode = i->second;
+	  // recurse
+	  try
+	    {
+	      subnode->find_and_build (s, p, loc, pos+1, results);
+	    }
+	  catch (const semantic_error& e)
+	    {
+	      // Ignore semantic_errors while expanding wildcards.  If
+	      // we get done and nothing was expanded, the code
+	      // following the loop will complain.
+	    }
         }
 
-      derive_probes (s, n, results, false);
+      if (num_results == results.size())
+        {
+	  // We didn't find any wildcard matches (since the size of
+	  // the result vector didn't change).  Throw an error.
+          string alternatives;
+          for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+            alternatives += string(" ") + i->first.str();
+          
+	  throw semantic_error(string("probe point mismatch at position ") +
+			       lex_cast<string> (pos) +
+			       " (alternatives:" + alternatives + ")");
+	}
     }
   else 
     {
