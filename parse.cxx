@@ -1363,7 +1363,7 @@ parser::parse_for_loop ()
       s->incr = parse_expr_statement ();
       t = next ();
       if (! (t->type == tok_operator && t->content == ")"))
-	throw parse_error ("expected ';'");
+	throw parse_error ("expected ')'");
     }
 
   // block

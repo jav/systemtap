@@ -1,3 +1,7 @@
+2006-05-23  David Smith  <dsmith@redhat.com>
+
+	* parse.cxx (parse_for_loop): Corrected error message.
+
 2006-05-22  David Smith  <dsmith@redhat.com>
 
 	* elaborate.cxx (find_and_build): Fixed issue #2643.  Wildcard
