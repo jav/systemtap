@@ -1,0 +1,8 @@
+#! stap -p1
+
+# 'next' in function context
+
+function decl()
+{
+    next
+}

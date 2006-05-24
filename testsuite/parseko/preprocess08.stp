@@ -1,0 +1,4 @@
+#! stap -p1
+
+# missing "then" token
+%( arch == "2.6" %?

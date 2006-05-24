@@ -1,0 +1,7 @@
+#! stap -p1
+
+# bad function declaration - bad parameter list
+function decl(*)
+{
+	return 0
+}

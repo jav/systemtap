@@ -1,0 +1,7 @@
+#! stap -p1
+
+# bad function declaration - bad argument type
+function decl(a:foo)
+{
+	return 0
+}

@@ -1,0 +1,7 @@
+#! stap -p1
+
+# bad function declaration
+function 123 (arg1, arg2)
+{
+	return arg1 + arg2
+}

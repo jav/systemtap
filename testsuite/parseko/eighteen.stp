@@ -1,0 +1,4 @@
+#! stap -p1
+
+# bad global
+global 123

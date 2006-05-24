@@ -1,0 +1,8 @@
+#! stap -p1
+
+# bad function declaration - only "string" or "long" are valid
+# function return types
+function decl:foo (arg1, arg2)
+{
+	return arg1 + arg2
+}

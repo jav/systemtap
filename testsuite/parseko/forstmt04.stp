@@ -1,0 +1,9 @@
+#! stap -p1
+
+# 'for' missing closing ')'
+
+function decl()
+{
+    for (i = 0; i < 5; i++
+        j = i
+}

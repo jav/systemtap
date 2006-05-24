@@ -1,0 +1,6 @@
+#! stap -p1
+
+# bad comparison operator
+%( kernel_v * "2.6" %?
+   probe begin { }
+%)

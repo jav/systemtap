@@ -1,0 +1,6 @@
+#! stap -p1
+
+# bad kernel version - not a string
+%( kernel_v <= 2.6 %?
+   probe begin { }
+%)

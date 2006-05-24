@@ -1,0 +1,9 @@
+#! stap -p1
+
+# missing closing paren after while statment
+
+function decl()
+{
+    while (0 == 1
+        printf("here\n")
+}

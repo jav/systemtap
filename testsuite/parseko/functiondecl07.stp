@@ -1,0 +1,7 @@
+#! stap -p1
+
+# bad function declaration - needs a ',' between arguments
+function decl(a b)
+{
+	return 0
+}

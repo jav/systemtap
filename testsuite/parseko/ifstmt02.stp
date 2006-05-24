@@ -1,0 +1,9 @@
+#! stap -p1
+
+# missing closing paren in if statment
+
+function decl()
+{
+    if (a == b
+        printf("in decl\n")
+}

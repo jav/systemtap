@@ -1,3 +1,46 @@
+2006-05-24  David Smith  <dsmith@redhat.com>
+
+	* testsuite/parseko/cmdlinearg01.stp: New file.
+	* testsuite/parseko/cmdlinearg02.stp: New file.
+	* testsuite/parseko/eighteen.stp: New file.
+	* testsuite/parseko/foreachstmt01.stp: New file.
+	* testsuite/parseko/foreachstmt02.stp: New file.
+	* testsuite/parseko/foreachstmt03.stp: New file.
+	* testsuite/parseko/foreachstmt04.stp: New file.
+	* testsuite/parseko/foreachstmt05.stp: New file.
+	* testsuite/parseko/forstmt01.stp: New file.
+	* testsuite/parseko/forstmt02.stp: New file.
+	* testsuite/parseko/forstmt03.stp: New file.
+	* testsuite/parseko/forstmt04.stp: New file.
+	* testsuite/parseko/functiondecl01.stp: New file.
+	* testsuite/parseko/functiondecl02.stp: New file.
+	* testsuite/parseko/functiondecl03.stp: New file.
+	* testsuite/parseko/functiondecl04.stp: New file.
+	* testsuite/parseko/functiondecl05.stp: New file.
+	* testsuite/parseko/functiondecl06.stp: New file.
+	* testsuite/parseko/functiondecl07.stp: New file.
+	* testsuite/parseko/ifstmt01.stp: New file.
+	* testsuite/parseko/ifstmt02.stp: New file.
+	* testsuite/parseko/nineteen.stp: New file.
+	* testsuite/parseko/preprocess01.stp: New file.
+	* testsuite/parseko/preprocess02.stp: New file.
+	* testsuite/parseko/preprocess03.stp: New file.
+	* testsuite/parseko/preprocess04.stp: New file.
+	* testsuite/parseko/preprocess05.stp: New file.
+	* testsuite/parseko/preprocess06.stp: New file.
+	* testsuite/parseko/preprocess07.stp: New file.
+	* testsuite/parseko/preprocess08.stp: New file.
+	* testsuite/parseko/preprocess09.stp: New file.
+	* testsuite/parseko/probepoint01.stp: New file.
+	* testsuite/parseko/probepoint02.stp: New file.
+	* testsuite/parseko/probepoint03.stp: New file.
+	* testsuite/parseko/seventeen.stp: New file.
+	* testsuite/parseko/ternarystmt01.stp: New file.
+	* testsuite/parseko/twenty.stp: New file.
+	* testsuite/parseko/twentyone.stp: New file.
+	* testsuite/parseko/whilestmt01.stp: New file.
+	* testsuite/parseko/whilestmt02.stp: New file.
+
 2006-05-24  Li Guanglei <guanglei@cn.ibm.com>
 
 	* configure.ac: add lket.5 & runtime/lket/b2a

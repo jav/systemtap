@@ -1,0 +1,9 @@
+#! stap -p1
+
+# bad stat operator
+
+probe begin
+{
+    v <<< 1
+    printf("foo %d\n", @foo(v))
+}

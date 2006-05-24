@@ -1,0 +1,6 @@
+#! stap -p1
+
+# bad preprocess condition start - not "arch", "kernel_v", or "kernel_vr"
+%( foo == "2.6" %?
+   probe begin { }
+%)

@@ -1,0 +1,12 @@
+#! stap -p1
+
+# missing closing bracket after opening paren after foreach keyword
+
+global array
+
+function decl()
+{
+    array[0] = 1    
+    foreach ([key in array)
+        printf("key %d, value %d\n", key, array[key])
+}

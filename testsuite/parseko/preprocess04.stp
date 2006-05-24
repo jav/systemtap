@@ -1,0 +1,6 @@
+#! stap -p1
+
+# bad arch comparison operator - not '==' or '!='
+%( arch >= "foo" %?
+   probe begin { }
+%)

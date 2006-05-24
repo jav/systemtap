@@ -1,0 +1,12 @@
+#! stap -p1
+
+# no identifier after opening paren after foreach keyword
+
+global array
+
+function decl()
+{
+    array[0] = 1    
+    foreach (* in array)
+        printf("key %d, value %d\n", key, array[key])
+}

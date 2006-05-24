@@ -1,0 +1,4 @@
+#! stap -p1
+
+# missing "else" token
+%( arch == "2.6" %? probe begin { } %:

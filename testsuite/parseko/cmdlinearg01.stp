@@ -1,0 +1,6 @@
+#! stap -p1
+
+# bad command line argument number - must start at 1
+probe begin {
+  arg = $0
+}
