@@ -1,3 +1,14 @@
+2006-05-24  Li Guanglei <guanglei@cn.ibm.com>
+	* lket/b2a/Makefile.am, lket/b2a/Makefile.in,
+	lket/b2a/README, lket/b2a/lket_b2a.c,
+	lket/b2a/lket_b2a.h: a binary to ascii converter used
+	to convert LKET's default binary trace data.
+
+2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
+	PR 2647
+	Patch given by Gui Jian <guij@cn.ibm.com>
+	* vsprintf.c: %0s support to print null-terminated string
+
 2006-05-03  Josh Stone  <joshua.i.stone@intel.com>
 
 	* loc2c-runtime.h (deref_string): resolved gcc "warning:

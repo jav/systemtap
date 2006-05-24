@@ -1,3 +1,12 @@
+2006-05-24  Li Guanglei <guanglei@cn.ibm.com>
+
+	* configure.ac: add lket.5 & runtime/lket/b2a
+	* Makefile.am:  add lket & runtime/lket/b2a
+	* aclocal.m4, Makefile.in, configure: regenerated
+	* runtime/lket/b2a/*: a binary to ascii converter used 
+	to convert LKET's default binary trace data.
+	* lket.5.in: add intro of lket-b2a converter.
+
 2006-05-23  David Smith  <dsmith@redhat.com>
 
 	* parse.cxx (parse_for_loop): Corrected error message.
@@ -182,11 +191,6 @@
 	* session.h: add merge member into systemtap_session
 	* buildrun.cxx: generate stpd_cmd to stop merge per-cpu files if -M
 	option is turned on by stap.
-	
-2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
-	PR 2647
-	Patch given by Gui Jian <guij@cn.ibm.com>
-	* runtime/vsprintf.c: %0s support to print null-terminated string
 	
 2006-05-08  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2627

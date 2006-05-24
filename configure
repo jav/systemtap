@@ -5205,7 +5205,7 @@ DATE="$date"
 
           ac_config_headers="$ac_config_headers config.h:config.in"
 
-                                                                      ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5"
+                                                                                          ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 runtime/lket/b2a/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5788,10 +5788,11 @@ do
   "systemtap.spec" ) CONFIG_FILES="$CONFIG_FILES systemtap.spec" ;;
   "stp_check" ) CONFIG_FILES="$CONFIG_FILES stp_check" ;;
   "stap.1" ) CONFIG_FILES="$CONFIG_FILES stap.1" ;;
-  "lket.5" ) CONFIG_FILES="$CONFIG_FILES lket.5" ;;
   "stapprobes.5" ) CONFIG_FILES="$CONFIG_FILES stapprobes.5" ;;
   "stapfuncs.5" ) CONFIG_FILES="$CONFIG_FILES stapfuncs.5" ;;
   "stapex.5" ) CONFIG_FILES="$CONFIG_FILES stapex.5" ;;
+  "lket.5" ) CONFIG_FILES="$CONFIG_FILES lket.5" ;;
+  "runtime/lket/b2a/Makefile" ) CONFIG_FILES="$CONFIG_FILES runtime/lket/b2a/Makefile" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
