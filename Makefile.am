@@ -123,4 +123,4 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 
-SUBDIRS = runtime/lket/b2a
+#SUBDIRS = runtime/lket/b2a
