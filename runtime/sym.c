@@ -1,6 +1,7 @@
 /* -*- linux-c -*- 
  * Symbolic Lookup Functions
  * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -54,6 +55,37 @@ String _stp_symbol_sprint (String str, unsigned long address)
  */
 
 #define _stp_symbol_print(address) _stp_symbol_sprint(_stp_stdout,address)
+
+
+/** Write addresses symbolically into a char buffer
+ * @param str Destination buffer
+ * @param len Length of destination buffer
+ * @param address The address to lookup.
+ * @note Symbolic lookups should not normally be done within
+ * a probe because it is too time-consuming. Use at module exit time.
+ */
+
+const char *_stp_symbol_sprint_basic (char *str, size_t len, unsigned long address)
+{ 
+    char *modname;
+    const char *name;
+    unsigned long offset, size;
+    char namebuf[KSYM_NAME_LEN+1];
+
+    if (len > KSYM_NAME_LEN) {
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, str);
+        if (!name)
+            snprintf(str, len, "0x%lx", address);
+    } else {
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
+        if (name)
+            strlcpy(str, namebuf, len);
+        else
+            snprintf(str, len, "0x%lx", address);
+    }
+
+    return str;
+}
 
 /** @} */
 #endif /* _SYM_C_ */

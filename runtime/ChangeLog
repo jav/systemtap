@@ -1,3 +1,9 @@
+2006-05-24  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2677
+	* sym.c (_stp_symbol_sprint_basic): New function that returns
+	just the symbol name, and doesn't bother with String.
+
 2006-05-24  Li Guanglei <guanglei@cn.ibm.com>
 	* lket/b2a/Makefile.am, lket/b2a/Makefile.in,
 	lket/b2a/README, lket/b2a/lket_b2a.c,

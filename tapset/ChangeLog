@@ -1,3 +1,8 @@
+2006-05-24  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2677
+	* context.stp (probefunc): Use _stp_symbol_sprint_basic
+
 2006-05-19  Li Guanglei <guanglei@cn.ibm.com>
 
 	Patch from Mao Bibo (bibo.mao@intel.com)
