@@ -1129,7 +1129,28 @@ parser::parse_probe_point ()
       pl->components.push_back (c);
       // NB though we still may add c->arg soon
 
+      const token* last_t = t;
       t = peek ();
+
+      // We need to keep going until we find something other than a
+      // '*' or identifier, since a probe point wildcard can be
+      // something like "*a", "*a*", "a*b", "a*b*", etc.
+      while (t &&
+	     // case 1: '*{identifier}'
+	     ((last_t->type == tok_operator && last_t->content == "*"
+	       && (t->type == tok_identifier || t->type == tok_keyword))
+	      // case 2: '{identifier}*'
+	      || ((last_t->type == tok_identifier
+		   || last_t->type == tok_keyword)
+		  && t->type == tok_operator && t->content == "*")))
+        {
+	  c->functor += t->content;
+	  next ();			// consume the identifier or '*'
+
+	  last_t = t;
+	  t = peek ();
+	}
+
       if (t && t->type == tok_operator 
           && (t->content == "{" || t->content == "," || t->content == "=" 
 		|| t->content == "+=" ))

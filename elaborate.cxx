@@ -13,6 +13,7 @@
 
 extern "C" {
 #include <sys/utsname.h>
+#include <fnmatch.h>
 }
 
 #include <algorithm>
@@ -165,6 +166,23 @@ match_key::operator<(match_key const & other) const
 	      && parameter_type < other.parameter_type));
 }
 
+static bool
+isglob(string const & str)
+{
+  return(str.find('*') != str.npos);
+}
+
+bool
+match_key::globmatch(match_key const & other) const
+{
+  const char *other_str = other.name.c_str();
+  const char *name_str = name.c_str();
+
+  return ((fnmatch(name_str, other_str, FNM_NOESCAPE) == 0)
+	  && have_parameter == other.have_parameter 
+	  && parameter_type == other.parameter_type);
+}
+
 // ------------------------------------------------------------------------
 // Members of match_node
 // ------------------------------------------------------------------------
@@ -242,27 +260,33 @@ match_node::find_and_build (systemtap_session& s,
 
       b->build (s, p, loc, param_map, results);
     }
-  else if (loc->components[pos]->functor == "*") // wildcard?
+  else if (isglob(loc->components[pos]->functor)) // wildcard?
     {
+      match_key match (* loc->components[pos]);
+
       // Call find_and_build for each possible match.  Ignore errors -
       // unless we don't find any match.
       unsigned int num_results = results.size();
       for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
         {
+	  const match_key& subkey = i->first;
 	  match_node* subnode = i->second;
-	  // recurse
-	  try
-	    {
-	      subnode->find_and_build (s, p, loc, pos+1, results);
-	    }
-	  catch (const semantic_error& e)
-	    {
-	      // Ignore semantic_errors while expanding wildcards.  If
-	      // we get done and nothing was expanded, the code
-	      // following the loop will complain.
-	    }
-        }
 
+	  if (match.globmatch(subkey))
+	    {
+	      // recurse
+	      try
+	        {
+		  subnode->find_and_build (s, p, loc, pos+1, results);
+	        }
+	      catch (const semantic_error& e)
+	        {
+		  // Ignore semantic_errors while expanding wildcards.
+		  // If we get done and nothing was expanded, the code
+		  // following the loop will complain.
+		}
+	    }
+	}
       if (num_results == results.size())
         {
 	  // We didn't find any wildcard matches (since the size of

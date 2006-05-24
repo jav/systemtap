@@ -1,5 +1,19 @@
 2006-05-24  David Smith  <dsmith@redhat.com>
 
+	* elaborate.cxx (isglob): New function.
+	(match_key::globmatch): New function.
+	(match_node::find_and_build): Uses isglob() and
+	match_key::globmatch() to provide support for wildcards such as
+	"kernel.syscall.*read*" (Bugzilla #1928).
+	* elaborate.h (match_key::globmatch): Added function declaration.
+	* parse.cxx (parser::parse_probe_point): Collects one or more
+	tokens into a single probe-point functor string.
+
+	* testsuite/parseko/twentytwo.stp: New file.
+	* testsuite/parseok/sixteen.stp: New file.
+
+2006-05-24  David Smith  <dsmith@redhat.com>
+
 	* testsuite/parseko/cmdlinearg01.stp: New file.
 	* testsuite/parseko/cmdlinearg02.stp: New file.
 	* testsuite/parseko/eighteen.stp: New file.

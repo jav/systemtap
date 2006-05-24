@@ -174,6 +174,7 @@ match_key
   match_key & with_string();
   std::string str() const;
   bool operator<(match_key const & other) const;
+  bool globmatch(match_key const & other) const;
 };
 
 

@@ -1,0 +1,7 @@
+#! stap -p1
+
+# complicated probe point wildcard
+probe abcX { }
+
+probe *abc* { }
+
