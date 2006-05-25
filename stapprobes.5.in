@@ -251,4 +251,4 @@ kernel.syscall.*.return
 refers to the group of probe aliases with any name in the third position
 
 .SH SEE ALSO
-.IR stap (1)
+.IR stap (1) lket (5)

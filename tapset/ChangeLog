@@ -1,3 +1,9 @@
+2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* LKET/*.stp: explicitly add type qualifier for different arch
+	 to make _stp_vsnprintf get the argument by va_arg correctly.
+	* scheduler.stp: add prev_task and next_task variable.
+
 2006-05-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2677

@@ -5,11 +5,23 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+%{
+#if defined(ASCII_TRACE)
+#ifndef _FMT_
+#define _FMT_ unsigned int
+#endif
+#else
+#ifndef _FMT_
+#define _FMT_ int64_t
+#endif
+#endif
+%}
+
 function lket_trace_header_init()
 %{
 
 /* header info for binary format*/
-#if !defined(ASCII_TRACE) && !defined(ASCII_TRACE_LEGACY) 
+#if !defined(ASCII_TRACE) 
 
 #define MAGIC_NUMBER           0xAEFCDB6B
 #define LKET_TRACE_VER_MAJOR   0x01
@@ -21,8 +33,9 @@ function lket_trace_header_init()
 #define LKET_HEADER_LEN        0   /* fake number, bin_write will fill in the
                                      actual length of trace header */
 
-	_stp_printf("%4b%2n%1b%1b%1b%1b", MAGIC_NUMBER, LKET_HEADER_LEN, LKET_TRACE_VER_MAJOR,
-		LKET_TRACE_VER_MINOR, BIG_ENDIAN, BITS_WIDTH);
+	_stp_printf("%4b%2n%1b%1b%1b%1b", (_FMT_)MAGIC_NUMBER, (_FMT_)LKET_HEADER_LEN, 
+		(_FMT_)LKET_TRACE_VER_MAJOR, (_FMT_)LKET_TRACE_VER_MINOR, 
+		(_FMT_)BIG_ENDIAN, (_FMT_)BITS_WIDTH);
 	_stp_print_flush();
 #endif
 
@@ -101,9 +114,9 @@ void fmt_change(char *oldfmt)
 	do_gettimeofday (&tv); \
 	fmt_change(fmt); \
 	_stp_printf(newfmt, \
-		GroupID, hookID, tv.tv_sec, tv.tv_usec, current->tgid, \
-		current->parent->pid, current->pid, \
-		current->thread_info->cpu, args);\
+		(_FMT_)GroupID, (_FMT_)hookID, (_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec,\
+		(_FMT_)current->tgid, (_FMT_)current->parent->pid,\
+		(_FMT_)current->pid, (_FMT_)current->thread_info->cpu, args);\
 } while(0)
 
 #else //binary trace
@@ -118,10 +131,10 @@ static inline int this_event_len(void)
 	struct timeval tv; \
 	do_gettimeofday (&tv); \
 	_stp_printf("%1b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
-		(int64_t)STP_BIN_PACKET, (int64_t)GroupID, (int64_t)hookID, \
-		(int64_t)tv.tv_sec, (int64_t)tv.tv_usec, (int64_t)current->tgid, \
-		(int64_t)current->parent->pid, (int64_t)current->pid, \
-		(int64_t)current->thread_info->cpu, args);\
+		(_FMT_)STP_BIN_PACKET, (_FMT_)GroupID, (_FMT_)hookID, \
+		(_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec, (_FMT_)current->tgid, \
+		(_FMT_)current->parent->pid, (_FMT_)current->pid, \
+		(_FMT_)current->thread_info->cpu, args);\
 } while(0)
 
 #endif

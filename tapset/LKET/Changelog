@@ -1,7 +1,13 @@
+2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* hookid_defs.stp, ioscheduler.stp, lket_trace.stp, netdev.stp,
+	pagefault.stp, process.stp, scsi.stp, syscalls.stp, tskdispatch.stp,
+	utils.stp: explicitly add type qualifier for different arch to 
+	make _stp_vsnprintf get the argument by va_arg correctly.
+	
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 	
 	Initial version by Li Guanglei.
 	* hookid_defs.stp, ioscheduler.stp, lket_trace.stp, netdev.stp,
-	pagefault.stp, process.stp, scsi.stp, syscalls.stp, tskdispatch.stp,
-	utils.stp
+	pagefault.stp, process.stp, scsi.stp, syscalls.stp, tskdispatch.stp, utils.stp
 

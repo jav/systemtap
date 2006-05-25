@@ -33,7 +33,7 @@ probe addevent.netdev.transmit
 
 function log_netdev_extra(var_id:long, var:long, backtrace:long)
 %{
-	struct sk_buff *skb = (struct sk_buff *)THIS->var;
+	struct sk_buff *skb = (struct sk_buff *)((long)THIS->var);
 
 	/* dev_name | Length of actual data | protocol | Buffer size 
 
@@ -58,9 +58,9 @@ function log_netdev_extra(var_id:long, var:long, backtrace:long)
 		_stp_stack_sprint (str, CONTEXT->regs, 0);
 
 		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b%0s", skb->dev->name, 
-			skb->len, skb->protocol, skb->truesize, _stp_string_ptr(str));
+			(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize, _stp_string_ptr(str));
 	}  else  {
 		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", skb->dev->name, 
-			skb->len, skb->protocol, skb->truesize);
+			(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize);
 	}
 %}

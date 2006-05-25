@@ -17,7 +17,7 @@ function log_execve_tracedata(var_id:long, var:long)
 function log_fork_tracedata(var_id:long, var:long)
 %{
 	pid_t pid = (pid_t)THIS->var;	
-	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", pid); 
+	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", (_FMT_)pid); 
 %}
 
 
@@ -36,7 +36,7 @@ function process_snapshot()
 	name for each entry */
 	list_for_each(cur, head) {
 		tsk = (struct task_struct *)(list_entry(cur, struct task_struct, tasks));
-		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", tsk->pid, tsk->comm);
+		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", (_FMT_)tsk->pid, tsk->comm);
 		_stp_print_flush();
 	}
 %}

@@ -63,10 +63,10 @@ function log_ioscheduler_tracedata_others(var_id:long, var_q:long, var_rq:long, 
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
 
 		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", q->elevator->elevator_type->elevator_name, 
-			rq->rq_disk->major, rq->rq_disk->first_minor, _stp_string_ptr(str)); 
+			(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor, _stp_string_ptr(str)); 
 	} else  {
 		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", q->elevator->elevator_type->elevator_name, 
-			rq->rq_disk->major, rq->rq_disk->first_minor); 
+			(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
 	}
 %}
 
@@ -85,10 +85,10 @@ function log_ioscheduler_tracedata_others(var_id:long, var_q:long, var_rq:long, 
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
 
 		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", q->elevator.elevator_name, 
-			rq->rq_disk->major, rq->rq_disk->first_minor, _stp_string_ptr(str)); 
+			(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor, _stp_string_ptr(str)); 
 	}  else  {
 		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", q->elevator.elevator_name, 
-			rq->rq_disk->major, rq->rq_disk->first_minor); 
+			(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
 	}
 %}
 
@@ -118,22 +118,22 @@ function log_ioscheduler_tracedata_elv_next(var_id:long, var:long, backtrace:lon
 
 		if(list_empty(&(q->queue_head))) {
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", 
-				q->elevator->elevator_type->elevator_name, -1, -1, _stp_string_ptr(str));
+				q->elevator->elevator_type->elevator_name, (_FMT_)-1, (_FMT_)-1, _stp_string_ptr(str));
 		} else  {
 			rq = list_entry_rq(q->queue_head.next);
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", 
-				q->elevator->elevator_type->elevator_name, rq->rq_disk->major, 
-				rq->rq_disk->first_minor, _stp_string_ptr(str)); 
+				q->elevator->elevator_type->elevator_name, (_FMT_)rq->rq_disk->major, 
+				(_FMT_)rq->rq_disk->first_minor, _stp_string_ptr(str)); 
 		}
 	} else  {
 		if(list_empty(&(q->queue_head))) {
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
-				q->elevator->elevator_type->elevator_name, -1, -1);
+				q->elevator->elevator_type->elevator_name, (_FMT_)-1, (_FMT_)-1);
 		} else  {
 			rq = list_entry_rq(q->queue_head.next);
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
-				q->elevator->elevator_type->elevator_name, rq->rq_disk->major, 
-				rq->rq_disk->first_minor); 
+				q->elevator->elevator_type->elevator_name, (_FMT_)rq->rq_disk->major, 
+				(_FMT_)rq->rq_disk->first_minor); 
 		}
 
 	}
@@ -160,20 +160,20 @@ function log_ioscheduler_tracedata_elv_next(var_id:long, var:long, backtrace:lon
 
 		if(list_empty(&(q->queue_head))) {
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", 
-				q->elevator.elevator_name, -1, -1, _stp_string_ptr(str));
+				q->elevator.elevator_name, (_FMT_)-1, (_FMT_)-1, _stp_string_ptr(str));
 		} else  {
 			rq = list_entry_rq(q->queue_head.next);
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%0s", q->elevator.elevator_name, 
-				rq->rq_disk->major, rq->rq_disk->first_minor, _stp_string_ptr(str)); 
+				(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor, _stp_string_ptr(str)); 
 		}
 	} else  {
 		if(list_empty(&(q->queue_head))) {
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
-				q->elevator.elevator_name, -1, -1);
+				q->elevator.elevator_name, (_FMT_)-1, (_FMT_)-1);
 		} else  {
 			rq = list_entry_rq(q->queue_head.next);
 			_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", q->elevator.elevator_name, 
-				rq->rq_disk->major, rq->rq_disk->first_minor); 
+				(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
 		}
 	}
 

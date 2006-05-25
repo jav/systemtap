@@ -37,9 +37,9 @@ probe addevent.tskdispatch.ctxswitch
 	target_pid = target()
 	cur_pid = pid()
 	if( stp_pid() != cur_pid ) {  /* skip stpd itself */
-		if(target_pid == 0 || (target_pid !=0 && ($prev->pid == target_pid 
-			|| $new->pid == target_pid)))  {
-			log_ctxswitch_tracedata(HOOKID_TASK_CTXSWITCH, $prev, $new)
+		if(target_pid == 0 || (target_pid !=0 && (prev_pid == target_pid 
+			|| next_pid == target_pid)))  {
+			log_ctxswitch_tracedata(HOOKID_TASK_CTXSWITCH, prev_task, next_task)
 		}
 	}
 }
@@ -51,7 +51,8 @@ function log_ctxswitch_tracedata(var_id:long, prev:long, next_pid:long)
 	prev_tsk = (struct task_struct *)((long)THIS->prev);
 	next_tsk = (struct task_struct *)((long)THIS->next_pid);
 
-	_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%4b%1b", prev_tsk->pid, next_tsk->pid, prev_tsk->state); 
+	_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%4b%1b", (_FMT_)prev_tsk->pid, (_FMT_)next_tsk->pid, 
+		(_FMT_)prev_tsk->state); 
 %}
 
 function log_cpuidle_tracedata(var_id:long, backtrace:long)
@@ -61,9 +62,9 @@ function log_cpuidle_tracedata(var_id:long, backtrace:long)
 	if(THIS->backtrace == 1) {
 		String str = _stp_string_init (0);
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
-		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%0s", cur->pid,  _stp_string_ptr(str)); 
+		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%0s", (_FMT_)cur->pid,  _stp_string_ptr(str)); 
 	} else  {
-		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b", cur->pid); 
+		_lket_trace(_GROUP_TASK, THIS->var_id, "%4b", (_FMT_)cur->pid); 
 	}
 %}
 

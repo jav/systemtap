@@ -78,11 +78,11 @@ function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long, backtrace:long)
 	if(THIS->backtrace == 1)  {
 		String str = _stp_string_init (0);
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b%0s", rq->rq_disk->major, 
-			rq->rq_disk->first_minor, sdev->sdev_state, _stp_string_ptr(str));
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b%0s", (_FMT_)rq->rq_disk->major, 
+			(_FMT_)rq->rq_disk->first_minor, (_FMT_)sdev->sdev_state, _stp_string_ptr(str));
 	} else  {
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b", rq->rq_disk->major, 
-			rq->rq_disk->first_minor, sdev->sdev_state);
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b", (_FMT_)rq->rq_disk->major, 
+			(_FMT_)rq->rq_disk->first_minor, (_FMT_)sdev->sdev_state);
 	}
 %}
 
@@ -129,14 +129,14 @@ function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
 		String str = _stp_string_init (0);
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
 
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", cmd->device->sdev_state, 
-			scsi_info, cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen,
-			cmd->device->host->cmd_pid, _stp_string_ptr(str));
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", (_FMT_)cmd->device->sdev_state, 
+			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
+			(_FMT_)cmd->request_bufflen, (int64_t)cmd->device->host->cmd_pid, _stp_string_ptr(str));
 	} else  {
 
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", cmd->device->sdev_state, 
-			scsi_info, cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen,
-			cmd->device->host->cmd_pid);
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", (_FMT_)cmd->device->sdev_state, 
+			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
+			(_FMT_)cmd->request_bufflen, (int64_t)cmd->device->host->cmd_pid);
 	}
 
 %}
@@ -165,11 +165,13 @@ function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
 		String str = _stp_string_init (0);
                 _stp_stack_sprint (str, CONTEXT->regs, 0);
 
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", cmd->device->sdev_state, scsi_info, 
-			cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen, 0, _stp_string_ptr(str));
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", (_FMT_)cmd->device->sdev_state, 
+			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
+			(_FMT_)cmd->request_bufflen, (int64_t)0, _stp_string_ptr(str));
 	} else  {
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", cmd->device->sdev_state, scsi_info, 
-			cmd->sc_data_direction, cmd->request_buffer, cmd->request_bufflen, 0);
+		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", (_FMT_)cmd->device->sdev_state, 
+			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
+			(_FMT_)cmd->request_bufflen, (int64_t)0);
 	}
 %}
 %)
@@ -186,7 +188,8 @@ function log_scsi_iodone_extra(var_id:long, var:long)
 		(cmd->device->id & 0xFF);
 
 	/* scsi_info|data_direction|cmd_identifier| */
-	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b", scsi_info, cmd->sc_data_direction, cmd->pid);
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b", (_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, 
+		(int64_t)cmd->pid);
 %}
 
 /* log the info about scsi_dispatching_cmd */
@@ -202,5 +205,6 @@ function log_scsi_iocompleted(var_id:long, var_cmd:long, var_goodbytes:long)
 		(cmd->device->id & 0xFF);
 
 	/* scsi_info|data_direction|cmd_identifier|goodbytes */
-	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b%4b", scsi_info, cmd->sc_data_direction, cmd->pid, goodbytes);
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b%4b", (_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, 
+		(int64_t)cmd->pid, (_FMT_)goodbytes);
 %}
