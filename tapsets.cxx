@@ -2672,6 +2672,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // up not being referenced after all, so it can be optimized out
       // quietly.
       provide <target_symbol*> (this, e);
+      delete fdecl;
+      delete ec;
       return;
     }
 

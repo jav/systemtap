@@ -2,6 +2,9 @@
 
 	* parse.cxx (parser::scan_pp): Free memory for tokens that are
 	thrown away in the preprocessing stage.
+	* tapsets.cxx
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol):
+	Free allocated memory when supressing target-variable errors
 
 2006-05-25  David Smith  <dsmith@redhat.com>
 
