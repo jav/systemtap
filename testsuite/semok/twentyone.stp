@@ -1,0 +1,35 @@
+#! stap -p2
+
+probe abcdefgabc = begin { printf("in abcdefabc\n") }
+
+probe a* { printf("in a*\n") }
+
+probe a*c { printf("in a*c\n") }
+
+probe a*ab* { printf("in a*ab*\n") }
+
+probe a*bc* { printf("in a*bc*\n") }
+
+probe ab*fg*bc { printf("in ab*fg*bc*\n") }
+
+probe ab*fg*ab* { printf("in ab*fg*ab*\n") }
+
+probe ab*fg*bc* { printf("in ab*fg*bc*\n") }
+
+
+probe *c { printf("in *c\n") }
+
+probe *abc* { printf("in *abc*\n") }
+
+probe *def* { printf("in *def*\n") }
+
+probe *bc*bc { printf("in *bc*bc\n") }
+
+probe *abc*bc { printf("in *abc*bc\n") }
+
+probe *bc*ab* { printf("in *bc*ab*\n") }
+
+probe *bc*bc* { printf("in *bc*bc*\n") }
+
+probe *bc*fg*c { printf("in *bc*fg*c\n") }
+
