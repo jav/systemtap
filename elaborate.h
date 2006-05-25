@@ -140,6 +140,10 @@ struct derived_probe: public probe
 protected:
   void emit_probe_prologue (translator_output* o, const std::string&);
   void emit_probe_epilogue (translator_output* o);
+
+public:
+  static void emit_common_header (translator_output* o);
+  // from c_unparser::emit_common_header
 };
 
 // ------------------------------------------------------------------------

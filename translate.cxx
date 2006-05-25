@@ -796,8 +796,6 @@ translator_output::line ()
 void
 c_unparser::emit_common_header ()
 {
-  // XXX: tapsets.cxx should be able to add additional definitions
-
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
   o->newline();
   o->newline() << "#define STAP_SESSION_STARTING 0";
@@ -909,6 +907,7 @@ c_unparser::emit_common_header ()
   o->newline() << "#include \"arith.c\"";
   o->newline() << "#endif";
 
+  derived_probe::emit_common_header (o);
 }
 
 

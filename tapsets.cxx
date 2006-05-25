@@ -89,45 +89,38 @@ lex_cast_qstring(IN const & in)
 // ------------------------------------------------------------------------
 
 void
-derived_probe::emit_probe_prologue (translator_output* o,
-                                    const std::string& statereq)
+derived_probe::emit_common_header (translator_output* o)
 {
+  o->newline();
+  o->newline() << "static struct context* common_probe_prologue (int state) {";
+  o->newline(1);
   o->newline() << "struct context* c;";
-  o->newline() << "unsigned long flags;";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "cycles_t cycles_atstart;";
-  o->newline() << "#endif";
-  o->newline() << "local_irq_save (flags);";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "cycles_atstart = get_cycles ();";
-  o->newline() << "#endif";
+  o->newline() << "if (atomic_read (&session_state) != state)";
+  o->newline(1) << "return NULL;";
+
   o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
-  o->newline() << "if (atomic_read (&session_state) != " << statereq << ")";
-  o->newline(1) << "goto probe_epilogue;";
-
   o->newline(-1) << "if (unlikely (atomic_inc_return (&c->busy) != 1)) {";
-
   o->newline(1) << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
   o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   // NB: We don't assume that we can safely call stp_error etc. in such
   // a reentrant context.  But this is OK:
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
-
   o->newline() << "atomic_dec (& c->busy);";
-  o->newline() << "goto probe_epilogue;";
+  o->newline() << "return NULL;";
   o->newline(-1) << "}";
   o->newline();
   o->newline() << "c->last_error = 0;";
-  o->newline() << "c->probe_point = probe_point;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
   o->newline() << "c->actioncount = 0;";
-}
+  o->newline() << "return c;";
+  o->newline(-1) << "}";
+  o->newline();
 
-void
-derived_probe::emit_probe_epilogue (translator_output* o)
-{
+
+  o->newline() << "static void common_probe_epilogue (struct context* c) {";
+  o->newline(1) ;
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
@@ -135,19 +128,53 @@ derived_probe::emit_probe_epilogue (translator_output* o)
   o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
   o->indent(-1);
   o->newline() << "atomic_inc (& error_count);";
-
   o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
   o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
-
   o->newline(-1) << "}";
   
   o->newline() << "atomic_dec (&c->busy);";
+  o->newline(-1) << "}";
+}
+
+
+void
+derived_probe::emit_probe_prologue (translator_output* o,
+                                    const std::string& statereq)
+{
+  o->newline() << "struct context* c;";
+  o->newline() << "unsigned long flags;";
+
+  // NB: this cycles_t stuff might go into the common header block above 
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "cycles_t cycles_atstart;";
+  o->newline() << "#endif";
+  o->newline() << "local_irq_save (flags);";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "cycles_atstart = get_cycles ();";
+  o->newline() << "#endif";
+  o->newline() << "c = common_probe_prologue (" << statereq << ");";
+  o->newline() << "if (c == NULL) goto probe_epilogue;";
+  o->newline() << "c->probe_point = probe_point;";
+}
+
+void
+derived_probe::emit_probe_epilogue (translator_output* o)
+{
+  o->newline() << "common_probe_epilogue (c);";
+
   o->newline(-1) << "probe_epilogue:";
   o->newline(1) << "#ifdef STP_TIMING";
   o->newline() << "{";
   o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
+
+  // XXX: get_cycles() may return fewer significant digits than
+  // cycles_t can carry.  On some machines, cycles_t is 64 bits wide
+  // but get_cycles() is only 52.  So we should investigate truncating
+  // these get_cycles() return values to some reasonable smaller
+  // number of bits, perhaps 32 or even 24.
+
   o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
   o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
   o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";

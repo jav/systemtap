@@ -1,3 +1,12 @@
+2006-05-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	Pass 4 speedup.
+	* tapsets.cxx (derived_probe::emit_common_header): New
+	function, to emit code formerly inlined by
+	emit_probe_prologue/epilogue.
+	* translate.cxx (emit_common_header): Call it.
+	* elaborate.h: Corresponding changes.
+
 2006-05-24  David Smith  <dsmith@redhat.com>
 
 	* elaborate.cxx (isglob): New function.
