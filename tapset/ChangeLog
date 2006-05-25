@@ -1,3 +1,7 @@
+2006-05-25  Martin Hunt  <hunt@redhat.com>
+
+	* syscall*.stp: Change "0x%p" to "%p".
+
 2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* LKET/*.stp: explicitly add type qualifier for different arch
