@@ -253,10 +253,14 @@ parser::scan_pp ()
       // passing that as a vector to an evaluator.
 
       bool result = eval_pp_conditional (session, l, op, r);
+      delete l;
+      delete op;
+      delete r;
       
       const token *m = input.scan (); // NB: not recursive
       if (! (m && m->type == tok_operator && m->content == "%?"))
         throw parse_error ("expected '%?' marker for conditional", t);
+      delete m; // "%?"
 
       vector<const token*> my_enqueued_pp;
       
@@ -272,23 +276,32 @@ parser::scan_pp ()
           // enqueue token
           if (result) 
             my_enqueued_pp.push_back (m);
+          else
+            delete m; // unused token
           // continue
         }
       
       if (m && m->type == tok_operator && m->content == "%:") // ELSE
-        while (true)
-          {
-            m = scan_pp (); // NB: recursive
-            if (m == 0)
-              throw parse_error ("missing ELSE tokens for conditional", t);
-            
-            if (m->type == tok_operator && m->content == "%)") // END
-              break;
-            // enqueue token
-            if (! result) 
-              my_enqueued_pp.push_back (m);
-            // continue
-          }
+        {
+          delete m; // "%:"
+          while (true)
+            {
+              m = scan_pp (); // NB: recursive
+              if (m == 0)
+                throw parse_error ("missing ELSE tokens for conditional", t);
+              
+              if (m->type == tok_operator && m->content == "%)") // END
+                break;
+              // enqueue token
+              if (! result) 
+                my_enqueued_pp.push_back (m);
+              else
+                delete m; // unused token
+              // continue
+            }
+        }
+      delete t; // "%("
+      delete m; // "%)"
 
       // NB: we transcribe the retained tokens here, and not inside
       // the THEN/ELSE while loops.  If it were done there, each loop
@@ -2210,7 +2223,7 @@ parser::parse_symbol ()
   // By now, either we had a hist_op in the first place, or else 
   // we had a plain word and it was converted to a symbol.
 
-  assert (hop || sym);
+  assert (!hop != !sym); // logical XOR
 
   // All that remains is to check for array indexing
 

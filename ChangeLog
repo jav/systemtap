@@ -1,3 +1,8 @@
+2006-05-25  Josh Stone  <joshua.i.stone@intel.com>
+
+	* parse.cxx (parser::scan_pp): Free memory for tokens that are
+	thrown away in the preprocessing stage.
+
 2006-05-25  David Smith  <dsmith@redhat.com>
 
 	* testsuite/semok/twentyone.stp: New file.
