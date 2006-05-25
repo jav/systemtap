@@ -295,9 +295,25 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			break;
 				
 		case 'p':
+			len = 2*sizeof(void *) + 2;
 			if (field_width == -1) {
-				field_width = 2*sizeof(void *);
+				field_width = len;
 				flags |= STP_ZEROPAD;
+			}
+			if (!(flags & STP_LEFT)) {
+				while (len < field_width--) {
+					if (str <= end)
+						*str = ' ';
+					++str;
+				}
+			}
+			if (str <= end) {
+				*str++ = '0';
+				field_width--;
+			}
+			if (str <= end) {
+				*str++ = 'x';
+				field_width--;
 			}
 			str = number(str, end,
 				     (unsigned long) va_arg(args, int64_t),

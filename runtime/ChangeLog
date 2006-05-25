@@ -1,3 +1,8 @@
+2006-05-25  Martin Hunt  <hunt@redhat.com>
+
+	* vsprintf.c (_stp_vsnprintf): Change %p to work like
+	libc and automatically insert "0x" before the pointer.
+
 2006-05-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2677
