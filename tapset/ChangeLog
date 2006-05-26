@@ -1,3 +1,15 @@
+2006-05-26  Martin Hunt  <hunt@redhat.com>
+
+	* errno.stp: Add octal option for returnstr.
+
+	* [i686,x86_64]/syscalls.stp (umask): Print args and return
+	in octal.
+	(add_key): Comment out. This syscall is added by a xen patch
+	and may not be present.
+	(tux): Ditto.
+	
+	* syscalls.stp (accept): Fix arg name.
+
 2006-05-25  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Add sys_fcntl and sys_listen.

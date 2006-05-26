@@ -378,6 +378,8 @@ function returnstr:string (returnp:long) %{ /* pure */
 		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
 	else if (THIS->returnp == 2)
 		snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
-	else
+	else if (THIS->returnp == 3)
+		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%#lo", ret);
+	else 	
 		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
 %}

@@ -152,19 +152,19 @@ probe syscall.acct.return = kernel.function("sys_acct").return {
 #             const void __user *_payload,
 #             size_t plen,
 #             key_serial_t ringid)
-probe syscall.add_key = kernel.function("sys_add_key") {
-	name = "add_key"
-	type_uaddr = $_type
-	description_auddr = $_description
-	payload_uaddr = $_payload
-	plen = $plen
-	ringid = $ringid
-	argstr = "add_key"
-}
-probe syscall.add_key.return = kernel.function("sys_add_key").return {
-	name = "add_key"
-	retstr = returnstr(1)
-}
+#probe syscall.add_key = kernel.function("sys_add_key") {
+#	name = "add_key"
+#	type_uaddr = $_type
+#	description_auddr = $_description
+#	payload_uaddr = $_payload
+#	plen = $plen
+#	ringid = $ringid
+#	argstr = "add_key"
+#}
+#probe syscall.add_key.return = kernel.function("sys_add_key").return {
+#	name = "add_key"
+#	retstr = returnstr(1)
+#}
 
 # quotactl ___________________________________________________
 #
@@ -652,12 +652,12 @@ probe syscall.stat64.return = kernel.function("sys_stat64").return {
 probe syscall.umask = kernel.function("sys_umask") {
 	name = "umask"
 	mask = $mask
-	argstr = sprintf("%d", $mask)
+	argstr = sprintf("%#o", $mask)
 }
 probe syscall.umask.return =
 	kernel.function("sys_umask").return {
 	name = "umask"
-	retstr = returnstr(1)
+	retstr = returnstr(3)
 }
 # vm86 _______________________________________________________
 /*

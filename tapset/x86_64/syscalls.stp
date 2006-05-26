@@ -131,19 +131,19 @@ probe syscall.acct.return = kernel.function("sys_acct").return {
 #             const void __user *_payload,
 #             size_t plen,
 #             key_serial_t ringid)
-probe syscall.add_key = kernel.function("sys_add_key") {
-	name = "add_key"
-	type_uaddr = $_type
-	description_auddr = $_description
-	payload_uaddr = $_payload
-	plen = $plen
-	ringid = $ringid
-	argstr = "add_key"
-}
-probe syscall.add_key.return = kernel.function("sys_add_key").return {
-	name = "add_key"
-	retstr = returnstr(1)
-}
+#probe syscall.add_key = kernel.function("sys_add_key") {
+#	name = "add_key"
+#	type_uaddr = $_type
+#	description_auddr = $_description
+#	payload_uaddr = $_payload
+#	plen = $plen
+#	ringid = $ringid
+#	argstr = "add_key"
+#}
+#probe syscall.add_key.return = kernel.function("sys_add_key").return {
+#	name = "add_key"
+#	retstr = returnstr(1)
+#}
 
 # quotactl ___________________________________________________
 #
@@ -392,29 +392,30 @@ probe kernel.syscall.time64.return = kernel.function("sys_time64").return {
  * sys_tux (unsigned int action,
  *          user_req_t *u_info)
  */
-probe kernel.syscall.tux = kernel.function("sys_tux") {
-	name = "tux"
-	action = $action
-	u_info_uaddr = $u_info
-	argstr = sprintf("%d, [%p]", $action, u_info_uaddr)
-}
-probe kernel.syscall.tux.return = kernel.function("sys_tux").return {
-	name = "tux"
-	retstr = returnstr(1)
-}
+#probe kernel.syscall.tux = kernel.function("sys_tux") {
+#	name = "tux"
+#	action = $action
+#	u_info_uaddr = $u_info
+#	argstr = sprintf("%d, [%p]", $action, u_info_uaddr)
+#}
+#probe kernel.syscall.tux.return = kernel.function("sys_tux").return {
+#	name = "tux"
+#	retstr = returnstr(1)
+#}
+
 # umask ______________________________________________________
 /*
  * asmlinkage long
  * sys_umask(int mask)
  */
-probe kernel.syscall.umask = kernel.function("sys_umask") {
+probe syscall.umask = kernel.function("sys_umask") {
 	name = "umask"
-	/*
-	 * doesnt like $mask on x86_64 ????
-	 */
-	argstr = sprint($mask)
+	mask = $mask
+	argstr = sprintf("%#o", $mask)
 }
-probe kernel.syscall.umask.return = kernel.function("sys_umask").return {
+probe syscall.umask.return =
+	kernel.function("sys_umask").return {
 	name = "umask"
-	retstr = returnstr(1)
+	retstr = returnstr(3)
 }
+

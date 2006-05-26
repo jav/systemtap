@@ -27,10 +27,10 @@
 #                 int __user *upeer_addrlen)
 probe syscall.accept = kernel.function("sys_accept") {
 	name = "accept"
-	s = $fd
+	sockfd = $fd
 	addr_uaddr = $upeer_sockaddr
 	addrlen_uaddr = $upeer_addrlen
-	argstr = sprint(s)
+	argstr = sprintf("%d, %p, %p", $fd, $upeer_sockaddr, $upeer_addrlen)
 }
 probe syscall.accept.return = kernel.function("sys_accept").return {
 	name = "accept"
