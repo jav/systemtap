@@ -550,24 +550,19 @@ probe syscall.fchown16.return = kernel.function("sys_fchown").return {
 }
 
 # fcntl ______________________________________________________
-/*
- * asmlinkage long
- * sys_fcntl(int fd,
- *           unsigned int cmd,
- *           unsigned long arg)
- */
-probe kernel.syscall.fcntl =
-   kernel.function("sys_fcntl") {
-      name = "fcntl"
-      fd = $fd
-      cmd = $cmd
-      cmd_str = _fcntl_cmd_str($cmd)
-      arg = $arg
-   }
-probe kernel.syscall.fcntl.return =
-   kernel.function("sys_fcntl").return {
-      name = "fcntl.return"
-   }
+# long sys_fcntl(int fd, unsigned int cmd, unsigned long arg)
+probe syscall.fcntl = kernel.function("sys_fcntl") {
+	name = "fcntl"
+	fd = $fd
+	cmd = $cmd
+	cmd_str = _fcntl_cmd_str($cmd)
+      	arg = $arg
+	argstr = sprintf("%d, %s, %p", $fd, cmd_str, $arg)
+}
+probe syscall.fcntl.return = kernel.function("sys_fcntl").return {
+	name = "fcntl"
+	retstr = returnstr(1)
+}
 
 # fdatasync __________________________________________________
 # long sys_fdatasync(unsigned int fd)
@@ -1427,22 +1422,20 @@ probe kernel.syscall.link.return =
    kernel.function("sys_link").return {
       name = "link.return"
    }
+
 # listen _____________________________________________________
-/*
- * asmlinkage long
- * sys_listen(int fd,
- *            int backlog)
- */
-probe kernel.syscall.listen =
-   kernel.function("sys_listen") {
-      name = "listen"
-      s = $fd
-      backlog = $backlog
-   }
-probe kernel.syscall.listen.return =
-   kernel.function("sys_listen").return {
-      name = "listen.return"
-   }
+# long sys_listen(int fd, int backlog)
+probe syscall.listen = kernel.function("sys_listen") {
+	name = "listen"
+	sockfd = $fd
+      	backlog = $backlog
+	argstr = sprintf("%d, %d", $fd, $backlog) 
+}	
+probe syscall.listen.return = kernel.function("sys_listen").return {
+	name = "listen"
+	retstr = returnstr(1)
+}
+
 # listxattr __________________________________________________
 /*
  * asmlinkage ssize_t

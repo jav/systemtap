@@ -1790,22 +1790,24 @@ probe syscall.socket.return = kernel.function("sys_socket").return {
 	name = "socket"
 	retstr = returnstr(1)
 }
+
+# commented out because this seems redundant
 # socketcall _________________________________________________
 #
 # asmlinkage long
 # sys_socketcall(int call,
 #		    unsigned long __user *args)
 #
-probe syscall.socketcall = kernel.function("sys_socketcall") {
-	name = "socketcall"
-	call = $call
-	args_uaddr = $args
-	argstr = sprintf("%d, [%p]", $call, args_uaddr)
-}
-probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
-	name = "socketcall"
-	retstr = returnstr(1)
-}
+#probe syscall.socketcall = kernel.function("sys_socketcall") {
+#	name = "socketcall"
+#	call = $call
+#	args_uaddr = $args
+#	argstr = sprintf("%d, [%p]", $call, args_uaddr)
+#}
+#probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
+#	name = "socketcall"
+#	retstr = returnstr(1)
+#}
 # socketpair _________________________________________________
 #
 # asmlinkage long

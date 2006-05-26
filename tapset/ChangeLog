@@ -1,5 +1,12 @@
 2006-05-25  Martin Hunt  <hunt@redhat.com>
 
+	* syscalls.stp: Add sys_fcntl and sys_listen.
+
+	* syscalls2.stp: Commented out sys_socketcall because it only calls 
+	other system calls which are already probed.
+
+2006-05-25  Martin Hunt  <hunt@redhat.com>
+	
 	* syscall*.stp: Change "0x%p" to "%p".
 
 2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
