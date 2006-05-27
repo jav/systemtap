@@ -1,3 +1,11 @@
+2006-05-26  Josh Stone  <joshua.i.stone@intel.com>
+
+	* tapsets.cxx (build_blacklist): build the sets of blacklisted
+	functions and function returns.  Manually added many __kprobes
+	functions that should not be probed.
+	(dwarf_query::dwarf_query): Call build_blacklist.
+	(dwarf_query::blacklisted_p): Use blacklist sets.
+
 2006-05-25  Josh Stone  <joshua.i.stone@intel.com>
 
 	* parse.cxx (parser::scan_pp): Free memory for tokens that are

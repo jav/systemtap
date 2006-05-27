@@ -1623,6 +1623,10 @@ dwarf_query
 		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr);
 
+  set<string> blacklisted_probes;
+  set<string> blacklisted_return_probes;
+  void build_blacklist();
+
   bool blacklisted_p(string const & funcname,
                      char const * filename,
                      int line,
@@ -1785,6 +1789,55 @@ dwarf_query::dwarf_query(systemtap_session & sess,
     spec_type = parse_function_spec(inline_str_val);
   else if (has_statement_str)
     spec_type = parse_function_spec(statement_str_val);
+
+  build_blacklist();
+}
+
+
+void
+dwarf_query::build_blacklist()
+{
+  // FIXME: it would be nice if these blacklisted functions were pulled in
+  // dynamically, instead of being statically defined here.
+
+  // Most of these are marked __kprobes in newer kernels.  We list them here so
+  // the translator can block them on older kernels that don't have the
+  // __kprobes function decorator.
+  blacklisted_probes.insert("default_do_nmi");
+  blacklisted_probes.insert("__die");
+  blacklisted_probes.insert("die_nmi");
+  blacklisted_probes.insert("do_debug");
+  blacklisted_probes.insert("do_general_protection");
+  blacklisted_probes.insert("do_int3");
+  blacklisted_probes.insert("do_IRQ");
+  blacklisted_probes.insert("do_page_fault");
+  blacklisted_probes.insert("do_sparc64_fault");
+  blacklisted_probes.insert("do_trap");
+  blacklisted_probes.insert("dummy_nmi_callback");
+  blacklisted_probes.insert("flush_icache_range");
+  blacklisted_probes.insert("ia64_bad_break");
+  blacklisted_probes.insert("ia64_do_page_fault");
+  blacklisted_probes.insert("ia64_fault");
+  blacklisted_probes.insert("io_check_error");
+  blacklisted_probes.insert("mem_parity_error");
+  blacklisted_probes.insert("nmi_watchdog_tick");
+  blacklisted_probes.insert("notifier_call_chain");
+  blacklisted_probes.insert("oops_begin");
+  blacklisted_probes.insert("oops_end");
+  blacklisted_probes.insert("program_check_exception");
+  blacklisted_probes.insert("single_step_exception");
+  blacklisted_probes.insert("sync_regs");
+  blacklisted_probes.insert("unhandled_fault");
+  blacklisted_probes.insert("unknown_nmi_error");
+
+  // __switch_to is only disallowed on x86_64
+  if (sess.architecture == "x86_64")
+    blacklisted_probes.insert("__switch_to");
+
+  // These functions don't return, so return probes would never be recovered
+  blacklisted_return_probes.insert("do_exit");
+  blacklisted_return_probes.insert("sys_exit");
+  blacklisted_return_probes.insert("sys_exit_group");
 }
 
 
@@ -2002,14 +2055,10 @@ dwarf_query::blacklisted_p(string const & funcname,
   // the trick.
   if (filename == 0) filename = ""; // possibly 0
   string filename_s = filename; // is passed as const char*
-  if (funcname == "do_IRQ" ||
-      funcname == "notifier_call_chain" ||
-      (funcname == "__switch_to" && sess.architecture == "x86_64") ||
+  if (blacklisted_probes.count(funcname) > 0 ||
+      (has_return && blacklisted_return_probes.count(funcname) > 0) ||
       filename_s == "kernel/kprobes.c" ||
-      0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0) ||
-      (has_return && (funcname == "do_exit" ||
-                      funcname == "sys_exit" ||
-                      funcname == "sys_exit_group")))
+      0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0))
     {
       if (sess.verbose>1)
         clog << "skipping function '" << funcname << "' file '"
