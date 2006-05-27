@@ -33,6 +33,12 @@ yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
 *) build_elfutils=yes ;;
 esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
+AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
+
+if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
+  AC_MSG_WARN([glib2-devel is required to build lket-b2a.
+  no glib2-devel found, skip building lket-b2a...])
+fi
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
@@ -53,8 +59,7 @@ AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE, "$date")
 
 AC_CONFIG_HEADERS([config.h:config.in])
-#AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 runtime/lket/b2a/Makefile)
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 )
+AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 runtime/lket/b2a/Makefile)
 AC_OUTPUT
 
 if test $build_elfutils = yes; then

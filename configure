@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5103,6 +5103,23 @@ else
 fi
 
 
+
+if pkg-config --atleast-version 2.0.0 glib-2.0; then
+  BUILD_LKET_B2A_TRUE=
+  BUILD_LKET_B2A_FALSE='#'
+else
+  BUILD_LKET_B2A_TRUE='#'
+  BUILD_LKET_B2A_FALSE=
+fi
+
+
+if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
+  { echo "$as_me:$LINENO: WARNING: glib2-devel is required to build lket-b2a.
+  no glib2-devel found, skip building lket-b2a..." >&5
+echo "$as_me: WARNING: glib2-devel is required to build lket-b2a.
+  no glib2-devel found, skip building lket-b2a..." >&2;}
+fi
+
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
@@ -5205,8 +5222,7 @@ DATE="$date"
 
           ac_config_headers="$ac_config_headers config.h:config.in"
 
-#AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 runtime/lket/b2a/Makefile)
-                                                                                ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5"
+                                                                                          ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 runtime/lket/b2a/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5338,6 +5354,13 @@ if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_ELFUTILS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_ELFUTILS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_LKET_B2A_TRUE}" && test -z "${BUILD_LKET_B2A_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_LKET_B2A\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_LKET_B2A\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -5793,6 +5816,7 @@ do
   "stapfuncs.5" ) CONFIG_FILES="$CONFIG_FILES stapfuncs.5" ;;
   "stapex.5" ) CONFIG_FILES="$CONFIG_FILES stapex.5" ;;
   "lket.5" ) CONFIG_FILES="$CONFIG_FILES lket.5" ;;
+  "runtime/lket/b2a/Makefile" ) CONFIG_FILES="$CONFIG_FILES runtime/lket/b2a/Makefile" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
   "config.h" ) CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -5936,6 +5960,8 @@ s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
 s,@BUILD_ELFUTILS_TRUE@,$BUILD_ELFUTILS_TRUE,;t t
 s,@BUILD_ELFUTILS_FALSE@,$BUILD_ELFUTILS_FALSE,;t t
+s,@BUILD_LKET_B2A_TRUE@,$BUILD_LKET_B2A_TRUE,;t t
+s,@BUILD_LKET_B2A_FALSE@,$BUILD_LKET_B2A_FALSE,;t t
 s,@stap_LIBS@,$stap_LIBS,;t t
 s,@DATE@,$DATE,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
