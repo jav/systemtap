@@ -13,6 +13,8 @@ Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-root
 
 Requires: kernel >= 2.6.9-11
+BuildRequires: glib2-devel >= 2.0.0
+Requires: glib2 >= 2.0.0
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
 Requires: gcc make
@@ -83,6 +85,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc README AUTHORS NEWS COPYING
 
 %{_bindir}/stap
+%{_bindir}/lket-b2a
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 %{_libexecdir}/systemtap/*
