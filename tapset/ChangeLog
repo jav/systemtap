@@ -1,5 +1,10 @@
 2006-05-30  Martin Hunt  <hunt@redhat.com>
 
+	* aux_syscalls.stp (_mountflags_str): Rewrite.
+	(_umountflags_str): New.
+
+	* syscalls.stp (fstatfs.return): Add retstr.
+
 	* syscalls2.stp (sys_write): Use text_strn().
 	* syscalls.stp (sys_lseek): Fix.
 	(sys_llseek): Fix.

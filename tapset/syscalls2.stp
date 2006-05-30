@@ -196,22 +196,6 @@ probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return
 	name = "old_getrlimit"
 	retstr = returnstr(1)
 }
-# oldumount __________________________________________________
-#
-# asmlinkage long
-# sys_oldumount(char __user * name)
-#
-probe syscall.oldumount = kernel.function("sys_umount") {
-	name = "oldumount"
-	name_str = user_string($name)
-	/* man page 2 umount shows the argument name as "target" */
-	target = name_str
-	argstr = name_str
-}
-probe syscall.oldumount.return = kernel.function("sys_umount").return {
-	name = "oldumount"
-	retstr = returnstr(1)
-}
 # pause ______________________________________________________
 #
 # sys_pause(void)
@@ -2222,18 +2206,14 @@ probe syscall.truncate64.return = kernel.function("sys_truncate64").return {
 	retstr = returnstr(1)
 }
 # umount _____________________________________________________
-#
-# asmlinkage long
-# sys_umount(char __user * name,
-#		int flags)
+# long sys_umount(char __user * name, int flags)
 #
 probe syscall.umount = kernel.function("sys_umount") {
 	name = "umount"
-	target_uaddr = $name
-	name_str = user_string($name)
+	target = user_string($name)
 	flags = $flags
-	flags_str = _mountflags_str($flags)
-	argstr = sprintf("%s, %s", name_str, flags_str)
+	flags_str = _umountflags_str($flags)
+	argstr = sprintf("\"%s\", %s", target, flags_str)
 }
 probe syscall.umount.return = kernel.function("sys_umount").return {
 	name = "umount"

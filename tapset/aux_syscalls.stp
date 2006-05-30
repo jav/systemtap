@@ -421,6 +421,7 @@ function __sem_flags:string(semflg:long)
 
 function __fork_flags:string(flags:long)
 %{ /* pure */
+	int len;
   	long flags = THIS->flags;
 	char *str = THIS->__retvalue;
 	if (flags & CLONE_FS)
@@ -451,7 +452,9 @@ function __fork_flags:string(flags:long)
 		strlcat(str, "CLONE_CHILD_SETTID|", MAXSTRINGLEN);
 	if (flags & CLONE_STOPPED)
 		strlcat(str, "CLONE_STOPPED|", MAXSTRINGLEN);
-	str[strlen(str)-1] = 0;
+	len = strlen(str);
+	if (len)
+		str[strlen(str)-1] = 0;
 %}
 
 /* This function copies an argv from userspace. */
@@ -949,22 +952,61 @@ function _futex_op_str(op) {
    return ""
 }
 
-function _mountflags_str(op) {
-   if(op==1)    return "MS_RDONLY"
-   if(op==2)    return "MS_NOSUID"
-   if(op==4)    return "MS_NODEV"
-   if(op==8)    return "MS_NOEXEC"
-   if(op==16)   return "MS_SYNCHRONOUS"
-   if(op==32)   return "MS_REMOUNT"
-   if(op==64)   return "MS_MANDLOCK"
-   if(op==128)  return "S_WRITE"
-   if(op==256)  return "S_APPEND"
-   if(op==512)  return "S_IMMUTABLE"
-   if(op==1024) return "MS_NOATIME"
-   if(op==2048) return "MS_NODIRATIME"
-   if(op==4096) return "MS_BIND"
-   return ""
-}
+function _mountflags_str:string(op:long) 
+%{ /* pure */
+	int len, op = THIS->op;
+	char *str = THIS->__retvalue;
+	if (op & MS_BIND)
+		strlcat(str,"MS_BIND|",MAXSTRINGLEN);
+	if (op & MS_DIRSYNC)
+		strlcat(str,"MS_DIRSYNC|",MAXSTRINGLEN);
+	if (op & MS_MANDLOCK)
+		strlcat(str,"MS_MANDLOCK|",MAXSTRINGLEN);
+	if (op & MS_MOVE)
+		strlcat(str,"MS_MOVE|",MAXSTRINGLEN);
+	if (op & MS_NOATIME)
+		strlcat(str,"MS_NOATIME|",MAXSTRINGLEN);
+	if (op & MS_NODEV)
+		strlcat(str,"MS_NODEV|",MAXSTRINGLEN);
+	if (op & MS_NODIRATIME)
+		strlcat(str,"MS_NODIRATIME|",MAXSTRINGLEN);
+	if (op & MS_NOEXEC)
+		strlcat(str,"MS_NOEXEC|",MAXSTRINGLEN);
+	if (op & MS_NOSUID)
+		strlcat(str,"MS_NOSUID|",MAXSTRINGLEN);
+	if (op & MS_RDONLY)
+		strlcat(str,"MS_RDONLY|",MAXSTRINGLEN);
+	if (op & MS_REC)
+		strlcat(str,"MS_REC|",MAXSTRINGLEN);
+	if (op & MS_REMOUNT)
+		strlcat(str,"MS_REMOUNT|",MAXSTRINGLEN);
+	if (op & MS_SYNCHRONOUS)
+		strlcat(str,"MS_SYNCHRONOUS|",MAXSTRINGLEN);
+	if (op & MS_VERBOSE)
+		strlcat(str,"MS_VERBOSE|",MAXSTRINGLEN);
+	len = strlen(str);
+	if (len)
+		str[strlen(str)-1] = 0;
+%}
+
+function _umountflags_str:string(op:long) 
+%{ /* pure */
+	int len, op = THIS->op;
+	char *str = THIS->__retvalue;
+	if (op == 0)
+		strlcat(str,"0",MAXSTRINGLEN);
+	else {
+		if (op & MNT_FORCE)
+			strlcat(str,"MNT_FORCE|",MAXSTRINGLEN);
+		if (op & MNT_DETACH)
+			strlcat(str,"MNT_DETACH|",MAXSTRINGLEN);
+		if (op & MNT_EXPIRE)
+			strlcat(str,"MNT_EXPIRE|",MAXSTRINGLEN);
+		len = strlen(str);
+		if (len)
+			str[strlen(str)-1] = 0;
+	}
+%}
 
 function _statfs_f_type_str(f) {
    if(f==0xadf5)     return "ADFS_SUPER_MAGIC"

@@ -699,6 +699,7 @@ probe syscall.fstatfs = kernel.function("sys_fstatfs") {
 }
 probe syscall.fstatfs.return = kernel.function("sys_fstatfs").return {
 	name = "fstatfs"
+	retstr = returnstr(1)
 }
 
 # fstatfs64 __________________________________________________
@@ -1685,28 +1686,26 @@ probe kernel.syscall.modify_ldt.return =
       name = "modify_ldt.return"
    }
 # mount ______________________________________________________
-/*
- * asmlinkage long
- * sys_mount(char __user * dev_name,
- *           char __user * dir_name,
- *           char __user * type,
- *           unsigned long flags,
- *           void __user * data)
- */
-probe kernel.syscall.mount =
-   kernel.function("sys_mount") {
-      name = "mount"
-      source_uaddr = $dev_name
-      target_uaddr = $dir_name
-      filesystemtype_uaddr = $type
-      mountflags = $flags
-      mountflags_str = _mountflags_str($flags)
-      data_uaddr = $data
-   }
-probe kernel.syscall.mount.return =
-   kernel.function("sys_mount").return {
-      name = "mount.return"
-   }
+# long sys_mount(char __user * dev_name,
+#          char __user * dir_name,
+#           char __user * type,
+#           unsigned long flags,
+#           void __user * data)
+probe syscall.mount = kernel.function("sys_mount") {
+	name = "mount"
+	source = user_string($dev_name)
+	target = user_string($dir_name)
+	filesystemtype = user_string($type)
+	mountflags = $flags
+	mountflags_str = _mountflags_str($flags)
+	data = text_strn(user_string($data),30,1)
+	argstr = sprintf("\"%s\", \"%s\", \"%s\", %s, %s", source, target, filesystemtype, mountflags_str, data)
+}
+probe syscall.mount.return = kernel.function("sys_mount").return {
+	name = "mount"
+	retstr = returnstr(1)
+}
+
 # mprotect ___________________________________________________
 /*
  * asmlinkage long
