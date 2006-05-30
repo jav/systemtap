@@ -1635,36 +1635,36 @@ probe syscall.mknod.return = kernel.function("sys_mknod").return {
 }
 
 # mlock ______________________________________________________
-/*
- * asmlinkage long
- * sys_mlock(unsigned long start,
- *           size_t len)
- */
-probe kernel.syscall.mlock =
-   kernel.function("sys_mlock") {
-      name = "mlock"
-      addr = $start
-      len = $len
-   }
-probe kernel.syscall.mlock.return =
-   kernel.function("sys_mlock").return {
-      name = "mlock.return"
-   }
+#
+# asmlinkage long
+# sys_mlock(unsigned long start,
+#           size_t len)
+#
+probe syscall.mlock = kernel.function("sys_mlock") {
+	name = "mlock"
+	addr = $start
+	len = $len
+	argstr = sprintf("0x%p, %d", addr, len)
+}
+probe syscall.mlock.return = kernel.function("sys_mlock").return {
+	name = "mlock"
+	retstr = returnstr(1)
+}
 # mlockall ___________________________________________________
-/*
- * asmlinkage long
- * sys_mlockall(int flags)
- */
-probe kernel.syscall.mlockall =
-   kernel.function("sys_mlockall") {
-      name = "mlockall"
-      flags = $flags
-      flags_str = _mlockall_flags_str($flags)
-   }
-probe kernel.syscall.mlockall.return =
-   kernel.function("sys_mlockall").return {
-      name = "mlockall.return"
-   }
+#
+# asmlinkage long
+# sys_mlockall(int flags)
+#
+probe syscall.mlockall = kernel.function("sys_mlockall") {
+	name = "mlockall"
+	flags = $flags
+	flags_str = _mlockall_flags_str($flags)
+	argstr = flags_str
+}
+probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
+	name = "mlockall"
+	retstr = returnstr(1)
+}
 
 
 # modify_ldt _________________________________________________
