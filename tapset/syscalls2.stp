@@ -2198,7 +2198,7 @@ probe syscall.truncate = kernel.function("sys_truncate") {
 	path_uaddr = $path
 	path = user_string($path)
 	length = $length
-	argstr = sprintf("%s, %d", path, $length)
+	argstr = sprintf("\"%s\", %d", path, $length)
 }
 probe syscall.truncate.return = kernel.function("sys_truncate").return {
 	name = "truncate"
@@ -2210,14 +2210,14 @@ probe syscall.truncate.return = kernel.function("sys_truncate").return {
 # sys_truncate64(const char __user * path,
 #		    loff_t length)
 #
-probe syscall.truncate64 = kernel.function("sys_truncate") {
+probe syscall.truncate64 = kernel.function("sys_truncate64") {
 	name = "truncate64"
 	path_uaddr = $path
 	path = user_string($path)
 	length = $length
 	argstr = sprintf("%s, %d", path, $length)
 }
-probe syscall.truncate64.return = kernel.function("sys_truncate").return {
+probe syscall.truncate64.return = kernel.function("sys_truncate64").return {
 	name = "truncate64"
 	retstr = returnstr(1)
 }

@@ -741,13 +741,13 @@ probe syscall.ftruncate.return = kernel.function("sys_ftruncate").return {
 
 # ftruncate64 ________________________________________________
 # long sys_ftruncate64(unsigned int fd, loff_t length)
-probe syscall.ftruncate64 = kernel.function("sys_ftruncate") {
+probe syscall.ftruncate64 = kernel.function("sys_ftruncate64") {
 	name = "ftruncate64"
 	fd = $fd
 	length = $length
 	argstr = sprintf("%d, %d", fd, length)
 }
-probe syscall.ftruncate64.return = kernel.function("sys_ftruncate").return {
+probe syscall.ftruncate64.return = kernel.function("sys_ftruncate64").return {
 	name = "ftruncate64"
 	retstr = returnstr(1)
 }
