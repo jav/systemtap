@@ -45,4 +45,23 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */
 	else
 		THIS->__retvalue = 0;
 %}
+
+/*
+ * text_str()
+ *
+ * Takes a string, and any ASCII characters that are not printable are
+ * replaced by the corresponding escape sequence in the returned
+ * string.
+ */
+function text_str:string(input:string)
+%{ /* pure */
+	_stp_text_str(THIS->__retvalue, THIS->input, 0, 0);
+%}
+
+function text_strn:string(input:string, len:long, quoted:long)
+%{ /* pure */
+	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted);
+%}
+
+
 /** @} */

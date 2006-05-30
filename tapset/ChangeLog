@@ -1,3 +1,8 @@
+2006-05-30  Martin Hunt  <hunt@redhat.com>
+
+	* string.stp (text_str): New.
+	(text_strn): New.
+
 2006-05-26  Martin Hunt  <hunt@redhat.com>
 
 	* errno.stp: Add octal option for returnstr.
