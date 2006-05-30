@@ -2343,7 +2343,7 @@ probe syscall.wait4 = kernel.function("sys_wait4") {
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, [%p], %s, [%p]", $pid, status_uaddr,
-					option_str, rusage_uaddr)
+					options_str, rusage_uaddr)
 					
 }
 probe syscall.wait4.return = kernel.function("sys_wait4").return {
@@ -2375,6 +2375,7 @@ probe syscall.waitid.return = kernel.function("sys_waitid").return {
 	name = "waitid"
 	retstr = returnstr(1)
 }
+/* FIXME:
 # waitpid ____________________________________________________
 #
 # asmlinkage long
@@ -2397,6 +2398,7 @@ probe syscall.waitpid.return = kernel.function("sys_wait4").return {
 	name = "waitpid"
 	retstr = returnstr(1)
 }
+*/
 # write ______________________________________________________
 #
 # ssize_t sys_write(unsigned int fd,
