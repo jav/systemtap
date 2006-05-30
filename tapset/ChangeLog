@@ -1,5 +1,9 @@
 2006-05-30  Martin Hunt  <hunt@redhat.com>
 
+	* syscalls2.stp (sys_write): Use text_strn().
+	* syscalls.stp (sys_lseek): Fix.
+	(sys_llseek): Fix.
+	
 	* string.stp (text_str): New.
 	(text_strn): New.
 

@@ -44,7 +44,7 @@ probe syscall.read = kernel.function("sys_read") {
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
-	argstr = sprintf("%d, [%p], %d", fd, buf_uaddr, count)
+	argstr = sprintf("%d, [%p], %d", $fd, $buf, $count)
 }
 probe syscall.read.return = kernel.function("sys_read").return {
 	name = "read"
@@ -497,9 +497,9 @@ probe syscall.readv = kernel.function("sys_readv") {
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
 %( arch != "ppc64" %?
 	fd = $fd
-	argstr = sprintf("%d, [%p], %p", fd, vector_uaddr, count)
+	argstr = sprintf("%d, [%p], %d", $fd, $vec, $vlen)
 %:
-	argstr = sprintf("unknown fd, [%p], %p", vector_uaddr, count)
+	argstr = sprintf("unknown fd, [%p], %d", $vec, $vlen)
 %)
 }
 probe syscall.readv.return = kernel.function("sys_readv").return {
@@ -2419,8 +2419,7 @@ probe syscall.waitpid.return = kernel.function("sys_wait4").return {
 }
 # write ______________________________________________________
 #
-# asmlinkage ssize_t
-# sys_write(unsigned int fd,
+# ssize_t sys_write(unsigned int fd,
 #	     const char __user * buf,
 #	     size_t count)
 #
@@ -2429,7 +2428,7 @@ probe syscall.write = kernel.function("sys_write") {
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
-	argstr = sprintf("%d, [%p], %d", $fd, buf_uaddr, $count)
+	argstr = sprintf("%d, %s, %d", $fd, text_strn(user_string($buf),20,1), $count)
 }
 probe syscall.write.return = kernel.function("sys_write").return {
 	name = "write"
@@ -2437,8 +2436,7 @@ probe syscall.write.return = kernel.function("sys_write").return {
 }
 # writev _____________________________________________________
 #
-# asmlinkage ssize_t
-# sys_writev(unsigned long fd,
+# ssize_t sys_writev(unsigned long fd,
 #		const struct iovec __user *vec,
 #		unsigned long vlen)
 #
@@ -2449,9 +2447,9 @@ probe syscall.writev = kernel.function("sys_writev") {
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */ 
 %( arch != "ppc64" %?
 	fd = $fd
-	argstr = sprintf("%d, [%p], %d", $fd, vector_uaddr, $vlen)
+	argstr = sprintf("%d, [%p], %d", $fd, $vec, $vlen)
 %:
-	argstr = sprintf("unknown fd, [%p], %d", vector_uaddr, $vlen)
+	argstr = sprintf("unknown fd, [%p], %d", $vec, $vlen)
 %)
 }
 probe syscall.writev.return = kernel.function("sys_writev").return {

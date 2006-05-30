@@ -1473,28 +1473,26 @@ probe kernel.syscall.llistxattr.return =
       name = "llistxattr.return"
    }
 # llseek _____________________________________________________
-/*
- * asmlinkage long
- * sys_llseek(unsigned int fd,
- *            unsigned long offset_high,
- *            unsigned long offset_low,
- *            loff_t __user * result,
- *            unsigned int origin)
- */
-probe kernel.syscall.llseek =
-   kernel.function("sys_llseek") {
-      name = "llseek"
-      fd = $fd
-      offset_high = $offset_high
-      offset_low = $offset_low
-      result_uaddr = $result
-      whence = $origin
-      whence_str = _seek_whence_str($origin)
-   }
-probe kernel.syscall.llseek.return =
-   kernel.function("sys_llseek").return {
-      name = "llseek.return"
-   }
+# long sys_llseek(unsigned int fd,
+#            unsigned long offset_high,
+#            unsigned long offset_low,
+#            loff_t __user * result,
+#            unsigned int origin)
+probe syscall.llseek = kernel.function("sys_llseek") {
+	name = "llseek"
+	fd = $fd
+	offset_high = $offset_high
+	offset_low = $offset_low
+	result_uaddr = $result
+	whence = $origin
+	whence_str = _seek_whence_str($origin)
+	argstr = sprintf("%d, 0x%x, 0x%x, %p, %s", $fd, $offset_high,
+		$offset_low, $result, whence_str)
+}
+probe syscall.llseek.return = kernel.function("sys_llseek").return {
+	name = "llseek"
+	retstr = returnstr(1)
+}
 # lookup_dcookie _____________________________________________
 /*
  * asmlinkage long
@@ -1530,24 +1528,19 @@ probe kernel.syscall.lremovexattr.return =
       name = "lremovexattr.return"
    }
 # lseek ______________________________________________________
-/*
- * asmlinkage off_t
- * sys_lseek(unsigned int fd,
- *           off_t offset,
- *           unsigned int origin)
- */
-probe kernel.syscall.lseek =
-   kernel.function("sys_lseek") {
-      name = "lseek"
-      fildes = $fd
-      offset = $offset
-      whence = $origin
-      whence_str = _seek_whence_str($origin)
-   }
-probe kernel.syscall.lseek.return =
-   kernel.function("sys_lseek").return {
-      name = "lseek.return"
-   }
+# off_t sys_lseek(unsigned int fd, off_t offset, unsigned int origin)
+probe syscall.lseek = kernel.function("sys_lseek") {
+	name = "lseek"
+	fildes = $fd
+	offset = $offset
+	whence = $origin
+	whence_str = _seek_whence_str($origin)
+	argstr = sprintf("%d, %d, %s", $fd, $offset, whence_str)
+}
+probe syscall.lseek.return = kernel.function("sys_lseek").return {
+	name = "lseek"
+	retstr = returnstr(1)
+}
 # lsetxattr __________________________________________________
 /*
  * asmlinkage long
