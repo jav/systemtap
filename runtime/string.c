@@ -212,5 +212,104 @@ char * _stp_string_ptr (String str)
 	  }								\
   })
 
+/** Return a printable text string.
+ *
+ * Takes a string, and any ASCII characters that are not printable are
+ * replaced by the corresponding escape sequence in the returned
+ * string.
+ *
+ * @param out Output string pointer
+ * @param in Input string pointer
+ * @param len Maximum length of string to return not including terminating 0.
+ * 0 means MAXSTRINGLEN.
+ * @param quoted Put double quotes around the string. If input string is truncated
+ * in will have "..." after the second quote.
+ */
+void _stp_text_str(char *out, char *in, int len, int quoted)
+{
+	const int length = len;
+	if (len == 0 || len > STP_STRING_SIZE-1)
+		len = STP_STRING_SIZE-1;
+	if (quoted) {
+		len -= 2;
+		*out++ = '\"';
+	}
+
+	while (*in && len > 0) {
+		int num = 1;
+		if (isprint(*in) && isascii(*in))
+			*out++ = *in;
+		else {
+			switch (*in) {
+			case '\a':
+			case '\b':
+			case '\f':
+			case '\n':
+			case '\r':
+			case '\t':
+			case '\v':
+				num = 2;
+				break;
+			default:
+				if (*in > 077)
+					num = 4;
+				else if (*in > 07)
+					num = 3;
+				else
+					num = 2;
+				break;
+			}
+			
+			if (len < num)
+				break;
+
+			*out++ = '\\';
+			switch (*in) {
+			case '\a':
+				*out++ = 'a';
+				break;
+			case '\b':
+				*out++ = 'b';
+				break;
+			case '\f':
+				*out++ = 'f';
+				break;
+			case '\n':
+				*out++ = 'n';
+				break;
+			case '\r':
+				*out++ = 'r';
+				break;
+			case '\t':
+				*out++ = 't';
+				break;
+			case '\v':
+				*out++ = 'v';
+				break;
+			default:                  /* output octal representation */
+				if (*in > 077)
+					*out++ = to_oct_digit(*in >> 6);
+				if (*in > 07)
+					*out++ = to_oct_digit((*in & 070) >> 3);
+				*out++ = to_oct_digit(*in & 07);
+				break;
+			}
+		}
+		len -= num;
+		in++;
+	}
+
+	if (quoted) {
+		if (*in) {
+			out = out - 3 + len;
+			*out++ = '\"';
+			*out++ = '.';
+			*out++ = '.';
+			*out++ = '.';
+		} else
+			*out++ = '\"';
+	}
+	*out = '\0';
+}
 /** @} */
 #endif /* _STRING_C_ */

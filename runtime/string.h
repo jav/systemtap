@@ -32,7 +32,9 @@ typedef struct string *String;
 static struct string __stp_stdout = {.len = 0};
 String _stp_stdout = &__stp_stdout;
 
+#define to_oct_digit(c) ((c) + '0')
 void _stp_vsprintf (String str, const char *fmt, va_list args);
 void _stp_string_cat_char (String str1, const char c);
+void _stp_text_str(char *out, char *in, int len, int quoted);
 
 #endif /* _STRING_H_ */
