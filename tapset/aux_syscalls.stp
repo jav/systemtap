@@ -884,8 +884,8 @@ function _recvflags_str(f) {
 
 /* `man mlockall` for more information */
 function _mlockall_flags_str(f) {
-   if(f & 2) bs="MCL_CURRENT|".bs
-   if(f & 1) bs="MCL_FUTURE|".bs
+   if(f & 1) bs="MCL_CURRENT|".bs
+   if(f & 2) bs="MCL_FUTURE|".bs
    return substr(bs,0,strlen(bs)-1)
 }
 
