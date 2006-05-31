@@ -1408,21 +1408,18 @@ probe kernel.syscall.lgetxattr.return =
       name = "lgetxattr.return"
    }
 # link _______________________________________________________
-/*
- * asmlinkage long
- * sys_link(const char __user * oldname,
- *          const char __user * newname)
- */
-probe kernel.syscall.link =
-   kernel.function("sys_link") {
-      name = "link"
-      oldpath_uaddr = $oldname
-      newpath_uaddr = $newname
-   }
-probe kernel.syscall.link.return =
-   kernel.function("sys_link").return {
-      name = "link.return"
-   }
+# long sys_link(const char __user * oldname,
+#          const char __user * newname)
+probe syscall.link = kernel.function("sys_link") {
+	name = "link"
+	oldpath = user_string($oldname)
+	newpath = user_string($newname)
+	argstr = sprintf("\"%s\", \"%s\"", oldpath, newpath)
+}
+probe syscall.link.return = kernel.function("sys_link").return {
+	name = "link"
+	retstr = returnstr(1)	
+}
 
 # listen _____________________________________________________
 # long sys_listen(int fd, int backlog)

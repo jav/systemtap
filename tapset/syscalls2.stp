@@ -450,18 +450,16 @@ probe syscall.readahead.return = kernel.function("sys_readahead").return {
 }
 # readlink ___________________________________________________
 #
-# asmlinkage long
-# sys_readlink(const char __user * path,
+# long sys_readlink(const char __user * path,
 #		  char __user * buf,
 #		  int bufsiz)
 #
 probe syscall.readlink = kernel.function("sys_readlink") {
 	name = "readlink"
-	path_uaddr = $path
-	path_str = user_string(path_uaddr)
+	path = user_string($path)
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-	argstr = sprintf("%s, [%p], %p", path_str, buf_uaddr, bufsiz)
+	argstr = sprintf("\"%s\", [%p], %d", path, buf_uaddr, bufsiz)
 }
 probe syscall.readlink.return = kernel.function("sys_readlink").return {
 	name = "readlink"
@@ -1832,16 +1830,14 @@ probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 
 # statfs _____________________________________________________
 #
-# asmlinkage long
-# sys_statfs(const char __user * path,
+# long sys_statfs(const char __user * path,
 #		struct statfs __user * buf)
 #
 probe syscall.statfs = kernel.function("sys_statfs") {
 	name = "statfs"
-	path_uaddr = $path
 	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = sprintf("%s, [%p]", path, buf_uaddr)
+	argstr = sprintf("%s, [%p]", path, $buf)
 }
 probe syscall.statfs.return = kernel.function("sys_statfs").return {
 	name = "statfs"
@@ -1849,18 +1845,16 @@ probe syscall.statfs.return = kernel.function("sys_statfs").return {
 }
 # statfs64 ___________________________________________________
 #
-# asmlinkage long
-# sys_statfs64(const char __user *path,
+# long sys_statfs64(const char __user *path,
 #		  size_t sz,
 #		  struct statfs64 __user *buf)
 #
 probe syscall.statfs64 = kernel.function("sys_statfs64") {
 	name = "statfs64"
-	path_uaddr = $path
 	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%s, %d, [%p]", path, $sz, buf_uaddr) 
+	argstr = sprintf("%s, %d, [%p]", path, $sz, $buf) 
 }
 probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 	name = "statfs64"
@@ -1913,16 +1907,13 @@ probe syscall.swapon.return = kernel.function("sys_swapon").return {
 	retstr = returnstr(1)
 }
 # symlink ____________________________________________________
-#
-# asmlinkage long
-# sys_symlink(const char __user * oldname,
+# long sys_symlink(const char __user * oldname,
 #		 const char __user * newname)
-#
 probe syscall.symlink = kernel.function("sys_symlink") {
 	name = "symlink"
 	oldpath = user_string($oldname)
 	newpath = user_string($newname)
-	argstr = sprintf("%s, %s", oldpath, newpath)
+	argstr = sprintf("\"%s\", \"%s\"", oldpath, newpath)
 }
 probe syscall.symlink.return = kernel.function("sys_symlink").return {
 	name = "symlink"
