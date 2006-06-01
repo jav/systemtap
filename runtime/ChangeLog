@@ -1,3 +1,8 @@
+2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket/b2a/lket_b2a.h, lket/b2a/lket_b2a.c: make it able to
+	read user added trace data and backtrace
+	
 2006-05-30  Martin Hunt  <hunt@redhat.com>
 
 	* string.c (_stp_text_str): New function.

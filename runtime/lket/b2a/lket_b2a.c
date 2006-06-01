@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 			goto failed;
 		}
 	}
-
+#if !defined(DEBUG_OUTPUT)
 	if(strnlen(outfilename, MAX_STRINGLEN) == 0)
 		strncpy(outfilename, DEFAULT_OUTFILE_NAME, MAX_STRINGLEN);
 	outfp = fopen(outfilename, "w");
@@ -95,6 +95,9 @@ int main(int argc, char *argv[])
 		printf("Unable to create %s\n", outfilename);
 		goto failed;
 	}
+#else
+	outfp = stdout;
+#endif
 	
 	/* create the search tree */
 	appNameTree = g_tree_new_full(compareFunc, NULL, NULL, destroyAppName);
@@ -429,6 +432,8 @@ void b2a_vsnprintf(const char *fmt, FILE *infp, FILE *outfile, size_t size)
 	int32_t ntemp;
 	long 	ltemp;
 	long long lltemp;
+	short	length;
+	char	format[128];
 
 	if(size <= 0 || !outfile)
 		return;
@@ -548,15 +553,27 @@ void b2a_vsnprintf(const char *fmt, FILE *infp, FILE *outfile, size_t size)
 	}
 
 filled:
-	// print possible backtrace string
-	while(readbytes++ < size ) {
-		if((c=fgetc_unlocked(infp)) != EOF)
-			break;
-		if(!c)
-			break;
-		fputc_unlocked(c, outfile);
+
+	readbytes = 0;
+
+	c=fgetc_unlocked(infp);
+
+	if(c == LKET_PKT_BT)  {
+		fread(&length, 2, 1, infp);
+		strncpy(format, "BACKTRACE: ", 12);
+		fwrite(format, 11, 1, outfile);
+		strncpy(format, "%0s", 4);		
+		b2a_vsnprintf(format, infp, outfile, length);
+	}  else if(c == LKET_PKT_USER)  {
+		fread(&length, 2, 1, infp);
+		strncpy(format, "USER: ", 6);
+		fwrite(format, 6, 1, outfile);
+		do {
+			c = fgetc_unlocked(infp);
+			format[readbytes++] = c;
+		} while(c);
+		b2a_vsnprintf(format, infp, outfile, length - readbytes);
+	} else  {
+		fputc_unlocked('\n', outfile);
 	}
-	if(readbytes < size)
-		fseek(infp, size - readbytes, SEEK_CUR);
-	fprintf(outfile, "\n");
 }

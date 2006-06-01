@@ -12,6 +12,10 @@
 
 #define SEQID_SIZE 4
 
+#define LKET_PKT_SYS 1
+#define LKET_PKT_BT 2
+#define LKET_PKT_USER 3
+
 #define DEFAULT_OUTFILE_NAME "lket.out"
 
 typedef struct _lket_pkt_header {
