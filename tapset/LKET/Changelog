@@ -1,3 +1,8 @@
+2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* *.stp: make user able to append extra trace data. The
+	way of logging backtrace is also changed 
+	
 2006-05-25  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* hookid_defs.stp, ioscheduler.stp, lket_trace.stp, netdev.stp,

@@ -50,19 +50,23 @@ function lket_trace_init()
 #ifndef __LKET_TRACE__
 #define __LKET_TRACE__
 
-#define STP_BIN_PACKET 1
+#define LKET_PKT_SYS 1
+#define LKET_PKT_BT 2
+#define LKET_PKT_USER 3
 
 
 #define MAX_FMT_LEN 128
-char newfmt[MAX_FMT_LEN] = "\n%d|%d|%d|%d|%d|%d|%d|%d";
-#define NEW_FMT_START 24 
+char new_sysfmt[MAX_FMT_LEN] = "\n%d|%d|%d|%d|%d|%d|%d|%d";
+char new_userfmt[MAX_FMT_LEN] = "| USER:";
+#define NEW_SYSFMT_START 24 
+#define NEW_USERFMT_START 7 
 
-void fmt_change(char *oldfmt)
+void fmt_change(char *oldfmt, char *newfmt, int newfmt_start)
 {
 	char *old_ptr, *new_ptr;
 
 	old_ptr = oldfmt;
-	new_ptr = newfmt + NEW_FMT_START;
+	new_ptr = newfmt + newfmt_start;
 
 	while(*old_ptr != 0 && (new_ptr - newfmt) < MAX_FMT_LEN)  {
 		if(*old_ptr != '%')  {
@@ -112,12 +116,18 @@ void fmt_change(char *oldfmt)
 #define _lket_trace(GroupID, hookID, fmt, args...) do { \
 	struct timeval tv; \
 	do_gettimeofday (&tv); \
-	fmt_change(fmt); \
-	_stp_printf(newfmt, \
+	fmt_change(fmt, new_sysfmt, NEW_SYSFMT_START); \
+	_stp_printf(new_sysfmt, \
 		(_FMT_)GroupID, (_FMT_)hookID, (_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec,\
 		(_FMT_)current->tgid, (_FMT_)current->parent->pid,\
 		(_FMT_)current->pid, (_FMT_)current->thread_info->cpu, args);\
 } while(0)
+
+#define _lket_trace_extra(fmt, args...)  do {\
+	fmt_change(fmt, new_userfmt, NEW_USERFMT_START);\
+	_stp_printf(new_userfmt, args);\
+} while(0)
+
 
 #else //binary trace
 
@@ -126,17 +136,34 @@ static inline int this_event_len(void)
 	return 0;
 }
 
-/* we use 2 bytes to store the length. 256 may be not enough for backtrace event */
+/* we use 2 bytes to store the length. */
 #define _lket_trace(GroupID, hookID, fmt, args...) do { \
 	struct timeval tv; \
 	do_gettimeofday (&tv); \
 	_stp_printf("%1b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
-		(_FMT_)STP_BIN_PACKET, (_FMT_)GroupID, (_FMT_)hookID, \
+		(_FMT_)LKET_PKT_SYS, (_FMT_)GroupID, (_FMT_)hookID, \
 		(_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec, (_FMT_)current->tgid, \
 		(_FMT_)current->parent->pid, (_FMT_)current->pid, \
 		(_FMT_)current->thread_info->cpu, args);\
 } while(0)
 
+#define _lket_trace_extra(fmt, args...)  do {\
+        _stp_printf("%1b%2n%0s"fmt, (_FMT_)LKET_PKT_USER, fmt, args);\
+} while(0)
+
 #endif
 #endif
+%}
+
+
+function lket_backtrace () %{
+        if (CONTEXT->regs) {
+                String str = _stp_string_init (0);
+                _stp_stack_sprint (str, CONTEXT->regs, 0);
+#if defined(ASCII_TRACE)
+                _stp_printf("|BACKTRACE: %s", _stp_string_ptr(str));
+#else
+                _stp_printf("%1b%2n%0s", (_FMT_)LKET_PKT_BT, _stp_string_ptr(str));
+#endif
+        }
 %}

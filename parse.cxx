@@ -2082,12 +2082,23 @@ parser::parse_symbol ()
       else if (name.size() > 0 && (name == "print"
 				   || name == "sprint"
 				   || name == "printf"
-				   || name == "sprintf"))
+				   || name == "sprintf"
+				   || name == "lket_trace_extra"))
 	{
 	  print_format *fmt = new print_format;
 	  fmt->tok = t;
 	  fmt->print_with_format = (name[name.size() - 1] == 'f');
 	  fmt->print_to_stream = (name[0] == 'p');
+
+	  fmt->lket_trace_extra = false;
+
+          if(name == "lket_trace_extra")
+            {
+                fmt->print_with_format = true;
+                fmt->print_to_stream = true;
+                fmt->lket_trace_extra = true;
+            }
+
 	  expect_op("(");
 	  if (fmt->print_with_format)
 	    {

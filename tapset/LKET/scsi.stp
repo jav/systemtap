@@ -33,16 +33,16 @@ probe addevent.scsi
 
 /* mid-layer prepare a IO request */
 probe addevent.scsi.ioentry
-	+= scsi.ioentry
+	= scsi.ioentry
 {
-	log_scsi_ioentry(HOOKID_SCSI_IOENTRY, $q, $req, backtrace)
+	log_scsi_ioentry(HOOKID_SCSI_IOENTRY, $q, $req)
 }
 
 /* Dispatch a command to the low-level driver. */
 probe addevent.scsi.iodispatching
-	+= scsi.iodispatching
+	= scsi.iodispatching
 {
-	log_scsi_dispatch(HOOKID_SCSI_IO_TO_LLD, $cmd, backtrace)
+	log_scsi_dispatch(HOOKID_SCSI_IO_TO_LLD, $cmd)
 }
 
 /* I/O is done by low-level driver*/
@@ -66,7 +66,7 @@ probe addevent.scsi.iocompleted
 }
 
 /* log the info about scsi io entry */
-function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long, backtrace:long)
+function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long)
 %{
 	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
 	struct request *rq = (struct request *)((long)THIS->var_rq);
@@ -75,15 +75,8 @@ function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long, backtrace:long)
 	/* 
 	major|minor|scsi_device_state| 
 	*/
-	if(THIS->backtrace == 1)  {
-		String str = _stp_string_init (0);
-                _stp_stack_sprint (str, CONTEXT->regs, 0);
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b%0s", (_FMT_)rq->rq_disk->major, 
-			(_FMT_)rq->rq_disk->first_minor, (_FMT_)sdev->sdev_state, _stp_string_ptr(str));
-	} else  {
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b", (_FMT_)rq->rq_disk->major, 
-			(_FMT_)rq->rq_disk->first_minor, (_FMT_)sdev->sdev_state);
-	}
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%1b%1b", (_FMT_)rq->rq_disk->major, 
+		(_FMT_)rq->rq_disk->first_minor, (_FMT_)sdev->sdev_state);
 %}
 
 /* log the info about scsi_dispatching_cmd
@@ -109,7 +102,7 @@ function log_scsi_ioentry(var_id:long, var_q:long, var_rq:long, backtrace:long)
 
 /* sdev_state|scsi_info|data_direction|request_buffer|request_bufflen|cmd_identifier|  */
 %( kernel_v >= "2.6.12" %?
-function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
+function log_scsi_dispatch(var_id:long, var:long)
 %{
 	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
 	int scsi_info;
@@ -125,24 +118,14 @@ function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
 	 * Instead of skipping SDEV_DEL & SDEV_BLOCK, I choose to log them
 	 */
 
-	if(THIS->backtrace == 1)  {
-		String str = _stp_string_init (0);
-                _stp_stack_sprint (str, CONTEXT->regs, 0);
-
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", (_FMT_)cmd->device->sdev_state, 
-			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
-			(_FMT_)cmd->request_bufflen, (int64_t)cmd->device->host->cmd_pid, _stp_string_ptr(str));
-	} else  {
-
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", (_FMT_)cmd->device->sdev_state, 
-			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
-			(_FMT_)cmd->request_bufflen, (int64_t)cmd->device->host->cmd_pid);
-	}
-
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b",
+		(_FMT_)cmd->device->sdev_state, (_FMT_)scsi_info,
+		(_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer),
+		(_FMT_)cmd->request_bufflen, (int64_t)cmd->device->host->cmd_pid);
 %}
 %:
 
-function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
+function log_scsi_dispatch(var_id:long, var:long)
 %{
 	struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
 	int scsi_info;
@@ -161,18 +144,10 @@ function log_scsi_dispatch(var_id:long, var:long, backtrace:long)
 	/* systemTap failed to access global variable. So I temporarily use 0.
 	_stp_printf("%d|", scsi_pid);
 	*/
-	if(THIS->backtrace == 1)  {
-		String str = _stp_string_init (0);
-                _stp_stack_sprint (str, CONTEXT->regs, 0);
-
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b%0s", (_FMT_)cmd->device->sdev_state, 
-			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
-			(_FMT_)cmd->request_bufflen, (int64_t)0, _stp_string_ptr(str));
-	} else  {
-		_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b", (_FMT_)cmd->device->sdev_state, 
-			(_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer), 
-			(_FMT_)cmd->request_bufflen, (int64_t)0);
-	}
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%1b%4b%1b%8b%4b%8b",
+		(_FMT_)cmd->device->sdev_state, (_FMT_)scsi_info,
+		(_FMT_)cmd->sc_data_direction, (int64_t)((long)cmd->request_buffer),
+		(_FMT_)cmd->request_bufflen, (int64_t)0);
 %}
 %)
 
@@ -188,8 +163,8 @@ function log_scsi_iodone_extra(var_id:long, var:long)
 		(cmd->device->id & 0xFF);
 
 	/* scsi_info|data_direction|cmd_identifier| */
-	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b", (_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, 
-		(int64_t)cmd->pid);
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b", (_FMT_)scsi_info, 
+		(_FMT_)cmd->sc_data_direction, (int64_t)cmd->pid);
 %}
 
 /* log the info about scsi_dispatching_cmd */
@@ -205,6 +180,6 @@ function log_scsi_iocompleted(var_id:long, var_cmd:long, var_goodbytes:long)
 		(cmd->device->id & 0xFF);
 
 	/* scsi_info|data_direction|cmd_identifier|goodbytes */
-	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b%4b", (_FMT_)scsi_info, (_FMT_)cmd->sc_data_direction, 
-		(int64_t)cmd->pid, (_FMT_)goodbytes);
+	_lket_trace(_GROUP_SCSI, THIS->var_id, "%4b%1b%8b%4b", (_FMT_)scsi_info, 
+		(_FMT_)cmd->sc_data_direction, (int64_t)cmd->pid, (_FMT_)goodbytes);
 %}

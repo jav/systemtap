@@ -19,19 +19,19 @@ probe addevent.netdev.receive
 	=  netdev.receive
 {
 	/* no need to filter by pid */
-	log_netdev_extra(HOOKID_NETDEV_RECEIVE,$skb, backtrace)
+	log_netdev_extra(HOOKID_NETDEV_RECEIVE,$skb)
 }
 
 /* Queue a buffer for transmission to a network device */
 probe addevent.netdev.transmit
-	+=  netdev.transmit
+	=  netdev.transmit
 {
 	if(filter_by_pid() == 1 ) {
-		log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb, backtrace)
+		log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb)
 	}
 }
 
-function log_netdev_extra(var_id:long, var:long, backtrace:long)
+function log_netdev_extra(var_id:long, var:long)
 %{
 	struct sk_buff *skb = (struct sk_buff *)((long)THIS->var);
 
@@ -52,15 +52,6 @@ function log_netdev_extra(var_id:long, var:long, backtrace:long)
 		86DD    IPv6
 	*/
 
-	/* only print backtrace for netdev.transmit */
-	if(THIS->backtrace == 1)  {
-		String str = _stp_string_init (0);
-		_stp_stack_sprint (str, CONTEXT->regs, 0);
-
-		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b%0s", skb->dev->name, 
-			(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize, _stp_string_ptr(str));
-	}  else  {
-		_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", skb->dev->name, 
-			(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize);
-	}
+	_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", skb->dev->name, 
+		(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize);
 %}

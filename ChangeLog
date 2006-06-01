@@ -1,7 +1,14 @@
+2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
+
+	* parse.cxx, staptree.cxx, staptree.h, translate.cxx:
+	add new function lket_trace_extra at script level
+	* lket.5.in: Modified the description of backtrace in
+	LKET
+
 2006-05-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	* systemtap.spec.in: include lket-b2a in the rpm package
- 
+
 2006-05-27  Li Guanglei <guanglei@cn.ibm.com>
 
 	* configure.ac: add conditional build of lket-b2a

@@ -36,7 +36,8 @@ function process_snapshot()
 	name for each entry */
 	list_for_each(cur, head) {
 		tsk = (struct task_struct *)(list_entry(cur, struct task_struct, tasks));
-		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", (_FMT_)tsk->pid, tsk->comm);
+		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", 
+			(_FMT_)tsk->pid, tsk->comm);
 		_stp_print_flush();
 	}
 %}

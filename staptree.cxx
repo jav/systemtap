@@ -626,6 +626,7 @@ void print_format::print (ostream& o) const
   string name = (string(print_to_stream ? "" : "s") 
 		 + string("print") 
 		 + string(print_with_format ? "f" : ""));
+  if(lket_trace_extra)  name="lket_trace_extra";
   o << name << "(";
   if (print_with_format)
     {
@@ -2203,6 +2204,7 @@ deep_copy_visitor::visit_print_format (print_format* e)
   n->tok = e->tok;
   n->print_with_format = e->print_with_format;
   n->print_to_stream = e->print_to_stream;
+  n->lket_trace_extra = e->lket_trace_extra;
   n->raw_components = e->raw_components;
   n->components = e->components;
   for (unsigned i = 0; i < e->args.size(); ++i)

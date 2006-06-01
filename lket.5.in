@@ -217,29 +217,15 @@ Data format is:
 
 .SH BACKTRACE
 
-Some event hooks have the capability of print backtrace. But since
-backtrace printing is costly, it is defaultly turned off.
+You should use lket_backtrace() function to log backtrace for
+different events.
 
-To print backtrace, you can just add "backtrace=1" into the probes, e.g:
+It's simple to log backtrace, e.g:
 .SAMPLE
 probe addevent.scsi.ioentry
 {
-	backtrace=1
+	lket_backtrace()
 }
-.ESAMPLE
-
-By default backtrace=0
-
-Currently the following events could be able to print backtrace:
-.SAMPLE
-.BR addevent.ioscheduler.elv_next_request
-.BR addevent.ioscheduler.elv_add_request
-.BR addevent.netdev.transmit
-.BR addevent.scsi.ioentry
-.BR addevent.scsi.iodispatching
-.BR addevent.tskdispatch.cpuidle
-.BR addevent.syscall.entry
-.BR addevent.syscall.return
 .ESAMPLE
 
 .SH TRACE DATA FORMAT
@@ -282,8 +268,8 @@ stap -e "probe addevent.syscall {}" -I /usr/local/share/systemtap/tapsets/LKET -
 To only probe syscall.entry:
 stap -e "probe addevent.syscall.entry {}" -I /usr/local/share/systemtap/tapsets/LKET -b -M
 .TP
-To probe netdev transmition and print the backtrace:
-stap -e "probe addevent.netdev.transmit { backtrace=1 }" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+To probe netdev transmition and log backtrace:
+stap -e "probe addevent.netdev.transmit { lket_backtrace() }" -I /usr/local/share/systemtap/tapsets/LKET -b -M
 
 
 .SH SEE ALSO
