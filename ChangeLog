@@ -1,3 +1,10 @@
+2006-06-01  Josh Stone  <joshua.i.stone@intel.com>
+
+	* tapsets.cxx (hrtimer_derived_probe::emit_interval): update
+	API usage of hrtimers in preparation of getting exports from
+	the kernel.
+	(hrtimer_derived_probe::emit_probe_entries): ditto
+
 2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
 
 	* parse.cxx, staptree.cxx, staptree.h, translate.cxx:

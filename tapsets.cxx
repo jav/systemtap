@@ -3953,7 +3953,7 @@ void
 hrtimer_derived_probe::emit_interval (translator_output* o)
 {
   o->line() << "({";
-  o->newline(1) << "DEFINE_KTIME(kt);";
+  o->newline(1) << "unsigned long nsecs;";
   o->newline() << "int64_t i = " << interval << "LL;";
   if (randomize != 0)
     { 
@@ -3967,7 +3967,8 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
       o->newline(1) << "i = " << min_ns_interval << "LL;";
       o->indent(-1);
     }
-  o->newline() << "ktime_add_ns(kt, i);";
+  o->newline() << "nsecs = do_div(i, NSEC_PER_SEC);";
+  o->newline() << "ktime_set(i, nsecs);";
   o->newline(-1) << "})";
 }
 
@@ -4005,9 +4006,9 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
 
   o->newline() << "(void) data;";
 
-  o->newline() << "hrtimer_forward (& timer_" << name << ", ";
+  o->newline() << "hrtimer_start (& timer_" << name << ", ";
   emit_interval(o);
-  o->line() << ");";
+  o->line() << ", HRTIMER_REL);";
 
   // NB: locals are initialized by probe function itself
   o->newline() << name << " (c);";
