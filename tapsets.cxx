@@ -187,7 +187,6 @@ derived_probe::emit_probe_epilogue (translator_output* o)
 
 
 
-
 // ------------------------------------------------------------------------
 // begin/end probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
@@ -269,6 +268,54 @@ be_derived_probe::emit_probe_entries (translator_output* o)
       o->newline(-1) << "}\n";
     }
 }
+
+
+// ------------------------------------------------------------------------
+// never probes are never run
+// ------------------------------------------------------------------------
+
+struct never_derived_probe: public derived_probe
+{
+  never_derived_probe (probe* p): derived_probe (p) {}
+  never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
+
+  void emit_registrations (translator_output* o);
+  void emit_deregistrations (translator_output* o);
+  void emit_probe_entries (translator_output* o);
+};
+
+
+struct never_builder: public derived_probe_builder
+{
+  never_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results)
+  {
+    finished_results.push_back(new never_derived_probe(base, location));
+  }
+};
+
+
+void
+never_derived_probe::emit_registrations (translator_output* o)
+{
+}
+
+
+void
+never_derived_probe::emit_deregistrations (translator_output* o)
+{
+}
+
+
+void
+never_derived_probe::emit_probe_entries (translator_output* o)
+{
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -4150,9 +4197,10 @@ bad_time:
 void
 register_standard_tapsets(systemtap_session & s)
 {
-  // Rudimentary binders for begin and end targets
   s.pattern_root->bind("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
+
+  s.pattern_root->bind("never")->bind(new never_builder());
 
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind(new timer_builder());
   s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());

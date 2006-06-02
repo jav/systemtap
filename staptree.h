@@ -561,6 +561,7 @@ struct probe_point
   };
   std::vector<component*> components;
   const token* tok; // points to first component's functor
+  bool optional;
   void print (std::ostream& o) const;
   probe_point ();
   probe_point(std::vector<component*> const & comps,const token * t);

@@ -1,3 +1,17 @@
+2006-06-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2645.
+	* stapprobes.5.in: Document "?" probe point suffix.
+	* parse.cxx (parse_probe_point): Recognize "?" optional suffix.
+	* elaborate.cxx (derive_probes): Observe probe_point->optional.
+	* staptree.h, staptree.cxx: Corresponding changes.
+	* tapsets.cxx (never_derived_probe, never_builder): New classes.
+	(register_standard_tapsets): Support "never" probe point.
+	* testsuite/buildok/six.stp, parseok/five.stp: Modifed tests.
+
+	* translate.cxx (emit_module_init): Format "-t" (benchmarking)
+	cycle-time reports similarly to "-v" (verbose) times.
+
 2006-06-02  David Smith  <dsmith@redhat.com>
 
 	* .cvsignore: Added more files to ignore.

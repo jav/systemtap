@@ -494,7 +494,7 @@ derive_probes (systemtap_session& s,
           s.pattern_root->find_and_build (s, p, loc, 0, dps);
           unsigned num_atend = dps.size();
           
-          if (num_atbegin == num_atend) // nothing new derived!
+          if (! loc->optional && num_atbegin == num_atend) // nothing new derived!
             throw semantic_error ("no match for probe point");
         }
       catch (const semantic_error& e)

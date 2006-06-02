@@ -102,12 +102,12 @@ symboldecl::~symboldecl ()
 
 probe_point::probe_point (std::vector<component*> const & comps,
 			  const token * t):
-  components(comps), tok(t) 
+  components(comps), tok(t), optional (false)
 {
 }
 
 probe_point::probe_point ():
-  tok (0)
+  tok (0), optional (false)
 {
 }
 
@@ -867,6 +867,8 @@ void probe_point::print (ostream& o) const
       if (c->arg)
         o << "(" << *c->arg << ")";
     }
+  if (optional)
+    o << "?";
 }
 
 

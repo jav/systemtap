@@ -25,15 +25,19 @@ The general probe point syntax is a dotted-symbol sequence.  This
 allows a breakdown of the event namespace into parts, somewhat like
 the Domain Name System does on the Internet.  Each component
 identifier may be parametrized by a string or number literal, with a
-syntax like a function call.  A component may be replaced by a "*"
-character, to expand to other matching probe points.  These are all
-syntactically valid probe points:
+syntax like a function call.  A component may include a "*"
+character, to expand to other matching probe points.  A probe point
+may be followed by a "?" character, to indicate that it is optional,
+and that no error should result if it fails to expand.
+
+These are all syntactically valid probe points:
 .SAMPLE
 kernel.function("foo").return
 syscall(22)
 user.inode("/bin/vi").statement(0x2222)
 end
 kernel.syscall.*
+kernel.function("no_such_function") ?
 .ESAMPLE
 
 Probes may be broadly classified into "synchronous" and
@@ -63,6 +67,14 @@ shutdown of a session, such as in the aftermath of an
 function call, or an interruption from the user.  In the case of an
 error-triggered shutdown, "end" probes are not run.  There are no
 target variables available in either context.
+
+.SS NEVER
+The probe point
+.IR never
+is specially defined by the translator to mean "never".  Its probe
+handler is never run, though its statements are analyzed for symbol /
+type correctness as usual.  This probe point may be useful in
+conjunction with optional probes.
 
 .SS TIMERS
 

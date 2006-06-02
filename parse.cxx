@@ -1140,7 +1140,7 @@ parser::parse_probe_point ()
       probe_point::component* c = new probe_point::component;
       c->functor = t->content;
       pl->components.push_back (c);
-      // NB though we still may add c->arg soon
+      // NB we may add c->arg soon
 
       const token* last_t = t;
       t = peek ();
@@ -1164,11 +1164,7 @@ parser::parse_probe_point ()
 	  t = peek ();
 	}
 
-      if (t && t->type == tok_operator 
-          && (t->content == "{" || t->content == "," || t->content == "=" 
-		|| t->content == "+=" ))
-        break;
-      
+      // consume optional parameter
       if (t && t->type == tok_operator && t->content == "(")
         {
           next (); // consume "("
@@ -1179,19 +1175,31 @@ parser::parse_probe_point ()
             throw parse_error ("expected ')'");
 
           t = peek ();
-          if (t && t->type == tok_operator 
-              && (t->content == "{" || t->content == "," || t->content == "="))
-            break;
-          else if (t && t->type == tok_operator &&
-                   t->content == "(")
-            throw parse_error ("unexpected '.' or ',' or '{'");
         }
-      // fall through
 
       if (t && t->type == tok_operator && t->content == ".")
-        next ();
-      else
-        throw parse_error ("expected '.' or ',' or '(' or '{' or '=' or '+='");
+        {
+          next ();
+          continue;
+        }
+
+      // We only fall through here at the end of a probe point (past
+      // all the dotted/parametrized components).
+
+      if (t && t->type == tok_operator && t->content == "?")
+        {
+          pl->optional = true;
+          next ();
+          t = peek ();
+          // fall through
+        }
+
+      if (t && t->type == tok_operator 
+          && (t->content == "{" || t->content == "," ||
+              t->content == "=" || t->content == "+=" ))
+        break;
+      
+      throw parse_error ("expected '.' or ',' or '(' or '?' or '{' or '=' or '+='");
     }
 
   return pl;

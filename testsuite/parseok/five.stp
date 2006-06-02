@@ -17,3 +17,4 @@ probe time.virtual.jiffies(100) {}
 probe perfcounter("tlbmiss").count(4000) {}
 probe resource.freemembelow(50) {} # pages?
 probe begin {}
+probe something?, or?, nothing? {}

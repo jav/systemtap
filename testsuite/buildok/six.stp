@@ -4,6 +4,10 @@
 # listed in PR 1155 we cannot resolve the parameters of the inline
 # at the moment.
 
-probe kernel.inline("context_switch") {
+probe kernel.inline("context_switch")? {
   log ("found an inline function")
+}
+
+probe never {
+  log ("or not ...")
 }

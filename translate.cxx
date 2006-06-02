@@ -1037,7 +1037,7 @@ c_unparser::emit_module_init ()
           o->newline() << "const char *error;";
           o->newline() << "if (stats->count) {";
           o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
-          o->newline() << "_stp_printf (\"probe %s (%s), %lld hits, %lld min %lld avg %lld max cycles\\n\",";
+          o->newline() << "_stp_printf (\"probe %s (%s), %lld hits taking %lldmin/%lldavg/%lldmax cycles.\\n\",";
           o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
           o->newline() << "_stp_print_flush();";
           o->newline(-1) << "}";
