@@ -51,13 +51,8 @@ probe process.start = kernel.function("schedule_tail") { }
  *  filename - the path to the new executable
  */
 probe process.exec = 
-/*
-    kernel.function("do_execve")
-%( arch != "i586" %? %( arch != "i686" %? 
-  , kernel.function("compat_do_execve")
-%) %)
-*/
-    kernel.function("*do_execve")
+    kernel.function("do_execve"),
+    kernel.function("compat_do_execve") ?
 {
     filename = kernel_string($filename)
 }
@@ -76,13 +71,8 @@ probe process.exec =
  *  success - a boolean indicating whether the exec was successful
  */
 probe process.exec_complete =
-/*
-    kernel.function("do_execve").return
-%( arch != "i586" %? %( arch != "i686" %? 
-  , kernel.function("compat_do_execve").return
-%) %)
-*/
-    kernel.function("*do_execve").return
+    kernel.function("do_execve").return,
+    kernel.function("compat_do_execve").return ?
 {
     errno = retval()
     success = (errno >= 0)
@@ -177,12 +167,10 @@ probe _process.signal_send.part3 =
  *  signal - the number of the signal
  *  signal_name - a string representation of the signal
  */
-/* FIXME - handle_signal is sometimes inlined, depending on the whims of the
- * compiler.  On FC5 it is inlined, but on RHEL4 it is not.  Until we have a
- * nice way for tapsets to specify "possibly inlined", we can't include this
- * probe point.
-probe process.signal_handle = kernel.function("handle_signal") {
+probe process.signal_handle =
+	kernel.function("handle_signal") ?,
+	kernel.inline("handle_signal") ?
+{
     signal = $sig
     signal_name = _signal_name($sig)
 }
-*/

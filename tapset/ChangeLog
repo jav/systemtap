@@ -1,3 +1,10 @@
+2006-06-02  Josh Stone  <joshua.i.stone@intel.com>
+
+	* process.stp (exec, exec_complete): conditionally include
+	compat_do_execve for 64-bit kernels
+	* process.stp (handle_signal): use optional probes to alternate
+	between function or inline
+
 2006-05-30  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_mountflags_str): Rewrite.
