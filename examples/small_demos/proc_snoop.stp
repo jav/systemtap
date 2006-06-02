@@ -50,8 +50,6 @@ probe process.signal_send {
                 shared? " [SHARED]" : ""))
 }
 
-/* FIXME this probepoint is not fully implemented
 probe process.signal_handle {
     report(sprintf("sighandle %d (%s)", signal, signal_name))
 }
-*/

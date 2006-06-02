@@ -38,3 +38,9 @@ probe process.signal_send {
   log(sprint(shared))
 }
 
+probe process.signal_handle {
+  log(pp())
+  log(sprint(signal))
+  log(signal_name)
+}
+
