@@ -1,5 +1,7 @@
 2006-06-02  David Smith  <dsmith@redhat.com>
 
+	* .cvsignore: Added more files to ignore.
+
 	* main.cxx (usage): Added exitcode parameter.
 	(main): Improved a few error messages.  Also, when an error is
 	given, stap now always exits with a status of 1.
