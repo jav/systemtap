@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# -sNUM  Use NUM megabyte buffers for kernel-to-user data transfer.  On a
+#        multiprocessor in bulk mode, this is a per-processor amount.
+#
+# NUM must be between 1 and 64 
+
+./stap -p1 -s 0 -e 'probe begin { exit() }'

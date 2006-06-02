@@ -1,0 +1,10 @@
+#! /bin/sh
+
+echo "output version"
+./stap -V
+if [ $? != 0 ]; then
+   exit $?
+fi
+
+echo "output version and help"
+./stap -h

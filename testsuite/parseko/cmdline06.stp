@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Bad TMPDIR environment variable should cause exit
+
+TMPDIR=/dev/null/BADTMPDIR ./stap -p1 -e 'probe begin { exit() }'

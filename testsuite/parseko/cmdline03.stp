@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# -p NUM Stop after pass NUM.  The passes are numbered 1-5: parse, elabo-
+#        rate,  translate,  compile, run.
+#
+# NUM must be between 1 and 5
+
+./stap -p0 -e 'probe begin { exit() }'

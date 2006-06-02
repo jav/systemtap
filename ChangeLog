@@ -1,3 +1,19 @@
+2006-06-02  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (usage): Added exitcode parameter.
+	(main): Improved a few error messages.  Also, when an error is
+	given, stap now always exits with a status of 1.
+
+	* testsuite/buildok/cmdline01.stp: New test.
+	* testsuite/parseko/cmdline01.stp: Ditto.
+	* testsuite/parseko/cmdline02.stp: Ditto.
+	* testsuite/parseko/cmdline03.stp: Ditto.
+	* testsuite/parseko/cmdline04.stp: Ditto.
+	* testsuite/parseko/cmdline05.stp: Ditto.
+	* testsuite/parseko/cmdline06.stp: Ditto.
+	* testsuite/parseok/cmdline01.stp: Ditto.
+	* testsuite/parseok/cmdline02.stp: Ditto.
+
 2006-06-01  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (hrtimer_derived_probe::emit_interval): update

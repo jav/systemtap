@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# -g     Guru  mode.   Enable  parsing  of unsafe expert-level constructs
+#        like embedded C.
+#
+# -D NAME=VALUE
+#        Add  the  given C preprocessor directive to the module Makefile.
+
+# Test '-g' and '-D'.  The code below will give an error at
+# compilation stage unless 'FOO' is defined.
+
+./stap -g -p4 -DFOO=1 - <<EOF
+
+function footest:string()
+%{
+#ifdef FOO
+    strncpy(THIS->__retvalue, "footest called", MAXSTRINGLEN);
+#else
+#error undefined FOO
+#endif
+%}
+
+probe begin {
+    printf("%s\n", footest())
+    exit()
+}
+
+EOF

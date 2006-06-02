@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# -M (merge) option is only valid for bulk mode
+
+./stap -p1 -M -e 'probe begin { exit() }'

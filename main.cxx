@@ -46,7 +46,7 @@ version ()
 }
 
 void
-usage (systemtap_session& s)
+usage (systemtap_session& s, int exitcode)
 {
   version ();
   clog
@@ -96,7 +96,7 @@ usage (systemtap_session& s)
     ;
   // -d: dump safety-related external references
 
-  exit (0);
+  exit (exitcode);
 }
 
 
@@ -178,8 +178,8 @@ main (int argc, char * const argv [])
           s.last_pass = atoi (optarg);
           if (s.last_pass < 1 || s.last_pass > 5)
             {
-              cerr << "Invalid pass number." << endl;
-              usage (s);
+              cerr << "Invalid pass number (should be 1-5)." << endl;
+              usage (s, 1);
             }
           break;
 
@@ -189,7 +189,11 @@ main (int argc, char * const argv [])
 
         case 'e':
 	  if (have_script)
-	    usage (s);
+	    {
+	      cerr << "Only one script can be given on the command line."
+		   << endl;
+	      usage (s, 1);
+	    }
           cmdline_script = string (optarg);
           have_script = true;
           break;
@@ -230,8 +234,8 @@ main (int argc, char * const argv [])
           s.buffer_size = atoi (optarg);
           if (s.buffer_size < 1 || s.buffer_size > 64)
             {
-              cerr << "Invalid buffer size." << endl;
-              usage (s);
+              cerr << "Invalid buffer size (should be 1-64)." << endl;
+	      usage (s, 1);
             }
           break;
 
@@ -248,21 +252,25 @@ main (int argc, char * const argv [])
 	  break;
 
         case 'h':
+          usage (s, 0);
+          break;
+
         default:
-          usage (s);
+          usage (s, 1);
+          break;
         }
     }
 
   if(!s.bulk_mode && !s.merge)
     {
       cerr << "-M option is valid only for bulk (relayfs) mode." <<endl;
-      exit(1);
+      usage (s, 1);
     }
 
   if(!s.output_file.empty() && s.bulk_mode && !s.merge)
     {
       cerr << "You can't specify -M, -b and -o options together." <<endl;
-      exit(1);
+      usage (s, 1);
     }
 
   for (int i = optind; i < argc; i++)
@@ -278,7 +286,10 @@ main (int argc, char * const argv [])
 
   // need a user file
   if (! have_script)
-    usage(s);
+    {
+      cerr << "A script must be specified." << endl;
+      usage(s, 1);
+    }
 
   int rc = 0;
 
