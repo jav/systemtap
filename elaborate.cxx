@@ -287,7 +287,7 @@ match_node::find_and_build (systemtap_session& s,
 		}
 	    }
 	}
-      if (num_results == results.size())
+      if (! loc->optional && num_results == results.size())
         {
 	  // We didn't find any wildcard matches (since the size of
 	  // the result vector didn't change).  Throw an error.
@@ -376,35 +376,28 @@ alias_expansion_builder
     // there's concatenated code here and we only want one vardecl per
     // resulting variable.
 
-    if(alias->epilogue_style == true)  {
-	    for (unsigned i = 0; i < use->body->statements.size(); ++i)
-	      {
-		statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
-		n->body->statements.push_back(s);
-	      }
+    if (alias->epilogue_style)
+      {
+        for (unsigned i = 0; i < use->body->statements.size(); ++i)
+          n->body->statements.push_back
+            (deep_copy_visitor::deep_copy(use->body->statements[i]));
 
-	    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
-	      {
-		statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
-		n->body->statements.push_back(s);
-	      }
-
-    }  else  {
-
-	    for (unsigned i = 0; i < alias->body->statements.size(); ++i)
-	      {
-		statement *s = deep_copy_visitor::deep_copy(alias->body->statements[i]);
-		n->body->statements.push_back(s);
-	      }
-
-	    for (unsigned i = 0; i < use->body->statements.size(); ++i)
-	      {
-		statement *s = deep_copy_visitor::deep_copy(use->body->statements[i]);
-		n->body->statements.push_back(s);
-	      }
-    }
-
-    derive_probes (sess, n, finished_results, false);
+        for (unsigned i = 0; i < alias->body->statements.size(); ++i)
+          n->body->statements.push_back
+            (deep_copy_visitor::deep_copy(alias->body->statements[i]));
+      }
+    else
+      {
+        for (unsigned i = 0; i < alias->body->statements.size(); ++i)
+          n->body->statements.push_back
+            (deep_copy_visitor::deep_copy(alias->body->statements[i]));
+        
+        for (unsigned i = 0; i < use->body->statements.size(); ++i)
+          n->body->statements.push_back
+            (deep_copy_visitor::deep_copy(use->body->statements[i]));
+      }
+    
+    derive_probes (sess, n, finished_results, location->optional);
   }
 };
 
@@ -482,7 +475,7 @@ recursion_guard
 void
 derive_probes (systemtap_session& s,
                probe *p, vector<derived_probe*>& dps,
-               bool exc_outermost)
+               bool optional)
 {
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
@@ -494,8 +487,12 @@ derive_probes (systemtap_session& s,
           s.pattern_root->find_and_build (s, p, loc, 0, dps);
           unsigned num_atend = dps.size();
           
-          if (! loc->optional && num_atbegin == num_atend) // nothing new derived!
+          if (! optional && ! loc->optional && // something required, but
+              num_atbegin == num_atend) // nothing new derived!
             throw semantic_error ("no match for probe point");
+
+          // XXX: perhaps "optional" should operate at the outside
+          // loop (probe) level.
         }
       catch (const semantic_error& e)
         {

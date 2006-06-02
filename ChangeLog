@@ -1,3 +1,14 @@
+2006-06-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2645 cont'd.
+	* elaborate.cxx (find_and_build): Support optional wildcards too.
+	(derive_probes): Change last argument to indicate optionalness of
+	parent probe point (alias reference).
+	(alias_expansion_builder): Shrink epilogue-mode alias body copying.
+	Pass along alias reference optionality.	
+	* elaborate.h: Corresponding changes.
+	* testsuite/semko/thirtyfive.stp, semok/twentytwo.stp: New tests.
+
 2006-06-02  Josh Stone  <joshua.i.stone@intel.com>
 
 	* testsuite/buildok/process_test.stp: add signal_handle test

@@ -211,7 +211,7 @@ match_node
 int semantic_pass (systemtap_session& s);
 void derive_probes (systemtap_session& s,
                     probe *p, std::vector<derived_probe*>& dps,
-                    bool exc_outermost = true);
+                    bool optional = false);
 
 // A helper we use here and in translate, for pulling symbols out of lvalue
 // expressions.

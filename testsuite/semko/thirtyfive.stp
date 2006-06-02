@@ -1,0 +1,4 @@
+#! stap -p2
+
+probe foo.a = kernel.function("no_such_function")? { "alias a" }
+probe foo.* { }
