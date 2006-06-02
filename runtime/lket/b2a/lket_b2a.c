@@ -226,14 +226,14 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		free(appname);
 		return;
 	}
-	g_tree_insert(appNameTree, (gpointer)pid, (gpointer)appname);
+	g_tree_insert(appNameTree, (gpointer)((long)pid), (gpointer)appname);
 }
 
 
 gint compareFunc(gconstpointer a, gconstpointer b, gpointer user_data)
 {
-	if((int)(a) > (int)(b)) return 1;
-	else if ((int)(a) < (int)(b)) return -1;
+	if((long)(a) > (long)(b)) return 1;
+	else if ((long)(a) < (long)(b)) return -1;
 	else return 0;
 }
 
@@ -402,7 +402,7 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 	fprintf(fp, "%lld.%lld APPNAME: %s PID:%d PPID:%d TID:%d CPU:%d HOOKGRP:%d HOOKID:%d HOOKDATA:",
 		(phdr->sec*1000000LL + phdr->usec - start_timestamp)/1000000LL,
 		(phdr->sec*1000000LL + phdr->usec- start_timestamp)%1000000LL,
-		(char *)(g_tree_lookup(appNameTree, (gconstpointer)phdr->pid)),
+		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)phdr->pid))),
 		phdr->pid,
 		phdr->ppid,
 		phdr->tid,
@@ -492,9 +492,9 @@ void b2a_vsnprintf(const char *fmt, FILE *infp, FILE *outfile, size_t size)
 				else if (qualifier == 'L') {
 					if(readbytes + sizeof(long long) > size)
 						goto filled;
-					fread(&lltemp, sizeof(long long), 1, infp);
+					fread(&lltemp, sizeof(int64_t), 1, infp);
 					readbytes += sizeof(long long);
-					fprintf(outfile,"%lld ", (long long)lltemp);
+					fprintf(outfile,"%lld ", lltemp);
 				}
 				else {
 					if(readbytes + 4 > size)
@@ -523,7 +523,7 @@ void b2a_vsnprintf(const char *fmt, FILE *infp, FILE *outfile, size_t size)
 						break;
 					case 8: 
 						fread(&lltemp, 8, 1, infp);
-						fprintf(outfile, "%lld ",(int64_t)lltemp);
+						fprintf(outfile, "%lld ",lltemp);
 						break;
 					case 4:
 					default:

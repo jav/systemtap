@@ -1,3 +1,7 @@
+2006-06-02  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket/b2a/lket_b2a.c: eliminate some compile warnings
+	
 2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.h, lket/b2a/lket_b2a.c: make it able to
