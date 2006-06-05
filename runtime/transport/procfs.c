@@ -127,10 +127,11 @@ static DECLARE_WAIT_QUEUE_HEAD(_stp_proc_wq);
 static int _stp_write (int type, void *data, int len)
 {
 	struct _stp_buffer *bptr;
+	unsigned long flags;
 
 #define WRITE_AGG
 #ifdef WRITE_AGG
-	spin_lock(&_stp_ready_lock);
+	spin_lock_irqsave(&_stp_ready_lock, flags);
 	if (!list_empty(&_stp_ready_q)) {
 		bptr = (struct _stp_buffer *)_stp_ready_q.prev;
 		if (bptr->len + len <= STP_BUFFER_SIZE 
@@ -138,32 +139,32 @@ static int _stp_write (int type, void *data, int len)
 		    && bptr->type == STP_REALTIME_DATA) {
 			memcpy (bptr->buf + bptr->len, data, len);
 			bptr->len += len;
-			spin_unlock(&_stp_ready_lock);
+			spin_unlock_irqrestore(&_stp_ready_lock, flags);
 			return len;
 		}
 	}
-	spin_unlock(&_stp_ready_lock);
+	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 #endif
 
-	spin_lock(&_stp_pool_lock);
+	spin_lock_irqsave(&_stp_pool_lock, flags);
 	if (list_empty(&_stp_pool_q)) {
-		spin_unlock(&_stp_pool_lock);
+		spin_unlock_irqrestore(&_stp_pool_lock, flags);
 		return -1;
 	}
 
 	/* get the next buffer from the pool */
 	bptr = (struct _stp_buffer *)_stp_pool_q.next;
 	list_del_init(&bptr->list);
-	spin_unlock(&_stp_pool_lock);
+	spin_unlock_irqrestore(&_stp_pool_lock, flags);
 
 	bptr->type = type;
 	memcpy (bptr->buf, data, len);
 	bptr->len = len;
 	
 	/* put it on the pool of ready buffers */
-	spin_lock(&_stp_ready_lock);
+	spin_lock_irqsave(&_stp_ready_lock, flags);
 	list_add_tail(&bptr->list, &_stp_ready_q);
-	spin_unlock(&_stp_ready_lock);
+	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 
 	return len;
 }
