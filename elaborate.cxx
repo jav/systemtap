@@ -480,28 +480,33 @@ derive_probes (systemtap_session& s,
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
       probe_point *loc = p->locations[i];
-      
+
+      // Pass down optional flag from e.g. alias reference to each
+      // probe_point instance.  We do this by temporarily overriding
+      // the probe_point optional flag.  We could instead deep-copy
+      // and set a flag on the copy permanently.
+
+      bool old_loc_opt = loc->optional;
+      loc->optional = loc->optional || optional;
+
       try
         {
           unsigned num_atbegin = dps.size();
           s.pattern_root->find_and_build (s, p, loc, 0, dps);
           unsigned num_atend = dps.size();
           
-          if (! optional && ! loc->optional && // something required, but
+          if (! loc->optional && // something required, but
               num_atbegin == num_atend) // nothing new derived!
             throw semantic_error ("no match for probe point");
-
-          // XXX: perhaps "optional" should operate at the outside
-          // loop (probe) level.
         }
       catch (const semantic_error& e)
         {
           // XXX: prefer not to print_error at every nest/unroll level
           s.print_error (e);
           cerr << "while: resolving probe point " << *loc << endl;
-          //          if (! exc_outermost)
-          //            throw;
         }
+
+      loc->optional = old_loc_opt;
     }
 }
 
@@ -869,8 +874,8 @@ semantic_pass_symbols (systemtap_session& s)
           probe* p = dome->probes [i];
           vector<derived_probe*> dps;
 
-          // much magic happens here: probe alias expansion,
-          // provider identification
+          // much magic happens here: probe alias expansion, wildcard
+          // matching, low-level derived_probe construction.
           derive_probes (s, p, dps);
 
           for (unsigned j=0; j<dps.size(); j++)

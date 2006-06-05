@@ -410,7 +410,7 @@ at the given point, it just defines a new probe point name as an alias
 to an existing one. There are two types of alias, i.e. the prologue 
 style and the epilogue style which are identified by "=" and "+="
 respectively. 
-
+.PP
 For prologue style alias, the statement block that follows an alias
 definition is implicitly added as a prologue to any probe that refers
 to the alias. While for the epilogue style alias, the statement block

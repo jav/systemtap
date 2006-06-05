@@ -1,10 +1,15 @@
 #! stap -p2
 
-probe foo.a = kernel.function("no_such_function")?, never { "alias a" }
+probe foo.a = kernel.function("no_such_function")?, never { }
 probe foo.* { }
 
-probe baz.a = kernel.function("no_such_function") { "alias a" }
+probe baz.a = kernel.function("no_such_function") { }
 probe baz.* ? { }
 
-probe bar = kernel.function("no_such_function") { "alias b" }
+probe bar = kernel.function("no_such_function") { }
 probe bar ? { }
+
+probe bar3 = kernel.function("no_such_function") { }
+probe bar2 = bar3 { }
+probe bar2 ? { }
+

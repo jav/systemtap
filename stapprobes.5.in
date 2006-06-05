@@ -28,7 +28,8 @@ identifier may be parametrized by a string or number literal, with a
 syntax like a function call.  A component may include a "*"
 character, to expand to other matching probe points.  A probe point
 may be followed by a "?" character, to indicate that it is optional,
-and that no error should result if it fails to expand.
+and that no error should result if it fails to expand.  Optionalness
+passes down through all levels of alias/wildcard expansion.
 
 These are all syntactically valid probe points:
 .SAMPLE
