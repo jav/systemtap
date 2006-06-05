@@ -2179,23 +2179,6 @@ probe syscall.truncate.return = kernel.function("sys_truncate").return {
 	name = "truncate"
 	retstr = returnstr(1)
 }
-# truncate64 _________________________________________________
-#
-# asmlinkage long
-# sys_truncate64(const char __user * path,
-#		    loff_t length)
-#
-probe syscall.truncate64 = kernel.function("sys_truncate64") {
-	name = "truncate64"
-	path_uaddr = $path
-	path = user_string($path)
-	length = $length
-	argstr = sprintf("%s, %d", path, $length)
-}
-probe syscall.truncate64.return = kernel.function("sys_truncate64").return {
-	name = "truncate64"
-	retstr = returnstr(1)
-}
 # umount _____________________________________________________
 # long sys_umount(char __user * name, int flags)
 #
