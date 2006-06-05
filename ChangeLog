@@ -1,3 +1,24 @@
+2006-06-05  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (dwflpp::express_as_string): New function.
+	Extracted from dwflpp::literal_stmt_for_local() so that
+	dwflpp::literal_stmt_for_return() could also call it.
+	(dwflpp::literal_stmt_for_local): Portion extracted to create
+	dwflpp::express_as_string().
+	(dwflpp::literal_stmt_for_return): New function.  Adds support for
+	new symbolic access ("$return") to return value in .return
+	probes.  Fixes PR 1132.
+	(target_variable_flavour_calculating_visitor::visit_target_symbol):
+	Calls dwflpp::literal_stmt_for_return() when in a return probe and
+	the variable name is "$return".
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol): Ditto.
+	* stapfuncs.5.in: Noted that the retval() function is deprecated.
+	* stapprobes.5.in: Corrected the name of the return value
+	variable.
+	* tapset/return.stp: Marked the retval() function as deprecated.
+	* testsuite/semko/return01.stp: Added new test.
+	* testsuite/semko/return02.stp: Ditto.
+
 2006-06-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2645 cont'd.

@@ -135,7 +135,7 @@ variant places a probe near the beginning of the named function, so that
 parameters are available as context variables.  The
 .B .return
 variant places a probe at the moment of return from the named function, so
-the return value is available as the "$retvalue" context variable. 
+the return value is available as the "$return" context variable. 
 The
 .B .inline
 variant is similar to 

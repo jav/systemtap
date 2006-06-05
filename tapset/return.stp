@@ -1,3 +1,5 @@
+/* DEPRECATED by the "$return" target variable. */
+
 function retval:long() %{ /* pure */
        if (CONTEXT->regs) {
 #if defined (__i386__)

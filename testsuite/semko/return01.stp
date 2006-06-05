@@ -1,0 +1,7 @@
+#! stap -p2
+
+probe kernel.function("get_page_state").return
+{
+    # this should fail, since get_page_state() is a void function
+    printf("return is %d\n", $return)
+}

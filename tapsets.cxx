@@ -1479,6 +1479,42 @@ dwflpp
       }
   }
 
+  string
+  express_as_string (string prelude,
+		     string postlude,
+		     struct location *head)
+  {
+    size_t bufsz = 1024;
+    char *buf = static_cast<char*>(malloc(bufsz));
+    assert(buf);
+
+    FILE *memstream = open_memstream (&buf, &bufsz);
+    assert(memstream);
+
+    fprintf(memstream, "{\n");
+    fprintf(memstream, prelude.c_str());
+    bool deref = c_emit_location (memstream, head, 1);
+    fprintf(memstream, postlude.c_str());
+    fprintf(memstream, "  goto out;\n");
+
+    // dummy use of deref_fault label, to disable warning if deref() not used
+    fprintf(memstream, "if (0) goto deref_fault;\n");
+
+    // XXX: deref flag not reliable; emit fault label unconditionally
+    // XXX: print the faulting address, like the user_string/kernel_string
+    // tapset functions do
+    if (deref) ;
+    fprintf(memstream,
+            "deref_fault:\n"
+            "  c->last_error = \"pointer dereference fault\";\n"
+            "  goto out;\n");
+    fprintf(memstream, "}\n");
+
+    fclose (memstream);
+    string result(buf);
+    free (buf);
+    return result;
+  }
 
   string
   literal_stmt_for_local (Dwarf_Die *scope_die,
@@ -1546,39 +1582,75 @@ dwflpp
 				    prelude, postlude, ty);
 
     /* Write the translation to a string. */
-
-    size_t bufsz = 1024;
-    char *buf = static_cast<char*>(malloc(bufsz));
-    assert(buf);
-
-    FILE *memstream = open_memstream (&buf, &bufsz);
-    assert(memstream);
-
-    fprintf(memstream, "{\n");
-    fprintf(memstream, prelude.c_str());
-    bool deref = c_emit_location (memstream, head, 1);
-    fprintf(memstream, postlude.c_str());
-    fprintf(memstream, "  goto out;\n");
-
-    // dummy use of deref_fault label, to disable warning if deref() not used
-    fprintf(memstream, "if (0) goto deref_fault;\n");
-
-    // XXX: deref flag not reliable; emit fault label unconditionally
-    // XXX: print the faulting address, like the user_string/kernel_string
-    // tapset functions do
-    if (deref) ;
-    fprintf(memstream,
-            "deref_fault:\n"
-            "  c->last_error = \"pointer dereference fault\";\n"
-            "  goto out;\n");
-    fprintf(memstream, "}\n");
-
-    fclose (memstream);
-    string result(buf);
-    free (buf);
-    return result;
+    return express_as_string(prelude, postlude, head);
   }
 
+
+  string
+  literal_stmt_for_return (Dwarf_Die *scope_die,
+			   Dwarf_Addr pc,
+			   vector<pair<target_symbol::component_type,
+			   std::string> > const & components,
+			   bool lvalue,
+			   exp_type & ty)
+  {
+    if (sess.verbose>2)
+	clog << "literal_stmt_for_return: finding return value for "
+	     << dwarf_diename (scope_die)
+	     << "("
+	     << dwarf_diename (cu)
+	     << ")\n";
+
+    struct obstack pool;
+    obstack_init (&pool);
+    struct location *tail = NULL;
+
+    /* Given $return->bar->baz[NN], translate the location of return. */
+    const Dwarf_Op *locops;
+    int nlocops = dwfl_module_return_value_location (module, scope_die,
+						     &locops);
+    if (nlocops < 0)
+      {
+	throw semantic_error("failed to retrieve return value location");
+      }
+    // the function has no return value (e.g. "void" in C)
+    else if (nlocops == 0)
+      {
+	throw semantic_error("function has no return value");
+      }
+
+    struct location  *head = c_translate_location (&pool, &loc2c_error, this,
+						   &loc2c_emit_address,
+						   1, module_bias,
+						   pc, locops, nlocops,
+						   &tail, NULL);
+
+    /* Translate the ->bar->baz[NN] parts. */
+
+    Dwarf_Attribute attr_mem;
+    Dwarf_Attribute *attr = dwarf_attr (scope_die, DW_AT_type, &attr_mem);
+
+    Dwarf_Die vardie_mem;
+    Dwarf_Die *vardie = dwarf_formref_die (attr, &vardie_mem);
+
+    Dwarf_Die die_mem, *die = NULL;
+    die = translate_components (&pool, &tail, pc, components,
+				vardie, &die_mem, &attr_mem);
+
+    /* Translate the assignment part, either
+       x = $return->bar->baz[NN]
+       or
+       $return->bar->baz[NN] = x
+    */
+
+    string prelude, postlude;
+    translate_final_fetch_or_store (&pool, &tail, module_bias,
+				    die, &attr_mem, lvalue,
+				    prelude, postlude, ty);
+
+    /* Write the translation to a string. */
+    return express_as_string(prelude, postlude, head);
+  }
 
 
   ~dwflpp()
@@ -1996,12 +2068,19 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
   string expr;
   try 
     {
-      expr = q.dw.literal_stmt_for_local(scope_die,
-                                         addr,
-                                         e->base_name.substr(1),
-                                         e->components,
-                                         lvalue,
-                                         ty);
+      if (q.has_return && e->base_name == "$return")
+	expr = q.dw.literal_stmt_for_return (scope_die,
+					     addr,
+					     e->components,
+					     lvalue,
+					     ty);
+      else
+	expr = q.dw.literal_stmt_for_local(scope_die,
+					   addr,
+					   e->base_name.substr(1),
+					   e->components,
+					   lvalue,
+					   ty);
     }
   catch (const semantic_error& e)
     {
@@ -2747,17 +2826,29 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 		  + "_" + e->base_name.substr(1)
 		  + "_" + lex_cast<string>(tick++));
 
-  if (q.has_return)
+  if (q.has_return && e->base_name != "$return")
     throw semantic_error ("target variables not available to .return probes");
 
   try
     {
-      ec->code = q.dw.literal_stmt_for_local (scope_die,
-					      addr,
-					      e->base_name.substr(1),
-					      e->components,
-					      lvalue,
-					      fdecl->type);
+      if (q.has_return && e->base_name == "$return")
+        {
+	  ec->code = q.dw.literal_stmt_for_return (scope_die,
+						   addr,
+						   e->components,
+						   lvalue,
+						   fdecl->type);
+	}
+      else
+        {
+	  ec->code = q.dw.literal_stmt_for_local (scope_die,
+						  addr,
+						  e->base_name.substr(1),
+						  e->components,
+						  lvalue,
+						  fdecl->type);
+	}
+
       if (! lvalue)
         ec->code += "/* pure */";
     }

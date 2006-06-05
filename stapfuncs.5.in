@@ -166,6 +166,7 @@ Return 1 if the probe point is a return probe.  Deprecated.
 .TP
 retval:long ()
 Return the pending return value of the function being return-probed.
+Deprecated by the "$return" target variable. 
 
 .SS ERRNO
 .TP
