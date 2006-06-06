@@ -24,7 +24,7 @@ function _IS_ERR:long(ptr:long) %{
  *  task - a handle to the newly created process.
  */
 probe process.create = kernel.function("copy_process").return {
-    task = retval()
+    task = $return
     new_pid = task_pid(task)
     if (_IS_ERR(task)) next
 }
@@ -74,7 +74,7 @@ probe process.exec_complete =
     kernel.function("do_execve").return,
     kernel.function("compat_do_execve").return ?
 {
-    errno = retval()
+    errno = $return
     success = (errno >= 0)
 }
 
