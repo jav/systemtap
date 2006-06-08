@@ -1,3 +1,7 @@
+2006-06-08  Thang Nguyen  <thang.p.nguyen@intel.com>
+
+	* ioblock.stp: new (block I/O activities)
+
 2006-06-06  Josh Stone  <joshua.i.stone@intel.com>
 
 	* process.stp (create, exec_complete): replace retval() with $return

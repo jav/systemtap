@@ -1,0 +1,77 @@
+// Block I/O tapset
+// Copyright (C) 2006 Intel Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/blkdev.h>
+%}
+
+/* probe ioblock.submit 
+ *
+ *  Fires whenever a block I/O is submitted. 
+ *
+ * Context:
+ *  The process which submits block I/O 
+ *
+ * Arguments:
+ *  rw_string    - string (READ/WRITE).
+ *  rw           - binary trace for read/write
+ *  sector       - beginning sector for the entire bio
+ *  bio_devname  - block device name
+ */
+probe ioblock.submit
+        = kernel.function("submit_bio")
+{
+   rw_string      = bio_read_write($rw); 
+   rw             = $rw
+   sector         = $bio->bi_sector
+   bio_devname    = bio_devname($bio)
+}
+
+/* probe ioblock.end
+ *
+ *  Fires whenever a block I/O transfer is complete.
+ *
+ * Context:
+ *  The process which signals the transfer is done.
+ *
+ * Arguments:
+ *  rw_string    - string (READ/WRITE).
+ *  rw           - binary trace for read/write
+ *  sector       - beginning sector for the entire bio
+ *  bytes_done   - number of bytes done
+ *  error        - success: 0
+ *  bio_devname  - block device name
+ */
+probe ioblock.end
+        = kernel.function("bio_endio")
+{
+   rw_string      = bio_read_write($bio->bi_rw)
+   rw             = $bio->bi_rw
+   sector         = $bio->bi_sector
+   bytes_done     = $bytes_done;
+   error          = $error;
+   bio_devname    = bio_devname($bio)
+}
+
+
+/* Return the block device name */
+function bio_devname:string(bio:long)
+%{
+  char b[BDEVNAME_SIZE];
+  struct bio *bp;
+
+  bp = (struct bio *) ((unsigned long) THIS->bio);
+  bdevname(bp->bi_bdev,b);
+  sprintf(THIS->__retvalue,"%s",b);
+%}
+
+/* Return a READ/WRITE status string */
+function bio_read_write:string(var_rw:long)
+%{
+  sprintf(THIS->__retvalue,"%s", (THIS->var_rw & WRITE) ? "WRITE" : "READ");
+%}
