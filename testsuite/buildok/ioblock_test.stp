@@ -1,0 +1,11 @@
+#! stap -p4
+
+probe ioblock.submit {
+  log(pp())
+  printf("%s\t%d\t%s\t%d\n", bio_devname, sector, rw_string, rw)
+}
+
+probe ioblock.end {
+  log(pp())
+  printf("%s\t%d\t%d\t%s\t%d\t%d\n", bio_devname, sector, bytes_done, rw_string, rw, error)
+}

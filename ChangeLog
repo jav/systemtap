@@ -1,3 +1,7 @@
+2006-06-08  Thang P Nguyen  <thang.p.nguyen@intel.com>
+
+	* testsuite/buildok/ioblock_test.stp: test ioblock 
+
 2006-06-05  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (dwflpp::express_as_string): New function.
