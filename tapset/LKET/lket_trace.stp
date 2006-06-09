@@ -30,10 +30,7 @@ function lket_trace_header_init()
 #define BIG_ENDIAN             0x02
 #define BITS_WIDTH             64     /* 32-bit or 64-bit environment*/
 
-#define LKET_HEADER_LEN        0   /* fake number, bin_write will fill in the
-                                     actual length of trace header */
-
-	_stp_printf("%4b%2n%1b%1b%1b%1b", (_FMT_)MAGIC_NUMBER, (_FMT_)LKET_HEADER_LEN, 
+	_stp_printf("%4b%2n%1b%1b%1b%1b", (_FMT_)MAGIC_NUMBER,
 		(_FMT_)LKET_TRACE_VER_MAJOR, (_FMT_)LKET_TRACE_VER_MINOR, 
 		(_FMT_)BIG_ENDIAN, (_FMT_)BITS_WIDTH);
 	_stp_print_flush();
@@ -50,10 +47,7 @@ function lket_trace_init()
 #ifndef __LKET_TRACE__
 #define __LKET_TRACE__
 
-#define LKET_PKT_SYS 1
 #define LKET_PKT_BT 2
-#define LKET_PKT_USER 3
-
 
 #define MAX_FMT_LEN 128
 char new_sysfmt[MAX_FMT_LEN] = "\n%d|%d|%d|%d|%d|%d|%d|%d";
@@ -140,15 +134,11 @@ static inline int this_event_len(void)
 #define _lket_trace(GroupID, hookID, fmt, args...) do { \
 	struct timeval tv; \
 	do_gettimeofday (&tv); \
-	_stp_printf("%1b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
-		(_FMT_)LKET_PKT_SYS, (_FMT_)GroupID, (_FMT_)hookID, \
+	_stp_printf("%2b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
+		(_FMT_)0, (_FMT_)GroupID, (_FMT_)hookID, \
 		(_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec, (_FMT_)current->tgid, \
 		(_FMT_)current->parent->pid, (_FMT_)current->pid, \
 		(_FMT_)current->thread_info->cpu, args);\
-} while(0)
-
-#define _lket_trace_extra(fmt, args...)  do {\
-        _stp_printf("%1b%2n%0s"fmt, (_FMT_)LKET_PKT_USER, fmt, args);\
 } while(0)
 
 #endif
@@ -156,14 +146,9 @@ static inline int this_event_len(void)
 %}
 
 
-function lket_backtrace () %{
-        if (CONTEXT->regs) {
-                String str = _stp_string_init (0);
-                _stp_stack_sprint (str, CONTEXT->regs, 0);
-#if defined(ASCII_TRACE)
-                _stp_printf("|BACKTRACE: %s", _stp_string_ptr(str));
-#else
-                _stp_printf("%1b%2n%0s", (_FMT_)LKET_PKT_BT, _stp_string_ptr(str));
-#endif
-        }
+function update_record()
+%{
+	int cpu = smp_processor_id();
+	char *total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
+	*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
 %}

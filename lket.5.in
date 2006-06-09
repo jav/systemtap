@@ -215,19 +215,6 @@ Data format is:
 
 .I netdev_name, data_length, protocol, buffer_length
 
-.SH BACKTRACE
-
-You should use lket_backtrace() function to log backtrace for
-different events.
-
-It's simple to log backtrace, e.g:
-.SAMPLE
-probe addevent.scsi.ioentry
-{
-	lket_backtrace()
-}
-.ESAMPLE
-
 .SH TRACE DATA FORMAT
 
 By default, LKET will log the trace data in binary format.

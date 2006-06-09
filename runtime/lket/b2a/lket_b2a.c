@@ -20,9 +20,6 @@
 
 static long long start_timestamp;
 
-/* mapping table for [group, id, fmt] */
-int **groups[MAX_HOOKGROUP+1] = {NULL};
-
 /* Balanced binary search tree to store the 
    mapping of <pid, process name> */
 GTree *appNameTree;
@@ -31,32 +28,8 @@ GTree *appNameTree;
  * default hook format table,
  * based on tapsets/hookid_defs.stp and other hook specific files
  */
-static hook_fmt default_hook_fmts[] = {
-	//_GROUP_SYSCALL
-	{1, 1, "%s"}, 	//HOOKID_SYSCALL_ENTRY
-	{1, 2, "%s"}, 	//HOOKID_SYSCALL_RETURN
-	//_GROUP_PROCESS
-	{2, 1, "%4b%s"},//HOOKID_PROCESS_SNAPSHOT
-	{2, 2, "%s"}, 	//HOOKID_PROCESS_EXECVE
-	{2, 3, "%4b"}, 	//HOOKID_PROCESS_FORK
-	//_GROUP_IOSCHED
-	{3, 1, "%s%1b%1b"}, //HOOKID_IOSCHED_NEXT_REQ
-	{3, 2, "%s%1b%1b"}, //HOOKID_IOSCHED_ADD_REQ
-	{3, 3, "%s%1b%1b"}, //HOOKID_IOSCHED_REMOVE_REQ
-	//_GROUP_TASK
-	{4, 1, "%4b%4b%1b"},//HOOKID_TASK_CTXSWITCH
-	{4, 2, "%4b"},      //HOOKID_TASK_CPUIDLE
-	//_GROUP_SCSI
-	{5, 1, "%1b%1b%1b"}, 		//HOOKID_SCSI_IOENTRY
-	{5, 2, "%1b%4b%1b%8b%4b%8b"}, 	//HOOKID_SCSI_IO_TO_LLD
-	{5, 3, "%4b%1b%8b"}, 		//HOOKID_SCSI_IODONE_BY_LLD
-	{5, 4, "%4b%1b%8b%4b"}, 	//HOOKID_SCSI_IOCOMP_BY_MIDLEVEL
-	//_GROUP_PAGEFAULT
-	{6, 1, "%8b%1b"},  	//HOOKID_PAGEFAULT
-	//_GROUP_NETDEV
-	{7, 1, "%s%4b%2b%4b"}, 	//HOOKID_NETDEV_RECEIVE
-	{7, 2, "%s%4b%2b%4b"}  	//HOOKID_NETDEV_TRANSMIT
-};
+//event_desc events_des[MAX_EVT_TYPES][MAX_GRPID][MAX_HOOKID]; 
+event_desc **events_des[MAX_EVT_TYPES][MAX_GRPID]; 
 
 int main(int argc, char *argv[])
 {
@@ -79,6 +52,7 @@ int main(int argc, char *argv[])
 		printf("Unable to malloc infps\n");
 		return 1;
 	}
+
 	memset(infps, 0, total_infiles * sizeof(FILE *));
 	for(i=0; i < total_infiles; i++) {
 		infps[i] = fopen(argv[i+1], "r");
@@ -101,9 +75,6 @@ int main(int argc, char *argv[])
 	
 	/* create the search tree */
 	appNameTree = g_tree_new_full(compareFunc, NULL, NULL, destroyAppName);
-
-	// register all hookdata formats here
-	register_formats();
 
 	// find the lket header
 	find_init_header(infps, total_infiles, outfp);
@@ -133,15 +104,22 @@ int main(int argc, char *argv[])
 	do {
 		// j is the next
 		if(min) {
-			print_pkt_header(outfp, &hdrs[j]);
 
-			if(hdrs[j].hookgroup==2 &&
-				(hdrs[j].hookid==1 || hdrs[j].hookid==2))
+			if(hdrs[j].hookgroup==_GROUP_PROCESS &&
+				(hdrs[j].hookid==_HOOKID_PROCESS_SNAPSHOT 
+				|| hdrs[j].hookid==_HOOKID_PROCESS_EXECVE))
+			{
 				register_appname(j, infps[j], &hdrs[j]);
-
-			// write the remaining content from infd[j] to outfile
-			b2a_vsnprintf(get_fmt(hdrs[j].hookgroup, hdrs[j].hookid), 
-					infps[j], outfp, hdrs[j].size);
+			} else if(hdrs[j].hookgroup==_GROUP_REGEVT)  {
+				register_events(hdrs[j].hookid, infps[j], 
+					hdrs[j].sys_size);
+			} else  {
+				print_pkt_header(outfp, &hdrs[j]);
+				ascii_print(hdrs[j], infps[j], outfp, EVT_SYS);
+				if(hdrs[j].total_size != hdrs[j].sys_size)
+					ascii_print(hdrs[j], infps[j], outfp, EVT_USER);
+			}
+			fgetc_unlocked(infps[j]);
 			// update hdr[j]
 			get_pkt_header(infps[j], &hdrs[j]);
 		}
@@ -166,15 +144,6 @@ failed:
 		fclose(outfp);
 	
 	// free all allocated memory space
-	for(i=0; i <= MAX_HOOKGROUP; i++) {
-		if(groups[i]) {
-			for(j=0; j <= MAX_HOOKID; j++)
-				if(groups[i][j]) {
-					free(groups[i][j]);
-					groups[i][j] = NULL;
-				}
-		}
-	}
 	if(infps)
 		free(infps);
 	if(hdrs)
@@ -209,7 +178,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
-		fseek(fp, 0-len, SEEK_CUR);
+		//fseek(fp, 0-len, SEEK_CUR);
 	} else if (phdr->hookid == 2)  { /* process.execve */
 		pid = phdr->pid;
 
@@ -221,7 +190,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
-		fseek(fp, 0-len, SEEK_CUR);
+		//fseek(fp, 0-len, SEEK_CUR);
 	} else  {
 		free(appname);
 		return;
@@ -240,74 +209,6 @@ gint compareFunc(gconstpointer a, gconstpointer b, gpointer user_data)
 void destroyAppName(gpointer data)
 {
 	free(data);
-}
-
-/* The following are all supporting sub-functions */
-
-/*
- * register one hookdata fmt string for a [hookgroup, hookid] pair
- */
-int register_one_fmt(int hookgroup, int hookid, const char *fmt, size_t maxlen)
-{
-	void *ptr;
-
-	if(hookgroup < 0 || hookgroup > MAX_HOOKGROUP)
-		return -1;
-	if(hookid < 0 || hookid > MAX_HOOKID)
-		return -1;
-	if(!fmt || maxlen <= 0)
-		return -1;
-	if(groups[hookgroup] == NULL) {
-		// allocate hook aray for new group
-		ptr = malloc((MAX_HOOKID+1) * sizeof(char *));
-		if(!ptr)
-			return -1;
-		memset(ptr,0,(MAX_HOOKID+1) * sizeof(char *));
-		groups[hookgroup] = ptr;
-	}
-	if(groups[hookgroup][hookid] != NULL) {
-		free(groups[hookgroup][hookid]);
-		groups[hookgroup][hookid] = NULL;
-	}
-	assert(groups[hookgroup][hookid] == NULL);
-	ptr = malloc(maxlen);
-	if(!ptr)
-		return -1;
-	memset(ptr, 0, maxlen);
-	strncpy(ptr, fmt, maxlen);
-	groups[hookgroup][hookid] = ptr;
-	return 0;
-}
-
-/*
- * initialize all the hookdata fmt strings as required
- * called at the beginning of main()
- */
-void register_formats(void)
-{
-	int i, total;
-       
-	total = sizeof(default_hook_fmts)/sizeof(default_hook_fmts[0]);
-	if(total <= 0)
-		return;
-	for(i=0; i<total; i++)
-		register_one_fmt( default_hook_fmts[i].hookgrp,
-			default_hook_fmts[i].hookid, 
-			default_hook_fmts[i].fmt,
-			strlen(default_hook_fmts[i].fmt) + 1 );
-}
-
-/*
- * get the format string with [hookgroup, hookid] pair
- */
-const char *get_fmt(int hookgroup, int hookid)
-{
-	assert(hookgroup >= 0 && hookgroup <= MAX_HOOKGROUP );
-	assert(hookid >= 0 && hookid <= MAX_HOOKID );
-	if(groups[hookgroup] && groups[hookgroup][hookid])
-		return (const char *)groups[hookgroup][hookid];
-	else
-		return "<Bad Fmt>";
 }
 
 /* 
@@ -383,7 +284,8 @@ int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 	if(fread(phdr, 1, sizeof(lket_pkt_header), fp) < sizeof(lket_pkt_header))
 		goto bad;
 
-	phdr->size -= sizeof(lket_pkt_header)-sizeof(phdr->flag)-sizeof(phdr->size)-1;
+	phdr->sys_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
+	phdr->total_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
 
 	return 0;
 
@@ -399,7 +301,7 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
 	if(!fp || !phdr)
 		return;
-	fprintf(fp, "%lld.%lld APPNAME: %s PID:%d PPID:%d TID:%d CPU:%d HOOKGRP:%d HOOKID:%d HOOKDATA:",
+	fprintf(fp, "\n%lld.%lld APPNAME: %s PID:%d PPID:%d TID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
 		(phdr->sec*1000000LL + phdr->usec - start_timestamp)/1000000LL,
 		(phdr->sec*1000000LL + phdr->usec- start_timestamp)%1000000LL,
 		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)phdr->pid))),
@@ -410,170 +312,143 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 		phdr->hookgroup,
 		phdr->hookid);
 }
-static int skip_atoi(const char **s)
+
+void register_events(int evt_type, FILE *infp, size_t size)
 {
-	int i=0;
-	while (isdigit(**s))
-		i = i*10 + *((*s)++) - '0';
-	return i;
-}
+	int cnt=0, len=0;
 
-/* 
- * read fixed-length from the input binary file and write into 
- * the output file, based on the fmt string
- */
-void b2a_vsnprintf(const char *fmt, FILE *infp, FILE *outfile, size_t size)
-{
+	char *evt_body, *evt_fmt, *evt_names, *tmp, *fmt, *name;
+	int8_t grpid, hookid;
 
-	int	field_width, qualifier;
-	int	readbytes = 0;
-	int	c;
-	int16_t stemp;
-	int32_t ntemp;
-	long 	ltemp;
-	long long lltemp;
-	short	length;
-	char	format[128];
+	evt_body = malloc(size);
 
-	if(size <= 0 || !outfile)
-		return;
+	fread(evt_body, size, 1, infp);
 
-	for(; *fmt; ++fmt) {
-		
-		if (*fmt != '%') {
-			if (readbytes < size) {
-				c = fgetc_unlocked(infp);
-				++readbytes;
-				fputc_unlocked(*fmt, outfile);
-				continue;
-			}
-			goto filled;
-		}
+	grpid = *(int8_t *)evt_body;
+	hookid  = *(int8_t *)(evt_body+1);
+	
+	evt_fmt = evt_body+2;
+	
+	for(tmp=evt_fmt; *tmp!=0; tmp++);
 
-		++fmt;
-		qualifier = -1;
-		if (*fmt == 'l' || *fmt == 'L') {
-			qualifier = *fmt;
-			++fmt;
-			if (qualifier == 'l' && *fmt == 'l') {
-				qualifier = 'L';
-				++fmt;
-			}
-		}
+	evt_names = tmp+1;
 
-		field_width = -1;
-		if (isdigit(*fmt))
-			field_width = skip_atoi(&fmt);
-			
-		switch (*fmt) {
-			case 's':
-				c = fgetc_unlocked(infp);
-				++readbytes;
-				while (c && readbytes < size) {
-					fputc_unlocked(c, outfile);
-					c = fgetc_unlocked(infp);
-					++readbytes;
-				}
-				if(!c) {
-					fputc_unlocked(' ', outfile);
-					continue;
-				}
-				else
-					goto filled;
-			case 'd':
-			case 'i':
-				if (qualifier == 'l') {
-					if(readbytes + sizeof(long) > size)
-						goto filled;
-					fread(&ltemp, sizeof(long), 1, infp);
-					readbytes += sizeof(long);
-					fprintf(outfile,"%ld ", (long)ltemp);
-				}
-				else if (qualifier == 'L') {
-					if(readbytes + sizeof(long long) > size)
-						goto filled;
-					fread(&lltemp, sizeof(int64_t), 1, infp);
-					readbytes += sizeof(long long);
-					fprintf(outfile,"%lld ", lltemp);
-				}
-				else {
-					if(readbytes + 4 > size)
-						goto filled;
-					fread(&ntemp, 4, 1, infp);
-					readbytes += 4;
-					fprintf(outfile,"%d ", (int32_t)ntemp);
-				}
-				break;
-			case 'b':
-				if(field_width != 1 && field_width != 2
-					&& field_width != 4 && field_width != 8)
-					field_width = 4;
-				if(readbytes + field_width > size)
-					goto filled;
+	fmt = strsep(&evt_fmt, ":");
+	name = strsep(&evt_names, ":");
 
-				//read(infd, &temp, field_width);
-				switch(field_width) {
-					case 1: 
-						c = fgetc_unlocked(infp);
-						fprintf(outfile, "%d ", (int8_t)c);
-						break;
-					case 2: 
-						fread(&stemp, 2, 1, infp);
-						fprintf(outfile, "%d ", (int16_t)stemp);
-						break;
-					case 8: 
-						fread(&lltemp, 8, 1, infp);
-						fprintf(outfile, "%lld ",lltemp);
-						break;
-					case 4:
-					default:
-						fread(&ntemp, 4, 1, infp);
-						fprintf(outfile, "%d ", (int32_t)ntemp);
-						break;
-					}
-				readbytes += field_width;
-				break;
-			default:
-				if(readbytes >= size)
-					goto filled;
-				c = fgetc_unlocked(infp);
-				++readbytes;
-				fputc_unlocked(c, outfile);
-				if (*fmt) {
-					if( readbytes >= size)
-						goto filled;
-					c = fgetc_unlocked(infp);
-					++readbytes;
-					fputc_unlocked(c, outfile);
-				} else {
-					--fmt;
-				}
-				continue;
-		}
+	if(fmt==NULL || name==NULL)  {
+		printf("error in event format/names string\n");
+		exit(-1);
 	}
 
-filled:
+	if(events_des[evt_type][grpid] == NULL)  {
+		events_des[evt_type][grpid] 
+		= malloc(sizeof(event_desc *)*MAX_HOOKID);
+	}
+	if(events_des[evt_type][grpid][hookid] == NULL)  {
+		events_des[evt_type][grpid][hookid]
+		= malloc(sizeof(event_desc));
+	}
 
-	readbytes = 0;
+	while(fmt!=NULL && name!=NULL)  {
+		strncpy(events_des[evt_type][grpid][hookid]->evt_fmt[cnt], fmt, 7);
+		strncpy(events_des[evt_type][grpid][hookid]->evt_names[cnt], name, 64);
+		strncpy(events_des[evt_type][grpid][hookid]->fmt+len, get_fmtstr(fmt), 8);
+		len+=strlen(get_fmtstr(fmt));
+		fmt = strsep(&evt_fmt, ":");
+		name = strsep(&evt_names, ":");
+		cnt++;
+	}
+	events_des[evt_type][grpid][hookid]->count = cnt;
+	*(events_des[evt_type][grpid][hookid]->fmt+len)='\0';
+	free(evt_body);
+}
 
-	c=fgetc_unlocked(infp);
+char *get_fmtstr(char *fmt)
+{
+        if(strncmp(fmt, "INT8", 4) == 0)
+		return "%1b";
+        if(strncmp(fmt, "INT16", 5) == 0)
+		return "%2b";
+        if(strncmp(fmt, "INT32", 5) == 0)
+		return "%4b";
+        if(strncmp(fmt, "INT64", 5) == 0)
+		return "%8b";
+        if(strncmp(fmt, "STRING", 6) == 0)
+		return "%0s";
+	return "";
+}
 
-	if(c == LKET_PKT_BT)  {
-		fread(&length, 2, 1, infp);
-		strncpy(format, "BACKTRACE: ", 12);
-		fwrite(format, 11, 1, outfile);
-		strncpy(format, "%0s", 4);		
-		b2a_vsnprintf(format, infp, outfile, length);
-	}  else if(c == LKET_PKT_USER)  {
-		fread(&length, 2, 1, infp);
-		strncpy(format, "USER: ", 6);
-		fwrite(format, 6, 1, outfile);
-		do {
+void ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type)
+{
+	int i, c;
+	int16_t stemp;
+	int32_t ntemp;
+	long long lltemp;
+	int	readbytes = 0;
+	int size;
+
+	char *fmt, *name, *buffer;
+	int grpid = header.hookgroup;
+	int hookid = header.hookid;
+
+
+	if(evt_type == EVT_SYS) 
+		size = header.sys_size;
+	else
+		size = header.total_size - header.sys_size;
+
+	if(events_des[evt_type][grpid] == NULL)
+		return;
+	if(events_des[evt_type][grpid][hookid] == NULL)
+		return;
+
+	if(events_des[evt_type][grpid][hookid]->count <= 0 || !outfile)
+		return;
+
+	if(events_des[evt_type][grpid][hookid]->evt_fmt[0][0] == '\0')  {
+		//no format is provided, dump in hex
+		buffer = malloc(size);
+		fread(buffer, size, 1, infp);
+		fwrite(buffer, size, 1, outfile);
+		return;
+	}
+
+	for(i=0; i<events_des[evt_type][grpid][hookid]->count; i++)  {
+		fmt = events_des[evt_type][grpid][hookid]->evt_fmt[i];
+		name = events_des[evt_type][grpid][hookid]->evt_names[i];
+		fwrite(name, strlen(name), 1, outfile);
+		fwrite(":", 1, 1, outfile);
+		if(strncmp(fmt, "INT8", 4)==0)  {
 			c = fgetc_unlocked(infp);
-			format[readbytes++] = c;
-		} while(c);
-		b2a_vsnprintf(format, infp, outfile, length - readbytes);
-	} else  {
-		fputc_unlocked('\n', outfile);
+			fprintf(outfile, "%d,", (int8_t)c);
+			readbytes+=1;
+		} else if(strncmp(fmt, "INT16", 5)==0)  {
+			fread(&stemp, 2, 1, infp);
+			fprintf(outfile, "%d,", (int16_t)stemp);
+			readbytes+=2;
+		} else if(strncmp(fmt, "INT32", 5)==0) {
+			fread(&ntemp, 4, 1, infp);
+			fprintf(outfile, "%d,", (int32_t)ntemp);
+			readbytes+=4;
+		} else if(strncmp(fmt, "INT64", 5)==0) {
+			fread(&lltemp, 8, 1, infp);
+			fprintf(outfile, "%lld,",lltemp);
+			readbytes+=8;
+		} else if(strncmp(fmt, "STRING", 6)==0)  {
+			c = fgetc_unlocked(infp);
+			++readbytes;
+			while (c && readbytes < size) {
+				fputc_unlocked(c, outfile);
+				c = fgetc_unlocked(infp);
+				++readbytes;
+			}
+			if(!c) {
+				fputc_unlocked(',', outfile);
+				continue;
+			}
+			else
+				return;
+		}
 	}
 }

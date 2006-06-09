@@ -6,8 +6,36 @@
 // later version.
 
 probe addevent.syscall
-	= addevent.syscall.entry, addevent.syscall.return
+	= addevent.syscall.entry,
+	addevent.syscall.return
+{}
+
+probe addevent.syscall.entry
+	+= _addevent.syscall.entry
 {
+	update_record()
+}
+
+probe _addevent.syscall.entry
+	= syscall.*
+{
+	if(filter_by_pid() == 1 ) {
+		log_syscall_tracedata(HOOKID_SYSCALL_ENTRY, name)
+	}
+}
+
+probe addevent.syscall.return
+	+= _addevent.syscall.return
+{
+	update_record()
+}
+
+probe _addevent.syscall.return
+	= syscall.*.return
+{
+	if(filter_by_pid() == 1 ) {
+		log_syscall_tracedata(HOOKID_SYSCALL_RETURN, name)
+	}
 }
 
 /* log the system call name */
@@ -17,18 +45,3 @@ function log_syscall_tracedata(var_id:long, name:string)
 %}
 
 
-probe addevent.syscall.entry
-	= syscall.*
-{
-	if(filter_by_pid() == 1 ) {
-		log_syscall_tracedata(HOOKID_SYSCALL_ENTRY, name)
-	}
-}
-
-probe addevent.syscall.return
-	= syscall.*.return
-{
-	if(filter_by_pid() == 1 ) {
-		log_syscall_tracedata(HOOKID_SYSCALL_RETURN, name)
-	}
-}

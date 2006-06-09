@@ -10,12 +10,18 @@
 %}
 
 probe addevent.netdev
-	=  addevent.netdev.receive, addevent.netdev.transmit
-{
-}
+	= addevent.netdev.receive,
+	addevent.netdev.transmit
+{}
 
 /* Main device receive routine, be called when packet arrives on network device */
 probe addevent.netdev.receive
+	+= _addevent.netdev.receive
+{
+	update_record()
+}
+
+probe _addevent.netdev.receive
 	=  netdev.receive
 {
 	/* no need to filter by pid */
@@ -24,6 +30,12 @@ probe addevent.netdev.receive
 
 /* Queue a buffer for transmission to a network device */
 probe addevent.netdev.transmit
+	+= _addevent.netdev.transmit
+{
+	update_record()
+}
+
+probe _addevent.netdev.transmit
 	=  netdev.transmit
 {
 	if(filter_by_pid() == 1 ) {

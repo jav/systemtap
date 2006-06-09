@@ -1,3 +1,9 @@
+2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* *.stp: New design of making user able to append extra trace data.
+	lket_backtrace() is deleted.
+	* register_event.stp: write the metainfo of trace data.
+	
 2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* *.stp: make user able to append extra trace data. The

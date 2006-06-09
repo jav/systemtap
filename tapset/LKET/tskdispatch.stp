@@ -15,14 +15,20 @@
 * specifying probe points by label.                       *
 *                                                         *
 **********************************************************/
+
 probe addevent.tskdispatch
-	= addevent.tskdispatch.ctxswitch, 
-	addevent.tskdispatch.cpuidle
-{
-}
+	= addevent.tskdispatch.cpuidle,
+	addevent.tskdispatch.ctxswitch
+{}
 
 /* Only applicable to SMP systems */
 probe addevent.tskdispatch.cpuidle
+	+= _addevent.tskdispatch.cpuidle
+{
+	update_record()
+}
+
+probe _addevent.tskdispatch.cpuidle
 	= scheduler.balance
 {
 	/* we didn't call filter_by_pid() here,
@@ -32,6 +38,12 @@ probe addevent.tskdispatch.cpuidle
 }
 
 probe addevent.tskdispatch.ctxswitch
+	+= _addevent.tskdispatch.ctxswitch
+{
+	update_record()
+}
+
+probe _addevent.tskdispatch.ctxswitch
 	= scheduler.ctxswitch
 {
 	target_pid = target()

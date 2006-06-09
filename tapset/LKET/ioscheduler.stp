@@ -6,14 +6,21 @@
 // later version.
 
 probe addevent.ioscheduler
-	= addevent.ioscheduler.elv_next_request, 
-	addevent.ioscheduler.elv_completed_request,
-	addevent.ioscheduler.elv_add_request
+	= addevent.ioscheduler.elv_next_request,
+	addevent.ioscheduler.elv_add_request,
+	addevent.ioscheduler.elv_completed_request
 {
 }
 
+	
 /* when a request is retrieved from request queue */
 probe addevent.ioscheduler.elv_next_request
+	+= _addevent.ioscheduler.elv_next_request
+{
+	update_record()
+}
+
+probe _addevent.ioscheduler.elv_next_request
 	=  ioscheduler.elv_next_request
 {
 	if(filter_by_pid() == 1 ) {
@@ -24,6 +31,12 @@ probe addevent.ioscheduler.elv_next_request
 
 /* when a request is added to the request queue */
 probe addevent.ioscheduler.elv_add_request
+	+= _addevent.ioscheduler.elv_add_request
+{
+	update_record()
+}
+
+probe _addevent.ioscheduler.elv_add_request
 	= ioscheduler.elv_add_request
 {
 	if(filter_by_pid() == 1 ) {
@@ -33,6 +46,12 @@ probe addevent.ioscheduler.elv_add_request
 
 /* when a request is completed */
 probe addevent.ioscheduler.elv_completed_request
+	+= _addevent.ioscheduler.elv_completed_request
+{
+	update_record()
+}
+
+probe _addevent.ioscheduler.elv_completed_request
 	= ioscheduler.elv_completed_request
 {
 	if(filter_by_pid() == 1 ) {

@@ -261,7 +261,6 @@ struct print_format: public expression
 {
   bool print_with_format;
   bool print_to_stream;
-  bool lket_trace_extra;
 
   enum format_flag
     {

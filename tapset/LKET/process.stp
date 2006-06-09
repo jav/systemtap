@@ -30,6 +30,8 @@ function process_snapshot()
 %{
 	struct task_struct *tsk;
 	struct list_head *cur, *head;
+	int cpu = smp_processor_id();
+	char *total_length;
 	head = &(current->tasks);
 
 	/* iterate all the processes, and record the pid and process
@@ -38,21 +40,29 @@ function process_snapshot()
 		tsk = (struct task_struct *)(list_entry(cur, struct task_struct, tasks));
 		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", 
 			(_FMT_)tsk->pid, tsk->comm);
+
+		total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
+		*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
 		_stp_print_flush();
 	}
 %}
 
-
 probe addevent.process
-	=  addevent.process.fork, addevent.process.execve
-{
-}
+	= addevent.process.execve,
+	addevent.process.fork
+{}
 
 /* 
   we should capture both do_execve for 64-bit app
   and compat_do_execve for 32-bit app           
 */
 probe addevent.process.execve
+	+= _addevent.process.execve
+{
+	update_record()
+}
+
+probe _addevent.process.execve
 	=  process.exec
 {
 	if(filter_by_pid() == 1 ) {
@@ -61,6 +71,12 @@ probe addevent.process.execve
 }
 
 probe addevent.process.fork
+	+= _addevent.process.fork
+{
+	update_record()
+}
+
+probe _addevent.process.fork
 	= process.create
 {
 	if(filter_by_pid() == 1 ) {

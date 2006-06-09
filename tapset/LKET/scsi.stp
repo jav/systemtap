@@ -28,11 +28,16 @@ probe addevent.scsi
 	addevent.scsi.iodispatching,
 	addevent.scsi.iodone,
 	addevent.scsi.iocompleted
-{
-}
+{}
 
 /* mid-layer prepare a IO request */
 probe addevent.scsi.ioentry
+	+= _addevent.scsi.ioentry
+{
+	update_record()
+}
+
+probe _addevent.scsi.ioentry
 	= scsi.ioentry
 {
 	log_scsi_ioentry(HOOKID_SCSI_IOENTRY, $q, $req)
@@ -40,6 +45,12 @@ probe addevent.scsi.ioentry
 
 /* Dispatch a command to the low-level driver. */
 probe addevent.scsi.iodispatching
+	+= _addevent.scsi.iodispatching
+{
+	update_record()
+}
+
+probe _addevent.scsi.iodispatching
 	= scsi.iodispatching
 {
 	log_scsi_dispatch(HOOKID_SCSI_IO_TO_LLD, $cmd)
@@ -47,6 +58,12 @@ probe addevent.scsi.iodispatching
 
 /* I/O is done by low-level driver*/
 probe addevent.scsi.iodone
+	+= _addevent.scsi.iodone
+{
+	update_record()
+}
+
+probe _addevent.scsi.iodone
 	= scsi.iodone
 {
 	/* scsi timer check. We should record the hook only
@@ -60,6 +77,12 @@ probe addevent.scsi.iodone
 
 /* mid-layer processes the completed IO */
 probe addevent.scsi.iocompleted
+	+= _addevent.scsi.iocompleted
+{
+	update_record()
+}
+
+probe _addevent.scsi.iocompleted
 	= scsi.iocompleted
 {
 	log_scsi_iocompleted(HOOKID_SCSI_IOCOMP_BY_MIDLEVEL, $cmd, $good_bytes)

@@ -1,3 +1,10 @@
+2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
+
+	* parse.cxx, staptree.cxx, staptree.h, translate.cxx:
+	delete lket_trace_extra
+	* lket.5.in: delete the description of backtrace in
+	LKET
+
 2006-06-08  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/ioblock_test.stp: test ioblock 

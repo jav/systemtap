@@ -13,6 +13,12 @@ function log_pagefault_tracedata(var_id:long, var_addr:long, var_rwflag:long)
 
 /* Record the page fault event */
 probe addevent.pagefault
+	+= _addevent.pagefault
+{
+	update_record()
+}
+
+probe _addevent.pagefault
 	=  pagefault
 {
 	if(filter_by_pid() == 1 ) {

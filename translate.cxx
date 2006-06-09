@@ -3591,10 +3591,7 @@ c_unparser::visit_print_format (print_format* e)
       if (e->print_to_stream)
         {
           o->newline() << res.qname() << " = 0;";
-          if(e->lket_trace_extra)
-                  o->newline() << "_lket_trace_extra (";
-          else
-                  o->newline() << "_stp_printf (";
+	  o->newline() << "_stp_printf (";
         }
       else
 	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";

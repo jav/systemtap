@@ -1,0 +1,164 @@
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+global evt_name, evt_fmt
+global usr_evt_name, usr_evt_fmt
+
+%{
+
+#define _MAXGROUPID  20
+#define _MAXHOOKID   20
+
+int get_fmtcode(char *fmt)
+{
+	if(strncmp(fmt, "INT8", 4) != 0 &&
+		strncmp(fmt, "INT16", 5) != 0 &&
+		strncmp(fmt, "INT32", 5) != 0 &&
+		strncmp(fmt, "INT64", 5) != 0 &&
+		strncmp(fmt, "STRING", 6) != 0)  
+		return -1;
+	else
+		return 0;
+}
+
+%}
+
+function dummy_c_function()
+%{
+%}
+
+function register_user_event(grpid:long, hookid:long,fmt:string, name:string) 
+{
+	usr_evt_fmt[grpid, hookid] = fmt
+	usr_evt_name[grpid, hookid] = name
+	dummy_c_function() /* ensure register_user_event won't be compiled away */
+}
+
+function register_sys_event(grpid:long, hookid:long,fmt:string, name:string) 
+{
+	evt_fmt[grpid, hookid] = fmt
+	evt_name[grpid, hookid] = name
+	dummy_c_function() /* ensure register_user_event won't be compiled away */
+}
+
+
+function write_events_desc()
+{
+	foreach([grpid, hookid] in evt_fmt)
+	{
+		register_event(grpid, hookid, HOOKID_REGSYSEVT, 
+			evt_fmt[grpid, hookid], evt_name[grpid, hookid])
+	}
+	foreach([grpid, hookid] in usr_evt_fmt)
+	{
+		register_event(grpid, hookid, HOOKID_REGUSREVT,
+			usr_evt_fmt[grpid, hookid], usr_evt_name[grpid, hookid])
+	}
+
+	delete evt_name
+	delete evt_fmt
+	delete usr_evt_name
+	delete usr_evt_fmt
+}	
+
+function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, names:string)
+%{
+	char in_fmt[512], in_name[512];
+	char *p_in_fmt, *p_in_name;
+	char *fmt, *name;
+        int cpu = smp_processor_id();
+	char *total_length;
+	p_in_fmt = in_fmt;
+	p_in_name = in_name;
+
+	if(THIS->fmt==NULL || THIS->names==NULL)  {
+		_stp_warn("error fmt/names in register_user_event\n");
+		_stp_exit();
+	}
+
+	if( THIS->grpid <= 0 || THIS->grpid > _MAXGROUPID ||
+		THIS->hookid <= 0 || THIS->hookid > _MAXHOOKID)  {
+		_stp_warn("wrong range in groupid/hookid\n");
+		_stp_exit();
+	}
+
+	strncpy(in_fmt, THIS->fmt, 512);
+	strncpy(in_name, THIS->names, 512);
+
+	fmt = strsep(&p_in_fmt, ":");
+	name = strsep(&p_in_name, ":");
+
+	while(fmt!=NULL && name!=NULL)  {
+		if(get_fmtcode(fmt) == -1)  {
+			_stp_warn("error in fmt string\n");
+			_stp_exit();
+		}
+		fmt = strsep(&p_in_fmt, ":");
+		name = strsep(&p_in_name, ":");
+	}
+
+	if(fmt!=NULL || name != NULL)  {
+		_stp_warn("unpaired types/names\n");
+		_stp_exit();
+	}
+
+	_lket_trace(_GROUP_REGEVT, THIS->evt_type, "%1b%1b%0s%0s", THIS->grpid,
+		THIS->hookid, THIS->fmt, THIS->names); 
+
+        total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
+        *(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+
+	_stp_print_flush();
+%}
+
+function register_sys_events()
+{
+	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, "STRING", "Syscall")
+	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_RETURN, "STRING", "Syscall")
+		
+	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_SNAPSHOT,
+		"INT32:STRING", "PID:PNAME")
+	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_EXECVE,
+		"STRING", "PNAME")
+	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_FORK,
+		"INT32", "PID")
+
+	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ,
+		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_ADD_REQ,
+		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_REMOVE_REQ,
+		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+
+	register_sys_event(GROUP_TASK, HOOKID_TASK_CTXSWITCH,
+		"INT32:INT32:INT8", "Prev_PID:Next_PID:Prev_State")
+	register_sys_event(GROUP_TASK, HOOKID_TASK_CPUIDLE,
+		"INT32", "CurrPID")
+
+	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOENTRY,
+		"INT8:INT8:INT8", "MAJOR:MINOR:SDEV_STATE")
+	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
+		"INT8:INT32:INT8:INT64:INT32:INT64",
+		"SDEV_STATE:SCSI_INFO:Data_Dir:Req_Buf:Buf_Len:Cmd_ID")
+	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
+		"INT32:INT8:INT64", "SCSI_INFO:Data_Dir:Cmd_ID")
+	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOCOMP_BY_MIDLEVEL,
+		"INT32:INT8:INT64:INT32", "SCSI_INFO:Data_Dir:Cmd_ID:Bytes");
+
+	register_sys_event(GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
+		"INT64:INT8", "ADDR:WRITE")
+
+	register_sys_event(GROUP_NETDEV, HOOKID_NETDEV_RECEIVE,
+		"STRING:INT32:INT16:INT32", "DEV_NAME:Data_LEN:Protocol:Buff_Size")
+	register_sys_event(GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
+		"STRING:INT32:INT16:INT32", "DEV_NAME:Data_LEN:Protocol:Buff_Size")
+}
+
+probe register_event = begin
+{
+	hookid_init()
+}
