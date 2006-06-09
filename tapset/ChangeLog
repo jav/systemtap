@@ -1,3 +1,8 @@
+2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* syscall.stp: made sys_ftruncate64 optional since it doesn't
+	exist on 2.6.16*/ppc64
+
 2006-06-08  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* ioblock.stp: new (block I/O activities)
