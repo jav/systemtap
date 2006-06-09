@@ -1924,12 +1924,11 @@ probe syscall.symlink.return = kernel.function("sys_symlink").return {
 # asmlinkage long
 # sys_sync(void)
 #
-probe syscall.sync = kernel.function("do_sync") {
+probe syscall.sync = kernel.function("sys_sync") {
 	name = "sync"
-	wait = $wait
 	argstr = ""
 }
-probe syscall.sync.return = kernel.function("do_sync").return {
+probe syscall.sync.return = kernel.function("sys_sync").return {
 	name = "sync"
 	retstr = returnstr(1)
 }

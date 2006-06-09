@@ -1,6 +1,10 @@
 2006-06-09  Martin Hunt  <hunt@redhat.com>
 
-	* syscalls2.stp: Fixed the uid and gid calls.
+	* syscalls2.stp: Fix sys_sync.
+
+2006-06-09  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp: Fixed the uid and gid calls.	
 
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
 	
