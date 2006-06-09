@@ -1,3 +1,9 @@
+2006-06-09  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c: Using the default workqueue was causing problems
+	because of the long delays on probe_exit(). Created a new
+	systemtap work queue and used that instead.
+
 2006-06-05  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_write): Always use spin_lock_irqsave() because

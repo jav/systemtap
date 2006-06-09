@@ -40,6 +40,7 @@ void _stp_exit(void);
 void _stp_handle_start (struct transport_start *st);
 static void _stp_work_queue (void *data);
 static DECLARE_WORK(stp_exit, _stp_work_queue, NULL);
+static struct workqueue_struct *_stp_wq;
 int _stp_transport_open(struct transport_info *info);
 
 #include "procfs.c"
@@ -130,7 +131,9 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 	if (!_stp_exit_called) {
 		_stp_exit_called = 1;
 
+		kbug("calling probe_exit\n");
 		probe_exit();
+		kbug("done with probe_exit\n");
 
 		failures = atomic_read(&_stp_transport_failures);
 		if (failures)
@@ -141,7 +144,9 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 			relay_flush(_stp_chan);
 		}
 #endif
+		kbug("transport_send STP_EXIT\n");
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
+		kbug("done with transport_send STP_EXIT\n");
 	}
 }
 
@@ -164,10 +169,11 @@ static void _stp_work_queue (void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
 		cancel_delayed_work(&stp_exit);
+		flush_workqueue(_stp_wq);
 		_stp_cleanup_and_exit(0);
 		wake_up_interruptible(&_stp_proc_wq);
 	} else
-		schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
+		queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
 }
 
 /**
@@ -180,6 +186,7 @@ void _stp_transport_close()
 {
 	kbug("************** transport_close *************\n");
 	cancel_delayed_work(&stp_exit);
+	flush_workqueue(_stp_wq);
 	_stp_cleanup_and_exit(1);
 	wake_up_interruptible(&_stp_proc_wq);
 #ifdef STP_RELAYFS
@@ -260,7 +267,8 @@ int _stp_transport_init(void)
 	if (_stp_register_procfs() < 0)
 		return -1;
 
-	schedule_delayed_work(&stp_exit, STP_WORK_TIMER);
+	_stp_wq = create_workqueue("systemtap");
+	queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
 	return 0;
 }
 
