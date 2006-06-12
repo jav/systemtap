@@ -78,59 +78,56 @@ probe syscall.nanosleep.return = kernel.function("sys_nanosleep").return {
 #		  struct stat __user * statbuf)
 #
 probe syscall.newfstat = kernel.function("sys_newfstat") {
-	name = "newfstat"
+	name = "fstat"
 	fd = $fd
 	buf_uaddr = $statbuf
 	argstr = sprintf("%d, [%p]", fd, buf_uaddr)
 }
 probe syscall.newfstat.return = kernel.function("sys_newfstat").return {
-	name = "newfstat"
+	name = "fstat"
 	retstr = returnstr(1)
 }
 # newlstat ___________________________________________________
 #
-# asmlinkage long
-# sys_newlstat(char __user * filename,
+# long sys_newlstat(char __user * filename,
 #		  struct stat __user * statbuf)
 #
 probe syscall.newlstat = kernel.function("sys_newlstat") {
-	name = "newlstat"
+	name = "lstat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
 	argstr = sprintf("\"%s\", [%p]", pathname, buf_uaddr)  
 }
 probe syscall.newlstat.return = kernel.function("sys_newlstat").return {
-	name = "newlstat"
+	name = "lstat"
 	retstr = returnstr(1)
 }
 # newstat ____________________________________________________
 #
-# asmlinkage long
-# sys_newstat(char __user * filename,
+# long sys_newstat(char __user * filename,
 #		 struct stat __user * statbuf)
 #
 probe syscall.newstat = kernel.function("sys_newstat") {
-	name = "newstat"
+	name = "stat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
 	argstr = sprintf("\"%s\", [%p]", pathname, buf_uaddr)
 }
 probe syscall.newstat.return = kernel.function("sys_newstat").return {
-	name = "newstat"
+	name = "stat"
 	retstr = returnstr(1)
 }
 # newuname ___________________________________________________
 #
-# asmlinkage long
-# sys_newuname(struct new_utsname __user * name)
+# long sys_newuname(struct new_utsname __user * name)
 #
 probe syscall.newuname = kernel.function("sys_newuname") {
-	name = "newuname"
+	name = "uname"
 	name_uaddr = $name
 	argstr = sprintf("[%p]", name_uaddr)
 }
 probe syscall.newuname.return = kernel.function("sys_newuname").return {
-	name = "newuname"
+	name = "uname"
 	retstr = returnstr(1)
 }
 # nfsservctl _________________________________________________
@@ -1033,13 +1030,12 @@ probe syscall.send.return = kernel.function("sys_sendto").return {
 }
 # sendfile ___________________________________________________
 #
-# asmlinkage ssize_t
-# sys_sendfile(int out_fd,
+# ssize_t sys_sendfile[64](int out_fd,
 #		  int in_fd,
 #		  off_t __user *offset,
 #		  size_t count)
 #
-probe syscall.sendfile = kernel.function("sys_sendfile") {
+probe syscall.sendfile = kernel.function("sys_sendfile") ?, kernel.function("sys_sendfile64") ? {
 	name = "sendfile"
 	out_fd = $out_fd
 	in_fd = $in_fd
@@ -1048,31 +1044,11 @@ probe syscall.sendfile = kernel.function("sys_sendfile") {
 	argstr = sprintf("%d, %d, [%p], %d", $out_fd, $in_fd, offset_uaddr,
 				$count)
 }
-probe syscall.sendfile.return = kernel.function("sys_sendfile").return {
+probe syscall.sendfile.return = kernel.function("sys_sendfile").return ?,  kernel.function("sys_sendfile64").return ? {
 	name = "sendfile"
 	retstr = returnstr(1)
 }
-# sendfile64 _________________________________________________
-#
-# asmlinkage ssize_t
-# sys_sendfile64(int out_fd,
-#		    int in_fd,
-#		    loff_t __user *offset,
-#		    size_t count)
-#
-probe syscall.sendfile64 = kernel.function("sys_sendfile64") {
-	name = "sendfile64"
-	out_fd = $out_fd
-	in_fd = $in_fd
-	offset_uaddr = $offset
-	count = $count
-	argstr = sprintf("%d, %d, [%p], %d", $out_fd, $in_fd, offset_uaddr,
-				$count)
-}
-probe syscall.sendfile64.return = kernel.function("sys_sendfile64").return {
-	name = "sendfile64"
-	retstr = returnstr(1)
-}
+
 # sendmsg ____________________________________________________
 #
 # asmlinkage long
@@ -2161,23 +2137,25 @@ probe syscall.tkill.return = kernel.function("sys_tkill").return {
 	name = "tkill"
 	retstr = returnstr(1)
 }
+
 # truncate ___________________________________________________
 #
 # asmlinkage long
-# sys_truncate(const char __user * path,
-#		  unsigned long length)
+# sys_truncate(const char __user * path, unsigned long length)
+# sys_truncate64(const char __user * path, loff_t length)
 #
-probe syscall.truncate = kernel.function("sys_truncate") {
+probe syscall.truncate = kernel.function("sys_truncate")?, kernel.function("sys_truncate64") ? {
 	name = "truncate"
 	path_uaddr = $path
 	path = user_string($path)
 	length = $length
 	argstr = sprintf("\"%s\", %d", path, $length)
 }
-probe syscall.truncate.return = kernel.function("sys_truncate").return {
+probe syscall.truncate.return = kernel.function("sys_truncate").return ?, kernel.function("sys_truncate64") ? {
 	name = "truncate"
 	retstr = returnstr(1)
 }
+
 # umount _____________________________________________________
 # long sys_umount(char __user * name, int flags)
 #

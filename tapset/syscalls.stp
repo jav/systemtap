@@ -689,6 +689,20 @@ probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return {
 	retstr = returnstr(1)
 }
 
+# fstat ______________________________________________________
+# long sys_fstat(unsigned int fd, struct __old_kernel_stat __user * statbuf)
+# long sys_fstat64(unsigned long fd, struct stat64 __user * statbuf)!run
+probe syscall.fstat = kernel.function("sys_fstat") ?, kernel.function("sys_fstat64") ? {
+	name = "fstat"
+	filedes = $fd
+	buf_uaddr = $statbuf
+	argstr = sprintf("%d, [%p]", $fd, $statbuf)
+}
+probe syscall.fstat.return = kernel.function("sys_fstat").return ?, kernel.function("sys_fstat64").return ? {
+	name = "fstat"
+	retstr = returnstr(1)
+}
+
 # fstatfs ____________________________________________________
 # long sys_fstatfs(unsigned int fd, struct statfs __user * buf)
 probe syscall.fstatfs = kernel.function("sys_fstatfs") {
@@ -705,14 +719,14 @@ probe syscall.fstatfs.return = kernel.function("sys_fstatfs").return {
 # fstatfs64 __________________________________________________
 # long sys_fstatfs64(unsigned int fd, size_t sz, struct statfs64 __user *buf)
 probe syscall.fstatfs64 = kernel.function("sys_fstatfs64") {
-	name = "fstatfs64"
+	name = "fstatfs"
 	fd = $fd
 	sz = $sz
 	buf_uaddr = $buf
 	argstr = sprintf("%d, %d, [%p]", fd, sz, buf_uaddr)
 }
 probe syscall.fstatfs64.return = kernel.function("sys_fstatfs64").return {
-	name = "fstatfs64.return"
+	name = "fstatfs"
 	retstr = returnstr(1)
 }
 
@@ -724,7 +738,7 @@ probe syscall.fsync = kernel.function("sys_fsync") {
 	argstr = sprint(fd)
 }
 probe syscall.fsync.return = kernel.function("sys_fsync").return {
-	name = "fsync.return"
+	name = "fsync"
 	retstr = returnstr(1)
 }
 # ftruncate __________________________________________________
@@ -743,13 +757,13 @@ probe syscall.ftruncate.return = kernel.function("sys_ftruncate").return {
 # ftruncate64 ________________________________________________
 # long sys_ftruncate64(unsigned int fd, loff_t length)
 probe syscall.ftruncate64 = kernel.function("sys_ftruncate64") ? {
-	name = "ftruncate64"
+	name = "ftruncate"
 	fd = $fd
 	length = $length
 	argstr = sprintf("%d, %d", fd, length)
 }
 probe syscall.ftruncate64.return = kernel.function("sys_ftruncate64").return ? {
-	name = "ftruncate64"
+	name = "ftruncate"
 	retstr = returnstr(1)
 }
 
@@ -777,7 +791,7 @@ probe syscall.futex = kernel.function("sys_futex") {
 			$val) 
 }
 probe syscall.futex.return = kernel.function("sys_futex").return {
-	name = "futex.return"
+	name = "futex"
 	retstr = returnstr(1)
 }
 
@@ -815,14 +829,14 @@ probe syscall.getdents.return = kernel.function("sys_getdents").return {
 #                struct linux_dirent64 __user * dirent,
 #                unsigned int count)
 probe syscall.getdents64 = kernel.function("sys_getdents64") {
-	name = "getdents64"
+	name = "getdents"
 	fd = $fd
 	dirp_uaddr = $dirent
 	count = $count
 	argstr = sprintf("%d, [%p], %d", fd, dirp_uaddr, count)
 }
 probe syscall.getdents64.return = kernel.function("sys_getdents64").return {
-	name = "getdents64"
+	name = "getdents"
 	retstr = returnstr(1)
 }
 
@@ -1661,6 +1675,46 @@ probe syscall.mlockall = kernel.function("sys_mlockall") {
 probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 	name = "mlockall"
 	retstr = returnstr(1)
+}
+# mmap
+# long sys_mmap(unsigned long addr, unsigned long len,
+#          unsigned long prot, unsigned long flags,
+#          unsigned long fd, unsigned long off)
+probe syscall.mmap = kernel.function("sys_mmap") ? {
+	name = "mmap"
+	start = $addr
+	len = $len
+	prot = $prot
+	flags = $flags
+	fd = $fd
+	offset = $off
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+}
+probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
+	name = "mmap"
+	retstr = returnstr(2)
+}
+
+# mmap2
+# long sys_mmap2(unsigned long addr, unsigned long len,
+#	unsigned long prot, unsigned long flags,
+#	unsigned long fd, unsigned long pgoff)
+probe syscall.mmap2 = kernel.function("sys_mmap2") ? {
+	name = "mmap2"
+	start = $addr
+	length = $len
+	prot = $prot
+	flags = $flags
+	fd = $fd
+	pgoffset = $pgoff
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, 
+		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
+		$fd, $pgoff)
+}
+probe syscall.mmap2.return = kernel.function("sys_mmap2").return ? {
+	name = "mmap2"
+	retstr = returnstr(2)
 }
 
 

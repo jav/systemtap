@@ -1,16 +1,3 @@
-# fstat ______________________________________________________
-# long sys_fstat(unsigned int fd,struct __old_kernel_stat __user * statbuf)
-probe syscall.fstat = kernel.function("sys_fstat") {
-	name = "fstat"
-	filedes = $fd
-	buf_uaddr = $statbuf
-	argstr = sprintf("%d, [%p]", filedes, buf_uaddr)
-}
-probe syscall.fstat.return = kernel.function("sys_fstat").return {
-	name = "fstat"
-	retstr = returnstr(1)
-}
-
 # getegid16 __________________________________________________
 # long sys_getegid16(void)
 probe syscall.getegid16 = kernel.function("sys_getegid16") {
@@ -73,7 +60,7 @@ probe syscall.lstat = kernel.function("sys_lstat") {
 	argstr = sprintf("%s, [%p]", file_name, buf_uaddr) 
 }
 probe syscall.lstat.return = kernel.function("sys_lstat").return {
-	name = "lstat.return"
+	name = "lstat"
 	retstr = returnstr(1)
 }
 
@@ -273,31 +260,7 @@ probe kernel.syscall.mbind.return = kernel.function("sys_mbind").return {
 	name = "mbind"
 	retstr = returnstr(1)
 }
-# mmap _______________________________________________________
-/*
- * long
- * sys_mmap(unsigned long addr,
- *          unsigned long len,
- *          unsigned long prot,
- *          unsigned long flags,
- *          unsigned long fd,
- *          unsigned long off)
- */
-probe kernel.syscall.mmap = kernel.function("sys_mmap") {
-	name = "mmap"
-	addr = $addr
-	len = $len
-	prot = $prot
-	flags = $flags
-	fd = $fd
-	off = $off
-	argstr = sprintf("%p, %d, %d, %d, %d, %d", $addr, $len,
-				$prot, $flags, $fd, $off)
-}
-probe kernel.syscall.mmap.return = kernel.function("sys_mmap").return {
-	name = "mmap"
-	retstr = returnstr(2)
-}
+
 # rt_sigreturn _______________________________________________
 /*
  * asmlinkage int
@@ -384,23 +347,6 @@ probe kernel.syscall.time64 = kernel.function("sys_time64") {
 }
 probe kernel.syscall.time64.return = kernel.function("sys_time64").return {
 	name = "time64"
-	retstr = returnstr(1)
-}
-# truncate64 _________________________________________________
-#
-# asmlinkage long
-# sys_truncate64(const char __user * path,
-#		    loff_t length)
-#
-probe syscall.truncate64 = kernel.function("sys_truncate64") {
-	name = "truncate64"
-	path_uaddr = $path
-	path = user_string($path)
-	length = $length
-	argstr = sprintf("%s, %d", path, $length)
-}
-probe syscall.truncate64.return = kernel.function("sys_truncate64").return {
-	name = "truncate64"
 	retstr = returnstr(1)
 }
 # tux ________________________________________________________
