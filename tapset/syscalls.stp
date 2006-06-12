@@ -1687,9 +1687,13 @@ probe syscall.mmap = kernel.function("sys_mmap") ? {
 	prot = $prot
 	flags = $flags
 	fd = $fd
+%(arch != "ppc64" %?
 	offset = $off
+%:
+	offset = $offset
+%)
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
-		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, offset)
 }
 probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
 	name = "mmap"
