@@ -411,23 +411,22 @@ err:
 	return -1;
 }
 
-static volatile sig_atomic_t got_signal;
-static sigset_t usrmask, nullmask, oldmask;
-
-static void sig_usr(int sig __attribute__((unused)))
-{
-	got_signal = 1;
-}
-
 void start_cmd(void)
 {
 	pid_t pid;
+	sigset_t usrset;
+		
+	sigemptyset(&usrset);
+	sigaddset(&usrset, SIGUSR1);
+	sigprocmask(SIG_BLOCK, &usrset, NULL);
 
 	dbug ("execing target_cmd %s\n", target_cmd);
 	if ((pid = fork()) < 0) {
 		perror ("fork");
 		exit(-1);
 	} else if (pid == 0) {
+		int signum;
+
 		if (setregid(cmd_gid, cmd_gid) < 0) {
 			perror("setregid");
 		}
@@ -435,19 +434,12 @@ void start_cmd(void)
 			perror("setreuid");
 		}
 		/* wait here until signaled */
-		signal(SIGUSR1, sig_usr);
-		sigemptyset(&nullmask);
-		sigemptyset(&usrmask);
-		sigaddset(&usrmask, SIGUSR1);
-		sigprocmask(SIG_BLOCK, &usrmask, &oldmask);
-		while (!got_signal)
-			sigsuspend(&nullmask);
-		sigprocmask(SIG_SETMASK, &oldmask, NULL);
+		sigwait(&usrset, &signum);
+
 		if (execl("/bin/sh", "sh", "-c", target_cmd, NULL) < 0)
 			perror(target_cmd);
 		_exit(-1);
 	}
-
 	target_pid = pid;
 }
 

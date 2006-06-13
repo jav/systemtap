@@ -1,3 +1,8 @@
+2006-06-13  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (start_cmd): Rewrite using sigwait() to eliminate
+	a race.
+
 2006-05-18  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (stp_main_loop): Set output to always be line
