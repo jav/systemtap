@@ -1,33 +1,3 @@
-# getegid16 __________________________________________________
-# long sys_getegid16(void)
-probe syscall.getegid16 = kernel.function("sys_getegid16") {
-	name = "getegid16"
-}
-probe syscall.getegid16.return = kernel.function("sys_getegid16").return {
-	name = "getegid16"
-	retstr = returnstr(1)
-}
-
-# geteuid16 __________________________________________________
-# long sys_geteuid16(void)
-probe syscall.geteuid16 = kernel.function("sys_geteuid16") {
-	name = "geteuid16"
-}
-probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return {
-	name = "geteuid16"
-	retstr = returnstr(1)
-}
-
-# getgid16 ___________________________________________________
-# long sys_getgid16(void)
-probe syscall.getgid16 = kernel.function("sys_getgid16") {
-	name = "getgid16"
-}
-probe syscall.getgid16.return = kernel.function("sys_getgid16").return {
-	name = "getgid16"
-	retstr = returnstr(1)
-}
-
 # getgroups16 ________________________________________________
 # long sys_getgroups16(int gidsetsize, old_gid_t __user *grouplist)
 probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
@@ -41,15 +11,6 @@ probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	retstr = returnstr(1)
 }
 
-# getuid16 ___________________________________________________
-# long sys_getuid16(void)
-probe syscall.getuid16 = kernel.function("sys_getuid16") {
-	name = "getuid16"
-}
-probe syscall.getuid16.return = kernel.function("sys_getuid16").return {
-	name = "getuid16"
-	retstr = returnstr(1)
-}
 
 # lstat ______________________________________________________
 # long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)

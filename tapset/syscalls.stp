@@ -850,6 +850,16 @@ probe syscall.getegid.return = kernel.function("sys_getegid").return {
 	retstr = returnstr(1)
 }
 
+# getegid16 __________________________________________________
+# long sys_getegid16(void)
+probe syscall.getegid16 = kernel.function("sys_getegid16") ? {
+	name = "getegid16"
+}
+probe syscall.getegid16.return = kernel.function("sys_getegid16").return ? {
+	name = "getegid16"
+	retstr = returnstr(1)
+}
+
 # geteuid ____________________________________________________
 # long sys_geteuid(void)
 probe syscall.geteuid = kernel.function("sys_geteuid") {
@@ -860,6 +870,16 @@ probe syscall.geteuid.return = kernel.function("sys_geteuid").return {
 	retstr = returnstr(1)
 }
 
+# geteuid16 __________________________________________________
+# long sys_geteuid16(void)
+probe syscall.geteuid16 = kernel.function("sys_geteuid16") ? {
+	name = "geteuid16"
+}
+probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return ? {
+	name = "geteuid16"
+	retstr = returnstr(1)
+}
+
 # getgid _____________________________________________________
 # long sys_getgid(void)
 probe syscall.getgid =kernel.function("sys_getgid") {
@@ -867,6 +887,16 @@ probe syscall.getgid =kernel.function("sys_getgid") {
 }
 probe syscall.getgid.return = kernel.function("sys_getgid").return {
 	name = "getgid"
+	retstr = returnstr(1)
+}
+
+# getgid16 ___________________________________________________
+# long sys_getgid16(void)
+probe syscall.getgid16 = kernel.function("sys_getgid16") {
+	name = "getgid16"
+}
+probe syscall.getgid16.return = kernel.function("sys_getgid16").return ? {
+	name = "getgid16"
 	retstr = returnstr(1)
 }
 
@@ -1000,14 +1030,14 @@ probe syscall.getresgid.return = kernel.function("sys_getresgid").return {
 # long sys_getresgid16(old_uid_t __user *rgid,
 #                 old_uid_t __user *egid,
 #                 old_uid_t __user *sgid)
-probe syscall.getresgid16 = kernel.function("sys_getresgid") {
+probe syscall.getresgid16 = kernel.function("sys_getresgid16") {
 	name = "getresgid16"
 	rgid_uaddr = $rgid
 	egid_uaddr = $egid
 	sgid_uaddr = $sgid
 	argstr = sprintf("[%p], [%p], [%p]", rgid_uaddr, egid_uaddr, sgid_uaddr)
 }
-probe syscall.getresgid16.return = kernel.function("sys_getresgid").return {
+probe syscall.getresgid16.return = kernel.function("sys_getresgid16").return {
 	name = "getresgid16"
 	retstr = returnstr(1)
 }
@@ -1032,14 +1062,14 @@ probe syscall.getresuid.return = kernel.function("sys_getresuid").return {
 # long sys_getresuid16(old_uid_t __user *ruid,
 #		old_uid_t __user *euid,
 #		old_uid_t __user *suid)
-probe syscall.getresuid16 = kernel.function("sys_getresuid") {
+probe syscall.getresuid16 = kernel.function("sys_getresuid16") {
 	name = "getresuid16"
 	ruid_uaddr = $ruid
 	euid_uaddr = $euid
 	suid_uaddr = $suid
 	argstr = sprintf("[%p], [%p], [%p]", ruid_uaddr, euid_uaddr, suid_uaddr)
 }
-probe syscall.getresuid16.return = kernel.function("sys_getresuid").return {
+probe syscall.getresuid16.return = kernel.function("sys_getresuid16").return {
 	name = "getresuid16"
 	retstr = returnstr(1)
 }
@@ -1154,6 +1184,16 @@ probe syscall.getuid = kernel.function("sys_getuid") {
 }
 probe syscall.getuid.return = kernel.function("sys_getuid").return {
 	name = "getuid"
+	retstr = returnstr(1)
+}
+
+# getuid16 ___________________________________________________
+# long sys_getuid16(void)
+probe syscall.getuid16 = kernel.function("sys_getuid16") ? {
+	name = "getuid16"
+}
+probe syscall.getuid16.return = kernel.function("sys_getuid16").return ? {
+	name = "getuid16"
 	retstr = returnstr(1)
 }
 

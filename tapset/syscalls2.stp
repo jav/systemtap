@@ -1169,8 +1169,7 @@ probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
 }
 # setgid _____________________________________________________
 #
-# asmlinkage long
-# sys_setgid(gid_t gid)
+# long sys_setgid(gid_t gid)
 #
 probe syscall.setgid = kernel.function("sys_setgid") {
 	name = "setgid"
@@ -1183,23 +1182,20 @@ probe syscall.setgid.return = kernel.function("sys_setgid").return {
 }
 # setgid16 ___________________________________________________
 #
-# asmlinkage long
-# sys_setgid16(old_gid_t gid)
+# long sys_setgid16(old_gid_t gid)
 #
 probe syscall.setgid16 = kernel.function("sys_setgid16") ? {
-	name = "setgid"
+	name = "setgid16"
 	gid = $gid
 	argstr = sprint($gid)
 }
 probe syscall.setgid16.return = kernel.function("sys_setgid16").return ? {
-	name = "setgid"
+	name = "setgid16"
 	retstr = returnstr(1)
 }
 # setgroups __________________________________________________
 #
-# asmlinkage long
-# sys_setgroups(int gidsetsize,
-#		   gid_t __user *grouplist)
+# long sys_setgroups(int gidsetsize, gid_t __user *grouplist)
 #
 probe syscall.setgroups = kernel.function("sys_setgroups") {
 	name = "setgroups"
@@ -1343,26 +1339,24 @@ probe syscall.setresgid.return = kernel.function("sys_setresgid").return {
 }
 # setresgid16 ________________________________________________
 #
-# asmlinkage long
-# sys_setresgid16(old_gid_t rgid,
+# long sys_setresgid16(old_gid_t rgid,
 #		     old_gid_t egid,
 #		     old_gid_t sgid)
 #
 probe syscall.setresgid16 = kernel.function("sys_setresgid16") ? {
-	name = "setresgid"
-	rgid = $rgid
-	egid = $egid
-	sgid = $sgid
-	argstr = sprintf("%d, %d, %d", $rgid, $egid, $sgid)
+	name = "setresgid16"
+	rgid = __short($rgid)
+	egid = __short($egid)
+	sgid = __short($sgid)
+	argstr = sprintf("%d, %d, %d", rgid, egid, sgid)
 }
 probe syscall.setresgid16.return = kernel.function("sys_setresgid16").return ? {
-	name = "setresgid"
+	name = "setresgid16"
 	retstr = returnstr(1)
 }
 # setresuid __________________________________________________
 #
-# asmlinkage long
-# sys_setresuid(uid_t ruid,
+# long sys_setresuid(uid_t ruid,
 #		   uid_t euid,
 #		   uid_t suid)
 #
@@ -1379,27 +1373,23 @@ probe syscall.setresuid.return = kernel.function("sys_setresuid").return {
 }
 # setresuid16 ________________________________________________
 #
-# asmlinkage long
-# sys_setresuid16(old_uid_t ruid,
+# long sys_setresuid16(old_uid_t ruid,
 #		     old_uid_t euid,
 #		     old_uid_t suid)
 #
 probe syscall.setresuid16 = kernel.function("sys_setresuid16") ? {
-	name = "setresuid"
-	ruid = $ruid
-	euid = $euid
-	suid = $suid
-	argstr = sprintf("%d, %d, %d", $ruid, $euid, $suid)
+	name = "setresuid16"
+	ruid = __short($ruid)
+	euid = __short($euid)
+	suid = __short($suid)
+	argstr = sprintf("%d, %d, %d", ruid, euid, suid)
 }
 probe syscall.setresuid16.return = kernel.function("sys_setresuid16").return ? {
-	name = "setresuid"
+	name = "setresuid16"
 	retstr = returnstr(1)
 }
 # setreuid ___________________________________________________
-#
-# asmlinkage long
-# sys_setreuid(uid_t ruid,
-#		  uid_t euid)
+# long sys_setreuid(uid_t ruid, uid_t euid)
 #
 probe syscall.setreuid = kernel.function("sys_setreuid") {
 	name = "setreuid"
@@ -1412,10 +1402,7 @@ probe syscall.setreuid.return = kernel.function("sys_setreuid").return {
 	retstr = returnstr(1)
 }
 # setreuid16 _________________________________________________
-#
-# asmlinkage long
-# sys_setreuid16(old_uid_t ruid,
-#		    old_uid_t euid)
+# long sys_setreuid16(old_uid_t ruid, old_uid_t euid)
 #
 probe syscall.setreuid16 = kernel.function("sys_setreuid") {
 	name = "setreuid16"
@@ -1542,12 +1529,12 @@ probe syscall.setuid.return = kernel.function("sys_setuid").return {
 # sys_setuid16(old_uid_t uid)
 #
 probe syscall.setuid16 = kernel.function("sys_setuid16") ? {
-	name = "setuid"
+	name = "setuid16"
 	uid = $uid
 	argstr = sprint($uid)
 }
 probe syscall.setuid16.return = kernel.function("sys_setuid16").return ? {
-	name = "setuid"
+	name = "setuid16"
 	retstr = returnstr(1)
 }
 # setxattr ___________________________________________________
