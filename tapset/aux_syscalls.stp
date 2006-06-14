@@ -1377,3 +1377,8 @@ function _rusage_who_str(w) {
    return ""
 }
 
+/* for accessing 16-bit values encoded in a long */
+function __short:long(val:long) %{ /* pure */
+	THIS->__retvalue = (short)THIS->val;
+%}
+
