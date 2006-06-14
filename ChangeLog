@@ -1,3 +1,8 @@
+2006-06-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	* README: Add kernel.org blurb based on text from
+	Chuck Ebbert <76306.1226@compuserve.com>.
+
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
 
 	* parse.cxx, staptree.cxx, staptree.h, translate.cxx:
