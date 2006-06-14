@@ -1112,9 +1112,7 @@ probe syscall.setdomainname.return =
 	retstr = returnstr(1)
 }
 # setfsgid ___________________________________________________
-#
-# asmlinkage long
-# sys_setfsgid(gid_t gid)
+# long sys_setfsgid(gid_t gid)
 #
 probe syscall.setfsgid = kernel.function("sys_setfsgid") {
 	name = "setfsgid"
@@ -1126,23 +1124,19 @@ probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 	retstr = returnstr(1)
 }
 # setfsgid16 _________________________________________________
+# long sys_setfsgid16(old_gid_t gid)
 #
-# asmlinkage long
-# sys_setfsgid16(old_gid_t gid)
-#
-probe syscall.setfsgid16 = kernel.function("sys_setfsgid") {
+probe syscall.setfsgid16 = kernel.function("sys_setfsgid16") {
 	name = "setfsgid16"
 	gid = $gid
 	argstr = sprint($gid)
 }
-probe syscall.setfsgid16.return = kernel.function("sys_setfsgid").return {
+probe syscall.setfsgid16.return = kernel.function("sys_setfsgid16").return {
 	name = "setfsgid16"
 	retstr = returnstr(1)
 }
 # setfsuid ___________________________________________________
-#
-# asmlinkage long
-# sys_setfsuid(uid_t uid)
+# long sys_setfsuid(uid_t uid)
 #
 probe syscall.setfsuid = kernel.function("sys_setfsuid") {
 	name = "setfsuid"
@@ -1154,16 +1148,14 @@ probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 	retstr = returnstr(1)
 }
 # setfsuid16 _________________________________________________
+# long sys_setfsuid16(old_uid_t uid)
 #
-# asmlinkage long
-# sys_setfsuid16(old_uid_t uid)
-#
-probe syscall.setfsuid16 = kernel.function("sys_setfsuid") {
+probe syscall.setfsuid16 = kernel.function("sys_setfsuid16") {
 	name = "setfsuid16"
 	uid = $uid
 	argstr = sprint($uid)
 }
-probe syscall.setfsuid16.return = kernel.function("sys_setfsuid").return {
+probe syscall.setfsuid16.return = kernel.function("sys_setfsuid16").return {
 	name = "setfsuid16"
 	retstr = returnstr(1)
 }
@@ -1287,11 +1279,9 @@ probe syscall.setpriority.return = kernel.function("sys_setpriority").return {
 	name = "setpriority"
 	retstr = returnstr(1)
 }
+
 # setregid ___________________________________________________
-#
-# asmlinkage long
-# sys_setregid(gid_t rgid,
-#		  gid_t egid)
+# long sys_setregid(gid_t rgid, gid_t egid)
 #
 probe syscall.setregid = kernel.function("sys_setregid") {
 	name = "setregid"
@@ -1304,27 +1294,20 @@ probe syscall.setregid.return = kernel.function("sys_setregid").return {
 	retstr = returnstr(1)
 }
 # setregid16 _________________________________________________
+# long sys_setregid16(old_gid_t rgid, old_gid_t egid)
 #
-# asmlinkage long
-# sys_setregid16(old_gid_t rgid,
-#		    old_gid_t egid)
-#
-probe syscall.setregid16 = kernel.function("sys_setregid") {
+probe syscall.setregid16 = kernel.function("sys_setregid16") {
 	name = "setregid16"
-	rgid = $rgid
-	egid = $egid
-	argstr = sprintf("%d, %d", $rgid, $egid)
+	rgid = __short($rgid)
+	egid = __short($egid)
+	argstr = sprintf("%d, %d",rgid, egid)
 }
-probe syscall.setregid16.return = kernel.function("sys_setregid").return {
+probe syscall.setregid16.return = kernel.function("sys_setregid16").return {
 	name = "setregid16"
 	retstr = returnstr(1)
 }
 # setresgid __________________________________________________
-#
-# asmlinkage long
-# sys_setresgid(gid_t rgid,
-#		   gid_t egid,
-#		   gid_t sgid)
+# long sys_setresgid(gid_t rgid, gid_t egid, gid_t sgid)
 #
 probe syscall.setresgid = kernel.function("sys_setresgid") {
 	name = "setresgid"
@@ -1404,13 +1387,13 @@ probe syscall.setreuid.return = kernel.function("sys_setreuid").return {
 # setreuid16 _________________________________________________
 # long sys_setreuid16(old_uid_t ruid, old_uid_t euid)
 #
-probe syscall.setreuid16 = kernel.function("sys_setreuid") {
+probe syscall.setreuid16 = kernel.function("sys_setreuid16") {
 	name = "setreuid16"
-	ruid = $ruid
-	euid = $euid
-	argstr = sprintf("%d, %d", $ruid, $euid)
+	ruid = __short($ruid)
+	euid = __short($euid)
+	argstr = sprintf("%d, %d", ruid, euid)
 }
-probe syscall.setreuid16.return = kernel.function("sys_setreuid").return {
+probe syscall.setreuid16.return = kernel.function("sys_setreuid16").return {
 	name = "setreuid16"
 	retstr = returnstr(1)
 }
