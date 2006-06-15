@@ -1,3 +1,7 @@
+2006-06-15  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in: Require elfutils-0.121.
+
 2006-06-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	* README: Add kernel.org blurb based on text from
@@ -12,7 +16,7 @@
 
 2006-06-08  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
-	* testsuite/buildok/ioblock_test.stp: test ioblock 
+	* testsuite/buildok/ioblock_test.stp: test ioblock
 
 2006-06-05  David Smith  <dsmith@redhat.com>
 
@@ -50,7 +54,7 @@
 	(derive_probes): Change last argument to indicate optionalness of
 	parent probe point (alias reference).
 	(alias_expansion_builder): Shrink epilogue-mode alias body copying.
-	Pass along alias reference optionality.	
+	Pass along alias reference optionality.
 	* elaborate.h: Corresponding changes.
 	* testsuite/semko/thirtyfive.stp, semok/twentytwo.stp: New tests.
 
@@ -210,7 +214,7 @@
 	* configure.ac: add lket.5 & runtime/lket/b2a
 	* Makefile.am:  add lket & runtime/lket/b2a
 	* aclocal.m4, Makefile.in, configure: regenerated
-	* runtime/lket/b2a/*: a binary to ascii converter used 
+	* runtime/lket/b2a/*: a binary to ascii converter used
 	to convert LKET's default binary trace data.
 	* lket.5.in: add intro of lket-b2a converter.
 
@@ -248,7 +252,7 @@
 	(emit_module_init): Reorganize -t output in unregister functions.
 	(translate_pass): Remove unparser::current_probenum field and all
 	uses.
-	* translate.h: Corresponding changes. 
+	* translate.h: Corresponding changes.
 
 2006-05-18  Li Guanglei <guanglei@cn.ibm.com>
 
@@ -261,7 +265,7 @@
 
 	* tapset/tskschedule.stp: deleted, merge into scheduler.stp
 	* tapset/scheduler.stp:   incorporate tskschedule.stp
-	* testsuite/buildok/tskschedule.stp: deleted, merge into 
+	* testsuite/buildok/tskschedule.stp: deleted, merge into
 	  sched_test.stp
 	* testsuite/buildok/sched_test.stp: incorporate tskschedule.stp
 
@@ -286,7 +290,7 @@
 	* tapset/scsi.stp:        generic scsi tapsets from LKET
 	* tapset/tskschedule.stp: generic task scheduler tapsets from LKET
 	* tapset/process.stp:     changes to process.exec alias
-	
+
 2006-05-16  David Smith  <dsmith@redhat.com>
 
 	* parse.cxx (parser::parser): Added initializer for 'context'
@@ -355,7 +359,7 @@
 	'next' and 'return' statement context, a 'next' statement was
 	removed from a function and a 'return' statement was removed from
 	a probe.
-	
+
 2006-05-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx, translator.cxx (*): Designate more emitted
@@ -398,7 +402,7 @@
 	* session.h: add merge member into systemtap_session
 	* buildrun.cxx: generate stpd_cmd to stop merge per-cpu files if -M
 	option is turned on by stap.
-	
+
 2006-05-08  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2627
 	* elaborate.cxx: epilogue style alias expansion
