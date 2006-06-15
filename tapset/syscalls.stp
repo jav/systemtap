@@ -210,10 +210,25 @@ probe syscall.chown = kernel.function("sys_chown") {
 	path = user_string($filename)
 	owner = $user
 	group = $group
-	argstr = sprintf("%s, %d, %d",path, owner, group) 
+	argstr = sprintf("\"%s\", %d, %d",path, owner, group) 
 }
 probe syscall.chown.return = kernel.function("sys_chown").return {
 	name = "chown"
+	retstr = returnstr(1)
+}
+# chown16 ___________________________________________________
+# long sys_chown16(const char __user * filename, old_uid_t user, 
+#			old_gid_t group)
+#
+probe syscall.chown16 = kernel.function("sys_chown16") {
+	name = "chown16"
+	path = user_string($filename)
+	owner = __short($user)
+	group = __short($group)
+	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
+}
+probe syscall.chown16.return = kernel.function("sys_chown16").return {
+	name = "chown16"
 	retstr = returnstr(1)
 }
 
@@ -540,9 +555,9 @@ probe syscall.fchown.return = kernel.function("sys_fchown").return {
 probe syscall.fchown16 = kernel.function("sys_fchown16") {
 	name = "fchown16"
 	fd = $fd
-	owner = $user
-	group = $group
-	argstr = sprintf("%d, %d, %d", $fd, $user, $group)
+	owner = __short($user)
+	group = __short($group)
+	argstr = sprintf("%d, %d, %d", $fd, owner, group)
 }
 probe syscall.fchown16.return = kernel.function("sys_fchown16").return {
 	name = "fchown16"
@@ -1406,41 +1421,35 @@ probe syscall.kill.return = kernel.function("sys_kill").return {
 }
 
 # lchown _____________________________________________________
-/*
- * asmlinkage long
- * sys_lchown(const char __user * filename,
- *            uid_t user,
- *            gid_t group)
- */
-probe kernel.syscall.lchown =
-   kernel.function("sys_lchown") {
-      name = "lchown"
-      path_uaddr = $filename
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.lchown.return =
-   kernel.function("sys_lchown").return {
-      name = "lchown.return"
-   }
+# long sys_lchown(const char __user * filename, uid_t user, gid_t group)
+#
+probe syscall.lchown = kernel.function("sys_lchown") {
+	name = "lchown"
+	path = user_string($filename)
+	owner = $user
+	group = $group
+	argstr = sprintf("\"%s\", %d, %d",path, owner, group)
+}	
+probe syscall.lchown.return = kernel.function("sys_lchown").return {
+	name = "lchown"
+	retstr = returnstr(1)
+}
+
 # lchown16 ___________________________________________________
-/*
- * asmlinkage long
- * sys_lchown16(const char __user * filename,
- *              old_uid_t user,
- *              old_gid_t group)
- */
-probe kernel.syscall.lchown16 =
-   kernel.function("sys_lchown16") {
-      name = "lchown16"
-      path_uaddr = $filename
-      owner = $user
-      group = $group
-   }
-probe kernel.syscall.lchown16.return =
-   kernel.function("sys_lchown16").return {
-      name = "lchown16.return"
-   }
+# long sys_lchown16(const char __user * filename, old_uid_t user, 
+#			old_gid_t group)
+#
+probe syscall.lchown16 = kernel.function("sys_lchown16") {
+	name = "lchown16"
+	path = user_string($filename)
+	owner = __short($user)
+	group = __short($group)
+	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
+}
+probe syscall.lchown16.return = kernel.function("sys_lchown16").return {
+	name = "lchown16"
+	retstr = returnstr(1)
+}
 # lgetxattr __________________________________________________
 /*
  * asmlinkage ssize_t
