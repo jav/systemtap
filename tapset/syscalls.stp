@@ -183,7 +183,7 @@ probe syscall.capset.return = kernel.function("sys_capset").return {
 probe syscall.chdir = kernel.function("sys_chdir") {
 	name = "chdir"
 	path = user_string($filename)
-	argstr = path
+	argstr = sprintf("\"%s\"",path)
 }
 probe syscall.chdir.return = kernel.function("sys_chdir").return {
 	name = "chdir"
@@ -196,7 +196,7 @@ probe syscall.chmod = kernel.function("sys_chmod") {
 	name = "chmod"
 	path = user_string($filename)
 	mode = $mode
-	argstr = sprintf("%s, 0%o", path, mode)
+	argstr = sprintf("%s, %#o", path, mode)
 }
 probe syscall.chmod.return = kernel.function("sys_chmod").return {
 	name = "chmod"
@@ -514,7 +514,7 @@ probe syscall.fchmod = kernel.function("sys_fchmod") {
 	name = "fchmod"
 	fildes = $fd
 	mode = $mode
-	argstr = sprintf("%d, 0%o", $fd, $mode)
+	argstr = sprintf("%d, %#o", $fd, $mode)
 }
 probe syscall.fchmod.return = kernel.function("sys_fchmod").return {
 	name = "fchmod"
@@ -1653,22 +1653,35 @@ probe kernel.syscall.mincore.return =
    kernel.function("sys_mincore").return {
       name = "mincore.return"
    }
+
 # mkdir ______________________________________________________
-/*
- * asmlinkage long
- * sys_mkdir(const char __user * pathname,
- *           int mode)
- */
-probe kernel.syscall.mkdir =
-   kernel.function("sys_mkdir") {
-      name = "mkdir"
-      pathname_uaddr = $pathname
-      mode = $mode
-   }
-probe kernel.syscall.mkdir.return =
-   kernel.function("sys_mkdir").return {
-      name = "mkdir.return"
-   }
+# long sys_mkdir(const char __user * pathname, int mode)
+probe syscall.mkdir = kernel.function("sys_mkdir") {
+	name = "mkdir"
+	pathname_uaddr = $pathname
+	pathname = user_string($pathname)
+	mode = $mode
+	argstr = sprintf("\"%s\", %#o", pathname, $mode)
+}
+probe syscall.mkdir.return = kernel.function("sys_mkdir").return {
+	name = "mkdir"
+	retstr = returnstr(1)	
+}
+
+# mkdirat ____________________________________________________
+# new function with 2.6.16
+# long sys_mkdirat(int dfd, const char __user *pathname, int mode)
+probe syscall.mkdirat = kernel.function("sys_mkdirat") ? {
+	name = "mkdirat"
+	dirfd = $dfd
+	pathname = user_string($pathname)
+	mode = $mode
+	argstr = sprintf("%d, \"%s\", %#o", $dfd, pathname, $mode)
+}
+probe syscall.mkdirat.return = kernel.function("sys_mkdirat").return ? {
+	name = "mkdirat"
+	retstr = returnstr(1)
+}
 
 # mknod
 # long sys_mknod(const char __user * filename, int mode, unsigned dev)
@@ -1682,7 +1695,7 @@ probe syscall.mknod = kernel.function("sys_mknod") {
 
 probe syscall.mknod.return = kernel.function("sys_mknod").return {
 	name = "mknod"
-	retstr = returnstr(1)	
+	retstr = returnstr(1)
 }
 
 # mlock ______________________________________________________

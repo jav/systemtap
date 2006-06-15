@@ -27,8 +27,8 @@ probe syscall.open = kernel.function("sys_open") {
 	filename = user_string($filename)
 	flags = $flags
 	mode = $mode
-	if (f & 64)
-		argstr = sprintf("\"%s\", %s, %p", filename, _sys_open_flag_str(flags), mode)
+	if (flags & 64)
+		argstr = sprintf("\"%s\", %s, %#o", filename, _sys_open_flag_str(flags), mode)
 	else
 		argstr = sprintf("\"%s\", %s", filename, _sys_open_flag_str(flags))
 }
