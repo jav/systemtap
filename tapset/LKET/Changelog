@@ -1,3 +1,10 @@
+2006-06-15  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* iosyscall.stp: new event hooks for io related syscalls
+	* hookid_defs.stp: add the necessary IDs for iosyscall event hooks
+	* register_event.stp: add corresponding event register calls
+	of the newly added io syscall event hooks
+	
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* *.stp: New design of making user able to append extra trace data.

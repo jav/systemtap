@@ -1,0 +1,383 @@
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+probe addevent.iosyscall
+	= addevent.iosyscall.entry,
+	addevent.iosyscall.return
+{}
+
+probe addevent.iosyscall.entry
+	+= _addevent.iosyscall.entry
+{
+	update_record()
+}
+
+probe addevent.iosyscall.return
+	+= _addevent.iosyscall.return
+{
+	update_record()
+}
+
+
+probe _addevent.iosyscall.entry
+	= syscall.open,
+	syscall.close,
+	syscall.read,
+	syscall.write,
+	syscall.readv,
+	syscall.writev,
+	syscall.pread64,
+	syscall.pwrite64,
+	syscall.readahead,
+	syscall.sendfile,
+	syscall.lseek,
+	syscall.llseek,
+	syscall.sync,
+	syscall.fsync,
+	syscall.fdatasync,
+	syscall.flock
+{
+	dummy_c_function() /* used to prevent over-optimization */
+}
+
+probe _addevent.iosyscall.return
+	= syscall.open.return,
+	syscall.close.return,
+	syscall.read.return,
+	syscall.write.return,
+	syscall.readv.return,
+	syscall.writev.return,
+	syscall.pread64.return,
+	syscall.pwrite64.return,
+	syscall.readahead.return,
+	syscall.sendfile.return,
+	syscall.lseek.return,
+	syscall.llseek.return,
+	syscall.sync.return,
+	syscall.fsync.return,
+	syscall.fdatasync.return,
+	syscall.flock.return
+{
+	dummy_c_function() /* used to prevent over-optimization */
+}
+
+
+function dummy_c_function()
+%{
+%}
+
+probe syscall.open
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_open(filename, flags, mode)
+}
+
+probe syscall.open.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_OPEN_RETURN, retstr)
+}
+
+function log_iosyscall_open(filename:string, flags:long, mode:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_OPEN_ENTRY, 
+		"%0s%4b%4b", THIS->filename, THIS->flags, 
+		THIS->mode);
+%}
+
+function log_iosyscall_return(var_id:long, retstr:string)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%0s", THIS->retstr);
+%}
+
+probe syscall.close
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_close(fd)
+}
+
+probe syscall.close.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_CLOSE_RETURN, retstr)
+}
+
+
+function log_iosyscall_close(fd:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_CLOSE_ENTRY, 
+		"%8b", THIS->fd);
+%}
+
+probe syscall.read
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_read_write(HOOKID_IOSYSCALL_READ_ENTRY, fd, 
+			buf_uaddr, count)
+}
+
+probe syscall.read.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_READ_RETURN, retstr)
+}
+	
+probe syscall.write
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_read_write(HOOKID_IOSYSCALL_WRITE_ENTRY, fd, 
+			buf_uaddr, count)
+}
+
+probe syscall.write.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_WRITE_RETURN, retstr)
+}
+	
+function log_iosyscall_read_write(var_id:long, fd:long, buf_uaddr:long,
+		count:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%8b%8b%8b",
+		THIS->fd, THIS->buf_uaddr, THIS->count);
+%}
+
+probe syscall.readv
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_readv_writev(HOOKID_IOSYSCALL_READV_ENTRY, 
+			fd, vector_uaddr, count)
+}
+
+probe syscall.readv.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_READV_RETURN, retstr)
+}
+	
+probe syscall.writev
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_readv_writev(HOOKID_IOSYSCALL_WRITEV_ENTRY, 
+			fd, vector_uaddr, count)
+}
+
+probe syscall.writev.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_WRITEV_RETURN, retstr)
+}
+	
+function log_iosyscall_readv_writev(var_id:long, fd:long, 
+		vector_uaddr:long, count:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%8b%8b%8b",
+		THIS->fd, THIS->vector_uaddr, THIS->count);
+%}
+
+probe syscall.pread64
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PREAD64_ENTRY, 
+			fd, buf_uaddr, count, offset)
+}
+
+probe syscall.pread64.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_PREAD64_RETURN, retstr)
+}
+	
+probe syscall.pwrite64
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PWRITE64_ENTRY,
+			fd, buf_uaddr, count, offset);
+}
+
+probe syscall.pwrite64.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_PWRITE64_RETURN, retstr)
+}
+
+function log_iosyscall_pread64_pwrite64(var_id:long, fd:long, 
+		buf_uaddr:long, count:long, offset:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%8b%8b%8b%8b",
+		THIS->fd, THIS->buf_uaddr, THIS->count, THIS->offset);
+%}
+
+probe syscall.readahead
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_readahead(fd, offset, count)
+}
+
+probe syscall.readahead.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_READAHEAD_RETURN, retstr)
+}
+
+
+function log_iosyscall_readahead(fd:long, offset:long,count:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_READAHEAD_ENTRY,
+		"%8b%8b%8b", THIS->fd, THIS->offset, THIS->count);
+%}
+
+probe syscall.sendfile
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_sendfile(HOOKID_IOSYSCALL_SENDFILE_ENTRY,
+			out_fd, in_fd, offset_uaddr, count)
+}
+
+probe syscall.sendfile.return
+{
+	if(filter_by_pid() == 1 )
+		 log_iosyscall_return(HOOKID_IOSYSCALL_SENDFILE_RETURN, retstr)
+}
+	
+function log_iosyscall_sendfile(var_id:long, out_fd:long, in_fd:long,
+		offset_uaddr:long, count:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%8b%8b%8b%8b",
+		THIS->out_fd, THIS->in_fd, THIS->offset_uaddr,
+		THIS->count);
+%}
+
+probe syscall.lseek
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_lseek(fildes, offset, whence)
+}
+
+probe syscall.lseek.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_LSEEK_RETURN, retstr)
+}
+
+function log_iosyscall_lseek(fd:long, offset:long, whence:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_LSEEK_ENTRY,
+		"%8b%8b%1b", THIS->fd, THIS->offset, THIS->whence);
+%}
+
+probe syscall.llseek
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_llseek(fd, offset_high, offset_low, result_uaddr,
+			whence)
+}
+
+probe syscall.llseek.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_LLSEEK_RETURN, retstr)
+}
+
+function log_iosyscall_llseek(fd:long, offset_high:long, offset_low:long,
+		result_uaddr:long, whence:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_LLSEEK_ENTRY,
+		"%8b%8b%8b%8b%1b", THIS->fd, THIS->offset_high,
+		THIS->offset_low, THIS->result_uaddr, THIS->whence);
+%}
+
+probe syscall.sync
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_sync()
+}
+
+probe syscall.sync.return
+{
+	if(filter_by_pid() == 1 )
+		 log_iosyscall_return(HOOKID_IOSYSCALL_SYNC_RETURN, retstr)
+}
+
+function log_iosyscall_sync()
+%{
+        struct timeval tv; 
+        do_gettimeofday(&tv); 
+#if defined(ASCII_TRACE)
+	_stp_printf("%d%d%d%d%d%d%d%d", _GROUP_IOSYSCALL,
+		_HOOKID_IOSYSCALL_SYNC_ENTRY, tv.tv_sec, tv.tv_usec,
+		current->tgid, current->parent->pid, current->pid,
+                current->thread_info->cpu);
+
+#else
+        _stp_printf("%2b%2n%1b%1b%4b%4b%4b%4b%4b%1b", (_FMT_)0,
+		(_FMT_)_GROUP_IOSYSCALL, (_FMT_)_HOOKID_IOSYSCALL_SYNC_ENTRY,
+                (_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec, (_FMT_)current->tgid,
+                (_FMT_)current->parent->pid, (_FMT_)current->pid,
+                (_FMT_)current->thread_info->cpu);
+#endif
+
+%}
+
+probe syscall.fsync
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_fsync(HOOKID_IOSYSCALL_FSYNC_ENTRY, fd)
+}
+
+probe syscall.fsync.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_FSYNC_RETURN, retstr)
+}
+	
+probe syscall.fdatasync
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_fsync(HOOKID_IOSYSCALL_FDATASYNC_ENTRY, fd)
+}
+
+probe syscall.fdatasync.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_FDATASYNC_RETURN, retstr)
+}
+
+function log_iosyscall_fsync(var_id:long, fd:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, THIS->var_id, "%8b", THIS->fd);
+%}
+
+probe syscall.flock
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_flock(fd, operation)
+}
+
+probe syscall.flock.return
+{
+	if(filter_by_pid() == 1 )
+		log_iosyscall_return(HOOKID_IOSYSCALL_FLOCK_RETURN, retstr)
+}
+
+function log_iosyscall_flock(fd:long, operation:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_FLOCK_ENTRY,
+		"%8b%4b", THIS->fd, THIS->operation);
+%}
+	
+/*
+
+fs:
+newfstat, newlstat, newstat,pipe,poll,select,readlink,rename,rmdir,symlink,,
+truncate,ftruncate,unlink,chmod,chown,dup,dup2,fchdir,fchmod,fchown,fcntl,
+fstatfs,link,mkdir,
+
+aio:
+io_cancel,io_destroy,io_getevents,io_setup,io_submit, 
+
+*/

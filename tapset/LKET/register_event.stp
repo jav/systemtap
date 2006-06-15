@@ -11,7 +11,7 @@ global usr_evt_name, usr_evt_fmt
 %{
 
 #define _MAXGROUPID  20
-#define _MAXHOOKID   20
+#define _MAXHOOKID   40
 
 int get_fmtcode(char *fmt)
 {
@@ -102,7 +102,8 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 	}
 
 	if(fmt!=NULL || name != NULL)  {
-		_stp_warn("unpaired types/names\n");
+		_stp_warn("unpaired types/names, grpid:%d, hookid:%d\n",
+			THIS->grpid, THIS->hookid);
 		_stp_exit();
 	}
 
@@ -117,46 +118,133 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 
 function register_sys_events()
 {
-	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, "STRING", "Syscall")
-	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_RETURN, "STRING", "Syscall")
+	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, "STRING", "syscall")
+	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_RETURN, "STRING", "syscall")
 		
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_SNAPSHOT,
-		"INT32:STRING", "PID:PNAME")
+		"INT32:STRING", "pid:pname")
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_EXECVE,
-		"STRING", "PNAME")
+		"STRING", "pname")
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_FORK,
-		"INT32", "PID")
+		"INT32", "pid")
 
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ,
-		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+		"STRING:INT8:INT8", "elv_name:major:minor")
+
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_ADD_REQ,
-		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+		"STRING:INT8:INT8", "elv_name:major:minor")
+
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_REMOVE_REQ,
-		"STRING:INT8:INT8", "ELV_NAME:MAJOR:MINOR")
+		"STRING:INT8:INT8", "elv_name:major:minor")
 
 	register_sys_event(GROUP_TASK, HOOKID_TASK_CTXSWITCH,
-		"INT32:INT32:INT8", "Prev_PID:Next_PID:Prev_State")
+		"INT32:INT32:INT8", "prev_pid:next_pid:prev_state")
+
 	register_sys_event(GROUP_TASK, HOOKID_TASK_CPUIDLE,
-		"INT32", "CurrPID")
+		"INT32", "cur_pid")
 
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOENTRY,
-		"INT8:INT8:INT8", "MAJOR:MINOR:SDEV_STATE")
+		"INT8:INT8:INT8", "major:minor:sdev_state")
+
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
 		"INT8:INT32:INT8:INT64:INT32:INT64",
-		"SDEV_STATE:SCSI_INFO:Data_Dir:Req_Buf:Buf_Len:Cmd_ID")
+		"sdev_state:scsi_info:data_dir:req_buff:buf_len:cmd_id")
+
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
-		"INT32:INT8:INT64", "SCSI_INFO:Data_Dir:Cmd_ID")
+		"INT32:INT8:INT64", "scsi_info:data_dir:cmd_id")
+
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOCOMP_BY_MIDLEVEL,
-		"INT32:INT8:INT64:INT32", "SCSI_INFO:Data_Dir:Cmd_ID:Bytes");
+		"INT32:INT8:INT64:INT32", "scsi_info:data_dir:cmd_id:bytes");
 
 	register_sys_event(GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
-		"INT64:INT8", "ADDR:WRITE")
+		"INT64:INT8", "addr:write")
 
 	register_sys_event(GROUP_NETDEV, HOOKID_NETDEV_RECEIVE,
-		"STRING:INT32:INT16:INT32", "DEV_NAME:Data_LEN:Protocol:Buff_Size")
+		"STRING:INT32:INT16:INT32", "dev_name:data_len:protocol:buff_size")
+
 	register_sys_event(GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
-		"STRING:INT32:INT16:INT32", "DEV_NAME:Data_LEN:Protocol:Buff_Size")
+		"STRING:INT32:INT16:INT32", "dev_name:data_len:protocol:buff_size")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_ENTRY,
+		"STRING:INT32:INT32", "filename:flags:mode")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_ENTRY,
+		"INT64", "fd")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_ENTRY,
+		"INT64:INT64:INT64", "fd:buff_addr:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_ENTRY,
+		"INT64:INT64:INT64", "fd:buff_addr:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_ENTRY,
+		"INT64:INT64:INT64", "fd:vector_uaddr:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_ENTRY,
+		"INT64:INT64:INT64", "fd:vector_uaddr:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_ENTRY,
+		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_ENTRY,
+		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_ENTRY,
+		"INT64:INT64:INT64", "fd:offset:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_ENTRY,
+		"INT64:INT64:INT64:INT64", "out_fd:in_fd:offset_uaddr:count")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_ENTRY,
+		"INT64:INT64:INT8", "fd:offset:whence")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_ENTRY,
+		"INT64:INT64:INT64:INT64:INT8b", 
+		"fd:offset_high:offset_low:result_uaddr:whence")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SYNC_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_ENTRY,
+		"INT64", "fd")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_ENTRY,
+		"INT64", "fd")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_RETURN,
+		"STRING", "return")
+
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_ENTRY,
+		"INT64:INT32", "fd:operation")
+	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_RETURN,
+		"STRING", "return")
 }
+
 
 probe register_event = begin
 {
