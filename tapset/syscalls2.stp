@@ -2156,15 +2156,13 @@ probe syscall.uname.return = kernel.function("sys_uname").return {
 	retstr = returnstr(1)
 }
 # unlink _____________________________________________________
-#
-# asmlinkage long
-# sys_unlink(const char __user * pathname)
+# long sys_unlink(const char __user * pathname)
 #
 probe syscall.unlink = kernel.function("sys_unlink") {
 	name = "unlink"
 	pathname_uaddr = $pathname
 	pathname = user_string($pathname)
-	argstr = pathname
+	argstr = sprintf("\"%s\"",pathname)
 }
 probe syscall.unlink.return = kernel.function("sys_unlink").return {
 	name = "unlink"
