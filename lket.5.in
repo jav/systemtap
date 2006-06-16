@@ -35,19 +35,24 @@ The following sections enumerate the variety of event hooks implemented
 in LKET and their trace data format. Each event hook contains common data
 as well as some data that is specific to that event hook. 
 
-The data common( i.e.
+the INT8, INT16, INT32, INT64 and STRING appeared in trace data format
+represents 8-bit, 16-bit, 32-bit, 64-bit binary data and NULL-terminated
+string respectively.
+
+The data common(i.e.
 .I common_data
-) 
 in the following subsecions) to all event hooks is:
 .RS
-.I GroupID, hookID, second, usec, tgid, ppid, pid, cpu_id
+
+.I GroupID(INT8), hookID(INT8), second(INT32), usec(INT32), tgid(INT32), 
+.I ppid(INT32), pid(INT32), cpu_id(INT8)
 .RE
 
 Each event hook group is a collection of those hooks that have
 similarities of what they could trace. And the ID of each event hook
 is defined in the context of its corresponding group.
 
-.SS SYSTEM CALLS (GROUPID=1)
+.SS SYSTEM CALLS (GROUPID=2)
 You could use 
 .I addevent.syscall
 to trace the entry and return of all system calls.
@@ -59,16 +64,16 @@ Trace entry of all system calls.
 
 Data format is:
 
-.I common_data, syscall_name
+.I common_data, syscall_name(STRING)
 .TP
 .B addevent.syscall.return (HOOKID=2)
 Trace return of all system calls. 
 
 Data format is:
 
-.I common_data, syscall_name
+.I common_data, syscall_name(STRING)
 
-.SS PROCESS CREATION (GROUPID=2)
+.SS PROCESS CREATION (GROUPID=3)
 You could use
 .I addevent.process
 to trace fork and execve of processes.
@@ -80,16 +85,16 @@ Trace fork of processes
 
 Data format is:
 
-.I common_data, new_process_id
+.I common_data, new_process_id(INT32)
 .TP
 .B addevent.process.execve (HOOKID=3)
 Trace execve of new processes
 
 Data format is:
 
-.I common_data, new_process_name
+.I common_data, new_process_name(STRING)
 
-.SS IO SCHEDULER ACTIVITIES (GROUPID=3)
+.SS IO SCHEDULER ACTIVITIES (GROUPID=4)
 You could use
 .I addevent.ioscheduler
 to trace the IO scheduler activities. It contains three sub event hooks:
@@ -100,23 +105,23 @@ Trace when a request is retrieved from request queue
 
 Data format is:
 
-.I common_data, elevator_name, disk_major, disk_minor
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
 .TP
 .B addevent.ioscheduler.elv_add_request (HOOKID=2)
 Trace when a request is added to the request queue
 
 Data format is:
 
-.I common_data, elevator_name, disk_major, disk_minor
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
 .TP
 .B addevent.ioscheduler.elv_completed_request (HOOKID=3)
 Trace when a request is completed
 
 Data format is:
 
-.I common_data, elevator_name, disk_major, disk_minor
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
 
-.SS TASK SCHEDULE ACTIVITIES (GROUPID=4)
+.SS TASK SCHEDULE ACTIVITIES (GROUPID=5)
 You could use
 .I addevent.tskdispatch
 to trace the task scheduler activities. It contains two sub event hooks:
@@ -127,16 +132,16 @@ Trace the process context switch
 
 Data format is:
 
-.I common_data, prev_pid, next_pid, previous_process_state
+.I common_data, prev_pid(INT32), next_pid(INT32), prev_state(INT8)
 .TP
 .B addevent.tskdispatch.cpuidle (HOOKID=2)
 Trace when cpu goes idle
 
 Data format is:
 
-.I common_data, current_pid
+.I common_data, current_pid(INT32)
 
-.SS SCSI ACTIVITIES (GROUPID=5)
+.SS SCSI ACTIVITIES (GROUPID=6)
 You could use
 .I addevent.scsi
 to trace the scsi layer activities. It contains four sub event hooks:
@@ -147,14 +152,15 @@ mid-layer prepares a IO request
 
 Data format is:
 
-.I common_data, disk_major, disk_minor, device_state
+.I common_data, disk_major(INT8), disk_minor(INT8), device_state(INT8)
 .TP
 .B addevent.scsi.iodispatching (HOOKID=2)
 Dispatch a command to the low-level driver
 
 Data format is:
 
-.I common_data, device_state, scsi_info, data_direction, reqbuf_addr, reqbuf_len, cmd_identifier
+.I common_data, device_state(INT8), scsi_info(INT32), data_direction(INT8), 
+.I reqbuf_addr(INT64), reqbuf_len(INT32), cmd_identifier(INT64)
 
 Where 
 .I scsi_info
@@ -173,16 +179,17 @@ I/O is done by low-level driver
 
 Data format is:
 
-.I common_data, scsi_info, data_direction, cmd_identifier
+.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64)
 .TP
 .B addevent.scsi.iocompleted (HOOKID=4)
 mid-layer processed the completed IO
 
 Data format is:
 
-.I common_data, scsi_info, data_direction, cmd_identifier, bytes_done
+.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64),
+.I bytes_done(INT32)
 
-.SS PAGE FAULT (GROUPID=6)
+.SS PAGE FAULT (GROUPID=7)
 You could use 
 .I addevent.pagefault
 to trace page fault events. It contains only one sub event hooks:
@@ -192,9 +199,9 @@ to trace page fault events. It contains only one sub event hooks:
 
 Data format is:
 
-.I common_data, memory_address, write_access
+.I common_data, memory_address(INT64), write_access(INT8)
 
-.SS NETWORK DEVICE ACTIVITIES (GROUPID=7)
+.SS NETWORK DEVICE ACTIVITIES (GROUPID=8)
 You could use
 .I addevent.netdev
 to trace the network device  activities. It contains two sub event hooks:
@@ -205,7 +212,8 @@ network device receives a packet
 
 Data format is:
 
-.I netdev_name, data_length, protocol, buffer_length
+.I common_data, netdev_name(STRING), data_length(INT32), protocol(INT16), 
+.I buffer_length(INT32)
 
 .TP
 .BR addevent.netdev.transmit (HOOKID=2)
@@ -213,7 +221,150 @@ A packet will be sent out by network device
 
 Data format is:
 
-.I netdev_name, data_length, protocol, buffer_length
+.I common_data, netdev_name(STRING), data_length(INT32), protocol(INT16), 
+.I buffer_length(INT32)
+
+
+.SS IO SYSCALLS (GROUPID=9)
+You could use
+.I addevent.iosyscall
+to trace the detail activities of io related system calls. 
+It contains 16 hooks of syscall entry and 16 corresponding
+hooks of syscall return. 
+
+All the return hooks of io syscall will only log the common_data and
+the return value. So in the following subsections, only the entry 
+hooks of io syscall is listed:
+
+.P
+.TP
+.B addevent.iosyscall.open (HOOKID=1)
+the entry of sys_open
+
+Data format is:
+
+.I common_data, filename(STRING), flags(INT32), mode(INT32)
+
+.TP
+.B addevent.iosyscall.close (HOOKID=3)
+the entry of sys_close
+
+Data format is:
+
+.I common_data, fd(INT64)
+
+.TP
+.B addevent.iosyscall.read (HOOKID=5)
+the entry of sys_read
+
+Data format is:
+
+.I common_data, fd(INT64), buf_addr(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.write (HOOKID=7)
+the entry of sys_write
+
+Data format is:
+
+.I common_data, fd(INT64), buf_addr(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.readv (HOOKID=9)
+the entry of sys_readv
+
+Data format is:
+
+.I common_data, fd(INT64), vector_addr(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.writev (HOOKID=11)
+the entry of sys_writev
+
+Data format is:
+
+.I common_data, fd(INT64), vector_addr(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.pread64 (HOOKID=13)
+the entry of sys_pread64
+
+Data format is:
+
+.I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
+
+.TP
+.B addevent.iosyscall.pwrite64 (HOOKID=15)
+the entry of sys_pwrite64
+
+Data format is:
+
+.I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
+
+.TP
+.B addevent.iosyscall.readahead (HOOKID=17)
+the entry of sys_readahead
+
+Data format is:
+
+.I common_data, fd(INT64), offset(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.senfile (HOOKID=19)
+the entry of sys_sendfile and sys_sendfile64
+
+Data format is:
+
+.I common_data, out_fd(INT64), in_fd(INT64), offset_uaddr(INT64), count(INT64)
+
+.TP
+.B addevent.iosyscall.lseek (HOOKID=21)
+the entry of sys_lseek
+
+Data format is:
+
+.I common_data, fd(INT64), offset(INT64), whence(INT8)
+
+.TP
+.B addevent.iosyscall.llseek (HOOKID=23)
+the entry of sys_llseek
+
+Data format is:
+
+.I common_data, fd(INT64), offset_high(INT64), offset_low(INT64), 
+.I result_addr(INT64), whence(INT8)
+
+.TP
+.B addevent.iosyscall.sync (HOOKID=25)
+the entry of sys_sync
+
+Data format is:
+
+.I common_data
+
+.TP
+.B addevent.iosyscall.fsync (HOOKID=27)
+the entry of sys_fsync
+
+Data format is:
+
+.I common_data, fd(INT64)
+
+.TP
+.B addevent.iosyscall.fdatasync (HOOKID=29)
+the entry of sys_fdatasync
+
+Data format is:
+
+.I common_data, fd(INT64)
+
+.TP
+.B addevent.iosyscall.flock (HOOKID=31)
+the entry of sys_flock
+
+Data format is:
+
+.I common_data, fd(INT64), operation(INT32)
 
 .SH TRACE DATA FORMAT
 
@@ -235,10 +386,95 @@ an output file named
 You should use "stap -b -M" with LKET to get those pre-cpu files
 (stpd_cpu*) before using it.
 
-
 If you want LKET to log trace data in ASCII format directly, you should:
 .SAMPLE
 stap -D ASCII_TRACE ...
+.ESAMPLE
+
+.SH EVENT REGISTER
+
+LKET provides a way to log the metadata of the trace data by events registering.
+
+Two function is provided:
+.P
+.IP 
+.SB register_sys_event(grpid:long, hookid:long, fmt:string, names:string)
+.IP
+.SB register_user_event(grpid:long, hookid:long, fmt:string, names:string)
+.P
+
+The 
+.I grpid
+and 
+.I hookid
+is the groupid and hookid of the event you want to register. 
+
+.I fmt
+contains a set of fomat tokens seperated by ":".
+The valid format tokens are:
+.B UINT8,
+.B UINT16,
+.B UINT32,
+.B UINT64
+and
+.B STRING
+which represents 8-bit, 16-bit, 32-bit, 64-bit binary data and NULL-terminated
+respectively.
+
+.I names
+contains a set of names seperated by ":".
+The names contains in
+.I names
+should match the format tokens contains in
+.I fmt
+
+.B register_sys_event 
+is used to register the newly added event hooks. For example, supposing you
+want to add a new event hook to trace the entry of sys_open, and you want
+this event hook to log the fd, flag and mode paremeters for you. You should
+add:
+
+.SAMPLE
+register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_ENTRY,
+	"STRING:INT32:INT32", "filename:flags:mode")
+.ESAMPLE
+
+into the function
+.B register_sys_events
+in LKET/register_event.stp
+
+
+.B register_user_event
+is used for user to add extra trace data for a event hook. See
+the section
+.B CUSTOMIZED TRACE DATA
+for more detail
+
+
+.SH CUSTOMIZED TRACE DATA
+
+LKET defines a set of event hooks and will log the predefined
+trace data for you, but what if you want to trace extra 
+data for that event?
+
+LKET provides a way to do this without modifying the codes in
+the tapset of that event hook. You can simply use printf to trace
+extra data. For example, supposing you want to trace sk_buff->mac_len
+and sk_buff->priority besides the sk_buff->len, sk_buff->protocol and
+sk_buff->truesize for the 
+.B netdev 
+event hooks:
+
+.SAMPLE
+probe register_event
+{
+    register_user_event(GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
+        "INT32:INT32", "mac_len:priority")
+}
+probe addevent.netdev
+{
+    printf("%4b%4b", skb->mac_len, skb->priority)
+}
 .ESAMPLE
 
 .SH EXAMPLES
@@ -255,8 +491,8 @@ stap -e "probe addevent.syscall {}" -I /usr/local/share/systemtap/tapsets/LKET -
 To only probe syscall.entry:
 stap -e "probe addevent.syscall.entry {}" -I /usr/local/share/systemtap/tapsets/LKET -b -M
 .TP
-To probe netdev transmition and log backtrace:
-stap -e "probe addevent.netdev.transmit { lket_backtrace() }" -I /usr/local/share/systemtap/tapsets/LKET -b -M
+To probe netdev transmition and log extra data of mac_len and priority:
+stap -e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", skb->mac_len, skb->priority) }" -I /usr/local/share/systemtap/tapsets/LKET -b -M
 
 
 .SH SEE ALSO

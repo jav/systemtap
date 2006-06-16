@@ -1,3 +1,8 @@
+2006-06-16  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket.in.5: update to reflect the latest changes
+	to LKET
+	
 2006-06-15  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in: Require elfutils-0.121.
