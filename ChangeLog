@@ -2,7 +2,7 @@
 
 	* lket.in.5: update to reflect the latest changes
 	to LKET
-	
+
 2006-06-15  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in: Require elfutils-0.121.
@@ -233,6 +233,7 @@
 	code was being too optimistic.
 
 2006-05-22  Li Guanglei <guanglei@cn.ibm.com>
+
 	* lket.in.5: draft version of manpage for LKET
 	* Makefile.in, configure, stap.1.in: add lket.in.5
 
@@ -402,6 +403,7 @@
 	* translate.cxx (emit_module_init): Print location of probe in script.
 
 2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
+
 	PR 2520
 	* main.cxx: add -M option to stop merge per-cpu files in bulk mode
 	* session.h: add merge member into systemtap_session
@@ -409,6 +411,7 @@
 	option is turned on by stap.
 
 2006-05-08  Li Guanglei <guanglei@cn.ibm.com>
+
 	PR 2627
 	* elaborate.cxx: epilogue style alias expansion
 	* parse.cxx: parse += alias definition
@@ -602,11 +605,13 @@
 	Use cmpxchg to synchronize.
 
 2006-04-12  Tom Zanussi  <zanussi@us.ibm.com>
+
 	PR 2538
 	* buildrun.cxx (compile_pass): Remove space
 	between -I and runtime path.
 
 2006-04-12  Martin Hunt  <hunt@redhat.com>
+
 	PR 2497
 	* translate.cxx (translate_pass): Don't
 	reset STP_STRING_SIZE if it was already defined.
@@ -618,6 +623,7 @@
 	_stp_snprintf() instead of snprintf().
 
 2006-04-09  Martin Hunt  <hunt@redhat.com>
+
 	Add binary printf support.
 
 	* elaborate.cxx (visit_print_format): Don't include
@@ -3068,6 +3074,7 @@
 	* Makefile.am (AM_CPPFLAGS): Set PKGLIBDIR correctly.
 
 2005-07-26  Martin Hunt  <hunt@redhat.com>
+
 	* systemtap.spec.in: Stpd goes in libexec/systemtap.
 	* Makefile.am (libexecdir): Set to libexecdir/systemtap.
 	* aclocal.m4, Makefile.in: Regenerated
