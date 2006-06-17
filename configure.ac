@@ -1,7 +1,7 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.5.7, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.5.8, systemtap@sources.redhat.com, systemtap)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
