@@ -1,22 +1,26 @@
+2006-06-16  Roland McGrath  <roland@redhat.com>
+
+	* lket/b2a/Makefile.in: Regenerated with automake-1.9.6-2.
+
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: Rewrite
 	according to the latest LKET's tapsets. Make it able
 	to read the metainfo wrote by tapsets.
-	
+
 2006-06-02  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.c: eliminate some compile warnings
-	
+
 2006-06-01  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.h, lket/b2a/lket_b2a.c: make it able to
 	read user added trace data and backtrace
-	
+
 2006-05-30  Martin Hunt  <hunt@redhat.com>
 
 	* string.c (_stp_text_str): New function.
-	* string.h (_stp_text_str): Declare.	
+	* string.h (_stp_text_str): Declare.
 
 2006-05-25  Martin Hunt  <hunt@redhat.com>
 
@@ -68,7 +72,7 @@
 
 	* vsprintf.c (_stp_snprintf): New function.
 
-	* stat-common.c (_stp_stat_print_histogram): Write a 
+	* stat-common.c (_stp_stat_print_histogram): Write a
 	newline at the end of the histogram.
 
 2006-04-09  Martin Hunt  <hunt@redhat.com>
@@ -92,17 +96,17 @@
 
 2006-03-26  Martin Hunt  <hunt@redhat.com>
 
-	* bench2/bench.rb (Bench::run): Instead of loading the module 
+	* bench2/bench.rb (Bench::run): Instead of loading the module
 	once and running against different numbers of threads, load
-	and unload the module each time. Then keep track of failures 
-	per thread. Also use the new itest to keep the tests the same 
+	and unload the module each time. Then keep track of failures
+	per thread. Also use the new itest to keep the tests the same
 	size regardless of the number of threads.
 	(Bench::initialize): Make itest if needed.
 	(Bench::load, Stapbench::load): Increase buffer size to 8MB.
-	
-	* bench2/itest.c: Change arg to be the number of threads 
-	instead of the number of millions of calls to make. 
-	This makes it easy to divide the work among multiple threads 
+
+	* bench2/itest.c: Change arg to be the number of threads
+	instead of the number of millions of calls to make.
+	This makes it easy to divide the work among multiple threads
 	without making the test run many times longer.
 
 2006-03-09  Martin Hunt  <hunt@redhat.com>
@@ -157,10 +161,10 @@
 
 	* pmap-gen.c (_stp_pmap_new_*): Initialize lock.
 	(_stp_pmap_set_*): Lock map while in use.
-	(_stp_pmap_add_*): Lock map while in use.	
+	(_stp_pmap_add_*): Lock map while in use.
 	(_stp_pmap_get_cpu): Ditto.
 	(_stp_pmap_get): Lock each per-cpu map.
-	
+
 	* map-gen.c: Define and use NULLRET for a NULL return value.
 	* map.c (_stp_pmap_clear): New function.
 	(_stp_pmap_agg): Lock each per-cpu map as
@@ -176,7 +180,7 @@
 	* map.c (_new_map_create): Only increment map size if a node
 	was moved off the free list.
 	(_stp_map_size): New function.
-	(_stp_pmap_size): New function.	
+	(_stp_pmap_size): New function.
 
 2005-12-07  Martin Hunt  <hunt@redhat.com>
 	 PR1923
@@ -186,22 +190,22 @@
 
 	* map.c (_stp_map_init): Use kmalloc() to allocate individual
 	nodes instead of using vmalloc() to allocate one big chunk.
-	(_stp_map_new): Use kmalloc. 
+	(_stp_map_new): Use kmalloc.
 	(_stp_pmap_new): Use kmalloc. Return a PMAP.
 	(__stp_map_del): New function. Free all the nodes in a map.
 	(_stp_map_del): Call __stp_map_del() then free map struct.
 	(_stp_pmap_del): Takes a PMAP. Calls __stp_map_del() for
 	each cpu.
 	(_stp_pmap_printn_cpu): Change arg to PMAP.
-	(_stp_pmap_agg): Change arg to PMAP.	
-	(_stp_pmap_get_agg): Change arg to PMAP.		
+	(_stp_pmap_agg): Change arg to PMAP.
+	(_stp_pmap_get_agg): Change arg to PMAP.
 
 	* map-stat.c (_stp_pmap_new_hstat_linear): Use PMAP
 	instead of MAP. Fix allocations.
 	(_stp_pmap_new_hstat_log): Ditto.
 
 	* pmap-gen.c Fix all functions to take or return PMAPS
-	instead of MAPS.	
+	instead of MAPS.
 
 	* alloc.c: Remove everything except kmalloc_node().
 	All runtime code now uses kmalloc() directly.
@@ -221,11 +225,11 @@
 
 	* alloc.c (__stp_valloc_percpu): Use same code for up and smp.
 	(_stp_per_cpu_ptr): New macro.
-	* user/alloc.c: Ditto.	
-	* map.c: Use _stp_map_cpu_ptr().	 
+	* user/alloc.c: Ditto.
+	* map.c: Use _stp_map_cpu_ptr().
 	* map-stat.c: Ditto.
 	* pmap-gen.c: Ditto.
-	* runtime.h: Include alloc.c	
+	* runtime.h: Include alloc.c
 	* user/runtime.h: Ditto.
 
 	* map.c (_stp_pmap_del): Use _stp_free_percpu() to
@@ -247,14 +251,14 @@
 	(_stp_add_agg): If count is 0  when adding,
 	just set the stats.
 
-2005-11-10  Martin Hunt  <hunt@redhat.com>	
+2005-11-10  Martin Hunt  <hunt@redhat.com>
 	* map.c: Doc updates.
-	(_stp_new_agg): 
+	(_stp_new_agg):
 
-	* pmap-gen.c: Change a bunch of generated function names to 
+	* pmap-gen.c: Change a bunch of generated function names to
 	avoid conflicts with maps with the same key and value types.
-	
-2005-11-10  Martin Hunt  <hunt@redhat.com>	
+
+2005-11-10  Martin Hunt  <hunt@redhat.com>
 	* map.c (_stp_cmp): Use _stp_div64().
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
@@ -262,16 +266,16 @@
 	* map.h: Remove HSTAT_LOG and HSTAT_LINEAR.
 	* map-gen.c: Fix comment.
 	* pmap-gen.c: Ditto.
-	
-2005-11-09  Martin Hunt  <hunt@redhat.com>	
+
+2005-11-09  Martin Hunt  <hunt@redhat.com>
 	* map.c (_stp_cmp): Patch to sort on stats.
 	(_stp_map_sort): Ditto.
 	(_stp_map_sortn): Ditto.
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
 	* map.c: Change order of includes.
-	
-2005-11-09  Martin Hunt  <hunt@redhat.com>	
+
+2005-11-09  Martin Hunt  <hunt@redhat.com>
 	* map.h (struct map_root): Delete fields
 	used by old API.
 
@@ -284,14 +288,14 @@
 	* map-keys.c: Deleted.
 	* map-values.c: Deleted.
 	* map-int.c: Deleted.
-	
+
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (__stp_valloc_percpu): Fix call to vmalloc_node.
 	(vmalloc_node): Remove nonworking code.
 
 2005-11-08  Martin Hunt  <hunt@redhat.com>
-	
+
 	* map.c (_stp_map_init): New function. Extracted from _stp_map_new()
 	so it can be used in _stp_pmap_new().
 	(_stp_map_new): Call _stp_map_init().
@@ -300,12 +304,12 @@
 	(_stp_pmap_new_hstat_log): New function.
 	(_stp_pmap_del): New function.
 	(_stp_pmap_printn_cpu): New function.
-	(_stp_pmap_printn): New function.	
+	(_stp_pmap_printn): New function.
 	(_stp_new_agg): New function.
-	(_stp_add_agg): New function.	
-	(_stp_pmap_agg): New function.		
+	(_stp_add_agg): New function.
+	(_stp_pmap_agg): New function.
 	(_new_map_clear_node): New function.
-	
+
 	* map.h (struct map_root): Add Hist struct. Add copy
 	and cmp function pointers for pmaps.
 
@@ -314,9 +318,9 @@
 	* map-stat.c: Fix up references to histogram params in map_root.
 	* stat-common.c: Ditto.
 	* stat.c: Ditto.
-	
+
 	* pmap-gen.c: New file. Implements per-cpu maps.
-	
+
 	* map-gen.c: Minor bug fixes. Use new VAL_IS_ZERO() macro.
 
 	* alloc.c (vmalloc_node): For NUMA, provide a vmalloc that
@@ -346,17 +350,17 @@
 	node if key not found.
 	(_stp_map_get_*): Use new MAP_GET_VAL. Return "" when
 	string lookups not found.
-	
+
 	* map.c (_stp_get_int64): Check args and return
 	0 on bad args or wrong type.
-	(_stp_get_stat): Ditto.	
+	(_stp_get_stat): Ditto.
 	(_stp_key_get_int64): Ditto.
 	(_stp_get_str): Check args and return
 	"bad type" on bad args or wrong type.
 	(_stp_key_get_str): Ditto.
 	(_new_map_set_str): If setting to "", delete node.
 	(_new_map_get_*): Delete. Use _stp_get_*().
-	
+
 
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 
@@ -365,7 +369,7 @@
 
 2005-10-26  Martin Hunt  <hunt@redhat.com>
 	* map-gen.c: New file.
-	
+
 	* map.c (_new_map_create, _new_map_del_node, _new_map_del_node,
 	_new_map_set_int64, _new_map_set_str,_new_map_get_int64,
 	_new_map_get_str, _new_map_get_stat, _new_map_set_stat):
@@ -376,9 +380,9 @@
 	* map-stat.c (_stp_map_add_stat): Ditto.
 	* map-str (_stp_map_set_str): Ditto.
 
-	* Doxyfile: Remove predefines NEED_STRING_VALS, 
+	* Doxyfile: Remove predefines NEED_STRING_VALS,
 	NEED_STATS, NEED_INT64.
-	* map-keys.c: Ditto.	
+	* map-keys.c: Ditto.
 	* list.c (_stp_list_new): Ditto. Also set map->list.
 	* map-values.c: Ditto.
 
@@ -419,23 +423,23 @@
 	* map.c (_stp_cmp): New comparison function for sorts.
 	(_stp_swap): New swap function for bubble sort.
 	(_stp_map_sortn): New function.
-	(_stp_map_sort): New function.	
+	(_stp_map_sort): New function.
 	(_stp_map_printn): New function.
-	(_stp_map_print): Convert to a macro.	
+	(_stp_map_print): Convert to a macro.
 
 2005-09-22  Martin Hunt  <hunt@redhat.com>
 
-	* regs.h: PPC64 version from 
+	* regs.h: PPC64 version from
 	Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 
-	* runtime.h (init_module): Only initialize _stp_kta and 
+	* runtime.h (init_module): Only initialize _stp_kta and
 	_stp_kallsyms_lookup on i386 and x86_64. Define HAS_LOOKUP.
 
 	* sym.c (_stp_symbol_sprint): If HAS_LOOKUP is not
 	defined, just print address in hex.
 
 	* current.c (_stp_ret_addr): Add ppc64 version.
-	(_stp_sprint_regs): PPC64 version from 
+	(_stp_sprint_regs): PPC64 version from
 	Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 
 2005-09-14  Martin Hunt  <hunt@redhat.com>

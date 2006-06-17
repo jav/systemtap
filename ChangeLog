@@ -1,3 +1,10 @@
+2006-06-16  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac, systemtap.spec.in: Bump version to 0.5.8.
+	* configure: Regenerated.
+
+	* aclocal.m4, Makefile.in: Regenerated with automake-1.9.6-2.
+
 2006-06-16  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket.in.5: update to reflect the latest changes
