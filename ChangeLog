@@ -3,6 +3,9 @@
 	* configure.ac, systemtap.spec.in: Bump version to 0.5.8.
 	* configure: Regenerated.
 
+	* systemtap.spec.in: Fix bundled_elfutils setting so builds can
+	possibly work.  Add comment admonishing losers not to touch it.
+
 	* aclocal.m4, Makefile.in: Regenerated with automake-1.9.6-2.
 
 2006-06-16  Li Guanglei <guanglei@cn.ibm.com>
