@@ -1,4 +1,5 @@
-%define bundled_elfutils 0
+# Yo!  DO NOT THE FOLLOWING LINE.
+%define bundled_elfutils 1
 %define elfutils_version 0.121
 
 Name: systemtap
