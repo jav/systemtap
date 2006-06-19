@@ -20,41 +20,6 @@
 *          Set in return probes only.
 */
 
-# open _______________________________________________________
-# asmlinkage long sys_open(const char __user * filename, int flags, int mode)
-probe syscall.open = kernel.function("sys_open") {
-	name = "open"
-	filename = user_string($filename)
-	flags = $flags
-	mode = $mode
-	if (flags & 64)
-		argstr = sprintf("\"%s\", %s, %#o", filename, _sys_open_flag_str(flags), mode)
-	else
-		argstr = sprintf("\"%s\", %s", filename, _sys_open_flag_str(flags))
-}
-probe syscall.open.return = kernel.function("sys_open").return {
-	name = "open"
-	retstr = returnstr(1)
-}
-
-# read _______________________________________________________
-# ssize_t sys_read(unsigned int fd, char __user * buf, size_t count)
-probe syscall.read = kernel.function("sys_read") {
-	name = "read"
-	fd = $fd
-	buf_uaddr = $buf
-	count = $count
-	argstr = sprintf("%d, [%p], %d", $fd, $buf, $count)
-}
-probe syscall.read.return = kernel.function("sys_read").return {
-	name = "read"
-	retstr = returnstr(1)
-}
-
-#######################################################################
-################# OLD STUFF rewrite everything below here##############
-#######################################################################
-
 # nanosleep __________________________________________________
 #
 # asmlinkage long
@@ -193,6 +158,24 @@ probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return
 	name = "old_getrlimit"
 	retstr = returnstr(1)
 }
+
+# open _______________________________________________________
+# asmlinkage long sys_open(const char __user * filename, int flags, int mode)
+probe syscall.open = kernel.function("sys_open") {
+	name = "open"
+	filename = user_string($filename)
+	flags = $flags
+	mode = $mode
+	if (flags & 64)
+		argstr = sprintf("\"%s\", %s, %#o", filename, _sys_open_flag_str(flags), mode)
+	else
+		argstr = sprintf("\"%s\", %s", filename, _sys_open_flag_str(flags))
+}
+probe syscall.open.return = kernel.function("sys_open").return {
+	name = "open"
+	retstr = returnstr(1)
+}
+
 # pause ______________________________________________________
 #
 # sys_pause(void)
@@ -427,6 +410,21 @@ probe syscall.pwrite64.return = kernel.function("sys_pwrite64").return {
 	name = "pwrite64"
 	retstr = returnstr(1)
 }
+
+# read _______________________________________________________
+# ssize_t sys_read(unsigned int fd, char __user * buf, size_t count)
+probe syscall.read = kernel.function("sys_read") {
+	name = "read"
+	fd = $fd
+	buf_uaddr = $buf
+	count = $count
+	argstr = sprintf("%d, [%p], %d", $fd, $buf, $count)
+}
+probe syscall.read.return = kernel.function("sys_read").return {
+	name = "read"
+	retstr = returnstr(1)
+}
+
 # readahead __________________________________________________
 #
 # asmlinkage ssize_t
@@ -1126,12 +1124,12 @@ probe syscall.setfsgid.return = kernel.function("sys_setfsgid").return {
 # setfsgid16 _________________________________________________
 # long sys_setfsgid16(old_gid_t gid)
 #
-probe syscall.setfsgid16 = kernel.function("sys_setfsgid16") {
+probe syscall.setfsgid16 = kernel.function("sys_setfsgid16") ? {
 	name = "setfsgid16"
 	gid = $gid
 	argstr = sprint($gid)
 }
-probe syscall.setfsgid16.return = kernel.function("sys_setfsgid16").return {
+probe syscall.setfsgid16.return = kernel.function("sys_setfsgid16").return ? {
 	name = "setfsgid16"
 	retstr = returnstr(1)
 }
@@ -1150,12 +1148,12 @@ probe syscall.setfsuid.return = kernel.function("sys_setfsuid").return {
 # setfsuid16 _________________________________________________
 # long sys_setfsuid16(old_uid_t uid)
 #
-probe syscall.setfsuid16 = kernel.function("sys_setfsuid16") {
+probe syscall.setfsuid16 = kernel.function("sys_setfsuid16") ? {
 	name = "setfsuid16"
 	uid = $uid
 	argstr = sprint($uid)
 }
-probe syscall.setfsuid16.return = kernel.function("sys_setfsuid16").return {
+probe syscall.setfsuid16.return = kernel.function("sys_setfsuid16").return ? {
 	name = "setfsuid16"
 	retstr = returnstr(1)
 }
@@ -1296,13 +1294,13 @@ probe syscall.setregid.return = kernel.function("sys_setregid").return {
 # setregid16 _________________________________________________
 # long sys_setregid16(old_gid_t rgid, old_gid_t egid)
 #
-probe syscall.setregid16 = kernel.function("sys_setregid16") {
+probe syscall.setregid16 = kernel.function("sys_setregid16") ? {
 	name = "setregid16"
 	rgid = __short($rgid)
 	egid = __short($egid)
 	argstr = sprintf("%d, %d",rgid, egid)
 }
-probe syscall.setregid16.return = kernel.function("sys_setregid16").return {
+probe syscall.setregid16.return = kernel.function("sys_setregid16").return ? {
 	name = "setregid16"
 	retstr = returnstr(1)
 }
@@ -1387,13 +1385,13 @@ probe syscall.setreuid.return = kernel.function("sys_setreuid").return {
 # setreuid16 _________________________________________________
 # long sys_setreuid16(old_uid_t ruid, old_uid_t euid)
 #
-probe syscall.setreuid16 = kernel.function("sys_setreuid16") {
+probe syscall.setreuid16 = kernel.function("sys_setreuid16") ? {
 	name = "setreuid16"
 	ruid = __short($ruid)
 	euid = __short($euid)
 	argstr = sprintf("%d, %d", ruid, euid)
 }
-probe syscall.setreuid16.return = kernel.function("sys_setreuid16").return {
+probe syscall.setreuid16.return = kernel.function("sys_setreuid16").return ? {
 	name = "setreuid16"
 	retstr = returnstr(1)
 }
@@ -2199,11 +2197,9 @@ probe syscall.ustat.return = kernel.function("sys_ustat").return {
 	name = "ustat"
 	retstr = returnstr(1)
 }
+
 # utime ______________________________________________________
-#
-# asmlinkage long
-# sys_utime(char __user * filename,
-#	     struct utimbuf __user * times)
+# long sys_utime(char __user * filename, struct utimbuf __user * times)
 #
 probe syscall.utime = kernel.function("sys_utime") {
 	name = "utime"

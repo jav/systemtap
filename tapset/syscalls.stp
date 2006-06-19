@@ -220,14 +220,14 @@ probe syscall.chown.return = kernel.function("sys_chown").return {
 # long sys_chown16(const char __user * filename, old_uid_t user, 
 #			old_gid_t group)
 #
-probe syscall.chown16 = kernel.function("sys_chown16") {
+probe syscall.chown16 = kernel.function("sys_chown16") ? {
 	name = "chown16"
 	path = user_string($filename)
 	owner = __short($user)
 	group = __short($group)
 	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
 }
-probe syscall.chown16.return = kernel.function("sys_chown16").return {
+probe syscall.chown16.return = kernel.function("sys_chown16").return ? {
 	name = "chown16"
 	retstr = returnstr(1)
 }
@@ -552,14 +552,14 @@ probe syscall.fchown.return = kernel.function("sys_fchown").return {
 
 # fchown16 ___________________________________________________
 # long sys_fchown16(unsigned int fd, old_uid_t user, old_gid_t group)
-probe syscall.fchown16 = kernel.function("sys_fchown16") {
+probe syscall.fchown16 = kernel.function("sys_fchown16") ? {
 	name = "fchown16"
 	fd = $fd
 	owner = __short($user)
 	group = __short($group)
 	argstr = sprintf("%d, %d, %d", $fd, owner, group)
 }
-probe syscall.fchown16.return = kernel.function("sys_fchown16").return {
+probe syscall.fchown16.return = kernel.function("sys_fchown16").return ? {
 	name = "fchown16"
 	retstr = returnstr(1)
 }
@@ -907,7 +907,7 @@ probe syscall.getgid.return = kernel.function("sys_getgid").return {
 
 # getgid16 ___________________________________________________
 # long sys_getgid16(void)
-probe syscall.getgid16 = kernel.function("sys_getgid16") {
+probe syscall.getgid16 = kernel.function("sys_getgid16") ? {
 	name = "getgid16"
 }
 probe syscall.getgid16.return = kernel.function("sys_getgid16").return ? {
@@ -1045,14 +1045,14 @@ probe syscall.getresgid.return = kernel.function("sys_getresgid").return {
 # long sys_getresgid16(old_uid_t __user *rgid,
 #                 old_uid_t __user *egid,
 #                 old_uid_t __user *sgid)
-probe syscall.getresgid16 = kernel.function("sys_getresgid16") {
+probe syscall.getresgid16 = kernel.function("sys_getresgid16") ? {
 	name = "getresgid16"
 	rgid_uaddr = $rgid
 	egid_uaddr = $egid
 	sgid_uaddr = $sgid
 	argstr = sprintf("[%p], [%p], [%p]", rgid_uaddr, egid_uaddr, sgid_uaddr)
 }
-probe syscall.getresgid16.return = kernel.function("sys_getresgid16").return {
+probe syscall.getresgid16.return = kernel.function("sys_getresgid16").return ? {
 	name = "getresgid16"
 	retstr = returnstr(1)
 }
@@ -1077,14 +1077,14 @@ probe syscall.getresuid.return = kernel.function("sys_getresuid").return {
 # long sys_getresuid16(old_uid_t __user *ruid,
 #		old_uid_t __user *euid,
 #		old_uid_t __user *suid)
-probe syscall.getresuid16 = kernel.function("sys_getresuid16") {
+probe syscall.getresuid16 = kernel.function("sys_getresuid16") ? {
 	name = "getresuid16"
 	ruid_uaddr = $ruid
 	euid_uaddr = $euid
 	suid_uaddr = $suid
 	argstr = sprintf("[%p], [%p], [%p]", ruid_uaddr, euid_uaddr, suid_uaddr)
 }
-probe syscall.getresuid16.return = kernel.function("sys_getresuid16").return {
+probe syscall.getresuid16.return = kernel.function("sys_getresuid16").return ? {
 	name = "getresuid16"
 	retstr = returnstr(1)
 }
@@ -1439,14 +1439,14 @@ probe syscall.lchown.return = kernel.function("sys_lchown").return {
 # long sys_lchown16(const char __user * filename, old_uid_t user, 
 #			old_gid_t group)
 #
-probe syscall.lchown16 = kernel.function("sys_lchown16") {
+probe syscall.lchown16 = kernel.function("sys_lchown16") ? {
 	name = "lchown16"
 	path = user_string($filename)
 	owner = __short($user)
 	group = __short($group)
 	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
 }
-probe syscall.lchown16.return = kernel.function("sys_lchown16").return {
+probe syscall.lchown16.return = kernel.function("sys_lchown16").return ? {
 	name = "lchown16"
 	retstr = returnstr(1)
 }
