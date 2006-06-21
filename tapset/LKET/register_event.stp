@@ -82,7 +82,8 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 
 	if( THIS->grpid <= 0 || THIS->grpid > _MAXGROUPID ||
 		THIS->hookid <= 0 || THIS->hookid > _MAXHOOKID)  {
-		_stp_warn("wrong range in groupid/hookid\n");
+		_stp_warn("wrong range in groupid/hookid, grp:%d, hkid:%d\n",
+			THIS->grpid, THIS->hookid);
 		_stp_exit();
 	}
 
@@ -129,13 +130,13 @@ function register_sys_events()
 		"INT32", "pid")
 
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ,
-		"STRING:INT8:INT8", "elv_name:major:minor")
+		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
 
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_ADD_REQ,
-		"STRING:INT8:INT8", "elv_name:major:minor")
+		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
 
-	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_REMOVE_REQ,
-		"STRING:INT8:INT8", "elv_name:major:minor")
+	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_COMPLETE_REQ,
+		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
 
 	register_sys_event(GROUP_TASK, HOOKID_TASK_CTXSWITCH,
 		"INT32:INT32:INT8", "prev_pid:next_pid:prev_state")
@@ -144,17 +145,17 @@ function register_sys_events()
 		"INT32", "cur_pid")
 
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOENTRY,
-		"INT8:INT8:INT8", "major:minor:sdev_state")
+		"INT8:INT8:INT8:INT64", "major:minor:sdev_state:request")
 
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
-		"INT8:INT32:INT8:INT64:INT32:INT64",
-		"sdev_state:scsi_info:data_dir:req_buff:buf_len:cmd_id")
+		"INT8:INT32:INT8:INT64:INT32:INT64:INT64",
+		"sdev_state:scsi_info:data_dir:req_buff:buf_len:cmd_id:request")
 
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
-		"INT32:INT8:INT64", "scsi_info:data_dir:cmd_id")
+		"INT32:INT8:INT64:INT64", "scsi_info:data_dir:cmd_id:request")
 
 	register_sys_event(GROUP_SCSI, HOOKID_SCSI_IOCOMP_BY_MIDLEVEL,
-		"INT32:INT8:INT64:INT32", "scsi_info:data_dir:cmd_id:bytes");
+		"INT32:INT8:INT64:INT32:INT64", "scsi_info:data_dir:cmd_id:bytes:request");
 
 	register_sys_event(GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
 		"INT64:INT8", "addr:write")

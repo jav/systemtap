@@ -23,9 +23,7 @@ probe addevent.ioscheduler.elv_next_request
 probe _addevent.ioscheduler.elv_next_request
 	=  ioscheduler.elv_next_request
 {
-	if(filter_by_pid() == 1 ) {
-		log_ioscheduler_tracedata_elv_next(HOOKID_IOSCHED_NEXT_REQ, $q)
-	}
+	log_ioscheduler_tracedata_elv_next(HOOKID_IOSCHED_NEXT_REQ, $q)
 }
 
 
@@ -39,9 +37,7 @@ probe addevent.ioscheduler.elv_add_request
 probe _addevent.ioscheduler.elv_add_request
 	= ioscheduler.elv_add_request
 {
-	if(filter_by_pid() == 1 ) {
-		log_ioscheduler_tracedata_others(HOOKID_IOSCHED_ADD_REQ, $q, $rq)
-	}
+	log_ioscheduler_tracedata_others(HOOKID_IOSCHED_ADD_REQ, $q, $rq)
 }
 
 /* when a request is completed */
@@ -54,9 +50,7 @@ probe addevent.ioscheduler.elv_completed_request
 probe _addevent.ioscheduler.elv_completed_request
 	= ioscheduler.elv_completed_request
 {
-	if(filter_by_pid() == 1 ) {
-		log_ioscheduler_tracedata_others(HOOKID_IOSCHED_REMOVE_REQ, $q, $rq)
-	}
+	log_ioscheduler_tracedata_others(HOOKID_IOSCHED_COMPLETE_REQ, $q, $rq)
 }
 
 
@@ -73,11 +67,12 @@ function log_ioscheduler_tracedata_others(var_id:long, var_q:long, var_rq:long)
 	struct request *rq = (struct request *)((long)THIS->var_rq);
 	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
 	
-	/* elevator name|major|minor|  */
+	/* elevator name|major|minor|request|request_flags  */
 
-	_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b",
+	_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b",
 		q->elevator->elevator_type->elevator_name,
-		(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
+		(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor,
+		(int64_t)((long)rq), (_FMT_)rq->flags); 
 %}
 
 %:
@@ -87,10 +82,12 @@ function log_ioscheduler_tracedata_others(var_id:long, var_q:long, var_rq:long)
 	struct request *rq = (struct request *)((long)THIS->var_rq);
 	struct request_queue *q = (struct request_queue *)((long)THIS->var_q);
 	
-	/* elevator name|major|minor|  */
+	/* elevator name|major|minor|request|request_flags  */
 
-	_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", q->elevator.elevator_name, 
-		(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
+	_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b", 
+		q->elevator.elevator_name, (_FMT_)rq->rq_disk->major, 
+		(_FMT_)rq->rq_disk->first_minor, (int64_t)((long)rq),
+		(_FMT_)rq->flags);
 %}
 
 %)
@@ -108,19 +105,21 @@ function log_ioscheduler_tracedata_elv_next(var_id:long, var:long)
 	q = (struct request_queue *)((long)THIS->var);
 
 	/* If there is a request in the request queue:
-		elevator name|major|minor|
+		elevator name|major|minor|request|req_flags
 	   if there is no request in the request queue:
-		elevator name|empty| 
+		elevator name|empty|0|0 
 	*/
 
 	if(list_empty(&(q->queue_head))) {
-		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
-			q->elevator->elevator_type->elevator_name, (_FMT_)-1, (_FMT_)-1);
+		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b", 
+			q->elevator->elevator_type->elevator_name, (_FMT_)-1, 
+			(_FMT_)-1, (_FMT_)0, (_FMT_)0);
 	} else  {
 		rq = list_entry_rq(q->queue_head.next);
-		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
+		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b", 
 			q->elevator->elevator_type->elevator_name, (_FMT_)rq->rq_disk->major, 
-			(_FMT_)rq->rq_disk->first_minor); 
+			(_FMT_)rq->rq_disk->first_minor, (int64_t)((long)rq),
+			(_FMT_)rq->flags); 
 	}
 
 %}
@@ -136,17 +135,20 @@ function log_ioscheduler_tracedata_elv_next(var_id:long, var:long)
 	q = (struct request_queue *)((long)THIS->var);
 
 	/* If there is a request in the request queue:
-		elevator name|major|minor|
+		elevator name|major|minor|request|req_flags
 	   if there is no request in the request queue:
-		elevator name|empty| 
+		elevator name|empty|0|0
 	*/
 	if(list_empty(&(q->queue_head))) {
-		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", 
-			q->elevator.elevator_name, (_FMT_)-1, (_FMT_)-1);
+		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b", 
+			q->elevator.elevator_name, (_FMT_)-1, (_FMT_)-1, 
+			(_FMT_)0, (_FMT_)0);
 	} else  {
 		rq = list_entry_rq(q->queue_head.next);
-		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b", q->elevator.elevator_name, 
-			(_FMT_)rq->rq_disk->major, (_FMT_)rq->rq_disk->first_minor); 
+		_lket_trace(_GROUP_IOSCHED, THIS->var_id, "%0s%1b%1b%8b%8b", 
+			q->elevator.elevator_name, (_FMT_)rq->rq_disk->major, 
+			(_FMT_)rq->rq_disk->first_minor, (int64_t)((long)rq),
+			(_FMT_)rq->flags); 
 	}
 
 %}

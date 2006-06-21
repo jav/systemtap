@@ -100,26 +100,30 @@ You could use
 to trace the IO scheduler activities. It contains three sub event hooks:
 .P
 .TP
-.B addevent.ioscheduler.elv_next_request (HOOKID=1)
-Trace when a request is retrieved from request queue
-
-Data format is:
-
-.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
-.TP
-.B addevent.ioscheduler.elv_add_request (HOOKID=2)
+.B addevent.ioscheduler.elv_add_request (HOOKID=1)
 Trace when a request is added to the request queue
 
 Data format is:
 
-.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
+.I request(INT64), request_flags(INT64)
+.TP
+.B addevent.ioscheduler.elv_next_request (HOOKID=2)
+Trace when a request is retrieved from request queue
+
+Data format is:
+
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
+.I request(INT64), request_flags(INT64)
+
 .TP
 .B addevent.ioscheduler.elv_completed_request (HOOKID=3)
 Trace when a request is completed
 
 Data format is:
 
-.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8)
+.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
+.I request(INT64), request_flags(INT64)
 
 .SS TASK SCHEDULE ACTIVITIES (GROUPID=5)
 You could use
@@ -152,7 +156,7 @@ mid-layer prepares a IO request
 
 Data format is:
 
-.I common_data, disk_major(INT8), disk_minor(INT8), device_state(INT8)
+.I common_data, disk_major(INT8), disk_minor(INT8), device_state(INT8), request(INT64)
 .TP
 .B addevent.scsi.iodispatching (HOOKID=2)
 Dispatch a command to the low-level driver
@@ -160,7 +164,7 @@ Dispatch a command to the low-level driver
 Data format is:
 
 .I common_data, device_state(INT8), scsi_info(INT32), data_direction(INT8), 
-.I reqbuf_addr(INT64), reqbuf_len(INT32), cmd_identifier(INT64)
+.I reqbuf_addr(INT64), reqbuf_len(INT32), cmd_identifier(INT64), request(INT64)
 
 Where 
 .I scsi_info
@@ -179,7 +183,8 @@ I/O is done by low-level driver
 
 Data format is:
 
-.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64)
+.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64), 
+.I request(INT64)
 .TP
 .B addevent.scsi.iocompleted (HOOKID=4)
 mid-layer processed the completed IO
@@ -187,7 +192,7 @@ mid-layer processed the completed IO
 Data format is:
 
 .I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64),
-.I bytes_done(INT32)
+.I bytes_done(INT32), request(INT64)
 
 .SS PAGE FAULT (GROUPID=7)
 You could use 

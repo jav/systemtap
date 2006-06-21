@@ -1,3 +1,10 @@
+2006-06-21  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* scsi.stp, ioscheduler.stp, register_event.stp: 
+	More data items for scsi and ioscheduler event hooks
+	* ioscheduler.stp: delete filter_by_pid filter for io scheduler
+	event hooks
+	
 2006-06-15  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* iosyscall.stp: new event hooks for io related syscalls

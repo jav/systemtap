@@ -369,15 +369,3 @@ function log_iosyscall_flock(fd:long, operation:long)
 	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_FLOCK_ENTRY,
 		"%8b%4b", THIS->fd, THIS->operation);
 %}
-	
-/*
-
-fs:
-newfstat, newlstat, newstat,pipe,poll,select,readlink,rename,rmdir,symlink,,
-truncate,ftruncate,unlink,chmod,chown,dup,dup2,fchdir,fchmod,fchown,fcntl,
-fstatfs,link,mkdir,
-
-aio:
-io_cancel,io_destroy,io_getevents,io_setup,io_submit, 
-
-*/
