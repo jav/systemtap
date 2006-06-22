@@ -1,0 +1,173 @@
+// TCP tapset
+// Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/tcp.h>
+#include <net/ip.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
+#define LPORT   (inet->inet.num)
+#define DADDR   (&inet->inet.daddr)
+#else
+#define LPORT   (inet->num)
+#define DADDR   (&inet->daddr)
+#endif
+%}
+
+function tcp_get_local_port:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+
+	THIS->__retvalue = (long long) LPORT;
+%}
+
+function tcp_get_ip_source:string(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+	unsigned char addr[4];
+
+	memcpy(addr, DADDR, sizeof(addr));
+	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
+		addr[0], addr[1],  addr[2], addr[3]);
+%}
+
+function tcp_get_info_rto:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
+
+	THIS->__retvalue = (int64_t) jiffies_to_usecs(icsk->icsk_rto);
+%}
+
+function tcp_get_info_snd_cwnd:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
+
+	THIS->__retvalue = (int64_t) tp->snd_cwnd;
+%}
+
+function tcp_ts_get_info_state:long(sock:long)
+%{
+        unsigned long ptr = (unsigned long) THIS->sock;
+	struct sock * sk =  (struct sock *) ptr; 
+	
+	THIS->__retvalue = (int64_t) sk->sk_state;
+%}
+
+function tcp_ts_get_info_snd_ssthresh:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
+
+	THIS->__retvalue = (int64_t) tp->snd_ssthresh;
+%}
+
+function tcp_ts_get_info_rcv_mss:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
+
+	THIS->__retvalue = (int64_t) icsk->icsk_ack.rcv_mss;
+%}
+
+/* probe tcp.sendmsg
+ *
+ *  Fires whenever sending a tcp message  
+ *
+ * Context:
+ *  The process which sends a tcp message 
+ *
+ * Arguments:
+ *  sk           - socket 
+ *  size         - number of bytes to send  
+ */
+probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
+	sk = $sk
+	size = $size
+}
+
+/* probe tcp.sendmsg.return
+ *
+ *  Fires whenever sending message is done 
+ *
+ * Context:
+ *  The process which sends a tcp message
+ *
+ * Arguments:
+ *  size         - number of bytes sent 
+ */
+
+probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
+	size = $return 
+}
+
+/* probe tcp.recvmsg
+ *
+ *  Fires whenever a message is received 
+ *
+ * Context:
+ *  The process which receives a tcp message
+ *
+ * Arguments:
+ *  sk           - socket
+ *  len          - number of bytes to be received  
+ */
+probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
+	sk = $sk
+	len = $len
+}
+
+/* probe tcp.recvmsg.return
+ *
+ *  Fires whenever message receiving is done 
+ *
+ * Context:
+ *  The process which receives a tcp message
+ *
+ * Arguments:
+ *  size         - number of bytes received
+ */
+probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
+	size = $return 
+}
+
+/* probe tcp.disconnect
+ *
+ *  Fires whenever tcp is disconnected 
+ *
+ * Context:
+ *  The process which disconnects tcp 
+ *
+ * Arguments:
+ *  sk         - socket 
+ *  flags      - TCP flags (e.g. FIN, etc)  
+ */
+probe tcp.disconnect = kernel.function("tcp_disconnect") {
+	sk = $sk
+	flags = $flags
+}
+
+/* probe tcp.disconnect.return
+ *
+ *  Fires when returning from tcp.disconnect 
+ *
+ * Context:
+ *  The process which disconnects tcp
+ *
+ * Arguments:
+ *  ret         - error code (0: no error) 
+ */
+probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
+	ret = $return 
+}
