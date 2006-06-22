@@ -1,5 +1,6 @@
 2006-06-21  Josh Stone  <joshua.i.stone@intel.com>
 
+	PR 2525
 	* timestamp.stp (gettimeofday_us, gettimeofday_ms, gettimeofday_s):
 	Convert to using the runtime-provided _stp_gettimeofday_us().
 

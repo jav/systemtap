@@ -1,5 +1,6 @@
 2006-06-21  Josh Stone  <joshua.i.stone@intel.com>
 
+	PR 2525
 	* time.c: Time-estimation with minimal dependency on xtime.
 
 2006-06-16  Roland McGrath  <roland@redhat.com>
