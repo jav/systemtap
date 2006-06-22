@@ -1,3 +1,8 @@
+2006-06-21  Josh Stone  <joshua.i.stone@intel.com>
+
+	* transport.c (_stp_handle_start): Initialize timer functions.
+	* transport.c (_stp_cleanup_and_exit): Teardown timer functions.
+
 2006-06-13  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_transport_close): Destroy workqueue when

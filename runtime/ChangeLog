@@ -1,3 +1,7 @@
+2006-06-21  Josh Stone  <joshua.i.stone@intel.com>
+
+	* time.c: Time-estimation with minimal dependency on xtime.
+
 2006-06-16  Roland McGrath  <roland@redhat.com>
 
 	* lket/b2a/Makefile.in: Regenerated with automake-1.9.6-2.

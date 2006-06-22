@@ -1,5 +1,6 @@
 // timestamp tapset
 // Copyright (C) 2005-2006 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -21,23 +22,19 @@ function get_cycles:long () %{ /* pure */
 
 // return in microseconds since epoch
 function gettimeofday_us:long () %{ /* pure */
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = (tm.tv_sec * 1000000ULL) + (tm.tv_usec);
+  /* NOTE: we can't use do_gettimeofday because we could be called from a
+   * context where xtime_lock is already held.  See bug #2525. */
+  THIS->__retvalue = _stp_gettimeofday_us();
 %}
 
 // return in milliseconds since epoch
-function gettimeofday_ms:long () %{ /* pure */
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = (tm.tv_sec * 1000ULL) + (tm.tv_usec / 1000);
-%}
+function gettimeofday_ms:long () {
+  return gettimeofday_us() / 1000;
+}
 
 // return in seconds since epoch
-function gettimeofday_s:long () %{ /* pure */
-  struct timeval tm;
-  do_gettimeofday (& tm);
-  THIS->__retvalue = tm.tv_sec;
-%}
+function gettimeofday_s:long () {
+  return gettimeofday_us() / 1000000;
+}
 
 // likewise jiffies, monotonic_clock ...

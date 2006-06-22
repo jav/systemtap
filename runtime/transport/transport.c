@@ -3,6 +3,7 @@
  *
  * Copyright (C) IBM Corporation, 2005
  * Copyright (C) Red Hat Inc, 2005, 2006
+ * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -15,6 +16,7 @@
 
 #include <linux/delay.h>
 #include "transport.h"
+#include "time.c"
 
 #ifdef STP_RELAYFS
 #include "relayfs.c"
@@ -100,10 +102,13 @@ static void _stp_handle_buf_info(int *cpuptr)
  */
 void _stp_handle_start (struct transport_start *st)
 {
+	int ret;
 	kbug ("stp_handle_start pid=%d\n", st->pid);
 
+	ret = _stp_init_time();
+
 	/* note: st->pid is actually the return code for the reply packet */
-	st->pid = probe_start();
+	st->pid = unlikely(ret) ? ret : probe_start();
 	atomic_set(&_stp_start_finished,1);
 
 	/* if probe_start() failed, suppress calling probe_exit() */
@@ -148,6 +153,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 		kbug("done with transport_send STP_EXIT\n");
 	}
+	_stp_kill_time();
 }
 
 /*

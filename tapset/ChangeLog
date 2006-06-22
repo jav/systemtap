@@ -1,3 +1,8 @@
+2006-06-21  Josh Stone  <joshua.i.stone@intel.com>
+
+	* timestamp.stp (gettimeofday_us, gettimeofday_ms, gettimeofday_s):
+	Convert to using the runtime-provided _stp_gettimeofday_us().
+
 2006-06-19  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Make the 16-bit calls optional.
