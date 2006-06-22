@@ -1,3 +1,7 @@
+2006-06-22  Thang P Nguyen  <thang.p.nguyen@intel.com>
+
+	* testsuite/buildok/tcp_test.stp: test tcp tapset
+
 2006-06-16  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac, systemtap.spec.in: Bump version to 0.5.8.
