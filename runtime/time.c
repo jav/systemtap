@@ -88,10 +88,14 @@ __stp_init_time(void *info)
     do_gettimeofday(&time->base_time);
     time->base_cycles = get_cycles();
 
+#ifdef CONFIG_CPU_FREQ
     time->cpufreq = cpufreq_get(smp_processor_id()) / 1000;
-    if (!time->cpufreq) {
+    if (time->cpufreq == 0) {
         time->cpufreq = __stp_estimate_cpufreq();
     }
+#else
+    time->cpufreq = __stp_estimate_cpufreq();
+#endif
 
     init_timer(&time->timer);
     time->timer.expires = jiffies + 1;
@@ -99,11 +103,11 @@ __stp_init_time(void *info)
     add_timer(&time->timer);
 }
 
+#ifdef CONFIG_CPU_FREQ
 static int
 __stp_time_cpufreq_callback(struct notifier_block *self,
         unsigned long state, void *vfreqs)
 {
-    int ret = 0;
     unsigned long flags;
     struct cpufreq_freqs *freqs;
     unsigned int freq_mhz;
@@ -128,6 +132,7 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
 struct notifier_block __stp_time_notifier = {
     .notifier_call = __stp_time_cpufreq_callback,
 };
+#endif /* CONFIG_CPU_FREQ */
 
 void
 _stp_kill_time(void)
@@ -137,7 +142,10 @@ _stp_kill_time(void)
         stp_time_t *time = &per_cpu(stp_time, cpu);
         del_timer_sync(&time->timer);
     }
-    cpufreq_unregister_notifier(&__stp_time_notifier, CPUFREQ_TRANSITION_NOTIFIER);
+#ifdef CONFIG_CPU_FREQ
+    cpufreq_unregister_notifier(&__stp_time_notifier,
+            CPUFREQ_TRANSITION_NOTIFIER);
+#endif
 }
 
 int
@@ -145,10 +153,15 @@ _stp_init_time(void)
 {
     int ret = 0;
 
-    if ((ret = on_each_cpu(__stp_init_time, NULL, 0, 1)))
-        return ret;
+    ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
-    return cpufreq_register_notifier(&__stp_time_notifier, CPUFREQ_TRANSITION_NOTIFIER);
+#ifdef CONFIG_CPU_FREQ
+    if (ret == 0)
+        ret = cpufreq_register_notifier(&__stp_time_notifier,
+                CPUFREQ_TRANSITION_NOTIFIER);
+#endif
+
+    return ret;
 }
 
 int64_t
