@@ -657,10 +657,12 @@ static void cleanup_and_exit (int closed)
 	if (print_totals && verbose)
 		summarize();
 
-	if (transport_mode == STP_TRANSPORT_RELAYFS && merge) {
+	if (transport_mode == STP_TRANSPORT_RELAYFS) {
 		close_all_relayfs_files();
-		merge_output();
-		delete_percpu_files();
+		if (merge) {
+			merge_output();
+			delete_percpu_files();
+		}
 	}
 
 	dbug("closing control channel\n");
