@@ -1,0 +1,47 @@
+// inet_sock information tapset 
+// Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/tcp.h>
+#include <net/ip.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
+#define LPORT   (inet->inet.num)
+#define DADDR   (&inet->inet.daddr)
+#else
+#define LPORT   (inet->num)
+#define DADDR   (&inet->daddr)
+#endif
+%}
+
+// Get local port number
+function inet_get_local_port:long(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+        THIS->__retvalue = deref(sizeof(LPORT), &(LPORT));
+        if (0) {
+deref_fault:
+            CONTEXT->last_error = "pointer dereference fault";
+        }
+%}
+
+// Get IP source address string
+function inet_get_ip_source:string(sock:long)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+	unsigned char addr[4];
+
+	memcpy(addr, DADDR, sizeof(addr));
+	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
+           addr[0], addr[1],  addr[2], addr[3]);
+%}

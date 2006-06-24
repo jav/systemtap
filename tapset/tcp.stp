@@ -12,35 +12,12 @@
 #include <net/sock.h>
 #include <net/tcp.h>
 #include <net/ip.h>
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11)
-#define LPORT   (inet->inet.num)
-#define DADDR   (&inet->inet.daddr)
-#else
-#define LPORT   (inet->num)
-#define DADDR   (&inet->daddr)
-#endif
 %}
 
-function tcp_get_local_port:long(sock:long)
-%{
-	unsigned long ptr = (unsigned long) THIS->sock;
-	struct inet_sock *inet = (struct inet_sock *) ptr;
-
-	THIS->__retvalue = (long long) LPORT;
-%}
-
-function tcp_get_ip_source:string(sock:long)
-%{
-	unsigned long ptr = (unsigned long) THIS->sock;
-	struct inet_sock *inet = (struct inet_sock *) ptr;
-	unsigned char addr[4];
-
-	memcpy(addr, DADDR, sizeof(addr));
-	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
-		addr[0], addr[1],  addr[2], addr[3]);
-%}
-
+// Get retransmission timeout in usecs. RTO is initialized from default
+// retransmission time, but can be adjusted (increased) each time we 
+// retransmit. It should always be less than the max value of TCP retransmission 
+// timeout (TCP_RTO_MAX)
 function tcp_get_info_rto:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
@@ -49,6 +26,10 @@ function tcp_get_info_rto:long(sock:long)
 	THIS->__retvalue = (int64_t) jiffies_to_usecs(icsk->icsk_rto);
 %}
 
+//Get congestion window segment size. Initial value of congestion window size 
+//typically set to one segment (i.e., slow start algorithm, each segment can be 512 bytes).
+//This congestion window size can be dynamically increased based on whether TCP
+//is performing slow start or congestion avoidance. 
 function tcp_get_info_snd_cwnd:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
@@ -57,6 +38,22 @@ function tcp_get_info_snd_cwnd:long(sock:long)
 	THIS->__retvalue = (int64_t) tp->snd_cwnd;
 %}
 
+//
+//Definitions of the TCP protocol sk_state field listed below.
+//
+//     TCP_ESTABLISED = 1,   Normal data transfer
+//     TCP_SYN_SENT   = 2,   App. has started to open a connection
+//     TCP_SYN_RECV   = 3,   A connection request has arrived; wait for ACK
+//     TCP_FIN_WAIT1  = 4,   App. has said it is finished
+//     TCP_FIN_WAIT2  = 5,   The other side has agreed to close
+//     TCP_TIME_WAIT  = 6,   Wait for all packets to die off
+//     TCP_CLOSE      = 7,   No connection is active or pending 
+//     TCP_CLOSE_WAIT = 8,   The other side has initiated a release
+//     TCP_LAST_ACK   = 9,   Last ACK, wait for all packets to die off
+//     TCP_LISTEN     = 10,  Waiting for incoming call
+//     TCP_CLOSING    = 11,  Both sides have tried to close simultaneously
+//     TCP_MAX_STATES = 12   Max states number
+// 
 function tcp_ts_get_info_state:long(sock:long)
 %{
         unsigned long ptr = (unsigned long) THIS->sock;
@@ -65,6 +62,10 @@ function tcp_ts_get_info_state:long(sock:long)
 	THIS->__retvalue = (int64_t) sk->sk_state;
 %}
 
+
+// Get slow start threshold size.  If cwnd size is less than or equal to
+// threshold size, then TCP is in slow start; otherwise TCP is in congestion
+// avoidance.
 function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
@@ -73,6 +74,8 @@ function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 	THIS->__retvalue = (int64_t) tp->snd_ssthresh;
 %}
 
+// Get receiver's advertised segment size.  TCP typically never sends more
+// than what receiver can accept.
 function tcp_ts_get_info_rcv_mss:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
@@ -81,93 +84,92 @@ function tcp_ts_get_info_rcv_mss:long(sock:long)
 	THIS->__retvalue = (int64_t) icsk->icsk_ack.rcv_mss;
 %}
 
-/* probe tcp.sendmsg
- *
- *  Fires whenever sending a tcp message  
- *
- * Context:
- *  The process which sends a tcp message 
- *
- * Arguments:
- *  sk           - socket 
- *  size         - number of bytes to send  
- */
+// probe tcp.sendmsg
+//
+//  Fires whenever sending a tcp message  
+//
+// Context:
+//  The process which sends a tcp message 
+//
+// Arguments:
+//  sock         - network socket 
+//  size         - number of bytes to send  
+//
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
-	sk = $sk
-	size = $size
+	sock    = $sk
+	size    = $size
 }
 
-/* probe tcp.sendmsg.return
- *
- *  Fires whenever sending message is done 
- *
- * Context:
- *  The process which sends a tcp message
- *
- * Arguments:
- *  size         - number of bytes sent 
- */
-
+// probe tcp.sendmsg.return
+//
+//  Fires whenever sending message is done 
+//
+// Context:
+//  The process which sends a tcp message
+//
+// Arguments:
+//  size         - number of bytes sent 
+//
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
 	size = $return 
 }
 
-/* probe tcp.recvmsg
- *
- *  Fires whenever a message is received 
- *
- * Context:
- *  The process which receives a tcp message
- *
- * Arguments:
- *  sk           - socket
- *  len          - number of bytes to be received  
- */
+// probe tcp.recvmsg
+//
+//  Fires whenever a message is received 
+//
+// Context:
+//  The process which receives a tcp message
+//
+// Arguments:
+//  sock         - network socket
+//  size         - number of bytes to be received  
+//
 probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
-	sk = $sk
-	len = $len
+	sock    = $sk
+	size    = $len
 }
 
-/* probe tcp.recvmsg.return
- *
- *  Fires whenever message receiving is done 
- *
- * Context:
- *  The process which receives a tcp message
- *
- * Arguments:
- *  size         - number of bytes received
- */
+// probe tcp.recvmsg.return
+//
+//  Fires whenever message receiving is done 
+//
+// Context:
+//  The process which receives a tcp message
+//
+// Arguments:
+//  size         - number of bytes received
+//
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	size = $return 
 }
 
-/* probe tcp.disconnect
- *
- *  Fires whenever tcp is disconnected 
- *
- * Context:
- *  The process which disconnects tcp 
- *
- * Arguments:
- *  sk         - socket 
- *  flags      - TCP flags (e.g. FIN, etc)  
- */
+// probe tcp.disconnect
+//
+//  Fires whenever tcp is disconnected 
+//
+// Context:
+//  The process which disconnects tcp 
+//
+// Arguments:
+// sock       - network socket 
+// flags      - TCP flags (e.g. FIN, etc)  
+//
 probe tcp.disconnect = kernel.function("tcp_disconnect") {
-	sk = $sk
+	sock  = $sk
 	flags = $flags
 }
 
-/* probe tcp.disconnect.return
- *
- *  Fires when returning from tcp.disconnect 
- *
- * Context:
- *  The process which disconnects tcp
- *
- * Arguments:
- *  ret         - error code (0: no error) 
- */
+// probe tcp.disconnect.return
+//
+// Fires when returning from tcp.disconnect 
+//
+// Context:
+//  The process which disconnects tcp
+// 
+// Arguments:
+//  ret         - error code (0: no error) 
+//
 probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
 	ret = $return 
 }

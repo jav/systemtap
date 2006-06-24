@@ -1,3 +1,11 @@
+2006-06-23  Thang Nguyen  <thang.p.nguyen@intel.com>
+
+	* tcp.stp: Refined variables and added more
+	function descriptions.
+	* udp.stp: UDP tapset.
+	* inet_sock.stp: common inet_sock functions
+	for TCP and UDP tapsets.
+
 2006-06-22  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* tcp.stp: TCP tapset (originally from IBM)

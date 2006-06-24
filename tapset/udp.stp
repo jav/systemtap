@@ -1,0 +1,103 @@
+// UDP tapset
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/udp.h>
+#include <net/ip.h>
+%}
+
+// probe udp.sendmsg
+//
+//   Fires whenever sending a udp message  
+//
+// Context:
+//   The process which sends a udp message 
+//
+// Arguments:
+//   sock         - network socket 
+//   size         - number of bytes to send  
+probe udp.sendmsg = kernel.function("udp_sendmsg") {
+	sock    = $sk
+	size    = $len
+}
+
+// probe udp.sendmsg.return
+//
+// Fires whenever sending message is done 
+//
+// Context:
+// The process which sends a udp message
+//
+// Arguments:
+//  size         - number of bytes sent 
+//
+probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
+	size = $return 
+}
+
+// probe udp.recvmsg
+//
+//  Fires whenever a message is received 
+//
+// Context:
+//  The process which receives a udp message
+//
+// Arguments:
+//  sock         - network socket
+//  size         - number of bytes to be received  
+//
+probe udp.recvmsg = kernel.function("udp_recvmsg") {
+	sock    = $sk
+	size    = $len
+}
+
+// probe udp.recvmsg.return
+//
+// Fires whenever message receiving is done 
+//
+// Context:
+//  The process which receives a udp message
+//
+// Arguments:
+//  size         - number of bytes received
+//
+probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
+	size = $return 
+}
+
+// probe udp.disconnect
+//
+//  Fires whenever udp is disconnected 
+//
+// Context:
+//  The process which disconnects udp 
+//
+// Arguments:
+//  sock       - network socket 
+//  flags      - flags (e.g. FIN, etc)  
+//
+probe udp.disconnect = kernel.function("udp_disconnect") {
+	sock  = $sk
+	flags = $flags
+}
+
+// probe udp.disconnect.return
+//
+//  Fires when returning from udp.disconnect 
+//
+// Context:
+//  The process which disconnects udp 
+//
+// Arguments:
+//  ret         - error code (0: no error) 
+//
+probe udp.disconnect.return = kernel.function("udp_disconnect").return {
+	ret = $return 
+}
