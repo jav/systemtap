@@ -8,8 +8,8 @@ function print_report()
 }
 
 probe tcp.sendmsg {
-	ports   = tcp_get_local_port(sk)
-	src_ips = tcp_get_ip_source(sk)
+	ports   = inet_get_local_port(sk)
+	src_ips = inet_get_ip_source(sk)
 	rtos    = tcp_get_info_rto(sk)
 }
 

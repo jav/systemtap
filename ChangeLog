@@ -1,3 +1,8 @@
+2006-06-23  Thang P Nguyen  <thang.p.nguyen@intel.com>
+
+	* testsuite/buildok/tcp_test.stp: updated inet calls
+	* testsuite/buildok/udp_test.stp: test udp tapset 
+
 2006-06-22  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/tcp_test.stp: test tcp tapset

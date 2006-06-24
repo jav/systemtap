@@ -1,0 +1,32 @@
+#! stap -p4
+global send_bytes,recv_bytes,ports,src_ips
+
+function print_report()
+{
+	printf("%d\t%d\t%d\t%s\n",send_bytes,recv_bytes,ports,src_ips);
+}
+
+probe udp.sendmsg {
+	ports   = inet_get_local_port(sock)
+	src_ips = inet_get_ip_source(sock)
+}
+
+probe udp.sendmsg.return {
+	if (size > 0) {
+		send_bytes += size
+	}
+}
+
+probe udp.recvmsg.return {
+	if (size > 0) {
+		recv_bytes += size
+	}
+}
+
+probe udp.disconnect {
+	log("tcp disconnect")
+}
+
+probe timer.ms(2000) {
+	print_report()
+}
