@@ -19,9 +19,8 @@ probe addevent.syscall.entry
 probe _addevent.syscall.entry
 	= syscall.*
 {
-	if(filter_by_pid() == 1 ) {
+	if(filter_by_pid() == 1 )
 		log_syscall_tracedata(HOOKID_SYSCALL_ENTRY, name)
-	}
 }
 
 probe addevent.syscall.return

@@ -51,9 +51,7 @@ function lket_trace_init()
 
 #define MAX_FMT_LEN 128
 char new_sysfmt[MAX_FMT_LEN] = "\n%d|%d|%d|%d|%d|%d|%d|%d";
-char new_userfmt[MAX_FMT_LEN] = "| USER:";
 #define NEW_SYSFMT_START 24 
-#define NEW_USERFMT_START 7 
 
 void fmt_change(char *oldfmt, char *newfmt, int newfmt_start)
 {
@@ -117,12 +115,6 @@ void fmt_change(char *oldfmt, char *newfmt, int newfmt_start)
 		(_FMT_)current->pid, (_FMT_)current->thread_info->cpu, args);\
 } while(0)
 
-#define _lket_trace_extra(fmt, args...)  do {\
-	fmt_change(fmt, new_userfmt, NEW_USERFMT_START);\
-	_stp_printf(new_userfmt, args);\
-} while(0)
-
-
 #else //binary trace
 
 static inline int this_event_len(void)
@@ -148,7 +140,9 @@ static inline int this_event_len(void)
 
 function update_record()
 %{
+#if !defined(ASCII_TRACE)
 	int cpu = smp_processor_id();
 	char *total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
 	*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+#endif
 %}

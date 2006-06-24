@@ -169,81 +169,81 @@ function register_sys_events()
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_ENTRY,
 		"STRING:INT32:INT32", "filename:flags:mode")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_ENTRY,
 		"INT64", "fd")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_ENTRY,
 		"INT64:INT64:INT64", "fd:buff_addr:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_ENTRY,
 		"INT64:INT64:INT64", "fd:buff_addr:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_ENTRY,
 		"INT64:INT64:INT64", "fd:vector_uaddr:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_ENTRY,
 		"INT64:INT64:INT64", "fd:vector_uaddr:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_ENTRY,
 		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_ENTRY,
 		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_ENTRY,
 		"INT64:INT64:INT64", "fd:offset:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_ENTRY,
 		"INT64:INT64:INT64:INT64", "out_fd:in_fd:offset_uaddr:count")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_ENTRY,
 		"INT64:INT64:INT8", "fd:offset:whence")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_ENTRY,
 		"INT64:INT64:INT64:INT64:INT8b", 
 		"fd:offset_high:offset_low:result_uaddr:whence")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SYNC_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_ENTRY,
 		"INT64", "fd")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_ENTRY,
 		"INT64", "fd")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_ENTRY,
 		"INT64:INT32", "fd:operation")
 	register_sys_event(GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_RETURN,
-		"STRING", "return")
+		"INT64", "return")
 }
 
 

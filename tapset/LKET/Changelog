@@ -1,3 +1,9 @@
+2006-06-24  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* iosyscall.stp, register_events.stp: change the return type from string to int64_t
+	for better performance. sub-hooks for each iosyscall.
+	* lket_trace.stp: make update_record() work for ascii tracing
+
 2006-06-21  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* scsi.stp, ioscheduler.stp, register_event.stp: 
