@@ -1,3 +1,8 @@
+2006-06-25  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* syscalls.stp: Changes to AIO related syscalls(io_setup, 
+	io_submit, io_getevents, io_cancel, io_destroy)
+	
 2006-06-23  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* tcp.stp: Refined variables and added more
@@ -31,7 +36,7 @@
 
 2006-06-09  Li Guanglei <guanglei@cn.ibm.com>
 	
-	* syscall.stp: made sys_ftruncate64 optional since it doesn't
+	* syscalls.stp: made sys_ftruncate64 optional since it doesn't
 	exist on 2.6.16*/ppc64
 
 2006-06-08  Thang Nguyen  <thang.p.nguyen@intel.com>

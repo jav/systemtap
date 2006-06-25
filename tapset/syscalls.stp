@@ -1303,7 +1303,9 @@ probe syscall.io_getevents = kernel.function("sys_io_getevents") {
 	nr = $nr
 	events_uaddr = $events
 	timeout_uaddr = $timeout
-#	argstr = sprintf("%d, %d, %d, [%p],")
+	timestr = _struct_timespec_u($timeout)
+	argstr = sprintf("%d, %d, %d, [%p], [%p], %s", ctx_id, min_nr,
+		nr, events_uaddr, timeout_uaddr, timestr)
 }
 probe syscall.io_getevents.return = kernel.function("sys_io_getevents").return {
 	name = "io_getevents"
@@ -1334,15 +1336,18 @@ probe kernel.syscall.ioperm.return =
  * sys_io_setup(unsigned nr_events,
  *              aio_context_t __user *ctxp)
  */
-probe kernel.syscall.io_setup =
+probe syscall.io_setup =
    kernel.function("sys_io_setup") {
-      name = "io_setup"
-      maxevents = $nr_events
-      ctxp_uaddr = $ctxp
-   }
-probe kernel.syscall.io_setup.return =
+	name = "io_setup"
+	maxevents = $nr_events
+	ctxp_uaddr = $ctxp
+	argstr = sprintf("%d, %p", maxevents, ctxp_uaddr)
+}
+
+probe syscall.io_setup.return =
    kernel.function("sys_io_setup").return {
-      name = "io_setup.return"
+	name = "io_setup"
+	retstr = returnstr(1)
    }
 # io_submit __________________________________________________
 /*
@@ -1351,16 +1356,18 @@ probe kernel.syscall.io_setup.return =
  *               long nr,
  *               struct iocb __user * __user *iocbpp)
  */
-probe kernel.syscall.io_submit =
+probe syscall.io_submit =
    kernel.function("sys_io_submit") {
       name = "io_submit"
       ctx_id = $ctx_id
       nr = $nr
       iocbpp_uaddr = $iocbpp
+      argstr = sprintf("%d, %d, %p", ctx_id, nr, iocbpp_uaddr)
 }
-probe kernel.syscall.io_submit.return =
+probe syscall.io_submit.return =
    kernel.function("sys_io_submit").return {
-      name = "io_submit.return"
+      name = "io_submit"
+      retstr = returnstr(1)
    }
 # kexec_load _________________________________________________
 /*
