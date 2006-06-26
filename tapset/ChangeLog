@@ -1,3 +1,8 @@
+2006-06-26  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_stp_ctime): New function.
+	(_struct_utimbuf_u): New function.
+
 2006-06-25  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* syscalls.stp: Changes to AIO related syscalls(io_setup, 
