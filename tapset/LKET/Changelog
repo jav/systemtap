@@ -1,3 +1,9 @@
+2006-06-26  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* aio.stp: new event hooks for AIO
+	* register_events.stp, hookid_defs.stp: changes for aio.stp. 
+	* register_events.stp, process.stp: bugfix for ascii tracing
+	
 2006-06-24  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* iosyscall.stp, register_events.stp: change the return type from string to int64_t

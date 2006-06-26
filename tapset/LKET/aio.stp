@@ -1,0 +1,264 @@
+// AIO tapset
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+/*
+ * the following aio related probes are used to probe those aio related
+ * calls inside the kernel. They are: sys_io_setup, sys_io_submit, 
+ * sys_io_getevents, sys_io_destroy, sys_io_cancel, io_submit_one
+ */
+
+probe addevent.aio
+	= addevent.aio.entry, addevent.aio.return
+{}
+
+probe addevent.aio.entry
+	=
+	addevent.aio.io_setup.entry,
+	addevent.aio.io_submit.entry,
+	addevent.aio.io_submit_one.entry,
+	addevent.aio.io_destroy.entry,
+	addevent.aio.io_getevents.entry,
+	addevent.aio.io_cancel.entry
+{}
+
+probe addevent.aio.return
+	=
+	addevent.aio.io_setup.return,
+	addevent.aio.io_submit.return,
+	addevent.aio.io_submit_one.return,
+	addevent.aio.io_destroy.return,
+	addevent.aio.io_getevents.return,
+	addevent.aio.io_cancel.return
+{}
+
+/* 
+ *  Fires by calling io_setup from user space. The corresponding
+ *  system call is sys_io_setup, which will create an aio_context 
+ *  capable of receiving at least maxevents.
+ */
+probe addevent.aio.io_setup.entry
+	+= _addevent.aio.io_setup.entry
+{
+	update_record()
+}
+
+probe _addevent.aio.io_setup.entry
+	= syscall.io_setup
+{
+	log_aio_setup(maxevents, ctxp_uaddr)
+}
+
+function log_aio_setup(nr_events:long, ctxp_uaddr:long)
+%{
+	/* nr_events|ctxp_uaddr */
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SETUP_ENTRY, "%4b%8b", 
+		THIS->nr_events, THIS->ctxp_uaddr);
+%}
+
+probe addevent.aio.io_setup.return
+        += _addevent.aio.io_setup.return
+{
+        update_record()
+}
+
+probe _addevent.aio.io_setup.return
+        = kernel.function("sys_io_setup").return
+{
+        log_aio_return(HOOKID_AIO_IO_SETUP_RETURN, $return)
+}
+
+function log_aio_return(hookid:long, retval:long)
+%{
+	_lket_trace(_GROUP_AIO, THIS->hookid, "%8b", THIS->retval);
+%}
+
+/*
+ * Fires by calling io_submit from user space. sys_io_submit will
+ * queue the nr iocbs pointed to by iocbpp_uaddr for processing.
+ */
+probe addevent.aio.io_submit.entry
+	+= _addevent.aio.io_submit.entry
+{
+	update_record()
+}
+
+probe _addevent.aio.io_submit.entry
+	= syscall.io_submit
+{
+	log_aio_submit(ctx_id, nr, iocbpp_uaddr)
+}
+
+function log_aio_submit(ctx_id:long, nr:long, iocbpp_uaddr:long)
+%{
+	/* ctx_id | no_iocbs | iocbpp */
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SUBMIT_ENTRY, "%8b%4b%8b", 
+		THIS->ctx_id, THIS->nr, THIS->iocbpp_uaddr);
+%}
+
+probe addevent.aio.io_submit.return
+	+= _addevent.aio.io_submit.return
+{
+	update_record()
+}
+
+probe _addevent.aio.io_submit.return
+	= syscall.io_submit.return
+{
+	log_aio_return(HOOKID_AIO_IO_SUBMIT_RETURN, $return)	
+}
+
+/* Called by sys_io_submit, will iterate iocbpp and process them
+ * one by one
+ */
+probe addevent.aio.io_submit_one.entry
+	+= _addevent.aio.io_submit_one.entry
+{
+	update_record()
+}
+
+
+probe _addevent.aio.io_submit_one.entry
+	= kernel.function("io_submit_one")
+{
+	log_io_submit_one($ctx, $user_iocb)	
+}
+
+function log_io_submit_one(ctx:long, user_iocb_uaddr:long)
+%{
+	struct iocb *user_iocb = (struct iocb *)THIS->user_iocb_uaddr;
+
+	/* ctx | user_iocb_addr | aio_lio_opcode | >aio_reqprio |
+		aio_fildes | aio_buf | aio_nbytes | >aio_offset */
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SUBMIT_ONE_ENTRY, 
+		"%8b%8b%2b%2b%4b%8b%8b%8b", 
+		THIS->ctx, THIS->user_iocb_uaddr, (_FMT_)user_iocb->aio_lio_opcode, 
+		(_FMT_)user_iocb->aio_reqprio, (_FMT_)user_iocb->aio_fildes, 
+		(_FMT_)user_iocb->aio_buf, (_FMT_)user_iocb->aio_nbytes, 
+		(_FMT_)user_iocb->aio_offset);
+%}
+
+probe addevent.aio.io_submit_one.return
+	+= _addevent.aio.io_submit_one.return
+{
+	update_record()
+}
+
+probe _addevent.aio.io_submit_one.return
+	= kernel.function("io_submit_one").return
+{
+	log_aio_return(HOOKID_AIO_IO_SUBMIT_ONE_RETURN, $return)
+}
+
+/*
+ * Fires by calling io_destroy from user space. It will destroy 
+ * the aio_context specified.
+ */
+probe addevent.aio.io_destroy.entry
+	+= _addevent.aio.io_destroy.entry
+{
+	update_record()
+}
+
+probe _addevent.aio.io_destroy.entry
+	= syscall.io_destroy
+{
+	log_io_destroy(ctx)	
+}
+
+function log_io_destroy(ctx:long)
+%{
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_DESTROY_ENTRY, "%8b", THIS->ctx);
+%}
+
+
+probe addevent.aio.io_destroy.return
+        += _addevent.aio.io_destroy.return
+{
+        update_record()
+}
+
+probe _addevent.aio.io_destroy.return
+        = syscall.io_destroy.return
+{
+        log_aio_return(HOOKID_AIO_IO_DESTROY_RETURN, $return)
+}
+
+/*
+ * Fires by calling io_getevents from user space. It will attempt to 
+ * read at least min_nr events and up to nr events from  the completion 
+ * queue for the aio_context specified by ctx_id.
+ */
+probe addevent.aio.io_getevents.entry
+        += _addevent.aio.io_getevents.entry
+{
+        update_record()
+}
+
+probe _addevent.aio.io_getevents.entry
+        = syscall.io_getevents
+{
+	log_io_getevents(ctx_id, min_nr, nr, events_uaddr, timeout_uaddr)
+}
+
+function log_io_getevents(ctx_id:long, min_nr:long, nr:long, 
+		events_uaddr:long, timeout:long)
+%{
+	struct timespec __user *timeout = (struct timespec *)THIS->timeout;
+	struct timespec ts;
+
+	if (unlikely(copy_from_user(&ts, timeout, sizeof(ts))))
+		return;
+
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_GETEVENTS_ENTRY,
+		"%8b%4b%4b%8b%4b%4b", THIS->ctx_id, THIS->min_nr,
+		THIS->nr, THIS->events_uaddr, (_FMT_)ts.tv_sec, 
+		(_FMT_)ts.tv_nsec);
+%}
+
+probe addevent.aio.io_getevents.return
+        += _addevent.aio.io_getevents.return
+{
+        update_record()
+}
+
+probe _addevent.aio.io_getevents.return
+        = syscall.io_getevents.return
+{
+        log_aio_return(HOOKID_AIO_IO_GETEVENTS_RETURN, $return)
+}
+
+
+probe addevent.aio.io_cancel.entry
+	+= _addevent.aio.io_cancel.entry
+{
+	update_record()
+}
+
+probe _addevent.aio.io_cancel.entry
+	= syscall.io_cancel
+{
+	log_aio_cancel(ctx_id, iocb_uaddr, result_uaddr)
+}
+
+function log_aio_cancel(ctx_id:long, iocb_uaddr:long, result_uaddr:long)
+%{
+	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_CANCEL_ENTRY, "%8b%8b%8b",
+		THIS->ctx_id, THIS->iocb_uaddr, THIS->result_uaddr);
+%}
+
+probe addevent.aio.io_cancel.return
+	+= _addevent.aio.io_cancel.return
+{
+	update_record()
+}
+
+probe _addevent.aio.io_cancel.return
+	= syscall.io_cancel.return
+{
+	log_aio_return(HOOKID_AIO_IO_CANCEL_RETURN, $return)
+}

@@ -379,7 +379,7 @@ char *get_fmtstr(char *fmt)
 	return "";
 }
 
-void ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type)
+int ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type)
 {
 	int i, c;
 	int16_t stemp;
@@ -399,19 +399,19 @@ void ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type
 		size = header.total_size - header.sys_size;
 
 	if(events_des[evt_type][grpid] == NULL)
-		return;
+		return -1;
 	if(events_des[evt_type][grpid][hookid] == NULL)
-		return;
+		return -1;
 
 	if(events_des[evt_type][grpid][hookid]->count <= 0 || !outfile)
-		return;
+		return -1;
 
 	if(events_des[evt_type][grpid][hookid]->evt_fmt[0][0] == '\0')  {
 		//no format is provided, dump in hex
 		buffer = malloc(size);
 		fread(buffer, size, 1, infp);
 		fwrite(buffer, size, 1, outfile);
-		return;
+		return -1;
 	}
 
 	for(i=0; i<events_des[evt_type][grpid][hookid]->count; i++)  {
@@ -448,7 +448,8 @@ void ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type
 				continue;
 			}
 			else
-				return;
+				return -1;
 		}
 	}
+	return readbytes;
 }

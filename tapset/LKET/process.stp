@@ -40,9 +40,10 @@ function process_snapshot()
 		tsk = (struct task_struct *)(list_entry(cur, struct task_struct, tasks));
 		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%0s", 
 			(_FMT_)tsk->pid, tsk->comm);
-
+#if !defined(ASCII_TRACE)
 		total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
 		*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+#endif
 		_stp_print_flush();
 	}
 %}
