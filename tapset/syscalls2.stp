@@ -2206,7 +2206,8 @@ probe syscall.utime = kernel.function("sys_utime") {
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	buf_uaddr = $times
-	argstr = sprintf("%s, [%p]", filename, buf_uaddr)
+	buf_str = _struct_utimbuf_u($times)
+	argstr = sprintf("\"%s\", [%s]", filename, buf_str)
 }
 probe syscall.utime.return = kernel.function("sys_utime").return {
 	name = "utime"
