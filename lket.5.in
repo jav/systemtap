@@ -234,16 +234,16 @@ Data format is:
 You could use
 .I addevent.iosyscall
 to trace the detail activities of io related system calls. 
-It contains 16 hooks of syscall entry and 16 corresponding
-hooks of syscall return. 
+It contains 16 entry hooks and 16 corresponding
+return hooks.
 
-All the return hooks of io syscall will only log the common_data and
+All the return hooks will only log the common_data and
 the return value. So in the following subsections, only the entry 
-hooks of io syscall is listed:
+hooks will be listed:
 
 .P
 .TP
-.B addevent.iosyscall.open (HOOKID=1)
+.B addevent.iosyscall.open.entry (HOOKID=1)
 the entry of sys_open
 
 Data format is:
@@ -251,7 +251,7 @@ Data format is:
 .I common_data, filename(STRING), flags(INT32), mode(INT32)
 
 .TP
-.B addevent.iosyscall.close (HOOKID=3)
+.B addevent.iosyscall.close.entry (HOOKID=3)
 the entry of sys_close
 
 Data format is:
@@ -259,7 +259,7 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.read (HOOKID=5)
+.B addevent.iosyscall.read.entry (HOOKID=5)
 the entry of sys_read
 
 Data format is:
@@ -267,7 +267,7 @@ Data format is:
 .I common_data, fd(INT64), buf_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.write (HOOKID=7)
+.B addevent.iosyscall.write.entry (HOOKID=7)
 the entry of sys_write
 
 Data format is:
@@ -275,7 +275,7 @@ Data format is:
 .I common_data, fd(INT64), buf_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.readv (HOOKID=9)
+.B addevent.iosyscall.readv.entry (HOOKID=9)
 the entry of sys_readv
 
 Data format is:
@@ -283,7 +283,7 @@ Data format is:
 .I common_data, fd(INT64), vector_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.writev (HOOKID=11)
+.B addevent.iosyscall.writev.entry (HOOKID=11)
 the entry of sys_writev
 
 Data format is:
@@ -291,7 +291,7 @@ Data format is:
 .I common_data, fd(INT64), vector_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.pread64 (HOOKID=13)
+.B addevent.iosyscall.pread64.entry (HOOKID=13)
 the entry of sys_pread64
 
 Data format is:
@@ -299,7 +299,7 @@ Data format is:
 .I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
 
 .TP
-.B addevent.iosyscall.pwrite64 (HOOKID=15)
+.B addevent.iosyscall.pwrite64.entry (HOOKID=15)
 the entry of sys_pwrite64
 
 Data format is:
@@ -307,7 +307,7 @@ Data format is:
 .I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
 
 .TP
-.B addevent.iosyscall.readahead (HOOKID=17)
+.B addevent.iosyscall.readahead.entry (HOOKID=17)
 the entry of sys_readahead
 
 Data format is:
@@ -315,7 +315,7 @@ Data format is:
 .I common_data, fd(INT64), offset(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.senfile (HOOKID=19)
+.B addevent.iosyscall.senfile.entry (HOOKID=19)
 the entry of sys_sendfile and sys_sendfile64
 
 Data format is:
@@ -323,7 +323,7 @@ Data format is:
 .I common_data, out_fd(INT64), in_fd(INT64), offset_uaddr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.lseek (HOOKID=21)
+.B addevent.iosyscall.lseek.entry (HOOKID=21)
 the entry of sys_lseek
 
 Data format is:
@@ -331,7 +331,7 @@ Data format is:
 .I common_data, fd(INT64), offset(INT64), whence(INT8)
 
 .TP
-.B addevent.iosyscall.llseek (HOOKID=23)
+.B addevent.iosyscall.llseek.entry (HOOKID=23)
 the entry of sys_llseek
 
 Data format is:
@@ -340,7 +340,7 @@ Data format is:
 .I result_addr(INT64), whence(INT8)
 
 .TP
-.B addevent.iosyscall.sync (HOOKID=25)
+.B addevent.iosyscall.sync.entry (HOOKID=25)
 the entry of sys_sync
 
 Data format is:
@@ -348,7 +348,7 @@ Data format is:
 .I common_data
 
 .TP
-.B addevent.iosyscall.fsync (HOOKID=27)
+.B addevent.iosyscall.fsync.entry (HOOKID=27)
 the entry of sys_fsync
 
 Data format is:
@@ -356,7 +356,7 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.fdatasync (HOOKID=29)
+.B addevent.iosyscall.fdatasync.entry (HOOKID=29)
 the entry of sys_fdatasync
 
 Data format is:
@@ -364,12 +364,87 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.flock (HOOKID=31)
+.B addevent.iosyscall.flock.entry (HOOKID=31)
 the entry of sys_flock
 
 Data format is:
 
 .I common_data, fd(INT64), operation(INT32)
+
+.SS Asynchronous IO (GROUPID=10)
+You could use
+.I addevent.aio
+to trace the detail activities of AIO related calls(most of them
+are AIO system calls). 
+It contains 6 entry hooks and 6 corresponding return hooks.
+
+All the return hooks will only log the common_data and
+the return value. So in the following subsections, only the entry 
+hooks will be listed:
+
+.P
+.TP
+.B addevent.aio.io_setup.entry (HOOKID=1)
+Fired by calling io_setup from user space. The corresponding
+system call is sys_io_setup, which will create an aio_context
+capable of receiving at least maxevents.
+
+Data format is:
+
+.I common_data, nr_events(INT32), ctxp_uaddr(INT64)
+
+.TP
+.B addevent.aio.io_submit.entry (HOOKID=3)
+Fired by calling io_submit from user space. The corresponding
+system call is sys_io_submit which will queue the nr iocbs 
+pointed to by iocbpp_uaddr for processing.
+
+Data format is:
+
+.I common_data, ctx_id(INT64), nr(INT32), iocbpp_uaddr(INT64)
+
+.TP
+.B addevent.aio.io_submit_one.entry (HOOKID=5)
+Called by sys_io_submit. It will iterate iocbpp and process them
+one by one
+
+Data format is:
+
+.I common_data, ctx(INT64), user_iocb_uaddr(INT64), aio_lio_opcode(INT16), 
+.I aio_reqprio(INT16), aio_fildes(INT32), aio_buf(INT64), aio_nbytes(INT64),
+.I aio_offset(INT64)
+
+.TP
+.B addevent.aio.io_getevents.entry (HOOKID=7)
+Fired by calling io_getevents from user space. The corresponding
+system call is sys_io_getevents, which will attempt to
+read at least min_nr events and up to nr events from  the completion
+queue for the aio_context specified by ctx_id.
+
+Data format is:
+
+.I common_data, ctx_id(INT64), min_nr(INT32), nr(INT32), events_uaddr(INT64),
+.I tv_sec(INT32), tv_nsec(INT32)
+
+.TP
+.B addevent.aio.io_destroy.entry (HOOKID=9)
+Fired by calling io_destroy from user space. The corresponding
+system call is sys_io_destroy, which will destroy
+the aio_context specified.
+
+Data format is:
+
+.I common_data, ctx(INT64)
+
+.TP
+.B addevent.aio.io_cancel.entry (HOOKID=11)
+Fired by calling io_cancel from user space. The corresponding
+system call is sys_io_cancel, which will attempt to cancel an 
+iocb previously passed to io_submit.
+
+Data format is:
+
+.I common_data, ctx_id(INT64), iocb_uaddr(INT64), result_uaddr(INT64)
 
 .SH TRACE DATA FORMAT
 

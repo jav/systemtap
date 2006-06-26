@@ -1,3 +1,7 @@
+2006-06-26  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket.in.5: update to AIO event hooks
+	
 2006-06-23  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/tcp_test.stp: updated inet calls

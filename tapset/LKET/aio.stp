@@ -78,8 +78,9 @@ function log_aio_return(hookid:long, retval:long)
 %}
 
 /*
- * Fires by calling io_submit from user space. sys_io_submit will
- * queue the nr iocbs pointed to by iocbpp_uaddr for processing.
+ * Fired by calling io_submit from user space. The corresponding  
+ * system call is sys_io_submit which will queue the nr iocbs 
+ * pointed to by iocbpp_uaddr for processing.
  */
 probe addevent.aio.io_submit.entry
 	+= _addevent.aio.io_submit.entry
@@ -155,8 +156,9 @@ probe _addevent.aio.io_submit_one.return
 }
 
 /*
- * Fires by calling io_destroy from user space. It will destroy 
- * the aio_context specified.
+ * Fired by calling io_destroy from user space. The corresponding 
+ * system call is sys_io_destroy, which will destroy the aio_context 
+ * specified.
  */
 probe addevent.aio.io_destroy.entry
 	+= _addevent.aio.io_destroy.entry
@@ -189,9 +191,10 @@ probe _addevent.aio.io_destroy.return
 }
 
 /*
- * Fires by calling io_getevents from user space. It will attempt to 
- * read at least min_nr events and up to nr events from  the completion 
- * queue for the aio_context specified by ctx_id.
+ * Fired by calling io_getevents from user space. The corresponding 
+ * system call is sys_io_getevents, which will attempt to read at 
+ * least min_nr events and up to nr events from the completion queue 
+ * for the aio_context specified by ctx_id.
  */
 probe addevent.aio.io_getevents.entry
         += _addevent.aio.io_getevents.entry
@@ -232,7 +235,11 @@ probe _addevent.aio.io_getevents.return
         log_aio_return(HOOKID_AIO_IO_GETEVENTS_RETURN, $return)
 }
 
-
+/* 
+ * Fired by calling io_cancel from user space. The corresponding
+ * system call is sys_io_cancel, which will attempt to cancel 
+ * an iocb previously passed to io_submit.
+ */
 probe addevent.aio.io_cancel.entry
 	+= _addevent.aio.io_cancel.entry
 {
