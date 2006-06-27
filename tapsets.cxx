@@ -133,7 +133,7 @@ derived_probe::emit_common_header (translator_output* o)
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
   o->newline(-1) << "}";
-  
+
   o->newline() << "atomic_dec (&c->busy);";
   o->newline(-1) << "}";
 }
@@ -146,7 +146,7 @@ derived_probe::emit_probe_prologue (translator_output* o,
   o->newline() << "struct context* c;";
   o->newline() << "unsigned long flags;";
 
-  // NB: this cycles_t stuff might go into the common header block above 
+  // NB: this cycles_t stuff might go into the common header block above
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "cycles_t cycles_atstart;";
   o->newline() << "#endif";
@@ -387,7 +387,7 @@ symbol_cache
   void make_entry_for_function(Dwarf_Die *func_die);
   static int function_callback(Dwarf_Die * func, void * arg);
   void index_module(Dwarf * mod);
-public:  
+public:
   void select_die_subsets(Dwarf * mod,
 			  string const & pattern,
 			  set<Dwarf_Die> & cus,
@@ -433,7 +433,7 @@ symbol_cache::index_module(Dwarf *module_dwarf)
 }
 
 inline bool
-operator<(Dwarf_Die const & a, 
+operator<(Dwarf_Die const & a,
 	  Dwarf_Die const & b)
 {
   return (a.addr < b.addr)
@@ -442,13 +442,13 @@ operator<(Dwarf_Die const & a,
 }
 
 inline bool
-operator==(Dwarf_Die const & a, 
+operator==(Dwarf_Die const & a,
 	   Dwarf_Die const & b)
 {
   return !((a < b) || (b < a));
 }
 
-void 
+void
 symbol_cache::select_die_subsets(Dwarf *mod,
 				 string const & pattern,
 				 set<Dwarf_Die> & cus,
@@ -464,7 +464,7 @@ symbol_cache::select_die_subsets(Dwarf *mod,
   if (i == indices.end())
     {
       this->curr_index = new index;
-      index_module(mod);      
+      index_module(mod);
       indices.insert(make_pair(mod, this->curr_index));
       ix = this->curr_index;
       this->curr_index = NULL;
@@ -490,7 +490,7 @@ symbol_cache::select_die_subsets(Dwarf *mod,
   // Now perform a lower-bound on the multimap, refine that result
   // set, and copy the CU and function DIEs into the parameter sets.
   index::const_iterator j = stem.empty() ? ix->begin() : ix->lower_bound(stem);
-  while (j != ix->end() && 
+  while (j != ix->end() &&
 	 (stem.empty() || j->first.compare(0, stem.size(), stem) == 0))
     {
       if (fnmatch(pattern.c_str(), j->first.c_str(), 0) == 0)
@@ -498,10 +498,10 @@ symbol_cache::select_die_subsets(Dwarf *mod,
 	  cus.insert(j->second.cu);
 	  funcs.insert(make_pair(j->second.cu, j->second.function));
 	}
-      ++j;	
+      ++j;
     }
 }
-			   
+
 
 
 static int
@@ -583,8 +583,8 @@ dwflpp
   void limit_search_to_function_pattern(string const & pattern)
   {
     get_module_dwarf(true);
-    cache.select_die_subsets(module_dwarf, pattern, 
-			     pattern_limited_cus, 
+    cache.select_die_subsets(module_dwarf, pattern,
+			     pattern_limited_cus,
 			     pattern_limited_funcs);
   }
 
@@ -604,7 +604,7 @@ dwflpp
 
     pattern_limited_cus.clear();
     pattern_limited_funcs.clear();
-    
+
     cu_name.clear();
     cu = NULL;
 
@@ -1020,11 +1020,11 @@ dwflpp
         Dwarf_Addr entrypc = it->first;
         Dwarf_Addr highpc; // NB: highpc is exclusive: [entrypc,highpc)
         func_info* func = &it->second;
-        dwfl_assert ("dwarf_highpc", dwarf_highpc (& func->die, 
+        dwfl_assert ("dwarf_highpc", dwarf_highpc (& func->die,
                                                    & highpc));
 
         if (func->decl_file == 0) func->decl_file = "";
-        
+
         unsigned entrypc_srcline_idx = 0;
         Dwarf_Line* entrypc_srcline = 0;
         // open-code binary search for exact match
@@ -1040,10 +1040,10 @@ dwflpp
               else if (l + 1 == h) { break; } // ran off bottom of tree
               else if (addr < entrypc) { l = entrypc_srcline_idx; }
               else { h = entrypc_srcline_idx; }
-            }              
+            }
         }
-        if (entrypc_srcline == 0) 
-          throw semantic_error ("missing entrypc dwarf line record for function '" 
+        if (entrypc_srcline == 0)
+          throw semantic_error ("missing entrypc dwarf line record for function '"
                                 + func->name + "'");
 
         if (sess.verbose>2)
@@ -1080,9 +1080,9 @@ dwflpp
                    << "@" << postprologue_file << ":" << postprologue_lineno << "\n";
 
             if (postprologue_addr >= highpc)
-              { 
-                ranoff_end = true; 
-                postprologue_srcline_idx --; 
+              {
+                ranoff_end = true;
+                postprologue_srcline_idx --;
                 continue;
               }
             if (ranoff_end ||
@@ -1102,7 +1102,7 @@ dwflpp
 
                 break;
               }
-            
+
             // Let's try the next srcline.
             postprologue_srcline_idx ++;
           } // loop over srclines
@@ -1168,14 +1168,44 @@ dwflpp
     throw semantic_error (msg);
   }
 
+  void emit_address (struct obstack *pool, Dwarf_Addr address)
+  {
+    // For now what we actually use is just a hard-wired constant.
+    obstack_printf (pool, "%#" PRIx64 "UL", address);
+
+    // Turn this address into a section-relative offset if it should be one.
+    // We emit a comment approximating the variable+offset expression that
+    // relocatable module probing code will need to have.
+    Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
+    dwfl_assert ("dwfl_addrmodule", mod == NULL);
+    int n = dwfl_module_relocations (mod);
+    dwfl_assert ("dwfl_module_relocations", n < 0);
+    if (n > 0)
+      {
+	int i = dwfl_module_relocate_address (mod, &address);
+	dwfl_assert ("dwfl_module_relocate_address", i < 0);
+	const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
+						NULL, NULL, NULL, NULL);
+	dwfl_assert ("dwfl_module_info", modname == NULL);
+	const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+	dwfl_assert ("dwfl_module_relocation_info", secname == NULL);
+	if (n > 1 || secname[0] != '\0')
+	  // This gives us the module name, and section name within the
+	  // module, for a kernel module (or other ET_REL module object).
+	  obstack_printf (pool, " /* %s(%s)+%#" PRIx64 " */",
+			  modname, secname, address);
+	else
+	  // This would happen for a Dwfl_Module that's a user-level DSO.
+	  obstack_printf (pool, " /* %s+%#" PRIx64 " */",
+			  modname, address);
+      }
+  }
 
   static void loc2c_emit_address (void *arg, struct obstack *pool,
 				  Dwarf_Addr address)
   {
     dwflpp *dwfl = (dwflpp *) arg;
-    obstack_printf (pool, "%#" PRIx64 "UL /* hard-coded %s address */",
-		    address, dwfl_module_info (dwfl->module, NULL, NULL, NULL,
-					       NULL, NULL, NULL, NULL));
+    dwfl->emit_address (pool, address);
   }
 
   Dwarf_Attribute *
@@ -1806,16 +1836,16 @@ dwarf_query
 
 struct dwarf_builder: public derived_probe_builder
 {
-  dwflpp *kern_dw;  
-  dwflpp *user_dw;  
-  dwarf_builder() 
-    : kern_dw(NULL), user_dw(NULL) 
+  dwflpp *kern_dw;
+  dwflpp *user_dw;
+  dwarf_builder()
+    : kern_dw(NULL), user_dw(NULL)
   {}
-  ~dwarf_builder() 
-  { 
-    if (kern_dw) 
+  ~dwarf_builder()
+  {
+    if (kern_dw)
       delete kern_dw;
-    if (user_dw) 
+    if (user_dw)
       delete user_dw;
   }
   virtual void build(systemtap_session & sess,
@@ -2061,12 +2091,12 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
   // or is illegally used (write in non-guru mode for instance),
   // just pretend that it's OK anyway.  dwarf_var_expanding_copy_visitor
   // will take care of throwing the appropriate exception.
-  
+
   bool lvalue = is_active_lvalue(e);
   flavour += lvalue ? 'w' : 'r';
   exp_type ty;
   string expr;
-  try 
+  try
     {
       if (q.has_return && e->base_name == "$return")
 	expr = q.dw.literal_stmt_for_return (scope_die,
@@ -2086,7 +2116,7 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
     {
       ty = pe_unknown;
     }
-  
+
   switch (ty)
     {
     case pe_unknown:
@@ -2658,7 +2688,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
   try
-    {      
+    {
       q->dw.focus_on_module(mod);
 
       // If we have enough information in the pattern to skip a module and
@@ -2704,7 +2734,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           // Otherwise if we have a function("foo") or statement("foo")
           // specifier, we have to scan over all the CUs looking for
           // the function(s) in question
-	  
+
 	  q->dw.limit_search_to_function_pattern(q->function);
 
           assert(q->has_function_str || q->has_inline_str || q->has_statement_str);
@@ -3144,7 +3174,7 @@ dwarf_derived_probe::emit_registrations (translator_output* o)
     }
 
   o->newline() << "if (unlikely (rc)) {";
-  o->newline(1) << "probe_point = " << string("dwarf_kprobe_") + name 
+  o->newline(1) << "probe_point = " << string("dwarf_kprobe_") + name
     + string("_location_names[i];");
   o->newline() << "break;";
   o->newline(-1) << "}";
@@ -3752,15 +3782,15 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
     {
       if (i > 0)
         probe_sig_expanded += ", ";
-      switch (probe_sig[i]) 
+      switch (probe_sig[i])
         {
         case 'N': probe_sig_expanded += "int64_t"; break;
         case 'S': probe_sig_expanded += "const char *"; break;
-        default: 
+        default:
           throw semantic_error ("unsupported probe signature " + probe_sig,
                                 this->tok);
         }
-      probe_sig_expanded += " arg" + lex_cast<string>(i+1); // arg1 ... 
+      probe_sig_expanded += " arg" + lex_cast<string>(i+1); // arg1 ...
     }
 
   // Now make a local-variable-expanded copy of the probe body
@@ -3780,7 +3810,7 @@ mark_derived_probe::emit_probe_context_vars (translator_output* o)
   for (unsigned i=0; i<probe_sig.length(); i++)
     {
       string localname = "__mark_arg" + lex_cast<string>(i+1);
-      switch (probe_sig[i]) 
+      switch (probe_sig[i])
         {
         case 'S': o->newline() << "string_t " << localname << ";"; break;
         case 'N': o->newline() << "int64_t " << localname << ";"; break;
@@ -3806,11 +3836,11 @@ mark_derived_probe::emit_probe_entries (translator_output* o)
       string locals = "c->locals[0]." + name;
       string localname = locals + ".__mark_arg" + lex_cast<string>(k+1);
       string argname = "arg" + lex_cast<string>(k+1);
-      switch (probe_sig[k]) 
+      switch (probe_sig[k])
         {
         case 'S': o->newline() << "strlcpy (" << localname << ", " << argname
                                << ", MAXSTRINGLEN);"; break;
-          // XXX: dupe with c_unparser::c_strcpy 
+          // XXX: dupe with c_unparser::c_strcpy
         case 'N': o->newline() << localname << " = " << argname << ";"; break;
         }
     }
@@ -3845,7 +3875,7 @@ mark_derived_probe::emit_registrations (translator_output * o)
   o->newline() << "if (*fn != & enter_" << name << ") rc = 1;";
 
   o->newline(-1) << "}";
- 
+
 }
 
 
@@ -4013,16 +4043,16 @@ mark_builder::build(systemtap_session & sess,
                                      (match[2].rm_eo - match[2].rm_so));
 
           // Below, "rc" has negative polarity: zero iff matching
-          rc = (has_module 
+          rc = (has_module
                 ? fnmatch (param_module.c_str(), ext.module.c_str(), 0)
                 : (ext.module != "")); // kernel.*
           rc |= fnmatch (param_probe.c_str(), probe_name.c_str(), 0);
-            
+
           if (! rc)
             {
               // cout << "match (" << probe_name << "):" << probe_sig << endl;
 
-              derived_probe *dp 
+              derived_probe *dp
                 = new mark_derived_probe (sess,
                                           probe_name, probe_sig,
                                           ext.address,
@@ -4094,7 +4124,7 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
   o->newline(1) << "unsigned long nsecs;";
   o->newline() << "int64_t i = " << interval << "LL;";
   if (randomize != 0)
-    { 
+    {
       o->newline() << "int64_t r;";
       o->newline() << "get_random_bytes(&r, sizeof(r));";
       o->newline() << "r &= ((uint64_t)1 << (8*sizeof(r) - 1)) - 1;";
@@ -4209,7 +4239,7 @@ struct hrtimer_builder: public derived_probe_builder
 	    clog << "rounded timer randomization from "
 	      << i_ns << " ns to " << i_ms <<" ms. "<< endl;
 	  }
-	    
+
 	finished_results.push_back(
 	    new timer_derived_probe(base, location, i_ms, r_ms, true));
       }
