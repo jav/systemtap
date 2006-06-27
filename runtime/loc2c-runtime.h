@@ -33,10 +33,31 @@
 /* These operations are target-specific.  */
 #include <asm/uaccess.h>
 
+/* Given a DWARF register number, fetch its intptr_t (long) value from the
+   probe context, or store a new value into the probe context.
+
+   The register number argument is always a canonical decimal number, so it
+   can be pasted into an identifier name.  These definitions turn it into a
+   per-register macro, defined below for machines with individually-named
+   registers.  */
 #define fetch_register(regno) \
   ((intptr_t) dwarf_register_##regno (c->regs))
 #define store_register(regno, value) \
   (dwarf_register_##regno (c->regs) = (value))
+
+
+/* The deref and store_deref macros are called to safely access addresses
+   in the probe context.  These macros are used only for kernel addresses.
+   The macros must handle bogus addresses here gracefully (as from
+   corrupted data structures, stale pointers, etc), by doing a "goto
+   deref_fault".
+
+   On most machines, the asm/uaccess.h macros __get_user_asm and
+   __put_user_asm do exactly the low-level work we need to access memory
+   with fault handling, and are not actually specific to user-address
+   access at all.  Each machine's definition of deref and deref_store here
+   must work right for kernel addresses, and can use whatever existing
+   machine-specific kernel macros are convenient.  */
 
 #if defined __i386__
 
@@ -128,7 +149,7 @@
       goto deref_fault;							      \
   })
 
-#elif defined __ia64__								
+#elif defined __ia64__
 #define deref(size, addr)						\
   ({									\
      int _bad = 0;							\
