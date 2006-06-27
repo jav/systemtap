@@ -1,11 +1,19 @@
+2006-06-27  Roland McGrath  <roland@redhat.com>
+
+	* runtest.sh: Don't use eval, use proper quoting.
+
+	* tapsets.cxx (dwflpp::emit_address): New instance method.  Get
+	relocation details from Dwfl to emit in comment after address constant.
+	(dwflpp::loc2c_emit_address): Just call that.
+
 2006-06-26  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket.in.5: update to AIO event hooks
-	
+
 2006-06-23  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/tcp_test.stp: updated inet calls
-	* testsuite/buildok/udp_test.stp: test udp tapset 
+	* testsuite/buildok/udp_test.stp: test udp tapset
 
 2006-06-22  Thang P Nguyen  <thang.p.nguyen@intel.com>
 
