@@ -30,8 +30,9 @@ dn=`dirname $1`
 logfile=testresults/`basename $dn`-`basename $1`
 
 env | grep SYSTEMTAP > $logfile.cmd
-echo "$@" >> $logfile.cmd
-eval $@ >$logfile.out 2>$logfile.err
+echo "$*" >> $logfile.cmd
+# This is proper quoting to let multiword arguments through (for e.g. -e).
+"$@" >$logfile.out 2>$logfile.err
 rc=$?
 echo "rc=$rc" > $logfile.rc
 
