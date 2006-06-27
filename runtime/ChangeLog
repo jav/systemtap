@@ -1,3 +1,7 @@
+2006-06-27  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h: Add some comments.
+
 2006-06-23  Josh Stone  <joshua.i.stone@intel.com>
 
 	* time.c: Do cpufreq notification only if CONFIG_CPU_FREQ defined.
