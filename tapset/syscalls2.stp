@@ -2159,7 +2159,10 @@ probe syscall.uname.return = kernel.function("sys_uname").return {
 probe syscall.unlink = kernel.function("sys_unlink") {
 	name = "unlink"
 	pathname_uaddr = $pathname
-	pathname = user_string($pathname)
+	if ($pathname > 0)
+		pathname = user_string($pathname)
+	else
+		pathname = "null"
 	argstr = sprintf("\"%s\"",pathname)
 }
 probe syscall.unlink.return = kernel.function("sys_unlink").return {
