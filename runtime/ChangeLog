@@ -1,3 +1,8 @@
+2006-06-29  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: modified to be
+	sync with new _lket_trace()
+	
 2006-06-27  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h: Add some comments.

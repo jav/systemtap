@@ -1,3 +1,10 @@
+2006-06-29  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* lket_trace.stp: 
+	_lket_trace() won't log ppid and tgid any more.
+	Using bit-OP to make _lket_trace's format string shorter
+	for better performance.
+	
 2006-06-26  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* aio.stp: new event hooks for AIO

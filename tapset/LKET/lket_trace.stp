@@ -126,11 +126,10 @@ static inline int this_event_len(void)
 #define _lket_trace(GroupID, hookID, fmt, args...) do { \
 	struct timeval tv; \
 	do_gettimeofday (&tv); \
-	_stp_printf("%2b%2n%1b%1b%4b%4b%4b%4b%4b%1b"fmt, \
-		(_FMT_)0, (_FMT_)GroupID, (_FMT_)hookID, \
-		(_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec, (_FMT_)current->tgid, \
-		(_FMT_)current->parent->pid, (_FMT_)current->pid, \
-		(_FMT_)current->thread_info->cpu, args);\
+        _stp_printf("%2b%2n%8b%8b"fmt, (_FMT_)0, \
+		(_FMT_)(tv.tv_sec*1000000LL + tv.tv_usec),\
+		(_FMT_)((int64_t)current->pid << 32 | (int32_t)GroupID << 24 |\
+		 (int32_t)hookID << 16 | (int16_t)current->thread_info->cpu << 8), args);\
 } while(0)
 
 #endif

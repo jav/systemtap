@@ -124,15 +124,19 @@ int _HOOKID_AIO_IO_CANCEL_RETURN = 12;
 typedef struct _lket_pkt_header {
 	int16_t	total_size;
 	int16_t	sys_size;
-	int8_t	hookgroup;
-	int8_t	hookid;
-	int32_t sec;
-	int32_t usec;
-	int32_t	pid;
-	int32_t	ppid;
-	int32_t	tid;
-	int8_t	cpu;
+	int64_t microsecond;
+	/* aggr is the bit-OP of:
+	(int64_t)current->pid << 32 |
+	(int32_t)GroupID << 24 | (int32_t)hookID << 16 |
+	(int16_t)current->thread_info->cpu << 8
+	*/
+	int64_t aggr;
 } __attribute__((packed)) lket_pkt_header;
+
+#define HDR_PID(ptr)  (int32_t)(((ptr)->aggr)>>32)
+#define HDR_GroupID(ptr)  (int8_t)(((ptr)->aggr)>>24) 
+#define HDR_HookID(ptr)  (int8_t)(((ptr)->aggr)>>16) 
+#define HDR_CpuID(ptr)  (int8_t)(((ptr)->aggr)>>8) 
 
 typedef struct _appname_info {
 	int pid;

@@ -92,9 +92,9 @@ int main(int argc, char *argv[])
 	j = 0;
 	for(i=0; i < total_infiles; i++) {
 		get_pkt_header(infps[i], &hdrs[i]);
-		if((hdrs[i].sec*1000000LL + hdrs[i].usec) < start_timestamp
+		if( hdrs[i].microsecond < start_timestamp
 		       || (start_timestamp == 0)) {
-			start_timestamp = hdrs[i].sec*1000000LL + hdrs[i].usec;
+			start_timestamp = hdrs[i].microsecond;
 			j = i;
 		}
 	}
@@ -105,13 +105,13 @@ int main(int argc, char *argv[])
 		// j is the next
 		if(min) {
 
-			if(hdrs[j].hookgroup==_GROUP_PROCESS &&
-				(hdrs[j].hookid==_HOOKID_PROCESS_SNAPSHOT 
-				|| hdrs[j].hookid==_HOOKID_PROCESS_EXECVE))
+			if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
+				(HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_SNAPSHOT 
+				|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE))
 			{
 				register_appname(j, infps[j], &hdrs[j]);
-			} else if(hdrs[j].hookgroup==_GROUP_REGEVT)  {
-				register_events(hdrs[j].hookid, infps[j], 
+			} else if(HDR_GroupID(&hdrs[j])==_GROUP_REGEVT)  {
+				register_events(HDR_HookID(&hdrs[j]), infps[j], 
 					hdrs[j].sys_size);
 			} else  {
 				print_pkt_header(outfp, &hdrs[j]);
@@ -124,12 +124,12 @@ int main(int argc, char *argv[])
 			get_pkt_header(infps[j], &hdrs[j]);
 		}
 		// recalculate the smallest timestamp
-		min = hdrs[0].sec*1000000LL + hdrs[0].usec;
+		min = hdrs[0].microsecond;
 		j = 0;
 		for(i=1; i < total_infiles ; i++) {
 			if((min == 0) || 
-				((hdrs[i].sec*1000000LL + hdrs[i].usec) < min)) {
-				min = hdrs[i].sec*1000000LL + hdrs[i].usec;
+				(hdrs[i].microsecond < min)) {
+				min = hdrs[i].microsecond;
 				j = i;
 			}
 		}
@@ -168,7 +168,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 
 	appname = (char *)malloc(1024);
 
-	if(phdr->hookid ==1 )  {  /* process_snapshot */
+	if(HDR_HookID(phdr) ==1 )  {  /* process_snapshot */
 		len = fread(&pid, 1, 4, fp);
 		c = fgetc_unlocked(fp);
 		++len;
@@ -179,8 +179,8 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		}
 		appname[count]='\0';
 		//fseek(fp, 0-len, SEEK_CUR);
-	} else if (phdr->hookid == 2)  { /* process.execve */
-		pid = phdr->pid;
+	} else if (HDR_HookID(phdr) == 2)  { /* process.execve */
+		pid = HDR_PID(phdr);
 
 		c = fgetc_unlocked(fp);
 		++len;
@@ -301,16 +301,13 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
 	if(!fp || !phdr)
 		return;
-	fprintf(fp, "\n%lld.%lld APPNAME: %s PID:%d PPID:%d TID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
-		(phdr->sec*1000000LL + phdr->usec - start_timestamp)/1000000LL,
-		(phdr->sec*1000000LL + phdr->usec- start_timestamp)%1000000LL,
-		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)phdr->pid))),
-		phdr->pid,
-		phdr->ppid,
-		phdr->tid,
-		phdr->cpu,
-		phdr->hookgroup,
-		phdr->hookid);
+	fprintf(fp, "\n%lld APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
+		(phdr->microsecond - start_timestamp),
+		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)HDR_PID(phdr)))),
+		HDR_PID(phdr),
+		HDR_CpuID(phdr),
+		HDR_GroupID(phdr),
+		HDR_HookID(phdr));
 }
 
 void register_events(int evt_type, FILE *infp, size_t size)
@@ -389,8 +386,8 @@ int ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type)
 	int size;
 
 	char *fmt, *name, *buffer;
-	int grpid = header.hookgroup;
-	int hookid = header.hookid;
+	int grpid = HDR_GroupID(&header);
+	int hookid = HDR_HookID(&header);
 
 
 	if(evt_type == EVT_SYS) 
