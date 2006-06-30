@@ -4167,16 +4167,16 @@ hrtimer_derived_probe::emit_deregistrations (translator_output* o)
 void
 hrtimer_derived_probe::emit_probe_entries (translator_output* o)
 {
-  o->newline() << "static int enter_" << name << " (void *data);";
+  o->newline() << "static int enter_" << name << " (struct hrtimer *);";
   o->newline() << "static struct hrtimer timer_" << name << ";";
 
-  o->newline() << "int enter_" << name << " (void *data) {";
+  o->newline() << "int enter_" << name << " (struct hrtimer *timer) {";
   o->indent(1);
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
 
-  o->newline() << "(void) data;";
+  o->newline() << "(void) timer;";
 
   o->newline() << "hrtimer_start (& timer_" << name << ", ";
   emit_interval(o);
@@ -4186,7 +4186,9 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
   o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
-  o->newline() << "return HRTIMER_RESTART;";
+
+  // Return NORESTART, because we already requeued the timer above
+  o->newline() << "return HRTIMER_NORESTART;";
   o->newline(-1) << "}\n";
 }
 
@@ -4223,12 +4225,15 @@ struct hrtimer_builder: public derived_probe_builder
 
     string target_kernel_v;
 
-    /*
-     * When hrtimers are finally exported from the kernel, we can do a version
-     * check against sess.kernel_release to enable them.  Until then, just use
-     * the "legacy" flavor.
-     */
-    if (0)
+    // cut off any release code suffix
+    string::size_type dash_index = sess.kernel_release.find ('-');
+    if (dash_index > 0 && dash_index != string::npos)
+      target_kernel_v = sess.kernel_release.substr (0, dash_index);
+    else
+      target_kernel_v = sess.kernel_release;
+
+    // hrtimers are only exported starting in 2.6.17
+    if (strverscmp(target_kernel_v.c_str(), "2.6.17") >= 0)
       finished_results.push_back(
 	  new hrtimer_derived_probe(base, location, i_ns, r_ns));
     else
