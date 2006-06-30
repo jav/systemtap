@@ -20,17 +20,32 @@ deref_fault: /* branched to from deref() */
 success: ;
 %}
 
-# NB: accessing user space is hazardous from certain kernel contexts.
-# Errors should be returned when this is detected.
+
+// On rare cases when userspace data is not accessible, 
+// this function returns "<unknown>"
+
 function user_string:string (addr:long) %{ /* pure */
-  long rc = _stp_strncpy_from_user (THIS->__retvalue, 
-		 	            (const char __user*) (uintptr_t) THIS->addr,
-				    MAXSTRINGLEN);
-  if (rc < 0)
-  {
-    static char errmsg[40];
-    snprintf (errmsg, 40, "user string copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-   CONTEXT->last_error = errmsg;
+  if (_stp_strncpy_from_user (THIS->__retvalue, 
+		(const char __user*) (uintptr_t) THIS->addr,
+		MAXSTRINGLEN) < 0)
+	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+%}
+
+function user_string2:string (addr:long, err_msg:string) %{ /* pure */
+  if (_stp_strncpy_from_user (THIS->__retvalue, 
+		(const char __user*) (uintptr_t) THIS->addr,
+		MAXSTRINGLEN) < 0)
+    strlcpy (THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
+%}
+
+function user_string_warn:string (addr:long) %{ /* pure */
+  long rc = _stp_strncpy_from_user (THIS->__retvalue,
+		(const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
+  if (rc < 0) {
+	static char errmsg[40];
+	snprintf (errmsg, 40, "user string copy fault %ld at %p", rc,
+		(void *) (uintptr_t) THIS->addr);
+	_stp_warn(errmsg);
+	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
   }
 %}

@@ -12,19 +12,6 @@ probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	retstr = returnstr(1)
 }
 
-# lstat ______________________________________________________
-# long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)
-probe syscall.lstat = kernel.function("sys_lstat") {
-	name = "lstat"
-	file_name = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", file_name, buf_uaddr) 
-}
-probe syscall.lstat.return = kernel.function("sys_lstat").return {
-	name = "lstat.return"
-	retstr = returnstr(1)
-}
-
 # setgroups16 ________________________________________________
 #
 # asmlinkage long
@@ -42,23 +29,6 @@ probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
 	retstr = returnstr(1)
 }
 
-# stat _______________________________________________________
-#
-# asmlinkage long
-# sys_stat(char __user * filename,
-#	    struct __old_stat __user * statbuf)
-#
-probe syscall.stat = kernel.function("sys_stat") {
-	name = "stat"
-	filename_uaddr = $filename
-	filename = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", filename, buf_uaddr)
-}
-probe syscall.stat.return = kernel.function("sys_stat").return {
-	name = "stat"
-	retstr = returnstr(1)
-}
 
 # acct _______________________________________________________
 # long sys_acct(const char __user *name)

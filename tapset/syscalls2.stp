@@ -36,22 +36,6 @@ probe syscall.nanosleep.return = kernel.function("sys_nanosleep").return {
 	name = "nanosleep"
 	retstr = returnstr(1)
 }
-# newfstat ___________________________________________________
-#
-# asmlinkage long
-# sys_newfstat(unsigned int fd,
-#		  struct stat __user * statbuf)
-#
-probe syscall.newfstat = kernel.function("sys_newfstat") {
-	name = "fstat"
-	fd = $fd
-	buf_uaddr = $statbuf
-	argstr = sprintf("%d, [%p]", fd, buf_uaddr)
-}
-probe syscall.newfstat.return = kernel.function("sys_newfstat").return {
-	name = "fstat"
-	retstr = returnstr(1)
-}
 # newlstat ___________________________________________________
 #
 # long sys_newlstat(char __user * filename,
@@ -161,7 +145,10 @@ probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return
 
 # open _______________________________________________________
 # asmlinkage long sys_open(const char __user * filename, int flags, int mode)
-probe syscall.open = kernel.function("sys_open") {
+probe syscall.open = 
+		kernel.function("sys_open") ?,
+		kernel.function("sys32_open") ?
+{
 	name = "open"
 	filename = user_string($filename)
 	flags = $flags
@@ -171,7 +158,10 @@ probe syscall.open = kernel.function("sys_open") {
 	else
 		argstr = sprintf("\"%s\", %s", filename, _sys_open_flag_str(flags))
 }
-probe syscall.open.return = kernel.function("sys_open").return {
+probe syscall.open.return = 
+		kernel.function("sys_open").return ?, 
+		kernel.function("sys32_open").return ?
+{
 	name = "open"
 	retstr = returnstr(1)
 }
@@ -1772,21 +1762,41 @@ probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
 	retstr = returnstr(1)
 }
 
-# statfs _____________________________________________________
+# stat _______________________________________________________
+# long sys_stat(char __user * filename, struct __old_stat __user * statbuf)
 #
-# long sys_statfs(const char __user * path,
-#		struct statfs __user * buf)
+probe syscall.stat = 
+		kernel.function("sys_stat") ?, 
+		kernel.function("sys_newstat") ? 
+{
+	name = "stat"
+	filename_uaddr = $filename
+	filename = user_string($filename)
+	buf_uaddr = $statbuf
+	argstr = sprintf("%s, [%p]", filename, buf_uaddr)
+}
+probe syscall.stat.return = 
+		kernel.function("sys_stat").return ?, 
+		kernel.function("sys_newstat").return ? 
+{
+	name = "stat"
+	retstr = returnstr(1)
+}
+
+# statfs _____________________________________________________
+# long sys_statfs(const char __user * path, struct statfs __user * buf)
 #
 probe syscall.statfs = kernel.function("sys_statfs") {
 	name = "statfs"
 	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = sprintf("%s, [%p]", path, $buf)
+	argstr = sprintf("\"%s\", [%p]", path, $buf)
 }
 probe syscall.statfs.return = kernel.function("sys_statfs").return {
 	name = "statfs"
 	retstr = returnstr(1)
 }
+
 # statfs64 ___________________________________________________
 #
 # long sys_statfs64(const char __user *path,
@@ -2159,10 +2169,7 @@ probe syscall.uname.return = kernel.function("sys_uname").return {
 probe syscall.unlink = kernel.function("sys_unlink") {
 	name = "unlink"
 	pathname_uaddr = $pathname
-	if ($pathname > 0)
-		pathname = user_string($pathname)
-	else
-		pathname = "null"
+	pathname = user_string($pathname)
 	argstr = sprintf("\"%s\"",pathname)
 }
 probe syscall.unlink.return = kernel.function("sys_unlink").return {
@@ -2185,10 +2192,7 @@ probe syscall.uselib.return = kernel.function("sys_uselib").return {
 	retstr = returnstr(1)
 }
 # ustat ______________________________________________________
-#
-# asmlinkage long
-# sys_ustat(unsigned dev,
-#	     struct ustat __user * ubuf)
+# long sys_ustat(unsigned dev, struct ustat __user * ubuf)
 #
 probe syscall.ustat = kernel.function("sys_ustat") {
 	name = "ustat"
