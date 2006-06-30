@@ -1,3 +1,15 @@
+2006-06-30  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (dwflpp::dwfl_assert): Added optional extra_msg
+	parameter to be able to print out extra error message.
+	(dwflpp::setup): Uses new 'extra_msg' parameter to dwfl_assert()
+	to ask user to install kernel-debuginfo when
+	dwfl_linux_kernel_report_kernel() or
+	dwfl_linux_kernel_report_modules() fails (Bugzilla #2669).
+	
+	* buildrun.cxx (compile_pass): Checks to make sure module build
+	directory exists before trying to run make there (Bugzilla #2669).
+
 2006-06-27  Roland McGrath  <roland@redhat.com>
 
 	* runtest.sh: Don't use eval, use proper quoting.

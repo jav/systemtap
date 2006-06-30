@@ -722,13 +722,18 @@ dwflpp
   }
 
 
-  void dwfl_assert(string desc, int rc) // NB: "rc == 0" means OK in this case
+  // NB: "rc == 0" means OK in this case
+  void dwfl_assert(string desc, int rc, string extra_msg = "")
   {
     string msg = "libdwfl failure (" + desc + "): ";
     if (rc < 0) msg += dwfl_errmsg (rc);
     else if (rc > 0) msg += strerror (rc);
     if (rc != 0)
-      throw semantic_error (msg);
+      {
+	if (extra_msg.length() > 0)
+	  msg += "\n" + extra_msg;
+	throw semantic_error (msg);
+      }
   }
 
   void dwarf_assert(string desc, int rc) // NB: "rc == 0" means OK in this case
@@ -785,12 +790,11 @@ dwflpp
         // XXX: if we have only kernel.* probe points, we shouldn't waste time
         // looking for module debug-info (and vice versa).
 	dwfl_assert ("dwfl_linux_kernel_report_kernel",
-		     dwfl_linux_kernel_report_kernel (dwfl));
+		     dwfl_linux_kernel_report_kernel (dwfl),
+		     "Ensure kernel debuginfo is installed");
 	dwfl_assert ("dwfl_linux_kernel_report_modules",
-		     dwfl_linux_kernel_report_modules (dwfl));
-	// NB: While RH bug #169672 prevents detection of -debuginfo absence
-	// here, the get_module_dwarf() function will throw an exception
-	// before long.
+		     dwfl_linux_kernel_report_modules (dwfl),
+		     "Ensure kernel debuginfo is installed");
       }
     else
       {

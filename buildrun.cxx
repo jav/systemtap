@@ -16,6 +16,11 @@ extern "C" {
 #include "signal.h"
 #include <sys/wait.h>
 #include <pwd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <errno.h>
 }
 
 
@@ -81,9 +86,20 @@ compile_pass (systemtap_session& s)
 
   o.close ();
 
-  // Run make
+  // Generate module directory pathname and make sure it exists.
   string module_dir = string("/lib/modules/")
     + s.kernel_release + "/build";
+  struct stat st;
+  rc = stat(module_dir.c_str(), &st);
+  if (rc != 0)
+    {
+	clog << "Module directory " << module_dir << " check failed: "
+	     << strerror(errno) << endl
+	     << "Make sure kernel devel is installed." << endl;
+	return rc;
+    }  
+
+  // Run make
   string make_cmd = string("make")
     + string (" -C \"") + module_dir + string("\"");
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
