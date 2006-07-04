@@ -1,3 +1,7 @@
+2006-07-04  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp, syscalls2.stp: Use user_string_quoted().
+
 2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* syscalls.stp, syscalls2.stp, ppc64/syscalls.stp: 

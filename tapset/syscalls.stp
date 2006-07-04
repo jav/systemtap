@@ -44,7 +44,7 @@ probe syscall.access = kernel.function("sys_access") {
 	pathname = user_string($filename)
 	mode = $mode
 	mode_str = _access_mode_str($mode)
-	argstr = sprintf("\"%s\", %s", pathname, mode_str)
+	argstr = sprintf("%s, %s", user_string_quoted($filename), mode_str)
 }
 probe syscall.access.return = kernel.function("sys_access").return {
 	name = "access"
@@ -183,7 +183,7 @@ probe syscall.capset.return = kernel.function("sys_capset").return {
 probe syscall.chdir = kernel.function("sys_chdir") {
 	name = "chdir"
 	path = user_string($filename)
-	argstr = sprintf("\"%s\"",path)
+	argstr = user_string_quoted($filename)
 }
 probe syscall.chdir.return = kernel.function("sys_chdir").return {
 	name = "chdir"
@@ -196,7 +196,7 @@ probe syscall.chmod = kernel.function("sys_chmod") {
 	name = "chmod"
 	path = user_string($filename)
 	mode = $mode
-	argstr = sprintf("%s, %#o", path, mode)
+	argstr = sprintf("%s, %#o", user_string_quoted($filename), mode)
 }
 probe syscall.chmod.return = kernel.function("sys_chmod").return {
 	name = "chmod"
@@ -210,7 +210,7 @@ probe syscall.chown = kernel.function("sys_chown") {
 	path = user_string($filename)
 	owner = $user
 	group = $group
-	argstr = sprintf("\"%s\", %d, %d",path, owner, group) 
+	argstr = sprintf("%s, %d, %d",user_string_quoted($filename), owner, group) 
 }
 probe syscall.chown.return = kernel.function("sys_chown").return {
 	name = "chown"
@@ -225,7 +225,7 @@ probe syscall.chown16 = kernel.function("sys_chown16") ? {
 	path = user_string($filename)
 	owner = __short($user)
 	group = __short($group)
-	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
+	argstr = sprintf("%s, %d, %d", user_string_quoted($filename), owner, group)
 }
 probe syscall.chown16.return = kernel.function("sys_chown16").return ? {
 	name = "chown16"
@@ -237,7 +237,7 @@ probe syscall.chown16.return = kernel.function("sys_chown16").return ? {
 probe syscall.chroot = kernel.function("sys_chroot") {
 	name = "chroot"
 	path = user_string($filename)
-	argstr = path
+	argstr = user_string_quoted($filename)
 }
 probe syscall.chroot.return = kernel.function("sys_chroot").return {
 	name = "chroot"
@@ -342,7 +342,7 @@ probe syscall.delete_module = kernel.function("sys_delete_module") {
 	name = "delete_module"
 	name_user = user_string($name_user)
 	flags = $flags
-	argstr = sprintf("%s, %s", name_user, _module_flags_str(flags))
+	argstr = sprintf("%s, %s", user_string_quoted($name_user), _module_flags_str(flags))
 }
 probe syscall.delete_module.return = kernel.function("sys_delete_module").return {
 	name = "delete_module"
@@ -601,8 +601,7 @@ probe syscall.fgetxattr = kernel.function("sys_fgetxattr") {
 	name2 = user_string($name)
 	value_uaddr = $value
 	size  = $size
-	argstr = sprintf("%d, %s, [%p], %d", filedes, name2,
-		value_uaddr, size)
+	argstr = sprintf("%d, %s, [%p], %d", filedes, user_string_quoted($name), value_uaddr, size)
 }
 probe syscall.fgetxattr.return = kernel.function("sys_fgetxattr").return {
 	name = "fgetxattr"
@@ -696,8 +695,7 @@ probe syscall.fsetxattr = kernel.function("sys_fsetxattr") {
 	value_uaddr = $value
 	size = $size
 	flags = $flags
-	argstr = sprintf("%d, %s, [%p], %d, %p", filedes, name2,
-		value_uaddr, size, flags)
+	argstr = sprintf("%d, %s, [%p], %d, %p", filedes, user_string_quoted($name), value_uaddr, size, flags)
 }
 probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return {
 	name = "fsetxattr"
@@ -1234,7 +1232,9 @@ probe syscall.getxattr = kernel.function("sys_getxattr") {
 	name2 = user_string($name)
 	value_uaddr = $value
 	size = $size
-	argstr = sprintf("%s, %s, [%p], %d", path, name2,
+	argstr = sprintf("%s, %s, [%p], %d", 
+		user_string_quoted($path), 
+		user_string_quoted($name),
 		value_uaddr, size)
 }
 probe syscall.getxattr.return = kernel.function("sys_getxattr").return {
@@ -1447,7 +1447,7 @@ probe syscall.lchown = kernel.function("sys_lchown") {
 	path = user_string($filename)
 	owner = $user
 	group = $group
-	argstr = sprintf("\"%s\", %d, %d",path, owner, group)
+	argstr = sprintf("%s, %d, %d",user_string_quoted($filename), owner, group)
 }	
 probe syscall.lchown.return = kernel.function("sys_lchown").return {
 	name = "lchown"
@@ -1463,7 +1463,7 @@ probe syscall.lchown16 = kernel.function("sys_lchown16") ? {
 	path = user_string($filename)
 	owner = __short($user)
 	group = __short($group)
-	argstr = sprintf("\"%s\", %d, %d", path, owner, group)
+	argstr = sprintf("%s, %d, %d", user_string_quoted($filename), owner, group)
 }
 probe syscall.lchown16.return = kernel.function("sys_lchown16").return ? {
 	name = "lchown16"
@@ -1496,7 +1496,9 @@ probe syscall.link = kernel.function("sys_link") {
 	name = "link"
 	oldpath = user_string($oldname)
 	newpath = user_string($newname)
-	argstr = sprintf("\"%s\", \"%s\"", oldpath, newpath)
+	argstr = sprintf("%s, %s", 
+		user_string_quoted($oldname), 
+		user_string_quoted($newname))
 }
 probe syscall.link.return = kernel.function("sys_link").return {
 	name = "link"
@@ -1652,7 +1654,7 @@ probe syscall.lstat =
 	name = "lstat"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", file_name, buf_uaddr) 
+	argstr = sprintf("%s, [%p]", user_string_quoted($filename), buf_uaddr) 
 }
 probe syscall.lstat.return = 
 		kernel.function("sys_lstat").return ?
@@ -1706,7 +1708,7 @@ probe syscall.mkdir = kernel.function("sys_mkdir") {
 	pathname_uaddr = $pathname
 	pathname = user_string($pathname)
 	mode = $mode
-	argstr = sprintf("\"%s\", %#o", pathname, $mode)
+	argstr = sprintf("%s, %#o", user_string_quoted($pathname), $mode)
 }
 probe syscall.mkdir.return = kernel.function("sys_mkdir").return {
 	name = "mkdir"
@@ -1721,7 +1723,7 @@ probe syscall.mkdirat = kernel.function("sys_mkdirat") ? {
 	dirfd = $dfd
 	pathname = user_string($pathname)
 	mode = $mode
-	argstr = sprintf("%d, \"%s\", %#o", $dfd, pathname, $mode)
+	argstr = sprintf("%d, %s, %#o", $dfd, user_string_quoted($pathname), $mode)
 }
 probe syscall.mkdirat.return = kernel.function("sys_mkdirat").return ? {
 	name = "mkdirat"
@@ -1735,7 +1737,7 @@ probe syscall.mknod = kernel.function("sys_mknod") {
       	pathname = user_string($filename)
 	mode = $mode
 	dev = $dev
-	argstr = sprintf("%s, %s, %p", pathname, _mknod_mode_str($mode), dev)
+	argstr = sprintf("%s, %s, %p", user_string_quoted($filename), _mknod_mode_str($mode), dev)
 }
 
 probe syscall.mknod.return = kernel.function("sys_mknod").return {
@@ -1852,7 +1854,11 @@ probe syscall.mount = kernel.function("sys_mount") {
 	mountflags = $flags
 	mountflags_str = _mountflags_str($flags)
 	data = text_strn(user_string($data),30,1)
-	argstr = sprintf("\"%s\", \"%s\", \"%s\", %s, %s", source, target, filesystemtype, mountflags_str, data)
+	argstr = sprintf("%s, %s, %s, %s, %s", 
+		user_string_quoted($dev_name), 
+		user_string_quoted($dir_name), 
+		user_string_quoted($type), 
+		mountflags_str, data)
 }
 probe syscall.mount.return = kernel.function("sys_mount").return {
 	name = "mount"

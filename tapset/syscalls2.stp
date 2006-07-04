@@ -22,15 +22,14 @@
 
 # nanosleep __________________________________________________
 #
-# asmlinkage long
-# sys_nanosleep(struct timespec __user *rqtp,
+# long sys_nanosleep(struct timespec __user *rqtp,
 #		   struct timespec __user *rmtp)
 #
 probe syscall.nanosleep = kernel.function("sys_nanosleep") {
 	name = "nanosleep"
 	req_uaddr = $rqtp
 	rem_uaddr = $rmtp
-	argstr = _struct_timespec_u(req_uaddr)
+	argstr = sprintf("%s, %p", _struct_timespec_u(req_uaddr), $rmtp)
 }
 probe syscall.nanosleep.return = kernel.function("sys_nanosleep").return {
 	name = "nanosleep"
@@ -46,7 +45,8 @@ probe syscall.newlstat = kernel.function("sys_newlstat") ?,
 	name = "newlstat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", pathname, buf_uaddr)  
+	argstr = sprintf("%s, [%p]", 
+		user_string_quoted($filename), buf_uaddr)  
 }
 probe syscall.newlstat.return = kernel.function("sys_newlstat").return ?,
 	kernel.function("compat_sys_newlstat").return ?  {
@@ -62,7 +62,7 @@ probe syscall.newstat = kernel.function("sys_newstat") {
 	name = "stat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", pathname, buf_uaddr)
+	argstr = sprintf("%s, [%p]", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.newstat.return = kernel.function("sys_newstat").return {
 	name = "stat"
@@ -156,9 +156,11 @@ probe syscall.open =
 	flags = $flags
 	mode = $mode
 	if (flags & 64)
-		argstr = sprintf("\"%s\", %s, %#o", filename, _sys_open_flag_str(flags), mode)
+		argstr = sprintf("%s, %s, %#o", user_string_quoted($filename), 
+				_sys_open_flag_str($flags), $mode)
 	else
-		argstr = sprintf("\"%s\", %s", filename, _sys_open_flag_str(flags))
+		argstr = sprintf("%s, %s", user_string_quoted($filename), 
+			_sys_open_flag_str($flags))
 }
 probe syscall.open.return = 
 		kernel.function("sys_open").return ?, 
@@ -288,7 +290,8 @@ probe syscall.pivot_root = kernel.function("sys_pivot_root") {
 	name = "pivot_root"
 	new_root_str = user_string($new_root)
 	old_root_str = user_string($put_old)
-	argstr = sprintf("%s, %s", new_root_str, old_root_str)
+	argstr = sprintf("%s, %s", user_string_quoted($new_root),
+		user_string_quoted($put_old))		
 }
 probe syscall.pivot_root.return = kernel.function("sys_pivot_root").return {
 	name = "pivot_root"
@@ -446,7 +449,8 @@ probe syscall.readlink = kernel.function("sys_readlink") {
 	path = user_string($path)
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-	argstr = sprintf("\"%s\", [%p], %d", path, buf_uaddr, bufsiz)
+	argstr = sprintf("%s, [%p], %d", user_string_quoted($path), 
+			buf_uaddr, bufsiz)
 }
 probe syscall.readlink.return = kernel.function("sys_readlink").return {
 	name = "readlink"
@@ -606,7 +610,8 @@ probe syscall.removexattr = kernel.function("sys_removexattr") {
 	name = "removexattr"
 	path = user_string($path)
 	name_str = user_string($name)
-	argstr = sprintf("%s, %s", path, name_str)
+	argstr = sprintf("%s, %s", user_string_quoted($path), 
+		user_string_quoted($name))
 }
 probe syscall.removexattr.return = kernel.function("sys_removexattr").return {
 	name = "removexattr"
@@ -622,7 +627,8 @@ probe syscall.rename = kernel.function("sys_rename") {
 	name = "rename"
 	oldpath = user_string($oldname)
 	newpath = user_string($newname)
-	argstr = sprintf("%s, %s", oldpath, newpath)
+	argstr = sprintf("%s, %s", user_string_quoted($oldname), 
+			user_string_quoted($newname))
 }
 probe syscall.rename.return = kernel.function("sys_rename").return {
 	name = "rename"
@@ -650,7 +656,7 @@ probe syscall.restart_syscall.return =
 probe syscall.rmdir = kernel.function("sys_rmdir") {
 	name = "rmdir"
 	pathname = user_string($pathname)
-	argstr = pathname
+	argstr = user_string_quoted($pathname)
 }
 probe syscall.rmdir.return = kernel.function("sys_rmdir").return {
 	name = "rmdir"
@@ -1209,7 +1215,7 @@ probe syscall.sethostname = kernel.function("sys_sethostname") {
 	hostname_uaddr = $name
 	name_str = user_string($name)
 	len = $len
-	argstr = sprintf("%s, %d", name_str, $len)
+	argstr = sprintf("%s, %d", user_string_quoted($name), $len)
 }
 probe syscall.sethostname.return = kernel.function("sys_sethostname").return {
 	name = "sethostname"
@@ -1528,8 +1534,10 @@ probe syscall.setxattr = kernel.function("sys_setxattr") {
 	value_uaddr = $value
 	size = $size
 	flags = $flags
-	argstr = sprintf("%s, %s, [%p], %d, %d", path, name_str, value_uaddr,
-				$size, $flags)
+	argstr = sprintf("%s, %s, [%p], %d, %d", 
+			user_string_quoted($path), 
+			user_string_quoted($name),
+			value_uaddr, $size, $flags)
 }
 probe syscall.setxattr.return = kernel.function("sys_setxattr").return {
 	name = "setxattr"
@@ -1775,7 +1783,7 @@ probe syscall.stat =
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", filename, buf_uaddr)
+	argstr = sprintf("%s, [%p]", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.stat.return = 
 		kernel.function("sys_stat").return ?, 
@@ -1792,7 +1800,7 @@ probe syscall.statfs = kernel.function("sys_statfs") {
 	name = "statfs"
 	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = sprintf("\"%s\", [%p]", path, $buf)
+	argstr = sprintf("%s, [%p]", user_string_quoted($path), $buf)
 }
 probe syscall.statfs.return = kernel.function("sys_statfs").return {
 	name = "statfs"
@@ -1810,7 +1818,7 @@ probe syscall.statfs64 = kernel.function("sys_statfs64") {
 	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%s, %d, [%p]", path, $sz, $buf) 
+	argstr = sprintf("%s, %d, [%p]", user_string_quoted($path), $sz, $buf) 
 }
 probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 	name = "statfs64"
@@ -1840,7 +1848,7 @@ probe syscall.stime.return = kernel.function("sys_stime").return {
 probe syscall.swapoff = kernel.function("sys_swapoff") {
 	name = "swapoff"
 	path = user_string($specialfile)
-	argstr = sprintf("%s", path)
+	argstr = user_string_quoted($specialfile)
 }
 probe syscall.swapoff.return = kernel.function("sys_swapoff").return {
 	name = "swapoff"
@@ -1856,7 +1864,7 @@ probe syscall.swapon = kernel.function("sys_swapon") {
 	name = "swapon"
 	path = user_string($specialfile)
 	swapflags = $swap_flags
-	argstr = sprintf("%s, %d", path, swapflags)
+	argstr = sprintf("%s, %d", user_string_quoted($specialfile), swapflags)
 }
 probe syscall.swapon.return = kernel.function("sys_swapon").return {
 	name = "swapon"
@@ -1869,7 +1877,8 @@ probe syscall.symlink = kernel.function("sys_symlink") {
 	name = "symlink"
 	oldpath = user_string($oldname)
 	newpath = user_string($newname)
-	argstr = sprintf("\"%s\", \"%s\"", oldpath, newpath)
+	argstr = sprintf("%s, %s", user_string_quoted($oldname),
+			user_string_quoted($newname))
 }
 probe syscall.symlink.return = kernel.function("sys_symlink").return {
 	name = "symlink"
@@ -2129,7 +2138,7 @@ probe syscall.truncate = kernel.function("sys_truncate")?, kernel.function("sys_
 	path_uaddr = $path
 	path = user_string($path)
 	length = $length
-	argstr = sprintf("\"%s\", %d", path, $length)
+	argstr = sprintf("%s, %d", user_string_quoted($path), $length)
 }
 probe syscall.truncate.return = kernel.function("sys_truncate").return ?, kernel.function("sys_truncate64").return ? {
 	name = "truncate"
@@ -2144,7 +2153,7 @@ probe syscall.umount = kernel.function("sys_umount") {
 	target = user_string($name)
 	flags = $flags
 	flags_str = _umountflags_str($flags)
-	argstr = sprintf("\"%s\", %s", target, flags_str)
+	argstr = sprintf("%s, %s", user_string_quoted($name), flags_str)
 }
 probe syscall.umount.return = kernel.function("sys_umount").return {
 	name = "umount"
@@ -2159,7 +2168,7 @@ probe syscall.uname = kernel.function("sys_uname") {
 	name = "uname"
 	name_uaddr = $name
 	name_str = user_string($name)
-	argstr = name_str
+	argstr = user_string_quoted($name)
 }
 probe syscall.uname.return = kernel.function("sys_uname").return {
 	name = "uname"
@@ -2172,7 +2181,7 @@ probe syscall.unlink = kernel.function("sys_unlink") {
 	name = "unlink"
 	pathname_uaddr = $pathname
 	pathname = user_string($pathname)
-	argstr = sprintf("\"%s\"",pathname)
+	argstr = user_string_quoted($pathname)
 }
 probe syscall.unlink.return = kernel.function("sys_unlink").return {
 	name = "unlink"
@@ -2187,7 +2196,7 @@ probe syscall.uselib = kernel.function("sys_uselib") {
 	name = "uselib"
 	library_uaddr = $library
 	library = user_string($library)
-	argstr = library
+	argstr = user_string_quoted($library)
 }
 probe syscall.uselib.return = kernel.function("sys_uselib").return {
 	name = "uselib"
@@ -2216,7 +2225,7 @@ probe syscall.utime = kernel.function("sys_utime") {
 	filename = user_string($filename)
 	buf_uaddr = $times
 	buf_str = _struct_utimbuf_u($times)
-	argstr = sprintf("\"%s\", [%s]", filename, buf_str)
+	argstr = sprintf("%s, [%s]", user_string_quoted($filename), buf_str)
 }
 probe syscall.utime.return = kernel.function("sys_utime").return {
 	name = "utime"
@@ -2233,7 +2242,8 @@ probe syscall.utimes = kernel.function("sys_utimes") {
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	tvp_uaddr = $utimes
-	argstr = sprintf("%s, %s", filename,  _struct_timeval_u($utimes))
+	argstr = sprintf("%s, %s", user_string_quoted($filename),  
+		_struct_timeval_u($utimes))
 }
 probe syscall.utimes.return = kernel.function("sys_utimes").return {
 	name = "utimes"
