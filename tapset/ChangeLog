@@ -1,3 +1,9 @@
+2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* memory.stp: add addr_to_node() from Jose R. Santos
+	(jrs@us.ibm.com)
+	* syscalls.stp: typo for syscall.lstat
+
 2006-06-30  Martin Hunt  <hunt@redhat.com>
 
 	* conversions.stp (user_string): Don't generate errors

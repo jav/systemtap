@@ -250,6 +250,11 @@ system (cmd:string)
 Runs a command on the system. The command will run in the background
 when the current probe completes.
 
+.SS NUMA
+.TP
+addr_to_node:long(addr:long)
+Return which node the given address belongs to in a NUMA system.
+
 .SH FILES
 .nh
 .IR /usr/share/systemtap/tapset

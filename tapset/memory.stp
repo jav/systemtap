@@ -14,3 +14,19 @@ probe pagefault
 	write_access = $write_access
 	address =  $address
 }
+
+/* Return which node the given address belongs to in a NUMA system */
+function addr_to_node:long(addr:long)  /* pure */ 
+%{
+        int nid;
+        int pfn = __pa(THIS->addr) >> PAGE_SHIFT;
+        for_each_online_node(nid)
+                if ( node_start_pfn(nid) <= pfn &&
+                        pfn < (node_start_pfn(nid) +
+                        NODE_DATA(nid)->node_spanned_pages) )
+                {
+			THIS->__retvalue = nid;
+                        break;
+                }
+
+%}
