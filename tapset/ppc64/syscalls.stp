@@ -333,7 +333,7 @@ probe syscall.compat_sys_statfs = kernel.function("compat_sys_statfs") {
 	argstr = sprintf("%s, [%p]", path, buf_uaddr)
 }
 probe syscall.compat_sys_statfs.return =
-	kernel.function("statfs").return {
+	kernel.function("compat_sys_statfs").return {
 	name = "compat_sys_statfs"
 	retstr = returnstr(1)
 }
@@ -355,16 +355,16 @@ probe syscall.compat_sys_fstatfs.return =
 }
 # lstat ______________________________________________________
 # long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)
-probe syscall.lstat = kernel.function("sys_lstat") ?,
+probe syscall.lstat64 = 
 		kernel.function("sys_lstat64") ? {
-	name = "lstat"
+	name = "lstat64"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
 	argstr = sprintf("%s, [%p]", file_name, buf_uaddr)
 }
-probe syscall.lstat.return = kernel.function("sys_lstat").return ?,
+probe syscall.lstat64.return = 
 		kernel.function("sys_lstat64").return ? {
-	name = "lstat"
+	name = "lstat64"
 	retstr = returnstr(1)
 }
 
@@ -1002,7 +1002,7 @@ probe syscall.acct.return = kernel.function("sys_acct").return ? {
 
 #sys32_open _______________________________________________________
 # asmlinkage long sys32_open(const char * filename, int flags, int mode)
-probe syscall.sys32_open = kernel.function("sys32_open") {
+probe syscall.sys32_open = kernel.function("sys32_open") ? {
 	name = "open"
 	filename_uaddr = $filename
 	filename = user_string($filename)
@@ -1013,7 +1013,7 @@ probe syscall.sys32_open = kernel.function("sys32_open") {
 	else
 	argstr = sprintf("[0x%x]:\"%s\", %s", filename_uaddr, filename, _sys_open_flag_str(flags))
 }
-probe syscall.sys32_open.return = kernel.function("sys32_open").return {
+probe syscall.sys32_open.return = kernel.function("sys32_open").return ? {
 	name = "open"
 	retstr = returnstr(1)
 }

@@ -1,5 +1,12 @@
 2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
 	
+	* syscalls.stp, syscalls2.stp, ppc64/syscalls.stp: 
+	fix syscall.lstat, syscall.lstat64, syscall.newlstat. 
+	* ppc64/syscalls.stp: fix syscall.compat_sys_statfs and 
+	syscall.sys32_open
+
+2006-07-04  Li Guanglei <guanglei@cn.ibm.com>
+	
 	* memory.stp: add addr_to_node() from Jose R. Santos
 	(jrs@us.ibm.com)
 	* syscalls.stp: typo for syscall.lstat

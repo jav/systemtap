@@ -41,14 +41,16 @@ probe syscall.nanosleep.return = kernel.function("sys_nanosleep").return {
 # long sys_newlstat(char __user * filename,
 #		  struct stat __user * statbuf)
 #
-probe syscall.newlstat = kernel.function("sys_newlstat") {
-	name = "lstat"
+probe syscall.newlstat = kernel.function("sys_newlstat") ?,
+	kernel.function("compat_sys_newlstat") ?  {
+	name = "newlstat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
 	argstr = sprintf("\"%s\", [%p]", pathname, buf_uaddr)  
 }
-probe syscall.newlstat.return = kernel.function("sys_newlstat").return {
-	name = "lstat"
+probe syscall.newlstat.return = kernel.function("sys_newlstat").return ?,
+	kernel.function("compat_sys_newlstat").return ?  {
+	name = "newlstat"
 	retstr = returnstr(1)
 }
 # newstat ____________________________________________________
