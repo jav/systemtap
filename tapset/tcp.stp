@@ -21,9 +21,13 @@
 function tcp_get_info_rto:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
+	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+	THIS->__retvalue = (int64_t) jiffies_to_usecs(tp->rto);
+#else
 	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
-
 	THIS->__retvalue = (int64_t) jiffies_to_usecs(icsk->icsk_rto);
+#endif
 %}
 
 //Get congestion window segment size. Initial value of congestion window size 
@@ -33,8 +37,11 @@ function tcp_get_info_rto:long(sock:long)
 function tcp_get_info_snd_cwnd:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
+	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+#else
 	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
-
+#endif
 	THIS->__retvalue = (int64_t) tp->snd_cwnd;
 %}
 
@@ -69,7 +76,11 @@ function tcp_ts_get_info_state:long(sock:long)
 function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
+	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+#else
 	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
+#endif
 
 	THIS->__retvalue = (int64_t) tp->snd_ssthresh;
 %}
@@ -79,9 +90,13 @@ function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 function tcp_ts_get_info_rcv_mss:long(sock:long)
 %{
 	unsigned long ptr = (unsigned long) THIS->sock;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
+	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+	THIS->__retvalue = (int64_t) tp->ack.rcv_mss;
+#else
 	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
-
 	THIS->__retvalue = (int64_t) icsk->icsk_ack.rcv_mss;
+#endif
 %}
 
 // probe tcp.sendmsg
@@ -111,7 +126,8 @@ probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 //  size         - number of bytes sent 
 //
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
-	size = $return 
+#	size = $return 
+	size = retval()
 }
 
 // probe tcp.recvmsg
@@ -141,7 +157,8 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 //  size         - number of bytes received
 //
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
-	size = $return 
+#	size = $return
+	size = retval() 
 }
 
 // probe tcp.disconnect
