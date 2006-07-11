@@ -126,8 +126,7 @@ probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 //  size         - number of bytes sent 
 //
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
-#	size = $return 
-	size = retval()
+	size = $return 
 }
 
 // probe tcp.recvmsg
@@ -157,8 +156,7 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 //  size         - number of bytes received
 //
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
-#	size = $return
-	size = retval() 
+	size = $return
 }
 
 // probe tcp.disconnect
