@@ -125,11 +125,11 @@ function register_sys_events()
 	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_RETURN, "STRING", "syscall")
 		
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_SNAPSHOT,
-		"INT32:STRING", "pid:pname")
+		"INT32:INT32:INT32:STRING", "tid:pid:ppid:pname")
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_EXECVE,
-		"STRING", "pname")
+		"INT32:STRING", "pid:pname")
 	register_sys_event(GROUP_PROCESS, HOOKID_PROCESS_FORK,
-		"INT32", "pid")
+		"INT32:INT32:INT32", "tid:pid:ppid")
 
 	register_sys_event(GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ,
 		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")

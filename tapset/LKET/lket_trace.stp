@@ -111,7 +111,7 @@ void fmt_change(char *oldfmt, char *newfmt, int newfmt_start)
 	fmt_change(fmt, new_sysfmt, NEW_SYSFMT_START); \
 	_stp_printf(new_sysfmt, \
 		(_FMT_)GroupID, (_FMT_)hookID, (_FMT_)tv.tv_sec, (_FMT_)tv.tv_usec,\
-		(_FMT_)current->tgid, (_FMT_)current->parent->pid,\
+		(_FMT_)current->tgid, (_FMT_)current->parent->tgid,\
 		(_FMT_)current->pid, (_FMT_)current->thread_info->cpu, args);\
 } while(0)
 

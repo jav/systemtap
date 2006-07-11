@@ -45,7 +45,7 @@ The data common(i.e.
 in the following subsecions) to all event hooks is:
 .RS
 
-.B usec(INT64),(pid<<32 | groupID<<24 | hookID<<16 | cpu_id<<8)(INT64)
+.B usec(INT64),(tid<<32 | groupID<<24 | hookID<<16 | cpu_id<<8)(INT64)
 .RE
 
 Each event hook group is a collection of those hooks that have
@@ -109,7 +109,7 @@ by LKET silently to take a snapshot of all running processes.
 
 Data format is:
 
-.I common_data, process_id(INT32), process_name(STRING)
+.I common_data, tid(INT32), pid(INT32), ppid(INT32), process_name(STRING)
 
 .P
 .TP
@@ -118,14 +118,14 @@ Trace fork of processes
 
 Data format is:
 
-.I common_data, new_process_id(INT32)
+.I common_data, new_tid(INT32), new_pid(INT32), ppid(INT32)
 .TP
 .B addevent.process.execve (HOOKID=3)
 Trace execve of new processes
 
 Data format is:
 
-.I common_data, new_process_name(STRING)
+.I common_data, pid(INT32), new_process_name(STRING)
 
 .SS IO SCHEDULER ACTIVITIES (GROUPID=4)
 You could use

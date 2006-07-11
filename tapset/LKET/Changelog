@@ -1,3 +1,11 @@
+2006-07-11  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* process.stp, register_event.stp: changes to
+	addevent.process to generate adequate info
+	of process relationships
+	* lket_trace.stp: use current->parent->tgid as the 
+	parent process id for ascii tracing
+	
 2006-06-29  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* lket_trace.stp: 

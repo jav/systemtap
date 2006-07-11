@@ -105,16 +105,20 @@ int main(int argc, char *argv[])
 		// j is the next
 		if(min) {
 
-			if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
-				(HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_SNAPSHOT 
-				|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE))
-			{
-				register_appname(j, infps[j], &hdrs[j]);
-			} else if(HDR_GroupID(&hdrs[j])==_GROUP_REGEVT)  {
+			if(HDR_GroupID(&hdrs[j])==_GROUP_REGEVT)  {
 				register_events(HDR_HookID(&hdrs[j]), infps[j], 
 					hdrs[j].sys_size);
 			} else  {
+
 				print_pkt_header(outfp, &hdrs[j]);
+
+				if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
+					(HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_SNAPSHOT 
+					|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE))
+				{
+					register_appname(j, infps[j], &hdrs[j]);
+				}
+
 				ascii_print(hdrs[j], infps[j], outfp, EVT_SYS);
 				if(hdrs[j].total_size != hdrs[j].sys_size)
 					ascii_print(hdrs[j], infps[j], outfp, EVT_USER);
@@ -163,15 +167,20 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 	int count;
 	int len;
 	int c;
+	int location;
 	len=0;
 	count=0;
 
 	appname = (char *)malloc(1024);
 
+	location = ftell(fp);
+
 	if(HDR_HookID(phdr) ==1 )  {  /* process_snapshot */
-		len = fread(&pid, 1, 4, fp);
+		fseek(fp, 4, SEEK_CUR); /* skip tid */
+		fread(&pid, 1, 4, fp); /* read pid */
+		fseek(fp, 4, SEEK_CUR); /* skip ppid */
 		c = fgetc_unlocked(fp);
-		++len;
+		len+=13;
 		while (c && len < 1024) {
 			appname[count++] = (char)c;	
 			c = fgetc_unlocked(fp);
@@ -180,10 +189,10 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		appname[count]='\0';
 		//fseek(fp, 0-len, SEEK_CUR);
 	} else if (HDR_HookID(phdr) == 2)  { /* process.execve */
-		pid = HDR_PID(phdr);
+		fread(&pid, 1, 4, fp); /* read pid */
 
 		c = fgetc_unlocked(fp);
-		++len;
+		len+=5;
 		while (c && len < 1024) {
 			appname[count++] = (char)c;	
 			c = fgetc_unlocked(fp);
@@ -195,6 +204,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		free(appname);
 		return;
 	}
+	fseek(fp, location, SEEK_SET);
 	g_tree_insert(appNameTree, (gpointer)((long)pid), (gpointer)appname);
 }
 
