@@ -212,22 +212,27 @@ char * _stp_string_ptr (String str)
 	  }								\
   })
 
+#include "loc2c-runtime.h"
+
 /** Return a printable text string.
  *
  * Takes a string, and any ASCII characters that are not printable are
  * replaced by the corresponding escape sequence in the returned
  * string.
  *
- * @param out Output string pointer
+ * @param outstr Output string pointer
  * @param in Input string pointer
  * @param len Maximum length of string to return not including terminating 0.
  * 0 means MAXSTRINGLEN.
  * @param quoted Put double quotes around the string. If input string is truncated
  * in will have "..." after the second quote.
+ * @param user Set this to indicate the input string pointer is a userspace pointer.
  */
-void _stp_text_str(char *out, char *in, int len, int quoted)
+void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 {
 	const int length = len;
+	char c, *out = outstr;
+
 	if (len == 0 || len > STP_STRING_SIZE-1)
 		len = STP_STRING_SIZE-1;
 	if (quoted) {
@@ -235,12 +240,17 @@ void _stp_text_str(char *out, char *in, int len, int quoted)
 		*out++ = '\"';
 	}
 
-	while (*in && len > 0) {
+	if (user)
+		c = deref(1,(char __user *)in);
+	else
+		c = *in;
+
+	while (c && len > 0) {
 		int num = 1;
-		if (isprint(*in) && isascii(*in))
-			*out++ = *in;
+		if (isprint(c) && isascii(c))
+			*out++ = c;
 		else {
-			switch (*in) {
+			switch (c) {
 			case '\a':
 			case '\b':
 			case '\f':
@@ -251,9 +261,9 @@ void _stp_text_str(char *out, char *in, int len, int quoted)
 				num = 2;
 				break;
 			default:
-				if (*in > 077)
+				if (c > 077)
 					num = 4;
-				else if (*in > 07)
+				else if (c > 07)
 					num = 3;
 				else
 					num = 2;
@@ -264,7 +274,7 @@ void _stp_text_str(char *out, char *in, int len, int quoted)
 				break;
 
 			*out++ = '\\';
-			switch (*in) {
+			switch (c) {
 			case '\a':
 				*out++ = 'a';
 				break;
@@ -287,20 +297,24 @@ void _stp_text_str(char *out, char *in, int len, int quoted)
 				*out++ = 'v';
 				break;
 			default:                  /* output octal representation */
-				if (*in > 077)
-					*out++ = to_oct_digit(*in >> 6);
-				if (*in > 07)
-					*out++ = to_oct_digit((*in & 070) >> 3);
-				*out++ = to_oct_digit(*in & 07);
+				if (c > 077)
+					*out++ = to_oct_digit(c >> 6);
+				if (c > 07)
+					*out++ = to_oct_digit((c & 070) >> 3);
+				*out++ = to_oct_digit(c & 07);
 				break;
 			}
 		}
 		len -= num;
 		in++;
+		if (user)
+			c = deref(1,(char __user *)in);
+		else
+			c = *in;
 	}
 
 	if (quoted) {
-		if (*in) {
+		if (c) {
 			out = out - 3 + len;
 			*out++ = '\"';
 			*out++ = '.';
@@ -310,6 +324,10 @@ void _stp_text_str(char *out, char *in, int len, int quoted)
 			*out++ = '\"';
 	}
 	*out = '\0';
+	return;
+deref_fault:
+	strlcpy (outstr, "<unknown>", len);
 }
+
 /** @} */
 #endif /* _STRING_C_ */

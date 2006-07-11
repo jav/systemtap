@@ -124,7 +124,7 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
  * 
  */
 
-void _stp_string_from_user (String str,  const char __user *src, long count)
+long _stp_string_from_user (String str,  const char __user *src, long count)
 {
 	long res = -EFAULT;
 	if (count > STP_STRING_SIZE - str->len - 1)
@@ -136,6 +136,7 @@ void _stp_string_from_user (String str,  const char __user *src, long count)
 			str->buf[str->len] = '\0';
 		}
 	}
+	return res;
 }
 
 /** Copy a block of data from user space.
