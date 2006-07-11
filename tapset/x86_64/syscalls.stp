@@ -127,12 +127,12 @@ probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 # time64 _____________________________________________________
 # long sys_time64(long __user * tloc)
 #
-probe syscall.time64 = kernel.function("sys_time64") {
+probe syscall.time64 = kernel.function("sys_time64") ? {
 	name = "time64"
 	t_uaddr = $tloc
 	argstr = sprintf("%p", $tloc)
 }
-probe syscall.time64.return = kernel.function("sys_time64").return {
+probe syscall.time64.return = kernel.function("sys_time64").return ? {
 	name = "time64"
 	retstr = returnstr(1)
 }

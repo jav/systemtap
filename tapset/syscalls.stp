@@ -503,6 +503,7 @@ probe syscall.exit_group = kernel.function("sys_exit_group") {
 
 probe syscall.exit_group.return = end {}
 
+%(arch != "x86_64" %?
 # fadvise64 __________________________________________________
 # long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
 #
@@ -534,6 +535,41 @@ probe syscall.fadvise64_64.return =  kernel.function("sys_fadvise64_64").return 
 	name = "fadvise64_64"
 	retstr = returnstr(1)
 }
+%:
+# FIXME x86_64 has problems resolving parameters
+
+# fadvise64 __________________________________________________
+# long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
+#
+probe syscall.fadvise64 = kernel.function("sys_fadvise64") {
+	name = "fadvise64"
+	fs = 0
+	offset = 0
+	len = 0
+	advice = 0
+	argstr = ""
+}
+probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return {
+	name = "fadvise64"
+	retstr = returnstr(1)
+}
+
+# fadvise64_64 _______________________________________________
+# long sys_fadvise64_64(int fd, loff_t offset, loff_t len,  int advice)
+#
+probe syscall.fadvise64_64 = kernel.function("sys_fadvise64_64") {
+	name = "fadvise64_64"
+	fs = 0
+	offset = 0
+	len = 0
+	advice = 0
+	argstr = ""
+}
+probe syscall.fadvise64_64.return =  kernel.function("sys_fadvise64_64").return {
+	name = "fadvise64_64"
+	retstr = returnstr(1)
+}
+%)
 
 # fchdir _____________________________________________________
 # long sys_fchdir(unsigned int fd)
