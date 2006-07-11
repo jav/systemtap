@@ -55,12 +55,12 @@ function isinstr:long(s1:string,s2:string) %{ /* pure */
  */
 function text_str:string(input:string)
 %{ /* pure */
-	_stp_text_str(THIS->__retvalue, THIS->input, 0, 0);
+	_stp_text_str(THIS->__retvalue, THIS->input, 0, 0, 0);
 %}
 
 function text_strn:string(input:string, len:long, quoted:long)
 %{ /* pure */
-	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted);
+	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted, 0);
 %}
 
 

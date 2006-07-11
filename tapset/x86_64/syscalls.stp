@@ -4,7 +4,7 @@ probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
 	name = "getgroups16"
 	size = $gidsetsize
 	list_uaddr = $grouplist
-	argstr = sprintf("%d, [%p]", size, list_uaddr)
+	argstr = sprintf("%d, %p", size, list_uaddr)
 }
 probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	name = "getgroups16"
@@ -29,37 +29,6 @@ probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
 }
 
 
-# acct _______________________________________________________
-# long sys_acct(const char __user *name)
-probe syscall.acct = kernel.function("sys_acct") {
-	name = "acct"
-        filename = user_string($name)
-	argstr = filename
-}
-probe syscall.acct.return = kernel.function("sys_acct").return {
-	name = "acct"
-	retstr = returnstr(1)
-}
-
-# add_key ____________________________________________________
-# long sys_add_key(const char __user *_type,
-#             const char __user *_description,
-#             const void __user *_payload,
-#             size_t plen,
-#             key_serial_t ringid)
-#probe syscall.add_key = kernel.function("sys_add_key") {
-#	name = "add_key"
-#	type_uaddr = $_type
-#	description_auddr = $_description
-#	payload_uaddr = $_payload
-#	plen = $plen
-#	ringid = $ringid
-#	argstr = "add_key"
-#}
-#probe syscall.add_key.return = kernel.function("sys_add_key").return {
-#	name = "add_key"
-#	retstr = returnstr(1)
-#}
 
 # quotactl ___________________________________________________
 #
@@ -76,7 +45,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl") {
 	special_str = user_string($special)
 	id = $id
 	addr_uaddr = $addr
-	argstr = sprintf("%s, %s, %p, [%p]", cmd_str, special_str,
+	argstr = sprintf("%s, %s, %p, %p", cmd_str, special_str,
 				id, addr_uaddr)
 }
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
@@ -97,7 +66,7 @@ probe syscall.request_key = kernel.function("sys_request_key") {
 	description_uaddr = $_description
 	callout_info_uaddr = $_callout_info
 	destringid = $destringid
-	argstr = sprintf("[%p], [%p], [%p], %p", type_uaddr,
+	argstr = sprintf("%p, %p, %p, %p", type_uaddr,
 			description_uaddr, callout_info_uaddr, destringid)
 }
 probe syscall.request_key.return = kernel.function("sys_request_key").return {
@@ -105,209 +74,66 @@ probe syscall.request_key.return = kernel.function("sys_request_key").return {
 	retstr = returnstr(1)
 }
 
-#
-# OLD STUFF here, need more works
-#
+
 # arch_prctl _________________________________________________
-/*
- * long sys_arch_prctl(int code,
- *                     unsigned long addr)
- */
-probe kernel.syscall.arch_prctl =
-	kernel.function("sys_arch_prctl") {
+# long sys_arch_prctl(int code, unsigned long addr)
+#
+# NOTE: x86_64 only.
+#
+probe syscall.arch_prctl = kernel.function("sys_arch_prctl") {
 	name = "arch_prctl"
 	code = $code
 	addr = $addr
 	argstr = sprintf("%d, %p", $code, $addr)
 }
-probe kernel.syscall.arch_prctl.return =
-   kernel.function("sys_arch_prctl").return {
+probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return {
 	name = "arch_prctl"
 	retstr = returnstr(1)
 }
-# get_mempolicy ______________________________________________
-/*
- * asmlinkage long
- * sys_get_mempolicy(int __user *policy,
- *                   unsigned long __user *nmask,
- *                   unsigned long maxnode,
- *                   unsigned long addr,
- *                   unsigned long flags)
- */
-probe kernel.syscall.get_mempolicy =
-	kernel.function("sys_get_mempolicy") {
-	name = "get_mempolicy"
-	policy_uaddr = $policy
-	nmask_uaddr = $nmask
-	maxnode = $maxnode
-	addr = $addr
-	flags = $flags
-	argstr = sprintf("[%p], [%p], %d, %p, %d", policy_uaddr,
-			nmask_uaddr, $maxnode, $addr, $flags)
-}
-probe kernel.syscall.get_mempolicy.return =
-	kernel.function("sys_get_mempolicy").return {
-	name = "get_mempolicy"
-	retstr = returnstr(1)
-}
+
 # iopl _______________________________________________________
-/*
- * asmlinkage long
- * sys_iopl(unsigned long unused)
- */
-probe kernel.syscall.iopl = kernel.function("sys_iopl") {
+# long sys_iopl(unsigned int level, struct pt_regs *regs);
+# NOTE. This function is only in i386 and x86_64 and its args vary
+# between those two archs.
+#
+probe syscall.iopl = kernel.function("sys_iopl") {
 	name = "iopl"
 	level = $level
 	argstr = sprint($level)	
 }
-probe kernel.syscall.iopl.return = kernel.function("sys_iopl").return {
+probe syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"
 	retstr = returnstr(1)
 }
-# mbind ______________________________________________________
-/*
- * asmlinkage long
- * sys_mbind(unsigned long start,
- *           unsigned long len,
- *           unsigned long mode,
- *           unsigned long __user *nmask,
- *           unsigned long maxnode,
- *           unsigned flags)
- */
-probe kernel.syscall.mbind = kernel.function("sys_mbind") {
-	name = "mbind"
-	start = $start
-	len = $len
-	mode = $mode
-	nmask_uaddr = $nmask
-	maxnode = $maxnode
-	flags = $flags
-	argstr = sprintf("%d, %d, %d, [%p], %d, %d", $start, $len, $mode,
-				nmask_uaddr, $maxnode, $flags)
-}
-probe kernel.syscall.mbind.return = kernel.function("sys_mbind").return {
-	name = "mbind"
-	retstr = returnstr(1)
-}
 
-# rt_sigreturn _______________________________________________
-/*
- * asmlinkage int
- * sys_rt_sigreturn(unsigned long __unused)
- */
-probe kernel.syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
-	name = "rt_sigreturn"
-	regs = $regs
-	argstr = ""
-}
-probe kernel.syscall.rt_sigreturn.return =
-	kernel.function("sys_rt_sigreturn").return {
-	name = "rt_sigreturn"
-	retstr = returnstr(1)
-}
-# sched_setaffinity __________________________________________
-/*
- * asmlinkage long
- * sys_sched_setaffinity(pid_t pid,
- *                       unsigned int len,
- *                       unsigned long __user *user_mask_ptr)
- */
-probe kernel.syscall.sched_setaffinity =
-	kernel.function("sys_sched_setaffinity") {
-	name = "sched_setaffinity"
-	pid = $pid
-	len = $len
-	/*
-	 * doesnt like $len on x86_64 ????
-	 */
-	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, %d, [%p]", $pid, $len, mask_uaddr)
-}
-probe kernel.syscall.sched_setaffinity.return =
-	kernel.function("sys_sched_setaffinity").return {
-	name = "sched_setaffinity"
-	retstr = returnstr(1)
-}
-# set_mempolicy ______________________________________________
-/*
- * asmlinkage long
- * sys_set_mempolicy(int mode,
- *                   unsigned long __user *nmask,
- *                   unsigned long maxnode)
- */
-probe kernel.syscall.set_mempolicy = kernel.function("sys_set_mempolicy") {
-	name = "set_mempolicy"
-	mode = $mode
-	nmask_uaddr = $nmask
-	maxnode = $maxnode
-	argstr = sprintf("%d, [%p], %d", $mode, nmask_uaddr, $maxnode)
-}
-probe kernel.syscall.set_mempolicy.return =
-   kernel.function("sys_set_mempolicy").return {
-	name = "set_mempolicy"
-	retstr = returnstr(1)
-}
 # sigaltstack ________________________________________________
-/*
- * asmlinkage int
- * sys_sigaltstack(unsigned long ebx)
- */
-probe kernel.syscall.sigaltstack = kernel.function("sys_sigaltstack") {
+# long sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss,
+#		struct pt_regs *regs)
+#
+# NOTE: args vary between archs.
+#
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack") {
 	name = "sigaltstack"
 	uss_uaddr = $uss
 	uoss_uaddr = $uoss
 	regs_uaddr = $regs
-	argstr = sprintf("[%p], [%p]", uss_uaddr, uoss_uaddr)
+	argstr = sprintf("%p, %p", $uss, $uoss)
 }
-probe kernel.syscall.sigaltstack.return =
-	kernel.function("sys_sigaltstack").return {
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 	name = "sigaltstack"
 	retstr = returnstr(1)
 }
+
 # time64 _____________________________________________________
-/*
- * asmlinkage long
- * sys_time64(long __user * tloc)
- */
-probe kernel.syscall.time64 = kernel.function("sys_time64") {
+# long sys_time64(long __user * tloc)
+#
+probe syscall.time64 = kernel.function("sys_time64") {
 	name = "time64"
 	t_uaddr = $tloc
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", $tloc)
 }
-probe kernel.syscall.time64.return = kernel.function("sys_time64").return {
+probe syscall.time64.return = kernel.function("sys_time64").return {
 	name = "time64"
 	retstr = returnstr(1)
-}
-# tux ________________________________________________________
-/*
- * asmlinkage long
- * sys_tux (unsigned int action,
- *          user_req_t *u_info)
- */
-#probe kernel.syscall.tux = kernel.function("sys_tux") {
-#	name = "tux"
-#	action = $action
-#	u_info_uaddr = $u_info
-#	argstr = sprintf("%d, [%p]", $action, u_info_uaddr)
-#}
-#probe kernel.syscall.tux.return = kernel.function("sys_tux").return {
-#	name = "tux"
-#	retstr = returnstr(1)
-#}
-
-# umask ______________________________________________________
-/*
- * asmlinkage long
- * sys_umask(int mask)
- */
-probe syscall.umask = kernel.function("sys_umask") {
-	name = "umask"
-	mask = $mask
-	argstr = sprintf("%#o", $mask)
-}
-probe syscall.umask.return =
-	kernel.function("sys_umask").return {
-	name = "umask"
-	retstr = returnstr(3)
 }
 

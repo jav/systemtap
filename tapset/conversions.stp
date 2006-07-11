@@ -51,14 +51,8 @@ function user_string_warn:string (addr:long) %{ /* pure */
 %}
 
 function user_string_quoted:string (addr:long) %{ /* pure */
-  if (THIS->addr == 0)
+  if (THIS->addr == 0)	
 	strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-  else {
-	*THIS->__retvalue = '\"';
-	if (_stp_strncpy_from_user (THIS->__retvalue+1, 
-		(const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN-2) < 0)
-			strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
-	else
-		strlcat(THIS->__retvalue, "\"", MAXSTRINGLEN);
-  }
+  else
+	_stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr, MAXSTRINGLEN, 1, 1);
 %}

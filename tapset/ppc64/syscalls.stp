@@ -601,8 +601,7 @@ probe syscall.compat_sys_select.return =
 }
 # compat_rt_sigaction _______________________________________________
 #
-# asmlinkage long
-# compat_sys_rt_sigaction(int sig,
+# long compat_sys_rt_sigaction(int sig,
 #                       const struct sigaction __user *act,
 #                       struct sigaction __user *oact,
 #                       size_t sigsetsize)
@@ -614,8 +613,7 @@ probe syscall.compat_rt_sigaction = kernel.function("compat_sys_rt_sigaction")?,
 	act_uaddr = $act
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, [%p], [%p], %p", _signal_name($sig),
-	act_uaddr, oact_uaddr, sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
 }
 probe syscall.compat_rt_sigaction.return =
 	kernel.function("compat_sys_rt_sigaction").return ? ,
@@ -1266,8 +1264,7 @@ probe syscall.sys32_sigaction = kernel.function("sys32_sigaction") ? {
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
-	argstr = sprintf("%s, [%p], [%p]", _signal_name($sig),
-			act_uaddr, oact_uaddr)
+	argstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
 }
 probe syscall.sys32_sigaction.return =
 	kernel.function("sys32_sigaction").return ? {
@@ -1489,8 +1486,7 @@ probe syscall.sys32_rt_sigaction = kernel.function("sys32_rt_sigaction") ? {
 	act_uaddr = $act
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, [%p], [%p], %p", _signal_name($sig),
-				act_uaddr, oact_uaddr, sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
 }
 probe syscall.sys32_rt_sigaction.return =
 	kernel.function("sys32_rt_sigaction").return ? {
@@ -1509,8 +1505,8 @@ probe syscall.sys32_rt_sigprocmask = kernel.function("sys32_rt_sigprocmask") ? {
 	set_uaddr = $set
 	oset_uaddr = $oset
 	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, [%p], [%p], %p", how_str, set_uaddr,
-				oset_uaddr, sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", how_str, $set,
+				$oset, $sigsetsize)
 }
 probe syscall.sys32_rt_sigprocmask.return =
 	kernel.function("sys32_rt_sigprocmask").return ? {

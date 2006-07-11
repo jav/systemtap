@@ -531,7 +531,7 @@ function __get_argv:string(a:long)
 		if (vstr == NULL)
 			break;
 
-		rc = _stp_strncpy_from_user(buf, vstr, 80);
+		rc = _stp_strncpy_from_user(buf, vstr, 79);
 		if (rc <= 0)
 			break;
 
@@ -584,8 +584,8 @@ function __string:string (a:long)
  * Return a integer member value of struct
  * timezone user  space pointer  parameter
  * CALLERS:
- *    kernel.syscall.gettimeofday
- *    kernel.syscall.settimeofday
+ *    syscall.gettimeofday
+ *    syscall.settimeofday
  */
 /*
 function __uget_tz_m:long(u_addr:long,member:long)
@@ -606,7 +606,7 @@ function __uget_tz_m:long(u_addr:long,member:long)
  * Return integer member value of struct
  * timex user  space  pointer  parameter
  * CALLERS:
- *    kernel.syscall.adjtimex
+ *    syscall.adjtimex
  */
 /*
 function __uget_timex_m:long(u_addr:long,member:long)
@@ -652,7 +652,7 @@ function __uget_timex_m:long(u_addr:long,member:long)
  * Return the clock_t member  value of the
  * struct tms user space pointer parameter
  * CALLERS:
- *    kernel.syscall.times
+ *    syscall.times
  */
 /*
 %{ #include <linux/times.h> %}
@@ -681,7 +681,7 @@ function __uget_tms_m:long(u_addr:long,member:long)
  * Return a time_t / long  member  value of the
  * struct timespec user space pointer parameter
  * CALLERS:
- *    kernel.syscall.nanosleep
+ *    syscall.nanosleep
  */
 /*
 function __uget_ts_m:long(u_addr:long,member:long)
@@ -704,7 +704,7 @@ function __uget_ts_m:long(u_addr:long,member:long)
  * of the struct timex.mode member of adjtimex
  * consult `man adjtimex` for more information
  * CALLERS:
- *    kernel.syscall.adjtimex
+ *    syscall.adjtimex
  */
 function _adjtx_mode_str(f) {
    if((f & 32769) == 32769) bs="ADJ_OFFSET_SINGLESHOT|".bs
@@ -723,8 +723,8 @@ function _adjtx_mode_str(f) {
  * of the how argument given in *sigprocmask
  * consult  `man sigprocmask`  for more info
  * CALLERS:
- *    kernel.syscall.sigprocmask
- *    kernel.syscall.rt_sigprocmask
+ *    syscall.sigprocmask
+ *    syscall.rt_sigprocmask
  */
 function _sigprocmask_how_str(how) {
    if(how==0) return "SIG_BLOCK"
@@ -738,8 +738,8 @@ function _sigprocmask_how_str(how) {
  * of the which argument  given to setitimer
  * consult  `man setitimer`  for  more  info
  * CALLERS:
- *    kernel.syscall.getitimer
- *    kernel.syscall.setitimer
+ *    syscall.getitimer
+ *    syscall.setitimer
  */
 function _itimer_which_str(which) {
    if(which==0) return "ITIMER_REAL"
@@ -753,11 +753,11 @@ function _itimer_which_str(which) {
  * of the clockid argument  given to create_timer
  * consult  `man create_timer`  for  more  info
  * CALLERS:
- *    kernel.syscall.timer_create
- *    kernel.syscall.clock_settime
- *    kernel.syscall.clock_gettime
- *    kernel.syscall.clock_getres
- *    kernel.syscall.clock_nanosleep
+ *    syscall.timer_create
+ *    syscall.clock_settime
+ *    syscall.clock_gettime
+ *    syscall.clock_getres
+ *    syscall.clock_nanosleep
  */
 function _get_wc_str(wc) {
    if(wc==0) return "CLOCK_REALTIME"
@@ -1141,6 +1141,15 @@ function _madvice_advice_str(behavior) {
    if(behavior==0x00000002) return "MADV_SEQUENTIAL"
    if(behavior==0x00000003) return "MADV_WILLNEED"
    if(behavior==0x00000004) return "MADV_DONTNEED"
+   return ""
+}
+
+function _fadvice_advice_str(behavior) {
+   if(behavior==0x00000000) return "FADV_NORMAL"
+   if(behavior==0x00000001) return "FADV_RANDOM"
+   if(behavior==0x00000002) return "FADV_SEQUENTIAL"
+   if(behavior==0x00000003) return "FADV_WILLNEED"
+   if(behavior==0x00000004) return "FADV_DONTNEED"
    return ""
 }
 

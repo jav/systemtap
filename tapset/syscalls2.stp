@@ -45,7 +45,7 @@ probe syscall.newlstat = kernel.function("sys_newlstat") ?,
 	name = "newlstat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", 
+	argstr = sprintf("%s, %p", 
 		user_string_quoted($filename), buf_uaddr)  
 }
 probe syscall.newlstat.return = kernel.function("sys_newlstat").return ?,
@@ -62,7 +62,7 @@ probe syscall.newstat = kernel.function("sys_newstat") {
 	name = "stat"
 	pathname = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", user_string_quoted($filename), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.newstat.return = kernel.function("sys_newstat").return {
 	name = "stat"
@@ -75,7 +75,7 @@ probe syscall.newstat.return = kernel.function("sys_newstat").return {
 probe syscall.newuname = kernel.function("sys_newuname") {
 	name = "uname"
 	name_uaddr = $name
-	argstr = sprintf("[%p]", name_uaddr)
+	argstr = sprintf("%p", name_uaddr)
 }
 probe syscall.newuname.return = kernel.function("sys_newuname").return {
 	name = "uname"
@@ -93,7 +93,7 @@ probe syscall.nfsservctl = kernel.function("sys_nfsservctl") {
 	cmd = $cmd
 	argp_uaddr = $arg
 	resp_uaddr = $res
-	argstr = sprintf("%p, [%p], [%p]", cmd, argp_uaddr, resp_uaddr)
+	argstr = sprintf("%p, %p, %p", cmd, argp_uaddr, resp_uaddr)
 }
 probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return {
 	name = "nfsservctl"
@@ -138,7 +138,7 @@ probe syscall.old_getrlimit = kernel.function("sys_old_getrlimit") {
 	resource = $resource
 	resource_str = _rlimit_resource_str($resource)
 	rlim_uaddr = $rlim
-	argstr = sprintf("%s, [%p]", resource_str, rlim_uaddr)
+	argstr = sprintf("%s, %p", resource_str, rlim_uaddr)
 }
 probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return {
 	name = "old_getrlimit"
@@ -146,7 +146,7 @@ probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return
 }
 
 # open _______________________________________________________
-# asmlinkage long sys_open(const char __user * filename, int flags, int mode)
+# long sys_open(const char __user * filename, int flags, int mode)
 probe syscall.open = 
 		kernel.function("sys_open") ?,
 		kernel.function("sys32_open") ?
@@ -157,10 +157,10 @@ probe syscall.open =
 	mode = $mode
 	if (flags & 64)
 		argstr = sprintf("%s, %s, %#o", user_string_quoted($filename), 
-				_sys_open_flag_str($flags), $mode)
+				_sys_open_flag_str(flags), $mode)
 	else
 		argstr = sprintf("%s, %s", user_string_quoted($filename), 
-			_sys_open_flag_str($flags))
+			_sys_open_flag_str(flags))
 }
 probe syscall.open.return = 
 		kernel.function("sys_open").return ?, 
@@ -219,7 +219,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return {
 #	off = $off
 #	len = $len
 #	buf_uaddr = $buf
-#	argstr = sprintf("%p, %p, %p, %d, [%p]", bus, dfn, off,
+#	argstr = sprintf("%p, %p, %p, %d, %p", bus, dfn, off,
 #				len, buf_uaddr)
 #}
 #probe syscall.pciconfig_read.return =
@@ -244,7 +244,7 @@ probe syscall.pause.return = kernel.function("sys_pause").return {
 #	off = $off
 #	len = $len
 #	buf_uaddr = $buf
-#	argstr = sprintf("%p, %p, %p, %d, [%p]", bus, dfn, off,
+#	argstr = sprintf("%p, %p, %p, %d, %p", bus, dfn, off,
 #				len, buf_uaddr)
 #}
 #probe syscall.pciconfig_write.return =
@@ -313,7 +313,7 @@ probe syscall.poll = kernel.function("sys_poll") {
 %:
 	timeout = $timeout
 %)
-	argstr = sprintf("[%p], %d, %d", ufds_uaddr, nfds, timeout)
+	argstr = sprintf("%p, %d, %d", ufds_uaddr, nfds, timeout)
 }
 probe syscall.poll.return = kernel.function("sys_poll").return {
 	name = "poll"
@@ -356,7 +356,7 @@ probe syscall.pread64 = kernel.function("sys_pread64") {
 	buf_uaddr = $buf
 	count = $count
 	offset = $pos
-	argstr = sprintf("%d, [%p], %p, %p", fd, buf_uaddr,
+	argstr = sprintf("%d, %p, %p, %p", fd, buf_uaddr,
 				count, offset)
 }
 probe syscall.pread64.return = kernel.function("sys_pread64").return {
@@ -398,7 +398,7 @@ probe syscall.pwrite64 = kernel.function("sys_pwrite64") {
 	buf_uaddr = $buf
 	count = $count
 	offset = $pos
-	argstr = sprintf("%d, [%p], %p, %p", fd, buf_uaddr,
+	argstr = sprintf("%d, %p, %p, %p", fd, buf_uaddr,
 				count, offset)
 }
 probe syscall.pwrite64.return = kernel.function("sys_pwrite64").return {
@@ -413,7 +413,7 @@ probe syscall.read = kernel.function("sys_read") {
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
-	argstr = sprintf("%d, [%p], %d", $fd, $buf, $count)
+	argstr = sprintf("%d, %p, %d", $fd, $buf, $count)
 }
 probe syscall.read.return = kernel.function("sys_read").return {
 	name = "read"
@@ -449,7 +449,7 @@ probe syscall.readlink = kernel.function("sys_readlink") {
 	path = user_string($path)
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-	argstr = sprintf("%s, [%p], %d", user_string_quoted($path), 
+	argstr = sprintf("%s, %p, %d", user_string_quoted($path), 
 			buf_uaddr, bufsiz)
 }
 probe syscall.readlink.return = kernel.function("sys_readlink").return {
@@ -470,9 +470,9 @@ probe syscall.readv = kernel.function("sys_readv") {
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */
 %( arch != "ppc64" %?
 	fd = $fd
-	argstr = sprintf("%d, [%p], %d", $fd, $vec, $vlen)
+	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 %:
-	argstr = sprintf("unknown fd, [%p], %d", $vec, $vlen)
+	argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
 %)
 }
 probe syscall.readv.return = kernel.function("sys_readv").return {
@@ -496,7 +496,7 @@ probe syscall.reboot = kernel.function("sys_reboot") {
 	flag = $cmd
 	flag_str =  _reboot_flag_str(flag)
 	arg_uaddr = $arg
-	argstr = sprintf("%s, %s, %s, [%p]", magic_str, magic2_str,
+	argstr = sprintf("%s, %s, %s, %p", magic_str, magic2_str,
 				flag_str, arg_uaddr)
 }
 probe syscall.reboot.return = kernel.function("sys_reboot").return {
@@ -522,7 +522,7 @@ probe syscall.recv = kernel.function("sys_recvfrom") {
 	flags_str = _recvflags_str($flags)
 	addr_uaddr = $addr
 	addrlen_uaddr = $addr_len
-	argstr = sprintf("%d, [%p], %p, %s, [%p], %p",
+	argstr = sprintf("%d, %p, %p, %s, %p, %p",
 			s, buf_uaddr, len, flags_str, addr_uaddr,
 			addrlen_uaddr)			
 }
@@ -549,7 +549,7 @@ probe syscall.recvfrom = kernel.function("sys_recvfrom") {
 	flags_str = _recvflags_str($flags)
 	addr_uaddr = $addr
 	addrlen_uaddr = $addr_len
-	argstr = sprintf("%d, [%p], %p, %s, %p, %p",
+	argstr = sprintf("%d, %p, %p, %s, %p, %p",
 				s, buf_uaddr, len, flags_str,
 				addr_uaddr, addrlen_uaddr)
 }
@@ -570,7 +570,7 @@ probe syscall.recvmsg = kernel.function("sys_recvmsg") {
 	msg_uaddr = $msg
 	flags = $flags
 	flags_str = _recvflags_str($flags)
-	argstr = sprintf("%d, [%p], %s", s, msg_uaddr, flags_str)
+	argstr = sprintf("%d, %p, %s", s, msg_uaddr, flags_str)
 }
 probe syscall.recvmsg.return = kernel.function("sys_recvmsg").return {
 	name = "recvmsg"
@@ -664,8 +664,7 @@ probe syscall.rmdir.return = kernel.function("sys_rmdir").return {
 }
 # rt_sigaction _______________________________________________
 #
-# asmlinkage long
-# sys_rt_sigaction(int sig,
+# long sys_rt_sigaction(int sig,
 #			const struct sigaction __user *act,
 #			struct sigaction __user *oact,
 #			size_t sigsetsize)
@@ -677,8 +676,9 @@ probe syscall.rt_sigaction = kernel.function("sys_rt_sigaction") {
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
 
-	argstr = sprintf("%s, [%p], [%p], %p", _signal_name($sig),
-			act_uaddr, oact_uaddr, sigsetsize)
+	//FIXME - decode $act
+	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig),
+			$act, $oact, $sigsetsize)
 }
 probe syscall.rt_sigaction.return = kernel.function("sys_rt_sigaction").return {
 	name = "rt_sigaction"
@@ -694,7 +694,7 @@ probe syscall.rt_sigpending = kernel.function("do_sigpending") {
 	name = "rt_sigpending"
 	set_uaddr = $set
 	sigsetsize = $sigsetsize
-	argstr = sprintf("[%p], %p", set_uaddr, sigsetsize)
+	argstr = sprintf("%p, %d", $set, $sigsetsize)
 }
 probe syscall.rt_sigpending.return = kernel.function("do_sigpending").return {
 	name = "rt_sigpending"
@@ -702,8 +702,7 @@ probe syscall.rt_sigpending.return = kernel.function("do_sigpending").return {
 }
 # rt_sigprocmask _____________________________________________
 #
-# asmlinkage long
-# sys_rt_sigprocmask(int how,
+# long sys_rt_sigprocmask(int how,
 #			  sigset_t __user *set,
 #			  sigset_t __user *oset,
 #			  size_t sigsetsize)
@@ -713,16 +712,17 @@ probe syscall.rt_sigprocmask = kernel.function("sys_rt_sigprocmask") {
 	how = $how
 	how_str = _sigprocmask_how_str($how)
 	set_uaddr = $set
+	# FIXME - need to decode $set
 	oset_uaddr = $oset
 	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, [%p], [%p], %p", how_str, set_uaddr,
-				oset_uaddr, sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", how_str, $set, $oset, $sigsetsize)
 }
 probe syscall.rt_sigprocmask.return =
 	kernel.function("sys_rt_sigprocmask").return {
 	name = "rt_sigprocmask"
 	retstr = returnstr(1)
 }
+
 # rt_sigqueueinfo ____________________________________________
 #
 # asmlinkage long
@@ -735,13 +735,26 @@ probe syscall.rt_sigqueueinfo = kernel.function("sys_rt_sigqueueinfo") {
 	pid = $pid
 	sig = $sig
 	uinfo_uaddr = $uinfo
-	argstr = sprintf("%p, %s, [%p]", pid, _signal_name($sig), uinfo_uaddr)
+	argstr = sprintf("%p, %s, %p", $pid, _signal_name($sig), $uinfo)
 }
 probe syscall.rt_sigqueueinfo.return =
 	kernel.function("sys_rt_sigqueueinfo").return {
 	name = "rt_sigqueueinfo"
 	retstr = returnstr(1)
 }
+
+# rt_sigreturn _______________________________________________
+# int sys_rt_sigreturn(unsigned long __unused)
+#
+probe syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
+	name = "rt_sigreturn"
+	argstr = ""
+}
+probe syscall.rt_sigreturn.return = kernel.function("sys_rt_sigreturn").return {
+	name = "rt_sigreturn"
+	retstr = returnstr(1)
+}
+
 # rt_sigsuspend ______________________________________________
 #
 # asmlinkage int
@@ -771,8 +784,7 @@ probe syscall.rt_sigtimedwait = kernel.function("sys_rt_sigtimedwait") {
 	uinfo_uaddr = $uinfo
 	uts_uaddr = $uts
 	sigsetsize = $sigsetsize
-	argstr = sprintf("[%p], [%p], [%p], %p", uthese_uaddr,
-			uinfo_uaddr, uts_uaddr, sigsetsize)
+	argstr = sprintf("%p, %p, %p, %d", $uthese, $uinfo, $uts, $sigsetsize)
 }
 probe syscall.rt_sigtimedwait.return =
 	kernel.function("sys_rt_sigtimedwait").return {
@@ -791,7 +803,7 @@ probe syscall.sched_getaffinity = kernel.function("sys_sched_getaffinity") {
 	pid = $pid
 	len = $len
 	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, %p, [%p]", pid, len, mask_uaddr)
+	argstr = sprintf("%d, %p, %p", pid, len, mask_uaddr)
 }
 probe syscall.sched_getaffinity.return =
 	kernel.function("sys_sched_getaffinity").return {
@@ -808,7 +820,7 @@ probe syscall.sched_getparam = kernel.function("sys_sched_getparam") {
 	name = "sched_getparam"
 	pid = $pid
 	p_uaddr = $param
-	argstr = sprintf("%d, [%p]", pid, p_uaddr)
+	argstr = sprintf("%d, %p", pid, p_uaddr)
 }
 probe syscall.sched_getparam.return =
 	kernel.function("sys_sched_getparam").return {
@@ -880,10 +892,26 @@ probe syscall.sched_rr_get_interval.return =
 	name = "sched_rr_get_interval"
 	retstr = returnstr(1)
 }
-# sched_yield ________________________________________________
+
+# sched_setaffinity __________________________________________
+# long sys_sched_setaffinity(pid_t pid,
+#	unsigned int len,
+#	unsigned long __user *user_mask_ptr)
 #
-# asmlinkage long
-# sys_sched_yield(void)
+probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity") {
+	name = "sched_setaffinity"
+	pid = $pid
+	len = $len
+	mask_uaddr = $user_mask_ptr
+	argstr = sprintf("%d, %d, %p", $pid, $len, $user_mask_ptr)
+}
+probe syscall.sched_setaffinity.return = kernel.function("sys_sched_setaffinity").return {
+	name = "sched_setaffinity"
+	retstr = returnstr(1)
+}
+
+# sched_yield ________________________________________________
+# long sys_sched_yield(void)
 #
 probe syscall.sched_yield = kernel.function("sys_sched_yield") {
 	name = "sched_yield"
@@ -893,10 +921,9 @@ probe syscall.sched_yield.return = kernel.function("sys_sched_yield").return {
 	name = "sched_yield"
 	retstr = returnstr(1)
 }
+
 # select _____________________________________________________
-#
-# asmlinkage long
-# sys_select(int n,
+# long sys_select(int n,
 #		fd_set __user *inp,
 #		fd_set __user *outp,
 #		fd_set __user *exp,
@@ -918,10 +945,9 @@ probe syscall.select.return = kernel.function("sys_select").return {
 	name = "select"
 	retstr = returnstr(1)
 }
+
 # semctl _____________________________________________________
-#
-# asmlinkage long
-# sys_semctl (int semid,
+# long sys_semctl (int semid,
 #		 int semnum,
 #		 int cmd,
 #		 union semun arg)
@@ -941,12 +967,9 @@ probe syscall.semctl.return = kernel.function("sys_semctl").return {
 	name = "semctl"
 	retstr = returnstr(1)
 }
+
 # semget _____________________________________________________
-#
-# asmlinkage long
-# sys_semget (key_t key,
-#		 int nsems,
-#		 int semflg)
+# long sys_semget (key_t key, int nsems, int semflg)
 #
 probe syscall.semget = kernel.function("sys_semget") {
 	name = "semget"
@@ -959,6 +982,7 @@ probe syscall.semget.return = kernel.function("sys_semget").return {
 	name = "semget"
 	retstr = returnstr(1)
 }
+
 # semop ______________________________________________________
 #
 # asmlinkage long
@@ -971,7 +995,7 @@ probe syscall.semop = kernel.function("sys_semtimedop") {
 	semid = $semid
 	tsops_uaddr = $tsops
 	nsops = $nsops
-	argstr = sprintf("%d, [%p], %d", semid, tsops_uaddr, nsops)
+	argstr = sprintf("%d, %p, %d", semid, tsops_uaddr, nsops)
 }
 probe syscall.semop.return = kernel.function("sys_semtimedop").return {
 	name = "semop"
@@ -991,7 +1015,7 @@ probe syscall.semtimedop = kernel.function("sys_semtimedop") {
 	sops_uaddr = $tsops
 	nsops = $nsops
 	timeout_uaddr = $timeout
-	argstr = sprintf("%d, [%p], %d, %s", semid, sops_uaddr, nsops,
+	argstr = sprintf("%d, %p, %d, %s", semid, sops_uaddr, nsops,
 				_struct_timespec_u(timeout_uaddr))
 }
 probe syscall.semtimedop.return = kernel.function("sys_semtimedop").return {
@@ -1017,7 +1041,7 @@ probe syscall.send = kernel.function("sys_sendto") {
 	flags_str = _send_flags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
-	argstr = sprintf("%d, [%p], %s, [%p], %d", $fd, buf_uaddr,
+	argstr = sprintf("%d, %p, %s, %p, %d", $fd, buf_uaddr,
 			flags_str, to_uaddr, $addr_len)
 }
 probe syscall.send.return = kernel.function("sys_sendto").return {
@@ -1037,7 +1061,7 @@ probe syscall.sendfile = kernel.function("sys_sendfile") ?, kernel.function("sys
 	in_fd = $in_fd
 	offset_uaddr = $offset
 	count = $count
-	argstr = sprintf("%d, %d, [%p], %d", $out_fd, $in_fd, offset_uaddr,
+	argstr = sprintf("%d, %d, %p, %d", $out_fd, $in_fd, offset_uaddr,
 				$count)
 }
 probe syscall.sendfile.return = kernel.function("sys_sendfile").return ?,  kernel.function("sys_sendfile64").return ? {
@@ -1058,7 +1082,7 @@ probe syscall.sendmsg = kernel.function("sys_sendmsg") {
 	msg_uaddr = $msg
 	flags = $flags
 	flags_str = _send_flags_str($flags)
-	argstr = sprintf("%d, [%p], %s", $fd, msg_uaddr, flags_str)
+	argstr = sprintf("%d, %p, %s", $fd, msg_uaddr, flags_str)
 }
 probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return {
 	name = "sendmsg"
@@ -1083,7 +1107,7 @@ probe syscall.sendto = kernel.function("sys_sendto") {
 	flags_str = _send_flags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
-	argstr = sprintf("%d, [%p], %d, %s, [%p], %d", $fd, buf_uaddr,
+	argstr = sprintf("%d, %p, %d, %s, %p, %d", $fd, buf_uaddr,
 			$len, flags_str, to_uaddr, $addr_len)
 }
 probe syscall.sendto.return = kernel.function("sys_sendto").return {
@@ -1197,7 +1221,7 @@ probe syscall.setgroups = kernel.function("sys_setgroups") {
 	 *  embedded C if need be.
 	 */
 	list_uaddr = $grouplist
-	argstr = sprintf("%d, [%p]", $gidsetsize, list_uaddr)
+	argstr = sprintf("%d, %p", $gidsetsize, list_uaddr)
 }
 probe syscall.setgroups.return = kernel.function("sys_setgroups").return {
 	name = "setgroups"
@@ -1240,6 +1264,24 @@ probe syscall.setitimer.return = kernel.function("sys_setitimer").return {
 	name = "setitimer"
 	retstr = returnstr(1)
 }
+
+# set_mempolicy ______________________________________________
+# long sys_set_mempolicy(int mode,
+#	unsigned long __user *nmask,
+#	unsigned long maxnode)
+#
+probe syscall.set_mempolicy = kernel.function("sys_set_mempolicy") ? {
+	name = "set_mempolicy"
+	mode = $mode
+	nmask_uaddr = $nmask
+	maxnode = $maxnode
+	argstr = sprintf("%d, %p, %d", $mode, nmask_uaddr, $maxnode)
+}
+probe syscall.set_mempolicy.return = kernel.function("sys_set_mempolicy").return ? {
+	name = "set_mempolicy"
+	retstr = returnstr(1)
+}
+
 # setpgid ____________________________________________________
 #
 # asmlinkage long
@@ -1441,7 +1483,7 @@ probe syscall.setsockopt = kernel.function("sys_setsockopt") {
 	optname_str = _sockopt_optname_str($optname)
 	optval_uaddr = $optval
 	optlen = $optlen
-	argstr = sprintf("%d, %s, %s, [%p], %d", $fd, level_str,
+	argstr = sprintf("%d, %s, %s, %p, %d", $fd, level_str,
 				optname_str, optval_uaddr, $optlen)
 }
 probe syscall.setsockopt.return = kernel.function("sys_setsockopt").return {
@@ -1456,7 +1498,7 @@ probe syscall.setsockopt.return = kernel.function("sys_setsockopt").return {
 probe syscall.set_tid_address = kernel.function("sys_set_tid_address") {
 	name = "set_tid_address"
 	tidptr_uaddr = $tidptr
-	argstr = sprintf("[%p]", tidptr_uaddr)
+	argstr = sprintf("%p", tidptr_uaddr)
 }
 probe syscall.set_tid_address.return =
 	kernel.function("sys_set_tid_address").return {
@@ -1465,21 +1507,13 @@ probe syscall.set_tid_address.return =
 }
 # settimeofday _______________________________________________
 #
-# asmlinkage long
-# sys_settimeofday(struct timeval __user *tv,
+# long sys_settimeofday(struct timeval __user *tv,
 #			struct timezone __user *tz)
 #
 probe syscall.settimeofday = kernel.function("sys_settimeofday") {
 	name = "settimeofday"
 	tv_uaddr = $tv
 	tz_uaddr = $tz
-	/*
-	 * XXX NOT SAFE -- might sleep
-	 * tv_tv_sec	   = __uget_tv_m($tv,0)
-	 * tv_tv_usec	  = __uget_tv_m($tv,1)
-	 * tz_tz_minuteswest = __uget_tz_m($tz,0)
-	 * tz_tz_dsttime     = __uget_tz_m($tz,1)
-	 */
 	argstr = sprintf("%s, %s", _struct_timeval_u($tv),
 				_struct_timezone_u($tz))
 }
@@ -1488,6 +1522,7 @@ probe syscall.settimeofday.return =
 	name = "settimeofday"
 	retstr = returnstr(1)
 }
+
 # setuid _____________________________________________________
 #
 # asmlinkage long
@@ -1517,9 +1552,7 @@ probe syscall.setuid16.return = kernel.function("sys_setuid16").return ? {
 	retstr = returnstr(1)
 }
 # setxattr ___________________________________________________
-#
-# asmlinkage long
-# sys_setxattr(char __user *path,
+# long sys_setxattr(char __user *path,
 #		  char __user *name,
 #		  void __user *value,
 #		  size_t size,
@@ -1534,7 +1567,7 @@ probe syscall.setxattr = kernel.function("sys_setxattr") {
 	value_uaddr = $value
 	size = $size
 	flags = $flags
-	argstr = sprintf("%s, %s, [%p], %d, %d", 
+	argstr = sprintf("%s, %s, %p, %d, %d", 
 			user_string_quoted($path), 
 			user_string_quoted($name),
 			value_uaddr, $size, $flags)
@@ -1567,7 +1600,7 @@ probe syscall.shmctl = kernel.function("sys_shmctl") {
 	shmid = $shmid
 	cmd = $cmd
 	buf_uaddr = $buf
-	argstr = sprintf("%d, %s, [%p]", $shmid, _semctl_cmd($cmd),
+	argstr = sprintf("%d, %s, %p", $shmid, _semctl_cmd($cmd),
 				buf_uaddr)
 }
 probe syscall.shmctl.return = kernel.function("sys_shmctl").return {
@@ -1582,7 +1615,7 @@ probe syscall.shmctl.return = kernel.function("sys_shmctl").return {
 probe syscall.shmdt = kernel.function("sys_shmdt") {
 	name = "shmdt"
 	shmaddr_uaddr = $shmaddr
-	argstr = sprintf("[%p]", shmaddr_uaddr)
+	argstr = sprintf("%p", shmaddr_uaddr)
 }
 probe syscall.shmdt.return = kernel.function("sys_shmdt").return {
 	name = "shmdt"
@@ -1624,30 +1657,26 @@ probe syscall.shutdown.return = kernel.function("sys_shutdown").return {
 	retstr = returnstr(1)
 }
 # signal _____________________________________________________
-#
-# asmlinkage unsigned long
-# sys_signal(int sig,
-#		__sighandler_t handler)
+# unsigned long sys_signal(int sig, __sighandler_t handler)
 #
 probe syscall.signal = kernel.function("sys_signal") {
 	name = "signal"
 	sig = $sig
 	handler = $handler
-	argstr = sprintf("%s, [%p]", _signal_name($sig), $handler)
+	argstr = sprintf("%s, %p", _signal_name($sig), $handler)
 }
 probe syscall.signal.return = kernel.function("sys_signal").return {
 	name = "signal"
 	retstr = returnstr(1)
 }
+
 # sigpending _________________________________________________
-#
-# long do_sigpending(void __user *set,
-#			  unsigned long sigsetsize)
+# long do_sigpending(void __user *set, unsigned long sigsetsize)
 #
 probe syscall.sigpending = kernel.function("do_sigpending") {
 	name = "sigpending"
-	/*
-	 * NOTE
+	/* 
+	 * FIXME
 	 *  set is defined as
 	 *  struct {
 	 *	unsigned long int __val[128];
@@ -1659,16 +1688,15 @@ probe syscall.sigpending = kernel.function("do_sigpending") {
 	 */
 	set_uaddr = $set
 	sigsetsize = $sigsetsize
-	argstr = sprintf("[%p], %d", set_uaddr, $sigsetsize)
+	argstr = sprintf("%p, %d", $set, $sigsetsize)
 }
 probe syscall.sigpending.return = kernel.function("do_sigpending").return {
 	name = "sigpending"
 	retstr = returnstr(1)
 }
+
 # sigprocmask ________________________________________________
-#
-# asmlinkage long
-# sys_sigprocmask(int how,
+# long sys_sigprocmask(int how,
 #		     old_sigset_t __user *set,
 #		     old_sigset_t __user *oset)
 #
@@ -1677,7 +1705,7 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask") {
 	how  = $how
 	how_str = _sigprocmask_how_str($how)
 	/*
-	 * NOTE
+	 * FIXME
 	 *  set and oset are  defined as
 	 *  struct {
 	 *	unsigned long int __val[128];
@@ -1689,19 +1717,15 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask") {
 	 */
 	set_uaddr    = $set
 	oldset_uaddr = $oset
-	argstr = sprintf("%s, [%p], [%p]", how_str, set_uaddr,
-			oldset_uaddr)
+	argstr = sprintf("%s, %p, %p", how_str, $set, $oset)
 }
 probe syscall.sigprocmask.return = kernel.function("sys_sigprocmask").return {
 	name = "sigprocmask"
 	retstr = returnstr(1)
 }
+
 # socket _____________________________________________________
-#
-# asmlinkage long
-# sys_socket(int family,
-#		int type,
-#		int protocol)
+# long sys_socket(int family, int type, int protocol)
 #
 probe syscall.socket = kernel.function("sys_socket") {
 	name = "socket"
@@ -1728,16 +1752,15 @@ probe syscall.socket.return = kernel.function("sys_socket").return {
 #	name = "socketcall"
 #	call = $call
 #	args_uaddr = $args
-#	argstr = sprintf("%d, [%p]", $call, args_uaddr)
+#	argstr = sprintf("%d, %p", $call, args_uaddr)
 #}
 #probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
 #	name = "socketcall"
 #	retstr = returnstr(1)
 #}
+
 # socketpair _________________________________________________
-#
-# asmlinkage long
-# sys_socketpair(int family,
+# long sys_socketpair(int family,
 #		    int type,
 #		    int protocol,
 #		    int __user *usockvec)
@@ -1748,7 +1771,7 @@ probe syscall.socketpair = kernel.function("sys_socketpair") {
 	type = $type
 	protocol = $protocol
 	sv_uaddr = $usockvec
-	argstr = sprintf("%s, %s, %d, [%p]", 
+	argstr = sprintf("%s, %s, %d, %p", 
 				_sock_family_str($family),
 				_sock_type_str($type),
 				$protocol, sv_uaddr)
@@ -1783,7 +1806,7 @@ probe syscall.stat =
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", user_string_quoted($filename), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.stat.return = 
 		kernel.function("sys_stat").return ?, 
@@ -1800,7 +1823,7 @@ probe syscall.statfs = kernel.function("sys_statfs") {
 	name = "statfs"
 	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = sprintf("%s, [%p]", user_string_quoted($path), $buf)
+	argstr = sprintf("%s, %p", user_string_quoted($path), $buf)
 }
 probe syscall.statfs.return = kernel.function("sys_statfs").return {
 	name = "statfs"
@@ -1818,7 +1841,7 @@ probe syscall.statfs64 = kernel.function("sys_statfs64") {
 	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%s, %d, [%p]", user_string_quoted($path), $sz, $buf) 
+	argstr = sprintf("%s, %d, %p", user_string_quoted($path), $sz, $buf) 
 }
 probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 	name = "statfs64"
@@ -1834,7 +1857,7 @@ probe syscall.stime = kernel.function("sys_stime") {
 	t_uaddr = $tptr
 	
 	/* Fixme, should just use get_user? */
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", t_uaddr)
 }
 probe syscall.stime.return = kernel.function("sys_stime").return {
 	name = "stime"
@@ -1905,7 +1928,7 @@ probe syscall.sync.return = kernel.function("sys_sync").return {
 probe syscall.sysctl = kernel.function("sys_sysctl") {
 	name = "sysctl"
 	args_uaddr = $args
-	argstr = sprintf("[%p]", args_uaddr)
+	argstr = sprintf("%p", args_uaddr)
 }
 probe syscall.sysctl.return = kernel.function("sys_sysctl").return {
 	name = "sysctl"
@@ -1937,7 +1960,7 @@ probe syscall.sysfs.return = kernel.function("sys_sysfs").return {
 probe syscall.sysinfo = kernel.function("sys_sysinfo") {
 	name = "sysinfo"
 	info_uaddr = $info
-	argstr = sprintf("[%p]", info_uaddr)
+	argstr = sprintf("%p", info_uaddr)
 }
 probe syscall.sysinfo.return = kernel.function("sys_sysinfo").return {
 	name = "sysinfo"
@@ -1955,7 +1978,7 @@ probe syscall.syslog = kernel.function("do_syslog") {
 	type = $type
 	bufp_uaddr = $buf
 	len = $len
-	argstr = sprintf("%d, [%p], %d", $type, bufp_uaddr, $len)
+	argstr = sprintf("%d, %p, %d", $type, bufp_uaddr, $len)
 }
 probe syscall.syslog.return = kernel.function("do_syslog").return {
 	name = "syslog"
@@ -1981,23 +2004,21 @@ probe syscall.tgkill.return = kernel.function("sys_tgkill").return {
 }
 # time _______________________________________________________
 #
-# asmlinkage long
-# sys_time(time_t __user * tloc)
+# long sys_time(time_t __user * tloc)
 #
 probe syscall.time = kernel.function("sys_time") {
 	name = "time"
 	t_uaddr = $tloc
-	/* FIXME */
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", $tloc)
 }
 probe syscall.time.return = kernel.function("sys_time").return {
 	name = "time"
 	retstr = returnstr(1)
 }
+
 # timer_create _______________________________________________
 #
-# asmlinkage long
-# sys_timer_create(clockid_t which_clock,
+# long sys_timer_create(clockid_t which_clock,
 #			struct sigevent __user *timer_event_spec,
 #			timer_t __user * created_timer_id)
 #
@@ -2007,22 +2028,17 @@ probe syscall.timer_create = kernel.function("sys_timer_create") {
 	clockid_str = _get_wc_str($which_clock)
 	evp_uaddr = $timer_event_spec
 	timerid_uaddr = $created_timer_id
-	/*
-	 * XXX NOT SAFE -- might sleep
-	 * timerid = __uget_num($created_timer_id)
-	 */
-	argstr = sprintf("%d, [%p], [%p]", $which_clock, evp_uaddr,
-				timerid_uaddr)
+	argstr = sprintf("%s, %p, %p", clockid_str, $timer_event_spec, $created_timer_id)
 }
 probe syscall.timer_create.return =
 	kernel.function("sys_timer_create").return {
 	name = "timer_create"
 	retstr = returnstr(1)
 }
+
 # timer_delete _______________________________________________
 #
-# asmlinkage long
-# sys_timer_delete(timer_t timer_id)
+# long sys_timer_delete(timer_t timer_id)
 #
 probe syscall.timer_delete = kernel.function("sys_timer_delete") {
 	name = "timer_delete"
@@ -2033,10 +2049,10 @@ probe syscall.timer_delete.return = kernel.function("sys_timer_delete").return {
 	name = "timer_delete"
 	retstr = returnstr(1)
 }
+
 # timer_getoverrun ___________________________________________
 #
-# asmlinkage long
-# sys_timer_getoverrun(timer_t timer_id)
+# long sys_timer_getoverrun(timer_t timer_id)
 #
 probe syscall.timer_getoverrun = kernel.function("sys_timer_getoverrun") {
 	name = "timer_getoverrun"
@@ -2048,28 +2064,27 @@ probe syscall.timer_getoverrun.return =
 	name = "timer_getoverrun"
 	retstr = returnstr(1)
 }
+
 # timer_gettime ______________________________________________
 #
-# asmlinkage long
-# sys_timer_gettime(timer_t timer_id,
+# long sys_timer_gettime(timer_t timer_id,
 #			 struct itimerspec __user *setting)
 #
 probe syscall.timer_gettime = kernel.function("sys_timer_gettime") {
 	name = "timer_gettime"
 	timerid = $timer_id
 	value_uaddr = $setting
-	argstr = sprintf("%d, %s", $timer_id,
-				_struct_timespec_u($setting))
+	argstr = sprintf("%d, %p", $timer_id, $setting)
 }
 probe syscall.timer_gettime.return =
 	kernel.function("sys_timer_gettime").return {
 	name = "timer_gettime"
 	retstr = returnstr(1)
 }
+
 # timer_settime ______________________________________________
 #
-# asmlinkage long
-# sys_timer_settime(timer_t timer_id,
+# long sys_timer_settime(timer_t timer_id,
 #			 int flags,
 #			 const struct itimerspec __user *new_setting,
 #			 struct itimerspec __user *old_setting)
@@ -2080,19 +2095,19 @@ probe syscall.timer_settime = kernel.function("sys_timer_settime") {
 	flags = $flags
 	value_uaddr  = $new_setting
 	ovalue_uaddr = $old_setting
-	argstr = sprintf("%d, %d, %s, %s", $timer_id, $flags,
+	argstr = sprintf("%d, %d, %s, %p", $timer_id, $flags,
 				_struct_itimerspec_u($new_setting),
-				_struct_itimerspec_u($old_setting))
+				$old_setting)
 }
 probe syscall.timer_settime.return =
 	kernel.function("sys_timer_settime").return {
 	name = "timer_settime"
 	retstr = returnstr(1)
 }
+
 # times ______________________________________________________
 #
-# asmlinkage long
-# sys_times(struct tms __user * tbuf)
+# long sys_times(struct tms __user * tbuf)
 #
 probe syscall.times = kernel.function("sys_times") {
 	name = "times"
@@ -2104,12 +2119,13 @@ probe syscall.times = kernel.function("sys_times") {
 	 * buf_tms_cutime = __uget_tms_m($tbuf,2)
 	 * buf_tms_cstime = __uget_tms_m($tbuf,3)
 	 */
-	argstr = sprintf("[%p]", buf_uaddr) 
+	argstr = sprintf("%p", buf_uaddr) 
 }
 probe syscall.times.return = kernel.function("sys_times").return {
 	name = "times"
 	retstr = returnstr(1)
 }
+
 # tkill ______________________________________________________
 #
 # asmlinkage long
@@ -2143,6 +2159,33 @@ probe syscall.truncate = kernel.function("sys_truncate")?, kernel.function("sys_
 probe syscall.truncate.return = kernel.function("sys_truncate").return ?, kernel.function("sys_truncate64").return ? {
 	name = "truncate"
 	retstr = returnstr(1)
+}
+
+# tux ________________________________________________________
+# long sys_tux (unsigned int action, user_req_t *u_info)
+#
+probe syscall.tux = kernel.function("sys_tux") ? {
+	name = "tux"
+	action = $action
+	u_info_uaddr = $u_info
+	argstr = sprintf("%d, %p", $action, $u_info)
+}
+probe syscall.tux.return = kernel.function("sys_tux").return ? {
+	name = "tux"
+	retstr = returnstr(1)
+}
+
+# umask ______________________________________________________
+# long sys_umask(int mask)
+#
+probe syscall.umask = kernel.function("sys_umask") {
+	name = "umask"
+	mask = $mask
+	argstr = sprintf("%#o", $mask)
+}
+probe syscall.umask.return = kernel.function("sys_umask").return {
+	name = "umask"
+	retstr = returnstr(3)
 }
 
 # umount _____________________________________________________
@@ -2209,7 +2252,7 @@ probe syscall.ustat = kernel.function("sys_ustat") {
 	name = "ustat"
 	dev = $dev
 	ubuf_uaddr = $ubuf
-	argstr = sprintf("%d, [%p]", $dev, ubuf_uaddr)
+	argstr = sprintf("%d, %p", $dev, ubuf_uaddr)
 }
 probe syscall.ustat.return = kernel.function("sys_ustat").return {
 	name = "ustat"
@@ -2277,7 +2320,7 @@ probe syscall.wait4 = kernel.function("sys_wait4") {
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
-	argstr = sprintf("%d, [%p], %s, [%p]", $pid, status_uaddr,
+	argstr = sprintf("%d, %p, %s, %p", $pid, status_uaddr,
 					options_str, rusage_uaddr)
 					
 }
@@ -2303,7 +2346,7 @@ probe syscall.waitid = kernel.function("sys_waitid") {
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
-	argstr = sprintf("%d, %d, [%p], %s, [%p]", $which, $pid,
+	argstr = sprintf("%d, %d, %p, %s, %p", $which, $pid,
 				infop_uaddr, options_str, rusage_uaddr)
 }
 probe syscall.waitid.return = kernel.function("sys_waitid").return {
@@ -2326,7 +2369,7 @@ probe syscall.waitpid = kernel.function("sys_wait4") {
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
-	argstr = sprintf("%d, [%p], %s, [%p]", $pid, status_uaddr,
+	argstr = sprintf("%d, %p, %s, %p", $pid, status_uaddr,
 				options_str, rusage_uaddr)
 }
 probe syscall.waitpid.return = kernel.function("sys_wait4").return {
@@ -2364,9 +2407,9 @@ probe syscall.writev = kernel.function("sys_writev") {
 /* FIXME: RHEL4 U3 ppc64 can't resolve $fd */ 
 %( arch != "ppc64" %?
 	fd = $fd
-	argstr = sprintf("%d, [%p], %d", $fd, $vec, $vlen)
+	argstr = sprintf("%d, %p, %d", $fd, $vec, $vlen)
 %:
-	argstr = sprintf("unknown fd, [%p], %d", $vec, $vlen)
+	argstr = sprintf("unknown fd, %p, %d", $vec, $vlen)
 %)
 }
 probe syscall.writev.return = kernel.function("sys_writev").return {

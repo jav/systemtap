@@ -5,7 +5,7 @@ probe syscall.getgroups16 = kernel.function("sys_getgroups16") {
 	name = "getgroups16"
 	size = $gidsetsize
 	list_uaddr = $grouplist
-	argstr = sprintf("%d, [%p]", size, list_uaddr)
+	argstr = sprintf("%d, %p", size, list_uaddr)
 }
 probe syscall.getgroups16.return = kernel.function("sys_getgroups16").return {
 	name = "getgroups16"
@@ -30,37 +30,6 @@ probe syscall.setgroups16.return = kernel.function("sys_setgroups16").return {
 }
 
 
-# acct _______________________________________________________
-# long sys_acct(const char __user *name)
-probe syscall.acct = kernel.function("sys_acct") {
-	name = "acct"
-        filename = user_string($name)
-	argstr = filename
-}
-probe syscall.acct.return = kernel.function("sys_acct").return {
-	name = "acct"
-	retstr = returnstr(1)
-}
-
-# add_key ____________________________________________________
-# long sys_add_key(const char __user *_type,
-#             const char __user *_description,
-#             const void __user *_payload,
-#             size_t plen,
-#             key_serial_t ringid)
-#probe syscall.add_key = kernel.function("sys_add_key") {
-#	name = "add_key"
-#	type_uaddr = $_type
-#	description_auddr = $_description
-#	payload_uaddr = $_payload
-#	plen = $plen
-#	ringid = $ringid
-#	argstr = "add_key"
-#}
-#probe syscall.add_key.return = kernel.function("sys_add_key").return {
-#	name = "add_key"
-#	retstr = returnstr(1)
-#}
 
 # quotactl ___________________________________________________
 #
@@ -77,7 +46,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl") {
 	special_str = user_string($special)
 	id = $id
 	addr_uaddr = $addr
-	argstr = sprintf("%s, %s, %p, [%p]", cmd_str, special_str,
+	argstr = sprintf("%s, %s, %p, %p", cmd_str, special_str,
 				id, addr_uaddr)
 }
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
@@ -98,7 +67,7 @@ probe syscall.request_key = kernel.function("sys_request_key") {
 	description_uaddr = $_description
 	callout_info_uaddr = $_callout_info
 	destringid = $destringid
-	argstr = sprintf("[%p], [%p], [%p], %p", type_uaddr,
+	argstr = sprintf("%p, %p, %p, %p", type_uaddr,
 			description_uaddr, callout_info_uaddr, destringid)
 }
 probe syscall.request_key.return = kernel.function("sys_request_key").return {
@@ -133,7 +102,7 @@ probe syscall.fcntl64.return = kernel.function("sys_fcntl64").return {
 probe syscall.get_thread_area = kernel.function("sys_get_thread_area") {
 	name = "get_thread_area"
 	u_info_uaddr = $u_info
-	argstr = sprintf("[%p]", u_info_uaddr)
+	argstr = sprintf("%p", u_info_uaddr)
 }
 probe syscall.get_thread_area.return =
 	kernel.function("sys_get_thread_area").return {
@@ -193,56 +162,21 @@ probe syscall.inotify_rm_watch.return =
 	name = "inotify_rm_watch"
 	retstr = returnstr(1)
 }
+
 # iopl _______________________________________________________
-/*
- * asmlinkage long
- * sys_iopl(unsigned long unused)
- */
+# long sys_iopl(unsigned long unused)
+# NOTE. This function is only in i386 and x86_64 and its args vary
+# between those two archs.
+#
 probe syscall.iopl = kernel.function("sys_iopl") {
 	name = "iopl"
-	level = $unused
-	argstr = sprint($unused)
+	argstr = ""
 }
 probe syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"
 	retstr = returnstr(1)
 }
-# ioprio_get _________________________________________________
-/*
- * asmlinkage long
- * sys_ioprio_get(int which,
- *                int who)
- */
-probe syscall.ioprio_get = kernel.function("sys_ioprio_get") {
-	name = "ioprio_get"
-	which = $which
-	who = $who
-	argstr = sprintf("%d, %d", $which, $who)
-}
-probe syscall.ioprio_get.return =
-	kernel.function("sys_ioprio_get").return {
-	name = "ioprio_get"
-	retstr = returnstr(1)
-}
-# ioprio_set _________________________________________________
-/*
- * asmlinkage long
- * sys_ioprio_set(int which,
- *                int who,
- *                int ioprio)
- */
-probe syscall.ioprio_set = kernel.function("sys_ioprio_set") {
-	name = "ioprio_set"
-	which = $which
-	who = $who
-	ioprio = $ioprio
-	argstr = sprintf("%d, %d, %d", $which, $who, $ioprio)
-}
-probe syscall.ioprio_set.return =
-	kernel.function("sys_ioprio_set").return {
-	name = "ioprio_set"
-	retstr = returnstr(1)
-}
+
 # ipc ________________________________________________________
 /*
  * asmlinkage int
@@ -261,7 +195,7 @@ probe syscall.ipc = kernel.function("sys_ipc") {
 	third = $third
 	ptr_uaddr = $ptr
 	fifth = $fifth
-	argstr = sprintf("%d, %d, %d, %d, [%p], %d", $call, $first,
+	argstr = sprintf("%d, %d, %d, %d, %p, %d", $call, $first,
 			$second, $third, ptr_uaddr, $fifth)
 }
 probe syscall.ipc.return = kernel.function("sys_ipc").return {
@@ -275,7 +209,7 @@ probe syscall.lstat64 = kernel.function("sys_lstat64") {
 	name = "lstat"
 	filename = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", filename, $statbuf)
+	argstr = sprintf("\"%s\", %p", filename, $statbuf)
 }
 probe syscall.lstat64.return = kernel.function("sys_lstat64").return {
 	name = "lstat"
@@ -289,50 +223,13 @@ probe syscall.lstat64.return = kernel.function("sys_lstat64").return {
 probe syscall.olduname = kernel.function("sys_olduname") {
 	name = "olduname"
 	name_uaddr = $name
-	argstr = sprintf("[%p]", name_uaddr)
+	argstr = sprintf("%p", name_uaddr)
 }
 probe syscall.olduname.return = kernel.function("sys_olduname").return {
 	name = "olduname"
 	retstr = returnstr(1)
 }
-# rt_sigreturn _______________________________________________
-/*
- * asmlinkage int
- * sys_rt_sigreturn(unsigned long __unused)
- */
-probe syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
-	name = "rt_sigreturn"
-	__unused = $__unused
-	argstr = sprint($__unused)
-}
-probe syscall.rt_sigreturn.return =
-	kernel.function("sys_rt_sigreturn").return {
-	name = "rt_sigreturn"
-	retstr = returnstr(1)
-}
-# sched_setaffinity __________________________________________
-/*
- * asmlinkage long
- * sys_sched_setaffinity(pid_t pid,
- *                       unsigned int len,
- *                       unsigned long __user *user_mask_ptr)
- */
-probe syscall.sched_setaffinity =
-	kernel.function("sys_sched_setaffinity") {
-	name = "sched_setaffinity"
-	pid = $pid
-      /*
-       * doesnt like $len on x86_64 ????
-       */
-	len = $len
-	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, %d, [%p]", $pid, $len, mask_uaddr)
-}
-probe syscall.sched_setaffinity.return =
-	kernel.function("sys_sched_setaffinity").return {
-	name = "sched_setaffinity"
-	retstr = returnstr(1)
-}
+
 # sched_setparam _____________________________________________
 /*
  * asmlinkage long
@@ -344,7 +241,7 @@ probe syscall.sched_setparam =
 	name = "sched_setparam"
 	pid = $pid
 	p_uaddr = $param
-	argstr = sprintf("%d, [%p]", $pid, p_uaddr)
+	argstr = sprintf("%d, %p", $pid, p_uaddr)
 }
 probe syscall.sched_setparam.return =
 	kernel.function("do_sched_setscheduler").return {
@@ -365,7 +262,7 @@ probe syscall.sched_setscheduler =
 	policy = $policy
 	policy_str = _sched_policy_str($policy)
 	p_uaddr = $param
-	argstr = sprintf("%d, %s, [%p]", $pid, policy_str, p_uaddr)
+	argstr = sprintf("%d, %s, %p", $pid, policy_str, p_uaddr)
 }
 probe syscall.sched_setscheduler.return =
 	kernel.function("do_sched_setscheduler").return {
@@ -381,7 +278,7 @@ probe syscall.set_thread_area =
 	kernel.function("sys_set_thread_area") {
 	name = "set_thread_area"
 	u_info_uaddr = $u_info
-	argstr = sprintf("[%p]", u_info_uaddr)
+	argstr = sprintf("%p", u_info_uaddr)
 }
 probe syscall.set_thread_area.return =
 	kernel.function("sys_set_thread_area").return {
@@ -423,50 +320,49 @@ probe syscall.shmat =
 	shmid = $shmid
 	shmaddr_uaddr = $shmaddr
 	shmflg = $shmflg
-	argstr = sprintf("%d, [%p], %d", $shmid, shmaddr_uaddr, $shmflg)
+	argstr = sprintf("%d, %p, %d", $shmid, shmaddr_uaddr, $shmflg)
 }
 probe syscall.shmat.return =
 	kernel.function("sys_shmat").return {
 	name = "shmat"
 	retstr = returnstr(1)
 }
+
 # sigaction __________________________________________________
-/*
- * asmlinkage int
- * sys_sigaction(int sig,
- *               const struct old_sigaction __user *act,
- *               struct old_sigaction __user *oact)
- */
+# int sys_sigaction(int sig,
+#               const struct old_sigaction __user *act,
+#               struct old_sigaction __user *oact)
+#
 probe syscall.sigaction =
 	kernel.function("sys_sigaction") {
 	name = "sigaction"
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
-	argstr = sprintf("%s, [%p], [%p]", _signal_name($sig),
-				act_uaddr, oact_uaddr)
+	# FIXME - decode $act
+	argstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
 }
 probe syscall.sigaction.return =
 	kernel.function("sys_sigaction").return {
 	name = "sigaction"
 	retstr = returnstr(1)
 }
+
 # sigaltstack ________________________________________________
-/*
- * asmlinkage int
- * sys_sigaltstack(unsigned long ebx)
- */
-probe syscall.sigaltstack =
-	kernel.function("sys_sigaltstack") {
+# int sys_sigaltstack(unsigned long ebx)
+#
+# NOTE: args vary between archs.
+#
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack") {
 	name = "sigaltstack"
 	ebx = $ebx
 	argstr = sprintf("%p", $ebx)
 }
-probe syscall.sigaltstack.return =
-	kernel.function("sys_sigaltstack").return {
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 	name = "sigaltstack"
 	retstr = returnstr(1)
 }
+
 # sigreturn __________________________________________________
 /*
  * asmlinkage int
@@ -509,28 +405,13 @@ probe syscall.stat64 = kernel.function("sys_stat64") {
 	name = "stat"
 	filename = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", filename, $statbuf)
+	argstr = sprintf("\"%s\", %p", filename, $statbuf)
 }
 probe syscall.stat64.return = kernel.function("sys_stat64").return {
 	name = "stat"
 	retstr = returnstr(1)
 }
 
-# umask ______________________________________________________
-/*
- * asmlinkage long
- * sys_umask(int mask)
- */
-probe syscall.umask = kernel.function("sys_umask") {
-	name = "umask"
-	mask = $mask
-	argstr = sprintf("%#o", $mask)
-}
-probe syscall.umask.return =
-	kernel.function("sys_umask").return {
-	name = "umask"
-	retstr = returnstr(3)
-}
 # vm86 _______________________________________________________
 /*
  * asmlinkage int
