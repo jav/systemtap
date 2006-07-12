@@ -1,4 +1,7 @@
 2006-07-11  Martin Hunt  <hunt@redhat.com>
+	* string.c (_stp_text_str): Use __get_user().
+
+2006-07-11  Martin Hunt  <hunt@redhat.com>
 
 	* string.c (_stp_text_str): Add a parameter to support
 	userspace strings too.

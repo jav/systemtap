@@ -212,7 +212,6 @@ char * _stp_string_ptr (String str)
 	  }								\
   })
 
-#include "loc2c-runtime.h"
 
 /** Return a printable text string.
  *
@@ -240,9 +239,12 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 		*out++ = '\"';
 	}
 
-	if (user)
-		c = deref(1,(char __user *)in);
-	else
+	if (user) {
+		if (!access_ok(VERIFY_READ, (char __user *)in, len))
+			goto bad;
+		if (__get_user(c, (char __user *)in) < 0)
+			goto bad;
+	} else
 		c = *in;
 
 	while (c && len > 0) {
@@ -307,9 +309,10 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 		}
 		len -= num;
 		in++;
-		if (user)
-			c = deref(1,(char __user *)in);
-		else
+		if (user) {
+			if (__get_user(c, (char __user *)in) < 0)
+				goto bad;
+		} else
 			c = *in;
 	}
 
@@ -325,7 +328,7 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 	}
 	*out = '\0';
 	return;
-deref_fault:
+bad:
 	strlcpy (outstr, "<unknown>", len);
 }
 
