@@ -898,6 +898,7 @@ probe syscall.sched_rr_get_interval.return =
 #	unsigned int len,
 #	unsigned long __user *user_mask_ptr)
 #
+%( arch != "x86_64" %?
 probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity") {
 	name = "sched_setaffinity"
 	pid = $pid
@@ -905,6 +906,15 @@ probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity") {
 	mask_uaddr = $user_mask_ptr
 	argstr = sprintf("%d, %d, %p", $pid, $len, $user_mask_ptr)
 }
+%:
+probe syscall.sched_setaffinity = kernel.function("sys_sched_setaffinity") {
+	name = "sched_setaffinity"
+	pid = $pid
+	len = 0
+	mask_uaddr = $user_mask_ptr
+	argstr = sprintf("%d, <unknown>, %p", $pid, $user_mask_ptr)
+}
+%)
 probe syscall.sched_setaffinity.return = kernel.function("sys_sched_setaffinity").return {
 	name = "sched_setaffinity"
 	retstr = returnstr(1)

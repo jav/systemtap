@@ -1451,13 +1451,13 @@ probe syscall.io_submit.return = kernel.function("sys_io_submit").return {
 # ioprio_get _________________________________________________
 # long sys_ioprio_get(int which, int who)
 #
-probe syscall.ioprio_get = kernel.function("sys_ioprio_get") {
+probe syscall.ioprio_get = kernel.function("sys_ioprio_get") ? {
 	name = "ioprio_get"
 	which = $which
 	who = $who
 	argstr = sprintf("%d, %d", $which, $who)
 }
-probe syscall.ioprio_get.return = kernel.function("sys_ioprio_get").return {
+probe syscall.ioprio_get.return = kernel.function("sys_ioprio_get").return ? {
 	name = "ioprio_get"
 	retstr = returnstr(1)
 }
@@ -1465,14 +1465,14 @@ probe syscall.ioprio_get.return = kernel.function("sys_ioprio_get").return {
 # ioprio_set _________________________________________________
 # long sys_ioprio_set(int which, int who, int ioprio)
 #
-probe syscall.ioprio_set = kernel.function("sys_ioprio_set") {
+probe syscall.ioprio_set = kernel.function("sys_ioprio_set") ? {
 	name = "ioprio_set"
 	which = $which
 	who = $who
 	ioprio = $ioprio
 	argstr = sprintf("%d, %d, %d", $which, $who, $ioprio)
 }
-probe syscall.ioprio_set.return = kernel.function("sys_ioprio_set").return {
+probe syscall.ioprio_set.return = kernel.function("sys_ioprio_set").return ? {
 	name = "ioprio_set"
 	retstr = returnstr(1)
 }
@@ -1483,7 +1483,7 @@ probe syscall.ioprio_set.return = kernel.function("sys_ioprio_set").return {
 #                struct kexec_segment __user *segments,
 #                unsigned long flags)
 #
-probe syscall.kexec_load = kernel.function("sys_kexec_load") {
+probe syscall.kexec_load = kernel.function("sys_kexec_load") ? {
 	name = "kexec_load"
 	entry = $entry
 	nr_segments = $nr_segments
@@ -1491,7 +1491,7 @@ probe syscall.kexec_load = kernel.function("sys_kexec_load") {
 	flags = $flags
 	argstr = sprintf("%p, %d, %p, %d", $entry, $nr_segments, $segments, $flags)
 }
-probe syscall.kexec_load.return = kernel.function("sys_kexec_load").return {
+probe syscall.kexec_load.return = kernel.function("sys_kexec_load").return ? {
 	name = "kexec_load"
 	retstr = returnstr(1)	
 }
