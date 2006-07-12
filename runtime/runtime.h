@@ -31,6 +31,10 @@
 #include <linux/kallsyms.h>
 #include <linux/version.h>
 
+#ifndef for_each_cpu
+#define for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
+#endif
+
 #ifdef DEBUG
 /** Prints debug line.
  * This function prints a debug message immediately to stpd. 

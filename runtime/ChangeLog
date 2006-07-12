@@ -1,3 +1,8 @@
+2006-07-12  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (for_each_cpu): Define for new kernels
+	which no longer define it.
+
 2006-07-11  Martin Hunt  <hunt@redhat.com>
 	* string.c (_stp_text_str): Use __get_user().
 
