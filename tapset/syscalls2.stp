@@ -271,11 +271,19 @@ probe syscall.personality.return = kernel.function("sys_personality").return {
 # asmlinkage int
 # sys_pipe(unsigned long __user * fildes)
 #
+%(arch == "x86_64" %?
+# x86_64 gcc 4.1 problem
+probe syscall.pipe = kernel.function("sys_pipe") {
+	name = "pipe"
+	argstr = ""
+}
+%:
 probe syscall.pipe = kernel.function("sys_pipe") {
 	name = "pipe"
 	fildes_uaddr = $fildes
-	argstr = _fildes_u(fildes_uaddr)
+	argstr = _fildes_u($fildes)
 }
+%)
 probe syscall.pipe.return = kernel.function("sys_pipe").return {
 	name = "pipe"
 	retstr = returnstr(1)
@@ -2217,12 +2225,20 @@ probe syscall.umount.return = kernel.function("sys_umount").return {
 # asmlinkage int
 # int sys_uname(struct old_utsname __user *name)
 #
+%(arch == "x86_64" %?
+# more gcc 4.1 problems
+probe syscall.uname = kernel.function("sys_uname") {
+	name = "uname"
+	argstr = ""
+}
+%:
 probe syscall.uname = kernel.function("sys_uname") {
 	name = "uname"
 	name_uaddr = $name
 	name_str = user_string($name)
 	argstr = user_string_quoted($name)
 }
+%)
 probe syscall.uname.return = kernel.function("sys_uname").return {
 	name = "uname"
 	retstr = returnstr(1)

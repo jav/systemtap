@@ -1888,6 +1888,12 @@ probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
+%(arch == "x86_64" %?
+probe syscall.mmap = kernel.function("sys_mmap") ? {
+	name = "mmap"
+	argstr = ""
+}
+%:
 probe syscall.mmap = kernel.function("sys_mmap") ? {
 	name = "mmap"
 	start = $addr
@@ -1903,6 +1909,8 @@ probe syscall.mmap = kernel.function("sys_mmap") ? {
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, offset)
 }
+%)
+
 probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
 	name = "mmap"
 	retstr = returnstr(2)
