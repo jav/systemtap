@@ -1,0 +1,8 @@
+#! stap -p1
+
+# Make sure you can use keywords in target symbol structure
+# references (Bugzilla 2193).
+
+probe kernel.function("add_timer_on") {
+    printf("%x\n", $timer->function)
+}

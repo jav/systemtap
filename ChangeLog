@@ -1,3 +1,17 @@
+2006-07-13  David Smith  <dsmith@redhat.com>
+
+	* parse.cxx (parser::expect_unknown2): New function that looks for
+	2 possible token types.
+	* parse.cxx (parser::expect_ident_or_keyword): New function that
+	calls parser::expect_unknown2.
+	* parse.cxx (parser::parse_symbol): Calls
+	parser::expect_ident_or_keyword to allow keywords to appear when
+	expanding target symbols (Bugzilla #2913).
+	* parse.h: Added prototypes for parser::expect_unknown2 and
+	parser::expect_ident_or_keyword.
+	* testsuite/parseok/seventeen.stp: New test to check for allowing
+	keywords when expanding target symbols.
+
 2006-06-30  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (hrtimer_builder::build): Enable hrtimers on >=2.6.17.

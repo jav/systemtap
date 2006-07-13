@@ -112,12 +112,15 @@ private:
   // expectations
   const token* expect_known (token_type tt, std::string const & expected);
   const token* expect_unknown (token_type tt, std::string & target);
+  const token* expect_unknown2 (token_type tt1, token_type tt2,
+				std::string & target);
 
   // convenience forms
   const token* expect_op (std::string const & expected);
   const token* expect_kw (std::string const & expected);
   const token* expect_number (int64_t & expected);
   const token* expect_ident (std::string & target);
+  const token* expect_ident_or_keyword (std::string & target);
   bool peek_op (std::string const & op);
   bool peek_kw (std::string const & kw);
 

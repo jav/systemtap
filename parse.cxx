@@ -375,6 +375,17 @@ parser::expect_unknown (token_type tt, string & target)
 
 
 const token* 
+parser::expect_unknown2 (token_type tt1, token_type tt2, string & target)
+{
+  const token *t = next();
+  if (!(t && (t->type == tt1 || t->type == tt2)))
+    throw parse_error ("expected " + tt2str(tt1) + " or " + tt2str(tt2));
+  target = t->content;
+  return t;
+}
+
+
+const token* 
 parser::expect_op (std::string const & expected)
 {
   return expect_known (tok_operator, expected);
@@ -402,6 +413,13 @@ const token*
 parser::expect_ident (std::string & target)
 {
   return expect_unknown (tok_identifier, target);
+}
+
+
+const token* 
+parser::expect_ident_or_keyword (std::string & target)
+{
+  return expect_unknown2 (tok_identifier, tok_keyword, target);
 }
 
 
@@ -2172,7 +2190,7 @@ parser::parse_symbol ()
 	      if (peek_op ("->"))
 		{ 
 		  next(); 
-		  expect_ident (c);
+		  expect_ident_or_keyword (c);
 		  tsym->components.push_back
 		    (make_pair (target_symbol::comp_struct_member, c));
 		}
