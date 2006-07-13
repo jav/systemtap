@@ -4,7 +4,7 @@
 
 Name: systemtap
 Version: @VERSION@
-Release: 2
+Release: 1
 Summary: Instrumentation System
 Group: Development/System
 License: GPL
