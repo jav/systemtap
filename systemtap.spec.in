@@ -1,10 +1,10 @@
-# Yo!  DO NOT THE FOLLOWING LINE.
+# Yo!  DO NOT CHANGE THE FOLLOWING LINE.
 %define bundled_elfutils 1
 %define elfutils_version 0.121
 
 Name: systemtap
 Version: @VERSION@
-Release: 1
+Release: 2
 Summary: Instrumentation System
 Group: Development/System
 License: GPL

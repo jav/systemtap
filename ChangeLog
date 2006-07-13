@@ -1,3 +1,8 @@
+2006-07-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.spec.in: Bump release number.
+	Add formerly missing admonitional verb.
+
 2006-07-13  David Smith  <dsmith@redhat.com>
 
 	* parse.cxx (parser::expect_unknown2): New function that looks for
