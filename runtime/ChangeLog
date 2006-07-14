@@ -1,3 +1,15 @@
+2006-07-14  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 2922
+	* time.c (_stp_init_time): call cpufreq_get for each cpu from 
+	a non-atomic context (module init time).
+	* time.c (__stp_init_time): remove call to cpufreq_get from IPI.
+
+	* time.c (__stp_time_timer_callback): disable IRQ's to avoid
+	perturbations in measurements.
+	* time.c (_stp_gettimeofday_us): disable preemption to avoid CPU
+	swaps while we're computing the time.
+
 2006-07-12  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (for_each_cpu): Define for new kernels

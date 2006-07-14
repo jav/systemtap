@@ -46,6 +46,8 @@ DEFINE_PER_CPU(stp_time_t, stp_time);
 /* Try to estimate the number of CPU cycles in a microsecond - i.e. MHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
  * attempt to account for overhead in the call.
+ * 
+ * NB: interrupts should be disabled when calling this.
  */
 static unsigned int
 __stp_estimate_cpufreq(void)
@@ -67,18 +69,23 @@ __stp_time_timer_callback(unsigned long val)
     struct timeval tv;
     cycles_t cycles;
 
+    local_irq_save(flags);
+
     do_gettimeofday(&tv);
     cycles = get_cycles();
 
     time = &__get_cpu_var(stp_time);
-    write_seqlock_irqsave(&time->lock, flags);
+    write_seqlock(&time->lock);
     time->base_time = tv;
     time->base_cycles = cycles;
-    write_sequnlock_irqrestore(&time->lock, flags);
+    write_sequnlock(&time->lock);
 
     mod_timer(&time->timer, jiffies + 1);
+
+    local_irq_restore(flags);
 }
 
+/* This is called as an IPI, with interrupts disabled. */
 static void
 __stp_init_time(void *info)
 {
@@ -87,15 +94,7 @@ __stp_init_time(void *info)
     seqlock_init(&time->lock);
     do_gettimeofday(&time->base_time);
     time->base_cycles = get_cycles();
-
-#ifdef CONFIG_CPU_FREQ
-    time->cpufreq = cpufreq_get(smp_processor_id()) / 1000;
-    if (time->cpufreq == 0) {
-        time->cpufreq = __stp_estimate_cpufreq();
-    }
-#else
     time->cpufreq = __stp_estimate_cpufreq();
-#endif
 
     init_timer(&time->timer);
     time->timer.expires = jiffies + 1;
@@ -152,13 +151,26 @@ int
 _stp_init_time(void)
 {
     int ret = 0;
+    int cpu, freq_mhz;
+    unsigned long flags;
 
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
 #ifdef CONFIG_CPU_FREQ
-    if (ret == 0)
+    if (ret == 0) {
+        for_each_online_cpu(cpu) {
+            freq_mhz = cpufreq_get(cpu) / 1000;
+            if (freq_mhz > 0) {
+                stp_time_t *time = &per_cpu(stp_time, cpu);
+                write_seqlock_irqsave(&time->lock, flags);
+                time->cpufreq = freq_mhz;
+                write_sequnlock_irqrestore(&time->lock, flags);
+            }
+        }
+
         ret = cpufreq_register_notifier(&__stp_time_notifier,
                 CPUFREQ_TRANSITION_NOTIFIER);
+    }
 #endif
 
     return ret;
@@ -171,9 +183,12 @@ _stp_gettimeofday_us(void)
     cycles_t last, delta;
     unsigned int freq;
     unsigned int seq;
+    stp_time_t *time;
     int i = 0;
 
-    stp_time_t *time = &__get_cpu_var(stp_time);
+    preempt_disable();
+
+    time = &__get_cpu_var(stp_time);
 
     seq = read_seqbegin(&time->lock);
     base = time->base_time;
@@ -191,6 +206,8 @@ _stp_gettimeofday_us(void)
 
     delta = get_cycles() - last;
     do_div(delta, freq);
+
+    preempt_enable();
 
     return (USEC_PER_SEC * (int64_t)base.tv_sec) + base.tv_usec + delta;
 }
