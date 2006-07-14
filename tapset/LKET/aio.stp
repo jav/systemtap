@@ -50,13 +50,13 @@ probe addevent.aio.io_setup.entry
 probe _addevent.aio.io_setup.entry
 	= syscall.io_setup
 {
-	log_aio_setup(maxevents, ctxp_uaddr)
+	log_aio_setup(HOOKID_AIO_IO_SETUP_ENTRY, maxevents, ctxp_uaddr)
 }
 
-function log_aio_setup(nr_events:long, ctxp_uaddr:long)
+function log_aio_setup(hookid:long, nr_events:long, ctxp_uaddr:long)
 %{
 	/* nr_events|ctxp_uaddr */
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SETUP_ENTRY, "%4b%8b", 
+	_lket_trace(_GROUP_AIO, THIS->hookid, "%4b%8b", 
 		THIS->nr_events, THIS->ctxp_uaddr);
 %}
 
@@ -91,13 +91,13 @@ probe addevent.aio.io_submit.entry
 probe _addevent.aio.io_submit.entry
 	= syscall.io_submit
 {
-	log_aio_submit(ctx_id, nr, iocbpp_uaddr)
+	log_aio_submit(HOOKID_AIO_IO_SUBMIT_ENTRY, ctx_id, nr, iocbpp_uaddr)
 }
 
-function log_aio_submit(ctx_id:long, nr:long, iocbpp_uaddr:long)
+function log_aio_submit(hookid:long, ctx_id:long, nr:long, iocbpp_uaddr:long)
 %{
 	/* ctx_id | no_iocbs | iocbpp */
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SUBMIT_ENTRY, "%8b%4b%8b", 
+	_lket_trace(_GROUP_AIO, THIS->hookid, "%8b%4b%8b", 
 		THIS->ctx_id, THIS->nr, THIS->iocbpp_uaddr);
 %}
 
@@ -126,16 +126,16 @@ probe addevent.aio.io_submit_one.entry
 probe _addevent.aio.io_submit_one.entry
 	= kernel.function("io_submit_one")
 {
-	log_io_submit_one($ctx, $user_iocb)	
+	log_io_submit_one(HOOKID_AIO_IO_SUBMIT_ONE_ENTRY, $ctx, $user_iocb)	
 }
 
-function log_io_submit_one(ctx:long, user_iocb_uaddr:long)
+function log_io_submit_one(hookid:long, ctx:long, user_iocb_uaddr:long)
 %{
 	struct iocb *user_iocb = (struct iocb *)THIS->user_iocb_uaddr;
 
 	/* ctx | user_iocb_addr | aio_lio_opcode | >aio_reqprio |
 		aio_fildes | aio_buf | aio_nbytes | >aio_offset */
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_SUBMIT_ONE_ENTRY, 
+	_lket_trace(_GROUP_AIO, THIS->hookid, 
 		"%8b%8b%2b%2b%4b%8b%8b%8b", 
 		THIS->ctx, THIS->user_iocb_uaddr, (_FMT_)user_iocb->aio_lio_opcode, 
 		(_FMT_)user_iocb->aio_reqprio, (_FMT_)user_iocb->aio_fildes, 
@@ -169,12 +169,12 @@ probe addevent.aio.io_destroy.entry
 probe _addevent.aio.io_destroy.entry
 	= syscall.io_destroy
 {
-	log_io_destroy(ctx)	
+	log_io_destroy(HOOKID_AIO_IO_DESTROY_ENTRY, ctx)
 }
 
-function log_io_destroy(ctx:long)
+function log_io_destroy(hookid:long, ctx:long)
 %{
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_DESTROY_ENTRY, "%8b", THIS->ctx);
+	_lket_trace(_GROUP_AIO, THIS->hookid, "%8b", THIS->ctx);
 %}
 
 
@@ -205,10 +205,11 @@ probe addevent.aio.io_getevents.entry
 probe _addevent.aio.io_getevents.entry
         = syscall.io_getevents
 {
-	log_io_getevents(ctx_id, min_nr, nr, events_uaddr, timeout_uaddr)
+	log_io_getevents(HOOKID_AIO_IO_GETEVENTS_ENTRY, ctx_id, 
+		min_nr, nr, events_uaddr, timeout_uaddr)
 }
 
-function log_io_getevents(ctx_id:long, min_nr:long, nr:long, 
+function log_io_getevents(hookid:long, ctx_id:long, min_nr:long, nr:long, 
 		events_uaddr:long, timeout:long)
 %{
 	struct timespec __user *timeout = (struct timespec *)THIS->timeout;
@@ -217,7 +218,7 @@ function log_io_getevents(ctx_id:long, min_nr:long, nr:long,
 	if (unlikely(copy_from_user(&ts, timeout, sizeof(ts))))
 		return;
 
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_GETEVENTS_ENTRY,
+	_lket_trace(_GROUP_AIO, THIS->hookid,
 		"%8b%4b%4b%8b%4b%4b", THIS->ctx_id, THIS->min_nr,
 		THIS->nr, THIS->events_uaddr, (_FMT_)ts.tv_sec, 
 		(_FMT_)ts.tv_nsec);
@@ -249,12 +250,13 @@ probe addevent.aio.io_cancel.entry
 probe _addevent.aio.io_cancel.entry
 	= syscall.io_cancel
 {
-	log_aio_cancel(ctx_id, iocb_uaddr, result_uaddr)
+	log_aio_cancel(HOOKID_AIO_IO_CANCEL_ENTRY, ctx_id, 
+		iocb_uaddr, result_uaddr)
 }
 
-function log_aio_cancel(ctx_id:long, iocb_uaddr:long, result_uaddr:long)
+function log_aio_cancel(hookid:long, ctx_id:long, iocb_uaddr:long, result_uaddr:long)
 %{
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_CANCEL_ENTRY, "%8b%8b%8b",
+	_lket_trace(_GROUP_AIO, THIS->hookid, "%8b%8b%8b",
 		THIS->ctx_id, THIS->iocb_uaddr, THIS->result_uaddr);
 %}
 
