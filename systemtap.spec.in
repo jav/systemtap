@@ -1,10 +1,32 @@
-# Yo!  DO NOT CHANGE THE FOLLOWING LINE.
+# Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
+%define release 1
+# Version number of oldest elfutils release that works with systemtap.
+%define elfutils_version 0.122
+
+# Set bundled_elfutils to 0 on systems that have %{elfutils_version} or newer.
+%if 0%{?fedora}
 %define bundled_elfutils 1
-%define elfutils_version 0.121
+%if "%fedora" >= "6"
+%define bundled_elfutils 0
+%endif
+%endif
+
+%if 0%{?rhel}
+%define bundled_elfutils 1
+%if "%rhel" >= "5"
+%define bundled_elfutils 0
+%endif
+%endif
+
+%ifndef bundled_elfutils
+# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
+# You can use rpmbuild --define "bundled_elfutils 0" for a build of your own.
+%define bundled_elfutils 1
+%endif
 
 Name: systemtap
 Version: @VERSION@
-Release: 1
+Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
 License: GPL
