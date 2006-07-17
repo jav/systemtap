@@ -8,7 +8,7 @@ probe syscall.compat_sys_nanosleep = kernel.function("compat_sys_nanosleep") {
 	name = "compat_sys_nanosleep"
 	rqtp_uaddr = $rqtp
 	rmtp_uaddr = $rmtp
-	argstr = sprintf("[%p], [%p]", rqtp_uaddr, rmtp_uaddr)
+	argstr = sprintf("%p, %p", rqtp_uaddr, rmtp_uaddr)
 }
 probe syscall.compat_sys_nanosleep.return =
 	kernel.function("compat_sys_nanosleep").return {
@@ -24,7 +24,7 @@ probe syscall.compat_sys_getitimer = kernel.function("compat_sys_getitimer") {
 	name = "compat_sys_getitimer"
 	which = $which
 	value_uaddr = $it
-	argstr = sprintf("%s, [%p]", _itimer_which_str(which), value_uaddr)
+	argstr = sprintf("%s, %p", _itimer_which_str(which), value_uaddr)
 }
 probe syscall.compat_sys_getitimer.return =
 	kernel.function("compat_sys_getitimer").return {
@@ -57,7 +57,7 @@ probe syscall.compat_sys_setitimer.return =
 probe syscall.compat_sys_times = kernel.function("compat_sys_times") {
 	name = "compat_sys_times"
 	buf_uaddr = $tbuf
-	argstr = sprintf("[%p]", buf_uaddr)
+	argstr = sprintf("%p", buf_uaddr)
 }
 probe syscall.compat_sys_times.return =
 	kernel.function("compat_sys_times").return {
@@ -71,7 +71,7 @@ probe syscall.compat_sys_times.return =
 probe syscall.compat_sys_sigpending = kernel.function("compat_sys_sigpending") {
 	name = "compat_sys_sigpending"
 	set_uaddr = $set
-	argstr = sprintf("[%p]", set_uaddr)
+	argstr = sprintf("%p", set_uaddr)
 }
 probe syscall.compat_sys_sigpending.return =
 	kernel.function("compat_sys_sigpending").return {
@@ -89,7 +89,7 @@ probe syscall.compat_sys_sigprocmask = kernel.function("compat_sys_sigprocmask")
 	how  = $how
 	set_uaddr = $set
 	oldset_uaddr = $oset
-	argstr = sprintf("%s, [%p], [%p]", _sigprocmask_how_str($how),
+	argstr = sprintf("%s, %p, %p", _sigprocmask_how_str($how),
 			set_uaddr, oldset_uaddr)
 }
 probe syscall.compat_sys_sigprocmask.return =
@@ -179,7 +179,7 @@ probe syscall.compat_sys_getrusage = kernel.function("compat_sys_getrusage") {
 	name = "compat_sys_getrusage"
 	who = $who
 	usage_uaddr = $ru
-	argstr = sprintf("%s, [%p]",_rusage_who_str($who), usage_uaddr)
+	argstr = sprintf("%s, %p",_rusage_who_str($who), usage_uaddr)
 }
 probe syscall.compat_sys_getrusage.return =
 	kernel.function("compat_sys_getrusage").return {
@@ -197,7 +197,7 @@ probe syscall.compat_sys_wait4 = kernel.function("compat_sys_wait4") {
 	status_uaddr = $stat_addr
 	options = $options
 	rusage_uaddr = $ru
-	argstr = sprintf("%d, [%p], %s, [%p]", $pid, status_uaddr,
+	argstr = sprintf("%d, %p, %s, %p", $pid, status_uaddr,
 			_wait4_opt_str($options), rusage_uaddr)
 }
 probe syscall.compat_sys_wait4.return =
@@ -216,7 +216,7 @@ probe syscall.compat_sys_sched_setaffinity = kernel.function("compat_sys_sched_s
 	pid = $pid
 	len = $len
 	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, %d, [%p]", pid, len, mask_uaddr)
+	argstr = sprintf("%d, %d, %p", pid, len, mask_uaddr)
 }
 probe syscall.compat_sys_sched_setaffinity.return =
 	kernel.function("compat_sys_sched_setaffinity").return {
@@ -234,7 +234,7 @@ probe syscall.compat_sys_sched_getaffinity = kernel.function("compat_sys_sched_g
 	pid = $pid
 	len = $len
 	mask_uaddr = $user_mask_ptr
-	argstr = sprintf("%d, %d, [%p]", pid, len, mask_uaddr)
+	argstr = sprintf("%d, %d, %p", pid, len, mask_uaddr)
 }
 probe syscall.compat_sys_sched_getaffinity.return =
 	kernel.function("compat_sys_sched_getaffinity").return {
@@ -250,7 +250,7 @@ probe syscall.compat_sys_utime = kernel.function("compat_sys_utime") {
 	name = "compat_sys_utime"
 	filename = user_string($filename)
 	buf_uaddr = $t
-	argstr = sprintf("%s, [%p]", filename, buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted(filename), buf_uaddr)
 }
 probe syscall.compat_sys_utime.return =
 	kernel.function("compat_sys_utime").return {
@@ -266,7 +266,8 @@ probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes") {
 	name = "compat_sys_utimes"
 	filename = user_string($filename)
 	tvp_uaddr = $t
-	argstr = sprintf("%s, %s", filename, _struct_timeval_u(tvp_uaddr))
+	argstr = sprintf("%s, %s", user_string_quoted(filename),
+				 _struct_timeval_u(tvp_uaddr))
 }
 probe syscall.compat_sys_utimes.return =
 	kernel.function("compat_sys_utimes").return {
@@ -282,7 +283,7 @@ probe syscall.compat_sys_newstat = kernel.function("compat_sys_newstat") {
 	name = "compat_sys_newstat"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", file_name, buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
 }
 probe syscall.compat_sys_newstat.return =
 	kernel.function("compat_sys_newstat").return {
@@ -298,7 +299,7 @@ probe syscall.compat_sys_newlstat = kernel.function("compat_sys_newlstat") {
 	name = "compat_sys_newlstat"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", [%p]", file_name, buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
 }
 probe syscall.compat_sys_newlstat.return =
 	kernel.function("compat_sys_newlstat").return {
@@ -314,7 +315,7 @@ probe syscall.compat_sys_newfstat = kernel.function("compat_sys_newfstat") {
 	name = "compat_sys_newfstat"
 	filedes = $fd
 	buf_uaddr = $statbuf
-	argstr = sprintf("%d, [%p]", filedes, buf_uaddr)
+	argstr = sprintf("%d, %p", filedes, buf_uaddr)
 }
 probe syscall.compat_sys_newfstat.return =
 	kernel.function("compat_sys_newfstat").return {
@@ -330,7 +331,7 @@ probe syscall.compat_sys_statfs = kernel.function("compat_sys_statfs") {
 	name = "statfs"
 	path = user_string($path)
 	buf_uaddr = $buf
-	argstr = sprintf("%s, [%p]", path, buf_uaddr)
+	argstr = sprintf("%s, %p", path, buf_uaddr)
 }
 probe syscall.compat_sys_statfs.return =
 	kernel.function("compat_sys_statfs").return {
@@ -346,7 +347,7 @@ probe syscall.compat_sys_fstatfs = kernel.function("compat_sys_fstatfs") {
 	name = "fstatfs"
 	fd = $fd
 	buf_uaddr = $buf
-	argstr = sprintf("%d, [%p]", fd, buf_uaddr)
+	argstr = sprintf("%d, %p", fd, buf_uaddr)
 }
 probe syscall.compat_sys_fstatfs.return =
 	kernel.function("compat_sys_fstatfs").return {
@@ -360,7 +361,7 @@ probe syscall.lstat64 =
 	name = "lstat64"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, [%p]", file_name, buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
 }
 probe syscall.lstat64.return = 
 		kernel.function("sys_lstat64").return ? {
@@ -378,7 +379,7 @@ probe syscall.compat_sys_ioctl = kernel.function("compat_sys_ioctl") {
 	d = $fd
 	request = cmd
 	arg = $arg
-	argstr = sprintf("%d, %d, [%p]", fd, request, arg)
+	argstr = sprintf("%d, %d, %p", fd, request, arg)
 }
 probe syscall.compat_sys_ioctl.return =
 	kernel.function("compat_sys_ioctl").return {
@@ -395,7 +396,7 @@ probe syscall.compat_sys_fcntl64 = kernel.function("compat_sys_fcntl64") {
 	fd = $fd
 	cmd = $cmd
 	arg = $arg
-	argstr = sprintf("%d, %s, [%p]", fd, _fcntl_cmd_str($cmd), arg)
+	argstr = sprintf("%d, %s, %p", fd, _fcntl_cmd_str($cmd), arg)
 }
 probe syscall.compat_sys_fcntl64.return =
 	kernel.function("compat_sys_fcntl64").return {
@@ -427,7 +428,7 @@ probe syscall.compat_sys_io_setup = kernel.function("compat_sys_io_setup") {
 	name = "compat_sys_io_setup"
 	maxevents = $nr_reqs
 	ctxp_uaddr = $ctx32p
-	argstr = sprintf("%d, [%p]", maxevents, ctxp_uaddr)
+	argstr = sprintf("%d, %p", maxevents, ctxp_uaddr)
 }
 probe syscall.compat_sys_io_setup.return =
 	kernel.function("compat_sys_io_setup").return {
@@ -449,7 +450,7 @@ probe syscall.compat_sys_io_getevents = kernel.function("compat_sys_io_getevents
 	nr = $nr
 	events_uaddr = $events
 	timeout_uaddr = $timeout
-	argstr = sprintf("%d, %d, %d, [%p],[%p]", ctx_id, min_nr, nr,
+	argstr = sprintf("%d, %d, %d, %p,%p", ctx_id, min_nr, nr,
 				events_uaddr, timeout_uaddr)
 }
 probe syscall.compat_sys_io_getevents.return =
@@ -467,7 +468,7 @@ probe syscall.compat_sys_io_submit = kernel.function("compat_sys_io_submit") {
 	ctx_id = $ctx_id
 	nr = $nr
 	iocbpp_uaddr = iocb
-	argstr = sprintf("%d, %d, [%p]", ctx_id, nr, iocbpp_uaddr)
+	argstr = sprintf("%d, %d, %p", ctx_id, nr, iocbpp_uaddr)
 }
 probe syscall.compat_sys_io_submit.return =
 	kernel.function("compat_sys_io_submit").return {
@@ -489,7 +490,7 @@ probe syscall.compat_sys_mount = kernel.function("compat_sys_mount") {
 	filesystemtype = user_string($type)
 	mountflags = $flags
 	data_uaddr = $data
-	argstr = sprintf("\"%s\", \"%s\", \"%s\", %s, [%p]", source,
+	argstr = sprintf("\"%s\", \"%s\", \"%s\", %s, %p", source,
 			target, filesystemtype, _mountflags_str($flags),
 			data_uaddr)
 }
@@ -509,7 +510,7 @@ probe syscall.compat_sys_getdents = kernel.function("compat_sys_getdents") {
 	fd = $fd
 	dirent_uaddr = $dirent
 	count = $count
-	argstr = sprintf("%d, [%p], %d", fd, dirp_uaddr, count)
+	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
 }
 probe syscall.compat_sys_getdents.return =
 	kernel.function("compat_sys_getdents").return {
@@ -527,7 +528,7 @@ probe syscall.compat_sys_getdents64 = kernel.function("compat_sys_getdents64") {
 	fd = $fd
 	dirent_uaddr = $dirent
 	count = $count
-	argstr = sprintf("%d, [%p], %d", fd, dirp_uaddr, count)
+	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
 }
 probe syscall.compat_sys_getdents64.return =
 	kernel.function("compat_sys_getdents64").return {
@@ -546,8 +547,8 @@ probe syscall.compat_sys_readv = kernel.function("compat_sys_readv") {
 	fd = $fd
 	vector_uaddr = $vec
 	count = $vlen
-	//argstr = sprintf("unknown fd, [%p], %p", vector_uaddr, count)
-	argstr = sprintf("%d, [%p], %p", fd, vector_uaddr, count)
+	//argstr = sprintf("unknown fd, %p, %p", vector_uaddr, count)
+	argstr = sprintf("%d, %p, %p", fd, vector_uaddr, count)
 }
 probe syscall.compat_sys_readv.return =
 	kernel.function("compat_sys_readv").return {
@@ -566,7 +567,7 @@ probe syscall.compat_sys_writev = kernel.function("compat_sys_writev") {
 	fd = $fd
 	vector_uaddr = $vec
 	count = $vlen
-	argstr = sprintf("%d, [%p], %d", fd, vector_uaddr, $vlen)
+	argstr = sprintf("%d, %p, %d", fd, vector_uaddr, $vlen)
 }
 probe syscall.compat_sys_writev.return =
 	kernel.function("compat_sys_writev").return {
@@ -633,7 +634,7 @@ probe syscall.compat_sys_nfsservctl = kernel.function("compat_sys_nfsservctl") {
 	cmd = $cmd
 	argp_uaddr = $arg
 	resp_uaddr = $res
-	argstr = sprintf("%p, [%p], [%p]", cmd, argp_uaddr, resp_uaddr)
+	argstr = sprintf("%p, %p, %p", cmd, argp_uaddr, resp_uaddr)
 }
 probe syscall.compat_sys_nfsservctl.return =
 	kernel.function("compat_sys_nfsservctl").return {
@@ -667,7 +668,7 @@ probe syscall.compat_sys_msgsnd = kernel.function("compat_sys_msgsnd") {
 	second = $second
 	third = $third
 	uptr_uaddr = $uptr
-	argstr = sprintf("%d, %d, %d, [%p]", first, second, third,
+	argstr = sprintf("%d, %d, %d, %p", first, second, third,
 				uptr_uaddr)
 }
 probe syscall.compat_sys_msgsnd.return =
@@ -686,7 +687,7 @@ probe syscall.compat_sys_msgrcv = kernel.function("compat_sys_msgrcv") {
 	second = $second
 	third = $third
 	uptr_uaddr = $uptr
-	argstr = sprintf("%d, %d, %d, [%p]", first, second, third,
+	argstr = sprintf("%d, %d, %d, %p", first, second, third,
 				uptr_uaddr)
 }
 probe syscall.compat_sys_msgrcv.return =
@@ -703,7 +704,7 @@ probe syscall.compat_sys_msgctl = kernel.function("compat_sys_msgctl") {
 	first = $first
 	second = $second
 	uptr_uaddr = $uptr
-	argstr = sprintf("%d, %d, [%p]", first, second, uptr_uaddr)
+	argstr = sprintf("%d, %d, %p", first, second, uptr_uaddr)
 }
 probe syscall.compat_sys_msgctl.return =
 	kernel.function("compat_sys_msgctl").return {
@@ -721,7 +722,7 @@ probe syscall.compat_sys_shmat = kernel.function("compat_sys_shmat") {
 	second = $second
 	third = $third
 	uptr_uaddr = $uptr
-	argstr = sprintf("%d, %d, %d, [%p]", first, second, third,
+	argstr = sprintf("%d, %d, %d, %p", first, second, third,
 				uptr_uaddr)
 }
 probe syscall.compat_sys_shmat.return =
@@ -738,7 +739,7 @@ probe syscall.compat_sys_shmctl = kernel.function("compat_sys_shmctl") {
 	first = $first
 	second = $second
 	uptr_uaddr = $uptr
-	argstr = sprintf("%d, %d, [%p]", first, second, uptr_uaddr)
+	argstr = sprintf("%d, %d, %p", first, second, uptr_uaddr)
 }
 probe syscall.compat_sys_shmctl.return =
 	kernel.function("compat_sys_shmctl").return {
@@ -756,7 +757,7 @@ probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop") {
 	sops_uaddr = tsems
 	nsops = $nsops
 	timeout_uaddr = $timeout
-	argstr = sprintf("%d, [%p], %d, %s", semid, sops_uaddr, nsops,
+	argstr = sprintf("%d, %p, %d, %s", semid, sops_uaddr, nsops,
 			_struct_timespec_u(timeout_uaddr))
 }
 probe syscall.compat_sys_semtimedop.return =
@@ -777,7 +778,7 @@ probe syscall.compat_sys_mq_open = kernel.function("compat_sys_mq_open") {
 	oflag = $oflag
 	mode = $mode
 	u_attr_uaddr = $u_attr
-	argstr = sprintf("\"%s\", %d, %d, [%p]", name_str, oflag, mode,
+	argstr = sprintf("\"%s\", %d, %d, %p", name_str, oflag, mode,
 				u_attr_uaddr) 
 }
 probe syscall.compat_sys_mq_open.return =
@@ -836,7 +837,7 @@ probe syscall.compat_sys_mq_notify = kernel.function("compat_sys_mq_notify") {
 	name = "compat_sys_mq_notify"
 	mqdes = $mqdes
 	notification_uaddr = $u_notification
-	argstr = sprintf("%d, [%p]", mqdes, notification_uaddr)
+	argstr = sprintf("%d, %p", mqdes, notification_uaddr)
 }
 probe syscall.compat_sys_mq_notify.return =
 	kernel.function("compat_sys_mq_notify").return {
@@ -855,7 +856,7 @@ probe syscall.compat_sys_mq_getsetattr =
 	mqdes = $mqdes
 	u_mqstat_uaddr = $u_mqstat
 	u_omqstat_uaddr = $u_omqstat
-	argstr = sprintf("%d, [%p], [%p]", mqdes, u_mqstat_uaddr,
+	argstr = sprintf("%d, %p, %p", mqdes, u_mqstat_uaddr,
 				u_omqstat_uaddr)
 }
 probe syscall.compat_sys_mq_getsetattr.return =
@@ -899,7 +900,7 @@ probe syscall.compat_sys_setsockopt = kernel.function("compat_sys_setsockopt") {
 	optname_str = _sockopt_optname_str($optname)
 	optval_uaddr = $optval
 	optlen = $optlen
-	argstr = sprintf("%d, %s, %s, [%p], %d", $fd, level_str,
+	argstr = sprintf("%d, %s, %s, %p, %d", $fd, level_str,
 				optname_str, optval_uaddr, $optlen)
 }
 probe syscall.compat_sys_setsockopt.return =
@@ -922,7 +923,7 @@ probe syscall.compat_sys_getsockopt = kernel.function("compat_sys_getsockopt") {
 	optval_uaddr = $optval
 	/* FIXME */
 	optlen_uaddr = $optlen
-	argstr = sprintf("%d, %s, %s, [%p], [%p]", s, level_str,
+	argstr = sprintf("%d, %s, %s, %p, %p", s, level_str,
 			optname_str, optval_uaddr, optlen_uaddr)
 }
 probe syscall.compat_sys_getsockopt.return =
@@ -941,7 +942,7 @@ probe syscall.compat_sys_sendmsg = kernel.function("compat_sys_sendmsg") {
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
-	argstr = sprintf("%d, [%p], %s", s, msg_uaddr,
+	argstr = sprintf("%d, %p, %s", s, msg_uaddr,
 				_send_flags_str($flags))
 }
 probe syscall.compat_sys_sendmsg.return =
@@ -960,7 +961,7 @@ probe syscall.compat_sys_recvmsg = kernel.function("compat_sys_recvmsg") {
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
-	argstr = sprintf("%d, [%p], %s", s, msg_uaddr,
+	argstr = sprintf("%d, %p, %s", s, msg_uaddr,
 				_send_flags_str($flags))
 }
 probe syscall.compat_sys_recvmsg.return =
@@ -976,7 +977,7 @@ probe syscall.compat_sys_socketcall = kernel.function("compat_sys_socketcall") {
 	name = "compat_sys_socketcall"
 	call = $call
 	args_uaddr = $args
-	argstr = sprintf("%d, [%p]", call, args_uaddr)
+	argstr = sprintf("%d, %p", call, args_uaddr)
 }
 probe syscall.compat_sys_socketcall.return =
 	kernel.function("compat_sys_socketcall").return {
@@ -993,9 +994,10 @@ probe syscall.sys32_open = kernel.function("sys32_open") ? {
 	flags = $flags
 	mode = $mode
 	if (flags & 64)
-	argstr = sprintf("[0x%x]:\"%s\", %s, %#o", filename_uaddr, filename, _sys_open_flag_str(flags), mode)
+	argstr = sprintf("%s, %s, %#o", user_string_quoted(filename),
+				_sys_open_flag_str(flags), mode)
 	else
-	argstr = sprintf("[0x%x]:\"%s\", %s", filename_uaddr, filename, _sys_open_flag_str(flags))
+	argstr = sprintf("%s, %s", user_string_quoted(filename), _sys_open_flag_str(flags))
 }
 probe syscall.sys32_open.return = kernel.function("sys32_open").return ? {
 	name = "open"
@@ -1012,7 +1014,7 @@ probe syscall.old32_readdir = kernel.function("old32_readdir") {
 	fd = $fd
 	dirp_uaddr = $dirent
 	count = $count
-	argstr = sprintf("%d, [%p], %d", fd, dirp_uaddr, count)
+	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
 }
 probe syscall.old32_readdir.return =
 	kernel.function("old32_readdir").return {
@@ -1029,7 +1031,7 @@ probe syscall.sys64_time = kernel.function("sys64_time") {
 	name = "sys64_time"
 	/* FIXME */
 	t_uaddr = $tloc
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", t_uaddr)
 }
 probe syscall.sys64_time.return = kernel.function("sys64_time").return {
 	name = "sys64_time"
@@ -1057,7 +1059,7 @@ probe syscall.ppc64_personality.return =
 probe syscall.ppc_rtas = kernel.function("ppc_rtas") {
 	name = "ppc_rtas"
 	uargs_uaddr = $uargs
-	argstr = sprintf("[%p]", uargs_uaddr)
+	argstr = sprintf("%p", uargs_uaddr)
 }
 probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
 	name = "ppc_rtas"
@@ -1084,7 +1086,7 @@ probe syscall.quotactl = kernel.function("sys_quotactl") ? {
 	special_str = user_string($special)
 	id = $id
 	addr_uaddr = $addr
-	argstr = sprintf("%s, %s, %p, [%p]", cmd_str, special_str,
+	argstr = sprintf("%s, %s, %p, %p", cmd_str, special_str,
 				id, addr_uaddr)
 }
 probe syscall.quotactl.return = kernel.function("sys_quotactl").return ? {
@@ -1105,7 +1107,7 @@ probe syscall.request_key = kernel.function("sys_request_key") ? {
 	description_uaddr = $_description
 	callout_info_uaddr = $_callout_info
 	destringid = $destringid
-	argstr = sprintf("[%p], [%p], [%p], %p", type_uaddr,
+	argstr = sprintf("%p, %p, %p, %p", type_uaddr,
 			description_uaddr, callout_info_uaddr, destringid)
 }
 probe syscall.request_key.return = kernel.function("sys_request_key").return ? {
@@ -1123,7 +1125,7 @@ probe syscall.sys32_execve = kernel.function("sys32_execve") ? {
 	name = "sys32_execve"
 	filename = user_string($a0)
 	args = __get_argv($a1) 
-	argstr = sprintf("%s %s", filename, args)
+	argstr = sprintf("%s %s", user_string_quoted(filename), args)
 }
 probe syscall.sys32_execve.return =
 	kernel.function("sys32_execve").return ? {
@@ -1139,7 +1141,7 @@ probe syscall.sys32_time = kernel.function("sys32_time") ? {
 	name = "sys32_time"
 	/* FIXME */
 	t_uaddr = $tloc
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", t_uaddr)
 }
 probe syscall.sys32_time.return = kernel.function("sys32_time").return ? {
 	name = "sys32_time"
@@ -1154,7 +1156,7 @@ probe syscall.ppc64_sys32_stime = kernel.function("ppc64_sys32_stime") ? {
 	name = "ppc64_sys32_stime"
 	/* FIXME */
 	t_uaddr = $tptr
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", t_uaddr)
 }
 probe syscall.ppc64_sys32_stime.return =
 	kernel.function("ppc64_sys32_stime").return ? {
@@ -1199,7 +1201,7 @@ probe syscall.sys32_pause.return = kernel.function("sys32_pause").return ? {
 probe syscall.sys32_olduname = kernel.function("sys32_olduname") ? {
 	name = "sys32_olduname"
 	name_uaddr = $name
-	argstr = sprintf("[%p]", name_uaddr)
+	argstr = sprintf("%p", name_uaddr)
 }
 probe syscall.sys32_olduname.return = kernel.function("sys32_olduname").return ?{
 	name = "sys32_olduname"
@@ -1246,7 +1248,7 @@ probe syscall.sys32_gettimeofday = kernel.function("sys32_gettimeofday") ? {
 	name = "sys32_gettimeofday"
 	tv_uaddr = $tv
 	tz_uaddr = $tz
-	argstr = sprintf("[%p], [%p]", tv_uaddr, tz_uaddr)
+	argstr = sprintf("%p, %p", tv_uaddr, tz_uaddr)
 }
 probe syscall.sys32_gettimeofday.return =
 	kernel.function("sys32_gettimeofday").return ? {
@@ -1262,7 +1264,7 @@ probe syscall.sys32_settimeofday = kernel.function("sys32_settimeofday") ? {
 	name = "sys32_settimeofday"
 	tv_uaddr = $tv
 	tz_uaddr = $tz
-	argstr = sprintf("[%p], [%p]", tv_uaddr, tz_uaddr)
+	argstr = sprintf("%p, %p", tv_uaddr, tz_uaddr)
 }
 probe syscall.sys32_settimeofday.return =
 	kernel.function("sys32_settimeofday").return ? {
@@ -1276,7 +1278,7 @@ probe syscall.sys32_settimeofday.return =
 probe syscall.sys32_sysinfo = kernel.function("sys32_sysinfo") ? {
 	name = "sys32_sysinfo"
 	info_uaddr = $info
-	argstr = sprintf("[%p]", info_uaddr)
+	argstr = sprintf("%p", info_uaddr)
 }
 probe syscall.sys32_sysinfo.return =
 	kernel.function("sys32_sysinfo").return ? {
@@ -1296,7 +1298,7 @@ probe syscall.sys32_ipc = kernel.function("sys32_ipc") ? {
 	third = $third
 	ptr_uaddr = $ptr
 	fifth = $fifth
-	argstr = sprintf("%d, %d, %d, %d, [%p], %d", call, first, second,
+	argstr = sprintf("%d, %d, %d, %d, %p, %d", call, first, second,
 				third, ptr_uaddr, fifth) 
 }
 probe syscall.sys32_ipc.return = kernel.function("sys32_ipc").return ? {
@@ -1331,7 +1333,7 @@ probe syscall.sys32_sigreturn.return =
 probe syscall.sys32_adjtimex = kernel.function("sys32_adjtimex") ? {
 	name = "sys32_adjtimex"
 	buf_uaddr = $utp
-	argstr = sprintf("[%p]", buf_uaddr)
+	argstr = sprintf("%p", buf_uaddr)
 }
 probe syscall.sys32_adjtimex.return =
 		kernel.function("sys32_adjtimex").return ?{
@@ -1349,7 +1351,7 @@ probe syscall.sys32_getdents = kernel.function("sys32_getdents") ? {
 	fd = $fd
 	dirp_uaddr = $dirent
 	count = $count
-	argstr = sprintf("%d, [%p], %d", fd, dirp_uaddr, count)
+	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
 }
 probe syscall.sys32_getdents.return =
 	kernel.function("sys32_getdents").return ? {
@@ -1363,7 +1365,7 @@ probe syscall.sys32_getdents.return =
 probe syscall.sys32_sysctl = kernel.function("sys32_sysctl") ? {
 	name = "sys32_sysctl"
 	args_uaddr = $args
-	argstr = sprintf("[%p]", args_uaddr)
+	argstr = sprintf("%p", args_uaddr)
 }
 probe syscall.sys32_sysctl.return =
 	kernel.function("sys32_sysctl").return ? {
@@ -1379,7 +1381,7 @@ probe syscall.sys32_sched_setparam = kernel.function("sys32_sched_setparam") ? {
 	name = "sys32_sched_setparam"
 	pid = $pid
 	param_uaddr = $param
-	argstr = sprintf("%d, [%p]", pid, param_uaddr)
+	argstr = sprintf("%d, %p", pid, param_uaddr)
 }
 probe syscall.sys32_sched_setparam.return =
 	kernel.function("sys32_sched_setparam").return ? {
@@ -1397,7 +1399,7 @@ probe syscall.sys32_sched_rr_get_interval =
 	name = "sys32_sched_rr_get_interval"
 	pid = $pid
 	interval_uaddr = $interval
-	argstr = sprintf("%d, [%p]", pid, interval_uaddr)  
+	argstr = sprintf("%d, %p", pid, interval_uaddr)  
 }
 probe syscall.sys32_sched_rr_get_interval.return =
 	kernel.function("sys32_sched_rr_get_interval").return ? {
@@ -1473,7 +1475,7 @@ probe syscall.sys32_rt_sigpending = kernel.function("sys32_rt_sigpending") ? {
 	name = "sys32_rt_sigpending"
 	set_uaddr = $set
 	sigsetsize = $sigsetsize
-	argstr = sprintf("[%p], %d", set_uaddr, $sigsetsize)
+	argstr = sprintf("%p, %d", set_uaddr, $sigsetsize)
 }
 probe syscall.sys32_rt_sigpending.return =
 	kernel.function("sys32_rt_sigpending").return ? {
@@ -1494,7 +1496,7 @@ probe syscall.sys32_rt_sigtimedwait =
 	uinfo_uaddr = $uinfo
 	uts_uaddr = $uts
 	sigsetsize = $sigsetsize
-	argstr = sprintf("[%p], [%p], [%p], %p", uthese_uaddr,
+	argstr = sprintf("%p, %p, %p, %p", uthese_uaddr,
 			uinfo_uaddr, uts_uaddr, sigsetsize)
 }
 probe syscall.sys32_rt_sigtimedwait.return =
@@ -1512,7 +1514,7 @@ probe syscall.sys32_rt_sigqueueinfo =
 	pid = $pid
 	sig = $sig
 	uinfo_uaddr = $uinfo
-	argstr = sprintf("%p, %s, [%p]", pid, _signal_name($sig),
+	argstr = sprintf("%p, %s, %p", pid, _signal_name($sig),
 				uinfo_uaddr)
 }
 probe syscall.sys32_rt_sigqueueinfo.return =
@@ -1545,7 +1547,7 @@ probe syscall.sys32_sendfile64 = kernel.function("sys32_sendfile64") ? {
 	in_fd = $in_fd
 	offset_uaddr = $offset
 	count = $count
-	argstr = sprintf("%d, %d, [%p], %d", $out_fd, $in_fd, offset_uaddr,
+	argstr = sprintf("%d, %d, %p, %d", $out_fd, $in_fd, offset_uaddr,
 				$count)
 }
 probe syscall.sys32_sendfile64.return =
@@ -1564,7 +1566,7 @@ probe syscall.ppc32_timer_create = kernel.function("ppc32_timer_create") ? {
 	which_clock = $clock
 	timer_event_spec = $ev32
 	created_timer_id = $timer_id
-	argstr = sprintf("%d, [%p], [%p]", which_clock, timer_event_spec,
+	argstr = sprintf("%d, %p, %p", which_clock, timer_event_spec,
 				created_timer_id)
 }
 probe syscall.ppc32_timer_create.return =
@@ -1584,7 +1586,7 @@ probe syscall.compat_timer_settime = kernel.function("compat_timer_settime") ? {
 	flags = $flags
 	new_setting_uaddr = $new
 	old_setting_uaddr = $old
-	argstr = sprintf("%d, %d, [%p], [%p]", timer_id, flags,
+	argstr = sprintf("%d, %d, %p, %p", timer_id, flags,
 				new_setting_uaddr, old_setting_uaddr)
 }
 probe syscall.compat_timer_settime.return =
@@ -1601,7 +1603,7 @@ probe syscall.compat_timer_gettime = kernel.function("compat_timer_gettime") ? {
 	name = "compat_timer_gettime"
 	timer_id = $timer_id
 	setting_uaddr = $setting
-	argstr = sprintf("%d, [%p]", timer_id, setting_uaddr)
+	argstr = sprintf("%d, %p", timer_id, setting_uaddr)
 }
 probe syscall.compat_timer_gettime.return =
 	kernel.function("compat_timer_gettime").return ? {
@@ -1617,7 +1619,7 @@ probe syscall.compat_clock_settime = kernel.function("compat_clock_settime") ? {
 	name = "compat_clock_settime"
 	which_clock = $which_clock
 	tp_uaddr = $tp
-	argstr = sprintf("%d, [%p]", which_clock, tp_uaddr)
+	argstr = sprintf("%d, %p", which_clock, tp_uaddr)
 }
 probe syscall.compat_clock_settime.return =
 	kernel.function("compat_clock_settime").return ? {
@@ -1633,7 +1635,7 @@ probe syscall.compat_clock_gettime = kernel.function("compat_clock_gettime") ? {
 	name = "compat_clock_gettime"
 	which_clock = $which_clock
 	tp_uaddr = $tp
-	argstr = sprintf("%d, [%p]", which_clock, tp_uaddr)
+	argstr = sprintf("%d, %p", which_clock, tp_uaddr)
 }
 probe syscall.compat_clock_gettime.return =
 	kernel.function("compat_clock_gettime").return ? {
@@ -1649,7 +1651,7 @@ probe syscall.compat_clock_getres = kernel.function("compat_clock_getres") ? {
 	name = "compat_clock_getres"
 	which_clock = $which_clock
 	tp_uaddr = $tp
-	argstr = sprintf("%d, [%p]", which_clock, tp_uaddr)
+	argstr = sprintf("%d, %p", which_clock, tp_uaddr)
 }
 probe syscall.compat_clock_getres.return =
 	kernel.function("compat_clock_getres").return ? {
@@ -1670,7 +1672,7 @@ probe syscall.compat_clock_nanosleep = kernel.function("compat_clock_nanosleep")
 	flag_str = "TIMER_ABSTIME"
 	rqtp_uaddr = $rqtp
 	rmtp_uaddr = $rmtp
-	argstr = sprintf("%s, %s, [%p], [%p]", clock_id_str,
+	argstr = sprintf("%s, %s, %p, %p", clock_id_str,
 				flag_str, rqtp_uaddr, rmtp_uaddr)
 }
 probe syscall.compat_clock_nanosleep.return =
@@ -1694,7 +1696,7 @@ probe syscall.sys32_swapcontext = kernel.function("sys32_swapcontext") ? {
 	r7 = $r7
 	r8 = $r8
 	regs = $regs
-	argstr = sprintf("[%p], [%p], %d, %d, %d, %d, [%p]",
+	argstr = sprintf("%p, %p, %d, %d, %d, %d, %p",
 			old_ctx_uaddr, new_ctx_uaddr, r5, r6, r7, r8, regs)
 }
 probe syscall.sys32_swapcontext.return =
@@ -1712,7 +1714,7 @@ probe syscall.sys32_utimes = kernel.function("sys32_utimes") ? {
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	tvp_uaddr = $tvs
-	argstr = sprintf("%s, [%p]", filename, tvp_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted(filename), tvp_uaddr)
 }
 probe syscall.sys32_utimes.return = kernel.function("sys32_utimes").return ? {
 	name = "sys32_utimes"
@@ -1729,7 +1731,7 @@ probe syscall.compat_statfs64 = kernel.function("compat_statfs64") ? {
 	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%s, %d, [%p]", path, sz, buf_uaddr)
+	argstr = sprintf("%s, %d, %p", path, sz, buf_uaddr)
 }
 probe syscall.compat_statfs64.return =
 	kernel.function("compat_statfs64").return ? {
@@ -1746,7 +1748,7 @@ probe syscall.compat_fstatfs64 = kernel.function("compat_fstatfs64") ? {
 	fd = $fd
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%d, %d, [%p]", fd, sz, buf_uaddr)
+	argstr = sprintf("%d, %d, %p", fd, sz, buf_uaddr)
 }
 probe syscall.compat_fstatfs64.return =
 	kernel.function("compat_fstatfs64").return ? {
@@ -1767,7 +1769,7 @@ probe syscall.compat_mbind = kernel.function("compat_mbind") ? {
 	nodemask_uaddr = $nmask
 	maxnode = $maxnode
 	flags = $flags
-	argstr = sprintf("[%p], %d, %d, [%p], %d, %d", start_uaddr, len,
+	argstr = sprintf("%p, %d, %d, %p, %d, %d", start_uaddr, len,
 			policy, nodemask_uaddr, maxnode, flags)
 }
 probe syscall.compat_mbind.return = kernel.function("compat_mbind").return ? {
@@ -1788,7 +1790,7 @@ probe syscall.compat_get_mempolicy = kernel.function("compat_get_mempolicy") ? {
 	maxnode = $maxnode
 	addr = $addr
 	flags = $flags
-	argstr = sprintf("[%p], [%p], %d, %d", policy_uaddr, nmask_uaddr,
+	argstr = sprintf("%p, %p, %d, %d", policy_uaddr, nmask_uaddr,
 				maxnode, addr)
 }
 probe syscall.compat_get_mempolicy.return =
@@ -1806,7 +1808,7 @@ probe syscall.compat_set_mempolicy = kernel.function("compat_set_mempolicy") ? {
 	policy = $mode
 	nodemask_uaddr = $nmask
 	maxnode = $maxnode
-	argstr = sprintf("%d, [%p], %d", policy, nodemask_uaddr, maxnode)
+	argstr = sprintf("%d, %p, %d", policy, nodemask_uaddr, maxnode)
 }
 probe syscall.compat_set_mempolicy.return =
 	kernel.function("compat_set_mempolicy").return ? {
@@ -1821,7 +1823,7 @@ probe syscall.ppc64_sys_stime = kernel.function("ppc64_sys_stime") ? {
 	name = "ppc64_sys_stime"
 	/* FIXME */
 	t_uaddr = $tptr
-	argstr = sprintf("[%p]", t_uaddr)
+	argstr = sprintf("%p", t_uaddr)
 }
 probe syscall.ppc64_sys_stime.return =
 	kernel.function("ppc64_sys_stime").return ? {
@@ -1835,7 +1837,7 @@ probe syscall.ppc64_sys_stime.return =
 probe syscall.ppc64_newuname = kernel.function("ppc64_newuname") ? {
 	name = "ppc64_newuname"
 	name_uaddr = $name
-	argstr = sprintf("[%p]", name_uaddr)
+	argstr = sprintf("%p", name_uaddr)
 }
 probe syscall.ppc64_newuname.return = kernel.function("ppc64_newuname").return ? {
 	name = "ppc64_newuname"
