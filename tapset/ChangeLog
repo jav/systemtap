@@ -1,3 +1,12 @@
+2006-07-17  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* syscalls.stp: make sys_acct, sys_add_key, sys_keyctl 
+	and sys_modify_ldt optional on ppc64 since they are 
+	weak symbol.
+	* ppc64/syscalls.stp: remove syscall.acct, syscall.add_key
+	and syscall.umask since they are already defined in 
+	syscalls.stp
+	
 2006-07-04  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp, syscalls2.stp: Use user_string_quoted().

@@ -55,12 +55,12 @@ probe syscall.access.return = kernel.function("sys_access").return {
 
 # acct _______________________________________________________
 # long sys_acct(const char __user *name)
-probe syscall.acct = kernel.function("sys_acct") {
+probe syscall.acct = kernel.function("sys_acct") ? {
 	name = "acct"
         filename = user_string($name)
 	argstr = user_string_quoted($name)
 }
-probe syscall.acct.return = kernel.function("sys_acct").return {
+probe syscall.acct.return = kernel.function("sys_acct").return ? {
 	name = "acct"
 	retstr = returnstr(1)
 }
@@ -72,7 +72,7 @@ probe syscall.acct.return = kernel.function("sys_acct").return {
 #             size_t plen,
 #             key_serial_t ringid)
 #
-probe syscall.add_key = kernel.function("sys_add_key") {
+probe syscall.add_key = kernel.function("sys_add_key") ? {
 	name = "add_key"
 	type_uaddr = $_type
 	description_auddr = $_description
@@ -85,7 +85,7 @@ probe syscall.add_key = kernel.function("sys_add_key") {
 			text_strn(user_string($_payload),20,1),
 			$plen, $ringid)
 }
-probe syscall.add_key.return = kernel.function("sys_add_key").return {
+probe syscall.add_key.return = kernel.function("sys_add_key").return ? {
 	name = "add_key"
 	retstr = returnstr(1)
 }
@@ -1503,7 +1503,7 @@ probe syscall.kexec_load.return = kernel.function("sys_kexec_load").return ? {
 #            unsigned long arg4,
 #            unsigned long arg5)
 #
-probe syscall.keyctl = kernel.function("sys_keyctl") {
+probe syscall.keyctl = kernel.function("sys_keyctl") ? {
 	name = "keyctl"
 	option = $option
 	arg2 = $arg2
@@ -1512,7 +1512,7 @@ probe syscall.keyctl = kernel.function("sys_keyctl") {
 	arg5 = $arg5
 	argstr = sprintf("%d", $option)
 }
-probe syscall.keyctl.return = kernel.function("sys_keyctl").return {
+probe syscall.keyctl.return = kernel.function("sys_keyctl").return ? {
 	name = "keyctl"
 	retstr = returnstr(1)
 }
@@ -1941,14 +1941,14 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ? {
 # modify_ldt _________________________________________________
 # int sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount)
 #
-probe syscall.modify_ldt = kernel.function("sys_modify_ldt") {
+probe syscall.modify_ldt = kernel.function("sys_modify_ldt") ? {
 	name = "modify_ldt"
 	func = $func
 	ptr_uaddr = $ptr
 	bytecount = $bytecount
 	argstr = sprintf("%d, %p, %d", $func, $ptr, $bytecount)
 }
-probe syscall.modify_ldt.return = kernel.function("sys_modify_ldt").return {
+probe syscall.modify_ldt.return = kernel.function("sys_modify_ldt").return ? {
 	name = "modify_ldt"
 	retstr = returnstr(1)
 }

@@ -596,16 +596,16 @@ Here are some examples of using LKET:
 
 .TP
 To turn on all event hooks:
-stap -e "probe addevent.* {}" -I /usr/share/systemtap/tapsets/LKET -bM
+stap -e "probe addevent.* {}" -bM
 .TP
 To probe syscall:
-stap -e "probe addevent.syscall {}" -I /usr/share/systemtap/tapsets/LKET -bM
+stap -e "probe addevent.syscall {}" -bM
 .TP
 To only probe syscall.entry:
-stap -e "probe addevent.syscall.entry {}" -I /usr/share/systemtap/tapsets/LKET -bM
+stap -e "probe addevent.syscall.entry {}" -bM
 .TP
 To probe netdev transmition and log extra data of mac_len and priority:
-stap -e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", skb->mac_len, skb->priority) }" -I /usr/share/systemtap/tapsets/LKET -bM
+stap -e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", skb->mac_len, skb->priority) }" -bM
 
 .SH SEE ALSO
 .IR stap (1)

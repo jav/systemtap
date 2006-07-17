@@ -1,3 +1,8 @@
+2006-07-17  Li Guanglei <guanglei@cn.ibm.com>
+
+	* main.cxx: add LKET's tapsets into stap's default tapsets 
+	search path
+
 2006-07-13  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in: Add formerly missing admonitional verb.
