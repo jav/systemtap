@@ -43,8 +43,8 @@ fi
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
-  AC_CHECK_LIB(dw, dwfl_version,,[
-    AC_MSG_ERROR([systemtap requires elfutils 0.120+])])
+  AC_CHECK_LIB(dw, dwfl_module_getsym,,[
+    AC_MSG_ERROR([systemtap requires elfutils 0.122+])])
   stap_LIBS="$LIBS"
   LIBS="$SAVE_LIBS"
 else

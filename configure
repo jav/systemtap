@@ -5125,9 +5125,9 @@ if test $build_elfutils = no; then
   save_LIBS="$LIBS"
 
 
-echo "$as_me:$LINENO: checking for dwfl_version in -ldw" >&5
-echo $ECHO_N "checking for dwfl_version in -ldw... $ECHO_C" >&6
-if test "${ac_cv_lib_dw_dwfl_version+set}" = set; then
+echo "$as_me:$LINENO: checking for dwfl_module_getsym in -ldw" >&5
+echo $ECHO_N "checking for dwfl_module_getsym in -ldw... $ECHO_C" >&6
+if test "${ac_cv_lib_dw_dwfl_module_getsym+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
 else
   ac_check_lib_save_LIBS=$LIBS
@@ -5145,11 +5145,11 @@ extern "C"
 #endif
 /* We use char because int might match the return type of a gcc2
    builtin and then its argument prototype would still apply.  */
-char dwfl_version ();
+char dwfl_module_getsym ();
 int
 main ()
 {
-dwfl_version ();
+dwfl_module_getsym ();
   ;
   return 0;
 }
@@ -5176,20 +5176,20 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
-  ac_cv_lib_dw_dwfl_version=yes
+  ac_cv_lib_dw_dwfl_module_getsym=yes
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5
 
-ac_cv_lib_dw_dwfl_version=no
+ac_cv_lib_dw_dwfl_module_getsym=no
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
 LIBS=$ac_check_lib_save_LIBS
 fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_dw_dwfl_version" >&5
-echo "${ECHO_T}$ac_cv_lib_dw_dwfl_version" >&6
-if test $ac_cv_lib_dw_dwfl_version = yes; then
+echo "$as_me:$LINENO: result: $ac_cv_lib_dw_dwfl_module_getsym" >&5
+echo "${ECHO_T}$ac_cv_lib_dw_dwfl_module_getsym" >&6
+if test $ac_cv_lib_dw_dwfl_module_getsym = yes; then
   cat >>confdefs.h <<_ACEOF
 #define HAVE_LIBDW 1
 _ACEOF
@@ -5198,8 +5198,8 @@ _ACEOF
 
 else
 
-    { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.120+" >&5
-echo "$as_me: error: systemtap requires elfutils 0.120+" >&2;}
+    { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.122+" >&5
+echo "$as_me: error: systemtap requires elfutils 0.122+" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
