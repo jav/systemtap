@@ -1,3 +1,7 @@
+2006-07-17  Tom Zanussi <zanussi@us.ibm.com>
+	
+	* ioblock.stp: add null bi_bdev check to bio_devname()
+
 2006-07-17  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* syscalls.stp: make sys_acct, sys_add_key, sys_keyctl 

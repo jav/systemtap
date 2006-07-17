@@ -62,11 +62,12 @@ probe ioblock.end
 /* Return the block device name */
 function bio_devname:string(bio:long)
 %{
-  char b[BDEVNAME_SIZE];
+  char b[BDEVNAME_SIZE] = "";
   struct bio *bp;
 
   bp = (struct bio *) ((unsigned long) THIS->bio);
-  bdevname(bp->bi_bdev,b);
+  if (bp->bi_bdev)
+    bdevname(bp->bi_bdev,b);
   sprintf(THIS->__retvalue,"%s",b);
 %}
 
