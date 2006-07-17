@@ -1,3 +1,9 @@
+2006-07-17  David Smith  <dsmith@redhat.com>
+
+	* context.stp: Removed returnval() function.  Use $return
+	instead.
+	* return.stp: Removed.  Use $return instead.
+
 2006-07-17  Tom Zanussi <zanussi@us.ibm.com>
 	
 	* ioblock.stp: add null bi_bdev check to bio_devname()
