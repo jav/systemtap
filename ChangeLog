@@ -1,3 +1,8 @@
+2006-07-17  David Smith  <dsmith@redhat.com>
+
+	* stapfuncs.5.in: Removed retval function description, since it
+	has been removed.
+
 2006-07-17  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac, systemtap.spec.in: Require elfutils-0.122.
