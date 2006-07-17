@@ -1,6 +1,13 @@
+2006-07-17  Roland McGrath  <roland@redhat.com>
+
+	* configure.ac, systemtap.spec.in: Require elfutils-0.122.
+	* configure: Regenerated.
+
+	* systemtap.spec.in (Release): Use %{?dist}.
+
 2006-07-17  Li Guanglei <guanglei@cn.ibm.com>
 
-	* main.cxx: add LKET's tapsets into stap's default tapsets 
+	* main.cxx: add LKET's tapsets into stap's default tapsets
 	search path
 
 2006-07-13  Frank Ch. Eigler  <fche@elastic.org>
@@ -35,7 +42,7 @@
 	to ask user to install kernel-debuginfo when
 	dwfl_linux_kernel_report_kernel() or
 	dwfl_linux_kernel_report_modules() fails (Bugzilla #2669).
-	
+
 	* buildrun.cxx (compile_pass): Checks to make sure module build
 	directory exists before trying to run make there (Bugzilla #2669).
 
