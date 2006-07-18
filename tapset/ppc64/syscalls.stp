@@ -248,9 +248,9 @@ probe syscall.compat_sys_sched_getaffinity.return =
 #
 probe syscall.compat_sys_utime = kernel.function("compat_sys_utime") {
 	name = "compat_sys_utime"
-	filename = user_string($filename)
+	path = user_string($filename)
 	buf_uaddr = $t
-	argstr = sprintf("%s, %p", user_string_quoted(filename), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.compat_sys_utime.return =
 	kernel.function("compat_sys_utime").return {
@@ -264,9 +264,9 @@ probe syscall.compat_sys_utime.return =
 #
 probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes") {
 	name = "compat_sys_utimes"
-	filename = user_string($filename)
+	path = user_string($filename)
 	tvp_uaddr = $t
-	argstr = sprintf("%s, %s", user_string_quoted(filename),
+	argstr = sprintf("%s, %s", user_string_quoted($filename),
 				 _struct_timeval_u(tvp_uaddr))
 }
 probe syscall.compat_sys_utimes.return =
@@ -281,9 +281,9 @@ probe syscall.compat_sys_utimes.return =
 #
 probe syscall.compat_sys_newstat = kernel.function("compat_sys_newstat") {
 	name = "compat_sys_newstat"
-	file_name = user_string($filename)
+	path = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.compat_sys_newstat.return =
 	kernel.function("compat_sys_newstat").return {
@@ -297,9 +297,9 @@ probe syscall.compat_sys_newstat.return =
 #
 probe syscall.compat_sys_newlstat = kernel.function("compat_sys_newlstat") {
 	name = "compat_sys_newlstat"
-	file_name = user_string($filename)
+	path = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.compat_sys_newlstat.return =
 	kernel.function("compat_sys_newlstat").return {
@@ -359,9 +359,9 @@ probe syscall.compat_sys_fstatfs.return =
 probe syscall.lstat64 = 
 		kernel.function("sys_lstat64") ? {
 	name = "lstat64"
-	file_name = user_string($filename)
+	path = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, %p", user_string_quoted(file_name), buf_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
 }
 probe syscall.lstat64.return = 
 		kernel.function("sys_lstat64").return ? {
@@ -547,7 +547,7 @@ probe syscall.compat_sys_readv = kernel.function("compat_sys_readv") {
 	fd = $fd
 	vector_uaddr = $vec
 	count = $vlen
-	//argstr = sprintf("unknown fd, %p, %p", vector_uaddr, count)
+//	argstr = sprintf("unknown fd, %p, %p", vector_uaddr, count)
 	argstr = sprintf("%d, %p, %p", fd, vector_uaddr, count)
 }
 probe syscall.compat_sys_readv.return =
@@ -567,6 +567,7 @@ probe syscall.compat_sys_writev = kernel.function("compat_sys_writev") {
 	fd = $fd
 	vector_uaddr = $vec
 	count = $vlen
+	//argstr = sprintf("unknown fd, %p, %d", vector_uaddr, $vlen)
 	argstr = sprintf("%d, %p, %d", fd, vector_uaddr, $vlen)
 }
 probe syscall.compat_sys_writev.return =
@@ -990,11 +991,11 @@ probe syscall.compat_sys_socketcall.return =
 probe syscall.sys32_open = kernel.function("sys32_open") ? {
 	name = "open"
 	filename_uaddr = $filename
-	filename = user_string($filename)
+	path = user_string($filename)
 	flags = $flags
 	mode = $mode
 	if (flags & 64)
-	argstr = sprintf("%s, %s, %#o", user_string_quoted(filename),
+	argstr = sprintf("%s, %s, %#o", user_string_quoted($filename),
 				_sys_open_flag_str(flags), mode)
 	else
 	argstr = sprintf("%s, %s", user_string_quoted(filename), _sys_open_flag_str(flags))
@@ -1125,7 +1126,7 @@ probe syscall.sys32_execve = kernel.function("sys32_execve") ? {
 	name = "sys32_execve"
 	filename = user_string($a0)
 	args = __get_argv($a1) 
-	argstr = sprintf("%s %s", user_string_quoted(filename), args)
+	argstr = sprintf("%s %s", user_string_quoted($a0), args)
 }
 probe syscall.sys32_execve.return =
 	kernel.function("sys32_execve").return ? {
@@ -1712,9 +1713,9 @@ probe syscall.sys32_swapcontext.return =
 probe syscall.sys32_utimes = kernel.function("sys32_utimes") ? {
 	name = "sys32_utimes"
 	filename_uaddr = $filename
-	filename = user_string($filename)
+	path = user_string($filename)
 	tvp_uaddr = $tvs
-	argstr = sprintf("%s, %p", user_string_quoted(filename), tvp_uaddr)
+	argstr = sprintf("%s, %p", user_string_quoted($filename), tvp_uaddr)
 }
 probe syscall.sys32_utimes.return = kernel.function("sys32_utimes").return ? {
 	name = "sys32_utimes"
