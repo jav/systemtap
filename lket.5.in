@@ -586,7 +586,7 @@ probe register_event
 }
 probe addevent.netdev
 {
-    printf("%4b%4b", skb->mac_len, skb->priority)
+    printf("%4b%4b", $skb->mac_len, $skb->priority)
 }
 .ESAMPLE
 
@@ -605,7 +605,7 @@ To only probe syscall.entry:
 stap -e "probe addevent.syscall.entry {}" -bM
 .TP
 To probe netdev transmition and log extra data of mac_len and priority:
-stap -e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", skb->mac_len, skb->priority) }" -bM
+stap -e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", $skb->mac_len, $skb->priority) }" -bM
 
 .SH SEE ALSO
 .IR stap (1)
