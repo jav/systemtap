@@ -18,7 +18,7 @@
 %endif
 %endif
 
-%ifndef bundled_elfutils
+%if 0%{!?bundled_elfutils:1}
 # Yo!  DO NOT TOUCH THE FOLLOWING LINE.
 # You can use rpmbuild --define "bundled_elfutils 0" for a build of your own.
 %define bundled_elfutils 1
