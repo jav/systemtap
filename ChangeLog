@@ -1,3 +1,8 @@
+2006-07-19  David Smith  <dsmith@redhat.com>
+
+	* testsuite/buildok/scsi.stp: Only run the scsi test if the scsi
+	kernel subsystem is running.
+
 2006-07-17  David Smith  <dsmith@redhat.com>
 
 	* stapfuncs.5.in: Removed retval function description, since it
