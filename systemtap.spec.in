@@ -126,6 +126,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 
 %changelog
+* Wed Jul 19 2006 Roland McGrath <roland@redhat.com> - 0.5.9-1
+- PRs 2669, 2913
+
 * Fri Jun 16 2006 Roland McGrath <roland@redhat.com> - 0.5.8-1
 - PRs 2627, 2520, 2228, 2645
 
