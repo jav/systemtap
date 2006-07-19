@@ -28,8 +28,7 @@ GTree *appNameTree;
  * default hook format table,
  * based on tapsets/hookid_defs.stp and other hook specific files
  */
-//event_desc events_des[MAX_EVT_TYPES][MAX_GRPID][MAX_HOOKID]; 
-event_desc **events_des[MAX_EVT_TYPES][MAX_GRPID]; 
+event_desc *events_des[MAX_EVT_TYPES][MAX_GRPID][MAX_HOOKID]; 
 
 int main(int argc, char *argv[])
 {
@@ -311,8 +310,12 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
 	if(!fp || !phdr)
 		return;
-	fprintf(fp, "\n%lld APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
-		(phdr->microsecond - start_timestamp),
+	long long usecs = phdr->microsecond - start_timestamp;
+	int sec = usecs/1000000;
+	int usec = usecs%1000000;
+	
+	fprintf(fp, "\n%d.%d APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
+		sec, usec,
 		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)HDR_PID(phdr)))),
 		HDR_PID(phdr),
 		HDR_CpuID(phdr),
@@ -348,14 +351,7 @@ void register_events(int evt_type, FILE *infp, size_t size)
 		exit(-1);
 	}
 
-	if(events_des[evt_type][grpid] == NULL)  {
-		events_des[evt_type][grpid] 
-		= malloc(sizeof(event_desc *)*MAX_HOOKID);
-	}
-	if(events_des[evt_type][grpid][hookid] == NULL)  {
-		events_des[evt_type][grpid][hookid]
-		= malloc(sizeof(event_desc));
-	}
+	events_des[evt_type][grpid][hookid] = malloc(sizeof(event_desc));
 
 	while(fmt!=NULL && name!=NULL)  {
 		strncpy(events_des[evt_type][grpid][hookid]->evt_fmt[cnt], fmt, 7);
@@ -405,8 +401,6 @@ int ascii_print(lket_pkt_header header, FILE *infp, FILE *outfile, int evt_type)
 	else
 		size = header.total_size - header.sys_size;
 
-	if(events_des[evt_type][grpid] == NULL)
-		return -1;
 	if(events_des[evt_type][grpid][hookid] == NULL)
 		return -1;
 

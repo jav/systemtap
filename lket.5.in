@@ -584,7 +584,7 @@ probe register_event
     register_user_event(GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
         "INT32:INT32", "mac_len:priority")
 }
-probe addevent.netdev
+probe addevent.netdev.transmit
 {
     printf("%4b%4b", $skb->mac_len, $skb->priority)
 }
