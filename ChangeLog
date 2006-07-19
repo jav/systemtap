@@ -3,6 +3,8 @@
 	* configure.ac, systemtap.spec.in: Bump version to 0.5.9.
 	* configure: Regenerated.
 
+	* systemtap.spec.in: Fix syntax in last change.
+
 2006-07-19  David Smith  <dsmith@redhat.com>
 
 	* testsuite/buildok/scsi.stp: Only run the scsi test if the scsi
