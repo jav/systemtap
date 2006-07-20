@@ -799,9 +799,11 @@ int stp_main_loop(void)
 		{
 			struct transport_start *t = (struct transport_start *)data;
 			dbug("probe_start() returned %d\n", t->pid);
-			if (t->pid < 0)
+			if (t->pid < 0) {
+				if (target_cmd)
+					kill (target_pid, SIGKILL);
 				cleanup_and_exit(0);
-			else if (target_cmd)
+			} else if (target_cmd)
 				kill (target_pid, SIGUSR1);
 			break;
 		}
