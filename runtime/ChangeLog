@@ -1,3 +1,7 @@
+2006-07-21  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Include compat.h.
+
 2006-07-20  Martin Hunt  <hunt@redhat.com>
 
 	* vsprintf.c (_stp_vsnprintf): %p format fixes.
