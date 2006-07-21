@@ -296,12 +296,14 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				
 		case 'p':
 			len = 2*sizeof(void *) + 2;
-			if (field_width == -1) {
+			flags |= STP_ZEROPAD;
+
+			if (field_width == -1)
 				field_width = len;
-				flags |= STP_ZEROPAD;
-			}
+
 			if (!(flags & STP_LEFT)) {
-				while (len < field_width--) {
+				while (len < field_width) {
+					field_width--;
 					if (str <= end)
 						*str = ' ';
 					++str;
@@ -315,9 +317,10 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				*str++ = 'x';
 				field_width--;
 			}
+
 			str = number(str, end,
 				     (unsigned long) va_arg(args, int64_t),
-				     16, field_width, precision, flags);
+				     16, field_width, field_width, flags);
 			continue;
 
 		case 'n':

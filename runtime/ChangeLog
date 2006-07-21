@@ -1,3 +1,7 @@
+2006-07-20  Martin Hunt  <hunt@redhat.com>
+
+	* vsprintf.c (_stp_vsnprintf): %p format fixes.
+
 2006-07-14  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2922
