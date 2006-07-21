@@ -1042,7 +1042,7 @@ probe syscall.compat_getitimer = kernel.function("compat_sys_getitimer") ? {
 	value_uaddr = $it
 	argstr = sprintf("%s, %p", _itimer_which_str($which), $it) 
 }
-probe syscall.compat_getitimer.return = kernel.function("compat_sys_getitimer").return {
+probe syscall.compat_getitimer.return = kernel.function("compat_sys_getitimer").return ? {
 	name = "getitimer"
 	retstr = returnstr(1)
 }

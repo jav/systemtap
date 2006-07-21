@@ -17,6 +17,21 @@ function _struct_timeval_u:string(uaddr:long)
 	}
 %}
 
+function _struct_compat_timeval_u:string(uaddr:long)
+%{ /* pure */
+	struct compat_timeval tv;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&tv,ptr,sizeof(struct compat_timeval)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv.tv_sec, (long)tv.tv_usec);
+	   	else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
 function _struct_timeval:string(addr:long)
 %{ /* pure */
 	struct timeval *tv;
@@ -90,7 +105,26 @@ function _struct_utimbuf_u:string(uaddr:long)
 	if (ptr == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(struct utimbuf)) == 0) {
+		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
+			_stp_ctime(ubuf.actime, abuf, 24);
+			_stp_ctime(ubuf.modtime, mbuf, 24);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s, %s", abuf, mbuf);
+		} else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%} 
+
+function _struct_compat_utimbuf_u:string(uaddr:long)
+%{ /* pure */
+	#include <linux/utime.h>
+	struct compat_utimbuf ubuf;
+	static char abuf[24], mbuf[24];
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
 			_stp_ctime(ubuf.actime, abuf, 24);
 			_stp_ctime(ubuf.modtime, mbuf, 24);
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s, %s", abuf, mbuf);
@@ -108,6 +142,21 @@ function _struct_timespec_u:string(uaddr:long)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&ts,ptr,sizeof(struct timespec)))  {
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		} else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
+				(unsigned long)ts.tv_sec, (unsigned long)ts.tv_nsec);
+	}
+%}
+function _struct_compat_timespec_u:string(uaddr:long)
+%{ /* pure */
+	struct compat_timespec ts;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char *)&ts,ptr,sizeof(struct compat_timespec)))  {
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 		} else
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
@@ -155,6 +204,23 @@ function _struct_itimerval_u:string(uaddr:long)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
 		if(_stp_copy_from_user((char *)&itv,ptr,sizeof(struct itimerval)))
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+		else
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
+				(int)itv.it_interval.tv_sec, (int)itv.it_interval.tv_usec,
+				(int)itv.it_value.tv_sec, (int)itv.it_value.tv_usec);
+	}
+%}
+
+function _struct_compat_itimerval_u:string(uaddr:long)
+%{ /* pure */
+	struct compat_itimerval itv;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char *)&itv,ptr,sizeof(struct compat_itimerval)))
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 		else
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
@@ -1443,5 +1509,12 @@ function _rusage_who_str(w) {
 /* for accessing 16-bit values encoded in a long */
 function __short:long(val:long) %{ /* pure */
 	THIS->__retvalue = (short)THIS->val;
+%}
+
+
+/* uid_t is unsigned, but calling functions take "-1" as a paremeter */
+/* so this hack is necessary to correct that mismatch. */
+function __uid:long(val:long) %{ /* pure */
+	THIS->__retvalue = (int)THIS->val;
 %}
 

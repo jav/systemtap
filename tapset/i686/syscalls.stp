@@ -398,19 +398,6 @@ probe syscall.sigsuspend.return =
 	name = "sigsuspend"
 	retstr = returnstr(1)
 }
-# stat64 _____________________________________________________
-# long sys_stat64(char __user * filename,
-#            struct stat64 __user * statbuf)
-probe syscall.stat64 = kernel.function("sys_stat64") {
-	name = "stat"
-	filename = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", %p", filename, $statbuf)
-}
-probe syscall.stat64.return = kernel.function("sys_stat64").return {
-	name = "stat"
-	retstr = returnstr(1)
-}
 
 # vm86 _______________________________________________________
 /*
