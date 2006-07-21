@@ -767,11 +767,14 @@ probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return {
 # long sys_fstat64(unsigned long fd, struct stat64 __user * statbuf)
 # long sys32_fstat64(unsigned int fd, struct stat64 __user *statbuf)
 # long sys_newfstat(unsigned int fd, struct stat __user * statbuf)
+# long compat_sys_newfstat(unsigned int fd, struct compat_stat __user * statbuf)
+#
 probe syscall.fstat = 
 		kernel.function("sys_fstat") ?, 
 		kernel.function("sys_fstat64") ?,
 		kernel.function("sys32_fstat64") ?,
-		kernel.function("sys_newfstat") ? 
+		kernel.function("sys_newfstat") ?,
+		kernel.function("compat_sys_newfstat") ? 
 {
 	name = "fstat"
 	filedes = $fd
@@ -782,7 +785,8 @@ probe syscall.fstat.return =
 		kernel.function("sys_fstat").return ?,
 		kernel.function("sys_fstat64").return ?,
 		kernel.function("sys32_fstat64").return ?,
-		kernel.function("sys_newfstat").return ?
+		kernel.function("sys_newfstat").return ?,
+		kernel.function("compat_sys_newfstat").return ?
 {
 	name = "fstat"
 	retstr = returnstr(1)
@@ -790,13 +794,21 @@ probe syscall.fstat.return =
 
 # fstatfs ____________________________________________________
 # long sys_fstatfs(unsigned int fd, struct statfs __user * buf)
-probe syscall.fstatfs = kernel.function("sys_fstatfs") {
+# long compat_sys_fstatfs(unsigned int fd, struct compat_statfs __user *buf)
+#
+probe syscall.fstatfs = 
+		kernel.function("sys_fstatfs"),
+		kernel.function("compat_sys_fstatfs") ?
+{
 	name = "fstatfs"
 	fd = $fd
 	buf_uaddr = $buf
-	argstr = sprintf("%d, %p", fd, buf_uaddr)
+	argstr = sprintf("%d, %p", $fd, $buf)
 }
-probe syscall.fstatfs.return = kernel.function("sys_fstatfs").return {
+probe syscall.fstatfs.return = 
+		kernel.function("sys_fstatfs").return,
+		kernel.function("compat_sys_fstatfs").return ?
+{
 	name = "fstatfs"
 	retstr = returnstr(1)
 }
@@ -1020,6 +1032,17 @@ probe syscall.getitimer = kernel.function("sys_getitimer") {
 	argstr = sprintf("%s, %p", _itimer_which_str($which), $value) 
 }
 probe syscall.getitimer.return = kernel.function("sys_getitimer").return {
+	name = "getitimer"
+	retstr = returnstr(1)
+}
+# long compat_sys_getitimer(int which, struct compat_itimerval __user *it
+probe syscall.compat_getitimer = kernel.function("compat_sys_getitimer") ? {
+	name = "getitimer"
+	which = $which
+	value_uaddr = $it
+	argstr = sprintf("%s, %p", _itimer_which_str($which), $it) 
+}
+probe syscall.compat_getitimer.return = kernel.function("compat_sys_getitimer").return {
 	name = "getitimer"
 	retstr = returnstr(1)
 }
@@ -1267,14 +1290,23 @@ probe syscall.gettid.return = kernel.function("sys_gettid").return {
 
 # gettimeofday _______________________________________________
 # long sys_gettimeofday(struct timeval  __user *tv,
-#		struct timezone __user *tz)
-probe syscall.gettimeofday = kernel.function("sys_gettimeofday") {
+#	struct timezone __user *tz)
+# long sys32_gettimeofday(struct compat_timeval __user *tv, 
+#	struct timezone __user *tz)
+probe syscall.gettimeofday = 
+		kernel.function("sys_gettimeofday"),
+		kernel.function("sys32_gettimeofday") ?
+{
 	name = "gettimeofday"
 	tv_uaddr = $tv
 	tz_uaddr = $tz
 	argstr = sprintf("%p, %p", $tv, $tz)
 }
-probe syscall.gettimeofday.return = kernel.function("sys_gettimeofday").return {
+
+probe syscall.gettimeofday.return = 
+		kernel.function("sys_gettimeofday").return,
+		kernel.function("sys32_gettimeofday").return ?
+{
 	name = "gettimeofday"
 	retstr = returnstr(1)
 }
@@ -1739,16 +1771,26 @@ probe syscall.lsetxattr.return = kernel.function("sys_lsetxattr").return {
 
 # lstat ______________________________________________________
 # long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)
+# long sys_newlstat(char __user * filename, struct stat __user * statbuf)
+# long compat_sys_newlstat(char __user * filename, struct compat_stat __user *statbuf)
+# long sys32_lstat64(char * filename, struct stat64 __user *statbuf)
+#
 probe syscall.lstat = 
-		kernel.function("sys_lstat") ?
+		kernel.function("sys_lstat") ?,
+		kernel.function("sys_newlstat") ?,
+		kernel.function("compat_sys_newlstat") ?,
+		kernel.function("sys32_lstat64") ?
 {
 	name = "lstat"
 	file_name = user_string($filename)
 	buf_uaddr = $statbuf
-	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr) 
+	argstr = sprintf("%s, %p", user_string_quoted($filename), $statbuf) 
 }
 probe syscall.lstat.return = 
-		kernel.function("sys_lstat").return ?
+		kernel.function("sys_lstat").return ?,
+		kernel.function("sys_newlstat").return ?,
+		kernel.function("compat_sys_newlstat").return ?,
+		kernel.function("sys32_lstat64").return ?
 { 
 	name = "lstat"
 	retstr = returnstr(1)
@@ -1888,12 +1930,6 @@ probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
 #          unsigned long fd, unsigned long off)
-%(arch == "x86_64" %?
-probe syscall.mmap = kernel.function("sys_mmap") ? {
-	name = "mmap"
-	argstr = ""
-}
-%:
 probe syscall.mmap = kernel.function("sys_mmap") ? {
 	name = "mmap"
 	start = $addr
@@ -1909,7 +1945,6 @@ probe syscall.mmap = kernel.function("sys_mmap") ? {
 	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
 		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, offset)
 }
-%)
 
 probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
 	name = "mmap"
@@ -1920,7 +1955,14 @@ probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
 # long sys_mmap2(unsigned long addr, unsigned long len,
 #	unsigned long prot, unsigned long flags,
 #	unsigned long fd, unsigned long pgoff)
-probe syscall.mmap2 = kernel.function("sys_mmap2") ? {
+# long sys32_mmap2(unsigned long addr, unsigned long len,
+#	unsigned long prot, unsigned long flags,
+#	unsigned long fd, unsigned long pgoff)
+#
+probe syscall.mmap2 = 
+		kernel.function("sys_mmap2") ?,
+		kernel.function("sys32_mmap2") ?
+{
 	name = "mmap2"
 	start = $addr
 	length = $len
@@ -1932,11 +1974,13 @@ probe syscall.mmap2 = kernel.function("sys_mmap2") ? {
 		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
 		$fd, $pgoff)
 }
-probe syscall.mmap2.return = kernel.function("sys_mmap2").return ? {
+probe syscall.mmap2.return = 
+		kernel.function("sys_mmap2").return ?,
+		kernel.function("sys32_mmap2").return ?
+{
 	name = "mmap2"
 	retstr = returnstr(2)
 }
-
 
 # modify_ldt _________________________________________________
 # int sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount)
@@ -1955,11 +1999,19 @@ probe syscall.modify_ldt.return = kernel.function("sys_modify_ldt").return ? {
 
 # mount ______________________________________________________
 # long sys_mount(char __user * dev_name,
-#          char __user * dir_name,
-#           char __user * type,
-#           unsigned long flags,
-#           void __user * data)
-probe syscall.mount = kernel.function("sys_mount") {
+# 		char __user * dir_name,
+# 		char __user * type,
+# 		unsigned long flags,
+# 		void __user * data)
+# long compat_sys_mount(char __user * dev_name, 
+#		char __user * dir_name,
+#		char __user * type, 
+#		unsigned long flags, 
+#		void __user * data)
+probe syscall.mount = 
+		kernel.function("sys_mount"),
+		kernel.function("compat_sys_mount") ?
+{
 	name = "mount"
 	source = user_string($dev_name)
 	target = user_string($dir_name)
@@ -1973,7 +2025,10 @@ probe syscall.mount = kernel.function("sys_mount") {
 		user_string_quoted($type), 
 		mountflags_str, data)
 }
-probe syscall.mount.return = kernel.function("sys_mount").return {
+probe syscall.mount.return = 
+		kernel.function("sys_mount").return, 
+		kernel.function("compat_sys_mount").return ?
+{
 	name = "mount"
 	retstr = returnstr(1)
 }
