@@ -8,8 +8,12 @@
 
 probe kernel.function("find_pid") 
 {
+%( kernel_v >= "2.6.17" %?
+  log ("find_pid (" . sprint($nr) . ")")
+%:
   log ("find_pid (" . sprint($type) . ","
                     . sprint($nr) . ")")
+%)
 }
 
 # second: opaque pointers and enums
@@ -19,6 +23,3 @@ probe kernel.function("detach_pid")
   log ("detach_pid (" . sprintf("0x%x", $task) . ","
               	      . sprint($type) . ")")
 }
-
-
-
