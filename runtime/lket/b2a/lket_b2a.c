@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	j = 0;
 	for(i=0; i < total_infiles; i++) {
 		get_pkt_header(infps[i], &hdrs[i]);
-		if( hdrs[i].microsecond < start_timestamp
+		if( (hdrs[i].microsecond < start_timestamp && hdrs[i].microsecond >0)
 		       || (start_timestamp == 0)) {
 			start_timestamp = hdrs[i].microsecond;
 			j = i;
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 		j = 0;
 		for(i=1; i < total_infiles ; i++) {
 			if((min == 0) || 
-				(hdrs[i].microsecond < min)) {
+				(hdrs[i].microsecond < min && hdrs[i].microsecond > 0)) {
 				min = hdrs[i].microsecond;
 				j = i;
 			}
