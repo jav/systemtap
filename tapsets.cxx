@@ -555,7 +555,7 @@ dwflpp
   }
 
 
-  void get_module_dwarf(bool required = true)
+  void get_module_dwarf(bool required = false)
   {
     if (!module_dwarf)
       module_dwarf = dwfl_module_getdwarf(module, &module_bias);
@@ -582,7 +582,7 @@ dwflpp
 
   void limit_search_to_function_pattern(string const & pattern)
   {
-    get_module_dwarf(true);
+    get_module_dwarf(false);
     cache.select_die_subsets(module_dwarf, pattern,
 			     pattern_limited_cus,
 			     pattern_limited_funcs);
