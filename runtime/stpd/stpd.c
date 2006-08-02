@@ -211,8 +211,14 @@ int main(int argc, char **argv)
 	if (statfs("/mnt/relay", &st) == 0
 	    && (int) st.f_type == (int) RELAYFS_MAGIC)
 		sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
-	else
-		sprintf(stpd_filebase, "/proc/systemtap/stap_%d/cpu", driver_pid);
+	else {
+		char *ptr;
+		sprintf(stpd_filebase, "/proc/systemtap/%s", modname);
+		ptr = index(stpd_filebase,'.');
+		if (ptr)
+			*ptr = 0;
+		strcat(stpd_filebase, "/cpu");
+	}
 
 	if (init_stp(stpd_filebase, !quiet)) {
 		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
