@@ -1,0 +1,8 @@
+#! stap -p4
+#
+# Test the translatability for probemod()
+#
+probe begin
+{
+   log(probemod())
+}

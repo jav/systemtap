@@ -1,3 +1,9 @@
+2006-08-08  Eugene Teo  <eteo@redhat.com>
+
+	* tapset/context.stp (probemod): New function.
+	* stapfuncs.5.in: Document it.
+	* testsuite/buildok/probemod.stp: Test it.
+	
 2006-08-01  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2422
 	* tapsets.cxx: calling get_module_dwarf(false) to give a

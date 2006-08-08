@@ -116,6 +116,23 @@ function probefunc:string () %{ /* pure */
 	}
 %}
 
+function probemod:string () %{ /* pure */
+	char *ptr, *start;
+
+	start = strstr(CONTEXT->probe_point, "module(\"");
+	ptr = start + 8;
+
+	if (start) {
+		int len = MAXSTRINGLEN;
+		char *dst = THIS->__retvalue;
+		while (*ptr != '"' && --len && *ptr)
+			*dst++ = *ptr++;
+		*dst = 0;
+	} else {
+		THIS->__retvalue[0] = '\0';
+	}
+%}
+
 function is_return:long () %{ /* pure */
 	char *ptr = strrchr(CONTEXT->probe_point, '.');
 	if (ptr) {

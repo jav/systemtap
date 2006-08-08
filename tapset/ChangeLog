@@ -1,3 +1,7 @@
+2006-08-08  Eugene Teo  <eteo@redhat.com>
+
+	* context.stp (probemod): New function.
+
 2006-07-18  Thang Nguyen  <thang.p.nguyen@intel.com>
         
 	* context.stp: Modified probefunc() to print the function
