@@ -412,6 +412,81 @@ block device I/O requests
 .I goodbytes
   The bytes completed.
 
+
+.SS NETWORK DEVICE
+
+This family of probe points is used to probe the activities of network
+device. 
+It contains the following probe points:
+
+.P
+.TP 
+.B netdev.receive
+Fires when data arrives on network device
+
+.B Arguments:
+
+.I dev_name
+  The name of the device. e.g: eth0, ath1
+
+.I length
+  The length of the receiving buffer
+
+.I protocol
+  The possible values of protocol could be:
+     0800    IP
+     8100    802.1Q VLAN
+     0001    802.3
+     0002    AX.25
+     0004    802.2
+     8035    RARP
+     0005    SNAP
+     0805    X.25
+     0806    ARP
+     8137    IPX
+     0009    Localtalk
+     86DD    IPv6
+
+.I truesize
+  The size of the received data
+
+.P
+.TP 
+.B netdev.transmit
+Fires when the network device wants to transmit a buffer
+
+.B Arguments:
+
+.I dev_name
+  The name of the device. e.g: eth0, ath1
+
+.I length
+  The length of the transmit buffer
+
+.I protocol
+  The protocol of this packet.
+
+.I truesize
+  The size of the the data to be transmitted.
+
+.SS PAGE FAULT
+
+This family of probe points is used to probe page fault events.
+It contains the following probe points:
+
+.P
+.TP 
+.B pagefault
+Fires when there is a pagefault
+
+.B Arguments:
+
+.I address
+  The address caused this page fault.
+
+.I write_access
+  1 means this is a write access and 0 means this is a read access
+
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.
