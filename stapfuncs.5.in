@@ -248,8 +248,15 @@ when the current probe completes.
 
 .SS NUMA
 .TP
-addr_to_node:long(addr:long)
+addr_to_node:long (addr:long)
 Return which node the given address belongs to in a NUMA system.
+
+.SS CTIME
+.TP
+ctime:string (seconds:long)
+Return a simple textual rendering (e.g., "Wed\ Jun\ 30\ 21:49:008\ 1993")
+of the given number of seconds since the epoch, as perhaps returned by
+.IR gettimeofday_s() .
 
 .SH FILES
 .nh
