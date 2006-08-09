@@ -1519,7 +1519,7 @@ probe syscall.kexec_load = kernel.function("sys_kexec_load") ? {
 	name = "kexec_load"
 	entry = $entry
 	nr_segments = $nr_segments
-	segments_uaddr = $segments_uaddr
+	segments_uaddr = $segments
 	flags = $flags
 	argstr = sprintf("%p, %d, %p, %d", $entry, $nr_segments, $segments, $flags)
 }
