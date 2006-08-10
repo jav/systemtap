@@ -7,7 +7,7 @@
 // later version.
 
 
-function _IS_ERR:long(ptr:long) %{
+function _IS_ERR:long(ptr:long) %{ /* pure */
     THIS->__retvalue = IS_ERR((const void *)(long)THIS->ptr);
 %}
 
@@ -111,66 +111,4 @@ probe process.exit = kernel.function("do_exit") {
  */
 probe process.release = kernel.function("release_task") {
     task = $p
-}
-
-
-/* probe process.signal_send
- *
- *  Fires when a process sends a signal to another process.  This does not
- *  include ignored signals.
- *
- * Context:
- *  The signal's sender.
- *
- * Arguments:
- *  signal - the number of the signal
- *  signal_name - a string representation of the signal
- *  task - a task handle to the signal recipient
- *  shared - indicates whether this signal is shared by the thread group
- */
-probe process.signal_send = _process.signal_send.* {
-    signal = $sig
-    signal_name = _signal_name($sig)
-}
-
-probe _process.signal_send.part1 =
-        kernel.function("__group_send_sig_info"),
-        kernel.function("send_group_sigqueue")
-{
-    task = $p
-    shared = 1
-}
-
-probe _process.signal_send.part2 =
-        kernel.function("send_sigqueue")
-{
-    task = $p
-    shared = 0
-}
-
-probe _process.signal_send.part3 =
-        kernel.function("specific_send_sig_info")
-{
-    task = $t
-    shared = 0
-}
-
-
-/* probe process.signal_handle
- *
- *  Fires when a process handles a signal.
- *
- * Context:
- *  The signal recipient.
- *
- * Arguments:
- *  signal - the number of the signal
- *  signal_name - a string representation of the signal
- */
-probe process.signal_handle =
-	kernel.function("handle_signal") ?,
-	kernel.inline("handle_signal") ?
-{
-    signal = $sig
-    signal_name = _signal_name($sig)
 }

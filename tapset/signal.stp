@@ -1,0 +1,364 @@
+// Signal tapset
+// Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2006 Intel Corporation.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+//
+//   Note : Since there are so many signals sent to processes at any give
+//          point, it's better to filter the information according to the
+//          requirements.  For example, filter only for a particular signal
+//          (if sig==2) or filter only for a particular process
+//          (if pid_name==stap).
+//
+
+
+/* probe signal.send
+ *
+ * Fires when a signal is sent to a process.
+ *
+ * Context:
+ *  The signal's sender.
+ *
+ * Arguments:
+ *  sig - the number of the signal
+ *  sig_name - a string representation of the signal
+ *  task - a task handle to the signal recipient
+ *  shared - indicates whether this signal is shared by the thread group
+ */
+probe signal.send = _signal.send.*
+{
+    sig=$sig
+    sig_name = _signal_name($sig)
+    sig_pid = task_pid(task)
+    pid_name = task_execname(task)
+
+    if (sinfo == 2)
+        si_code ="SIGSTOP or SIGKILL"
+    else if (sinfo > 0)
+        si_code="SI_KERNEL (SIGFPE, SIGSEGV, SIGTRAP, SIGCHLD, SIGPOLL)"
+    else if (sinfo <= 0)
+        si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
+
+    argstr = sprintf("Signal : %s - Process name : %s (%d) - Signal Code : %s",
+                     sig_name, sig_pid, pid_name, si_code)
+}
+
+probe _signal.send.part1 = kernel.function("__group_send_sig_info")
+{
+    task = $p
+    sinfo = $info
+    shared = 1
+}
+
+probe _signal.send.part2 = kernel.function("send_group_sigqueue")
+{
+    task = $p
+    sinfo = $q->info
+    shared = 1
+}
+
+probe _signal.send.part3 = kernel.function("send_sigqueue")
+{
+    task = $p
+    sinfo = $q->info
+    shared = 0
+}
+
+probe _signal.send.part4 = kernel.function("specific_send_sig_info")
+{
+    task = $t
+    sinfo = $info
+    shared = 0
+}
+
+
+/* probe signal.wakeup
+ *
+ * Wake up the process for new active signals.
+ *
+ */
+probe signal.wakeup = kernel.function("signal_wake_up")
+{
+    sig_pid = $t->pid
+    pid_name = kernel_string($t->comm)
+    state   = $resume
+    if (state == 0) {
+        sig_state = "TASK_INTERRUPTIBLE"
+    } else {
+        sig_state = "TASK_INTERRUPTIBLE | TASK_STOPPED | TASK_TRACED"
+    }
+    argstr = sprintf("Wakeup Signal to Process %s (%d) - Process State after the signal : %s",
+                     pid_name, sig_pid, sig_state)
+}
+
+
+/* probe signal.ignored
+ *
+ *  Checks whether the signal is ignored or not.
+ *
+ */
+probe signal.check_ignored = kernel.function("sig_ignored")
+{
+    sig_pid = $t->pid
+    pid_name = kernel_string($t->comm)
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    argstr = sprintf("Signal : %s is ignored by the Process : %s (%d)",
+                     sig_name, pid_name, sig_pid)
+}
+
+probe signal.check_ignored.return = kernel.function("sig_ignored").return
+{
+    name = "sig_ignored"
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.handle_stop
+ *
+ *  Fires when a stop signal is sent to a process.
+ *
+ */
+probe signal.handle_stop = kernel.function("handle_stop_signal")
+{
+    sig_pid = $p->pid
+    pid_name = kernel_string($p->comm)
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    argstr = sprintf("Handle_Stop_Signal : %s is sent to the process %s (%d)",
+                     sig_name, pid_name, sig_pid);
+}
+
+
+/* probe signal.force_segv
+ *
+ *  Forces SIGSEGV when there are some issues while handling signals for the process.
+ *
+ */
+probe signal.force_segv = kernel.function("force_sigsegv")
+{
+    sig_pid = $p->pid
+    pid_name = kernel_string($p->comm)
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    argstr = sprintf("Signal < %d > is forced on to the process %s (%d)",
+                     sig_name, pid_name, sig_pid);
+}
+
+probe signal.force_segv.return = kernel.function("force_sigsegv").return
+{
+    name = "force_sigsegv"
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.syskill
+ *
+ *  To kill a process, Pass the pid and signal to kill the process.
+ *
+ */
+probe signal.syskill = kernel.function("sys_kill")
+{
+    sig_pid = $pid
+    sig_info = $sig
+    argstr = sprintf("Process %d has recieved a Signal %s", sig_pid, sig_name);
+}
+
+probe signal.syskill.return = kernel.function("sys_kill").return
+{
+    name = "sys_kill"
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.sys_tgkill
+ *
+ *  Sends a signal to one specific thread.
+ *
+ */
+probe signal.systgkill = kernel.function("sys_tgkill")
+{
+    sig_tgid = $tgid
+    sig_pid = $pid
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    argstr = sprintf("Signal %s is sent to Process ID : %d under the Thread Group ID : %d",
+                     sig_name, sig_pid, sig_tgid);
+}
+
+probe signal.systgkill.return = kernel.function("sys_tgkill").return
+{
+    name = "sys_tgkill"
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.sys_tkill
+ *
+ *  Sends a signal to one specific task.
+ *
+ */
+probe signal.systkill = kernel.function("sys_tkill")
+{
+    sig_pid = $pid
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    argstr = sprintf("Signal %s is sent to Process ID : %d", sig_name, sig_pid);
+}
+
+probe signal.systkill.return = kernel.function("sys_tkill").return
+{
+    name = "sys_tkill"
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.send_sig_queue
+ *
+ * Queue signal to a process.
+ *
+ */
+probe signal.send_sig_queue =
+        kernel.function("send_sigqueue"),
+        kernel.function("send_group_sigqueue")
+{
+    sig_info = $sig
+    sig_name = _signal_name($sig)
+    sig_pid = $p->pid
+    pid_name = kernel_string($p->comm)
+    user_id = $q->uid
+    nos_process = $q->processes
+    nos_pending_sig = $q->sigpending
+}
+
+probe signal.send_sig_queue.return =
+        kernel.function("send_sigqueue").return,
+        kernel.function("send_group_sigqueue").return
+{
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.pend
+ *
+ * Used to Suspend signals
+ *
+ * long do_sigpending(void __user *set, unsigned long sigsetsize)
+ */
+probe signal.pend = kernel.function("do_sigpending")
+{
+    uspace_add=$set
+    sset_size=$sigsetsize
+}
+
+probe signal.pend.return = kernel.function("do_sigpending").return
+{
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.handle
+ *
+ * Used to invoke signals
+ *
+ * static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ *					sigset_t *oldset, struct pt_regs * regs)
+ * Argument :-
+ *  sig    : Signal number
+ *  info   : address of siginfo table.
+ *  ka     : Address of the k_sigaction table associated with the signal
+ *  oldset : Address of a bit mask array of blocked signals
+ *  regs   : Address in the Kernel Mode stack area w
+ *
+ */
+probe signal.handle = kernel.function("handle_signal")?,
+        kernel.inline("handle_signal")?
+{
+    sig = $sig
+    sig_name = _signal_name($sig)
+    siginfo_add=$info
+    sig_stack_add=$ka
+    bitmask_add=$oldset
+    kernmode_stack_add=$regs
+}
+
+probe signal.handle.return = kernel.function("handle_signal").return
+{
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.do_action
+ *
+ * Called by sys_sigaction() to copy the new new_ka table into the entry at the sig-1 position.
+ *
+ * int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
+ *
+ * Argument :-
+ *  sig    : Signal number
+ *  act    : Address of the sigaction table associated with the signal
+ *  oact   : Address of a previous sigaction table
+ *
+ */
+probe signal.do_action = kernel.function("do_sigaction")
+{
+    sig = $sig
+    sigact_table=$act
+    psigact_table=$oact
+}
+
+probe signal.do_action.return = kernel.function("do_sigaction").return
+{
+    retstr = returnstr(1)
+}
+
+
+/* probe signal.procmask
+ *
+ * Allows processes to modify the set of blocked signals.
+ *
+ * int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
+ *
+ * Argument :-
+ *  how    : Flag having one of the values (SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)
+ *  set    : Address of the process address space to a bit array.
+ *  oldset : Address of the process address space where the previous bit mask must be stored.
+ *
+ */
+probe signal.procmask = kernel.function("sigprocmask")
+{
+    stemp=$how
+    sigset=$set
+    sigoset=$oldset
+
+    if (stemp == 0)
+        sig_how ="SIG_BLOCK"
+    else if (stemp ==  1)
+        sig_how="SIG_UNBLOCK"
+    else if (stemp == 2)
+        sig_how="SIG_SETMASK"
+}
+
+probe signal.procmask.return = kernel.function("sigprocmask").return
+{
+    retstr = returnstr(1)
+}
+
+
+/*
+ * probe signal.flush
+ * 
+ * Flush all pending signals for a task.
+ *
+ * void flush_signals(struct task_struct *t)
+ *
+ */
+probe signal.flush = kernel.function("flush_signals")
+{
+    task = $t
+    sig_pid = $t->pid
+    pid_name = kernel_string($t->comm)
+} 

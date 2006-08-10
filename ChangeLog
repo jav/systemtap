@@ -1,3 +1,9 @@
+2006-08-09  Josh Stone  <joshua.i.stone@intel.com>
+
+	* examples/small_demos/proc_snoop.stp,
+	testsuite/buildok/process_test.stp: Rename process.signal_* to
+	new signal.* tapset.
+
 2006-08-08  Eugene Teo  <eteo@redhat.com>
 
 	* tapset/context.stp (probemod): New function.

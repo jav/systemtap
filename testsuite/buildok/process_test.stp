@@ -30,17 +30,17 @@ probe process.release {
   log(sprint(task))
 }
 
-probe process.signal_send {
+probe signal.send {
   log(pp())
-  log(sprint(signal))
-  log(signal_name)
+  log(sprint(sig))
+  log(sig_name)
   log(sprint(task))
   log(sprint(shared))
 }
 
-probe process.signal_handle {
+probe signal.handle {
   log(pp())
-  log(sprint(signal))
-  log(signal_name)
+  log(sprint(sig))
+  log(sig_name)
 }
 
