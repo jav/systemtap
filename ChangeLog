@@ -16,6 +16,10 @@
 	* stapfuncs.5.in: Document it.
 	* testsuite/buildok/probemod.stp: Test it.
 	
+2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
+	* stapprobes.5.in: document scsi.*, ioscheduler.*, netdev.* and
+	pagefault.
+	
 2006-08-01  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2422
 	* tapsets.cxx: calling get_module_dwarf(false) to give a
