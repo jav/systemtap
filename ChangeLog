@@ -1,3 +1,7 @@
+2006-08-09  Thang Nguyen  <thang.p.nguyen@intel.com>
+
+	* testsuite/buildok/iolock_test.stp: Updated for new ioblock.stp
+
 2006-08-09  Josh Stone  <joshua.i.stone@intel.com>
 
 	* examples/small_demos/proc_snoop.stp,

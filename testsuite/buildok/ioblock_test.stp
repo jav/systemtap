@@ -1,11 +1,18 @@
 #! stap -p4
 
-probe ioblock.submit {
+probe ioblock.request {
   log(pp())
-  printf("%s\t%d\t%s\t%d\n", bio_devname, sector, rw_string, rw)
+  add_part = 0
+  if (bdev != bdev_contains) 
+  	add_part = p_start_sect
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+        	devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments,
+  		hw_segments, size, add_part, ino)
 }
 
 probe ioblock.end {
   log(pp())
-  printf("%s\t%d\t%d\t%s\t%d\t%d\n", bio_devname, sector, bytes_done, rw_string, rw, error)
+  printf("%s\t%d\t%d\t%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                devname, sector, flags, rw, bio_rw_str(rw), vcnt, idx, phys_segments,
+                hw_segments, size, bytes_done, error, ino)
 }
