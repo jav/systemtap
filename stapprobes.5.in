@@ -476,7 +476,7 @@ It contains the following probe points:
 
 .P
 .TP 
-.B pagefault
+.B vm.pagefault
 Fires when there is a pagefault
 
 .B Arguments:

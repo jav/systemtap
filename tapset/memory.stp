@@ -1,15 +1,26 @@
-// memory related tapset
+// memory/vm related tapset
 // Copyright (C) 2005, 2006 IBM Corp.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-/* Record the page fault event */
-probe pagefault
-	=  kernel.function(%( kernel_v >= "2.6.13" %? "__handle_mm_fault"
-                                          %: "handle_mm_fault" %))
+/* probe vm.pagefault
+ *
+ *  Records that a page fault occurred.
+ *
+ * Context:
+ *  The process which triggered the fault.
+ *
+ * Arguments:
+ *  address - the address of the faulting memory access.
+ *  write_access - indicates whether this was a write
+ */
+probe vm.pagefault = kernel.function(
+        %( kernel_v >= "2.6.13" %? "__handle_mm_fault" %: "handle_mm_fault" %)
+        )
 {
 	write_access = $write_access
 	address =  $address
@@ -28,5 +39,109 @@ function addr_to_node:long(addr:long)  /* pure */
 			THIS->__retvalue = nid;
                         break;
                 }
-
 %}
+
+/* Return whether a page to be copied is a zero page. */
+function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
+    THIS->__retvalue = (from == ZERO_PAGE(vaddr));
+%}
+
+
+/* probe vm.write_shared
+ *
+ *  Fires when a process attempts to write to a shared page.  If a
+ *  copy is necessary, this will be followed by a vm.write_shared_copy.
+ *
+ * Context:
+ *  The process attempting the write.
+ *
+ * Arguments:
+ *  address - the address of the shared write.
+ */
+probe vm.write_shared = kernel.function("do_wp_page") {
+    address = $address
+}
+
+
+/* probe vm.write_shared_copy
+ *
+ *  Fires when a write to a shared page requires a page copy.  This is
+ *  always preceded by a vm.shared_write.
+ *
+ * Context:
+ *  The process attempting the write.
+ *
+ * Arguments:
+ *  address - the address of the shared write.
+ *  zero - boolean indicating whether it is a zero page
+ *         (can do a clear instead of a copy).
+ */
+probe vm.write_shared_copy = kernel.inline("copy_cow_page") {
+    address = $address
+    zero = _IS_ZERO_PAGE($from, address);
+}
+
+
+/* probe vm.mmap
+ *
+ *  Fires when an mmap is requested.
+ *
+ * Context:
+ *  The process calling mmap.
+ *
+ * Arguments:
+ *  address - the requested address
+ *  length - the length of the memory segment 
+ */
+probe vm.mmap = kernel.inline("do_mmap"), kernel.inline("do_mmap2") {
+    address = $addr
+    length = $len
+}
+
+
+/* probe vm.munmap
+ *
+ *  Fires when an munmap is requested.
+ *
+ * Context:
+ *  The process calling munmap.
+ *
+ * Arguments:
+ *  address - the requested address
+ *  length - the length of the memory segment 
+ */
+probe vm.munmap = kernel.function("do_munmap") {
+    address = $start
+    length = $len
+}
+
+/* probe vm.brk
+ *
+ *  Fires when a brk is requested (resizing a heap).
+ *
+ * Context:
+ *  The process calling brk.
+ *
+ * Arguments:
+ *  address - the requested address
+ *  length - the length of the memory segment 
+ */
+probe vm.brk = kernel.function("do_brk") {
+    address = $addr
+    length = $len
+}
+
+/* probe vm.oom_kill
+ *
+ *  Fires when a thread is targetted by the OOM killer.
+ *
+ * Context:
+ *  The process that tried to consume more memory, and thus
+ *  triggered the OOM. (correct?)
+ *
+ * Arguments:
+ *  task - the task being killed
+ */
+probe vm.oom_kill = kernel.function("__oom_kill_task") {
+    task = $p
+}

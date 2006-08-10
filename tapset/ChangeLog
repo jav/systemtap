@@ -3,6 +3,8 @@
 	* signal.stp: Create a new tapset that addresses process signals.
 	Much of this was contributed by Manoj Pattabhiraman (IBM).
 	* process.stp: Remove aliases that now belong in signal tapset
+	* memory.stp: move pagefault to vm.* namespace, and add many other
+	virtual-memory themed probes.
 
 2006-08-09  David Smith  <dsmith@redhat.com>
 

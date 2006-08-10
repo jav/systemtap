@@ -19,7 +19,7 @@ probe addevent.pagefault
 }
 
 probe _addevent.pagefault
-	=  pagefault
+	=  vm.pagefault
 {
 	if(filter_by_pid() == 1 ) {
 		log_pagefault_tracedata(HOOKID_PAGEFAULT, $address, $write_access)
