@@ -487,6 +487,251 @@ Fires when there is a pagefault
 .I write_access
   1 means this is a write access and 0 means this is a read access
 
+.SS PROCESS
+
+This family of probe points is used to probe the process activities.
+It contains the following probe points:
+
+.P
+.TP 
+.B process.create
+
+Fires whenever a new process is successfully created, either as a 
+result of one of the fork syscall variants, or a new kernel thread.
+
+.B Arguments:
+
+.I task
+  a handle to the newly created process
+
+.I new_pid
+  pid of the newly created process
+
+.P
+.TP 
+.B process.start
+
+Fires immediately before a new process begins execution.
+
+.B Arguments:
+
+.I N/A
+
+.P
+.TP
+.B process.exec
+
+Fires whenever a process attempts to exec to a new program
+
+.B Arguments:
+
+.I filename
+  the path to the new executable
+
+.P
+.TP
+.B process.exec_complete
+
+Fires at the completion of an exec call
+
+.B Arguments:
+
+.I errno
+  the error number resulting from the exec
+
+.I success
+  a boolean indicating whether the exec was successful
+
+.P
+.TP
+.B process.exit
+
+Fires when a process terminates. This will always be followed by a
+process.release, though the latter may be delayed if the process 
+waits in a zombie state.
+
+.B Arguments:
+
+.I code
+  the exit code of the process
+
+.P
+.TP
+.B process.release
+
+Fires when a process is released from the kernel. This always 
+follows a process.exit, though it may be delayed somewhat if the 
+process waits in a zombie state.
+
+.B Arguments:
+
+.I task
+  a task handle to the process being released
+
+.I pid
+  pid of the process being released
+
+.SS TCP
+
+This family of probe points is used to probe TCP layer activities.
+It contains the following probe points:
+
+.P
+.TP
+.B tcp.sendmsg
+
+Fires whenever sending a tcp message
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to send
+
+.P
+.TP
+.B tcp.sendmsg.return
+
+Fires whenever sending message is done
+
+.B Arguments:
+
+.I size
+  number of bytes sent
+
+.P
+.TP
+.B tcp.recvmsg
+
+Fires whenever a message is received
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to be received
+
+.P
+.TP
+.B tcp.recvmsg.return
+
+Fires whenever message receiving is done
+
+.B Arguments:
+
+.I size
+  number of bytes received
+
+.P
+.TP
+.B tcp.disconnect
+
+Fires whenever tcp is disconnected
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I flags
+  TCP flags (e.g. FIN, etc)
+
+.P
+.TP
+.B tcp.disconnect.return
+
+Fires when returning from tcp.disconnect
+
+.B Arguments:
+
+.I ret
+  error code (0: no error)
+
+
+.SS UDP
+
+This family of probe points is used to probe UDP layer activities.
+It contains the following probe points:
+
+.P
+.TP
+.B udp.sendmsg
+
+Fires whenever sending a udp message
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to send
+
+.P
+.TP
+.B udp.sendmsg.return
+
+Fires whenever sending message is done
+
+.B Arguments:
+
+.I size
+  number of bytes sent
+
+.P
+.TP
+.B udp.recvmsg
+
+Fires whenever a message is received
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I size
+  number of bytes to be received
+
+.P
+.TP
+.B udp.recvmsg.return
+
+Fires whenever message receiving is done
+
+.B Arguments:
+
+.I size
+  number of bytes received
+
+.P
+.TP
+.B udp.disconnect
+
+Fires whenever udp is disconnected
+
+.B Arguments:
+
+.I sock
+  network socket
+
+.I flags
+  flags (e.g. FIN, etc)
+
+.P
+.TP
+.B udp.disconnect.return
+
+Fires when returning from udp.disconnect
+
+.B Arguments:
+
+.I ret
+  error code (0: no error)
+
 .SH EXAMPLES
 .PP
 Here are some example probe points, defining the associated events.

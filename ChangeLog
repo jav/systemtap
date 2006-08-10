@@ -1,3 +1,6 @@
+2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
+	* stapprobes.5.in: document process.*, tcp.*, udp.*
+
 2006-08-09  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* testsuite/buildok/iolock_test.stp: Updated for new ioblock.stp

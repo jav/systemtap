@@ -22,6 +22,7 @@ function _IS_ERR:long(ptr:long) %{ /* pure */
  *
  * Arguments:
  *  task - a handle to the newly created process.
+ *  new_pid - pid of the newly created process.
  */
 probe process.create = kernel.function("copy_process").return {
     task = $return
@@ -108,7 +109,9 @@ probe process.exit = kernel.function("do_exit") {
  *
  * Arguments:
  *  task - a task handle to the process being released
+ *  pid  - pid of the process being released
  */
 probe process.release = kernel.function("release_task") {
     task = $p
+    pid = $p->pid;
 }
