@@ -68,6 +68,8 @@ struct c_unparser: public unparser, public visitor
   unsigned tmpvar_counter;
   unsigned label_counter;
 
+  map<string, string> probe_contents;
+
   c_unparser (systemtap_session* ss):
     session (ss), o (ss->op), current_probe(0), current_function (0),
   tmpvar_counter (0), label_counter (0) {}
@@ -1270,40 +1272,67 @@ c_unparser::emit_probe (derived_probe* v)
   o->newline() << "static void " << v->name << " (struct context * __restrict__ c) {";
   o->indent(1);
 
-  // initialize frame pointer
-  o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
-  o->newline(1) << "& c->locals[0]." << v->name << ";";
-  o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+  // If we about to emit a probe that is exactly the same as another
+  // probe previously emitted, make the second probe just call the
+  // first one.
+  //
+  // Notice we're using the probe body itself instead of the emitted C
+  // probe body to compare probes.  We need to do this because the
+  // emitted C probe body has stuff in it like:
+  //
+  //   c->last_stmt = "identifier 'printf' at foo.stp:<line>:<column>";
+  //
+  // which would make comparisons impossible.
+  ostringstream oss;
+  v->body->print(oss);
 
-  // emit all read/write locks for global variables
-  varuse_collecting_visitor vut;
-  v->body->visit (& vut);
-  emit_locks (vut);
-
-  // initialize locals
-  for (unsigned j=0; j<v->locals.size(); j++)
+  // If an identical probe has already been emitted, just call that
+  // one.
+  if (probe_contents.count(oss.str()) != 0)
     {
-      if (v->locals[j]->index_types.size() > 0) // array?
-	throw semantic_error ("array locals not supported", v->tok);
-      else if (v->locals[j]->type == pe_long)
-	o->newline() << "l->" << c_varname (v->locals[j]->name)
-		     << " = 0;";
-      else if (v->locals[j]->type == pe_string)
-	o->newline() << "l->" << c_varname (v->locals[j]->name)
-		     << "[0] = '\\0';";
-      else
-	throw semantic_error ("unsupported local variable type",
-			      v->locals[j]->tok);
+	o->newline() << probe_contents[oss.str()] << " (c);";
     }
+  // This probe is unique.  Remember it and output it.
+  else
+    {
+      probe_contents[oss.str()] = v->name;
+
+      // initialize frame pointer
+      o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
+      o->newline(1) << "& c->locals[0]." << v->name << ";";
+      o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+
+      // emit all read/write locks for global variables
+      varuse_collecting_visitor vut;
+      v->body->visit (& vut);
+      emit_locks (vut);
+
+      // initialize locals
+      for (unsigned j=0; j<v->locals.size(); j++)
+        {
+	  if (v->locals[j]->index_types.size() > 0) // array?
+	    throw semantic_error ("array locals not supported", v->tok);
+	  else if (v->locals[j]->type == pe_long)
+	    o->newline() << "l->" << c_varname (v->locals[j]->name)
+			 << " = 0;";
+	  else if (v->locals[j]->type == pe_string)
+	    o->newline() << "l->" << c_varname (v->locals[j]->name)
+			 << "[0] = '\\0';";
+	  else
+	    throw semantic_error ("unsupported local variable type",
+				  v->locals[j]->tok);
+        }
   
-  v->body->visit (this);
+      v->body->visit (this);
 
-  o->newline(-1) << "out:";
-  // NB: no need to uninitialize locals, except if arrays can somedays be local
-  // XXX: do this flush only if the body included a print/printf/etc. routine!
-  o->newline(1) << "_stp_print_flush();";
+      o->newline(-1) << "out:";
+      // NB: no need to uninitialize locals, except if arrays can
+      // somedays be local XXX: do this flush only if the body
+      // included a print/printf/etc. routine!
+      o->newline(1) << "_stp_print_flush();";
 
-  emit_unlocks (vut);
+      emit_unlocks (vut);
+    }
 
   o->newline(-1) << "}\n";
   

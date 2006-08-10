@@ -1,3 +1,15 @@
+2006-08-10  David Smith  <dsmith@redhat.com>
+
+	* elaborate.cxx (duplicate_function_remover): Added class.
+	(get_functionsig): Added function.
+	(semantic_pass_opt5): New function merges duplicate identical
+	functions into one function.
+	(semantic_pass_optimize): Calls semantic_pass_opt5.
+
+	* translate.cxx (c_unparser::emit_probe): Changed to merge
+	duplicate probes bodies by making the duplicate probe just call
+	the original probe (BZ# 2421).
+
 2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
 	* stapprobes.5.in: document process.*, tcp.*, udp.*
 

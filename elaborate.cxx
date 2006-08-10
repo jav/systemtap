@@ -1550,6 +1550,94 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
     }
 }
 
+struct duplicate_function_remover: public functioncall_traversing_visitor
+{
+  systemtap_session& s;
+  bool& relaxed_p;
+  map<functiondecl*, functiondecl*>& duplicate_function_map;
+
+  duplicate_function_remover(systemtap_session& sess, bool& r,
+			     map<functiondecl*, functiondecl*>&dfm):
+    s(sess), relaxed_p(r), duplicate_function_map(dfm) {};
+
+  void visit_functioncall (functioncall* e);
+};
+
+void
+duplicate_function_remover::visit_functioncall (functioncall *e)
+{
+  functioncall_traversing_visitor::visit_functioncall (e);
+
+  // If the current function call reference points to a function that
+  // is a duplicate, replace it.
+  if (duplicate_function_map.count(e->referent) != 0)
+    {
+      if (s.verbose>2)
+	  clog << "Changing " << e->referent->name
+	       << " reference to "
+	       << duplicate_function_map[e->referent]->name
+	       << " reference\n";
+      e->tok = duplicate_function_map[e->referent]->tok;
+      e->function = duplicate_function_map[e->referent]->name;
+      e->referent = duplicate_function_map[e->referent];
+
+      relaxed_p = false;
+    }
+}
+
+static string
+get_functionsig (functiondecl* f)
+{
+  ostringstream s;
+
+  // Get the "name:args body" of the function in s.  We have to
+  // include the args since the function 'x1(a, b)' is different than
+  // the function 'x2(b, a)' even if the bodies of the two functions
+  // are exactly the same.
+  f->printsig(s);
+  f->body->print(s);
+
+  // printsig puts f->name + ':' on the front.  Remove this
+  // (otherwise, functions would never compare equal).
+  string str = s.str().erase(0, f->name.size() + 1);
+
+  // Return the function signature.
+  return str;
+}
+
+void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
+{
+  // Walk through all the functions, looking for duplicates.
+  map<string, functiondecl*> functionsig_map;
+  map<functiondecl*, functiondecl*> duplicate_function_map;
+  for (unsigned i=0; i < s.functions.size(); i++)
+    {
+      string functionsig = get_functionsig(s.functions[i]);
+
+      if (functionsig_map.count(functionsig) == 0)
+	// This function is unique.  Remember it.
+	functionsig_map[functionsig] = s.functions[i];
+      else
+	// This function is a duplicate.
+	duplicate_function_map[s.functions[i]]
+	    = functionsig_map[functionsig];
+    }
+
+  // If we have duplicate functions, traverse down the tree, replacing
+  // the appropriate function calls.
+  // duplicate_function_remover::visit_functioncall() handles the
+  // details of replacing the function calls.  Note that we don't
+  // delete the duplicate functiondecl itself, we'll let pass 1 do
+  // that.
+  if (duplicate_function_map.size() != 0)
+    {
+      duplicate_function_remover dfr (s, relaxed_p, duplicate_function_map);
+
+      for (unsigned i=0; i < s.probes.size(); i++)
+	s.probes[i]->body->visit(&dfr);
+    }
+}
+
 
 static int
 semantic_pass_optimize (systemtap_session& s)
@@ -1571,6 +1659,7 @@ semantic_pass_optimize (systemtap_session& s)
       semantic_pass_opt2 (s, relaxed_p);
       semantic_pass_opt3 (s, relaxed_p);
       semantic_pass_opt4 (s, relaxed_p);
+      semantic_pass_opt5 (s, relaxed_p);
     }
 
   if (s.probes.size() == 0)
