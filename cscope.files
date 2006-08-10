@@ -23,6 +23,8 @@
 ./runtime/docs/examples/map.c
 ./runtime/docs/examples/template.c
 ./runtime/io.c
+./runtime/lket/b2a/lket_b2a.c
+./runtime/lket/b2a/lket_b2a.h
 ./runtime/loc2c-runtime.h
 ./runtime/map.c
 ./runtime/map-gen.c
@@ -105,6 +107,7 @@
 ./runtime/tests/string/string1.c
 ./runtime/tests/string/string2.c
 ./runtime/tests/string/string3.c
+./runtime/time.c
 ./runtime/transport/procfs.c
 ./runtime/transport/relayfs.c
 ./runtime/transport/relayfs.h
