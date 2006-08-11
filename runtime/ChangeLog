@@ -1,3 +1,8 @@
+2006-08-11  David Smith  <dsmith@redhat.com>
+
+	* lket/b2a/.cvsignore:  Added file to let cvs ignore generated
+	files.
+
 2006-07-21  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Include compat.h.
