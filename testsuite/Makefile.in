@@ -330,7 +330,7 @@ all-local:
 	@ln -sf ../stap .
 
 clean-local:
-	@rm -f ./stap site.exp
+	@rm -f ./stap site.exp systemtap.sum systemtap.log
 
 check-local:
 

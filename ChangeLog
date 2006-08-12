@@ -1,5 +1,10 @@
 2006-08-12  Frank Ch. Eigler  <fche@elastic.org>
 
+	* Makefile.am (dist-hook): Make "make dist" dist.
+	* Makefile.in: Regenerated.
+
+2006-08-12  Frank Ch. Eigler  <fche@elastic.org>
+
 	* configure.ac, Makefile.am: Descend into testsuite/
 	directory.  Remove local test logic.
 	* configure, Makefile.in: Regenerated.
