@@ -1,0 +1,26 @@
+# Simple function to test that systemtap can generate instument a module
+# function, install it, and get some output.
+
+load_lib "stap_run.exp"
+
+set test "current"
+
+proc current_load {} {
+    # if 'genload' from the ltp exists, use it to create a real load
+    set genload {/usr/local/ltp/testcases/bin/genload}
+    if [file executable $genload] {
+        exec $genload -c 10 -i 10 -m 10 -t 10
+        #                               ^^^^^ run for 10 seconds
+        #                         ^^^^^ 10 procs spinning on malloc
+        #                   ^^^^^ 10 procs spinning on sync
+        #             ^^^^^ 10 procs spinning on sqrt
+    } else {
+        # sleep for a bit
+        after 10000
+    }
+    return 0
+}
+
+set output_string "(\\w+ = \\d+\r\n){5}${all_pass_string}(WARNING.*skipped.*)?"
+
+stap_run $srcdir/$subdir/$test.stp current_load $output_string -g

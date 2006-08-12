@@ -1,0 +1,5 @@
+probe begin 
+{
+	printf("%1b", 0x42)
+	exit()
+}

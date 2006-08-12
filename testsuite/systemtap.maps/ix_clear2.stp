@@ -1,0 +1,12 @@
+# test clearing pmaps
+
+global foo
+
+probe begin {
+	foo[1] <<< 1
+	printf("foo[1] = %d %d\n", @count(foo[1]), @sum(foo[1]))
+	delete foo
+	printf("foo[1] = %d %d\n", @count(foo[1]), @sum(foo[1]))
+	exit()
+}
+

@@ -1,0 +1,37 @@
+#test of int maps containing stats
+
+global foo
+
+probe begin {
+	for (i=0;i<11;i++)
+		foo[i] <<< 100
+	for (i=0;i<11;i++)
+		foo[i] <<< i
+ 	for (i=0;i<11;i++)
+		foo[i] <<< -2
+
+	foreach (i+ in foo)
+	 	printf("foo[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
+			i, @count(foo[i]), @sum(foo[i]), @avg(foo[i]),
+			@min(foo[i]), @max(foo[i]))
+	printf("\nNow reverse order...\n")
+	foreach (i- in foo)
+	 	printf("foo[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
+			i, @count(foo[i]), @sum(foo[i]), @avg(foo[i]),
+			@min(foo[i]), @max(foo[i]))
+
+	printf ("\nNow adding 10 to each...\n")
+ 	for (i=0;i<11;i++)
+		foo[i] <<< 10
+	foreach (i+ in foo)
+	 	printf("foo[%d]: count:%d  sum:%d  avg:%d  min:%d  max:%d\n", 
+			i, @count(foo[i]), @sum(foo[i]), @avg(foo[i]),
+			@min(foo[i]), @max(foo[i]))
+
+	printf ("\nRun a quick foreach without sorting...\n");
+	foreach (i in foo)
+		allsum += @sum(foo[i])
+	printf ("complete sum of foo:%d\n", allsum)
+	exit()
+}
+

@@ -1,0 +1,21 @@
+# stap -DMAXERRORS=40
+
+global sc
+probe begin { log(sprint(@count(sc))) }
+probe begin { print(@sum(sc)) }
+probe begin { print(@max(sc)) }
+probe begin { print(@min(sc)) }
+probe begin { print(@avg(sc)) }
+probe begin { print(@hist_log(sc)) }
+probe begin { x=@hist_log(sc)[5]; print(x) }
+
+global ry
+probe begin { log(sprint(@count(ry[4]))) }
+probe begin { print(@sum(ry[4])) }
+probe begin { print(@max(ry[4])) }
+probe begin { print(@min(ry[4])) }
+probe begin { print(@avg(ry[4])) }
+probe begin { print(@hist_log(ry[4])) }
+probe begin { x=@hist_log(ry[4])[5]; print(x) }
+
+probe begin { exit() }

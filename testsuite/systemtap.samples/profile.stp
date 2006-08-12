@@ -1,0 +1,38 @@
+#! stap
+
+global command, syscall_count, syscall_times, this_syscall_time, this_syscall
+
+function accumulate () {
+  pid = pid()
+  if (! ([pid] in command)) command[pid] = execname()
+  syscall=pp() # just the substring ideally
+  syscall_count[pid,syscall] ++
+  this_syscall[pid] = syscall
+  this_syscall_time[pid] = gettimeofday_us()
+}
+function decumulate () {
+  pid = pid()
+  syscall = this_syscall[pid]
+  syscall_times[pid,syscall] += 
+    gettimeofday_us() - this_syscall_time[pid]
+  # free up memory
+  this_syscall[pid] = ""
+  this_syscall_time[pid] = 0
+}
+probe kernel.function("sys_*") {
+  accumulate ()
+}
+probe kernel.function("sys_*").return {
+  decumulate ()
+}
+probe timer.ms(5000) {
+  exit ()
+}
+probe end {
+  foreach ([pid,syscall] in syscall_count-) {
+    log (command[pid] . "(" . sprint(pid) . ") " . syscall .
+         " count=" . sprint(syscall_count[pid,syscall]) .
+         " ttime=" . sprint(syscall_times[pid,syscall]))
+    if (count++ > 30) next
+  }
+}

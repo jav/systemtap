@@ -1,0 +1,17 @@
+# test of 64-bit binary prints
+# need to use big_endian8() to get consistent results across 
+# different-endian architectures.
+
+probe begin 
+{
+	printf("%8b", big_endian8(0x12))
+	printf("%8b", big_endian8(0x34))
+	printf("%8b%8b", big_endian8(0xabcd000011112222), big_endian8(0x5678567856785678))
+	a = big_endian8(0x0012345678abcdef)
+	b = big_endian8(0x1111222233334444)
+	c = big_endian8(0x88889999aaaabbbb)
+	d = big_endian8(0xcdef000011112222)
+	printf("%8b%8b%8b%8b", a, b, c, d)
+	printf("a=%8b b=%8b c=%8b d=%8b",a,b,c,d)
+	exit()
+}

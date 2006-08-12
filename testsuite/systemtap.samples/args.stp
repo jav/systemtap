@@ -1,0 +1,9 @@
+#! stap
+
+global foo, bar
+
+probe begin { 
+  log ("foo=" . foo . " bar=" . sprint (bar+0 /* cast bar to integer */))
+  exit ()
+}
+

@@ -1,0 +1,97 @@
+/*
+ * current.stp  (requires Guru mode)
+ *
+ * Test the validity of the current pointer in various contexts.
+ */
+
+global length
+
+function commlen:long () %{
+    THIS->__retvalue = strlen(current->comm);
+%}
+
+function pcommlen:long () %{
+    THIS->__retvalue = strlen(current->parent->comm);
+%}
+
+probe begin { log("systemtap starting probe") }
+
+probe
+    timer.profile,
+    %( arch != "x86_64" %?
+      # __switch_to.return is broken on x86_64 - see PR2068
+      %( arch != "ia64" %?
+        # __switch_to is macro definition in ia64,
+        # and ia64_switch_to is defined in assemble language
+      kernel.function("__switch_to"),
+      kernel.function("__switch_to").return,
+      %)
+    %)
+
+    /* XXX
+     * It would be nice if we could just do this:
+     *    kernel.statement("__switch_to@*:*")
+     * to probe every line in the function
+     */
+
+    /* add other kernels/archs here as desired... */
+    %( arch == "x86_64" %?
+       %( kernel_vr == "2.6.9-22.ELsmp" %?
+          /* the lines before, at, and after the update of pcurrent */
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:508"),
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:509"),
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:510"),
+       %)
+       %( kernel_vr == "2.6.9-24.ELsmp" %?
+          /* the lines before, at, and after the update of pcurrent */
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:501"),
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:502"),
+          kernel.statement("__switch_to@arch/x86_64/kernel/process.c:503"),
+       %)
+    %)
+
+    kernel.function("*@kernel/sched.c"),
+    kernel.function("*@kernel/sched.c").return,
+    module("*").function("*interrupt*"),
+    module("*").function("*interrupt*").return
+{
+    length <<< commlen()
+    length <<< pcommlen()
+}
+
+function get_TASK_COMM_LEN:long() %{
+    /* TASK_COMM_LEN was introduced in 2.6.11, before which
+     * the length of the comm string was hard-coded to 16 */
+#ifdef TASK_COMM_LEN
+    THIS->__retvalue = TASK_COMM_LEN;
+#else
+    THIS->__retvalue = 16;
+#endif
+%}
+
+probe end {
+    log("systemtap ending probe")
+    printf("count = %d\n", @count(length))
+    printf("sum = %d\n", @sum(length))
+    printf("min = %d\n", @min(length))
+    printf("max = %d\n", @max(length))
+    printf("avg = %d\n", @avg(length))
+
+    /*
+     * Check that the min & max lengths look reasonable.  If any string was
+     * either empty or too big, then the current pointer probably wasn't
+     * valid, even though it dereferenced without crashing.
+     */
+    if (@min(length) > 0) {
+        log("systemtap test success")
+    } else {
+        log("unexpected minimum length")
+        log("systemtap test failure")
+    }
+    if (@max(length) < get_TASK_COMM_LEN()) {
+        log("systemtap test success")
+    } else {
+        log("unexpected maximum length")
+        log("systemtap test failure")
+    }
+}

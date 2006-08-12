@@ -1,0 +1,10 @@
+# test uninitialized pmap element
+
+global foo
+
+probe begin {
+	foo[1] <<< 1
+	printf("foo[2] = %d %d\n", @count(foo[2]), @sum(foo[2]))
+	exit()
+}
+

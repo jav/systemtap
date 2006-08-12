@@ -1,0 +1,34 @@
+2006-07-21  Martin Hunt  <hunt@redhat.com>
+
+	* signal.c: Fix expected pattern.
+
+2006-06-26  Martin Hunt  <hunt@redhat.com>
+	* stat.c: Add utime() test
+
+2006-06-15  Martin Hunt  <hunt@redhat.com>
+	* chmod.c: Results for some archs have
+	4294967295 instead of -1. Fix expected results
+	for now. 
+
+2006-06-15  Martin Hunt  <hunt@redhat.com>
+	* chmod.c: New test.
+	
+2006-06-14  Martin Hunt  <hunt@redhat.com>
+	* test.tcl: Escape "|".
+	* uid.c: Add setfsuid and setfsgid tests.
+	* uid16.c: Ditto.
+	* mmap.c, openclose.c, readwrite.c, stat.c: Fix
+	expected results for sys_open calls.
+
+2006-06-14  Martin Hunt  <hunt@redhat.com>	
+	* setgetgid.c: Renamed to uid.c. Added more syscalls.
+	* uid16.c: Add some more calls.
+
+2006-06-13  Martin Hunt  <hunt@redhat.com>
+	* test.exp: Modify to recognize unsupported tests.
+	* test.tcl: Ditto.
+	* uid16.c: ifdef out for all but i386.
+
+2006-06-13  Martin Hunt  <hunt@redhat.com>	
+	* sys.stp: Add indentation for nested syscalls.
+	* uid16.c: New.

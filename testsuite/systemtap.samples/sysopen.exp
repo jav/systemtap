@@ -1,0 +1,12 @@
+set test "sysopen"
+if {![installtest_p]} { untested $test; return }
+spawn stap $srcdir/$subdir/sysopen.stp
+set ok 0
+expect {
+    -timeout 60 -re {.* opened .*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging sysopen.stp correctly
+wait
+if {$ok > 1} { pass "$test ($ok)" } { fail "$test ($ok)" }

@@ -1,0 +1,14 @@
+set test "syscalls-count"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -p2 $srcdir/$subdir/syscalls.stp
+set ok 0
+expect {
+    -timeout 30
+    -re {kernel.function[^\r]*sys_[^\r]*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging psyscalls.stp correctly
+wait
+if {$ok > 200 && $ok < 350} { pass "$test ($ok)" } { fail "$test ($ok)" }

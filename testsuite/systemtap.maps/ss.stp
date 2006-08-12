@@ -1,0 +1,62 @@
+#test of string maps containing strings
+
+global foo
+
+probe begin {
+	for (i=0;i<11;i++)
+		foo[sprint(i)] = "The Result is ".sprint(i*i)
+
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+	# delete out of the middle
+	foo["5"] = ""
+	printf("\n")
+
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+	# delete first entry
+	foo["0"] = ""
+	# and last entry
+	foo["10"] = ""
+	printf("\n")
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+
+	# change a couple
+	foo["9"] = "New result is -81"
+	foo["4"] = foo["4"]."(CHANGED)"
+	foo["3"] = foo["2"]."<------"
+	printf("\n")
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+
+	# delete one
+	foo["4"] = ""
+	printf("\n")
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+
+	# delete all
+	delete foo
+	printf("\n")
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+	# load it again
+	for (i=0;i<11;i++)
+		foo[sprint(i)] = sprint(i*i)
+	for (i=0;i<11;i++)
+		foo[sprint(i)] = "# ".sprint(i*i)
+
+	printf("\n")
+	foreach (str in foo)
+	 	printf("foo[%s] = %s\n", str, foo[str])
+
+	exit()
+}
+

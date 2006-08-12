@@ -1,0 +1,72 @@
+set test "args"
+if {![installtest_p]} { untested $test; return }
+
+set stappath [exec which stap]
+set stpdpath [exec dirname $stappath]/../libexec/systemtap/stpd
+
+if [file exists $stpdpath] {
+    pass "$test search for stpd ($stpdpath)"
+} else {
+    fail "$test search for stpd"
+    return
+}
+
+set modname "args_[pid]"
+spawn stap -k -p4 -m $modname $srcdir/$subdir/args.stp
+set tmpdir NO_SUCH_FILE
+expect {
+    -timeout 30
+    -re {Keeping temporary directory "([/a-zA-Z0-9_]*)"} { pass "$test compile";
+					set tmpdir $expect_out(1,string) }
+    timeout { fail "$test compile (timeout)" }
+    eof { }
+}
+catch {close}; wait
+if [file exists $tmpdir] {
+    pass "$test search for tmpdir ($tmpdir)"
+} else {
+    fail "$test search for tmpdir"
+    return
+}
+
+set modpath "$tmpdir/$modname.ko"
+if [file exists $modpath] {
+    pass "$test search for probe module ($modpath)"
+} else {
+    fail "$test search for probe module"
+    return
+}
+
+spawn sudo $stpdpath -r -d [pid] $modpath foo=hello bar=999
+set ok 0
+expect {
+    -timeout 30
+    -re {foo=hello bar=999} { incr ok }
+    timeout { }
+    eof { }
+}
+catch {close}; wait
+if {$ok == 1} {
+    pass "$test run 1"
+} else {
+    fail "$test run 1"
+}
+
+spawn sudo $stpdpath -r -d [pid] $modpath foo=goodbye bar=0
+set ok 0
+expect {
+    -timeout 30
+    -re {foo=goodbye bar=0} { incr ok }
+    timeout { }
+    eof { }
+}
+catch {close}; wait
+if {$ok == 1} {
+    pass "$test run 2"
+} else {
+    fail "$test run 2"
+}
+
+
+
+exec /bin/rm -rf $tmpdir

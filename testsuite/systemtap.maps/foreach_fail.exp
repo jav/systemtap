@@ -1,0 +1,17 @@
+# Simple function to test maps of ints containing ints
+
+# modifying maps while in a foreach should produce a compilation error.
+
+set test foreach_fail
+if {![installtest_p]} { untested $test; return }
+
+spawn stap  $srcdir/$subdir/$test.stp
+expect {
+  timeout { 
+    fail "$test timed out" }
+  eof { 
+    fail "$test unexpected EOF" }
+  -re "semantic error:" { pass "$test correctly failed to compile" }
+}
+close
+wait

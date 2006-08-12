@@ -1,0 +1,12 @@
+probe begin 
+{
+	# 50 chars
+	s = "12345678901234567890123456789012345678901234567890"
+	# 100 chars
+	t = s.s
+	printf("s is <%s>\n", s);
+	printf("t is <%s>\n", t);
+	for (i = 0; i < 100; i++)
+		printf("%2d: %s\n", i, t);		
+	exit()
+}

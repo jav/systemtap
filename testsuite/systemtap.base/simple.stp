@@ -1,0 +1,16 @@
+/*
+ * simple.stp
+ *
+ * Very simple function to test that systemtap can generate a kernel module,
+ * install it, and get some output.
+ */
+
+probe begin
+{
+	log("systemtap starting probe")
+}
+
+probe end
+{
+	log("systemtap ending probe")
+}

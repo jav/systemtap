@@ -1,0 +1,45 @@
+# iotask.stp
+# A reimplementation of user script: iotask.stp given at OLS 2005
+# in the current language.
+#
+# Will Cohen
+# 9/22/2005
+
+global names, opens
+global reads, read_bytes
+global writes, write_bytes
+
+probe kernel.function("sys_open") {
+   ++names[execname()]; ++opens[execname()];
+}
+
+probe kernel.function("sys_read") {
+  ++names[execname()]; ++reads[execname()];
+  read_bytes[execname()] += $count;
+}
+
+probe kernel.function("sys_write") {
+  ++names[execname()]; ++writes[execname()];
+  write_bytes[execname()] += $count;
+}
+
+probe begin { log( "starting probe" ); }
+
+probe end {
+  foreach( name in names){
+    log ("process: " . name);
+    if (opens[name]) 
+      log( "opens n=" . sprint(opens[name]));
+    if ( reads[name]){
+      count = reads[name]; total=read_bytes[name];
+      log("reads n, sum, avg=". sprint(count)
+        . "," . sprint(total) . "," . sprint(total/count));
+    }
+    if (writes[name]){
+      count = writes[name]; total=write_bytes[name];
+      log("writes n, sum, avg=". sprint(count)
+        . "," . sprint(total) . "," . sprint(total/count));
+    }
+    log("");
+  }
+}

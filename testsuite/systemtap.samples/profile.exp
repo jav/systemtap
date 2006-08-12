@@ -1,0 +1,14 @@
+set test "profile"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap $srcdir/$subdir/profile.stp
+set ok 0
+expect {
+    -timeout 30 -re {kernel.function[^\r]*ttime=[0-9]*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging primes.stp correctly
+wait
+
+if {$ok > 0} { pass "$test ($ok)" } { fail "$test" }

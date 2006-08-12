@@ -1,0 +1,22 @@
+# Simple function to test that systemtap can generate instument a module
+# function, install it, and get some output.
+
+load_lib "stap_run.exp"
+
+set test "kmodule"
+
+proc kmodule_load {} {
+    # force the filesystem to be synced
+    if {[lindex [local_exec "sync" "" "" 100] 0] == 0} {
+	return 0
+    } else {
+	return 1
+    }
+}
+
+# better have a count other than zero to show that probe fired
+set output_string "count = \[0-9\]\[0-9\]*\r\n"
+
+#make sure have ext3 module loaded before trying this
+
+stap_run $srcdir/$subdir/$test.stp kmodule_load $output_string

@@ -1,0 +1,24 @@
+/*
+ * kfunct.stp
+ *
+ * Very simple function to test that systemtap can generate a kernel module,
+ * install it, and get some output.
+ */
+
+global count
+
+probe begin
+{
+	log("systemtap starting probe")
+}
+
+probe kernel.function("schedule")
+{
+	++count;
+}
+
+probe end
+{
+	log("systemtap ending probe")
+	log("count = " . sprint(count));
+}

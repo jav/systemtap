@@ -1,0 +1,24 @@
+/*
+ * kmodule.stp
+ *
+ * Simple function to test that systemtap can generate instument a module
+ * function, install it, and get some output.
+ */
+
+global count
+
+probe begin
+{
+	log("systemtap starting probe")
+}
+
+probe module("ext3").function("ext3_sync_file")
+{
+	++count;
+}
+
+probe end
+{
+	log("systemtap ending probe")
+	log("count = " . sprint(count));
+}

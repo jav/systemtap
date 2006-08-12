@@ -40,17 +40,18 @@ the <systemtap@sources.redhat.com> mailing list.
 
   As far as practicable, changes should be accompanied by test cases
   to prevent future regressions.  Tests should be run on at least
-  x86, and ideally also on some 64-bit platform.
+  x86, and ideally also on some 64-bit platform.  The test suite is
+  located under /src/testsuite and is based on dejagnu.  "make check"
+  runs unprivileged tests only against an uninstalled build tree. 
+  "make installcheck" runs all tests against an installed tree.
 
   Tests that don't require probe execution should go into new or
-  modified files under /src/testsuite/, a simple automake-flavoured
-  bucket.  Subdirectories exist for testing only up to pass 1
-  (parseok/parseko), pass 2 (semok/semko), pass 3 (transok,transko),
-  and pass 4 (buildok/buildko).  The "ko" tests are for expected
-  (deliberate) errors.
+  modified files under the *{ok,ko} directories, which are scanned
+  by corresponding systemtap.pass1-4/*.exp files.  The "ko" tests are
+  for expected (deliberate) errors.
 
-  Tests that execute probes (pass 5) go under /tests/testsuite/, a
-  dejagnu-based bucket that will require root access to run.
+  Tests that execute probes (pass 5) should include their own .exp/.stp
+  files under any other appropriate systemtap.* testsuite subdirectory.
 
 - translator
 

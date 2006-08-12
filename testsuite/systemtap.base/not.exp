@@ -1,0 +1,7 @@
+# Simple function to test that systemtap binary not works
+
+load_lib "stap_run.exp"
+
+set test "not"
+
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string

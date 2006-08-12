@@ -1,0 +1,13 @@
+global traces
+
+probe kernel.function("smp_call_function") { 
+  traces[pid(), pexecname(), backtrace()] ++
+}
+probe timer.ms(1000) { exit () }
+probe end {
+  foreach ([pid+, name, stack] in traces) { # sort by pid
+    printf ("traces[%d,%s,\n", pid, name)
+    print_stack (stack)
+    printf ("] = %d\n", traces[pid, name, stack]);
+  }
+}

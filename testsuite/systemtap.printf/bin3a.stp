@@ -1,0 +1,17 @@
+# test of 16-bit binary prints
+# need to use big_endian2() to get consistent results across 
+# different-endian architectures.
+
+probe begin 
+{
+	printf("%2b", big_endian2(0x12))
+	printf("%2b", big_endian2(0x34))
+	printf("%2b%2b", big_endian2(0xabcd), big_endian2(0x5678))
+	a = big_endian2(0x12345678)
+	b = big_endian2(0xabcd)
+	c = big_endian2(0x8888)
+	d = big_endian2(0xcdef)
+	printf("%2b%2b%2b%2b", a, b, c, d)
+	printf("a=%2b b=%2b c=%2b d=%2b",a,b,c,d)
+	exit()
+}

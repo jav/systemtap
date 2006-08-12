@@ -1,0 +1,14 @@
+set test "bench"
+
+if {![installtest_p]} {untested $test; return}
+
+spawn stap -tu $srcdir/$subdir/bench.stp
+set ok 0
+expect {
+    -timeout 180
+    -re {probe[^\r]*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok > 10} { pass "$test ($ok)" } { fail "$test ($ok)" }

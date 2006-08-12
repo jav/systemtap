@@ -1,0 +1,12 @@
+probe begin 
+{
+	printf("Hello");
+	printf("World");	
+	exit()
+}
+probe end 
+{
+	printf("Hello");
+	printf("World");	
+	exit()
+}

@@ -1,0 +1,10 @@
+# Simple function to test that equal operation works
+
+load_lib "stap_run.exp"
+
+set test "equal"
+
+# better have a count other than zero to show that probe fired
+set output_string "count = \[1-9\]\[0-9\]*\r\ncount2 = \[1-9\]\[0-9\]*\r\nsystemtap test success\r\n"
+
+stap_run $srcdir/$subdir/$test.stp no_load $output_string

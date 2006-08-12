@@ -1,0 +1,12 @@
+#test of int maps containing stats
+
+global foo
+
+probe begin {
+	foo[1] <<< 1
+	printf("foo[1] = %d %d\n", @count(foo[1]), @sum(foo[1]))
+	delete foo[1]
+	printf("foo[1] = %d %d\n", @count(foo[1]), @sum(foo[1]))
+	exit()
+}
+

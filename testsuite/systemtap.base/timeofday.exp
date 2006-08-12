@@ -1,0 +1,30 @@
+# timeofday.exp
+#
+# This test is meant to make sure that our time functions can still be called
+# from contexts where do_gettimeofday is unsafe (e.g. when xtime_lock is held).
+# See bug #2525 for more details.
+
+load_lib "stap_run.exp"
+
+proc sleep_one_sec {} {
+    after 1000;
+    return 0;
+}
+
+set systemtap_script {
+    global timeofday
+    probe kernel.function("do_timer") {
+        timeofday = gettimeofday_us()
+    }
+    probe begin {
+        log("systemtap starting probe")
+    }
+    probe end {
+        log("systemtap ending probe")
+        printf("%d\n", timeofday)
+    }
+}
+
+set output_string "\\d+\\r\\n"
+
+stap_run "timeofday test" sleep_one_sec $output_string -e $systemtap_script

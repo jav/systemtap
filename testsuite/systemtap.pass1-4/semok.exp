@@ -1,0 +1,7 @@
+set self semok
+foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
+    set test $self/[file tail $file]
+    verbose -log "Running $file"
+    set rc [catch {exec $file >>& systemtap.log} err]
+    if {$rc == 0} { pass $test } else { fail "$test rc $rc" }
+}

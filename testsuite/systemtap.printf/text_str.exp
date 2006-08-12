@@ -1,0 +1,58 @@
+load_lib "stap_run2.exp"
+set test "text_str"
+set ::result_string {a=1234567890
+b=12345678901234567890
+c=123456789012345678901234567890
+----- Using text_str -----
+a=1234567890
+b=12345678901234567890
+c=123456789012345678901234567890
+----- Using text_strn -----
+a=1234567890
+b=12345678901234567890
+c=123456789012345678901234567890
+----- Using text_strn len = 10 -----
+a=1234567890
+b=1234567890
+c=1234567890
+----- Using text_strn quoted -----
+a="1234567890"
+b="12345678901234567890"
+c="123456789012345678901234567890"
+----- Using text_strn len=10, quoted -----
+a="12345"...
+b="12345"...
+c="12345"...
+----- Using text_strn len=12, quoted -----
+a="1234567890"
+b="1234567"...
+c="1234567"...
+----- Using text_str -----
+a=\n\nXYZZY\31
+b=?\31\a\n\n\r\n
+c=\n\nXYZZY\31?\31\a\n\n\r\n
+----- Using text_strn -----
+a=\n\nXYZZY\31
+b=?\31\a\n\n\r\n
+c=\n\nXYZZY\31?\31\a\n\n\r\n
+----- Using text_strn len = 10 -----
+a=\n\nXYZZY
+b=?\31\a\n\n
+c=\n\nXYZZY
+----- Using text_strn len = 12 -----
+a=\n\nXYZZY\31
+b=?\31\a\n\n\r
+c=\n\nXYZZY\31
+----- Using text_strn quoted -----
+a="\n\nXYZZY\31"
+b="?\31\a\n\n\r\n"
+c="\n\nXYZZY\31?\31\a\n\n\r\n"
+----- Using text_strn len=10, quoted -----
+a="\n\nX"...
+b="?\31\"...
+c="\n\nX"...
+----- Using text_strn len=14, quoted -----
+a="\n\nXYZZY\31"
+b="?\31\a\n\"...
+c="\n\nXYZZY"...}
+stap_run2 $srcdir/$subdir/$test.stp

@@ -1,0 +1,13 @@
+set test "arith"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -DMAXNESTING=5 $srcdir/$subdir/arith_limits.stp
+set ok 0
+expect {
+    -timeout 30
+    -re {passes: [0-9]* failures: 0} { incr ok }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok == 1} { pass "$test" } { fail "$test" }

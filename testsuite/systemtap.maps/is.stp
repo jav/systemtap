@@ -1,0 +1,59 @@
+#test of int maps containing strings
+
+global foo
+
+probe begin {
+	for (i=0;i<11;i++)
+		foo[i] = "The Result is ".sprint(i*i)
+
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	# delete out of the middle
+	foo[5] = ""
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])	 	
+
+	# delete first entry
+	foo[0] = ""
+	# and last entry
+	foo[10] = ""
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	# change a couple
+	foo[9] = "New result is -81"
+	foo[4] = foo[4]."(CHANGED)"
+	foo[3] = foo[2]."<------"
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	# delete one
+	foo[4] = ""
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	# delete all
+	delete foo
+
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	# load it again
+	for (i=0;i<11;i++)
+		foo[i] = sprint(i*i)
+	for (i=0;i<11;i++)
+		foo[i] = "# ".sprint(i*i)
+
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %s\n", i, foo[i])
+
+	exit()
+}
+

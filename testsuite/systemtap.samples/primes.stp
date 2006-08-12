@@ -1,0 +1,21 @@
+#! stap
+global odds, evens
+probe begin {
+  # "no" and "ne" are local integers
+  for (i=1; i<10; i++) {
+    if (i % 2) odds [no++] = i
+    else evens [ne++] = i
+  }
+  delete odds[2]
+  delete evens[3]
+  exit ()
+}
+
+probe end {
+  foreach (x+ in odds) {
+    log("odds[" . sprint(x) . "] = " . sprint(odds[x]))
+  }
+  foreach (x in evens-) {
+    log("evens[" . sprint(x) . "] = " . sprint(evens[x]))
+  }
+}

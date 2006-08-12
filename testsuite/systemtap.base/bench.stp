@@ -1,0 +1,31 @@
+
+// This bucket aims to trigger all basic generated C code constructs.
+// It should be run with "-tu".
+
+probe repeat = begin,begin,begin,begin,begin,begin,begin,begin,
+               begin,begin,begin,begin,begin,begin,begin,begin,
+               begin,begin,begin,begin,begin,begin,begin,begin,
+               begin,begin,begin,begin,begin,begin,begin,begin,
+               begin,begin,begin,begin,begin,begin,begin,begin
+               {}
+
+probe test.null = repeat {}                 probe test.null {}    // null probe
+probe test.intassmt = repeat {i = 0}        probe test.intassmt {}
+probe test.gintassmt = repeat {gn = 0}      probe test.gintassmt {}      global gn
+probe test.intincr = repeat {i++}           probe test.intincr {}
+probe test.gintincr = repeat {gn++}         probe test.gintincr {}
+
+probe test.strassmt = repeat {s=""}         probe test.strassmt {}
+probe test.gstrassmt = repeat {gs=""}       probe test.gstrassmt {}      global gs
+
+probe test.forloop = repeat {for(i=0;i<10;i++) ;}  probe test.forloop {}
+probe test.ifgint = repeat {if (gn>0) ;}           probe test.ifgint {}
+probe test.next = repeat {next}                    probe test.next {}
+
+probe test.stataccum = repeat {gS <<< 1}           probe test.stataccum {}   global gS
+probe test.statcount = repeat {@count(gS)}         probe test.statcount {}
+
+probe test.nnarrassmt = repeat {gnn[1] = 1}         probe test.nnarrassmt {}  global gnn
+probe test.ssarrassmt = repeat {gss["foo"] = "bar"} probe test.ssarrassmt {}  global gss
+
+probe begin { exit () }

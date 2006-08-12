@@ -1,0 +1,23 @@
+# stap_run_binary.exp
+#
+# Simple script for testing binary output
+# stap_run_binary TEST_NAME
+# TEST_NAME is path to the current test
+# global result_string must be set to the expected output
+
+proc stap_run_binary { TEST_NAME} {
+  if {![installtest_p]} { untested $TEST_NAME; return }
+
+  set hex_args {-ve 8/1 "%02x " "\n"}
+  set res [exec stap $TEST_NAME | hexdump $hex_args] 
+
+  if {[string compare $res $::result_string] == 0} {
+      pass "$TEST_NAME passed"
+  } else {
+      fail "$TEST_NAME failed"
+      puts "EXPECTED:\n-----------------------\n<$::result_string>"
+      puts "-----------------------\n"
+      puts "GOT:\n-----------------------\n<$res>"
+      puts "-----------------------\n"
+  }
+}

@@ -1,0 +1,12 @@
+# Test the functionality of the tcp probes 
+
+load_lib "stap_run.exp"
+set test "tcptest"
+
+proc sleep_ten_secs {} {
+    after 10000;
+    return 0;
+}
+
+set output_string "\\mTCP totalbytes: \\d+\\M"
+stap_run $srcdir/$subdir/$test.stp sleep_ten_secs $output_string

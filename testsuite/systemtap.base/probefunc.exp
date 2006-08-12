@@ -1,0 +1,58 @@
+# Test cases for probefunc() function
+
+load_lib "stap_run.exp"
+
+proc grep {fd re } {
+   while {[gets $fd s] >= 0} {
+      if [regexp $re $s] {
+         return $s
+      }
+   }
+}
+
+proc sleep_one_sec {} {
+    after 1000;
+    return 0;
+}
+
+set systemtap_script {
+    global funcname 
+    probe %s {
+        funcname = probefunc()
+    }
+    probe begin {
+        log("systemtap starting probe")
+    }
+    probe end {
+        log("systemtap ending probe")
+        printf("%%s\n", funcname)
+    }
+}
+
+# open /proc/kallsyms to get address for scheduler_tick symbol 
+set symf "/proc/kallsyms"
+set symfd [open $symf r]
+set re "\\mscheduler_tick\\M"
+set rs [grep $symfd $re]
+set flds [split $rs " "]
+set addr [lindex $flds 0]
+close $symfd
+
+set prefix "probefunc:"
+
+# test probefunc() with kernel.statement()
+set output_string "\\mscheduler_tick\\M"
+set probepoint "kernel.statement(0x$addr)"
+set script [format $systemtap_script $probepoint]
+stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
+
+# test probefunc() with kernel.function()
+set probepoint "kernel.function(\"scheduler_tick\")"
+set script [format $systemtap_script $probepoint]
+stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
+
+# test probefunc() with kernel.inline()
+set output_string "\\mcontext_switch\\M"
+set probepoint "kernel.inline(\"context_switch\")"
+set script [format $systemtap_script $probepoint]
+stap_run $prefix$probepoint sleep_one_sec $output_string -e $script

@@ -1,0 +1,19 @@
+# modifying maps while in a foreach should produce a compilation error.
+
+global foo
+
+probe begin {
+	for (i=0;i<11;i++)
+		foo[i] = i*i 	
+
+	foreach (i in foo)
+	 	printf("foo[%d] = %d\n", i, foo[i])
+
+	foreach (i in foo)
+	 	foo[i]++
+	printf("\n")
+	foreach (i in foo)
+	 	printf("foo[%d] = %d\n", i, foo[i])
+
+	exit()
+}

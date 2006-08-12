@@ -1,0 +1,25 @@
+# function to test error handling when reading nonexistent pmap elements
+
+set test "ix_clear2"
+if {![installtest_p]} { untested $test; return }
+
+
+set pass_result {foo\[1\] = 1 1*ERROR: empty aggregate*}
+
+
+# spawn test
+spawn stap $srcdir/$subdir/$test.stp
+expect {
+  $pass_result {
+    pass "$test passed"
+  }
+  -timeout 30 { 
+    send "\003"
+    fail "$test timed out"
+  }
+  eof { 
+    fail "$test unexpected EOF" }
+  -re "semantic error:" { fail "$test compilation" }
+}
+close
+wait

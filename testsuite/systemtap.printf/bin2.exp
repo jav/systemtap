@@ -1,0 +1,7 @@
+load_lib "stap_run_binary.exp"
+set test "bin2"
+set ::result_string {12 34 56 78 12 34 56 78
+61 3d 12 20 62 3d 34 20
+63 3d 56 20 64 3d 78   }   
+
+stap_run_binary $srcdir/$subdir/$test.stp

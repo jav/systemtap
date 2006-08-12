@@ -1,3 +1,11 @@
+2006-08-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, Makefile.am: Descend into testsuite/
+	directory.  Remove local test logic.
+	* configure, Makefile.in: Regenerated.
+	* runtest.sh: Not yet removed.
+	* HACKING: Update for new testsuite layout.
+
 2006-08-10  David Smith  <dsmith@redhat.com>
 
 	* elaborate.cxx (duplicate_function_remover): Added class.
@@ -11,6 +19,7 @@
 	the original probe (BZ# 2421).
 
 2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
+
 	* stapprobes.5.in: document process.*, tcp.*, udp.*
 
 2006-08-09  Thang Nguyen  <thang.p.nguyen@intel.com>

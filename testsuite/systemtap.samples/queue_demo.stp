@@ -1,0 +1,32 @@
+
+probe begin {
+  qsq_start ("block-read")
+  qsq_start ("block-write")
+}
+
+probe timer.ms(3500), end {
+  qsq_print ("block-read")
+  qsq_start ("block-read")
+  qsq_print ("block-write")
+  qsq_start ("block-write")
+}
+
+probe timer.ms(10000) { exit () }
+
+
+# synthesize queue work/service using three randomized "threads" for each queue.
+
+global tc
+function qs_doit (thread, name) {
+  n = tc[thread] = (tc[thread]+1) % 3 # per-thread state counter
+  if (n==1) qs_wait (name)
+  else if (n==2) qs_run (name)
+  else if (n==0) qs_done (name)
+}
+
+probe timer.ms(100).randomize(100) { qs_doit (0, "block-read") }
+probe timer.ms(100).randomize(100) { qs_doit (1, "block-read") }
+probe timer.ms(100).randomize(100) { qs_doit (2, "block-read") }
+probe timer.ms(100).randomize(100) { qs_doit (3, "block-write") }
+probe timer.ms(100).randomize(100) { qs_doit (4, "block-write") }
+probe timer.ms(100).randomize(100) { qs_doit (5, "block-write") }

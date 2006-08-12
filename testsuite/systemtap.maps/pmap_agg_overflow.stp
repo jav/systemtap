@@ -1,0 +1,38 @@
+# try to induce overflow of pmap aggregation
+#   (this will only work on smp machines)
+
+global stat, count, max_count
+
+probe begin {
+    if (num_online_cpus() < 2) {
+        warn("This test only applies to smp systems...")
+        exit()
+    }
+    max_count = num_online_cpus() * max_map_entries()
+}
+
+probe timer.profile {
+    i = ++count
+    if (i >= max_count) exit()
+    stat[i] <<< i
+}
+
+probe end {
+    # pmap aggregation should overflow here
+    foreach (i in stat)
+        printf("@count(stat[%d]) = %d\n", i, @count(stat[i]))
+}
+
+probe end {
+    # sorted pmap aggregation should overflow here
+    foreach (i+ in stat)
+        printf("@count(stat[%d]) = %d\n", i, @count(stat[i]))
+}
+
+function max_map_entries:long() %{
+    THIS->__retvalue = MAXMAPENTRIES;
+%}
+
+function num_online_cpus:long() %{
+    THIS->__retvalue = num_online_cpus();
+%}

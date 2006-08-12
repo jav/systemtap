@@ -1,0 +1,32 @@
+# This script tests normal logging - it logs a fair amount of data
+# in each probe hit, but not enough to fill up the staging buffers.
+
+global maxcount
+global count
+global n
+
+function write_output()
+{
+	for (i = 0; i < n; i++)
+		log("[".sprint(count++)."] testing 123, testing, testing. testing 123, testing, testing")
+}
+
+probe timer.jiffies(5)
+{
+	write_output();
+	if (count >= maxcount)
+		exit()
+}
+
+probe begin
+{
+	count = 1
+	n = 50
+	maxcount = 1000
+}
+
+probe end
+{
+	log("total records written: ".sprint(count - 1))
+	log("records per iteration: ".sprint(n))
+}

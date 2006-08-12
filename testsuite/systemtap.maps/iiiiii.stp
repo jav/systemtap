@@ -1,0 +1,23 @@
+#simple test of maps with 5 ints as keys, returning ints
+
+global foo
+
+probe begin {
+	for (i=0;i<2;i++)
+		for (j=0;j<2;j++)
+			for (k=0;k<2;k++)
+				for (m=0;m<2;m++)
+					for (n=0;n<2;n++)
+						foo[i,j,k,m,n] = i+j+k+m+n 	
+
+	foreach ([a,b,c,d,e] in foo)
+	 	printf("foo[%d,%d,%d,%d,%d] = %d\n", a,b,c,d,e, foo[a,b,c,d,e])
+
+	foo[0,0,1,1,1] = 0
+	printf("\n")
+	foreach ([a,b,c,d,e] in foo)
+	 	printf("foo[%d,%d,%d,%d,%d] = %d\n", a,b,c,d,e, foo[a,b,c,d,e])
+
+	exit()
+}
+

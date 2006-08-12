@@ -1,0 +1,9 @@
+probe begin 
+{
+	s = "Foobar!"
+	printf("The string is <%s>\n", s);
+	t = "XYZZY"
+	printf("%s%s\n",s,t);	
+	printf("%s%s%s%s\n",t,s,t,s);	
+	exit()
+}

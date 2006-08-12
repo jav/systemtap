@@ -1,0 +1,33 @@
+#! stap
+
+# test that polling loops do not exit when conflicts happen
+# see PR 1379
+
+global called, num_polls
+
+probe kernel.function( "sys_*" ) {
+	called[execname(),name]++
+}
+
+probe timer.ms(1000)
+{
+	print("\n\n")
+	num_to_do = 10
+	foreach ([n,f] in called-) {
+		printf("%s called %s\t%d times\n", n, f, called[n,f])
+		num_to_do--
+		if (num_to_do <= 0)
+			break
+	}
+	delete called
+	num_polls++
+	if (num_polls > 30)
+		exit()
+}
+
+probe end {
+	if (num_polls <= 30)
+		print ("FAIL\n")
+	else
+		print ("SUCCESS\n")
+}

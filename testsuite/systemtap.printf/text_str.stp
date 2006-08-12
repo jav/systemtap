@@ -1,0 +1,79 @@
+probe begin {
+	a = "1234567890"
+	b = a.a
+	c = a.b
+	printf("a=%s\n", a)
+	printf("b=%s\n", b)
+	printf("c=%s\n", c)
+
+	printf("----- Using text_str -----\n");
+	printf("a=%s\n", text_str(a))
+	printf("b=%s\n", text_str(b))
+	printf("c=%s\n", text_str(c))
+
+	printf("----- Using text_strn -----\n");
+	printf("a=%s\n", text_strn(a,0,0))
+	printf("b=%s\n", text_strn(b,0,0))
+	printf("c=%s\n", text_strn(c,0,0))
+
+	printf("----- Using text_strn len = 10 -----\n");
+	printf("a=%s\n", text_strn(a,10,0))
+	printf("b=%s\n", text_strn(b,10,0))
+	printf("c=%s\n", text_strn(c,10,0))
+
+	printf("----- Using text_strn quoted -----\n");
+	printf("a=%s\n", text_strn(a,0,1))
+	printf("b=%s\n", text_strn(b,0,1))
+	printf("c=%s\n", text_strn(c,0,1))
+
+	printf("----- Using text_strn len=10, quoted -----\n");
+	printf("a=%s\n", text_strn(a,10,1))
+	printf("b=%s\n", text_strn(b,10,1))
+	printf("c=%s\n", text_strn(c,10,1))
+
+	printf("----- Using text_strn len=12, quoted -----\n");
+	printf("a=%s\n", text_strn(a,12,1))
+	printf("b=%s\n", text_strn(b,12,1))
+	printf("c=%s\n", text_strn(c,12,1))
+
+	a = "\n\nXYZZY\031"
+	b = "\077\031\a\n\n\r\n"
+	c = a.b
+
+	printf("----- Using text_str -----\n");
+	printf("a=%s\n", text_str(a))
+	printf("b=%s\n", text_str(b))
+	printf("c=%s\n", text_str(c))
+
+	printf("----- Using text_strn -----\n");
+	printf("a=%s\n", text_strn(a,0,0))
+	printf("b=%s\n", text_strn(b,0,0))
+	printf("c=%s\n", text_strn(c,0,0))
+
+	printf("----- Using text_strn len = 10 -----\n");
+	printf("a=%s\n", text_strn(a,10,0))
+	printf("b=%s\n", text_strn(b,10,0))
+	printf("c=%s\n", text_strn(c,10,0))
+
+	printf("----- Using text_strn len = 12 -----\n");
+	printf("a=%s\n", text_strn(a,12,0))
+	printf("b=%s\n", text_strn(b,12,0))
+	printf("c=%s\n", text_strn(c,12	,0))
+
+	printf("----- Using text_strn quoted -----\n");
+	printf("a=%s\n", text_strn(a,0,1))
+	printf("b=%s\n", text_strn(b,0,1))
+	printf("c=%s\n", text_strn(c,0,1))
+
+	printf("----- Using text_strn len=10, quoted -----\n");
+	printf("a=%s\n", text_strn(a,10,1))
+	printf("b=%s\n", text_strn(b,10,1))
+	printf("c=%s\n", text_strn(c,10,1))
+
+	printf("----- Using text_strn len=14, quoted -----\n");
+	printf("a=%s\n", text_strn(a,14,1))
+	printf("b=%s\n", text_strn(b,14,1))
+	printf("c=%s\n", text_strn(c,14,1))
+
+	exit()
+}

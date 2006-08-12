@@ -1,0 +1,15 @@
+# test of int maps containing stats
+
+global foo
+
+probe begin {
+	for (i=0;i<5;i++)
+		for (j=0;j<i*128;j++)
+			foo[i] <<< i*j
+
+	foreach (i+ in foo)
+	 	print(@hist_log(foo[i])) 
+
+	exit()
+}
+

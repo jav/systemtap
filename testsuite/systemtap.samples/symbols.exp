@@ -1,0 +1,14 @@
+set test "symbols"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -g $srcdir/$subdir/symbols.stp
+set ok 0
+expect {
+    -timeout 30
+    -re { 0x[a-f0-9]+[^\r]*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging symbols.stp correctly
+wait
+if {$ok == 11} { pass "$test ($ok)" } { fail "$test ($ok)" }

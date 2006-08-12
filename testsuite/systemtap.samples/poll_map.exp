@@ -1,0 +1,14 @@
+set test "poll_map"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -g $srcdir/$subdir/poll_map.stp
+set ok 0
+expect {
+    -timeout 90
+    -ex "SUCCESS" { incr ok }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+close
+wait
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }

@@ -1,0 +1,42 @@
+global names, opens, reads, writes
+
+probe begin { log("starting probe") }
+
+probe timer.ms(10000) {
+  log("stopping probe after 10 seconds") 
+  exit()
+}
+
+probe kernel.function("sys_open") {
+  e=execname(); names[e]=1
+  opens[e] ++  # simple integer array
+}
+
+probe kernel.function("sys_read") {
+  e=execname(); names[e]=1
+  reads[e] <<< $count # statistics array
+}
+
+probe kernel.function("sys_write") {
+  e=execname(); names[e]=1
+  writes[e] <<< $count # statistics array
+}
+
+
+probe end {
+  foreach (name+ in names) { # sort by name
+    printf("process: %s\n", name)
+    if (opens[name])
+      printf("opens n=%d\n", opens[name])
+    if (@count(reads[name]))
+      printf("reads n=%d, sum=%d, avg=%d\n",
+         @count(reads[name]), # extracting stat results
+         @sum(reads[name]),
+         @avg(reads[name]))
+    if (@count(writes[name]))
+      printf("writes n=%d, sum=%d, avg=%d\n",
+         @count(writes[name]), # extracting stat results
+         @sum(writes[name]),
+         @avg(writes[name]))
+  }
+}

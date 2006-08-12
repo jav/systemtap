@@ -1,0 +1,42 @@
+probe begin 
+{
+	i = 1
+	j = 10
+	k = 9000000000000
+	m = -1
+	n = -1024
+
+	# signed decimal
+	printf("%d,%d,%d,%d,%d\n",i,j,k,m,n)
+	printf("%2d,%2d,%2d,%2d,%2d\n",i,j,k,m,n)
+	printf("%16d,%16d,%16d,%16d,%16d\n",i,j,k,m,n)
+	printf("%016d,%016d,%016d,%016d,%016d\n",i,j,k,m,n)
+
+	printf("\n")
+
+	# unsigned decimal
+	printf("%u,%u,%u,%u,%u\n",i,j,k,m,n)
+	printf("%2u,%2u,%2u,%2u,%2u\n",i,j,k,m,n)
+	printf("%16u,%16u,%16u,%16u,%16u\n",i,j,k,m,n)
+	printf("%016u,%016u,%016u,%016u,%016u\n",i,j,k,m,n)
+
+	printf("\n")
+
+	# hex
+	printf("%x,%x,%x,%x,%x\n",i,j,k,m,n)
+	printf("%2x,%2x,%2x,%2x,%2x\n",i,j,k,m,n)
+	printf("%16x,%16x,%16x,%16x,%16x\n",i,j,k,m,n)
+	printf("%016x,%016x,%016x,%016x,%016x\n",i,j,k,m,n)
+	printf("%16X,%16X,%16X,%16X,%16X\n",i,j,k,m,n)
+	printf("%016X,%016X,%016X,%016X,%016X\n",i,j,k,m,n)
+
+	printf("\n")
+
+	# octal
+	printf("%o,%o,%o,%o,%o\n",i,j,k,m,n)
+	printf("%2o,%2o,%2o,%2o,%2o\n",i,j,k,m,n)
+	printf("%16o,%16o,%16o,%16o,%16o\n",i,j,k,m,n)
+	printf("%016o,%016o,%016o,%016o,%016o\n",i,j,k,m,n)
+
+	exit()
+}

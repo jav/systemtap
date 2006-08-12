@@ -1,0 +1,24 @@
+/*
+ * inc.stp
+ *
+ * Check the systemtap ++ works
+ */
+
+global x1
+
+probe begin
+{
+	log("systemtap starting probe");
+	x1 = 41;
+}
+
+probe end
+{
+	log("systemtap ending probe");
+	++x1;
+	if (x1 != 42 ) {
+		log("systemtap test failure");
+	} else {
+		log("systemtap test success");
+	}
+}

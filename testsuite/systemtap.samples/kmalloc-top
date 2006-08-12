@@ -1,0 +1,97 @@
+#!/usr/bin/perl
+#
+# This script accumulates the execution paths of all calls to kmalloc
+# in the kernel.  On Ctrl-C, it sorts, filters and displays them on
+# stdout.
+#
+# The -e (exclude) option can be used to specify a comma-separated list
+# - any stack with contents matching any of the items in the list will
+# be excluded from the output.
+#
+# The -m (min) option can be used to specify the minimum number of
+# occurrences a stack needs to be included in the output.
+#
+# Usage: ./kmalloc-top [-m min] [-i exclude list]
+# Ctrl-c
+
+use Getopt::Std;
+
+my $kmalloc_stacks;
+my $total_kmallocs;
+my $sorted_stacks;
+my $min_count = 1;
+my $exclude;
+
+$SIG{INT} = \&sigint_handler;
+
+getopts('e:m:');
+
+if ($opt_e) {
+    $exclude = join('|', split(/,/, $opt_e));
+    print "Will exclude stacks containing: $exclude\n";
+}
+
+if ($opt_m) {
+    $min_count = $opt_n;
+}
+print "Will print stacks with counts >= $min_count.\n";
+print STDERR "Press Ctrl-C to stop.\n";
+
+open STREAM, "stap -g kmalloc-stacks.stp |" or die "Couldn't get output stream $!";
+
+while (<STREAM>) {
+    if (/<hashval>(.*?)<\/hashval>/) {
+	update_hash($key, $1);
+	$key = "";
+    } elsif ($_ !~ (/<hashkey>|<\/hashkey>/))  {
+	$key .= $_;
+    }
+}
+
+$num_keys_before_filtering = scalar keys %kmalloc_stacks;
+filter_stacks();
+$num_keys_after_filtering = scalar keys %kmalloc_stacks;
+sort_stacks();
+summarize();
+exit();
+
+sub update_hash
+{
+    my($key, $val) = @_;
+    $kmalloc_stacks{$key} += $val;
+    $total_kmallocs += $val;
+}
+
+sub filter_stacks
+{
+    while (($stack, $count) = each %kmalloc_stacks) {
+	if ($count < $min_count) {
+	    delete $kmalloc_stacks{$stack};
+	} elsif ($exclude && $stack =~ /$exclude/) {
+	    delete $kmalloc_stacks{$stack};
+	}
+    }
+}
+
+sub sort_stacks
+{
+    @sorted_stacks = sort { $kmalloc_stacks{$b} <=> $kmalloc_stacks{$a} } keys %kmalloc_stacks;
+}
+
+sub summarize {
+    print "\n";
+    foreach $stack(@sorted_stacks) {
+	print "This path seen $kmalloc_stacks{$stack} times:\n$stack\n";
+    }
+
+    print "Total kmallocs (before filtering): $total_kmallocs\n";
+    print "Num stacks before filtering: $num_keys_before_filtering\n";
+    print "Num stacks after filtering: $num_keys_after_filtering\n";
+
+    close(STREAM);
+}
+
+sub sigint_handler
+{
+    system("pkill kmalloc-stacks");
+}

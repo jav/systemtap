@@ -1,0 +1,16 @@
+# test of 32-bit binary prints
+# Also tests big_endian4()
+
+probe begin 
+{
+	printf("%4b", big_endian4(0x12))
+	printf("%4b", big_endian4(0x34))
+	printf("%4b%4b", big_endian4(0xabcdef00), big_endian4(0x5678))
+	a = big_endian4(0x12345678)
+	b = big_endian4(0x11112222)
+	c = big_endian4(0x88889999)
+	d = big_endian4(0xcdef0000)
+	printf("%4b%4b%4b%4b", a, b, c, d)
+	printf("a=%4b b=%4b c=%4b d=%4b",a,b,c,d)
+	exit()
+}

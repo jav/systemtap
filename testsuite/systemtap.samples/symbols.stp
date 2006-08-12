@@ -1,0 +1,11 @@
+#! stap
+
+probe begin {
+  # a spectrum of figures for 32-bit x86
+  print_stack ("0x0 0x80000000 0xc0000000 0xe0000000 0xf0000000 0xffffffff")
+  # for x86_64
+  print_stack ("0xffffffff00000000 0xffffffff80000000 0xffffffff80120000")
+  print_stack ("0xffffffff88000000 0xffffffffffffffff")
+  # ... for a total of 11 lines, which symbols.exp counts
+  exit ()
+}

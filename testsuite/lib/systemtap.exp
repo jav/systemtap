@@ -1,0 +1,61 @@
+load_lib site.exp
+
+proc installtest_p {} {
+    global TOOL_OPTIONS
+    if {[info exists TOOL_OPTIONS] && ($TOOL_OPTIONS == "install")} {
+        return 1
+    } else { return 0 }
+}
+
+proc print_systemtap_version {} {
+    set version [exec /bin/uname -r]
+    set location "/boot/vmlinux-$version"
+    if {! [file exists $location]} {
+	# try the debuginfo location
+	set location "/usr/lib/debug/lib/modules/$version/vmlinux"
+	if {! [file exists $location]} { set location "" }
+    }
+
+    print "kernel location: $location"
+    print "kernel version: $version"
+
+    set location [exec /usr/bin/which stap]
+    regexp {version [^)]*} [exec stap -V 2>@ stdout] version
+
+    print "systemtap location: $location"
+    print "systemtap version: $version"
+}
+
+
+proc setup_systemtap_environment {} {
+    global srcdir prefix env
+
+    # need an absolute SRCDIR for the top-level src/ tree
+    if {[string index $srcdir 0] != "/"} then {
+        set env(SRCDIR) [exec pwd]/$srcdir/..
+    } else {
+        set env(SRCDIR) $srcdir/..
+    }
+
+    if [installtest_p] {
+        set env(LD_LIBRARY_PATH) $prefix/lib/systemtap
+        set env(SYSTEMTAP_TAPSET) $prefix/share/systemtap/tapset
+        set env(SYSTEMTAP_RUNTIME) $prefix/share/systemtap/runtime
+        set env(PATH) $prefix/bin:$env(PATH)
+    } else {
+        set env(LD_LIBRARY_PATH) ../lib-elfutils:../lib-elfutils/systemtap
+        set env(SYSTEMTAP_TAPSET) $env(SRCDIR)/tapset
+        set env(SYSTEMTAP_RUNTIME) $env(SRCDIR)/runtime
+        set env(PATH) ..:$env(PATH)
+    }
+}
+
+
+setup_systemtap_environment
+print_systemtap_version
+
+
+proc systemtap_init {args} {}
+proc systemtap_version {} {}
+proc systemtap_exit {} {}
+

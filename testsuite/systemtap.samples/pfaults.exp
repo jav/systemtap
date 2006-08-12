@@ -1,0 +1,17 @@
+set test "pfaults"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -g $srcdir/$subdir/pfaults.stp
+set pid $spawn_id
+set ok 0
+expect {
+    -timeout 30
+    -re "Page fault tracking, start time" { incr ok; exp_continue }
+    -timeout 30
+    -re "Page fault tracking, end time" { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging pfaults.stp correctly
+wait
+if {$ok == 2} { pass "$test ($ok)" } { fail "$test ($ok)" }

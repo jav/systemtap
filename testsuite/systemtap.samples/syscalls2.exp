@@ -1,0 +1,14 @@
+set test "syscalls-run"
+if {![installtest_p]} { untested $test; return }
+spawn stap $srcdir/$subdir/syscalls.stp
+set ok 0
+expect {
+    -timeout 60 -re {[0-9]* kernel.function[^\r]*\r} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging psyscalls.stp correctly
+wait
+# 150 is conservative - it's larger than 100 to allow a bit of slop
+# between the exit() call and the actual shutdown
+if {$ok >= 100 && $ok < 150} { pass "$test ($ok)" } { fail "$test ($ok)" }

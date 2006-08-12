@@ -1,0 +1,25 @@
+# scf.stp
+# A reimplementation of user script:smp_call_function example given at OLS 2005
+# in the current language.
+#
+# Will Cohen
+# 9/22/2005
+
+global traces
+
+probe kernel.function("smp_call_function") 
+{
+  traces[pid(), pexecname(), backtrace()] += 1;
+}
+
+probe begin { print( "starting probe\n" ); }
+
+probe end {
+  print("end of data collection\n");
+  foreach( [pid, name, stack] in traces){
+    print( "traces[" . sprint(pid) . "," . name . ",\n" );
+    print_stack(stack)
+    print( "] = " . sprint(traces[pid, name, stack]) );
+    print( "\n" );
+  }
+}

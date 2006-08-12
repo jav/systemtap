@@ -1,0 +1,13 @@
+probe begin 
+{
+	printf("%1b", 0x12)
+	printf("%1b", 0x34)
+	printf("%1b%1b", 0x56, 0x78)
+	a = 0x12
+	b = 0x34
+	c = 0x56
+	d = 0x78
+	printf("%1b%1b%1b%1b", a, b, c, d)
+	printf("a=%1b b=%1b c=%1b d=%1b",a,b,c,d)
+	exit()
+}

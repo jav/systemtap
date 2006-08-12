@@ -1,0 +1,9 @@
+#! stap
+
+# pulling out some params has been a problem; see PR 1295
+probe kernel.function("sys_open") {
+  log (execname() . " opened " . user_string($filename))
+}
+probe timer.ms(10000) {
+  exit ()
+}

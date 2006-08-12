@@ -1,0 +1,13 @@
+set test "queue_demo"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap $srcdir/$subdir/queue_demo.stp
+set ok 0
+expect {
+    -timeout 30
+    -re {block-[^\r]*} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+
+if {$ok > 4 && $ok < 10} { pass "$test" } { fail "$test" }

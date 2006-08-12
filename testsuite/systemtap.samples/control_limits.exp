@@ -1,0 +1,42 @@
+set test "control_limits MAXNESTING"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap -u -DMAXNESTING=5 $srcdir/$subdir/control_limits.stp
+set ok 0
+expect {
+    -timeout 60 -re {ERROR.*MAXNESTING} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
+set test "control_limits MAXACTION"
+spawn stap -u -DMAXACTION=500 $srcdir/$subdir/control_limits.stp
+set ok 0
+expect {
+    -timeout 60 -re {ERROR.*MAXACTION} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
+set test "control_limits MAXSTRINGLEN small"
+spawn stap -u -DMAXSTRINGLEN=50 $srcdir/$subdir/control_limits.stp
+set ok 0
+expect {
+    -timeout 60 -re {ERROR.*MAXSTRINGLEN reduced} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
+set test "control_limits MAXSTRINGLEN large"
+spawn stap -u -DMAXSTRINGLEN=500 $srcdir/$subdir/control_limits.stp
+set ok 0
+expect {
+    -timeout 60 -re {ERROR.*MAXSTRINGLEN enlarged} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+

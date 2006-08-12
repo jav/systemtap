@@ -82,21 +82,6 @@ install-data-local:
 	(cd $(srcdir)/tapset; find . -name '*.stp' -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
 
-p=$(srcdir)/testsuite/parse
-s=$(srcdir)/testsuite/sem
-t=$(srcdir)/testsuite/trans
-b=$(srcdir)/testsuite/build
-TESTS = $(wildcard $(p)ok/*.stp) $(wildcard $(p)ko/*.stp) \
-	$(wildcard $(s)ok/*.stp) $(wildcard $(s)ko/*.stp) \
-	$(wildcard $(t)ok/*.stp) $(wildcard $(t)ko/*.stp) \
-	$(wildcard $(b)ok/*.stp) $(wildcard $(b)ko/*.stp)
-XFAIL_TESTS = $(wildcard $(p)ko/*.stp) \
-	$(wildcard $(s)ko/*.stp) \
-	$(wildcard $(t)ko/*.stp) \
-	$(wildcard $(b)ko/*.stp)
-
-TESTS_ENVIRONMENT = $(srcdir)/runtest.sh
-
 TEST_COV_DIR = coverage
 
 gcov:
@@ -113,7 +98,6 @@ lcov:
 
 clean-local:
 	rm -f *.gcov *.gcno *.gcda ${PACKAGE_TARNAME}-*.tar.gz
-	rm -rf testresults
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
@@ -123,6 +107,8 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 
+SUBDIRS = testsuite
 if BUILD_LKET_B2A
-  SUBDIRS = runtime/lket/b2a
+  SUBDIRS += runtime/lket/b2a
 endif
+

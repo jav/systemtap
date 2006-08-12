@@ -1,0 +1,81 @@
+global testno, passes, failures
+
+function test (v,n1,n2) {
+  if (n1 == n2) {
+    passes ++
+    result = "pass"
+  } else {
+    failures ++
+    result = "fail"
+  }
+  log ("test " . (sprint (testno++)) . " [" . v . "]\t\t" . result)
+}
+
+# Exactly the same as test() except it will magically work for strings.
+# Wouldn't it be nice if we didn't have to do this?
+
+function teststr (v,n1,n2) {
+  if (n1 == n2) {
+    passes ++
+    result = "pass"
+  } else {
+    failures ++
+    result = "fail"
+  }
+  log ("test " . (sprint (testno++)) . " [" . v . "]\t\t" . result)
+}
+
+
+
+probe begin {
+	# max/minimum signed 32-bit values.
+	# these could cause problems for 32-bit cpus when overflows
+	# occur into 64-but values
+	lmax = 0x7fffffff
+	lmin = -0x80000000
+
+	# max/minimum signed 64-bit values
+	llmax =  0x7fffffffffffffff
+	llmin = -0x7fffffffffffffff-1
+
+	# 32-bit limit tests
+	teststr ("string lmax", sprint(lmax), "2147483647")
+	teststr ("hex lmax", sprintf("0x%x", lmax), "0x7fffffff")
+	teststr ("string lmin", sprint(lmin), "-2147483648")
+	teststr ("hex lmin", sprintf("0x%x", lmin), "0xffffffff80000000")
+	test ("lmax/-1", lmax/-1, -2147483647);
+	test ("lmin/-1", lmin/-1, 2147483648);
+	test ("lmax +1", lmax+1, 2147483648);
+	test ("lmin -1", lmin-1, -2147483649);
+
+	# 64-bit limits
+	teststr ("string llmax", sprint(llmax), "9223372036854775807")
+	teststr ("hex llmax", sprintf("0x%x", llmax), "0x7fffffffffffffff")
+	teststr ("string llmin", sprint(llmin), "-9223372036854775808")
+	teststr ("hex llmin", sprintf("0x%x", llmin), "0x8000000000000000")
+	test ("llmax/-1", llmax/-1, -llmax)
+	test ("llmax*-1", llmax*-1, -llmax)
+
+	# the next three overflow and produce predictable, although
+	# wrong results
+	test ("llmin/-1", llmin/-1, llmin)
+	test ("llmin*-1", llmin*-1, llmin)
+	test ("llmax +1", llmax+1, llmin)
+	test ("llmin -1", llmin-1, llmax)
+
+	# modulo tests
+	test ("llmax%1", llmax%1, 0)
+	test ("llmin%1", llmin%1, 0)
+	test ("0%1    ", 0%1, 0)
+	test ("0%lmax", 0%lmax, 0)
+	test ("1%lmax", 1%lmax, 1)
+	test ("0%lmin", 0%lmin, 0)
+	test ("1%lmin", 1%lmin, 1)
+	
+	exit()
+}
+
+probe end {
+	print ("passes: " . sprint(passes))
+	print (" failures: " . sprint(failures). "\n")
+}

@@ -1,0 +1,59 @@
+load_lib "stap_run.exp"
+
+proc genload {} {
+    # if 'genload' from the ltp exists, use it to create a real load
+    set genload {/usr/local/ltp/testcases/bin/genload}
+    if [file executable $genload] {
+        exec $genload -c 10 -i 10 -m 10 -t 10
+        #                               ^^^^^ run for 10 seconds
+        #                         ^^^^^ 10 procs spinning on malloc
+        #                   ^^^^^ 10 procs spinning on sync
+        #             ^^^^^ 10 procs spinning on sqrt
+    } else {
+        # sleep for a bit
+        after 10000
+    }
+    return 0
+}
+
+proc probe_ok {probepoint} {
+    set cmd {exec stap -p2 -e}
+    lappend cmd "probe $probepoint {}"
+    return ![catch $cmd]
+}
+
+set systemtap_script {
+    global stat
+    probe %s {
+        stat[probefunc()] <<< 1
+    }
+    probe begin {
+        log("systemtap starting probe")
+    }
+    probe end {
+        log("systemtap ending probe")
+        foreach (func in stat)
+            printf("%%d  %%s\n", @count(stat[func]), func)
+    }
+}
+
+set letters [split {abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ} {}]
+
+set output_string "(\\d+  \\w+\\r\\n)*(WARNING.*skipped.*)?"
+
+# Because this test is known to expose system crashes, it is not enabled
+# by default.  Change the line below to 'if 1' to enable it.
+if 0 {
+    foreach start $letters {
+        set probepoint "kernel.function(\"$start*\")"
+        set prefix "all_kernel_functions:"
+        if [probe_ok $probepoint] {
+            set script [format $systemtap_script $probepoint]
+            stap_run $prefix$probepoint genload $output_string -e $script
+        } else {
+            unsupported "$prefix no match for $probepoint"
+        }
+    }
+} else {
+    untested "all_kernel_functions is disabled"
+}

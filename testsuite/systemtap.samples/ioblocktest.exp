@@ -1,0 +1,12 @@
+# Test the functionality of the various ioblock probes.
+
+load_lib "stap_run.exp"
+set test "ioblocktest"
+
+proc sleep_ten_secs {} {
+    after 10000;
+    return 0;
+}
+
+set output_string "\\mioblock*"
+stap_run $srcdir/$subdir/$test.stp sleep_ten_secs $output_string

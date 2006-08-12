@@ -1,0 +1,71 @@
+# Simple function to test maps of ints containing strings
+
+load_lib "stap_run2.exp"
+
+set test "is"
+set ::result_string {foo[0] = The Result is 0
+foo[1] = The Result is 1
+foo[2] = The Result is 4
+foo[3] = The Result is 9
+foo[4] = The Result is 16
+foo[5] = The Result is 25
+foo[6] = The Result is 36
+foo[7] = The Result is 49
+foo[8] = The Result is 64
+foo[9] = The Result is 81
+foo[10] = The Result is 100
+
+foo[0] = The Result is 0
+foo[1] = The Result is 1
+foo[2] = The Result is 4
+foo[3] = The Result is 9
+foo[4] = The Result is 16
+foo[6] = The Result is 36
+foo[7] = The Result is 49
+foo[8] = The Result is 64
+foo[9] = The Result is 81
+foo[10] = The Result is 100
+
+foo[1] = The Result is 1
+foo[2] = The Result is 4
+foo[3] = The Result is 9
+foo[4] = The Result is 16
+foo[6] = The Result is 36
+foo[7] = The Result is 49
+foo[8] = The Result is 64
+foo[9] = The Result is 81
+
+foo[1] = The Result is 1
+foo[2] = The Result is 4
+foo[3] = The Result is 4<------
+foo[4] = The Result is 16(CHANGED)
+foo[6] = The Result is 36
+foo[7] = The Result is 49
+foo[8] = The Result is 64
+foo[9] = New result is -81
+
+foo[1] = The Result is 1
+foo[2] = The Result is 4
+foo[3] = The Result is 4<------
+foo[6] = The Result is 36
+foo[7] = The Result is 49
+foo[8] = The Result is 64
+foo[9] = New result is -81
+
+
+foo[0] = # 0
+foo[1] = # 1
+foo[2] = # 4
+foo[3] = # 9
+foo[4] = # 16
+foo[5] = # 25
+foo[6] = # 36
+foo[7] = # 49
+foo[8] = # 64
+foo[9] = # 81
+foo[10] = # 100
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+

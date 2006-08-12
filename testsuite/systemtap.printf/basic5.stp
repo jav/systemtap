@@ -1,0 +1,22 @@
+# This test is really a transport test.
+# Waiting one second makes sure the two probes
+# send the data in different packets, at least
+# with procfs.
+
+probe begin 
+{
+	printf("Hello");
+	printf("World");
+}
+
+probe timer.ms(1000)
+{
+	exit()
+}
+
+probe end 
+{
+	printf("Hello");
+	printf("World");	
+	exit()
+}

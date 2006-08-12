@@ -1,0 +1,55 @@
+%{
+#include <linux/version.h>
+#include <net/sock.h>
+#include <net/tcp.h>
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,11) 
+#define LPORT	(inet->inet.num)
+#define DADDR	(&inet->inet.daddr)
+#else 
+#define LPORT 	(inet->num)
+#define DADDR	(&inet->daddr)
+#endif
+%}
+
+
+function get_eax:long () %{
+	if (CONTEXT && CONTEXT->regs)
+		THIS->__retvalue = CONTEXT->regs->eax;
+	else
+		THIS->__retvalue = 0;
+%} 
+
+function get_local_port:long(sock) 
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+	THIS->__retvalue = (long long) LPORT;
+%}
+
+function get_ip_source:string(sock)
+%{
+	unsigned long ptr = (unsigned long) THIS->sock;
+	struct inet_sock *inet = (struct inet_sock *) ptr;
+	unsigned char addr[4];
+	memcpy(addr, DADDR, sizeof(addr));
+	sprintf(THIS->__retvalue, "%d.%d.%d.%d", 
+		addr[0], addr[1],  addr[2], addr[3]); 
+
+%}
+
+probe begin {
+	log ("UID\tCMD\t\tPID\t\tPORT\tIP_SOURCE")
+}
+probe kernel.function("tcp_accept").return {
+	sock = get_eax() 
+	if (sock != 0)
+		log(sprint(uid())."\t".
+			execname()."\t\t".
+			sprint(pid())."\t\t ".
+			sprint(get_local_port(sock))."\t".
+ 			get_ip_source(sock))
+}
+
+

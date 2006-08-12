@@ -1,0 +1,40 @@
+# nested foreach
+
+global foo, bar
+
+probe begin {
+	for (i=0;i<11;i++)
+		foo[i] = i*i 	
+
+	for (i=0;i<11;i++)
+		bar[i] = i*i*i 	
+
+	foreach (i in foo)
+	 	printf("foo[%d] = %d\n", i, foo[i])
+
+	printf("\n")
+
+	foreach (i in bar)
+	 	printf("bar[%d] = %d\n", i, bar[i])
+
+	printf("\n")
+
+	foreach (i in foo) {
+	 	printf("foo[%d] = %d\n", i, foo[i])
+	 	printf("bar[%d] = %d\n", i, bar[i])
+	}
+
+	printf("\n")
+
+	delete bar
+	for (i=20;i<25;i++)
+		bar[i] = i*i*i 	
+
+	foreach (i in foo) {
+		foreach (j in bar)
+		 	printf("bar[%d] = %d\n", j, bar[j])
+	 	printf("foo[%d] = %d\n", i, foo[i])
+	}
+
+	exit()
+}

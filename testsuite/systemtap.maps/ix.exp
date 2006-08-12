@@ -1,0 +1,51 @@
+# Simple function to test maps of ints containing stats
+
+load_lib "stap_run2.exp"
+
+set test "ix"
+
+set ::result_string {foo[0]: count:3  sum:98  avg:32  min:-2  max:100
+foo[1]: count:3  sum:99  avg:33  min:-2  max:100
+foo[2]: count:3  sum:100  avg:33  min:-2  max:100
+foo[3]: count:3  sum:101  avg:33  min:-2  max:100
+foo[4]: count:3  sum:102  avg:34  min:-2  max:100
+foo[5]: count:3  sum:103  avg:34  min:-2  max:100
+foo[6]: count:3  sum:104  avg:34  min:-2  max:100
+foo[7]: count:3  sum:105  avg:35  min:-2  max:100
+foo[8]: count:3  sum:106  avg:35  min:-2  max:100
+foo[9]: count:3  sum:107  avg:35  min:-2  max:100
+foo[10]: count:3  sum:108  avg:36  min:-2  max:100
+
+Now reverse order...
+foo[10]: count:3  sum:108  avg:36  min:-2  max:100
+foo[9]: count:3  sum:107  avg:35  min:-2  max:100
+foo[8]: count:3  sum:106  avg:35  min:-2  max:100
+foo[7]: count:3  sum:105  avg:35  min:-2  max:100
+foo[6]: count:3  sum:104  avg:34  min:-2  max:100
+foo[5]: count:3  sum:103  avg:34  min:-2  max:100
+foo[4]: count:3  sum:102  avg:34  min:-2  max:100
+foo[3]: count:3  sum:101  avg:33  min:-2  max:100
+foo[2]: count:3  sum:100  avg:33  min:-2  max:100
+foo[1]: count:3  sum:99  avg:33  min:-2  max:100
+foo[0]: count:3  sum:98  avg:32  min:-2  max:100
+
+Now adding 10 to each...
+foo[0]: count:4  sum:108  avg:27  min:-2  max:100
+foo[1]: count:4  sum:109  avg:27  min:-2  max:100
+foo[2]: count:4  sum:110  avg:27  min:-2  max:100
+foo[3]: count:4  sum:111  avg:27  min:-2  max:100
+foo[4]: count:4  sum:112  avg:28  min:-2  max:100
+foo[5]: count:4  sum:113  avg:28  min:-2  max:100
+foo[6]: count:4  sum:114  avg:28  min:-2  max:100
+foo[7]: count:4  sum:115  avg:28  min:-2  max:100
+foo[8]: count:4  sum:116  avg:29  min:-2  max:100
+foo[9]: count:4  sum:117  avg:29  min:-2  max:100
+foo[10]: count:4  sum:118  avg:29  min:-2  max:100
+
+Run a quick foreach without sorting...
+complete sum of foo:1243
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+

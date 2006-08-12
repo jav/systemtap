@@ -1,0 +1,73 @@
+/*
+ * timers.stp
+ *
+ * Test the functionality of the various timer.* probes.
+ */
+
+global p
+global j1, j2, jmax
+global ms1, ms500, msmax
+
+probe begin
+{
+	log("systemtap starting probe")
+}
+
+probe timer.profile { ++p }
+
+probe timer.jiffies(1) { ++j1 }
+probe timer.jiffies(2) { ++j2 }
+probe timer.jiffies(1000000) { ++jmax }
+
+/* as long as HZ>2, ms(1) and ms(500) 
+ * will produce different counts */
+probe timer.ms(1) { ++ms1 }
+probe timer.ms(500) { ++ms500 }
+probe timer.ms(1000000) { ++msmax }
+
+probe end
+{
+	log("systemtap ending probe")
+	log("p = " . sprint(p))
+	log("j1 = " . sprint(j1))
+	log("j2 = " . sprint(j2))
+	log("jmax = " . sprint(jmax))
+	log("ms1 = " . sprint(ms1))
+	log("ms500 = " . sprint(ms500))
+	log("msmax = " . sprint(msmax))
+
+	/* profile counter should be non-zero, and at
+	 * least as many as the jiffies(1) counter */
+	if ((p > 0) && (p >= j1)) {
+		log("systemtap test success")
+	} else {
+		log("unexpected profile count")
+		log("systemtap test failure");
+	}
+
+	/* jiffies(1) should count more than jiffies(2),
+	 * and both should be non-zero. */
+	if ((j2 > 0) && (j2 < j1)) {
+		log("systemtap test success")
+	} else {
+		log("unexpected jiffies count")
+		log("systemtap test failure");
+	}
+
+	/* ms(1) should count more than ms(500),
+	 * and both should be non-zero. */
+	if ((ms500 > 0) && (ms500 < ms1)) {
+		log("systemtap test success")
+	} else {
+		log("unexpected ms count")
+		log("systemtap test failure");
+	}
+
+	/* both 'infinite' intervals should register zero counts */
+	if ((jmax == 0) && (msmax == 0)) {
+		log("systemtap test success")
+	} else {
+		log("unexpected count on 'infinite' interval")
+		log("systemtap test failure");
+	}
+}

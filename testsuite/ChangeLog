@@ -1,0 +1,6 @@
+2006-08-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* all: Reorganized old pass-1..4 tests one dejagnu bucket.
+	Moved over old pass-5 tests, except for disabled syscalls tests.
+	* Makefile (installcheck): New target for running pass-1..5
+	tests against installed systemtap.

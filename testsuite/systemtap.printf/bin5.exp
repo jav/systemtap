@@ -1,0 +1,20 @@
+load_lib "stap_run_binary.exp"
+set ::result_string {00 00 00 00 00 00 00 12
+00 00 00 00 00 00 00 34
+ab cd 00 00 11 11 22 22
+56 78 56 78 56 78 56 78
+00 12 34 56 78 ab cd ef
+11 11 22 22 33 33 44 44
+88 88 99 99 aa aa bb bb
+cd ef 00 00 11 11 22 22
+61 3d 00 12 34 56 78 ab
+cd ef 20 62 3d 11 11 22
+22 33 33 44 44 20 63 3d
+88 88 99 99 aa aa bb bb
+20 64 3d cd ef 00 00 11
+11 22 22               }
+
+set test "bin5"
+stap_run_binary $srcdir/$subdir/$test.stp
+set test "bin5a"
+stap_run_binary $srcdir/$subdir/$test.stp

@@ -1,0 +1,4 @@
+load_lib "stap_run2.exp"
+set test "basic2"
+set ::result_string {HelloWorld}
+stap_run2 $srcdir/$subdir/$test.stp

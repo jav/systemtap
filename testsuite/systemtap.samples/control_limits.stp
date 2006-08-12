@@ -1,0 +1,24 @@
+
+# for MAXNESTING testing
+function recurse (n) {
+  if (n > 0) recurse (n-1)
+}
+probe begin {
+  recurse (7)
+}
+
+# for MAXACTION testing
+probe begin {
+  for (i=0; i<498; i++) {}
+}
+
+# for MAXSTRINGLEN testing
+probe begin {
+  s = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678" # last 8 will be \0'd
+  if (strlen(s) < 127) error ("MAXSTRINGLEN reduced")
+  if (strlen(s) > 127) error ("MAXSTRINGLEN enlarged")
+}
+
+
+probe begin { exit () }
+

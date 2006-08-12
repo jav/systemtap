@@ -1,0 +1,65 @@
+# Simple function to test maps of strings containing ints
+
+load_lib "stap_run2.exp"
+
+set test "si"
+set ::result_string {foo[1] = 1
+foo[2] = 4
+foo[3] = 9
+foo[4] = 16
+foo[5] = 25
+foo[6] = 36
+foo[7] = 49
+foo[8] = 64
+foo[9] = 81
+foo[10] = 100
+
+foo[1] = 1
+foo[2] = 4
+foo[3] = 9
+foo[4] = 16
+foo[6] = 36
+foo[7] = 49
+foo[8] = 64
+foo[9] = 81
+foo[10] = 100
+
+foo[2] = 4
+foo[3] = 9
+foo[4] = 16
+foo[6] = 36
+foo[7] = 49
+foo[8] = 64
+foo[9] = 81
+
+foo[2] = 4
+foo[3] = 900
+foo[4] = -16
+foo[6] = 36
+foo[7] = 49
+foo[8] = 64
+foo[9] = -81
+
+foo[2] = 4
+foo[3] = 900
+foo[6] = 36
+foo[7] = 49
+foo[8] = 64
+foo[9] = -81
+
+
+foo[1] = 1
+foo[2] = 5
+foo[3] = 14
+foo[4] = 30
+foo[5] = 55
+foo[6] = 91
+foo[7] = 140
+foo[8] = 204
+foo[9] = 285
+foo[10] = 385
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+

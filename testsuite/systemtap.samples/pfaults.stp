@@ -1,0 +1,64 @@
+#! stap
+
+global pidnames, faults, fault_types
+
+probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
+                                          %: "handle_mm_fault" %)) {
+
+   # Maintain a pid-to-execname mapping.  This logic should get transplanted
+   # into a tapset script that is automatically included upon reference to
+   # its exported global variable.
+   pidnames[pid()] = execname()
+
+   faults [pid(), $write_access ? 1 : 0] ++
+}
+
+# (needed only until bug 1132 supports $retvalue)
+function get_retvalue:long () %{ THIS->__retvalue = fetch_register(0); %}
+
+probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
+                                          %: "handle_mm_fault" %)).return {
+  fault_types [pid(), get_retvalue()] ++
+}
+
+
+# Some constants, to come from a future "VM tapset"
+
+global VM_FAULT_OOM, VM_FAULT_SIGBUS, VM_FAULT_MINOR, VM_FAULT_MAJOR
+probe begin {
+  VM_FAULT_OOM=-1
+  VM_FAULT_SIGBUS=0
+  VM_FAULT_MINOR=1
+  VM_FAULT_MAJOR=2
+}
+
+
+# Shut down the probing session after a while
+probe timer.ms(1000) { report() }
+probe timer.ms(10000) { exit() }
+
+function _(n) { return sprint(n) } # let's abbreviate
+
+function report () {
+  print ("time=" . _(gettimeofday_s()) . "\n")
+  foreach ([pid] in pidnames) {
+    if (faults[pid,0]+faults[pid,1] == 0) continue
+    print (pidnames[pid] . "[" . _(pid) . "]" .
+           " reads=" . _(faults[pid,0]) . 
+           " writes=" . _(faults[pid,1]) .
+           " oom=" . _(fault_types[pid,VM_FAULT_OOM]) .
+           " sigbus=" . _(fault_types[pid,VM_FAULT_SIGBUS]) .
+           " minor=" . _(fault_types[pid,VM_FAULT_MINOR]) .
+           " major=" . _(fault_types[pid,VM_FAULT_MAJOR]) .
+           "\n")
+    }
+  delete faults
+  delete fault_types
+}
+
+probe begin {
+  print ("Page fault tracking, start time=" . _(gettimeofday_s()) . "\n")
+}
+probe end {
+  print ("Page fault tracking, end time=" . _(gettimeofday_s()) . "\n")
+}

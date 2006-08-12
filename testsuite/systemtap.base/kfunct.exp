@@ -1,0 +1,11 @@
+# Simple function to test that systemtap can generate a kernel module that
+# instruments a function, install it, and get some output.
+
+load_lib "stap_run.exp"
+
+set test "kfunct"
+
+# better have a count other than zero to show that probe fired
+set output_string "count = \[1-9\]\[0-9\]*\r\n"
+
+stap_run $srcdir/$subdir/$test.stp no_load $output_string

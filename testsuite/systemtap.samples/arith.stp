@@ -1,0 +1,79 @@
+global testno, passes, failures
+
+function test (v,n1,n2) {
+  if (n1 == n2) {
+    passes ++
+    result = "pass"
+  } else {
+    failures ++
+    result = "fail"
+  }
+  log ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
+}
+
+function stest (v,n1,n2) {
+  if (n1 == n2) {
+    passes ++
+    result = "pass"
+  } else {
+    failures ++
+    result = "fail"
+  }
+  log ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
+}
+
+
+probe begin {
+  test ("+", 0, 0+0)
+  test ("+", 33339999, 33330000+9999)
+  test ("-", -1, 2-3)
+  test ("==", 1, -1==-1)
+  test ("!=", 1, -1!=1)
+  test ("== s", 1, "foobar"=="foobar")
+  test ("<= s", 1, "fooban"<="foobar")
+  test ("> s", 1, "xxx">"aaa")
+  test ("<", 1, -1<0)
+  test ("<", 1, 85723838<8273823892)
+  test ("*", 100300400500, 1003004005 * 100)
+  test ("*", -1*-500, 500)
+  test ("/", 1003004005/1000, 1003004)
+  test ("%", 1003004005%1000, 5)
+  test ("/", -1/-1, 1)
+  test ("%", -1%-1, 0)
+  test ("/", 0/-100, 0)
+  test ("%", 0%-100, 0)
+  test ("/", (-2147483647-1)/-1, 2147483648)
+  test ("%", (-2147483647-1)%-1, 0)
+  # but      (-9223372036854775807-1)/-1 may overflow
+  test ("%", (-9223372036854775807-1)%-1, 0)
+  test ("&", 0x555&0xaaa, 0)
+  test ("|", 0x555|0xaaa, 0xfff)
+  test ("^", 0x55f^0xaaf, 0xff0)
+  test ("&&", 0x555&&0xaaa, 1)
+  test ("||", 0x555||0xaaa, 1)
+  test ("<<", 0<<5, 0)
+  test ("<<", 1<<8, 0x100)
+  test ("<<", 120<<-2, 120)
+  test ("<<", 120<<0, 120)
+  test ("<<", -4096<<-3, -4096)
+  test (">>", -4096>>3, -512)
+  test (">>", -4096>>-3, -4096)
+  test (">>", 120>>-2, 120)
+  test (">>", 120>>0, 120)
+  i=1; test ("--i", --i, 0)
+  i=1; test ("++i", ++i, 2)
+  i=1; test ("i--", i--, 1)
+  i=1; test ("i++", i++, 1)
+  i=1; test ("+=", i+=4, 5) test ("after +=", i, 5)
+  i=5; test ("/=", i/=2, 2) test ("after /=", i, 2)
+  a="1" b="2"; stest (".=", a .= b, "12") stest ("after .=", a, "12")
+}
+
+
+probe timer.jiffies(1) { # some time after all the begin probes
+  exit ()
+}
+
+probe end {
+  log ("passes: " . sprint(passes) . " failures: " . sprint(failures))
+}

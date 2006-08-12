@@ -1,0 +1,21 @@
+set test "primes"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap $srcdir/$subdir/primes.stp
+set ok 0
+expect {
+    -timeout 30
+    -ex {odds[0] = 1} { incr ok; exp_continue }
+    -ex {odds[1] = 3} { incr ok; exp_continue }
+    -ex {odds[3] = 7} { incr ok; exp_continue }
+    -ex {odds[4] = 9} { incr ok; exp_continue }
+    -ex {evens[2] = 6} { incr ok; exp_continue }
+    -ex {evens[1] = 4} { incr ok; exp_continue }
+    -ex {evens[0] = 2} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+#FIXME does not handle case of hanging primes.stp correctly
+wait
+
+if {$ok == 7} { pass "$test" } { fail "$test" }
