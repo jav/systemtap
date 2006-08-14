@@ -11,7 +11,6 @@
 #ifndef _PRINT_C_
 #define _PRINT_C_
 
-#include <linux/config.h>
 #include "string.h"
 #include "io.c"
 #include "vsprintf.c"

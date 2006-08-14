@@ -10,7 +10,6 @@
 #ifndef _STRING_C_
 #define _STRING_C_
 
-#include <linux/config.h>
 #include "string.h"
 
 /** @file string.c
