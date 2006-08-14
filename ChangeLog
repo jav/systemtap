@@ -1,3 +1,16 @@
+2006-08-14  David Smith  <dsmith@redhat.com>
+
+	* elaborate.cxx (semantic_pass): Calls semantic_pass_optimize1()
+	and semantic_pass_optimize2().
+	(visit_functioncall): Removed setting relaxed_p since
+	semantic_pass_opt5 does it.
+	(semantic_pass_opt5): Goes ahead and removes duplicate functions
+	since semantic_pass_opt1() won't be run again.
+	(semantic_pass_optimize1): Renamed from semantic_pass_optimize().
+	Moved semantic_pass_opt5() to semantic_pass_optimize2().
+	(semantic_pass_optimize2): New function that contains optimization
+	passes that need to be done after type inference.
+
 2006-08-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (dist-hook): Make "make dist" dist.

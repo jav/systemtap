@@ -812,7 +812,8 @@ semantic_pass_stats (systemtap_session & sess)
 
 
 static int semantic_pass_symbols (systemtap_session&);
-static int semantic_pass_optimize (systemtap_session&);
+static int semantic_pass_optimize1 (systemtap_session&);
+static int semantic_pass_optimize2 (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
 static int semantic_pass_vars (systemtap_session&);
 static int semantic_pass_stats (systemtap_session&);
@@ -913,8 +914,9 @@ semantic_pass (systemtap_session& s)
       register_standard_tapsets(s);
       
       rc = semantic_pass_symbols (s);
-      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize (s);
+      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize1 (s);
       if (rc == 0) rc = semantic_pass_types (s);
+      if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize2 (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
     }
@@ -1553,12 +1555,11 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 struct duplicate_function_remover: public functioncall_traversing_visitor
 {
   systemtap_session& s;
-  bool& relaxed_p;
   map<functiondecl*, functiondecl*>& duplicate_function_map;
 
-  duplicate_function_remover(systemtap_session& sess, bool& r,
+  duplicate_function_remover(systemtap_session& sess,
 			     map<functiondecl*, functiondecl*>&dfm):
-    s(sess), relaxed_p(r), duplicate_function_map(dfm) {};
+    s(sess), duplicate_function_map(dfm) {};
 
   void visit_functioncall (functioncall* e);
 };
@@ -1580,8 +1581,6 @@ duplicate_function_remover::visit_functioncall (functioncall *e)
       e->tok = duplicate_function_map[e->referent]->tok;
       e->function = duplicate_function_map[e->referent]->name;
       e->referent = duplicate_function_map[e->referent];
-
-      relaxed_p = false;
     }
 }
 
@@ -1610,28 +1609,38 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
   // Walk through all the functions, looking for duplicates.
   map<string, functiondecl*> functionsig_map;
   map<functiondecl*, functiondecl*> duplicate_function_map;
-  for (unsigned i=0; i < s.functions.size(); i++)
+  for (unsigned i=0; i < s.functions.size(); /* see below */)
     {
       string functionsig = get_functionsig(s.functions[i]);
 
       if (functionsig_map.count(functionsig) == 0)
-	// This function is unique.  Remember it.
-	functionsig_map[functionsig] = s.functions[i];
+	{
+	  // This function is unique.  Remember it.
+	  functionsig_map[functionsig] = s.functions[i];
+	  i++;
+	}
       else
-	// This function is a duplicate.
-	duplicate_function_map[s.functions[i]]
+        {
+	  // This function is a duplicate.
+	  duplicate_function_map[s.functions[i]]
 	    = functionsig_map[functionsig];
+
+	  // Remove the duplicate function (since we don't need it
+	  // anymore).
+	  s.functions.erase (s.functions.begin() + i);
+
+	  relaxed_p = false;
+          // NB: don't increment i
+	}
     }
 
   // If we have duplicate functions, traverse down the tree, replacing
   // the appropriate function calls.
   // duplicate_function_remover::visit_functioncall() handles the
-  // details of replacing the function calls.  Note that we don't
-  // delete the duplicate functiondecl itself, we'll let pass 1 do
-  // that.
+  // details of replacing the function calls.
   if (duplicate_function_map.size() != 0)
     {
-      duplicate_function_remover dfr (s, relaxed_p, duplicate_function_map);
+      duplicate_function_remover dfr (s, duplicate_function_map);
 
       for (unsigned i=0; i < s.probes.size(); i++)
 	s.probes[i]->body->visit(&dfr);
@@ -1640,7 +1649,7 @@ void semantic_pass_opt5 (systemtap_session& s, bool& relaxed_p)
 
 
 static int
-semantic_pass_optimize (systemtap_session& s)
+semantic_pass_optimize1 (systemtap_session& s)
 {
   // In this pass, we attempt to rewrite probe/function bodies to
   // eliminate some blatantly unnecessary code.  This is run before
@@ -1659,6 +1668,32 @@ semantic_pass_optimize (systemtap_session& s)
       semantic_pass_opt2 (s, relaxed_p);
       semantic_pass_opt3 (s, relaxed_p);
       semantic_pass_opt4 (s, relaxed_p);
+    }
+
+  if (s.probes.size() == 0)
+    {
+      cerr << "semantic error: no probes found." << endl;
+      rc = 1;
+    }
+
+  return rc;
+}
+
+
+static int
+semantic_pass_optimize2 (systemtap_session& s)
+{
+  // This is run after type inference.  We run an outer "relaxation"
+  // loop that repeats the optimizations until none of them find
+  // anything to remove.
+
+  int rc = 0;
+
+  bool relaxed_p = false;
+  while (! relaxed_p)
+    {
+      relaxed_p = true; // until proven otherwise
+
       semantic_pass_opt5 (s, relaxed_p);
     }
 
