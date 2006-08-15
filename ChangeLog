@@ -1,3 +1,7 @@
+2006-08-15  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in (elfutils_version): Require 0.123 now.
+
 2006-08-14  David Smith  <dsmith@redhat.com>
 
 	* elaborate.cxx (semantic_pass): Calls semantic_pass_optimize1()
@@ -57,16 +61,16 @@
 	* tapset/context.stp (probemod): New function.
 	* stapfuncs.5.in: Document it.
 	* testsuite/buildok/probemod.stp: Test it.
-	
+
 2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
 	* stapprobes.5.in: document scsi.*, ioscheduler.*, netdev.* and
 	pagefault.
-	
+
 2006-08-01  Li Guanglei <guanglei@cn.ibm.com>
 	PR 2422
 	* tapsets.cxx: calling get_module_dwarf(false) to give a
 	warning to those modules without debuginfo and skip them
-	
+
 2006-07-19  Roland McGrath  <roland@redhat.com>
 
 	* configure.ac, systemtap.spec.in: Bump version to 0.5.9.
