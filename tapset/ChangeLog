@@ -1,3 +1,11 @@
+2006-08-17  Josh Stone  <joshua.i.stone@intel.com>
+
+	* signal.stp: Changes on behalf of Manoj S Pattabhiraman:
+	1. As per the suggestions, i have removed the argstr from the 
+	probe points.
+	2. Added some checks to find whether the signals generated are 
+	USER or Kernel Mode in signal_handle probe.
+
 2006-08-17  Li Guanglei <guanglei@cn.ibm.com>
 
 	* signal.stp: update signal tapsets based on the discussion

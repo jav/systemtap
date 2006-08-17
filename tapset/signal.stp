@@ -41,9 +41,6 @@ probe signal.send = _signal.send.*
         si_code="SI_KERNEL (SIGFPE, SIGSEGV, SIGTRAP, SIGCHLD, SIGPOLL)"
     else if (sinfo <= 0)
         si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
-
-    argstr = sprintf("Signal : %s - Process name : %s (%d) - Signal Code : %s",
-                     sig_name, pid_name, sig_pid, si_code)
 }
 
 probe _signal.send.part1 = kernel.function("__group_send_sig_info")
@@ -173,9 +170,6 @@ probe signal.checkperm = kernel.function("check_kill_permission")
         si_code="SI_KERNEL (SIGFPE, SIGSEGV, SIGTRAP, SIGCHLD, SIGPOLL)"
     else if (sinfo <= 0)
         si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
-
-    argstr = sprintf("Perm Check: %s - Process name : %s (%d) - Signal Code : %s",
-                     sig_name, pid_name, sig_pid, si_code)
 }  
 
 probe signal.checkperm.return = kernel.function("check_kill_permission").return
@@ -200,8 +194,6 @@ probe signal.wakeup = kernel.function("signal_wake_up")
     } else {
         sig_state = "TASK_INTERRUPTIBLE | TASK_STOPPED | TASK_TRACED"
     }
-    argstr = sprintf("Wakeup Signal to Process %s (%d) - Process State after the signal : %s",
-                     pid_name, sig_pid, sig_state)
 }
 
 
@@ -216,8 +208,6 @@ probe signal.check_ignored = kernel.function("sig_ignored")
     pid_name = kernel_string($t->comm)
     sig_info = $sig
     sig_name = _signal_name($sig)
-    argstr = sprintf("Signal : %s is ignored by the Process : %s (%d)",
-                     sig_name, pid_name, sig_pid)
 }
 
 probe signal.check_ignored.return = kernel.function("sig_ignored").return
@@ -242,8 +232,6 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
     pid_name = kernel_string($p->comm)
     sig_info = $sig
     sig_name = _signal_name($sig)
-    argstr = sprintf("Handle_Stop_Signal : %s is sent to the process %s (%d)",
-                     sig_name, pid_name, sig_pid);
 }
 */
 
@@ -259,8 +247,6 @@ probe signal.force_segv = kernel.function("force_sigsegv")
     pid_name = kernel_string($p->comm)
     sig_info = $sig
     sig_name = _signal_name($sig)
-    argstr = sprintf("Signal < %d > is forced on to the process %s (%d)",
-                     sig_name, pid_name, sig_pid);
 }
 
 probe signal.force_segv.return = kernel.function("force_sigsegv").return
@@ -370,18 +356,26 @@ probe signal.pend.return = kernel.function("do_sigpending").return
  *  info   : address of siginfo table.
  *  ka     : Address of the k_sigaction table associated with the signal
  *  oldset : Address of a bit mask array of blocked signals
- *  regs   : Address in the Kernel Mode stack area w
- *
+ *  regs   : Address in the Kernel Mode stack area 
+ *  
  */
 probe signal.handle = kernel.function("handle_signal")?,
         kernel.inline("handle_signal")?
 {
     sig = $sig
     sig_name = _signal_name($sig)
-    siginfo_add=$info
+    sinfo_addr = $info
+    sig_code = $info->si_code
     sig_stack_add=$ka
     bitmask_add=$oldset
     kernmode_stack_add=$regs
+
+    // Check whether the signal is a User Mode or Kernel mode Signal.
+    
+    if (sinfo_addr == 0 && sig_code <= 0)
+        sig_mode = "User Mode Signal"
+    else if (sinfo_addr >=  1)
+        sig_mode = "Kernel Mode Signal"
 }
 
 probe signal.handle.return = kernel.function("handle_signal").return
