@@ -43,37 +43,147 @@ probe signal.send = _signal.send.*
         si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
 
     argstr = sprintf("Signal : %s - Process name : %s (%d) - Signal Code : %s",
-                     sig_name, sig_pid, pid_name, si_code)
+                     sig_name, pid_name, sig_pid, si_code)
 }
 
 probe _signal.send.part1 = kernel.function("__group_send_sig_info")
 {
+    name = "__group_send_sig_info"
     task = $p
     sinfo = $info
     shared = 1
+    send2queue = 0
 }
 
 probe _signal.send.part2 = kernel.function("send_group_sigqueue")
 {
+    name = "send_group_sigqueue"
     task = $p
     sinfo = $q->info
     shared = 1
+    send2queue = 1
 }
 
 probe _signal.send.part3 = kernel.function("send_sigqueue")
 {
+    name = "send_sigqueue"
     task = $p
     sinfo = $q->info
     shared = 0
+    send2queue = 1
 }
 
 probe _signal.send.part4 = kernel.function("specific_send_sig_info")
 {
+    name = "specific_send_sig_info"
     task = $t
     sinfo = $info
     shared = 0
+    send2queue = 0
 }
 
+/* probe signal.send.return
+ */
+probe signal.send.return = _signal.send.*.return
+{
+    retstr = returnstr(1)
+}
+
+/* 
+ * Return values for "__group_send_sig_info" and "specific_send_sig_info"
+ *
+ * - return 0 if  the signal is sucessfully sent to a process, 
+ *   which means the following:
+ *     <1> the signal is ignored by receiving process
+ *     <2> this is a non-RT signal and we already have one queued
+ *     <3> the signal is successfully added into the sigqueue of 
+ *        receiving process
+ *
+ * - return -EAGAIN if the sigqueue is overflow the signal was RT
+ *   and sent by user using something other than kill()
+ *
+ */
+probe _signal.send.part1.return = kernel.function("__group_send_sig_info").return
+{
+    name = "__group_send_sig_info"
+    shared = 1
+    send2queue = 0
+}
+
+probe _signal.send.part4.return = kernel.function("specific_send_sig_info").return
+{
+    name = "specific_send_sig_info"
+    shared = 0
+    send2queue = 0
+}
+
+/*
+ * - return 0 if the signal is either sucessfully added into the 
+ *   sigqueue of receiving process or a SI_TIMER entry is already
+ *   queued so just increment the overrun count
+ *
+ * - return 1 if this signal is ignored by receiving process
+ *
+ */
+probe _signal.send.part2.return = kernel.function("send_group_sigqueue").return
+{
+    name = "send_group_sigqueue"
+    shared = 1
+    send2queue = 1
+}
+
+/*
+ * - return 0 if the signal is either sucessfully added into the 
+ *   sigqueue of receiving process or a SI_TIMER entry is already
+ *   queued so just increment the overrun count
+ *
+ * - return 1 if this signal is ignored by receiving process
+ *
+ * - return -1 if the task is marked exiting, so posix_timer_event
+ *   can redirect it to the group leader
+ *
+ */
+
+probe _signal.send.part3.return = kernel.function("send_sigqueue").return
+{
+    name = "send_sigqueueu"
+    shared = 0
+    send2queue = 1
+}
+
+/* probe signal.checkperm
+ *
+ *  check permissions for sending the signal
+ *
+ */
+probe signal.checkperm = kernel.function("check_kill_permission")
+{
+    sig = $sig
+    task = $t
+    sinfo = $info
+    name = "signal.checkperm"
+
+    sig_name = _signal_name($sig)
+    sig_pid = task_pid(task)
+    pid_name = task_execname(task)
+
+    if (sinfo == 2)
+        si_code ="SIGSTOP or SIGKILL"
+    else if (sinfo > 0)
+        si_code="SI_KERNEL (SIGFPE, SIGSEGV, SIGTRAP, SIGCHLD, SIGPOLL)"
+    else if (sinfo <= 0)
+        si_code="SI_USER or SI_TIMER or SI_ASYNCIO"
+
+    argstr = sprintf("Perm Check: %s - Process name : %s (%d) - Signal Code : %s",
+                     sig_name, pid_name, sig_pid, si_code)
+}  
+
+probe signal.checkperm.return = kernel.function("check_kill_permission").return
+{
+    name = "signal.checkperm"
+    retstr = returnstr(1)
+}
+	
 
 /* probe signal.wakeup
  *
@@ -119,9 +229,13 @@ probe signal.check_ignored.return = kernel.function("sig_ignored").return
 
 /* probe signal.handle_stop
  *
- *  Fires when a stop signal is sent to a process.
+ *  For now, just comment it out since at the time handle_stop_signal()
+ *  is called, it doesn't know whether current signal is STOP/COUNT. 
+ *  So the calling of handle_stop_signal() doesn't mean that the Kernel
+ *  is now processing the STOP/COUNT signal
  *
  */
+/*
 probe signal.handle_stop = kernel.function("handle_stop_signal")
 {
     sig_pid = $p->pid
@@ -131,6 +245,7 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
     argstr = sprintf("Handle_Stop_Signal : %s is sent to the process %s (%d)",
                      sig_name, pid_name, sig_pid);
 }
+*/
 
 
 /* probe signal.force_segv
@@ -160,17 +275,13 @@ probe signal.force_segv.return = kernel.function("force_sigsegv").return
  *  To kill a process, Pass the pid and signal to kill the process.
  *
  */
-probe signal.syskill = kernel.function("sys_kill")
+probe signal.syskill = syscall.kill
 {
-    sig_pid = $pid
-    sig_info = $sig
-    argstr = sprintf("Process %d has recieved a Signal %s", sig_pid, sig_name);
+    sig_name = _signal_name($sig)
 }
 
-probe signal.syskill.return = kernel.function("sys_kill").return
+probe signal.syskill.return = syscall.kill.return
 {
-    name = "sys_kill"
-    retstr = returnstr(1)
 }
 
 
@@ -179,20 +290,13 @@ probe signal.syskill.return = kernel.function("sys_kill").return
  *  Sends a signal to one specific thread.
  *
  */
-probe signal.systgkill = kernel.function("sys_tgkill")
+probe signal.systgkill = syscall.tgkill
 {
-    sig_tgid = $tgid
-    sig_pid = $pid
-    sig_info = $sig
     sig_name = _signal_name($sig)
-    argstr = sprintf("Signal %s is sent to Process ID : %d under the Thread Group ID : %d",
-                     sig_name, sig_pid, sig_tgid);
 }
 
-probe signal.systgkill.return = kernel.function("sys_tgkill").return
+probe signal.systgkill.return = syscall.tgkill.return
 {
-    name = "sys_tgkill"
-    retstr = returnstr(1)
 }
 
 
@@ -201,18 +305,13 @@ probe signal.systgkill.return = kernel.function("sys_tgkill").return
  *  Sends a signal to one specific task.
  *
  */
-probe signal.systkill = kernel.function("sys_tkill")
+probe signal.systkill = syscall.tkill
 {
-    sig_pid = $pid
-    sig_info = $sig
     sig_name = _signal_name($sig)
-    argstr = sprintf("Signal %s is sent to Process ID : %d", sig_name, sig_pid);
 }
 
-probe signal.systkill.return = kernel.function("sys_tkill").return
+probe signal.systkill.return = syscall.tkill.return
 {
-    name = "sys_tkill"
-    retstr = returnstr(1)
 }
 
 

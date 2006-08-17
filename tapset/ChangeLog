@@ -1,3 +1,8 @@
+2006-08-17  Li Guanglei <guanglei@cn.ibm.com>
+
+	* signal.stp: update signal tapsets based on the discussion
+	with Josh Stone on mailinglist.
+
 2006-08-15  Thang Nguyen  <thang.p.nguyen@intel.com>
 
 	* ioblock.stp:  Added safety checks for __bio_ino() and 
