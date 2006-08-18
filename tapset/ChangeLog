@@ -9,7 +9,12 @@
 2006-08-17  Li Guanglei <guanglei@cn.ibm.com>
 
 	* signal.stp: update signal tapsets based on the discussion
-	with Josh Stone on mailinglist.
+	with Josh Stone on mailinglist:
+	1. Added "send2queue" and "name" variable for signal.send.part* 
+	2. Added signal.send.return probe alias 
+	3. Added signal.checkperm and signal.checkperm.return probe alias
+	4. Commented out signal.handle_stop
+	5. Alias all signal syscalls to syscall tapsets.
 
 2006-08-15  Thang Nguyen  <thang.p.nguyen@intel.com>
 
