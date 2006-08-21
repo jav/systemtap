@@ -1,0 +1,19 @@
+load_lib "stap_run2.exp"
+set test "substr"
+set ::result_string {Hello World!
+0,0: 
+-1,10: 
+10,0: 
+0,1: H
+1,1: e
+2,1: l
+2,5: llo W
+6,1: W
+11,1: !
+11,100: !
+12,1: 
+0,10: Hello Worl
+0,100: Hello World!
+0,100000: Hello World!
+}
+stap_run2 $srcdir/$subdir/$test.stp

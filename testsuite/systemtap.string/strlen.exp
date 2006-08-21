@@ -1,0 +1,8 @@
+load_lib "stap_run2.exp"
+set test "strlen"
+set ::result_string {strlen("") = 0
+strlen("1") = 1
+strlen("0123456789") = 10
+strlen("012345678901234567890123456789012345678901234567890123456789012") = 63
+}
+stap_run2 $srcdir/$subdir/$test.stp -DMAXSTRINGLEN=64

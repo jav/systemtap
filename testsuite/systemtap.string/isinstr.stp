@@ -1,0 +1,25 @@
+probe begin
+{
+	a = "foo"
+	str = "abcfoobad"
+
+	if (isinstr(str,a))
+		printf("\"%s\" is in \"%s\"\n", a, str)
+	else
+		printf("\"%s\" is NOT in \"%s\"\n", a, str)
+
+	str = "abcdefg"
+	if (isinstr(str,a))
+		printf("\"%s\" is in \"%s\"\n", a, str)
+	else
+		printf("\"%s\" is NOT in \"%s\"\n", a, str)
+
+	a = ""
+	str = ""
+	if (isinstr(str,a))
+		printf("\"%s\" is in \"%s\"\n", a, str)
+	else
+		printf("\"%s\" is NOT in \"%s\"\n", a, str)
+
+        exit()
+}

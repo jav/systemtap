@@ -1,0 +1,49 @@
+probe begin 
+{
+	s = "Hello World!"
+	printf("%s\n", s)
+
+	x = substr(s,0,0)
+	printf("0,0: %s\n", x)
+
+	x = substr(s,-1,10)
+	printf("-1,10: %s\n", x)
+
+	x = substr(s,10,0)
+	printf("10,0: %s\n", x)
+
+	x = substr(s,0,1)
+	printf("0,1: %s\n", x)
+
+	x = substr(s,1,1)
+	printf("1,1: %s\n", x)
+
+	x = substr(s,2,1)
+	printf("2,1: %s\n", x)
+
+	x = substr(s,2,5)
+	printf("2,5: %s\n", x)
+
+	x = substr(s,6,1)
+	printf("6,1: %s\n", x)
+
+	x = substr(s,11,1)
+	printf("11,1: %s\n", x)
+
+	x = substr(s,11,100)
+	printf("11,100: %s\n", x)
+
+	x = substr(s,12,1)
+	printf("12,1: %s\n", x)
+
+	x = substr(s,0,10)
+	printf("0,10: %s\n", x)
+
+	x = substr(s,0,100)
+	printf("0,100: %s\n", x)
+
+	x = substr(s,0,100000)
+	printf("0,100000: %s\n", x)
+
+	exit()
+}
