@@ -1,8 +1,7 @@
 # stap_run2.exp
 #
 # Simple script for testing multiple lines of exact output.
-
-
+    
 # stap_run2 TEST_NAME
 # TEST_NAME is path to the current test
 # Additional arguments are passed to stap as-is.
@@ -12,7 +11,7 @@
 set timeout 20
 
 proc stap_run2 { TEST_NAME args } {
-  if {![installtest_p]} { untested $TEST_NAME; return }
+  if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
   # fix up expected string
   regsub -all \n $::result_string \r\n output

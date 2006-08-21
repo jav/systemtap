@@ -14,7 +14,7 @@
 #     returns 1 if there was a problem
 # Additional arguments are passed to stap as-is.
 proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args } {
-    if {![installtest_p]} { untested $TEST_NAME; return }
+    if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
     set cmd [concat {stap -v} $args]
     if [file readable $TEST_NAME] {

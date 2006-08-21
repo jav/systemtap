@@ -6,7 +6,7 @@
 # global result_string must be set to the expected output
 
 proc stap_run_binary { TEST_NAME} {
-  if {![installtest_p]} { untested $TEST_NAME; return }
+  if {[info procs installtest_p] != "" && ![installtest_p]} {untested $TEST_NAME; return}
 
   set hex_args {-ve 8/1 "%02x " "\n"}
   set res [exec stap $TEST_NAME | hexdump $hex_args] 
