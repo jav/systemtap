@@ -1,3 +1,8 @@
+2006-08-21  Martin Hunt  <hunt@redhat.com>
+
+	* string.stp (substr): Rewrite. Make the 3rd parameter
+	be the length.
+
 2006-08-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* signal.stp: Changes on behalf of Manoj S Pattabhiraman:

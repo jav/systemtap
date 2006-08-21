@@ -9,27 +9,22 @@
 * @return Returns the length of the string.
 */
 function strlen:long(s:string) %{ /* pure */
-        THIS->__retvalue=strlen(THIS->s);
+        THIS->__retvalue = strlen(THIS->s);
 %}
 
 /** @addtogroup library
-* @code function substr:string(str:string,start:long,stop:long) @endcode
+* @code function substr:string(str:string,start:long,length:long) @endcode
 * @param str string
+* @param start Starting position. 0 = start of the string
+* @param length Length of string to return.
 * @return Returns the length of the string.
 */
-function substr:string(str:string,start:long,stop:long) %{ /* pure */
-	int len=strlen(THIS->str);
-	if(THIS->start<0   || THIS->stop<0   || 
-	   THIS->start>len || THIS->stop>len || 
-	   THIS->start>=THIS->stop)
-	{
+function substr:string(str:string,start:long, length:long) %{ /* pure */
+	int length = THIS->length + 1 > MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;
+	if (THIS->start < 0   || length < 1) {
 		return;
-	}
-	else {
-		char *s=THIS->str;
-		strncpy(THIS->__retvalue,s+THIS->start,THIS->stop);
-		THIS->__retvalue[THIS->stop]='\0';
-	}
+	} else
+		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
 %}
 
 
@@ -37,10 +32,10 @@ function substr:string(str:string,start:long,stop:long) %{ /* pure */
 * @code isinstr:long(s1:string,s2:string) @endcode
 * @param s1 string
 * @param s2 string
-* @return Returns 1 if s2 is in s1.
+* @return Returns 1 if s2 is in s1. Otherwise 0.
 */
 function isinstr:long(s1:string,s2:string) %{ /* pure */
-	if(strstr(THIS->s1,THIS->s2)!=NULL)
+	if (strstr(THIS->s1,THIS->s2) != NULL)
 		THIS->__retvalue = 1;
 	else
 		THIS->__retvalue = 0;
