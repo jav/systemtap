@@ -88,7 +88,7 @@ timer.jiffies(N).randomize(M)
 .ESAMPLE
 The probe handler is run every N jiffies (a kernel-defined unit of
 time, typically between 1 and 60 ms).  If the "randomize" component is
-given, a linearly distributed random value in the range [-M..+M] is
+given, a linearly distributed random value in the range [\-M..+M] is
 added to N every time the handler is run.  N is restricted to a
 reasonable range (1 to around a million), and M is restricted to be
 smaller than N.  There are no target variables provided in either
@@ -196,7 +196,7 @@ pointers (char *) may be copied to systemtap string values using the
 .IR kernel_string " or " user_string
 functions.
 .TP
-$var->field
+$var\->field
 traversal to a structure's field.  The indirection operator
 may be repeated to follow more levels of pointers.
 .TP
@@ -742,7 +742,7 @@ case, the handler would run once during startup and twice during
 shutdown.
 .TP
 timer.jiffies(1000).randomize(200)
-refers to a periodic interrupt, every 1000 +/- 200 jiffies.
+refers to a periodic interrupt, every 1000 +/\- 200 jiffies.
 .TP
 kernel.function("*init*"), kernel.function("*exit*")
 refers to all kernel functions with "init" or "exit" in the name.

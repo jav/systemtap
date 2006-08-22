@@ -10,7 +10,7 @@ function is described with a signature, and its behavior/restrictions.
 The signature line includes the name of the function, the type of
 its return value (if any), and the names and types of all parameters.
 The syntax is the same as printed with the 
-.IR stap " option " -p2 .
+.IR stap " option " \-p2 .
 Examples:
 
 .TP

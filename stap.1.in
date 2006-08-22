@@ -78,7 +78,7 @@ This manual corresponds to version @VERSION@.
 The systemtap translator supports the following options.  Any other option
 prints a list of supported options.
 .\" undocumented for now:
-.\" -t test mode
+.\" \-t test mode
 .TP
 .B \-v
 Increase verbosity.  Produce a larger volume of informative (?) output
@@ -203,7 +203,7 @@ by its first keyword.
 .PP
 If the first part is the identifier
 .BR kernel_vr " or " kernel_v
-to refer to the kernel version number, with ("2.6.13-1.322FC3smp") or
+to refer to the kernel version number, with ("2.6.13\-1.322FC3smp") or
 without ("2.6.13") the release code suffix, then
 the second part is one of the six standard numeric comparison operators
 .BR < ", " <= ", " == ", " != ", " > ", and " >= ,
@@ -235,7 +235,7 @@ The following code might adapt to hypothetical kernel version drift:
 .SAMPLE
 probe kernel.function ( 
   %( kernel_v <= "2.6.12" %? "__mm_do_fault" %: 
-     %( kernel_vr == "2.6.13-1.8273FC3smp" %? "do_page_fault" %:
+     %( kernel_vr == "2.6.13\-1.8273FC3smp" %? "do_page_fault" %:
         UNSUPPORTED %) %)
 ) { /* ... */ }
 
@@ -309,7 +309,7 @@ STMT, then the iteration expression EXP3.
 Loop over each element of the named global array, assigning current
 key to VAR.  The array may not be modified within the statement.
 By adding a single 
-.BR + " or " -
+.BR + " or " \-
 operator after the VAR or the ARRAY identifier, the iteration will
 proceed in a sorted order, by ascending or descending index or value.
 .TP
@@ -349,20 +349,20 @@ typical C rules for signed integers.  Division by zero or overflow is
 detected and results in an error.
 .TP
 binary numeric operators
-.B * / % + - >> << & ^ | && ||
+.B * / % + \- >> << & ^ | && ||
 .TP
 binary string operators
 .B .
 (string concatenation)
 .TP
 numeric assignment operators
-.B = *= /= %= += -= >>= <<= &= ^= |=
+.B = *= /= %= += \-= >>= <<= &= ^= |=
 .TP
 string assignment operators
 .B = .=
 .TP
 unary numeric operators
-.B + - ! ~ ++ -- 
+.B + \- ! ~ ++ \-\- 
 .TP
 binary numeric or string comparison operators
 .B < > <= >= == !=
@@ -604,11 +604,11 @@ are made available to it using a macro
 Here are some examples:
 .SAMPLE
 function add_one (val) %{
-  THIS->__retvalue = THIS->val + 1;
+  THIS\->__retvalue = THIS\->val + 1;
 %}
 function add_one_str (val) %{
-  strlcpy (THIS->__retvalue, THIS->val, MAXSTRINGLEN);
-  strlcat (THIS->__retvalue, "one", MAXSTRINGLEN);
+  strlcpy (THIS\->__retvalue, THIS\->val, MAXSTRINGLEN);
+  strlcat (THIS\->__retvalue, "one", MAXSTRINGLEN);
 %}
 .ESAMPLE
 The function argument and return value types have to be inferred by
@@ -640,9 +640,9 @@ subdirectories are derived from the selected kernel version (the
 option),
 in order to allow more kernel-version-specific scripts to override less
 specific ones.  For example, for a kernel version
-.IR 2.6.12-23.FC3
+.IR 2.6.12\-23.FC3
 the following patterns would be searched, in sequence:
-.IR 2.6.12-23.FC3/*.stp ,
+.IR 2.6.12\-23.FC3/*.stp ,
 .IR 2.6.12/*.stp ,
 .IR 2.6/*.stp ,
 and finally
@@ -748,7 +748,7 @@ to kernel crash or data corruption.
 .PP
 The resource use limits are set by macros in the generated C code.
 These may be overridden with the
-.R \-D
+.BR \-D
 flag.  A selection of these is as follows: 
 .TP
 MAXNESTING
@@ -804,7 +804,7 @@ The location of kernel module building infrastructure.
 .TP
 /usr/lib/debug/lib/modules/VERSION
 The location of kernel debugging information when packaged into the
-.IR kernel-debuginfo
+.IR kernel\-debuginfo
 RPM.
 .TP
 /usr/libexec/systemtap/stpd

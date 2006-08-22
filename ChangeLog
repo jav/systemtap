@@ -1,3 +1,11 @@
+2006-08-22  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3094
+	From Eugeniy Meshcheryakov <eugen@debian.org>:
+	* stap.1.in: In groff, '-' produces a Unicode hyphen.  Use '\-'
+	where a plain-old minus sign is desired, e.g., code examples.
+	* lket.5.in, stapex.5.in, stapfuncs.5.in, stapprobes.5.in: ditto
+
 2006-08-15  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in (elfutils_version): Require 0.123 now.
