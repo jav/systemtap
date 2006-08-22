@@ -1,0 +1,348 @@
+// signal trace hooks
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+probe never 
+{
+	printf("%d", GROUP_SIGNAL)
+}
+
+probe addevent.signal
+	= 
+	addevent.signal.send.entry,
+	addevent.signal.send.return,
+	addevent.signal.syskill.entry,
+	addevent.signal.syskill.return,
+	addevent.signal.systgkill.entry,
+	addevent.signal.systgkill.return,
+	addevent.signal.systkill.entry,
+	addevent.signal.systkill.return,
+	addevent.signal.pending.entry,
+	addevent.signal.pending.return,
+	addevent.signal.do_action.entry,
+	addevent.signal.do_action.return,
+	addevent.signal.procmask.entry,
+	addevent.signal.procmask.return,
+	addevent.signal.flush.entry
+{}
+
+/* Fires when a signal is sent to a process */
+probe addevent.signal.send.entry
+	+= _addevent.signal.send.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.send.entry
+	= signal.send
+{
+	log_signal_send(sig, sig_pid, shared, send2queue)
+}
+
+function log_signal_send(sig:long, pid:long, shared:long, send2queue:long)
+%{
+	/* sig | shared | send2queue | pid 
+		shared: indicate whether the signal is send to a process
+			group or to a single process
+		send2queue: indicate whether the event is triggered by 
+			send_group_sigqueue or send_sigqueue
+	*/
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SEND_ENTRY, "%1b%1b%1b%4b", 
+		THIS->sig, THIS->shared, THIS->send2queue, THIS->pid);
+%}
+
+probe addevent.signal.send.return
+	+= _addevent.signal.send.return
+{
+	update_record()
+}
+probe _addevent.signal.send.return
+	= signal.send.return
+{
+	log_signal_send_return($return)
+}
+
+function log_signal_send_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SEND_RETURN, "%1b", THIS->ret);
+%}
+
+
+/* Triggered by calling kill() from user app */
+probe addevent.signal.syskill.entry
+	+= _addevent.signal.syskill.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.syskill.entry = signal.syskill
+{
+	log_signal_syskill(pid, sig)
+}
+
+function log_signal_syskill(pid:long, sig:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSKILL_ENTRY,
+		"%4b%1b", THIS->pid, THIS->sig);
+%}
+
+probe addevent.signal.syskill.return
+	+= _addevent.signal.syskill.return
+{
+	update_record()
+}
+
+probe _addevent.signal.syskill.return 
+	= signal.syskill.return
+{
+	log_signal_syskill_return($return)
+}
+
+function log_signal_syskill_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSKILL_RETURN,
+		"%1b", THIS->ret);
+%}
+
+/* triggered by calling sys_tgkill() from user app */
+probe addevent.signal.systgkill.entry
+	+= _addevent.signal.systgkill.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.systgkill.entry = signal.systgkill
+{
+	log_signal_systgkill(pid, tgid, sig)
+}
+
+function log_signal_systgkill(pid:long, tgid:long, sig:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSTGKILL_ENTRY,
+		"%4b%4b%1b", THIS->pid, THIS->tgid, THIS->sig);
+%}
+
+probe addevent.signal.systgkill.return
+	+= _addevent.signal.systgkill.return
+{
+	update_record()
+}
+
+probe _addevent.signal.systgkill.return 
+	= signal.systgkill.return
+{
+	log_signal_systgkill_return($return)
+}
+
+function log_signal_systgkill_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSTGKILL_RETURN,
+		"%1b", THIS->ret);
+%}
+
+/* Triggered by calling tkill() from user app */
+probe addevent.signal.systkill.entry
+	+= _addevent.signal.systkill.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.systkill.entry = signal.systkill
+{
+	log_signal_systkill(pid, sig)
+}
+
+function log_signal_systkill(pid:long, sig:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSTKILL_ENTRY,
+		"%4b%1b", THIS->pid, THIS->sig);
+%}
+
+probe addevent.signal.systkill.return
+	+= _addevent.signal.systkill.return
+{
+	update_record()
+}
+
+probe _addevent.signal.systkill.return 
+	= signal.systkill.return
+{
+	log_signal_systkill_return($return)
+}
+
+function log_signal_systkill_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_SYSTKILL_RETURN,
+		"%1b", THIS->ret);
+%}
+
+/* Fires when examining current pending signals */
+probe addevent.signal.pending.entry
+	+= _addevent.signal.pending.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.pending.entry = signal.pending
+{
+	log_signal_pending(uspace_add, sset_size)
+}
+
+function log_signal_pending(sigset_addr:long, setsize:long)
+%{
+	/* sigset_addr | setsize */
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_PENDING_ENTRY,
+		"%8b%8b", THIS->sigset_addr, THIS->setsize);
+%}
+
+probe addevent.signal.pending.return
+	+= _addevent.signal.pending.return
+{
+	update_record()
+}
+
+probe _addevent.signal.pending.return = signal.pending.return
+{
+	log_signal_pending_return($return)
+}
+
+function log_signal_pending_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_PENDING_RETURN,
+		"%1b", THIS->ret);
+%}
+
+/* probe signal.handle
+ *
+ * Used to invoke signals
+ *
+ * static int handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ *					sigset_t *oldset, struct pt_regs * regs)
+ * Argument :-
+ *  sig    : Signal number
+ *  info   : address of siginfo table.
+ *  ka     : Address of the k_sigaction table associated with the signal
+ *  oldset : Address of a bit mask array of blocked signals
+ *  regs   : Address in the Kernel Mode stack area 
+ *  
+ */
+/*
+probe signal.handle = kernel.function("handle_signal")?,
+        kernel.inline("handle_signal")?
+{
+    sig = $sig
+    sig_name = _signal_name($sig)
+    sinfo_addr = $info
+    sig_code = $info->si_code
+    sig_stack_add=$ka
+    bitmask_add=$oldset
+    kernmode_stack_add=$regs
+
+    // Check whether the signal is a User Mode or Kernel mode Signal.
+    
+    if (sinfo_addr == 0 && sig_code <= 0)
+        sig_mode = "User Mode Signal"
+    else if (sinfo_addr >=  1)
+        sig_mode = "Kernel Mode Signal"
+}
+
+probe signal.handle.return = kernel.function("handle_signal").return
+{
+    retstr = returnstr(1)
+}
+*/
+/* Fires when examing and change a signal action */
+probe addevent.signal.do_action.entry
+	+= _addevent.signal.do_action.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.do_action.entry = signal.do_action
+{
+	log_signal_doaction(sig, sa_handler)
+}
+
+function log_signal_doaction(sig:long, handler:long)
+%{
+	/* sig | sa_handler | sa_mask */
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_DOACTION_ENTRY,
+		"%1b%8b", THIS->sig, THIS->handler);
+%}
+
+
+probe addevent.signal.do_action.return
+	+= _addevent.signal.do_action.return
+{
+	update_record()
+}
+
+probe _addevent.signal.do_action.return = signal.do_action.return
+{
+	log_signal_doaction_return($return)
+}
+
+function log_signal_doaction_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_DOACTION_RETURN,
+		"%2b", THIS->ret);
+%}
+
+/* Fires when examine and change blocked signals */
+
+probe addevent.signal.procmask.entry
+	+= _addevent.signal.procmask.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.procmask.entry = signal.procmask
+{
+	log_signal_procmask($how, sigset)
+}
+
+function log_signal_procmask(how:long, set:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_PROC_MASK_ENTRY,
+		"%1b%8b", THIS->how, THIS->set);
+%}
+	
+probe addevent.signal.procmask.return
+	+= _addevent.signal.procmask.return
+{
+	update_record()
+}
+
+probe _addevent.signal.procmask.return = signal.procmask.return
+{
+	log_signal_procmask_return($return)
+}
+
+function log_signal_procmask_return(ret:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_PROC_MASK_RETURN,
+		"%1b", THIS->ret);
+%}
+
+/* Flush all pending signals for a task */
+probe addevent.signal.flush.entry
+	+= _addevent.signal.flush.entry
+{
+	update_record()
+}
+
+probe _addevent.signal.flush.entry = signal.flush
+{
+	log_signal_flush(sig_pid)
+}
+
+function log_signal_flush(pid:long)
+%{
+	_lket_trace(_GROUP_SIGNAL, _HOOKID_SIGNAL_FLUSH_ENTRY,
+		"%4b", THIS->pid);
+%}
+

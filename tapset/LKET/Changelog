@@ -1,3 +1,10 @@
+2006-08-22  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* signal.stp, hookid_defs.stp, register_event.stp:
+	add signal trace hooks.
+	* syscall.stp: eliminates global stap variable of
+	HOOKID_SYSCALL_* for faster speed
+	
 2006-08-09  Josh Stone  <joshua.i.stone@intel.com>
 
 	* pagefault.stp: move pagefault to vm.* namespace

@@ -327,9 +327,10 @@ probe signal.send_sig_queue.return =
 }
 
 
-/* probe signal.pend
+/* probe signal.pending
  *
- * Used to Suspend signals
+ * Used to examine the set of signals that are pending for 
+ * delivery to the calling thread
  *
  * long do_sigpending(void __user *set, unsigned long sigsetsize)
  */

@@ -20,7 +20,7 @@ probe _addevent.syscall.entry
 	= syscall.*
 {
 	if(filter_by_pid() == 1 )
-		log_syscall_tracedata(HOOKID_SYSCALL_ENTRY, name)
+		log_syscall_tracedata(1, name)
 }
 
 probe addevent.syscall.return
@@ -33,7 +33,7 @@ probe _addevent.syscall.return
 	= syscall.*.return
 {
 	if(filter_by_pid() == 1 ) {
-		log_syscall_tracedata(HOOKID_SYSCALL_RETURN, name)
+		log_syscall_tracedata(2, name)
 	}
 }
 

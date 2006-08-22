@@ -279,6 +279,45 @@ function register_sys_events()
 		"ctx_id:iocb_uaddr:result_uaddr")
 	register_sys_event(GROUP_AIO, HOOKID_AIO_IO_CANCEL_RETURN,
 		"INT64", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SEND_ENTRY,
+		"INT8:INT8:INT8:INT32", "sig:shared:send2queue:pid")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SEND_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSKILL_ENTRY,
+		"INT32:INT8", "pid:sig")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSKILL_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSTGKILL_ENTRY,
+		"INT32:INT32:INT8", "tid:pid:sig")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSTGKILL_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSTKILL_ENTRY,
+		"INT32:INT8", "pid:sig")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SYSTKILL_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_PENDING_ENTRY,
+		"INT32:INT32", "sigset_addr:setsize");
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_PENDING_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_DOACTION_ENTRY,
+		"INT8:INT64", "sig:handler")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_DOACTION_RETURN,
+		"INT16", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_PROC_MASK_ENTRY,
+		"INT8:INT64", "how:sigset")
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_PROC_MASK_RETURN,
+		"INT8", "return")
+
+	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_FLUSH_ENTRY,
+		"INT32", "pid")
+			
 }
 
 
