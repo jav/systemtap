@@ -1,3 +1,8 @@
+2006-08-22  Li Guanglei <guanglei@cn.ibm.com>
+
+	* signal.stp: More variables for signal.do_action and
+	signal.procmask.
+	
 2006-08-21  Martin Hunt  <hunt@redhat.com>
 
 	* string.stp (substr): Rewrite. Make the 3rd parameter

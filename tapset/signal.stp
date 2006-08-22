@@ -333,13 +333,13 @@ probe signal.send_sig_queue.return =
  *
  * long do_sigpending(void __user *set, unsigned long sigsetsize)
  */
-probe signal.pend = kernel.function("do_sigpending")
+probe signal.pending = kernel.function("do_sigpending")
 {
     uspace_add=$set
     sset_size=$sigsetsize
 }
 
-probe signal.pend.return = kernel.function("do_sigpending").return
+probe signal.pending.return = kernel.function("do_sigpending").return
 {
     retstr = returnstr(1)
 }
@@ -401,6 +401,11 @@ probe signal.do_action = kernel.function("do_sigaction")
     sig = $sig
     sigact_table=$act
     psigact_table=$oact
+    if(sigact_table != 0)
+    {
+         sa_handler = $act->sa->sa_handler
+         sa_mask = $act->sa->sa_mask
+    }
 }
 
 probe signal.do_action.return = kernel.function("do_sigaction").return
@@ -424,9 +429,10 @@ probe signal.do_action.return = kernel.function("do_sigaction").return
 probe signal.procmask = kernel.function("sigprocmask")
 {
     stemp=$how
-    sigset=$set
-    sigoset=$oldset
+    sigset_addr = $set
+    sigoset_addr = $oldset
 
+    sigset = get_sigset($set)
     if (stemp == 0)
         sig_how ="SIG_BLOCK"
     else if (stemp ==  1)
@@ -434,6 +440,22 @@ probe signal.procmask = kernel.function("sigprocmask")
     else if (stemp == 2)
         sig_how="SIG_SETMASK"
 }
+
+function get_sigset:long(sigset:long) %{ /* pure */
+
+    sigset_t *sigset = (sigset_t *)((long)THIS->sigset);
+
+if(_NSIG_BPW == 64)
+    THIS->__retvalue = deref(sizeof(sigset_t), sigset);
+else if(_NSIG_BPW == 32)
+    THIS->__retvalue = deref(sizeof(int), &(sigset->sig[0])) |
+        ((u_int64_t)deref(sizeof(int), &(sigset->sig[1])))<<32;
+
+    if(0)  {
+deref_fault:
+        CONTEXT->last_error = "pointer deref error";
+    }
+%}
 
 probe signal.procmask.return = kernel.function("sigprocmask").return
 {
