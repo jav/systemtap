@@ -300,13 +300,12 @@ main (int argc, char * const argv [])
   int rc = 0;
 
   // override PATH and LC_ALL
-  char* path = "PATH=/bin:/sbin:/usr/bin:/usr/sbin";
-  char* lc_all = "LC_ALL=C";
-  rc = putenv (path) || putenv (lc_all);
+  const char *path = "/bin:/sbin:/usr/bin:/usr/sbin";
+  rc = setenv("PATH", path, 1) || setenv("LC_ALL", "C", 1);
   if (rc)
     {
       const char* e = strerror (errno);
-      cerr << "setenv (\"" << path << "\" + \"" << lc_all << "\"): "
+      cerr << "setenv (\"PATH=" << path << "\" + \"LC_ALL=C\"): "
            << e << endl;
     }
 
@@ -316,7 +315,7 @@ main (int argc, char * const argv [])
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
   {
-    char* tmpdir_env = getenv("TMPDIR");
+    const char* tmpdir_env = getenv("TMPDIR");
     if (! tmpdir_env)
       tmpdir_env = "/tmp";
     

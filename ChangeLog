@@ -1,3 +1,13 @@
+2006-08-23  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3093
+	From Eugeniy Meshcheryakov <eugen@debian.org>:
+	* main.cxx (main): Use setenv instead of putenv, since gcc 4.2
+	doesn't like assigning string constants to char*.  Also use
+	const char* for result from getenv.
+	* tapsets.cxx (dwflpp::setup): Copy string constant into a
+	local array, to fix gcc 4.2 warning.
+
 2006-08-22  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3094

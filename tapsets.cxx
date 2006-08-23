@@ -763,7 +763,8 @@ dwflpp
   void setup(bool kernel)
   {
     // XXX: this is where the session -R parameter could come in
-    static char* debuginfo_path = "-:.debug:/usr/lib/debug";
+    static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
+    static char *debuginfo_path = debuginfo_path_arr;
 
     static const Dwfl_Callbacks proc_callbacks =
       {
