@@ -1,0 +1,592 @@
+/* generic vfs probes */
+
+/* helper functions */
+function __bdevname:string (bdev:long) %{ /* pure */
+	char b[BDEVNAME_SIZE];
+	struct block_device *bdev = (struct block_device *)(long)THIS->bdev;
+	if (bdev == NULL) {
+		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
+		return;
+	}
+
+	deref_string(THIS->__retvalue, bdevname(bdev,b), MAXSTRINGLEN);
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+/*
+  We don't want to have to do a bdevname() call every time
+  we want a devname, so we'll hash them here.
+*/
+global __devnames
+function __find_bdevname(dev, bdev)
+{
+#	return ""
+
+	__devname = __devnames[dev]
+
+	if (__devname != null)
+		return __devname
+
+	__devname = __devnames[dev] = __bdevname(bdev)
+
+	return __devname
+}
+
+function ppos_pos:long (ppos:long) %{ /* pure */
+	loff_t *ppos = (loff_t *)(long)THIS->ppos;
+	THIS->__retvalue = (int64_t)*ppos;
+%}
+
+function __page_ino:long (page:long) %{ /* pure */
+	struct page *page = (struct page *)(long)THIS->page;
+	if ((page == NULL) || (page->mapping == NULL)) {
+		THIS->__retvalue = -1;
+		return;
+	}
+
+	THIS->__retvalue = deref(sizeof(page->mapping->host->i_ino),
+		&(page->mapping->host->i_ino));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __page_dev:long (page:long) %{ /* pure */
+	struct page *page = (struct page *)(long)THIS->page;
+	if ((page == NULL) || (page->mapping == NULL)) {
+		THIS->__retvalue = -1;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(page->mapping->host->i_sb->s_dev),
+		&(page->mapping->host->i_sb->s_dev));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __page_bdev:long (page:long) %{ /* pure */
+	struct page *page = (struct page *)(long)THIS->page;
+	if ((page == NULL) || (page->mapping == NULL)) {
+		THIS->__retvalue = -1;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(page->mapping->host->i_sb->s_bdev),
+		&(page->mapping->host->i_sb->s_dev));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+probe generic.fop.llseek = kernel.function ("generic_file_llseek")
+{
+	dev = $file->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $file->f_dentry->d_inode->i_ino
+
+	offset = $offset
+	origin = $origin
+        maxbyte = $file->f_dentry->d_inode->i_sb->s_maxbytes
+
+	name = "generic_file_llseek"
+	argstr = sprintf("%d, %d", offset, origin)
+}
+probe generic.fop.llseek.return = kernel.function ("generic_file_llseek").return
+{
+	name = "generic_file_llseek"
+	retstr = returnstr(1)
+}
+
+probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
+{
+	dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $iocb->ki_filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+
+	count = $count
+	pos = $pos
+        buf = $buf
+
+	name = "generic_file_aio_read"
+	argstr = sprintf("%d, %d, %p", count, pos,buf)
+
+	size = count
+	units = "bytes"
+}
+probe generic.fop.aio_read.return = kernel.function ("generic_file_aio_read").return
+{
+	name = "generic_file_aio_read"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
+{
+	dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $iocb->ki_filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+
+	count = $count
+	pos = $pos
+
+	name = "generic_file_aio_write"
+	argstr = sprintf("%d, %d", count, pos)
+
+	size = count
+	units = "bytes"
+}
+probe generic.fop.aio_write.return = kernel.function ("generic_file_aio_write").return
+{
+	name = "generic_file_aio_write"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.readv = kernel.function ("generic_file_readv")
+{
+	dev = $filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $filp->f_dentry->d_inode->i_ino
+
+	nr_segs = $nr_segs
+	pos = ppos_pos($ppos)
+
+	name = "generic_file_readv"
+	argstr = sprintf("%d, %d", nr_segs, pos)
+
+	size = nr_segs
+	units = "segs"
+}
+probe generic.fop.readv.return = kernel.function ("generic_file_readv").return
+{
+	name = "generic_file_readv"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+/* calls __generic_file_write_nolock */
+probe generic.fop.writev = kernel.function ("generic_file_writev")
+{
+	dev = $file->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $file->f_dentry->d_inode->i_ino
+
+	nr_segs = $nr_segs
+	pos = ppos_pos($ppos)
+
+	name = "generic_file_writev"
+	argstr = sprintf("%d, %d", nr_segs, pos)
+
+	size = nr_segs
+	units = "segs"
+}
+probe generic.fop.writev.return = kernel.function ("generic_file_writev").return
+{
+	name = "generic_file_writev"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+/* checks for aops->readpage, if not defined, return -ENOEXEC
+   else assigns generic_file_vm_ops to vma
+   add filemap_nopage, filemap_populate */
+probe generic.fop.mmap = kernel.function ("generic_file_mmap")
+{
+	dev = $file->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $file->f_dentry->d_inode->i_ino
+
+	vm_start = $vma->vm_start
+	vm_end = $vma->vm_end
+	vm_flags = $vma->vm_flags
+
+	name = "generic_file_mmap"
+	argstr = sprintf("0x%x, 0x%x, 0x%x", vm_start, vm_end, vm_flags)
+}
+probe generic.fop.mmap.return = kernel.function ("generic_file_mmap").return
+{
+	name = "generic_file_mmap"
+	retstr = sprintf("%d", $return)
+}
+
+probe generic.fop.open = kernel.function ("generic_file_open")
+{
+	dev = $filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $inode->i_ino
+
+	filename = kernel_string($filp->f_dentry->d_name->name)
+        flag = $filp->f_flags
+        size = $inode->size
+
+	name = "generic_file_open"
+	argstr = sprintf("%d, %s", ino, flag, filename)
+}
+probe generic.fop.open.return = kernel.function ("generic_file_open").return
+{
+	name = "generic_file_open"
+	retstr = sprintf("%d", $return)
+}
+
+probe generic.fop.sendfile = kernel.function ("generic_file_sendfile")
+{
+	dev = $in_file->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $in_file->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $in_file->f_dentry->d_inode->i_ino
+
+	count = $count
+        ppos = $ppos
+
+	name = "generic_file_sendfile"
+	argstr = sprintf("%d", count)
+
+	size = count
+	units = "bytes"
+}
+probe generic.fop.sendfile.return = kernel.function ("generic_file_sendfile").return
+{
+	name = "generic_file_sendfile"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.splice_read = kernel.function ("generic_file_splice_read")
+{
+	dev = $in->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $in->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $in->f_dentry->d_inode->i_ino
+
+	len = $len
+	flags = $flags
+
+	name = "generic_file_splice_read"
+	argstr = sprintf("%d, %x", len, flags)
+
+	size = len
+	units = "bytes"
+}
+probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_read").return
+{
+	name = "generic_file_splice_read"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.splice_write = kernel.function ("generic_file_splice_write")
+{
+	dev = $out->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $out->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $out->f_dentry->d_inode->i_ino
+
+	len = $len
+	flags = $flags
+
+	name = "generic_file_splice_write"
+	argstr = sprintf("%d, %x", len, flags)
+
+	size = len
+	units = "bytes"
+}
+probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_write").return
+{
+	name = "generic_file_splice_write"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.read = kernel.function ("generic_file_read")
+{
+	dev = $filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $filp->f_dentry->d_inode->i_ino
+
+	count = $count
+
+	name = "generic_file_read"
+	argstr = sprintf("%d", count)
+
+	size = count
+	units = "bytes"
+}
+probe generic.fop.read.return = kernel.function ("generic_file_read").return
+{
+	name = "generic_file_read"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe generic.fop.write = kernel.function ("generic_file_write")
+{
+	dev = $file->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $file->f_dentry->d_inode->i_ino
+
+	count = $count
+
+	name = "generic_file_write"
+	argstr = sprintf("%d", count)
+
+	size = count
+	units = "bytes"
+}
+probe generic.fop.write.return = kernel.function ("generic_file_write").return
+{
+	name = "generic_file_write"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+/* generic_writepages calls mpage_writepages(mapping, wbc, NULL) */
+probe generic.aop.writepages = kernel.function ("mpage_writepages")
+{
+	dev = $mapping->host->i_sb->s_dev
+	devname = __find_bdevname(dev, $mapping->host->i_sb->s_bdev)
+	ino = $mapping->host->i_ino
+
+	nr_to_write = $wbc->nr_to_write
+
+	name = "generic_writepages"
+	argstr = sprintf("%d", nr_to_write)
+
+	size = nr_to_write
+	units = "pages"
+}
+probe generic.aop.writepages.return = kernel.function ("mpage_writepages").return
+{
+	name = "generic_writepages"
+	retstr = sprintf("%d", $return)
+}
+
+probe vfs.do_sync_read = kernel.function ("do_sync_read")
+{
+	dev = $filp->f_dentry->d_inode->i_sb->s_dev
+	ino = $filp->f_dentry->d_inode->i_ino
+
+	len = $len
+	pos = ppos_pos($ppos)
+        buf = $buf
+
+	name = "do_sync_read"
+	argstr = sprintf("%d, %d , %p ", len, pos,buf)
+
+	size = len
+	units = "bytes"
+}
+probe vfs.do_sync_read.return = kernel.function ("do_sync_read").return
+{
+	name = "do_sync_read"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe vfs.do_sync_write = kernel.function ("do_sync_write")
+{
+	dev = $filp->f_dentry->d_inode->i_sb->s_dev
+	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
+	ino = $filp->f_dentry->d_inode->i_ino
+
+	len = $len
+	pos = ppos_pos($ppos)
+
+	name = "do_sync_write"
+	argstr = sprintf("%d, %d", len, pos)
+
+	size = len
+	units = "bytes"
+}
+probe vfs.do_sync_write.return = kernel.function ("do_sync_write").return
+{
+	name = "do_sync_write"
+	retstr = sprintf("%d", $return)
+
+	if ($return > 0) {
+		size = $return
+		units = "bytes"
+	}
+}
+
+probe vfs.block_sync_page = kernel.function ("block_sync_page")
+{
+	__page = $page
+	dev = __page_dev(__page)
+	devname = __find_bdevname(dev, __page_bdev(__page))
+	ino = __page_ino(__page)
+
+	page_index = $page->index
+
+	name = "block_sync_page"
+	argstr = sprintf("%d", page_index)
+
+	size = 1
+	units = "pages"
+}
+probe vfs.block_sync_page.return = kernel.function ("block_sync_page").return
+{
+	name = "block_sync_page"
+	retstr = sprintf("N/A")
+
+	size = 1
+	units = "pages"
+}
+
+probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")
+{
+	dev = $page->mapping->host->i_sb->s_dev
+	devname = __find_bdevname(dev, $page->mapping->host->i_sb->s_dev)
+	ino = $page->mapping->host->i_ino
+
+	page_index = $page->index
+
+	name = "buffer_migrate_page"
+	argstr = sprintf("%d", page_index)
+
+	size = 1
+	units = "pages"
+}
+probe vfs.buffer_migrate_page.return = kernel.function ("buffer_migrate_page").return
+{
+	name = "buffer_migrate_page"
+	retstr = sprintf("%d", $return)
+
+	if ($return == 0) {
+		size = 1
+		units = "pages"
+	}
+}
+
+/* default if aop not set, __set_page_dirty_nobuffers usually used if set */
+probe vfs.__set_page_dirty_buffers = kernel.function ("__set_page_dirty_buffers")
+{
+	__page = $page
+	dev = __page_dev(__page)
+	devname = __find_bdevname(dev, __page_bdev(__page))
+	ino = __page_ino(__page)
+
+	index = $page->index
+
+	name = "__set_page_dirty_buffers"
+	argstr = sprintf("%d", page_index)
+
+	size = 1
+	units = "pages"
+}
+probe vfs.__set_page_dirty_buffers.return = kernel.function ("__set_page_dirty_buffers").return
+{
+	name = "__set_page_dirty_buffers"
+	retstr = sprintf("%d", $return)
+
+	if ($return == 1) {
+		size = 1
+		units = "pages"
+	}
+}
+
+probe vfs.do_mpage_readpage = kernel.function ("do_mpage_readpage")
+{
+	__page = $page
+	dev = __page_dev(__page)
+	devname = __find_bdevname(dev, __page_bdev(__page))
+	ino = __page_ino(__page)
+
+	index = $page->index
+
+	name = "do_mpage_readpage"
+	argstr = sprintf("%d", index)
+
+	size = 1
+	units = "pages"
+}
+probe vfs.do_mpage_readpage.return = kernel.function ("do_mpage_readpage").return
+{
+	name = "do_mpage_readpage"
+	retstr = sprintf("0x%x", $return)
+
+	size = 1
+	units = "pages"
+}
+
+probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache")
+{
+	dev = $mapping->host->i_sb->s_dev
+	devname = __find_bdevname(dev, $mapping->host->i_sb->s_bdev)
+	ino = $mapping->host->i_ino
+
+	index = $offset
+	nrpages = $mapping->nrpages
+
+	name = "vfs.add_to_page_cache"
+	argstr = sprintf("%d, %d", ino, index)
+}
+probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache").return
+{
+	name = "vfs.add_to_page_cache"
+	retstr = sprintf("%d", $return)
+
+	if ($return == 0) {
+		size = 1
+		units = "pages"
+	}
+}
+
+probe vfs.remove_from_page_cache = kernel.function ("__remove_from_page_cache")
+{
+	dev = __page_dev($page)
+	devname = __find_bdevname(dev, __page_bdev($page))
+	ino = __page_ino($page)
+
+	index = $page->index
+
+	name = "vfs.remove_from_page_cache"
+	argstr = sprintf("%d", ino)
+}
+probe vfs.remove_from_page_cache.return = kernel.function ("remove_from_page_cache").return
+{
+	name = "vfs.remove_from_page_cache"
+	retstr = sprintf("N/A")
+}
+
