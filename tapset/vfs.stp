@@ -72,11 +72,11 @@ deref_fault:
 function __page_bdev:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
 	if ((page == NULL) || (page->mapping == NULL)) {
-		THIS->__retvalue = -1;
+		THIS->__retvalue = 0;
 		return;
 	}
 	THIS->__retvalue = deref(sizeof(page->mapping->host->i_sb->s_bdev),
-		&(page->mapping->host->i_sb->s_dev));
+		&(page->mapping->host->i_sb->s_bdev));
 	if (0) {
 deref_fault:
 		CONTEXT->last_error = "pointer dereference fault";
@@ -137,9 +137,10 @@ probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
 
 	count = $count
 	pos = $pos
+	buf = $buf
 
 	name = "generic_file_aio_write"
-	argstr = sprintf("%d, %d", count, pos)
+	argstr = sprintf("%d, %d ,%p", count, pos,buf)
 
 	size = count
 	units = "bytes"
@@ -238,10 +239,10 @@ probe generic.fop.open = kernel.function ("generic_file_open")
 
 	filename = kernel_string($filp->f_dentry->d_name->name)
         flag = $filp->f_flags
-        size = $inode->size
+        size = $inode->i_size
 
 	name = "generic_file_open"
-	argstr = sprintf("%d, %s", ino, flag, filename)
+	argstr = sprintf("%d,%d, %s", ino, flag, filename)
 }
 probe generic.fop.open.return = kernel.function ("generic_file_open").return
 {
@@ -432,9 +433,10 @@ probe vfs.do_sync_write = kernel.function ("do_sync_write")
 
 	len = $len
 	pos = ppos_pos($ppos)
+	buf = $buf
 
 	name = "do_sync_write"
-	argstr = sprintf("%d, %d", len, pos)
+	argstr = sprintf("%d, %d , %p", len, pos, buf)
 
 	size = len
 	units = "bytes"
@@ -476,9 +478,9 @@ probe vfs.block_sync_page.return = kernel.function ("block_sync_page").return
 
 probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")
 {
-	dev = $page->mapping->host->i_sb->s_dev
-	devname = __find_bdevname(dev, $page->mapping->host->i_sb->s_dev)
-	ino = $page->mapping->host->i_ino
+	dev = __page_dev($page)
+        ino = __page_ino($page)
+	devname = __find_bdevname(dev,__page_bdev($page))
 
 	page_index = $page->index
 

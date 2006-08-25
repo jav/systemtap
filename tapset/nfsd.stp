@@ -737,8 +737,7 @@ probe nfsd.return= nfsd.open.return,
                      nfsd.create.return,
                      nfsd.createv3.return,
                      nfsd.unlink.return,
-                     nfsd.rename,return,
-                     nfsd.close.return
+                     nfsd.rename.return
 {}
 /*probe nfsd.open
 *  Fires when server opens a file

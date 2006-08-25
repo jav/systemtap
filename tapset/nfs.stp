@@ -16,7 +16,12 @@
 function __nfsi_cache_valid:long(inode:long) %{ /* pure */
     struct inode * inode = (struct inode *)(THIS->inode);
     struct nfs_inode * nfsi;
-  
+
+    if(inode == NULL) 
+    {
+        THIS->__retvalue = -1;
+        return;
+    }
     nfsi = __nfs_i(inode);
     THIS->__retvalue = nfsi->cache_validity;
 %}
@@ -24,7 +29,15 @@ function __nfsi_cache_valid:long(inode:long) %{ /* pure */
 /*Get read_cache_jiffies from struct inode*/
 function __nfsi_rcache_time :long (inode:long) %{ /* pure */
     struct inode * inode = (struct inode *)(THIS->inode);
-    struct nfs_inode * nfsi = (struct nfs_inode *) __nfs_i(inode);
+    struct nfs_inode * nfsi ;
+
+    if(inode == NULL) 
+    {
+        THIS->__retvalue = -1;
+        return;
+    }
+
+    nfsi = (struct nfs_inode *) __nfs_i(inode);
 
     THIS->__retvalue = nfsi->read_cache_jiffies;
 %}
@@ -32,7 +45,14 @@ function __nfsi_rcache_time :long (inode:long) %{ /* pure */
 /*Get attrtimeo from struct inode*/
 function __nfsi_attr_time :long (inode:long) %{ /* pure */
     struct inode * inode = (struct inode *)(THIS->inode);
-    struct nfs_inode * nfsi = (struct nfs_inode *) __nfs_i(inode);
+    struct nfs_inode * nfsi ;
+
+    if(inode == NULL) 
+    {
+        THIS->__retvalue = -1;
+        return;
+    }
+    nfsi= (struct nfs_inode *) __nfs_i(inode);
 
     THIS->__retvalue = nfsi->attrtimeo;
 %}
@@ -40,7 +60,14 @@ function __nfsi_attr_time :long (inode:long) %{ /* pure */
 /*Get ndirty from struct inode*/
 function __nfsi_ndirty:long (inode:long) %{ /* pure */
       struct inode *inode = (struct inode *)(THIS->inode);
-      struct nfs_inode *nfsi = NFS_I(inode);
+      struct nfs_inode *nfsi ;
+
+      if(inode == NULL) 
+      {
+          THIS->__retvalue = -1;
+          return;
+      }
+      nfsi = NFS_I(inode);
  
       THIS->__retvalue = nfsi->ndirty;
 %}
@@ -49,6 +76,11 @@ function __nfsi_ndirty:long (inode:long) %{ /* pure */
 function __nfs_server_rsize:long (inode:long) %{ /* pure */
        struct inode * inode = (struct inode *)(THIS->inode);
 
+       if(inode == NULL) 
+       {
+           THIS->__retvalue = -1;
+           return;
+       }
        THIS->__retvalue = NFS_SERVER(inode)->rsize;
 %}
 
@@ -56,6 +88,11 @@ function __nfs_server_rsize:long (inode:long) %{ /* pure */
 function __nfs_server_wsize:long (inode:long) %{ /* pure */
        struct inode * inode = (struct inode *)(THIS->inode);
 
+       if(inode == NULL) 
+       {
+           THIS->__retvalue = -1;
+           return;
+       }
        THIS->__retvalue = NFS_SERVER(inode)->wsize;
 %}
 
@@ -63,49 +100,124 @@ function __nfs_server_wsize:long (inode:long) %{ /* pure */
 function __nfs_rpages:long (inode:long) %{ /* pure */
        struct inode * inode = (struct inode *)(THIS->inode);
 
+       if(inode == NULL) 
+       {
+           THIS->__retvalue = -1;
+           return;
+       }
        THIS->__retvalue = NFS_SERVER(inode)->rpages;
 %}
 
 /*Get wpages from struct inode*/
 function __nfs_wpages:long(inode:long) %{ /* pure */
       struct inode *inode = (struct inode*)(THIS->inode);
+      if(inode == NULL) 
+      {
+          THIS->__retvalue = -1;
+          return;
+      }
       THIS->__retvalue = NFS_SERVER(inode)->wpages;
 %}
 
 /*Get struct inode from struct page*/
 function __p2i :long(page:long) %{ /* pure */
       struct page *page = (struct page *)(THIS->page);
-      THIS->__retvalue = (long)page->mapping->host;
+
+      if ((page == NULL) || (page->mapping == NULL)) {
+                THIS->__retvalue = 0;
+                return;
+        }
+
+        THIS->__retvalue = deref(sizeof(page->mapping->host),
+                &(page->mapping->host));
+        if (0) {
+deref_fault:
+                CONTEXT->last_error = "pointer dereference fault";
+        }
 %}
 
 /*Get i_flags from struct page*/
 function __p2i_flag : long (page:long) %{ /* pure */
       struct page *page = (struct page *) (THIS->page);
-      THIS->__retvalue = page->mapping->host->i_flags;
+
+      if ((page == NULL) || (page->mapping == NULL) \
+          ||(page->mapping->host == NULL)) {
+                THIS->__retvalue = -1;
+                return;
+        }
+
+        THIS->__retvalue = deref(sizeof(page->mapping->host->i_flags),
+                &(page->mapping->host->i_flags));
+        if (0) {
+deref_fault:
+                CONTEXT->last_error = "pointer dereference fault";
+        }
 %}
 
 /*Get i_state from struct page*/
 function __p2i_state :long (page:long) %{ /* pure */
       struct page *page = (struct page *) (THIS->page);
-      THIS->__retvalue = page->mapping->host->i_state;
+      
+      if ((page == NULL) || (page->mapping == NULL) \
+          ||(page->mapping->host == NULL)) {
+                THIS->__retvalue = -1;
+                return;
+        }
+
+        THIS->__retvalue = deref(sizeof(page->mapping->host->i_state),
+                &(page->mapping->host->i_state));
+        if (0) {
+deref_fault:
+                CONTEXT->last_error = "pointer dereference fault";
+        }
 %}
 
 /*Get i_size from struct page*/
 function __p2i_size :long (page:long) %{ /* pure */
       struct page *page = (struct page *) (THIS->page);
-      THIS->__retvalue = page->mapping->host->i_size;
+
+      if ((page == NULL) || (page->mapping == NULL) \
+          ||(page->mapping->host == NULL)) {
+                THIS->__retvalue = -1;
+                return;
+        }
+
+        THIS->__retvalue = deref(sizeof(page->mapping->host->i_size),
+                &(page->mapping->host->i_size));
+        if (0) {
+deref_fault:
+                CONTEXT->last_error = "pointer dereference fault";
+        }
 %}
 
 /*Get s_flags from struct page*/
 function __p2sb_flag:long (page:long) %{ /* pure */
       struct page *page = (struct page *)(THIS->page);
-      THIS->__retvalue = page->mapping->host->i_sb->s_flags;
+      
+      if ((page == NULL) || (page->mapping == NULL) \
+          ||(page->mapping->host == NULL)) {
+                THIS->__retvalue = -1;
+                return;
+        }
+
+        THIS->__retvalue = deref(sizeof(page->mapping->host->i_flags),
+                &(page->mapping->host->i_flags));
+        if (0) {
+deref_fault:
+                CONTEXT->last_error = "pointer dereference fault";
+        }
 %}
 
 function __d_loff_t :long (ppos :long) %{ /* pure */
-     loff_t * ppos = (loff_t *) (THIS->ppos);
+        loff_t * ppos = (loff_t *) (THIS->ppos);
      
-     THIS->__retvalue =(long) *ppos;
+        if (ppos == NULL)
+        {
+                THIS->__retvalue = -1;
+                return;
+        }
+
+        THIS->__retvalue = *ppos;
 %}
 
 probe nfs.fop.entries = nfs.fop.llseek,
@@ -252,7 +364,6 @@ probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
         cache_time  = __nfsi_rcache_time($iocb->ki_filp->f_dentry->d_inode)
         attr_time   = __nfsi_attr_time($iocb->ki_filp->f_dentry->d_inode)
 
-        flag =  $iocb->ki_filp->f_flags
 
         name = "nfs.fop.aio_read"
         argstr = sprintf("%p,%d, %d",buf,count, pos)
