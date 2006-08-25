@@ -1,3 +1,8 @@
+2006-08-25  Li Guanglei <guanglei@cn.ibm.com>
+	
+	* syscall.stp: add "probe never" to generate 
+	reference to hookid_defs.stp to avoid compiling error
+	
 2006-08-22  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* signal.stp, hookid_defs.stp, register_event.stp:

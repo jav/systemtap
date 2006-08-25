@@ -5,6 +5,11 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+probe never
+{
+        printf("%d", GROUP_SIGNAL)
+}
+
 probe addevent.syscall
 	= addevent.syscall.entry,
 	addevent.syscall.return
