@@ -9,6 +9,7 @@
 #ifndef SESSION_H
 #define SESSION_H
 
+#include "elaborate.h"
 #include <string>
 #include <vector>
 #include <iostream>
@@ -21,7 +22,7 @@ struct match_node;
 struct stapfile;
 struct vardecl;
 struct functiondecl;
-struct derived_probe;
+struct derived_probe_group_container;
 struct embeddedcode;
 struct translator_output;
 struct unparser;
@@ -94,7 +95,7 @@ struct systemtap_session
   std::vector<stapfile*> files;
   std::vector<vardecl*> globals;
   std::vector<functiondecl*> functions;
-  std::vector<derived_probe*> probes;
+  derived_probe_group_container probes;
   std::vector<embeddedcode*> embeds;
   std::map<std::string, statistic_decl> stat_decls;
   // XXX: vector<*> instead please?

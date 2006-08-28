@@ -11,6 +11,7 @@
 #include "staptree.h"
 #include "elaborate.h"
 #include "translate.h"
+#include "session.h"
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -3926,11 +3927,7 @@ translate_pass (systemtap_session& s)
 	  s.up->emit_function (s.functions[i]);
 	}
 
-      for (unsigned i=0; i<s.probes.size(); i++)
-        {
-          s.op->newline();
-          s.up->emit_probe (s.probes[i]);
-        }
+      s.probes.emit_probes (s.op, s.up);
 
       s.op->newline();
       s.up->emit_module_init ();

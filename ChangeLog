@@ -1,3 +1,45 @@
+2006-08-28  David Smith  <dsmith@redhat.com>
+
+	* translate.cxx: Added inclusion of session.h.
+	(translate_pass): Instead of asking each probe to emit itself, we
+	ask the session's probes member variable to emit all the probes.
+	* tapsets.cxx: Added inclusion of session.h.  Added a
+	register_probe member function to all derived_probe based
+	classes.  Added a derived_probe_group derived class for all probe
+	types:
+	(be_derived_probe_group): New class.
+	(never_derived_probe_group): New class.
+	(dwarf_derived_probe_group): New class.
+	(timer_derived_probe_group): New class.
+	(profile_derived_probe_group): New class.
+	(mark_derived_probe_group): New class.
+	(hrtimer_derived_probe_group): New class
+	(derived_probe_group_container): New class.
+	* elaborate.h: Removed inclusion of session.h since session.h now
+	includes elaborate.h.
+	(derived_probe): Added register_probe member function.
+	(derived_probe_group): Added class definition.  This is the base
+	class of all of the derived probe groups - dwarf, timer, etc.
+	(derived_probe_group_container): Added class definition.  An
+	instance of this class will be stored in the session and contain
+	all the other probe groups.
+	* elaborate.cxx (derived_probe_group::register_probe): Added
+	derived_probe_group::register_probe stubs.
+	(alias_derived_probe::register_probe): Added register_probe member
+	function.
+	(semantic_pass_symbols): After deriving a probe, the probes now
+	register themselves with the session.
+	* session.h: Includes elaborate.h to get
+	derived_probe_group_container definition. systemtap_session class
+	'probes' member variable switched from a vector of derived probes
+	to a derived_probe_group_container.
+	* buildrun.cxx: Added inclusion of session.h since it was removed
+	from elaborate.h.
+	* main.cxx: Added inclusion of session.h since it was removed
+	from elaborate.h.
+	* parse.h: Added forward struct declarations.
+	* staptree.h: Removed inclusion of session.h.
+	
 2006-08-23  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3093

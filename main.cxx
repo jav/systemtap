@@ -14,6 +14,7 @@
 #include "elaborate.h"
 #include "translate.h"
 #include "buildrun.h"
+#include "session.h"
 
 #include <iostream>
 #include <fstream>

@@ -9,7 +9,6 @@
 #ifndef STAPTREE_H
 #define STAPTREE_H
 
-#include "session.h"
 #include <map>
 #include <stack>
 #include <set>

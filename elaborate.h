@@ -9,7 +9,6 @@
 #ifndef ELABORATE_H
 #define ELABORATE_H
 
-#include "session.h"
 #include "staptree.h"
 #include "parse.h"
 #include <string>
@@ -116,6 +115,8 @@ struct derived_probe: public probe
 
   virtual ~derived_probe () {}
 
+  virtual void register_probe (systemtap_session& s) = 0;
+
   virtual void emit_registrations (translator_output* o) = 0;
   // (from within module_init):
   // rc = ..... register_or_whatever (ENTRYFN);
@@ -144,6 +145,33 @@ protected:
 public:
   static void emit_common_header (translator_output* o);
   // from c_unparser::emit_common_header
+};
+
+// ------------------------------------------------------------------------
+
+struct be_derived_probe;
+struct dwarf_derived_probe;
+struct hrtimer_derived_probe;
+struct mark_derived_probe;
+struct never_derived_probe;
+struct profile_derived_probe;
+struct timer_derived_probe;
+struct unparser;
+
+struct derived_probe_group
+{
+  virtual ~derived_probe_group () {}
+
+  virtual void register_probe(be_derived_probe* p);
+  virtual void register_probe(dwarf_derived_probe* p);
+  virtual void register_probe(hrtimer_derived_probe* p);
+  virtual void register_probe(mark_derived_probe* p);
+  virtual void register_probe(never_derived_probe* p);
+  virtual void register_probe(profile_derived_probe* p);
+  virtual void register_probe(timer_derived_probe* p);
+  virtual size_t size () = 0;
+
+  virtual void emit_probes (translator_output* op, unparser* up) = 0;
 };
 
 // ------------------------------------------------------------------------
@@ -216,6 +244,39 @@ void derive_probes (systemtap_session& s,
 // A helper we use here and in translate, for pulling symbols out of lvalue
 // expressions.
 symbol * get_symbol_within_expression (expression *e);
+
+
+struct unparser;
+
+struct derived_probe_group_container: public derived_probe_group
+{
+private:
+  std::vector<derived_probe*> probes;
+  derived_probe_group* be_probe_group;
+  derived_probe_group* dwarf_probe_group;
+  derived_probe_group* hrtimer_probe_group;
+  derived_probe_group* mark_probe_group;
+  derived_probe_group* never_probe_group;
+  derived_probe_group* profile_probe_group;
+  derived_probe_group* timer_probe_group;
+
+public:
+  derived_probe_group_container ();
+  ~derived_probe_group_container ();
+
+  void register_probe (be_derived_probe* p);
+  void register_probe (dwarf_derived_probe* p);
+  void register_probe (hrtimer_derived_probe* p);
+  void register_probe (mark_derived_probe* p);
+  void register_probe (never_derived_probe* p);
+  void register_probe (profile_derived_probe* p);
+  void register_probe (timer_derived_probe* p);
+  size_t size () { return (probes.size ()); }
+
+  derived_probe* operator[] (size_t n) { return (probes[n]); }
+
+  void emit_probes (translator_output* op, unparser* up);
+};
 
 
 #endif // ELABORATE_H

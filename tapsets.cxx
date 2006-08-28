@@ -12,6 +12,7 @@
 #include "elaborate.h"
 #include "tapsets.h"
 #include "translate.h"
+#include "session.h"
 
 #include <deque>
 #include <iostream>
@@ -198,9 +199,24 @@ struct be_derived_probe: public derived_probe
   be_derived_probe (probe* p, probe_point* l, bool b):
     derived_probe (p, l), begin (b) {}
 
+  void register_probe (systemtap_session& s);
+
   void emit_registrations (translator_output* o);
   void emit_deregistrations (translator_output* o);
   void emit_probe_entries (translator_output* o);
+};
+
+
+struct be_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<be_derived_probe*> probes;
+
+public:
+  virtual void register_probe(be_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
 };
 
 
@@ -217,6 +233,13 @@ struct be_builder: public derived_probe_builder
     finished_results.push_back(new be_derived_probe(base, location, begin));
   }
 };
+
+
+void
+be_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
+}
 
 
 void
@@ -270,6 +293,17 @@ be_derived_probe::emit_probe_entries (translator_output* o)
 }
 
 
+void
+be_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
+
+
 // ------------------------------------------------------------------------
 // never probes are never run
 // ------------------------------------------------------------------------
@@ -279,10 +313,32 @@ struct never_derived_probe: public derived_probe
   never_derived_probe (probe* p): derived_probe (p) {}
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
 
+  void register_probe (systemtap_session& s);
+
   void emit_registrations (translator_output* o);
   void emit_deregistrations (translator_output* o);
   void emit_probe_entries (translator_output* o);
 };
+
+
+struct never_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<never_derived_probe*> probes;
+
+public:
+  virtual void register_probe(never_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
+
+void
+never_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
+}
 
 
 struct never_builder: public derived_probe_builder
@@ -317,6 +373,15 @@ never_derived_probe::emit_probe_entries (translator_output* o)
 }
 
 
+void
+never_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
 
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
@@ -1718,6 +1783,8 @@ struct dwarf_derived_probe : public derived_probe
   vector<Dwarf_Addr> probe_points;
   bool has_return;
 
+  void register_probe (systemtap_session& s);
+
   void add_probe_point(string const & funcname,
 		       char const * filename,
 		       int line,
@@ -1741,6 +1808,20 @@ struct dwarf_derived_probe : public derived_probe
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
+
+
+struct dwarf_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<dwarf_derived_probe*> probes;
+
+public:
+  virtual void register_probe(dwarf_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
 
 // Helper struct to thread through the dwfl callbacks.
 struct
@@ -2939,6 +3020,13 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
 
 void
+dwarf_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
+}
+
+
+void
 dwarf_derived_probe::add_probe_point(string const & funcname,
 				     char const * filename,
 				     int line,
@@ -3375,6 +3463,17 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o)
 
 
 void
+dwarf_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
+
+
+void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
@@ -3464,6 +3563,8 @@ struct timer_derived_probe: public derived_probe
 
   timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r, bool ms=false);
 
+  virtual void register_probe (systemtap_session& s);
+
   virtual void emit_registrations (translator_output * o);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
@@ -3482,6 +3583,13 @@ timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, i
   if (locations.size() != 1)
     throw semantic_error ("expect single probe point");
   // so we don't have to loop over them in the other functions
+}
+
+
+void
+timer_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
 }
 
 
@@ -3540,6 +3648,30 @@ timer_derived_probe::emit_probe_entries (translator_output* o)
 }
 
 
+struct timer_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<timer_derived_probe*> probes;
+
+public:
+  virtual void register_probe(timer_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
+
+void
+timer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
+
+
 struct timer_builder: public derived_probe_builder
 {
   bool time_is_msecs;
@@ -3581,6 +3713,8 @@ struct profile_derived_probe: public derived_probe
 
   profile_derived_probe (systemtap_session &s, probe* p, probe_point* l);
 
+  void register_probe (systemtap_session& s);
+
   virtual void emit_registrations (translator_output * o);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
@@ -3600,6 +3734,13 @@ profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, pr
     target_kernel_v = s.kernel_release;
 
   using_rpn = (strverscmp(target_kernel_v.c_str(), "2.6.10") < 0);
+}
+
+
+void
+profile_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
 }
 
 
@@ -3660,6 +3801,31 @@ profile_derived_probe::emit_probe_entries (translator_output* o)
 }
 
 
+struct profile_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<profile_derived_probe*> probes;
+
+public:
+  virtual void register_probe(profile_derived_probe* p) {
+    probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
+
+void
+profile_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
+
+
 struct profile_builder: public derived_probe_builder
 {
   profile_builder() {}
@@ -3691,6 +3857,8 @@ struct mark_derived_probe: public derived_probe
   uintptr_t address;
   string module;
   string probe_sig_expanded;
+
+  void register_probe (systemtap_session& s);
 
   void emit_registrations (translator_output * o);
   void emit_deregistrations (translator_output * o);
@@ -3809,6 +3977,13 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
 
 void
+mark_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
+}
+
+
+void
 mark_derived_probe::emit_probe_context_vars (translator_output* o)
 {
   // Save incoming arguments
@@ -3903,6 +4078,29 @@ mark_derived_probe::emit_deregistrations (translator_output * o)
   o->newline(-1) << "}";
 }
 
+
+struct mark_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<mark_derived_probe*> probes;
+
+public:
+  virtual void register_probe(mark_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
+
+void
+mark_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
+}
 
 
 struct symboltable_extract
@@ -4114,12 +4312,21 @@ struct hrtimer_derived_probe: public derived_probe
     // so we don't have to loop over them in the other functions
   }
 
+  void register_probe (systemtap_session& s);
+
   virtual void emit_interval (translator_output * o);
 
   virtual void emit_registrations (translator_output * o);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
+
+
+void
+hrtimer_derived_probe::register_probe(systemtap_session& s)
+{
+  s.probes.register_probe(this);
+}
 
 
 void
@@ -4191,6 +4398,30 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
   // Return NORESTART, because we already requeued the timer above
   o->newline() << "return HRTIMER_NORESTART;";
   o->newline(-1) << "}\n";
+}
+
+
+struct hrtimer_derived_probe_group: public derived_probe_group
+{
+private:
+  vector<hrtimer_derived_probe*> probes;
+
+public:
+  virtual void register_probe(hrtimer_derived_probe* p) { probes.push_back (p); }
+  virtual size_t size () { return probes.size (); }
+
+  virtual void emit_probes (translator_output* op, unparser* up);
+};
+
+
+void
+hrtimer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+{
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      op->newline ();
+      up->emit_probe (probes[i]);
+    }
 }
 
 
@@ -4347,4 +4578,115 @@ register_standard_tapsets(systemtap_session & s)
   // marker-based kernel/module parts
   s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
   s.pattern_root->bind_str("module")->bind_str("mark")->bind(new mark_builder());
+}
+
+
+derived_probe_group_container::derived_probe_group_container ():
+  be_probe_group(new be_derived_probe_group),
+  dwarf_probe_group(new dwarf_derived_probe_group),
+  hrtimer_probe_group(new hrtimer_derived_probe_group),
+  mark_probe_group(new mark_derived_probe_group),
+  never_probe_group(new never_derived_probe_group),
+  profile_probe_group(new profile_derived_probe_group),
+  timer_probe_group(new timer_derived_probe_group)
+{
+}
+
+
+derived_probe_group_container::~derived_probe_group_container ()
+{
+  delete be_probe_group;
+  delete dwarf_probe_group;
+  delete hrtimer_probe_group;
+  delete mark_probe_group;
+  delete never_probe_group;
+  delete profile_probe_group;
+  delete timer_probe_group;
+}
+
+
+void
+derived_probe_group_container::register_probe(be_derived_probe* p)
+{
+  probes.push_back (p);
+  be_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(dwarf_derived_probe* p)
+{
+  probes.push_back (p);
+  dwarf_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(hrtimer_derived_probe* p)
+{
+  probes.push_back (p);
+  hrtimer_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(mark_derived_probe* p)
+{
+  probes.push_back (p);
+  mark_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(never_derived_probe* p)
+{
+  probes.push_back (p);
+  never_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(profile_derived_probe* p)
+{
+  probes.push_back (p);
+  profile_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::register_probe(timer_derived_probe* p)
+{
+  probes.push_back (p);
+  timer_probe_group->register_probe(p);
+}
+
+
+void
+derived_probe_group_container::emit_probes (translator_output* op,
+					    unparser* up)
+{
+  // Sanity check.
+  size_t groups_size = be_probe_group->size ()
+      + dwarf_probe_group->size ()
+      + hrtimer_probe_group->size ()
+      + mark_probe_group->size ()
+      + never_probe_group->size ()
+      + profile_probe_group->size ()
+      + timer_probe_group->size ();
+  if (probes.size () != groups_size)
+    {
+      cerr << "There are " << probes.size () << " total probes, and "
+	   << groups_size << " grouped probes\n";
+
+      throw runtime_error("internal probe mismatch");
+    }
+
+  // Let each probe group emit its probes.
+  be_probe_group->emit_probes (op, up);
+  dwarf_probe_group->emit_probes (op, up);
+  hrtimer_probe_group->emit_probes (op, up);
+  mark_probe_group->emit_probes (op, up);
+  never_probe_group->emit_probes (op, up);
+  profile_probe_group->emit_probes (op, up);
+  timer_probe_group->emit_probes (op, up);
 }

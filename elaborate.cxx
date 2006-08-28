@@ -10,6 +10,7 @@
 #include "elaborate.h"
 #include "parse.h"
 #include "tapsets.h"
+#include "session.h"
 
 extern "C" {
 #include <sys/utsname.h>
@@ -66,6 +67,58 @@ derived_probe::derived_probe (probe *p, probe_point *l):
       this->tok = p->tok;
       this->body = deep_copy_visitor::deep_copy(p->body);
     }
+}
+
+
+// ------------------------------------------------------------------------
+// Members of derived_probe_group
+
+void
+derived_probe_group::register_probe(be_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a be_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(dwarf_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a dwarf_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(hrtimer_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a hrtimer_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(mark_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a mark_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(never_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a never_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(profile_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a profile_derived_probe");
+}
+
+
+void
+derived_probe_group::register_probe(timer_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a timer_derived_probe");
 }
 
 
@@ -329,6 +382,8 @@ match_node::find_and_build (systemtap_session& s,
 struct alias_derived_probe: public derived_probe
 {
   alias_derived_probe (probe* base): derived_probe (base) {}
+
+  void register_probe (systemtap_session& s) { }
 
   // alias probes should be ultimately expanded to other derived_probe
   // types, and not themselves emitted.
@@ -882,7 +937,7 @@ semantic_pass_symbols (systemtap_session& s)
           for (unsigned j=0; j<dps.size(); j++)
             {
               derived_probe* dp = dps[j];
-	      s.probes.push_back (dp);
+	      dp->register_probe (s);
 
               try 
                 {

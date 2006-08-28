@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include "buildrun.h"
+#include "session.h"
 
 #include <fstream>
 #include <sstream>

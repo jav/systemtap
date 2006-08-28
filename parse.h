@@ -59,6 +59,8 @@ struct parse_error: public std::runtime_error
 };
 
 
+struct systemtap_session;
+
 class lexer
 {
 public:
@@ -76,6 +78,29 @@ private:
   systemtap_session& session;
 };
 
+
+struct stapfile;
+struct probe;
+struct probe_alias;
+struct vardecl;
+struct functiondecl;
+struct embeddedcode;
+struct probe_point;
+struct literal;
+struct block;
+struct for_loop;
+struct statement;
+struct if_statement;
+struct foreach_loop;
+struct expr_statement;
+struct return_statement;
+struct delete_statement;
+struct break_statement;
+struct next_statement;
+struct continue_statement;
+struct indexable;
+struct expression;
+struct hist_op;
 
 class parser
 {
