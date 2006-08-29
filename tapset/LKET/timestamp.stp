@@ -1,0 +1,67 @@
+%{
+#ifndef TIMING_GETCYCLES
+#define TIMING_GETCYCLES 0x01
+#endif
+#ifndef TIMING_GETTIMEOFDAY
+#define TIMING_GETTIMEOFDAY 0x02
+#endif
+#ifndef TIMING_SCHEDCLOCK
+#define TIMING_SCHEDCLOCK 0x03
+#endif
+
+#define MAX_TIMING_METHOD TIMING_SCHEDCLOCK
+
+long timing_method = TIMING_GETTIMEOFDAY;
+
+#ifndef _PFN_SCHEDCLOCK_TYPE
+#define _PFN_SCHEDCLOCK_TYPE
+typedef unsigned long long (* pfn_schedclock_type)(void);
+#endif
+
+pfn_schedclock_type pfn_schedclock = NULL;
+%}
+
+%{
+#ifdef CONFIG_CPU_FREQ
+static int __lket_time_cpufreq_callback(struct notifier_block *self,
+		unsigned long state, void *vfreqs);
+
+struct notifier_block __lket_time_notifier = {
+	.notifier_call = __lket_time_cpufreq_callback,
+};
+
+#endif
+%}
+
+function set_timing_method(method:long)
+%{
+	if(THIS->method == TIMING_SCHEDCLOCK) {
+		pfn_schedclock = (pfn_schedclock_type)kallsyms_lookup_name("sched_clock");
+		if(!pfn_schedclock) {
+			_stp_warn("Failed to lookup specified timing method sched_clock()\n");
+			return;
+		}
+	}
+	if(THIS->method > 0 && THIS->method <= MAX_TIMING_METHOD)
+		timing_method = THIS->method;
+%}
+
+function lket_init_time:long()
+%{
+	int ret = 0;
+#ifdef CONFIG_CPU_FREQ
+	if(timing_method == TIMING_GETCYCLES)
+		ret = cpufreq_register_notifier(&__lket_time_notifier,
+			CPUFREQ_TRANSITION_NOTIFIER);
+#endif
+	THIS->__retvalue = ret;
+%}
+
+function lket_kill_time()
+%{
+#ifdef CONFIG_CPU_FREQ
+	if(timing_method == TIMING_GETCYCLES)
+		cpufreq_unregister_notifier(&__lket_time_notifier, 
+			CPUFREQ_TRANSITION_NOTIFIER);
+#endif
+%}

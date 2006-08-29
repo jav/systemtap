@@ -31,6 +31,7 @@ int _GROUP_PAGEFAULT = 7;
 int _GROUP_NETDEV = 8;
 int _GROUP_IOSYSCALL = 9;
 int _GROUP_AIO = 10;
+int _GROUP_CPUFREQ = 15;
 
 /* hookIDs defined inside each group */
 int _HOOKID_REGSYSEVT = 1;
@@ -120,6 +121,9 @@ int _HOOKID_AIO_IO_DESTROY_ENTRY = 9;
 int _HOOKID_AIO_IO_DESTROY_RETURN = 10;
 int _HOOKID_AIO_IO_CANCEL_ENTRY = 11;
 int _HOOKID_AIO_IO_CANCEL_RETURN = 12;
+
+int _HOOKID_INIT_CPUFREQ = 1;
+int _HOOKID_SWITCH_CPUFREQ = 2;
 
 typedef struct _lket_pkt_header {
 	int16_t	total_size;

@@ -18,6 +18,21 @@
 #include <string.h>
 #include "lket_b2a.h"
 
+#define TIMING_GETCYCLES       0x01
+#define TIMING_GETTIMEOFDAY    0x02
+#define TIMING_SCHEDCLOCK      0x03
+
+typedef struct _cpufreq_info {
+	long		timebase;
+	long long	last_cycles;
+	long long	last_time;
+} cpufreq_info;
+
+#define MAX_CPUS		256
+cpufreq_info cpufreq[MAX_CPUS];
+
+static long timing_method = TIMING_GETTIMEOFDAY;
+
 static long long start_timestamp;
 
 /* Balanced binary search tree to store the 
@@ -98,17 +113,23 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// initialize the start cycles
+	if(timing_method == TIMING_GETCYCLES) {
+		for(i=0; i<MAX_CPUS; i++) {
+			cpufreq[i].last_cycles = start_timestamp;
+			cpufreq[i].last_time   = 0;
+		}
+	}
+
 	// main loop of parsing & merging
 	min = start_timestamp;
 	do {
 		// j is the next
 		if(min) {
-
 			if(HDR_GroupID(&hdrs[j])==_GROUP_REGEVT)  {
 				register_events(HDR_HookID(&hdrs[j]), infps[j], 
 					hdrs[j].sys_size);
 			} else  {
-
 				print_pkt_header(outfp, &hdrs[j]);
 
 				if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
@@ -116,6 +137,22 @@ int main(int argc, char *argv[])
 					|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE))
 				{
 					register_appname(j, infps[j], &hdrs[j]);
+				}
+
+				if(HDR_GroupID(&hdrs[j])==_GROUP_CPUFREQ
+					&& HDR_HookID(&hdrs[j])==_HOOKID_SWITCH_CPUFREQ
+					&& timing_method == TIMING_GETCYCLES) 
+				{
+					int64_t new_timebase;
+					fread(&new_timebase, sizeof(new_timebase), 1, infps[j]);
+
+					cpufreq[HDR_CpuID(&hdrs[j])].last_time += (hdrs[j].microsecond 
+						- cpufreq[HDR_CpuID(&hdrs[j])].last_cycles)
+						/ cpufreq[HDR_CpuID(&hdrs[j])].timebase;
+					cpufreq[j].last_cycles = hdrs[j].microsecond;
+					cpufreq[HDR_CpuID(&hdrs[j])].timebase = new_timebase;
+
+					fseek(infps[j], SEEK_CUR, -sizeof(new_timebase));
 				}
 
 				ascii_print(hdrs[j], infps[j], outfp, EVT_SYS);
@@ -234,7 +271,7 @@ int skip_sequence_id(FILE *fp)
  */
 void find_init_header(FILE **infps, const int total_infiles, FILE *outfp)
 {
-	int 	 i, j;
+	int 	 i, j, k;
 	int32_t magic;
 
 	/* information from lket_init_header */
@@ -242,7 +279,9 @@ void find_init_header(FILE **infps, const int total_infiles, FILE *outfp)
 	int8_t ver_major;
 	int8_t ver_minor;
 	int8_t big_endian;
+	int8_t timing_field; 
 	int8_t bits_width;
+	int32_t init_timebase;
 
 	if(total_infiles <= 0 )
 		return;
@@ -269,9 +308,31 @@ void find_init_header(FILE **infps, const int total_infiles, FILE *outfp)
 			if(fread(&big_endian, 1, sizeof(big_endian), infps[i]) < sizeof(big_endian))
 				break;
 			fprintf(outfp, "Big endian:\t%s\n", big_endian ? "YES":"NO");
+			if(fread(&timing_field, 1, sizeof(timing_field), infps[i]) < sizeof(timing_field))
+				break;
+			timing_method = timing_field;
+			fprintf(outfp, "Timing method:\t");
+			switch(timing_method) {
+				case TIMING_GETCYCLES: 
+					fprintf(outfp, "get_cycles()\n"); break;
+				case TIMING_GETTIMEOFDAY:
+					fprintf(outfp, "do_gettimeofday()\n"); break;
+				case TIMING_SCHEDCLOCK:
+					fprintf(outfp, "sched_clock()\n"); break;
+				default:
+					fprintf(outfp, "Unsupported timging method\n");
+			}
 			if(fread(&bits_width, 1, sizeof(bits_width), infps[i]) < sizeof(bits_width))
 				break;
 			fprintf(outfp, "Bits width:\t%d\n", bits_width);
+			if(fread(&init_timebase, 1, sizeof(init_timebase), infps[i]) < sizeof(init_timebase))
+				break;
+			fprintf(outfp, "Initial CPU timebase:\t%d (cycles per microsecond)\n", 
+					init_timebase);
+			if(timing_method == TIMING_GETCYCLES) {
+				for(k = 0; k < MAX_CPUS; k++)
+					cpufreq[k].timebase = init_timebase;
+			}
 			// skip the null terminater
 			fseek(infps[i], 1LL, SEEK_CUR);
 			break;
@@ -308,11 +369,22 @@ bad:
  */
 void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
+	long long usecs;
+	int sec, usec;
+
 	if(!fp || !phdr)
 		return;
-	long long usecs = phdr->microsecond - start_timestamp;
-	int sec = usecs/1000000;
-	int usec = usecs%1000000;
+
+	if(timing_method == TIMING_GETCYCLES)
+		usecs = (phdr->microsecond - cpufreq[HDR_CpuID(phdr)].last_cycles)
+			/ cpufreq[HDR_CpuID(phdr)].timebase + cpufreq[HDR_CpuID(phdr)].last_time;
+	else if(timing_method == TIMING_SCHEDCLOCK)
+		usecs = (phdr->microsecond - start_timestamp) / 1000;
+	else
+		usecs = phdr->microsecond - start_timestamp;
+	
+	sec = usecs/1000000;
+	usec = usecs%1000000;
 	
 	fprintf(fp, "\n%d.%d APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
 		sec, usec,

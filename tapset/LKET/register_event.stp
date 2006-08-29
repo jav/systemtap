@@ -317,7 +317,9 @@ function register_sys_events()
 
 	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_FLUSH_ENTRY,
 		"INT32", "pid")
-			
+
+	register_sys_event(GROUP_CPUFREQ, HOOKID_SWITCH_CPUFREQ,
+		"INT64", "cpufreq")		
 }
 
 

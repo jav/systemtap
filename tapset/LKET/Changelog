@@ -1,3 +1,19 @@
+2006-08-29  Li Guanglei <guanglei@cn.ibm.com>
+	
+	From Gui Jian <guijian@cn.ibm.com>
+
+	New tapset to add another two kinds of timing methods,
+	i.e, get_cycles() and sched_clock().
+
+	* hookid_defs.stp: add CPUFREQ related definitions add 
+	lket_init_time/lket_kill_time to register/unregister 
+	cpufreq notifier
+	* lket_trace.stp: print timing_method and cpufreq in 
+	lket_init_header; use different timing methods in _lket_trace
+	* register_event.stp: register HOOKID_SWITCH_CPUFREQ event
+	* timestamp.stp: definitions of timing method related 
+	functions and variables
+	
 2006-08-25  Li Guanglei <guanglei@cn.ibm.com>
 	
 	* syscall.stp: add "probe never" to generate 

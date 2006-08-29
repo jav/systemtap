@@ -6,6 +6,8 @@
 // later version.
 
 %{
+#include <linux/cpufreq.h>
+
 #if defined(ASCII_TRACE)
 #ifndef _FMT_
 #define _FMT_ unsigned int
@@ -15,6 +17,28 @@
 #define _FMT_ int64_t
 #endif
 #endif
+
+#ifndef TIMING_GETCYCLES
+#define TIMING_GETCYCLES 0x01
+#endif
+#ifndef TIMING_GETTIMEOFDAY
+#define TIMING_GETTIMEOFDAY 0x02
+#endif
+#ifndef TIMING_SCHEDCLOCK
+#define TIMING_SCHEDCLOCK 0x03
+#endif
+
+extern int _GROUP_CPUFREQ;
+extern int _HOOKID_SWITCH_CPUFREQ;
+
+extern long timing_method;
+
+#ifndef _PFN_SCHEDCLOCK_TYPE
+#define _PFN_SCHEDCLOCK_TYPE
+typedef unsigned long long (* pfn_schedclock_type)(void);
+#endif
+
+extern pfn_schedclock_type pfn_schedclock;
 %}
 
 function lket_trace_header_init()
@@ -30,12 +54,12 @@ function lket_trace_header_init()
 #define BIG_ENDIAN             0x02
 #define BITS_WIDTH             64     /* 32-bit or 64-bit environment*/
 
-	_stp_printf("%4b%2n%1b%1b%1b%1b", (_FMT_)MAGIC_NUMBER,
+	_stp_printf("%4b%2n%1b%1b%1b%1b%1b%4b", (_FMT_)MAGIC_NUMBER,
 		(_FMT_)LKET_TRACE_VER_MAJOR, (_FMT_)LKET_TRACE_VER_MINOR, 
-		(_FMT_)BIG_ENDIAN, (_FMT_)BITS_WIDTH);
+		(_FMT_)BIG_ENDIAN, (_FMT_)timing_method, 
+		(_FMT_)BITS_WIDTH, (_FMT_)__stp_estimate_cpufreq());
 	_stp_print_flush();
 #endif
-
 %}
 
 function lket_trace_init() 
@@ -124,18 +148,37 @@ static inline int this_event_len(void)
 
 /* we use 2 bytes to store the length. */
 #define _lket_trace(GroupID, hookID, fmt, args...) do { \
-	struct timeval tv; \
-	do_gettimeofday (&tv); \
-        _stp_printf("%2b%2n%8b%8b"fmt, (_FMT_)0, \
-		(_FMT_)(tv.tv_sec*1000000LL + tv.tv_usec),\
-		(_FMT_)((int64_t)current->pid << 32 | (int32_t)GroupID << 24 |\
-		 (int32_t)hookID << 16 | (int16_t)current->thread_info->cpu << 8), args);\
+	if(timing_method == TIMING_GETCYCLES) { \
+        	_stp_printf("%2b%2n%8b%8b"fmt, (_FMT_)0, \
+			(_FMT_)get_cycles(), \
+			(_FMT_)((int64_t)current->pid << 32 | \
+				(int32_t)GroupID << 24 | (int32_t)hookID << 16 | \
+			       	(int16_t)current->thread_info->cpu << 8), \
+			args); \
+	} \
+	else if(timing_method == TIMING_GETTIMEOFDAY) { \
+		struct timeval tv; \
+		do_gettimeofday (&tv); \
+		_stp_printf("%2b%2n%8b%8b"fmt, (_FMT_)0, \
+			(_FMT_)(tv.tv_sec*1000000LL + tv.tv_usec), \
+			(_FMT_)((int64_t)current->pid << 32 | \
+				(int32_t)GroupID << 24 | (int32_t)hookID << 16 | \
+			       	(int16_t)current->thread_info->cpu << 8), \
+			args); \
+	} \
+	else { \
+		_stp_printf("%2b%2n%8b%8b"fmt, (_FMT_)0, \
+			(_FMT_)pfn_schedclock(), \
+			(_FMT_)((int64_t)current->pid << 32 | \
+				(int32_t)GroupID << 24 | (int32_t)hookID << 16 | \
+				(int16_t)current->thread_info->cpu << 8), \
+			args); \
+	} \
 } while(0)
-
 #endif
+
 #endif
 %}
-
 
 function update_record()
 %{
@@ -143,5 +186,28 @@ function update_record()
 	int cpu = smp_processor_id();
 	char *total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
 	*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+#endif
+%}
+
+%{
+#ifdef CONFIG_CPU_FREQ
+static int __lket_time_cpufreq_callback(struct notifier_block *self,
+        unsigned long state, void *vfreqs)
+{
+	int cpu;
+	unsigned long flags;
+	struct cpufreq_freqs *freqs;
+	unsigned int freq_mhz;
+	stp_time_t *time;
+
+	switch (state) {
+        	case CPUFREQ_POSTCHANGE:
+        	case CPUFREQ_RESUMECHANGE:
+			_lket_trace(_GROUP_CPUFREQ, _HOOKID_SWITCH_CPUFREQ, 
+				"%8b", __stp_estimate_cpufreq());
+		break;
+	}
+	return NOTIFY_OK;
+}
 #endif
 %}

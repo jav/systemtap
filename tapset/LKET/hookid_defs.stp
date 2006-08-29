@@ -130,8 +130,13 @@ global
 	HOOKID_SIGNAL_PROC_MASK_ENTRY,
 	HOOKID_SIGNAL_PROC_MASK_RETURN,
 
-	HOOKID_SIGNAL_FLUSH_ENTRY
-	
+	HOOKID_SIGNAL_FLUSH_ENTRY,
+
+	/* CPU Frequency */
+	GROUP_CPUFREQ,
+
+	HOOKID_SWITCH_CPUFREQ
+
 %{
 /* used in embedded c codes */
 
@@ -147,6 +152,7 @@ int _GROUP_NETDEV = 8;
 int _GROUP_IOSYSCALL = 9;
 int _GROUP_AIO = 10;
 int _GROUP_SIGNAL = 11;
+int _GROUP_CPUFREQ = 15;
 
 /* hookIDs defined inside each group */
 int _HOOKID_REGSYSEVT = 1;
@@ -252,6 +258,8 @@ int _HOOKID_SIGNAL_DOACTION_RETURN = 12;
 int _HOOKID_SIGNAL_PROC_MASK_ENTRY = 13;
 int _HOOKID_SIGNAL_PROC_MASK_RETURN = 14;
 int _HOOKID_SIGNAL_FLUSH_ENTRY = 15;
+
+int _HOOKID_SWITCH_CPUFREQ = 1;
 
 %}
 
@@ -379,6 +387,10 @@ function hookid_init()
 	HOOKID_SIGNAL_PROC_MASK_ENTRY = 13
 	HOOKID_SIGNAL_PROC_MASK_RETURN = 14
 	HOOKID_SIGNAL_FLUSH_ENTRY = 15
+
+	GROUP_CPUFREQ = 15
+
+	HOOKID_SWITCH_CPUFREQ = 2
 }
 
 
@@ -386,7 +398,13 @@ probe begin
 {
 	hookid_init()
 	lket_trace_init()
+	lket_init_time()
 	register_sys_events()
 	write_events_desc()	
 	process_snapshot()
+}
+
+probe end
+{
+	lket_kill_time()
 }
