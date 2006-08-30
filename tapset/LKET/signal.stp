@@ -189,7 +189,7 @@ probe addevent.signal.pending.entry
 
 probe _addevent.signal.pending.entry = signal.pending
 {
-	log_signal_pending(uspace_add, sset_size)
+	log_signal_pending(sigset_add, sigset_size)
 }
 
 function log_signal_pending(sigset_addr:long, setsize:long)
@@ -255,6 +255,7 @@ probe signal.handle.return = kernel.function("handle_signal").return
     retstr = returnstr(1)
 }
 */
+
 /* Fires when examing and change a signal action */
 probe addevent.signal.do_action.entry
 	+= _addevent.signal.do_action.entry

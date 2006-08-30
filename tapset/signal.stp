@@ -25,8 +25,14 @@
  * Arguments:
  *  sig - the number of the signal
  *  sig_name - a string representation of the signal
+ *  sig_pid - pid of the signal recipient process
+ *  pid_name - name of the signal recipient process
+ *  si_code - indicates the signal type.
  *  task - a task handle to the signal recipient
+ *  sinfo - the address of siginfo struct.
  *  shared - indicates whether this signal is shared by the thread group
+ *  send2queue- indicates whether this signal is sent to an existing sigqueue
+ *  name - name of the function used to send out this signal
  */
 probe signal.send = _signal.send.*
 {
@@ -183,16 +189,23 @@ probe signal.checkperm.return = kernel.function("check_kill_permission").return
  *
  * Wake up the process for new active signals.
  *
+ * Argument:
+ *  sig_pid: pid of the process to be woke up
+ *  pid_name: name of the process to be woke up
+ *  resume: indicate whether to wake up a task in STOPPED or 
+            TRACED state
+ *  state_mask: a string representation indicates the mask 
+ *              of task states that can be woken 
  */
 probe signal.wakeup = kernel.function("signal_wake_up")
 {
     sig_pid = $t->pid
     pid_name = kernel_string($t->comm)
-    state   = $resume
-    if (state == 0) {
-        sig_state = "TASK_INTERRUPTIBLE"
+    resume   = $resume
+    if (resume == 0) {
+        state_mask = "TASK_INTERRUPTIBLE"
     } else {
-        sig_state = "TASK_INTERRUPTIBLE | TASK_STOPPED | TASK_TRACED"
+        state_mask = "TASK_INTERRUPTIBLE | TASK_STOPPED | TASK_TRACED"
     }
 }
 
@@ -206,7 +219,7 @@ probe signal.check_ignored = kernel.function("sig_ignored")
 {
     sig_pid = $t->pid
     pid_name = kernel_string($t->comm)
-    sig_info = $sig
+    sig = $sig
     sig_name = _signal_name($sig)
 }
 
@@ -245,7 +258,7 @@ probe signal.force_segv = kernel.function("force_sigsegv")
 {
     sig_pid = $p->pid
     pid_name = kernel_string($p->comm)
-    sig_info = $sig
+    sig = $sig
     sig_name = _signal_name($sig)
 }
 
@@ -310,13 +323,11 @@ probe signal.send_sig_queue =
         kernel.function("send_sigqueue"),
         kernel.function("send_group_sigqueue")
 {
-    sig_info = $sig
+    sig = $sig
     sig_name = _signal_name($sig)
     sig_pid = $p->pid
     pid_name = kernel_string($p->comm)
-    user_id = $q->uid
-    nos_process = $q->processes
-    nos_pending_sig = $q->sigpending
+    sigqueue_addr = $q
 }
 
 probe signal.send_sig_queue.return =
@@ -336,8 +347,8 @@ probe signal.send_sig_queue.return =
  */
 probe signal.pending = kernel.function("do_sigpending")
 {
-    uspace_add=$set
-    sset_size=$sigsetsize
+    sigset_add=$set
+    sigset_size=$sigsetsize
 }
 
 probe signal.pending.return = kernel.function("do_sigpending").return
@@ -354,9 +365,9 @@ probe signal.pending.return = kernel.function("do_sigpending").return
  *					sigset_t *oldset, struct pt_regs * regs)
  * Argument :-
  *  sig    : Signal number
- *  info   : address of siginfo table.
- *  ka     : Address of the k_sigaction table associated with the signal
- *  oldset : Address of a bit mask array of blocked signals
+ *  sinfo  : address of siginfo table.
+ *  ka_addr : Address of the k_sigaction table associated with the signal
+ *  oldset_addr : Address of a bit mask array of blocked signals
  *  regs   : Address in the Kernel Mode stack area 
  *  
  */
@@ -365,17 +376,17 @@ probe signal.handle = kernel.function("handle_signal")?,
 {
     sig = $sig
     sig_name = _signal_name($sig)
-    sinfo_addr = $info
+    sinfo = $info
     sig_code = $info->si_code
-    sig_stack_add=$ka
-    bitmask_add=$oldset
-    kernmode_stack_add=$regs
+    ka_addr = $ka
+    oldset_addr =$oldset
+    regs = $regs
 
     // Check whether the signal is a User Mode or Kernel mode Signal.
     
-    if (sinfo_addr == 0 && sig_code <= 0)
+    if (sinfo == 0 && sig_code <= 0)
         sig_mode = "User Mode Signal"
-    else if (sinfo_addr >=  1)
+    else if (sinfo >=  1)
         sig_mode = "Kernel Mode Signal"
 }
 
@@ -387,21 +398,20 @@ probe signal.handle.return = kernel.function("handle_signal").return
 
 /* probe signal.do_action
  *
- * Called by sys_sigaction() to copy the new new_ka table into the entry at the sig-1 position.
+ * Fires by calling thread to examine and change a signal action
  *
  * int do_sigaction(int sig, struct k_sigaction *act, struct k_sigaction *oact)
  *
  * Argument :-
  *  sig    : Signal number
- *  act    : Address of the sigaction table associated with the signal
- *  oact   : Address of a previous sigaction table
- *
+ *  sigact_addr  : address of the new sigaction struct associated with the signal
+ *  oldsigact_addr : address of a previous sigaction struct associated with the signal
  */
 probe signal.do_action = kernel.function("do_sigaction")
 {
     sig = $sig
-    sigact_table=$act
-    psigact_table=$oact
+    sigact_addr = $act
+    oldsigact_addr = $oact
     if(sigact_table != 0)
     {
          sa_handler = $act->sa->sa_handler
@@ -417,29 +427,26 @@ probe signal.do_action.return = kernel.function("do_sigaction").return
 
 /* probe signal.procmask
  *
- * Allows processes to modify the set of blocked signals.
+ * Fires by calling thread to examine and change blocked signals
  *
  * int sigprocmask(int how, sigset_t *set, sigset_t *oldset)
  *
  * Argument :-
- *  how    : Flag having one of the values (SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)
- *  set    : Address of the process address space to a bit array.
- *  oldset : Address of the process address space where the previous bit mask must be stored.
+ *  how : indicates how to change the blocked signals. Possible
+ *        values are SIG_BLOCK=0 for blocking signals, SIG_UNBLOCK=1
+ *        for unblocking signals, and SIG_SETMASK=2 for setting
+ *        the signal mask
+ *  sigset_addr : address of sigset_t to be set
+ *  oldsigset_addr : address of the old sigset_t
+ *  sigset : the actual sigset to be set
  *
  */
 probe signal.procmask = kernel.function("sigprocmask")
 {
-    stemp=$how
+    how=$how
     sigset_addr = $set
-    sigoset_addr = $oldset
-
+    oldsigset_addr = $oldset
     sigset = get_sigset($set)
-    if (stemp == 0)
-        sig_how ="SIG_BLOCK"
-    else if (stemp ==  1)
-        sig_how="SIG_UNBLOCK"
-    else if (stemp == 2)
-        sig_how="SIG_SETMASK"
 }
 
 function get_sigset:long(sigset:long) %{ /* pure */

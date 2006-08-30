@@ -1,3 +1,7 @@
+2006-08-30  Li Guanglei <guanglei@cn.ibm.com>
+
+	* stapprobes.5.in: document signal.*
+
 2006-08-28  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx: Added inclusion of session.h.
