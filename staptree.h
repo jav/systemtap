@@ -229,6 +229,8 @@ struct target_symbol : public expression
     };
   std::string base_name;
   std::vector<std::pair<component_type, std::string> > components;
+  semantic_error* saved_conversion_error;
+  target_symbol(): saved_conversion_error (0) {}
   void print (std::ostream& o) const;
   void visit (visitor* u);
 };

@@ -2173,7 +2173,10 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
   // later unused-expression-elimination pass didn't get rid of it
   // either.  So we have a target symbol that is believed to be of
   // genuine use, yet unresolved by the provider.
-  throw semantic_error("unresolved target-symbol expression", e->tok);
+  if (e->saved_conversion_error)
+    throw (* (e->saved_conversion_error));
+  else
+    throw semantic_error("unresolved target-symbol expression", e->tok);
 }
 
 

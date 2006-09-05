@@ -2198,8 +2198,10 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 					   lvalue,
 					   ty);
     }
-  catch (const semantic_error& e)
+  catch (const semantic_error& x)
     {
+      e->saved_conversion_error = new semantic_error (x);
+      e->saved_conversion_error->tok1 = e->tok;
       ty = pe_unknown;
     }
 

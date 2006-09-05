@@ -1,3 +1,11 @@
+2006-09-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	Improve unresolved target-symbol error messages.
+	* staptree.h (target_symbol): Add new field saved_conversion_error.
+	* elaborate.cxx (typeresolution_info::visit_target_symbol): Throw
+	that if found instead of generic error.
+	* tapsets.cxx (t_v_f_c_v::visit_target_symbol): Set it.
+
 2006-08-30  Li Guanglei <guanglei@cn.ibm.com>
 
 	* stapprobes.5.in: document signal.*
