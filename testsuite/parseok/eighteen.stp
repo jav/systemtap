@@ -1,0 +1,6 @@
+#! stap -p1
+
+global c, a = 1
+global b = "hello", d
+
+probe begin { }

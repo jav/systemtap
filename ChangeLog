@@ -1,3 +1,11 @@
+2006-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	Add basic support for initialized globals.
+	* parse.cxx (parse_global): Parse initialization clause, implement
+	by rewriting to "probe begin { var = value }".
+	* parse.h: Corresponding changes.
+	* stap.1.in: Document optional initialization.
+
 2006-09-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	Improve unresolved target-symbol error messages.

@@ -1,0 +1,6 @@
+#! stap -p2
+
+global c, a = 1
+global b = "hello", d
+
+probe begin { print (c = a) print (d = b) }

@@ -266,11 +266,12 @@ probes and live as long as the entire systemtap session.  There is one
 namespace for all global variables, regardless of which script file
 they are found within.  A global declaration may be written at the
 outermost level anywhere, not within a block of code.  The following
-declaration marks "var1" and "var2" as global.  The translator will
+declaration marks a few variables as global.  The translator will
 infer for each its value type, and if it is used as an array, its key
-types.
+types.  Optionally, scalar globals may be initialized with a string
+or number literal.
 .RS
-.BR global " var1" , " var2"
+.BR global " var1" , " var2" , " var3=4"
 .RE
 .\" XXX add statistics type here once it's supported
 

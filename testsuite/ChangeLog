@@ -1,3 +1,8 @@
+2006-09-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* parseok/eighteen.stp, semok/twentythree.stp: New files for
+	testing initialized globals.
+
 2006-08-21  Martin Hunt  <hunt@redhat.com>
 
 	* lib/stap_run.exp: Check for existence of installtest_p
