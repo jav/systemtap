@@ -1,3 +1,61 @@
+2006-09-08  David Smith  <dsmith@redhat.com>
+
+	* elaborate.h (struct derived_probe): Replace emit_registrations()
+	function with emit_registrations_start() and
+	emit_registrations_end().
+	(struct derived_probe_group): Added emit_module_init().
+	(struct derived_probe_group_container): Added emit_module_init(),
+	emit_module_init_call(), and emit_module_exit().
+	* elaborate.cxx (struct alias_derived_probe): Updated
+	emit_regitrations calls.
+	* translate.cxx (emit_module_init): Instead of actually emitting
+	per-probe-point registrations/unregistrations, let the session's
+	derived_probe_group_container do it.
+	* tapsets.cxx (emit_probe_timing): New function that handles
+	probe timing code.
+	(be_derived_probe::emit_registrations_start): Renamed from
+	emit_registrations.
+	(be_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(dwarf_derived_probe::emit_registrations): Removed, but most code
+	moved to emit_registrations_start().
+	(dwarf_derived_probe::emit_registrations_start): Handles details
+	of multiple dwarf probe registrations.
+	(dwarf_derived_probe::emit_registrations_end): Handles cleanup
+	details of multiple dwarf probe registrations.
+	(dwarf_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(timer_derived_probe::emit_registrations_start): Renamed from
+	emit_registrations.  Added mutiple probe handling.
+	(timer_derived_probe::emit_registrations_end): Handles cleanup
+	details of multiple probe registrations.
+	(timer_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(profile_derived_probe::emit_registrations_start): Renamed from
+	emit_registrations.  Added mutiple probe handling.
+	(profile_derived_probe::emit_registrations_end): Handles cleanup
+	details of multiple probe registrations.
+	(profile_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(mark_derived_probe::emit_registrations_start): Renamed from
+	emit_registrations.  Added mutiple probe handling.
+	(mark_derived_probe::emit_registrations_end): Handles cleanup
+	details of multiple probe registrations.
+	(mark_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(hrtimer_derived_probe::emit_registrations_start): Renamed from
+	emit_registrations.  Added mutiple probe handling.
+	(hrtimer_derived_probe::emit_registrations_end): Dummy function.
+	(hrtimer_derived_probe_group::emit_module_init): New function that
+	outputs probes create and destroy functions.
+	(derived_probe_group_container::emit_module_init): Added function
+	to call all probe group's emit_module_int functions.
+	(derived_probe_group_container::emit_module_init_call): Added
+	function to handle probe group initialization cleanup.
+	(derived_probe_group_container::emit_module_exit): Added
+	function to handle probe group cleanup.
+	
+
 2006-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	Add basic support for initialized globals.

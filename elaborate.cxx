@@ -387,7 +387,8 @@ struct alias_derived_probe: public derived_probe
 
   // alias probes should be ultimately expanded to other derived_probe
   // types, and not themselves emitted.
-  void emit_registrations (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
+  void emit_registrations_start (translator_output* o, unsigned index) { throw semantic_error ("inappropriate", this->tok); }
+  void emit_registrations_end (translator_output* o, unsigned index) { throw semantic_error ("inappropriate", this->tok); }
   void emit_deregistrations (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
   void emit_probe_entries (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
 };

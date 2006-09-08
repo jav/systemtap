@@ -87,6 +87,40 @@ lex_cast_qstring(IN const & in)
 }
 
 
+static void
+emit_probe_timing(derived_probe* p, translator_output* o)
+{
+  static set<string> basest_names;
+
+  string nm = p->basest()->name;
+  if (basest_names.find(nm) == basest_names.end())
+    {
+      basest_names.insert (nm);
+
+      o->newline() << "#ifdef STP_TIMING";
+      o->newline() << "{";
+      o->newline(1) << "const char *probe_point = " 
+		    << lex_cast_qstring (*p->basest()->locations[0])
+		    << ";";
+      o->newline() << "const char *decl_location = "
+		   << lex_cast_qstring (p->basest()->tok->location)
+		   << ";";
+      o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
+		   << p->basest()->name
+		   << ", 0);";
+      o->newline() << "const char *error;";
+      o->newline() << "if (stats->count) {";
+      o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
+      o->newline() << "_stp_printf (\"probe %s (%s), %lld hits taking %lldmin/%lldavg/%lldmax cycles.\\n\",";
+      o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
+      o->newline() << "_stp_print_flush();";
+      o->newline(-1) << "}";
+      o->newline(-1) << "}";
+      o->newline() << "#endif";
+    }
+}
+
+
 // ------------------------------------------------------------------------
 
 void
@@ -201,7 +235,8 @@ struct be_derived_probe: public derived_probe
 
   void register_probe (systemtap_session& s);
 
-  void emit_registrations (translator_output* o);
+  void emit_registrations_start (translator_output* o, unsigned index=0);
+  void emit_registrations_end (translator_output* o, unsigned index) {}
   void emit_deregistrations (translator_output* o);
   void emit_probe_entries (translator_output* o);
 };
@@ -217,6 +252,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -243,7 +279,8 @@ be_derived_probe::register_probe(systemtap_session& s)
 
 
 void
-be_derived_probe::emit_registrations (translator_output* o)
+be_derived_probe::emit_registrations_start (translator_output* o,
+					    unsigned index)
 {
   if (begin)
     for (unsigned i=0; i<locations.size(); i++)
@@ -303,6 +340,35 @@ be_derived_probe_group::emit_probes (translator_output* op, unparser* up)
     }
 }
 
+void
+be_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the be probes create function
+  o->newline() << "static int register_be_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    probes[i]->emit_registrations_start (o);
+  
+  o->newline() << "return 0;";
+  o->newline(-1) << "}\n";
+
+  // Output the be probes destroy function
+  o->newline() << "static void unregister_be_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
+}
+
 
 // ------------------------------------------------------------------------
 // never probes are never run
@@ -315,9 +381,10 @@ struct never_derived_probe: public derived_probe
 
   void register_probe (systemtap_session& s);
 
-  void emit_registrations (translator_output* o);
-  void emit_deregistrations (translator_output* o);
-  void emit_probe_entries (translator_output* o);
+  void emit_registrations_start (translator_output* o, unsigned index) {}
+  void emit_registrations_end (translator_output* o, unsigned index) {}
+  void emit_deregistrations (translator_output* o) {}
+  void emit_probe_entries (translator_output* o) {}
 };
 
 
@@ -330,7 +397,8 @@ public:
   virtual void register_probe(never_derived_probe* p) { probes.push_back (p); }
   virtual size_t size () { return probes.size (); }
 
-  virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_probes (translator_output* op, unparser* up) {}
+  virtual void emit_module_init (translator_output* o) {}
 };
 
 
@@ -354,34 +422,6 @@ struct never_builder: public derived_probe_builder
   }
 };
 
-
-void
-never_derived_probe::emit_registrations (translator_output* o)
-{
-}
-
-
-void
-never_derived_probe::emit_deregistrations (translator_output* o)
-{
-}
-
-
-void
-never_derived_probe::emit_probe_entries (translator_output* o)
-{
-}
-
-
-void
-never_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
-  for (unsigned i=0; i < probes.size(); i++)
-    {
-      op->newline ();
-      up->emit_probe (probes[i]);
-    }
-}
 
 // ------------------------------------------------------------------------
 //  Dwarf derived probes.
@@ -1804,7 +1844,8 @@ struct dwarf_derived_probe : public derived_probe
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
 
-  virtual void emit_registrations (translator_output * o);
+  virtual void emit_registrations_start (translator_output* o, unsigned index);
+  virtual void emit_registrations_end (translator_output * o, unsigned index);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
@@ -1820,6 +1861,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -3228,14 +3270,19 @@ dwarf_derived_probe::register_patterns(match_node * root)
 
 
 void
-dwarf_derived_probe::emit_registrations (translator_output* o)
+dwarf_derived_probe::emit_registrations_start (translator_output* o,
+					       unsigned index)
 {
   string func_name = "enter_" + name;
-  o->newline() << "{";
-  o->newline(1) << "int i;";
-  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
+  string index_var = "i_" + lex_cast<string>(index);
+  o->newline();
+  o->newline() << "probe_point = dwarf_kprobe_" << name
+	       << "_location_names[0];";
+  o->newline() << "for (" << index_var << " = 0; " << index_var << " < "
+	       << probe_points.size() << "; " << index_var << "++) {";
   o->indent(1);
-  string probe_name = string("dwarf_kprobe_") + name + string("[i]");
+  string probe_name = string("dwarf_kprobe_") + name + string("[")
+      + index_var + string("]");
 
 #if 0
   // XXX: triggers false negatives on RHEL4U2 kernel
@@ -3270,13 +3317,30 @@ dwarf_derived_probe::emit_registrations (translator_output* o)
 
   o->newline() << "if (unlikely (rc)) {";
   o->newline(1) << "probe_point = " << string("dwarf_kprobe_") + name
-    + string("_location_names[i];");
+    + string("_location_names[") << index_var << "];";
   o->newline() << "break;";
   o->newline(-1) << "}";
   o->newline(-1) << "}";
 
+  // if one failed, must goto code (output by emit_registrations_end)
+  // that will roll back completed registations for this probe 
+  o->newline() << "if (unlikely (rc))";
+  o->newline(1) << "goto unwind_dwarf_" << index << ";";
+  o->indent(-1);
+}
+
+
+void
+dwarf_derived_probe::emit_registrations_end (translator_output* o,
+					     unsigned index)
+{
+  string index_var = "i_" + lex_cast<string>(index);
+  string probe_name = string("dwarf_kprobe_") + name + string("[")
+      + index_var + string("]");
+
   // if one failed, must roll back completed registations for this probe
-  o->newline() << "if (unlikely (rc)) while (--i >= 0)";
+  o->newline(-1) << "unwind_dwarf_" << index << ":";
+  o->newline(1) << "while (--" << index_var << " >= 0)";
   o->indent(1);
   if (has_return)
     {
@@ -3288,27 +3352,26 @@ dwarf_derived_probe::emit_registrations (translator_output* o)
     }
   else
     o->newline() << "unregister_kprobe (&(" << probe_name << "));";
-  o->newline(-2) << "}";
+  o->indent(-1);
 }
 
 
 void
 dwarf_derived_probe::emit_deregistrations (translator_output* o)
 {
-  o->newline() << "{";
-  o->newline(1) << "int i;";
-  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
   string probe_name = string("dwarf_kprobe_") + name + string("[i]");
+  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
   o->indent(1);
+
   if (has_return)
     {
       o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
       o->newline() << "atomic_add ("
-                   << probe_name << ".kp.nmissed,"
-                   << "& skipped_count);";
+		   << probe_name << ".kp.nmissed,"
+		   << "& skipped_count);";
       o->newline() << "atomic_add ("
-                   << probe_name << ".nmissed,"
-                   << "& skipped_count);";
+		   << probe_name << ".nmissed,"
+		   << "& skipped_count);";
       o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
       o->newline() << "#else";
       o->newline() << ";";
@@ -3317,12 +3380,11 @@ dwarf_derived_probe::emit_deregistrations (translator_output* o)
   else
     {
       o->newline() << "atomic_add ("
-                   << probe_name << ".nmissed,"
-                   << "& skipped_count);";
+		   << probe_name << ".nmissed,"
+		   << "& skipped_count);";
       o->newline() << "unregister_kprobe (&(" << probe_name << "));";
     }
 
-  o->newline(-1) << "}";
   o->newline(-1) << "}";
 }
 
@@ -3476,6 +3538,58 @@ dwarf_derived_probe_group::emit_probes (translator_output* op, unparser* up)
 
 
 void
+dwarf_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the dwarf probes create function
+  o->newline() << "static int register_dwarf_probes (void) {";
+  o->indent(1);
+  o->newline() << "int rc = 0;";
+  o->newline() << "const char *probe_point;";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    o->newline() << "int i_" << i << ";";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    probes[i]->emit_registrations_start (o, i);
+  
+  o->newline() << "goto out;";
+  o->newline();
+
+  for (int i=probes.size() - 1; i >= 0; i--)
+    probes[i]->emit_registrations_end (o, i);
+
+  o->newline();
+
+  o->newline() << "if (unlikely (rc)) {";
+  // In case it's just a lower-layer (kprobes) error that set rc but
+  // not session_state, do that here to prevent any other BEGIN probe
+  // from attempting to run.
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_error (\"dwarf probe %s registration failed, rc=%d\\n\", probe_point, rc);";
+  o->newline(-1) << "}\n";
+
+  o->newline(-1) << "out:";
+  o->newline(1) << "return rc;";
+  o->newline(-1) << "}\n";
+
+  // Output the dwarf probes destroy function
+  o->newline() << "static void unregister_dwarf_probes (void) {";
+  o->newline(1) << "int i;";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
+}
+
+
+void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
@@ -3567,7 +3681,8 @@ struct timer_derived_probe: public derived_probe
 
   virtual void register_probe (systemtap_session& s);
 
-  virtual void emit_registrations (translator_output * o);
+  virtual void emit_registrations_start (translator_output* o, unsigned index);
+  virtual void emit_registrations_end (translator_output * o, unsigned index);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
@@ -3596,8 +3711,11 @@ timer_derived_probe::register_probe(systemtap_session& s)
 
 
 void
-timer_derived_probe::emit_registrations (translator_output* o)
+timer_derived_probe::emit_registrations_start (translator_output* o,
+					       unsigned index)
 {
+  o->newline();
+  o->newline() << "probe_point = \"" << *locations[0] << "\";";
   o->newline() << "init_timer (& timer_" << name << ");";
   o->newline() << "timer_" << name << ".expires = jiffies + ";
   if (time_is_msecs)
@@ -3610,6 +3728,25 @@ timer_derived_probe::emit_registrations (translator_output* o)
   o->line() << ";";
   o->newline() << "timer_" << name << ".function = & enter_" << name << ";";
   o->newline() << "add_timer (& timer_" << name << ");";
+
+  // if one failed, must goto code (output by emit_registrations_end)
+  // that will roll back completed registations for this probe
+  o->newline() << "if (unlikely (rc))";
+  if (index == 0)
+    o->newline(1) << "goto timer_error;";
+  else
+    o->newline(1) << "goto unwind_timer_" << index - 1 << ";";
+  o->indent(-1);
+}
+
+
+void
+timer_derived_probe::emit_registrations_end (translator_output* o,
+					     unsigned index)
+{
+  // if one failed, must roll back completed registations for this probe
+  o->newline(-1) << "unwind_timer_" << index << ":";
+  o->newline(1) << "del_timer_sync (& timer_" << name << ");";
 }
 
 
@@ -3660,6 +3797,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -3671,6 +3809,59 @@ timer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
       op->newline ();
       up->emit_probe (probes[i]);
     }
+}
+
+
+void
+timer_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the timer probes create function
+  o->newline() << "static int register_timer_probes (void) {";
+  o->indent(1);
+  o->newline() << "int rc = 0;";
+  o->newline() << "const char *probe_point;";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    o->newline() << "int i_" << i << ";";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    probes[i]->emit_registrations_start (o, i);
+  
+  o->newline() << "goto out;";
+  o->newline();
+
+  for (int i=probes.size() - 2; i >= 0; i--)
+    probes[i]->emit_registrations_end (o, i);
+
+  o->newline();
+
+  o->newline(-1) << "timer_error:";
+  o->newline(1) << "if (unlikely (rc)) {";
+  // In case it's just a lower-layer (kprobes) error that set rc but
+  // not session_state, do that here to prevent any other BEGIN probe
+  // from attempting to run.
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_error (\"timer probe %s registration failed, rc=%d\\n\", probe_point, rc);";
+  o->newline(-1) << "}\n";
+
+  o->newline(-1) << "out:";
+  o->newline(1) << "return rc;";
+  o->newline(-1) << "}\n";
+
+  // Output the timer probes destroy function
+  o->newline() << "static void unregister_timer_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
 }
 
 
@@ -3717,7 +3908,8 @@ struct profile_derived_probe: public derived_probe
 
   void register_probe (systemtap_session& s);
 
-  virtual void emit_registrations (translator_output * o);
+  virtual void emit_registrations_start (translator_output* o, unsigned index);
+  virtual void emit_registrations_end (translator_output * o, unsigned index);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
@@ -3747,12 +3939,37 @@ profile_derived_probe::register_probe(systemtap_session& s)
 
 
 void
-profile_derived_probe::emit_registrations (translator_output* o)
+profile_derived_probe::emit_registrations_start (translator_output* o,
+						 unsigned index)
 {
+  o->newline();
+  o->newline() << "probe_point = \"" << *locations[0] << "\";";
   if (using_rpn)
     o->newline() << "rc = register_profile_notifier(& profile_" << name << ");";
   else
     o->newline() << "rc = register_timer_hook(enter_" << name << ");";
+
+  // if one failed, must goto code (output by emit_registrations_end)
+  // that will roll back completed registations for other probes of
+  // this type.
+  o->newline() << "if (unlikely (rc))";
+  if (index == 0)
+    o->newline(1) << "goto profile_error;";
+  else
+    o->newline(1) << "goto unwind_profile_" << index - 1 << ";";
+  o->indent(-1);
+}
+
+
+void
+profile_derived_probe::emit_registrations_end (translator_output* o,
+					       unsigned index)
+{
+  // if one failed, must roll back completed registations for this
+  // type of probe
+  o->newline(-1) << "unwind_profile_" << index << ":";
+  o->indent(1);
+  emit_deregistrations (o);
 }
 
 
@@ -3814,6 +4031,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -3825,6 +4043,56 @@ profile_derived_probe_group::emit_probes (translator_output* op, unparser* up)
       op->newline ();
       up->emit_probe (probes[i]);
     }
+}
+
+
+void
+profile_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the profile probes create function
+  o->newline() << "static int register_profile_probes (void) {";
+  o->indent(1);
+  o->newline() << "int rc = 0;";
+  o->newline() << "const char *probe_point;";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    probes[i]->emit_registrations_start (o, i);
+  
+  o->newline() << "goto out;";
+  o->newline();
+
+  for (int i=probes.size() - 2; i >= 0; i--)
+    probes[i]->emit_registrations_end (o, i);
+
+  o->newline();
+
+  o->newline(-1) << "profile_error:";
+  o->newline(1) << "if (unlikely (rc)) {";
+  // In case it's just a lower-layer (kprobes) error that set rc but
+  // not session_state, do that here to prevent any other BEGIN probe
+  // from attempting to run.
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_error (\"profile probe %s registration failed, rc=%d\\n\", probe_point, rc);";
+  o->newline(-1) << "}\n";
+
+  o->newline(-1) << "out:";
+  o->newline(1) << "return rc;";
+  o->newline(-1) << "}\n";
+
+  // Output the profile probes destroy function
+  o->newline() << "static void unregister_profile_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
 }
 
 
@@ -3862,7 +4130,8 @@ struct mark_derived_probe: public derived_probe
 
   void register_probe (systemtap_session& s);
 
-  void emit_registrations (translator_output * o);
+  void emit_registrations_start (translator_output * o, unsigned index);
+  void emit_registrations_end (translator_output * o, unsigned index);
   void emit_deregistrations (translator_output * o);
   void emit_probe_entries (translator_output * o);
   void emit_probe_context_vars (translator_output* o);
@@ -4036,7 +4305,8 @@ mark_derived_probe::emit_probe_entries (translator_output* o)
 
 
 void
-mark_derived_probe::emit_registrations (translator_output * o)
+mark_derived_probe::emit_registrations_start (translator_output* o,
+					      unsigned index)
 {
   assert (this->locations.size() == 1);
 
@@ -4058,6 +4328,28 @@ mark_derived_probe::emit_registrations (translator_output * o)
 
   o->newline(-1) << "}";
 
+
+  // if one failed, must goto code (output by emit_registrations_end)
+  // that will roll back completed registations for this probe
+  o->newline() << "if (unlikely (rc)) {";
+  o->newline(1) << "probe_point = "
+	       << lex_cast_qstring (*this->locations[0]) << ";";
+  if (index == 0)
+    o->newline() << "goto mark_error;";
+  else
+    o->newline() << "goto unwind_mark_" << index - 1 << ";";
+  o->newline(-1) << "}";
+}
+
+
+void
+mark_derived_probe::emit_registrations_end (translator_output* o,
+					    unsigned index)
+{
+  // if one failed, must roll back completed registations for this probe
+  o->newline(-1) << "unwind_mark_" << index << ":";
+  o->indent(1);
+  emit_deregistrations (o);
 }
 
 
@@ -4091,6 +4383,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -4102,6 +4395,56 @@ mark_derived_probe_group::emit_probes (translator_output* op, unparser* up)
       op->newline ();
       up->emit_probe (probes[i]);
     }
+}
+
+
+void
+mark_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the mark probes create function
+  o->newline() << "static int register_mark_probes (void) {";
+  o->indent(1);
+  o->newline() << "int rc = 0;";
+  o->newline() << "const char *probe_point;";
+
+  for (unsigned i=0; i < probes.size (); i++)
+    probes[i]->emit_registrations_start (o, i);
+  
+  o->newline() << "goto out;";
+  o->newline();
+
+  for (int i=probes.size() - 2; i >= 0; i--)
+    probes[i]->emit_registrations_end (o, i);
+
+  o->newline();
+
+  o->newline(-1) << "mark_error:";
+  o->newline(1) << "if (unlikely (rc)) {";
+  // In case it's just a lower-layer (kprobes) error that set rc but
+  // not session_state, do that here to prevent any other BEGIN probe
+  // from attempting to run.
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_error (\"mark probe %s registration failed, rc=%d\\n\", probe_point, rc);";
+  o->newline(-1) << "}\n";
+
+  o->newline(-1) << "out:";
+  o->newline(1) << "return rc;";
+  o->newline(-1) << "}\n";
+
+  // Output the mark probes destroy function
+  o->newline() << "static void unregister_mark_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
 }
 
 
@@ -4318,7 +4661,10 @@ struct hrtimer_derived_probe: public derived_probe
 
   virtual void emit_interval (translator_output * o);
 
-  virtual void emit_registrations (translator_output * o);
+  virtual void emit_registrations_start (translator_output * o,
+					 unsigned index);
+  virtual void emit_registrations_end (translator_output * o,
+				       unsigned index);
   virtual void emit_deregistrations (translator_output * o);
   virtual void emit_probe_entries (translator_output * o);
 };
@@ -4356,7 +4702,8 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
 
 
 void
-hrtimer_derived_probe::emit_registrations (translator_output* o)
+hrtimer_derived_probe::emit_registrations_start (translator_output* o,
+						 unsigned index)
 {
   o->newline() << "hrtimer_init (& timer_" << name
     << ", CLOCK_MONOTONIC, HRTIMER_REL);";
@@ -4364,6 +4711,14 @@ hrtimer_derived_probe::emit_registrations (translator_output* o)
   o->newline() << "hrtimer_start (& timer_" << name << ", ";
   emit_interval(o);
   o->line() << ", HRTIMER_REL);";
+}
+
+
+void
+hrtimer_derived_probe::emit_registrations_end (translator_output* o,
+					       unsigned index)
+{
+  // nothing to do here...
 }
 
 
@@ -4413,6 +4768,7 @@ public:
   virtual size_t size () { return probes.size (); }
 
   virtual void emit_probes (translator_output* op, unparser* up);
+  virtual void emit_module_init (translator_output* o);
 };
 
 
@@ -4426,6 +4782,38 @@ hrtimer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
     }
 }
 
+
+void
+hrtimer_derived_probe_group::emit_module_init (translator_output* o)
+{
+  if (probes.size () == 0)
+    return;
+
+  // Output the hrtimer probes create function
+  o->newline() << "static int register_hrtimer_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_registrations_start (o, i);
+      o->newline ();
+    }
+  
+  o->newline() << "return 0;";
+  o->newline(-1) << "}\n";
+
+  // Output the hrtimer probes destroy function
+  o->newline() << "static void unregister_hrtimer_probes (void) {";
+  o->indent(1);
+
+  for (unsigned i=0; i < probes.size (); i++)
+    {
+      probes[i]->emit_deregistrations (o);
+      emit_probe_timing(probes[i], o);
+    }
+
+  o->newline(-1) << "}\n";
+}
 
 struct hrtimer_builder: public derived_probe_builder
 {
@@ -4691,4 +5079,208 @@ derived_probe_group_container::emit_probes (translator_output* op,
   never_probe_group->emit_probes (op, up);
   profile_probe_group->emit_probes (op, up);
   timer_probe_group->emit_probes (op, up);
+}
+
+
+void
+derived_probe_group_container::emit_module_init (translator_output* o)
+{
+  // Let each probe group emit its module init logic.
+  be_probe_group->emit_module_init (o);
+  dwarf_probe_group->emit_module_init (o);
+  hrtimer_probe_group->emit_module_init (o);
+  mark_probe_group->emit_module_init (o);
+  never_probe_group->emit_module_init (o);
+  profile_probe_group->emit_module_init (o);
+  timer_probe_group->emit_module_init (o);
+}
+
+
+#define BE_ERROR_LABEL "unregister_be"
+#define DWARF_ERROR_LABEL "unregister_dwarf"
+#define HRTIMER_ERROR_LABEL "unregister_hrtimer"
+#define MARK_ERROR_LABEL "unregister_mark"
+#define PROFILE_ERROR_LABEL "unregister_profile"
+#define TIMER_ERROR_LABEL "unregister_timer"
+
+void
+derived_probe_group_container::emit_module_init_call (translator_output* o)
+{
+  int i = 0;
+  const char *error_label = "";
+
+  if (be_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_be_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = BE_ERROR_LABEL;
+    }
+
+  if (dwarf_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_dwarf_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      if (i > 0)
+	o->newline() << "goto " << error_label << ";";
+      else
+        o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = DWARF_ERROR_LABEL;
+    }
+
+  if (hrtimer_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_hrtimer_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      if (i > 0)
+	o->newline() << "goto " << error_label << ";";
+      else
+        o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = HRTIMER_ERROR_LABEL;
+    }
+
+  if (mark_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_mark_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      if (i > 0)
+	o->newline() << "goto " << error_label << ";";
+      else
+        o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = MARK_ERROR_LABEL;
+    }
+
+  // We don't need to bother with the never_probe_group.
+
+  if (profile_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_profile_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      if (i > 0)
+	o->newline() << "goto " << error_label << ";";
+      else
+        o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = PROFILE_ERROR_LABEL;
+    }
+
+  if (timer_probe_group->size () > 0)
+    {
+      o->newline() << "rc = register_timer_probes ();";
+      o->newline() << "if (rc)";
+      o->indent(1);
+      // We need to deregister any already probes set up - this is
+      // essential for kprobes.
+      if (i > 0)
+	o->newline() << "goto " << error_label << ";";
+      else
+        o->newline() << "goto out;";
+      o->indent(-1);
+      i++;
+      error_label = TIMER_ERROR_LABEL;
+    }
+
+  // BEGIN probes would have all been run by now.  One of them may
+  // have triggered a STAP_SESSION_ERROR (which would incidentally
+  // block later BEGIN ones).  If so, let that indication stay, and
+  // otherwise act like probe insertion was a success.
+  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
+  o->newline(-1) << "goto out;";
+
+  // Recovery code for partially successful registration (rc != 0)
+  // XXX: Do we need to delay here to ensure any triggered probes have
+  // terminated?  Probably not much, as they should all test for
+  // SESSION_STARTING state right at the top and return.  ("begin"
+  // probes don't count, as they return synchronously.)
+  o->newline();
+
+  if (i > 0 && timer_probe_group->size () > 0)
+    {
+      o->newline(-1) << TIMER_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_timer_probes();";
+      i--;
+    }
+  if (i > 0 && profile_probe_group->size () > 0)
+    {
+      o->newline(-1) << PROFILE_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_profile_probes();";
+      i--;
+    }
+
+  // We don't need to bother with the never_probe_group.
+
+  if (i > 0 && mark_probe_group->size () > 0)
+    {
+      o->newline(-1) << MARK_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_mark_probes();";
+      i--;
+    }
+  if (i > 0 && hrtimer_probe_group->size () > 0)
+    {
+      o->newline(-1) << HRTIMER_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_hrtimer_probes();";
+      i--;
+    }
+  if (i > 0 && dwarf_probe_group->size () > 0)
+    {
+      o->newline(-1) << DWARF_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_dwarf_probes();";
+      i--;
+    }
+  if (i > 0 && be_probe_group->size () > 0)
+    {
+      o->newline(-1) << BE_ERROR_LABEL << ":";
+      o->newline(1) << "unregister_be_probes();";
+      i--;
+    }
+}
+
+
+void
+derived_probe_group_container::emit_module_exit (translator_output* o)
+{
+  if (be_probe_group->size () > 0)
+    o->newline() << "unregister_be_probes ();";
+
+  if (dwarf_probe_group->size () > 0)
+    o->newline() << "unregister_dwarf_probes ();";
+
+  if (hrtimer_probe_group->size () > 0)
+    o->newline() << "unregister_hrtimer_probes ();";
+
+  if (mark_probe_group->size () > 0)
+    o->newline() << "unregister_mark_probes ();";
+
+  // We don't need to bother with the never_probe_group.
+
+  if (profile_probe_group->size () > 0)
+    o->newline() << "unregister_profile_probes ();";
+
+  if (timer_probe_group->size () > 0)
+    o->newline() << "unregister_timer_probes ();";
 }

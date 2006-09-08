@@ -988,67 +988,7 @@ c_unparser::emit_functionsig (functiondecl* v)
 void
 c_unparser::emit_module_init ()
 {
-  // Emit the per-probe-point registrations into individual functions,
-  // to avoid forcing the compiler to work too hard at optimizing such
-  // a silly function.  A "don't optimize this function" pragma could
-  // come in handy too.
-
-  set<string> basest_names;
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      o->newline() << "static noinline int register_probe_" << i << " (void) {";
-      o->indent(1);
-      // By default, mark the first location as the site of possible
-      // registration failure.  This is helpful since non-dwarf
-      // derived_probes tend to have only a single location.
-      assert (session->probes[i]->locations.size() > 0);
-      o->newline() << "int rc = 0;";
-      o->newline() << "const char *probe_point = " <<
-        lex_cast_qstring (*session->probes[i]->locations[0]) << ";";
-      session->probes[i]->emit_registrations (o);
-
-      o->newline() << "if (unlikely (rc)) {";
-      // In case it's just a lower-layer (kprobes) error that set rc
-      // but not session_state, do that here to prevent any other BEGIN
-      // probe from attempting to run.
-      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-
-      o->newline() << "_stp_error (\"probe " << i << " registration failed"
-                   << ", rc=%d, %s\\n\", rc, probe_point);";
-      o->newline(-1) << "}";
-
-      o->newline() << "return rc;";
-      o->newline(-1) << "}";
-      
-      o->newline();
-      o->newline() << "noinline void unregister_probe_" << i << " (void) {";
-      o->indent(1);
-      session->probes[i]->emit_deregistrations (o);
-
-      string nm = session->probes[i]->basest()->name;
-      if (basest_names.find(nm) == basest_names.end())
-        {
-          basest_names.insert (nm);
-          o->newline() << "#ifdef STP_TIMING";
-          o->newline() << "{";
-          o->newline(1) << "const char *probe_point = " 
-                        << lex_cast_qstring (*session->probes[i]->basest()->locations[0]) << ";";
-          o->newline() << "const char *decl_location = "
-                        << lex_cast_qstring (session->probes[i]->basest()->tok->location) << ";";
-          o->newline() << "struct stat_data *stats = _stp_stat_get (time_" << session->probes[i]->basest()->name
-                       << ", 0);";
-          o->newline() << "const char *error;";
-          o->newline() << "if (stats->count) {";
-          o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
-          o->newline() << "_stp_printf (\"probe %s (%s), %lld hits taking %lldmin/%lldavg/%lldmax cycles.\\n\",";
-          o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
-          o->newline() << "_stp_print_flush();";
-          o->newline(-1) << "}";
-          o->newline(-1) << "}";
-          o->newline() << "#endif";
-        }
-      o->newline(-1) << "}";
-    }
+  session->probes.emit_module_init (o);
   
   o->newline();
   o->newline() << "int systemtap_module_init (void) {";
@@ -1097,42 +1037,7 @@ c_unparser::emit_module_init ()
     o->newline() << "#endif";
   }
 
-  for (unsigned i=0; i<session->probes.size(); i++)
-    {
-      o->newline() << "rc = register_probe_" << i << "();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-        o->newline() << "goto unregister_" << (i-1) << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-    }
-
-  // BEGIN probes would have all been run by now.  One of them may
-  // have triggered a STAP_SESSION_ERROR (which would incidentally
-  // block later BEGIN ones).  If so, let that indication stay, and
-  // otherwise act like probe insertion was a success.
-  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
-  o->newline(-1) << "goto out;";
-
-  // Recovery code for partially successful registration (rc != 0)
-  // XXX: Do we need to delay here to ensure any triggered probes have
-  // terminated?  Probably not much, as they should all test for
-  // SESSION_STARTING state right at the top and return.  ("begin"
-  // probes don't count, as they return synchronously.)
-  o->newline();
-  for (int i=session->probes.size()-2; i >= 0; i--) // NB: -2
-    {
-      o->newline(-1) << "unregister_" << i << ":";
-      o->newline(1) << "unregister_probe_" << i << "();";
-      // NB: This may be an END probe.  It will refuse to run
-      // if the session_state was ERRORed.
-    }  
-  o->newline();
+  session->probes.emit_module_init_call (o);
 
   // If any registrations failed, we will need to deregister the globals,
   // as this is our only chance.
@@ -1187,8 +1092,7 @@ c_unparser::emit_module_exit ()
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
 
-  for (int i=session->probes.size()-1; i>=0; i--)
-    o->newline() << "unregister_probe_" << i << "();"; // NB: runs "end" probes
+  session->probes.emit_module_exit (o);	// NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {

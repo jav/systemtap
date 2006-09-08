@@ -117,7 +117,10 @@ struct derived_probe: public probe
 
   virtual void register_probe (systemtap_session& s) = 0;
 
-  virtual void emit_registrations (translator_output* o) = 0;
+  virtual void emit_registrations_start (translator_output* o,
+					 unsigned index) = 0;
+  virtual void emit_registrations_end (translator_output* o,
+				       unsigned index) = 0;
   // (from within module_init):
   // rc = ..... register_or_whatever (ENTRYFN);
 
@@ -172,7 +175,10 @@ struct derived_probe_group
   virtual size_t size () = 0;
 
   virtual void emit_probes (translator_output* op, unparser* up) = 0;
+
+  virtual void emit_module_init (translator_output* o) = 0;
 };
+
 
 // ------------------------------------------------------------------------
 
@@ -276,6 +282,9 @@ public:
   derived_probe* operator[] (size_t n) { return (probes[n]); }
 
   void emit_probes (translator_output* op, unparser* up);
+  void emit_module_init (translator_output* o);
+  void emit_module_init_call (translator_output* o);
+  void emit_module_exit (translator_output* o);
 };
 
 
