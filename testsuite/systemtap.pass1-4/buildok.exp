@@ -2,7 +2,7 @@ set self buildok
 foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set test $self/[file tail $file]
     verbose -log "Running $file"
-    set rc [catch {exec $file >>& systemtap.log} err]
+    set rc [stap_run_batch $file]
     # some tests are known to fail.
     switch $test {
         buildok/sched_test.stp {setup_kfail 1155 *-*-*}
@@ -10,5 +10,5 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
         buildok/process_test.stp {setup_kfail 9999 *-*-*}
         buildok/syscall.stp {setup_kfail 9999 *-*-*}
     }
-    if {$rc == 0} { pass $test } else { fail "$test rc $rc" }
+    if {$rc == 0} { pass $test } else { fail $test }
 }

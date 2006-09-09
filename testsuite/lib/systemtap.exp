@@ -54,8 +54,16 @@ proc setup_systemtap_environment {} {
 setup_systemtap_environment
 print_systemtap_version
 
-
 proc systemtap_init {args} {}
 proc systemtap_version {} {}
 proc systemtap_exit {} {}
 
+
+proc stap_run_batch {args} {
+    verbose -log "starting $args"
+    spawn $args
+    expect { -re .* { verbose -log $expect_out(1,string); exp_continue } eof { } }
+    set results [wait]
+    verbose -log "wait results: $results"
+    return [lindex $results 3]
+}
