@@ -1,0 +1,755 @@
+%{
+	#include <linux/sunrpc/svc.h>
+	#include <linux/nfsd/nfsfh.h>
+%}
+%{
+	void decode_fh(struct knfsd_fh *fh,__u64 * i_ino)
+	{
+		int i;
+		
+		for(i = 0;i < 3;i++)
+		{
+			i_ino[i] = fh->fh_base.fh_pad[2*i];
+			i_ino[i] = i_ino[i] << 32 |fh->fh_base.fh_pad[2*i + 1 ];
+		}
+	}
+%}
+probe never
+{
+	printf("%d",GROUP_NFSD)
+}
+
+probe addevent.nfsd
+               = addevent.nfsd.entries,
+                 addevent.nfsd.return
+{}
+
+probe addevent.nfsd.entries
+               = addevent.nfsd.op.entries,
+                 addevent.nfsd.proc.entries
+{}
+probe addevent.nfsd.return
+               = addevent.nfsd.op.return,
+                 addevent.nfsd.proc.return
+{}
+probe addevent.nfsd.op
+	= addevent.nfsd.op.entries,
+	  addevent.nfsd.op.return
+{}
+
+probe addevent.nfsd.op.entries = 
+             addevent.nfsd.dispatch.entry, 
+             addevent.nfsd.open.entry, 
+             addevent.nfsd.read.entry, 
+             addevent.nfsd.write.entry, 
+             addevent.nfsd.lookup.entry, 
+             addevent.nfsd.commit.entry, 
+             addevent.nfsd.create.entry, 
+             addevent.nfsd.createv3.entry, 
+             addevent.nfsd.unlink.entry, 
+             addevent.nfsd.rename.entry, 
+             addevent.nfsd.close.entry
+{}
+
+probe addevent.nfsd.op.return = 
+             addevent.nfsd.dispatch.return, 
+             addevent.nfsd.open.return, 
+             addevent.nfsd.read.return, 
+             addevent.nfsd.write.return, 
+             addevent.nfsd.lookup.return, 
+             addevent.nfsd.commit.return, 
+             addevent.nfsd.create.return, 
+             addevent.nfsd.createv3.return, 
+             addevent.nfsd.unlink.return, 
+             addevent.nfsd.rename.return, 
+             addevent.nfsd.close.return
+{}
+
+probe addevent.nfsd.dispatch.entry
+      += _addevent.nfsd.dispatch.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.dispatch.entry
+     = nfsd.dispatch
+{
+	log_nfsd_dispatch(client_ip,proto,version,xid,prog,proc)
+}
+
+function log_nfsd_dispatch(client_ip:long,proto:long,version:long,xid:long,
+                                                          prog:long,proc:long)
+%{
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_DISPATCH_ENTRY,"%1b%1b%4b%4b%4b",
+                            THIS->proto,THIS->version,THIS->xid,THIS->proc,THIS->client_ip);
+%}
+
+probe addevent.nfsd.dispatch.return
+      += _addevent.nfs.dispatch.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.dispatch.return
+     = nfsd.dispatch.return
+{
+	log_nfs_return(HOOKID_NFSD_DISPATCH_RETURN,$return)
+}
+
+probe addevent.nfsd.lookup.entry
+      += _addevent.nfsd.lookup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.lookup.entry
+       = nfsd.lookup
+{
+	log_nfsd_lookup($fhp,filename)
+}
+
+function log_nfsd_lookup(fhp:long,filename:string)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_LOOKUP_ENTRY,"%1b%8b%8b%8b%0s",
+                                      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename);
+%}
+
+probe addevent.nfsd.lookup.return
+      += _addevent.nfsd.lookup.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.lookup.return
+      = nfsd.lookup.return
+{
+	log_nfs_return(HOOKID_NFSD_LOOKUP_RETURN,$return)
+}
+
+probe addevent.nfsd.create.entry
+      += _addevent.nfsd.create.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.create.entry
+       = nfsd.create
+{
+	log_nfsd_create($fhp,filename,type,iap_valid,iap_mode)
+}
+
+function log_nfsd_create(fhp:long,filename:string,type:long,
+                                          iap_valid:long,iap_mode:long)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_CREATE_ENTRY,"%1b%8b%8b%8b%0s%4b%2b%4b",
+                                      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename,
+                                      THIS->type,THIS->iap_valid,THIS->iap_mode);
+%}
+
+probe addevent.nfsd.create.return
+      += _addevent.nfsd.create.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.create.return
+      = nfsd.create.return
+{
+	log_nfs_return(HOOKID_NFSD_CREATE_RETURN,$return)
+}
+
+
+probe addevent.nfsd.createv3.entry
+      += _addevent.nfsd.createv3.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.createv3.entry
+       = nfsd.createv3
+{
+	log_nfsd_createv3($fhp,filename,createmode,iap_valid,iap_mode)
+}
+
+function log_nfsd_createv3(fhp:long,filename:string,createmode:long,
+                                          iap_valid:long,iap_mode:long)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_CREATEV3_ENTRY,"%1b%8b%8b%8b%0s%1b%2b%4b",
+                                      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename,
+                                      THIS->createmode,THIS->iap_valid,THIS->iap_mode);
+%}
+
+probe addevent.nfsd.createv3.return
+      += _addevent.nfsd.createv3.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.createv3.return
+      = nfsd.createv3.return
+{
+	log_nfs_return(HOOKID_NFSD_CREATEV3_RETURN,$return)
+}
+
+probe addevent.nfsd.unlink.entry
+      += _addevent.nfsd.unlink.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.unlink.entry
+       = nfsd.unlink
+{
+	log_nfsd_unlink($fhp,filename,type)
+}
+
+function log_nfsd_unlink(fhp:long,filename:string,type:long)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_UNLINK_ENTRY,"%1b%8b%8b%8b%0s%4b",
+                                      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename,THIS->type);
+%}
+
+probe addevent.nfsd.unlink.return
+      += _addevent.nfsd.unlink.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.unlink.return
+      = nfsd.unlink.return
+{
+	log_nfs_return(HOOKID_NFSD_UNLINK_RETURN,$return)
+}
+
+probe addevent.nfsd.rename.entry
+      += _addevent.nfsd.rename.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.rename.entry
+       = nfsd.rename
+{
+	log_nfsd_rename($ffhp,filename,$tfhp,tname)
+}
+
+function log_nfsd_rename(fhp:long,filename:string,tfhp:long,tname:string)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * tfhp = (struct svc_fh*)(THIS->tfhp);
+	__u64 old_ino[3],i_ino[3];
+
+	decode_fh(&fhp->fh_handle,old_ino);		
+	decode_fh(&tfhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_RENAME_ENTRY,"%1b%8b%8b%8b%0s%1b%8b%8b%8b%0s",
+				      (_FMT_)fhp->fh_handle.fh_size,old_ino[0],old_ino[1],old_ino[2],THIS->filename,
+				      (_FMT_)tfhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->tname);
+%}
+
+probe addevent.nfsd.rename.return
+      += _addevent.nfsd.rename.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.rename.return
+      = nfsd.rename.return
+{
+	log_nfs_return(HOOKID_NFSD_RENAME_RETURN,$return)
+}
+
+probe addevent.nfsd.open.entry
+      += _addevent.nfsd.open.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.open.entry
+       = nfsd.open
+{
+	log_nfsd_open($fhp,type,access)
+}
+
+function log_nfsd_open(fhp:long,type:long,access:long)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_OPEN_ENTRY,"%1b%8b%8b%8b%4b%1b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->type,THIS->access);
+%}
+
+probe addevent.nfsd.open.return
+      += _addevent.nfsd.open.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.open.return
+      = nfsd.open.return
+{
+	log_nfs_return(HOOKID_NFSD_OPEN_RETURN,$return)
+}
+
+probe addevent.nfsd.close.entry
+      += _addevent.nfsd.close.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.close.entry
+       = nfsd.close
+{
+	log_nfsd_close(filename)
+}
+
+function log_nfsd_close(filename:string)%{ /*pure*/
+
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_CLOSE_ENTRY,"%0s",THIS->filename);
+%}
+
+probe addevent.nfsd.close.return
+      += _addevent.nfsd.close.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.close.return
+      = nfsd.close.return
+{
+}
+
+probe addevent.nfsd.read.entry
+      += _addevent.nfsd.read.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.read.entry
+       = nfsd.read
+{
+	log_nfsd_read($fhp,count,offset,$vec,vlen)
+}
+
+function log_nfsd_read(fhp:long,count:long,offset:long,
+                                            vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct kvec * vec = (struct kvec *)THIS->vec;
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_READ_ENTRY,"%1b%8b%8b%8b%8b%8b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+                                      THIS->count,THIS->offset,vec->iov_len,THIS->vlen);
+%}
+
+probe addevent.nfsd.read.return
+      += _addevent.nfsd.read.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.read.return
+      = nfsd.read.return
+{
+	log_nfs_return(HOOKID_NFSD_READ_RETURN,$return)
+}
+
+probe addevent.nfsd.write.entry
+      += _addevent.nfsd.write.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.write.entry
+       = nfsd.write
+{
+	log_nfsd_write($fhp,count,offset,$vec,vlen)
+}
+
+function log_nfsd_write(fhp:long,count:long,offset:long,
+                                         vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct kvec * vec = (struct kvec *)THIS->vec;
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_WRITE_ENTRY,"%1b%8b%8b%8b%8b%8b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+                                      THIS->count,THIS->offset,vec->iov_len,THIS->vlen);
+%}
+
+probe addevent.nfsd.write.return
+      += _addevent.nfsd.write.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.write.return
+      = nfsd.write.return
+{
+	log_nfs_return(HOOKID_NFSD_WRITE_RETURN,$return)
+}
+
+probe addevent.nfsd.commit.entry
+      += _addevent.nfsd.commit.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.commit.entry
+       = nfsd.commit
+{
+	log_nfsd_commit($fhp,count,offset)
+}
+
+function log_nfsd_commit(fhp:long,count:long,offset:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_COMMIT_ENTRY,"%1b%8b%8b%8b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+                                      THIS->count,THIS->offset);
+%}
+
+probe addevent.nfsd.commit.return
+      += _addevent.nfsd.commit.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.commit.return
+      = nfsd.commit.return
+{
+	log_nfs_return(HOOKID_NFSD_COMMIT_RETURN,$return)
+}
+
+probe addevent.nfsd.proc = addevent.nfsd.proc.entries,
+		     addevent.nfsd.proc.return
+{}
+
+probe addevent.nfsd.proc.entries =
+                addevent.nfsd.proc.lookup.entry,
+                addevent.nfsd.proc.read.entry,
+                addevent.nfsd.proc.write.entry,
+                addevent.nfsd.proc.commit.entry,
+                addevent.nfsd.proc.compound.entry,
+                addevent.nfsd.proc.remove.entry,
+                addevent.nfsd.proc.rename.entry,
+                addevent.nfsd.proc.create.entry
+{}
+
+probe addevent.nfsd.proc.return =
+                addevent.nfsd.proc.lookup.return,
+                addevent.nfsd.proc.read.return,
+                addevent.nfsd.proc.write.return,
+                addevent.nfsd.proc.commit.return,
+                addevent.nfsd.proc.compound.return,
+                addevent.nfsd.proc.remove.return,
+                addevent.nfsd.proc.rename.return,
+                addevent.nfsd.proc.create.return
+{}
+
+probe addevent.nfsd.proc.lookup.entry
+      += _addevent.nfsd.proc.lookup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.lookup.entry
+       = nfsd.proc.lookup
+{
+	log_nfsd_proc_lookup(fh,version,filename)
+}
+
+function log_nfsd_proc_lookup(fh:long,version:long,filename:string)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fh);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_LOOKUP_ENTRY,"%1b%8b%8b%8b%1b%0s",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+                                     THIS->version,THIS->filename);
+%}
+
+probe addevent.nfsd.proc.lookup.return
+      += _addevent.nfsd.proc.lookup.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.lookup.return
+      = nfsd.proc.lookup.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_LOOKUP_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.read.entry
+      += _addevent.nfsd.proc.read.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.read.entry
+       = nfsd.proc.read
+{
+	log_nfsd_proc_read(fh,version,count,offset,vec,vlen)
+}
+
+function log_nfsd_proc_read(fhp:long,version:long,count:long,offset:long,
+                                            vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct kvec * vec = (struct kvec *)THIS->vec;
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_READ_ENTRY,"%1b%8b%8b%8b%1b%8b%8b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+                                      THIS->count,THIS->offset,vec->iov_len,THIS->vlen);
+%}
+
+probe addevent.nfsd.proc.read.return
+      += _addevent.nfsd.proc.read.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.read.return
+      = nfsd.proc.read.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_READ_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.write.entry
+      += _addevent.nfsd.proc.write.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.write.entry
+       = nfsd.proc.write
+{
+	log_nfsd_proc_write(fh,version,count,offset,vec,vlen)
+}
+
+function log_nfsd_proc_write(fhp:long,version:long,count:long,offset:long,
+                                            vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct kvec * vec = (struct kvec *)THIS->vec;
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_WRITE_ENTRY,"%1b%8b%8b%8b%1b%8b%8b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+                                      THIS->count,THIS->offset,vec->iov_len,THIS->vlen);
+%}
+
+probe addevent.nfsd.proc.write.return
+      += _addevent.nfsd.proc.write.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.write.return
+      = nfsd.proc.write.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_WRITE_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.commit.entry
+      += _addevent.nfsd.proc.commit.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.commit.entry
+       = nfsd.proc.commit
+{
+	log_nfsd_proc_commit(fh,version,count,offset)
+}
+
+function log_nfsd_proc_commit(fhp:long,version:long,count:long,offset:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_COMMIT_ENTRY,"%1b%8b%8b%8b%1b%8b%8b",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+                                      THIS->count,THIS->offset);
+%}
+
+probe addevent.nfsd.proc.commit.return
+      += _addevent.nfsd.proc.commit.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.commit.return
+      = nfsd.proc.commit.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_COMMIT_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.compound.entry
+      += _addevent.nfsd.proc.compound.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.compound.entry
+       = nfsd.proc.compound
+{
+	log_nfsd_proc_compound(num)
+}
+
+function log_nfsd_proc_compound(num:long)%{ /*pure*/
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_COMPOUND_ENTRY,"%4b",
+                                      THIS->num);
+%}
+
+probe addevent.nfsd.proc.compound.return
+      += _addevent.nfsd.proc.compound.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.compound.return
+      = nfsd.proc.compound.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_COMPOUND_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.remove.entry
+      += _addevent.nfsd.proc.remove.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.remove.entry
+       = nfsd.proc.remove
+{
+	log_nfsd_proc_remove(fh,version,filename)
+}
+
+function log_nfsd_proc_remove(fhp:long,version:long,filename:string)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_REMOVE_ENTRY,"%1b%8b%8b%8b%1b%0s",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+                                      THIS->filename);
+%}
+
+probe addevent.nfsd.proc.remove.return
+      += _addevent.nfsd.proc.remove.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.remove.return
+      = nfsd.proc.remove.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_REMOVE_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.rename.entry
+      += _addevent.nfsd.proc.rename.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.rename.entry
+       = nfsd.proc.rename
+{
+	log_nfsd_proc_rename(fh,version,filename,tfh,tname)
+}
+
+function log_nfsd_proc_rename(fhp:long,version:long,filename:string,
+                            tfh:long,tname:string)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * tfhp = (struct svc_fh*)(THIS->tfh);
+	__u64 i_ino[3],o_ino[3];
+
+	decode_fh(&fhp->fh_handle,o_ino);	
+	decode_fh(&tfhp->fh_handle,i_ino);	
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_RENAME_ENTRY,"%1b%1b%8b%8b%8b%0s%1b%8b%8b%8b%0s",
+				      THIS->version,(_FMT_)fhp->fh_handle.fh_size,o_ino[0],o_ino[1],o_ino[2],THIS->filename,
+                                         (_FMT_)tfhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->tname);
+%}
+
+probe addevent.nfsd.proc.rename.return
+      += _addevent.nfsd.proc.rename.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.rename.return
+      = nfsd.proc.rename.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_RENAME_RETURN,$return)
+}
+
+probe addevent.nfsd.proc.create.entry
+      += _addevent.nfsd.proc.create.entry
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.create.entry
+       = nfsd.proc.create
+{
+	log_nfsd_proc_create(fh,version,filename)
+}
+
+function log_nfsd_proc_create(fhp:long,version:long,filename:string)%{ /*pure*/
+
+	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	__u64 i_ino[3];
+
+	decode_fh(&fhp->fh_handle,i_ino);		
+	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_CREATE_ENTRY,"%1b%8b%8b%8b%1b%0s",
+				      (_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,THIS->filename);
+%}
+
+probe addevent.nfsd.proc.create.return
+      += _addevent.nfsd.proc.create.return
+{
+	update_record()
+}
+
+probe _addevent.nfsd.proc.create.return
+      = nfsd.proc.create.return
+{
+	log_nfs_return(HOOKID_NFSD_PROC_CREATE_RETURN,$return)
+}

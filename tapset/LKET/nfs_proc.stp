@@ -1,0 +1,611 @@
+// nfs trace hooks
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+%{
+   #include <linux/nfs_fs.h>
+%}
+%{
+        void getdevice(char *sid,int * major,int* min)
+        {
+                char c;
+                char * minor, *p;
+                int i = 0;
+
+                c = ':';
+                minor = strchr(sid,c);
+                minor++;
+
+                p = sid;
+                c = *p;
+                p++;
+                while(c != ':')
+                {
+                        if(c > '0' || c < '9')
+                                i = i << 4 | (c - 48);
+                        else if (c > 'a' || c < 'f')
+                                i = i<< 4 | (c-87);
+                        c = *p;
+                        p++;
+                }
+                *major = i;
+
+                p = minor;
+                c = *minor;
+                p++;
+                while(c != 0)
+                {
+                        if(c > '0' || c < '9')
+                                i = i << 4 | (c - 48);
+                        else if (c > 'a' || c < 'f')
+                                i = i<< 4 | (c-87);
+                        c = *p;
+                        p++;
+                }
+                *min = i;
+        }
+%}
+
+probe never
+{
+	printf("%d",GROUP_NFS)
+}
+probe addevent.nfs.proc
+     = addevent.nfs.proc.entries,
+       addevent.nfs.proc.return
+{}
+
+probe addevent.nfs.proc.entries
+     = addevent.nfs.proc.lookup.entry,
+       addevent.nfs.proc.read.entry,
+       addevent.nfs.proc.write.entry,
+       addevent.nfs.proc.commit.entry,
+       addevent.nfs.proc.read_setup.entry,
+       addevent.nfs.proc.write_setup.entry,
+       addevent.nfs.proc.commit_setup.entry,
+       addevent.nfs.proc.read_done.entry,
+       addevent.nfs.proc.write_done.entry,
+       addevent.nfs.proc.commit_done.entry,
+       addevent.nfs.proc.open.entry,
+       addevent.nfs.proc.release.entry,
+       addevent.nfs.proc.create.entry,
+       addevent.nfs.proc.rename.entry,
+       addevent.nfs.proc.remove.entry
+{}
+
+probe addevent.nfs.proc.return
+     = addevent.nfs.proc.lookup.return,
+       addevent.nfs.proc.read.return,
+       addevent.nfs.proc.write.return,
+       addevent.nfs.proc.commit.return,
+       addevent.nfs.proc.read_done.return,
+       addevent.nfs.proc.write_done.return,
+       addevent.nfs.proc.commit_done.return,
+       addevent.nfs.proc.open.return,
+       addevent.nfs.proc.release.return,
+       addevent.nfs.proc.create.return,
+       addevent.nfs.proc.rename.return,
+       addevent.nfs.proc.remove.return
+{}
+
+probe addevent.nfs.proc.lookup.entry
+     += _addevent.nfs.proc.lookup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.lookup.entry
+     = nfs.proc.lookup
+{
+	log_proc_lookup(version,$dir,filename)
+}
+
+function log_proc_lookup(version:long,dir:long,filename:string)
+%{
+	struct inode * dir =  (struct inode * )THIS->dir;
+	struct super_block * sb = dir->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_LOOKUP_ENTRY,"%1b%1b%8b%1b%0s",(_FMT_)major_device,(_FMT_)minor_device,
+                                                  NFS_FILEID(dir),THIS->version,THIS->filename);
+%}
+
+probe addevent.nfs.proc.lookup.return
+     += _addevent.nfs.proc.lookup.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.lookup.return
+      = nfs.proc.lookup.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_LOOKUP_RETURN,$return)
+}
+
+probe addevent.nfs.proc.read.entry
+     += _addevent.nfs.proc.read.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.read.entry
+     = nfs.proc.read
+{
+	log_proc_read(version,$rdata,count,offset)
+}
+
+function log_proc_read(version:long,rdata:long,count:long,offset:long)
+%{
+	struct nfs_read_data* rdata =  (struct nfs_read_data* )THIS->rdata;
+	struct inode *inode = rdata->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_READ_ENTRY,"%1b%1b%8b%1b%4b%8b",major_device,minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->count,THIS->offset);
+%}
+
+probe addevent.nfs.proc.read.return
+     += _addevent.nfs.proc.read.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.read.return
+      = nfs.proc.read.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_READ_RETURN,$return)
+}
+
+probe addevent.nfs.proc.write.entry
+     += _addevent.nfs.proc.write.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.write.entry
+      = nfs.proc.write
+{
+	log_proc_write(version,$wdata,count,offset)
+}
+
+function log_proc_write(version:long,wdata:long,count:long,offset:long)
+%{
+	struct nfs_write_data* wdata =  (struct nfs_write_data* )THIS->wdata;
+	struct inode *inode = wdata->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_WRITE_ENTRY,"%1b%1b%8b%1b%4b%8b",(_FMT_)major_device,(_FMT_)minor_device,
+                                   NFS_FILEID(inode),THIS->version,THIS->count,THIS->offset);
+%}
+
+probe addevent.nfs.proc.write.return
+     += _addevent.nfs.proc.write.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.write.return
+      = nfs.proc.write.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_WRITE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.commit.entry
+     += _addevent.nfs.proc.commit.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.commit.entry
+      = nfs.proc.commit
+{
+	log_proc_commit(version,$cdata,count,offset)
+}
+
+function log_proc_commit(version:long,cdata:long,count:long,offset:long)
+%{
+	struct nfs_write_data* cdata =  (struct nfs_write_data* )THIS->cdata;
+	struct inode *inode = cdata->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_COMMIT_ENTRY,"%1b%1b%8b%1b%4b%8b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->count,THIS->offset);
+%}
+
+probe addevent.nfs.proc.commit.return
+     += _addevent.nfs.proc.commit.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.commit.return
+      = nfs.proc.commit.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_COMMIT_RETURN,$return)
+}
+
+probe addevent.nfs.proc.read_setup.entry
+     += _addevent.nfs.proc.read_setup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.read_setup.entry
+      = nfs.proc.read_setup
+{
+	log_proc_read_setup(version,$data,count,offset)
+}
+
+function log_proc_read_setup(version:long,data:long,count:long,offset:long)
+%{
+	struct nfs_read_data* data =  (struct nfs_read_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_READSETUP_ENTRY,"%1b%1b%8b%1b%4b%8b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->count,THIS->offset);
+%}
+
+probe addevent.nfs.proc.write_setup.entry
+     += _addevent.nfs.proc.write_setup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.write_setup.entry
+      = nfs.proc.write_setup
+{
+	log_proc_write_setup(version,$data,count,offset,how)
+}
+
+function log_proc_write_setup(version:long,data:long,count:long,offset:long,how:long)
+%{
+	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_WRITESETUP_ENTRY,"%1b%1b%8b%1b%1b%4b%8b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->how,THIS->count,THIS->offset);
+%}
+
+
+probe addevent.nfs.proc.commit_setup.entry
+     += _addevent.nfs.proc.commit_setup.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.commit_setup.entry
+      = nfs.proc.commit_setup
+{
+	log_proc_commit_setup(version,$data,count,offset)
+}
+
+function log_proc_commit_setup(version:long,data:long,count:long,offset:long)
+%{
+	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_COMMITSETUP_ENTRY,"%1b%1b%8b%1b%4b%8b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->count,THIS->offset);
+%}
+
+
+probe addevent.nfs.proc.read_done.entry
+     += _addevent.nfs.proc.read_done.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.read_done.entry
+      = nfs.proc.read_done
+{
+	log_proc_read_done(version,$data,count,status)
+}
+
+function log_proc_read_done(version:long,data:long,count:long,status:long)
+%{
+	struct nfs_read_data* data =  (struct nfs_read_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_READDONE_ENTRY,"%1b%1b%8b%1b%4b%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->status,THIS->count);
+%}
+
+probe addevent.nfs.proc.read_done.return
+     += _addevent.nfs.proc.read_done.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.read_done.return
+      = nfs.proc.read_done.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_READDONE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.write_done.entry
+     += _addevent.nfs.proc.write_done.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.write_done.entry
+      = nfs.proc.write_done
+{
+	log_proc_write_done(version,$data,count,status)
+}
+
+function log_proc_write_done(version:long,data:long,count:long,status:long)
+%{
+	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_WRITEDONE_ENTRY,"%1b%1b%8b%1b%4b%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->status,THIS->count);
+%}
+
+probe addevent.nfs.proc.write_done.return
+     += _addevent.nfs.proc.write_done.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.write_done.return
+      = nfs.proc.write_done.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_WRITEDONE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.commit_done.entry
+     += _addevent.nfs.proc.commit_done.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.commit_done.entry
+      = nfs.proc.commit_done
+{
+	log_proc_commit_done(version,$data,count,status)
+}
+
+function log_proc_commit_done(version:long,data:long,count:long,status:long)
+%{
+	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct inode *inode = data->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_COMMITDONE_ENTRY,"%1b%1b%8b%1b%4b%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->status,THIS->count);
+%}
+
+probe addevent.nfs.proc.commit_done.return
+     += _addevent.nfs.proc.commit_done.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.commit_done.return
+      = nfs.proc.commit_done.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_COMMITDONE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.open.entry
+     += _addevent.nfs.proc.open.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.open.entry
+      = nfs.proc.open
+{
+	log_proc_open(version,$inode,filename,flag,mode)
+}
+
+function log_proc_open(version:long,inode:long,
+                        filename:string,flag:long,mode:long)
+%{
+	struct inode *inode = (struct inode *)THIS->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_OPEN_ENTRY,"%1b%1b%8b%1b%0s%4b%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->filename,THIS->flag,THIS->mode);
+%}
+
+probe addevent.nfs.proc.open.return
+     += _addevent.nfs.proc.open.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.open.return
+      = nfs.proc.open.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_OPEN_RETURN,$return)
+}
+
+probe addevent.nfs.proc.release.entry
+     += _addevent.nfs.proc.release.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.release.entry
+      = nfs.proc.release
+{
+	log_proc_release(version,$inode,filename,flag,mode)
+}
+
+function log_proc_release(version:long,inode:long,
+                           filename:string,flag:long,mode:long)
+%{
+	struct inode *inode = (struct inode *)THIS->inode;
+	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_RELEASE_ENTRY,"%1b%1b%8b%1b%0s%4b%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->filename,THIS->flag,THIS->mode);
+%}
+
+probe addevent.nfs.proc.release.return
+     += _addevent.nfs.proc.release.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.release.return
+      = nfs.proc.release.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_RELEASE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.create.entry
+     += _addevent.nfs.proc.create.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.create.entry
+      = nfs.proc.create
+{
+	log_proc_create(version,$dir,filename,mode)
+}
+
+function log_proc_create(version:long,inode:long,filename:string,mode:long)
+%{
+	struct inode *inode = (struct inode *)THIS->inode;
+       	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_CREATE_ENTRY,"%1b%1b%8b%1b%0s%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                             NFS_FILEID(inode),THIS->version,THIS->filename,THIS->mode);
+%}
+
+probe addevent.nfs.proc.create.return
+     += _addevent.nfs.proc.create.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.create.return
+      = nfs.proc.create.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_CREATE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.remove.entry
+     += _addevent.nfs.proc.remove.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.remove.entry
+      = nfs.proc.remove
+{
+	log_proc_remove(version,$dir,filename)
+}
+
+function log_proc_remove(version:long,inode:long,
+                        filename:string)
+%{
+	struct inode *inode = (struct inode *)THIS->inode;
+       	struct super_block * sb = inode->i_sb;
+	int major_device,minor_device;
+
+	getdevice(sb->s_id,&major_device,&minor_device);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_REMOVE_ENTRY,"%1b%1b%8b%1b%0s%4b",(_FMT_)major_device,(_FMT_)minor_device,
+                                                       NFS_FILEID(inode),THIS->version,THIS->filename);
+%}
+
+probe addevent.nfs.proc.remove.return
+     += _addevent.nfs.proc.remove.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.remove.return
+      = nfs.proc.remove.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_REMOVE_RETURN,$return)
+}
+
+probe addevent.nfs.proc.rename.entry
+     += _addevent.nfs.proc.rename.entry
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.rename.entry
+      = nfs.proc.rename
+{
+	log_proc_rename(version,$old_dir,old_name,$new_dir,new_name)
+}
+
+function log_proc_rename(version:long,old_dir:long,old_name:string,
+                                      new_dir:long,new_name:string)
+%{
+	struct inode *old_dir= (struct inode *)THIS->old_dir;
+	struct inode *new_dir= (struct inode *)THIS->new_dir;
+       	struct super_block * old_sb = old_dir->i_sb;
+       	struct super_block * new_sb = new_dir->i_sb;
+	int major_old,minor_old,major_new,minor_new;
+
+	getdevice(old_sb->s_id,&major_old,&minor_old);
+	getdevice(new_sb->s_id,&major_new,&minor_new);
+	
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_RENAME_ENTRY,"%1b%1b%1b%8b%0s%1b%1b%8b%0s",THIS->version,
+                                             (_FMT_)major_old,(_FMT_)minor_old,NFS_FILEID(old_dir),THIS->old_name,
+					     (_FMT_)major_new,(_FMT_)minor_new,NFS_FILEID(new_dir),THIS->new_name);
+%}
+
+probe addevent.nfs.proc.rename.return
+     += _addevent.nfs.proc.rename.return
+{
+	update_record()
+}
+
+probe _addevent.nfs.proc.rename.return
+      = nfs.proc.rename.return
+{
+	log_nfs_return(HOOKID_NFS_PROC_RENAME_RETURN,$return)
+}
+

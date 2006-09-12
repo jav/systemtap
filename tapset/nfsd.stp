@@ -45,7 +45,7 @@ char * fh_fmt(struct svc_fh * fhp)
  */
 
 /*Get file handler from argp,the index indicates the type of argp*/
-function __get_fh:string (argp:long,index:long) %{ /* pure */
+function __get_fh:long(argp:long,index:long) %{ /* pure */
 	int index = (int)(THIS->index);
 	struct nfsd_diropargs * argp = NULL ;
 	struct nfsd3_diropargs * argp3 = NULL ;
@@ -115,12 +115,13 @@ function __get_fh:string (argp:long,index:long) %{ /* pure */
 	if(fhp == NULL)
 	{
 		_stp_printf("the fhp is NULL");
+		return;
 	}
 	else
 	{
-		buf = fh_fmt(fhp);
-//	_stp_printf("%s:\n",buf);
-		strlcpy (THIS->__retvalue,buf,80);
+	/*	buf = fh_fmt(fhp);
+		strlcpy (THIS->__retvalue,buf,80);*/
+		THIS->__retvalue = (long)fhp;
 	}
 %}
 /*Get file handler from struct svc_fh , it will call
@@ -177,6 +178,7 @@ probe nfsd.proc.entries = nfsd.proc.lookup,
                           nfsd.proc.write,
                           nfsd.proc.commit,
                           nfsd.proc.compound,
+                          nfsd.proc.remove,
                           nfsd.proc.rename,
 			  nfsd.proc.create
 {} 
@@ -186,6 +188,7 @@ probe nfsd.proc.return = nfsd.proc.lookup.return,
                           nfsd.proc.write.return,
                           nfsd.proc.commit.return,
                           nfsd.proc.compound.return,
+                          nfsd.proc.remove.return,
                           nfsd.proc.rename.return,
                           nfsd.proc.create.return
 {} 
@@ -215,7 +218,7 @@ probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") ?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,1)
 
 	filename = kernel_string($argp->name)
@@ -230,7 +233,7 @@ probe nfsd.proc2.lookup.return = kernel.function("nfsd_proc_lookup").return ?,
                           module("nfsd").function("nfsd_proc_lookup").return ?
 {
 	name = "nfsd.proc2.lookup.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
@@ -239,7 +242,7 @@ probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") ?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,1)
 
 	filename = kernel_string($argp->name)
@@ -253,7 +256,7 @@ probe nfsd.proc3.lookup.return = kernel.function("nfsd3_proc_lookup").return ?,
                           module("nfsd").function("nfsd3_proc_lookup").return ?
 {
 	name = "nfsd.proc3.lookup.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -289,7 +292,7 @@ probe nfsd.proc2.read = kernel.function("nfsd_proc_read")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,3)
 
 	count = $argp->count 
@@ -309,7 +312,7 @@ probe nfsd.proc2.read.return = kernel.function("nfsd_proc_read").return?,
                         module("nfsd").function("nfsd_proc_read").return?
 {
 	name = "nfsd.proc2.read.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
@@ -318,7 +321,7 @@ probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,4)
 
 	count = $argp->count 
@@ -338,7 +341,7 @@ probe nfsd.proc3.read.return = kernel.function("nfsd3_proc_read").return?,
                         module("nfsd").function("nfsd3_proc_read").return?
 {
 	name = "nfsd.proc3.read.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -374,7 +377,7 @@ probe nfsd.proc2.write = kernel.function("nfsd_proc_write")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,5)
 
 	count = $argp->len
@@ -394,7 +397,7 @@ probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return?,
                         module("nfsd").function("nfsd_proc_write").return?
 {
 	name = "nfsd.proc2.write.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
@@ -403,7 +406,7 @@ probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,6)
 
 	count = $argp->count 
@@ -424,7 +427,7 @@ probe nfsd.proc3.write.return = kernel.function("nfsd3_proc_write").return?,
                         module("nfsd").function("nfsd3_proc_write").return?
 {
 	name = "nfsd.proc3.write.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -456,7 +459,7 @@ probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,7) 
 
 	count = $argp->count 
@@ -473,7 +476,7 @@ probe nfsd.proc3.commit.return = kernel.function("nfsd3_proc_commit").return?,
                         module("nfsd").function("nfsd3_proc_commit").return?
 {
 	name = "nfsd.proc3.commit.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -497,11 +500,11 @@ probe nfsd.proc.create.return = nfsd.proc2.create.return,
 {}
 
 probe nfsd.proc2.create = kernel.function("nfsd_proc_create")?,
-                         module("nfsd").function("nfsd_proc_create")
+                         module("nfsd").function("nfsd_proc_create")?
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,8)
 
 	filename  = kernel_string($argp->name) 
@@ -512,19 +515,19 @@ probe nfsd.proc2.create = kernel.function("nfsd_proc_create")?,
 }
 
 probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return?,
-                                 module("nfsd").function("nfsd_proc_create").return
+                                 module("nfsd").function("nfsd_proc_create").return?
 {
 	name = "nfsd.proc2.create.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
 probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")?,
-                         module("nfsd").function("nfsd3_proc_create")
+                         module("nfsd").function("nfsd3_proc_create")?
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,9)
 
 	filename  = kernel_string($argp->name) 
@@ -535,10 +538,10 @@ probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")?,
 }
 
 probe nfsd.proc3.create.return =  kernel.function("nfsd3_proc_create").return?,
-                                 module("nfsd").function("nfsd3_proc_create").return
+                                 module("nfsd").function("nfsd3_proc_create").return?
 {
 	name = "nfsd.proc3.create.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -562,11 +565,11 @@ probe nfsd.proc.remove.return = nfsd.proc2.remove.return,
 {}
 
 probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")?,
-                         module("nfsd").function("nfsd_proc_remove")
+                         module("nfsd").function("nfsd_proc_remove")?
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,10)
 
 	filename  = kernel_string($argp->name) 
@@ -577,19 +580,19 @@ probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")?,
 }
 
 probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return?,
-                                 module("nfsd").function("nfsd_proc_remove").return
+                                 module("nfsd").function("nfsd_proc_remove").return?
 {
 	name = "nfsd.proc2.remove.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
 probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")?,
-                         module("nfsd").function("nfsd3_proc_remove")
+                         module("nfsd").function("nfsd3_proc_remove")?
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,11)
 
 	filename  = kernel_string($argp->name) 
@@ -603,7 +606,7 @@ probe nfsd.proc3.remove.return =  kernel.function("nfsd3_proc_remove").return?,
                                  module("nfsd").function("nfsd3_proc_remove").return?
 {
 	name = "nfsd.proc3.remove.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 
@@ -632,7 +635,7 @@ probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV2"
+        version = 2
 	fh = __get_fh($argp,12)
 	tfh = __get_fh($argp,13)
 
@@ -649,7 +652,7 @@ probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return?,
                            module("nfsd").function("nfsd_proc_rename").return?
 {
 	name = "nfsd.proc2.rename.return"
-	version = "NFSV2"
+	version = 2
 	retstr = sprintf("%d",$return)
 }
 
@@ -658,7 +661,7 @@ probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")?,
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV3"
+        version = 3
 	fh = __get_fh($argp,14)
 	tfh = __get_fh($argp,15)
 
@@ -675,7 +678,7 @@ probe nfsd.proc3.rename.return =  kernel.function("nfsd3_proc_rename").return?,
                            module("nfsd").function("nfsd3_proc_rename").return?
 {
 	name = "nfsd.proc3.rename.return"
-	version = "NFSV3"
+	version = 3
 	retstr = sprintf("%d",$return)
 }
 /*
@@ -696,11 +699,11 @@ probe nfsd.proc.compound.return = nfsd.proc4.compound.return
 {}
 
 probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")?,
-                            module("nfsd").function("nfsd4_proc_compound")
+                            module("nfsd").function("nfsd4_proc_compound")?
 {
 	client_ip = $rqstp->rq_addr->sin_addr->s_addr
 	proto = $rqstp->rq_prot
-        version = "NFSV4"
+        version = 4
 
 	num = $args->opcnt
 	op = $args->ops
@@ -710,10 +713,10 @@ probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")?,
 }
 
 probe nfsd.proc4.compound.return = kernel.function("nfsd4_proc_compound").return?,
-                            module("nfsd").function("nfsd4_proc_compound").return
+                            module("nfsd").function("nfsd4_proc_compound").return?
 {
 	name = "nfsd.proc4.compound.return"
-	version = "NFSV4"
+	version = 4
 	retstr = sprintf("%d",$return)
 }
 
@@ -729,7 +732,7 @@ probe nfsd.entries = nfsd.open,
                      nfsd.close
 {}
 
-probe nfsd.return= nfsd.open.return,
+probe nfsd.return = nfsd.open.return,
 	             nfsd.read.return,
                      nfsd.write.return,
                      nfsd.lookup.return,
@@ -748,7 +751,7 @@ probe nfsd.return= nfsd.open.return,
 *  type : type of file(regular file or dir)
 */
 probe nfsd.open = kernel.function("nfsd_open") ?,
-                  module("nfsd").function("nfsd_open")
+                  module("nfsd").function("nfsd_open")?
 {
 	fh = __svc_fh($fhp)
 
@@ -760,7 +763,7 @@ probe nfsd.open = kernel.function("nfsd_open") ?,
 }
 
 probe nfsd.open.return = kernel.function("nfsd_open").return ?,
-                  module("nfsd").function("nfsd_open").return
+                  module("nfsd").function("nfsd_open").return?
 {
 	name = "nfsd.open.return"
 	retstr = sprintf("%d",$return)
@@ -780,6 +783,10 @@ probe nfsd.close = kernel.function("nfsd_close")?,
 	name = "nfsd.close"
 	argstr = sprintf("%s",filename)
 }
+
+probe nfsd.close.return = kernel.function("nfsd_close").return?,
+                   module("nfsd").function("nfsd_close").return?
+{}
 /*probe nfsd.read
 *  Fires when server reads data from a file
 *
@@ -928,7 +935,8 @@ probe nfsd.lookup.return = kernel.function("nfsd_lookup").return?,
 *  filename : file name 
 *  filelen  : the length of file name
 *  type : file type(regular,dir,device,fifo ...)
-*  iap: inode attributes 
+*  iap_valid: Attribute flags
+*  iap_mode : file access mode
 */
 probe nfsd.create = kernel.function("nfsd_create")?,         
                     module("nfsd").function("nfsd_create")?
@@ -938,10 +946,11 @@ probe nfsd.create = kernel.function("nfsd_create")?,
 	filename = kernel_string($fname)
 	filelen = $flen
 	type = $type
-	iap = $iap
+	iap_valid = $iap->ia_valid
+	iap_mode = $iap->ia_mode
 
 	name = "nfsd.create"
-	argstr = sprintf("%s,%d",filename,iap)
+	argstr = sprintf("%s,%d",filename,type)
 }
 
 probe nfsd.create.return = kernel.function("nfsd_create").return?,         
@@ -961,7 +970,8 @@ probe nfsd.create.return = kernel.function("nfsd_create").return?,
 *  fh  : file handle (the first part is the length of the file handle)
 *  filename : file name 
 *  filelen  : the length of file name
-*  iap : inode attributes 
+*  iap_valid: Attribute flags
+*  iap_mode : file access mode
 *  createmode : create mode .The possible values could be:
 *	NFS3_CREATE_EXCLUSIVE,NFS3_CREATE_UNCHECKED,NFS3_CREATE_GUARDED
 *  truncp : trunp arguments, indicates if the file shouldbe truncate
@@ -975,7 +985,8 @@ probe nfsd.createv3 = kernel.function("nfsd_create_v3")?,
 
 	filename = kernel_string($fname)
 	filelen = $flen
-	ia_mode = $iap
+	iap_valid = $iap->ia_valid
+	iap_mode = $iap->ia_mode
 	truncp = $truncp
 	verfier = $verifier
 	createmode = $createmode

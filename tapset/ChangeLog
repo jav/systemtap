@@ -1,3 +1,12 @@
+2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
+	
+	From Li Xuepeng <xuepengl@cn.ibm.com>
+
+	* nfsd.stp, nfs_proc.stp, nfs.stp: 
+	Change NFS file identifier. Change NFS version data type
+	from String to INT. Add version variable to nfs_open 
+	and nfs_release.
+	
 2006-09-11  Li Guanglei <guanglei@cn.ibm.com>
 	
 	From Gui Jian(guijian@cn.ibm.com>

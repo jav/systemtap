@@ -11,7 +11,7 @@ global usr_evt_name, usr_evt_fmt
 %{
 
 #define _MAXGROUPID  20
-#define _MAXHOOKID   40
+#define _MAXHOOKID   80
 
 int get_fmtcode(char *fmt)
 {
@@ -121,6 +121,7 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 
 function register_sys_events()
 {
+	reset_maxaction()
 	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, "STRING", "syscall")
 	register_sys_event(GROUP_SYSCALL, HOOKID_SYSCALL_RETURN, "STRING", "syscall")
 		
@@ -280,6 +281,8 @@ function register_sys_events()
 	register_sys_event(GROUP_AIO, HOOKID_AIO_IO_CANCEL_RETURN,
 		"INT64", "return")
 
+	reset_maxaction()
+
 	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SEND_ENTRY,
 		"INT8:INT8:INT8:INT32", "sig:shared:send2queue:pid")
 	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_SEND_RETURN,
@@ -320,6 +323,332 @@ function register_sys_events()
 
 	register_sys_event(GROUP_CPUFREQ, HOOKID_SWITCH_CPUFREQ,
 		"INT64", "cpufreq")		
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_LLSEEK_ENTRY,
+                "INT8:INT8:INT64:INT64:INT8",
+		"major:minor:ino:offset:origin")
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_LLSEEK_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_READ_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT64",
+		"major:minor:ino:buf:len:pos")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_READ_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_WRITE_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT64",
+		"major:minor:ino:buf:len:pos")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_WRITE_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_AIOREAD_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT64",
+		"major:minor:ino:buf:len:pos")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_AIOREAD_RETURN,
+                "INT32","return")
+	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_AIOWRITE_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT64",
+		"major:minor:ino:buf:len:pos")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_AIOWRITE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_MMAP_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT32",
+		"major:minor:ino:vm_start:vm_end:vm_flags")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_MMAP_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_OPEN_ENTRY,
+                "INT8:INT8:INT64:INT32:STRING",
+		"major:minor:ino:flag:filename")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_OPEN_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_FLUSH_ENTRY,
+                "INT8:INT8:INT64:INT32",
+		"major:minor:ino:ndirty")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_FLUSH_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_RELEASE_ENTRY,
+                "INT8:INT8:INT64:INT16",
+		"major:minor:ino:mode")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_RELEASE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_FSYNC_ENTRY,
+                "INT8:INT8:INT64:INT32",
+		"major:minor:ino:ndirty")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_FSYNC_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_LOCK_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:INT8:INT8:INT32",
+		"major:minor:ino:fl_start:fl_end:fl_type:fl_flag:cmd")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_LOCK_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_SENDFILE_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64",
+		"major:minor:ino:count:pos")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_SENDFILE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_CHECKFLAGS_ENTRY,
+                "INT32","flag")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_FOP_CHECKFLAGS_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_READPAGE_ENTRY,
+                "INT64:INT32:INT64:INT64",
+		"ino:rsize:__page:page_index")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_READPAGE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_READPAGES_ENTRY,
+                "INT64:INT32:INT32",
+		"ino:rpages:nr_pages")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_READPAGES_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGE_ENTRY,
+                "INT64:INT32:INT64:INT64",
+		"ino:wsize:__page:page_index")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGES_ENTRY,
+                "INT64:INT32:INT64",
+		"ino:wpages:nr_to_write")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGES_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_PREPAREWRITE_ENTRY,
+                "INT64:INT64:INT64",
+		"ino:__page:page_index")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_PREPAREWRITE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_COMMITWRITE_ENTRY,
+                "INT64:INT64:INT64:INT32:INT32",
+		"ino:__page:page_index:offset:count")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_COMMITWRITE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_SETPAGEDIRTY_ENTRY,
+                "INT64:INT8",
+		"__page:page_flag")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_SETPAGEDIRTY_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_RELEASEPAGE_ENTRY,
+                "INT64:INT64",
+		"__page:page_index")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_AOP_RELEASEPAGE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_LOOKUP_ENTRY,
+                "INT8:INT8:INT64:INT8:STRING",
+		"major_device:minor_device:fileid:version:filename")		
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_LOOKUP_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_READ_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:count:offset")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_READ_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_WRITE_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:count:offset")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_WRITE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_COMMIT_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:count:offset")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_COMMIT_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_READSETUP_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:count:offset")	
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_WRITESETUP_ENTRY,
+                "INT8:INT8:INT64:INT8:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:how:count:offset")	
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_COMMITSETUP_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT64",
+		"major_device:minor_device:fileid:version:count:offset")	
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_READDONE_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT32",
+		"major_device:minor_device:fileid:version:status:count")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_READDONE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_WRITEDONE_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT32",
+		"major_device:minor_device:fileid:version:status:count")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_WRITEDONE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_COMMITDONE_ENTRY,
+                "INT8:INT8:INT64:INT8:INT32:INT32",
+		"major_device:minor_device:fileid:version:status:count")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_COMMITDONE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_OPEN_ENTRY,
+                "INT8:INT8:INT64:INT8:STRING:INT32:INT32",
+		"major_device:minor_device:fileid:version:filename:flag:mode")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_OPEN_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_RELEASE_ENTRY,
+                "INT8:INT8:INT64:INT8:STRING:INT32:INT32",
+		"major_device:minor_device:fileid:version:filename:flag:mode")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_RELEASE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_CREATE_ENTRY,
+                "INT8:INT8:INT64:INT8:STRING:INT32",
+		"major_device:minor_device:fileid:version:filename:mode")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_CREATE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_RENAME_ENTRY,
+                "INT8:INT8:INT8:INT64:STRING:INT8:INT8:INT64:STRING",
+		"version:major_old:minor_old:fileid_old:filename_old:major_new:minor_new:fileid_new:filename_new")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_RENAME_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_CREATE_ENTRY,
+                "INT8:INT8:INT64:INT8:STRING",
+		"major_device:minor_device:fileid:version:filename")	
+	register_sys_event(GROUP_NFS, HOOKID_NFS_PROC_CREATE_RETURN,
+                "INT32","return")
+
+	reset_maxaction()
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_DISPATCH_ENTRY,
+                "INT8:INT8:INT32:INT32:INT32:INT32",
+		"proto:version:xid:proc:prog:client_ip")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_DISPATCH_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_OPEN_ENTRY,
+                "INT8:INT64:INT64:INT64:INT32:INT8",
+		"size:ino0:ino1:ino2:type:access")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_OPEN_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_READ_ENTRY,
+                "INT8:INT64:INT64:INT64:INT64:INT64:INT64:INT64",
+		"size:ino0:ino1:ino2:count:offset:iov_len:vlen")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_READ_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_WRITE_ENTRY,
+                "INT8:INT64:INT64:INT64:INT64:INT64:INT64:INT64",
+		"size:ino0:ino1:ino2:count:offset:iov_len:vlen")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_WRITE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_LOOKUP_ENTRY,
+                "INT8:INT64:INT64:INT64:STRING",
+		"size:ino0:ino1:ino2:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_LOOKUP_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_COMMIT_ENTRY,
+                "INT8:INT64:INT64:INT64:INT64:INT64",
+		"size:ino0:ino1:ino2:count:offset")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_COMMIT_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CREATE_ENTRY,
+                "INT8:INT64:INT64:INT64:STRING:INT32:INT16:INT32",
+		"size:ino0:ino1:ino2:filename:type:iap_valid:iap_mode")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CREATE_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CREATEV3_ENTRY,
+                "INT8:INT64:INT64:INT64:STRING:INT8:INT16:INT32",
+		"size:ino0:ino1:ino2:filename:createmode:iap_valid:iap_mode")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CREATEV3_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_UNLINK_ENTRY,
+                "INT8:INT64:INT64:INT64:STRING:INT32",
+		"size:ino0:ino1:ino2:filename:type")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_UNLINK_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_RENAME_ENTRY,
+                "INT8:INT64:INT64:INT64:STRING:INT8:INT64:INT64:INT64:STRING",
+		"old_size:old_ino0:old_ino1:old_ino2:old_filename:size:ino0:ino1:ino2:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_RENAME_RETURN,
+                "INT32","return")	
+
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CLOSE_ENTRY,
+                "STRING",
+		"filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CLOSE_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_LOOKUP_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:STRING",
+		"size:ino0:ino1:ino2:version:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_LOOKUP_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_READ_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:INT64:INT64:INT64:INT64",
+		"size:ino0:ino1:ino2:version:count:offset:iov_len:vlen")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_READ_RETURN,
+                "INT32","return")
+	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_WRITE_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:INT64:INT64:INT64:INT64",
+		"size:ino0:ino1:ino2:version:count:offset:iov_len:vlen")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_WRITE_RETURN,
+                "INT32","return")
+	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_COMMIT_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:INT64:INT64",
+		"size:ino0:ino1:ino2:version:count:offset")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_COMMIT_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_COMPOUND_ENTRY,
+                "INT32","num")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_COMPOUND_RETURN,
+                "INT32","return")	
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_REMOVE_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:STRING",
+		"size:ino0:ino1:ino2:version:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_REMOVE_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_RENAME_ENTRY,
+                "INT8:INT8:INT64:INT64:INT64:STRING:INT8:INT64:INT64:INT64:STRING",
+		"version:old_size:old_ino0:old_ino1:old_ino2:old_filename:size:ino0:ino1:ino2:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_RENAME_RETURN,
+                "INT32","return")
+
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_CREATE_ENTRY,
+                "INT8:INT64:INT64:INT64:INT8:STRING",
+		"size:ino0:ino1:ino2:version:filename")	
+	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_CREATE_RETURN,
+                "INT32","return")
+	reset_maxaction()
 }
 
 

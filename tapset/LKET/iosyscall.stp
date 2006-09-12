@@ -524,11 +524,30 @@ function log_iosyscall_sync(hookid:long)
                 current->thread_info->cpu);
 
 #else
-        _stp_printf("%2b%2n%1b%1b%4b%4b%4b%4b%4b%1b", 0,
-		_GROUP_IOSYSCALL, THIS->hookid,
-                tv.tv_sec, tv.tv_usec, current->tgid,
-                current->parent->pid, current->pid,
-                current->thread_info->cpu);
+
+        if(timing_method == TIMING_GETCYCLES) { 
+                _stp_printf("%2b%2n%8b%8b", (_FMT_)0, 
+                        (_FMT_)get_cycles(),
+                        (_FMT_)((int64_t)current->pid << 32 |
+                                (int32_t)GroupID << 24 | (int32_t)hookID << 16 |
+                                (int16_t)current->thread_info->cpu << 8));
+        } 
+        else if(timing_method == TIMING_GETTIMEOFDAY) {
+                struct timeval tv;
+                do_gettimeofday (&tv);
+                _stp_printf("%2b%2n%8b%8b", (_FMT_)0,
+                        (_FMT_)(tv.tv_sec*1000000LL + tv.tv_usec),
+                        (_FMT_)((int64_t)current->pid << 32 |
+                                (int32_t)GroupID << 24 | (int32_t)hookID << 16 |
+                                (int16_t)current->thread_info->cpu << 8));
+        } 
+        else {
+                _stp_printf("%2b%2n%8b%8b", (_FMT_)0,
+                        (_FMT_)pfn_schedclock(),
+                        (_FMT_)((int64_t)current->pid << 32 |
+                                (int32_t)GroupID << 24 | (int32_t)hookID << 16 |
+                                (int16_t)current->thread_info->cpu << 8));
+	}
 #endif
 
 %}

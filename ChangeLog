@@ -1,3 +1,8 @@
+2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Li Xuepeng <xuepengl@cn.ibm.com>
+	* lket.5.in: document nfs trace hooks
+
 2006-09-08  David Smith  <dsmith@redhat.com>
 
 	* elaborate.h (struct derived_probe): Replace emit_registrations()

@@ -479,6 +479,539 @@ Data format is:
 
 .I common_data, ctx_id(INT64), iocb_uaddr(INT64), result_uaddr(INT64)
 
+.SS NFS (GROUPID=16)
+You could use
+.I addevent.nfs
+to trace the detail activities of nfs on client side. 
+It divided into three groups: nfs file operation event hooks(addevent.nfs.fop),
+nfs address space operation event hooks(addevent.nfs.aop), nfs proc event hooks(addevent.nfs.proc).
+It contains 36 entry hooks and 33 corresponding return hooks
+
+All the return hooks will only log the common_data and
+the return value. So in the following subsections, only the entry 
+hooks will be listed:
+
+.P
+.TP
+.B addevent.nfs.fop.llseek.entry (HOOKID=1)
+the entry of nfs_file_llseek 
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I offset(INT32), origin(INR8)
+
+.TP
+.B addevent.nfs.fop.read.entry (HOOKID=3)
+the entry of do_sync_read 
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I buf_addr(INT64), count(INT64) , offset(INT64)
+
+.TP
+.B addevent.nfs.fop.write.entry (HOOKID=5)
+the entry of do_sync_write
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I buf_addr(INT64), count(INT64) , offset(INT64)
+
+.TP
+.B addevent.nfs.fop.aio_read.entry (HOOKID=7)
+the entry of nfs_file_read 
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I buf_addr(INT64), count(INT64) , offset(INT64)
+
+.TP
+.B addevent.nfs.fop.aio_write.entry (HOOKID=9)
+the entry of nfs_file_read 
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I buf_addr(INT64), count(INT64) , offset(INT64)
+
+.TP
+.B addevent.nfs.fop.mmap.entry (HOOKID=11)
+the entry of nfs_file_mmap
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I vm_start(INT64), vm_end(INT64) , vm_flags(INT32)
+
+.TP
+.B addevent.nfs.fop.open.entry (HOOKID=13)
+the entry of nfs_file_open
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I flag(INT32), filename(STRING)
+
+.TP
+.B addevent.nfs.fop.flush.entry (HOOKID=15)
+the entry of nfs_file_flush
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I ndirty(INT32)
+
+.TP
+.B addevent.nfs.fop.release.entry (HOOKID=17)
+the entry of nfs_file_release
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I mode(INT16)
+
+.TP
+.B addevent.nfs.fop.fsync.entry (HOOKID=19)
+the entry of nfs_fsync
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I ndirty(INT32)
+
+.TP
+.B addevent.nfs.fop.lock.entry (HOOKID= 21)
+the entry of nfs_lock
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I fl_start(INT64), fl_end(INT64), fl_type(INT8), fl_flag(INT8), cmd(INT32)
+
+.TP
+.B addevent.nfs.fop.sendfile.entry (HOOKID= 23)
+the entry of nfs_file_sendfile
+
+Data format is:
+
+.I common_data, major_device(INT8), minor_devide(INT8), fileid(INT32), 
+.I count(INT64), ppos(INT64)
+
+.TP
+.B addevent.nfs.fop.checkflags.entry (HOOKID= 25)
+the entry of nfs_check_flags
+
+Data format is:
+
+.I flag(INT32)
+
+.TP
+.B addevent.nfs.aop.readpage.entry (HOOKID= 27)
+the entry of nfs_readpage
+
+Data format is:
+
+.I fileid(INT64), rsize(INT32), page_address(INT64), page_index(INT64)
+
+.TP
+.B addevent.nfs.aop.readpages.entry (HOOKID= 29)
+the entry of nfs_readpages
+
+Data format is:
+
+.I fileid(INT64), rpages(INT32), nr_pages(INT32)
+
+.TP
+.B addevent.nfs.aop.writepage.entry (HOOKID= 31)
+the entry of nfs_writepage
+
+Data format is:
+
+.I fileid(INT64), wsize(INT32), page_address(INT64), page_index(INT64)
+
+.TP
+.B addevent.nfs.aop.writepages.entry (HOOKID= 33)
+the entry of nfs_writepages
+
+Data format is:
+
+.I fileid(INT64), wpages(INT32), nr_to_write(INT64)
+
+.TP
+.B addevent.nfs.aop.prepare_write.entry (HOOKID= 35)
+the entry of nfs_prepare_write
+
+Data format is:
+
+.I fileid(INT64), page_address(INT64), page_index(INT64)
+
+.TP
+.B addevent.nfs.aop.commit_write.entry (HOOKID= 37)
+the entry of nfs_commit_write
+
+Data format is:
+
+.I fileid(INT64), page_address(INT64), page_index(INT64),offset(INT32),count(INT32)
+
+.TP
+.B addevent.nfs.aop.set_page_dirty.entry (HOOKID= 39)
+the entry of __set_page_dirty_nobuffers
+
+Data format is:
+
+.I page_address(INT64), page_flag(INT8)
+
+.TP
+.B addevent.nfs.aop.release_page.entry (HOOKID= 41)
+the entry of nfs_release_page 
+
+Data format is:
+
+.I page_address(INT64), page_index(INT64)
+
+.TP
+.B addevent.nfs.proc.lookup.entry (HOOKID= 43)
+the entry of nfs_proc_lookup , nfs3_proc_lookup and nfs4_proc_lookup
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I filename(STRING)
+
+.TP
+.B addevent.nfs.proc.read.entry (HOOKID= 45)
+the entry of nfs_proc_read, nfs3_proc_read and nfs4_proc_read
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.write.entry (HOOKID= 47)
+the entry of nfs_proc_write, nfs3_proc_write and nfs4_proc_write
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.commit.entry (HOOKID= 49)
+Fires when client writes the buffered data to disk,the buffered data is asynchronously written by client before .
+The commit function works in sync way,not exist in NFSV2
+
+the entry of  nfs3_proc_commit and nfs4_proc_commit
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.read_setup.entry (HOOKID= 51)
+The read_setup function is used to setup a read rpc task,not do a real read operation
+
+the entry of  nfs_proc_read_setup, nfs3_proc_read_setup and nfs4_proc_read_setup
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.write_setup.entry (HOOKID= 52)
+The write_setup function is used to setup a write rpc task,not do a real write operation
+
+the entry of  nfs_proc_write_setup, nfs3_proc_write_setup and nfs4_proc_write_setup
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I how(INT8), count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.commit_setup.entry (HOOKID= 53)
+The commit_setup function is used to setup a commit rpc task,not do a real commit operation.It is not exist in NFSV2
+
+the entry of nfs3_proc_commit_setup and nfs4_proc_commit_setup
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I how(INT8), count(INT32),offset(INT64)
+
+.TP
+.B addevent.nfs.proc.read_done.entry (HOOKID= 54)
+Fires when a read reply is received or some read error occur (timeout or socket shutdown)
+
+the entry of nfs_read_done, nfs3_read_done and nfs4_read_done
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I status(INT32), count(INT32)
+
+.TP
+.B addevent.nfs.proc.write_done.entry (HOOKID= 56)
+Fires when a write reply is received or some write error occur (timeout or socket shutdown)
+
+the entry of nfs_write_done, nfs3_write_done and nfs4_write_done
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I status(INT32), count(INT32)
+
+.TP
+.B addevent.nfs.proc.commit_done.entry (HOOKID= 58)
+Fires when a commit reply is received or some commit operation error occur (timeout or socket shutdown)
+
+the entry of nfs_commit_done, nfs3_commit_done and nfs4_commit_done
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I status(INT32), count(INT32)
+
+.TP
+.B addevent.nfs.proc.open.entry (HOOKID= 60)
+the entry of nfs_open 
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I filename(STRING), flag(INT32), mode(INT32)
+
+.TP
+.B addevent.nfs.proc.release.entry (HOOKID= 62)
+the entry of nfs_release
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I filename(STRING), flag(INT32), mode(INT32)
+
+.TP
+.B addevent.nfs.proc.create.entry (HOOKID= 64)
+the entry of nfs_proc_create, nfs3_proc_create, nfs4_proc_create
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I filename(STRING), mode(INT32)
+
+.TP
+.B addevent.nfs.proc.rename.entry (HOOKID= 66)
+the entry of nfs_proc_rename, nfs3_proc_rename, nfs4_proc_rename
+
+Data format is:
+
+.I version(INT8), major_old(INT8), minor_old(INT8), old_fileid(INT64), old_name(STRING),
+.I major_new(INT8), minor_new(INT8), new_fileid(INT64), new_name(STRING) 
+
+.TP
+.B addevent.nfs.proc.remove.entry (HOOKID= 68)
+the entry of nfs_proc_remove, nfs3_proc_remove, nfs4_proc_remove
+
+Data format is:
+
+.I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
+.I filename(STRING)
+
+.SS NFSD (GROUPID=17)
+You could use
+.I addevent.nfsd
+to trace the detail activities of nfs on server side. 
+It divided into two groups: nfsd operation event hooks(addevent.nfsd.op),
+nfsd proc event hooks(addevent.nfsd.proc).
+It contains 19 entry hooks and 19 corresponding return hooks
+
+All the return hooks will only log the common_data and
+the return value. So in the following subsections, only the entry 
+hooks will be listed:
+
+.P
+.TP
+.B addevent.nfsd.dispatch.entry (HOOKID= 1)
+Fires when server receives a NFS operation from client
+
+the entry of nfsd_dispatch 
+
+Data format is:
+
+.I proto(INT8), version(INT8), xid(INT32), proc(INT32),client_ip(INT32)
+
+.TP
+.B addevent.nfsd.open.entry (HOOKID= 3)
+the entry of nfsd_open
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I type(INT32), access(INT32)
+
+.TP
+.B addevent.nfsd.read.entry (HOOKID= 5)
+the entry of nfsd_read
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
+
+.TP
+.B addevent.nfsd.write.entry (HOOKID= 7)
+the entry of nfsd_write
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
+
+.TP
+.B addevent.nfsd.lookup.entry (HOOKID= 9)
+the entry of nfsd_lookup
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I filename(STRING)
+
+.TP
+.B addevent.nfsd.commit.entry (HOOKID= 11)
+the entry of nfsd_commit
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I count(INT64), offset(INT64)
+
+.TP
+.B addevent.nfsd.create.entry (HOOKID= 13)
+Fires when client creates a file(regular,dir,device,fifo) on server side,
+sometimes nfsd will call nfsd_create_v3 instead of this function
+
+the entry of nfsd_create
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I filename(STRING), type(INT32), iap_valid(INT16), iap_mode(INT32)
+
+.TP
+.B addevent.nfsd.createv3.entry (HOOKID= 15)
+Fires when client creates a regular file or set file attributes on server side,
+only called by nfsd3_proc_create and nfsd4_open(op_claim_type is NFS4_OPEN_CLAIM_NULL)
+
+the entry of nfsd_create_v3
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I filename(STRING), createmode(INT8), iap_valid(INT16), iap_mode(INT32)
+
+.TP
+.B addevent.nfsd.unlink.entry (HOOKID= 17)
+the entry of nfsd_unlink
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), 
+.I filename(STRING), type(INT32)
+
+.TP
+.B addevent.nfsd.rename.entry (HOOKID= 19)
+the entry of nfsd_rename
+
+Data format is:
+
+.I old_fhsize(INT8), old_fh0(INT64), old_fh1(INT64), old_fh2(INT64), old_name(STRING)
+.I new_fhsize(INT8), new_fh0(INT64), new_fh1(INT64), new_fh2(INT64), new_name(STRING)
+
+.TP
+.B addevent.nfsd.close.entry (HOOKID= 21)
+the entry of nfsd_close
+
+Data format is:
+
+.I filename(STRING)
+ 
+.TP
+.B addevent.nfsd.proc.lookup.entry (HOOKID= 23)
+the entry of nfsd_proc_lookup, nfsd3_proc_lookup
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I filename(STRING)
+ 
+.TP
+.B addevent.nfsd.proc.read.entry (HOOKID= 25)
+the entry of nfsd_proc_read, nfsd3_proc_read
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
+ 
+.TP
+.B addevent.nfsd.proc.write.entry (HOOKID= 27)
+the entry of nfsd_proc_write, nfsd3_proc_write
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
+ 
+.TP
+.B addevent.nfsd.proc.commit.entry (HOOKID= 29)
+the entry of nfsd_proc_commit, nfsd3_proc_commit
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I count(INT64), offset(INT64)
+ 
+.TP
+.B addevent.nfsd.proc.commit.entry (HOOKID= 31)
+the entry of nfsd4_proc_compound
+
+Data format is:
+
+.I number(INT32)
+ 
+.TP
+.B addevent.nfsd.proc.remove.entry (HOOKID= 33)
+the entry of nfsd4_proc_compound
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I filename(STRING)
+ 
+.TP
+.B addevent.nfsd.proc.rename.entry (HOOKID= 35)
+the entry of nfsd_proc_rename, nfsd3_proc_rename
+
+Data format is:
+
+.I old_fhsize(INT8), old_fh0(INT64), old_fh1(INT64), old_fh2(INT64), old_name(STRING)
+.I new_fhsize(INT8), new_fh0(INT64), new_fh1(INT64), new_fh2(INT64), new_name(STRING)
+
+.TP
+.B addevent.nfsd.proc.create.entry (HOOKID= 37)
+the entry of nfsd_proc_create, nfsd3_proc_create
+
+Data format is:
+
+.I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
+.I filename(STRING)
+ 
+.TP
 .SH TRACE DATA FORMAT
 
 By default, LKET will log the trace data in binary format.

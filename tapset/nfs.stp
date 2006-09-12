@@ -84,6 +84,18 @@ function __nfs_server_rsize:long (inode:long) %{ /* pure */
        THIS->__retvalue = NFS_SERVER(inode)->rsize;
 %}
 
+/*Get version from struct inode*/
+function __nfs_version:long (inode:long) %{ /* pure */
+       struct inode * inode = (struct inode *)(THIS->inode);
+
+       if(inode == NULL) 
+       {
+           THIS->__retvalue = -1;
+           return;
+       }
+       THIS->__retvalue = NFS_PROTO(inode)->version;
+%}
+
 /*Get wsize from struct inode*/
 function __nfs_server_wsize:long (inode:long) %{ /* pure */
        struct inode * inode = (struct inode *)(THIS->inode);
@@ -273,6 +285,9 @@ probe nfs.fop.llseek = kernel.function ("nfs_file_llseek") ?,
 {
         dev = $filp->f_dentry->d_inode->i_sb->s_dev
         ino = $filp->f_dentry->d_inode->i_ino
+	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
+
         maxbyte = $filp->f_dentry->d_inode->i_sb->s_maxbytes
         offset = $offset
         origin = $origin
@@ -298,6 +313,8 @@ probe nfs.fop.llseek.return = kernel.function ("nfs_file_llseek").return ?,
 */
 probe nfs.fop.read = vfs.do_sync_read
 {
+	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
         name = "nfs.fop.read"
 }
 
@@ -318,6 +335,8 @@ probe nfs.fop.read.return = vfs.do_sync_read.return
 
 probe nfs.fop.write = vfs.do_sync_write
 {
+	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
         name = "nfs.fop.write"
 }
 
@@ -351,6 +370,8 @@ probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
 {
         dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
         ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+	s_id = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         count = $count
         pos = $pos
@@ -404,6 +425,8 @@ probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
 {
         dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
         ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+	s_id = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         count = $count
         pos = $pos
@@ -458,6 +481,8 @@ probe nfs.fop.mmap = kernel.function("nfs_file_mmap") ?,
 {
         dev = $file->f_dentry->d_inode->i_sb->s_dev
         ino = $file->f_dentry->d_inode->i_ino
+	s_id = $file->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         vm_start = $vma->vm_start
         vm_end = $vma->vm_end
@@ -498,6 +523,8 @@ probe nfs.fop.open = kernel.function("nfs_file_open") ?,
 {
         dev = $filp->f_dentry->d_inode->i_sb->s_dev
         ino = $inode->i_ino
+	s_id = $inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         filename = kernel_string($filp->f_dentry->d_name->name)
         flag = $filp->f_flags   
@@ -531,6 +558,8 @@ probe nfs.fop.flush = kernel.function("nfs_file_flush") ?,
 {
         dev = $file->f_dentry->d_inode->i_sb->s_dev
         ino = $file->f_dentry->d_inode->i_ino;
+	s_id = $file->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         mode = $file->f_mode
         ndirty = __nfsi_ndirty($file->f_dentry->d_inode)
@@ -561,6 +590,8 @@ probe nfs.fop.release = kernel.function("nfs_file_release") ?,
 {
         dev = $filp->f_dentry->d_inode->i_sb->s_dev
         ino = $inode->i_ino
+	s_id = $inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         mode = $filp->f_mode
 
@@ -590,6 +621,8 @@ probe nfs.fop.fsync = kernel.function("nfs_fsync") ?,
 {
         dev = $file->f_dentry->d_inode->i_sb->s_dev
         ino = $file->f_dentry->d_inode->i_ino
+	s_id = $file->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         ndirty = __nfsi_ndirty($file->f_dentry->d_inode)
 
@@ -624,6 +657,8 @@ probe nfs.fop.lock = kernel.function("nfs_lock") ?,
 {
         dev = $filp->f_dentry->d_inode->i_sb->s_dev
         ino = $filp->f_dentry->d_inode->i_ino
+	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
  
         i_mode = $filp->f_dentry->d_inode->i_mode
         cmd = $cmd
@@ -669,6 +704,8 @@ probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") ?,
 
         dev = $filp->f_dentry->d_inode->i_sb->s_dev
         ino = $filp->f_dentry->d_inode->i_ino
+	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	devname = kernel_string(s_id)
 
         count = $count
         ppos  = __d_loff_t($ppos)
@@ -801,11 +838,11 @@ probe nfs.aop.readpage.return = kernel.function ("nfs_readpage").return ?,
  * Arguments:
  *   dev : device identifier
  *   ino : inode number   
- *   nr_pages :  number of pages to be read in this execution 
+ *   nr_pages :  number of pages attempted to read in this execution 
  *   file : filp argument
  *   rpages : read size (in pages) 
  *   rsize  : read size (in bytes)
- *   size :  number of pages to be read in this execution 
+ *   size :  number of pages attempted to read in this execution 
  */
 probe nfs.aop.readpages =  kernel.function ("nfs_readpages") ?,
         module("nfs").function ("nfs_readpages") ?
@@ -939,8 +976,8 @@ probe nfs.aop.writepage.return =  kernel.function ("nfs_writepage").return ?,
  *      The priority of wb is decided by above two flags
  *      wsize :  write size
  *      wpages : write size (in pages)
- *      nr_to_write : number of pages to be written in this execution  
- *      size : number of pages to be written in this execution  
+ *      nr_to_write : number of pages attempted to be written in this execution  
+ *      size : number of pages attempted to be written in this execution  
 */
 probe nfs.aop.writepages =  kernel.function ("nfs_writepages") ?,
              module("nfs").function ("nfs_writepages") ?
