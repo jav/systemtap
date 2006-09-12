@@ -261,6 +261,13 @@ Return a simple textual rendering (e.g., "Wed\ Jun\ 30\ 21:49:008\ 1993")
 of the given number of seconds since the epoch, as perhaps returned by
 .IR gettimeofday_s() .
 
+.SS PERFMON
+.TP
+read_counter:long (handle:long)
+Returns the value for the processor's performance counter for the associated
+handle. The body of the a perfmon probe should set record
+the handle being used for that event.
+
 .SH FILES
 .nh
 .IR /usr/share/systemtap/tapset

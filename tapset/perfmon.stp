@@ -1,0 +1,13 @@
+// perfmon 
+// Copyright (C) 2006 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+// timeout (TCP_RTO_MAX)
+function read_counter:long(handle:long)
+%{
+        THIS->__retvalue = _stp_perfmon_read(_pfm_desc, THIS->handle);
+%}

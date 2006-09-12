@@ -860,10 +860,13 @@ Optional Features:
 			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
+  --enable-perfmon                 enable perfmon support (default is disabled)
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-perfmon=DIRECTORY
+                          Path to Perfmon installation to use
   --with-elfutils=DIRECTORY
                           find elfutils source code in DIRECTORY
 
@@ -5078,6 +5081,115 @@ fi
 
 
 
+# Check whether --enable-perfmon or --disable-perfmon was given.
+if test "${enable_perfmon+set}" = set; then
+  enableval="$enable_perfmon"
+  perfmon_support=$enableval
+else
+  perfmon_support=no
+fi;
+
+
+# Check whether --with-perfmon or --without-perfmon was given.
+if test "${with_perfmon+set}" = set; then
+  withval="$with_perfmon"
+
+case "$with_perfmon" in
+yes ) { { echo "$as_me:$LINENO: error: --with-perfmon requires an argument" >&5
+echo "$as_me: error: --with-perfmon requires an argument" >&2;}
+   { (exit 1); exit 1; }; } ;;
+''|no) ;;
+*) perfmon_support=yes ;;
+esac
+fi;
+
+
+if test $perfmon_support = yes; then
+
+
+echo "$as_me:$LINENO: checking for pfm_start in -lpfm" >&5
+echo $ECHO_N "checking for pfm_start in -lpfm... $ECHO_C" >&6
+if test "${ac_cv_lib_pfm_pfm_start+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpfm  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char pfm_start ();
+int
+main ()
+{
+pfm_start ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_pfm_pfm_start=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_pfm_pfm_start=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_pfm_pfm_start" >&5
+echo "${ECHO_T}$ac_cv_lib_pfm_pfm_start" >&6
+if test $ac_cv_lib_pfm_pfm_start = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBPFM 1
+_ACEOF
+
+  LIBS="-lpfm $LIBS"
+
+else
+
+    { { echo "$as_me:$LINENO: error: systemtap cannot find required perfmon libs" >&5
+echo "$as_me: error: systemtap cannot find required perfmon libs" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+  CFLAGS="$CFLAGS -DPERFMON -I$with_perfmon/include"
+  CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
+  LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
+fi
+
 build_elfutils=no
 
 # Check whether --with-elfutils or --without-elfutils was given.
@@ -5123,7 +5235,6 @@ fi
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
-
 
 echo "$as_me:$LINENO: checking for dwfl_module_getsym in -ldw" >&5
 echo $ECHO_N "checking for dwfl_module_getsym in -ldw... $ECHO_C" >&6

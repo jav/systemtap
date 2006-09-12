@@ -230,6 +230,37 @@ named
 where NN is the number of parameters supplied by the macro.  Number
 and string parameters are passed in a type-safe manner.
 
+.SS PERFORMANCE MONITORING HARDWARE
+
+The perfmon family of probe points is used to access the performance
+monitoring hardware available in modern processors. This family of
+probes points needs the perfmon2 support in the kernel to access the
+performance monitoring hardware.
+.PP
+Performance monitor hardware points begin with a 
+.BR perfmon ". "
+The next part of the names the event being counted
+.BR counter("event") .
+The event names are processor implementation specific with the
+execption of the generic
+.BR cycles " and " instructions
+events, which are available on all processors. This sets up a counter
+on the processor to count the number of events occuring on the
+processor. For more details on the performance monitoring events
+available on a specific processor use the command perfmon2 command:
+.SAMPLE
+pfmon -l
+.ESAMPLE
+.TP
+$counter
+is a handle used in the body of the probe for operations
+involving the counter associated with the probe.
+.TP
+read_counter
+is a function that is passed the handle for the perfmon probe and returns
+the current count for the event.
+
+
 .SS IO SCHEDULER
 
 This family of probe points is used to probe the IO scheduler activities.

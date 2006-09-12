@@ -22,6 +22,32 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
+dnl enable option to generate code for using perfmon
+AC_ARG_ENABLE(perfmon,
+	[  --enable-perfmon                 enable perfmon support (default is disabled)],
+	perfmon_support=$enableval, perfmon_support=no)
+
+AC_ARG_WITH([perfmon],
+	     AC_HELP_STRING([--with-perfmon=DIRECTORY],
+			    [Path to Perfmon installation to use]),
+	    [
+case "$with_perfmon" in
+yes ) AC_MSG_ERROR([--with-perfmon requires an argument]) ;;
+''|no) ;;
+*) perfmon_support=yes ;;
+esac])
+
+
+dnl XXX fixme so that it it can use perfmon installed for real
+dnl check that perfmon libraries are actually there
+if test $perfmon_support = yes; then
+  AC_CHECK_LIB(pfm, pfm_start,,[
+    AC_MSG_ERROR([systemtap cannot find required perfmon libs])])
+  CFLAGS="$CFLAGS -DPERFMON -I$with_perfmon/include"
+  CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
+  LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
+fi
+
 build_elfutils=no
 AC_ARG_WITH([elfutils],
             AC_HELP_STRING([--with-elfutils=DIRECTORY],

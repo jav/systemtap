@@ -69,6 +69,9 @@ static struct
 #include "copy.c"
 #include "sym.h"
 #include "alloc.c"
+#ifdef STP_PERFMON
+#include "perf.c"
+#endif
 
 
 /************* Module Stuff ********************/

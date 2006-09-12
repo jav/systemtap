@@ -139,6 +139,7 @@ main (int argc, char * const argv [])
   s.cmd = "";
   s.target_pid = 0;
   s.merge=true;
+  s.perfmon=0;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)  

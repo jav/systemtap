@@ -3790,6 +3790,9 @@ translate_pass (systemtap_session& s)
       if (s.timing)
 	s.op->newline() << "#define STP_TIMING" << " " << s.timing ;
 
+      if (s.perfmon)
+	s.op->newline() << "#define STP_PERFMON";
+
       s.op->newline() << "#include \"runtime.h\"";
       s.op->newline() << "#include \"current.c\"";
       s.op->newline() << "#include \"stack.c\"";

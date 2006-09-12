@@ -1,0 +1,26 @@
+#! stap -p4
+
+# This exercises the perfom tapset.
+# for this to work the following needs to be set up:
+# 1) the processor on machine supported perfmon hardware
+# 2) libpfm and libpfm-devel available on machine
+# 3) systemtap translator built with "--enable-perfmon"
+
+global h1, h2
+global startt, starti
+
+probe perfmon.counter("cycles") { h1=$counter; }
+probe perfmon.counter("instructions") { h2=$counter; }
+
+probe kernel.function("sys_read"){
+    startt=read_counter(h1);
+    starti=read_counter(h2);
+}
+
+probe kernel.function("sys_read").return {
+    stopt=read_counter(h1);
+    stopi=read_counter(h2);
+
+    printf ("time = %d\n", stopt-startt);
+    printf ("instructions = %d\n", stopi-starti);
+} 

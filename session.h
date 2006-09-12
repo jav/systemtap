@@ -78,6 +78,7 @@ struct systemtap_session
   bool unoptimized;
   bool merge;
   int buffer_size;
+  unsigned perfmon;
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit

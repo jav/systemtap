@@ -9,6 +9,7 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
         buildok/seven.stp {setup_kfail 9999 *-*-*}
         buildok/process_test.stp {setup_kfail 9999 *-*-*}
         buildok/syscall.stp {setup_kfail 9999 *-*-*}
+        buildok/perfmon01.stp {setup_kfail 9999 *-*-*}
     }
     if {$rc == 0} { pass $test } else { fail $test }
 }

@@ -122,6 +122,13 @@ derived_probe_group::register_probe(timer_derived_probe* p)
 }
 
 
+void
+derived_probe_group::register_probe(perfmon_derived_probe* p)
+{
+  throw semantic_error ("unexpected registration of a perfmon_derived_probe");
+}
+
+
 // ------------------------------------------------------------------------
 // Members of derived_probe_builder
 

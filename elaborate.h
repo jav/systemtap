@@ -159,6 +159,7 @@ struct mark_derived_probe;
 struct never_derived_probe;
 struct profile_derived_probe;
 struct timer_derived_probe;
+struct perfmon_derived_probe;
 struct unparser;
 
 struct derived_probe_group
@@ -172,6 +173,7 @@ struct derived_probe_group
   virtual void register_probe(never_derived_probe* p);
   virtual void register_probe(profile_derived_probe* p);
   virtual void register_probe(timer_derived_probe* p);
+  virtual void register_probe(perfmon_derived_probe* p);
   virtual size_t size () = 0;
 
   virtual void emit_probes (translator_output* op, unparser* up) = 0;
@@ -265,6 +267,7 @@ private:
   derived_probe_group* never_probe_group;
   derived_probe_group* profile_probe_group;
   derived_probe_group* timer_probe_group;
+  derived_probe_group* perfmon_probe_group;
 
 public:
   derived_probe_group_container ();
@@ -277,6 +280,7 @@ public:
   void register_probe (never_derived_probe* p);
   void register_probe (profile_derived_probe* p);
   void register_probe (timer_derived_probe* p);
+  void register_probe (perfmon_derived_probe* p);
   size_t size () { return (probes.size ()); }
 
   derived_probe* operator[] (size_t n) { return (probes[n]); }
