@@ -1,8 +1,8 @@
 2006-09-12  Will Cohen  <wcohen@redhat.com>
 
 	PR 909
-	* configure: Add perfmon support options.
-	* configure.ac: Regenerated.
+	* configure.ac: Add perfmon support options.
+	* configure: Regenerated.
 
 	* stapfuncs.5.in:
 	* stapprobes.5.in: Document the perfmon support.
