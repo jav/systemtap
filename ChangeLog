@@ -1,3 +1,42 @@
+2006-09-12  Will Cohen  <wcohen@redhat.com>
+
+	PR 909
+	* configure: Add perfmon support options.
+	* configure.ac: Regenerated.
+
+	* stapfuncs.5.in:
+	* stapprobes.5.in: Document the perfmon support.
+
+	* session.h, main.cxx: Track number of perfmon probes.
+	* translate.cxx: Gen STP_PERFMON when perfmon probes.
+
+	* elaborate.h:
+	* elaborate.cxx (derived_probe_group):  Add register_probe() for
+		perfmon probe.
+
+	* tapsets.cxx (derived_probe::emit_common_header): Gen perfmon data.
+	(perfmon_var_expanding_copy_visitor): New struct.
+	(struct perfmon_derived_probe):
+	(struct perfmon_derived_probe_group):
+	(struct perfmon_builder):  New Perfmon probe handling structures.
+	(register_standard_tapsets): Add perfmon tapset binding.
+	(derived_probe_group_container): 
+	(~derived_probe_group_container):
+	(derived_probe_group_container::register_probe):
+	(derived_probe_group_container::emit_probes):
+	(derived_probe_group_container::emit_module_init):
+	(derived_probe_group_container::emit_module_init_call):
+	(derived_probe_group_container::emit_module_exit): Add perfmon tapset.
+
+	* tapset/perfmon.stp: New.
+	* runtime/perf.c: New.
+	* runtime/perf.h: New.
+	* runtime/runtime.h: Include perf.c.
+
+	* testsuite/buildok/perfmon01.stp: Test to exercise perfmon
+		probes.
+	* testsuite/systemtap.pass1-4/buildok.exp: 
+
 2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Li Xuepeng <xuepengl@cn.ibm.com>
