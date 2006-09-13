@@ -5366,8 +5366,6 @@ perfmon_derived_probe_group::emit_probes (translator_output* op, unparser* up)
 void
 perfmon_derived_probe_group::emit_module_init (translator_output* o)
 {
-  string msg(string("Cannot generate perfmon probes"));
-  throw semantic_error(msg);
 }
 #endif /* PERFMON */
 

@@ -1,3 +1,8 @@
+2006-09-13  Will Cohen  <wcohen@redhat.com>
+
+	* tapsets.cxx (perfmon_derived_probe_group::emit_module_init):
+	Do not throw sematic error unless probes actually used.
+	
 2006-09-12  Will Cohen  <wcohen@redhat.com>
 
 	PR 909
