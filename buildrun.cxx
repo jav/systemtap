@@ -128,7 +128,6 @@ run_pass (systemtap_session& s)
   // for now, just spawn stpd
   string stpd_cmd = string("sudo ") 
     + string(PKGLIBDIR) + "/stpd "
-    + (s.bulk_mode ? "" : "-r ")
     + (s.verbose>1 ? "" : "-q ")
     + (s.merge ? "" : "-m ")
     + "-u " + username + " "

@@ -1,3 +1,7 @@
+2006-09-13  Martin Hunt  <hunt@redhat.com>
+
+	* buildrun.cxx (run_pass): Remove "-r" option to stpd.
+
 2006-09-13  Will Cohen  <wcohen@redhat.com>
 
 	* tapsets.cxx (perfmon_derived_probe_group::emit_module_init):
