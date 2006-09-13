@@ -24,8 +24,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <sys/statfs.h>
 #include <pwd.h>
 #include "librelay.h"
 
@@ -37,7 +35,6 @@ int print_only = 0;
 int quiet = 0;
 int merge = 1;
 int verbose = 0;
-int enable_relayfs = 1;
 int target_pid = 0;
 int driver_pid = 0;
 unsigned int buffer_size = 0;
@@ -51,17 +48,6 @@ char *username = NULL;
 uid_t cmd_uid;
 gid_t cmd_gid;
 
- /* relayfs base file name */
-static char stpd_filebase[1024];
-#define RELAYFS_MAGIC			0xF0B4A981
-
-/* stp_check script */
-#ifdef PKGLIBDIR
-char *stp_check=PKGLIBDIR "/stp_check";
-#else
-char *stp_check="stp_check";
-#endif
-
 static void usage(char *prog)
 {
 	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid]\n"
@@ -69,7 +55,6 @@ static void usage(char *prog)
 	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
-	fprintf(stderr, "-r  Disable running stp_check and loading relayfs module.\n");
 	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and stpd will exit when it does.\n");
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
@@ -85,9 +70,7 @@ static void usage(char *prog)
 
 int main(int argc, char **argv)
 {
-	int c, status;
-	pid_t pid;
-	struct statfs st;
+	int c;
 	
 	while ((c = getopt(argc, argv, "mpqrb:n:t:d:c:vo:u:")) != EOF)
 	{
@@ -105,7 +88,7 @@ int main(int argc, char **argv)
 			verbose = 1;
 			break;
 		case 'r':
-			enable_relayfs = 0;
+			fprintf(stderr, "Warning: -r option deprecated. Ignoring...\n");
 			break;
 		case 'b':
 		{
@@ -188,39 +171,7 @@ int main(int argc, char **argv)
 		cmd_gid = getgid();
 	}
 
-	if (enable_relayfs) {
-		/* now run the _stp_check script */
-		if ((pid = fork()) < 0) {
-			perror ("fork of stp_check failed.");
-			exit(-1);
-		} else if (pid == 0) {
-			if (execlp(stp_check, stp_check, NULL) < 0)
-				_exit (-1);
-		}
-		if (waitpid(pid, &status, 0) < 0) {
-			perror("waitpid");
-			exit(-1);
-		}
-		if (WIFEXITED(status) && WEXITSTATUS(status)) {
-			perror (stp_check);
-			fprintf(stderr, "Could not execute %s\n", stp_check);
-			exit(1);
-		}
-	}
-
-	if (statfs("/mnt/relay", &st) == 0
-	    && (int) st.f_type == (int) RELAYFS_MAGIC)
-		sprintf(stpd_filebase, "/mnt/relay/%d/cpu", getpid());
-	else {
-		char *ptr;
-		sprintf(stpd_filebase, "/proc/systemtap/%s", modname);
-		ptr = index(stpd_filebase,'.');
-		if (ptr)
-			*ptr = 0;
-		strcat(stpd_filebase, "/cpu");
-	}
-
-	if (init_stp(stpd_filebase, !quiet)) {
+	if (init_stp(!quiet)) {
 		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
 		exit(1);
 	}

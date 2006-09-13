@@ -1,3 +1,14 @@
+2006-09-13  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c (init_relayfs): Exec stp_check and find
+	relay_filebase.
+
+	* librelay.h (stp_main_loop): Fix declaration of init_stp().
+
+	* stpd.c (usage): Remove "-r" option.
+	(main): Don't find stpd_filebase and don't send it to init_stp().
+	
+
 2006-08-02  Tom Zanussi  <zanussi@us.ibm.com>
 
 	* stpd.c (main): Use modname rather than driver_pid in

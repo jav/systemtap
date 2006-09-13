@@ -38,7 +38,16 @@
 #include <sys/socket.h>
 #include <linux/types.h>
 #include <linux/limits.h>
+#include <sys/wait.h>
+#include <sys/statfs.h>
 #include "librelay.h"
+
+/* stp_check script */
+#ifdef PKGLIBDIR
+char *stp_check=PKGLIBDIR "/stp_check";
+#else
+char *stp_check="stp_check";
+#endif
 
 /* maximum number of CPUs we can handle - change if more */
 #define NR_CPUS 256
@@ -375,6 +384,7 @@ static void read_last_buffers(void)
 	}
 }
 
+#define RELAYFS_MAGIC			0xF0B4A981
 /**
  *	init_relayfs - create files and threads for relayfs processing
  *
@@ -382,9 +392,41 @@ static void read_last_buffers(void)
  */
 int init_relayfs(void)
 {
-	int i, j;
+	int i, j, wstat;
+	pid_t pid;
+	struct statfs st;
+
 	dbug("initializing relayfs\n");
 
+	/* first run the _stp_check script */
+	if ((pid = fork()) < 0) {
+		perror ("fork of stp_check failed.");
+		exit(-1);
+	} else if (pid == 0) {
+		if (execlp(stp_check, stp_check, NULL) < 0)
+			_exit (-1);
+	}
+	if (waitpid(pid, &wstat, 0) < 0) {
+		perror("waitpid");
+		exit(-1);
+	}
+	if (WIFEXITED(wstat) && WEXITSTATUS(wstat)) {
+		perror (stp_check);
+		fprintf(stderr, "Could not execute %s\n", stp_check);
+		exit(1);
+	}
+	
+	if (statfs("/mnt/relay", &st) == 0 && (int) st.f_type == (int) RELAYFS_MAGIC)
+		sprintf(params.relay_filebase, "/mnt/relay/%d/cpu", getpid());
+	else {
+		char *ptr;
+		sprintf(params.relay_filebase, "/proc/systemtap/%s", modname);
+		ptr = index(params.relay_filebase,'.');
+		if (ptr)
+			*ptr = 0;
+		strcat(params.relay_filebase, "/cpu");
+	}
+	
 	for (i = 0; i < ncpus; i++) {
 		if (open_relayfs_files(i, params.relay_filebase) < 0) {
 			fprintf(stderr, "ERROR: couldn't open relayfs files, cpu = %d\n", i);
@@ -468,12 +510,11 @@ static void cleanup_and_exit (int);
 
 /**
  *	init_stp - initialize the app
- *	@relay_filebase: full path of base name of the per-cpu relayfs files
  *	@print_summary: boolean, print summary or not at end of run
  *
  *	Returns 0 on success, negative otherwise.
  */
-int init_stp(const char *relay_filebase, int print_summary)
+int init_stp(int print_summary)
 {
 	char buf[1024];
 	struct transport_info ti;
@@ -505,9 +546,6 @@ int init_stp(const char *relay_filebase, int print_summary)
 		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modpath);
 		return -1;
 	}
-
-	if (relay_filebase)
-		strcpy(params.relay_filebase, relay_filebase);
 	
 	sprintf (proc_filebase, "/proc/systemtap/%s", modname);
 	char *ptr = index(proc_filebase,'.');
