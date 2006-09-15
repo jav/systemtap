@@ -1,3 +1,11 @@
+2006-09-15  Li Guanglei <guanglei@cn.ibm.com>
+
+	* *.stp: Make sure all integers passed into _lket_trace()
+	are casted into int64_t explicitly. Delete calling to 
+	filter_by_pid()
+	* nfs*.stp: change addevent.*.entries to addevent.*.entry.
+	Reformating of some calls to _lket_trace().
+	
 2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
 
 	* iosyscall.stp: change log_iosyscall_sync() be sync

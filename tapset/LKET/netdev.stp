@@ -38,8 +38,7 @@ probe addevent.netdev.transmit
 probe _addevent.netdev.transmit
 	=  netdev.transmit
 {
-	if(filter_by_pid() == 1 )
-		log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb)
+	log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb)
 }
 
 function log_netdev_extra(var_id:long, var:long)

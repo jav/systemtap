@@ -3,14 +3,14 @@ probe never
 	printf("%d",GROUP_NFS)
 }
 probe addevent.nfs
-       = addevent.nfs.entries,
+       = addevent.nfs.entry,
          addevent.nfs.return
 {}
 
-probe addevent.nfs.entries
-	= addevent.nfs.fop.entries,
-	  addevent.nfs.aop.entries,
-	  addevent.nfs.proc.entries
+probe addevent.nfs.entry
+	= addevent.nfs.fop.entry,
+	  addevent.nfs.aop.entry,
+	  addevent.nfs.proc.entry
 {}
 
 probe addevent.nfs.return
@@ -20,11 +20,11 @@ probe addevent.nfs.return
 {}
 
 probe addevent.nfs.fop
-      = addevent.nfs.fop.entries,
+      = addevent.nfs.fop.entry,
         addevent.nfs.fop.return
 {}
 
-probe addevent.nfs.fop.entries
+probe addevent.nfs.fop.entry
        =
        addevent.nfs.fop.llseek.entry,
        addevent.nfs.fop.read.entry,
@@ -227,8 +227,9 @@ function log_fop_mmap(s_id:long,ino:long,vm_start:long,
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_MMAP_ENTRY,"%1b%1b%8b%8b%8b%4b",(_FMT_)major,(_FMT_)minor,
-			                  THIS->ino,THIS->vm_start,THIS->vm_end,THIS->vm_flags);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_MMAP_ENTRY,"%1b%1b%8b%8b%8b%4b",
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->vm_start,
+		THIS->vm_end,THIS->vm_flags);
 %}
 
 probe addevent.nfs.fop.mmap.return
@@ -261,7 +262,8 @@ function log_fop_open(s_id:long,ino:long,flag :long , filename:string)
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_OPEN_ENTRY,"%1b%1b%8b%4b%0s",(_FMT_)major,(_FMT_)minor,
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_OPEN_ENTRY,"%1b%1b%8b%4b%0s",
+		(_FMT_)major,(_FMT_)minor,
 			                                     THIS->ino,THIS->flag,THIS->filename);
 %}
 
@@ -295,8 +297,8 @@ function log_fop_flush(s_id:long,ino:long,ndirty:long)
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_FLUSH_ENTRY,"%1b%1b%8b%4b",(_FMT_)major,(_FMT_)minor,
-			                                       THIS->ino,THIS->ndirty);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_FLUSH_ENTRY,"%1b%1b%8b%4b",
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->ndirty);
 %}
 
 probe addevent.nfs.fop.flush.return
@@ -329,8 +331,9 @@ function log_fop_release(s_id:long,ino:long,mode:long)
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_RELEASE_ENTRY,"%1b%1b%8b%2b",(_FMT_)major,(_FMT_)minor,
-			                                     THIS->ino,THIS->mode);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_RELEASE_ENTRY,"%1b%1b%8b%2b",
+		(_FMT_)major,(_FMT_)minor,
+		THIS->ino,THIS->mode);
 %}
 
 probe addevent.nfs.fop.release.return
@@ -363,8 +366,8 @@ function log_fop_fsync(s_id:long,ino:long,ndirty:long)
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_FSYNC_ENTRY,"%1b%1b%8b%4b",(_FMT_)major,(_FMT_)minor,
-			                                    THIS->ino,THIS->ndirty);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_FSYNC_ENTRY,"%1b%1b%8b%4b",
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->ndirty);
 %}
 
 probe addevent.nfs.fop.fsync.return
@@ -397,9 +400,9 @@ function log_fop_lock(s_id:long,ino:long,fl_start:long,fl_end:long,fl_type:long,
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_LOCK_ENTRY,"%1b%1b%8b%8b%8b%1b%1b%4b",(_FMT_)major,(_FMT_)minor,
-			                             THIS->ino,THIS->fl_start,THIS->fl_end,
-						     THIS->fl_type,THIS->fl_flag,THIS->cmd);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_LOCK_ENTRY,"%1b%1b%8b%8b%8b%1b%1b%4b",
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->fl_start,THIS->fl_end,
+		THIS->fl_type,THIS->fl_flag,THIS->cmd);
 %}
 
 probe addevent.nfs.fop.lock.return
@@ -432,8 +435,8 @@ function log_fop_sendfile(s_id:long,ino:long,count:long,ppos:long)
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_SENDFILE_ENTRY,"%1b%1b%8b%8b%8b",(_FMT_)major,(_FMT_)minor,
-			                                       THIS->ino,THIS->count,THIS->ppos);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_SENDFILE_ENTRY,"%1b%1b%8b%8b%8b",
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->count,THIS->ppos);
 %}
 
 probe addevent.nfs.fop.sendfile.return
@@ -483,7 +486,7 @@ probe addevent.nfs.aop
         addevent.nfs.aop.return
 {}
 
-probe addevent.nfs.aop.entries
+probe addevent.nfs.aop.entry
        =
        addevent.nfs.aop.readpage.entry,
        addevent.nfs.aop.readpages.entry,
@@ -521,7 +524,8 @@ probe _addevent.nfs.aop.readpages.entry
 
 function log_aop_readpages(ino:long,rpages:long,nr_pages:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_READPAGES_ENTRY,"%8b%4b%4b",THIS->ino,THIS->rpages,THIS->nr_pages);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_READPAGES_ENTRY,"%8b%4b%4b",
+		THIS->ino,THIS->rpages,THIS->nr_pages);
 %}
 
 probe addevent.nfs.aop.readpages.return
@@ -550,7 +554,8 @@ probe _addevent.nfs.aop.readpage.entry
 
 function log_aop_readpage(ino:long,rsize:long,__page:long,page_index:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_READPAGE_ENTRY,"%8b%4b%8b%8b",THIS->ino,THIS->rsize,THIS->__page,THIS->page_index);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_READPAGE_ENTRY,"%8b%4b%8b%8b",
+		THIS->ino,THIS->rsize,THIS->__page,THIS->page_index);
 %}
 
 probe addevent.nfs.aop.readpage.return
@@ -579,7 +584,8 @@ probe _addevent.nfs.aop.writepage.entry
 
 function log_aop_writepage(ino:long,wsize:long,__page:long,page_index:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_WRITEPAGE_ENTRY,"%8b%4b%8b%8b",THIS->ino,THIS->wsize,THIS->__page,THIS->page_index);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_WRITEPAGE_ENTRY,"%8b%4b%8b%8b",
+		THIS->ino,THIS->wsize,THIS->__page,THIS->page_index);
 %}
 
 probe addevent.nfs.aop.writepage.return
@@ -608,7 +614,8 @@ probe _addevent.nfs.aop.writepages.entry
 
 function log_aop_writepages(ino:long,wpages:long,nr_to_write:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_WRITEPAGES_ENTRY,"%8b%4b%8b",THIS->ino,THIS->wpages,THIS->nr_to_write);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_WRITEPAGES_ENTRY,"%8b%4b%8b",
+		THIS->ino,THIS->wpages,THIS->nr_to_write);
 %}
 
 probe addevent.nfs.aop.writepages.return
@@ -637,7 +644,8 @@ probe _addevent.nfs.aop.prepare_write.entry
 
 function log_aop_prepare_write(ino:long,__page:long,page_index:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_PREPAREWRITE_ENTRY,"%8b%8b%8b",THIS->ino,THIS->__page,THIS->page_index);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_PREPAREWRITE_ENTRY,"%8b%8b%8b",
+		THIS->ino,THIS->__page,THIS->page_index);
 %}
 
 probe addevent.nfs.aop.prepare_write.return
@@ -666,8 +674,8 @@ probe _addevent.nfs.aop.commit_write.entry
 
 function log_aop_commit_write(ino:long,__page:long,page_index:long,offset:long,count:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_COMMITWRITE_ENTRY,"%8b%8b%8b%4b%4b",THIS->ino,THIS->__page,
-                                             THIS->page_index,THIS->offset,THIS->count);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_COMMITWRITE_ENTRY,"%8b%8b%8b%4b%4b",
+		THIS->ino,THIS->__page, THIS->page_index,THIS->offset,THIS->count);
 %}
 
 probe addevent.nfs.aop.commit_write.return
@@ -696,7 +704,8 @@ probe _addevent.nfs.aop.set_page_dirty.entry
 
 function log_aop_set_page_dirty(__page:long,page_flag:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_SETPAGEDIRTY_ENTRY,"%8b%1b",THIS->__page,THIS->page_flag);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_SETPAGEDIRTY_ENTRY,"%8b%1b",
+		THIS->__page,THIS->page_flag);
 %}
 
 probe addevent.nfs.aop.set_page_dirty.return
@@ -725,7 +734,8 @@ probe _addevent.nfs.aop.release_page.entry
 
 function log_aop_release_page(__page:long,page_index:long)
 %{/*pure*/
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_RELEASEPAGE_ENTRY,"%8b%8b",THIS->__page,THIS->page_index);
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_AOP_RELEASEPAGE_ENTRY,"%8b%8b",
+		THIS->__page,THIS->page_index);
 %}
 
 probe addevent.nfs.aop.release_page.return

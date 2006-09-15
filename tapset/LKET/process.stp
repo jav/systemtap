@@ -10,7 +10,7 @@ function log_execve_tracedata(var_id:long, var:long)
 %{
 	long tmp=(long)THIS->var;
 	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b%0s", 
-		current->tgid, (char *)tmp); 
+		(_FMT_)current->tgid, (char *)tmp); 
 %}
 
 
@@ -72,9 +72,7 @@ probe addevent.process.execve
 probe _addevent.process.execve
 	=  process.exec
 {
-	if(filter_by_pid() == 1 ) {
-		log_execve_tracedata(HOOKID_PROCESS_EXECVE, $filename)
-	}
+	log_execve_tracedata(HOOKID_PROCESS_EXECVE, $filename)
 }
 
 probe addevent.process.fork
@@ -86,7 +84,5 @@ probe addevent.process.fork
 probe _addevent.process.fork
 	= process.create
 {
-	if(filter_by_pid() == 1 ) {
-		log_fork_tracedata(HOOKID_PROCESS_FORK, $return)
-	}
+	log_fork_tracedata(HOOKID_PROCESS_FORK, $return)
 }

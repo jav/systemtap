@@ -69,9 +69,7 @@ probe addevent.iosyscall.open.entry
 probe _addevent.iosyscall.open.entry 
 	= syscall.open
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_open(HOOKID_IOSYSCALL_OPEN_ENTRY, 
-			filename, flags, mode)
+	log_iosyscall_open(HOOKID_IOSYSCALL_OPEN_ENTRY, filename, flags, mode)
 }
 
 probe addevent.iosyscall.open.return
@@ -83,8 +81,7 @@ probe addevent.iosyscall.open.return
 probe _addevent.iosyscall.open.return 
 	= syscall.open.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_OPEN_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_OPEN_RETURN, $return)
 }
 
 function log_iosyscall_open(hookid:long, filename:string, flags:long, mode:long)
@@ -110,8 +107,7 @@ probe addevent.iosyscall.close.entry
 probe _addevent.iosyscall.close.entry 
 	= syscall.close
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_close(HOOKID_IOSYSCALL_CLOSE_ENTRY,fd)
+	log_iosyscall_close(HOOKID_IOSYSCALL_CLOSE_ENTRY,fd)
 }
 
 probe addevent.iosyscall.close.return
@@ -123,8 +119,7 @@ probe addevent.iosyscall.close.return
 probe _addevent.iosyscall.close.return 
 	= syscall.close.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_CLOSE_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_CLOSE_RETURN, $return)
 }
 
 function log_iosyscall_close(hookid:long, fd:long)
@@ -144,9 +139,7 @@ probe addevent.iosyscall.read.entry
 probe _addevent.iosyscall.read.entry
 	= syscall.read
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_read_write(HOOKID_IOSYSCALL_READ_ENTRY, fd, 
-			buf_uaddr, count)
+	log_iosyscall_read_write(HOOKID_IOSYSCALL_READ_ENTRY, fd, buf_uaddr, count)
 }
 
 probe addevent.iosyscall.read.return
@@ -158,8 +151,7 @@ probe addevent.iosyscall.read.return
 probe _addevent.iosyscall.read.return
 	= syscall.read.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_READ_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_READ_RETURN, $return)
 }
 
 /*
@@ -174,9 +166,7 @@ probe addevent.iosyscall.write.entry
 probe _addevent.iosyscall.write.entry
 	= syscall.write
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_read_write(HOOKID_IOSYSCALL_WRITE_ENTRY, fd, 
-			buf_uaddr, count)
+	log_iosyscall_read_write(HOOKID_IOSYSCALL_WRITE_ENTRY, fd, buf_uaddr, count)
 }
 
 probe addevent.iosyscall.write.return
@@ -188,8 +178,7 @@ probe addevent.iosyscall.write.return
 probe _addevent.iosyscall.write.return
 	= syscall.write.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_WRITE_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_WRITE_RETURN, $return)
 }
 	
 function log_iosyscall_read_write(hookid:long, fd:long, buf_uaddr:long,
@@ -211,9 +200,7 @@ probe addevent.iosyscall.readv.entry
 probe _addevent.iosyscall.readv.entry
 	= syscall.readv
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_readv_writev(HOOKID_IOSYSCALL_READV_ENTRY, 
-			fd, vector_uaddr, count)
+	log_iosyscall_readv_writev(HOOKID_IOSYSCALL_READV_ENTRY, fd, vector_uaddr, count)
 }
 
 probe addevent.iosyscall.readv.return
@@ -225,8 +212,7 @@ probe addevent.iosyscall.readv.return
 probe _addevent.iosyscall.readv.return
 	= syscall.readv.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_READV_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_READV_RETURN, $return)
 }
 	
 /*
@@ -241,9 +227,7 @@ probe addevent.iosyscall.writev.entry
 probe _addevent.iosyscall.writev.entry
 	= syscall.writev
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_readv_writev(HOOKID_IOSYSCALL_WRITEV_ENTRY, 
-			fd, vector_uaddr, count)
+	log_iosyscall_readv_writev(HOOKID_IOSYSCALL_WRITEV_ENTRY, fd, vector_uaddr, count)
 }
 
 probe addevent.iosyscall.writev.return
@@ -255,8 +239,7 @@ probe addevent.iosyscall.writev.return
 probe _addevent.iosyscall.writev.return
 	= syscall.writev.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_WRITEV_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_WRITEV_RETURN, $return)
 }
 	
 function log_iosyscall_readv_writev(hookid:long, fd:long, 
@@ -278,9 +261,8 @@ probe addevent.iosyscall.pread64.entry
 probe _addevent.iosyscall.pread64.entry
 	= syscall.pread64
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PREAD64_ENTRY, 
-			fd, buf_uaddr, count, offset)
+	log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PREAD64_ENTRY, 
+		fd, buf_uaddr, count, offset)
 }
 
 probe addevent.iosyscall.pread64.return
@@ -292,8 +274,7 @@ probe addevent.iosyscall.pread64.return
 probe _addevent.iosyscall.pread64.return
 	= syscall.pread64.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_PREAD64_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_PREAD64_RETURN, $return)
 }
 
 /*
@@ -308,9 +289,8 @@ probe addevent.iosyscall.pwrite64.entry
 probe _addevent.iosyscall.pwrite64.entry
 	= syscall.pwrite64
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PWRITE64_ENTRY,
-			fd, buf_uaddr, count, offset);
+	log_iosyscall_pread64_pwrite64(HOOKID_IOSYSCALL_PWRITE64_ENTRY,
+		fd, buf_uaddr, count, offset);
 }
 
 probe addevent.iosyscall.pwrite64.return
@@ -322,8 +302,7 @@ probe addevent.iosyscall.pwrite64.return
 probe _addevent.iosyscall.pwrite64.return
 	= syscall.pwrite64.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_PWRITE64_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_PWRITE64_RETURN, $return)
 }
 
 function log_iosyscall_pread64_pwrite64(hookid:long, fd:long, 
@@ -345,9 +324,7 @@ probe addevent.iosyscall.readahead.entry
 probe _addevent.iosyscall.readahead.entry
 	= syscall.readahead
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_readahead(HOOKID_IOSYSCALL_READAHEAD_ENTRY,
-			fd, offset, count)
+	log_iosyscall_readahead(HOOKID_IOSYSCALL_READAHEAD_ENTRY, fd, offset, count)
 }
 
 probe addevent.iosyscall.readahead.return
@@ -359,8 +336,7 @@ probe addevent.iosyscall.readahead.return
 probe _addevent.iosyscall.readahead.return
 	= syscall.readahead.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_READAHEAD_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_READAHEAD_RETURN, $return)
 }
 
 
@@ -382,9 +358,8 @@ probe addevent.iosyscall.sendfile.entry
 probe _addevent.iosyscall.sendfile.entry
 	= syscall.sendfile
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_sendfile(HOOKID_IOSYSCALL_SENDFILE_ENTRY,
-			out_fd, in_fd, offset_uaddr, count)
+	log_iosyscall_sendfile(HOOKID_IOSYSCALL_SENDFILE_ENTRY,
+		out_fd, in_fd, offset_uaddr, count)
 }
 
 probe addevent.iosyscall.sendfile.return
@@ -396,8 +371,7 @@ probe addevent.iosyscall.sendfile.return
 probe _addevent.iosyscall.sendfile.return
 	= syscall.sendfile.return
 {
-	if(filter_by_pid() == 1 )
-		 log_iosyscall_return(HOOKID_IOSYSCALL_SENDFILE_RETURN, $return)
+	 log_iosyscall_return(HOOKID_IOSYSCALL_SENDFILE_RETURN, $return)
 }
 	
 function log_iosyscall_sendfile(hookid:long, out_fd:long, in_fd:long,
@@ -421,9 +395,7 @@ probe addevent.iosyscall.lseek.entry
 probe _addevent.iosyscall.lseek.entry
 	= syscall.lseek
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_lseek(HOOKID_IOSYSCALL_LSEEK_ENTRY,
-			fildes, offset, whence)
+	log_iosyscall_lseek(HOOKID_IOSYSCALL_LSEEK_ENTRY, fildes, offset, whence)
 }
 
 probe addevent.iosyscall.lseek.return
@@ -435,8 +407,7 @@ probe addevent.iosyscall.lseek.return
 probe _addevent.iosyscall.lseek.return
 	= syscall.lseek.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_LSEEK_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_LSEEK_RETURN, $return)
 }
 
 function log_iosyscall_lseek(hookid:long, fd:long, offset:long, whence:long)
@@ -457,9 +428,8 @@ probe addevent.iosyscall.llseek.entry
 probe _addevent.iosyscall.llseek.entry
 	= syscall.llseek
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_llseek(HOOKID_IOSYSCALL_LLSEEK_ENTRY,
-			fd, offset_high, offset_low, result_uaddr, whence)
+	log_iosyscall_llseek(HOOKID_IOSYSCALL_LLSEEK_ENTRY, 
+		fd, offset_high, offset_low, result_uaddr, whence)
 }
 
 probe addevent.iosyscall.llseek.return
@@ -471,8 +441,7 @@ probe addevent.iosyscall.llseek.return
 probe _addevent.iosyscall.llseek.return
 	= syscall.llseek.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_LLSEEK_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_LLSEEK_RETURN, $return)
 }
 
 function log_iosyscall_llseek(hookid:long, fd:long, offset_high:long, 
@@ -496,8 +465,7 @@ probe addevent.iosyscall.sync.entry
 probe _addevent.iosyscall.sync.entry
 	= syscall.sync
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_sync(HOOKID_IOSYSCALL_SYNC_ENTRY)
+	log_iosyscall_sync(HOOKID_IOSYSCALL_SYNC_ENTRY)
 }
 
 probe addevent.iosyscall.sync.return
@@ -509,8 +477,7 @@ probe addevent.iosyscall.sync.return
 probe _addevent.iosyscall.sync.return
 	= syscall.sync.return
 {
-	if(filter_by_pid() == 1 )
-		 log_iosyscall_return(HOOKID_IOSYSCALL_SYNC_RETURN, $return)
+	 log_iosyscall_return(HOOKID_IOSYSCALL_SYNC_RETURN, $return)
 }
 
 function log_iosyscall_sync(hookid:long)
@@ -565,8 +532,7 @@ probe addevent.iosyscall.fsync.entry
 probe _addevent.iosyscall.fsync.entry
 	= syscall.fsync
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_fsync(HOOKID_IOSYSCALL_FSYNC_ENTRY, fd)
+	log_iosyscall_fsync(HOOKID_IOSYSCALL_FSYNC_ENTRY, fd)
 }
 
 probe addevent.iosyscall.fsync.return
@@ -578,8 +544,7 @@ probe addevent.iosyscall.fsync.return
 probe _addevent.iosyscall.fsync.return
 	= syscall.fsync.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_FSYNC_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_FSYNC_RETURN, $return)
 }
 	
 /*
@@ -595,8 +560,7 @@ probe addevent.iosyscall.fdatasync.entry
 probe _addevent.iosyscall.fdatasync.entry
 	= syscall.fdatasync
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_fsync(HOOKID_IOSYSCALL_FDATASYNC_ENTRY, fd)
+	log_iosyscall_fsync(HOOKID_IOSYSCALL_FDATASYNC_ENTRY, fd)
 }
 
 probe addevent.iosyscall.fdatasync.return
@@ -608,8 +572,7 @@ probe addevent.iosyscall.fdatasync.return
 probe _addevent.iosyscall.fdatasync.return
 	= syscall.fdatasync.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_FDATASYNC_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_FDATASYNC_RETURN, $return)
 }
 
 function log_iosyscall_fsync(hookid:long, fd:long)
@@ -630,9 +593,7 @@ probe addevent.iosyscall.flock.entry
 probe _addevent.iosyscall.flock.entry
 	= syscall.flock
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_flock(HOOKID_IOSYSCALL_FLOCK_ENTRY,
-			fd, operation)
+	log_iosyscall_flock(HOOKID_IOSYSCALL_FLOCK_ENTRY, fd, operation)
 }
 
 probe addevent.iosyscall.flock.return
@@ -644,8 +605,7 @@ probe addevent.iosyscall.flock.return
 probe _addevent.iosyscall.flock.return
 	= syscall.flock.return
 {
-	if(filter_by_pid() == 1 )
-		log_iosyscall_return(HOOKID_IOSYSCALL_FLOCK_RETURN, $return)
+	log_iosyscall_return(HOOKID_IOSYSCALL_FLOCK_RETURN, $return)
 }
 
 function log_iosyscall_flock(hookid:long, fd:long, operation:long)
