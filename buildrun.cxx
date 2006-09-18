@@ -129,7 +129,6 @@ run_pass (systemtap_session& s)
   string stpd_cmd = string("sudo ") 
     + string(PKGLIBDIR) + "/stpd "
     + (s.verbose>1 ? "" : "-q ")
-    + (s.merge ? "" : "-m ")
     + "-u " + username + " "
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   

@@ -1,3 +1,9 @@
+2006-09-18  Martin Hunt  <hunt@redhat.com>
+
+	* buildrun.cxx (run_pass): Remove "-m" option to stpd.
+	* translate.cxx (translate_pass): #define STP_RELAYFS_MERGE
+	if appropriate.
+	
 2006-09-13  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (run_pass): Remove "-r" option to stpd.

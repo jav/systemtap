@@ -3785,7 +3785,12 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define STP_NUM_STRINGS 1";
 
       if (s.bulk_mode)
-	s.op->newline() << "#define STP_RELAYFS";
+	{
+	  s.op->newline() << "#define STP_RELAYFS";
+	  
+	  if (s.merge)
+	    s.op->newline() << "#define STP_RELAYFS_MERGE";
+	}
 
       if (s.timing)
 	s.op->newline() << "#define STP_TIMING" << " " << s.timing ;
