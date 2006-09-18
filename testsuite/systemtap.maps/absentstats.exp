@@ -16,6 +16,7 @@ expect {
   -re {\n} { exp_continue }
   eof { }
 }
+catch close
 wait
 
 if {$ok == 2 && $ko == 13} then { pass $test } else { fail "$test ($ok $ko)" }
