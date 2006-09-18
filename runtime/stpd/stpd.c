@@ -33,7 +33,6 @@ extern int optind;
 
 int print_only = 0;
 int quiet = 0;
-int merge = 1;
 int verbose = 0;
 int target_pid = 0;
 int driver_pid = 0;
@@ -52,7 +51,6 @@ static void usage(char *prog)
 {
 	fprintf(stderr, "\n%s [-m] [-p] [-q] [-r] [-c cmd ] [-t pid]\n"
                 "\t[-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
-	fprintf(stderr, "-m  Don't merge per-cpu files.\n");
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
 	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and stpd will exit when it does.\n");
@@ -76,7 +74,7 @@ int main(int argc, char **argv)
 	{
 		switch (c) {
 		case 'm':
-			merge = 0;
+			fprintf(stderr, "Warning: -m option deprecated. Ignoring...\n");
 			break;
 		case 'p':
 			print_only = 1;

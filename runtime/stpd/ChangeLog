@@ -1,3 +1,12 @@
+2006-09-18  Martin Hunt  <hunt@redhat.com>
+
+	* stpd.c (usage): Remove "-m" option.
+	(main): Print warning if "-m" is used.
+	* librelay.c (merge_output): Rewrite to handle
+	new format that support binary.
+	(stp_main_loop): Read merge option from the
+	transport info message.
+
 2006-09-13  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c (init_relayfs): Exec stp_check and find
