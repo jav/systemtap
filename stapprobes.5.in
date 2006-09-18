@@ -249,7 +249,7 @@ on the processor to count the number of events occuring on the
 processor. For more details on the performance monitoring events
 available on a specific processor use the command perfmon2 command:
 .SAMPLE
-pfmon -l
+pfmon \-l
 .ESAMPLE
 .TP
 $counter
@@ -830,11 +830,11 @@ which means the following:
 
 <3> the signal is successfully added into the sigqueue of receiving process
 
-- return -EAGAIN if the sigqueue is overflow the signal was RT and sent 
+- return \-EAGAIN if the sigqueue is overflow the signal was RT and sent 
 by user using something other than kill()
 .RE
 
-  Return values for ""send_group_sigqueue"
+  Return values for "send_group_sigqueue"
 
 .RS
 - return 0 if the signal is either sucessfully added into the
@@ -853,7 +853,7 @@ queued so just increment the overrun count
 
 - return 1 if this signal is ignored by receiving process
 
-- return -1 if the task is marked exiting, so posix_timer_event
+- return \-1 if the task is marked exiting, so posix_timer_event
 can redirect it to the group leader
 .RE
 

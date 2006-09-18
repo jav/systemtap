@@ -1,3 +1,9 @@
+2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3219
+	From Eugeniy Meshcheryakov <eugen@debian.org>:
+	* stapprobes.5.in: Correct misuse of '-' -> '\-' in manpage
+
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (run_pass): Remove "-m" option to stpd.
