@@ -38,6 +38,7 @@ struct transport_info
 	unsigned subbuf_size;
 	unsigned n_subbufs;
 	int transport_mode;
+	int merge;		// merge relayfs output?
 	int target;		// target pid
 #if 0
 	char cmd[256];		// cmd to process data

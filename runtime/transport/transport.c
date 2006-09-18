@@ -152,8 +152,9 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		kbug("transport_send STP_EXIT\n");
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 		kbug("done with transport_send STP_EXIT\n");
+
+		_stp_kill_time();
 	}
-	_stp_kill_time();
 }
 
 /*
@@ -227,6 +228,8 @@ int _stp_transport_open(struct transport_info *info)
 	kbug ("stp_transport_open: %d Mb buffer. target=%d\n", info->buf_size, info->target);
 
 	info->transport_mode = _stp_transport_mode;
+	info->merge = 0;
+
 	kbug("transport_mode=%d\n", info->transport_mode);
 	_stp_target = info->target;
 
@@ -239,6 +242,10 @@ int _stp_transport_open(struct transport_info *info)
 		}
 		info->n_subbufs = n_subbufs;
 		info->subbuf_size = subbuf_size;
+
+#ifdef STP_RELAYFS_MERGE
+		info->merge = 1;
+#endif
 
 #if defined (CONFIG_RELAY)
 		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir, module_dir_dentry);
