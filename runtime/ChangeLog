@@ -1,5 +1,12 @@
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
+	* bench2/bench.rb: Remove the deprecated "-m" option
+	to stpd. Also, don't use merge mode for relayfs.
+	* bench2/run_binary_print: New test. Compare various ways of
+	printing binary data.
+
+2006-09-18  Martin Hunt  <hunt@redhat.com>
+	
 	* print.c (_stp_print_flush): Rewrite so one version works for
 	relayfs or procfs. Use proper per-cpu functions.
 	(_stp_reserve_bytes): New function. Reserve bytes in the output buffer.
