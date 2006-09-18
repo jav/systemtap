@@ -17,7 +17,7 @@ function strlen:long(s:string) %{ /* pure */
 * @param str string
 * @param start Starting position. 0 = start of the string
 * @param length Length of string to return.
-* @return Returns the length of the string.
+* @return Returns the substring.
 */
 function substr:string(str:string,start:long, length:long) %{ /* pure */
 	int length = THIS->length + 1 > MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;

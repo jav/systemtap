@@ -31,3 +31,8 @@ function error (msg:string) %{
     CONTEXT->last_error = THIS->msg;
     CONTEXT->last_stmt = NULL;
 %}
+
+function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
+	_stp_print_binary (THIS->n, THIS->arg1, THIS->arg2, THIS->arg3, THIS->arg4);
+%}
+
