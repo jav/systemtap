@@ -121,6 +121,8 @@ class Bench
   @@minfreq = 0
 
   def cleanup
+    system('sudo killall -HUP stpd &> /dev/null')
+    system('sudo /sbin/rmmod bench &> /dev/null')
     `/bin/rm -f stap.out` if File.exists?("stap.out")
     `/bin/rm -f bench.stp` if File.exists?("bench.stp")
     `/bin/rm -rf #{@dir}` unless @dir.nil?
@@ -128,8 +130,8 @@ class Bench
   end
 
   def load
-    args = "-rmq -b 8"
-    if @trans == RELAYFS then args = "-mq" end
+    args = "-q -b 8"
+    if @trans == RELAYFS then args = "-q" end
     fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
@@ -169,6 +171,7 @@ int probe_start(void)\n{\n  return _stp_register_kprobes (kp, NUM_KPROBES);\n}\n
 void probe_exit (void)\n{\n  _stp_unregister_kprobes (kp, NUM_KPROBES); \n}\n"
       rescue
 	puts "Error writing source file"
+	exit
       ensure
 	f.close unless f.nil?
       end
@@ -250,7 +253,7 @@ class Stapbench < Bench
   def load
     # we do this in several steps because the compilation phase can take a long time
     args = "-kvvp4"
-    if @trans == RELAYFS then args = "-bkvvp4" end
+    if @trans == RELAYFS then args = "-bMkvvp4" end
     res = `stap #{args} -m bench bench.stp &> stap.out`
     if $? != 0
       puts "ERROR running stap\n#{res}"
@@ -265,8 +268,8 @@ class Stapbench < Bench
       cleanup
       exit
     end
-    args = "-rmq -b 8"
-    if @trans == RELAYFS then args = "-mq" end
+    args = "-q -b 8"
+    if @trans == RELAYFS then args = "-q" end
     fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
