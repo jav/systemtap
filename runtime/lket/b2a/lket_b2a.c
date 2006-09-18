@@ -189,7 +189,8 @@ failed:
 	if(hdrs)
 		free(hdrs);
 
-	g_tree_destroy(appNameTree);
+	if (appNameTree)
+		g_tree_destroy(appNameTree);
 
 	return 0;
 }

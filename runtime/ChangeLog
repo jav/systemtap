@@ -1,3 +1,9 @@
+2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3220
+	From Eugeniy Meshcheryakov <eugen@debian.org>:
+	* lket/b2a/lket_b2a.c: Check that appNameTree exists before destroying.
+
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
 	* bench2/bench.rb: Remove the deprecated "-m" option
