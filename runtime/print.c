@@ -33,84 +33,118 @@
  * @{
  */
 
-static int _stp_pbuf_len[NR_CPUS];
+#ifdef STP_RELAYFS
+#define STP_TIMESTAMP_SIZE (sizeof(uint32_t))
+#else
+#define STP_TIMESTAMP_SIZE 0
+#endif /* STP_RELAYFS */
 
-#ifndef STP_RELAYFS
-#define STP_PRINT_BUF_START 0
 
-/** Size of buffer, not including terminating NULL */
-#ifndef STP_PRINT_BUF_LEN
-#define STP_PRINT_BUF_LEN 8191
-#endif
-
-static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + 1];
-
-void _stp_print_flush (void)
-{
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][0];
-	int len = _stp_pbuf_len[cpu];
-	int ret;
-
-	if (len == 0)
-		return;
-
-	ret =_stp_transport_write(buf, len);
-	if (unlikely(ret < 0)) {
-#if 0
-		if (!atomic_read(&_stp_transport_failures))
-			_stp_warn("Transport failure - try using a larger buffer size\n");
-#endif
-		atomic_inc (&_stp_transport_failures);
-	}
-
-	_stp_pbuf_len[cpu] = 0;
-	*buf = 0;
-}
-
-#else /* STP_RELAYFS */
-
-/* size of timestamp, in bytes, including space */
-#define STP_TIMESTAMP_SIZE (sizeof(int))
 #define STP_PRINT_BUF_START (STP_TIMESTAMP_SIZE)
-
-/** Size of buffer, not including terminating NULL */
 #ifndef STP_PRINT_BUF_LEN
-#define STP_PRINT_BUF_LEN (8192 - STP_TIMESTAMP_SIZE - 1)
+#define STP_PRINT_BUF_LEN 8192
 #endif
 
-static char _stp_pbuf[NR_CPUS][STP_PRINT_BUF_LEN + STP_PRINT_BUF_START + 1];
+typedef struct __stp_pbuf {
+	uint32_t len;			/* bytes used in the buffer */
+	char timestamp[STP_TIMESTAMP_SIZE];
+	char buf[STP_PRINT_BUF_LEN];
+} _stp_pbuf;
+
+DEFINE_PER_CPU(_stp_pbuf, Stp_pbuf);
+
 
 /** Send the print buffer to the transport now.
  * Output accumulates in the print buffer until it
  * is filled, or this is called. This MUST be called before returning
  * from a probe or accumulated output in the print buffer will be lost.
+ *
+ * @note Preemption must be disabled to use this.
  */
-
 void _stp_print_flush (void)
 {
-	int cpu = smp_processor_id();
-	char *buf = &_stp_pbuf[cpu][0];
-	char *ptr = buf + STP_PRINT_BUF_START;
-	int ret;
+	_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
 
-	if (_stp_pbuf_len[cpu] == 0)
+	/* check to see if there is anything in the buffer */
+	if (pb->len == 0)
 		return;
 
-	*((int *)buf) = _stp_seq_inc();
-	ret = _stp_transport_write(buf, _stp_pbuf_len[cpu] + STP_TIMESTAMP_SIZE + 1);
-	if (unlikely(ret < 0)) {
-#if 0
-		if (!atomic_read(&_stp_transport_failures))
-			_stp_warn("Transport failure - try using a larger buffer size\n");
-#endif
-		atomic_inc (&_stp_transport_failures);
-	}
+#ifdef STP_RELAYFS_MERGE
+	/* In merge-mode, stpd expects relayfs data to start with a 4-byte length */
+	/* followed by a 4-byte sequence number. In non-merge mode, anything goes. */
 
-	_stp_pbuf_len[cpu] = 0;
-	*ptr = 0;
+	*((uint32_t *)pb->timestamp) = _stp_seq_inc();
+
+	if (unlikely(_stp_transport_write(pb, pb->len+4+STP_TIMESTAMP_SIZE) < 0))
+		atomic_inc (&_stp_transport_failures);
+#else
+	if (unlikely(_stp_transport_write(pb->buf, pb->len) < 0))
+		atomic_inc (&_stp_transport_failures);
+#endif
+
+	pb->len = 0;
+}
+
+#ifndef STP_MAXBINARYARGS
+#define STP_MAXBINARYARGS 127
+#endif
+
+
+/** Reserves space in the output buffer for direct I/O.
+ */
+
+#if defined STP_RELAYFS && !defined STP_RELAYFS_MERGE
+static void * _stp_reserve_bytes (int numbytes)
+{
+	if (unlikely(numbytes == 0))
+		return NULL;
+	_stp_print_flush();
+	return relay_reserve(_stp_chan, numbytes);
+}
+#else
+static void * _stp_reserve_bytes (int numbytes)
+{
+	_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+	int size = STP_PRINT_BUF_LEN - pb->len;
+	void * ret;
+
+	if (unlikely(numbytes == 0 || numbytes > STP_PRINT_BUF_LEN))
+		return NULL;
+
+	if (numbytes > size)
+		_stp_print_flush();
+
+	ret = pb->buf + pb->len;
+	pb->len += numbytes;
+	return ret;
 }
 #endif /* STP_RELAYFS */
+
+/** Write 64-bit args directly into the output stream.
+ * This function takes a variable number of 64-bit arguments
+ * and writes them directly into the output stream.  Marginally faster
+ * than doing the same in _stp_vsnprintf().
+ * @sa _stp_vsnprintf()
+ */
+static void _stp_print_binary (int num, ...)
+{
+	va_list vargs;
+	int i;
+	int64_t *args;
+	
+	if (unlikely(num > STP_MAXBINARYARGS))
+		num = STP_MAXBINARYARGS;
+
+	args = _stp_reserve_bytes(num * sizeof(int64_t));
+
+	if (args != NULL) {
+		va_start(vargs, num);
+		for (i = 0; i < num; i++) {
+			args[i] = va_arg(vargs, int64_t);
+		}
+		va_end(vargs);
+	}
+}
 
 /** Print into the print buffer.
  * Like printf, except output goes to the print buffer.

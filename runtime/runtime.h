@@ -63,6 +63,14 @@ static struct
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 #endif /* RELAYFS */
 
+/* TEST_MODE is always defined by systemtap */
+#ifdef TEST_MODE
+#define SYSTEMTAP 1
+#else
+#define MAXTRYLOCK 1000
+#define TRYLOCKDELAY 100
+#endif
+
 #include "print.c"
 #include "string.c"
 #include "arith.c"
@@ -81,10 +89,6 @@ static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
 					    unsigned long *offset,
 					    char **modname, char *namebuf);
 
-/* TEST_MODE is always defined by systemtap */
-#ifdef TEST_MODE
-#define SYSTEMTAP 1
-#endif
 
 #ifdef SYSTEMTAP
 /* This implementation is used if stap_[num_]symbols are available. */
@@ -161,7 +165,7 @@ int init_module (void)
     _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
       kallsyms_lookup_name("kallsyms_lookup");
 #endif
-
+    
   return _stp_transport_init();
 }
 

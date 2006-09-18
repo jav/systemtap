@@ -58,28 +58,31 @@ void _stp_sprintf (String str, const char *fmt, ...)
 	int num;
 	va_list args;
 	if (str == _stp_stdout) {
-		int cpu = smp_processor_id();
-		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
+		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		char *buf = pb->buf + pb->len;
+		int size = STP_PRINT_BUF_LEN - pb->len;
 		va_start(args, fmt);
 		num = _stp_vsnprintf(buf, size, fmt, args);
 		va_end(args);
-		if (unlikely(num >= size)) { 
+		if (unlikely(num > size)) { 
 			/* overflowed the buffer */
-			if (_stp_pbuf_len[cpu] == 0) {
-				_stp_pbuf_len[cpu] = STP_PRINT_BUF_LEN;
+			if (pb->len == 0) {
+				/* A single print request exceeded the buffer size. */
+				/* Should not be possible with Systemtap-generated code. */
+				pb->len = STP_PRINT_BUF_LEN;
 				_stp_print_flush();
+				num = 0;
 			} else {
-				*buf ='\0';
+				/* Need more space. Flush the previous contents */
 				_stp_print_flush();
+
+				/* try again */
 				va_start(args, fmt);
-				_stp_vsprintf(_stp_stdout, fmt, args); 
+				num = _stp_vsnprintf(pb->buf, STP_PRINT_BUF_LEN, fmt, args);
 				va_end(args);
 			}
-		} else {
-			_stp_pbuf_len[cpu] += num;
 		}
-
+		pb->len += num;
 	} else {
 		va_start(args, fmt);
 		num = _stp_vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
@@ -97,16 +100,27 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 {
 	int num;
 	if (str == _stp_stdout) {
-		int cpu = smp_processor_id();
-		char *buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu] + 1;
+		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		char *buf = pb->buf + pb->len;
+		int size = STP_PRINT_BUF_LEN - pb->len;
 		num = _stp_vsnprintf(buf, size, fmt, args);
-		if (num < size)
-			_stp_pbuf_len[cpu] += num;
-		else {
-			_stp_pbuf_len[cpu] = STP_PRINT_BUF_LEN;
-			_stp_print_flush();
+		if (unlikely(num > size)) { 
+			/* overflowed the buffer */
+			if (pb->len == 0) {
+				/* A single print request exceeded the buffer size. */
+				/* Should not be possible with Systemtap-generated code. */
+				pb->len = STP_PRINT_BUF_LEN;
+				_stp_print_flush();
+				num = 0;
+			} else {
+				/* Need more space. Flush the previous contents */
+				_stp_print_flush();
+
+				/* try again */
+				num = _stp_vsnprintf(pb->buf, STP_PRINT_BUF_LEN, fmt, args);
+			}
 		}
+		pb->len += num;
 	} else {
 		num = _stp_vscnprintf(str->buf + str->len, STP_STRING_SIZE - str->len, fmt, args);
 		if (num > 0)
@@ -124,17 +138,15 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 {
 	int num = strlen (str2);
 	if (str1 == _stp_stdout) {
-		char *buf;
-		int cpu = smp_processor_id();
-		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu];
-		if (num >= size) {
+		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		int size = STP_PRINT_BUF_LEN - pb->len;
+		if (num > size) {
 			_stp_print_flush();
 			if (num > STP_PRINT_BUF_LEN)
 				num = STP_PRINT_BUF_LEN;
 		}
-		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
-		memcpy (buf, str2, num);
-		_stp_pbuf_len[cpu] += num;
+		memcpy (pb->buf + pb->len, str2, num);
+		pb->len += num;
 	} else {
 		int size = STP_STRING_SIZE - str1->len - 1; 
 		if (num > size)
@@ -161,15 +173,16 @@ void _stp_string_cat_string (String str1, String str2)
 void _stp_string_cat_char (String str1, const char c)
 {
 	if (str1 == _stp_stdout) {
+		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		int size = STP_PRINT_BUF_LEN - pb->len;
 		char *buf;
-		int cpu = smp_processor_id();
-		int size = STP_PRINT_BUF_LEN -_stp_pbuf_len[cpu];
+
 		if (1 >= size)
 			_stp_print_flush();
-		buf = &_stp_pbuf[cpu][STP_PRINT_BUF_START] + _stp_pbuf_len[cpu];
+			
+		buf = pb->buf + pb->len;
 		buf[0] = c;
-		buf[1] = 0;
-		_stp_pbuf_len[cpu] ++;
+		pb->len ++;
 	} else {
 		int size = STP_STRING_SIZE - str1->len - 1; 
 		if (size > 0) {

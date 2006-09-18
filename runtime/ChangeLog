@@ -1,3 +1,19 @@
+2006-09-18  Martin Hunt  <hunt@redhat.com>
+
+	* print.c (_stp_print_flush): Rewrite so one version works for
+	relayfs or procfs. Use proper per-cpu functions.
+	(_stp_reserve_bytes): New function. Reserve bytes in the output buffer.
+	(_stp_print_binary): New function. Write a variable number of
+	64-bit values directly into the output buffer.
+
+	* string.c (_stp_sprintf): Rewrite using new per-cpu buffers.
+	(_stp_vsprintf): Ditto.
+	(_stp_string_cat_cstr): Ditto.
+	(_stp_string_cat_char): Ditto.	
+
+	* runtime.h: Set defaults for MAXTRYLOCK and TRYLOCKDELAY to make 
+	runtime tests in bench2 happy.
+	
 2006-08-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guijian@cn.ibm.com> 
