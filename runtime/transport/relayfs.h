@@ -9,23 +9,17 @@
 #  include <linux/relayfs_fs.h>
 #elif defined (CONFIG_RELAY)
 #  include <linux/relay.h>
-#  include <linux/namei.h>
+#  include <linux/debugfs.h>
 #else
 #  undef STP_RELAYFS
 #endif
 
-#if defined (CONFIG_RELAY)
-struct rchan *_stp_relayfs_open(unsigned n_subbufs,
-				unsigned subbuf_size,
-				int pid,
-				struct dentry **outdir,
-				struct dentry *parent_dir);
-#else
+#  include <linux/namei.h>
+
 struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 				unsigned subbuf_size,
 				int pid,
 				struct dentry **outdir);
-#endif
 
 void _stp_relayfs_close(struct rchan *chan, struct dentry *dir);
 

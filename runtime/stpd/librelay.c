@@ -178,6 +178,7 @@ static void close_relayfs_files(int cpu)
 	
 	munmap(relay_buffer[cpu], total_bufsize);
 	close(relay_file[cpu]);
+	relay_file[cpu] = 0;
 	fclose(percpu_tmpfile[cpu]);
 }
 
@@ -387,6 +388,7 @@ static void read_last_buffers(void)
 }
 
 #define RELAYFS_MAGIC			0xF0B4A981
+#define DEBUGFS_MAGIC			0x64626720
 /**
  *	init_relayfs - create files and threads for relayfs processing
  *
@@ -417,17 +419,13 @@ int init_relayfs(void)
 		fprintf(stderr, "Could not execute %s\n", stp_check);
 		exit(1);
 	}
-	
+
 	if (statfs("/mnt/relay", &st) == 0 && (int) st.f_type == (int) RELAYFS_MAGIC)
-		sprintf(params.relay_filebase, "/mnt/relay/%d/cpu", getpid());
-	else {
-		char *ptr;
-		sprintf(params.relay_filebase, "/proc/systemtap/%s", modname);
-		ptr = index(params.relay_filebase,'.');
-		if (ptr)
-			*ptr = 0;
-		strcat(params.relay_filebase, "/cpu");
-	}
+ 		sprintf(params.relay_filebase, "/mnt/relay/systemtap/%d/cpu", getpid());
+ 	else if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)
+ 		sprintf(params.relay_filebase, "/sys/kernel/debug/systemtap/%d/cpu", getpid());
+ 	else
+ 		sprintf(params.relay_filebase, "/debug/systemtap/%d/cpu", getpid());
 	
 	for (i = 0; i < ncpus; i++) {
 		if (open_relayfs_files(i, params.relay_filebase) < 0) {
@@ -559,7 +557,7 @@ int init_stp(int print_summary)
 	control_channel = open(buf, O_RDWR);
 	if (control_channel < 0) {
 		fprintf(stderr, "ERROR: couldn't open control channel %s: errcode = %s\n", buf, strerror(errno));
-		return -1;
+		goto do_rmmod;
 	}
 
 	/* start target_cmd if necessary */
@@ -576,9 +574,15 @@ int init_stp(int print_summary)
 		if (target_cmd)
 			kill (target_pid, SIGKILL);
 		close(control_channel);
-		return -1;
+		goto do_rmmod;
 	}
 	return 0;
+
+do_rmmod:
+	snprintf(buf, sizeof(buf), "/sbin/rmmod -w %s", modname);
+	if (system(buf))
+		fprintf(stderr, "ERROR: couldn't rmmod probe module %s.\n", modname);
+	return -1;
 }
 
 
@@ -607,7 +611,6 @@ static int merge_output(void)
 		}
 		num[i] = 0;
 		buf[i] = malloc(MERGE_BUF_SIZE);
-		printf("buf[%d] = %p\n", i, buf[i]);
 		if (!buf[i]) {
 			fprintf(stderr,"Out of memory in merge_output(). Aborting merge.\n");
 			printf("Out of memory in merge_output(). Aborting merge.\n");
@@ -652,8 +655,6 @@ static int merge_output(void)
 
 		num[j] = 0;
 		if (fread_unlocked (&length[j], sizeof(uint32_t), 1, fp[j])) {
-			printf("length[%d] = %d\n", j, length[j]);
-			printf("buf[%d] = %p\n", j, buf[j]);
 			if (fread_unlocked (buf[j], length[j]+TIMESTAMP_SIZE, 1, fp[j]))
 				num[j] = *((uint32_t *)buf[j]);
 		}
@@ -689,7 +690,7 @@ static void cleanup_and_exit (int closed)
 		fprintf(stderr,"\nWaititing for processes to exit\n");
 	while(wait(NULL) > 0);
 
-	if (transport_mode == STP_TRANSPORT_RELAYFS) {
+	if (transport_mode == STP_TRANSPORT_RELAYFS && relay_file[0] > 0) {
 		kill_percpu_threads(ncpus);
 		while(1) {
 			pthread_mutex_lock(&processing_mutex);
@@ -707,7 +708,7 @@ static void cleanup_and_exit (int closed)
 	if (print_totals && verbose)
 		summarize();
 
-	if (transport_mode == STP_TRANSPORT_RELAYFS) {
+	if (transport_mode == STP_TRANSPORT_RELAYFS && relay_file[0] > 0) {
 		close_all_relayfs_files();
 		if (params.merge) {
 			merge_output();
@@ -817,10 +818,8 @@ int stp_main_loop(void)
 			if (!streaming()) {
 				rc = init_relayfs();
 				if (rc < 0) {
-					close(control_channel);
 					fprintf(stderr, "ERROR: couldn't init relayfs, exiting\n");
-					/* FIXME. Need to cleanup properly */
-					exit(1);
+					cleanup_and_exit(0);
 				}
 			} else if (outfile_name) {
 				ofp = fopen (outfile_name, "w");

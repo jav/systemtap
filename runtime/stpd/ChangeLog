@@ -1,3 +1,14 @@
+2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* librelay.c (init_relayfs): Add debugfs path to relay files and
+	add new systemtap directory to path.
+	(init_stp): rmmod module on failure.
+	(merge_output): Remove debugging printfs left in code.
+	(close_relay_files): Clear relay_file descriptor after close.
+	(cleanup_and_exit): Allow cleanup and exit even if there was an
+	error opening relay files.
+	(stp_main_loop): Call cleanup_and_exit() if init_relayfs() fails.
+
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
 	* stpd.c (usage): Remove "-m" option.

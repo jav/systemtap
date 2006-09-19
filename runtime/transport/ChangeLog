@@ -1,3 +1,24 @@
+2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* procfs.c (_stp_get_proc_root): Removed.
+	(_stp_force_dir_creation): Removed.
+	(_stp_register_procfs): Remove unneeded procfs dentry code.  *
+	relayfs.c (_stp_create_buf_file): Remove code to create relay
+	files in procfs, add code to create in debugfs.
+	(_stp_remove_buf_file): Remove code to delete relay files in
+	procfs, add code to delete from debugfs.
+	(_stp_create_relay_dir): New.
+	(_stp_remove_relay_dir): New.
+	(_stp_get_relay_root): New.
+	(_stp_relayfs_close): Use new functions.
+	(_stp_relayfs_open): Consolidate alternative versions and remove
+	extraneous version.  * relayfs.h: Remove extraneous
+	_stp_relayfs_open prototype.
+	* transport.c (_stp_transport_open): Remove extraneous call to
+	_stp_relayfs_open() and remove call to _stp_unregister_procfs() on
+	failure - since it's called from cmd write, cmd can't be removed;
+	it's removed in normal shutdown anyway.
+
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h (struct transport_info): Add merge field.

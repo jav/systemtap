@@ -53,7 +53,8 @@ Tips:
 Building a kernel.org kernel:
 
 - Build the kernel using your normal procedures.  Enable
-  CONFIG_DEBUG_INFO, CONFIG_KPROBES, and optionally CONFIG_RELAY.
+  CONFIG_DEBUG_INFO, CONFIG_KPROBES, and optionally CONFIG_RELAY and
+  CONFIG_DEBUG_FS.
 - Boot into the kernel.
 - Make sure the large unstripped kernel image 'vmlinux' from your
   build can be found by systemtap (see above)  You can just symlink

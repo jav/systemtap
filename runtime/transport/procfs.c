@@ -267,38 +267,6 @@ err:
 	return _stp_current_buffers;
 }
 
-#if defined (STP_RELAYFS) && defined(CONFIG_RELAY)
-struct dentry *module_dir_dentry;
-
-static inline struct dentry *_stp_get_proc_root(void)
-{
-	struct file_system_type *procfs_type;
-	struct super_block *procfs_sb;
-
-	procfs_type = get_fs_type("proc");
-	if (!procfs_type || list_empty(&procfs_type->fs_supers))
-		return NULL;
-	procfs_sb = list_entry(procfs_type->fs_supers.next,
-			       struct super_block, s_instances);
-	return procfs_sb->s_root;
-}
-
-static inline struct dentry *_stp_force_dir_creation(const char *dirname, struct dentry *parent)
-{
-	struct dentry *dir_dentry;
-
-	mutex_lock(&parent->d_inode->i_mutex);
-	dir_dentry = lookup_one_len(dirname, parent, strlen(dirname));
-	mutex_unlock(&parent->d_inode->i_mutex);
-	if (IS_ERR(dir_dentry)) {
-		dir_dentry = NULL;
-		remove_proc_entry(dirname, NULL);
-	}
-	
-	return dir_dentry;
-}
-#endif  /* STP_RELAYFS && CONFIG_RELAY */
-
 static int _stp_register_procfs (void)
 {
 	int i;
@@ -307,10 +275,6 @@ static int _stp_register_procfs (void)
 	int j;
 	char buf[8];
 #endif
-#if defined (CONFIG_RELAY)
-	struct dentry *proc_root_dentry;
-	struct dentry *systemtap_dir_dentry;
-#endif /* CONFIG_RELAY */
 	struct proc_dir_entry *de;
 	struct list_head *p, *tmp;
 
@@ -342,22 +306,10 @@ static int _stp_register_procfs (void)
 			goto err0;
 	}
 
-#if defined (STP_RELAYFS) && defined (CONFIG_RELAY)
-	proc_root_dentry = _stp_get_proc_root();
-	systemtap_dir_dentry = _stp_force_dir_creation(dirname, proc_root_dentry);
-	if (!systemtap_dir_dentry)
-		goto err0;
-#endif /* STP_RELAYFS && CONFIG_RELAY */
 	/* now create /proc/systemtap/module_name */
 	_stp_proc_mod = proc_mkdir (THIS_MODULE->name, _stp_proc_root);
 	if (_stp_proc_mod == NULL)
 		goto err0;
-
-#if defined (STP_RELAYFS) && defined (CONFIG_RELAY)
-	module_dir_dentry = _stp_force_dir_creation(THIS_MODULE->name, systemtap_dir_dentry);
-	if (!module_dir_dentry)
-		goto err0;
-#endif /* STP_RELAYFS && CONFIG_RELAY */
 
 #ifdef STP_RELAYFS	
 	/* now for each cpu "n", create /proc/systemtap/module_name/n  */

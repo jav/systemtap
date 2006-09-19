@@ -78,35 +78,15 @@ static struct dentry *_stp_create_buf_file(const char *filename,
 					   struct rchan_buf *buf,
 					   int *is_global)
 {
-	struct proc_dir_entry *pde;
-	struct dentry *dentry;
-	struct proc_dir_entry *parent_pde = NULL;
-
-	if (parent)
-		parent_pde = PDE(parent->d_inode);
-	pde = create_proc_entry(filename, S_IFREG|S_IRUSR, parent_pde);
-	if (unlikely(!pde))
-		return NULL;    
-	pde->proc_fops = &relay_file_operations;
-
-	mutex_lock(&parent->d_inode->i_mutex);
-	dentry = lookup_one_len(filename, parent, strlen(filename));
-	mutex_unlock(&parent->d_inode->i_mutex);
-	if (IS_ERR(dentry))
-		remove_proc_entry(filename, parent_pde);
-
-	dentry->d_inode->u.generic_ip = buf;
-
-	return dentry;
+	return debugfs_create_file(filename, mode, parent, buf,
+                                   &relay_file_operations);
 }
 
 static int _stp_remove_buf_file(struct dentry *dentry)
 {
-	struct proc_dir_entry *pde = PDE(dentry->d_inode);
-	
-	remove_proc_entry(pde->name, pde->parent);
+        debugfs_remove(dentry);
 
-	return 0;
+        return 0;
 }
 #endif /* CONFIG_RELAY */
 
@@ -128,34 +108,85 @@ static struct rchan_callbacks stp_rchan_callbacks =
 };
 #endif  /* CONFIG_RELAY */
 
+static struct dentry *_stp_create_relay_dir(const char *dirname, struct dentry *parent)
+{
+	struct dentry *dir;
+	
+#if defined (CONFIG_RELAY)
+	dir = debugfs_create_dir(dirname, parent);
+	if (IS_ERR(dir)) {
+		printk("STP: Couldn't create directory %s - debugfs not configured in.\n", dirname);
+		dir = NULL;
+	}
+#else
+	dir = relayfs_create_dir(dirname, parent);
+#endif
+
+	return dir;
+}
+
+static void _stp_remove_relay_dir(struct dentry *dir)
+{
+	if (dir == NULL)
+		return;
+	
+#if defined (CONFIG_RELAY)
+		debugfs_remove(dir);
+#else
+		relayfs_remove_dir(dir);
+#endif
+}
+
+static struct dentry *_stp_get_relay_root(void)
+{
+	struct file_system_type *fs;
+	struct super_block *sb;
+	struct dentry *root;
+	char *dirname = "systemtap";
+
+	root = _stp_create_relay_dir(dirname, NULL);
+	if (root)
+		return root;
+	
+#if defined (CONFIG_RELAY)
+	fs = get_fs_type("debugfs");
+#else
+	fs = get_fs_type("relayfs");
+#endif
+	if (!fs)
+		return NULL;
+
+	sb = list_entry(fs->fs_supers.next, struct super_block, s_instances);
+	mutex_lock(&sb->s_root->d_inode->i_mutex);
+	root = lookup_one_len(dirname, sb->s_root, strlen(dirname));
+	mutex_unlock(&sb->s_root->d_inode->i_mutex);
+	if (!IS_ERR(root))
+		dput(root);
+	
+	return root;
+}
+
+static void _stp_put_relay_root(struct dentry *root)
+{
+	if (root)
+		_stp_remove_relay_dir(root);
+}
+
+static struct dentry *_relay_root;
+
 /**
  *	_stp_relayfs_close - destroys relayfs channel
  *	@chan: the relayfs channel
  *	@dir: the directory containing the relayfs files
  */
-#if defined (CONFIG_RELAY)
 void _stp_relayfs_close(struct rchan *chan, struct dentry *dir)
 {
 	if (!chan)
 		return;
-
 	relay_close(chan);
-	if (dir) {
-		struct proc_dir_entry *pde = PDE(dir->d_inode);
-		remove_proc_entry(pde->name, pde->parent);
-	}
+	_stp_remove_relay_dir(dir);
+	_stp_put_relay_root(_relay_root);
 }
-#else
-void _stp_relayfs_close(struct rchan *chan, struct dentry *dir)
-{
-	if (!chan)
-		return;
-
-	relay_close(chan);
-	if (dir)
-		relayfs_remove_dir(dir);
-}
-#endif /* CONFIG_RELAY */
 
 /**
  *	_stp_relayfs_open - create relayfs channel
@@ -163,38 +194,11 @@ void _stp_relayfs_close(struct rchan *chan, struct dentry *dir)
  *	@subbuf_size: size of relayfs sub-buffers
  *	@pid: daemon pid
  *	@outdir: receives directory dentry
- *	@parentdir: parent directory dentry
  *
  *	Returns relay channel, NULL on failure
  *
  *	Creates relayfs files as /systemtap/pid/cpuX in relayfs root
  */
-#if defined (CONFIG_RELAY)
-extern struct dentry *module_dentry;
-struct rchan *_stp_relayfs_open(unsigned n_subbufs,
-				unsigned subbuf_size,
-				int pid,
-				struct dentry **outdir,
-				struct dentry *parent_dir)
-{
-	char dirname[16];
-	struct rchan *chan;
-	struct dentry* dir = NULL;
-
-	sprintf(dirname, "%d", pid);
-	
-	/* TODO: need to create systemtap dir */
-	chan = relay_open("cpu", parent_dir, subbuf_size,
-			  n_subbufs, &stp_rchan_callbacks);
-	if (!chan) {
-		printk("STP: couldn't create relayfs channel.\n");
-		if (dir)
-			remove_proc_entry(dirname, NULL);
-	}
-	*outdir = dir;
-	return chan;
-}
-#else
 struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 				unsigned subbuf_size,
 				int pid,
@@ -202,17 +206,23 @@ struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 {
 	char dirname[16];
 	struct rchan *chan;
-	struct dentry* dir = NULL;
+	struct dentry* root, *dir;
 
 	sprintf(dirname, "%d", pid);
 	
-	/* TODO: need to create systemtap dir */
-	dir = relayfs_create_dir(dirname, NULL);
-	if (!dir) {
-		printk("STP: couldn't create relayfs dir %s.\n", dirname);
+	root = _stp_get_relay_root();
+	if (!root) {
+		printk("STP: couldn't get relay root dir.\n");
 		return NULL;
 	}
 
+	dir = _stp_create_relay_dir(dirname, root);
+	if (!dir) {
+		printk("STP: couldn't create relay dir %s.\n", dirname);
+		_stp_put_relay_root(root);
+		return NULL;
+	}
+	
 #if (RELAYFS_CHANNEL_VERSION >= 4)
 	chan = relay_open("cpu", dir, subbuf_size,
 			  n_subbufs, &stp_rchan_callbacks);
@@ -222,15 +232,15 @@ struct rchan *_stp_relayfs_open(unsigned n_subbufs,
 #endif /* RELAYFS_CHANNEL_VERSION >= 4 */
 
 	if (!chan) {
-		printk("STP: couldn't create relayfs channel.\n");
-		if (dir)
-			relayfs_remove_dir(dir);
+		printk("STP: couldn't create relay channel.\n");
+		_stp_remove_relay_dir(dir);
+		_stp_put_relay_root(root);
 	}
 
+	_relay_root = root;
 	*outdir = dir;
 	return chan;
 }
-#endif /* CONFIG_RELAY */
 
 #endif /* _TRANSPORT_RELAYFS_C_ */
 

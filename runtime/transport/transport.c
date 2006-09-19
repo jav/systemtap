@@ -204,10 +204,6 @@ void _stp_transport_close()
 	kbug("---- CLOSED ----\n");
 }
 
-#if defined (STP_RELAYFS) && defined (CONFIG_RELAY)
-extern struct dentry *module_dir_dentry;
-#endif /* STP_RELAYFS && CONFIG_RELAY */
-
 /**
  *	_stp_transport_open - open proc and relayfs channels
  *      with proper parameters
@@ -247,15 +243,10 @@ int _stp_transport_open(struct transport_info *info)
 		info->merge = 1;
 #endif
 
-#if defined (CONFIG_RELAY)
-		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir, module_dir_dentry);
-#else
 		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir);
-#endif /* CONFIG_RELAY */
-		if (!_stp_chan) {
-			_stp_unregister_procfs();
+
+		if (!_stp_chan)
 			return -ENOMEM;
-		}
 		kbug ("stp_transport_open: %u Mb buffers, subbuf_size=%u, n_subbufs=%u\n",
 		      info->buf_size, subbuf_size, n_subbufs);
 	} else 

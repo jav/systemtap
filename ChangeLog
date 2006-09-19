@@ -1,3 +1,7 @@
+2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* README: Add CONFIG_DEBUG_FS to config options.
+	
 2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3219
