@@ -183,9 +183,9 @@ static inline int this_event_len(void)
 function update_record()
 %{
 #if !defined(ASCII_TRACE)
-	int cpu = smp_processor_id();
-	char *total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
-	*(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+	_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+	char *total_length = &pb->buf[0];
+	*(int16_t *)total_length = pb->len - 4;
 #endif
 %}
 

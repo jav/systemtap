@@ -2,6 +2,14 @@
 
 	From Gui Jian <guijian@cn.ibm.com>
 
+	* lket_trace.stp,process.stp,register_event.stp: Be
+	sync with the runtime printing changes made by Martin
+
+
+2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guijian@cn.ibm.com>
+
 	* rpc.stp: New trace hooks for RPC activities on client, 
 	server and scheduler.
 	* register_event.stp: Add the register_sys_event() calls

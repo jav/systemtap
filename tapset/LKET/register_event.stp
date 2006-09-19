@@ -70,6 +70,7 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 	char in_fmt[512], in_name[512];
 	char *p_in_fmt, *p_in_name;
 	char *fmt, *name;
+	_stp_pbuf * pb;
         int cpu = smp_processor_id();
 	char *total_length;
 	p_in_fmt = in_fmt;
@@ -112,8 +113,9 @@ function register_event(grpid:long, hookid:long, evt_type:long, fmt:string, name
 		THIS->hookid, THIS->fmt, THIS->names); 
 
 #if !defined(ASCII_TRACE)
-        total_length = &_stp_pbuf[cpu][STP_PRINT_BUF_START];
-        *(int16_t *)total_length = _stp_pbuf_len[cpu] - 4;
+	pb = &__get_cpu_var(Stp_pbuf);
+	total_length = &pb->buf[0];
+	*(int16_t *)total_length = pb->len - 4;
 #endif
 	_stp_print_flush();
 

@@ -1,3 +1,11 @@
+2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
+
+	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: 
+	Be sync with the recent runtime printing changes made by Martin. 
+	Some clean up work before adding the support of dumping data
+	into MySQL
+	Bug fix of segment fault when an event is not registered.
+	
 2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3220
