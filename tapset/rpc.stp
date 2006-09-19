@@ -54,18 +54,25 @@ probe sunrpc.clnt.return =
  *  rpc_create_client(struct rpc_xprt *xprt, char *servname, 
  *  	struct rpc_program *info, u32 version, 
  * 	rpc_authflavor_t authflavor)
- *
+ * 
+ *  @servername: the server machine name
+ *  @progname:   the RPC program name
+ *  @prog:       the RPC program number
+ *  @vers:	 the RPC program version number
+ *  @prot:	 the IP protocol number
+ *  @port:	 the port number
+ *  @authflavor: the authentication flavor
  */
 probe sunrpc.clnt.create_client = kernel.function("rpc_create_client") ?,
       	module("sunrpc").function("rpc_create_client") ?
 {
-	servername = kernel_string($servname)	/* server name */
-	progname = kernel_string($info->name)	/* program name */
-	prog = $info->number			/* program number */
-	vers = vers_from_prog($info, $version)	/* program version */
-	prot = $xprt->prot		/* IP protocol */
-	port = $xprt->port		/* port number */
-	authflavor = $authflavor	/* authentication flavor */
+	servername = kernel_string($servname)
+	progname = kernel_string($info->name)
+	prog = $info->number
+	vers = vers_from_prog($info, $version)
+	prot = $xprt->prot
+	port = $xprt->port
+	authflavor = $authflavor
 
 	name = "sunrpc.clnt.create_client"
 	argstr = sprintf("%s %s %d %d %d %d %d", servername, progname, 
@@ -77,17 +84,26 @@ probe sunrpc.clnt.create_client.return =
       	module("sunrpc").function("rpc_create_client").return ?
 {
 	name = "sunrpc.clnt.create_client"
+	retstr = returnstr($return)
 }
 
 /*
  * Fires when the RPC client structure is to be cloned
  * 
  * struct rpc_clnt * rpc_clone_client(struct rpc_clnt *clnt)
+ * 
+ *  @servername: the server machine name
+ *  @progname:   the RPC program name
+ *  @prog:       the RPC program number
+ *  @vers:	 the RPC program version number
+ *  @prot:	 the IP protocol number
+ *  @port:	 the port number
+ *  @authflavor: the authentication flavor
  */
 probe sunrpc.clnt.clone_client = kernel.function("rpc_clone_client") ?,
       	module("sunrpc").function("rpc_clone_client") ?
 {
-	servname = kernel_string($clnt->cl_server)
+	servername = kernel_string($clnt->cl_server)
 	progname = kernel_string($clnt->cl_protname)
 	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
@@ -96,7 +112,7 @@ probe sunrpc.clnt.clone_client = kernel.function("rpc_clone_client") ?,
 	authflavor = $clnt->cl_auth->au_flavor
 	
 	name = "sunrpc.clnt.clone_client"
-	argstr = sprintf("%s %s %d %d %d %d %d", servname, progname, 
+	argstr = sprintf("%s %s %d %d %d %d %d", servername, progname, 
 			prog, vers, prot, port, authflavor)
 }
 
@@ -105,69 +121,63 @@ probe sunrpc.clnt.clone_client.return =
       	module("sunrpc").function("rpc_clone_client").return ?
 {
 	name = "sunrpc.clnt.clone_client"
-}
-
-/*
- * Fires when a new RPC program is to be bound an existing client
- *
- * struct rpc_clnt * rpc_bind_new_program(struct rpc_clnt *old, 
- * 	struct rpc_program *program, int vers)
- */
-probe sunrpc.clnt.bind_new_program = 
-	kernel.function("rpc_bind_new_program") ?,
-      	module("sunrpc").function("rpc_bind_new_program") ?
-{
-	servname = kernel_string($old->cl_server)
-	old_progname = kernel_string($old->cl_protname)
-	old_prog = prog_from_clnt($old)
-	old_vers = vers_from_clnt($old)
-
-	progname = kernel_string($program->name)
-	prog = $program->number
-	vers = vers_from_prog($program, $vers)
-
-	name = "sunrpc.clnt.bind_new_program"
-	argstr = sprintf("%s %s %d %s %d", servname, old_progname, 
-			old_vers, progname, vers)
-}
-
-probe sunrpc.clnt.bind_new_program.return = 
-	kernel.function("rpc_bind_new_program").return ?,
-      	module("sunrpc").function("rpc_bind_new_program").return ?
-{
-	name = "sunrpc.clnt.bind_new_program"
+	retstr = returnstr($return)
 }
 
 /*
  * Fires when an RPC client is to be shut down.
  *
  * int rpc_shutdown_client(struct rpc_clnt *clnt)
+ *
+ *  @servername: the server machine name
+ *  @progname:   the RPC program name
+ *  @prog:       the RPC program number
+ *  @vers:	 the RPC program version number
+ *  @prot:	 the IP protocol number
+ *  @port:	 the port number
+ *  @authflavor: the authentication flavor
+ *  
+ *  @clones:     the number of clones
+ *  @tasks:      the number of references
+ *  
+ *  @netreconn:  the count of reconnections
+ *  @rpccnt:     the count of RPC calls
+ *  @om_ops:      the count of operations
+ *  @om_ntrans:   the count of RPC transmissions
+ *  @om_bytes_sent: the count of bytes out
+ *  @om_bytes_recv: the count of bytes in
+ *  @om_queue:    the jiffies queued for xmit
+ *  @om_rtt:      the RPC RTT jiffies
+ *  @om_execute:  the RPC execution jiffies
  */
 probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") ?,
       	module("sunrpc").function("rpc_shutdown_client") ?
 {
-	servname = kernel_string($clnt->cl_server)
-	progname = kernel_string($clnt->cl_protname)
+	servername = kernel_string($clnt->cl_server)
+	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
+	prot = prot_from_clnt($clnt)
+	port = port_from_clnt($clnt)
+	authflavor = $clnt->cl_auth->au_flavor
+	clones = clones_from_clnt($clnt)
 	tasks = tasks_from_clnt($clnt)
 
 	/* per-program statistics */
-	netcnt = $clnt->cl_stats->netcnt
 	netreconn = $clnt->cl_stats->netreconn
 	rpccnt = $clnt->cl_stats->rpccnt
-	rpcgarbage = $clnt->cl_stats->rpcgarbage
 
 	/* per-client statistics */
-	om_ops = $clnt->cl_metrics->om_ops	/* count of operations */
-	om_ntrans = $clnt->cl_metrics->om_ntrans/* count of RPC transmissions */
-	om_bytes_sent = $clnt->cl_metrics->om_bytes_sent /* count of bytes out*/
-	om_bytes_recv = $clnt->cl_metrics->om_bytes_recv /* count of bytes in */
-	om_queue = $clnt->cl_metrics->om_queue	/* jiffies queued for xmit */
-	om_rtt = $clnt->cl_metrics->om_rtt	/* RPC RTT jiffies */
-	om_execute = $clnt->cl_metrics->om_execute /* RPC execution jiffies */
+	om_ops = $clnt->cl_metrics->om_ops
+	om_ntrans = $clnt->cl_metrics->om_ntrans
+	om_bytes_sent = $clnt->cl_metrics->om_bytes_sent
+	om_bytes_recv = $clnt->cl_metrics->om_bytes_recv
+	om_queue = $clnt->cl_metrics->om_queue
+	om_rtt = $clnt->cl_metrics->om_rtt
+	om_execute = $clnt->cl_metrics->om_execute
 
 	name = "sunrpc.clnt.shutdown_client"
-	argstr = sprintf("%s %s %d %d", servname, progname, vers, tasks)
+	argstr = sprintf("%s %s %d %d %d %d %d %d", servername, progname, 
+			vers, prot, port, authflavor, clones, tasks)
 }
 
 probe sunrpc.clnt.shutdown_client.return = 
@@ -179,13 +189,64 @@ probe sunrpc.clnt.shutdown_client.return =
 }
 
 /*
+ * Fires when a new RPC program is to be bound an existing client
+ *
+ * struct rpc_clnt * rpc_bind_new_program(struct rpc_clnt *old, 
+ * 	struct rpc_program *program, int vers)
+ *
+ *  @servername:     the server machine name
+ *  @old_progname:   the name of old RPC program
+ *  @old_prog:       the number of old RPC program
+ *  @old_vers:	     the version of old RPC program 
+ *  @progname:       the name of new RPC program
+ *  @prog:           the number of new RPC program
+ *  @vers:	     the version of new RPC program 
+ */
+probe sunrpc.clnt.bind_new_program = 
+	kernel.function("rpc_bind_new_program") ?,
+      	module("sunrpc").function("rpc_bind_new_program") ?
+{
+	servername = kernel_string($old->cl_server)
+	old_progname = kernel_string($old->cl_protname)
+	old_prog = prog_from_clnt($old)
+	old_vers = vers_from_clnt($old)
+	progname = kernel_string($program->name)
+	prog = $program->number
+	vers = vers_from_prog($program, $vers)
+
+	name = "sunrpc.clnt.bind_new_program"
+	argstr = sprintf("%s %s %d %s %d", servername, old_progname, 
+			old_vers, progname, vers)
+}
+
+probe sunrpc.clnt.bind_new_program.return = 
+	kernel.function("rpc_bind_new_program").return ?,
+      	module("sunrpc").function("rpc_bind_new_program").return ?
+{
+	name = "sunrpc.clnt.bind_new_program"
+	retstr = returnstr($return)
+}
+
+/*
  * int rpc_call_sync(struct rpc_clnt *clnt, struct rpc_message *msg, 
  * 	int flags)
+ *
+ *  @servername: the server machine name
+ *  @progname:   the RPC program name
+ *  @prog:       the RPC program number
+ *  @vers:	 the RPC program version number
+ *  @prot:	 the IP protocol number
+ *  @port:	 the port number
+ *  @xid:        current transmission id
+ *  @dead:       whether this client is abandoned
+ *  @procname:   the procedure name in this RPC call
+ *  @proc:       the procedure number in this RPC call
+ *  @flags:      flags
  */
 probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") ?,
       	module("sunrpc").function("rpc_call_sync") ?
 {
-	servname = kernel_string($clnt->cl_server)
+	servername = kernel_string($clnt->cl_server)
 	progname = kernel_string($clnt->cl_protname)
 	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
@@ -194,13 +255,13 @@ probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") ?,
 	xid  = xid_from_clnt($clnt)
 	dead = $clnt->cl_dead
 
-	proc = proc_from_msg($msg)
 	procname= $msg->rpc_proc->p_name 
 		? kernel_string($msg->rpc_proc->p_name) : "NULL"
+	proc = proc_from_msg($msg)
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_sync"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servname, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
 			vers, procname, flags)
 }
 
@@ -214,11 +275,23 @@ probe sunrpc.clnt.call_sync.return = kernel.function("rpc_call_sync").return ?,
 /*
  * int rpc_call_async(struct rpc_clnt *clnt, struct rpc_message *msg, 
  * 	int flags, const struct rpc_call_ops *tk_ops, void *data)
+ *
+ *  @servername: the server machine name
+ *  @progname:   the RPC program name
+ *  @prog:       the RPC program number
+ *  @vers:	 the RPC program version number
+ *  @prot:	 the IP protocol number
+ *  @port:	 the port number
+ *  @xid:        current transmission id
+ *  @dead:       whether this client is abandoned
+ *  @procname:   the procedure name in this RPC call
+ *  @proc:       the procedure number in this RPC call
+ *  @flags:      flags
  */
 probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") ?,
       	module("sunrpc").function("rpc_call_async") ?
 {
-	servname = kernel_string($clnt->cl_server)
+	servername = kernel_string($clnt->cl_server)
 	progname = kernel_string($clnt->cl_protname)
 	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
@@ -234,7 +307,7 @@ probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") ?,
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_async"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servname, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
 			vers, procname, flags)
 }
 
@@ -250,20 +323,29 @@ probe sunrpc.clnt.call_async.return =
  * Fires when an (async) RPC call is to be restarted
  *
  * void rpc_restart_call(struct rpc_task *task)
+ *
+ * @servername:   the server machine name
+ * @prog:         the RPC program number
+ * @xid:          the transmission id
+ * @tk_pid:	  the debugging aid of task
+ * @tk_flags:     the task flags
+ * @tk_priority:  the task priority
+ * @tk_runstate:  the task run status
  */
 probe sunrpc.clnt.restart_call = kernel.function("rpc_restart_call") ?,
       	module("sunrpc").function("rpc_restart_call") ?
 {
-	xid = $task->tk_rqstp->rq_xid
+	servername = kernel_string($task->tk_client->cl_server)
 	prog = prog_from_clnt($task->tk_client)
-	vers = vers_from_clnt($task->tk_client)
-
+	xid = $task->tk_rqstp->rq_xid
 	tk_pid = $task->tk_pid
 	tk_flags = $task->tk_flags
+	tk_priority = $task->tk_priority
+	tk_runstate = $task->tk_runstate
 
 	name = "sunrpc.clnt.restart_call"
-	argstr = sprintf("%d %d %d %d %d", xid, prog, vers, 
-			tk_pid, tk_flags)
+	argstr = sprintf("%s %d %d %d %d %d %d", servername, prog, xid, tk_pid, 
+			tk_flags, tk_priority, tk_runstate)
 }
 
 probe sunrpc.clnt.restart_call.return = 
@@ -276,7 +358,6 @@ probe sunrpc.clnt.restart_call.return =
 /*********************************************
  *    Probe points on RPC server interface   *
  ********************************************/
-
 probe sunrpc.svc.entry =
 	sunrpc.svc.register,
 	sunrpc.svc.create,
@@ -304,6 +385,12 @@ probe sunrpc.svc.return =
  * If proto and port == 0, it means to unregister a service.
  *
  * int svc_register(struct svc_serv *serv, int proto, unsigned short port)
+ *
+ * @sv_name:     the service name
+ * @progname:    the name of the program
+ * @prog:        the number of the program
+ * @prot:	 the IP protocol number
+ * @port:	 the port number
  */
 probe sunrpc.svc.register = kernel.function("svc_register") ?,
       	module("sunrpc").function("svc_register") ?
@@ -330,19 +417,22 @@ probe sunrpc.svc.register.return = kernel.function("svc_register").return ?,
  *
  * struct svc_serv * 
  * svc_create(struct svc_program *prog, unsigned int bufsize)
+ *
+ * @progname:    the name of the program
+ * @prog:        the number of the program
+ * @pg_nvers:	 the number of supported versions
+ * @bufsize:     the buffer size
  */
 probe sunrpc.svc.create = kernel.function("svc_create") ?,
       	module("sunrpc").function("svc_create") ?
 {
-	pg_name = kernel_string($prog->pg_name)
-	pg_prog = $prog->pg_prog
-	pg_hivers = $prog->pg_hivers
+	progname = kernel_string($prog->pg_name)
+	prog = $prog->pg_prog
 	pg_nvers  = $prog->pg_nvers
 	bufsize = $bufsize
 	
 	name = "sunrpc.svc.create"
-	argstr = sprintf("%s %d %d %d %d", pg_name, pg_prog, 
-			pg_hivers, pg_nvers, bufsize)
+	argstr = sprintf("%s %d %d %d", progname, prog, pg_nvers, bufsize)
 }
 
 probe sunrpc.svc.create.return = kernel.function("svc_create").return ?,
@@ -355,6 +445,16 @@ probe sunrpc.svc.create.return = kernel.function("svc_create").return ?,
  * Fires when an RPC service is to be destroyed
  *
  * void svc_destroy(struct svc_serv *serv)
+ *
+ * @sv_name:     the service name
+ * @sv_progname: the name of the program
+ * @sv_prog:     the number of the program
+ * @sv_nrthreads:the number of concurrent threads
+ * @netcnt:      the count of received RPC requests
+ * @nettcpconn:  the count of accepted TCP connections
+ * @rpccnt:      the count of valid RPC requests
+ * @rpcbadfmt:   the count of requests dropped for bad formats
+ * @rpcbadauth:  the count of requests drooped for authentication failure
  */
 probe sunrpc.svc.destroy = kernel.function("svc_destroy") ?,
       	module("sunrpc").function("svc_destroy") ?
@@ -368,7 +468,8 @@ probe sunrpc.svc.destroy = kernel.function("svc_destroy") ?,
 	netcnt = $serv->sv_stats->netcnt
 	netcpconn = $serv->sv_stats->nettcpconn
 	rpccnt = $serv->sv_stats->rpccnt
-	rpcbadclnt = $serv->sv_stats->rpcbadclnt
+	rpcbadfmt = $serv->sv_stats->rpcbadfmt
+	rpcbadauth = $serv->sv_stats->rpcbadauth
 	
 	name = "sunrpc.svc.destroy"
 	argstr = sprintf("%s %d %d", sv_name, sv_prog, sv_nrthreads)
@@ -384,19 +485,30 @@ probe sunrpc.svc.destroy.return = kernel.function("svc_destroy").return ?,
  * Fires when an RPC request is to be processed
  *
  * int svc_process(struct svc_serv *serv, struct svc_rqst *rqstp)
+ *
+ * @sv_name:     the service name
+ * @sv_prog:     the number of the program
+ * @sv_nrthreads:the number of concurrent threads
+ * @peer_ip:     the peer address where the request is from
+ * @rq_xid:      the transmission id in the request
+ * @rq_prog:     the program number in the request
+ * @rq_vers:     the program version in the request
+ * @rq_proc:     the procedure number in the request
+ * @rq_prot:     the IP protocol of the reqeust
  */
 probe sunrpc.svc.process = kernel.function("svc_process") ?,
       	module("sunrpc").function("svc_process") ?
 {
 	sv_name = kernel_string($serv->sv_name) /* service name */
 	sv_prog = $serv->sv_program->pg_prog
+	sv_nrthreads = $serv->sv_nrthreads
 
-	peer_ip = addr_from_rqst($rqstp)/* peer address */
-	rq_xid = $rqstp->rq_xid		/* transmission id */
-	rq_prog = $rqstp->rq_prog	/* program number */
-	rq_vers = $rqstp->rq_vers	/* program version */
-	rq_proc = $rqstp->rq_proc	/* procedure number */
-	rq_prot = $rqstp->rq_prot	/* IP protocol */
+	peer_ip = addr_from_rqst($rqstp)
+	rq_xid = $rqstp->rq_xid
+	rq_prog = $rqstp->rq_prog
+	rq_vers = $rqstp->rq_vers
+	rq_proc = $rqstp->rq_proc
+	rq_prot = $rqstp->rq_prot
 	
 	name = "sunrpc.svc.process"
 	argstr = sprintf("%s %d %d %d %d %d %d", sv_name, sv_prog, peer_ip,
@@ -411,21 +523,32 @@ probe sunrpc.svc.process.return = kernel.function("svc_process").return ?,
 }
 
 /* 
+ * Fires when an RPC request is to be authorised
+ *
  * int svc_authorise(struct svc_rqst *rqstp)
+ *
+ * @sv_name:     the service name
+ * @peer_ip:     the peer address where the request is from
+ * @rq_xid:      the transmission id in the request
+ * @rq_prog:     the program number in the request
+ * @rq_vers:     the program version in the request
+ * @rq_proc:     the procedure number in the request
+ * @rq_prot:     the IP protocol of the reqeust
  */
 probe sunrpc.svc.authorise = kernel.function("svc_authorise")?,
       	module("sunrpc").function("svc_authorise")?
 {
-	peer_ip = addr_from_rqst($rqstp)	/* peer address */
-	xid  = $rqstp->rq_xid	/* transmission id */
-	prog = $rqstp->rq_prog	/* program number */
-	vers = $rqstp->rq_vers	/* program version */
-	proc = $rqstp->rq_proc	/* procedure number */
-	prot = $rqstp->rq_prot	/* IP protocol */
+	sv_name = kernel_string($rqstp->rq_server->sv_name)
+	peer_ip = addr_from_rqst($rqstp)
+	rq_xid  = $rqstp->rq_xid
+	rq_prog = $rqstp->rq_prog
+	rq_vers = $rqstp->rq_vers
+	rq_proc = $rqstp->rq_proc
+	rq_prot = $rqstp->rq_prot
 
 	name = "sunrpc.svc.authorise"
-	argstr = sprintf("%d %d %d %d %d %d %d", peer_ip, xid, prog, 
-			vers, proc, prot, addr)
+	argstr = sprintf("%d %d %d %d %d %d", peer_ip, rq_xid, rq_prog, 
+			rq_vers, rq_proc, rq_prot)
 }
 
 probe sunrpc.svc.authorise.return = kernel.function("svc_authorise").return ?,
@@ -436,14 +559,21 @@ probe sunrpc.svc.authorise.return = kernel.function("svc_authorise").return ?,
 }
 
 /*
- * Fires when receiving the next request on any socket.
+ * Fires when the server is to receive the next request on any socket.
  *
  * int svc_recv(struct svc_serv *serv, struct svc_rqst *rqstp, long timeout)
+ *
+ * @sv_name:     the service name
+ * @sv_prog:     the number of the program
+ * @sv_nrthreads:the number of concurrent threads
+ * @timeout:     the timeout of waiting for data
  */
 probe sunrpc.svc.recv = kernel.function("svc_recv")?,
       	module("sunrpc").function("svc_recv")?
 {
 	sv_name = kernel_string($serv->sv_name)	
+	sv_prog = $serv->sv_program->pg_prog
+	sv_nrthreads = $serv->sv_nrthreads
 	timeout = $timeout
 
 	name = "sunrpc.svc.recv"
@@ -461,23 +591,29 @@ probe sunrpc.svc.recv.return = kernel.function("svc_recv").return ?,
  * Fires when want to return reply to client.
  *
  * int svc_send(struct svc_rqst *rqstp)
+ *
+ * @sv_name:     the service name
+ * @peer_ip:     the peer address where the request is from
+ * @rq_xid:      the transmission id in the request
+ * @rq_prog:     the program number in the request
+ * @rq_vers:     the program version in the request
+ * @rq_proc:     the procedure number in the request
+ * @rq_prot:     the IP protocol of the reqeust
  */
 probe sunrpc.svc.send = kernel.function("svc_send")?,
       	module("sunrpc").function("svc_send")?
 {
 	sv_name = kernel_string($rqstp->rq_server->sv_name)
-	sv_prog = $rqstp->rq_server->sv_program->pg_prog
-
-	peer_ip = addr_from_rqst($rqstp) /* peer address */
-	xid  = $rqstp->rq_xid	/* transmission id */
-	prog = $rqstp->rq_prog	/* program number */
-	vers = $rqstp->rq_vers	/* program version */
-	proc = $rqstp->rq_proc	/* procedure number */
-	prot = $rqstp->rq_prot	/* IP protocol */
+	peer_ip = addr_from_rqst($rqstp)
+	rq_xid  = $rqstp->rq_xid
+	rq_prog = $rqstp->rq_prog
+	rq_vers = $rqstp->rq_vers
+	rq_proc = $rqstp->rq_proc
+	rq_prot = $rqstp->rq_prot
 	
 	name = "sunrpc.svc.send"
-	argstr = sprintf("%s %d %d %d %d %d %d %d", sv_name, sv_prog, 
-			peer_ip, xid, prog, vers, proc, prot)
+	argstr = sprintf("%s %d %d %d %d %d %d", sv_name, peer_ip, 
+			rq_xid, rq_prog, rq_vers, rq_proc, rq_prot)
 }
 
 probe sunrpc.svc.send.return = kernel.function("svc_send").return ?,
@@ -491,23 +627,29 @@ probe sunrpc.svc.send.return = kernel.function("svc_send").return ?,
  * Fires when a request is to be dropped
  *
  * void svc_drop(struct svc_rqst *rqstp)
+ *
+ * @sv_name:     the service name
+ * @peer_ip:     the peer address where the request is from
+ * @rq_xid:      the transmission id in the request
+ * @rq_prog:     the program number in the request
+ * @rq_vers:     the program version in the request
+ * @rq_proc:     the procedure number in the request
+ * @rq_prot:     the IP protocol of the reqeust
  */
 probe sunrpc.svc.drop = kernel.function("svc_drop")?,
       	module("sunrpc").function("svc_drop")?
 {
 	sv_name = kernel_string($rqstp->rq_server->sv_name)
-	sv_prog = $rqstp->rq_server->sv_program->pg_prog
-
-	peer_ip = addr_from_rqst($rqstp) /* peer address */
-	xid  = $rqstp->rq_xid	/* transmission id */
-	prog = $rqstp->rq_prog	/* program number */
-	vers = $rqstp->rq_vers	/* program version */
-	proc = $rqstp->rq_proc	/* procedure number */
-	prot = $rqstp->rq_prot	/* IP protocol */
+	peer_ip = addr_from_rqst($rqstp)
+	rq_xid  = $rqstp->rq_xid
+	rq_prog = $rqstp->rq_prog
+	rq_vers = $rqstp->rq_vers
+	rq_proc = $rqstp->rq_proc
+	rq_prot = $rqstp->rq_prot
 	
 	name = "sunrpc.svc.drop"
-	argstr = sprintf("%s %d %d %d %d %d %d %d", sv_name, sv_prog, 
-			peer_ip, xid, prog, vers, proc, prot)
+	argstr = sprintf("%s %d %d %d %d %d %d", sv_name, peer_ip, 
+			rq_xid, rq_prog, rq_vers, rq_proc, rq_prot)
 }
 
 probe sunrpc.svc.drop.return = kernel.function("svc_drop").return ?,
@@ -519,81 +661,31 @@ probe sunrpc.svc.drop.return = kernel.function("svc_drop").return ?,
 /*******************************************************************
  *                  Probe points on RPC scheduler                  *
  ******************************************************************/
-
 probe sunrpc.sched.entry =
 	sunrpc.sched.new_task,
+	sunrpc.sched.release_task,
 	sunrpc.sched.execute,
-	sunrpc.sched.delay,
-	sunrpc.sched.release_task
+	sunrpc.sched.delay
 {}
 
 probe sunrpc.sched.return =
 	sunrpc.sched.new_task.return,
+	sunrpc.sched.release_task.return,
 	sunrpc.sched.execute.return,
-	sunrpc.sched.delay.return,
-	sunrpc.sched.release_task.return 
+	sunrpc.sched.delay.return
 {}
-
-/*
- * Fires when the RPC `scheduler'(or rather, the finite state machine) 
- * is to be executed 
- *
- * static int __rpc_execute(struct rpc_task *task)
- */
-probe sunrpc.sched.execute = kernel.function("__rpc_execute") ?,
-      	module("sunrpc").function("__rpc_execute") ?
-{
-	xid = xid_from_clnt($task->tk_client)
-	prog = prog_from_clnt($task->tk_client)
-	vers = vers_from_clnt($task->tk_client)
-	prot = prot_from_clnt($task->tk_client)
-	tk_pid = $task->tk_pid
-	tk_flags = $task->tk_flags
-
-	name = "sunrpc.sched.execute"
-	argstr = sprintf("%d %d %d %d %d %d", xid, prog, 
-			vers, prot, tk_pid, tk_flags)
-}
-
-probe sunrpc.sched.execute.return = kernel.function("__rpc_execute").return ?,
-      	module("sunrpc").function("__rpc_execute").return ?
-{
-	name = "sunrpc.sched.execute"
-	retstr = returnstr($return)
-}
-
-/*
- * Fires when a task is to be delayed
- * 
- * void rpc_delay(struct rpc_task *task, unsigned long delay)
- */
-probe sunrpc.sched.delay = kernel.function("rpc_delay") ?,
-      module("sunrpc").function("rpc_delay") ?
-{
-	xid = xid_from_clnt($task->tk_client)
-	prog = prog_from_clnt($task->tk_client)
-	vers = vers_from_clnt($task->tk_client)
-	prot = prot_from_clnt($task->tk_client)
-	tk_pid = $task->tk_pid
-	tk_flags = $task->tk_flags
-	delay = $delay
-
-	name = "sunrpc.clnt.delay"
-	argstr = sprintf("%d %d %d %d %d %d", xid, prog, vers, 
-			prot, tk_pid, tk_flags)
-}
-
-probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return ?,
-      module("sunrpc").function("rpc_delay").return ?
-{
-	name = "sunrpc.clnt.delay"
-}
 
 /*
  * Fires when a new task is to be created for the specified client.
  * 
  * struct rpc_task * rpc_new_task(struct rpc_clnt *clnt, int flags, 
  * 	const struct rpc_call_ops *tk_ops, void *calldata)
+ *
+ * @xid:         the transmission id in the RPC call
+ * @prog:        the program number in the RPC call
+ * @vers:        the program version in the RPC call
+ * @prot:        the IP protocol in the RPC call
+ * @tk_flags:    the flags of the task
  */
 probe sunrpc.sched.new_task = kernel.function("rpc_new_task") ?,
       	module("sunrpc").function("rpc_new_task") ?
@@ -618,6 +710,12 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return ?,
  * Fires when all resources associated with a task are to be released
  * 
  * void rpc_release_task(struct rpc_task *task)
+ *
+ * @xid:         the transmission id in the RPC call
+ * @prog:        the program number in the RPC call
+ * @vers:        the program version in the RPC call
+ * @prot:        the IP protocol in the RPC call
+ * @tk_flags:    the flags of the task
  */
 probe sunrpc.sched.release_task = kernel.function("rpc_release_task") ?,
       	module("sunrpc").function("rpc_release_task") ?
@@ -626,10 +724,10 @@ probe sunrpc.sched.release_task = kernel.function("rpc_release_task") ?,
 	prog = prog_from_clnt($task->tk_client)
 	vers = vers_from_clnt($task->tk_client)
 	prot = prot_from_clnt($task->tk_client)
-	flags  = $task->tk_flags
+	tk_flags  = $task->tk_flags
 
 	name = "sunrpc.sched.release_task"
-	argstr = sprintf("%d %d %d %d %d", xid, prog, vers, prot, flags)
+	argstr = sprintf("%d %d %d %d %d", xid, prog, vers, prot, tk_flags)
 }
 
 probe sunrpc.sched.release_task.return = 
@@ -639,55 +737,131 @@ probe sunrpc.sched.release_task.return =
 	name = "sunrpc.sched.release_task"
 }
 
+/*
+ * Fires when the RPC `scheduler'(or rather, the finite state machine) 
+ * is to be executed 
+ *
+ * static int __rpc_execute(struct rpc_task *task)
+ *
+ * @xid:         the transmission id in the RPC call
+ * @prog:        the program number in the RPC call
+ * @vers:        the program version in the RPC call
+ * @prot:        the IP protocol in the RPC call
+ * @tk_pid:      the debugging id of the task
+ * @tk_flags:    the flags of the task
+ */
+probe sunrpc.sched.execute = kernel.function("__rpc_execute") ?,
+      	module("sunrpc").function("__rpc_execute") ?
+{
+	xid = xid_from_clnt($task->tk_client)
+	prog = prog_from_clnt($task->tk_client)
+	vers = vers_from_clnt($task->tk_client)
+	prot = prot_from_clnt($task->tk_client)
+	tk_pid = $task->tk_pid
+	tk_flags = $task->tk_flags
+
+	name = "sunrpc.sched.execute"
+	argstr = sprintf("%d %d %d %d %d %d", xid, prog, vers, prot, 
+			tk_pid, tk_flags)
+}
+
+probe sunrpc.sched.execute.return = kernel.function("__rpc_execute").return ?,
+      	module("sunrpc").function("__rpc_execute").return ?
+{
+	name = "sunrpc.sched.execute"
+	retstr = returnstr($return)
+}
+
+/*
+ * Fires when a task is to be delayed
+ * 
+ * void rpc_delay(struct rpc_task *task, unsigned long delay)
+ *
+ * @xid:         the transmission id in the RPC call
+ * @prog:        the program number in the RPC call
+ * @vers:        the program version in the RPC call
+ * @prot:        the IP protocol in the RPC call
+ * @tk_pid:      the debugging id of the task
+ * @tk_flags:    the flags of the task
+ * @delay:       the time delayed
+ */
+probe sunrpc.sched.delay = kernel.function("rpc_delay") ?,
+      module("sunrpc").function("rpc_delay") ?
+{
+	xid = xid_from_clnt($task->tk_client)
+	prog = prog_from_clnt($task->tk_client)
+	vers = vers_from_clnt($task->tk_client)
+	prot = prot_from_clnt($task->tk_client)
+	tk_pid = $task->tk_pid
+	tk_flags = $task->tk_flags
+	delay = $delay
+
+	name = "sunrpc.clnt.delay"
+	argstr = sprintf("%d %d %d %d %d %d %d", xid, prog, vers, 
+			prot, tk_pid, tk_flags, delay)
+}
+
+probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return ?,
+      module("sunrpc").function("rpc_delay").return ?
+{
+	name = "sunrpc.clnt.delay"
+}
+
 /******************************************************************
- *                       Helpler functions                        *
+ *                       Helper functions                        *
  *****************************************************************/
 
 function xid_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
-	THIS->__retvalue = clnt ? clnt->cl_xprt->tcp_xid : 0;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	THIS->__retvalue = clnt ? clnt->cl_xprt->xid : 0;
 %}
 
 function prog_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_prog : 0;
 %}
 
 function vers_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_vers : 0;
 %}
 
 function prot_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_prot : 0;
 %}
 
 function port_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_port : 0;
+%}
+
+function clones_from_clnt:long(clnt:long)
+%{
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	THIS->__retvalue = atomic_read(&clnt->cl_count);
 %}
 
 function tasks_from_clnt:long(clnt:long)
 %{
-	struct rpc_clnt *clnt = (struct rpc_clnt *)THIS->clnt;
+	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = atomic_read(&clnt->cl_users);
 %}
 
 function proc_from_msg:long(msg:long)
 %{
-	struct rpc_message *msg = (struct rpc_message *)THIS->msg;
+	struct rpc_message *msg = (struct rpc_message *)(long)THIS->msg;
 	THIS->__retvalue = msg ? msg->rpc_proc->p_proc : 0;
 %}
 
 function vers_from_prog:long(program:long, vers:long)
 %{
-	struct rpc_program *program = (struct rpc_program *)THIS->program;
+	struct rpc_program *program = (struct rpc_program *)(long)THIS->program;
 	if (!program || THIS->vers >= program->nrvers || !program->version[THIS->vers])
 		THIS->__retvalue = 0;
 	else
@@ -696,7 +870,7 @@ function vers_from_prog:long(program:long, vers:long)
 
 function addr_from_rqst:long(rqstp:long)
 %{
-	struct svc_rqst *rqstp = (struct svc_rqst *)THIS->rqstp;
+	struct svc_rqst *rqstp = (struct svc_rqst *)(long)THIS->rqstp;
 	THIS->__retvalue = rqstp ? rqstp->rq_addr.sin_addr.s_addr : 0;
 %}
 

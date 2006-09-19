@@ -1,3 +1,13 @@
+2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guijian@cn.ibm.com>
+
+	* rpc.stp: New trace hooks for RPC activities on client, 
+	server and scheduler.
+	* register_event.stp: Add the register_sys_event() calls
+	for new RPC trace hooks
+	* hookid_defs.stp: Add the definitions of RPC trace hooks
+	
 2006-09-15  Li Guanglei <guanglei@cn.ibm.com>
 
 	* *.stp: Make sure all integers passed into _lket_trace()

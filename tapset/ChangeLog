@@ -1,3 +1,9 @@
+2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
+	
+	From Gui Jian <guijian@cn.ibm.com>
+
+	* rpc.stp: Some changes and more comments of RPC tapset
+
 2006-09-18  Martin Hunt  <hunt@redhat.com>
 
 	* logging.stp (stp_print_binary): New function.

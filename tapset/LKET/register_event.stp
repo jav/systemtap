@@ -10,8 +10,8 @@ global usr_evt_name, usr_evt_fmt
 
 %{
 
-#define _MAXGROUPID  20
-#define _MAXHOOKID   80
+#define _MAXGROUPID  0xFF
+#define _MAXHOOKID   0xFF
 
 int get_fmtcode(char *fmt)
 {
@@ -321,6 +321,139 @@ function register_sys_events()
 	register_sys_event(GROUP_SIGNAL, HOOKID_SIGNAL_FLUSH_ENTRY,
 		"INT32", "pid")
 
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CREATE_CLIENT_ENTRY, 
+		"STRING:INT64:INT8:INT16:INT16:INT8",
+		"server:prog:vers:prot:port:authflavor")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CREATE_CLIENT_RETURN, 
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CLONE_CLIENT_ENTRY, 
+		"STRING:INT64:INT16:INT16:INT32",
+		"server:prog:tasks:clones:rpccount")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CLONE_CLIENT_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_SHUTDOWN_CLIENT_ENTRY, 
+		"STRING:INT64:INT16:INT16:INT32",
+		"server:prog:clones:tasks:rpccount")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_SHUTDOWN_CLIENT_RETURN,
+		"INT8", "void")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_BIND_NEW_PROGRAM_ENTRY,
+		"STRING:INT64:INT8:INT64:INT8",
+		"server:old_prog:old_vers:new_prog:new_vers")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_BIND_NEW_PROGRAM_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_SYNC_ENTRY,
+		"STRING:INT64:INT8:INT64:INT64",
+		"server:prog:vers:proc:flags")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_SYNC_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_ASYNC_ENTRY,
+		"STRING:INT64:INT8:INT64:INT64",
+		"server:prog:vers:proc:flags")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_ASYNC_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_RESTART_CALL_ENTRY,
+		"INT64:INT64",
+		"tk_pid:tk_flags")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_RESTART_CALL_RETURN,
+		"INT8", "void")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_REGISTER_ENTRY,
+		"STRING:INT64:INT16:INT32",
+		"service:program:protocol:prot")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_REGISTER_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_CREATE_ENTRY,
+		"INT64:INT8:INT8",
+		"program:high_version:num_versions")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_CREATE_RETURN,
+		"INT64", "return")
+			
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DESTROY_ENTRY,
+		"STRING:INT64:INT32",
+		"service:program:num_threads")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DESTROY_RETURN,
+		"INT8", "void")
+			
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_PROCESS_ENTRY,
+		"STRING:INT64:INT64:INT64:INT64:INT8:INT8",
+		"service:sv_prog:peer_ip:rq_xid:rq_prog:rq_vers:rq_proc")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_PROCESS_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_AUTHORISE_ENTRY,
+		"INT64:INT64:INT64:INT8:INT64",
+		"peer_ip:xid:prog:vers:proc")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_AUTHORISE_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_SEND_ENTRY,
+		"STRING:INT64:INT64:INT64:INT64:INT8:INT64",
+		"sv_name:peer_ip:sv_prog:xid:prog:vers:proc")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_SEND_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_RECV_ENTRY,
+		"STRING:INT64",
+		"sv_name:timeout")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_RECV_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DROP_ENTRY,
+		"STRING:INT64:INT64:INT64:INT8:INT64",
+		"sv_name:peer_ip:xid:prog:vers:proc")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DROP_RETURN,
+		"INT8", "void")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_NEW_TASK_ENTRY,
+		"INT64:INT64:INT8:INT64:INT64",
+		"xid:prog:vers:prot:flags")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_NEW_TASK_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_RELEASE_TASK_ENTRY,
+		"INT64:INT64:INT8:INT64:INT64",
+		"xid:prog:vers:prot:flags")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_RELEASE_TASK_RETURN,
+		"INT8", "void")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_EXECUTE_ENTRY,
+		"INT64:INT64:INT8:INT64:INT64:INT64",
+		"xid:prog:vers:prot:tk_pid:tk_flags")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_EXECUTE_RETURN,
+		"INT64", "return")
+
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_DELAY_ENTRY,
+		"INT64:INT64:INT64:INT64:INT64",
+		"xid:prog:tk_pid:tk_flags:delay")
+	
+	register_sys_event(GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_DELAY_RETURN,
+		"INT8", "void")
+
 	register_sys_event(GROUP_CPUFREQ, HOOKID_SWITCH_CPUFREQ,
 		"INT64", "cpufreq")		
 
@@ -595,7 +728,6 @@ function register_sys_events()
 	register_sys_event(GROUP_NFSD, HOOKID_NFSD_RENAME_RETURN,
                 "INT32","return")	
 
-
 	register_sys_event(GROUP_NFSD, HOOKID_NFSD_CLOSE_ENTRY,
                 "STRING",
 		"filename")	
@@ -648,6 +780,7 @@ function register_sys_events()
 		"size:ino0:ino1:ino2:version:filename")	
 	register_sys_event(GROUP_NFSD, HOOKID_NFSD_PROC_CREATE_RETURN,
                 "INT32","return")
+
 	reset_maxaction()
 }
 
