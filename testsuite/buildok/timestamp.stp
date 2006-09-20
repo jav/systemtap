@@ -1,6 +1,6 @@
 #! stap -p4
 
 probe begin {
-  log(sprint(get_cycles() + gettimeofday_us() +
+  log(sprint(get_cycles() + gettimeofday_ns() + gettimeofday_us() +
              gettimeofday_ms() + gettimeofday_s()))
 }

@@ -1,3 +1,8 @@
+2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3233
+	* stapfuncs.5.in: Document new gettimeofday_ns.
+
 2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* README: Add CONFIG_DEBUG_FS to config options.

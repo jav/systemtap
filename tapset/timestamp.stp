@@ -20,21 +20,26 @@ function get_cycles:long () %{ /* pure */
 %}
 
 
-// return in microseconds since epoch
-function gettimeofday_us:long () %{ /* pure */
+// return in nanoseconds since epoch
+function gettimeofday_ns:long () %{ /* pure */
   /* NOTE: we can't use do_gettimeofday because we could be called from a
    * context where xtime_lock is already held.  See bug #2525. */
-  THIS->__retvalue = _stp_gettimeofday_us();
+  THIS->__retvalue = _stp_gettimeofday_ns();
 %}
+
+// return in microseconds since epoch
+function gettimeofday_us:long () {
+  return gettimeofday_ns() / 1000;
+}
 
 // return in milliseconds since epoch
 function gettimeofday_ms:long () {
-  return gettimeofday_us() / 1000;
+  return gettimeofday_ns() / 1000000;
 }
 
 // return in seconds since epoch
 function gettimeofday_s:long () {
-  return gettimeofday_us() / 1000000;
+  return gettimeofday_ns() / 1000000000;
 }
 
 // likewise jiffies, monotonic_clock ...

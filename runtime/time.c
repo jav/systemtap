@@ -10,6 +10,10 @@
 
 #include <linux/cpufreq.h>
 
+#ifndef NSEC_PER_MSEC
+#define NSEC_PER_MSEC	1000000L
+#endif
+
 typedef struct __stp_time_t {
     /* 
      * A write lock is taken by __stp_time_timer_callback() and
@@ -30,35 +34,37 @@ typedef struct __stp_time_t {
     seqlock_t lock;
 
     /* These provide a reference time to correlate cycles to real time */
-    struct timeval base_time;
+    int64_t base_ns;
     cycles_t base_cycles;
 
-    /* The frequency in MHz of this CPU, for interpolating
+    /* The frequency in kHz of this CPU, for interpolating
      * cycle counts from the base time. */
     unsigned int cpufreq;
 
-    /* Callback used to schedule updates of the base_time */
+    /* Callback used to schedule updates of the base time */
     struct timer_list timer;
 } stp_time_t;
 
 DEFINE_PER_CPU(stp_time_t, stp_time);
 
-/* Try to estimate the number of CPU cycles in a microsecond - i.e. MHz.  This
+/* Try to estimate the number of CPU cycles in a millisecond - i.e. kHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
  * attempt to account for overhead in the call.
  * 
  * NB: interrupts should be disabled when calling this.
+ *
+ * FIXME: This not very accurate on Xen kernels!
  */
 static unsigned int
 __stp_estimate_cpufreq(void)
 {
     cycles_t beg, mid, end;
     beg = get_cycles(); barrier();
-    udelay(2); barrier();
+    udelay(1); barrier();
     mid = get_cycles(); barrier();
-    udelay(10); barrier();
+    udelay(1001); barrier();
     end = get_cycles(); barrier();
-    return (beg - 2*mid + end)/8;
+    return (beg - 2*mid + end);
 }
 
 static void
@@ -67,6 +73,7 @@ __stp_time_timer_callback(unsigned long val)
     unsigned long flags;
     stp_time_t *time;
     struct timeval tv;
+    int64_t ns;
     cycles_t cycles;
 
     local_irq_save(flags);
@@ -74,9 +81,12 @@ __stp_time_timer_callback(unsigned long val)
     do_gettimeofday(&tv);
     cycles = get_cycles();
 
+    ns = (NSEC_PER_SEC * (int64_t)tv.tv_sec)
+        + (NSEC_PER_USEC * tv.tv_usec);
+
     time = &__get_cpu_var(stp_time);
     write_seqlock(&time->lock);
-    time->base_time = tv;
+    time->base_ns = ns;
     time->base_cycles = cycles;
     write_sequnlock(&time->lock);
 
@@ -89,11 +99,15 @@ __stp_time_timer_callback(unsigned long val)
 static void
 __stp_init_time(void *info)
 {
+    struct timeval tv;
     stp_time_t *time = &__get_cpu_var(stp_time);
 
+
     seqlock_init(&time->lock);
-    do_gettimeofday(&time->base_time);
+    do_gettimeofday(&tv);
     time->base_cycles = get_cycles();
+    time->base_ns = (NSEC_PER_SEC * (int64_t)tv.tv_sec)
+        + (NSEC_PER_USEC * tv.tv_usec);
     time->cpufreq = __stp_estimate_cpufreq();
 
     init_timer(&time->timer);
@@ -109,18 +123,17 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
 {
     unsigned long flags;
     struct cpufreq_freqs *freqs;
-    unsigned int freq_mhz;
+    int freq_khz;
     stp_time_t *time;
 
     switch (state) {
         case CPUFREQ_POSTCHANGE:
         case CPUFREQ_RESUMECHANGE:
             freqs = (struct cpufreq_freqs *)vfreqs;
-            freq_mhz = freqs->new / 1000;
-
+            freq_khz = freqs->new;
             time = &per_cpu(stp_time, freqs->cpu);
             write_seqlock_irqsave(&time->lock, flags);
-            time->cpufreq = freq_mhz;
+            time->cpufreq = freq_khz;
             write_sequnlock_irqrestore(&time->lock, flags);
             break;
     }
@@ -151,35 +164,39 @@ int
 _stp_init_time(void)
 {
     int ret = 0;
-    int cpu, freq_mhz;
+    int cpu, freq_khz;
     unsigned long flags;
 
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
 #ifdef CONFIG_CPU_FREQ
-    if (ret == 0) {
-        for_each_online_cpu(cpu) {
-            freq_mhz = cpufreq_get(cpu) / 1000;
-            if (freq_mhz > 0) {
-                stp_time_t *time = &per_cpu(stp_time, cpu);
-                write_seqlock_irqsave(&time->lock, flags);
-                time->cpufreq = freq_mhz;
-                write_sequnlock_irqrestore(&time->lock, flags);
-            }
-        }
+    if (ret) goto end;
 
-        ret = cpufreq_register_notifier(&__stp_time_notifier,
-                CPUFREQ_TRANSITION_NOTIFIER);
+    ret = cpufreq_register_notifier(&__stp_time_notifier,
+            CPUFREQ_TRANSITION_NOTIFIER);
+    if (ret) goto end;
+
+    for_each_online_cpu(cpu) {
+        preempt_disable();
+        freq_khz = cpufreq_get(cpu);
+        if (freq_khz > 0) {
+            stp_time_t *time = &per_cpu(stp_time, cpu);
+            write_seqlock_irqsave(&time->lock, flags);
+            time->cpufreq = freq_khz;
+            write_sequnlock_irqrestore(&time->lock, flags);
+        }
+        preempt_enable();
     }
+end:
 #endif
 
     return ret;
 }
 
 int64_t
-_stp_gettimeofday_us(void)
+_stp_gettimeofday_ns(void)
 {
-    struct timeval base;
+    int64_t base;
     cycles_t last, delta;
     unsigned int freq;
     unsigned int seq;
@@ -191,7 +208,7 @@ _stp_gettimeofday_us(void)
     time = &__get_cpu_var(stp_time);
 
     seq = read_seqbegin(&time->lock);
-    base = time->base_time;
+    base = time->base_ns;
     last = time->base_cycles;
     freq = time->cpufreq;
     while (unlikely(read_seqretry(&time->lock, seq))) {
@@ -199,16 +216,19 @@ _stp_gettimeofday_us(void)
             return 0;
         ndelay(TRYLOCKDELAY);
         seq = read_seqbegin(&time->lock);
-        base = time->base_time;
+        base = time->base_ns;
         last = time->base_cycles;
         freq = time->cpufreq;
     }
 
     delta = get_cycles() - last;
-    do_div(delta, freq);
 
     preempt_enable();
 
-    return (USEC_PER_SEC * (int64_t)base.tv_sec) + base.tv_usec + delta;
+    // Verify units:
+    //   (D cycles) * (1E6 ns/ms) / (F cycles/ms [kHz]) = ns
+    delta *= NSEC_PER_MSEC;
+    do_div(delta, freq);
+    return base + delta;
 }
 

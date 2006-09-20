@@ -1,3 +1,14 @@
+2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3233
+	* time.c (stp_time_t): Use ns for the base time, and freq is now kHz.
+	(__stp_estimate_cpufreq): Compute kHz instead of MHz.
+	(__stp_time_timer_callback, __stp_init_time): Compute base in ns.
+	(__stp_time_cpufreq_callback): Record kHz instead of MHz.
+	(_stp_init_time): Record kHz, and disable preemption to avoid a race
+	in the cpufreq notifier.
+	(_stp_gettimeofday_ns): Converted from _stp_gettimeofday_us.
+
 2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: 
