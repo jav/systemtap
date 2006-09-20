@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 					cpufreq[j].last_cycles = hdrs[j].microsecond;
 					cpufreq[HDR_CpuID(&hdrs[j])].timebase = new_timebase;
 
-					fseek(infps[j], SEEK_CUR, -sizeof(new_timebase));
+					fseek(infps[j], -sizeof(new_timebase), SEEK_CUR);
 				}
 
 				dump_data(hdrs[j], infps[j]);
@@ -491,7 +491,7 @@ int dump_data(lket_pkt_header header, FILE *infp)
 	long long lltemp;
 	int readbytes = 0;
 	int total_bytes = 0;
-	int size;
+	int size = 0;
 	int evt_num = 1;
 
 	char *fmt, *name, *buffer;

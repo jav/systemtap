@@ -9,6 +9,9 @@
 	in the cpufreq notifier.
 	(_stp_gettimeofday_ns): Converted from _stp_gettimeofday_us.
 
+	* lket/b2a/lket_b2a.c (main): Correct arguments to fseek.
+	(dump_data): Work around a spurious compiler warning.
+
 2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: 
