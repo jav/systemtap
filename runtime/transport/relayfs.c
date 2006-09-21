@@ -137,6 +137,24 @@ static void _stp_remove_relay_dir(struct dentry *dir)
 #endif
 }
 
+static inline void _stp_lock_inode(struct inode *inode)
+{
+#ifdef DEFINE_MUTEX
+	mutex_lock(&inode->i_mutex);
+#else
+	down(&inode->i_sem);
+#endif
+}
+
+static inline void _stp_unlock_inode(struct inode *inode)
+{
+#ifdef DEFINE_MUTEX
+	mutex_unlock(&inode->i_mutex);
+#else
+	up(&inode->i_sem);
+#endif
+}
+
 static struct dentry *_stp_get_relay_root(void)
 {
 	struct file_system_type *fs;
@@ -157,9 +175,9 @@ static struct dentry *_stp_get_relay_root(void)
 		return NULL;
 
 	sb = list_entry(fs->fs_supers.next, struct super_block, s_instances);
-	mutex_lock(&sb->s_root->d_inode->i_mutex);
+	_stp_lock_inode(sb->s_root->d_inode);
 	root = lookup_one_len(dirname, sb->s_root, strlen(dirname));
-	mutex_unlock(&sb->s_root->d_inode->i_mutex);
+	_stp_unlock_inode(sb->s_root->d_inode);
 	if (!IS_ERR(root))
 		dput(root);
 	

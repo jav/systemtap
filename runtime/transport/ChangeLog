@@ -1,3 +1,10 @@
+2006-09-21  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* relayfs.c (_stp_get_relay_root): Call new mutex lock/unlock
+	wrappers instead.
+	(_stp_lock_inode): New.
+	(_stp_unlock_inode): New.
+
 2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* procfs.c (_stp_get_proc_root): Removed.
