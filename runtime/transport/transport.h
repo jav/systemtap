@@ -25,5 +25,6 @@ static int _stp_transport_mode = STP_TRANSPORT_PROC;
 #endif
 
 extern void _stp_transport_close(void);
-
+extern int _stp_print_init(void);
+extern void _stp_print_cleanup(void);
 #endif /* _TRANSPORT_TRANSPORT_H_ */

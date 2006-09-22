@@ -1,3 +1,8 @@
+2006-09-21  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_transport_init): Call _stp_print_init().
+	(_stp_cleanup_and_exit): Call _stp_print_cleanup().
+
 2006-09-21  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* relayfs.c (_stp_get_relay_root): Call new mutex lock/unlock

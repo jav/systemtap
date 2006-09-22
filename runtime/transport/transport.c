@@ -47,16 +47,6 @@ int _stp_transport_open(struct transport_info *info);
 
 #include "procfs.c"
 
-/*
- *	_stp_streaming - boolean, are we using 'streaming' output?
- */
-static int _stp_streaming(void)
-{
-	if (_stp_transport_mode == STP_TRANSPORT_PROC)
-		return 1;
-	return 0;
-}
-
 /* send commands with timeout and retry */
 int _stp_transport_send (int type, void *data, int len)
 {
@@ -128,15 +118,23 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 }
 #endif
 
+/* common cleanup code. */
+/* This is called from the kernel thread when an exit was requested */
+/* by stpd or the exit() function. It is also called by transport_close() */
+/* when the module  is removed. In that case "dont_rmmod" is set to 1. */
+/* We need to call it both times because we want to clean up properly */
+/* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit (int dont_rmmod)
 {
-	int failures;
-
 	kbug("cleanup_and_exit (%d)\n", dont_rmmod);
 	if (!_stp_exit_called) {
+		int failures;
+
+		/* we only want to do this stuff once */
 		_stp_exit_called = 1;
 
 		kbug("calling probe_exit\n");
+		/* tell the stap-generated code to unload its probes, etc */
 		probe_exit();
 		kbug("done with probe_exit\n");
 
@@ -150,15 +148,20 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		}
 #endif
 		kbug("transport_send STP_EXIT\n");
+		/* tell stpd to exit (if it is still there) */
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 		kbug("done with transport_send STP_EXIT\n");
 
 		_stp_kill_time();
+
+		/* free print buffers */
+		_stp_print_cleanup();
 	}
 }
 
 /*
  *	_stp_work_queue - periodically check for IO or exit
+ *	This is run by a kernel thread and may sleep.
  */
 static void _stp_work_queue (void *data)
 {
@@ -176,9 +179,11 @@ static void _stp_work_queue (void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
 		_stp_cleanup_and_exit(0);
+/*
 		cancel_delayed_work(&stp_exit);
 		flush_workqueue(_stp_wq);
 		wake_up_interruptible(&_stp_proc_wq);
+*/
 	} else
 		queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
 }
@@ -186,8 +191,8 @@ static void _stp_work_queue (void *data)
 /**
  *	_stp_transport_close - close proc and relayfs channels
  *
- *	This must be called after all I/O is done, probably at the end
- *	of module cleanup.
+ *	This is called automatically when the module is unloaded.
+ *     
  */
 void _stp_transport_close()
 {
@@ -230,7 +235,7 @@ int _stp_transport_open(struct transport_info *info)
 	_stp_target = info->target;
 
 #ifdef STP_RELAYFS
-	if (!_stp_streaming()) {
+	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
 		if (info->buf_size) {
 			unsigned size = info->buf_size * 1024 * 1024;
 			subbuf_size = ((size >> 2) + 1) * 65536;
@@ -268,11 +273,18 @@ int _stp_transport_init(void)
 {
 	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
+	/* create print buffers */
+	if (_stp_print_init() < 0)
+		return -1;
+
+	/* set up procfs communications */
 	if (_stp_register_procfs() < 0)
 		return -1;
 
+	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
 	queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
+
 	return 0;
 }
 
