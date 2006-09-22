@@ -1,3 +1,7 @@
+2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* stp_check.in: Add debugfs mounting.
+	
 2006-09-22  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guijian@cn.ibm.com>
