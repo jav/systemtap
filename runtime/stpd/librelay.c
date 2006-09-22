@@ -417,7 +417,7 @@ int init_relayfs(void)
 	if (WIFEXITED(wstat) && WEXITSTATUS(wstat)) {
 		perror (stp_check);
 		fprintf(stderr, "Could not execute %s\n", stp_check);
-		exit(1);
+		return -1;
 	}
 
 	if (statfs("/mnt/relay", &st) == 0 && (int) st.f_type == (int) RELAYFS_MAGIC)

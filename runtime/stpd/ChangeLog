@@ -1,3 +1,7 @@
+2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* librelay.c (init_relayfs): Cleanup if stp_check fails.
+
 2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* librelay.c (init_relayfs): Add debugfs path to relay files and
