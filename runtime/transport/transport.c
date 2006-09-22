@@ -179,11 +179,9 @@ static void _stp_work_queue (void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
 		_stp_cleanup_and_exit(0);
-/*
 		cancel_delayed_work(&stp_exit);
 		flush_workqueue(_stp_wq);
 		wake_up_interruptible(&_stp_proc_wq);
-*/
 	} else
 		queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
 }

@@ -128,10 +128,17 @@ static int _stp_write (int type, void *data, int len)
 {
 	struct _stp_buffer *bptr;
 	unsigned long flags;
+	unsigned numtrylock;
 
 #define WRITE_AGG
 #ifdef WRITE_AGG
-	spin_lock_irqsave(&_stp_ready_lock, flags);
+
+	numtrylock = 0;
+	while (!spin_trylock_irqsave (&_stp_ready_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
+		ndelay (TRYLOCKDELAY);
+	if (unlikely (numtrylock >= MAXTRYLOCK))
+		return 0;
+
 	if (!list_empty(&_stp_ready_q)) {
 		bptr = (struct _stp_buffer *)_stp_ready_q.prev;
 		if (bptr->len + len <= STP_BUFFER_SIZE 
@@ -146,7 +153,12 @@ static int _stp_write (int type, void *data, int len)
 	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 #endif
 
-	spin_lock_irqsave(&_stp_pool_lock, flags);
+	numtrylock = 0;
+	while (!spin_trylock_irqsave (&_stp_pool_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
+		ndelay (TRYLOCKDELAY);
+	if (unlikely (numtrylock >= MAXTRYLOCK))
+		return 0;
+
 	if (list_empty(&_stp_pool_q)) {
 		spin_unlock_irqrestore(&_stp_pool_lock, flags);
 		return -1;
@@ -162,7 +174,11 @@ static int _stp_write (int type, void *data, int len)
 	bptr->len = len;
 	
 	/* put it on the pool of ready buffers */
-	spin_lock_irqsave(&_stp_ready_lock, flags);
+	numtrylock = 0;
+	while (!spin_trylock_irqsave (&_stp_ready_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
+		ndelay (TRYLOCKDELAY);
+	if (unlikely (numtrylock >= MAXTRYLOCK))
+		return 0;
 	list_add_tail(&bptr->list, &_stp_ready_q);
 	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 

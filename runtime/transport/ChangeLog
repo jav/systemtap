@@ -1,3 +1,8 @@
+2006-09-22  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_work_queue): Reenable some cleanup
+	code.
+
 2006-09-21  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_transport_init): Call _stp_print_init().
