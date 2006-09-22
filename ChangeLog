@@ -1,3 +1,9 @@
+2006-09-22  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guijian@cn.ibm.com>
+	* lket.5.in: document RPC trace hooks
+
+
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3233

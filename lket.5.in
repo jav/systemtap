@@ -479,6 +479,187 @@ Data format is:
 
 .I common_data, ctx_id(INT64), iocb_uaddr(INT64), result_uaddr(INT64)
 
+.SS SUNRPC(GROUPID=12)
+You could use
+.I addevent.sunrpc
+to trace the details of SUNRPC activities. It is now divided into three
+groups: high-level client operation event hooks (addevent.sunrpc.clnt),
+high-level server operation event hooks (addevent.sunrpc.svc) and RPC
+scheduler operation event hooks (addevent.sunrpc.sched). 
+It contains 19 entry hooks and 19 corresponding return hooks.
+
+All the return hooks will only log the common_data and the return value.
+So in the following subsections, only the entry hooks will be listed:
+
+.P
+.TP
+.B addevent.sunrpc.clnt.create_client.entry (HOOKID=1)
+Fires when an RPC client is to be created
+
+Data format is:
+
+.I common_data, servername(STRING), prog(INT64), vers(INT8),
+.I prot(INT16), port(INT16), authflavor(INT8)
+
+.TP
+.B addevent.sunrpc.clnt.clone_client.entry (HOOKID=3)
+Fires when the RPC client structure is to be cloned
+
+Data format is:
+
+.I common_data, servername(STRING), prog(INT64), vers(INT8),
+.I prot(INT16), port(INT16), authflavor(INT8)
+
+.TP
+.B addevent.sunrpc.clnt.shutdown_client.entry (HOOKID=5)
+Fires when an RPC client is to be shut down
+
+Data format is:
+
+.I common_data, servername(STRING), prog(INT64), clones(INT16),
+.I tasks(INT16), rpccnt(INT32)
+
+.TP
+.B addevent.sunrpc.clnt.bind_new_program.entry (HOOKID=7)
+Fires when a new RPC program is to be bound an existing client
+
+Data format is:
+
+.I common_data, servername(STRING), old_prog(INT64), old_vers(INT8),
+.I prog(INT64), vers(INT8)
+
+.TP
+.B addevent.sunrpc.clnt.call_sync.entry (HOOKID=9)
+Fires when an RPC procedure is to be called synchronously
+
+Data format is:
+
+.I common_data, servername(STRING), prog(INT64), vers(INT8),
+.I proc(INT64), flags(INT64) 
+
+.TP
+.B addevent.sunrpc.clnt.call_async.entry (HOOKID=11)
+Fires when an RPC procedure is to be called asynchronously
+
+Data format is:
+
+.I common_data, servername(STRING), prog(INT64), vers(INT8),
+.I proc(INT64), flags(INT64) 
+
+.TP
+.B addevent.sunrpc.clnt.restart_call.entry (HOOKID=13)
+Fires when want to restart a task
+
+Data format is:
+
+.I common_data, tk_pid(INT64), tk_flags(INT64)
+
+.TP
+.B addevent.sunrpc.svc.register.entry (HOOKID=33)
+Fires when an RPC service is to be registered with the local
+portmapper
+
+Data format is:
+
+.I common_data, sv_name(STRING), prog(INT64), prot(INT16),
+.I port(INT32)
+
+.TP
+.B addevent.sunrpc.svc.create.entry (HOOKID=35)
+Fires when an RPC service is to be created
+
+Data format is:
+
+.I common_data, prog(INT64), pg_nvers(INT8), bufsize(INT32)
+
+.TP
+.B addevent.sunrpc.svc.destroy.entry (HOOKID=37)
+Fires when an RPC service is to be destroyed
+
+Data format is:
+
+.I common_data, sv_name(STRING), sv_prog(INT64), sv_nrthreads(INT32)
+
+.TP
+.B addevent.sunrpc.svc.process.entry (HOOKID=39)
+Fires when an RPC request is to be processed
+
+Data format is:
+
+.I common_data, sv_name(STRING), sv_prog(INT64), peer_ip(INT64),
+.I rq_xid(INT64), rq_prog(INT64), rq_vers(INT8), rq_proc(INT8)
+
+.TP
+.B addevent.sunrpc.svc.authorise.entry (HOOKID=41)
+Fires when an RPC request is to be authorised
+
+Data format is:
+
+.I common_data, sv_name(STRING), peer_ip(INT64), rq_xid(INT64),
+.I rq_prog(INT64), rq_vers(INT8), rq_proc(INT64)
+
+.TP
+.B addevent.sunrpc.svc.recv.entry (HOOKID=43)
+Fires when receiving the next request on any socket
+
+Data format is:
+
+.I common_data, sv_name(STRING), timeout(INT64)
+
+.TP
+.B addevent.sunrpc.svc.send.entry (HOOKID=45)
+Fires when want to return reply to the client
+
+Data format is:
+
+.I sv_name(STRING), peer_ip(INT64), rq_xid(INT64), rq_prog(INT64), 
+.I rq_vers(INT8), rq_proc(INT64)
+
+.TP
+.B addevent.sunrpc.svc.drop.entry (HOOKID=47)
+Fires when a request is to be dropped
+
+Data format is:
+
+.I common_data, sv_name(STRING), peer_ip(INT64), rq_xid(INT64),
+.I rq_prog(INT64), rq_vers(INT8), rq_proc(INT64)
+
+.TP
+.B addevent.sunrpc.sched.new_task.entry (HOOKID=65)
+Fires when creating a new task for the specified client
+
+Data format is:
+
+.I common_data, xid(INT64), prog(INT64), vers(INT8), prot(INT64),
+.I flags(INT64)
+
+.TP
+.B addevent.sunrpc.sched.release_task.entry (HOOKID=67)
+Fires when releasing a task
+
+Data format is:
+
+.I common_data, xid(INT64), prog(INT64), vers(INT8), prot(INT64),
+.I flags(INT64)
+
+.TP
+.B addevent.sunrpc.sched.execute.entry (HOOKID=69)
+Fires when an RPC request is to be executed
+
+Data format is:
+
+.I common_data, xid(INT64), prog(INT64), vers(INT8), prot(INT64),
+.I tk_pid(INT64), tk_flags(INT64)
+
+.TP
+.B addevent.sunrpc.sched.delay.entry (HOOKID=71)
+Fires when want to delay an RPC request
+
+Data format is:
+
+.I common_data, xid(INT64), prog(INT64), tk_pid(INT64),
+.I tk_flags(INT64), delay(INT64)
+
 .SS NFS (GROUPID=16)
 You could use
 .I addevent.nfs
@@ -1010,8 +1191,7 @@ Data format is:
 
 .I fh_size(INT8), fhandle0(INT64), fhandle1(INT64), fhandle2(INT64), version(INT8)
 .I filename(STRING)
- 
-.TP
+
 .SH TRACE DATA FORMAT
 
 By default, LKET will log the trace data in binary format.
