@@ -1,3 +1,14 @@
+2006-09-21  Martin Hunt  <hunt@redhat.com>
+	PR 3232
+	* print.c (_stp_print_init): New. Alloc per-cpu buffers.
+	(_stp_print_cleanup): New. Free per-cpu buffers.
+	(_stp_print_flush): Use per_cpu_ptr().
+	* string.c (_stp_sprintf): Ditto.
+	(_stp_vsprintf): Ditto.
+	(_stp_string_cat_cstr): Ditto.
+	(_stp_string_cat_char): Ditto.	
+	
+
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3233

@@ -58,7 +58,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 	int num;
 	va_list args;
 	if (str == _stp_stdout) {
-		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		char *buf = pb->buf + pb->len;
 		int size = STP_PRINT_BUF_LEN - pb->len;
 		va_start(args, fmt);
@@ -100,7 +100,7 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 {
 	int num;
 	if (str == _stp_stdout) {
-		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		char *buf = pb->buf + pb->len;
 		int size = STP_PRINT_BUF_LEN - pb->len;
 		num = _stp_vsnprintf(buf, size, fmt, args);
@@ -138,7 +138,7 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 {
 	int num = strlen (str2);
 	if (str1 == _stp_stdout) {
-		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		int size = STP_PRINT_BUF_LEN - pb->len;
 		if (num > size) {
 			_stp_print_flush();
@@ -173,7 +173,7 @@ void _stp_string_cat_string (String str1, String str2)
 void _stp_string_cat_char (String str1, const char c)
 {
 	if (str1 == _stp_stdout) {
-		_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		int size = STP_PRINT_BUF_LEN - pb->len;
 		char *buf;
 

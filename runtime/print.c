@@ -51,8 +51,21 @@ typedef struct __stp_pbuf {
 	char buf[STP_PRINT_BUF_LEN];
 } _stp_pbuf;
 
-DEFINE_PER_CPU(_stp_pbuf, Stp_pbuf);
+void *Stp_pbuf = NULL;
 
+int _stp_print_init (void)
+{
+	Stp_pbuf = alloc_percpu(_stp_pbuf);
+	if (unlikely(Stp_pbuf == 0))
+		return -1;
+	return 0;
+}
+
+void _stp_print_cleanup (void)
+{
+	if (Stp_pbuf)
+		free_percpu(Stp_pbuf);
+}
 
 /** Send the print buffer to the transport now.
  * Output accumulates in the print buffer until it
@@ -63,7 +76,7 @@ DEFINE_PER_CPU(_stp_pbuf, Stp_pbuf);
  */
 void _stp_print_flush (void)
 {
-	_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 
 	/* check to see if there is anything in the buffer */
 	if (pb->len == 0)
@@ -104,7 +117,7 @@ static void * _stp_reserve_bytes (int numbytes)
 #else
 static void * _stp_reserve_bytes (int numbytes)
 {
-	_stp_pbuf *pb = &__get_cpu_var(Stp_pbuf);
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	int size = STP_PRINT_BUF_LEN - pb->len;
 	void * ret;
 
