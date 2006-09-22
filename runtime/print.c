@@ -41,14 +41,11 @@
 
 
 #define STP_PRINT_BUF_START (STP_TIMESTAMP_SIZE)
-#ifndef STP_PRINT_BUF_LEN
-#define STP_PRINT_BUF_LEN 8192
-#endif
 
 typedef struct __stp_pbuf {
 	uint32_t len;			/* bytes used in the buffer */
 	char timestamp[STP_TIMESTAMP_SIZE];
-	char buf[STP_PRINT_BUF_LEN];
+	char buf[STP_BUFFER_SIZE];
 } _stp_pbuf;
 
 void *Stp_pbuf = NULL;
@@ -118,10 +115,10 @@ static void * _stp_reserve_bytes (int numbytes)
 static void * _stp_reserve_bytes (int numbytes)
 {
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-	int size = STP_PRINT_BUF_LEN - pb->len;
+	int size = STP_BUFFER_SIZE - pb->len;
 	void * ret;
 
-	if (unlikely(numbytes == 0 || numbytes > STP_PRINT_BUF_LEN))
+	if (unlikely(numbytes == 0 || numbytes > STP_BUFFER_SIZE))
 		return NULL;
 
 	if (numbytes > size)

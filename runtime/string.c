@@ -60,7 +60,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 	if (str == _stp_stdout) {
 		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		char *buf = pb->buf + pb->len;
-		int size = STP_PRINT_BUF_LEN - pb->len;
+		int size = STP_BUFFER_SIZE - pb->len;
 		va_start(args, fmt);
 		num = _stp_vsnprintf(buf, size, fmt, args);
 		va_end(args);
@@ -69,7 +69,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 			if (pb->len == 0) {
 				/* A single print request exceeded the buffer size. */
 				/* Should not be possible with Systemtap-generated code. */
-				pb->len = STP_PRINT_BUF_LEN;
+				pb->len = STP_BUFFER_SIZE;
 				_stp_print_flush();
 				num = 0;
 			} else {
@@ -78,7 +78,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 
 				/* try again */
 				va_start(args, fmt);
-				num = _stp_vsnprintf(pb->buf, STP_PRINT_BUF_LEN, fmt, args);
+				num = _stp_vsnprintf(pb->buf, STP_BUFFER_SIZE, fmt, args);
 				va_end(args);
 			}
 		}
@@ -102,14 +102,14 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 	if (str == _stp_stdout) {
 		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 		char *buf = pb->buf + pb->len;
-		int size = STP_PRINT_BUF_LEN - pb->len;
+		int size = STP_BUFFER_SIZE - pb->len;
 		num = _stp_vsnprintf(buf, size, fmt, args);
 		if (unlikely(num > size)) { 
 			/* overflowed the buffer */
 			if (pb->len == 0) {
 				/* A single print request exceeded the buffer size. */
 				/* Should not be possible with Systemtap-generated code. */
-				pb->len = STP_PRINT_BUF_LEN;
+				pb->len = STP_BUFFER_SIZE;
 				_stp_print_flush();
 				num = 0;
 			} else {
@@ -117,7 +117,7 @@ void _stp_vsprintf (String str, const char *fmt, va_list args)
 				_stp_print_flush();
 
 				/* try again */
-				num = _stp_vsnprintf(pb->buf, STP_PRINT_BUF_LEN, fmt, args);
+				num = _stp_vsnprintf(pb->buf, STP_BUFFER_SIZE, fmt, args);
 			}
 		}
 		pb->len += num;
@@ -139,11 +139,11 @@ void _stp_string_cat_cstr (String str1, const char *str2)
 	int num = strlen (str2);
 	if (str1 == _stp_stdout) {
 		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-		int size = STP_PRINT_BUF_LEN - pb->len;
+		int size = STP_BUFFER_SIZE - pb->len;
 		if (num > size) {
 			_stp_print_flush();
-			if (num > STP_PRINT_BUF_LEN)
-				num = STP_PRINT_BUF_LEN;
+			if (num > STP_BUFFER_SIZE)
+				num = STP_BUFFER_SIZE;
 		}
 		memcpy (pb->buf + pb->len, str2, num);
 		pb->len += num;
@@ -174,7 +174,7 @@ void _stp_string_cat_char (String str1, const char c)
 {
 	if (str1 == _stp_stdout) {
 		_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-		int size = STP_PRINT_BUF_LEN - pb->len;
+		int size = STP_BUFFER_SIZE - pb->len;
 		char *buf;
 
 		if (1 >= size)
