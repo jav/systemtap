@@ -1,3 +1,10 @@
+2006-09-23  Li Guanglei <guanglei@cn.ibm.com>
+
+	* register_event.stp, process.stp, lket_trace.stp: Change to
+	per_cpu_ptr(Stp_pbuf, smp_processor_id()) to get the per-cpu
+	printing buffer
+
+	
 2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guijian@cn.ibm.com>
