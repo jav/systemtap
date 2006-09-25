@@ -22,6 +22,7 @@
 #include "relayfs.c"
 static struct rchan *_stp_chan;
 static struct dentry *_stp_dir;
+int _stp_relay_flushing = 0;
 #endif
 
 static atomic_t _stp_start_finished = ATOMIC_INIT (0);
@@ -144,6 +145,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 
 #ifdef STP_RELAYFS
 		if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
+			_stp_relay_flushing = 1;
 			relay_flush(_stp_chan);
 		}
 #endif

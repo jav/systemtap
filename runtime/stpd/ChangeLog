@@ -1,3 +1,14 @@
+2006-09-25  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* librelay.c (kill_percpu_threads): Remove printf.
+	(wait_for_percpu_threads): New.
+	(process_subbufs): Remove processing, processing_mutex, exit
+	thread if exiting flag set.
+	(read_last_buffers): Removed.
+	(cleanup_and_exit): Remove call to read_last_buffers, wait for
+	threads to read flushed buffers instead.
+	(stp_main_loop): Remove mutex init.	
+
 2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* librelay.c (init_relayfs): Cleanup if stp_check fails.

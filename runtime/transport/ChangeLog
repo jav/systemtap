@@ -1,3 +1,9 @@
+2006-09-25  Tom Zanussi  <zanussi@us.ibm.com>
+	
+	* procfs.c (_stp_proc_read): Set buf_info flushing flag.
+	* transport.c (_stp_cleanup_and_exit): Remove braces.
+	* transport_msgs.h: Add flushing flag to buf_info.
+
 2006-09-22  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_work_queue): Reenable some cleanup

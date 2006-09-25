@@ -24,6 +24,7 @@ struct buf_info
 	int cpu;
 	unsigned produced;
 	unsigned consumed;
+	int flushing;
 };
 
 struct consumed_info

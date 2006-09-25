@@ -18,6 +18,7 @@ spinlock_t _stp_pool_lock = SPIN_LOCK_UNLOCKED;
 spinlock_t _stp_ready_lock = SPIN_LOCK_UNLOCKED;
 
 #ifdef STP_RELAYFS
+extern int _stp_relay_flushing;
 /* handle the per-cpu subbuf info read for relayfs */
 static ssize_t
 _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
@@ -38,6 +39,7 @@ _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 	out.produced = atomic_read(&_stp_chan->buf[cpu]->subbufs_produced);
 	out.consumed = atomic_read(&_stp_chan->buf[cpu]->subbufs_consumed);
 #endif  /* RELAYFS_CHANNEL_VERSION >= 4 || CONFIG_RELAY */
+	out.flushing = _stp_relay_flushing;
 
 	num = sizeof(out);
 	if (copy_to_user(buf, &out, num))
