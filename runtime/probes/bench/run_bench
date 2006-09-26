@@ -5,7 +5,7 @@ proc do_time {module n} {
   global Failures
 
   # start kprobes
-  if {[catch {exec ../../stpd/stpd -rmq $module.ko > xxx &} pid]} {
+  if {[catch {exec ../../stpd/staprun -rmq $module.ko > xxx &} pid]} {
     puts $pid
     exit -1
   }

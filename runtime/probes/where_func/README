@@ -25,5 +25,5 @@ The instrumentation is removed as root with:
 -Will Cohen
 
 Note that this module is broken now because we don't pass the module parameter
-tp stpd.  FIXME
+tp staprun.  FIXME
 */

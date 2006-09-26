@@ -1,3 +1,9 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* bench/run_bench: Changed 'stpd' references to 'staprun'.
+	* bench/trans_bench: Ditto.
+	* where_func/README: Ditto.
+
 2005-11-08  Martin Hunt  <hunt@redhat.com>
 
 	* shellsnoop/shellsnoop.c: Updated to use new map API.	
