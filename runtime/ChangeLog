@@ -1,3 +1,13 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* README: Changed 'stpd' references to 'staprun'.
+	* README.doc: Ditto.
+	* TODO: Ditto.
+	* io.c: Ditto.
+	* print.c: Ditto.
+	* runtime.h: Ditto.
+	* bench2/bench.rb: Ditto.
+	
 2006-09-26  Martin Hunt  <hunt@redhat.com>
 	* time.c (_stp_init_time): Use dynamic percpu allocations
 	instead of evil static allocations.

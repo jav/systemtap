@@ -67,7 +67,7 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 }
 
 /** Logs Data.
- * This function sends the message immediately to stpd. It
+ * This function sends the message immediately to staprun. It
  * will also be sent over the bulk transport (relayfs) if it is
  * being used. If the last character is not a newline, then one 
  * is added. This function is not as efficient as _stp_printf()
@@ -85,7 +85,7 @@ void _stp_log (const char *fmt, ...)
 }
 
 /** Prints warning.
- * This function sends a warning message immediately to stpd. It
+ * This function sends a warning message immediately to staprun. It
  * will also be sent over the bulk transport (relayfs) if it is
  * being used. If the last character is not a newline, then one 
  * is added. 
@@ -100,7 +100,7 @@ void _stp_warn (const char *fmt, ...)
 }
 
 /** Exits and unloads the module.
- * This function sends a signal to stpd to tell it to
+ * This function sends a signal to staprun to tell it to
  * unload the module and exit. The module will not be 
  * unloaded until after the current probe returns.
  * @note Be careful to not treat this like the Linux exit() 
@@ -113,7 +113,7 @@ void _stp_exit (void)
 }
 
 /** Prints error message and exits.
- * This function sends an error message immediately to stpd. It
+ * This function sends an error message immediately to staprun. It
  * will also be sent over the bulk transport (relayfs) if it is
  * being used. If the last character is not a newline, then one 
  * is added. 
@@ -133,7 +133,7 @@ void _stp_error (const char *fmt, ...)
 
 
 /** Prints error message.
- * This function sends an error message immediately to stpd. It
+ * This function sends an error message immediately to staprun. It
  * will also be sent over the bulk transport (relayfs) if it is
  * being used. If the last character is not a newline, then one 
  * is added. 

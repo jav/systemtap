@@ -27,10 +27,10 @@ class Bench
     if @@printed_header == 0
       print_header
     end
-    if @@stpd.nil?
-      for path in ['/usr/libexec/systemtap/stpd', '/usr/local/libexec/systemtap/stpd'] 
+    if @@staprun.nil?
+      for path in ['/usr/bin/staprun', '/usr/local/bin/staprun'] 
 	if File.exist?(path)
-	  @@stpd = path
+	  @@staprun = path
 	  break
 	end
       end
@@ -67,8 +67,8 @@ class Bench
       sum=0
       threads.times {|cpu| fork {exec "./itest #{threads} > #{@dir}/bench#{cpu}"}}
       threads.times {Process.waitpid(-1)}	# wait for itest(s) to exit
-      `sudo killall -HUP stpd`
-      Process.wait	# wait for stpd to exit
+      `sudo killall -HUP staprun`
+      Process.wait	# wait for staprun to exit
       threads.times {|x| sum = sum + `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
       @results[threads] = sum / (threads * threads)
       File.open("#{@dir}/xxx.out") do |file|
@@ -115,13 +115,13 @@ class Bench
 
   @@ftime = 0
   @@printed_header = 0
-  @@stpd = nil
+  @@staprun = nil
   @@runtime = nil
   @@num_threads = []
   @@minfreq = 0
 
   def cleanup
-    system('sudo killall -HUP stpd &> /dev/null')
+    system('sudo killall -HUP staprun &> /dev/null')
     system('sudo /sbin/rmmod bench &> /dev/null')
     `/bin/rm -f stap.out` if File.exists?("stap.out")
     `/bin/rm -f bench.stp` if File.exists?("bench.stp")
@@ -132,7 +132,7 @@ class Bench
   def load
     args = "-q -b 8"
     if @trans == RELAYFS then args = "-q" end
-    fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
+    fork do exec "sudo #{@@staprun} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
 
@@ -270,7 +270,7 @@ class Stapbench < Bench
     end
     args = "-q -b 8"
     if @trans == RELAYFS then args = "-q" end
-    fork do exec "sudo #{@@stpd} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
+    fork do exec "sudo #{@@staprun} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
   

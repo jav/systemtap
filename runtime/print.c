@@ -25,7 +25,7 @@
  * _stp_print_flush() is called.
  *
  * The reason to do this is to allow multiple small prints to be combined then
- * timestamped and sent together to stpd. This is more efficient than sending
+ * timestamped and sent together to staprun. This is more efficient than sending
  * numerous small packets.
  *
  * This function is called automatically when the print buffer is full.
@@ -80,7 +80,7 @@ void _stp_print_flush (void)
 		return;
 
 #ifdef STP_RELAYFS_MERGE
-	/* In merge-mode, stpd expects relayfs data to start with a 4-byte length */
+	/* In merge-mode, staprun expects relayfs data to start with a 4-byte length */
 	/* followed by a 4-byte sequence number. In non-merge mode, anything goes. */
 
 	*((uint32_t *)pb->timestamp) = _stp_seq_inc();

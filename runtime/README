@@ -1,4 +1,4 @@
-To build everything (relayfs, transport, stpd, and example probes):
+To build everything (relayfs, transport, staprun, and example probes):
 > make
 
 To clean up:

@@ -38,7 +38,7 @@
 
 #ifdef DEBUG
 /** Prints debug line.
- * This function prints a debug message immediately to stpd. 
+ * This function prints a debug message immediately to staprun. 
  * If the last character is not a newline, then one is added. 
  * @param args A variable number of args in a format like printf.
  * @ingroup io

@@ -11,13 +11,14 @@ and code fragments needed by the compiler/translator to
 include in building a kernel module using kprobes. It
 also includes I/O code to transmit its output from the kernel to userspace.
  
-In addition to the library, the runtime includes a SystemTap user-space daemon
-(stpd).  Stpd grabs data sent from the I/O code in the runtime and displays it
-and/or saves it to files. Stpd will handle other issues like
-inserting and removing modules.
+In addition to the library, the runtime includes a SystemTap
+user-space daemon (staprun).  Staprun grabs data sent from the I/O
+code in the runtime and displays it and/or saves it to files. Staprun
+will handle other issues like inserting and removing modules.
 
-Stpd and the I/O code makes use of /proc (and optionally relayfs) for communications.  For
-kernels without relayfs builtin, it is provided as a standalone module under the runtime directory.
+Staprun and the I/O code makes use of /proc (and optionally relayfs)
+for communications.  For kernels without relayfs builtin, it is
+provided as a standalone module under the runtime directory.
 
 @ref start_page
 
@@ -104,18 +105,18 @@ This timestamps the accumulated print buffer and sends it to relayfs.
 When relayfs fills an internal buffer, the user-space daemon is notified
 data is ready and reads a big per-cpu chunk.
 
-The user-daemon (stpd) saves this data to a file named something like
-"stpd_cpu2".  When the user hits ^c, a timer expires, or the probe
-module notifies stpd that it wants
-to terminate, stpd does "system(rmmod)" then collects the last output
-before exiting.
-As an option, if we want high-speed bulk per-cpu data, we can put
+The user-daemon (staprun) saves this data to a file named something
+like "stpd_cpu2".  When the user hits ^c, a timer expires, or the
+probe module notifies staprun that it wants to terminate, staprun does
+"system(rmmod)" then collects the last output before exiting.  As an
+option, if we want high-speed bulk per-cpu data, we can put
 \code
 #define STP_RELAYFS
 \endcode
-at the top of the module and all output will go over relayfs.
-In the SystemTap language, we will provide some simple functions to control the buffering policy, which
-will control the parameters to relayfs and stpd.
+at the top of the module and all output will go over relayfs.  In the
+SystemTap language, we will provide some simple functions to control
+the buffering policy, which will control the parameters to relayfs and
+staprun.
 
 */
 

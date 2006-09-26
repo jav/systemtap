@@ -2,9 +2,9 @@
 @file TODO
 @brief To-Do List
 
-***** STPD *****
+***** STAPRUN *****
 
-@todo stpd - Implement command that runtime can send to stpd to tell it to fork a specified program and pass
+@todo staprun - Implement command that runtime can send to staprun to tell it to fork a specified program and pass
 the output from the probe module to it.  Create example probe to use it.
 
 ***** runtime *****
