@@ -46,9 +46,9 @@ function spiteven {
 trap got_trap 1 2 3 6
 function got_trap {
    echo -e "\nGot signaled. Cleaning up...\n"
-   if [ `ps -A|grep stpd|sed 's/^[ ^t]*//'|cut -d" " -f1 | wc -l` -gt 0 ]
+   if [ `ps -A|grep staprun|sed 's/^[ ^t]*//'|cut -d" " -f1 | wc -l` -gt 0 ]
    then
-      kill `ps -A|grep stpd|sed 's/^[ ^t]*//'|cut -d" " -f1`
+      kill `ps -A|grep staprun|sed 's/^[ ^t]*//'|cut -d" " -f1`
    fi
    if [ `ps -A|grep stap|sed 's/^[ ^t]*//'|cut -d" " -f1 | wc -l` -gt 0 ]
    then
@@ -132,7 +132,7 @@ do
    pid=""; ast=""
    while [[ "$pid" == "" || "$ast" == "" ]]
    do
-      pid=`ps|grep stpd|sed 's/^[ ^t]*//'|cut -d" " -f1`
+      pid=`ps|grep staprun|sed 's/^[ ^t]*//'|cut -d" " -f1`
       ast=`ps|grep stap|sed 's/^[ ^t]*//'|cut -d" " -f1`
       sleep 1
    done
