@@ -118,7 +118,7 @@ static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
 
 /* common cleanup code. */
 /* This is called from the kernel thread when an exit was requested */
-/* by stpd or the exit() function. It is also called by transport_close() */
+/* by staprun or the exit() function. It is also called by transport_close() */
 /* when the module  is removed. In that case "dont_rmmod" is set to 1. */
 /* We need to call it both times because we want to clean up properly */
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
@@ -147,7 +147,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		}
 #endif
 		kbug("transport_send STP_EXIT\n");
-		/* tell stpd to exit (if it is still there) */
+		/* tell staprun to exit (if it is still there) */
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 		kbug("done with transport_send STP_EXIT\n");
 	}
@@ -219,7 +219,7 @@ void _stp_transport_close()
  *	done. 
  * 
  *      This function is called in response to an STP_TRANSPORT
- *      message from stpd cmd.  It replies with a similar message
+ *      message from staprun cmd.  It replies with a similar message
  *      containing the final parameters used.
  */
 
@@ -266,7 +266,7 @@ int _stp_transport_open(struct transport_info *info)
 
 /**
  * _stp_transport_init() is called from the module initialization.
- *   It does the bare minimum to exchange commands with stpd 
+ *   It does the bare minimum to exchange commands with staprun 
  */
 int _stp_transport_init(void)
 {
