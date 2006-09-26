@@ -12,7 +12,7 @@
  * _stp_print_flush() is called.
  *
  * The reason to do this is to allow multiple small prints to be combined then
- * timestamped and sent together to stpd. It could flush automatically on newlines,
+ * timestamped and sent together to staprun. It could flush automatically on newlines,
  * but what about stack traces which span many lines?  So try this and see how it works for us.
  * @{
  */
