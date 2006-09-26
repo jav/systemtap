@@ -2,12 +2,12 @@ set test "args"
 if {![installtest_p]} { untested $test; return }
 
 set stappath [exec which stap]
-set stpdpath [exec dirname $stappath]/../libexec/systemtap/stpd
+set staprunpath [exec which staprun]
 
-if [file exists $stpdpath] {
-    pass "$test search for stpd ($stpdpath)"
+if [file exists $staprunpath] {
+    pass "$test search for staprun ($staprunpath)"
 } else {
-    fail "$test search for stpd"
+    fail "$test search for staprun"
     return
 }
 
@@ -37,7 +37,7 @@ if [file exists $modpath] {
     return
 }
 
-spawn sudo $stpdpath -r -d [pid] $modpath foo=hello bar=999
+spawn sudo $staprunpath -r -d [pid] $modpath foo=hello bar=999
 set ok 0
 expect {
     -timeout 30
@@ -52,7 +52,7 @@ if {$ok == 1} {
     fail "$test run 1"
 }
 
-spawn sudo $stpdpath -r -d [pid] $modpath foo=goodbye bar=0
+spawn sudo $staprunpath -r -d [pid] $modpath foo=goodbye bar=0
 set ok 0
 expect {
     -timeout 30

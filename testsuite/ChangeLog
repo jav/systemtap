@@ -1,3 +1,8 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* systemtap.samples/args.exp: Looks for 'staprun' instead of
+	'stpd'.
+
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3233
