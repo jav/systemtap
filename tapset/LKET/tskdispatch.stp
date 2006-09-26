@@ -48,7 +48,7 @@ probe _addevent.tskdispatch.ctxswitch
 {
 	target_pid = target()
 	cur_pid = pid()
-	if( stp_pid() != cur_pid ) {  /* skip stpd itself */
+	if( stp_pid() != cur_pid ) {  /* skip staprun itself */
 		if(target_pid == 0 || (target_pid !=0 && (prev_pid == target_pid 
 			|| next_pid == target_pid)))  {
 			log_ctxswitch_tracedata(HOOKID_TASK_CTXSWITCH, prev_task, next_task)

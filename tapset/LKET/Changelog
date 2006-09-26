@@ -1,3 +1,7 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* tskdispatch.stp: Changed 'stpd' reference to 'staprun'.
+
 2006-09-23  Li Guanglei <guanglei@cn.ibm.com>
 
 	* register_event.stp, process.stp, lket_trace.stp: Change to
