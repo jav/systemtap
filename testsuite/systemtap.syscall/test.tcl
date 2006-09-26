@@ -34,20 +34,17 @@ set filename "${testname}.c"
 if {$modname == ""} {
     set cmd "stap -c ../${testname} ../sys.stp"
 } else {
-    set stpd ""
-    set stpd_list "/usr/local/libexec/systemtap/stpd /usr/libexec/systemtap/stpd"
-    foreach path $stpd_list {
-	if {[file exists $path]} {
-	    set stpd $path
-	    break
-	}
-    }
-    if {$stpd == ""} {
-	puts "stpd not found!"
+    set ccmd "which staprun"
+    catch {eval exec $ccmd} output
+    if {[file exists $output]} {
+	set staprun $output
+    } else {
+	puts "staprun not found!"
 	exit
     }
+
     set user $::tcl_platform(user)
-    set cmd "sudo $stpd -rmq  -u $user -c ../${testname} ${modname}"
+    set cmd "sudo $staprun -rmq  -u $user -c ../${testname} ${modname}"
 }
 
 # Extract the expected results

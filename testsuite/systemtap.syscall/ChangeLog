@@ -1,3 +1,7 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* test.tcl: Looks for 'staprun' instead of 'stpd'.
+
 2006-07-21  Martin Hunt  <hunt@redhat.com>
 
 	* signal.c: Fix expected pattern.
