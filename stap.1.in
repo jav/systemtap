@@ -707,7 +707,7 @@ archive the file.
 
 .PP
 In pass 5, the translator invokes the systemtap auxiliary program
-.I stpd
+.I staprun
 program for the given kernel object.  This program arranges to load
 the module then communicates with it, copying trace data from the
 kernel into temporary files, until the user sends an interrupt signal.
@@ -715,7 +715,7 @@ Any run-time error encountered by the probe handlers, such as running
 out of memory, division by zero, exceeding nesting or runtime limits,
 results in a soft error indication.  Soft errors in excess of
 MAXERRORS block of all subsequent probes, and terminate the session.
-Finally, stpd unloads the module, and cleans up.
+Finally, staprun unloads the module, and cleans up.
 
 .SH EXAMPLES
 See the 
@@ -728,11 +728,11 @@ structures and potentially private user information.  It acquires root
 privileges to actually run the kernel objects it builds using the
 .IR sudo
 command applied to the
-.IR stpd
+.IR staprun
 program.  The latter is a part of the Systemtap package, dedicated to
 module loading and unloading (but only in the white zone), and
 kernel-to-user data transfer.  Since 
-.IR stpd
+.IR staprun
 does not perform any additional security checks on the kernel objects
 it is given, it would be unwise for a system administrator to give
 even targeted
@@ -776,7 +776,7 @@ Maximum number of skipped reentrant probes before an exit is triggered.
 
 .PP
 In case something goes wrong with 
-.IR stap " or " stpd
+.IR stap " or " staprun
 after a probe has already started running, one may safely kill both
 user processes, and remove the active probe kernel module with
 .IR rmmod .
@@ -808,7 +808,7 @@ The location of kernel debugging information when packaged into the
 .IR kernel\-debuginfo
 RPM.
 .TP
-/usr/libexec/systemtap/stpd
+/usr/bin/staprun
 The auxiliary program supervising module loading, interaction, and
 unloading.
 
@@ -836,7 +836,7 @@ The
 .IR stap
 translator was written by Frank Ch. Eigler and Graydon Hoare.  The
 kernel-side runtime library and the user-level
-.IR stpd
+.IR staprun
 daemon was written by Martin Hunt and Tom Zanussi.  Contact them
 using the public mailing list:
 .nh

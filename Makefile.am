@@ -5,14 +5,14 @@ AUTOMAKE_OPTIONS = dist-bzip2
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 
-AM_CPPFLAGS = -DPKGLIBDIR='"$(pkglibexecdir)"' -DPKGDATADIR='"${pkgdatadir}"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"'
 
 AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall
 
 dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5
-bin_PROGRAMS = stap
+bin_PROGRAMS = stap staprun
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c
@@ -47,11 +47,8 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-# stpd goes into $libexec/$package, so libexec_PROGRAMS would
-# put it into the wrong location
-pkglibexec_PROGRAMS = stpd
-stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
-stpd_LDADD = -lpthread
+staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
+staprun_LDADD = -lpthread
 
 pkglibexec_SCRIPTS = stp_check
 CLEANFILES += $(pkglibexec_SCRIPTS)

@@ -3,12 +3,12 @@
 # print all system calls on the system
 
 probe syscall.* {
-  if (execname() != "stpd")
+  if (execname() != "staprun")
 	printf("%s: %s (%s) = ", execname(), name, argstr)
 }
 
 probe syscall.*.return {
-  if (execname() != "stpd")
+  if (execname() != "staprun")
 	printf("%s\n", retstr)
 }
 

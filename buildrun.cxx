@@ -125,31 +125,31 @@ run_pass (systemtap_session& s)
   struct passwd *pw = getpwuid(getuid());
   string username = string(pw->pw_name);
 
-  // for now, just spawn stpd
-  string stpd_cmd = string("sudo ") 
-    + string(PKGLIBDIR) + "/stpd "
+  // for now, just spawn staprun
+  string staprun_cmd = string("sudo ") 
+    + string(BINDIR) + "/staprun "
     + (s.verbose>1 ? "" : "-q ")
     + "-u " + username + " "
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   
-  stpd_cmd += "-d " + stringify(getpid()) + " ";
+  staprun_cmd += "-d " + stringify(getpid()) + " ";
   
   if (s.cmd != "")
-    stpd_cmd += "-c \"" + s.cmd + "\" ";
+    staprun_cmd += "-c \"" + s.cmd + "\" ";
   
   if (s.target_pid)
-    stpd_cmd += "-t " + stringify(s.target_pid) + " ";
+    staprun_cmd += "-t " + stringify(s.target_pid) + " ";
   
   if (s.buffer_size)
-    stpd_cmd += "-b " + stringify(s.buffer_size) + " ";
+    staprun_cmd += "-b " + stringify(s.buffer_size) + " ";
   
-  stpd_cmd += s.tmpdir + "/" + s.module_name + ".ko";
+  staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
   
-  if (s.verbose>1) clog << "Running " << stpd_cmd << endl;
+  if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
   
   signal (SIGHUP, SIG_IGN);
   signal (SIGINT, SIG_IGN);
-  rc = system (stpd_cmd.c_str ());
+  rc = system (staprun_cmd.c_str ());
 
   return rc;
 }

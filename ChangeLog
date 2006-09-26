@@ -1,3 +1,24 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* .cvsignore: Changed 'stpd' reference to 'staprun'.
+	* INTERNALS: Ditto.
+	* buildrun.cxx (run_pass): Ditto.
+	* lket.5.in: Ditto.
+	* stap.1.in: Ditto.
+	* stapruncs.5.in: Ditto.
+	* examples/small_demos/demo_script.txt: Ditto.
+	* examples/small_demos/sys.stp: Ditto.
+	
+	* systemtap.spec.in: Created a new subpackage,
+	"systemtap-runtime", that contains staprun.
+
+	* Makefile.am: Renamed 'stpd' to 'staprun' and moved it to
+	$(bindir).
+	* Makefile.in: Regenerated from Makefile.am.
+
+	* configure.ac: Incremented version number.
+	* configure: Regenerated from configure.ac.
+
 2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* stp_check.in: Add debugfs mounting.

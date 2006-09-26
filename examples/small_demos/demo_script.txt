@@ -33,7 +33,7 @@ name - the name of the function
 argstr - on function entry, a formatted string containing the arguments
 retstr - on function exit, the return value and possibly error code
 
-In this example, we filter out programs named "stpd" because this is 
+In this example, we filter out programs named "staprun" because this is 
 part of the systemtap infrastructure. (It may be filtered out
 automatically in the future)
 

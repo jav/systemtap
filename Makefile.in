@@ -37,14 +37,13 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = stap$(EXEEXT)
+bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT)
 @BUILD_ELFUTILS_TRUE@am__append_1 = -Iinclude-elfutils
 @BUILD_ELFUTILS_TRUE@am__append_2 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
 @BUILD_ELFUTILS_TRUE@am__append_3 = stamp-elfutils
 @BUILD_ELFUTILS_FALSE@stap_DEPENDENCIES =
-pkglibexec_PROGRAMS = stpd$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
 @BUILD_LKET_B2A_TRUE@am__append_4 = runtime/lket/b2a
 subdir = .
@@ -67,11 +66,9 @@ CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 \
 	stapfuncs.5 stapex.5 lket.5
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
-	"$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" \
-	"$(DESTDIR)$(man5dir)"
+	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-pkglibexecPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglibexec_PROGRAMS)
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am_loc2c_test_OBJECTS = loc2c_test-loc2c-test.$(OBJEXT) \
 	loc2c_test-loc2c.$(OBJEXT)
 loc2c_test_OBJECTS = $(am_loc2c_test_OBJECTS)
@@ -82,9 +79,9 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
 	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
-am_stpd_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
-stpd_OBJECTS = $(am_stpd_OBJECTS)
-stpd_DEPENDENCIES =
+am_staprun_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
+staprun_OBJECTS = $(am_staprun_OBJECTS)
+staprun_DEPENDENCIES =
 pkglibexecSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(pkglibexec_SCRIPTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I.
@@ -99,8 +96,9 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(stpd_SOURCES)
-DIST_SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(stpd_SOURCES)
+SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(staprun_SOURCES)
+DIST_SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
+	$(staprun_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -217,7 +215,7 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = dist-bzip2
 pkglibexecdir = ${libexecdir}/${PACKAGE}
-AM_CPPFLAGS = -DPKGLIBDIR='"$(pkglibexecdir)"' -DPKGDATADIR='"${pkgdatadir}"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"'
 AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 
@@ -234,8 +232,8 @@ stap_LDFLAGS = $(AM_LDFLAGS) $(am__append_2)
 CLEANFILES = $(am__append_3) $(pkglibexec_SCRIPTS)
 @BUILD_ELFUTILS_TRUE@BUILT_SOURCES = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@stap_DEPENDENCIES = lib-elfutils/libdw.so
-stpd_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
-stpd_LDADD = -lpthread
+staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
+staprun_LDADD = -lpthread
 pkglibexec_SCRIPTS = stp_check
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
@@ -345,38 +343,15 @@ clean-binPROGRAMS:
 
 clean-noinstPROGRAMS:
 	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
-install-pkglibexecPROGRAMS: $(pkglibexec_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	test -z "$(pkglibexecdir)" || $(mkdir_p) "$(DESTDIR)$(pkglibexecdir)"
-	@list='$(pkglibexec_PROGRAMS)'; for p in $$list; do \
-	  p1=`echo $$p|sed 's/$(EXEEXT)$$//'`; \
-	  if test -f $$p \
-	  ; then \
-	    f=`echo "$$p1" | sed 's,^.*/,,;$(transform);s/$$/$(EXEEXT)/'`; \
-	   echo " $(INSTALL_PROGRAM_ENV) $(pkglibexecPROGRAMS_INSTALL) '$$p' '$(DESTDIR)$(pkglibexecdir)/$$f'"; \
-	   $(INSTALL_PROGRAM_ENV) $(pkglibexecPROGRAMS_INSTALL) "$$p" "$(DESTDIR)$(pkglibexecdir)/$$f" || exit 1; \
-	  else :; fi; \
-	done
-
-uninstall-pkglibexecPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkglibexec_PROGRAMS)'; for p in $$list; do \
-	  f=`echo "$$p" | sed 's,^.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/'`; \
-	  echo " rm -f '$(DESTDIR)$(pkglibexecdir)/$$f'"; \
-	  rm -f "$(DESTDIR)$(pkglibexecdir)/$$f"; \
-	done
-
-clean-pkglibexecPROGRAMS:
-	-test -z "$(pkglibexec_PROGRAMS)" || rm -f $(pkglibexec_PROGRAMS)
 loc2c-test$(EXEEXT): $(loc2c_test_OBJECTS) $(loc2c_test_DEPENDENCIES) 
 	@rm -f loc2c-test$(EXEEXT)
 	$(LINK) $(loc2c_test_LDFLAGS) $(loc2c_test_OBJECTS) $(loc2c_test_LDADD) $(LIBS)
 stap$(EXEEXT): $(stap_OBJECTS) $(stap_DEPENDENCIES) 
 	@rm -f stap$(EXEEXT)
 	$(CXXLINK) $(stap_LDFLAGS) $(stap_OBJECTS) $(stap_LDADD) $(LIBS)
-stpd$(EXEEXT): $(stpd_OBJECTS) $(stpd_DEPENDENCIES) 
-	@rm -f stpd$(EXEEXT)
-	$(LINK) $(stpd_LDFLAGS) $(stpd_OBJECTS) $(stpd_LDADD) $(LIBS)
+staprun$(EXEEXT): $(staprun_OBJECTS) $(staprun_DEPENDENCIES) 
+	@rm -f staprun$(EXEEXT)
+	$(LINK) $(staprun_LDFLAGS) $(staprun_OBJECTS) $(staprun_LDADD) $(LIBS)
 install-pkglibexecSCRIPTS: $(pkglibexec_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	test -z "$(pkglibexecdir)" || $(mkdir_p) "$(DESTDIR)$(pkglibexecdir)"
@@ -986,7 +961,7 @@ check: $(BUILT_SOURCES)
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1020,7 +995,7 @@ maintainer-clean-generic:
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-local \
-	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS mostlyclean-am
+	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -1042,7 +1017,7 @@ info-am:
 install-data-am: install-data-local install-man
 
 install-exec-am: install-binPROGRAMS install-exec-local \
-	install-pkglibexecPROGRAMS install-pkglibexecSCRIPTS
+	install-pkglibexecSCRIPTS
 
 install-info: install-info-recursive
 
@@ -1070,8 +1045,7 @@ ps: ps-recursive
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-info-am uninstall-local \
-	uninstall-man uninstall-pkglibexecPROGRAMS \
-	uninstall-pkglibexecSCRIPTS
+	uninstall-man uninstall-pkglibexecSCRIPTS
 
 uninstall-info: uninstall-info-recursive
 
@@ -1079,17 +1053,16 @@ uninstall-man: uninstall-man1 uninstall-man5
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am am--refresh check \
 	check-am clean clean-binPROGRAMS clean-generic clean-local \
-	clean-noinstPROGRAMS clean-pkglibexecPROGRAMS clean-recursive \
-	ctags ctags-recursive dist dist-all dist-bzip2 dist-gzip \
-	dist-hook dist-shar dist-tarZ dist-zip distcheck distclean \
-	distclean-compile distclean-generic distclean-hdr \
-	distclean-recursive distclean-tags distcleancheck distdir \
-	distuninstallcheck dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-data-local install-exec \
-	install-exec-am install-exec-local install-info \
-	install-info-am install-man install-man1 install-man5 \
-	install-pkglibexecPROGRAMS install-pkglibexecSCRIPTS \
+	clean-noinstPROGRAMS clean-recursive ctags ctags-recursive \
+	dist dist-all dist-bzip2 dist-gzip dist-hook dist-shar \
+	dist-tarZ dist-zip distcheck distclean distclean-compile \
+	distclean-generic distclean-hdr distclean-recursive \
+	distclean-tags distcleancheck distdir distuninstallcheck dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-binPROGRAMS install-data install-data-am \
+	install-data-local install-exec install-exec-am \
+	install-exec-local install-info install-info-am install-man \
+	install-man1 install-man5 install-pkglibexecSCRIPTS \
 	install-strip installcheck installcheck-am installdirs \
 	installdirs-am maintainer-clean maintainer-clean-generic \
 	maintainer-clean-recursive mostlyclean mostlyclean-compile \
@@ -1097,7 +1070,7 @@ uninstall-man: uninstall-man1 uninstall-man5
 	tags tags-recursive uninstall uninstall-am \
 	uninstall-binPROGRAMS uninstall-info-am uninstall-local \
 	uninstall-man uninstall-man1 uninstall-man5 \
-	uninstall-pkglibexecPROGRAMS uninstall-pkglibexecSCRIPTS
+	uninstall-pkglibexecSCRIPTS
 
 @BUILD_ELFUTILS_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all

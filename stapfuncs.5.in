@@ -43,14 +43,14 @@ and integer ("%d").
 .TP
 warn:unknown (msg:string)
 Log the given string to the warning stream.  Append an implicit end-of-line.
-.I stpd
+.I staprun
 prepends the string "WARNING:". 
 
 .TP
 error:unknown (msg:string)
 An error has occurred.  Log the given string to the error stream.
 Append an implicit end-of-line.
-.I stpd
+.I staprun
 prepends the string "ERROR:".
 Block any further execution of statements in this probe.  If the number
 of errors so far exceeds the MAXERRORS parameter, also trigger an 
@@ -61,7 +61,7 @@ exit:unknown ()
 Enqueue a request to shut down the systemtap session.  This does
 .B not
 unwind the current probe handler, nor block new probe handlers.
-.I stpd
+.I staprun
 will shortly respond to the request and initiate an orderly shutdown.
 
 .SS CONVERSIONS

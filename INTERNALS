@@ -121,7 +121,7 @@ Pass 4 - compilation
 
 Pass 5 - running
 
-- run "sudo stpd"
+- run "sudo staprun"
 - clean up temporary directory
 
 - nothing to it!

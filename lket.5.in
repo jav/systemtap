@@ -1197,7 +1197,7 @@ Data format is:
 By default, LKET will log the trace data in binary format.
 
 To get a better performance for binary tracing, the "\-b" option should
-be turned on for stap and thus \-M option has to be added to stop stpd
+be turned on for stap and thus \-M option has to be added to stop staprun
 merging per-cpu files.
 
 You could use the command 
