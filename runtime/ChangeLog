@@ -1,5 +1,10 @@
 2006-09-26  Martin Hunt  <hunt@redhat.com>
+	* time.c (_stp_init_time): Use dynamic percpu allocations
+	instead of evil static allocations.
+	(_stp_kill_time): Free percpu allocations and set
+	_stp_time to NULL so the timers are only deleted once.
 
+2006-09-26  Martin Hunt  <hunt@redhat.com>	
 	* io.c (_stp_vlog): Remove ifdef for STP_RELAYFS. Relayfs now
 	behaves the same as procfs.
 

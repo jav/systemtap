@@ -45,7 +45,7 @@ typedef struct __stp_time_t {
     struct timer_list timer;
 } stp_time_t;
 
-DEFINE_PER_CPU(stp_time_t, stp_time);
+void *stp_time = NULL;
 
 /* Try to estimate the number of CPU cycles in a millisecond - i.e. kHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
@@ -84,7 +84,7 @@ __stp_time_timer_callback(unsigned long val)
     ns = (NSEC_PER_SEC * (int64_t)tv.tv_sec)
         + (NSEC_PER_USEC * tv.tv_usec);
 
-    time = &__get_cpu_var(stp_time);
+    time = per_cpu_ptr(stp_time, smp_processor_id());
     write_seqlock(&time->lock);
     time->base_ns = ns;
     time->base_cycles = cycles;
@@ -100,8 +100,7 @@ static void
 __stp_init_time(void *info)
 {
     struct timeval tv;
-    stp_time_t *time = &__get_cpu_var(stp_time);
-
+    stp_time_t *time = per_cpu_ptr(stp_time, smp_processor_id());
 
     seqlock_init(&time->lock);
     do_gettimeofday(&tv);
@@ -131,7 +130,7 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
         case CPUFREQ_RESUMECHANGE:
             freqs = (struct cpufreq_freqs *)vfreqs;
             freq_khz = freqs->new;
-            time = &per_cpu(stp_time, freqs->cpu);
+	    time = per_cpu_ptr(stp_time, smp_processor_id());
             write_seqlock_irqsave(&time->lock, flags);
             time->cpufreq = freq_khz;
             write_sequnlock_irqrestore(&time->lock, flags);
@@ -149,15 +148,19 @@ struct notifier_block __stp_time_notifier = {
 void
 _stp_kill_time(void)
 {
-    int cpu;
-    for_each_online_cpu(cpu) {
-        stp_time_t *time = &per_cpu(stp_time, cpu);
-        del_timer_sync(&time->timer);
-    }
+	if (stp_time) {
+		int cpu;
+		for_each_online_cpu(cpu) {
+			stp_time_t *time = per_cpu_ptr(stp_time, cpu);
+			del_timer_sync(&time->timer);
+		}
 #ifdef CONFIG_CPU_FREQ
-    cpufreq_unregister_notifier(&__stp_time_notifier,
-            CPUFREQ_TRANSITION_NOTIFIER);
+		cpufreq_unregister_notifier(&__stp_time_notifier,
+					    CPUFREQ_TRANSITION_NOTIFIER);
 #endif
+		
+		free_percpu(stp_time);
+	}
 }
 
 int
@@ -167,6 +170,10 @@ _stp_init_time(void)
     int cpu, freq_khz;
     unsigned long flags;
 
+    stp_time = alloc_percpu(stp_time_t);
+    if (unlikely(stp_time == 0))
+	    return -1;
+    
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
 #ifdef CONFIG_CPU_FREQ
@@ -180,7 +187,7 @@ _stp_init_time(void)
         preempt_disable();
         freq_khz = cpufreq_get(cpu);
         if (freq_khz > 0) {
-            stp_time_t *time = &per_cpu(stp_time, cpu);
+            stp_time_t *time = per_cpu_ptr(stp_time, cpu);
             write_seqlock_irqsave(&time->lock, flags);
             time->cpufreq = freq_khz;
             write_sequnlock_irqrestore(&time->lock, flags);
@@ -204,9 +211,7 @@ _stp_gettimeofday_ns(void)
     int i = 0;
 
     preempt_disable();
-
-    time = &__get_cpu_var(stp_time);
-
+    time = per_cpu_ptr(stp_time, smp_processor_id());
     seq = read_seqbegin(&time->lock);
     base = time->base_ns;
     last = time->base_cycles;
