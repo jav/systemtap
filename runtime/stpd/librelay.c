@@ -1,5 +1,5 @@
 /*
- * libstp - stpd 'library'
+ * libstp - staprun 'library'
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -551,7 +551,7 @@ int init_stp(int print_summary)
 	ti.n_subbufs = 0;
 	ti.target = target_pid;
 	if (send_request(STP_TRANSPORT_INFO, &ti, sizeof(ti)) < 0) {
-		fprintf(stderr, "stpd failed because TRANSPORT_INFO returned an error.\n");
+		fprintf(stderr, "staprun failed because TRANSPORT_INFO returned an error.\n");
 		if (target_cmd)
 			kill (target_pid, SIGKILL);
 		close(control_channel);

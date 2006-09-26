@@ -53,7 +53,7 @@ static void usage(char *prog)
                 "\t[-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
 	fprintf(stderr, "-p  Print only.  Don't log to files.\n");
 	fprintf(stderr, "-q  Quiet. Don't display trace to stdout.\n");
-	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and stpd will exit when it does.\n");
+	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and staprun will exit when it does.\n");
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-t pid.  Sets _stp_target to pid.\n");
 	fprintf(stderr, "-d pid.  Pass the systemtap driver's pid.\n");
@@ -170,7 +170,7 @@ int main(int argc, char **argv)
 	}
 
 	if (init_stp(!quiet)) {
-		//fprintf(stderr, "Couldn't initialize stpd. Exiting.\n");
+		//fprintf(stderr, "Couldn't initialize staprun. Exiting.\n");
 		exit(1);
 	}
 

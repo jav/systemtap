@@ -1,3 +1,9 @@
+2006-09-26  David Smith  <dsmith@redhat.com>
+
+	* Makefile: Changed 'stpd' references to 'staprun'.
+	* librelay.c: Ditto.
+	* stpd.c: Ditto.
+	
 2006-09-25  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* librelay.c (kill_percpu_threads): Remove printf.
