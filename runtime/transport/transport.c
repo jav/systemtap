@@ -93,13 +93,10 @@ static void _stp_handle_buf_info(int *cpuptr)
  */
 void _stp_handle_start (struct transport_start *st)
 {
-	int ret;
 	kbug ("stp_handle_start pid=%d\n", st->pid);
 
-	ret = _stp_init_time();
-
 	/* note: st->pid is actually the return code for the reply packet */
-	st->pid = unlikely(ret) ? ret : probe_start();
+	st->pid = probe_start();
 	atomic_set(&_stp_start_finished,1);
 
 	/* if probe_start() failed, suppress calling probe_exit() */
@@ -153,11 +150,6 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		/* tell stpd to exit (if it is still there) */
 		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
 		kbug("done with transport_send STP_EXIT\n");
-
-		_stp_kill_time();
-
-		/* free print buffers */
-		_stp_print_cleanup();
 	}
 }
 
@@ -206,6 +198,13 @@ void _stp_transport_close()
 		_stp_relayfs_close(_stp_chan, _stp_dir);
 #endif
 	_stp_unregister_procfs();
+
+	_stp_kill_time();
+
+	/* free print buffers */
+	_stp_print_cleanup();
+
+
 	kbug("---- CLOSED ----\n");
 }
 
@@ -276,6 +275,10 @@ int _stp_transport_init(void)
 	/* create print buffers */
 	if (_stp_print_init() < 0)
 		return -1;
+
+	/* initialize timer code */
+	if (_stp_init_time())
+		return -1;	
 
 	/* set up procfs communications */
 	if (_stp_register_procfs() < 0)

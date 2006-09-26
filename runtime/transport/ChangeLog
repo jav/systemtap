@@ -1,3 +1,10 @@
+2006-09-26  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_handle_start): Don't initialize timers here.
+	(_stp_transport_init): Initialize timers here. 
+	(_stp_cleanup_and_exit): Don't kill timers or free print buffers here.
+	(_stp_transport_close): kill timers and free print buffers here.
+
 2006-09-25  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* procfs.c (_stp_proc_read): Set buf_info flushing flag.
