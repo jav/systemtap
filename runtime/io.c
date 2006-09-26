@@ -56,19 +56,12 @@ static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va
 		}
 		buf[num + start] = '\0';
 		
-#ifdef STP_RELAYFS
-		if (type != DBUG)
-			_stp_write(STP_OOB_DATA, buf, start + num + 1);
-		_stp_string_cat_cstr(_stp_stdout,buf);
-		_stp_print_flush();
-#else
 		if (type != DBUG)
 			_stp_write(STP_OOB_DATA, buf, start + num + 1);
 		else {
 			_stp_string_cat_cstr(_stp_stdout,buf);
 			_stp_print_flush();
 		}
-#endif
 	}
 	put_cpu();
 }
