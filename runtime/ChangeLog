@@ -1,3 +1,13 @@
+2006-09-27  Martin Hunt  <hunt@redhat.com>
+
+	* stack.c (_stp_kta): Rewrite. Use the _stap_symbols
+	struct instead of calling into the kernel.
+
+	* sym.c (_stp_kallsyms_lookup): Move here from runtime.h
+
+	* runtime.h: Get rid of all the symbol stuff that
+	did not belong here.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* README: Changed 'stpd' references to 'staprun'.

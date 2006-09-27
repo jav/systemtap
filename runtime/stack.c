@@ -30,6 +30,14 @@
 #include "sym.c"
 #include "regs.h"
 
+static int _stp_kta(unsigned long addr)
+{
+	if (addr >= stap_symbols[0].addr && 
+	    addr <= stap_symbols[stap_num_symbols-1].addr)
+		return 1;
+	return 0;
+}
+
 #if defined (__x86_64__)
 
 static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)

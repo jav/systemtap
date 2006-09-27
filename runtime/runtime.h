@@ -1,5 +1,5 @@
 /* main header file
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -83,89 +83,9 @@ static struct
 
 
 /************* Module Stuff ********************/
-static int (*_stp_kta)(unsigned long addr);
-static const char * (*_stp_kallsyms_lookup)(unsigned long addr,
-					    unsigned long *symbolsize,
-					    unsigned long *offset,
-					    char **modname, char *namebuf);
 
-
-#ifdef SYSTEMTAP
-/* This implementation is used if stap_[num_]symbols are available. */
-static const char * _stp_kallsyms_lookup_tabled (unsigned long addr,
-						 unsigned long *symbolsize,
-						 unsigned long *offset,
-						 char **modname,
-						 char *namebuf)
-{
-  unsigned begin = 0;
-  unsigned end = stap_num_symbols;
-  /*const*/ struct stap_symbol* s;
-
-  /* binary search on index [begin,end) */
-  do
-    {
-      unsigned mid = (begin + end) / 2;
-      if (addr < stap_symbols[mid].addr)
-	end = mid;
-      else
-	begin = mid;
-    } while (begin + 1 < end);
-  /* result index in $begin, guaranteed between [0,stap_num_symbols) */
-
-  s = & stap_symbols [begin];
-  if (addr < s->addr)
-    return NULL;
-  else
-    {
-      if (offset) *offset = addr - s->addr;
-      if (modname) *modname = (char *) s->modname;
-      if (symbolsize)
-	{
-	  if ((begin + 1) < stap_num_symbols)
-	    *symbolsize = stap_symbols[begin+1].addr - s->addr;
-	  else
-	    *symbolsize = 0;
-	  // NB: This is only a heuristic.  Sometimes there are large
-	  // gaps between text areas of modules.
-	}
-      if (namebuf)
-	{
-	  strlcpy (namebuf, s->symbol, KSYM_NAME_LEN+1);
-	  return namebuf;
-	}
-      else
-	return s->symbol;
-    }
-}
-#endif
-
-#ifdef __ia64__	
-  struct fnptr func_entry, *pfunc_entry;
-#endif
 int init_module (void)
 {
-#if defined __i386__ || defined __x86_64__
-  _stp_kta = (int (*)(unsigned long))kallsyms_lookup_name("__kernel_text_address");
-#endif
-
-#ifdef SYSTEMTAP
-  if (stap_num_symbols > 0)
-    _stp_kallsyms_lookup = & _stp_kallsyms_lookup_tabled;
-  else
-#endif
-#ifdef __ia64__
-  {
-        func_entry.gp = ((struct fnptr *) kallsyms_lookup_name)->gp;
-        func_entry.ip = kallsyms_lookup_name("kallsyms_lookup");
-        _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))&func_entry;
-
-  }
-#else
-    _stp_kallsyms_lookup = (const char * (*)(unsigned long,unsigned long *,unsigned long *,char **,char *))
-      kallsyms_lookup_name("kallsyms_lookup");
-#endif
-    
   return _stp_transport_init();
 }
 
