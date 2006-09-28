@@ -3881,29 +3881,6 @@ timer_derived_probe_group::emit_module_init (translator_output* o)
 }
 
 
-struct timer_builder: public derived_probe_builder
-{
-  bool time_is_msecs;
-  timer_builder(bool ms=false): time_is_msecs(ms) {}
-  virtual void build(systemtap_session & sess,
-		     probe * base,
-		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
-		     vector<derived_probe *> & finished_results)
-  {
-    int64_t jn, rn;
-    bool jn_p, rn_p;
-
-    jn_p = get_param (parameters, time_is_msecs ? "ms" : "jiffies", jn);
-    rn_p = get_param (parameters, "randomize", rn);
-
-    finished_results.push_back(new timer_derived_probe(base, location,
-                                                       jn, rn_p ? rn : 0,
-                                                       time_is_msecs));
-  }
-};
-
-
 // ------------------------------------------------------------------------
 // profile derived probes
 // ------------------------------------------------------------------------
@@ -3934,16 +3911,7 @@ struct profile_derived_probe: public derived_probe
 profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, probe_point* l):
   derived_probe(p, l)
 {
-  string target_kernel_v;
-
-  // cut off any release code suffix
-  string::size_type dash_index = s.kernel_release.find ('-');
-  if (dash_index > 0 && dash_index != string::npos)
-    target_kernel_v = s.kernel_release.substr (0, dash_index);
-  else
-    target_kernel_v = s.kernel_release;
-
-  using_rpn = (strverscmp(target_kernel_v.c_str(), "2.6.10") < 0);
+  using_rpn = (strverscmp(s.kernel_base_release.c_str(), "2.6.10") < 0);
 }
 
 
@@ -4703,14 +4671,17 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
     {
       o->newline() << "int64_t r;";
       o->newline() << "get_random_bytes(&r, sizeof(r));";
+
+      // ensure that r is positive
       o->newline() << "r &= ((uint64_t)1 << (8*sizeof(r) - 1)) - 1;";
+
       o->newline() << "r = _stp_mod64(NULL, r, " << (2*randomize + 1) << "LL);";
       o->newline() << "r -= " << randomize << "LL;";
       o->newline() << "i += r;";
-      o->newline() << "if (unlikely(i < " << min_ns_interval << "LL))";
-      o->newline(1) << "i = " << min_ns_interval << "LL;";
-      o->indent(-1);
     }
+  o->newline() << "if (unlikely(i < _stp_hrtimer_res))";
+  o->newline(1) << "i = _stp_hrtimer_res;";
+  o->indent(-1);
   o->newline() << "nsecs = do_div(i, NSEC_PER_SEC);";
   o->newline() << "ktime_set(i, nsecs);";
   o->newline(-1) << "})";
@@ -4759,17 +4730,20 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
 
   o->newline() << "(void) timer;";
 
-  o->newline() << "hrtimer_start (& timer_" << name << ", ";
+  // hrtimer_forward would be preferable, but it's not exported.  We already
+  // guarantee that the interval is >= the timer resolution though, so this is
+  // essentially the same.
+  o->newline() << "timer_" << name << ".expires = ktime_add(timer_"
+    << name << ".expires, ";
   emit_interval(o);
-  o->line() << ", HRTIMER_REL);";
+  o->line() << ");";
 
   // NB: locals are initialized by probe function itself
   o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
 
-  // Return NORESTART, because we already requeued the timer above
-  o->newline() << "return HRTIMER_NORESTART;";
+  o->newline() << "return HRTIMER_RESTART;";
   o->newline(-1) << "}\n";
 }
 
@@ -4791,6 +4765,11 @@ public:
 void
 hrtimer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
 {
+  if (probes.size () == 0)
+    return;
+
+  op->newline();
+  op->newline() << "static int64_t _stp_hrtimer_res;";
   for (unsigned i=0; i < probes.size(); i++)
     {
       op->newline ();
@@ -4807,7 +4786,10 @@ hrtimer_derived_probe_group::emit_module_init (translator_output* o)
 
   // Output the hrtimer probes create function
   o->newline() << "static int register_hrtimer_probes (void) {";
-  o->indent(1);
+  o->newline(1) << "struct timespec res;";
+  o->newline() << "hrtimer_get_res(CLOCK_MONOTONIC, &res);";
+  o->newline() << "_stp_hrtimer_res = timespec_to_ns(&res);";
+  o->newline();
 
   for (unsigned i=0; i < probes.size (); i++)
     {
@@ -4831,130 +4813,113 @@ hrtimer_derived_probe_group::emit_module_init (translator_output* o)
   o->newline(-1) << "}\n";
 }
 
-struct hrtimer_builder: public derived_probe_builder
+
+struct timer_builder: public derived_probe_builder
 {
-  hrtimer_builder() {}
-  static int64_t convert_to_ns(const string &time);
-  virtual void build(systemtap_session & sess,
-		     probe * base,
-		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
-		     vector<derived_probe *> & finished_results)
-  {
-    string interval, randomize;
-    int64_t i_ns, r_ns;
+    virtual void build(systemtap_session & sess,
+	probe * base, probe_point * location,
+	std::map<std::string, literal *> const & parameters,
+	vector<derived_probe *> & finished_results);
 
-    if (!get_param (parameters, "hrtimer", interval))
-      throw semantic_error("timer requires an interval");
-    i_ns = convert_to_ns(interval);
-    if (sess.verbose > 1)
-      clog << "parsed timer interval '" << interval
-	   << "' to " << i_ns << " ns. "<< endl;
-
-    if (get_param (parameters, "randomize", randomize))
-      {
-	r_ns = convert_to_ns(randomize);
-	if (sess.verbose > 1)
-	  clog << "parsed timer randomization '" << randomize
-	       << "' to " << r_ns << " ns. "<< endl;
-      }
-    else
-      r_ns = 0;
-
-    string target_kernel_v;
-
-    // cut off any release code suffix
-    string::size_type dash_index = sess.kernel_release.find ('-');
-    if (dash_index > 0 && dash_index != string::npos)
-      target_kernel_v = sess.kernel_release.substr (0, dash_index);
-    else
-      target_kernel_v = sess.kernel_release;
-
-    // hrtimers are only exported starting in 2.6.17
-    if (strverscmp(target_kernel_v.c_str(), "2.6.17") >= 0)
-      finished_results.push_back(
-	  new hrtimer_derived_probe(base, location, i_ns, r_ns));
-    else
-      {
-	int64_t i_ms = (i_ns + 999999) / 1000000;
-	int64_t r_ms = (r_ns + 999999) / 1000000;
-
-	if (sess.verbose > 2)
-	  {
-	    clog << "rounded timer interval from "
-	      << i_ns << " ns to " << i_ms <<" ms. "<< endl;
-	    clog << "rounded timer randomization from "
-	      << i_ns << " ns to " << i_ms <<" ms. "<< endl;
-	  }
-
-	finished_results.push_back(
-	    new timer_derived_probe(base, location, i_ms, r_ms, true));
-      }
-  }
+    static void register_patterns(match_node *root);
 };
 
-
-int64_t
-hrtimer_builder::convert_to_ns(const string &time)
+void
+timer_builder::build(systemtap_session & sess,
+    probe * base,
+    probe_point * location,
+    std::map<std::string, literal *> const & parameters,
+    vector<derived_probe *> & finished_results)
 {
-  int64_t ns;
-  int64_t num;
-  string unit;
-  istringstream iss(time);
+  int64_t period, rand=0;
 
-  iss >> num >> unit;
-  if (iss.fail() || num==0) goto bad_time;
+  if (!get_param(parameters, "randomize", rand))
+    rand = 0;
 
-  if ((unit == "hz") || (unit == "hertz"))
+  if (get_param(parameters, "jiffies", period))
     {
-      ns = 1000000000/num;
-      iss >> unit;
-      if (!iss.fail()) goto bad_time;
-      return ns;
+      // always use basic timers for jiffies
+      finished_results.push_back(
+	  new timer_derived_probe(base, location, period, rand, false));
+      return;
     }
-
-  ns = 0;
-  do
+  else if (get_param(parameters, "hz", period))
     {
-      if ((unit == "ns") || (unit == "nsec"))
-	goto unit_parsed;
-
-      num *= 1000;
-      if ((unit == "us") || (unit == "usec"))
-	goto unit_parsed;
-
-      num *= 1000;
-      if ((unit == "ms") || (unit == "msec"))
-	goto unit_parsed;
-
-      num *= 1000;
-      if ((unit == "s") || (unit == "sec"))
-	goto unit_parsed;
-
-      num *= 60;
-      if ((unit == "m") || (unit == "min"))
-	goto unit_parsed;
-
-      num *= 60;
-      if ((unit == "h") || (unit == "hour"))
-	goto unit_parsed;
-
-      goto bad_time;
-
-unit_parsed:
-      ns += num;
-
-      iss >> num;
-      if (iss.fail()) break;
-      iss >> unit;
-      if (iss.fail() || num==0) goto bad_time;
+      if (period <= 0)
+	throw semantic_error ("frequency must be greater than 0");
+      period = (1000000000 + period - 1)/period;
     }
-  while (1);
+  else if (get_param(parameters, "s", period)
+      || get_param(parameters, "sec", period))
+    {
+      period *= 1000000000;
+      rand *= 1000000000;
+    }
+  else if (get_param(parameters, "ms", period)
+      || get_param(parameters, "msec", period))
+    {
+      period *= 1000000;
+      rand *= 1000000;
+    }
+  else if (get_param(parameters, "us", period)
+      || get_param(parameters, "usec", period))
+    {
+      period *= 1000;
+      rand *= 1000;
+    }
+  else if (get_param(parameters, "ns", period)
+      || get_param(parameters, "nsec", period))
+    {
+      // ok
+    }
+  else
+    throw semantic_error ("unrecognized timer variant");
 
-  return ns;
+  if (strverscmp(sess.kernel_base_release.c_str(), "2.6.17") < 0)
+    {
+      // hrtimers didn't exist, so use the old-school timers
+      period = (period + 1000000 - 1)/1000000;
+      rand = (rand + 1000000 - 1)/1000000;
 
-bad_time:
-  throw semantic_error("bad time parameter: '" + time + "'");
+      finished_results.push_back(
+	  new timer_derived_probe(base, location, period, rand, true));
+    }
+  else
+    finished_results.push_back(
+	new hrtimer_derived_probe(base, location, period, rand));
+}
+
+void
+timer_builder::register_patterns(match_node *root)
+{
+  derived_probe_builder *builder = new timer_builder();
+
+  root = root->bind("timer");
+
+  root->bind_num("s")->bind(builder);
+  root->bind_num("s")->bind_num("randomize")->bind(builder);
+  root->bind_num("sec")->bind(builder);
+  root->bind_num("sec")->bind_num("randomize")->bind(builder);
+
+  root->bind_num("ms")->bind(builder);
+  root->bind_num("ms")->bind_num("randomize")->bind(builder);
+  root->bind_num("msec")->bind(builder);
+  root->bind_num("msec")->bind_num("randomize")->bind(builder);
+
+  root->bind_num("us")->bind(builder);
+  root->bind_num("us")->bind_num("randomize")->bind(builder);
+  root->bind_num("usec")->bind(builder);
+  root->bind_num("usec")->bind_num("randomize")->bind(builder);
+
+  root->bind_num("ns")->bind(builder);
+  root->bind_num("ns")->bind_num("randomize")->bind(builder);
+  root->bind_num("nsec")->bind(builder);
+  root->bind_num("nsec")->bind_num("randomize")->bind(builder);
+
+  root->bind_num("jiffies")->bind(builder);
+  root->bind_num("jiffies")->bind_num("randomize")->bind(builder);
+  
+  root->bind_num("hz")->bind(builder);
 }
 
 
@@ -5381,13 +5346,9 @@ register_standard_tapsets(systemtap_session & s)
 
   s.pattern_root->bind("never")->bind(new never_builder());
 
-  s.pattern_root->bind("timer")->bind_num("jiffies")->bind(new timer_builder());
-  s.pattern_root->bind("timer")->bind_num("jiffies")->bind_num("randomize")->bind(new timer_builder());
-  s.pattern_root->bind("timer")->bind_num("ms")->bind(new timer_builder(true));
-  s.pattern_root->bind("timer")->bind_num("ms")->bind_num("randomize")->bind(new timer_builder(true));
+  timer_builder::register_patterns(s.pattern_root);
   s.pattern_root->bind("timer")->bind("profile")->bind(new profile_builder());
-  s.pattern_root->bind_str("hrtimer")->bind(new hrtimer_builder());
-  s.pattern_root->bind_str("hrtimer")->bind_str("randomize")->bind(new hrtimer_builder());
+
   s.pattern_root->bind("perfmon")->bind_str("counter")->bind(new perfmon_builder());
 
   // dwarf-based kernel/module parts

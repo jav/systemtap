@@ -3,7 +3,22 @@
 global i, j
 probe timer.jiffies(100) { i++ }
 probe timer.jiffies(100).randomize(100) { j++ }
+probe timer.s(100) { i++ }
+probe timer.s(100).randomize(100) { j++ }
+probe timer.sec(100) { i++ }
+probe timer.sec(100).randomize(100) { j++ }
 probe timer.ms(100) { i++ }
 probe timer.ms(100).randomize(100) { j++ }
+probe timer.msec(100) { i++ }
+probe timer.msec(100).randomize(100) { j++ }
+probe timer.us(100) { i++ }
+probe timer.us(100).randomize(100) { j++ }
+probe timer.usec(100) { i++ }
+probe timer.usec(100).randomize(100) { j++ }
+probe timer.ns(100000) { i++ }
+probe timer.ns(100000).randomize(100) { j++ }
+probe timer.nsec(100000) { i++ }
+probe timer.nsec(100000).randomize(100) { j++ }
+probe timer.hz(100) { i++ }
 probe timer.profile { i++ }
 probe end { printf("i=%d j=%d\n", i, j) }

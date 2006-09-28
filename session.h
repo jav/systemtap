@@ -63,6 +63,7 @@ struct systemtap_session
   std::vector<std::string> macros;
   std::vector<std::string> args;
   std::string kernel_release;
+  std::string kernel_base_release;
   std::string architecture;
   std::string runtime_path;
   std::string module_name;

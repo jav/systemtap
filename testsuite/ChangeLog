@@ -1,3 +1,7 @@
+2006-09-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	* buildok/fourteen.stp: Test new timer functionality.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* systemtap.samples/args.exp: Looks for 'staprun' instead of

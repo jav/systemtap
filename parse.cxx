@@ -162,11 +162,7 @@ bool eval_pp_conditional (systemtap_session& s,
                                     l->content == "kernel_vr"))
     {
       string target_kernel_vr = s.kernel_release;
-      string target_kernel_v = target_kernel_vr;
-      // cut off any release code suffix
-      string::size_type dr = target_kernel_vr.find ('-');
-      if (dr > 0 && dr != string::npos)
-        target_kernel_v = target_kernel_vr.substr (0, dr);
+      string target_kernel_v = s.kernel_base_release;
       
       if (! (r->type == tok_string))
         throw parse_error ("expected string literal", r);

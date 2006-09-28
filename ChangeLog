@@ -1,3 +1,29 @@
+2006-09-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	* session.h (struct systemtap_session): Add kernel_base_release
+	to store the kernel version without the -NNN suffix.
+	* main.cxx (main): Generate and use kernel_base_release.
+	* parse.cxx (eval_pp_conditional): Use kernel_base_release.
+	* tapsets.cxx (profile_derived_probe::profile_derived_probe):
+	Use kernel_base_release.
+
+	* tapsets.cxx (timer_builder::build): Support a wide variety of
+	timer varients -- jiffies, s/sec, ms/msec, us/usec, ns/nsec, and
+	hz.  Use hrtimers automatically on kernels that have it.
+	(timer_builder::register_patterns): Bind all of the new timer
+	varients in one easy place.
+	(register_standard_tapsets): Call timer_builder::register_patterns.
+	(struct hrtimer_builder): Removed since timer_builder is generic.
+	* stapprobes.5.in: Document new timer.* functionality.
+
+	* tapsets.cxx (hrtimer_derived_probe_group::emit_probes): Add a
+	shared global for the actual hrtimer resolution, _stp_hrtimer_res.
+	(hrtimer_derived_probe_group::emit_module): Init _stp_hrtimer_res.
+	(hrtimer_derived_probe::emit_interval): Limit intervals at a
+	minimum to the hrtimer's actual resolution.
+	(hrtimer_derived_probe::emit_probe_entries): Forward timers
+	based on previous expiration instead of restarting relative.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* .cvsignore: Changed 'stpd' reference to 'staprun'.

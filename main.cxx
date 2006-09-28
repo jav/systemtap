@@ -311,6 +311,8 @@ main (int argc, char * const argv [])
            << e << endl;
     }
 
+  s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
+
 
   // arguments parsed; get down to business
 
@@ -366,9 +368,8 @@ main (int argc, char * const argv [])
   version_suffixes.push_back ("/" + kvr + "/" + arch);
   version_suffixes.push_back ("/" + kvr);
   // add kernel version (2.6.NN) + arch
-  string::size_type dash_index = kvr.find ('-');
-  if (dash_index > 0 && dash_index != string::npos) {
-    kvr.erase(dash_index);
+  if (kvr != s.kernel_base_release) {
+    kvr = s.kernel_base_release;
     version_suffixes.push_back ("/" + kvr + "/" + arch);
     version_suffixes.push_back ("/" + kvr);
   }

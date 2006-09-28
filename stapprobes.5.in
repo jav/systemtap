@@ -95,16 +95,24 @@ smaller than N.  There are no target variables provided in either
 context.  It is possible for such probes to be run concurrently on
 a multi-processor computer.
 .PP
-Alternatively, intervals may be specified in units of milliseconds.
+Alternatively, intervals may be specified in units of time.
 There are two probe point variants similar to the jiffies timer:
 .SAMPLE
 timer.ms(N)
 timer.ms(N).randomize(M)
 .ESAMPLE
-Here, N and M are specified in milliseconds.  The probe intervals will be
-rounded up to the nearest jiffies interval for the actual timer.  If the
-"randomize" component is given, then the random value will be added to the
-interval before the conversion to jiffies.
+Here, N and M are specified in milliseconds, but the full options for units
+are seconds (s/sec), milliseconds (ms/msec), microseconds (us/usec),
+nanoseconds (ns/nsec), and hertz (hz).  Randomization is not supported for
+hertz timers.
+
+The actual resolution of the timers depends on the target kernel.  For
+kernels prior to 2.6.17, timers are limited to jiffies resolution, so
+intervals are rounded up to the nearest jiffies interval.  After 2.6.17,
+the implementation uses hrtimers for tighter precision, though the actual
+resolution will be arch-dependent.  In either case, if the "randomize"
+component is given, then the random value will be added to the interval
+before any rounding occurs.
 .PP
 Profiling timers are also available to provide probes that execute on all
 CPUs at the rate of the system tick.  This probe takes no parameters.
