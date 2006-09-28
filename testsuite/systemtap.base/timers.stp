@@ -10,7 +10,7 @@ global ms1, ms500, msmax
 
 probe begin
 {
-	log("systemtap starting probe")
+	printf("systemtap starting probe\n")
 }
 
 probe timer.profile { ++p }
@@ -27,47 +27,47 @@ probe timer.ms(1000000) { ++msmax }
 
 probe end
 {
-	log("systemtap ending probe")
-	log("p = " . sprint(p))
-	log("j1 = " . sprint(j1))
-	log("j2 = " . sprint(j2))
-	log("jmax = " . sprint(jmax))
-	log("ms1 = " . sprint(ms1))
-	log("ms500 = " . sprint(ms500))
-	log("msmax = " . sprint(msmax))
+	printf("systemtap ending probe\n")
+	printf("p = %d\n", p)
+	printf("j1 = %d\n", j1)
+	printf("j2 = %d\n", j2)
+	printf("jmax = %d\n", jmax)
+	printf("ms1 = %d\n", ms1)
+	printf("ms500 = %d\n", ms500)
+	printf("msmax = %d\n", msmax)
 
 	/* profile counter should be non-zero, and at
 	 * least as many as the jiffies(1) counter */
 	if ((p > 0) && (p >= j1)) {
-		log("systemtap test success")
+		printf("systemtap test success\n")
 	} else {
-		log("unexpected profile count")
-		log("systemtap test failure");
+		printf("unexpected profile count: %d profiles and %d jiffies\n", p, j1)
+		printf("systemtap test failure\n");
 	}
 
 	/* jiffies(1) should count more than jiffies(2),
 	 * and both should be non-zero. */
 	if ((j2 > 0) && (j2 < j1)) {
-		log("systemtap test success")
+		printf("systemtap test success\n")
 	} else {
-		log("unexpected jiffies count")
-		log("systemtap test failure");
+		printf("unexpected jiffies count\n")
+		printf("systemtap test failure\n");
 	}
 
 	/* ms(1) should count more than ms(500),
 	 * and both should be non-zero. */
 	if ((ms500 > 0) && (ms500 < ms1)) {
-		log("systemtap test success")
+		printf("systemtap test success\n")
 	} else {
-		log("unexpected ms count")
-		log("systemtap test failure");
+		printf("unexpected ms count\n")
+		printf("systemtap test failure\n");
 	}
 
 	/* both 'infinite' intervals should register zero counts */
 	if ((jmax == 0) && (msmax == 0)) {
-		log("systemtap test success")
+		printf("systemtap test success\n")
 	} else {
-		log("unexpected count on 'infinite' interval")
-		log("systemtap test failure");
+		printf("unexpected count on 'infinite' interval\n")
+		printf("systemtap test failure\n");
 	}
 }
