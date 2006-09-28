@@ -4607,13 +4607,11 @@ mark_builder::build(systemtap_session & sess,
 // ------------------------------------------------------------------------
 // This is a new timer interface that provides more flexibility in specifying
 // intervals, and uses the hrtimer APIs when available for greater precision.
-// As of 2.6.16, these APIs don't have the needed EXPORT_SYMBOL_GPL, so we
-// can't make use of them yet.
+// While hrtimers were added in 2.6.16, the API's weren't exported until
+// 2.6.17, so we must check this kernel version before attempting to use
+// hrtimers.
 //
-// There are two classes defined below:
 // * hrtimer_derived_probe: creates a probe point based on the hrtimer APIs.
-// * hrtimer_builder: parses the user's time-spec into a 64-bit nanosecond
-//   value, and calls the appropriate derived_probe.
 
 
 struct hrtimer_derived_probe: public derived_probe
@@ -4723,7 +4721,7 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
   o->newline() << "static struct hrtimer timer_" << name << ";";
 
   o->newline() << "int enter_" << name << " (struct hrtimer *timer) {";
-  o->indent(1);
+  o->newline(1) << "int restart = HRTIMER_NORESTART;";
   o->newline() << "const char* probe_point = "
 	       << lex_cast_qstring(*locations[0]) << ";";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
@@ -4737,13 +4735,14 @@ hrtimer_derived_probe::emit_probe_entries (translator_output* o)
     << name << ".expires, ";
   emit_interval(o);
   o->line() << ");";
+  o->newline() << "restart = HRTIMER_RESTART;";
 
   // NB: locals are initialized by probe function itself
   o->newline() << name << " (c);";
 
   emit_probe_epilogue (o);
 
-  o->newline() << "return HRTIMER_RESTART;";
+  o->newline() << "return restart;";
   o->newline(-1) << "}\n";
 }
 
