@@ -5,7 +5,14 @@
 # provided by searching the function's DIE rather than the by PC
 # proximity. (PR 1244)
 
+%( kernel_v >= "2.6.18" %?
+probe kernel.function("__audit_getname@kernel/auditsc.c")
+{
+        log(kernel_string($name));
+}
+%:
 probe kernel.function("audit_getname@kernel/auditsc.c")
 {
         log(kernel_string($name));
 }
+%)

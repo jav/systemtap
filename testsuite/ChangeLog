@@ -1,3 +1,8 @@
+2006-09-28  Martin Hunt  <hunt@redhat.com>
+
+	* buildok/eighteen.stp: Fix for 2.6.18.
+	* buildok/two.stp: Ditto.
+
 2006-09-27  Josh Stone  <joshua.i.stone@intel.com>
 
 	* buildok/fourteen.stp: Test new timer functionality.

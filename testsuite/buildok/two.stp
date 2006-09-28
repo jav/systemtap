@@ -3,7 +3,11 @@
 ./stap -p4 -g $@ - <<'END'
 
 %{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
 #include <linux/version.h>
+#else
+#include <linux/utsrelease.h>
+#endif
 %}
 
 function get_release () %{
