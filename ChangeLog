@@ -1,3 +1,8 @@
+2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
+
+	PR 3282
+	* Makefile.am: add -DPKGLIBDIR='"$(pkglibexecdir)"' to AM_CPPFLAGS
+
 2006-09-28  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3278

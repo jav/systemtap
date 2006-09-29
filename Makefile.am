@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS = dist-bzip2
 
 pkglibexecdir = ${libexecdir}/${PACKAGE}
 
-AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"'
+AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
 AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
