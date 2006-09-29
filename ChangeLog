@@ -1,5 +1,15 @@
 2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
 
+	* man: newly created dir for stapprobes
+	* man/stapprobes.iosched.5, man/stapprobes.netdev.5, man/stapprobes.nfs.5,
+	man/stapprobes.nfsd.5, man/stapprobes.pagefault.5, man/stapprobes.process.5,
+	man/stapprobes.rpc.5, man/stapprobes.scsi.5, man/stapprobes.signal.5,
+	man/stapprobes.tcp.5, man/stapprobes.udp.5: Some of these man pages are from
+	the old stapprobes.5.in. Some are newly created(rpc, nfs, nfsd)
+	* man/.cvsignore: ignore the generated man page files
+	
+2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
+
 	PR 3282
 	* Makefile.am: add -DPKGLIBDIR='"$(pkglibexecdir)"' to AM_CPPFLAGS
 
