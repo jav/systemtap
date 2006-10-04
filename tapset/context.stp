@@ -106,11 +106,12 @@ function probefunc:string () %{ /* pure */
 			*dst++ = *ptr++;
 		*dst = 0;
 
-	} else if (CONTEXT->regs) {
+	} else if (CONTEXT->regs &&
+		(REG_IP(CONTEXT->regs) >= PAGE_OFFSET)) {
 		_stp_symbol_sprint_basic(THIS->__retvalue, MAXSTRINGLEN,
 				REG_IP(CONTEXT->regs));
-                if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
-                	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
+       	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
+       	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
 		THIS->__retvalue[0] = '\0';
 	}
@@ -129,6 +130,7 @@ function probemod:string () %{ /* pure */
 			*dst++ = *ptr++;
 		*dst = 0;
 	} else {
+		/* XXX: need a PC- and symbol-table-based fallback. */
 		THIS->__retvalue[0] = '\0';
 	}
 %}
