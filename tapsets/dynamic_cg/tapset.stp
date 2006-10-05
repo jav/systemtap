@@ -1,7 +1,0 @@
-global $dynamic_call_graph
-probe kernel.perfctr.call(1) {
-   if ($dynamic_call_graph) trace_sym ($pc);
-}
-probe kernel.perfctr.return(1) {
-   if ($dynamic_call_graph) trace_sym ($pc);
-}
