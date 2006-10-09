@@ -1,5 +1,3 @@
-return  ;# this will need more rework for obj!=src testing
-
 proc test_procedure {} {
 global subdir
 if {$subdir != ""} {
@@ -43,7 +41,7 @@ foreach filename [lsort [glob *.c]] {
   }
 }
 
-if {$tcl_platform(machine) == "x86_64"} {
+if {$::tcl_platform(machine) == "x86_64"} {
   # on x86_64, test 32-bit and 64-bit binaries
   set flags "additional_flags=-m32"
   foreach filename [lsort [glob *.c]] {
