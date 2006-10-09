@@ -1,3 +1,10 @@
+2006-10-09  Josh Stone  <joshua.i.stone@intel.com>
+
+	From David Wilder <dwilder@us.ibm.com>
+	* time.c (__stp_estimate_cpufreq): Short-circuit on s390.
+	(_stp_gettimeofday_ns): Use a fixed formula on s390 to
+	convert TOD clocks to nanoseconds.
+
 2006-09-27  Martin Hunt  <hunt@redhat.com>
 
 	* stack.c (_stp_kta): Rewrite. Use the _stap_symbols

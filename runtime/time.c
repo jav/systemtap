@@ -58,6 +58,12 @@ void *stp_time = NULL;
 static unsigned int
 __stp_estimate_cpufreq(void)
 {
+#if defined (__s390__) || defined (__s390x__)
+    // We don't need to find the cpu freq on s390 as the 
+    // TOD clock is always a fix freq. (see: POO pg 4-36.)
+    return 0;
+#else /* __s390x__ || __s390x__ */
+
     cycles_t beg, mid, end;
     beg = get_cycles(); barrier();
     udelay(1); barrier();
@@ -65,6 +71,7 @@ __stp_estimate_cpufreq(void)
     udelay(1001); barrier();
     end = get_cycles(); barrier();
     return (beg - 2*mid + end);
+#endif
 }
 
 static void
@@ -230,10 +237,20 @@ _stp_gettimeofday_ns(void)
 
     preempt_enable();
 
+#if defined (__s390__) || defined (__s390x__)
+    // The TOD clock on the s390 (read by get_cycles() ) 
+    // is converted to a nano-second value using the following:
+    // (get_cycles() * 125) >> 7;  
+
+    delta = (delta * 125) >> 7;
+
+#else /* __s390__ || __s390x__ */
+
     // Verify units:
     //   (D cycles) * (1E6 ns/ms) / (F cycles/ms [kHz]) = ns
     delta *= NSEC_PER_MSEC;
     do_div(delta, freq);
+#endif
+
     return base + delta;
 }
-
