@@ -1,3 +1,7 @@
+2006-10-10  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in (elfutils_version): Require 0.124 now.
+
 2006-10-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Override incomplete mysql checking for now.
@@ -7,7 +11,7 @@
 
 	* configure.ac: add the checking of mysql client library
 	* Makefile.in, configure: regenerated
-	
+
 2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	* man: newly created dir for stapprobes
@@ -17,7 +21,7 @@
 	man/stapprobes.tcp.5, man/stapprobes.udp.5: Some of these man pages are from
 	the old stapprobes.5.in. Some are newly created(rpc, nfs, nfsd)
 	* man/.cvsignore: ignore the generated man page files
-	
+
 2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	PR 3282
@@ -66,7 +70,7 @@
 	* stapruncs.5.in: Ditto.
 	* examples/small_demos/demo_script.txt: Ditto.
 	* examples/small_demos/sys.stp: Ditto.
-	
+
 	* systemtap.spec.in: Created a new subpackage,
 	"systemtap-runtime", that contains staprun.
 
@@ -78,9 +82,9 @@
 	* configure: Regenerated from configure.ac.
 
 2006-09-22  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* stp_check.in: Add debugfs mounting.
-	
+
 2006-09-22  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guijian@cn.ibm.com>
@@ -93,9 +97,9 @@
 	* stapfuncs.5.in: Document new gettimeofday_ns.
 
 2006-09-19  Tom Zanussi  <zanussi@us.ibm.com>
-	
+
 	* README: Add CONFIG_DEBUG_FS to config options.
-	
+
 2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3219
@@ -107,7 +111,7 @@
 	* buildrun.cxx (run_pass): Remove "-m" option to stpd.
 	* translate.cxx (translate_pass): #define STP_RELAYFS_MERGE
 	if appropriate.
-	
+
 2006-09-13  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (run_pass): Remove "-r" option to stpd.
@@ -116,7 +120,7 @@
 
 	* tapsets.cxx (perfmon_derived_probe_group::emit_module_init):
 	Do not throw sematic error unless probes actually used.
-	
+
 2006-09-12  Will Cohen  <wcohen@redhat.com>
 
 	PR 909
@@ -139,7 +143,7 @@
 	(struct perfmon_derived_probe_group):
 	(struct perfmon_builder):  New Perfmon probe handling structures.
 	(register_standard_tapsets): Add perfmon tapset binding.
-	(derived_probe_group_container): 
+	(derived_probe_group_container):
 	(~derived_probe_group_container):
 	(derived_probe_group_container::register_probe):
 	(derived_probe_group_container::emit_probes):
@@ -154,7 +158,7 @@
 
 	* testsuite/buildok/perfmon01.stp: Test to exercise perfmon
 		probes.
-	* testsuite/systemtap.pass1-4/buildok.exp: 
+	* testsuite/systemtap.pass1-4/buildok.exp:
 
 2006-09-12  Li Guanglei <guanglei@cn.ibm.com>
 
@@ -217,7 +221,7 @@
 	function to handle probe group initialization cleanup.
 	(derived_probe_group_container::emit_module_exit): Added
 	function to handle probe group cleanup.
-	
+
 
 2006-09-06  Frank Ch. Eigler  <fche@elastic.org>
 
@@ -280,7 +284,7 @@
 	from elaborate.h.
 	* parse.h: Added forward struct declarations.
 	* staptree.h: Removed inclusion of session.h.
-	
+
 2006-08-23  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3093
