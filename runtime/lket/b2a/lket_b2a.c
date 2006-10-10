@@ -16,11 +16,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "lket_b2a.h"
 
 /* A flag indicate whether to store the trace
    data into local file/MySQL database */
 int into_file, into_db;
+
+#ifdef HAS_MYSQL
+
+#define SQLSIZE 1024*1024
+int sql_count;
+#define INSERT_THRESHOLD 100
+char sql[4096];
+char sqlStatement[SQLSIZE];
+char sql_col[1024];
+char sql_val[2048];
+
+MYSQL mysql;
+#endif
+
 /* A FILE handle points to a local file used to
    store the trace data */
 FILE *outfp;
@@ -42,14 +57,9 @@ static long timing_method = TIMING_GETTIMEOFDAY;
 
 static long long start_timestamp;
 
-/* Balanced binary search tree to store the 
-   mapping of <pid, process name> */
 GTree *appNameTree;
 
-/* 
- * default hook format table,
- * based on tapsets/hookid_defs.stp and other hook specific files
- */
+/* event table */
 event_desc *events_des[MAX_EVT_TYPES][MAX_GRPID][MAX_HOOKID]; 
 
 void usage()
@@ -69,25 +79,26 @@ int main(int argc, char *argv[])
 	int	i, j, total_infiles = 0;
 	long long min;
 
-	into_file = 1; into_db = 0;
+	char database[18];
+	time_t timer;
+        struct tm *tm;
 
-	if(argc < 2) {
-		printf("Usage: %s inputfile1 [inputfile2...]\n", argv[0]);
-		return 1;
-	}
-/*
+        time(&timer);
+        tm = localtime(&timer);
+        strftime(database, 18,  "DB%Y%m%d%H%M%S", tm);
+//	strcpy(database, "lgl");
+
         while (1) {
                 int c = getopt(argc, argv, "mf");
                 if (c < 0) // no more options
                         break;
                 switch (c) {
 		case 'm':
-			into_file = 0;
 			into_db = 1;
 			break;
 		case 'f':
 			into_file = 1;
-			into_db = 0;
+			break;
 		default:
 			printf("Error in options\n");
 			usage();
@@ -95,10 +106,25 @@ int main(int argc, char *argv[])
 			break;
 		}
         }
-*/
 
-	total_infiles = argc - 1;
-	
+#ifndef HAS_MYSQL
+	if(into_db)  {
+		fprintf(stderr, "-m option is not supported since lket-b2a is not compiled with mysql support, \n");
+		exit(-1);
+	}
+#endif
+	if(into_file==0 && into_db==0)  {
+#ifdef HAS_MYSQL
+		fprintf(stderr, "At least one of -m/-f option should be specified\n");
+#else
+		fprintf(stderr, "-f option must be specified\n");
+#endif
+		usage();
+		exit(-1);
+	}
+
+	total_infiles = argc - optind;
+
 	// open the input files and the output file
 	infps = (FILE **)malloc(total_infiles * sizeof(FILE *));
 	if(!infps) {
@@ -108,26 +134,52 @@ int main(int argc, char *argv[])
 
 	memset(infps, 0, total_infiles * sizeof(FILE *));
 	for(i=0; i < total_infiles; i++) {
-		infps[i] = fopen(argv[i+1], "r");
+		infps[i] = fopen(argv[optind++], "r");
 		if(infps[i] == NULL) {
-			printf("Unable to open %s\n", argv[i+1]);
+			printf("Unable to open %s\n", argv[optind-1]);
 			goto failed;
 		}
 	}
-	
+
 	if(into_file)  {
 		if(strnlen(outfilename, MAX_STRINGLEN) == 0)
 			strncpy(outfilename, DEFAULT_OUTFILE_NAME, MAX_STRINGLEN);
 		outfp = fopen(outfilename, "w");
 		if(outfp == NULL) {
-			printf("Unable to create %s\n", outfilename);
+			fprintf(stderr,"Unable to create %s\n", outfilename);
 			goto failed;
 		}
 	}
-	
 	/* create the search tree */
-	appNameTree = g_tree_new_full(compareFunc, NULL, NULL, destroyAppName);
+        appNameTree = g_tree_new_full(compareFunc, NULL, NULL, destroyTreeData);
 
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		if(!mysql_init(&mysql))  {
+			fprintf(stderr, "Failed to Init MySQL: Error: %s\n",
+				mysql_error(&mysql));
+		}
+		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, NULL, 0, NULL, 
+			CLIENT_MULTI_STATEMENTS))  {
+			fprintf(stderr, "Failed to connect to database: Error: %s\n",
+				mysql_error(&mysql));
+		}
+
+		snprintf(sql, 64,"create database %s", database);
+
+		if(mysql_query(&mysql, sql))  {
+			fprintf(stderr, "Failed create database %s, Error: %s\n",
+				database, mysql_error(&mysql));
+		}
+
+		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, database, 0, NULL, 
+			CLIENT_MULTI_STATEMENTS))  {
+			fprintf(stderr, "Failed to connect to database %s: Error: %s\n",
+				database, mysql_error(&mysql));
+		}
+	}
+#endif
+	
 	// find the lket header
 	find_init_header(infps, total_infiles);
 
@@ -165,8 +217,11 @@ int main(int argc, char *argv[])
 		// j is the next
 		if(min) {
 			if(HDR_GroupID(&hdrs[j])==_GROUP_REGEVT)  {
-				register_events(HDR_HookID(&hdrs[j]), infps[j], 
-					hdrs[j].sys_size);
+				if(HDR_HookID(&hdrs[j]) == _HOOKID_REGEVTDESC)
+					register_evt_desc(infps[j],hdrs[j].sys_size);
+				else
+					register_events(HDR_HookID(&hdrs[j]), infps[j], 
+						hdrs[j].sys_size);
 			} else  {
 
 				if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
@@ -197,7 +252,7 @@ int main(int argc, char *argv[])
 			}
 			// update hdr[j]
 #ifdef DEBUG_OUTPUT
-			fprintf(outfp, "File %d, Offset: %ld\n", j, ftell(infps[j]));
+			fprintf(stderr, "File %d, Offset: %ld\n", j, ftell(infps[j]));
 #endif
 			get_pkt_header(infps[j], &hdrs[j]);
 		}
@@ -227,19 +282,23 @@ failed:
 	if(hdrs)
 		free(hdrs);
 
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		mysql_close(&mysql);
+	}
+#endif
 	if (appNameTree)
 		g_tree_destroy(appNameTree);
-
+	//TODO: free entrytime tree
 	return 0;
 }
 
 /* register newly found process name for addevent.process.snapshot
   and addevent.process.execve */
-///FIXME: MySQL??
 void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 {
 	int pid;
-	char *appname;
+	char *appname=NULL;
 	int count;
 	int len;
 	int c;
@@ -247,8 +306,22 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 	len=0;
 	count=0;
 
-	appname = (char *)malloc(1024);
+#ifdef HAS_MYSQL
+	static int flag = 0;
 
+	if(into_db)  {
+		if(flag==0)  {
+			if(mysql_query(&mysql, "create table appNameMap ( \
+				pid INT, pname varchar(20))"))  {
+				fprintf(stderr, "Failed to create appNameMap table, Error: %s\n",
+					mysql_error(&mysql));
+				exit(-1);
+			}
+		}
+		flag=1;
+	}
+#endif
+	appname = (char *)malloc(512);
 	location = ftell(fp);
 
 	if(HDR_HookID(phdr) ==1 )  {  /* process_snapshot */
@@ -263,6 +336,17 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
+#ifdef HAS_MYSQL
+		if(into_db)  {
+			snprintf(sql, 256, "insert into appNameMap values \
+				( %d, \"%s\")", pid, appname);
+			if(mysql_query(&mysql,sql))  {
+				fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
+					sql, mysql_error(&mysql));
+			exit(-1);
+			}
+		}
+#endif
 		//fseek(fp, 0-len, SEEK_CUR);
 	} else if (HDR_HookID(phdr) == 2)  { /* process.execve */
 		fread(&pid, 1, 4, fp); /* read pid */
@@ -275,6 +359,17 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
+#ifdef HAS_MYSQL
+		if(into_db)  {
+			snprintf(sql, 256,"insert into appNameMap values \
+				( %d, \"%s\")", pid, appname);
+			if(mysql_query(&mysql,sql))  {
+				fprintf(stderr, "Failed to exec SQL: %s, Error: %s\n",
+					sql, mysql_error(&mysql));
+			exit(-1);
+			}
+		}
+#endif
 		//fseek(fp, 0-len, SEEK_CUR);
 	} else  {
 		free(appname);
@@ -287,21 +382,20 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 
 gint compareFunc(gconstpointer a, gconstpointer b, gpointer user_data)
 {
-	if((long)(a) > (long)(b)) return 1;
-	else if ((long)(a) < (long)(b)) return -1;
-	else return 0;
+        if((long)(a) > (long)(b)) return 1;
+        else if ((long)(a) < (long)(b)) return -1;
+        else return 0;
 }
 
-void destroyAppName(gpointer data)
+void destroyTreeData(gpointer data)
 {
-	free(data);
+        free(data);
 }
 
 /* 
  * search the LKET init header in a set of input files, 
  * and the header structure is defined in tapsets/lket_trace.stp
  */
-//FIXME: need MySQL support
 void find_init_header(FILE **infps, const int total_infiles)
 {
 	int 	 i, j, k;
@@ -315,6 +409,7 @@ void find_init_header(FILE **infps, const int total_infiles)
 	int8_t timing_field; 
 	int8_t bits_width;
 	int32_t init_timebase;
+	char  timing_methods_str[128];
 
 	if(total_infiles <= 0 )
 		return;
@@ -325,40 +420,64 @@ void find_init_header(FILE **infps, const int total_infiles)
 		if(magic == (int32_t)LKET_MAGIC) {
 			//found
 			j = i;
-			fprintf(outfp, "LKET Magic:\t0x%X\n", magic);
+			if(into_file)
+				fprintf(outfp, "LKET Magic:\t0x%X\n", magic);
 			//read other content of lket_int_header
-			if(fread(&inithdr_len, 1, sizeof(inithdr_len), infps[i]) < sizeof(inithdr_len))
+			if(fread(&inithdr_len, 1, sizeof(inithdr_len), infps[i]) 
+				< sizeof(inithdr_len))
 				break;
-			fprintf(outfp, "InitHdrLen:\t%d\n", inithdr_len);
+			if(into_file)
+				fprintf(outfp, "InitHdrLen:\t%d\n", inithdr_len);
 			if(fread(&ver_major, 1, sizeof(ver_major), infps[i]) < sizeof(ver_major))
 				break;
-			fprintf(outfp, "Version Major:\t%d\n", ver_major);
+			if(into_file)
+				fprintf(outfp, "Version Major:\t%d\n", ver_major);
 			if(fread(&ver_minor, 1, sizeof(ver_minor), infps[i]) < sizeof(ver_minor))
 				break;
-			fprintf(outfp, "Version Minor:\t%d\n", ver_minor);
+			if(into_file)
+				fprintf(outfp, "Version Minor:\t%d\n", ver_minor);
 			if(fread(&big_endian, 1, sizeof(big_endian), infps[i]) < sizeof(big_endian))
 				break;
-			fprintf(outfp, "Big endian:\t%s\n", big_endian ? "YES":"NO");
-			if(fread(&timing_field, 1, sizeof(timing_field), infps[i]) < sizeof(timing_field))
+			if(into_file)
+				fprintf(outfp, "Big endian:\t%s\n", big_endian ? "YES":"NO");
+			if(fread(&timing_field, 1, sizeof(timing_field), infps[i]) 
+				< sizeof(timing_field))
 				break;
 			timing_method = timing_field;
-			fprintf(outfp, "Timing method:\t");
+			if(into_file)
+				fprintf(outfp, "Timing method:\t");
 			switch(timing_method) {
 				case TIMING_GETCYCLES: 
-					fprintf(outfp, "get_cycles()\n"); break;
+					snprintf(timing_methods_str, 128, "get_cycles");
+					if(into_file)
+						fprintf(outfp, "get_cycles()\n"); 
+					break;
 				case TIMING_GETTIMEOFDAY:
-					fprintf(outfp, "do_gettimeofday()\n"); break;
+					snprintf(timing_methods_str, 128,"do_gettimeofday");
+					if(into_file)
+						fprintf(outfp, "do_gettimeofday()\n"); 	
+					break;
 				case TIMING_SCHEDCLOCK:
-					fprintf(outfp, "sched_clock()\n"); break;
+					snprintf(timing_methods_str, 128, "sched_clock");
+					if(into_file)
+						fprintf(outfp, "sched_clock()\n"); 
+					break;
 				default:
-					fprintf(outfp, "Unsupported timging method\n");
+					snprintf(timing_methods_str,128,
+						"Unsupported timing method");
+					if(into_file)
+						fprintf(outfp, "Unsupported timging method\n");
 			}
 			if(fread(&bits_width, 1, sizeof(bits_width), infps[i]) < sizeof(bits_width))
 				break;
-			fprintf(outfp, "Bits width:\t%d\n", bits_width);
-			if(fread(&init_timebase, 1, sizeof(init_timebase), infps[i]) < sizeof(init_timebase))
+			if(into_file)
+				fprintf(outfp, "Bits width:\t%d\n", bits_width);
+			if(fread(&init_timebase, 1, sizeof(init_timebase), infps[i]) 
+				< sizeof(init_timebase))
 				break;
-			fprintf(outfp, "Initial CPU timebase:\t%d (cycles per microsecond)\n", 
+			if(into_file)
+				fprintf(outfp, 
+					"Initial CPU timebase:\t%d (cycles per microsecond)\n", 
 					init_timebase);
 			if(timing_method == TIMING_GETCYCLES) {
 				for(k = 0; k < MAX_CPUS; k++)
@@ -367,6 +486,27 @@ void find_init_header(FILE **infps, const int total_infiles)
 			break;
 		}
 	}
+
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		if(mysql_query(&mysql, "create table trace_header \
+			( Major_Ver TINYINT, Minor_Ver TINYINT, \
+			Big_Endian TINYINT, Timing_Method varchar(20), \
+			Bits_Width TINYINT)" )) {
+			fprintf(stderr, "Failed to create trace_header table, Error: %s\n",
+				mysql_error(&mysql));
+			exit(-1);
+		}
+		snprintf(sql, 256, "insert into trace_header value ( %d, %d, %d, \"%s\", %d )",
+			ver_major, ver_minor, big_endian, timing_methods_str, bits_width);	
+
+		if(mysql_query(&mysql, sql)) {
+			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
+				sql, mysql_error(&mysql));
+			exit(-1);
+		}
+	}
+#endif
 	for(i=0; i<total_infiles && i!=j; i++)
 		fseek(infps[i], 0LL, SEEK_SET);
 	return;
@@ -375,7 +515,6 @@ void find_init_header(FILE **infps, const int total_infiles)
 /* 
  * read the lket_pkt_header structure at the begining of the input file 
  */
-///FIXME: MySQL
 int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
 	if(fread(phdr, 1, sizeof(lket_pkt_header), fp) < sizeof(lket_pkt_header))
@@ -391,15 +530,13 @@ bad:
 	return -1;
 }	
 
-/* 
- * print the lket_pkt_header structure into the output file
- */
-void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
+void print_pkt_header(lket_pkt_header *phdr)
 {
 	long long usecs;
 	int sec, usec;
+	int grpid, hookid, pid;
 
-	if(!fp || !phdr)
+	if(!phdr)
 		return;
 
 	if(timing_method == TIMING_GETCYCLES)
@@ -412,17 +549,102 @@ void print_pkt_header(FILE *fp, lket_pkt_header *phdr)
 	
 	sec = usecs/1000000;
 	usec = usecs%1000000;
-	
-	fprintf(fp, "\n%d.%d APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d -- ",
-		sec, usec,
-		(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)HDR_PID(phdr)))),
-		HDR_PID(phdr),
-		HDR_CpuID(phdr),
-		HDR_GroupID(phdr),
-		HDR_HookID(phdr));
+
+	grpid = HDR_GroupID(phdr);	
+	hookid = HDR_HookID(phdr);
+	pid = HDR_PID(phdr);
+
+	if(into_file)
+		fprintf(outfp, "\n%d.%d APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d ",
+			sec, usec,
+			(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)pid))),
+			pid, HDR_CpuID(phdr), grpid, hookid);
+
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		if(!(hookid%2)) { // return type event
+			long long *entrytime;
+			long long entryusecs;
+			entrytime = g_tree_lookup(events_des[1][grpid][hookid-1]->entrytime,
+                                        (gconstpointer)((long)pid));
+			if(entrytime==NULL)  // key not found
+				entryusecs = 0;
+			else
+				entryusecs = *entrytime;
+			snprintf(sql_col, 64, "groupid, hookid, usec, process_id, \
+				cpu_id, entry_usec,");
+			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, %lld,", grpid,
+				hookid, usecs, pid, HDR_CpuID(phdr), 
+				entryusecs);
+		}  else  {
+			snprintf(sql_col, 64, "groupid, hookid, usec, process_id, cpu_id,");
+			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, ", grpid, 
+				hookid, usecs, pid, HDR_CpuID(phdr));
+		}
+		if(hookid%2) {
+			//(events_des[1][grpid][hookid]->entrytime)[pid] = usecs;
+			char *entrytime = malloc(sizeof(long long));
+			*((long long *)entrytime) = usecs;
+			g_tree_insert(events_des[1][grpid][hookid]->entrytime, 
+				(gpointer)((long)pid), (gpointer)entrytime);
+		}
+	}
+#endif
+
 }
 
-///FIXME: MySQL
+#ifdef HAS_MYSQL
+char *get_sqltype(char *fmt)
+{
+        if(strncmp(fmt, "INT8", 4) == 0)
+		return "TINYINT";
+        if(strncmp(fmt, "INT16", 5) == 0)
+		return "SMALLINT";
+        if(strncmp(fmt, "INT32", 5) == 0)
+		return "INT";
+        if(strncmp(fmt, "INT64", 5) == 0)
+		return "BIGINT";
+        if(strncmp(fmt, "STRING", 6) == 0)
+		return "VARCHAR(20)";
+	return "";
+}
+#endif
+
+void register_evt_desc(FILE *infp, size_t size)
+{
+	static int has_table = 0;
+	int grpid, hookid;
+	char *evt_body;
+	evt_body = malloc(size);
+	fread(evt_body, size, 1, infp);
+	grpid = *(int8_t *)evt_body;
+        hookid  = *(int8_t *)(evt_body+1);
+
+	if(!events_des[1][grpid][hookid])
+		events_des[1][grpid][hookid] = malloc(sizeof(event_desc));
+	events_des[1][grpid][hookid]->entrytime = g_tree_new_full(
+		compareFunc, NULL, NULL, destroyTreeData);
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		if(!has_table)  {
+			snprintf(sql, 1024, "create table table_desc ( table_name \
+				varchar(6), table_desc varchar(32))");
+			has_table = 1;
+		} else  {
+			snprintf(sql, 1024, "insert into table_desc ( table_name,\
+				table_desc) values ( \"%d_%d\", \"%s\")", grpid, hookid,
+				evt_body+2);
+		}
+		if(mysql_query(&mysql, sql))  {
+			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
+				sql, mysql_error(&mysql));
+			exit(-1);
+		}
+	}
+#endif
+	free(evt_body);
+}
+
 void register_events(int evt_type, FILE *infp, size_t size)
 {
 	int cnt=0, len=0;
@@ -436,7 +658,39 @@ void register_events(int evt_type, FILE *infp, size_t size)
 
 	grpid = *(int8_t *)evt_body;
 	hookid  = *(int8_t *)(evt_body+1);
-	
+
+	if(!events_des[evt_type][grpid][hookid])
+		events_des[evt_type][grpid][hookid] = malloc(sizeof(event_desc));
+	if(!events_des[evt_type][grpid][hookid])  {
+		fprintf(stderr, "error when malloc for event_des[%d][%d][%d]\n",
+			evt_type, grpid, hookid);
+	}
+
+#ifdef HAS_MYSQL
+	if(into_db)  {
+		if(evt_type==1)  {  /* if sys event, create a table */
+			if(!(hookid%2))  {/* if this is a return type event, should record 
+					     the entry time of this event */
+				snprintf(sql, 1024, "create table %d_%d \
+					( groupid TINYINT, hookid TINYINT, usec BIGINT,\
+					 process_id INT, cpu_id TINYINT, \
+					entry_usec BIGINT,", grpid, hookid);
+			} else  {
+				snprintf(sql, 1024, "create table %d_%d \
+					( groupid TINYINT, hookid TINYINT, \
+					usec BIGINT, process_id INT, \
+					cpu_id TINYINT,", grpid, hookid);
+			}
+		}
+		if(evt_type==2)  { /* if user event, alter an existing table */
+			snprintf(sql, 1024, "alter table %d_%d ", grpid, hookid);
+		}
+	}
+#endif
+
+	if(size == 2) // skip if no event format is provided
+		goto gen_sql;
+
 	evt_fmt = evt_body+2;
 	
 	for(tmp=evt_fmt; *tmp!=0; tmp++);
@@ -451,11 +705,29 @@ void register_events(int evt_type, FILE *infp, size_t size)
 		exit(-1);
 	}
 
-	events_des[evt_type][grpid][hookid] = malloc(sizeof(event_desc));
-
 	while(fmt!=NULL && name!=NULL)  {
+#ifdef HAS_MYSQL
+		if(into_db)  {
+			if(evt_type==1)  {
+				strcat(sql, "`");
+				strcat(sql, name);
+				strcat(sql, "` ");
+				strcat(sql, get_sqltype(fmt));
+				strcat(sql, ",");
+			}
+			if(evt_type==2)  {
+				strcat(sql, "add ");
+				strcat(sql, "`");
+				strcat(sql, name);
+				strcat(sql, "` ");
+				strcat(sql, get_sqltype(fmt));
+				strcat(sql, ",");
+			}
+		}
+#endif
 		strncpy(events_des[evt_type][grpid][hookid]->evt_fmt[cnt], fmt, 7);
-		strncpy(events_des[evt_type][grpid][hookid]->evt_names[cnt], name, 64);
+		strncpy(events_des[evt_type][grpid][hookid]->evt_names[cnt], 
+			name, MAX_FIELDNAME_LEN);
 		strncpy(events_des[evt_type][grpid][hookid]->fmt+len, get_fmtstr(fmt), 8);
 		len+=strlen(get_fmtstr(fmt));
 		fmt = strsep(&evt_fmt, ":");
@@ -464,6 +736,22 @@ void register_events(int evt_type, FILE *infp, size_t size)
 	}
 	events_des[evt_type][grpid][hookid]->count = cnt;
 	*(events_des[evt_type][grpid][hookid]->fmt+len)='\0';
+
+#ifdef HAS_MYSQL
+gen_sql:
+	if(into_db)  {
+		if(evt_type==1)
+			sql[strlen(sql)-1]=')';
+		if(evt_type==2)
+			sql[strlen(sql)-1]='\0';
+
+		if(mysql_query(&mysql, sql))  {
+			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
+				sql, mysql_error(&mysql));
+			exit(-1);
+		}
+	}
+#endif
 	free(evt_body);
 }
 
@@ -482,7 +770,6 @@ char *get_fmtstr(char *fmt)
 	return "";
 }
 
-///FIXME: MySQL
 int dump_data(lket_pkt_header header, FILE *infp)
 {
 	int i, c, j;
@@ -494,11 +781,13 @@ int dump_data(lket_pkt_header header, FILE *infp)
 	int size = 0;
 	int evt_num = 1;
 
+	char tmp_int[32];
+
 	char *fmt, *name, *buffer;
 	int grpid = HDR_GroupID(&header);
 	int hookid = HDR_HookID(&header);
 
-	print_pkt_header(outfp, &header);
+	print_pkt_header(&header);
 
 	/* if the data contains user appended extra data */
 	if(header.total_size != header.sys_size)
@@ -514,13 +803,13 @@ int dump_data(lket_pkt_header header, FILE *infp)
 		if(j == 2) /* if current one is a user event */
 			size = header.total_size - header.sys_size;
 
-		if((events_des[j][grpid][hookid] == NULL) ||
-			(events_des[j][grpid][hookid]->count <= 0 || !outfp) ||
-			(events_des[j][grpid][hookid]->evt_fmt[0][0] == '\0'))  {
+		if(into_file && (events_des[j][grpid][hookid] == NULL ||
+			events_des[j][grpid][hookid]->count <= 0)) {
 			//no format is provided, dump in hex
 			buffer = malloc(size);
 			fread(buffer, size, 1, infp);
 			fwrite(buffer, size, 1, outfp);
+			free(buffer);
 			total_bytes += size;
 			continue;
 		}
@@ -528,41 +817,123 @@ int dump_data(lket_pkt_header header, FILE *infp)
 		for(i=0; i<events_des[j][grpid][hookid]->count; i++)  {
 			fmt = events_des[j][grpid][hookid]->evt_fmt[i];
 			name = events_des[j][grpid][hookid]->evt_names[i];
-			fwrite(name, strlen(name), 1, outfp);
-			fwrite(":", 1, 1, outfp);
+#ifdef HAS_MYSQL
+			if(into_db) {
+				strcat(sql_col, "`");
+				strcat(sql_col, name);
+				strcat(sql_col, "`,");
+			}
+#endif
+
+			if(into_file)  {
+				fwrite(name, strlen(name), 1, outfp);
+				fwrite(":", 1, 1, outfp);
+			}
 			if(strncmp(fmt, "INT8", 4)==0)  {
 				c = fgetc_unlocked(infp);
-				fprintf(outfp, "%d,", (int8_t)c);
+				if(into_file)
+					fprintf(outfp, "%d,", (int8_t)c);
+				sprintf(tmp_int, "%d,", (int8_t)c);
+#ifdef HAS_MYSQL
+				if(into_db)
+					strcat(sql_val, tmp_int);
+#endif
 				readbytes+=1;
 			} else if(strncmp(fmt, "INT16", 5)==0)  {
 				fread(&stemp, 2, 1, infp);
-				fprintf(outfp, "%d,", (int16_t)stemp);
+				if(into_file)
+					fprintf(outfp, "%d,", (int16_t)stemp);
+				sprintf(tmp_int, "%d,", (int16_t)stemp);
+#ifdef HAS_MYSQL
+				if(into_db)
+					strcat(sql_val, tmp_int);
+#endif
 				readbytes+=2;
 			} else if(strncmp(fmt, "INT32", 5)==0) {
 				fread(&ntemp, 4, 1, infp);
-				fprintf(outfp, "%d,", (int32_t)ntemp);
+				if(into_file)
+					fprintf(outfp, "%d,", (int32_t)ntemp);
+				snprintf(tmp_int, 20, "%d,", (int32_t)ntemp);
+#ifdef HAS_MYSQL
+				if(into_db)
+					strcat(sql_val, tmp_int);
+#endif
 				readbytes+=4;
 			} else if(strncmp(fmt, "INT64", 5)==0) {
 				fread(&lltemp, 8, 1, infp);
-				fprintf(outfp, "%lld,",lltemp);
+				if(into_file)
+					fprintf(outfp, "%lld,",lltemp);
+				snprintf(tmp_int, 30, "%lld,", lltemp);
+#ifdef HAS_MYSQL
+				if(into_db)
+					strcat(sql_val, tmp_int);
+#endif
 				readbytes+=8;
 			} else if(strncmp(fmt, "STRING", 6)==0)  {
+
+#ifdef HAS_MYSQL
+				int tmplen=0;
+				if(into_db) {
+					tmplen=strlen(sql_val);
+					sql_val[tmplen++]='"';
+				}
+#endif
 				c = fgetc_unlocked(infp);
 				++readbytes;
 				while (c && readbytes < size) {
-					fputc_unlocked(c, outfp);
+					if(into_file)
+						fputc_unlocked(c, outfp);
+#ifdef HAS_MYSQL
+					if(into_db)
+						sql_val[tmplen++]=c;
+#endif
 					c = fgetc_unlocked(infp);
 					++readbytes;
 				}
 				if(!c) {
-					fputc_unlocked(',', outfp);
+					if(into_file)
+						fputc_unlocked(',', outfp);
+#ifdef HAS_MYSQL
+					if(into_db) {
+						sql_val[tmplen++]='"';
+						sql_val[tmplen++]=',';
+						sql_val[tmplen]='\0';
+					}
+#endif
 					continue;
 				}
-				else
+				else {
 					return -1;
+				}
 			}
 		}
 		total_bytes += readbytes;
 	}
+
+#ifdef HAS_MYSQL
+	if(into_db) {
+		sql_col[strlen(sql_col)-1] = '\0';
+		sql_val[strlen(sql_val)-1] = '\0';
+		snprintf(sql, 1024, "insert into %d_%d (%s) values (%s)", 
+			grpid, hookid, sql_col, sql_val);
+
+		if(sql_count >= INSERT_THRESHOLD)  {
+			if(mysql_query(&mysql, sqlStatement))  {
+				fprintf(stderr, "Failed exec SQL:\n%s\n, Error:\n%s\n",
+					sqlStatement, mysql_error(&mysql));
+				exit(-1);
+			}
+			while(!mysql_next_result(&mysql));
+			sql_count=0;
+			sqlStatement[0]='\0';
+		}  else {
+			//strncpy(sqlStatement, sql, 2048);
+			strcat(sqlStatement, sql);
+			strcat(sqlStatement, ";");
+			sql_count++;
+		}
+	}
+#endif
+
 	return total_bytes;
 }

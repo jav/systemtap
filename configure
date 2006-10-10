@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE HAS_MYSQL_TRUE HAS_MYSQL_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5225,12 +5225,30 @@ else
 fi
 
 
+
+if which mysql_config > /dev/null 2>&1; then
+  HAS_MYSQL_TRUE=
+  HAS_MYSQL_FALSE='#'
+else
+  HAS_MYSQL_TRUE='#'
+  HAS_MYSQL_FALSE=
+fi
+
+
 if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
   { echo "$as_me:$LINENO: WARNING: glib2-devel is required to build lket-b2a.
   no glib2-devel found, skip building lket-b2a..." >&5
 echo "$as_me: WARNING: glib2-devel is required to build lket-b2a.
   no glib2-devel found, skip building lket-b2a..." >&2;}
 fi
+
+if ! which mysql_config > /dev/null 2>&1; then
+  { echo "$as_me:$LINENO: WARNING: mysqlclient lib is required to build lket-b2a with database support.
+  no mysqlclient lib is found, skip building lket-b2a with database support..." >&5
+echo "$as_me: WARNING: mysqlclient lib is required to build lket-b2a with database support.
+  no mysqlclient lib is found, skip building lket-b2a with database support..." >&2;}
+fi
+
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
@@ -5472,6 +5490,13 @@ if test -z "${BUILD_LKET_B2A_TRUE}" && test -z "${BUILD_LKET_B2A_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_LKET_B2A\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_LKET_B2A\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${HAS_MYSQL_TRUE}" && test -z "${HAS_MYSQL_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"HAS_MYSQL\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"HAS_MYSQL\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -6085,6 +6110,8 @@ s,@BUILD_ELFUTILS_TRUE@,$BUILD_ELFUTILS_TRUE,;t t
 s,@BUILD_ELFUTILS_FALSE@,$BUILD_ELFUTILS_FALSE,;t t
 s,@BUILD_LKET_B2A_TRUE@,$BUILD_LKET_B2A_TRUE,;t t
 s,@BUILD_LKET_B2A_FALSE@,$BUILD_LKET_B2A_FALSE,;t t
+s,@HAS_MYSQL_TRUE@,$HAS_MYSQL_TRUE,;t t
+s,@HAS_MYSQL_FALSE@,$HAS_MYSQL_FALSE,;t t
 s,@stap_LIBS@,$stap_LIBS,;t t
 s,@DATE@,$DATE,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t

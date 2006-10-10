@@ -1,3 +1,12 @@
+2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
+
+	* runtime/lket/b2a/Makefile.am: add the checking and optional
+	compiling for mysql client library
+	* runtime/lket/b2a/Makefile.in: regenerated
+	* runtime/lket/b2a/lket_b2a.c, runtime/lket/b2a/lket_b2a.h: 
+	Adding the support of automatically database creation and 
+	dumping lket trace into mysql database
+
 2006-10-09  Josh Stone  <joshua.i.stone@intel.com>
 
 	From David Wilder <dwilder@us.ibm.com>
