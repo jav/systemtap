@@ -60,13 +60,18 @@ yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
 esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
-AM_CONDITIONAL(HAS_MYSQL, which mysql_config > /dev/null 2>&1)
+
+# This check is not sufficient.  mysql_config may exist on machines
+# that do not actually have the development headers/libraries installed.
+# AM_CONDITIONAL(HAS_MYSQL, which mysql_config > /dev/null 2>&1)
+AM_CONDITIONAL(HAS_MYSQL, false)
 
 if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
   AC_MSG_WARN([glib2-devel is required to build lket-b2a.
   no glib2-devel found, skip building lket-b2a...])
 fi
 
+# AC_CHECK_LIB
 if ! which mysql_config > /dev/null 2>&1; then
   AC_MSG_WARN([mysqlclient lib is required to build lket-b2a with database support.
   no mysqlclient lib is found, skip building lket-b2a with database support...])

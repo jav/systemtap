@@ -1,3 +1,7 @@
+2006-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* runtime/lket/b2a/lket_b2a.c: Add several missing #ifdef HAS_MYSQL.
+
 2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* runtime/lket/b2a/lket_b2a.c, runtime/lket/b2a/lket_b2a.h:

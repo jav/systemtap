@@ -1,4 +1,5 @@
 // Copyright (C) 2005, 2006 IBM Corp.
+// Copyright (C) 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -299,9 +300,9 @@ failed:
 					exit(-1);
 				}
 			}
-#endif
 			if(events_des[1][i][j]->entrytime) /* destroy entrytime tree */
 				g_tree_destroy(events_des[1][i][j]->entrytime);
+#endif
 		}
 	}
 
@@ -634,7 +635,9 @@ char *get_sqltype(char *fmt)
 
 void register_evt_desc(FILE *infp, size_t size)
 {
+#ifdef HAS_MYSQL
 	static int has_table = 0;
+#endif
 	int grpid, hookid;
 	char *evt_body;
 	evt_body = malloc(size);
@@ -644,9 +647,9 @@ void register_evt_desc(FILE *infp, size_t size)
 
 	if(!events_des[1][grpid][hookid])
 		events_des[1][grpid][hookid] = malloc(sizeof(event_desc));
+#ifdef HAS_MYSQL
 	events_des[1][grpid][hookid]->entrytime = g_tree_new_full(
 		compareFunc, NULL, NULL, destroyTreeData);
-#ifdef HAS_MYSQL
 	if(into_db)  {
 		if(!has_table)  {
 			snprintf(sql, 1024, "create table table_desc ( table_name \
@@ -708,10 +711,10 @@ void register_events(int evt_type, FILE *infp, size_t size)
 			snprintf(sql, 1024, "alter table %d_%d ", grpid, hookid);
 		}
 	}
-#endif
 
 	if(size == 2) // skip if no event format is provided
 		goto gen_sql;
+#endif
 
 	evt_fmt = evt_body+2;
 	

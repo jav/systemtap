@@ -5225,8 +5225,12 @@ else
 fi
 
 
+# This check is not sufficient.  mysql_config may exist on machines
+# that do not actually have the development headers/libraries installed.
+# AM_CONDITIONAL(HAS_MYSQL, which mysql_config > /dev/null 2>&1)
 
-if which mysql_config > /dev/null 2>&1; then
+
+if false; then
   HAS_MYSQL_TRUE=
   HAS_MYSQL_FALSE='#'
 else
@@ -5242,6 +5246,7 @@ echo "$as_me: WARNING: glib2-devel is required to build lket-b2a.
   no glib2-devel found, skip building lket-b2a..." >&2;}
 fi
 
+# AC_CHECK_LIB
 if ! which mysql_config > /dev/null 2>&1; then
   { echo "$as_me:$LINENO: WARNING: mysqlclient lib is required to build lket-b2a with database support.
   no mysqlclient lib is found, skip building lket-b2a with database support..." >&5

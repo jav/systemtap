@@ -1,7 +1,13 @@
+2006-10-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Override incomplete mysql checking for now.
+	* configure: Regenerated.
+
 2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* configure.ac: add the checking of mysql client library
 	* Makefile.in, configure: regenerated
+	
 2006-09-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	* man: newly created dir for stapprobes
