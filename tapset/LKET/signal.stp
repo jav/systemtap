@@ -12,22 +12,31 @@ probe never
 }
 
 probe addevent.signal
-	= 
+	= addevent.signal.entry,
+	addevent.signal.return
+{}
+
+probe addevent.signal.entry
+	=
 	addevent.signal.send.entry,
-	addevent.signal.send.return,
 	addevent.signal.syskill.entry,
-	addevent.signal.syskill.return,
 	addevent.signal.systgkill.entry,
-	addevent.signal.systgkill.return,
 	addevent.signal.systkill.entry,
-	addevent.signal.systkill.return,
 	addevent.signal.pending.entry,
-	addevent.signal.pending.return,
 	addevent.signal.do_action.entry,
-	addevent.signal.do_action.return,
 	addevent.signal.procmask.entry,
-	addevent.signal.procmask.return,
 	addevent.signal.flush.entry
+{}
+
+probe addevent.signal.return
+	=
+	addevent.signal.send.return,
+	addevent.signal.syskill.return,
+	addevent.signal.systgkill.return,
+	addevent.signal.systkill.return,
+	addevent.signal.pending.return,
+	addevent.signal.do_action.return,
+	addevent.signal.procmask.return
 {}
 
 /* Fires when a signal is sent to a process */

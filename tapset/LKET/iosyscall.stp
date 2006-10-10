@@ -482,6 +482,8 @@ probe _addevent.iosyscall.sync.return
 
 function log_iosyscall_sync(hookid:long)
 %{
+	int GroupID = _GROUP_IOSYSCALL;
+	int hookID = _HOOKID_IOSYSCALL_SYNC_ENTRY;
         struct timeval tv; 
         do_gettimeofday(&tv); 
 #if defined(ASCII_TRACE)

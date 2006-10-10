@@ -256,6 +256,69 @@ Fires when return from signal.force_segv
 
 .P
 .TP
+.B signal.syskill
+
+Fires when sys_kill is called to send a signal to a process.
+
+.B Arguments:
+
+.I pid
+  pid of the recipient process
+
+.I sig
+  the signal to be sent
+
+.P
+.TP
+.B signal.syskill.return
+
+Fires when returning from sys_kill
+
+.P
+.TP
+.B signal.tgkill
+
+Fires when sys_tgkill is called to send a signal to one specific thread
+
+.B Arguments:
+
+.I pid
+  pid of the recipient thread
+
+.I tgid
+  thread group id which the target thread should have
+
+.I sig
+  the signal to be sent
+
+.P
+.TP
+.B signal.tgkill.return
+
+Fires when returning from sys_tgkill
+
+.P
+.TP
+.B signal.tkill
+
+Fires when sys_tkill is called to send a signal to a single process.
+
+.B Arguments:
+
+.I pid
+  pid of the recipient process
+
+.I sig
+  the signal to be sent
+
+.P
+.TP
+.B signal.tkill.return
+
+Fires when returning from sys_tkill
+
+.P
+.TP
 .B signal.send_sig_queue
 
 Fires when queue a signal to a process

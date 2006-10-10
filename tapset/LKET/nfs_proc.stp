@@ -6,9 +6,8 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 %{
-   #include <linux/nfs_fs.h>
-%}
-%{
+#include <linux/nfs_fs.h>
+
 void getdevice(char *sid,int * major,int* min)
 {
 	char c;
@@ -565,7 +564,7 @@ function log_proc_remove(version:long,inode:long,
 	int major_device,minor_device;
 
 	getdevice(sb->s_id,&major_device,&minor_device);
-	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_REMOVE_ENTRY,"%1b%1b%8b%1b%0s%4b",
+	_lket_trace(_GROUP_NFS,_HOOKID_NFS_PROC_REMOVE_ENTRY,"%1b%1b%8b%1b%0s",
 		(_FMT_)major_device,(_FMT_)minor_device,
 		NFS_FILEID(inode),THIS->version,THIS->filename);
 %}

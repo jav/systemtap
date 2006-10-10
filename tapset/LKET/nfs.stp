@@ -26,34 +26,36 @@ probe addevent.nfs.fop
 
 probe addevent.nfs.fop.entry
        =
-       addevent.nfs.fop.llseek.entry,
-       addevent.nfs.fop.read.entry,
-       addevent.nfs.fop.write.entry,
-       addevent.nfs.fop.aio_read.entry,
-       addevent.nfs.fop.aio_write.entry,
-       addevent.nfs.fop.mmap.entry,
-       addevent.nfs.fop.open.entry,
-       addevent.nfs.fop.flush.entry,
-       addevent.nfs.fop.release.entry,
-       addevent.nfs.fop.fsync.entry,
-       addevent.nfs.fop.lock.entry,
-       addevent.nfs.fop.sendfile.entry
+	addevent.nfs.fop.llseek.entry,
+	addevent.nfs.fop.read.entry,
+	addevent.nfs.fop.write.entry,
+	addevent.nfs.fop.aio_read.entry,
+	addevent.nfs.fop.aio_write.entry,
+	addevent.nfs.fop.mmap.entry,
+	addevent.nfs.fop.open.entry,
+	addevent.nfs.fop.flush.entry,
+	addevent.nfs.fop.release.entry,
+	addevent.nfs.fop.fsync.entry,
+	addevent.nfs.fop.lock.entry,
+	addevent.nfs.fop.sendfile.entry,
+	addevent.nfs.fop.check_flags.entry
 {}
 
 probe addevent.nfs.fop.return
        =
-       addevent.nfs.fop.llseek.return,
-       addevent.nfs.fop.read.return,
-       addevent.nfs.fop.write.return,
-       addevent.nfs.fop.aio_read.return,
-       addevent.nfs.fop.aio_write.return,
-       addevent.nfs.fop.mmap.return,
-       addevent.nfs.fop.open.return,
-       addevent.nfs.fop.flush.return,
-       addevent.nfs.fop.release.return,
-       addevent.nfs.fop.fsync.return,
-       addevent.nfs.fop.lock.return,
-       addevent.nfs.fop.sendfile.return
+	addevent.nfs.fop.llseek.return,
+	addevent.nfs.fop.read.return,
+	addevent.nfs.fop.write.return,
+	addevent.nfs.fop.aio_read.return,
+	addevent.nfs.fop.aio_write.return,
+	addevent.nfs.fop.mmap.return,
+	addevent.nfs.fop.open.return,
+	addevent.nfs.fop.flush.return,
+	addevent.nfs.fop.release.return,
+	addevent.nfs.fop.fsync.return,
+	addevent.nfs.fop.lock.return,
+	addevent.nfs.fop.sendfile.return,
+	addevent.nfs.fop.check_flags.return
 {}
 
 %{

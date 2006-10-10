@@ -1,3 +1,40 @@
+2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
+
+	* hookiddefs.stp: some changes to the hookid:
+
+	Now the hookid of a return type event(addevent.*.return) 
+	should be an even number and its value should be the
+	corresponding entry event hookid +1.
+
+	The hookid of a non-return type event should be an odd
+	number.
+
+	Add the hookid of HOOKID_REGEVTDESC
+
+	* register_event.stp: 
+
+	add register_evt_desc() to register the description of an event.
+
+	Change the register_sys_event() to add the an argument 
+	representing event description
+
+	Allow to use empty format string and empty field name when 
+	calling register_event().
+
+	Change all calling to register_sys_event() to add an
+	argument which represents the event description.
+
+	Change register_evt_desc() and register_event() to add an argument
+	representing the event description string, which could help
+	facilitate the error debugging.
+
+	* iosyscall.stp: bugfix to add the variable GroupID and hookID
+
+	* nfs.stp: bugfix to add some omitted probe definitions.
+
+	* nfs_proc.stp: bugfix of the wrong calling to _lket_trace() for
+	nfs_proc.remove.entry.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* tskdispatch.stp: Changed 'stpd' reference to 'staprun'.
