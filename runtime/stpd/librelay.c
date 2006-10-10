@@ -624,9 +624,9 @@ static int merge_output(void)
 			}
 		}
 
-		if (!quiet)
+		if (min && !quiet)
 			fwrite_unlocked (buf[j]+TIMESTAMP_SIZE, length[j], 1, stdout);
-		if (!print_only)
+		if (min && !print_only)
 			fwrite_unlocked (buf[j]+TIMESTAMP_SIZE, length[j], 1, ofp);
 		
 		if (min && ++count != min) {
