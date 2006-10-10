@@ -62,6 +62,7 @@ typedef struct {
 	char evt_names[MAX_FIELDS][MAX_FIELDNAME_LEN]; /* e.g. protocal,dev_name,buff_len,... */
 	char fmt[256];  /* e.g. %1b,%0s,%2b,... */
 	int count; /* # of fields */
+	int flag; /* a flag indicates whether exists trace data for this event */
 } event_desc;
 
 /* 

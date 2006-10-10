@@ -86,7 +86,6 @@ int main(int argc, char *argv[])
         time(&timer);
         tm = localtime(&timer);
         strftime(database, 18,  "DB%Y%m%d%H%M%S", tm);
-//	strcpy(database, "lgl");
 
         while (1) {
                 int c = getopt(argc, argv, "mf");
@@ -282,6 +281,30 @@ failed:
 	if(hdrs)
 		free(hdrs);
 
+	for(i=1; i<MAX_GRPID; i++)
+	for(j=1; j<MAX_HOOKID; j++) {
+		if(events_des[1][i][j] != NULL) {
+#ifdef HAS_MYSQL
+			if(events_des[1][i][j]->flag == 0 && into_db)  {
+				snprintf(sql, 256, "drop table %d_%d",i,j);
+				if(mysql_query(&mysql,sql))  {
+					fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
+						sql, mysql_error(&mysql));
+					exit(-1);
+				}
+				snprintf(sql, 256, "delete from table_desc where table_name='%d_%d'",i,j);
+				if(mysql_query(&mysql,sql))  {
+					fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
+						sql, mysql_error(&mysql));
+					exit(-1);
+				}
+			}
+#endif
+			if(events_des[1][i][j]->entrytime) /* destroy entrytime tree */
+				g_tree_destroy(events_des[1][i][j]->entrytime);
+		}
+	}
+
 #ifdef HAS_MYSQL
 	if(into_db)  {
 		mysql_close(&mysql);
@@ -289,7 +312,7 @@ failed:
 #endif
 	if (appNameTree)
 		g_tree_destroy(appNameTree);
-	//TODO: free entrytime tree
+
 	return 0;
 }
 
@@ -582,7 +605,6 @@ void print_pkt_header(lket_pkt_header *phdr)
 				hookid, usecs, pid, HDR_CpuID(phdr));
 		}
 		if(hookid%2) {
-			//(events_des[1][grpid][hookid]->entrytime)[pid] = usecs;
 			char *entrytime = malloc(sizeof(long long));
 			*((long long *)entrytime) = usecs;
 			g_tree_insert(events_des[1][grpid][hookid]->entrytime, 
@@ -813,6 +835,8 @@ int dump_data(lket_pkt_header header, FILE *infp)
 			total_bytes += size;
 			continue;
 		}
+
+		events_des[j][grpid][hookid]->flag = 1;
 
 		for(i=0; i<events_des[j][grpid][hookid]->count; i++)  {
 			fmt = events_des[j][grpid][hookid]->evt_fmt[i];
