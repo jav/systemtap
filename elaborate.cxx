@@ -997,7 +997,10 @@ semantic_pass (systemtap_session& s)
 
 systemtap_session::systemtap_session ():
   pattern_root(new match_node),
-  user_file (0), op (0), up (0), num_errors (0)
+  user_file (0), op (0), up (0),
+  kprobes_text_initialized (false),
+  kprobes_text_start (0), kprobes_text_end (0),
+  num_errors (0)
 {
 }
 

@@ -2285,6 +2285,68 @@ target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol 
 }
 
 
+// Forward declaration.
+static int query_kernel_module (Dwfl_Module *, void **, const char *,
+				Dwarf_Addr, void *);
+
+
+static bool
+in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
+{
+  if (! sess.kprobes_text_initialized)
+    {
+      // Only attempt kprobes_text_start/kprobes_text_end
+      // initialization once
+      sess.kprobes_text_initialized = true;
+
+      dwflpp *kernel_dw = new dwflpp(sess);
+      assert(kernel_dw);
+      kernel_dw->setup(true);
+
+      Dwfl_Module *m = NULL;
+      kernel_dw->iterate_over_modules(&query_kernel_module, &m);
+      assert(m);
+      kernel_dw->focus_on_module(m);
+
+      // Look through the symbol table for "__kprobes_text_{start,end}"
+      int syments = dwfl_module_getsymtab(kernel_dw->module);
+      assert(syments);
+      for (int i = 1; i < syments; ++i)
+        {
+	  GElf_Sym sym;
+	  const char *name = dwfl_module_getsym(kernel_dw->module, i,
+						&sym, NULL);
+
+	  // Look for a symbol that starts with "__kprobes_text_"
+	  if (name != NULL
+	      && strncmp(name, "__kprobes_text_", 15) == 0)
+	    {
+	      // Match either "__kprobes_text_start" or "__kprobes_text_end"
+	      if (strcmp(name, "__kprobes_text_start") == 0)
+		sess.kprobes_text_start = sym.st_value;
+	      else if (strcmp(name, "__kprobes_text_end") == 0)
+		sess.kprobes_text_end = sym.st_value;
+
+	      // If we've got both values, quit processing symbols.
+	      if (sess.kprobes_text_start != 0 && sess.kprobes_text_end != 0)
+		i = syments;
+	    }
+	}
+
+      if (kernel_dw)
+	delete kernel_dw;
+    }
+
+  if (sess.kprobes_text_start != 0 && sess.kprobes_text_end != 0)
+    {
+      // If the probe point address is anywhere in the __kprobes
+      // address range, we can't use this probe point.
+      if (addr >= sess.kprobes_text_start && addr < sess.kprobes_text_end)
+	return true;
+    }
+  return false;
+}
+
 
 bool
 dwarf_query::blacklisted_p(string const & funcname,
@@ -2351,6 +2413,15 @@ dwarf_query::blacklisted_p(string const & funcname,
 	}
     }
 
+  // Check for function marked '__kprobes'.
+  if (in_kprobes_function(sess, addr))
+    {
+      if (sess.verbose>1)
+	clog << "skipping function '" << funcname << "' base 0x"
+	     << hex << addr << dec << " is a function marked '__kprobes'\n";
+      return true;
+    }
+  
   // Check probe point against blacklist.  XXX: This has to be
   // properly generalized, perhaps via a table populated from script
   // files.  A "noprobe kernel.function("...")"  construct might do
@@ -2821,6 +2892,24 @@ query_kernel_exists (Dwfl_Module *mod __attribute__ ((unused)),
   int *flagp = (int *) arg;
   if (TOK_KERNEL == name)
     *flagp = 1;
+  return DWARF_CB_OK;
+}
+
+
+static int
+query_kernel_module (Dwfl_Module *mod,
+		     void **userdata __attribute__ ((unused)),
+		     const char *name,
+		     Dwarf_Addr base __attribute__ ((unused)),
+		     void *arg)
+{
+  if (TOK_KERNEL == name)
+  {
+    Dwfl_Module **m = (Dwfl_Module **)arg;
+
+    *m = mod;
+    return DWARF_CB_ABORT;
+  }
   return DWARF_CB_OK;
 }
 

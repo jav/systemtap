@@ -16,6 +16,10 @@
 #include <sstream>
 #include <map>
 
+extern "C" {
+#include <elfutils/libdw.h>
+}
+
 
 // forward decls for all referenced systemtap types
 struct match_node;
@@ -108,6 +112,11 @@ struct systemtap_session
   // unparser data
   translator_output* op;
   unparser* up;
+
+  // kprobes_text data
+  bool kprobes_text_initialized;
+  Dwarf_Addr kprobes_text_start;
+  Dwarf_Addr kprobes_text_end;
 
   unsigned num_errors;
   // void print_error (const parse_error& e);

@@ -1,3 +1,17 @@
+2006-10-11  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (in_kprobes_function): New function that looks up
+	the values of '__kprobes_text_start' and '__kprobes_text_end' in
+	the kernel to be able to automatically exclude functions marked as
+	'__kprobes' (BZ# 2639).
+	(blacklisted_p): Calls in_kprobes_function().
+	(query_kernel_module): Utility function that finds the kernel module.
+	* session.h (struct systemtap_session): Added kprobes_text
+	variables - kprobes_text_initialized, kprobes_text_start, and
+	kprobes_text_end.
+	* elaborate.cxx (systemtap_session::systemtap_session):
+	kprobes_text variables get initialized.
+
 2006-10-10  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in (elfutils_version): Require 0.124 now.
