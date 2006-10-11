@@ -1,3 +1,8 @@
+2006-10-11  Li Guanglei <guanglei@cn.ibm.com>
+
+	* aio.stp, nfs.stp, nfs_proc.stp, nfsd.stp, process.stp:
+	bugfix of pointer conversion on 32-bit platform
+
 2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* hookiddefs.stp: some changes to the hookid:

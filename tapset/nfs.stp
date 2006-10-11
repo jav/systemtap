@@ -59,7 +59,7 @@ function __nfsi_attr_time :long (inode:long) %{ /* pure */
 
 /*Get ndirty from struct inode*/
 function __nfsi_ndirty:long (inode:long) %{ /* pure */
-      struct inode *inode = (struct inode *)(THIS->inode);
+      struct inode *inode = (struct inode *)((long)THIS->inode);
       struct nfs_inode *nfsi ;
 
       if(inode == NULL) 
@@ -74,7 +74,7 @@ function __nfsi_ndirty:long (inode:long) %{ /* pure */
 
 /*Get rsize from struct inode*/
 function __nfs_server_rsize:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)(THIS->inode);
+       struct inode * inode = (struct inode *)((long)THIS->inode);
 
        if(inode == NULL) 
        {
@@ -86,7 +86,7 @@ function __nfs_server_rsize:long (inode:long) %{ /* pure */
 
 /*Get version from struct inode*/
 function __nfs_version:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)(THIS->inode);
+       struct inode * inode = (struct inode *)((long)THIS->inode);
 
        if(inode == NULL) 
        {
@@ -98,7 +98,7 @@ function __nfs_version:long (inode:long) %{ /* pure */
 
 /*Get wsize from struct inode*/
 function __nfs_server_wsize:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)(THIS->inode);
+       struct inode * inode = (struct inode *)((long)THIS->inode);
 
        if(inode == NULL) 
        {
@@ -110,7 +110,7 @@ function __nfs_server_wsize:long (inode:long) %{ /* pure */
 
 /*Get rpages from struct inode*/
 function __nfs_rpages:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)(THIS->inode);
+       struct inode * inode = (struct inode *)((long)THIS->inode);
 
        if(inode == NULL) 
        {
@@ -122,7 +122,7 @@ function __nfs_rpages:long (inode:long) %{ /* pure */
 
 /*Get wpages from struct inode*/
 function __nfs_wpages:long(inode:long) %{ /* pure */
-      struct inode *inode = (struct inode*)(THIS->inode);
+      struct inode *inode = (struct inode*)((long)THIS->inode);
       if(inode == NULL) 
       {
           THIS->__retvalue = -1;
@@ -133,7 +133,7 @@ function __nfs_wpages:long(inode:long) %{ /* pure */
 
 /*Get struct inode from struct page*/
 function __p2i :long(page:long) %{ /* pure */
-      struct page *page = (struct page *)(THIS->page);
+      struct page *page = (struct page *)((long)THIS->page);
 
       if ((page == NULL) || (page->mapping == NULL)) {
                 THIS->__retvalue = 0;
@@ -221,7 +221,7 @@ deref_fault:
 %}
 
 function __d_loff_t :long (ppos :long) %{ /* pure */
-        loff_t * ppos = (loff_t *) (THIS->ppos);
+        loff_t * ppos = (loff_t *) ((long)THIS->ppos);
      
         if (ppos == NULL)
         {

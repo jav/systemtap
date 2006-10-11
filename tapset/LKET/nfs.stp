@@ -54,8 +54,8 @@ probe addevent.nfs.fop.return
 	addevent.nfs.fop.release.return,
 	addevent.nfs.fop.fsync.return,
 	addevent.nfs.fop.lock.return,
-	addevent.nfs.fop.sendfile.return,
-	addevent.nfs.fop.check_flags.return
+	addevent.nfs.fop.sendfile.return
+//	addevent.nfs.fop.check_flags.return
 {}
 
 %{
@@ -79,7 +79,7 @@ probe _addevent.nfs.fop.llseek.entry
 }
 
 function log_fop_llseek(s_id:long,ino:long,offset:long,origin:long)%{ /*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -115,7 +115,7 @@ probe _addevent.nfs.fop.read.entry
 }
 
 function log_fop_rw(hookid:long,s_id:long,ino:long,buf:long,len:long,pos:long) %{ /*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -225,7 +225,7 @@ probe _addevent.nfs.fop.mmap.entry
 function log_fop_mmap(s_id:long,ino:long,vm_start:long,
                                   vm_end:long,vm_flags:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -260,7 +260,7 @@ probe _addevent.nfs.fop.open.entry
 
 function log_fop_open(s_id:long,ino:long,flag :long , filename:string)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -295,7 +295,7 @@ probe _addevent.nfs.fop.flush.entry
 
 function log_fop_flush(s_id:long,ino:long,ndirty:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -329,7 +329,7 @@ probe _addevent.nfs.fop.release.entry
 
 function log_fop_release(s_id:long,ino:long,mode:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -364,7 +364,7 @@ probe _addevent.nfs.fop.fsync.entry
 
 function log_fop_fsync(s_id:long,ino:long,ndirty:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -398,7 +398,7 @@ probe _addevent.nfs.fop.lock.entry
 
 function log_fop_lock(s_id:long,ino:long,fl_start:long,fl_end:long,fl_type:long,fl_flag:long,cmd:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -433,7 +433,7 @@ probe _addevent.nfs.fop.sendfile.entry
 
 function log_fop_sendfile(s_id:long,ino:long,count:long,ppos:long)
 %{/*pure*/
-	char * s_id = (char *)THIS->s_id;
+	char * s_id = (char *)((long)THIS->s_id);
 	int major,minor;
 
 	getdevice(s_id,&major,&minor);
@@ -470,6 +470,7 @@ function log_fop_check_flags(flag:long)
 	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_CHECKFLAGS_ENTRY,"%4b",THIS->flag);
 %}
 
+/*
 probe addevent.nfs.fop.check_flags.return
       += _addevent.nfs.fop.check_flags.return
 {
@@ -481,6 +482,7 @@ probe _addevent.nfs.fop.check_flags.return
 {
 	log_nfs_return(HOOKID_NFS_FOP_CHECKFLAGS_RETURN,$return)
 }
+*/
 
 
 probe addevent.nfs.aop

@@ -1,3 +1,9 @@
+2006-10-11  Li Guanglei <guanglei@cn.ibm.com>
+	* nfs.stp, nfsd.stp: bugfix of pointer conversion on
+	32-bit platform.
+	* i686/syscall.stp: make sys_request_key optional since
+	it failed to probe on 2.6.18/i386
+
 2006-10-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp (probefunc): Return empty string for

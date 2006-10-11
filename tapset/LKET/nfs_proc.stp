@@ -104,7 +104,7 @@ probe _addevent.nfs.proc.lookup.entry
 
 function log_proc_lookup(version:long,dir:long,filename:string)
 %{
-	struct inode * dir =  (struct inode * )THIS->dir;
+	struct inode * dir =  (struct inode * )((long)THIS->dir);
 	struct super_block * sb = dir->i_sb;
 	int major_device,minor_device;
 
@@ -140,7 +140,7 @@ probe _addevent.nfs.proc.read.entry
 
 function log_proc_read(version:long,rdata:long,count:long,offset:long)
 %{
-	struct nfs_read_data* rdata =  (struct nfs_read_data* )THIS->rdata;
+	struct nfs_read_data* rdata =  (struct nfs_read_data* )((long)THIS->rdata);
 	struct inode *inode = rdata->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -177,7 +177,7 @@ probe _addevent.nfs.proc.write.entry
 
 function log_proc_write(version:long,wdata:long,count:long,offset:long)
 %{
-	struct nfs_write_data* wdata =  (struct nfs_write_data* )THIS->wdata;
+	struct nfs_write_data* wdata =  (struct nfs_write_data* )((long)THIS->wdata);
 	struct inode *inode = wdata->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -214,7 +214,7 @@ probe _addevent.nfs.proc.commit.entry
 
 function log_proc_commit(version:long,cdata:long,count:long,offset:long)
 %{
-	struct nfs_write_data* cdata =  (struct nfs_write_data* )THIS->cdata;
+	struct nfs_write_data* cdata =  (struct nfs_write_data* )((long)THIS->cdata);
 	struct inode *inode = cdata->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -252,7 +252,7 @@ probe _addevent.nfs.proc.read_setup.entry
 
 function log_proc_read_setup(version:long,data:long,count:long,offset:long)
 %{
-	struct nfs_read_data* data =  (struct nfs_read_data* )THIS->data;
+	struct nfs_read_data* data =  (struct nfs_read_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -278,7 +278,7 @@ probe _addevent.nfs.proc.write_setup.entry
 
 function log_proc_write_setup(version:long,data:long,count:long,offset:long,how:long)
 %{
-	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct nfs_write_data* data =  (struct nfs_write_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -305,7 +305,7 @@ probe _addevent.nfs.proc.commit_setup.entry
 
 function log_proc_commit_setup(version:long,data:long,count:long,offset:long)
 %{
-	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct nfs_write_data* data =  (struct nfs_write_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -332,7 +332,7 @@ probe _addevent.nfs.proc.read_done.entry
 
 function log_proc_read_done(version:long,data:long,count:long,status:long)
 %{
-	struct nfs_read_data* data =  (struct nfs_read_data* )THIS->data;
+	struct nfs_read_data* data =  (struct nfs_read_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -370,7 +370,7 @@ probe _addevent.nfs.proc.write_done.entry
 
 function log_proc_write_done(version:long,data:long,count:long,status:long)
 %{
-	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct nfs_write_data* data =  (struct nfs_write_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -408,7 +408,7 @@ probe _addevent.nfs.proc.commit_done.entry
 
 function log_proc_commit_done(version:long,data:long,count:long,status:long)
 %{
-	struct nfs_write_data* data =  (struct nfs_write_data* )THIS->data;
+	struct nfs_write_data* data =  (struct nfs_write_data* )((long)THIS->data);
 	struct inode *inode = data->inode;
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
@@ -447,7 +447,7 @@ probe _addevent.nfs.proc.open.entry
 function log_proc_open(version:long,inode:long,
                         filename:string,flag:long,mode:long)
 %{
-	struct inode *inode = (struct inode *)THIS->inode;
+	struct inode *inode = (struct inode *)((long)THIS->inode);
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
 
@@ -485,7 +485,7 @@ probe _addevent.nfs.proc.release.entry
 function log_proc_release(version:long,inode:long,
                            filename:string,flag:long,mode:long)
 %{
-	struct inode *inode = (struct inode *)THIS->inode;
+	struct inode *inode = (struct inode *)((long)THIS->inode);
 	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
 
@@ -522,7 +522,7 @@ probe _addevent.nfs.proc.create.entry
 
 function log_proc_create(version:long,inode:long,filename:string,mode:long)
 %{
-	struct inode *inode = (struct inode *)THIS->inode;
+	struct inode *inode = (struct inode *)((long)THIS->inode);
        	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
 
@@ -559,7 +559,7 @@ probe _addevent.nfs.proc.remove.entry
 function log_proc_remove(version:long,inode:long,
                         filename:string)
 %{
-	struct inode *inode = (struct inode *)THIS->inode;
+	struct inode *inode = (struct inode *)((long)THIS->inode);
        	struct super_block * sb = inode->i_sb;
 	int major_device,minor_device;
 
@@ -596,8 +596,8 @@ probe _addevent.nfs.proc.rename.entry
 function log_proc_rename(version:long,old_dir:long,old_name:string,
                                       new_dir:long,new_name:string)
 %{
-	struct inode *old_dir= (struct inode *)THIS->old_dir;
-	struct inode *new_dir= (struct inode *)THIS->new_dir;
+	struct inode *old_dir= (struct inode *)((long)THIS->old_dir);
+	struct inode *new_dir= (struct inode *)((long)THIS->new_dir);
        	struct super_block * old_sb = old_dir->i_sb;
        	struct super_block * new_sb = new_dir->i_sb;
 	int major_old,minor_old,major_new,minor_new;

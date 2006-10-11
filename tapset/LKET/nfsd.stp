@@ -110,7 +110,7 @@ probe _addevent.nfsd.lookup.entry
 
 function log_nfsd_lookup(fhp:long,filename:string)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	__u64 i_ino[3];
 
 	decode_fh(&fhp->fh_handle,i_ino);		
@@ -143,9 +143,9 @@ probe _addevent.nfsd.create.entry
 }
 
 function log_nfsd_create(fhp:long,filename:string,type:long,
-                                          iap_valid:long,iap_mode:long)%{ /*pure*/
+			  iap_valid:long,iap_mode:long)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -181,9 +181,9 @@ probe _addevent.nfsd.createv3.entry
 }
 
 function log_nfsd_createv3(fhp:long,filename:string,createmode:long,
-                                          iap_valid:long,iap_mode:long)%{ /*pure*/
+			  iap_valid:long,iap_mode:long)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -219,7 +219,7 @@ probe _addevent.nfsd.unlink.entry
 
 function log_nfsd_unlink(fhp:long,filename:string,type:long)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -255,8 +255,8 @@ probe _addevent.nfsd.rename.entry
 
 function log_nfsd_rename(fhp:long,filename:string,tfhp:long,tname:string)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct svc_fh * tfhp = (struct svc_fh*)(THIS->tfhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct svc_fh * tfhp = (struct svc_fh*)((long)THIS->tfhp);
 	__u64 old_ino[3],i_ino[3];
 
 	decode_fh(&fhp->fh_handle,old_ino);		
@@ -293,7 +293,7 @@ probe _addevent.nfsd.open.entry
 
 function log_nfsd_open(fhp:long,type:long,access:long)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -357,8 +357,8 @@ probe _addevent.nfsd.read.entry
 
 function log_nfsd_read(fhp:long,count:long,offset:long,
                                             vec:long,vlen:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct kvec * vec = (struct kvec *)THIS->vec;
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct kvec * vec = (struct kvec *)((long)THIS->vec);
 	
 	__u64 i_ino[3];
 
@@ -393,9 +393,9 @@ probe _addevent.nfsd.write.entry
 }
 
 function log_nfsd_write(fhp:long,count:long,offset:long,
-                                         vec:long,vlen:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct kvec * vec = (struct kvec *)THIS->vec;
+			 vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct kvec * vec = (struct kvec *)((long)THIS->vec);
 	
 	__u64 i_ino[3];
 
@@ -430,7 +430,7 @@ probe _addevent.nfsd.commit.entry
 }
 
 function log_nfsd_commit(fhp:long,count:long,offset:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -491,7 +491,7 @@ probe _addevent.nfsd.proc.lookup.entry
 }
 
 function log_nfsd_proc_lookup(fh:long,version:long,filename:string)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fh);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fh);
 	
 	__u64 i_ino[3];
 
@@ -526,9 +526,9 @@ probe _addevent.nfsd.proc.read.entry
 }
 
 function log_nfsd_proc_read(fhp:long,version:long,count:long,offset:long,
-                                            vec:long,vlen:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct kvec * vec = (struct kvec *)THIS->vec;
+			    vec:long,vlen:long)%{ /*pure*/
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct kvec * vec = (struct kvec *)((long)THIS->vec);
 	
 	__u64 i_ino[3];
 
@@ -564,8 +564,8 @@ probe _addevent.nfsd.proc.write.entry
 
 function log_nfsd_proc_write(fhp:long,version:long,count:long,offset:long,
                                             vec:long,vlen:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct kvec * vec = (struct kvec *)THIS->vec;
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct kvec * vec = (struct kvec *)((long)THIS->vec);
 	
 	__u64 i_ino[3];
 
@@ -600,7 +600,7 @@ probe _addevent.nfsd.proc.commit.entry
 }
 
 function log_nfsd_proc_commit(fhp:long,version:long,count:long,offset:long)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -663,7 +663,7 @@ probe _addevent.nfsd.proc.remove.entry
 }
 
 function log_nfsd_proc_remove(fhp:long,version:long,filename:string)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	
 	__u64 i_ino[3];
 
@@ -699,8 +699,8 @@ probe _addevent.nfsd.proc.rename.entry
 
 function log_nfsd_proc_rename(fhp:long,version:long,filename:string,
                             tfh:long,tname:string)%{ /*pure*/
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
-	struct svc_fh * tfhp = (struct svc_fh*)(THIS->tfh);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
+	struct svc_fh * tfhp = (struct svc_fh*)((long)THIS->tfh);
 	__u64 i_ino[3],o_ino[3];
 
 	decode_fh(&fhp->fh_handle,o_ino);	
@@ -737,7 +737,7 @@ probe _addevent.nfsd.proc.create.entry
 
 function log_nfsd_proc_create(fhp:long,version:long,filename:string)%{ /*pure*/
 
-	struct svc_fh * fhp = (struct svc_fh*)(THIS->fhp);
+	struct svc_fh * fhp = (struct svc_fh*)((long)THIS->fhp);
 	__u64 i_ino[3];
 
 	decode_fh(&fhp->fh_handle,i_ino);		

@@ -46,7 +46,7 @@ char * fh_fmt(struct svc_fh * fhp)
 
 /*Get file handler from argp,the index indicates the type of argp*/
 function __get_fh:long(argp:long,index:long) %{ /* pure */
-	int index = (int)(THIS->index);
+	int index = (int)((long)THIS->index);
 	struct nfsd_diropargs * argp = NULL ;
 	struct nfsd3_diropargs * argp3 = NULL ;
 	struct nfsd_readargs * argpr = NULL;
@@ -65,49 +65,49 @@ function __get_fh:long(argp:long,index:long) %{ /* pure */
 
 	switch(index)
 	{
-	case 1: argp = (struct nfsd_diropargs *)THIS->argp;
+	case 1: argp = (struct nfsd_diropargs *)((long)THIS->argp);
 		fhp = &argp->fh;
 		break;
-	case 2: argp3 = (struct nfsd3_diropargs *)THIS->argp;
+	case 2: argp3 = (struct nfsd3_diropargs *)((long)THIS->argp);
 		fhp = &argp3->fh;
 		break;
-	case 3: argpr = (struct nfsd_readargs * )THIS->argp;
+	case 3: argpr = (struct nfsd_readargs * )((long)THIS->argp);
 		fhp = &argpr->fh;
 		break;
-	case 4: argpr3 = (struct nfsd3_readargs * )THIS->argp;
+	case 4: argpr3 = (struct nfsd3_readargs * )((long)THIS->argp);
 		fhp = &argpr3->fh;
 		break;
-	case 5: argpw = (struct nfsd_writeargs * )THIS->argp;
+	case 5: argpw = (struct nfsd_writeargs * )((long)THIS->argp);
 		fhp = &argpw->fh;
 		break;
-	case 6: argpw3 = (struct nfsd3_writeargs * )THIS->argp;
+	case 6: argpw3 = (struct nfsd3_writeargs * )((long)THIS->argp);
 		fhp = &argpw3->fh;
 		break;
-	case 7: argpc3 = (struct nfsd3_commitargs * )THIS->argp;
+	case 7: argpc3 = (struct nfsd3_commitargs * )((long)THIS->argp);
 		fhp = &argpc3->fh;
 		break;
-	case 8: argpcr = (struct nfsd_createargs * )THIS->argp;
+	case 8: argpcr = (struct nfsd_createargs * )((long)THIS->argp);
 		fhp = &argpcr->fh;
 		break;
-	case 9: argpcr3 = (struct nfsd3_createargs * )THIS->argp;
+	case 9: argpcr3 = (struct nfsd3_createargs * )((long)THIS->argp);
 		fhp = &argpcr3->fh;
 		break;
-	case 10: argpre = (struct nfsd_diropargs * )THIS->argp;
+	case 10: argpre = (struct nfsd_diropargs * )((long)THIS->argp);
 		fhp = &argpre->fh;
 		break;
-	case 11: argpre3 = (struct nfsd3_diropargs * )THIS->argp;
+	case 11: argpre3 = (struct nfsd3_diropargs * )((long)THIS->argp);
 		fhp = &argpre3->fh;
 		break;
-	case 12: argpren = (struct nfsd_renameargs * )THIS->argp;
+	case 12: argpren = (struct nfsd_renameargs * )((long)THIS->argp);
 		fhp = &argpren->ffh;
 		break;
-	case 13: argpren = (struct nfsd_renameargs * )THIS->argp;
+	case 13: argpren = (struct nfsd_renameargs * )((long)THIS->argp);
 		fhp = &argpren->tfh;
 		break;
-	case 14: argpren3 = (struct nfsd3_renameargs * )THIS->argp;
+	case 14: argpren3 = (struct nfsd3_renameargs * )((long)THIS->argp);
 		fhp = &argpren3->ffh;
 		break;
-	case 15: argpren3 = (struct nfsd3_renameargs * )THIS->argp;
+	case 15: argpren3 = (struct nfsd3_renameargs * )((long)THIS->argp);
 		fhp = &argpren3->tfh;
 		break;
 	}
@@ -135,7 +135,7 @@ function __svc_fh:string(fh :long) %{  /* pure */
 %}
 
 function p_long:long(cnt:long) %{ /* pure */
-	unsigned long * count = (unsigned long *)(THIS->cnt);
+	unsigned long * count = (unsigned long *)((long)THIS->cnt);
 	
 	THIS->__retvalue = *count;
 %}

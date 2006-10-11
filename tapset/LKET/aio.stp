@@ -131,7 +131,7 @@ probe _addevent.aio.io_submit_one.entry
 
 function log_io_submit_one(hookid:long, ctx:long, user_iocb_uaddr:long)
 %{
-	struct iocb *user_iocb = (struct iocb *)THIS->user_iocb_uaddr;
+	struct iocb *user_iocb = (struct iocb *)((long)THIS->user_iocb_uaddr);
 
 	/* ctx | user_iocb_addr | aio_lio_opcode | >aio_reqprio |
 		aio_fildes | aio_buf | aio_nbytes | >aio_offset */
@@ -212,7 +212,7 @@ probe _addevent.aio.io_getevents.entry
 function log_io_getevents(hookid:long, ctx_id:long, min_nr:long, nr:long, 
 		events_uaddr:long, timeout:long)
 %{
-	struct timespec __user *timeout = (struct timespec *)THIS->timeout;
+	struct timespec __user *timeout = (struct timespec *)((long)THIS->timeout);
 	struct timespec ts;
 
 	if (unlikely(copy_from_user(&ts, timeout, sizeof(ts))))

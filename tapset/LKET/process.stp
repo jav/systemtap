@@ -21,7 +21,7 @@ function log_fork_tracedata(var_id:long, task:long)
 	pid_t pid = (pid_t)THIS->var;	
 	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", (_FMT_)pid); 
 	*/
-	struct task_struct *task = (struct task_struct *)THIS->task;
+	struct task_struct *task = (struct task_struct *)((long)THIS->task);
 	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b%4b%4b", (_FMT_)task->pid, 
 		(_FMT_)task->tgid, (_FMT_)task->parent->tgid); 
 %}
