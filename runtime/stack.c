@@ -1,5 +1,6 @@
-/* Stack tracing functions
- * Copyright (C) 2005 Red Hat Inc.
+/*  -*- linux-c -*-
+ * Stack tracing functions
+ * Copyright (C) 2005, 2006 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -8,7 +9,7 @@
  * later version.
  */
 
-#ifndef _STACK_C_ /* -*- linux-c -*- */
+#ifndef _STACK_C_
 #define _STACK_C_
 
 
@@ -29,206 +30,43 @@
 
 #include "sym.c"
 #include "regs.h"
-
-static int _stp_kta(unsigned long addr)
-{
-	if (addr >= stap_symbols[0].addr && 
-	    addr <= stap_symbols[stap_num_symbols-1].addr)
-		return 1;
-	return 0;
-}
+static int _stp_kta(unsigned long addr);
 
 #if defined (__x86_64__)
-
-static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
-{
-	unsigned long addr;
-	while (((long) stack & (THREAD_SIZE-1)) != 0) {
-		addr = *stack++;
-		if (_stp_kta(addr)) {
-			if (verbose) {
-				_stp_string_cat(str, " ");
-				_stp_symbol_sprint (str, addr);
-				_stp_string_cat (str, "\n");
-			} else 
-				_stp_sprintf (str, "%lx ", addr);
-		}
-	}
-}
-
+#include "stack-x86_64.c"
 #elif defined (__ia64__)
-struct dump_para{
-  unsigned long *sp;
-  String str;
-};
-
-static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
-{
-   unsigned long ip, skip=1;
-   String str = ((struct dump_para*)arg)->str;
-   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
-
-	do {
-		unw_get_ip(info, &ip);
-		if (ip == 0) break;
-                if (skip){
-			if (ip == REG_IP(regs))
-				skip = 0;
-                        else continue;
-                }
-		_stp_string_cat(str, " ");
-		_stp_symbol_sprint(str, ip);
-		_stp_string_cat (str, "\n");
-        } while (unw_unwind(info) >= 0);
-}
-
-static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
-{
-   unsigned long ip, skip=1;
-   String str = ((struct dump_para*)arg)->str;
-   struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
-
-	do {
-		unw_get_ip(info, &ip);
-		if (ip == 0) break;
-		if (skip){
-			if (ip == REG_IP(regs))
-				skip = 0;
-			continue;
-		}
-		_stp_sprintf (str, "%lx ", ip);
-	} while (unw_unwind(info) >= 0);
-}
-
-static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
-{
-  struct dump_para para;
-
-	para.str = str;
-	para.sp  = stack; 
-	if (verbose)
-	    unw_init_running(__stp_show_stack_sym, &para);
-        else
-	    unw_init_running(__stp_show_stack_addr, &para);
-}
-
+#include "stack-ia64.c"
 #elif  defined (__i386__)
-
-static inline int valid_stack_ptr(struct thread_info *tinfo, void *p)
-{
-	return	p > (void *)tinfo &&
-		p < (void *)tinfo + THREAD_SIZE - 3;
-}
-
-static inline unsigned long print_context_stack(String str, struct thread_info *tinfo,
-						unsigned long *stack, unsigned long ebp, int verbose)
-{
-	unsigned long addr;
-
-#ifdef	CONFIG_FRAME_POINTER
-	while (valid_stack_ptr(tinfo, (void *)ebp)) {
-		addr = *(unsigned long *)(ebp + 4);
-		if (verbose) {
-			_stp_string_cat(str, " ");
-			_stp_symbol_sprint (str, addr);
-			_stp_string_cat(str, "\n");
-		} else
-			_stp_sprintf (str, "%lx ", addr);
-		ebp = *(unsigned long *)ebp;
-	}
-#else
-	while (valid_stack_ptr(tinfo, stack)) {
-		addr = *stack++;
-		if (_stp_kta(addr)) {
-			if (verbose) {
-				_stp_string_cat(str, " ");
-				_stp_symbol_sprint(str, addr);
-				_stp_string_cat(str, "\n");
-			} else
-				_stp_sprintf (str, "%lx ", addr);
-		}
-	}
-#endif
-	return ebp;
-}
-
-static void __stp_stack_sprint (String str, unsigned long *stack, int verbose, int levels)
-{
-	unsigned long ebp;
-
-	/* Grab ebp right from our regs */
-	asm ("movl %%ebp, %0" : "=r" (ebp) : );
-
-	while (1) {
-		struct thread_info *context;
-		context = (struct thread_info *)
-			((unsigned long)stack & (~(THREAD_SIZE - 1)));
-		ebp = print_context_stack(str, context, stack, ebp, verbose);
-		stack = (unsigned long*)context->previous_esp;
-		if (!stack)
-			break;
-	}
-}
+#include "stack-i386.c"
 #elif defined (__powerpc64__)
-
-static void __stp_stack_sprint (String str, unsigned long *_sp,
-				int verbose, int levels)
-{
-	unsigned long ip, newsp, lr = 0;
-	int count = 0;
-	unsigned long sp = (unsigned long)_sp;
-	int firstframe = 1;
-
-	lr = 0;
-	do {
-		if (sp < KERNELBASE)
-			return;
-		_sp = (unsigned long *) sp;
-		newsp = _sp[0];
-		ip = _sp[2];
-		if (!firstframe || ip != lr) {
-			if (verbose) {
-				_stp_sprintf(str, "[%016lx] [%016lx] ", sp, ip);
-				_stp_symbol_sprint(str, ip);
-				if (firstframe)
-					_stp_string_cat(str, " (unreliable)");
-			}
-			else
-				_stp_sprintf(str,"%lx ", ip);
-		}
-		firstframe = 0;
-		/*
-		 * See if this is an exception frame.
-		 * We look for the "regshere" marker in the current frame.
-		 */
-		if ( _sp[12] == 0x7265677368657265ul) {
-			struct pt_regs *regs = (struct pt_regs *)
-				(sp + STACK_FRAME_OVERHEAD);
-			if (verbose) {
-				_stp_sprintf(str, "--- Exception: %lx at ",
-						regs->trap);
-				_stp_symbol_sprint(str, regs->nip);
-				_stp_string_cat(str, "\n");
-				lr = regs->link;
-				_stp_string_cat(str, "    LR =");
-				_stp_symbol_sprint(str, lr);
-				_stp_string_cat(str, "\n");
-				firstframe = 1;
-			}
-			else {
-				_stp_sprintf(str, "%lx ",regs->nip);
-				_stp_sprintf(str, "%lx ",regs->link);
-			}
-		}
-
-		sp = newsp;
-	} while (str->len < STP_STRING_SIZE);
-}
-
+#include "stack-ppc64.c"
 #else
 #error "Unsupported architecture"
 #endif
 
+
+/* our copy of kernel_text_address() */
+static int _stp_kta(unsigned long addr)
+{
+	static unsigned long stext, etext, sinittext, einittext;
+	static int init = 0;
+	
+	if (init == 0) {
+		init = 1;
+		etext = _stp_kallsyms_lookup_name("_etext");
+		stext = _stp_kallsyms_lookup_name("_stext");
+		sinittext = _stp_kallsyms_lookup_name("_sinittext");
+		einittext = _stp_kallsyms_lookup_name("_einittext");
+	}
+
+	if (addr >= stext && addr <= etext)
+		return 1;
+
+	if (addr >= sinittext && addr <= einittext)
+		return 1;
+
+	return 0;
+}
 
 /** Writes stack backtrace to a String
  *
@@ -236,15 +74,21 @@ static void __stp_stack_sprint (String str, unsigned long *_sp,
  * @param regs A pointer to the struct pt_regs.
  * @returns Same String as was input with trace info appended,
  */
-String _stp_stack_sprint (String str, struct pt_regs *regs, int verbose)
+String _stp_stack_sprint (String str, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
 {
 	if (verbose) {
-		_stp_sprintf (str, "trace for %d (%s)\n ", current->pid, current->comm);
-		_stp_symbol_sprint (str, REG_IP(regs));
+		/* print the current address */
+		if (pi) {
+			_stp_string_cat(str, "Returning from: ");
+			_stp_symbol_sprint(str, (unsigned long)_stp_probe_addr_r(pi));
+			_stp_string_cat(str, "\nReturning to: ");
+			_stp_symbol_sprint(str, (unsigned long)_stp_ret_addr_r(pi));
+		} else
+			_stp_symbol_sprint (str, REG_IP(regs));
 		_stp_string_cat(str, "\n");
 	} else
 		_stp_sprintf (str, "%lx ", REG_IP(regs));
-	__stp_stack_sprint (str, (unsigned long *)&REG_SP(regs), verbose, 0);
+	__stp_stack_sprint (str, regs, verbose, 0);
 	return str;
 }
 
@@ -252,7 +96,7 @@ String _stp_stack_sprint (String str, struct pt_regs *regs, int verbose)
  * @param regs A pointer to the struct pt_regs.
  */
 
-#define _stp_stack_print(regs)	(void)_stp_stack_sprint(_stp_stdout,regs,1)
+#define _stp_stack_print(regs,pi)	(void)_stp_stack_sprint(_stp_stdout,regs,1,pi)
 
 /** Writes stack backtrace to a String.
  * Use this when calling from a jprobe.
@@ -264,7 +108,7 @@ String _stp_stack_sprintj(String str)
 {
 	unsigned long stack;
 	_stp_sprintf (str, "trace for %d (%s)\n", current->pid, current->comm);
-	__stp_stack_sprint (str, &stack, 1, 0);
+/*	__stp_stack_sprint (str, &stack, 1, 0); */
 	return str;
 }
 

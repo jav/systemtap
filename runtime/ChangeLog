@@ -1,3 +1,18 @@
+2006-10-12  Martin Hunt  <hunt@redhat.com>
+
+	* stack.c: Reorganize and split arch-specific functions to
+	separate files.
+	(_stp_kta): Better checking.
+	(_stp_stack_sprint): Better handling of return probes. 
+
+	* stack-i386.c: New file. Uses 2.6.18 DWARF unwinder if available.
+	* stack-x86_64.c: New file. Uses 2.6.18 DWARF unwinder if available.
+	* stack-ppc64.c: New file.
+	* stack-ia64.c: New file.
+
+	* sym.c (_stp_kallsyms_lookup_name): New function. Like
+	kallsyms_lookup_name() except use our internal lookup table.
+
 2006-10-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* runtime/lket/b2a/lket_b2a.c: Add several missing #ifdef HAS_MYSQL.

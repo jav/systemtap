@@ -20,6 +20,25 @@
  * @{
  */
 
+/* Lookup the kernel address for this symbol. Returns 0 if not found. */
+static unsigned long _stp_kallsyms_lookup_name(const char *name)
+{
+	struct stap_symbol *s = &stap_symbols[0];
+	unsigned num = stap_num_symbols;
+
+	/* Warning: Linear search. If this function ends up being used in */
+	/* time-critical places, maybe we need to create a new symbol table */
+	/* sorted by name. */
+
+	while (num--) {
+		if ((strcmp(name, s->symbol) == 0) && (strcmp(s->modname,"") == 0))
+			return s->addr;
+		s++;
+	}
+
+	return 0;
+}
+
 static const char * _stp_kallsyms_lookup (
 	unsigned long addr,
 	unsigned long *symbolsize,
@@ -80,7 +99,7 @@ String _stp_symbol_sprint (String str, unsigned long address)
 
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
 
-	_stp_sprintf (str, "0x%lx", address);
+	_stp_sprintf (str, "%p", (void *)address);
 
 	if (name) {		
 		if (modname)
@@ -119,13 +138,13 @@ const char *_stp_symbol_sprint_basic (char *str, size_t len, unsigned long addre
     if (len > KSYM_NAME_LEN) {
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, str);
         if (!name)
-            snprintf(str, len, "0x%lx", address);
+		snprintf(str, len, "%p", (void *)address);
     } else {
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
         if (name)
             strlcpy(str, namebuf, len);
         else
-            snprintf(str, len, "0x%lx", address);
+		snprintf(str, len, "%p", (void *)address);
     }
 
     return str;
