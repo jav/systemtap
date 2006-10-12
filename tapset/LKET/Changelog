@@ -1,3 +1,11 @@
+2006-10-12  Li Guanglei <guanglei@cn.ibm.com>
+	* hookid_defs.stp, ioscheduler.stp, register_event.stp:
+	break the old addevent.ioscheduler.elv_next_request into
+	addevent.ioscheduler.elv_next_request.entry and
+	addevent.ioscheduler.elv_next_request.return.
+	Now log_ioscheduler_tracedata_* will use the 
+	variables defined in generic ioscheduler tapset
+
 2006-10-11  Li Guanglei <guanglei@cn.ibm.com>
 
 	* aio.stp, nfs.stp, nfs_proc.stp, nfsd.stp, process.stp:

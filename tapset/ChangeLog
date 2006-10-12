@@ -1,3 +1,6 @@
+2006-10-12  Li Guanglei <guanglei@cn.ibm.com>
+	* ioscheduler.stp: bugfix to avoid refer to NULL pointer
+
 2006-10-11  Li Guanglei <guanglei@cn.ibm.com>
 	* nfs.stp, nfsd.stp: bugfix of pointer conversion on
 	32-bit platform.

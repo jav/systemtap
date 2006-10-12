@@ -176,9 +176,14 @@ function register_sys_events()
 	register_sys_event("addevent.process.fork", GROUP_PROCESS, HOOKID_PROCESS_FORK,
 		"INT32:INT32:INT32", "tid:pid:ppid")
 
-	register_sys_event("addevent.ioscheduler.elv_next_request",
-		GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ,
-		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
+	register_sys_event("addevent.ioscheduler.elv_next_request.entry",
+		GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ_ENTRY,
+		"STRING", "elv_name")
+	register_sys_event("addevent.ioscheduler.elv_next_request.return",
+		GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ_RETURN,
+		"INT8:INT8:INT64:INT64", "major:minor:req_addr:req_flags")
+
+
 	register_sys_event("addevent.ioscheduler.elv_add_request",
 		GROUP_IOSCHED, HOOKID_IOSCHED_ADD_REQ,
 		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
