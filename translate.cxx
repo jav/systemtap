@@ -823,6 +823,7 @@ c_unparser::emit_common_header ()
   // See c_unparser::visit_statement()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
+  o->newline() << "struct kretprobe_instance *pi;";
   o->newline() << "union {";
   o->indent(1);
 
@@ -3679,7 +3680,7 @@ emit_symbol_data (systemtap_session& s)
   // excessive penalty of i18n code in some glibc/coreutils versions.
 
   string sorted_kallsyms = s.tmpdir + "/symbols.sorted";
-  string sortcmd = "grep \" [tT] \" /proc/kallsyms | ";
+  string sortcmd = "grep \" [AtT] \" /proc/kallsyms | ";
  
   sortcmd += "sort ";
 #if __LP64__
@@ -3717,7 +3718,7 @@ emit_symbol_data (systemtap_session& s)
 	    }
 	  
 	  // NB: kallsyms includes some duplicate addresses
-	  if ((type == "t" || type == "T") && lastaddr != addr)
+	  if ((type == "t" || type == "T" || type == "A") && lastaddr != addr)
 	    {
 	      kallsyms_out << "  { 0x" << addr << ", "
                            << "\"" << sym << "\", "
@@ -3872,6 +3873,7 @@ translate_pass (systemtap_session& s)
     }
 
   rc |= emit_symbol_data (s);
+
   s.op->line() << "\n";
 
   delete s.op;

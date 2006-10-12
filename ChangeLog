@@ -1,3 +1,15 @@
+2006-10-12  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (emit_common_header): Add a 
+	kretprobe_instance pointer to struct context.
+	(emit_symbol_data): Include absolute symbols.
+
+	* tapsets.cxx (emit_common_header): Initialize
+	the kprobe instance pointer to 0;
+	(emit_probe_entries): Set kretprobe instance
+	pointer if appropriate.
+
+
 2006-10-11  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (in_kprobes_function): New function that looks up

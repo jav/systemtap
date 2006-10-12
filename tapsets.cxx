@@ -164,6 +164,7 @@ derived_probe::emit_common_header (translator_output* o)
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
+  o->newline() << "c->pi = 0;";
   o->newline() << "c->actioncount = 0;";
   o->newline() << "return c;";
   o->newline(-1) << "}";
@@ -3616,6 +3617,8 @@ dwarf_derived_probe::emit_probe_entries (translator_output* o)
 		 << "[ (probe_instance - &(" << probe_array << "[0]))];";
   emit_probe_prologue (o, "STAP_SESSION_RUNNING");
   o->newline() << "c->regs = regs;";
+  if (has_return)
+    o->newline() << "c->pi = probe_instance;";    
 
   // NB: locals are initialized by probe function itself
   o->newline() << name << " (c);";
