@@ -18,12 +18,6 @@
  */
 
 /** @addtogroup stack Stack Tracing Functions
- * Without frames the best that can be done here is to scan the stack and
- * display everything that fits in the range of a valid IP. Things like function pointers
- * on the stack will certainly result in bogus addresses in the backtrace.
- *
- * With debug info, we could get a proper backtrace, but it would be too slow to do
- * during a probe.  We can eventually make this a postprocessing feature.
  *
  * @{
  */
