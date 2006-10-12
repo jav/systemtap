@@ -15,7 +15,7 @@ function print_regs () %{
 
 function print_backtrace () %{
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs);
+		_stp_stack_print(CONTEXT->regs, CONTEXT->pi);
 	}
 %}
 
@@ -24,7 +24,7 @@ function backtrace:string () %{ /* pure */
                 /* XXX: this won't be necessary when runtime and translator */
 		/* agree on what a string is. */
 		String str = _stp_string_init (0);
-		_stp_stack_sprint (str, CONTEXT->regs, 0);	
+		_stp_stack_sprint (str, CONTEXT->regs, 0, CONTEXT->pi);	
 		strlcpy (THIS->__retvalue, _stp_string_ptr(str), MAXSTRINGLEN);
 	} else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
@@ -136,11 +136,10 @@ function probemod:string () %{ /* pure */
 %}
 
 function is_return:long () %{ /* pure */
-	char *ptr = strrchr(CONTEXT->probe_point, '.');
-	if (ptr) {
-		if (strcmp(ptr+1,"return") == 0)
-			THIS->__retvalue = 1;
-	}
+	if (CONTEXT->pi)
+		THIS->__retvalue = 1;
+	else	
+		THIS->__retvalue = 0;	
 %}
 
 function target:long () %{ /* pure */
@@ -149,4 +148,40 @@ function target:long () %{ /* pure */
 
 function stp_pid:long () %{ /* pure */
         THIS->__retvalue = _stp_pid;
+%}
+
+# return the size of the stack
+function stack_size:long () %{ /* pure */
+        THIS->__retvalue = THREAD_SIZE;
+%}
+
+# return how many bytes are currently used in the stack
+function stack_used:long () %{ /* pure */
+	char a;
+        THIS->__retvalue = THREAD_SIZE - ((long)&a & (THREAD_SIZE-1));
+%}
+
+# return how many bytes are currently unused in the stack
+function stack_unused:long () %{ /* pure */
+	char a;
+        THIS->__retvalue = (long)&a & (THREAD_SIZE-1);
+%}
+
+# Return the address of the calling function. Works only for
+# return probes at this time.
+function caller_addr () %{ /* pure */
+        if (CONTEXT->pi)
+		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
+        else
+		THIS->__retvalue = 0;
+%}
+
+# Return the address and name of the calling function. Works 
+# only for return probes at this time.
+function caller:string() %{ /* pure */
+        if (CONTEXT->pi) 
+		_stp_symbol_sprint_basic( THIS->__retvalue, MAXSTRINGLEN, 
+			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
+        else
+		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);
 %}

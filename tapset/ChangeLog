@@ -1,3 +1,14 @@
+2006-10-12  Martin Hunt  <hunt@redhat.com>
+	* context.stp (print_backtrace): Pass in new
+	kretprobe instance arg.
+	(backtrace): Ditto.
+	(is_return): Rewrite.
+	(stack_size): New.
+	(stack_used): New.
+	(stack_unused): New.
+	(called_addr): New.
+	(caller): New.	
+
 2006-10-12  Li Guanglei <guanglei@cn.ibm.com>
 	* ioscheduler.stp: bugfix to avoid refer to NULL pointer
 
