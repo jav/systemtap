@@ -11,9 +11,9 @@ static void __stp_stack_sprint (String str, struct pt_regs *regs, int verbose, i
 {
 	unsigned long ip, newsp, lr = 0;
 	int count = 0;
-	unsigned long sp = (unsigned long)_sp;
 	int firstframe = 1;
 	unsigned long *_sp = (unsigned long *)&REG_SP(regs);	
+	unsigned long sp = (unsigned long)_sp;
 	lr = 0;
 	do {
 		if (sp < KERNELBASE)

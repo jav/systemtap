@@ -1,5 +1,9 @@
 2006-10-12  Martin Hunt  <hunt@redhat.com>
 
+	* stack-ppc64.c (__stp_stack_sprint): Declare sp before _sp.
+
+2006-10-12  Martin Hunt  <hunt@redhat.com>
+	
 	* stack.c: Reorganize and split arch-specific functions to
 	separate files.
 	(_stp_kta): Better checking.
