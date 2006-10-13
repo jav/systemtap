@@ -198,18 +198,20 @@ function register_sys_events()
 		"INT32", "cur_pid")
 
 	register_sys_event("addevent.scsi.ioentry", GROUP_SCSI, HOOKID_SCSI_IOENTRY,
-		"INT8:INT8:INT8:INT64", "major:minor:sdev_state:request")
+		"INT8:INT8:INT8:INT64", "major:minor:sdev_state:request_addr")
 
 	register_sys_event("addevent.scsi.iodispatching", GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
-		"INT8:INT32:INT8:INT64:INT32:INT64:INT64",
-		"sdev_state:scsi_info:data_dir:req_buff:buf_len:cmd_id:request")
+		"INT8:INT8:INT8:INT8:INT8:INT8:INT64:INT32:INT64",
+		"host:channel:lun:dev_id:dev_state:data_dir:reqbuf_addr:reqbuf_len:request_addr")
 
 	register_sys_event("addevent.scsi.iodone", GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
-		"INT32:INT8:INT64:INT64", "scsi_info:data_dir:cmd_id:request")
+		"INT8:INT8:INT8:INT8:INT8:INT8:INT64", 
+		"host:channel:lun:dev_id:dev_state:data_dir:request_addr")
 
 	register_sys_event("addevent.scsi.iocompleted", 
 		GROUP_SCSI, HOOKID_SCSI_IOCOMP_BY_MIDLEVEL,
-		"INT32:INT8:INT64:INT32:INT64", "scsi_info:data_dir:cmd_id:bytes:request");
+		"INT8:INT8:INT8:INT8:INT8:INT8:INT64:INT32", 
+		"host:channel:lun:dev_id:dev_state:data_dir:request_addr:done_bytes")
 
 	register_sys_event("addevent.pagefault", GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
 		"INT64:INT8", "addr:write")

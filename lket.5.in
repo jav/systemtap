@@ -52,7 +52,7 @@ Each event hook group is a collection of those hooks that have
 similarities of what they could trace. And the ID of each event hook (HookID)
 is defined in the context of its corresponding group.
 
-.SS EVENT REGISTER (GROUPID=1)
+.SS EVENT REGISTER 
 Event register is not actually an event. It is used to log the 
 metadata of the trace data, including the extra trace data appended by user.
 See
@@ -63,39 +63,39 @@ for more details.
 
 .P
 .TP
-.B register_sys_event(HOOKID=1)
+.B register_sys_event
 This is a function used to register event hooks available in LKET. 
 It should be called from register_event.stp:register_sys_events().
 
 .TP
-.B register_user_event(HOOKID=2)
+.B register_user_event
 This is a function used to log the metadata of the extra
 trace data appended by user for a specific event.
 It should be called in the probe
 .I register_event
 
-.SS SYSTEM CALLS (GROUPID=2)
+.SS SYSTEM CALLS 
 You could use 
 .I addevent.syscall
 to trace the entry and return of all system calls.
 It contains two sub event hooks:
 .P
 .TP
-.B addevent.syscall.entry (HOOKID=1)
+.B addevent.syscall.entry 
 Trace entry of all system calls. 
 
 Data format is:
 
 .I common_data, syscall_name(STRING)
 .TP
-.B addevent.syscall.return (HOOKID=2)
+.B addevent.syscall.return 
 Trace return of all system calls. 
 
 Data format is:
 
 .I common_data, syscall_name(STRING)
 
-.SS PROCESS CREATION (GROUPID=3)
+.SS PROCESS CREATION 
 This group contains three sub event hooks.
 You could use
 .I addevent.process
@@ -103,7 +103,7 @@ to trace fork and execve of processes(note that process_snapshot()
 won't be included).
 .P
 .TP
-.B process_snapshot()(HOOKID=1)
+.B process_snapshot()
 This event hook isn't a probe definition but a function. It is called
 by LKET silently to take a snapshot of all running processes.
 
@@ -113,139 +113,139 @@ Data format is:
 
 .P
 .TP
-.B addevent.process.fork (HOOKID=2)
+.B addevent.process.fork 
 Trace fork of processes
 
 Data format is:
 
 .I common_data, new_tid(INT32), new_pid(INT32), ppid(INT32)
 .TP
-.B addevent.process.execve (HOOKID=3)
+.B addevent.process.execve 
 Trace execve of new processes
 
 Data format is:
 
 .I common_data, pid(INT32), new_process_name(STRING)
 
-.SS IO SCHEDULER ACTIVITIES (GROUPID=4)
+.SS IO SCHEDULER ACTIVITIES 
 You could use
 .I addevent.ioscheduler
 to trace the IO scheduler activities. It contains three sub event hooks:
 .P
 .TP
-.B addevent.ioscheduler.elv_add_request (HOOKID=1)
+.B addevent.ioscheduler.elv_add_request 
 Trace when a request is added to the request queue
 
 Data format is:
 
 .I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
-.I request(INT64), request_flags(INT64)
+.I request_addr(INT64), request_flags(INT64)
 .TP
-.B addevent.ioscheduler.elv_next_request (HOOKID=2)
-Trace when a request is retrieved from request queue
+.B addevent.ioscheduler.elv_next_request.entry 
+Trace when try to retrieve a request from request queue
 
 Data format is:
 
-.I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
-.I request(INT64), request_flags(INT64)
+.I common_data, elevator_name(STRING)
 
 .TP
-.B addevent.ioscheduler.elv_completed_request (HOOKID=3)
+.B addevent.ioscheduler.elv_next_request.return
+Trace when return from retrieving a request from request queue
+
+Data format is:
+
+.I common_data, disk_major(INT8), disk_minor(INT8), 
+.I request_addr(INT64), request_flags(INT64)
+
+.TP
+.B addevent.ioscheduler.elv_completed_request 
 Trace when a request is completed
 
 Data format is:
 
 .I common_data, elevator_name(STRING), disk_major(INT8), disk_minor(INT8), 
-.I request(INT64), request_flags(INT64)
+.I request_addr(INT64), request_flags(INT64)
 
-.SS TASK SCHEDULE ACTIVITIES (GROUPID=5)
+.SS TASK SCHEDULE ACTIVITIES 
 You could use
 .I addevent.tskdispatch
 to trace the task scheduler activities. It contains two sub event hooks:
 .P
 .TP
-.B addevent.tskdispatch.ctxswitch (HOOKID=1)
+.B addevent.tskdispatch.ctxswitch 
 Trace the process context switch
 
 Data format is:
 
 .I common_data, prev_pid(INT32), next_pid(INT32), prev_state(INT8)
 .TP
-.B addevent.tskdispatch.cpuidle (HOOKID=2)
+.B addevent.tskdispatch.cpuidle 
 Trace when cpu goes idle
 
 Data format is:
 
 .I common_data, current_pid(INT32)
 
-.SS SCSI ACTIVITIES (GROUPID=6)
+.SS SCSI ACTIVITIES 
 You could use
 .I addevent.scsi
 to trace the scsi layer activities. It contains four sub event hooks:
 .P
 .TP
-.B addevent.scsi.ioentry (HOOKID=1)
+.B addevent.scsi.ioentry 
 mid-layer prepares a IO request
 
 Data format is:
 
-.I common_data, disk_major(INT8), disk_minor(INT8), device_state(INT8), request(INT64)
+.I common_data, disk_major(INT8), disk_minor(INT8), device_state(INT8), request_addr(INT64)
 .TP
-.B addevent.scsi.iodispatching (HOOKID=2)
+.B addevent.scsi.iodispatching 
 Dispatch a command to the low-level driver
 
 Data format is:
 
-.I common_data, device_state(INT8), scsi_info(INT32), data_direction(INT8), 
-.I reqbuf_addr(INT64), reqbuf_len(INT32), cmd_identifier(INT64), request(INT64)
-
-Where 
-.I scsi_info
-is the combination of:
-
-.SAMPLE
-((cmd\->device\->host\->host_no & 0xFF) << 24) |
-((cmd\->device\->channel & 0xFF) << 16) |
-((cmd\->device\->lun & 0xFF) << 8) |
-(cmd\->device\->id & 0xFF)
-.ESAMPLE
+.I common_data, host(INT8), channel(INT8), lun(INT8), dev_id(INT8), 
+.I device_state(INT8), data_direction(INT8), reqbuf_addr(INT64),
+.I reqbuf_len(INT32), request_addr(INT64)
 
 .TP
-.B addevent.scsi.iodone (HOOKID=3)
+.B addevent.scsi.iodone 
 I/O is done by low-level driver
 
 Data format is:
 
-.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64), 
-.I request(INT64)
+.I common_data, host(INT8), channel(INT8), lun(INT8), dev_id(INT8), 
+.I device_state(INT8), data_direction(INT8), request_addr(INT64)
+
 .TP
-.B addevent.scsi.iocompleted (HOOKID=4)
+.B addevent.scsi.iocompleted 
 mid-layer processed the completed IO
 
 Data format is:
 
-.I common_data, scsi_info(INT32), data_direction(INT8), cmd_identifier(INT64),
-.I bytes_done(INT32), request(INT64)
+.I common_data, host(INT8), channel(INT8), lun(INT8), dev_id(INT8), 
+.I device_state(INT8), data_direction(INT8), request_addr(INT64),
+.I bytes_done(INT32)
 
-.SS PAGE FAULT (GROUPID=7)
+.SS PAGE FAULT 
 You could use 
 .I addevent.pagefault
 to trace page fault events. It contains only one sub event hooks:
 .P
 .TP
-.B addevent.pagefault (HOOKID=1)
+.B addevent.pagefault 
 
 Data format is:
 
 .I common_data, memory_address(INT64), write_access(INT8)
 
-.SS NETWORK DEVICE ACTIVITIES (GROUPID=8)
+.SS NETWORK DEVICE ACTIVITIES 
 You could use
 .I addevent.netdev
 to trace the network device  activities. It contains two sub event hooks:
 .P
 .TP
-.B addevent.netdev.receive (HOOKID=1)
+.B addevent.netdev.receive 
 network device receives a packet
 
 Data format is:
@@ -254,7 +254,7 @@ Data format is:
 .I buffer_length(INT32)
 
 .TP
-.BR addevent.netdev.transmit (HOOKID=2)
+.BR addevent.netdev.transmit 
 A packet will be sent out by network device
 
 Data format is:
@@ -263,7 +263,7 @@ Data format is:
 .I buffer_length(INT32)
 
 
-.SS IO SYSCALLS (GROUPID=9)
+.SS IO SYSCALLS 
 You could use
 .I addevent.iosyscall
 to trace the detail activities of io related system calls. 
@@ -276,7 +276,7 @@ hooks will be listed:
 
 .P
 .TP
-.B addevent.iosyscall.open.entry (HOOKID=1)
+.B addevent.iosyscall.open.entry 
 the entry of sys_open
 
 Data format is:
@@ -284,7 +284,7 @@ Data format is:
 .I common_data, filename(STRING), flags(INT32), mode(INT32)
 
 .TP
-.B addevent.iosyscall.close.entry (HOOKID=3)
+.B addevent.iosyscall.close.entry 
 the entry of sys_close
 
 Data format is:
@@ -292,7 +292,7 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.read.entry (HOOKID=5)
+.B addevent.iosyscall.read.entry 
 the entry of sys_read
 
 Data format is:
@@ -300,7 +300,7 @@ Data format is:
 .I common_data, fd(INT64), buf_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.write.entry (HOOKID=7)
+.B addevent.iosyscall.write.entry 
 the entry of sys_write
 
 Data format is:
@@ -308,7 +308,7 @@ Data format is:
 .I common_data, fd(INT64), buf_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.readv.entry (HOOKID=9)
+.B addevent.iosyscall.readv.entry 
 the entry of sys_readv
 
 Data format is:
@@ -316,7 +316,7 @@ Data format is:
 .I common_data, fd(INT64), vector_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.writev.entry (HOOKID=11)
+.B addevent.iosyscall.writev.entry 
 the entry of sys_writev
 
 Data format is:
@@ -324,7 +324,7 @@ Data format is:
 .I common_data, fd(INT64), vector_addr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.pread64.entry (HOOKID=13)
+.B addevent.iosyscall.pread64.entry 
 the entry of sys_pread64
 
 Data format is:
@@ -332,7 +332,7 @@ Data format is:
 .I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
 
 .TP
-.B addevent.iosyscall.pwrite64.entry (HOOKID=15)
+.B addevent.iosyscall.pwrite64.entry 
 the entry of sys_pwrite64
 
 Data format is:
@@ -340,7 +340,7 @@ Data format is:
 .I common_data, fd(INT64), buff_addr(INT64), count(INT64), offset(INT64)
 
 .TP
-.B addevent.iosyscall.readahead.entry (HOOKID=17)
+.B addevent.iosyscall.readahead.entry 
 the entry of sys_readahead
 
 Data format is:
@@ -348,7 +348,7 @@ Data format is:
 .I common_data, fd(INT64), offset(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.senfile.entry (HOOKID=19)
+.B addevent.iosyscall.senfile.entry 
 the entry of sys_sendfile and sys_sendfile64
 
 Data format is:
@@ -356,7 +356,7 @@ Data format is:
 .I common_data, out_fd(INT64), in_fd(INT64), offset_uaddr(INT64), count(INT64)
 
 .TP
-.B addevent.iosyscall.lseek.entry (HOOKID=21)
+.B addevent.iosyscall.lseek.entry 
 the entry of sys_lseek
 
 Data format is:
@@ -364,7 +364,7 @@ Data format is:
 .I common_data, fd(INT64), offset(INT64), whence(INT8)
 
 .TP
-.B addevent.iosyscall.llseek.entry (HOOKID=23)
+.B addevent.iosyscall.llseek.entry 
 the entry of sys_llseek
 
 Data format is:
@@ -373,7 +373,7 @@ Data format is:
 .I result_addr(INT64), whence(INT8)
 
 .TP
-.B addevent.iosyscall.sync.entry (HOOKID=25)
+.B addevent.iosyscall.sync.entry 
 the entry of sys_sync
 
 Data format is:
@@ -381,7 +381,7 @@ Data format is:
 .I common_data
 
 .TP
-.B addevent.iosyscall.fsync.entry (HOOKID=27)
+.B addevent.iosyscall.fsync.entry 
 the entry of sys_fsync
 
 Data format is:
@@ -389,7 +389,7 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.fdatasync.entry (HOOKID=29)
+.B addevent.iosyscall.fdatasync.entry 
 the entry of sys_fdatasync
 
 Data format is:
@@ -397,14 +397,14 @@ Data format is:
 .I common_data, fd(INT64)
 
 .TP
-.B addevent.iosyscall.flock.entry (HOOKID=31)
+.B addevent.iosyscall.flock.entry 
 the entry of sys_flock
 
 Data format is:
 
 .I common_data, fd(INT64), operation(INT32)
 
-.SS Asynchronous IO (GROUPID=10)
+.SS Asynchronous IO 
 You could use
 .I addevent.aio
 to trace the detail activities of AIO related calls(most of them
@@ -417,7 +417,7 @@ hooks will be listed:
 
 .P
 .TP
-.B addevent.aio.io_setup.entry (HOOKID=1)
+.B addevent.aio.io_setup.entry 
 Fired by calling io_setup from user space. The corresponding
 system call is sys_io_setup, which will create an aio_context
 capable of receiving at least maxevents.
@@ -427,7 +427,7 @@ Data format is:
 .I common_data, nr_events(INT32), ctxp_uaddr(INT64)
 
 .TP
-.B addevent.aio.io_submit.entry (HOOKID=3)
+.B addevent.aio.io_submit.entry 
 Fired by calling io_submit from user space. The corresponding
 system call is sys_io_submit which will queue the nr iocbs 
 pointed to by iocbpp_uaddr for processing.
@@ -437,7 +437,7 @@ Data format is:
 .I common_data, ctx_id(INT64), nr(INT32), iocbpp_uaddr(INT64)
 
 .TP
-.B addevent.aio.io_submit_one.entry (HOOKID=5)
+.B addevent.aio.io_submit_one.entry 
 Called by sys_io_submit. It will iterate iocbpp and process them
 one by one
 
@@ -448,7 +448,7 @@ Data format is:
 .I aio_offset(INT64)
 
 .TP
-.B addevent.aio.io_getevents.entry (HOOKID=7)
+.B addevent.aio.io_getevents.entry 
 Fired by calling io_getevents from user space. The corresponding
 system call is sys_io_getevents, which will attempt to
 read at least min_nr events and up to nr events from  the completion
@@ -460,7 +460,7 @@ Data format is:
 .I tv_sec(INT32), tv_nsec(INT32)
 
 .TP
-.B addevent.aio.io_destroy.entry (HOOKID=9)
+.B addevent.aio.io_destroy.entry 
 Fired by calling io_destroy from user space. The corresponding
 system call is sys_io_destroy, which will destroy
 the aio_context specified.
@@ -470,7 +470,7 @@ Data format is:
 .I common_data, ctx(INT64)
 
 .TP
-.B addevent.aio.io_cancel.entry (HOOKID=11)
+.B addevent.aio.io_cancel.entry 
 Fired by calling io_cancel from user space. The corresponding
 system call is sys_io_cancel, which will attempt to cancel an 
 iocb previously passed to io_submit.
@@ -479,7 +479,7 @@ Data format is:
 
 .I common_data, ctx_id(INT64), iocb_uaddr(INT64), result_uaddr(INT64)
 
-.SS SUNRPC(GROUPID=12)
+.SS SUNRPC
 You could use
 .I addevent.sunrpc
 to trace the details of SUNRPC activities. It is now divided into three
@@ -493,7 +493,7 @@ So in the following subsections, only the entry hooks will be listed:
 
 .P
 .TP
-.B addevent.sunrpc.clnt.create_client.entry (HOOKID=1)
+.B addevent.sunrpc.clnt.create_client.entry 
 Fires when an RPC client is to be created
 
 Data format is:
@@ -502,7 +502,7 @@ Data format is:
 .I prot(INT16), port(INT16), authflavor(INT8)
 
 .TP
-.B addevent.sunrpc.clnt.clone_client.entry (HOOKID=3)
+.B addevent.sunrpc.clnt.clone_client.entry 
 Fires when the RPC client structure is to be cloned
 
 Data format is:
@@ -511,7 +511,7 @@ Data format is:
 .I prot(INT16), port(INT16), authflavor(INT8)
 
 .TP
-.B addevent.sunrpc.clnt.shutdown_client.entry (HOOKID=5)
+.B addevent.sunrpc.clnt.shutdown_client.entry 
 Fires when an RPC client is to be shut down
 
 Data format is:
@@ -520,7 +520,7 @@ Data format is:
 .I tasks(INT16), rpccnt(INT32)
 
 .TP
-.B addevent.sunrpc.clnt.bind_new_program.entry (HOOKID=7)
+.B addevent.sunrpc.clnt.bind_new_program.entry 
 Fires when a new RPC program is to be bound an existing client
 
 Data format is:
@@ -529,7 +529,7 @@ Data format is:
 .I prog(INT64), vers(INT8)
 
 .TP
-.B addevent.sunrpc.clnt.call_sync.entry (HOOKID=9)
+.B addevent.sunrpc.clnt.call_sync.entry 
 Fires when an RPC procedure is to be called synchronously
 
 Data format is:
@@ -538,7 +538,7 @@ Data format is:
 .I proc(INT64), flags(INT64) 
 
 .TP
-.B addevent.sunrpc.clnt.call_async.entry (HOOKID=11)
+.B addevent.sunrpc.clnt.call_async.entry 
 Fires when an RPC procedure is to be called asynchronously
 
 Data format is:
@@ -547,7 +547,7 @@ Data format is:
 .I proc(INT64), flags(INT64) 
 
 .TP
-.B addevent.sunrpc.clnt.restart_call.entry (HOOKID=13)
+.B addevent.sunrpc.clnt.restart_call.entry 
 Fires when want to restart a task
 
 Data format is:
@@ -555,7 +555,7 @@ Data format is:
 .I common_data, tk_pid(INT64), tk_flags(INT64)
 
 .TP
-.B addevent.sunrpc.svc.register.entry (HOOKID=33)
+.B addevent.sunrpc.svc.register.entry 
 Fires when an RPC service is to be registered with the local
 portmapper
 
@@ -565,7 +565,7 @@ Data format is:
 .I port(INT32)
 
 .TP
-.B addevent.sunrpc.svc.create.entry (HOOKID=35)
+.B addevent.sunrpc.svc.create.entry 
 Fires when an RPC service is to be created
 
 Data format is:
@@ -573,7 +573,7 @@ Data format is:
 .I common_data, prog(INT64), pg_nvers(INT8), bufsize(INT32)
 
 .TP
-.B addevent.sunrpc.svc.destroy.entry (HOOKID=37)
+.B addevent.sunrpc.svc.destroy.entry 
 Fires when an RPC service is to be destroyed
 
 Data format is:
@@ -581,7 +581,7 @@ Data format is:
 .I common_data, sv_name(STRING), sv_prog(INT64), sv_nrthreads(INT32)
 
 .TP
-.B addevent.sunrpc.svc.process.entry (HOOKID=39)
+.B addevent.sunrpc.svc.process.entry 
 Fires when an RPC request is to be processed
 
 Data format is:
@@ -590,7 +590,7 @@ Data format is:
 .I rq_xid(INT64), rq_prog(INT64), rq_vers(INT8), rq_proc(INT8)
 
 .TP
-.B addevent.sunrpc.svc.authorise.entry (HOOKID=41)
+.B addevent.sunrpc.svc.authorise.entry 
 Fires when an RPC request is to be authorised
 
 Data format is:
@@ -599,7 +599,7 @@ Data format is:
 .I rq_prog(INT64), rq_vers(INT8), rq_proc(INT64)
 
 .TP
-.B addevent.sunrpc.svc.recv.entry (HOOKID=43)
+.B addevent.sunrpc.svc.recv.entry 
 Fires when receiving the next request on any socket
 
 Data format is:
@@ -607,7 +607,7 @@ Data format is:
 .I common_data, sv_name(STRING), timeout(INT64)
 
 .TP
-.B addevent.sunrpc.svc.send.entry (HOOKID=45)
+.B addevent.sunrpc.svc.send.entry 
 Fires when want to return reply to the client
 
 Data format is:
@@ -616,7 +616,7 @@ Data format is:
 .I rq_vers(INT8), rq_proc(INT64)
 
 .TP
-.B addevent.sunrpc.svc.drop.entry (HOOKID=47)
+.B addevent.sunrpc.svc.drop.entry 
 Fires when a request is to be dropped
 
 Data format is:
@@ -625,7 +625,7 @@ Data format is:
 .I rq_prog(INT64), rq_vers(INT8), rq_proc(INT64)
 
 .TP
-.B addevent.sunrpc.sched.new_task.entry (HOOKID=65)
+.B addevent.sunrpc.sched.new_task.entry 
 Fires when creating a new task for the specified client
 
 Data format is:
@@ -634,7 +634,7 @@ Data format is:
 .I flags(INT64)
 
 .TP
-.B addevent.sunrpc.sched.release_task.entry (HOOKID=67)
+.B addevent.sunrpc.sched.release_task.entry 
 Fires when releasing a task
 
 Data format is:
@@ -643,7 +643,7 @@ Data format is:
 .I flags(INT64)
 
 .TP
-.B addevent.sunrpc.sched.execute.entry (HOOKID=69)
+.B addevent.sunrpc.sched.execute.entry 
 Fires when an RPC request is to be executed
 
 Data format is:
@@ -652,7 +652,7 @@ Data format is:
 .I tk_pid(INT64), tk_flags(INT64)
 
 .TP
-.B addevent.sunrpc.sched.delay.entry (HOOKID=71)
+.B addevent.sunrpc.sched.delay.entry 
 Fires when want to delay an RPC request
 
 Data format is:
@@ -660,7 +660,7 @@ Data format is:
 .I common_data, xid(INT64), prog(INT64), tk_pid(INT64),
 .I tk_flags(INT64), delay(INT64)
 
-.SS NFS (GROUPID=16)
+.SS NFS 
 You could use
 .I addevent.nfs
 to trace the detail activities of nfs on client side. 
@@ -674,7 +674,7 @@ hooks will be listed:
 
 .P
 .TP
-.B addevent.nfs.fop.llseek.entry (HOOKID=1)
+.B addevent.nfs.fop.llseek.entry 
 the entry of nfs_file_llseek 
 
 Data format is:
@@ -683,7 +683,7 @@ Data format is:
 .I offset(INT32), origin(INR8)
 
 .TP
-.B addevent.nfs.fop.read.entry (HOOKID=3)
+.B addevent.nfs.fop.read.entry 
 the entry of do_sync_read 
 
 Data format is:
@@ -692,7 +692,7 @@ Data format is:
 .I buf_addr(INT64), count(INT64) , offset(INT64)
 
 .TP
-.B addevent.nfs.fop.write.entry (HOOKID=5)
+.B addevent.nfs.fop.write.entry 
 the entry of do_sync_write
 
 Data format is:
@@ -701,7 +701,7 @@ Data format is:
 .I buf_addr(INT64), count(INT64) , offset(INT64)
 
 .TP
-.B addevent.nfs.fop.aio_read.entry (HOOKID=7)
+.B addevent.nfs.fop.aio_read.entry 
 the entry of nfs_file_read 
 
 Data format is:
@@ -710,7 +710,7 @@ Data format is:
 .I buf_addr(INT64), count(INT64) , offset(INT64)
 
 .TP
-.B addevent.nfs.fop.aio_write.entry (HOOKID=9)
+.B addevent.nfs.fop.aio_write.entry 
 the entry of nfs_file_read 
 
 Data format is:
@@ -719,7 +719,7 @@ Data format is:
 .I buf_addr(INT64), count(INT64) , offset(INT64)
 
 .TP
-.B addevent.nfs.fop.mmap.entry (HOOKID=11)
+.B addevent.nfs.fop.mmap.entry 
 the entry of nfs_file_mmap
 
 Data format is:
@@ -728,7 +728,7 @@ Data format is:
 .I vm_start(INT64), vm_end(INT64) , vm_flags(INT32)
 
 .TP
-.B addevent.nfs.fop.open.entry (HOOKID=13)
+.B addevent.nfs.fop.open.entry 
 the entry of nfs_file_open
 
 Data format is:
@@ -737,7 +737,7 @@ Data format is:
 .I flag(INT32), filename(STRING)
 
 .TP
-.B addevent.nfs.fop.flush.entry (HOOKID=15)
+.B addevent.nfs.fop.flush.entry 
 the entry of nfs_file_flush
 
 Data format is:
@@ -746,7 +746,7 @@ Data format is:
 .I ndirty(INT32)
 
 .TP
-.B addevent.nfs.fop.release.entry (HOOKID=17)
+.B addevent.nfs.fop.release.entry 
 the entry of nfs_file_release
 
 Data format is:
@@ -755,7 +755,7 @@ Data format is:
 .I mode(INT16)
 
 .TP
-.B addevent.nfs.fop.fsync.entry (HOOKID=19)
+.B addevent.nfs.fop.fsync.entry 
 the entry of nfs_fsync
 
 Data format is:
@@ -764,7 +764,7 @@ Data format is:
 .I ndirty(INT32)
 
 .TP
-.B addevent.nfs.fop.lock.entry (HOOKID= 21)
+.B addevent.nfs.fop.lock.entry 
 the entry of nfs_lock
 
 Data format is:
@@ -773,7 +773,7 @@ Data format is:
 .I fl_start(INT64), fl_end(INT64), fl_type(INT8), fl_flag(INT8), cmd(INT32)
 
 .TP
-.B addevent.nfs.fop.sendfile.entry (HOOKID= 23)
+.B addevent.nfs.fop.sendfile.entry 
 the entry of nfs_file_sendfile
 
 Data format is:
@@ -782,7 +782,7 @@ Data format is:
 .I count(INT64), ppos(INT64)
 
 .TP
-.B addevent.nfs.fop.checkflags.entry (HOOKID= 25)
+.B addevent.nfs.fop.checkflags.entry 
 the entry of nfs_check_flags
 
 Data format is:
@@ -790,7 +790,7 @@ Data format is:
 .I flag(INT32)
 
 .TP
-.B addevent.nfs.aop.readpage.entry (HOOKID= 27)
+.B addevent.nfs.aop.readpage.entry 
 the entry of nfs_readpage
 
 Data format is:
@@ -798,7 +798,7 @@ Data format is:
 .I fileid(INT64), rsize(INT32), page_address(INT64), page_index(INT64)
 
 .TP
-.B addevent.nfs.aop.readpages.entry (HOOKID= 29)
+.B addevent.nfs.aop.readpages.entry 
 the entry of nfs_readpages
 
 Data format is:
@@ -806,7 +806,7 @@ Data format is:
 .I fileid(INT64), rpages(INT32), nr_pages(INT32)
 
 .TP
-.B addevent.nfs.aop.writepage.entry (HOOKID= 31)
+.B addevent.nfs.aop.writepage.entry 
 the entry of nfs_writepage
 
 Data format is:
@@ -814,7 +814,7 @@ Data format is:
 .I fileid(INT64), wsize(INT32), page_address(INT64), page_index(INT64)
 
 .TP
-.B addevent.nfs.aop.writepages.entry (HOOKID= 33)
+.B addevent.nfs.aop.writepages.entry 
 the entry of nfs_writepages
 
 Data format is:
@@ -822,7 +822,7 @@ Data format is:
 .I fileid(INT64), wpages(INT32), nr_to_write(INT64)
 
 .TP
-.B addevent.nfs.aop.prepare_write.entry (HOOKID= 35)
+.B addevent.nfs.aop.prepare_write.entry 
 the entry of nfs_prepare_write
 
 Data format is:
@@ -830,7 +830,7 @@ Data format is:
 .I fileid(INT64), page_address(INT64), page_index(INT64)
 
 .TP
-.B addevent.nfs.aop.commit_write.entry (HOOKID= 37)
+.B addevent.nfs.aop.commit_write.entry 
 the entry of nfs_commit_write
 
 Data format is:
@@ -838,7 +838,7 @@ Data format is:
 .I fileid(INT64), page_address(INT64), page_index(INT64),offset(INT32),count(INT32)
 
 .TP
-.B addevent.nfs.aop.set_page_dirty.entry (HOOKID= 39)
+.B addevent.nfs.aop.set_page_dirty.entry 
 the entry of __set_page_dirty_nobuffers
 
 Data format is:
@@ -846,7 +846,7 @@ Data format is:
 .I page_address(INT64), page_flag(INT8)
 
 .TP
-.B addevent.nfs.aop.release_page.entry (HOOKID= 41)
+.B addevent.nfs.aop.release_page.entry 
 the entry of nfs_release_page 
 
 Data format is:
@@ -854,7 +854,7 @@ Data format is:
 .I page_address(INT64), page_index(INT64)
 
 .TP
-.B addevent.nfs.proc.lookup.entry (HOOKID= 43)
+.B addevent.nfs.proc.lookup.entry 
 the entry of nfs_proc_lookup , nfs3_proc_lookup and nfs4_proc_lookup
 
 Data format is:
@@ -863,7 +863,7 @@ Data format is:
 .I filename(STRING)
 
 .TP
-.B addevent.nfs.proc.read.entry (HOOKID= 45)
+.B addevent.nfs.proc.read.entry 
 the entry of nfs_proc_read, nfs3_proc_read and nfs4_proc_read
 
 Data format is:
@@ -872,7 +872,7 @@ Data format is:
 .I count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.write.entry (HOOKID= 47)
+.B addevent.nfs.proc.write.entry 
 the entry of nfs_proc_write, nfs3_proc_write and nfs4_proc_write
 
 Data format is:
@@ -881,7 +881,7 @@ Data format is:
 .I count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.commit.entry (HOOKID= 49)
+.B addevent.nfs.proc.commit.entry 
 Fires when client writes the buffered data to disk,the buffered data is asynchronously written by client before .
 The commit function works in sync way,not exist in NFSV2
 
@@ -893,7 +893,7 @@ Data format is:
 .I count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.read_setup.entry (HOOKID= 51)
+.B addevent.nfs.proc.read_setup.entry 
 The read_setup function is used to setup a read rpc task,not do a real read operation
 
 the entry of  nfs_proc_read_setup, nfs3_proc_read_setup and nfs4_proc_read_setup
@@ -904,7 +904,7 @@ Data format is:
 .I count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.write_setup.entry (HOOKID= 52)
+.B addevent.nfs.proc.write_setup.entry 
 The write_setup function is used to setup a write rpc task,not do a real write operation
 
 the entry of  nfs_proc_write_setup, nfs3_proc_write_setup and nfs4_proc_write_setup
@@ -915,7 +915,7 @@ Data format is:
 .I how(INT8), count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.commit_setup.entry (HOOKID= 53)
+.B addevent.nfs.proc.commit_setup.entry 
 The commit_setup function is used to setup a commit rpc task,not do a real commit operation.It is not exist in NFSV2
 
 the entry of nfs3_proc_commit_setup and nfs4_proc_commit_setup
@@ -926,7 +926,7 @@ Data format is:
 .I how(INT8), count(INT32),offset(INT64)
 
 .TP
-.B addevent.nfs.proc.read_done.entry (HOOKID= 54)
+.B addevent.nfs.proc.read_done.entry 
 Fires when a read reply is received or some read error occur (timeout or socket shutdown)
 
 the entry of nfs_read_done, nfs3_read_done and nfs4_read_done
@@ -937,7 +937,7 @@ Data format is:
 .I status(INT32), count(INT32)
 
 .TP
-.B addevent.nfs.proc.write_done.entry (HOOKID= 56)
+.B addevent.nfs.proc.write_done.entry 
 Fires when a write reply is received or some write error occur (timeout or socket shutdown)
 
 the entry of nfs_write_done, nfs3_write_done and nfs4_write_done
@@ -948,7 +948,7 @@ Data format is:
 .I status(INT32), count(INT32)
 
 .TP
-.B addevent.nfs.proc.commit_done.entry (HOOKID= 58)
+.B addevent.nfs.proc.commit_done.entry 
 Fires when a commit reply is received or some commit operation error occur (timeout or socket shutdown)
 
 the entry of nfs_commit_done, nfs3_commit_done and nfs4_commit_done
@@ -959,7 +959,7 @@ Data format is:
 .I status(INT32), count(INT32)
 
 .TP
-.B addevent.nfs.proc.open.entry (HOOKID= 60)
+.B addevent.nfs.proc.open.entry 
 the entry of nfs_open 
 
 Data format is:
@@ -968,7 +968,7 @@ Data format is:
 .I filename(STRING), flag(INT32), mode(INT32)
 
 .TP
-.B addevent.nfs.proc.release.entry (HOOKID= 62)
+.B addevent.nfs.proc.release.entry 
 the entry of nfs_release
 
 Data format is:
@@ -977,7 +977,7 @@ Data format is:
 .I filename(STRING), flag(INT32), mode(INT32)
 
 .TP
-.B addevent.nfs.proc.create.entry (HOOKID= 64)
+.B addevent.nfs.proc.create.entry 
 the entry of nfs_proc_create, nfs3_proc_create, nfs4_proc_create
 
 Data format is:
@@ -986,7 +986,7 @@ Data format is:
 .I filename(STRING), mode(INT32)
 
 .TP
-.B addevent.nfs.proc.rename.entry (HOOKID= 66)
+.B addevent.nfs.proc.rename.entry 
 the entry of nfs_proc_rename, nfs3_proc_rename, nfs4_proc_rename
 
 Data format is:
@@ -995,7 +995,7 @@ Data format is:
 .I major_new(INT8), minor_new(INT8), new_fileid(INT64), new_name(STRING) 
 
 .TP
-.B addevent.nfs.proc.remove.entry (HOOKID= 68)
+.B addevent.nfs.proc.remove.entry 
 the entry of nfs_proc_remove, nfs3_proc_remove, nfs4_proc_remove
 
 Data format is:
@@ -1003,7 +1003,7 @@ Data format is:
 .I major_dev(INT8), minor_dev(INT8), fileid(INT64), version(INT8),
 .I filename(STRING)
 
-.SS NFSD (GROUPID=17)
+.SS NFSD 
 You could use
 .I addevent.nfsd
 to trace the detail activities of nfs on server side. 
@@ -1017,7 +1017,7 @@ hooks will be listed:
 
 .P
 .TP
-.B addevent.nfsd.dispatch.entry (HOOKID= 1)
+.B addevent.nfsd.dispatch.entry 
 Fires when server receives a NFS operation from client
 
 the entry of nfsd_dispatch 
@@ -1027,7 +1027,7 @@ Data format is:
 .I proto(INT8), version(INT8), xid(INT32), proc(INT32),client_ip(INT32)
 
 .TP
-.B addevent.nfsd.open.entry (HOOKID= 3)
+.B addevent.nfsd.open.entry 
 the entry of nfsd_open
 
 Data format is:
@@ -1036,7 +1036,7 @@ Data format is:
 .I type(INT32), access(INT32)
 
 .TP
-.B addevent.nfsd.read.entry (HOOKID= 5)
+.B addevent.nfsd.read.entry 
 the entry of nfsd_read
 
 Data format is:
@@ -1045,7 +1045,7 @@ Data format is:
 .I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
 
 .TP
-.B addevent.nfsd.write.entry (HOOKID= 7)
+.B addevent.nfsd.write.entry 
 the entry of nfsd_write
 
 Data format is:
@@ -1054,7 +1054,7 @@ Data format is:
 .I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
 
 .TP
-.B addevent.nfsd.lookup.entry (HOOKID= 9)
+.B addevent.nfsd.lookup.entry 
 the entry of nfsd_lookup
 
 Data format is:
@@ -1063,7 +1063,7 @@ Data format is:
 .I filename(STRING)
 
 .TP
-.B addevent.nfsd.commit.entry (HOOKID= 11)
+.B addevent.nfsd.commit.entry 
 the entry of nfsd_commit
 
 Data format is:
@@ -1072,7 +1072,7 @@ Data format is:
 .I count(INT64), offset(INT64)
 
 .TP
-.B addevent.nfsd.create.entry (HOOKID= 13)
+.B addevent.nfsd.create.entry 
 Fires when client creates a file(regular,dir,device,fifo) on server side,
 sometimes nfsd will call nfsd_create_v3 instead of this function
 
@@ -1084,7 +1084,7 @@ Data format is:
 .I filename(STRING), type(INT32), iap_valid(INT16), iap_mode(INT32)
 
 .TP
-.B addevent.nfsd.createv3.entry (HOOKID= 15)
+.B addevent.nfsd.createv3.entry 
 Fires when client creates a regular file or set file attributes on server side,
 only called by nfsd3_proc_create and nfsd4_open(op_claim_type is NFS4_OPEN_CLAIM_NULL)
 
@@ -1096,7 +1096,7 @@ Data format is:
 .I filename(STRING), createmode(INT8), iap_valid(INT16), iap_mode(INT32)
 
 .TP
-.B addevent.nfsd.unlink.entry (HOOKID= 17)
+.B addevent.nfsd.unlink.entry 
 the entry of nfsd_unlink
 
 Data format is:
@@ -1105,7 +1105,7 @@ Data format is:
 .I filename(STRING), type(INT32)
 
 .TP
-.B addevent.nfsd.rename.entry (HOOKID= 19)
+.B addevent.nfsd.rename.entry 
 the entry of nfsd_rename
 
 Data format is:
@@ -1114,7 +1114,7 @@ Data format is:
 .I new_fhsize(INT8), new_fh0(INT64), new_fh1(INT64), new_fh2(INT64), new_name(STRING)
 
 .TP
-.B addevent.nfsd.close.entry (HOOKID= 21)
+.B addevent.nfsd.close.entry 
 the entry of nfsd_close
 
 Data format is:
@@ -1122,7 +1122,7 @@ Data format is:
 .I filename(STRING)
  
 .TP
-.B addevent.nfsd.proc.lookup.entry (HOOKID= 23)
+.B addevent.nfsd.proc.lookup.entry 
 the entry of nfsd_proc_lookup, nfsd3_proc_lookup
 
 Data format is:
@@ -1131,7 +1131,7 @@ Data format is:
 .I filename(STRING)
  
 .TP
-.B addevent.nfsd.proc.read.entry (HOOKID= 25)
+.B addevent.nfsd.proc.read.entry 
 the entry of nfsd_proc_read, nfsd3_proc_read
 
 Data format is:
@@ -1140,7 +1140,7 @@ Data format is:
 .I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
  
 .TP
-.B addevent.nfsd.proc.write.entry (HOOKID= 27)
+.B addevent.nfsd.proc.write.entry 
 the entry of nfsd_proc_write, nfsd3_proc_write
 
 Data format is:
@@ -1149,7 +1149,7 @@ Data format is:
 .I count(INT64), offset(INT64), iov_len(INT64), vlen(INT64)
  
 .TP
-.B addevent.nfsd.proc.commit.entry (HOOKID= 29)
+.B addevent.nfsd.proc.commit.entry 
 the entry of nfsd_proc_commit, nfsd3_proc_commit
 
 Data format is:
@@ -1158,7 +1158,7 @@ Data format is:
 .I count(INT64), offset(INT64)
  
 .TP
-.B addevent.nfsd.proc.commit.entry (HOOKID= 31)
+.B addevent.nfsd.proc.commit.entry 
 the entry of nfsd4_proc_compound
 
 Data format is:
@@ -1166,7 +1166,7 @@ Data format is:
 .I number(INT32)
  
 .TP
-.B addevent.nfsd.proc.remove.entry (HOOKID= 33)
+.B addevent.nfsd.proc.remove.entry 
 the entry of nfsd4_proc_compound
 
 Data format is:
@@ -1175,7 +1175,7 @@ Data format is:
 .I filename(STRING)
  
 .TP
-.B addevent.nfsd.proc.rename.entry (HOOKID= 35)
+.B addevent.nfsd.proc.rename.entry 
 the entry of nfsd_proc_rename, nfsd3_proc_rename
 
 Data format is:
@@ -1184,7 +1184,7 @@ Data format is:
 .I new_fhsize(INT8), new_fh0(INT64), new_fh1(INT64), new_fh2(INT64), new_name(STRING)
 
 .TP
-.B addevent.nfsd.proc.create.entry (HOOKID= 37)
+.B addevent.nfsd.proc.create.entry 
 the entry of nfsd_proc_create, nfsd3_proc_create
 
 Data format is:

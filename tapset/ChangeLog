@@ -1,4 +1,5 @@
 2006-10-13  Li Guanglei <guanglei@cn.ibm.com>
+	* scsi.stp: add some variables
 	* scheduler.stp: skip __switch_to on x86_64
 
 2006-10-12  Martin Hunt  <hunt@redhat.com>

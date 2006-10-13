@@ -22,6 +22,7 @@ probe scsi.ioentry
 	disk_major = $req->rq_disk->major
 	disk_minor = $req->rq_disk->first_minor
 	device_state = get_devstate_from_req($q)
+	req_addr = $req
 }
 
 /* Dispatch a command to the low-level driver. */
@@ -36,7 +37,8 @@ probe scsi.iodispatching
 	device_state = $cmd->device->sdev_state
 	data_direction = $cmd->sc_data_direction
 	request_buffer = $cmd->request_buffer
-	req_bufflen = $cmd->request_bufflen
+	request_bufflen = $cmd->request_bufflen
+	req_addr = $cmd->request
 }
 
 /* I/O is done by low-level driver*/
@@ -49,6 +51,7 @@ probe scsi.iodone
 	dev_id = $cmd->device->id
 	device_state = $cmd->device->sdev_state
 	data_direction = $cmd->sc_data_direction
+	req_addr = $cmd->request
 	scsi_timer_pending = scsi_timer_pending($cmd);
 }
 
@@ -62,6 +65,7 @@ probe scsi.iocompleted
 	dev_id = $cmd->device->id
 	device_state = $cmd->device->sdev_state
 	data_direction = $cmd->sc_data_direction
+	req_addr = $cmd->request
 	goodbytes = $good_bytes
 }
 

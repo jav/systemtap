@@ -1,3 +1,10 @@
+2006-10-13  Li Guanglei <guanglei@cn.ibm.com>
+	* register_event.stp: be sync with scsi trace hooks
+	* scsi.stp: avoid reference to struct members in
+	embedded c. Use stap variables as more as possible.
+	break scsi_info into four variables.
+	delete cmd_pid from all logging functions
+	
 2006-10-12  Li Guanglei <guanglei@cn.ibm.com>
 	* hookid_defs.stp, ioscheduler.stp, register_event.stp:
 	break the old addevent.ioscheduler.elv_next_request into
