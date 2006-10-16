@@ -1,3 +1,11 @@
+2006-10-16  Li Guanglei <guanglei@cn.ibm.com>
+	* configure.ac: add the checking for mysql_config,
+	mysqlclient library and header files
+	* runtime/lket/b2a/Makefile.am: set compile flags
+	according to the existance of mysql_config
+	* Makefile.in, configure, testsuite/Makefile.in,
+	runtime/lket/b2a/Makefile.in: regenerated
+
 2006-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (emit_common_header): Add a 

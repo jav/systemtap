@@ -61,22 +61,37 @@ esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
 
-# This check is not sufficient.  mysql_config may exist on machines
-# that do not actually have the development headers/libraries installed.
-# AM_CONDITIONAL(HAS_MYSQL, which mysql_config > /dev/null 2>&1)
-AM_CONDITIONAL(HAS_MYSQL, false)
+mysql=false
+
+SAVE_LDFLAGS=$LDFLAGS
+SAVE_CPPFLAGS=$CPPFLAG
+
+AC_PATH_PROG(MYSQL_CONFIG, mysql_config, no)
+if test "$MYSQL_CONFIG" = "no"; then
+  AC_MSG_NOTICE([*** Cannot find mysql_config executable. Check your MySQL installation.])
+  CPPFLAGS="-I/usr/include/mysql $CPPFLAGS"
+  LDFLAGS="-L/usr/lib/mysql $LDFLAGS -L/usr/lib64/mysql"
+else
+  CPPFLAGS="`mysql_config --cflags` $CPPFLAGS"
+  LDFLAGS="`mysql_config --libs` $LDFLAGS"
+fi
+
+AC_CHECK_HEADERS(mysql/mysql.h,
+  AC_CHECK_LIB(mysqlclient, mysql_init, 
+    mysql=true,
+    AC_MSG_NOTICE([*** Cannot find mysqlclient lib. Check your MySQL installation.]), []),
+  AC_MSG_NOTICE([*** Cannot find mysql header file. Check your MySQL installation.]), [])
+
+AM_CONDITIONAL(HAS_MYSQL, test "$mysql" = "true")
+AM_CONDITIONAL(HAS_MYSQL_CONFIG, test "$MYSQL_CONFIG" != "no")
+
+LDFLAGS=$SAVE_LDFLAGS
+CPPFLAG=$SAVE_CPPFLAGS
 
 if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
   AC_MSG_WARN([glib2-devel is required to build lket-b2a.
   no glib2-devel found, skip building lket-b2a...])
 fi
-
-# AC_CHECK_LIB
-if ! which mysql_config > /dev/null 2>&1; then
-  AC_MSG_WARN([mysqlclient lib is required to build lket-b2a with database support.
-  no mysqlclient lib is found, skip building lket-b2a with database support...])
-fi
-
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora

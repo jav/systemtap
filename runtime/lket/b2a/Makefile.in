@@ -35,8 +35,11 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 bin_PROGRAMS = lket-b2a$(EXEEXT)
-@HAS_MYSQL_TRUE@am__append_1 = `mysql_config --libs`
-@HAS_MYSQL_TRUE@am__append_2 = `mysql_config --cflags` -DHAS_MYSQL
+@HAS_MYSQL_TRUE@am__append_1 = -DHAS_MYSQL
+@HAS_MYSQL_CONFIG_TRUE@@HAS_MYSQL_TRUE@am__append_2 = `mysql_config --libs`
+@HAS_MYSQL_CONFIG_TRUE@@HAS_MYSQL_TRUE@am__append_3 = `mysql_config --cflags`
+@HAS_MYSQL_CONFIG_FALSE@@HAS_MYSQL_TRUE@am__append_4 = -I/usr/include/mysql -g -pipe -fsigned-char -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -fno-strict-aliasing
+@HAS_MYSQL_CONFIG_FALSE@@HAS_MYSQL_TRUE@am__append_5 = -L/usr/lib/mysql -lmysqlclient -lz -lcrypt -lnsl -lm -L/usr/lib -lssl -lcrypto
 subdir = runtime/lket/b2a
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -82,6 +85,7 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -93,6 +97,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+HAS_MYSQL_CONFIG_FALSE = @HAS_MYSQL_CONFIG_FALSE@
+HAS_MYSQL_CONFIG_TRUE = @HAS_MYSQL_CONFIG_TRUE@
 HAS_MYSQL_FALSE = @HAS_MYSQL_FALSE@
 HAS_MYSQL_TRUE = @HAS_MYSQL_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -108,6 +114,7 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+MYSQL_CONFIG = @MYSQL_CONFIG@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -158,9 +165,10 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 lket_b2a_SOURCES = lket_b2a.c
 lket_b2a_DEPENDENCIES = lket_b2a.h
-lket_b2a_LDFLAGS = `pkg-config --libs glib-2.0` $(am__append_1)
+lket_b2a_LDFLAGS = `pkg-config --libs glib-2.0` $(am__append_2) \
+	$(am__append_5)
 lket_b2a_CFLAGS = -O2 -D_GNU_SOURCE -Wall `pkg-config --cflags \
-	glib-2.0` $(am__append_2)
+	glib-2.0` $(am__append_1) $(am__append_3) $(am__append_4)
 all: all-am
 
 .SUFFIXES:
