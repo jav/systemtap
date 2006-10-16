@@ -1,3 +1,7 @@
+2006-10-16  Li Guanglei <guanglei@cn.ibm.com>
+	* scsi.stp: check whether rq_disk is empty
+	* scheduler.stp: revert changes for x86_64
+
 2006-10-13  Li Guanglei <guanglei@cn.ibm.com>
 	* scsi.stp: add some variables
 	* scheduler.stp: skip __switch_to on x86_64

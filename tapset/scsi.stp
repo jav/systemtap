@@ -19,8 +19,13 @@
 probe scsi.ioentry
 	= module("*").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")
 {
-	disk_major = $req->rq_disk->major
-	disk_minor = $req->rq_disk->first_minor
+	if($req->rq_disk == 0)  {
+		disk_major = -1
+		disk_minor = -1
+	} else {
+		disk_major = $req->rq_disk->major
+		disk_minor = $req->rq_disk->first_minor
+	}
 	device_state = get_devstate_from_req($q)
 	req_addr = $req
 }
