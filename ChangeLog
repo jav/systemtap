@@ -1,4 +1,14 @@
+2006-10-18  Roland McGrath  <roland@redhat.com>
+
+	PR 2727
+	* configure.ac (elfutils build): Pass --prefix and --exec-prefix
+	options to elfutils configure.
+	(elfutils_abs_srcdir): New substituted variable.
+	* Makefile.am (DISTCHECK_CONFIGURE_FLAGS): New variable.
+	* configure, config.in, Makefile.in: Regenerated.
+
 2006-10-16  Li Guanglei <guanglei@cn.ibm.com>
+
 	* configure.ac: add the checking for mysql_config,
 	mysqlclient library and header files
 	* runtime/lket/b2a/Makefile.am: set compile flags
@@ -8,7 +18,7 @@
 
 2006-10-12  Martin Hunt  <hunt@redhat.com>
 
-	* translate.cxx (emit_common_header): Add a 
+	* translate.cxx (emit_common_header): Add a
 	kretprobe_instance pointer to struct context.
 	(emit_symbol_data): Include absolute symbols.
 
