@@ -9,8 +9,14 @@
 /* Define to 1 if you have the `dw' library (-ldw). */
 #undef HAVE_LIBDW
 
+/* Define to 1 if you have the `pfm' library (-lpfm). */
+#undef HAVE_LIBPFM
+
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <mysql/mysql.h> header file. */
+#undef HAVE_MYSQL_MYSQL_H
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H

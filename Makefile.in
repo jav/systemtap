@@ -216,6 +216,7 @@ am__untar = @am__untar@
 bindir = @bindir@
 build_alias = @build_alias@
 datadir = @datadir@
+elfutils_abs_srcdir = @elfutils_abs_srcdir@
 exec_prefix = @exec_prefix@
 host_alias = @host_alias@
 includedir = @includedir@
@@ -241,7 +242,7 @@ AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 
 AM_CXXFLAGS = -Wall
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c
@@ -251,6 +252,9 @@ stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
 stap_LDFLAGS = $(AM_LDFLAGS) $(am__append_2)
 CLEANFILES = $(am__append_3) $(pkglibexec_SCRIPTS)
+
+# This tells automake's "make distcheck" what we need to compile.
+@BUILD_ELFUTILS_TRUE@DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 @BUILD_ELFUTILS_TRUE@BUILT_SOURCES = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@stap_DEPENDENCIES = lib-elfutils/libdw.so
 staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c

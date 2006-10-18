@@ -11,7 +11,7 @@ AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
 	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall
 
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5 
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 bin_PROGRAMS = stap staprun
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
@@ -25,6 +25,9 @@ stap_LDFLAGS = $(AM_LDFLAGS)
 CLEANFILES =
 
 if BUILD_ELFUTILS
+# This tells automake's "make distcheck" what we need to compile.
+DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
+
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
@@ -109,4 +112,3 @@ SUBDIRS = testsuite
 if BUILD_LKET_B2A
   SUBDIRS += runtime/lket/b2a
 endif
-

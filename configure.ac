@@ -59,6 +59,9 @@ yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
 *) build_elfutils=yes ;;
 esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
+AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
+				     [cd $with_elfutils && pwd])`)
+
 AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
 
 mysql=false
@@ -77,7 +80,7 @@ else
 fi
 
 AC_CHECK_HEADERS(mysql/mysql.h,
-  AC_CHECK_LIB(mysqlclient, mysql_init, 
+  AC_CHECK_LIB(mysqlclient, mysql_init,
     mysql=true,
     AC_MSG_NOTICE([*** Cannot find mysqlclient lib. Check your MySQL installation.]), []),
   AC_MSG_NOTICE([*** Cannot find mysql header file. Check your MySQL installation.]), [])
@@ -123,12 +126,16 @@ if test $build_elfutils = yes; then
   AC_MSG_NOTICE([running ${elfutils_srcdir}/configure])
   # Our libdw.so's libebl will look in $ORIGIN/../lib/... but that
   # $ORIGIN is where libdw.so resides, which is not where there is a ../lib.
+  # Note that $libdir might be using a quoted use of $exec_prefix or $prefix.
+  # So we must make sure to pass those settings to elfutils configure.
   elfutils_rpath="-Wl,--enable-new-dtags,-rpath,${libdir}/${PACKAGE_NAME}"
   here=`pwd`
   (mkdir -p build-elfutils && cd build-elfutils &&
    ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
 				--libdir="${here}/lib-elfutils" \
+				--exec-prefix="$exec_prefix" \
+				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath"
   )

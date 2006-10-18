@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE MYSQL_CONFIG CXXCPP HAS_MYSQL_TRUE HAS_MYSQL_FALSE HAS_MYSQL_CONFIG_TRUE HAS_MYSQL_CONFIG_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE elfutils_abs_srcdir BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE MYSQL_CONFIG CXXCPP HAS_MYSQL_TRUE HAS_MYSQL_FALSE HAS_MYSQL_CONFIG_TRUE HAS_MYSQL_CONFIG_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5219,6 +5219,12 @@ else
   BUILD_ELFUTILS_FALSE=
 fi
 
+elfutils_abs_srcdir=`if test $build_elfutils = yes; then
+  cd $with_elfutils && pwd
+fi
+`
+
+
 
 
 if pkg-config --atleast-version 2.0.0 glib-2.0; then
@@ -6636,6 +6642,7 @@ s,@RANLIB@,$RANLIB,;t t
 s,@ac_ct_RANLIB@,$ac_ct_RANLIB,;t t
 s,@BUILD_ELFUTILS_TRUE@,$BUILD_ELFUTILS_TRUE,;t t
 s,@BUILD_ELFUTILS_FALSE@,$BUILD_ELFUTILS_FALSE,;t t
+s,@elfutils_abs_srcdir@,$elfutils_abs_srcdir,;t t
 s,@BUILD_LKET_B2A_TRUE@,$BUILD_LKET_B2A_TRUE,;t t
 s,@BUILD_LKET_B2A_FALSE@,$BUILD_LKET_B2A_FALSE,;t t
 s,@MYSQL_CONFIG@,$MYSQL_CONFIG,;t t
@@ -7373,12 +7380,16 @@ if test $build_elfutils = yes; then
 echo "$as_me: running ${elfutils_srcdir}/configure" >&6;}
   # Our libdw.so's libebl will look in $ORIGIN/../lib/... but that
   # $ORIGIN is where libdw.so resides, which is not where there is a ../lib.
+  # Note that $libdir might be using a quoted use of $exec_prefix or $prefix.
+  # So we must make sure to pass those settings to elfutils configure.
   elfutils_rpath="-Wl,--enable-new-dtags,-rpath,${libdir}/${PACKAGE_NAME}"
   here=`pwd`
   (mkdir -p build-elfutils && cd build-elfutils &&
    ${elfutils_srcdir}/configure --enable-libebl-subdir=${PACKAGE_NAME} \
 				--includedir="${here}/include-elfutils" \
 				--libdir="${here}/lib-elfutils" \
+				--exec-prefix="$exec_prefix" \
+				--prefix="$prefix" \
 				CFLAGS="${CFLAGS/-Wall/}" \
 				LDFLAGS="$LDFLAGS $elfutils_rpath"
   )
