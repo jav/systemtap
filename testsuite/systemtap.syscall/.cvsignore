@@ -1,0 +1,3 @@
+access acct alarm chmod clock dir forkwait itimer link mmap mount net1
+openclose readwrite rt_signal sendfile signal stat statfs swap sync
+timer trunc uid uid16 umask unlink

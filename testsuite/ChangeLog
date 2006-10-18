@@ -1,3 +1,7 @@
+2006-10-18  David Smith  <dsmith@redhat.com>
+
+	* systemtap.syscall/.cvsignore: Added file.
+
 2006-09-28  Martin Hunt  <hunt@redhat.com>
 
 	* buildok/eighteen.stp: Fix for 2.6.18.
