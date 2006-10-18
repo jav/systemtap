@@ -298,6 +298,9 @@ kernel.statement(0xc0044852)
 refers to the first byte of the statement whose compiled instructions
 include the given address in the kernel.
 .TP
+kernel.statement("*@kernel/sched.c:2917")
+refers to the statement of line 2917 within the "kernel/sched.c".
+.TP
 kernel.syscall.*.return
 refers to the group of probe aliases with any name in the third position
 

@@ -1,3 +1,6 @@
+2006-10-18  Li Guanglei <guanglei@cn.ibm.com>
+	* stapprobes.iosched.5.in: update
+
 2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* stapprobes.signal.5.in: document signal syscall
