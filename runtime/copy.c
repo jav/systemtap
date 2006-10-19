@@ -88,6 +88,11 @@ do {									   \
 #elif defined (__powerpc64__) || defined (__ia64__)
 #define __stp_strncpy_from_user(dst,src,count,res) \
 	do { res = __strncpy_from_user(dst, src, count); } while(0)
+
+#elif defined (__s390__) || defined (__s390x__)
+#define __stp_strncpy_from_user(dst,src,count,res) \
+	do { res = strncpy_from_user(dst, src, count); } while(0)
+
 #endif
 
 /** Copy a NULL-terminated string from userspace.

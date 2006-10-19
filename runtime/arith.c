@@ -25,6 +25,13 @@ long long _div64 (long long u, long long v);
 long long _mod64 (long long u, long long v);
 #endif
 
+/* 31 bit s390 suupport is not yet included, it may never be.
+#ifdef __s390__
+long long _div64 (long long u, long long v);
+long long _mod64 (long long u, long long v);
+#endif
+*/
+
 /** Divide x by y.  In case of division-by-zero,
  * set context error string, and return 0
  */

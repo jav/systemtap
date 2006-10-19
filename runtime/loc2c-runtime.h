@@ -112,6 +112,12 @@
 #define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
 #define store_register(regno) (c->regs->gpr[regno] = (value))
 
+#elif defined (__s390__) || defined (__s390x__)
+#undef fetch_register
+#undef store_register
+#define fetch_register(regno) ((intptr_t) c->regs->gprs[regno])
+#define store_register(regno) (c->regs->gprs[regno] = (value))
+
 #endif
 
 #if defined __i386__ || defined __x86_64__
@@ -254,7 +260,159 @@
       goto deref_fault;							      \
   })
 
+#elif defined (__s390__) || defined (__s390x__)
+
+#if defined __s390__
+#define __stp_get_asm(x, addr, err, size)			\
+({								\
+	asm volatile(						\
+		"0: mvc  0(%2,%4),0(%3)\n"			\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		"2: lhi    %0,%5\n"				\
+		"   bras    1,3f\n"				\
+		"   .long  1b\n"				\
+		"3: l      1,0(1)\n"				\
+		"   br     1\n"					\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		"   .align 4\n"					\
+		"   .long  0b,2b\n"				\
+		".previous"					\
+		: "+&d" (err), "=m" (x)				\
+		: "i" (size),"a"(addr),				\
+		"a" (&(x)),"K" (-EFAULT)			\
+		: "cc", "1" );					\
+})
+
+#define __stp_put_asm(x, addr, err, size)			\
+({								\
+	asm volatile(						\
+		"0: mvc  0(%1,%2),0(%3)\n"			\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		"2: lhi    %0,%5\n"				\
+		"   bras    1,3f\n"				\
+		"   .long  1b\n"				\
+		"3: l      1,0(1)\n"				\
+		"   br     1\n"					\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		"   .align 4\n"					\
+		"   .long  0b,2b\n"				\
+		".previous"					\
+		: "+&d" (err)					\
+		: "i" (size), "a" (addr),			\
+		"a" (&(x)),"K" (-EFAULT)			\
+		: "cc", "1");					\
+})
+
+#else /* s390x */
+
+#define __stp_get_asm(x, addr, err, size)			\
+({								\
+	asm volatile(						\
+		"0: mvc  0(%2,%4),0(%3)\n"			\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		"2: lghi    %0,%5\n"				\
+		"   jg     1b\n"				\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		"   .align 8\n"					\
+		"   .quad  0b,2b\n"				\
+		".previous"					\
+		: "+&d" (err), "=m" (x)				\
+		: "i" (size),"a"(addr),				\
+		"a" (&(x)),"K" (-EFAULT)			\
+		: "cc");					\
+})
+
+#define __stp_put_asm(x, addr, err, size)			\
+({								\
+	asm volatile(						\
+		"0: mvc  0(%1,%2),0(%3)\n"			\
+		"1:\n"						\
+		".section .fixup,\"ax\"\n"			\
+		"2: lghi    %0,%4\n"				\
+		"   jg     1b\n"				\
+		".previous\n"					\
+		".section __ex_table,\"a\"\n"			\
+		"   .align 8\n"					\
+		"   .quad  0b,2b\n"				\
+		".previous"					\
+		: "+&d" (err)					\
+		: "i" (size),"a"(addr),				\
+		"a"(&(x)),"K"(-EFAULT)				\
+		: "cc");					\
+})
 #endif
+
+#define deref(size, addr)					\
+({								\
+	u8 _b; u16 _w; u32 _l; u64 _q;				\
+	int _bad = 0;						\
+	intptr_t _v = 0;					\
+	switch (size) {						\
+	case 1: {						\
+		__stp_get_asm(_b, addr, _bad, 1);		\
+		_v = _b;					\
+		break;						\
+		};						\
+	case 2: {						\
+		__stp_get_asm(_w, addr, _bad, 2);		\
+		_v = _w;					\
+		break;						\
+		};						\
+	case 4: {						\
+		__stp_get_asm(_l, addr, _bad, 4);		\
+		_v = _l;					\
+		break;						\
+		};						\
+	case 8: {						\
+		__stp_get_asm(_q, addr, _bad, 8);		\
+		_v = _q;					\
+		break;						\
+		};						\
+	default:						\
+		_bad = -EFAULT;					\
+	}							\
+	if (_bad)						\
+		goto deref_fault;				\
+	_v;							\
+})
+
+#define deref_store(size, addr, value)				\
+({								\
+	int _bad = 0;						\
+	switch (size) {						\
+	case 1:{						\
+		u8 _x = value;					\
+		__stp_put_asm(_x, addr, _bad,1);		\
+		break;						\
+		};						\
+	case 2:{ 						\
+		u16 _x = value;					\
+		__stp_put_asm(_x, addr, _bad,2);		\
+		break;						\
+		};						\
+	case 4:{						\
+		u32 _x = value;					\
+		__stp_put_asm(_x, addr, _bad,4);		\
+		break;						\
+		};						\
+	case 8:	{						\
+		u64 _x = value;					\
+		__stp_put_asm(_x, addr, _bad,8);		\
+		break;						\
+		};						\
+	default:						\
+		break;						\
+	}							\
+	if (_bad)						\
+		goto deref_fault;				\
+})
+#endif /* (s390) || (s390x) */
 
 #define deref_string(dst, addr, maxbytes)				      \
   ({									      \

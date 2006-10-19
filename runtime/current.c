@@ -44,6 +44,8 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 	return REG_LINK(regs);
 #elif defined (__ia64__)
 	return regs->b0;
+#elif defined (__s390__) || defined (__s390x__)
+	return regs->gprs[14];
 #else
 	#error Unimplemented architecture
 #endif
@@ -205,6 +207,37 @@ void _stp_sprint_regs(String str, struct pt_regs * regs)
 	_stp_sprintf(str, "NIP [%016lx] ", regs->nip);
 	_stp_sprintf(str, "LR [%016lx] ", regs->link);
 	_stp_string_cat(str, regs->link);
+	_stp_string_cat(str, "\n");
+}
+
+#elif defined (__s390x__) || defined (__s390__)
+
+#ifdef __s390x__
+#define GPRSIZE "%016lX "
+#else	/* s390 */
+#define GPRSIZE "%08lX "
+#endif
+
+void _stp_sprint_regs(String str, struct pt_regs * regs)
+{
+	char *mode;
+	int i;
+
+	mode = (regs->psw.mask & PSW_MASK_PSTATE) ? "User" : "Krnl";
+	_stp_sprintf(str,"%s PSW : ["GPRSIZE"] ["GPRSIZE"]",
+		mode, (void *) regs->psw.mask,
+		(void *) regs->psw.addr);
+
+#ifdef CONFIG_SMP
+	_stp_sprintf(str, " CPU: %d", smp_processor_id());
+#endif /* CONFIG_SMP */
+
+	for (i = 0; i < 16; i++) {
+		if ((i % 4) == 0) {
+			_stp_sprintf(str, "\n GPRS%02d: ", i);
+		}
+		_stp_sprintf(str, GPRSIZE, regs->gprs[i]);
+	}
 	_stp_string_cat(str, "\n");
 }
 

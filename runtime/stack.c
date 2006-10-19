@@ -34,6 +34,8 @@ static int _stp_kta(unsigned long addr);
 #include "stack-i386.c"
 #elif defined (__powerpc64__)
 #include "stack-ppc64.c"
+#elif defined (__s390__) || defined (__s390x__)
+#include "stack-s390.c"
 #else
 #error "Unsupported architecture"
 #endif
