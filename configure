@@ -5239,7 +5239,7 @@ fi
 mysql=false
 
 SAVE_LDFLAGS=$LDFLAGS
-SAVE_CPPFLAGS=$CPPFLAG
+SAVE_CPPFLAGS=$CPPFLAGS
 
 # Extract the first word of "mysql_config", so it can be a program name with args.
 set dummy mysql_config; ac_word=$2
@@ -5282,8 +5282,8 @@ echo "${ECHO_T}no" >&6
 fi
 
 if test "$MYSQL_CONFIG" = "no"; then
-  { echo "$as_me:$LINENO: *** Cannot find mysql_config executable. Check your MySQL installation." >&5
-echo "$as_me: *** Cannot find mysql_config executable. Check your MySQL installation." >&6;}
+  { echo "$as_me:$LINENO: *** Cannot find mysql_config executable. Guess MySQL compiling flags." >&5
+echo "$as_me: *** Cannot find mysql_config executable. Guess MySQL compiling flags." >&6;}
   CPPFLAGS="-I/usr/include/mysql $CPPFLAGS"
   LDFLAGS="-L/usr/lib/mysql $LDFLAGS -L/usr/lib64/mysql"
 else
@@ -5734,13 +5734,13 @@ echo "${ECHO_T}$ac_cv_lib_mysqlclient_mysql_init" >&6
 if test $ac_cv_lib_mysqlclient_mysql_init = yes; then
   mysql=true
 else
-  { echo "$as_me:$LINENO: *** Cannot find mysqlclient lib. Check your MySQL installation." >&5
-echo "$as_me: *** Cannot find mysqlclient lib. Check your MySQL installation." >&6;}
+  { echo "$as_me:$LINENO: *** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support." >&5
+echo "$as_me: *** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support." >&6;}
 fi
 
 else
-  { echo "$as_me:$LINENO: *** Cannot find mysql header file. Check your MySQL installation." >&5
-echo "$as_me: *** Cannot find mysql header file. Check your MySQL installation." >&6;}
+  { echo "$as_me:$LINENO: *** Cannot find mysql header file. lket-b2a will be built without MySQL support." >&5
+echo "$as_me: *** Cannot find mysql header file. lket-b2a will be built without MySQL support." >&6;}
 fi
 
 done
@@ -5768,7 +5768,7 @@ fi
 
 
 LDFLAGS=$SAVE_LDFLAGS
-CPPFLAG=$SAVE_CPPFLAGS
+CPPFLAGS=$SAVE_CPPFLAGS
 
 if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
   { echo "$as_me:$LINENO: WARNING: glib2-devel is required to build lket-b2a.

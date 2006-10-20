@@ -67,11 +67,11 @@ AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
 mysql=false
 
 SAVE_LDFLAGS=$LDFLAGS
-SAVE_CPPFLAGS=$CPPFLAG
+SAVE_CPPFLAGS=$CPPFLAGS
 
 AC_PATH_PROG(MYSQL_CONFIG, mysql_config, no)
 if test "$MYSQL_CONFIG" = "no"; then
-  AC_MSG_NOTICE([*** Cannot find mysql_config executable. Check your MySQL installation.])
+  AC_MSG_NOTICE([*** Cannot find mysql_config executable. Guess MySQL compiling flags.])
   CPPFLAGS="-I/usr/include/mysql $CPPFLAGS"
   LDFLAGS="-L/usr/lib/mysql $LDFLAGS -L/usr/lib64/mysql"
 else
@@ -82,14 +82,14 @@ fi
 AC_CHECK_HEADERS(mysql/mysql.h,
   AC_CHECK_LIB(mysqlclient, mysql_init,
     mysql=true,
-    AC_MSG_NOTICE([*** Cannot find mysqlclient lib. Check your MySQL installation.]), []),
-  AC_MSG_NOTICE([*** Cannot find mysql header file. Check your MySQL installation.]), [])
+    AC_MSG_NOTICE([*** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support.]), []),
+  AC_MSG_NOTICE([*** Cannot find mysql header file. lket-b2a will be built without MySQL support.]), [])
 
 AM_CONDITIONAL(HAS_MYSQL, test "$mysql" = "true")
 AM_CONDITIONAL(HAS_MYSQL_CONFIG, test "$MYSQL_CONFIG" != "no")
 
 LDFLAGS=$SAVE_LDFLAGS
-CPPFLAG=$SAVE_CPPFLAGS
+CPPFLAGS=$SAVE_CPPFLAGS
 
 if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
   AC_MSG_WARN([glib2-devel is required to build lket-b2a.
