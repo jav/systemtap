@@ -1,3 +1,8 @@
+2006-10-21  Thang Nguyen <thang.p.nguyen@intel.com>
+
+	* systemtap.samples/tcptest.exp: fix bug #3404 
+	* systemtap.samples/tcptest.stp: fix bug #3404
+
 2006-10-18  David Smith  <dsmith@redhat.com>
 
 	* systemtap.syscall/.cvsignore: Added file.

@@ -2,26 +2,31 @@
 global uids, pidnames, send_bytes, recv_bytes, pid_ports, pid_src_ips, pid_rtos
 global pid_state, pid_mss, pid_ssthresh, pid_cwnd, totalbytes
 
-probe begin { log("systemtap starting probe") }
+probe begin { 
+	log("systemtap starting probe")
+}
 
 probe end {
-   log("systemtap ending probe")
-   printf("TCP totalbytes: %d\n", totalbytes)
+	log("systemtap ending probe")
+	if (totalbytes > 0) {
+		printf("TCP totalbytes: %d\n",totalbytes)
+		print_report()
+	}
 }
 
 function print_report()
 {
 	lines = 0;
 	log ("UID\tPID\tSIZE\tNAME\t\t\tPORT\tSOURCE\t\tRTO\tRCVMSS\tSSTHRES\tCWND\tSTATE")
-	for (lines = 0; lines <= 21; lines ++) {
+	for (lines = 0; lines <= 5; lines ++) {
 		if (!lines) {
 			foreach (_pid_ in pidnames) {
-                        	printf("%d\t%d\t%d\t%s\t\t\t%d\t%s\t%d\t%d\t%d\t%d\t%d\n", 
-                                       uids[_pid_],_pid_,send_bytes[_pid_] + recv_bytes[_pid_],
-					pidnames[_pid_],pid_ports[_pid_],
-                                        pid_src_ips[_pid_],pid_rtos[_pid_], pid_mss[_pid_],
-                                        pid_ssthresh[_pid_],pid_cwnd[_pid_],pid_state[_pid_]);
-				lines++
+			printf("%d\t%d\t%d\t%s\t\t\t%d\t%s\t%d\t%d\t%d\t%d\t%d\n", 
+				uids[_pid_],_pid_,send_bytes[_pid_] + recv_bytes[_pid_],
+				pidnames[_pid_],pid_ports[_pid_],
+				pid_src_ips[_pid_],pid_rtos[_pid_], pid_mss[_pid_],
+				pid_ssthresh[_pid_],pid_cwnd[_pid_],pid_state[_pid_]);
+			lines++
 			}
 		} else {
 			print("\n")
@@ -36,16 +41,16 @@ probe tcp.sendmsg {
 }
 
 probe tcp.recvmsg {
-        pid_cwnd[pid()] = tcp_get_info_snd_cwnd(sock)
-        pid_mss[pid()] = tcp_ts_get_info_rcv_mss(sock)      
-        pid_ssthresh[pid()] = tcp_ts_get_info_snd_ssthresh(sock)       
-        pid_state[pid()] =  tcp_ts_get_info_state(sock)
+	pid_cwnd[pid()] = tcp_get_info_snd_cwnd(sock)
+	pid_mss[pid()] = tcp_ts_get_info_rcv_mss(sock)      
+	pid_ssthresh[pid()] = tcp_ts_get_info_snd_ssthresh(sock)       
+	pid_state[pid()] =  tcp_ts_get_info_state(sock)
 }
 
 probe tcp.sendmsg.return {
 	if (size > 0) {
 		send_bytes[pid()] += size
-                totalbytes += size
+		totalbytes += size
 		pidnames[pid()] = execname()
 		uids[pid()] = uid()
 	}
@@ -54,7 +59,7 @@ probe tcp.sendmsg.return {
 probe tcp.recvmsg.return {
 	if (size > 0) {
 		recv_bytes[pid()] += size
-                totalbytes += size
+		totalbytes += size
 		pidnames[pid()] = execname()
 		uids[pid()] = uid()
 	}
@@ -62,12 +67,4 @@ probe tcp.recvmsg.return {
 
 probe tcp.disconnect {
 	delete pidnames[pid()]
-}
-
-probe timer.ms(2000) {
-	print_report()
-	foreach (_pid_ in pidnames) {
-		send_bytes[_pid_] = 0
-		recv_bytes[_pid_] = 0
-	}
 }
