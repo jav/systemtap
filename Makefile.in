@@ -94,7 +94,9 @@ loc2c_test_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-staptree.$(OBJEXT) stap-elaborate.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
-	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT)
+	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT) \
+	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
+	stap-util.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 am_staprun_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
 staprun_OBJECTS = $(am_staprun_OBJECTS)
@@ -247,7 +249,8 @@ AM_CXXFLAGS = -Wall
 dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx loc2c.c
+	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
+	cache.cxx util.cxx
 
 stap_LDADD = @stap_LIBS@
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
@@ -433,13 +436,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c-test.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-elaborate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-mdfour.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-parse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-staptree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapsets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stpd.Po@am__quote@
 
 .c.o:
@@ -497,6 +504,20 @@ stap-loc2c.obj: loc2c.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='loc2c.c' object='stap-loc2c.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap-loc2c.obj `if test -f 'loc2c.c'; then $(CYGPATH_W) 'loc2c.c'; else $(CYGPATH_W) '$(srcdir)/loc2c.c'; fi`
+
+stap-mdfour.o: mdfour.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stap-mdfour.o -MD -MP -MF "$(DEPDIR)/stap-mdfour.Tpo" -c -o stap-mdfour.o `test -f 'mdfour.c' || echo '$(srcdir)/'`mdfour.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/stap-mdfour.Tpo" "$(DEPDIR)/stap-mdfour.Po"; else rm -f "$(DEPDIR)/stap-mdfour.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdfour.c' object='stap-mdfour.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap-mdfour.o `test -f 'mdfour.c' || echo '$(srcdir)/'`mdfour.c
+
+stap-mdfour.obj: mdfour.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stap-mdfour.obj -MD -MP -MF "$(DEPDIR)/stap-mdfour.Tpo" -c -o stap-mdfour.obj `if test -f 'mdfour.c'; then $(CYGPATH_W) 'mdfour.c'; else $(CYGPATH_W) '$(srcdir)/mdfour.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/stap-mdfour.Tpo" "$(DEPDIR)/stap-mdfour.Po"; else rm -f "$(DEPDIR)/stap-mdfour.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdfour.c' object='stap-mdfour.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap-mdfour.obj `if test -f 'mdfour.c'; then $(CYGPATH_W) 'mdfour.c'; else $(CYGPATH_W) '$(srcdir)/mdfour.c'; fi`
 
 stpd.o: runtime/stpd/stpd.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT stpd.o -MD -MP -MF "$(DEPDIR)/stpd.Tpo" -c -o stpd.o `test -f 'runtime/stpd/stpd.c' || echo '$(srcdir)/'`runtime/stpd/stpd.c; \
@@ -637,6 +658,48 @@ stap-buildrun.obj: buildrun.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='buildrun.cxx' object='stap-buildrun.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-buildrun.obj `if test -f 'buildrun.cxx'; then $(CYGPATH_W) 'buildrun.cxx'; else $(CYGPATH_W) '$(srcdir)/buildrun.cxx'; fi`
+
+stap-hash.o: hash.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-hash.o -MD -MP -MF "$(DEPDIR)/stap-hash.Tpo" -c -o stap-hash.o `test -f 'hash.cxx' || echo '$(srcdir)/'`hash.cxx; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-hash.Tpo" "$(DEPDIR)/stap-hash.Po"; else rm -f "$(DEPDIR)/stap-hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='hash.cxx' object='stap-hash.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-hash.o `test -f 'hash.cxx' || echo '$(srcdir)/'`hash.cxx
+
+stap-hash.obj: hash.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-hash.obj -MD -MP -MF "$(DEPDIR)/stap-hash.Tpo" -c -o stap-hash.obj `if test -f 'hash.cxx'; then $(CYGPATH_W) 'hash.cxx'; else $(CYGPATH_W) '$(srcdir)/hash.cxx'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-hash.Tpo" "$(DEPDIR)/stap-hash.Po"; else rm -f "$(DEPDIR)/stap-hash.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='hash.cxx' object='stap-hash.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-hash.obj `if test -f 'hash.cxx'; then $(CYGPATH_W) 'hash.cxx'; else $(CYGPATH_W) '$(srcdir)/hash.cxx'; fi`
+
+stap-cache.o: cache.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-cache.o -MD -MP -MF "$(DEPDIR)/stap-cache.Tpo" -c -o stap-cache.o `test -f 'cache.cxx' || echo '$(srcdir)/'`cache.cxx; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-cache.Tpo" "$(DEPDIR)/stap-cache.Po"; else rm -f "$(DEPDIR)/stap-cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cache.cxx' object='stap-cache.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-cache.o `test -f 'cache.cxx' || echo '$(srcdir)/'`cache.cxx
+
+stap-cache.obj: cache.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-cache.obj -MD -MP -MF "$(DEPDIR)/stap-cache.Tpo" -c -o stap-cache.obj `if test -f 'cache.cxx'; then $(CYGPATH_W) 'cache.cxx'; else $(CYGPATH_W) '$(srcdir)/cache.cxx'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-cache.Tpo" "$(DEPDIR)/stap-cache.Po"; else rm -f "$(DEPDIR)/stap-cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='cache.cxx' object='stap-cache.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-cache.obj `if test -f 'cache.cxx'; then $(CYGPATH_W) 'cache.cxx'; else $(CYGPATH_W) '$(srcdir)/cache.cxx'; fi`
+
+stap-util.o: util.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-util.o -MD -MP -MF "$(DEPDIR)/stap-util.Tpo" -c -o stap-util.o `test -f 'util.cxx' || echo '$(srcdir)/'`util.cxx; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-util.Tpo" "$(DEPDIR)/stap-util.Po"; else rm -f "$(DEPDIR)/stap-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='util.cxx' object='stap-util.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-util.o `test -f 'util.cxx' || echo '$(srcdir)/'`util.cxx
+
+stap-util.obj: util.cxx
+@am__fastdepCXX_TRUE@	if $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-util.obj -MD -MP -MF "$(DEPDIR)/stap-util.Tpo" -c -o stap-util.obj `if test -f 'util.cxx'; then $(CYGPATH_W) 'util.cxx'; else $(CYGPATH_W) '$(srcdir)/util.cxx'; fi`; \
+@am__fastdepCXX_TRUE@	then mv -f "$(DEPDIR)/stap-util.Tpo" "$(DEPDIR)/stap-util.Po"; else rm -f "$(DEPDIR)/stap-util.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='util.cxx' object='stap-util.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-util.obj `if test -f 'util.cxx'; then $(CYGPATH_W) 'util.cxx'; else $(CYGPATH_W) '$(srcdir)/util.cxx'; fi`
 uninstall-info-am:
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)

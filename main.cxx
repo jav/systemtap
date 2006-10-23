@@ -15,6 +15,9 @@
 #include "translate.h"
 #include "buildrun.h"
 #include "session.h"
+#include "hash.h"
+#include "cache.h"
+#include "util.h"
 
 #include <iostream>
 #include <fstream>
@@ -113,6 +116,65 @@ stringify(T t)
 }
 
 
+static void
+printscript(systemtap_session& s, ostream& o)
+{
+  if (s.globals.size() > 0)
+    o << "# globals" << endl;
+  for (unsigned i=0; i<s.globals.size(); i++)
+    {
+      vardecl* v = s.globals[i];
+      v->printsig (o);
+      o << endl;
+    }
+
+  if (s.functions.size() > 0)
+    o << "# functions" << endl;
+  for (unsigned i=0; i<s.functions.size(); i++)
+    {
+      functiondecl* f = s.functions[i];
+      f->printsig (o);
+      o << endl;
+      if (f->locals.size() > 0)
+	o << "  # locals" << endl;
+      for (unsigned j=0; j<f->locals.size(); j++)
+        {
+	  vardecl* v = f->locals[j];
+	  o << "  ";
+	  v->printsig (o);
+	  o << endl;
+	}
+      if (s.verbose)
+        {
+	  f->body->print (o);
+	  o << endl;
+	}
+    }
+
+  if (s.probes.size() > 0)
+    o << "# probes" << endl;
+  for (unsigned i=0; i<s.probes.size(); i++)
+    {
+      derived_probe* p = s.probes[i];
+      p->printsig (o);
+      o << endl;
+      if (p->locals.size() > 0)
+        o << "  # locals" << endl;
+      for (unsigned j=0; j<p->locals.size(); j++)
+        {
+	  vardecl* v = p->locals[j];
+	  o << "  ";
+	  v->printsig (o);
+	  o << endl;
+	}
+      if (s.verbose)
+        {
+	  p->body->print (o);
+	  o << endl;
+	}
+    }
+}
+
 int
 main (int argc, char * const argv [])
 {
@@ -140,6 +202,7 @@ main (int argc, char * const argv [])
   s.target_pid = 0;
   s.merge=true;
   s.perfmon=0;
+  s.use_cache = true;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)  
@@ -158,6 +221,33 @@ main (int argc, char * const argv [])
     s.runtime_path = s_r;
   else
     s.runtime_path = string(PKGDATADIR) + "/runtime";
+
+  const char* s_d = getenv ("SYSTEMTAP_DIR");
+  if (s_d != NULL)
+    s.data_path = s_d;
+  else
+    s.data_path = get_home_directory() + string("/.systemtap");
+  if (create_dir(s.data_path.c_str()) == 1)
+    {
+      const char* e = strerror (errno);
+      cerr << "Warning: failed to create systemtap data directory (\""
+	   << s.data_path << "\"): " << e << endl;
+      cerr << "Disabling cache support." << endl;
+      s.use_cache = false;
+    }
+
+  if (s.use_cache)
+    {
+      s.cache_path = s.data_path + "/cache";
+      if (create_dir(s.cache_path.c_str()) == 1)
+        {
+	  const char* e = strerror (errno);
+	  cerr << "Warning: failed to create cache directory (\""
+	       << s.cache_path << "\"): " << e << endl;
+	  cerr << "Disabling cache support." << endl;
+	  s.use_cache = false;
+	}
+    }
 
   while (true)
     {
@@ -216,6 +306,8 @@ main (int argc, char * const argv [])
 
         case 'm':
           s.module_name = string (optarg);
+	  cerr << "Warning: using '-m' disables cache support." << endl;
+	  s.use_cache = false;
           break;
 
         case 'r':
@@ -338,6 +430,10 @@ main (int argc, char * const argv [])
     if (s.verbose>1)
       clog << "Created temporary directory \"" << s.tmpdir << "\"" << endl;
   }
+
+  // Create the name of the C source file within the temporary
+  // directory.
+  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 
   struct tms tms_before;
   times (& tms_before);
@@ -469,62 +565,7 @@ main (int argc, char * const argv [])
   rc = semantic_pass (s);
 
   if (rc == 0 && s.last_pass == 2)
-    {
-      if (s.globals.size() > 0)
-        cout << "# globals" << endl;
-      for (unsigned i=0; i<s.globals.size(); i++)
-	{
-	  vardecl* v = s.globals[i];
-	  v->printsig (cout);
-          cout << endl;
-	}
-
-      if (s.functions.size() > 0)
-        cout << "# functions" << endl;
-      for (unsigned i=0; i<s.functions.size(); i++)
-	{
-	  functiondecl* f = s.functions[i];
-	  f->printsig (cout);
-          cout << endl;
-          if (f->locals.size() > 0)
-            cout << "  # locals" << endl;
-          for (unsigned j=0; j<f->locals.size(); j++)
-            {
-              vardecl* v = f->locals[j];
-              cout << "  ";
-              v->printsig (cout);
-              cout << endl;
-            }
-          if (s.verbose)
-            {
-              f->body->print (cout);
-              cout << endl;
-            }
-	}
-
-      if (s.probes.size() > 0)
-        cout << "# probes" << endl;
-      for (unsigned i=0; i<s.probes.size(); i++)
-	{
-	  derived_probe* p = s.probes[i];
-	  p->printsig (cout);
-          cout << endl;
-          if (p->locals.size() > 0)
-            cout << "  # locals" << endl;
-          for (unsigned j=0; j<p->locals.size(); j++)
-            {
-              vardecl* v = p->locals[j];
-              cout << "  ";
-              v->printsig (cout);
-              cout << endl;
-            }
-          if (s.verbose)
-            {
-              p->body->print (cout);
-              cout << endl;
-            }
-	}
-    }
+    printscript(s, cout);
 
   times (& tms_after);
   gettimeofday (&tv_after, NULL);
@@ -540,6 +581,38 @@ main (int argc, char * const argv [])
     cerr << "Pass 2: analysis failed.  "
          << "Try again with more '-v' (verbose) options."
          << endl;
+  // Generate hash.  There isn't any point in generating the hash
+  // if last_pass is 2, since we'll quit before using it.
+  else if (s.last_pass != 2 && s.use_cache)
+    {
+      ostringstream o;
+      unsigned saved_verbose;
+	  
+      // Make sure we're in verbose mode, so that printscript()
+      // will output function/probe bodies.
+      saved_verbose = s.verbose;
+      s.verbose = 3;
+
+      // Print script to 'o'
+      printscript(s, o);
+
+      // Restore original verbose mode setting.
+      s.verbose = saved_verbose;
+
+      // Generate hash
+      find_hash (s, o.str());
+
+      // See if we can use cached source/module.
+      if (get_from_cache(s))
+        {
+	  // If our last pass isn't 5, we're done (since passes 3 and
+	  // 4 just generate what we just pulled out of the cache).
+	  if (s.last_pass < 5) goto cleanup;
+
+	  // Short-circuit to pass 5.
+	  goto pass_5;
+	}
+    }
 
   if (rc || s.last_pass == 2) goto cleanup;
 
@@ -548,7 +621,6 @@ main (int argc, char * const argv [])
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
 
-  s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
   rc = translate_pass (s);
 
   if (rc == 0 && s.last_pass == 3)
@@ -590,11 +662,17 @@ main (int argc, char * const argv [])
     cerr << "Pass 4: compilation failed.  "
          << "Try again with more '-v' (verbose) options."
          << endl;
+  else if (s.use_cache)
+    {
+      // Update cache.
+      add_to_cache(s);
+    }
 
   // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout?
   if (rc || s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
+pass_5:
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   // NB: this message is a judgement call.  The other passes don't emit

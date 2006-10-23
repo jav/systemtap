@@ -15,7 +15,8 @@ dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 man/s
 bin_PROGRAMS = stap staprun
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
-	tapsets.cxx buildrun.cxx loc2c.c
+	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
+	cache.cxx util.cxx
 stap_LDADD = @stap_LIBS@
 
 stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)

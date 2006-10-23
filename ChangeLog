@@ -1,3 +1,28 @@
+2006-10-23  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (printscript): New function containing code moved from
+	main().
+	(main): Added code to create cache directory, call function to
+	generate hash, and see if we can use cached source/module.  If
+	pass 4 is actually run to produce a new module, we call
+	add_to_cache() to cache the result.
+	* session.h (struct systemtap_session): Added hash/cache session
+	data.
+	* cache.cxx: New file handling adding/getting files from the
+	cache.
+	* cache.h: New header file for cache.cxx.
+	* hash.cxx: New file containing C++ wrapper for routines in
+	mdfour.c and the find_hash function which computes the hash file
+	name for an input script.
+	* hash.h: New header file for hash.cxx.
+	* mdfour.c: New file containing MD4 hash code.
+	* mdfour.h: New header file for mdfour.c.
+	* util.cxx: New file containing several utility functions used by
+	the caching code.
+	* util.h: New header file for util.cxx.
+	* Makefile.am: Added new C/C++ files.
+	* Makefile.in: Regenerated.
+
 2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
 	* configure.ac, Makefile.am: add lket-b2a.1.in
 	* Makefile.in, configure: regenreated

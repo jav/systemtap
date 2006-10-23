@@ -70,6 +70,7 @@ struct systemtap_session
   std::string kernel_base_release;
   std::string architecture;
   std::string runtime_path;
+  std::string data_path;
   std::string module_name;
   std::string output_file;
   std::string cmd;
@@ -84,6 +85,11 @@ struct systemtap_session
   bool merge;
   int buffer_size;
   unsigned perfmon;
+
+  // Cache data
+  bool use_cache;
+  std::string cache_path;
+  std::string hash_path;
 
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
