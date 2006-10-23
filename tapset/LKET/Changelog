@@ -1,3 +1,7 @@
+2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+
+	* register_event.stp: bufix of variable name
+
 2006-10-13  Li Guanglei <guanglei@cn.ibm.com>
 	* register_event.stp: be sync with scsi trace hooks
 	* scsi.stp: avoid reference to struct members in

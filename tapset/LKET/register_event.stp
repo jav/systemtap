@@ -5,9 +5,9 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-global field_name, evt_fmt, event_desc
+global sys_field_name, sys_evt_fmt, sys_event_desc
 global usr_field_name, usr_evt_fmt
-
+global have_userevent
 %{
 
 #define _MAXGROUPID  0xFF
@@ -41,35 +41,38 @@ function register_user_event(grpid:long, hookid:long,fmt:string, field_name:stri
 function register_sys_event(event_desc:string, grpid:long, hookid:long,fmt:string, 
 		field_name:string) 
 {
-	event_desc[grpid, hookid] = event_desc;
-	evt_fmt[grpid, hookid] = fmt
-	field_name[grpid, hookid] = field_name
+	sys_event_desc[grpid, hookid] = event_desc;
+	sys_evt_fmt[grpid, hookid] = fmt
+	sys_field_name[grpid, hookid] = field_name
 	dummy_c_function() /* ensure register_user_event won't be compiled away */
 }
 
 
 function write_events_desc()
 {
-	foreach([grpid, hookid] in event_desc)
+	foreach([grpid, hookid] in sys_evt_fmt)
 	{
 		register_evt_desc(grpid, hookid, HOOKID_REGEVTDESC,
-			event_desc[grpid, hookid])
+			sys_event_desc[grpid, hookid])
 		register_event(grpid, hookid, HOOKID_REGSYSEVT, 
-			event_desc[grpid,hookid], evt_fmt[grpid, hookid], 
-			field_name[grpid, hookid])
+			sys_event_desc[grpid,hookid], sys_evt_fmt[grpid, hookid], 
+			sys_field_name[grpid, hookid])
 	}
-	foreach([grpid, hookid] in usr_evt_fmt)
+	if(have_userevent == 1)
 	{
-		register_event(grpid, hookid, HOOKID_REGUSREVT,
-			event_desc[grpid,hookid], usr_evt_fmt[grpid, hookid], 
-			usr_field_name[grpid, hookid])
+		foreach([grpid, hookid] in usr_evt_fmt)
+		{
+			register_event(grpid, hookid, HOOKID_REGUSREVT,
+				sys_event_desc[grpid,hookid], usr_evt_fmt[grpid, hookid], 
+				usr_field_name[grpid, hookid])
+		}
+		delete usr_field_name
+		delete usr_evt_fmt
 	}
 
-	delete field_name
-	delete evt_fmt
-	delete usr_field_name
-	delete usr_evt_fmt
-	delete event_desc
+	delete sys_field_name
+	delete sys_evt_fmt
+	delete sys_event_desc
 }	
 
 function register_evt_desc(grpid:long, hookid:long, evt_type:long, desc:string)
@@ -1037,5 +1040,6 @@ function register_sys_events()
 
 probe register_event = begin
 {
+	have_userevent = 1
 	hookid_init()
 }
