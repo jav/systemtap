@@ -17,6 +17,9 @@ foreach line [split $res1 \n] {
   if {[regexp {Pass 4: compiled C into "([^\"]*)"} $line match module]} {
 	    break
         }
+  if {[regexp {Pass 4: using cached /.*/(stap_[0-9a-f_]*.ko)} $line match module]} {
+	    break
+        }
 }
 
 if {![info exists module]} { 

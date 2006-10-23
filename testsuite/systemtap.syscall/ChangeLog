@@ -1,3 +1,7 @@
+2006-10-23  David Smith  <dsmith@redhat.com>
+
+	* test.exp (test_procedure): Handles cached module.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* test.tcl: Looks for 'staprun' instead of 'stpd'.
