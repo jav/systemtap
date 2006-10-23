@@ -1,3 +1,7 @@
+2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+	* runtime/lket/b2a/lket_b2a.c: bugfix of event description
+	data insert.
+
 2006-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* stack-ppc64.c (__stp_stack_sprint): Declare sp before _sp.

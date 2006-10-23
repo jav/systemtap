@@ -45,7 +45,7 @@ The data common(i.e.
 in the following subsecions) to all event hooks is:
 .RS
 
-.B usec(INT64),(tid<<32 | groupID<<24 | hookID<<16 | cpu_id<<8)(INT64)
+.B timestamp(INT64),(tid<<32 | groupID<<24 | hookID<<16 | cpu_id<<8)(INT64)
 .RE
 
 Each event hook group is a collection of those hooks that have
@@ -126,6 +126,102 @@ Trace execve of new processes
 Data format is:
 
 .I common_data, pid(INT32), new_process_name(STRING)
+
+.SS SIGNAL
+You could use
+.I addevent.signal
+to trace signal activities. It contains the following events:
+.P
+.TP
+.B addevent.signal.send.entry
+Trace when a signal is sent to a process
+
+Data format is:
+.I common_data, sig(INT8), shared(INT8), send2queue(INT8), pid(INT32)
+.TP
+.B addevent.signal.send.return
+Trace when returning from sending signal
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.syskill.entry
+Trace when sys_kill is called to send a signal to a process.
+
+Data format is:
+.I common_data, pid(INT32), sig(INT8)
+.TP
+.B addevent.signal.syskill.return
+Trace when return from sys_kill
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.systgkill.entry
+Trace when sys_tgkill is called to send a signal to one specific thread
+
+Data format is:
+.I common_data, tid(INT32), pid(INT32), sig(INT8)
+.TP 
+.B addevent.signal.systgkill.return
+Trace when returning from sys_tgkill
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.systkill.entry
+Trace when sys_tkill is called to send a signal to a single process.
+
+Data format is:
+.I common_data, pid(INT32), sig(INT8)
+.TP
+.B addevent.signal.systkill.return
+Trace when returning from sys_tkill.
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.pending.entry
+Trace when examine the set of signals that are pending for delivery.
+
+Data format is:
+.I common_data, sigset_addr(INT32), setsize(INT32)
+.TP 
+.B addevent.signal.pending.return
+Trace when returning from signal.pending
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.do_action.entry
+Trace when a thread is about to examine and change a signal action
+
+Data format is:
+.I common_data, sig(INT8), handler(INT64)
+.TP
+.B addevent.signal.do_action.return
+Trace when returning from signal.do_action
+
+Data format is:
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.procmask.entry
+Trace when a thread is about to examine and change blocked signals
+
+Data format is:
+.I common_data, how(INT8), sigset(INT64)
+.TP
+.B addevent.signal.procmask.return
+Trace when returning from signal.procmask
+
+Data format is
+.I common_data, return(INT8)
+.TP
+.B addevent.signal.flush.entry
+Trace when flush all pending signals for a task
+
+Data format is:
+.I common_data, pid(INT32)
 
 .SS IO SCHEDULER ACTIVITIES 
 You could use

@@ -654,12 +654,18 @@ void register_evt_desc(FILE *infp, size_t size)
 		if(!has_table)  {
 			snprintf(sql, 1024, "create table table_desc ( table_name \
 				varchar(6), table_desc varchar(32))");
+			if(mysql_query(&mysql, sql))  {
+				fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
+					sql, mysql_error(&mysql));
+				exit(-1);
+			}
 			has_table = 1;
-		} else  {
-			snprintf(sql, 1024, "insert into table_desc ( table_name,\
-				table_desc) values ( \"%d_%d\", \"%s\")", grpid, hookid,
-				evt_body+2);
-		}
+		} 
+
+		snprintf(sql, 1024, "insert into table_desc ( table_name,\
+			table_desc) values ( \"%d_%d\", \"%s\")", grpid, hookid,
+			evt_body+2);
+
 		if(mysql_query(&mysql, sql))  {
 			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
 				sql, mysql_error(&mysql));
