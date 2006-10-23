@@ -6,6 +6,7 @@ if {![installtest_p]} { untested $test; return }
 
 set ok 0
 set ko 0
+set timeout 20
 
 spawn stap -DMAXERRORS=20 $srcdir/$subdir/$test.stp
 # spawn echo hello children 0
