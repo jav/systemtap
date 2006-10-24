@@ -144,6 +144,7 @@ int main(int argc, char *argv[])
 	if(into_file)  {
 		if(strnlen(outfilename, MAX_STRINGLEN) == 0)
 			strncpy(outfilename, DEFAULT_OUTFILE_NAME, MAX_STRINGLEN);
+	
 		outfp = fopen(outfilename, "w");
 		if(outfp == NULL) {
 			fprintf(stderr,"Unable to create %s\n", outfilename);
@@ -284,9 +285,9 @@ failed:
 
 	for(i=1; i<MAX_GRPID; i++)
 	for(j=1; j<MAX_HOOKID; j++) {
-		if(events_des[1][i][j] != NULL) {
+		if(events_des[_HOOKID_REGSYSEVT][i][j] != NULL) {
 #ifdef HAS_MYSQL
-			if(events_des[1][i][j]->flag == 0 && into_db)  {
+			if(events_des[_HOOKID_REGSYSEVT][i][j]->flag == 0 && into_db)  {
 				snprintf(sql, 256, "drop table %d_%d",i,j);
 				if(mysql_query(&mysql,sql))  {
 					fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
@@ -300,8 +301,9 @@ failed:
 					exit(-1);
 				}
 			}
-			if(events_des[1][i][j]->entrytime) /* destroy entrytime tree */
-				g_tree_destroy(events_des[1][i][j]->entrytime);
+			/* destroy entrytime tree */
+			if(events_des[_HOOKID_REGSYSEVT][i][j]->entrytime)
+				g_tree_destroy(events_des[_HOOKID_REGSYSEVT][i][j]->entrytime);
 #endif
 		}
 	}
@@ -348,7 +350,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 	appname = (char *)malloc(512);
 	location = ftell(fp);
 
-	if(HDR_HookID(phdr) ==1 )  {  /* process_snapshot */
+	if(HDR_HookID(phdr) == _HOOKID_PROCESS_SNAPSHOT )  {  /* process_snapshot */
 		fseek(fp, 4, SEEK_CUR); /* skip tid */
 		fread(&pid, 1, 4, fp); /* read pid */
 		fseek(fp, 4, SEEK_CUR); /* skip ppid */
@@ -372,7 +374,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		}
 #endif
 		//fseek(fp, 0-len, SEEK_CUR);
-	} else if (HDR_HookID(phdr) == 2)  { /* process.execve */
+	} else if (HDR_HookID(phdr) == _HOOKID_PROCESS_EXECVE)  { /* process.execve */
 		fread(&pid, 1, 4, fp); /* read pid */
 
 		c = fgetc_unlocked(fp);
@@ -546,9 +548,7 @@ int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 
 	phdr->sys_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
 	phdr->total_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
-
 	return 0;
-
 bad:
 	memset(phdr, 0, sizeof(lket_pkt_header));
 	return -1;
@@ -589,7 +589,7 @@ void print_pkt_header(lket_pkt_header *phdr)
 		if(!(hookid%2)) { // return type event
 			long long *entrytime;
 			long long entryusecs;
-			entrytime = g_tree_lookup(events_des[1][grpid][hookid-1]->entrytime,
+			entrytime = g_tree_lookup(events_des[_HOOKID_REGSYSEVT][grpid][hookid-1]->entrytime,
                                         (gconstpointer)((long)pid));
 			if(entrytime==NULL)  // key not found
 				entryusecs = 0;
@@ -608,7 +608,7 @@ void print_pkt_header(lket_pkt_header *phdr)
 		if(hookid%2) {
 			char *entrytime = malloc(sizeof(long long));
 			*((long long *)entrytime) = usecs;
-			g_tree_insert(events_des[1][grpid][hookid]->entrytime, 
+			g_tree_insert(events_des[_HOOKID_REGSYSEVT][grpid][hookid]->entrytime, 
 				(gpointer)((long)pid), (gpointer)entrytime);
 		}
 	}
@@ -645,10 +645,11 @@ void register_evt_desc(FILE *infp, size_t size)
 	grpid = *(int8_t *)evt_body;
         hookid  = *(int8_t *)(evt_body+1);
 
-	if(!events_des[1][grpid][hookid])
-		events_des[1][grpid][hookid] = malloc(sizeof(event_desc));
+	if(!events_des[_HOOKID_REGSYSEVT][grpid][hookid])
+		events_des[_HOOKID_REGSYSEVT][grpid][hookid] = malloc(sizeof(event_desc));
+
 #ifdef HAS_MYSQL
-	events_des[1][grpid][hookid]->entrytime = g_tree_new_full(
+	events_des[_HOOKID_REGSYSEVT][grpid][hookid]->entrytime = g_tree_new_full(
 		compareFunc, NULL, NULL, destroyTreeData);
 	if(into_db)  {
 		if(!has_table)  {
@@ -699,7 +700,7 @@ void register_events(int evt_type, FILE *infp, size_t size)
 
 #ifdef HAS_MYSQL
 	if(into_db)  {
-		if(evt_type==1)  {  /* if sys event, create a table */
+		if(evt_type==_HOOKID_REGSYSEVT)  {  /* if sys event, create a table */
 			if(!(hookid%2))  {/* if this is a return type event, should record 
 					     the entry time of this event */
 				snprintf(sql, 1024, "create table %d_%d \
@@ -713,7 +714,7 @@ void register_events(int evt_type, FILE *infp, size_t size)
 					cpu_id TINYINT,", grpid, hookid);
 			}
 		}
-		if(evt_type==2)  { /* if user event, alter an existing table */
+		if(evt_type==_HOOKID_REGUSREVT)  { /* if user event, alter an existing table */
 			snprintf(sql, 1024, "alter table %d_%d ", grpid, hookid);
 		}
 	}
@@ -739,14 +740,14 @@ void register_events(int evt_type, FILE *infp, size_t size)
 	while(fmt!=NULL && name!=NULL)  {
 #ifdef HAS_MYSQL
 		if(into_db)  {
-			if(evt_type==1)  {
+			if(evt_type==_HOOKID_REGSYSEVT)  {
 				strcat(sql, "`");
 				strcat(sql, name);
 				strcat(sql, "` ");
 				strcat(sql, get_sqltype(fmt));
 				strcat(sql, ",");
 			}
-			if(evt_type==2)  {
+			if(evt_type==_HOOKID_REGUSREVT)  {
 				strcat(sql, "add ");
 				strcat(sql, "`");
 				strcat(sql, name);
@@ -771,9 +772,9 @@ void register_events(int evt_type, FILE *infp, size_t size)
 #ifdef HAS_MYSQL
 gen_sql:
 	if(into_db)  {
-		if(evt_type==1)
+		if(evt_type==_HOOKID_REGSYSEVT)
 			sql[strlen(sql)-1]=')';
-		if(evt_type==2)
+		if(evt_type==_HOOKID_REGUSREVT)
 			sql[strlen(sql)-1]='\0';
 
 		if(mysql_query(&mysql, sql))  {
@@ -822,10 +823,10 @@ int dump_data(lket_pkt_header header, FILE *infp)
 
 	/* if the data contains user appended extra data */
 	if(header.total_size != header.sys_size)
-		evt_num = 2;
+		evt_num = 3;
 
 	/* iterate the sys and user event */
-	for(j=1; j<= evt_num; j++)  {
+	for(j=1; j<= evt_num; j+=2)  {
 		
 		readbytes = 0;
 

@@ -13,7 +13,7 @@
 
 #define MAX_GRPID  255
 #define MAX_HOOKID  255
-#define MAX_EVT_TYPES 2
+#define MAX_EVT_TYPES 3
 
 #define DEFAULT_OUTFILE_NAME "lket.out"
 
