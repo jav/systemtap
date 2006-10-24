@@ -1,3 +1,8 @@
+2006-10-24  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (build_blacklist): Added
+	"atomic_notifier_call_chain" to the blacklist (Bugzilla #3379).
+
 2006-10-23  David Smith  <dsmith@redhat.com>
 
 	* main.cxx (printscript): New function containing code moved from

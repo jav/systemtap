@@ -2097,6 +2097,7 @@ dwarf_query::build_blacklist()
   // Most of these are marked __kprobes in newer kernels.  We list them here so
   // the translator can block them on older kernels that don't have the
   // __kprobes function decorator.
+  blacklisted_probes.insert("atomic_notifier_call_chain");
   blacklisted_probes.insert("default_do_nmi");
   blacklisted_probes.insert("__die");
   blacklisted_probes.insert("die_nmi");
