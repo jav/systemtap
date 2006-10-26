@@ -1,1 +1,1 @@
-Makefile probe.out site.exp systemtap.log systemtap.sum
+Makefile probe.out site.exp systemtap.log systemtap.sum .systemtap

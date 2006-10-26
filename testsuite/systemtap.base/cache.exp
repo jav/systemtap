@@ -1,0 +1,110 @@
+# cache.exp
+
+# flag values
+proc F_UNCACHED {}   {return 0x1};	# compilation should be uncached
+proc F_CACHED {}     {return 0x2};	# compilation should be cached
+proc F_NO_COMPILE {} {return 0x4};	# script doesn't compile
+proc F_COMPILE {}    {return 0x8};	# script compiles
+
+# mask values to get either the cache vale or the compile value
+proc F_CACHE_MASK {}   {return [expr [F_UNCACHED] | [F_CACHED]]}
+proc F_COMPILE_MASK {} {return [expr [F_NO_COMPILE] | [F_COMPILE]]}
+
+# convenience combination of flags
+proc F_CACHED_COMPILE {}      {return [expr [F_CACHED] | [F_COMPILE]]}
+proc F_UNCACHED_COMPILE {}    {return [expr [F_UNCACHED] | [F_COMPILE]]}
+proc F_UNCACHED_NO_COMPILE {} {return [expr [F_UNCACHED] | [F_NO_COMPILE]]}
+
+# stap_compile TEST_NAME flags script args
+# - TEST_NAME is the name of the current test
+# - flags indicates the expected outcome of this test
+# - script is the script to compile
+# Additional arguments are passed to stap as-is.
+proc stap_compile { TEST_NAME flags script args } {
+    set cmd [concat {stap -v -p4 -e} $script $args]
+    
+    eval spawn $cmd
+    set cached 0
+    set compile_errors 0
+    expect {
+	-re {^Pass\ [1234]:[^\r]*\ in\ .*\ ms.\r\n} {exp_continue}
+	-re {^Pass\ [34]: using cached .+\r\n} {incr cached 1; exp_continue}
+	-re "compilation failed" {incr compile_errors 1; exp_continue}
+	-re "semantic error:" {incr compile_errors 1; exp_continue}
+    }
+    catch close
+    wait
+
+    # If we've got compile errors and the script was supposed to
+    # compile, fail.
+    if {$compile_errors > 0
+	&& [expr $flags & [F_COMPILE_MASK]] == [F_COMPILE]} {
+	fail "$TEST_NAME compilation failed"
+	return
+    }
+
+    # If we were supposed to use a cached module...
+    if {[expr $flags & [F_CACHE_MASK]] == [F_CACHED]} {
+	if {$cached == 2} {
+	    pass "$TEST_NAME was cached"
+	} else {
+	    fail "$TEST_NAME wasn't cached"
+	}
+    # If we weren't supposed to use a cached module...
+    } else {
+	if {$cached > 0} {
+	    fail "$TEST_NAME was cached"
+	} else {
+	    pass "$TEST_NAME wasn't cached"
+	}
+    }
+}
+
+# Since we need a clean cache directory, we'll use a temporary
+# systemtap directory and cache
+set local_systemtap_dir [exec pwd]/.cache_test
+exec /bin/rm -rf $local_systemtap_dir
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+
+# Set up the scripts we'll use.
+set basic_script1 "\"probe begin { }\""
+set basic_script2 "\"probe begin, end { }\""
+set error_script "\"probe XbeginX { }\""
+
+# Check basic functionality.  The 1st compilation of a script won't
+# be cached, the 2nd should be cached.
+stap_compile BASIC1 [F_UNCACHED_COMPILE] $basic_script1
+stap_compile BASIC2 [F_CACHED_COMPILE] $basic_script1
+
+# Adding in a macro definition should change the hash
+stap_compile OPTION1 [F_UNCACHED_COMPILE] $basic_script1 -DFOO=1
+stap_compile OPTION2 [F_CACHED_COMPILE] $basic_script1 -DFOO=1
+
+# Changing the runtime directory should change the hash
+set new_runtime [exec pwd]/.cache_test_runtime
+exec /bin/rm -f $new_runtime
+exec /bin/ln -s $env(SYSTEMTAP_RUNTIME) $new_runtime
+stap_compile RUNTIME1 [F_UNCACHED_COMPILE] $basic_script1 -R $new_runtime
+stap_compile RUNTIME2 [F_CACHED_COMPILE] $basic_script1 -R $new_runtime
+exec /bin/rm -f $new_runtime
+
+# Disable the cache with SYSTEMTAP_DIR
+set env(SYSTEMTAP_DIR) /dev/null
+stap_compile DISABLED1 [F_UNCACHED_COMPILE] $basic_script1
+stap_compile DISABLED2 [F_UNCACHED_COMPILE] $basic_script1
+set env(SYSTEMTAP_DIR) $local_systemtap_dir
+
+# Disable the cache with '-m'
+stap_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+stap_compile MODNAM2 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+
+# Make sure scripts that don't actually compile don't get cached
+stap_compile ERROR1 [F_UNCACHED_NO_COMPILE] $error_script
+stap_compile ERROR2 [F_UNCACHED_NO_COMPILE] $error_script
+
+# Make sure basic stuff still works.
+stap_compile BASIC3 [F_UNCACHED_COMPILE] $basic_script2
+stap_compile BASIC4 [F_CACHED_COMPILE] $basic_script2
+
+# Cleanup.
+exec /bin/rm -rf $local_systemtap_dir

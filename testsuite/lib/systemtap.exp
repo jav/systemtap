@@ -48,6 +48,9 @@ proc setup_systemtap_environment {} {
         set env(SYSTEMTAP_RUNTIME) $env(SRCDIR)/runtime
         set env(PATH) ..:$env(PATH)
     }
+
+    # Use a local systemtap directory and cache
+    set env(SYSTEMTAP_DIR) [exec pwd]/.systemtap
 }
 
 

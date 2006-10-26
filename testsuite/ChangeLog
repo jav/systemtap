@@ -1,3 +1,11 @@
+2006-10-26  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/cache.exp: New file that tests caching
+	functionality.
+	* lib/systemtap.exp (setup_systemtap_environment): Use a local
+	systemtap directory/cache (instead of the user's cache).
+	* .cvsignore: Added .systemtap directory.
+
 2006-10-23  David Smith  <dsmith@redhat.com>
 
 	* lib/stap_run.exp: Handles cached module.
