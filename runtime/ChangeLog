@@ -1,3 +1,8 @@
+2006-10-27  Thang Nguyen <thang.p.nguyen@intel.com>
+
+	* runtime/regs.c: patch from Bibo Mao for fixing the return
+	value on IA64 (bz #3404).
+
 2006-10-24  Li Guanglei <guanglei@cn.ibm.com>
 
 	* runtime/lket/b2a/lket_b2a.[ch]: be sync with LKET hookid

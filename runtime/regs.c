@@ -39,7 +39,9 @@ static long ia64_fetch_register(int regno, struct pt_regs *pt_regs)
 {
 	struct ia64_stap_get_arbsp_param pa;
 
-	if (regno < 32 || regno > 127)
+	if (regno >= 8 && regno <= 11)
+		return *(unsigned long *)(&pt_regs->r8 + regno - 8);
+	else if (regno < 32 || regno > 127)
 		return 0;
 
 	pa.ip = pt_regs->cr_iip;
@@ -56,8 +58,14 @@ static void ia64_store_register(int regno,
 {
 	struct ia64_stap_get_arbsp_param pa;
 	unsigned long rsc_save = 0;
+	unsigned long *addr;
 
-	if (regno < 32 || regno > 127)
+	if (regno >= 8 && regno <= 11) {
+		addr =&pt_regs->r8;
+		addr += regno - 8;
+		*(addr) = value;
+	}
+	else if (regno < 32 || regno > 127)
 		return;
 
 	pa.ip = pt_regs->cr_iip;
