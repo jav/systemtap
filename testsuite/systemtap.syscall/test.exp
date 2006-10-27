@@ -1,72 +1,48 @@
 proc test_procedure {} {
-global subdir
-if {$subdir != ""} {
-    cd $subdir
-}
-
-# compile sys.stp and keep it
-catch {exec stap -kvvp4 sys.stp} res1
-set path ""
-regexp {Keeping temporary directory "([^\"]*)"} $res1 match path
-if {$path == ""} {
-  send_log "ERROR:\n$res1\n"
-  fail "ERROR:\n$res1\n"
-  return -1
-}
-foreach line [split $res1 \n] {
-  if {[regexp {Pass 4: compiled C into "([^\"]*)"} $line match module]} {
-	    break
-        }
-  if {[regexp {Pass 4: using cached /.*/(stap_[0-9a-f_]*.ko)} $line match module]} {
-	    break
-        }
-}
-
-if {![info exists module]} { 
-  send_log "Compiling sys.stp failed:\n$res1\n"
-  fail "Compiling sys.stp failed:\n$res1\n"
-  return -1
-}
-
-set flags ""
-foreach filename [lsort [glob *.c]] {
-  set file [string range $filename 0 end-2]
-  target_compile $filename $file executable $flags
-  send_log "Testing ${file}\n"
-  set res [exec ./test.tcl $file $path/$module]
-  if {$res == "PASS"} {
-    pass "$file"
-  } elseif {$res == "UNSUPP"} {
-    unsupported "$file not supported on this arch"
-  } else {
-    fail "$file"
-    send_log "$res\n"
-  }
-}
-
-if {$::tcl_platform(machine) == "x86_64"} {
-  # on x86_64, test 32-bit and 64-bit binaries
-  set flags "additional_flags=-m32"
-  foreach filename [lsort [glob *.c]] {
-    set file [string range $filename 0 end-2]
-    target_compile $filename $file executable $flags
-    send_log "Testing 32-bit ${file}\n"
-    set res [exec ./test.tcl $file $path/$module]
-    if {$res == "PASS"} {
-      pass "32-bit $file"
-    } elseif {$res == "UNSUPP"} {
-      unsupported "$file not supported on this arch"
-    } else {
-      fail "32-bit $file"
-      send_log "$res\n"
+    global subdir
+    if {$subdir != ""} {
+	cd $subdir
     }
-  }
-}
-
-exec rm -rf $path
-if {$subdir != ""} {
-  cd ..
-}
+    
+    
+    set flags ""
+    foreach filename [lsort [glob *.c]] {
+	set file [string range $filename 0 end-2]
+	target_compile $filename $file executable $flags
+	send_log "Testing ${file}\n"
+	set res [exec ./test.tcl $file]
+	if {$res == "PASS"} {
+	    pass "$file"
+	} elseif {$res == "UNSUPP"} {
+	    unsupported "$file not supported on this arch"
+	} else {
+	    fail "$file"
+	    send_log "$res\n"
+	}
+    }
+    
+    if {$::tcl_platform(machine) == "x86_64"} {
+	# on x86_64, test 32-bit and 64-bit binaries
+	set flags "additional_flags=-m32"
+	foreach filename [lsort [glob *.c]] {
+	    set file [string range $filename 0 end-2]
+	    target_compile $filename $file executable $flags
+	    send_log "Testing 32-bit ${file}\n"
+	    set res [exec ./test.tcl $file]
+	    if {$res == "PASS"} {
+		pass "32-bit $file"
+	    } elseif {$res == "UNSUPP"} {
+		unsupported "$file not supported on this arch"
+	    } else {
+		fail "32-bit $file"
+		send_log "$res\n"
+	    }
+	}
+    }
+    
+    if {$subdir != ""} {
+	cd ..
+    }
 }
 
 test_procedure

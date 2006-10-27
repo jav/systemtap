@@ -1,3 +1,11 @@
+2006-10-27  Martin Hunt  <hunt@redhat.com>
+
+	* test.exp, test.tcl: Remove our own caching code
+	and just use systemtap's new caching.
+
+	* acct.c (main): Make pattern less selective so
+	it works when run by root.
+
 2006-10-23  David Smith  <dsmith@redhat.com>
 
 	* test.exp (test_procedure): Handles cached module.

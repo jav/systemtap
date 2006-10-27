@@ -14,7 +14,7 @@ proc cleanup {} {
 }
 
 proc usage {progname} {
-    puts "Usage: $progname testname [modulename]"
+    puts "Usage: $progname testname"
 }
 
 proc bgerror {error} {
@@ -23,29 +23,13 @@ proc bgerror {error} {
 }
 trap {cleanup} SIGINT
 set testname [lindex $argv 0]
-set modname [lindex $argv 1]
 
 if {$testname == ""} {
     usage $argv0
     exit
 }
 set filename "${testname}.c"
-
-if {$modname == ""} {
-    set cmd "stap -c ../${testname} ../sys.stp"
-} else {
-    set ccmd "which staprun"
-    catch {eval exec $ccmd} output
-    if {[file exists $output]} {
-	set staprun $output
-    } else {
-	puts "staprun not found!"
-	exit
-    }
-
-    set user $::tcl_platform(user)
-    set cmd "sudo $staprun -rmq  -u $user -c ../${testname} ${modname}"
-}
+set cmd "stap -c ../${testname} ../sys.stp"
 
 # Extract the expected results
 # Use the preprocessor so we can ifdef tests in and out

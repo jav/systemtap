@@ -4,7 +4,7 @@
 int main()
 {
   acct("foobar");
-  // acct ("foobar") = -NNNN (EPERM)
+  // acct ("foobar") = -NNNN
 
   return 0;
 }
