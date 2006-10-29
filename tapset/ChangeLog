@@ -1,3 +1,7 @@
+2006-10-29  Thang Nguyen <thang.p.nguyen@intel.com>
+	* context.stp: Added proper handling of statement
+	* probe in probefunc() for IA64 (bz# 3423)
+
 2006-10-16  Li Guanglei <guanglei@cn.ibm.com>
 	* scsi.stp: check whether rq_disk is empty
 	* scheduler.stp: revert changes for x86_64

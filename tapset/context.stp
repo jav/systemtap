@@ -107,7 +107,11 @@ function probefunc:string () %{ /* pure */
 		*dst = 0;
 
 	} else if (CONTEXT->regs &&
-		(REG_IP(CONTEXT->regs) >= PAGE_OFFSET)) {
+#if defined (__ia64__)
+		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)KERNEL_START)) {
+#else
+		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
+#endif
 		_stp_symbol_sprint_basic(THIS->__retvalue, MAXSTRINGLEN,
 				REG_IP(CONTEXT->regs));
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
