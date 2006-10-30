@@ -1,3 +1,8 @@
+2006-10-30  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.maps/pmap_agg_overflow.stp: Use timer.jiffies
+	instead of timer.profile so the test works on xen kernels.
+
 2006-10-30  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/cache.exp: Saves value of SYSTEMTAP_DIR

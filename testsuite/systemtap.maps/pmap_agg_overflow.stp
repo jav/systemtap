@@ -11,7 +11,7 @@ probe begin {
     max_count = num_online_cpus() * max_map_entries()
 }
 
-probe timer.profile {
+probe timer.jiffies(1) {
     i = ++count
     if (i >= max_count) exit()
     stat[i] <<< i
