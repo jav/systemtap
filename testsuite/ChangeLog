@@ -1,3 +1,8 @@
+2006-10-30  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.base/cache.exp (stap_compile): Fix a simple 
+	buffering problem with expect.
+
 2006-10-26  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/cache.exp: New file that tests caching
