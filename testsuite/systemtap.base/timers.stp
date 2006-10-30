@@ -38,7 +38,8 @@ probe end
 
 	/* profile counter should be non-zero, and at
 	 * least as many as the jiffies(1) counter */
-	if ((p > 0) && (p >= j1)) {
+	/* (fudge comparison by ~1% since start & end aren't synchronized) */
+	if ((p > 0) && (p*100 >= j1*99)) {
 		printf("systemtap test success\n")
 	} else {
 		printf("unexpected profile count: %d profiles and %d jiffies\n", p, j1)

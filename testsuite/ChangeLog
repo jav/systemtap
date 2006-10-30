@@ -4,6 +4,8 @@
 	kernel.function("scheduler_tick") instead of timer.jiffies
 	so the test works on all kernels.  The test needs a probe
 	that is invoked often on all cpus.
+	* systemtap.base/timers.stp: Fudge the comparison a bit between
+	jiffies(1) and profile to allow for slop between start/end times.
 
 2006-10-30  Martin Hunt  <hunt@redhat.com>
 
