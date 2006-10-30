@@ -11,7 +11,7 @@ probe begin {
     max_count = num_online_cpus() * max_map_entries()
 }
 
-probe timer.jiffies(1) {
+probe kernel.function("scheduler_tick") {
     i = ++count
     if (i >= max_count) exit()
     stat[i] <<< i

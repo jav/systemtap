@@ -1,3 +1,10 @@
+2006-10-30  Josh Stone  <joshua.i.stone@intel.com>
+
+	* systemtap.maps/pmap_agg_overflow.stp: Use
+	kernel.function("scheduler_tick") instead of timer.jiffies
+	so the test works on all kernels.  The test needs a probe
+	that is invoked often on all cpus.
+
 2006-10-30  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.maps/pmap_agg_overflow.stp: Use timer.jiffies
