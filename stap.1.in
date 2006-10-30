@@ -722,6 +722,16 @@ See the
 .IR stapex (5)
 manual page for a collection of samples.
 
+.SH CACHING
+The systemtap translator caches the pass 3 output (the generated C
+code) and the pass 4 output (the compiled kernel module) if pass 4
+completes successfully.  This cached output is reused if the same
+script is translated again assuming the same conditions exist (same kernel
+version, same systemtap version, etc.).  Cached files are stored in
+the
+.I $SYSTEMTAP_DIR/cache
+directory.
+
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.  It acquires root
@@ -784,6 +794,12 @@ Any pending trace messages may be lost.
 
 .SH FILES
 .\" consider autoconf-substituting these directories
+.TP
+~/.systemtap
+Systemtap data directory for cached systemtap files, unless overridden
+by the
+.I SYSTEMTAP_DIR
+environment variable.
 .TP
 /tmp/stapXXXXXX
 Temporary directory for systemtap files, including translated C code
