@@ -1,3 +1,16 @@
+2006-10-30  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/cache.exp: Saves value of SYSTEMTAP_DIR
+	environment variable before starting tests and restores value at
+	the end.  Without this caching was broken for the rest of the
+	testsuite, since all cached files were ending up in
+	testsuite/.cache_test (which gets deleted on the next run of the
+	testsuite).
+
+	* Makefile.am: The 'clean-local' target now removes the .systemtap
+	and .cache_test directories.
+	* Makefile.in: Regenerated.
+
 2006-10-30  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.base/cache.exp (stap_compile): Fix a simple 

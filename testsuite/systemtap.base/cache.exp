@@ -64,6 +64,9 @@ proc stap_compile { TEST_NAME flags script args } {
 # systemtap directory and cache
 set local_systemtap_dir [exec pwd]/.cache_test
 exec /bin/rm -rf $local_systemtap_dir
+if [info exists env(SYSTEMTAP_DIR)] {
+    set old_systemtap_dir $env(SYSTEMTAP_DIR)
+}
 set env(SYSTEMTAP_DIR) $local_systemtap_dir
 
 # Set up the scripts we'll use.
@@ -108,3 +111,8 @@ stap_compile BASIC4 [F_CACHED_COMPILE] $basic_script2
 
 # Cleanup.
 exec /bin/rm -rf $local_systemtap_dir
+if [info exists old_systemtap_dir] {
+    set env(SYSTEMTAP_DIR) $old_systemtap_dir
+} else {
+    unset env(SYSTEMTAP_DIR)
+}
