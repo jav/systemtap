@@ -167,429 +167,429 @@ function register_sys_events()
 {
 	reset_maxaction()
 
-	register_sys_event("addevent.syscall.entry", GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, 
+	register_sys_event("syscall.entry", GROUP_SYSCALL, HOOKID_SYSCALL_ENTRY, 
 		"STRING", "syscall")
-	register_sys_event("addevent.syscall.return", GROUP_SYSCALL, HOOKID_SYSCALL_RETURN,
+	register_sys_event("syscall.return", GROUP_SYSCALL, HOOKID_SYSCALL_RETURN,
 		"STRING", "syscall")
 		
 	register_sys_event("process_snapshot", GROUP_PROCESS, HOOKID_PROCESS_SNAPSHOT,
 		"INT32:INT32:INT32:STRING", "tid:pid:ppid:pname")
-	register_sys_event("addevent.process.execve", GROUP_PROCESS, HOOKID_PROCESS_EXECVE,
+	register_sys_event("process.execve", GROUP_PROCESS, HOOKID_PROCESS_EXECVE,
 		"INT32:STRING", "pid:pname")
-	register_sys_event("addevent.process.fork", GROUP_PROCESS, HOOKID_PROCESS_FORK,
+	register_sys_event("process.fork", GROUP_PROCESS, HOOKID_PROCESS_FORK,
 		"INT32:INT32:INT32", "tid:pid:ppid")
 
-	register_sys_event("addevent.ioscheduler.elv_next_request.entry",
+	register_sys_event("ioscheduler.elv_next_request.entry",
 		GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ_ENTRY,
 		"STRING", "elv_name")
-	register_sys_event("addevent.ioscheduler.elv_next_request.return",
+	register_sys_event("ioscheduler.elv_next_request.return",
 		GROUP_IOSCHED, HOOKID_IOSCHED_NEXT_REQ_RETURN,
 		"INT8:INT8:INT64:INT64", "major:minor:req_addr:req_flags")
 
 
-	register_sys_event("addevent.ioscheduler.elv_add_request",
+	register_sys_event("ioscheduler.elv_add_request",
 		GROUP_IOSCHED, HOOKID_IOSCHED_ADD_REQ,
 		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
-	register_sys_event("addevent.ioscheduler.elv_completed_request",
+	register_sys_event("ioscheduler.elv_completed_request",
 		GROUP_IOSCHED, HOOKID_IOSCHED_COMPLETE_REQ,
 		"STRING:INT8:INT8:INT64:INT64", "elv_name:major:minor:request:req_flags")
 
-	register_sys_event("addevent.tskdispatch.ctxswitch",
+	register_sys_event("tskdispatch.ctxswitch",
 		GROUP_TASK, HOOKID_TASK_CTXSWITCH,
 		"INT32:INT32:INT8", "prev_pid:next_pid:prev_state")
-	register_sys_event("addevent.tskdispatch.cpuidle", GROUP_TASK, HOOKID_TASK_CPUIDLE,
+	register_sys_event("tskdispatch.cpuidle", GROUP_TASK, HOOKID_TASK_CPUIDLE,
 		"INT32", "cur_pid")
 
-	register_sys_event("addevent.scsi.ioentry", GROUP_SCSI, HOOKID_SCSI_IOENTRY,
+	register_sys_event("scsi.ioentry", GROUP_SCSI, HOOKID_SCSI_IOENTRY,
 		"INT8:INT8:INT8:INT64", "major:minor:sdev_state:request_addr")
 
-	register_sys_event("addevent.scsi.iodispatching", GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
+	register_sys_event("scsi.iodispatching", GROUP_SCSI, HOOKID_SCSI_IO_TO_LLD,
 		"INT8:INT8:INT8:INT8:INT8:INT8:INT64:INT32:INT64",
 		"host:channel:lun:dev_id:dev_state:data_dir:reqbuf_addr:reqbuf_len:request_addr")
 
-	register_sys_event("addevent.scsi.iodone", GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
+	register_sys_event("scsi.iodone", GROUP_SCSI, HOOKID_SCSI_IODONE_BY_LLD,
 		"INT8:INT8:INT8:INT8:INT8:INT8:INT64", 
 		"host:channel:lun:dev_id:dev_state:data_dir:request_addr")
 
-	register_sys_event("addevent.scsi.iocompleted", 
+	register_sys_event("scsi.iocompleted", 
 		GROUP_SCSI, HOOKID_SCSI_IOCOMP_BY_MIDLEVEL,
 		"INT8:INT8:INT8:INT8:INT8:INT8:INT64:INT32", 
 		"host:channel:lun:dev_id:dev_state:data_dir:request_addr:done_bytes")
 
-	register_sys_event("addevent.pagefault", GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
+	register_sys_event("pagefault", GROUP_PAGEFAULT, HOOKID_PAGEFAULT,
 		"INT64:INT8", "addr:write")
 
-	register_sys_event("addevent.netdev.receive", GROUP_NETDEV, HOOKID_NETDEV_RECEIVE,
+	register_sys_event("netdev.receive", GROUP_NETDEV, HOOKID_NETDEV_RECEIVE,
 		"STRING:INT32:INT16:INT32", "dev_name:data_len:protocol:buff_size")
 
-	register_sys_event("addevent.netdev.transmit", GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
+	register_sys_event("netdev.transmit", GROUP_NETDEV, HOOKID_NETDEV_TRANSMIT,
 		"STRING:INT32:INT16:INT32", "dev_name:data_len:protocol:buff_size")
 
-	register_sys_event("addevent.iosyscall.open.entry",
+	register_sys_event("iosyscall.open.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_ENTRY,
 		"STRING:INT32:INT32", "filename:flags:mode")
-	register_sys_event("addevent.iosyscall.open.return",
+	register_sys_event("iosyscall.open.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_OPEN_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.close.entry",
+	register_sys_event("iosyscall.close.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_ENTRY,
 		"INT64", "fd")
-	register_sys_event("addevent.iosyscall.close.return",
+	register_sys_event("iosyscall.close.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_CLOSE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.read.entry",
+	register_sys_event("iosyscall.read.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_ENTRY,
 		"INT64:INT64:INT64", "fd:buff_addr:count")
-	register_sys_event("addevent.iosyscall.read.return",
+	register_sys_event("iosyscall.read.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READ_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.write.entry",
+	register_sys_event("iosyscall.write.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_ENTRY,
 		"INT64:INT64:INT64", "fd:buff_addr:count")
-	register_sys_event("addevent.iosyscall.write.return",
+	register_sys_event("iosyscall.write.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.readv.entry",
+	register_sys_event("iosyscall.readv.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_ENTRY,
 		"INT64:INT64:INT64", "fd:vector_uaddr:count")
-	register_sys_event("addevent.iosyscall.readv.return",
+	register_sys_event("iosyscall.readv.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READV_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.writev.entry",
+	register_sys_event("iosyscall.writev.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_ENTRY,
 		"INT64:INT64:INT64", "fd:vector_uaddr:count")
-	register_sys_event("addevent.iosyscall.writev.return",
+	register_sys_event("iosyscall.writev.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_WRITEV_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.pread64.entry",
+	register_sys_event("iosyscall.pread64.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_ENTRY,
 		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
-	register_sys_event("addevent.iosyscall.pread64.return",
+	register_sys_event("iosyscall.pread64.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PREAD64_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.pwrite64.entry",
+	register_sys_event("iosyscall.pwrite64.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_ENTRY,
 		"INT64:INT64:INT64:INT64", "fd:buff_uaddr:count:offset")
-	register_sys_event("addevent.iosyscall.pwrite64.return",
+	register_sys_event("iosyscall.pwrite64.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_PWRITE64_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.readahead.entry",
+	register_sys_event("iosyscall.readahead.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_ENTRY,
 		"INT64:INT64:INT64", "fd:offset:count")
-	register_sys_event("addevent.iosyscall.readahead.return",
+	register_sys_event("iosyscall.readahead.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_READAHEAD_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.sendfile.entry",
+	register_sys_event("iosyscall.sendfile.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_ENTRY,
 		"INT64:INT64:INT64:INT64", "out_fd:in_fd:offset_uaddr:count")
-	register_sys_event("addevent.iosyscall.sendfile.return",
+	register_sys_event("iosyscall.sendfile.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SENDFILE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.lseek.entry",
+	register_sys_event("iosyscall.lseek.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_ENTRY,
 		"INT64:INT64:INT8", "fd:offset:whence")
-	register_sys_event("addevent.iosyscall.lseek.return",
+	register_sys_event("iosyscall.lseek.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LSEEK_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.llseek.entry",
+	register_sys_event("iosyscall.llseek.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_ENTRY,
 		"INT64:INT64:INT64:INT64:INT8b", 
 		"fd:offset_high:offset_low:result_uaddr:whence")
-	register_sys_event("addevent.iosyscall.llseek.return",
+	register_sys_event("iosyscall.llseek.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_LLSEEK_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.sync.entry",
+	register_sys_event("iosyscall.sync.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SYNC_ENTRY,
 		"", "")
 
-	register_sys_event("addevent.iosyscall.sync.return",
+	register_sys_event("iosyscall.sync.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_SYNC_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.fsync.entry",
+	register_sys_event("iosyscall.fsync.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_ENTRY,
 		"INT64", "fd")
-	register_sys_event("addevent.iosyscall.fsync.return",
+	register_sys_event("iosyscall.fsync.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FSYNC_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.fdatasync.entry",
+	register_sys_event("iosyscall.fdatasync.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_ENTRY,
 		"INT64", "fd")
-	register_sys_event("addevent.iosyscall.fdatasync.return",
+	register_sys_event("iosyscall.fdatasync.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FDATASYNC_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.iosyscall.flock.entry",
+	register_sys_event("iosyscall.flock.entry",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_ENTRY,
 		"INT64:INT32", "fd:operation")
-	register_sys_event("addevent.iosyscall.flock.return",
+	register_sys_event("iosyscall.flock.return",
 		GROUP_IOSYSCALL, HOOKID_IOSYSCALL_FLOCK_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_setup.entry",
+	register_sys_event("aio.io_setup.entry",
 		GROUP_AIO, HOOKID_AIO_IO_SETUP_ENTRY,
 		"INT32:INT64", "nr_events:ctxp_uaddr")
-	register_sys_event("addevent.aio.io_setup.return",
+	register_sys_event("aio.io_setup.return",
 		GROUP_AIO, HOOKID_AIO_IO_SETUP_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_submit.entry",
+	register_sys_event("aio.io_submit.entry",
 		GROUP_AIO, HOOKID_AIO_IO_SUBMIT_ENTRY,
 		"INT64:INT32:INT64", "ctx_id:nr:iocbpp_uaddr")
-	register_sys_event("addevent.aio.io_submit.return",
+	register_sys_event("aio.io_submit.return",
 		GROUP_AIO, HOOKID_AIO_IO_SUBMIT_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_submit_one.entry",
+	register_sys_event("aio.io_submit_one.entry",
 		GROUP_AIO, HOOKID_AIO_IO_SUBMIT_ONE_ENTRY,
 		"INT64:INT64:INT16:INT16:INT32:INT64:INT64:INT64", 
 		"ctx:user_iocb_uaddr:aio_lio_opcode:aio_reqprio:aio_fildes:aio_buf:aio_nbytes:aio_offset")
-	register_sys_event("addevent.aio.io_submit_one.return",
+	register_sys_event("aio.io_submit_one.return",
 		GROUP_AIO, HOOKID_AIO_IO_SUBMIT_ONE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_destroy.entry",
+	register_sys_event("aio.io_destroy.entry",
 		GROUP_AIO, HOOKID_AIO_IO_DESTROY_ENTRY,
 		"INT64", "ctx")
-	register_sys_event("addevent.aio.io_destroy.return",
+	register_sys_event("aio.io_destroy.return",
 		GROUP_AIO, HOOKID_AIO_IO_DESTROY_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_getevents.entry",
+	register_sys_event("aio.io_getevents.entry",
 		GROUP_AIO, HOOKID_AIO_IO_GETEVENTS_ENTRY,
 		"INT64:INT32:INT32:INT64:INT32:INT32", 
 		"ctx_id:min_nr:nr:events_uaddr:tv_sec:tv_nsec")
-	register_sys_event("addevent.aio.io_getevents.return",
+	register_sys_event("aio.io_getevents.return",
 		GROUP_AIO, HOOKID_AIO_IO_GETEVENTS_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.aio.io_cancel.entry",
+	register_sys_event("aio.io_cancel.entry",
 		GROUP_AIO, HOOKID_AIO_IO_CANCEL_ENTRY,
 		"INT64:INT64:INT64", 
 		"ctx_id:iocb_uaddr:result_uaddr")
-	register_sys_event("addevent.aio.io_cancel.return",
+	register_sys_event("aio.io_cancel.return",
 		GROUP_AIO, HOOKID_AIO_IO_CANCEL_RETURN,
 		"INT64", "return")
 
 	reset_maxaction()
 
-	register_sys_event("addevent.signal.send.entry",
+	register_sys_event("signal.send.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SEND_ENTRY,
 		"INT8:INT8:INT8:INT32", "sig:shared:send2queue:pid")
-	register_sys_event("addevent.signal.send.return",
+	register_sys_event("signal.send.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SEND_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.syskill.entry",
+	register_sys_event("signal.syskill.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSKILL_ENTRY,
 		"INT32:INT8", "pid:sig")
-	register_sys_event("addevent.signal.syskill.return",
+	register_sys_event("signal.syskill.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSKILL_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.systgkill.entry",
+	register_sys_event("signal.systgkill.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSTGKILL_ENTRY,
 		"INT32:INT32:INT8", "tid:pid:sig")
-	register_sys_event("addevent.signal.systgkill.return",
+	register_sys_event("signal.systgkill.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSTGKILL_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.systkill.entry",
+	register_sys_event("signal.systkill.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSTKILL_ENTRY,
 		"INT32:INT8", "pid:sig")
-	register_sys_event("addevent.signal.systkill.return",
+	register_sys_event("signal.systkill.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_SYSTKILL_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.pending.entry",
+	register_sys_event("signal.pending.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_PENDING_ENTRY,
 		"INT32:INT32", "sigset_addr:setsize");
-	register_sys_event("addevent.signal.pending.return",
+	register_sys_event("signal.pending.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_PENDING_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.do_action.entry",
+	register_sys_event("signal.do_action.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_DOACTION_ENTRY,
 		"INT8:INT64", "sig:handler")
-	register_sys_event("addevent.signal.do_action.return",
+	register_sys_event("signal.do_action.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_DOACTION_RETURN,
 		"INT16", "return")
 
-	register_sys_event("addevent.signal.procmask.entry",
+	register_sys_event("signal.procmask.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_PROC_MASK_ENTRY,
 		"INT8:INT64", "how:sigset")
-	register_sys_event("addevent.signal.procmask.return",
+	register_sys_event("signal.procmask.return",
 		GROUP_SIGNAL, HOOKID_SIGNAL_PROC_MASK_RETURN,
 		"INT8", "return")
 
-	register_sys_event("addevent.signal.flush.entry",
+	register_sys_event("signal.flush.entry",
 		GROUP_SIGNAL, HOOKID_SIGNAL_FLUSH_ENTRY,
 		"INT32", "pid")
 
-	register_sys_event("addevent.sunrpc.clnt.create_client.entry",
+	register_sys_event("sunrpc.clnt.create_client.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CREATE_CLIENT_ENTRY, 
 		"STRING:INT64:INT8:INT16:INT16:INT8",
 		"server:prog:vers:prot:port:authflavor")
-	register_sys_event("addevent.sunrpc.clnt.create_client.return",
+	register_sys_event("sunrpc.clnt.create_client.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CREATE_CLIENT_RETURN, 
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.clnt.clone_client.entry",
+	register_sys_event("sunrpc.clnt.clone_client.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CLONE_CLIENT_ENTRY, 
 		"STRING:INT64:INT16:INT16:INT32",
 		"server:prog:tasks:clones:rpccount")
-	register_sys_event("addevent.sunrpc.clnt.clone_client.return",
+	register_sys_event("sunrpc.clnt.clone_client.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CLONE_CLIENT_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.clnt.shutdown_client.entry",
+	register_sys_event("sunrpc.clnt.shutdown_client.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_SHUTDOWN_CLIENT_ENTRY, 
 		"STRING:INT64:INT16:INT16:INT32",
 		"server:prog:clones:tasks:rpccount")
-	register_sys_event("addevent.sunrpc.clnt.shutdown_client.return",
+	register_sys_event("sunrpc.clnt.shutdown_client.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_SHUTDOWN_CLIENT_RETURN,
 		"INT8", "void")
 
-	register_sys_event("addevent.sunrpc.clnt.bind_new_program.entry",
+	register_sys_event("sunrpc.clnt.bind_new_program.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_BIND_NEW_PROGRAM_ENTRY,
 		"STRING:INT64:INT8:INT64:INT8",
 		"server:old_prog:old_vers:new_prog:new_vers")
-	register_sys_event("addevent.sunrpc.clnt.bind_new_program.return",
+	register_sys_event("sunrpc.clnt.bind_new_program.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_BIND_NEW_PROGRAM_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.clnt.call_sync.entry",
+	register_sys_event("sunrpc.clnt.call_sync.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_SYNC_ENTRY,
 		"STRING:INT64:INT8:INT64:INT64",
 		"server:prog:vers:proc:flags")
-	register_sys_event("addevent.sunrpc.clnt.call_sync.return",
+	register_sys_event("sunrpc.clnt.call_sync.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_SYNC_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.clnt.call_async.entry",
+	register_sys_event("sunrpc.clnt.call_async.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_ASYNC_ENTRY,
 		"STRING:INT64:INT8:INT64:INT64",
 		"server:prog:vers:proc:flags")
-	register_sys_event("addevent.sunrpc.clnt.call_async.return",
+	register_sys_event("sunrpc.clnt.call_async.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_CALL_ASYNC_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.clnt.restart_call.entry",
+	register_sys_event("sunrpc.clnt.restart_call.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_RESTART_CALL_ENTRY,
 		"INT64:INT64", "tk_pid:tk_flags")
 	
-	register_sys_event("addevent.sunrpc.clnt.restart_call.return",
+	register_sys_event("sunrpc.clnt.restart_call.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_CLNT_RESTART_CALL_RETURN,
 		"INT8", "void")
 
-	register_sys_event("addevent.sunrpc.svc.register.entry",
+	register_sys_event("sunrpc.svc.register.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_REGISTER_ENTRY,
 		"STRING:INT64:INT16:INT32",
 		"service:program:protocol:prot")
-	register_sys_event("addevent.sunrpc.svc.register.return",
+	register_sys_event("sunrpc.svc.register.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_REGISTER_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.svc.create.entry",
+	register_sys_event("sunrpc.svc.create.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_CREATE_ENTRY,
 		"INT64:INT8:INT8",
 		"program:high_version:num_versions")
-	register_sys_event("addevent.sunrpc.svc.create.return",
+	register_sys_event("sunrpc.svc.create.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_CREATE_RETURN,
 		"INT64", "return")
 			
-	register_sys_event("addevent.sunrpc.svc.destroy.entry",
+	register_sys_event("sunrpc.svc.destroy.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DESTROY_ENTRY,
 		"STRING:INT64:INT32",
 		"service:program:num_threads")
 
-	register_sys_event("addevent.sunrpc.svc.destroy.return",
+	register_sys_event("sunrpc.svc.destroy.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DESTROY_RETURN,
 		"INT8", "void")
 			
-	register_sys_event("addevent.sunrpc.svc.process.entry",
+	register_sys_event("sunrpc.svc.process.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_PROCESS_ENTRY,
 		"STRING:INT64:INT64:INT64:INT64:INT8:INT8",
 		"service:sv_prog:peer_ip:rq_xid:rq_prog:rq_vers:rq_proc")
-	register_sys_event("addevent.sunrpc.svc.process.return",
+	register_sys_event("sunrpc.svc.process.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_PROCESS_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.svc.authorise.entry",
+	register_sys_event("sunrpc.svc.authorise.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_AUTHORISE_ENTRY,
 		"INT64:INT64:INT64:INT8:INT64",
 		"peer_ip:xid:prog:vers:proc")
-	register_sys_event("addevent.sunrpc.svc.authorise.return",
+	register_sys_event("sunrpc.svc.authorise.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_AUTHORISE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.svc.send.entry",
+	register_sys_event("sunrpc.svc.send.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_SEND_ENTRY,
 		"STRING:INT64:INT64:INT64:INT64:INT8:INT64",
 		"sv_name:peer_ip:sv_prog:xid:prog:vers:proc")
-	register_sys_event("addevent.sunrpc.svc.send.return",
+	register_sys_event("sunrpc.svc.send.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_SEND_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.svc.recv.entry",
+	register_sys_event("sunrpc.svc.recv.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_RECV_ENTRY,
 		"STRING:INT64", "sv_name:timeout")
 	
-	register_sys_event("addevent.sunrpc.svc.recv.return",
+	register_sys_event("sunrpc.svc.recv.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_RECV_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.svc.drop.entry",
+	register_sys_event("sunrpc.svc.drop.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DROP_ENTRY,
 		"STRING:INT64:INT64:INT64:INT8:INT64",
 		"sv_name:peer_ip:xid:prog:vers:proc")
 	
-	register_sys_event("addevent.sunrpc.svc.drop.return",
+	register_sys_event("sunrpc.svc.drop.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SVC_DROP_RETURN,
 		"INT8", "void")
 
-	register_sys_event("addevent.sunrpc.sched.new_task.entry",
+	register_sys_event("sunrpc.sched.new_task.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_NEW_TASK_ENTRY,
 		"INT64:INT64:INT8:INT64:INT64",
 		"xid:prog:vers:prot:flags")
-	register_sys_event("addevent.sunrpc.sched.new_task.return",
+	register_sys_event("sunrpc.sched.new_task.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_NEW_TASK_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.sched.release_task.entry",
+	register_sys_event("sunrpc.sched.release_task.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_RELEASE_TASK_ENTRY,
 		"INT64:INT64:INT8:INT64:INT64",
 		"xid:prog:vers:prot:flags")
-	register_sys_event("addevent.sunrpc.sched.release_task.return",
+	register_sys_event("sunrpc.sched.release_task.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_RELEASE_TASK_RETURN,
 		"INT8", "void")
 
-	register_sys_event("addevent.sunrpc.sched.execute.entry",
+	register_sys_event("sunrpc.sched.execute.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_EXECUTE_ENTRY,
 		"INT64:INT64:INT8:INT64:INT64:INT64",
 		"xid:prog:vers:prot:tk_pid:tk_flags")
-	register_sys_event("addevent.sunrpc.sched.execute.return",
+	register_sys_event("sunrpc.sched.execute.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_EXECUTE_RETURN,
 		"INT64", "return")
 
-	register_sys_event("addevent.sunrpc.sched.delay.entry",
+	register_sys_event("sunrpc.sched.delay.entry",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_DELAY_ENTRY,
 		"INT64:INT64:INT64:INT64:INT64",
 		"xid:prog:tk_pid:tk_flags:delay")
-	register_sys_event("addevent.sunrpc.sched.delay.return",
+	register_sys_event("sunrpc.sched.delay.return",
 		GROUP_SUNRPC, HOOKID_SUNRPC_SCHED_DELAY_RETURN,
 		"INT8", "void")
 
@@ -597,440 +597,440 @@ function register_sys_events()
 		GROUP_CPUFREQ, HOOKID_SWITCH_CPUFREQ,
 		"INT64", "cpufreq")		
 
-	register_sys_event("addevent.nfs.fop.llseek.entry",
+	register_sys_event("nfs.fop.llseek.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_LLSEEK_ENTRY,
                 "INT8:INT8:INT64:INT64:INT8",
 		"major:minor:ino:offset:origin")
-	register_sys_event("addevent.nfs.fop.llseek.return",
+	register_sys_event("nfs.fop.llseek.return",
 		GROUP_NFS, HOOKID_NFS_FOP_LLSEEK_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.read.entry",
+	register_sys_event("nfs.fop.read.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_READ_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT64",
 		"major:minor:ino:buf:len:pos")		
-	register_sys_event("addevent.nfs.fop.read.return",
+	register_sys_event("nfs.fop.read.return",
 		GROUP_NFS, HOOKID_NFS_FOP_READ_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfs.fop.write.entry",
+	register_sys_event("nfs.fop.write.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_WRITE_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT64",
 		"major:minor:ino:buf:len:pos")		
-	register_sys_event("addevent.nfs.fop.write.return",
+	register_sys_event("nfs.fop.write.return",
 		GROUP_NFS, HOOKID_NFS_FOP_WRITE_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfs.fop.aio_read.entry",
+	register_sys_event("nfs.fop.aio_read.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_AIOREAD_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT64",
 		"major:minor:ino:buf:len:pos")		
-	register_sys_event("addevent.nfs.fop.aio_read.return",
+	register_sys_event("nfs.fop.aio_read.return",
 		GROUP_NFS, HOOKID_NFS_FOP_AIOREAD_RETURN,
                 "INT32","return")
 	
-	register_sys_event("addevent.nfs.fop.aio_write.entry",
+	register_sys_event("nfs.fop.aio_write.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_AIOWRITE_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT64",
 		"major:minor:ino:buf:len:pos")		
-	register_sys_event("addevent.nfs.fop.aio_write.return",
+	register_sys_event("nfs.fop.aio_write.return",
 		GROUP_NFS, HOOKID_NFS_FOP_AIOWRITE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.mmap.entry",
+	register_sys_event("nfs.fop.mmap.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_MMAP_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT32",
 		"major:minor:ino:vm_start:vm_end:vm_flags")		
-	register_sys_event("addevent.nfs.fop.mmap.return",
+	register_sys_event("nfs.fop.mmap.return",
 		GROUP_NFS, HOOKID_NFS_FOP_MMAP_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.open.entry",
+	register_sys_event("nfs.fop.open.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_OPEN_ENTRY,
                 "INT8:INT8:INT64:INT32:STRING",
 		"major:minor:ino:flag:filename")		
-	register_sys_event("addevent.nfs.fop.open.return",
+	register_sys_event("nfs.fop.open.return",
 		GROUP_NFS, HOOKID_NFS_FOP_OPEN_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.flush.entry",
+	register_sys_event("nfs.fop.flush.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_FLUSH_ENTRY,
                 "INT8:INT8:INT64:INT32",
 		"major:minor:ino:ndirty")		
-	register_sys_event("addevent.nfs.fop.flush.return",
+	register_sys_event("nfs.fop.flush.return",
 		GROUP_NFS, HOOKID_NFS_FOP_FLUSH_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.release.entry",
+	register_sys_event("nfs.fop.release.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_RELEASE_ENTRY,
                 "INT8:INT8:INT64:INT16",
 		"major:minor:ino:mode")		
-	register_sys_event("addevent.nfs.fop.release.return",
+	register_sys_event("nfs.fop.release.return",
 		GROUP_NFS, HOOKID_NFS_FOP_RELEASE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.fsync.entry",
+	register_sys_event("nfs.fop.fsync.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_FSYNC_ENTRY,
                 "INT8:INT8:INT64:INT32",
 		"major:minor:ino:ndirty")		
-	register_sys_event("addevent.nfs.fop.fsync.return",
+	register_sys_event("nfs.fop.fsync.return",
 		GROUP_NFS, HOOKID_NFS_FOP_FSYNC_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.lock.entry",
+	register_sys_event("nfs.fop.lock.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_LOCK_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:INT8:INT8:INT32",
 		"major:minor:ino:fl_start:fl_end:fl_type:fl_flag:cmd")		
-	register_sys_event("addevent.nfs.fop.lock.return",
+	register_sys_event("nfs.fop.lock.return",
 		GROUP_NFS, HOOKID_NFS_FOP_LOCK_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.sendfile.entry",
+	register_sys_event("nfs.fop.sendfile.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_SENDFILE_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64",
 		"major:minor:ino:count:pos")		
-	register_sys_event("addevent.nfs.fop.sendfile.return",
+	register_sys_event("nfs.fop.sendfile.return",
 		GROUP_NFS, HOOKID_NFS_FOP_SENDFILE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.fop.check_flags.entry",
+	register_sys_event("nfs.fop.check_flags.entry",
 		GROUP_NFS, HOOKID_NFS_FOP_CHECKFLAGS_ENTRY,
                 "INT32","flag")		
-	register_sys_event("addevent.nfs.fop.check_flags.return",
+	register_sys_event("nfs.fop.check_flags.return",
 		GROUP_NFS, HOOKID_NFS_FOP_CHECKFLAGS_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.readpage.entry",
+	register_sys_event("nfs.aop.readpage.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_READPAGE_ENTRY,
                 "INT64:INT32:INT64:INT64",
 		"ino:rsize:__page:page_index")		
-	register_sys_event("addevent.nfs.aop.readpage.return",
+	register_sys_event("nfs.aop.readpage.return",
 		GROUP_NFS, HOOKID_NFS_AOP_READPAGE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.readpages.entry",
+	register_sys_event("nfs.aop.readpages.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_READPAGES_ENTRY,
                 "INT64:INT32:INT32",
 		"ino:rpages:nr_pages")		
-	register_sys_event("addevent.nfs.aop.readpages.return",
+	register_sys_event("nfs.aop.readpages.return",
 		GROUP_NFS, HOOKID_NFS_AOP_READPAGES_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.writepage.entry",
+	register_sys_event("nfs.aop.writepage.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGE_ENTRY,
                 "INT64:INT32:INT64:INT64",
 		"ino:wsize:__page:page_index")		
-	register_sys_event("addevent.nfs.aop.writepage.return",
+	register_sys_event("nfs.aop.writepage.return",
 		GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.writepages.entry",
+	register_sys_event("nfs.aop.writepages.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGES_ENTRY,
                 "INT64:INT32:INT64",
 		"ino:wpages:nr_to_write")		
-	register_sys_event("addevent.nfs.aop.writepages.return",
+	register_sys_event("nfs.aop.writepages.return",
 		GROUP_NFS, HOOKID_NFS_AOP_WRITEPAGES_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.prepare_write.entry",
+	register_sys_event("nfs.aop.prepare_write.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_PREPAREWRITE_ENTRY,
                 "INT64:INT64:INT64",
 		"ino:__page:page_index")		
-	register_sys_event("addevent.nfs.aop.prepare_write.return",
+	register_sys_event("nfs.aop.prepare_write.return",
 		GROUP_NFS, HOOKID_NFS_AOP_PREPAREWRITE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.commit_write.entry",
+	register_sys_event("nfs.aop.commit_write.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_COMMITWRITE_ENTRY,
                 "INT64:INT64:INT64:INT32:INT32",
 		"ino:__page:page_index:offset:count")		
-	register_sys_event("addevent.nfs.aop.commit_write.return",
+	register_sys_event("nfs.aop.commit_write.return",
 		GROUP_NFS, HOOKID_NFS_AOP_COMMITWRITE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.set_page_dirty.entry",
+	register_sys_event("nfs.aop.set_page_dirty.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_SETPAGEDIRTY_ENTRY,
                 "INT64:INT8",
 		"__page:page_flag")		
-	register_sys_event("addevent.nfs.aop.set_page_dirty.return",
+	register_sys_event("nfs.aop.set_page_dirty.return",
 		GROUP_NFS, HOOKID_NFS_AOP_SETPAGEDIRTY_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.aop.release_page.entry",
+	register_sys_event("nfs.aop.release_page.entry",
 		GROUP_NFS, HOOKID_NFS_AOP_RELEASEPAGE_ENTRY,
                 "INT64:INT64",
 		"__page:page_index")		
-	register_sys_event("addevent.nfs.aop.release_page.return",
+	register_sys_event("nfs.aop.release_page.return",
 		GROUP_NFS, HOOKID_NFS_AOP_RELEASEPAGE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.lookup.entry",
+	register_sys_event("nfs.proc.lookup.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_LOOKUP_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING",
 		"major_device:minor_device:fileid:version:filename")		
-	register_sys_event("addevent.nfs.proc.lookup.return",
+	register_sys_event("nfs.proc.lookup.return",
 		GROUP_NFS, HOOKID_NFS_PROC_LOOKUP_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.read.entry",
+	register_sys_event("nfs.proc.read.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_READ_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:count:offset")	
-	register_sys_event("addevent.nfs.proc.read.return",
+	register_sys_event("nfs.proc.read.return",
 		GROUP_NFS, HOOKID_NFS_PROC_READ_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.write.entry",
+	register_sys_event("nfs.proc.write.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_WRITE_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:count:offset")	
-	register_sys_event("addevent.nfs.proc.write.return",
+	register_sys_event("nfs.proc.write.return",
 		GROUP_NFS, HOOKID_NFS_PROC_WRITE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.commit.entry",
+	register_sys_event("nfs.proc.commit.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_COMMIT_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:count:offset")	
-	register_sys_event("addevent.nfs.proc.commit.return",
+	register_sys_event("nfs.proc.commit.return",
 		GROUP_NFS, HOOKID_NFS_PROC_COMMIT_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.read_setup.entry",
+	register_sys_event("nfs.proc.read_setup.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_READSETUP_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:count:offset")	
-	register_sys_event("addevent.nfs.proc.write_setup.entry",
+	register_sys_event("nfs.proc.write_setup.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_WRITESETUP_ENTRY,
                 "INT8:INT8:INT64:INT8:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:how:count:offset")	
 
-	register_sys_event("addevent.nfs.proc.commit_setup.entry",
+	register_sys_event("nfs.proc.commit_setup.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_COMMITSETUP_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT64",
 		"major_device:minor_device:fileid:version:count:offset")	
 
-	register_sys_event("addevent.nfs.proc.read_done.entry",
+	register_sys_event("nfs.proc.read_done.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_READDONE_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT32",
 		"major_device:minor_device:fileid:version:status:count")	
-	register_sys_event("addevent.nfs.proc.read_done.return",
+	register_sys_event("nfs.proc.read_done.return",
 		GROUP_NFS, HOOKID_NFS_PROC_READDONE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.write_done.entry",
+	register_sys_event("nfs.proc.write_done.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_WRITEDONE_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT32",
 		"major_device:minor_device:fileid:version:status:count")	
-	register_sys_event("addevent.nfs.proc.write_done.return",
+	register_sys_event("nfs.proc.write_done.return",
 		GROUP_NFS, HOOKID_NFS_PROC_WRITEDONE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.commit_done.entry",
+	register_sys_event("nfs.proc.commit_done.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_COMMITDONE_ENTRY,
                 "INT8:INT8:INT64:INT8:INT32:INT32",
 		"major_device:minor_device:fileid:version:status:count")	
-	register_sys_event("addevent.nfs.proc.commit_done.return",
+	register_sys_event("nfs.proc.commit_done.return",
 		GROUP_NFS, HOOKID_NFS_PROC_COMMITDONE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.open.entry",
+	register_sys_event("nfs.proc.open.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_OPEN_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING:INT32:INT32",
 		"major_device:minor_device:fileid:version:filename:flag:mode")	
-	register_sys_event("addevent.nfs.proc.open.return",
+	register_sys_event("nfs.proc.open.return",
 		GROUP_NFS, HOOKID_NFS_PROC_OPEN_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.release.entry",
+	register_sys_event("nfs.proc.release.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_RELEASE_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING:INT32:INT32",
 		"major_device:minor_device:fileid:version:filename:flag:mode")	
-	register_sys_event("addevent.nfs.proc.release.return",
+	register_sys_event("nfs.proc.release.return",
 		GROUP_NFS, HOOKID_NFS_PROC_RELEASE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.create.entry",
+	register_sys_event("nfs.proc.create.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_CREATE_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING:INT32",
 		"major_device:minor_device:fileid:version:filename:mode")	
-	register_sys_event("addevent.nfs.proc.create.return",
+	register_sys_event("nfs.proc.create.return",
 		GROUP_NFS, HOOKID_NFS_PROC_CREATE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.rename.entry",
+	register_sys_event("nfs.proc.rename.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_RENAME_ENTRY,
                 "INT8:INT8:INT8:INT64:STRING:INT8:INT8:INT64:STRING",
 		"version:major_old:minor_old:fileid_old:filename_old:major_new:minor_new:fileid_new:filename_new")	
-	register_sys_event("addevent.nfs.proc.rename.return",
+	register_sys_event("nfs.proc.rename.return",
 		GROUP_NFS, HOOKID_NFS_PROC_RENAME_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.create.entry",
+	register_sys_event("nfs.proc.create.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_CREATE_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING",
 		"major_device:minor_device:fileid:version:filename")	
-	register_sys_event("addevent.nfs.proc.create.return",
+	register_sys_event("nfs.proc.create.return",
 		GROUP_NFS, HOOKID_NFS_PROC_CREATE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfs.proc.remove.entry",
+	register_sys_event("nfs.proc.remove.entry",
 		GROUP_NFS, HOOKID_NFS_PROC_REMOVE_ENTRY,
 		"INT8:INT8:INT64:INT8:STRING",
 		"major_dev:minor_dev:field_id:version:filename");
-	register_sys_event("addevent.nfs.proc.remove.return",
+	register_sys_event("nfs.proc.remove.return",
 		GROUP_NFS, HOOKID_NFS_PROC_REMOVE_RETURN,
 		"INT32", "return");
 
 	reset_maxaction()
 
-	register_sys_event("addevent.nfsd.dispatch.entry",
+	register_sys_event("nfsd.dispatch.entry",
 		GROUP_NFSD, HOOKID_NFSD_DISPATCH_ENTRY,
                 "INT8:INT8:INT32:INT32:INT32:INT32",
 		"proto:version:xid:proc:prog:client_ip")	
-	register_sys_event("addevent.nfsd.dispatch.return",
+	register_sys_event("nfsd.dispatch.return",
 		GROUP_NFSD, HOOKID_NFSD_DISPATCH_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.open.entry",
+	register_sys_event("nfsd.open.entry",
 		GROUP_NFSD, HOOKID_NFSD_OPEN_ENTRY,
                 "INT8:INT64:INT64:INT64:INT32:INT8",
 		"size:ino0:ino1:ino2:type:access")	
-	register_sys_event("addevent.nfsd.open.return",
+	register_sys_event("nfsd.open.return",
 		GROUP_NFSD, HOOKID_NFSD_OPEN_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.read.entry",
+	register_sys_event("nfsd.read.entry",
 		GROUP_NFSD, HOOKID_NFSD_READ_ENTRY,
                 "INT8:INT64:INT64:INT64:INT64:INT64:INT64:INT64",
 		"size:ino0:ino1:ino2:count:offset:iov_len:vlen")	
-	register_sys_event("addevent.nfsd.read.return",
+	register_sys_event("nfsd.read.return",
 		GROUP_NFSD, HOOKID_NFSD_READ_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.write.entry",
+	register_sys_event("nfsd.write.entry",
 		GROUP_NFSD, HOOKID_NFSD_WRITE_ENTRY,
                 "INT8:INT64:INT64:INT64:INT64:INT64:INT64:INT64",
 		"size:ino0:ino1:ino2:count:offset:iov_len:vlen")	
-	register_sys_event("addevent.nfsd.write.return",
+	register_sys_event("nfsd.write.return",
 		GROUP_NFSD, HOOKID_NFSD_WRITE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfsd.lookup.entry",
+	register_sys_event("nfsd.lookup.entry",
 		GROUP_NFSD, HOOKID_NFSD_LOOKUP_ENTRY,
                 "INT8:INT64:INT64:INT64:STRING",
 		"size:ino0:ino1:ino2:filename")	
-	register_sys_event("addevent.nfsd.lookup.return",
+	register_sys_event("nfsd.lookup.return",
 		GROUP_NFSD, HOOKID_NFSD_LOOKUP_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.commit.entry",
+	register_sys_event("nfsd.commit.entry",
 		GROUP_NFSD, HOOKID_NFSD_COMMIT_ENTRY,
                 "INT8:INT64:INT64:INT64:INT64:INT64",
 		"size:ino0:ino1:ino2:count:offset")	
-	register_sys_event("addevent.nfsd.commit.return",
+	register_sys_event("nfsd.commit.return",
 		GROUP_NFSD, HOOKID_NFSD_COMMIT_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.create.entry",
+	register_sys_event("nfsd.create.entry",
 		GROUP_NFSD, HOOKID_NFSD_CREATE_ENTRY,
                 "INT8:INT64:INT64:INT64:STRING:INT32:INT16:INT32",
 		"size:ino0:ino1:ino2:filename:type:iap_valid:iap_mode")	
-	register_sys_event("addevent.nfsd.create.return",
+	register_sys_event("nfsd.create.return",
 		GROUP_NFSD, HOOKID_NFSD_CREATE_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.createv3.entry",
+	register_sys_event("nfsd.createv3.entry",
 		GROUP_NFSD, HOOKID_NFSD_CREATEV3_ENTRY,
                 "INT8:INT64:INT64:INT64:STRING:INT8:INT16:INT32",
 		"size:ino0:ino1:ino2:filename:createmode:iap_valid:iap_mode")	
-	register_sys_event("addevent.nfsd.createv3.return",
+	register_sys_event("nfsd.createv3.return",
 		GROUP_NFSD, HOOKID_NFSD_CREATEV3_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.unlink.entry",
+	register_sys_event("nfsd.unlink.entry",
 		GROUP_NFSD, HOOKID_NFSD_UNLINK_ENTRY,
                 "INT8:INT64:INT64:INT64:STRING:INT32",
 		"size:ino0:ino1:ino2:filename:type")	
-	register_sys_event("addevent.nfsd.unlink.return",
+	register_sys_event("nfsd.unlink.return",
 		GROUP_NFSD, HOOKID_NFSD_UNLINK_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.rename.entry",
+	register_sys_event("nfsd.rename.entry",
 		GROUP_NFSD, HOOKID_NFSD_RENAME_ENTRY,
                 "INT8:INT64:INT64:INT64:STRING:INT8:INT64:INT64:INT64:STRING",
 		"old_size:old_ino0:old_ino1:old_ino2:old_filename:size:ino0:ino1:ino2:filename")	
-	register_sys_event("addevent.nfsd.rename.return",
+	register_sys_event("nfsd.rename.return",
 		GROUP_NFSD, HOOKID_NFSD_RENAME_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.close.entry",
+	register_sys_event("nfsd.close.entry",
 		GROUP_NFSD, HOOKID_NFSD_CLOSE_ENTRY,
                 "STRING", "filename")	
-	register_sys_event("addevent.nfsd.close.return",
+	register_sys_event("nfsd.close.return",
 		GROUP_NFSD, HOOKID_NFSD_CLOSE_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.proc.lookup.entry",
+	register_sys_event("nfsd.proc.lookup.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_LOOKUP_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:STRING",
 		"size:ino0:ino1:ino2:version:filename")	
-	register_sys_event("addevent.nfsd.proc.lookup.return",
+	register_sys_event("nfsd.proc.lookup.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_LOOKUP_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.proc.read.entry",
+	register_sys_event("nfsd.proc.read.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_READ_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:INT64:INT64:INT64:INT64",
 		"size:ino0:ino1:ino2:version:count:offset:iov_len:vlen")	
-	register_sys_event("addevent.nfsd.proc.read.return",
+	register_sys_event("nfsd.proc.read.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_READ_RETURN,
                 "INT32","return")
 	
-	register_sys_event("addevent.nfsd.proc.write.entry",
+	register_sys_event("nfsd.proc.write.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_WRITE_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:INT64:INT64:INT64:INT64",
 		"size:ino0:ino1:ino2:version:count:offset:iov_len:vlen")	
-	register_sys_event("addevent.nfsd.proc.write.return",
+	register_sys_event("nfsd.proc.write.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_WRITE_RETURN,
                 "INT32","return")
 	
-	register_sys_event("addevent.nfsd.proc.commit.entry",
+	register_sys_event("nfsd.proc.commit.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_COMMIT_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:INT64:INT64",
 		"size:ino0:ino1:ino2:version:count:offset")	
-	register_sys_event("addevent.nfsd.proc.commit.return",
+	register_sys_event("nfsd.proc.commit.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_COMMIT_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfsd.proc.compound.entry",
+	register_sys_event("nfsd.proc.compound.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_COMPOUND_ENTRY,
                 "INT32","num")	
-	register_sys_event("addevent.nfsd.proc.compound.return",
+	register_sys_event("nfsd.proc.compound.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_COMPOUND_RETURN,
                 "INT32","return")	
 
-	register_sys_event("addevent.nfsd.proc.remove.entry",
+	register_sys_event("nfsd.proc.remove.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_REMOVE_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:STRING",
 		"size:ino0:ino1:ino2:version:filename")	
-	register_sys_event("addevent.nfsd.proc.remove.return",
+	register_sys_event("nfsd.proc.remove.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_REMOVE_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfsd.proc.rename.entry",
+	register_sys_event("nfsd.proc.rename.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_RENAME_ENTRY,
                 "INT8:INT8:INT64:INT64:INT64:STRING:INT8:INT64:INT64:INT64:STRING",
 		"version:old_size:old_ino0:old_ino1:old_ino2:old_filename:size:ino0:ino1:ino2:filename")	
-	register_sys_event("addevent.nfsd.proc.rename.return",
+	register_sys_event("nfsd.proc.rename.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_RENAME_RETURN,
                 "INT32","return")
 
-	register_sys_event("addevent.nfsd.proc.create.entry",
+	register_sys_event("nfsd.proc.create.entry",
 		GROUP_NFSD, HOOKID_NFSD_PROC_CREATE_ENTRY,
                 "INT8:INT64:INT64:INT64:INT8:STRING",
 		"size:ino0:ino1:ino2:version:filename")	
-	register_sys_event("addevent.nfsd.proc.create.return",
+	register_sys_event("nfsd.proc.create.return",
 		GROUP_NFSD, HOOKID_NFSD_PROC_CREATE_RETURN,
                 "INT32","return")
 

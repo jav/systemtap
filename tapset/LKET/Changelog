@@ -1,3 +1,8 @@
+2006-10-31  Li Guanglei <guanglei@cn.ibm.com>
+
+	* register_event.stp: changes of all event_desc 
+	used in register_sys_event
+
 2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
 
 	* register_event.stp: bufix of variable name

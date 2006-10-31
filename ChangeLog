@@ -1,3 +1,6 @@
+2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+	* lket.5.in: Rearranged the sections, add more details.
+
 2006-10-30  David Smith  <dsmith@redhat.com>
 
 	* stap.1.in: Added notes about new caching feature.
