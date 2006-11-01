@@ -12,6 +12,8 @@
 #include "elaborate.h"
 #include "translate.h"
 #include "session.h"
+#include "tapsets.h"
+
 #include <iostream>
 #include <set>
 #include <sstream>
@@ -651,11 +653,21 @@ struct mapvar
 	  }
       }
 
-    return (prefix + ");");
+    prefix = prefix + "); ";
+
+    // Check for errors during allocation.
+    string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
+
+    return (prefix + suffix);
   }
 
   string fini () const
   {
+    // NB: fini() is safe to call even for globals that have not
+    // successfully initialized (that is to say, on NULL pointers),
+    // because the runtime specifically tolerates that in its _del
+    // functions.
+
     if (is_parallel())
       return "_stp_pmap_del (" + qname() + ");";
     else
@@ -827,30 +839,46 @@ c_unparser::emit_common_header ()
   o->newline() << "union {";
   o->indent(1);
 
+  // To elide context variables for probe handler functions that
+  // themselves are about to get duplicate-eliminated, we XXX
+  // duplicate the parse-tree-hash method from ::emit_probe().
+  map<string, string> tmp_probe_contents;
+  // The reason we don't use c_unparser::probe_contents itself
+  // for this is that we don't want to muck up the data for
+  // that later routine.
+
   for (unsigned i=0; i<session->probes.size(); i++)
     {
       derived_probe* dp = session->probes[i];
-      
-      // XXX: probe locals need not be recursion-nested, only function locals
-      o->newline() << "struct " << dp->name << "_locals {";
-      o->indent(1);
-      for (unsigned j=0; j<dp->locals.size(); j++)
+
+      ostringstream oss;
+      dp->body->print(oss);
+      if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
-          vardecl* v = dp->locals[j];
-	  try 
-	    {
-	      o->newline() << c_typename (v->type) << " " 
-			   << c_varname (v->name) << ";";
-	    } catch (const semantic_error& e) {
-	      semantic_error e2 (e);
-	      if (e2.tok1 == 0) e2.tok1 = v->tok;
-	      throw e2;
-	    }
+          tmp_probe_contents[oss.str()] = dp->name; // save it
+
+          // XXX: probe locals need not be recursion-nested, only function locals
+          
+          o->newline() << "struct " << dp->name << "_locals {";
+          o->indent(1);
+          for (unsigned j=0; j<dp->locals.size(); j++)
+            {
+              vardecl* v = dp->locals[j];
+              try 
+                {
+                  o->newline() << c_typename (v->type) << " " 
+                               << c_varname (v->name) << ";";
+                } catch (const semantic_error& e) {
+                semantic_error e2 (e);
+                if (e2.tok1 == 0) e2.tok1 = v->tok;
+                throw e2;
+              }
+            }
+          c_tmpcounter ct (this);
+          dp->body->visit (& ct);
+          dp->emit_probe_context_vars (o);
+          o->newline(-1) << "} " << dp->name << ";";
         }
-      c_tmpcounter ct (this);
-      dp->body->visit (& ct);
-      dp->emit_probe_context_vars (o);
-      o->newline(-1) << "} " << dp->name << ";";
     }
 
   for (unsigned i=0; i<session->functions.size(); i++)
@@ -910,8 +938,6 @@ c_unparser::emit_common_header ()
   o->newline() << "#include \"stat.c\"";
   o->newline() << "#include \"arith.c\"";
   o->newline() << "#endif";
-
-  derived_probe::emit_common_header (o);
 }
 
 
@@ -986,17 +1012,23 @@ c_unparser::emit_functionsig (functiondecl* v)
 }
 
 
+
 void
 c_unparser::emit_module_init ()
 {
-  session->probes.emit_module_init (o);
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (unsigned i=0; i<g.size(); i++)
+    g[i]->emit_module_decls (*session);
   
   o->newline();
   o->newline() << "int systemtap_module_init (void) {";
   o->newline(1) << "int rc = 0;";
+  o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
 
   o->newline() << "(void) probe_point;";
+  o->newline() << "(void) i;";
+  o->newline() << "(void) j;";
   o->newline() << "atomic_set (&session_state, STAP_SESSION_STARTING);";
   // This signals any other probes that may be invoked in the next little
   // while to abort right away.  Currently running probes are allowed to
@@ -1013,12 +1045,19 @@ c_unparser::emit_module_init ()
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
-      // XXX: handle failure!
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).init();
       else
 	o->newline() << getvar (v).init();
+      // NB: in case of failure of allocation, "rc" will be set to non-zero.
+      // Allocation can in general continue.
+
+      o->newline() << "if (rc) {";
+      o->newline(1) << "_stp_error (\"global variable " << v->name << " allocation failed\");";
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
+
       o->newline() << "rwlock_init (& global_" << c_varname (v->name) << "_lock);";
     }
 
@@ -1038,7 +1077,28 @@ c_unparser::emit_module_init ()
     o->newline() << "#endif";
   }
 
-  session->probes.emit_module_init_call (o);
+  for (unsigned i=0; i<g.size(); i++)
+    {
+      g[i]->emit_module_init (*session);
+      // NB: this gives O(N**2) amount of code, but luckily there
+      // are only seven or eight derived_probe_groups, so it's ok.
+      o->newline() << "if (rc) {";
+      o->indent(1);
+      if (i>0)
+        for (int j=i-1; j>=0; j--)
+          g[j]->emit_module_exit (*session);
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
+    }
+
+  // All registrations were successful.  Consider the system started.
+  o->newline() << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
+  o->newline() << "return 0;";
+
+  // Error handling path; by now all partially registered probe groups
+  // have been unregistered.
+  o->newline(-1) << "out:";
+  o->indent(1);
 
   // If any registrations failed, we will need to deregister the globals,
   // as this is our only chance.
@@ -1049,8 +1109,7 @@ c_unparser::emit_module_init ()
 	o->newline() << getmap (v).fini();
     }
 
-  o->newline(-1) << "out:";
-  o->newline(1) << "return rc;";
+  o->newline() << "return rc;";
   o->newline(-1) << "}\n";
 }
 
@@ -1061,7 +1120,10 @@ c_unparser::emit_module_exit ()
   o->newline() << "void systemtap_module_exit (void) {";
   // rc?
   o->newline(1) << "int holdon;";
+  o->newline() << "int i=0, j=0;"; // for derived_probe_group use
 
+  o->newline() << "(void) i;";
+  o->newline() << "(void) j;";
   // If we aborted startup, then everything has been cleaned up already, and
   // module_exit shouldn't even have been called.  But since it might be, let's
   // beat a hasty retreat to avoid double uninitialization.
@@ -1087,13 +1149,16 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "if (cpu_possible (i) && " 
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
+  o->newline () << "cpu_relax ();";
   // o->newline(-1) << "if (holdon) msleep (5);";
   o->newline(-1) << "} while (holdon);";
   o->newline(-1);
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
 
-  session->probes.emit_module_exit (o);	// NB: runs "end" probes
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (unsigned i=0; i<g.size(); i++)
+    g[i]->emit_module_exit (*session); // NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
@@ -1168,15 +1233,16 @@ c_unparser::emit_function (functiondecl* v)
 }
 
 
+#define DUPMETHOD_CALL 0
+#define DUPMETHOD_ALIAS 0
+#define DUPMETHOD_RENAME 1
+
 void
 c_unparser::emit_probe (derived_probe* v)
 {
   this->current_function = 0;
   this->current_probe = v;
   this->tmpvar_counter = 0;
-
-  o->newline() << "static void " << v->name << " (struct context * __restrict__ c) {";
-  o->indent(1);
 
   // If we about to emit a probe that is exactly the same as another
   // probe previously emitted, make the second probe just call the
@@ -1185,7 +1251,6 @@ c_unparser::emit_probe (derived_probe* v)
   // Notice we're using the probe body itself instead of the emitted C
   // probe body to compare probes.  We need to do this because the
   // emitted C probe body has stuff in it like:
-  //
   //   c->last_stmt = "identifier 'printf' at foo.stp:<line>:<column>";
   //
   // which would make comparisons impossible.
@@ -1196,11 +1261,42 @@ c_unparser::emit_probe (derived_probe* v)
   // one.
   if (probe_contents.count(oss.str()) != 0)
     {
-	o->newline() << probe_contents[oss.str()] << " (c);";
+      string dupe = probe_contents[oss.str()];
+
+      // NB: Elision of context variable structs is a separate
+      // operation which has already taken place by now.
+      if (session->verbose > 1)
+        clog << v->name << " elided, duplicates " << dupe << endl;
+
+#if DUPMETHOD_CALL
+      // This one emits a direct call to the first copy.
+      o->newline();
+      o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
+      o->newline() << "{ " << dupe << " (c); }";
+#elif DUPMETHOD_ALIAS
+      // This one defines a function alias, arranging gcc to emit
+      // several equivalent symbols for the same function body.
+      // For some reason, on gcc 4.1, this is twice as slow as
+      // the CALL option.
+      o->newline();
+      o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
+      o->line() << "__attribute__ ((alias (\"" << dupe << "\")));";
+#elif DUPMETHOD_RENAME
+      // This one is sneaky.  It emits nothing for duplicate probe
+      // handlers.  It instead redirects subsequent references to the
+      // probe handler function to the first copy, *by name*.
+      v->name = dupe;
+#else
+#error "Unknown duplicate elimination method"
+#endif
     }
-  // This probe is unique.  Remember it and output it.
-  else
+  else // This probe is unique.  Remember it and output it.
     {
+      o->newline();
+      o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
+      o->line () << "{";
+      o->indent (1);
+
       probe_contents[oss.str()] = v->name;
 
       // initialize frame pointer
@@ -1238,13 +1334,12 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline(1) << "_stp_print_flush();";
 
       emit_unlocks (vut);
+
+      o->newline(-1) << "}\n";
     }
 
-  o->newline(-1) << "}\n";
   
   this->current_probe = 0;
-
-  v->emit_probe_entries (o);
 }
 
 
@@ -3815,7 +3910,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";
       s.op->newline() << "#endif";
 
-      s.up->emit_common_header ();
+      s.up->emit_common_header (); // context etc.
 
       for (unsigned i=0; i<s.embeds.size(); i++)
         {
@@ -3840,7 +3935,8 @@ translate_pass (systemtap_session& s)
 	  s.up->emit_function (s.functions[i]);
 	}
 
-      s.probes.emit_probes (s.op, s.up);
+      for (unsigned i=0; i<s.probes.size(); i++)
+        s.up->emit_probe (s.probes[i]);
 
       s.op->newline();
       s.up->emit_module_init ();

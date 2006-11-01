@@ -70,63 +70,17 @@ derived_probe::derived_probe (probe *p, probe_point *l):
 }
 
 
-// ------------------------------------------------------------------------
-// Members of derived_probe_group
-
-void
-derived_probe_group::register_probe(be_derived_probe* p)
+probe_point*
+derived_probe::sole_location ()
 {
-  throw semantic_error ("unexpected registration of a be_derived_probe");
+  if (locations.size() == 0)
+    throw semantic_error ("derived_probe with no locations", this->tok);
+  else if (locations.size() > 1)
+    throw semantic_error ("derived_probe with too many locations", this->tok);
+  else 
+    return locations[0];
 }
 
-
-void
-derived_probe_group::register_probe(dwarf_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a dwarf_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(hrtimer_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a hrtimer_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(mark_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a mark_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(never_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a never_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(profile_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a profile_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(timer_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a timer_derived_probe");
-}
-
-
-void
-derived_probe_group::register_probe(perfmon_derived_probe* p)
-{
-  throw semantic_error ("unexpected registration of a perfmon_derived_probe");
-}
 
 
 // ------------------------------------------------------------------------
@@ -390,14 +344,13 @@ struct alias_derived_probe: public derived_probe
 {
   alias_derived_probe (probe* base): derived_probe (base) {}
 
-  void register_probe (systemtap_session& s) { }
+  void upchuck () { throw semantic_error ("inappropriate", this->tok); }
 
-  // alias probes should be ultimately expanded to other derived_probe
-  // types, and not themselves emitted.
-  void emit_registrations_start (translator_output* o, unsigned index) { throw semantic_error ("inappropriate", this->tok); }
-  void emit_registrations_end (translator_output* o, unsigned index) { throw semantic_error ("inappropriate", this->tok); }
-  void emit_deregistrations (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
-  void emit_probe_entries (translator_output* o) { throw semantic_error ("inappropriate", this->tok); }
+  // Alias probes are immediately expanded to other derived_probe
+  // types, and are not themselves emitted or listed in
+  // systemtap_session.probes
+
+  void join_group (systemtap_session& s) { upchuck (); }
 };
 
 
@@ -945,7 +898,8 @@ semantic_pass_symbols (systemtap_session& s)
           for (unsigned j=0; j<dps.size(); j++)
             {
               derived_probe* dp = dps[j];
-	      dp->register_probe (s);
+              s.probes.push_back (dp);
+              dp->join_group (s);
 
               try 
                 {
@@ -996,8 +950,17 @@ semantic_pass (systemtap_session& s)
 
 
 systemtap_session::systemtap_session ():
+  // NB: pointer members must be manually initialized!
   pattern_root(new match_node),
-  user_file (0), op (0), up (0),
+  user_file (0),
+  be_derived_probes(0), 
+  dwarf_derived_probes(0), 
+  timer_derived_probes(0), 
+  profile_derived_probes(0), 
+  mark_derived_probes(0), 
+  hrtimer_derived_probes(0), 
+  perfmon_derived_probes(0), 
+  op (0), up (0),
   kprobes_text_initialized (false),
   kprobes_text_start (0), kprobes_text_end (0),
   num_errors (0)

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005, 2006 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -9,7 +9,6 @@
 #ifndef SESSION_H
 #define SESSION_H
 
-#include "elaborate.h"
 #include <string>
 #include <vector>
 #include <iostream>
@@ -26,7 +25,14 @@ struct match_node;
 struct stapfile;
 struct vardecl;
 struct functiondecl;
-struct derived_probe_group_container;
+struct derived_probe;
+struct be_derived_probe_group;
+struct dwarf_derived_probe_group;
+struct timer_derived_probe_group;
+struct profile_derived_probe_group;
+struct mark_derived_probe_group;
+struct hrtimer_derived_probe_group;
+struct perfmon_derived_probe_group;
 struct embeddedcode;
 struct translator_output;
 struct unparser;
@@ -61,6 +67,7 @@ struct statistic_decl
 struct systemtap_session
 {
   systemtap_session ();
+  // NB: new POD members likely need to be explicitly cleared in the ctor.
 
   // command line args
   std::vector<std::string> include_path;
@@ -107,13 +114,20 @@ struct systemtap_session
   std::vector<stapfile*> files;
   std::vector<vardecl*> globals;
   std::vector<functiondecl*> functions;
-  derived_probe_group_container probes;
+  std::vector<derived_probe*> probes; // see also *_probes groups below
   std::vector<embeddedcode*> embeds;
   std::map<std::string, statistic_decl> stat_decls;
   // XXX: vector<*> instead please?
 
-  // module-referencing file handles
-  std::map<std::string,int> module_fds;
+  // Every probe in these groups must also appear in the
+  // session.probes vector.
+  be_derived_probe_group* be_derived_probes;
+  dwarf_derived_probe_group* dwarf_derived_probes;
+  timer_derived_probe_group* timer_derived_probes;
+  profile_derived_probe_group* profile_derived_probes;
+  mark_derived_probe_group* mark_derived_probes;
+  hrtimer_derived_probe_group* hrtimer_derived_probes;
+  perfmon_derived_probe_group* perfmon_derived_probes;
 
   // unparser data
   translator_output* op;
@@ -127,6 +141,8 @@ struct systemtap_session
   unsigned num_errors;
   // void print_error (const parse_error& e);
   void print_error (const semantic_error& e);
+
+  // reNB: new POD members likely need to be explicitly cleared in the ctor.
 };
 
 

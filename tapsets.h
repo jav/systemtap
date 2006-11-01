@@ -13,6 +13,10 @@
 #include "staptree.h"
 #include "elaborate.h"
 
-void register_standard_tapsets(systemtap_session & sess);
+struct derived_probe_group;
+
+void register_standard_tapsets(systemtap_session& sess);
+std::vector<derived_probe_group*> all_session_groups(systemtap_session& s);
+
 
 #endif // TAPSETS_H

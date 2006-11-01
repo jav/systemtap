@@ -105,6 +105,7 @@ struct typeresolution_info: public visitor
 // provider may transform it.
 
 class translator_output;
+class derived_probe_group;
 
 struct derived_probe: public probe
 {
@@ -112,73 +113,50 @@ struct derived_probe: public probe
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
   virtual probe* basest () { return base->basest(); }
-
   virtual ~derived_probe () {}
-
-  virtual void register_probe (systemtap_session& s) = 0;
-
-  virtual void emit_registrations_start (translator_output* o,
-					 unsigned index) = 0;
-  virtual void emit_registrations_end (translator_output* o,
-				       unsigned index) = 0;
-  // (from within module_init):
-  // rc = ..... register_or_whatever (ENTRYFN);
-
-  virtual void emit_deregistrations (translator_output* o) = 0;
-  // (from within module_exit):
-  // (void) ..... unregister_or_whatever (ENTRYFN);
-
-  virtual void emit_probe_entries (translator_output* o) = 0;
-  // ... for all probe-points:
-  // ELABORATE_SPECIFIC_SIGNATURE ENTRYFN {
-  //   /* allocate context - probe_prologue */
-  //   /* copy parameters, initial state into context */
-  //   probe_NUMBER (context);
-  //   /* deallocate context - probe_epilogue */
-  // }
+  virtual void join_group (systemtap_session& s) = 0;
+  virtual probe_point* sole_location ();
 
   virtual void emit_probe_context_vars (translator_output* o) {}
   // From within unparser::emit_common_header, add any extra variables
   // to this probe's context locals.
 
-protected:
-  void emit_probe_prologue (translator_output* o, const std::string&);
-  void emit_probe_epilogue (translator_output* o);
-
 public:
   static void emit_common_header (translator_output* o);
   // from c_unparser::emit_common_header
+  // XXX: probably can move this stuff to a probe_group::emit_module_decls
 };
 
 // ------------------------------------------------------------------------
 
-struct be_derived_probe;
-struct dwarf_derived_probe;
-struct hrtimer_derived_probe;
-struct mark_derived_probe;
-struct never_derived_probe;
-struct profile_derived_probe;
-struct timer_derived_probe;
-struct perfmon_derived_probe;
 struct unparser;
 
+// Various derived classes derived_probe_group manage the
+// registration/invocation/unregistration of sibling probes.
 struct derived_probe_group
 {
   virtual ~derived_probe_group () {}
 
-  virtual void register_probe(be_derived_probe* p);
-  virtual void register_probe(dwarf_derived_probe* p);
-  virtual void register_probe(hrtimer_derived_probe* p);
-  virtual void register_probe(mark_derived_probe* p);
-  virtual void register_probe(never_derived_probe* p);
-  virtual void register_probe(profile_derived_probe* p);
-  virtual void register_probe(timer_derived_probe* p);
-  virtual void register_probe(perfmon_derived_probe* p);
-  virtual size_t size () = 0;
+  virtual void emit_module_decls (systemtap_session& s) = 0;
+  // The _decls-generated code may assume that declarations such as
+  // the context, embedded-C code, function and probe handler bodies
+  // are all already generated.  That is, _decls is called near the
+  // end of the code generation process.  It should minimize the
+  // number of separate variables (and to a lesser extent, their
+  // size).
 
-  virtual void emit_probes (translator_output* op, unparser* up) = 0;
+  virtual void emit_module_init (systemtap_session& s) = 0;
+  // The _init-generated code may assume that it is called only once.
+  // If that code fails at run time, it must set rc=1 and roll back
+  // any partial initializations, for its _exit friend will NOT be
+  // invoked.  The generated code may use pre-declared "int i, j;".
 
-  virtual void emit_module_init (translator_output* o) = 0;
+  virtual void emit_module_exit (systemtap_session& s) = 0;
+  // The _exit-generated code may assume that it is executed exactly
+  // zero times (if the _init-generated code failed) or once.  (_exit
+  // itself may be called a few times, to generate the code in a few
+  // different places in the probe module.)
+  // The generated code may use pre-declared "int i, j;".
 };
 
 
@@ -255,41 +233,6 @@ symbol * get_symbol_within_expression (expression *e);
 
 
 struct unparser;
-
-struct derived_probe_group_container: public derived_probe_group
-{
-private:
-  std::vector<derived_probe*> probes;
-  derived_probe_group* be_probe_group;
-  derived_probe_group* dwarf_probe_group;
-  derived_probe_group* hrtimer_probe_group;
-  derived_probe_group* mark_probe_group;
-  derived_probe_group* never_probe_group;
-  derived_probe_group* profile_probe_group;
-  derived_probe_group* timer_probe_group;
-  derived_probe_group* perfmon_probe_group;
-
-public:
-  derived_probe_group_container ();
-  ~derived_probe_group_container ();
-
-  void register_probe (be_derived_probe* p);
-  void register_probe (dwarf_derived_probe* p);
-  void register_probe (hrtimer_derived_probe* p);
-  void register_probe (mark_derived_probe* p);
-  void register_probe (never_derived_probe* p);
-  void register_probe (profile_derived_probe* p);
-  void register_probe (timer_derived_probe* p);
-  void register_probe (perfmon_derived_probe* p);
-  size_t size () { return (probes.size ()); }
-
-  derived_probe* operator[] (size_t n) { return (probes[n]); }
-
-  void emit_probes (translator_output* op, unparser* up);
-  void emit_module_init (translator_output* o);
-  void emit_module_init_call (translator_output* o);
-  void emit_module_exit (translator_output* o);
-};
 
 
 #endif // ELABORATE_H

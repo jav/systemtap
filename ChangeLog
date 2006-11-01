@@ -1,4 +1,41 @@
+2006-10-31  Frank Ch. Eigler  <fche@redhat.com>
+
+	Probe registration rework.  Offline dwarf processing for better
+	cross-instrumentation.
+	* elaborate.h (derived_probe): Remove registration-related code
+	generation API.  Add new function sole_location().
+	(derived_probe_group): Reworked this and associated classes.
+	* session.h (systemntap_session): Create individual per-category
+	derived_probe_groups.
+	* elaborate.cxx (derived_probe_group): Reworked.
+	(alias_derived_probe): Switch to new derived_probe API.
+	(semantic_pass_symbols): Ditto.
+	* translate.cxx (mapvar init): Check for array initialization error.
+	(emit_module_init): Handle such failures, at least in theory.
+	(emit_module_exit): Switch to new derived_probe_group API.  Call
+	cpu_relax() during shutdown busywait.
+	(emit_common_header): Elide context variables for elided handler fns.
+	(c_unparser::emit_probe): Implement new, improved duplicate
+	elimination technique for probe handlers.  Leave two older ones
+	behind as compile options for education.
+	* tapsets.cxx (*): Reworked all probe registration code, moving
+	it from derived_probes into derived_probe_groups.  Shrunk output
+	code.  Temporarily disabled probe timing and perfmon/mark probes.
+	(dwflpp): Use offline reporting, so that module matching and
+	relocation is performed at run time.
+	(dwarf_query): Remove flavour logic, now supplanted by other
+	duplicate elimination code.
+	(dwarf_derived_probe): Reworked construction, centralized
+	module/section/offset computations.
+	* tapsets.h (all_session_groups): New little helper.
+
+	* main.cxx (main): For pass-2 message, print number of embeds too.
+	* systemtap.spec.in: Add a "BuildRequires: dejagnu" for make check.
+	* configure.ac: Bump version to 0.5.11.
+	* configure: Regenerated.
+
 2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+
 	* lket.5.in: Rearranged the sections, add more details.
 
 2006-10-30  David Smith  <dsmith@redhat.com>

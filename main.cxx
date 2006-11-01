@@ -573,6 +573,7 @@ main (int argc, char * const argv [])
   if (s.verbose) clog << "Pass 2: analyzed script: "
                       << s.probes.size() << " probe(s), "
                       << s.functions.size() << " function(s), "
+                      << s.embeds.size() << " embed(s), "
                       << s.globals.size() << " global(s) in "
                       << TIMESPRINT
                       << endl;

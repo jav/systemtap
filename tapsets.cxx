@@ -32,6 +32,7 @@ extern "C" {
 #include <elf.h>
 #include <obstack.h>
 #include <regex.h>
+#include <glob.h>
 #include <fnmatch.h>
 
 #include "loc2c.h"
@@ -93,6 +94,7 @@ lex_cast_qstring(IN const & in)
 }
 
 
+#if 0
 static void
 emit_probe_timing(derived_probe* p, translator_output* o)
 {
@@ -125,117 +127,21 @@ emit_probe_timing(derived_probe* p, translator_output* o)
       o->newline() << "#endif";
     }
 }
+#endif
 
 
 // ------------------------------------------------------------------------
+// Generic derived_probe_group: contains an ordinary vector of the
+// given type.  It provides only the enrollment function.
 
-void
-derived_probe::emit_common_header (translator_output* o)
+template <class DP> struct generic_dpg: public derived_probe_group
 {
-
-#ifdef PERFMON
-  o->newline() << "static struct pfarg_ctx _pfm_context;";
-  o->newline() << "static void *_pfm_desc;";
-  o->newline() << "static struct pfarg_pmc *_pfm_pmc_x;";
-  o->newline() << "static int _pfm_num_pmc_x;";
-  o->newline() << "static struct pfarg_pmd *_pfm_pmd_x;";
-  o->newline() << "static int _pfm_num_pmd_x;";
-#endif
-
-  o->newline();
-  o->newline() << "static struct context* common_probe_prologue (int state) {";
-  o->newline(1);
-  o->newline() << "struct context* c;";
-  o->newline() << "if (atomic_read (&session_state) != state)";
-  o->newline(1) << "return NULL;";
-
-  o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
-  o->newline(-1) << "if (unlikely (atomic_inc_return (&c->busy) != 1)) {";
-  o->newline(1) << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  // NB: We don't assume that we can safely call stp_error etc. in such
-  // a reentrant context.  But this is OK:
-  o->newline() << "_stp_exit ();";
-  o->newline(-1) << "}";
-  o->newline() << "atomic_dec (& c->busy);";
-  o->newline() << "return NULL;";
-  o->newline(-1) << "}";
-  o->newline();
-  o->newline() << "c->last_error = 0;";
-  o->newline() << "c->nesting = 0;";
-  o->newline() << "c->regs = 0;";
-  o->newline() << "c->pi = 0;";
-  o->newline() << "c->actioncount = 0;";
-  o->newline() << "return c;";
-  o->newline(-1) << "}";
-  o->newline();
-
-
-  o->newline() << "static void common_probe_epilogue (struct context* c) {";
-  o->newline(1) ;
-  o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
-  o->newline(1) << "if (c->last_stmt != NULL)";
-  o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
-  o->newline(-1) << "else";
-  o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
-  o->indent(-1);
-  o->newline() << "atomic_inc (& error_count);";
-  o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
-  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_exit ();";
-  o->newline(-1) << "}";
-  o->newline(-1) << "}";
-
-  o->newline() << "atomic_dec (&c->busy);";
-  o->newline(-1) << "}";
-}
-
-
-void
-derived_probe::emit_probe_prologue (translator_output* o,
-                                    const std::string& statereq)
-{
-  o->newline() << "struct context* c;";
-  o->newline() << "unsigned long flags;";
-
-  // NB: this cycles_t stuff might go into the common header block above
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "cycles_t cycles_atstart;";
-  o->newline() << "#endif";
-  o->newline() << "local_irq_save (flags);";
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "cycles_atstart = get_cycles ();";
-  o->newline() << "#endif";
-  o->newline() << "c = common_probe_prologue (" << statereq << ");";
-  o->newline() << "if (c == NULL) goto probe_epilogue;";
-  o->newline() << "c->probe_point = probe_point;";
-}
-
-void
-derived_probe::emit_probe_epilogue (translator_output* o)
-{
-  o->newline() << "common_probe_epilogue (c);";
-
-  o->newline(-1) << "probe_epilogue:";
-  o->newline(1) << "#ifdef STP_TIMING";
-  o->newline() << "{";
-  o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
-
-  // XXX: get_cycles() may return fewer significant digits than
-  // cycles_t can carry.  On some machines, cycles_t is 64 bits wide
-  // but get_cycles() is only 52.  So we should investigate truncating
-  // these get_cycles() return values to some reasonable smaller
-  // number of bits, perhaps 32 or even 24.
-
-  o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
-  o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
-  o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";
-  o->newline() << "_stp_stat_add(time_" << basest()->name << ",cycles_elapsed);";
-  o->indent(-1);
-  o->newline(-1) << "}";
-  o->newline() << "#endif";
-  o->newline() << "local_irq_restore (flags);";
-}
+protected:
+  vector <DP*> probes;
+public:
+  generic_dpg () {}
+  void enroll (DP* probe) { probes.push_back (probe); }
+};
 
 
 
@@ -250,26 +156,16 @@ struct be_derived_probe: public derived_probe
   be_derived_probe (probe* p, probe_point* l, bool b):
     derived_probe (p, l), begin (b) {}
 
-  void register_probe (systemtap_session& s);
-
-  void emit_registrations_start (translator_output* o, unsigned index=0);
-  void emit_registrations_end (translator_output* o, unsigned index) {}
-  void emit_deregistrations (translator_output* o);
-  void emit_probe_entries (translator_output* o);
+  void join_group (systemtap_session& s);
 };
 
 
-struct be_derived_probe_group: public derived_probe_group
+struct be_derived_probe_group: public generic_dpg<be_derived_probe>
 {
-private:
-  vector<be_derived_probe*> probes;
-
 public:
-  virtual void register_probe(be_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
@@ -289,102 +185,150 @@ struct be_builder: public derived_probe_builder
 
 
 void
-be_derived_probe::register_probe(systemtap_session& s)
+be_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  if (! s.be_derived_probes)
+    s.be_derived_probes = new be_derived_probe_group ();
+  s.be_derived_probes->enroll (this);
 }
 
 
+// ------------------------------------------------------------------------
 void
-be_derived_probe::emit_registrations_start (translator_output* o,
-					    unsigned index)
+common_probe_entryfn_prologue (translator_output* o, string statestr)
 {
-  if (begin)
-    for (unsigned i=0; i<locations.size(); i++)
-      o->newline() << "enter_" << name << "_" << i << " ();";
-}
+  o->newline() << "struct context* c;";
+  o->newline() << "unsigned long flags;";
 
-
-void
-be_derived_probe::emit_deregistrations (translator_output* o)
-{
-  if (!begin)
-    for (unsigned i=0; i<locations.size(); i++)
-      o->newline() << "enter_" << name << "_" << i << " ();";
-}
-
-
-void
-be_derived_probe::emit_probe_entries (translator_output* o)
-{
+#if 0
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "static __cacheline_aligned Stat " << "time_" << basest()->name << ";";
+  o->newline() << "cycles_t cycles_atstart = get_cycles ();";
   o->newline() << "#endif";
+#endif
 
-  for (unsigned i=0; i<locations.size(); i++)
-    {
-      probe_point *l = locations[i];
-      o->newline() << "/* location " << i << ": " << *l << " */";
-      o->newline() << "static void enter_" << name << "_" << i << " (void) {";
+#if 0 /* XXX: PERFMON */
+  o->newline() << "static struct pfarg_ctx _pfm_context;";
+  o->newline() << "static void *_pfm_desc;";
+  o->newline() << "static struct pfarg_pmc *_pfm_pmc_x;";
+  o->newline() << "static int _pfm_num_pmc_x;";
+  o->newline() << "static struct pfarg_pmd *_pfm_pmd_x;";
+  o->newline() << "static int _pfm_num_pmd_x;";
+#endif
 
-      // While begin/end probes are executed single-threaded, we
-      // still code defensively and use a per-cpu context.
-      o->indent(1);
-      o->newline() << "const char* probe_point = "
-                   << lex_cast_qstring(*l) << ";";
-      emit_probe_prologue (o,
-                           (begin ?
-                            "STAP_SESSION_STARTING" :
-                            "STAP_SESSION_STOPPING"));
+  o->newline() << "local_irq_save (flags);";
 
-      // NB: locals are initialized by probe function itself
-      o->newline() << name << " (c);";
+  o->newline() << "if (atomic_read (&session_state) != " << statestr << ")";
+  o->newline(1) << "goto probe_epilogue;";
+  o->indent(-1);
 
-      emit_probe_epilogue (o);
-
-      o->newline(-1) << "}\n";
-    }
+  o->newline() << "c = per_cpu_ptr (contexts, smp_processor_id());";
+  o->newline() << "if (unlikely (atomic_inc_return (&c->busy) != 1)) {";
+  o->newline(1) << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  // NB: We don't assume that we can safely call stp_error etc. in such
+  // a reentrant context.  But this is OK:
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
+  o->newline() << "atomic_dec (& c->busy);";
+  o->newline() << "goto probe_epilogue;";
+  o->newline(-1) << "}";
+  o->newline();
+  o->newline() << "c->last_error = 0;";
+  o->newline() << "c->nesting = 0;";
+  o->newline() << "c->regs = 0;";
+  o->newline() << "c->pi = 0;";
+  o->newline() << "c->probe_point = 0;";
+  o->newline() << "c->actioncount = 0;";
 }
 
 
 void
-be_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+common_probe_entryfn_epilogue (translator_output* o)
 {
-  for (unsigned i=0; i < probes.size(); i++)
-    {
-      op->newline ();
-      up->emit_probe (probes[i]);
-    }
+  o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
+  o->newline(1) << "if (c->last_stmt != NULL)";
+  o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
+  o->newline(-1) << "else";
+  o->newline(1) << "_stp_softerror (\"%s\", c->last_error);";
+  o->indent(-1);
+  o->newline() << "atomic_inc (& error_count);";
+  o->newline() << "if (atomic_read (& error_count) > MAXERRORS) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
+  o->newline(-1) << "}";
+  o->newline() << "atomic_dec (&c->busy);";
+
+  o->newline(-1) << "probe_epilogue:"; // context is free
+  o->indent(1);
+
+#if 0
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "{";
+  o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
+
+  // Handle wraparound.
+  // XXX: get_cycles() may return fewer significant digits than
+  // cycles_t can carry.  On some machines, cycles_t is 64 bits wide
+  // but get_cycles() is only 52.  So we should investigate truncating
+  // these get_cycles() return values to some reasonable smaller
+  // number of bits, perhaps 32 or even 24.
+  o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
+  o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
+  o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";
+
+  o->newline() << "_stp_stat_add(time_" << basest()->name << ",cycles_elapsed);";
+  o->indent(-1);
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
+#endif
+
+  o->newline() << "local_irq_restore (flags);";
+}
+
+
+// ------------------------------------------------------------------------
+
+void
+be_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  s.op->newline() << "/* ---- begin/end probes ---- */";
+  s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*)) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING");
+  s.op->newline() << "c->probe_point = \"begin\";";
+  s.op->newline() << "(*fn) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
+  s.op->newline() << "void enter_end_probe (void (*fn)(struct context*)) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING");
+  s.op->newline() << "c->probe_point = \"end\";";
+  s.op->newline() << "(*fn) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
 }
 
 void
-be_derived_probe_group::emit_module_init (translator_output* o)
+be_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  if (probes.size () == 0)
-    return;
-
-  // Output the be probes create function
-  o->newline() << "static int register_be_probes (void) {";
-  o->indent(1);
-
+  // if (probes.empty()) return;
   for (unsigned i=0; i < probes.size (); i++)
-    probes[i]->emit_registrations_start (o);
-  
-  o->newline() << "return 0;";
-  o->newline(-1) << "}\n";
-
-  // Output the be probes destroy function
-  o->newline() << "static void unregister_be_probes (void) {";
-  o->indent(1);
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+    if (probes[i]->begin)
+      s.op->newline() << "enter_begin_probe (& " << probes[i]->name << ");";
 }
+
+void
+be_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  // if (probes.empty()) return;
+  for (unsigned i=0; i < probes.size (); i++)
+    if (! probes[i]->begin) // note polarity
+      s.op->newline() << "enter_end_probe (& " << probes[i]->name << ");";
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -395,35 +339,8 @@ struct never_derived_probe: public derived_probe
 {
   never_derived_probe (probe* p): derived_probe (p) {}
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
-
-  void register_probe (systemtap_session& s);
-
-  void emit_registrations_start (translator_output* o, unsigned index) {}
-  void emit_registrations_end (translator_output* o, unsigned index) {}
-  void emit_deregistrations (translator_output* o) {}
-  void emit_probe_entries (translator_output* o) {}
+  void join_group (systemtap_session& s) { /* thus no probe_group */ }
 };
-
-
-struct never_derived_probe_group: public derived_probe_group
-{
-private:
-  vector<never_derived_probe*> probes;
-
-public:
-  virtual void register_probe(never_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up) {}
-  virtual void emit_module_init (translator_output* o) {}
-};
-
-
-void
-never_derived_probe::register_probe(systemtap_session& s)
-{
-  s.probes.register_probe(this);
-}
 
 
 struct never_builder: public derived_probe_builder
@@ -440,8 +357,9 @@ struct never_builder: public derived_probe_builder
 };
 
 
+
 // ------------------------------------------------------------------------
-//  Dwarf derived probes.
+//  Dwarf derived probes.  "We apologize for the inconvience."
 // ------------------------------------------------------------------------
 
 static string TOK_PROCESS("process");
@@ -456,8 +374,6 @@ static string TOK_CALLEES("callees");
 static string TOK_STATEMENT("statement");
 static string TOK_LABEL("label");
 static string TOK_RELATIVE("relative");
-
-
 
 
 struct
@@ -640,8 +556,7 @@ dwarf_diename_integrate (Dwarf_Die *die)
   return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
 }
 
-struct
-dwflpp
+struct dwflpp
 {
   systemtap_session & sess;
   Dwfl * dwfl;
@@ -666,7 +581,6 @@ dwflpp
   string module_name;
   string cu_name;
   string function_name;
-
 
   string const default_name(char const * in,
 			    char const * type)
@@ -900,7 +814,7 @@ dwflpp
       {
 	dwfl_linux_kernel_find_elf,
 	dwfl_standard_find_debuginfo,
-	dwfl_linux_kernel_module_section_address,
+	dwfl_offline_section_address,
         & debuginfo_path
       };
 
@@ -910,14 +824,27 @@ dwflpp
 	if (!dwfl)
 	  throw semantic_error ("cannot open dwfl");
 	dwfl_report_begin (dwfl);
-        // XXX: if we have only kernel.* probe points, we shouldn't waste time
-        // looking for module debug-info (and vice versa).
-	dwfl_assert ("dwfl_linux_kernel_report_kernel",
-		     dwfl_linux_kernel_report_kernel (dwfl),
-		     "Ensure kernel debuginfo is installed");
-	dwfl_assert ("dwfl_linux_kernel_report_modules",
-		     dwfl_linux_kernel_report_modules (dwfl),
-		     "Ensure kernel debuginfo is installed");
+
+        dwfl_assert ("dwfl_linux_kernel_report_offline",
+                     dwfl_linux_kernel_report_offline 
+                     (dwfl,
+                      sess.kernel_release.c_str(),
+                      NULL /* selection predicate */));
+
+        // XXX: it would be nice if we could do a single
+        // ..._report_offline call for an entire systemtap script, so
+        // that a selection predicate would filter out modules outside
+        // the union of all the requested wildcards.  But we build
+        // derived_probes one-by-one and we don't have lookahead.
+
+        // XXX: a special case: if we have only kernel.* probe points,
+        // we shouldn't waste time looking for module debug-info (and
+        // vice versa).
+
+        // NB: the result of an _offline call is the assignment of
+        // virtualized addresses to relocatable objects such as
+        // modules.  These have to be converted to real addresses at
+        // run time.  See the dwarf_derived_probe ctor and its caller.
       }
     else
       {
@@ -925,10 +852,18 @@ dwflpp
 	dwfl_report_begin (dwfl);
 	if (!dwfl)
 	  throw semantic_error ("cannot open dwfl");
+
+        throw semantic_error ("user-space probes not yet implemented");
 	// XXX: Find pids or processes, do userspace stuff.
       }
 
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
+  }
+
+  void cleanup () // XXX: never used
+  {
+    dwfl_end (dwfl);
+    dwfl = NULL;
   }
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
@@ -1237,6 +1172,8 @@ dwflpp
         // if (strlen(func->decl_file) == 0) func->decl_file = NULL;
 
       } // loop over functions
+
+    // XXX: how to free lines?
   }
 
 
@@ -1831,22 +1768,28 @@ struct dwarf_builder;
 struct dwarf_query;
 
 
-struct dwarf_derived_probe : public derived_probe
-{
-  dwarf_derived_probe (Dwarf_Die *scope_die,
-		       Dwarf_Addr addr,
-		       dwarf_query & q);
+// XXX: This class is a candidate for subclassing to separate
+// the relocation vs non-relocation variants.  Likewise for
+// kprobe vs kretprobe variants.
 
-  vector<Dwarf_Addr> probe_points;
+struct dwarf_derived_probe: public derived_probe
+{
+  dwarf_derived_probe (const string& function,
+                       const string& filename,
+                       int line,
+                       const string& module,
+                       const string& section,
+		       Dwarf_Addr dwfl_addr,
+		       Dwarf_Addr addr,
+		       dwarf_query & q,
+                       Dwarf_Die* scope_die);
+
+  string module;
+  string section;
+  Dwarf_Addr addr;
   bool has_return;
 
-  void register_probe (systemtap_session& s);
-
-  void add_probe_point(string const & funcname,
-		       char const * filename,
-		       int line,
-		       Dwarf_Addr addr,
-		       dwarf_query & q);
+  void join_group (systemtap_session& s);
 
   // Pattern registration helpers.
   static void register_relative_variants(match_node * root,
@@ -1860,31 +1803,25 @@ struct dwarf_derived_probe : public derived_probe
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
-
-  virtual void emit_registrations_start (translator_output* o, unsigned index);
-  virtual void emit_registrations_end (translator_output * o, unsigned index);
-  virtual void emit_deregistrations (translator_output * o);
-  virtual void emit_probe_entries (translator_output * o);
 };
 
 
 struct dwarf_derived_probe_group: public derived_probe_group
 {
 private:
-  vector<dwarf_derived_probe*> probes;
+  multimap<string,dwarf_derived_probe*> probes_by_module;
+  typedef multimap<string,dwarf_derived_probe*>::iterator p_b_m_iterator;
 
 public:
-  virtual void register_probe(dwarf_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
+  void enroll (dwarf_derived_probe* probe);
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
 // Helper struct to thread through the dwfl callbacks.
-struct
-dwarf_query
+struct dwarf_query
 {
   dwarf_query(systemtap_session & sess,
 	      probe * base_probe,
@@ -1907,10 +1844,8 @@ dwarf_query
 
   string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
 
-  // Result vector and flavour-sorting mechanism.
+  // Result vector
   vector<derived_probe *> & results;
-  bool probe_has_no_target_variables;
-  map<string, dwarf_derived_probe *> probe_flavours;
   void add_probe_point(string const & funcname,
 		       char const * filename,
 		       int line,
@@ -1921,10 +1856,11 @@ dwarf_query
   set<string> blacklisted_return_probes;
   void build_blacklist();
 
-  bool blacklisted_p(string const & funcname,
-                     char const * filename,
+  bool blacklisted_p(const string& funcname,
+                     const string& filename,
                      int line,
-                     Dwarf_Die *scope_die,
+                     const string& module,
+                     const string& section,
                      Dwarf_Addr addr);
 
   // Extracted parameters.
@@ -2046,7 +1982,6 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 vector<derived_probe *> & results)
   : sess(sess),
     results(results),
-    probe_has_no_target_variables(false),
     base_probe(base_probe),
     base_loc(base_loc),
     dw(dw)
@@ -2094,9 +2029,10 @@ dwarf_query::build_blacklist()
   // FIXME: it would be nice if these blacklisted functions were pulled in
   // dynamically, instead of being statically defined here.
 
-  // Most of these are marked __kprobes in newer kernels.  We list them here so
-  // the translator can block them on older kernels that don't have the
-  // __kprobes function decorator.
+  // Most of these are marked __kprobes in newer kernels.  We list
+  // them here so the translator can block them on older kernels that
+  // don't have the __kprobes function decorator.  This also allows
+  // detection of problems at translate- rather than run-time.
   blacklisted_probes.insert("atomic_notifier_call_chain");
   blacklisted_probes.insert("default_do_nmi");
   blacklisted_probes.insert("__die");
@@ -2201,92 +2137,6 @@ dwarf_query::parse_function_spec(string & spec)
 }
 
 
-
-// Our goal here is to calculate a "flavour", a string which
-// characterizes the way in which this probe body depends on target
-// variables. The flavour is used to separate instances of a dwarf
-// probe which have different contextual bindings for the target
-// variables which occur within the probe body. If two die/addr
-// combinations have the same flavour string, they will be directed
-// into the same probe function.
-
-struct
-target_variable_flavour_calculating_visitor
-  : public traversing_visitor
-{
-  string flavour;
-
-  dwarf_query & q;
-  Dwarf_Die *scope_die;
-  Dwarf_Addr addr;
-
-  target_variable_flavour_calculating_visitor(dwarf_query & q,
-					      Dwarf_Die *sd,
-					      Dwarf_Addr a)
-    : q(q), scope_die(sd), addr(a)
-  {}
-  void visit_target_symbol (target_symbol* e);
-};
-
-void
-target_variable_flavour_calculating_visitor::visit_target_symbol (target_symbol *e)
-{
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
-
-  // NB: if for whatever reason this variable does not resolve,
-  // or is illegally used (write in non-guru mode for instance),
-  // just pretend that it's OK anyway.  dwarf_var_expanding_copy_visitor
-  // will take care of throwing the appropriate exception.
-
-  bool lvalue = is_active_lvalue(e);
-  flavour += lvalue ? 'w' : 'r';
-  exp_type ty;
-  string expr;
-  try
-    {
-      if (q.has_return && e->base_name == "$return")
-	expr = q.dw.literal_stmt_for_return (scope_die,
-					     addr,
-					     e->components,
-					     lvalue,
-					     ty);
-      else
-	expr = q.dw.literal_stmt_for_local(scope_die,
-					   addr,
-					   e->base_name.substr(1),
-					   e->components,
-					   lvalue,
-					   ty);
-    }
-  catch (const semantic_error& x)
-    {
-      e->saved_conversion_error = new semantic_error (x);
-      e->saved_conversion_error->tok1 = e->tok;
-      ty = pe_unknown;
-    }
-
-  switch (ty)
-    {
-    case pe_unknown:
-      flavour += 'U';
-      break;
-    case pe_long:
-      flavour += 'L';
-      break;
-    case pe_string:
-      flavour += 'S';
-      break;
-    case pe_stats:
-      flavour += 'T';
-      break;
-    }
-  flavour += lex_cast<string>(expr.size());
-  flavour += '{';
-  flavour += expr;
-  flavour += '}';
-}
-
-
 // Forward declaration.
 static int query_kernel_module (Dwfl_Module *, void **, const char *,
 				Dwarf_Addr, void *);
@@ -2351,76 +2201,26 @@ in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
 
 
 bool
-dwarf_query::blacklisted_p(string const & funcname,
-                           char const * filename,
+dwarf_query::blacklisted_p(const string& funcname,
+                           const string& filename,
                            int line,
-                           Dwarf_Die *scope_die,
+                           const string& module,
+                           const string& section,
                            Dwarf_Addr addr)
 {
-  // Check whether the given address points into an .init/.exit section,
-  // which will have been unmapped by the kernel by the time we get to
-  // insert the probe.  In this case, just ignore this call.
-  if (dwfl_module_relocations (dw.module) > 0)
+  if (section.substr(0, 6) == string(".init.") ||
+      section.substr(0, 6) == string(".exit."))
     {
-      // This is a relocatable module; libdwfl has noted its sections.
-      Dwarf_Addr rel_addr = addr;
-      int idx = dwfl_module_relocate_address (dw.module, &rel_addr);
-      const char *name = dwfl_module_relocation_info (dw.module, idx, NULL);
-      if (name && ((strncmp (name, ".init.", 6) == 0) ||
-		   (strncmp (name, ".exit.", 6) == 0)))
-	{
-	  if (sess.verbose>1)
-	    clog << "skipping function '" << funcname << "' base 0x"
-		 << hex << addr << dec << " is within section '"
-		 << name << "'\n";
-	  return true;
-	}
-    }
-  else
-    {
-      Dwarf_Addr baseaddr;
-      Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
-      Dwarf_Addr rel_addr = addr - baseaddr;
-      if (elf)
-	{
-	  // Iterate through section headers to find which one
-	  // contains the given rel_addr.
-	  Elf_Scn* scn = 0;
-	  size_t shstrndx;
-	  dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-	  while ((scn = elf_nextscn (elf, scn)) != NULL)
-	    {
-	      GElf_Shdr shdr_mem;
-	      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-	      if (! shdr) continue; // XXX error?
-
-	      // check for address inclusion
-	      GElf_Addr start = shdr->sh_addr;
-	      GElf_Addr end = start + shdr->sh_size;
-	      if (! (rel_addr >= start && rel_addr < end))
-		continue;
-
-	      // check for section name
-	      const char* name =  elf_strptr (elf, shstrndx, shdr->sh_name);
-	      if (name && ((strncmp (name, ".init.", 6) == 0) ||
-			   (strncmp (name, ".exit.", 6) == 0)))
-		{
-		  if (sess.verbose>1)
-		    clog << "skipping function '" << funcname << "' base 0x"
-			 << hex << addr << dec << " is within section '"
-			 << name << "'\n";
-		  return true;
-		}
-	    }
-	}
+      if (sess.verbose>1)
+        clog << " skipping - init/exit";
+      return true;
     }
 
   // Check for function marked '__kprobes'.
-  if (in_kprobes_function(sess, addr))
+  if (module == TOK_KERNEL && in_kprobes_function(sess, addr))
     {
       if (sess.verbose>1)
-	clog << "skipping function '" << funcname << "' base 0x"
-	     << hex << addr << dec << " is a function marked '__kprobes'\n";
+	clog << " skipping - __kprobes";
       return true;
     }
   
@@ -2428,16 +2228,13 @@ dwarf_query::blacklisted_p(string const & funcname,
   // properly generalized, perhaps via a table populated from script
   // files.  A "noprobe kernel.function("...")"  construct might do
   // the trick.
-  if (filename == 0) filename = ""; // possibly 0
-  string filename_s = filename; // is passed as const char*
   if (blacklisted_probes.count(funcname) > 0 ||
       (has_return && blacklisted_return_probes.count(funcname) > 0) ||
-      filename_s == "kernel/kprobes.c" ||
-      0 == fnmatch ("arch/*/kernel/kprobes.c", filename, 0))
+      filename == "kernel/kprobes.c" ||
+      0 == fnmatch ("arch/*/kernel/kprobes.c", filename.c_str(), 0))
     {
       if (sess.verbose>1)
-        clog << "skipping function '" << funcname << "' file '"
-             << filename << "' is blacklisted\n";
+	clog << " skipping - blacklisted";
       return true;
     }
 
@@ -2446,53 +2243,91 @@ dwarf_query::blacklisted_p(string const & funcname,
 }
 
 
+
 void
-dwarf_query::add_probe_point(string const & funcname,
-			     char const * filename,
+dwarf_query::add_probe_point(const string& funcname,
+			     const char* filename,
 			     int line,
-			     Dwarf_Die *scope_die,
+			     Dwarf_Die* scope_die,
 			     Dwarf_Addr addr)
 {
   dwarf_derived_probe *probe = NULL;
+  string reloc_section; // base section for relocation purposes
+  Dwarf_Addr reloc_addr = addr; // relocated
+  string blacklist_section; // linking section for blacklist purposes
+  const string& module = dw.module_name; // "kernel" or other
 
-  if (blacklisted_p (funcname, filename, line, scope_die, addr))
-    return;
-
-  if (probe_has_no_target_variables)
+  if (dwfl_module_relocations (dw.module) > 0)
     {
-      assert(probe_flavours.size() == 1);
-      probe = probe_flavours.begin()->second;
+      // This is arelocatable module; libdwfl already knows its
+      // sections, so we can relativize addr.
+      int idx = dwfl_module_relocate_address (dw.module, &reloc_addr);
+      const char* r_s = dwfl_module_relocation_info (dw.module, idx, NULL);
+      if (r_s)
+        reloc_section = r_s;
+      blacklist_section = reloc_section;
     }
   else
     {
+      // This is not a relocatable module, so addr is all set.  To
+      // find the section name, must do this the long way - scan
+      // through elf section headers.
+      Dwarf_Addr baseaddr;
+      Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
+      Dwarf_Addr offset = addr - baseaddr;
+      // NB: this offset does not end up as reloc_addr, since the latter is
+      // only computed differently if load-time relocation is needed.  For
+      // non-relocatable modules, this is not the case.
+      if (elf)
+        {
+          // Iterate through section headers to find which one
+          // contains the given offset.
+          Elf_Scn* scn = 0;
+          size_t shstrndx;
+          dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+          while ((scn = elf_nextscn (elf, scn)) != NULL)
+            {
+              GElf_Shdr shdr_mem;
+              GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+              if (! shdr) continue; // XXX error?
 
-      target_variable_flavour_calculating_visitor flav(*this, scope_die, addr);
-      base_probe->body->visit(&flav);
+              // check for address inclusion
+              GElf_Addr start = shdr->sh_addr;
+              GElf_Addr end = start + shdr->sh_size;
+              if (! (offset >= start && offset < end))
+                continue;
 
-      map<string, dwarf_derived_probe *>::iterator i
-	= probe_flavours.find(flav.flavour);
+              // check for section name
+              blacklist_section =  elf_strptr (elf, shstrndx, shdr->sh_name);
+              break;
+            }
+        }
 
-      if (i != probe_flavours.end())
-	probe = i->second;
-      else
-	{
-	  probe = new dwarf_derived_probe(scope_die, addr, *this);
-	  probe_flavours.insert(make_pair(flav.flavour, probe));
-	  results.push_back(probe);
-	}
-
-      // Cache result in degenerate case to avoid recomputing.
-      if (flav.flavour.empty())
-	probe_has_no_target_variables = true;
+      reloc_section = "";
     }
 
   if (sess.verbose > 1)
     {
-      clog << "probe " << funcname << "@" << filename << ":" << line
-           << " pc=0x" << hex << addr << dec << endl;
+      clog << "probe " << funcname << "@" << filename << ":" << line;
+      if (string(module) == TOK_KERNEL)
+        clog << " kernel";
+      else
+        clog << " module=" << module;
+      if (reloc_section != "") clog << " reloc=" << reloc_section;
+      if (blacklist_section != "") clog << " section=" << blacklist_section;
+      clog << " pc=0x" << hex << addr << dec;
     }
+  
+  bool bad = blacklisted_p (funcname, filename, line, module, blacklist_section, addr);
+  if (sess.verbose > 1)
+    clog << endl;
 
-  probe->add_probe_point(funcname, filename, line, addr, *this);
+  if (! bad)
+    {
+      probe = new dwarf_derived_probe(funcname, filename, line, 
+                                      module, reloc_section, addr, reloc_addr, *this, scope_die);
+      results.push_back(probe);
+    }
 }
 
 
@@ -3171,35 +3006,58 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
 
 void
-dwarf_derived_probe::register_probe(systemtap_session& s)
+dwarf_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  if (! s.dwarf_derived_probes)
+    s.dwarf_derived_probes = new dwarf_derived_probe_group ();
+  s.dwarf_derived_probes->enroll (this);
 }
 
 
-void
-dwarf_derived_probe::add_probe_point(string const & funcname,
-				     char const * filename,
-				     int line,
-				     Dwarf_Addr addr,
-				     dwarf_query & q)
+dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
+                                         const string& filename,
+                                         int line,
+                                         // module & section speficy a relocation
+                                         // base for <addr>, unless section==""
+                                         // (equivalently module=="kernel")
+                                         const string& module,
+                                         const string& section,
+                                         // NB: dwfl_addr is the virtualized
+                                         // address for this symbol.
+                                         Dwarf_Addr dwfl_addr,
+                                         // addr is the section-offset for
+                                         // actual relocation.
+                                         Dwarf_Addr addr,
+                                         dwarf_query& q,
+                                         Dwarf_Die* scope_die)
+  : derived_probe (q.base_probe, 0 /* location-less */),
+    module (module), section (section), addr (addr),
+    has_return (q.has_return)
 {
-  string module_name(q.dw.module_name);
+  // Assert relocation invariants
+  if (module == TOK_KERNEL && section != "") 
+    throw semantic_error ("relocation requested against kernel", q.base_loc->tok);
+  if (module != TOK_KERNEL && section == "") 
+    throw semantic_error ("missing relocation base against module", q.base_loc->tok);
+  if (module != TOK_KERNEL && section != "" && dwfl_addr == addr) // addr should be an offset
+    throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
-  // "Adding a probe point" means two things:
-  //
-  //
-  //  1. Adding an addr to the probe-point vector
+  // Make a target-variable-expanded copy of the probe body
 
-  probe_points.push_back(addr);
+  dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
+  require <block*> (&v, &(this->body), q.base_probe->body);
+  this->tok = q.base_probe->tok;
 
-  //  2. Extending the "locations" vector
+  // Set the sole element of the "locations" vector as a
+  // "reverse-engineered" form of the incoming (q.base_loc) probe
+  // point.  This allows a user to see what function / file / line
+  // number any particular match of the wildcards.
 
   vector<probe_point::component*> comps;
   comps.push_back
-    (module_name == TOK_KERNEL
+    (module == TOK_KERNEL
      ? new probe_point::component(TOK_KERNEL)
-     : new probe_point::component(TOK_MODULE, new literal_string(module_name)));
+     : new probe_point::component(TOK_MODULE, new literal_string(module)));
 
   string fn_or_stmt;
   if (q.has_function_str || q.has_function_num)
@@ -3212,7 +3070,7 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
   if (q.has_function_str || q.has_inline_str || q.has_statement_str)
       {
         string retro_name = funcname;
-	if (filename && !string (filename).empty())
+	if (filename != "")
 	  retro_name += ("@" + string (filename));
 	if (line != -1)
 	  retro_name += (":" + lex_cast<string> (line));
@@ -3229,49 +3087,17 @@ dwarf_derived_probe::add_probe_point(string const & funcname,
 	retro_addr = q.inline_num_val;
       else
         retro_addr = q.statement_num_val;
-
       comps.push_back (new probe_point::component
                        (fn_or_stmt,
                         new literal_number(retro_addr))); // XXX: should be hex if possible
     }
 
   if (has_return)
-    comps.push_back
-      (new probe_point::component(TOK_RETURN));
+    comps.push_back (new probe_point::component(TOK_RETURN));
 
-  assert(q.base_probe->locations.size() > 0);
-  locations.push_back(new probe_point(comps, q.base_probe->locations[0]->tok));
+  locations.push_back(new probe_point(comps, q.base_loc->tok));
 }
 
-dwarf_derived_probe::dwarf_derived_probe (Dwarf_Die *scope_die,
-					  Dwarf_Addr addr,
-					  dwarf_query & q)
-  : derived_probe (q.base_probe, 0 /* location-less */),
-    has_return (q.has_return)
-{
-  string module_name(q.dw.module_name);
-
-  // Lock the kernel module in memory.
-  if (module_name != TOK_KERNEL)
-    {
-      // XXX: There is a race window here, between the time that libdw
-      // opened up this same file for its relocation duties, and now.
-      int fd = q.sess.module_fds[module_name];
-      if (fd == 0)
-        {
-          string sys_module = "/sys/module/" + module_name + "/sections/.text";
-          fd = open (sys_module.c_str(), O_RDONLY);
-          if (fd < 0)
-            throw semantic_error ("error opening module refcount-bumping file.");
-          q.sess.module_fds[module_name] = fd;
-        }
-    }
-
-  // Now make a local-variable-expanded copy of the probe body
-  dwarf_var_expanding_copy_visitor v (q, scope_die, addr);
-  require <block*> (&v, &(this->body), q.base_probe->body);
-  this->tok = q.base_probe->tok;
-}
 
 void
 dwarf_derived_probe::register_relative_variants(match_node * root,
@@ -3376,325 +3202,182 @@ dwarf_derived_probe::register_patterns(match_node * root)
 }
 
 
+// ------------------------------------------------------------------------
+
 void
-dwarf_derived_probe::emit_registrations_start (translator_output* o,
-					       unsigned index)
+dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 {
-  string func_name = "enter_" + name;
-  string index_var = "i_" + lex_cast<string>(index);
-  o->newline();
-  o->newline() << "probe_point = dwarf_kprobe_" << name
-	       << "_location_names[0];";
-  o->newline() << "for (" << index_var << " = 0; " << index_var << " < "
-	       << probe_points.size() << "; " << index_var << "++) {";
-  o->indent(1);
-  string probe_name = string("dwarf_kprobe_") + name + string("[")
-      + index_var + string("]");
-
-#if 0
-  // XXX: triggers false negatives on RHEL4U2 kernel
-  // emit address verification code
-  o->newline() << "void *addr = " << probe_name;
-  if (has_return)
-    o->line() << ".kp.addr;";
-  else
-    o->line() << ".addr;";
-  o->newline() << "rc = ! virt_addr_valid (addr);";
-#endif
-
-  if (has_return)
-    {
-      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-      o->newline() << probe_name << ".handler = &" << func_name << ";";
-      o->newline() << probe_name << ".maxactive = max(10, 4 * NR_CPUS);";
-      // XXX: pending PR 1289
-      // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
-      o->newline() << "rc = rc || register_kretprobe (&(" << probe_name << "));";
-      o->newline() << "#else";
-      o->newline() << "rc = 1;";
-      o->newline() << "#endif";
-    }
-  else
-    {
-      o->newline() << probe_name << ".pre_handler = &" << func_name << ";";
-      // XXX: pending PR 1289
-      // o->newline() << probe_name << ".kp_fault_handler = &stap_kprobe_fault_handler;";
-      o->newline() << "rc = rc || register_kprobe (&(" << probe_name << "));";
-    }
-
-  o->newline() << "if (unlikely (rc)) {";
-  o->newline(1) << "probe_point = " << string("dwarf_kprobe_") + name
-    + string("_location_names[") << index_var << "];";
-  o->newline() << "break;";
-  o->newline(-1) << "}";
-  o->newline(-1) << "}";
-
-  // if one failed, must goto code (output by emit_registrations_end)
-  // that will roll back completed registations for this probe 
-  o->newline() << "if (unlikely (rc))";
-  o->newline(1) << "goto unwind_dwarf_" << index << ";";
-  o->indent(-1);
+  probes_by_module.insert (make_pair (p->module, p));
 }
 
 
 void
-dwarf_derived_probe::emit_registrations_end (translator_output* o,
-					     unsigned index)
+dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  string index_var = "i_" + lex_cast<string>(index);
-  string probe_name = string("dwarf_kprobe_") + name + string("[")
-      + index_var + string("]");
+  if (probes_by_module.empty()) return;
 
-  // if one failed, must roll back completed registations for this probe
-  o->newline(-1) << "unwind_dwarf_" << index << ":";
-  o->newline(1) << "while (--" << index_var << " >= 0)";
-  o->indent(1);
-  if (has_return)
+  s.op->newline() << "/* ---- dwarf probes ---- */";
+
+  // XXX: Until staprun provides us a run-time module/section/address
+  // table, we take matters into our own hands.
+  s.op->newline() << "struct stap_module { const char* module; const char* section; unsigned long address; } stap_modules[] = {";
+  s.op->indent(1);
+  glob_t globbuf;
+  int rc = glob ("/sys/module/*", 0, NULL, &globbuf);
+  if (!rc) for (unsigned j=0; j<globbuf.gl_pathc; j++)
     {
-      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
-      o->newline() << "#else";
-      o->newline() << ";";
-      o->newline() << "#endif";
+      string module = strrchr (globbuf.gl_pathv[j], '/') + 1;
+      glob_t globbuf2;
+      string moddir = string("/sys/module/") + module + string("/sections/*");
+      int rc2 = glob (moddir.c_str(), GLOB_PERIOD, NULL, &globbuf2);
+      if (!rc2) for (unsigned k=0; k<globbuf2.gl_pathc; k++)
+        {
+          string section = strrchr (globbuf2.gl_pathv[k], '/') + 1;
+          ifstream file (globbuf2.gl_pathv[k]);
+          if (! file.good()) { file.close(); continue; } // might include "." and "..", bugger!
+          string hex_address;
+          try { file >> hex_address; } catch (...) { file.close(); continue; }
+          file.close ();
+          if (s.verbose > 2)
+            clog << "found module=" << module << " section=" << section << " base=" << hex_address << endl;
+          // we don't need to use quoted_lex_blah since module/section names are vanilla
+          s.op->newline() << "{ \"" << module << "\", \"" << section << "\", " << hex_address << "UL },";
+        }
+      if (!rc2) globfree (& globbuf2);
     }
-  else
-    o->newline() << "unregister_kprobe (&(" << probe_name << "));";
-  o->indent(-1);
+  if (!rc) globfree (& globbuf);
+  s.op->newline() << "{ \"\", \"\", 0 }"; // sentinel
+  s.op->newline(-1) << "};";
+
+  // A convenient lookup function for this table
+  s.op->newline() << "static unsigned long module_relocate (const char *module, const char *section, unsigned long offset) {";
+  s.op->newline(1) << "static struct stap_module *last = & stap_modules[0];"; // a one-entry TLB
+  s.op->newline() << "if (! module) { return offset; }"; // non-relocatable? just hand it back.
+  // emit code to look at "one-entry TLB"; assumes last-> points no farther than sentinel
+  s.op->newline() << "if (!strcmp (module, last->module) && !strcmp (section, last->section))";
+  s.op->newline(1) << "return offset + last->address;";
+  // emit code to look at it the long way ... simple but slow.
+  // Luckily, the later code makes sure that probes are relocated in a
+  // sorted sequence by module, so the TLB hit rate should be
+  // excellent.
+  s.op->newline(-1) << "last = & stap_modules[0];";
+  s.op->newline() << "while (last->module && last->section && last->module[0]) {"; // sentinel
+  s.op->newline(1) << "if (!strcmp (module, last->module) && !strcmp (section, last->section))";
+  s.op->newline(1) << "return offset + last->address;";
+  s.op->newline(-1) << "last ++;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "last = & stap_modules[0];"; // important: reset to some valid entry
+  s.op->newline() << "return 0;"; // not found in entire module table
+  s.op->newline(-1) << "}";
+
+  // Forward declare the master entry functions
+  s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
+  s.op->line() << " struct pt_regs *regs);";
+  s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
+  s.op->line() << " struct pt_regs *regs);";
+
+  // Emit the actual probe list.
+  s.op->newline() << "struct stap_dwarf_probe {";
+  s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
+  s.op->newline() << "unsigned return_p:1;";
+  s.op->newline() << "unsigned registered_p:1;";
+  s.op->newline() << "const char *module;";
+  s.op->newline() << "const char *section;";
+  s.op->newline() << "unsigned long address;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline(-1) << "} stap_dwarf_probes[] = {";
+  s.op->indent(1);
+
+  for (p_b_m_iterator it = probes_by_module.begin(); it != probes_by_module.end(); it++)
+    {
+      dwarf_derived_probe* p = it->second;
+      s.op->newline() << "{";
+      if (p->has_return)
+        s.op->line() << " .return_p=1,";
+      if (p->module != TOK_KERNEL) // relocation info
+        s.op->line() << " .module=\"" << p->module << "\", .section=\"" << p->section << "\",";
+      s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
+      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+      s.op->line() << " .ph=&" << p->name;
+      s.op->line() << " },";
+    }
+
+  s.op->newline(-1) << "};";
+
+  // Emit the kprobes callback function
+  s.op->newline();
+  s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
+  s.op->line() << " struct pt_regs *regs) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = container_of(inst, struct stap_dwarf_probe, u.kp);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = sdp->pp;";
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "(*sdp->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+
+  // Same for kretprobes
+  s.op->newline();
+  s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
+  s.op->line() << " struct pt_regs *regs) {";
+  s.op->newline(1) << "struct kretprobe *krp = inst->rp;";
+  s.op->newline() << "struct stap_dwarf_probe *sdp = container_of(krp, struct stap_dwarf_probe, u.krp);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = sdp->pp;";
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->pi = inst;"; // for assisting runtime's backtrace logic
+  s.op->newline() << "(*sdp->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
 }
 
 
 void
-dwarf_derived_probe::emit_deregistrations (translator_output* o)
+dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  string probe_name = string("dwarf_kprobe_") + name + string("[i]");
-  o->newline() << "for (i = 0; i < " << probe_points.size() << "; i++) {";
-  o->indent(1);
-
-  if (has_return)
-    {
-      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-      o->newline() << "atomic_add ("
-		   << probe_name << ".kp.nmissed,"
-		   << "& skipped_count);";
-      o->newline() << "atomic_add ("
-		   << probe_name << ".nmissed,"
-		   << "& skipped_count);";
-      o->newline() << "unregister_kretprobe (&(" << probe_name << "));";
-      o->newline() << "#else";
-      o->newline() << ";";
-      o->newline() << "#endif";
-    }
-  else
-    {
-      o->newline() << "atomic_add ("
-		   << probe_name << ".nmissed,"
-		   << "& skipped_count);";
-      o->newline() << "unregister_kprobe (&(" << probe_name << "));";
-    }
-
-  o->newline(-1) << "}";
-}
-
-void
-dwarf_derived_probe::emit_probe_entries (translator_output* o)
-{
-  static unsigned already_emitted_fault_handler = 0;
-
-  if (! already_emitted_fault_handler)
-    {
-      o->newline() << "int stap_kprobe_fault_handler (struct kprobe* kp, "
-		   << "struct pt_regs* regs, int trapnr) {";
-      o->newline(1) << "struct context* c = per_cpu_ptr (contexts, smp_processor_id());";
-      o->newline() << "_stp_warn (\"systemtap probe fault\\n\");";
-      o->newline() << "_stp_warn (\"cpu %d, probe %s, near %s\\n\", ";
-      o->newline(1) << "smp_processor_id(), ";
-      o->newline() << "c->probe_point ? c->probe_point : \"unknown\", ";
-      o->newline() << "c->last_stmt ? c->last_stmt : \"unknown\");";
-      o->newline() << "c->last_error = \"probe faulted\";";
-      o->newline(-1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
-
-      o->newline() << "return 0;"; // defer to kernel fault handler
-      // NB: We might prefer to use "return 1" instead, to consider
-      // the fault "handled".  But we may get into an infinite loop
-      // of traps if the faulting instruction is simply restarted.
-
-      o->newline(-1) << "}";
-      already_emitted_fault_handler ++;
-    }
-
-
-  // Emit arrays of probes and location names.
-
-  string probe_array = string("dwarf_kprobe_") + name;
-  string string_array = probe_array + "_location_names";
-
-  assert(locations.size() == probe_points.size());
-
-  if (has_return)
-    {
-      o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-      o->newline() << "static struct kretprobe "
-                   << probe_array
-		   << "[" << probe_points.size() << "]"
-                   << "= {";
-    }
-  else
-      o->newline() << "static struct kprobe "
-                   << probe_array
-		   << "[" << probe_points.size() << "]"
-                   << "= {";
-
-  o->indent(1);
-  for (vector<Dwarf_Addr>::const_iterator i = probe_points.begin();
-       i != probe_points.end();
-       ++i)
-    {
-      if (i != probe_points.begin())
-        o->line() << ",";
-      if (has_return)
-        o->newline() << "{.kp.addr= (void *) 0x" << hex << *i << dec << "}";
-      else
-        o->newline() << "{.addr= (void *) 0x" << hex << *i << dec << "}";
-    }
-  o->newline(-1) << "};";
-
-  if (has_return)
-    o->newline() << "#endif /* ARCH_SUPPORTS_KRETPROBES */";
-
-  o->newline();
-
-  // This is somewhat gross, but it should work: we allocate a
-  // *parallel* array of strings containing the location of each
-  // probe. You can calculate which kprobe or kretprobe you're in by
-  // taking the difference of the struct kprobe pointer and the base
-  // of the kprobe array and dividing by the size of the struct kprobe
-  // (or kretprobe), then you can use this index into the string table
-  // here to work out the *name* of the probe you're in.
-  //
-  // Sorry.
-
-  assert(probe_points.size() == locations.size());
-
-  o->newline() << "static char const * "
-	       << string_array
-	       << "[" << locations.size() << "] = {";
-  o->indent(1);
-  for (vector<probe_point*>::const_iterator i = locations.begin();
-       i != locations.end(); ++i)
-    {
-      if (i != locations.begin())
-	o->line() << ",";
-      o->newline() << lex_cast_qstring(*(*i));
-    }
-  o->newline(-1) << "};";
-
-  o->newline();
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "static __cacheline_aligned Stat " << "time_" << basest()->name << ";";
-  o->newline() << "#endif";
-
-  // Construct a single entry function, and a struct kprobe pointing into
-  // the entry function. The entry function will call the probe function.
-  o->newline();
-  if (has_return)
-    o->newline() << "#ifdef ARCH_SUPPORTS_KRETPROBES";
-  o->newline() << "static int ";
-  o->newline() << "enter_" << name << " (";
-  if (has_return)
-    o->line() << "struct kretprobe_instance *probe_instance";
-  else
-    o->line() << "struct kprobe *probe_instance";
-  o->line() << ", struct pt_regs *regs) {";
-  o->indent(1);
-
-  // Calculate the name of the current probe by finding its index in the probe array.
-  if (has_return)
-    o->newline() << "const char* probe_point = "
-		 << string_array
-		 << "[ (probe_instance->rp - &(" << probe_array << "[0]))];";
-  else
-    o->newline() << "const char* probe_point = "
-		 << string_array
-		 << "[ (probe_instance - &(" << probe_array << "[0]))];";
-  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
-  o->newline() << "c->regs = regs;";
-  if (has_return)
-    o->newline() << "c->pi = probe_instance;";    
-
-  // NB: locals are initialized by probe function itself
-  o->newline() << name << " (c);";
-
-  emit_probe_epilogue (o);
-
-  o->newline() << "return 0;";
-  o->newline(-1) << "}\n";
-  if (has_return)
-    o->newline() << "#endif /* ARCH_SUPPORTS_KRETPROBES */";
-
-  o->newline();
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "unsigned long relocated_addr = module_relocate (sdp->module, sdp->section, sdp->address);";
+  s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
+  s.op->newline() << "if (sdp->return_p) {";
+  s.op->newline(1) << "sdp->u.krp.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "sdp->u.krp.maxactive = max(10, 4*NR_CPUS);"; // XXX pending PR 1289
+  s.op->newline() << "sdp->u.krp.handler = &enter_kretprobe_probe;";
+  s.op->newline() << "rc = register_kretprobe (& sdp->u.krp);";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "sdp->u.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "sdp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "rc = register_kprobe (& sdp->u.kp);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (rc) for (j=i-1; j>=0; j--) {"; // partial rollback
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp2 = & stap_dwarf_probes[j];";
+  s.op->newline() << "if (sdp2->return_p) unregister_kretprobe (&sdp2->u.krp);";
+  s.op->newline() << "else unregister_kprobe (&sdp2->u.kp);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else sdp->registered_p = 1;";
+  s.op->newline(-1) << "}"; // for loop
 }
 
 
 void
-dwarf_derived_probe_group::emit_probes (translator_output* op, unparser* up)
+dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-  for (unsigned i=0; i < probes.size(); i++)
-    {
-      op->newline ();
-      up->emit_probe (probes[i]);
-    }
-}
-
-
-void
-dwarf_derived_probe_group::emit_module_init (translator_output* o)
-{
-  if (probes.size () == 0)
-    return;
-
-  // Output the dwarf probes create function
-  o->newline() << "static int register_dwarf_probes (void) {";
-  o->indent(1);
-  o->newline() << "int rc = 0;";
-  o->newline() << "const char *probe_point;";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    o->newline() << "int i_" << i << ";";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    probes[i]->emit_registrations_start (o, i);
-  
-  o->newline() << "goto out;";
-  o->newline();
-
-  for (int i=probes.size() - 1; i >= 0; i--)
-    probes[i]->emit_registrations_end (o, i);
-
-  o->newline();
-
-  o->newline() << "if (unlikely (rc)) {";
-  // In case it's just a lower-layer (kprobes) error that set rc but
-  // not session_state, do that here to prevent any other BEGIN probe
-  // from attempting to run.
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_error (\"dwarf probe %s registration failed, rc=%d\\n\", probe_point, rc);";
-  o->newline(-1) << "}\n";
-
-  o->newline(-1) << "out:";
-  o->newline(1) << "return rc;";
-  o->newline(-1) << "}\n";
-
-  // Output the dwarf probes destroy function
-  o->newline() << "static void unregister_dwarf_probes (void) {";
-  o->newline(1) << "int i;";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "if (! sdp->registered_p) continue;";
+  s.op->newline() << "if (sdp->return_p) {";
+  s.op->newline(1) << "unregister_kretprobe (&sdp->u.krp);";
+  s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
+  s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline() << "} else {";
+  s.op->newline(1) << "unregister_kprobe (&sdp->u.kp);";
+  s.op->newline() << "atomic_add (sdp->u.kp.nmissed, & skipped_count);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "sdp->registered_p = 0;";
+  s.op->newline(-1) << "}";
 }
 
 
@@ -3711,6 +3394,9 @@ dwarf_builder::build(systemtap_session & sess,
   bool has_kernel = dwarf_query::has_null_param(parameters, TOK_KERNEL);
   bool has_module = dwarf_query::get_string_param(parameters, TOK_MODULE, dummy);
 
+  // NB: the kernel/user dwlfpp objects are long-lived.
+  // XXX: but they should be per-session, as this builder object
+  // may be reused if we try to cross-instrument multiple targets.
   if (has_kernel || has_module)
     {
       if (!kern_dw)
@@ -3734,7 +3420,6 @@ dwarf_builder::build(systemtap_session & sess,
   assert(dw);
 
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
-
 
   if (q.has_kernel &&
       (q.has_function_num || q.has_inline_num || q.has_statement_num))
@@ -3784,16 +3469,18 @@ dwarf_builder::build(systemtap_session & sess,
 struct timer_derived_probe: public derived_probe
 {
   int64_t interval, randomize;
-  bool time_is_msecs;
-
+  bool time_is_msecs; // NB: hrtimers get ms-based probes on modern kernels instead
   timer_derived_probe (probe* p, probe_point* l, int64_t i, int64_t r, bool ms=false);
+  virtual void join_group (systemtap_session& s);
+};
 
-  virtual void register_probe (systemtap_session& s);
 
-  virtual void emit_registrations_start (translator_output* o, unsigned index);
-  virtual void emit_registrations_end (translator_output * o, unsigned index);
-  virtual void emit_deregistrations (translator_output * o);
-  virtual void emit_probe_entries (translator_output * o);
+struct timer_derived_probe_group: public generic_dpg<timer_derived_probe>
+{
+public:
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
@@ -3813,165 +3500,87 @@ timer_derived_probe::timer_derived_probe (probe* p, probe_point* l, int64_t i, i
 
 
 void
-timer_derived_probe::register_probe(systemtap_session& s)
+timer_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  if (! s.timer_derived_probes)
+    s.timer_derived_probes = new timer_derived_probe_group ();
+  s.timer_derived_probes->enroll (this);
 }
 
 
 void
-timer_derived_probe::emit_registrations_start (translator_output* o,
-					       unsigned index)
+timer_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  o->newline();
-  o->newline() << "probe_point = \"" << *locations[0] << "\";";
-  o->newline() << "init_timer (& timer_" << name << ");";
-  o->newline() << "timer_" << name << ".expires = jiffies + ";
-  if (time_is_msecs)
-    o->line() << "msecs_to_jiffies(";
-  o->line() << interval;
-  if (randomize)
-    o->line() << " + _stp_random_pm(" << randomize << ")";
-  if (time_is_msecs)
-    o->line() << ")";
-  o->line() << ";";
-  o->newline() << "timer_" << name << ".function = & enter_" << name << ";";
-  o->newline() << "add_timer (& timer_" << name << ");";
+  if (probes.empty()) return;
 
-  // if one failed, must goto code (output by emit_registrations_end)
-  // that will roll back completed registations for this probe
-  o->newline() << "if (unlikely (rc))";
-  if (index == 0)
-    o->newline(1) << "goto timer_error;";
-  else
-    o->newline(1) << "goto unwind_timer_" << index - 1 << ";";
-  o->indent(-1);
-}
+  s.op->newline() << "/* ---- timer probes ---- */";
 
-
-void
-timer_derived_probe::emit_registrations_end (translator_output* o,
-					     unsigned index)
-{
-  // if one failed, must roll back completed registations for this probe
-  o->newline(-1) << "unwind_timer_" << index << ":";
-  o->newline(1) << "del_timer_sync (& timer_" << name << ");";
-}
-
-
-void
-timer_derived_probe::emit_deregistrations (translator_output* o)
-{
-  o->newline() << "del_timer_sync (& timer_" << name << ");";
-}
-
-
-void
-timer_derived_probe::emit_probe_entries (translator_output* o)
-{
-  o->newline() << "static struct timer_list timer_" << name << ";";
-
-  o->newline() << "static void enter_" << name << " (unsigned long val) {";
-  o->indent(1);
-  o->newline() << "const char* probe_point = "
-	       << lex_cast_qstring(*locations[0]) << ";";
-  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
-
-  o->newline() << "(void) val;";
-  o->newline() << "mod_timer (& timer_" << name << ", jiffies + ";
-  if (time_is_msecs)
-    o->line() << "msecs_to_jiffies(";
-  o->line() << interval;
-  if (randomize)
-    o->line() << " + _stp_random_pm(" << randomize << ")";
-  if (time_is_msecs)
-    o->line() << ")";
-  o->line() << ");";
-
-  // NB: locals are initialized by probe function itself
-  o->newline() << name << " (c);";
-
-  emit_probe_epilogue (o);
-  o->newline(-1) << "}\n";
-}
-
-
-struct timer_derived_probe_group: public derived_probe_group
-{
-private:
-  vector<timer_derived_probe*> probes;
-
-public:
-  virtual void register_probe(timer_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
-};
-
-
-void
-timer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
+  s.op->newline() << "struct stap_timer_probe {";
+  s.op->newline(1) << "struct timer_list timer_list;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "unsigned intrv, ms, rnd;";
+  s.op->newline(-1) << "} stap_timer_probes [" << probes.size() << "] = {";
+  s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      op->newline ();
-      up->emit_probe (probes[i]);
+      s.op->newline () << "{"; 
+      s.op->line() << " .pp=" 
+                   << lex_cast_qstring (*probes[i]->sole_location()) << ",";
+      s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .intrv=" << probes[i]->interval << ",";
+      s.op->line() << " .ms=" << probes[i]->time_is_msecs << ",";
+      s.op->line() << " .rnd=" << probes[i]->randomize;
+      s.op->line() << " },";
     }
+  s.op->newline(-1) << "};";
+  s.op->newline();
+
+  s.op->newline() << "static void enter_timer_probe (unsigned long val) {";
+  s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [val];";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = stp->pp;";
+  s.op->newline() << "mod_timer (& stp->timer_list,";
+  s.op->newline(1) << "jiffies ";
+  s.op->newline() << "+ (stp->ms ? msecs_to_jiffies(stp->intrv) : stp->intrv)";
+  s.op->newline() << "+ _stp_random_pm (stp->rnd));";
+  s.op->indent(-1);
+  s.op->newline() << "(*stp->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
 }
 
 
 void
-timer_derived_probe_group::emit_module_init (translator_output* o)
+timer_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  if (probes.size () == 0)
-    return;
+  if (probes.empty()) return;
 
-  // Output the timer probes create function
-  o->newline() << "static int register_timer_probes (void) {";
-  o->indent(1);
-  o->newline() << "int rc = 0;";
-  o->newline() << "const char *probe_point;";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    o->newline() << "int i_" << i << ";";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    probes[i]->emit_registrations_start (o, i);
-  
-  o->newline() << "goto out;";
-  o->newline();
-
-  for (int i=probes.size() - 2; i >= 0; i--)
-    probes[i]->emit_registrations_end (o, i);
-
-  o->newline();
-
-  o->newline(-1) << "timer_error:";
-  o->newline(1) << "if (unlikely (rc)) {";
-  // In case it's just a lower-layer (kprobes) error that set rc but
-  // not session_state, do that here to prevent any other BEGIN probe
-  // from attempting to run.
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_error (\"timer probe %s registration failed, rc=%d\\n\", probe_point, rc);";
-  o->newline(-1) << "}\n";
-
-  o->newline(-1) << "out:";
-  o->newline(1) << "return rc;";
-  o->newline(-1) << "}\n";
-
-  // Output the timer probes destroy function
-  o->newline() << "static void unregister_timer_probes (void) {";
-  o->indent(1);
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [i];";
+  s.op->newline() << "init_timer (& stp->timer_list);";
+  s.op->newline() << "stp->timer_list.function = & enter_timer_probe;";
+  s.op->newline() << "stp->timer_list.data = i;"; // NB: important!
+  // copy timer renew calculations from above :-(
+  s.op->newline() << "stp->timer_list.expires = jiffies";
+  s.op->newline(1) << "+ (stp->ms ? msecs_to_jiffies(stp->intrv) : stp->intrv)";
+  s.op->newline() << "+ _stp_random_pm (stp->rnd);";
+  s.op->newline(-1) << "add_timer (& stp->timer_list);";
+  // note: no partial failure rollback is needed: add_timer cannot fail.
+  s.op->newline(-1) << "}"; // for loop
 }
+
+
+void
+timer_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "del_timer_sync (& stap_timer_probes[i].timer_list);";
+  s.op->indent(-1);
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -3986,190 +3595,32 @@ timer_derived_probe_group::emit_module_init (translator_output* o)
 
 struct profile_derived_probe: public derived_probe
 {
-  // kernels < 2.6.10: use register_profile_notifier API
-  // kernels >= 2.6.10: use register_timer_hook API
-  bool using_rpn;
-
   profile_derived_probe (systemtap_session &s, probe* p, probe_point* l);
+  void join_group (systemtap_session& s);
+};
 
-  void register_probe (systemtap_session& s);
 
-  virtual void emit_registrations_start (translator_output* o, unsigned index);
-  virtual void emit_registrations_end (translator_output * o, unsigned index);
-  virtual void emit_deregistrations (translator_output * o);
-  virtual void emit_probe_entries (translator_output * o);
+struct profile_derived_probe_group: public generic_dpg<profile_derived_probe>
+{
+public:
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
 profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, probe_point* l):
   derived_probe(p, l)
-{
-  using_rpn = (strverscmp(s.kernel_base_release.c_str(), "2.6.10") < 0);
+{ 
 }
 
 
 void
-profile_derived_probe::register_probe(systemtap_session& s)
+profile_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
-}
-
-
-void
-profile_derived_probe::emit_registrations_start (translator_output* o,
-						 unsigned index)
-{
-  o->newline();
-  o->newline() << "probe_point = \"" << *locations[0] << "\";";
-  if (using_rpn)
-    o->newline() << "rc = register_profile_notifier(& profile_" << name << ");";
-  else
-    o->newline() << "rc = register_timer_hook(enter_" << name << ");";
-
-  // if one failed, must goto code (output by emit_registrations_end)
-  // that will roll back completed registations for other probes of
-  // this type.
-  o->newline() << "if (unlikely (rc))";
-  if (index == 0)
-    o->newline(1) << "goto profile_error;";
-  else
-    o->newline(1) << "goto unwind_profile_" << index - 1 << ";";
-  o->indent(-1);
-}
-
-
-void
-profile_derived_probe::emit_registrations_end (translator_output* o,
-					       unsigned index)
-{
-  // if one failed, must roll back completed registations for this
-  // type of probe
-  o->newline(-1) << "unwind_profile_" << index << ":";
-  o->indent(1);
-  emit_deregistrations (o);
-}
-
-
-void
-profile_derived_probe::emit_deregistrations (translator_output* o)
-{
-  if (using_rpn)
-    o->newline() << "unregister_profile_notifier(& profile_" << name << ");";
-  else
-    o->newline() << "unregister_timer_hook(enter_" << name << ");";
-}
-
-
-void
-profile_derived_probe::emit_probe_entries (translator_output* o)
-{
-  if (using_rpn) {
-    o->newline() << "static int enter_" << name
-                 << " (struct notifier_block *self, unsigned long val, void *data);";
-    o->newline() << "static struct notifier_block profile_" << name << " = {";
-    o->newline(1) << ".notifier_call = enter_" << name << ",";
-    o->newline(-1) << "};";
-    o->newline() << "int enter_" << name
-                 << " (struct notifier_block *self, unsigned long val, void *data) {";
-    o->newline(1) << "struct pt_regs *regs = (struct pt_regs *)data;";
-    o->indent(-1);
-  } else {
-    o->newline() << "static int enter_" << name << " (struct pt_regs *regs);";
-    o->newline() << "int enter_" << name << " (struct pt_regs *regs) {";
-  }
-
-  o->indent(1);
-  o->newline() << "const char* probe_point = "
-	       << lex_cast_qstring(*locations[0]) << ";";
-  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
-  o->newline() << "c->regs = regs;";
-
-  if (using_rpn) {
-    o->newline() << "(void) self;";
-    o->newline() << "(void) val;";
-  }
-
-  o->newline() << name << " (c);";
-
-  emit_probe_epilogue (o);
-  o->newline() << "return 0;";
-  o->newline(-1) << "}\n";
-}
-
-
-struct profile_derived_probe_group: public derived_probe_group
-{
-private:
-  vector<profile_derived_probe*> probes;
-
-public:
-  virtual void register_probe(profile_derived_probe* p) {
-    probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
-};
-
-
-void
-profile_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
-  for (unsigned i=0; i < probes.size(); i++)
-    {
-      op->newline ();
-      up->emit_probe (probes[i]);
-    }
-}
-
-
-void
-profile_derived_probe_group::emit_module_init (translator_output* o)
-{
-  if (probes.size () == 0)
-    return;
-
-  // Output the profile probes create function
-  o->newline() << "static int register_profile_probes (void) {";
-  o->indent(1);
-  o->newline() << "int rc = 0;";
-  o->newline() << "const char *probe_point;";
-
-  for (unsigned i=0; i < probes.size (); i++)
-    probes[i]->emit_registrations_start (o, i);
-  
-  o->newline() << "goto out;";
-  o->newline();
-
-  for (int i=probes.size() - 2; i >= 0; i--)
-    probes[i]->emit_registrations_end (o, i);
-
-  o->newline();
-
-  o->newline(-1) << "profile_error:";
-  o->newline(1) << "if (unlikely (rc)) {";
-  // In case it's just a lower-layer (kprobes) error that set rc but
-  // not session_state, do that here to prevent any other BEGIN probe
-  // from attempting to run.
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_error (\"profile probe %s registration failed, rc=%d\\n\", probe_point, rc);";
-  o->newline(-1) << "}\n";
-
-  o->newline(-1) << "out:";
-  o->newline(1) << "return rc;";
-  o->newline(-1) << "}\n";
-
-  // Output the profile probes destroy function
-  o->newline() << "static void unregister_profile_probes (void) {";
-  o->indent(1);
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+  if (! s.profile_derived_probes)
+    s.profile_derived_probes = new profile_derived_probe_group ();
+  s.profile_derived_probes->enroll (this);
 }
 
 
@@ -4185,6 +3636,97 @@ struct profile_builder: public derived_probe_builder
     finished_results.push_back(new profile_derived_probe(sess, base, location));
   }
 };
+
+
+// timer.profile probe handlers are hooked up in an entertaining way
+// to the underlying kernel facility.  The fact that 2.6.11+ era
+// "register_timer_hook" API allows only one consumer *system-wide*
+// will give a hint.  We will have a single entry function (and thus
+// trivial registration / unregistration), and it will call all probe
+// handler functions in sequence.
+
+void
+profile_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  // kernels < 2.6.10: use register_profile_notifier API
+  // kernels >= 2.6.10: use register_timer_hook API
+  s.op->newline() << "/* ---- profile probes ---- */";
+
+  // This function calls all the profiling probe handlers in sequence.
+  // The only tricky thing is that the context will be reused amongst
+  // them.  While a simple sequence of calls to the individual probe
+  // handlers is unlikely to go terribly wrong (with c->last_error
+  // being set causing an early return), but for extra assurance, we
+  // open-code the same logic here.
+
+  s.op->newline() << "static void enter_all_profile_probes (struct pt_regs *regs) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = \"timer.profile\";"; // NB: hard-coded for convenience
+
+  for (unsigned i=0; i<probes.size(); i++)
+    {
+      if (i > 0)
+        {
+          // Some lightweight inter-probe context resetting 
+          s.op->newline() << "c->actioncount = 0;";
+        }
+      s.op->newline() << "if (c->last_error == NULL) " << probes[i]->name << " (c);";
+    }
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
+
+  s.op->newline() << "int enter_profile_probes (struct notifier_block *self,"
+                  << " unsigned long val, void *data) {";
+  s.op->newline(1) << "(void) self; (void) val;";
+  s.op->newline() << "enter_all_profile_probes ((struct pt_regs *) data);";
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "struct notifier_block stap_profile_notifier = {"
+                  << " .notifier_call = & enter_profile_probes };";
+  
+  s.op->newline() << "#else";
+
+  s.op->newline() << "int enter_profile_probes (struct pt_regs *regs) {";
+  s.op->newline(1) << "enter_all_profile_probes (regs);";
+  s.op->newline() << "return 0;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "#endif";
+}
+
+
+void
+profile_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
+  s.op->newline() << "rc = register_profile_notifier (& stap_profile_notifier);";
+  s.op->newline() << "#else";
+  s.op->newline() << "rc = register_timer_hook (& enter_profile_probes);";
+  s.op->newline() << "#endif";
+}
+
+
+void
+profile_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
+  s.op->newline() << "unregister_profile_notifier (& stap_profile_notifier);";
+  s.op->newline() << "#else";
+  s.op->newline() << "unregister_timer_hook (& enter_profile_probes);";
+  s.op->newline() << "#endif";
+  s.op->indent(-1);
+}
+
 
 
 // ------------------------------------------------------------------------
@@ -4205,13 +3747,17 @@ struct mark_derived_probe: public derived_probe
   string module;
   string probe_sig_expanded;
 
-  void register_probe (systemtap_session& s);
-
-  void emit_registrations_start (translator_output * o, unsigned index);
-  void emit_registrations_end (translator_output * o, unsigned index);
-  void emit_deregistrations (translator_output * o);
-  void emit_probe_entries (translator_output * o);
+  void join_group (systemtap_session& s);
   void emit_probe_context_vars (translator_output* o);
+};
+
+
+struct mark_derived_probe_group: public generic_dpg<mark_derived_probe>
+{
+public:
+  void emit_module_decls (systemtap_session& s) {}
+  void emit_module_init (systemtap_session& s) {}
+  void emit_module_exit (systemtap_session& s) {}
 };
 
 
@@ -4325,9 +3871,13 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
 
 void
-mark_derived_probe::register_probe(systemtap_session& s)
+mark_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  throw semantic_error ("incomplete", this->tok);
+
+  if (! s.mark_derived_probes)
+    s.mark_derived_probes = new mark_derived_probe_group ();
+  s.mark_derived_probes->enroll (this);
 }
 
 
@@ -4347,6 +3897,7 @@ mark_derived_probe::emit_probe_context_vars (translator_output* o)
 }
 
 
+#if 0
 void
 mark_derived_probe::emit_probe_entries (translator_output* o)
 {
@@ -4448,22 +3999,10 @@ mark_derived_probe::emit_deregistrations (translator_output * o)
   o->newline() << "#endif";
   o->newline(-1) << "}";
 }
+#endif
 
 
-struct mark_derived_probe_group: public derived_probe_group
-{
-private:
-  vector<mark_derived_probe*> probes;
-
-public:
-  virtual void register_probe(mark_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
-};
-
-
+#if 0
 void
 mark_derived_probe_group::emit_probes (translator_output* op, unparser* up)
 {
@@ -4523,6 +4062,7 @@ mark_derived_probe_group::emit_module_init (translator_output* o)
 
   o->newline(-1) << "}\n";
 }
+#endif
 
 
 struct symboltable_extract
@@ -4726,52 +4266,49 @@ struct hrtimer_derived_probe: public derived_probe
     // randomize = 0 means no randomization
     if ((r < 0) || (r > i))
       throw semantic_error("randomization value out of range");
-
-    if (locations.size() != 1)
-      throw semantic_error ("expect single probe point");
-    // so we don't have to loop over them in the other functions
   }
 
-  void register_probe (systemtap_session& s);
+  void join_group (systemtap_session& s);
+};
 
-  virtual void emit_interval (translator_output * o);
 
-  virtual void emit_registrations_start (translator_output * o,
-					 unsigned index);
-  virtual void emit_registrations_end (translator_output * o,
-				       unsigned index);
-  virtual void emit_deregistrations (translator_output * o);
-  virtual void emit_probe_entries (translator_output * o);
+struct hrtimer_derived_probe_group: public generic_dpg<hrtimer_derived_probe>
+{
+  void emit_interval (translator_output* o);
+public:
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
 void
-hrtimer_derived_probe::register_probe(systemtap_session& s)
+hrtimer_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  if (! s.hrtimer_derived_probes)
+    s.hrtimer_derived_probes = new hrtimer_derived_probe_group ();
+  s.hrtimer_derived_probes->enroll (this);
 }
 
 
 void
-hrtimer_derived_probe::emit_interval (translator_output* o)
+hrtimer_derived_probe_group::emit_interval (translator_output* o)
 {
   o->line() << "({";
   o->newline(1) << "unsigned long nsecs;";
-  o->newline() << "int64_t i = " << interval << "LL;";
-  if (randomize != 0)
-    {
-      o->newline() << "int64_t r;";
-      o->newline() << "get_random_bytes(&r, sizeof(r));";
-
-      // ensure that r is positive
-      o->newline() << "r &= ((uint64_t)1 << (8*sizeof(r) - 1)) - 1;";
-
-      o->newline() << "r = _stp_mod64(NULL, r, " << (2*randomize + 1) << "LL);";
-      o->newline() << "r -= " << randomize << "LL;";
-      o->newline() << "i += r;";
-    }
-  o->newline() << "if (unlikely(i < _stp_hrtimer_res))";
-  o->newline(1) << "i = _stp_hrtimer_res;";
+  o->newline() << "int64_t i = stp->intrv;";
+  o->newline() << "if (stp->rnd != 0) {";
+  // XXX: why not use stp_random_pm instead of this?
+  o->newline(1) << "int64_t r;";
+  o->newline() << "get_random_bytes(&r, sizeof(r));";
+  // ensure that r is positive
+  o->newline() << "r &= ((uint64_t)1 << (8*sizeof(r) - 1)) - 1;";
+  o->newline() << "r = _stp_mod64(NULL, r, (2*stp->rnd+1));";
+  o->newline() << "r -= stp->rnd;";
+  o->newline() << "i += r;";
+  o->newline(-1) << "}";
+  o->newline() << "if (unlikely(i < stap_hrtimer_resolution))";
+  o->newline(1) << "i = stap_hrtimer_resolution;";
   o->indent(-1);
   o->newline() << "nsecs = do_div(i, NSEC_PER_SEC);";
   o->newline() << "ktime_set(i, nsecs);";
@@ -4780,130 +4317,86 @@ hrtimer_derived_probe::emit_interval (translator_output* o)
 
 
 void
-hrtimer_derived_probe::emit_registrations_start (translator_output* o,
-						 unsigned index)
+hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  o->newline() << "hrtimer_init (& timer_" << name
-    << ", CLOCK_MONOTONIC, HRTIMER_REL);";
-  o->newline() << "timer_" << name << ".function = enter_" << name << ";";
-  o->newline() << "hrtimer_start (& timer_" << name << ", ";
-  emit_interval(o);
-  o->line() << ", HRTIMER_REL);";
-}
+  if (probes.empty()) return;
 
+  s.op->newline() << "/* ---- hrtimer probes ---- */";
 
-void
-hrtimer_derived_probe::emit_registrations_end (translator_output* o,
-					       unsigned index)
-{
-  // nothing to do here...
-}
-
-
-void
-hrtimer_derived_probe::emit_deregistrations (translator_output* o)
-{
-  o->newline() << "hrtimer_cancel (& timer_" << name << ");";
-}
-
-
-void
-hrtimer_derived_probe::emit_probe_entries (translator_output* o)
-{
-  o->newline() << "static int enter_" << name << " (struct hrtimer *);";
-  o->newline() << "static struct hrtimer timer_" << name << ";";
-
-  o->newline() << "int enter_" << name << " (struct hrtimer *timer) {";
-  o->newline(1) << "int restart = HRTIMER_NORESTART;";
-  o->newline() << "const char* probe_point = "
-	       << lex_cast_qstring(*locations[0]) << ";";
-  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
-
-  o->newline() << "(void) timer;";
-
-  // hrtimer_forward would be preferable, but it's not exported.  We already
-  // guarantee that the interval is >= the timer resolution though, so this is
-  // essentially the same.
-  o->newline() << "timer_" << name << ".expires = ktime_add(timer_"
-    << name << ".expires, ";
-  emit_interval(o);
-  o->line() << ");";
-  o->newline() << "restart = HRTIMER_RESTART;";
-
-  // NB: locals are initialized by probe function itself
-  o->newline() << name << " (c);";
-
-  emit_probe_epilogue (o);
-
-  o->newline() << "return restart;";
-  o->newline(-1) << "}\n";
-}
-
-
-struct hrtimer_derived_probe_group: public derived_probe_group
-{
-private:
-  vector<hrtimer_derived_probe*> probes;
-
-public:
-  virtual void register_probe(hrtimer_derived_probe* p) { probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
-};
-
-
-void
-hrtimer_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
-  if (probes.size () == 0)
-    return;
-
-  op->newline();
-  op->newline() << "static int64_t _stp_hrtimer_res;";
+  s.op->newline() << "unsigned long stap_hrtimer_resolution;"; // init later
+  s.op->newline() << "struct stap_hrtimer_probe {";
+  s.op->newline(1) << "struct hrtimer hrtimer;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "int64_t intrv, rnd;";
+  s.op->newline(-1) << "} stap_hrtimer_probes [" << probes.size() << "] = {";
+  s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      op->newline ();
-      up->emit_probe (probes[i]);
+      s.op->newline () << "{"; 
+      s.op->line() << " .pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
+      s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .intrv=" << probes[i]->interval << "LL,";
+      s.op->line() << " .rnd=" << probes[i]->randomize << "LL";
+      s.op->line() << " },";
     }
+  s.op->newline(-1) << "};";
+  s.op->newline();
+
+  s.op->newline() << "static int enter_hrtimer_probe (struct hrtimer *timer) {";
+  s.op->newline(1) << "struct stap_hrtimer_probe *stp = container_of(timer, struct stap_hrtimer_probe, hrtimer);";
+  // presume problem with updating ->expires or something else XXX
+  s.op->newline() << "int restart_or_not = HRTIMER_NORESTART;"; 
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = stp->pp;";
+  // Compute next trigger time
+  s.op->newline() << "timer->expires = ktime_add (timer->expires,";
+  emit_interval (s.op);
+  s.op->line() << ");";
+  s.op->newline() << "restart_or_not = HRTIMER_RESTART;"; // ->expires updated; safe to restart
+  s.op->newline() << "(*stp->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline() << "return restart_or_not;";
+  s.op->newline(-1) << "}";
 }
 
 
 void
-hrtimer_derived_probe_group::emit_module_init (translator_output* o)
+hrtimer_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  if (probes.size () == 0)
-    return;
+  if (probes.empty()) return;
 
-  // Output the hrtimer probes create function
-  o->newline() << "static int register_hrtimer_probes (void) {";
-  o->newline(1) << "struct timespec res;";
-  o->newline() << "hrtimer_get_res(CLOCK_MONOTONIC, &res);";
-  o->newline() << "_stp_hrtimer_res = timespec_to_ns(&res);";
-  o->newline();
+  s.op->newline() << "{";
+  s.op->newline(1) << "struct timespec res;";
+  s.op->newline() << "hrtimer_get_res (CLOCK_MONOTONIC, &res);";
+  s.op->newline() << "stap_hrtimer_resolution = timespec_to_ns (&res);";
+  s.op->newline(-1) << "}";
 
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_registrations_start (o, i);
-      o->newline ();
-    }
-  
-  o->newline() << "return 0;";
-  o->newline(-1) << "}\n";
-
-  // Output the hrtimer probes destroy function
-  o->newline() << "static void unregister_hrtimer_probes (void) {";
-  o->indent(1);
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_hrtimer_probe* stp = & stap_hrtimer_probes [i];";
+  s.op->newline() << "hrtimer_init (& stp->hrtimer, CLOCK_MONOTONIC, HRTIMER_REL);";
+  s.op->newline() << "stp->hrtimer.function = & enter_hrtimer_probe;";
+  // There is no hrtimer field to identify *this* (i-th) probe handler
+  // callback.  So instead we'll deduce it at entry time.
+  s.op->newline() << "(void) hrtimer_start (& stp->hrtimer, ";
+  emit_interval (s.op);
+  s.op->line() << ", HRTIMER_REL);";
+  // Note: no partial failure rollback is needed: hrtimer_start only
+  // "fails" if the timer was already active, which cannot be.
+  s.op->newline(-1) << "}"; // for loop
 }
+
+
+void
+hrtimer_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty()) return;
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++)";
+  s.op->newline(1) << "hrtimer_cancel (& stap_hrtimer_probes[i].hrtimer);";
+  s.op->indent(-1);
+}
+
 
 
 struct timer_builder: public derived_probe_builder
@@ -4967,6 +4460,8 @@ timer_builder::build(systemtap_session & sess,
   else
     throw semantic_error ("unrecognized timer variant");
 
+  // Redirect wallclock-time based probes to hrtimer code on recent
+  // enough kernels.
   if (strverscmp(sess.kernel_base_release.c_str(), "2.6.17") < 0)
     {
       // hrtimers didn't exist, so use the old-school timers
@@ -5091,25 +4586,16 @@ public:
 
   perfmon_derived_probe (probe* p, probe_point* l, systemtap_session &s,
 			 string e, perfmon_mode m);
-  virtual void register_probe (systemtap_session& s);
-  virtual void emit_registrations_start (translator_output* o, unsigned index);
-  virtual void emit_registrations_end (translator_output * o, unsigned index);
-  virtual void emit_deregistrations (translator_output * o);
-  virtual void emit_probe_entries (translator_output * o);
+  virtual void join_group (systemtap_session& s);
 };
 
 
-struct perfmon_derived_probe_group: public derived_probe_group
+struct perfmon_derived_probe_group: public generic_dpg<perfmon_derived_probe>
 {
-private:
-  vector<perfmon_derived_probe*> probes;
-
 public:
-  virtual void register_probe(perfmon_derived_probe* p)
-	{ probes.push_back (p); }
-  virtual size_t size () { return probes.size (); }
-  virtual void emit_probes (translator_output* op, unparser* up);
-  virtual void emit_module_init (translator_output* o);
+  void emit_module_decls (systemtap_session& s) {}
+  void emit_module_init (systemtap_session& s) {}
+  void emit_module_exit (systemtap_session& s) {}
 };
 
 
@@ -5135,6 +4621,7 @@ struct perfmon_builder: public derived_probe_builder
   }
 };
 
+
 unsigned perfmon_derived_probe::probes_allocated;
 
 perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
@@ -5154,12 +4641,17 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
 
 void
-perfmon_derived_probe::register_probe (systemtap_session& s)
+perfmon_derived_probe::join_group (systemtap_session& s)
 {
-  s.probes.register_probe(this);
+  throw semantic_error ("incomplete", this->tok);
+
+  if (! s.perfmon_derived_probes)
+    s.perfmon_derived_probes = new perfmon_derived_probe_group ();
+  s.perfmon_derived_probes->enroll (this);
 }
 
 
+#if 0
 void
 perfmon_derived_probe::emit_registrations_start (translator_output* o,
 						 unsigned index)
@@ -5211,9 +4703,10 @@ perfmon_derived_probe::emit_probe_entries (translator_output * o)
       o->newline(-1) << "}\n";
     }
 }
+#endif
 
 
-#ifdef PERFMON
+#if 0
 void no_pfm_event_error (string s)
 {
   string msg(string("Cannot find event:" + s));
@@ -5413,18 +4906,8 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
   o->newline(1) << "_stp_perfmon_shutdown(_pfm_desc);";
   o->newline(-1) << "}\n";
 }
-#else
-void
-perfmon_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
-}
+#endif
 
-
-void
-perfmon_derived_probe_group::emit_module_init (translator_output* o)
-{
-}
-#endif /* PERFMON */
 
 // ------------------------------------------------------------------------
 //  Standard tapset registry.
@@ -5435,12 +4918,10 @@ register_standard_tapsets(systemtap_session & s)
 {
   s.pattern_root->bind("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
-
   s.pattern_root->bind("never")->bind(new never_builder());
 
   timer_builder::register_patterns(s.pattern_root);
   s.pattern_root->bind("timer")->bind("profile")->bind(new profile_builder());
-
   s.pattern_root->bind("perfmon")->bind_str("counter")->bind(new perfmon_builder());
 
   // dwarf-based kernel/module parts
@@ -5452,352 +4933,18 @@ register_standard_tapsets(systemtap_session & s)
 }
 
 
-derived_probe_group_container::derived_probe_group_container ():
-  be_probe_group(new be_derived_probe_group),
-  dwarf_probe_group(new dwarf_derived_probe_group),
-  hrtimer_probe_group(new hrtimer_derived_probe_group),
-  mark_probe_group(new mark_derived_probe_group),
-  never_probe_group(new never_derived_probe_group),
-  profile_probe_group(new profile_derived_probe_group),
-  timer_probe_group(new timer_derived_probe_group),
-  perfmon_probe_group(new perfmon_derived_probe_group)
+vector<derived_probe_group*>
+all_session_groups(systemtap_session& s)
 {
-}
-
-
-derived_probe_group_container::~derived_probe_group_container ()
-{
-  delete be_probe_group;
-  delete dwarf_probe_group;
-  delete hrtimer_probe_group;
-  delete mark_probe_group;
-  delete never_probe_group;
-  delete profile_probe_group;
-  delete timer_probe_group;
-  delete perfmon_probe_group;
-}
-
-
-void
-derived_probe_group_container::register_probe(be_derived_probe* p)
-{
-  probes.push_back (p);
-  be_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(dwarf_derived_probe* p)
-{
-  probes.push_back (p);
-  dwarf_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(hrtimer_derived_probe* p)
-{
-  probes.push_back (p);
-  hrtimer_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(mark_derived_probe* p)
-{
-  probes.push_back (p);
-  mark_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(never_derived_probe* p)
-{
-  probes.push_back (p);
-  never_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(profile_derived_probe* p)
-{
-  probes.push_back (p);
-  profile_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(timer_derived_probe* p)
-{
-  probes.push_back (p);
-  timer_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::register_probe(perfmon_derived_probe* p)
-{
-  probes.push_back (p);
-  perfmon_probe_group->register_probe(p);
-}
-
-
-void
-derived_probe_group_container::emit_probes (translator_output* op,
-					    unparser* up)
-{
-  // Sanity check.
-  size_t groups_size = be_probe_group->size ()
-      + dwarf_probe_group->size ()
-      + hrtimer_probe_group->size ()
-      + mark_probe_group->size ()
-      + never_probe_group->size ()
-      + profile_probe_group->size ()
-      + timer_probe_group->size ()
-      + perfmon_probe_group->size ();
-  if (probes.size () != groups_size)
-    {
-      cerr << "There are " << probes.size () << " total probes, and "
-	   << groups_size << " grouped probes\n";
-
-      throw runtime_error("internal probe mismatch");
-    }
-
-  // Let each probe group emit its probes.
-  be_probe_group->emit_probes (op, up);
-  dwarf_probe_group->emit_probes (op, up);
-  hrtimer_probe_group->emit_probes (op, up);
-  mark_probe_group->emit_probes (op, up);
-  never_probe_group->emit_probes (op, up);
-  profile_probe_group->emit_probes (op, up);
-  timer_probe_group->emit_probes (op, up);
-  perfmon_probe_group->emit_probes (op, up);
-}
-
-
-void
-derived_probe_group_container::emit_module_init (translator_output* o)
-{
-  // Let each probe group emit its module init logic.
-  be_probe_group->emit_module_init (o);
-  dwarf_probe_group->emit_module_init (o);
-  hrtimer_probe_group->emit_module_init (o);
-  mark_probe_group->emit_module_init (o);
-  never_probe_group->emit_module_init (o);
-  profile_probe_group->emit_module_init (o);
-  timer_probe_group->emit_module_init (o);
-  perfmon_probe_group->emit_module_init(o);
-}
-
-
-#define PERFMON_ERROR_LABEL "unregister_perfmon"
-#define BE_ERROR_LABEL "unregister_be"
-#define DWARF_ERROR_LABEL "unregister_dwarf"
-#define HRTIMER_ERROR_LABEL "unregister_hrtimer"
-#define MARK_ERROR_LABEL "unregister_mark"
-#define PROFILE_ERROR_LABEL "unregister_profile"
-#define TIMER_ERROR_LABEL "unregister_timer"
-
-void
-derived_probe_group_container::emit_module_init_call (translator_output* o)
-{
-  int i = 0;
-  const char *error_label = "";
-
-  if (perfmon_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_perfmon_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = PERFMON_ERROR_LABEL;
-    }
-
-  if (be_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_be_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = BE_ERROR_LABEL;
-    }
-
-  if (dwarf_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_dwarf_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-	o->newline() << "goto " << error_label << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = DWARF_ERROR_LABEL;
-    }
-
-  if (hrtimer_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_hrtimer_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-	o->newline() << "goto " << error_label << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = HRTIMER_ERROR_LABEL;
-    }
-
-  if (mark_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_mark_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-	o->newline() << "goto " << error_label << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = MARK_ERROR_LABEL;
-    }
-
-  // We don't need to bother with the never_probe_group.
-
-  if (profile_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_profile_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-	o->newline() << "goto " << error_label << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = PROFILE_ERROR_LABEL;
-    }
-
-  if (timer_probe_group->size () > 0)
-    {
-      o->newline() << "rc = register_timer_probes ();";
-      o->newline() << "if (rc)";
-      o->indent(1);
-      // We need to deregister any already probes set up - this is
-      // essential for kprobes.
-      if (i > 0)
-	o->newline() << "goto " << error_label << ";";
-      else
-        o->newline() << "goto out;";
-      o->indent(-1);
-      i++;
-      error_label = TIMER_ERROR_LABEL;
-    }
-
-  // BEGIN probes would have all been run by now.  One of them may
-  // have triggered a STAP_SESSION_ERROR (which would incidentally
-  // block later BEGIN ones).  If so, let that indication stay, and
-  // otherwise act like probe insertion was a success.
-  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
-  o->newline(-1) << "goto out;";
-
-  // Recovery code for partially successful registration (rc != 0)
-  // XXX: Do we need to delay here to ensure any triggered probes have
-  // terminated?  Probably not much, as they should all test for
-  // SESSION_STARTING state right at the top and return.  ("begin"
-  // probes don't count, as they return synchronously.)
-  o->newline();
-
-  if (i > 0 && timer_probe_group->size () > 0)
-    {
-      o->newline(-1) << TIMER_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_timer_probes();";
-      i--;
-    }
-  if (i > 0 && profile_probe_group->size () > 0)
-    {
-      o->newline(-1) << PROFILE_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_profile_probes();";
-      i--;
-    }
-
-  // We don't need to bother with the never_probe_group.
-
-  if (i > 0 && mark_probe_group->size () > 0)
-    {
-      o->newline(-1) << MARK_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_mark_probes();";
-      i--;
-    }
-  if (i > 0 && hrtimer_probe_group->size () > 0)
-    {
-      o->newline(-1) << HRTIMER_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_hrtimer_probes();";
-      i--;
-    }
-  if (i > 0 && dwarf_probe_group->size () > 0)
-    {
-      o->newline(-1) << DWARF_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_dwarf_probes();";
-      i--;
-    }
-  if (i > 0 && be_probe_group->size () > 0)
-    {
-      o->newline(-1) << BE_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_be_probes();";
-      i--;
-    }
-  if (i > 0 && perfmon_probe_group->size () > 0)
-    {
-      o->newline(-1) << PERFMON_ERROR_LABEL << ":";
-      o->newline(1) << "unregister_perfmon_probes();";
-      i--;
-    }
-}
-
-
-void
-derived_probe_group_container::emit_module_exit (translator_output* o)
-{
-  if (be_probe_group->size () > 0)
-    o->newline() << "unregister_be_probes ();";
-
-  if (dwarf_probe_group->size () > 0)
-    o->newline() << "unregister_dwarf_probes ();";
-
-  if (hrtimer_probe_group->size () > 0)
-    o->newline() << "unregister_hrtimer_probes ();";
-
-  if (mark_probe_group->size () > 0)
-    o->newline() << "unregister_mark_probes ();";
-
-  // We don't need to bother with the never_probe_group.
-
-  if (profile_probe_group->size () > 0)
-    o->newline() << "unregister_profile_probes ();";
-
-  if (timer_probe_group->size () > 0)
-    o->newline() << "unregister_timer_probes ();";
-
-  if (perfmon_probe_group->size () > 0)
-    o->newline() << "unregister_perfmon_probes ();";
+  vector<derived_probe_group*> g;
+#define DOONE(x) if (s. x##_derived_probes) g.push_back (s. x##_derived_probes)
+  DOONE(be);
+  DOONE(dwarf);
+  DOONE(timer);
+  DOONE(profile);
+  DOONE(mark);
+  DOONE(hrtimer);
+  DOONE(perfmon);
+#undef DOONE
+  return g;
 }
