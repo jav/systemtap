@@ -3477,6 +3477,7 @@ struct timer_derived_probe: public derived_probe
 
 struct timer_derived_probe_group: public generic_dpg<timer_derived_probe>
 {
+  void emit_interval (translator_output* o);
 public:
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
@@ -3505,6 +3506,18 @@ timer_derived_probe::join_group (systemtap_session& s)
   if (! s.timer_derived_probes)
     s.timer_derived_probes = new timer_derived_probe_group ();
   s.timer_derived_probes->enroll (this);
+}
+
+
+void
+timer_derived_probe_group::emit_interval (translator_output* o)
+{
+  o->line() << "({";
+  o->newline(1) << "unsigned i = stp->intrv;";
+  o->newline() << "if (stp->rnd != 0)";
+  o->newline(1) << "i += _stp_random_pm(stp->rnd);";
+  o->newline(-1) << "stp->ms ? msecs_to_jiffies(i) : i;";
+  o->newline(-1) << "})";
 }
 
 
@@ -3540,11 +3553,9 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [val];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = stp->pp;";
-  s.op->newline() << "mod_timer (& stp->timer_list,";
-  s.op->newline(1) << "jiffies ";
-  s.op->newline() << "+ (stp->ms ? msecs_to_jiffies(stp->intrv) : stp->intrv)";
-  s.op->newline() << "+ _stp_random_pm (stp->rnd));";
-  s.op->indent(-1);
+  s.op->newline() << "mod_timer (& stp->timer_list, jiffies + ";
+  emit_interval (s.op);
+  s.op->line() << ");";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
@@ -3562,10 +3573,10 @@ timer_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "stp->timer_list.function = & enter_timer_probe;";
   s.op->newline() << "stp->timer_list.data = i;"; // NB: important!
   // copy timer renew calculations from above :-(
-  s.op->newline() << "stp->timer_list.expires = jiffies";
-  s.op->newline(1) << "+ (stp->ms ? msecs_to_jiffies(stp->intrv) : stp->intrv)";
-  s.op->newline() << "+ _stp_random_pm (stp->rnd);";
-  s.op->newline(-1) << "add_timer (& stp->timer_list);";
+  s.op->newline() << "stp->timer_list.expires = jiffies + ";
+  emit_interval (s.op);
+  s.op->line() << ";";
+  s.op->newline() << "add_timer (& stp->timer_list);";
   // note: no partial failure rollback is needed: add_timer cannot fail.
   s.op->newline(-1) << "}"; // for loop
 }
