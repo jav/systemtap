@@ -1,3 +1,17 @@
+2006-11-01    <dsmith@redhat.com>
+
+	* translate.cxx (delete_statement_operand_visitor::visit_symbol):
+	Added referent assert.
+	(delete_statement_operand_tmp_visitor::visit_arrayindex): Ditto.
+	(c_tmpcounter::visit_array_in): Ditto.
+	(c_unparser::visit_symbol): Ditto.
+	(c_unparser_assignment::visit_symbol): Ditto.
+	(c_unparser::load_map_indices): Ditto.
+	(c_tmpcounter::visit_arrayindex): Ditto.
+	(c_tmpcounter_assignment::visit_arrayindex): Ditto.
+	(c_tmpcounter::visit_functioncall): Ditto.
+	(c_unparser::visit_functioncall): Ditto.
+
 2006-10-31  Frank Ch. Eigler  <fche@redhat.com>
 
 	Probe registration rework.  Offline dwarf processing for better

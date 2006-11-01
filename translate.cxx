@@ -2376,6 +2376,7 @@ struct delete_statement_operand_visitor:
 void 
 delete_statement_operand_visitor::visit_symbol (symbol* e)
 {
+  assert (e->referent != 0);
   if (e->referent->arity > 0)
     {
       mapvar mvar = parent->getmap(e->referent, e->tok);  
@@ -2419,6 +2420,7 @@ delete_statement_operand_tmp_visitor::visit_arrayindex (arrayindex* e)
 
   if (array)
     {
+      assert (array->referent != 0);
       vardecl* r = array->referent;
 
       // One temporary per index dimension.
@@ -2652,6 +2654,7 @@ c_tmpcounter::visit_array_in (array_in* e)
   
   if (array)
     {
+      assert (array->referent != 0);
       vardecl* r = array->referent;
 
       // One temporary per index dimension.
@@ -2887,6 +2890,7 @@ c_unparser::visit_post_crement (post_crement* e)
 void
 c_unparser::visit_symbol (symbol* e)
 {
+  assert (e->referent != 0);
   vardecl* r = e->referent;
 
   if (r->index_types.size() != 0)
@@ -2959,6 +2963,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
 {
   stmt_expr block(*parent);
 
+  assert (e->referent != 0);
   if (e->referent->index_types.size() != 0)
     throw semantic_error ("unexpected reference to array", e->tok);
 
@@ -2995,6 +3000,7 @@ c_unparser::load_map_indices(arrayindex *e,
     {
       idx.clear();
       
+      assert (array->referent != 0);
       vardecl* r = array->referent;
       
       if (r->index_types.size() == 0 ||
@@ -3073,6 +3079,7 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 
   if (array)
     {
+      assert (array->referent != 0);
       vardecl* r = array->referent;
       
       // One temporary per index dimension.
@@ -3259,7 +3266,7 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 
   if (array)
     {
-
+      assert (array->referent != 0);
       vardecl* r = array->referent;
 
       // One temporary per index dimension.
@@ -3384,6 +3391,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 void
 c_tmpcounter::visit_functioncall (functioncall *e)
 {
+  assert (e->referent != 0);
   functiondecl* r = e->referent;
   // one temporary per argument
   for (unsigned i=0; i<r->formal_args.size(); i++)
@@ -3398,6 +3406,7 @@ c_tmpcounter::visit_functioncall (functioncall *e)
 void
 c_unparser::visit_functioncall (functioncall* e)
 {
+  assert (e->referent != 0);
   functiondecl* r = e->referent;
 
   if (r->formal_args.size() != e->args.size())
