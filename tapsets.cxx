@@ -3372,7 +3372,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "unregister_kretprobe (&sdp->u.krp);";
   s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
-  s.op->newline() << "} else {";
+  s.op->newline(-1) << "} else {";
   s.op->newline(1) << "unregister_kprobe (&sdp->u.kp);";
   s.op->newline() << "atomic_add (sdp->u.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "}";
