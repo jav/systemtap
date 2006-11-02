@@ -348,7 +348,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	int i;
 
 	if (count < sizeof(tmpmod)) {
-		printk("_stp_do_modules: expected %ld and got %d\n", sizeof(tmpmod), count);
+		printk("_stp_do_modules: expected %d and got %d\n", (int)sizeof(tmpmod), count);
 		return -EFAULT;
 	}
 	if (copy_from_user ((char *)&tmpmod, buf, sizeof(tmpmod)))

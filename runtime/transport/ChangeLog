@@ -1,8 +1,11 @@
 2006-11-02  Martin Hunt  <hunt@redhat.com>
+	* symbols.c (_stp_do_module): Fix error message.
+
+2006-11-02  Martin Hunt  <hunt@redhat.com>	
 
 	* symbols.c: New file. Get the STP_SYMBOLS and STP_MODULE
 	messages, allocate memory and store the data.
-	
+
 	* procfs.c (_stp_proc_write_cmd): When STP_SYMBOLS or STP_MODULE
 	request is received, call the appropriate functions.
 
