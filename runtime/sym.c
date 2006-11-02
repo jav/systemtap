@@ -20,22 +20,54 @@
  * @{
  */
 
+static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset) {
+	static struct _stp_module *last = NULL;
+	static struct _stp_symbol *last_sec;
+	unsigned long flags;
+	int i,j;
+
+	STP_LOCK_MODULES;
+	if (! module || _stp_num_modules == 0) {
+		STP_UNLOCK_MODULES;
+		return offset; 
+	}
+
+	if (last) {
+		if (!strcmp (module, last->name) && !strcmp (section, last_sec->symbol)) {
+			STP_UNLOCK_MODULES;
+			return offset + last_sec->addr;
+		}
+	}
+
+	/* need to scan all modules */
+	for (i = 1; i < _stp_num_modules; i++) {
+		last = _stp_modules[i];
+		if (strcmp(module, last->name))
+			continue;
+		for (j = 0; j < last->num_sections; j++) {
+			last_sec = &last->sections[j];
+			if (!strcmp (section, last_sec->symbol)) {
+				STP_UNLOCK_MODULES;
+				return offset + last_sec->addr;
+			}
+		}
+	}
+	STP_UNLOCK_MODULES;
+	last = NULL;
+	return 0;
+}
+
 /* Lookup the kernel address for this symbol. Returns 0 if not found. */
 static unsigned long _stp_kallsyms_lookup_name(const char *name)
 {
-	struct stap_symbol *s = &stap_symbols[0];
-	unsigned num = stap_num_symbols;
-
-	/* Warning: Linear search. If this function ends up being used in */
-	/* time-critical places, maybe we need to create a new symbol table */
-	/* sorted by name. */
+	struct _stp_symbol *s = _stp_modules[0]->symbols;
+	unsigned num = _stp_modules[0]->num_symbols;
 
 	while (num--) {
-		if ((strcmp(name, s->symbol) == 0) && (strcmp(s->modname,"") == 0))
+		if (strcmp(name, s->symbol) == 0)
 			return s->addr;
 		s++;
 	}
-
 	return 0;
 }
 
@@ -46,29 +78,51 @@ static const char * _stp_kallsyms_lookup (
 	char **modname,
 	char *namebuf)
 {
-	unsigned begin = 0;
-	unsigned end = stap_num_symbols;
-	/*const*/ struct stap_symbol* s;
+	struct _stp_module *m;
+	struct _stp_symbol *s;
+	unsigned long flags;
+	unsigned end, begin = 0;
 
-	/* binary search on index [begin,end) */
+	if (STP_TRYLOCK_MODULES)
+		return NULL;
+
+	end = _stp_num_modules;
+
+	if (_stp_num_modules >= 2 && addr > _stp_modules_by_addr[1]->text) {
+		/* binary search on index [begin,end) */
+		do {
+			unsigned mid = (begin + end) / 2;
+			if (addr < _stp_modules_by_addr[mid]->text)
+				end = mid;
+			else
+				begin = mid;
+		} while (begin + 1 < end);
+		/* result index in $begin, guaranteed between [0,_stp_num_modules) */
+	}
+	m = _stp_modules_by_addr[begin];
+	begin = 0;
+	end = m->num_symbols;
+
+	/* binary search for symbols within the module */
 	do {
 		unsigned mid = (begin + end) / 2;
-		if (addr < stap_symbols[mid].addr)
+		if (addr < m->symbols[mid].addr)
 			end = mid;
 		else
 			begin = mid;
 	} while (begin + 1 < end);
-	/* result index in $begin, guaranteed between [0,stap_num_symbols) */
+	/* result index in $begin */
 
-	s = & stap_symbols [begin];
-	if (addr < s->addr)
+	s = &m->symbols[begin];
+	if (addr < s->addr) {
+		STP_UNLOCK_MODULES;
 		return NULL;
-	else {
+	} else {
 		if (offset) *offset = addr - s->addr;
-		if (modname) *modname = (char *) s->modname;
+		if (modname) *modname = m->name;
 		if (symbolsize) {
-			if ((begin + 1) < stap_num_symbols)
-				*symbolsize = stap_symbols[begin+1].addr - s->addr;
+			if ((begin + 1) < m->num_symbols)
+				*symbolsize = m->symbols[begin+1].addr - s->addr;
 			else
 				*symbolsize = 0;
 			// NB: This is only a heuristic.  Sometimes there are large
@@ -76,11 +130,16 @@ static const char * _stp_kallsyms_lookup (
 		}
 		if (namebuf) {
 			strlcpy (namebuf, s->symbol, KSYM_NAME_LEN+1);
+			STP_UNLOCK_MODULES;
 			return namebuf;
 		}
-		else
+		else {
+			STP_UNLOCK_MODULES;
 			return s->symbol;
+		}
 	}
+	STP_UNLOCK_MODULES;
+	return NULL;
 }
 
 /** Write addresses symbolically into a String

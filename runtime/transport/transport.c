@@ -17,6 +17,7 @@
 #include <linux/delay.h>
 #include "transport.h"
 #include "time.c"
+#include "symbols.c"
 
 #ifdef STP_RELAYFS
 #include "relayfs.c"
@@ -49,7 +50,7 @@ int _stp_transport_open(struct transport_info *info);
 #include "procfs.c"
 
 /* send commands with timeout and retry */
-int _stp_transport_send (int type, void *data, int len)
+static int _stp_transport_send (int type, void *data, int len)
 {
 	int err, trylimit = 50;
 	while ((err = _stp_write(type, data, len)) < 0 && trylimit--)
@@ -58,7 +59,7 @@ int _stp_transport_send (int type, void *data, int len)
 }
 
 #ifndef STP_RELAYFS
-int _stp_transport_write (void *data, int len)  
+static int _stp_transport_write (void *data, int len)  
 {
 	/* when _stp_exit_called is set, we are in probe_exit() and we can sleep */
 	if (_stp_exit_called)
@@ -91,9 +92,35 @@ static void _stp_handle_buf_info(int *cpuptr)
 /*
  *	_stp_handle_start - handle STP_START
  */
+
 void _stp_handle_start (struct transport_start *st)
 {
+#ifdef CONFIG_MODULES
+	static int got_modules=0;
+#endif
+
 	kbug ("stp_handle_start pid=%d\n", st->pid);
+
+	/* we've got a start request, but first, grab kernel symbols if we need them */
+	if (_stp_num_modules == 0) {
+		char tmp = 0;
+		_stp_transport_send(STP_SYMBOLS, &tmp, 1);
+		return;
+	}
+
+#ifdef CONFIG_MODULES
+	/* grab current module addresses if we haven't already */
+	if (got_modules == 0) {
+		struct _stp_module mod;
+		strcpy(mod.name, "");
+		got_modules = 1;
+		_stp_transport_send(STP_MODULE, &mod, sizeof(struct _stp_module));
+		return;
+	}
+
+	if (register_module_notifier(&_stp_module_load_nb))
+		printk("Systemtap error: failed to load module notifier\n");
+#endif
 
 	/* note: st->pid is actually the return code for the reply packet */
 	st->pid = probe_start();
@@ -128,6 +155,9 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 	if (!_stp_exit_called) {
 		int failures;
 
+#ifdef CONFIG_MODULES
+		unregister_module_notifier(&_stp_module_load_nb);
+#endif
 		/* we only want to do this stuff once */
 		_stp_exit_called = 1;
 
@@ -197,13 +227,13 @@ void _stp_transport_close()
 	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) 
 		_stp_relayfs_close(_stp_chan, _stp_dir);
 #endif
+#ifdef CONFIG_MODULES
+	unregister_module_notifier(&_stp_module_load_nb);
+#endif
 	_stp_unregister_procfs();
-
+	_stp_free_modules();
 	_stp_kill_time();
-
-	/* free print buffers */
-	_stp_print_cleanup();
-
+	_stp_print_cleanup(); 	/* free print buffers */
 
 	kbug("---- CLOSED ----\n");
 }
@@ -317,5 +347,4 @@ static int _stp_relay_write (const void *data, unsigned length)
 	return length;
 }
 #endif
-
 #endif /* _TRANSPORT_C_ */

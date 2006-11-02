@@ -92,6 +92,7 @@ struct systemtap_session
   bool merge;
   int buffer_size;
   unsigned perfmon;
+  bool symtab;
 
   // Cache data
   bool use_cache;

@@ -1,3 +1,18 @@
+2006-11-02  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c: New file. Get the STP_SYMBOLS and STP_MODULE
+	messages, allocate memory and store the data.
+	
+	* procfs.c (_stp_proc_write_cmd): When STP_SYMBOLS or STP_MODULE
+	request is received, call the appropriate functions.
+
+	* transport.c (_stp_handle_start): If necessary, ask staprun for 
+	symbols and modules.
+	(_stp_cleanup_and_exit): Unregister module notifier.
+	(_stp_transport_close): Unregister module notifier and free module
+	memory.
+	* transport_msgs.h (enum): Add STP_MODULE and STP_SYMBOLS.
+
 2006-09-26  David Smith  <dsmith@redhat.com>
 
 	* transport.c: Changed 'stpd' references to 'staprun'.

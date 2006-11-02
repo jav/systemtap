@@ -1,3 +1,16 @@
+2006-11-02  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c: New file. Sends symbol and module information to
+	the systemtap module.
+	
+	* librelay.c (stp_main_loop): Add STP_MODULE and STP_SYMBOLS
+	message handling.
+
+	* librelay.h: Add some new function prototypes.
+
+	* Makefile (CFLAGS): Set to be the same as for building modules.
+	Added symbols.c to sources.
+
 2006-10-10  Tom Zanussi  <zanussi@us.ibm.com>
 	
 	* librelay.c (merge_output): Add check for min when writing

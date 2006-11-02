@@ -19,7 +19,6 @@
  * Copyright (C) Red Hat Inc, 2005, 2006
  *
  */
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +41,7 @@
 #include <sys/statfs.h>
 #include <stdint.h>
 #include "librelay.h"
+
 
 /* stp_check script */
 #ifdef PKGLIBDIR
@@ -87,7 +87,7 @@ static char *relay_buffer[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 
 /* control channel */
-static int control_channel;
+int control_channel;
 
 /* flags */
 extern int print_only, quiet, verbose;
@@ -109,6 +109,8 @@ static struct buf_status
 	struct buf_info info;
 	unsigned max_backlog; /* max # sub-buffers ready at one time */
 } status[NR_CPUS];
+
+
 
 /**
  *	streaming - is the current transport mode streaming or not?
@@ -138,7 +140,6 @@ int send_request(int type, void *data, int len)
 	memcpy(&buf[4],data,len);
 	return write(control_channel, buf, len+4);
 }
-
 
 
 /**
@@ -486,9 +487,6 @@ void system_cmd(char *cmd)
 	}
 }
 
-#include <sys/wait.h>
-static void cleanup_and_exit (int);
-
 /**
  *	init_stp - initialize the app
  *	@print_summary: boolean, print summary or not at end of run
@@ -559,7 +557,7 @@ int init_stp(int print_summary)
 	}
 	return 0;
 
-do_rmmod:
+ do_rmmod:
 	snprintf(buf, sizeof(buf), "/sbin/rmmod -w %s", modname);
 	if (system(buf))
 		fprintf(stderr, "ERROR: couldn't rmmod probe module %s.\n", modname);
@@ -654,7 +652,7 @@ static int merge_output(void)
 	return 0;
 }
 
-static void cleanup_and_exit (int closed)
+void cleanup_and_exit (int closed)
 {
 	char tmpbuf[128];
 	pid_t err;
@@ -733,7 +731,6 @@ static char recvbuf[8192];
 int stp_main_loop(void)
 {
 	int nb, rc;
-	struct transport_start ts;
 	void *data;
 	int type;
 	FILE *ofp = stdout;
@@ -767,9 +764,41 @@ int stp_main_loop(void)
 		}
 
 		switch (type) {
+		case STP_REALTIME_DATA:
+			fwrite_unlocked(data, nb - sizeof(int), 1, ofp);
+			break;
+		case STP_OOB_DATA:
+			fputs ((char *)data, stderr);
+			break;
+		case STP_EXIT: 
+		{
+			/* module asks us to unload it and exit */
+			int *closed = (int *)data;
+			cleanup_and_exit(*closed);
+			break;
+		}
+		case STP_START: 
+		{
+			struct transport_start *t = (struct transport_start *)data;
+			dbug("probe_start() returned %d\n", t->pid);
+			if (t->pid < 0) {
+				if (target_cmd)
+					kill (target_pid, SIGKILL);
+				cleanup_and_exit(0);
+			} else if (target_cmd)
+				kill (target_pid, SIGUSR1);
+			break;
+		}
+		case STP_SYSTEM:
+		{
+			struct cmd_info *c = (struct cmd_info *)data;
+			system_cmd(c->cmd);
+			break;
+		}
 		case STP_TRANSPORT_INFO:
 		{
-			struct transport_info *info = (struct transport_info *)data;			
+			struct transport_info *info = (struct transport_info *)data;
+			struct transport_start ts;
 			transport_mode = info->transport_mode;
 			params.subbuf_size = info->subbuf_size;
 			params.n_subbufs = info->n_subbufs;
@@ -804,35 +833,22 @@ int stp_main_loop(void)
 			send_request(STP_START, &ts, sizeof(ts));
 			break;
 		}
-		case STP_REALTIME_DATA:
-			fwrite_unlocked(data, nb - sizeof(int), 1, ofp);
-			break;
-		case STP_OOB_DATA:
-			fputs ((char *)data, stderr);
-			break;
-		case STP_EXIT: 
+		case STP_MODULE:
 		{
-			/* module asks us to unload it and exit */
-			int *closed = (int *)data;
-			cleanup_and_exit(*closed);
+			struct transport_start ts;
+			if (do_module(data)) {
+			  ts.pid = getpid();
+			  send_request(STP_START, &ts, sizeof(ts));
+			}
 			break;
-		}
-		case STP_START: 
+		}		
+		case STP_SYMBOLS:
 		{
-			struct transport_start *t = (struct transport_start *)data;
-			dbug("probe_start() returned %d\n", t->pid);
-			if (t->pid < 0) {
-				if (target_cmd)
-					kill (target_pid, SIGKILL);
-				cleanup_and_exit(0);
-			} else if (target_cmd)
-				kill (target_pid, SIGUSR1);
-			break;
-		}
-		case STP_SYSTEM:
-		{
-			struct cmd_info *c = (struct cmd_info *)data;
-			system_cmd(c->cmd);
+			struct transport_start ts;
+			dbug("STP_SYMBOLS request received\n");
+			do_kernel_symbols();
+			ts.pid = getpid();
+			send_request(STP_START, &ts, sizeof(ts));
 			break;
 		}
 		default:

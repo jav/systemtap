@@ -3768,7 +3768,6 @@ c_unparser::visit_hist_op (hist_op* e)
   assert(false);
 }
 
-
 int
 emit_symbol_data (systemtap_session& s)
 {
@@ -3786,6 +3785,13 @@ emit_symbol_data (systemtap_session& s)
   string sorted_kallsyms = s.tmpdir + "/symbols.sorted";
   string sortcmd = "grep \" [AtT] \" /proc/kallsyms | ";
  
+  if (s.symtab == false)
+    {
+      s.op->newline() << "struct stap_symbol *stap_symbols;";
+      s.op->newline() << "unsigned stap_num_symbols = 0;\n";
+      return 0;
+    }
+
   sortcmd += "sort ";
 #if __LP64__
   sortcmd += "-k 1,16 ";
@@ -3807,7 +3813,7 @@ emit_symbol_data (systemtap_session& s)
       s.op->newline() << "\n\n#include \"stap-symbols.h\"";
 
       unsigned i=0;
-      kallsyms_out << "struct stap_symbol stap_symbols [] = {";
+      kallsyms_out << "struct stap_symbol _stp_stap_symbols [] = {";
       string lastaddr;
       while (! kallsyms.eof())
 	{
@@ -3833,6 +3839,7 @@ emit_symbol_data (systemtap_session& s)
 	    }
 	}
       kallsyms_out << "};\n";
+      kallsyms_out << "struct stap_symbol *stap_symbols = _stp_stap_symbols;";
       kallsyms_out << "unsigned stap_num_symbols = " << i << ";\n";
     }
 
@@ -3978,7 +3985,7 @@ translate_pass (systemtap_session& s)
     }
 
   rc |= emit_symbol_data (s);
-
+  
   s.op->line() << "\n";
 
   delete s.op;

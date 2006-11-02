@@ -1,3 +1,21 @@
+2006-11-02  Martin Hunt  <hunt@redhat.com>
+
+	* session.h (struct systemtap_session): Add symtab. This controls 
+	if a symbol table is generated and compiled into the module.
+
+	* main.cxx (main): Set session.symtab to false. This could later 
+	enabled by a command-line option if necessary.
+	
+	* translate.cxx (emit_symbol_data): Don't write a symbol table if
+	session.symtab is false.
+
+	* tapsets.cxx (emit_module_decls): Remove stap_module array and
+	module_relocate.
+	(emit_module_init): Use "_stp_module_relocate".
+
+	* Makefile.am (staprun_SOURCES): Add symbols.c
+	* Makefile.in: Rebuilt.
+
 2006-11-02  David Smith  <dsmith@redhat.com>
 
 	* main.cxx (main): Added '-r' check.  If the user changes the

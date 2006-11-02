@@ -98,7 +98,8 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
 	stap-util.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
-am_staprun_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT)
+am_staprun_OBJECTS = stpd.$(OBJEXT) librelay.$(OBJEXT) \
+	symbols.$(OBJEXT)
 staprun_OBJECTS = $(am_staprun_OBJECTS)
 staprun_DEPENDENCIES =
 pkglibexecSCRIPT_INSTALL = $(INSTALL_SCRIPT)
@@ -262,7 +263,7 @@ CLEANFILES = $(am__append_3) $(pkglibexec_SCRIPTS)
 @BUILD_ELFUTILS_TRUE@DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 @BUILD_ELFUTILS_TRUE@BUILT_SOURCES = stamp-elfutils
 @BUILD_ELFUTILS_TRUE@stap_DEPENDENCIES = lib-elfutils/libdw.so
-staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
+staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c runtime/stpd/symbols.c
 staprun_LDADD = -lpthread
 pkglibexec_SCRIPTS = stp_check
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
@@ -448,6 +449,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stpd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/symbols.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
@@ -546,6 +548,20 @@ librelay.obj: runtime/stpd/librelay.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/stpd/librelay.c' object='librelay.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o librelay.obj `if test -f 'runtime/stpd/librelay.c'; then $(CYGPATH_W) 'runtime/stpd/librelay.c'; else $(CYGPATH_W) '$(srcdir)/runtime/stpd/librelay.c'; fi`
+
+symbols.o: runtime/stpd/symbols.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT symbols.o -MD -MP -MF "$(DEPDIR)/symbols.Tpo" -c -o symbols.o `test -f 'runtime/stpd/symbols.c' || echo '$(srcdir)/'`runtime/stpd/symbols.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/symbols.Tpo" "$(DEPDIR)/symbols.Po"; else rm -f "$(DEPDIR)/symbols.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/stpd/symbols.c' object='symbols.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o symbols.o `test -f 'runtime/stpd/symbols.c' || echo '$(srcdir)/'`runtime/stpd/symbols.c
+
+symbols.obj: runtime/stpd/symbols.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT symbols.obj -MD -MP -MF "$(DEPDIR)/symbols.Tpo" -c -o symbols.obj `if test -f 'runtime/stpd/symbols.c'; then $(CYGPATH_W) 'runtime/stpd/symbols.c'; else $(CYGPATH_W) '$(srcdir)/runtime/stpd/symbols.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/symbols.Tpo" "$(DEPDIR)/symbols.Po"; else rm -f "$(DEPDIR)/symbols.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/stpd/symbols.c' object='symbols.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o symbols.obj `if test -f 'runtime/stpd/symbols.c'; then $(CYGPATH_W) 'runtime/stpd/symbols.c'; else $(CYGPATH_W) '$(srcdir)/runtime/stpd/symbols.c'; fi`
 
 .cxx.o:
 @am__fastdepCXX_TRUE@	if $(CXXCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \

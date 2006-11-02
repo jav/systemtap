@@ -51,7 +51,7 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c
+staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c runtime/stpd/symbols.c
 staprun_LDADD = -lpthread
 
 pkglibexec_SCRIPTS = stp_check

@@ -16,6 +16,8 @@ enum
         STP_EXIT,
 	STP_OOB_DATA,
 	STP_SYSTEM,
+	STP_SYMBOLS,
+	STP_MODULE,
 };
 
 /* control channel command structs */
@@ -56,3 +58,5 @@ struct cmd_info
 	char cmd[128];
 };
 
+
+	

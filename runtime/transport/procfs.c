@@ -82,6 +82,7 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 	//printk ("_stp_proc_write_cmd. count:%d type:%d\n", count, type);
 
 	count -= sizeof(int);
+	buf += sizeof(int);
 
 	switch (type) {
 	case STP_START:
@@ -94,16 +95,23 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 		_stp_handle_start (&st);
 		break;
 	}
+
+	case STP_SYMBOLS:
+		count = _stp_do_symbols(buf, count);
+		break;
+	case STP_MODULE:
+		count = _stp_do_module(buf, count);
+		break;
 	case STP_EXIT:
 		_stp_exit_flag = 1;
 		break;
 	case STP_TRANSPORT_INFO:
 	{
 		struct transport_info ti;
-		//printk("STP_TRANSPORT_INFO %d %d\n", count, sizeof(struct transport_info));
+		kbug("STP_TRANSPORT_INFO %d %d\n", (int)count, (int)sizeof(struct transport_info));
 		if (count < sizeof(struct transport_info))
 			return 0;
-		if (copy_from_user (&ti, &buf[4], sizeof(struct transport_info)))
+		if (copy_from_user (&ti, buf, sizeof(struct transport_info)))
 			return -EFAULT;
 		if (_stp_transport_open (&ti) < 0)
 			return -1;

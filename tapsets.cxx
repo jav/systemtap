@@ -3218,58 +3218,6 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- dwarf probes ---- */";
 
-  // XXX: Until staprun provides us a run-time module/section/address
-  // table, we take matters into our own hands.
-  s.op->newline() << "struct stap_module { const char* module; const char* section; unsigned long address; } stap_modules[] = {";
-  s.op->indent(1);
-  glob_t globbuf;
-  int rc = glob ("/sys/module/*", 0, NULL, &globbuf);
-  if (!rc) for (unsigned j=0; j<globbuf.gl_pathc; j++)
-    {
-      string module = strrchr (globbuf.gl_pathv[j], '/') + 1;
-      glob_t globbuf2;
-      string moddir = string("/sys/module/") + module + string("/sections/*");
-      int rc2 = glob (moddir.c_str(), GLOB_PERIOD, NULL, &globbuf2);
-      if (!rc2) for (unsigned k=0; k<globbuf2.gl_pathc; k++)
-        {
-          string section = strrchr (globbuf2.gl_pathv[k], '/') + 1;
-          ifstream file (globbuf2.gl_pathv[k]);
-          if (! file.good()) { file.close(); continue; } // might include "." and "..", bugger!
-          string hex_address;
-          try { file >> hex_address; } catch (...) { file.close(); continue; }
-          file.close ();
-          if (s.verbose > 2)
-            clog << "found module=" << module << " section=" << section << " base=" << hex_address << endl;
-          // we don't need to use quoted_lex_blah since module/section names are vanilla
-          s.op->newline() << "{ \"" << module << "\", \"" << section << "\", " << hex_address << "UL },";
-        }
-      if (!rc2) globfree (& globbuf2);
-    }
-  if (!rc) globfree (& globbuf);
-  s.op->newline() << "{ \"\", \"\", 0 }"; // sentinel
-  s.op->newline(-1) << "};";
-
-  // A convenient lookup function for this table
-  s.op->newline() << "static unsigned long module_relocate (const char *module, const char *section, unsigned long offset) {";
-  s.op->newline(1) << "static struct stap_module *last = & stap_modules[0];"; // a one-entry TLB
-  s.op->newline() << "if (! module) { return offset; }"; // non-relocatable? just hand it back.
-  // emit code to look at "one-entry TLB"; assumes last-> points no farther than sentinel
-  s.op->newline() << "if (!strcmp (module, last->module) && !strcmp (section, last->section))";
-  s.op->newline(1) << "return offset + last->address;";
-  // emit code to look at it the long way ... simple but slow.
-  // Luckily, the later code makes sure that probes are relocated in a
-  // sorted sequence by module, so the TLB hit rate should be
-  // excellent.
-  s.op->newline(-1) << "last = & stap_modules[0];";
-  s.op->newline() << "while (last->module && last->section && last->module[0]) {"; // sentinel
-  s.op->newline(1) << "if (!strcmp (module, last->module) && !strcmp (section, last->section))";
-  s.op->newline(1) << "return offset + last->address;";
-  s.op->newline(-1) << "last ++;";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "last = & stap_modules[0];"; // important: reset to some valid entry
-  s.op->newline() << "return 0;"; // not found in entire module table
-  s.op->newline(-1) << "}";
-
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";
@@ -3340,7 +3288,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
-  s.op->newline() << "unsigned long relocated_addr = module_relocate (sdp->module, sdp->section, sdp->address);";
+  s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "sdp->u.krp.kp.addr = (void *) relocated_addr;";
