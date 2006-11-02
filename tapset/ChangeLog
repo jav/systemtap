@@ -1,4 +1,9 @@
+2006-11-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	* README: Add a blurb against running these scripts directly.
+
 2006-10-29  Thang Nguyen <thang.p.nguyen@intel.com>
+
 	* context.stp: Added proper handling of statement
 	* probe in probefunc() for IA64 (bz# 3423)
 

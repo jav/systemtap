@@ -83,6 +83,8 @@ compile_pass (systemtap_session& s)
   // Assumes linux 2.6 kbuild
   o << "CFLAGS += -Wno-unused -Werror" << endl;
   o << "CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
+  // XXX: this may help ppc toc overflow
+  // o << "CFLAGS := $(subst -Os,-O2,$(CFLAGS)) -fminimal-toc" << endl;
   o << "obj-m := " << s.module_name << ".o" << endl;
 
   o.close ();

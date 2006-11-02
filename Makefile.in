@@ -1212,7 +1212,7 @@ install-data-local:
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
 	(cd $(srcdir)/runtime/relayfs; find . -name '*.[ch]' -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/relayfs/$$f; done)
-	(cd $(srcdir)/tapset; find . -name '*.stp' -print \
+	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
 
 gcov:
