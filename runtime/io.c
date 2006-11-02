@@ -32,7 +32,7 @@ static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
 
 enum code { INFO=0, WARN, ERROR, DBUG };
 
-static void _stp_vlog (enum code type, char *func, int line, const char *fmt, va_list args)
+static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
 {
 	int num;
 	char *buf = &_stp_lbuf[get_cpu()][0];
@@ -150,7 +150,7 @@ void _stp_softerror (const char *fmt, ...)
 }
 
 
-static void _stp_dbug (char *func, int line, const char *fmt, ...)
+static void _stp_dbug (const char *func, int line, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);

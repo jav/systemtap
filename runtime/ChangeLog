@@ -1,3 +1,8 @@
+2006-11-02  Martin Hunt  <hunt@redhat.com>
+
+	* io.c (_stp_vlog, _stp_dbug):  Make first parameter const.
+	* runtime.h: Update prototype for _stp_dbug.
+
 2006-10-27  Thang Nguyen <thang.p.nguyen@intel.com>
 
 	* runtime/regs.c: patch from Bibo Mao for fixing the return
