@@ -1,39 +1,11 @@
-#!/usr/bin/tclsh
-# Test the functionality of the tcp probes 
+# Test TCP probes
+load_lib "stap_run.exp"
 set test "tcptest"
 
-set host            localhost 
-set port            11900
-
-proc start_server {sock addr port} {
-   set resp_str     "Nice to meet you"
-   fconfigure $sock -encoding binary -buffersize 16
-   while {[read $sock 16] != {}} {
-      puts -nonewline $sock $resp_str ;
-   }
-   exit
+set tcp_tcl "$srcdir/$subdir/tcptest.tcl"
+proc tcp_gen { } {
+   exec $::tcp_tcl 1 
+   return 0
 }
-
-proc start_client { } {
-   set hello_str    "Hello New World!"
-   after 2000
-   while {[catch {set sock [socket $::host $::port]}]} {}
-   fconfigure $sock -encoding binary -buffersize 16
-   for {set i 6400} {$i > 0} {incr i -1} {
-      puts -nonewline $sock $hello_str;
-      read $sock 16
-   }
-   return 0 
-}
-
-if {[llength $argv] == 0} { 
-   socket -server start_server $port
-   after 30000 set thirty_secs timeout 
-   vwait thirty_secs 
-} else {
-   load_lib "stap_run.exp"
-   exec chmod a+x $srcdir/$subdir/tcptest.exp
-   exec $srcdir/$subdir/tcptest.exp &
-   set output_string "\\mTCP totalbytes: \\d+\\M"
-   stap_run $srcdir/$subdir/$test.stp start_client $output_string
-}
+set output_string "\\mTCP totalbytes: \\d+\\M"
+stap_run $srcdir/$subdir/$test.stp tcp_gen $output_string
