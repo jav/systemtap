@@ -181,6 +181,7 @@ main (int argc, char * const argv [])
   string cmdline_script; // -e PROGRAM
   string script_file; // FILE
   bool have_script = false;
+  bool release_changed = false;
 
   // Initialize defaults
   systemtap_session s;
@@ -312,6 +313,7 @@ main (int argc, char * const argv [])
 
         case 'r':
           s.kernel_release = string (optarg);
+	  release_changed = true;
           break;
 
         case 'k':
@@ -371,6 +373,13 @@ main (int argc, char * const argv [])
     {
       cerr << "You can't specify -M, -b and -o options together." <<endl;
       usage (s, 1);
+    }
+
+  if (s.last_pass > 4 && release_changed)
+    {
+      cerr << ("Warning: changing last pass to 4 since the kernel release"
+	       " has changed.") << endl;
+      s.last_pass = 4;
     }
 
   for (int i = optind; i < argc; i++)

@@ -1,3 +1,9 @@
+2006-11-02  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (main): Added '-r' check.  If the user changes the
+	kernel release to compile against, make sure pass 5 isn't
+	performed (since the resulting module won't be installable).
+
 2006-11-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am: Install tapset/README too.
@@ -10,8 +16,7 @@
 	(timer_derived_probe_group::emit_module_decls): Use emit_interval.
 	(timer_derived_probe_group::emit_module_init): Ditto.
 
-
-2006-11-01    <dsmith@redhat.com>
+2006-11-01  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx (delete_statement_operand_visitor::visit_symbol):
 	Added referent assert.
