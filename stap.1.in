@@ -63,8 +63,6 @@ function, or by sufficient number of soft errors.
 .PP
 The language, which is described in a later section, is strictly typed,
 declaration free, procedural, and inspired by
-.IR dtrace 
-and
 .IR awk .
 It allows source code points or events in the kernel to be associated
 with handlers, which are subroutines that are executed synchronously.  It is
@@ -833,7 +831,6 @@ unloading.
 .IR stapfuncs (5),
 .IR stapex (5),
 .IR lket (5),
-.IR dtrace (1),
 .IR dprobes (1),
 .IR awk (1),
 .IR sudo (8),
@@ -860,8 +857,6 @@ using the public mailing list:
 .hy
 
 .SH ACKNOWLEDGEMENTS
-The script language design was inspired by Sun's 
-.IR dtrace .
 The primary probing mechanism uses IBM's
 .IR kprobes ,
 and
