@@ -1,5 +1,13 @@
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 
+	* sym.c (_stp_module_relocate): New function. Needed by the 
+	translator to relocate module symbols.
+	(_stp_kallsyms_lookup_name): Rewrite to use new symbol structs.
+	(_stp_kallsyms_lookup): Ditto.	
+	
+	* sym.h: Declare the structures and arrays that contain all
+	the symbol and module information.
+
 	* io.c (_stp_vlog, _stp_dbug):  Make first parameter const.
 	* runtime.h: Update prototype for _stp_dbug.
 
