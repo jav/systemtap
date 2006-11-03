@@ -1232,10 +1232,15 @@ struct dwflpp
     throw semantic_error (msg);
   }
 
+  // This function generates code used for addressing computations of
+  // target variables.
   void emit_address (struct obstack *pool, Dwarf_Addr address)
   {
-    // For now what we actually use is just a hard-wired constant.
+    #if 0
+    // The easy but incorrect way is to just print a hard-wired
+    // constant.
     obstack_printf (pool, "%#" PRIx64 "UL", address);
+    #endif
 
     // Turn this address into a section-relative offset if it should be one.
     // We emit a comment approximating the variable+offset expression that
@@ -1256,13 +1261,20 @@ struct dwflpp
 	if (n > 1 || secname[0] != '\0')
 	  // This gives us the module name, and section name within the
 	  // module, for a kernel module (or other ET_REL module object).
-	  obstack_printf (pool, " /* %s(%s)+%#" PRIx64 " */",
-			  modname, secname, address);
+          obstack_printf (pool, " _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 ")",
+                          modname, secname, address);
 	else
-	  // This would happen for a Dwfl_Module that's a user-level DSO.
-	  obstack_printf (pool, " /* %s+%#" PRIx64 " */",
-			  modname, address);
+          {
+            throw semantic_error ("cannot relocate user-space dso (?) address");
+#if 0
+            // This would happen for a Dwfl_Module that's a user-level DSO.
+            obstack_printf (pool, " /* %s+%#" PRIx64 " */",
+                            modname, address);
+#endif
+          }
       }
+    else
+      obstack_printf (pool, "%#" PRIx64 "UL", address); // assume as constant
   }
 
   static void loc2c_emit_address (void *arg, struct obstack *pool,
