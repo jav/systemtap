@@ -623,41 +623,34 @@ struct mapvar
     string mtype = is_parallel() ? "pmap" : "map";
     string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (MAXMAPENTRIES" ;
 
+    // Check for errors during allocation.
+    string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
+
     if (type() == pe_stats)
       {
 	switch (sdecl().type)
 	  {
 	  case statistic_decl::none:
-	    return (prefix 
-		    + ", HIST_NONE);");
+	    prefix = prefix + ", HIST_NONE";
 	    break;
 
 	  case statistic_decl::linear:
 	    // FIXME: check for "reasonable" values in linear stats
-	    return (prefix 
-		    + ", HIST_LINEAR" 
-		    + ", " + stringify(sdecl().linear_low) 
-		    + ", " + stringify(sdecl().linear_high) 
-		    + ", " + stringify(sdecl().linear_step)
-		    + ");");
+	    prefix = prefix + ", HIST_LINEAR" 
+	      + ", " + stringify(sdecl().linear_low) 
+	      + ", " + stringify(sdecl().linear_high) 
+	      + ", " + stringify(sdecl().linear_step);
 	    break;
 
 	  case statistic_decl::logarithmic:
 	    if (sdecl().logarithmic_buckets > 64)
 	      throw semantic_error("cannot support > 64 logarithmic buckets");	    
-	    return (prefix
-		    + ", HIST_LOG" 
-		    + ", " + stringify(sdecl().logarithmic_buckets) 
-		    + ");");
+	    prefix = prefix + ", HIST_LOG" + ", " + stringify(sdecl().logarithmic_buckets);
 	    break;
 	  }
       }
 
     prefix = prefix + "); ";
-
-    // Check for errors during allocation.
-    string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
-
     return (prefix + suffix);
   }
 

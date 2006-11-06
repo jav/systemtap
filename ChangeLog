@@ -1,3 +1,8 @@
+2006-11-06  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (var::init): Check for errors when
+	allocating arrays of stats, as well as other arrays.
+
 2006-11-06  David Smith  <dsmith@redhat.com>
 
 	Added "limit EXP" support to foreach statements.
