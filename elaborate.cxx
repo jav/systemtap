@@ -1040,6 +1040,9 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
       hist->visit (this);
     }
 
+  if (e->limit)
+    e->limit->visit (this);
+
   e->block->visit (this);
 }
 
@@ -2373,6 +2376,12 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
 	  if (at == pe_unknown)
 	    unresolved (ee->tok);
 	}
+    }
+
+  if (e->limit)
+    {
+      t = pe_long;
+      e->limit->visit (this);
     }
 
   t = pe_unknown;

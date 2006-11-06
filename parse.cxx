@@ -543,6 +543,7 @@ lexer::scan ()
 	      || n->content == "for"
 	      || n->content == "foreach"
 	      || n->content == "in"
+	      || n->content == "limit"
 	      || n->content == "return"
 	      || n->content == "delete"
 	      || n->content == "while"
@@ -1518,6 +1519,7 @@ parser::parse_foreach_loop ()
   foreach_loop* s = new foreach_loop;
   s->tok = t;
   s->sort_direction = 0;
+  s->limit = NULL;
 
   t = next ();
   if (! (t->type == tok_operator && t->content == "("))
@@ -1589,6 +1591,13 @@ parser::parse_foreach_loop ()
       s->sort_direction = (t->content == "+") ? 1 : -1;
       s->sort_column = 0;
       next();
+    }
+
+  t = peek ();
+  if (tok_is(t, tok_keyword, "limit"))
+    {
+      next ();				// get past the "limit"
+      s->limit = parse_expression ();
     }
 
   t = next ();

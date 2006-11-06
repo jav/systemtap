@@ -752,6 +752,11 @@ void foreach_loop::print (ostream& o) const
   base->print_indexable (o);
   if (sort_direction != 0 && sort_column == 0)
     o << (sort_direction > 0 ? "+" : "-");
+  if (limit)
+    {
+      o << " limit ";
+      limit->print (o);
+    }
   o << ") ";
   block->print (o);
 }
@@ -1320,6 +1325,10 @@ traversing_visitor::visit_foreach_loop (foreach_loop* s)
 
   for (unsigned i=0; i<s->indexes.size(); i++)
     s->indexes[i]->visit (this);
+
+  if (s->limit)
+    s->limit->visit (this);
+
   s->block->visit (this);
 }
 
@@ -1965,6 +1974,7 @@ deep_copy_visitor::visit_foreach_loop (foreach_loop* s)
 
   n->sort_direction = s->sort_direction;
   n->sort_column = s->sort_column;
+  require <expression*> (this, &(n->limit), s->limit);
 
   require <statement*> (this, &(n->block), s->block);
   provide <foreach_loop*> (this, n);

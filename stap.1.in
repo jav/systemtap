@@ -304,15 +304,20 @@ While integer-valued EXP evaluates to non-zero, execute STMT.
 Execute EXP1 as initialization.  While EXP2 is non-zero, execute
 STMT, then the iteration expression EXP3.
 .TP
-.BR foreach " (VAR " in " ARRAY) STMT"
+.BR foreach " (VAR " in " ARRAY [ "limit " EXP ]) STMT"
 Loop over each element of the named global array, assigning current
 key to VAR.  The array may not be modified within the statement.
 By adding a single 
 .BR + " or " \-
 operator after the VAR or the ARRAY identifier, the iteration will
 proceed in a sorted order, by ascending or descending index or value.
+
+Using the optional
+.BR limit 
+keyword limits the number of loop iterations to EXP times.  EXP is
+evaluted once at the beginning of the loop.
 .TP
-.BR foreach " ([VAR1, VAR2, ...] " in " ARRAY) STMT"
+.BR foreach " ([VAR1, VAR2, ...] " in " ARRAY [ "limit " EXP ]) STMT"
 Same as above, used when the array is indexed with a tuple of keys.
 A sorting suffix may be used on at most one VAR or ARRAY identifier.
 .TP

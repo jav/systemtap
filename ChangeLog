@@ -1,3 +1,26 @@
+2006-11-06  David Smith  <dsmith@redhat.com>
+
+	Added "limit EXP" support to foreach statements.
+	* translate.cxx (c_tmpcounter::visit_foreach_loop): Handles
+	"limit" member variable.
+	(c_unparser::visit_foreach_loop): Ditto.
+	* staptree.cxx (foreach_loop::print): Prints "limit EXP"
+	addition.
+	(traversing_visitor::visit_foreach_loop): Handles "limit" member
+	variable.
+	(deep_copy_visitor::visit_foreach_loop): Ditto.
+	* staptree.h (struct foreach_loop): Added "limit" member
+	variable.
+	* stap.1.in: Added documentation for the "limit EXP" addition to
+	foreach statement.
+	* parse.cxx (lexer::scan): Added "limit" keyword for foreach
+	statements.
+	(parser::parse_foreach_loop): Parses "limit" keyword for foreach
+	statements.
+	* elaborate.cxx (symresolution_info::visit_foreach_loop): Handles
+	"limit" member variable.
+	(typeresolution_info::visit_foreach_loop): Ditto.
+
 2006-11-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (emit_address): Emit calls to _stp_module_relocate

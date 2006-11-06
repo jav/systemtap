@@ -2196,6 +2196,19 @@ c_tmpcounter::visit_foreach_loop (foreach_loop *s)
 	}
     }
 
+  // Create a temporary for the loop limit counter and the limit
+  // expression result.
+  if (s->limit)
+    {
+      tmpvar res_limit = parent->gensym (pe_long);
+      res_limit.declare(*parent);
+
+      s->limit->visit (this);
+
+      tmpvar limitv = parent->gensym (pe_long);
+      limitv.declare(*parent);
+    }
+
   s->block->visit (this);
 }
 
@@ -2223,6 +2236,14 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       
       // initialization
 
+      tmpvar *res_limit = NULL;
+      if (s->limit)
+        {
+	  // Evaluate the limit expression once.
+	  res_limit = new tmpvar(gensym(pe_long));
+	  c_assign (res_limit->qname(), s->limit, "foreach limit");
+	}
+      
       // aggregate array if required
       if (mv.is_parallel())
 	{
@@ -2231,20 +2252,43 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  o->indent(-1);
 
 	  // sort array if desired
-	  if (s->sort_direction) {
-	    o->newline() << "else"; // only sort if aggregation was ok
-	    o->newline(1) << "_stp_map_sort (" << mv.fetch_existing_aggregate() << ", "
-			  << s->sort_column << ", " << - s->sort_direction << ");";
-	    o->indent(-1);
-	  }
-	}
+	  if (s->sort_direction)
+	    {
+	      o->newline() << "else"; // only sort if aggregation was ok
+	      if (s->limit)
+	        {
+		  o->newline(1) << "_stp_map_sortn ("
+				<< mv.fetch_existing_aggregate() << ", "
+				<< *res_limit << ", " << s->sort_column << ", "
+				<< - s->sort_direction << ");";
+		}
+	      else
+	        {
+		  o->newline(1) << "_stp_map_sort ("
+				<< mv.fetch_existing_aggregate() << ", "
+				<< s->sort_column << ", "
+				<< - s->sort_direction << ");";
+		}
+	      o->indent(-1);
+	    }
+        }
       else
 	{      
 	  // sort array if desired
 	  if (s->sort_direction)
 	    {
-	      o->newline() << "_stp_map_sort (" << mv.qname() << ", "
-			   << s->sort_column << ", " << - s->sort_direction << ");";
+	      if (s->limit)
+	        {
+		  o->newline() << "_stp_map_sortn (" << mv.qname() << ", "
+			       << *res_limit << ", " << s->sort_column << ", "
+			       << - s->sort_direction << ");";
+		}
+	      else
+	        {
+		  o->newline() << "_stp_map_sort (" << mv.qname() << ", "
+			       << s->sort_column << ", "
+			       << - s->sort_direction << ");";
+		}
 	    }
 	}
 
@@ -2254,6 +2298,14 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	aggregations_active.insert(mv.qname());
       o->newline() << iv << " = " << iv.start (mv) << ";";
       
+      tmpvar *limitv = NULL;
+      if (s->limit)
+      {
+	  // Create the loop limit variable here and initialize it.
+	  limitv = new tmpvar(gensym (pe_long));
+	  o->newline() << *limitv << " = 0LL;";
+      }
+
       // condition
       o->newline(-1) << toplabel << ":";
 
@@ -2270,6 +2322,18 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       loop_continue_labels.push_back (contlabel);
       o->newline() << "{";
       o->indent (1);
+
+      if (s->limit)
+      {
+	  // If we've been through LIMIT loop iterations, quit.
+	  o->newline() << "if (" << *limitv << "++ >= " << *res_limit
+		       << ") goto " << breaklabel << ";";
+
+	  // We're done with limitv and res_limit.
+	  delete limitv;
+	  delete res_limit;
+      }
+
       for (unsigned i = 0; i < s->indexes.size(); ++i)
 	{
 	  // copy the iter values into the specified locals
@@ -2307,11 +2371,36 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       var v = getvar(sym->referent, sym->tok);
       v.assert_hist_compatible(*hist);
 
+      tmpvar *res_limit = NULL;
+      tmpvar *limitv = NULL;
+      if (s->limit)
+        {
+	  // Evaluate the limit expression once.
+	  res_limit = new tmpvar(gensym(pe_long));
+	  c_assign (res_limit->qname(), s->limit, "foreach limit");
+
+	  // Create the loop limit variable here and initialize it.
+	  limitv = new tmpvar(gensym (pe_long));
+	  o->newline() << *limitv << " = 0LL;";
+	}
+      
       // XXX: break / continue don't work here yet
       o->newline() << "for (" << bucketvar << " = 0; " 
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
       o->newline(1);
+
+      if (s->limit)
+      {
+	  // If we've been through LIMIT loop iterations, quit.
+	  o->newline() << "if (" << *limitv << "++ >= " << *res_limit
+		       << ") break;";
+
+	  // We're done with limitv and res_limit.
+	  delete limitv;
+	  delete res_limit;
+      }
+
       s->block->visit (this);
       o->newline(-1) << "}";
     }
