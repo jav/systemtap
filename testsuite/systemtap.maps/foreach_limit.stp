@@ -1,0 +1,135 @@
+global array, agg
+
+probe begin
+{
+    #
+    # Array section
+    #
+    printf("\nArrays:\n");
+
+    # Add elements to the array, but in an unsorted order
+    array[9] = 18;
+    array[1] = 2
+    array[8] = 16
+    array[2] = 4
+    array[7] = 14
+    array[3] = 6
+    array[6] = 12;
+    array[5] = 10;
+    array[4] = 8;
+    array[10] = 20;
+
+    # Print the unsorted array
+    printf("unsorted:\n");
+    foreach (key in array)
+	printf("key %d, value %d\n", key, array[key]);
+
+    # Print the first 5 unsorted array items
+    printf("\nunsorted limit 5:\n");
+    i = 0
+    foreach (key in array limit 5)
+    {
+	printf("key %d, value %d\n", key, array[key]);
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+
+    # Print the first 5 sorted array items
+    printf("\nsorted limit 5:\n");
+    i = 0
+    foreach (key in array+ limit 5)
+    {
+	printf("key %d, value %d\n", key, array[key]);
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+
+    # Use a variable reference to limit the loop iteration
+    x = 3
+    printf("\nsorted limit x (%d):\n", x);
+    i = 0
+    foreach (key in array+ limit x)
+    {
+	printf("key %d, value %d\n", key, array[key])
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+
+    # Use a expression containing a variable reference to limit the
+    # loop iteration
+    printf("\nsorted limit x * 2 (%d):\n", (x * 2));
+    i = 0
+    foreach (key in array+ limit x * 2)
+    {
+	printf("key %d, value %d\n", key, array[key])
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+
+    # Ensure the expression is only evaluated once
+    printf("\nsorted limit ++x:\n");
+    i = 0
+    foreach (key in array+ limit ++x)
+    {
+	printf("key %d, value %d\n", key, array[key])
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+    printf("x ended up as %d\n", x);
+
+    # Ensure the expression is only evaluated once
+    printf("\nsorted limit x++:\n");
+    i = 0
+    foreach (key in array+ limit x++)
+    {
+	printf("key %d, value %d\n", key, array[key])
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+    printf("x ended up as %d\n", x);
+
+    #
+    # Aggregate section
+    #
+    printf("\nAggregates:\n");
+
+    # Add items to the aggregate
+    foreach (key in array)
+    {
+	agg <<< array[key]
+	agg <<< array[key] * 2
+	agg <<< array[key] * 3
+	agg <<< array[key] * 4
+	agg <<< array[key] * 5
+	agg <<< array[key] * 6
+	agg <<< array[key] * 7
+	agg <<< array[key] * 8
+	agg <<< array[key] * 9
+	agg <<< array[key] * 10
+	agg <<< array[key] * 11
+	agg <<< array[key] * 12
+	agg <<< array[key] * 12
+	agg <<< array[key] * 13
+	agg <<< array[key] * 14
+	agg <<< array[key] * 15
+    }
+
+    # Find the total number of aggregate entries
+    i = 0
+    foreach (bucket in @hist_log(agg))
+	i++;
+    printf("%d total aggregate entries\n", i);
+
+    # Print the 1st 5 aggregate entries
+    printf("\naggregate limit 5:\n");
+    i = 0
+    foreach (bucket in @hist_log(agg) limit 5)
+    {
+	printf("bucket %d: %d\n", bucket, @hist_log(agg)[bucket]);
+	i++;
+    }
+    printf("loop had %d iterations\n", i);
+
+    printf("\nDone.\n");
+    exit()
+}

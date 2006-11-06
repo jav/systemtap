@@ -1,5 +1,9 @@
 2006-11-06  David Smith  <dsmith@redhat.com>
 
+	* systemtap.maps/foreach_limit.exp: Added new test for foreach
+	"limit" keyword.
+	* systemtap.maps/foreach_limit.stp: Ditto.
+
 	* parseko/foreachstmt06.stp: Added new test for foreach "limit"
 	keyword.
 	* parseko/foreachstmt07.stp: Ditto.
