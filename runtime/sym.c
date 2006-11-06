@@ -40,7 +40,7 @@ static unsigned long _stp_module_relocate (const char *module, const char *secti
 	}
 
 	/* need to scan all modules */
-	for (i = 1; i < _stp_num_modules; i++) {
+	for (i = 1; i < _stp_num_modules; i++) { /* XXX: why start at i=1? */
 		last = _stp_modules[i];
 		if (strcmp(module, last->name))
 			continue;
