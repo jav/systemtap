@@ -1,0 +1,10 @@
+#! stap -p1
+
+probe one
+{
+  foreach ([x+,y] in a limit 5) ;
+  n = 5 ;
+  foreach ([x,y-] in a limit n) ;
+  foreach ([x,y] in a+ limit n + 2) ;
+  foreach ([x,y] in a+ limit ++n) ;
+}

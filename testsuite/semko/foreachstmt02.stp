@@ -1,0 +1,17 @@
+#! stap -p2
+
+# limit keyword with function returning a string expression
+
+global array
+
+function str_ret_type()
+{
+    return "hi"
+}
+
+probe begin
+{
+    array[0] = 1    
+    foreach (key in array limit str_ret_type())
+        printf("key %d, value %d\n", key, array[key])
+}

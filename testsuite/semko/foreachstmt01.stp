@@ -1,0 +1,12 @@
+#! stap -p2
+
+# limit keyword with string expression
+
+global array
+
+probe begin
+{
+    array[0] = 1    
+    foreach (key in array limit "hi")
+        printf("key %d, value %d\n", key, array[key])
+}
