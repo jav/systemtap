@@ -3636,6 +3636,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = \"timer.profile\";"; // NB: hard-coded for convenience
+  s.op->newline() << "c->regs = regs;";
 
   for (unsigned i=0; i<probes.size(); i++)
     {

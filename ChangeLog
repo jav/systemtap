@@ -1,3 +1,8 @@
+2006-11-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (profile_derived_probe_group::emit_module_decls):
+	Pass along incoming pt_regs to context of timer.profile handlers.
+
 2006-11-06  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (var::init): Check for errors when
