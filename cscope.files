@@ -1,4 +1,12 @@
 -q
+./cache.h
+./cache.cxx
+./hash.h
+./hash.cxx
+./mdfour.h
+./mdfour.c
+./util.h
+./util.cxx
 ./buildrun.cxx
 ./buildrun.h
 ./config.h
@@ -11,6 +19,8 @@
 ./main.cxx
 ./parse.cxx
 ./parse.h
+./runtime/perf.h
+./runtime/perf.c
 ./runtime/alloc.c
 ./runtime/arith.c
 ./runtime/bench2/itest.c
@@ -61,6 +71,13 @@
 ./runtime/relayfs/relay.h
 ./runtime/runtime.h
 ./runtime/stack.c
+./runtime/stack-ppc64.c
+./runtime/transport/symbols.c
+./runtime/stack-ia64.c
+./runtime/stack-i386.c
+./runtime/stack-s390.c
+./runtime/stack-x86_64.c
+./runtime/stpd/symbols.c
 ./runtime/stat.c
 ./runtime/stat-common.c
 ./runtime/stat.h
