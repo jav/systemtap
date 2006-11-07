@@ -36,7 +36,7 @@ Build steps:
   (or)
   cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap login
   # enter "anoncvs" as the password
-  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap co -c
+  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap co src
 - Build it:
   cd src
   ./configure --with-elfutils=PATCHED-ELFUTILS-DIR [other autoconf options]
