@@ -1,3 +1,10 @@
+2006-11-07  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guij@cn.ibm.com>
+	* signal.stp, memory.stp: make do_mmap2, copy_cow_page
+	and signal.handle.return optional since they are obsolete
+	or failed to probe on 2.6.18.1/ppc64
+
 2006-11-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* README: Add a blurb against running these scripts directly.

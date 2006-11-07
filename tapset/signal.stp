@@ -390,7 +390,7 @@ probe signal.handle = kernel.function("handle_signal")?,
         sig_mode = "Kernel Mode Signal"
 }
 
-probe signal.handle.return = kernel.function("handle_signal").return
+probe signal.handle.return = kernel.function("handle_signal").return ?
 {
     retstr = returnstr(1)
 }
