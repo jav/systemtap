@@ -11,6 +11,7 @@
 #include "parse.h"
 #include "tapsets.h"
 #include "session.h"
+#include "util.h"
 
 extern "C" {
 #include <sys/utsname.h>
@@ -28,17 +29,6 @@ extern "C" {
 
 
 using namespace std;
-
-
-template <typename OUT, typename IN> inline OUT
-lex_cast(IN const & in)
-{
-  stringstream ss;
-  OUT out;
-  if (!(ss << in && ss >> out))
-    throw runtime_error("bad lexical cast");
-  return out;
-}
 
 
 // ------------------------------------------------------------------------

@@ -9,6 +9,8 @@
 #include "config.h"
 #include "staptree.h"
 #include "parse.h"
+#include "util.h"
+
 #include <iostream>
 #include <typeinfo>
 #include <sstream>
@@ -16,37 +18,6 @@
 
 using namespace std;
 
-
-// return as quoted string, with at least '"' backslash-escaped
-template <typename IN> inline string
-lex_cast_qstring(IN const & in)
-{
-  stringstream ss;
-  string out, out2;
-  if (!(ss << in))
-    throw runtime_error("bad lexical cast");
-  out = ss.str();
-  out2 += '"';
-  for (unsigned i=0; i<out.length(); i++)
-    {
-      if (out[i] == '"') // XXX others?
-	out2 += '\\';
-      out2 += out[i];
-    }
-  out2 += '"';
-  return out2;
-}
-
-
-template <typename OUT, typename IN> inline OUT
-lex_cast(IN const & in)
-{
-  stringstream ss;
-  OUT out;
-  if (!(ss << in && ss >> out))
-    throw runtime_error("bad lexical cast");
-  return out;
-}
 
 
 expression::expression ():

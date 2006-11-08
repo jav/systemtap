@@ -13,6 +13,7 @@
 #include "translate.h"
 #include "session.h"
 #include "tapsets.h"
+#include "util.h"
 
 #include <iostream>
 #include <set>
@@ -21,39 +22,6 @@
 #include <cassert>
 
 using namespace std;
-
-
-// little utility function
-
-template <typename T>
-static string
-stringify(T t)
-{
-  ostringstream s;
-  s << t;
-  return s.str ();
-}
-
-// return as quoted string, with at least '"' backslash-escaped
-template <typename IN> inline string
-lex_cast_qstring(IN const & in)
-{
-  stringstream ss;
-  string out, out2;
-  if (!(ss << in))
-    throw runtime_error("bad lexical cast");
-  out = ss.str();
-  out2 += '"';
-  for (unsigned i=0; i<out.length(); i++)
-    {
-      if (out[i] == '"') // XXX others?
-	out2 += '\\';
-      out2 += out[i];
-    }
-  out2 += '"';
-  return out2;
-}
-
 
 struct var;
 struct tmpvar;
@@ -2591,6 +2559,11 @@ c_unparser::visit_literal_string (literal_string* e)
   const string& v = e->value;
   o->line() << '"';
   for (unsigned i=0; i<v.size(); i++)
+    // NB: The backslash character is specifically passed through as is.
+    // This is because our parser treats "\" as an ordinary character, not
+    // an escape sequence, leaving it to the C compiler (and this function)
+    // to treat it as such.  If we were to escape it, there would be no way
+    // of generating C-level escapes from script code.
     if (v[i] == '"') // or other escapeworthy characters?
       o->line() << '\\' << '"';
     else

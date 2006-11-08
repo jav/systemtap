@@ -1,3 +1,9 @@
+2006-11-08  Frank Ch. Eigler  <fche@elastic.org>
+
+	* util.h (lex_cast_qstring): Move def'n here.  Also quote \.
+	(stringify, lex_cast, lex_cast_hex): Move defn here.
+	* buildrun.cxx, elaborate.cxx, main.cxx, staptree.cxx: Adapt.
+
 2006-11-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (profile_derived_probe_group::emit_module_decls):

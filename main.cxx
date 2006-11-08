@@ -104,18 +104,6 @@ usage (systemtap_session& s, int exitcode)
 }
 
 
-// little utility function
-
-template <typename T>
-static string
-stringify(T t)
-{
-  ostringstream s;
-  s << t;
-  return s.str ();
-}
-
-
 static void
 printscript(systemtap_session& s, ostream& o)
 {
