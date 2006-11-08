@@ -341,8 +341,11 @@ print_format::components_to_string(vector<format_component> const & components)
 	  for (string::const_iterator j = i->literal_string.begin();
 	       j != i->literal_string.end(); ++j)
 	    {
+              // See also: c_unparser::visit_literal_string and lex_cast_qstring
 	      if (*j == '%')
 		oss << '%';
+              else if(*j == '"')
+                oss << '\\';
 	      oss << *j;
 	    }
 	}

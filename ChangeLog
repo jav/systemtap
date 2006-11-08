@@ -1,5 +1,12 @@
 2006-11-08  Frank Ch. Eigler  <fche@elastic.org>
 
+	* staptree.cxx (print_format::components_to_string): Quote ".
+	(c_unparser::visit_print_format): Don't use lex_cast_qstring
+	as it overdoes \ quoting.  Resemble ::visit_literal_string
+	instead.
+
+2006-11-08  Frank Ch. Eigler  <fche@elastic.org>
+
 	* util.h (lex_cast_qstring): Move def'n here.  Also quote \.
 	(stringify, lex_cast, lex_cast_hex): Move defn here.
 	* buildrun.cxx, elaborate.cxx, main.cxx, staptree.cxx: Adapt.

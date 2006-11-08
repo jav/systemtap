@@ -2564,6 +2564,7 @@ c_unparser::visit_literal_string (literal_string* e)
     // an escape sequence, leaving it to the C compiler (and this function)
     // to treat it as such.  If we were to escape it, there would be no way
     // of generating C-level escapes from script code.
+    // See also print_format::components_to_string and lex_cast_qstring
     if (v[i] == '"') // or other escapeworthy characters?
       o->line() << '\\' << '"';
     else
@@ -3690,7 +3691,7 @@ c_unparser::visit_print_format (print_format* e)
       else
 	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
 
-      o->line() << lex_cast_qstring(print_format::components_to_string(components));
+      o->line() << '"' << print_format::components_to_string(components) << '"';
 
       for (unsigned i = 0; i < tmp.size(); ++i)
 	o->line() << ", " << tmp[i].qname();
