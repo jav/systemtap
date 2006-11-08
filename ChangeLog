@@ -1,3 +1,9 @@
+2006-11-08  David Smith  <dsmith@redhat.com>
+
+	* cache.cxx (get_from_cache): To preserve semantics with
+	non-cached use, if the last pass is 3, display the cached C
+	source.
+
 2006-11-08  Frank Ch. Eigler  <fche@elastic.org>
 
 	* staptree.cxx (print_format::components_to_string): Quote ".

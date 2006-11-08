@@ -3,6 +3,7 @@
 #include "util.h"
 #include <cerrno>
 #include <string>
+#include <fstream>
 
 extern "C" {
 #include <sys/types.h>
@@ -96,6 +97,18 @@ get_from_cache(systemtap_session& s)
 	}
     }
 
+  // We're done with these file handles.
+  close(fd_module);
+  close(fd_c);
+
+  // To preserve semantics (since this will happen if we're not
+  // caching), display the C source if the last pass is 3.
+  if (s.last_pass == 3)
+    {
+      ifstream i (s.translated_source.c_str());
+      cout << i.rdbuf();
+    }
+
   // If everything worked, tell the user.  We need to do this here,
   // since if copying the cached C file works, but copying the cached
   // module fails, we remove the cached C file and let the C file get
@@ -107,7 +120,5 @@ get_from_cache(systemtap_session& s)
 	clog << "Pass 4: using cached " << s.hash_path << endl;
     }
 
-  close(fd_module);
-  close(fd_c);
   return true;
 }
