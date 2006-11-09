@@ -21,42 +21,47 @@ enum
 };
 
 /* control channel command structs */
-struct buf_info
+struct _stp_buf_info
 {
-	int cpu;
-	unsigned produced;
-	unsigned consumed;
-	int flushing;
+	int32_t cpu;
+	uint32_t produced;
+	uint32_t consumed;
+	int32_t flushing;
 };
 
-struct consumed_info
+struct _stp_consumed_info
 {
-	int cpu;
-	unsigned consumed;
+	int32_t cpu;
+	uint32_t consumed;
 };
 
-struct transport_info
+struct _stp_transport_info
 {
-	unsigned buf_size;
-	unsigned subbuf_size;
-	unsigned n_subbufs;
-	int transport_mode;
-	int merge;		// merge relayfs output?
-	int target;		// target pid
+	uint32_t buf_size;
+	uint32_t subbuf_size;
+	uint32_t n_subbufs;
+	int32_t transport_mode;
+	int32_t merge;		// merge relayfs output?
+	int32_t target;		// target pid
 #if 0
 	char cmd[256];		// cmd to process data
 #endif
 };
 
-struct transport_start
+struct _stp_transport_start
 {
-	int pid;	// pid for streaming data
+	int32_t pid;	// pid for streaming data
 };
 
-struct cmd_info
+struct _stp_cmd_info
 {
 	char cmd[128];
 };
 
+struct _stp_symbol_req
+{
+	int32_t endian;
+	int32_t ptr_size;
+};
 
 	

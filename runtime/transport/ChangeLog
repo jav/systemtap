@@ -1,3 +1,11 @@
+2006-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* transport_msgs.h: Change all ints to int32_t. Prefix
+	all struct names with "_stp".
+	* transport.c: Use new struct names.
+	(_stp_handle_start): Send pointer size and endianess.
+	* procfs.c: Use new struct names.
+
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 	* symbols.c (_stp_do_module): Fix error message.
 

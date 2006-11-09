@@ -41,11 +41,11 @@ int _stp_exit_flag = 0;
 void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
-void _stp_handle_start (struct transport_start *st);
+void _stp_handle_start (struct _stp_transport_start *st);
 static void _stp_work_queue (void *data);
 static DECLARE_WORK(stp_exit, _stp_work_queue, NULL);
 static struct workqueue_struct *_stp_wq;
-int _stp_transport_open(struct transport_info *info);
+int _stp_transport_open(struct _stp_transport_info *info);
 
 #include "procfs.c"
 
@@ -74,7 +74,7 @@ static int _stp_transport_write (void *data, int len)
 #ifdef STP_RELAYFS
 static void _stp_handle_buf_info(int *cpuptr)
 {
-	struct buf_info out;
+	struct _stp_buf_info out;
 
 	out.cpu = *cpuptr;
 #if (RELAYFS_CHANNEL_VERSION >= 4) || defined (CONFIG_RELAY)
@@ -93,7 +93,7 @@ static void _stp_handle_buf_info(int *cpuptr)
  *	_stp_handle_start - handle STP_START
  */
 
-void _stp_handle_start (struct transport_start *st)
+void _stp_handle_start (struct _stp_transport_start *st)
 {
 #ifdef CONFIG_MODULES
 	static int got_modules=0;
@@ -103,8 +103,10 @@ void _stp_handle_start (struct transport_start *st)
 
 	/* we've got a start request, but first, grab kernel symbols if we need them */
 	if (_stp_num_modules == 0) {
-		char tmp = 0;
-		_stp_transport_send(STP_SYMBOLS, &tmp, 1);
+		struct _stp_symbol_req req;
+		req.endian = 0x1234;
+		req.ptr_size = sizeof(char *);
+		_stp_transport_send(STP_SYMBOLS, &req, sizeof(req));
 		return;
 	}
 
@@ -137,7 +139,7 @@ void _stp_handle_start (struct transport_start *st)
 /**
  *	_stp_handle_subbufs_consumed - handle STP_SUBBUFS_CONSUMED
  */
-static void _stp_handle_subbufs_consumed(int pid, struct consumed_info *info)
+static void _stp_handle_subbufs_consumed(int pid, struct _stp_consumed_info *info)
 {
 	relay_subbufs_consumed(_stp_chan, info->cpu, info->consumed);
 }
@@ -253,7 +255,7 @@ void _stp_transport_close()
  *      containing the final parameters used.
  */
 
-int _stp_transport_open(struct transport_info *info)
+int _stp_transport_open(struct _stp_transport_info *info)
 {
 	kbug ("stp_transport_open: %d Mb buffer. target=%d\n", info->buf_size, info->target);
 

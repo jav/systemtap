@@ -87,10 +87,10 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 	switch (type) {
 	case STP_START:
 	{
-		struct transport_start st;
-		if (count < sizeof(struct transport_start))
+		struct _stp_transport_start st;
+		if (count < sizeof(struct _stp_transport_start))
 			return 0;
-		if (copy_from_user (&st, buf, sizeof(struct transport_start)))
+		if (copy_from_user (&st, buf, sizeof(struct _stp_transport_start)))
 			return -EFAULT;
 		_stp_handle_start (&st);
 		break;
@@ -107,11 +107,11 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 		break;
 	case STP_TRANSPORT_INFO:
 	{
-		struct transport_info ti;
-		kbug("STP_TRANSPORT_INFO %d %d\n", (int)count, (int)sizeof(struct transport_info));
-		if (count < sizeof(struct transport_info))
+		struct _stp_transport_info ti;
+		kbug("STP_TRANSPORT_INFO %d %d\n", (int)count, (int)sizeof(struct _stp_transport_info));
+		if (count < sizeof(struct _stp_transport_info))
 			return 0;
-		if (copy_from_user (&ti, buf, sizeof(struct transport_info)))
+		if (copy_from_user (&ti, buf, sizeof(struct _stp_transport_info)))
 			return -EFAULT;
 		if (_stp_transport_open (&ti) < 0)
 			return -1;
