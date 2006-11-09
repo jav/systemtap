@@ -326,6 +326,7 @@ static string TOK_MODULE("module");
 static string TOK_FUNCTION("function");
 static string TOK_INLINE("inline");
 static string TOK_RETURN("return");
+static string TOK_MAXACTIVE("maxactive");
 static string TOK_CALLEES("callees");
 
 static string TOK_STATEMENT("statement");
@@ -1757,6 +1758,8 @@ struct dwarf_derived_probe: public derived_probe
   string section;
   Dwarf_Addr addr;
   bool has_return;
+  bool has_maxactive;
+  long maxactive_val;
 
   void join_group (systemtap_session& s);
 
@@ -1857,6 +1860,9 @@ struct dwarf_query
   long callee_val;
 
   bool has_return;
+
+  bool has_maxactive;
+  long maxactive_val;
 
   bool has_label;
   string label_val;
@@ -1977,6 +1983,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 		 get_number_param(params, TOK_CALLEES, callee_val));
 
   has_return = has_null_param(params, TOK_RETURN);
+  has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
 
   has_label = get_string_param(params, TOK_LABEL, label_val);
   has_relative = get_number_param(params, TOK_RELATIVE, relative_val);
@@ -3001,7 +3008,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Die* scope_die)
   : derived_probe (q.base_probe, 0 /* location-less */),
     module (module), section (section), addr (addr),
-    has_return (q.has_return)
+    has_return (q.has_return),
+    has_maxactive (q.has_maxactive),
+    maxactive_val (q.maxactive_val)
 {
   // Assert relocation invariants
   if (module == TOK_KERNEL && section != "") 
@@ -3062,7 +3071,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     }
 
   if (has_return)
-    comps.push_back (new probe_point::component(TOK_RETURN));
+    {
+      comps.push_back (new probe_point::component(TOK_RETURN));
+      if (has_maxactive)
+	comps.push_back (new probe_point::component
+			 (TOK_MAXACTIVE, new literal_number(maxactive_val)));
+    }
 
   locations.push_back(new probe_point(comps, q.base_loc->tok));
 }
@@ -3115,12 +3129,13 @@ dwarf_derived_probe::register_inline_variants(match_node * root,
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
-					      dwarf_builder * dw)
+						dwarf_builder * dw)
 {
-  // Here we match 4 forms:
+  // Here we match 5 forms:
   //
   // .
   // .return
+  // .return.maxactive(N)
   // .callees
   // .callees(N)
   //
@@ -3129,6 +3144,7 @@ dwarf_derived_probe::register_function_variants(match_node * root,
 
   root->bind(dw);
   root->bind(TOK_RETURN)->bind(dw);
+  root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->bind(dw);
   root->bind(TOK_CALLEES)->bind(dw);
   root->bind_num(TOK_CALLEES)->bind(dw);
 }
@@ -3197,10 +3213,12 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_dwarf_probe {";
   s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
   s.op->newline() << "unsigned return_p:1;";
+  s.op->newline() << "unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
   s.op->newline() << "const char *module;";
   s.op->newline() << "const char *section;";
   s.op->newline() << "unsigned long address;";
+  s.op->newline() << "unsigned long maxactive_val;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
@@ -3212,9 +3230,13 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "{";
       if (p->has_return)
         s.op->line() << " .return_p=1,";
+      if (p->has_maxactive)
+        s.op->line() << " .maxactive_p=1,";
       if (p->module != TOK_KERNEL) // relocation info
         s.op->line() << " .module=\"" << p->module << "\", .section=\"" << p->section << "\",";
       s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
+      if (p->has_maxactive)
+	s.op->line() << " .maxactive_val=" << p->maxactive_val << "UL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name;
       s.op->line() << " },";
@@ -3261,7 +3283,11 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "sdp->u.krp.kp.addr = (void *) relocated_addr;";
-  s.op->newline() << "sdp->u.krp.maxactive = max(10, 4*NR_CPUS);"; // XXX pending PR 1289
+  s.op->newline() << "if (sdp->maxactive_p) {";
+  s.op->newline(1) << "sdp->u.krp.maxactive = sdp->maxactive_val;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "sdp->u.krp.maxactive = max(10, 4*NR_CPUS);";
+  s.op->newline(-1) << "}";
   s.op->newline() << "sdp->u.krp.handler = &enter_kretprobe_probe;";
   s.op->newline() << "rc = register_kretprobe (& sdp->u.krp);";
   s.op->newline(-1) << "} else {";

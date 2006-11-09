@@ -1,3 +1,15 @@
+2006-11-09  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (dwarf_query::dwarf_query): Looks for "maxactive"
+	return probe variant.
+	(dwarf_derived_probe::dwarf_derived_probe): Initializes
+	has_maxactive and maxactive_val member variables.
+	(dwarf_derived_probe::register_function_variants): Matches
+	"maxactive" return probe variant.
+	(dwarf_derived_probe_group::emit_module_decls): Emits code to use
+	maxactive data.
+	(dwarf_derived_probe_group::emit_module_init): Ditto.
+
 2006-11-08  David Smith  <dsmith@redhat.com>
 
 	* cache.cxx (get_from_cache): To preserve semantics with
