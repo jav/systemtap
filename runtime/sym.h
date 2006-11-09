@@ -32,14 +32,14 @@ struct _stp_module {
   unsigned long data;
 
   /* how many symbols this module has that we are interested in */
-  unsigned num_symbols;
+  uint32_t num_symbols;
 
   /* how many sections this module has */
-  unsigned num_sections;
+  uint32_t num_sections;
   struct _stp_symbol *sections;
 
   /* how the symbol_data below was allocated */
-  int allocated;  /* 0 = kmalloc, 1 = vmalloc */
+  int32_t allocated;  /* 0 = kmalloc, 1 = vmalloc */
   
   /* an array of num_symbols _stp_symbol structs */
   struct _stp_symbol *symbols; /* ordered by address */

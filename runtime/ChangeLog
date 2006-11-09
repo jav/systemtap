@@ -1,3 +1,7 @@
+2006-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* sym.h: Change int to int32_t.
+
 2006-11-09  Li Guanglei <guanglei@cn.ibm.com>
 
 	* runtime/lket/b2a/lket_b2a.[ch]: add options to control
