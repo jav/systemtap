@@ -310,7 +310,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE elfutils_abs_srcdir BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE MYSQL_CONFIG CXXCPP HAS_MYSQL_TRUE HAS_MYSQL_FALSE HAS_MYSQL_CONFIG_TRUE HAS_MYSQL_CONFIG_FALSE stap_LIBS DATE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM mkdir_p AWK SET_MAKE am__leading_dot AMTAR am__tar am__untar MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT LN_S CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CPP EGREP U ANSI2KNR RANLIB ac_ct_RANLIB BUILD_ELFUTILS_TRUE BUILD_ELFUTILS_FALSE elfutils_abs_srcdir BUILD_LKET_B2A_TRUE BUILD_LKET_B2A_FALSE MYSQL_CONFIG CXXCPP HAS_MYSQL_TRUE HAS_MYSQL_FALSE HAS_MYSQL_CONFIG_TRUE HAS_MYSQL_CONFIG_FALSE stap_LIBS DATE PROCFLAGS LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -5876,6 +5876,14 @@ _ACEOF
 DATE="$date"
 
 
+processor=`uname -p`
+case "$processor" in
+powerpc) PROCFLAGS=-m64 ;;
+x86_64) PROCFLAGS=-m64 ;;
+*) PROCFLAGS=""
+esac
+
+
           ac_config_headers="$ac_config_headers config.h:config.in"
 
                                                                                                                                                                                                                             ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile testsuite/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
@@ -6654,6 +6662,7 @@ s,@HAS_MYSQL_CONFIG_TRUE@,$HAS_MYSQL_CONFIG_TRUE,;t t
 s,@HAS_MYSQL_CONFIG_FALSE@,$HAS_MYSQL_CONFIG_FALSE,;t t
 s,@stap_LIBS@,$stap_LIBS,;t t
 s,@DATE@,$DATE,;t t
+s,@PROCFLAGS@,$PROCFLAGS,;t t
 s,@LIBOBJS@,$LIBOBJS,;t t
 s,@LTLIBOBJS@,$LTLIBOBJS,;t t
 CEOF
@@ -7395,3 +7404,4 @@ echo "$as_me: running ${elfutils_srcdir}/configure" >&6;}
 				LDFLAGS="$LDFLAGS $elfutils_rpath"
   )
 fi
+
