@@ -1,3 +1,16 @@
+2006-11-09  David Smith  <dsmith@redhat.com>
+
+	* buildok/maxactive01.stp: Added test for "maxactive(N)"
+	return probe processing.
+	* parseko/maxactive01.stp: Ditto.
+	* parseko/maxactive02.stp: Ditto.
+	* parseko/maxactive03.stp: Ditto.
+	* parseko/maxactive04.stp: Ditto.
+	* semko/maxactive01.stp: Ditto.
+	* semko/maxactive02.stp: Ditto.
+	* semko/maxactive03.stp: Ditto.
+	* systemtap.base/maxactive.exp: Ditto.
+
 2006-11-06  David Smith  <dsmith@redhat.com>
 
 	* systemtap.maps/foreach_limit.exp: Added new test for foreach

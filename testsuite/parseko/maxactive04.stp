@@ -1,0 +1,7 @@
+#!./stap -p1
+
+# maxactive with a numeric expression argument
+
+probe kernel.function("*").return.maxactive(3 + 2)
+{
+}
