@@ -5,6 +5,9 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+/* the trace hooks defined here are used by lket internally and they
+   will be turned on by default */
+
 /* record the newly created process name */
 function log_execve_tracedata(var_id:long, var:long)
 %{
@@ -56,35 +59,39 @@ function process_snapshot()
 	}
 %}
 
-probe addevent.process
-	= addevent.process.execve,
-	addevent.process.fork
+probe lket_internal.process { }
+
+probe lket_internal.process
+	= lket_internal.process.execve,
+	lket_internal.process.fork
 {}
 
 /* 
   we should capture both do_execve for 64-bit app
   and compat_do_execve for 32-bit app           
 */
-probe addevent.process.execve
-	+= _addevent.process.execve
+probe lket_internal.process.execve
+	+= _lket_internal.process.execve
 {
 	update_record()
 }
 
-probe _addevent.process.execve
+probe _lket_internal.process.execve
 	=  process.exec
 {
+	if(stoptrace_exec==1) next;
 	log_execve_tracedata(HOOKID_PROCESS_EXECVE, $filename)
 }
 
-probe addevent.process.fork
-	+= _addevent.process.fork
+probe lket_internal.process.fork
+	+= _lket_internal.process.fork
 {
 	update_record()
 }
 
-probe _addevent.process.fork
+probe _lket_internal.process.fork
 	= process.create
 {
+	if(stoptrace_fork==1) next;
 	log_fork_tracedata(HOOKID_PROCESS_FORK, $return)
 }

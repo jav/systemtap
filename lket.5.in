@@ -240,11 +240,19 @@ Data format is:
 .I common_data, syscall_name(STRING)
 
 .SS PROCESS CREATION 
-This group contains three sub event hooks.
-You could use
-.I addevent.process
-to trace fork and execve of processes(note that process_snapshot()
-won't be included).
+This group contains three sub event hooks. All of them are turned on
+by default. You can use the flags stoptrace_fork and stoptrace_exec to stop
+tracing fork/execve in your script, e.g.:
+
+.SAMPLE
+probe begin
+{
+  stoptrace_fork = 1
+  stoptrace_exec = 1
+}
+...
+.ESAMPLE
+
 .P
 .TP
 .B process_snapshot()
@@ -257,14 +265,14 @@ Data format is:
 
 .P
 .TP
-.B addevent.process.fork 
+.B lket_internal.process.fork 
 Trace fork of processes
 
 Data format is:
 
 .I common_data, new_tid(INT32), new_pid(INT32), ppid(INT32)
 .TP
-.B addevent.process.execve 
+.B lket_internal.process.execve 
 Trace execve of new processes
 
 Data format is:

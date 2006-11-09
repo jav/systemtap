@@ -13,6 +13,7 @@ global
 	GROUP_PROCESS,
 	HOOKID_PROCESS_SNAPSHOT, HOOKID_PROCESS_FORK, 
 	HOOKID_PROCESS_EXECVE, 
+	stoptrace_exec, stoptrace_fork,
 
 	/* io scheduler */
 	GROUP_IOSCHED,

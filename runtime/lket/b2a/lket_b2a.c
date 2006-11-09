@@ -23,7 +23,7 @@
 /* A flag indicate whether to store the trace
    data into local file/MySQL database */
 int into_file, into_db;
-
+int name_flag=1, id_flag=0, appname_flag=1;
 #ifdef HAS_MYSQL
 
 #define SQLSIZE 1024*1024
@@ -69,7 +69,19 @@ printf("Usage:\n\
   lket-b2a Options INFILE1 [INFILE2...]\n\
     Options:\n\
        -f     dump the trace data into a local file named \"lket.out\"\n\
-       -m     dump the trace data into MySQL\n");
+       -n     name_flag. name_flag set to 0 means not printing the event\n\
+              description string and 1 means printing. Only valid with -f\n\
+              option. name_flag is set to 1 by default.\n\
+       -i     id_flag. id_flag set to 0 means not printing event groupid and\n\
+              hookid and 1 means printing. Only valid with -f option. id_flag\n\
+              is set to 0 by default.\n\
+       -a     appname_flag. appname_flag set to 0 means not printing process\n\
+              name and 1 means printing. Only valid with -f option. appname_flag\n\
+              is set to 1 by default.\n\
+       -m     dump the trace data into MySQL\n\
+   Example:\n\
+       lket-b2a -f -a 1 -i 1 -n 0 stpd_cpu*\n\
+       lket-b2a -m stpd_cpu*\n");
 }
 
 int main(int argc, char *argv[])
@@ -89,7 +101,7 @@ int main(int argc, char *argv[])
         strftime(database, 18,  "DB%Y%m%d%H%M%S", tm);
 
         while (1) {
-                int c = getopt(argc, argv, "mf");
+                int c = getopt(argc, argv, "mfi:n:a:");
                 if (c < 0) // no more options
                         break;
                 switch (c) {
@@ -99,6 +111,31 @@ int main(int argc, char *argv[])
 		case 'f':
 			into_file = 1;
 			break;
+		case 'n':
+			name_flag = atoi(optarg);
+			if(name_flag!=0 && name_flag!=1) {
+				fprintf(stderr, "you must specify 0 or 1 for -n option\n");
+				usage();
+				exit(-1);
+			}
+			break;
+		case 'i':
+			id_flag = atoi(optarg);
+			if(id_flag!=0 && id_flag!=1) {
+				fprintf(stderr, "you must specify 0 or 1 for -i option\n");
+				usage();
+				exit(-1);
+			}
+			break;
+		case 'a':
+			appname_flag = atoi(optarg);
+			if(appname_flag!=0 && appname_flag!=1) {
+				fprintf(stderr, "you must specify 0 or 1 for -a option\n");
+				usage();
+				exit(-1);
+			}
+			break;
+
 		default:
 			printf("Error in options\n");
 			usage();
@@ -578,11 +615,15 @@ void print_pkt_header(lket_pkt_header *phdr)
 	hookid = HDR_HookID(phdr);
 	pid = HDR_PID(phdr);
 
-	if(into_file)
-		fprintf(outfp, "\n%d.%d APPNAME: %s PID:%d CPU:%d HOOKGRP:%d HOOKID:%d ",
-			sec, usec,
-			(char *)(g_tree_lookup(appNameTree, (gconstpointer)((long)pid))),
-			pid, HDR_CpuID(phdr), grpid, hookid);
+	if(into_file) {
+		fprintf(outfp, "\n%d.%d CPU:%d PID:%d ", sec, usec, HDR_CpuID(phdr), pid);
+		if(appname_flag==1)
+			fprintf(outfp, "APPNAME:%s ", (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)pid))));
+		if(name_flag==1)
+			fprintf(outfp, "EVT_NAME:%s ", events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description);
+		if(id_flag==1)
+			fprintf(outfp, "HOOKGRP:%d HOOKID:%d ", grpid, hookid);
+	}
 
 #ifdef HAS_MYSQL
 	if(into_db)  {
@@ -639,15 +680,19 @@ void register_evt_desc(FILE *infp, size_t size)
 	static int has_table = 0;
 #endif
 	int grpid, hookid;
+	int len = 0;
 	char *evt_body;
 	evt_body = malloc(size);
 	fread(evt_body, size, 1, infp);
 	grpid = *(int8_t *)evt_body;
         hookid  = *(int8_t *)(evt_body+1);
-
+	len = strlen(evt_body+2)+2;
 	if(!events_des[_HOOKID_REGSYSEVT][grpid][hookid])
 		events_des[_HOOKID_REGSYSEVT][grpid][hookid] = malloc(sizeof(event_desc));
+	if(!events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description)
+		events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description = malloc(len);
 
+	strncpy(events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description, evt_body+2, len);
 #ifdef HAS_MYSQL
 	events_des[_HOOKID_REGSYSEVT][grpid][hookid]->entrytime = g_tree_new_full(
 		compareFunc, NULL, NULL, destroyTreeData);

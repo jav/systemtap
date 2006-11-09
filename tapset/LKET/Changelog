@@ -1,3 +1,10 @@
+2006-11-09  Li Guanglei <guanglei@cn.ibm.com>
+
+	* process.stp: make fork/execce trace hooks
+	lket internally and turned on by default.
+	add stoptrace_fork and stoptrace_execve flags to
+	control stopping fork/execve in user scripts
+
 2006-10-31  Li Guanglei <guanglei@cn.ibm.com>
 
 	* register_event.stp: changes of all event_desc 

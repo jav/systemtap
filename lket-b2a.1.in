@@ -57,6 +57,21 @@ See the following section.
 .B \-f
 convert and dump trace data into local file. For more details,
 See the following section.
+.TP
+.B \-n     
+name_flag. name_flag set to 0 means not printing the event
+description string and 1 means printing. Only valid with -f
+option. name_flag is set to 1 by default.
+.TP
+.B \-i     
+id_flag. id_flag set to 0 means not printing event groupid and
+hookid and 1 means printing. Only valid with -f option. id_flag
+is set to 0 by default.
+.TP
+.B \-a     
+appname_flag. appname_flag set to 0 means not printing process
+name and 1 means printing. Only valid with -f option. appname_flag
+is set to 1 by default.
 
 .SH DUMP TRACE DATA INTO LOCAL FILE
 
@@ -74,14 +89,12 @@ Version Minor:  1
 Big endian:     YES
 Timing method:  do_gettimeofday()
 Bits width:     64
-Initial CPU timebase:   187994 (cycles per microsecond)
-
-0.2084 APPNAME: (null) PID:20922 CPU:3 HOOKGRP:3 HOOKID:1 tid:20936,pid:20936,ppid:35,pname:systemtap/0,
-0.2086 APPNAME: (null) PID:20922 CPU:3 HOOKGRP:3 HOOKID:1 tid:20937,pid:20937,ppid:35,pname:systemtap/1,
-0.2087 APPNAME: (null) PID:20922 CPU:3 HOOKGRP:3 HOOKID:1 tid:20938,pid:20938,ppid:35,pname:systemtap/2,
+Initial CPU timebase:   1596405 (cycles per microsecond)
 [...]
-10.24319 APPNAME: sshd PID:7203 CPU:3 HOOKGRP:2 HOOKID:2 syscall:write,
-10.24324 APPNAME: sshd PID:7203 CPU:3 HOOKGRP:2 HOOKID:1 syscall:compat_sys_select,
+2.527880 CPU:0 PID:2450 APPNAME:gnome-panel EVT_NAME:iosyscall.read.entry fd:3,buff_addr:-1081126904,count:32,
+2.527887 CPU:0 PID:2450 APPNAME:gnome-panel EVT_NAME:iosyscall.read.return return:32,
+2.534343 CPU:0 PID:1450 APPNAME:kjournald EVT_NAME:scsi.ioentry major:8,minor:0,sdev_state:2,request_addr:3806880208,
+2.534359 CPU:0 PID:1450 APPNAME:kjournald EVT_NAME:scsi.iodispatching host:0,channel:0,lun:0,dev_id:0,dev_state:2,data_dir:1,reqbuf_addr:3248315840,reqbuf_len:8192,request_addr:3806880208,
 [...]
 .ESAMPLE
 
