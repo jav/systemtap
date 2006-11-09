@@ -1,3 +1,14 @@
+2006-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* librelay.c: Change all references to transport messages
+	to use the new names with "_stp" prefix.
+	(stp_main_loop): For STP_SYMBOLS, check pointer size and 
+	endianess to confirm staprun is compatible with the kernel.
+
+	* librelay.h: Move a bunch of common includes here.
+	* stpd.c: Cleanup includes.
+	* symbols.c: Ditto.
+	
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c: New file. Sends symbol and module information to

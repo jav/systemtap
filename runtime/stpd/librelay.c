@@ -19,16 +19,9 @@
  * Copyright (C) Red Hat Inc, 2005, 2006
  *
  */
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
+#include "librelay.h"
 #include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <fcntl.h>
 #include <errno.h>
 #include <linux/fd.h>
 #include <sys/mman.h>
@@ -39,8 +32,6 @@
 #include <linux/limits.h>
 #include <sys/wait.h>
 #include <sys/statfs.h>
-#include <stdint.h>
-#include "librelay.h"
 
 
 /* stp_check script */
@@ -106,7 +97,7 @@ extern gid_t cmd_gid;
 /* per-cpu buffer info */
 static struct buf_status
 {
-	struct buf_info info;
+	struct _stp_buf_info info;
 	unsigned max_backlog; /* max # sub-buffers ready at one time */
 } status[NR_CPUS];
 
@@ -295,7 +286,7 @@ static void wait_for_percpu_threads(int n)
 /**
  *	process_subbufs - write ready subbufs to disk
  */
-static int process_subbufs(struct buf_info *info)
+static int process_subbufs(struct _stp_buf_info *info)
 {
 	unsigned subbufs_ready, start_subbuf, end_subbuf, subbuf_idx, i;
 	int len, cpu = info->cpu;
@@ -333,7 +324,7 @@ static void *reader_thread(void *data)
 	int rc;
 	int cpu = (long)data;
 	struct pollfd pollfd;
-	struct consumed_info consumed_info;
+	struct _stp_consumed_info consumed_info;
 	unsigned subbufs_consumed;
 
 	pollfd.fd = relay_file[cpu];
@@ -353,7 +344,7 @@ static void *reader_thread(void *data)
 		}
 
 		rc = read(proc_file[cpu], &status[cpu].info,
-			  sizeof(struct buf_info));
+			  sizeof(struct _stp_buf_info));
 		subbufs_consumed = process_subbufs(&status[cpu].info);
 		if (subbufs_consumed) {
 			if (subbufs_consumed > status[cpu].max_backlog)
@@ -361,7 +352,7 @@ static void *reader_thread(void *data)
 			status[cpu].info.consumed += subbufs_consumed;
 			consumed_info.cpu = cpu;
 			consumed_info.consumed = subbufs_consumed;
-			if (write (proc_file[cpu], &consumed_info, sizeof(struct consumed_info)) < 0)
+			if (write (proc_file[cpu], &consumed_info, sizeof(struct _stp_consumed_info)) < 0)
 				fprintf(stderr,"WARNING: writing consumed info failed.\n");
 		}
 		if (status[cpu].info.flushing)
@@ -496,7 +487,7 @@ void system_cmd(char *cmd)
 int init_stp(int print_summary)
 {
 	char buf[1024];
-	struct transport_info ti;
+	struct _stp_transport_info ti;
 	pid_t pid;
 	int rstatus;
 
@@ -779,7 +770,7 @@ int stp_main_loop(void)
 		}
 		case STP_START: 
 		{
-			struct transport_start *t = (struct transport_start *)data;
+			struct _stp_transport_start *t = (struct _stp_transport_start *)data;
 			dbug("probe_start() returned %d\n", t->pid);
 			if (t->pid < 0) {
 				if (target_cmd)
@@ -791,14 +782,14 @@ int stp_main_loop(void)
 		}
 		case STP_SYSTEM:
 		{
-			struct cmd_info *c = (struct cmd_info *)data;
+			struct _stp_cmd_info *c = (struct _stp_cmd_info *)data;
 			system_cmd(c->cmd);
 			break;
 		}
 		case STP_TRANSPORT_INFO:
 		{
-			struct transport_info *info = (struct transport_info *)data;
-			struct transport_start ts;
+			struct _stp_transport_info *info = (struct _stp_transport_info *)data;
+			struct _stp_transport_start ts;
 			transport_mode = info->transport_mode;
 			params.subbuf_size = info->subbuf_size;
 			params.n_subbufs = info->n_subbufs;
@@ -825,8 +816,7 @@ int stp_main_loop(void)
 				if (!ofp) {
 					fprintf (stderr, "ERROR: couldn't open output file %s: errcode = %s\n",
 						 outfile_name, strerror(errno));
-					/* FIXME. Need to cleanup properly */
-					exit(1);
+					cleanup_and_exit(0);
 				}
 			}
 			ts.pid = getpid();
@@ -835,7 +825,7 @@ int stp_main_loop(void)
 		}
 		case STP_MODULE:
 		{
-			struct transport_start ts;
+			struct _stp_transport_start ts;
 			if (do_module(data)) {
 			  ts.pid = getpid();
 			  send_request(STP_START, &ts, sizeof(ts));
@@ -844,8 +834,18 @@ int stp_main_loop(void)
 		}		
 		case STP_SYMBOLS:
 		{
-			struct transport_start ts;
+			struct _stp_symbol_req *req = (struct _stp_symbol_req *)data;
+			struct _stp_transport_start ts;
 			dbug("STP_SYMBOLS request received\n");
+			if (req->endian != 0x1234) {
+			  fprintf(stderr,"ERROR: staprun is compiled with different endianess than the kernel!\n");
+			  cleanup_and_exit(0);
+			}
+			if (req->ptr_size != sizeof(char *)) {
+			  fprintf(stderr,"ERROR: staprun is compiled with %d-bit pointers and the kernel uses %d-bit.\n",
+				  8*sizeof(char *), 8*req->ptr_size);
+			  cleanup_and_exit(0);
+			}
 			do_kernel_symbols();
 			ts.pid = getpid();
 			send_request(STP_START, &ts, sizeof(ts));

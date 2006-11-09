@@ -20,12 +20,8 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <pwd.h>
 #include "librelay.h"
+#include <pwd.h>
 
 extern char *optarg;
 extern int optopt;
