@@ -5878,7 +5878,7 @@ DATE="$date"
 
 processor=`uname -p`
 case "$processor" in
-powerpc) PROCFLAGS=-m64 ;;
+ppc64) PROCFLAGS=-m64 ;;
 x86_64) PROCFLAGS=-m64 ;;
 *) PROCFLAGS=""
 esac
