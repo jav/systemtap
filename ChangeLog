@@ -1,6 +1,9 @@
 2006-11-09  Martin Hunt  <hunt@redhat.com>
-
+	* Makefile.am (staprun_LDADD): Need PROCFLAGS here too.
+	
+2006-11-09  Martin Hunt  <hunt@redhat.com>	
 	* Makefile.am (staprun_CFLAGS): New. Use PROCFLAGS.
+
 	* configure.ac: Add PROCFLAGS. Processor-dependent 
 	compilation flags.
 	* configure: Rebuilt.

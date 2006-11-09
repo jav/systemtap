@@ -54,8 +54,7 @@ endif
 staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c runtime/stpd/symbols.c
 
 staprun_CFLAGS = @PROCFLAGS@
-
-staprun_LDADD = -lpthread
+staprun_LDADD = @PROCFLAGS@ -lpthread
 
 pkglibexec_SCRIPTS = stp_check
 CLEANFILES += $(pkglibexec_SCRIPTS)
