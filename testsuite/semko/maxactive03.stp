@@ -1,4 +1,4 @@
-#!./stap -p1
+#!./stap -p2
 
 # maxactive on a timer probe
 

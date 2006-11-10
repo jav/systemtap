@@ -8,53 +8,9 @@ if {[info procs installtest_p] != "" && ![installtest_p]} {
     return
 }
 
-# stap_run variant that sets 'skipped_probes' to the number of skipped
-# probes in a run.
-#
-# stap_run_skipped TEST_NAME
-# TEST_NAME is path to the current test
-# Additional arguments are passed to stap as-is.
-proc stap_run_skipped { TEST_NAME args } {
-    global skipped_probes
-
-    # initialize skipped_probes to 0
-    set skipped_probes 0
-
-    set cmd [concat {stap -v} $args]
-    eval spawn $cmd
-    expect {
-	-re {^Pass\ ([1234]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n}
-	{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"; exp_continue}
-	-re {^Pass\ ([34]): using cached .+\r\n}
-	{set pass$expect_out(1,string) "\t0\t0\t0"; exp_continue}
-	-re {^Pass 5: starting run.\r\n} {exp_continue}
-	-timeout 30 -re "^systemtap starting probe\r\n" {
-	    pass "$TEST_NAME startup"
-
-	    # check the output to see if it is sane
-	    set output "^systemtap ending probe\r\n"
-
-	    expect {
-		-re $output {
-		    pass "$TEST_NAME shutdown and output"
-		    expect {
-			-re {^Pass\ ([5]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n}
-			{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"
-			    verbose -log "metric:\t$TEST_NAME $pass1$pass2$pass3$pass4$pass5"}
-			-re {^WARNING: Number of errors: 0, skipped probes: ([0-9]+)\r\n}
-			{set skipped_probes $expect_out(1,string)}
-		    }
-		}
-		timeout { fail "$TEST_NAME shutdown (timeout)" }
-		eof { fail "$TEST_NAME shutdown (eof)" }
-	    }
-	}
-	-re "semantic error:" { fail "$TEST_NAME compilation" }
-	timeout { fail "$TEST_NAME startup (timeout)"; send "\003" }
-	eof { fail "$TEST_NAME startup (eof)" }
-    }
-  catch close
-  wait
+proc sleep_five_sec {} {
+    after 5000;
+    return 0;
 }
 
 # Script1.  For 5 seconds, probe the return of "sys_select" and
@@ -70,7 +26,7 @@ set script1 {
 
 # Run script1 and save the number of skipped probes (which will most
 # likely be 0).
-stap_run_skipped "MAXACTIVE01" -e $script1
+stap_run "MAXACTIVE01" sleep_five_sec "" -e $script1
 set skipped1 $skipped_probes
 
 # Script2.  For 5 seconds, probe the return of "sys_select" and
@@ -86,7 +42,7 @@ set script2 {
 }
 
 # Run script2 and save the number of skipped probes.
-stap_run_skipped "MAXACTIVE02" -e $script2
+stap_run "MAXACTIVE02" sleep_five_sec "" -e $script2
 set skipped2 $skipped_probes
 
 # If the number of skipped probes for script 1 is less than the number
@@ -95,9 +51,9 @@ set skipped2 $skipped_probes
 #
 # Note that this isn't 100% accurate based on the system load at the
 # time of the scripts.
-set TEST_NAME "MAXACTIVE03"
+set test "MAXACTIVE03"
 if {$skipped1 < $skipped2} {
-    pass "$TEST_NAME ($skipped1 skipped probes < $skipped2 skipped probes)"
+    pass "$test ($skipped1 skipped probes < $skipped2 skipped probes)"
 } else {
-    fail "$TEST_NAME ($skipped1 skipped probes > $skipped2 skipped probes)"
+    fail "$test ($skipped1 skipped probes > $skipped2 skipped probes)"
 }

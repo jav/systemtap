@@ -1,3 +1,14 @@
+2006-11-10  David Smith  <dsmith@redhat.com>
+
+	* semko/maxactive03.stp: Stop on pass2 instead of on pass1.
+
+	* lib/stap_run.exp: As a side-effect, stap_run() sets global
+	'probe_errors' and 'skipped_probes' to the number of probe errors
+	and skipped probes seen while running the probe.
+	* systemtap.base/maxactive.exp: Uses extended stap_run() to find
+	number of skipped probes instead of using private stap_run()
+	variant.
+
 2006-11-09  David Smith  <dsmith@redhat.com>
 
 	* buildok/maxactive01.stp: Added test for "maxactive(N)"
