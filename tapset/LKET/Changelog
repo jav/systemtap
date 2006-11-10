@@ -1,3 +1,10 @@
+2006-11-10  Li Guanglei <guanglei@cn.ibm.com>
+
+	* iosyscall.stp: add some trace aliases
+	* register_event.stp: register sys events 
+	in embedded c codes for stap to better
+	optimize the generated codes.
+
 2006-11-09  Li Guanglei <guanglei@cn.ibm.com>
 
 	* process.stp: make fork/execce trace hooks
