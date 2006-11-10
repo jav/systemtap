@@ -24,7 +24,7 @@ static ssize_t
 _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
 	int num;
-	struct buf_info out;
+	struct _stp_buf_info out;
 
 	int cpu = *(int *)(PDE(file->f_dentry->d_inode)->data);
 
@@ -52,7 +52,7 @@ _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 static ssize_t _stp_proc_write (struct file *file, const char __user *buf,
 				size_t count, loff_t *ppos)
 {
-	struct consumed_info info;
+	struct _stp_consumed_info info;
 	int cpu = *(int *)(PDE(file->f_dentry->d_inode)->data);
 	if (copy_from_user(&info, buf, count))
 		return -EFAULT;
