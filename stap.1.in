@@ -253,7 +253,16 @@ invocation.
 .PP
 Scalar variables are implicitly typed as either string or integer.
 Associative arrays also have a string or integer value, and a
-a tuple of strings and/or integers serving as a key.
+a tuple of strings and/or integers serving as a key.  Here are a
+few basic expressions.
+.SAMPLE
+var1 = 5
+var2 = "bar"
+array1 [pid()] = "name"     # single numeric key
+array2 ["foo",4,i++] += 5   # vector of string/num/num keys
+if (["hello",5,4] in array2) log ("yes")  # membership test
+.ESAMPLE
+.PP
 The translator performs
 .I type inference
 on all identifiers, including array indexes and function parameters.
@@ -311,7 +320,6 @@ By adding a single
 .BR + " or " \-
 operator after the VAR or the ARRAY identifier, the iteration will
 proceed in a sorted order, by ascending or descending index or value.
-
 Using the optional
 .BR limit 
 keyword limits the number of loop iterations to EXP times.  EXP is
@@ -379,6 +387,11 @@ grouping operator
 .TP
 function call
 .RB "fn " ( "[ arg1, arg2, ... ]" )
+.TP
+array membership check
+.RB exp " in " array
+.br
+.BR "[" exp1 ", " exp2 ", " ... "] in " array
 
 .SS PROBES
 The main construct in the scripting language identifies probes.
@@ -766,26 +779,28 @@ These may be overridden with the
 flag.  A selection of these is as follows: 
 .TP
 MAXNESTING
-Maximum number of recursive function call levels.
+Maximum number of recursive function call levels, default 10.
 .TP
 MAXSTRINGLEN
-Maximum length of strings.
+Maximum length of strings, default 128.
 .TP
 MAXTRYLOCK
 Maximum number of iterations to wait for locks on global variables
-before declaring possible deadlock and skipping the probe.
+before declaring possible deadlock and skipping the probe, default 1000.
 .TP
 MAXACTION
-Maximum number of statements to execute during any single probe hit.
+Maximum number of statements to execute during any single probe hit,
+default 1000.
 .TP
 MAXMAPENTRIES
-Maximum number of rows in any single global array.
+Maximum number of rows in any single global array, default 2048.
 .TP
 MAXERRORS
-Maximum number of soft errors before an exit is triggered.
+Maximum number of soft errors before an exit is triggered, default 0, which
+means that the first error will exit the script.
 .TP
 MAXSKIPPED
-Maximum number of skipped reentrant probes before an exit is triggered.
+Maximum number of skipped reentrant probes before an exit is triggered, default 100.
 
 .PP
 In case something goes wrong with 

@@ -1,7 +1,14 @@
+2006-11-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap.1.in: On urging of Adam Jackson, add blurbs on array syntax
+	and default limits.
+
 2006-11-09  Martin Hunt  <hunt@redhat.com>
+
 	* Makefile.am (staprun_LDADD): Need PROCFLAGS here too.
 	
 2006-11-09  Martin Hunt  <hunt@redhat.com>	
+
 	* Makefile.am (staprun_CFLAGS): New. Use PROCFLAGS.
 
 	* configure.ac: Add PROCFLAGS. Processor-dependent 
