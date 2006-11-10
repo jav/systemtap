@@ -4,6 +4,7 @@
 	* register_event.stp: register sys events 
 	in embedded c codes for stap to better
 	optimize the generated codes.
+	bugfix of nfs event register codes.
 
 2006-11-09  Li Guanglei <guanglei@cn.ibm.com>
 

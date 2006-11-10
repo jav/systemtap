@@ -752,6 +752,7 @@ function register_sys_events()
 		_GROUP_NFS, _HOOKID_NFS_AOP_RELEASEPAGE_RETURN,
                 "INT32","return");
 
+///FIXME
 	_register_sys_event("nfs.proc.lookup.entry",
 		_GROUP_NFS, _HOOKID_NFS_PROC_LOOKUP_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING",
@@ -854,14 +855,6 @@ function register_sys_events()
 		_GROUP_NFS, _HOOKID_NFS_PROC_RENAME_RETURN,
                 "INT32","return");
 
-	_register_sys_event("nfs.proc.create.entry",
-		_GROUP_NFS, _HOOKID_NFS_PROC_CREATE_ENTRY,
-                "INT8:INT8:INT64:INT8:STRING",
-		"major_device:minor_device:fileid:version:filename");	
-	_register_sys_event("nfs.proc.create.return",
-		_GROUP_NFS, _HOOKID_NFS_PROC_CREATE_RETURN,
-                "INT32","return");
-
 	_register_sys_event("nfs.proc.remove.entry",
 		_GROUP_NFS, _HOOKID_NFS_PROC_REMOVE_ENTRY,
 		"INT8:INT8:INT64:INT8:STRING",
@@ -870,11 +863,10 @@ function register_sys_events()
 		_GROUP_NFS, _HOOKID_NFS_PROC_REMOVE_RETURN,
 		"INT32", "return");;
 
-
 	_register_sys_event("nfsd.dispatch.entry",
 		_GROUP_NFSD, _HOOKID_NFSD_DISPATCH_ENTRY,
-                "INT8:INT8:INT32:INT32:INT32:INT32",
-		"proto:version:xid:proc:prog:client_ip");	
+                "INT8:INT8:INT32:INT32:INT32",
+		"proto:version:xid:proc:client_ip");	
 	_register_sys_event("nfsd.dispatch.return",
 		_GROUP_NFSD, _HOOKID_NFSD_DISPATCH_RETURN,
                 "INT32","return");	

@@ -689,8 +689,7 @@ void register_evt_desc(FILE *infp, size_t size)
 	len = strlen(evt_body+2)+2;
 	if(!events_des[_HOOKID_REGSYSEVT][grpid][hookid])
 		events_des[_HOOKID_REGSYSEVT][grpid][hookid] = malloc(sizeof(event_desc));
-	if(!events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description)
-		events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description = malloc(len);
+	events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description = malloc(len);
 
 	strncpy(events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description, evt_body+2, len);
 #ifdef HAS_MYSQL
