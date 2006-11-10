@@ -2890,22 +2890,22 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue && !q.sess.guru_mode)
+    throw semantic_error("write to target variable not permitted", e->tok);
+
+  if (q.has_return && e->base_name != "$return")
+    throw semantic_error("target variables not available to .return probes");
+
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
   fdecl->tok = e->tok;
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
-  bool lvalue = is_active_lvalue(e);
-
-  if (lvalue && !q.sess.guru_mode)
-    throw semantic_error("write to target variable not permitted", e->tok);
 
   string fname = (string(lvalue ? "_dwarf_tvar_set" : "_dwarf_tvar_get")
 		  + "_" + e->base_name.substr(1)
 		  + "_" + lex_cast<string>(tick++));
-
-  if (q.has_return && e->base_name != "$return")
-    throw semantic_error ("target variables not available to .return probes");
 
   try
     {

@@ -1,3 +1,10 @@
+2006-11-10  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol): Minor
+	improvement to error handling by throwing exceptions before
+	allocations are done.
+
 2006-11-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stap.1.in: On urging of Adam Jackson, add blurbs on array syntax
