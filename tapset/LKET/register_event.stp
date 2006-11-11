@@ -37,7 +37,7 @@ void _register_event(int grpid, int hookid, int evt_type, char *fmt, char *names
 	p_in_name = in_name;
 
 	if(!strncmp(fmt,"",1) && !strncmp(names,"",1)) {
-		_lket_trace(_GROUP_REGEVT,evt_type,"%1b%1b",grpid,hookid); 
+		_lket_trace(_GROUP_REGEVT,evt_type,"%1b%1b",(_FMT_)grpid, (_FMT_)hookid); 
 		goto reg_epilogue;
 	}
 
@@ -69,8 +69,8 @@ void _register_event(int grpid, int hookid, int evt_type, char *fmt, char *names
 		_stp_exit();
 	}
 
-	_lket_trace(_GROUP_REGEVT, evt_type, "%1b%1b%0s%0s", grpid,
-		hookid, fmt, names); 
+	_lket_trace(_GROUP_REGEVT, evt_type, "%1b%1b%0s%0s", (_FMT_)grpid,
+		(_FMT_)hookid, fmt, names); 
 
 reg_epilogue:
 
@@ -103,7 +103,7 @@ void _register_evt_desc(int grpid, int hookid, int evt_type, char *desc)
 		_stp_exit();
 	}
 
-	_lket_trace(_GROUP_REGEVT, evt_type, "%1b%1b%0s", grpid, hookid, desc); 
+	_lket_trace(_GROUP_REGEVT, evt_type, "%1b%1b%0s", (_FMT_)grpid, (_FMT_)hookid, desc); 
 
 #if !defined(ASCII_TRACE)
         pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());

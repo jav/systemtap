@@ -1,3 +1,9 @@
+2006-11-11  Li Guanglei <guanglei@cn.ibm.com>
+
+	* register_event.stp: pass integer values explicitly
+	as 64-bit into _lket_trace() to avoid error when parse
+	va-arg by _stp_printf
+	
 2006-11-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* iosyscall.stp: add some trace aliases
