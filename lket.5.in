@@ -48,7 +48,7 @@ an output file named
 .IR lket.out .
 or dump the trace data into MySQL database.
 See
-.IR lket-b2a (1) 
+.IR lket\-b2a (1) 
 manual page for more detail.
 
 If you want LKET to log trace data in ASCII format directly, you should:
@@ -180,9 +180,9 @@ stap \-e "probe addevent.netdev.transmit { printf(\\"%4b%4b\\", $skb\->mac_len, 
 
 .P
 You can press "Ctrl+c" to stop the tracing. Then you will find there are one or more per-cpu data files (stpd_cpu*) on current directory. You can use
-.I lket-b2a
+.I lket\-b2a
 to convert these binary trace data files into readable ascii format or dump them into database. See
-.IR lket-b2a (1)
+.IR lket\-b2a (1)
 man page for more detail.
 
 .SH EVENT HOOKS AND TRACE DATA FORMAT
@@ -1454,4 +1454,4 @@ Data format is:
 
 .SH SEE ALSO
 .IR stap (1)
-.IR lket-b2a (1)
+.IR lket\-b2a (1)

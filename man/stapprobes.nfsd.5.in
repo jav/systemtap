@@ -118,7 +118,7 @@ Fires whenever client writes data to file on server
   number of blocks to written 
 
 .I stable 
-   argp->stable(only for nfs.proc3.write)
+   argp\->stable(only for nfs.proc3.write)
 
 .P
 .TP
