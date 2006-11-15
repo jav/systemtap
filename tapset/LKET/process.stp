@@ -9,23 +9,23 @@
    will be turned on by default */
 
 /* record the newly created process name */
-function log_execve_tracedata(var_id:long, var:long)
+function log_execve_tracedata(var:long)
 %{
 	long tmp=(long)THIS->var;
-	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b%0s", 
+	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_EXECVE, "%4b%0s", 
 		(_FMT_)current->tgid, (char *)tmp); 
 %}
 
 
 /* record the newly forked process id */
-function log_fork_tracedata(var_id:long, task:long)
+function log_fork_tracedata(task:long)
 %{
 	/*
 	pid_t pid = (pid_t)THIS->var;	
 	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", (_FMT_)pid); 
 	*/
 	struct task_struct *task = (struct task_struct *)((long)THIS->task);
-	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b%4b%4b", (_FMT_)task->pid, 
+	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_FORK, "%4b%4b%4b", (_FMT_)task->pid, 
 		(_FMT_)task->tgid, (_FMT_)task->parent->tgid); 
 %}
 
@@ -80,7 +80,7 @@ probe _lket_internal.process.execve
 	=  process.exec
 {
 	if(stoptrace_exec==1) next;
-	log_execve_tracedata(HOOKID_PROCESS_EXECVE, $filename)
+	log_execve_tracedata($filename)
 }
 
 probe lket_internal.process.fork
@@ -93,5 +93,5 @@ probe _lket_internal.process.fork
 	= process.create
 {
 	if(stoptrace_fork==1) next;
-	log_fork_tracedata(HOOKID_PROCESS_FORK, $return)
+	log_fork_tracedata($return)
 }

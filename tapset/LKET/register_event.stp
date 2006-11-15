@@ -684,6 +684,7 @@ function register_sys_events()
 	_register_sys_event("nfs.fop.check_flags.entry",
 		_GROUP_NFS, _HOOKID_NFS_FOP_CHECKFLAGS_ENTRY,
                 "INT32","flag");		
+	////TODO unable to resovle $return
 	_register_sys_event("nfs.fop.check_flags.return",
 		_GROUP_NFS, _HOOKID_NFS_FOP_CHECKFLAGS_RETURN,
                 "INT32","return");
@@ -752,7 +753,6 @@ function register_sys_events()
 		_GROUP_NFS, _HOOKID_NFS_AOP_RELEASEPAGE_RETURN,
                 "INT32","return");
 
-///FIXME
 	_register_sys_event("nfs.proc.lookup.entry",
 		_GROUP_NFS, _HOOKID_NFS_PROC_LOOKUP_ENTRY,
                 "INT8:INT8:INT64:INT8:STRING",

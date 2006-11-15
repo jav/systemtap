@@ -265,8 +265,7 @@ function log_fop_open(s_id:long,ino:long,flag :long , filename:string)
 
 	getdevice(s_id,&major,&minor);
 	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_OPEN_ENTRY,"%1b%1b%8b%4b%0s",
-		(_FMT_)major,(_FMT_)minor,
-			                                     THIS->ino,THIS->flag,THIS->filename);
+		(_FMT_)major,(_FMT_)minor, THIS->ino,THIS->flag,THIS->filename);
 %}
 
 probe addevent.nfs.fop.open.return
@@ -470,6 +469,7 @@ function log_fop_check_flags(flag:long)
 	_lket_trace(_GROUP_NFS,_HOOKID_NFS_FOP_CHECKFLAGS_ENTRY,"%4b",THIS->flag);
 %}
 
+///FIXME: unable to resovle $return
 /*
 probe addevent.nfs.fop.check_flags.return
       += _addevent.nfs.fop.check_flags.return
@@ -703,7 +703,7 @@ probe addevent.nfs.aop.set_page_dirty.entry
 probe _addevent.nfs.aop.set_page_dirty.entry
       = nfs.aop.set_page_dirty
 {
-//	log_aop_set_page_dirty(__page,page_flag)
+	log_aop_set_page_dirty(__page,page_flag)
 }
 
 function log_aop_set_page_dirty(__page:long,page_flag:long)
@@ -721,7 +721,7 @@ probe addevent.nfs.aop.set_page_dirty.return
 probe _addevent.nfs.aop.set_page_dirty.return
      = nfs.aop.set_page_dirty.return
 {
-	//log_nfs_return(HOOKID_NFS_AOP_SETPAGEDIRTY_RETURN,$return)
+	log_nfs_return(HOOKID_NFS_AOP_SETPAGEDIRTY_RETURN,$return)
 }
 
 probe addevent.nfs.aop.release_page.entry

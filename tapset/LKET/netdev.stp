@@ -25,7 +25,7 @@ probe _addevent.netdev.receive
 	=  netdev.receive
 {
 	/* no need to filter by pid */
-	log_netdev_extra(HOOKID_NETDEV_RECEIVE,$skb)
+	log_netdev_extra(HOOKID_NETDEV_RECEIVE, dev_name, length, protocol, truesize)
 }
 
 /* Queue a buffer for transmission to a network device */
@@ -38,12 +38,12 @@ probe addevent.netdev.transmit
 probe _addevent.netdev.transmit
 	=  netdev.transmit
 {
-	log_netdev_extra(HOOKID_NETDEV_TRANSMIT, $skb)
+	log_netdev_extra(HOOKID_NETDEV_TRANSMIT, dev_name, length, protocol, truesize)
 }
 
-function log_netdev_extra(var_id:long, var:long)
+function log_netdev_extra(var_id:long, dev_name:string, len:long, 
+			protocol:long, truesize:long)
 %{
-	struct sk_buff *skb = (struct sk_buff *)((long)THIS->var);
 
 	/* dev_name | Length of actual data | protocol | Buffer size 
 
@@ -62,6 +62,6 @@ function log_netdev_extra(var_id:long, var:long)
 		86DD    IPv6
 	*/
 
-	_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", skb->dev->name, 
-		(_FMT_)skb->len, (_FMT_)skb->protocol, (_FMT_)skb->truesize);
+	_lket_trace(_GROUP_NETDEV, THIS->var_id, "%0s%4b%2b%4b", THIS->dev_name,
+		THIS->len, THIS->protocol, THIS->truesize);
 %}

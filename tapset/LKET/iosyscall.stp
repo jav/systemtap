@@ -74,7 +74,7 @@ probe addevent.iosyscall.open.entry
 probe _addevent.iosyscall.open.entry 
 	= syscall.open
 {
-	log_iosyscall_open(HOOKID_IOSYSCALL_OPEN_ENTRY, filename, flags, mode)
+	log_iosyscall_open(filename, flags, mode)
 }
 
 probe addevent.iosyscall.open.return
@@ -89,15 +89,15 @@ probe _addevent.iosyscall.open.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_OPEN_RETURN, $return)
 }
 
-function log_iosyscall_open(hookid:long, filename:string, flags:long, mode:long)
+function log_iosyscall_open(filename:string, flags:long, mode:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, 
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_OPEN_ENTRY,
 		"%0s%4b%4b", THIS->filename, THIS->flags, THIS->mode);
 %}
 
 function log_iosyscall_return(hookid:long, ret_val:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, "%8b", (_FMT_)THIS->ret_val);
+	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, "%8b", THIS->ret_val);
 %}
 
 /*
@@ -116,7 +116,7 @@ probe addevent.iosyscall.close.entry
 probe _addevent.iosyscall.close.entry 
 	= syscall.close
 {
-	log_iosyscall_close(HOOKID_IOSYSCALL_CLOSE_ENTRY,fd)
+	log_iosyscall_close(fd)
 }
 
 probe addevent.iosyscall.close.return
@@ -131,9 +131,9 @@ probe _addevent.iosyscall.close.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_CLOSE_RETURN, $return)
 }
 
-function log_iosyscall_close(hookid:long, fd:long)
+function log_iosyscall_close(fd:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, "%8b", THIS->fd);
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_CLOSE_ENTRY, "%8b", THIS->fd);
 %}
 
 /*
@@ -152,7 +152,7 @@ probe addevent.iosyscall.read.entry
 probe _addevent.iosyscall.read.entry
 	= syscall.read
 {
-	log_iosyscall_read_write(HOOKID_IOSYSCALL_READ_ENTRY, fd, buf_uaddr, count)
+	log_iosyscall_read(fd, buf_uaddr, count)
 }
 
 probe addevent.iosyscall.read.return
@@ -183,7 +183,7 @@ probe addevent.iosyscall.write.entry
 probe _addevent.iosyscall.write.entry
 	= syscall.write
 {
-	log_iosyscall_read_write(HOOKID_IOSYSCALL_WRITE_ENTRY, fd, buf_uaddr, count)
+	log_iosyscall_write(fd, buf_uaddr, count)
 }
 
 probe addevent.iosyscall.write.return
@@ -198,12 +198,18 @@ probe _addevent.iosyscall.write.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_WRITE_RETURN, $return)
 }
 	
-function log_iosyscall_read_write(hookid:long, fd:long, buf_uaddr:long,
-		count:long)
+function log_iosyscall_read(fd:long, buf_uaddr:long, count:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, "%8b%8b%8b",
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_READ_ENTRY, "%8b%8b%8b",
 		THIS->fd, THIS->buf_uaddr, THIS->count);
 %}
+
+function log_iosyscall_write(fd:long, buf_uaddr:long, count:long)
+%{
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_WRITE_ENTRY, "%8b%8b%8b",
+		THIS->fd, THIS->buf_uaddr, THIS->count);
+%}
+
 
 /*
   addevent.iosyscall.readv.{entry,return}
@@ -361,7 +367,7 @@ probe addevent.iosyscall.readahead.entry
 probe _addevent.iosyscall.readahead.entry
 	= syscall.readahead
 {
-	log_iosyscall_readahead(HOOKID_IOSYSCALL_READAHEAD_ENTRY, fd, offset, count)
+	log_iosyscall_readahead(fd, offset, count)
 }
 
 probe addevent.iosyscall.readahead.return
@@ -377,9 +383,9 @@ probe _addevent.iosyscall.readahead.return
 }
 
 
-function log_iosyscall_readahead(hookid:long, fd:long, offset:long,count:long)
+function log_iosyscall_readahead(fd:long, offset:long,count:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid,
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_READAHEAD_ENTRY,
 		"%8b%8b%8b", THIS->fd, THIS->offset, THIS->count);
 %}
 
@@ -399,8 +405,7 @@ probe addevent.iosyscall.sendfile.entry
 probe _addevent.iosyscall.sendfile.entry
 	= syscall.sendfile
 {
-	log_iosyscall_sendfile(HOOKID_IOSYSCALL_SENDFILE_ENTRY,
-		out_fd, in_fd, offset_uaddr, count)
+	log_iosyscall_sendfile(out_fd, in_fd, offset_uaddr, count)
 }
 
 probe addevent.iosyscall.sendfile.return
@@ -415,12 +420,10 @@ probe _addevent.iosyscall.sendfile.return
 	 log_iosyscall_return(HOOKID_IOSYSCALL_SENDFILE_RETURN, $return)
 }
 	
-function log_iosyscall_sendfile(hookid:long, out_fd:long, in_fd:long,
-		offset_uaddr:long, count:long)
+function log_iosyscall_sendfile(out_fd:long, in_fd:long, offset_uaddr:long, count:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid, "%8b%8b%8b%8b",
-		THIS->out_fd, THIS->in_fd, THIS->offset_uaddr,
-		THIS->count);
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_SENDFILE_ENTRY, "%8b%8b%8b%8b",
+		THIS->out_fd, THIS->in_fd, THIS->offset_uaddr, THIS->count);
 %}
 
 /*
@@ -439,7 +442,7 @@ probe addevent.iosyscall.lseek.entry
 probe _addevent.iosyscall.lseek.entry
 	= syscall.lseek
 {
-	log_iosyscall_lseek(HOOKID_IOSYSCALL_LSEEK_ENTRY, fildes, offset, whence)
+	log_iosyscall_lseek(fildes, offset, whence)
 }
 
 probe addevent.iosyscall.lseek.return
@@ -454,9 +457,9 @@ probe _addevent.iosyscall.lseek.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_LSEEK_RETURN, $return)
 }
 
-function log_iosyscall_lseek(hookid:long, fd:long, offset:long, whence:long)
+function log_iosyscall_lseek(fd:long, offset:long, whence:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid,
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_LSEEK_ENTRY,
 		"%8b%8b%1b", THIS->fd, THIS->offset, THIS->whence);
 %}
 
@@ -476,8 +479,7 @@ probe addevent.iosyscall.llseek.entry
 probe _addevent.iosyscall.llseek.entry
 	= syscall.llseek
 {
-	log_iosyscall_llseek(HOOKID_IOSYSCALL_LLSEEK_ENTRY, 
-		fd, offset_high, offset_low, result_uaddr, whence)
+	log_iosyscall_llseek(fd, offset_high, offset_low, result_uaddr, whence)
 }
 
 probe addevent.iosyscall.llseek.return
@@ -492,10 +494,10 @@ probe _addevent.iosyscall.llseek.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_LLSEEK_RETURN, $return)
 }
 
-function log_iosyscall_llseek(hookid:long, fd:long, offset_high:long, 
+function log_iosyscall_llseek(fd:long, offset_high:long, 
 		offset_low:long, result_uaddr:long, whence:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid,
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_LLSEEK_ENTRY,
 		"%8b%8b%8b%8b%1b", THIS->fd, THIS->offset_high,
 		THIS->offset_low, THIS->result_uaddr, THIS->whence);
 %}
@@ -516,7 +518,7 @@ probe addevent.iosyscall.sync.entry
 probe _addevent.iosyscall.sync.entry
 	= syscall.sync
 {
-	log_iosyscall_sync(HOOKID_IOSYSCALL_SYNC_ENTRY)
+	log_iosyscall_sync()
 }
 
 probe addevent.iosyscall.sync.return
@@ -531,7 +533,7 @@ probe _addevent.iosyscall.sync.return
 	 log_iosyscall_return(HOOKID_IOSYSCALL_SYNC_RETURN, $return)
 }
 
-function log_iosyscall_sync(hookid:long)
+function log_iosyscall_sync()
 %{
 	int GroupID = _GROUP_IOSYSCALL;
 	int hookID = _HOOKID_IOSYSCALL_SYNC_ENTRY;
@@ -539,7 +541,7 @@ function log_iosyscall_sync(hookid:long)
         do_gettimeofday(&tv); 
 #if defined(ASCII_TRACE)
 	_stp_printf("%d%d%d%d%d%d%d%d", _GROUP_IOSYSCALL,
-		THIS->hookid, tv.tv_sec, tv.tv_usec,
+		_HOOKID_IOSYSCALL_SYNC_ENTRY, tv.tv_sec, tv.tv_usec,
 		current->tgid, current->parent->pid, current->pid,
                 current->thread_info->cpu);
 
@@ -655,7 +657,7 @@ probe addevent.iosyscall.flock.entry
 probe _addevent.iosyscall.flock.entry
 	= syscall.flock
 {
-	log_iosyscall_flock(HOOKID_IOSYSCALL_FLOCK_ENTRY, fd, operation)
+	log_iosyscall_flock(fd, operation)
 }
 
 probe addevent.iosyscall.flock.return
@@ -670,8 +672,8 @@ probe _addevent.iosyscall.flock.return
 	log_iosyscall_return(HOOKID_IOSYSCALL_FLOCK_RETURN, $return)
 }
 
-function log_iosyscall_flock(hookid:long, fd:long, operation:long)
+function log_iosyscall_flock(fd:long, operation:long)
 %{
-	_lket_trace(_GROUP_IOSYSCALL, THIS->hookid,
+	_lket_trace(_GROUP_IOSYSCALL, _HOOKID_IOSYSCALL_FLOCK_ENTRY,
 		"%8b%4b", THIS->fd, THIS->operation);
 %}

@@ -5,10 +5,10 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
-function log_pagefault_tracedata(var_id:long, var_addr:long, var_rwflag:long)
+function log_pagefault_tracedata(var_addr:long, var_rwflag:long)
 %{
-	_lket_trace(_GROUP_PAGEFAULT, THIS->var_id, "%8b%1b", 
-		(int64_t)(THIS->var_addr), (_FMT_)((THIS->var_rwflag)?1:0)); 
+	_lket_trace(_GROUP_PAGEFAULT, _HOOKID_PAGEFAULT, "%8b%1b", 
+		THIS->var_addr, (_FMT_)((THIS->var_rwflag)?1:0)); 
 %}
 
 
@@ -22,5 +22,5 @@ probe addevent.pagefault
 probe _addevent.pagefault
 	=  vm.pagefault
 {
-	log_pagefault_tracedata(HOOKID_PAGEFAULT, $address, $write_access)
+	log_pagefault_tracedata($address, $write_access)
 }
