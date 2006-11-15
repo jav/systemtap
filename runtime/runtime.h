@@ -71,12 +71,12 @@ static struct
 #define TRYLOCKDELAY 100
 #endif
 
+#include "alloc.c"
 #include "print.c"
 #include "string.c"
 #include "arith.c"
 #include "copy.c"
 #include "sym.h"
-#include "alloc.c"
 #ifdef STP_PERFMON
 #include "perf.c"
 #endif

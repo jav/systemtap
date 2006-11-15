@@ -11,6 +11,10 @@
 #ifndef _ALLOC_C_
 #define _ALLOC_C_
 
+
+#define STP_ALLOC_FLAGS (GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN)
+#define _stp_vmalloc(size) __vmalloc(size, STP_ALLOC_FLAGS, PAGE_KERNEL)
+
 /* This file exists because all the NUMA-compatible allocators keep
    changing in 2.6 */
 
@@ -19,20 +23,16 @@
 #endif /* LINUX_VERSION_CODE */
 
 #ifdef CONFIG_SMP
-#define _stp_free_percpu(ptr) free_percpu(ptr)
-#else
-#define _stp_free_percpu(ptr) kfree(ptr)
-#endif
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,15)
 #define _stp_alloc_percpu(size) __alloc_percpu(size, 8)
-#else
-#ifdef CONFIG_SMP
+#define _stp_free_percpu(ptr) free_percpu(ptr)
+#else /* LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,15) */
+
 /* This is like alloc_percpu() except it simply takes a size, instead of a type. */
 void *_stp_alloc_percpu(size_t size)
 {
 	int i;
-	struct percpu_data *pdata = kmalloc(sizeof (*pdata), GFP_KERNEL);
+	struct percpu_data *pdata = kmalloc(sizeof (*pdata), STP_ALLOC_FLAGS);
 
 	if (!pdata)
 		return NULL;
@@ -41,9 +41,9 @@ void *_stp_alloc_percpu(size_t size)
 		int node = cpu_to_node(i);
 
 		if (node_online(node))
-			pdata->ptrs[i] = kmalloc_node(size, GFP_KERNEL, node);
+			pdata->ptrs[i] = kmalloc_node(size, STP_ALLOC_FLAGS, node);
 		else
-			pdata->ptrs[i] = kmalloc(size, GFP_KERNEL);
+			pdata->ptrs[i] = kmalloc(size, STP_ALLOC_FLAGS);
 
 		if (!pdata->ptrs[i])
 			goto unwind_oom;
@@ -72,14 +72,17 @@ void _stp_free_percpu(const void *objp)
 		kfree(p->ptrs[i]);
 	kfree(p);
 }
-#else
+#endif /* LINUX_VERSION_CODE */
+
+#else /* CONFIG_SMP */
+#define _stp_free_percpu(ptr) kfree(ptr)
 void *_stp_alloc_percpu(size_t size)
 {
-        void *ret = kmalloc(size, GFP_KERNEL);
+        void *ret = kmalloc(size, STP_ALLOC_FLAGS);
         if (ret)
                 memset(ret, 0, size);
         return ret;
 }
 #endif /* CONFIG_SMP */
-#endif /* LINUX_VERSION_CODE */
+
 #endif /* _ALLOC_C_ */

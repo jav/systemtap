@@ -96,7 +96,7 @@ Stat _stp_stat_init (int type, ...)
 		}
 		va_end (ap);
 	}
-	st = (Stat) kmalloc (sizeof(struct _Stat), GFP_KERNEL);
+	st = (Stat) kmalloc (sizeof(struct _Stat), STP_ALLOC_FLAGS);
 	if (st == NULL)
 		return NULL;
 	
@@ -115,7 +115,7 @@ Stat _stp_stat_init (int type, ...)
 	}
 #endif
 	
-	agg = (stat *)kmalloc (size, GFP_KERNEL);
+	agg = (stat *)kmalloc (size, STP_ALLOC_FLAGS);
 	if (agg == NULL)
 		goto exit2;
 

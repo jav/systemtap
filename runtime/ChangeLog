@@ -1,3 +1,10 @@
+2006-11-15  Martin Hunt  <hunt@redhat.com>
+
+	* alloc.c (STP_ALLOC_FLAGS): Define.
+	Cleanup ifdefs.
+	* map.c: Use STP_ALLOC_FLAGS.
+	* stat.c: ditto.
+
 2006-11-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* transport/procfs.c: bugfix of the obsolete buf_info

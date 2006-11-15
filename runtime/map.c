@@ -187,8 +187,8 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		return -1;
 	}
 	if (max_entries) {
-		void *tmp;
 		int i;
+		void *tmp;
 		
 		/* size is the size of the map_node. */
 		/* add space for the value. */
@@ -202,14 +202,12 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		
 		for (i = 0; i < max_entries; i++) {
 			if (cpu < 0)
-				tmp = kmalloc(size, GFP_KERNEL);
+				tmp = kmalloc(size, STP_ALLOC_FLAGS);
 			else
-				tmp = kmalloc_node(size, GFP_KERNEL, cpu);
+				tmp = kmalloc_node(size, STP_ALLOC_FLAGS, cpu);
 		
-			if (!tmp) {
-				_stp_error("Allocating memory while creating map failed.\n");
-				return -1;
-			}
+			if (!tmp)
+				return -1;;
 			
 			dbug ("allocated %lx\n", (long)tmp);
 			list_add((struct list_head *)tmp, &m->pool);
@@ -219,12 +217,12 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 	if (type == STAT)
 		m->hist.type = HIST_NONE;
 	return 0;
-      }
+}
 
 
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
 {
-	MAP m = (MAP) kmalloc(sizeof(struct map_root), GFP_KERNEL);
+	MAP m = (MAP) kmalloc(sizeof(struct map_root), STP_ALLOC_FLAGS);
 	if (m == NULL)
 		return NULL;
 
@@ -243,7 +241,7 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	int i;
 	MAP map, m;
 
-	PMAP pmap = (PMAP) kmalloc(sizeof(struct pmap), GFP_KERNEL);
+	PMAP pmap = (PMAP) kmalloc(sizeof(struct pmap), STP_ALLOC_FLAGS);
 	if (pmap == NULL)
 		return NULL;
 
