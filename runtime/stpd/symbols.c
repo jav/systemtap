@@ -148,8 +148,8 @@ void do_kernel_symbols(void)
 		cleanup_and_exit(0);
 	}
 	*(int *)data_base = STP_SYMBOLS;
-	dataptr = data = data_base + sizeof(int);
-	datamax = dataptr + MAX_SYMBOLS*32 - sizeof(int);
+	dataptr = data = data_base + sizeof(long);
+	datamax = dataptr + MAX_SYMBOLS*32 - sizeof(long);
 
 	*(int *)sym_base = STP_SYMBOLS;
 	syms = (struct _stp_symbol *)(sym_base + sizeof(long));
@@ -195,15 +195,16 @@ void do_kernel_symbols(void)
 #endif
 
 	/* send header */
-	*(int *)buf = num_syms;
-	*(int *)(buf+4) = (unsigned)(dataptr - data);
-	send_request(STP_SYMBOLS, buf, 8);
+	*(int *)buf = STP_SYMBOLS;
+	*(int *)(buf+sizeof(long)) = num_syms;
+	*(int *)(buf+sizeof(long)+sizeof(int)) = (unsigned)(dataptr - data);
+	send_data(buf, 2*sizeof(int)+sizeof(long));
 
 	/* send syms */
 	send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(long));
 	
 	/* send data */
-	send_data(data_base, dataptr-data+sizeof(int));
+	send_data(data_base, dataptr-data+sizeof(long));
 
 	free(data_base);
 	free(sym_base);
