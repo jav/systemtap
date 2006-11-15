@@ -1,3 +1,8 @@
+2006-11-15  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (do_kernel_symbols): Add sizeof(long) to sym_base
+	to preserve 64-bit alignment.
+
 2006-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* librelay.c: Change all references to transport messages

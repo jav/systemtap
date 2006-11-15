@@ -141,7 +141,7 @@ void do_kernel_symbols(void)
 	struct _stp_symbol *syms;
 	int num_syms, i = 0;
 
-	sym_base = malloc(MAX_SYMBOLS*sizeof(struct _stp_symbol)+sizeof(int));
+	sym_base = malloc(MAX_SYMBOLS*sizeof(struct _stp_symbol)+sizeof(long));
 	data_base = malloc(MAX_SYMBOLS*32);
 	if (data_base == NULL || sym_base == NULL) {
 		fprintf(stderr,"Failed to allocate memory for symbols\n");
@@ -152,7 +152,7 @@ void do_kernel_symbols(void)
 	datamax = dataptr + MAX_SYMBOLS*32 - sizeof(int);
 
 	*(int *)sym_base = STP_SYMBOLS;
-	syms = (struct _stp_symbol *)(sym_base + sizeof(int));
+	syms = (struct _stp_symbol *)(sym_base + sizeof(long));
 
 	kallsyms = fopen ("/proc/kallsyms", "r");
 	if (!kallsyms) {
@@ -200,7 +200,7 @@ void do_kernel_symbols(void)
 	send_request(STP_SYMBOLS, buf, 8);
 
 	/* send syms */
-	send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(int));
+	send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(long));
 	
 	/* send data */
 	send_data(data_base, dataptr-data+sizeof(int));
