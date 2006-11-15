@@ -81,8 +81,13 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 
 	//printk ("_stp_proc_write_cmd. count:%d type:%d\n", count, type);
 
-	count -= sizeof(int);
-	buf += sizeof(int);
+	if (type == STP_SYMBOLS) {
+		count -= sizeof(long);
+		buf += sizeof(long);
+	} else {
+		count -= sizeof(int);
+		buf += sizeof(int);
+	}
 
 	switch (type) {
 	case STP_START:
@@ -270,7 +275,7 @@ static int _stp_set_buffers(int num)
 	
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
-			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),GFP_KERNEL);
+			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
 			if (!p)	{
 				_stp_current_buffers += i;
 				goto err;
@@ -309,7 +314,7 @@ static int _stp_register_procfs (void)
 
 	/* allocate buffers */
 	for (i = 0; i < STP_DEFAULT_BUFFERS; i++) {
-		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),GFP_KERNEL);
+		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err2;
@@ -345,7 +350,7 @@ static int _stp_register_procfs (void)
 		if (de == NULL) 
 			goto err1;
 		de->proc_fops = &_stp_proc_fops;
-		de->data = kmalloc(sizeof(int), GFP_KERNEL);
+		de->data = kmalloc(sizeof(int), STP_ALLOC_FLAGS);
 		if (de->data == NULL) {
 			remove_proc_entry (buf, _stp_proc_mod);
 			goto err1;

@@ -1,3 +1,11 @@
+2006-11-15  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c (_stp_proc_write_cmd): For STP_SYMBOLS, 
+	type field is a long to preserve alignment.
+	Use STP_ALLOC_FLAGS.
+
+	* symbols.c: Use STP_ALLOC_FLAGS.
+	
 2006-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h: Change all ints to int32_t. Prefix

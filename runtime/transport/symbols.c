@@ -63,22 +63,22 @@ static unsigned _stp_get_sym_sizes(struct module *m, unsigned *dsize)
 /* allocate space for a module and symbols */
 static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 {
-	struct _stp_module *mod = (struct _stp_module *)kmalloc(sizeof(struct _stp_module), GFP_KERNEL);
+	struct _stp_module *mod = (struct _stp_module *)kmalloc(sizeof(struct _stp_module), STP_ALLOC_FLAGS);
 	if (mod == NULL)
 		goto bad;
 
 	memset(mod, 0, sizeof(struct _stp_module));
-	mod->symbols = (struct _stp_symbol *)kmalloc(num * sizeof(struct _stp_symbol), GFP_KERNEL);
+	mod->symbols = (struct _stp_symbol *)kmalloc(num * sizeof(struct _stp_symbol), STP_ALLOC_FLAGS);
 	if (mod->symbols == NULL) {
-		mod->symbols = (struct _stp_symbol *)vmalloc(num * sizeof(struct _stp_symbol));
+		mod->symbols = (struct _stp_symbol *)_stp_vmalloc(num * sizeof(struct _stp_symbol));
 		if (mod->symbols == NULL)
 			goto bad;
 		mod->allocated = 1;
 	}
 
-	mod->symbol_data = kmalloc(datasize, GFP_KERNEL);
+	mod->symbol_data = kmalloc(datasize, STP_ALLOC_FLAGS);
 	if (mod->symbol_data == NULL) {
-		mod->symbol_data = vmalloc(datasize);
+		mod->symbol_data = _stp_vmalloc(datasize);
 		if (mod->symbol_data == NULL)
 			goto bad;
 		mod->allocated |= 2;
@@ -360,7 +360,7 @@ static int _stp_do_module(const char __user *buf, int count)
 		return count;
 
 	/* copy in section data */
-	tmpmod.sections = kmalloc(count - sizeof(tmpmod), GFP_KERNEL);
+	tmpmod.sections = kmalloc(count - sizeof(tmpmod), STP_ALLOC_FLAGS);
 	if (tmpmod.sections == NULL) {
 		printk("_stp_do_module: unable to allocate memory.\n");
 		return -EFAULT;
