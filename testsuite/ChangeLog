@@ -1,3 +1,6 @@
+2006-11-16  Li Guanglei <guanglei@cn.ibm.com>
+	* buildok/lket.stp: check for all available LKET trace hooks.
+
 2006-11-10  David Smith  <dsmith@redhat.com>
 
 	* semko/maxactive03.stp: Stop on pass2 instead of on pass1.
