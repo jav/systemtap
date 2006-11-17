@@ -14,10 +14,12 @@
 		}
 	}
 %}
+
 probe never
 {
-	printf("%d",GROUP_NFSD)
+        printf("%d\n", GROUP_PROCESS)
 }
+
 
 probe addevent.nfsd
                = addevent.nfsd.entry,

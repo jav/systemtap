@@ -167,6 +167,8 @@ function register_sys_events()
 		"INT32:STRING", "pid:pname");
 	_register_sys_event("process.fork", _GROUP_PROCESS, _HOOKID_PROCESS_FORK,
 		"INT32:INT32:INT32", "tid:pid:ppid");
+	_register_sys_event("process.exit.entry", _GROUP_PROCESS, _HOOKID_PROCESS_EXIT_ENTRY,
+		"INT64", "code");
 
 	_register_sys_event("ioscheduler.elv_next_request.entry",
 		_GROUP_IOSCHED, _HOOKID_IOSCHED_NEXT_REQ_ENTRY,

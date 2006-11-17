@@ -1,3 +1,10 @@
+2006-11-17  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Eugene Teo <eteo@redhat.com>
+
+	* process.stp, register_event.stp, hookid_defs.stp: add
+	trace hooks for addevent.process.exit.entry
+
 2006-11-15  Li Guanglei <guanglei@cn.ibm.com>
 
 	* aio.stp, iosyscall.stp, pagefault.stp, process.stp:

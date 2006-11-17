@@ -59,6 +59,27 @@ function process_snapshot()
 	}
 %}
 
+probe addevent.process = addevent.process.exit {}
+probe addevent.process.exit = addevent.process.exit.entry {}
+
+probe addevent.process.exit.entry
+	+= _addevent.process.exit.entry
+{
+	update_record()
+}
+
+probe _addevent.process.exit.entry
+	= process.exit
+{
+	log_process_exit(code)
+}
+
+function log_process_exit(code:long)
+%{
+	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_EXIT_ENTRY,
+		"%8b", THIS->code);
+%}
+
 probe lket_internal.process { }
 
 probe lket_internal.process
@@ -95,3 +116,5 @@ probe _lket_internal.process.fork
 	if(stoptrace_fork==1) next;
 	log_fork_tracedata($return)
 }
+
+
