@@ -1,0 +1,7 @@
+#! stap -p2
+
+probe kernel.function("kmem_cache_alloc") {
+  print ($cachep->no_such_field)
+  print ($cachep->array->should_have_indexed_it)
+  print ($cachep->next)
+}

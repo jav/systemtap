@@ -1169,7 +1169,8 @@ c_unparser::emit_function (functiondecl* v)
   for (unsigned i=0; i<v->locals.size(); i++)
     {
       if (v->locals[i]->index_types.size() > 0) // array?
-	throw semantic_error ("array locals not supported", v->locals[i]->tok);
+	throw semantic_error ("array locals not supported, missing global declaration?", 
+                              v->locals[i]->tok);
 
       o->newline() << getvar (v->locals[i]).init();
     }
@@ -1274,7 +1275,8 @@ c_unparser::emit_probe (derived_probe* v)
       for (unsigned j=0; j<v->locals.size(); j++)
         {
 	  if (v->locals[j]->index_types.size() > 0) // array?
-	    throw semantic_error ("array locals not supported", v->tok);
+            throw semantic_error ("array locals not supported, missing global declaration?", 
+                                  v->locals[j]->tok);
 	  else if (v->locals[j]->type == pe_long)
 	    o->newline() << "l->" << c_varname (v->locals[j]->name)
 			 << " = 0;";

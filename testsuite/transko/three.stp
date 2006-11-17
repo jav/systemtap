@@ -1,0 +1,6 @@
+#! stap -p3
+
+probe end {
+  array[1,2] = 5
+  print (array[4,6])
+}

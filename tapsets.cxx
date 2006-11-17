@@ -1396,7 +1396,7 @@ struct dwflpp
 		   || ({ const char *member = dwarf_diename_integrate (die);
 		       member == NULL || string(member) != components[i].second; }))
 	      if (dwarf_siblingof (die, die_mem) != 0)
-		throw semantic_error ("field name " + components[i].second + " not found");
+		throw semantic_error ("field '" + components[i].second + "' not found");
 
 	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
 				      attr_mem) == NULL)
@@ -1404,9 +1404,9 @@ struct dwflpp
 		/* Union members don't usually have a location,
 		   but just use the containing union's location.  */
 		if (typetag != DW_TAG_union_type)
-		  throw semantic_error ("no location for field "
+		  throw semantic_error ("no location for field '"
 					+ components[i].second
-					+ " :" + string(dwarf_errmsg (-1)));
+					+ "' :" + string(dwarf_errmsg (-1)));
 	      }
 	    else
 	      translate_location (pool, attr_mem, pc, NULL, tail);
@@ -1414,9 +1414,9 @@ struct dwflpp
 	    break;
 
 	  case DW_TAG_base_type:
-	    throw semantic_error ("field "
+	    throw semantic_error ("field '"
 				  + components[i].second
-				  + " vs base type "
+				  + "' vs. base type "
 				  + string(dwarf_diename_integrate (die) ?: "<anonymous type>"));
 	    break;
 	  case -1:
@@ -2937,6 +2937,9 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // up not being referenced after all, so it can be optimized out
       // quietly.
       provide <target_symbol*> (this, e);
+      semantic_error* saveme = new semantic_error (er); // copy it
+      saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
+      e->saved_conversion_error = saveme;
       delete fdecl;
       delete ec;
       return;

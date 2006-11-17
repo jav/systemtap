@@ -1,4 +1,9 @@
+2006-11-17  Frank Ch. Eigler  <fche@redhat.com>
+
+	* semko/thirtysix.stp, transko/three.stp: New tests.
+
 2006-11-16  Li Guanglei <guanglei@cn.ibm.com>
+	
 	* buildok/lket.stp: check for all available LKET trace hooks.
 
 2006-11-10  David Smith  <dsmith@redhat.com>
