@@ -264,7 +264,8 @@ int main(int argc, char *argv[])
 
 				if(HDR_GroupID(&hdrs[j])==_GROUP_PROCESS &&
 					(HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_SNAPSHOT 
-					|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE))
+					|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_EXECVE
+					|| HDR_HookID(&hdrs[j])==_HOOKID_PROCESS_FORK))
 				{
 					register_appname(j, infps[j], &hdrs[j]);
 				}
@@ -360,7 +361,7 @@ failed:
   and addevent.process.execve */
 void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 {
-	int pid;
+	int pid, tid, ppid;
 	char *appname=NULL;
 	int count;
 	int len;
@@ -374,8 +375,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 
 	if(into_db)  {
 		if(flag==0)  {
-			if(mysql_query(&mysql, "create table appNameMap ( \
-				pid INT, pname varchar(20))"))  {
+			if(mysql_query(&mysql, "create table appNameMap ( pid INT, pname varchar(20))"))  {
 				fprintf(stderr, "Failed to create appNameMap table, Error: %s\n",
 					mysql_error(&mysql));
 				exit(-1);
@@ -388,9 +388,9 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 	location = ftell(fp);
 
 	if(HDR_HookID(phdr) == _HOOKID_PROCESS_SNAPSHOT )  {  /* process_snapshot */
-		fseek(fp, 4, SEEK_CUR); /* skip tid */
+		fread(&tid, 1, 4, fp); /* read tid */
 		fread(&pid, 1, 4, fp); /* read pid */
-		fseek(fp, 4, SEEK_CUR); /* skip ppid */
+		fread(&ppid, 1, 4, fp); /* read ppid */
 		c = fgetc_unlocked(fp);
 		len+=13;
 		while (c && len < 1024) {
@@ -399,21 +399,10 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
-#ifdef HAS_MYSQL
-		if(into_db)  {
-			snprintf(sql, 256, "insert into appNameMap values \
-				( %d, \"%s\")", pid, appname);
-			if(mysql_query(&mysql,sql))  {
-				fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
-					sql, mysql_error(&mysql));
-			exit(-1);
-			}
-		}
-#endif
-		//fseek(fp, 0-len, SEEK_CUR);
 	} else if (HDR_HookID(phdr) == _HOOKID_PROCESS_EXECVE)  { /* process.execve */
+		fread(&tid, 1, 4, fp); /* read tid */
 		fread(&pid, 1, 4, fp); /* read pid */
-
+		fread(&ppid, 1, 4, fp); /* read ppid */
 		c = fgetc_unlocked(fp);
 		len+=5;
 		while (c && len < 1024) {
@@ -422,10 +411,21 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			++len;
 		}
 		appname[count]='\0';
+	} else  if (HDR_HookID(phdr) == _HOOKID_PROCESS_FORK) {
+		fread(&tid, 1, 4, fp); /* read tid */
+		fread(&pid, 1, 4, fp); /* read pid */
+		fread(&ppid, 1, 4, fp); /* read ppid */
+
+		strncpy(appname, (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)ppid))), 256);
+
+	} else {
+		free(appname);
+		return;
+	}
+	fseek(fp, location, SEEK_SET);
 #ifdef HAS_MYSQL
 		if(into_db)  {
-			snprintf(sql, 256,"insert into appNameMap values \
-				( %d, \"%s\")", pid, appname);
+			snprintf(sql, 256,"insert into appNameMap values ( %d, \"%s\")", pid, appname);
 			if(mysql_query(&mysql,sql))  {
 				fprintf(stderr, "Failed to exec SQL: %s, Error: %s\n",
 					sql, mysql_error(&mysql));
@@ -433,12 +433,6 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			}
 		}
 #endif
-		//fseek(fp, 0-len, SEEK_CUR);
-	} else  {
-		free(appname);
-		return;
-	}
-	fseek(fp, location, SEEK_SET);
 	g_tree_insert(appNameTree, (gpointer)((long)pid), (gpointer)appname);
 }
 
@@ -552,10 +546,7 @@ void find_init_header(FILE **infps, const int total_infiles)
 
 #ifdef HAS_MYSQL
 	if(into_db)  {
-		if(mysql_query(&mysql, "create table trace_header \
-			( Major_Ver TINYINT, Minor_Ver TINYINT, \
-			Big_Endian TINYINT, Timing_Method varchar(20), \
-			Bits_Width TINYINT)" )) {
+		if(mysql_query(&mysql, "create table trace_header ( Major_Ver TINYINT, Minor_Ver TINYINT, Big_Endian TINYINT, Timing_Method varchar(20), Bits_Width TINYINT)" )) {
 			fprintf(stderr, "Failed to create trace_header table, Error: %s\n",
 				mysql_error(&mysql));
 			exit(-1);
@@ -564,8 +555,8 @@ void find_init_header(FILE **infps, const int total_infiles)
 			ver_major, ver_minor, big_endian, timing_methods_str, bits_width);	
 
 		if(mysql_query(&mysql, sql)) {
-			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
-				sql, mysql_error(&mysql));
+			fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
+				__LINE__, sql, mysql_error(&mysql));
 			exit(-1);
 		}
 	}
@@ -595,7 +586,7 @@ void print_pkt_header(lket_pkt_header *phdr)
 {
 	long long usecs;
 	int sec, usec;
-	int grpid, hookid, pid;
+	int grpid, hookid, pid, tid, ppid;
 
 	if(!phdr)
 		return;
@@ -614,9 +605,12 @@ void print_pkt_header(lket_pkt_header *phdr)
 	grpid = HDR_GroupID(phdr);	
 	hookid = HDR_HookID(phdr);
 	pid = HDR_PID(phdr);
+	tid = HDR_TID(phdr);
+	ppid = HDR_PPID(phdr);
 
 	if(into_file) {
-		fprintf(outfp, "\n%d.%d CPU:%d PID:%d ", sec, usec, HDR_CpuID(phdr), pid);
+		fprintf(outfp, "\n%d.%d CPU:%d TID:%d, PID:%d, PPID:%d, ", sec, usec, 
+			HDR_CpuID(phdr), tid, pid, ppid);
 		if(appname_flag==1)
 			fprintf(outfp, "APPNAME:%s ", (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)pid))));
 		if(name_flag==1)
@@ -631,26 +625,26 @@ void print_pkt_header(lket_pkt_header *phdr)
 			long long *entrytime;
 			long long entryusecs;
 			entrytime = g_tree_lookup(events_des[_HOOKID_REGSYSEVT][grpid][hookid-1]->entrytime,
-                                        (gconstpointer)((long)pid));
+                                        (gconstpointer)((long)tid));
 			if(entrytime==NULL)  // key not found
 				entryusecs = 0;
 			else
 				entryusecs = *entrytime;
-			snprintf(sql_col, 64, "groupid, hookid, usec, process_id, \
+			snprintf(sql_col, 128, "groupid, hookid, usec, thread_id, process_id, parentprocess_id, \
 				cpu_id, entry_usec,");
-			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, %lld,", grpid,
-				hookid, usecs, pid, HDR_CpuID(phdr), 
+			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, %d, %d, %lld,", grpid,
+				hookid, usecs, tid, pid, ppid, HDR_CpuID(phdr), 
 				entryusecs);
 		}  else  {
-			snprintf(sql_col, 64, "groupid, hookid, usec, process_id, cpu_id,");
-			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, ", grpid, 
-				hookid, usecs, pid, HDR_CpuID(phdr));
+			snprintf(sql_col, 128, "groupid, hookid, usec, thread_id, process_id, parentprocess_id, cpu_id,");
+			snprintf(sql_val, 256, "%d, %d, %lld, %d, %d, %d, %d, ", grpid, 
+				hookid, usecs, tid, pid, ppid, HDR_CpuID(phdr));
 		}
 		if(hookid%2) {
 			char *entrytime = malloc(sizeof(long long));
 			*((long long *)entrytime) = usecs;
 			g_tree_insert(events_des[_HOOKID_REGSYSEVT][grpid][hookid]->entrytime, 
-				(gpointer)((long)pid), (gpointer)entrytime);
+				(gpointer)((long)tid), (gpointer)entrytime);
 		}
 	}
 #endif
@@ -697,23 +691,21 @@ void register_evt_desc(FILE *infp, size_t size)
 		compareFunc, NULL, NULL, destroyTreeData);
 	if(into_db)  {
 		if(!has_table)  {
-			snprintf(sql, 1024, "create table table_desc ( table_name \
-				varchar(6), table_desc varchar(32))");
+			snprintf(sql, 1024, "create table table_desc ( table_name varchar(6), table_desc varchar(32))");
 			if(mysql_query(&mysql, sql))  {
-				fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
-					sql, mysql_error(&mysql));
+				fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
+					__LINE__, sql, mysql_error(&mysql));
 				exit(-1);
 			}
 			has_table = 1;
 		} 
 
-		snprintf(sql, 1024, "insert into table_desc ( table_name,\
-			table_desc) values ( \"%d_%d\", \"%s\")", grpid, hookid,
+		snprintf(sql, 1024, "insert into table_desc ( table_name, table_desc) values ( \"%d_%d\", \"%s\")", grpid, hookid,
 			evt_body+2);
 
 		if(mysql_query(&mysql, sql))  {
-			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
-				sql, mysql_error(&mysql));
+			fprintf(stderr, "Failed exec SQL:%d \n %s \n, Error: %s\n",
+				__LINE__, sql, mysql_error(&mysql));
 			exit(-1);
 		}
 	}
@@ -747,15 +739,9 @@ void register_events(int evt_type, FILE *infp, size_t size)
 		if(evt_type==_HOOKID_REGSYSEVT)  {  /* if sys event, create a table */
 			if(!(hookid%2))  {/* if this is a return type event, should record 
 					     the entry time of this event */
-				snprintf(sql, 1024, "create table %d_%d \
-					( groupid TINYINT, hookid TINYINT, usec BIGINT,\
-					 process_id INT, cpu_id TINYINT, \
-					entry_usec BIGINT,", grpid, hookid);
+				snprintf(sql, 1024, "create table %d_%d ( groupid TINYINT, hookid TINYINT, usec BIGINT, thread_id INT, process_id INT, parentprocess_id INT, cpu_id TINYINT, entry_usec BIGINT,", grpid, hookid);
 			} else  {
-				snprintf(sql, 1024, "create table %d_%d \
-					( groupid TINYINT, hookid TINYINT, \
-					usec BIGINT, process_id INT, \
-					cpu_id TINYINT,", grpid, hookid);
+				snprintf(sql, 1024, "create table %d_%d ( groupid TINYINT, hookid TINYINT, usec BIGINT, thread_id INT, process_id INT, parentprocess_id INT, cpu_id TINYINT,", grpid, hookid);
 			}
 		}
 		if(evt_type==_HOOKID_REGUSREVT)  { /* if user event, alter an existing table */
@@ -822,8 +808,8 @@ gen_sql:
 			sql[strlen(sql)-1]='\0';
 
 		if(mysql_query(&mysql, sql))  {
-			fprintf(stderr, "Failed exec SQL: \n %s \n, Error: %s\n",
-				sql, mysql_error(&mysql));
+			fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
+				__LINE__, sql, mysql_error(&mysql));
 			exit(-1);
 		}
 	}
@@ -997,8 +983,8 @@ int dump_data(lket_pkt_header header, FILE *infp)
 
 		if(sql_count >= INSERT_THRESHOLD)  {
 			if(mysql_query(&mysql, sqlStatement))  {
-				fprintf(stderr, "Failed exec SQL:\n%s\n, Error:\n%s\n",
-					sqlStatement, mysql_error(&mysql));
+				fprintf(stderr, "Failed exec SQL %d:\n%s\n, Error:\n%s\n",
+					__LINE__, sqlStatement, mysql_error(&mysql));
 				exit(-1);
 			}
 			while(!mysql_next_result(&mysql));

@@ -201,7 +201,7 @@ The data common(i.e.
 in the following subsecions) to all event hooks is:
 .RS
 
-.B timestamp(INT64),(tid<<32 | groupID<<24 | hookID<<16 | cpu_id<<8)(INT64)
+.B timestamp(INT64),(tid<<32|pid)(INT64),(ppid<<32|groupID<<24|hookID<<16|cpu_id<<8)(INT64)
 .RE
 
 Each event hook group is a collection of those hooks that have
@@ -289,7 +289,7 @@ Trace execve of new processes
 
 Data format is:
 
-.I common_data, pid(INT32), new_process_name(STRING)
+.I common_data, tid(INT32), pid(INT32), ppid(INT32), new_process_name(STRING)
 
 .SS SIGNAL
 You could use

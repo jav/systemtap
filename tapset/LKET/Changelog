@@ -1,3 +1,13 @@
+2006-11-19  Li Guanglei <guanglei@cn.ibm.com>
+	bugfix for #3526
+	* lket_trace.stp: add the logging of pid, ppid
+	* process.stp: add logging of tid, ppid for 
+	lket_internal.process.execve. Change to use 
+	for_each_process() in process_snapshot() to get
+	the info of all running processes.
+	* register_event.stp: update the registering codes
+	of execve event.
+	
 2006-11-17  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Eugene Teo <eteo@redhat.com>

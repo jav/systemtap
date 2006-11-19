@@ -164,7 +164,7 @@ function register_sys_events()
 	_register_sys_event("process_snapshot", _GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT,
 		"INT32:INT32:INT32:STRING", "tid:pid:ppid:pname");
 	_register_sys_event("process.execve", _GROUP_PROCESS, _HOOKID_PROCESS_EXECVE,
-		"INT32:STRING", "pid:pname");
+		"INT32:INT32:INT32:STRING", "tid:pid:ppid:pname");
 	_register_sys_event("process.fork", _GROUP_PROCESS, _HOOKID_PROCESS_FORK,
 		"INT32:INT32:INT32", "tid:pid:ppid");
 	_register_sys_event("process.exit.entry", _GROUP_PROCESS, _HOOKID_PROCESS_EXIT_ENTRY,

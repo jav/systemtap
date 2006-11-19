@@ -38,15 +38,19 @@ typedef struct _lket_pkt_header {
 	int16_t	total_size;
 	int16_t	sys_size;
 	int64_t microsecond;
+	/* tid_pid is (tid<<32|pid) */
+	int64_t tid_pid;
 	/* aggr is the bit-OP of:
-		(int64_t)current->pid << 32 |
+		(int64_t)current->parent->tgid << 32 |
 		(int32_t)GroupID << 24 | (int32_t)hookID << 16 |
 		(int16_t)current->thread_info->cpu << 8
 	*/
 	int64_t aggr;
 } __attribute__((packed)) lket_pkt_header;
 
-#define HDR_PID(ptr)  (int32_t)(((ptr)->aggr)>>32)
+#define HDR_TID(ptr)  (int32_t)(((ptr)->tid_pid)>>32)
+#define HDR_PID(ptr)  (int32_t)((ptr)->tid_pid)
+#define HDR_PPID(ptr)  (int32_t)(((ptr)->aggr)>>32)
 #define HDR_GroupID(ptr)  (int8_t)(((ptr)->aggr)>>24) 
 #define HDR_HookID(ptr)  (int8_t)(((ptr)->aggr)>>16) 
 #define HDR_CpuID(ptr)  (int8_t)(((ptr)->aggr)>>8) 
