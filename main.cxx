@@ -31,6 +31,7 @@ extern "C" {
 #include <sys/utsname.h>
 #include <sys/times.h>
 #include <sys/time.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <elfutils/libdwfl.h>
 }
@@ -439,12 +440,17 @@ main (int argc, char * const argv [])
   gettimeofday (&tv_before, NULL);
 
   // PASS 1a: PARSING USER SCRIPT
-  // XXX: pass args vector, so parser (or lexer?) can substitute
-  // $1..$NN with actual arguments
+
+  struct stat user_file_stat;
+  int user_file_stat_rc = -1;
+
   if (script_file == "-")
     s.user_file = parser::parse (s, cin, s.guru_mode);
   else if (script_file != "")
-    s.user_file = parser::parse (s, script_file, s.guru_mode);
+    {
+      s.user_file = parser::parse (s, script_file, s.guru_mode);
+      user_file_stat_rc = stat (script_file.c_str(), & user_file_stat);
+    }
   else
     {
       istringstream ii (cmdline_script);
@@ -501,11 +507,24 @@ main (int argc, char * const argv [])
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
               // privilege only for /usr/share/systemtap?
+              
               stapfile* f = parser::parse (s, globbuf.gl_pathv[j], true);
               if (f == 0)
                 rc ++;
               else
                 s.library_files.push_back (f);
+
+              struct stat tapset_file_stat;
+              int stat_rc = stat (globbuf.gl_pathv[j], & tapset_file_stat);
+              if (stat_rc == 0 && user_file_stat_rc == 0 &&
+                  user_file_stat.st_dev == tapset_file_stat.st_dev &&
+                  user_file_stat.st_ino == tapset_file_stat.st_ino)
+                {
+                  clog << "parse error: tapset file '" << globbuf.gl_pathv[j]
+                       << "' is already processed as the user script." << endl;
+                  rc ++;
+                }
+
             }
 
           globfree (& globbuf);
