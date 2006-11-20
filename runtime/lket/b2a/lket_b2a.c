@@ -91,6 +91,7 @@ int main(int argc, char *argv[])
 	char	outfilename[MAX_STRINGLEN]={0};
 	int	i, j, total_infiles = 0;
 	long long min;
+	int retvalue = 0;
 
 	char database[18];
 	time_t timer;
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
 	infps = (FILE **)malloc(total_infiles * sizeof(FILE *));
 	if(!infps) {
 		printf("Unable to malloc infps\n");
-		return 1;
+		exit(-1);
 	}
 
 	memset(infps, 0, total_infiles * sizeof(FILE *));
@@ -174,6 +175,7 @@ int main(int argc, char *argv[])
 		infps[i] = fopen(argv[optind++], "r");
 		if(infps[i] == NULL) {
 			printf("Unable to open %s\n", argv[optind-1]);
+			retvalue = -1;
 			goto failed;
 		}
 	}
@@ -185,6 +187,7 @@ int main(int argc, char *argv[])
 		outfp = fopen(outfilename, "w");
 		if(outfp == NULL) {
 			fprintf(stderr,"Unable to create %s\n", outfilename);
+			retvalue = -1;
 			goto failed;
 		}
 	}
@@ -196,11 +199,14 @@ int main(int argc, char *argv[])
 		if(!mysql_init(&mysql))  {
 			fprintf(stderr, "Failed to Init MySQL: Error: %s\n",
 				mysql_error(&mysql));
+			exit(-1);
 		}
+
 		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, NULL, 0, NULL, 
 			CLIENT_MULTI_STATEMENTS))  {
 			fprintf(stderr, "Failed to connect to database: Error: %s\n",
 				mysql_error(&mysql));
+			exit(-1);
 		}
 
 		snprintf(sql, 64,"create database %s", database);
@@ -208,12 +214,14 @@ int main(int argc, char *argv[])
 		if(mysql_query(&mysql, sql))  {
 			fprintf(stderr, "Failed create database %s, Error: %s\n",
 				database, mysql_error(&mysql));
+			exit(-1);
 		}
 
 		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, database, 0, NULL, 
 			CLIENT_MULTI_STATEMENTS))  {
 			fprintf(stderr, "Failed to connect to database %s: Error: %s\n",
 				database, mysql_error(&mysql));
+			exit(-1);
 		}
 	}
 #endif
@@ -225,6 +233,7 @@ int main(int argc, char *argv[])
 	hdrs = malloc(total_infiles * sizeof(lket_pkt_header));
 	if(!hdrs) {
 		printf("Unable to malloc hdrs \n");
+		retvalue = -1;
 		goto failed;
 	}
 	memset(hdrs, 0, total_infiles * sizeof(lket_pkt_header));
@@ -354,7 +363,7 @@ failed:
 	if (appNameTree)
 		g_tree_destroy(appNameTree);
 
-	return 0;
+	return retvalue;
 }
 
 /* register newly found process name for addevent.process.snapshot
@@ -429,7 +438,7 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 			if(mysql_query(&mysql,sql))  {
 				fprintf(stderr, "Failed to exec SQL: %s, Error: %s\n",
 					sql, mysql_error(&mysql));
-			exit(-1);
+				exit(-1);
 			}
 		}
 #endif
@@ -469,7 +478,7 @@ void find_init_header(FILE **infps, const int total_infiles)
 	char  timing_methods_str[128];
 
 	if(total_infiles <= 0 )
-		return;
+		exit(-1);
 	j = total_infiles;
 	for(i=0; i<total_infiles; i++) {
 		if(fread(&magic, 1, sizeof(magic), infps[i]) < sizeof(magic))
@@ -579,7 +588,7 @@ int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 	return 0;
 bad:
 	memset(phdr, 0, sizeof(lket_pkt_header));
-	return -1;
+	exit(-1);
 }	
 
 void print_pkt_header(lket_pkt_header *phdr)
@@ -589,7 +598,7 @@ void print_pkt_header(lket_pkt_header *phdr)
 	int grpid, hookid, pid, tid, ppid;
 
 	if(!phdr)
-		return;
+		exit(-1);
 
 	if(timing_method == TIMING_GETCYCLES)
 		usecs = (phdr->microsecond - cpufreq[HDR_CpuID(phdr)].last_cycles)
@@ -732,6 +741,7 @@ void register_events(int evt_type, FILE *infp, size_t size)
 	if(!events_des[evt_type][grpid][hookid])  {
 		fprintf(stderr, "error when malloc for event_des[%d][%d][%d]\n",
 			evt_type, grpid, hookid);
+		exit(-1);
 	}
 
 #ifdef HAS_MYSQL
@@ -967,7 +977,7 @@ int dump_data(lket_pkt_header header, FILE *infp)
 					continue;
 				}
 				else {
-					return -1;
+					exit(-1);
 				}
 			}
 		}
