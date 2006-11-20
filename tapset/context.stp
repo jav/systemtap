@@ -173,7 +173,7 @@ function stack_unused:long () %{ /* pure */
 
 # Return the address of the calling function. Works only for
 # return probes at this time.
-function caller_addr () %{ /* pure */
+function caller_addr:long () %{ /* pure */
         if (CONTEXT->pi)
 		THIS->__retvalue = (int64_t)(long)_stp_ret_addr_r(CONTEXT->pi);
         else
