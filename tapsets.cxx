@@ -2895,7 +2895,123 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
     throw semantic_error("write to target variable not permitted", e->tok);
 
   if (q.has_return && e->base_name != "$return")
-    throw semantic_error("target variables not available to .return probes");
+    {
+      if (lvalue)
+	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
+
+      // We've got to do several things here to handle target
+      // variables in return probes.
+
+      // (1) Synthesize a global array and an associated nesting level
+      // counter.  We'll use this array to save the target variable
+      // value in.  The array will look like this:
+      //
+      //   _dwarf_tvar_{name}_{num}
+      // 
+      //  The counter will look like this:
+      //
+      //   _dwarf_tvar_{name}_{num}_ctr
+
+      string aname = (string("_dwarf_tvar_")
+		      + e->base_name.substr(1)
+		      + "_" + lex_cast<string>(tick++));
+      vardecl* vd = new vardecl;
+      vd->name = aname;
+      vd->tok = e->tok;
+      q.sess.globals.push_back (vd);
+
+      string ctrname = aname + "_ctr";
+      vd = new vardecl;
+      vd->name = ctrname;
+      vd->tok = e->tok;
+      q.sess.globals.push_back (vd);
+
+      // (2) Synthesize an array reference (that we'll use as
+      // replacement for the target variable reference and in the
+      // probe we're about to create).  The array reference will look
+      // like this:
+      //
+      //   _dwarf_tvar_{name}_{num}[tid(), _dwarf_tvar_{name}_{num}_ctr--]
+
+      arrayindex* ai = new arrayindex;
+      ai->tok = e->tok;
+
+      symbol* sym = new symbol;
+      sym->name = aname;
+      sym->tok = e->tok;
+      ai->base = sym;
+
+      // Synthesize a functioncall used as an index into the array.
+      functioncall* fc = new functioncall;
+      fc->tok = e->tok;
+      fc->function = string("tid");
+      fc->referent = 0;
+      ai->indexes.push_back(fc);
+
+      // Synthesize the "_dwarf_tvar_{name}_{num}_ctr--" used as the
+      // second index into the array.
+      sym = new symbol;
+      sym->name = ctrname;
+      sym->tok = e->tok;
+      post_crement* pc = new post_crement;
+      pc->tok = e->tok;
+      pc->op = "--";
+      pc->operand = sym;
+      ai->indexes.push_back(pc);
+
+      // (3) We need an entry probe that saves the value for us in the
+      // global array we created.  Create an entire script (and let
+      // the parser do all the work).  The script will look like this:
+      //
+      //   global _dwarf_tvar_{name}_{num}
+      //   global _dwarf_tvar_{name}_{num}_ctr
+      //   probe kernel.function("{function}") {
+      //     _dwarf_tvar_{name}_{num}[tid(), ++_dwarf_tvar_{name}_{num}_ctr]
+      //       = ${param}
+      //   }
+
+      // We need the name of the current probe point, minus the
+      // ".return" (or anything after it, such as ".maxactive(N)").
+      // Create a new probe point, copying all the components,
+      // stopping when we see the ".return" component.
+      probe_point* pp = new probe_point;
+      for (unsigned c = 0; c < q.base_loc->components.size(); c++)
+        {
+	  if (q.base_loc->components[c]->functor == "return")
+	    break;
+	  else
+	    pp->components.push_back(q.base_loc->components[c]);
+	}
+      pp->tok = e->tok;
+      pp->optional = q.base_loc->optional;
+
+      // Print the script into the string stream.
+      stringstream stp;
+      stp << "global " << aname << endl;
+      stp << "global " << ctrname << endl;
+      stp << "probe ";
+      pp->print(stp);
+      // Note that we can't do:
+      //   ai->print (stp);
+      // here since the counter reference in 'ai' is post-decremented
+      // (and we need to pre-increment the counter here).
+      stp << " { " << aname << "[tid(), ++" << ctrname << "] = ";
+      e->print (stp);
+      stp << " }" << endl;
+      delete pp;
+
+      // Parse the generated script
+      stapfile *f = parser::parse (q.sess, stp, false);
+      assert (f != NULL);
+
+      // Add the parsed script to the list of files to be processed.
+      q.sess.files.push_back(f);
+
+      // (4) Provide the arrayindex to our parent so it can be used as
+      // a substitute for the target symbol.
+      provide <arrayindex*> (this, ai);
+      return;
+    }
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;

@@ -1,3 +1,11 @@
+2006-11-20  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol):  BZ
+	1382.  Target variables can be accessed in return probes.  A new
+	function entry probe is generated that saves the target variables
+	so that they can be accesssed in the return probe.
+
 2006-11-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): Signal parse error if a tapset script
