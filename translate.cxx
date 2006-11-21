@@ -991,25 +991,40 @@ c_unparser::emit_module_init ()
   // one may install the incorrect debuginfo or -devel RPM, and try to
   // run a probe compiled for a different version.  Catch this early,
   // just in case modversions didn't.
-  o->newline() << "if (strcmp (system_utsname.machine, "
+  o->newline() << "down_read (& uts_sem);";
+  o->newline() << "{";
+  o->indent(1);
+
+  // Args, linux 2.6.19+ did a switcheroo on system_utsname to utsname().
+  o->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)";
+  o->newline() << "const char* machine = utsname()->machine;";
+  o->newline() << "const char* release = utsname()->release;";
+  o->newline() << "#else";
+  o->newline() << "const char* machine = system_utsname.machine;";
+  o->newline() << "const char* release = system_utsname.release;";
+  o->newline() << "#endif";
+
+  o->newline() << "if (strcmp (machine, "
                << lex_cast_qstring (session->architecture) << ")) {";
   o->newline(1) << "_stp_error (\"module machine mismatch (%s vs %s)\", "
-                << "system_utsname.machine, "
+                << "machine, "
                 << lex_cast_qstring (session->architecture)
                 << ");";
   o->newline() << "rc = -EINVAL;";
-  o->newline() << "goto out;";
   o->newline(-1) << "}";
 
-  o->newline() << "if (strcmp (system_utsname.release, "
+  o->newline() << "if (strcmp (release, "
                << lex_cast_qstring (session->kernel_release) << ")) {";
   o->newline(1) << "_stp_error (\"module release mismatch (%s vs %s)\", "
-                << "system_utsname.release, "
+                << "release, "
                 << lex_cast_qstring (session->kernel_release)
                 << ");";
   o->newline() << "rc = -EINVAL;";
-  o->newline() << "goto out;";
   o->newline(-1) << "}";
+
+  o->newline(-1) << "}";
+  o->newline() << "up_read (& uts_sem);";
+  o->newline() << "if (rc) goto out;";
 
   o->newline() << "(void) probe_point;";
   o->newline() << "(void) i;";

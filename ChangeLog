@@ -1,5 +1,9 @@
 2006-11-21  Frank Ch. Eigler  <fche@elastic.org>
 
+	* translate.cxx (emit_module_init): Adapt to 2.6.19 utsname().
+
+2006-11-21  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 3556.
 	* translate.cxx (emit_module_init): Emit code to check
 	system_utsname against translate-time version/machine strings.
