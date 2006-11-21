@@ -15,7 +15,7 @@ expect {
         set detail "stap runtime";
         exp_continue
     }
-    -re {^Pass\ 5:[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n} {
+    -re {Pass\ 5:[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n} {
         set failed 0
     }
     -re {parse error|semantic error} {set detail "$expect_out(0,string)"}
