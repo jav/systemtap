@@ -987,6 +987,30 @@ c_unparser::emit_module_init ()
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
 
+  // Compare actual and targeted kernel releases/machines.  Sometimes
+  // one may install the incorrect debuginfo or -devel RPM, and try to
+  // run a probe compiled for a different version.  Catch this early,
+  // just in case modversions didn't.
+  o->newline() << "if (strcmp (system_utsname.machine, "
+               << lex_cast_qstring (session->architecture) << ")) {";
+  o->newline(1) << "_stp_error (\"module machine mismatch (%s vs %s)\", "
+                << "system_utsname.machine, "
+                << lex_cast_qstring (session->architecture)
+                << ");";
+  o->newline() << "rc = -EINVAL;";
+  o->newline() << "goto out;";
+  o->newline(-1) << "}";
+
+  o->newline() << "if (strcmp (system_utsname.release, "
+               << lex_cast_qstring (session->kernel_release) << ")) {";
+  o->newline(1) << "_stp_error (\"module release mismatch (%s vs %s)\", "
+                << "system_utsname.release, "
+                << lex_cast_qstring (session->kernel_release)
+                << ");";
+  o->newline() << "rc = -EINVAL;";
+  o->newline() << "goto out;";
+  o->newline(-1) << "}";
+
   o->newline() << "(void) probe_point;";
   o->newline() << "(void) i;";
   o->newline() << "(void) j;";
@@ -3977,6 +4001,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#include <linux/random.h>";
+      s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
       
       // XXX: old 2.6 kernel hack
