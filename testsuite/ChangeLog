@@ -1,3 +1,9 @@
+2006-11-21  Li Guanglei <guanglei@cn.ibm.com>
+	
+	From Gui Jian <guijian@cn.ibm.com>
+	* systemtap.samples/lket.exp, systemtap.samples/lket.stp: add
+	testcase for LKET
+
 2006-11-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	* parseko/twentythree.stp: New test for running tapset file.

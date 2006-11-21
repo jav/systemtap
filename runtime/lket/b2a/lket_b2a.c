@@ -63,6 +63,9 @@ GTree *appNameTree;
 /* event table */
 event_desc *events_des[MAX_EVT_TYPES][MAX_GRPID][MAX_HOOKID]; 
 
+#define b2a_error(fmt, args...) do { fprintf(stderr, "Error %d@%s: "fmt, __LINE__, __func__, ## args);\
+                exit(-1); } while(0)
+
 void usage()
 {
 printf("Usage:\n\
@@ -147,8 +150,7 @@ int main(int argc, char *argv[])
 
 #ifndef HAS_MYSQL
 	if(into_db)  {
-		fprintf(stderr, "-m option is not supported since lket-b2a is not compiled with mysql support, \n");
-		exit(-1);
+		b2a_error("-m option is not supported since lket-b2a is not compiled with mysql support\n");
 	}
 #endif
 	if(into_file==0 && into_db==0)  {
@@ -166,8 +168,7 @@ int main(int argc, char *argv[])
 	// open the input files and the output file
 	infps = (FILE **)malloc(total_infiles * sizeof(FILE *));
 	if(!infps) {
-		printf("Unable to malloc infps\n");
-		exit(-1);
+		b2a_error("Unable to malloc infps\n");
 	}
 
 	memset(infps, 0, total_infiles * sizeof(FILE *));
@@ -197,31 +198,27 @@ int main(int argc, char *argv[])
 #ifdef HAS_MYSQL
 	if(into_db)  {
 		if(!mysql_init(&mysql))  {
-			fprintf(stderr, "Failed to Init MySQL: Error: %s\n",
+			b2a_error("Failed to Init MySQL: Error: %s\n",
 				mysql_error(&mysql));
-			exit(-1);
 		}
 
 		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, NULL, 0, NULL, 
 			CLIENT_MULTI_STATEMENTS))  {
-			fprintf(stderr, "Failed to connect to database: Error: %s\n",
+			b2a_error("Failed to connect to database: Error: %s\n",
 				mysql_error(&mysql));
-			exit(-1);
 		}
 
 		snprintf(sql, 64,"create database %s", database);
 
 		if(mysql_query(&mysql, sql))  {
-			fprintf(stderr, "Failed create database %s, Error: %s\n",
+			b2a_error("Failed create database %s, Error: %s\n",
 				database, mysql_error(&mysql));
-			exit(-1);
 		}
 
 		if(!mysql_real_connect(&mysql, NULL, NULL, NULL, database, 0, NULL, 
 			CLIENT_MULTI_STATEMENTS))  {
-			fprintf(stderr, "Failed to connect to database %s: Error: %s\n",
+			b2a_error("Failed to connect to database %s: Error: %s\n",
 				database, mysql_error(&mysql));
-			exit(-1);
 		}
 	}
 #endif
@@ -337,15 +334,13 @@ failed:
 			if(events_des[_HOOKID_REGSYSEVT][i][j]->flag == 0 && into_db)  {
 				snprintf(sql, 256, "drop table %d_%d",i,j);
 				if(mysql_query(&mysql,sql))  {
-					fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
+					b2a_error("Failed to exec sql: %s, Error: %s\n",
 						sql, mysql_error(&mysql));
-					exit(-1);
 				}
 				snprintf(sql, 256, "delete from table_desc where table_name='%d_%d'",i,j);
 				if(mysql_query(&mysql,sql))  {
-					fprintf(stderr, "Failed to exec sql: %s, Error: %s\n",
+					b2a_error("Failed to exec sql: %s, Error: %s\n",
 						sql, mysql_error(&mysql));
-					exit(-1);
 				}
 			}
 			/* destroy entrytime tree */
@@ -385,9 +380,8 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 	if(into_db)  {
 		if(flag==0)  {
 			if(mysql_query(&mysql, "create table appNameMap ( pid INT, pname varchar(20))"))  {
-				fprintf(stderr, "Failed to create appNameMap table, Error: %s\n",
+				b2a_error("Failed to create appNameMap table, Error: %s\n",
 					mysql_error(&mysql));
-				exit(-1);
 			}
 		}
 		flag=1;
@@ -436,9 +430,8 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		if(into_db)  {
 			snprintf(sql, 256,"insert into appNameMap values ( %d, \"%s\")", pid, appname);
 			if(mysql_query(&mysql,sql))  {
-				fprintf(stderr, "Failed to exec SQL: %s, Error: %s\n",
+				b2a_error("Failed to exec SQL: %s, Error: %s\n",
 					sql, mysql_error(&mysql));
-				exit(-1);
 			}
 		}
 #endif
@@ -478,7 +471,7 @@ void find_init_header(FILE **infps, const int total_infiles)
 	char  timing_methods_str[128];
 
 	if(total_infiles <= 0 )
-		exit(-1);
+		b2a_error("total_infiles <= 0\n");
 	j = total_infiles;
 	for(i=0; i<total_infiles; i++) {
 		if(fread(&magic, 1, sizeof(magic), infps[i]) < sizeof(magic))
@@ -556,17 +549,15 @@ void find_init_header(FILE **infps, const int total_infiles)
 #ifdef HAS_MYSQL
 	if(into_db)  {
 		if(mysql_query(&mysql, "create table trace_header ( Major_Ver TINYINT, Minor_Ver TINYINT, Big_Endian TINYINT, Timing_Method varchar(20), Bits_Width TINYINT)" )) {
-			fprintf(stderr, "Failed to create trace_header table, Error: %s\n",
+			b2a_error("Failed to create trace_header table, Error: %s\n",
 				mysql_error(&mysql));
-			exit(-1);
 		}
 		snprintf(sql, 256, "insert into trace_header value ( %d, %d, %d, \"%s\", %d )",
 			ver_major, ver_minor, big_endian, timing_methods_str, bits_width);	
 
 		if(mysql_query(&mysql, sql)) {
-			fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
+			b2a_error("Failed exec SQL %d: \n %s \n, Error: %s\n",
 				__LINE__, sql, mysql_error(&mysql));
-			exit(-1);
 		}
 	}
 #endif
@@ -580,15 +571,19 @@ void find_init_header(FILE **infps, const int total_infiles)
  */
 int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
-	if(fread(phdr, 1, sizeof(lket_pkt_header), fp) < sizeof(lket_pkt_header))
-		goto bad;
+	size_t size;
+	if(feof(fp)) return 0;
+	if((size = fread(phdr, 1, sizeof(lket_pkt_header), fp)) < sizeof(lket_pkt_header))  {
+		if(feof(fp))  {
+			bzero(phdr, sizeof(lket_pkt_header));
+			return 0;
+		} else 
+			b2a_error("fread read %d bytes than expected %d, feof:%d\n", size, sizeof(lket_pkt_header), feof(fp));
+	}
 
 	phdr->sys_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
 	phdr->total_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
 	return 0;
-bad:
-	memset(phdr, 0, sizeof(lket_pkt_header));
-	exit(-1);
 }	
 
 void print_pkt_header(lket_pkt_header *phdr)
@@ -598,7 +593,7 @@ void print_pkt_header(lket_pkt_header *phdr)
 	int grpid, hookid, pid, tid, ppid;
 
 	if(!phdr)
-		exit(-1);
+		b2a_error("phdr is NULL\n");
 
 	if(timing_method == TIMING_GETCYCLES)
 		usecs = (phdr->microsecond - cpufreq[HDR_CpuID(phdr)].last_cycles)
@@ -702,9 +697,8 @@ void register_evt_desc(FILE *infp, size_t size)
 		if(!has_table)  {
 			snprintf(sql, 1024, "create table table_desc ( table_name varchar(6), table_desc varchar(32))");
 			if(mysql_query(&mysql, sql))  {
-				fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
-					__LINE__, sql, mysql_error(&mysql));
-				exit(-1);
+				b2a_error("Failed exec SQL: \n %s \n, Error: %s\n",
+					sql, mysql_error(&mysql));
 			}
 			has_table = 1;
 		} 
@@ -713,9 +707,8 @@ void register_evt_desc(FILE *infp, size_t size)
 			evt_body+2);
 
 		if(mysql_query(&mysql, sql))  {
-			fprintf(stderr, "Failed exec SQL:%d \n %s \n, Error: %s\n",
-				__LINE__, sql, mysql_error(&mysql));
-			exit(-1);
+			b2a_error("Failed exec SQL:\n %s \n, Error: %s\n",
+				sql, mysql_error(&mysql));
 		}
 	}
 #endif
@@ -739,9 +732,8 @@ void register_events(int evt_type, FILE *infp, size_t size)
 	if(!events_des[evt_type][grpid][hookid])
 		events_des[evt_type][grpid][hookid] = malloc(sizeof(event_desc));
 	if(!events_des[evt_type][grpid][hookid])  {
-		fprintf(stderr, "error when malloc for event_des[%d][%d][%d]\n",
+		b2a_error("error when malloc for event_des[%d][%d][%d]\n",
 			evt_type, grpid, hookid);
-		exit(-1);
 	}
 
 #ifdef HAS_MYSQL
@@ -773,8 +765,7 @@ void register_events(int evt_type, FILE *infp, size_t size)
 	name = strsep(&evt_names, ":");
 
 	if(fmt==NULL || name==NULL)  {
-		printf("error in event format/names string\n");
-		exit(-1);
+		b2a_error("error in event format/names string\n");
 	}
 
 	while(fmt!=NULL && name!=NULL)  {
@@ -818,9 +809,8 @@ gen_sql:
 			sql[strlen(sql)-1]='\0';
 
 		if(mysql_query(&mysql, sql))  {
-			fprintf(stderr, "Failed exec SQL %d: \n %s \n, Error: %s\n",
-				__LINE__, sql, mysql_error(&mysql));
-			exit(-1);
+			b2a_error("Failed exec SQL: \n %s \n, Error: %s\n",
+				sql, mysql_error(&mysql));
 		}
 	}
 #endif
@@ -977,7 +967,7 @@ int dump_data(lket_pkt_header header, FILE *infp)
 					continue;
 				}
 				else {
-					exit(-1);
+					b2a_error("error processing STRING\n");
 				}
 			}
 		}
@@ -993,9 +983,8 @@ int dump_data(lket_pkt_header header, FILE *infp)
 
 		if(sql_count >= INSERT_THRESHOLD)  {
 			if(mysql_query(&mysql, sqlStatement))  {
-				fprintf(stderr, "Failed exec SQL %d:\n%s\n, Error:\n%s\n",
-					__LINE__, sqlStatement, mysql_error(&mysql));
-				exit(-1);
+				b2a_error("Failed exec SQL:\n%s\n, Error:\n%s\n",
+					sqlStatement, mysql_error(&mysql));
 			}
 			while(!mysql_next_result(&mysql));
 			sql_count=0;

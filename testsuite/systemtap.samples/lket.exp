@@ -1,0 +1,45 @@
+# Test the basic functionality of LKET tapset and lket-b2a utility
+
+set test "lket"
+if {![installtest_p]} { untested $test; return }
+
+eval spawn stap -v -bM $srcdir/$subdir/lket.stp
+set failed 1
+expect {
+    -timeout 150
+    -re {^Pass\ ([1234]):\ [^\r]*\r\n} {
+        set detail "pass$expect_out(1,string)"; 
+        exp_continue
+    }
+    -re {^Pass\ 5: starting run.\r\n} {
+        set detail "stap runtime";
+        exp_continue
+    }
+    -re {^Pass\ 5:[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n} {
+        set failed 0
+    }
+    -re {parse error|semantic error} {set detail "$expect_out(0,string)"}
+    timeout {set detail "stap timeout"; send "\003" }
+}
+
+if {$failed} { fail "$test\($detail\)"; return}
+
+set failed [catch {exec /bin/sh -c "lket-b2a -f stpd_cpu*"}]
+
+if { $failed || ![file readable "lket.out"] } {
+    fail "$test\(lket-b2a runtime\)"; return
+}
+
+eval {spawn head -n 10 "lket.out"}
+expect -re {^LKET\ Magic:\t0xAEFCDB6B\r\nInitHdrLen:\t[0-9]+\r\nVersion\ Major:\t[0-9]+\r\nVersion\ Minor:\t[0-9]+\r\nBig\ endian:\t(YES|NO)\r\nTiming\ method:\t.+\r\nBits\ width:\t[0-9]+\r\nInitial\ CPU\ timebase:\t[0-9]+\ \(cycles\ per\ microsecond\)\r\n\r\n[0-9]+\.[0-9]+\ CPU:[0-9]+\ PID:[0-9]+\ APPNAME:.+\ EVT_NAME:process_snapshot\ tid:[0-9]+,pid:[0-9]+,ppid:[0-9]+,pname:} {
+    set failed 0
+}
+
+if {$failed} { 
+    fail "$test\(wrong init_header\)";
+} else { 
+    pass "$test\($failed\)"; 
+}
+
+catch {exec rm -f stpd_cpu* lket.out}
+return
