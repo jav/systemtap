@@ -851,10 +851,8 @@ unloading.
 .IR stapfuncs (5),
 .IR stapex (5),
 .IR lket (5),
-.IR dprobes (1),
 .IR awk (1),
 .IR sudo (8),
-.IR elfutils (3),
 .IR gdb (1)
 
 .SH BUGS
