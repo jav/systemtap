@@ -5854,8 +5854,8 @@ _ACEOF
 
 else
 
-    { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.122+" >&5
-echo "$as_me: error: systemtap requires elfutils 0.122+" >&2;}
+    { { echo "$as_me:$LINENO: error: systemtap requires elfutils 0.123+" >&5
+echo "$as_me: error: systemtap requires elfutils 0.123+" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
