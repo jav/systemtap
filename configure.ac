@@ -101,13 +101,16 @@ if test $build_elfutils = no; then
   save_LIBS="$LIBS"
   AC_CHECK_LIB(dw, dwfl_module_getsym,,[
     AC_MSG_ERROR([systemtap requires elfutils 0.123+])])
+  AC_CHECK_LIB(ebl, ebl_openbackend,,[
+    AC_MSG_ERROR([systemtap requires elfutils 0.123+])])
   stap_LIBS="$LIBS"
   LIBS="$SAVE_LIBS"
 else
   # We built our own and stap_LDFLAGS points at the install.
-  stap_LIBS=-ldw
+  stap_LIBS="-ldw -lebl"
 fi
 AC_SUBST(stap_LIBS)
+AC_MSG_NOTICE([stap will link $stap_LIBS])
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

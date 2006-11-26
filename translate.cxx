@@ -3984,6 +3984,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#ifndef MAXSKIPPED";
       s.op->newline() << "#define MAXSKIPPED 100";
       s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MINSTACKSPACE";
+      s.op->newline() << "#define MINSTACKSPACE 1024";
+      s.op->newline() << "#endif";
 
       // impedance mismatch
       // STP_STRING_SIZE defines the size of the buffer 

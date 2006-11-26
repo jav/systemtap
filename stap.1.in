@@ -746,7 +746,7 @@ script is translated again assuming the same conditions exist (same kernel
 version, same systemtap version, etc.).  Cached files are stored in
 the
 .I $SYSTEMTAP_DIR/cache
-directory.
+directory, which may be periodically cleaned/erased by the user.
 
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
@@ -801,6 +801,11 @@ means that the first error will exit the script.
 .TP
 MAXSKIPPED
 Maximum number of skipped reentrant probes before an exit is triggered, default 100.
+.TP
+MINSTACKSPACE
+Minimum number of free kernel stack bytes required in order to
+run a probe handler, default 1024.  This number should be large enough
+for the probe handler's own needs, plus a safety margin.
 
 .PP
 In case something goes wrong with 

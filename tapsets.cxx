@@ -29,6 +29,7 @@ extern "C" {
 #include <fcntl.h>
 #include <elfutils/libdwfl.h>
 #include <elfutils/libdw.h>
+#include <elfutils/libebl.h>
 #include <dwarf.h>
 #include <elf.h>
 #include <obstack.h>
@@ -173,6 +174,16 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
 #endif
 
   o->newline() << "local_irq_save (flags);";
+
+  // Check for enough free enough stack space
+  o->newline() << "if ((((unsigned long) (& c)) & (THREAD_SIZE-1))";
+  o->newline(1) << "< (THREAD_SIZE - MINSTACKSPACE - sizeof (struct task_struct))) {";
+  o->newline() << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
+  o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  o->newline() << "_stp_exit ();";
+  o->newline(-1) << "}";
+  o->newline() << "goto probe_epilogue;";
+  o->newline(-1) << "}";
 
   o->newline() << "if (atomic_read (&session_state) != " << statestr << ")";
   o->newline(1) << "goto probe_epilogue;";
@@ -717,7 +728,7 @@ struct dwflpp
 
 
   // NB: "rc == 0" means OK in this case
-  void dwfl_assert(string desc, int rc, string extra_msg = "")
+  static void dwfl_assert(string desc, int rc, string extra_msg = "")
   {
     string msg = "libdwfl failure (" + desc + "): ";
     if (rc < 0) msg += dwfl_errmsg (rc);
@@ -2037,6 +2048,18 @@ dwarf_query::build_blacklist()
   blacklisted_probes.insert("unhandled_fault");
   blacklisted_probes.insert("unknown_nmi_error");
 
+  blacklisted_probes.insert("_read_trylock");
+  blacklisted_probes.insert("_read_lock");
+  blacklisted_probes.insert("_read_unlock");
+  blacklisted_probes.insert("_write_trylock");
+  blacklisted_probes.insert("_write_lock");
+  blacklisted_probes.insert("_write_unlock");
+  blacklisted_probes.insert("_spin_lock");
+  blacklisted_probes.insert("_spin_lock_irqsave");
+  blacklisted_probes.insert("_spin_trylock");
+  blacklisted_probes.insert("_spin_unlock");
+  blacklisted_probes.insert("_spin_unlock_irqrestore");
+
   // __switch_to is only disallowed on x86_64
   if (sess.architecture == "x86_64")
     blacklisted_probes.insert("__switch_to");
@@ -2748,11 +2771,57 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       if (q->has_module && !q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
 
+      // Validate the machine code in this elf file against the
+      // session machine.  This is important, in case the wrong kind
+      // of debuginfo is being automagically processed by elfutils.
+      // Unfortunately, while we can tell i686 apart from x86-64,
+      // we can't help confusing i586 vs i686 (both EM_386).
+
+      Dwarf_Addr _junk;
+      Elf* elf = dwfl_module_getelf (mod, &_junk);
+      Ebl* ebl = ebl_openbackend (elf);
+      int elf_machine = ebl_get_elfmachine (ebl);
+      const char* debug_filename = "";
+      const char* main_filename = "";
+      (void) dwfl_module_info (mod, NULL, NULL, 
+                               NULL, NULL, NULL,
+                               & main_filename, 
+                               & debug_filename);
+      const string& sess_machine = q->sess.architecture;
+      string expect_machine;
+      switch (elf_machine)
+        {
+        case EM_386: expect_machine = "i686"; break;
+        case EM_X86_64: expect_machine = "x86_64"; break;
+        case EM_PPC: expect_machine = "ppc"; break;
+        case EM_PPC64: expect_machine = "ppc64"; break;
+        case EM_S390: expect_machine = "s390x"; break;
+        case EM_IA_64: expect_machine = "ia64"; break;
+          // XXX: fill in some more of these
+        default: expect_machine = "?"; break;
+        }
+     
+      if (! debug_filename) debug_filename = main_filename;
+      if (! debug_filename) debug_filename = name;
+
+      if (sess_machine != expect_machine)
+        {
+          stringstream msg;
+          msg << "ELF machine " << expect_machine << " (code " << elf_machine
+              << ") mismatch with target " << sess_machine
+              << " in '" << debug_filename << "'";
+          throw semantic_error(msg.str ());
+        }
+
       if (q->sess.verbose>2)
 	clog << "focused on module '" << q->dw.module_name
-	     << "' = [" << hex << q->dw.module_start
+	     << " = [" << hex << q->dw.module_start
 	     << "-" << q->dw.module_end
-	     << ", bias " << q->dw.module_bias << "]" << dec << "\n";
+	     << ", bias " << q->dw.module_bias << "]" << dec 
+             << " file " << debug_filename
+             << " ELF machine " << expect_machine
+             << " (code " << elf_machine << ")"
+             << "\n";
 
       if (q->has_inline_num || q->has_function_num || q->has_statement_num)
         {

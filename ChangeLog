@@ -1,3 +1,15 @@
+2006-11-26  Frank Ch. Eigler  <fche@redhat.com>
+
+	PRs 2685, 3596, toward 2725.
+	* tapsets.cxx (common_probe_entryfn_prologue): Skip probe on
+	insufficient stack.
+	(build_blacklist): Add a slew of lock-related calls.
+	(query_module): Check for debuginfo architecture match.
+	* translate.cxx (translate_pass): Add default MINSTACKSPACE.
+	* configure.ac: Link stap with -lebl too.
+	* configure: Regenerated.
+	* stap.1.in: Document MINSTACKSPACE parameter.
+
 2006-11-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (emit_module_init): Adapt to 2.6.19 utsname().
