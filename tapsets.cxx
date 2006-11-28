@@ -2971,14 +2971,12 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // We've got to do several things here to handle target
       // variables in return probes.
 
-      // (1) Synthesize a global array and an associated nesting level
-      // counter.  We'll use this array to save the target variable
-      // value in.  The array will look like this:
+      // (1) Synthesize two global arrays.  One is the cache of the
+      // target variable and the other contains a thread specific
+      // nesting level counter.  The arrays will look like
+      // this:
       //
       //   _dwarf_tvar_{name}_{num}
-      // 
-      //  The counter will look like this:
-      //
       //   _dwarf_tvar_{name}_{num}_ctr
 
       string aname = (string("_dwarf_tvar_")
@@ -3000,7 +2998,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // probe we're about to create).  The array reference will look
       // like this:
       //
-      //   _dwarf_tvar_{name}_{num}[tid(), _dwarf_tvar_{name}_{num}_ctr--]
+      // _dwarf_tvar_{name}_{num}[tid(), _dwarf_tvar_{name}_{num}_ctr[tid()]--]
 
       arrayindex* ai = new arrayindex;
       ai->tok = e->tok;
@@ -3017,15 +3015,21 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       fc->referent = 0;
       ai->indexes.push_back(fc);
 
-      // Synthesize the "_dwarf_tvar_{name}_{num}_ctr--" used as the
+      // Synthesize the "_dwarf_tvar_{name}_{num}_ctr[tid()]--" used as the
       // second index into the array.
+      arrayindex* ai2 = new arrayindex;
+      ai2->tok = e->tok;
+
       sym = new symbol;
       sym->name = ctrname;
       sym->tok = e->tok;
+      ai2->base = sym;
+      ai2->indexes.push_back(fc);
+
       post_crement* pc = new post_crement;
       pc->tok = e->tok;
       pc->op = "--";
-      pc->operand = sym;
+      pc->operand = ai2;
       ai->indexes.push_back(pc);
 
       // (3) We need an entry probe that saves the value for us in the
@@ -3035,7 +3039,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       //   global _dwarf_tvar_{name}_{num}
       //   global _dwarf_tvar_{name}_{num}_ctr
       //   probe kernel.function("{function}") {
-      //     _dwarf_tvar_{name}_{num}[tid(), ++_dwarf_tvar_{name}_{num}_ctr]
+      //     _dwarf_tvar_{name}_{num}[tid(),
+      //                              ++_dwarf_tvar_{name}_{num}_ctr[tid()]]
       //       = ${param}
       //   }
 
@@ -3064,7 +3069,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       //   ai->print (stp);
       // here since the counter reference in 'ai' is post-decremented
       // (and we need to pre-increment the counter here).
-      stp << " { " << aname << "[tid(), ++" << ctrname << "] = ";
+      stp << " { " << aname << "[tid(), ++" << ctrname << "[tid()]] = ";
       e->print (stp);
       stp << " }" << endl;
       delete pp;
