@@ -1,3 +1,10 @@
+2006-11-28  David Smith  <dsmith@redhat.com>
+
+	* semko/thirtyfour.stp: Checks for writing to target variable in
+	.return probe.
+	* semok/twentyfour.stp: Tests read access to target variable in
+	.return probe.
+
 2006-11-21  Li Guanglei <guanglei@cn.ibm.com>
 	
 	From Gui Jian <guijian@cn.ibm.com>

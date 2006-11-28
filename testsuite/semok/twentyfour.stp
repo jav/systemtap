@@ -1,0 +1,8 @@
+#! stap -p2
+
+# read access to target variables should work in .return probes
+
+probe kernel.function("sys_read").return
+{
+    printf("fd is %d\n", $fd)
+}
