@@ -2890,9 +2890,10 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   dwarf_query & q;
   Dwarf_Die *scope_die;
   Dwarf_Addr addr;
+  block *add_block;
 
   dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
-    q(q), scope_die(sd), addr(a) {}
+    q(q), scope_die(sd), addr(a), add_block(NULL) {}
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -2993,44 +2994,120 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       vd->tok = e->tok;
       q.sess.globals.push_back (vd);
 
-      // (2) Synthesize an array reference (that we'll use as
-      // replacement for the target variable reference and in the
-      // probe we're about to create).  The array reference will look
+      // (2) Create a new code block we're going to insert at the
+      // beginning of this probe to get the cached value into a
+      // temporary variable.  We'll replace the target variable
+      // reference with the temporary variable reference.  The code
+      // will look like this:
+      //
+      //   _dwarf_tvar_tid = tid()
+      //   _dwarf_tvar_{name}_{num}_tmp
+      //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+      //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
+
+      // (2a) Synthesize the tid temporary expression, which will look
       // like this:
       //
-      // _dwarf_tvar_{name}_{num}[tid(), _dwarf_tvar_{name}_{num}_ctr[tid()]--]
+      //   _dwarf_tvar_tid = tid()
+      symbol* tidsym = new symbol;
+      tidsym->name = string("_dwarf_tvar_tid");
+      tidsym->tok = e->tok;
 
-      arrayindex* ai = new arrayindex;
-      ai->tok = e->tok;
+      if (add_block == NULL)
+        {
+	  add_block = new block;
+	  add_block->tok = e->tok;
+
+	  // Synthesize a functioncall to grab the thread id.
+	  functioncall* fc = new functioncall;
+	  fc->tok = e->tok;
+	  fc->function = string("tid");
+
+	  // Assign the tid to '_dwarf_tvar_tid'.
+	  assignment* a = new assignment;
+	  a->tok = e->tok;
+	  a->op = "=";
+	  a->left = tidsym;
+	  a->right = fc;
+
+	  expr_statement* es = new expr_statement;
+	  es->tok = e->tok;
+	  es->value = a;
+	  add_block->statements.push_back (es);
+	}
+
+      // (2b) Synthesize an array reference and assign it to a
+      // temporary variable (that we'll use as replacement for the
+      // target variable reference).  It will look like this:
+      //
+      //   _dwarf_tvar_{name}_{num}_tmp
+      //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+
+      arrayindex* ai_tvar = new arrayindex;
+      ai_tvar->tok = e->tok;
 
       symbol* sym = new symbol;
       sym->name = aname;
       sym->tok = e->tok;
-      ai->base = sym;
+      ai_tvar->base = sym;
 
-      // Synthesize a functioncall used as an index into the array.
-      functioncall* fc = new functioncall;
-      fc->tok = e->tok;
-      fc->function = string("tid");
-      fc->referent = 0;
-      ai->indexes.push_back(fc);
+      ai_tvar->indexes.push_back(tidsym);
 
-      // Synthesize the "_dwarf_tvar_{name}_{num}_ctr[tid()]--" used as the
+      // We need to create a copy of the array index in its current
+      // state so we can have 2 variants of it (the original and one
+      // that post-decrements the second index).
+      arrayindex* at_tvar_postdec = new arrayindex;
+      *at_tvar_postdec = *ai_tvar;
+
+      // Synthesize the
+      // "_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]" used as the
       // second index into the array.
-      arrayindex* ai2 = new arrayindex;
-      ai2->tok = e->tok;
+      arrayindex* ai_ctr = new arrayindex;
+      ai_ctr->tok = e->tok;
 
       sym = new symbol;
       sym->name = ctrname;
       sym->tok = e->tok;
-      ai2->base = sym;
-      ai2->indexes.push_back(fc);
+      ai_ctr->base = sym;
+      ai_ctr->indexes.push_back(tidsym);
+      ai_tvar->indexes.push_back(ai_ctr);
+
+      symbol* tmpsym = new symbol;
+      tmpsym->name = aname + "_tmp";
+      tmpsym->tok = e->tok;
+
+      assignment* a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = tmpsym;
+      a->right = ai_tvar;
+
+      expr_statement* es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
+
+      add_block->statements.push_back (es);
+
+      // (2c) Add a post-decrement to the second array index and
+      // delete the array value.  It will look like this:
+      //
+      //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
 
       post_crement* pc = new post_crement;
       pc->tok = e->tok;
       pc->op = "--";
-      pc->operand = ai2;
-      ai->indexes.push_back(pc);
+      pc->operand = ai_ctr;
+      at_tvar_postdec->indexes.push_back(pc);
+
+      delete_statement* ds = new delete_statement;
+      ds->tok = e->tok;
+      ds->value = at_tvar_postdec;
+
+      add_block->statements.push_back (ds);
 
       // (3) We need an entry probe that saves the value for us in the
       // global array we created.  Create an entire script (and let
@@ -3065,14 +3142,13 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       stp << "global " << ctrname << endl;
       stp << "probe ";
       pp->print(stp);
+      delete pp;
       // Note that we can't do:
-      //   ai->print (stp);
-      // here since the counter reference in 'ai' is post-decremented
-      // (and we need to pre-increment the counter here).
+      //   ai_tvar->print (stp);
+      // here since we need to pre-increment the counter.
       stp << " { " << aname << "[tid(), ++" << ctrname << "[tid()]] = ";
       e->print (stp);
       stp << " }" << endl;
-      delete pp;
 
       // Parse the generated script
       stapfile *f = parser::parse (q.sess, stp, false);
@@ -3081,9 +3157,10 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // Add the parsed script to the list of files to be processed.
       q.sess.files.push_back(f);
 
-      // (4) Provide the arrayindex to our parent so it can be used as
-      // a substitute for the target symbol.
-      provide <arrayindex*> (this, ai);
+      // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
+      // our parent so it can be used as a substitute for the target
+      // symbol.
+      provide <symbol*> (this, tmpsym);
       return;
     }
 
@@ -3218,6 +3295,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
   require <block*> (&v, &(this->body), q.base_probe->body);
   this->tok = q.base_probe->tok;
+
+  // If when target-variable-expanding the probe, we added a new block
+  // of code, add it to the start of the probe.
+  if (v.add_block)
+    this->body->statements.insert(this->body->statements.begin(), v.add_block);
 
   // Set the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe

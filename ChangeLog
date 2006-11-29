@@ -1,3 +1,16 @@
+2006-11-29  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (struct dwarf_var_expanding_copy_visitor): Added
+	'add_block' member variable.  Constructor sets it to NULL.
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol): Fixes the
+	problem of accessing a cached target variable in a loop.  Cached
+	target variable is assigned to a temporary variable, which can be
+	safely access multiple times.  In addition, the cached value is
+	deleted after being read.
+	(dwarf_derived_probe::dwarf_derived_probe): Adds in the new block
+	of code created in visit_target_symbol() to the beginning of the
+	derived probe.
+	
 2006-11-28  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx
