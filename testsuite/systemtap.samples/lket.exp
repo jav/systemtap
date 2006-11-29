@@ -1,12 +1,16 @@
 # Test the basic functionality of LKET tapset and lket-b2a utility
 
-set test "lket"
-if {![installtest_p]} { untested $test; return }
+proc cleanfiles {} {
+    catch {exec /bin/sh -c "rm -f stpd_cpu* lket.out"}
+}
 
-eval spawn stap -v -bM $srcdir/$subdir/lket.stp
+set test "$subdir\/lket"
+if {[info procs installtest_p]!="" && ![installtest_p]} {untested $test; return}
+
+eval spawn stap -v -DMAXSKIPPED=100000 -bM $srcdir/$subdir/lket.stp
 set failed 1
+set timeout 180
 expect {
-    -timeout 150
     -re {^Pass\ ([1234]):\ [^\r]*\r\n} {
         set detail "pass$expect_out(1,string)"; 
         exp_continue
@@ -22,12 +26,12 @@ expect {
     timeout {set detail "stap timeout"; send "\003" }
 }
 
-if {$failed} { fail "$test\($detail\)"; return}
+if {$failed} { fail "$test\($detail\)"; cleanfiles; return}
 
 set failed [catch {exec /bin/sh -c "lket-b2a -f stpd_cpu*"}]
 
 if { $failed || ![file readable "lket.out"] } {
-    fail "$test\(lket-b2a runtime\)"; return
+    fail "$test\(lket-b2a runtime\)"; cleanfiles; return
 }
 
 eval {spawn head -n 10 "lket.out"}
@@ -41,5 +45,5 @@ if {$failed} {
     pass "$test\($failed\)"; 
 }
 
-catch {exec rm -f stpd_cpu* lket.out}
+cleanfiles
 return

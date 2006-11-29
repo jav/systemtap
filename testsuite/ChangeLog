@@ -1,3 +1,14 @@
+2006-11-29  Li Guanglei <guanglei@cn.ibm.com>
+	
+	From Gui Jian <guijian@cn.ibm.com>
+
+	* systemtap.samples/lket.exp: Increase MAXSKIPPED
+	and timeout thresholds; Fix the code of cleaning 
+	temporary files
+
+	* systemtap.stress/whitelist.stp: New testcase to generate
+	safe probes.
+
 2006-11-28  David Smith  <dsmith@redhat.com>
 
 	* semko/thirtyfour.stp: Checks for writing to target variable in

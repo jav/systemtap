@@ -1,0 +1,464 @@
+# An implementation of generating whitelist for safe-probes 
+# in systemtap based on the discussion in thread:
+#   http://sourceware.org/ml/systemtap/2006-q3/msg00574.html
+#  
+# Copyright (C) 2006 IBM Corp.
+# 
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+#
+# Main ideas:
+# 1)Fetch a group of probe points from probes.pending, probe them 
+#   and run some workloads(e.g. runltp) parallely meanwhile.
+#
+# 2)If the probe test ends without crash, those actually triggered
+#   probe points are moved into probes.passed and those 
+#   untriggered are into probes.untriggered; if the probe test 
+#   crashes the system, it will be resumed automatically after 
+#   system reboot. Those probe points which have been triggered are
+#   also moved into probes.passed, but those untriggered ones are
+#   moved into probes.failed.
+#
+# 3)Repeat the above until probes.pending becomes empty, then:
+#   Normally, probes.pending is reinitialized from probes.failed
+#   and probes.untriggered, then start the next iteration; 
+#   But if max running level (now 3) is reached, or probes.pending,
+#   probes.failed and probes.untriggered are all empty, stop the
+#   whole test.
+#
+# http://sourceware.org/ml/systemtap/2006-q4/msg00143.html
+# http://sourceware.org/ml/systemtap/2006-q4/msg00435.html
+#
+set TESTNAME "whitelist"
+
+# Because this test will take several hours (depends on workloads
+# and max_running_level) and probably cause more than once system 
+# crashes, it is disabled by default. It's strongly suggested 
+# to run it manually as a single test case if necessary. 
+# Comment the following two lines to enable it.
+untested "$TESTNAME is disabled"
+return
+
+#################################################################
+#            supporting constants and procedures                #
+#################################################################
+set MAX_RUNNING_LEVEL 2
+
+set STP_GENWHITELIST_RUNNING "/stp_genwhitelist_running"
+set STAP_RESULT "probe.out"
+set PROBES_ALL "probes.all"
+set PROBES_PENDING "probes.pending"
+set PROBES_CURRENT "probes.current"
+set PROBES_PASSED "probes.passed"
+set PROBES_FAILED "probes.failed"
+set PROBES_UNTRIGGERED "probes.untriggered"
+
+set systemtap_script {
+    global stat
+    probe %s {
+        stat[pp()] <<< 1
+    }
+    probe timer.ms(30000) {
+        foreach (pp in stat)
+            printf("%%d %%s\n", @count(stat[pp]), pp)
+    }
+    probe end {
+        foreach (pp in stat)
+            printf("%%d %%s\n", @count(stat[pp]), pp)
+    }
+}
+
+set benchs { 
+        {/usr/local/ltp/runltp -t 300s -f syscalls}
+        {/usr/local/ltp/runltp -t 300s -f nfs}
+        {/usr/local/ltp/runltp -t 300s -f ipc}
+        {/usr/local/ltp/runltp -t 300s -f dio}
+        {/usr/local/ltp/runltp -t 300s -f fs}
+        {/usr/local/ltp/runltp -t 300s -f mm}
+        {/usr/local/ltp/runltp -t 300s -f tcp_cmds}
+        {/usr/local/ltp/runltp -t 300s -f ltp-aio-stress.part1}
+}
+
+set init_probes_all_script {
+    probe scheduler.*, 
+        ioscheduler.*, 
+        ioscheduler.*.return, 
+        syscall.*, 
+        syscall.*.return, 
+        ioblock.*, 
+        netdev.*, 
+        vm.*, 
+        signal.*, 
+        signal.*.return, 
+        udp.*, 
+        udp.*.return, 
+        tcp.*, 
+        tcp.*.return, 
+        process.*, 
+        nfs.fop.*, 
+        nfs.aop.*,
+        nfsd.proc.*, 
+        nfsd.*, 
+        nfs.proc.*, 
+        scsi.*, 
+        sunrpc.*, 
+        generic.fop.*, 
+        generic.fop.*.return, 
+        vfs.*, 
+        vfs.*.return {}
+}
+
+proc do_current_test {} {
+    global PROBES_CURRENT
+    global STAP_RESULT
+    global systemtap_script
+    if [catch {open $PROBES_CURRENT r} Infile] {
+        puts "Failed to open $PROBES_CURRENT"
+        return
+    }
+    set probepoint [gets $Infile]
+    while {![eof $Infile]} {
+        set extra [gets $Infile]
+        if {[string length $extra] > 0} {
+            set probepoint [concat "$probepoint, " $extra]
+            set extra [gets $Infile]
+        }
+    }
+    catch {close $Infile}
+    
+    set testname "L[get_running_level]_Grp_[string range $probepoint 0 32]..."
+    if [probe_ok $probepoint] {
+        set script [format $systemtap_script $probepoint]
+        whitelist_run $testname runbenchs -e $script -o $STAP_RESULT
+    } else {
+        puts "ERROR no match in probe_ok() $testname no match"
+        set script [format $systemtap_script $probepoint]
+        exec echo $script > sc.stp
+    }
+}
+
+proc get_linesize {filename} {
+    if [file readable $filename] {
+      scan [exec wc -l $filename] "%d" lines
+      if {[info exists lines] && $lines > 0} {
+          return $lines
+      }
+    }
+    return 0
+}
+
+proc get_running_level {} {
+    global STP_GENWHITELIST_RUNNING
+    if [file readable $STP_GENWHITELIST_RUNNING] {
+        scan [exec cat $STP_GENWHITELIST_RUNNING] "%d" current_running_level
+        if {[info exists current_running_level] && $current_running_level > 0} {
+            return $current_running_level
+        }
+    }
+    return 0
+}
+
+set NO_CRASH 0
+set ALREADY_CRASHED 1
+proc garbage_collect {{already_crashed $NO_CRASH}} {
+    global STAP_RESULT
+    global PROBES_CURRENT
+    global PROBES_PASSED
+    global PROBES_FAILED
+    global PROBES_UNTRIGGERED
+
+    if {[get_linesize $PROBES_CURRENT] == 0} {
+        exec rm -f $PROBES_CURRENT $STAP_RESULT
+        return
+    }
+    if {[get_linesize $STAP_RESULT] == 0} {
+        if {$already_crashed} {
+            exec cat $PROBES_CURRENT >> $PROBES_FAILED
+        } else {
+            exec cat $PROBES_CURRENT >> $PROBES_UNTRIGGERED
+        }
+        exec rm -f $PROBES_CURRENT $STAP_RESULT
+        return
+    }
+    
+    # both probes.current and probe.out are non-empty
+    if [catch {open $PROBES_CURRENT r} Infile] {
+        puts "Failed to open $PROBES_CURRENT"
+        exec rm -f $PROBES_CURRENT $STAP_RESULT
+        return
+    }
+    set probepoint [gets $Infile]
+    while {![eof $Infile]} {
+        if {[is_probed $probepoint $STAP_RESULT]} {
+            exec echo $probepoint >> $PROBES_PASSED
+        } else {
+            if {$already_crashed} {
+                exec echo $probepoint >> $PROBES_FAILED
+            } else {
+                exec echo $probepoint >> $PROBES_UNTRIGGERED
+            }
+        }
+        set probepoint [gets $Infile]
+    }
+    catch {close $Infile}
+    exec rm -f $PROBES_CURRENT $STAP_RESULT
+    return
+}
+
+proc incr_running_level {} {
+    global STP_GENWHITELIST_RUNNING
+    set newlevel [expr [get_running_level]+1]
+    if { $newlevel > 0 } {
+        exec echo $newlevel > $STP_GENWHITELIST_RUNNING
+    } else {
+        exec echo 0 > $STP_GENWHITELIST_RUNNING
+    }
+    return
+}
+
+proc init_probes_all {} {
+    global PROBES_ALL
+    global init_probes_all_script
+    catch {exec stap -p2 -e $init_probes_all_script > /tmp/whitelist_tmpfile}
+    catch {exec grep "^kernel.function" /tmp/whitelist_tmpfile > $PROBES_ALL }
+    catch {exec grep "^kernel.inline" /tmp/whitelist_tmpfile >> $PROBES_ALL }
+    catch {exec rm -f /tmp/whitelist_tmpfile}
+    if {[get_linesize $PROBES_ALL] == 0} {
+        return 1
+    }
+    return 0
+}
+
+proc init_running_level {} {
+    global STP_GENWHITELIST_RUNNING
+    exec echo 1 > $STP_GENWHITELIST_RUNNING
+}
+
+proc is_probed {probepoint stap_result} {
+    if {[string length $probepoint] == 0 || [get_linesize $stap_result] == 0 } {
+        return 0
+    }
+    if [catch {open $stap_result r} Resfile] {
+         puts "Failed to open $stap_result in is_probed() proc"
+         return 0
+    }
+    set probed 0
+    set resline [gets $Resfile]
+    while {![eof $Resfile]} {
+        if {[string match "* $probepoint" $resline]} {
+            set probed 1
+            break
+         }
+      set resline [gets $Resfile]
+    }
+    catch {close $Resfile}
+    return $probed
+}
+
+proc probe_ok {probepoint} {
+    set cmd {exec stap -p2 -e }
+    lappend cmd "probe $probepoint {}"
+    exec echo $cmd > cmdfile
+    return ![catch $cmd]
+}
+
+proc proper_current_size {level inputfile} {
+     set totalsize [get_linesize $inputfile]
+     switch $level {
+         {1} {set currentsize [expr $totalsize/9]}
+         {2} {set currentsize [expr $totalsize/49]}
+         {3} {set currentsize 50}
+         {4} {set currentsize 10}
+         default {
+              puts "Reached unexpected iteration level: $level"
+              set currentsize $totalsize
+         }
+     }
+     if {$currentsize <= 0} {
+         set currentsize 5
+     }
+     return $currentsize
+}
+
+set startup_line_in_RCLOCAL "cd $env(PWD); runtest whitelist.exp&"
+set RCLOCAL "/etc/rc.d/rc.local"
+
+proc register_service {} {
+    global startup_line_in_RCLOCAL
+    global RCLOCAL
+    exec sed -i -n -e "/runtest whitelist.exp/!p" $RCLOCAL
+    exec echo $startup_line_in_RCLOCAL >> $RCLOCAL
+}
+
+proc unregister_service {} {
+    global RCLOCAL
+    exec sed -i -n -e "/runtest whitelist.exp/!p" $RCLOCAL
+}
+
+proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
+    set cmd [concat {stap -DMAXSKIPPED=200000 -v } $args]
+    catch {eval spawn $cmd}
+    set stap_id $spawn_id
+    set failed 1
+    set timeout 600
+    expect {
+	-i $stap_id -re {^Pass\ ([1234]):\ [^\r]*\r\n} {
+            set error_msg "pass$expect_out(1,string)";
+            exp_continue
+        }
+	-re {Pass\ 5:\ starting\ run.\r\n} {
+            set error_msg "stap runtime"
+            runbenchs
+            send -i $stap_id "\003"
+            exp_continue
+        }
+        -timeout 1800 -re {Pass\ 5:\ run\ completed} {
+            set failed 0
+        }
+	-re {parse\ error|semantic\ error} { set detail "$expect_out(0,string)" }
+	timeout { set detail "stap timeout"; send "\003" }
+	eof { set failed 0 }
+    }
+    catch {close -i $stap_id}
+    wait -i $stap_id
+    if {$failed} { puts "whitelist_run failure \($detail\)" }
+}
+
+proc runbenchs {} {
+    global benchs
+    set timeout 900
+    set runningcount 0
+
+    foreach bench $benchs {
+            set benchexec [lrange $bench 0 0]
+            set benchargs [join [lrange $bench 1 [llength $bench]]]
+            if {[file executable $benchexec]} {
+                catch {eval spawn $benchexec $benchargs}
+                set benchname($spawn_id) $benchexec
+            } else {
+                catch {eval spawn sleep 30}
+                set benchname($spawn_id) "sleep"
+            }
+            lappend idlist $spawn_id
+            incr runningcount
+    }
+
+    while {$runningcount > 0} {
+    	expect {
+    		-i $idlist -re {LTP\ Version:\ LTP-([0-9])+\r\n$} {
+    			set from $expect_out(spawn_id)
+    			lappend benchres($from) $expect_out(buffer)
+    		} eof {
+    			set donepos [lsearch $idlist $expect_out(spawn_id)]
+    			set idlist [lreplace $idlist $donepos $donepos]
+    			incr runningcount -1
+                        wait -i $expect_out(spawn_id)
+    		} timeout {
+    			break
+    		}
+    	}
+    }
+}
+
+###################################################################
+#                 Main routine of the whole test                  #
+###################################################################
+if {[info procs installtest_p] != "" && ![installtest_p]} { 
+    untested $TESTNAME; 
+    return 
+}
+
+if {[get_running_level] == 0} {
+    # Not started yet, start the whole test from the scratch
+    # Append the startup code to /etc/rc.d/rc.local if not yet
+    register_service
+    # Check whether probes.all is empty or not given
+    if {[get_linesize $PROBES_ALL] == 0} {
+        if {[init_probes_all] != 0} {
+           fail "$TESTNAME unable to initialize the probe point list"
+           return
+        }
+    }
+    # Set current_running_level as 1 to indicate a new test started
+    init_running_level
+    # Initialize intermediate files based on probe.all
+    exec rm -f $PROBES_PENDING $PROBES_CURRENT
+    exec rm -f $PROBES_PASSED $PROBES_UNTRIGGERED $PROBES_FAILED
+    file copy $PROBES_ALL $PROBES_PENDING
+    exec touch $PROBES_PASSED $PROBES_UNTRIGGERED $PROBES_FAILED
+    puts "Start a fresh stp_genwhitelist test."
+} else {
+    # Maybe started already, so do some cleaning if necessary
+    garbage_collect $ALREADY_CRASHED
+    puts "Recovered from last maybe crashed probe test."
+}
+
+set current_size_const [proper_current_size [get_running_level] $PROBES_ALL]
+puts "current_size_const is initialized as $current_size_const"
+
+while {1} {
+    puts "Current size of probes.pending is [get_linesize $PROBES_PENDING]"
+    if {[get_linesize $PROBES_PENDING] == 0} {
+        # Check whether we need the next iteration or not
+        global MAX_RUNNING_LEVEL
+        # incr running_level for the start of a new iteration
+        incr_running_level
+        puts "Running level increased to [get_running_level]"
+        if {[get_running_level] > $MAX_RUNNING_LEVEL} {
+            puts "Exceed max running level limit."
+            break
+        } else {
+            puts "Current running level is [get_running_level]"
+            exec rm -f $PROBES_PENDING
+            if {[get_linesize $PROBES_FAILED] > 0} {
+                # Append probes.failed to probes.pending
+                exec cat $PROBES_FAILED >> $PROBES_PENDING
+                file delete $PROBES_FAILED
+                exec touch $PROBES_FAILED
+                puts "Append $PROBES_FAILED to $PROBES_PENDING"
+            } 
+            if {[get_linesize $PROBES_UNTRIGGERED] > 0} {
+                # Append probes.untriggered to probes.pending
+                exec cat $PROBES_UNTRIGGERED >> $PROBES_PENDING
+                file delete $PROBES_UNTRIGGERED
+                exec touch $PROBES_UNTRIGGERED
+                puts "Append $PROBES_UNTRIGGERED to $PROBES_PENDING"
+            } 
+            if {[get_linesize $PROBES_PENDING] == 0} {
+                # No more pending probe points
+                puts "No more iterations needed. Stopped."
+                break
+            }
+            # set new value of current_size_const for new iteration level
+            set current_size_const [proper_current_size [get_running_level] $PROBES_ALL]
+            puts "current_size_const is set as $current_size_const now"
+            continue
+        }
+    } 
+    # Now, non-empty probes.pending should be ready
+    # Generate probes.current
+    exec rm -f $PROBES_CURRENT
+    exec head -n $current_size_const $PROBES_PENDING > $PROBES_CURRENT
+    exec tail -n+[expr $current_size_const+1] $PROBES_PENDING > /tmp/whitelist_tmpfile
+    exec mv /tmp/whitelist_tmpfile $PROBES_PENDING
+
+    puts "Start a probe test..."
+    # Do actual probe test
+    do_current_test
+    puts "Completed one probe test."
+
+    # No crash fortunately, so do some cleaning to prepare for next test
+    garbage_collect $NO_CRASH
+}
+
+# Congratulations for arriving here
+# Remove all temporary files and unregister myself
+puts "Remove all temporary files, unregister the service and return."
+exec rm -f $PROBES_PENDING $PROBES_CURRENT $STP_GENWHITELIST_RUNNING 
+exec rm -f $STAP_RESULT /tmp/whitelist_tmpfile
+unregister_service
+
+pass "$TESTNAME completed"
+return
