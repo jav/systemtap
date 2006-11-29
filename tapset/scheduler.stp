@@ -104,7 +104,7 @@ probe scheduler.migrate = kernel.inline("pull_task") {
  * Context:
  *  The cpu looking for more work.
  */
-probe scheduler.balance = kernel.inline("idle_balance") {}
+probe scheduler.balance = kernel.inline("idle_balance")? {}
 
 
 /* probe scheduler.ctxswitch 

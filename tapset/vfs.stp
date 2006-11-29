@@ -476,7 +476,7 @@ probe vfs.block_sync_page.return = kernel.function ("block_sync_page").return
 	units = "pages"
 }
 
-probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")
+probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")?
 {
 	dev = __page_dev($page)
         ino = __page_ino($page)
@@ -490,7 +490,7 @@ probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")
 	size = 1
 	units = "pages"
 }
-probe vfs.buffer_migrate_page.return = kernel.function ("buffer_migrate_page").return
+probe vfs.buffer_migrate_page.return = kernel.function ("buffer_migrate_page").return?
 {
 	name = "buffer_migrate_page"
 	retstr = sprintf("%d", $return)
