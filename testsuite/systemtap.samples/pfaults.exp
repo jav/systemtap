@@ -6,9 +6,9 @@ set pid $spawn_id
 set ok 0
 expect {
     -timeout 30
-    -re "Page fault tracking, start time" { incr ok; exp_continue }
+  -re {Page fault tracking, start time[^\r\n]+\r\n} { incr ok; exp_continue }
     -timeout 30
-    -re "Page fault tracking, end time" { incr ok; exp_continue }
+  -re {Page fault tracking, end time[^\r\n]+\r\n} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
