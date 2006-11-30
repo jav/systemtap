@@ -1,3 +1,9 @@
+2006-11-30  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (printscript): Prints global embedded code.  Not
+	printing the global embedded code was causing bad caching
+	behavior.
+
 2006-11-29  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (struct dwarf_var_expanding_copy_visitor): Added

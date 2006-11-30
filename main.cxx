@@ -108,6 +108,15 @@ usage (systemtap_session& s, int exitcode)
 static void
 printscript(systemtap_session& s, ostream& o)
 {
+  if (s.embeds.size() > 0)
+    o << "# global embedded code" << endl;
+  for (unsigned i=0; i<s.embeds.size(); i++)
+    {
+      embeddedcode* ec = s.embeds[i];
+      ec->print (o);
+      o << endl;
+    }
+
   if (s.globals.size() > 0)
     o << "# globals" << endl;
   for (unsigned i=0; i<s.globals.size(); i++)
