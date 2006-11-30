@@ -1,3 +1,8 @@
+2006-11-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (common_probe_entryfn_prologue): Tweak
+	insufficient stack detection logic.
+
 2006-11-30  David Smith  <dsmith@redhat.com>
 
 	* main.cxx (printscript): Prints global embedded code.  Not

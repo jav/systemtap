@@ -176,9 +176,11 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
   o->newline() << "local_irq_save (flags);";
 
   // Check for enough free enough stack space
-  o->newline() << "if ((((unsigned long) (& c)) & (THREAD_SIZE-1))";
-  o->newline(1) << "< (THREAD_SIZE - MINSTACKSPACE - sizeof (struct task_struct))) {";
-  o->newline() << "if (atomic_inc_return (& skipped_count) > MAXSKIPPED) {";
+  o->newline() << "if (unlikely ((((unsigned long) (& c)) & (THREAD_SIZE-1))"; // free space
+  o->newline(1) << "< (MINSTACKSPACE + sizeof (struct task_struct)))) {"; // needed space
+  // XXX: may need porting to platforms where task_struct is not at bottom of kernel stack
+  // NB: see also CONFIG_DEBUG_STACKOVERFLOW
+  o->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
   o->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
   o->newline() << "_stp_exit ();";
   o->newline(-1) << "}";
