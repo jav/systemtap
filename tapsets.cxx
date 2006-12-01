@@ -177,7 +177,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
 
   // Check for enough free enough stack space
   o->newline() << "if (unlikely ((((unsigned long) (& c)) & (THREAD_SIZE-1))"; // free space
-  o->newline(1) << "< (MINSTACKSPACE + sizeof (struct task_struct)))) {"; // needed space
+  o->newline(1) << "< (MINSTACKSPACE + sizeof (struct thread_info)))) {"; // needed space
   // XXX: may need porting to platforms where task_struct is not at bottom of kernel stack
   // NB: see also CONFIG_DEBUG_STACKOVERFLOW
   o->newline() << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
