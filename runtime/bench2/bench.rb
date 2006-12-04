@@ -13,6 +13,7 @@ MINFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
 # more constants
 PROCFS = 1
 RELAYFS= 2
+UTT = 3
 
 at_exit {Bench.done}
 
@@ -72,8 +73,12 @@ class Bench
       threads.times {|x| sum = sum + `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
       @results[threads] = sum / (threads * threads)
       File.open("#{@dir}/xxx.out") do |file|
-	file.each_line do |line| 
-	  @failures[threads] = line.match(/were ([\d]*)/)[1]
+	file.each_line do |line|
+	  m = line.match(/WARNING: There were ([\d]*)/)
+	  if (m)
+	    @failures[threads] = m[1]
+	    break
+	  end
 	end
       end
     end
@@ -88,7 +93,9 @@ class Bench
 	printf("R")
       end
       if @trans == RELAYFS
-	printf("*")
+	printf("R")
+      elsif @trans == UTT
+	printf("U""")
       else
 	printf(" ")
       end
@@ -132,6 +139,7 @@ class Bench
   def load
     args = "-q -b 8"
     if @trans == RELAYFS then args = "-q" end
+    if @trans == UTT then args = "-lq" end
     fork do exec "sudo #{@@staprun} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
     sleep 5
   end
@@ -229,7 +237,7 @@ obj-m := bench.o
       puts "Times below are nanoseconds per probe and include kprobe overhead."
     puts "-"*64
     puts "+--- S = Script, R = Runtime"
-    puts "|+-- * = Relayfs        \tThreads"
+    puts "|+-- R = Relayfs, U = UTT  \tThreads"
     printf "|| NAME                 "
     @@num_threads.each {|n| printf("\t    %d",n)}
     printf "\n"
@@ -248,37 +256,44 @@ obj-m := bench.o
 end
 
 class Stapbench < Bench
+
+  def run
+    compile
+    @results = []
+    @failures = []
+    @@num_threads.each do |threads|
+      load
+      sum=0
+      threads.times {|cpu| fork {exec "./itest #{threads} > bench#{cpu}"}}
+      threads.times {Process.waitpid(-1)}	# wait for itest(s) to exit
+      `sudo killall -HUP staprun`
+      Process.wait	# wait for stap to exit
+      threads.times {|x| sum = sum + `cat bench#{x}`.split[0].to_i - @@ftime}
+      @results[threads] = sum / (threads * threads)
+      File.open("xxx.out") do |file|
+	file.each_line do |line|
+	  m = line.match(/WARNING: There were ([\d]*)/)
+	  if (m)
+	    @failures[threads] = m[1]
+	    break
+	  end
+	end
+      end
+    end
+    cleanup
+  end
+
   protected
 
   def load
-    # we do this in several steps because the compilation phase can take a long time
-    args = "-kvvp4"
-    if @trans == RELAYFS then args = "-bMkvvp4" end
-    res = `stap #{args} -m bench bench.stp &> stap.out`
-    if $? != 0
-      puts "ERROR running stap\n#{res}"
-      puts IO.read("stap.out") if File.exists?("stap.out")
-      cleanup
-      exit
-    end
-    IO.foreach("stap.out") {|line| @dir = line if line =~ /Created temporary directory/} 
-    @dir = @dir.match(/"([^"]*)/)[1]
-    if !File.exist?("#{@dir}/bench.ko")
-      puts `cat stap.out`
-      cleanup
-      exit
-    end
-    args = "-q -b 8"
-    if @trans == RELAYFS then args = "-q" end
-    fork do exec "sudo #{@@staprun} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
-    sleep 5
+    args = "-vv"
+    if @trans == RELAYFS then args = "-bMvv" end
+    if @trans == UTT then args = "-lvv" end
+    fork do exec "stap #{args} bench.stp > xxx 2> xxx.out" end
+    sleep 10
   end
   
   def compile
-    emit_code
-  end
-  
-  def emit_code
     if @file
       File.open("bench.stp","w") do |b|
 	File.open(@file,"r") do |f|
@@ -302,4 +317,5 @@ class Stapbench < Bench
       puts "NO CODE!"
     end
   end
+
 end

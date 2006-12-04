@@ -1,7 +1,11 @@
+2006-12-04  Martin Hunt  <hunt@redhat.com>
+
+	* bench2/bench.rb: Fixes for the latest runtime
+	changes.
+
 2006-11-21  Li Guanglei <guanglei@cn.ibm.com>
 	* runtime/lket/b2a/lket_b2a.[ch]: add b2a_error() and change
 	the error return codes.
-
 
 2006-11-19  Li Guanglei <guanglei@cn.ibm.com>
 	* runtime/lket/b2a/lket_b2a.[ch]: bugfix for #3536
