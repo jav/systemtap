@@ -77,6 +77,7 @@ static struct
 #include "arith.c"
 #include "copy.c"
 #include "sym.h"
+#include "sym.c"
 #ifdef STP_PERFMON
 #include "perf.c"
 #endif
