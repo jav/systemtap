@@ -454,7 +454,10 @@ main (int argc, char * const argv [])
   int user_file_stat_rc = -1;
 
   if (script_file == "-")
-    s.user_file = parser::parse (s, cin, s.guru_mode);
+    {
+      s.user_file = parser::parse (s, cin, s.guru_mode);
+      user_file_stat_rc = fstat (STDIN_FILENO, & user_file_stat);
+    }
   else if (script_file != "")
     {
       s.user_file = parser::parse (s, script_file, s.guru_mode);
@@ -529,8 +532,8 @@ main (int argc, char * const argv [])
                   user_file_stat.st_dev == tapset_file_stat.st_dev &&
                   user_file_stat.st_ino == tapset_file_stat.st_ino)
                 {
-                  clog << "parse error: tapset file '" << globbuf.gl_pathv[j]
-                       << "' is already processed as the user script." << endl;
+                  clog << "usage error: tapset file '" << globbuf.gl_pathv[j]
+                       << "' cannot be run directly as a session script." << endl;
                   rc ++;
                 }
 

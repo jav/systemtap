@@ -1,3 +1,9 @@
+2006-12-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3648.
+	* main.cxx (main): Tweak error message for tapset script execution.
+	Also catch those clever rogues who use stdin.
+
 2006-11-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (common_probe_entryfn_prologue): Tweak
