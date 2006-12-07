@@ -1,3 +1,14 @@
+2006-12-06  Josh Stone  <joshua.i.stone@intel.com>
+
+	* time.c (stp_timer_reregister): Add a global to control whether the
+	gettimeofday timer should restart itself, for clean shutdown.
+	(__stp_time_timer_callback): Check the global.
+	(_stp_kill_time, _stp_init_time): Set the global.
+	(_stp_gettimeofday_ns): Switch to preempt_enable_no_resched.
+
+	* time.c (__stp_time_cpufreq_callback): Use the cpu# from the notifier.
+	(_stp_init_time): No need to disable preemption around cpufreq init.
+
 2006-12-04  Martin Hunt  <hunt@redhat.com>
 
 	* bench2/bench.rb: Fixes for the latest runtime

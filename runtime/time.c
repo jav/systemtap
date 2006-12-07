@@ -17,10 +17,9 @@
 typedef struct __stp_time_t {
     /* 
      * A write lock is taken by __stp_time_timer_callback() and
-     * __stp_time_cpufreq_callback().  The timer callback is called from a
-     * softIRQ, and cpufreq callback guarantees that it is not called within
-     * an interrupt context.  Thus there should be no opportunity for a
-     * deadlock between writers.
+     * __stp_time_cpufreq_callback().  Neither writer is in interrupt context,
+     * and both disable interrupts before taking the lock, so there should be
+     * no opportunity for deadlock.
      *
      * A read lock is taken by _stp_gettimeofday_us().  There is the potential
      * for this to occur at any time, so there is a slim chance that this will
@@ -28,8 +27,9 @@ typedef struct __stp_time_t {
      * read lock.  However, we can limit how long we try to get the lock to
      * avoid a deadlock.
      *
-     * Note that seqlock is safer than rwlock because some kernels
-     * don't have read_trylock.
+     * Note that seqlock is chosen so that readers don't block writers.  It's
+     * also important that readers can attempt a lock from _any_ context (e.g.,
+     * NMI), and some kernels don't have read_trylock.
      */
     seqlock_t lock;
 
@@ -46,6 +46,9 @@ typedef struct __stp_time_t {
 } stp_time_t;
 
 void *stp_time = NULL;
+
+/* Flag to tell the timer callback whether to reregister */
+int stp_timer_reregister = 0;
 
 /* Try to estimate the number of CPU cycles in a millisecond - i.e. kHz.  This
  * relies heavily on the accuracy of udelay.  By calling udelay twice, we
@@ -74,6 +77,7 @@ __stp_estimate_cpufreq(void)
 #endif
 }
 
+/* The timer callback is in a softIRQ -- interrupts enabled. */
 static void
 __stp_time_timer_callback(unsigned long val)
 {
@@ -97,7 +101,8 @@ __stp_time_timer_callback(unsigned long val)
     time->base_cycles = cycles;
     write_sequnlock(&time->lock);
 
-    mod_timer(&time->timer, jiffies + 1);
+    if (likely(stp_timer_reregister))
+        mod_timer(&time->timer, jiffies + 1);
 
     local_irq_restore(flags);
 }
@@ -123,6 +128,7 @@ __stp_init_time(void *info)
 }
 
 #ifdef CONFIG_CPU_FREQ
+/* The cpufreq callback is not in interrupt context -- interrupts enabled */
 static int
 __stp_time_cpufreq_callback(struct notifier_block *self,
         unsigned long state, void *vfreqs)
@@ -137,7 +143,7 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
         case CPUFREQ_RESUMECHANGE:
             freqs = (struct cpufreq_freqs *)vfreqs;
             freq_khz = freqs->new;
-	    time = per_cpu_ptr(stp_time, smp_processor_id());
+            time = per_cpu_ptr(stp_time, freqs->cpu);
             write_seqlock_irqsave(&time->lock, flags);
             time->cpufreq = freq_khz;
             write_sequnlock_irqrestore(&time->lock, flags);
@@ -152,11 +158,13 @@ struct notifier_block __stp_time_notifier = {
 };
 #endif /* CONFIG_CPU_FREQ */
 
+/* This function is called during module unloading. */
 void
 _stp_kill_time(void)
 {
 	if (stp_time) {
 		int cpu;
+		stp_timer_reregister = 0;
 		for_each_online_cpu(cpu) {
 			stp_time_t *time = per_cpu_ptr(stp_time, cpu);
 			del_timer_sync(&time->timer);
@@ -170,38 +178,38 @@ _stp_kill_time(void)
 	}
 }
 
+/* This function is called during module loading. */
 int
 _stp_init_time(void)
 {
     int ret = 0;
-    int cpu, freq_khz;
-    unsigned long flags;
 
     stp_time = alloc_percpu(stp_time_t);
     if (unlikely(stp_time == 0))
 	    return -1;
     
+    stp_timer_reregister = 1;
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
 #ifdef CONFIG_CPU_FREQ
-    if (ret) goto end;
+    if (!ret) {
+        ret = cpufreq_register_notifier(&__stp_time_notifier,
+                CPUFREQ_TRANSITION_NOTIFIER);
 
-    ret = cpufreq_register_notifier(&__stp_time_notifier,
-            CPUFREQ_TRANSITION_NOTIFIER);
-    if (ret) goto end;
-
-    for_each_online_cpu(cpu) {
-        preempt_disable();
-        freq_khz = cpufreq_get(cpu);
-        if (freq_khz > 0) {
-            stp_time_t *time = per_cpu_ptr(stp_time, cpu);
-            write_seqlock_irqsave(&time->lock, flags);
-            time->cpufreq = freq_khz;
-            write_sequnlock_irqrestore(&time->lock, flags);
+        if (!ret) {
+            int cpu;
+            for_each_online_cpu(cpu) {
+                unsigned long flags;
+                int freq_khz = cpufreq_get(cpu);
+                if (freq_khz > 0) {
+                    stp_time_t *time = per_cpu_ptr(stp_time, cpu);
+                    write_seqlock_irqsave(&time->lock, flags);
+                    time->cpufreq = freq_khz;
+                    write_sequnlock_irqrestore(&time->lock, flags);
+                }
+            }
         }
-        preempt_enable();
     }
-end:
 #endif
 
     return ret;
@@ -219,6 +227,7 @@ _stp_gettimeofday_ns(void)
 
     preempt_disable();
     time = per_cpu_ptr(stp_time, smp_processor_id());
+
     seq = read_seqbegin(&time->lock);
     base = time->base_ns;
     last = time->base_cycles;
@@ -235,7 +244,7 @@ _stp_gettimeofday_ns(void)
 
     delta = get_cycles() - last;
 
-    preempt_enable();
+    preempt_enable_no_resched();
 
 #if defined (__s390__) || defined (__s390x__)
     // The TOD clock on the s390 (read by get_cycles() ) 

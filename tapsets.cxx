@@ -285,9 +285,18 @@ void
 be_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   // if (probes.empty()) return;
+  bool have_begin_probes = false;
   for (unsigned i=0; i < probes.size (); i++)
     if (probes[i]->begin)
-      s.op->newline() << "enter_begin_probe (& " << probes[i]->name << ");";
+      {
+	have_begin_probes = true;
+	s.op->newline() << "enter_begin_probe (& " << probes[i]->name << ");";
+      }
+
+  // If any of the begin probes signaled an error, indicate
+  // failure to the rest of systemtap_module_init.
+  if (have_begin_probes)
+    s.op->newline() << "rc = (atomic_read (&session_state) == STAP_SESSION_ERROR);";
 }
 
 void
@@ -3771,13 +3780,18 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "static void enter_timer_probe (unsigned long val) {";
   s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [val];";
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = stp->pp;";
-  s.op->newline() << "mod_timer (& stp->timer_list, jiffies + ";
+  s.op->newline() << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
+  s.op->newline() << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING))";
+  s.op->newline(1) << "mod_timer (& stp->timer_list, jiffies + ";
   emit_interval (s.op);
   s.op->line() << ");";
+  s.op->newline(-1) << "{";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
 }
 
@@ -4576,19 +4590,24 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "static int enter_hrtimer_probe (struct hrtimer *timer) {";
-  s.op->newline(1) << "struct stap_hrtimer_probe *stp = container_of(timer, struct stap_hrtimer_probe, hrtimer);";
-  // presume problem with updating ->expires or something else XXX
-  s.op->newline() << "int restart_or_not = HRTIMER_NORESTART;"; 
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = stp->pp;";
+  s.op->newline(1) << "int rc = HRTIMER_NORESTART;"; 
+  s.op->newline() << "struct stap_hrtimer_probe *stp = container_of(timer, struct stap_hrtimer_probe, hrtimer);";
+  s.op->newline() << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
+  s.op->newline() << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING)) {";
   // Compute next trigger time
-  s.op->newline() << "timer->expires = ktime_add (timer->expires,";
+  s.op->newline(1) << "timer->expires = ktime_add (timer->expires,";
   emit_interval (s.op);
   s.op->line() << ");";
-  s.op->newline() << "restart_or_not = HRTIMER_RESTART;"; // ->expires updated; safe to restart
+  s.op->newline() << "rc = HRTIMER_RESTART;"; 
+  s.op->newline(-1) << "}";
+  s.op->newline() << "{";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = stp->pp;";
   s.op->newline() << "(*stp->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
-  s.op->newline() << "return restart_or_not;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";
 }
 

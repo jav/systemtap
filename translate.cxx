@@ -1083,7 +1083,9 @@ c_unparser::emit_module_init ()
       // NB: this gives O(N**2) amount of code, but luckily there
       // are only seven or eight derived_probe_groups, so it's ok.
       o->newline() << "if (rc) {";
-      o->indent(1);
+      // NB: we need to be in the error state so timers can shutdown cleanly,
+      // and so end probes don't run.
+      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
       if (i>0)
         for (int j=i-1; j>=0; j--)
           g[j]->emit_module_exit (*session);
