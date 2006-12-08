@@ -9,6 +9,7 @@
 	(register_standard_tapsets): Add new begin/end variants.
 	* parse.cxx (parser::parse_literal): Allow negative numeric literals,
 	by checking for a '-' unary operator right before a number.
+	* stapprobes.5.in: Document the new begin/end syntax.
 
 2006-12-06  Josh Stone  <joshua.i.stone@intel.com>
 

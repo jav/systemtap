@@ -68,6 +68,17 @@ shutdown of a session, such as in the aftermath of an
 function call, or an interruption from the user.  In the case of an
 error-triggered shutdown, "end" probes are not run.  There are no
 target variables available in either context.
+.PP
+If the order of execution among "begin" or "end" probes is significant,
+then an optional sequence number may be provided:
+.SAMPLE
+begin(N)
+end(N)
+.ESAMPLE
+The number N may be positive or negative.  The probe handlers are run in
+increasing order, and the order between handlers with the same sequence
+number is unspecified.  When "begin" or "end" are given without a
+sequence, they are effectively sequence zero.
 
 .SS NEVER
 The probe point
