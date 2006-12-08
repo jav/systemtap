@@ -52,7 +52,7 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
 	    send "\003"
 
 	    # check the output to see if it is sane
-	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING"
+	    set output "^systemtap ending probe\r\n$OUTPUT_CHECK_STRING$"
 
 	    expect {
 		-re  $output {

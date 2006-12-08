@@ -41,7 +41,7 @@ close $symfd
 set prefix "probefunc:"
 
 # test probefunc() with kernel.statement()
-set output_string "\\mscheduler_tick\\M"
+set output_string "\\mscheduler_tick\\M\r\n"
 set probepoint "kernel.statement(0x$addr)"
 set script [format $systemtap_script $probepoint]
 stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
@@ -52,7 +52,7 @@ set script [format $systemtap_script $probepoint]
 stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
 
 # test probefunc() with kernel.inline()
-set output_string "\\mcontext_switch\\M"
+set output_string "\\mcontext_switch\\M\r\n"
 set probepoint "kernel.inline(\"context_switch\")"
 set script [format $systemtap_script $probepoint]
 stap_run $prefix$probepoint sleep_one_sec $output_string -e $script

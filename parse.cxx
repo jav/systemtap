@@ -1277,25 +1277,37 @@ parser::parse_literal ()
   literal* l;
   if (t->type == tok_string)
     l = new literal_string (t->content);
-  else if (t->type == tok_number)
-    {
-      const char* startp = t->content.c_str ();
-      char* endp = (char*) startp;
-
-      // NB: we allow controlled overflow from LLONG_MIN .. ULLONG_MAX
-      // Actually, this allows all the way from -ULLONG_MAX to ULLONG_MAX,
-      // since the lexer only gives us positive digit strings.
-      errno = 0;
-      long long value = (long long) strtoull (startp, & endp, 0);
-      if (errno == ERANGE || errno == EINVAL || *endp != '\0'
-          || (unsigned long long) value > 18446744073709551615ULL
-          || value < -9223372036854775807LL-1)
-        throw parse_error ("number invalid or out of range"); 
-
-      l = new literal_number (value);
-    }
   else
-    throw parse_error ("expected literal string or number");
+    {
+      bool neg = false;
+      if (t->type == tok_operator && t->content == "-")
+	{
+	  neg = true;
+	  t = next ();
+	}
+
+      if (t->type == tok_number)
+	{
+	  const char* startp = t->content.c_str ();
+	  char* endp = (char*) startp;
+
+	  // NB: we allow controlled overflow from LLONG_MIN .. ULLONG_MAX
+	  // Actually, this allows all the way from -ULLONG_MAX to ULLONG_MAX,
+	  // since the lexer only gives us positive digit strings.
+	  errno = 0;
+	  long long value = (long long) strtoull (startp, & endp, 0);
+	  if (neg)
+	    value = -value;
+	  if (errno == ERANGE || errno == EINVAL || *endp != '\0'
+	      || (unsigned long long) value > 18446744073709551615ULL
+	      || value < -9223372036854775807LL-1)
+	    throw parse_error ("number invalid or out of range"); 
+
+	  l = new literal_number (value);
+	}
+      else
+	throw parse_error ("expected literal string or number");
+    }
 
   l->tok = t;
   return l;

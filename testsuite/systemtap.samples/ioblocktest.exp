@@ -8,5 +8,5 @@ proc sleep_ten_secs {} {
     return 0;
 }
 
-set output_string "\\mioblock*"
+set output_string "ioblock: \\S+\t\\d+\t\[RW]\t\[01]\r\n"
 stap_run $srcdir/$subdir/$test.stp sleep_ten_secs $output_string

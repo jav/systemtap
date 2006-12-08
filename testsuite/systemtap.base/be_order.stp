@@ -1,0 +1,37 @@
+/*
+ * add.stp
+ *
+ * Check that ordering of begin/end probes works
+ */
+
+probe begin {  log("systemtap starting probe")  }
+probe end   {  log("systemtap ending probe")    }
+
+global beginstr, endstr
+
+probe begin { beginstr .= "c" }
+probe begin(1) { beginstr .= "d" }
+probe begin(-1) { beginstr .= "b" }
+probe begin(0) { beginstr .= "c" }
+probe begin(9223372036854775807) { beginstr .= "e" }
+probe begin(-9223372036854775808) { beginstr .= "a" }
+
+probe end { endstr .= "x" }
+probe end(1) { endstr .= "y" }
+probe end(-1) { endstr .= "w" }
+probe end(0) { endstr .= "x" }
+probe end(9223372036854775807) {
+  endstr .= "z"
+
+  if (beginstr == "abccde")
+    log("systemtap test success")
+  else
+    printf("systemtap test failure - beginstr:%s != abccde\n", beginstr)
+
+  if (endstr == "vwxxyz")
+    log("systemtap test success")
+  else
+    printf("systemtap test failure - endstr:%s != vwxxyz\n", endstr)
+}
+probe end(-9223372036854775808) { endstr .= "v" }
+

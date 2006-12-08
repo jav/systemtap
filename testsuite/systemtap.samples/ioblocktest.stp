@@ -10,5 +10,5 @@ probe ioblock.end {
 }
 probe end { 
    log("systemtap ending probe")
-   printf("%s\n", teststr)
+   printf("%s", teststr)
 }

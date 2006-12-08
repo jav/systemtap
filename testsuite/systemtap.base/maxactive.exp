@@ -3,6 +3,8 @@
 # Check to see if using the 'maxactive(N)' limit on return probes
 # works, by seeing if skipped probes increases when using it.
 
+load_lib "stap_run.exp"
+
 if {[info procs installtest_p] != "" && ![installtest_p]} {
     untested "MAXACTIVE"
     return
@@ -42,7 +44,8 @@ set script2 {
 }
 
 # Run script2 and save the number of skipped probes.
-stap_run "MAXACTIVE02" sleep_five_sec "" -e $script2
+set output_string "(WARNING: Number of errors: 0, skipped probes: \\d+\r\n)?"
+stap_run "MAXACTIVE02" sleep_five_sec $output_string -e $script2
 set skipped2 $skipped_probes
 
 # If the number of skipped probes for script 1 is less than the number
@@ -52,8 +55,8 @@ set skipped2 $skipped_probes
 # Note that this isn't 100% accurate based on the system load at the
 # time of the scripts.
 set test "MAXACTIVE03"
-if {$skipped1 < $skipped2} {
-    pass "$test ($skipped1 skipped probes < $skipped2 skipped probes)"
+if {$skipped1 <= $skipped2} {
+    pass "$test ($skipped1 skipped probes <= $skipped2 skipped probes)"
 } else {
     fail "$test ($skipped1 skipped probes > $skipped2 skipped probes)"
 }

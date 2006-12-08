@@ -110,11 +110,18 @@ public:
 struct be_derived_probe: public derived_probe
 {
   bool begin;
-  be_derived_probe (probe* p, bool b): derived_probe (p), begin (b) {}
-  be_derived_probe (probe* p, probe_point* l, bool b):
-    derived_probe (p, l), begin (b) {}
+  int64_t priority;
+
+  be_derived_probe (probe* p, bool b, int64_t pr):
+    derived_probe (p), begin (b), priority (pr) {}
+  be_derived_probe (probe* p, probe_point* l, bool b, int64_t pr):
+    derived_probe (p, l), begin (b), priority (pr) {}
 
   void join_group (systemtap_session& s);
+
+  static inline bool comp(be_derived_probe const *a,
+			  be_derived_probe const *b)
+  { return a->priority < b->priority; }
 };
 
 
@@ -137,7 +144,12 @@ struct be_builder: public derived_probe_builder
 		     std::map<std::string, literal *> const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
-    finished_results.push_back(new be_derived_probe(base, location, begin));
+    int64_t priority;
+    if ((begin && !get_param(parameters, "begin", priority))
+	|| (!begin && !get_param(parameters, "end", priority)))
+      priority = 0;
+    finished_results.push_back(
+	new be_derived_probe(base, location, begin, priority));
   }
 };
 
@@ -286,6 +298,7 @@ be_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   // if (probes.empty()) return;
   bool have_begin_probes = false;
+  sort(probes.begin(), probes.end(), be_derived_probe::comp);
   for (unsigned i=0; i < probes.size (); i++)
     if (probes[i]->begin)
       {
@@ -303,6 +316,7 @@ void
 be_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   // if (probes.empty()) return;
+  sort(probes.begin(), probes.end(), be_derived_probe::comp);
   for (unsigned i=0; i < probes.size (); i++)
     if (! probes[i]->begin) // note polarity
       s.op->newline() << "enter_end_probe (& " << probes[i]->name << ");";
@@ -5168,7 +5182,10 @@ void
 register_standard_tapsets(systemtap_session & s)
 {
   s.pattern_root->bind("begin")->bind(new be_builder(true));
+  s.pattern_root->bind_num("begin")->bind(new be_builder(true));
   s.pattern_root->bind("end")->bind(new be_builder(false));
+  s.pattern_root->bind_num("end")->bind(new be_builder(false));
+
   s.pattern_root->bind("never")->bind(new never_builder());
 
   timer_builder::register_patterns(s.pattern_root);

@@ -1,0 +1,11 @@
+#! stap -p2
+
+probe begin {}
+probe begin(0) {}
+probe begin(9223372036854775807) {}
+probe begin(-9223372036854775808) {}
+
+probe end {}
+probe end(0) {}
+probe end(9223372036854775807) {}
+probe end(-9223372036854775808) {}
