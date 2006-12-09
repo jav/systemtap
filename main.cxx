@@ -123,6 +123,11 @@ printscript(systemtap_session& s, ostream& o)
     {
       vardecl* v = s.globals[i];
       v->printsig (o);
+      if (s.verbose && v->init)
+        {
+          o << " = ";
+          v->init->print(o);
+        }
       o << endl;
     }
 

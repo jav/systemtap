@@ -1,5 +1,5 @@
 /*
- * add.stp
+ * be_order.stp
  *
  * Check that ordering of begin/end probes works
  */

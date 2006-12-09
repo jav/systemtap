@@ -1,0 +1,31 @@
+/*
+ * global_init.stp
+ *
+ * Check that global variables are initialized before all begin probes
+ */
+
+probe begin {  log("systemtap starting probe")  }
+probe end   {  log("systemtap ending probe")    }
+
+global gnum = 42
+global gstr = "foobar"
+
+global gnum_saved
+global gstr_saved
+probe begin(-9223372036854775808) {
+    gnum_saved = gnum
+    gstr_saved = gstr
+}
+
+probe end {
+  if (gnum_saved == 42)
+    log("systemtap test success")
+  else
+    printf("systemtap test failure - gnum_saved:%d != 42\n", gnum_saved)
+
+  if (gstr_saved == "foobar")
+    log("systemtap test success")
+  else
+    printf("systemtap test failure - gstr_saved:%s != foobar\n", gstr_saved)
+}
+

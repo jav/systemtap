@@ -1,3 +1,9 @@
+2006-12-08  Josh Stone  <joshua.i.stone@intel.com>
+
+	* runtime.h (param_set_int64_t, param_get_int64_t,
+	param_check_int64_t): New functions to allow taking module parameters
+	directly as int64_t values.
+
 2006-12-06  Josh Stone  <joshua.i.stone@intel.com>
 
 	* time.c (stp_timer_reregister): Add a global to control whether the

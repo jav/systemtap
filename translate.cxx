@@ -344,7 +344,7 @@ public:
 	  return qname() + "[0] = '\\0';";
       case pe_long:
         if (! local)
-          return qname() + " = (int64_t) init_" + qname() + ";"; // module_param
+          return ""; // module_param
         else
           return qname() + " = 0;";
       case pe_stats:
@@ -918,7 +918,7 @@ c_unparser::emit_global_param (vardecl *v)
   if (v->arity == 0 && v->type == pe_long)
     {
       o->newline() << "module_param_named (" << vn << ", "
-                   << "init_global_" << vn << ", long, 0);";
+                   << "global_" << vn << ", int64_t, 0);";
     }
   else if (v->arity == 0 && v->type == pe_string)
     {
@@ -936,11 +936,17 @@ c_unparser::emit_global (vardecl *v)
   string vn = c_varname (v->name);
 
   if (v->arity == 0)
-    o->newline() << "static __cacheline_aligned "
-		 << c_typename (v->type)
-		 << " "
-		 << "global_" << vn
-		 << ";";
+    {
+      o->newline() << "static __cacheline_aligned "
+		   << c_typename (v->type)
+		   << " " << "global_" << vn;
+      if (v->init)
+	{
+	  o->line() << " = ";
+	  v->init->visit(this);
+	}
+      o->line() << ";";
+    }
   else if (v->type == pe_stats)
     {
       o->newline() << "static __cacheline_aligned PMAP global_" 
@@ -953,15 +959,6 @@ c_unparser::emit_global (vardecl *v)
     }
   o->newline() << "static __cacheline_aligned rwlock_t "
                << "global_" << vn << "_lock;";
-
-  // Emit module_param helper variable
-  if (v->arity == 0 && v->type == pe_long)
-    {
-      // XXX: moduleparam.h does not have a 64-bit type, so let's just
-      // take a plain long here, and manually copy/widen during
-      // initialization.  See var::init().
-      o->newline() << "long init_global_" << vn << ";";
-    }
 }
 
 

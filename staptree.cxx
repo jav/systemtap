@@ -104,7 +104,7 @@ probe_point::component::component (std::string const & f, literal * a):
 
 
 vardecl::vardecl ():
-  arity (-1)
+  arity (-1), init(NULL)
 {
 }
 
@@ -267,6 +267,11 @@ void vardecl::print (ostream& o) const
   o << name;
   if (arity > 0 || index_types.size() > 0)
     o << "[...]";
+  if (init)
+    {
+      o << " = ";
+      init->print(o);
+    }
 }
 
 

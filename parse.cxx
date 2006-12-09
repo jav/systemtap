@@ -1046,49 +1046,9 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>& probes)
       if (t && t->type == tok_operator && t->content == "=") // initialization
         {
           next ();
-
-          // Create synthetic "begin" probe to assign value to global.
-          //
-          // An alternative would be to store the initializer value
-          // within a new field of vardecl, and use e.g. the
-          // type-resolution stage to do the rewriting.  It could go
-          // farther: the initializer could live through till
-          // translation and be emitted as a plain C-level variable
-          // initializer.
-
-          literal* value = parse_literal ();
-
-          probe_point* pp = new probe_point;
-          probe_point::component* ppc = new probe_point::component;
-          ppc->functor = string("begin");
-          pp->tok = t;
-          pp->components.push_back (ppc);
-
-          probe* p = new probe;
-          p->tok = t;
-          p->locations.push_back (pp);
-
-          symbol* sym = new symbol;
-          sym->tok = t;
-          sym->name = d->name;
-
-          assignment* a = new assignment;
-          a->tok = t;
-          a->op = "=";
-          a->left = sym;
-          a->right = value;
-
-          expr_statement* es = new expr_statement;
-          es->tok = t;
-          es->value = a;
-
-          block* blk = new block;
-          blk->tok = t;
-          blk->statements.push_back (es);
-
-          p->body = blk;
-          probes.push_back (p);
-
+          d->init = parse_literal ();
+          d->set_arity(0);
+          d->type = d->init->type;
           t = peek ();
         }
 

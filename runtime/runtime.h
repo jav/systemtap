@@ -1,6 +1,6 @@
 /* main header file
  * Copyright (C) 2005, 2006 Red Hat Inc.
- * Copyright (C) 2005 Intel Corporation.
+ * Copyright (C) 2005, 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -81,6 +81,35 @@ static struct
 #ifdef STP_PERFMON
 #include "perf.c"
 #endif
+
+/* Support functions for int64_t module parameters. */
+int param_set_int64_t(const char *val, struct kernel_param *kp)
+{
+  char *endp;
+  long long ll;
+
+  if (!val)
+    return -EINVAL;
+
+  /* simple_strtoll isn't exported... */
+  if (*val == '-')
+    ll = -simple_strtoull(val+1, &endp, 0);
+  else
+    ll = simple_strtoull(val, &endp, 0);
+
+  if ((endp == val) || ((int64_t)ll != ll))
+    return -EINVAL;
+
+  *((int64_t *)kp->arg) = ll;
+  return 0;
+}
+
+int param_get_int64_t(char *buffer, struct kernel_param *kp)
+{
+  return sprintf(buffer, "%lli", (long long)*((int64_t *)kp->arg));
+}
+
+#define param_check_int64_t(name, p) __param_check(name, p, int64_t)
 
 
 /************* Module Stuff ********************/

@@ -1,3 +1,21 @@
+2006-12-08  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3681.
+	* staptree.h (struct vardecl): Add a literal 'init' member for the
+	initialization value of globals.
+	* staptree.cxx (vardecl::vardecl): Initialize 'init' to NULL.
+	(vardecl::print): Print global init value during pass-1 output.
+	* main.cxx (printscript): Print global init values during verbose
+	pass-2 output.
+	* parse.cxx (parser::parse_global): Set the initialization literal of
+	global vardecls.
+	* translate.cxx (var::init): Don't unconditionally override the value
+	of numeric globals when the module_param isn't used.
+	(c_unparser::emit_global_param): Write numeric module_params directly
+	into the global variable, as an int64_t instead of long.
+	(c_unparser::emit_global): Add initialization to global declarations.
+	Don't create a temp module_param long for numeric globals anymore.
+
 2006-12-07  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3624.

@@ -1,5 +1,6 @@
 // -*- C++ -*-
 // Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -394,6 +395,7 @@ struct vardecl: public symboldecl
   bool compatible_arity (int a);
   int arity; // -1: unknown; 0: scalar; >0: array
   std::vector<exp_type> index_types; // for arrays only
+  literal *init; // for global scalars only
 };
 
 
