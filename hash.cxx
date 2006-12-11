@@ -94,6 +94,7 @@ find_hash (systemtap_session& s, const string& script)
   h.add(s.architecture);
 
   // Hash user-specified arguments (that change the generated module).
+  h.add(s.bulk_mode);
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 
