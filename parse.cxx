@@ -1253,15 +1253,18 @@ parser::parse_literal ()
 
 	  // NB: we allow controlled overflow from LLONG_MIN .. ULLONG_MAX
 	  // Actually, this allows all the way from -ULLONG_MAX to ULLONG_MAX,
-	  // since the lexer only gives us positive digit strings.
+	  // since the lexer only gives us positive digit strings, but we'll
+	  // limit it to LLONG_MIN when a '-' operator is fed into the literal.
 	  errno = 0;
 	  long long value = (long long) strtoull (startp, & endp, 0);
-	  if (neg)
-	    value = -value;
 	  if (errno == ERANGE || errno == EINVAL || *endp != '\0'
+	      || (neg && (unsigned long long) value > 9223372036854775808ULL)
 	      || (unsigned long long) value > 18446744073709551615ULL
 	      || value < -9223372036854775807LL-1)
 	    throw parse_error ("number invalid or out of range"); 
+
+	  if (neg)
+	    value = -value;
 
 	  l = new literal_number (value);
 	}
