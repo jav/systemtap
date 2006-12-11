@@ -67,12 +67,20 @@ probe sunrpc.clnt.create_client = kernel.function("rpc_create_client") ?,
       	module("sunrpc").function("rpc_create_client") ?
 {
 	servername = kernel_string($servname)
+%( kernel_v >= "2.6.10" %?
 	progname = kernel_string($info->name)
 	prog = $info->number
 	vers = vers_from_prog($info, $version)
+	authflavor = $authflavor
+%:
+	progname = kernel_string($program->name)
+	prog = $program->number
+	vers = vers_from_prog($program, $vers)
+	authflavor = $flavor
+%)
+	
 	prot = $xprt->prot
 	port = $xprt->port
-	authflavor = $authflavor
 
 	name = "sunrpc.clnt.create_client"
 	argstr = sprintf("%s %s %d %d %d %d %d", servername, progname, 

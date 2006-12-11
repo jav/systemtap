@@ -1,3 +1,8 @@
+2006-12-11  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guij@cn.ibm.com>
+	* nfs.stp, nfs_proc.stp, rpc.stp: patch for 2.6.9 kernel
+	
 2006-11-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guij@cn.ibm.com>

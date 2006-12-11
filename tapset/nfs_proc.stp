@@ -1,5 +1,6 @@
 %{
 	#include <linux/nfs_fs.h>
+	#include <linux/nfs_xdr.h>
 %}
 
 %{
@@ -46,18 +47,61 @@ function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
 %}
 
 /*
-  0:get ip address
-  1:get proto
+  0: get ip address
+  1: get proto
+  2: get res->count
+  3: get res->fattr->valid
+  4: get timestamp
 */
-function __nfs_data_ip_proto:long (rdata :long,index :long) %{ /* pure */
-        int index = (int)(THIS->index);
-        struct nfs_read_data * rdata = (struct nfs_read_data *)(THIS->rdata);
-	struct rpc_task    *task = &(rdata->task);
+function __nfs_read_data_info:long (rdata :long,index :long) %{ /* pure */
+        struct nfs_read_data * rdata = (struct nfs_read_data *)(long)THIS->rdata;
+	struct rpc_task *task = &(rdata->task);
+        struct nfs_readres *rres = &(rdata->res);
+        int index = THIS->index;
 
-	if(index == 0)
-		THIS->__retvalue = get_ip(task);
-	else
-		THIS->__retvalue = get_prot(task);
+	switch(index) {
+		case 0:
+			THIS->__retvalue = get_ip(task); 
+			break;
+		case 1: 
+			THIS->__retvalue = get_prot(task);
+			break;
+		case 2:
+			THIS->__retvalue = rres->count;
+			break;
+		case 3:
+			THIS->__retvalue = rres->fattr->valid;
+			break;
+#ifdef CONFIG_NFS_V4
+		case 4:
+			THIS->__retvalue = rdata->timestamp;
+			break;
+#endif
+		default:
+			THIS->__retvalue = 0;
+			break;
+	}
+%}
+
+/*
+  0: get ip address
+  1: get proto
+*/
+function __nfs_write_data_info:long (wdata :long,index :long) %{ /* pure */
+        struct nfs_write_data * wdata = (struct nfs_write_data *)(long)THIS->wdata;
+	struct rpc_task *task = &(wdata->task);
+        int index = THIS->index;
+
+	switch(index) {
+		case 0:
+			THIS->__retvalue = get_ip(task); 
+			break;
+		case 1: 
+			THIS->__retvalue = get_prot(task);
+			break;
+		default:
+			break;
+	}
 %}
 
 function __nfsv4_bitmask :long(dir:long,i:long) %{ /* pure */
@@ -240,8 +284,8 @@ probe nfs.proc.read.return = nfs.proc2.read.return ,
 probe nfs.proc2.read = kernel.function("nfs_proc_read") ?,
                        module("nfs").function("nfs_proc_read")?
 {
-	server_ip = __nfs_data_ip_proto($rdata,0)
-        prot = __nfs_data_ip_proto($rdata,1)
+	server_ip = __nfs_read_data_info($rdata,0)
+        prot = __nfs_read_data_info($rdata,1)
         version =2
 
 	flags = $rdata->flags
@@ -272,8 +316,8 @@ probe nfs.proc2.read.return = kernel.function("nfs_proc_read").return ?,
 probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
                        module("nfs").function("nfs3_proc_read")?
 {
-	server_ip = __nfs_data_ip_proto($rdata,0)
-        prot = __nfs_data_ip_proto($rdata,1)
+	server_ip = __nfs_read_data_info($rdata,0)
+        prot = __nfs_read_data_info($rdata,1)
         version =3
 
 	flags = $rdata->flags
@@ -306,8 +350,8 @@ probe nfs.proc3.read.return = kernel.function("nfs3_proc_read").return ?,
 probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
                        module("nfs").function("nfs4_proc_read")?
 {
-	server_ip = __nfs_data_ip_proto($rdata,0)
-        prot = __nfs_data_ip_proto($rdata,1)
+	server_ip = __nfs_read_data_info($rdata,0)
+        prot = __nfs_read_data_info($rdata,1)
         version =4
 
 	flags = $rdata->flags
@@ -370,8 +414,8 @@ probe nfs.proc2.write = kernel.function("nfs_proc_write")?,
                         module("nfs").function("nfs_proc_write")?
 {
       
-	server_ip = __nfs_data_ip_proto($wdata,0)
-        prot = __nfs_data_ip_proto($wdata,1)
+	server_ip = __nfs_write_data_info($wdata,0)
+        prot = __nfs_write_data_info($wdata,1)
         version =2
 
 	flags = $wdata->flags
@@ -405,8 +449,8 @@ probe nfs.proc3.write = kernel.function("nfs3_proc_write")?,
                         module("nfs").function("nfs3_proc_write")?
 {
       
-	server_ip = __nfs_data_ip_proto($wdata,0)
-        prot = __nfs_data_ip_proto($wdata,1)
+	server_ip = __nfs_write_data_info($wdata,0)
+        prot = __nfs_write_data_info($wdata,1)
         version =3
 
 	flags = $wdata->flags
@@ -440,8 +484,8 @@ probe nfs.proc4.write = kernel.function("nfs4_proc_write")?,
                         module("nfs").function("nfs4_proc_write")?
 {
       
-	server_ip = __nfs_data_ip_proto($wdata,0)
-        prot = __nfs_data_ip_proto($wdata,1)
+	server_ip = __nfs_write_data_info($wdata,0)
+        prot = __nfs_write_data_info($wdata,1)
         version =4
 
 	flags = $wdata->flags
@@ -501,8 +545,8 @@ probe nfs.proc.commit.return = nfs.proc3.commit.return,
 probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")?,
                          module("nfs").function("nfs3_proc_commit")?
 {
-	server_ip = __nfs_data_ip_proto($cdata,0)
-        prot = __nfs_data_ip_proto($cdata,1)
+	server_ip = __nfs_write_data_info($cdata,0)
+        prot = __nfs_write_data_info($cdata,1)
         version =3
 
         count = $cdata->args->count
@@ -533,8 +577,8 @@ probe nfs.proc3.commit.return = kernel.function ("nfs3_proc_commit").return?,
 probe nfs.proc4.commit = kernel.function ("nfs4_proc_commit")?,
                          module("nfs").function("nfs4_proc_commit")?
 {
-	server_ip = __nfs_data_ip_proto($cdata,0)
-        prot = __nfs_data_ip_proto($cdata,1)
+	server_ip = __nfs_write_data_info($cdata,0)
+        prot = __nfs_write_data_info($cdata,1)
         version =4
 
         count = $cdata->args->count
@@ -592,8 +636,8 @@ probe nfs.proc.read_setup.return = nfs.proc2.read_setup.return ,
 probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") ?,
                        module("nfs").function("nfs_proc_read_setup")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
         version =2
 
         count = $data->args->count
@@ -616,8 +660,8 @@ probe nfs.proc2.read_setup.return = kernel.function("nfs_proc_read_setup").retur
 probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") ?,
                        module("nfs").function("nfs3_proc_read_setup")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
         version =3
 	fh = 
 
@@ -641,8 +685,8 @@ probe nfs.proc3.read_setup.return = kernel.function("nfs3_proc_read_setup").retu
 probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") ?,
                        module("nfs").function("nfs4_proc_read_setup")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
         version =4
 
         count = $data->args->count
@@ -689,12 +733,17 @@ probe nfs.proc.read_done.return = nfs.proc2.read_done.return,
 probe nfs.proc2.read_done = kernel.function("nfs_read_done")?,
                             module("nfs").function("nfs_read_done")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
+	count = __nfs_read_data_info($data, 2)
+%:
+	server_ip = __nfs_read_data_info($task->tk_calldata,0)
+        prot = __nfs_read_data_info($task->tk_calldata,1)
+	count = __nfs_read_data_info($task->tk_calldata, 2)
+%)
         version =2
-
 	status = $task->tk_status
-	count = $data->res->count
 
 	name = "nfs.proc2.read_done"
         argstr = sprintf("%d",status)
@@ -713,12 +762,17 @@ probe nfs.proc2.read_done.return = kernel.function("nfs_read_done").return?,
 probe nfs.proc3.read_done = kernel.function("nfs3_read_done")?,
                             module("nfs").function("nfs3_read_done")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
+	count = __nfs_read_data_info($data, 2)
+%:
+	server_ip = __nfs_read_data_info($task->tk_calldata,0)
+        prot = __nfs_read_data_info($task->tk_calldata,1)
+	count = __nfs_read_data_info($task->tk_calldata, 2)
+%)
         version =3
-
 	status = $task->tk_status
-	count = $data->res->count
 
 	name = "nfs.proc3.read_done"
         argstr = sprintf("%d",status)
@@ -737,13 +791,19 @@ probe nfs.proc3.read_done.return = kernel.function("nfs3_read_done").return?,
 probe nfs.proc4.read_done = kernel.function("nfs4_read_done")?,
                             module("nfs").function("nfs4_read_done")?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_read_data_info($data,0)
+        prot = __nfs_read_data_info($data,1)
+	count = __nfs_read_data_info($data, 2)
+        timestamp = __nfs_read_data_info($data, 4)
+%:
+	server_ip = __nfs_read_data_info($task->tk_calldata,0)
+        prot = __nfs_read_data_info($task->tk_calldata,1)
+	count = __nfs_read_data_info($task->tk_calldata, 2)
+        timestamp = __nfs_read_data_info($task->tk_calldata, 4)
+%)
         version =4
-
 	status = $task->tk_status
-	count = $data->res->count
-        timestamp = $data->timestamp
 
 	name = "nfs.proc4.read_done"
         argstr = sprintf("%d",status)
@@ -791,8 +851,8 @@ probe nfs.proc.write_setup.return = nfs.proc2.write_setup.return,
 probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") ?,
                               module("nfs").function("nfs_proc_write_setup") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
         version =2
 
         count = $data->args->count
@@ -815,8 +875,8 @@ probe nfs.proc2.write_setup.return = kernel.function("nfs_proc_write_setup").ret
 probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") ?,
                               module("nfs").function("nfs3_proc_write_setup") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
         version =3
 
         count = $data->args->count
@@ -839,8 +899,8 @@ probe nfs.proc3.write_setup.return = kernel.function("nfs3_proc_write_setup").re
 probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") ?,
                               module("nfs").function("nfs4_proc_write_setup") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
         version =4
 
         count = $data->args->count
@@ -892,13 +952,19 @@ probe nfs.proc.write_done.return = nfs.proc2.write_done.return,
 probe nfs.proc2.write_done = kernel.function("nfs_write_done") ?,
                              module("nfs").function("nfs_write_done") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
+	count = __nfs_write_data_info($data, 2)
+	valid = __nfs_write_data_info($data, 3)
+%:
+	server_ip = __nfs_write_data_info($task->tk_calldata,0)
+        prot = __nfs_write_data_info($task->tk_calldata,1)
+	count = __nfs_write_data_info($task->tk_calldata, 2)
+	valid = __nfs_write_data_info($task->tk_calldata, 3)
+%)
         version =2
-
 	status = $task->tk_status
-	valid = $data->res->fattr->valid
-	count = $data->res->count
 
 	name = "nfs.proc2.write_done"
 	argstr = sprintf("%d",status)
@@ -915,13 +981,19 @@ probe nfs.proc2.write_done.return = kernel.function("nfs_write_done").return ?,
 probe nfs.proc3.write_done = kernel.function("nfs3_write_done") ?,
                              module("nfs").function("nfs3_write_done") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
+	count = __nfs_write_data_info($data, 2)
+	valid = __nfs_write_data_info($data, 3)
+%:
+	server_ip = __nfs_write_data_info($task->tk_calldata,0)
+        prot = __nfs_write_data_info($task->tk_calldata,1)
+	count = __nfs_write_data_info($task->tk_calldata, 2)
+	valid = __nfs_write_data_info($task->tk_calldata, 3)
+%)
         version =3
-
 	status = $task->tk_status
-	valid = $data->res->fattr->valid
-	count = $data->res->count
 
 	name = "nfs.proc3.write_done"
 	argstr = sprintf("%d",status)
@@ -938,14 +1010,21 @@ probe nfs.proc3.write_done.return = kernel.function("nfs3_write_done").return ?,
 probe nfs.proc4.write_done = kernel.function("nfs4_write_done") ?,
                              module("nfs").function("nfs4_write_done") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
+	count = __nfs_write_data_info($data, 2)
+	valid = __nfs_write_data_info($data, 3)
+	timestamp = __nfs_write_data_info($data, 4)
+%:
+	server_ip = __nfs_write_data_info($task->tk_calldata,0)
+        prot = __nfs_write_data_info($task->tk_calldata,1)
+	count = __nfs_write_data_info($task->tk_calldata, 2)
+	valid = __nfs_write_data_info($task->tk_calldata, 3)
+	timestamp = __nfs_write_data_info($task->tk_calldata, 4)
+%)
         version =4
-
 	status = $task->tk_status
-	valid = $data->res->fattr->valid
-	count = $data->res->count
-	timestamp = $data->timestamp
 
 	name = "nfs.proc4.write_done"
 	argstr = sprintf("%d",status)
@@ -989,8 +1068,8 @@ probe nfs.proc.commit_setup.return =nfs.proc3.commit_setup.return,
 probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") ?,
                               module("nfs").function("nfs3_proc_commit_setup") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
         version =3
 
         count = $data->args->count
@@ -1012,8 +1091,8 @@ probe nfs.proc3.commit_setup.return = kernel.function("nfs3_proc_commit_setup") 
 probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") ?,
                               module("nfs").function("nfs4_proc_commit_setup") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
         version =4
 
         count = $data->args->count
@@ -1065,13 +1144,19 @@ probe nfs.proc.commit_done.return =
 probe nfs.proc3.commit_done = kernel.function("nfs3_commit_done") ?,
                              module("nfs").function("nfs3_commit_done") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
+	count = __nfs_write_data_info($data, 2)
+	valid = __nfs_write_data_info($data, 3)
+%:
+	server_ip = __nfs_write_data_info($task->tk_calldata,0)
+        prot = __nfs_write_data_info($task->tk_calldata,1)
+	count = __nfs_write_data_info($task->tk_calldata, 2)
+	valid = __nfs_write_data_info($task->tk_calldata, 3)
+%)
         version =3
-
 	status = $task->tk_status
-        count = $data->res->count
-	valid = $data->res->fattr->valid
 
 	name = "nfs.proc3.commit_done"
 	argstr = sprintf("%d",status)
@@ -1088,14 +1173,21 @@ probe nfs.proc3.commit_done.return = kernel.function("nfs3_commit_done").return 
 probe nfs.proc4.commit_done = kernel.function("nfs4_commit_done") ?,
                              module("nfs").function("nfs4_commit_done") ?
 {
-	server_ip = __nfs_data_ip_proto($data,0)
-        prot = __nfs_data_ip_proto($data,1)
+%( kernel_v >= "2.6.10" %?
+	server_ip = __nfs_write_data_info($data,0)
+        prot = __nfs_write_data_info($data,1)
+	count = __nfs_write_data_info($data, 2)
+	valid = __nfs_write_data_info($data, 3)
+	timestamp = __nfs_write_data_info($data, 4)
+%:
+	server_ip = __nfs_write_data_info($task->tk_calldata,0)
+        prot = __nfs_write_data_info($task->tk_calldata,1)
+	count = __nfs_write_data_info($task->tk_calldata, 2)
+	valid = __nfs_write_data_info($task->tk_calldata, 3)
+	timestamp = __nfs_write_data_info($task->tk_calldata, 4)
+%)
         version =4
-
 	status = $task->tk_status
-        count = $data->res->count
-	valid = $data->res->fattr->valid
-	timestamp = $data->timestamp
 
 	name = "nfs.proc4.commit_done"
 	argstr = sprintf("%d",status)

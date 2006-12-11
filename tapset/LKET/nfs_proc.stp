@@ -327,7 +327,11 @@ probe addevent.nfs.proc.read_done.entry
 probe _addevent.nfs.proc.read_done.entry
       = nfs.proc.read_done
 {
+%( kernel_v >= "2.6.10" %?
 	log_proc_read_done(version,$data,count,status)
+%:
+	log_proc_read_done(version,$task->tk_calldata,count,status)
+%)
 }
 
 function log_proc_read_done(version:long,data:long,count:long,status:long)
@@ -353,7 +357,11 @@ probe addevent.nfs.proc.read_done.return
 probe _addevent.nfs.proc.read_done.return
       = nfs.proc.read_done.return
 {
-	log_nfs_return(HOOKID_NFS_PROC_READDONE_RETURN,$return)
+%( kernel_v >= "2.6.10" %?
+ 	log_nfs_return(HOOKID_NFS_PROC_READDONE_RETURN,$return)
+%:
+	log_nfs_return(HOOKID_NFS_PROC_READDONE_RETURN,0)
+%)
 }
 
 probe addevent.nfs.proc.write_done.entry
@@ -365,7 +373,11 @@ probe addevent.nfs.proc.write_done.entry
 probe _addevent.nfs.proc.write_done.entry
       = nfs.proc.write_done
 {
-	log_proc_write_done(version,$data,count,status)
+%( kernel_v >= "2.6.10" %?
+ 	log_proc_write_done(version,$data,count,status)
+%:
+	log_proc_write_done(version,$task->tk_calldata,count,status)
+%)
 }
 
 function log_proc_write_done(version:long,data:long,count:long,status:long)
@@ -391,7 +403,11 @@ probe addevent.nfs.proc.write_done.return
 probe _addevent.nfs.proc.write_done.return
       = nfs.proc.write_done.return
 {
-	log_nfs_return(HOOKID_NFS_PROC_WRITEDONE_RETURN,$return)
+%( kernel_v >= "2.6.10" %?
+ 	log_nfs_return(HOOKID_NFS_PROC_WRITEDONE_RETURN,$return)
+%:
+	log_nfs_return(HOOKID_NFS_PROC_WRITEDONE_RETURN,0)
+%)
 }
 
 probe addevent.nfs.proc.commit_done.entry
@@ -403,7 +419,11 @@ probe addevent.nfs.proc.commit_done.entry
 probe _addevent.nfs.proc.commit_done.entry
       = nfs.proc.commit_done
 {
-	log_proc_commit_done(version,$data,count,status)
+%( kernel_v >= "2.6.10" %?
+ 	log_proc_commit_done(version,$data,count,status)
+%:
+	log_proc_commit_done(version,$task->tk_calldata,count,status)
+%)
 }
 
 function log_proc_commit_done(version:long,data:long,count:long,status:long)
@@ -429,7 +449,11 @@ probe addevent.nfs.proc.commit_done.return
 probe _addevent.nfs.proc.commit_done.return
       = nfs.proc.commit_done.return
 {
-	log_nfs_return(HOOKID_NFS_PROC_COMMITDONE_RETURN,$return)
+%( kernel_v >= "2.6.10" %?
+ 	log_nfs_return(HOOKID_NFS_PROC_COMMITDONE_RETURN,$return)
+%:
+	log_nfs_return(HOOKID_NFS_PROC_COMMITDONE_RETURN,0)
+%)
 }
 
 probe addevent.nfs.proc.open.entry

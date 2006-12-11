@@ -762,9 +762,9 @@ probe nfs.aop.entries = nfs.aop.readpage,
                         nfs.aop.readpages,
                         nfs.aop.writepage,
                         nfs.aop.writepages,
+                        nfs.aop.release_page ?,
                         nfs.aop.prepare_write,
-                        nfs.aop.commit_write,
-                        nfs.aop.release_page
+                        nfs.aop.commit_write
 {
 }
  
@@ -772,9 +772,9 @@ probe nfs.aop.return = nfs.aop.readpage.return,
                         nfs.aop.readpages.return,
                         nfs.aop.writepage.return,
                         nfs.aop.writepages.return,
+                        nfs.aop.release_page.return ?,
                         nfs.aop.prepare_write.return,
-                        nfs.aop.commit_write.return,
-                        nfs.aop.release_page.return
+                        nfs.aop.commit_write.return
 {
 }
 

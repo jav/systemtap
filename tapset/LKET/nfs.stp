@@ -496,7 +496,7 @@ probe addevent.nfs.aop.entry
        addevent.nfs.aop.readpages.entry,
        addevent.nfs.aop.writepage.entry,
        addevent.nfs.aop.writepages.entry,
-       addevent.nfs.aop.release_page.entry,
+       addevent.nfs.aop.release_page.entry ?,
        addevent.nfs.aop.set_page_dirty.entry,
        addevent.nfs.aop.prepare_write.entry,
        addevent.nfs.aop.commit_write.entry
@@ -508,7 +508,7 @@ probe addevent.nfs.aop.return
        addevent.nfs.aop.readpages.return,
        addevent.nfs.aop.writepage.return,
        addevent.nfs.aop.writepages.return,
-       addevent.nfs.aop.release_page.return,
+       addevent.nfs.aop.release_page.return ?,
        addevent.nfs.aop.set_page_dirty.return,
        addevent.nfs.aop.prepare_write.return,
        addevent.nfs.aop.commit_write.return
