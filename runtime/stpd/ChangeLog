@@ -1,3 +1,9 @@
+2006-12-11  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (get_sections): Set buffer sizes to large enough
+	sizes to hold all possible values, but also include checks in case
+	we are wrong.
+
 2006-11-15  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (do_kernel_symbols): Add sizeof(long) to sym_base

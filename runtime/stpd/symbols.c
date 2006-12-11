@@ -21,11 +21,15 @@ static int send_data(void *data, int len)
 /* in the following order: */
 /* [struct _stp_module][struct _stp_symbol sections ...][string data] */
 /* Return the total length of all the data. */
+
+#define SECDIR "/sys/module/%s/sections"
 static int get_sections(char *name, char *data_start, int datalen)
 {
-	char dir[64], filename[64], buf[32], strdata_start[2048];
+	char dir[STP_MODULE_NAME_LEN + sizeof(SECDIR)];
+	char filename[STP_MODULE_NAME_LEN + 256]; 
+	char buf[32], strdata_start[4096];
 	char *strdata=strdata_start, *data=data_start;
-	int fd, len;
+	int fd, len, res;
 	struct _stp_module *mod = (struct _stp_module *)data_start;
 	struct dirent *d;
 	DIR *secdir;
@@ -34,7 +38,13 @@ static int get_sections(char *name, char *data_start, int datalen)
 	/* start of data is a struct _stp_module */
 	data += sizeof(struct _stp_module);
 
-	sprintf(dir,"/sys/module/%s/sections", name);
+	res = snprintf(dir, sizeof(dir), SECDIR, name);
+	if (res >= sizeof(dir)) {
+		fprintf(stderr, "ERROR: couldn't fit module \"%s\" into dir buffer.\n", name);
+		fprintf(stderr, "This should never happen. Please file a bug report.\n");
+		cleanup_and_exit(0);
+	}
+
 	if ((secdir = opendir(dir)) == NULL)
 		return 0;
 
@@ -43,7 +53,13 @@ static int get_sections(char *name, char *data_start, int datalen)
 
 	while ((d = readdir(secdir))) {
 		char *secname = d->d_name;
-		sprintf(filename,"/sys/module/%s/sections/%s", name,secname);
+		res = snprintf(filename, sizeof(filename), "/sys/module/%s/sections/%s", name, secname);
+		if (res >= sizeof(filename)) {
+			fprintf(stderr, "ERROR: couldn't fit secname \"%s\" into filename buffer.\n", secname);
+			fprintf(stderr, "This should never happen. Please file a bug report.\n");
+			closedir(secdir);
+			cleanup_and_exit(0);
+		}
 		if ((fd = open(filename,O_RDONLY)) >= 0) {
 			if (read(fd, buf, 32) > 0) {
 				/* filter out some non-useful stuff */
@@ -92,7 +108,7 @@ static int get_sections(char *name, char *data_start, int datalen)
 	
 	return data - data_start;
 }
-
+#undef SECDIR
 
 void send_module (char *modname)
 {
