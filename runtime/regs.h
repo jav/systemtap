@@ -38,7 +38,7 @@
 #else /* __s390x__ */
 #define PSW_ADDR_AMODE	0x0000000000000000UL
 #endif /* __s390x__ */
-#define REG_IP(regs)	((regs)->psw.addr) | PSW_ADDR_AMODE
+#define REG_IP(regs)	(((regs)->psw.addr) | PSW_ADDR_AMODE)
 #define REG_SP(regs)	(regs)->gprs[15]
 
 #else
