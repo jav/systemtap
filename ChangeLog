@@ -8,6 +8,8 @@
 	probe for all target variables accessed in a particular return
 	probe.  It does this by creating a new probe in the new
 	'add_probe' member variable.
+	(dwarf_derived_probe::dwarf_derived_probe): If add_probe isn't
+	NULL, make sure it gets derived later.
 
 2006-12-11  Josh Stone  <joshua.i.stone@intel.com>
 
