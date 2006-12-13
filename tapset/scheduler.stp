@@ -134,6 +134,6 @@ probe scheduler.ctxswitch
         next_pid = $next_p->pid
         prev_task = $prev_p
         next_task = $next_p
-        prevtsk_state = $prev_p->pid
+        prevtsk_state = $prev_p->state
 %)
 }
