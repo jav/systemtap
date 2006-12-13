@@ -2916,9 +2916,10 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   Dwarf_Die *scope_die;
   Dwarf_Addr addr;
   block *add_block;
+  probe *add_probe;
 
   dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
-    q(q), scope_die(sd), addr(a), add_block(NULL) {}
+    q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL) {}
   void visit_target_symbol (target_symbol* e);
 };
 
@@ -3042,25 +3043,25 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
       if (add_block == NULL)
         {
-	  add_block = new block;
-	  add_block->tok = e->tok;
+	   add_block = new block;
+	   add_block->tok = e->tok;
 
-	  // Synthesize a functioncall to grab the thread id.
-	  functioncall* fc = new functioncall;
-	  fc->tok = e->tok;
-	  fc->function = string("tid");
+	   // Synthesize a functioncall to grab the thread id.
+	   functioncall* fc = new functioncall;
+	   fc->tok = e->tok;
+	   fc->function = string("tid");
 
-	  // Assign the tid to '_dwarf_tvar_tid'.
-	  assignment* a = new assignment;
-	  a->tok = e->tok;
-	  a->op = "=";
-	  a->left = tidsym;
-	  a->right = fc;
+	   // Assign the tid to '_dwarf_tvar_tid'.
+	   assignment* a = new assignment;
+	   a->tok = e->tok;
+	   a->op = "=";
+	   a->left = tidsym;
+	   a->right = fc;
 
-	  expr_statement* es = new expr_statement;
-	  es->tok = e->tok;
-	  es->value = a;
-	  add_block->statements.push_back (es);
+	   expr_statement* es = new expr_statement;
+	   es->tok = e->tok;
+	   es->value = a;
+	   add_block->statements.push_back (es);
 	}
 
       // (2b) Synthesize an array reference and assign it to a
@@ -3071,21 +3072,23 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       //       = _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
       //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
 
-      arrayindex* ai_tvar = new arrayindex;
-      ai_tvar->tok = e->tok;
+      arrayindex* ai_tvar_base = new arrayindex;
+      ai_tvar_base->tok = e->tok;
 
       symbol* sym = new symbol;
       sym->name = aname;
       sym->tok = e->tok;
-      ai_tvar->base = sym;
+      ai_tvar_base->base = sym;
 
-      ai_tvar->indexes.push_back(tidsym);
+      ai_tvar_base->indexes.push_back(tidsym);
 
       // We need to create a copy of the array index in its current
       // state so we can have 2 variants of it (the original and one
       // that post-decrements the second index).
-      arrayindex* at_tvar_postdec = new arrayindex;
-      *at_tvar_postdec = *ai_tvar;
+      arrayindex* ai_tvar = new arrayindex;
+      arrayindex* ai_tvar_postdec = new arrayindex;
+      *ai_tvar = *ai_tvar_base;
+      *ai_tvar_postdec = *ai_tvar_base;
 
       // Synthesize the
       // "_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]" used as the
@@ -3126,61 +3129,98 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       pc->tok = e->tok;
       pc->op = "--";
       pc->operand = ai_ctr;
-      at_tvar_postdec->indexes.push_back(pc);
+      ai_tvar_postdec->indexes.push_back(pc);
 
       delete_statement* ds = new delete_statement;
       ds->tok = e->tok;
-      ds->value = at_tvar_postdec;
+      ds->value = ai_tvar_postdec;
 
       add_block->statements.push_back (ds);
 
       // (3) We need an entry probe that saves the value for us in the
-      // global array we created.  Create an entire script (and let
-      // the parser do all the work).  The script will look like this:
+      // global array we created.  Create the entry probe, which will
+      // look like this:
       //
-      //   global _dwarf_tvar_{name}_{num}
-      //   global _dwarf_tvar_{name}_{num}_ctr
       //   probe kernel.function("{function}") {
-      //     _dwarf_tvar_{name}_{num}[tid(),
-      //                              ++_dwarf_tvar_{name}_{num}_ctr[tid()]]
+      //     _dwarf_tvar_tid = tid()
+      //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
       //       = ${param}
       //   }
 
-      // We need the name of the current probe point, minus the
-      // ".return" (or anything after it, such as ".maxactive(N)").
-      // Create a new probe point, copying all the components,
-      // stopping when we see the ".return" component.
-      probe_point* pp = new probe_point;
-      for (unsigned c = 0; c < q.base_loc->components.size(); c++)
+      if (add_probe == NULL)
         {
-	  if (q.base_loc->components[c]->functor == "return")
-	    break;
-	  else
-	    pp->components.push_back(q.base_loc->components[c]);
+	   add_probe = new probe;
+	   add_probe->tok = e->tok;
+
+	   // We need the name of the current probe point, minus the
+	   // ".return" (or anything after it, such as ".maxactive(N)").
+	   // Create a new probe point, copying all the components,
+	   // stopping when we see the ".return" component.
+	   probe_point* pp = new probe_point;
+	   for (unsigned c = 0; c < q.base_loc->components.size(); c++)
+	     {
+	        if (q.base_loc->components[c]->functor == "return")
+		  break;
+	        else
+		  pp->components.push_back(q.base_loc->components[c]);
+	     }
+	   pp->tok = e->tok;
+	   pp->optional = q.base_loc->optional;
+	   add_probe->locations.push_back(pp);
+
+	   add_probe->body = new block;
+	   add_probe->body->tok = e->tok;
+
+	   // Synthesize a functioncall to grab the thread id.
+	   functioncall* fc = new functioncall;
+	   fc->tok = e->tok;
+	   fc->function = string("tid");
+
+	   // Assign the tid to '_dwarf_tvar_tid'.
+	   assignment* a = new assignment;
+	   a->tok = e->tok;
+	   a->op = "=";
+	   a->left = tidsym;
+	   a->right = fc;
+
+	   expr_statement* es = new expr_statement;
+	   es->tok = e->tok;
+	   es->value = a;
+	   add_probe->body->statements.push_back (es);
+
+	   vardecl* vd = new vardecl;
+	   vd->tok = e->tok;
+	   vd->name = tidsym->name;
+	   vd->type = pe_long;
+	   vd->set_arity(0);
+	   add_probe->locals.push_back(vd);
 	}
-      pp->tok = e->tok;
-      pp->optional = q.base_loc->optional;
 
-      // Print the script into the string stream.
-      stringstream stp;
-      stp << "global " << aname << endl;
-      stp << "global " << ctrname << endl;
-      stp << "probe ";
-      pp->print(stp);
-      delete pp;
-      // Note that we can't do:
-      //   ai_tvar->print (stp);
-      // here since we need to pre-increment the counter.
-      stp << " { " << aname << "[tid(), ++" << ctrname << "[tid()]] = ";
-      e->print (stp);
-      stp << " }" << endl;
+      // Save the value, like this:
+      //     _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
+      //                       ++_dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
+      //       = ${param}
+      arrayindex* ai_tvar_preinc = new arrayindex;
+      *ai_tvar_preinc = *ai_tvar_base;
+      
+      pre_crement* preinc = new pre_crement;
+      preinc->tok = e->tok;
+      preinc->op = "++";
+      preinc->operand = ai_ctr;
+      ai_tvar_preinc->indexes.push_back(preinc);
+      
+      a = new assignment;
+      a->tok = e->tok;
+      a->op = "=";
+      a->left = ai_tvar_preinc;
+      a->right = e;
 
-      // Parse the generated script
-      stapfile *f = parser::parse (q.sess, stp, false);
-      assert (f != NULL);
+      es = new expr_statement;
+      es->tok = e->tok;
+      es->value = a;
 
-      // Add the parsed script to the list of files to be processed.
-      q.sess.files.push_back(f);
+      add_probe->body->statements.push_back (es);
 
       // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
       // our parent so it can be used as a substitute for the target
@@ -3325,6 +3365,15 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   // of code, add it to the start of the probe.
   if (v.add_block)
     this->body->statements.insert(this->body->statements.begin(), v.add_block);
+
+  // If when target-variable-expanding the probe, we added a new
+  // probe, add it in a new file to the list of files to be processed.
+  if (v.add_probe)
+    {
+      stapfile *f = new stapfile;
+      f->probes.push_back(v.add_probe);
+      q.sess.files.push_back(f);
+    }
 
   // Set the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe

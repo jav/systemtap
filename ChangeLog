@@ -1,3 +1,14 @@
+2006-12-13  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (struct dwarf_var_expanding_copy_visitor): Added
+	'add_probe' member variable.  Initialized it in ctor.
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol):
+	Optimization.  Instead of generating one entry probe per target
+	variable accessed in a return probe, now just generates one entry
+	probe for all target variables accessed in a particular return
+	probe.  It does this by creating a new probe in the new
+	'add_probe' member variable.
+
 2006-12-11  Josh Stone  <joshua.i.stone@intel.com>
 
 	* parse.cxx (parse::parse_literal): Enforce the lower bound on
