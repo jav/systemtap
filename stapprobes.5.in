@@ -37,7 +37,7 @@ kernel.function("foo").return
 syscall(22)
 user.inode("/bin/vi").statement(0x2222)
 end
-kernel.syscall.*
+syscall.*
 kernel.function("no_such_function") ?
 .ESAMPLE
 
@@ -312,7 +312,7 @@ include the given address in the kernel.
 kernel.statement("*@kernel/sched.c:2917")
 refers to the statement of line 2917 within the "kernel/sched.c".
 .TP
-kernel.syscall.*.return
+syscall.*.return
 refers to the group of probe aliases with any name in the third position
 
 .SH SEE ALSO
