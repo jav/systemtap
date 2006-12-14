@@ -2917,6 +2917,7 @@ struct dwarf_var_expanding_copy_visitor: public var_expanding_copy_visitor
   Dwarf_Addr addr;
   block *add_block;
   probe *add_probe;
+  std::map<std::string, symbol *> return_ts_map;
 
   dwarf_var_expanding_copy_visitor(dwarf_query & q, Dwarf_Die *sd, Dwarf_Addr a):
     q(q), scope_die(sd), addr(a), add_block(NULL), add_probe(NULL) {}
@@ -2994,6 +2995,21 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
     {
       if (lvalue)
 	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
+
+      // Get the full name of the target symbol.
+      stringstream ts_name_stream;
+      e->print(ts_name_stream);
+      string ts_name = ts_name_stream.str();
+
+      // Check and make sure we haven't already seen this target
+      // variable in this return probe.  If we have, just return our
+      // last replacement.
+      map<string, symbol *>::iterator i = return_ts_map.find(ts_name);
+      if (i != return_ts_map.end())
+	{
+	  provide <symbol*> (this, i->second);
+	  return;
+	}
 
       // We've got to do several things here to handle target
       // variables in return probes.
@@ -3226,6 +3242,11 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // our parent so it can be used as a substitute for the target
       // symbol.
       provide <symbol*> (this, tmpsym);
+
+      // (5) Remember this replacement since we might be able to reuse
+      // it later if the same return probe references this target
+      // symbol again.
+      return_ts_map[ts_name] = tmpsym;
       return;
     }
 

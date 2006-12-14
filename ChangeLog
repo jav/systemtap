@@ -1,3 +1,12 @@
+2006-12-14  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (struct dwarf_var_expanding_copy_visitor): Added
+	'return_ts_map' member variable.
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol):
+	Optimization.  If we've already seen this target variable in this
+	return probe, return the last replacement (instead of creating a
+	new replacement).
+
 2006-12-13  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (struct dwarf_var_expanding_copy_visitor): Added
