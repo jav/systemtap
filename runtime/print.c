@@ -76,7 +76,7 @@ void _stp_print_flush (void)
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 
 	/* check to see if there is anything in the buffer */
-	if (pb->len == 0)
+	if (likely (pb->len == 0))
 		return;
 
 #ifdef STP_RELAYFS_MERGE

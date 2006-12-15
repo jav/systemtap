@@ -1,3 +1,7 @@
+2006-12-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* print.c (_stp_print_flush): Add a likely() marker to the hot path.
+
 2006-12-13  Frank Ch. Eigler  <fche@elastic.org>
 
 	* regs.h (s390x REG_IP): Parenthesize for warning-free builds.
