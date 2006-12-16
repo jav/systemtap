@@ -167,7 +167,7 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr)
 {
-  o->newline() << "struct context* c;";
+  o->newline() << "struct context* __restrict__ c;";
   o->newline() << "unsigned long flags;";
 
 #if 0

@@ -418,8 +418,9 @@ main (int argc, char * const argv [])
 
   s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
 
-
   // arguments parsed; get down to business
+  if (s.verbose > 1)
+    version ();
 
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
