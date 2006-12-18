@@ -1,3 +1,8 @@
+2006-12-18  David Smith  <dsmith@redhat.com>
+
+	* systemtap.samples/pfaults.stp: Since PR 1132 has been fixed,
+	updated to use "$return".
+
 2006-12-08  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3681.

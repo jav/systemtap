@@ -13,12 +13,9 @@ probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
    faults [pid(), $write_access ? 1 : 0] ++
 }
 
-# (needed only until bug 1132 supports $retvalue)
-function get_retvalue:long () %{ THIS->__retvalue = fetch_register(0); %}
-
 probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
                                           %: "handle_mm_fault" %)).return {
-  fault_types [pid(), get_retvalue()] ++
+  fault_types [pid(), $return] ++
 }
 
 
