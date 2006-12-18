@@ -1,3 +1,9 @@
+2006-12-18  David Smith  <dsmith@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): Added header files - cache.h, hash.h,
+	mdfour.h, and util.h.
+	* Makefile.in: Regenerated.
+
 2006-12-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): Print version strings if verbose >=2 .

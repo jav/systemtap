@@ -70,6 +70,7 @@ LDADD =
 
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
+	     cache.h hash.h mdfour.h util.h \
 	     testsuite systemtap.spec runtime tapset
 dist-hook:
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
