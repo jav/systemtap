@@ -120,7 +120,41 @@
 
 #endif
 
-#if defined __i386__ || defined __x86_64__
+#if defined __i386__
+
+#define deref(size, addr)						      \
+  ({									      \
+    int _bad = 0;							      \
+    u8 _b; u16 _w; u32 _l;	                                              \
+    intptr_t _v;							      \
+    switch (size)							      \
+      {									      \
+      case 1: __get_user_asm(_b,addr,_bad,"b","b","=q",1); _v = _b; break;    \
+      case 2: __get_user_asm(_w,addr,_bad,"w","w","=r",1); _v = _w; break;    \
+      case 4: __get_user_asm(_l,addr,_bad,"l","","=r",1); _v = _l; break;     \
+      default: _v = __get_user_bad();					      \
+      }									      \
+    if (_bad)								      \
+      goto deref_fault;							      \
+    _v;									      \
+  })
+
+#define store_deref(size, addr, value)					      \
+  ({									      \
+    int _bad = 0;							      \
+    switch (size)							      \
+      {									      \
+      case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break;  \
+      case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break; \
+      case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break; \
+      default: __put_user_bad();					      \
+      }									      \
+    if (_bad)								      \
+      goto deref_fault;							      \
+  })
+
+
+#elif defined __x86_64__
 
 #define deref(size, addr)						      \
   ({									      \

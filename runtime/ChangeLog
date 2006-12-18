@@ -1,3 +1,9 @@
+2006-12-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3079
+	* loc2c-runtime.h (deref, store_deref): Fork x86 and x86-64
+	variants.  Remove dysfunctional 64-bit ops from x86.
+
 2006-12-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* print.c (_stp_print_flush): Add a likely() marker to the hot path.

@@ -37,7 +37,12 @@ function __find_bdevname(dev, bdev)
 
 function ppos_pos:long (ppos:long) %{ /* pure */
 	loff_t *ppos = (loff_t *)(long)THIS->ppos;
-	THIS->__retvalue = (int64_t)*ppos;
+        /* XXX: but see bug #3079 */
+	THIS->__retvalue = (int64_t) deref (sizeof(loff_t), ppos);
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
 %}
 
 function __page_ino:long (page:long) %{ /* pure */
