@@ -45,6 +45,12 @@ compile_pass (systemtap_session& s)
   if (s.verbose > 2)
     o << "CFLAGS += -ftime-report -Q" << endl;
 
+  // XXX: unfortunately, -save-temps can't work since linux kbuild cwd
+  // is not writeable.
+  //
+  // if (s.keep_tmpdir)
+  // o << "CFLAGS += -fverbose-asm -save-temps" << endl;
+
   o << "CFLAGS += -freorder-blocks" << endl; // improve on -Os
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
