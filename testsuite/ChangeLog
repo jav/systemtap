@@ -1,3 +1,9 @@
+2006-12-18  Josh Stone  <joshua.i.stone@intel.com>
+
+	* systemtap.base/deref.exp, systemtap.base/deref.exp: Add a test for
+	successfully dereferencing pointers of various sizes.  This is known to
+	fail on x86 for 64-bit values -- PR 3079.
+
 2006-12-18  David Smith  <dsmith@redhat.com>
 
 	* systemtap.samples/pfaults.stp: Since PR 1132 has been fixed,
