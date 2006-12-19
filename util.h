@@ -31,6 +31,7 @@ inline OUT lex_cast(IN const & in)
 {
   std::stringstream ss;
   OUT out;
+  // NB: ss >> string out assumes that "in" renders to one word
   if (!(ss << in && ss >> out))
     throw std::runtime_error("bad lexical cast");
   return out;
@@ -43,7 +44,8 @@ lex_cast_hex(IN const & in)
 {
   std::stringstream ss;
   OUT out;
-  if (!(ss << std::ios::hex << std::ios::showbase << in && ss >> out))
+  // NB: ss >> string out assumes that "in" renders to one word
+  if (!(ss << "0x" << std::hex << in && ss >> out))
     throw std::runtime_error("bad lexical cast");
   return out;
 }
@@ -59,7 +61,7 @@ lex_cast_qstring(IN const & in)
   std::string out, out2;
   if (!(ss << in))
     throw std::runtime_error("bad lexical cast");
-  out = ss.str();
+  out = ss.str(); // "in" is expected to render to more than one word
   out2 += '"';
   for (unsigned i=0; i<out.length(); i++)
     {

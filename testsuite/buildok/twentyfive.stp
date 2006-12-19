@@ -1,0 +1,9 @@
+#! stap -p4
+
+# PR 3522.
+
+probe module("ext3").function("ext3_check_dir_entry") {
+  print ($ext3_filetype_table[1])  # static global in CU
+}
+probe timer.s(4) { exit () }
+

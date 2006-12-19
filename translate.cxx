@@ -4092,5 +4092,5 @@ translate_pass (systemtap_session& s)
   s.op = 0;
   s.up = 0;
 
-  return rc + s.num_errors;
+  return rc + s.num_errors();
 }

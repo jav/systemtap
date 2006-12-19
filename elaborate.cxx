@@ -449,10 +449,14 @@ systemtap_session::register_library_aliases()
             }
           catch (const semantic_error& e)
             {
-              cerr << "while: registering probe alias ";
-              alias->printsig(cerr);
-              cerr << endl;
-              print_error (e);
+              semantic_error* er = new semantic_error (e); // copy it
+              stringstream msg;
+              msg << e.msg2;
+              msg << " while registering probe alias ";
+              alias->printsig(msg);
+              er->msg2 = msg.str();
+              print_error (* er);
+              delete er;
             }
 	}
     }
@@ -508,8 +512,14 @@ derive_probes (systemtap_session& s,
       catch (const semantic_error& e)
         {
           // XXX: prefer not to print_error at every nest/unroll level
-          s.print_error (e);
-          cerr << "while: resolving probe point " << *loc << endl;
+
+          semantic_error* er = new semantic_error (e); // copy it
+          stringstream msg;
+          msg << e.msg2;
+          msg << " while resolving probe point " << *loc;
+          er->msg2 = msg.str();
+          s.print_error (* er);
+          delete er;
         }
 
       loc->optional = old_loc_opt;
@@ -709,7 +719,7 @@ semantic_pass_vars (systemtap_session & sess)
 	sess.probes[i]->body->visit (&chk);
     }  
 
-  return sess.num_errors;
+  return sess.num_errors();
 }
 
 // ------------------------------------------------------------------------
@@ -811,7 +821,7 @@ semantic_pass_stats (systemtap_session & sess)
 	}
     }
   
-  return sess.num_errors;
+  return sess.num_errors();
 }
 
 // ------------------------------------------------------------------------
@@ -905,7 +915,7 @@ semantic_pass_symbols (systemtap_session& s)
         }
     }
   
-  return s.num_errors; // all those print_error calls
+  return s.num_errors(); // all those print_error calls
 }
 
 
@@ -952,8 +962,7 @@ systemtap_session::systemtap_session ():
   perfmon_derived_probes(0), 
   op (0), up (0),
   kprobes_text_initialized (false),
-  kprobes_text_start (0), kprobes_text_end (0),
-  num_errors (0)
+  kprobes_text_start (0), kprobes_text_end (0)
 {
 }
 
@@ -961,14 +970,27 @@ systemtap_session::systemtap_session ():
 void
 systemtap_session::print_error (const semantic_error& e)
 {
-  cerr << "semantic error: " << e.what ();
+  string message_str;
+  stringstream message;
+
+  message << "semantic error: " << e.what ();
   if (e.tok1 || e.tok2)
-    cerr << ": ";
-  if (e.tok1) cerr << *e.tok1;
-  cerr << e.msg2;
-  if (e.tok2) cerr << *e.tok2;
-  cerr << endl;
-  num_errors ++;
+    message << ": ";
+  if (e.tok1) message << *e.tok1;
+  message << e.msg2;
+  if (e.tok2) message << *e.tok2;
+  message << endl;
+  message_str = message.str();
+
+  // Duplicate elimination
+  if (seen_errors.find (message_str) == seen_errors.end())
+    {
+      seen_errors.insert (message_str);
+      cerr << message_str;
+    }
+
+  if (e.chain)
+    print_error (* e.chain);
 }
 
 
@@ -1018,9 +1040,10 @@ symresolution_info::visit_foreach_loop (foreach_loop* e)
 	    array->referent = d;
 	  else
             {
-              cerr << "while searching for arity " << e->indexes.size()
-                   << " array:\n";
-              throw semantic_error ("unresolved global array " + array->name, e->tok);
+              stringstream msg;
+              msg << "unresolved arity-" << e->indexes.size()
+                  << " global array " << array->name;
+              throw semantic_error (msg.str(), e->tok);
             }
 	}
     }
@@ -1161,8 +1184,10 @@ symresolution_info::visit_functioncall (functioncall* e)
     e->referent = d;
   else
     {
-      cerr << "while searching for arity " << e->args.size() << " function:\n";
-      throw semantic_error ("unresolved function call", e->tok);
+      stringstream msg;
+      msg << "unresolved arity-" << e->args.size()
+          << " function";
+      throw semantic_error (msg.str(), e->tok);
     }
 }
 
@@ -1795,7 +1820,7 @@ semantic_pass_types (systemtap_session& s)
           }
     }
   
-  return rc + s.num_errors;
+  return rc + s.num_errors();
 }
 
 

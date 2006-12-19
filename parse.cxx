@@ -526,7 +526,7 @@ lexer::scan ()
               // Use @1/$1 as the base, not @0/$0.  Thus the idx-1.
               if (errno == ERANGE || errno == EINVAL || *endp != '\0' ||
                   idx == 0 || idx-1 >= session.args.size ())
-                throw parse_error ("command line argument index invalid or out of range");
+                throw parse_error ("command line argument index invalid or out of range", n);
               
               string arg = session.args[idx-1];
               n->type = (n->content[0] == '@') ? tok_string : tok_number;

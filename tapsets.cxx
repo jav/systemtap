@@ -1253,10 +1253,14 @@ struct dwflpp
 	const char *secname = dwfl_module_relocation_info (mod, i, NULL);
 	dwfl_assert ("dwfl_module_relocation_info", secname == NULL);
 	if (n > 1 || secname[0] != '\0')
-	  // This gives us the module name, and section name within the
-	  // module, for a kernel module (or other ET_REL module object).
-          obstack_printf (pool, " _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 ")",
-                          modname, secname, address);
+          {
+            // This gives us the module name, and section name within the
+            // module, for a kernel module (or other ET_REL module object).
+            obstack_printf (pool, "({ static unsigned long addr = 0; ");
+            obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+                            modname, secname, address);
+            obstack_printf (pool, "addr; })");
+          }
 	else
           {
             throw semantic_error ("cannot relocate user-space dso (?) address");
@@ -3292,6 +3296,10 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       provide <target_symbol*> (this, e);
       semantic_error* saveme = new semantic_error (er); // copy it
       saveme->tok1 = e->tok; // XXX: token not passed to q.dw code generation routines
+      // NB: we can have multiple errors, since a $target variable
+      // may be expanded in several different contexts:
+      //     function ("*") { $var }
+      saveme->chain = e->saved_conversion_error;
       e->saved_conversion_error = saveme;
       delete fdecl;
       delete ec;

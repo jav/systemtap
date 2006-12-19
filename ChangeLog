@@ -1,3 +1,26 @@
+2006-12-19  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3522.
+	* tapsets.cxx (dwflpp::emit_address): Call
+	_stp_module_relocate only once per session.
+
+	Error message cleanup: duplicate elimination etc.
+	* session.h (saved_errors): Store a set of 'em.
+	(num_errors): Return set size.  Remove old numeric field.
+	Update all callers.
+	* elaborate.cxx (systemtap_session::print_errors):
+	Print each encountered message just once.
+	* staptree (semantic_error): Make msg2 writeable.
+	Add a chain field.
+	* tapsets.cxx (*var_expanding*:visit_target_symbol): Set saved
+	semantic_error's chain field.
+	* elaborate.cxx (register_library_aliases, visit_foreach_loop,
+	visit_functioncall, derive_probes): Plop "while: ..." error
+	message	prefix/suffix right into the semantic_error message string.
+	* parse.cxx (lexer::scan): Identify erroneous token better
+	in error message for unresolvable $N/@M command line args.
+	* util.h (lex_cast_hex): Use std::hex, not std::ios::hex.
+
 2006-12-18  David Smith  <dsmith@redhat.com>
 
 	* Makefile.am (EXTRA_DIST): Added header files - cache.h, hash.h,

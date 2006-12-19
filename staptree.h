@@ -26,17 +26,18 @@ struct token; // parse.h
 struct semantic_error: public std::runtime_error
 {
   const token* tok1;
-  const std::string msg2;
+  std::string msg2;
   const token* tok2;
+  semantic_error *chain;
 
   ~semantic_error () throw () {}
   semantic_error (const std::string& msg):
-    runtime_error (msg), tok1 (0), tok2 (0) {}
+    runtime_error (msg), tok1 (0), tok2 (0), chain (0) {}
   semantic_error (const std::string& msg, const token* t1):
-    runtime_error (msg), tok1 (t1), tok2 (0) {}
+    runtime_error (msg), tok1 (t1), tok2 (0), chain (0) {}
   semantic_error (const std::string& msg, const token* t1,
                   const std::string& m2, const token* t2):
-    runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2) {}
+    runtime_error (msg), tok1 (t1), msg2 (m2), tok2 (t2), chain (0) {}
 };
 
 // ------------------------------------------------------------------------

@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <map>
+#include <set>
 
 extern "C" {
 #include <elfutils/libdw.h>
@@ -139,7 +140,8 @@ struct systemtap_session
   Dwarf_Addr kprobes_text_start;
   Dwarf_Addr kprobes_text_end;
 
-  unsigned num_errors;
+  std::set<std::string> seen_errors;
+  unsigned num_errors () { return seen_errors.size(); }
   // void print_error (const parse_error& e);
   void print_error (const semantic_error& e);
 
