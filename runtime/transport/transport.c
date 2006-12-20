@@ -42,8 +42,16 @@ void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
 void _stp_handle_start (struct _stp_transport_start *st);
+
+/* check for new workquqeq API */
+#ifdef DECLARE_DELAYED_WORK 
+static void _stp_work_queue (struct work_struct *data);
+static DECLARE_DELAYED_WORK(_stp_work, _stp_work_queue);
+#else
 static void _stp_work_queue (void *data);
-static DECLARE_WORK(stp_exit, _stp_work_queue, NULL);
+static DECLARE_WORK(_stp_work, _stp_work_queue, NULL);
+#endif
+
 static struct workqueue_struct *_stp_wq;
 int _stp_transport_open(struct _stp_transport_info *info);
 
@@ -189,7 +197,11 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
  *	_stp_work_queue - periodically check for IO or exit
  *	This is run by a kernel thread and may sleep.
  */
+#ifdef DECLARE_DELAYED_WORK 
+static void _stp_work_queue (struct work_struct *data)
+#else
 static void _stp_work_queue (void *data)
+#endif
 {
 	int do_io = 0;
 	unsigned long flags;
@@ -205,11 +217,11 @@ static void _stp_work_queue (void *data)
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
 		_stp_cleanup_and_exit(0);
-		cancel_delayed_work(&stp_exit);
+		cancel_delayed_work(&_stp_work);
 		flush_workqueue(_stp_wq);
 		wake_up_interruptible(&_stp_proc_wq);
 	} else
-		queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
+		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
 /**
@@ -222,7 +234,7 @@ void _stp_transport_close()
 {
 	kbug("************** transport_close *************\n");
 	_stp_cleanup_and_exit(1);
-	cancel_delayed_work(&stp_exit);
+	cancel_delayed_work(&_stp_work);
 	destroy_workqueue(_stp_wq);
 	wake_up_interruptible(&_stp_proc_wq);
 #ifdef STP_RELAYFS
@@ -318,7 +330,7 @@ int _stp_transport_init(void)
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
-	queue_delayed_work(_stp_wq, &stp_exit, STP_WORK_TIMER);
+	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 
 	return 0;
 }

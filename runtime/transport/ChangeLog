@@ -1,3 +1,7 @@
+2006-12-20  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c: Fixes to use the new 2.6.20 workqueue API.
+
 2006-11-15  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_proc_write_cmd): For STP_SYMBOLS, 
