@@ -419,7 +419,12 @@ void register_appname(int i, FILE *fp, lket_pkt_header *phdr)
 		fread(&pid, 1, 4, fp); /* read pid */
 		fread(&ppid, 1, 4, fp); /* read ppid */
 
-		strncpy(appname, (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)ppid))), 256);
+		char *appname_ptr;
+		appname_ptr = (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)ppid)));
+		if(appname_ptr == NULL)
+			strncpy(appname, "N/A", 4);
+		else
+			strncpy(appname, appname_ptr, 256);
 
 	} else {
 		free(appname);
@@ -615,8 +620,14 @@ void print_pkt_header(lket_pkt_header *phdr)
 	if(into_file) {
 		fprintf(outfp, "\n%d.%d CPU:%d TID:%d, PID:%d, PPID:%d, ", sec, usec, 
 			HDR_CpuID(phdr), tid, pid, ppid);
-		if(appname_flag==1)
-			fprintf(outfp, "APPNAME:%s ", (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)pid))));
+		if(appname_flag==1)  {
+			char *appname_ptr;
+			appname_ptr = (char *)(g_tree_lookup(appNameTree,(gconstpointer)((long)pid)));
+			if(appname_ptr == NULL)  
+				fprintf(outfp, "APPNAME:N/A ");
+			else
+				fprintf(outfp, "APPNAME:%s ", appname_ptr);
+		}
 		if(name_flag==1)
 			fprintf(outfp, "EVT_NAME:%s ", events_des[_HOOKID_REGSYSEVT][grpid][hookid]->description);
 		if(id_flag==1)
