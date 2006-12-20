@@ -439,8 +439,8 @@ function register_sys_events()
 
 	_register_sys_event("sunrpc.clnt.clone_client.entry",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_CLNT_CLONE_CLIENT_ENTRY, 
-		"STRING:INT64:INT16:INT16:INT32",
-		"server:prog:tasks:clones:rpccount");
+		"STRING:INT64:INT8:INT16:INT16:INT8",
+		"server:prog:vers:prot:port:authflavor");
 	_register_sys_event("sunrpc.clnt.clone_client.return",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_CLNT_CLONE_CLIENT_RETURN,
 		"INT64", "return");
@@ -495,8 +495,8 @@ function register_sys_events()
 
 	_register_sys_event("sunrpc.svc.create.entry",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_CREATE_ENTRY,
-		"INT64:INT8:INT8",
-		"program:high_version:num_versions");
+		"INT64:INT8:INT32",
+		"prog:nvers:bufsize");
 	_register_sys_event("sunrpc.svc.create.return",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_CREATE_RETURN,
 		"INT64", "return");
@@ -520,16 +520,16 @@ function register_sys_events()
 
 	_register_sys_event("sunrpc.svc.authorise.entry",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_AUTHORISE_ENTRY,
-		"INT64:INT64:INT64:INT8:INT64",
-		"peer_ip:xid:prog:vers:proc");
+		"STRING:INT64:INT64:INT64:INT8:INT64",
+		"service:peer_ip:xid:prog:vers:proc");
 	_register_sys_event("sunrpc.svc.authorise.return",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_AUTHORISE_RETURN,
 		"INT64", "return");
 
 	_register_sys_event("sunrpc.svc.send.entry",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_SEND_ENTRY,
-		"STRING:INT64:INT64:INT64:INT64:INT8:INT64",
-		"sv_name:peer_ip:sv_prog:xid:prog:vers:proc");
+		"STRING:INT64:INT64:INT64:INT8:INT64",
+		"sv_name:peer_ip:xid:prog:vers:proc");
 	_register_sys_event("sunrpc.svc.send.return",
 		_GROUP_SUNRPC, _HOOKID_SUNRPC_SVC_SEND_RETURN,
 		"INT64", "return");

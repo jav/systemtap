@@ -472,7 +472,7 @@ probe _addevent.sunrpc.svc.authorise.return
 function log_sunrpc_svc_authorise(hookid:long, sv_name:string, peer_ip:long, 
 		rq_xid:long, rq_prog:long, rq_vers:long, rq_proc:long)
 %{
-	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%s%8b%8b%8b%1b%8b",
+	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%0s%8b%8b%8b%1b%8b",
 			THIS->sv_name, (_FMT_)THIS->peer_ip, 
 			(_FMT_)THIS->rq_xid, (_FMT_)THIS->rq_prog, 
 			(_FMT_)THIS->rq_vers, (_FMT_)THIS->rq_proc);
@@ -507,7 +507,7 @@ probe _addevent.sunrpc.svc.recv.return
 
 function log_sunrpc_svc_recv(hookid:long, sv_name:string, timeout:long)
 %{
-	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%s%8b", THIS->sv_name, 
+	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%0s%8b", THIS->sv_name, 
 			(_FMT_)THIS->timeout);
 %}
 
@@ -540,7 +540,7 @@ probe _addevent.sunrpc.svc.send.return
 function log_sunrpc_svc_send(hookid:long, sv_name:string, peer_ip:long,
 		rq_xid:long, rq_prog:long, rq_vers:long, rq_proc:long)
 %{
-	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%s%8b%8b%8b%8b%1b%8b", 
+	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%0s%8b%8b%8b%1b%8b", 
 			THIS->sv_name, (_FMT_)THIS->peer_ip, 
 			(_FMT_)THIS->rq_xid, (_FMT_)THIS->rq_prog, 
 			(_FMT_)THIS->rq_vers, (_FMT_)THIS->rq_proc);
@@ -575,7 +575,7 @@ probe _addevent.sunrpc.svc.drop.return
 function log_sunrpc_svc_drop(hookid:long, sv_name:string, peer_ip:long,
 		rq_xid:long, rq_prog:long, rq_vers:long, rq_proc:long)
 %{
-	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%s%8b%8b%8b%1b%8b", 
+	_lket_trace(_GROUP_SUNRPC, THIS->hookid, "%0s%8b%8b%8b%1b%8b", 
 			THIS->sv_name, (_FMT_)THIS->peer_ip, 
 			(_FMT_)THIS->rq_xid, (_FMT_)THIS->rq_prog, 
 			(_FMT_)THIS->rq_vers, (_FMT_)THIS->rq_proc);
