@@ -71,8 +71,26 @@ LDADD =
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     cache.h hash.h mdfour.h util.h \
-	     testsuite systemtap.spec runtime tapset
-dist-hook:
+	     examples testsuite systemtap.spec runtime tapset
+
+SAMPLE_DEST_DIR = $(distdir)/examples/samples
+
+SAMPLE_SRC = $(distdir)/testsuite/systemtap.samples/iotask.stp \
+	     $(distdir)/testsuite/systemtap.samples/kmalloc-stacks.stp \
+	     $(distdir)/testsuite/systemtap.samples/kmalloc-top \
+	     $(distdir)/testsuite/systemtap.samples/pfaults.stp \
+	     $(distdir)/testsuite/systemtap.samples/profile.stp \
+	     $(distdir)/testsuite/systemtap.samples/tcp_connections.stp \
+	     $(distdir)/testsuite/systemtap.samples/topsys.stp
+
+# Copy some of the testsuite sample scripts to the distdir
+# 'examples/samples' directory.
+dist-add-samples: $(SAMPLE_SRC)
+	rm -rf $(SAMPLE_DEST_DIR)
+	mkdir -p $(SAMPLE_DEST_DIR)
+	cp $(SAMPLE_SRC) $(SAMPLE_DEST_DIR)
+
+dist-hook: dist-add-samples
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf

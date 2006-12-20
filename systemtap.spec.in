@@ -120,7 +120,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %files
 %defattr(-,root,root)
 
-%doc README AUTHORS NEWS COPYING
+%doc README AUTHORS NEWS COPYING examples
 
 %{_bindir}/stap
 %{_bindir}/lket-b2a
