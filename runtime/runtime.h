@@ -31,6 +31,7 @@
 #include <linux/kallsyms.h>
 #include <linux/version.h>
 #include <linux/compat.h>
+#include <linux/mm.h>
 
 #ifndef for_each_cpu
 #define for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
