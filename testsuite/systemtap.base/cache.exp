@@ -83,6 +83,10 @@ stap_compile BASIC2 [F_CACHED_COMPILE] $basic_script1
 stap_compile OPTION1 [F_UNCACHED_COMPILE] $basic_script1 -DFOO=1
 stap_compile OPTION2 [F_CACHED_COMPILE] $basic_script1 -DFOO=1
 
+# Using '-b' (bulk/relayfs mode) should change the hash
+stap_compile BULK1 [F_UNCACHED_COMPILE] $basic_script1 -b
+stap_compile BULK2 [F_CACHED_COMPILE] $basic_script1 -b
+
 # Changing the runtime directory should change the hash
 set new_runtime [exec pwd]/.cache_test_runtime
 exec /bin/rm -f $new_runtime
