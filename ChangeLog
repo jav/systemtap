@@ -1,3 +1,20 @@
+2006-12-21  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3671
+	* parse.cxx (parser::parse_global): Allow a maxsize on global arrays.
+	* staptree.h (struct vardecl): Add the maxsize field.
+	* staptree.cxx (vardecl::vardecl): Init. maxsize.
+	(vardecl::set_arity): Don't allow arity 0 when there's a maxsize.
+	(vardecl::compatible_arity): Ditto.
+	(vardecl::print): Include maxsize in output.
+	(target_symbol::print): Ditto.
+	* translate.cxx (struct mapvar, mapvar::mapvar): Add maxsize.
+	(mapvar::init): Init maps with the given maxsize if specified, else
+	keep using MAXMAPENTRIES.
+	(mapvar::set): Make the error message give the maxsize.
+	(mapvar::add): Ditto, and check for overflow on pmap add.
+	(c_unparser::getmap): Pass the maxsize from the vardecl to mapvar.
+
 2006-12-21  David Smith  <dsmith@redhat.com>
 
 	* hash.cxx (find_hash): Added two more options into the hash that

@@ -435,12 +435,15 @@ struct mapvar
   : public var
 {
   vector<exp_type> index_types;
+  int maxsize;
   mapvar (bool local, exp_type ty, 
 	  statistic_decl const & sd,
 	  string const & name, 
-	  vector<exp_type> const & index_types)
+	  vector<exp_type> const & index_types,
+	  int maxsize)
     : var (local, ty, sd, name),
-      index_types (index_types)
+      index_types (index_types),
+      maxsize (maxsize)
   {}
   
   static string shortname(exp_type e);
@@ -547,11 +550,20 @@ struct mapvar
 
   string add (vector<tmpvar> const & indices, tmpvar const & val) const
   {
+    string res = "{ int rc = ";
+
     // impedance matching: empty strings -> NULL
     if (type() == pe_stats)
-      return (call_prefix("add", indices) + ", " + val.qname() + ")");
+      res += (call_prefix("add", indices) + ", " + val.qname() + ")");
     else
       throw semantic_error("adding a value of an unsupported map type");
+
+    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check " +
+      stringify(maxsize > 0 ?
+	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
+      + "\"; }";
+
+    return res;
   }
 
   string set (vector<tmpvar> const & indices, tmpvar const & val) const
@@ -567,7 +579,10 @@ struct mapvar
     else
       throw semantic_error("setting a value of an unsupported map type");
 
-    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check MAXMAPENTRIES\"; }";
+    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check " +
+      stringify(maxsize > 0 ?
+	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
+      + "\"; }";
 
     return res;
   }
@@ -589,7 +604,8 @@ struct mapvar
   string init () const
   {
     string mtype = is_parallel() ? "pmap" : "map";
-    string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (MAXMAPENTRIES" ;
+    string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (" + 
+      (maxsize > 0 ? stringify(maxsize) : "MAXMAPENTRIES") ;
 
     // Check for errors during allocation.
     string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
@@ -1905,7 +1921,8 @@ c_unparser::getmap(vardecl *v, token const *tok)
   i = session->stat_decls.find(v->name);
   if (i != session->stat_decls.end())
     sd = i->second;
-  return mapvar (is_local (v, tok), v->type, sd, v->name, v->index_types);
+  return mapvar (is_local (v, tok), v->type, sd,
+      v->name, v->index_types, v->maxsize);
 }
 
 

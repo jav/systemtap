@@ -104,7 +104,7 @@ probe_point::component::component (std::string const & f, literal * a):
 
 
 vardecl::vardecl ():
-  arity (-1), init(NULL)
+  arity (-1), maxsize(0), init(NULL)
 {
 }
 
@@ -115,7 +115,7 @@ vardecl::set_arity (int a)
   if (a < 0)
     return;
 
-  if (arity != a && arity >= 0)
+  if ((arity != a && arity >= 0) || (a == 0 && maxsize > 0))
     throw semantic_error ("inconsistent arity", tok);
 
   if (arity != a)
@@ -130,6 +130,8 @@ vardecl::set_arity (int a)
 bool 
 vardecl::compatible_arity (int a)
 {
+  if (a == 0 && maxsize > 0)
+    return false;
   if (arity == -1 || a == -1)
     return true;
   return arity == a;
@@ -265,6 +267,8 @@ void target_symbol::print (std::ostream& o) const
 void vardecl::print (ostream& o) const
 {
   o << name;
+  if (maxsize > 0)
+    o << "[" << maxsize << "]";
   if (arity > 0 || index_types.size() > 0)
     o << "[...]";
   if (init)
@@ -277,7 +281,10 @@ void vardecl::print (ostream& o) const
 
 void vardecl::printsig (ostream& o) const
 {
-  o << name << ":" << type;
+  o << name;
+  if (maxsize > 0)
+    o << "[" << maxsize << "]";
+  o << ":" << type;
   if (index_types.size() > 0)
     {
       o << " [";

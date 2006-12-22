@@ -1043,14 +1043,29 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>& probes)
       globals.push_back (d);
 
       t = peek ();
+
+      if (t && t->type == tok_operator && t->content == "[") // array size
+	{
+	  int64_t size;
+	  next ();
+	  expect_number(size);
+	  if (size <= 0 || size > 1000000) // arbitrary max
+	    throw parse_error("array size out of range");
+	  d->maxsize = (int)size;
+	  expect_known(tok_operator, "]");
+	  t = peek ();
+	}
+
       if (t && t->type == tok_operator && t->content == "=") // initialization
-        {
-          next ();
-          d->init = parse_literal ();
-          d->set_arity(0);
-          d->type = d->init->type;
-          t = peek ();
-        }
+	{
+	  if (!d->compatible_arity(0))
+	    throw parse_error("only scalar globals can be initialized");
+	  d->set_arity(0);
+	  next ();
+	  d->init = parse_literal ();
+	  d->type = d->init->type;
+	  t = peek ();
+	}
 
       if (t && t->type == tok_operator && t->content == ",") // next global
 	{
