@@ -1,0 +1,4 @@
+#! stap -p1
+
+# arrays can't be initialized with a scalar number
+global a[10] = 42

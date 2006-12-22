@@ -1,0 +1,30 @@
+/*
+ * array_size.stp
+ *
+ * Check that specifying an array size gives more room than MAXMAPENTRIES
+ *
+ * Call with MAXMAPENTRIES << 100
+ */
+
+probe begin {  log("systemtap starting probe")  }
+probe end   {  log("systemtap ending probe")    }
+
+global a[100]
+
+probe begin {
+    for (i=42; i<142; ++i)
+        a[i] = i*i
+}
+
+probe end(1) {
+    for (i=42; i<142; ++i) {
+        if (a[i] == i*i)
+            ++ok
+        else
+            ++bad
+    }
+    if (ok == 100 && bad == 0)
+        log("systemtap test success")
+    else
+        printf("systemtap test failure - ok:%d, bad:%d\n", ok, bad)
+}

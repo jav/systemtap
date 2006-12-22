@@ -1,0 +1,4 @@
+#! stap -p1
+
+# array size must have a reasonable upper limit
+global a[1000000000]

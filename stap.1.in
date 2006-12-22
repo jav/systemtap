@@ -280,6 +280,16 @@ or number literal.
 .RS
 .BR global " var1" , " var2" , " var3=4"
 .RE
+.PP
+Arrays are limited in size by the MAXMAPENTRIES variable -- see the
+.B SAFETY AND SECURITY
+section for details.  Optionally, global arrays may be declared with a
+maximum size in brackets, overriding MAXMAPENTRIES for that array only.
+Note that this doesn't indicate the type of keys for the array, just the
+size.
+.RS
+.BR global " tiny_array[10]" , " normal_array" , " big_array[50000]"
+.RE
 .\" XXX add statistics type here once it's supported
 
 .SS STATEMENTS

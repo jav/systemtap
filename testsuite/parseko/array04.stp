@@ -1,0 +1,4 @@
+#! stap -p1
+
+# arrays can't be initialized with a scalar string
+global a[10] = "foobar"

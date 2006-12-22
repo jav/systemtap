@@ -1,0 +1,11 @@
+#! stap -p4
+
+# test reading & writing for little, big, and default arrays, with various
+# index types mixed in.
+global a[1], b[100000], c
+probe begin {
+    a[42, "foobar"] = "Hello World!"
+    b["foo", "bar", "baz", 42] = 314159265
+    c[42] = 161803399
+    printf("%s %d %d\n", a[42, "foobar"], b["foo", "bar", "baz", 42], c[42])
+}

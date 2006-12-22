@@ -1,0 +1,4 @@
+#! stap -p1
+
+# array size must be >0
+global a[0]

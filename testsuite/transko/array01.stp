@@ -1,0 +1,7 @@
+#! stap -p3
+
+# arrays can't be inferred as anything else
+global a[10]
+probe begin {
+    printf("%d\n", @count(a)) # try to make 'a' a stat
+}
