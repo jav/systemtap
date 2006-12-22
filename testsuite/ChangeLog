@@ -1,3 +1,9 @@
+2006-12-22  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/cache.exp: Added test to ensure that using '-M'
+	and '-t' changes the hash.  The '-t' test is commented out until
+	PR3523 is fixed.
+
 2006-12-21  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/cache.exp: Added test to ensure that using '-b'
