@@ -490,7 +490,7 @@ probe addevent.sunrpc.svc.recv.entry
 probe _addevent.sunrpc.svc.recv.entry
 	= sunrpc.svc.recv
 {
-	log_sunrpc_svc_recv(HOOKID_SUNRPC_SVC_SEND_ENTRY, sv_name, timeout)
+	log_sunrpc_svc_recv(HOOKID_SUNRPC_SVC_RECV_ENTRY, sv_name, timeout)
 }
 
 probe addevent.sunrpc.svc.recv.return
@@ -502,7 +502,7 @@ probe addevent.sunrpc.svc.recv.return
 probe _addevent.sunrpc.svc.recv.return
 	= sunrpc.svc.recv.return
 {
-	log_sunrpc_return_int64(HOOKID_SUNRPC_SVC_SEND_RETURN, $return)
+	log_sunrpc_return_int64(HOOKID_SUNRPC_SVC_RECV_RETURN, $return)
 }
 
 function log_sunrpc_svc_recv(hookid:long, sv_name:string, timeout:long)

@@ -1,3 +1,9 @@
+2006-12-23  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guij@cn.ibm.com>
+	* rpc.stp: fix wrong HOOKID for _addevent.sunrpc.svc.recv.entry
+	and _addevent.sunrpc.svc.recv.return
+
 2006-12-20  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guij@cn.ibm.com>
