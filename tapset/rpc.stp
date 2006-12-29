@@ -828,25 +828,41 @@ function xid_from_clnt:long(clnt:long)
 function prog_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+	THIS->__retvalue = clnt ? clnt->cl_prog : 0;
+#else
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_prog : 0;
+#endif
 %}
 
 function vers_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+	THIS->__retvalue = clnt ? clnt->cl_vers : 0;
+#else
 	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_vers : 0;
+#endif
 %}
 
 function prot_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_prot : 0;
+	THIS->__retvalue = clnt ? clnt->cl_xprt->prot : 0;
 %}
 
 function port_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_port : 0;
+	if(clnt != NULL) {
+		struct sockaddr_in *addr = (struct sockaddr_in *)&(clnt->cl_xprt->addr);
+		if(addr != NULL && addr->sin_family == AF_INET) {
+			/* Now consider ipv4 only */
+			THIS->__retvalue = ntohs(addr->sin_port);
+			return;
+		}
+	}
+	THIS->__retvalue = 0;
 %}
 
 function clones_from_clnt:long(clnt:long)

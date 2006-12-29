@@ -14,10 +14,14 @@
      {
         struct rpc_clnt * tk_client;
         struct rpc_xprt * cl_xprt;
+        struct sockaddr_in *addr;
         tk_client = task->tk_client;
         cl_xprt= tk_client->cl_xprt;
-
-        return cl_xprt->addr.sin_addr.s_addr;
+        addr = (struct sockaddr_in *)&(cl_xprt->addr);
+        if (addr->sin_family != AF_INET)
+                /* Now consider ipv4 only */
+                return 0;
+        return addr->sin_addr.s_addr;
      }
      int get_prot(struct rpc_task * task)
      {
@@ -34,16 +38,20 @@
   1:get proto
 */
 function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
-	int index = (int) (THIS->index);
-	struct inode * dir = (struct inode *)(THIS->dir);
+        int index = (int) (THIS->index);
+        struct inode * dir = (struct inode *)(THIS->dir);
         struct rpc_clnt * clnt = NFS_CLIENT(dir);
         struct rpc_xprt * cl_xprt = clnt->cl_xprt;
-        struct sockaddr_in * addr = &(cl_xprt->addr);
+        struct sockaddr_in * addr = (struct sockaddr_in *)&(cl_xprt->addr);
 
-        if(index == 0)
-		THIS->__retvalue = addr->sin_addr.s_addr;
-        else
-		THIS->__retvalue = cl_xprt->prot;
+        if(index == 0) {
+                if (addr->sin_family == AF_INET) {
+                        /* Now consider ipv4 only */
+                        THIS->__retvalue = addr->sin_addr.s_addr;
+                } else
+                        THIS->__retvalue = 0;
+        } else
+                THIS->__retvalue = cl_xprt->prot;
 %}
 
 /*
@@ -1220,7 +1228,7 @@ probe nfs.proc.open = kernel.function("nfs_open") ?,
 	prot = __i2n_ip_proto($inode,1)  	
 	version = __nfs_version($inode)
 
-	filename = kernel_string($filp->f_dentry->d_name->name)
+	filename = __file_filename($filp)
 	flag = $filp->f_flags
 	mode = $filp->f_mode
 
@@ -1254,7 +1262,7 @@ probe nfs.proc.release= kernel.function("nfs_release") ?,
 	prot = __i2n_ip_proto($inode,1)  	
 	version = __nfs_version($inode)
 
-	filename = kernel_string($filp->f_dentry->d_name->name)
+	filename = __file_filename($filp)
 	flag = $filp->f_flags
 	mode = $filp->f_mode
 

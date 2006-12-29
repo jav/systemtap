@@ -297,7 +297,11 @@ probe nfsd.proc2.read = kernel.function("nfsd_proc_read")?,
 
 	count = $argp->count 
 	offset = $argp->offset 
+%( kernel_v >= "2.6.19" %?
+	vec = $rqstp->rq_vec
+%:
 	vec = $argp->vec
+%)
 	vlen = $argp->vlen
 
 	name = "nfsd.proc2.read"
@@ -326,7 +330,11 @@ probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")?,
 
 	count = $argp->count 
 	offset = $argp->offset 
+%( kernel_v >= "2.6.19" %?
+	vec = $rqstp->rq_vec
+%:
 	vec = $argp->vec
+%)
 	vlen = $argp->vlen
 
 	name = "nfsd.proc3.read"
@@ -382,7 +390,11 @@ probe nfsd.proc2.write = kernel.function("nfsd_proc_write")?,
 
 	count = $argp->len
 	offset = $argp->offset 
+%( kernel_v >= "2.6.19" %?
+	vec = $rqstp->rq_vec
+%:
 	vec = $argp->vec
+%)
 	vlen = $argp->vlen
 
 	name = "nfsd.proc2.write"
@@ -411,7 +423,11 @@ probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")?,
 
 	count = $argp->count 
 	offset = $argp->offset 
+%( kernel_v >= "2.6.19" %?
+	vec = $rqstp->rq_vec
+%:
 	vec = $argp->vec
+%)
 	vlen = $argp->vlen
 	stable = $argp->stable
 
@@ -778,7 +794,7 @@ probe nfsd.open.return = kernel.function("nfsd_open").return ?,
 probe nfsd.close = kernel.function("nfsd_close")?,
                    module("nfsd").function("nfsd_close")?
 {
-	filename = kernel_string($filp->f_dentry->d_name->name)
+	filename = __file_filename($filp)
 
 	name = "nfsd.close"
 	argstr = sprintf("%s",filename)

@@ -1,3 +1,8 @@
+2006-12-29  Li Guanglei <guanglei@cn.ibm.com>
+
+	From Gui Jian <guij@cn.ibm.com>
+	* nfs.stp: patch for 2.6.19 kernel
+	
 2006-12-23  Li Guanglei <guanglei@cn.ibm.com>
 
 	From Gui Jian <guij@cn.ibm.com>

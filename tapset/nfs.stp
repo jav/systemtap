@@ -232,6 +232,54 @@ function __d_loff_t :long (ppos :long) %{ /* pure */
         THIS->__retvalue = *ppos;
 %}
 
+function __file_inode:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode),
+		&(file->f_dentry->d_inode));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_id:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = (long)&(file->f_dentry->d_inode->i_sb->s_id);
+%}
+
+function __file_mode:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_mode),
+		&(file->f_dentry->d_inode->i_mode));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_parentname:string (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) 
+		|| (file->f_dentry == NULL) 
+		|| (file->f_dentry->d_parent == NULL))
+		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		strlcpy(THIS->__retvalue, file->f_dentry->d_parent->d_name->name, MAXSTRINGLEN);
+	}
+%}
+
 probe nfs.fop.entries = nfs.fop.llseek,
                         nfs.fop.read,
                         nfs.fop.write,
@@ -283,12 +331,12 @@ probe nfs.fop.return = nfs.fop.llseek.return,
 probe nfs.fop.llseek = kernel.function ("nfs_file_llseek") ?,
                        module("nfs").function("nfs_file_llseek") ?
 {
-        dev = $filp->f_dentry->d_inode->i_sb->s_dev
-        ino = $filp->f_dentry->d_inode->i_ino
-	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($filp)
+        ino = __file_ino($filp)
+	s_id = __file_id($filp)
 	devname = kernel_string(s_id)
 
-        maxbyte = $filp->f_dentry->d_inode->i_sb->s_maxbytes
+        maxbyte = __file_maxbytes($filp)
         offset = $offset
         origin = $origin
 
@@ -313,7 +361,7 @@ probe nfs.fop.llseek.return = kernel.function ("nfs_file_llseek").return ?,
 */
 probe nfs.fop.read = vfs.do_sync_read
 {
-	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	s_id = __file_id($filp)
 	devname = kernel_string(s_id)
         name = "nfs.fop.read"
 }
@@ -335,7 +383,7 @@ probe nfs.fop.read.return = vfs.do_sync_read.return
 
 probe nfs.fop.write = vfs.do_sync_write
 {
-	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+	s_id = __file_id($filp)
 	devname = kernel_string(s_id)
         name = "nfs.fop.write"
 }
@@ -368,22 +416,27 @@ probe nfs.fop.write.return = vfs.do_sync_write.return
 probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
                        module("nfs").function("nfs_file_read") ?
 {
-        dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
-        ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
-	s_id = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($iocb->ki_filp)
+        ino = __file_ino($iocb->ki_filp)
+	s_id = __file_id($iocb->ki_filp)
 	devname = kernel_string(s_id)
 
         count = $count
         pos = $pos
+
+%( kernel_v >= "2.6.19" %?
+	buf = $iov->iov_base
+%:
         buf = $buf
+%)
 
-        parent_name = kernel_string($iocb->ki_filp->f_dentry->d_parent->d_name->name)
-        file_name = kernel_string($iocb->ki_filp->f_dentry->d_name->name)
+        parent_name = __file_parentname($iocb->ki_filp)
+        file_name = __file_filename($iocb->ki_filp)
 
 
-        cache_valid = __nfsi_cache_valid($iocb->ki_filp->f_dentry->d_inode)
-        cache_time  = __nfsi_rcache_time($iocb->ki_filp->f_dentry->d_inode)
-        attr_time   = __nfsi_attr_time($iocb->ki_filp->f_dentry->d_inode)
+        cache_valid = __nfsi_cache_valid(__file_inode($iocb->ki_filp))
+        cache_time  = __nfsi_rcache_time(__file_inode($iocb->ki_filp))
+        attr_time   = __nfsi_attr_time(__file_inode($iocb->ki_filp))
 
 
         name = "nfs.fop.aio_read"
@@ -423,17 +476,21 @@ probe nfs.fop.aio_read.return = kernel.function ("nfs_file_read").return ?,
 probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
                           module("nfs").function("nfs_file_write") ?
 {
-        dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
-        ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
-	s_id = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($iocb->ki_filp)
+        ino = __file_ino($iocb->ki_filp)
+	s_id = __file_id($iocb->ki_filp)
 	devname = kernel_string(s_id)
 
         count = $count
         pos = $pos
+%( kernel_v >= "2.6.19" %?
+	buf = $iov->iov_base
+%:
         buf = $buf
+%)
                
-        parent_name = kernel_string($iocb->ki_filp->f_dentry->d_parent->d_name->name)
-        file_name = kernel_string($iocb->ki_filp->f_dentry->d_name->name)
+        parent_name = __file_parentname($iocb->ki_filp)
+        file_name = __file_filename($iocb->ki_filp)
 
         name = "nfs.fop.aio.write"
         argstr = sprintf("%p, %d, %d", buf, count, pos)
@@ -479,21 +536,21 @@ probe nfs.fop.aio_write.return =  kernel.function("nfs_file_write").return ?,
 probe nfs.fop.mmap = kernel.function("nfs_file_mmap") ?,
                      module("nfs").function("nfs_file_mmap") ?
 {
-        dev = $file->f_dentry->d_inode->i_sb->s_dev
-        ino = $file->f_dentry->d_inode->i_ino
-	s_id = $file->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+	s_id = __file_id($file)
 	devname = kernel_string(s_id)
 
         vm_start = $vma->vm_start
         vm_end = $vma->vm_end
         vm_flags = $vma->vm_flags
 
-        parent_name = kernel_string($file->f_dentry->d_parent->d_name->name)
-        file_name = kernel_string($file->f_dentry->d_name->name)
+        parent_name = __file_parentname($file)
+        file_name = __file_filename($file)
 
-        cache_valid = __nfsi_cache_valid($file->f_dentry->d_inode)
-        cache_time  = __nfsi_rcache_time($file->f_dentry->d_inode)
-        attr_time   = __nfsi_attr_time($file->f_dentry->d_inode)
+        cache_valid = __nfsi_cache_valid(__file_inode($file))
+        cache_time  = __nfsi_rcache_time(__file_inode($file))
+        attr_time   = __nfsi_attr_time(__file_inode($file))
 
         name = "nfs.fop.mmap"
         argstr = sprintf("0x%x, 0x%x, 0x%x", vm_start, vm_end, vm_flags)
@@ -521,12 +578,12 @@ probe nfs.fop.mmap.return = kernel.function("nfs_file_mmap").return ?,
 probe nfs.fop.open = kernel.function("nfs_file_open") ?,
                      module("nfs").function("nfs_file_open") ?
 {
-        dev = $filp->f_dentry->d_inode->i_sb->s_dev
+        dev = __file_dev($filp)
         ino = $inode->i_ino
 	s_id = $inode->i_sb->s_id
 	devname = kernel_string(s_id)
 
-        filename = kernel_string($filp->f_dentry->d_name->name)
+        filename = __file_filename($filp)
         flag = $filp->f_flags   
 
         i_size = $inode->i_size
@@ -556,13 +613,13 @@ probe nfs.fop.open.return = kernel.function("nfs_file_open").return ?,
 probe nfs.fop.flush = kernel.function("nfs_file_flush") ?,
                       module("nfs").function("nfs_file_flush") ?
 {
-        dev = $file->f_dentry->d_inode->i_sb->s_dev
-        ino = $file->f_dentry->d_inode->i_ino;
-	s_id = $file->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+	s_id = __file_id($file)
 	devname = kernel_string(s_id)
 
         mode = $file->f_mode
-        ndirty = __nfsi_ndirty($file->f_dentry->d_inode)
+        ndirty = __nfsi_ndirty(__file_inode($file))
 
         name = "nfs.fop.flush"
         argstr = sprintf("%d",ino)
@@ -588,7 +645,7 @@ probe nfs.fop.flush.return = kernel.function("nfs_file_flush").return ?,
 probe nfs.fop.release = kernel.function("nfs_file_release") ?,
                       module("nfs").function("nfs_file_release") ?
 {
-        dev = $filp->f_dentry->d_inode->i_sb->s_dev
+        dev = __file_dev($filp)
         ino = $inode->i_ino
 	s_id = $inode->i_sb->s_id
 	devname = kernel_string(s_id)
@@ -619,12 +676,12 @@ probe nfs.fop.release.return = kernel.function("nfs_file_release").return ?,
 probe nfs.fop.fsync = kernel.function("nfs_fsync") ?,
                       module("nfs").function("nfs_fsync") ?
 {
-        dev = $file->f_dentry->d_inode->i_sb->s_dev
-        ino = $file->f_dentry->d_inode->i_ino
-	s_id = $file->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($file)
+        ino = __file_ino($file)
+	s_id = __file_id($file)
 	devname = kernel_string(s_id)
 
-        ndirty = __nfsi_ndirty($file->f_dentry->d_inode)
+        ndirty = __nfsi_ndirty(__file_inode($file))
 
         name = "nfs.fop.fsync"
 	argstr = sprintf("%d",ino)  
@@ -655,12 +712,12 @@ probe nfs.fop.fsync.return = kernel.function("nfs_fsync").return ?,
 probe nfs.fop.lock = kernel.function("nfs_lock") ?,
                      module("nfs").function("nfs_lock") ?
 {
-        dev = $filp->f_dentry->d_inode->i_sb->s_dev
-        ino = $filp->f_dentry->d_inode->i_ino
-	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($filp)
+        ino = __file_ino($filp)
+	s_id = __file_id($filp)
 	devname = kernel_string(s_id)
  
-        i_mode = $filp->f_dentry->d_inode->i_mode
+        i_mode = __file_mode($filp)
         cmd = $cmd
  
         fl_type = $fl->fl_type
@@ -702,18 +759,17 @@ probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") ?,
                               module("nfs").function("nfs_file_sendfile") ?
 {
 
-        dev = $filp->f_dentry->d_inode->i_sb->s_dev
-        ino = $filp->f_dentry->d_inode->i_ino
-	s_id = $filp->f_dentry->d_inode->i_sb->s_id
+        dev = __file_dev($filp)
+        ino = __file_ino($filp)
+	s_id = __file_id($filp)
 	devname = kernel_string(s_id)
 
         count = $count
         ppos  = __d_loff_t($ppos)
 
-        cache_valid = __nfsi_cache_valid($filp->f_dentry->d_inode)
-        cache_time  = __nfsi_rcache_time($filp->f_dentry->d_inode)
-        attr_time   = __nfsi_attr_time($filp->f_dentry->d_inode)
-
+        cache_valid = __nfsi_cache_valid(__file_inode($filp))
+        cache_time  = __nfsi_rcache_time(__file_inode($filp))
+        attr_time   = __nfsi_attr_time(__file_inode($filp))
 
         name = "nfs.fop.sendfile"
         argstr = sprintf("%d,%d", count,ppos)

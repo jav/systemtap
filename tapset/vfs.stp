@@ -88,15 +88,82 @@ deref_fault:
 	}
 %}
 
+function __file_dev:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_dev),
+		&(file->f_dentry->d_inode->i_sb->s_dev));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_bdev:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_bdev),
+		&(file->f_dentry->d_inode->i_sb->s_bdev));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_ino:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_ino),
+		&(file->f_dentry->d_inode->i_ino));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_maxbytes:long (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) || (file->f_dentry == NULL)) {
+		THIS->__retvalue = 0;
+		return;
+	}
+	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_maxbytes),
+		&(file->f_dentry->d_inode->i_sb->s_maxbytes));
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+%}
+
+function __file_filename:string (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) 
+		|| (file->f_dentry == NULL) 
+		|| (file->f_dentry->d_name.name == NULL)) 
+		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		strlcpy(THIS->__retvalue, file->f_dentry->d_name.name, MAXSTRINGLEN);
+	}
+%}
+
 probe generic.fop.llseek = kernel.function ("generic_file_llseek")
 {
-	dev = $file->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $file->f_dentry->d_inode->i_ino
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	offset = $offset
 	origin = $origin
-        maxbyte = $file->f_dentry->d_inode->i_sb->s_maxbytes
+        maxbyte = __file_maxbytes($file)
 
 	name = "generic_file_llseek"
 	argstr = sprintf("%d, %d", offset, origin)
@@ -109,9 +176,9 @@ probe generic.fop.llseek.return = kernel.function ("generic_file_llseek").return
 
 probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
 {
-	dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $iocb->ki_filp->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($iocb->ki_filp)
+	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
+	ino = __file_ino($iocb->ki_filp)
 
 	count = $count
 	pos = $pos
@@ -136,9 +203,9 @@ probe generic.fop.aio_read.return = kernel.function ("generic_file_aio_read").re
 
 probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
 {
-	dev = $iocb->ki_filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $iocb->ki_filp->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $iocb->ki_filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($iocb->ki_filp)
+	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
+	ino = __file_ino($iocb->ki_filp)
 
 	count = $count
 	pos = $pos
@@ -163,9 +230,9 @@ probe generic.fop.aio_write.return = kernel.function ("generic_file_aio_write").
 
 probe generic.fop.readv = kernel.function ("generic_file_readv")
 {
-	dev = $filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($filp)
+	devname = __find_bdevname(dev, __file_bdev($filp))
+	ino = __file_ino($filp)
 
 	nr_segs = $nr_segs
 	pos = ppos_pos($ppos)
@@ -190,9 +257,9 @@ probe generic.fop.readv.return = kernel.function ("generic_file_readv").return
 /* calls __generic_file_write_nolock */
 probe generic.fop.writev = kernel.function ("generic_file_writev")
 {
-	dev = $file->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $file->f_dentry->d_inode->i_ino
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	nr_segs = $nr_segs
 	pos = ppos_pos($ppos)
@@ -219,9 +286,9 @@ probe generic.fop.writev.return = kernel.function ("generic_file_writev").return
    add filemap_nopage, filemap_populate */
 probe generic.fop.mmap = kernel.function ("generic_file_mmap")
 {
-	dev = $file->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $file->f_dentry->d_inode->i_ino
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	vm_start = $vma->vm_start
 	vm_end = $vma->vm_end
@@ -238,11 +305,11 @@ probe generic.fop.mmap.return = kernel.function ("generic_file_mmap").return
 
 probe generic.fop.open = kernel.function ("generic_file_open")
 {
-	dev = $filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
+	dev = __file_dev($filp)
+	devname = __find_bdevname(dev, __file_bdev($filp))
 	ino = $inode->i_ino
 
-	filename = kernel_string($filp->f_dentry->d_name->name)
+	filename = __file_filename($filp)
         flag = $filp->f_flags
         size = $inode->i_size
 
@@ -257,9 +324,9 @@ probe generic.fop.open.return = kernel.function ("generic_file_open").return
 
 probe generic.fop.sendfile = kernel.function ("generic_file_sendfile")
 {
-	dev = $in_file->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $in_file->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $in_file->f_dentry->d_inode->i_ino
+	dev = __file_dev($in_file)
+	devname = __find_bdevname(dev, __file_bdev($in_file))
+	ino = __file_ino($in_file)
 
 	count = $count
         ppos = $ppos
@@ -283,9 +350,9 @@ probe generic.fop.sendfile.return = kernel.function ("generic_file_sendfile").re
 
 probe generic.fop.splice_read = kernel.function ("generic_file_splice_read")
 {
-	dev = $in->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $in->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $in->f_dentry->d_inode->i_ino
+	dev = __file_dev($in)
+	devname = __find_bdevname(dev, __file_bdev($in))
+	ino = __file_ino($in)
 
 	len = $len
 	flags = $flags
@@ -309,9 +376,9 @@ probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_rea
 
 probe generic.fop.splice_write = kernel.function ("generic_file_splice_write")
 {
-	dev = $out->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $out->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $out->f_dentry->d_inode->i_ino
+	dev = __file_dev($out)
+	devname = __find_bdevname(dev, __file_bdev($out))
+	ino = __file_ino($out)
 
 	len = $len
 	flags = $flags
@@ -335,9 +402,9 @@ probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_wr
 
 probe generic.fop.read = kernel.function ("generic_file_read")
 {
-	dev = $filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($filp)
+	devname = __find_bdevname(dev, __file_bdev($filp))
+	ino = __file_ino($filp)
 
 	count = $count
 
@@ -360,9 +427,9 @@ probe generic.fop.read.return = kernel.function ("generic_file_read").return
 
 probe generic.fop.write = kernel.function ("generic_file_write")
 {
-	dev = $file->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $file->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $file->f_dentry->d_inode->i_ino
+	dev = __file_dev($file)
+	devname = __find_bdevname(dev, __file_bdev($file))
+	ino = __file_ino($file)
 
 	count = $count
 
@@ -406,8 +473,8 @@ probe generic.aop.writepages.return = kernel.function ("mpage_writepages").retur
 
 probe vfs.do_sync_read = kernel.function ("do_sync_read")
 {
-	dev = $filp->f_dentry->d_inode->i_sb->s_dev
-	ino = $filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($filp)
+	ino = __file_ino($filp)
 
 	len = $len
 	pos = ppos_pos($ppos)
@@ -432,9 +499,9 @@ probe vfs.do_sync_read.return = kernel.function ("do_sync_read").return
 
 probe vfs.do_sync_write = kernel.function ("do_sync_write")
 {
-	dev = $filp->f_dentry->d_inode->i_sb->s_dev
-	devname = __find_bdevname(dev, $filp->f_dentry->d_inode->i_sb->s_bdev)
-	ino = $filp->f_dentry->d_inode->i_ino
+	dev = __file_dev($filp)
+	devname = __find_bdevname(dev, __file_bdev($filp))
+	ino = __file_ino($filp)
 
 	len = $len
 	pos = ppos_pos($ppos)

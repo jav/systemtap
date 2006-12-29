@@ -1,3 +1,15 @@
+/* Helper functions */
+function __file_fsname:string (file:long) %{ /* pure */
+	struct file *file = (struct file *)(long)THIS->file;
+	if ((file == NULL) 
+		|| (file->f_dentry == NULL) 
+		|| (file->f_dentry->d_inode == NULL))
+		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		strlcpy(THIS->__retvalue, file->f_dentry->d_inode->i_sb->s_type->name, MAXSTRINGLEN);
+	}
+%}
+
 probe never
 {
 	printf("%d",GROUP_NFS)
@@ -108,7 +120,7 @@ probe addevent.nfs.fop.read.entry
 probe _addevent.nfs.fop.read.entry
       = nfs.fop.read
 {
-	filesystem = kernel_string($filp->f_dentry->d_inode->i_sb->s_type->name)
+	filesystem = __file_fsname($filp)
 
 	if(filesystem == "nfs")
 		log_fop_rw(HOOKID_NFS_FOP_READ_ENTRY,s_id,fileid,buf,len,pos)
@@ -144,7 +156,7 @@ probe addevent.nfs.fop.write.entry
 probe _addevent.nfs.fop.write.entry
       = nfs.fop.write
 {
-	filesystem = kernel_string($filp->f_dentry->d_inode->i_sb->s_type->name)
+	filesystem = __file_fsname($filp)
 
 	if(filesystem == "nfs")
 		log_fop_rw(HOOKID_NFS_FOP_WRITE_ENTRY,s_id,fileid,buf,len,pos)

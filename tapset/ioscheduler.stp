@@ -32,7 +32,11 @@ probe ioscheduler.elv_next_request.return
 		disk_minor = -1
 	} else {
 		req = $return
+%( kernel_v >= "2.6.19" %?
+		req_flags = $return->cmd_flags
+%:
 		req_flags = $return->flags
+%)
 		if($return->rq_disk == 0)  {
 			disk_major = -1
 			disk_minor = -1
@@ -66,7 +70,11 @@ probe ioscheduler.elv_add_request
 	}
 
 	req = $rq
+%( kernel_v >= "2.6.19" %?
+	req_flags = $rq->cmd_flags
+%:
 	req_flags = $rq->flags
+%)
 }
 
 /* when a request is completed */
@@ -92,7 +100,11 @@ probe ioscheduler.elv_completed_request
 	}
 
 	req = $rq
+%( kernel_v >= "2.6.19" %?
+	req_flags = $rq->cmd_flags
+%:
 	req_flags = $rq->flags
+%)
 }
 
 function disk_major_from_request:long(var_q:long)
