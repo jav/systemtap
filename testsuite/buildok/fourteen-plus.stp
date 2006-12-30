@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -tp4
 
 # NB: beyond just checking for timer compilability, this test also plays
 # with duplicate probe elimination logic.  See also fourteen+.stp

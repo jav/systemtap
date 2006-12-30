@@ -1,3 +1,10 @@
+2006-12-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3523.
+	* buildok/fourteen.stp, fourteen-plus.stp: Tweak & add a test.
+	* systemtap.base/bench.stp: Work around randomized-ordered probes.
+	* systemtap.base/bench.exp: Tighten output requirements.
+
 2006-12-22  Josh Stone  <joshua.i.stone@intel.com>
 
 	* buildok/array_size.stp, parseko/array01.stp, parseko/array02.stp,

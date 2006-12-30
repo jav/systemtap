@@ -28,4 +28,4 @@ probe test.statcount = repeat {@count(gS)}         probe test.statcount {}
 probe test.nnarrassmt = repeat {gnn[1] = 1}         probe test.nnarrassmt {}  global gnn
 probe test.ssarrassmt = repeat {gss["foo"] = "bar"} probe test.ssarrassmt {}  global gss
 
-probe begin { exit () }
+probe begin(9999 /* ... after all the others! */) { exit () }

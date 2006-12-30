@@ -1,3 +1,11 @@
+2006-12-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3523.
+	* tapsets.cxx (common_probe_entryfn_prologue,epilogue): Restore
+	support for -t (benchmarking) mode.
+	* translate.cxx (emit_common_header,emit_module_init):Ditto.
+	(emit_module_exit,emit_probe): Ditto, with most meat here.
+	
 2006-12-22  Josh Stone  <joshua.i.stone@intel.com>
 
 	* stap.1.in: Document how to specify the size of global arrays.

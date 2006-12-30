@@ -52,42 +52,6 @@ extern "C" {
 using namespace std;
 
 
-#if 0
-static void
-emit_probe_timing(derived_probe* p, translator_output* o)
-{
-  static set<string> basest_names;
-
-  string nm = p->basest()->name;
-  if (basest_names.find(nm) == basest_names.end())
-    {
-      basest_names.insert (nm);
-
-      o->newline() << "#ifdef STP_TIMING";
-      o->newline() << "{";
-      o->newline(1) << "const char *probe_point = " 
-		    << lex_cast_qstring (*p->basest()->locations[0])
-		    << ";";
-      o->newline() << "const char *decl_location = "
-		   << lex_cast_qstring (p->basest()->tok->location)
-		   << ";";
-      o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
-		   << p->basest()->name
-		   << ", 0);";
-      o->newline() << "const char *error;";
-      o->newline() << "if (stats->count) {";
-      o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
-      o->newline() << "_stp_printf (\"probe %s (%s), %lld hits taking %lldmin/%lldavg/%lldmax cycles.\\n\",";
-      o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
-      o->newline() << "_stp_print_flush();";
-      o->newline(-1) << "}";
-      o->newline(-1) << "}";
-      o->newline() << "#endif";
-    }
-}
-#endif
-
-
 // ------------------------------------------------------------------------
 // Generic derived_probe_group: contains an ordinary vector of the
 // given type.  It provides only the enrollment function.
@@ -170,11 +134,12 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
   o->newline() << "struct context* __restrict__ c;";
   o->newline() << "unsigned long flags;";
 
-#if 0
   o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "cycles_t cycles_atstart = get_cycles ();";
+  // NB: we truncate cycles counts to 32 bits.  Perhaps it should be
+  // fewer, if the hardware counter rolls over really quickly.  See
+  // also ...epilogue().
+  o->newline() << "int32_t cycles_atstart = (int32_t) get_cycles ();";
   o->newline() << "#endif";
-#endif
 
 #if 0 /* XXX: PERFMON */
   o->newline() << "static struct pfarg_ctx _pfm_context;";
@@ -221,12 +186,28 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
   o->newline() << "c->pi = 0;";
   o->newline() << "c->probe_point = 0;";
   o->newline() << "c->actioncount = 0;";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "c->statp = 0;";
+  o->newline() << "#endif";
 }
 
 
 void
 common_probe_entryfn_epilogue (translator_output* o)
 {
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "{";
+  o->newline(1) << "int32_t cycles_atend = (int32_t) get_cycles ();";
+  // Handle 32-bit wraparound.
+  o->newline() << "int32_t cycles_elapsed = (cycles_atend > cycles_atstart)";
+  o->newline(1) << "? (cycles_atend - cycles_atstart)";
+  o->newline() << ": (~(int32_t)0) - cycles_atstart + cycles_atend + 1;";
+
+  o->newline() << "if (likely (c->statp)) _stp_stat_add(*c->statp, cycles_elapsed);";
+  o->indent(-1);
+  o->newline(-1) << "}";
+  o->newline() << "#endif";
+
   o->newline() << "if (unlikely (c->last_error && c->last_error[0])) {";
   o->newline(1) << "if (c->last_stmt != NULL)";
   o->newline(1) << "_stp_softerror (\"%s near %s\", c->last_error, c->last_stmt);";
@@ -243,27 +224,6 @@ common_probe_entryfn_epilogue (translator_output* o)
 
   o->newline(-1) << "probe_epilogue:"; // context is free
   o->indent(1);
-
-#if 0
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "{";
-  o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
-
-  // Handle wraparound.
-  // XXX: get_cycles() may return fewer significant digits than
-  // cycles_t can carry.  On some machines, cycles_t is 64 bits wide
-  // but get_cycles() is only 52.  So we should investigate truncating
-  // these get_cycles() return values to some reasonable smaller
-  // number of bits, perhaps 32 or even 24.
-  o->newline() << "int64_t cycles_elapsed = (cycles_atend > cycles_atstart)";
-  o->newline(1) << "? (int64_t) (cycles_atend - cycles_atstart)";
-  o->newline() << ": (int64_t) (~(cycles_t)0) - cycles_atstart + cycles_atend + 1;";
-
-  o->newline() << "_stp_stat_add(time_" << basest()->name << ",cycles_elapsed);";
-  o->indent(-1);
-  o->newline(-1) << "}";
-  o->newline() << "#endif";
-#endif
 
   o->newline() << "local_irq_restore (flags);";
 }
@@ -5021,6 +4981,7 @@ void
 perfmon_derived_probe::emit_probe_entries (translator_output * o)
 {
   o->newline() << "#ifdef STP_TIMING";
+  // NB: This variable may be multiply (but identically) defined.
   o->newline() << "static __cacheline_aligned Stat " << "time_" << basest()->name << ";";
   o->newline() << "#endif";
 

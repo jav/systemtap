@@ -813,6 +813,9 @@ c_unparser::emit_common_header ()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "struct kretprobe_instance *pi;";
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "Stat *statp;";
+  o->newline() << "#endif";
   o->newline() << "union {";
   o->indent(1);
 
@@ -828,8 +831,11 @@ c_unparser::emit_common_header ()
     {
       derived_probe* dp = session->probes[i];
 
+      // NB: see c_unparser::emit_probe() for original copy of duplicate-hashing logic.
       ostringstream oss;
+      oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
       dp->body->print(oss);
+
       if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
           tmp_probe_contents[oss.str()] = dp->name; // save it
@@ -909,12 +915,7 @@ c_unparser::emit_common_header ()
   if (!session->stat_decls.empty())
     o->newline() << "#include \"stat.c\"\n";
 
-  // XXX: Cannot tell if statistics are being used for the timing collection.
   o->newline();
-  o->newline() << "#ifdef STP_TIMING";
-  o->newline() << "#include \"stat.c\"";
-  o->newline() << "#include \"arith.c\"";
-  o->newline() << "#endif";
 }
 
 
@@ -1075,20 +1076,18 @@ c_unparser::emit_module_init ()
     }
 
   // initialize each Stat used for timing information 
-  {
-    o->newline() << "#ifdef STP_TIMING";
-    set<string> basest_names;
-    for (unsigned i=0; i<session->probes.size(); i++)
-      {
-        string nm = session->probes[i]->basest()->name;
-        if (basest_names.find(nm) == basest_names.end())
-          {
-            o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
-            basest_names.insert (nm);
-          }
-      }
-    o->newline() << "#endif";
-  }
+  o->newline() << "#ifdef STP_TIMING";
+  set<string> basest_names;
+  for (unsigned i=0; i<session->probes.size(); i++)
+    {
+      string nm = session->probes[i]->basest()->name;
+      if (basest_names.find(nm) == basest_names.end())
+        {
+          o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
+          basest_names.insert (nm);
+        }
+    }
+  o->newline() << "#endif";
 
   for (unsigned i=0; i<g.size(); i++)
     {
@@ -1184,6 +1183,45 @@ c_unparser::emit_module_exit ()
 
   o->newline() << "free_percpu (contexts);";
 
+  // print probe timing statistics
+  {
+    o->newline() << "#ifdef STP_TIMING";
+    o->newline() << "{";
+    o->indent(1);
+    set<string> basest_names;
+    for (unsigned i=0; i<session->probes.size(); i++)
+      {
+        probe* p = session->probes[i]->basest();
+        string nm = p->name;
+        if (basest_names.find(nm) == basest_names.end())
+          {
+            basest_names.insert (nm);
+            o->newline() << "{";
+            o->newline(1) << "const char *probe_point = " 
+                         << lex_cast_qstring (* p->locations[0])
+                         << (p->locations.size() > 1 ? "\"+\"" : "")
+                         << (p->locations.size() > 1 ? lex_cast_qstring(p->locations.size()-1) : "")
+                         << ";";
+            o->newline() << "const char *decl_location = "
+                         << lex_cast_qstring (p->tok->location)
+                         << ";";
+            o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
+                         << p->name
+                         << ", 0);";
+            o->newline() << "const char *error;";
+            o->newline() << "if (stats->count) {";
+            o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
+            o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
+            o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
+            o->newline() << "_stp_print_flush();";
+            o->newline(-1) << "}";
+            o->newline(-1) << "}";
+          }
+      }
+    o->newline(-1) << "}";
+    o->newline() << "#endif";
+  }
+
   // print final error/reentrancy counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "
                << "atomic_read (& error_count))";
@@ -1270,8 +1308,19 @@ c_unparser::emit_probe (derived_probe* v)
   //   c->last_stmt = "identifier 'printf' at foo.stp:<line>:<column>";
   //
   // which would make comparisons impossible.
+  //
+  // NB: see also c_unparser:emit_common_header(), which duplicates
+  // this calculation.
   ostringstream oss;
+
+  // NB: statp is just for avoiding designation as duplicate.  It need not be C.
+  // NB: This code *could* be enclosed in an "if (session->timing)".  That would
+  // recognize more duplicate probe handlers, but then the generated code could
+  // be very different with or without -t.
+  oss << "c->statp = & time_" << v->basest()->name << ";" << endl; 
+
   v->body->print(oss);
+
 
   // If an identical probe has already been emitted, just call that
   // one.
@@ -1309,6 +1358,10 @@ c_unparser::emit_probe (derived_probe* v)
   else // This probe is unique.  Remember it and output it.
     {
       o->newline();
+      o->newline() << "#ifdef STP_TIMING";
+      o->newline() << "static __cacheline_aligned Stat " << "time_" << v->basest()->name << ";";
+      o->newline() << "#endif";
+      o->newline();
       o->newline() << "static void " << v->name << " (struct context * __restrict__ c) ";
       o->line () << "{";
       o->indent (1);
@@ -1319,6 +1372,10 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline() << "struct " << v->name << "_locals * __restrict__ l =";
       o->newline(1) << "& c->locals[0]." << v->name << ";";
       o->newline(-1) << "(void) l;"; // make sure "l" is marked used
+      
+      o->newline() << "#ifdef STP_TIMING";
+      o->newline() << "c->statp = & time_" << v->basest()->name << ";";
+      o->newline() << "#endif";
 
       // emit all read/write locks for global variables
       varuse_collecting_visitor vut;
@@ -4004,7 +4061,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
 
-      // impedance mismatch
+      // XXX: impedance mismatch
       // STP_STRING_SIZE defines the size of the buffer 
       // used in stack traces.
       s.op->newline() << "#ifndef STP_STRING_SIZE";
@@ -4030,6 +4087,8 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include \"current.c\"";
       s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include \"regs.c\"";
+      s.op->newline() << "#include \"stat.c\"";
+      s.op->newline() << "#include \"arith.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#include <linux/delay.h>";
