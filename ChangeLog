@@ -1,3 +1,10 @@
+2006-12-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (*group:emit_module_init): flush stdout less for timing
+	mode.  Also, Set probe_point variable ...
+	* translate.cxx (emit_module_init): ... so on registration failure, a
+	usable error message can be generated.
+
 2006-12-29  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 3523.

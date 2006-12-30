@@ -3619,6 +3619,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
+  s.op->newline() << "probe_point = sdp->pp;";
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "sdp->u.krp.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "if (sdp->maxactive_p) {";
@@ -3855,6 +3856,7 @@ timer_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_timer_probe* stp = & stap_timer_probes [i];";
+  s.op->newline() << "probe_point = stp->pp;";
   s.op->newline() << "init_timer (& stp->timer_list);";
   s.op->newline() << "stp->timer_list.function = & enter_timer_probe;";
   s.op->newline() << "stp->timer_list.data = i;"; // NB: important!
@@ -3969,6 +3971,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
       if (i > 0)
         {
           // Some lightweight inter-probe context resetting 
+          // XXX: not quite right: MAXERRORS not respected
           s.op->newline() << "c->actioncount = 0;";
         }
       s.op->newline() << "if (c->last_error == NULL) " << probes[i]->name << " (c);";
@@ -4003,6 +4006,7 @@ profile_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
 
+  s.op->newline() << "probe_point = \"timer.profile\";"; // NB: hard-coded for convenience
   s.op->newline() << "#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)"; // == using_rpn of yore
   s.op->newline() << "rc = register_profile_notifier (& stap_profile_notifier);";
   s.op->newline() << "#else";
@@ -4677,6 +4681,7 @@ hrtimer_derived_probe_group::emit_module_init (systemtap_session& s)
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_hrtimer_probe* stp = & stap_hrtimer_probes [i];";
+  s.op->newline() << "probe_point = stp->pp;";
   s.op->newline() << "hrtimer_init (& stp->hrtimer, CLOCK_MONOTONIC, HRTIMER_REL);";
   s.op->newline() << "stp->hrtimer.function = & enter_hrtimer_probe;";
   // There is no hrtimer field to identify *this* (i-th) probe handler

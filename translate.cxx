@@ -1095,9 +1095,10 @@ c_unparser::emit_module_init ()
       // NB: this gives O(N**2) amount of code, but luckily there
       // are only seven or eight derived_probe_groups, so it's ok.
       o->newline() << "if (rc) {";
+      o->newline(1) << "_stp_error (\"probe %s registration error (rc %d)\", probe_point, rc);";
       // NB: we need to be in the error state so timers can shutdown cleanly,
       // and so end probes don't run.
-      o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+      o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
       if (i>0)
         for (int j=i-1; j>=0; j--)
           g[j]->emit_module_exit (*session);
@@ -1213,11 +1214,11 @@ c_unparser::emit_module_exit ()
             o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
             o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
-            o->newline() << "_stp_print_flush();";
             o->newline(-1) << "}";
             o->newline(-1) << "}";
           }
       }
+    o->newline() << "_stp_print_flush();";
     o->newline(-1) << "}";
     o->newline() << "#endif";
   }
