@@ -144,6 +144,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/staprun
 
 %changelog
+* Mon Jan  1 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.12-1
+- Many changes, see NEWS file.
+
 * Tue Sep 26 2006 David Smith <dsmith@redhat.com> - 0.5.10-1
 - Added 'systemtap-runtime' subpackage.
 
