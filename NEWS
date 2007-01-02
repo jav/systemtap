@@ -1,0 +1,50 @@
+* What's new since version 0.5.10?
+
+- Offline processing of debugging information, enabling general
+  cross-compilation of probe scripts to remote hosts, without
+  requiring identical module/memory layout.  This slows down
+  compilation/translation somewhat.
+
+- Kernel symbol table data is loaded by staprun at startup time
+  rather than compiled into the module.
+
+- Support the "limit" keyword for foreach iterations:
+    foreach ([x,y] in ary limit 5) { ... }
+  This implicitly exits after the fifth iteration.  It also enables
+  more efficient key/value sorting.
+
+- Support the "maxactive" keyword for return probes:
+    probe kernel.function("sdfsdf").maxactive(848) { ... }
+  This allows up to 848 concurrently outstanding entries to
+  the sdfsdf function before one returns.  The default maxactive
+  number is smaller, and can result in missed return probes.
+
+- Support accessing of saved function arguments from within
+  return probes.  These values are saved by a synthesized
+  function-entry probe.
+
+- Add substantial version/architecture checking in compiled probes to
+  assert correct installation of debugging information and correct
+  execution on a compatible kernel.
+
+- Add probe-time checking for sufficient free stack space when probe
+  handlers are invoked, as a safety improvement.
+
+- Add an optional numeric parameter for begin/end probe specifications,
+  to order their execution.  
+     probe begin(10) { } /* comes after */ probe begin(-10) {}
+
+- Add an optional array size declaration, which is handy for very small
+  or very large ones.
+     global little[5], big[20000] 
+
+- Include some example scripts along with the documentation.
+
+- Change the start-time allocation of probe memory to avoid causing OOM
+  situations, and to abort cleanly if free kernel memory is short.
+
+- Automatically use the kernel DWARF unwinder, if present, for stack
+  tracebacks.
+
+- Many minor bug fixes, performance, tapset, and error message
+  improvements.

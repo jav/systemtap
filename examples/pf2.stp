@@ -1,0 +1,15 @@
+#! stap
+global profile, pcount
+probe timer.profile {
+  pcount ++
+  fn = probefunc ()
+  if (fn != "") profile[fn] ++ # <<< 1 would be better ...
+}
+probe timer.ms(4000) {
+  printf ("\n--- %d samples recorded:\n", pcount)
+  foreach (f in profile- limit 10) { # ... but can only sort scalar arrays (bz #2305)
+    printf ("%s\t%d\n", f, profile[f])
+  }
+  delete profile
+  pcount = 0
+}

@@ -1,0 +1,36 @@
+#! stap
+
+# This script tries to identify contended user-space locks by hooking
+# into the futex system call.
+
+global thread_thislock # short
+global thread_blocktime # 
+global FUTEX_WAIT = 0, FUTEX_WAKE = 1
+
+global lock_waits # long-lived stats on (tid,lock) blockage elapsed time
+global process_names # long-lived pid-to-execname mapping
+
+probe syscall.futex {  
+   if (op != FUTEX_WAIT) next  # we don't care about originators of WAKE events
+   t = tid ()
+   process_names[pid()] = execname()
+   thread_thislock[t] = $uaddr
+   thread_blocktime[t] = gettimeofday_us()
+}
+
+probe syscall.futex.return {  
+   t = tid()
+   ts = thread_blocktime[t]
+   if (ts) {
+     elapsed = gettimeofday_us() - ts
+     lock_waits[pid(), thread_thislock[t]] <<< elapsed
+     delete thread_blocktime[t]
+     delete thread_thislock[t]
+   }
+}
+
+probe end {
+   foreach ([pid+, lock] in lock_waits) 
+     printf ("%s[%d] lock %p contended %d times, %d avg us\n",
+       process_names[pid], pid, lock, @count(lock_waits[pid,lock]), @avg(lock_waits[pid,lock]))
+}

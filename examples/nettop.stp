@@ -1,0 +1,53 @@
+global ifxmit, ifrecv, ifdevs, ifpid, execname, user
+
+probe netdev.transmit
+{
+        p = pid()
+        execname[p] = execname()
+        user[p] = uid()
+        ifdevs[p, dev_name] = dev_name
+        ifxmit[p, dev_name] <<< length
+        ifpid[p, dev_name] ++
+}
+
+probe netdev.receive
+{
+        p = pid()
+        execname[p] = execname()
+        user[p] = uid()
+        ifdevs[p, dev_name] = dev_name
+        ifrecv[p, dev_name] <<< length
+        ifpid[p, dev_name] ++
+}
+
+
+function print_activity()
+{
+        printf("%5s %5s %-7s %7s %7s %7s %7s %-15s\n",
+                "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
+                "XMIT_KB", "RECV_KB", "COMMAND")
+
+        foreach ([pid, dev] in ifpid-) {
+                n_xmit = @count(ifxmit[pid, dev])
+                n_recv = @count(ifrecv[pid, dev])
+                printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
+                        pid, user[pid], dev, n_xmit, n_recv,
+                        n_xmit ? @sum(ifxmit[pid, dev])/1024 : 0,
+                        n_recv ? @sum(ifrecv[pid, dev])/1024 : 0,
+                        execname[pid])
+        }
+
+        print("\n")
+
+        delete execname
+        delete user
+        delete ifdevs
+        delete ifxmit
+        delete ifrecv
+        delete ifpid
+}
+
+probe timer.ms(5000)
+{
+        print_activity()
+}
