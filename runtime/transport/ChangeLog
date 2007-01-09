@@ -1,3 +1,9 @@
+2007-01-09  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_del_module): Fix so memory allocated
+	for module 0 (kernel) is freed.
+	(_stp_free_modules): No need to lock module list.
+
 2006-12-20  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c: Fixes to use the new 2.6.20 workqueue API.

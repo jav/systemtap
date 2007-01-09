@@ -111,7 +111,7 @@ static void _stp_del_module(struct _stp_module *mod)
 	kbug("deleting %s\n", mod->name);
 
 	/* remove module from the arrays */
-	for (num = 1; num < _stp_num_modules; num++) {
+	for (num = 0; num < _stp_num_modules; num++) {
 		if (_stp_modules[num] == mod)
 			break;
 	}
@@ -121,7 +121,7 @@ static void _stp_del_module(struct _stp_module *mod)
 	for (i = num; i < _stp_num_modules-1; i++)
 		_stp_modules[i] = _stp_modules[i+1];
 
-	for (num = 1; num < _stp_num_modules; num++) {
+	for (num = 0; num < _stp_num_modules; num++) {
 		if (_stp_modules_by_addr[num] == mod)
 			break;
 	}
@@ -153,10 +153,10 @@ static void _stp_free_modules(void)
 	int i;
 	unsigned long flags;
 
-	STP_LOCK_MODULES;
+	/* This only happens when the systemtap module unloads */
+	/* so there is no need for locks. */
 	for (i = _stp_num_modules - 1; i >= 0; i--)
 		_stp_del_module(_stp_modules[i]);
-	STP_UNLOCK_MODULES;
 }
 
 static unsigned long _stp_kallsyms_lookup_name(const char *name);
