@@ -15,6 +15,7 @@ proc cleanup {} {
 
 proc usage {progname} {
     puts "Usage: $progname testname"
+    cleanup
 }
 
 proc bgerror {error} {
@@ -23,13 +24,19 @@ proc bgerror {error} {
 }
 trap {cleanup} SIGINT
 set testname [lindex $argv 0]
-
 if {$testname == ""} {
     usage $argv0
     exit
 }
-set filename "${testname}.c"
-set cmd "stap -c ../${testname} ../sys.stp"
+
+set filename [lindex $argv 1]
+if {$filename == ""} {
+    set filename "${testname}.c"
+    set sys_prog "../sys.stp"
+} else {
+    set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
+}
+set cmd "stap -c ../${testname} ${sys_prog}"
 
 # Extract the expected results
 # Use the preprocessor so we can ifdef tests in and out
@@ -61,12 +68,12 @@ if {$ind == 0} {
 }
 
 if {[catch {exec mktemp -d staptestXXXXX} dir]} {
-    puts "Failed to create temporary directory: $dir"
+    puts stderr "Failed to create temporary directory: $dir"
     cleanup
 }
+
 set current_dir [pwd]
-cd $dir
- 
+cd $dir 
 catch {eval exec $cmd} output
 
 set i 0

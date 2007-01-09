@@ -1,16 +1,17 @@
 proc test_procedure {} {
-    global subdir
-    if {$subdir != ""} {
-	cd $subdir
-    }
-    
-    
+    global srcdir subdir
+    set wd [pwd]
     set flags ""
-    foreach filename [lsort [glob *.c]] {
-	set file [string range $filename 0 end-2]
-	target_compile $filename $file executable $flags
+    if {$srcdir == ""} {
+	set pattern "*.c"
+    } else {
+	set pattern "$srcdir/$subdir/*.c"
+    }
+    foreach filename [lsort [glob $pattern]] {
+	set file [file tail [string range $filename 0 end-2]]
+	target_compile $filename $wd/$file executable $flags
 	send_log "Testing ${file}\n"
-	set res [exec ./test.tcl $file]
+	set res [exec $srcdir/$subdir/test.tcl $file $filename]
 	if {$res == "PASS"} {
 	    pass "$file"
 	} elseif {$res == "UNSUPP"} {
@@ -24,11 +25,11 @@ proc test_procedure {} {
     if {$::tcl_platform(machine) == "x86_64"} {
 	# on x86_64, test 32-bit and 64-bit binaries
 	set flags "additional_flags=-m32"
-	foreach filename [lsort [glob *.c]] {
-	    set file [string range $filename 0 end-2]
-	    target_compile $filename $file executable $flags
+	foreach filename [lsort [glob $pattern]] {
+	    set file [file tail [string range $filename 0 end-2]]
+	    target_compile $filename $wd/$file executable $flags
 	    send_log "Testing 32-bit ${file}\n"
-	    set res [exec ./test.tcl $file]
+	    set res [exec $srcdir/$subdir/test.tcl $file $filename]
 	    if {$res == "PASS"} {
 		pass "32-bit $file"
 	    } elseif {$res == "UNSUPP"} {
@@ -38,11 +39,7 @@ proc test_procedure {} {
 		send_log "$res\n"
 	    }
 	}
-    }
-    
-    if {$subdir != ""} {
-	cd ..
-    }
+    }    
 }
 
 test_procedure

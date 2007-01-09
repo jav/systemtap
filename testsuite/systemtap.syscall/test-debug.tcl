@@ -1,12 +1,15 @@
 #!/usr/bin/env wish
 package require Expect
 
+set dir ""
+set current_dir ""
+
 proc cleanup {} {
     global dir current_dir
-    puts "cleanup"
+    puts "Cleanup"
     if {$current_dir != ""} {
-	cd $current_dir
-	exec rm -rf $dir
+        cd $current_dir
+	if {$dir != ""} {exec rm -rf $dir}
 	set current_dir ""
     }
     exit 0
@@ -22,21 +25,20 @@ proc bgerror {error} {
     cleanup
 }
 trap {cleanup} SIGINT
-if {[catch {exec mktemp -d staptestXXXXX} dir]} {
-    puts "Failed to create temporary directory: $dir"
-    cleanup
-}
-
-set current_dir ""
 set testname [lindex $argv 0]
-set modname [lindex $argv 1]
-
 if {$testname == ""} {
     usage $argv0
-    cleanup
+    exit
 }
-set filename "${testname}.c"
-set cmd "stap -c ../${testname} ../sys.stp"
+
+set filename [lindex $argv 1]
+if {$filename == ""} {
+    set filename "${testname}.c"
+    set sys_prog "../sys.stp"
+} else {
+    set sys_prog "[file dirname [file normalize $filename]]/sys.stp"
+}
+set cmd "stap -c ../${testname} ${sys_prog}"
 
 # extract the expected results
 # Use the preprocessor so we can ifdef tests in and out
@@ -62,8 +64,14 @@ foreach line [split $output "\n"] {
 }
 
 if {$ind == 0} {
-  puts "UNSUPP"
-  exit
+    puts "UNSUPP"
+    cleanup
+    exit
+}
+
+if {[catch {exec mktemp -d staptestXXXXX} dir]} {
+    puts stderr "Failed to create temporary directory: $dir"
+    cleanup
 }
 
 set current_dir [pwd]

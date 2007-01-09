@@ -1,3 +1,8 @@
+2007-01-09  Martin Hunt  <hunt@redhat.com>
+
+	* test.exp, test.tcl, test-debug.tcl: PR 3524.
+	Support for separtet source and obj trees.
+
 2006-10-27  Martin Hunt  <hunt@redhat.com>
 
 	* test.exp, test.tcl: Remove our own caching code
