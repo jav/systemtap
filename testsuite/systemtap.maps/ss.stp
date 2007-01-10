@@ -10,16 +10,16 @@ probe begin {
 	 	printf("foo[%s] = %s\n", str, foo[str])
 
 	# delete out of the middle
-	foo["5"] = ""
+	delete foo["5"]
 	printf("\n")
 
 	foreach (str in foo)
 	 	printf("foo[%s] = %s\n", str, foo[str])
 
 	# delete first entry
-	foo["0"] = ""
+	delete foo["0"]
 	# and last entry
-	foo["10"] = ""
+	delete foo["10"]
 	printf("\n")
 	foreach (str in foo)
 	 	printf("foo[%s] = %s\n", str, foo[str])
@@ -35,7 +35,7 @@ probe begin {
 
 
 	# delete one
-	foo["4"] = ""
+	delete foo["4"]
 	printf("\n")
 	foreach (str in foo)
 	 	printf("foo[%s] = %s\n", str, foo[str])

@@ -3,7 +3,8 @@
 load_lib "stap_run2.exp"
 
 set test "si"
-set ::result_string {foo[1] = 1
+set ::result_string {foo[0] = 0
+foo[1] = 1
 foo[2] = 4
 foo[3] = 9
 foo[4] = 16
@@ -14,6 +15,7 @@ foo[8] = 64
 foo[9] = 81
 foo[10] = 100
 
+foo[0] = 0
 foo[1] = 1
 foo[2] = 4
 foo[3] = 9
@@ -24,6 +26,7 @@ foo[8] = 64
 foo[9] = 81
 foo[10] = 100
 
+foo[0] = 0
 foo[2] = 4
 foo[3] = 9
 foo[4] = 16
@@ -32,6 +35,7 @@ foo[7] = 49
 foo[8] = 64
 foo[9] = 81
 
+foo[0] = 0
 foo[2] = 4
 foo[3] = 900
 foo[4] = -16
@@ -40,6 +44,7 @@ foo[7] = 49
 foo[8] = 64
 foo[9] = -81
 
+foo[0] = 0
 foo[2] = 4
 foo[3] = 900
 foo[6] = 36
@@ -48,6 +53,7 @@ foo[8] = 64
 foo[9] = -81
 
 
+foo[0] = 0
 foo[1] = 1
 foo[2] = 5
 foo[3] = 14

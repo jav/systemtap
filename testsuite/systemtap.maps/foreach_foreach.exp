@@ -4,7 +4,8 @@ load_lib "stap_run2.exp"
 
 set test "foreach_foreach"
 
-set ::result_string {foo[1] = 1
+set ::result_string {foo[0] = 0
+foo[1] = 1
 foo[2] = 4
 foo[3] = 9
 foo[4] = 16
@@ -15,6 +16,7 @@ foo[8] = 64
 foo[9] = 81
 foo[10] = 100
 
+bar[0] = 0
 bar[1] = 1
 bar[2] = 8
 bar[3] = 27
@@ -26,6 +28,8 @@ bar[8] = 512
 bar[9] = 729
 bar[10] = 1000
 
+foo[0] = 0
+bar[0] = 0
 foo[1] = 1
 bar[1] = 1
 foo[2] = 4
@@ -47,6 +51,12 @@ bar[9] = 729
 foo[10] = 100
 bar[10] = 1000
 
+bar[20] = 8000
+bar[21] = 9261
+bar[22] = 10648
+bar[23] = 12167
+bar[24] = 13824
+foo[0] = 0
 bar[20] = 8000
 bar[21] = 9261
 bar[22] = 10648

@@ -13,7 +13,7 @@ probe begin {
 	foreach ([a,b,c,d,e] in foo)
 	 	printf("foo[%d,%d,%d,%d,%d] = %d\n", a,b,c,d,e, foo[a,b,c,d,e])
 
-	foo[0,0,1,1,1] = 0
+	delete foo[0,0,1,1,1]
 	printf("\n")
 	foreach ([a,b,c,d,e] in foo)
 	 	printf("foo[%d,%d,%d,%d,%d] = %d\n", a,b,c,d,e, foo[a,b,c,d,e])
