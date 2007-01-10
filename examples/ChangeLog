@@ -2,6 +2,10 @@
 
 	* small_demos/top.stp: Use "limit" option in foreach.
 
+2007-01-01  Frank Ch. Eigler  <fche@redhat.com>
+
+        * *: Added several .stp/.txt files from the wiki.
+
 2006-04-20  Martin Hunt  <hunt@redhat.com>
 
 	* small_demos/top.stp: Use printf.
