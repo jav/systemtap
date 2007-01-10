@@ -6,13 +6,9 @@
 global syscalls
 
 function print_top () {
-	cnt=0
 	printf ("SYSCALL\t\t\t\tCOUNT\n")
-	foreach ([name] in syscalls-) {
+	foreach ([name] in syscalls- limit 20)
 		printf("%-20s\t\t%5d\n",name, syscalls[name])
-		if (cnt++ == 20)
-			break
-	}
 	printf("--------------------------------------\n")
 	delete syscalls
 }
