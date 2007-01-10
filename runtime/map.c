@@ -39,10 +39,13 @@ int int64_eq_p (int64_t key1, int64_t key2)
 
 void str_copy(char *dest, char *src)
 {
-	int len = strlen(src);
-	if (len > MAP_STRING_LENGTH - 1)
-		len = MAP_STRING_LENGTH - 1;
-	memcpy (dest, src, len);
+	int len = 0;
+	if (src) {
+		len = strlen(src);
+		if (len > MAP_STRING_LENGTH - 1)
+			len = MAP_STRING_LENGTH - 1;
+		memcpy (dest, src, len);
+	}
 	dest[len] = 0;
 }
 
@@ -974,12 +977,11 @@ static int _new_map_set_int64 (MAP map, struct map_node *n, int64_t val, int add
 	if (map == NULL || n == NULL)
 		return -2;
 
-	if (val || map->list) {
-		if (add)
-			*(int64_t *)((long)n + map->data_offset) += val;
-		else
-			*(int64_t *)((long)n + map->data_offset) = val;
-	}
+	if (add)
+		*(int64_t *)((long)n + map->data_offset) += val;
+	else
+		*(int64_t *)((long)n + map->data_offset) = val;
+
 	return 0;
 }
 
@@ -988,12 +990,11 @@ static int _new_map_set_str (MAP map, struct map_node *n, char *val, int add)
 	if (map == NULL ||  n == NULL)
 		return -2;
 
-	if ((val && *val)|| map->list) {
-		if (add)
-			str_add((void *)((long)n + map->data_offset), val);
-		else
-			str_copy((void *)((long)n + map->data_offset), val);
-	}
+	if (add)
+		str_add((void *)((long)n + map->data_offset), val);
+	else
+		str_copy((void *)((long)n + map->data_offset), val);
+
 	return 0;
 }
 

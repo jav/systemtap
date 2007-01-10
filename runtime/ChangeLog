@@ -1,3 +1,17 @@
+2007-01-10  Martin Hunt  <hunt@redhat.com>
+	PR 3708
+	* map.c (str_copy): Check for NULL pointers.
+	(_new_map_set_int64): Don't check val for 0.
+	(_new_map_set_str): Don't check val for NULL.	
+	
+	* map-gen.c (VAL_IS_ZERO): Removed.
+	(_stp_map_del): New.
+	(__stp_map_set): Don't check for zero.	
+
+	* pmap-gen.c (VAL_IS_ZERO): Removed.
+	(_stp_pmap_del): New.
+	(__stp_pmap_set): Don't check for zero.
+	
 2006-12-20  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Include mm.h.

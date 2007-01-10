@@ -40,7 +40,6 @@
 #define VALN s
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_str(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_str(n)
-#define VAL_IS_ZERO(val,add) (val == 0 || *val == 0)
 #define NULLRET ""
 #elif VALUE_TYPE == INT64
 #define VALTYPE int64_t
@@ -49,7 +48,6 @@
 #define VALN i
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_int64(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_int64(n)
-#define VAL_IS_ZERO(val,add) (val == 0)
 #define NULLRET (int64_t)0
 #elif VALUE_TYPE == STAT
 #define VALTYPE stat*
@@ -58,7 +56,6 @@
 #define VALN x
 #define MAP_SET_VAL(a,b,c,d) _new_map_set_stat(a,b,c,d)
 #define MAP_GET_VAL(n) _stp_get_stat(n)
-#define VAL_IS_ZERO(val,add) (val == 0 && !add)
 #define NULLRET (stat*)0
 #else
 #error Need to define VALUE_TYPE as STRING, STAT, or INT64
@@ -516,21 +513,12 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 #endif
 #endif
 			) {
-			if VAL_IS_ZERO(val,add) {
-				if (!add)
-					_new_map_del_node(map,(struct map_node *)n);
-				return 0;
-				
-			}
 			return MAP_SET_VAL(map,(struct map_node *)n, val, add);
 		}
 	}
 
 	/* key not found */
 	dbug("key not found\n");
-
-	if VAL_IS_ZERO(val,add)
-		return 0;
 
 	n = (struct KEYSYM(pmap_node)*)_new_map_create (map, head);
 	if (n == NULL)
@@ -699,6 +687,60 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 	return NULLRET;
 }
 
+int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
+{
+	unsigned int hv;
+	struct hlist_head *head;
+	struct hlist_node *e;
+	struct KEYSYM(pmap_node) *n;
+
+	if (map == NULL)
+		return -1;
+
+	if (KEYSYM(pkeycheck) (ALLKEYS(key)) == 0)
+		return -1;
+
+	hv = KEYSYM(phash) (ALLKEYS(key));
+	head = &map->hashes[hv];
+
+	hlist_for_each(e, head) {
+		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
+		if (KEY1_EQ_P(n->key1, key1)
+#if KEY_ARITY > 1
+		    && KEY2_EQ_P(n->key2, key2)
+#if KEY_ARITY > 2
+		    && KEY3_EQ_P(n->key3, key3)
+#if KEY_ARITY > 3
+		    && KEY4_EQ_P(n->key4, key4)
+#if KEY_ARITY > 4
+		    && KEY5_EQ_P(n->key5, key5)
+#endif
+#endif
+#endif
+#endif
+			) {
+			_new_map_del_node(map,(struct map_node *)n);
+			return 0;
+		}
+	}
+
+	/* key not found */
+	dbug("key not found\n");
+	return 0;
+}
+
+int KEYSYM(_stp_pmap_del) (PMAP pmap, ALLKEYSD(key))
+{
+	int res;
+	MAP m = per_cpu_ptr (pmap->map, get_cpu());
+	if (!spin_trylock(&m->lock))
+		return -1;
+	res = KEYSYM(__stp_pmap_del) (m, ALLKEYS(key));
+	spin_unlock(&m->lock);
+	put_cpu();
+	return res;
+}
+
 #undef KEY1NAME
 #undef KEY1N
 #undef KEY1TYPE
@@ -748,5 +790,4 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 
 #undef MAP_SET_VAL
 #undef MAP_GET_VAL
-#undef VAL_IS_ZERO
 #undef NULLRET
