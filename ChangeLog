@@ -1,3 +1,8 @@
+2007-01-10  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (mapvar::del): Call the new _stp_map_del
+	function instead of setting to zero.
+
 2007-01-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	* configure.ac: Bump version to 0.5.12 for release.

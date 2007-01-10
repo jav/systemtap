@@ -514,13 +514,8 @@ struct mapvar
   }
 
   string del (vector<tmpvar> const & indices) const
-  { 
-    if (type() == pe_string)
-      return (call_prefix("set", indices) + ", NULL)");
-    else if ((type() == pe_long) || (type() == pe_stats))
-      return (call_prefix("set", indices) + ", 0)");
-    else
-      throw semantic_error("setting a value of an unsupported map type");
+  {
+    return (call_prefix("del", indices) + ")");
   }
 
   string exists (vector<tmpvar> const & indices) const
