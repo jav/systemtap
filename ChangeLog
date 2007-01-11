@@ -1,3 +1,8 @@
+2007-01-11  Roland McGrath  <roland@redhat.com>
+
+	* systemtap.spec.in (elfutils_version): Bump to 0.125.
+	Older libdw's have known bugs, though the ABI has not changed.
+
 2007-01-10  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (mapvar::del): Call the new _stp_map_del
@@ -23,7 +28,7 @@
 	support for -t (benchmarking) mode.
 	* translate.cxx (emit_common_header,emit_module_init):Ditto.
 	(emit_module_exit,emit_probe): Ditto, with most meat here.
-	
+
 2006-12-22  Josh Stone  <joshua.i.stone@intel.com>
 
 	* stap.1.in: Document how to specify the size of global arrays.
@@ -204,7 +209,7 @@
 	(dwarf_derived_probe::dwarf_derived_probe): Adds in the new block
 	of code created in visit_target_symbol() to the beginning of the
 	derived probe.
-	
+
 2006-11-28  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx
@@ -271,16 +276,16 @@
 2006-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (staprun_LDADD): Need PROCFLAGS here too.
-	
-2006-11-09  Martin Hunt  <hunt@redhat.com>	
+
+2006-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (staprun_CFLAGS): New. Use PROCFLAGS.
 
-	* configure.ac: Add PROCFLAGS. Processor-dependent 
+	* configure.ac: Add PROCFLAGS. Processor-dependent
 	compilation flags.
 	* configure: Rebuilt.
 	* Makefile.in: Rebuilt.
-	
+
 2006-11-09  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (dwarf_query::dwarf_query): Looks for "maxactive"
@@ -352,12 +357,12 @@
 
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 
-	* session.h (struct systemtap_session): Add symtab. This controls 
+	* session.h (struct systemtap_session): Add symtab. This controls
 	if a symbol table is generated and compiled into the module.
 
-	* main.cxx (main): Set session.symtab to false. This could later 
+	* main.cxx (main): Set session.symtab to false. This could later
 	enabled by a command-line option if necessary.
-	
+
 	* translate.cxx (emit_symbol_data): Don't write a symbol table if
 	session.symtab is false.
 
@@ -381,7 +386,7 @@
 
 2006-11-01  Josh Stone  <joshua.i.stone@intel.com>
 
-	* tapsets.cxx (timer_derived_probe_group::emit_interval): New - 
+	* tapsets.cxx (timer_derived_probe_group::emit_interval): New -
 	Fixes randomization for jiffies timers in ms mode.
 	(timer_derived_probe_group::emit_module_decls): Use emit_interval.
 	(timer_derived_probe_group::emit_module_init): Ditto.
