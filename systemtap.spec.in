@@ -1,7 +1,7 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
 %define release 1
 # Version number of oldest elfutils release that works with systemtap.
-%define elfutils_version 0.124
+%define elfutils_version 0.125
 
 # Set bundled_elfutils to 0 on systems that have %{elfutils_version} or newer.
 %if 0%{?fedora}
