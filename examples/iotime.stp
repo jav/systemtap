@@ -1,0 +1,112 @@
+/*
+ * Copyright (C) 2006 Daniel Berrange, Red Hat Inc.
+ * Copyright (C) 2007 Will Cohen, Red Hat, Inc.
+ * 
+ * This copyrighted material is made available to anyone wishing to use,
+ * modify, copy, or redistribute it subject to the terms and conditions
+ * of the GNU General Public License v.2.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * Print out the amount of time spent in the read and write systemcall
+ * when a process closes each file is closed. Note that the systemtap 
+ * script needs to be running before the open operations occur for
+ * the script to record data.
+ *
+ * This script could be used to to find out which files are slow to load
+ * on a machine. e.g.
+ *
+ * stap iotime.stp -c 'firefox'
+ *
+ * Output format is:
+ * timestamp pid (executabable) info_type path ...
+ *
+ * 200283135 2573 (cupsd) access /etc/printcap read: 0 write: 7063
+ * 200283143 2573 (cupsd) iotime /etc/printcap time: 69
+ *
+ */
+
+global start
+global entry_io
+global fd_io
+global time_io
+
+function timestamp:long() {
+  return gettimeofday_us() - start
+}
+
+function proc:string() {
+  return sprintf("%d (%s)", pid(), execname())
+}
+
+probe begin {
+ start = gettimeofday_us()
+}
+
+global filenames
+global filehandles
+global fileread
+global filewrite
+
+probe syscall.open {
+  filenames[pid()] = user_string($filename)
+} 
+
+probe syscall.open.return {
+  if ($return != -1) {
+    filehandles[pid(), $return] = filenames[pid()]
+    fileread[pid(), $return] = 0
+    filewrite[pid(), $return] = 0
+  } else {
+    printf("%d %s access %s fail\n", timestamp(), proc(), filenames[pid()])
+  }
+  delete filenames[pid()]
+}
+
+probe syscall.read {
+  if ($count > 0) {
+    fileread[pid(), $fd] += $count
+  }
+  t = gettimeofday_us(); p = pid()
+  entry_io[p] = t
+  fd_io[p] = $fd
+}
+
+probe syscall.read.return {
+  t = gettimeofday_us(); p = pid()
+  fd = fd_io[p]
+  time_io[p,fd] <<< t - entry_io[p]
+}
+
+probe syscall.write {
+  if ($count > 0) {
+    filewrite[pid(), $fd] += $count
+  }
+  t = gettimeofday_us(); p = pid()
+  entry_io[p] = t
+  fd_io[p] = $fd
+}
+
+probe syscall.write.return {
+  t = gettimeofday_us(); p = pid()
+  fd = fd_io[p]
+  time_io[p,fd] <<< t - entry_io[p]
+}
+
+probe syscall.close {
+  if (filehandles[pid(), $fd] != "") {
+    printf("%d %s access %s read: %d write: %d\n",  timestamp(), proc(),
+	filehandles[pid(), $fd], fileread[pid(), $fd], filewrite[pid(), $fd])
+    if (@count(time_io[pid(), $fd]))
+      printf("%d %s iotime %s time: %d\n",  timestamp(), proc(),
+	filehandles[pid(), $fd], @sum(time_io[pid(), $fd]))
+   }
+  delete fileread[pid(), $fd]
+  delete filewrite[pid(), $fd]
+  delete filehandles[pid(), $fd]
+  delete fd_io[pid()]
+  delete entry_io[pid()]
+  delete time_io[pid(),$fd]
+}

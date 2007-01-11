@@ -1,0 +1,58 @@
+/*
+ * Copyright (C) 2006 Daniel Berrange, Red Hat Inc.
+ * Copyright (C) 2007 Will Cohen, Red Hat, Inc.
+ * 
+ * This copyrighted material is made available to anyone wishing to use,
+ * modify, copy, or redistribute it subject to the terms and conditions
+ * of the GNU General Public License v.2.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software Foundation,
+ * Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * Print out the amount of time spent in the read and write systemcall
+ * when a process closes each file is closed. Note that the script needs
+ * to be running before the open operations occur for the script
+ * to record data.
+ *
+ * Format is:
+ * timestamp pid (executabable) wait4: time_us pid
+ *
+ * 155789807 4196 (ssh) wait4: 12 4197
+ * 158270531 3215 (bash) wait4: 5410460 -1
+ * 158270659 3215 (bash) wait4: 9 -1
+ * 158557461 2614 (sendmail) wait4: 27 -1
+ * 158557487 2614 (sendmail) wait4: 5 -1
+ *
+ */
+
+global start
+global entry_wait4
+global wait4_pid
+
+function timestamp:long() {
+  return gettimeofday_us() - start
+}
+
+function proc:string() {
+  return sprintf("%d (%s)", pid(), execname())
+}
+
+probe begin {
+ start = gettimeofday_us()
+}
+
+probe syscall.wait4 {
+  t = gettimeofday_us(); p = pid()
+  entry_wait4[p] = t
+  wait4_pid[p]=$pid
+}
+
+probe syscall.wait4.return {
+  t = gettimeofday_us(); p = pid()
+  elapsed_time = t - entry_wait4[p]
+  printf("%d %s wait4: %d %d\n",  timestamp(), proc(), elapsed_time,
+	wait4_pid[p])
+  delete entry_wait4[p]
+  delete wait4_pid[p]
+}

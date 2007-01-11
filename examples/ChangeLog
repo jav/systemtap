@@ -1,3 +1,9 @@
+2007-01-11  Will Cohen  <wcohen@redhat.com>
+
+	* iotime.stp:
+	* sleeptime.stp:
+	* wait4time.stp: New examples.
+	
 2007-01-10  Martin Hunt  <hunt@redhat.com>
 
 	* small_demos/top.stp: Use "limit" option in foreach.
