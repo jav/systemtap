@@ -3012,6 +3012,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]]
       //   delete _dwarf_tvar_{name}_{num}[_dwarf_tvar_tid,
       //                    _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]--]
+      //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
+      //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
 
       // (2a) Synthesize the tid temporary expression, which will look
       // like this:
@@ -3116,6 +3118,28 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       ds->value = ai_tvar_postdec;
 
       add_block->statements.push_back (ds);
+
+      // (2d) Delete the counter value if it is 0.  It will look like
+      // this:
+      //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
+      //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
+      
+      ds = new delete_statement;
+      ds->tok = e->tok;
+      ds->value = ai_ctr;
+
+      unary_expression *ue = new unary_expression;
+      ue->tok = e->tok;
+      ue->op = "!";
+      ue->operand = ai_ctr;
+
+      if_statement *ifs = new if_statement;
+      ifs->tok = e->tok;
+      ifs->condition = ue;
+      ifs->thenblock = ds;
+      ifs->elseblock = NULL;
+      
+      add_block->statements.push_back (ifs);
 
       // (3) We need an entry probe that saves the value for us in the
       // global array we created.  Create the entry probe, which will

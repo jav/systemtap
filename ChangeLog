@@ -1,3 +1,11 @@
+2007-01-12  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx
+	(dwarf_var_expanding_copy_visitor::visit_target_symbol): Since
+	array behavior has changed (setting to 0 no longer deletes the
+	array element), we delete the internal counter array element when
+	providing target variable access in return probes.
+
 2007-01-11  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in (elfutils_version): Bump to 0.125.
