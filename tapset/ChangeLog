@@ -1,3 +1,7 @@
+2007-01-13  Mike Mason <mmlnx@us.ibm.com>
+
+	* ioblock.stp: renamed __bio_direction() to bio_rw_num()
+
 2007-01-12  Mike Mason <mmlnx@us.ibm.com>
 
 	* x86_64/syscalls.stp: added ? to request_key aliases

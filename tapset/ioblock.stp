@@ -49,7 +49,7 @@ end: ;
 %}
 
 /* returns 0 for read, 1 for write */
-function __bio_direction:long(rw:long)
+function bio_rw_num:long(rw:long)
 %{
         long rw = (long)THIS->rw;
         THIS->__retvalue = (rw & (1 << BIO_RW));
@@ -58,7 +58,7 @@ function __bio_direction:long(rw:long)
 /* returns R for read, W for write */
 function bio_rw_str(rw)
 {
-        return __bio_direction(rw) == BIO_READ ? "R" : "W"
+        return bio_rw_num(rw) == BIO_READ ? "R" : "W"
 }
 
 /* returns start sector */

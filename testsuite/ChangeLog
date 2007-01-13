@@ -1,3 +1,11 @@
+2007-01-13  Mike Mason <mmlnx@us.ibm.com>
+
+	PR 3867
+	* systemtap.samples/ioblocktest.stp: Fixed so only
+	checks bit 0 (Read/Write bit) of bio->bi_rw. Also merged
+	ioblock.request and ioblock.end probes. They do the same
+	thing.
+
 2007-01-10  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.maps/foreach_foreach.exp: Update for new delete func.
