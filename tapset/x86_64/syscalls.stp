@@ -60,7 +60,7 @@ probe syscall.quotactl.return = kernel.function("sys_quotactl").return {
 #		     const char __user *_callout_info,
 #		     key_serial_t destringid)
 #
-probe syscall.request_key = kernel.function("sys_request_key") {
+probe syscall.request_key = kernel.function("sys_request_key") ? {
 	name = "request_key"
 	type_uaddr = $_type
 	description_uaddr = $_description
@@ -69,7 +69,7 @@ probe syscall.request_key = kernel.function("sys_request_key") {
 	argstr = sprintf("%p, %p, %p, %p", type_uaddr,
 			description_uaddr, callout_info_uaddr, destringid)
 }
-probe syscall.request_key.return = kernel.function("sys_request_key").return {
+probe syscall.request_key.return = kernel.function("sys_request_key").return ? {
 	name = "request_key"
 	retstr = returnstr(1)
 }
