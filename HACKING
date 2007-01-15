@@ -59,7 +59,8 @@ the <systemtap@sources.redhat.com> mailing list.
   code.  One must tread carefully and run regression tests rigorously.
   Both positive and negative polarity (expect-pass / expect-fail) test
   cases may need to be written to assert a bug fix.  Script language
-  changes should be documented in the stap.1 man page.
+  changes should be documented in the stap.1 man page and emphasized
+  in the NEWS file.
 
 - tapsets
 
@@ -69,9 +70,11 @@ the <systemtap@sources.redhat.com> mailing list.
   It may be necessary to prefix symbols with the tapset name to ensure
   systemtap-wide uniqueness.  All "external interfaces" expected to be
   used by user scripts (or perhaps other tapsets) should be documented
-  in stapfuncs.5, stapprobes.5.  Internal function, variable, probe
-  identifiers should be prefixed with "_" for extra uniqueness, and
-  not documented in the man pages.
+  in stapfuncs.5, stapprobes.5.  Major or incompatible changes should
+  be mentioned in the NEWS file.
+
+  Internal function, variable, probe identifiers should be prefixed
+  with "_" for extra uniqueness, and not documented in the man pages.
 
   Tapsets should come with a tests cases that provide good test coverage.
   Every alias definition should be tested for pass-2 correctness.  Every
