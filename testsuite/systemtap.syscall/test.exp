@@ -22,8 +22,9 @@ proc test_procedure {} {
 	}
     }
     
-    if {$::tcl_platform(machine) == "x86_64"} {
-	# on x86_64, test 32-bit and 64-bit binaries
+    if {$::tcl_platform(machine) == "x86_64" || 
+        $::tcl_platform(machine) == "ppc64"} {
+	# on x86_64 and pcp64, test 32-bit and 64-bit binaries
 	set flags "additional_flags=-m32"
 	foreach filename [lsort [glob $pattern]] {
 	    set file [file tail [string range $filename 0 end-2]]

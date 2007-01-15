@@ -1,3 +1,7 @@
+2007-01-15  Mike Mason  <mmlnx@us.ibm.com>
+
+	* test.exp: test 32-bit binaries on ppc64
+
 2007-01-09  Martin Hunt  <hunt@redhat.com>
 
 	* test.exp, test.tcl, test-debug.tcl: PR 3524.
