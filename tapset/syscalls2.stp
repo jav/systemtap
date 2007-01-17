@@ -115,6 +115,7 @@ probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return
 # long sys_open(const char __user * filename, int flags, int mode)
 probe syscall.open = 
 		kernel.function("sys_open") ?,
+		kernel.function("compat_sys_open") ?,
 		kernel.function("sys32_open") ?
 {
 	name = "open"
@@ -130,6 +131,7 @@ probe syscall.open =
 }
 probe syscall.open.return = 
 		kernel.function("sys_open").return ?, 
+		kernel.function("compat_sys_open").return ?, 
 		kernel.function("sys32_open").return ?
 {
 	name = "open"

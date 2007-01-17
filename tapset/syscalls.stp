@@ -377,6 +377,22 @@ probe syscall.connect.return =	kernel.function("sys_connect").return {
 	retstr = returnstr(1)
 }
 
+# creat
+# long sys_creat(const char __user * pathname, int mode)
+probe syscall.creat = kernel.function("sys_creat") ?
+{
+	name = "creat"
+	mode = $mode
+	pathname = user_string($pathname)
+	argstr = sprintf("%s, %s, %#o", user_string_quoted($pathname), 
+		_sys_open_flag_str(flags), $mode)
+}
+probe syscall.creat.return = kernel.function("sys_creat").return ?
+{
+	name = "creat"
+	retstr = returnstr(1)
+}
+
 # delete_module ______________________________________________
 # long sys_delete_module(const char __user *name_user, unsigned int flags)
 probe syscall.delete_module = kernel.function("sys_delete_module") {
