@@ -1623,11 +1623,11 @@ probe syscall.setxattr.return = kernel.function("sys_setxattr").return {
 #
 # sys_sgetmask(void)
 #
-probe syscall.sgetmask = kernel.function("sys_sgetmask") {
+probe syscall.sgetmask = kernel.function("sys_sgetmask")? {
 	name = "sgetmask"
 	argstr = ""
 }
-probe syscall.sgetmask.return = kernel.function("sys_sgetmask").return {
+probe syscall.sgetmask.return = kernel.function("sys_sgetmask").return ? {
 	name = "sgetmask"
 	retstr = returnstr(1)
 }
@@ -1828,12 +1828,12 @@ probe syscall.socketpair.return = kernel.function("sys_socketpair").return {
 # asmlinkage long
 # sys_ssetmask(int newmask)
 #
-probe syscall.ssetmask = kernel.function("sys_ssetmask") {
+probe syscall.ssetmask = kernel.function("sys_ssetmask")? {
 	name = "ssetmask"
 	newmask = $newmask
 	argstr = sprint($newmask)
 }
-probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return {
+probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return ?{
 	name = "ssetmask"
 	retstr = returnstr(1)
 }
@@ -1910,14 +1910,14 @@ probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
 #
 # long sys_stime(time_t __user *tptr)
 #
-probe syscall.stime = kernel.function("sys_stime") {
+probe syscall.stime = kernel.function("sys_stime")? {
 	name = "stime"
 	t_uaddr = $tptr
 	
 	/* Fixme, should just use get_user? */
 	argstr = sprintf("%p", t_uaddr)
 }
-probe syscall.stime.return = kernel.function("sys_stime").return {
+probe syscall.stime.return = kernel.function("sys_stime").return ?{
 	name = "stime"
 	retstr = returnstr(1)
 }
@@ -2069,7 +2069,7 @@ probe syscall.tgkill.return = kernel.function("sys_tgkill").return {
 # long compat_sys_time(compat_time_t __user * tloc)
 #
 probe syscall.time = 
-		kernel.function("sys_time"),
+		kernel.function("sys_time")?,
 		kernel.function("sys32_time") ?,
 		kernel.function("sys_time64") ?,
 		kernel.function("compat_sys_time") ?
@@ -2079,7 +2079,7 @@ probe syscall.time =
 	argstr = sprintf("%p", $tloc)
 }
 probe syscall.time.return = 
-		kernel.function("sys_time").return,
+		kernel.function("sys_time").return?,
 		kernel.function("sys32_time").return ?,
 		kernel.function("sys_time64").return ?,
 		kernel.function("compat_sys_time").return ?
