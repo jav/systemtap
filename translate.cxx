@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
 // Copyright (C) 2005, 2006 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -995,6 +995,21 @@ c_unparser::emit_module_init ()
   o->newline(1) << "int rc = 0;";
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
+
+  // Print a message to the kernel log about this module.  This is
+  // intended to help debug problems with systemtap modules.
+  o->newline() << "printk (KERN_DEBUG \"%s: "
+               << "systemtap: " << VERSION
+               << ", base: %p"
+               << ", memory: %lu+%lu data+text" // XXX: + runtime dynamic memory
+               << ", probes: " << session->probes.size()
+               << "\\n\""
+    // printk arguments
+               << ", THIS_MODULE->name"
+               << ", THIS_MODULE->module_core"
+               << ", (unsigned long) THIS_MODULE->core_size"
+               << ", (unsigned long) THIS_MODULE->core_text_size"
+               << ");";
 
   // Compare actual and targeted kernel releases/machines.  Sometimes
   // one may install the incorrect debuginfo or -devel RPM, and try to

@@ -1,3 +1,9 @@
+2007-01-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	* main.cxx (version): Add (C) 2007.
+	* translate.cxx (emit_module_init): Add a KERN_DEBUG printk
+	at module startup time to aid debugging and auditing.
+
 2007-01-12  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx
