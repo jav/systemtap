@@ -368,6 +368,8 @@ function returnstr:string (returnp:long) %{ /* pure */
                 ret = CONTEXT->regs->r8;
 #elif defined (__sparc64__)
                 ret = CONTEXT->regs->u_regs[UREG_RETPC];
+#elif defined (__s390x__)
+		ret = CONTEXT->regs->gprs[2];
 #else
                 return;
 #endif
