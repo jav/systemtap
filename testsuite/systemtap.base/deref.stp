@@ -8,19 +8,43 @@ probe begin {  log("systemtap starting probe")  }
 probe end   {  log("systemtap ending probe")    }
 
 
-function call_deref:long(val:long) %{
+function call_kread:long(val:long) %{
   if ((uint64_t)THIS->val < 0x100ULL) {
     uint8_t local8 = (uint8_t)THIS->val;
-    THIS->__retvalue = (uint8_t)deref(sizeof(local8), &local8);
+    THIS->__retvalue = kread(&local8);
   } else if ((uint64_t)THIS->val < 0x10000ULL) {
     uint16_t local16 = (uint16_t)THIS->val;
-    THIS->__retvalue = (uint16_t)deref(sizeof(local16), &local16);
+    THIS->__retvalue = kread(&local16);
   } else if ((uint64_t)THIS->val < 0x100000000ULL) {
     uint32_t local32 = (uint32_t)THIS->val;
-    THIS->__retvalue = (uint32_t)deref(sizeof(local32), &local32);
+    THIS->__retvalue = kread(&local32);
   } else {
     uint64_t local64 = (uint64_t)THIS->val;
-    THIS->__retvalue = (uint64_t)deref(sizeof(local64), &local64);
+    THIS->__retvalue = kread(&local64);
+  }
+  if (0) {
+deref_fault:
+    CONTEXT->last_error = "pointer dereference error";
+  }
+%}
+
+function call_kwrite:long(val:long) %{
+  if ((uint64_t)THIS->val < 0x100ULL) {
+    uint8_t local8;
+    kwrite(&local8, THIS->val);
+    THIS->__retvalue = local8;
+  } else if ((uint64_t)THIS->val < 0x10000ULL) {
+    uint16_t local16;
+    kwrite(&local16, THIS->val);
+    THIS->__retvalue = local16;
+  } else if ((uint64_t)THIS->val < 0x100000000ULL) {
+    uint32_t local32;
+    kwrite(&local32, THIS->val);
+    THIS->__retvalue = local32;
+  } else {
+    uint64_t local64;
+    kwrite(&local64, THIS->val);
+    THIS->__retvalue = local64;
   }
   if (0) {
 deref_fault:
@@ -29,11 +53,17 @@ deref_fault:
 %}
 
 function check_deref(val) {
-  deref = call_deref(val)
+  deref = call_kread(val)
   if (deref == val)
     log("systemtap test success")
   else
-    printf("systemtap test failure - %#x != %#x\n", deref, val)
+    printf("systemtap test failure - kread %#x != %#x\n", deref, val)
+
+  deref = call_kwrite(val)
+  if (deref == val)
+    log("systemtap test success")
+  else
+    printf("systemtap test failure - kwrite %#x != %#x\n", deref, val)
 }
 
 probe end(1) {

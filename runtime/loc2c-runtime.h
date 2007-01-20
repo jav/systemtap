@@ -1,6 +1,6 @@
 /* target operations
  * Copyright (C) 2005 Red Hat Inc.
- * Copyright (C) 2005,2006 Intel Corporation.
+ * Copyright (C) 2005, 2006, 2007 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -461,3 +461,41 @@
     *_d = '\0';								      \
     (dst);								      \
   })
+
+
+#if defined __i386__
+
+/* x86 can't do 8-byte put/get_user_asm, so we have to split it */
+
+#define kread(ptr)						\
+  ({ 								\
+    typeof(*(ptr)) _r; 						\
+    if (sizeof(*(ptr)) == 8) { 					\
+      union { u64 q; u32 l[2]; } _q; 				\
+      _q.l[0] = (u32) deref(4, &((u32 *)(ptr))[0]); 		\
+      _q.l[1] = (u32) deref(4, &((u32 *)(ptr))[1]); 		\
+      _r = (typeof(*(ptr))) _q.q; 				\
+    } else 							\
+      _r = (typeof(*(ptr))) deref(sizeof(*(ptr)), (ptr)); 	\
+    _r; 							\
+  })
+
+#define kwrite(ptr, value)						\
+  ({ 									\
+    if (sizeof(*(ptr)) == 8) { 						\
+      union { u64 q; u32 l[2]; } _q; 					\
+      _q.q = (u64)(typeof(*(ptr)))(value);				\
+      store_deref(4, &((u32 *)(ptr))[0], _q.l[0]);			\
+      store_deref(4, &((u32 *)(ptr))[1], _q.l[1]);			\
+    } else 								\
+      store_deref(sizeof(*(ptr)), (ptr), (typeof(*(ptr)))(value));	\
+  })
+
+#else
+
+#define kread(ptr) \
+  ( (typeof(*(ptr))) deref(sizeof(*(ptr)), (ptr)) )
+#define kwrite(ptr, value) \
+  ( store_deref(sizeof(*(ptr)), (ptr), (typeof(*(ptr)))(value)) )
+
+#endif

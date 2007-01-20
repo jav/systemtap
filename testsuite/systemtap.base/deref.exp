@@ -4,7 +4,4 @@ load_lib "stap_run.exp"
 
 set test "deref"
 
-# PR 3079: deref macro cannot read 64-bit values on 32-bit x86
-setup_kfail i?86-*-* 3079
-
 stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string -g

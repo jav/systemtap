@@ -1,3 +1,10 @@
+2007-01-19  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3079
+	* loc2c-runtime.h (kread, kwrite): New macros to safely read/write
+	values from kernel pointers.  This includes a workaround for 64-bit
+	numbers on i386 platforms.
+
 2007-01-10  Martin Hunt  <hunt@redhat.com>
 	PR 3708
 	* map.c (str_copy): Check for NULL pointers.

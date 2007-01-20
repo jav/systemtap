@@ -1,3 +1,11 @@
+2007-01-19  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 3079
+	* systemtap.base/deref.stp: Use the new kread macro that should work
+	fine with 64-bit numbers on i386 platforms.  Also expand the test to
+	include writes with kwrite.
+	* systemtap.base/deref.exp: Remove the setup_kfail.
+
 2007-01-16  Mike Mason <mmlnx@us.ibm.com>
 
 	* buildok/eighteen.stp: changed to find __audit_getname or
