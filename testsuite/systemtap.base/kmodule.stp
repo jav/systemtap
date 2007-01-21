@@ -12,7 +12,9 @@ probe begin
 	log("systemtap starting probe")
 }
 
-probe module("ext3").function("ext3_sync_file")
+probe module("ext3").function("ext3_sync_file") ?,
+      module("sd_mod").function("sd_rw_intr") ? ,
+      module("ide").function("ide_intr") ?
 {
 	++count;
 }
