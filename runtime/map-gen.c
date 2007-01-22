@@ -524,6 +524,41 @@ int KEYSYM(_stp_map_del) (MAP map, ALLKEYSD(key))
 	return 0;
 }
 
+int KEYSYM(_stp_map_exists) (MAP map, ALLKEYSD(key))
+{
+	unsigned int hv;
+	struct hlist_head *head;
+	struct hlist_node *e;
+	struct KEYSYM(map_node) *n;
+
+	if (map == NULL)
+		return 0;
+
+	hv = KEYSYM(hash) (ALLKEYS(key));
+	head = &map->hashes[hv];
+
+	hlist_for_each(e, head) {
+		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
+		if (KEY1_EQ_P(n->key1, key1)
+#if KEY_ARITY > 1
+		    && KEY2_EQ_P(n->key2, key2)
+#if KEY_ARITY > 2
+		    && KEY3_EQ_P(n->key3, key3)
+#if KEY_ARITY > 3
+		    && KEY4_EQ_P(n->key4, key4)
+#if KEY_ARITY > 4
+		    && KEY5_EQ_P(n->key5, key5)
+#endif
+#endif
+#endif
+#endif
+			) {
+			return 1;
+		}
+	}
+	/* key not found */
+	return 0;
+}
 
 #undef KEY1NAME
 #undef KEY1N
