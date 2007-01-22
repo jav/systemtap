@@ -1,3 +1,9 @@
+2007-01-22  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (mapvar::exists): Use new _stp_map_exists function.
+	Testing for zero is no longer correct after changes from 2007-01-10
+	below.
+
 2007-01-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (version): Add (C) 2007.

@@ -520,10 +520,9 @@ struct mapvar
 
   string exists (vector<tmpvar> const & indices) const
   {
-    if (type() == pe_string)
-      return ("({ char *v = " + call_prefix("get", indices)
-	      + "); (v != NULL && *v != '\\0');})");
-    else if ((type() == pe_long) || (type() == pe_stats))
+    if (type() == pe_long || type() == pe_string)
+      return (call_prefix("exists", indices) + ")");
+    else if (type() == pe_stats)
       return ("((uintptr_t)" + call_prefix("get", indices)
 	      + ") != (uintptr_t) 0)");
     else
