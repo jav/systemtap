@@ -1,0 +1,19 @@
+# test the "in" keyword with maps
+
+load_lib "stap_run2.exp"
+
+set test "exists"
+set ::result_string {0 is there
+1 is there
+comlete list for a: 0 1 2 3 4 5 6 7 8 9 10 
+0 is still there
+comlete list for b: [0,0] [1,10] [2,20] [3,30] [4,40] [5,50] [6,60] [7,70] [8,80] [9,90] [10,100] 
+[0,0] is still there
+emtpy string there
+hello there
+emtpy string still there
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+

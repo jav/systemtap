@@ -1,3 +1,8 @@
+2007-01-22  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.maps/exists.stp: New test to see if
+	array elements exist using the "in" keyword.
+
 2007-01-20  Mike Mason <mmlnx@us.ibm.com>
 
 	PR 3899
