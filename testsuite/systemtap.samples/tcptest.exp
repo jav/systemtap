@@ -1,5 +1,4 @@
 # Test TCP probes
-load_lib "stap_run.exp"
 set test "tcptest"
 
 set tcp_tcl "$srcdir/$subdir/tcptest.tcl"

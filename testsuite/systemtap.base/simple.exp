@@ -1,8 +1,6 @@
 # Very simple function to test that systemtap can generate a kernel module,
 # install it, and get some output.
 
-load_lib "stap_run.exp"
-
 set test "simple"
 
 #check to see whether get the marker indicating the probe is loaded and running

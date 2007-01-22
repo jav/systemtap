@@ -1,8 +1,6 @@
 # Simple function to test that systemtap divide by 0 doesn't kill the machine
 # FIXME correct the output check
 
-load_lib "stap_run.exp"
-
 set test "div0"
 
 set output_string "(.*)division by 0 near(.*)"

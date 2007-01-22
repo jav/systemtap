@@ -1,5 +1,3 @@
-load_lib "stap_run.exp"
-
 proc genload {} {
     # if 'genload' from the ltp exists, use it to create a real load
     set genload {/usr/local/ltp/testcases/bin/genload}

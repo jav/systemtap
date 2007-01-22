@@ -1,7 +1,5 @@
 # Simple test of nested foreaches
 
-load_lib "stap_run2.exp"
-
 set test "foreach_foreach"
 
 set ::result_string {foo[0] = 0

@@ -1,7 +1,5 @@
 # test the "in" keyword with maps
 
-load_lib "stap_run2.exp"
-
 set test "exists"
 set ::result_string {0 is there
 1 is there

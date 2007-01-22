@@ -1,7 +1,5 @@
 # Simple function to test istograms
 
-load_lib "stap_run2.exp"
-
 set test "ix_hist"
 
 set ::result_string {value |-------------------------------------------------- count

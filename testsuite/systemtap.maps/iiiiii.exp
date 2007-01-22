@@ -1,7 +1,5 @@
 # Simple test of maps with 5 ints as keys, returning ints
 
-load_lib "stap_run2.exp"
-
 set test "iiiiii"
 set ::result_string {foo[0,0,0,0,0] = 0
 foo[0,0,0,0,1] = 1

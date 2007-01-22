@@ -3,12 +3,7 @@
 # Check to see if using the 'maxactive(N)' limit on return probes
 # works, by seeing if skipped probes increases when using it.
 
-load_lib "stap_run.exp"
-
-if {[info procs installtest_p] != "" && ![installtest_p]} {
-    untested "MAXACTIVE"
-    return
-}
+if {![installtest_p]} { untested "MAXACTIVE"; return }
 
 proc sleep_five_sec {} {
     after 5000;

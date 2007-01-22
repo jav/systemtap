@@ -1,7 +1,5 @@
 # Simple function to test maps of strings containing strings
 
-load_lib "stap_run2.exp"
-
 set test "ss"
 set ::result_string {foo[0] = The Result is 0
 foo[1] = The Result is 1

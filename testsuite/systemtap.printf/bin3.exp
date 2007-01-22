@@ -1,4 +1,3 @@
-load_lib "stap_run_binary.exp"
 set ::result_string {00 12 00 34 ab cd 56 78
 56 78 ab cd 88 88 cd ef
 61 3d 56 78 20 62 3d ab

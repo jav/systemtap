@@ -4,8 +4,6 @@
 # from contexts where do_gettimeofday is unsafe (e.g. when xtime_lock is held).
 # See bug #2525 for more details.
 
-load_lib "stap_run.exp"
-
 proc sleep_one_sec {} {
     after 1000;
     return 0;

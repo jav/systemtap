@@ -1,7 +1,5 @@
 # Test cases for probefunc() function
 
-load_lib "stap_run.exp"
-
 proc grep {fd re } {
    while {[gets $fd s] >= 0} {
       if [regexp $re $s] {

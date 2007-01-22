@@ -1,7 +1,5 @@
 # Test the functionality of the various timer.* probes.
 
-load_lib "stap_run.exp"
-
 set test "timers"
 
 # A simple load that give the timers a chance to run

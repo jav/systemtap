@@ -1,7 +1,5 @@
 # Simple function to test maps of ints containing ints
 
-load_lib "stap_run2.exp"
-
 set test "ii"
 set ::result_string {foo[0] = 0
 foo[1] = 1

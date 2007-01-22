@@ -1,7 +1,5 @@
 # Test of foreach statements using "limit EXP".
 
-load_lib "stap_run2.exp"
-
 set test "foreach_limit"
 
 set ::result_string {Arrays:

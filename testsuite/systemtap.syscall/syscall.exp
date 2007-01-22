@@ -9,6 +9,7 @@ proc test_procedure {} {
     }
     foreach filename [lsort [glob $pattern]] {
 	set file [file tail [string range $filename 0 end-2]]
+	if {![installtest_p]} { untested $file; continue }
 	target_compile $filename $wd/$file executable $flags
 	send_log "Testing ${file}\n"
 	set res [exec $srcdir/$subdir/test.tcl $file $filename]
@@ -28,6 +29,7 @@ proc test_procedure {} {
 	set flags "additional_flags=-m32"
 	foreach filename [lsort [glob $pattern]] {
 	    set file [file tail [string range $filename 0 end-2]]
+	    if {![installtest_p]} { untested $file; continue }
 	    target_compile $filename $wd/$file executable $flags
 	    send_log "Testing 32-bit ${file}\n"
 	    set res [exec $srcdir/$subdir/test.tcl $file $filename]

@@ -1,4 +1,3 @@
-load_lib "stap_run2.exp"
 set test "int1"
 set ::result_string {1,10,9000000000000,-1,-1024
  1,10,9000000000000,-1,-1024
