@@ -1,3 +1,8 @@
+2007-01-22  Josh Stone  <joshua.i.stone@intel.com>
+
+	* loc2c-runtime.h (kread, kwrite): Tweaks to work better with
+	reading and writing pointer values.
+
 2007-01-22  Martin Hunt  <hunt@redhat.com>
 
 	* map-gen.c (_stp_map_exists): New. Check for membership only.

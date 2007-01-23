@@ -1,3 +1,8 @@
+2007-01-22  Josh Stone  <joshua.i.stone@intel.com>
+
+	* systemtap.base/deref.stp: Rewrite test, and now also check the ability
+	to read/write pointers.
+
 2007-01-22  Frank Ch. Eigler  <fche@redhat.com>
 
 	* config/unix.exp: New file as a master load_lib repository.
