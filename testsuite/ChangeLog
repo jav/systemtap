@@ -1,5 +1,9 @@
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
 
+	* buildok/socket.stp: Added sockets tapset build test.
+
+2007-01-23  Mike Mason <mmlnx@us.ibm.com>
+
 	* systemtap.string/tokenize.exp, systemtap.string/tokenize.stp,
         systemtap.string/strtol.exp, systemtap.string/strtol.stp:
 	Tests for new tokenize and strtol functions.

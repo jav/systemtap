@@ -1,0 +1,107 @@
+#! stap -p4
+
+probe socket.send, socket.receive,
+      socket.sendmsg, socket.sendmsg.return,
+      socket.recvmsg, socket.recvmsg.return,
+      socket.do_write, socket.do_write.return,
+      socket.do_read, socket.do_read.return
+{
+	log(pp())
+	log(name)
+	log(sprintf("%d", size))
+
+	pstr = sock_prot_num2str(protocol)
+	prot = sock_prot_str2num(pstr)
+	log(sprintf("%d, %d, %s", protocol, prot, pstr))
+
+	fstr = sock_fam_num2str(family)
+	fam = sock_fam_str2num(fstr)
+	log(sprintf("%d, %d, %s", family, fam, fstr))
+
+	sstr = sock_state_num2str(state)
+	stat = sock_state_str2num(sstr)
+	log(sprintf("%d, %d, %s", state, stat, sstr))
+
+	flstr = sock_flags_num2str(flags)
+	log(sprintf("%d, %s", flags, flstr))
+
+	tstr = sock_type_num2str(type)
+	typ = sock_type_str2num(tstr)
+	log(sprintf("%d, %d, %s", type, typ, tstr))
+
+	mflstr = msg_flags_num2str(mflags)
+	log(sprintf("%d, %s", mflags, mflstr))
+
+	log(sprintf("%d", success))
+}
+
+
+probe socket.create
+{
+	log(name)
+
+	pstr = sock_prot_num2str(protocol)
+	prot = sock_prot_str2num(pstr)
+	log(sprintf("%d, %d, %s", protocol, prot, pstr))
+
+	fstr = sock_fam_num2str(family)
+	fam = sock_fam_str2num(fstr)
+	log(sprintf("%d, %d, %s", family, fam, fstr))
+
+	tstr = sock_type_num2str(type)
+	typ = sock_type_str2num(tstr)
+	log(sprintf("%d, %d, %s", type, typ, tstr))
+
+	log(sprintf("%d", requester))
+}
+
+probe socket.create.return
+{
+	log(name)
+
+	pstr = sock_prot_num2str(protocol)
+	prot = sock_prot_str2num(pstr)
+	log(sprintf("%d, %d, %s", protocol, prot, pstr))
+
+	fstr = sock_fam_num2str(family)
+	fam = sock_fam_str2num(fstr)
+	log(sprintf("%d, %d, %s", family, fam, fstr))
+
+	tstr = sock_type_num2str(type)
+	typ = sock_type_str2num(tstr)
+	log(sprintf("%d, %d, %s", type, typ, tstr))
+
+	log(sprintf("%d", requester))
+	log(sprintf("%d", err))
+	log(sprintf("%d", success))
+}
+
+probe socket.close
+{
+	log(name)
+
+	pstr = sock_prot_num2str(protocol)
+	prot = sock_prot_str2num(pstr)
+	log(sprintf("%d, %d, %s", protocol, prot, pstr))
+
+	fstr = sock_fam_num2str(family)
+	fam = sock_fam_str2num(fstr)
+	log(sprintf("%d, %d, %s", family, fam, fstr))
+
+	tstr = sock_type_num2str(type)
+	typ = sock_type_str2num(tstr)
+	log(sprintf("%d, %d, %s", type, typ, tstr))
+
+	sstr = sock_state_num2str(state)
+	stat = sock_state_str2num(sstr)
+	log(sprintf("%d, %d, %s", state, stat, sstr))
+
+	flstr = sock_flags_num2str(flags)
+	log(sprintf("%d, %s", flags, flstr))
+}
+
+probe socket.close.return
+{
+	log(name)
+}
+
