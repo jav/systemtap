@@ -1179,9 +1179,11 @@ struct dwflpp
   static void loc2c_error (void *arg, const char *fmt, ...)
   {
     char *msg = NULL;
+    int rc;
     va_list ap;
     va_start (ap, fmt);
-    vasprintf (&msg, fmt, ap);
+    rc = vasprintf (&msg, fmt, ap);
+    if (rc < 0) msg = "?";
     va_end (ap);
     throw semantic_error (msg);
   }
