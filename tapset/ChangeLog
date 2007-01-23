@@ -1,5 +1,9 @@
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
 
+	* socket.stp: New sockets tapset.
+
+2007-01-23  Mike Mason <mmlnx@us.ibm.com>
+
 	* string.stp: Added tokenize() and strtol() functions.
 
 2007-01-17  Martin Hunt  <hunt@redhat.com>

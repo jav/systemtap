@@ -1,0 +1,1077 @@
+// Socket tapset
+// Copyright (C) 2006 IBM Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <net/sock.h>
+%}
+
+#################
+# PROBE ALIASES #
+#################
+
+### GENERAL SEND/RECEIVE PROBES ###
+
+/*
+ * probe socket.send
+ *
+ * Fires when a message is sent on a socket.
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message sent (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was send successful? (1 = yes, 0 = no)
+ */
+probe socket.send = socket.sendmsg.return,
+                    socket.do_write.return
+{
+	name = "socket.send"
+}
+
+/*
+ * probe socket.receive
+ *
+ * Fires when a message is received on a socket.
+ *
+ * Context:
+ *  The message receiver
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message sent (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was send successful? (1 = yes, 0 = no)
+ */
+probe socket.receive = socket.recvmsg.return,
+                       socket.do_read.return
+{
+	name = "socket.receive"
+}
+
+### FUNCTION SPECIFIC SEND/RECEIVE PROBES ###
+
+/*
+ * probe socket.sendmsg
+ *
+ * Fires at the beginning of sending a message on a socket
+ * via the the sock_sendmsg() function
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ */
+probe socket.sendmsg = kernel.function ("sock_sendmsg")
+{
+	name = "socket.sendmsg"
+	size = $size
+	protocol = $sock->sk->sk_protocol
+	family = $sock->ops->family
+	state = $sock->state
+	flags = $sock->flags
+	type = $sock->type
+	mflags = $msg->msg_flags
+}
+
+/*
+ * probe socket.sendmsg.return
+ *
+ * Fires at the conclusion of sending a message on a socket
+ * via the sock_sendmsg() function
+ *
+ * Context:
+ *  The message sender.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message sent (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was send successful? (1 = yes, 0 = no)
+ */
+probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
+{
+	name = "socket.sendmsg.return"
+	size = $return
+	protocol = $sock->sk->sk_protocol
+	family = $sock->ops->family
+	state = $sock->state
+	flags = $sock->flags
+	type = $sock->type
+	mflags = $msg->msg_flags
+	success = _success_check($return)
+}
+
+/*
+ * probe socket.recvmsg
+ *
+ * Fires at the beginning of receiving a message on a socket
+ * via the sock_recvmsg() function
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ */
+probe socket.recvmsg = kernel.function ("sock_recvmsg")
+{
+	name = "socket.recvmsg"
+	size = $size
+	protocol = $sock->sk->sk_protocol
+	family = $sock->ops->family
+	state = $sock->state
+	flags = $sock->flags
+	type = $sock->type
+	mflags = $msg->msg_flags
+}
+
+/*
+ * probe socket.recvmsg.return
+ *
+ * Fires at the conclusion of receiving a message on a socket
+ * via the sock_recvmsg() function.
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message received (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was receive successful? (1 = yes, 0 = no)
+ */
+probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
+{
+	name = "socket.recvmsg.return"
+	size = $return
+	protocol = $sock->sk->sk_protocol
+	family = $sock->ops->family
+	state = $sock->state
+	flags = $sock->flags
+	type = $sock->type
+	mflags = $msg->msg_flags
+	success = _success_check($return)
+}
+
+/*
+ * probe socket.do_write
+ *
+ * Fires at the beginning of sending a message on a socket
+ * via the do_sock_write() function
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ */
+probe socket.do_write = kernel.function ("do_sock_write")
+{
+	name = "socket.do_write"
+	_sock = _get_sock_addr ($file)
+	size = _get_sock_size ($iov, $nr_segs)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	mflags = $msg->msg_flags
+}
+
+/*
+ * probe socket.do_write.return
+ *
+ * Fires at the conclusion of sending a message on a socket
+ * via the do_sock_write() function
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message sent (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was send successful? (1 = yes, 0 = no)
+ */
+probe socket.do_write.return = kernel.function ("do_sock_write").return
+{
+	name = "socket.do_write.return"
+	size = $return
+	_sock = _get_sock_addr ($file)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	mflags = $msg->msg_flags
+	success = _success_check($return)
+}
+
+/*
+ * probe socket.do_read
+ *
+ * Fires at the beginning of receiving a message on a socket
+ * via the do_sock_read() function
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ */
+probe socket.do_read = kernel.function ("do_sock_read")
+{
+	name = "socket.do_read"
+	_sock = _get_sock_addr ($file)
+	size = _get_sock_size ($iov, $nr_segs)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	mflags = $msg->msg_flags
+}
+
+/*
+ * probe socket.do_read.return
+ *
+ * Fires at the conclusion of receiving a message on a socket
+ * via the do_sock_read() function
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message received (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  mflags    Message type value
+ *  success   Was receive successful? (1 = yes, 0 = no)
+ */
+probe socket.do_read.return = kernel.function ("do_sock_read").return
+{
+	name = "socket.do_read.return"
+	size = $return
+	_sock = _get_sock_addr ($file)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	mflags = $msg->msg_flags
+	success = _success_check($return)
+}
+
+/*
+ * probe socket.create
+ *
+ * Fires at the beginning of creating a socket.
+ *
+ * Context:
+ *  The requester (see requester variable)
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  type      Socket type value
+ *  requester Requested by user process or the kernel (1 = kernel, 0 = user)
+ */
+probe socket.create = kernel.function("__sock_create")
+{
+	name = "socket.create"
+	protocol = $protocol
+	family = $family
+	type = $type
+	requester =$kern
+}
+
+/*
+ * probe socket.create.return
+ *
+ * Fires at the conclusion of creating a socket.
+ *
+ * Context:
+ *  The requester (user process or kernel)
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  type      Socket type value
+ *  requester Requested by user process or the kernel (1 = kernel, 0 = user)
+ *  err       Error code if success == 0
+ *  success   Was socket creation successful? (1 = yes, 0 = no)
+ */
+probe socket.create.return = kernel.function("__sock_create").return
+{
+	name = "socket.create.return"
+	protocol = $protocol
+	family = $family
+	type = $type
+	requester =$kern
+	err = $return
+	success = _success_check($return)
+}
+
+/*
+ * probe socket.close
+ *
+ * Fires at the beginning of closing a socket.
+ *
+ * Context:
+ *  The requester (user process or kernel)
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ */
+probe socket.close = kernel.function ("sock_release")
+{
+	name = "socket.close"
+	protocol = $sock->sk->sk_protocol
+	family = $sock->ops->family
+	state = $sock->state
+	flags = $sock->flags
+	type = $sock->type
+}
+
+/*
+ * probe socket.close.return
+ *
+ * Fires at the conclusion of closing a socket.
+ *
+ * Context:
+ *  The requester (user process or kernel)
+ */
+probe socket.close.return = kernel.function ("sock_release").return
+{
+	name = "socket.close.return"
+	/* void return */
+}
+
+
+##################
+# USER FUNCTIONS #
+##################
+
+####### PROTOCOL HELPER FUNCTIONS ########
+
+/*
+ * sock_prot_num2str
+ * Given a protocol number, return a string representation.
+ */
+function sock_prot_num2str:string (proto:long)
+{
+	return (proto in _prot_num2str ? _prot_num2str[proto] : "UNDEF")
+}
+
+/*
+ * sock_prot_str2num
+ * Given a protocol name (string), return the corresponding protocol number.
+ */
+function sock_prot_str2num:long (proto:string)
+{
+	return (proto in _prot_str2num ? _prot_str2num[proto] : -1)
+}
+
+######### PROTOCOL FAMILY HELPER FUNCTIONS ###########
+
+/*
+ * sock_fam_num2str
+ * Given a protocol family number, return a string representation.
+ */
+function sock_fam_num2str:string (family:long)
+{
+	return (family in _fam_num2str ? _fam_num2str[family] : "UNDEF")
+}
+
+/*
+ * sock_fam_str2num
+ * Given a protocol family name (string), return the corresponding
+ * protocol family number.
+ */
+function sock_fam_str2num:long (family:string)
+{
+	return (family in _fam_str2num ? _fam_str2num[family] : -1)
+}
+
+######### SOCKET STATE HELPER FUNCTIONS ##########
+
+/*
+ * sock_state_num2str
+ * Given a socket state number, return a string representation.
+ */
+function sock_state_num2str:string (state:long)
+{
+	return (state in _state_num2str ? _state_num2str[state] : "UNDEF")
+}
+
+/*
+ * sock_state_str2num
+ * Given a socket state string, return the corresponding state number.
+ */
+function sock_state_str2num:long (state:string)
+{
+	return (state in _state_str2num ? _state_str2num[state] : -1)
+}
+
+######## SOCKET TYPE HELPER FUNCTIONS ########
+
+function sock_type_num2str:string (type:long)
+{
+	return (type in _type_num2str ? _type_num2str[type] : "UNDEF")
+}
+
+function sock_type_str2num:long (type:string)
+{
+	return (type in _type_str2num ? _type_str2num[type] : -1)
+}
+
+######### SOCKET FLAGS HELPER FUNCTIONS #########
+
+function sock_flags_num2str:string (flags:long)
+%{
+	char str[60];
+
+	str[0] = '\0';
+
+	if (THIS->flags & SOCK_ASYNC_NOSPACE) strcat (str, "ASYNC_NOSPACE|");
+	if (THIS->flags & SOCK_ASYNC_WAITDATA) strcat (str, "ASYNC_WAITDATA|");
+	if (THIS->flags & SOCK_NOSPACE) strcat (str, "NOSPACE|");
+	if (THIS->flags & SOCK_PASSCRED) strcat (str, "PASSCRED|");
+	if (THIS->flags & SOCK_PASSSEC) strcat (str, "PASSSEC|");
+
+	if (str[0] != '\0') str[strlen(str)-1] = '\0';
+	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
+%}
+
+######### MESSAGE FLAGS HELPER FUNCTIONS #########
+
+function msg_flags_num2str:string (flags:long)
+%{
+	char str[256];
+
+	str[0] = '\0';
+
+	if (THIS->flags & MSG_OOB) strcat (str, "OOB|");
+	if (THIS->flags & MSG_PEEK) strcat (str, "PEEK|");
+	if (THIS->flags & MSG_DONTROUTE) strcat (str, "DONTROUTE|");
+	if (THIS->flags & MSG_TRYHARD) strcat (str, "TRYHARD|");
+	if (THIS->flags & MSG_CTRUNC) strcat (str, "CTRUNC|");
+	if (THIS->flags & MSG_PROBE) strcat (str, "PROBE|");
+	if (THIS->flags & MSG_TRUNC) strcat (str, "TRUNC|");
+	if (THIS->flags & MSG_DONTWAIT) strcat (str, "DONTWAIT|");
+	if (THIS->flags & MSG_EOR) strcat (str, "EOR|");
+	if (THIS->flags & MSG_WAITALL) strcat (str, "WAITALL|");
+	if (THIS->flags & MSG_FIN) strcat (str, "FIN|");
+	if (THIS->flags & MSG_SYN) strcat (str, "SYN|");
+	if (THIS->flags & MSG_CONFIRM) strcat (str, "CONFIRM|");
+	if (THIS->flags & MSG_RST) strcat (str, "RST|");
+	if (THIS->flags & MSG_ERRQUEUE) strcat (str, "ERRQUEUE|");
+	if (THIS->flags & MSG_NOSIGNAL) strcat (str, "NOSIGNAL|");
+	if (THIS->flags & MSG_MORE) strcat (str, "MORE|");
+
+	if (str[0] != '\0') str[strlen(str)-1] = '\0';
+	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
+%}
+
+
+###########################
+# INTERNAL MAPPING ARRAYS #
+###########################
+
+global _prot_num2str[134], _prot_str2num[134]
+global _fam_num2str[32],   _fam_str2num[32]
+global _state_num2str[5],  _state_str2num[5]
+global _type_num2str[11],  _type_str2num[11]
+
+probe begin(-1001)
+{
+	/* From /etc/protocols.
+	 * Many of these protocols aren't currently used over
+	 * sockets, but are included for completeness 
+	 */
+	_prot_num2str[0] = "IP"
+	_prot_num2str[1] = "ICMP"
+	_prot_num2str[2] = "IGMP"
+	_prot_num2str[3] = "GGP"
+	_prot_num2str[4] = "IPENCAP"
+	_prot_num2str[5] = "ST"
+	_prot_num2str[6] = "TCP"
+	_prot_num2str[7] = "CBT"
+	_prot_num2str[8] = "EGP"
+	_prot_num2str[9] = "IGP"
+	_prot_num2str[10] = "BBN-RCC"
+	_prot_num2str[11] = "NVP"
+	_prot_num2str[12] = "PUP"
+	_prot_num2str[13] = "ARGUS"
+	_prot_num2str[14] = "EMCON"
+	_prot_num2str[15] = "XNET"
+	_prot_num2str[16] = "CHAOS"
+	_prot_num2str[17] = "UDP"
+	_prot_num2str[18] = "MUX"
+	_prot_num2str[19] = "DCN"
+	_prot_num2str[20] = "HMP"
+	_prot_num2str[21] = "PRM"
+	_prot_num2str[22] = "XNS-IDP"
+	_prot_num2str[23] = "TRUNK-1"
+	_prot_num2str[24] = "TRUNK-2"
+	_prot_num2str[25] = "LEAF-1"
+	_prot_num2str[26] = "LEAF-2"
+	_prot_num2str[27] = "RDP"
+	_prot_num2str[28] = "IRTP"
+	_prot_num2str[29] = "ISO-TP4"
+	_prot_num2str[30] = "NETBLT"
+	_prot_num2str[31] = "MFE-NSP"
+	_prot_num2str[32] = "MERIT-INP"
+	_prot_num2str[33] = "SEP"
+	_prot_num2str[34] = "3PC"
+	_prot_num2str[35] = "IDPR"
+	_prot_num2str[36] = "XTP"
+	_prot_num2str[37] = "DDP"
+	_prot_num2str[38] = "IDPR-CMTP"
+	_prot_num2str[39] = "TP++"
+	_prot_num2str[40] = "IL"
+	_prot_num2str[41] = "IPV6"
+	_prot_num2str[42] = "SDRP"
+	_prot_num2str[43] = "IPV6-ROUTE"
+	_prot_num2str[44] = "IPV6-FRAG"
+	_prot_num2str[45] = "IDRP"
+	_prot_num2str[46] = "RSVP"
+	_prot_num2str[47] = "GRE"
+	_prot_num2str[48] = "MHRP"
+	_prot_num2str[49] = "BNA"
+	_prot_num2str[50] = "IPV6-CRYPT"
+	_prot_num2str[51] = "IPV6-AUTH"
+	_prot_num2str[52] = "I-NLSP"
+	_prot_num2str[53] = "SWIPE"
+	_prot_num2str[54] = "NARP"
+	_prot_num2str[55] = "MOBILE"
+	_prot_num2str[56] = "TLSP"
+	_prot_num2str[57] = "SKIP"
+	_prot_num2str[58] = "IPV6-ICMP"
+	_prot_num2str[59] = "IPV6-NONXT"
+	_prot_num2str[60] = "IPV6-OPTS"
+	_prot_num2str[62] = "CFTP"
+	_prot_num2str[64] = "SAT-EXPAK"
+	_prot_num2str[65] = "KRYPTOLAN"
+	_prot_num2str[66] = "RVD"
+	_prot_num2str[67] = "IPPC"
+	_prot_num2str[69] = "SAT-MON"
+	_prot_num2str[70] = "VISA"
+	_prot_num2str[71] = "IPCV"
+	_prot_num2str[72] = "CPNX"
+	_prot_num2str[73] = "CPHB"
+	_prot_num2str[74] = "WSN"
+	_prot_num2str[75] = "PVP"
+	_prot_num2str[76] = "BR-SAT-MON"
+	_prot_num2str[77] = "SUN-ND"
+	_prot_num2str[78] = "WB-MON"
+	_prot_num2str[79] = "WB-EXPAK"
+	_prot_num2str[80] = "ISO-IP"
+	_prot_num2str[81] = "VMTP"
+	_prot_num2str[82] = "SECURE-VMTP"
+	_prot_num2str[83] = "VINES"
+	_prot_num2str[84] = "TTP"
+	_prot_num2str[85] = "NSFNET-IGP"
+	_prot_num2str[86] = "DGP"
+	_prot_num2str[87] = "TCF"
+	_prot_num2str[88] = "EIGRP"
+	_prot_num2str[89] = "OSPF"
+	_prot_num2str[90] = "SPRITE-RPC"
+	_prot_num2str[91] = "LARP"
+	_prot_num2str[92] = "MTP"
+	_prot_num2str[93] = "AX.25"
+	_prot_num2str[94] = "IPIP"
+	_prot_num2str[95] = "MICP"
+	_prot_num2str[96] = "SCC-SP"
+	_prot_num2str[97] = "ETHERIP"
+	_prot_num2str[98] = "ENCAP"
+	_prot_num2str[100] = "GMTP"
+	_prot_num2str[101] = "IFMP"
+	_prot_num2str[102] = "PNNI"
+	_prot_num2str[103] = "PIM"
+	_prot_num2str[104] = "ARIS"
+	_prot_num2str[105] = "SCPS"
+	_prot_num2str[106] = "QNX"
+	_prot_num2str[107] = "A/N"
+	_prot_num2str[108] = "IPCOMP"
+	_prot_num2str[109] = "SNP"
+	_prot_num2str[110] = "COMPAQ-PEER"
+	_prot_num2str[111] = "IPX-IN-IP"
+	_prot_num2str[112] = "VRRP"
+	_prot_num2str[113] = "PGM"
+	_prot_num2str[115] = "L2TP"
+	_prot_num2str[116] = "DDX"
+	_prot_num2str[117] = "IATP"
+	_prot_num2str[118] = "STP"
+	_prot_num2str[119] = "SRP"
+	_prot_num2str[120] = "UTI"
+	_prot_num2str[121] = "SMP"
+	_prot_num2str[122] = "SM"
+	_prot_num2str[123] = "PTP"
+	_prot_num2str[124] = "ISIS"
+	_prot_num2str[125] = "FIRE"
+	_prot_num2str[126] = "CRTP"
+	_prot_num2str[127] = "CRDUP"
+	_prot_num2str[128] = "SSCOPMCE"
+	_prot_num2str[129] = "IPLT"
+	_prot_num2str[130] = "SPS"
+	_prot_num2str[131] = "PIPE"
+	_prot_num2str[132] = "SCTP"
+	_prot_num2str[133] = "FC"
+
+	_prot_str2num["IP"]          = 0
+	_prot_str2num["ICMP"]        = 1
+	_prot_str2num["IGMP"]        = 2
+	_prot_str2num["GGP"]         = 3
+	_prot_str2num["IPENCAP"]     = 4
+	_prot_str2num["ST"]          = 5
+	_prot_str2num["TCP"]         = 6
+	_prot_str2num["CBT"]         = 7
+	_prot_str2num["EGP"]         = 8
+	_prot_str2num["IGP"]         = 9
+	_prot_str2num["BBN-RCC"]     = 10
+	_prot_str2num["NVP"]         = 11
+	_prot_str2num["PUP"]         = 12
+	_prot_str2num["ARGUS"]       = 13
+	_prot_str2num["EMCON"]       = 14
+	_prot_str2num["XNET"]        = 15
+	_prot_str2num["CHAOS"]       = 16
+	_prot_str2num["UDP"]         = 17
+	_prot_str2num["MUX"]         = 18
+	_prot_str2num["DCN"]         = 19
+	_prot_str2num["HMP"]         = 20
+	_prot_str2num["PRM"]         = 21
+	_prot_str2num["XNS-IDP"]     = 22
+	_prot_str2num["TRUNK-1"]     = 23
+	_prot_str2num["TRUNK-2"]     = 24
+	_prot_str2num["LEAF-1"]      = 25
+	_prot_str2num["LEAF-2"]      = 26
+	_prot_str2num["RDP"]         = 27
+	_prot_str2num["IRTP"]        = 28
+	_prot_str2num["ISO-TP4"]     = 29
+	_prot_str2num["NETBLT"]      = 30
+	_prot_str2num["MFE-NSP"]     = 31
+	_prot_str2num["MERIT-INP"]   = 32
+	_prot_str2num["SEP"]         = 33
+	_prot_str2num["3PC"]         = 34
+	_prot_str2num["IDPR"]        = 35
+	_prot_str2num["XTP"]         = 36
+	_prot_str2num["DDP"]         = 37
+	_prot_str2num["IDPR-CMTP"]   = 38
+	_prot_str2num["TP++"]        = 39
+	_prot_str2num["IL"]          = 40
+	_prot_str2num["IPV6"]        = 41
+	_prot_str2num["SDRP"]        = 42
+	_prot_str2num["IPV6-ROUTE"]  = 43
+	_prot_str2num["IPV6-FRAG"]   = 44
+	_prot_str2num["IDRP"]        = 45
+	_prot_str2num["RSVP"]        = 46
+	_prot_str2num["GRE"]         = 47
+	_prot_str2num["MHRP"]        = 48
+	_prot_str2num["BNA"]         = 49
+	_prot_str2num["IPV6-CRYPT"]  = 50
+	_prot_str2num["IPV6-AUTH"]   = 51
+	_prot_str2num["I-NLSP"]      = 52
+	_prot_str2num["SWIPE"]       = 53
+	_prot_str2num["NARP"]        = 54
+	_prot_str2num["MOBILE"]      = 55
+	_prot_str2num["TLSP"]        = 56
+	_prot_str2num["SKIP"]        = 57
+	_prot_str2num["IPV6-ICMP"]   = 58
+	_prot_str2num["IPV6-NONXT"]  = 59
+	_prot_str2num["IPV6-OPTS"]   = 60
+	_prot_str2num["CFTP"]        = 62
+	_prot_str2num["SAT-EXPAK"]   = 64
+	_prot_str2num["KRYPTOLAN"]   = 65
+	_prot_str2num["RVD"]         = 66
+	_prot_str2num["IPPC"]        = 67
+	_prot_str2num["SAT-MON"]     = 69
+	_prot_str2num["VISA"]        = 70
+	_prot_str2num["IPCV"]        = 71
+	_prot_str2num["CPNX"]        = 72
+	_prot_str2num["CPHB"]        = 73
+	_prot_str2num["WSN"]         = 74
+	_prot_str2num["PVP"]         = 75
+	_prot_str2num["BR-SAT-MON"]  = 76
+	_prot_str2num["SUN-ND"]      = 77
+	_prot_str2num["WB-MON"]      = 78
+	_prot_str2num["WB-EXPAK"]    = 79
+	_prot_str2num["ISO-IP"]      = 80
+	_prot_str2num["VMTP"]        = 81
+	_prot_str2num["SECURE-VMTP"] = 82
+	_prot_str2num["VINES"]       = 83
+	_prot_str2num["TTP"]         = 84
+	_prot_str2num["NSFNET-IGP"]  = 85
+	_prot_str2num["DGP"]         = 86
+	_prot_str2num["TCF"]         = 87
+	_prot_str2num["EIGRP"]       = 88
+	_prot_str2num["OSPF"]        = 89
+	_prot_str2num["SPRITE-RPC"]  = 90
+	_prot_str2num["LARP"]        = 91
+	_prot_str2num["MTP"]         = 92
+	_prot_str2num["AX.25"]       = 93
+	_prot_str2num["IPIP"]        = 94
+	_prot_str2num["MICP"]        = 95
+	_prot_str2num["SCC-SP"]      = 96
+	_prot_str2num["ETHERIP"]     = 97
+	_prot_str2num["ENCAP"]       = 98
+	_prot_str2num["GMTP"]        = 100
+	_prot_str2num["IFMP"]        = 101
+	_prot_str2num["PNNI"]        = 102
+	_prot_str2num["PIM"]         = 103
+	_prot_str2num["ARIS"]        = 104
+	_prot_str2num["SCPS"]        = 105
+	_prot_str2num["QNX"]         = 106
+	_prot_str2num["A/N"]         = 107
+	_prot_str2num["IPCOMP"]      = 108
+	_prot_str2num["SNP"]         = 109
+	_prot_str2num["COMPAQ-PEER"] = 110
+	_prot_str2num["IPX-IN-IP"]   = 111
+	_prot_str2num["VRRP"]        = 112
+	_prot_str2num["PGM"]         = 113
+	_prot_str2num["L2TP"]        = 115
+	_prot_str2num["DDX"]         = 116
+	_prot_str2num["IATP"]        = 117
+	_prot_str2num["STP"]         = 118
+	_prot_str2num["SRP"]         = 119
+	_prot_str2num["UTI"]         = 120
+	_prot_str2num["SMP"]         = 121
+	_prot_str2num["SM"]          = 122
+	_prot_str2num["PTP"]         = 123
+	_prot_str2num["ISIS"]        = 124
+	_prot_str2num["FIRE"]        = 125
+	_prot_str2num["CRTP"]        = 126
+	_prot_str2num["CRDUP"]       = 127
+	_prot_str2num["SSCOPMCE"]    = 128
+	_prot_str2num["IPLT"]        = 129
+	_prot_str2num["SPS"]         = 130
+	_prot_str2num["PIPE"]        = 131
+	_prot_str2num["SCTP"]        = 132
+	_prot_str2num["FC"]          = 133
+
+	/* from include/linux/socket.h */
+	_fam_num2str[0]  = "UNSPEC"
+	_fam_num2str[1]  = "LOCAL"
+	_fam_num2str[2]  = "INET"
+	_fam_num2str[3]  = "AX25"
+	_fam_num2str[4]  = "IPX"
+	_fam_num2str[5]  = "APPLETALK"
+	_fam_num2str[6]  = "NETROM"
+	_fam_num2str[7]  = "BRIDGE"
+	_fam_num2str[8]  = "ATMPVC"
+	_fam_num2str[9]  = "X25"
+	_fam_num2str[10] = "INET6"
+	_fam_num2str[11] = "ROSE"
+	_fam_num2str[12] = "DECNET"
+	_fam_num2str[13] = "NETBEUI"
+	_fam_num2str[14] = "SECURITY"
+	_fam_num2str[15] = "KEY"
+	_fam_num2str[16] = "NETLINK"
+	_fam_num2str[17] = "PACKET"
+	_fam_num2str[18] = "ASH"
+	_fam_num2str[19] = "ECONET"
+	_fam_num2str[20] = "ATMSVC"
+	_fam_num2str[22] = "SNA"
+	_fam_num2str[23] = "IRDA"
+	_fam_num2str[24] = "PPPOX"
+	_fam_num2str[25] = "WANPIPE"
+	_fam_num2str[26] = "LLC"
+	_fam_num2str[30] = "TIPC"
+	_fam_num2str[31] = "BLUETOOTH"
+
+	_fam_str2num["UNSPEC"]    = 0
+	_fam_str2num["LOCAL"]     = 1
+	_fam_str2num["INET"]      = 2
+	_fam_str2num["AX25"]      = 3
+	_fam_str2num["IPX"]       = 4
+	_fam_str2num["APPLETALK"] = 5
+	_fam_str2num["NETROM"]    = 6
+	_fam_str2num["BRIDGE"]    = 7
+	_fam_str2num["ATMPVC"]    = 8
+	_fam_str2num["X25"]       = 9
+	_fam_str2num["INET6"]     = 10
+	_fam_str2num["ROSE"]      = 11
+	_fam_str2num["DECNET"]    = 12
+	_fam_str2num["NETBEUI"]   = 13
+	_fam_str2num["SECURITY"]  = 14
+	_fam_str2num["KEY"]       = 15
+	_fam_str2num["NETLINK"]   = 16
+	_fam_str2num["PACKET"]    = 17
+	_fam_str2num["ASH"]       = 18
+	_fam_str2num["ECONET"]    = 19
+	_fam_str2num["ATMSVC"]    = 20
+	_fam_str2num["SNA"]       = 22
+	_fam_str2num["IRDA"]      = 23
+	_fam_str2num["PPPOX"]     = 24
+	_fam_str2num["WANPIPE"]   = 25
+	_fam_str2num["LLC"]       = 26
+	_fam_str2num["TIPC"]      = 30
+	_fam_str2num["BLUETOOTH"] = 31
+
+	/* from include/linux/net.h */
+	_state_num2str[0] = "FREE"
+	_state_num2str[1] = "UNCONNECTED"
+	_state_num2str[2] = "CONNECTING"
+	_state_num2str[3] = "CONNECTED" 
+	_state_num2str[4] = "DISCONNECTING"
+
+	_state_str2num["FREE"]          = 0
+	_state_str2num["UNCONNECTED"]   = 1
+	_state_str2num["CONNECTING"]    = 2
+	_state_str2num["CONNECTED"]     = 3
+	_state_str2num["DISCONNECTING"] = 4
+
+	/* from include/linux/net.h */
+	_type_num2str[1]  = "STREAM"
+	_type_num2str[2]  = "DGRAM"
+	_type_num2str[3]  = "RAW"
+	_type_num2str[4]  = "RDM"
+	_type_num2str[5]  = "SEQPACKET"
+	_type_num2str[6]  = "DCCP"
+	_type_num2str[10] = "PACKET"
+
+	_type_str2num["STREAM"]    = 1
+	_type_str2num["DGRAM"]     = 2
+	_type_str2num["RAW"]       = 3
+	_type_str2num["RDM"]       = 4
+	_type_str2num["SEQPACKET"] = 5
+	_type_str2num["DCCP"]      = 6
+	_type_str2num["PACKET"]    = 10
+}
+
+######################
+# INTERNAL FUNCTIONS #
+######################
+
+# Hack to test for large number, required because of sign bit extension
+# problem with 32-bit return values on 64-bit systems (PR 3331)
+function _success_check(ret:long)
+{
+	return (ret > 0 && ret < 2147483648 ? 1 : 0)
+}
+
+function _get_sock_addr:long (file:long)
+%{
+	struct socket *sockp;
+	struct file *filep;
+	
+	filep = (struct file *) deref (sizeof(struct file *), &(THIS->file));
+	if (filep == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	sockp = (struct socket *) deref (sizeof(filep->private_data),
+	        &(filep->private_data));
+	if (sockp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = (long) sockp;
+	
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _get_sock_size:long (iov:long, nr_segs:long)
+%{
+	struct iovec *iovp;
+	long size = 0;
+	int i;
+
+	iovp = (struct iovec *) deref (sizeof(struct iov *), &(THIS->iov));
+	if (iovp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	
+	for (i = 0 ; i < THIS->nr_segs ; i++)
+		size += iovp[i].iov_len;
+
+	THIS->__retvalue = size;
+	
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _sock_prot_num:long (sock:long)
+%{
+	struct socket *sktp;
+	struct sock *skp;
+
+	sktp = (struct socket *) deref (sizeof (struct socket *), &(THIS->sock));
+	if (sktp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	skp = (struct sock *) deref (sizeof (sktp->sk), &(sktp->sk));
+	if (skp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = (long) skp->sk_protocol;
+
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _sock_fam_num:long (sock:long)
+%{
+	struct socket *sockp;
+	struct proto_ops *ops;
+
+	sockp = (struct socket *) deref (sizeof (struct socket *), &(THIS->sock));
+	if (sockp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	ops = (struct proto_ops *) deref (sizeof (sockp->ops), &(sockp->ops));
+	if (ops == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = (long) ops->family;
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _sock_state_num:long (sock:long)
+%{
+	struct socket *sockp;
+
+	sockp = (struct socket *) deref (sizeof (struct sock *), &(THIS->sock));
+	if (sockp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = sockp->state;
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _sock_type_num:long (sock:long)
+%{
+	struct socket *sockp;
+
+	sockp = (struct socket *) deref (sizeof(struct socket *), &(THIS->sock));
+	if (sockp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = (long) sockp->type;
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
+
+function _sock_flags_num:long (sock:long)
+%{
+	struct socket *sockp;
+
+	sockp = (struct socket *) deref (sizeof(struct socket *), &(THIS->sock));
+	if (sockp == NULL) {
+		THIS->__retvalue = -1;
+		goto end;
+	}
+	THIS->__retvalue = sockp->flags;
+	if (0) {
+deref_fault:
+		CONTEXT->last_error = "pointer dereference fault";
+	}
+end: ;
+%}
