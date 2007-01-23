@@ -1,0 +1,15 @@
+set test "strtol"
+set ::result_string {1
+-1
+123456789
+-123456789
+0
+1
+0
+0
+1000
+4096
+512
+8
+0}
+stap_run2 $srcdir/$subdir/$test.stp

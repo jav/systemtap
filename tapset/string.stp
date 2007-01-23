@@ -58,5 +58,37 @@ function text_strn:string(input:string, len:long, quoted:long)
 	_stp_text_str(THIS->__retvalue, THIS->input, THIS->len, THIS->quoted, 0);
 %}
 
+/*
+ * tokenize - Given a string and a token delimiter,
+ *            return the next token in the string
+ * input  String to tokenize. If NULL, returns the next token in the
+ *        string passed in the previous call to tokenize().
+ * delim  Token delimiter. Note this is a string, but only the first
+ *        character is used as the delimiter.
+ */
+function tokenize:string(input:string, delim:string)
+%{ /* pure */
+	static char str[MAXSTRINGLEN];
+	static char *str_start;
+	char *token = NULL;
+
+	if (THIS->input[0]) {
+		strncpy(str, THIS->input, MAXSTRINGLEN);
+		str_start = &str[0];
+	}
+	token = strsep(&str_start, THIS->delim);
+	if (token)
+		strncpy (THIS->__retvalue, token, MAXSTRINGLEN);
+%}
+
+/*
+ * strtol - Convert a string to a long
+ *   str   String to convert
+ *   base  The base to use
+ */
+function strtol:long(str:string, base:long)
+%{ /* pure */
+	THIS->__retvalue = simple_strtol(THIS->str, NULL, THIS->base);
+%}
 
 /** @} */

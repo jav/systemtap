@@ -1,0 +1,46 @@
+probe begin
+{
+	teststr1 = "one|two|three|four|five|six|seven|eight|nine|ten"
+	teststr2 = "a,b,c,d,e,f,g"
+	teststr3 = "1,,2,3, ,4"
+	teststr4 = ""
+	teststr5 = "this is a string with no delimiters"
+
+	tok = tokenize(teststr1, "|")
+	while (tok != "") {
+		printf("%s\n", tok)
+		tok = tokenize("", "|")
+	}
+
+        tok = tokenize(teststr1, ",")
+        while (tok != "") {
+                printf("%s\n", tok)
+                tok = tokenize("", "|")
+        }
+	
+	tok = tokenize(teststr2, ",")
+        while (tok != "") {
+                printf("%s\n", tok)
+                tok = tokenize("", ",")
+        }
+
+        tok = tokenize(teststr3, ",")
+        while (tok != "") {
+                printf("%s\n", tok)
+                tok = tokenize("", ",")
+        }
+
+        tok = tokenize(teststr4, ",")
+        while (tok != "") {
+                printf("%s\n", tok)
+                tok = tokenize("", ",")
+        }
+
+        tok = tokenize(teststr5, ",")
+        while (tok != "") {
+                printf("%s\n", tok)
+                tok = tokenize("", ",")
+        }
+
+	exit()
+}

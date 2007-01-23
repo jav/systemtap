@@ -1,0 +1,29 @@
+probe begin
+{
+	teststr1 = "1"
+	teststr2 = "-1"
+	teststr3 = "123456789"
+	teststr4 = "-123456789"
+	teststr5 = "abcdef"
+	teststr6 = "123456789abcdef"
+	teststr7 = " 1 2 3 4"
+	teststr8 = ""
+	teststr9 = "1000"
+	teststr6 = "1a2b3c4d5e6f7g8h9"
+
+	printf("%d\n", strtol(teststr1, 10))
+	printf("%d\n", strtol(teststr2, 10))
+	printf("%d\n", strtol(teststr3, 10))
+	printf("%d\n", strtol(teststr4, 10))
+	printf("%d\n", strtol(teststr5, 10))
+	printf("%d\n", strtol(teststr6, 10))
+	printf("%d\n", strtol(teststr7, 10))
+	printf("%d\n", strtol(teststr8, 10))
+	printf("%d\n", strtol(teststr9, 10))
+	printf("%d\n", strtol(teststr9, 16))
+	printf("%d\n", strtol(teststr9, 8))
+	printf("%d\n", strtol(teststr9, 2))
+	printf("%d\n", strtol(teststr10, 2))
+
+	exit()
+}
