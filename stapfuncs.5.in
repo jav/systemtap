@@ -84,6 +84,18 @@ Return the substring of str starting from character start and ending at characte
 .TP
 isinstr:long (s1:string, s2:string)
 Return 1 if string s1 contains string s2, returns 0 otherwise.
+.TP
+strtol:long (str:string, base:long)
+Convert the string representation of a number to a long using the numbering system
+specified by base.  For example, strtol("1000", 16) returns 4096.  Returns 0 if the
+string cannot be converted.
+.TP
+tokenize:string (str:string, delim:string)
+Given a string and a token delimiter, return the next token in the string.
+If str is non-NULL, returns the first token.  If str is NULL, returns the
+next token in the str passed in the previous call to tokenize().  Only the
+first character in delim is used as the delimiter.  Returns NULL when no
+more tokens are left.
 
 .SS TIMESTAMP
 .TP
@@ -270,6 +282,44 @@ read_counter:long (handle:long)
 Returns the value for the processor's performance counter for the associated
 handle. The body of the a perfmon probe should set record
 the handle being used for that event.
+
+.SS SOCKETS
+These functions convert arguments in the socket tapset back and
+forth between their numeric and string representations.
+See 
+.IR stapprobes.socket (5)
+for details.
+
+.TP
+sock_prot_num2str:string (proto:long)
+Returns the string representation of the given protocol value.
+.TP
+sock_prot_str2num:long (proto:string)
+Returns the numeric value associated with the given protocol string.
+.TP
+sock_fam_num2str:string (family:long)
+Returns the string representation of the given protocol family value.
+.TP
+sock_fam_str2num:long (family:string)
+Returns the numeric value associated with the given protocol family string.
+.TP
+sock_state_num2str:string (state:long)
+Returns the string representation of the given socket state value.
+.TP
+sock_state_str2num:long (state:string)
+Returns the numeric value associated with the given socket state string.
+.TP
+sock_type_num2str:string (type:long)
+Returns the string representation of the given socket type value.
+.TP
+sock_type_str2num:long (type:string)
+Returns the numeric value associated with the given socket type string.
+.TP
+sock_flags_num2str:string (flags:long)
+Returns the string representation of the given socket flags value.
+.TP
+msg_flags_num2str:string (flags:long)
+Returns the string representation of the given message flags bit map.
 
 .SH FILES
 .nh

@@ -1,3 +1,7 @@
+2007-01-23  Mike Mason <mmlnx@us.ibm.com>
+
+	* stapprobes.socket.5.in: New sockets tapset man page.
+
 2006-10-18  Li Guanglei <guanglei@cn.ibm.com>
 	* stapprobes.iosched.5.in: update
 

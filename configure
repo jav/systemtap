@@ -5967,7 +5967,7 @@ esac
 
           ac_config_headers="$ac_config_headers config.h:config.in"
 
-                                                                                                                                                                                                                            ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile testsuite/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
+                                                                                                                                                                                                                                      ac_config_files="$ac_config_files Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile testsuite/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -6587,6 +6587,7 @@ do
   "man/stapprobes.rpc.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.rpc.5" ;;
   "man/stapprobes.scsi.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.scsi.5" ;;
   "man/stapprobes.signal.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.signal.5" ;;
+  "man/stapprobes.socket.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.socket.5" ;;
   "man/stapprobes.tcp.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.tcp.5" ;;
   "man/stapprobes.udp.5" ) CONFIG_FILES="$CONFIG_FILES man/stapprobes.udp.5" ;;
   "depfiles" ) CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
