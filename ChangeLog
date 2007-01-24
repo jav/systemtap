@@ -1,3 +1,12 @@
+2007-01-23  Mike Mason <mmlnx@us.ibm.com>
+
+	* Makefile.am, configure.ac: Add support for
+	stapprobes.socket man page.
+	* configure, Makefile.in: Regenerate.
+	* man/stapprobes.socket.5.in: Socket tapset man page.
+	* stapprobes.5.in: Add stapprobes.socket(5) to "See Also" section.
+	* stapfuncs.5.in: Add new string and sockets functions.
+
 2007-01-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (loc2c_error): Correct vasprintf ignored-rc warning.
