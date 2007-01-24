@@ -1,5 +1,10 @@
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
 
+	* socket.stp: Fixed bit checking method in sock_flags_num2str()
+	to match how it's done in the kernel.
+
+2007-01-23  Mike Mason <mmlnx@us.ibm.com>
+
 	* socket.stp: New sockets tapset.
 
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>

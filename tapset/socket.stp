@@ -8,6 +8,7 @@
 
 %{
 #include <net/sock.h>
+#include <asm/bitops.h>
 %}
 
 #################
@@ -52,7 +53,7 @@ probe socket.send = socket.sendmsg.return,
  *
  * Variables:
  *  name      Name of this probe
- *  size      Size of message sent (in bytes) or
+ *  size      Size of message received (in bytes) or
  *            error code if success = 0
  *  protocol  Protocol value
  *  family    Protocol family value
@@ -511,13 +512,16 @@ function sock_flags_num2str:string (flags:long)
 	char str[60];
 
 	str[0] = '\0';
-
-	if (THIS->flags & SOCK_ASYNC_NOSPACE) strcat (str, "ASYNC_NOSPACE|");
-	if (THIS->flags & SOCK_ASYNC_WAITDATA) strcat (str, "ASYNC_WAITDATA|");
-	if (THIS->flags & SOCK_NOSPACE) strcat (str, "NOSPACE|");
-	if (THIS->flags & SOCK_PASSCRED) strcat (str, "PASSCRED|");
-	if (THIS->flags & SOCK_PASSSEC) strcat (str, "PASSSEC|");
-
+	if (test_bit (SOCK_ASYNC_NOSPACE, &THIS->flags))
+		strcat (str, "ASYNC_NOSPACE|");
+	if (test_bit (SOCK_ASYNC_WAITDATA, &THIS->flags))
+		strcat (str, "ASYNC_WAITDATA|");
+	if (test_bit (SOCK_NOSPACE, &THIS->flags))
+		strcat (str, "NOSPACE|");
+	if (test_bit (SOCK_PASSCRED, &THIS->flags))
+		strcat (str, "PASSCRED|");
+	if (test_bit (SOCK_PASSSEC, &THIS->flags))
+		strcat (str, "PASSSEC|");
 	if (str[0] != '\0') str[strlen(str)-1] = '\0';
 	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
 %}
