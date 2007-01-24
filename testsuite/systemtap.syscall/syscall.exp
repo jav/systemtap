@@ -45,4 +45,5 @@ proc test_procedure {} {
     }    
 }
 
+set timeout 600
 test_procedure

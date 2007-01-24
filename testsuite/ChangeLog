@@ -1,3 +1,7 @@
+2007-01-24  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.syscall/syscall.exp: Increase timeout for slow machines.
+	
 2007-01-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.pass1-4/buildok.exp: Remove most kfail designations.
