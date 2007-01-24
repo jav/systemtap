@@ -38,6 +38,8 @@ proc setup_systemtap_environment {} {
     }
 
     if [installtest_p] {
+        # To run installcheck against a system install systemtap,
+        # use "make prefix=/usr installcheck"
         set env(LD_LIBRARY_PATH) $prefix/lib/systemtap
         set env(SYSTEMTAP_TAPSET) $prefix/share/systemtap/tapset
         set env(SYSTEMTAP_RUNTIME) $prefix/share/systemtap/runtime
