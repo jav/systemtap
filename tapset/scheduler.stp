@@ -9,7 +9,7 @@
 
 
 function __is_idle:long()
-%{
+%{ /* pure */
     /* Ways to detect idle-ness:
      * - pid() or tid() == 0
      * - current == current->parent
