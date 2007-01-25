@@ -509,6 +509,9 @@ function sock_type_str2num:long (type:string)
 
 function sock_flags_num2str:string (flags:long)
 %{
+#ifndef SOCK_PASSSEC
+#define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
+#endif
 	char str[60];
 
 	str[0] = '\0';
