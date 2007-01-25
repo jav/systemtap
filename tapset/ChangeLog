@@ -1,3 +1,7 @@
+2007-01-25  Martin Hunt  <hunt@localhost.localdomain>
+
+	* syscalls2.stp: Add sys32_ustat probe.
+
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
 
 	* socket.stp: Fixed bit checking method in sock_flags_num2str()

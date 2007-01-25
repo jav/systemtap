@@ -2333,7 +2333,18 @@ probe syscall.ustat = kernel.function("sys_ustat") {
 	ubuf_uaddr = $ubuf
 	argstr = sprintf("%d, %p", $dev, $ubuf)
 }
-probe syscall.ustat.return = kernel.function("sys_ustat").return {
+
+#long sys32_ustat(unsigned dev, struct ustat32 __user *u32p)
+probe syscall.ustat32 = kernel.function("sys32_ustat") ? {
+	name = "ustat"
+	dev = $dev
+	argstr = sprintf("%d, %p", $dev, $u32p)
+}
+
+probe syscall.ustat.return = 
+	kernel.function("sys_ustat").return,
+	kernel.function("sys32_ustat").return ? 
+{
 	name = "ustat"
 	retstr = returnstr(1)
 }
