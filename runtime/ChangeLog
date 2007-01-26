@@ -1,3 +1,7 @@
+2007-01-25  Roland McGrath  <roland@redhat.com>
+
+	* loc2c-runtime.h (store_deref): Use "Zr" constraint for 64-bit case.
+
 2007-01-22  Josh Stone  <joshua.i.stone@intel.com>
 
 	* loc2c-runtime.h (kread, kwrite): Tweaks to work better with
@@ -18,16 +22,16 @@
 	PR 3708
 	* map.c (str_copy): Check for NULL pointers.
 	(_new_map_set_int64): Don't check val for 0.
-	(_new_map_set_str): Don't check val for NULL.	
-	
+	(_new_map_set_str): Don't check val for NULL.
+
 	* map-gen.c (VAL_IS_ZERO): Removed.
 	(_stp_map_del): New.
-	(__stp_map_set): Don't check for zero.	
+	(__stp_map_set): Don't check for zero.
 
 	* pmap-gen.c (VAL_IS_ZERO): Removed.
 	(_stp_pmap_del): New.
 	(__stp_pmap_set): Don't check for zero.
-	
+
 2006-12-20  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Include mm.h.
@@ -35,7 +39,7 @@
 2006-12-20  Li Guanglei <guanglei@cn.ibm.com>
 	* runtime/lket/b2a/lket_b2a.c: bugfix for NULL appname when
 	search appNameTree.
-	
+
 2006-12-18  David Smith  <dsmith@redhat.com>
 
 	* lket/b2a/Makefile.in: Regenerated.  This needed to be done since
@@ -96,7 +100,7 @@
 
 	* transport/procfs.c: bugfix of the obsolete buf_info
 	and consumed_info.
-	
+
 2006-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* sym.h: Change int to int32_t.
@@ -108,11 +112,11 @@
 
 2006-11-02  Martin Hunt  <hunt@redhat.com>
 
-	* sym.c (_stp_module_relocate): New function. Needed by the 
+	* sym.c (_stp_module_relocate): New function. Needed by the
 	translator to relocate module symbols.
 	(_stp_kallsyms_lookup_name): Rewrite to use new symbol structs.
-	(_stp_kallsyms_lookup): Ditto.	
-	
+	(_stp_kallsyms_lookup): Ditto.
+
 	* sym.h: Declare the structures and arrays that contain all
 	the symbol and module information.
 
@@ -138,11 +142,11 @@
 	* stack-ppc64.c (__stp_stack_sprint): Declare sp before _sp.
 
 2006-10-12  Martin Hunt  <hunt@redhat.com>
-	
+
 	* stack.c: Reorganize and split arch-specific functions to
 	separate files.
 	(_stp_kta): Better checking.
-	(_stp_stack_sprint): Better handling of return probes. 
+	(_stp_stack_sprint): Better handling of return probes.
 
 	* stack-i386.c: New file. Uses 2.6.18 DWARF unwinder if available.
 	* stack-x86_64.c: New file. Uses 2.6.18 DWARF unwinder if available.
@@ -160,14 +164,14 @@
 
 	* runtime/lket/b2a/lket_b2a.c, runtime/lket/b2a/lket_b2a.h:
 	clean up the unused database tables and destory GTree on exit.
-	
+
 2006-10-10  Li Guanglei <guanglei@cn.ibm.com>
 
 	* runtime/lket/b2a/Makefile.am: add the checking and optional
 	compiling for mysql client library
 	* runtime/lket/b2a/Makefile.in: regenerated
-	* runtime/lket/b2a/lket_b2a.c, runtime/lket/b2a/lket_b2a.h: 
-	Adding the support of automatically database creation and 
+	* runtime/lket/b2a/lket_b2a.c, runtime/lket/b2a/lket_b2a.h:
+	Adding the support of automatically database creation and
 	dumping lket trace into mysql database
 
 2006-10-09  Josh Stone  <joshua.i.stone@intel.com>
@@ -196,14 +200,14 @@
 	* print.c: Ditto.
 	* runtime.h: Ditto.
 	* bench2/bench.rb: Ditto.
-	
+
 2006-09-26  Martin Hunt  <hunt@redhat.com>
 	* time.c (_stp_init_time): Use dynamic percpu allocations
 	instead of evil static allocations.
 	(_stp_kill_time): Free percpu allocations and set
 	_stp_time to NULL so the timers are only deleted once.
 
-2006-09-26  Martin Hunt  <hunt@redhat.com>	
+2006-09-26  Martin Hunt  <hunt@redhat.com>
 	* io.c (_stp_vlog): Remove ifdef for STP_RELAYFS. Relayfs now
 	behaves the same as procfs.
 
@@ -220,8 +224,8 @@
 	* string.c (_stp_sprintf): Ditto.
 	(_stp_vsprintf): Ditto.
 	(_stp_string_cat_cstr): Ditto.
-	(_stp_string_cat_char): Ditto.	
-	
+	(_stp_string_cat_char): Ditto.
+
 
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
@@ -239,12 +243,12 @@
 
 2006-09-19  Li Guanglei <guanglei@cn.ibm.com>
 
-	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: 
-	Be sync with the recent runtime printing changes made by Martin. 
+	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h:
+	Be sync with the recent runtime printing changes made by Martin.
 	Some clean up work before adding the support of dumping data
 	into MySQL
 	Bug fix of segment fault when an event is not registered.
-	
+
 2006-09-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 3220
@@ -259,7 +263,7 @@
 	printing binary data.
 
 2006-09-18  Martin Hunt  <hunt@redhat.com>
-	
+
 	* print.c (_stp_print_flush): Rewrite so one version works for
 	relayfs or procfs. Use proper per-cpu functions.
 	(_stp_reserve_bytes): New function. Reserve bytes in the output buffer.
@@ -269,14 +273,14 @@
 	* string.c (_stp_sprintf): Rewrite using new per-cpu buffers.
 	(_stp_vsprintf): Ditto.
 	(_stp_string_cat_cstr): Ditto.
-	(_stp_string_cat_char): Ditto.	
+	(_stp_string_cat_char): Ditto.
 
-	* runtime.h: Set defaults for MAXTRYLOCK and TRYLOCKDELAY to make 
+	* runtime.h: Set defaults for MAXTRYLOCK and TRYLOCKDELAY to make
 	runtime tests in bench2 happy.
-	
+
 2006-08-29  Li Guanglei <guanglei@cn.ibm.com>
 
-	From Gui Jian <guijian@cn.ibm.com> 
+	From Gui Jian <guijian@cn.ibm.com>
 	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h:
 	add the support to get_cycles() and sched_clock() timing
 	mechanism for LKET.
@@ -303,7 +307,7 @@
 2006-07-14  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 2922
-	* time.c (_stp_init_time): call cpufreq_get for each cpu from 
+	* time.c (_stp_init_time): call cpufreq_get for each cpu from
 	a non-atomic context (module init time).
 	* time.c (__stp_init_time): remove call to cpufreq_get from IPI.
 
@@ -328,14 +332,14 @@
 
 2006-07-11  Li Guanglei <guanglei@cn.ibm.com>
 
-	* lket/b2a/lket_b2a.c: modified to be sync with 
+	* lket/b2a/lket_b2a.c: modified to be sync with
 	the new addevent.process event hooks
-	
+
 2006-06-29  Li Guanglei <guanglei@cn.ibm.com>
 
 	* lket/b2a/lket_b2a.c, lket/b2a/lket_b2a.h: modified to be
 	sync with new _lket_trace()
-	
+
 2006-06-27  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h: Add some comments.
