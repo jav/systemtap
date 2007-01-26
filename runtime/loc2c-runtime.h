@@ -182,7 +182,7 @@
       case 1: __put_user_asm(((u8)(value)),addr,_bad,"b","b","iq",1); break;  \
       case 2: __put_user_asm(((u16)(value)),addr,_bad,"w","w","ir",1); break; \
       case 4: __put_user_asm(((u32)(value)),addr,_bad,"l","k","ir",1); break; \
-      case 8: __put_user_asm(((u64)(value)),addr,_bad,"q","","ir",1); break;  \
+      case 8: __put_user_asm(((u64)(value)),addr,_bad,"q","","Zr",1); break;  \
       default: __put_user_bad();					      \
       }									      \
     if (_bad)								      \
