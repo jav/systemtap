@@ -1,3 +1,7 @@
+2007-01-26  Josh Stone  <joshua.i.stone@intel.com>
+
+	* vfs.stp (ppos_pos): Change deref() to kread() so i686 passes.
+
 2007-01-25  Mike Mason <mmlnx@us.ibm.com>
 
 	* socket.stp: Fix for missing SOCK_PASSSEC in kernels earlier
