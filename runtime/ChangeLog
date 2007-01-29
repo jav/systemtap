@@ -1,6 +1,7 @@
 2007-01-29  Martin Hunt  <hunt@redhat.com>
+
 	* alloc.c (_stp_kmalloc): New function. Call kmalloc
-	with the coirrect flags and track usage.
+	with the correct flags and track usage.
 	(_stp_kzalloc): Ditto.
 	* map.c: Use new alloc calls.
 	* print.c: Ditto.
