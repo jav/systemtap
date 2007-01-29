@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2005, 2006 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
@@ -1105,7 +1105,7 @@ c_unparser::emit_module_init ()
   o->newline() << "printk (KERN_DEBUG \"%s: "
                << "systemtap: " << VERSION
                << ", base: %p"
-               << ", memory: %lu+%lu+%u+%u+%u data+text+ctx+io+glob"
+               << ", memory: %lu+%lu+%lu+%lu+%lu data+text+ctx+io+glob"
                << ", probes: " << session->probes.size()
                << "\\n\""
     // printk arguments
@@ -1113,9 +1113,9 @@ c_unparser::emit_module_init ()
                << ", THIS_MODULE->module_core"
                << ", (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size)"
                << ", (unsigned long) THIS_MODULE->core_text_size"
-	       << ", num_online_cpus() * sizeof(struct context)"
-	       << ", _stp_allocated_net_memory"
-	       << ", _stp_allocated_memory"
+	       << ", (unsigned long) (num_online_cpus() * sizeof(struct context))"
+	       << ", (unsigned long) _stp_allocated_net_memory"
+	       << ", (unsigned long) _stp_allocated_memory"
                << ");";
 
   // All registrations were successful.  Consider the system started.
