@@ -1,5 +1,9 @@
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
+	* configure.ac, configure: Bumped version to 0.5.13 for development.
+
+2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
 	* translate.cxx (emit_module_init): Add some more type casts to printk args.
 
 2007-01-29  Martin Hunt  <hunt@redhat.com>
