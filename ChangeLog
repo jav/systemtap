@@ -1,3 +1,8 @@
+2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* main.cxx (main): For successful last_pass=4, print compiled module name.
+	* cache.cxx (get_from_cache): Ditto.
+
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
 
 	* Makefile.am, configure.ac: Add support for

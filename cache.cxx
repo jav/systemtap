@@ -1,3 +1,12 @@
+// systemtap cache manager
+// Copyright (C) 2006-2007 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
 #include "session.h"
 #include "cache.h"
 #include "util.h"
@@ -108,6 +117,9 @@ get_from_cache(systemtap_session& s)
       ifstream i (s.translated_source.c_str());
       cout << i.rdbuf();
     }
+  // And similarly, display probe module name for -p4.
+  if (s.last_pass == 4)
+    cout << s.hash_path << endl;
 
   // If everything worked, tell the user.  We need to do this here,
   // since if copying the cached C file works, but copying the cached

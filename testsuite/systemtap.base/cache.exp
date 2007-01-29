@@ -29,6 +29,8 @@ proc stap_compile { TEST_NAME flags script args } {
     expect {
 	-re {^Pass\ [1234]:[^\r]*\ in\ .*\ ms.\r\n} {exp_continue}
 	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {incr cached 1; exp_continue}
+        # pass-4 output
+	-re {^/[^\r\n]+.ko\r\n} {exp_continue}
 	-re "compilation failed" {incr compile_errors 1; exp_continue}
 	-re "semantic error:" {incr compile_errors 1; exp_continue}
     }

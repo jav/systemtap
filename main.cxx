@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005-2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
 //
@@ -623,17 +623,15 @@ main (int argc, char * const argv [])
     {
       ostringstream o;
       unsigned saved_verbose;
-	  
-      // Make sure we're in verbose mode, so that printscript()
-      // will output function/probe bodies.
-      saved_verbose = s.verbose;
-      s.verbose = 3;
 
-      // Print script to 'o'
-      printscript(s, o);
-
-      // Restore original verbose mode setting.
-      s.verbose = saved_verbose;
+      {
+        // Make sure we're in verbose mode, so that printscript()
+        // will output function/probe bodies.
+        saved_verbose = s.verbose;
+        s.verbose = 3;
+        printscript(s, o);  // Print script to 'o'
+        s.verbose = saved_verbose;
+      }
 
       // Generate hash
       find_hash (s, o.str());
@@ -685,6 +683,10 @@ main (int argc, char * const argv [])
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   rc = compile_pass (s);
+
+  if (rc == 0 && s.last_pass == 4)
+    cout << s.hash_path << endl;
+
   times (& tms_after);
   gettimeofday (&tv_after, NULL);
 
@@ -704,8 +706,8 @@ main (int argc, char * const argv [])
       add_to_cache(s);
     }
 
-  // XXX: what to do if rc==0 && last_pass == 4?  dump .ko file to stdout?
   if (rc || s.last_pass == 4) goto cleanup;
+
 
   // PASS 5: RUN
 pass_5:
