@@ -995,21 +995,6 @@ c_unparser::emit_module_init ()
   o->newline() << "int i=0, j=0;"; // for derived_probe_group use
   o->newline() << "const char *probe_point = \"\";";
 
-  // Print a message to the kernel log about this module.  This is
-  // intended to help debug problems with systemtap modules.
-  o->newline() << "printk (KERN_DEBUG \"%s: "
-               << "systemtap: " << VERSION
-               << ", base: %p"
-               << ", memory: %lu+%lu data+text" // XXX: + runtime dynamic memory
-               << ", probes: " << session->probes.size()
-               << "\\n\""
-    // printk arguments
-               << ", THIS_MODULE->name"
-               << ", THIS_MODULE->module_core"
-               << ", (unsigned long) THIS_MODULE->core_size"
-               << ", (unsigned long) THIS_MODULE->core_text_size"
-               << ");";
-
   // Compare actual and targeted kernel releases/machines.  Sometimes
   // one may install the incorrect debuginfo or -devel RPM, and try to
   // run a probe compiled for a different version.  Catch this early,
@@ -1065,7 +1050,7 @@ c_unparser::emit_module_init ()
   o->newline() << "rc = -ENOMEM;";
   o->newline() << "goto out;";
   o->newline(-1) << "}";
-
+  
   for (unsigned i=0; i<session->globals.size(); i++)
     {
       vardecl* v = session->globals[i];      
@@ -1114,6 +1099,24 @@ c_unparser::emit_module_init ()
       o->newline() << "goto out;";
       o->newline(-1) << "}";
     }
+
+  // Print a message to the kernel log about this module.  This is
+  // intended to help debug problems with systemtap modules.
+  o->newline() << "printk (KERN_DEBUG \"%s: "
+               << "systemtap: " << VERSION
+               << ", base: %p"
+               << ", memory: %lu+%lu+%u+%u+%u data+text+ctx+io+glob"
+               << ", probes: " << session->probes.size()
+               << "\\n\""
+    // printk arguments
+               << ", THIS_MODULE->name"
+               << ", THIS_MODULE->module_core"
+               << ", (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size)"
+               << ", (unsigned long) THIS_MODULE->core_text_size"
+	       << ", num_online_cpus() * sizeof(struct context)"
+	       << ", _stp_allocated_net_memory"
+	       << ", _stp_allocated_memory"
+               << ");";
 
   // All registrations were successful.  Consider the system started.
   o->newline() << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
