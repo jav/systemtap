@@ -1,3 +1,8 @@
+2007-01-29  Mike Mason <mmlnx@us.ibm.com>
+
+	* socktop, socktop.txt: New example that uses a shell script to process
+	command line options for a systemtap script.
+
 2007-01-11  Will Cohen  <wcohen@redhat.com>
 
 	* iotime.stp:
