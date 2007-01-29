@@ -1,3 +1,9 @@
+2007-01-29  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c: Count allocated IO memory.
+	* symbols.c: Use _stp_kmalloc() and _stp_kzalloc().
+	* transport.c: Count allocated IO memory.
+	
 2007-01-09  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (_stp_del_module): Fix so memory allocated

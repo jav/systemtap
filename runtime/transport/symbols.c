@@ -63,12 +63,11 @@ static unsigned _stp_get_sym_sizes(struct module *m, unsigned *dsize)
 /* allocate space for a module and symbols */
 static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 {
-	struct _stp_module *mod = (struct _stp_module *)kmalloc(sizeof(struct _stp_module), STP_ALLOC_FLAGS);
+	struct _stp_module *mod = (struct _stp_module *)_stp_kzalloc(sizeof(struct _stp_module));
 	if (mod == NULL)
 		goto bad;
 
-	memset(mod, 0, sizeof(struct _stp_module));
-	mod->symbols = (struct _stp_symbol *)kmalloc(num * sizeof(struct _stp_symbol), STP_ALLOC_FLAGS);
+	mod->symbols = (struct _stp_symbol *)_stp_kmalloc(num * sizeof(struct _stp_symbol));
 	if (mod->symbols == NULL) {
 		mod->symbols = (struct _stp_symbol *)_stp_vmalloc(num * sizeof(struct _stp_symbol));
 		if (mod->symbols == NULL)
@@ -76,7 +75,7 @@ static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 		mod->allocated = 1;
 	}
 
-	mod->symbol_data = kmalloc(datasize, STP_ALLOC_FLAGS);
+	mod->symbol_data = _stp_kmalloc(datasize);
 	if (mod->symbol_data == NULL) {
 		mod->symbol_data = _stp_vmalloc(datasize);
 		if (mod->symbol_data == NULL)
@@ -360,7 +359,7 @@ static int _stp_do_module(const char __user *buf, int count)
 		return count;
 
 	/* copy in section data */
-	tmpmod.sections = kmalloc(count - sizeof(tmpmod), STP_ALLOC_FLAGS);
+	tmpmod.sections = _stp_kmalloc(count - sizeof(tmpmod));
 	if (tmpmod.sections == NULL) {
 		printk("_stp_do_module: unable to allocate memory.\n");
 		return -EFAULT;

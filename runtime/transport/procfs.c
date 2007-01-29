@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -280,6 +280,7 @@ static int _stp_set_buffers(int num)
 				_stp_current_buffers += i;
 				goto err;
 			}
+			_stp_allocated_net_memory += sizeof(struct _stp_buffer);
 			spin_lock_irqsave(&_stp_pool_lock, flags);
 			list_add (p, &_stp_pool_q);
 			spin_unlock_irqrestore(&_stp_pool_lock, flags);
@@ -318,6 +319,7 @@ static int _stp_register_procfs (void)
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err2;
+		_stp_allocated_net_memory += sizeof(struct _stp_buffer);
 		list_add (p, &_stp_pool_q);
 	}
 	
@@ -350,7 +352,7 @@ static int _stp_register_procfs (void)
 		if (de == NULL) 
 			goto err1;
 		de->proc_fops = &_stp_proc_fops;
-		de->data = kmalloc(sizeof(int), STP_ALLOC_FLAGS);
+		de->data = _stp_kmalloc(sizeof(int));
 		if (de->data == NULL) {
 			remove_proc_entry (buf, _stp_proc_mod);
 			goto err1;

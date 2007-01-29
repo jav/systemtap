@@ -292,6 +292,7 @@ int _stp_transport_open(struct _stp_transport_info *info)
 #endif
 
 		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir);
+		_stp_allocated_net_memory += n_subbufs * subbuf_size;
 
 		if (!_stp_chan)
 			return -ENOMEM;
