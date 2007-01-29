@@ -1,3 +1,12 @@
+2007-01-29  Martin Hunt  <hunt@redhat.com>
+	* alloc.c (_stp_kmalloc): New function. Call kmalloc
+	with the coirrect flags and track usage.
+	(_stp_kzalloc): Ditto.
+	* map.c: Use new alloc calls.
+	* print.c: Ditto.
+	* stat.c: Ditto.
+	* time.c: Ditto.
+
 2007-01-25  Roland McGrath  <roland@redhat.com>
 
 	* loc2c-runtime.h (store_deref): Use "Zr" constraint for 64-bit case.

@@ -55,6 +55,7 @@ int _stp_print_init (void)
 	Stp_pbuf = alloc_percpu(_stp_pbuf);
 	if (unlikely(Stp_pbuf == 0))
 		return -1;
+	_stp_allocated_memory += sizeof(_stp_pbuf) * num_online_cpus();	
 	return 0;
 }
 

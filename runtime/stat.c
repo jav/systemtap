@@ -96,7 +96,7 @@ Stat _stp_stat_init (int type, ...)
 		}
 		va_end (ap);
 	}
-	st = (Stat) kmalloc (sizeof(struct _Stat), STP_ALLOC_FLAGS);
+	st = (Stat) _stp_kmalloc (sizeof(struct _Stat));
 	if (st == NULL)
 		return NULL;
 	
@@ -115,7 +115,7 @@ Stat _stp_stat_init (int type, ...)
 	}
 #endif
 	
-	agg = (stat *)kmalloc (size, STP_ALLOC_FLAGS);
+	agg = (stat *)_stp_kmalloc(size);
 	if (agg == NULL)
 		goto exit2;
 

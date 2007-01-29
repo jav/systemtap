@@ -187,6 +187,7 @@ _stp_init_time(void)
     stp_time = alloc_percpu(stp_time_t);
     if (unlikely(stp_time == 0))
 	    return -1;
+    _stp_allocated_memory += sizeof(stp_time_t) * num_online_cpus();
     
     stp_timer_reregister = 1;
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);

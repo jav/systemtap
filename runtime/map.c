@@ -210,8 +210,13 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 				tmp = kmalloc_node(size, STP_ALLOC_FLAGS, cpu);
 		
 			if (!tmp)
-				return -1;;
+				return -1;
 			
+			if (cpu < 0)
+				_stp_allocated_memory += size;
+			else
+				_stp_allocated_memory += size * num_online_cpus();
+				
 			dbug ("allocated %lx\n", (long)tmp);
 			list_add((struct list_head *)tmp, &m->pool);
 			((struct map_node *)tmp)->map = m;
@@ -225,11 +230,10 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 
 static MAP _stp_map_new(unsigned max_entries, int type, int key_size, int data_size)
 {
-	MAP m = (MAP) kmalloc(sizeof(struct map_root), STP_ALLOC_FLAGS);
+	MAP m = (MAP) _stp_kzalloc(sizeof(struct map_root));
 	if (m == NULL)
 		return NULL;
 
-	memset (m, 0, sizeof(struct map_root));
 	INIT_LIST_HEAD(&m->pool);
 	INIT_LIST_HEAD(&m->head);
 	if (_stp_map_init(m, max_entries, type, key_size, data_size, -1)) {
@@ -244,14 +248,14 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	int i;
 	MAP map, m;
 
-	PMAP pmap = (PMAP) kmalloc(sizeof(struct pmap), STP_ALLOC_FLAGS);
+	PMAP pmap = (PMAP) _stp_kzalloc(sizeof(struct pmap));
 	if (pmap == NULL)
 		return NULL;
 
-	memset (pmap, 0, sizeof(struct pmap));
 	pmap->map = map = (MAP) alloc_percpu (struct map_root);
 	if (map == NULL) 
 		goto err;
+	_stp_allocated_memory += sizeof(struct map_root) * num_online_cpus();
 
 	/* initialize the memory lists first so if allocations fail */
         /* at some point, it is easy to clean up. */
