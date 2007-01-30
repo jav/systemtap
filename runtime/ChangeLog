@@ -1,3 +1,14 @@
+2007-01-30  Martin Hunt  <hunt@redhat.com>
+
+	* alloc.c (_stp_alloc_percpu):  Don't implement
+	our own; just call __alloc_percpu with appropriate args
+	for the OS version.
+	(_stp_free_percpu): Delete.
+	* map.c (_stp_map_init): When calling kmalloc_node, first 
+	call cpu_to_node() to get the proper node number.
+	* stat.c (_stp_stat_del): Call free_percpu()
+	instead of _stp_free_percpu().
+	
 2007-01-29  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (_stp_kmalloc): New function. Call kmalloc

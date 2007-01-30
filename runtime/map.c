@@ -207,7 +207,7 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 			if (cpu < 0)
 				tmp = kmalloc(size, STP_ALLOC_FLAGS);
 			else
-				tmp = kmalloc_node(size, STP_ALLOC_FLAGS, cpu);
+				tmp = kmalloc_node(size, STP_ALLOC_FLAGS, cpu_to_node(cpu));
 		
 			if (!tmp)
 				return -1;

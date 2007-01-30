@@ -143,7 +143,7 @@ exit1:
 void _stp_stat_del (Stat st)
 {
 	if (st) {
-		_stp_free_percpu (st->sd);
+		free_percpu (st->sd);
 		kfree (st->agg);
 		kfree (st);
 	}
