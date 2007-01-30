@@ -107,7 +107,7 @@ static void _stp_del_module(struct _stp_module *mod)
 {
 	int i, num;
 
-	kbug("deleting %s\n", mod->name);
+	// kbug("deleting %s\n", mod->name);
 
 	/* remove module from the arrays */
 	for (num = 0; num < _stp_num_modules; num++) {
@@ -177,7 +177,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 			return -EFAULT;
 		if (get_user(datasize, (unsigned __user *)(buf+4)))
 			return -EFAULT;
-		kbug("num=%d datasize=%d\n", num, datasize);
+		// kbug("num=%d datasize=%d\n", num, datasize);
 
 		_stp_modules[0] = _stp_alloc_module(num, datasize);
 		if (_stp_modules[0] == NULL) {
@@ -189,13 +189,13 @@ static int _stp_do_symbols(const char __user *buf, int count)
 	case 1:
 		if (copy_from_user ((char *)_stp_modules[0]->symbols, buf, count))
 			return -EFAULT;
-		kbug("got stap_symbols, count=%d\n", count);
+		// kbug("got stap_symbols, count=%d\n", count);
 		_stp_symbol_state = 2;
 		break;
 	case 2:
 		if (copy_from_user (_stp_modules[0]->symbol_data, buf, count))
 			return -EFAULT;
-		kbug("got symbol data, count=%d\n", count);
+		// kbug("got symbol data, count=%d\n", count);
 		_stp_num_modules = 1;
 
 		
@@ -287,7 +287,7 @@ static int _stp_module_exists(struct _stp_module *mod)
 {
 	int i, res;
 	unsigned long flags;
-	kbug("exists? %s\n", mod->name);
+	// kbug("exists? %s\n", mod->name);
 	STP_LOCK_MODULES;
 	for (i = 1; i < _stp_num_modules; i++) {
 		res = strcmp(_stp_modules[i]->name, mod->name);
@@ -307,7 +307,7 @@ static void _stp_ins_module(struct _stp_module *mod)
 	int i, num, res;
 	unsigned long flags;
 
-	kbug("insert %s\n", mod->name);
+	// kbug("insert %s\n", mod->name);
 
 	STP_LOCK_MODULES;
 
@@ -353,7 +353,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	if (copy_from_user ((char *)&tmpmod, buf, sizeof(tmpmod)))
 		return -EFAULT;
 
-	kbug("Got module %s, count=%d(0x%x)\n", tmpmod.name, count,count);
+	// kbug("Got module %s, count=%d(0x%x)\n", tmpmod.name, count,count);
 
 	if (_stp_module_exists(&tmpmod))
 		return count;
@@ -374,7 +374,7 @@ static int _stp_do_module(const char __user *buf, int count)
 				 + (long)((long)tmpmod.sections + tmpmod.num_sections * sizeof(struct _stp_symbol)));
 	}
 
-	#ifdef DEBUG
+	#ifdef DEBUG_SYMBOLS
 	for (i = 0; i < tmpmod.num_sections; i++)
 		printk("section %d (stored at %p): %s %lx\n", i, &tmpmod.sections[i], tmpmod.sections[i].symbol, tmpmod.sections[i].addr);
 	#endif

@@ -1,3 +1,7 @@
+2007-01-30  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c: Comment out many debug lines.
+
 2007-01-29  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c: Count allocated IO memory.
