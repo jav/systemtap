@@ -64,7 +64,7 @@ void _stp_sprintf (String str, const char *fmt, ...)
 		va_start(args, fmt);
 		num = _stp_vsnprintf(buf, size, fmt, args);
 		va_end(args);
-		if (unlikely(num > size)) { 
+		if (unlikely(num >= size)) { 
 			/* overflowed the buffer */
 			if (pb->len == 0) {
 				/* A single print request exceeded the buffer size. */

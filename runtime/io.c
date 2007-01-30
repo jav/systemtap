@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * I/O for printing warnings, errors and debug messages
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -23,23 +23,24 @@ void _stp_string_cat_cstr (String str1, const char *str2);
  * @{
  */
 
-/** private buffer for _stp_log() */
-#define STP_LOG_BUF_LEN 2047
 #define WARN_STRING "WARNING: "
 #define ERR_STRING "ERROR: "
-
-static char _stp_lbuf[NR_CPUS][STP_LOG_BUF_LEN + 1];
-
 enum code { INFO=0, WARN, ERROR, DBUG };
+
+/** private buffer for _stp_log() */
+#define STP_LOG_BUF_LEN 256
+
+typedef char _stp_lbuf[STP_LOG_BUF_LEN];
+void *Stp_lbuf = NULL;
 
 static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
 {
 	int num;
-	char *buf = &_stp_lbuf[get_cpu()][0];
+	char *buf = per_cpu_ptr(Stp_lbuf, smp_processor_id());
 	int start = 0;
 
 	if (type == DBUG) {
-		start = scnprintf(buf, STP_LOG_BUF_LEN, "\033[36m%s:%d:\033[0m ", func, line);
+		start = _stp_snprintf(buf, STP_LOG_BUF_LEN, "\033[36m%s:%d:\033[0m ", func, line);
 	} else if (type == WARN) {
 		strcpy (buf, WARN_STRING);
 		start = sizeof(WARN_STRING) - 1;
@@ -48,14 +49,14 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 		start = sizeof(ERR_STRING) - 1;
 	}
 
-	num = vscnprintf (buf + start, STP_LOG_BUF_LEN - start, fmt, args);
+	num = _stp_vscnprintf (buf + start, STP_LOG_BUF_LEN - start - 1, fmt, args);
 	if (num + start) {
 		if (buf[num + start - 1] != '\n') {
 			buf[num + start] = '\n';
 			num++;
+			buf[num + start] = '\0';
 		}
-		buf[num + start] = '\0';
-		
+
 		if (type != DBUG)
 			_stp_write(STP_OOB_DATA, buf, start + num + 1);
 		else {
@@ -63,7 +64,6 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 			_stp_print_flush();
 		}
 	}
-	put_cpu();
 }
 
 /** Logs Data.

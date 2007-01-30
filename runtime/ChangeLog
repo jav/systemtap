@@ -1,4 +1,15 @@
 2007-01-30  Martin Hunt  <hunt@redhat.com>
+	
+	* io.c (_stp_vlog): Use dynamic percpu allocations
+	instead of very wasteful static allocations.
+	* print.c (_stp_print_init): Do percpu allocations
+	for io.c.
+	(_stp_print_cleanup): Free percpu allocations.
+
+	* string.c (_stp_sprintf): Overflow check needed
+	to be >= instead of >.	
+	
+2007-01-30  Martin Hunt  <hunt@redhat.com>	
 
 	* alloc.c (_stp_alloc_percpu):  Don't implement
 	our own; just call __alloc_percpu with appropriate args

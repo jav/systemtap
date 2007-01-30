@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -12,8 +12,9 @@
 #define _PRINT_C_
 
 #include "string.h"
-#include "io.c"
 #include "vsprintf.c"
+#include "io.c"
+
 
 /** @file print.c
  * Printing Functions.
@@ -50,12 +51,20 @@ typedef struct __stp_pbuf {
 
 void *Stp_pbuf = NULL;
 
+/* create percpu print and io buffers */
 int _stp_print_init (void)
 {
 	Stp_pbuf = alloc_percpu(_stp_pbuf);
 	if (unlikely(Stp_pbuf == 0))
 		return -1;
-	_stp_allocated_memory += sizeof(_stp_pbuf) * num_online_cpus();	
+
+	/* now initialize IO buffer used in io.c */
+	Stp_lbuf = alloc_percpu(_stp_lbuf);
+	if (unlikely(Stp_lbuf == 0)) {
+		free_percpu(Stp_pbuf);
+		return -1;
+	}
+	_stp_allocated_memory += (sizeof(_stp_pbuf)+sizeof(_stp_lbuf)) * num_online_cpus();
 	return 0;
 }
 
@@ -63,6 +72,8 @@ void _stp_print_cleanup (void)
 {
 	if (Stp_pbuf)
 		free_percpu(Stp_pbuf);
+	if (Stp_lbuf)
+		free_percpu(Stp_lbuf);
 }
 
 /** Send the print buffer to the transport now.
