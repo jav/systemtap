@@ -4074,14 +4074,6 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
 
-      // XXX: impedance mismatch
-      // STP_STRING_SIZE defines the size of the buffer 
-      // used in stack traces.
-      s.op->newline() << "#ifndef STP_STRING_SIZE";
-      s.op->newline() << "#define STP_STRING_SIZE 1024";
-      s.op->newline() << "#endif";
-      s.op->newline() << "#define STP_NUM_STRINGS 1";
-
       if (s.bulk_mode)
 	{
 	  s.op->newline() << "#define STP_RELAYFS";
@@ -4097,11 +4089,10 @@ translate_pass (systemtap_session& s)
 	s.op->newline() << "#define STP_PERFMON";
 
       s.op->newline() << "#include \"runtime.h\"";
-      s.op->newline() << "#include \"current.c\"";
-      s.op->newline() << "#include \"stack.c\"";
       s.op->newline() << "#include \"regs.c\"";
+      s.op->newline() << "#include \"stack.c\"";
+      s.op->newline() << "#include \"regs-ia64.c\"";
       s.op->newline() << "#include \"stat.c\"";
-      s.op->newline() << "#include \"arith.c\"";
       s.op->newline() << "#include <linux/string.h>";
       s.op->newline() << "#include <linux/timer.h>";
       s.op->newline() << "#include <linux/delay.h>";

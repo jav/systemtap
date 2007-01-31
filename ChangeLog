@@ -1,3 +1,8 @@
+2007-01-31  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (translate_pass): Remove old string impedance 
+	mismatch stuff. Modify included files.
+	
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac, configure: Bumped version to 0.5.13 for development.
