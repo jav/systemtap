@@ -1,5 +1,5 @@
 // context tapset
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -15,18 +15,14 @@ function print_regs () %{
 
 function print_backtrace () %{
 	if (CONTEXT->regs) {
-		_stp_stack_print(CONTEXT->regs, CONTEXT->pi);
+		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi);
 	}
 %}
 
 function backtrace:string () %{ /* pure */
-	if (CONTEXT->regs) {
-                /* XXX: this won't be necessary when runtime and translator */
-		/* agree on what a string is. */
-		String str = _stp_string_init (0);
-		_stp_stack_sprint (str, CONTEXT->regs, 0, CONTEXT->pi);	
-		strlcpy (THIS->__retvalue, _stp_string_ptr(str), MAXSTRINGLEN);
-	} else 
+	if (CONTEXT->regs)
+		_stp_stack_snprint (THIS->__retvalue, MAXSTRINGLEN, CONTEXT->regs, 0, CONTEXT->pi);	
+	else 
 		strlcpy (THIS->__retvalue, "", MAXSTRINGLEN);
 %}
 
@@ -78,9 +74,9 @@ function print_stack(stk:string) %{
 	char *ptr = THIS->stk;
 	char *tok = strsep(&ptr, " ");
 	while (tok && *tok) {
-		_stp_print_cstr(" ");
+		_stp_print_char(' ');
 		_stp_symbol_print (simple_strtol(tok, NULL, 16));
-		_stp_print_cstr("\n");
+		_stp_print_char('\n');
 		tok = strsep(&ptr, " ");
 	}
 %}
@@ -112,8 +108,7 @@ function probefunc:string () %{ /* pure */
 #else
 		((unsigned long)REG_IP(CONTEXT->regs) >= (unsigned long)PAGE_OFFSET)) {
 #endif
-		_stp_symbol_sprint_basic(THIS->__retvalue, MAXSTRINGLEN,
-				REG_IP(CONTEXT->regs));
+		_stp_symbol_snprint(THIS->__retvalue, MAXSTRINGLEN, REG_IP(CONTEXT->regs));
        	         if (THIS->__retvalue[0] == '.')  /* powerpc symbol has a dot*/
        	         	strlcpy(THIS->__retvalue,THIS->__retvalue + 1,MAXSTRINGLEN);
 	} else {
@@ -184,7 +179,7 @@ function caller_addr:long () %{ /* pure */
 # only for return probes at this time.
 function caller:string() %{ /* pure */
         if (CONTEXT->pi) 
-		_stp_symbol_sprint_basic( THIS->__retvalue, MAXSTRINGLEN, 
+		_stp_symbol_snprint( THIS->__retvalue, MAXSTRINGLEN, 
 			(unsigned long)_stp_ret_addr_r(CONTEXT->pi));
         else
 		strlcpy(THIS->__retvalue,"unknown",MAXSTRINGLEN);

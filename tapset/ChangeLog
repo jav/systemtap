@@ -1,3 +1,11 @@
+2007-01-31  Martin Hunt  <hunt@redhat.com>
+
+	* context.stp (print_backtrace): Modify for new
+	_stp_stack_print.
+	(backtrace): Just use _stp_stack_snprint().
+	(print_stack): Use new _stp_print* functions.
+	(probefunc): Use _stp_symbol_snprint.
+	
 2007-01-26  Josh Stone  <joshua.i.stone@intel.com>
 
 	* vfs.stp (ppos_pos): Change deref() to kread() so i686 passes.
