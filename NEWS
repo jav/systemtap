@@ -3,6 +3,11 @@
 - When running in -p4 (compile-only) mode, the compiled .ko file name
   is printed on standard output.
 
+- An array element with a null value such as zero or an empty string
+  is now preserved, and will show up in a "foreach" loop or "in" test.
+  To delete such an element, the scripts needs to use an explicit
+  "delete array[idx]" statement rather than something like "array[idx]=0".
+
 
 * What's new since version 0.5.10?
 
