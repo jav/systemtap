@@ -1,3 +1,60 @@
+2007-01-31  Martin Hunt  <hunt@redhat.com>
+	
+	* string.c (_stp_string_init): Deleted.
+	(_stp_sprintf): Deleted.
+	(_stp_vsprintf): Deleted.
+	(_stp_string_cat_cstr): Deleted.
+	(_stp_string_cat_string): Deleted.
+	(_stp_string_cat_char): Deleted.
+	(_stp_string_ptr): Deleted.
+	(_stp_string_cat): Deleted.	
+	(_stp_snprintf): Moved from vsprintf.c.
+	(_stp_vscnprintf): Moved from vsprintf.c.
+
+	* string.h (STP_STRING_SIZE): Deleted.
+	(STP_NUM_STRINGS): Deleted.
+	Remove all references to type "String".
+
+        * vsprintf.c (_stp_vscnprintf): Moved to string.c.
+	(_stp_snprintf): Moved to string.c
+	
+	* sym.c (_stp_symbol_sprint): Replaced with
+	_stp_symbol_print, which writes to the print buffer.
+	(_stp_symbol_sprint_basic): Replaced with
+	_stp_symbol_snprint.
+	
+	* runtime.h: Include io.c.
+	
+	* stat-common.c: Use new _stp_print* functions.
+	* stat.c: Ditto.
+	
+	* regs.c: Renamed to regs-ia64.c.
+	* current.c: Renamed regs.c.
+	* regs-ia64.c: New file (renamed from regs.c).
+
+	* stack.c (_stp_stack_sprint): Renamed _stp_stack_print
+	and now just prints to the print buffer. Calls 
+	__stp_stack_print instead of __stp_stack_sprint.
+	(_stp_stack_snprint): New function. Calls _stp_stack_print and
+	then copies the print buffer into a string.
+	(_stp_stack_printj): Deleted.
+	(_stp_ustack_sprint): Deleted.
+	* stack-*.c: Rewritten to print instead of writing to strings.
+	Uses new _stp_print* functions.
+	
+	* print.c (_stp_printf): Create new function instead of macro.
+	(_stp_print): Ditto.
+	(_stp_print_char): New function.
+
+	* map.c: Use _stp_print() and _stp_print_char()
+	instead of _stp_print_cstr().
+
+	* io.c (_stp_vlog): Use _stp_print() instead
+	of _stp_string_cat_cstr().
+
+	* copy.c (_stp_string_from_user): Deleted.
+	
+
 2007-01-30  Martin Hunt  <hunt@redhat.com>
 	
 	* io.c (_stp_vlog): Use dynamic percpu allocations

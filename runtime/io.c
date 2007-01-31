@@ -11,11 +11,6 @@
 #ifndef _IO_C_
 #define _IO_C_
 
-#include "transport/transport.c"
-
-void _stp_print_flush (void);
-void _stp_string_cat_cstr (String str1, const char *str2);
-
 /** @file io.c
  * @brief I/O for printing warnings, errors and debug messages.
  */
@@ -26,12 +21,6 @@ void _stp_string_cat_cstr (String str1, const char *str2);
 #define WARN_STRING "WARNING: "
 #define ERR_STRING "ERROR: "
 enum code { INFO=0, WARN, ERROR, DBUG };
-
-/** private buffer for _stp_log() */
-#define STP_LOG_BUF_LEN 256
-
-typedef char _stp_lbuf[STP_LOG_BUF_LEN];
-void *Stp_lbuf = NULL;
 
 static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
 {
@@ -60,7 +49,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 		if (type != DBUG)
 			_stp_write(STP_OOB_DATA, buf, start + num + 1);
 		else {
-			_stp_string_cat_cstr(_stp_stdout,buf);
+			_stp_print(buf);
 			_stp_print_flush();
 		}
 	}

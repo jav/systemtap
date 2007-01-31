@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Stack tracing functions
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -11,7 +11,6 @@
 
 #ifndef _STACK_C_
 #define _STACK_C_
-
 
 /** @file stack.c
  * @brief Stack Tracing Functions
@@ -64,80 +63,62 @@ static int _stp_kta(unsigned long addr)
 	return 0;
 }
 
-/** Writes stack backtrace to a String
- *
- * @param str String
- * @param regs A pointer to the struct pt_regs.
- * @returns Same String as was input with trace info appended,
- */
-String _stp_stack_sprint (String str, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
-{
-	if (verbose) {
-		/* print the current address */
-		if (pi) {
-			_stp_string_cat(str, "Returning from: ");
-			_stp_symbol_sprint(str, (unsigned long)_stp_probe_addr_r(pi));
-			_stp_string_cat(str, "\nReturning to: ");
-			_stp_symbol_sprint(str, (unsigned long)_stp_ret_addr_r(pi));
-		} else
-			_stp_symbol_sprint (str, REG_IP(regs));
-		_stp_string_cat(str, "\n");
-	} else
-		_stp_sprintf (str, "%lx ", REG_IP(regs));
-	__stp_stack_sprint (str, regs, verbose, 0);
-	return str;
-}
-
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
  */
 
-#define _stp_stack_print(regs,pi)	(void)_stp_stack_sprint(_stp_stdout,regs,1,pi)
-
-/** Writes stack backtrace to a String.
- * Use this when calling from a jprobe.
- * @param str String
- * @returns Same String as was input with trace info appended,
- * @sa _stp_stack_sprint()
- */
-String _stp_stack_sprintj(String str)
+void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
 {
-	unsigned long stack;
-	_stp_sprintf (str, "trace for %d (%s)\n", current->pid, current->comm);
-/*	__stp_stack_sprint (str, &stack, 1, 0); */
-	return str;
+	if (verbose) {
+		/* print the current address */
+		if (pi) {
+			_stp_print("Returning from: ");
+			_stp_symbol_print((unsigned long)_stp_probe_addr_r(pi));
+			_stp_print("\nReturning to  : ");
+			_stp_symbol_print((unsigned long)_stp_ret_addr_r(pi));
+		} else {
+			_stp_print_char(' ');
+			_stp_symbol_print (REG_IP(regs));
+		}
+		_stp_print_char('\n');
+	} else
+		_stp_printf ("%p ", REG_IP(regs));
+	__stp_stack_print (regs, verbose, 0);
 }
 
-/** Prints the stack backtrace.
- * Use this when calling from a jprobe.
- * @sa _stp_stack_print()
+/** Writes stack backtrace to a string
+ *
+ * @param str string
+ * @param regs A pointer to the struct pt_regs.
+ * @returns void
  */
-#define _stp_stack_printj() (void)_stp_stack_sprintj(_stp_stdout)
-
-/** Writes the user stack backtrace to a String
- * @param str String
- * @returns Same String as was input with trace info appended,
- * @note Currently limited to a depth of two. Works from jprobes and kprobes.
- */
-String _stp_ustack_sprint (String str)
+void _stp_stack_snprint (char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
 {
-	struct pt_regs *nregs = ((struct pt_regs *) (THREAD_SIZE + (unsigned long) current->thread_info)) - 1;
-#if BITS_PER_LONG == 64
-	_stp_sprintf (str, " 0x%016lx : [user]\n", REG_IP(nregs));
-	if (REG_SP(nregs))
-		_stp_sprintf (str, " 0x%016lx : [user]\n", *(unsigned long *)REG_SP(nregs));
-#else
-	_stp_sprintf (str, " 0x%08lx : [user]\n", REG_IP(nregs));
-	if (REG_SP(nregs))
-		_stp_sprintf (str, " 0x%08lx : [user]\n", *(unsigned long *)REG_SP(nregs));
-#endif
-	return str;
+	/* To get a string, we use a simple trick. First flush the print buffer, */
+	/* then call _stp_stack_print, then copy the result into the output string  */
+	/* and clear the print buffer. */
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	_stp_print_flush();
+	_stp_stack_print(regs, verbose, pi);
+	strlcpy(str, pb->buf, size < pb->len ? size : pb->len);
+	pb->len = 0;
 }
+
 
 /** Prints the user stack backtrace
+ * @param str string
+ * @returns Same string as was input with trace info appended,
  * @note Currently limited to a depth of two. Works from jprobes and kprobes.
  */
-#define _stp_ustack_print() (void)_stp_ustack_sprint(_stp_stdout)
+#if 0
+void _stp_ustack_print (char *str)
+{
+	struct pt_regs *nregs = ((struct pt_regs *) (THREAD_SIZE + (unsigned long) current->thread_info)) - 1;
+	_stp_printf ("%p : [user]\n", REG_IP(nregs));
+	if (REG_SP(nregs))
+		_stp_printf ("%p : [user]\n", *(unsigned long *)REG_SP(nregs));
+}
+#endif /* 0 */
 
 /** @} */
 #endif /* _STACK_C_ */

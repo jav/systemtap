@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * Statistics Aggregation
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2007 Red Hat Inc.
  * Copyright (C) 2006 Intel Corporation
  *
  * This file is part of systemtap, and is free software.  You can
@@ -246,7 +246,7 @@ static void __stp_stat_print (char *fmt, Stat st, stat *sd, int cpu)
 		if (*f)
 			f++;
 	}
-	_stp_print_cstr ("\n");
+	_stp_print_char('\n');
 	_stp_print_flush();	
 }
 

@@ -13,8 +13,7 @@
 
 #include "string.h"
 #include "vsprintf.c"
-#include "io.c"
-
+#include "transport/transport.c"
 
 /** @file print.c
  * Printing Functions.
@@ -50,6 +49,12 @@ typedef struct __stp_pbuf {
 } _stp_pbuf;
 
 void *Stp_pbuf = NULL;
+
+/** private buffer for _stp_log() */
+#define STP_LOG_BUF_LEN 256
+
+typedef char _stp_lbuf[STP_LOG_BUF_LEN];
+void *Stp_lbuf = NULL;
 
 /* create percpu print and io buffers */
 int _stp_print_init (void)
@@ -133,7 +138,7 @@ static void * _stp_reserve_bytes (int numbytes)
 	if (unlikely(numbytes == 0 || numbytes > STP_BUFFER_SIZE))
 		return NULL;
 
-	if (numbytes > size)
+	if (unlikely(numbytes > size))
 		_stp_print_flush();
 
 	ret = pb->buf + pb->len;
@@ -159,7 +164,7 @@ static void _stp_print_binary (int num, ...)
 
 	args = _stp_reserve_bytes(num * sizeof(int64_t));
 
-	if (args != NULL) {
+	if (likely(args != NULL)) {
 		va_start(vargs, num);
 		for (i = 0; i < num; i++) {
 			args[i] = va_arg(vargs, int64_t);
@@ -169,42 +174,72 @@ static void _stp_print_binary (int num, ...)
 }
 
 /** Print into the print buffer.
- * Like printf, except output goes to the print buffer.
- * Safe because overflowing the buffer is not allowed.
+ * Like C printf.
  *
  * @sa _stp_print_flush()
  */
-#define _stp_printf(args...) _stp_sprintf(_stp_stdout,args)
+void _stp_printf (const char *fmt, ...)
+{
+	int num;
+	va_list args;
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	char *buf = pb->buf + pb->len;
+	int size = STP_BUFFER_SIZE - pb->len;
 
-/** Print into the print buffer.
- * Use this if your function already has a va_list.
- * You probably want _stp_printf().
+	va_start(args, fmt);
+	num = _stp_vsnprintf(buf, size, fmt, args);
+	va_end(args);
+	if (unlikely(num >= size)) { 
+		/* overflowed the buffer */
+		if (pb->len == 0) {
+			/* A single print request exceeded the buffer size. */
+			/* Should not be possible with Systemtap-generated code. */
+			pb->len = STP_BUFFER_SIZE;
+			_stp_print_flush();
+			num = 0;
+		} else {
+			/* Need more space. Flush the previous contents */
+			_stp_print_flush();
+			
+			/* try again */
+			va_start(args, fmt);
+			num = _stp_vsnprintf(pb->buf, STP_BUFFER_SIZE, fmt, args);
+			va_end(args);
+		}
+	}
+	pb->len += num;
+}
+
+/** Write a string into the print buffer.
+ * @param str A C string (char *)
  */
 
-#define _stp_vprintf(fmt,args) _stp_vsprintf(_stp_stdout,fmt,args)
+void _stp_print (const char *str)
+{
+	int num = strlen (str);
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	int size = STP_BUFFER_SIZE - pb->len;
+	if (unlikely(num >= size)) {
+		_stp_print_flush();
+		if (num > STP_BUFFER_SIZE)
+			num = STP_BUFFER_SIZE;
+	}
+	memcpy (pb->buf + pb->len, str, num);
+	pb->len += num;
+}
 
-/** Write a C string into the print buffer.
- * Copies a string into a print buffer.
- * Safe because overflowing the buffer is not allowed.
- * This is more efficient than using _stp_printf() if you don't
- * need fancy formatting.
- *
- * @param str A C string.
- * @sa _stp_print
- */
-#define _stp_print_cstr(str) _stp_string_cat_cstr(_stp_stdout,str)
+void _stp_print_char (const char c)
+{
+	char *buf;
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+	int size = STP_BUFFER_SIZE - pb->len;
+	if (unlikely(1 >= size))
+		_stp_print_flush();
+	
+	pb->buf[pb->len] = c;
+	pb->len ++;
+}
 
-
-/** Write a String into the print buffer.
- * Copies a String into a print buffer.
- * Safe because overflowing the buffer is not allowed.
- * This is more efficient than using _stp_printf() if you don't
- * need fancy formatting.
- *
- * @param str A String.
- * @sa _stp_print
- */
-#define _stp_print_string(str) _stp_string_cat_string(_stp_stdout,str)
 
 /* This function is used when printing maps or stats. */
 /* Probably belongs elsewhere, but is here for now. */
@@ -220,7 +255,7 @@ static char *next_fmt(char *fmt, int *num)
 	while (*f) {
 		if (in_fmt) {
 			if (*f == '%') {
-				_stp_string_cat_char(_stp_stdout,'%');
+				_stp_print_char('%');
 				in_fmt = 0;
 			} else if (*f > '0' && *f <= '9') {
 				*num = *f - '0';
@@ -231,28 +266,11 @@ static char *next_fmt(char *fmt, int *num)
 		} else if (*f == '%')
 			in_fmt = 1;
 		else
-			_stp_string_cat_char(_stp_stdout,*f);
+			_stp_print_char(*f);
 		f++;
 	}
 	return f;
 }
-
-/** Write a String or C string into the print buffer.
- * This macro selects the proper function to call.
- * @param str A String or C string (char *)
- * @sa _stp_print_cstr _stp_print_string
- */
-
-#define _stp_print(str)							\
-	({								\
-	  if (__builtin_types_compatible_p (typeof (str), char[])) {	\
-		  char *x = (char *)str;				\
-		  _stp_string_cat_cstr(_stp_stdout,x);			\
-	  } else {							\
-		  String x = (String)str;				\
-		  _stp_string_cat_string(_stp_stdout,x);		\
-	  }								\
-  })
 
 /** @} */
 #endif /* _PRINT_C_ */

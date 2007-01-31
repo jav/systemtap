@@ -1,5 +1,5 @@
 /* -*- linux-c -*-
- * ppc64 stack tracing functions
+ * s390 stack tracing functions
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -8,7 +8,7 @@
  */
 
 static unsigned long
-__stp_show_stack (String str, unsigned long sp, unsigned long low,
+__stp_show_stack (unsigned long sp, unsigned long low,
  		  unsigned long high, int verbose)
 {
  
@@ -24,11 +24,11 @@ __stp_show_stack (String str, unsigned long sp, unsigned long low,
 		sf = (struct stack_frame *) sp;
 		ip = sf->gprs[8] & PSW_ADDR_INSN;
 		if (verbose) {
-			_stp_sprintf(str, "[%016lx] [%016lx] ", sp, ip);
-			_stp_symbol_sprint(str, ip);
-			_stp_string_cat(str, "\n");
+			_stp_printf("[%p] [%p] ", sp, ip);
+			_stp_symbol_print(ip);
+			_stp_print_char('\n');
 		}else{
-			_stp_sprintf(str,"%lx ", ip);
+			_stp_printf("%p ", ip);
 		}
 		/* Follow the back_chain */
 		while (1) {
@@ -41,11 +41,11 @@ __stp_show_stack (String str, unsigned long sp, unsigned long low,
 			sf = (struct stack_frame *) sp;
 			ip = sf->gprs[8] & PSW_ADDR_INSN;
 			if (verbose) {
-				_stp_sprintf(str, "[%016lx] [%016lx] ", sp, ip);
-				_stp_symbol_sprint(str, ip);
-				_stp_string_cat(str, "\n");
+				_stp_printf("[%p] [%p] ", sp, ip);
+				_stp_symbol_print(ip);
+				_stp_print_char('\n');
 			}else{
-				_stp_sprintf(str,"%lx ", ip);
+				_stp_printf("%p ", ip);
 			}
 		}
 		/* Zero backchain detected, check for interrupt frame. */
@@ -54,29 +54,29 @@ __stp_show_stack (String str, unsigned long sp, unsigned long low,
 			return sp;
 		regs = (struct pt_regs *) sp;
 		if (verbose) {
-			_stp_sprintf(str, "[%016lx] [%016lx] ", sp, ip);
-			_stp_symbol_sprint(str, ip);
-			_stp_string_cat(str, "\n");
+			_stp_printf("[%p] [%p] ", sp, ip);
+			_stp_symbol_print(ip);
+			_stp_print_char('\n');
 		}else{
-			_stp_sprintf(str,"%lx ", ip);
+			_stp_printf("%p ", ip);
 		}
 		low = sp;
 		sp = regs->gprs[15];
 	}
 }
  
-static void __stp_stack_sprint (String str, struct pt_regs *regs,
-				int verbose, int levels)
+static void __stp_stack_print (struct pt_regs *regs,
+			       int verbose, int levels)
 {
 		unsigned long *_sp = (unsigned long *)&REG_SP(regs);
 		unsigned long sp = (unsigned long)_sp;
 		// unsigned long sp = (unsigned long)*_sp;
  
-		sp = __stp_show_stack(str, sp,
+		sp = __stp_show_stack(sp,
 			S390_lowcore.async_stack - ASYNC_SIZE,
 			S390_lowcore.async_stack,verbose);
  
-		__stp_show_stack(str, sp,
+		__stp_show_stack(sp,
 			S390_lowcore.thread_info,
 			S390_lowcore.thread_info + THREAD_SIZE,verbose);
 }

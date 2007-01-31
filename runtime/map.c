@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Map Functions
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -643,7 +643,7 @@ static int print_keytype (char *fmt, int type, key_data *kd)
 	case STRING:
 		if (*fmt != 's')
 			return 1;
-		_stp_print_cstr (kd->strp);
+		_stp_print (kd->strp);
 		break;
 	case INT64:
 		if (*fmt == 'x')
@@ -675,7 +675,7 @@ static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
 	switch (map->type) {
 	case STRING:
 		if (*fmt == 's')
-			_stp_print_cstr(_stp_get_str(ptr));
+			_stp_print (_stp_get_str(ptr));
 		break;
 	case INT64:
 	{
@@ -739,11 +739,11 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
 			if (*f)
 				f++;
 		}
-		_stp_print_cstr ("\n");
+		_stp_print_char ('\n');
 		if (n && (--n <= 0))
 			break;
 	}
-	_stp_print_cstr ("\n");
+	_stp_print_char ('\n');
 	_stp_print_flush();
 }
 

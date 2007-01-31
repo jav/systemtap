@@ -75,6 +75,7 @@ static struct
 #include "alloc.c"
 #include "print.c"
 #include "string.c"
+#include "io.c"
 #include "arith.c"
 #include "copy.c"
 #include "sym.h"

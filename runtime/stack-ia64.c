@@ -10,13 +10,11 @@
 
 struct dump_para{
 	unsigned long *sp;
-	String str;
 };
 
 static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 {
 	unsigned long ip, skip=1;
-	String str = ((struct dump_para*)arg)->str;
 	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);
 
 	do {
@@ -27,16 +25,15 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
 				skip = 0;
                         else continue;
                 }
-		_stp_string_cat(str, " ");
-		_stp_symbol_sprint(str, ip);
-		_stp_string_cat (str, "\n");
+		_stp_print_char(' ');
+		_stp_symbol_print(ip);
+		_stp_print_char('\n');
         } while (unw_unwind(info) >= 0);
 }
 
 static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 {
 	unsigned long ip, skip=1;
-	String str = ((struct dump_para*)arg)->str;
 	struct pt_regs *regs = container_of(((struct dump_para*)arg)->sp, struct pt_regs, r12);	
 
 	do {
@@ -47,16 +44,15 @@ static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 				skip = 0;
 			continue;
 		}
-		_stp_sprintf (str, "%lx ", ip);
+		_stp_printf ("%p ", ip);
 	} while (unw_unwind(info) >= 0);
 }
 
-static void __stp_stack_sprint (String str, struct pt_regs *regs, int verbose, int levels)
+static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 {
 	unsigned long *stack = (unsigned long *)&REG_SP(regs);
 	struct dump_para para;
 	
-	para.str = str;
 	para.sp  = stack; 
 	if (verbose)
 		unw_init_running(__stp_show_stack_sym, &para);

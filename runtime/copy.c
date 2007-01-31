@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Copy from user space functions
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -119,30 +119,6 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 	return res;
 }
 
-/** Copy a String from userspace.
- * Copies a string of up to \e count bytes from userspace into a String. 
- * If access to userspace fails, returns -EFAULT (some data may have been
- * copied).
- * @param str Destination String.
- * @param src Source address, in user space.
- * @param count Maximum number of bytes to copy, including the trailing NULL.
- * 
- */
-
-long _stp_string_from_user (String str,  const char __user *src, long count)
-{
-	long res = -EFAULT;
-	if (count > STP_STRING_SIZE - str->len - 1)
-		count = STP_STRING_SIZE - str->len - 1;
-	if (access_ok(VERIFY_READ, src, count)) {
-		__stp_strncpy_from_user(str->buf + str->len, src, count, res);
-		if (res > 0) {
-			str->len += res;
-			str->buf[str->len] = '\0';
-		}
-	}
-	return res;
-}
 
 /** Copy a block of data from user space.
  *

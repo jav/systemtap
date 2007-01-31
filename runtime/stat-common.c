@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * common stats functions for aggragations and maps
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -34,7 +34,7 @@ static int needed_space(int64_t v)
 static void reprint (int num, char *s)
 {
 	while (num > 0) {
-		_stp_print_cstr (s);
+		_stp_print(s);
 		num--;
 	}
 }
@@ -149,10 +149,10 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	else
 		val_space = 5;
 	for ( i = 0; i < j; i++)
-		_stp_print_cstr (" ");
-	_stp_print_cstr("value |");
+		_stp_print(" ");
+	_stp_print("value |");
 	reprint (HIST_WIDTH, "-");
-	_stp_print_cstr (" count\n");
+	_stp_print(" count\n");
 	if (st->type == HIST_LINEAR)
 		val = st->start;
 	else
@@ -161,7 +161,7 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		if (i >= low_bucket && i <= high_bucket) {
 			reprint (val_space - needed_space(val), " ");
 			_stp_printf("%lld", val);
-			_stp_print_cstr (" |");
+			_stp_print(" |");
 			
 			/* v = s->histogram[i] / scale; */
 			v = sd->histogram[i];
@@ -178,7 +178,7 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		else
 			val *= 2;
 	}
-	_stp_print_cstr ("\n");
+	_stp_print_char('\n');
 	_stp_print_flush();
 }
 
