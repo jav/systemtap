@@ -9,7 +9,8 @@
 
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
-	* translate.cxx (emit_module_init): Add some more type casts to printk args.
+	* translate.cxx (emit_module_init): Add some more type casts to printk
+	args.
 
 2007-01-29  Martin Hunt  <hunt@redhat.com>
 
@@ -18,7 +19,8 @@
 
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
-	* main.cxx (main): For successful last_pass=4, print compiled module name.
+	* main.cxx (main): For successful last_pass=4, print compiled module
+	name.
 	* cache.cxx (get_from_cache): Ditto.
 
 2007-01-23  Mike Mason <mmlnx@us.ibm.com>
