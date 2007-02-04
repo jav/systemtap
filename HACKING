@@ -92,8 +92,7 @@ the <systemtap@sources.redhat.com> mailing list.
 
   Changes to the runtime can cause problems on different architectures
   or kernel versions.  Luckily, many code mistakes show up easily in
-  the pass-4 tests.  [hunt: if appropriate, fill in information for
-  runtime self-testing code]
+  the pass-4 tests.
 
 - meta
 
