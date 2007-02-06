@@ -14,6 +14,12 @@ probe end(1) {
   log_test("kread u64", kread_u64())
   log_test("kread ptr", kread_ptr())
 
+  log_test("kread const u8", kread_const_u8())
+  log_test("kread const u16", kread_const_u16())
+  log_test("kread const u32", kread_const_u32())
+  log_test("kread const u64", kread_const_u64())
+  log_test("kread const ptr", kread_const_ptr())
+
   log_test("kwrite u8", kwrite_u8())
   log_test("kwrite u16", kwrite_u16())
   log_test("kwrite u32", kwrite_u32())
@@ -54,6 +60,36 @@ function kread_u64:long() %{
 
 function kread_ptr:long() %{
   struct task_struct *local = current;
+  THIS->__retvalue = (local == kread(&local));
+  CATCH_DEREF_FAULT();
+%}
+
+function kread_const_u8:long() %{
+  const uint8_t local = 0x42;
+  THIS->__retvalue = (local == kread(&local));
+  CATCH_DEREF_FAULT();
+%}
+
+function kread_const_u16:long() %{
+  const uint16_t local = 0xBEEF;
+  THIS->__retvalue = (local == kread(&local));
+  CATCH_DEREF_FAULT();
+%}
+
+function kread_const_u32:long() %{
+  const uint32_t local = 0xDEADBEEF;
+  THIS->__retvalue = (local == kread(&local));
+  CATCH_DEREF_FAULT();
+%}
+
+function kread_const_u64:long() %{
+  const uint64_t local = 0xDEADBEEFBAADF00DLL;
+  THIS->__retvalue = (local == kread(&local));
+  CATCH_DEREF_FAULT();
+%}
+
+function kread_const_ptr:long() %{
+  const struct task_struct *local = current;
   THIS->__retvalue = (local == kread(&local));
   CATCH_DEREF_FAULT();
 %}

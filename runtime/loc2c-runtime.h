@@ -467,16 +467,12 @@
 
 /* x86 can't do 8-byte put/get_user_asm, so we have to split it */
 
-#define kread(ptr)						\
-  ({								\
-    union { typeof(*(ptr)) v; u32 l[2]; } _kr;			\
-    if (sizeof(*(ptr)) == 8) {					\
-      _kr.l[0] = (u32) deref(4, &((u32 *)(ptr))[0]);		\
-      _kr.l[1] = (u32) deref(4, &((u32 *)(ptr))[1]);		\
-    } else							\
-      _kr.v = (typeof(*(ptr))) deref(sizeof(*(ptr)), (ptr));	\
-    _kr.v;							\
-  })
+#define kread(ptr)					\
+  ((sizeof(*(ptr)) == 8) ?				\
+       *(typeof(ptr))&(u32[2]) {			\
+	 (u32) deref(4, &((u32 *)(ptr))[0]),		\
+	 (u32) deref(4, &((u32 *)(ptr))[1]) }		\
+     : (typeof(*(ptr))) deref(sizeof(*(ptr)), (ptr)))
 
 #define kwrite(ptr, value)						     \
   ({									     \

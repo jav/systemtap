@@ -1,3 +1,7 @@
+2007-02-06  Josh Stone  <joshua.i.stone@intel.com>
+
+	* loc2c-runtime.h (kread): Let it work with const types.
+
 2007-01-31  Martin Hunt  <hunt@redhat.com>
 	
 	* string.c (_stp_string_init): Deleted.
