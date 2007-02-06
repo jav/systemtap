@@ -1,5 +1,5 @@
 // conversions tapset
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -12,13 +12,67 @@ function kernel_string:string (addr:long) %{ /* pure */
   goto success;
 deref_fault: /* branched to from deref() */
   {
-    static char errmsg[40];
+    /* XXX: concurrent errors could result in corrupted message string */
+    static char errmsg[50];
     snprintf (errmsg, 40, "kernel string copy fault at 0x%p",
 	 (void *) (uintptr_t) THIS->addr);
     CONTEXT->last_error = errmsg;
   }
 success: ;
 %}
+
+function kernel_long:long (addr:long) %{ /* pure */
+  THIS->__retvalue = (int64_t) deref (sizeof (long), (long *) (intptr_t) THIS->addr);
+  goto success;
+deref_fault: /* branched to from deref() */
+  {
+    static char errmsg[50];
+    snprintf (errmsg, 40, "kernel long copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+success: ;
+%}
+
+function kernel_int:long (addr:long) %{ /* pure */
+  THIS->__retvalue = (int64_t) deref (sizeof (int), (int *) (intptr_t) THIS->addr);
+deref_fault: /* branched to from deref() */
+  {
+    static char errmsg[50];
+    snprintf (errmsg, 40, "kernel int copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+success: ;
+%}
+
+function kernel_short:long (addr:long) %{ /* pure */
+  THIS->__retvalue = (int64_t) deref (sizeof (short), (short *) (intptr_t) THIS->addr);
+  goto success;
+deref_fault: /* branched to from deref() */
+  {
+    static char errmsg[50];
+    snprintf (errmsg, 40, "kernel short copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+success: ;
+%}
+
+function kernel_char:long (addr:long) %{ /* pure */
+  THIS->__retvalue = (int64_t) deref (sizeof (char), (char *) (intptr_t) THIS->addr);
+  goto success;
+deref_fault: /* branched to from deref() */
+  {
+    static char errmsg[50];
+    snprintf (errmsg, 40, "kernel char copy fault at 0x%p",
+	 (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = errmsg;
+  }
+success: ;
+%}
+
+
 
 
 // On rare cases when userspace data is not accessible, 
@@ -42,7 +96,7 @@ function user_string_warn:string (addr:long) %{ /* pure */
   long rc = _stp_strncpy_from_user (THIS->__retvalue,
 		(const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
   if (rc < 0) {
-	static char errmsg[40];
+	static char errmsg[60];
 	snprintf (errmsg, 40, "user string copy fault %ld at %p", rc,
 		(void *) (uintptr_t) THIS->addr);
 	_stp_warn(errmsg);
@@ -54,5 +108,6 @@ function user_string_quoted:string (addr:long) %{ /* pure */
   if (THIS->addr == 0)	
 	strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
   else
+        /* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
 	_stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr, MAXSTRINGLEN, 1, 1);
 %}

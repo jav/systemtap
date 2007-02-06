@@ -1,0 +1,19 @@
+
+set file $srcdir/$subdir/conversions.stp
+foreach value {0 0xffffffff 0xffffffffffffffff} {
+    set test "conversions.stp $value"
+    if {![installtest_p]} { untested $test; continue }
+    spawn stap -DMAXERRORS=40 $file $value
+    set errs 0
+    verbose -log "exp $test $errs"
+    expect {
+        -re {ERROR[^\r\n]*\r\n} { incr errs; exp_continue }
+        -re {WARNING[^\r\n]*\r\n} { incr errs; exp_continue }
+        eof { }
+        timeout { }
+    }
+    verbose -log "done exp $test $errs"
+    wait
+    if {$errs == 8} { pass $test } else { fail "$test ($errs)" }
+    verbose -log "done $test $errs"
+}

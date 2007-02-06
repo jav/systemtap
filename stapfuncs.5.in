@@ -65,15 +65,37 @@ unwind the current probe handler, nor block new probe handlers.
 will shortly respond to the request and initiate an orderly shutdown.
 
 .SS CONVERSIONS
+.PP
+These functions access kernel or user-space data.  They try to validate the
+supplied addresses, and can thus result in errors if the pointers are invalid,
+or if a user-space access would cause a fault.
 .TP
 kernel_string:string (addr:long)
-Copy a string from kernel space at given address.  The validation of this
-address is only partial at present.
+Copy a 0-terminated string from kernel space at given address.
+.TP
+kernel_long:long (addr:long)
+Copy a long from kernel space at given address.
+.TP
+kernel_int:long (addr:long)
+Copy an int from kernel space at given address.
+.TP
+kernel_short:long (addr:long)
+Copy a short from kernel space at given address.
+.TP
+kernel_char:long (addr:long)
+Copy a char from kernel space at given address.
 .TP
 user_string:string (addr:long)
-Copy a string from user space at given address.  The validation of this
-address is only partial at present.
-
+Copy a string from user space at given address.  If the access would
+fault, return "<unknown>" and signal no errors.
+.TP
+user_string2:string (addr:long, err_msg:string)
+Copy a string from user space at given address.  If the access would
+fault, return instead the err_msg value.
+.TP
+user_string_warn:string (addr:long)
+Copy a string from user space at given address.  If the access would
+fault, signal a warning and return "<unknown>".
 .SS STRING
 .TP
 strlen:long (str:string)

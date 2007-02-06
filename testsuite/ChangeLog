@@ -1,3 +1,8 @@
+2007-02-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildok/conversions.stp: Build-test all conversions.stp functions.
+	* systemtap.stress/conversions.*: New test.
+
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/cache.exp (stap_compile): Accept new -p4 output.
