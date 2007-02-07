@@ -37,12 +37,11 @@ function set_timing_method(method:long)
 %{
 	if(THIS->method == TIMING_SCHEDCLOCK) {
 		pfn_schedclock = (pfn_schedclock_type)kallsyms_lookup_name("sched_clock");
-		if(!pfn_schedclock) {
+		if(!pfn_schedclock)
 			_stp_warn("Failed to lookup specified timing method sched_clock()\n");
-			return;
-		}
-	}
-	if(THIS->method > 0 && THIS->method <= MAX_TIMING_METHOD)
+		else
+			timing_method = THIS->method;
+	} else if(THIS->method > 0 && THIS->method <= MAX_TIMING_METHOD)
 		timing_method = THIS->method;
 %}
 

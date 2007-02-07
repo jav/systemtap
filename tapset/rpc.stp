@@ -822,79 +822,111 @@ probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return ?,
 function xid_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = clnt ? clnt->cl_xprt->xid : 0;
+	if (clnt == NULL)
+		THIS->__retvalue = 0;
+	else {
+		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
+		THIS->__retvalue = kread(&(cl_xprt->xid));
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 function prog_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	if (clnt == NULL)
+		THIS->__retvalue = 0;
+	else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-	THIS->__retvalue = clnt ? clnt->cl_prog : 0;
+		THIS->__retvalue = kread(&(clnt->cl_prog));
 #else
-	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_prog : 0;
+		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
+		THIS->__retvalue = kread(&(cl_pmap->pm_prog));
 #endif
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 function vers_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+	if (clnt == NULL)
+		THIS->__retvalue = 0;
+	else {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
-	THIS->__retvalue = clnt ? clnt->cl_vers : 0;
+		THIS->__retvalue = kread(&(clnt->cl_vers));
 #else
-	THIS->__retvalue = clnt ? clnt->cl_pmap->pm_vers : 0;
+		struct rpc_portmap *cl_pmap = kread(&(clnt->cl_pmap));
+		THIS->__retvalue = kread(&(cl_pmap->pm_vers));
 #endif
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 function prot_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = clnt ? clnt->cl_xprt->prot : 0;
+	if (clnt == NULL)
+		THIS->__retvalue = 0;
+	else {
+		struct rpc_xprt *cl_xprt = kread(&(clnt->cl_xprt));
+		THIS->__retvalue = kread(&(cl_xprt->prot));
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 function port_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	if(clnt != NULL) {
-		struct sockaddr_in *addr = (struct sockaddr_in *)&(clnt->cl_xprt->addr);
-		if(addr != NULL && addr->sin_family == AF_INET) {
-			/* Now consider ipv4 only */
-			THIS->__retvalue = ntohs(addr->sin_port);
-			return;
-		}
-	}
-	THIS->__retvalue = 0;
+	struct rpc_xprt *cl_xprt = clnt? kread(&(clnt->cl_xprt)) : NULL;
+	if (cl_xprt && kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
+		/* Now consider ipv4 only */
+		THIS->__retvalue = ntohs(kread(&(cl_xprt->addr.sin_port)));
+	} else
+		THIS->__retvalue = 0;
+	CATCH_DEREF_FAULT();
 %}
 
 function clones_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = atomic_read(&clnt->cl_count);
+	THIS->__retvalue = atomic_read(&clnt->cl_count); /* FIXME: deref hazard! */
 %}
 
 function tasks_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
-	THIS->__retvalue = atomic_read(&clnt->cl_users);
+	THIS->__retvalue = atomic_read(&clnt->cl_users); /* FIXME: deref hazard! */
 %}
 
 function proc_from_msg:long(msg:long)
 %{
 	struct rpc_message *msg = (struct rpc_message *)(long)THIS->msg;
-	THIS->__retvalue = msg ? msg->rpc_proc->p_proc : 0;
+	if (msg == NULL)
+		THIS->__retvalue = 0;
+	else {
+		struct rpc_procinfo *rpc_proc = kread(&(msg->rpc_proc));
+		THIS->__retvalue = kread(&(rpc_proc->p_proc));
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 function vers_from_prog:long(program:long, vers:long)
 %{
 	struct rpc_program *program = (struct rpc_program *)(long)THIS->program;
-	if (!program || THIS->vers >= program->nrvers || !program->version[THIS->vers])
+	if (program && THIS->vers < kread(&(program->nrvers))) {
+		struct rpc_version **version_array = kread(&(program->version));
+		struct rpc_version *version = kread(&(version_array[THIS->vers]));
+		THIS->__retvalue = kread(&(version->number));
+	} else
 		THIS->__retvalue = 0;
-	else
-		THIS->__retvalue = program->version[THIS->vers]->number;
+	CATCH_DEREF_FAULT();
 %}
 
 function addr_from_rqst:long(rqstp:long)
 %{
 	struct svc_rqst *rqstp = (struct svc_rqst *)(long)THIS->rqstp;
-	THIS->__retvalue = rqstp ? rqstp->rq_addr.sin_addr.s_addr : 0;
+	THIS->__retvalue = rqstp ? kread(&(rqstp->rq_addr.sin_addr.s_addr)) : 0;
+	CATCH_DEREF_FAULT();
 %}
 

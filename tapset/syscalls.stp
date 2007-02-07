@@ -488,7 +488,7 @@ probe syscall.epoll_wait.return = kernel.function("sys_epoll_wait").return {
 #	struct pt_regs * regs)
 probe syscall.execve = kernel.function("do_execve") {
 	name = "execve"
-	filename = __string($filename)
+	filename = kernel_string($filename)
 	args = __get_argv($argv)
 	argstr = sprintf("%s %s", filename, args)
 }

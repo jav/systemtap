@@ -6,20 +6,20 @@ function __bdevname:string (bdev:long) %{ /* pure */
 	struct block_device *bdev = (struct block_device *)(long)THIS->bdev;
 	if (bdev == NULL) {
 		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
-		return;
+	} else {
+		const char *name = bdevname(bdev, b); /* FIXME: deref hazard! */
+		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
 	}
 
-	deref_string(THIS->__retvalue, bdevname(bdev,b), MAXSTRINGLEN);
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 /*
   We don't want to have to do a bdevname() call every time
   we want a devname, so we'll hash them here.
 */
+/* XXX: Is this hashing really that helpful?  The call to bdevname()
+ * isn't very involved... */
 global __devnames
 function __find_bdevname(dev, bdev)
 {
@@ -38,120 +38,108 @@ function __find_bdevname(dev, bdev)
 function ppos_pos:long (ppos:long) %{ /* pure */
 	loff_t *ppos = (loff_t *)(long)THIS->ppos;
 	THIS->__retvalue = (int64_t) kread(ppos);
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __page_ino:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
-	if ((page == NULL) || (page->mapping == NULL)) {
+	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+	if (mapping == NULL) {
 		THIS->__retvalue = -1;
-		return;
+	} else {
+		struct inode *host = kread(&(mapping->host));
+		THIS->__retvalue = kread(&(host->i_ino));
 	}
-
-	THIS->__retvalue = deref(sizeof(page->mapping->host->i_ino),
-		&(page->mapping->host->i_ino));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __page_dev:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
-	if ((page == NULL) || (page->mapping == NULL)) {
+	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+	if (mapping == NULL) {
 		THIS->__retvalue = -1;
-		return;
+	} else {
+		struct inode *host = kread(&(mapping->host));
+		struct super_block *i_sb = kread(&(host->i_sb));
+		THIS->__retvalue = kread(&(i_sb->s_dev));
 	}
-	THIS->__retvalue = deref(sizeof(page->mapping->host->i_sb->s_dev),
-		&(page->mapping->host->i_sb->s_dev));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __page_bdev:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
-	if ((page == NULL) || (page->mapping == NULL)) {
+	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+	if (mapping == NULL) {
 		THIS->__retvalue = 0;
-		return;
+	} else {
+		struct inode *host = kread(&(mapping->host));
+		struct super_block *i_sb = kread(&(host->i_sb));
+		THIS->__retvalue = (long)kread(&(i_sb->s_bdev));
 	}
-	THIS->__retvalue = deref(sizeof(page->mapping->host->i_sb->s_bdev),
-		&(page->mapping->host->i_sb->s_bdev));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __file_dev:long (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	if (f_dentry == NULL) {
 		THIS->__retvalue = 0;
-		return;
+	} else {
+		struct inode *d_inode = kread(&(f_dentry->d_inode));
+		struct super_block *i_sb = kread(&(d_inode->i_sb));
+		THIS->__retvalue = kread(&(i_sb->s_dev));
 	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_dev),
-		&(file->f_dentry->d_inode->i_sb->s_dev));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __file_bdev:long (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	if (f_dentry == NULL) {
 		THIS->__retvalue = 0;
-		return;
+	} else {
+		struct inode *d_inode = kread(&(f_dentry->d_inode));
+		struct super_block *i_sb = kread(&(d_inode->i_sb));
+		THIS->__retvalue = (long)kread(&(i_sb->s_bdev));
 	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_bdev),
-		&(file->f_dentry->d_inode->i_sb->s_bdev));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __file_ino:long (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	if (f_dentry == NULL) {
 		THIS->__retvalue = 0;
-		return;
+	} else {
+		struct inode *d_inode = kread(&(f_dentry->d_inode));
+		THIS->__retvalue = kread(&(d_inode->i_ino));
 	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_ino),
-		&(file->f_dentry->d_inode->i_ino));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __file_maxbytes:long (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	if (f_dentry == NULL) {
 		THIS->__retvalue = 0;
-		return;
+	} else {
+		struct inode *d_inode = kread(&(f_dentry->d_inode));
+		struct super_block *i_sb = kread(&(d_inode->i_sb));
+		THIS->__retvalue = kread(&(i_sb->s_maxbytes));
 	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_sb->s_maxbytes),
-		&(file->f_dentry->d_inode->i_sb->s_maxbytes));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __file_filename:string (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) 
-		|| (file->f_dentry == NULL) 
-		|| (file->f_dentry->d_name.name == NULL)) 
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	const unsigned char *name = f_dentry? kread(&(f_dentry->d_name.name)) : NULL;
+	if (name == NULL) {
 		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		strlcpy(THIS->__retvalue, file->f_dentry->d_name.name, MAXSTRINGLEN);
+	} else {
+		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
 	}
+	CATCH_DEREF_FAULT();
 %}
 
 probe generic.fop.llseek = kernel.function ("generic_file_llseek")

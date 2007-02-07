@@ -14,7 +14,8 @@ function log_execve_tracedata(var:long)
 	long tmp=(long)THIS->var;
 	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_EXECVE, "%4b%4b%4b%0s", 
 		(_FMT_)current->pid, (_FMT_)current->tgid, 
-		(_FMT_)current->parent->tgid, (char *)tmp); 
+		(_FMT_)current->parent->tgid,
+		(char *)tmp /* FIXME: deref hazard! */); 
 %}
 
 
@@ -26,8 +27,12 @@ function log_fork_tracedata(task:long)
 	_lket_trace(_GROUP_PROCESS, THIS->var_id, "%4b", (_FMT_)pid); 
 	*/
 	struct task_struct *task = (struct task_struct *)((long)THIS->task);
-	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_FORK, "%4b%4b%4b", (_FMT_)task->pid, 
-		(_FMT_)task->tgid, (_FMT_)task->parent->tgid); 
+	struct task_struct *parent = kread(&(task->parent));
+	_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_FORK, "%4b%4b%4b",
+		(_FMT_)kread(&(task->pid)),
+		(_FMT_)kread(&(task->tgid)),
+		(_FMT_)kread(&(parent->tgid))); 
+	CATCH_DEREF_FAULT();
 %}
 
 
@@ -47,6 +52,7 @@ function process_snapshot()
 
 	/* iterate all the processes, and record the pid and process
 	name for each entry */
+	/* FIXME: need some sort of lock before doing this! */
 	for_each_process(tsk)  {
 		_lket_trace(_GROUP_PROCESS, _HOOKID_PROCESS_SNAPSHOT, "%4b%4b%4b%0s", 
 			(_FMT_)tsk->pid, (_FMT_)tsk->tgid, (_FMT_)tsk->parent->tgid, tsk->comm);

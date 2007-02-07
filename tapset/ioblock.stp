@@ -15,102 +15,56 @@
 /* get i-node number of mapped file */
 function __bio_ino:long(bio:long)
 %{
-        struct bio  *bio;
-        struct page *bv_page;
-        struct address_space *mapping;
-        struct inode *host;
-
-	bio = (struct bio *)(long)THIS->bio;
-        bv_page = (struct page*)deref(sizeof(bio->bi_io_vec[0].bv_page),
-        	&(bio->bi_io_vec[0].bv_page));
-        if (bv_page == NULL) {
-        	THIS->__retvalue = -1;
-        	goto end;
-        }
-        mapping = (struct address_space*)deref(sizeof(bv_page->mapping),
-        	&(bv_page->mapping));
-        if (mapping == NULL) {
-        	THIS->__retvalue = -1;
-        	goto end;
-        }
-        host = (struct inode*)deref(sizeof(mapping->host),
-        	&(mapping->host));
-        if (host == NULL) {
-        	THIS->__retvalue = -1;
-        	goto end;
-        }
-        THIS->__retvalue = deref(sizeof(host->i_ino), &(host->i_ino));
-
-        if (0) {
-deref_fault:
-        	CONTEXT->last_error = "pointer dereference fault";
-        }
-end: ;
+    struct bio *bio = (struct bio *)(long)THIS->bio;
+    struct page *bv_page = bio? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
+    struct address_space *mapping = bv_page? kread(&(bv_page->mapping)) : NULL;
+    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
+    if (host == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(host->i_ino));
+    CATCH_DEREF_FAULT();
 %}
 
 /* returns 0 for read, 1 for write */
 function bio_rw_num:long(rw:long)
 %{
-        long rw = (long)THIS->rw;
-        THIS->__retvalue = (rw & (1 << BIO_RW));
+    long rw = (long)THIS->rw;
+    THIS->__retvalue = (rw & (1 << BIO_RW));
 %}
 
 /* returns R for read, W for write */
 function bio_rw_str(rw)
 {
-        return bio_rw_num(rw) == BIO_READ ? "R" : "W"
+    return bio_rw_num(rw) == BIO_READ ? "R" : "W"
 }
 
 /* returns start sector */
 function __bio_start_sect:long(bio:long)
 %{ 
-	struct bio *bio;
-        struct block_device *bi_bdev;
-        struct hd_struct *bd_part;
-
-	bio = (struct bio *)(long)THIS->bio;
-        bi_bdev = (struct block_device *)deref(sizeof(bio->bi_bdev), 
-		&(bio->bi_bdev));
-        if (bi_bdev == NULL) {
-        	THIS->__retvalue = -1;
-		goto end;
-        } 
-        bd_part = (struct hd_struct *)deref(sizeof(bi_bdev->bd_part),
-		 &(bi_bdev->bd_part));
-        if (bd_part == NULL) {
-        	THIS->__retvalue = -1;
-		goto end;
-        }
-
-       /*
-          There is a bug in deref() that prevents the code below. 
-          THIS->__retvalue = deref(sizeof(bd_part->start_sect), 
-		&(bd_part->start_sect));
-       */
-
-       THIS->__retvalue = bd_part->start_sect;
-
-       if (0) {
-deref_fault:
-       		CONTEXT->last_error = "pointer dereference fault";
-       } 
-end: ;
+    struct bio *bio = (struct bio *)(long)THIS->bio;
+    struct block_device *bi_bdev = bio? kread(&(bio->bi_bdev)) : NULL;
+    struct hd_struct *bd_part = bi_bdev? kread(&(bi_bdev->bd_part)) : NULL;
+    if (bd_part == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(bd_part->start_sect));
+    CATCH_DEREF_FAULT();
 %}
 
 /* returns the block device name */
 function __bio_devname:string(bio:long)
 %{
-        char b[BDEVNAME_SIZE];
-        struct bio *bio = (struct bio *)(long)THIS->bio;
-        if (bio == NULL || bio->bi_bdev == NULL) {
-                strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
-                return;
-        }
-        deref_string(THIS->__retvalue, bdevname(bio->bi_bdev,b), MAXSTRINGLEN);
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    char b[BDEVNAME_SIZE];
+    struct bio *bio = (struct bio *)(long)THIS->bio;
+    struct block_device *bdev = kread(&(bio->bi_bdev));
+	if (bdev == NULL) {
+		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
+	} else {
+		const char *name = bdevname(bdev, b); /* FIXME: deref hazard! */
+		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
+	}
+	CATCH_DEREF_FAULT();
 %}
 
 global BIO_READ, BIO_WRITE

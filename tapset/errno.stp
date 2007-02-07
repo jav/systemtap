@@ -357,31 +357,33 @@ function returnstr:string (returnp:long) %{ /* pure */
 
 	/* XXX: unfortunate duplication with return.stp:retval() */
 
-        if (CONTEXT->regs) {
+	if (CONTEXT->regs) {
 #if defined (__i386__)
-                ret = CONTEXT->regs->eax;
+		ret = CONTEXT->regs->eax;
 #elif defined (__x86_64__)
-                ret = CONTEXT->regs->rax;
+		ret = CONTEXT->regs->rax;
 #elif defined (__powerpc64__)
-                ret = CONTEXT->regs->gpr[3];
+		ret = CONTEXT->regs->gpr[3];
 #elif defined (__ia64__)
-                ret = CONTEXT->regs->r8;
+		ret = CONTEXT->regs->r8;
 #elif defined (__sparc64__)
-                ret = CONTEXT->regs->u_regs[UREG_RETPC];
+		ret = CONTEXT->regs->u_regs[UREG_RETPC];
 #elif defined (__s390x__)
 		ret = CONTEXT->regs->gprs[2];
 #else
-                return;
+		goto no_ret;
 #endif
-        } else
-                return;
-	
-	if (ret < 0 && ret > -Maxerrno && errlist[-ret])
-		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
-	else if (THIS->returnp == 2)
-		snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
-	else if (THIS->returnp == 3)
-		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%#lo", ret);
-	else 	
-		snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
+
+		if (ret < 0 && ret > -Maxerrno && errlist[-ret])
+			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
+		else if (THIS->returnp == 2)
+			snprintf (THIS->__retvalue, MAXSTRINGLEN, "0x%lx", ret);
+		else if (THIS->returnp == 3)
+			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%#lo", ret);
+		else 	
+			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld", ret);
+	} else {
+no_ret:
+		strlcpy(THIS->__retvalue, "N/A", MAXSTRINGLEN);
+	}
 %}

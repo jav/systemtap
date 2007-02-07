@@ -34,15 +34,13 @@ function _struct_compat_timeval_u:string(uaddr:long)
 
 function _struct_timeval:string(addr:long)
 %{ /* pure */
-	struct timeval *tv;
-	char *ptr = (char *)(unsigned long)THIS->addr;
+	struct timeval *tv = (struct timeval *)(unsigned long)THIS->addr;
 
-	if (ptr == NULL)
+	if (tv == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		tv=(struct timeval *) ptr;
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv->tv_sec, tv->tv_usec);
-	}
+	else
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]",
+				kread(&(tv->tv_sec)), kread(&(tv->tv_usec)));
 %}
 
 function _struct_timezone_u:string(uaddr:long)
@@ -166,15 +164,14 @@ function _struct_compat_timespec_u:string(uaddr:long)
 
 function _struct_timespec:string(addr:long)
 %{ /* pure */
-	struct timespec *ts;
-	char *ptr = (char *)(unsigned long)THIS->addr;
+	struct timespec *ts = (struct timespec *)(unsigned long)THIS->addr;
 
-	if (ptr == NULL)
+	if (ts == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		ts =  (struct timespec *) ptr;
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
-			(unsigned long)ts->tv_sec, (unsigned long)ts->tv_nsec);
+			(unsigned long)kread(&(ts->tv_sec)),
+			(unsigned long)kread(&(ts->tv_nsec)));
 	}
 %}
 
@@ -231,16 +228,16 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 
 function _struct_itimerval:string(addr:long)
 %{ /* pure */
-	struct itimerval *itv;
-	char *ptr = (char *)(unsigned long)THIS->addr;
+	struct itimerval *itv = (char *)(unsigned long)THIS->addr;
 
-	if (ptr == NULL)
+	if (itv == NULL)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		itv = (struct itimerval *) ptr;
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
-			(int)itv->it_interval.tv_sec, (int)itv->it_interval.tv_usec,
-			(int)itv->it_value.tv_sec, (int)itv->it_value.tv_usec);
+			(int)kread(&(itv->it_interval.tv_sec)),
+			(int)kread(&(itv->it_interval.tv_usec)),
+			(int)kread(&(itv->it_value.tv_sec)),
+			(int)kread(&(itv->it_value.tv_usec)));
 	}
 %}
 
@@ -637,16 +634,6 @@ function __get_argv:string(a:long)
 %}
 
 /*
-* This function is used when a long is really a pointer and we need
-* the string it points to. Should be rarely necessary.
-*/
-function __string:string (a:long)
-%{ /* pure */
-	char *str =(char *)(long)THIS->a;
-	strlcpy(THIS->__retvalue, str, MAXSTRINGLEN);
-%}
-
-/*
  * Return a integer member value of struct
  * timezone user  space pointer  parameter
  * CALLERS:
@@ -683,8 +670,7 @@ function __uget_timex_m:long(u_addr:long,member:long)
 
    if(copy_from_user(&tx,ptr,sz)) {
       THIS->__retvalue = -EFAULT;
-      return;
-   }
+   } else
    switch(THIS->member) {
       case 0:  THIS->__retvalue =  tx.modes;
                break;

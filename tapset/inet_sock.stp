@@ -25,23 +25,18 @@
 // Get local port number
 function inet_get_local_port:long(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
-	struct inet_sock *inet = (struct inet_sock *) ptr;
-        THIS->__retvalue = deref(sizeof(LPORT), &(LPORT));
-        if (0) {
-deref_fault:
-            CONTEXT->last_error = "pointer dereference fault";
-        }
+	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
+	THIS->__retvalue = kread(&(LPORT));
+	CATCH_DEREF_FAULT();
 %}
 
 // Get IP source address string
 function inet_get_ip_source:string(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
-	struct inet_sock *inet = (struct inet_sock *) ptr;
-	unsigned char addr[4];
-
-	memcpy(addr, DADDR, sizeof(addr));
+	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
+	union { __u32 d; unsigned char addr[4]; } u;
+	u.d = kread(DADDR);
 	sprintf(THIS->__retvalue, "%d.%d.%d.%d",
-           addr[0], addr[1],  addr[2], addr[3]);
+			u.addr[0], u.addr[1], u.addr[2], u.addr[3]);
+	CATCH_DEREF_FAULT();
 %}

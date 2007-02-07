@@ -5,6 +5,7 @@
 %{
 	void decode_fh(struct knfsd_fh *fh,__u64 * i_ino)
 	{
+		/* FIXME: deref hazard! */
 		int i;
 		
 		for(i = 0;i < 3;i++)
@@ -117,7 +118,9 @@ function log_nfsd_lookup(fhp:long,filename:string)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_LOOKUP_ENTRY,"%1b%8b%8b%8b%0s",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->filename);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.lookup.return
@@ -153,8 +156,10 @@ function log_nfsd_create(fhp:long,filename:string,type:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_CREATE_ENTRY,"%1b%8b%8b%8b%0s%4b%2b%4b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename,
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->filename,
 		THIS->type,THIS->iap_valid,THIS->iap_mode);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.create.return
@@ -191,8 +196,10 @@ function log_nfsd_createv3(fhp:long,filename:string,createmode:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_CREATEV3_ENTRY,"%1b%8b%8b%8b%0s%1b%2b%4b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->filename,
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->filename,
 		THIS->createmode,THIS->iap_valid,THIS->iap_mode);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.createv3.return
@@ -227,8 +234,10 @@ function log_nfsd_unlink(fhp:long,filename:string,type:long)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_UNLINK_ENTRY,"%1b%8b%8b%8b%0s%4b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],
 		THIS->filename,THIS->type);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.unlink.return
@@ -264,9 +273,11 @@ function log_nfsd_rename(fhp:long,filename:string,tfhp:long,tname:string)%{ /*pu
 	decode_fh(&fhp->fh_handle,old_ino);		
 	decode_fh(&tfhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_RENAME_ENTRY,"%1b%8b%8b%8b%0s%1b%8b%8b%8b%0s",
-		(_FMT_)fhp->fh_handle.fh_size,old_ino[0],old_ino[1],old_ino[2],
-		THIS->filename, (_FMT_)tfhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->tname);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		old_ino[0],old_ino[1],old_ino[2], THIS->filename,
+		(_FMT_)kread(&(tfhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->tname);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.rename.return
@@ -301,8 +312,10 @@ function log_nfsd_open(fhp:long,type:long,access:long)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_OPEN_ENTRY,"%1b%8b%8b%8b%4b%1b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],
 		THIS->type,THIS->access);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.open.return
@@ -366,8 +379,10 @@ function log_nfsd_read(fhp:long,count:long,offset:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_READ_ENTRY,"%1b%8b%8b%8b%8b%8b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->count,THIS->offset,(_FMT_)vec->iov_len,THIS->vlen);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->count,THIS->offset,
+		(_FMT_)kread(&(vec->iov_len)), THIS->vlen);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.read.return
@@ -403,8 +418,10 @@ function log_nfsd_write(fhp:long,count:long,offset:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_WRITE_ENTRY,"%1b%8b%8b%8b%8b%8b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->count,THIS->offset,(_FMT_)vec->iov_len,THIS->vlen);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->count,THIS->offset,
+		(_FMT_)kread(&(vec->iov_len)), THIS->vlen);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.write.return
@@ -438,8 +455,9 @@ function log_nfsd_commit(fhp:long,count:long,offset:long)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_COMMIT_ENTRY,"%1b%8b%8b%8b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->count,THIS->offset);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->count,THIS->offset);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.commit.return
@@ -499,8 +517,9 @@ function log_nfsd_proc_lookup(fh:long,version:long,filename:string)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_LOOKUP_ENTRY,"%1b%8b%8b%8b%1b%0s",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->version,THIS->filename);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->version,THIS->filename);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.lookup.return
@@ -536,8 +555,10 @@ function log_nfsd_proc_read(fhp:long,version:long,count:long,offset:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_READ_ENTRY,"%1b%8b%8b%8b%1b%8b%8b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
-		THIS->count,THIS->offset,(_FMT_)vec->iov_len,THIS->vlen);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->version,
+		THIS->count,THIS->offset,(_FMT_)kread(&(vec->iov_len)), THIS->vlen);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.read.return
@@ -573,8 +594,10 @@ function log_nfsd_proc_write(fhp:long,version:long,count:long,offset:long,
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_WRITE_ENTRY,"%1b%8b%8b%8b%1b%8b%8b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
-		THIS->count,THIS->offset,(_FMT_)vec->iov_len,THIS->vlen);
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->version,
+		THIS->count,THIS->offset,(_FMT_)kread(&(vec->iov_len)), THIS->vlen);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.write.return
@@ -608,8 +631,10 @@ function log_nfsd_proc_commit(fhp:long,version:long,count:long,offset:long)%{ /*
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_COMMIT_ENTRY,"%1b%8b%8b%8b%1b%8b%8b",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->version,
 		THIS->count,THIS->offset);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.commit.return
@@ -671,8 +696,10 @@ function log_nfsd_proc_remove(fhp:long,version:long,filename:string)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_REMOVE_ENTRY,"%1b%8b%8b%8b%1b%0s",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],THIS->version,
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],THIS->version,
 		THIS->filename);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.remove.return
@@ -708,9 +735,11 @@ function log_nfsd_proc_rename(fhp:long,version:long,filename:string,
 	decode_fh(&fhp->fh_handle,o_ino);	
 	decode_fh(&tfhp->fh_handle,i_ino);	
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_RENAME_ENTRY,"%1b%1b%8b%8b%8b%0s%1b%8b%8b%8b%0s",
-		THIS->version,(_FMT_)fhp->fh_handle.fh_size,o_ino[0],o_ino[1],o_ino[2],
-		THIS->filename, (_FMT_)tfhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
-		THIS->tname);
+		THIS->version,(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		o_ino[0],o_ino[1],o_ino[2], THIS->filename,
+		(_FMT_)kread(&(tfhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2], THIS->tname);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.rename.return
@@ -744,8 +773,10 @@ function log_nfsd_proc_create(fhp:long,version:long,filename:string)%{ /*pure*/
 
 	decode_fh(&fhp->fh_handle,i_ino);		
 	_lket_trace(_GROUP_NFSD,_HOOKID_NFSD_PROC_CREATE_ENTRY,"%1b%8b%8b%8b%1b%0s",
-		(_FMT_)fhp->fh_handle.fh_size,i_ino[0],i_ino[1],i_ino[2],
+		(_FMT_)kread(&(fhp->fh_handle.fh_size)),
+		i_ino[0],i_ino[1],i_ino[2],
 		THIS->version,THIS->filename);
+	CATCH_DEREF_FAULT();
 %}
 
 probe addevent.nfsd.proc.create.return

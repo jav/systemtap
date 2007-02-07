@@ -6,26 +6,6 @@
 #include <linux/nfsd/xdr3.h>
 %}
 
-%{
-/*Get file handle from struct svc_fh */
-char * fh_fmt(struct svc_fh * fhp)
-{
-	 struct knfsd_fh *fh = &fhp->fh_handle;
-
-	static char buf[80];
-	sprintf(buf, "%d: %08x %08x %08x %08x %08x %08x",
-		fh->fh_size,
-		fh->fh_base.fh_pad[0],
-		fh->fh_base.fh_pad[1],
-		fh->fh_base.fh_pad[2],
-		fh->fh_base.fh_pad[3],
-		fh->fh_base.fh_pad[4],
-		fh->fh_base.fh_pad[5]);
-	return buf;
-}
-
-%}
-
 /*
  *1 : nfsd.proc2.lookup
  *2 : nfsd.proc3.lookup
@@ -61,7 +41,6 @@ function __get_fh:long(argp:long,index:long) %{ /* pure */
 	struct nfsd_renameargs *argpren = NULL;
 	struct nfsd3_renameargs *argpren3 = NULL;
 	struct svc_fh * fhp = NULL;
-	char * buf;
 
 	switch(index)
 	{
@@ -112,32 +91,30 @@ function __get_fh:long(argp:long,index:long) %{ /* pure */
 		break;
 	}
 	
-	if(fhp == NULL)
-	{
-		_stp_printf("the fhp is NULL");
-		return;
-	}
-	else
-	{
-	/*	buf = fh_fmt(fhp);
-		strlcpy (THIS->__retvalue,buf,80);*/
-		THIS->__retvalue = (long)fhp;
-	}
+	THIS->__retvalue = (long)fhp;
 %}
-/*Get file handler from struct svc_fh , it will call
-fh_fmt function*/
+/*Get file handler from struct svc_fh */
 function __svc_fh:string(fh :long) %{  /* pure */
-	struct svc_fh * fhp = (struct svc_fh *) (THIS->fh);
-	char * buf ;
-	
-	buf =  fh_fmt(fhp); 	
-	strlcpy (THIS->__retvalue,buf,80);
+	struct svc_fh * fhp = (struct svc_fh *) (long)(THIS->fh);
+	struct knfsd_fh *fh = &fhp->fh_handle;
+
+	snprintf(THIS->__retvalue, MAXSTRINGLEN,
+			"%d: %08x %08x %08x %08x %08x %08x",
+			kread(&(fh->fh_size)),
+			kread(&(fh->fh_base.fh_pad[0])),
+			kread(&(fh->fh_base.fh_pad[1])),
+			kread(&(fh->fh_base.fh_pad[2])),
+			kread(&(fh->fh_base.fh_pad[3])),
+			kread(&(fh->fh_base.fh_pad[4])),
+			kread(&(fh->fh_base.fh_pad[5])))
+	CATCH_DEREF_FAULT();
 %}
 
 function p_long:long(cnt:long) %{ /* pure */
 	unsigned long * count = (unsigned long *)((long)THIS->cnt);
 	
-	THIS->__retvalue = *count;
+	THIS->__retvalue = kread(count);
+	CATCH_DEREF_FAULT();
 %}
 /*
 *probe nfsd.dispatch

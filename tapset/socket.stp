@@ -513,17 +513,18 @@ function sock_flags_num2str:string (flags:long)
 #define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
 #endif
 	char str[60];
+	unsigned long flags = THIS->flags;
 
 	str[0] = '\0';
-	if (test_bit (SOCK_ASYNC_NOSPACE, &THIS->flags))
+	if (test_bit (SOCK_ASYNC_NOSPACE, &flags))
 		strcat (str, "ASYNC_NOSPACE|");
-	if (test_bit (SOCK_ASYNC_WAITDATA, &THIS->flags))
+	if (test_bit (SOCK_ASYNC_WAITDATA, &flags))
 		strcat (str, "ASYNC_WAITDATA|");
-	if (test_bit (SOCK_NOSPACE, &THIS->flags))
+	if (test_bit (SOCK_NOSPACE, &flags))
 		strcat (str, "NOSPACE|");
-	if (test_bit (SOCK_PASSCRED, &THIS->flags))
+	if (test_bit (SOCK_PASSCRED, &flags))
 		strcat (str, "PASSCRED|");
-	if (test_bit (SOCK_PASSSEC, &THIS->flags))
+	if (test_bit (SOCK_PASSSEC, &flags))
 		strcat (str, "PASSSEC|");
 	if (str[0] != '\0') str[strlen(str)-1] = '\0';
 	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
@@ -938,147 +939,77 @@ function _success_check(ret:long)
 
 function _get_sock_addr:long (file:long)
 %{
-	struct socket *sockp;
-	struct file *filep;
-	
-	filep = (struct file *) deref (sizeof(struct file *), &(THIS->file));
-	if (filep == NULL) {
+	struct file *filep = (struct file *)(long)(THIS->file);
+	struct socket *sockp = filep? kread(&(filep->private_data)) : NULL;
+	if (sockp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	sockp = (struct socket *) deref (sizeof(filep->private_data),
-	        &(filep->private_data));
-	if (sockp == NULL) {
-		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = (long) sockp;
-	
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = (long) sockp;
+	CATCH_DEREF_FAULT();
 %}
 
 function _get_sock_size:long (iov:long, nr_segs:long)
 %{
-	struct iovec *iovp;
-	long size = 0;
-	int i;
-
-	iovp = (struct iovec *) deref (sizeof(struct iov *), &(THIS->iov));
-	if (iovp == NULL) {
+	struct iovec *iovp = (struct iovec *)(long)(THIS->iov);
+	if (iovp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
+	else {
+		int i;
+		THIS->__retvalue = 0;
+		for (i = 0 ; i < THIS->nr_segs ; i++)
+			THIS->__retvalue += kread(&(iovp[i].iov_len));
 	}
-	
-	for (i = 0 ; i < THIS->nr_segs ; i++)
-		size += iovp[i].iov_len;
-
-	THIS->__retvalue = size;
-	
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	CATCH_DEREF_FAULT();
 %}
 
 function _sock_prot_num:long (sock:long)
 %{
-	struct socket *sktp;
-	struct sock *skp;
-
-	sktp = (struct socket *) deref (sizeof (struct socket *), &(THIS->sock));
-	if (sktp == NULL) {
+	struct socket *sktp = (struct socket *)(long)(THIS->sock);
+	struct sock *skp = sktp? kread(&(sktp->sk)) : NULL;
+	if (skp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	skp = (struct sock *) deref (sizeof (sktp->sk), &(sktp->sk));
-	if (skp == NULL) {
-		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = (long) skp->sk_protocol;
-
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = kread(&(skp->sk_protocol));
+	CATCH_DEREF_FAULT();
 %}
 
 function _sock_fam_num:long (sock:long)
 %{
-	struct socket *sockp;
-	struct proto_ops *ops;
-
-	sockp = (struct socket *) deref (sizeof (struct socket *), &(THIS->sock));
-	if (sockp == NULL) {
+	struct socket *sockp = (struct socket *)(long)(THIS->sock);
+	const struct proto_ops *ops = sockp? kread(&(sockp->ops)) : NULL;
+	if (ops == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	ops = (struct proto_ops *) deref (sizeof (sockp->ops), &(sockp->ops));
-	if (ops == NULL) {
-		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = (long) ops->family;
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = kread(&(ops->family));
+	CATCH_DEREF_FAULT();
 %}
 
 function _sock_state_num:long (sock:long)
 %{
-	struct socket *sockp;
-
-	sockp = (struct socket *) deref (sizeof (struct sock *), &(THIS->sock));
-	if (sockp == NULL) {
+	struct socket *sockp = (struct socket *)(long)(THIS->sock);
+	if (sockp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = sockp->state;
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = kread(&(sockp->state));
+	CATCH_DEREF_FAULT();
 %}
 
 function _sock_type_num:long (sock:long)
 %{
-	struct socket *sockp;
-
-	sockp = (struct socket *) deref (sizeof(struct socket *), &(THIS->sock));
-	if (sockp == NULL) {
+	struct socket *sockp = (struct socket *)(long)(THIS->sock);
+	if (sockp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = (long) sockp->type;
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = kread(&(sockp->type));
+	CATCH_DEREF_FAULT();
 %}
 
 function _sock_flags_num:long (sock:long)
 %{
-	struct socket *sockp;
-
-	sockp = (struct socket *) deref (sizeof(struct socket *), &(THIS->sock));
-	if (sockp == NULL) {
+	struct socket *sockp = (struct socket *)(long)(THIS->sock);
+	if (sockp == NULL)
 		THIS->__retvalue = -1;
-		goto end;
-	}
-	THIS->__retvalue = sockp->flags;
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
-end: ;
+	else
+		THIS->__retvalue = kread(&(sockp->flags));
+	CATCH_DEREF_FAULT();
 %}

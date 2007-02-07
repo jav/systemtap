@@ -2,282 +2,245 @@
 #include <linux/kernel.h>
 #include <linux/nfs_fs.h>
 %}
-/*Get struct nfs_inode from struct inode*/
-%{ 
-  struct nfs_inode * __nfs_i (struct inode *inode)
-  {
-    struct nfs_inode * nfsi = NFS_I(inode);
-
-    return (nfsi);
-  }
-%}
 
 /*Get cache_validity flag from struct inode*/
 function __nfsi_cache_valid:long(inode:long) %{ /* pure */
-    struct inode * inode = (struct inode *)(THIS->inode);
-    struct nfs_inode * nfsi;
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
     if(inode == NULL) 
-    {
         THIS->__retvalue = -1;
-        return;
+    else {
+        struct nfs_inode * nfsi = NFS_I(inode);
+        THIS->__retvalue = kread(&(nfsi->cache_validity));
     }
-    nfsi = __nfs_i(inode);
-    THIS->__retvalue = nfsi->cache_validity;
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get read_cache_jiffies from struct inode*/
 function __nfsi_rcache_time :long (inode:long) %{ /* pure */
-    struct inode * inode = (struct inode *)(THIS->inode);
-    struct nfs_inode * nfsi ;
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
     if(inode == NULL) 
-    {
         THIS->__retvalue = -1;
-        return;
+    else {
+        struct nfs_inode * nfsi = NFS_I(inode);
+        THIS->__retvalue = kread(&(nfsi->read_cache_jiffies));
     }
-
-    nfsi = (struct nfs_inode *) __nfs_i(inode);
-
-    THIS->__retvalue = nfsi->read_cache_jiffies;
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get attrtimeo from struct inode*/
 function __nfsi_attr_time :long (inode:long) %{ /* pure */
-    struct inode * inode = (struct inode *)(THIS->inode);
-    struct nfs_inode * nfsi ;
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
     if(inode == NULL) 
-    {
         THIS->__retvalue = -1;
-        return;
+    else {
+        struct nfs_inode * nfsi = NFS_I(inode);
+        THIS->__retvalue = kread(&(nfsi->attrtimeo));
     }
-    nfsi= (struct nfs_inode *) __nfs_i(inode);
-
-    THIS->__retvalue = nfsi->attrtimeo;
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get ndirty from struct inode*/
 function __nfsi_ndirty:long (inode:long) %{ /* pure */
-      struct inode *inode = (struct inode *)((long)THIS->inode);
-      struct nfs_inode *nfsi ;
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
-      if(inode == NULL) 
-      {
-          THIS->__retvalue = -1;
-          return;
-      }
-      nfsi = NFS_I(inode);
- 
-      THIS->__retvalue = nfsi->ndirty;
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        struct nfs_inode * nfsi = NFS_I(inode);
+        THIS->__retvalue = kread(&(nfsi->ndirty));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get rsize from struct inode*/
 function __nfs_server_rsize:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)((long)THIS->inode);
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
-       if(inode == NULL) 
-       {
-           THIS->__retvalue = -1;
-           return;
-       }
-       THIS->__retvalue = NFS_SERVER(inode)->rsize;
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        struct nfs_server * nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
+        THIS->__retvalue = kread(&(nfs_srv->rsize));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get version from struct inode*/
 function __nfs_version:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)((long)THIS->inode);
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
-       if(inode == NULL) 
-       {
-           THIS->__retvalue = -1;
-           return;
-       }
-       THIS->__retvalue = NFS_PROTO(inode)->version;
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        const struct nfs_rpc_ops *rpc_ops = NFS_PROTO(inode); /* FIXME: deref hazard! */
+        THIS->__retvalue = kread(&(rpc_ops->version));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get wsize from struct inode*/
 function __nfs_server_wsize:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)((long)THIS->inode);
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
-       if(inode == NULL) 
-       {
-           THIS->__retvalue = -1;
-           return;
-       }
-       THIS->__retvalue = NFS_SERVER(inode)->wsize;
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        struct nfs_server * nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
+        THIS->__retvalue = kread(&(nfs_srv->wsize));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get rpages from struct inode*/
 function __nfs_rpages:long (inode:long) %{ /* pure */
-       struct inode * inode = (struct inode *)((long)THIS->inode);
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
 
-       if(inode == NULL) 
-       {
-           THIS->__retvalue = -1;
-           return;
-       }
-       THIS->__retvalue = NFS_SERVER(inode)->rpages;
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        struct nfs_server * nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
+        THIS->__retvalue = kread(&(nfs_srv->rpages));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get wpages from struct inode*/
 function __nfs_wpages:long(inode:long) %{ /* pure */
-      struct inode *inode = (struct inode*)((long)THIS->inode);
-      if(inode == NULL) 
-      {
-          THIS->__retvalue = -1;
-          return;
-      }
-      THIS->__retvalue = NFS_SERVER(inode)->wpages;
+    struct inode * inode = (struct inode *)(long)(THIS->inode);
+
+    if(inode == NULL) 
+        THIS->__retvalue = -1;
+    else {
+        struct nfs_server * nfs_srv = NFS_SERVER(inode); /* FIXME: deref hazard! */
+        THIS->__retvalue = kread(&(nfs_srv->wpages));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get struct inode from struct page*/
 function __p2i :long(page:long) %{ /* pure */
-      struct page *page = (struct page *)((long)THIS->page);
+    struct page *page = (struct page *)((long)THIS->page);
+    struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
 
-      if ((page == NULL) || (page->mapping == NULL)) {
-                THIS->__retvalue = 0;
-                return;
-        }
-
-        THIS->__retvalue = deref(sizeof(page->mapping->host),
-                &(page->mapping->host));
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    if (mapping == NULL)
+        THIS->__retvalue = 0;
+    else
+        THIS->__retvalue = (long)kread(&(mapping->host));
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get i_flags from struct page*/
 function __p2i_flag : long (page:long) %{ /* pure */
-      struct page *page = (struct page *) (THIS->page);
+    struct page *page = (struct page *)((long)THIS->page);
+    struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
 
-      if ((page == NULL) || (page->mapping == NULL) \
-          ||(page->mapping->host == NULL)) {
-                THIS->__retvalue = -1;
-                return;
-        }
-
-        THIS->__retvalue = deref(sizeof(page->mapping->host->i_flags),
-                &(page->mapping->host->i_flags));
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    if (host == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(host->i_flags));
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get i_state from struct page*/
 function __p2i_state :long (page:long) %{ /* pure */
-      struct page *page = (struct page *) (THIS->page);
-      
-      if ((page == NULL) || (page->mapping == NULL) \
-          ||(page->mapping->host == NULL)) {
-                THIS->__retvalue = -1;
-                return;
-        }
+    struct page *page = (struct page *)((long)THIS->page);
+    struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
 
-        THIS->__retvalue = deref(sizeof(page->mapping->host->i_state),
-                &(page->mapping->host->i_state));
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    if (host == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(host->i_state));
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get i_size from struct page*/
 function __p2i_size :long (page:long) %{ /* pure */
-      struct page *page = (struct page *) (THIS->page);
+    struct page *page = (struct page *)((long)THIS->page);
+    struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
 
-      if ((page == NULL) || (page->mapping == NULL) \
-          ||(page->mapping->host == NULL)) {
-                THIS->__retvalue = -1;
-                return;
-        }
-
-        THIS->__retvalue = deref(sizeof(page->mapping->host->i_size),
-                &(page->mapping->host->i_size));
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    if (host == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(host->i_size));
+    CATCH_DEREF_FAULT();
 %}
 
 /*Get s_flags from struct page*/
 function __p2sb_flag:long (page:long) %{ /* pure */
-      struct page *page = (struct page *)(THIS->page);
-      
-      if ((page == NULL) || (page->mapping == NULL) \
-          ||(page->mapping->host == NULL)) {
-                THIS->__retvalue = -1;
-                return;
-        }
+    struct page *page = (struct page *)((long)THIS->page);
+    struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
+    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
+	struct super_block *i_sb = host? kread(&(host->i_sb)) : NULL;
 
-        THIS->__retvalue = deref(sizeof(page->mapping->host->i_flags),
-                &(page->mapping->host->i_flags));
-        if (0) {
-deref_fault:
-                CONTEXT->last_error = "pointer dereference fault";
-        }
+    if (i_sb == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(&(i_sb->s_flags));
+    CATCH_DEREF_FAULT();
 %}
 
 function __d_loff_t :long (ppos :long) %{ /* pure */
-        loff_t * ppos = (loff_t *) ((long)THIS->ppos);
-     
-        if (ppos == NULL)
-        {
-                THIS->__retvalue = -1;
-                return;
-        }
+    loff_t * ppos = (loff_t *) ((long)THIS->ppos);
 
-        THIS->__retvalue = *ppos;
+    if (ppos == NULL)
+        THIS->__retvalue = -1;
+    else
+        THIS->__retvalue = kread(ppos);
+    CATCH_DEREF_FAULT();
 %}
 
 function __file_inode:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
-		THIS->__retvalue = 0;
-		return;
-	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode),
-		&(file->f_dentry->d_inode));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+    struct file *file = (struct file *)(long)THIS->file;
+    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (f_dentry == NULL)
+        THIS->__retvalue = 0;
+    else
+        THIS->__retvalue = (long)kread(&(f_dentry->d_inode));
+    CATCH_DEREF_FAULT();
 %}
 
 function __file_id:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
-		THIS->__retvalue = 0;
-		return;
-	}
-	THIS->__retvalue = (long)&(file->f_dentry->d_inode->i_sb->s_id);
+    struct file *file = (struct file *)(long)THIS->file;
+    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (f_dentry == NULL)
+        THIS->__retvalue = 0;
+    else {
+        struct inode *d_inode = kread(&(f_dentry->d_inode));
+        struct super_block *i_sb = kread(&(d_inode->i_sb));
+        THIS->__retvalue = (long)&(i_sb->s_id);
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 function __file_mode:long (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) || (file->f_dentry == NULL)) {
-		THIS->__retvalue = 0;
-		return;
-	}
-	THIS->__retvalue = deref(sizeof(file->f_dentry->d_inode->i_mode),
-		&(file->f_dentry->d_inode->i_mode));
-	if (0) {
-deref_fault:
-		CONTEXT->last_error = "pointer dereference fault";
-	}
+    struct file *file = (struct file *)(long)THIS->file;
+    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (f_dentry == NULL)
+        THIS->__retvalue = 0;
+    else {
+        struct inode *d_inode = kread(&(f_dentry->d_inode));
+        THIS->__retvalue = kread(&(d_inode->i_mode));
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 function __file_parentname:string (file:long) %{ /* pure */
-	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) 
-		|| (file->f_dentry == NULL) 
-		|| (file->f_dentry->d_parent == NULL))
-		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		strlcpy(THIS->__retvalue, file->f_dentry->d_parent->d_name->name, MAXSTRINGLEN);
-	}
+    struct file *file = (struct file *)(long)THIS->file;
+    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+    struct dentry *d_parent = f_dentry? kread(&(f_dentry->d_parent)) : NULL;
+    if (d_parent == NULL)
+        strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+    else {
+        const unsigned char *name = kread(&(d_parent->d_name.name));
+        deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
+    }
+    CATCH_DEREF_FAULT();
 %}
 
 probe nfs.fop.entries = nfs.fop.llseek,

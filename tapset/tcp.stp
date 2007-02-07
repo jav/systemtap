@@ -20,14 +20,15 @@
 // timeout (TCP_RTO_MAX)
 function tcp_get_info_rto:long(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
-	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
-	THIS->__retvalue = (int64_t) jiffies_to_usecs(tp->rto);
+	struct tcp_opt *tp = tcp_sk(sk);
+	THIS->__retvalue = (int64_t) jiffies_to_usecs(kread(&(tp->rto)));
 #else
-	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
-	THIS->__retvalue = (int64_t) jiffies_to_usecs(icsk->icsk_rto);
+	const struct inet_connection_sock *icsk = inet_csk(sk);
+	THIS->__retvalue = (int64_t) jiffies_to_usecs(kread(&(icsk->icsk_rto)));
 #endif
+	CATCH_DEREF_FAULT();
 %}
 
 //Get congestion window segment size. Initial value of congestion window size 
@@ -36,13 +37,14 @@ function tcp_get_info_rto:long(sock:long)
 //is performing slow start or congestion avoidance. 
 function tcp_get_info_snd_cwnd:long(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
-	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+	struct tcp_opt *tp = tcp_sk(sk);
 #else
-	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
+	struct tcp_sock *tp = tcp_sk(sk);
 #endif
-	THIS->__retvalue = (int64_t) tp->snd_cwnd;
+	THIS->__retvalue = (int64_t) kread(&(tp->snd_cwnd));
+	CATCH_DEREF_FAULT();
 %}
 
 //
@@ -63,10 +65,9 @@ function tcp_get_info_snd_cwnd:long(sock:long)
 // 
 function tcp_ts_get_info_state:long(sock:long)
 %{
-        unsigned long ptr = (unsigned long) THIS->sock;
-	struct sock * sk =  (struct sock *) ptr; 
-	
-	THIS->__retvalue = (int64_t) sk->sk_state;
+	struct sock *sk = (struct sock *)(long) THIS->sock;
+	THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
+	CATCH_DEREF_FAULT();
 %}
 
 
@@ -75,28 +76,29 @@ function tcp_ts_get_info_state:long(sock:long)
 // avoidance.
 function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
-	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
+	struct tcp_opt *tp = tcp_sk(sk);
 #else
-	struct tcp_sock *tp = tcp_sk((struct sock *)ptr);
+	struct tcp_sock *tp = tcp_sk(sk);
 #endif
-
-	THIS->__retvalue = (int64_t) tp->snd_ssthresh;
+	THIS->__retvalue = (int64_t) kread(&(tp->snd_ssthresh));
+	CATCH_DEREF_FAULT();
 %}
 
 // Get receiver's advertised segment size.  TCP typically never sends more
 // than what receiver can accept.
 function tcp_ts_get_info_rcv_mss:long(sock:long)
 %{
-	unsigned long ptr = (unsigned long) THIS->sock;
+	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
-	struct tcp_opt *tp = tcp_sk((struct sock *)ptr);
-	THIS->__retvalue = (int64_t) tp->ack.rcv_mss;
+	struct tcp_opt *tp = tcp_sk(sk);
+	THIS->__retvalue = (int64_t) kread(&(tp->ack.rcv_mss));
 #else
-	const struct inet_connection_sock *icsk = inet_csk((struct sock *)ptr);
-	THIS->__retvalue = (int64_t) icsk->icsk_ack.rcv_mss;
+	const struct inet_connection_sock *icsk = inet_csk(sk);
+	THIS->__retvalue = (int64_t) kread(&(icsk->icsk_ack.rcv_mss));
 #endif
+	CATCH_DEREF_FAULT();
 %}
 
 // probe tcp.sendmsg

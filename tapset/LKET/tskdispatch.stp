@@ -63,8 +63,11 @@ function log_ctxswitch_tracedata(var_id:long, prev:long, next_pid:long)
 	prev_tsk = (struct task_struct *)((long)THIS->prev);
 	next_tsk = (struct task_struct *)((long)THIS->next_pid);
 
-	_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%4b%1b", (_FMT_)prev_tsk->pid, 
-		(_FMT_)next_tsk->pid, (_FMT_)prev_tsk->state); 
+	_lket_trace(_GROUP_TASK, THIS->var_id, "%4b%4b%1b",
+		(_FMT_)kread(&(prev_tsk->pid)),
+		(_FMT_)kread(&(next_tsk->pid)),
+		(_FMT_)kread(&(prev_tsk->state))); 
+	CATCH_DEREF_FAULT();
 %}
 
 function log_cpuidle_tracedata(var_id:long)

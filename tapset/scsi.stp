@@ -77,12 +77,13 @@ probe scsi.iocompleted
 function scsi_timer_pending:long(var:long)
 %{
         struct scsi_cmnd *cmd = (struct scsi_cmnd *)((long)THIS->var);
-        THIS->__retvalue = timer_pending(&cmd->eh_timeout);
+        THIS->__retvalue = timer_pending(&cmd->eh_timeout); /* FIXME: deref hazard! */
 %}
 
 function get_devstate_from_req:long(var:long)
 %{
 	struct request_queue *q = (struct request_queue *)((long)THIS->var);
-        struct scsi_device *sdev = (struct scsi_device *)(q->queuedata);
-	THIS->__retvalue = sdev->sdev_state;
+	struct scsi_device *sdev = (struct scsi_device *)kread(&(q->queuedata));
+	THIS->__retvalue = kread(&(sdev->sdev_state));
+	CATCH_DEREF_FAULT();
 %}

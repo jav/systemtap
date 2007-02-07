@@ -20,10 +20,8 @@ function strlen:long(s:string) %{ /* pure */
 * @return Returns the substring.
 */
 function substr:string(str:string,start:long, length:long) %{ /* pure */
-	int length = THIS->length + 1 > MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;
-	if (THIS->start < 0   || length < 1) {
-		return;
-	} else
+	int length = THIS->length >= MAXSTRINGLEN ? MAXSTRINGLEN : THIS->length + 1;
+	if (THIS->start >= 0 && length > 0 && THIS->start < strlen(THIS->str))
 		strlcpy(THIS->__retvalue, THIS->str + THIS->start, length);
 %}
 

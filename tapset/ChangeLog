@@ -1,3 +1,19 @@
+2007-02-06  Josh Stone  <joshua.i.stone@intel.com>
+
+	* aux_syscalls.stp, inet_sock.stp, ioblock.stp, ioscheduler.stp,
+	nfs.stp, nfs_proc.stp, nfsd.stp, rpc.stp, scsi.stp, signal.stp,
+	socket.stp, task.stp, tcp.stp, vfs.stp: Protect pointer dereferences
+	with kread wherever possible.  Some places still have hazards, as
+	marked with FIXMEs.
+
+	* errno.stp (returnstr): Don't use return in tapset C functions.
+	* aux_syscalls.stp (__uget_timex_m): Ditto.
+	* nfsd.stp (__get_fh): Ditto.
+	* nfs.stp, vfs.stp (<many functions>): Ditto.
+	* string.stp (substr): Ditto. Also make sure start index is valid.
+
+	* syscalls.stp (syscall.execve): Change __string to kernel_string.
+
 2007-02-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* conversions.stp (kernel_long/int/short/char): New functions.

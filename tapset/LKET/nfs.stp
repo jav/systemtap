@@ -1,13 +1,17 @@
 /* Helper functions */
 function __file_fsname:string (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	if ((file == NULL) 
-		|| (file->f_dentry == NULL) 
-		|| (file->f_dentry->d_inode == NULL))
+	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
+	struct inode *d_inode = f_dentry? kread(&(f_dentry->d_inode)) : NULL;
+	if (d_inode == NULL)
 		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		strlcpy(THIS->__retvalue, file->f_dentry->d_inode->i_sb->s_type->name, MAXSTRINGLEN);
+		struct super_block *i_sb = kread(&(d_inode->i_sb));
+		struct file_system_type *s_type = kread(&(i_sb->s_type));
+		const char *name = kread(&(s_type->name));
+		deref_string(THIS->__retvalue, name, MAXSTRINGLEN);
 	}
+	CATCH_DEREF_FAULT();
 %}
 
 probe never

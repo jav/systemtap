@@ -237,13 +237,11 @@ function log_io_getevents(ctx_id:long, min_nr:long, nr:long,
 	struct timespec __user *timeout = (struct timespec *)((long)THIS->timeout);
 	struct timespec ts;
 
-	if (unlikely(copy_from_user(&ts, timeout, sizeof(ts))))
-		return;
-
-	_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_GETEVENTS_ENTRY,
-		"%8b%4b%4b%8b%4b%4b", THIS->ctx_id, THIS->min_nr,
-		THIS->nr, THIS->events_uaddr, (_FMT_)ts.tv_sec, 
-		(_FMT_)ts.tv_nsec);
+	if (likely(0 == copy_from_user(&ts, timeout, sizeof(ts))))
+		_lket_trace(_GROUP_AIO, _HOOKID_AIO_IO_GETEVENTS_ENTRY,
+				"%8b%4b%4b%8b%4b%4b", THIS->ctx_id, THIS->min_nr,
+				THIS->nr, THIS->events_uaddr, (_FMT_)ts.tv_sec, 
+				(_FMT_)ts.tv_nsec);
 %}
 
 probe addevent.aio.io_getevents.return
