@@ -1,3 +1,5 @@
+#! stap -p4
+
 # Test the conversions tapset.
 
 probe begin {
