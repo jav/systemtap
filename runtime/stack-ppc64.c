@@ -57,5 +57,5 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 		}
 
 		sp = newsp;
-	} while (str->len < STP_STRING_SIZE);
+	} while (count++ < MAXBACKTRACE);
 }

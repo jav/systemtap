@@ -25,6 +25,8 @@
 #include "regs.h"
 static int _stp_kta(unsigned long addr);
 
+#define MAXBACKTRACE 20
+
 #if defined (__x86_64__)
 #include "stack-x86_64.c"
 #elif defined (__ia64__)
