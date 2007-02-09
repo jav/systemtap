@@ -98,8 +98,8 @@ Guru mode.  Enable parsing of unsafe expert-level constructs like
 embedded C.
 .TP
 .B \-P
-Prologue-searching mode.  Enable parsing of unsafe expert-level constructs like
-embedded C.
+Prologue-searching mode.  Activate heuristics to work around incorrect
+debbugging information for $target variables.
 .TP
 .B \-u
 Unoptimized mode.  Disable unused code elision during elaboration.
@@ -625,9 +625,9 @@ of C code enclosed again between
 .IR %{ " and " %}
 markers.
 This C code may do anything reasonable and safe.  There are a number
-of undocumented but complex safety constraints on concurrency,
-resource consumption, and runtime limits, so this is an advanced
-technique.
+of undocumented but complex safety constraints on atomicity,
+concurrency, resource consumption, and run time limits, so this
+is an advanced technique.
 .PP
 The memory locations set aside for input and output values
 are made available to it using a macro
