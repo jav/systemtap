@@ -865,6 +865,7 @@ Optional Features:
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-perfmon                 enable perfmon support (default is disabled)
+  --enable-prologues      make -P prologue-searching default
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -5194,6 +5195,16 @@ fi
   CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
   LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
 fi
+
+# Check whether --enable-prologues or --disable-prologues was given.
+if test "${enable_prologues+set}" = set; then
+  enableval="$enable_prologues"
+
+cat >>confdefs.h <<\_ACEOF
+#define ENABLE_PROLOGUES
+_ACEOF
+
+fi;
 
 build_elfutils=no
 

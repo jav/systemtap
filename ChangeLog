@@ -1,3 +1,15 @@
+2007-02-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3965
+	* configure.ac: Add --enable-prologue option.
+	* configure, config.in: Regenerated.
+	* session.h (prologue_searching): New field.
+	* main.cxx (main): Parse new "-P" option.  Initialize based on
+	autoconf flag.
+	* stap.1.in, NEWS: Document it.
+	* hash.cxx (find_hash): Include it in computation.
+	* tapsets.cxx (query_func_info, query_cu): Respect it.
+
 2007-02-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stapfuncs.5.in: Add docs for kernel_{long,int,short,char} and

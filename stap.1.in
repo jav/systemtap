@@ -97,6 +97,10 @@ kernel object.
 Guru mode.  Enable parsing of unsafe expert-level constructs like
 embedded C.
 .TP
+.B \-P
+Prologue-searching mode.  Enable parsing of unsafe expert-level constructs like
+embedded C.
+.TP
 .B \-u
 Unoptimized mode.  Disable unused code elision during elaboration.
 .TP

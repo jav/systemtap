@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2007 Red Hat Inc. (systemtap changes)
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -97,6 +97,7 @@ find_hash (systemtap_session& s, const string& script)
   h.add(s.bulk_mode);			// '-b'
   h.add(s.merge);			// '-M'
   h.add(s.timing);			// '-t'
+  h.add(s.prologue_searching);		// '-P'
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 

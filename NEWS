@@ -8,6 +8,12 @@
   To delete such an element, the scripts needs to use an explicit
   "delete array[idx]" statement rather than something like "array[idx]=0".
 
+- The new "-P" option controls whether prologue searching heuristics
+  will be activated for function probes.  This was needed to get correct
+  debugging information (dwarf location list) data for $target variables.
+  Modern compilers (gcc 4.1+) tend not to need this heuristic, so it is
+  no longer default.  A new configure flag (--enable-prologues) restores
+  it as a default setting, and is appropriate for older compilers (gcc 3.*).
 
 * What's new since version 0.5.10?
 

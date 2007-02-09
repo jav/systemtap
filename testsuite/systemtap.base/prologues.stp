@@ -1,0 +1,6 @@
+# These sys_ functions often display prologue sensitivity
+probe syscall.read, syscall.write {
+  log (name . argstr)
+  if (num++ > 20) exit()
+}
+global num

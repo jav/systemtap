@@ -48,6 +48,10 @@ if test $perfmon_support = yes; then
   LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
 fi
 
+AC_ARG_ENABLE(prologues,
+         AC_HELP_STRING([--enable-prologues],[make -P prologue-searching default]),
+         AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default]))
+
 build_elfutils=no
 AC_ARG_WITH([elfutils],
             AC_HELP_STRING([--with-elfutils=DIRECTORY],

@@ -48,7 +48,6 @@ extern "C" {
 #include <perfmon/perfmon.h>
 #endif
 
-
 using namespace std;
 
 
@@ -2415,19 +2414,19 @@ query_func_info (Dwarf_Addr entrypc,
 	}
       else
 	{
-#ifdef __ia64__
-	// In IA64 platform function probe point is set at its
-	// entry point rather than prologue end pointer
-	   query_statement (fi.name, fi.decl_file, fi.decl_line,
-		&fi.die, entrypc, q);
-
-#else
-	  if (fi.prologue_end == 0)
-	    throw semantic_error("could not find prologue-end "
-				 "for probed function '" + fi.name + "'");
-	  query_statement (fi.name, fi.decl_file, fi.decl_line,
-			   &fi.die, fi.prologue_end, q);
-#endif
+          if (q->sess.prologue_searching)
+            {
+              if (fi.prologue_end == 0)
+                throw semantic_error("could not find prologue-end "
+                                     "for probed function '" + fi.name + "'");
+              query_statement (fi.name, fi.decl_file, fi.decl_line,
+                               &fi.die, fi.prologue_end, q);
+            }
+          else
+            {
+              query_statement (fi.name, fi.decl_file, fi.decl_line,
+                               &fi.die, entrypc, q);
+            }
 	}
     }
   catch (semantic_error &e)
@@ -2657,8 +2656,10 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
 	  q->dw.iterate_over_functions (query_dwarf_func, q);
-          if (! q->filtered_functions.empty())
-            q->dw.resolve_prologue_endings (q->filtered_functions);
+
+          if (q->sess.prologue_searching)
+            if (! q->filtered_functions.empty())
+              q->dw.resolve_prologue_endings (q->filtered_functions);
 
 	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
 	      && (q->spec_type == function_file_and_line))

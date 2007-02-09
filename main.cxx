@@ -71,6 +71,8 @@ usage (systemtap_session& s, int exitcode)
     << "   -k         keep temporary directory" << endl
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
+    << "   -P         prologue-searching for function probes" 
+    << (s.prologue_searching ? " [set]" : "") << endl
     << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
     << "   -M         Don't merge per-cpu files for bulk (relayfs) mode" << (s.merge ? "" : " [set]") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
@@ -197,6 +199,13 @@ main (int argc, char * const argv [])
   s.guru_mode = false;
   s.bulk_mode = false;
   s.unoptimized = false;
+
+#ifdef ENABLE_PROLOGUES
+  s.prologue_searching = true;
+#else
+  s.prologue_searching = false;
+#endif
+
   s.buffer_size = 0;
   s.last_pass = 5;
   s.module_name = "stap_" + stringify(getpid());
@@ -256,7 +265,8 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgc:x:D:bs:u");
+      // NB: also see find_hash(), help(), switch stmt below, stap.1 man page
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:u");
       if (grc < 0)
         break;
       switch (grc)
@@ -326,6 +336,10 @@ main (int argc, char * const argv [])
 
         case 'g':
           s.guru_mode = true;
+          break;
+
+        case 'P':
+          s.prologue_searching = true;
           break;
 
         case 'b':
