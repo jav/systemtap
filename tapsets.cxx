@@ -2363,7 +2363,8 @@ query_statement (string const & func,
         throw semantic_error("incomplete: do not know how to interpret .relative",
                              q->base_probe->tok);
 
-      q->add_probe_point(func, file, line, scope_die, stmt_addr);
+      q->add_probe_point(func, file ? file : "?",
+                         line, scope_die, stmt_addr);
     }
   catch (const semantic_error& e)
     {
