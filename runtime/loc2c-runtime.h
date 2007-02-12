@@ -416,7 +416,7 @@
 	_v;							\
 })
 
-#define deref_store(size, addr, value)				\
+#define store_deref(size, addr, value)				\
 ({								\
 	int _bad = 0;						\
 	switch (size) {						\
