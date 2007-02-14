@@ -3569,6 +3569,12 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "/* ---- dwarf probes ---- */";
 
+  // Warn of misconfigured kernels
+  s.op->newline() << "#if ! defined(CONFIG_KPROBES)";
+  s.op->newline() << "#error \"Need CONFIG_KPROBES!\"";
+  s.op->newline() << "#endif";
+  s.op->newline();
+
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs);";

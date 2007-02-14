@@ -1,3 +1,8 @@
+2007-02-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (emit_module_decls): Assert CONFIG_KPROBES,
+	as suggested by Andreas Kostyrka <andreas@kostyrka.org>.
+
 2007-02-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_statement): Tolerate null file name string.
