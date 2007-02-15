@@ -1,3 +1,15 @@
+2007-02-15  David Smith  <dsmith@redhat.com>
+
+	PR 3625.
+	* tapsets.cxx (dwflpp::print_locals): New function to print all
+	the variables/parameters of a function.
+	(dwflpp::find_variable_and_frame_base): Calls print_locals() when
+	target variable can't be found.
+	(dwflpp::print_members): New function to print all the members of
+	a union/structure.
+	(dwflpp::translate_components) Calls print_members() when
+	union/structure member target variable reference can't be found.
+
 2007-02-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (emit_module_decls): Assert CONFIG_KPROBES,

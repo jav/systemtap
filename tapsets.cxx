@@ -1243,6 +1243,35 @@ struct dwflpp
     dwfl->emit_address (pool, address);
   }
 
+  void print_locals(Dwarf_Die *die, ostream &o)
+  {
+    // Try to get the first child of die.
+    bool local_found = false;
+    Dwarf_Die child;
+    if (dwarf_child (die, &child) == 0)
+      {
+	do
+	  {
+	    // Output each sibling's name (that is a variable or
+	    // parameter) to 'o'.
+	    switch (dwarf_tag (&child))
+	      {
+	      case DW_TAG_variable:
+	      case DW_TAG_formal_parameter:
+		o << " " << dwarf_diename (&child);
+		local_found = true;
+		break;
+	      default:
+		break;
+	      }
+	  }
+	while (dwarf_siblingof (&child, &child) == 0);
+      }
+
+    if (! local_found)
+      o << " (none found)";
+  }
+
   Dwarf_Attribute *
   find_variable_and_frame_base (Dwarf_Die *scope_die,
 				Dwarf_Addr pc,
@@ -1274,8 +1303,12 @@ struct dwflpp
 					     vardie);
     if (declaring_scope < 0)
       {
+	stringstream alternatives;
+	print_locals (scopes, alternatives);
 	throw semantic_error ("unable to find local '" + local + "'"
-			      + " near pc " + lex_cast_hex<string>(pc));
+			      + " near pc " + lex_cast_hex<string>(pc)
+			      + " (alternatives:" + alternatives.str ()
+			      + ")");
       }
 
     for (int inner = 0; inner < nscopes; ++inner)
@@ -1329,6 +1362,53 @@ struct dwflpp
 				 pc, expr, len, tail, fb_attr);
   }
 
+  void
+  print_members(Dwarf_Die *vardie, ostream &o)
+  {
+    const int typetag = dwarf_tag (vardie);
+
+    if (typetag != DW_TAG_structure_type && typetag != DW_TAG_union_type)
+      {
+	o << " Error: "
+	  << (dwarf_diename_integrate (vardie) ?: "<anonymous>")
+	  << " isn't a struct/union";
+	return;
+      }
+
+    // Try to get the first child of vardie.
+    Dwarf_Die die_mem;
+    Dwarf_Die *die = &die_mem;
+    switch (dwarf_child (vardie, die))
+      {
+      case 1:				// No children.
+	o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
+	  << (dwarf_diename_integrate (die) ?: "<anonymous>")
+	  << " is empty";
+	break;
+
+      case -1:				// Error.
+      default:				// Shouldn't happen.
+	o << ((typetag == DW_TAG_union_type) ? " union " : " struct ")
+	  << (dwarf_diename_integrate (die) ?: "<anonymous>")
+	  << ": " << dwarf_errmsg (-1);
+	break;
+
+      case 0:				// Success.
+	break;
+      }
+
+    // Output each sibling's name to 'o'.
+    while (dwarf_tag (die) == DW_TAG_member)
+      {
+	const char *member = (dwarf_diename_integrate (die) ?: "<anonymous>");
+	
+	o << " " << member;
+
+	if (dwarf_siblingof (die, &die_mem) != 0)
+	  break;
+      }
+  }
+
   Dwarf_Die *
   translate_components(struct obstack *pool,
 		       struct location **tail,
@@ -1340,6 +1420,7 @@ struct dwflpp
 		       Dwarf_Attribute *attr_mem)
   {
     Dwarf_Die *die = vardie;
+    Dwarf_Die struct_die;
     unsigned i = 0;
     while (i < components.size())
       {
@@ -1376,6 +1457,7 @@ struct dwflpp
 
 	  case DW_TAG_structure_type:
 	  case DW_TAG_union_type:
+	    struct_die = *die;
 	    switch (dwarf_child (die, die_mem))
 	      {
 	      case 1:		/* No children.  */
@@ -1397,7 +1479,13 @@ struct dwflpp
 		   || ({ const char *member = dwarf_diename_integrate (die);
 		       member == NULL || string(member) != components[i].second; }))
 	      if (dwarf_siblingof (die, die_mem) != 0)
-		throw semantic_error ("field '" + components[i].second + "' not found");
+	      {
+		  stringstream alternatives;
+		  print_members (&struct_die, alternatives);
+		  throw semantic_error ("field '" + components[i].second
+					+ "' not found (alternatives:"
+					+ alternatives.str () + ")");
+	      }
 
 	    if (dwarf_attr_integrate (die, DW_AT_data_member_location,
 				      attr_mem) == NULL)
