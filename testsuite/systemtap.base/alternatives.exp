@@ -1,0 +1,46 @@
+# alternatives.exp
+#
+# 2 simple tests:
+#
+# LOCAL1: makes sure that when a probe is compiled that accesses a
+# non-existent local variable, the local variables that do exist are
+# listed as alternatives.
+#
+# STRUCT1: makes sure that when a probe is compiled that accesses a
+# non-existent structure member, the structure members that do exist
+# are listed as alternatives.
+#
+# Note that the tests don't check if the correct alternatives are
+# listed, but that some alternatives are listed.
+
+set local1_script {
+    probe kernel.function("signal_wake_up") { x = $z; }
+}
+
+set struct1_script {
+    probe kernel.function("signal_wake_up") { sig_pid = $t->pig; }
+}
+
+proc stap_run_alternatives {args} {
+    set alternatives_found 0
+    verbose -log "starting $args"
+    eval spawn $args
+    expect { 
+	-re {semantic error: .+ \(alternatives: [a-zA-Z_]}
+	    { set alternatives_found 1 }
+        -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
+        eof { }
+        timeout { exp_continue } 
+    }
+    set results [wait]
+    verbose -log "wait results: $results"
+    return $alternatives_found
+}
+
+set test "LOCAL1"
+set rc [stap_run_alternatives ./stap -vu -p2 -e $local1_script]
+if {$rc == 1} { pass $test } else { fail $test }
+
+set test "STRUCT1"
+set rc [stap_run_alternatives ./stap -vu -p2 -e $struct1_script]
+if {$rc == 1} { pass $test } else { fail $test }
