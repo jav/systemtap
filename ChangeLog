@@ -1,3 +1,10 @@
+2007-02-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4066.
+	* translate.cxx (var::init): Check stat scalar initialization,
+	just like is done for arrays.
+	(emit_module_exit): Check unlikely but possible null timing stat.
+
 2007-02-15  David Smith  <dsmith@redhat.com>
 
 	PR 3625.

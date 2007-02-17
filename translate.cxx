@@ -348,29 +348,39 @@ public:
         else
           return qname() + " = 0;";
       case pe_stats:
-	switch (sd.type)
-	  {
-	  case statistic_decl::none:
-	    return (qname() 
-		    + " = _stp_stat_init (HIST_NONE);");
-	    break;
-	    
-	  case statistic_decl::linear:
-	    return (qname() 
-		    + " = _stp_stat_init (HIST_LINEAR"
-		    + ", " + stringify(sd.linear_low) 
-		    + ", " + stringify(sd.linear_high) 
-		    + ", " + stringify(sd.linear_step)
-		    + ");");
-	    break;
-
-	  case statistic_decl::logarithmic:
-	    return (qname() 
-		    + " = _stp_stat_init (HIST_LOG"
-		    + ", " + stringify(sd.logarithmic_buckets) 
-		    + ");");
-	    break;
-	  }
+        {
+          // See also mapvar::init().
+          
+          string prefix = qname() + " = _stp_stat_init (";
+          // Check for errors during allocation.
+          string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
+          
+          switch (sd.type)
+            {
+            case statistic_decl::none:
+              prefix += "HIST_NONE";
+              break;
+              
+            case statistic_decl::linear:
+              prefix += string("HIST_LINEAR")
+                + ", " + stringify(sd.linear_low) 
+                + ", " + stringify(sd.linear_high) 
+                + ", " + stringify(sd.linear_step);
+              break;
+              
+            case statistic_decl::logarithmic:
+              prefix += string("HIST_LOG")
+                + ", " + stringify(sd.logarithmic_buckets);
+              break;
+              
+            default:
+              throw semantic_error("unsupported stats type for " + qname());
+            }
+          
+          prefix = prefix + "); ";
+          return string (prefix + suffix);
+        }
+        
       default:
 	throw semantic_error("unsupported initializer for " + qname());
       }
@@ -600,6 +610,8 @@ struct mapvar
     string mtype = is_parallel() ? "pmap" : "map";
     string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (" + 
       (maxsize > 0 ? stringify(maxsize) : "MAXMAPENTRIES") ;
+
+    // See also var::init().
 
     // Check for errors during allocation.
     string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
@@ -1078,6 +1090,8 @@ c_unparser::emit_module_init ()
       if (basest_names.find(nm) == basest_names.end())
         {
           o->newline() << "time_" << nm << " = _stp_stat_init (HIST_NONE);";
+          // NB: we don't check for null return here, but instead at
+          // passage to probe handlers and at final printing.
           basest_names.insert (nm);
         }
     }
@@ -1209,7 +1223,8 @@ c_unparser::emit_module_exit ()
         if (basest_names.find(nm) == basest_names.end())
           {
             basest_names.insert (nm);
-            o->newline() << "{";
+            // NB: check for null stat object
+            o->newline() << "if (likely (time_" << p->name << ")) {";
             o->newline(1) << "const char *probe_point = " 
                          << lex_cast_qstring (* p->locations[0])
                          << (p->locations.size() > 1 ? "\"+\"" : "")
