@@ -15,6 +15,12 @@
   no longer default.  A new configure flag (--enable-prologues) restores
   it as a default setting, and is appropriate for older compilers (gcc 3.*).
 
+- Each systemtap module prints a one-line message to the kernel informational
+  log when it starts.  This line identifies the translator version, base
+  address of the probe module, a broken-down memory consumption estimate, and
+  the total number of probes.  This is meant as a debugging / auditing aid.
+
+
 * What's new since version 0.5.10?
 
 - Offline processing of debugging information, enabling general
