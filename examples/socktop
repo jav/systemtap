@@ -104,7 +104,7 @@ TZ_ADJUST=$TZ_SIGN$((10#$TZ_HOURS*60*60+10#$TZ_MINS*60))
 #
 # Start the systemtap script
 #
-/usr/local/bin/stap -e '
+stap -e '
 global execname, user, if_tx, if_rx, if_dev
 global sk_tx, sk_rx, sk_pid
 global f_name_str, f_pid_str, f_prot_str, f_fam_str, f_type_str, f_uid_str
