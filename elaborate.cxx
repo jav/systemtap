@@ -340,7 +340,7 @@ struct alias_derived_probe: public derived_probe
   // types, and are not themselves emitted or listed in
   // systemtap_session.probes
 
-  void join_group (systemtap_session& s) { upchuck (); }
+  void join_group (systemtap_session&) { upchuck (); }
 };
 
 
@@ -357,7 +357,7 @@ alias_expansion_builder
   virtual void build(systemtap_session & sess,
 		     probe * use, 
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     std::map<std::string, literal *> const &,
 		     vector<derived_probe *> & finished_results)
   {
     // We're going to build a new probe and wrap it up in an
@@ -1809,15 +1809,17 @@ semantic_pass_types (systemtap_session& s)
         }
       
       if (ti.num_newly_resolved == 0) // converged
-        if (ti.num_still_unresolved == 0)
-          break; // successfully
-        else if (! ti.assert_resolvability)
-          ti.assert_resolvability = true; // last pass, with error msgs
-        else
-          { // unsuccessful conclusion
-            rc ++;
-            break;
-          }
+        {
+          if (ti.num_still_unresolved == 0)
+            break; // successfully
+          else if (! ti.assert_resolvability)
+            ti.assert_resolvability = true; // last pass, with error msgs
+          else
+            { // unsuccessful conclusion
+              rc ++;
+              break;
+            }
+        }
     }
   
   return rc + s.num_errors();
@@ -2301,7 +2303,7 @@ typeresolution_info::visit_block (block* e)
 
 
 void
-typeresolution_info::visit_embeddedcode (embeddedcode* e)
+typeresolution_info::visit_embeddedcode (embeddedcode*)
 {
 }
 
@@ -2405,7 +2407,7 @@ typeresolution_info::visit_foreach_loop (foreach_loop* e)
 
 
 void
-typeresolution_info::visit_null_statement (null_statement* e)
+typeresolution_info::visit_null_statement (null_statement*)
 {
 }
 
@@ -2451,19 +2453,19 @@ typeresolution_info::visit_delete_statement (delete_statement* e)
 
 
 void
-typeresolution_info::visit_next_statement (next_statement* s)
+typeresolution_info::visit_next_statement (next_statement*)
 {
 }
 
 
 void
-typeresolution_info::visit_break_statement (break_statement* s)
+typeresolution_info::visit_break_statement (break_statement*)
 {
 }
 
 
 void
-typeresolution_info::visit_continue_statement (continue_statement* s)
+typeresolution_info::visit_continue_statement (continue_statement*)
 {
 }
 
@@ -2716,7 +2718,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 
 
 void
-typeresolution_info::resolved (const token* tok, exp_type t)
+typeresolution_info::resolved (const token*, exp_type)
 {
   num_newly_resolved ++;
   // cerr << "resolved " << *e->tok << " type " << t << endl;

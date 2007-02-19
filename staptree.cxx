@@ -1265,12 +1265,12 @@ traversing_visitor::visit_block (block* s)
 }
 
 void
-traversing_visitor::visit_embeddedcode (embeddedcode* s)
+traversing_visitor::visit_embeddedcode (embeddedcode*)
 {
 }
 
 void
-traversing_visitor::visit_null_statement (null_statement* s)
+traversing_visitor::visit_null_statement (null_statement*)
 {
 }
 
@@ -1331,27 +1331,27 @@ traversing_visitor::visit_delete_statement (delete_statement* s)
 }
 
 void
-traversing_visitor::visit_next_statement (next_statement* s)
+traversing_visitor::visit_next_statement (next_statement*)
 {
 }
 
 void
-traversing_visitor::visit_break_statement (break_statement* s)
+traversing_visitor::visit_break_statement (break_statement*)
 {
 }
 
 void
-traversing_visitor::visit_continue_statement (continue_statement* s)
+traversing_visitor::visit_continue_statement (continue_statement*)
 {
 }
 
 void
-traversing_visitor::visit_literal_string (literal_string* e)
+traversing_visitor::visit_literal_string (literal_string*)
 {
 }
 
 void
-traversing_visitor::visit_literal_number (literal_number* e)
+traversing_visitor::visit_literal_number (literal_number*)
 {
 }
 
@@ -1431,12 +1431,12 @@ traversing_visitor::visit_assignment (assignment* e)
 }
 
 void
-traversing_visitor::visit_symbol (symbol* e)
+traversing_visitor::visit_symbol (symbol*)
 {
 }
 
 void
-traversing_visitor::visit_target_symbol (target_symbol* e)
+traversing_visitor::visit_target_symbol (target_symbol*)
 {
 }
 

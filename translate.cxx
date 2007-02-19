@@ -2099,7 +2099,7 @@ c_unparser::visit_embeddedcode (embeddedcode *s)
 
 
 void
-c_unparser::visit_null_statement (null_statement *s)
+c_unparser::visit_null_statement (null_statement *)
 {
   // visit_statement (s, 0);
   //
@@ -3182,7 +3182,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
 void 
 c_unparser::visit_target_symbol (target_symbol* e)
 {
-  throw semantic_error("cannot translate general target-symbol expression");
+  throw semantic_error("cannot translate general target-symbol expression", e->tok);
 }
 
 
@@ -3947,7 +3947,7 @@ c_unparser::visit_stat_op (stat_op* e)
 
 
 void 
-c_unparser::visit_hist_op (hist_op* e)
+c_unparser::visit_hist_op (hist_op*)
 {
   // Hist ops can only occur in a limited set of circumstances:
   //

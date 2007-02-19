@@ -1021,7 +1021,7 @@ parser::parse_statement ()
 
 
 void
-parser::parse_global (vector <vardecl*>& globals, vector<probe*>& probes)
+parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
 {
   const token* t0 = next ();
   if (! (t0->type == tok_keyword && t0->content == "global"))

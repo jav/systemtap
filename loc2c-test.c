@@ -87,7 +87,8 @@ handle_variable (Dwarf_Die *scopes, int nscopes, int out,
      XXX inlines botched
   */
   Dwarf_Attribute fb_attr_mem, *fb_attr = NULL;
-  for (int inner = 0; inner < nscopes; ++inner)
+  int inner;
+  for (inner = 0; inner < nscopes; ++inner)
     {
       switch (dwarf_tag (&scopes[inner]))
 	{

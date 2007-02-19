@@ -7,9 +7,8 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
-AM_CFLAGS = -std=gnu99 -D_GNU_SOURCE -fexceptions \
-	    -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
-AM_CXXFLAGS = -Wall
+AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Wextra -Werror -Wshadow -Wunused -Wformat=2 -W
+AM_CXXFLAGS = -Wall -Wextra -Werror
 
 dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 bin_PROGRAMS = stap staprun
@@ -19,7 +18,7 @@ stap_SOURCES = main.cxx \
 	cache.cxx util.cxx
 stap_LDADD = @stap_LIBS@
 
-stap_CXXFLAGS = -Werror $(AM_CXXFLAGS)
+stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS)
 
@@ -52,7 +51,6 @@ install-exec-local: install-elfutils
 endif
 
 staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c runtime/stpd/symbols.c
-
 staprun_CFLAGS = @PROCFLAGS@
 staprun_LDADD = @PROCFLAGS@ -lpthread
 

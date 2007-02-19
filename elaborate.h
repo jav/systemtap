@@ -117,7 +117,7 @@ struct derived_probe: public probe
   virtual void join_group (systemtap_session& s) = 0;
   virtual probe_point* sole_location ();
 
-  virtual void emit_probe_context_vars (translator_output* o) {}
+  virtual void emit_probe_context_vars (translator_output*) {}
   // From within unparser::emit_common_header, add any extra variables
   // to this probe's context locals.
 

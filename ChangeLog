@@ -1,3 +1,12 @@
+2007-02-19  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4078 and more, including patch from
+	Eugeniy Meshcheryakov <eugen@debian.org>:
+	* Makefile.am (AM_CXXFLAGS, AM_CFLAGS): Add -Wextra -Wall -Werror
+	consistently.
+	* Makefile.in: Regenerated.
+	(*): Many minor warning fixes.
+
 2007-02-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4066.

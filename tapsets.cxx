@@ -101,7 +101,7 @@ struct be_builder: public derived_probe_builder
 {
   bool begin;
   be_builder(bool b) : begin(b) {}
-  virtual void build(systemtap_session & sess,
+  virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
 		     std::map<std::string, literal *> const & parameters,
@@ -291,17 +291,17 @@ struct never_derived_probe: public derived_probe
 {
   never_derived_probe (probe* p): derived_probe (p) {}
   never_derived_probe (probe* p, probe_point* l): derived_probe (p, l) {}
-  void join_group (systemtap_session& s) { /* thus no probe_group */ }
+  void join_group (systemtap_session&) { /* thus no probe_group */ }
 };
 
 
 struct never_builder: public derived_probe_builder
 {
   never_builder() {}
-  virtual void build(systemtap_session & sess,
+  virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     std::map<std::string, literal *> const &,
 		     vector<derived_probe *> & finished_results)
   {
     finished_results.push_back(new never_derived_probe(base, location));
@@ -536,7 +536,7 @@ struct dwflpp
   string function_name;
 
   string const default_name(char const * in,
-			    char const * type)
+			    char const *)
   {
     if (in)
       return in;
@@ -1175,14 +1175,18 @@ struct dwflpp
   }
 
 
-  static void loc2c_error (void *arg, const char *fmt, ...)
+  static void loc2c_error (void *, const char *fmt, ...)
   {
-    char *msg = NULL;
+    const char *msg = "?";
+    char *tmp = NULL;
     int rc;
     va_list ap;
     va_start (ap, fmt);
-    rc = vasprintf (&msg, fmt, ap);
-    if (rc < 0) msg = "?";
+    rc = vasprintf (& tmp, fmt, ap);
+    if (rc < 0)
+      msg = "?";
+    else
+      msg = tmp;
     va_end (ap);
     throw semantic_error (msg);
   }
@@ -1558,8 +1562,8 @@ struct dwflpp
 				  Dwarf_Die *die,
 				  Dwarf_Attribute *attr_mem,
 				  bool lvalue,
-				  string & prelude,
-				  string & postlude,
+				  string & /*prelude*/,
+				  string & /*postlude*/,
 				  exp_type & ty)
   {
     /* First boil away any qualifiers associated with the type DIE of
@@ -1656,7 +1660,7 @@ struct dwflpp
     // XXX: deref flag not reliable; emit fault label unconditionally
     // XXX: print the faulting address, like the user_string/kernel_string
     // tapset functions do
-    if (deref) ;
+    (void) deref;
     fprintf(memstream,
             "deref_fault:\n"
             "  c->last_error = \"pointer dereference fault\";\n"
@@ -2280,7 +2284,7 @@ in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
 bool
 dwarf_query::blacklisted_p(const string& funcname,
                            const string& filename,
-                           int line,
+                           int,
                            const string& module,
                            const string& section,
                            Dwarf_Addr addr)
@@ -2834,7 +2838,7 @@ query_kernel_module (Dwfl_Module *mod,
 static int
 query_module (Dwfl_Module *mod __attribute__ ((unused)),
 	      void **userdata __attribute__ ((unused)),
-	      const char *name, Dwarf_Addr base,
+	      const char *name, Dwarf_Addr,
 	      void *arg __attribute__ ((unused)))
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
@@ -4030,7 +4034,7 @@ public:
 };
 
 
-profile_derived_probe::profile_derived_probe (systemtap_session &s, probe* p, probe_point* l):
+profile_derived_probe::profile_derived_probe (systemtap_session &, probe* p, probe_point* l):
   derived_probe(p, l)
 { 
 }
@@ -4051,7 +4055,7 @@ struct profile_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     std::map<std::string, literal *> const &,
 		     vector<derived_probe *> & finished_results)
   {
     finished_results.push_back(new profile_derived_probe(sess, base, location));
@@ -4179,9 +4183,9 @@ struct mark_derived_probe: public derived_probe
 struct mark_derived_probe_group: public generic_dpg<mark_derived_probe>
 {
 public:
-  void emit_module_decls (systemtap_session& s) {}
-  void emit_module_init (systemtap_session& s) {}
-  void emit_module_exit (systemtap_session& s) {}
+  void emit_module_decls (systemtap_session&) {}
+  void emit_module_init (systemtap_session&) {}
+  void emit_module_exit (systemtap_session&) {}
 };
 
 
@@ -5023,9 +5027,9 @@ public:
 struct perfmon_derived_probe_group: public generic_dpg<perfmon_derived_probe>
 {
 public:
-  void emit_module_decls (systemtap_session& s) {}
-  void emit_module_init (systemtap_session& s) {}
-  void emit_module_exit (systemtap_session& s) {}
+  void emit_module_decls (systemtap_session&) {}
+  void emit_module_init (systemtap_session&) {}
+  void emit_module_exit (systemtap_session&) {}
 };
 
 

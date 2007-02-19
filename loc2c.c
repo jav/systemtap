@@ -1092,7 +1092,8 @@ discontiguify (struct obstack *pool, int indent, struct location *loc,
     {
       if (loc->type != loc_noncontiguous)
 	return (loc->byte_size ?: total_bytes) <= max_piece_bytes;
-      for (struct location *p = loc->pieces; p != NULL; p = p->next)
+      struct location *p;
+      for (p = loc->pieces; p != NULL; p = p->next)
 	if (p->byte_size > max_piece_bytes)
 	  return false;
       return true;
@@ -1188,7 +1189,8 @@ declare_noncontig_union (struct obstack *pool, int indent,
   obstack_printf (pool, "%*sstruct {\n", indent++ * 2, "");
 
   Dwarf_Word offset = 0;
-  for (struct location *p = loc->pieces; p != NULL; p = p->next)
+  struct location *p;
+  for (p = loc->pieces; p != NULL; p = p->next)
     {
       obstack_printf (pool, "%*suint%" PRIu64 "_t p%" PRIu64 ";\n",
 		      indent * 2, "", p->byte_size * 8, offset);
@@ -1381,7 +1383,8 @@ translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
 
       Dwarf_Word offset = 0;
       char piece[sizeof "u.pieces.p" + 20] = "u.pieces.p";
-      for (struct location *p = store_loc->pieces; p != NULL; p = p->next)
+      struct location *p;
+      for (p = store_loc->pieces; p != NULL; p = p->next)
 	{
 	  struct location *newp = obstack_alloc (pool, sizeof *newp);
 	  *newp = *p;
@@ -1651,7 +1654,8 @@ emit_header (FILE *out, struct location *loc, unsigned int hindent)
   else
     {
       emit ("%*s{ // DWARF expression:", hindent * 2, "");
-      for (size_t i = 0; i < loc->nops; ++i)
+      size_t i;
+      for (i = 0; i < loc->nops; ++i)
 	{
 	  emit (" %#x", loc->ops[i].atom);
 	  if (loc->ops[i].number2 == 0)
@@ -1692,7 +1696,8 @@ emit_loc_address (FILE *out, struct location *loc, unsigned int indent,
     {
       emit ("%*s{\n", indent * 2, "");
       emit ("%*s%s " STACKFMT, (indent + 1) * 2, "", STACK_TYPE, 0);
-      for (unsigned int i = 1; i < loc->address.stack_depth; ++i)
+      unsigned i;
+      for (i = 1; i < loc->address.stack_depth; ++i)
 	emit (", " STACKFMT, i);
       emit (";\n");
 
@@ -1737,7 +1742,8 @@ c_emit_location (FILE *out, struct location *loc, int indent)
   emit ("%*s{\n", indent * 2, "");
 
   bool declared_addr = false;
-  for (struct location *l = loc; l != NULL; l = l->next)
+  struct location *l;
+  for (l = loc; l != NULL; l = l->next)
     switch (l->type)
       {
       case loc_decl:
