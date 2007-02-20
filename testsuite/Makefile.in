@@ -107,6 +107,7 @@ PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PROCFLAGS = @PROCFLAGS@
 RANLIB = @RANLIB@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
@@ -149,6 +150,7 @@ stap_LIBS = @stap_LIBS@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = dejagnu
+STAP_TESTDIR = ..
 all: all-am
 
 .SUFFIXES:
@@ -334,7 +336,7 @@ uninstall-am: uninstall-info-am
 
 # The stap symlink is to enable "#! stap" test scripts.
 all-local:
-	@ln -sf ../stap .
+	@ln -sf $(STAP_TESTDIR)/stap .
 
 clean-local:
 	@rm -f ./stap site.exp systemtap.sum systemtap.log
@@ -344,7 +346,7 @@ check-local:
 
 installcheck-local: clean site.exp
 	echo "set prefix $(DESTDIR)$(prefix)" >> site.exp
-	$(MAKE) AM_RUNTESTFLAGS="--tool_opts install" check
+	$(MAKE) AM_RUNTESTFLAGS="--tool_opts install" STAP_TESTDIR=$(DESTDIR)$(bindir) check
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
