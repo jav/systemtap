@@ -1942,6 +1942,8 @@ probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 	name = "mlockall"
 	retstr = returnstr(1)
 }
+
+%(arch != "s390x" %?
 # mmap
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,
@@ -1997,6 +1999,7 @@ probe syscall.mmap2.return =
 	name = "mmap2"
 	retstr = returnstr(2)
 }
+%)
 
 # modify_ldt _________________________________________________
 # int sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount)

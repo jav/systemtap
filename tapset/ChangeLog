@@ -1,3 +1,8 @@
+2007-02-22  David Wilder <dwilder@us.ibm.com>
+
+	* syscalls.stp, s390x/syscall.stp: Created an s390x version of
+	syscall.mmap, syscall.mmap2, syscall.mmap.return, syscall.mmap2.return.
+
 2007-02-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* conversions.stp (*): Make errmsg usage uniform.
