@@ -1575,17 +1575,14 @@ mapvar::value_typename(exp_type e)
     {
     case pe_long:
       return "INT64";
-      break;
     case pe_string:
       return "STRING";
-      break;
     case pe_stats:
       return "STAT";
-      break;
     default:
       throw semantic_error("array type is neither string nor long");
-      break;
-    }	      
+    }
+  return "";
 }
 
 string
@@ -1595,14 +1592,12 @@ mapvar::key_typename(exp_type e)
     {
     case pe_long:
       return "INT64";
-      break;
     case pe_string:
       return "STRING";
-      break;
     default:
       throw semantic_error("array key is neither string nor long");
-      break;
     }	      
+  return "";
 }
 
 string
@@ -1612,14 +1607,12 @@ mapvar::shortname(exp_type e)
     {
     case pe_long:
       return "i";
-      break;
     case pe_string:
       return "s";
-      break;
     default:
       throw semantic_error("array type is neither string nor long");
-      break;
     }	      
+  return "";
 }
 
 
