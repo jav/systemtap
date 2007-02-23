@@ -1,3 +1,11 @@
+2007-02-23  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 4096
+	* tapsets.cxx (hrtimer_derived_probe_group::emit_module_decls):
+	Adapt the function signature for changes in 2.6.21.
+	(hrtimer_derived_probe_group::emit_module_init): Fix the enum name
+	for 2.6.21 as well.
+
 2007-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4078 and more, including patch from
