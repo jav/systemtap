@@ -1,3 +1,11 @@
+2007-02-25  Frank Ch. Eigler  <fche@redhat.com>
+
+	* elaborate.h (match_node, derived_probe_builder): Add
+	build_no_more member function.
+	* elaborate.cxx (semantic_pass_symbols): Call it.
+	* tapsets.cxx (dwarf_builder): Implement it by releasing dwflpp
+	instance after pass 2, freeing mucho memory.
+
 2007-02-23  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 4096

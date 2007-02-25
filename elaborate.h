@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -170,6 +170,7 @@ struct derived_probe_builder
 		     std::map<std::string, literal*> const & parameters,
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
+  virtual void build_no_more (systemtap_session &) {}
 
   static bool get_param (std::map<std::string, literal*> const & parameters,
                          const std::string& key, std::string& value);
@@ -210,6 +211,7 @@ match_node
   void find_and_build (systemtap_session& s,
                        probe* p, probe_point *loc, unsigned pos,
                        std::vector<derived_probe *>& results);
+  void build_no_more (systemtap_session &s);
 
   match_node* bind(match_key const & k);
   match_node* bind(std::string const & k);

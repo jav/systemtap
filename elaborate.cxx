@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -323,6 +323,15 @@ match_node::find_and_build (systemtap_session& s,
       // recurse
       subnode->find_and_build (s, p, loc, pos+1, results);
     }
+}
+
+
+void
+match_node::build_no_more (systemtap_session& s)
+{
+  for (sub_map_iterator_t i = sub.begin(); i != sub.end(); i++)
+    i->second->build_no_more (s);
+  if (end) end->build_no_more (s);
 }
 
 
@@ -914,6 +923,10 @@ semantic_pass_symbols (systemtap_session& s)
             }
         }
     }
+
+  // Inform all derived_probe builders that we're done with
+  // all resolution, so it's time to release caches.
+  s.pattern_root->build_no_more (s);
   
   return s.num_errors(); // all those print_error calls
 }

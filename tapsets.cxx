@@ -1,6 +1,6 @@
 // tapset resolution
-// Copyright (C) 2005, 2006 Red Hat Inc.
-// Copyright (C) 2005, 2006 Intel Corporation.
+// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1990,6 +1990,18 @@ struct dwarf_builder: public derived_probe_builder
   dwarf_builder()
     : kern_dw(NULL), user_dw(NULL)
   {}
+
+  void build_no_more (systemtap_session &s)
+  {
+    if (kern_dw)
+      {
+        if (s.verbose > 3)
+          clog << "dwarf_builder releasing dwflpp" << endl;
+        delete kern_dw;
+        kern_dw = 0;
+      }
+  }
+
   ~dwarf_builder()
   {
     if (kern_dw)
@@ -1997,6 +2009,7 @@ struct dwarf_builder: public derived_probe_builder
     if (user_dw)
       delete user_dw;
   }
+
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
