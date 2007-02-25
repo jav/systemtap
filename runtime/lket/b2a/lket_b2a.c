@@ -583,7 +583,7 @@ int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 			bzero(phdr, sizeof(lket_pkt_header));
 			return 0;
 		} else 
-			b2a_error("fread read %d bytes than expected %d, feof:%d\n", size, sizeof(lket_pkt_header), feof(fp));
+			b2a_error("fread read %u bytes than expected %u, feof:%d\n", (unsigned) size, (unsigned) sizeof(lket_pkt_header), feof(fp));
 	}
 
 	phdr->sys_size -= sizeof(lket_pkt_header)-sizeof(phdr->total_size)-sizeof(phdr->sys_size);
