@@ -103,6 +103,7 @@ cd ..
 
 %configure %{?elfutils_config}
 make %{?_smp_mflags}
+make update-examples
 
 %install
 rm -rf ${RPM_BUILD_ROOT}

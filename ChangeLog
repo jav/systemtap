@@ -1,3 +1,11 @@
+2007-02-26  David Smith  <dsmith@redhat.com>
+
+	* Makefile.am: Added 'update-examples' target that fixes paths in
+	the example code we ship in the rpm.
+	* Makefile.in: Regenerated from Makefile.am.
+	* systemtap.spec.in: Calls "make update-examples" target to fix
+	the path to systemtap in the example scripts.
+
 2007-02-25  Frank Ch. Eigler  <fche@redhat.com>
 
 	* elaborate.h (match_node, derived_probe_builder): Add
