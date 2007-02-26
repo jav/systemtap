@@ -132,6 +132,3 @@ SUBDIRS = testsuite
 if BUILD_LKET_B2A
   SUBDIRS += runtime/lket/b2a
 endif
-
-update-examples:
-	find examples -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!$(bindir)/stap@'

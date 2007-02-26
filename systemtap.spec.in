@@ -103,7 +103,9 @@ cd ..
 
 %configure %{?elfutils_config}
 make %{?_smp_mflags}
-make update-examples
+
+# Fix paths in the example scripts
+find examples -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
@@ -145,6 +147,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/staprun
 
 %changelog
+* Mon Feb 26 2007 David Smith <dsmith@redhat.com> - 0.5.13-1
+- Fixes systemtap path in example scripts.
+
 * Mon Jan  1 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.12-1
 - Many changes, see NEWS file.
 

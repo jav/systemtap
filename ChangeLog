@@ -1,5 +1,10 @@
 2007-02-26  David Smith  <dsmith@redhat.com>
 
+	* Makefile.am: Removed 'update-examples' target.  Moved
+	functionality to systemtap.spec.in.
+	* Makefile.in: Regenerated from Makefile.am.
+	* systemtap.spec.in: Fixes paths in the example scripts directly.
+	
 	* Makefile.am: Added 'update-examples' target that fixes paths in
 	the example code we ship in the rpm.
 	* Makefile.in: Regenerated from Makefile.am.
