@@ -296,53 +296,6 @@
 
 #elif defined (__s390__) || defined (__s390x__)
 
-#if defined __s390__
-#define __stp_get_asm(x, addr, err, size)			\
-({								\
-	asm volatile(						\
-		"0: mvc  0(%2,%4),0(%3)\n"			\
-		"1:\n"						\
-		".section .fixup,\"ax\"\n"			\
-		"2: lhi    %0,%5\n"				\
-		"   bras    1,3f\n"				\
-		"   .long  1b\n"				\
-		"3: l      1,0(1)\n"				\
-		"   br     1\n"					\
-		".previous\n"					\
-		".section __ex_table,\"a\"\n"			\
-		"   .align 4\n"					\
-		"   .long  0b,2b\n"				\
-		".previous"					\
-		: "+&d" (err), "=m" (x)				\
-		: "i" (size),"a"(addr),				\
-		"a" (&(x)),"K" (-EFAULT)			\
-		: "cc", "1" );					\
-})
-
-#define __stp_put_asm(x, addr, err, size)			\
-({								\
-	asm volatile(						\
-		"0: mvc  0(%1,%2),0(%3)\n"			\
-		"1:\n"						\
-		".section .fixup,\"ax\"\n"			\
-		"2: lhi    %0,%5\n"				\
-		"   bras    1,3f\n"				\
-		"   .long  1b\n"				\
-		"3: l      1,0(1)\n"				\
-		"   br     1\n"					\
-		".previous\n"					\
-		".section __ex_table,\"a\"\n"			\
-		"   .align 4\n"					\
-		"   .long  0b,2b\n"				\
-		".previous"					\
-		: "+&d" (err)					\
-		: "i" (size), "a" (addr),			\
-		"a" (&(x)),"K" (-EFAULT)			\
-		: "cc", "1");					\
-})
-
-#else /* s390x */
-
 #define __stp_get_asm(x, addr, err, size)			\
 ({								\
 	asm volatile(						\
@@ -352,10 +305,7 @@
 		"2: lghi    %0,%5\n"				\
 		"   jg     1b\n"				\
 		".previous\n"					\
-		".section __ex_table,\"a\"\n"			\
-		"   .align 8\n"					\
-		"   .quad  0b,2b\n"				\
-		".previous"					\
+		EX_TABLE(0b,2b)					\
 		: "+&d" (err), "=m" (x)				\
 		: "i" (size),"a"(addr),				\
 		"a" (&(x)),"K" (-EFAULT)			\
@@ -371,16 +321,12 @@
 		"2: lghi    %0,%4\n"				\
 		"   jg     1b\n"				\
 		".previous\n"					\
-		".section __ex_table,\"a\"\n"			\
-		"   .align 8\n"					\
-		"   .quad  0b,2b\n"				\
-		".previous"					\
+		EX_TABLE(0b,2b)					\
 		: "+&d" (err)					\
 		: "i" (size),"a"(addr),				\
 		"a"(&(x)),"K"(-EFAULT)				\
 		: "cc");					\
 })
-#endif
 
 #define deref(size, addr)					\
 ({								\
