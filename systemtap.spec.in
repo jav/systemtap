@@ -45,6 +45,7 @@ Requires: glib2 >= 2.0.0
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
+Requires: sudo
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
