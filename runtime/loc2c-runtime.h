@@ -296,6 +296,25 @@
 
 #elif defined (__s390__) || defined (__s390x__)
 
+#ifndef EX_TABLE
+/*
+ * Helper macro for exception table entries
+ */
+#ifndef __s390x__
+#define EX_TABLE(_fault,_target)				\
+		".section __ex_table,\"a\"\n"			\
+		"       .align 4\n"				\
+		"       .long  " #_fault "," #_target "\n"	\
+		".previous\n"
+#else
+#define EX_TABLE(_fault,_target)				\
+		".section __ex_table,\"a\"\n"			\
+		"       .align 8\n"				\
+		"       .quad  " #_fault "," #_target "\n"	\
+		".previous\n"
+#endif
+#endif
+
 #define __stp_get_asm(x, addr, err, size)			\
 ({								\
 	asm volatile(						\
