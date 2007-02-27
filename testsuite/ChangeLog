@@ -1,3 +1,9 @@
+2007-02-27  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4105
+	* buildok/twentysix.stp: New test.
+	* systemtap.pass1-4/buildok.exp: kfail it.
+
 2007-02-19  David Smith  <dsmith@redhat.com>
 
 	PR 4081
