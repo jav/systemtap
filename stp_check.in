@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# speed up grep and friends
+LANG=C
+export LANG
+
 RELAYFS_FS=`grep relayfs_create_dir /proc/kallsyms`
 RELAY=`grep relay_open /proc/kallsyms`
 if [ -n "$RELAY" -a -z "$RELAYFS_FS" ]

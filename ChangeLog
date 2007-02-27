@@ -1,3 +1,9 @@
+2007-02-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.spec.in (/var/cache/systemtap): Forget it.
+	(stp_check): Pack this in with systemtap-runtime.
+	* stp_check.in: Add LANG=C for speed.
+
 2007-02-27  David Smith  <dsmith@redhat.com>
 
 	* staprun.8.in: Added a basic staprun man page.
