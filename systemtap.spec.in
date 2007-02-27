@@ -33,7 +33,7 @@ License: GPL
 URL: http://sourceware.org/systemtap/
 Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 
-BuildRoot: %{_tmppath}/%{name}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
 BuildRequires: glib2-devel >= 2.0.0
@@ -110,7 +110,7 @@ find examples -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+sta
 %install
 rm -rf ${RPM_BUILD_ROOT}
 
-%makeinstall
+make DESTDIR=$RPM_BUILD_ROOT install
 
 mkdir -p $RPM_BUILD_ROOT/var/cache/systemtap
 
@@ -129,7 +129,7 @@ rm -rf ${RPM_BUILD_ROOT}
 %{_bindir}/lket-b2a
 %{_mandir}/man1/*
 %{_mandir}/man5/*
-%{_libexecdir}/systemtap/*
+%{_libexecdir}/systemtap
 
 %dir %{_datadir}/systemtap
 %{_datadir}/systemtap/runtime
