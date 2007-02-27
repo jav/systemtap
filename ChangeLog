@@ -2,6 +2,7 @@
 
 	* tapsets.cxx (dwflpp setup): Print "missing kernel debuginfo"
 	message consistently for, er, missing kernel debuginfo.
+	(dwarf_builder::build): Don't try to help.
 	(query_kernel_exists): Zapped.
 
 2007-02-27  David Smith  <dsmith@redhat.com>
