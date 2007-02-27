@@ -778,7 +778,7 @@ struct dwflpp
 	  throw semantic_error ("cannot open dwfl");
 	dwfl_report_begin (dwfl);
 
-        dwfl_assert ("dwfl_linux_kernel_report_offline",
+        dwfl_assert ("missing kernel debuginfo",
                      dwfl_linux_kernel_report_offline 
                      (dwfl,
                       sess.kernel_release.c_str(),
@@ -2817,20 +2817,6 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
 
 static int
-query_kernel_exists (Dwfl_Module *mod __attribute__ ((unused)),
-		     void **userdata __attribute__ ((unused)),
-		     const char *name,
-		     Dwarf_Addr base __attribute__ ((unused)),
-		     void *arg)
-{
-  int *flagp = (int *) arg;
-  if (TOK_KERNEL == name)
-    *flagp = 1;
-  return DWARF_CB_OK;
-}
-
-
-static int
 query_kernel_module (Dwfl_Module *mod,
 		     void **userdata __attribute__ ((unused)),
 		     const char *name,
@@ -3868,13 +3854,6 @@ dwarf_builder::build(systemtap_session & sess,
 	     (q.has_kernel && q.has_inline_str) ||
 	     (q.has_kernel && q.has_statement_str) ||
 	     (q.has_module));
-      if (q.has_kernel)
-	{
-	  int flag = 0;
-	  dw->iterate_over_modules(&query_kernel_exists, &flag);
-	  if (! flag)
-	    throw semantic_error ("cannot find kernel debuginfo");
-	}
 
       dw->iterate_over_modules(&query_module, &q);
     }

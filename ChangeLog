@@ -1,3 +1,9 @@
+2007-02-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (dwflpp setup): Print "missing kernel debuginfo"
+	message consistently for, er, missing kernel debuginfo.
+	(query_kernel_exists): Zapped.
+
 2007-02-27  David Smith  <dsmith@redhat.com>
 
 	* systemtap.spec.in: Fedora Packaging Guidelines updates.  Updated
