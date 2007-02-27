@@ -52,8 +52,8 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/config.in $(srcdir)/lket-b2a.1.in \
 	$(srcdir)/lket.5.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
 	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
-	$(srcdir)/stp_check.in $(srcdir)/systemtap.spec.in \
-	$(top_srcdir)/configure \
+	$(srcdir)/staprun.8.in $(srcdir)/stp_check.in \
+	$(srcdir)/systemtap.spec.in $(top_srcdir)/configure \
 	$(top_srcdir)/man/stapprobes.iosched.5.in \
 	$(top_srcdir)/man/stapprobes.netdev.5.in \
 	$(top_srcdir)/man/stapprobes.nfs.5.in \
@@ -76,7 +76,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 \
-	stapfuncs.5 stapex.5 lket.5 lket-b2a.1 \
+	stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 \
 	man/stapprobes.iosched.5 man/stapprobes.netdev.5 \
 	man/stapprobes.nfs.5 man/stapprobes.nfsd.5 \
 	man/stapprobes.pagefault.5 man/stapprobes.process.5 \
@@ -84,7 +84,8 @@ CONFIG_CLEAN_FILES = systemtap.spec stp_check stap.1 stapprobes.5 \
 	man/stapprobes.signal.5 man/stapprobes.socket.5 \
 	man/stapprobes.tcp.5 man/stapprobes.udp.5
 am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" \
-	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"
+	"$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" \
+	"$(DESTDIR)$(man8dir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am_loc2c_test_OBJECTS = loc2c_test-loc2c-test.$(OBJEXT) \
@@ -128,6 +129,7 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	uninstall-recursive
 man1dir = $(mandir)/man1
 man5dir = $(mandir)/man5
+man8dir = $(mandir)/man8
 NROFF = nroff
 MANS = $(dist_man_MANS)
 ETAGS = etags
@@ -247,7 +249,7 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Wextra -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Wextra -Werror
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 lket.5 lket-b2a.1 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -356,6 +358,8 @@ stapprobes.5: $(top_builddir)/config.status $(srcdir)/stapprobes.5.in
 stapfuncs.5: $(top_builddir)/config.status $(srcdir)/stapfuncs.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stapex.5: $(top_builddir)/config.status $(srcdir)/stapex.5.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+staprun.8: $(top_builddir)/config.status $(srcdir)/staprun.8.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 lket.5: $(top_builddir)/config.status $(srcdir)/lket.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
@@ -820,6 +824,51 @@ uninstall-man5:
 	  echo " rm -f '$(DESTDIR)$(man5dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man5dir)/$$inst"; \
 	done
+install-man8: $(man8_MANS) $(man_MANS)
+	@$(NORMAL_INSTALL)
+	test -z "$(man8dir)" || $(mkdir_p) "$(DESTDIR)$(man8dir)"
+	@list='$(man8_MANS) $(dist_man8_MANS) $(nodist_man8_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.8*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  if test -f $(srcdir)/$$i; then file=$(srcdir)/$$i; \
+	  else file=$$i; fi; \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    8*) ;; \
+	    *) ext='8' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
+	  $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst"; \
+	done
+uninstall-man8:
+	@$(NORMAL_UNINSTALL)
+	@list='$(man8_MANS) $(dist_man8_MANS) $(nodist_man8_MANS)'; \
+	l2='$(man_MANS) $(dist_man_MANS) $(nodist_man_MANS)'; \
+	for i in $$l2; do \
+	  case "$$i" in \
+	    *.8*) list="$$list $$i" ;; \
+	  esac; \
+	done; \
+	for i in $$list; do \
+	  ext=`echo $$i | sed -e 's/^.*\\.//'`; \
+	  case "$$ext" in \
+	    8*) ;; \
+	    *) ext='8' ;; \
+	  esac; \
+	  inst=`echo $$i | sed -e 's/\\.[0-9a-z]*$$//'`; \
+	  inst=`echo $$inst | sed -e 's/^.*\///'`; \
+	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
+	  echo " rm -f '$(DESTDIR)$(man8dir)/$$inst'"; \
+	  rm -f "$(DESTDIR)$(man8dir)/$$inst"; \
+	done
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.
@@ -1104,7 +1153,7 @@ check: $(BUILT_SOURCES)
 all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -1164,7 +1213,7 @@ install-exec-am: install-binPROGRAMS install-exec-local \
 
 install-info: install-info-recursive
 
-install-man: install-man1 install-man5
+install-man: install-man1 install-man5 install-man8
 
 installcheck-am:
 
@@ -1192,7 +1241,7 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am uninstall-local \
 
 uninstall-info: uninstall-info-recursive
 
-uninstall-man: uninstall-man1 uninstall-man5
+uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am am--refresh check \
 	check-am clean clean-binPROGRAMS clean-generic clean-local \
@@ -1205,15 +1254,15 @@ uninstall-man: uninstall-man1 uninstall-man5
 	install-binPROGRAMS install-data install-data-am \
 	install-data-local install-exec install-exec-am \
 	install-exec-local install-info install-info-am install-man \
-	install-man1 install-man5 install-pkglibexecSCRIPTS \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	maintainer-clean-recursive mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-recursive pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-info-am uninstall-local \
-	uninstall-man uninstall-man1 uninstall-man5 \
-	uninstall-pkglibexecSCRIPTS
+	install-man1 install-man5 install-man8 \
+	install-pkglibexecSCRIPTS install-strip installcheck \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic maintainer-clean-recursive \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-binPROGRAMS uninstall-info-am \
+	uninstall-local uninstall-man uninstall-man1 uninstall-man5 \
+	uninstall-man8 uninstall-pkglibexecSCRIPTS
 
 @BUILD_ELFUTILS_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all

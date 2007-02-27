@@ -1,0 +1,149 @@
+.\" -*- nroff -*-
+.TH STAPRUN 8 @DATE@ "Red Hat"
+.SH NAME
+staprun \- systemtap runtime
+
+.SH SYNOPSIS
+
+.br
+.B staprun
+[
+.I OPTIONS
+]
+.I MODULE
+[
+.I MODULE-OPTIONS
+]
+
+.SH DESCRIPTION
+
+The
+.IR staprun
+program is the back-end to the Systemtap tool.  It expects a kernel
+module produced by the front-end
+.I stap
+tool.
+The
+.I staprun
+must be run as root.
+.PP
+Splitting the systemtap tool into a front-end and a back-end allows a
+user to compile a systemtap script on a development machine that has
+the kernel debugging information (need to compile the script) and then
+transfer the resulting kernel module to a production machine that
+doesn't have any development tools or kernel debugging information installed.
+.PP
+This manual corresponds to version @VERSION@.
+
+.SH OPTIONS
+The systemtap translator supports the following options.  Any other option
+prints a list of supported options.
+.TP
+.B \-q
+Quiet mode.  Don't display trace to standard output.
+.TP
+.B \-p
+Print only.  Don't log to files.
+.TP
+.B \-c CMD
+Command CMD will be run and the staprun program will exit when CMD
+does.  The '_stp_target' variable will contain the pid for CMD.
+.TP
+.B \-t PID
+The '_stp_target' variable will be set to PID.
+.TP
+.\" TODO - need a better description of what this does
+.B \-d PID
+Pass the systemtap driver's PID.
+.TP
+.B \-o FILE
+Send output to FILE.
+.TP
+.B \-u USERNAME
+Run commands as USERNAME.
+.TP
+.B \-b BUFFER_SIZE
+The systemtap module will specify a buffer size.
+Setting one here will override that value. The value should be
+an integer between 1 and 64 which be assumed to be the
+buffer size in MB. That value will be per-cpu if relayfs is used.
+
+.SH ARGUMENTS
+
+.\" TODO - we probably need a better description here.
+Any additional arguments on the command line are passed to the
+module.
+
+.SH EXAMPLES
+See the 
+.IR stapex (5)
+manual page for a collection of sample scripts.
+.PP
+Here is a very basic example of how to use staprun.  First, use
+.I stap
+to compile a script.  The
+.I stap
+program will report the pathname to the resulting module.
+.PP
+.Vb 1
+\& $ stap -p4 -e 'probe begin { printf("Hello World!\\n"); exit() }'
+.br
+\& /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
+.PP
+Run
+.I staprun
+with the pathname to the module as an argument.  The
+.IR sudo (8)
+command is used to grant root privileges.
+.PP
+.Vb 1
+\& $ sudo staprun /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
+.br
+\& Hello World!
+
+.SH SAFETY AND SECURITY
+Systemtap is an administrative tool.  It exposes kernel internal data
+structures and potentially private user information.  See the 
+.IR stap (1)
+manual page for more information on safety and security.
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (5),
+.IR stapfuncs (5),
+.IR stapex (5),
+.IR lket (5),
+.IR sudo (8)
+
+.SH BUGS
+There are numerous missing features and possibly numerous bugs.  Use
+the Bugzilla link off of the project web page:
+.nh
+.BR http://sources.redhat.com/systemtap/ .
+.hy
+
+.SH AUTHORS
+The
+kernel-side runtime library and the user-level
+.IR staprun
+daemon was written by Martin Hunt and Tom Zanussi.
+The
+.IR stap
+translator was written by Frank Ch. Eigler and Graydon Hoare.
+Contact them
+using the public mailing list:
+.nh
+.BR <systemtap@sources.redhat.com> .
+.hy
+
+.SH ACKNOWLEDGEMENTS
+The primary probing mechanism uses IBM's
+.IR kprobes ,
+and
+.IR relayfs
+packages, which were improved and ported by IBM and Intel staff.
+The elfutils library from Ulrich Drepper and Roland McGrath is used
+to process dwarf debugging information.  Many project members contributed
+to the overall design and priorities of the system, including Will Cohen,
+Jim Keniston, Vara Prasad, and Brad Chen.
+

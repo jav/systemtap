@@ -146,6 +146,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %files runtime
 %defattr(-,root,root)
 %{_bindir}/staprun
+%{_mandir}/man8/*
+
+%doc README AUTHORS NEWS COPYING
 
 %changelog
 * Mon Feb 26 2007 David Smith <dsmith@redhat.com> - 0.5.13-1

@@ -1,3 +1,14 @@
+2007-02-27  David Smith  <dsmith@redhat.com>
+
+	* staprun.8.in: Added a basic staprun man page.
+	* Makefile.am: Added staprun.8.
+	* Makefile.in: Regenerated.
+	* configure.ac: Added staprun.8.
+	* configure: Regenerated.
+	* systemtap.spec.in: Added staprun.8 and other document files to
+	staprun RPM.
+	* .cvsignore: Ignores staprun.8.
+
 2007-02-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (dwflpp setup): Print "missing kernel debuginfo"
