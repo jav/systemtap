@@ -1,3 +1,8 @@
+2007-02-28  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec.in: Fixed %{_libexecdir}/systemtap path in
+	systemtap-runtime %files section.
+
 2007-02-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in (/var/cache/systemtap): Forget it.
