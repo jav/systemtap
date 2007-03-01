@@ -36,6 +36,7 @@ success: ;
 
 function kernel_int:long (addr:long) %{ /* pure */
   THIS->__retvalue = (int64_t) deref (sizeof (int), (int *) (intptr_t) THIS->addr);
+  goto success;
 deref_fault: /* branched to from deref() */
   {
     static char errmsg[60];
