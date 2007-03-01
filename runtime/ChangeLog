@@ -1,3 +1,7 @@
+2007-03-01  David Wilder <dwilder@us.ibm.com>
+	* loc2c-runtime.h: rewrote s390x version of  __stp_put_asm
+	and __stp_put_asm to do single byte writes.  
+
 2007-02-27  David Wilder <dwilder@us.ibm.com>
 
 	* loc2c-runtime.h: Added defines for EX_TABLE needed by older

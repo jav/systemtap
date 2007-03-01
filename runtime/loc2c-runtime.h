@@ -331,19 +331,19 @@
 		: "cc");					\
 })
 
-#define __stp_put_asm(x, addr, err, size)			\
+#define __stp_put_asm(x, addr, err)				\
 ({								\
 	asm volatile(						\
-		"0: mvc  0(%1,%2),0(%3)\n"			\
+		"0: stc %2,0(%1)\n"				\
 		"1:\n"						\
 		".section .fixup,\"ax\"\n"			\
-		"2: lghi    %0,%4\n"				\
+		"2: lghi    %0,%3\n"				\
 		"   jg     1b\n"				\
 		".previous\n"					\
 		EX_TABLE(0b,2b)					\
 		: "+&d" (err)					\
-		: "i" (size),"a"(addr),				\
-		"a"(&(x)),"K"(-EFAULT)				\
+		: "a"(addr),					\
+		"r"(x),"K"(-EFAULT)				\
 		: "cc");					\
 })
 
@@ -381,36 +381,19 @@
 	_v;							\
 })
 
-#define store_deref(size, addr, value)				\
-({								\
-	int _bad = 0;						\
-	switch (size) {						\
-	case 1:{						\
-		u8 _x = value;					\
-		__stp_put_asm(_x, addr, _bad,1);		\
-		break;						\
-		};						\
-	case 2:{ 						\
-		u16 _x = value;					\
-		__stp_put_asm(_x, addr, _bad,2);		\
-		break;						\
-		};						\
-	case 4:{						\
-		u32 _x = value;					\
-		__stp_put_asm(_x, addr, _bad,4);		\
-		break;						\
-		};						\
-	case 8:	{						\
-		u64 _x = value;					\
-		__stp_put_asm(_x, addr, _bad,8);		\
-		break;						\
-		};						\
-	default:						\
-		break;						\
-	}							\
-	if (_bad)						\
-		goto deref_fault;				\
+#define store_deref(size, addr, value)                          \
+({                                                              \
+        int _bad = 0;                                           \
+	int i;							\
+        for(i=0;i<size;i++){                                    \
+		__stp_put_asm((u8)(value>>((size-i-1)*8)&0xff),	\
+                             (u64)addr+i,_bad); 		\
+		if (_bad)					\
+			goto deref_fault;			\
+        }                                                       \
 })
+
+
 #endif /* (s390) || (s390x) */
 
 #define deref_string(dst, addr, maxbytes)				      \
