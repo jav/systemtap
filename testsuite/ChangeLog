@@ -1,3 +1,8 @@
+2007-03-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4121
+	* systemtap.stress/conversions.exp: Fix & improve below patch.
+
 2007-03-01  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4121
