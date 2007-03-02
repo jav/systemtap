@@ -3,6 +3,8 @@ set file $srcdir/$subdir/conversions.stp
 foreach value {0 0xffffffff 0xffffffffffffffff} {
     set test "conversions.stp $value"
     if {![installtest_p]} { untested $test; continue }
+    # PR 4121: address 0 is valid on s390x
+    if {[istarget s390x-*-*]} { continue }
     spawn stap -DMAXERRORS=40 $file $value
     set errs 0
     verbose -log "exp $test $errs"
