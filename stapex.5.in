@@ -36,10 +36,10 @@ probe begin {
 
 probe end {
   foreach (x+ in odds) {
-    log("odds[" . sprint(x) . "] = " . sprint(odds[x]))
+    printf ("odds[%d] = %d\n", x, odds[x])
   }
   foreach (x in evens\-) {
-    log("evens[" . sprint(x) . "] = " . sprint(evens[x]))
+    printf ("evens[%d] = %d\n", x, evens[x])
   }
 }
 .ESAMPLE
@@ -52,12 +52,10 @@ odds[5] = 9
 evens[5] = 8
 evens[4] = 6
 evens[2] = 2
+evens[1] = 0
 .ESAMPLE
-Note that the evens[1] key is missing, since its value was zero.  Any
-array element with an "empty" value (zero or empty string) is
-considered not present in the array, as if it was deleted.  Note that
-all variables types are inferred, and that all locals and globals are
-initialized.
+Note that all variables types are inferred, and that all locals
+and globals are automatically initialized.
 
 .PP
 This script prints the primes between 0 and 49.
@@ -72,7 +70,7 @@ function isprime (x) {
 }
 probe begin {
   for (i=0; i<50; i++)
-    if (isprime (i)) log (sprint(i))
+    if (isprime (i)) printf("%d\n", i)
   exit()
 }
 .ESAMPLE
@@ -87,7 +85,7 @@ function fibonacci(i) {
   return fibonacci (i\-1) + fibonacci (i\-2)
 }
 probe begin {
-  log ("11th fibonacci number: " . sprint (fibonacci (11)))
+  printf ("11th fibonacci number: %d\n", fibonacci (11))
   exit ()
 }
 .ESAMPLE
@@ -110,8 +108,8 @@ each inlined function instance is listed separately.
 % stap \-p2 \-e \[aq]probe kernel.function("*") {}\[aq] | sort | uniq
 .ESAMPLE
 
-
 .SH SEE ALSO
+.BR @prefix@/doc/systemtap*/examples
 .IR stap (1)
 .IR stapprobes (5)
 .IR stapfuncs (5)

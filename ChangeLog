@@ -1,3 +1,8 @@
+2007-03-04  Frank Ch. Eigler  <fche@redhat.com>
+
+	* stap.1.in, stapex.5.in, staprun.8.in: Tweak text to remove
+	authors credits, update examples and pointers.
+
 2007-02-28  David Smith  <dsmith@redhat.com>
 
 	* systemtap.spec.in: Fixed %{_libexecdir}/systemtap path in

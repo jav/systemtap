@@ -116,34 +116,8 @@ manual page for more information on safety and security.
 .IR sudo (8)
 
 .SH BUGS
-There are numerous missing features and possibly numerous bugs.  Use
-the Bugzilla link off of the project web page:
+Use the Bugzilla link off of the project web page or our mailing list.
 .nh
-.BR http://sources.redhat.com/systemtap/ .
+.BR http://sources.redhat.com/systemtap/ , <systemtap@sources.redhat.com> .
 .hy
-
-.SH AUTHORS
-The
-kernel-side runtime library and the user-level
-.IR staprun
-daemon was written by Martin Hunt and Tom Zanussi.
-The
-.IR stap
-translator was written by Frank Ch. Eigler and Graydon Hoare.
-Contact them
-using the public mailing list:
-.nh
-.BR <systemtap@sources.redhat.com> .
-.hy
-
-.SH ACKNOWLEDGEMENTS
-The primary probing mechanism uses IBM's
-.IR kprobes ,
-and
-.IR relayfs
-packages, which were improved and ported by IBM and Intel staff.
-The elfutils library from Ulrich Drepper and Roland McGrath is used
-to process dwarf debugging information.  Many project members contributed
-to the overall design and priorities of the system, including Will Cohen,
-Jim Keniston, Vara Prasad, and Brad Chen.
 
