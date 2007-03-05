@@ -1,3 +1,8 @@
+2007-03-05  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec.in: Made example perl script non-executable so
+	that the systemtap rpm won't require perl.
+
 2007-03-04  Frank Ch. Eigler  <fche@redhat.com>
 
 	* stap.1.in, stapex.5.in, staprun.8.in: Tweak text to remove

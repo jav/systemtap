@@ -108,6 +108,9 @@ make %{?_smp_mflags}
 # Fix paths in the example scripts
 find examples -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
+# To avoid perl dependency, make perl sample script non-executable
+chmod -x examples/samples/kmalloc-top
+
 %install
 rm -rf ${RPM_BUILD_ROOT}
 make DESTDIR=$RPM_BUILD_ROOT install
