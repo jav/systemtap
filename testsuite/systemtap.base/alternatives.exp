@@ -14,11 +14,11 @@
 # listed, but that some alternatives are listed.
 
 set local1_script {
-    probe kernel.function("signal_wake_up") { x = $z; }
+    probe kernel.function("sys_getrlimit") { x = $z; }
 }
 
 set struct1_script {
-    probe kernel.function("signal_wake_up") { sig_pid = $t->pig; }
+    probe kernel.function("sys_getrlimit") { rlim_cur = $rlim->rlim_cud; }
 }
 
 proc stap_run_alternatives {args} {
