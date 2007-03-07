@@ -1440,7 +1440,9 @@ struct dwflpp
 
 	  case DW_TAG_pointer_type:
 	    if (components[i].first == target_symbol::comp_literal_array_index)
-	      goto subscript;
+              throw semantic_error ("cannot index pointer");
+            // XXX: of course, we should support this the same way C does,
+            // by explicit pointer arithmetic etc.
 
 	    c_translate_pointer (pool, 1, module_bias, die, tail);
 	    break;
@@ -1448,7 +1450,6 @@ struct dwflpp
 	  case DW_TAG_array_type:
 	    if (components[i].first == target_symbol::comp_literal_array_index)
 	      {
-	      subscript:
 		c_translate_array (pool, 1, module_bias, die, tail,
 				   NULL, lex_cast<Dwarf_Word>(components[i].second));
 		++i;
