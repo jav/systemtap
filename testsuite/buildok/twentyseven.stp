@@ -1,0 +1,6 @@
+#! stap -up4
+
+probe syscall.execve
+{
+  print($argv[0])
+}
