@@ -56,7 +56,7 @@
 	functionality to systemtap.spec.in.
 	* Makefile.in: Regenerated from Makefile.am.
 	* systemtap.spec.in: Fixes paths in the example scripts directly.
-	
+
 	* Makefile.am: Added 'update-examples' target that fixes paths in
 	the example code we ship in the rpm.
 	* Makefile.in: Regenerated from Makefile.am.
@@ -135,9 +135,9 @@
 
 2007-01-31  Martin Hunt  <hunt@redhat.com>
 
-	* translate.cxx (translate_pass): Remove old string impedance 
+	* translate.cxx (translate_pass): Remove old string impedance
 	mismatch stuff. Modify included files.
-	
+
 2007-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac, configure: Bumped version to 0.5.13 for development.
@@ -673,6 +673,7 @@
 	* Makefile.in: Regenerated.
 
 2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+
 	* configure.ac, Makefile.am: add lket-b2a.1.in
 	* Makefile.in, configure: regenreated
 	* ket-b2a.1.in: new man page for lket-b2a
@@ -813,7 +814,6 @@
 
 	From Gui Jian <guijian@cn.ibm.com>
 	* lket.5.in: document RPC trace hooks
-
 
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
@@ -1092,10 +1092,12 @@
 	* testsuite/buildok/probemod.stp: Test it.
 
 2006-08-08  Li Guanglei <guanglei@cn.ibm.com>
+
 	* stapprobes.5.in: document scsi.*, ioscheduler.*, netdev.* and
 	pagefault.
 
 2006-08-01  Li Guanglei <guanglei@cn.ibm.com>
+
 	PR 2422
 	* tapsets.cxx: calling get_module_dwarf(false) to give a
 	warning to those modules without debuginfo and skip them

@@ -1,6 +1,7 @@
 2007-03-01  David Wilder <dwilder@us.ibm.com>
-	* loc2c-runtime.h: rewrote s390x version of  __stp_put_asm
-	and __stp_put_asm to do single byte writes.  
+
+	* loc2c-runtime.h: rewrote s390x version of __stp_put_asm
+	and __stp_put_asm to do single byte writes.
 
 2007-02-27  David Wilder <dwilder@us.ibm.com>
 
@@ -19,7 +20,7 @@
 	* loc2c-runtime.h (kread): Let it work with const types.
 
 2007-01-31  Martin Hunt  <hunt@redhat.com>
-	
+
 	* string.c (_stp_string_init): Deleted.
 	(_stp_sprintf): Deleted.
 	(_stp_vsprintf): Deleted.
@@ -27,7 +28,7 @@
 	(_stp_string_cat_string): Deleted.
 	(_stp_string_cat_char): Deleted.
 	(_stp_string_ptr): Deleted.
-	(_stp_string_cat): Deleted.	
+	(_stp_string_cat): Deleted.
 	(_stp_snprintf): Moved from vsprintf.c.
 	(_stp_vscnprintf): Moved from vsprintf.c.
 
@@ -37,23 +38,23 @@
 
         * vsprintf.c (_stp_vscnprintf): Moved to string.c.
 	(_stp_snprintf): Moved to string.c
-	
+
 	* sym.c (_stp_symbol_sprint): Replaced with
 	_stp_symbol_print, which writes to the print buffer.
 	(_stp_symbol_sprint_basic): Replaced with
 	_stp_symbol_snprint.
-	
+
 	* runtime.h: Include io.c.
-	
+
 	* stat-common.c: Use new _stp_print* functions.
 	* stat.c: Ditto.
-	
+
 	* regs.c: Renamed to regs-ia64.c.
 	* current.c: Renamed regs.c.
 	* regs-ia64.c: New file (renamed from regs.c).
 
 	* stack.c (_stp_stack_sprint): Renamed _stp_stack_print
-	and now just prints to the print buffer. Calls 
+	and now just prints to the print buffer. Calls
 	__stp_stack_print instead of __stp_stack_sprint.
 	(_stp_stack_snprint): New function. Calls _stp_stack_print and
 	then copies the print buffer into a string.
@@ -61,7 +62,7 @@
 	(_stp_ustack_sprint): Deleted.
 	* stack-*.c: Rewritten to print instead of writing to strings.
 	Uses new _stp_print* functions.
-	
+
 	* print.c (_stp_printf): Create new function instead of macro.
 	(_stp_print): Ditto.
 	(_stp_print_char): New function.
@@ -73,10 +74,10 @@
 	of _stp_string_cat_cstr().
 
 	* copy.c (_stp_string_from_user): Deleted.
-	
+
 
 2007-01-30  Martin Hunt  <hunt@redhat.com>
-	
+
 	* io.c (_stp_vlog): Use dynamic percpu allocations
 	instead of very wasteful static allocations.
 	* print.c (_stp_print_init): Do percpu allocations
@@ -84,19 +85,19 @@
 	(_stp_print_cleanup): Free percpu allocations.
 
 	* string.c (_stp_sprintf): Overflow check needed
-	to be >= instead of >.	
-	
-2007-01-30  Martin Hunt  <hunt@redhat.com>	
+	to be >= instead of >.
+
+2007-01-30  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (_stp_alloc_percpu):  Don't implement
 	our own; just call __alloc_percpu with appropriate args
 	for the OS version.
 	(_stp_free_percpu): Delete.
-	* map.c (_stp_map_init): When calling kmalloc_node, first 
+	* map.c (_stp_map_init): When calling kmalloc_node, first
 	call cpu_to_node() to get the proper node number.
 	* stat.c (_stp_stat_del): Call free_percpu()
 	instead of _stp_free_percpu().
-	
+
 2007-01-29  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c (_stp_kmalloc): New function. Call kmalloc
@@ -128,6 +129,7 @@
 	numbers on i386 platforms.
 
 2007-01-10  Martin Hunt  <hunt@redhat.com>
+
 	PR 3708
 	* map.c (str_copy): Check for NULL pointers.
 	(_new_map_set_int64): Don't check val for 0.
@@ -146,6 +148,7 @@
 	* runtime.h: Include mm.h.
 
 2006-12-20  Li Guanglei <guanglei@cn.ibm.com>
+
 	* runtime/lket/b2a/lket_b2a.c: bugfix for NULL appname when
 	search appNameTree.
 
@@ -192,10 +195,12 @@
 	changes.
 
 2006-11-21  Li Guanglei <guanglei@cn.ibm.com>
+
 	* runtime/lket/b2a/lket_b2a.[ch]: add b2a_error() and change
 	the error return codes.
 
 2006-11-19  Li Guanglei <guanglei@cn.ibm.com>
+
 	* runtime/lket/b2a/lket_b2a.[ch]: bugfix for #3536
 
 2006-11-15  Martin Hunt  <hunt@redhat.com>
@@ -243,6 +248,7 @@
 	rearrangement.
 
 2006-10-23  Li Guanglei <guanglei@cn.ibm.com>
+
 	* runtime/lket/b2a/lket_b2a.c: bugfix of event description
 	data insert.
 
@@ -311,12 +317,14 @@
 	* bench2/bench.rb: Ditto.
 
 2006-09-26  Martin Hunt  <hunt@redhat.com>
+
 	* time.c (_stp_init_time): Use dynamic percpu allocations
 	instead of evil static allocations.
 	(_stp_kill_time): Free percpu allocations and set
 	_stp_time to NULL so the timers are only deleted once.
 
 2006-09-26  Martin Hunt  <hunt@redhat.com>
+
 	* io.c (_stp_vlog): Remove ifdef for STP_RELAYFS. Relayfs now
 	behaves the same as procfs.
 
@@ -326,6 +334,7 @@
 	* string.c: Ditto.
 
 2006-09-21  Martin Hunt  <hunt@redhat.com>
+
 	PR 3232
 	* print.c (_stp_print_init): New. Alloc per-cpu buffers.
 	(_stp_print_cleanup): New. Free per-cpu buffers.
@@ -334,7 +343,6 @@
 	(_stp_vsprintf): Ditto.
 	(_stp_string_cat_cstr): Ditto.
 	(_stp_string_cat_char): Ditto.
-
 
 2006-09-20  Josh Stone  <joshua.i.stone@intel.com>
 
@@ -431,6 +439,7 @@
 	which no longer define it.
 
 2006-07-11  Martin Hunt  <hunt@redhat.com>
+
 	* string.c (_stp_text_str): Use __get_user().
 
 2006-07-11  Martin Hunt  <hunt@redhat.com>
@@ -498,12 +507,14 @@
 	just the symbol name, and doesn't bother with String.
 
 2006-05-24  Li Guanglei <guanglei@cn.ibm.com>
+
 	* lket/b2a/Makefile.am, lket/b2a/Makefile.in,
 	lket/b2a/README, lket/b2a/lket_b2a.c,
 	lket/b2a/lket_b2a.h: a binary to ascii converter used
 	to convert LKET's default binary trace data.
 
 2006-05-09  Li Guanglei <guanglei@cn.ibm.com>
+
 	PR 2647
 	Patch given by Gui Jian <guij@cn.ibm.com>
 	* vsprintf.c: %0s support to print null-terminated string
@@ -647,7 +658,8 @@
 	(_stp_pmap_size): New function.
 
 2005-12-07  Martin Hunt  <hunt@redhat.com>
-	 PR1923
+
+	PR1923
 	* map.h (struct map_root): Remove membuf.
 	(struct pmap): Define.
 	(PMAP): Declare.
@@ -716,6 +728,7 @@
 	just set the stats.
 
 2005-11-10  Martin Hunt  <hunt@redhat.com>
+
 	* map.c: Doc updates.
 	(_stp_new_agg):
 
@@ -723,6 +736,7 @@
 	avoid conflicts with maps with the same key and value types.
 
 2005-11-10  Martin Hunt  <hunt@redhat.com>
+
 	* map.c (_stp_cmp): Use _stp_div64().
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
@@ -732,14 +746,17 @@
 	* pmap-gen.c: Ditto.
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
+
 	* map.c (_stp_cmp): Patch to sort on stats.
 	(_stp_map_sort): Ditto.
 	(_stp_map_sortn): Ditto.
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
+
 	* map.c: Change order of includes.
 
 2005-11-09  Martin Hunt  <hunt@redhat.com>
+
 	* map.h (struct map_root): Delete fields
 	used by old API.
 
@@ -832,6 +849,7 @@
 	(KEYCPY): Add missing semicolon.
 
 2005-10-26  Martin Hunt  <hunt@redhat.com>
+
 	* map-gen.c: New file.
 
 	* map.c (_new_map_create, _new_map_del_node, _new_map_del_node,
@@ -945,6 +963,7 @@
 	(_stp_mod64): Ditto.
 
 2005-09-08  Martin Hunt  <hunt@redhat.com>
+
 	* arith.c (_stp_div64): Check for overflow.
 	(_stp_mod64): Ditto.
 
