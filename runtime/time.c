@@ -212,7 +212,8 @@ _stp_init_time(void)
         }
     }
 #endif
-
+   if (ret)
+        _stp_kill_time();
     return ret;
 }
 

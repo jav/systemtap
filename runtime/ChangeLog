@@ -1,3 +1,9 @@
+2007-03-12  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4179.
+	Based on patch from Vasily Averin <vvs@sw.ru>:
+	* time.c (_stp_init_time): Recover from partial failures.
+
 2007-03-01  David Wilder <dwilder@us.ibm.com>
 
 	* loc2c-runtime.h: rewrote s390x version of __stp_put_asm

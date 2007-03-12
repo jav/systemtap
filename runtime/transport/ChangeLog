@@ -1,3 +1,10 @@
+2007-03-12  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4179.
+	Based on patch from Vasily Averin <vvs@sw.ru>:
+	* procfs.c (_stp_register_procfs): Recover from partial failures.
+	* transport.c (_stp_transport_open): Ditto.
+
 2007-01-30  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c: Comment out many debug lines.

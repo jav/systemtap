@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005-2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -318,7 +318,7 @@ static int _stp_register_procfs (void)
 		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
-			goto err2;
+			goto err0;
 		_stp_allocated_net_memory += sizeof(struct _stp_buffer);
 		list_add (p, &_stp_pool_q);
 	}
@@ -368,12 +368,6 @@ static int _stp_register_procfs (void)
 	de->proc_fops = &_stp_proc_fops_cmd;
 	return 0;
 
-err2:
-	list_for_each_safe(p, tmp, &_stp_pool_q) {
-		list_del(p);
-		kfree(p);
-	}
-
 err1:
 #ifdef STP_RELAYFS
 	for (de = _stp_proc_mod->subdir; de; de = de->next)
@@ -388,6 +382,11 @@ err1:
 #endif
 	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
 err0:
+	list_for_each_safe(p, tmp, &_stp_pool_q) {
+		list_del(p);
+		kfree(p);
+	}
+
 	printk (KERN_ERR "Error creating systemtap /proc entries.\n");
 	return -1;
 }
@@ -410,7 +409,7 @@ static void _stp_unregister_procfs (void)
 	}
 #endif
 	remove_proc_entry ("cmd", _stp_proc_mod);
-	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
+	remove_proc_entry (THIS_MODULE->name, _stp_proc_root); /* XXX: race condition */
 
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {

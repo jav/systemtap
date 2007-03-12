@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005, 2006
+ * Copyright (C) Red Hat Inc, 2005-2007
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -315,25 +315,41 @@ int _stp_transport_open(struct _stp_transport_info *info)
  */
 int _stp_transport_init(void)
 {
+	int ret;
+
 	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
 	/* create print buffers */
-	if (_stp_print_init() < 0)
-		return -1;
+	ret = _stp_print_init();
+	if (ret < 0)
+		goto out;
 
 	/* initialize timer code */
-	if (_stp_init_time())
-		return -1;	
+	ret =_stp_init_time();
+	if (ret)
+		goto print_cleanup;
 
 	/* set up procfs communications */
-	if (_stp_register_procfs() < 0)
-		return -1;
+	ret = _stp_register_procfs();
+	if (ret < 0)
+		goto kill_time;
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
+	if (!_stp_wq)
+          goto proc_cleanup;
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
+out:
+	return ret;
 
-	return 0;
+proc_cleanup:
+	ret = -1;
+	_stp_unregister_procfs();
+kill_time:
+	_stp_kill_time();
+print_cleanup:
+	_stp_print_cleanup(); 	/* free print buffers */
+	goto out;
 }
 
 
