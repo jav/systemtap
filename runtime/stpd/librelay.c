@@ -516,8 +516,9 @@ int init_stp(int print_summary)
 		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modpath);
 		return -1;
 	}
-	
-	sprintf (proc_filebase, "/proc/systemtap/%s", modname);
+
+        /* We no longer use /proc/systemtap/, just /proc.  */
+	sprintf (proc_filebase, "/proc/%s", modname);
 	char *ptr = index(proc_filebase,'.');
 	if (ptr)
 		*ptr = 0;

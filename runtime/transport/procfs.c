@@ -302,7 +302,6 @@ err:
 static int _stp_register_procfs (void)
 {
 	int i;
-	const char *dirname = "systemtap";
 #ifdef STP_RELAYFS	
 	int j;
 	char buf[8];
@@ -322,22 +321,13 @@ static int _stp_register_procfs (void)
 		_stp_allocated_net_memory += sizeof(struct _stp_buffer);
 		list_add (p, &_stp_pool_q);
 	}
-	
 
-	/* look for existing /proc/systemtap */
-	for (de = proc_root.subdir; de; de = de->next) {
-		if (my_proc_match (strlen (dirname), dirname, de)) {
-			_stp_proc_root = de;
-			break;
-		}
-	}
-
-	/* create /proc/systemtap if it doesn't exist */
-	if (_stp_proc_root == NULL) {
-		_stp_proc_root = proc_mkdir (dirname, NULL);
-		if (_stp_proc_root == NULL)
-			goto err0;
-	}
+        /* Formerly, we allocated /proc/systemtap, but unfortunately
+           that's racy with multiple concurrent probes.  So now we set
+           _stp_proc_root to proc_root.  This way, /proc/stap_XXXX
+           rather than /proc/systemtap/stap_XXXX will be the directory
+           under which cmd/ etc. will show up.  */
+        _stp_proc_root = NULL;
 
 	/* now create /proc/systemtap/module_name */
 	_stp_proc_mod = proc_mkdir (THIS_MODULE->name, _stp_proc_root);
@@ -380,7 +370,7 @@ err1:
 		
 	}
 #endif
-	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
+        remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
@@ -409,7 +399,7 @@ static void _stp_unregister_procfs (void)
 	}
 #endif
 	remove_proc_entry ("cmd", _stp_proc_mod);
-	remove_proc_entry (THIS_MODULE->name, _stp_proc_root); /* XXX: race condition */
+	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
 
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
