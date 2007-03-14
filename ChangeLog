@@ -1,9 +1,12 @@
+2007-03-14  Martin Hunt  <hunt@redhat.com>	
+	* stap.1.in: Remove "-M" option and edit description of "-b".
+
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 	* Makefile.am: Don't install old relayfs sources.
 	* makefile.in: Rebuilt.
 
-2007-03-14  Martin Hunt  <hunt@redhat.com>	
-
+2007-03-14  Martin Hunt  <hunt@redhat.com>
+	
 	* Makefile.am (staprun_SOURCES): Sources now live in
 	runtime/staprun.
 	* makefile.in: Rebuilt.

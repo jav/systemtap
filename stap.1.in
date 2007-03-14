@@ -105,11 +105,7 @@ debbugging information for $target variables.
 Unoptimized mode.  Disable unused code elision during elaboration.
 .TP
 .BI \-b
-Use relayfs-based bulk mode for kernel-to-user data transfer.
-.TP
-.BI \-M
-Don't merge per-cpu files when using bulk (relayfs) mode. This option is
-valid for bulk mode.
+Use bulk mode (percpu files) for kernel-to-user data transfer.
 .TP
 .B \-t
 Collect timing information on the number of times probe executes
