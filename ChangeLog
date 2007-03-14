@@ -1,3 +1,18 @@
+2007-03-14  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (staprun_SOURCES): Sources now live in
+	runtime/staprun.
+	* makefile.in: Rebuilt.
+
+	* staprun.8.in: Updated.
+
+	* buildrun.cxx (run_pass): Use "-v" instead of not "-q" to
+	be compatible with latest staprun.
+	* translate.cxx (emit_module_exit): Print warning using 
+	_stp_printf so it shows up at the end of all output.
+	(translate_pass): Replace STP_RELAYFS with STP_BULKMODE.
+	Eliminate STP_RELAYFS_MERGE.
+	
 2007-03-13  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4171.

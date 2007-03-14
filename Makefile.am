@@ -50,8 +50,11 @@ install-elfutils:
 install-exec-local: install-elfutils
 endif
 
-staprun_SOURCES = runtime/stpd/stpd.c runtime/stpd/librelay.c runtime/stpd/symbols.c
-staprun_CFLAGS = @PROCFLAGS@
+staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/mainloop.c \
+	runtime/staprun/symbols.c runtime/staprun/ctl.c \
+	runtime/staprun/relay.c runtime/staprun/relay_old.c 
+
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 staprun_LDADD = @PROCFLAGS@ -lpthread
 
 pkglibexec_SCRIPTS = stp_check

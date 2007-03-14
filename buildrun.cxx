@@ -105,7 +105,7 @@ run_pass (systemtap_session& s)
   // for now, just spawn staprun
   string staprun_cmd = string("sudo ") 
     + string(BINDIR) + "/staprun "
-    + (s.verbose>1 ? "" : "-q ")
+    + (s.verbose>1 ? "-v " : "")
     + "-u " + username + " "
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   

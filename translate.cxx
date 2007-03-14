@@ -1252,13 +1252,13 @@ c_unparser::emit_module_exit ()
 
   // print final error/reentrancy counts if non-zero
   o->newline() << "if (atomic_read (& skipped_count) || "
-               << "atomic_read (& error_count))";
-  o->newline(1) << "_stp_warn (\"Number of errors: %d, "
+               << "atomic_read (& error_count)) {";
+  o->newline(1) << "_stp_printf (\"WARNING: Number of errors: %d, "
                 << "skipped probes: %d\\n\", "
                 << "(int) atomic_read (& error_count), "
                 << "(int) atomic_read (& skipped_count));";
-  o->indent(-1);
-
+  o->newline() << "_stp_print_flush();";
+  o->newline(-1) << "}";
   o->newline(-1) << "}\n";
 }
 
@@ -4083,13 +4083,8 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#endif";
 
       if (s.bulk_mode)
-	{
-	  s.op->newline() << "#define STP_RELAYFS";
+	  s.op->newline() << "#define STP_BULKMODE";
 	  
-	  if (s.merge)
-	    s.op->newline() << "#define STP_RELAYFS_MERGE";
-	}
-
       if (s.timing)
 	s.op->newline() << "#define STP_TIMING" << " " << s.timing ;
 

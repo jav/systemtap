@@ -39,34 +39,28 @@ This manual corresponds to version @VERSION@.
 The systemtap translator supports the following options.  Any other option
 prints a list of supported options.
 .TP
-.B \-q
-Quiet mode.  Don't display trace to standard output.
-.TP
-.B \-p
-Print only.  Don't log to files.
+.B \-v
+Verbose mode.
 .TP
 .B \-c CMD
 Command CMD will be run and the staprun program will exit when CMD
 does.  The '_stp_target' variable will contain the pid for CMD.
 .TP
-.B \-t PID
+.B \-x PID
 The '_stp_target' variable will be set to PID.
 .TP
-.\" TODO - need a better description of what this does
-.B \-d PID
-Pass the systemtap driver's PID.
-.TP
 .B \-o FILE
-Send output to FILE.
+Send output to FILE. Is the module uses bulk mode, the output will
+be in percpu files FILE_x where 'x' is the cpu number.
 .TP
 .B \-u USERNAME
-Run commands as USERNAME.
+Run commands as USERNAME. Used with the \-c option.
 .TP
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.
 Setting one here will override that value. The value should be
 an integer between 1 and 64 which be assumed to be the
-buffer size in MB. That value will be per-cpu if relayfs is used.
+buffer size in MB. That value will be per-cpu if bulk mode is used.
 
 .SH ARGUMENTS
 
