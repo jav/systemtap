@@ -1,4 +1,4 @@
-#!./stap -p4
+#! stap -p4
 
 probe kernel.function("sys_read").return.maxactive(3)
 {

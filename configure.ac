@@ -130,7 +130,9 @@ esac
 AC_SUBST([PROCFLAGS])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile testsuite/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_SUBDIRS(testsuite)
+
 AC_OUTPUT
 
 if test $build_elfutils = yes; then

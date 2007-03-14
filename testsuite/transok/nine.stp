@@ -1,6 +1,6 @@
 #! /bin/sh
 
-./stap -p3 -g $@ - <<'END'
+stap -p3 -g $@ - <<'END'
 
 %{
 void just_some_declaration () {}

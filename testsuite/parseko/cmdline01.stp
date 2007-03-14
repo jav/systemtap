@@ -2,5 +2,5 @@
 
 # -M (merge) option is only valid for bulk mode
 
-./stap -p1 -M -e 'probe begin { exit() }' >/dev/null 2>&1  # otherwise, ERROR: message confuses dejagnu
+stap -p1 -M -e 'probe begin { exit() }' >/dev/null 2>&1  # otherwise, ERROR: message confuses dejagnu
 exit $?

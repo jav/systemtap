@@ -242,6 +242,7 @@ program_transform_name = @program_transform_name@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 stap_LIBS = @stap_LIBS@
+subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = dist-bzip2
@@ -292,6 +293,7 @@ SAMPLE_SRC = $(distdir)/testsuite/systemtap.samples/iotask.stp \
 
 TEST_COV_DIR = coverage
 SUBDIRS = testsuite $(am__append_4)
+SRCDIR = $(shell cd $(srcdir); pwd)
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -1164,8 +1166,6 @@ uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-installcheck: installcheck-recursive
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -1323,6 +1323,14 @@ uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
+
+check:
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$(SRCDIR)/runtime SYSTEMTAP_TAPSET=$(SRCDIR)/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+installcheck:
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+#	env SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset $(MAKE) LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap PATH=$(DESTDIR)$(bindir):$$PATH -C testsuite installcheck
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

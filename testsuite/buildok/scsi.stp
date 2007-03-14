@@ -12,7 +12,7 @@ if ! grep scsi_dispatch_cmd /proc/kallsyms >/dev/null 2>&1 ; then
 fi
 
 
-./stap -p4 - << EOF
+stap -p4 - << EOF
 probe scsi.ioentry
 {
 	printf("ppname: %s, %d, %d, %d\n", probefunc(),

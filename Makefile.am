@@ -132,3 +132,13 @@ SUBDIRS = testsuite
 if BUILD_LKET_B2A
   SUBDIRS += runtime/lket/b2a
 endif
+
+SRCDIR = $(shell cd $(srcdir); pwd)
+
+check:
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$(SRCDIR)/runtime SYSTEMTAP_TAPSET=$(SRCDIR)/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+installcheck:
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+#	env SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset $(MAKE) LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap PATH=$(DESTDIR)$(bindir):$$PATH -C testsuite installcheck

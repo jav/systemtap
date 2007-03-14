@@ -1,4 +1,4 @@
-#!./stap -p2
+#! stap -p2
 
 # maxactive with a string argument
 

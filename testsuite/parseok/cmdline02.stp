@@ -2,4 +2,4 @@
 
 # Make sure verbose ('-v') option is accepted.
 
-./stap -v -p1 -e 'probe begin { exit() }'
+stap -v -p1 -e 'probe begin { exit() }'

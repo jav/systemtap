@@ -2,4 +2,4 @@
 
 # multiple '-e' (script) options cannot be specified
 
-./stap -p1 -e 'probe begin { exit() }' -e 'probe end { exit() }'
+stap -p1 -e 'probe begin { exit() }' -e 'probe end { exit() }'

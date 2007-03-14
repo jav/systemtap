@@ -10,6 +10,6 @@ do
   if grep -q /bin/sh $file; then
     true # can't override stap options
   else
-    ./stap -p1 $file
+    stap -p1 $file
   fi
 done

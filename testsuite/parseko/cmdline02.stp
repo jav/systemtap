@@ -5,4 +5,4 @@
 #
 # NUM must be between 1 and 64 
 
-./stap -p1 -s 0 -e 'probe begin { exit() }'
+stap -p1 -s 0 -e 'probe begin { exit() }'

@@ -21,4 +21,4 @@ then
       echo '}'
    done
 fi
-) | ./stap -p4 -
+) | stap -p4 -

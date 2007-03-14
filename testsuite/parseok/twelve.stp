@@ -1,6 +1,6 @@
 #! /bin/sh
 
-./stap -p1 -g $@ - <<'END'
+stap -p1 -g $@ - <<'END'
 
 %{
 /* hello world */

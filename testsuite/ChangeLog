@@ -1,3 +1,15 @@
+2007-03-14  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4171.
+	* configure.ac, configure, aclocal.m4: New files to permit
+	testsuite-only build tree.
+	* Makefile.am (RUNTEST): Arrange a crazy concoction of
+	environment/make variable for runtest.
+	* Makefile.in: Regenerated.
+	* */*.stp: Switch test cases from "./stap" to "stap" throughout.
+	* lib/systemtap.exp: Assume/trace environment variables.
+	(stap_run_batch): Add "#! stap"-handling hack.
+
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.base/div0.stp: Fix so output

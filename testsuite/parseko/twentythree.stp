@@ -1,3 +1,3 @@
 #! /bin/sh
 
-./stap -p1 $SYSTEMTAP_TAPSET/indent.stp
+stap -p1 $SYSTEMTAP_TAPSET/indent.stp

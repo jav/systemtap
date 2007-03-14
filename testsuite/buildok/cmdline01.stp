@@ -9,7 +9,7 @@
 # Test '-g' and '-D'.  The code below will give an error at
 # compilation stage unless 'FOO' is defined.
 
-./stap -g -p4 -DFOO=1 - <<EOF
+stap -g -p4 -DFOO=1 - <<EOF
 
 function footest:string()
 %{

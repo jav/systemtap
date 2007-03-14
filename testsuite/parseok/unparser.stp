@@ -19,7 +19,7 @@ do
 	  else guru=
 	  fi
 	  echo $file $guru
-          ./stap $guru -p1 $file | ./stap $guru -p1 - > /dev/null
+          stap $guru -p1 $file | stap $guru -p1 - > /dev/null
       fi
    done
 done

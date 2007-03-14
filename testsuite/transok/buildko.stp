@@ -9,6 +9,6 @@ do
   if grep -q /bin/sh $file; then
     true # can't override stap options
   else
-    ./stap -p3 $file
+    stap -p3 $file
   fi
 done
