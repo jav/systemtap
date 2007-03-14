@@ -1,5 +1,8 @@
 2007-03-14  Martin Hunt  <hunt@redhat.com>
-
+	* stpd: Remove directory.
+	* relayfs: Remove directory.
+	
+2007-03-14  Martin Hunt  <hunt@redhat.com>	
 	* bench2/bench.rb: Updated to work with new transport
 	and new itest.c.
 	* bench2/Makefile: Updated for new itest.c
