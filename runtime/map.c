@@ -217,7 +217,7 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 			else
 				_stp_allocated_memory += size * num_online_cpus();
 				
-			dbug ("allocated %lx\n", (long)tmp);
+//			dbug ("allocated %lx\n", (long)tmp);
 			list_add((struct list_head *)tmp, &m->pool);
 			((struct map_node *)tmp)->map = m;
 		}

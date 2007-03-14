@@ -10,31 +10,21 @@ test.print
 # script test with empty probe
 test0 = Stapbench.new("empty probe")
 test0.code = ""
+test0.trans=BULK
 test0.run
 test0.print
 
-# script test to print 100 chars
-test2a = Stapbench.new("printf 100 chars")
-test2a.code = "printf(\"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\\n\")"
-test2a.run
-test2a.print
-
-test2a.trans = RELAYFS
-test2a.run
-test2a.print
-
-# runtime test to print 100 chars
-test2 = Bench.new("printf 100 chars")
-test2.code = "(void)_stp_printf (\"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\\n\");
-  _stp_print_flush();"
+# script test to printf 100 chars
+test2 = Stapbench.new("printf 100 chars")
+test2.code = "printf(\"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\\n\")"
+test2.trans=BULK
 test2.run
 test2.print
 
-
-# runtime test to print 5 integers
-test3 = Bench.new("printf 5 integers")
-test3.code = "_stp_printf (\"%lld, %lld, %lld, %lld, %lld\\n\", 1LL, 0xffffLL, 0x8000ffffLL, 0xffff000011112222LL, 0x7000000000000000LL);
-  _stp_print_flush();"
+# script test to print 100 chars
+test3 = Stapbench.new("print 100 chars")
+test3.code = "print(\"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\\n\")"
+test3.trans=BULK
 test3.run
 test3.print
 
@@ -42,4 +32,5 @@ test3.print
 test4 = Stapbench.new("printf 5 integers")
 test4.code = "printf(\"%d, %d, %d, %d, %d\\n\", 1, 0xffff, 0x8000ffff, 0xffff000011112222, 0x7000000000000000)"
 test4.run
+test4.trans=BULK
 test4.print

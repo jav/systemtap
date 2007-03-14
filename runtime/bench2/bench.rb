@@ -1,5 +1,5 @@
 # Benchmark Class for SystemTap
-# Copyright (C) 2006 Red Hat Inc.
+# Copyright (C) 2006, 2007 Red Hat Inc.
 #
 # This file is part of systemtap, and is free software.  You can
 # redistribute it and/or modify it under the terms of the GNU General
@@ -11,9 +11,8 @@ MAXFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"
 MINFILE = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq"
 
 # more constants
-PROCFS = 1
-RELAYFS= 2
-UTT = 3
+STREAM = 1
+BULK= 2
 
 at_exit {Bench.done}
 
@@ -22,7 +21,8 @@ class Bench
     @desc = desc
     @code = nil
     @file = nil
-    @trans = 1
+    @trans = STREAM
+    @outfile= "xxx"
     @failures = []
     @results = []
     if @@printed_header == 0
@@ -56,7 +56,7 @@ class Bench
     end
   end
 
-  attr_writer :code, :file, :trans
+  attr_writer :code, :file, :trans, :outfile
   attr_reader :failures, :results
 
   def run
@@ -66,12 +66,10 @@ class Bench
     @@num_threads.each do |threads|
       load
       sum=0
-      threads.times {|cpu| fork {exec "./itest #{threads} > #{@dir}/bench#{cpu}"}}
-      threads.times {Process.waitpid(-1)}	# wait for itest(s) to exit
+      `./itest #{threads} > #{@dir}/bench`
       `sudo killall -HUP staprun`
       Process.wait	# wait for staprun to exit
-      threads.times {|x| sum = sum + `cat #{@dir}/bench#{x}`.split[0].to_i - @@ftime}
-      @results[threads] = sum / (threads * threads)
+      @results[threads] = `cat #{@dir}/bench`.split[0].to_i - @@ftime[threads]
       File.open("#{@dir}/xxx.out") do |file|
 	file.each_line do |line|
 	  m = line.match(/WARNING: There were ([\d]*)/)
@@ -92,10 +90,13 @@ class Bench
       else
 	printf("R")
       end
-      if @trans == RELAYFS
-	printf("R")
-      elsif @trans == UTT
-	printf("U""")
+      if @trans == BULK
+	printf("B")
+      else
+	printf(" ")
+      end
+      if @outfile == "/dev/null"
+	printf("N")
       else
 	printf(" ")
       end
@@ -120,7 +121,7 @@ class Bench
 
   protected
 
-  @@ftime = 0
+  @@ftime = []
   @@printed_header = 0
   @@staprun = nil
   @@runtime = nil
@@ -137,11 +138,9 @@ class Bench
   end
 
   def load
-    args = "-q -b 8"
-    if @trans == RELAYFS then args = "-q" end
-    if @trans == UTT then args = "-lq" end
-    fork do exec "sudo #{@@staprun} #{args} #{@dir}/bench.ko > #{@dir}/xxx 2> #{@dir}/xxx.out" end
-    sleep 5
+    args = "-q"
+    fork do exec "sudo #{@@staprun} #{args} -o #{@outfile} #{@dir}/bench.ko &> #{@dir}/xxx.out" end
+    sleep 10
   end
 
   def compile
@@ -183,6 +182,7 @@ void probe_exit (void)\n{\n  unregister_kprobe (&kp); \n}\n"
 CFLAGS += -I \"#{@@runtime}\"
 obj-m := bench.o
 "
+      if @trans == BULK then makefile << "CFLAGS += -DSTP_BULKMODE" end
       makefile.close
     else
       puts "NO CODE!"
@@ -227,14 +227,15 @@ obj-m := bench.o
     end
     puts "-"*64
     check_cpuspeed
-    @@ftime = `./itest 1`.to_i
-    @@ftime = `./itest 1`.to_i
-    puts "For comparison, function call overhead is #@@ftime nsecs."
-      puts "Times below are nanoseconds per probe and include kprobe overhead."
+    @@num_threads.each do |threads|
+      @@ftime[threads] = `./itest #{threads} 10000000`.to_i
+    end
+    puts "Times below are nanoseconds per probe and include kprobe overhead."
     puts "-"*64
-    puts "+--- S = Script, R = Runtime"
-    puts "|+-- R = Relayfs, U = UTT  \tThreads"
-    printf "|| NAME                 "
+    puts "+---- S = Script, R = Runtime"
+    puts "|+--- B = Bulk"
+    puts "||+-- N = No output\t\t  Threads"
+    printf "||| NAME                 "
     @@num_threads.each {|n| printf("\t    %d",n)}
     printf "\n"
   end
@@ -251,6 +252,8 @@ obj-m := bench.o
   end
 end
 
+#### STAPBENCH ######
+
 class Stapbench < Bench
 
   def run
@@ -260,12 +263,10 @@ class Stapbench < Bench
     @@num_threads.each do |threads|
       load
       sum=0
-      threads.times {|cpu| fork {exec "./itest #{threads} > bench#{cpu}"}}
-      threads.times {Process.waitpid(-1)}	# wait for itest(s) to exit
+      `./itest #{threads} > bench`
       `sudo killall -HUP staprun`
-      Process.wait	# wait for stap to exit
-      threads.times {|x| sum = sum + `cat bench#{x}`.split[0].to_i - @@ftime}
-      @results[threads] = sum / (threads * threads)
+      Process.wait	# wait for staprun to exit
+      @results[threads] = `cat bench`.split[0].to_i - @@ftime[threads]
       File.open("xxx.out") do |file|
 	file.each_line do |line|
 	  m = line.match(/WARNING: There were ([\d]*)/)
@@ -283,9 +284,8 @@ class Stapbench < Bench
 
   def load
     args = "-vv"
-    if @trans == RELAYFS then args = "-bMvv" end
-    if @trans == UTT then args = "-lvv" end
-    fork do exec "stap #{args} bench.stp > xxx 2> xxx.out" end
+    if @trans == BULK then args = "-bvv" end
+    fork do exec "stap #{args} -o #{@outfile} bench.stp &> xxx.out" end
     sleep 10
   end
   

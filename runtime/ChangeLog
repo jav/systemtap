@@ -1,3 +1,23 @@
+2007-03-14  Martin Hunt  <hunt@redhat.com>
+
+	* bench2/bench.rb: Updated to work with new transport
+	and new itest.c.
+	* bench2/Makefile: Updated for new itest.c
+	* bench2/itest.c: Rewritten to use multiple threads
+	and automatically divide the workload among the threads.
+
+	* print.c (_stp_print_flush): Move to print_new.c and 
+	print_old.c.
+	* print_new.c: New file containing _stp_print_flush()
+	for the new transport.
+	* print_old.c: Ditto for old transport.
+
+	* runtime.h (STP_OLD_TRANSPORT): Define
+	(errk): Define.
+	(MAXSTRINGLEN): Define if not already defined.
+
+	* io.c (_stp_vlog): Use _stp_ctl_write().
+
 2007-03-12  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4179.

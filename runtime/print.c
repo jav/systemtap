@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -10,6 +10,7 @@
 
 #ifndef _PRINT_C_
 #define _PRINT_C_
+
 
 #include "string.h"
 #include "vsprintf.c"
@@ -33,18 +34,8 @@
  * @{
  */
 
-#ifdef STP_RELAYFS
-#define STP_TIMESTAMP_SIZE (sizeof(uint32_t))
-#else
-#define STP_TIMESTAMP_SIZE 0
-#endif /* STP_RELAYFS */
-
-
-#define STP_PRINT_BUF_START (STP_TIMESTAMP_SIZE)
-
 typedef struct __stp_pbuf {
 	uint32_t len;			/* bytes used in the buffer */
-	char timestamp[STP_TIMESTAMP_SIZE];
 	char buf[STP_BUFFER_SIZE];
 } _stp_pbuf;
 
@@ -81,36 +72,14 @@ void _stp_print_cleanup (void)
 		free_percpu(Stp_lbuf);
 }
 
-/** Send the print buffer to the transport now.
- * Output accumulates in the print buffer until it
- * is filled, or this is called. This MUST be called before returning
- * from a probe or accumulated output in the print buffer will be lost.
- *
- * @note Preemption must be disabled to use this.
- */
-void _stp_print_flush (void)
-{
-	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+/* The relayfs API changed between 2.6.15 and 2.6.16. */
+/* Use the appropriate print flush function. */
 
-	/* check to see if there is anything in the buffer */
-	if (likely (pb->len == 0))
-		return;
-
-#ifdef STP_RELAYFS_MERGE
-	/* In merge-mode, staprun expects relayfs data to start with a 4-byte length */
-	/* followed by a 4-byte sequence number. In non-merge mode, anything goes. */
-
-	*((uint32_t *)pb->timestamp) = _stp_seq_inc();
-
-	if (unlikely(_stp_transport_write(pb, pb->len+4+STP_TIMESTAMP_SIZE) < 0))
-		atomic_inc (&_stp_transport_failures);
+#ifdef STP_OLD_TRANSPORT
+#include "print_old.c"
 #else
-	if (unlikely(_stp_transport_write(pb->buf, pb->len) < 0))
-		atomic_inc (&_stp_transport_failures);
+#include "print_new.c"
 #endif
-
-	pb->len = 0;
-}
 
 #ifndef STP_MAXBINARYARGS
 #define STP_MAXBINARYARGS 127
@@ -119,16 +88,6 @@ void _stp_print_flush (void)
 
 /** Reserves space in the output buffer for direct I/O.
  */
-
-#if defined STP_RELAYFS && !defined STP_RELAYFS_MERGE
-static void * _stp_reserve_bytes (int numbytes)
-{
-	if (unlikely(numbytes == 0))
-		return NULL;
-	_stp_print_flush();
-	return relay_reserve(_stp_chan, numbytes);
-}
-#else
 static void * _stp_reserve_bytes (int numbytes)
 {
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
@@ -145,7 +104,7 @@ static void * _stp_reserve_bytes (int numbytes)
 	pb->len += numbytes;
 	return ret;
 }
-#endif /* STP_RELAYFS */
+
 
 /** Write 64-bit args directly into the output stream.
  * This function takes a variable number of 64-bit arguments

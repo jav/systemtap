@@ -1,31 +1,12 @@
 #!/usr/bin/env ruby
 load './bench.rb'
 
-# script test with empty probe
-test0 = Stapbench.new("empty probe")
-test0.code = ""
-test0.run
-test0.print
-
-# script test to binary print 4 integers
-test1 = Stapbench.new("binary printf 4 integers (%8b)")
-test1.code = "printf(\"%8b%8b%8b%8b\", 111,22,333,444)"
-test1.run
-test1.print
-
-# script test to binary print 4 integers
-test2 = Stapbench.new("binary printf 4 integers (%4b)")
-test2.code = "printf(\"%4b%4b%4b%4b\", 111,22,333,444)"
-test2.run
-test2.print
-
-
 # script test to binary print 4 integers
 test3 = Stapbench.new("binary printf 4 integers (%b)")
 test3.code = "printf(\"%b%b%b%b\", 111,22,333,444)"
 test3.run
 test3.print
-test3.trans = RELAYFS
+test3.trans = BULK
 test3.run
 test3.print
 
@@ -34,7 +15,7 @@ test4 = Stapbench.new("_stp_print_binary 4 integers")
 test4.code = "stp_print_binary(4,111,22,333,444)"
 test4.run
 test4.print
-test4.trans = RELAYFS
+test4.trans = BULK
 test4.run
 test4.print
 

@@ -47,7 +47,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 		}
 
 		if (type != DBUG)
-			_stp_write(STP_OOB_DATA, buf, start + num + 1);
+			_stp_ctl_write(STP_OOB_DATA, buf, start + num + 1);
 		else {
 			_stp_print(buf);
 			_stp_print_flush();
@@ -93,7 +93,7 @@ void _stp_warn (const char *fmt, ...)
  * unload the module and exit. The module will not be 
  * unloaded until after the current probe returns.
  * @note Be careful to not treat this like the Linux exit() 
- * call. You should probably call return immediately after
+ * call. You should probably call return immediately after 
  * calling _stp_exit().
  */
 void _stp_exit (void)

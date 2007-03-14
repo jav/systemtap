@@ -1,5 +1,5 @@
 /* main header file
- * Copyright (C) 2005, 2006 Red Hat Inc.
+ * Copyright (C) 2005-2007 Red Hat Inc.
  * Copyright (C) 2005, 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -10,9 +10,6 @@
 
 #ifndef _RUNTIME_H_
 #define _RUNTIME_H_
-/** @file runtime.h
- * @brief Main include file for runtime functions.
- */
 
 #include <linux/module.h>
 #include <linux/ctype.h>
@@ -33,6 +30,11 @@
 #include <linux/compat.h>
 #include <linux/mm.h>
 
+/* the new transport requires debugfs and a newer relayfs */
+#if !defined (CONFIG_DEBUG_FS) || (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,15))
+#define STP_OLD_TRANSPORT
+#endif
+
 #ifndef for_each_cpu
 #define for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
 #endif
@@ -51,18 +53,17 @@ static void _stp_dbug (const char *func, int line, const char *fmt, ...);
 #define dbug(args...) ;
 #define kbug(args...) ;
 #endif /* DEBUG */
+#define errk(args...) {printk("Systemtap Error at %s:%d ",__FUNCTION__, __LINE__); printk(args); }
 
 /* atomic globals */
 static atomic_t _stp_transport_failures = ATOMIC_INIT (0);
 
-#ifdef STP_RELAYFS
 static struct
 {
 	atomic_t ____cacheline_aligned_in_smp seq;
 } _stp_seq = { ATOMIC_INIT (0) };
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
-#endif /* RELAYFS */
 
 /* TEST_MODE is always defined by systemtap */
 #ifdef TEST_MODE
@@ -70,6 +71,10 @@ static struct
 #else
 #define MAXTRYLOCK 1000
 #define TRYLOCKDELAY 100
+#endif
+
+#ifndef MAXSTRINGLEN
+#define MAXSTRINGLEN 128
 #endif
 
 #include "alloc.c"
