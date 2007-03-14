@@ -73,8 +73,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -P         prologue-searching for function probes" 
     << (s.prologue_searching ? " [set]" : "") << endl
-    << "   -b         bulk (relayfs) mode" << (s.bulk_mode ? " [set]" : "") << endl
-    << "   -M         Don't merge per-cpu files for bulk (relayfs) mode" << (s.merge ? "" : " [set]") << endl
+    << "   -b         bulk (percpu file) mode" << (s.bulk_mode ? " [set]" : "") << endl
     << "   -s NUM     buffer size in megabytes, instead of "
     << s.buffer_size << endl
     << "   -p NUM     stop after pass NUM 1-5, instead of "

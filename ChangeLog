@@ -1,6 +1,9 @@
 2007-03-14  Martin Hunt  <hunt@redhat.com>	
+	* main.cxx (usage): Remove "-M" and edit description
+	of "-b".
 	* stap.1.in: Remove "-M" option and edit description of "-b".
-
+	Edit description of "-o".
+	
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 	* Makefile.am: Don't install old relayfs sources.
 	* makefile.in: Rebuilt.
