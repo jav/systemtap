@@ -17,8 +17,7 @@ set script1 {
         kernel.function("sys_read").return { }
 
     probe timer.ms(5000) { exit(); }
-    probe begin { log("systemtap starting probe"); }
-    probe end { log("systemtap ending probe"); }
+    probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
 }
 
 # Run script1 and save the number of skipped probes (which will most
@@ -34,8 +33,7 @@ set script2 {
         kernel.function("sys_read").return.maxactive(1) { }
 
     probe timer.ms(5000) { exit(); }
-    probe begin { log("systemtap starting probe"); }
-    probe end { log("systemtap ending probe"); }
+    probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
 }
 
 # Run script2 and save the number of skipped probes.
