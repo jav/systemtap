@@ -1,4 +1,8 @@
 2007-03-14  Martin Hunt  <hunt@redhat.com>
+	* Makefile.am: Don't install old relayfs sources.
+	* makefile.in: Rebuilt.
+
+2007-03-14  Martin Hunt  <hunt@redhat.com>	
 
 	* Makefile.am (staprun_SOURCES): Sources now live in
 	runtime/staprun.
