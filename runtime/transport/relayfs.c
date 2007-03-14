@@ -1,47 +1,37 @@
-#ifndef _TRANSPORT_RELAYFS_C_ /* -*- linux-c -*- */
-#define _TRANSPORT_RELAYFS_C_
-
-/*
- * relayfs.c - stp relayfs-related transport functions
+/* -*- linux-c -*- 
+ * relayfs.c - relayfstransport functions
  *
- * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Redhat Inc, 2005
+ * Copyright (C) IBM Corporation, 2005, 2006
+ * Copyright (C) Red Hat Inc, 2005, 2006, 2007
  *
- * This file is released under the GPL.
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
  */
 
-/** @file relayfs.c
- * @brief Systemtap relayfs-related transport functions
- */
+/* This file is only for older kernels that have no debugfs. */
 
-/** @addtogroup transport Transport Functions
- * @{
- */
+/* relayfs is required! */
+#if !defined (CONFIG_RELAYFS_FS) && !defined (CONFIG_RELAYFS_FS_MODULE)
+#error "RelayFS does not appear to be in this kernel!"
+#endif
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/percpu.h>
+#include <linux/init.h>
+#include <linux/relayfs_fs.h>
+#include <linux/namei.h>
+#include "utt.h"
 
-#include "relayfs.h"
+static int _stp_relay_flushing = 0;
 
-#if (RELAYFS_CHANNEL_VERSION >= 4) || defined (CONFIG_RELAY)
-
-/**
- *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
- */
-static int _stp_subbuf_start(struct rchan_buf *buf,
-			     void *subbuf,
-			     void *prev_subbuf,
-			     size_t prev_padding)
+static void _stp_remove_relay_dir(struct dentry *dir)
 {
-	if (relay_buf_full(buf))
-		return 0;
-
-	if (prev_subbuf)
-		*((unsigned *)prev_subbuf) = prev_padding;
-
-	subbuf_start_reserve(buf, sizeof(unsigned int));
-
-	return 1;
+	if (dir)
+		relayfs_remove_dir(dir);
 }
 
-#else
 
 /**
  *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
@@ -69,196 +59,90 @@ static void _stp_buf_full(struct rchan_buf *buf,
 	*((unsigned *)subbuf) = padding;
 }
 
-#endif /* RELAYFS_CHANNEL_VERSION >= 4 || CONFIG_RELAY */
-
-#if defined (CONFIG_RELAY)
-static struct dentry *_stp_create_buf_file(const char *filename,
-					   struct dentry *parent,
-					   int mode,
-					   struct rchan_buf *buf,
-					   int *is_global)
-{
-	return debugfs_create_file(filename, mode, parent, buf,
-                                   &relay_file_operations);
-}
-
-static int _stp_remove_buf_file(struct dentry *dentry)
-{
-        debugfs_remove(dentry);
-
-        return 0;
-}
-#endif /* CONFIG_RELAY */
-
-/* relayfs callback functions */
-#if defined (CONFIG_RELAY)
 static struct rchan_callbacks stp_rchan_callbacks =
 {
 	.subbuf_start = _stp_subbuf_start,
-	.create_buf_file = _stp_create_buf_file,
-	.remove_buf_file = _stp_remove_buf_file,
-};
-#else
-static struct rchan_callbacks stp_rchan_callbacks =
-{
-	.subbuf_start = _stp_subbuf_start,
-#if (RELAYFS_CHANNEL_VERSION < 4)
 	.buf_full = _stp_buf_full,
-#endif  /* RELAYFS_CHANNEL_VERSION < 4 */
 };
-#endif  /* CONFIG_RELAY */
 
-static struct dentry *_stp_create_relay_dir(const char *dirname, struct dentry *parent)
-{
-	struct dentry *dir;
-	
-#if defined (CONFIG_RELAY)
-	dir = debugfs_create_dir(dirname, parent);
-	if (IS_ERR(dir)) {
-		printk("STP: Couldn't create directory %s - debugfs not configured in.\n", dirname);
-		dir = NULL;
-	}
-#else
-	dir = relayfs_create_dir(dirname, parent);
-#endif
 
-	return dir;
-}
-
-static void _stp_remove_relay_dir(struct dentry *dir)
-{
-	if (dir == NULL)
-		return;
-	
-#if defined (CONFIG_RELAY)
-		debugfs_remove(dir);
-#else
-		relayfs_remove_dir(dir);
-#endif
-}
-
-static inline void _stp_lock_inode(struct inode *inode)
-{
-#ifdef DEFINE_MUTEX
-	mutex_lock(&inode->i_mutex);
-#else
-	down(&inode->i_sem);
-#endif
-}
-
-static inline void _stp_unlock_inode(struct inode *inode)
-{
-#ifdef DEFINE_MUTEX
-	mutex_unlock(&inode->i_mutex);
-#else
-	up(&inode->i_sem);
-#endif
-}
-
-static struct dentry *_stp_get_relay_root(void)
-{
-	struct file_system_type *fs;
-	struct super_block *sb;
-	struct dentry *root;
-	char *dirname = "systemtap";
-
-	root = _stp_create_relay_dir(dirname, NULL);
-	if (root)
-		return root;
-	
-#if defined (CONFIG_RELAY)
-	fs = get_fs_type("debugfs");
-#else
-	fs = get_fs_type("relayfs");
-#endif
-	if (!fs)
-		return NULL;
-
-	sb = list_entry(fs->fs_supers.next, struct super_block, s_instances);
-	_stp_lock_inode(sb->s_root->d_inode);
-	root = lookup_one_len(dirname, sb->s_root, strlen(dirname));
-	_stp_unlock_inode(sb->s_root->d_inode);
-	if (!IS_ERR(root))
-		dput(root);
-	
-	return root;
-}
-
-static void _stp_put_relay_root(struct dentry *root)
+static void _stp_remove_relay_root(struct dentry *root)
 {
 	if (root)
 		_stp_remove_relay_dir(root);
 }
 
-static struct dentry *_relay_root;
-
-/**
- *	_stp_relayfs_close - destroys relayfs channel
- *	@chan: the relayfs channel
- *	@dir: the directory containing the relayfs files
- */
-void _stp_relayfs_close(struct rchan *chan, struct dentry *dir)
+struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 {
-	if (!chan)
-		return;
-	relay_close(chan);
-	_stp_remove_relay_dir(dir);
-	_stp_put_relay_root(_relay_root);
-}
+	struct utt_trace *utt;
 
-/**
- *	_stp_relayfs_open - create relayfs channel
- *	@n_subbufs: number of relayfs sub-buffers
- *	@subbuf_size: size of relayfs sub-buffers
- *	@pid: daemon pid
- *	@outdir: receives directory dentry
- *
- *	Returns relay channel, NULL on failure
- *
- *	Creates relayfs files as /systemtap/pid/cpuX in relayfs root
- */
-struct rchan *_stp_relayfs_open(unsigned n_subbufs,
-				unsigned subbuf_size,
-				int pid,
-				struct dentry **outdir)
-{
-	char dirname[16];
-	struct rchan *chan;
-	struct dentry* root, *dir;
+	utt = _stp_kzalloc(sizeof(*utt));
+	if (!utt)
+		return NULL;
 
-	sprintf(dirname, "%d", pid);
-	
-	root = _stp_get_relay_root();
-	if (!root) {
-		printk("STP: couldn't get relay root dir.\n");
+	utt->utt_tree_root = relayfs_create_dir(utts->root, NULL);
+	if (!utt->utt_tree_root) {
+		errk("couldn't get relay root dir.\n");
 		return NULL;
 	}
 
-	dir = _stp_create_relay_dir(dirname, root);
-	if (!dir) {
-		printk("STP: couldn't create relay dir %s.\n", dirname);
-		_stp_put_relay_root(root);
+	
+	kbug("relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
+	utt->rchan = relay_open("trace", utt->utt_tree_root, utts->buf_size, utts->buf_nr, 0, &stp_rchan_callbacks);
+	if (!utt->rchan) {
+		errk("couldn't create relay channel.\n");
+		_stp_remove_relay_root(utt->utt_tree_root);
 		return NULL;
 	}
-	
-#if (RELAYFS_CHANNEL_VERSION >= 4)
-	chan = relay_open("cpu", dir, subbuf_size,
-			  n_subbufs, &stp_rchan_callbacks);
-#else
-	chan = relay_open("cpu", dir, subbuf_size,
-			  n_subbufs, 0, &stp_rchan_callbacks);
-#endif /* RELAYFS_CHANNEL_VERSION >= 4 */
 
-	if (!chan) {
-		printk("STP: couldn't create relay channel.\n");
-		_stp_remove_relay_dir(dir);
-		_stp_put_relay_root(root);
-	}
-
-	_relay_root = root;
-	*outdir = dir;
-	return chan;
+	utt->rchan->private_data = utt;
+	utt->trace_state = Utt_trace_setup;
+	utts->err = 0;
+	return utt;
 }
 
-#endif /* _TRANSPORT_RELAYFS_C_ */
+int utt_trace_startstop(struct utt_trace *utt, int start,
+			unsigned int *trace_seq)
+{
+	int ret;
 
+	if (!utt)
+		return 0;
+
+	/*
+	 * For starting a trace, we can transition from a setup or stopped
+	 * trace. For stopping a trace, the state must be running
+	 */
+	ret = -EINVAL;
+	if (start) {
+		if (utt->trace_state == Utt_trace_setup ||
+		    utt->trace_state == Utt_trace_stopped) {
+			if (trace_seq)
+				(*trace_seq)++;
+			smp_mb();
+			utt->trace_state = Utt_trace_running;
+			ret = 0;
+		}
+	} else {
+		if (utt->trace_state == Utt_trace_running) {
+			utt->trace_state = Utt_trace_stopped;
+			_stp_relay_flushing = 1;
+			relay_flush(utt->rchan);
+			ret = 0;
+		}
+	}
+
+	return ret;
+}
+
+
+int utt_trace_remove(struct utt_trace *utt)
+{
+	kbug("removing relayfs files. %d\n", utt->trace_state);
+	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {
+		relay_close(utt->rchan);
+		_stp_remove_relay_root(utt->utt_tree_root);
+		kfree(utt);
+	}
+	return 0;
+}

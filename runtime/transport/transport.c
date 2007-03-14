@@ -19,31 +19,37 @@
 #include "time.c"
 #include "symbols.c"
 
-#ifdef STP_RELAYFS
+#ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
-static struct rchan *_stp_chan;
-static struct dentry *_stp_dir;
-int _stp_relay_flushing = 0;
+#else
+#include "utt.c"
 #endif
 
-static atomic_t _stp_start_finished = ATOMIC_INIT (0);
-static int _stp_dpid;
-static int _stp_pid;
+static struct utt_trace *_stp_utt = NULL;
+static unsigned int utt_seq = 1;
 
+static int _stp_start_finished = 0;
+static int _stp_probes_started = 0;
+
+/* module parameters */
+static int _stp_pid, _stp_bufsize;
 module_param(_stp_pid, int, 0);
-MODULE_PARM_DESC(_stp_pid, "daemon pid");
+MODULE_PARM_DESC(_stp_pid, "pid");
+module_param(_stp_bufsize, int, 0);
+MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
-int _stp_target = 0;
-int _stp_exit_called = 0;
+pid_t _stp_target = 0;
+static int _stp_exit_called = 0;
 int _stp_exit_flag = 0;
 
 /* forward declarations */
 void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
-void _stp_handle_start (struct _stp_transport_start *st);
+void _stp_handle_start (struct _stp_msg_start *st);
 
-/* check for new workquqeq API */
+
+/* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK 
 static void _stp_work_queue (struct work_struct *data);
 static DECLARE_DELAYED_WORK(_stp_work, _stp_work_queue);
@@ -53,105 +59,59 @@ static DECLARE_WORK(_stp_work, _stp_work_queue, NULL);
 #endif
 
 static struct workqueue_struct *_stp_wq;
-int _stp_transport_open(struct _stp_transport_info *info);
 
+#ifdef STP_OLD_TRANSPORT
 #include "procfs.c"
-
-/* send commands with timeout and retry */
-static int _stp_transport_send (int type, void *data, int len)
-{
-	int err, trylimit = 50;
-	while ((err = _stp_write(type, data, len)) < 0 && trylimit--)
-		msleep (5);
-	return err;
-}
-
-#ifndef STP_RELAYFS
-static int _stp_transport_write (void *data, int len)  
-{
-	/* when _stp_exit_called is set, we are in probe_exit() and we can sleep */
-	if (_stp_exit_called)
-		return _stp_transport_send (STP_REALTIME_DATA, data, len);
-	return _stp_write(STP_REALTIME_DATA, data, len);
-}
-#endif /*STP_RELAYFS */
-
-/*
- *	_stp_handle_buf_info - handle STP_BUF_INFO
- */
-#ifdef STP_RELAYFS
-static void _stp_handle_buf_info(int *cpuptr)
-{
-	struct _stp_buf_info out;
-
-	out.cpu = *cpuptr;
-#if (RELAYFS_CHANNEL_VERSION >= 4) || defined (CONFIG_RELAY)
-	out.produced = _stp_chan->buf[*cpuptr]->subbufs_produced;
-	out.consumed = _stp_chan->buf[*cpuptr]->subbufs_consumed;
 #else
-	out.produced = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_produced);
-	out.consumed = atomic_read(&_stp_chan->buf[*cpuptr]->subbufs_consumed);
-#endif /* RELAYFS_CHANNEL_VERSION >=_4 || CONFIG_RELAY */
-
-	_stp_transport_send(STP_BUF_INFO, &out, sizeof(out));
-}
+#include "control.c"
 #endif
+
+void _stp_ask_for_symbols(void)
+{
+	struct _stp_msg_symbol req;
+	struct _stp_module mod;
+	struct _stp_msg_trans tran;
+
+	/* ask for symbols, modules, and send transport info */
+	kbug("AFS\n");
+
+	req.endian = 0x1234;
+	req.ptr_size = sizeof(char *);
+	_stp_ctl_send(STP_SYMBOLS, &req, sizeof(req));
+	
+	strcpy(mod.name, "");
+	_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
+
+#ifdef STP_BULKMODE
+	tran.bulk_mode = 1;
+#else
+	tran.bulk_mode = 0;
+#endif
+	tran.subbuf_size =_stp_subbuf_size;
+	tran.n_subbufs = _stp_nsubbufs;
+	_stp_ctl_send(STP_TRANSPORT, &tran, sizeof(tran));
+}
 
 /*
  *	_stp_handle_start - handle STP_START
  */
 
-void _stp_handle_start (struct _stp_transport_start *st)
+void _stp_handle_start (struct _stp_msg_start *st)
 {
-#ifdef CONFIG_MODULES
-	static int got_modules=0;
-#endif
-
-	kbug ("stp_handle_start pid=%d\n", st->pid);
-
-	/* we've got a start request, but first, grab kernel symbols if we need them */
-	if (_stp_num_modules == 0) {
-		struct _stp_symbol_req req;
-		req.endian = 0x1234;
-		req.ptr_size = sizeof(char *);
-		_stp_transport_send(STP_SYMBOLS, &req, sizeof(req));
-		return;
-	}
-
-#ifdef CONFIG_MODULES
-	/* grab current module addresses if we haven't already */
-	if (got_modules == 0) {
-		struct _stp_module mod;
-		strcpy(mod.name, "");
-		got_modules = 1;
-		_stp_transport_send(STP_MODULE, &mod, sizeof(struct _stp_module));
-		return;
-	}
+	kbug ("stp_handle_start\n");
 
 	if (register_module_notifier(&_stp_module_load_nb))
-		printk("Systemtap error: failed to load module notifier\n");
-#endif
+		errk("failed to load module notifier\n");
 
-	/* note: st->pid is actually the return code for the reply packet */
-	st->pid = probe_start();
-	atomic_set(&_stp_start_finished,1);
+	_stp_target = st->target;
+	st->res = probe_start();
+	_stp_start_finished = 1;
+	if (st->res >= 0)
+		_stp_probes_started = 1;
 
-	/* if probe_start() failed, suppress calling probe_exit() */
-	if (st->pid < 0)
-		_stp_exit_called = 1;
-
-	_stp_transport_send(STP_START, st, sizeof(*st));
+	_stp_ctl_send(STP_START, st, sizeof(*st));
 }
 
-#ifdef STP_RELAYFS
-/**
- *	_stp_handle_subbufs_consumed - handle STP_SUBBUFS_CONSUMED
- */
-static void _stp_handle_subbufs_consumed(int pid, struct _stp_consumed_info *info)
-{
-	relay_subbufs_consumed(_stp_chan, info->cpu, info->consumed);
-}
-#endif
 
 /* common cleanup code. */
 /* This is called from the kernel thread when an exit was requested */
@@ -165,31 +125,29 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 	if (!_stp_exit_called) {
 		int failures;
 
-#ifdef CONFIG_MODULES
 		unregister_module_notifier(&_stp_module_load_nb);
-#endif
+
 		/* we only want to do this stuff once */
 		_stp_exit_called = 1;
 
-		kbug("calling probe_exit\n");
-		/* tell the stap-generated code to unload its probes, etc */
-		probe_exit();
-		kbug("done with probe_exit\n");
+		if (_stp_probes_started) {
+			kbug("calling probe_exit\n");
+			/* tell the stap-generated code to unload its probes, etc */
+			probe_exit();
+			kbug("done with probe_exit\n");
+		}
 
 		failures = atomic_read(&_stp_transport_failures);
 		if (failures)
 			_stp_warn ("There were %d transport failures.\n", failures);
 
-#ifdef STP_RELAYFS
-		if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
-			_stp_relay_flushing = 1;
-			relay_flush(_stp_chan);
-		}
-#endif
-		kbug("transport_send STP_EXIT\n");
+		kbug("************** calling startstop 0 *************\n");
+		if (_stp_utt) utt_trace_startstop(_stp_utt, 0, &utt_seq);
+
+		kbug("ctl_send STP_EXIT\n");
 		/* tell staprun to exit (if it is still there) */
-		_stp_transport_send(STP_EXIT, &dont_rmmod, sizeof(int));
-		kbug("done with transport_send STP_EXIT\n");
+		_stp_ctl_send(STP_EXIT, &dont_rmmod, sizeof(int));
+		kbug("done with ctl_send STP_EXIT\n");
 	}
 }
 
@@ -212,20 +170,20 @@ static void _stp_work_queue (void *data)
 	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 
 	if (do_io)
-		wake_up_interruptible(&_stp_proc_wq);
+		wake_up_interruptible(&_stp_ctl_wq);
 
 	/* if exit flag is set AND we have finished with probe_start() */
-	if (unlikely(_stp_exit_flag && atomic_read(&_stp_start_finished))) {
+	if (unlikely(_stp_exit_flag && _stp_start_finished)) {
 		_stp_cleanup_and_exit(0);
 		cancel_delayed_work(&_stp_work);
 		flush_workqueue(_stp_wq);
-		wake_up_interruptible(&_stp_proc_wq);
+		wake_up_interruptible(&_stp_ctl_wq);
 	} else
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
 /**
- *	_stp_transport_close - close proc and relayfs channels
+ *	_stp_transport_close - close ctl and relayfs channels
  *
  *	This is called automatically when the module is unloaded.
  *     
@@ -236,15 +194,10 @@ void _stp_transport_close()
 	_stp_cleanup_and_exit(1);
 	cancel_delayed_work(&_stp_work);
 	destroy_workqueue(_stp_wq);
-	wake_up_interruptible(&_stp_proc_wq);
-#ifdef STP_RELAYFS
-	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) 
-		_stp_relayfs_close(_stp_chan, _stp_dir);
-#endif
-#ifdef CONFIG_MODULES
+	wake_up_interruptible(&_stp_ctl_wq);
 	unregister_module_notifier(&_stp_module_load_nb);
-#endif
-	_stp_unregister_procfs();
+	_stp_unregister_ctl_channel();
+	if (_stp_utt) utt_trace_remove(_stp_utt);
 	_stp_free_modules();
 	_stp_kill_time();
 	_stp_print_cleanup(); 	/* free print buffers */
@@ -252,61 +205,21 @@ void _stp_transport_close()
 	kbug("---- CLOSED ----\n");
 }
 
-/**
- *	_stp_transport_open - open proc and relayfs channels
- *      with proper parameters
- *	Returns negative on failure, >0 otherwise.
- *
- *	This function registers the probe with the control channel,
- *	and if the probe output will not be 'streaming', creates a
- *	relayfs channel for it.  This must be called before any I/O is
- *	done. 
- * 
- *      This function is called in response to an STP_TRANSPORT
- *      message from staprun cmd.  It replies with a similar message
- *      containing the final parameters used.
- */
 
-int _stp_transport_open(struct _stp_transport_info *info)
+static struct utt_trace *_stp_utt_open(void)
 {
-	kbug ("stp_transport_open: %d Mb buffer. target=%d\n", info->buf_size, info->target);
+	struct utt_trace_setup utts;	
+	sprintf(utts.root, "systemtap_%d", _stp_pid);
+	utts.buf_size = _stp_subbuf_size;
+	utts.buf_nr = _stp_nsubbufs;
 
-	info->transport_mode = _stp_transport_mode;
-	info->merge = 0;
-
-	kbug("transport_mode=%d\n", info->transport_mode);
-	_stp_target = info->target;
-
-#ifdef STP_RELAYFS
-	if (_stp_transport_mode == STP_TRANSPORT_RELAYFS) {
-		if (info->buf_size) {
-			unsigned size = info->buf_size * 1024 * 1024;
-			subbuf_size = ((size >> 2) + 1) * 65536;
-			n_subbufs = size / subbuf_size;
-		}
-		info->n_subbufs = n_subbufs;
-		info->subbuf_size = subbuf_size;
-
-#ifdef STP_RELAYFS_MERGE
-		info->merge = 1;
+#ifdef STP_BULKMODE
+	utts.is_global = 0;
+#else
+	utts.is_global = 1;
 #endif
 
-		_stp_chan = _stp_relayfs_open(n_subbufs, subbuf_size, _stp_pid, &_stp_dir);
-		_stp_allocated_net_memory += n_subbufs * subbuf_size;
-
-		if (!_stp_chan)
-			return -ENOMEM;
-		kbug ("stp_transport_open: %u Mb buffers, subbuf_size=%u, n_subbufs=%u\n",
-		      info->buf_size, subbuf_size, n_subbufs);
-	} else 
-#endif
-	{
-		if (info->buf_size) 
-			_stp_set_buffers(info->buf_size * 1024 * 1024 / STP_BUFFER_SIZE);
-	}
-
-	/* send reply */
-	return _stp_transport_send (STP_TRANSPORT_INFO, info, sizeof(*info));
+	return utt_trace_setup(&utts);
 }
 
 /**
@@ -319,63 +232,53 @@ int _stp_transport_init(void)
 
 	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
 
-	/* create print buffers */
-	ret = _stp_print_init();
-	if (ret < 0)
-		goto out;
+	if (_stp_bufsize) {
+		unsigned size = _stp_bufsize * 1024 * 1024;
+		_stp_subbuf_size = ((size >> 2) + 1) * 65536;
+		_stp_nsubbufs = size / _stp_subbuf_size;
+		kbug("Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
+	}
 
 	/* initialize timer code */
-	ret =_stp_init_time();
-	if (ret)
-		goto print_cleanup;
+	if (_stp_init_time())
+		return -1;
 
-	/* set up procfs communications */
-	ret = _stp_register_procfs();
-	if (ret < 0)
-		goto kill_time;
+#if !defined (STP_OLD_TRANSPORT) || defined (STP_BULKMODE)
+	/* open utt (relayfs) channel to send data to userspace */
+	_stp_utt = _stp_utt_open();
+	if (!_stp_utt)
+		goto err0;
+#endif
+	/* create debugfs/procfs control channel */
+	if (_stp_register_ctl_channel() < 0)
+		goto err1;
+
+	/* create print buffers */
+	if (_stp_print_init() < 0)
+		goto err2;
+
+	utt_trace_startstop(_stp_utt, 1, &utt_seq);
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
-          goto proc_cleanup;
+		goto err3;
+
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
-out:
-	return ret;
 
-proc_cleanup:
-	ret = -1;
-	_stp_unregister_procfs();
-kill_time:
+	/* request symbolic information */
+	_stp_ask_for_symbols();
+	return 0;
+
+err3:
+	_stp_print_cleanup();
+err2:
+	_stp_unregister_ctl_channel();
+err1:
+	if (_stp_utt) utt_trace_remove(_stp_utt);	
+err0:
 	_stp_kill_time();
-print_cleanup:
-	_stp_print_cleanup(); 	/* free print buffers */
-	goto out;
+	return -1;
 }
 
-
-/* like relay_write except returns an error code */
-
-#ifdef STP_RELAYFS
-static int _stp_relay_write (const void *data, unsigned length)
-{
-	unsigned long flags;
-	struct rchan_buf *buf;
-
-	if (unlikely(length == 0))
-		return 0;
-
-	local_irq_save(flags);
-	buf = _stp_chan->buf[smp_processor_id()];
-	if (unlikely(buf->offset + length > _stp_chan->subbuf_size))
-		length = relay_switch_subbuf(buf, length);
-	memcpy(buf->data + buf->offset, data, length);
-	buf->offset += length;
-	local_irq_restore(flags);
-	
-	if (unlikely(length == 0))
-		return -1;
-	
-	return length;
-}
-#endif
 #endif /* _TRANSPORT_C_ */

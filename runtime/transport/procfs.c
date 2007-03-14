@@ -17,7 +17,7 @@ static struct list_head _stp_pool_q;
 spinlock_t _stp_pool_lock = SPIN_LOCK_UNLOCKED;
 spinlock_t _stp_ready_lock = SPIN_LOCK_UNLOCKED;
 
-#ifdef STP_RELAYFS
+#ifdef STP_BULKMODE
 extern int _stp_relay_flushing;
 /* handle the per-cpu subbuf info read for relayfs */
 static ssize_t
@@ -28,17 +28,12 @@ _stp_proc_read (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 
 	int cpu = *(int *)(PDE(file->f_dentry->d_inode)->data);
 
-	if (!_stp_chan)
+	if (!_stp_utt->rchan)
 		return -EINVAL;
 
 	out.cpu = cpu;
-#if (RELAYFS_CHANNEL_VERSION >= 4) || defined (CONFIG_RELAY)
-	out.produced = _stp_chan->buf[cpu]->subbufs_produced;
-	out.consumed = _stp_chan->buf[cpu]->subbufs_consumed;
-#else
-	out.produced = atomic_read(&_stp_chan->buf[cpu]->subbufs_produced);
-	out.consumed = atomic_read(&_stp_chan->buf[cpu]->subbufs_consumed);
-#endif  /* RELAYFS_CHANNEL_VERSION >= 4 || CONFIG_RELAY */
+	out.produced = atomic_read(&_stp_utt->rchan->buf[cpu]->subbufs_produced);
+	out.consumed = atomic_read(&_stp_utt->rchan->buf[cpu]->subbufs_consumed);
 	out.flushing = _stp_relay_flushing;
 
 	num = sizeof(out);
@@ -57,7 +52,7 @@ static ssize_t _stp_proc_write (struct file *file, const char __user *buf,
 	if (copy_from_user(&info, buf, count))
 		return -EFAULT;
 
-	relay_subbufs_consumed(_stp_chan, cpu, info.consumed);
+	relay_subbufs_consumed(_stp_utt->rchan, cpu, info.consumed);
 	return count;
 }
 
@@ -66,9 +61,9 @@ static struct file_operations _stp_proc_fops = {
 	.read = _stp_proc_read,
 	.write = _stp_proc_write,
 };
-#endif
+#endif /* STP_BULKMODE */
 
-static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
+static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
 	int type;
@@ -92,10 +87,10 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 	switch (type) {
 	case STP_START:
 	{
-		struct _stp_transport_start st;
-		if (count < sizeof(struct _stp_transport_start))
+		struct _stp_msg_start st;
+		if (count < sizeof(st))
 			return 0;
-		if (copy_from_user (&st, buf, sizeof(struct _stp_transport_start)))
+		if (copy_from_user (&st, buf, sizeof(st)))
 			return -EFAULT;
 		_stp_handle_start (&st);
 		break;
@@ -110,20 +105,8 @@ static ssize_t _stp_proc_write_cmd (struct file *file, const char __user *buf,
 	case STP_EXIT:
 		_stp_exit_flag = 1;
 		break;
-	case STP_TRANSPORT_INFO:
-	{
-		struct _stp_transport_info ti;
-		kbug("STP_TRANSPORT_INFO %d %d\n", (int)count, (int)sizeof(struct _stp_transport_info));
-		if (count < sizeof(struct _stp_transport_info))
-			return 0;
-		if (copy_from_user (&ti, buf, sizeof(struct _stp_transport_info)))
-			return -EFAULT;
-		if (_stp_transport_open (&ti) < 0)
-			return -1;
-		break;
-	}
 	default:
-		printk ("invalid command type %d\n", type);
+		errk ("invalid command type %d\n", type);
 		return -EINVAL;
 	}
 
@@ -137,9 +120,9 @@ struct _stp_buffer {
 	char buf[STP_BUFFER_SIZE];
 };
 
-static DECLARE_WAIT_QUEUE_HEAD(_stp_proc_wq);
+static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
 
-static int _stp_write (int type, void *data, int len)
+static int _stp_ctl_write (int type, void *data, int len)
 {
 	struct _stp_buffer *bptr;
 	unsigned long flags;
@@ -200,8 +183,19 @@ static int _stp_write (int type, void *data, int len)
 	return len;
 }
 
+/* send commands with timeout and retry */
+static int _stp_ctl_send (int type, void *data, int len)
+{
+	int err, trylimit = 50;
+	kbug("ctl_send: type=%d len=%d\n", type, len);
+	while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
+		msleep (5);
+	kbug("returning %d\n", err);
+	return err;
+}
+
 static ssize_t
-_stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
+_stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
 	struct _stp_buffer *bptr;
 	int len;
@@ -215,7 +209,7 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 		spin_unlock_irqrestore(&_stp_ready_lock, flags);
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
-		if (wait_event_interruptible(_stp_proc_wq, !list_empty(&_stp_ready_q)))
+		if (wait_event_interruptible(_stp_ctl_wq, !list_empty(&_stp_ready_q)))
 			return -ERESTARTSYS;
 		spin_lock_irqsave(&_stp_ready_lock, flags);
 	}
@@ -246,12 +240,11 @@ _stp_proc_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *p
 
 static struct file_operations _stp_proc_fops_cmd = {
 	.owner = THIS_MODULE,
-	.read = _stp_proc_read_cmd,
-	.write = _stp_proc_write_cmd,
-//	.poll = _stp_proc_poll_cmd
+	.read = _stp_ctl_read_cmd,
+	.write = _stp_ctl_write_cmd,
 };
 
-static struct proc_dir_entry *_stp_proc_root, *_stp_proc_mod;
+static struct proc_dir_entry *_stp_proc_root, *_stp_proc_pid;
 
 /* copy since proc_match is not MODULE_EXPORT'd */
 static int my_proc_match(int len, const char *name, struct proc_dir_entry *de)
@@ -299,13 +292,14 @@ err:
 	return _stp_current_buffers;
 }
 
-static int _stp_register_procfs (void)
+static int _stp_register_ctl_channel (void)
 {
 	int i;
-#ifdef STP_RELAYFS	
+	char buf[32];
+#ifdef STP_BULKMODE
 	int j;
-	char buf[8];
 #endif
+
 	struct proc_dir_entry *de;
 	struct list_head *p, *tmp;
 
@@ -322,84 +316,80 @@ static int _stp_register_procfs (void)
 		list_add (p, &_stp_pool_q);
 	}
 
-        /* Formerly, we allocated /proc/systemtap, but unfortunately
-           that's racy with multiple concurrent probes.  So now we set
-           _stp_proc_root to proc_root.  This way, /proc/stap_XXXX
-           rather than /proc/systemtap/stap_XXXX will be the directory
-           under which cmd/ etc. will show up.  */
-        _stp_proc_root = NULL;
-
-	/* now create /proc/systemtap/module_name */
-	_stp_proc_mod = proc_mkdir (THIS_MODULE->name, _stp_proc_root);
-	if (_stp_proc_mod == NULL)
+	/* now create /proc/systemtap_[pid] */
+	sprintf(buf, "systemtap_%d", _stp_pid);
+	_stp_proc_pid = proc_mkdir (buf, NULL);
+	if (!_stp_proc_pid)
 		goto err0;
-
-#ifdef STP_RELAYFS	
-	/* now for each cpu "n", create /proc/systemtap/module_name/n  */
+#ifdef STP_BULKMODE
+	/* now for each cpu "n", create /proc/systemtap_[pid]/n  */
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
-		de = create_proc_entry (buf, S_IFREG|S_IRUSR, _stp_proc_mod);
+		de = create_proc_entry (buf, S_IFREG|S_IRUSR, _stp_proc_pid);
 		if (de == NULL) 
 			goto err1;
 		de->proc_fops = &_stp_proc_fops;
 		de->data = _stp_kmalloc(sizeof(int));
 		if (de->data == NULL) {
-			remove_proc_entry (buf, _stp_proc_mod);
+			remove_proc_entry (buf, _stp_proc_pid);
 			goto err1;
 		}
 		*(int *)de->data = i;
 	}
-#endif
+#endif /* STP_BULKMODE */
 
-	/* finally create /proc/systemtap/module_name/cmd  */
-	de = create_proc_entry ("cmd", S_IFREG|S_IRUSR, _stp_proc_mod);
+	/* finally create /proc/systemtap_[pid]/cmd  */
+	de = create_proc_entry ("cmd", S_IFREG|S_IRUSR, _stp_proc_pid);
 	if (de == NULL) 
 		goto err1;
 	de->proc_fops = &_stp_proc_fops_cmd;
 	return 0;
 
 err1:
-#ifdef STP_RELAYFS
-	for (de = _stp_proc_mod->subdir; de; de = de->next)
+#ifdef STP_BULKMODE
+	for (de = _stp_proc_pid->subdir; de; de = de->next)
 		kfree (de->data);
 	for_each_cpu(j) {
 		if (j == i)
 			break;
 		sprintf(buf, "%d", i);
-		remove_proc_entry (buf, _stp_proc_mod);
+		remove_proc_entry (buf, _stp_proc_pid);
 		
 	}
-#endif
-        remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
+#endif /* STP_BULKMODE */
+	sprintf(buf, "systemtap_%d", _stp_pid);
+	remove_proc_entry (buf, NULL);
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
 		kfree(p);
 	}
 
-	printk (KERN_ERR "Error creating systemtap /proc entries.\n");
+	errk ("Error creating systemtap /proc entries.\n");
 	return -1;
 }
 
 
-static void _stp_unregister_procfs (void)
+static void _stp_unregister_ctl_channel (void)
 {
 	struct list_head *p, *tmp;
-#ifdef STP_RELAYFS
+	char buf[32];
+#ifdef STP_BULKMODE
 	int i;
-	char buf[8];
 	struct proc_dir_entry *de;
-
-	for (de = _stp_proc_mod->subdir; de; de = de->next)
+	kbug("unregistering procfs\n");
+	for (de = _stp_proc_pid->subdir; de; de = de->next)
 		kfree (de->data);
 
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
-		remove_proc_entry (buf, _stp_proc_mod);
+		remove_proc_entry (buf, _stp_proc_pid);
 	}
-#endif
-	remove_proc_entry ("cmd", _stp_proc_mod);
-	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
+#endif /* STP_BULKMODE */
+
+	remove_proc_entry ("cmd", _stp_proc_pid);
+	sprintf(buf, "systemtap_%d", _stp_pid);
+	remove_proc_entry (buf, NULL);
 
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {

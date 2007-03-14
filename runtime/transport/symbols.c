@@ -170,7 +170,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 	switch (_stp_symbol_state) {
 	case 0:
 		if (count != 8) {
-			printk("unexpected systemtap error: _stp_do_symbols: count=%d\n", count);
+			errk(" _stp_do_symbols: count=%d\n", count);
 			return -EFAULT;
 		}		
 		if (get_user(num, (unsigned __user *)buf))
@@ -181,7 +181,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 
 		_stp_modules[0] = _stp_alloc_module(num, datasize);
 		if (_stp_modules[0] == NULL) {
-			printk("unexpected systemtap error: cannot allocate memory\n");
+			errk("cannot allocate memory\n");
 			return -EFAULT;
 		}
 		_stp_symbol_state = 1;
@@ -207,7 +207,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 		_stp_modules_by_addr[0] = _stp_modules[0];
 		break;
 	default:
-		printk("systemtap error: unexpected symbol data of size %d.\n", count);
+		errk("unexpected symbol data of size %d.\n", count);
 	}
 	return count;
 }
@@ -251,7 +251,7 @@ static struct _stp_module *_stp_load_module_symbols (struct _stp_module *imod)
 		mod = _stp_alloc_module_from_module(m);
 		if (mod == NULL) {
 			module_put(m);
-			printk("Systemtap failed to allocate memory for module.\n");
+			errk("failed to allocate memory for module.\n");
 			return NULL;
 		}
 
@@ -347,7 +347,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	int i;
 
 	if (count < sizeof(tmpmod)) {
-		printk("_stp_do_modules: expected %d and got %d\n", (int)sizeof(tmpmod), count);
+		errk("expected %d and got %d\n", (int)sizeof(tmpmod), count);
 		return -EFAULT;
 	}
 	if (copy_from_user ((char *)&tmpmod, buf, sizeof(tmpmod)))
@@ -361,7 +361,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	/* copy in section data */
 	tmpmod.sections = _stp_kmalloc(count - sizeof(tmpmod));
 	if (tmpmod.sections == NULL) {
-		printk("_stp_do_module: unable to allocate memory.\n");
+		errk("unable to allocate memory.\n");
 		return -EFAULT;
 	}
 	if (copy_from_user ((char *)tmpmod.sections, buf+sizeof(tmpmod), count-sizeof(tmpmod))) {
@@ -391,7 +391,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	return count;
 }
 
-static int _stp_transport_send (int type, void *data, int len);
+static int _stp_ctl_send (int type, void *data, int len);
 
 static int _stp_module_load_notify(struct notifier_block * self, unsigned long val, void * data)
 {
@@ -403,10 +403,10 @@ static int _stp_module_load_notify(struct notifier_block * self, unsigned long v
 	case MODULE_STATE_COMING:
 		dbug("module %s loaded\n", mod->name);
 		strlcpy(rmod.name, mod->name, STP_MODULE_NAME_LEN);
-		_stp_transport_send(STP_MODULE, &rmod, sizeof(struct _stp_module));
+		_stp_ctl_send(STP_MODULE, &rmod, sizeof(struct _stp_module));
 		break;
 	default:
-		printk("module loaded? val=%ld\n", val);
+		errk("module loaded? val=%ld\n", val);
 	}
 #endif
 	return 0;

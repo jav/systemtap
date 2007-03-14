@@ -1,3 +1,19 @@
+2007-03-14  Martin Hunt  <hunt@redhat.com>
+
+	* transport_msgs.h: ifdef old messages as such.
+	Add support for new transport.
+	* relayfs.c: Simplify and add new interface to look
+	like utt.
+	* utt.[ch]: New files. Similar to the proposed utt interface.
+	These setup and teardown relayfs on debugfs.
+	* control.c: New file. Implements a simple control channel.
+	A small subset of procfs.c.
+	* procfs.c: This is now only used for old kernels lacking newer 
+	relayfs. Change STP_RELAYFS to STP_BULKMODE. Use new
+	messages from transport_msgs.h. Don't support 
+	RELAYFS_CHANNEL_VERSION >= 4. CHanges all control channel functions
+	to new names. Use pids instead of module names in /proc names.
+
 2007-03-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* procfs.c (_stp_register_procfs): Use /proc/MODULE rather than
