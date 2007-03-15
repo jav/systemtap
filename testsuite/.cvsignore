@@ -1,1 +1,2 @@
 Makefile probe.out site.exp systemtap.log systemtap.sum .systemtap
+config.log config.status
