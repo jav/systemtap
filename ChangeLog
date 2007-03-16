@@ -14,9 +14,6 @@
 	STP_OVERLOAD global variables.
 	(translate_pass): Emit STP_OVERLOAD defines.
 
-2007-03-15  David Smith  <dsmith@redhat.com>
-
-
 2007-03-14  Martin Hunt  <hunt@redhat.com>	
 	* main.cxx (usage): Remove "-M" and edit description
 	of "-b".
