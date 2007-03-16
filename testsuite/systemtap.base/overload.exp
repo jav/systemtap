@@ -1,0 +1,83 @@
+if {![installtest_p]} {untested "OVERLOAD"; return}
+
+set script {
+    global k
+
+    probe begin {
+	print("systemtap starting probe\n")
+	k["foo"] = 0
+    }
+
+    probe kernel.function("sys_read"), kernel.function("sys_write") {
+	k["foo"]++
+    }
+    probe end {
+	print("systemtap ending probe\n")
+    }
+}
+
+# stap_run TEST_NAME EXPECT_OVERLOAD
+# TEST_NAME is name of the current test
+# EXPECT_OVERLOAD lets us know to expect and probe overload or not
+# Additional arguments are passed to stap as-is.
+proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
+
+    set cmd [concat {stap -v} $args]
+    eval spawn $cmd
+    expect {
+	-re {^Pass\ [1234]: .+real\ ms.\r\n} {exp_continue}
+	-re {^Pass\ ([34]): using cached .+\r\n} {exp_continue}
+	-re {^Pass 5: starting run.\r\n} {exp_continue}
+	-re {ERROR: probe overhead exceeded threshold\r\n} {
+	    if {$EXPECT_OVERLOAD} {
+		pass "$TEST_NAME received expected overload"
+	    } else {
+		fail "$TEST_NAME unexpected overload"
+	    }
+	}
+	-timeout 30 -re "^systemtap starting probe\r\n" {
+	    send "\003"
+
+	    expect {
+		-re {^systemtap ending probe\r\n} {
+		    if {$EXPECT_OVERLOAD} {
+			fail "$TEST_NAME didn't receive expected overload"
+		    } else {
+			pass "$TEST_NAME didn't overload"
+		    }
+		}
+		-re {ERROR: probe overhead exceeded threshold\r\n} {
+		    if {$EXPECT_OVERLOAD} {
+			pass "$TEST_NAME received expected overload"
+		    } else {
+			fail "$TEST_NAME unexpected overload"
+		    }
+		}
+	    }
+	}
+	-re "semantic error:" { fail "$TEST_NAME compilation" }
+	timeout { fail "$TEST_NAME startup (timeout)"; send "\003" }
+	eof { fail "$TEST_NAME startup (eof)" }
+    }
+    catch close
+    wait
+}
+
+# OVERLOAD1 tests to make sure normal operation doesn't receive an
+# overload indication
+set test "OVERLOAD1"
+stap_run_overload $test 0 -u -e $script
+
+# OVERLOAD2 is the same script, but we're adjusting the
+# STP_OVERLOAD_INTERVAL and STP_OVERLOAD_THRESHOLD to low values so
+# that we *will* get an overload.
+set test "OVERLOAD2"
+stap_run_overload $test 1 -u -DSTP_OVERLOAD_INTERVAL=1000LL -DSTP_OVERLOAD_THRESHOLD=100LL -e $script
+
+# OVERLOAD3 is the same script with the same low STP_OVERLOAD_INTERVAL
+# and STP_OVERLOAD_THRESHOLD values, but we're also specifying
+# STP_NO_OVERLOAD, which should turn overload processing off.   So,
+# even though we have low overhead tuning values, we *shouldn't*
+# overload.
+set test "OVERLOAD3"
+stap_run_overload $test 0 -u -DSTP_NO_OVERLOAD -DSTP_OVERLOAD_INTERVAL=1000LL -DSTP_OVERLOAD_THRESHOLD=100LL -e $script

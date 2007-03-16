@@ -1,3 +1,7 @@
+2007-03-16  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/overload.exp: New test.
+
 2007-03-15  David Smith  <dsmith@redhat.com>
 
 	* .cvsignore: Added "config.log" and "config.status".
