@@ -822,6 +822,10 @@ c_unparser::emit_common_header ()
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "Stat *statp;";
   o->newline() << "#endif";
+  o->newline() << "#ifdef STP_OVERLOAD";
+  o->newline() << "cycles_t cycles_base;";
+  o->newline() << "cycles_t cycles_sum;";
+  o->newline() << "#endif";
   o->newline() << "union {";
   o->indent(1);
 
@@ -4082,11 +4086,25 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#define MINSTACKSPACE 1024";
       s.op->newline() << "#endif";
 
+      // Overload processing
+      s.op->newline() << "#ifndef STP_OVERLOAD_INTERVAL";
+      s.op->newline() << "#define STP_OVERLOAD_INTERVAL 1000000000LL";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef STP_OVERLOAD_THRESHOLD";
+      s.op->newline() << "#define STP_OVERLOAD_THRESHOLD 500000000LL";
+      s.op->newline() << "#endif";
+      // We allow the user to completely turn overload processing off
+      // (as opposed to tuning it by overriding the values above) by
+      // running:  stap -DSTP_NO_OVERLOAD {other options}
+      s.op->newline() << "#ifndef STP_NO_OVERLOAD";
+      s.op->newline() << "#define STP_OVERLOAD";
+      s.op->newline() << "#endif";
+
       if (s.bulk_mode)
 	  s.op->newline() << "#define STP_BULKMODE";
 	  
       if (s.timing)
-	s.op->newline() << "#define STP_TIMING" << " " << s.timing ;
+	s.op->newline() << "#define STP_TIMING";
 
       if (s.perfmon)
 	s.op->newline() << "#define STP_PERFMON";

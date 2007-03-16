@@ -128,16 +128,17 @@ be_derived_probe::join_group (systemtap_session& s)
 
 // ------------------------------------------------------------------------
 void
-common_probe_entryfn_prologue (translator_output* o, string statestr)
+common_probe_entryfn_prologue (translator_output* o, string statestr,
+			       bool overload_processing = true)
 {
   o->newline() << "struct context* __restrict__ c;";
   o->newline() << "unsigned long flags;";
 
-  o->newline() << "#ifdef STP_TIMING";
-  // NB: we truncate cycles counts to 32 bits.  Perhaps it should be
-  // fewer, if the hardware counter rolls over really quickly.  See
-  // also ...epilogue().
-  o->newline() << "int32_t cycles_atstart = (int32_t) get_cycles ();";
+  if (overload_processing)
+    o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
+  else
+    o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "cycles_t cycles_atstart = get_cycles ();";
   o->newline() << "#endif";
 
 #if 0 /* XXX: PERFMON */
@@ -192,18 +193,55 @@ common_probe_entryfn_prologue (translator_output* o, string statestr)
 
 
 void
-common_probe_entryfn_epilogue (translator_output* o)
+common_probe_entryfn_epilogue (translator_output* o,
+			       bool overload_processing = true)
 {
-  o->newline() << "#ifdef STP_TIMING";
+  if (overload_processing)
+    o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
+  else
+    o->newline() << "#ifdef STP_TIMING";
   o->newline() << "{";
-  o->newline(1) << "int32_t cycles_atend = (int32_t) get_cycles ();";
-  // Handle 32-bit wraparound.
-  o->newline() << "int32_t cycles_elapsed = (cycles_atend > cycles_atstart)";
-  o->newline(1) << "? (cycles_atend - cycles_atstart)";
-  o->newline() << ": (~(int32_t)0) - cycles_atstart + cycles_atend + 1;";
-
-  o->newline() << "if (likely (c->statp)) _stp_stat_add(*c->statp, cycles_elapsed);";
+  o->newline(1) << "cycles_t cycles_atend = get_cycles ();";
+  // NB: we truncate cycles counts to 32 bits.  Perhaps it should be
+  // fewer, if the hardware counter rolls over really quickly.  We
+  // handle 32-bit wraparound here.
+  o->newline() << "int32_t cycles_elapsed = ((int32_t)cycles_atend > (int32_t)cycles_atstart)";
+  o->newline(1) << "? ((int32_t)cycles_atend - (int32_t)cycles_atstart)";
+  o->newline() << ": (~(int32_t)0) - (int32_t)cycles_atstart + (int32_t)cycles_atend + 1;";
   o->indent(-1);
+
+  o->newline() << "#ifdef STP_TIMING";
+  o->newline() << "if (likely (c->statp)) _stp_stat_add(*c->statp, cycles_elapsed);";
+  o->newline() << "#endif";
+
+  if (overload_processing)
+    {
+      o->newline() << "#ifdef STP_OVERLOAD";
+      o->newline() << "{";
+      // If the cycle count has wrapped (cycles_atend > cycles_base),
+      // let's go ahead and pretend the interval has been reached.
+      // This should reset cycles_base and cycles_sum.
+      o->newline(1) << "cycles_t interval = (cycles_atend > c->cycles_base)";
+      o->newline(1) << "? (cycles_atend - c->cycles_base)";
+      o->newline() << ": (STP_OVERLOAD_INTERVAL + 1);";
+      o->newline(-1) << "c->cycles_sum += cycles_elapsed;";
+
+      // If we've spent more than STP_OVERLOAD_THRESHOLD cycles in a
+      // probe during the last STP_OVERLOAD_INTERVAL cycles, the probe
+      // has overloaded the system and we need to quit.
+      o->newline() << "if (interval > STP_OVERLOAD_INTERVAL) {";
+      o->newline(1) << "if (c->cycles_sum > STP_OVERLOAD_THRESHOLD) {";
+      o->newline(1) << "_stp_error (\"probe overhead exceeded threshold\");";
+      o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+      o->newline(-1) << "}";
+
+      o->newline() << "c->cycles_base = cycles_atend;";
+      o->newline() << "c->cycles_sum = 0;";
+      o->newline(-1) << "}";
+      o->newline(-1) << "}";
+      o->newline() << "#endif";
+    }
+
   o->newline(-1) << "}";
   o->newline() << "#endif";
 
@@ -238,17 +276,17 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- begin/end probes ---- */";
   s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*)) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false);
   s.op->newline() << "c->probe_point = \"begin\";";
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
   s.op->newline() << "void enter_end_probe (void (*fn)(struct context*)) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING");
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false);
   s.op->newline() << "c->probe_point = \"end\";";
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op);
+  common_probe_entryfn_epilogue (s.op, false);
   s.op->newline(-1) << "}";
 }
 

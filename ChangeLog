@@ -1,3 +1,22 @@
+2007-03-16  David Smith  <dsmith@redhat.com>
+
+	PR 3545.
+	* tapsets.cxx (common_probe_entryfn_prologue): Added
+	'overload_processing' parameter, which defaults to true.  If
+	overload_processing is set to false, doesn't output the
+	STP_OVERLOAD code.
+	(common_probe_entryfn_epilogue): Ditto.
+	(be_derived_probe_group::emit_module_decl): Set
+	overload_processing to false in calls to
+	common_probe_entryfn_prologue and common_probe_entryfn_epilogue
+	since begin/end probes shouldn't overload the system.
+	* translate.cxx (c_unparser::emit_common_header): Emit
+	STP_OVERLOAD global variables.
+	(translate_pass): Emit STP_OVERLOAD defines.
+
+2007-03-15  David Smith  <dsmith@redhat.com>
+
+
 2007-03-14  Martin Hunt  <hunt@redhat.com>	
 	* main.cxx (usage): Remove "-M" and edit description
 	of "-b".
