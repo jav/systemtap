@@ -27,7 +27,7 @@ static int get_sections(char *name, char *data_start, int datalen)
 {
 	char dir[STP_MODULE_NAME_LEN + sizeof(SECDIR)];
 	char filename[STP_MODULE_NAME_LEN + 256]; 
-	char buf[32], strdata_start[4096];
+	char buf[32], strdata_start[32768];
 	char *strdata=strdata_start, *data=data_start;
 	int fd, len, res;
 	struct _stp_module *mod = (struct _stp_module *)data_start;
@@ -62,6 +62,7 @@ static int get_sections(char *name, char *data_start, int datalen)
 		}
 		if ((fd = open(filename,O_RDONLY)) >= 0) {
 			if (read(fd, buf, 32) > 0) {
+
 				/* filter out some non-useful stuff */
 				if (!strncmp(secname,"__",2) 
 				    || !strcmp(secname,".module_sig") 
@@ -71,6 +72,10 @@ static int get_sections(char *name, char *data_start, int datalen)
 					close(fd);
 					continue;
 				}
+				if (!strncmp(secname, ".gnu.linkonce", 13) 
+				    && strcmp(secname, ".gnu.linkonce.this_module"))
+					continue;
+
 				/* create next section */
 				sec = (struct _stp_symbol *)data;
 				data += sizeof(struct _stp_symbol);
@@ -112,7 +117,7 @@ static int get_sections(char *name, char *data_start, int datalen)
 
 void send_module (char *mname)
 {
-	char data[8192];
+	char data[32768];
 	int len = get_sections(mname, data, sizeof(data));
 	if (len)
 		send_request(STP_MODULE, data, len);
