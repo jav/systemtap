@@ -155,7 +155,6 @@ int init_staprun(void)
                 fprintf(stderr, "sysconf(_SC_NPROCESSORS_ONLN) failed\n");
                 return 1;
         }
-
 	
 	if (system(VERSION_CMD)) {
 		dbug("Using OLD TRANSPORT\n");
@@ -293,10 +292,9 @@ int stp_main_loop(void)
 	signal(SIGCHLD, sigproc);
 	signal(SIGQUIT, sigproc);
 
-/*
         if (driver_pid)
 		driver_poll(0);
-*/
+
 	dbug("in main loop\n");
 
 	while (1) { /* handle messages from control channel */
