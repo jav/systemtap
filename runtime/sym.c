@@ -25,7 +25,7 @@ static unsigned long _stp_module_relocate (const char *module, const char *secti
 	static struct _stp_symbol *last_sec;
 	unsigned long flags;
 	int i,j;
-
+	printk("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);	
 	STP_LOCK_MODULES;
 	if (! module || _stp_num_modules == 0) {
 		STP_UNLOCK_MODULES;
@@ -44,7 +44,7 @@ static unsigned long _stp_module_relocate (const char *module, const char *secti
 		last = _stp_modules[i];
 		if (strcmp(module, last->name))
 			continue;
-		for (j = 0; j < last->num_sections; j++) {
+		for (j = 0; j < (int)last->num_sections; j++) {
 			last_sec = &last->sections[j];
 			if (!strcmp (section, last_sec->symbol)) {
 				STP_UNLOCK_MODULES;

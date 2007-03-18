@@ -102,7 +102,7 @@ void _stp_stack_snprint (char *str, int size, struct pt_regs *regs, int verbose,
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
 	_stp_stack_print(regs, verbose, pi);
-	strlcpy(str, pb->buf, size < pb->len ? size : pb->len);
+	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }
 

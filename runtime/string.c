@@ -41,7 +41,7 @@ int _stp_snprintf(char *buf, size_t size, const char *fmt, ...)
 
 int _stp_vscnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
-	int i = _stp_vsnprintf(buf,size,fmt,args);
+	unsigned i = _stp_vsnprintf(buf,size,fmt,args);
 	return (i >= size) ? (size - 1) : i;
 }
 

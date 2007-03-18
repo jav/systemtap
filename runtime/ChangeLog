@@ -1,4 +1,8 @@
-2007-03-14  Martin Hunt  <hunt@redhat.com>
+2007-03-18  Martin Hunt  <hunt@redhat.com>
+	* stack.c, string.c, sym.c, transport/symbols.c:
+	Fix some signed vs unsigned comparison warnings.
+
+2007-03-14  Martin Hunt  <hunt@redhat.com>	
 	* stpd: Remove directory.
 	* relayfs: Remove directory.
 	

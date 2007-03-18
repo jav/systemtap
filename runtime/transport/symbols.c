@@ -47,7 +47,7 @@ static int _stp_sym_type_ok(int type)
 /* we need to store all the parts we are interested in */
 static unsigned _stp_get_sym_sizes(struct module *m, unsigned *dsize)
 {
-	int i;
+	unsigned int i;
 	unsigned num = 0, datasize = 0;
 	for (i=0; i < m->num_symtab; i++) {
 		char *str = (char *)(m->strtab + m->symtab[i].st_name);
@@ -163,8 +163,7 @@ static unsigned long _stp_kallsyms_lookup_name(const char *name);
 /* process the KERNEL symbols */
 static int _stp_do_symbols(const char __user *buf, int count)
 {
-	unsigned datasize, num;
-	int i;
+	unsigned i, datasize, num;
 	struct _stp_symbol *s;
 
 	switch (_stp_symbol_state) {
@@ -237,7 +236,7 @@ static void _stp_swap_symbol(void *x, void *y, int size)
 /* Create a new _stp_module and load the symbols */
 static struct _stp_module *_stp_load_module_symbols (struct _stp_module *imod)
 {
-	int i, num=0;
+	unsigned i, num=0;
 	struct module *m = (struct module *)imod->module;
 	struct _stp_module *mod = NULL;
 	char *dataptr;
@@ -344,9 +343,9 @@ static void _stp_ins_module(struct _stp_module *mod)
 static int _stp_do_module(const char __user *buf, int count)
 {
 	struct _stp_module tmpmod, *mod;
-	int i;
+	unsigned i;
 
-	if (count < sizeof(tmpmod)) {
+	if (count < (int)sizeof(tmpmod)) {
 		errk("expected %d and got %d\n", (int)sizeof(tmpmod), count);
 		return -EFAULT;
 	}
