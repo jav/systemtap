@@ -12,8 +12,6 @@
 
 #include "staprun.h"
 
-#ifndef STP_OLD_TRANSPORT
-
 int out_fd[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 static int relay_fd[NR_CPUS];
@@ -186,4 +184,3 @@ void close_relayfs(void)
 	dbug("closed files\n");
 }
 
-#endif /* !STP_OLD_TRANSPORT */

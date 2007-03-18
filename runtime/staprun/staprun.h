@@ -34,20 +34,23 @@
 #include <sys/statfs.h>
 #include <linux/version.h>
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,15)
-#define STP_OLD_TRANSPORT
-#endif
-#include "../transport/transport_msgs.h"
-
-
-#define RELAYFS_MAGIC			0xF0B4A981
-#define DEBUGFS_MAGIC			0x64626720
-
 #ifdef DEBUG
 #define dbug(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
 #else
 #define dbug(args...) ;
 #endif /* DEBUG */
+
+/* we define this so we are compatible with old transport, but we don't have to use it. */
+#define STP_OLD_TRANSPORT
+#include "../transport/transport_msgs.h"
+
+/* command to check system's kernel version */
+/* KERNEL_VERSION(2.6.15) = 132623 */
+#define VERSION_CMD "uname -r | awk \'{split($1,a,\".\"); split(a[3],b,\"-\"); exit (a[1]*65536+a[2]*256+b[1] <= 132623)}\'"
+extern int use_old_transport;
+
+#define RELAYFS_MAGIC			0xF0B4A981
+#define DEBUGFS_MAGIC			0x64626720
 
 /*
  * function prototypes
@@ -59,9 +62,11 @@ void cleanup_and_exit (int);
 int do_module(void *);
 void do_kernel_symbols(void);
 int init_ctl_channel(void);
+void close_ctl_channel(void);
 int init_relayfs(struct _stp_msg_trans *);
 void close_relayfs(void);
-void close_ctl_channel(void);
+int init_oldrelayfs(struct _stp_msg_trans *);
+void close_oldrelayfs(void);
 
 /*
  * variables 
@@ -87,5 +92,5 @@ extern gid_t cmd_gid;
 /* maximum number of CPUs we can handle */
 #define NR_CPUS 256
 
-/* output fd's (percpu) */
+/* relay*.c uses these */
 extern int out_fd[NR_CPUS];

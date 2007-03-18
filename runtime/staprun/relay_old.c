@@ -12,9 +12,7 @@
  */
 
 #include "staprun.h"
-#ifdef STP_OLD_TRANSPORT
 
-int out_fd[NR_CPUS];
 /* temporary per-cpu output written here for relayfs, filebase0...N */
 static char *percpu_tmpfilebase = "stpd_cpu";
 static int relay_fd[NR_CPUS];
@@ -53,7 +51,7 @@ static void close_relayfs_files(int cpu)
 /**
  *	close_all_relayfs_files - close and munmap buffers and output files
  */
-void close_relayfs(void)
+void close_oldrelayfs(void)
 {
 	int i;
 
@@ -212,7 +210,7 @@ static void *reader_thread(void *data)
  *
  *	Returns 0 if successful, negative otherwise
  */
-int init_relayfs(struct _stp_msg_trans *t)
+int init_oldrelayfs(struct _stp_msg_trans *t)
 {
 	int i, j;
 	struct statfs st;
@@ -274,4 +272,3 @@ err:
 	return -1;
 }
 
-#endif /* STP_OLD_TRANSPORT */

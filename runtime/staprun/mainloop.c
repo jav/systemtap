@@ -15,6 +15,7 @@
 /* globals */
 int control_channel = 0;
 int ncpus;
+int use_old_transport = 0;
 
 /**
  *	send_request - send request to kernel over control channel
@@ -155,6 +156,12 @@ int init_staprun(void)
                 return 1;
         }
 
+	
+	if (system(VERSION_CMD)) {
+		dbug("Using OLD TRANSPORT\n");
+		use_old_transport = 1;
+	}
+
 	/* insert module */
 	sprintf(buf, "_stp_pid=%d", (int)getpid());
 	sprintf(bufcmd, "_stp_bufsize=%d", buffer_size);
@@ -221,7 +228,10 @@ void cleanup_and_exit (int closed)
 		fprintf(stderr,"\nWaititing for processes to exit\n");
 	while(wait(NULL) > 0) ;
 
-	close_relayfs();
+	if (use_old_transport)
+		close_oldrelayfs();
+	else
+		close_relayfs();
 
 	dbug("closing control channel\n");
 	close_ctl_channel();
@@ -281,10 +291,12 @@ int stp_main_loop(void)
 	signal(SIGTERM, sigproc);
 	signal(SIGHUP, sigproc);
 	signal(SIGCHLD, sigproc);
+	signal(SIGQUIT, sigproc);
 
+/*
         if (driver_pid)
 		driver_poll(0);
-
+*/
 	dbug("in main loop\n");
 
 	while (1) { /* handle messages from control channel */
@@ -336,12 +348,15 @@ int stp_main_loop(void)
 		case STP_TRANSPORT:
 		{
 			struct _stp_msg_start ts;
-			if (init_relayfs((struct _stp_msg_trans *)data) < 0)
-				cleanup_and_exit(0);
-			else {
-				ts.target = target_pid;
-				send_request(STP_START, &ts, sizeof(ts));
+			if (use_old_transport) {
+				if (init_oldrelayfs((struct _stp_msg_trans *)data) < 0)
+					cleanup_and_exit(0);
+			} else {
+				if (init_relayfs((struct _stp_msg_trans *)data) < 0)
+					cleanup_and_exit(0);
 			}
+			ts.target = target_pid;
+			send_request(STP_START, &ts, sizeof(ts));
 			break;
 		}
 		case STP_MODULE:

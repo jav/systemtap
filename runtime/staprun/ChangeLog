@@ -1,3 +1,15 @@
+2007-03-18  Martin Hunt  <hunt@redhat.com>
+
+	* staprun.h (VERSION_CMD): Command to use for version check.
+	Changes to support runtime decision on new or old transport.
+	* mainloop.c (init_staprun): Check the kernel version at runtime
+	instead of at compile time.
+	(cleanup_and_exit): Call the correct relayfs close function.
+	(stp_main_loop): Call the correct relayfs init function.
+	* relay.c: Remove ifdef wrapper. File is always compiled and used
+	if the kernel version is appropriate.
+	* relay_old.c: Ditto.
+
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 
 	* staprun.c: Renamed from stpd.c. Removed quiet and print_only 
