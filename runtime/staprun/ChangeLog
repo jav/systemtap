@@ -1,4 +1,8 @@
 2007-03-18  Martin Hunt  <hunt@redhat.com>
+	* staprun.h (err): Define.
+	* symbols.c (get_sections): More overflow checking.
+
+2007-03-18  Martin Hunt  <hunt@redhat.com>	
 	* symbols.c (get_sections): Filter out .gnu.linkonce.* sections 
 	except for .gnu.linkonce.this_module.
 

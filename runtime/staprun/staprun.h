@@ -40,6 +40,8 @@
 #define dbug(args...) ;
 #endif /* DEBUG */
 
+#define err(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
+
 /* we define this so we are compatible with old transport, but we don't have to use it. */
 #define STP_OLD_TRANSPORT
 #include "../transport/transport_msgs.h"

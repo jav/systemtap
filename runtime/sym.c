@@ -25,7 +25,7 @@ static unsigned long _stp_module_relocate (const char *module, const char *secti
 	static struct _stp_symbol *last_sec;
 	unsigned long flags;
 	int i,j;
-	printk("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);	
+	dbug("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);	
 	STP_LOCK_MODULES;
 	if (! module || _stp_num_modules == 0) {
 		STP_UNLOCK_MODULES;

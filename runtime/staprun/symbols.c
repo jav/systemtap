@@ -78,12 +78,16 @@ static int get_sections(char *name, char *data_start, int datalen)
 
 				/* create next section */
 				sec = (struct _stp_symbol *)data;
+				if (data - data_start + (int)sizeof(struct _stp_symbol) > datalen)
+					goto err1;
 				data += sizeof(struct _stp_symbol);
 				sec->addr = strtoul(buf,NULL,16);
 				sec->symbol = (char *)(strdata - strdata_start);
 				mod->num_sections++;
 
 				/* now create string data for the section */
+				if (strdata - strdata_start + strlen(strdata) >= sizeof(strdata_start))
+					goto err1;
 				strcpy(strdata, secname);
 				strdata += strlen(secname) + 1;
 
@@ -102,16 +106,21 @@ static int get_sections(char *name, char *data_start, int datalen)
 
 	/* consolidate buffers */
 	len = strdata - strdata_start;
-	if ((len + data - data_start) > datalen) {
-		fprintf(stderr, "ERROR: overflowed buffers in get_sections. Size needed = %d\n",
-			(int)(len + data - data_start));
-		cleanup_and_exit(0);
-	}
+	if ((len + data - data_start) > datalen)
+		goto err0;
 	strdata = strdata_start;
 	while (len--)
 		*data++ = *strdata++;
 	
 	return data - data_start;
+
+err1:
+	close(fd);
+	closedir(secdir);
+err0:
+	err("overflowed buffers.\n");
+	cleanup_and_exit(0);
+	return 0; /* not reached */
 }
 #undef SECDIR
 
