@@ -5419,6 +5419,13 @@ all_session_groups(systemtap_session& s)
 {
   vector<derived_probe_group*> g;
 #define DOONE(x) if (s. x##_derived_probes) g.push_back (s. x##_derived_probes)
+
+  // Note that order *is* important here.  We want to make sure we
+  // register (actually run) begin probes before any other probe type
+  // is run.  Similarly, when unregistering probes, we want to
+  // unregister (actually run) end probes after every other probe type
+  // has be unregistered.  To do the latter,
+  // c_unparser::emit_module_exit() will run this list backwards.
   DOONE(be);
   DOONE(dwarf);
   DOONE(timer);

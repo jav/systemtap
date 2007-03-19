@@ -1,3 +1,13 @@
+2007-03-19  David Smith  <dsmith@redhat.com>
+
+	PR 4146 (partial fix)
+	* tapsets.cxx (all_session_groups): Added note about stating that
+	begin probes should be registered (actually run) first and end
+	probes should be unregistered (run) last.
+	* translate.cxx (c_unparser::emit_module_exit): Process probe
+	group vector in reverse order so that probe groups will get
+	unregistered in the reverse order that they were registered.
+
 2007-03-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	* buildrun.cxx (compile_pass): Emit kbuild-time autoconf widgets

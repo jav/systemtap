@@ -1201,9 +1201,13 @@ c_unparser::emit_module_exit ()
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
 
+  // Notice we're processing the derived_probe_group list in reverse
+  // order.  This ensures that probes get unregistered in reverse
+  // order of the way they were registered.
   vector<derived_probe_group*> g = all_session_groups (*session);
-  for (unsigned i=0; i<g.size(); i++)
-    g[i]->emit_module_exit (*session); // NB: runs "end" probes
+  for (vector<derived_probe_group*>::reverse_iterator i = g.rbegin();
+       i != g.rend(); i++)
+    (*i)->emit_module_exit (*session); // NB: runs "end" probes
 
   for (unsigned i=0; i<session->globals.size(); i++)
     {
