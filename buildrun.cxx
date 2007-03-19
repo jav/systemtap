@@ -1,5 +1,5 @@
 // build/run probes
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -38,6 +38,18 @@ compile_pass (systemtap_session& s)
   int rc = 0;
 
   // Create makefile
+
+  // Clever hacks copied from vmware modules
+  o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
+  o << "stap_check_build = " /* << "set -x; " */ << "$(shell if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+
+  o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
+
+  // "autoconf" options go here
+
+  // enum hrtimer_mode renaming near 2.6.21; see tapsets.cxx hrtimer_derived_probe_group::emit_module_decls
+  o << "CFLAGS += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
+
 
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;

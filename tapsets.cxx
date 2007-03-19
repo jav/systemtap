@@ -4802,12 +4802,18 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "};";
   s.op->newline();
 
+  // autoconf: adapt to HRTIMER_REL -> HRTIMER_MODE_REL renaming near 2.6.21
+  s.op->newline() << "#ifdef STAPCONF_HRTIMER_REL";
+  s.op->newline() << "#define HRTIMER_MODE_REL HRTIMER_REL";
+  s.op->newline() << "#endif";
+  
   // The function signature changed in 2.6.21.
-  if (strverscmp(s.kernel_base_release.c_str(), "2.6.21") < 0)
-    s.op->newline() << "static int ";
-  else
-    s.op->newline() << "static enum hrtimer_restart ";
-  s.op->line() << "enter_hrtimer_probe (struct hrtimer *timer) {";
+  s.op->newline() << "#ifdef STAPCONF_HRTIMER_REL";
+  s.op->newline() << "static int ";
+  s.op->newline() << "#else";
+  s.op->newline() << "static enum hrtimer_restart ";
+  s.op->newline() << "#endif";
+  s.op->newline() << "enter_hrtimer_probe (struct hrtimer *timer) {";
 
   s.op->newline(1) << "int rc = HRTIMER_NORESTART;"; 
   s.op->newline() << "struct stap_hrtimer_probe *stp = container_of(timer, struct stap_hrtimer_probe, hrtimer);";
@@ -4834,14 +4840,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
 void
 hrtimer_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  const char *rel;
   if (probes.empty()) return;
-
-  // The enumeration names changed in 2.6.21.
-  if (strverscmp(s.kernel_base_release.c_str(), "2.6.21") < 0)
-    rel = "HRTIMER_REL";
-  else
-    rel = "HRTIMER_MODE_REL";
 
   s.op->newline() << "{";
   s.op->newline(1) << "struct timespec res;";
@@ -4852,13 +4851,13 @@ hrtimer_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_hrtimer_probe* stp = & stap_hrtimer_probes [i];";
   s.op->newline() << "probe_point = stp->pp;";
-  s.op->newline() << "hrtimer_init (& stp->hrtimer, CLOCK_MONOTONIC, " << rel << ");";
+  s.op->newline() << "hrtimer_init (& stp->hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);";
   s.op->newline() << "stp->hrtimer.function = & enter_hrtimer_probe;";
   // There is no hrtimer field to identify *this* (i-th) probe handler
   // callback.  So instead we'll deduce it at entry time.
   s.op->newline() << "(void) hrtimer_start (& stp->hrtimer, ";
   emit_interval (s.op);
-  s.op->line() << ", " << rel << ");";
+  s.op->line() << ", HRTIMER_MODE_REL);";
   // Note: no partial failure rollback is needed: hrtimer_start only
   // "fails" if the timer was already active, which cannot be.
   s.op->newline(-1) << "}"; // for loop

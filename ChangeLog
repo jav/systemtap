@@ -1,3 +1,10 @@
+2007-03-19  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx (compile_pass): Emit kbuild-time autoconf widgets
+	to customize runtime or translator C code to actual kernel rather
+	than kernel version string.  Thanks to FC 2.6."20" for the nudge.
+	* tapsets.cxx (hrtimer*emit_module): First client: HRTIMER_{MODE_}REL.
+
 2007-03-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Tweak missing elfutils error message.

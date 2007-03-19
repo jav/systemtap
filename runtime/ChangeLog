@@ -1,4 +1,9 @@
+2007-03-19  Frank Ch. Eigler  <fche@elastic.org>
+
+	* autoconf-hrtimer-rel.c: New file.
+
 2007-03-18  Martin Hunt  <hunt@redhat.com>
+
 	* stack.c, string.c, sym.c, transport/symbols.c:
 	Fix some signed vs unsigned comparison warnings.
 
