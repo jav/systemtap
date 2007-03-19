@@ -1,2 +1,5 @@
 Makefile probe.out site.exp systemtap.log systemtap.sum .systemtap
 config.log config.status
+access acct alarm chmod clock dir forkwait itimer link mmap mount net1
+openclose probe.out_0 readwrite rt_signal sendfile signal stat statfs
+swap sync timer trunc uid uid16 umask unlink
