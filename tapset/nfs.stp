@@ -1,3 +1,13 @@
+// nfs tapset
+// Copyright (C) 2006-2007 IBM Corp.
+// Copyright (C) 2007 Intel Corporation.
+// Copyright (C) 2007 Bull S.A.S
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
 %{
 #include <linux/kernel.h>
 #include <linux/nfs_fs.h>
@@ -197,21 +207,21 @@ function __d_loff_t :long (ppos :long) %{ /* pure */
 
 function __file_inode:long (file:long) %{ /* pure */
     struct file *file = (struct file *)(long)THIS->file;
-    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
-    if (f_dentry == NULL)
+    struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (dentry == NULL)
         THIS->__retvalue = 0;
     else
-        THIS->__retvalue = (long)kread(&(f_dentry->d_inode));
+        THIS->__retvalue = (long)kread(&(dentry->d_inode));
     CATCH_DEREF_FAULT();
 %}
 
 function __file_id:long (file:long) %{ /* pure */
     struct file *file = (struct file *)(long)THIS->file;
-    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
-    if (f_dentry == NULL)
+    struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (dentry == NULL)
         THIS->__retvalue = 0;
     else {
-        struct inode *d_inode = kread(&(f_dentry->d_inode));
+        struct inode *d_inode = kread(&(dentry->d_inode));
         struct super_block *i_sb = kread(&(d_inode->i_sb));
         THIS->__retvalue = (long)&(i_sb->s_id);
     }
@@ -220,11 +230,11 @@ function __file_id:long (file:long) %{ /* pure */
 
 function __file_mode:long (file:long) %{ /* pure */
     struct file *file = (struct file *)(long)THIS->file;
-    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
-    if (f_dentry == NULL)
+    struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
+    if (dentry == NULL)
         THIS->__retvalue = 0;
     else {
-        struct inode *d_inode = kread(&(f_dentry->d_inode));
+        struct inode *d_inode = kread(&(dentry->d_inode));
         THIS->__retvalue = kread(&(d_inode->i_mode));
     }
     CATCH_DEREF_FAULT();
@@ -232,8 +242,8 @@ function __file_mode:long (file:long) %{ /* pure */
 
 function __file_parentname:string (file:long) %{ /* pure */
     struct file *file = (struct file *)(long)THIS->file;
-    struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
-    struct dentry *d_parent = f_dentry? kread(&(f_dentry->d_parent)) : NULL;
+    struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
+    struct dentry *d_parent = dentry? kread(&(dentry->d_parent)) : NULL;
     if (d_parent == NULL)
         strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
     else {

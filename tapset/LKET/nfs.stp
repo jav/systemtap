@@ -1,8 +1,8 @@
 /* Helper functions */
 function __file_fsname:string (file:long) %{ /* pure */
 	struct file *file = (struct file *)(long)THIS->file;
-	struct dentry *f_dentry = file? kread(&(file->f_dentry)) : NULL;
-	struct inode *d_inode = f_dentry? kread(&(f_dentry->d_inode)) : NULL;
+	struct dentry *dentry = file? kread(&(file->f_dentry)) : NULL;
+	struct inode *d_inode = dentry? kread(&(dentry->d_inode)) : NULL;
 	if (d_inode == NULL)
 		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {

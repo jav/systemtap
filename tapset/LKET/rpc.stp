@@ -697,7 +697,11 @@ probe addevent.sunrpc.sched.execute.return
 probe _addevent.sunrpc.sched.execute.return
 	= sunrpc.sched.execute.return
 {
+%( kernel_v <= "2.6.20" %?
 	log_sunrpc_return_int64(HOOKID_SUNRPC_SCHED_EXECUTE_RETURN, $return)
+%:
+	log_sunrpc_return_void(HOOKID_SUNRPC_SCHED_EXECUTE_RETURN)
+%)
 }
 
 function log_sunrpc_execute(hookid:long, xid:long, prog:long, vers:long,

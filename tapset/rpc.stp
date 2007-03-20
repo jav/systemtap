@@ -1,9 +1,11 @@
-# Copyright (C) 2006 IBM Corp.
-#
-# This file is part of systemtap, and is free software.  You can
-# redistribute it and/or modify it under the terms of the GNU General
-# Public License (GPL); either version 2, or (at your option) any
-# later version.
+// rpc tapset
+// Copyright (C) 2006 IBM Corp.
+// Copyright (C) 2007 Bull S.A.S
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
 
 %{
 #include <linux/kernel.h>
@@ -777,7 +779,12 @@ probe sunrpc.sched.execute.return = kernel.function("__rpc_execute").return ?,
       	module("sunrpc").function("__rpc_execute").return ?
 {
 	name = "sunrpc.sched.execute"
+
+%( kernel_v <= "2.6.20" %?
 	retstr = returnstr($return)
+%:
+	retstr = "N/A"
+%)
 }
 
 /*
@@ -879,9 +886,17 @@ function port_from_clnt:long(clnt:long)
 %{
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	struct rpc_xprt *cl_xprt = clnt? kread(&(clnt->cl_xprt)) : NULL;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
+	if (cl_xprt && kread(&(cl_xprt->addr.ss_family)) == AF_INET) {
+		/* Now consider ipv4 only */
+		struct sockaddr_in *sap = (struct sockaddr_in *) &cl_xprt->addr;
+
+		THIS->__retvalue = ntohs(kread(&(sap->sin_port)));
+#else
 	if (cl_xprt && kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
 		/* Now consider ipv4 only */
 		THIS->__retvalue = ntohs(kread(&(cl_xprt->addr.sin_port)));
+#endif
 	} else
 		THIS->__retvalue = 0;
 	CATCH_DEREF_FAULT();
@@ -926,7 +941,13 @@ function vers_from_prog:long(program:long, vers:long)
 function addr_from_rqst:long(rqstp:long)
 %{
 	struct svc_rqst *rqstp = (struct svc_rqst *)(long)THIS->rqstp;
-	THIS->__retvalue = rqstp ? kread(&(rqstp->rq_addr.sin_addr.s_addr)) : 0;
+
+	if (rqstp) {
+		struct sockaddr_in *sin = (struct sockaddr_in *) &rqstp->rq_addr;
+
+		THIS->__retvalue = kread(&sin->sin_addr.s_addr);
+	} else
+		THIS->__retvalue = 0;
 	CATCH_DEREF_FAULT();
 %}
 

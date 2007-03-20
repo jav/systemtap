@@ -1,3 +1,14 @@
+// nfs tapset
+// Copyright (C) 2006-2007 IBM Corp.
+// Copyright (C) 2007 Intel Corporation.
+// Copyright (C) 2007 Bull S.A.S
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
 %{
 #include <linux/sunrpc/svc.h>
 #include <linux/nfsd/nfsd.h>
@@ -131,7 +142,7 @@ function p_long:long(cnt:long) %{ /* pure */
 probe nfsd.dispatch = kernel.function("nfsd_dispatch")?,
                       module("nfsd").function("nfsd_dispatch") ?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip = addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
 	version = $rqstp->rq_vers
 
