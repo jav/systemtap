@@ -359,6 +359,7 @@ int stp_main_loop(void)
 		}
 		case STP_MODULE:
 		{
+			dbug("STP_MODULES request received\n");
 			do_module(data);
 			break;
 		}		

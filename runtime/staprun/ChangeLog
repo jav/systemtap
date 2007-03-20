@@ -1,3 +1,9 @@
+2007-03-20  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (send_module): If send returns < 0 then
+	cleanup and exit.
+	(do_kernel_symbols): Ditto.
+
 2007-03-18  Martin Hunt  <hunt@redhat.com>
 	* staprun.h (err): Define.
 	* symbols.c (get_sections): More overflow checking.

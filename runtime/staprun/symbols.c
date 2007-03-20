@@ -128,8 +128,12 @@ void send_module (char *mname)
 {
 	char data[32768];
 	int len = get_sections(mname, data, sizeof(data));
-	if (len)
-		send_request(STP_MODULE, data, len);
+	if (len) {
+		if (send_request(STP_MODULE, data, len) < 0) {
+			err("Loading of module %s failed. Exiting...\n", mname);
+			cleanup_and_exit(0);
+		}
+	}
 }
 
 int do_module (void *data)
@@ -221,20 +225,32 @@ void do_kernel_symbols(void)
 	*(int *)buf = STP_SYMBOLS;
 	*(int *)(buf+sizeof(long)) = num_syms;
 	*(int *)(buf+sizeof(long)+sizeof(int)) = (unsigned)(dataptr - data);
-	send_data(buf, 2*sizeof(int)+sizeof(long));
+	if (send_data(buf, 2*sizeof(int)+sizeof(long)) < 0)
+		goto err;
 
 	/* send syms */
-	send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(long));
+	if (send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(long)) < 0)
+		goto err;
 	
 	/* send data */
-	send_data(data_base, dataptr-data+sizeof(long));
+	if (send_data(data_base, dataptr-data+sizeof(long)) < 0)
+		goto err;
 
 	free(data_base);
 	free(sym_base);
 	fclose(kallsyms);
 
 	if (dataptr >= datamax) {
-		fprintf(stderr,"Error: overflowed symbol data area.\n");
+		err("Error: overflowed symbol data area.\n");
 		cleanup_and_exit(0);
 	}
+	return;
+
+err:
+	free(data_base);
+	free(sym_base);
+	fclose(kallsyms);
+
+	err("Loading of symbols failed. Exiting...\n");
+	cleanup_and_exit(0);
 }
