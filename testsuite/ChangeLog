@@ -1,3 +1,7 @@
+2007-03-09  Pierre Peiffer  <pierre.peiffer@bull.net>
+
+	* buildok/twenty.stp, semok/seventeen.stp: Adapt to kernel 2.6.20.
+
 2007-03-19  David Smith  <dsmith@redhat.com>
 
 	* .cvsignore: Added systemtap.syscall test programs.

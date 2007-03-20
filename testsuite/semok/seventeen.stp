@@ -1,7 +1,8 @@
 #! stap -p2
 
 global foo
-probe kernel.function("pipe_writev")
+probe kernel.function(
+%( kernel_v < "2.6.19" %? "pipe_writev" %: "pipe_write" %) )
 {
    a = $nr_segs
    foo [a] = 1
