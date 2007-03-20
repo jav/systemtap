@@ -1,3 +1,8 @@
+2007-03-20  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_alloc_module): Fix up error
+	cleanup when malloc fails.
+
 2007-03-14  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h: ifdef old messages as such.

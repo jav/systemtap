@@ -86,12 +86,13 @@ static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 	return mod;
 
 bad:
-	if (mod)
-		kfree(mod);
-	if (mod->allocated && mod->symbols)
-		vfree(mod->symbols);
-	else
-		kfree(mod->symbols);
+	if (mod) {
+		if (mod->allocated && mod->symbols)
+			vfree(mod->symbols);
+		else
+			kfree(mod->symbols);
+		kfree(mod); 
+	}
 	return NULL;
 }
 
