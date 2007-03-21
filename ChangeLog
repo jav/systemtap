@@ -1,3 +1,27 @@
+2007-03-21  David Smith  <dsmith@redhat.com>
+
+	PR 4146
+	* tapsets.cxx (common_probe_entryfn_prologue): Added
+	'interruptible' parameter.  If a probe is interruptible,
+	interrupts are not disabled while the probe executes.  Preemption
+	is disabled however.  Interruptible parameter defaults to false.
+	(common_probe_entryfn_epilogue): Ditto.
+	(be_derived_probe_group::emit_module_decl): Uses new
+	'interruptible' parameter to mark begin/end probes as
+	interruptible.
+	(probe_derived_probe_group::emit_module): Initialize
+	'actionremaining' with MAXACTION instead of initializing
+	'actioncount' with 0.
+	* translate.cxx (emit_common_header): Renamed 'actioncount' to
+	'actionremaining'.  Turned logic around to initialize
+	actionremaining to MAXACTION or MAXACTION_INTERRUPTIBLE then
+	decrement it as actions occur.
+	(translate_pass): Added MAXACTION_INTERRUPTIBLE initialization.
+	* translate.h: Removed outdated comment portion.
+	* stap.1.in: Documented MAXACTION_INTERRUPTIBLE.
+	* NEWS: Added note about begin/end probes being run with
+	interrupts enabled.
+	
 2007-03-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4224.

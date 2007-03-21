@@ -808,7 +808,7 @@ c_unparser::emit_common_header ()
   o->newline() << "struct context {";
   o->newline(1) << "atomic_t busy;";
   o->newline() << "const char *probe_point;";
-  o->newline() << "unsigned actioncount;";
+  o->newline() << "int actionremaining;";
   o->newline() << "unsigned nesting;";
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
@@ -2045,9 +2045,9 @@ c_unparser::visit_statement (statement *s, unsigned actions)
 
   if (actions > 0)
     {
-      o->newline() << "c->actioncount += " << actions << ";";
+      o->newline() << "c->actionremaining -= " << actions << ";";
       // XXX: This check is inserted too frequently.
-      o->newline() << "if (unlikely (c->actioncount > MAXACTION)) {";
+      o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
       o->newline() << "goto " << outlabel << ";";
       o->newline(-1) << "}";
@@ -2189,9 +2189,9 @@ c_unparser::visit_for_loop (for_loop *s)
   // condition
   o->newline(-1) << toplabel << ":";
 
-  // Emit an explicit actioncount increment here to cover the act of
-  // iteration.  Equivalently, it can stand for the evaluation of the
-  // condition expression.
+  // Emit an explicit action here to cover the act of iteration.
+  // Equivalently, it can stand for the evaluation of the condition
+  // expression.
   o->indent(1);
   visit_statement (0, 1);
 
@@ -2413,8 +2413,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // condition
       o->newline(-1) << toplabel << ":";
 
-      // Emit an explicit actioncount increment here to cover the act of
-      // iteration.  Equivalently, it can stand for the evaluation of the
+      // Emit an explicit action here to cover the act of iteration.
+      // Equivalently, it can stand for the evaluation of the
       // condition expression.
       o->indent(1);
       visit_statement (0, 1);
@@ -4071,6 +4071,9 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXACTION";
       s.op->newline() << "#define MAXACTION 1000";
+      s.op->newline() << "#endif";
+      s.op->newline() << "#ifndef MAXACTION_INTERRUPTIBLE";
+      s.op->newline() << "#define MAXACTION_INTERRUPTIBLE (MAXACTION * 10)";
       s.op->newline() << "#endif";
       s.op->newline() << "#ifndef MAXTRYLOCK";
       s.op->newline() << "#define MAXTRYLOCK MAXACTION";

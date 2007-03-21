@@ -129,10 +129,12 @@ be_derived_probe::join_group (systemtap_session& s)
 // ------------------------------------------------------------------------
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
-			       bool overload_processing = true)
+			       bool overload_processing = true,
+			       bool interruptible = false)
 {
   o->newline() << "struct context* __restrict__ c;";
-  o->newline() << "unsigned long flags;";
+  if (! interruptible)
+    o->newline() << "unsigned long flags;";
 
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -150,7 +152,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "static int _pfm_num_pmd_x;";
 #endif
 
-  o->newline() << "local_irq_save (flags);";
+  if (! interruptible)
+    o->newline() << "local_irq_save (flags);";
+  else
+    o->newline() << "preempt_disable ();";
 
   // Check for enough free enough stack space
   o->newline() << "if (unlikely ((((unsigned long) (& c)) & (THREAD_SIZE-1))"; // free space
@@ -185,7 +190,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->regs = 0;";
   o->newline() << "c->pi = 0;";
   o->newline() << "c->probe_point = 0;";
-  o->newline() << "c->actioncount = 0;";
+  if (! interruptible)
+    o->newline() << "c->actionremaining = MAXACTION;";
+  else
+    o->newline() << "c->actionremaining = MAXACTION_INTERRUPTIBLE;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
@@ -194,7 +202,8 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 
 void
 common_probe_entryfn_epilogue (translator_output* o,
-			       bool overload_processing = true)
+			       bool overload_processing = true,
+			       bool interruptible = false)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -262,7 +271,10 @@ common_probe_entryfn_epilogue (translator_output* o,
   o->newline(-1) << "probe_epilogue:"; // context is free
   o->indent(1);
 
-  o->newline() << "local_irq_restore (flags);";
+  if (! interruptible)
+    o->newline() << "local_irq_restore (flags);";
+  else
+    o->newline() << "preempt_enable_no_resched ();";
 }
 
 
@@ -276,17 +288,17 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- begin/end probes ---- */";
   s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*)) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true);
   s.op->newline() << "c->probe_point = \"begin\";";
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false);
+  common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
   s.op->newline() << "void enter_end_probe (void (*fn)(struct context*)) {";
   s.op->indent(1);
-  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true);
   s.op->newline() << "c->probe_point = \"end\";";
   s.op->newline() << "(*fn) (c);";
-  common_probe_entryfn_epilogue (s.op, false);
+  common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
 }
 
@@ -4130,7 +4142,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
         {
           // Some lightweight inter-probe context resetting 
           // XXX: not quite right: MAXERRORS not respected
-          s.op->newline() << "c->actioncount = 0;";
+          s.op->newline() << "c->actionremaining = MAXACTION;";
         }
       s.op->newline() << "if (c->last_error == NULL) " << probes[i]->name << " (c);";
     }

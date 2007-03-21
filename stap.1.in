@@ -800,8 +800,14 @@ Maximum number of iterations to wait for locks on global variables
 before declaring possible deadlock and skipping the probe, default 1000.
 .TP
 MAXACTION
-Maximum number of statements to execute during any single probe hit,
+Maximum number of statements to execute during any single probe hit
+(with interrupts disabled),
 default 1000.
+.TP
+MAXACTION_INTERRUPTIBLE
+Maximum number of statements to execute during any single probe hit
+which is executed with interrupts enabled (such as begin/end probes),
+default (MAXACTION * 10).
 .TP
 MAXMAPENTRIES
 Maximum number of rows in any single global array, default 2048.

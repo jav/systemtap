@@ -20,6 +20,9 @@
   address of the probe module, a broken-down memory consumption estimate, and
   the total number of probes.  This is meant as a debugging / auditing aid.
 
+- Begin/end probes are run with interrupts enabled (but with
+  preemption disabled).  This will allow begin/end probes to be
+  longer, to support generating longer reports.
 
 * What's new since version 0.5.10?
 

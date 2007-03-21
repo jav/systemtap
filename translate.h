@@ -58,12 +58,7 @@ struct unparser
   // struct context {
   //   unsigned errorcount;
   //   unsigned busy;
-  //   unsigned actioncount;
-  //   unsigned nesting;
-  //   union {
-  //     struct { .... } probe_NUM_locals;
-  //     struct { .... } function_NAME_locals;
-  //   } locals [MAXNESTING];
+  //   ...
   // } context [MAXCONCURRENCY];
 
   virtual void emit_global (vardecl* v) = 0;
