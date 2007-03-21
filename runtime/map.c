@@ -190,7 +190,7 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		return -1;
 	}
 	if (max_entries) {
-		int i;
+		unsigned i;
 		void *tmp;
 		
 		/* size is the size of the map_node. */

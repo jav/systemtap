@@ -1,3 +1,7 @@
+2007-03-21  Martin Hunt  <hunt@redhat.com>
+
+	* map.c (_stp_map_init): Fix signed vs unsigned comparison warning.
+
 2007-03-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4224.
