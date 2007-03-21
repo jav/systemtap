@@ -1,3 +1,8 @@
+2007-03-21  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_del_module): Add a call to _stp_module_relocate
+	to clear its cache.
+
 2007-03-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	* symbols.c (_stp_do_symbols): Add cautionary blurb for important

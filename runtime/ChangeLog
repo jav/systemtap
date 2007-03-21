@@ -1,5 +1,13 @@
 2007-03-21  Martin Hunt  <hunt@redhat.com>
 
+	* sym.h: Declare _stp_module_relocate.
+	* sym.c (_stp_module_relocate): Add comments, reformat, add
+	a way for "last" cached values to be cleared when modules
+	are removed.
+	(_stp_symbol_print): Simplify and remove static buffer.
+	(_stp_symbol_snprint): Ditto.
+
+2007-03-21  Martin Hunt  <hunt@redhat.com>	
 	* map.c (_stp_map_init): Fix signed vs unsigned comparison warning.
 
 2007-03-20  Frank Ch. Eigler  <fche@elastic.org>

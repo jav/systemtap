@@ -20,58 +20,60 @@
  * @{
  */
 
-static unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset) {
+unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset) {
 	static struct _stp_module *last = NULL;
 	static struct _stp_symbol *last_sec;
 	unsigned long flags;
 	int i,j;
-	dbug("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);	
+
+	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
+	if ((long)module == -1) {
+		last = NULL;
+		return 0;
+	}
+
+	dbug("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);
+
 	STP_LOCK_MODULES;
 	if (! module || _stp_num_modules == 0) {
 		STP_UNLOCK_MODULES;
 		return offset; 
 	}
 
+	/* Most likely our relocation is in the same section of the same module as the last. */
 	if (last) {
 		if (!strcmp (module, last->name) && !strcmp (section, last_sec->symbol)) {
-                  /* XXX: But is this enough protection?  What if the module `last' is
-                     unloaded sometime between the last relocate call and this one?  Do
-                     the last/last_sec pointers become invalid to traverse like that? */
-                  STP_UNLOCK_MODULES;
-                  return offset + last_sec->addr;
+			offset += last_sec->addr;
+			STP_UNLOCK_MODULES;
+			return offset;
 		}
 	}
 
-	/* need to scan all modules */
-        if (! strcmp (module, "kernel"))
-          {
-            STP_UNLOCK_MODULES;
+	/* not cached. need to scan all modules */
+        if (! strcmp (module, "kernel")) {
+		STP_UNLOCK_MODULES;
 
-            /* See also transport/symbols.c (_stp_do_symbols). */
-            if (strcmp (section, "_stext"))
-              return 0;
-            else
-              return offset + _stp_modules[0]->text;
-
-            /* NB: we could also use _stp_kallsyms_lookup_name (section); */
-            /* If _stp_kallsyms_lookup_name also returned the symbol,
-               we could set last & last_sym and take some advantage of
-               caching.  But OTOH the advantage would be tiny in comparison
-               to the hard-coded calculation above. */
-          }
-        else /* relocatable module */
-          for (i = 1; i < _stp_num_modules; i++) { /* skip over [0]=kernel */
-            last = _stp_modules[i];
-            if (strcmp(module, last->name))
-              continue;
-            for (j = 0; j < (int)last->num_sections; j++) {
-              last_sec = &last->sections[j];
-              if (!strcmp (section, last_sec->symbol)) {
-                STP_UNLOCK_MODULES;
-                return offset + last_sec->addr;
-              }
-            }
-          }
+		/* See also transport/symbols.c (_stp_do_symbols). */
+		if (strcmp (section, "_stext"))
+			return 0;
+		else
+			return offset + _stp_modules[0]->text;
+	} else {
+		/* relocatable module */
+		for (i = 1; i < _stp_num_modules; i++) { /* skip over [0]=kernel */
+			last = _stp_modules[i];
+			if (strcmp(module, last->name))
+				continue;
+			for (j = 0; j < (int)last->num_sections; j++) {
+				last_sec = &last->sections[j];
+				if (!strcmp (section, last_sec->symbol)) {
+					offset += last_sec->addr;
+					STP_UNLOCK_MODULES;
+					return offset;
+				}
+			}
+		}
+	}
 	STP_UNLOCK_MODULES;
 	last = NULL;
 	return 0;
@@ -85,7 +87,7 @@ static unsigned long _stp_kallsyms_lookup_name(const char *name)
 
 	while (num--) {
 		if (strcmp(name, s->symbol) == 0)
-                    	return s->addr;
+			return s->addr;
 		s++;
 	}
 	return 0;
@@ -173,9 +175,8 @@ void _stp_symbol_print (unsigned long address)
 	char *modname;
         const char *name;
         unsigned long offset, size;
-        char namebuf[KSYM_NAME_LEN+1];
 
-        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
 
 	_stp_printf ("%p", (void *)address);
 
@@ -192,19 +193,12 @@ void _stp_symbol_snprint (char *str, size_t len, unsigned long address)
     char *modname;
     const char *name;
     unsigned long offset, size;
-    char namebuf[KSYM_NAME_LEN+1];
 
-    if (len > KSYM_NAME_LEN) {
-	    name = _stp_kallsyms_lookup(address, &size, &offset, &modname, str);
-	    if (!name)
-		    snprintf(str, len, "%p", (void *)address);
-    } else {
-	    name = _stp_kallsyms_lookup(address, &size, &offset, &modname, namebuf);
-	    if (name)
-		    strlcpy(str, namebuf, len);
-	    else
-		    snprintf(str, len, "%p", (void *)address);
-    }
+    name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+    if (name)
+	    strlcpy(str, name, len);
+    else
+	    snprintf(str, len, "%p", (void *)address);
 }
 
 /** @} */

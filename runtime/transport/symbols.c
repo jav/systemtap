@@ -1,7 +1,7 @@
 /* -*- linux-c -*- 
  * symbols.c - stp symbol and module functions
  *
- * Copyright (C) Red Hat Inc, 2006
+ * Copyright (C) Red Hat Inc, 2006, 2007
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -109,6 +109,9 @@ static void _stp_del_module(struct _stp_module *mod)
 	int i, num;
 
 	// kbug("deleting %s\n", mod->name);
+
+	/* signal relocation code to clear its cache */
+	_stp_module_relocate((char *)-1, NULL, 0);
 
 	/* remove module from the arrays */
 	for (num = 0; num < _stp_num_modules; num++) {
