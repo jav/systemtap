@@ -1,3 +1,9 @@
+2007-03-21  David Smith  <dsmith@redhat.com>
+
+	PR 4146
+	* systemtap.samples/control_limits.exp: Begin/end probes use
+	MAXACTION_INTERRUPTIBLE instead of MAXACTION.
+
 2007-03-09  Pierre Peiffer  <pierre.peiffer@bull.net>
 
 	* buildok/twenty.stp, semok/seventeen.stp: Adapt to kernel 2.6.20.

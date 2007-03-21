@@ -11,7 +11,7 @@ expect {
 if {$ok == 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
 
 set test "control_limits MAXACTION"
-spawn stap -u -DMAXACTION=500 $srcdir/$subdir/control_limits.stp
+spawn stap -u -DMAXACTION_INTERRUPTIBLE=500 $srcdir/$subdir/control_limits.stp
 set ok 0
 expect {
     -timeout 60 -re {ERROR.*MAXACTION} { incr ok; exp_continue }
