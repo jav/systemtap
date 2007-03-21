@@ -34,24 +34,44 @@ static unsigned long _stp_module_relocate (const char *module, const char *secti
 
 	if (last) {
 		if (!strcmp (module, last->name) && !strcmp (section, last_sec->symbol)) {
-			STP_UNLOCK_MODULES;
-			return offset + last_sec->addr;
+                  /* XXX: But is this enough protection?  What if the module `last' is
+                     unloaded sometime between the last relocate call and this one?  Do
+                     the last/last_sec pointers become invalid to traverse like that? */
+                  STP_UNLOCK_MODULES;
+                  return offset + last_sec->addr;
 		}
 	}
 
 	/* need to scan all modules */
-	for (i = 1; i < _stp_num_modules; i++) { /* XXX: why start at i=1? */
-		last = _stp_modules[i];
-		if (strcmp(module, last->name))
-			continue;
-		for (j = 0; j < (int)last->num_sections; j++) {
-			last_sec = &last->sections[j];
-			if (!strcmp (section, last_sec->symbol)) {
-				STP_UNLOCK_MODULES;
-				return offset + last_sec->addr;
-			}
-		}
-	}
+        if (! strcmp (module, "kernel"))
+          {
+            STP_UNLOCK_MODULES;
+
+            /* See also transport/symbols.c (_stp_do_symbols). */
+            if (strcmp (section, "_stext"))
+              return 0;
+            else
+              return offset + _stp_modules[0]->text;
+
+            /* NB: we could also use _stp_kallsyms_lookup_name (section); */
+            /* If _stp_kallsyms_lookup_name also returned the symbol,
+               we could set last & last_sym and take some advantage of
+               caching.  But OTOH the advantage would be tiny in comparison
+               to the hard-coded calculation above. */
+          }
+        else /* relocatable module */
+          for (i = 1; i < _stp_num_modules; i++) { /* skip over [0]=kernel */
+            last = _stp_modules[i];
+            if (strcmp(module, last->name))
+              continue;
+            for (j = 0; j < (int)last->num_sections; j++) {
+              last_sec = &last->sections[j];
+              if (!strcmp (section, last_sec->symbol)) {
+                STP_UNLOCK_MODULES;
+                return offset + last_sec->addr;
+              }
+            }
+          }
 	STP_UNLOCK_MODULES;
 	last = NULL;
 	return 0;
@@ -65,7 +85,7 @@ static unsigned long _stp_kallsyms_lookup_name(const char *name)
 
 	while (num--) {
 		if (strcmp(name, s->symbol) == 0)
-			return s->addr;
+                    	return s->addr;
 		s++;
 	}
 	return 0;

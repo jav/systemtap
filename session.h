@@ -93,7 +93,7 @@ struct systemtap_session
   bool merge;
   int buffer_size;
   unsigned perfmon;
-  bool symtab;
+  bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
   bool prologue_searching;
 
   // Cache data
@@ -136,10 +136,11 @@ struct systemtap_session
   translator_output* op;
   unparser* up;
 
-  // kprobes_text data
-  bool kprobes_text_initialized;
-  Dwarf_Addr kprobes_text_start;
-  Dwarf_Addr kprobes_text_end;
+  // some symbol addresses
+  // XXX: these belong elsewhere; perhaps the dwflpp instance
+  Dwarf_Addr sym_kprobes_text_start;
+  Dwarf_Addr sym_kprobes_text_end;
+  Dwarf_Addr sym_stext;
 
   std::set<std::string> seen_errors;
   unsigned num_errors () { return seen_errors.size(); }

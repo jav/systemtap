@@ -1,3 +1,8 @@
+2007-03-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	* symbols.c (_stp_do_symbols): Add cautionary blurb for important
+	setup of _stp_modules[0]->text.
+
 2007-03-20  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (_stp_alloc_module): Fix up error

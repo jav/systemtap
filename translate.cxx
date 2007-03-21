@@ -3986,8 +3986,9 @@ emit_symbol_data (systemtap_session& s)
  
   if (s.symtab == false)
     {
+      s.op->newline() << "/* filled in by runtime */";
       s.op->newline() << "struct stap_symbol *stap_symbols;";
-      s.op->newline() << "unsigned stap_num_symbols = 0;\n";
+      s.op->newline() << "unsigned stap_num_symbols;\n";
       return 0;
     }
 

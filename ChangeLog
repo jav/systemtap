@@ -1,3 +1,15 @@
+2007-03-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4224.
+	* tapsets.cxx (add_probe_point): Make kernel implicitly relocated
+	relative to the _stext symbol.
+	(dwarf_derived_probe ctor, emit_module_decls): Cooperate.
+	(lookup_symbol_address): New function.
+	(dwarf_builder::build): Call it thrice.
+	(in_kprobes_function): Simplify.
+	* session.h (systemtap_session): Rename cached symbol addresses.
+	* translate.cxx, elaborate.cxx: Corresponding tweaks.
+
 2007-03-19  David Smith  <dsmith@redhat.com>
 
 	PR 4146 (partial fix)

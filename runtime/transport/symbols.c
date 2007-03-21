@@ -203,6 +203,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 		for (i = 0; i < _stp_modules[0]->num_symbols; i++) 
 			s[i].symbol += (long)_stp_modules[0]->symbol_data;
 		_stp_symbol_state = 3;
+                /* NB: this mapping is used by kernel/_stext pseudo-relocations. */
 		_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
 		_stp_modules_by_addr[0] = _stp_modules[0];
 		break;

@@ -2278,55 +2278,11 @@ static int query_kernel_module (Dwfl_Module *, void **, const char *,
 static bool
 in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
 {
-  if (! sess.kprobes_text_initialized)
-    {
-      // Only attempt kprobes_text_start/kprobes_text_end
-      // initialization once
-      sess.kprobes_text_initialized = true;
-
-      dwflpp *kernel_dw = new dwflpp(sess);
-      assert(kernel_dw);
-      kernel_dw->setup(true);
-
-      Dwfl_Module *m = NULL;
-      kernel_dw->iterate_over_modules(&query_kernel_module, &m);
-      assert(m);
-      kernel_dw->focus_on_module(m);
-
-      // Look through the symbol table for "__kprobes_text_{start,end}"
-      int syments = dwfl_module_getsymtab(kernel_dw->module);
-      assert(syments);
-      for (int i = 1; i < syments; ++i)
-        {
-	  GElf_Sym sym;
-	  const char *name = dwfl_module_getsym(kernel_dw->module, i,
-						&sym, NULL);
-
-	  // Look for a symbol that starts with "__kprobes_text_"
-	  if (name != NULL
-	      && strncmp(name, "__kprobes_text_", 15) == 0)
-	    {
-	      // Match either "__kprobes_text_start" or "__kprobes_text_end"
-	      if (strcmp(name, "__kprobes_text_start") == 0)
-		sess.kprobes_text_start = sym.st_value;
-	      else if (strcmp(name, "__kprobes_text_end") == 0)
-		sess.kprobes_text_end = sym.st_value;
-
-	      // If we've got both values, quit processing symbols.
-	      if (sess.kprobes_text_start != 0 && sess.kprobes_text_end != 0)
-		i = syments;
-	    }
-	}
-
-      if (kernel_dw)
-	delete kernel_dw;
-    }
-
-  if (sess.kprobes_text_start != 0 && sess.kprobes_text_end != 0)
+  if (sess.sym_kprobes_text_start != 0 && sess.sym_kprobes_text_end != 0)
     {
       // If the probe point address is anywhere in the __kprobes
       // address range, we can't use this probe point.
-      if (addr >= sess.kprobes_text_start && addr < sess.kprobes_text_end)
+      if (addr >= sess.sym_kprobes_text_start && addr < sess.sym_kprobes_text_end)
 	return true;
     }
   return false;
@@ -2454,6 +2410,13 @@ dwarf_query::add_probe_point(const string& funcname,
   bool bad = blacklisted_p (funcname, filename, line, module, blacklist_section, addr);
   if (sess.verbose > 1)
     clog << endl;
+
+  if (module == TOK_KERNEL)
+    {
+      // PR 4224: adapt to relocatable kernel by subtracting the _stext address here.
+      reloc_addr = addr - sess.sym_stext;
+      reloc_section = "_stext"; // a deliberate eyesore
+    }
 
   if (! bad)
     {
@@ -2938,9 +2901,9 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 
       if (q->sess.verbose>2)
 	clog << "focused on module '" << q->dw.module_name
-	     << " = [" << hex << q->dw.module_start
-	     << "-" << q->dw.module_end
-	     << ", bias " << q->dw.module_bias << "]" << dec 
+	     << " = [0x" << hex << q->dw.module_start
+	     << "-0x" << q->dw.module_end
+	     << ", bias 0x" << q->dw.module_bias << "]" << dec 
              << " file " << debug_filename
              << " ELF machine " << expect_machine
              << " (code " << elf_machine << ")"
@@ -3495,11 +3458,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     maxactive_val (q.maxactive_val)
 {
   // Assert relocation invariants
-  if (module == TOK_KERNEL && section != "") 
-    throw semantic_error ("relocation requested against kernel", q.base_loc->tok);
-  if (module != TOK_KERNEL && section == "") 
-    throw semantic_error ("missing relocation base against module", q.base_loc->tok);
-  if (module != TOK_KERNEL && section != "" && dwfl_addr == addr) // addr should be an offset
+  if (section == "") 
+    throw semantic_error ("missing relocation base against", q.base_loc->tok);
+  if (section != "" && dwfl_addr == addr) // addr should be an offset
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
   // Make a target-variable-expanded copy of the probe body
@@ -3734,9 +3695,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
         s.op->line() << " .return_p=1,";
       if (p->has_maxactive)
         s.op->line() << " .maxactive_p=1,";
-      if (p->module != TOK_KERNEL) // relocation info
-        s.op->line() << " .module=\"" << p->module << "\", .section=\"" << p->section << "\",";
       s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
+      s.op->line() << " .module=\"" << p->module << "\",";
+      s.op->line() << " .section=\"" << p->section << "\",";
       if (p->has_maxactive)
 	s.op->line() << " .maxactive_val=" << p->maxactive_val << "UL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
@@ -3827,6 +3788,26 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 }
 
 
+
+static Dwarf_Addr
+lookup_symbol_address (Dwfl_Module *m, const char* wanted)
+{
+  int syments = dwfl_module_getsymtab(m);
+  assert(syments);
+  for (int i = 1; i < syments; ++i)
+    {
+      GElf_Sym sym;
+      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
+      if (name != NULL && strcmp(name, wanted) == 0)
+        return sym.st_value;
+    }
+
+  return 0;
+}
+
+
+
+
 void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
@@ -3852,6 +3833,26 @@ dwarf_builder::build(systemtap_session & sess,
 	  kern_dw->setup(true);
 	}
       dw = kern_dw;
+
+
+      Dwfl_Module* km = 0;
+      dw->iterate_over_modules(&query_kernel_module, &km);
+      if (km)
+        {
+          sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
+          sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
+          sess.sym_stext = lookup_symbol_address (km, "_stext");
+
+          if (sess.verbose > 2)
+            {
+              clog << "control symbols:"
+                // abbreviate the names - they're for our debugging only anyway
+                   << " kts: 0x" << hex << sess.sym_kprobes_text_start
+                   << " kte: 0x" << sess.sym_kprobes_text_end
+                   << " stext: 0x" << sess.sym_stext
+                   << dec << endl;
+            }
+        }
     }
   else
     {
