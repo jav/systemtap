@@ -76,13 +76,13 @@ EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 
 SAMPLE_DEST_DIR = $(distdir)/examples/samples
 
-SAMPLE_SRC = $(distdir)/testsuite/systemtap.samples/iotask.stp \
-	     $(distdir)/testsuite/systemtap.samples/kmalloc-stacks.stp \
-	     $(distdir)/testsuite/systemtap.samples/kmalloc-top \
-	     $(distdir)/testsuite/systemtap.samples/pfaults.stp \
-	     $(distdir)/testsuite/systemtap.samples/profile.stp \
-	     $(distdir)/testsuite/systemtap.samples/tcp_connections.stp \
-	     $(distdir)/testsuite/systemtap.samples/topsys.stp
+SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
+	     $(srcdir)/testsuite/systemtap.samples/kmalloc-stacks.stp \
+	     $(srcdir)/testsuite/systemtap.samples/kmalloc-top \
+	     $(srcdir)/testsuite/systemtap.samples/pfaults.stp \
+	     $(srcdir)/testsuite/systemtap.samples/profile.stp \
+	     $(srcdir)/testsuite/systemtap.samples/tcp_connections.stp \
+	     $(srcdir)/testsuite/systemtap.samples/topsys.stp
 
 # Copy some of the testsuite sample scripts to the distdir
 # 'examples/samples' directory.

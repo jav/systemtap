@@ -1,3 +1,8 @@
+2007-03-21  Will Cohen  <wcohen@redhat.com>
+
+	* Makefile.am:
+	* Makefile.in: Correct SAMPLE_SRC.
+
 2007-03-21  David Smith  <dsmith@redhat.com>
 
 	PR 4146
