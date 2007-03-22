@@ -1,0 +1,3 @@
+#! stap -gp4
+
+probe kernel.statement(0).absolute { }

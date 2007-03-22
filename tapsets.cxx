@@ -130,7 +130,7 @@ be_derived_probe::join_group (systemtap_session& s)
 void
 common_probe_entryfn_prologue (translator_output* o, string statestr,
 			       bool overload_processing = true,
-			       bool interruptible = false)
+                               bool interruptible = false)
 {
   o->newline() << "struct context* __restrict__ c;";
   if (! interruptible)
@@ -203,7 +203,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
 void
 common_probe_entryfn_epilogue (translator_output* o,
 			       bool overload_processing = true,
-			       bool interruptible = false)
+                               bool interruptible = false)
 {
   if (overload_processing)
     o->newline() << "#if defined(STP_TIMING) || defined(STP_OVERLOAD)";
@@ -377,6 +377,7 @@ static string TOK_CALLEES("callees");
 static string TOK_STATEMENT("statement");
 static string TOK_LABEL("label");
 static string TOK_RELATIVE("relative");
+static string TOK_ABSOLUTE("absolute");
 
 
 struct
@@ -2014,6 +2015,8 @@ struct dwarf_query
   bool has_relative;
   long relative_val;
 
+  bool has_absolute;
+
   function_spec_type parse_function_spec(string & spec);
   function_spec_type spec_type;
   string function;
@@ -2144,6 +2147,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 
   has_label = get_string_param(params, TOK_LABEL, label_val);
   has_relative = get_number_param(params, TOK_RELATIVE, relative_val);
+
+  has_absolute = has_null_param(params, TOK_ABSOLUTE);
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
@@ -2358,6 +2363,8 @@ dwarf_query::add_probe_point(const string& funcname,
   string blacklist_section; // linking section for blacklist purposes
   const string& module = dw.module_name; // "kernel" or other
 
+  assert (! has_absolute); // already handled in dwarf_builder::build()
+
   if (dwfl_module_relocations (dw.module) > 0)
     {
       // This is arelocatable module; libdwfl already knows its
@@ -2427,7 +2434,7 @@ dwarf_query::add_probe_point(const string& funcname,
     {
       // PR 4224: adapt to relocatable kernel by subtracting the _stext address here.
       reloc_addr = addr - sess.sym_stext;
-      reloc_section = "_stext"; // a deliberate eyesore
+      reloc_section = "_stext"; // a message to runtime's _stp_module_relocate
     }
 
   if (! bad)
@@ -3462,7 +3469,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          // actual relocation.
                                          Dwarf_Addr addr,
                                          dwarf_query& q,
-                                         Dwarf_Die* scope_die)
+                                         Dwarf_Die* scope_die /* may be null */)
   : derived_probe (q.base_probe, 0 /* location-less */),
     module (module), section (section), addr (addr),
     has_return (q.has_return),
@@ -3470,30 +3477,35 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     maxactive_val (q.maxactive_val)
 {
   // Assert relocation invariants
-  if (section == "") 
+  if (section == "" && dwfl_addr != addr) // addr should be absolute 
     throw semantic_error ("missing relocation base against", q.base_loc->tok);
   if (section != "" && dwfl_addr == addr) // addr should be an offset
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
-  // Make a target-variable-expanded copy of the probe body
 
-  dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-  require <block*> (&v, &(this->body), q.base_probe->body);
   this->tok = q.base_probe->tok;
 
-  // If when target-variable-expanding the probe, we added a new block
-  // of code, add it to the start of the probe.
-  if (v.add_block)
-    this->body->statements.insert(this->body->statements.begin(), v.add_block);
-
-  // If when target-variable-expanding the probe, we added a new
-  // probe, add it in a new file to the list of files to be processed.
-  if (v.add_probe)
+  // Make a target-variable-expanded copy of the probe body
+  if (scope_die)
     {
-      stapfile *f = new stapfile;
-      f->probes.push_back(v.add_probe);
-      q.sess.files.push_back(f);
+      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
+      require <block*> (&v, &(this->body), q.base_probe->body);
+
+      // If during target-variable-expanding the probe, we added a new block
+      // of code, add it to the start of the probe.
+      if (v.add_block)
+        this->body->statements.insert(this->body->statements.begin(), v.add_block);
+      
+      // If when target-variable-expanding the probe, we added a new
+      // probe, add it in a new file to the list of files to be processed.
+      if (v.add_probe)
+        {
+          stapfile *f = new stapfile;
+          f->probes.push_back(v.add_probe);
+          q.sess.files.push_back(f);
+        }
     }
+  // else - null scope_die - $target variables will produce an error during translate phase
 
   // Set the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
@@ -3537,6 +3549,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       comps.push_back (new probe_point::component
                        (fn_or_stmt,
                         new literal_number(retro_addr))); // XXX: should be hex if possible
+
+      if (q.has_absolute)
+        comps.push_back (new probe_point::component (TOK_ABSOLUTE));
     }
 
   if (has_return)
@@ -3652,6 +3667,8 @@ dwarf_derived_probe::register_patterns(match_node * root)
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
+  root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
+
   // register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
 
@@ -3879,6 +3896,25 @@ dwarf_builder::build(systemtap_session & sess,
   assert(dw);
 
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
+
+  if (q.has_absolute)
+    {
+      // assert guru mode for absolute probes 
+      if (! q.base_probe->privileged)
+        {
+          throw semantic_error ("absolute statement probe in unprivileged script", q.base_probe->tok);
+        }
+
+      // For kernel.statement(NUM).absolute probe points, we bypass
+      // all the debuginfo stuff: We just wire up a
+      // dwarf_derived_probe right here and now.
+      dwarf_derived_probe* p = new dwarf_derived_probe ("", "", 0, "kernel", "",
+                                                        q.statement_num_val, q.statement_num_val,
+                                                        q, 0);
+      finished_results.push_back (p);
+      return;
+    }
+
 
   if (q.has_kernel &&
       (q.has_function_num || q.has_inline_num || q.has_statement_num))

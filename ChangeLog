@@ -1,3 +1,15 @@
+2007-03-22  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4224.
+	* staptree.h (probe): Add privileged field.
+	* elaborate.cxx, parse.cxx: Pass privileged flag to probes.
+	* tapsets.cxx (dwarf_query): Add has_absolute field.
+	(dwarf_derived_probe ctor): Tolerate it.
+	(register_patterns): Expose it.
+	(dwarf_builder::build): Implement it with no dwfl whatsoever.
+	* NEWS: Document kernel.statement().absolute.
+	* stapprobes.5.in: Ditto.
+
 2007-03-21  Will Cohen  <wcohen@redhat.com>
 
 	* Makefile.am:

@@ -41,6 +41,7 @@ derived_probe::derived_probe (probe *p):
     {
       this->locations = p->locations;  
       this->tok = p->tok;
+      this->privileged = p->privileged;
       this->body = deep_copy_visitor::deep_copy(p->body);
     }
 }
@@ -55,6 +56,7 @@ derived_probe::derived_probe (probe *p, probe_point *l):
   if (p)
     {
       this->tok = p->tok;
+      this->privileged = p->privileged;
       this->body = deep_copy_visitor::deep_copy(p->body);
     }
 }

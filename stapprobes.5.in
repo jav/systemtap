@@ -183,6 +183,8 @@ module(MPATTERN).inline(PATTERN)
 .br
 kernel.statement(PATTERN)
 .br
+kernel.statement(ADDRESS).absolute
+.br
 module(MPATTERN).statement(PATTERN)
 .ESAMPLE
 In the above list, MPATTERN stands for a string literal that aims to
@@ -200,7 +202,9 @@ wildcard pattern, such as
 Finally, the third part is optional if the file name part was given,
 and identifies the line number in the source file, preceded by a ":".
 As an alternative, PATTERN may be a numeric constant, indicating an
-(module-relative or kernel-absolute) address.
+(module-relative or kernel-_stext-relative) address.  In guru mode
+only, absolute kernel addresses may be specified with the ".absolute"
+suffix.
 .PP
 Some of the source-level variables, such as function parameters,
 locals, globals visible in the compilation unit, may be visible to

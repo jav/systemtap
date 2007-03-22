@@ -24,6 +24,22 @@
   preemption disabled).  This will allow begin/end probes to be
   longer, to support generating longer reports.
 
+- The numeric forms of kernel.statement() and kernel.function() probe points
+  are now interpreted as relocatable values - treated as relative to the
+  _stext symbol in that kernel binary.  Since some modern kernel images
+  are relocated to a different virtual address at startup, such addresses
+  may shift up or down when actually inserted into a running kernel.
+
+     kernel.statement(0xdeadbeef): validated, interpreted relative to _stext,
+                                   may map to 0xceadbeef at run time.
+
+  In order to specify unrelocated addresses, use the new ".absolute"
+  probe point suffix for such numeric addresses.  These are only
+  allowed in guru mode, and provide access to no $target variables.
+  They don't use debugging information at all, actually.
+
+     kernel.statement(0xfeedface).absolute: raw, unvalidated, guru mode only
+
 * What's new since version 0.5.10?
 
 - Offline processing of debugging information, enabling general

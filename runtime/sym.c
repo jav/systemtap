@@ -35,7 +35,9 @@ unsigned long _stp_module_relocate (const char *module, const char *section, uns
 	dbug("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);
 
 	STP_LOCK_MODULES;
-	if (! module || _stp_num_modules == 0) {
+	if (! module
+            || !strcmp (section, "") /* absolute, unrelocated address */
+            || _stp_num_modules == 0) {
 		STP_UNLOCK_MODULES;
 		return offset; 
 	}

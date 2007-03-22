@@ -1,5 +1,5 @@
 // recursive descent parser for systemtap scripts
-// Copyright (C) 2005-2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -899,6 +899,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       p->tok = t0;
       p->locations = locations;
       p->body = parse_stmt_block ();
+      p->privileged = privileged;
       probe_ret.push_back (p);
     }
   else
@@ -911,6 +912,7 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
       p->tok = t0;
       p->locations = locations;
       p->body = parse_stmt_block ();
+      p->privileged = privileged;
       alias_ret.push_back (p);
     }
 }
