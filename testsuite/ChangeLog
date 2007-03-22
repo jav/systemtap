@@ -1,3 +1,8 @@
+2007-03-22  David Smith  <dsmith@redhat.com>
+
+	* systemtap.stress/conversions.exp: Fixed test case bug that only
+	affected s390x.
+
 2007-03-21  David Smith  <dsmith@redhat.com>
 
 	PR 4146
