@@ -410,7 +410,6 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
-		dbug("map_node =%lx\n", (long)n);
 		//dbug ("n=%lx  key1=%ld n->key1=%ld\n", (long)n, key1, n->key1);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
@@ -465,7 +464,6 @@ VALTYPE KEYSYM(_stp_map_get) (MAP map, ALLKEYSD(key))
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
-		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)

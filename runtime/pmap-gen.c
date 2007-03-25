@@ -498,7 +498,6 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
-		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)
@@ -575,7 +574,6 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
-		dbug("map_node =%lx\n", (long)n);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)
@@ -667,7 +665,7 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 #endif
 				) {
 				if (anode == NULL) {
-					dbug("agg=%lx ahead=%lx\n", (long)agg, (long)ahead);
+					// dbug("agg=%lx ahead=%lx\n", (long)agg, (long)ahead);
 					anode = _stp_new_agg(agg, ahead, (struct map_node *)n);
 				} else {
 					if (clear_agg) {
