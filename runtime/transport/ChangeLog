@@ -1,3 +1,7 @@
+2007-03-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* transport.c: Add #include <linux/namei.h> for lookup_one_len.
+
 2007-03-26  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (_stp_do_module): If a module has no symbols, just

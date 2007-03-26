@@ -15,6 +15,7 @@
 #define _TRANSPORT_TRANSPORT_C_
 
 #include <linux/delay.h>
+#include <linux/namei.h>
 #include "transport.h"
 #include "time.c"
 #include "symbols.c"
