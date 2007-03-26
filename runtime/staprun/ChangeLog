@@ -1,3 +1,19 @@
+2007-03-26  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (run_stp_check): Just use system() call.
+	(init_staprun): Remove _stp_pid module parameter.
+	(cleanup_and_exit): If closed==2, just exit without removing module.
+	(driver_poll): Remove. We no longer require stap running.
+	(_stp_main_loop): Remove call to driver_poll.
+	
+	* ctl.c (init_ctl_channel): Don't put files in systemtap_pid,
+	revert back to systemtap/modulename.
+
+	* relay.c: Revert back to systemtap/modulename paths.
+	* relay_old.c: Ditto.
+	
+	* staprun.c: Add -L and -A args.
+	
 2007-03-20  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (send_module): If send returns < 0 then

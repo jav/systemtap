@@ -29,9 +29,8 @@ extern int optind;
 
 int verbose = 0;
 int target_pid = 0;
-int driver_pid = 0;
 unsigned int buffer_size = 0;
-char *modname = NULL;
+char modname[128];
 char *modpath = NULL;
 #define MAXMODOPTIONS 64
 char *modoptions[MAXMODOPTIONS];
@@ -40,11 +39,32 @@ char *outfile_name = NULL;
 char *username = NULL;
 uid_t cmd_uid;
 gid_t cmd_gid;
+int attach_mod = 0;
+int load_only = 0;
+
+static void path_parse_modname (char *path)
+{
+	char *mptr = rindex (path, '/');
+	if (mptr == NULL) 
+		mptr = path;
+	else
+		mptr++;
+
+	if (strlen(mptr) >= sizeof(modname)) {
+		err("Module name larger than modname buffer.\n");
+		exit (-1);
+	}
+	strcpy(modname, mptr);			
+	
+	mptr = rindex(modname, '.');
+	if (mptr)
+		*mptr = '\0';
+}
 
 static void usage(char *prog)
 {
-	fprintf(stderr, "\n%s [-v] [-c cmd ] [-x pid] [-u user]\n"
-                "\t[-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
+	fprintf(stderr, "\n%s [-v]  [-c cmd ] [-x pid] [-u user]\n"
+                "\t[-A modname]] [-L] [-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
 	fprintf(stderr, "-v  Verbose.\n");
 	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and staprun will exit when it does.\n");
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
@@ -55,6 +75,8 @@ static void usage(char *prog)
 	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
 	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
 	fprintf(stderr, "   buffer size in MB. That value will be per-cpu in bulk mode.\n");
+	fprintf(stderr, "-L  Load module and start probes, then detach.\n");
+	fprintf(stderr, "-A modname.  Attach to systemtap module modname.\n");
 	exit(1);
 }
 
@@ -62,7 +84,7 @@ int main(int argc, char **argv)
 {
 	int c;
 
-	while ((c = getopt(argc, argv, "vb:t:d:c:o:u:x:")) != EOF) {
+	while ((c = getopt(argc, argv, "ALvb:t:d:c:o:u:x:")) != EOF) {
 		switch (c) {
 		case 'v':
 			verbose = 1;
@@ -84,8 +106,7 @@ int main(int argc, char **argv)
 			target_pid = atoi(optarg);
 			break;
 		case 'd':
-			/* internal option used by stap */
-			driver_pid = atoi(optarg);
+			/* obsolete internal option used by stap */
 			break;
 		case 'c':
 			target_cmd = optarg;
@@ -95,6 +116,12 @@ int main(int argc, char **argv)
 			break;
 		case 'u':
 			username = optarg;
+			break;
+		case 'A':
+			attach_mod = 1;
+			break;
+		case 'L':
+			load_only = 1;
 			break;
 		default:
 			usage(argv[0]);
@@ -107,23 +134,24 @@ int main(int argc, char **argv)
 	}
 
 	if (optind < argc) {
-		/* Collect both full path and just the trailing module name.  */
 		modpath = argv[optind++];
-		modname = rindex (modpath, '/');
-		if (modname == NULL)
-			modname = modpath;
-		else
-			modname++; /* skip over / */
+		path_parse_modname(modpath);
+		dbug("modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
 	}
 
         if (optind < argc) {
-		unsigned start_idx = 4; /* reserve four slots in modoptions[] */
-		while (optind < argc && start_idx+1 < MAXMODOPTIONS)
-			modoptions[start_idx++] = argv[optind++];
-		modoptions[start_idx] = NULL;
+		if (attach_mod) {
+			fprintf(stderr, "Cannot have module options with attach (-A).\n");
+			usage(argv[0]);
+		} else {
+			unsigned start_idx = 3; /* reserve three slots in modoptions[] */
+			while (optind < argc && start_idx+1 < MAXMODOPTIONS)
+				modoptions[start_idx++] = argv[optind++];
+			modoptions[start_idx] = NULL;
+		}
 	}
 
-	if (!modname) {
+	if (!modpath) {
 		fprintf (stderr, "Need a module to load.\n");
 		usage(argv[0]);
 	}
@@ -144,10 +172,8 @@ int main(int argc, char **argv)
 	/* now bump the priority */
 	setpriority (PRIO_PROCESS, 0, -10);
 
-	if (init_staprun()) {
-		fprintf(stderr, "Couldn't initialize staprun. Exiting.\n");
+	if (init_staprun())
 		exit(1);
-	}
 
 	if (stp_main_loop()) {
 		fprintf(stderr,"Couldn't enter main loop. Exiting.\n");

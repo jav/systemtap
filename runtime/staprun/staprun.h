@@ -65,9 +65,9 @@ int do_module(void *);
 void do_kernel_symbols(void);
 int init_ctl_channel(void);
 void close_ctl_channel(void);
-int init_relayfs(struct _stp_msg_trans *);
+int init_relayfs(void);
 void close_relayfs(void);
-int init_oldrelayfs(struct _stp_msg_trans *);
+int init_oldrelayfs(void);
 void close_oldrelayfs(void);
 
 /*
@@ -79,13 +79,14 @@ extern int ncpus;
 /* flags */
 extern int verbose;
 extern unsigned int buffer_size;
-extern char *modname;
+extern char modname[];
 extern char *modpath;
 extern char *modoptions[];
 extern int target_pid;
-extern int driver_pid;
 extern char *target_cmd;
 extern char *outfile_name;
+extern int attach_mod;
+extern int load_only;
 
 /* uid/gid to use when execing external programs */
 extern uid_t cmd_uid;

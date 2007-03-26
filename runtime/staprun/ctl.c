@@ -18,14 +18,18 @@ int init_ctl_channel(void)
 	struct statfs st;
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)
- 		sprintf (buf, "/sys/kernel/debug/systemtap_%d/cmd", getpid());
+ 		sprintf (buf, "/sys/kernel/debug/systemtap/%s/cmd", modname);
 	else
-		sprintf (buf, "/proc/systemtap_%d/cmd", getpid());
+		sprintf (buf, "/proc/systemtap/%s/cmd", modname);
 
 	dbug("Opening %s\n", buf); 
 	control_channel = open(buf, O_RDWR);
 	if (control_channel < 0) {
-		fprintf(stderr, "ERROR: couldn't open control channel %s: errcode = %s\n", buf, strerror(errno));
+		if (attach_mod) 
+			fprintf (stderr, "ERROR: Cannot connect to module \"%s\".\n", modname);
+		else
+			fprintf (stderr, "ERROR: couldn't open control channel %s\n", buf);
+		fprintf (stderr, "errcode = %s\n", strerror(errno));
 		return -1;
 	}
 	return 0;

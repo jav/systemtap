@@ -28,6 +28,10 @@ int use_old_transport = 0;
 int send_request(int type, void *data, int len)
 {
 	char buf[1024];
+	if (len > (int)sizeof(buf)) {
+		err("exceeded maximum send_request size.\n");
+		return -1;
+	}
 	memcpy(buf, &type, 4);
 	memcpy(&buf[4],data,len);
 	return write(control_channel, buf, len+4);
@@ -111,32 +115,13 @@ char *stp_check="stp_check";
 
 static int run_stp_check (void)
 {
-	pid_t pid;
-	int wstat;
-
+	int ret ;
 	/* run the _stp_check script */
-	dbug("stp_check\n");
-	if ((pid = fork()) < 0) {
-		perror (stp_check);
-		fprintf(stderr, "Fork of %s failed.\n", stp_check);
-		return -1;
-	} else if (pid == 0) {
-		if (execlp(stp_check, stp_check, NULL) < 0)
-			_exit (-1);
-	}
-	if (waitpid(pid, &wstat, 0) < 0) {
-		perror("waitpid");
-		return -1;
-	}
-	if (WIFEXITED(wstat) && WEXITSTATUS(wstat)) {
-		perror (stp_check);
-		fprintf(stderr, "Could not execute %s.\n", stp_check);
-		return -1;
-	}
+	dbug("executing %s\n", stp_check);
+	ret = system(stp_check);
 	dbug("DONE\n");
-	return 0;
+	return ret;
 }
-
 
 /**
  *	init_stp - initialize the app
@@ -146,29 +131,34 @@ static int run_stp_check (void)
  */
 int init_staprun(void)
 {
-	char buf[1024], bufcmd[20];
-	pid_t pid;
+	char bufcmd[128];
 	int rstatus;
+	int pid;
 
-	ncpus = sysconf(_SC_NPROCESSORS_ONLN);
-	if (ncpus < 0) {
-                fprintf(stderr, "sysconf(_SC_NPROCESSORS_ONLN) failed\n");
-                return 1;
-        }
-	
 	if (system(VERSION_CMD)) {
 		dbug("Using OLD TRANSPORT\n");
 		use_old_transport = 1;
 	}
 
+	if (attach_mod) {
+		if (init_ctl_channel() < 0)
+			return -1;
+		if (init_relayfs() < 0) {
+			close_ctl_channel();
+			return -1;
+		}
+		return 0;
+	}
+
+	if (run_stp_check() < 0)
+		return -1;
+
 	/* insert module */
-	sprintf(buf, "_stp_pid=%d", (int)getpid());
 	sprintf(bufcmd, "_stp_bufsize=%d", buffer_size);
         modoptions[0] = "insmod";
         modoptions[1] = modpath;
-        modoptions[2] = buf;
-        modoptions[3] = bufcmd;
-        /* modoptions[4...N] set by command line parser. */
+        modoptions[2] = bufcmd;
+        /* modoptions[3...N] set by command line parser. */
 
 	if ((pid = fork()) < 0) {
 		perror ("fork");
@@ -185,13 +175,12 @@ int init_staprun(void)
 		fprintf(stderr, "ERROR, couldn't insmod probe module %s\n", modpath);
 		return -1;
 	}
-
-	if (run_stp_check() < 0)
-		return -1;
 	
 	/* create control channel */
-	if (init_ctl_channel() < 0)
+	if (init_ctl_channel() < 0) {
+		err("Failed to initialize control channel.\n");
 		goto exit1;
+	}
 
 	/* fork target_cmd if requested. */
 	/* It will not actually exec until signalled. */
@@ -201,8 +190,8 @@ int init_staprun(void)
 	return 0;
 
 exit1:
-	snprintf(buf, sizeof(buf), "/sbin/rmmod -w %s", modname);
-	if (system(buf))
+	snprintf(bufcmd, sizeof(bufcmd), "/sbin/rmmod -w %s", modname);
+	if (system(bufcmd))
 		fprintf(stderr, "ERROR: couldn't rmmod probe module %s.\n", modname);
 	return -1;
 }
@@ -235,7 +224,7 @@ void cleanup_and_exit (int closed)
 	dbug("closing control channel\n");
 	close_ctl_channel();
 
-	if (!closed) {
+	if (closed == 0) {
 		dbug("removing module\n");
 		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod -w %s", modname);
 		if (system(tmpbuf)) {
@@ -243,7 +232,11 @@ void cleanup_and_exit (int closed)
 				modname);
 			exit(1);
 		}
+	} else if (closed == 2) {
+		fprintf(stderr, "\nDisconnecting from systemtap module.\n");
+		fprintf(stderr, "To reconnect, type \"staprun -A %s\"\n", modname); 
 	}
+
 	exit(0);
 }
 
@@ -254,23 +247,11 @@ static void sigproc(int signum)
 		pid_t pid = waitpid(-1, NULL, WNOHANG);
 		if (pid != target_pid)
 			return;
-	}
+	} else if (signum == SIGQUIT)
+		cleanup_and_exit(2);
+		
 	send_request(STP_EXIT, NULL, 0);
 }
-
-static void driver_poll (int signum __attribute__((unused)))
-{
-	/* See if the driver process is still alive.  If not, time to exit.  */
-	if (kill (driver_pid, 0) < 0) {
-		send_request(STP_EXIT, NULL, 0);
-		return;
-	} else  {
-		/* Check again later. Use any reasonable poll interval */
-		signal (SIGALRM, driver_poll);
-		alarm (10); 
-	}
-}
-
 
 /**
  *	stp_main_loop - loop forever reading data
@@ -291,9 +272,6 @@ int stp_main_loop(void)
 	signal(SIGHUP, sigproc);
 	signal(SIGCHLD, sigproc);
 	signal(SIGQUIT, sigproc);
-
-        if (driver_pid)
-		driver_poll(0);
 
 	dbug("in main loop\n");
 
@@ -347,14 +325,16 @@ int stp_main_loop(void)
 		{
 			struct _stp_msg_start ts;
 			if (use_old_transport) {
-				if (init_oldrelayfs((struct _stp_msg_trans *)data) < 0)
+				if (init_oldrelayfs() < 0)
 					cleanup_and_exit(0);
 			} else {
-				if (init_relayfs((struct _stp_msg_trans *)data) < 0)
+				if (init_relayfs() < 0)
 					cleanup_and_exit(0);
 			}
 			ts.target = target_pid;
 			send_request(STP_START, &ts, sizeof(ts));
+			if (load_only)
+				cleanup_and_exit(2);
 			break;
 		}
 		case STP_MODULE:

@@ -210,7 +210,7 @@ static void *reader_thread(void *data)
  *
  *	Returns 0 if successful, negative otherwise
  */
-int init_oldrelayfs(struct _stp_msg_trans *t)
+int init_oldrelayfs(void)
 {
 	int i, j;
 	struct statfs st;
@@ -221,7 +221,8 @@ int init_oldrelayfs(struct _stp_msg_trans *t)
 		relay_fd[i] = 0;
 	}
 
-	bulkmode = t->bulk_mode;
+// t->bulk_mode;
+	bulkmode = 0; 
 	if (!bulkmode) {
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
@@ -234,16 +235,16 @@ int init_oldrelayfs(struct _stp_msg_trans *t)
 	  return 0;
 	}
 
-	n_subbufs = t->n_subbufs;
-	subbuf_size = t->subbuf_size;
+	n_subbufs = 0; /* t->n_subbufs;*/
+	subbuf_size = 0; /* t->subbuf_size; */
 	dbug("initializing relayfs. n_subbufs=%d subbuf_size=%d\n",n_subbufs, subbuf_size);
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
- 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap_%d/trace", getpid());
- 		sprintf(proc_filebase, "/sys/kernel/debug/systemtap_%d/", getpid());
+ 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap/%s/trace", modname);
+ 		sprintf(proc_filebase, "/sys/kernel/debug/systemtap/%s/", modname);
 	} else if (statfs("/mnt/relay", &st) == 0 && (int) st.f_type == (int) RELAYFS_MAGIC) {
- 		sprintf(relay_filebase, "/mnt/relay/systemtap_%d/trace", getpid());
- 		sprintf(proc_filebase, "/proc/systemtap_%d/", getpid());
+ 		sprintf(relay_filebase, "/mnt/relay/systemtap/%s/trace", modname);
+ 		sprintf(proc_filebase, "/proc/systemtap/%s/", modname);
  	} else {
 		fprintf(stderr,"Cannot find relayfs or debugfs mount point.\n");
 		return -1;

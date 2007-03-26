@@ -79,36 +79,45 @@ static void *reader_thread(void *data)
  *
  *	Returns 0 if successful, negative otherwise
  */
-int init_relayfs(struct _stp_msg_trans *t)
+int init_relayfs(void)
 {
 	int i;
 	struct statfs st;
 	char buf[128], relay_filebase[128];
 
-	bulkmode = t->bulk_mode;
-	dbug("initializing relayfs. bulkmode = %d\n", bulkmode);
+	dbug("initializing relayfs\n");
 
 	reader[0] = (pthread_t)0;
 	relay_fd[0] = 0;
 	out_fd[0] = 0;
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)
- 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap_%d", getpid());
+ 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap/%s", modname);
  	else {
 		fprintf(stderr,"Cannot find relayfs or debugfs mount point.\n");
 		return -1;
 	}
 
+
+	for (i = 0; i < NR_CPUS; i++) {
+		sprintf(buf, "%s/trace%d", relay_filebase, i);
+		dbug("attempting to open %s\n", buf);
+		relay_fd[i] = open(buf, O_RDONLY | O_NONBLOCK);
+		if (relay_fd[i] < 0)
+			break;
+	}
+	ncpus = i;
+	dbug("ncpus=%d\n", ncpus);
+
+	if (ncpus == 0) {
+		err("couldn't open %s.\n", buf);
+		return -1;
+	}
+	if (ncpus > 1)
+		bulkmode = 1;
+
 	if (bulkmode) {
 		for (i = 0; i < ncpus; i++) {
-			sprintf(buf, "%s/trace%d", relay_filebase, i);
-			dbug("opening %s\n", buf);
-			relay_fd[i] = open(buf, O_RDONLY | O_NONBLOCK);
-			if (relay_fd[i] < 0) {
-				fprintf(stderr, "ERROR: couldn't open relayfs file %s.\n", buf);
-				return -1;
-			}
-			
 			if (outfile_name) {
 				/* special case: for testing we sometimes want to write to /dev/null */
 				if (strcmp(outfile_name, "/dev/null") == 0)
@@ -117,7 +126,7 @@ int init_relayfs(struct _stp_msg_trans *t)
 					sprintf(buf, "%s_%d", outfile_name, i);
 			} else
 				sprintf(buf, "stpd_cpu%d", i);
-
+			
 			out_fd[i] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			dbug("out_fd[%d] = %d\n", i, out_fd[i]);
 			if (out_fd[i] < 0) {
@@ -125,19 +134,8 @@ int init_relayfs(struct _stp_msg_trans *t)
 				return -1;
 			}
 		}
-		
 	} else {
 		/* stream mode */
-		ncpus = 1;
-		sprintf(buf, "%s/trace0", relay_filebase);
-		dbug("opening %s\n", buf);
-		relay_fd[0] = open(buf, O_RDONLY | O_NONBLOCK);
-		dbug("got fd=%d\n", relay_fd[0]);
-		if (relay_fd[0] < 0) {
-			fprintf(stderr, "ERROR: couldn't open relayfs file %s.\n", buf);
-			return -1;
-		}
-
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0) {
@@ -146,7 +144,7 @@ int init_relayfs(struct _stp_msg_trans *t)
 			}
 		} else
 			out_fd[0] = STDOUT_FILENO;
-
+		
 	}
 	dbug("starting threads\n");
 	for (i = 0; i < ncpus; i++) {
