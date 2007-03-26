@@ -149,8 +149,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc README AUTHORS NEWS COPYING
 
 %changelog
-* Mon Feb 26 2007 David Smith <dsmith@redhat.com> - 0.5.13-1
-- Fixes systemtap path in example scripts.
+* Mon Mar 26 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.13-1
+- An emergency / preliminary refresh, mainly for compatibility
+  with 2.6.21-pre kernels.
 
 * Mon Jan  1 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.12-1
 - Many changes, see NEWS file.
