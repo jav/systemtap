@@ -1,5 +1,8 @@
 2007-03-26  David Smith  <dsmith@redhat.com>
 
+	* tapsets.cxx (dwflpp::translate_final_fetch_or_store): Improved
+	error messages for invalid types.
+
 	* elaborate.cxx (typeresolution_info::invalid): Improved the error
 	message for invalid operators.
 
