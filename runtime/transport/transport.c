@@ -32,9 +32,7 @@ static int _stp_start_finished = 0;
 static int _stp_probes_started = 0;
 
 /* module parameters */
-static int _stp_pid, _stp_bufsize;
-module_param(_stp_pid, int, 0);
-MODULE_PARM_DESC(_stp_pid, "pid");
+static int _stp_bufsize;
 module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
@@ -208,8 +206,9 @@ void _stp_transport_close()
 
 static struct utt_trace *_stp_utt_open(void)
 {
-	struct utt_trace_setup utts;	
-	sprintf(utts.root, "systemtap_%d", _stp_pid);
+	struct utt_trace_setup utts;
+	strlcpy(utts.root, "systemtap", sizeof(utts.root));
+	strlcpy(utts.name, THIS_MODULE->name, sizeof(utts.name));
 	utts.buf_size = _stp_subbuf_size;
 	utts.buf_nr = _stp_nsubbufs;
 
@@ -230,7 +229,7 @@ int _stp_transport_init(void)
 {
 	int ret;
 
-	kbug("transport_init from %ld %ld\n", (long)_stp_pid, (long)current->pid);
+	kbug("transport_init\n");
 
 	if (_stp_bufsize) {
 		unsigned size = _stp_bufsize * 1024 * 1024;
@@ -249,6 +248,7 @@ int _stp_transport_init(void)
 	if (!_stp_utt)
 		goto err0;
 #endif
+
 	/* create debugfs/procfs control channel */
 	if (_stp_register_ctl_channel() < 0)
 		goto err1;
@@ -279,6 +279,102 @@ err1:
 err0:
 	_stp_kill_time();
 	return -1;
+}
+
+
+static inline void _stp_lock_inode(struct inode *inode)
+{
+#ifdef DEFINE_MUTEX
+        mutex_lock(&inode->i_mutex);
+#else
+        down(&inode->i_sem);
+#endif
+}
+
+static inline void _stp_unlock_inode(struct inode *inode)
+{
+#ifdef DEFINE_MUTEX
+        mutex_unlock(&inode->i_mutex);
+#else
+        up(&inode->i_sem);
+#endif
+}
+
+static struct dentry *_stp_lockfile = NULL;
+
+static int _stp_lock_debugfs(void)
+{
+	int numtries = 0;
+#ifdef STP_OLD_TRANSPORT
+	while ((_stp_lockfile = relayfs_create_dir("systemtap_lock", NULL)) == NULL) {
+#else
+	while ((_stp_lockfile = debugfs_create_dir("systemtap_lock", NULL)) == NULL) {
+#endif
+		if (numtries++ >= 50)
+			return 0;
+		msleep(50);
+	}
+	return 1;
+}
+
+static void _stp_unlock_debugfs(void)
+{
+	if (_stp_lockfile) {
+#ifdef STP_OLD_TRANSPORT
+		relayfs_remove_dir(_stp_lockfile);
+#else
+		debugfs_remove(_stp_lockfile);
+#endif
+		_stp_lockfile = NULL;
+	}
+}
+
+/* _stp_get_root_dir(name) - creates root directory 'name' or */
+/* returns a pointer to it if it already exists. Used in */
+/* utt.c and relayfs.c. Will not be necessary if utt is included */
+/* in the kernel. */
+
+static struct dentry *_stp_get_root_dir(const char *name) {
+	struct file_system_type *fs;
+	struct dentry *root;
+	struct super_block *sb;
+
+#ifdef STP_OLD_TRANSPORT
+	fs = get_fs_type("relayfs");
+#else
+	fs = get_fs_type("debugfs");
+#endif
+	if (!fs) {
+		errk("Couldn't find debugfs or relayfs filesystem.\n");
+		return NULL;
+	}
+
+	if (!_stp_lock_debugfs()) {
+		errk("Couldn't lock transport directory.\n");
+		return NULL;
+	}
+
+#ifdef STP_OLD_TRANSPORT
+	root = relayfs_create_dir(name, NULL);
+#else
+	root = debugfs_create_dir(name, NULL);
+#endif
+	if (!root) {
+		/* couldn't create it because it is already there, so find it. */
+		sb = list_entry(fs->fs_supers.next, struct super_block, s_instances);
+		_stp_lock_inode(sb->s_root->d_inode);
+		root = lookup_one_len(name, sb->s_root, strlen(name));
+		_stp_unlock_inode(sb->s_root->d_inode);
+		kbug("root=%p\n", root);
+		if (!IS_ERR(root))
+			dput(root);
+		else {
+			root = NULL;
+			kbug("Could not create or find transport directory.\n");
+		}
+	}
+	_stp_unlock_debugfs();
+	return root;
 }
 
 #endif /* _TRANSPORT_C_ */

@@ -11,14 +11,15 @@ struct utt_trace {
 	int trace_state;
 	struct rchan *rchan;
 	unsigned long *sequence;
+	struct dentry *dir;		/* systemtap/module_name */
 	struct dentry *dropped_file;
 	atomic_t dropped;
-	struct dentry *utt_tree_root;
+	struct dentry *utt_tree_root; /* systemtap */
 	void *private_data;
 };
 
-#define UTT_TRACE_ROOT_NAME_SIZE	32	/* Largest string for a root dir identifier */
-#define UTT_TRACE_NAME_SIZE		32	/* Largest string for a trace identifier */
+#define UTT_TRACE_ROOT_NAME_SIZE	64	/* Largest string for a root dir identifier */
+#define UTT_TRACE_NAME_SIZE		64	/* Largest string for a trace identifier */
 
 /*
  * User setup structure

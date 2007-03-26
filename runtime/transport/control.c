@@ -206,7 +206,6 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
-
 static struct file_operations _stp_ctl_fops_cmd = {
 	.owner = THIS_MODULE,
 	.read = _stp_ctl_read_cmd,
@@ -240,11 +239,10 @@ static int _stp_register_ctl_channel (void)
 	}
 	
 
-	/* create [debugfs]/systemtap_[pid]/cmd  */
-	_stp_cmd_file = debugfs_create_file("cmd", 0444, _stp_utt->utt_tree_root, NULL, &_stp_ctl_fops_cmd);
+	/* create [debugfs]/systemtap/module_name/cmd  */
+	_stp_cmd_file = debugfs_create_file("cmd", 0444, _stp_utt->dir, NULL, &_stp_ctl_fops_cmd);
 	if (_stp_cmd_file == NULL) 
 		goto err0;
-
 	return 0;
 
 err0:

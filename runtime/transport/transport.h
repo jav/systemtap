@@ -19,4 +19,7 @@ static unsigned _stp_subbuf_size = 65536*2;
 extern void _stp_transport_close(void);
 extern int _stp_print_init(void);
 extern void _stp_print_cleanup(void);
+static struct dentry *_stp_get_root_dir(const char *name);
+static int _stp_lock_debugfs(void);
+static void _stp_unlock_debugfs(void);
 #endif /* _TRANSPORT_TRANSPORT_H_ */

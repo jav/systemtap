@@ -1,3 +1,11 @@
+2007-03-26  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_do_module): If a module has no symbols, just
+	return NULL instead of an errorcode.
+
+	* control.c, procfs.c, relayfs.c, transport.c, utt.c, utt.h:
+	Revert back to using systemtap/modulename instead of systemtap_pid.
+
 2007-03-21  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (_stp_del_module): Add a call to _stp_module_relocate

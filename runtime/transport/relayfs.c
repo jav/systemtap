@@ -26,13 +26,6 @@
 
 static int _stp_relay_flushing = 0;
 
-static void _stp_remove_relay_dir(struct dentry *dir)
-{
-	if (dir)
-		relayfs_remove_dir(dir);
-}
-
-
 /**
  *	_stp_subbuf_start - subbuf_start() relayfs callback implementation
  */
@@ -66,10 +59,22 @@ static struct rchan_callbacks stp_rchan_callbacks =
 };
 
 
+static void _stp_remove_relay_dir(struct dentry *dir)
+{
+	if (dir)
+		relayfs_remove_dir(dir);
+}
+
 static void _stp_remove_relay_root(struct dentry *root)
 {
-	if (root)
+	if (root) {
+		if (!_stp_lock_debugfs()) {
+			errk("Unable to lock transport directory.\n");
+			return;
+		}
 		_stp_remove_relay_dir(root);
+		_stp_unlock_debugfs();
+	}
 }
 
 struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
@@ -80,25 +85,31 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	if (!utt)
 		return NULL;
 
-	utt->utt_tree_root = relayfs_create_dir(utts->root, NULL);
-	if (!utt->utt_tree_root) {
-		errk("couldn't get relay root dir.\n");
+	utt->utt_tree_root =  _stp_get_root_dir(utts->root);
+	if (!utt->utt_tree_root)
 		return NULL;
-	}
 
-	
+	utt->dir = relayfs_create_dir(utts->name, utt->utt_tree_root);
+	if (!utt->dir)
+		goto err;
+
 	kbug("relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
-	utt->rchan = relay_open("trace", utt->utt_tree_root, utts->buf_size, utts->buf_nr, 0, &stp_rchan_callbacks);
-	if (!utt->rchan) {
-		errk("couldn't create relay channel.\n");
-		_stp_remove_relay_root(utt->utt_tree_root);
-		return NULL;
-	}
+
+	utt->rchan = relay_open("trace", utt->dir, utts->buf_size, utts->buf_nr, 0, &stp_rchan_callbacks);
+	if (!utt->rchan)
+		goto err1;
 
 	utt->rchan->private_data = utt;
 	utt->trace_state = Utt_trace_setup;
 	utts->err = 0;
 	return utt;
+
+err1:
+	errk("couldn't create relay channel.\n");
+	_stp_remove_relay_dir(utt->dir);
+err:
+	_stp_remove_relay_root(utt->utt_tree_root);
+	return NULL;
 }
 
 int utt_trace_startstop(struct utt_trace *utt, int start,
@@ -141,6 +152,7 @@ int utt_trace_remove(struct utt_trace *utt)
 	kbug("removing relayfs files. %d\n", utt->trace_state);
 	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {
 		relay_close(utt->rchan);
+		_stp_remove_relay_dir(utt->dir);
 		_stp_remove_relay_root(utt->utt_tree_root);
 		kfree(utt);
 	}

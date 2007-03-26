@@ -244,7 +244,7 @@ static struct file_operations _stp_proc_fops_cmd = {
 	.write = _stp_ctl_write_cmd,
 };
 
-static struct proc_dir_entry *_stp_proc_root, *_stp_proc_pid;
+static struct proc_dir_entry *_stp_proc_root, *_stp_proc_mod;
 
 /* copy since proc_match is not MODULE_EXPORT'd */
 static int my_proc_match(int len, const char *name, struct proc_dir_entry *de)
@@ -295,6 +295,7 @@ err:
 static int _stp_register_ctl_channel (void)
 {
 	int i;
+	const char *dirname = "systemtap";
 	char buf[32];
 #ifdef STP_BULKMODE
 	int j;
@@ -316,30 +317,53 @@ static int _stp_register_ctl_channel (void)
 		list_add (p, &_stp_pool_q);
 	}
 
-	/* now create /proc/systemtap_[pid] */
-	sprintf(buf, "systemtap_%d", _stp_pid);
-	_stp_proc_pid = proc_mkdir (buf, NULL);
-	if (!_stp_proc_pid)
+	if (!_stp_lock_debugfs()) {
+		errk("Unable to lock transport directory.\n");
 		goto err0;
+	}
+
+	  /* look for existing /proc/systemtap */
+        for (de = proc_root.subdir; de; de = de->next) {
+                if (my_proc_match (strlen (dirname), dirname, de)) {
+                        _stp_proc_root = de;
+                        break;
+                }
+        }
+
+        /* create /proc/systemtap if it doesn't exist */
+        if (_stp_proc_root == NULL) {
+		_stp_proc_root = proc_mkdir (dirname, NULL);
+                if (_stp_proc_root == NULL) {
+			_stp_unlock_debugfs();
+                        goto err0;
+		}
+        }
+	_stp_unlock_debugfs();
+
+	/* now create /proc/systemtap/module_name */
+	_stp_proc_mod = proc_mkdir (THIS_MODULE->name, _stp_proc_root);
+	if (_stp_proc_mod == NULL)
+		goto err0;
+
 #ifdef STP_BULKMODE
-	/* now for each cpu "n", create /proc/systemtap_[pid]/n  */
+	/* now for each cpu "n", create /proc/systemtap/module_name/n  */
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
-		de = create_proc_entry (buf, S_IFREG|S_IRUSR, _stp_proc_pid);
+		de = create_proc_entry (buf, S_IFREG|S_IRUSR, _stp_proc_mod);
 		if (de == NULL) 
 			goto err1;
 		de->proc_fops = &_stp_proc_fops;
 		de->data = _stp_kmalloc(sizeof(int));
 		if (de->data == NULL) {
-			remove_proc_entry (buf, _stp_proc_pid);
+			remove_proc_entry (buf, _stp_proc_mod);
 			goto err1;
 		}
 		*(int *)de->data = i;
 	}
 #endif /* STP_BULKMODE */
 
-	/* finally create /proc/systemtap_[pid]/cmd  */
-	de = create_proc_entry ("cmd", S_IFREG|S_IRUSR, _stp_proc_pid);
+	/* finally create /proc/systemtap/module_name/cmd  */
+	de = create_proc_entry ("cmd", S_IFREG|S_IRUSR, _stp_proc_mod);
 	if (de == NULL) 
 		goto err1;
 	de->proc_fops = &_stp_proc_fops_cmd;
@@ -347,18 +371,16 @@ static int _stp_register_ctl_channel (void)
 
 err1:
 #ifdef STP_BULKMODE
-	for (de = _stp_proc_pid->subdir; de; de = de->next)
+	for (de = _stp_proc_mod->subdir; de; de = de->next)
 		kfree (de->data);
 	for_each_cpu(j) {
 		if (j == i)
 			break;
 		sprintf(buf, "%d", i);
-		remove_proc_entry (buf, _stp_proc_pid);
+		remove_proc_entry (buf, _stp_proc_mod);
 		
 	}
 #endif /* STP_BULKMODE */
-	sprintf(buf, "systemtap_%d", _stp_pid);
-	remove_proc_entry (buf, NULL);
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
@@ -378,18 +400,17 @@ static void _stp_unregister_ctl_channel (void)
 	int i;
 	struct proc_dir_entry *de;
 	kbug("unregistering procfs\n");
-	for (de = _stp_proc_pid->subdir; de; de = de->next)
+	for (de = _stp_proc_mod->subdir; de; de = de->next)
 		kfree (de->data);
 
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
-		remove_proc_entry (buf, _stp_proc_pid);
+		remove_proc_entry (buf, _stp_proc_mod);
 	}
 #endif /* STP_BULKMODE */
 
-	remove_proc_entry ("cmd", _stp_proc_pid);
-	sprintf(buf, "systemtap_%d", _stp_pid);
-	remove_proc_entry (buf, NULL);
+	remove_proc_entry ("cmd", _stp_proc_mod);
+	remove_proc_entry (THIS_MODULE->name, _stp_proc_root);
 
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {

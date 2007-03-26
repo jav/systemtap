@@ -387,7 +387,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	mod = _stp_load_module_symbols(&tmpmod);	
 	if (mod == NULL) {
 		kfree(tmpmod.sections);
-		return -EFAULT;
+		return 0;
 	}
 
 	_stp_ins_module(mod);

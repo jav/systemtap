@@ -31,25 +31,43 @@
 
 static void utt_remove_root(struct utt_trace *utt)
 {
-	if (utt->utt_tree_root && simple_empty(utt->utt_tree_root)) {
-		debugfs_remove(utt->utt_tree_root);
+	if (utt->utt_tree_root) {
+		if (!_stp_lock_debugfs()) {
+			errk("Unable to lock transport directory.\n");
+			return;
+		}
+		if (simple_empty(utt->utt_tree_root))
+			debugfs_remove(utt->utt_tree_root);
+		_stp_unlock_debugfs();
 		utt->utt_tree_root = NULL;
 	}
 }
 
 static void utt_remove_tree(struct utt_trace *utt)
 {
+	debugfs_remove(utt->dir);
 	utt_remove_root(utt);
 }
 
-static struct dentry *utt_create_tree(struct utt_trace *utt, const char *root)
+static struct dentry *utt_create_tree(struct utt_trace *utt, const char *root, const char *name)
 {
-	if (root == NULL)
-		return NULL;
-	
-	if (!utt->utt_tree_root)
-		utt->utt_tree_root = debugfs_create_dir(root, NULL);
-	return utt->utt_tree_root;
+        struct dentry *dir = NULL;
+
+        if (root == NULL || name == NULL)
+                return NULL;
+
+        if (!utt->utt_tree_root) {
+                utt->utt_tree_root = _stp_get_root_dir(root);
+                if (!utt->utt_tree_root)
+                        goto err;
+        }
+
+        dir = debugfs_create_dir(name, utt->utt_tree_root);
+        if (!dir)
+                utt_remove_root(utt);
+
+err:
+        return dir;
 }
 
 
@@ -173,10 +191,10 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 		goto err;
 
 	ret = -ENOENT;
-	dir = utt_create_tree(utt, utts->root);
+	dir = utt_create_tree(utt, utts->root, utts->name);
 	if (!dir)
 		goto err;
-
+	utt->dir = dir;
 	atomic_set(&utt->dropped, 0);
 
 	ret = -EIO;
