@@ -1,3 +1,6 @@
+* What's new since version 0.5.13?
+
+
 * What's new since version 0.5.12?
 
 - When running in -p4 (compile-only) mode, the compiled .ko file name
