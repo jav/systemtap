@@ -1624,6 +1624,8 @@ struct dwflpp
     Dwarf_Die typedie_mem;
     Dwarf_Die *typedie;
     int typetag;
+    char const *dname;
+    string diestr;
 
     typedie = resolve_unqualified_inner_typedie (&typedie_mem, attr_mem);
     typetag = dwarf_tag (typedie);
@@ -1634,8 +1636,19 @@ struct dwflpp
     switch (typetag)
       {
       default:
+	dname = dwarf_diename(die);
+	diestr = (dname != NULL) ? dname : "<unknown>";
 	throw semantic_error ("unsupported type tag "
-			      + lex_cast<string>(typetag));
+			      + lex_cast<string>(typetag)
+			      + " for " + diestr);
+	break;
+
+      case DW_TAG_structure_type:
+      case DW_TAG_union_type:
+	dname = dwarf_diename(die);
+	diestr = (dname != NULL) ? dname : "<unknown>";
+	throw semantic_error ("struct/union '" + diestr
+			      + "' is being accessed instead of a member of the struct/union");
 	break;
 
       case DW_TAG_enumeration_type:

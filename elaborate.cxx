@@ -2700,11 +2700,18 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
                    "?");
-      cerr << "semantic error: " + nm + " with invalid type " << pe << " for ";
-      if (tok)
-        cerr << *tok;
+      if (tok && tok->type == tok_operator)
+        {
+	  cerr << "semantic error: " + nm + " uses invalid " << *tok;
+        }
       else
-        cerr << "a token";
+        {
+	  cerr << "semantic error: " + nm + " with invalid type " << pe << " for ";
+	  if (tok)
+	      cerr << *tok;
+	  else
+	      cerr << "a token";
+	}
       cerr << endl;
     }
 }
