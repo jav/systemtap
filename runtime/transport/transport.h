@@ -22,4 +22,6 @@ extern void _stp_print_cleanup(void);
 static struct dentry *_stp_get_root_dir(const char *name);
 static int _stp_lock_debugfs(void);
 static void _stp_unlock_debugfs(void);
+int _stp_pid = 0;
+
 #endif /* _TRANSPORT_TRANSPORT_H_ */

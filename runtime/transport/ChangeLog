@@ -1,3 +1,9 @@
+2007-03-28  Martin Hunt  <hunt@redhat.com>
+
+	* control.c (_stp_ctl_open_cmd): Set _stp_pid.
+	(stp_ctl_close_cmd): Clear _stp_pid.
+	* transport.h: Declare _stp_pid;
+
 2007-03-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* transport.c: Add #include <linux/namei.h> for lookup_one_len.

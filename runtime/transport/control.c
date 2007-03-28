@@ -206,10 +206,25 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
+static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
+{
+	_stp_pid = current->pid;
+	return 0;
+}
+
+static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
+{
+	_stp_pid = 0;
+	return 0;
+
+}
+
 static struct file_operations _stp_ctl_fops_cmd = {
 	.owner = THIS_MODULE,
 	.read = _stp_ctl_read_cmd,
 	.write = _stp_ctl_write_cmd,
+	.open = _stp_ctl_open_cmd,
+	.release = _stp_ctl_close_cmd,
 };
 
 static struct dentry *_stp_cmd_file = NULL;
