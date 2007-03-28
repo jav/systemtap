@@ -845,6 +845,7 @@ c_unparser::emit_common_header ()
       ostringstream oss;
       oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
       dp->body->print(oss);
+      oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
 
       if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
@@ -1357,6 +1358,10 @@ c_unparser::emit_probe (derived_probe* v)
 
   v->body->print(oss);
 
+  // Since the generated C changes based on whether or not the probe
+  // needs locks around global variables, this needs to be reflected
+  // in the probe string.
+  oss << "# needs_global_locks: " << v->needs_global_locks () << endl;
 
   // If an identical probe has already been emitted, just call that
   // one.
@@ -1415,8 +1420,11 @@ c_unparser::emit_probe (derived_probe* v)
 
       // emit all read/write locks for global variables
       varuse_collecting_visitor vut;
-      v->body->visit (& vut);
-      emit_locks (vut);
+      if (v->needs_global_locks ())
+        {
+	  v->body->visit (& vut);
+	  emit_locks (vut);
+	}
 
       // initialize locals
       for (unsigned j=0; j<v->locals.size(); j++)
@@ -1443,7 +1451,8 @@ c_unparser::emit_probe (derived_probe* v)
       // included a print/printf/etc. routine!
       o->newline(1) << "_stp_print_flush();";
 
-      emit_unlocks (vut);
+      if (v->needs_global_locks ())
+	emit_unlocks (vut);
 
       o->newline(-1) << "}\n";
     }

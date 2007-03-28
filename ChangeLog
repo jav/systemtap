@@ -1,3 +1,23 @@
+2007-03-28  David Smith  <dsmith@redhat.com>
+
+	PR 2341 (partial fix)
+	* elaborate.h (struct derived_probe): Added needs_global_locks()
+	member function.  Unless overridden, will return true indicating
+	that this probe needs locks around global variable references.
+	* tapsets.cxx (struct be_derived_probe): Added override of default
+	needs_global_locks() returning false.  begin/end probes don't
+	need locks around global variables, since they aren't run
+	concurrently with any other probes.
+	* translate.cxx (c_unparser::emit_common_header): Updated
+	probe_contents logic to match the logic in emit_probe.
+	(c_unparser::emit_probe): Added whether the probe needs global
+	variable locks to the probe string (that helps eliminate duplicate
+	probes).  The generated C changes based on whether or not global
+	variable locks are needed, but the pass 2 output doesn't differ
+	between a probe that needs global variable locks and one that
+	doesn't.  If the probe doesn't need global variable locks, doesn't
+	output them.
+	
 2007-03-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bumped version to 0.5.14.

@@ -125,6 +125,9 @@ public:
   static void emit_common_header (translator_output* o);
   // from c_unparser::emit_common_header
   // XXX: probably can move this stuff to a probe_group::emit_module_decls
+
+  virtual bool needs_global_locks () { return true; }
+  // by default, probes need locks around global variables
 };
 
 // ------------------------------------------------------------------------

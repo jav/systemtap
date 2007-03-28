@@ -85,6 +85,10 @@ struct be_derived_probe: public derived_probe
   static inline bool comp(be_derived_probe const *a,
 			  be_derived_probe const *b)
   { return a->priority < b->priority; }
+
+  bool needs_global_locks () { return false; }
+  // begin/end probes don't need locks around global variables, since
+  // they aren't run concurrently with any other probes
 };
 
 
