@@ -1,5 +1,9 @@
 2007-03-29  Frank Ch. Eigler  <fche@elastic.org>
 
+	* systemtap.maps/ix_*.exp: Add catch around close.
+
+2007-03-29  Frank Ch. Eigler  <fche@elastic.org>
+
 	* systemtap.maps/pmap_agg_overflow.exp: Robustify with respect
 	to expected error messages and early quitting.
 
