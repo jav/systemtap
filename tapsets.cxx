@@ -3805,10 +3805,15 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "sdp->u.kp.pre_handler = &enter_kprobe_probe;";
   s.op->newline() << "rc = register_kprobe (& sdp->u.kp);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "if (rc) for (j=i-1; j>=0; j--) {"; // partial rollback
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
   s.op->newline(1) << "struct stap_dwarf_probe *sdp2 = & stap_dwarf_probes[j];";
   s.op->newline() << "if (sdp2->return_p) unregister_kretprobe (&sdp2->u.krp);";
   s.op->newline() << "else unregister_kprobe (&sdp2->u.kp);";
+  // NB: we don't have to clear sdp2->registered_p, since the module_exit code is
+  // not run for this early-abort case.
+  s.op->newline(-1) << "}";
+  s.op->newline() << "break;"; // don't attempt to register any more probes
   s.op->newline(-1) << "}";
   s.op->newline() << "else sdp->registered_p = 1;";
   s.op->newline(-1) << "}"; // for loop
