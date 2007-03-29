@@ -1,3 +1,9 @@
+2007-03-29  David Smith  <dsmith@redhat.com>
+
+	PR 4281
+	* parseko/cmdline07.stp: New test.
+	* parseko/cmdline08.stp: New test.
+
 2007-03-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4224.

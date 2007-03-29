@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# A module name can only be composed of chars [_a-zA-Z0-9]
+stap -p1 -m x^y -e 'probe begin { exit() }'
