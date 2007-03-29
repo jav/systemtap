@@ -1360,7 +1360,8 @@ c_unparser::emit_probe (derived_probe* v)
 
   // Since the generated C changes based on whether or not the probe
   // needs locks around global variables, this needs to be reflected
-  // in the probe string.
+  // here.  We don't want to treat as duplicate the handlers of
+  // begin/end and normal probes that differ only in need_global_locks.
   oss << "# needs_global_locks: " << v->needs_global_locks () << endl;
 
   // If an identical probe has already been emitted, just call that
