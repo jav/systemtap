@@ -320,6 +320,38 @@ main (int argc, char * const argv [])
 
         case 'm':
           s.module_name = string (optarg);
+	  {
+	    string::size_type len = s.module_name.length();
+
+	    // If the module name ends with '.ko', chop it off since
+	    // modutils doesn't like modules named 'foo.ko.ko'.
+	    if (len > 3 && s.module_name.substr(len - 3, 3) == ".ko")
+	      {
+		s.module_name.erase(len - 3);
+		len -= 3;
+		cerr << "Truncating module name to '" << s.module_name
+		     << "'" << endl;
+	      }
+
+	    // Make sure an empty module name wasn't specified (-m "")
+	    if (len == 0)
+	    {
+		cerr << "Module name cannot be empty." << endl;
+		usage (s, 1);
+	    }
+
+	    // Make sure the module name is only composed of the
+	    // following chars: [_a-zA-Z0-9]
+	    const string identchars("_" "abcdefghijklmnopqrstuvwxyz"
+				    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789");
+	    if (s.module_name.find_first_not_of(identchars) != string::npos)
+	      {
+		cerr << "Invalid module name (must only be composed of"
+		    " characters [_a-zA-Z0-9])." << endl;
+		usage (s, 1);
+	      }
+	  }
+
 	  cerr << "Warning: using '-m' disables cache support." << endl;
 	  s.use_cache = false;
           break;

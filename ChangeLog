@@ -1,3 +1,10 @@
+2007-03-29  David Smith  <dsmith@redhat.com>
+
+	PR 4281
+	* main.cxx (main): Validates '-m NAME' option.  Chops off '.ko' if
+	present.  Makes sure name isn't empty.  Makes sure name is only
+	composed of characters [_a-zA-Z0-9].
+
 2007-03-28  David Smith  <dsmith@redhat.com>
 
 	PR 2341 (partial fix)
