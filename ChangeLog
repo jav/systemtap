@@ -1,3 +1,8 @@
+2007-03-29  David Smith  <dsmith@redhat.com>
+
+	PR 3545
+	* stap.1.in: Documented probe overload processing.
+
 2007-03-29  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (dwarf_derived_probe emit_module_init): Correct handling
