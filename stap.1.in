@@ -834,14 +834,14 @@ Any pending trace messages may be lost.
 
 .PP
 In addition to the methods outlined above, the generated kernel module
-also uses overload processing to make sure that no probe can run for
+also uses overload processing to make sure that probes can't run for
 too long.  If more than STP_OVERLOAD_THRESHOLD cycles (default
-500000000) have been spent in a single probe during the last
-STP_OVERLOAD_INTERVAL cycles (default 1000000000), the probe has
-overloaded the system and an exit is triggered.
+500000000) have been spent in all the probes on a single cpu during
+the last STP_OVERLOAD_INTERVAL cycles (default 1000000000), the probes
+have overloaded the system and an exit is triggered.
 .PP
 By default, overload processing is turned on for all modules.  If you
-would like to disable overload processing, define STP_OVERLOAD.
+would like to disable overload processing, define STP_NO_OVERLOAD.
 
 .SH FILES
 .\" consider autoconf-substituting these directories

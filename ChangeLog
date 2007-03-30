@@ -1,3 +1,7 @@
+2007-03-30  David Smith  <dsmith@redhat.com>
+
+	* stap.1.in: Corrected probe overload processing text.
+
 2007-03-29  David Smith  <dsmith@redhat.com>
 
 	PR 3545
