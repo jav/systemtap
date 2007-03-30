@@ -1,5 +1,14 @@
 2007-03-30  David Smith  <dsmith@redhat.com>
 
+	PR 2341
+	* translate.cxx (c_unparser::emit_locks): No longer emits a read
+	lock for global variables that are only written to in begin/end
+	probes.
+	(c_unparser::emit_unlocks): Ditto.
+	(translate_pass): Runs a varuse_collecting_visitor over probes
+	that need global variable locks for use in
+	emit_locks()/emit_unlocks().
+
 	* stap.1.in: Corrected probe overload processing text.
 
 2007-03-29  David Smith  <dsmith@redhat.com>

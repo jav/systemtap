@@ -39,6 +39,8 @@ struct c_unparser: public unparser, public visitor
   unsigned tmpvar_counter;
   unsigned label_counter;
 
+  varuse_collecting_visitor vcv_needs_global_locks;
+
   map<string, string> probe_contents;
 
   c_unparser (systemtap_session* ss):
@@ -1489,6 +1491,19 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
           else if (read_p && !write_p) { read_p = false; write_p = true; }
         }
 
+      // We don't need to read lock "read-mostly" global variables.  A
+      // "read-mostly" global variable is only written to within
+      // probes that don't need global variable locking (such as
+      // begin/end probes).  If vcv_needs_global_locks doesn't mark
+      // the global as written to, then we don't have to lock it
+      // here to read it safely.
+      if (read_p && !write_p)
+        {
+	  if (vcv_needs_global_locks.written.find(v)
+	      == vcv_needs_global_locks.written.end())
+	    continue;
+	}
+
       string lockcall = 
         string (write_p ? "write" : "read") +
         "_trylock (& global_" + v->name + "_lock)";
@@ -1528,16 +1543,24 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
       bool write_p = vut.written.find(v) != vut.written.end();
       if (!read_p && !write_p) continue;
 
-      numvars ++;
-      o->newline(-1) << "unlock_" << v->name << ":";
-      o->indent(1);
-
       // Duplicate lock flipping logic from above
       if (v->type == pe_stats)
         {
           if (write_p && !read_p) { read_p = true; write_p = false; }
           else if (read_p && !write_p) { read_p = false; write_p = true; }
         }
+
+      // Duplicate "read-mostly" global variable logic from above.
+      if (read_p && !write_p)
+        {
+	  if (vcv_needs_global_locks.written.find(v)
+	      == vcv_needs_global_locks.written.end())
+	    continue;
+	}
+
+      numvars ++;
+      o->newline(-1) << "unlock_" << v->name << ":";
+      o->indent(1);
 
       if (session->verbose>1)
         clog << v->name << "[" << (read_p ? "r" : "")
@@ -4168,6 +4191,15 @@ translate_pass (systemtap_session& s)
 	{
 	  s.op->newline();
 	  s.up->emit_function (s.functions[i]);
+	}
+
+      // Run a varuse_collecting_visitor over probes that need global
+      // variable locks.  We'll use this information later in
+      // emit_locks()/emit_unlocks().
+      for (unsigned i=0; i<s.probes.size(); i++)
+	{
+	  if (s.probes[i]->needs_global_locks())
+	    s.probes[i]->body->visit (&cup.vcv_needs_global_locks);
 	}
 
       for (unsigned i=0; i<s.probes.size(); i++)
