@@ -6,15 +6,19 @@
 # global result_string must be set to the expected output
 
 proc stap_run_binary { TEST_NAME} {
+  # zap the srcdir prefix
+  set test_file_name $TEST_NAME
+  set TEST_NAME [regsub {.*/testsuite/} $TEST_NAME ""]
+
   if {[info procs installtest_p] != "" && ![installtest_p]} {untested $TEST_NAME; return}
 
   set hex_args {-ve 8/1 "%02x " "\n"}
-  set res [exec stap $TEST_NAME | hexdump $hex_args] 
+  set res [exec stap $test_file_name | hexdump $hex_args] 
 
   if {[string compare $res $::result_string] == 0} {
-      pass "$TEST_NAME passed"
+      pass "$TEST_NAME"
   } else {
-      fail "$TEST_NAME failed"
+      fail "$TEST_NAME"
       puts "EXPECTED:\n-----------------------\n<$::result_string>"
       puts "-----------------------\n"
       puts "GOT:\n-----------------------\n<$res>"

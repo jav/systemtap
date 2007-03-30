@@ -3,6 +3,6 @@
 # tests that a non-inline function is *not* matched using
 # the inline() pattern
 
-probe kernel.inline("sys_recv") {
+probe kernel.function("sys_recv").inline {
   log ("found a non-inline via inline()")
 }

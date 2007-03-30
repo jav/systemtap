@@ -49,8 +49,8 @@ set probepoint "kernel.function(\"scheduler_tick\")"
 set script [format $systemtap_script $probepoint]
 stap_run $prefix$probepoint sleep_one_sec $output_string -e $script
 
-# test probefunc() with kernel.inline()
+# test probefunc() with kernel.function().inline
 set output_string "\\mcontext_switch\\M\r\n"
-set probepoint "kernel.inline(\"context_switch\")"
+set probepoint "kernel.function(\"context_switch\").inline"
 set script [format $systemtap_script $probepoint]
 stap_run $prefix$probepoint sleep_one_sec $output_string -e $script

@@ -33,7 +33,7 @@ function __is_idle:long()
  *  idle - boolean indicating whether current is the idle process
  */
 probe scheduler.cpu_off
-    = kernel.inline("context_switch")
+    = kernel.function("context_switch")
 {
     task_prev = $prev
     task_next = $next
@@ -53,7 +53,7 @@ probe scheduler.cpu_off
  *  idle - boolean indicating whether current is the idle process
  */
 probe scheduler.cpu_on
-    = kernel.inline("finish_task_switch")
+    = kernel.function("finish_task_switch")
 {
     task_prev = $prev
     idle = __is_idle()
@@ -89,7 +89,7 @@ probe scheduler.tick = kernel.function("scheduler_tick")
  *  cpu_from - the cpu that is losing the task
  *  cpu_to - the cpu that is claiming the task
  */
-probe scheduler.migrate = kernel.inline("pull_task") {
+probe scheduler.migrate = kernel.function("pull_task") {
     task = $p
     cpu_from = $p->thread_info->cpu
     cpu_to = $this_cpu
@@ -104,7 +104,7 @@ probe scheduler.migrate = kernel.inline("pull_task") {
  * Context:
  *  The cpu looking for more work.
  */
-probe scheduler.balance = kernel.inline("idle_balance")? {}
+probe scheduler.balance = kernel.function("idle_balance")? {}
 
 
 /* probe scheduler.ctxswitch 

@@ -1,5 +1,12 @@
 * What's new since version 0.5.13?
 
+- The way in which systemtap resolves function/inline probes has changed:
+   .function(...) - now refers to all functions, inlined or not
+   .inline(...)   - is deprecated, use instead:
+   .function(...).inline - filters function() to only inlined instances
+   .function(...).call - filters function() to only non-inlined instances
+   .function(...).return - as before, but now pairs best with .function().call
+   .statement() is unchanged.
 
 * What's new since version 0.5.12?
 

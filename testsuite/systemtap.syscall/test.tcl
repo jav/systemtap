@@ -86,7 +86,10 @@ foreach line [split $output "\n"] {
 if {$i >= $ind} {
     puts "PASS"
 } else {
-    puts "$testname FAILED"
+    puts "$testname FAILED. output of \"$cmd\" was:"
+    puts "------------------------------------------"
+    puts $output
+    puts "------------------------------------------"
     puts "RESULTS: (\'*\' = MATCHED EXPECTED)"
     set i 0
     foreach line [split $output "\n"] {

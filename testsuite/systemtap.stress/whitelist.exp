@@ -223,7 +223,6 @@ proc init_probes_all {} {
     global init_probes_all_script
     catch {exec stap -p2 -e $init_probes_all_script > /tmp/whitelist_tmpfile}
     catch {exec grep "^kernel.function" /tmp/whitelist_tmpfile > $PROBES_ALL }
-    catch {exec grep "^kernel.inline" /tmp/whitelist_tmpfile >> $PROBES_ALL }
     catch {exec rm -f /tmp/whitelist_tmpfile}
     if {[get_linesize $PROBES_ALL] == 0} {
         return 1

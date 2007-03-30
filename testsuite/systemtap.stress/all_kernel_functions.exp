@@ -17,7 +17,7 @@ proc genload {} {
 proc probe_ok {probepoint} {
     set cmd {exec stap -p2 -e}
     lappend cmd "probe $probepoint {}"
-    return ![catch $cmd]
+    return [expr ![catch $cmd]]
 }
 
 set systemtap_script {
@@ -25,12 +25,10 @@ set systemtap_script {
     probe %s {
         stat[probefunc()] <<< 1
     }
-    probe begin {
-        log("systemtap starting probe")
-    }
+    probe begin { log ("systemtap starting probe") }
     probe end {
-        log("systemtap ending probe")
-        foreach (func in stat)
+        log ("systemtap ending probe")
+        foreach (func in stat limit 5) # don't overflow expect buffer
             printf("%%d  %%s\n", @count(stat[func]), func)
     }
 }

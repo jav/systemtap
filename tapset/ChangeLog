@@ -1,3 +1,9 @@
+2007-03-30  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1570.
+	* memory.stp, scheduler.stp, signal.stp, LKET/signal.stp: Adapt
+	to .inline -> .function change.
+
 2007-03-09  Pierre Peiffer  <pierre.peiffer@bull.net>
 
 	* nfsd.stp (nfsd.dispatch): Change initialization of variable
@@ -17,7 +23,7 @@
 	* syscalls.stp, s390x/syscall.stp: Created an s390x version of
 	syscall.mmap, syscall.mmap2, syscall.mmap.return, syscall.mmap2.return.
 
-2007-02-09  Frank Ch. Eigler  <fche@elastic.org>
+2007-02-09  Fr ank Ch. Eigler  <fche@elastic.org>
 
 	* conversions.stp (*): Make errmsg usage uniform.
 

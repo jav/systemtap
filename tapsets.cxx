@@ -309,7 +309,8 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
 void
 be_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  // if (probes.empty()) return;
+  if (probes.empty()) return;
+
   bool have_begin_probes = false;
   sort(probes.begin(), probes.end(), be_derived_probe::comp);
   for (unsigned i=0; i < probes.size (); i++)
@@ -328,7 +329,8 @@ be_derived_probe_group::emit_module_init (systemtap_session& s)
 void
 be_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-  // if (probes.empty()) return;
+  if (probes.empty()) return;
+
   sort(probes.begin(), probes.end(), be_derived_probe::comp);
   for (unsigned i=0; i < probes.size (); i++)
     if (! probes[i]->begin) // note polarity
@@ -368,20 +370,16 @@ struct never_builder: public derived_probe_builder
 //  Dwarf derived probes.  "We apologize for the inconvience."
 // ------------------------------------------------------------------------
 
-static string TOK_PROCESS("process");
 static string TOK_KERNEL("kernel");
 static string TOK_MODULE("module");
-
 static string TOK_FUNCTION("function");
 static string TOK_INLINE("inline");
+static string TOK_CALL("call");
 static string TOK_RETURN("return");
 static string TOK_MAXACTIVE("maxactive");
-static string TOK_CALLEES("callees");
-
 static string TOK_STATEMENT("statement");
-static string TOK_LABEL("label");
-static string TOK_RELATIVE("relative");
 static string TOK_ABSOLUTE("absolute");
+
 
 
 struct
@@ -413,142 +411,6 @@ inline_instance_info
   Dwarf_Die die;
 };
 
-class
-symbol_cache
-{
-  // For each module, we keep a multimap from function names to
-  // (cudie, funcdie*) pairs.  The first time we pass over a module,
-  // we build up this multimap as an index. Our iteration over the
-  // module's CUs and functions is then driven by the function or
-  // statement pattern string we're scanning for.
-  struct entry
-  {
-    Dwarf_Die cu;
-    Dwarf_Die function;
-  };
-  typedef multimap<string, entry> index;
-  map<Dwarf *, index*> indices;
-  index *curr_index;
-  Dwarf_Die * cu_die;
-  void make_entry_for_function(Dwarf_Die *func_die);
-  static int function_callback(Dwarf_Die * func, void * arg);
-  void index_module(Dwarf * mod);
-public:
-  void select_die_subsets(Dwarf * mod,
-			  string const & pattern,
-			  set<Dwarf_Die> & cus,
-			  multimap<Dwarf_Die, Dwarf_Die> & funcs);
-};
-
-void
-symbol_cache::make_entry_for_function(Dwarf_Die *func_die)
-{
-  entry e;
-  assert(this->cu_die);
-  assert(this->curr_index);
-  e.cu = *(this->cu_die);
-  e.function = *(func_die);
-  char const * fname = dwarf_diename(func_die);
-  if (fname)
-    curr_index->insert(make_pair(string(fname), e));
-}
-
-int
-symbol_cache::function_callback(Dwarf_Die * func, void * arg)
-{
-  symbol_cache *sym = static_cast<symbol_cache*>(arg);
-  sym->make_entry_for_function(func);
-  return DWARF_CB_OK;
-}
-
-void
-symbol_cache::index_module(Dwarf *module_dwarf)
-{
-  Dwarf_Off off = 0;
-  size_t cuhl = 0;
-  Dwarf_Off noff = 0;
-  this->cu_die = NULL;
-  while (dwarf_nextcu (module_dwarf, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
-    {
-      Dwarf_Die die_mem;
-      this->cu_die = dwarf_offdie (module_dwarf, off + cuhl, &die_mem);
-      dwarf_getfuncs (this->cu_die, function_callback, this, 0);
-      off = noff;
-    }
-  this->cu_die = NULL;
-}
-
-inline bool
-operator<(Dwarf_Die const & a,
-	  Dwarf_Die const & b)
-{
-  return (a.addr < b.addr)
-    || ((a.addr == b.addr) && (a.cu < b.cu))
-    || ((a.addr == b.addr) && (a.cu == b.cu) && (a.abbrev < b.abbrev));
-}
-
-inline bool
-operator==(Dwarf_Die const & a,
-	   Dwarf_Die const & b)
-{
-  return !((a < b) || (b < a));
-}
-
-void
-symbol_cache::select_die_subsets(Dwarf *mod,
-				 string const & pattern,
-				 set<Dwarf_Die> & cus,
-				 multimap<Dwarf_Die, Dwarf_Die> & funcs)
-{
-  cus.clear();
-  funcs.clear();
-  index *ix = NULL;
-
-  // First find the index for this module. If there's no index, build
-  // one.
-  map<Dwarf *, index*>::const_iterator i = indices.find(mod);
-  if (i == indices.end())
-    {
-      this->curr_index = new index;
-      index_module(mod);
-      indices.insert(make_pair(mod, this->curr_index));
-      ix = this->curr_index;
-      this->curr_index = NULL;
-      this->cu_die = NULL;
-    }
-  else
-    ix = i->second;
-
-  assert(ix);
-
-  // Now stem the pattern such that we have a minimal non-wildcard
-  // prefix to search in the multimap for. We will use the full pattern
-  // to narrow this set further.
-  string stem;
-  for (string::const_iterator i = pattern.begin();
-       i != pattern.end(); ++i)
-    {
-      if (*i == '?' || *i == '*' || *i == '[' || *i == ']')
-	break;
-      stem += *i;
-    }
-
-  // Now perform a lower-bound on the multimap, refine that result
-  // set, and copy the CU and function DIEs into the parameter sets.
-  index::const_iterator j = stem.empty() ? ix->begin() : ix->lower_bound(stem);
-  while (j != ix->end() &&
-	 (stem.empty() || j->first.compare(0, stem.size(), stem) == 0))
-    {
-      if (fnmatch(pattern.c_str(), j->first.c_str(), 0) == 0)
-	{
-	  cus.insert(j->second.cu);
-	  funcs.insert(make_pair(j->second.cu, j->second.function));
-	}
-      ++j;
-    }
-}
-
-
 
 static int
 query_cu (Dwarf_Die * cudie, void * arg);
@@ -569,8 +431,6 @@ struct dwflpp
   systemtap_session & sess;
   Dwfl * dwfl;
 
-  symbol_cache cache;
-
   // These are "current" values we focus on.
   Dwfl_Module * module;
   Dwarf * module_dwarf;
@@ -582,9 +442,6 @@ struct dwflpp
 
   Dwarf_Die * cu;
   Dwarf_Die * function;
-
-  set<Dwarf_Die> pattern_limited_cus;
-  multimap<Dwarf_Die, Dwarf_Die> pattern_limited_funcs;
 
   string module_name;
   string cu_name;
@@ -624,14 +481,6 @@ struct dwflpp
       }
   }
 
-  void limit_search_to_function_pattern(string const & pattern)
-  {
-    get_module_dwarf(false);
-    cache.select_die_subsets(module_dwarf, pattern,
-			     pattern_limited_cus,
-			     pattern_limited_funcs);
-  }
-
   void focus_on_module(Dwfl_Module * m)
   {
     assert(m);
@@ -645,9 +494,6 @@ struct dwflpp
     // Reset existing pointers and names
 
     module_dwarf = NULL;
-
-    pattern_limited_cus.clear();
-    pattern_limited_funcs.clear();
 
     cu_name.clear();
     cu = NULL;
@@ -734,11 +580,20 @@ struct dwflpp
   {
     assert(module);
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
-    if (t && sess.verbose>2)
+    if (t && sess.verbose>3)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "module '" << module_name << "'" << "\n";
     return t;
+  }
+  bool module_name_final_match(string pattern)
+  {
+    // Assume module_name_matches().  Can there be any more matches?
+    // Not unless the pattern is a wildcard, since module names are
+    // presumed unique.
+    return (pattern.find('*') == string::npos &&
+            pattern.find('?') == string::npos &&
+            pattern.find('[') == string::npos);
   }
 
 
@@ -746,7 +601,7 @@ struct dwflpp
   {
     assert(function);
     bool t = (fnmatch(pattern.c_str(), function_name.c_str(), 0) == 0);
-    if (t && sess.verbose>2)
+    if (t && sess.verbose>3)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "function '" << function_name << "'" << "\n";
@@ -758,7 +613,7 @@ struct dwflpp
   {
     assert(cu);
     bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0);
-    if (t && sess.verbose>2)
+    if (t && sess.verbose>3)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "CU '" << cu_name << "'" << "\n";
@@ -868,44 +723,103 @@ struct dwflpp
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
   }
 
-  void cleanup () // XXX: never used
+
+
+  // -----------------------------------------------------------------
+
+  struct module_cache_entry {
+    Dwfl_Module* mod;
+    const char* name;
+    Dwarf_Addr addr; 
+  };
+  typedef vector<module_cache_entry> module_cache_t;
+  module_cache_t module_cache;
+
+  static int module_caching_callback(Dwfl_Module * mod, 
+                                     void **,
+                                     const char *name,
+                                     Dwarf_Addr addr,
+                                     void *param)
   {
-    dwfl_end (dwfl);
-    dwfl = NULL;
+    module_cache_t* cache = static_cast<module_cache_t*>(param);
+    module_cache_entry it;
+    it.mod = mod;
+    it.name = name;
+    it.addr = addr;
+    cache->push_back (it);
+    return DWARF_CB_OK;
   }
+
 
   void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 					     const char *, Dwarf_Addr,
 					     void *),
 			    void * data)
   {
-    ptrdiff_t off = 0;
-    do
+    if (module_cache.empty())
       {
-	off = dwfl_getmodules (dwfl, callback, data, off);
+        ptrdiff_t off = 0;
+        do
+          {
+            off = dwfl_getmodules (dwfl, module_caching_callback,
+                                   & module_cache, off);
+          }
+        while (off > 0);
+        dwfl_assert("dwfl_getmodules", off);
       }
-    while (off > 0);
-    dwfl_assert("dwfl_getmodules", off);
+
+    // Traverse the cache.
+    for (unsigned i = 0; i < module_cache.size(); i++)
+      {
+        module_cache_entry& it = module_cache[i];
+        int rc = callback (it.mod, 0, it.name, it.addr, data);
+        if (rc != DWARF_CB_OK) break;
+      }
   }
 
+
+
+  // -----------------------------------------------------------------
+
+  typedef map<Dwarf*, vector<Dwarf_Die>*> module_cu_cache_t;
+  module_cu_cache_t module_cu_cache;
 
   void iterate_over_cus (int (*callback)(Dwarf_Die * die, void * arg),
 			 void * data)
   {
     get_module_dwarf(false);
+    Dwarf *dw = module_dwarf;
+    if (!dw) return;
 
-    if (!module_dwarf)
-      return;
-
-    for (set<Dwarf_Die>::const_iterator i = pattern_limited_cus.begin();
-	 i != pattern_limited_cus.end(); ++i)
+    vector<Dwarf_Die>* v = module_cu_cache[dw];
+    if (v == 0)
       {
-	Dwarf_Die die = *i;
-	if (callback (&die, data) != DWARF_CB_OK)
-	  break;
+        v = new vector<Dwarf_Die>;
+        module_cu_cache[dw] = v;
+
+        Dwarf_Off off = 0;
+        size_t cuhl;
+        Dwarf_Off noff;
+        while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
+          {
+            Dwarf_Die die_mem;
+            Dwarf_Die *die;
+            die = dwarf_offdie (dw, off + cuhl, &die_mem);
+            v->push_back (*die); /* copy */
+            off = noff;
+          }
+      }
+
+    for (unsigned i = 0; i < v->size(); i++)
+      {
+        Dwarf_Die die = v->at(i);
+        int rc = (*callback)(& die, data);
+        if (rc != DWARF_CB_OK) break;
       }
   }
 
+
+  // -----------------------------------------------------------------
 
   bool func_is_inline()
   {
@@ -913,29 +827,73 @@ struct dwflpp
     return dwarf_func_inline (function) != 0;
   }
 
+
+  typedef map<string, vector<Dwarf_Die>*> cu_inl_function_cache_t;
+  cu_inl_function_cache_t cu_inl_function_cache;
+
+  static int cu_inl_function_caching_callback (Dwarf_Die* func, void *arg)
+  {
+    vector<Dwarf_Die>* v = static_cast<vector<Dwarf_Die>*>(arg);
+    v->push_back (* func);
+    return DWARF_CB_OK;
+  }
+
   void iterate_over_inline_instances (int (* callback)(Dwarf_Die * die, void * arg),
 				      void * data)
   {
     assert (function);
     assert (func_is_inline ());
-    dwarf_assert ("dwarf_func_inline_instances",
-		  dwarf_func_inline_instances (function, callback, data));
+
+    string key = module_name + ":" + cu_name + ":" + function_name;
+    vector<Dwarf_Die>* v = cu_inl_function_cache[key];
+    if (v == 0)
+      {
+        v = new vector<Dwarf_Die>;
+        cu_inl_function_cache[key] = v;
+        dwarf_func_inline_instances (function, cu_inl_function_caching_callback, v);
+      }
+
+    for (unsigned i=0; i<v->size(); i++)
+      {
+        Dwarf_Die die = v->at(i);
+        int rc = (*callback)(& die, data);
+        if (rc != DWARF_CB_OK) break;
+      }
   }
 
+
+  // -----------------------------------------------------------------
+
+  typedef map<string, vector<Dwarf_Die>*> cu_function_cache_t;
+  cu_function_cache_t cu_function_cache;
+
+  static int cu_function_caching_callback (Dwarf_Die* func, void *arg)
+  {
+    vector<Dwarf_Die>* v = static_cast<vector<Dwarf_Die>*>(arg);
+    v->push_back (* func);
+    return DWARF_CB_OK;
+  }
 
   void iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
 			       void * data)
   {
     assert (module);
     assert (cu);
-    multimap<Dwarf_Die, Dwarf_Die>::const_iterator i = pattern_limited_funcs.lower_bound(*cu);
-    while (i != pattern_limited_funcs.end() && (i->first == *cu))
-      {
-	Dwarf_Die func_die = i->second;
-	if (callback (&func_die, data) != DWARF_CB_OK)
-	  break;
 
-	++i;
+    string key = module_name + ":" + cu_name;
+    vector<Dwarf_Die>* v = cu_function_cache[key];
+    if (v == 0)
+      {
+        v = new vector<Dwarf_Die>;
+        cu_function_cache[key] = v;
+        dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
+      }
+
+    for (unsigned i=0; i<v->size(); i++)
+      {
+        Dwarf_Die die = v->at(i);
+        int rc = (*callback)(& die, data);
+        if (rc != DWARF_CB_OK) break;
       }
   }
 
@@ -1189,6 +1147,7 @@ struct dwflpp
   {
     assert (function);
     return (dwarf_entrypc (function, addr) == 0);
+    // XXX: see also _lowpc ?
   }
 
 
@@ -1199,7 +1158,8 @@ struct dwflpp
     if (attr != NULL)
       return (dwarf_formaddr (attr, addr) == 0);
 
-    return ( dwarf_lowpc (die, addr) == 0);
+    return (dwarf_lowpc (die, addr) == 0);
+    // XXX: see also _entrypc ?
   }
 
   void function_die (Dwarf_Die *d)
@@ -1618,8 +1578,8 @@ struct dwflpp
 				  Dwarf_Die *die,
 				  Dwarf_Attribute *attr_mem,
 				  bool lvalue,
-				  string & /*prelude*/,
-				  string & /*postlude*/,
+				  string &,
+				  string &,
 				  exp_type & ty)
   {
     /* First boil away any qualifiers associated with the type DIE of
@@ -1923,17 +1883,15 @@ struct dwarf_derived_probe: public derived_probe
   bool has_maxactive;
   long maxactive_val;
 
+  void printsig (std::ostream &o) const;
+
   void join_group (systemtap_session& s);
 
   // Pattern registration helpers.
-  static void register_relative_variants(match_node * root,
-					 dwarf_builder * dw);
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw);
   static void register_function_variants(match_node * root,
 					  dwarf_builder * dw);
-  static void register_inline_variants(match_node * root,
-				       dwarf_builder * dw);
   static void register_function_and_statement_variants(match_node * root,
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
@@ -1976,8 +1934,6 @@ struct dwarf_query
   static bool get_number_param(map<string, literal *> const & params,
 			       string const & k, Dwarf_Addr & v);
 
-  string pt_regs_member_for_regnum(uint8_t dwarf_regnum);
-
   // Result vector
   vector<derived_probe *> & results;
   void add_probe_point(string const & funcname,
@@ -1998,29 +1954,20 @@ struct dwarf_query
                      Dwarf_Addr addr);
 
   // Extracted parameters.
-  bool has_kernel;
-  bool has_process;
-  bool has_module;
-  string process_val;
   string module_val;
   string function_val;
 
-  bool has_inline_str;
   bool has_function_str;
   bool has_statement_str;
-  bool has_inline_num;
   bool has_function_num;
   bool has_statement_num;
   string statement_str_val;
   string function_str_val;
-  string inline_str_val;
   Dwarf_Addr statement_num_val;
   Dwarf_Addr function_num_val;
-  Dwarf_Addr inline_num_val;
 
-  bool has_callees;
-  long callee_val;
-
+  bool has_call;
+  bool has_inline;
   bool has_return;
 
   bool has_maxactive;
@@ -2057,10 +2004,7 @@ struct dwarf_query
 struct dwarf_builder: public derived_probe_builder
 {
   dwflpp *kern_dw;
-  dwflpp *user_dw;
-  dwarf_builder()
-    : kern_dw(NULL), user_dw(NULL)
-  {}
+  dwarf_builder(): kern_dw(0) {}
 
   void build_no_more (systemtap_session &s)
   {
@@ -2075,10 +2019,8 @@ struct dwarf_builder: public derived_probe_builder
 
   ~dwarf_builder()
   {
-    if (kern_dw)
-      delete kern_dw;
-    if (user_dw)
-      delete user_dw;
+    // XXX: in practice, NOTREACHED
+    delete kern_dw;
   }
 
   virtual void build(systemtap_session & sess,
@@ -2142,39 +2084,33 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
 
-  has_kernel = has_null_param(params, TOK_KERNEL);
-  has_module = get_string_param(params, TOK_MODULE, module_val);
-  has_process = get_string_param(params, TOK_PROCESS, process_val);
+  bool has_kernel = has_null_param(params, TOK_KERNEL);
+  if (has_kernel)
+    module_val = "kernel";
+  else 
+    {
+      bool has_module = get_string_param(params, TOK_MODULE, module_val);
+      assert (has_module); // no other options are possible by construction
+    }
 
   has_function_str = get_string_param(params, TOK_FUNCTION, function_str_val);
   has_function_num = get_number_param(params, TOK_FUNCTION, function_num_val);
 
-  has_inline_str = get_string_param(params, TOK_INLINE, inline_str_val);
-  has_inline_num = get_number_param(params, TOK_INLINE, inline_num_val);
-
   has_statement_str = get_string_param(params, TOK_STATEMENT, statement_str_val);
   has_statement_num = get_number_param(params, TOK_STATEMENT, statement_num_val);
 
-  callee_val = 1;
-  has_callees = (has_null_param(params, TOK_CALLEES) ||
-		 get_number_param(params, TOK_CALLEES, callee_val));
-
+  has_call = has_null_param(params, TOK_CALL);
+  has_inline = has_null_param(params, TOK_INLINE);
   has_return = has_null_param(params, TOK_RETURN);
   has_maxactive = get_number_param(params, TOK_MAXACTIVE, maxactive_val);
-
-  has_label = get_string_param(params, TOK_LABEL, label_val);
-  has_relative = get_number_param(params, TOK_RELATIVE, relative_val);
-
   has_absolute = has_null_param(params, TOK_ABSOLUTE);
 
   if (has_function_str)
     spec_type = parse_function_spec(function_str_val);
-  else if (has_inline_str)
-    spec_type = parse_function_spec(inline_str_val);
   else if (has_statement_str)
     spec_type = parse_function_spec(statement_str_val);
 
-  build_blacklist();
+  build_blacklist(); // XXX: why not reuse amongst dwarf_query instances?
 }
 
 
@@ -2309,6 +2245,7 @@ static int query_kernel_module (Dwfl_Module *, void **, const char *,
 				Dwarf_Addr, void *);
 
 
+// XXX: pull this into dwflpp
 static bool
 in_kprobes_function(systemtap_session& sess, Dwarf_Addr addr)
 {
@@ -2334,6 +2271,11 @@ dwarf_query::blacklisted_p(const string& funcname,
   if (section.substr(0, 6) == string(".init.") ||
       section.substr(0, 6) == string(".exit."))
     {
+      // NB: module .exit. routines could be probed in theory:
+      // if the exit handler in "struct module" is diverted,
+      // first inserting the kprobes
+      // then allowing the exit code to run
+      // then removing these kprobes
       if (sess.verbose>1)
         clog << " skipping - init/exit";
       return true;
@@ -2355,6 +2297,9 @@ dwarf_query::blacklisted_p(const string& funcname,
       (has_return && blacklisted_return_probes.count(funcname) > 0) ||
       filename == "kernel/kprobes.c" ||
       0 == fnmatch ("arch/*/kernel/kprobes.c", filename.c_str(), 0))
+    // XXX: these tests (set lookup, fnmatch) could be combined into a
+    // single synthetic compiled regexp, which would allow blacklisted
+    // functions to be identified by wildcard instead of exact name.
     {
       if (sess.verbose>1)
 	clog << " skipping - blacklisted";
@@ -2465,31 +2410,36 @@ dwarf_query::add_probe_point(const string& funcname,
 
 
 
-      // The critical determining factor when interpreting a pattern
-      // string is, perhaps surprisingly: "presence of a lineno". The
-      // presence of a lineno changes the search strategy completely.
-      //
-      // Compare the two cases:
-      //
-      //   1. {statement,function}(foo@file.c:lineno)
-      //      - find the files matching file.c
-      //      - in each file, find the functions matching foo
-      //      - query the file for line records matching lineno
-      //      - iterate over the line records,
-      //        - and iterate over the functions,
-      //          - if(haspc(function.DIE, line.addr))
-      //            - if looking for statements: probe(lineno.addr)
-      //            - if looking for functions: probe(function.{entrypc,return,etc.})
-      //
-      //   2. {statement,function}(foo@file.c)
-      //      - find the files matching file.c
-      //      - in each file, find the functions matching foo
-      //        - probe(function.{entrypc,return,etc.})
-      //
-      // Thus the first decision we make is based on the presence of a
-      // lineno, and we enter entirely different sets of callbacks
-      // depending on that decision.
-
+// The critical determining factor when interpreting a pattern
+// string is, perhaps surprisingly: "presence of a lineno". The
+// presence of a lineno changes the search strategy completely.
+//
+// Compare the two cases:
+//
+//   1. {statement,function}(foo@file.c:lineno)
+//      - find the files matching file.c
+//      - in each file, find the functions matching foo
+//      - query the file for line records matching lineno
+//      - iterate over the line records,
+//        - and iterate over the functions,
+//          - if(haspc(function.DIE, line.addr))
+//            - if looking for statements: probe(lineno.addr)
+//            - if looking for functions: probe(function.{entrypc,return,etc.})
+//
+//   2. {statement,function}(foo@file.c)
+//      - find the files matching file.c
+//      - in each file, find the functions matching foo
+//        - probe(function.{entrypc,return,etc.})
+//
+// Thus the first decision we make is based on the presence of a
+// lineno, and we enter entirely different sets of callbacks
+// depending on that decision.
+//
+// Note that the first case is a generalization fo the second, in that
+// we could theoretically search through line records for matching
+// file names (a "table scan" in rdbms lingo).  Luckily, file names
+// are already cached elsewhere, so we can do an "index scan" as an
+// optimization.
 
 static void
 query_statement (string const & func,
@@ -2501,11 +2451,6 @@ query_statement (string const & func,
 {
   try
     {
-      // XXX: implement
-      if (q->has_relative)
-        throw semantic_error("incomplete: do not know how to interpret .relative",
-                             q->base_probe->tok);
-
       q->add_probe_point(func, file ? file : "?",
                          line, scope_die, stmt_addr);
     }
@@ -2629,27 +2574,11 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 
   try
     {
-
-      bool record_this_inline = false;
-
       if (q->sess.verbose>2)
 	clog << "examining inline instance of " << q->dw.function_name << "\n";
 
-      if (q->has_inline_str || q->has_statement_str)
-	record_this_inline = true;
-
-      else if (q->has_inline_num)
-	{
-	  Dwarf_Addr query_addr = q->inline_num_val;
-
-	  if (q->has_module)
-	    query_addr = q->dw.module_address_to_global(query_addr);
-
-	  if (q->dw.die_has_pc (die, query_addr))
-	    record_this_inline = true;
-	}
-
-      if (record_this_inline)
+      if ((q->has_function_str && ! q->has_call) 
+          || q->has_statement_str)
 	{
 	  if (q->sess.verbose>2)
 	    clog << "selected inline instance of " << q->dw.function_name
@@ -2683,21 +2612,12 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 
   try
     {
-      // XXX: implement
-      if (q->has_callees)
-        throw semantic_error ("incomplete: do not know how to interpret .callees",
-			      q->base_probe->tok);
-
-      if (q->has_label)
-        throw semantic_error ("incomplete: do not know how to interpret .label",
-			      q->base_probe->tok);
-
       q->dw.focus_on_function (func);
 
       if (q->dw.func_is_inline ()
-	  && (((q->has_statement_str || q->has_inline_str)
-	       && q->dw.function_name_matches(q->function))
-	      || q->has_inline_num))
+          && (! q->has_call) && (! q->has_return)
+	  && (((q->has_statement_str || q->has_function_str)
+	       && q->dw.function_name_matches(q->function))))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "checking instances of inline " << q->dw.function_name
@@ -2716,9 +2636,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	  else if (q->has_function_num)
 	    {
 	      Dwarf_Addr query_addr = q->function_num_val;
-
-	      if (q->has_module)
-		query_addr = q->dw.module_address_to_global(query_addr);
+              query_addr = q->dw.module_address_to_global(query_addr);
 
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
@@ -2770,7 +2688,6 @@ query_cu (Dwarf_Die * cudie, void * arg)
              << "', in module '" << q->dw.module_name << "'\n";
 
       if (q->has_statement_str
-	  || q->has_inline_str || q->has_inline_num
 	  || q->has_function_str || q->has_function_num)
 	{
 	  q->filtered_srcfiles.clear();
@@ -2783,7 +2700,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // associated addresses. Unfortunately the control of this
 	  // cannot easily be turned inside out.
 
-	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
+	  if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type != function_alone))
 	    {
 	      // If we have a pattern string with a filename, we need
@@ -2805,7 +2722,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
             if (! q->filtered_functions.empty())
               q->dw.resolve_prologue_endings (q->filtered_functions);
 
-	  if ((q->has_statement_str || q->has_function_str || q->has_inline_str)
+	  if ((q->has_statement_str || q->has_function_str)
 	      && (q->spec_type == function_file_and_line))
 	    {
 	      // If we have a pattern string with target *line*, we
@@ -2825,7 +2742,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
 		  query_func_info (i->first, i->second, q);
 
 	      // Or all inline instances (if we're scanning inlines)
-	      if (q->has_statement_str || q->has_inline_str || q->has_inline_num)
+	      if (q->has_statement_str
+                  || ((q->has_function_str || q->has_function_num) && !q->has_call))
 		for (map<Dwarf_Addr, inline_instance_info>::iterator i
 		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
 		  query_inline_instance_info (i->first, i->second, q);
@@ -2839,8 +2757,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
 	  assert (q->has_statement_num);
 	  Dwarf_Addr query_addr = q->statement_num_val;
-	  if (q->has_module)
-	    query_addr = q->dw.module_address_to_global(query_addr);
+          query_addr = q->dw.module_address_to_global(query_addr);
 
 	  query_statement ("", "", -1, NULL, query_addr, q);
         }
@@ -2856,9 +2773,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
 static int
 query_kernel_module (Dwfl_Module *mod,
-		     void **userdata __attribute__ ((unused)),
+		     void **,
 		     const char *name,
-		     Dwarf_Addr base __attribute__ ((unused)),
+		     Dwarf_Addr,
 		     void *arg)
 {
   if (TOK_KERNEL == name)
@@ -2873,10 +2790,11 @@ query_kernel_module (Dwfl_Module *mod,
 
 
 static int
-query_module (Dwfl_Module *mod __attribute__ ((unused)),
-	      void **userdata __attribute__ ((unused)),
-	      const char *name, Dwarf_Addr,
-	      void *arg __attribute__ ((unused)))
+query_module (Dwfl_Module *mod,
+	      void **,
+	      const char *name,
+              Dwarf_Addr,
+	      void *arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
@@ -2886,17 +2804,13 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
 
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
-
-      if (q->has_kernel && !q->dw.module_name_matches(TOK_KERNEL))
-        return DWARF_CB_OK;
-
-      if (q->has_module && !q->dw.module_name_matches(q->module_val))
+      if (!q->dw.module_name_matches(q->module_val))
         return DWARF_CB_OK;
 
       // Validate the machine code in this elf file against the
       // session machine.  This is important, in case the wrong kind
       // of debuginfo is being automagically processed by elfutils.
-      // Unfortunately, while we can tell i686 apart from x86-64,
+      // While we can tell i686 apart from x86-64, unfortunately
       // we can't help confusing i586 vs i686 (both EM_386).
 
       Dwarf_Addr _junk;
@@ -2911,9 +2825,10 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
                                & debug_filename);
       const string& sess_machine = q->sess.architecture;
       string expect_machine;
+
       switch (elf_machine)
         {
-        case EM_386: expect_machine = "i686"; break;
+        case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
         case EM_X86_64: expect_machine = "x86_64"; break;
         case EM_PPC: expect_machine = "ppc"; break;
         case EM_PPC64: expect_machine = "ppc64"; break;
@@ -2926,7 +2841,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
       if (! debug_filename) debug_filename = main_filename;
       if (! debug_filename) debug_filename = name;
 
-      if (sess_machine != expect_machine)
+      if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
         {
           stringstream msg;
           msg << "ELF machine " << expect_machine << " (code " << elf_machine
@@ -2945,7 +2860,7 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
              << " (code " << elf_machine << ")"
              << "\n";
 
-      if (q->has_inline_num || q->has_function_num || q->has_statement_num)
+      if (q->has_function_num || q->has_statement_num)
         {
           // If we have module("foo").function(0xbeef) or
           // module("foo").statement(0xbeef), the address is relative
@@ -2955,17 +2870,11 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           Dwarf_Addr addr;
           if (q->has_function_num)
             addr = q->function_num_val;
-          else if (q->has_inline_num)
-            addr = q->inline_num_val;
           else
             addr = q->statement_num_val;
-
-	  // NB: We should not have kernel.* here; global addresses
-	  // should have bypassed query_module in dwarf_builder::build
-	  // and gone directly to query_cu.
-
-          assert (!q->has_kernel);
-          assert (q->has_module);
+          
+          // NB: we don't need to add the module base address or bias
+          // value here (for reasons that may be coincidental).
 	  q->dw.query_cu_containing_module_address(addr, q);
         }
       else
@@ -2973,21 +2882,15 @@ query_module (Dwfl_Module *mod __attribute__ ((unused)),
           // Otherwise if we have a function("foo") or statement("foo")
           // specifier, we have to scan over all the CUs looking for
           // the function(s) in question
-
-	  q->dw.limit_search_to_function_pattern(q->function);
-
-          assert(q->has_function_str || q->has_inline_str || q->has_statement_str);
+          assert(q->has_function_str || q->has_statement_str);
           q->dw.iterate_over_cus(&query_cu, q);
-
-	  // If we just processed the module "kernel", and the user asked for
-	  // the kernel pattern, there's no need to iterate over any further
-	  // modules
-
-	  if (q->has_kernel && q->dw.module_name_matches(TOK_KERNEL))
-	    return DWARF_CB_ABORT;
         }
 
-      return DWARF_CB_OK;
+      // If we know that there will be no more matches, abort early.
+      if (q->dw.module_name_final_match(q->module_val))
+        return DWARF_CB_ABORT;
+      else
+        return DWARF_CB_OK;
     }
   catch (const semantic_error& e)
     {
@@ -3463,6 +3366,20 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
 
 void
+dwarf_derived_probe::printsig (ostream& o) const
+{
+  // Instead of just printing the plain locations, we add a PC value
+  // as a comment as a way of telling e.g. apart multiple inlined
+  // function instances.  This is distinct from the verbose/clog
+  // output, since this part goes into the cache hash calculations.
+  sole_location()->print (o);
+  o << " /* pc=0x" << hex << addr << dec << " */";
+  printsig_nested (o);
+}
+
+
+
+void
 dwarf_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.dwarf_derived_probes)
@@ -3538,12 +3455,10 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   string fn_or_stmt;
   if (q.has_function_str || q.has_function_num)
     fn_or_stmt = "function";
-  else if (q.has_inline_str || q.has_inline_num)
-    fn_or_stmt = "inline";
   else
     fn_or_stmt = "statement";
 
-  if (q.has_function_str || q.has_inline_str || q.has_statement_str)
+  if (q.has_function_str || q.has_statement_str)
       {
         string retro_name = funcname;
 	if (filename != "")
@@ -3554,13 +3469,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
           (new probe_point::component
            (fn_or_stmt, new literal_string (retro_name)));
       }
-  else if (q.has_function_num || q.has_inline_num || q.has_statement_num)
+  else if (q.has_function_num || q.has_statement_num)
     {
       Dwarf_Addr retro_addr;
       if (q.has_function_num)
         retro_addr = q.function_num_val;
-      else if (q.has_inline_num)
-	retro_addr = q.inline_num_val;
       else
         retro_addr = q.statement_num_val;
       comps.push_back (new probe_point::component
@@ -3571,83 +3484,36 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
         comps.push_back (new probe_point::component (TOK_ABSOLUTE));
     }
 
+  if (q.has_call)
+      comps.push_back (new probe_point::component(TOK_CALL));
+  if (q.has_inline)
+      comps.push_back (new probe_point::component(TOK_INLINE));
   if (has_return)
-    {
-      comps.push_back (new probe_point::component(TOK_RETURN));
-      if (has_maxactive)
-	comps.push_back (new probe_point::component
-			 (TOK_MAXACTIVE, new literal_number(maxactive_val)));
-    }
+    comps.push_back (new probe_point::component(TOK_RETURN));
+  if (has_maxactive)
+    comps.push_back (new probe_point::component
+                     (TOK_MAXACTIVE, new literal_number(maxactive_val)));
 
   locations.push_back(new probe_point(comps, q.base_loc->tok));
 }
 
 
 void
-dwarf_derived_probe::register_relative_variants(match_node * root,
-						dwarf_builder * dw)
-{
-  // Here we match 2 forms:
-  //
-  // .
-  // .relative(NN)
-
-  root->bind(dw);
-  root->bind_num(TOK_RELATIVE)->bind(dw);
-}
-
-void
 dwarf_derived_probe::register_statement_variants(match_node * root,
 						 dwarf_builder * dw)
 {
-  // Here we match 3 forms:
-  //
-  // .
-  // .return
-  // .label("foo")
-
-  register_relative_variants(root, dw);
-  register_relative_variants(root->bind_str(TOK_LABEL), dw);
-}
-
-void
-dwarf_derived_probe::register_inline_variants(match_node * root,
-					      dwarf_builder * dw)
-{
-  // Here we match 4 forms:
-  //
-  // .
-  // .callees
-  // .callees(N)
-  //
-  // The last form permits N-level callee resolving without any
-  // recursive .callees.callees.callees... pattern-matching on our part.
-
   root->bind(dw);
-  root->bind(TOK_CALLEES)->bind(dw);
-  root->bind_num(TOK_CALLEES)->bind(dw);
 }
 
 void
 dwarf_derived_probe::register_function_variants(match_node * root,
 						dwarf_builder * dw)
 {
-  // Here we match 5 forms:
-  //
-  // .
-  // .return
-  // .return.maxactive(N)
-  // .callees
-  // .callees(N)
-  //
-  // The last form permits N-level callee resolving without any
-  // recursive .callees.callees.callees... pattern-matching on our part.
-
   root->bind(dw);
+  root->bind(TOK_INLINE)->bind(dw);
+  root->bind(TOK_CALL)->bind(dw);
   root->bind(TOK_RETURN)->bind(dw);
   root->bind(TOK_RETURN)->bind_num(TOK_MAXACTIVE)->bind(dw);
-  root->bind(TOK_CALLEES)->bind(dw);
-  root->bind_num(TOK_CALLEES)->bind(dw);
 }
 
 void
@@ -3658,15 +3524,11 @@ dwarf_derived_probe::register_function_and_statement_variants(match_node * root,
   //
   // .function("foo")
   // .function(0xdeadbeef)
-  // .inline("foo")
-  // .inline(0xdeadbeef)
   // .statement("foo")
   // .statement(0xdeadbeef)
 
   register_function_variants(root->bind_str(TOK_FUNCTION), dw);
   register_function_variants(root->bind_num(TOK_FUNCTION), dw);
-  register_inline_variants(root->bind_str(TOK_INLINE), dw);
-  register_inline_variants(root->bind_num(TOK_INLINE), dw);
   register_statement_variants(root->bind_str(TOK_STATEMENT), dw);
   register_statement_variants(root->bind_num(TOK_STATEMENT), dw);
 }
@@ -3675,12 +3537,6 @@ void
 dwarf_derived_probe::register_patterns(match_node * root)
 {
   dwarf_builder *dw = new dwarf_builder();
-
-  // Here we match 3 forms:
-  //
-  // .kernel
-  // .module("foo")
-  // .process("foo")
 
   register_function_and_statement_variants(root->bind(TOK_KERNEL), dw);
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
@@ -3696,6 +3552,10 @@ void
 dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 {
   probes_by_module.insert (make_pair (p->module, p));
+
+  // XXX: probes put at the same address should all share a
+  // single kprobe/kretprobe, and have their handlers executed
+  // sequentially.
 }
 
 
@@ -3866,57 +3726,37 @@ dwarf_builder::build(systemtap_session & sess,
 		     std::map<std::string, literal *> const & parameters,
 		     vector<derived_probe *> & finished_results)
 {
-  dwflpp *dw = NULL;
-
-  string dummy;
-  bool has_kernel = dwarf_query::has_null_param(parameters, TOK_KERNEL);
-  bool has_module = dwarf_query::get_string_param(parameters, TOK_MODULE, dummy);
-
   // NB: the kernel/user dwlfpp objects are long-lived.
   // XXX: but they should be per-session, as this builder object
   // may be reused if we try to cross-instrument multiple targets.
-  if (has_kernel || has_module)
+
+  if (!kern_dw)
     {
-      if (!kern_dw)
-	{
-	  kern_dw = new dwflpp(sess);
-	  assert(kern_dw);
-	  kern_dw->setup(true);
-	}
-      dw = kern_dw;
+      kern_dw = new dwflpp(sess);
+      assert(kern_dw);
+      kern_dw->setup(true);
+    }
 
-
-      Dwfl_Module* km = 0;
-      dw->iterate_over_modules(&query_kernel_module, &km);
-      if (km)
+  Dwfl_Module* km = 0;
+  kern_dw->iterate_over_modules(&query_kernel_module, &km);
+  if (km)
+    {
+      sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
+      sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
+      sess.sym_stext = lookup_symbol_address (km, "_stext");
+      
+      if (sess.verbose > 2)
         {
-          sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
-          sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
-          sess.sym_stext = lookup_symbol_address (km, "_stext");
-
-          if (sess.verbose > 2)
-            {
-              clog << "control symbols:"
-                // abbreviate the names - they're for our debugging only anyway
-                   << " kts: 0x" << hex << sess.sym_kprobes_text_start
-                   << " kte: 0x" << sess.sym_kprobes_text_end
-                   << " stext: 0x" << sess.sym_stext
-                   << dec << endl;
-            }
+          clog << "control symbols:"
+            // abbreviate the names - they're for our debugging only anyway
+               << " kts: 0x" << hex << sess.sym_kprobes_text_start
+               << " kte: 0x" << sess.sym_kprobes_text_end
+               << " stext: 0x" << sess.sym_stext
+               << dec << endl;
         }
     }
-  else
-    {
-      if (!user_dw)
-	{
-	  user_dw = new dwflpp(sess);
-	  assert(user_dw);
-	  user_dw->setup(false);
-	}
-      dw = user_dw;
-    }
-  assert(dw);
 
+  dwflpp* dw = kern_dw;
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 
   if (q.has_absolute)
@@ -3930,43 +3770,15 @@ dwarf_builder::build(systemtap_session & sess,
       // For kernel.statement(NUM).absolute probe points, we bypass
       // all the debuginfo stuff: We just wire up a
       // dwarf_derived_probe right here and now.
-      dwarf_derived_probe* p = new dwarf_derived_probe ("", "", 0, "kernel", "",
-                                                        q.statement_num_val, q.statement_num_val,
-                                                        q, 0);
+      dwarf_derived_probe* p = 
+        new dwarf_derived_probe ("", "", 0, "kernel", "",
+                                 q.statement_num_val, q.statement_num_val,
+                                 q, 0);
       finished_results.push_back (p);
       return;
     }
 
-
-  if (q.has_kernel &&
-      (q.has_function_num || q.has_inline_num || q.has_statement_num))
-    {
-      // If we have kernel.function(0xbeef), or
-      // kernel.statement(0xbeef) the address is global (relative to
-      // the kernel) and we can seek directly to the module and cudie
-      // in question.
-      Dwarf_Addr a;
-      if (q.has_function_num)
-	a = q.function_num_val;
-      else if (q.has_inline_num)
-	a = q.inline_num_val;
-      else
-	a = q.statement_num_val;
-      dw->focus_on_module_containing_global_address(a);
-      dw->query_cu_containing_global_address(a, &q);
-    }
-  else
-    {
-      // Otherwise we have module("*bar*"), kernel.statement("foo"), or
-      // kernel.function("foo"); in these cases we need to scan all
-      // the modules.
-      assert((q.has_kernel && q.has_function_str) ||
-	     (q.has_kernel && q.has_inline_str) ||
-	     (q.has_kernel && q.has_statement_str) ||
-	     (q.has_module));
-
-      dw->iterate_over_modules(&query_module, &q);
-    }
+  dw->iterate_over_modules(&query_module, &q);
 }
 
 

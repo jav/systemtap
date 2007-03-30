@@ -1,3 +1,15 @@
+2007-03-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 1570
+	* NEWS: Document probe handler language change re. inline functions.
+	* stapprobes.5.in: Likewise.
+	* tapsets.cxx: Many changes to simplify caches and implement new
+	handling of inline functions, removed of stubs for future probes.
+	* elaborate.cxx (derived_probe printsig_nested): New function.
+	* elaborate.h: Declare it.
+	* main.cxx (usage): Clarify "-r" meaning.
+	(main): Tweak related "-p 4" message.
+
 2007-03-30  David Smith  <dsmith@redhat.com>
 
 	PR 2341

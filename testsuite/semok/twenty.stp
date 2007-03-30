@@ -2,7 +2,9 @@
 
 probe kernel.function("*") {}
 probe module("*").function("*") {}
+probe kernel.function("*").call {}
+probe module("*").function("*").call {}
 probe kernel.function("*").return {}
 probe module("*").function("*").return {}
-probe kernel.inline("*") {}
-probe module("*").inline("*") {}
+probe kernel.function("*").inline {}
+probe module("*").function("*").inline {}

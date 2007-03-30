@@ -11,7 +11,7 @@ probe begin {
 }
 
 
-probe syscall.* {
+probe syscall.* ? {
 	if (pid() == target()) {
 		if (entry) printf("\n")
 		printf("%s%s: %s (%s) = ", indent_str[indent], execname(), name, argstr)
@@ -21,7 +21,7 @@ probe syscall.* {
 	}
 }
 
-probe syscall.*.return {
+probe syscall.*.return ? {
 	if (pid() == target()) {
 		if (indent) indent--
 		if (entry)

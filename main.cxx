@@ -90,7 +90,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -D NM=VAL  emit macro definition into generated C code" << endl
     << "   -R DIR     look in DIR for runtime, instead of" << endl
     <<      "              " << s.runtime_path << endl
-    << "   -r RELEASE use kernel RELEASE, instead of "
+    << "   -r RELEASE cross-compile to kernel RELEASE, instead of "
     << s.kernel_release << endl
     << "   -m MODULE  set probe module name, instead of "
     << s.module_name << endl
@@ -426,8 +426,8 @@ main (int argc, char * const argv [])
 
   if (s.last_pass > 4 && release_changed)
     {
-      cerr << ("Warning: changing last pass to 4 since the kernel release"
-	       " has changed.") << endl;
+      if (s.verbose)
+        cerr << "Warning: changing last pass to 4 since cross-compiling" << endl;
       s.last_pass = 4;
     }
 

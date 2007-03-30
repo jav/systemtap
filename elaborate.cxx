@@ -62,8 +62,42 @@ derived_probe::derived_probe (probe *p, probe_point *l):
 }
 
 
+void
+derived_probe::printsig (ostream& o) const
+{
+  probe::printsig (o);
+  printsig_nested (o);
+}
+
+void
+derived_probe::printsig_nested (ostream& o) const
+{
+  // We'd like to enclose the probe derivation chain in a /* */
+  // comment delimiter.  But just printing /* base->printsig() */ is
+  // not enough, since base might itself be a derived_probe.  So we,
+  // er, "cleverly" encode our nesting state as a formatting flag for
+  // the ostream.
+  ios::fmtflags f = o.flags (ios::internal);
+  if (f & ios::internal)
+    {
+      // already nested
+      o << " <- ";
+      base->printsig (o);
+    }
+  else
+    {
+      // outermost nesting
+      o << " /* <- ";
+      base->printsig (o);
+      o << " */";
+    }
+  // restore flags
+  (void) o.flags (f);
+}
+
+
 probe_point*
-derived_probe::sole_location ()
+derived_probe::sole_location () const
 {
   if (locations.size() == 0)
     throw semantic_error ("derived_probe with no locations", this->tok);

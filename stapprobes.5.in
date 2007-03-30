@@ -157,10 +157,13 @@ variant places a probe at the moment of return from the named function, so
 the return value is available as the "$return" context variable. 
 The
 .B .inline
-variant is similar to 
+modifier for
 .B .function
-but probes inline functions. Inline functions do not have an identifiable
-return point, so 
+filters the results to include only instances of inlined functions.
+The
+.B .call
+modifier selects the opposite subset.  Inline functions do not have an
+identifiable return point, so
 .B .return
 is not supported on 
 .B .inline
@@ -171,15 +174,20 @@ that are visible there.
 .SAMPLE
 kernel.function(PATTERN)
 .br
+kernel.function(PATTERN).call
+.br
 kernel.function(PATTERN).return
 .br
-kernel.inline(PATTERN)
+kernel.function(PATTERN).inline
 .br
 module(MPATTERN).function(PATTERN)
 .br
+module(MPATTERN).function(PATTERN).call
+.br
 module(MPATTERN).function(PATTERN).return
 .br
-module(MPATTERN).inline(PATTERN)
+module(MPATTERN).function(PATTERN).inline
+.br
 .br
 kernel.statement(PATTERN)
 .br

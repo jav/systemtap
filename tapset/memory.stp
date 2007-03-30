@@ -76,7 +76,7 @@ probe vm.write_shared = kernel.function("do_wp_page") {
  *  zero - boolean indicating whether it is a zero page
  *         (can do a clear instead of a copy).
  */
-probe vm.write_shared_copy = kernel.inline("copy_cow_page")? {
+probe vm.write_shared_copy = kernel.function("copy_cow_page")? {
     address = $address
     zero = _IS_ZERO_PAGE($from, address);
 }
@@ -93,7 +93,7 @@ probe vm.write_shared_copy = kernel.inline("copy_cow_page")? {
  *  address - the requested address
  *  length - the length of the memory segment 
  */
-probe vm.mmap = kernel.inline("do_mmap"), kernel.inline("do_mmap2")? {
+probe vm.mmap = kernel.function("do_mmap"), kernel.function("do_mmap2")? {
     address = $addr
     length = $len
 }

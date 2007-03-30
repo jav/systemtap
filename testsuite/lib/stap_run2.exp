@@ -11,6 +11,10 @@
 set timeout 20
 
 proc stap_run2 { TEST_NAME args } {
+  # zap the srcdir prefix
+  set test_file_name $TEST_NAME
+  set TEST_NAME [regsub {.*/testsuite/} $TEST_NAME ""]
+
   if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
   # fix up expected string
@@ -18,8 +22,8 @@ proc stap_run2 { TEST_NAME args } {
 
   # spawn test
   set cmd [concat {stap -v} $args]
-  if [file readable $TEST_NAME] {
-      lappend cmd $TEST_NAME
+  if [file readable $test_file_name] {
+      lappend cmd $test_file_name
   }
   eval spawn $cmd
 
@@ -30,7 +34,7 @@ proc stap_run2 { TEST_NAME args } {
     {set pass$expect_out(1,string) "\t0\t0\t0"; exp_continue}
     -re {^Pass 5: starting run.\r\n} {exp_continue}
     -ex $output {
-      pass "$TEST_NAME passed"
+      pass "$TEST_NAME"
       expect {
 	-re {^Pass\ ([5]):[^\r]*\ in\ ([0-9]+)usr/([0-9]+)sys/([0-9]+)real\ ms.\r\n}
 	{set pass$expect_out(1,string) "\t$expect_out(2,string)\t$expect_out(3,string)\t$expect_out(4,string)"

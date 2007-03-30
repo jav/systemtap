@@ -1,9 +1,3 @@
-# stap_run.exp
-#
-# Will Cohen
-# 8/12/2005
-
-
 # stap_run TEST_NAME LOAD_GEN_FUNCTION OUTPUT_CHECK_STRING
 # TEST_NAME is path to the current test
 # LOAD_GEN_FUNCTION (optional) to produce something to measure
@@ -21,6 +15,10 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
     global probe_errors
     global skipped_probes
 
+    # zap the srcdir prefix
+    set test_file_name $TEST_NAME
+    set TEST_NAME [regsub {.*/testsuite/} $TEST_NAME ""]
+
     # initialize probe_errors and skipped_probes to 0
     set probe_errors 0
     set skipped_probes 0
@@ -28,8 +26,8 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
     if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
     set cmd [concat {stap -v} $args]
-    if [file readable $TEST_NAME] {
-        lappend cmd $TEST_NAME
+    if [file readable $test_file_name] {
+        lappend cmd $test_file_name
     }
     eval spawn $cmd
     expect {

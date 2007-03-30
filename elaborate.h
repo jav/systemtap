@@ -115,7 +115,9 @@ struct derived_probe: public probe
   virtual probe* basest () { return base->basest(); }
   virtual ~derived_probe () {}
   virtual void join_group (systemtap_session& s) = 0;
-  virtual probe_point* sole_location ();
+  virtual probe_point* sole_location () const;
+  virtual void printsig (std::ostream &o) const;
+  void printsig_nested (std::ostream &o) const;
 
   virtual void emit_probe_context_vars (translator_output*) {}
   // From within unparser::emit_common_header, add any extra variables

@@ -1385,7 +1385,7 @@ translate_base_store (struct obstack *pool, int indent, Dwarf_Word byte_size,
       char piece[sizeof "u.pieces.p" + 20] = "u.pieces.p";
       struct location *p;
       for (p = store_loc->pieces; p != NULL; p = p->next)
-	{
+        {
 	  struct location *newp = obstack_alloc (pool, sizeof *newp);
 	  *newp = *p;
 	  newp->next = NULL;

@@ -371,8 +371,7 @@ probe signal.pending.return = kernel.function("do_sigpending").return
  *  regs   : Address in the Kernel Mode stack area 
  *  
  */
-probe signal.handle = kernel.function("handle_signal")?,
-        kernel.inline("handle_signal")?
+probe signal.handle = kernel.function("handle_signal")
 {
     sig = $sig
     sig_name = _signal_name($sig)
