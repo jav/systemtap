@@ -11,7 +11,7 @@
 # Will profile pid 3323 until it ^c is hit.
 #
 
-probe kernel.function("sys_*") {
+probe kernel.function("sys_*").call {
 	if (target() == tid())
 		calltime[tid()] = gettimeofday_us()
 }

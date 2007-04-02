@@ -1,3 +1,8 @@
+2007-04-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	* socket-trace.stp, small_demos/prof.stp, top.stp: Adapt to
+	.inline -> .function change.
+
 2007-01-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	* socket-trace.stp: Added from the tutorial.

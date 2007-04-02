@@ -2624,7 +2624,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
 	}
-      else if (!q->dw.func_is_inline ())
+      else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
 	  bool record_this_function = false;
 

@@ -1,4 +1,4 @@
-probe kernel.function("*@net/socket.c") {
+probe kernel.function("*@net/socket.c").call {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }
 probe kernel.function("*@net/socket.c").return {

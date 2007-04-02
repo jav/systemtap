@@ -1,3 +1,8 @@
+2007-04-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (query_dwarf_func): Skip non-inlined functions
+	for .function().inline case.
+
 2007-03-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 1570

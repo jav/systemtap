@@ -13,7 +13,7 @@ function print_top () {
 	delete syscalls
 }
 
-probe kernel.function("sys_*") {
+probe kernel.function("sys_*").call {
 	syscalls[probefunc()]++
 }
 

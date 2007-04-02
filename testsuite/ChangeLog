@@ -3,6 +3,7 @@
 	* systemtap.samples/poll_map.stp, profile.stp, syscalls.stp:
 	Continue adopting to .inline -> .function change.
 	* systemtap.samples/topsys.stp, systemtap.stress/current.stp: Ditto.
+	* semko/twentyone.stp: Ditto.
 
 2007-03-30  Frank Ch. Eigler  <fche@elastic.org>
 
