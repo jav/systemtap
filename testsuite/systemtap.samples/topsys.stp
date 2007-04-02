@@ -58,7 +58,7 @@ function print_systop () {
 	reset_syscalls_count ()
 }
 
-probe kernel.function("sys_*") {
+probe kernel.function("sys_*").call {
 	accumulate ()
 }
 

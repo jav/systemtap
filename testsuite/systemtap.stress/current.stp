@@ -23,7 +23,7 @@ probe
       %( arch != "ia64" %?
         # __switch_to is macro definition in ia64,
         # and ia64_switch_to is defined in assemble language
-      kernel.function("__switch_to"),
+      kernel.function("__switch_to").call,
       kernel.function("__switch_to").return,
       %)
     %)
@@ -50,9 +50,9 @@ probe
        %)
     %)
 
-    kernel.function("*@kernel/sched.c"),
+    kernel.function("*@kernel/sched.c").call,
     kernel.function("*@kernel/sched.c").return,
-    module("*").function("*interrupt*"),
+    module("*").function("*interrupt*").call,
     module("*").function("*interrupt*").return
 {
     length <<< commlen()

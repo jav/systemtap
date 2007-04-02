@@ -19,7 +19,7 @@ function decumulate () {
   this_syscall[pid] = ""
   this_syscall_time[pid] = 0
 }
-probe kernel.function("sys_*") {
+probe kernel.function("sys_*").call {
   accumulate ()
 }
 probe kernel.function("sys_*").return {

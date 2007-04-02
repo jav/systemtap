@@ -1,7 +1,7 @@
 #! stap 
 
 global count
-probe kernel.function("sys_*") {
+probe kernel.function("sys_*").call {
   print (sprint(pid()) . " " . pp() . "\n")
   if (++count > 100) exit()
 }
