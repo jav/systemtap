@@ -68,7 +68,7 @@ void close_ctl_channel(void);
 int init_relayfs(void);
 void close_relayfs(void);
 int init_oldrelayfs(void);
-void close_oldrelayfs(void);
+void close_oldrelayfs(int);
 
 /*
  * variables 
@@ -97,3 +97,7 @@ extern gid_t cmd_gid;
 
 /* relay*.c uses these */
 extern int out_fd[NR_CPUS];
+
+/* relay_old uses these. Set in ctl.c */
+extern unsigned subbuf_size;
+extern unsigned n_subbufs;

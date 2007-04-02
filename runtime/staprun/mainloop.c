@@ -143,9 +143,16 @@ int init_staprun(void)
 	if (attach_mod) {
 		if (init_ctl_channel() < 0)
 			return -1;
-		if (init_relayfs() < 0) {
-			close_ctl_channel();
-			return -1;
+		if (use_old_transport) {
+			if (init_oldrelayfs() < 0) {
+				close_ctl_channel();
+				return -1;
+			} 
+		} else {
+			if (init_relayfs() < 0) {
+				close_ctl_channel();
+				return -1;
+			}
 		}
 		return 0;
 	}
@@ -204,6 +211,11 @@ void cleanup_and_exit (int closed)
 	pid_t err;
 	static int exiting = 0;
 
+	signal(SIGINT, SIG_IGN);
+	signal(SIGTERM, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
+	signal(SIGQUIT, SIG_IGN);
+
 	if (exiting)
 		return;
 	exiting = 1;
@@ -217,7 +229,7 @@ void cleanup_and_exit (int closed)
 	while(wait(NULL) > 0) ;
 
 	if (use_old_transport)
-		close_oldrelayfs();
+		close_oldrelayfs(closed == 2);
 	else
 		close_relayfs();
 
@@ -228,8 +240,7 @@ void cleanup_and_exit (int closed)
 		dbug("removing module\n");
 		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod -w %s", modname);
 		if (system(tmpbuf)) {
-			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.  No output will be written.\n",
-				modname);
+			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.\n", modname);
 			exit(1);
 		}
 	} else if (closed == 2) {

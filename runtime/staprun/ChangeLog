@@ -1,3 +1,16 @@
+2007-04-02  Martin Hunt  <hunt@redhat.com>
+
+	* relay_old.c (close_oldrelayfs): If just detaching, call
+	pthread_cancel.
+	(open_relayfs_files): Just return 0 if relay_fd[cpu] not opened.
+	(init_oldrelayfs): Scan percpu files to calculate ncpus.
+
+	* mainloop.c (init_staprun): Call old transport init when necessary.
+	(cleanup_and_exit): Ignore signals when cleaning up.
+
+	* ctl.c (read_buffer_info): For old transport, need to read transport
+	parameters.
+
 2007-03-26  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (run_stp_check): Just use system() call.

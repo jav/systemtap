@@ -21,8 +21,8 @@ static FILE *percpu_tmpfile[NR_CPUS];
 static char *relay_buffer[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 static int bulkmode = 0;
-static unsigned subbuf_size = 0;
-static unsigned n_subbufs = 0;
+unsigned subbuf_size = 0;
+unsigned n_subbufs = 0;
 
 /* per-cpu buffer info */
 static struct buf_status
@@ -38,7 +38,6 @@ static struct buf_status
 static void close_relayfs_files(int cpu)
 {
 	size_t total_bufsize = subbuf_size * n_subbufs;
-	dbug("%d %d %d\n", cpu,(int) total_bufsize, relay_fd[cpu]);
 	if (relay_fd[cpu]) {
 		munmap(relay_buffer[cpu], total_bufsize);
 		close(relay_fd[cpu]);
@@ -51,23 +50,30 @@ static void close_relayfs_files(int cpu)
 /**
  *	close_all_relayfs_files - close and munmap buffers and output files
  */
-void close_oldrelayfs(void)
+void close_oldrelayfs(int detach)
 {
 	int i;
 
 	if (!bulkmode)
 		return;
-
-	dbug("close_relayfs: %d\n", ncpus);
+	
+	dbug("detach=%d, ncpus=%d\n", detach, ncpus);
+	
+	if (detach) {
+		for (i = 0; i < ncpus; i++)
+			if (reader[i]) pthread_cancel(reader[i]);
+	} else {
+		for (i = 0; i < ncpus; i++)
+			if (reader[i]) pthread_join(reader[i], NULL);
+	}
+	
 	for (i = 0; i < ncpus; i++)
-		if (reader[i]) pthread_join(reader[i], NULL);
-
-	for (i = 0; i < ncpus; i++)
-	  close_relayfs_files(i);
+		close_relayfs_files(i);
 }
 
 /**
- *	open_relayfs_files - open and mmap buffer and open output file
+ *	open_relayfs_files - open and mmap buffer and open output file.
+ *	Returns -1 on unexpected failure, 0 if file not found, 1 on success.
  */
 static int open_relayfs_files(int cpu, const char *relay_filebase, const char *proc_filebase)
 {
@@ -80,8 +86,8 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	sprintf(tmp, "%s%d", relay_filebase, cpu);
 	relay_fd[cpu] = open(tmp, O_RDONLY | O_NONBLOCK);
 	if (relay_fd[cpu] < 0) {
-		fprintf(stderr, "ERROR: couldn't open relayfs file %s: errcode = %s\n", tmp, strerror(errno));
-		goto err0;
+		relay_fd[cpu] = 0;
+		return 0;
 	}
 
 	sprintf(tmp, "%s%d", proc_filebase, cpu);
@@ -108,7 +114,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		goto err3;
 	}
 
-	return 0;
+	return 1;
 
 err3:
 	fclose(percpu_tmpfile[cpu]);
@@ -116,7 +122,6 @@ err2:
 	close (proc_fd[cpu]);
 err1:
 	close (relay_fd[cpu]);
-err0:
 	relay_fd[cpu] = 0;
 	return -1;
 
@@ -216,13 +221,11 @@ int init_oldrelayfs(void)
 	struct statfs st;
 	char relay_filebase[128], proc_filebase[128];
 
-	for (i = 0; i < ncpus; i++){
-		reader[i] = (pthread_t)0;
-		relay_fd[i] = 0;
-	}
+	dbug("initializing relayfs.n_subbufs=%d subbuf_size=%d\n", n_subbufs, subbuf_size);
 
-// t->bulk_mode;
-	bulkmode = 0; 
+	if (n_subbufs)
+		bulkmode = 1;
+ 
 	if (!bulkmode) {
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
@@ -235,10 +238,6 @@ int init_oldrelayfs(void)
 	  return 0;
 	}
 
-	n_subbufs = 0; /* t->n_subbufs;*/
-	subbuf_size = 0; /* t->subbuf_size; */
-	dbug("initializing relayfs. n_subbufs=%d subbuf_size=%d\n",n_subbufs, subbuf_size);
-
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
  		sprintf(relay_filebase, "/sys/kernel/debug/systemtap/%s/trace", modname);
  		sprintf(proc_filebase, "/sys/kernel/debug/systemtap/%s/", modname);
@@ -249,12 +248,26 @@ int init_oldrelayfs(void)
 		fprintf(stderr,"Cannot find relayfs or debugfs mount point.\n");
 		return -1;
 	}
-	
-	for (i = 0; i < ncpus; i++) {
-		if (open_relayfs_files(i, relay_filebase, proc_filebase) < 0) {
+
+
+	reader[0] = (pthread_t)0;
+	relay_fd[0] = 0;
+	out_fd[0] = 0;
+
+	for (i = 0; i < NR_CPUS; i++) {
+		int ret = open_relayfs_files(i, relay_filebase, proc_filebase);
+		if (ret == 0)
+			break;
+		if (ret < 0) {
 			fprintf(stderr, "ERROR: couldn't open relayfs files, cpu = %d\n", i);
 			goto err;
 		}
+	}
+
+	ncpus = i;
+	dbug("ncpus=%d\n", ncpus);
+
+	for (i = 0; i < ncpus; i++) {
 		/* create a thread for each per-cpu buffer */
 		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
 			close_relayfs_files(i);
