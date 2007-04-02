@@ -69,7 +69,6 @@ void _stp_ask_for_symbols(void)
 {
 	struct _stp_msg_symbol req;
 	struct _stp_module mod;
-	struct _stp_msg_trans tran;
 
 	/* ask for symbols, modules, and send transport info */
 	kbug("AFS\n");
@@ -81,14 +80,7 @@ void _stp_ask_for_symbols(void)
 	strcpy(mod.name, "");
 	_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
 
-#ifdef STP_BULKMODE
-	tran.bulk_mode = 1;
-#else
-	tran.bulk_mode = 0;
-#endif
-	tran.subbuf_size =_stp_subbuf_size;
-	tran.n_subbufs = _stp_nsubbufs;
-	_stp_ctl_send(STP_TRANSPORT, &tran, sizeof(tran));
+	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 }
 
 /*

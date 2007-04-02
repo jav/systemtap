@@ -57,16 +57,6 @@ struct _stp_msg_start
         int32_t res;    // for reply: result of probe_start()
 };
 
-/* transport information. sent to staprun */
-struct _stp_msg_trans
-{
-        int32_t bulk_mode;
-
-	/* old relayfs uses these */
-	uint32_t subbuf_size;
-        uint32_t n_subbufs;
-};
-
 #ifdef STP_OLD_TRANSPORT
 /**** for compatibility with old relayfs ****/
 struct _stp_buf_info

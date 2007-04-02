@@ -237,11 +237,25 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
+static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
+{
+	_stp_pid = current->pid;
+	return 0;
+}
+
+static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
+{
+	_stp_pid = 0;
+	return 0;
+
+}
 
 static struct file_operations _stp_proc_fops_cmd = {
 	.owner = THIS_MODULE,
 	.read = _stp_ctl_read_cmd,
 	.write = _stp_ctl_write_cmd,
+	.open = _stp_ctl_open_cmd,
+	.release = _stp_ctl_close_cmd,
 };
 
 static struct proc_dir_entry *_stp_proc_root, *_stp_proc_mod;
@@ -292,6 +306,21 @@ err:
 	return _stp_current_buffers;
 }
 
+static int _stp_ctl_read_bufsize (char *page, char **start, off_t off,
+				  int count, int *eof, void *data)
+{
+	int len = sprintf(page, "%d,%d\n", _stp_nsubbufs, _stp_subbuf_size);
+	if (len <= off+count)
+		*eof = 1;
+	*start = page + off;
+	len -= off;
+	if (len > count)
+		len = count;
+	if (len < 0)
+		len = 0;
+	return len;
+}
+
 static int _stp_register_ctl_channel (void)
 {
 	int i;
@@ -301,7 +330,7 @@ static int _stp_register_ctl_channel (void)
 	int j;
 #endif
 
-	struct proc_dir_entry *de;
+	struct proc_dir_entry *de, *bs = NULL;
 	struct list_head *p, *tmp;
 
 	INIT_LIST_HEAD(&_stp_ready_q);
@@ -360,6 +389,7 @@ static int _stp_register_ctl_channel (void)
 		}
 		*(int *)de->data = i;
 	}
+	bs = create_proc_read_entry("bufsize", 0, _stp_proc_mod, _stp_ctl_read_bufsize, NULL);
 #endif /* STP_BULKMODE */
 
 	/* finally create /proc/systemtap/module_name/cmd  */
@@ -380,6 +410,7 @@ err1:
 		remove_proc_entry (buf, _stp_proc_mod);
 		
 	}
+	if (bs) remove_proc_entry ("bufsize", _stp_proc_mod);
 #endif /* STP_BULKMODE */
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
@@ -407,6 +438,7 @@ static void _stp_unregister_ctl_channel (void)
 		sprintf(buf, "%d", i);
 		remove_proc_entry (buf, _stp_proc_mod);
 	}
+	remove_proc_entry ("bufsize", _stp_proc_mod);
 #endif /* STP_BULKMODE */
 
 	remove_proc_entry ("cmd", _stp_proc_mod);

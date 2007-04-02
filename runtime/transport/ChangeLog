@@ -1,3 +1,18 @@
+2007-04-02  Martin Hunt  <hunt@redhat.com>
+
+	* transport_msgs.h (struct _stp_msg_trans): Deleted.
+	Transport parameters are now read from procfs.
+
+	* transport.c (_stp_ask_for_symbols): STP_TRANSPORT
+	message is empty.
+
+	* procfs.c (_stp_ctl_open_cmd): New. Set _stp_	pid.
+	(_stp_ctl_close_cmd): New. Unset _stp_pid.
+	(_stp_proc_fops_cmd): Add pointers to above funcs.
+	(_stp_ctl_read_bufsize): New.
+	(_stp_register_ctl_channel): Create a proc read entry
+	"bufsize" containing transport buffer sizes.
+
 2007-03-28  Martin Hunt  <hunt@redhat.com>
 
 	* control.c (_stp_ctl_open_cmd): Set _stp_pid.
