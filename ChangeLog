@@ -1,3 +1,9 @@
+2007-04-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3261.
+	* tapsets.cxx (query_module): Reject elfutils module "kernel"
+	unless kernel.* probe point used.
+
 2007-04-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_dwarf_func): Skip non-inlined functions

@@ -1954,7 +1954,8 @@ struct dwarf_query
                      Dwarf_Addr addr);
 
   // Extracted parameters.
-  string module_val;
+  bool has_kernel;
+  string module_val; // has_kernel => module_val = "kernel"
   string function_val;
 
   bool has_function_str;
@@ -2084,7 +2085,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
 
-  bool has_kernel = has_null_param(params, TOK_KERNEL);
+  has_kernel = has_null_param(params, TOK_KERNEL);
   if (has_kernel)
     module_val = "kernel";
   else 
@@ -2805,6 +2806,12 @@ query_module (Dwfl_Module *mod,
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
       if (!q->dw.module_name_matches(q->module_val))
+        return DWARF_CB_OK;
+
+      // Don't allow module("*kernel*") type expressions to match the
+      // elfutils module "kernel", which we refer to in the probe
+      // point syntax exclusively as "kernel.*".
+      if (q->dw.module_name == TOK_KERNEL && ! q->has_kernel)
         return DWARF_CB_OK;
 
       // Validate the machine code in this elf file against the
