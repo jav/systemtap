@@ -1,3 +1,11 @@
+2007-04-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	Improve error messages for underprivileged scripts.
+	* parse.h (parse_error): Add skip_some member, true default.
+	* parse.cxx (parse_embedded_code): Send false on missing -g.
+	* parse.cxx (parser::parse): Respect flag during parse error
+	recovery.
+
 2007-04-02  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 3261.

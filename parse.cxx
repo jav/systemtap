@@ -803,24 +803,25 @@ parser::parse ()
       catch (parse_error& pe)
 	{
 	  print_error (pe);
-          try 
-            {
-              // Quietly swallow all tokens until the next '}'.
-              while (1)
-                {
-                  const token* t = peek ();
-                  if (! t)
-                    break;
-                  next ();
-                  if (t->type == tok_operator && t->content == "}")
-                    break;
-                }
-            }
-          catch (parse_error& pe2)
-            {
-              // parse error during recovery ... ugh
-              print_error (pe2);
-            }
+          if (pe.skip_some) // for recovery
+            try 
+              {
+                // Quietly swallow all tokens until the next '}'.
+                while (1)
+                  {
+                    const token* t = peek ();
+                    if (! t)
+                      break;
+                    next ();
+                    if (t->type == tok_operator && t->content == "}")
+                      break;
+                  }
+              }
+            catch (parse_error& pe2)
+              {
+                // parse error during recovery ... ugh
+                print_error (pe2);
+              }
         }
     }
 
@@ -927,7 +928,8 @@ parser::parse_embeddedcode ()
     throw parse_error ("expected '%{'");
 
   if (! privileged)
-    throw parse_error ("embedded code in unprivileged script");
+    throw parse_error ("embedded code in unprivileged script",
+                       false /* don't skip tokens for parse resumption */);
 
   e->tok = t;
   e->code = t->content;
