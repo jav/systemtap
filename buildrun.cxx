@@ -11,6 +11,7 @@
 #include "session.h"
 #include "util.h"
 
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 

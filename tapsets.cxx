@@ -15,6 +15,8 @@
 #include "session.h"
 #include "util.h"
 
+#include <cstdlib>
+#include <algorithm>
 #include <deque>
 #include <iostream>
 #include <map>

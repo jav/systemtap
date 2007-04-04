@@ -1,3 +1,9 @@
+2007-04-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	GCC 4.3 compatibility patches from Debian.
+	* buildrun.cxx, hash.cxx, tapsets.cxx, translate.cxx: #include a few
+	more C++ headers.
+
 2007-04-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	Improve error messages for underprivileged scripts.

@@ -15,6 +15,7 @@
 #include "tapsets.h"
 #include "util.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <set>
 #include <sstream>

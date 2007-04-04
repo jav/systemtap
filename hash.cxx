@@ -19,6 +19,8 @@
 #include "session.h"
 #include "hash.h"
 #include "util.h"
+
+#include <cstdlib>
 #include <sstream>
 #include <iomanip>
 #include <cerrno>
