@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2007 Bull S.A.S
 //
 // This file is part of systemtap, and is free software.  You can
