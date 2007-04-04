@@ -1,3 +1,11 @@
+2007-04-04  Pierre Peiffer  <pierre.peiffer@bull.net>
+
+	* parseok/fourteen.stp: Add test about $# and @# usage during
+	the preprocessing.
+	* parseko/preprocess10.stp: New test.
+	* parseko/preprocess11.stp: New test.
+	* parseko/preprocess12.stp: New test.
+
 2007-04-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.samples/poll_map.stp, profile.stp, syscalls.stp:

@@ -1,0 +1,4 @@
+#! stap -p1
+
+# expected string as right value in comparison
+%( @# != 2 %? probe begin { } %)

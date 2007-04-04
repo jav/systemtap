@@ -15,3 +15,14 @@ global
    %: %( arch != "x86_64" %? other %: x86_64 %) 
    %)
 %)
+
+global
+%( $# != 2 %? /* and */
+   %( @# < "1" %? /* and */
+      %( @# == "0" %? /* and */
+         %( $# >= 3 %? /* and */
+            %( $2 >= "12" %? $3 FAIL5 %: $2 FAIL6 %) #This line must not be evaluated
+         %: PASS2 %)
+      %: "FAIL7" %)
+   %: "FAIL8" %)
+%: "FAIL9" %)

@@ -185,10 +185,16 @@ be expanded as literals.  Use
 .B $1 ... $<NN>
 for casting as a numeric literal and
 .B @1 ... @<NN>
-for casting as string literal.  These may be used in all contexts
-where literals are accepted.  Reference to an argument number beyond
-what was actually given is an error.
-.PP
+for casting as string literal.  The number of arguments may be accessed
+through
+.B $#
+(as a numeric literal) or through
+.B @#
+(as a string literal).  These may be used in all contexts where literals
+are accepted, including preprocessing stage.  Reference to an argument
+number beyond what was actually given is an error.
+
+.SS PREPROCESSING
 A simple conditional preprocessing stage is run as a part of parsing.
 The general form is similar to the 
 .RB cond " ? " exp1 " : " exp2
@@ -197,8 +203,9 @@ ternary operator:
 .BR %( " CONDITION " %? " TRUE-TOKENS " %)
 .BR %( " CONDITION " %? " TRUE-TOKENS " %: " FALSE-TOKENS " %)
 .ESAMPLE
-The CONDITION is a very limited expression whose format is determined
-by its first keyword.
+The CONDITION is either an expression whose format is determined by its
+first keyword, or a string literals comparison or a numeric literals
+comparison.
 .PP
 If the first part is the identifier
 .BR kernel_vr " or " kernel_v
@@ -221,6 +228,10 @@ then the second part is one of the two string comparison operators
 .BR == " or " != ,
 and the third part is a string literal for matching it.  This
 comparison is simple string (in)equality.
+.PP
+Otherwise, the CONDITION is expected to be a comparison between two string
+literals or two numeric literals.  In this case, the arguments are the only
+variables usable.
 .PP
 The TRUE-TOKENS and FALSE-TOKENS are zero or more general parser
 tokens (possibly including nested preprocessor conditionals), and are

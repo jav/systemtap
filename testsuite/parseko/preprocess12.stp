@@ -1,0 +1,5 @@
+#! stap -p1
+
+# command line argument index invalid or out of range
+# (try to access to an unavailable argument)
+%( $# < 2 %? probe begin { print @1 } %)

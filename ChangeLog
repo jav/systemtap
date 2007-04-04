@@ -1,3 +1,10 @@
+2007-04-03  Pierre Peiffer  <pierre.peiffer@bull.net>
+
+	* parse.cxx, parse.h (lexer::scan): Add $# and @# identifiers.
+	(eval_pp_conditional, scan_pp): Allow the use of $x and @x identifiers.
+	Produce more accurate error messages.
+	* stap.1.in: Document $# and @# identifiers.
+
 2007-04-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	GCC 4.3 compatibility patches from Debian.

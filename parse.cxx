@@ -1,6 +1,7 @@
 // recursive descent parser for systemtap scripts
 // Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2007 Bull S.A.S
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -146,6 +147,8 @@ parser::last ()
 // The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
 // where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
 //                 or: arch COMPARISON-OP "arch-string"
+//                 or: "string1" COMPARISON-OP "string2"
+//                 or: number1 COMPARISON-OP number2
 // The %: ELSE-TOKENS part is optional.
 //
 // e.g. %( kernel_v > "2.5" %? "foo" %: "baz" %)
@@ -212,14 +215,51 @@ bool eval_pp_conditional (systemtap_session& s,
       
       return result;
     }  
+  else if ((l->type == tok_string && r->type == tok_string)
+	   || (l->type == tok_number && r->type == tok_number))
+    {
+      // collect acceptable strverscmp results.
+      int rvc_ok1, rvc_ok2;
+      if (op->type == tok_operator && op->content == "<=")
+        { rvc_ok1 = -1; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == ">=")
+        { rvc_ok1 = 1; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == "<")
+        { rvc_ok1 = -1; rvc_ok2 = -1; }
+      else if (op->type == tok_operator && op->content == ">")
+        { rvc_ok1 = 1; rvc_ok2 = 1; }
+      else if (op->type == tok_operator && op->content == "==")
+        { rvc_ok1 = 0; rvc_ok2 = 0; }
+      else if (op->type == tok_operator && op->content == "!=")
+        { rvc_ok1 = -1; rvc_ok2 = 1; }
+      else
+        throw parse_error ("expected comparison operator", op);
+
+      int rvc_result = l->content.compare(r->content);
+
+      // normalize rvc_result
+      if (rvc_result < 0) rvc_result = -1;
+      if (rvc_result > 0) rvc_result = 1;
+
+      return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+    }
+  else if (l->type == tok_string && r->type == tok_number
+	    && op->type == tok_operator)
+    throw parse_error ("expected string literal as right value", r);
+  else if (l->type == tok_number && r->type == tok_string
+	    && op->type == tok_operator)
+    throw parse_error ("expected number literal as right value", r);
   // XXX: support other forms?  "CONFIG_SMP" ?
   else
-    throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr'", l);
+    throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr'\n"
+		       "             or comparison between strings or integers", l);
 }
 
 
+// expand_args is used to know if we must expand $x and @x identifiers.
+// Only tokens corresponding to the TRUE statement must be expanded
 const token*
-parser::scan_pp ()
+parser::scan_pp (bool expand_args)
 {
   while (true)
     {
@@ -230,7 +270,7 @@ parser::scan_pp ()
           return t;
         }
 
-      const token* t = input.scan (); // NB: not recursive!
+      const token* t = input.scan (expand_args); // NB: not recursive!
       if (t == 0) // EOF
         return t;
       
@@ -240,15 +280,17 @@ parser::scan_pp ()
       // We have a %( - it's time to throw a preprocessing party!
 
       const token *l, *op, *r;
-      l = input.scan (); // NB: not recursive, though perhaps could be
-      op = input.scan ();
-      r = input.scan ();
+      l = input.scan (expand_args); // NB: not recursive, though perhaps could be
+      op = input.scan (expand_args);
+      r = input.scan (expand_args);
       if (l == 0 || op == 0 || r == 0)
         throw parse_error ("incomplete condition after '%('", t);
       // NB: consider generalizing to consume all tokens until %?, and
       // passing that as a vector to an evaluator.
 
-      bool result = eval_pp_conditional (session, l, op, r);
+      // Do not evaluate the condition if we haven't expanded everything.
+      // This may occured when having several recursive conditionals.
+      bool result = expand_args && eval_pp_conditional (session, l, op, r);
       delete l;
       delete op;
       delete r;
@@ -259,13 +301,18 @@ parser::scan_pp ()
       delete m; // "%?"
 
       vector<const token*> my_enqueued_pp;
+      bool have_token = false;
       
       while (true) // consume THEN tokens
         {
-          m = scan_pp (); // NB: recursive
+          m = scan_pp (result); // NB: recursive
           if (m == 0)
-            throw parse_error ("missing THEN tokens for conditional", t);
-          
+	    if (have_token)
+	      throw parse_error ("incomplete conditional - missing %: or %)", t);
+	    else
+	      throw parse_error ("missing THEN tokens for conditional", t);
+
+	  have_token = true;
           if (m->type == tok_operator && (m->content == "%:" || // ELSE
                                           m->content == "%)")) // END
             break;
@@ -277,15 +324,20 @@ parser::scan_pp ()
           // continue
         }
       
+      have_token = false;
       if (m && m->type == tok_operator && m->content == "%:") // ELSE
         {
           delete m; // "%:"
           while (true)
             {
-              m = scan_pp (); // NB: recursive
+              m = scan_pp (expand_args && !result); // NB: recursive
               if (m == 0)
-                throw parse_error ("missing ELSE tokens for conditional", t);
+		if (have_token)
+		  throw parse_error ("incomplete conditional - missing %)", t);
+		else
+		  throw parse_error ("missing ELSE tokens for conditional", t);
               
+	      have_token = true;
               if (m->type == tok_operator && m->content == "%)") // END
                 break;
               // enqueue token
@@ -473,7 +525,7 @@ lexer::input_get ()
 
 
 token*
-lexer::scan ()
+lexer::scan (bool expand_args)
 {
   token* n = new token;
   n->location.file = input_name;
@@ -501,7 +553,7 @@ lexer::scan ()
 	  int c2 = input_peek ();
 	  if (! input)
 	    break;
-	  if ((isalnum(c2) || c2 == '_' || c2 == '$'))
+	  if ((isalnum(c2) || c2 == '_' || c2 == '$' || c2 == '#' ))
 	    {
 	      n->content.push_back(c2);
 	      input_get ();
@@ -514,24 +566,36 @@ lexer::scan ()
       // numbers and @1 .. @999 as strings.
       if (n->content[0] == '@' || n->content[0] == '$')
         {
-          string idxstr = n->content.substr(1);
-          const char* startp = idxstr.c_str();
-          char *endp;
-          errno = 0;
-          unsigned long idx = strtoul (startp, &endp, 10);
-          if (endp == startp)
-            ; // no numbers at all - leave alone as identifier 
-          else
-            {
-              // Use @1/$1 as the base, not @0/$0.  Thus the idx-1.
-              if (errno == ERANGE || errno == EINVAL || *endp != '\0' ||
-                  idx == 0 || idx-1 >= session.args.size ())
-                throw parse_error ("command line argument index invalid or out of range", n);
-              
-              string arg = session.args[idx-1];
-              n->type = (n->content[0] == '@') ? tok_string : tok_number;
-              n->content = arg;
-            }
+	  if (!expand_args)
+	    return n;
+	  if (n->content[1] == '#')
+	    {
+	      stringstream converter;
+	      converter << session.args.size ();
+	      n->type = (n->content[0] == '@') ? tok_string : tok_number;
+	      n->content = converter.str();
+	    }
+	  else
+	    {
+	      string idxstr = n->content.substr(1);
+	      const char* startp = idxstr.c_str();
+	      char *endp;
+	      errno = 0;
+	      unsigned long idx = strtoul (startp, &endp, 10);
+	      if (endp == startp)
+		; // no numbers at all - leave alone as identifier
+	      else
+		{
+		  // Use @1/$1 as the base, not @0/$0.  Thus the idx-1.
+		  if (errno == ERANGE || errno == EINVAL || *endp != '\0' ||
+		      idx == 0 || idx-1 >= session.args.size ())
+		    throw parse_error ("command line argument index invalid or out of range", n);
+
+		  string arg = session.args[idx-1];
+		  n->type = (n->content[0] == '@') ? tok_string : tok_number;
+		  n->content = arg;
+		}
+	    }
         }
       else
         {

@@ -1,5 +1,6 @@
 // -*- C++ -*-
 // Copyright (C) 2005 Red Hat Inc.
+// Copyright (C) 2007 Bull S.A.S
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -68,7 +69,7 @@ struct systemtap_session;
 class lexer
 {
 public:
-  token* scan ();
+  token* scan (bool expand_args=true);
   lexer (std::istream&, const std::string&, systemtap_session&);
 
 private:
@@ -128,7 +129,7 @@ private:
 
   // preprocessing subordinate
   std::vector<const token*> enqueued_pp;
-  const token* scan_pp ();
+  const token* scan_pp (bool expand_args=true);
 
   // scanning state
   const token* last ();
