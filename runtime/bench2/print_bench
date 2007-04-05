@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+load './bench.rb'
+
+# script test with empty probe
+test0 = Stapbench.new("empty probe")
+test0.code = ""
+test0.run
+test0.print
+
+# script test to printf 100 chars
+test2 = Stapbench.new("printf 100 chars")
+test2.code = 'printf("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\n")'
+test2.outfile="/dev/null"
+test2.run
+test2.print
+test2.trans=BULK
+test2.run
+test2.print
+
+# script test to print 100 chars
+test3 = Stapbench.new("print 100 chars")
+test3.code = "print(\"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789\\n\")"
+test3.outfile="/dev/null"
+test3.run
+test3.print
+test3.trans=BULK
+test3.run
+test3.print
+
+# script test to print 100 chars, 1 at a time
+test3a = Stapbench.new("print 100 chars, 1 at a time")
+test3a.code = "for (i=0; i < 100; i++) print(\"x\")"
+test3a.outfile="/dev/null"
+test3a.run
+test3a.print
+test3a.trans=BULK
+test3a.run
+test3a.print
+
+# script test to print 100 different chars, 1 at a time, using print_char
+test3b = Stapbench.new("print 100 different chars, 1 at a time, using print_char")
+test3b.code = "for (i = 0; i < 99; i++) print_char(i+32); print_char(10)"
+test3b.outfile="/dev/null"
+test3b.run
+test3b.print
+test3b.trans=BULK
+test3b.run
+test3b.print
+
+# script test to binary print 4 integers
+test4 = Stapbench.new("binary printf 4 integers (%b)")
+test4.code = "printf(\"%b%b%b%b\", 111,22,333,444)"
+test4.outfile="/dev/null"
+test4.run
+test4.print
+test4.trans = BULK
+test4.run
+test4.print
+
+# script test to binary print 4 integers
+test5 = Stapbench.new("_stp_print_binary 4 integers")
+test5.code = "stp_print_binary(4,111,22,333,444)"
+test5.outfile="/dev/null"
+test5.run
+test5.print
+test5.trans = BULK
+test5.run
+test5.print

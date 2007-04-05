@@ -265,6 +265,10 @@ class Stapbench < Bench
       sum=0
       `./itest #{threads} > bench`
       `sudo killall -HUP staprun`
+      if ($? != 0)
+	puts "status=#{$?}"
+	system("tail xxx.out")
+      end
       Process.wait	# wait for staprun to exit
       @results[threads] = `cat bench`.split[0].to_i - @@ftime[threads]
       File.open("xxx.out") do |file|
@@ -283,10 +287,10 @@ class Stapbench < Bench
   protected
 
   def load
-    args = "-vv"
-    if @trans == BULK then args = "-bvv" end
+    args = "-vv -DSTP_NO_OVERLOAD"
+    if @trans == BULK then args = "-bvv -DSTP_NO_OVERLOAD" end
     fork do exec "stap #{args} -o #{@outfile} bench.stp &> xxx.out" end
-    sleep 10
+    sleep 30
   end
   
   def compile

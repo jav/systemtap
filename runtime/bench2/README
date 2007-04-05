@@ -1,19 +1,71 @@
 This is a framework for profiling systemtap scripts and the
 underlying runtime functions.
 
-To try the tests:
->make
+To try the tests, first build the "itest" driver.
+> make
+
+Then try out some of the example tests.
 ./run_bench
 ./stap_bench
+./print_bench
 
 You will need ruby installed. "yum install ruby" or "up2date ruby" to get it.
 
+
+HOW IT WORKS
+
+"itest"  by default calls getuid() 2 million times and
+reports the time in nanoseconds per call. It can divide the work 
+across a number of threads if requested.
+
+> ./itest --help
+Usage ./itest [num_threads] [total_iterations]
+./itest will call sys_getuid() total_iterations [default 2,000,000]
+times divided across num_threads [default 1].
+
+getuid() is used because it is an existing system call with very little
+overhead and is not often used. Any background calls going on in the system
+will not have measurable impact compared to the millions of calls from itest.
+
+bench.rb is a Ruby test class that runs itest without any kprobes then with kprobes.
+It reports on the additional overhead it measures.
+
+To create a test object, you do either
+>test = Bench.new("description") OR
+>test = Stapbench.new("description")
+
+"test" is a variable name that will be your object.
+
+"Bench" is a class for raw kprobes. It is useful for measuring 
+runtime function performance or kprobe overhead.
+
+"Stapbench" is a systemtap test class. You probably want to use it.
+
+Next, give the class some code. This is the code that will be executed 
+every time sys_getuid() is hit. 
+
+>test.code = 'printf("Hello World\n")'
+
+Then run it and print the results.
+>test.run
+>test.print
+
+There are some options. Set these before running the test.
+
+>test.outfile="/dev/null"
+This will write discard any output. This is useful to measure the
+transport performance because output goes to userspace but is not
+written to disk.
+
+> test.trans=BULK
+Use bulk transport.  Default is STREAM
 
 ---- FILES ----
 a.st - sample script test file
 b.st - sample script test file
 
 itest.c - used by tests. Type "make" to build
+
 Makefile - makefile for itest
 
 run_bench - test driver with some test scripts. Tests may
