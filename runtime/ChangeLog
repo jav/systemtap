@@ -1,5 +1,9 @@
 2007-04-05  Martin Hunt  <hunt@redhat.com>
 
+	* bench2/var_bench, var.st, const.st: New test.
+	
+2007-04-05  Martin Hunt  <hunt@redhat.com>	
+
 	* bench2/bench.rb (Stapbench::run): Check result code
 	of "killall staprun". If it is nonzero, something happened to
 	staprun. Print an error.

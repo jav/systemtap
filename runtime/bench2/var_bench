@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+load './bench.rb'
+
+# This is a test of the translator's ability to detect
+# when variables are never modified and to optimize 
+# reading of them.
+
+["var.st","const.st"].each do |file|
+  File.open(file,"r") do |f|
+    desc = f.gets.sub(/^#/,'').strip
+    test = Stapbench.new(desc)
+    test.file = file
+    test.run
+    test.print
+  end
+end
+
