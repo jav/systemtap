@@ -1,3 +1,7 @@
+2007-04-05  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.samples/arith_limits.exp: Set test name correctly.
+
 2007-04-04  Pierre Peiffer  <pierre.peiffer@bull.net>
 
 	* parseok/fourteen.stp: Add test about $# and @# usage during

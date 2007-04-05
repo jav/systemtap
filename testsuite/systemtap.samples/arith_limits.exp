@@ -1,4 +1,4 @@
-set test "arith"
+set test "arith_limits"
 if {![installtest_p]} { untested $test; return }
 
 spawn stap -DMAXNESTING=5 $srcdir/$subdir/arith_limits.stp
