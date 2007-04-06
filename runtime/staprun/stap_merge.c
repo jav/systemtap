@@ -109,8 +109,6 @@ int main (int argc, char *argv[])
 			num[j] = 0;
 	} while (min);
 
-	fputs ("\n", ofp);
-
 	for (i = 0; i < ncpus; i++)
 		fclose (fp[i]);
 	fclose (ofp);

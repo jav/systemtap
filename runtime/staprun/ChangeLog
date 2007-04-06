@@ -1,3 +1,9 @@
+2007-04-06  Martin Hunt  <hunt@redhat.com>
+
+	* stp_merge.c (main): Remove extra newline in output.
+	* stap_merge.c: Renamed from stp_merge.c.
+	* Makefile: Updated.
+
 2007-04-02  Martin Hunt  <hunt@redhat.com>
 
 	* relay_old.c (close_oldrelayfs): If just detaching, call
