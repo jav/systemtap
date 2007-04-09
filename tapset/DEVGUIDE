@@ -1,0 +1,248 @@
+// Copyright (C) IBM Corp. 2007
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+TAPSET DEVELOPER'S GUIDE
+------------------------
+
+Tapsets are scripts that encapsulate knowledge about a kernel subsystem
+into pre-written probes and functions that can be used by other scripts. 
+Tapsets are analogous to libraries for C programs.  They hide the
+underlying details of a kernel area while exposing the key information
+needed to manage and monitor that aspect of the kernel.  They are typically
+developed by kernel subject-matter experts.
+
+This document assumes you are already familiar with SystemTap and the
+basics of writing a SystemTap script.  The REFERENCE MATERIAL section
+below lists other sources of SystemTap information.  At a minimum, you
+should study the SystemTap Tutorial, the HACKING file and some of the
+existing tapsets before attempting to write a tapset yourself.
+
+
+WHAT SHOULD A TAPSET CONTAIN?
+
+A tapset should expose the high-level data and state transitions of a
+subsystem. Assume the audience knows little to nothing about the
+subsystem's low-level details and probably doesn't care.  Users who need
+low-level data typically bypass the tapsets and write custom scripts
+targeted to a specific problem.
+
+The first step is to create a simple model of your subject area.  For
+example, a model of the process subsystem might include the following:
+
+Key data:
+
+* process ID
+* parent process ID
+* process group ID
+
+State transitions:
+
+* forked
+* execed
+* running
+* stopped
+* terminated
+
+NOTE: This is a simple example and not meant to be a complete list.
+
+Use your subsystem expertise to find probe points (function entries and
+exits) that expose the elements of the model, then define probe aliases
+for those points.  Be aware that some state transitions can occur in more
+than one place. In those cases, an alias can place a probe in multiple
+locations.
+
+For example, process execs can occur in either the do_execve() or the
+compat_do_execve() functions. The following alias inserts probes at the
+beginning of those functions:
+
+probe process.exec = kernel.function("do_execve"),
+                     kernel.function("compat_do_execve") {
+   < probe body >
+}
+
+Try to place probes on stable interfaces whenever possible (i.e., functions
+that are unlikely to change at the interface level).  This makes it less
+likely that the tapset will break due to changes in the kernel.  Where
+kernel version or architecture dependencies are unavoidable, use
+preprocessor conditionals (see the stap(1) man page for details).
+
+Fill in the probe bodies with the key data available at the probe points.
+Function entry probes can access the entry parameters specified to
+the function, while exit probes can access the entry parameters and the
+return value.  Convert the data into meaningful forms where appropriate
+(e.g., bytes to kilobytes, state values to strings, etc). You may need to
+use auxiliary functions to access or convert some of the data. Auxiliary
+functions often use embedded C to do things that cannot be done in the
+SystemTap language, like access structure fields in some contexts, follow
+linked lists, etc. You can use auxiliary functions defined in other tapsets
+or write your own.
+
+In the following example, copy_process() returns a pointer to the
+task_struct for the new process.  Note that the process ID of the new
+process is retrieved by calling task_pid() and passing it the task_struct
+pointer. In this case, the auxiliary function is an embedded C function
+that's defined in the task tapset (task.stp).
+
+probe process.create = kernel.function("copy_process").return {
+   task = $return
+   new_pid = task_pid(task)
+}
+
+Avoid the temptation to write probes for every function.  Most SystemTap
+users won't need or understand them.  Keep your tapset simple and high-
+level.
+
+
+ELEMENTS OF A TAPSET
+
+The following sections describe the most important aspects of writing a
+tapset and contributing it to the project.  If you're writing a tapset for
+personal use, most of these sections can be ignored, with the exception
+of "Tapset files", "Namespace" and "Embedded C & Safety."
+
+Tapset files
+------------
+Tapset files are stored in src/tapset in the SystemTap CVS directory.  
+Most are kept at that level. If you have code that only works on a specific
+architecture or kernel-version, you may choose to put that in the
+corresponding subdirectories.
+
+Installed tapsets are located in /usr/share/systemtap/tapset/
+or /usr/local/share/systemtap/tapset.
+
+Personal tapsets can be stored anywhere, but you must use 
+"-I <personal_dir> to specify their location when invoking the stap
+command.
+
+Namespace
+---------
+Probe alias names should take the form <tapset_name>.<probe_name>.  For
+example, the probe for sending a signal could be named "signal.send".
+
+Global symbol names (probes, functions and variables) should be unique
+across all tapsets.  This helps avoid namespace collisions in scripts
+that use multiple tapsets.  To ensure this, use tapset-specific prefixes
+in your global symbols.
+
+Internal symbol names should be prefixed with "_".
+
+Comments
+--------
+All probes and functions should include comment blocks that describe
+their purpose, the data they provide and the context in which they run
+(e.g., interrupt, process, etc.).  Also use comments in areas where your
+intent may not be clear from reading the code.
+
+Documentation
+-------------
+Every tapset should have its own man page called stapprobes.<tapset>(5).
+See src/man for examples.  In addition, the SEE ALSO section in the
+stapprobes(5) man page should be updated to refer to your tapset's man
+page.
+
+External functions defined in your tapset should be added to the
+stapfuncs(5) man page.
+
+Config & Makefiles
+------------------
+Add your tapset man page to the AC_CONFIG_FILES line in
+src/configure.ac, then regenerate the src/configure script by running
+autoconf.
+
+Add your tapset man page to dist_man_MANS line in src/Makefile.am, then
+regenerate src/Makefile.in by running automake.
+
+Update other Makefiles as necessary.
+
+Test cases
+----------
+All tapsets should be accompanied by test scripts.  The tests are kept
+in src/testsuite in CVS and based on dejagnu.  You must have dejagnu and
+expect installed on your system to run the tests.
+
+Your tests should validate that:
+
+- the tapset can be parsed and built
+- all probes and functions work as expected
+- all potential errors are handled appropriately
+
+See the "test suites" section of the HACKING file and the existing tests
+for details.
+
+Example Scripts
+---------------
+Provide at least one example script that uses the probe aliases and
+functions in your tapset.  This serves two purposes.  First, it shows
+script writers how you envisioned the tapset being used.  Second, and
+most important, it validates that the tapset can actually be used for
+something useful.  If you can't write a script that uses the tapset in a
+meaningful way, perhaps you should rethink what the tapset provides.
+
+Example scripts are stored in src/examples in CVS.
+
+Change Logs
+-----------
+Update the appropriate ChangeLog files with a brief description of your
+additions and changes.  Note that the change description you enter during
+a "cvs commit" does not get added to the ChangeLog files.  You must edit
+the ChangeLog files directly and commit them as well.
+
+Embedded C & Safety
+-------------------
+As mentioned previously, you can use embedded C (raw C code) to do
+things not supported by the SystemTap language.  Please do this
+carefully and sparingly. Embedded C bypasses all the safety features
+built into SystemTap.  Be especially careful when dereferencing
+pointers.  Use the kread() macro to dereference any pointers that could
+potentially be invalid.  If you're not sure, err on the side of caution.
+The cost of using kread() is small compared to the cost of your tapset
+inadvertently crashing a system!
+
+Review & Submission
+-------------------
+All new tapsets and major changes should be reviewed "early and often"
+by the SystemTap community.  You can sign up for the systemtap mailing
+list at http://sources.redhat.com/systemtap/getinvolved.html.  The
+mailing list archive is found at http://sources.redhat.com/ml/systemtap/.
+The systemtap-cvs mailing list archive is at
+http://sources.redhat.com/ml/systemtap-cvs/.
+
+You can request CVS write access at
+http://sources.redhat.com/cgi-bin/pdw/ps_form.cgi.
+
+
+REFERENCE MATERIAL
+
+The following documents, web sites and mailing lists will familiarize
+you with SystemTap:
+
+- SystemTap Tutorial.  A good introduction to SystemTap.
+  (html format:http://sourceware.org/systemtap/tutorial/,
+  PDF format: http://sourceware.org/systemtap/tutorial.pdf)
+
+- SystemTap project home page
+  (http://sourceware.org/systemtap/index.html)
+
+- SystemTap mailing lists, IRC channels and CVS instructions
+  (http://sourceware.org/systemtap/getinvolved.html)
+
+- CVS repository
+  (http://sources.redhat.com/cgi-bin/cvsweb.cgi/src/?cvsroot=systemtap)
+
+- HACKING file in the source directory.  This file outlines what's 
+  expected of project contributors.
+
+- SystemTap Wiki.  Contains papers and presentations, setup instructions
+  for various distributions, and a growing set of example scripts.
+  (http://sourceware.org/systemtap/wiki)
+
+- Existing tapsets
+
+- SystemTap Language Reference (in development, will be added to wiki
+  when released)
+
+- SystemTap Man Pages (use "man -k stap" to print a list)

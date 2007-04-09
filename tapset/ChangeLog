@@ -1,3 +1,7 @@
+2007-04-09  Mike Mason <mmlnx@us.ibm.com>
+
+	* DEVGUIDE: Added new tapset developer's guide.
+
 2007-03-30  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1570.
