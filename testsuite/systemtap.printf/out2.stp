@@ -1,0 +1,11 @@
+# output "large_output" pattern using print.
+
+# This should detect any problems in the print code, output
+# buffers or transport.
+
+probe begin 
+{
+  for (j = 0; j < 3000; j++)
+    print("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n")
+  exit()
+}

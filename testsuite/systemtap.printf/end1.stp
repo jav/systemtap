@@ -1,0 +1,18 @@
+# output "large_output" pattern using printf.
+
+# This should detect any problems in the printf code, output
+# buffers or transport.
+
+# This is the same as "out1.stp" except output is at the end probe.
+# We need this test to be sure all output from end probes gets written
+# before terminating.
+
+probe begin {
+	exit()
+}
+
+probe end
+{
+  for (j = 0; j < 3000; j++)
+    printf("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n")
+}

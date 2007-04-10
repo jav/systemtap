@@ -1,0 +1,29 @@
+set test "out3"
+set tpath "$srcdir/$subdir/$test.stp"
+set TEST_NAME "$subdir/$test"
+
+if {![installtest_p]} { untested $TEST_NAME; return }
+
+if {[catch {exec mktemp -t staptestXXXXX} tmpfile]} {
+    puts stderr "Failed to create temporary file: $tmpfile"
+    untested $TEST_NAME
+    return
+}
+
+if {[catch {exec stap -DMAXACTION=100000 -o $tmpfile $tpath} res]} {
+    untested $TEST_NAME
+    puts "$res"
+    catch {exec rm -f $tmpfile}
+    return
+}
+
+if {[catch {exec cmp $tmpfile $srcdir/$subdir/large_output} res]} {
+    fail "$TEST_NAME failed"
+    puts "$res"
+    catch {exec rm -f $tmpfile}
+    return
+}
+
+pass "$TEST_NAME passed"
+catch {exec rm -f $tmpfile}
+

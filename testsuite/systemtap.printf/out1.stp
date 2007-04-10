@@ -1,0 +1,11 @@
+# output "large_output" pattern using printf.
+
+# This should detect any problems in the printf code, output
+# buffers or transport.
+
+probe begin 
+{
+  for (j = 0; j < 3000; j++)
+    printf("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\n")
+  exit()
+}

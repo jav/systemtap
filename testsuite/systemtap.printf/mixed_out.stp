@@ -1,0 +1,20 @@
+# output "large_output" pattern using printf, print, and print_char
+
+# This should detect any problems in the mixing IO functions,
+# buffers or transport.
+
+probe begin 
+{
+  for (j = 0; j < 3000; j++) {
+    print("ABCD")
+    printf("EFGHIJKLM")
+    print("N")
+    printf("O")
+    print("PQRSTUVWXYZ")
+    for (i = 0x61; i <= 0x7a; i++)
+      print_char(i)
+    printf("\n");
+  }
+
+  exit()
+}

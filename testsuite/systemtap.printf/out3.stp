@@ -1,0 +1,17 @@
+# output "large_output" pattern using print_char.
+
+# This should detect any problems in the print_char code, output
+# buffers or transport.
+
+probe begin 
+{
+  for (j = 0; j < 3000; j++) {
+    for (i = 0x41; i <= 0x5a; i++)
+      print_char(i)
+    for (i = 0x61; i <= 0x7a; i++)
+      print_char(i)
+    print_char(10);
+  }
+
+  exit()
+}
