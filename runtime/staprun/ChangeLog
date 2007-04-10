@@ -1,3 +1,8 @@
+2007-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* relay.c (close_relayfs): Give threads some time to 
+	run before closing.
+
 2007-04-06  Martin Hunt  <hunt@redhat.com>
 
 	* stp_merge.c (main): Remove extra newline in output.

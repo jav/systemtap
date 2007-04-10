@@ -164,6 +164,7 @@ void close_relayfs(void)
 	void *res;
 	dbug("closing\n");
 
+	sleep(1);
 	stop_threads = 1;
 
 	for (i = 0; i < ncpus; i++) {
