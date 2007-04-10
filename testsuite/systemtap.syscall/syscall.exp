@@ -21,6 +21,7 @@ proc test_procedure {} {
 	    fail "$file"
 	    send_log "$res\n"
 	}
+	catch {exec rm -f $wd/$file}
     }
     
     if {$::tcl_platform(machine) == "x86_64" || 
@@ -41,6 +42,7 @@ proc test_procedure {} {
 		fail "32-bit $file"
 		send_log "$res\n"
 	    }
+	    catch {exec rm -f $wd/$file}
 	}
     }    
 }

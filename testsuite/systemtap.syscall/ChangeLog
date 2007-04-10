@@ -1,3 +1,8 @@
+2007-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* syscall.exp (test_procedure): Remove 
+	test binaries when done.
+
 2007-01-17  Martin Hunt  <hunt@redhat.com>
 
 	* test.exp: Renamed to syscall.exp.
