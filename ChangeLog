@@ -1,3 +1,8 @@
+2007-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* stp_check.in: Fixes to make sure debugfs or relayfs are mounted
+	exactly where we expect and other mounts are ignored.
+
 2007-04-03  Pierre Peiffer  <pierre.peiffer@bull.net>
 
 	* parse.cxx, parse.h (lexer::scan): Add $# and @# identifiers.
