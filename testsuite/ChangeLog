@@ -1,3 +1,12 @@
+2007-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.printf/out*: New output tests to stress output 
+	buffering and transport.
+	* systemtap.printf/mixed*: More output tests mixing print, 
+	printf, and print_char.
+	* systemtap.printf/end*: Test that output from end probes 
+	is all sent.
+	
 2007-04-05  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.samples/arith_limits.exp: Set test name correctly.
