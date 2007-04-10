@@ -1,3 +1,9 @@
+2007-04-10  Martin Hunt  <hunt@redhat.com>
+
+	* logging.stp (print_char): New function.
+
+	* aux_syscalls.stp: Clean up network includes.
+
 2007-04-09  Mike Mason <mmlnx@us.ibm.com>
 
 	* DEVGUIDE: Added new tapset developer's guide.
