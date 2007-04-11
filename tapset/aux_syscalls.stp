@@ -245,6 +245,7 @@ function _struct_itimerval:string(addr:long)
 #include <linux/version.h>
 #include <linux/socket.h>
 #include <linux/in.h>
+#include <linux/in6.h>
 #include <linux/un.h>
 #include <linux/netlink.h>
 #include <linux/if_packet.h>
