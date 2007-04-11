@@ -17,7 +17,8 @@
 
 /* mid-layer prepare a IO request */
 probe scsi.ioentry
-	= module("*").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")
+	= module("scsi_mod").function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?,
+	  kernel.function("scsi_prep_fn@drivers/scsi/scsi_lib.c")?
 {
 	if($req->rq_disk == 0)  {
 		disk_major = -1
@@ -32,7 +33,8 @@ probe scsi.ioentry
 
 /* Dispatch a command to the low-level driver. */
 probe scsi.iodispatching
-	= module("*").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")
+	= module("scsi_mod").function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?,
+	  kernel.function("scsi_dispatch_cmd@drivers/scsi/scsi.c")?
 {
 
 	host_no = $cmd->device->host->host_no
@@ -48,7 +50,9 @@ probe scsi.iodispatching
 
 /* I/O is done by low-level driver*/
 probe scsi.iodone
-	= module("*").function("scsi_done@drivers/scsi/scsi.c")
+	= module("scsi_mod").function("scsi_done@drivers/scsi/scsi.c")?,
+	  kernel.function("scsi_done@drivers/scsi/scsi.c")?
+
 {
 	host_no = $cmd->device->host->host_no
 	channel = $cmd->device->channel
@@ -62,7 +66,8 @@ probe scsi.iodone
 
 /* mid-layer processes the completed IO */
 probe scsi.iocompleted
-	= module("*").function("scsi_io_completion@drivers/scsi/scsi_lib.c")
+	= module("scsi_mod").function("scsi_io_completion@drivers/scsi/scsi_lib.c")?,
+	  kernel.function("scsi_io_completion@drivers/scsi/scsi_lib.c")?
 {
 	host_no = $cmd->device->host->host_no
 	channel = $cmd->device->channel
