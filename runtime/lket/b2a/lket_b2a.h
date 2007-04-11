@@ -7,6 +7,11 @@
 #include "/usr/include/mysql/mysql.h"
 #endif
 
+typedef struct _percpu_header {
+  int32_t seq;
+  int32_t len;
+} percpu_header;
+
 #define LKET_MAGIC	0xAEFCDB6B
 
 #define MAX_STRINGLEN	256

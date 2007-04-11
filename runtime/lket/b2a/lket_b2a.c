@@ -1,5 +1,6 @@
 // Copyright (C) 2005, 2006 IBM Corp.
 // Copyright (C) 2006 Red Hat Inc.
+// Copyright (C) 2007 Bull S.A.S
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -464,6 +465,7 @@ void find_init_header(FILE **infps, const int total_infiles)
 {
 	int 	 i, j, k;
 	int32_t magic;
+        percpu_header pcpu;
 
 	/* information from lket_init_header */
 	int16_t inithdr_len;
@@ -479,6 +481,9 @@ void find_init_header(FILE **infps, const int total_infiles)
 		b2a_error("total_infiles <= 0\n");
 	j = total_infiles;
 	for(i=0; i<total_infiles; i++) {
+          	/* skip percpu header */
+          	if(fread(&pcpu, 1, sizeof(pcpu), infps[i]) < sizeof(pcpu))
+            		continue;
 		if(fread(&magic, 1, sizeof(magic), infps[i]) < sizeof(magic))
 			continue;
 		if(magic == (int32_t)LKET_MAGIC) {
@@ -576,8 +581,20 @@ void find_init_header(FILE **infps, const int total_infiles)
  */
 int get_pkt_header(FILE *fp, lket_pkt_header *phdr)
 {
+	percpu_header pcpu;
 	size_t size;
 	if(feof(fp)) return 0;
+
+        if((size = fread(&pcpu, 1, sizeof(pcpu), fp)) < sizeof(pcpu)) {
+        	if (feof(fp)) {
+                	bzero(phdr, sizeof(lket_pkt_header));
+                        return 0;
+                } else
+                  	b2a_error("fread read %u bytes than expected %u, feof:%d\n",
+                                  (unsigned) size, (unsigned) sizeof(pcpu),
+                                  feof(fp));
+        }
+
 	if((size = fread(phdr, 1, sizeof(lket_pkt_header), fp)) < sizeof(lket_pkt_header))  {
 		if(feof(fp))  {
 			bzero(phdr, sizeof(lket_pkt_header));
