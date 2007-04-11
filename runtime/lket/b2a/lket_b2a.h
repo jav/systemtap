@@ -4,7 +4,7 @@
 #include <glib.h>
 
 #ifdef HAS_MYSQL
-#include "/usr/include/mysql/mysql.h"
+#include <mysql/mysql.h>
 #endif
 
 typedef struct _percpu_header {
