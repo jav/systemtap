@@ -1325,8 +1325,9 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 @BUILD_ELFUTILS_TRUE@.PHONY: install-elfutils
 @BUILD_ELFUTILS_TRUE@install-elfutils:
 @BUILD_ELFUTILS_TRUE@	mkdir -p $(pkglibdir)
-@BUILD_ELFUTILS_TRUE@	cp -df lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so* \
-@BUILD_ELFUTILS_TRUE@	   $(pkglibdir)
+@BUILD_ELFUTILS_TRUE@	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
+@BUILD_ELFUTILS_TRUE@	   $(INSTALL_PROGRAM) $$file $(pkglibdir); \
+@BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
 # Copy some of the testsuite sample scripts to the distdir

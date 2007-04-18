@@ -1,5 +1,11 @@
 2007-04-18  Frank Ch. Eigler  <fche@elastic.org>
 
+	* Makefile.am (install-elfutils): Use $INSTALL_PROGRAM to
+	copy elfutils shared libraries, as suggested by Perry Cheng
+	<perryche@us.ibm.com>.
+
+2007-04-18  Frank Ch. Eigler  <fche@elastic.org>
+
 	* parse.cxx (scan_pp): Correct warnings from if/if/else nesting.
 
 2007-04-10  Martin Hunt  <hunt@redhat.com>

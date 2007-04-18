@@ -45,8 +45,9 @@ lib-elfutils/libdw.so: stamp-elfutils ;
 .PHONY: install-elfutils
 install-elfutils:
 	mkdir -p $(pkglibdir)
-	cp -df lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so* \
-	   $(pkglibdir)
+	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
+	   $(INSTALL_PROGRAM) $$file $(pkglibdir); \
+	done
 install-exec-local: install-elfutils
 endif
 
