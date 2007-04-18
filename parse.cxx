@@ -307,10 +307,10 @@ parser::scan_pp (bool expand_args)
         {
           m = scan_pp (result); // NB: recursive
           if (m == 0)
-	    if (have_token)
-	      throw parse_error ("incomplete conditional - missing %: or %)", t);
-	    else
-	      throw parse_error ("missing THEN tokens for conditional", t);
+            throw parse_error (have_token ?
+                               "incomplete conditional - missing %: or %)" :
+                               "missing THEN tokens for conditional",
+                               t);
 
 	  have_token = true;
           if (m->type == tok_operator && (m->content == "%:" || // ELSE
@@ -332,11 +332,11 @@ parser::scan_pp (bool expand_args)
             {
               m = scan_pp (expand_args && !result); // NB: recursive
               if (m == 0)
-		if (have_token)
-		  throw parse_error ("incomplete conditional - missing %)", t);
-		else
-		  throw parse_error ("missing ELSE tokens for conditional", t);
-              
+		  throw parse_error (have_token ?
+                                     "incomplete conditional - missing %)" :
+                                     "missing ELSE tokens for conditional",
+                                     t);
+
 	      have_token = true;
               if (m->type == tok_operator && m->content == "%)") // END
                 break;
