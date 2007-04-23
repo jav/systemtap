@@ -120,10 +120,20 @@ probe scheduler.balance = kernel.function("idle_balance")? {}
  *    next_pid: The pid of the process to be switched in
  *    prevtsk_state: the state of the process to be switched out
  */
-probe scheduler.ctxswitch
-          = kernel.function("__switch_to")
+probe scheduler.ctxswitch =
+%( arch == "x86_64" %?
+	kernel.function("context_switch")
+%:
+	kernel.function("__switch_to")
+%)
 {
 %( arch == "ppc64" %?
+        prev_pid = $prev->pid
+        next_pid =  $new->pid
+        prev_task = $prev
+        next_task = $new
+        prevtsk_state = $prev->state
+%: %( arch == "x86_64" %?
         prev_pid = $prev->pid
         next_pid =  $new->pid
         prev_task = $prev
@@ -135,5 +145,5 @@ probe scheduler.ctxswitch
         prev_task = $prev_p
         next_task = $next_p
         prevtsk_state = $prev_p->state
-%)
+%) %)
 }
