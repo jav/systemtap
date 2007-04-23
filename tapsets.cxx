@@ -1155,13 +1155,55 @@ struct dwflpp
 
   bool die_entrypc (Dwarf_Die * die, Dwarf_Addr * addr)
   {
-    Dwarf_Attribute attr_mem;
-    Dwarf_Attribute *attr = dwarf_attr (die, DW_AT_entry_pc, &attr_mem);
-    if (attr != NULL)
-      return (dwarf_formaddr (attr, addr) == 0);
+    int rc = 0;
+    string lookup_method;
 
-    return (dwarf_lowpc (die, addr) == 0);
-    // XXX: see also _entrypc ?
+    * addr = 0;
+
+    lookup_method = "dwarf_entrypc";
+    rc = dwarf_entrypc (die, addr);
+
+    if (rc) 
+      {
+        lookup_method = "dwarf_lowpc";
+        rc = dwarf_lowpc (die, addr);
+      }
+
+    if (rc)
+      {
+        lookup_method = "dwarf_ranges";
+
+        Dwarf_Addr base;
+        Dwarf_Addr begin;
+        Dwarf_Addr end;
+        ptrdiff_t offset = dwarf_ranges (die, 0, &base, &begin, &end);
+        if (offset < 0) rc = -1;
+        else if (offset > 0)
+          {
+            * addr = begin;
+            rc = 0;
+
+            // Now we need to check that there are no more ranges
+            // associated with this function, which could conceivably
+            // happen if a function is inlined, then pieces of it are
+            // split amongst different conditional branches.  It's not
+            // obvious which of them to favour.  As a heuristic, we
+            // pick the beginning of the first range, and ignore the
+            // others (but with a warning).
+
+            unsigned extra = 0;
+            while ((offset = dwarf_ranges (die, offset, &base, &begin, &end)) > 0)
+              extra ++;
+            if (extra)
+              lookup_method += ", ignored " + lex_cast<string>(extra) + " more";
+          }
+      }
+    
+    if (sess.verbose > 2)
+      clog << "entry-pc lookup (" << lookup_method << ") = 0x" << hex << *addr << dec
+           << " (rc " << rc << ")" 
+           << endl;
+    return (rc == 0);
   }
 
   void function_die (Dwarf_Die *d)

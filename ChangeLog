@@ -1,3 +1,8 @@
+2007-04-23  Frank Ch. Eigler  <fche@redhat.com>
+
+	* tapsets.cxx (die_entrypc): Expand search algorithm to
+	check for "aranges", as sometimes occurs for inlined functions.
+
 2007-04-20  Roland McGrath  <roland@redhat.com>
 
 	* systemtap.spec.in (elfutils_version): Bump to 0.127.
