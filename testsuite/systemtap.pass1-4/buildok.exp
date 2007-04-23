@@ -5,10 +5,13 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set rc [stap_run_batch $file]
     # some tests are known to fail.
     switch $test {
-        buildok/sched_test.stp {setup_kfail 1155 *-*-*}
         buildok/perfmon01.stp {setup_kfail 909 *-*-*}
         buildok/twentysix.stp {setup_kfail 4105 *-*-*}
         buildok/twentyseven.stp {setup_kfail 4166 *-*-*}
+	buildok/lket.stp {setup_kfail 1155 *-*-*}
+	buildok/process_test.stp {setup_kfail 1155 *-*-*}
+        buildok/sched_test.stp {setup_kfail 1155 *-*-*}
+	buildok/socket.stp {setup_kfail 4413 *-*-*}
     }
     if {$rc == 0} { pass $test } else { fail $test }
 }
