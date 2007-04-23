@@ -7,43 +7,52 @@ proc test_procedure {} {
     } else {
 	set pattern "$srcdir/$subdir/*.c"
     }
-    foreach filename [lsort [glob $pattern]] {
-	set file [file tail [string range $filename 0 end-2]]
-	if {![installtest_p]} { untested $file; continue }
-	target_compile $filename $wd/$file executable $flags
-	send_log "Testing ${file}\n"
-	set res [exec $srcdir/$subdir/test.tcl $file $filename]
-	if {$res == "PASS"} {
-	    pass "$file"
-	} elseif {$res == "UNSUPP"} {
-	    unsupported "$file not supported on this arch"
-	} else {
-	    fail "$file"
-	    send_log "$res\n"
-	}
-	catch {exec rm -f $wd/$file}
+
+    # for first pass, force 64-bit compilation for 64-bit systems
+    # Add any other 64-bit arcvhitecture you want tested below.
+    # To find tcl's platform name for your machine, run the following:
+    # echo "puts $::tcl_platform(machine)" | tclsh
+    set do_64_bit_pass 0
+    if {$::tcl_platform(machine) == "x86_64" || $::tcl_platform(machine) == "ppc64"} {
+	set do_64_bit_pass 1
     }
-    
-    if {$::tcl_platform(machine) == "x86_64" || 
-        $::tcl_platform(machine) == "ppc64"} {
-	# on x86_64 and pcp64, test 32-bit and 64-bit binaries
-	set flags "additional_flags=-m32"
+
+    if {$do_64_bit_pass} {
+	set flags "additional_flags=-m64"
 	foreach filename [lsort [glob $pattern]] {
 	    set file [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested $file; continue }
 	    target_compile $filename $wd/$file executable $flags
-	    send_log "Testing 32-bit ${file}\n"
+	    send_log "Testing 64-bit ${file}\n"
 	    set res [exec $srcdir/$subdir/test.tcl $file $filename]
 	    if {$res == "PASS"} {
-		pass "32-bit $file"
+		pass "$file"
 	    } elseif {$res == "UNSUPP"} {
 		unsupported "$file not supported on this arch"
 	    } else {
-		fail "32-bit $file"
+		fail "64-bit $file"
 		send_log "$res\n"
 	    }
 	    catch {exec rm -f $wd/$file}
 	}
+    }
+
+    set flags "additional_flags=-m32"
+    foreach filename [lsort [glob $pattern]] {
+	set file [file tail [string range $filename 0 end-2]]
+	if {![installtest_p]} { untested $file; continue }
+	target_compile $filename $wd/$file executable $flags
+	send_log "Testing 32-bit ${file}\n"
+	set res [exec $srcdir/$subdir/test.tcl $file $filename]
+	if {$res == "PASS"} {
+	    pass "32-bit $file"
+	} elseif {$res == "UNSUPP"} {
+	    unsupported "$file not supported on this arch"
+	} else {
+	    fail "32-bit $file"
+	    send_log "$res\n"
+	}
+	catch {exec rm -f $wd/$file}
     }    
 }
 

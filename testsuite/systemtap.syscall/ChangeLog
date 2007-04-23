@@ -1,3 +1,8 @@
+2007-04-23  Martin Hunt  <hunt@redhat.com>
+
+	* syscall.exp (test_procedure): For 64-bit machines, first
+	run with "-m64" and then with "-m32".
+
 2007-04-10  Martin Hunt  <hunt@redhat.com>
 
 	* syscall.exp (test_procedure): Remove 
