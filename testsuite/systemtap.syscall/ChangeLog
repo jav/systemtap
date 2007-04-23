@@ -1,5 +1,9 @@
 2007-04-23  Martin Hunt  <hunt@redhat.com>
 
+	* mmap.c (main): Use open() instead of creat().
+
+2007-04-23  Martin Hunt  <hunt@redhat.com>
+	
 	* syscall.exp (test_procedure): For 64-bit machines, first
 	run with "-m64" and then with "-m32".
 

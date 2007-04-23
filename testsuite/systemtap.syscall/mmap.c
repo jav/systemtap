@@ -12,7 +12,7 @@ int main()
 	void * r;
 
 	/* create a file with something in it */
-	fd = creat("foobar",S_IREAD|S_IWRITE);
+	fd = open("foobar",O_WRONLY|O_CREAT|O_TRUNC, 0600);
 	// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = 4
 	lseek(fd, 1024, SEEK_SET);
 	write(fd, "abcdef", 6);
