@@ -12,11 +12,13 @@ int main()
   struct timespec ts;
   time_t tt;
 
+#ifdef SYS_time
   syscall(SYS_time, &tt);
   // time (XXXX) = NNNN
   
   syscall(SYS_time, NULL);
   // time (0x[0]+) = NNNN
+#endif
 
   t = syscall(SYS_gettimeofday, &tv, NULL);
   // gettimeofday (XXXX, 0x[0]+) = 0

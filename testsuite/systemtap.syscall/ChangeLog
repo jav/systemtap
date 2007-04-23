@@ -1,5 +1,9 @@
 2007-04-23  Martin Hunt  <hunt@redhat.com>
 
+	* clock.c (main): Ifdef SYS_time.
+
+2007-04-23  Martin Hunt  <hunt@redhat.com>	
+
 	* mmap.c (main): Use open() instead of creat().
 
 2007-04-23  Martin Hunt  <hunt@redhat.com>
