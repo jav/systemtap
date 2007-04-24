@@ -248,6 +248,7 @@ common_probe_entryfn_epilogue (translator_output* o,
       o->newline(1) << "if (c->cycles_sum > STP_OVERLOAD_THRESHOLD) {";
       o->newline(1) << "_stp_error (\"probe overhead exceeded threshold\");";
       o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+      o->newline() << "atomic_inc (&error_count);";
       o->newline(-1) << "}";
 
       o->newline() << "c->cycles_base = cycles_atend;";
