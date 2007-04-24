@@ -3,8 +3,12 @@
 probe socket.send, socket.receive,
       socket.sendmsg, socket.sendmsg.return,
       socket.recvmsg, socket.recvmsg.return,
-      socket.do_write, socket.do_write.return,
-      socket.do_read, socket.do_read.return
+%( kernel_v < "2.6.19" %?
+      socket.writev, socket.writev.return,
+      socket.readv, socket.readv.return,
+%)
+      socket.aio_write, socket.aio_write.return,
+      socket.aio_read, socket.aio_read.return
 {
 	log(pp())
 	log(name)
@@ -28,9 +32,6 @@ probe socket.send, socket.receive,
 	tstr = sock_type_num2str(type)
 	typ = sock_type_str2num(tstr)
 	log(sprintf("%d, %d, %s", type, typ, tstr))
-
-	mflstr = msg_flags_num2str(mflags)
-	log(sprintf("%d, %s", mflags, mflstr))
 
 	log(sprintf("%d", success))
 }

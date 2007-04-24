@@ -1,3 +1,7 @@
+2007-0-2  Mike Mason <mmlnx@us.ibm.com>
+
+	* buildok/socket.stp: Adapted to changes in 2.6.19 socket routines.
+
 2007-04-24  Will Cohen  <wcohen@redhat.com>
 
 	* buildok/memory.stp: Test vm.pagefault.return.

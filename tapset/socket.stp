@@ -34,11 +34,13 @@
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  *  success   Was send successful? (1 = yes, 0 = no)
  */
 probe socket.send = socket.sendmsg.return,
-                    socket.do_write.return
+%( kernel_v < "2.6.19" %?
+                    socket.writev.return,
+%)
+                    socket.aio_write.return
 {
 	name = "socket.send"
 }
@@ -60,11 +62,13 @@ probe socket.send = socket.sendmsg.return,
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  *  success   Was send successful? (1 = yes, 0 = no)
  */
 probe socket.receive = socket.recvmsg.return,
-                       socket.do_read.return
+%( kernel_v < "2.6.19" %?
+                       socket.readv.return,
+%)
+                       socket.aio_read.return
 {
 	name = "socket.receive"
 }
@@ -88,7 +92,6 @@ probe socket.receive = socket.recvmsg.return,
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  */
 probe socket.sendmsg = kernel.function ("sock_sendmsg")
 {
@@ -99,7 +102,6 @@ probe socket.sendmsg = kernel.function ("sock_sendmsg")
 	state = $sock->state
 	flags = $sock->flags
 	type = $sock->type
-	mflags = $msg->msg_flags
 }
 
 /*
@@ -120,7 +122,6 @@ probe socket.sendmsg = kernel.function ("sock_sendmsg")
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  *  success   Was send successful? (1 = yes, 0 = no)
  */
 probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
@@ -132,7 +133,6 @@ probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
 	state = $sock->state
 	flags = $sock->flags
 	type = $sock->type
-	mflags = $msg->msg_flags
 	success = _success_check($return)
 }
 
@@ -153,7 +153,6 @@ probe socket.sendmsg.return = kernel.function ("sock_sendmsg").return
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  */
 probe socket.recvmsg = kernel.function ("sock_recvmsg")
 {
@@ -164,7 +163,6 @@ probe socket.recvmsg = kernel.function ("sock_recvmsg")
 	state = $sock->state
 	flags = $sock->flags
 	type = $sock->type
-	mflags = $msg->msg_flags
 }
 
 /*
@@ -185,7 +183,6 @@ probe socket.recvmsg = kernel.function ("sock_recvmsg")
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  *  success   Was receive successful? (1 = yes, 0 = no)
  */
 probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
@@ -197,15 +194,14 @@ probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
 	state = $sock->state
 	flags = $sock->flags
 	type = $sock->type
-	mflags = $msg->msg_flags
 	success = _success_check($return)
 }
 
 /*
- * probe socket.do_write
+ * probe socket.aio_write
  *
  * Fires at the beginning of sending a message on a socket
- * via the do_sock_write() function
+ * via the sock_aio_write() function
  *
  * Context:
  *  The message sender
@@ -218,61 +214,58 @@ probe socket.recvmsg.return = kernel.function ("sock_recvmsg").return
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  */
-probe socket.do_write = kernel.function ("do_sock_write")
+probe socket.aio_write = kernel.function ("sock_aio_write")
 {
-	name = "socket.do_write"
-	_sock = _get_sock_addr ($file)
+	name = "socket.aio_write"
+	_sock = _get_sock_addr ($iocb->ki_filp)
 	size = _get_sock_size ($iov, $nr_segs)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
 	flags = _sock_flags_num (_sock)
 	type = _sock_type_num (_sock)
-	mflags = $msg->msg_flags
 }
 
 /*
- * probe socket.do_write.return
- *
+ * probe socket.aio_write.return
+ * 
  * Fires at the conclusion of sending a message on a socket
- * via the do_sock_write() function
+ * via the sock_aio_write() function
  *
  * Context:
  *  The message receiver.
  *
- * Variables:
+ * Variables: 
  *  name      Name of this probe
- *  size      Size of message sent (in bytes) or
+ *  size      Size of message received (in bytes) or
  *            error code if success = 0
  *  protocol  Protocol value
  *  family    Protocol family value
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
- *  success   Was send successful? (1 = yes, 0 = no)
+ *  success   Was receive successful? (1 = yes, 0 = no)
  */
-probe socket.do_write.return = kernel.function ("do_sock_write").return
+probe socket.aio_write.return = kernel.function ("sock_aio_write").return
 {
-	name = "socket.do_write.return"
+	name = "socket.aio_write.return"
 	size = $return
-	_sock = _get_sock_addr ($file)
+	_sock = _get_sock_addr ($iocb->ki_filp)
+	size = _get_sock_size ($iov, $nr_segs)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
 	flags = _sock_flags_num (_sock)
 	type = _sock_type_num (_sock)
-	mflags = $msg->msg_flags
 	success = _success_check($return)
 }
 
 /*
- * probe socket.do_read
+ * probe socket.aio_read
  *
  * Fires at the beginning of receiving a message on a socket
- * via the do_sock_read() function
+ * via the sock_aio_read() function
  *
  * Context:
  *  The message sender
@@ -285,26 +278,24 @@ probe socket.do_write.return = kernel.function ("do_sock_write").return
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  */
-probe socket.do_read = kernel.function ("do_sock_read")
+probe socket.aio_read = kernel.function ("sock_aio_read")
 {
-	name = "socket.do_read"
-	_sock = _get_sock_addr ($file)
+	name = "socket.aio_read"
+	_sock = _get_sock_addr ($iocb->ki_filp)
 	size = _get_sock_size ($iov, $nr_segs)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)
 	flags = _sock_flags_num (_sock)
 	type = _sock_type_num (_sock)
-	mflags = $msg->msg_flags
 }
 
 /*
- * probe socket.do_read.return
- *
+ * probe socket.aio_read.return
+ * 
  * Fires at the conclusion of receiving a message on a socket
- * via the do_sock_read() function
+ * via the sock_aio_read() function
  *
  * Context:
  *  The message receiver.
@@ -318,12 +309,76 @@ probe socket.do_read = kernel.function ("do_sock_read")
  *  state     Socket state value
  *  flags     Socket flags value
  *  type      Socket type value
- *  mflags    Message type value
  *  success   Was receive successful? (1 = yes, 0 = no)
  */
-probe socket.do_read.return = kernel.function ("do_sock_read").return
+probe socket.aio_read.return = kernel.function ("sock_aio_read").return
 {
-	name = "socket.do_read.return"
+	name = "socket.aio_read.return"
+	size = $return
+	_sock = _get_sock_addr ($iocb->ki_filp)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	success = _success_check($return)
+}
+
+// readv and writev were removed in 2.6.19
+%( kernel_v < "2.6.19" %?
+/*
+ * probe socket.writev
+ *
+ * Fires at the beginning of sending a message on a socket
+ * via the sock_writev() function
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ */
+probe socket.writev = kernel.function ("sock_writev")
+{
+	name = "socket.writev"
+	_sock = _get_sock_addr ($file)
+	size = _get_sock_size ($iov, $nr_segs)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+}
+
+/*
+ * probe socket.writev.return
+ *
+ * Fires at the conclusion of sending a message on a socket
+ * via the sock_writev() function
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message sent (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  success   Was send successful? (1 = yes, 0 = no)
+ */
+probe socket.writev.return = kernel.function ("sock_writev").return
+{
+	name = "socket.writev.return"
 	size = $return
 	_sock = _get_sock_addr ($file)
 	protocol = _sock_prot_num (_sock)
@@ -331,9 +386,72 @@ probe socket.do_read.return = kernel.function ("do_sock_read").return
 	state = _sock_state_num (_sock)
 	flags = _sock_flags_num (_sock)
 	type = _sock_type_num (_sock)
-	mflags = $msg->msg_flags
 	success = _success_check($return)
 }
+
+/*
+ * probe socket.readv
+ *
+ * Fires at the beginning of receiving a message on a socket
+ * via the sock_readv() function
+ *
+ * Context:
+ *  The message sender
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Message size in bytes
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ */
+probe socket.readv = kernel.function ("sock_readv")
+{
+	name = "socket.readv"
+	_sock = _get_sock_addr ($file)
+	size = _get_sock_size ($iov, $nr_segs)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+}
+
+/*
+ * probe socket.readv.return
+ *
+ * Fires at the conclusion of receiving a message on a socket
+ * via the sock_readv() function
+ *
+ * Context:
+ *  The message receiver.
+ *
+ * Variables:
+ *  name      Name of this probe
+ *  size      Size of message received (in bytes) or
+ *            error code if success = 0
+ *  protocol  Protocol value
+ *  family    Protocol family value
+ *  state     Socket state value
+ *  flags     Socket flags value
+ *  type      Socket type value
+ *  success   Was receive successful? (1 = yes, 0 = no)
+ */
+probe socket.readv.return = kernel.function ("sock_readv").return
+{
+	name = "socket.readv.return"
+	size = $return
+	_sock = _get_sock_addr ($file)
+	protocol = _sock_prot_num (_sock)
+	family = _sock_fam_num (_sock)
+	state = _sock_state_num (_sock)
+	flags = _sock_flags_num (_sock)
+	type = _sock_type_num (_sock)
+	success = _success_check($return)
+}
+%)
 
 /*
  * probe socket.create
@@ -559,7 +677,6 @@ function msg_flags_num2str:string (flags:long)
 	if (str[0] != '\0') str[strlen(str)-1] = '\0';
 	strlcpy (THIS->__retvalue, str, MAXSTRINGLEN);
 %}
-
 
 ###########################
 # INTERNAL MAPPING ARRAYS #

@@ -27,10 +27,11 @@ It contains the following probe points:
 
 Fires at the conclusion of sending a message on a socket.
 This probe alias includes the
-.B socket.sendmsg.return
+.B socket.sendmsg.return,
+.B socket.aio_write.return
 and
-.B socket.do_write.return
-probes (these two probes should
+.B socket.writev.return
+probes (these probes should
 catch all messages sent on sockets).  The arguments supplied at the beginning
 of the send are cached and made available in this probe.
 
@@ -127,28 +128,6 @@ The message sender.
         6  - DCCP (datagram congestion control protocol socket)
         10 - PACKET (Linux-specific way of getting packets at device level)
 
-.I mflags
-    Message type bitmap.  Use msg_flags_num2str(flags) to convert
-    to a string.
-
-    Possible bit settings are:
-        0x01   - OOB
-        0x02   - PEEK
-        0x04   - DONTROUTE
-        0x08   - CTRUNC
-        0x10   - PROBE (Do not send. Only probe path f.e. for MTU)
-        0x20   - TRUNC
-        0x40   - DONTWAIT (Nonblocking IO)
-        0x80   - EOR (End of record)
-        0x100  - WAITALL (Wait for a full request)
-        0x200  - FIN
-        0x400  - SYN
-        0x800  - CONFIRM (Confirm path validity)
-        0x1000 - RST
-        0x2000 - ERRQUEUE (Fetch message from error queue)
-        0x4000 - NOSIGNAL (Do not generate SIGPIPE)
-        0x8000 - MORE (Sender will send more)
-
 .I success
     Was send successful?
 
@@ -161,10 +140,11 @@ The message sender.
 
 Fires at the conclusion of receiving a message on a socket.
 This probe alias includes the
-.B socket.recvmsg.return
+.B socket.recvmsg.return,
+.B socket.aio_read.return
 and
-.B socket.do_read.return
-probes (these two probes should
+.B socket.readv.return
+probes (these probes should
 catch all messages received on sockets).  The arguments supplied at
 the beginning of the receive are cached and made available in this probe.
 
@@ -251,10 +231,15 @@ The message receiver.
 Same as 
 .B socket.receive.
 
-.TP
-.B socket.do_write
 
-Fires when the do_sock_write() kernel function is entered.
+
+
+
+
+.TP
+.B socket.aio_write
+
+Fires when the sock_aio_write() kernel function is entered.
 
 .B Context:
 
@@ -275,9 +260,9 @@ with the following exceptions:
     Not used.
 
 .TP
-.B socket.do_write.return
+.B socket.aio_write.return
 
-Fires when the do_sock_write() kernel function returns.
+Fires when the sock_aio_write() kernel function returns.
 
 .B Context:
 
@@ -289,9 +274,9 @@ Same as
 .B socket.send.
 
 .TP
-.B socket.do_read
+.B socket.aio_read
 
-Fires when the do_sock_read() kernel function is entered.
+Fires when the sock_aio_read() kernel function is entered.
 
 .B Context:
 
@@ -312,9 +297,83 @@ with the following exceptions:
     Not used.
 
 .TP
-.B socket.do_read.return
+.B socket.aio_read.return
 
-Fires when the do_sock_read() kernel function returns.
+Fires when the sock_aio_read() kernel function returns.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as
+.B socket.receive.
+
+.TP
+.B socket.writev
+
+Fires when the sock_writev() kernel function is entered.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send,
+with the following exceptions:
+
+.I size
+
+    Size of message being sent (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.writev.return
+
+Fires when the sock_writev() kernel function returns.
+
+.B Context:
+
+The message sender.
+
+.B Arguments:
+
+Same as
+.B socket.send.
+
+.TP
+.B socket.readv
+
+Fires when the sock_readv() kernel function is entered.
+
+.B Context:
+
+The message receiver.
+
+.B Arguments:
+
+Same as 
+.B socket.receive,
+with the following exceptions:
+
+.I size
+
+    Size of message being received (in bytes).
+
+.I success
+
+    Not used.
+
+.TP
+.B socket.readv.return
+
+Fires when the sock_readv() kernel function returns.
 
 .B Context:
 

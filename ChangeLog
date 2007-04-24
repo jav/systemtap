@@ -1,3 +1,8 @@
+2007-04-24  Mike Mason <mmlnx@us.ibm.com>
+
+	* man/stapprobes.socket.5.in: Removed do_write and do_read probes,
+	added aio_write, aio_read, writev and readv probes. 
+
 2007-04-24  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (common_probe_entryfn_epilogue): Increment
