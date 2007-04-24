@@ -13,7 +13,7 @@ proc test_procedure {} {
     # To find tcl's platform name for your machine, run the following:
     # echo "puts $::tcl_platform(machine)" | tclsh
     set do_64_bit_pass 0
-    if {$::tcl_platform(machine) == "x86_64" || $::tcl_platform(machine) == "ppc64"} {
+    if {$::tcl_platform(machine) == "x86_64" || $::tcl_platform(machine) == "ppc64" || $::tcl_platform(machine) == "s390x" } {
 	set do_64_bit_pass 1
     }
 
@@ -37,7 +37,12 @@ proc test_procedure {} {
 	}
     }
 
+    if { $::tcl_platform(machine) == "s390x" } {
+	set flags "additional_flags=-m31"
+    } else {
     set flags "additional_flags=-m32"
+    }
+
     foreach filename [lsort [glob $pattern]] {
 	set file [file tail [string range $filename 0 end-2]]
 	if {![installtest_p]} { untested $file; continue }
