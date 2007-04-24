@@ -1,3 +1,8 @@
+2007-04-24  Will Cohen  <wcohen@redhat.com>
+
+	* tapset/memory.stp:	Add matching vm.pagefault.return
+	* testsuite/buildok/memory.stp: Test vm.pagefault.return.
+
 2007-04-24  Martin Hunt  <hunt@redhat.com>
 
 	* stp_check.in: More tweaking of mount statement.

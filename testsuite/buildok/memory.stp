@@ -3,3 +3,8 @@ probe vm.pagefault
 {
 	printf("ppname: %s, %d, %p\n", probefunc(), write_access, address)
 }
+
+probe vm.pagefault.return
+{
+	printf("ppname: %s, %d\n", probefunc(), fault_type)
+}

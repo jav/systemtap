@@ -26,6 +26,23 @@ probe vm.pagefault = kernel.function(
 	address =  $address
 }
 
+/* probe vm.pagefault.return
+ *
+ *  Records type of fault that occurred.
+ *
+ * Context:
+ *  The process which triggered the fault.
+ *
+ * Arguments:
+ *  fault_type - type of fault
+ */
+probe vm.pagefault.return = kernel.function(
+        %( kernel_v >= "2.6.13" %? "__handle_mm_fault" %: "handle_mm_fault" %)
+        ).return
+{
+	fault_type = $return
+}
+
 /* Return which node the given address belongs to in a NUMA system */
 function addr_to_node:long(addr:long)  /* pure */ 
 %{
