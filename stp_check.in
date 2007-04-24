@@ -8,13 +8,13 @@ RELAYFS_FS=`grep relayfs_create_dir /proc/kallsyms`
 RELAY=`grep relay_open /proc/kallsyms`
 if [ -n "$RELAY" -a -z "$RELAYFS_FS" ]
 then
-	MOUNT=`mount | grep "/sys/kernel/debug" |awk '{print $1}'`
-	if [ "$MOUNT" != "debugfs" ]
+	MOUNT=`mount -t debugfs | grep "/sys/kernel/debug"`
+	if [ "$MOUNT" == "" ]
 	then
 		mount -t debugfs debugfs /sys/kernel/debug
 	fi
-	MOUNT=`mount | grep "/sys/kernel/debug" |awk '{print $1}'`
-	if [ "$MOUNT" != "debugfs" ]
+	MOUNT=`mount -t debugfs | grep "/sys/kernel/debug"`
+	if [ "$MOUNT" == "" ]
 	then
 		exit 1
 	fi
@@ -26,8 +26,8 @@ then
     mkdir /mnt/relay
 fi
 
-MOUNT=`mount | grep "/mnt/relay" |awk '{print $1}'`
-if [ "$MOUNT" != "relayfs" ]
+MOUNT=`mount -t relayfs | grep "/mnt/relay"`
+if [ "$MOUNT" == "" ]
 then
 	mount -t relayfs relayfs /mnt/relay
 fi

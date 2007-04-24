@@ -1,3 +1,7 @@
+2007-04-24  Martin Hunt  <hunt@redhat.com>
+
+	* stp_check.in: More tweaking of mount statement.
+
 2007-04-23  Frank Ch. Eigler  <fche@redhat.com>
 
 	* tapsets.cxx (die_entrypc): Expand search algorithm to
