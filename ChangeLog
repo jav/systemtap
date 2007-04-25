@@ -1,3 +1,33 @@
+2007-04-25  David Smith  <dsmith@redhat.com>
+
+	PR 2339
+	* translate.cxx: Renamed "qname" to "value" throughout, since
+	there are times now when qname would refer to a constant value.
+	(tmpvar::override): Added function to allow for overriding a
+	temporary variable name with a string.
+	(tmpvar::value): New function that returns either the overridden
+	string or the temporary variable name.
+	(c_unparser::c_expression): New function.
+	(c_unparser_assignment::c_assignop): Speed up assignment when
+	numeric or string constants are used.
+	(c_tmpcounter::visit_block): Avoid empty structs inside the union
+	of temporary variables.
+	(c_tmpcounter_assignment::prepare_rvalue): New function.
+	(c_tmpcounter_assignment::c_assignop): New function.
+	(c_tmpcounter_assignment::visit_symbol): Update temporary
+	declarations.
+	(c_unparser_assignment::prepare_rvalue): Speed up use of rvalues
+	by using numeric and string constants directly instead of copying
+	them to temporaries first.
+	(c_tmpcounter::load_map_indices): New function.
+	(c_unparser::load_map_indices): Speed up use of numeric and string
+	constants as map indices.
+	(c_tmpcounter::visit_arrayindex): Updated temporary declarations.
+	(c_tmpcounter_assignment::visit_arrayindex): Updated temporary
+	declarations.
+	* translate.h (class translator_output): Added tellp() and seekp()
+	functions.
+
 2007-04-24  Mike Mason <mmlnx@us.ibm.com>
 
 	* man/stapprobes.socket.5.in: Removed do_write and do_read probes,

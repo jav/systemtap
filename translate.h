@@ -34,6 +34,9 @@ public:
   std::ostream& newline (int indent = 0);
   void indent (int indent = 0);
   std::ostream& line();
+
+  std::ostream::pos_type tellp() { return o.tellp(); }
+  std::ostream& seekp(std::ostream::pos_type p) { return o.seekp(p); }
 };
 
 

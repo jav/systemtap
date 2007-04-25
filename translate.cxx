@@ -70,6 +70,7 @@ struct c_unparser: public unparser, public visitor
 
   string c_typename (exp_type e);
   string c_varname (const string& e);
+  string c_expression (expression* e);
 
   void c_assign (var& lvalue, const string& rvalue, const token* tok);
   void c_assign (const string& lvalue, expression* rvalue, const string& msg);
@@ -153,6 +154,8 @@ struct c_tmpcounter:
     parent->tmpvar_counter = 0;
   }
 
+  void load_map_indices(arrayindex* e);
+
   void visit_block (block *s);
   void visit_for_loop (for_loop* s);
   void visit_foreach_loop (foreach_loop* s);
@@ -190,7 +193,7 @@ struct c_unparser_assignment:
     parent (p), op (o), rvalue (0), post (pp) {}
 
   void prepare_rvalue (string const & op, 
-		       tmpvar const & rval,
+		       tmpvar & rval,
 		       token const*  tok);
 
   void c_assignop(tmpvar & res, 
@@ -211,8 +214,13 @@ struct c_tmpcounter_assignment:
   c_tmpcounter* parent;
   const string& op;
   expression* rvalue;
-  c_tmpcounter_assignment (c_tmpcounter* p, const string& o, expression* e):
-    parent (p), op (o), rvalue (e) {}
+  bool post; // true == value saved before modify operator
+  c_tmpcounter_assignment (c_tmpcounter* p, const string& o, expression* e, bool pp = false):
+    parent (p), op (o), rvalue (e), post (pp) {}
+
+  void prepare_rvalue (tmpvar & rval);
+
+  void c_assignop(tmpvar & res);
 
   // only symbols and arrayindex nodes are possible lvalues
   void visit_symbol (symbol* e);
@@ -314,7 +322,7 @@ public:
     return ty;
   }
 
-  string qname() const
+  string value() const
   {
     if (local)
       return "l->" + name;
@@ -326,14 +334,14 @@ public:
   {
     assert (ty == pe_stats);
     assert (sd.type != statistic_decl::none);
-    return "(&(" + qname() + "->hist))";
+    return "(&(" + value() + "->hist))";
   }
 
   virtual string buckets() const
   {
     assert (ty == pe_stats);
     assert (sd.type != statistic_decl::none);
-    return "(" + qname() + "->hist.buckets)";
+    return "(" + value() + "->hist.buckets)";
   }
 
   string init() const
@@ -344,19 +352,19 @@ public:
         if (! local)
           return ""; // module_param
         else
-	  return qname() + "[0] = '\\0';";
+	  return value() + "[0] = '\\0';";
       case pe_long:
         if (! local)
           return ""; // module_param
         else
-          return qname() + " = 0;";
+          return value() + " = 0;";
       case pe_stats:
         {
           // See also mapvar::init().
           
-          string prefix = qname() + " = _stp_stat_init (";
+          string prefix = value() + " = _stp_stat_init (";
           // Check for errors during allocation.
-          string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
+          string suffix = "if (" + value () + " == NULL) rc = -ENOMEM;";
           
           switch (sd.type)
             {
@@ -377,7 +385,7 @@ public:
               break;
               
             default:
-              throw semantic_error("unsupported stats type for " + qname());
+              throw semantic_error("unsupported stats type for " + value());
             }
           
           prefix = prefix + "); ";
@@ -385,7 +393,7 @@ public:
         }
         
       default:
-	throw semantic_error("unsupported initializer for " + qname());
+	throw semantic_error("unsupported initializer for " + value());
       }
   }
 
@@ -397,7 +405,7 @@ public:
 
 ostream & operator<<(ostream & o, var const & v)
 {
-  return o << v.qname();
+  return o << v.value();
 }
 
 struct stmt_expr
@@ -418,11 +426,39 @@ struct stmt_expr
 struct tmpvar
   : public var
 {
+protected:
+  bool overridden;
+  string override_value;
+
+public:
   tmpvar(exp_type ty, 
 	 unsigned & counter) 
-    : var(true, ty, ("__tmp" + stringify(counter++)))
+    : var(true, ty, ("__tmp" + stringify(counter++))), overridden(false)
   {}
+
+  tmpvar(const var& source)
+    : var(source), overridden(false)
+  {}
+
+  void override(const string &value)
+  {
+    overridden = true;
+    override_value = value;
+  }
+
+  string value() const
+  {
+    if (overridden)
+      return override_value;
+    else
+      return var::value();
+  }  
 };
+
+ostream & operator<<(ostream & o, tmpvar const & v)
+{
+  return o << v.value();
+}
 
 struct aggvar
   : public var
@@ -434,7 +470,7 @@ struct aggvar
   string init() const
   {
     assert (type() == pe_stats);
-    return qname() + " = NULL;";
+    return value() + " = NULL;";
   }
 
   void declare(c_unparser &c) const
@@ -493,13 +529,13 @@ struct mapvar
   {
     string mtype = (is_parallel() && !pre_agg) ? "pmap" : "map";
     string result = "_stp_" + mtype + "_" + fname + "_" + keysym() + " (";
-    result += pre_agg? fetch_existing_aggregate() : qname();
+    result += pre_agg? fetch_existing_aggregate() : value();
     for (unsigned i = 0; i < indices.size(); ++i)
       {
 	if (indices[i].type() != index_types[i])
 	  throw semantic_error("index type mismatch");
 	result += ", ";
-	result += indices[i].qname();
+	result += indices[i].value();
       }
 
     return result;
@@ -515,7 +551,7 @@ struct mapvar
     if (!is_parallel())
       throw semantic_error("aggregating non-parallel map type");
     
-    return "_stp_pmap_agg (" + qname() + ")";
+    return "_stp_pmap_agg (" + value() + ")";
   }
 
   string fetch_existing_aggregate() const
@@ -523,7 +559,7 @@ struct mapvar
     if (!is_parallel())
       throw semantic_error("fetching aggregate of non-parallel map type");
     
-    return "_stp_pmap_get_agg(" + qname() + ")";
+    return "_stp_pmap_get_agg(" + value() + ")";
   }
 
   string del (vector<tmpvar> const & indices) const
@@ -561,7 +597,7 @@ struct mapvar
 
     // impedance matching: empty strings -> NULL
     if (type() == pe_stats)
-      res += (call_prefix("add", indices) + ", " + val.qname() + ")");
+      res += (call_prefix("add", indices) + ", " + val.value() + ")");
     else
       throw semantic_error("adding a value of an unsupported map type");
 
@@ -580,9 +616,9 @@ struct mapvar
     // impedance matching: empty strings -> NULL
     if (type() == pe_string)
       res += (call_prefix("set", indices) 
-	      + ", (" + val.qname() + "[0] ? " + val.qname() + " : NULL))");
+	      + ", (" + val.value() + "[0] ? " + val.value() + " : NULL))");
     else if (type() == pe_long)
-      res += (call_prefix("set", indices) + ", " + val.qname() + ")");
+      res += (call_prefix("set", indices) + ", " + val.value() + ")");
     else
       throw semantic_error("setting a value of an unsupported map type");
 
@@ -611,13 +647,13 @@ struct mapvar
   string init () const
   {
     string mtype = is_parallel() ? "pmap" : "map";
-    string prefix = qname() + " = _stp_" + mtype + "_new_" + keysym() + " (" + 
+    string prefix = value() + " = _stp_" + mtype + "_new_" + keysym() + " (" + 
       (maxsize > 0 ? stringify(maxsize) : "MAXMAPENTRIES") ;
 
     // See also var::init().
 
     // Check for errors during allocation.
-    string suffix = "if (" + qname () + " == NULL) rc = -ENOMEM;";
+    string suffix = "if (" + value () + " == NULL) rc = -ENOMEM;";
 
     if (type() == pe_stats)
       {
@@ -655,9 +691,9 @@ struct mapvar
     // functions.
 
     if (is_parallel())
-      return "_stp_pmap_del (" + qname() + ");";
+      return "_stp_pmap_del (" + value() + ");";
     else
-      return "_stp_map_del (" + qname() + ");";
+      return "_stp_map_del (" + value() + ");";
   }
 };
 
@@ -692,7 +728,7 @@ public:
     if (mv.is_parallel())
       return "_stp_map_start (" + mv.fetch_existing_aggregate() + ")";
     else
-      return "_stp_map_start (" + mv.qname() + ")";
+      return "_stp_map_start (" + mv.value() + ")";
   }
 
   string next (mapvar const & mv) const
@@ -701,12 +737,12 @@ public:
       throw semantic_error("inconsistent iterator type in itervar::next()");
 
     if (mv.is_parallel())
-      return "_stp_map_iter (" + mv.fetch_existing_aggregate() + ", " + qname() + ")";
+      return "_stp_map_iter (" + mv.fetch_existing_aggregate() + ", " + value() + ")";
     else
-      return "_stp_map_iter (" + mv.qname() + ", " + qname() + ")";
+      return "_stp_map_iter (" + mv.value() + ", " + value() + ")";
   }
 
-  string qname () const
+  string value () const
   {
     return "l->" + name;
   }
@@ -718,11 +754,11 @@ public:
     switch (ty)
       {
       case pe_long:
-	return "_stp_key_get_int64 ("+ qname() + ", " + stringify(i+1) + ")";
+	return "_stp_key_get_int64 ("+ value() + ", " + stringify(i+1) + ")";
       case pe_string:
         // impedance matching: NULL -> empty strings
 	return "({ char *v = "
-          "_stp_key_get_str ("+ qname() + ", " + stringify(i+1) + "); "
+          "_stp_key_get_str ("+ value() + ", " + stringify(i+1) + "); "
           "if (! v) v = \"\"; "
           "v; })";
       default:
@@ -733,7 +769,7 @@ public:
 
 ostream & operator<<(ostream & o, itervar const & v)
 {
-  return o << v.qname();
+  return o << v.value();
 }
 
 // ------------------------------------------------------------------------
@@ -1743,13 +1779,54 @@ c_unparser::c_varname (const string& e)
   return e;
 }
 
+
+string
+c_unparser::c_expression (expression *e)
+{
+  // We want to evaluate expression 'e' and return its value as a
+  // string.  In the case of expressions that are just numeric
+  // constants, if we just print the value into a string, it won't
+  // have the same value as being visited by c_unparser.  For
+  // instance, a numeric constant evaluated using print() would return
+  // "5", while c_unparser::visit_literal_number() would
+  // return "((int64_t)5LL)".  String constants evalutated using
+  // print() would just return the string, while
+  // c_unparser::visit_literal_string() would return the string with
+  // escaped double quote characters.  So, we need to "visit" the
+  // expression.
+
+  // However, we have to be careful of side effects.  Currently this
+  // code is only being used for evaluating literal numbers and
+  // strings, which currently have no side effects.  Until needed
+  // otherwise, limit the use of this function to literal numbers and
+  // strings.
+  if (e->tok->type != tok_number && e->tok->type != tok_string)
+    throw semantic_error("unsupported c_expression token type");
+
+  // Create a fake output stream so we can grab the string output.
+  ostringstream oss;
+  translator_output tmp_o(oss);
+
+  // Temporarily swap out the real translator_output stream with our
+  // fake one.
+  translator_output *saved_o = o;
+  o = &tmp_o;
+
+  // Visit the expression then restore the original output stream
+  e->visit (this);
+  o = saved_o;
+
+  return (oss.str());
+}
+
+
 void 
 c_unparser::c_assign (var& lvalue, const string& rvalue, const token *tok)
 {  
   switch (lvalue.type())
     {
     case pe_string:
-      c_strcpy(lvalue.qname(), rvalue);
+      c_strcpy(lvalue.value(), rvalue);
       break;
     case pe_long:
       o->newline() << lvalue << " = " << rvalue << ";";
@@ -1812,9 +1889,9 @@ c_unparser_assignment::c_assignop(tmpvar & res,
   // 'op' fields of c_unparser_assignment) is taking place between the
   // following set of variables:
   //
-  // _res: the result of evaluating the expression, a temporary
+  // res: the result of evaluating the expression, a temporary
   // lval: the lvalue of the expression, which may be damaged
-  // rval: the rvalue of the expression, which is a temporary
+  // rval: the rvalue of the expression, which is a temporary or constant
 
   // we'd like to work with a local tmpvar so we can overwrite it in 
   // some optimized cases
@@ -1828,17 +1905,14 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 			      tok);
       if (op == "=")
 	{
-	  parent->c_strcpy (lval.qname(), rval.qname());
+	  parent->c_strcpy (lval.value(), rval.value());
 	  // no need for second copy
 	  res = rval;
 	}
       else if (op == ".=")
 	{
-	  // shortcut two-step construction of concatenated string in
-	  // empty res, then copy to a: instead concatenate to a
-	  // directly, then copy back to res
-	  parent->c_strcat (lval.qname(), rval.qname());
-	  parent->c_strcpy (res.qname(), lval.qname());
+	  parent->c_strcat (lval.value(), rval.value());
+	  res = lval;
 	}
       else
 	throw semantic_error ("string assignment operator " +
@@ -1866,12 +1940,12 @@ c_unparser_assignment::c_assignop(tmpvar & res,
       unsigned oplen = op.size();
       if (op == "=")
 	macop = "*error*"; // special shortcuts below
-      else if (oplen > 1 && op[oplen-1] == '=') // for +=, %=, <<=, etc...
+      else if (op == "++" || op == "+=")
+        macop = "+=";
+      else if (op == "--" || op == "-=")
+	macop = "-=";
+      else if (oplen > 1 && op[oplen-1] == '=') // for %=, <<=, etc...
 	macop = op.substr(0, oplen-1);
-      else if (op == "++")
-	macop = "+";
-      else if (op == "--")
-	macop = "-";
       else
 	// internal error
 	throw semantic_error ("unknown macop for assignment", tok);
@@ -1882,7 +1956,11 @@ c_unparser_assignment::c_assignop(tmpvar & res,
             throw semantic_error ("invalid post-mode operator", tok);
 
 	  o->newline() << res << " = " << lval << ";";
-          o->newline() << lval << " = " << res << " " << macop << " " << rval << ";";
+
+	  if (macop == "+=" || macop == "-=")
+	    o->newline() << lval << " " << macop << " " << rval << ";";
+	  else
+	    o->newline() << lval << " = " << res << " " << macop << " " << rval << ";";
 	}
       else
 	{
@@ -1891,6 +1969,13 @@ c_unparser_assignment::c_assignop(tmpvar & res,
               o->newline() << lval << " = " << rval << ";";
               res = rval;
             }
+	  // Handle "+=", "++", "-=" and "--".  Note that "x++" gets
+	  // turned into "x += 1".
+	  else if (macop == "+=" || macop == "-=")
+	    {
+	      o->newline() << lval << " " << macop << " " << rval << ";";
+              res = lval;
+	    }
           else
             {
               if (macop == "/")
@@ -2189,10 +2274,22 @@ c_tmpcounter::visit_block (block *s)
   parent->o->indent(1);
   for (unsigned i=0; i<s->statements.size(); i++)
     {
+      // To avoid lots of empty structs inside the union, remember
+      // where we are now.  Then, output the struct start and remember
+      // that positon.  If when we get done with the statement we
+      // haven't moved, then we don't really need the struct.  To get
+      // rid of the struct start we output, we'll seek back to where
+      // we were before we output the struct.
+      std::ostream::pos_type before_struct_pos = parent->o->tellp();
       parent->o->newline() << "struct {";
       parent->o->indent(1);
+      std::ostream::pos_type after_struct_pos = parent->o->tellp();
       s->statements[i]->visit (this);
-      parent->o->newline(-1) << "};";
+      parent->o->indent(-1);
+      if (after_struct_pos == parent->o->tellp())
+	parent->o->seekp(before_struct_pos);
+      else
+	parent->o->newline() << "};";
     }
   parent->o->newline(-1) << "};";
 }
@@ -2379,7 +2476,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
         {
 	  // Evaluate the limit expression once.
 	  res_limit = new tmpvar(gensym(pe_long));
-	  c_assign (res_limit->qname(), s->limit, "foreach limit");
+	  c_assign (res_limit->value(), s->limit, "foreach limit");
 	}
       
       // aggregate array if required
@@ -2417,13 +2514,13 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	    {
 	      if (s->limit)
 	        {
-		  o->newline() << "_stp_map_sortn (" << mv.qname() << ", "
+		  o->newline() << "_stp_map_sortn (" << mv.value() << ", "
 			       << *res_limit << ", " << s->sort_column << ", "
 			       << - s->sort_direction << ");";
 		}
 	      else
 	        {
-		  o->newline() << "_stp_map_sort (" << mv.qname() << ", "
+		  o->newline() << "_stp_map_sort (" << mv.value() << ", "
 			       << s->sort_column << ", "
 			       << - s->sort_direction << ");";
 		}
@@ -2433,7 +2530,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // NB: sort direction sense is opposite in runtime, thus the negation
       
       if (mv.is_parallel())
-	aggregations_active.insert(mv.qname());
+	aggregations_active.insert(mv.value());
       o->newline() << iv << " = " << iv.start (mv) << ";";
       
       tmpvar *limitv = NULL;
@@ -2493,7 +2590,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       o->newline(1) << "; /* dummy statement */";
 
       if (mv.is_parallel())
-	aggregations_active.erase(mv.qname());
+	aggregations_active.erase(mv.value());
     }
   else
     {
@@ -2515,7 +2612,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
         {
 	  // Evaluate the limit expression once.
 	  res_limit = new tmpvar(gensym(pe_long));
-	  c_assign (res_limit->qname(), s->limit, "foreach limit");
+	  c_assign (res_limit->value(), s->limit, "foreach limit");
 
 	  // Create the loop limit variable here and initialize it.
 	  limitv = new tmpvar(gensym (pe_long));
@@ -2613,9 +2710,9 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
       parent->o->newline() << mvar.init ();  
       */
       if (mvar.is_parallel())
-	parent->o->newline() << "_stp_pmap_clear (" << mvar.qname() << ");";
+	parent->o->newline() << "_stp_pmap_clear (" << mvar.value() << ");";
       else
-	parent->o->newline() << "_stp_map_clear (" << mvar.qname() << ");";
+	parent->o->newline() << "_stp_map_clear (" << mvar.value() << ");";
     }
   else
     {
@@ -2623,13 +2720,13 @@ delete_statement_operand_visitor::visit_symbol (symbol* e)
       switch (e->type)
 	{
 	case pe_stats:
-	  parent->o->newline() << "_stp_stat_clear (" << v.qname() << ");";
+	  parent->o->newline() << "_stp_stat_clear (" << v.value() << ");";
 	  break;
 	case pe_long:
-	  parent->o->newline() << v.qname() << " = 0;";
+	  parent->o->newline() << v.value() << " = 0;";
 	  break;
 	case pe_string:
-	  parent->o->newline() << v.qname() << "[0] = '\\0';";
+	  parent->o->newline() << v.value() << "[0] = '\\0';";
 	  break;
 	case pe_unknown:
 	default:
@@ -3014,8 +3111,8 @@ c_unparser::visit_concatenation (concatenation* e)
   o->line() << "({ ";
   o->indent(1);
   o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-  c_assign (t.qname(), e->left, "assignment");
-  c_strcat (t.qname(), e->right);
+  c_assign (t.value(), e->left, "assignment");
+  c_strcat (t.value(), e->right);
   o->newline() << t << ";";
   o->newline(-1) << "})";
 }
@@ -3103,7 +3200,7 @@ c_unparser::visit_pre_crement (pre_crement* e)
 void
 c_tmpcounter::visit_post_crement (post_crement* e)
 {
-  c_tmpcounter_assignment tav (this, e->op, 0);
+  c_tmpcounter_assignment tav (this, e->op, 0, true);
   e->operand->visit (& tav);
 }
 
@@ -3134,6 +3231,46 @@ c_unparser::visit_symbol (symbol* e)
 }
 
 
+void
+c_tmpcounter_assignment::prepare_rvalue (tmpvar & rval)
+{
+  if (rvalue)
+    {
+      // literal number and strings don't need any temporaries declared
+      if (rvalue->tok->type != tok_number && rvalue->tok->type != tok_string)
+	rval.declare (*(parent->parent));
+
+      rvalue->visit (parent);
+    }
+}
+
+void 
+c_tmpcounter_assignment::c_assignop(tmpvar & res)
+{
+  if (res.type() == pe_string)
+    {
+      // string assignment doesn't need any temporaries declared
+    }
+  else if (op == "<<<")
+    res.declare (*(parent->parent));
+  else if (res.type() == pe_long)
+    {
+      if (post)
+	res.declare (*(parent->parent));
+      else
+	{
+	  if (op == "=" || op == "+=" || op == "++"
+	      || op == "-=" || op == "--")
+	    {
+	      // these operators don't need any temporaries declared,
+	      // since they just return the result
+	    }
+          else
+	    res.declare (*(parent->parent));
+	}
+    }
+}
+
 // Assignment expansion is tricky.
 //
 // Because assignments are nestable expressions, we have
@@ -3161,34 +3298,39 @@ void
 c_tmpcounter_assignment::visit_symbol (symbol *e)
 {
   exp_type ty = rvalue ? rvalue->type : e->type;
-  tmpvar tmp = parent->parent->gensym (ty);
+  tmpvar rval = parent->parent->gensym (ty);
   tmpvar res = parent->parent->gensym (ty);
 
-  tmp.declare (*(parent->parent));
+  prepare_rvalue(rval);
 
-  if (op != "=") // simple assignment is shortcut both for strings and numbers
-    res.declare (*(parent->parent));
-
-  if (rvalue)
-    rvalue->visit (parent);
+  c_assignop (res);
 }
 
 
 void
 c_unparser_assignment::prepare_rvalue (string const & op, 
-				       tmpvar const & rval,
+				       tmpvar & rval,
 				       token const * tok)
 {
   if (rvalue)
-    parent->c_assign (rval.qname(), rvalue, "assignment");
+    {
+      if (rvalue->tok->type == tok_number || rvalue->tok->type == tok_string)
+	// Instead of assigning the numeric or string constant to a
+	// temporary, then assigning the temporary to the final, let's
+	// just override the temporary with the constant.
+	rval.override(parent->c_expression(rvalue));
+      else
+	parent->c_assign (rval.value(), rvalue, "assignment");
+    }
   else
     {
       if (op == "++" || op == "--")
-        parent->o->newline() << rval << " = 1;";
+	// Here is part of the conversion proccess of turning "x++" to
+	// "x += 1".
+        rval.override("1");
       else
         throw semantic_error ("need rvalue for assignment", tok);
     }
-  // OPT: literal rvalues could be used without a tmp* copy
 }
 
 void
@@ -3222,6 +3364,36 @@ c_unparser::visit_target_symbol (target_symbol* e)
 
 
 void
+c_tmpcounter::load_map_indices(arrayindex *e)
+{
+  symbol *array;  
+  hist_op *hist;
+  classify_indexable (e->base, array, hist);
+
+  if (array)
+    {
+      assert (array->referent != 0);
+      vardecl* r = array->referent;
+      
+      // One temporary per index dimension, except in the case of
+      // number or string constants.
+      for (unsigned i=0; i<r->index_types.size(); i++)
+	{
+	  tmpvar ix = parent->gensym (r->index_types[i]);
+	  if (e->indexes[i]->tok->type == tok_number
+	      || e->indexes[i]->tok->type == tok_string)
+	    {
+	      // Do nothing
+	    }
+	  else
+	    ix.declare (*parent);
+	  e->indexes[i]->visit(this);
+	}
+    }
+}
+
+
+void
 c_unparser::load_map_indices(arrayindex *e,
 			     vector<tmpvar> & idx)
 {
@@ -3246,9 +3418,18 @@ c_unparser::load_map_indices(arrayindex *e,
 	    throw semantic_error ("array index type mismatch", e->indexes[i]->tok);
 	  
 	  tmpvar ix = gensym (r->index_types[i]);
-	  o->newline() << "c->last_stmt = "
-		       << lex_cast_qstring(*e->indexes[i]->tok) << ";";
-	  c_assign (ix.qname(), e->indexes[i], "array index copy");
+	  if (e->indexes[i]->tok->type == tok_number
+	      || e->indexes[i]->tok->type == tok_string)
+	    // Instead of assigning the numeric or string constant to a
+	    // temporary, then using the temporary, let's just
+	    // override the temporary with the constant.
+	    ix.override(c_expression(e->indexes[i]));
+	  else
+	    {
+	      o->newline() << "c->last_stmt = "
+			   << lex_cast_qstring(*e->indexes[i]->tok) << ";";
+	      c_assign (ix.value(), e->indexes[i], "array index copy");
+	    }
 	  idx.push_back (ix);
 	}
     }
@@ -3259,7 +3440,7 @@ c_unparser::load_map_indices(arrayindex *e,
       tmpvar ix = gensym (pe_long);
       o->newline() << "c->last_stmt = "
 		   << lex_cast_qstring(*e->indexes[0]->tok) << ";";
-      c_assign (ix.qname(), e->indexes[0], "array index copy");
+      c_assign (ix.value(), e->indexes[0], "array index copy");
       idx.push_back(ix);
     }  
 }
@@ -3298,8 +3479,8 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
 string 
 c_unparser::histogram_index_check(var & base, tmpvar & idx) const
 {
-  return "((" + idx.qname() + " >= 0)"
-    + " && (" + idx.qname() + " < " + base.buckets() + "))"; 
+  return "((" + idx.value() + " >= 0)"
+    + " && (" + idx.value() + " < " + base.buckets() + "))"; 
 }
 
 
@@ -3312,16 +3493,7 @@ c_tmpcounter::visit_arrayindex (arrayindex *e)
 
   if (array)
     {
-      assert (array->referent != 0);
-      vardecl* r = array->referent;
-      
-      // One temporary per index dimension.
-      for (unsigned i=0; i<r->index_types.size(); i++)
-	{
-	  tmpvar ix = parent->gensym (r->index_types[i]);
-	  ix.declare (*parent);
-	  e->indexes[i]->visit(this);
-	}
+      load_map_indices(e);
       
       // The index-expression result.
       tmpvar res = parent->gensym (e->type);
@@ -3465,7 +3637,7 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       v->assert_hist_compatible(*hist);
 
-      if (aggregations_active.count(v->qname()))
+      if (aggregations_active.count(v->value()))
 	load_aggregate(hist->stat, agg, true);
       else 
         load_aggregate(hist->stat, agg, false);
@@ -3473,8 +3645,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
       o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
       // PR 2142+2610: empty aggregates
-      o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
-                   << " || " <<  agg.qname() << "->count == 0)";
+      o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
+                   << " || " <<  agg.value() << "->count == 0)";
       o->newline(1) << "c->last_error = \"empty aggregate\";";
       o->newline(-1) << "else {";
       o->newline(1) << "if (" << histogram_index_check(*v, idx[0]) << ")";
@@ -3499,36 +3671,28 @@ c_tmpcounter_assignment::visit_arrayindex (arrayindex *e)
 
   if (array)
     {
-      assert (array->referent != 0);
-      vardecl* r = array->referent;
-
-      // One temporary per index dimension.
-      for (unsigned i=0; i<r->index_types.size(); i++)
-	{
-	  tmpvar ix = parent->parent->gensym (r->index_types[i]);
-	  ix.declare (*(parent->parent));
-	  e->indexes[i]->visit(parent);
-	}
+      parent->load_map_indices(e);
  
       // The expression rval, lval, and result.
       exp_type ty = rvalue ? rvalue->type : e->type;
       tmpvar rval = parent->parent->gensym (ty);
-      rval.declare (*(parent->parent));
-
       tmpvar lval = parent->parent->gensym (ty);
+      tmpvar res = parent->parent->gensym (ty);
+
+      prepare_rvalue(rval);
       lval.declare (*(parent->parent));
 
-      tmpvar res = parent->parent->gensym (ty);
-      res.declare (*(parent->parent));
-
-      if (rvalue)
-	rvalue->visit (parent);
+      if (op == "<<<")
+	res.declare (*(parent->parent));
+      else
+	c_assignop(res);
     }
   else
     {
       throw semantic_error("cannot assign to histogram buckets", e->tok);
     }
 }
+
 
 void
 c_unparser_assignment::visit_arrayindex (arrayindex *e)
@@ -3665,7 +3829,7 @@ c_unparser::visit_functioncall (functioncall* e)
 
       o->newline() << "c->last_stmt = "
 		   << lex_cast_qstring(*e->args[i]->tok) << ";";
-      c_assign (t.qname(), e->args[i], "function actual argument evaluation");
+      c_assign (t.value(), e->args[i], "function actual argument evaluation");
     }
 
   o->newline();
@@ -3685,7 +3849,7 @@ c_unparser::visit_functioncall (functioncall* e)
       c_assign ("c->locals[c->nesting+1].function_" +
 		c_varname (r->name) + "." +
                 c_varname (r->formal_args[i]->name),
-                tmp[i].qname(),
+                tmp[i].value(),
                 e->args[i]->type,
                 "function actual argument copy",
                 e->args[i]->tok);
@@ -3786,18 +3950,18 @@ c_unparser::visit_print_format (print_format* e)
       v->assert_hist_compatible(*e->hist);
 
       {
-	if (aggregations_active.count(v->qname()))
+	if (aggregations_active.count(v->value()))
 	  load_aggregate(e->hist->stat, agg, true);
 	else 
           load_aggregate(e->hist->stat, agg, false);
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
         // PR 2142+2610: empty aggregates
-        o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
-                     << " || " <<  agg.qname() << "->count == 0)";
+        o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
+                     << " || " <<  agg.value() << "->count == 0)";
         o->newline(1) << "c->last_error = \"empty aggregate\";";
         o->newline(-1) << "else";
-	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.qname() << ");";
+	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.value() << ");";
         o->indent(-1);
       }
 
@@ -3817,7 +3981,7 @@ c_unparser::visit_print_format (print_format* e)
 
 	  o->newline() << "c->last_stmt = "
 		       << lex_cast_qstring(*e->args[i]->tok) << ";";
-	  c_assign (t.qname(), e->args[i], "print format actual argument evaluation");	  
+	  c_assign (t.value(), e->args[i], "print format actual argument evaluation");	  
 	}
 
       std::vector<print_format::format_component> components;
@@ -3862,19 +4026,19 @@ c_unparser::visit_print_format (print_format* e)
       o->indent(1);
       if (e->print_to_stream)
         {
-          o->newline() << res.qname() << " = 0;";
+          o->newline() << res.value() << " = 0;";
 	  o->newline() << "_stp_printf (";
         }
       else
-	o->newline() << "_stp_snprintf (" << res.qname() << ", MAXSTRINGLEN, ";
+	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
 
       o->line() << '"' << print_format::components_to_string(components) << '"';
 
       for (unsigned i = 0; i < tmp.size(); ++i)
-	o->line() << ", " << tmp[i].qname();
+	o->line() << ", " << tmp[i].value();
       o->line() << ");";
       o->newline(-1) << "}";
-      o->newline() << res.qname() << ";";
+      o->newline() << res.value() << ";";
     }
 }
 
@@ -3932,7 +4096,7 @@ c_unparser::visit_stat_op (stat_op* e)
     tmpvar res = gensym (pe_long);    
     var v = getvar(sym->referent, e->tok);
     {
-      if (aggregations_active.count(v.qname()))
+      if (aggregations_active.count(v.value()))
 	load_aggregate(e->stat, agg, true);
       else
         load_aggregate(e->stat, agg, false);
@@ -3940,15 +4104,15 @@ c_unparser::visit_stat_op (stat_op* e)
       // PR 2142+2610: empty aggregates
       if (e->ctype == sc_count)
         {
-          o->newline() << "if (unlikely (" << agg.qname() << " == NULL))";
+          o->newline() << "if (unlikely (" << agg.value() << " == NULL))";
           o->indent(1);
           c_assign(res, "0", e->tok);
           o->indent(-1);
         }
       else
         {
-          o->newline() << "if (unlikely (" << agg.qname() << " == NULL)"
-                       << " || " <<  agg.qname() << "->count == 0)";
+          o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
+                       << " || " <<  agg.value() << "->count == 0)";
           o->newline(1) << "c->last_error = \"empty aggregate\";";
           o->indent(-1);
         }
@@ -3957,21 +4121,21 @@ c_unparser::visit_stat_op (stat_op* e)
       switch (e->ctype)
         {
         case sc_average:
-          c_assign(res, ("_stp_div64(&c->last_error, " + agg.qname() + "->sum, "
-                         + agg.qname() + "->count)"),
+          c_assign(res, ("_stp_div64(&c->last_error, " + agg.value() + "->sum, "
+                         + agg.value() + "->count)"),
                    e->tok);
           break;
         case sc_count:
-          c_assign(res, agg.qname() + "->count", e->tok);
+          c_assign(res, agg.value() + "->count", e->tok);
           break;
         case sc_sum:
-          c_assign(res, agg.qname() + "->sum", e->tok);
+          c_assign(res, agg.value() + "->sum", e->tok);
           break;
         case sc_min:
-          c_assign(res, agg.qname() + "->min", e->tok);
+          c_assign(res, agg.value() + "->min", e->tok);
           break;
         case sc_max:
-          c_assign(res, agg.qname() + "->max", e->tok);
+          c_assign(res, agg.value() + "->max", e->tok);
           break;
         }
       o->indent(-1);
