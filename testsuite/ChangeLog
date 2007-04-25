@@ -1,3 +1,8 @@
+2007-04-25 David Wilder <dwilder@ibm.com>
+
+	* systemtap.samples/profile.exp Increased timeout from 30 to 60 sec
+	  to fix intermittent failures on s390x.
+
 2007-0-2  Mike Mason <mmlnx@us.ibm.com>
 
 	* buildok/socket.stp: Adapted to changes in 2.6.19 socket routines.

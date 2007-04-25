@@ -4,7 +4,7 @@ if {![installtest_p]} { untested $test; return }
 spawn stap $srcdir/$subdir/profile.stp
 set ok 0
 expect {
-    -timeout 30 -re {kernel.function[^\r]*ttime=[0-9]*\r} { incr ok; exp_continue }
+    -timeout 60 -re {kernel.function[^\r]*ttime=[0-9]*\r} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }
