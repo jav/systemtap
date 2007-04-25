@@ -1,3 +1,12 @@
+2007-04-25  David Wilder <dwilder@us.ibm.com>
+
+        * syscall2.stp:syscall.pause added sys32_pause to probe list.
+
+2007-04-25  David Wilder <dwilder@us.ibm.com>
+
+        * s390x/syscall.stp: Fix bug in syscall.mmap returning the wrong args
+			     for 32-bit versions of mmap calls.
+
 2007-04-24  Will Cohen  <wcohen@redhat.com>
 
 	* memory.stp: Update vm.pagefault.return comment.

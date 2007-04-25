@@ -17,7 +17,6 @@ probe syscall.mmap = kernel.function("old_mmap"),
 		argstr = get_32mmap_args($arg);
 	}
 
-	argstr = get_mmap_args($arg);
 }
 
 probe syscall.mmap.return = kernel.function("old_mmap").return,
@@ -44,7 +43,6 @@ probe syscall.mmap2 = kernel.function("sys_mmap2"),
 		argstr = get_32mmap_args($arg);
 	}
 
-	argstr = get_mmap_args($arg);
 }
 
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return,
