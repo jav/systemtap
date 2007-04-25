@@ -1,3 +1,7 @@
+2007-04-24  Will Cohen  <wcohen@redhat.com>
+
+	* memory.stp: Update vm.pagefault.return comment.
+
 2007-04-24  Mike Mason <mmlnx@us.ibm.com>
 
 	* socket.stp: adapted to changes in 2.6.19 socket routines

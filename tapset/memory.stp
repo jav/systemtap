@@ -35,6 +35,10 @@ probe vm.pagefault = kernel.function(
  *
  * Arguments:
  *  fault_type - type of fault
+ *	VM_FAULT_OOM	0	out of memory
+ *	VM_FAULT_SIGBUS	1	if not oom, minor, or major fault, this val
+ *	VM_FAULT_MINOR	2	no blocking operation to handle fault
+ *	VM_FAULT_MAJOR	3	required blocking operation to handle fault
  */
 probe vm.pagefault.return = kernel.function(
         %( kernel_v >= "2.6.13" %? "__handle_mm_fault" %: "handle_mm_fault" %)
