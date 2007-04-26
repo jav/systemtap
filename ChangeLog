@@ -1,3 +1,8 @@
+2007-04-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx (compile_pass): Correct placement of commented-out
+	"set -x" make-macro-debugging snippet.
+
 2007-04-25  David Smith  <dsmith@redhat.com>
 
 	PR 2339
