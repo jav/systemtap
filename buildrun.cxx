@@ -42,7 +42,7 @@ compile_pass (systemtap_session& s)
 
   // Clever hacks copied from vmware modules
   o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " /*<< "set -x; "*/ << " if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " /*<< "set -x; "*/ << " if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(mflags-y) $(EXTRA_CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 

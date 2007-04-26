@@ -1,5 +1,10 @@
 2007-04-26  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 4432.
+	* buildrun.cxx (compile_pass): Add $(mflags-y) to stap_check_build.
+
+2007-04-26  Frank Ch. Eigler  <fche@elastic.org>
+
 	* buildrun.cxx (compile_pass): Correct placement of commented-out
 	"set -x" make-macro-debugging snippet.
 
