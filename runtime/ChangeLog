@@ -1,3 +1,7 @@
+2007-04-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* autoconf-inode-private.c: New file from hunt.
+
 2007-04-04  Sébastien Dugué  <sebastien.dugue@bull.net>
 
 	* runtime/lket/b2a/lket_b2a.c: Fix percpu files parsing

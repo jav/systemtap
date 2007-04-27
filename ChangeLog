@@ -1,3 +1,10 @@
+2007-04-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4432.
+	* buildrun.cxx (compile_pass): Tweak autoconf CFLAGS handling to
+	avoid macro recursion but still get the needed -I directives.
+	Add the inode-private autoconf test.
+
 2007-04-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4432.

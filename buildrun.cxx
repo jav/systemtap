@@ -42,14 +42,18 @@ compile_pass (systemtap_session& s)
 
   // Clever hacks copied from vmware modules
   o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " /*<< "set -x; "*/ << " if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(mflags-y) $(EXTRA_CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << "set -x; " << " if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 
   // "autoconf" options go here
 
   // enum hrtimer_mode renaming near 2.6.21; see tapsets.cxx hrtimer_derived_probe_group::emit_module_decls
-  o << "CFLAGS += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
+  string module_cflags = "CFLAGS_" + s.module_name + ".o";
+  o << module_cflags << " :=" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
 
 
   for (unsigned i=0; i<s.macros.size(); i++)
@@ -94,7 +98,7 @@ compile_pass (systemtap_session& s)
   string make_cmd = string("make")
     + string (" -C \"") + module_dir + string("\"");
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
-  
+
   if (s.verbose > 1)
     make_cmd += " V=1";
   else
