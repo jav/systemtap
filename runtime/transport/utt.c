@@ -76,7 +76,6 @@ void utt_trace_cleanup(struct utt_trace *utt)
 	relay_close(utt->rchan);
 	debugfs_remove(utt->dropped_file);
 	utt_remove_tree(utt);
-	free_percpu(utt->sequence);
 	kfree(utt);
 }
 
@@ -91,8 +90,11 @@ int utt_trace_remove(struct utt_trace *utt)
 
 static int utt_dropped_open(struct inode *inode, struct file *filp)
 {
+#ifdef STAPCONF_INODE_PRIVATE
 	filp->private_data = inode->i_private;
-
+#else
+	filp->private_data = inode->u.generic_ip;
+#endif
 	return 0;
 }
 
@@ -186,10 +188,6 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	if (!utt)
 		goto err;
 
-	utt->sequence = alloc_percpu(unsigned long);
-	if (!utt->sequence)
-		goto err;
-
 	ret = -ENOENT;
 	dir = utt_create_tree(utt, utts->root, utts->name);
 	if (!dir)
@@ -228,8 +226,6 @@ err:
 	if (utt) {
 		if (utt->dropped_file)
 			debugfs_remove(utt->dropped_file);
-		if (utt->sequence)
-			free_percpu(utt->sequence);
 		if (utt->rchan)
 			relay_close(utt->rchan);
 		kfree(utt);

@@ -1,3 +1,10 @@
+2007-04-27  Martin Hunt  <hunt@redhat.com>
+
+	* utt.c (utt_trace_cleanup): Remove free of utt->sequence.
+	(utt_dropped_open): PR 4415. Use STAPCONF_INODE_PRIVATE to detect
+	correct inode struct.
+	(utt_trace_setup): Do not allocate utt->sequence.
+
 2007-04-02  Martin Hunt  <hunt@redhat.com>
 
 	* transport_msgs.h (struct _stp_msg_trans): Deleted.
