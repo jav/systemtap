@@ -1,5 +1,6 @@
 2007-04-27  Martin Hunt  <hunt@redhat.com>
 
+	* utt.h (struct utt_trace): Remove sequence.
 	* utt.c (utt_trace_cleanup): Remove free of utt->sequence.
 	(utt_dropped_open): PR 4415. Use STAPCONF_INODE_PRIVATE to detect
 	correct inode struct.

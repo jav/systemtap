@@ -10,7 +10,6 @@ enum {
 struct utt_trace {
 	int trace_state;
 	struct rchan *rchan;
-	unsigned long *sequence;
 	struct dentry *dir;		/* systemtap/module_name */
 	struct dentry *dropped_file;
 	atomic_t dropped;
