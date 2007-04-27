@@ -30,8 +30,12 @@
 #include <linux/compat.h>
 #include <linux/mm.h>
 
-/* the new transport requires debugfs and a newer relayfs */
-#if !defined (CONFIG_DEBUG_FS) || (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,15))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,15)
+#if !defined (CONFIG_DEBUG_FS)  && !defined (CONFIG_DEBUG_FS_MODULE)
+#error "DebugFS is required and was not found in the kernel."
+#endif
+#else
+/* older kernels have no debugfs and older version of relayfs. */
 #define STP_OLD_TRANSPORT
 #endif
 

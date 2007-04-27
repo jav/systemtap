@@ -1,3 +1,7 @@
+2007-04-27  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h: Improve check for debugfs in kernel.
+
 2007-04-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* autoconf-inode-private.c: New file from hunt.
