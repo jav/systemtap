@@ -16,7 +16,13 @@ installcheck-local: clean site.exp
 
 SRCDIR = $(shell cd $(srcdir); pwd)
 
-# These values point the test suite to the install tree, and 
+EXTRA_DIST = config lib systemtap \
+	parseok parseko semok semko transok transko buildok buildok \
+	systemtap.syscall systemtap.stress systemtap.string \
+	systemtap.pass1-4 systemtap.samples systemtap.printf \
+	systemtap.maps systemtap.base
+
+# $(srcdir)/These values point the test suite to the install tree, and 
 # are overridden by "make check" from full source/build tree
 SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime
 SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset
