@@ -1,3 +1,12 @@
+2007-04-30  David Smith  <dsmith@redhat.com>
+
+	PR 2339
+	* translate.cxx (c_unparser_assignment::c_assignop): Improved
+	handling of numeric constants in the rest of the assignment
+	operators.
+	(c_tmpcounter_assignment::c_assignop): Updated temporary
+	handling.
+	
 2007-04-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Mention testsuite/configure.ac for version matching.

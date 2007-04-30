@@ -1941,11 +1941,11 @@ c_unparser_assignment::c_assignop(tmpvar & res,
       if (op == "=")
 	macop = "*error*"; // special shortcuts below
       else if (op == "++" || op == "+=")
-        macop = "+=";
+	macop = "+=";
       else if (op == "--" || op == "-=")
 	macop = "-=";
-      else if (oplen > 1 && op[oplen-1] == '=') // for %=, <<=, etc...
-	macop = op.substr(0, oplen-1);
+      else if (oplen > 1 && op[oplen-1] == '=') // for *=, <<=, etc...
+	macop = op;
       else
 	// internal error
 	throw semantic_error ("unknown macop for assignment", tok);
@@ -1965,29 +1965,21 @@ c_unparser_assignment::c_assignop(tmpvar & res,
       else
 	{
           if (op == "=") // shortcut simple assignment
-            {
-              o->newline() << lval << " = " << rval << ";";
-              res = rval;
-            }
-	  // Handle "+=", "++", "-=" and "--".  Note that "x++" gets
-	  // turned into "x += 1".
-	  else if (macop == "+=" || macop == "-=")
 	    {
-	      o->newline() << lval << " " << macop << " " << rval << ";";
-              res = lval;
+	      o->newline() << lval << " = " << rval << ";";
+	      res = rval;
 	    }
           else
             {
-              if (macop == "/")
-                o->newline() << res << " = _stp_div64 (&c->last_error, "
+              if (macop == "/=")
+                o->newline() << lval << " = _stp_div64 (&c->last_error, "
                              << lval << ", " << rval << ");";
-              else if (macop == "%")
-                o->newline() << res << " = _stp_mod64 (&c->last_error, "
+              else if (macop == "%=")
+                o->newline() << lval << " = _stp_mod64 (&c->last_error, "
                              << lval << ", " << rval << ");";
-              else
-                o->newline() << res << " = " << lval << " " << macop << " " << rval << ";";
-
-              o->newline() << lval << " = " << res << ";";
+	      else
+		o->newline() << lval << " " << macop << " " << rval << ";";
+	      res = lval;
             }
 	}
     }
@@ -3255,19 +3247,9 @@ c_tmpcounter_assignment::c_assignop(tmpvar & res)
     res.declare (*(parent->parent));
   else if (res.type() == pe_long)
     {
+      // Only the 'post' operators ('x++') need a temporary declared.
       if (post)
 	res.declare (*(parent->parent));
-      else
-	{
-	  if (op == "=" || op == "+=" || op == "++"
-	      || op == "-=" || op == "--")
-	    {
-	      // these operators don't need any temporaries declared,
-	      // since they just return the result
-	    }
-          else
-	    res.declare (*(parent->parent));
-	}
     }
 }
 
