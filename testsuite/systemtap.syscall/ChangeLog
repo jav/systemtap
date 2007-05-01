@@ -1,3 +1,8 @@
+2007-05-01  Martin Hunt  <hunt@redhat.com>
+
+	* statfs.c (main): Fix expected expression to accept
+	both 32 and 64-bit pointers.
+
 2007-04-24  David Wilder <dwilder@us.ibm.com>
 
 	* syscall.exp: Enabled 64-bit tests on s390, 32-bit test to use -m31

@@ -8,26 +8,13 @@ int main()
 {
   
   ustat(42, (struct ustat *)0x12345678);
-#if __WORDSIZE == 64
-  // ustat (42, 0x0000000012345678) = 
-#else
-  // ustat (42, 0x12345678) = 
-#endif
+  // ustat (42, 0x0*12345678) = 
 
   statfs("abc", (struct statfs *)0x12345678);
-#if __WORDSIZE == 64
-  // statfs ("abc", 0x0000000012345678) =
-#else
-  // statfs ("abc", 0x12345678) =
-#endif
+  // statfs ("abc", 0x0*12345678) =
 
   fstatfs(77, (struct statfs *)0x12345678);
-#if __WORDSIZE == 64
-  // fstatfs (77, 0x0000000012345678) =
-#else
-  // fstatfs (77, 0x12345678) =
-#endif
-
+  // fstatfs (77, 0x0*12345678) =
 
   return 0;
 }
