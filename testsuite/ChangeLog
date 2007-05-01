@@ -1,3 +1,7 @@
+2007-05-01  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.samples/sysopen*: Deleted.
+
 2007-04-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (EXTRA_DIST): Add dejagnu subdirectories.
