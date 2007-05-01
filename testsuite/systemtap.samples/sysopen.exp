@@ -9,4 +9,4 @@ expect {
 }
 #FIXME does not handle case of hanging sysopen.stp correctly
 wait
-if {$ok > 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
+if {$ok >= 1} { pass "$test ($ok)" } { fail "$test ($ok)" }
