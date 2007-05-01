@@ -1,3 +1,13 @@
+2007-05-01  David Smith  <dsmith@redhat.com>
+
+	* translate.cxx (c_tmpcounter::visit_binary_expression): Updated
+	temporary handling.
+	(c_unparser::visit_binary_expression): Improved handing of numeric
+	constants when handling '%' and '/' operators.
+	(c_tmpcounter::visit_print_format): Updated temporary handling.
+	(c_unparser::visit_print_format): Removed the need for a result
+	temporary when printing to a stream.
+
 2007-04-30  David Smith  <dsmith@redhat.com>
 
 	PR 2339

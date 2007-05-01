@@ -2856,8 +2856,10 @@ c_tmpcounter::visit_binary_expression (binary_expression* e)
     {
       tmpvar left = parent->gensym (pe_long);
       tmpvar right = parent->gensym (pe_long);
-      left.declare (*parent);
-      right.declare (*parent);
+      if (e->left->tok->type != tok_number)
+        left.declare (*parent);
+      if (e->right->tok->type != tok_number)
+	right.declare (*parent);
     }
 
   e->left->visit (this);
@@ -2904,14 +2906,25 @@ c_unparser::visit_binary_expression (binary_expression* e)
       tmpvar right = gensym (pe_long);
 
       o->line() << "({";
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-      o->newline(1) << left << " = ";
-      e->left->visit (this);
-      o->line() << ";";
+      o->newline(1) << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
-      o->newline() << right << " = ";
-      e->right->visit (this);
-      o->line() << ";";
+      if (e->left->tok->type == tok_number)
+	left.override(c_expression(e->left));
+      else
+        {
+	  o->newline() << left << " = ";
+	  e->left->visit (this);
+	  o->line() << ";";
+	}
+
+      if (e->right->tok->type == tok_number)
+	right.override(c_expression(e->right));
+      else
+        {
+	  o->newline() << right << " = ";
+	  e->right->visit (this);
+	  o->line() << ";";
+	}
 
       o->newline() << ((e->op == "/") ? "_stp_div64" : "_stp_mod64")
                    << " (&c->last_error, " << left << ", " << right << ");";
@@ -3905,7 +3918,8 @@ c_tmpcounter::visit_print_format (print_format* e)
       // And the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
       tmpvar res = parent->gensym (ty);      
-      res.declare (*parent);
+      if (ty == pe_string)
+	res.declare (*parent);
     }
 }
 
@@ -4008,7 +4022,9 @@ c_unparser::visit_print_format (print_format* e)
       o->indent(1);
       if (e->print_to_stream)
         {
-          o->newline() << res.value() << " = 0;";
+	  // We'll just hardcode the result of 0 instead of using the
+	  // temporary.
+	  res.override("((int64_t)0LL)");
 	  o->newline() << "_stp_printf (";
         }
       else
