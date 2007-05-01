@@ -1,0 +1,24 @@
+#! stap
+
+# test the system() function
+
+probe kernel.function("sys_open") {
+  # very inefficient. Testing only. DO NOT DO THIS
+  msg="echo sys_open"
+  system(msg)
+}
+
+probe begin {
+  # should succeed
+  system("whoami")
+
+  # should fail
+  system("cat __xyzzy123ABC__")
+
+  exit()
+}
+
+probe end {
+  # should succeed
+  system("echo DONE")
+}
