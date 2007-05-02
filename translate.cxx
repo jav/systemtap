@@ -3785,11 +3785,13 @@ c_tmpcounter::visit_functioncall (functioncall *e)
 {
   assert (e->referent != 0);
   functiondecl* r = e->referent;
-  // one temporary per argument
+  // one temporary per argument, unless literal numbers or strings
   for (unsigned i=0; i<r->formal_args.size(); i++)
     {
       tmpvar t = parent->gensym (r->formal_args[i]->type);
-      t.declare (*parent);
+      if (e->args[i]->tok->type != tok_number
+	  && e->args[i]->tok->type != tok_string)
+	t.declare (*parent);
       e->args[i]->visit (this);
     }
 }
@@ -3816,15 +3818,22 @@ c_unparser::visit_functioncall (functioncall* e)
   for (unsigned i=0; i<e->args.size(); i++)
     {
       tmpvar t = gensym(e->args[i]->type);
-      tmp.push_back(t);
 
       if (r->formal_args[i]->type != e->args[i]->type)
 	throw semantic_error ("function argument type mismatch",
 			      e->args[i]->tok, "vs", r->formal_args[i]->tok);
 
-      o->newline() << "c->last_stmt = "
-		   << lex_cast_qstring(*e->args[i]->tok) << ";";
-      c_assign (t.value(), e->args[i], "function actual argument evaluation");
+      if (e->args[i]->tok->type == tok_number
+	  || e->args[i]->tok->type == tok_string)
+	t.override(c_expression(e->args[i]));
+      else
+        {
+	  o->newline() << "c->last_stmt = "
+		       << lex_cast_qstring(*e->args[i]->tok) << ";";
+	  c_assign (t.value(), e->args[i],
+		    "function actual argument evaluation");
+	}
+      tmp.push_back(t);
     }
 
   o->newline();

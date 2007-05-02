@@ -1,3 +1,10 @@
+2007-05-02  David Smith  <dsmith@redhat.com>
+
+	* translate.cxx (c_tmpcounter::visit_functioncall): Updated
+	temporary handling.
+	(c_unparser::visit_functioncall): No longer copies numeric and
+	string constants to temporary variables.
+
 2007-05-01  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx (c_tmpcounter::visit_binary_expression): Updated
