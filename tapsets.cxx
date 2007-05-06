@@ -953,7 +953,7 @@ struct dwflpp
         if (l_no != lineno)
           {
             if (sess.verbose > 3)
-	      clog << "skiping approximate line number match "
+	      clog << "skipping line number mismatch "
                    << "(" << l_no << " vs " << lineno << ")" 
                    << " in file '" << srcfile << "'"
                    << "\n";
