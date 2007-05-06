@@ -932,8 +932,38 @@ struct dwflpp
 		  dwarf_getsrc_file (module_dwarf,
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
+    // BUT:
 
-    if (need_single_match && nsrcs > 1)
+    // dwarf_getsrc_file gets one *near hits* for line numbers, not
+    // exact matches.  For example, an existing file but a nonexistent
+    // line number will be rounded up to the next definition in that
+    // file.  This may be similar to the GDB breakpoint algorithm, but
+    // we don't want to be so fuzzy in systemtap land.  So we filter.
+
+    // XXX: the code also fails to match e.g.  inline function
+    // definitions when the srcfile is a header file rather than the
+    // CU name.
+
+    size_t remaining_nsrcs = nsrcs;
+    for (size_t i = 0; i < nsrcs; ++i)
+      {
+        int l_no;
+        Dwarf_Line* l = srcsp[i];
+        dwarf_assert ("dwarf_lineno", dwarf_lineno (l, & l_no));
+        if (l_no != lineno)
+          {
+            if (sess.verbose > 3)
+	      clog << "skiping approximate line number match "
+                   << "(" << l_no << " vs " << lineno << ")" 
+                   << " in file '" << srcfile << "'"
+                   << "\n";
+            srcsp[i] = 0;
+            remaining_nsrcs --;
+          }
+      }
+
+
+    if (need_single_match && remaining_nsrcs > 1)
       {
 	// We wanted a single line record (a unique address for the
 	// line) and we got a bunch of line records. We're going to
@@ -976,7 +1006,8 @@ struct dwflpp
       {
 	for (size_t i = 0; i < nsrcs; ++i)
 	  {
-	    callback (srcsp[i], data);
+            if (srcsp [i]) // skip over mismatched lines
+              callback (srcsp[i], data);
 	  }
       }
     catch (...)
@@ -2579,6 +2610,9 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
   Dwarf_Addr addr;
   dwarf_lineaddr(line, &addr);
 
+  int lineno;
+  dwarf_lineno (line, &lineno);
+
   for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     {
@@ -2588,7 +2622,8 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	    clog << "function DIE lands on srcfile\n";
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
-			     q->line, NULL, addr, q);
+			     lineno, // NB: not q->line !
+                             NULL, addr, q);
 	  else
 	    query_func_info (i->first, i->second, q);
 	}

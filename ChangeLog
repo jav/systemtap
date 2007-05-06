@@ -1,3 +1,11 @@
+2007-05-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1305.
+	* tapsets.cxx (iterate_over_srcfile_lines): Exclude approximate 
+	file:lineno matches optimistically returned by dwarf_getsrc_file.
+	(query_srcfile_line): Use Dwarf_Line line number for constructing
+	derived_probe location string.
+
 2007-05-02  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx (c_tmpcounter::visit_functioncall): Updated

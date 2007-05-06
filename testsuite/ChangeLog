@@ -1,3 +1,7 @@
+2007-05-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* semko/thirtynine.stp: New test.
+
 2007-05-01  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.samples/system_func.*: New test.
