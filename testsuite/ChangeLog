@@ -1,3 +1,9 @@
+2007-05-07  Martin Hunt  <hunt@redhat.com>
+	PR4466   
+	* systemtap.samples/system_func.stp: Rewrite test to account 
+	for probes not being placed until after begin.
+	* systemtap.samples/system_func.exp: Only expect 1 sys_open.
+
 2007-05-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* semko/thirtynine.stp: New test.

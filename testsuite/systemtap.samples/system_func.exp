@@ -14,5 +14,4 @@ expect {
     eof { }
 }
 catch {close}; wait
-#puts "open=$open saw_user=$saw_user, done=$done"
-if {$open > 0 && $saw_user == 1 && $done == 1 } { pass "$test" } { fail "$test ($open,$saw_user,$done)" }
+if {$open == 1 && $saw_user == 1 && $done == 1 } { pass "$test" } { fail "$test ($open,$saw_user,$done)" }
