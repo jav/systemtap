@@ -18,10 +18,10 @@ int main()
   pid_t pid;
 
   syscall(SYS_signal, SIGUSR1, SIG_IGN);
-  // signal (SIGUSR1, 0x00000001) = 0
+  // signal (SIGUSR1, 0x0+1) = 0
 
   syscall(SYS_signal, SIGUSR1, SIG_DFL);
-  // signal (SIGUSR1, 0x00000000) = 1
+  // signal (SIGUSR1, 0x0+) = 1
 
   syscall(SYS_signal, SIGUSR1, sig_act_handler);
   // signal (SIGUSR1, XXXX) = 0
@@ -29,17 +29,17 @@ int main()
   sigemptyset(&mask);
   sigaddset(&mask, SIGUSR1);
   syscall(SYS_sigprocmask,SIG_BLOCK, &mask, NULL);
-  // sigprocmask (SIG_BLOCK, XXXX, 0x[0]+) = 0
+  // sigprocmask (SIG_BLOCK, XXXX, 0x0+) = 0
 
   syscall(SYS_sigprocmask,SIG_UNBLOCK, &mask, NULL);
-  // sigprocmask (SIG_UNBLOCK, XXXX, 0x[0]+) = 0
+  // sigprocmask (SIG_UNBLOCK, XXXX, 0x0+) = 0
 
   sa.sa_handler = SIG_IGN;
   sigemptyset(&sa.sa_mask);
   sigaddset(&sa.sa_mask, SIGALRM);
   sa.sa_flags = 0;
   syscall(SYS_sigaction,SIGUSR1, &sa, NULL);
-  // sigaction (SIGUSR1, XXXX, 0x[0]+) = 0
+  // sigaction (SIGUSR1, XXXX, 0x0+) = 0
 
   /* syscall(SYS_kill,0,SIGUSR1);
    kill (0, SIGUSR1) = 0

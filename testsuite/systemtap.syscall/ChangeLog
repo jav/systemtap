@@ -1,3 +1,8 @@
+2007-05-07  Martin Hunt  <hunt@redhat.com>
+
+	* signal.c (main):  Fix expected expression to accept
+	both 32 and 64-bit pointers.
+
 2007-05-01  Martin Hunt  <hunt@redhat.com>
 
 	* statfs.c (main): Fix expected expression to accept
