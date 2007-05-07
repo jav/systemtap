@@ -271,7 +271,7 @@ static char recvbuf[8192];
 
 int stp_main_loop(void)
 {
-	int nb;
+	ssize_t nb;
 	void *data;
 	int type;
 	FILE *ofp = stdout;
@@ -290,7 +290,7 @@ int stp_main_loop(void)
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		if (nb <= 0) {
 			perror("recv");
-			fprintf(stderr, "WARNING: unexpected EOF. nb=%d\n", nb);
+			fprintf(stderr, "WARNING: unexpected EOF. nb=%ld\n", (long)nb);
 			continue;
 		}
 
@@ -300,8 +300,20 @@ int stp_main_loop(void)
 		switch (type) { 
 #ifdef STP_OLD_TRANSPORT
 		case STP_REALTIME_DATA:
-			write(out_fd[0], data, nb - sizeof(int));
+		{
+			ssize_t bw = write(out_fd[0], data, nb - sizeof(int));
+			if (bw >= 0 && bw != (nb - (ssize_t)sizeof(int))) {
+				nb = nb - bw; 
+				bw = write(out_fd[0], data, nb - sizeof(int));
+			}
+			if (bw != (nb - (ssize_t)sizeof(int))) {
+				perror("write");
+				fprintf(stderr,
+					"ERROR: write error. nb=%ld\n", (long)nb);
+				cleanup_and_exit(0);
+			}
                         break;
+		}
 #endif
 		case STP_OOB_DATA:
 			fputs ((char *)data, stderr);

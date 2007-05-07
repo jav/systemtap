@@ -1,4 +1,4 @@
-CFLAGS = -Wall -std=gnu99 -D_GNU_SOURCE -fexceptions -Wall -Werror -Wshadow -Wunused
+CFLAGS = -Wall -std=gnu99 -D_GNU_SOURCE -fexceptions -Wall -Werror -Wshadow -Wunused -Wp,-D_FORTIFY_SOURCE=2
 
 all: staprun stap_merge
 

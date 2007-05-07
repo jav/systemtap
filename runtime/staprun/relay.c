@@ -64,7 +64,7 @@ static void *reader_thread(void *data)
 		if (rc > max_rd)
 			max_rd = rc;
 
-                if (write(out_fd[cpu], buf, rc) < 0) {
+                if (write(out_fd[cpu], buf, rc) != rc) {
 			fprintf(stderr, "Couldn't write to output fd %d for cpu %d, exiting: errcode = %d: %s\n", 
 				out_fd[cpu], cpu, errno, strerror(errno));
 			pthread_exit(NULL);

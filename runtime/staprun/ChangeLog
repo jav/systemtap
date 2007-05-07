@@ -1,3 +1,8 @@
+2007-05-07  Martin Hunt  <hunt@redhat.com>
+	Patch from David Smith
+	* mainloop.c (stp_main_loop): Properly handle write() 
+	return value. Fixes build problem with some compilers.
+
 2007-04-10  Martin Hunt  <hunt@redhat.com>
 
 	* relay.c (close_relayfs): Give threads some time to 
