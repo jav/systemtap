@@ -15,10 +15,13 @@ proc test_procedure {} {
     set do_64_bit_pass 0
     if {$::tcl_platform(machine) == "x86_64" || $::tcl_platform(machine) == "ppc64" || $::tcl_platform(machine) == "s390x" } {
 	set do_64_bit_pass 1
+	set flags "additional_flags=-m64"
+    }
+    if { $::tcl_platform(machine) == "ia64" } {
+	set do_64_bit_pass 1
     }
 
     if {$do_64_bit_pass} {
-	set flags "additional_flags=-m64"
 	foreach filename [lsort [glob $pattern]] {
 	    set file [file tail [string range $filename 0 end-2]]
 	    if {![installtest_p]} { untested $file; continue }
@@ -36,29 +39,36 @@ proc test_procedure {} {
 	    catch {exec rm -f $wd/$file}
 	}
     }
+    
+    set do_32_bit_pass 1
+    set flags "additional_flags=-m32"
+    # add any 64-bit only machines to this statement
+    if { $::tcl_platform(machine) == "ia64" } {
+	set do_32_bit_pass 0
+    }
 
     if { $::tcl_platform(machine) == "s390x" } {
 	set flags "additional_flags=-m31"
-    } else {
-    set flags "additional_flags=-m32"
     }
 
-    foreach filename [lsort [glob $pattern]] {
-	set file [file tail [string range $filename 0 end-2]]
-	if {![installtest_p]} { untested $file; continue }
-	target_compile $filename $wd/$file executable $flags
-	send_log "Testing 32-bit ${file}\n"
-	set res [exec $srcdir/$subdir/test.tcl $file $filename]
-	if {$res == "PASS"} {
-	    pass "32-bit $file"
-	} elseif {$res == "UNSUPP"} {
-	    unsupported "$file not supported on this arch"
-	} else {
-	    fail "32-bit $file"
-	    send_log "$res\n"
+    if {$do_32_bit_pass} {
+	foreach filename [lsort [glob $pattern]] {
+	    set file [file tail [string range $filename 0 end-2]]
+	    if {![installtest_p]} { untested $file; continue }
+	    target_compile $filename $wd/$file executable $flags
+	    send_log "Testing 32-bit ${file}\n"
+	    set res [exec $srcdir/$subdir/test.tcl $file $filename]
+	    if {$res == "PASS"} {
+		pass "32-bit $file"
+	    } elseif {$res == "UNSUPP"} {
+		unsupported "$file not supported on this arch"
+	    } else {
+		fail "32-bit $file"
+		send_log "$res\n"
+	    }
+	    catch {exec rm -f $wd/$file}
 	}
-	catch {exec rm -f $wd/$file}
-    }    
+    }
 }
 
 set timeout 600
