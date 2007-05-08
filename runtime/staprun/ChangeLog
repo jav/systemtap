@@ -1,5 +1,9 @@
 2007-05-08  Martin Hunt  <hunt@redhat.com>
 
+	* relay.c (ppoll): Add a compatibility function for
+	glibc < 2.4.
+
+2007-05-08  Martin Hunt  <hunt@redhat.com>	
 	Signal handler cleanup.
 	* mainloop.c (fatal_handler): New. Cleanly handle
 	unexpected fatal signals.

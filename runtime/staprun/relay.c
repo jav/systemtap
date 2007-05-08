@@ -18,6 +18,28 @@ static int relay_fd[NR_CPUS];
 static int bulkmode = 0;
 static int stop_threads = 0;
 
+/*
+ * ppoll exists in glibc >= 2.4
+ */
+#if (__GLIBC__ < 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 4))
+static int ppoll(struct pollfd *fds, nfds_t nfds,
+		 const struct timespec *timeout, const sigset_t *sigmask)
+{
+	sigset_t origmask;
+	int ready;
+	int tim;
+	if (timeout == NULL)
+		tim = -1;
+	else
+		tim = timeout->tv_sec * 1000 + timeout->tv_nsec / 1000000;
+
+	sigprocmask(SIG_SETMASK, sigmask, &origmask);
+	ready = poll(fds, nfds, tim);
+	sigprocmask(SIG_SETMASK, &origmask, NULL);
+	return ready;
+}
+#endif
+
 /**
  *	reader_thread - per-cpu channel buffer reader
  */
@@ -27,7 +49,7 @@ static void *reader_thread(void *data)
         char buf[131072];
         int rc, cpu = (int)(long)data;
         struct pollfd pollfd;
-	struct timespec tim = {.tv_sec=0, .tv_nsec=10000}, *timeout = &tim;
+	struct timespec tim = {.tv_sec=0, .tv_nsec=10000000}, *timeout = &tim;
 	sigset_t sigs;
 
 	sigemptyset(&sigs);
