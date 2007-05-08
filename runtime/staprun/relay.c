@@ -15,8 +15,8 @@
 int out_fd[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 static int relay_fd[NR_CPUS];
-static int stop_threads = 0;
 static int bulkmode = 0;
+static int stop_threads = 0;
 
 /**
  *	reader_thread - per-cpu channel buffer reader
@@ -27,7 +27,11 @@ static void *reader_thread(void *data)
         char buf[131072];
         int rc, cpu = (int)(long)data;
         struct pollfd pollfd;
-	int max_rd = 0;
+	struct timespec tim = {.tv_sec=0, .tv_nsec=10000}, *timeout = &tim;
+	sigset_t sigs;
+
+	sigemptyset(&sigs);
+	sigaddset(&sigs,SIGUSR2);
 
 	if (bulkmode) {
 		cpu_set_t cpu_mask;
@@ -36,42 +40,32 @@ static void *reader_thread(void *data)
 		if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 ) {
 			perror("sched_setaffinity");
 		}
+		timeout = NULL;
 	}
 	
 	pollfd.fd = relay_fd[cpu];
 	pollfd.events = POLLIN;
 
         do {
-                rc = poll(&pollfd, 1, 10);
+                rc = ppoll(&pollfd, 1, &tim, &sigs);
                 if (rc < 0) {
+			dbug(3, "poll=%d errno=%d\n", rc, errno);
                         if (errno != EINTR) {
 				fprintf(stderr, "poll error: %s\n",strerror(errno));
 				pthread_exit(NULL);
                         }
-                        fprintf(stderr, "poll warning: %s\n",strerror(errno));
+			stop_threads = 1;
                 }
-                rc = read(relay_fd[cpu], buf, sizeof(buf));
-                if (!rc) {
-                        continue;
+		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
+			if (write(out_fd[cpu], buf, rc) != rc) {
+				fprintf(stderr, "Couldn't write to output fd %d for cpu %d, exiting: errcode = %d: %s\n", 
+					out_fd[cpu], cpu, errno, strerror(errno));
+				pthread_exit(NULL);
+			}
 		}
-                if (rc < 0) {
-                        if (errno == EAGAIN)
-                                continue;
-			fprintf(stderr, "error reading fd %d on cpu %d: %s\n", relay_fd[cpu], cpu, strerror(errno));
-			continue;
-                }
-
-		if (rc > max_rd)
-			max_rd = rc;
-
-                if (write(out_fd[cpu], buf, rc) != rc) {
-			fprintf(stderr, "Couldn't write to output fd %d for cpu %d, exiting: errcode = %d: %s\n", 
-				out_fd[cpu], cpu, errno, strerror(errno));
-			pthread_exit(NULL);
-                }
-
         } while (!stop_threads);
-	pthread_exit((void *)(long)max_rd);
+	dbug(3, "exiting thread\n");
+	pthread_exit(NULL);
 }
 
 /**
@@ -85,7 +79,7 @@ int init_relayfs(void)
 	struct statfs st;
 	char buf[128], relay_filebase[128];
 
-	dbug("initializing relayfs\n");
+	dbug(1, "initializing relayfs\n");
 
 	reader[0] = (pthread_t)0;
 	relay_fd[0] = 0;
@@ -101,13 +95,13 @@ int init_relayfs(void)
 
 	for (i = 0; i < NR_CPUS; i++) {
 		sprintf(buf, "%s/trace%d", relay_filebase, i);
-		dbug("attempting to open %s\n", buf);
+		dbug(2, "attempting to open %s\n", buf);
 		relay_fd[i] = open(buf, O_RDONLY | O_NONBLOCK);
 		if (relay_fd[i] < 0)
 			break;
 	}
 	ncpus = i;
-	dbug("ncpus=%d\n", ncpus);
+	dbug(2, "ncpus=%d\n", ncpus);
 
 	if (ncpus == 0) {
 		err("couldn't open %s.\n", buf);
@@ -128,7 +122,6 @@ int init_relayfs(void)
 				sprintf(buf, "stpd_cpu%d", i);
 			
 			out_fd[i] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
-			dbug("out_fd[%d] = %d\n", i, out_fd[i]);
 			if (out_fd[i] < 0) {
 				fprintf(stderr, "ERROR: couldn't open output file %s.\n", buf);
 				return -1;
@@ -146,7 +139,7 @@ int init_relayfs(void)
 			out_fd[0] = STDOUT_FILENO;
 		
 	}
-	dbug("starting threads\n");
+	dbug(2, "starting threads\n");
 	for (i = 0; i < ncpus; i++) {
 		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
 			fprintf(stderr, "failed to create thread\n");
@@ -162,11 +155,17 @@ void close_relayfs(void)
 {
 	int i;
 	void *res;
-	dbug("closing\n");
 
-	sleep(1);
 	stop_threads = 1;
 
+	dbug(2, "closing\n");
+	for (i = 0; i < ncpus; i++) {
+		if (reader[i]) 
+			pthread_kill(reader[i], SIGUSR2);
+		else
+			break;
+	}
+	dbug(2, "sent SIGUSR2\n");
 	for (i = 0; i < ncpus; i++) {
 		if (reader[i]) 
 			pthread_join(reader[i], &res);
@@ -180,6 +179,6 @@ void close_relayfs(void)
 		else
 			break;
 	}
-	dbug("closed files\n");
+	dbug(2, "done\n");
 }
 

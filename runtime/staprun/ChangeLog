@@ -1,3 +1,21 @@
+2007-05-08  Martin Hunt  <hunt@redhat.com>
+
+	Signal handler cleanup.
+	* mainloop.c (fatal_handler): New. Cleanly handle
+	unexpected fatal signals.
+	(setup_main_signals): New. Set signals once mainloop
+	is entered.
+	(setup_signals): New. Block certain signals during initialization.
+	Set handler for fatal signals.
+	* relay.c (reader_thread): Use ppoll(). Terminate on 
+	SIGUSR2 after reading any remaining data.
+	(close_relayfs): Remove sleep hack. Send SIGUSR2 to all threads.
+
+	Runtime debug messages.
+	* staprun.h: Change dbug() to accept a debuglevel and
+	enable it.
+	* *.c: Modify dbug() calls.
+
 2007-05-07  Martin Hunt  <hunt@redhat.com>
 	Patch from David Smith
 	* mainloop.c (stp_main_loop): Properly handle write() 

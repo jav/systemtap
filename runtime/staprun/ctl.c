@@ -40,7 +40,7 @@ static void read_buffer_info(void)
 	if (ret != 2)
 		fprintf (stderr, "ERROR: couldn't read bufsize.\n");
 
-	dbug("n_subbufs= %u, size=%u\n", n_subbufs, subbuf_size);
+	dbug(2, "n_subbufs= %u, size=%u\n", n_subbufs, subbuf_size);
 	close(fd);
 	return;
 }
@@ -56,7 +56,7 @@ int init_ctl_channel(void)
 	else
 		sprintf (buf, "/proc/systemtap/%s/cmd", modname);
 
-	dbug("Opening %s\n", buf); 
+	dbug(2, "Opening %s\n", buf); 
 	control_channel = open(buf, O_RDWR);
 	if (control_channel < 0) {
 		if (attach_mod) 

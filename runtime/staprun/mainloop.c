@@ -17,6 +17,77 @@ int control_channel = 0;
 int ncpus;
 int use_old_transport = 0;
 
+#define ERR_MSG "\nUNEXPECTED FATAL ERROR in staprun. Please file a bug report.\n"
+void fatal_handler (int signum)
+{
+	char *str = strsignal(signum);
+	(void)write (STDERR_FILENO, ERR_MSG, sizeof(ERR_MSG));
+	(void)write (STDERR_FILENO, str, strlen(str));
+	(void)write (STDERR_FILENO, "\n", 1);
+	_exit(-1);
+
+}
+
+static void sigproc(int signum)
+{
+	dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
+
+	if (signum == SIGCHLD) {
+		pid_t pid = waitpid(-1, NULL, WNOHANG);
+		if (pid != target_pid)
+			return;
+		send_request(STP_EXIT, NULL, 0);
+	} else if (signum == SIGQUIT)
+		cleanup_and_exit(2);
+	
+	else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM)
+		send_request(STP_EXIT, NULL, 0);
+}
+
+static void setup_main_signals(void)
+{
+	struct sigaction a;
+	memset(&a, 0, sizeof(a));
+	sigfillset(&a.sa_mask);
+	a.sa_handler = sigproc;
+	sigaction(SIGINT, &a, NULL);
+	sigaction(SIGTERM, &a, NULL);
+	sigaction(SIGHUP, &a, NULL);
+	sigaction(SIGCHLD, &a, NULL);
+	sigaction(SIGQUIT, &a, NULL);
+}
+
+void setup_signals(void)
+{
+	sigset_t s;
+	struct sigaction a;
+
+	/* blocking all signals while we set things up */
+	sigfillset(&s);
+	pthread_sigmask(SIG_SETMASK, &s, NULL);
+
+	/* set some of them to be ignored */
+	memset(&a, 0, sizeof(a));
+	sigfillset(&a.sa_mask);
+	a.sa_handler = SIG_IGN;
+	sigaction(SIGPIPE, &a, NULL);
+	sigaction(SIGUSR2, &a, NULL);
+
+	/* for serious errors, handle them in fatal_handler */
+	a.sa_handler = fatal_handler;
+	sigaction(SIGBUS, &a, NULL);
+	sigaction(SIGFPE, &a, NULL);
+	sigaction(SIGILL, &a, NULL);
+	sigaction(SIGSEGV, &a, NULL);
+	sigaction(SIGXCPU, &a, NULL);
+	sigaction(SIGXFSZ, &a, NULL);
+
+	/* unblock all signals */
+	sigemptyset(&s);
+	pthread_sigmask(SIG_SETMASK, &s, NULL);
+}
+
+
 /**
  *	send_request - send request to kernel over control channel
  *	@type: the relay-app command id
@@ -53,9 +124,9 @@ void start_cmd(void)
 		
 	sigemptyset(&usrset);
 	sigaddset(&usrset, SIGUSR1);
-	sigprocmask(SIG_BLOCK, &usrset, NULL);
+	pthread_sigmask(SIG_BLOCK, &usrset, NULL);
 
-	dbug ("execing target_cmd %s\n", target_cmd);
+	dbug (1, "execing target_cmd %s\n", target_cmd);
 	if ((pid = fork()) < 0) {
 		perror ("fork");
 		exit(-1);
@@ -89,7 +160,7 @@ void system_cmd(char *cmd)
 {
 	pid_t pid;
 
-	dbug ("system %s\n", cmd);
+	dbug (2, "system %s\n", cmd);
 	if ((pid = fork()) < 0) {
 		perror ("fork");
 	} else if (pid == 0) {
@@ -117,9 +188,8 @@ static int run_stp_check (void)
 {
 	int ret ;
 	/* run the _stp_check script */
-	dbug("executing %s\n", stp_check);
+	dbug(2, "executing %s\n", stp_check);
 	ret = system(stp_check);
-	dbug("DONE\n");
 	return ret;
 }
 
@@ -136,7 +206,7 @@ int init_staprun(void)
 	int pid;
 
 	if (system(VERSION_CMD)) {
-		dbug("Using OLD TRANSPORT\n");
+		dbug(1, "Using OLD TRANSPORT\n");
 		use_old_transport = 1;
 	}
 
@@ -211,16 +281,11 @@ void cleanup_and_exit (int closed)
 	pid_t err;
 	static int exiting = 0;
 
-	signal(SIGINT, SIG_IGN);
-	signal(SIGTERM, SIG_IGN);
-	signal(SIGHUP, SIG_IGN);
-	signal(SIGQUIT, SIG_IGN);
-
 	if (exiting)
 		return;
 	exiting = 1;
 
-	dbug("CLEANUP AND EXIT  closed=%d\n", closed);
+	dbug(1, "CLEANUP AND EXIT  closed=%d\n", closed);
 
 	/* what about child processes? we will wait for them here. */
 	err = waitpid(-1, NULL, WNOHANG);
@@ -233,11 +298,11 @@ void cleanup_and_exit (int closed)
 	else
 		close_relayfs();
 
-	dbug("closing control channel\n");
+	dbug(1, "closing control channel\n");
 	close_ctl_channel();
 
 	if (closed == 0) {
-		dbug("removing module\n");
+		dbug(1, "removing module\n");
 		snprintf(tmpbuf, sizeof(tmpbuf), "/sbin/rmmod -w %s", modname);
 		if (system(tmpbuf)) {
 			fprintf(stderr, "ERROR: couldn't rmmod probe module %s.\n", modname);
@@ -251,18 +316,6 @@ void cleanup_and_exit (int closed)
 	exit(0);
 }
 
-static void sigproc(int signum)
-{
-	dbug("sigproc %d\n", signum);
-	if (signum == SIGCHLD) {
-		pid_t pid = waitpid(-1, NULL, WNOHANG);
-		if (pid != target_pid)
-			return;
-	} else if (signum == SIGQUIT)
-		cleanup_and_exit(2);
-		
-	send_request(STP_EXIT, NULL, 0);
-}
 
 /**
  *	stp_main_loop - loop forever reading data
@@ -277,20 +330,17 @@ int stp_main_loop(void)
 	FILE *ofp = stdout;
 
 	setvbuf(ofp, (char *)NULL, _IOLBF, 0);
+	setup_main_signals();
 
-	signal(SIGINT, sigproc);
-	signal(SIGTERM, sigproc);
-	signal(SIGHUP, sigproc);
-	signal(SIGCHLD, sigproc);
-	signal(SIGQUIT, sigproc);
-
-	dbug("in main loop\n");
+	dbug(2, "in main loop\n");
 
 	while (1) { /* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		if (nb <= 0) {
-			perror("recv");
-			fprintf(stderr, "WARNING: unexpected EOF. nb=%ld\n", (long)nb);
+			if (errno != EINTR) {
+				perror("recv");
+				fprintf(stderr, "WARNING: unexpected EOF. nb=%ld\n", (long)nb);
+			}
 			continue;
 		}
 
@@ -322,14 +372,14 @@ int stp_main_loop(void)
 		{
 			/* module asks us to unload it and exit */
 			int *closed = (int *)data;
-			dbug("got STP_EXIT, closed=%d\n", *closed);
+			dbug(2, "got STP_EXIT, closed=%d\n", *closed);
 			cleanup_and_exit(*closed);
 			break;
 		}
 		case STP_START: 
 		{
 			struct _stp_msg_start *t = (struct _stp_msg_start *)data;
-			dbug("probe_start() returned %d\n", t->res);
+			dbug(2, "probe_start() returned %d\n", t->res);
 			if (t->res < 0) {
 				if (target_cmd)
 					kill (target_pid, SIGKILL);
@@ -341,6 +391,7 @@ int stp_main_loop(void)
 		case STP_SYSTEM:
 		{
 			struct _stp_msg_cmd *c = (struct _stp_msg_cmd *)data;
+			dbug(2, "STP_SYSTEM: %s\n", c->cmd);
 			system_cmd(c->cmd);
 			break;
 		}
@@ -362,14 +413,14 @@ int stp_main_loop(void)
 		}
 		case STP_MODULE:
 		{
-			dbug("STP_MODULES request received\n");
+			dbug(2, "STP_MODULES request received\n");
 			do_module(data);
 			break;
 		}		
 		case STP_SYMBOLS:
 		{
 			struct _stp_msg_symbol *req = (struct _stp_msg_symbol *)data;
-			dbug("STP_SYMBOLS request received\n");
+			dbug(2, "STP_SYMBOLS request received\n");
 			if (req->endian != 0x1234) {
 				fprintf(stderr,"ERROR: staprun is compiled with different endianess than the kernel!\n");
 				cleanup_and_exit(0);

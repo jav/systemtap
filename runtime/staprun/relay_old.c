@@ -57,7 +57,7 @@ void close_oldrelayfs(int detach)
 	if (!bulkmode)
 		return;
 	
-	dbug("detach=%d, ncpus=%d\n", detach, ncpus);
+	dbug(2, "detach=%d, ncpus=%d\n", detach, ncpus);
 	
 	if (detach) {
 		for (i = 0; i < ncpus; i++)
@@ -91,7 +91,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	}
 
 	sprintf(tmp, "%s%d", proc_filebase, cpu);
-	dbug("Opening %s.\n", tmp); 
+	dbug(2, "Opening %s.\n", tmp); 
 	proc_fd[cpu] = open(tmp, O_RDWR | O_NONBLOCK);
 	if (proc_fd[cpu] < 0) {
 		fprintf(stderr, "ERROR: couldn't open proc file %s: errcode = %s\n", tmp, strerror(errno));
@@ -221,7 +221,7 @@ int init_oldrelayfs(void)
 	struct statfs st;
 	char relay_filebase[128], proc_filebase[128];
 
-	dbug("initializing relayfs.n_subbufs=%d subbuf_size=%d\n", n_subbufs, subbuf_size);
+	dbug(2, "initializing relayfs.n_subbufs=%d subbuf_size=%d\n", n_subbufs, subbuf_size);
 
 	if (n_subbufs)
 		bulkmode = 1;
@@ -265,7 +265,7 @@ int init_oldrelayfs(void)
 	}
 
 	ncpus = i;
-	dbug("ncpus=%d\n", ncpus);
+	dbug(2, "ncpus=%d\n", ncpus);
 
 	for (i = 0; i < ncpus; i++) {
 		/* create a thread for each per-cpu buffer */

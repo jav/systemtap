@@ -65,7 +65,7 @@ static void usage(char *prog)
 {
 	fprintf(stderr, "\n%s [-v]  [-c cmd ] [-x pid] [-u user]\n"
                 "\t[-A modname]] [-L] [-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
-	fprintf(stderr, "-v  Verbose.\n");
+	fprintf(stderr, "-v  increase Verbosity.\n");
 	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and staprun will exit when it does.\n");
 	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
 	fprintf(stderr, "-x pid.  Sets _stp_target to pid.\n");
@@ -84,10 +84,12 @@ int main(int argc, char **argv)
 {
 	int c;
 
+	setup_signals();
+
 	while ((c = getopt(argc, argv, "ALvb:t:d:c:o:u:x:")) != EOF) {
 		switch (c) {
 		case 'v':
-			verbose = 1;
+			verbose++;
 			break;
 		case 'b':
 		{
@@ -136,7 +138,7 @@ int main(int argc, char **argv)
 	if (optind < argc) {
 		modpath = argv[optind++];
 		path_parse_modname(modpath);
-		dbug("modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
+		dbug(2, "modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
 	}
 
         if (optind < argc) {

@@ -34,10 +34,11 @@
 #include <sys/statfs.h>
 #include <linux/version.h>
 
+#define DEBUG
 #ifdef DEBUG
-#define dbug(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
+#define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args);}}
 #else
-#define dbug(args...) ;
+#define dbug(level, args...) ;
 #endif /* DEBUG */
 
 #define err(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
@@ -69,6 +70,7 @@ int init_relayfs(void);
 void close_relayfs(void);
 int init_oldrelayfs(void);
 void close_oldrelayfs(int);
+void setup_signals(void);
 
 /*
  * variables 
