@@ -1309,9 +1309,12 @@ probe syscall.gettid.return = kernel.function("sys_gettid").return {
 #	struct timezone __user *tz)
 # long sys32_gettimeofday(struct compat_timeval __user *tv, 
 #	struct timezone __user *tz)
+# long compat_sys_gettimeofday(struct compat_timeval __user *tv,
+#	struct timezone __user *tz)
 probe syscall.gettimeofday = 
 		kernel.function("sys_gettimeofday"),
-		kernel.function("sys32_gettimeofday") ?
+		kernel.function("sys32_gettimeofday") ?,
+		kernel.function("compat_sys_gettimeofday") ?
 {
 	name = "gettimeofday"
 	tv_uaddr = $tv
@@ -1321,7 +1324,8 @@ probe syscall.gettimeofday =
 
 probe syscall.gettimeofday.return = 
 		kernel.function("sys_gettimeofday").return,
-		kernel.function("sys32_gettimeofday").return ?
+		kernel.function("sys32_gettimeofday").return ?,
+		kernel.function("compat_sys_gettimeofday").return ?
 {
 	name = "gettimeofday"
 	retstr = returnstr(1)
@@ -1790,15 +1794,17 @@ probe syscall.lsetxattr.return = kernel.function("sys_lsetxattr").return {
 # long sys_newlstat(char __user * filename, struct stat __user * statbuf)
 # long compat_sys_newlstat(char __user * filename, struct compat_stat __user *statbuf)
 # long sys32_lstat64(char * filename, struct stat64 __user *statbuf)
+# long sys_lstat64(char __user * filename, struct stat64 __user * statbuf)
 #
 probe syscall.lstat = 
 		kernel.function("sys_lstat") ?,
 		kernel.function("sys_newlstat") ?,
 		kernel.function("compat_sys_newlstat") ?,
-		kernel.function("sys32_lstat64") ?
+		kernel.function("sys32_lstat64") ?,
+		kernel.function("sys_lstat64") ?
 {
 	name = "lstat"
-	file_name = user_string($filename)
+	path = user_string($filename)
 	buf_uaddr = $statbuf
 	argstr = sprintf("%s, %p", user_string_quoted($filename), $statbuf) 
 }
@@ -1806,7 +1812,8 @@ probe syscall.lstat.return =
 		kernel.function("sys_lstat").return ?,
 		kernel.function("sys_newlstat").return ?,
 		kernel.function("compat_sys_newlstat").return ?,
-		kernel.function("sys32_lstat64").return ?
+		kernel.function("sys32_lstat64").return ?,
+		kernel.function("sys_lstat64").return ?
 { 
 	name = "lstat"
 	retstr = returnstr(1)

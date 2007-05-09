@@ -1,3 +1,13 @@
+2007-05-09  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp: Added compat_sys_pause to syscall.pause.
+
+	* syscalls.stp:	Added sys_lstat64 to syscall.lstat.
+	Added compat_sys_gettimeofday to syscall.gettimeofday.
+
+	* ppc64/syscalls.stp: Remove sys_lstat64.
+	* i686/syscalls.stp: Remove sys_lstat64.
+
 2007-04-25  David Wilder <dwilder@us.ibm.com>
 
         * syscall2.stp:syscall.pause added sys32_pause to probe list.

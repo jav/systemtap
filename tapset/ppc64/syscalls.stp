@@ -239,20 +239,6 @@ probe syscall.compat_sys_newlstat.return =
 	name = "compat_sys_newlstat"
 	retstr = returnstr(1)
 }
-# lstat ______________________________________________________
-# long sys_lstat(char __user * filename, struct __old_kernel_stat __user * statbuf)
-probe syscall.lstat64 = 
-		kernel.function("sys_lstat64") ? {
-	name = "lstat64"
-	path = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("%s, %p", user_string_quoted($filename), buf_uaddr)
-}
-probe syscall.lstat64.return = 
-		kernel.function("sys_lstat64").return ? {
-	name = "lstat64"
-	retstr = returnstr(1)
-}
 
 # compat_sys_ioctl ________________________________________
 #

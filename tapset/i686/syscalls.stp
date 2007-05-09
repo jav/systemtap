@@ -204,19 +204,6 @@ probe syscall.ipc.return = kernel.function("sys_ipc").return {
 	name = "ipc"
 	retstr = returnstr(1)
 }
-# lstat64 ____________________________________________________
-# long sys_lstat64(char __user * filename,
-#             struct stat64 __user * statbuf)
-probe syscall.lstat64 = kernel.function("sys_lstat64") {
-	name = "lstat"
-	filename = user_string($filename)
-	buf_uaddr = $statbuf
-	argstr = sprintf("\"%s\", %p", filename, $statbuf)
-}
-probe syscall.lstat64.return = kernel.function("sys_lstat64").return {
-	name = "lstat"
-	retstr = returnstr(1)
-}
 # olduname ___________________________________________________
 /*
  * asmlinkage long

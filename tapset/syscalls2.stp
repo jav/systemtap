@@ -143,15 +143,20 @@ probe syscall.open.return =
 # sys_pause(void)
 #
 probe syscall.pause = kernel.function("sys_pause"),
-		      kernel.function("sys32_pause") ? {
+		      kernel.function("sys32_pause") ?,
+		      kernel.function("compat_sys_pause") ?
+{	
 	name = "pause"
 	argstr = ""
 }
 probe syscall.pause.return = kernel.function("sys_pause").return, 
-			     kernel.function("sys32_pause").return ? {
+			     kernel.function("sys32_pause").return ?,
+			     kernel.function("compat_sys_pause").return ?
+{
 	name = "pause"
 	retstr = returnstr(1)
 }
+
 # pciconfig_iobase ___________________________________________
 #
 # asmlinkage long
