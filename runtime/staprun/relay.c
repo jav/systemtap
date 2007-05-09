@@ -69,7 +69,7 @@ static void *reader_thread(void *data)
 	pollfd.events = POLLIN;
 
         do {
-                rc = ppoll(&pollfd, 1, &tim, &sigs);
+                rc = ppoll(&pollfd, 1, timeout, &sigs);
                 if (rc < 0) {
 			dbug(3, "poll=%d errno=%d\n", rc, errno);
                         if (errno != EINTR) {

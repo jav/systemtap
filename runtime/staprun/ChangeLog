@@ -1,3 +1,8 @@
+2007-05-09  Martin Hunt  <hunt@redhat.com>
+
+	* relay.c (reader_thread): For bulk mode, set timeout to NULL
+	so ppoll never times out.
+
 2007-05-08  Martin Hunt  <hunt@redhat.com>
 
 	* relay.c (ppoll): Add a compatibility function for
