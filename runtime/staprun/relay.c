@@ -49,7 +49,7 @@ static void *reader_thread(void *data)
         char buf[131072];
         int rc, cpu = (int)(long)data;
         struct pollfd pollfd;
-	struct timespec tim = {.tv_sec=0, .tv_nsec=10000000}, *timeout = &tim;
+	struct timespec tim = {.tv_sec=0, .tv_nsec=200000000}, *timeout = &tim;
 	sigset_t sigs;
 
 	sigemptyset(&sigs);
