@@ -98,7 +98,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -c CMD     start the probes, run CMD, and exit when it finishes"
     << endl
     << "   -x PID     sets target() to PID" << endl
-    << "   -t         benchmarking timing information generated" << endl
+    << "   -t         collect probe timing information" << endl
     ;
   // -d: dump safety-related external references
 
