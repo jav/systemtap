@@ -135,9 +135,9 @@ probe scheduler.ctxswitch =
         prevtsk_state = $prev->state
 %: %( arch == "x86_64" %?
         prev_pid = $prev->pid
-        next_pid =  $new->pid
+        next_pid =  $next->pid
         prev_task = $prev
-        next_task = $new
+        next_task = $next
         prevtsk_state = $prev->state
 %:
         prev_pid = $prev_p->pid

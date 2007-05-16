@@ -1,3 +1,8 @@
+2007-05-16  Will Cohen  <wcohen@redhat.com>
+
+	PR 4510
+	* scheduler.stp: Correct function argument.
+	
 2007-05-09  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp: Added compat_sys_pause to syscall.pause.
