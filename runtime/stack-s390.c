@@ -24,11 +24,11 @@ __stp_show_stack (unsigned long sp, unsigned long low,
 		sf = (struct stack_frame *) sp;
 		ip = sf->gprs[8] & PSW_ADDR_INSN;
 		if (verbose) {
-			_stp_printf("[%p] [%p] ", sp, ip);
+			_stp_printf("[%p] [%p] ", (int64_t)sp, (int64_t)ip);
 			_stp_symbol_print(ip);
 			_stp_print_char('\n');
 		}else{
-			_stp_printf("%p ", ip);
+			_stp_printf("%p ", (int64_t)ip);
 		}
 		/* Follow the back_chain */
 		while (1) {
@@ -41,11 +41,11 @@ __stp_show_stack (unsigned long sp, unsigned long low,
 			sf = (struct stack_frame *) sp;
 			ip = sf->gprs[8] & PSW_ADDR_INSN;
 			if (verbose) {
-				_stp_printf("[%p] [%p] ", sp, ip);
+				_stp_printf("[%p] [%p] ", (int64_t)sp, (int64_t)ip);
 				_stp_symbol_print(ip);
 				_stp_print_char('\n');
 			}else{
-				_stp_printf("%p ", ip);
+				_stp_printf("%p ", (int64_t)ip);
 			}
 		}
 		/* Zero backchain detected, check for interrupt frame. */
@@ -54,11 +54,11 @@ __stp_show_stack (unsigned long sp, unsigned long low,
 			return sp;
 		regs = (struct pt_regs *) sp;
 		if (verbose) {
-			_stp_printf("[%p] [%p] ", sp, ip);
+			_stp_printf("[%p] [%p] ", (int64_t)sp, (int64_t)ip);
 			_stp_symbol_print(ip);
 			_stp_print_char('\n');
 		}else{
-			_stp_printf("%p ", ip);
+			_stp_printf("%p ", (int64_t)ip);
 		}
 		low = sp;
 		sp = regs->gprs[15];

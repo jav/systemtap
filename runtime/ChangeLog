@@ -1,3 +1,8 @@
+2007-05-15  Martin Hunt  <hunt@redhat.com>
+
+	* vsprintf.c: Add comment about %p.
+	* regs.c, stack*.c, sym.c: Fix %p calls.
+
 2007-04-27  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h: Improve check for debugfs in kernel.

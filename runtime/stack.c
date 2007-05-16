@@ -84,7 +84,7 @@ void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instan
 		}
 		_stp_print_char('\n');
 	} else
-		_stp_printf ("%p ", REG_IP(regs));
+		_stp_printf ("%p ", (int64_t)REG_IP(regs));
 	__stp_stack_print (regs, verbose, 0);
 }
 
@@ -116,9 +116,9 @@ void _stp_stack_snprint (char *str, int size, struct pt_regs *regs, int verbose,
 void _stp_ustack_print (char *str)
 {
 	struct pt_regs *nregs = ((struct pt_regs *) (THREAD_SIZE + (unsigned long) current->thread_info)) - 1;
-	_stp_printf ("%p : [user]\n", REG_IP(nregs));
+	_stp_printf ("%p : [user]\n", (int64_t)REG_IP(nregs));
 	if (REG_SP(nregs))
-		_stp_printf ("%p : [user]\n", *(unsigned long *)REG_SP(nregs));
+		_stp_printf ("%p : [user]\n", (int64_t)(*(unsigned long *)REG_SP(nregs)));
 }
 #endif /* 0 */
 

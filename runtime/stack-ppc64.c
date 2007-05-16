@@ -23,14 +23,14 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 		ip = _sp[2];
 		if (!firstframe || ip != lr) {
 			if (verbose) {
-				_stp_printf("[%p] [%p] ", sp, ip);
+				_stp_printf("[0x%016lx] [0x%016lx] ", sp, ip);
 				_stp_symbol_print(ip);
 				if (firstframe)
 					_stp_print(" (unreliable)");
 				_stp_print_char('\n');
 			}
 			else
-				_stp_printf("%p ", ip);
+				_stp_printf("0x%016lx ", ip);
 		}
 		firstframe = 0;
 		/*
@@ -51,8 +51,8 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 				firstframe = 1;
 			}
 			else {
-				_stp_printf("%p ",regs->nip);
-				_stp_printf("%p ",regs->link);
+				_stp_printf("0x%016lx ",regs->nip);
+				_stp_printf("0x%016lx ",regs->link);
 			}
 		}
 

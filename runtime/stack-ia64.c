@@ -44,7 +44,7 @@ static void __stp_show_stack_addr(struct unw_frame_info *info, void *arg)
 				skip = 0;
 			continue;
 		}
-		_stp_printf ("%p ", ip);
+		_stp_printf ("0x%016lx ", ip);
 	} while (unw_unwind(info) >= 0);
 }
 

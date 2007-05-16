@@ -180,7 +180,7 @@ void _stp_symbol_print (unsigned long address)
 
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
 
-	_stp_printf ("%p", (void *)address);
+	_stp_printf ("%p", (int64_t)address);
 
 	if (name) {		
 		if (modname)
@@ -200,7 +200,7 @@ void _stp_symbol_snprint (char *str, size_t len, unsigned long address)
     if (name)
 	    strlcpy(str, name, len);
     else
-	    snprintf(str, len, "%p", (void *)address);
+	    _stp_snprintf(str, len, "%p", (int64_t)address);
 }
 
 /** @} */

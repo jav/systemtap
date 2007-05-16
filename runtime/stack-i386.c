@@ -31,7 +31,7 @@ _stp_show_trace_unwind(struct unwind_frame_info *info, int verbose)
 			_stp_symbol_print (UNW_PC(info));
 			_stp_print_char ('\n');
 		} else
-			_stp_printf ("%p ", UNW_PC(info));
+			_stp_printf ("0x%08lx ", UNW_PC(info));
 		if (arch_unw_user_mode(info))
 			break;
 	}
@@ -78,7 +78,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 				_stp_symbol_print (addr);
 				_stp_print_char('\n');
 			} else
-				_stp_printf ("%p ", (void *)addr);
+				_stp_printf ("0x%08lx ", addr);
 			ebp = *(unsigned long *)ebp;
 		}
 	}
@@ -95,7 +95,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 				_stp_symbol_print(addr);
 				_stp_print_char('\n');
 			} else
-				_stp_printf ("%p ", (void *)addr);
+				_stp_printf ("0x%08lx ", addr);
 		}
 	}
 #endif

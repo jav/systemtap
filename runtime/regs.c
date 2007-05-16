@@ -184,7 +184,7 @@ void _stp_print_regs(struct pt_regs * regs)
 
 	_stp_printf("NIP: %016lX XER: %08X LR: %016lX CTR: %016lX\n",
 	       regs->nip, (unsigned int)regs->xer, regs->link, regs->ctr);
-	_stp_printf("REGS: %p TRAP: %04lx\n", regs, regs->trap);
+	_stp_printf("REGS: %016lx TRAP: %04lx\n", (long)regs, regs->trap);
 	_stp_printf("MSR: %016lx CR: %08X\n",
 			regs->msr, (unsigned int)regs->ccr);
 	_stp_printf("DAR: %016lx DSISR: %016lx\n",

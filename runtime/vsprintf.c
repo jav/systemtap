@@ -295,6 +295,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			break;
 				
 		case 'p':
+			/* Note that %p takes an int64_t argument. */
 			len = 2*sizeof(void *) + 2;
 			flags |= STP_ZEROPAD;
 
