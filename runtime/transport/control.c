@@ -9,7 +9,7 @@
  * later version.
  */
 
-#define STP_DEFAULT_BUFFERS 20
+#define STP_DEFAULT_BUFFERS 100
 static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
 static struct list_head _stp_ready_q;
@@ -71,7 +71,7 @@ struct _stp_buffer {
 	struct list_head list;
 	int len;
 	int type;
-	char buf[STP_BUFFER_SIZE];
+	char buf[256];
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
@@ -111,7 +111,7 @@ static void _stp_ctl_write_dbug (int type, void *data, int len)
 }
 #endif
 
-static int _stp_ctl_write (int type, void *data, int len)
+static int _stp_ctl_write (int type, void *data, unsigned len)
 {
 	struct _stp_buffer *bptr;
 	unsigned long flags;
@@ -120,14 +120,16 @@ static int _stp_ctl_write (int type, void *data, int len)
 #ifdef DEBUG
 	_stp_ctl_write_dbug(type, data, len);
 #endif
+
 	numtrylock = 0;
 	while (!spin_trylock_irqsave (&_stp_pool_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
 		ndelay (TRYLOCKDELAY);
-	if (unlikely (numtrylock >= MAXTRYLOCK)) 
+	if (unlikely (numtrylock >= MAXTRYLOCK))
 		return 0;
 
-	if (list_empty(&_stp_pool_q)) {
+	if (unlikely(list_empty(&_stp_pool_q))) {
 		spin_unlock_irqrestore(&_stp_pool_lock, flags); 
+		dbug("_stp_pool_q empty\n");
 		return -1;
 	}
 
@@ -137,15 +139,16 @@ static int _stp_ctl_write (int type, void *data, int len)
 	spin_unlock_irqrestore(&_stp_pool_lock, flags);
 
 	bptr->type = type;
-	memcpy (bptr->buf, data, len);
+	memcpy(bptr->buf, data, min(len, sizeof(bptr->buf)));
 	bptr->len = len;
 	
 	/* put it on the pool of ready buffers */
 	numtrylock = 0;
 	while (!spin_trylock_irqsave (&_stp_ready_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
 		ndelay (TRYLOCKDELAY);
-	if (unlikely (numtrylock >= MAXTRYLOCK))
+	if (unlikely (numtrylock >= MAXTRYLOCK)) 
 		return 0;
+
 	list_add_tail(&bptr->list, &_stp_ready_q);
 	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 
