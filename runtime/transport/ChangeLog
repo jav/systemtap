@@ -1,3 +1,7 @@
+2007-05-16  Will Cohen  <wcohen@redhat.com>
+
+	* control.c: Explicit type cast for picky compilers.
+
 2007-05-15  Martin Hunt  <hunt@redhat.com>
 
 	* control.c: Change default buffer number and size.

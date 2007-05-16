@@ -139,7 +139,7 @@ static int _stp_ctl_write (int type, void *data, unsigned len)
 	spin_unlock_irqrestore(&_stp_pool_lock, flags);
 
 	bptr->type = type;
-	memcpy(bptr->buf, data, min(len, sizeof(bptr->buf)));
+	memcpy(bptr->buf, data, min((size_t) len, sizeof(bptr->buf)));
 	bptr->len = len;
 	
 	/* put it on the pool of ready buffers */
