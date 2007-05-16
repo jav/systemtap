@@ -255,8 +255,13 @@ probe syscall.pipe = kernel.function("sys_pipe") {
 %:
 probe syscall.pipe = kernel.function("sys_pipe") {
 	name = "pipe"
+%( arch == "ia64" %?
+# ia64 just returns value directly, no fildes argument
+	argstr = ""
+%:
 	fildes_uaddr = $fildes
 	argstr = _fildes_u($fildes)
+%)
 }
 %)
 probe syscall.pipe.return = kernel.function("sys_pipe").return {

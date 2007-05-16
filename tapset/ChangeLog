@@ -1,4 +1,8 @@
 2007-05-16  Will Cohen  <wcohen@redhat.com>
+	PR 4471
+	* syscall2.stp: Correct sys_pipe function args for ia64.
+	
+2007-05-16  Will Cohen  <wcohen@redhat.com>
 
 	PR 4510
 	* scheduler.stp: Correct function argument.
