@@ -121,12 +121,12 @@ probe syscall.adjtimex.return = kernel.function("sys_adjtimex").return {
 
 # alarm ______________________________________________________
 # unsigned long sys_alarm (unsigned int seconds)
-probe syscall.alarm = kernel.function("sys_alarm") {
+probe syscall.alarm = kernel.function("sys_alarm") ? {
 	name = "alarm"
 	seconds = $seconds
 	argstr = sprint($seconds)
 }
-probe syscall.alarm.return = kernel.function("sys_alarm").return {
+probe syscall.alarm.return = kernel.function("sys_alarm").return ? {
 	name = "alarm"
 	retstr = returnstr(1)
 }
@@ -523,7 +523,7 @@ probe syscall.exit_group.return = end {}
 # fadvise64 __________________________________________________
 # long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
 #
-probe syscall.fadvise64 = kernel.function("sys_fadvise64") {
+probe syscall.fadvise64 = kernel.function("sys_fadvise64") ? {
 	name = "fadvise64"
 	fs = $fd
 	offset = $offset
@@ -531,7 +531,7 @@ probe syscall.fadvise64 = kernel.function("sys_fadvise64") {
 	advice = $advice
 	argstr = sprintf("%d, %d, %d, %s", $fd, $offset, $len, _fadvice_advice_str($advice))
 }
-probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return {
+probe syscall.fadvise64.return = kernel.function("sys_fadvise64").return ? {
 	name = "fadvise64"
 	retstr = returnstr(1)
 }
@@ -1028,13 +1028,13 @@ probe syscall.getgroups.return = kernel.function("sys_getgroups").return {
 
 # gethostname ________________________________________________
 # long sys_gethostname(char __user *name, int len)
-probe syscall.gethostname = kernel.function("sys_gethostname") {
+probe syscall.gethostname = kernel.function("sys_gethostname") ? {
 	name = "gethostname"
 	name_uaddr = $name
 	len = $len
 	argstr = sprintf ("%p, %d", name_uaddr, len)
 }
-probe syscall.gethostname.return = kernel.function("sys_gethostname").return {
+probe syscall.gethostname.return = kernel.function("sys_gethostname").return ? {
 	name = "gethostname"
 	retstr = returnstr(1)
 }
@@ -1113,10 +1113,10 @@ probe syscall.getpgid.return = kernel.function("sys_getpgid").return {
 
 # getpgrp ____________________________________________________
 # long sys_getpgrp(void)
-probe syscall.getpgrp = kernel.function("sys_getpgrp") {
+probe syscall.getpgrp = kernel.function("sys_getpgrp") ? {
 	name = "getpgrp"
 }
-probe syscall.getpgrp.return = kernel.function("sys_getpgrp").return {
+probe syscall.getpgrp.return = kernel.function("sys_getpgrp").return ? {
 	name = "getpgrp"
 	retstr = returnstr(1)
 }
@@ -1219,13 +1219,24 @@ probe syscall.getresuid16.return = kernel.function("sys_getresuid16").return ? {
 
 # getrlimit __________________________________________________
 # long sys_getrlimit(unsigned int resource, struct rlimit __user *rlim)
-probe syscall.getrlimit = kernel.function("sys_getrlimit") {
+# long sys_old_getrlimit(unsigned int resource, struct rlimit __user *rlim)
+# long compat_sys_old_getrlimit(unsigned int resource, struct compat_rlimit __user *rlim)
+# long compat_sys_getrlimit (unsigned int resource, struct compat_rlimit __user *rlim)
+probe syscall.getrlimit = kernel.function("sys_getrlimit"),
+                          kernel.function("sys_old_getrlimit") ?,
+                          kernel.function("compat_sys_getrlimit") ?,
+                          kernel.function("compat_sys_old_getrlimit") ?
+{
 	name = "getrlimit"
 	resource = $resource
 	rlim_uaddr = $rlim
 	argstr = sprintf("%s, %p", _rlimit_resource_str($resource), rlim_uaddr)
 }
-probe syscall.getrlimit.return = kernel.function("sys_getrlimit").return {
+probe syscall.getrlimit.return = kernel.function("sys_getrlimit").return,
+                                 kernel.function("sys_old_getrlimit").return ?,
+	                         kernel.function("compat_sys_getrlimit").return ?,
+                                 kernel.function("compat_sys_old_getrlimit").return ?
+{
 	name = "getrlimit"
 	retstr = returnstr(1)
 }
@@ -1701,7 +1712,7 @@ probe syscall.llistxattr.return = kernel.function("sys_llistxattr").return {
 #            unsigned long offset_low,
 #            loff_t __user * result,
 #            unsigned int origin)
-probe syscall.llseek = kernel.function("sys_llseek") {
+probe syscall.llseek = kernel.function("sys_llseek") ? {
 	name = "llseek"
 	fd = $fd
 	offset_high = $offset_high
@@ -1712,7 +1723,7 @@ probe syscall.llseek = kernel.function("sys_llseek") {
 	argstr = sprintf("%d, 0x%x, 0x%x, %p, %s", $fd, $offset_high,
 		$offset_low, $result, whence_str)
 }
-probe syscall.llseek.return = kernel.function("sys_llseek").return {
+probe syscall.llseek.return = kernel.function("sys_llseek").return ? {
 	name = "llseek"
 	retstr = returnstr(1)
 }

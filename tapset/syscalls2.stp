@@ -70,12 +70,12 @@ probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return {
 # nice _______________________________________________________
 # long sys_nice(int increment)
 #
-probe syscall.nice = kernel.function("sys_nice") {
+probe syscall.nice = kernel.function("sys_nice") ? {
 	name = "nice"
 	inc = $increment
 	argstr = sprintf("%d", $increment)
 }
-probe syscall.nice.return = kernel.function("sys_nice").return {
+probe syscall.nice.return = kernel.function("sys_nice").return ? {
 	name = "nice"
 	retstr = returnstr(1)
 }
@@ -90,24 +90,6 @@ probe syscall.ni_syscall = kernel.function("sys_ni_syscall") {
 }
 probe syscall.ni_syscall.return = kernel.function("sys_ni_syscall").return {
 	name = "ni_syscall"
-	retstr = returnstr(1)
-}
-
-# old_getrlimit ______________________________________________
-#
-# asmlinkage long
-# sys_old_getrlimit(unsigned int resource,
-#			 struct rlimit __user *rlim)
-#
-probe syscall.old_getrlimit = kernel.function("sys_old_getrlimit") {
-	name = "old_getrlimit"
-	resource = $resource
-	resource_str = _rlimit_resource_str($resource)
-	rlim_uaddr = $rlim
-	argstr = sprintf("%s, %p", resource_str, rlim_uaddr)
-}
-probe syscall.old_getrlimit.return = kernel.function("sys_old_getrlimit").return {
-	name = "old_getrlimit"
 	retstr = returnstr(1)
 }
 
@@ -142,14 +124,14 @@ probe syscall.open.return =
 #
 # sys_pause(void)
 #
-probe syscall.pause = kernel.function("sys_pause"),
+probe syscall.pause = kernel.function("sys_pause") ?,
 		      kernel.function("sys32_pause") ?,
 		      kernel.function("compat_sys_pause") ?
 {	
 	name = "pause"
 	argstr = ""
 }
-probe syscall.pause.return = kernel.function("sys_pause").return, 
+probe syscall.pause.return = kernel.function("sys_pause").return ?, 
 			     kernel.function("sys32_pause").return ?,
 			     kernel.function("compat_sys_pause").return ?
 {
@@ -765,11 +747,11 @@ probe syscall.rt_sigqueueinfo.return =
 # rt_sigreturn _______________________________________________
 # int sys_rt_sigreturn(unsigned long __unused)
 #
-probe syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") {
+probe syscall.rt_sigreturn = kernel.function("sys_rt_sigreturn") ? {
 	name = "rt_sigreturn"
 	argstr = ""
 }
-probe syscall.rt_sigreturn.return = kernel.function("sys_rt_sigreturn").return {
+probe syscall.rt_sigreturn.return = kernel.function("sys_rt_sigreturn").return ? {
 	name = "rt_sigreturn"
 	retstr = returnstr(1)
 }
@@ -1714,13 +1696,13 @@ probe syscall.shutdown.return = kernel.function("sys_shutdown").return {
 # signal _____________________________________________________
 # unsigned long sys_signal(int sig, __sighandler_t handler)
 #
-probe syscall.signal = kernel.function("sys_signal") {
+probe syscall.signal = kernel.function("sys_signal") ? {
 	name = "signal"
 	sig = $sig
 	handler = $handler
 	argstr = sprintf("%s, %p", _signal_name($sig), $handler)
 }
-probe syscall.signal.return = kernel.function("sys_signal").return {
+probe syscall.signal.return = kernel.function("sys_signal").return ? {
 	name = "signal"
 	retstr = returnstr(1)
 }
@@ -1751,11 +1733,11 @@ probe syscall.sigpending.return = kernel.function("do_sigpending").return {
 }
 
 # sigprocmask ________________________________________________
-# long sys_sigprocmask(int how,
-#		     old_sigset_t __user *set,
-#		     old_sigset_t __user *oset)
-#
-probe syscall.sigprocmask = kernel.function("sys_sigprocmask") {
+# long sys_sigprocmask(int how, old_sigset_t __user *set, old_sigset_t __user *oset)
+# long compat_sys_sigprocmask(int how, compat_old_sigset_t __user *set, compat_old_sigset_t __user *oset)
+probe syscall.sigprocmask = kernel.function("sys_sigprocmask") ?,
+                            kernel.function("compat_sys_sigprocmask") ?
+{
 	name = "sigprocmask"
 	how  = $how
 	how_str = _sigprocmask_how_str($how)
@@ -1774,7 +1756,9 @@ probe syscall.sigprocmask = kernel.function("sys_sigprocmask") {
 	oldset_uaddr = $oset
 	argstr = sprintf("%s, %p, %p", how_str, $set, $oset)
 }
-probe syscall.sigprocmask.return = kernel.function("sys_sigprocmask").return {
+probe syscall.sigprocmask.return = kernel.function("sys_sigprocmask").return ?,
+                                   kernel.function("compat_sys_sigprocmask").return ?
+{
 	name = "sigprocmask"
 	retstr = returnstr(1)
 }
@@ -2363,7 +2347,7 @@ probe syscall.ustat.return =
 
 # utime ______________________________________________________
 # long sys_utime(char __user * filename, struct utimbuf __user * times)
-probe syscall.utime = kernel.function("sys_utime") {
+probe syscall.utime = kernel.function("sys_utime") ? {
 	name = "utime"
 	filename_uaddr = $filename
 	filename = user_string($filename)
@@ -2371,10 +2355,11 @@ probe syscall.utime = kernel.function("sys_utime") {
 	buf_str = _struct_utimbuf_u($times)
 	argstr = sprintf("%s, [%s]", user_string_quoted($filename), buf_str)
 }
-probe syscall.utime.return = kernel.function("sys_utime").return {
+probe syscall.utime.return = kernel.function("sys_utime").return ? {
 	name = "utime"
 	retstr = returnstr(1)
 }
+
 # long compat_sys_utime(char __user *filename, struct compat_utimbuf __user *t)
 probe syscall.compat_utime = kernel.function("compat_sys_utime") ? {
 	name = "utime"
@@ -2391,9 +2376,7 @@ probe syscall.compat_utime.return = kernel.function("compat_sys_utime").return ?
 
 # utimes _____________________________________________________
 #
-# asmlinkage long
-# sys_utimes(char __user * filename,
-#		struct timeval __user * utimes)
+# long sys_utimes(char __user * filename, struct timeval __user * utimes)
 #
 probe syscall.utimes = kernel.function("sys_utimes") {
 	name = "utimes"

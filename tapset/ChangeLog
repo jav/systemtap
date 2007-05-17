@@ -1,3 +1,14 @@
+2007-05-17  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: Make optional sys_alarm, sys_fadvise64,
+	sys_gethostname, sys_getpgrp, and sys_llseek.
+	(syscall.getrlimit): Add optional calls sys_old_getrlimit,
+	compat_sys_getrlimit, and compat_sys_old_getrlimit.
+
+	* syscalls2.stp: Make optional sys_nice, sys_rt_sigreturn,
+	sys_signal, sys_sigprocmask, sys_utime
+	(syscall.old_getrlimit): Moved into syscall.getrlimit.
+	
 2007-05-16  Will Cohen  <wcohen@redhat.com>
 	PR 4471
 	* syscall2.stp: Correct sys_pipe function args for ia64.
