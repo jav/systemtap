@@ -858,6 +858,7 @@ c_unparser::emit_common_header ()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "struct kretprobe_instance *pi;";
+  o->newline() << "va_list mark_va_list;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "Stat *statp;";
   o->newline() << "#endif";
@@ -1482,6 +1483,8 @@ c_unparser::emit_probe (derived_probe* v)
 	    throw semantic_error ("unsupported local variable type",
 				  v->locals[j]->tok);
         }
+
+      v->initialize_probe_context_vars (o);
   
       v->body->visit (this);
 
@@ -4338,6 +4341,10 @@ translate_pass (systemtap_session& s)
       // XXX: old 2.6 kernel hack
       s.op->newline() << "#ifndef read_trylock";
       s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";
+      s.op->newline() << "#endif";
+
+      s.op->newline() << "#if defined(CONFIG_MARKERS)";
+      s.op->newline() << "#include <linux/marker.h>";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header (); // context etc.

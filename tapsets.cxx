@@ -1989,16 +1989,21 @@ public:
 
 
 // Helper struct to thread through the dwfl callbacks.
-struct dwarf_query
+struct base_query
 {
-  dwarf_query(systemtap_session & sess,
-	      probe * base_probe,
-	      probe_point * base_loc,
-	      dwflpp & dw,
-	      map<string, literal *> const & params,
-	      vector<derived_probe *> & results);
+  base_query(systemtap_session & sess,
+	     probe * base_probe,
+	     probe_point * base_loc,
+	     dwflpp & dw,
+	     map<string, literal *> const & params,
+	     vector<derived_probe *> & results);
+  virtual ~base_query() {}
 
   systemtap_session & sess;
+  probe * base_probe;
+  probe_point * base_loc;
+  dwflpp & dw;
+  vector<derived_probe *> & results;
 
   // Parameter extractors.
   static bool has_null_param(map<string, literal *> const & params,
@@ -2010,8 +2015,85 @@ struct dwarf_query
   static bool get_number_param(map<string, literal *> const & params,
 			       string const & k, Dwarf_Addr & v);
 
-  // Result vector
-  vector<derived_probe *> & results;
+  // Extracted parameters.
+  bool has_kernel;
+  string module_val; // has_kernel => module_val = "kernel"
+
+  virtual void handle_query_module() = 0;
+};
+
+
+base_query::base_query(systemtap_session & sess,
+		       probe * base_probe,
+		       probe_point * base_loc,
+		       dwflpp & dw,
+		       map<string, literal *> const & params,
+		       vector<derived_probe *> & results)
+  : sess(sess), base_probe(base_probe), base_loc(base_loc), dw(dw),
+    results(results)
+{
+  has_kernel = has_null_param(params, TOK_KERNEL);
+  if (has_kernel)
+    module_val = "kernel";
+  else 
+    {
+      bool has_module = get_string_param(params, TOK_MODULE, module_val);
+      assert (has_module); // no other options are possible by construction
+    }
+}
+
+bool
+base_query::has_null_param(map<string, literal *> const & params,
+			   string const & k)
+{
+  map<string, literal *>::const_iterator i = params.find(k);
+  if (i != params.end() && i->second == NULL)
+    return true;
+  return false;
+}
+
+
+bool
+base_query::get_string_param(map<string, literal *> const & params,
+			     string const & k, string & v)
+{
+  return derived_probe_builder::get_param (params, k, v);
+}
+
+
+bool
+base_query::get_number_param(map<string, literal *> const & params,
+			     string const & k, long & v)
+{
+  int64_t value;
+  bool present = derived_probe_builder::get_param (params, k, value);
+  v = (long) value;
+  return present;
+}
+
+
+bool
+base_query::get_number_param(map<string, literal *> const & params,
+			     string const & k, Dwarf_Addr & v)
+{
+  int64_t value;
+  bool present = derived_probe_builder::get_param (params, k, value);
+  v = (Dwarf_Addr) value;
+  return present;
+}
+
+
+struct dwarf_query : public base_query
+{
+  dwarf_query(systemtap_session & sess,
+	      probe * base_probe,
+	      probe_point * base_loc,
+	      dwflpp & dw,
+	      map<string, literal *> const & params,
+	      vector<derived_probe *> & results);
+
+  virtual void handle_query_module();
+
   void add_probe_point(string const & funcname,
 		       char const * filename,
 		       int line,
@@ -2030,8 +2112,6 @@ struct dwarf_query
                      Dwarf_Addr addr);
 
   // Extracted parameters.
-  bool has_kernel;
-  string module_val; // has_kernel => module_val = "kernel"
   string function_val;
 
   bool has_function_str;
@@ -2071,10 +2151,6 @@ struct dwarf_query
   map<Dwarf_Addr, func_info> filtered_functions;
   bool choose_next_line;
   Dwarf_Addr entrypc_for_next_line;
-
-  probe * base_probe;
-  probe_point * base_loc;
-  dwflpp & dw;
 };
 
 
@@ -2107,68 +2183,17 @@ struct dwarf_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results);
 };
 
-bool
-dwarf_query::has_null_param(map<string, literal *> const & params,
-			    string const & k)
-{
-  map<string, literal *>::const_iterator i = params.find(k);
-  if (i != params.end() && i->second == NULL)
-    return true;
-  return false;
-}
-
-bool
-dwarf_query::get_string_param(map<string, literal *> const & params,
-			      string const & k, string & v)
-{
-  return derived_probe_builder::get_param (params, k, v);
-}
-
-bool
-dwarf_query::get_number_param(map<string, literal *> const & params,
-			      string const & k, long & v)
-{
-  int64_t value;
-  bool present = derived_probe_builder::get_param (params, k, value);
-  v = (long) value;
-  return present;
-}
-
-bool
-dwarf_query::get_number_param(map<string, literal *> const & params,
-			      string const & k, Dwarf_Addr & v)
-{
-  int64_t value;
-  bool present = derived_probe_builder::get_param (params, k, value);
-  v = (Dwarf_Addr) value;
-  return present;
-}
-
-
 dwarf_query::dwarf_query(systemtap_session & sess,
 			 probe * base_probe,
 			 probe_point * base_loc,
 			 dwflpp & dw,
 			 map<string, literal *> const & params,
 			 vector<derived_probe *> & results)
-  : sess(sess),
-    results(results),
-    base_probe(base_probe),
-    base_loc(base_loc),
-    dw(dw)
+  : base_query(sess, base_probe, base_loc, dw, params, results)
 {
 
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
-
-  has_kernel = has_null_param(params, TOK_KERNEL);
-  if (has_kernel)
-    module_val = "kernel";
-  else 
-    {
-      bool has_module = get_string_param(params, TOK_MODULE, module_val);
-      assert (has_module); // no other options are possible by construction
-    }
 
   has_function_str = get_string_param(params, TOK_FUNCTION, function_str_val);
   has_function_num = get_number_param(params, TOK_FUNCTION, function_num_val);
@@ -2188,6 +2213,37 @@ dwarf_query::dwarf_query(systemtap_session & sess,
     spec_type = parse_function_spec(statement_str_val);
 
   build_blacklist(); // XXX: why not reuse amongst dwarf_query instances?
+}
+
+
+void
+dwarf_query::handle_query_module()
+{
+  if (has_function_num || has_statement_num)
+    {
+      // If we have module("foo").function(0xbeef) or
+      // module("foo").statement(0xbeef), the address is relative
+      // to the start of the module, so we seek the function
+      // number plus the module's bias.
+
+      Dwarf_Addr addr;
+      if (has_function_num)
+	addr = function_num_val;
+      else
+	addr = statement_num_val;
+          
+      // NB: we don't need to add the module base address or bias
+      // value here (for reasons that may be coincidental).
+      dw.query_cu_containing_module_address(addr, this);
+    }
+  else
+    {
+      // Otherwise if we have a function("foo") or statement("foo")
+      // specifier, we have to scan over all the CUs looking for
+      // the function(s) in question
+      assert(has_function_str || has_statement_str);
+      dw.iterate_over_cus(&query_cu, this);
+    }
 }
 
 
@@ -2877,7 +2933,7 @@ query_module (Dwfl_Module *mod,
               Dwarf_Addr,
 	      void *arg)
 {
-  dwarf_query * q = static_cast<dwarf_query *>(arg);
+  base_query * q = static_cast<base_query *>(arg);
 
   try
     {
@@ -2947,31 +3003,7 @@ query_module (Dwfl_Module *mod,
              << " (code " << elf_machine << ")"
              << "\n";
 
-      if (q->has_function_num || q->has_statement_num)
-        {
-          // If we have module("foo").function(0xbeef) or
-          // module("foo").statement(0xbeef), the address is relative
-          // to the start of the module, so we seek the function
-          // number plus the module's bias.
-
-          Dwarf_Addr addr;
-          if (q->has_function_num)
-            addr = q->function_num_val;
-          else
-            addr = q->statement_num_val;
-          
-          // NB: we don't need to add the module base address or bias
-          // value here (for reasons that may be coincidental).
-	  q->dw.query_cu_containing_module_address(addr, q);
-        }
-      else
-        {
-          // Otherwise if we have a function("foo") or statement("foo")
-          // specifier, we have to scan over all the CUs looking for
-          // the function(s) in question
-          assert(q->has_function_str || q->has_statement_str);
-          q->dw.iterate_over_cus(&query_cu, q);
-        }
+      q->handle_query_module();
 
       // If we know that there will be no more matches, abort early.
       if (q->dw.module_name_final_match(q->module_val))
@@ -4163,45 +4195,176 @@ profile_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 
 
+struct mark_arg
+{
+  bool str;
+  string c_type;
+  exp_type stp_type;
+};
+
 struct mark_derived_probe: public derived_probe
 {
   mark_derived_probe (systemtap_session &s,
                       const string& probe_name, const string& probe_sig,
-                      uintptr_t address, const string& module,
+                      const string& module,
                       probe* base_probe);
 
   systemtap_session& sess;
   string probe_name, probe_sig;
-  uintptr_t address;
   string module;
-  string probe_sig_expanded;
+  vector <struct mark_arg *> mark_args;
+  bool target_symbol_seen;
 
   void join_group (systemtap_session& s);
   void emit_probe_context_vars (translator_output* o);
+  void initialize_probe_context_vars (translator_output* o);
+
+  void parse_probe_sig ();
 };
 
 
 struct mark_derived_probe_group: public generic_dpg<mark_derived_probe>
 {
 public:
-  void emit_module_decls (systemtap_session&) {}
-  void emit_module_init (systemtap_session&) {}
-  void emit_module_exit (systemtap_session&) {}
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
 };
 
 
 struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
 {
   mark_var_expanding_copy_visitor(systemtap_session& s,
-                                  const string& ms, const string& pn):
-    sess (s), mark_signature (ms), probe_name (pn) {}
+                                  const string& pn,
+				  vector <struct mark_arg *> &mark_args):
+    sess (s), probe_name (pn), mark_args (mark_args),
+    target_symbol_seen (false) {}
   systemtap_session& sess;
-  string mark_signature;
   string probe_name;
+  vector <struct mark_arg *> &mark_args;
+  bool target_symbol_seen;
 
   void visit_target_symbol (target_symbol* e);
 };
 
+
+struct mark_query: public base_query
+{
+  mark_query(systemtap_session & sess,
+	     probe * base_probe,
+	     probe_point * base_loc,
+	     dwflpp & dw,
+	     map<string, literal *> const & params,
+	     vector<derived_probe *> & results);
+
+  virtual void handle_query_module();
+
+  bool has_mark_str;
+  string mark_str_val;
+};
+
+mark_query::mark_query(systemtap_session & sess,
+		       probe * base_probe,
+		       probe_point * base_loc,
+		       dwflpp & dw,
+		       map<string, literal *> const & params,
+		       vector<derived_probe *> & results)
+  : base_query(sess, base_probe, base_loc, dw, params, results)
+{
+  has_mark_str = get_string_param (params, "mark", mark_str_val);
+  assert (has_mark_str);
+}
+
+struct markers_data
+{
+  string name;
+  string params;
+};
+
+void
+mark_query::handle_query_module()
+{
+  GElf_Addr baseaddr;
+  Elf *elf = dwfl_module_getelf(dw.module, &baseaddr);
+  assert(elf);
+  
+  string section_name;
+  size_t shstrndx;
+  dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+
+  // Find markers string section ("__markers_strings")
+  Elf_Scn *scn = NULL;
+  Elf_Scn *markers_string_scn = NULL;
+  while ((scn = elf_nextscn (elf, scn)) != NULL)
+    {
+      // Handle the section if it is a string/progbits section.
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+
+      if (shdr != NULL && shdr->sh_type == SHT_PROGBITS)
+        {
+	  section_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+	  if (section_name == "__markers_strings")
+	    {
+	      markers_string_scn = scn;
+	      break;
+	    }
+	}
+    }
+
+  // If this module doesn't have a markers string section, just
+  // return.  Code above this will report an error if necessary.
+  if (markers_string_scn == NULL)
+    return;
+
+  // Get the string section data now.
+  Elf_Data *data = elf_getdata(markers_string_scn, NULL);
+  if (data == NULL)
+    throw semantic_error("no __markers_string data?");
+
+  // Process each marker.  For each marker, there should be 2 strings
+  // in the __markers_string section: the marker name string and the
+  // marker parameter type list string.
+  size_t offset = 0;
+  vector<markers_data *> markers;
+  while (offset < data->d_size)
+    {
+      if (offset >= data->d_size)
+	throw semantic_error("bad __markers_string section?");
+      string name = (char *)(data->d_buf) + offset;
+      offset += name.size() + 1;
+
+      if (offset >= data->d_size)
+	throw semantic_error("bad __markers_string section?");
+      string params = (char *)(data->d_buf) + offset;
+      offset += params.size() + 1;
+
+      markers_data *m = new markers_data;
+      m->name = name;
+      m->params = params;
+      markers.push_back(m);
+    }
+
+  // Search marker list for matching markers
+  for (size_t i = 0; i < markers.size(); i++)
+    {
+      const markers_data *m = markers.at(i);
+
+      // Below, "rc" has negative polarity: zero iff matching.  Also,
+      // we don't have to worry about the module not matching.  If it
+      // didn't  match, this function wouldn't get called.
+      int rc = fnmatch(mark_str_val.c_str(), m->name.c_str(), 0);
+      if (! rc)
+        {
+	  derived_probe *dp
+	      = new mark_derived_probe (sess,
+					m->name, m->params,
+					module_val,
+					base_probe);
+	  results.push_back (dp);
+	}
+    }
+}
 
 void
 mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
@@ -4209,13 +4372,19 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
   if (e->base_name.substr(0,4) != "$arg")
-    throw semantic_error ("invalid target symbol for marker, $argN expected", e->tok);
+    throw semantic_error ("invalid target symbol for marker, $argN expected",
+			  e->tok);
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = atoi (argnum_s.c_str());
-  if (argnum < 1 || argnum > (int) mark_signature.size())
+
+  if (argnum < 1 || argnum > (int)mark_args.size())
     throw semantic_error ("invalid marker argument number", e->tok);
 
-  char argtype = mark_signature[argnum-1];
+  if (is_active_lvalue (e))
+    throw semantic_error("write to marker parameter not permitted", e->tok);
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
 
   // Synthesize a function.
   functiondecl *fdecl = new functiondecl;
@@ -4223,22 +4392,22 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   embeddedcode *ec = new embeddedcode;
   ec->tok = e->tok;
 
-  if (is_active_lvalue (e))
-    throw semantic_error("write to marker parameter not permitted", e->tok);
-
   string fname = string("_mark_tvar_get")
     + "_" + e->base_name.substr(1)
     + "_" + lex_cast<string>(tick++);
 
-  ec->code = string("THIS->__retvalue = CONTEXT->locals[0].")
-    + probe_name + string(".__mark_arg")
-    + lex_cast<string>(argnum) + string (";");
+  if (mark_args[argnum-1]->stp_type == pe_long)
+    ec->code = string("THIS->__retvalue = CONTEXT->locals[0].")
+      + probe_name + string(".__mark_arg")
+      + lex_cast<string>(argnum) + string (";");
+  else
+    ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->locals[0].")
+      + probe_name + string(".__mark_arg")
+      + lex_cast<string>(argnum) + string (", MAXSTRINGLEN);");
   ec->code += "/* pure */";
   fdecl->name = fname;
   fdecl->body = ec;
-  fdecl->type = (argtype == 'N' ? pe_long :
-                 argtype == 'S' ? pe_string :
-                 pe_unknown); // cannot happen
+  fdecl->type = mark_args[argnum-1]->stp_type;
   sess.functions.push_back(fdecl);
 
   // Synthesize a functioncall.
@@ -4254,18 +4423,19 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_s,
-                                        uintptr_t a,
                                         const string& m,
                                         probe* base):
   derived_probe (base, 0), sess (s), probe_name (p_n), probe_sig (p_s),
-  address (a), module (m)
+  module (m), target_symbol_seen (false)
 {
   // create synthetic probe point
   probe_point* pp = new probe_point;
 
   probe_point::component* c;
-  if (module == "") c = new probe_point::component ("kernel");
-  else c = new probe_point::component ("module",
+  if (module == "")
+    c = new probe_point::component ("kernel");
+  else
+    c = new probe_point::component ("module",
                                     new literal_string (module));
   pp->components.push_back (c);
   c = new probe_point::component ("mark",
@@ -4274,36 +4444,155 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   this->locations.push_back (pp);
 
   // expand the signature string
-  for (unsigned i=0; i<probe_sig.length(); i++)
-    {
-      if (i > 0)
-        probe_sig_expanded += ", ";
-      switch (probe_sig[i])
-        {
-        case 'N': probe_sig_expanded += "int64_t"; break;
-        case 'S': probe_sig_expanded += "const char *"; break;
-        default:
-          throw semantic_error ("unsupported probe signature " + probe_sig,
-                                this->tok);
-        }
-      probe_sig_expanded += " arg" + lex_cast<string>(i+1); // arg1 ...
-    }
+  parse_probe_sig();
 
   // Now make a local-variable-expanded copy of the probe body
-  mark_var_expanding_copy_visitor v (sess, probe_sig, name);
+  mark_var_expanding_copy_visitor v (sess, name, mark_args);
   require <block*> (&v, &(this->body), base->body);
+  target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 1)
-    clog << "marker-based " << name << " address=0x" << hex << address << dec
-         << " signature=" << probe_sig << endl;
+    clog << "marker-based " << name << " signature=" << probe_sig << endl;
+}
+
+
+static int
+skip_atoi(const char **s)
+{
+  int i = 0;
+  while (isdigit(**s))
+    i = i * 10 + *((*s)++) - '0';
+  return i;
 }
 
 
 void
+mark_derived_probe::parse_probe_sig()
+{
+  const char *fmt = probe_sig.c_str();
+  int qualifier;		// 'h', 'l', or 'L' for integer fields
+  mark_arg *arg;
+
+  for (; *fmt ; ++fmt)
+    {
+      if (*fmt != '%')
+        {
+	  /* Skip text */
+	  continue;
+	}
+
+repeat:
+      ++fmt;
+
+      // skip conversion flags (if present)
+      switch (*fmt)
+        {
+	case '-':
+	case '+':
+	case ' ':
+	case '#':
+	case '0':
+	  goto repeat;
+	}
+
+      // skip minimum field witdh (if present)
+      if (isdigit(*fmt))
+	skip_atoi(&fmt);
+
+      // skip precision (if present)
+      if (*fmt == '.')
+        {
+	  ++fmt;
+	  if (isdigit(*fmt))
+	    skip_atoi(&fmt);
+	}
+
+      // get the conversion qualifier (if present)
+      qualifier = -1;
+      if (*fmt == 'h' || *fmt == 'l' || *fmt == 'L')
+        {
+	  qualifier = *fmt;
+	  ++fmt;
+	  if (qualifier == 'l' && *fmt == 'l')
+	    {
+	      qualifier = 'L';
+	      ++fmt;
+	    }
+	}
+
+      // get the conversion type
+      switch (*fmt)
+        {
+	case 'c':
+	  arg = new mark_arg;
+	  arg->str = false;
+	  arg->c_type = "int";
+	  arg->stp_type = pe_long;
+	  mark_args.push_back(arg);
+	  continue;
+
+	case 's':
+	  arg = new mark_arg;
+	  arg->str = true;
+	  arg->c_type = "char *";
+	  arg->stp_type = pe_string;
+	  mark_args.push_back(arg);
+	  continue;
+
+	case 'p':
+	  arg = new mark_arg;
+	  arg->str = false;
+	  arg->c_type = "void *";
+	  arg->stp_type = pe_long;
+	  mark_args.push_back(arg);
+	  continue;
+
+	case '%':
+	  continue;
+
+	case 'o':
+	case 'X':
+	case 'x':
+	case 'd':
+	case 'i':
+	case 'u':
+	  // fall through...
+	  break;
+
+	default:
+	  if (!*fmt)
+	    --fmt;
+	  continue;
+	}
+
+      arg = new mark_arg;
+      arg->str = false;
+      arg->stp_type = pe_long;
+      switch (qualifier)
+        {
+	case 'L':
+	  arg->c_type = "long long";
+	  break;
+
+	case 'l':
+	  arg->c_type = "long";
+	  break;
+
+	case 'h':
+	  arg->c_type = "short";
+	  break;
+
+	default:
+	  arg->c_type = "int";
+	  break;
+	}
+      mark_args.push_back(arg);
+    }
+}
+
+void
 mark_derived_probe::join_group (systemtap_session& s)
 {
-  throw semantic_error ("incomplete", this->tok);
-
   if (! s.mark_derived_probes)
     s.mark_derived_probes = new mark_derived_probe_group ();
   s.mark_derived_probes->enroll (this);
@@ -4313,205 +4602,181 @@ mark_derived_probe::join_group (systemtap_session& s)
 void
 mark_derived_probe::emit_probe_context_vars (translator_output* o)
 {
-  // Save incoming arguments
-  for (unsigned i=0; i<probe_sig.length(); i++)
+  // If we haven't seen a target symbol for this probe, quit.
+  if (! target_symbol_seen)
+    return;
+
+  for (unsigned i = 0; i < mark_args.size(); i++)
     {
       string localname = "__mark_arg" + lex_cast<string>(i+1);
-      switch (probe_sig[i])
+      switch (mark_args[i]->stp_type)
         {
-        case 'S': o->newline() << "string_t " << localname << ";"; break;
-        case 'N': o->newline() << "int64_t " << localname << ";"; break;
-        }
+	case pe_long:
+	  o->newline() << "int64_t " << localname << ";";
+	  break;
+	case pe_string:
+	  o->newline() << "string_t " << localname << ";";
+	  break;
+	default:
+	  throw semantic_error ("cannot expand unknown type");
+	  break;
+	}
     }
 }
 
 
-#if 0
 void
-mark_derived_probe::emit_probe_entries (translator_output* o)
+mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 {
-  assert (this->locations.size() == 1);
+  // If we haven't seen a target symbol for this probe, quit.
+  if (! target_symbol_seen)
+    return;
 
-  o->newline() << "static void enter_" << name << " (" << probe_sig_expanded << ")";
-  o->newline() << "{";
-  o->newline(1) << "const char* probe_point = "
-               << lex_cast_qstring(* this->locations[0]) << ";";
-  emit_probe_prologue (o, "STAP_SESSION_RUNNING");
-
-  // Save incoming arguments
-  for (unsigned k=0; k<probe_sig.length(); k++)
+  for (unsigned i = 0; i < mark_args.size(); i++)
     {
-      string locals = "c->locals[0]." + name;
-      string localname = locals + ".__mark_arg" + lex_cast<string>(k+1);
-      string argname = "arg" + lex_cast<string>(k+1);
-      switch (probe_sig[k])
+      string localname = "l->__mark_arg" + lex_cast<string>(i+1);
+      switch (mark_args[i]->stp_type)
         {
-        case 'S': o->newline() << "strlcpy (" << localname << ", " << argname
-                               << ", MAXSTRINGLEN);"; break;
-          // XXX: dupe with c_unparser::c_strcpy
-        case 'N': o->newline() << localname << " = " << argname << ";"; break;
-        }
+	case pe_long:
+	  o->newline() << localname << " = va_arg(c->mark_va_list, "
+		       << mark_args[i]->c_type << ");";
+	  break;
+
+	case pe_string:
+	  // We're assuming that this is a kernel string (this code is
+	  // basically the guts of kernel_string), not a user string.
+	  o->newline() << "{ " << mark_args[i]->c_type
+		       << " tmp_str = va_arg(c->mark_va_list, "
+		       << mark_args[i]->c_type << ");";
+	  o->newline() << "deref_string (" << localname
+		       << ", tmp_str, MAXSTRINGLEN);";
+	  // Need to report errors?
+	  o->newline() << "deref_fault: ; }";
+	  break;
+
+	default:
+	  throw semantic_error ("cannot expand unknown type");
+	  break;
+	}
     }
-
-  // NB: locals are initialized by probe function itself
-  o->newline() << name << " (c);";
-
-  emit_probe_epilogue (o);
-  o->newline(-1) << "}";
 }
 
 
 void
-mark_derived_probe::emit_registrations_start (translator_output* o,
-					      unsigned index)
+mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  assert (this->locations.size() == 1);
+  if (probes.empty())
+    return;
 
-  o->newline() << "{";
-  o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
-                << address << "UL;";
+  s.op->newline() << "/* ---- marker probes ---- */";
 
-  o->newline() << "#if __HAVE_ARCH_CMPXCHG";
-  o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
-  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << name << ";";
-  o->newline() << "unsigned long oldval = cmpxchg (fnpp, 0, fnp);";
-  o->newline() << "if (oldval != 0) rc = 1;"; // XXX: could retry a few times
-  o->newline() << "#else";
-  // XXX: need proper synchronization for concurrent registration attempts
-  o->newline() << "if (*fn == 0) *fn = & enter_" << name << ";";
-  o->newline() << "#endif";
-  o->newline() << "mb ();";
-  o->newline() << "if (*fn != & enter_" << name << ") rc = 1;";
+  // Warn of misconfigured kernels
+  s.op->newline() << "#if ! defined(CONFIG_MARKERS)";
+  s.op->newline() << "#error \"Need CONFIG_MARKERS!\"";
+  s.op->newline() << "#endif";
+  s.op->newline();
 
-  o->newline(-1) << "}";
+  s.op->newline() << "struct stap_marker_probe {";
+  s.op->newline(1) << "const char *name;";
+  s.op->newline() << "const char *format;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context *);";
 
-
-  // if one failed, must goto code (output by emit_registrations_end)
-  // that will roll back completed registations for this probe
-  o->newline() << "if (unlikely (rc)) {";
-  o->newline(1) << "probe_point = "
-	       << lex_cast_qstring (*this->locations[0]) << ";";
-  if (index == 0)
-    o->newline() << "goto mark_error;";
-  else
-    o->newline() << "goto unwind_mark_" << index - 1 << ";";
-  o->newline(-1) << "}";
-}
-
-
-void
-mark_derived_probe::emit_registrations_end (translator_output* o,
-					    unsigned index)
-{
-  // if one failed, must roll back completed registations for this probe
-  o->newline(-1) << "unwind_mark_" << index << ":";
-  o->indent(1);
-  emit_deregistrations (o);
-}
-
-
-void
-mark_derived_probe::emit_deregistrations (translator_output * o)
-{
-  assert (this->locations.size() == 1);
-
-  o->newline() << "{";
-  o->newline(1) << "void (**fn) (" << probe_sig_expanded << ") = (void *)"
-                << address << "UL;";
-  o->newline() << "#if __HAVE_ARCH_CMPXCHG";
-  o->newline() << "unsigned long *fnpp = (unsigned long *) (void *) fn;";
-  o->newline() << "unsigned long fnp = (unsigned long) (void *) & enter_" << name << ";";
-  o->newline() << "unsigned long oldval = cmpxchg (fnpp, fnp, 0);";
-  o->newline() << "if (oldval != fnp) ;"; // XXX: should not happen
-  o->newline() << "#else";
-  o->newline(0) << "*fn = 0;";
-  o->newline() << "#endif";
-  o->newline(-1) << "}";
-}
-#endif
-
-
-#if 0
-void
-mark_derived_probe_group::emit_probes (translator_output* op, unparser* up)
-{
+  s.op->newline(-1) << "} stap_marker_probes [" << probes.size() << "] = {";
+  s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      op->newline ();
-      up->emit_probe (probes[i]);
+      s.op->newline () << "{"; 
+      s.op->line() << " .name=" << lex_cast_qstring(probes[i]->probe_name)
+		   << ",";
+      s.op->line() << " .format=" << lex_cast_qstring(probes[i]->probe_sig)
+		   << ",";
+      s.op->line() << " .pp=" << lex_cast_qstring (*probes[i]->sole_location())
+		   << ",";
+      s.op->line() << " .ph=&" << probes[i]->name;
+      s.op->line() << " },";
     }
+  s.op->newline(-1) << "};";
+  s.op->newline();
+  
+
+  // Emit the marker callback function
+  s.op->newline();
+  s.op->newline() << "static void enter_marker_probe (const struct __mark_marker_data *mdata, const char *fmt, ...) {";
+  s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)mdata->pdata;";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = smp->pp;";
+
+  s.op->newline() << "va_start(c->mark_va_list, fmt);";
+  s.op->newline() << "(*smp->ph) (c);";
+  s.op->newline() << "va_end(c->mark_va_list);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
+
+  return;
 }
 
 
 void
-mark_derived_probe_group::emit_module_init (translator_output* o)
+mark_derived_probe_group::emit_module_init (systemtap_session &s)
 {
   if (probes.size () == 0)
     return;
 
-  // Output the mark probes create function
-  o->newline() << "static int register_mark_probes (void) {";
-  o->indent(1);
-  o->newline() << "int rc = 0;";
-  o->newline() << "const char *probe_point;";
+  s.op->newline() << "/* init marker probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
+  s.op->newline() << "probe_point = smp->pp;";
+  s.op->newline() << "rc = (marker_set_probe(smp->name, smp->format, enter_marker_probe, smp) == 0);";
 
-  for (unsigned i=0; i < probes.size (); i++)
-    probes[i]->emit_registrations_start (o, i);
-  
-  o->newline() << "goto out;";
-  o->newline();
-
-  for (int i=probes.size() - 2; i >= 0; i--)
-    probes[i]->emit_registrations_end (o, i);
-
-  o->newline();
-
-  o->newline(-1) << "mark_error:";
-  o->newline(1) << "if (unlikely (rc)) {";
-  // In case it's just a lower-layer (kprobes) error that set rc but
-  // not session_state, do that here to prevent any other BEGIN probe
-  // from attempting to run.
-  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-  o->newline() << "_stp_error (\"mark probe %s registration failed, rc=%d\\n\", probe_point, rc);";
-  o->newline(-1) << "}\n";
-
-  o->newline(-1) << "out:";
-  o->newline(1) << "return rc;";
-  o->newline(-1) << "}\n";
-
-  // Output the mark probes destroy function
-  o->newline() << "static void unregister_mark_probes (void) {";
-  o->indent(1);
-
-  for (unsigned i=0; i < probes.size (); i++)
-    {
-      probes[i]->emit_deregistrations (o);
-      emit_probe_timing(probes[i], o);
-    }
-
-  o->newline(-1) << "}\n";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
+  s.op->newline(1) << "struct stap_marker_probe *smp2 = &stap_marker_probes[j];";
+  s.op->newline() << "marker_remove_probe(smp2->name);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "break;"; // don't attempt to register any more probes
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}"; // for loop
 }
-#endif
 
 
-struct symboltable_extract
+void
+mark_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-  uintptr_t address;
-  string symbol;
-  string module;
-};
+  if (probes.empty())
+    return;
 
-
-#define PROBE_SYMBOL_PREFIX "__systemtap_mark_"
+  s.op->newline() << "/* deregister marker probes */";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
+  s.op->newline() << "marker_remove_probe(smp->name);";
+  s.op->newline(-1) << "}"; // for loop
+}
 
 
 struct mark_builder: public derived_probe_builder
 {
 private:
-  static const vector<symboltable_extract>* get_symbols (systemtap_session&);
+  dwflpp *kern_dw;
 
 public:
-  mark_builder() {}
+  mark_builder(): kern_dw(NULL) {}
+  ~mark_builder() {
+    // XXX: in practice, NOTREACHED
+    delete kern_dw;
+  }
+
+  void build_no_more (systemtap_session &s)
+  {
+    if (kern_dw)
+      {
+        if (s.verbose > 3)
+          clog << "mark_builder releasing dwflpp" << endl;
+        delete kern_dw;
+        kern_dw = NULL;
+      }
+  }
+
   void build(systemtap_session & sess,
              probe * base,
              probe_point * location,
@@ -4520,78 +4785,13 @@ public:
 };
 
 
-// Until elfutils makes this straightforward, we kludge.
-// See also translate.cxx:emit_symbol_data().
-
-const vector<symboltable_extract>*
-mark_builder::get_symbols (systemtap_session& sess)
-{
-  static vector<symboltable_extract>* syms = 0;
-  if (syms) return syms; // already computed
-
-  syms = new vector<symboltable_extract>;
-
-  // Process /proc/kallsyms - contains reliable module symbols
-  ifstream kallsyms ("/proc/kallsyms");
-  while (! kallsyms.eof())
-    {
-      string addr, type, sym, module;
-      kallsyms >> addr >> type >> sym;
-      kallsyms >> ws;
-      if (kallsyms.peek() == '[')
-        {
-          string bracketed;
-          kallsyms >> bracketed;
-          module = bracketed.substr (1, bracketed.length()-2);
-        }
-      else // kernel symbols come from /boot/System.map*
-        continue;
-
-      if (type == "b" || type == "d") // static data/bss
-        {
-          symboltable_extract e;
-          e.address = strtoul (addr.c_str(), 0, 16);
-          e.symbol = sym;
-          e.module = module;
-          syms->push_back (e);
-        }
-    }
-  kallsyms.close ();
-
-  // grab them kernel symbols
-  string smname = "/boot/System.map-";
-  smname += sess.kernel_release;
-  ifstream systemmap (smname.c_str());
-  while (! systemmap.eof())
-    {
-      string addr, type, sym, module;
-      systemmap >> addr >> type >> sym;
-      module = "";
-
-      if (type == "b" || type == "d") // static data/bss
-        {
-          symboltable_extract e;
-          e.address = strtoul (addr.c_str(), 0, 16);
-          e.symbol = sym;
-          e.module = module;
-          syms->push_back (e);
-        }
-    }
-  systemmap.close ();
-
-  return syms;
-}
-
-
 void
 mark_builder::build(systemtap_session & sess,
-                      probe * base,
-                      probe_point * location,
-                      std::map<std::string, literal *> const & parameters,
-                      vector<derived_probe *> & finished_results)
+		    probe * base,
+		    probe_point * location,
+		    std::map<std::string, literal *> const & parameters,
+		    vector<derived_probe *> & finished_results)
 {
-  const vector<symboltable_extract>* syms = get_symbols (sess);
-
   string param_module;
   bool has_module = get_param (parameters, "module", param_module);
   bool has_kernel = (parameters.find("kernel") != parameters.end());
@@ -4599,68 +4799,20 @@ mark_builder::build(systemtap_session & sess,
   if (! (has_module ^ has_kernel))
     throw semantic_error ("need kernel or module() component", location->tok);
 
-  string param_probe;
-  bool has_probe = get_param (parameters, "mark", param_probe);
-  if (! has_probe)
-    throw semantic_error ("need mark() component", location->tok);
+  // NB: the kernel/user dwlfpp objects are long-lived.
+  // XXX: but they should be per-session, as this builder object
+  // may be reused if we try to cross-instrument multiple targets.
 
-  string symbol_regex = PROBE_SYMBOL_PREFIX "([a-zA-Z0-9_]+)_([NS]*)\\.[0-9]+";
-  //                    ^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^   ^^^^^    ^^^^^^
-  //                       common prefix        probe name    types    suffix
-  regex_t symbol_regex_t;
-  int rc = regcomp (& symbol_regex_t, symbol_regex.c_str(), REG_EXTENDED);
-  if (rc)
-    throw semantic_error ("regcomp '" + symbol_regex + "' failed");
-
-  // cout << "searching for " << symbol_regex << endl;
-
-  for (unsigned i=0; i<syms->size(); i++)
+  if (!kern_dw)
     {
-      regmatch_t match[3];
-      const symboltable_extract& ext = syms->at(i);
-      const char* symstr = ext.symbol.c_str();
-
-      rc = regexec (& symbol_regex_t, symstr, 3, match, 0);
-      if (! rc) // match
-        {
-#if 0
-          cout << "match in " << symstr << ":"
-               << "[" << match[0].rm_so << "-" << match[0].rm_eo << "],"
-               << "[" << match[1].rm_so << "-" << match[1].rm_eo << "],"
-               << "[" << match[2].rm_so << "-" << match[2].rm_eo << "]"
-               << endl;
-#endif
-
-          string probe_name = string (symstr + match[1].rm_so,
-                                      (match[1].rm_eo - match[1].rm_so));
-          string probe_sig = string (symstr + match[2].rm_so,
-                                     (match[2].rm_eo - match[2].rm_so));
-
-          // Below, "rc" has negative polarity: zero iff matching
-          rc = (has_module
-                ? fnmatch (param_module.c_str(), ext.module.c_str(), 0)
-                : (ext.module != "")); // kernel.*
-          rc |= fnmatch (param_probe.c_str(), probe_name.c_str(), 0);
-
-          if (! rc)
-            {
-              // cout << "match (" << probe_name << "):" << probe_sig << endl;
-
-              derived_probe *dp
-                = new mark_derived_probe (sess,
-                                          probe_name, probe_sig,
-                                          ext.address,
-                                          ext.module,
-                                          base);
-              finished_results.push_back (dp);
-            }
-        }
+      kern_dw = new dwflpp(sess);
+      assert(kern_dw);
+      kern_dw->setup(true);
     }
 
-  //  cout << "done" << endl;
+  mark_query mq(sess, base, location, *kern_dw, parameters, finished_results);
 
-  // It's not a big deal if this is skipped due to an exception.
-  regfree (& symbol_regex_t);
+  kern_dw->iterate_over_modules(&query_module, &mq);
 }
 
 

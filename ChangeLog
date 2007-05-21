@@ -1,3 +1,40 @@
+2007-05-21  David Smith  <dsmith@redhat.com>
+
+	PR 4446.
+	* elaborate.h (derived_probe::initialize_probe_context_vars): New
+	virtual function that will allow added context vars to be
+	initialized.
+	* translate.cxx (c_unparser::emit_common_header): Added
+	'mark_va_list'.
+	(c_unparser::emit_probe): Calls new function
+	initialize_probe_context_vars.
+	(translate_pass): Includes linux/marker.h if CONFIG_MARKERS is
+	defined.
+	* tapsets.cxx (struct dwarf_query): Split into base_query (which
+	contains most of the original code) and a much smaller
+	dwarf_query class.
+	(struct base_query): New class.
+	(dwarf_query::handle_query_module): New function.
+	(query_module): Moved code into dwarf_query::handle_query_module().
+	(mark_derived_probe): Adjusted for new kernel markers.
+	(mark_derived_probe_group): Ditto.
+	(mark_var_expanding_copy_visitor): Ditto.
+	(mark_var_expanding_copy_visitor::visit_target_symbol): Generates
+	code for new kernel markers.
+	(struct mark_query): New class.
+	(mark_query::handle_query_module): New function.
+	(mark_derived_probe::mark_derived_probe): Adjusted for new kernel
+	markers.
+	(mark_derived_probe::join_group): Ditto.
+	(mark_derived_probe::emit_probe_context_vars): Ditto.
+	(mark_derived_probe::parse_probe_sig): New function.
+	(mark_derived_probe::initialize_probe_context_vars): New function.
+	(mark_derived_probe::emit_module_decls): Adjust for new kernel markers.
+	(mark_derived_probe::emit_module_init): Ditto.
+	(mark_derived_probe::emit_module_exit): Ditto.
+	(struct mark_builder): Ditto.
+	(mark_builder::build): Ditto.
+
 2007-05-08  Martin Hunt  <hunt@redhat.com>
 
 	* buildrun.cxx (run_pass): Send proper verbosity
