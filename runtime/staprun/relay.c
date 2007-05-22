@@ -16,12 +16,16 @@ int out_fd[NR_CPUS];
 static pthread_t reader[NR_CPUS];
 static int relay_fd[NR_CPUS];
 static int bulkmode = 0;
-static int stop_threads = 0;
+static volatile int stop_threads = 0;
 
 /*
  * ppoll exists in glibc >= 2.4
  */
 #if (__GLIBC__ < 2) || ((__GLIBC__ == 2) && (__GLIBC_MINOR__ < 4))
+#define NEED_PPOLL
+#endif
+
+#ifdef NEED_PPOLL
 static int ppoll(struct pollfd *fds, nfds_t nfds,
 		 const struct timespec *timeout, const sigset_t *sigmask)
 {
@@ -43,6 +47,7 @@ static int ppoll(struct pollfd *fds, nfds_t nfds,
 /**
  *	reader_thread - per-cpu channel buffer reader
  */
+static void empty_handler(int __attribute__((unused)) sig) { /* do nothing */  }
 
 static void *reader_thread(void *data)
 {
@@ -51,9 +56,19 @@ static void *reader_thread(void *data)
         struct pollfd pollfd;
 	struct timespec tim = {.tv_sec=0, .tv_nsec=200000000}, *timeout = &tim;
 	sigset_t sigs;
+	struct sigaction sa;
 
 	sigemptyset(&sigs);
 	sigaddset(&sigs,SIGUSR2);
+	pthread_sigmask(SIG_BLOCK, &sigs, NULL);
+
+	sigfillset(&sigs);
+	sigdelset(&sigs,SIGUSR2);
+	
+	sa.sa_handler = empty_handler;
+        sa.sa_flags = 0;
+	sigemptyset(&sa.sa_mask);
+        sigaction(SIGUSR2, &sa, NULL);
 
 	if (bulkmode) {
 		cpu_set_t cpu_mask;
@@ -62,7 +77,14 @@ static void *reader_thread(void *data)
 		if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 ) {
 			perror("sched_setaffinity");
 		}
+#ifdef NEED_PPOLL
+		/* Without a real ppoll, there is a small race condition that could */
+		/* block ppoll(). So use a timeout to prevent that. */
+		timeout->tv_sec = 10;
+		timeout->tv_nsec = 0;
+#else
 		timeout = NULL;
+#endif
 	}
 	
 	pollfd.fd = relay_fd[cpu];
@@ -71,10 +93,10 @@ static void *reader_thread(void *data)
         do {
                 rc = ppoll(&pollfd, 1, timeout, &sigs);
                 if (rc < 0) {
-			dbug(3, "poll=%d errno=%d\n", rc, errno);
+			dbug(3, "cpu=%d poll=%d errno=%d\n", cpu, rc, errno);
                         if (errno != EINTR) {
 				fprintf(stderr, "poll error: %s\n",strerror(errno));
-				pthread_exit(NULL);
+				return(NULL);
                         }
 			stop_threads = 1;
                 }
@@ -82,12 +104,12 @@ static void *reader_thread(void *data)
 			if (write(out_fd[cpu], buf, rc) != rc) {
 				fprintf(stderr, "Couldn't write to output fd %d for cpu %d, exiting: errcode = %d: %s\n", 
 					out_fd[cpu], cpu, errno, strerror(errno));
-				pthread_exit(NULL);
+				return(NULL);
 			}
 		}
         } while (!stop_threads);
-	dbug(3, "exiting thread\n");
-	pthread_exit(NULL);
+	dbug(3, "exiting thread %d\n", cpu);
+	return(NULL);
 }
 
 /**
@@ -176,10 +198,7 @@ int init_relayfs(void)
 void close_relayfs(void)
 {
 	int i;
-	void *res;
-
 	stop_threads = 1;
-
 	dbug(2, "closing\n");
 	for (i = 0; i < ncpus; i++) {
 		if (reader[i]) 
@@ -187,14 +206,12 @@ void close_relayfs(void)
 		else
 			break;
 	}
-	dbug(2, "sent SIGUSR2\n");
 	for (i = 0; i < ncpus; i++) {
-		if (reader[i]) 
-			pthread_join(reader[i], &res);
+		if (reader[i])
+			pthread_join(reader[i], NULL);
 		else
 			break;
 	}
-
 	for (i = 0; i < ncpus; i++) {
 		if (relay_fd[i] >= 0)
 			close(relay_fd[i]);

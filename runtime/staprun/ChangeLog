@@ -1,3 +1,8 @@
+2007-05-22  Martin Hunt  <hunt@redhat.com>
+
+	* relay.c: Fix ppoll() call and some race conditions involving 
+	signals.
+
 2007-05-10  Martin Hunt  <hunt@redhat.com>
 
 	* relay.c (reader_thread): Set timeout for streaming to 
