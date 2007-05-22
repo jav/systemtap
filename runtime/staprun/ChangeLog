@@ -1,5 +1,7 @@
 2007-05-22  Martin Hunt  <hunt@redhat.com>
 
+	* mainloop.c (init_staprun): Change dbug() call.
+
 	* relay.c: Fix ppoll() call and some race conditions involving 
 	signals.
 

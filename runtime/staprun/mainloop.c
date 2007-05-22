@@ -206,7 +206,7 @@ int init_staprun(void)
 	int pid;
 
 	if (system(VERSION_CMD)) {
-		dbug(1, "Using OLD TRANSPORT\n");
+		dbug(2, "Using OLD TRANSPORT\n");
 		use_old_transport = 1;
 	}
 
