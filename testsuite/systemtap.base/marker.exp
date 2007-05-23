@@ -1,0 +1,331 @@
+# Marker tests.  Note that we can't really run (pass 5) marker tests,
+# since we have no idea where in the kernel they are (and what would
+# trigger a specific marker).  So, we'll try to compile lots of tests
+# to do as much as we can.
+
+# stap_compile TEST_NAME flags script args
+# - TEST_NAME is the name of the current test
+# - compile indicates whether the script is supposed to compile
+# - script is the script to compile
+# Additional arguments are passed to stap as-is.
+proc stap_compile { TEST_NAME compile script args } {
+    set cmd [concat {stap -v -p4 -e} $script $args]
+    
+    #puts "running $cmd" 
+    eval spawn $cmd
+    set compile_errors 0
+    expect {
+	-re {^Pass\ [1234]:[^\r]*\ in\ .*\ ms.\r\n} {exp_continue}
+	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {exp_continue}
+        # pass-4 output
+	-re {^/[^\r\n]+.ko\r\n} {exp_continue}
+	-re "parse error" { incr compile_errors 1; exp_continue}
+	-re "compilation failed" {incr compile_errors 1; exp_continue}
+	-re "semantic error:" {incr compile_errors 1; exp_continue}
+    }
+    catch close
+    wait
+
+    # If we've got compile errors and the script was supposed to
+    # compile, fail.
+    if {$compile_errors > 0} {
+	if {$compile == 1} {
+	    fail "$TEST_NAME compilation failed"
+	} else {
+	    pass "$TEST_NAME compilation failed correctly"
+	}
+    } else {
+	if {$compile == 1} {
+	    pass "$TEST_NAME compilation succeeded"
+	} else {
+	    fail "$TEST_NAME compilation succeeded unexpectedly"
+	}
+    }
+}
+
+# find_non_matching_module MODULE
+# - MODULE specifies the input module name
+# find_non_matching_module finds a module name that isn't MODULE
+proc find_non_matching_module { MODULE } {
+    global module_marker_modules
+
+    # Look through $module_marker_modules (the list of all modules
+    # that have markers in them) for a module name that isn't MODULE.
+    foreach m $module_marker_modules {
+	if {$m != $MODULE} {
+	    return $m
+	}
+    }
+
+    # If we're here, there was only one loaded module with markers.
+    # But, we still need the name of a module.  So, look through
+    # /proc/modules.  Unless there is only one module loaded, this
+    # will find something to return.
+    set module_name ""
+    set fl [open "/proc/modules"]
+    while {[gets $fl s] >= 0} {
+	if [regexp {^([^ ]+)} $s match m] {
+	    if {$m != $MODULE} {
+		set module_name $m
+		break
+	    }
+	}
+    }
+    catch {close $fl}
+    return $module_name
+}
+
+# Initialize variables
+set kernel_markers_found 0
+set kernel_marker_names {}
+set module_markers_found 0
+set module_marker_modules {}
+set module_marker_names {}
+
+set kernel_script {"probe kernel.mark(\"%s\") { }"}
+set kernel_script_arg {"probe kernel.mark(\"%s\") { print(\$arg%d) }"}
+
+set module_script {"probe module(\"%s\").mark(\"%s\") { }"}
+set module_script_arg {"probe module(\"%s\").mark(\"%s\") { print(\$arg%d) }"}
+
+set km_script {"probe kernel.mark(\"%s\"), module(\"%s\").mark(\"%s\") { }"}
+
+# Try to figure out if kernel markers are present in the kernel itself
+# or in any loaded module
+set fl [open "| egrep __mark_data_.+\.\[0-9\]+ /proc/kallsyms"]
+while {[gets $fl s] >= 0} {
+    if [regexp {__mark_data_([^.]+).[0-9]+(\t+\[(.+)\])?} $s match name subexp module] {
+	if {$module == ""} {
+	    set kernel_markers_found 1
+	    lappend kernel_marker_names $name
+	} else {
+	    set module_markers_found 1
+	    lappend module_marker_modules $module
+	    lappend module_marker_names $name
+	}
+    }
+}
+catch {close $fl}
+
+#
+# Do some kernel-only (non-module) marker tests.
+#
+
+set TEST_NAME "MARKER01"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that probes all kernel markers using a
+    # wildcard.
+    set script [format $kernel_script "*"]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER02"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that probes the first kernel marker
+    # found.
+    set script [format $kernel_script [lindex $kernel_marker_names 0]]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER03"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that probes a kernel marker that doesn't
+    # exist.
+    set script [format $kernel_script "X_marker_that_does_not_exist_X"]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER04"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints the first argument of a
+    # marker.  This one might fail if the marker we pick doesn't have
+    # any arguments.
+    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 1]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER05"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints an marker argument that
+    # doesn't exist.  This one might fail if the marker we pick
+    # has a 200th argument (which isn't likely).
+    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 200]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER06"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints marker argument $arg0
+    # (which doesn't exist).
+    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 0]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER07"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that looks for the first kernel marker in
+    # a module (which should fail).
+    set script [format $module_script "*" [lindex $kernel_marker_names 0]]
+    stap_compile $TEST_NAME 0 $script
+}
+
+#
+# Do some module-only marker tests, basically duplicating the
+# kernel-only tests.  This is for the case where the kernel proper
+# doesn't have any markers, but module(s) do.
+#
+
+set TEST_NAME "MARKER08"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes all module markers using
+    # wildcards.
+    set script [format $module_script "*" "*"]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER09"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes all module markers in a
+    # particular module.
+    set script [format $module_script [lindex $module_marker_modules 0] "*"]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER10"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes a particular marker in all
+    # modules. 
+    set script [format $module_script "*" [lindex $module_marker_names 0]]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER11"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes a particular marker in a
+    # particular module.
+    set script [format $module_script \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0]]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER12"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes a particular marker in the
+    # wrong module.
+    set wrong_module [find_non_matching_module \
+			  [lindex $module_marker_modules 0]]
+    set script [format $module_script $wrong_module \
+		    [lindex $module_marker_names 0]]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER13"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that probes a marker that doesn't exist
+    # in all modules.
+    set script [format $module_script "*" "X_marker_that_does_not_exist_X"]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER14"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that prints the first argument of a
+    # marker.  This one might fail if the marker we pick doesn't have
+    # any arguments.
+    set script [format $module_script_arg \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0] 1]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER15"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that prints an marker argument that
+    # doesn't exist.  This one might fail if the marker we pick
+    # has a 200th argument (which isn't likely).
+    set script [format $module_script_arg \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0] 200]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER16"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that prints marker argument $arg0
+    # (which doesn't exist).
+    set script [format $module_script_arg \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0] 0]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "MARKER17"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that looks for the first module marker as
+    # a kernel marker (which should fail).
+    set script [format $kernel_script [lindex $module_marker_names 0]]
+    stap_compile $TEST_NAME 0 $script
+}
+
+# 
+# If we have both kernel and module markers present, try a few
+# combined tests.
+#
+
+set TEST_NAME "MARKER18"
+if {$kernel_markers_found == 0 && $module_markers_found == 0} {
+    untested "$TEST_NAME : both kernel and module markers are not present"
+} else {
+    # Try compiling a script that probes all kernel and all module
+    # markers.
+    set script [format $km_script "*" "*" "*"]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "MARKER19"
+if {$kernel_markers_found == 0 && $module_markers_found == 0} {
+    untested "$TEST_NAME : both kernel and module markers are not present"
+} else {
+    # Try compiling a script that probes the first kernel and module
+    # markers found
+    set script [format $km_script \
+		    [lindex $kernel_marker_names 0] \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0]]
+    stap_compile $TEST_NAME 1 $script
+}

@@ -1,3 +1,9 @@
+2007-05-23  David Smith  <dsmith@redhat.com>
+
+	PR4446
+	* systemtap.base/marker.exp: Added new marker test.
+	* buildok/marker.stp: Removed old marker test.
+	
 2007-05-08  Will Cohen  <wcohen@redhat.com>
 	PR4470
 	* testsuite/systemtap.syscall/syscall.exp: Build correct sizes for
