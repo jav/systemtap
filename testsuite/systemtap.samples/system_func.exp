@@ -1,5 +1,5 @@
 set test "system_func"
-#if {![installtest_p]} { untested $test; return }
+if {![installtest_p]} { untested $test; return }
 spawn stap $srcdir/$subdir/system_func.stp
 set open 0
 set done 0
