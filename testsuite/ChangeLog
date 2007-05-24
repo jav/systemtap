@@ -1,3 +1,10 @@
+2007-05-24  David Smith  <dsmith@redhat.com>
+
+	PR4446
+	* systemtap.base/marker.exp: Renumbered tests and added new tests
+	for invalid argument name ("$foo1") and writing to marker
+	arguments.
+
 2007-05-23  David Smith  <dsmith@redhat.com>
 
 	PR4446

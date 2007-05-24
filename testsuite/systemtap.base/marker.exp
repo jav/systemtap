@@ -83,10 +83,12 @@ set module_marker_modules {}
 set module_marker_names {}
 
 set kernel_script {"probe kernel.mark(\"%s\") { }"}
-set kernel_script_arg {"probe kernel.mark(\"%s\") { print(\$arg%d) }"}
+set kernel_script_arg {"probe kernel.mark(\"%s\") { print(%s) }"}
+set kernel_script_arg2 {"probe kernel.mark(\"%s\") { %s = 0 }"}
 
 set module_script {"probe module(\"%s\").mark(\"%s\") { }"}
-set module_script_arg {"probe module(\"%s\").mark(\"%s\") { print(\$arg%d) }"}
+set module_script_arg {"probe module(\"%s\").mark(\"%s\") { print(%s) }"}
+set module_script_arg2 {"probe module(\"%s\").mark(\"%s\") { %s = 0 }"}
 
 set km_script {"probe kernel.mark(\"%s\"), module(\"%s\").mark(\"%s\") { }"}
 
@@ -111,7 +113,7 @@ catch {close $fl}
 # Do some kernel-only (non-module) marker tests.
 #
 
-set TEST_NAME "MARKER01"
+set TEST_NAME "K_MARKER01"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
@@ -121,7 +123,7 @@ if {$kernel_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER02"
+set TEST_NAME "K_MARKER02"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
@@ -131,7 +133,7 @@ if {$kernel_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER03"
+set TEST_NAME "K_MARKER03"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
@@ -141,39 +143,64 @@ if {$kernel_markers_found == 0} {
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER04"
+set TEST_NAME "K_MARKER04"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
     # Try compiling a script that prints the first argument of a
     # marker.  This one might fail if the marker we pick doesn't have
     # any arguments.
-    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 1]
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$arg1}]
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER05"
+set TEST_NAME "K_MARKER05"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
     # Try compiling a script that prints an marker argument that
     # doesn't exist.  This one might fail if the marker we pick
     # has a 200th argument (which isn't likely).
-    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 200]
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$arg200}]
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER06"
+set TEST_NAME "K_MARKER06"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
     # Try compiling a script that prints marker argument $arg0
     # (which doesn't exist).
-    set script [format $kernel_script_arg [lindex $kernel_marker_names 0] 0]
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$arg0}]
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER07"
+set TEST_NAME "K_MARKER07"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints marker argument $foo1 (which
+    # doesn't exist).
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$foo1}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER08"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that writes to marker argument $arg1 (which
+    # isn't allowed).
+    set script [format $kernel_script_arg2 \
+		    [lindex $kernel_marker_names 0] {\$arg1}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER09"
 if {$kernel_markers_found == 0} {
     untested "$TEST_NAME : no kernel markers present"
 } else {
@@ -189,7 +216,7 @@ if {$kernel_markers_found == 0} {
 # doesn't have any markers, but module(s) do.
 #
 
-set TEST_NAME "MARKER08"
+set TEST_NAME "M_MARKER01"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -199,7 +226,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER09"
+set TEST_NAME "M_MARKER02"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -209,7 +236,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER10"
+set TEST_NAME "M_MARKER03"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -219,7 +246,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER11"
+set TEST_NAME "M_MARKER04"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -231,7 +258,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER12"
+set TEST_NAME "M_MARKER05"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -244,7 +271,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER13"
+set TEST_NAME "M_MARKER06"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -254,7 +281,7 @@ if {$module_markers_found == 0} {
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER14"
+set TEST_NAME "M_MARKER07"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -263,11 +290,11 @@ if {$module_markers_found == 0} {
     # any arguments.
     set script [format $module_script_arg \
 		    [lindex $module_marker_modules 0] \
-		    [lindex $module_marker_names 0] 1]
+		    [lindex $module_marker_names 0] {\$arg1}]
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER15"
+set TEST_NAME "M_MARKER08"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -276,11 +303,11 @@ if {$module_markers_found == 0} {
     # has a 200th argument (which isn't likely).
     set script [format $module_script_arg \
 		    [lindex $module_marker_modules 0] \
-		    [lindex $module_marker_names 0] 200]
+		    [lindex $module_marker_names 0] {\$arg200}]
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER16"
+set TEST_NAME "M_MARKER09"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -288,11 +315,35 @@ if {$module_markers_found == 0} {
     # (which doesn't exist).
     set script [format $module_script_arg \
 		    [lindex $module_marker_modules 0] \
-		    [lindex $module_marker_names 0] 0]
+		    [lindex $module_marker_names 0] {\$arg0}]
     stap_compile $TEST_NAME 0 $script
 }
 
-set TEST_NAME "MARKER17"
+set TEST_NAME "M_MARKER10"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that prints marker argument $foo1 (which
+    # doesn't exist).
+    set script [format $module_script_arg \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0] {\$foo1}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "M_MARKER11"
+if {$module_markers_found == 0} {
+    untested "$TEST_NAME : no module markers present"
+} else {
+    # Try compiling a script that writes to marker argument $arg1
+    # (which isn't allowed).
+    set script [format $module_script_arg2 \
+		    [lindex $module_marker_modules 0] \
+		    [lindex $module_marker_names 0] {\$arg1}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "M_MARKER12"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
@@ -307,7 +358,7 @@ if {$module_markers_found == 0} {
 # combined tests.
 #
 
-set TEST_NAME "MARKER18"
+set TEST_NAME "KM_MARKER01"
 if {$kernel_markers_found == 0 && $module_markers_found == 0} {
     untested "$TEST_NAME : both kernel and module markers are not present"
 } else {
@@ -317,7 +368,7 @@ if {$kernel_markers_found == 0 && $module_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
-set TEST_NAME "MARKER19"
+set TEST_NAME "KM_MARKER02"
 if {$kernel_markers_found == 0 && $module_markers_found == 0} {
     untested "$TEST_NAME : both kernel and module markers are not present"
 } else {
