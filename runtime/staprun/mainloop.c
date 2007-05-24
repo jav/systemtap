@@ -290,7 +290,7 @@ void cleanup_and_exit (int closed)
 	/* what about child processes? we will wait for them here. */
 	err = waitpid(-1, NULL, WNOHANG);
 	if (err >= 0)
-		fprintf(stderr,"\nWaititing for processes to exit\n");
+		fprintf(stderr,"\nWaiting for processes to exit\n");
 	while(wait(NULL) > 0) ;
 
 	if (use_old_transport)
