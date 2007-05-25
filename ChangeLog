@@ -1,3 +1,8 @@
+2007-05-25  Martin Hunt  <hunt@redhat.com>
+
+	Patch from Quentin Barnes.
+	* tapsets.cxx (query_module): Add support for arm.
+
 2007-05-21  David Smith  <dsmith@redhat.com>
 
 	PR 4446.

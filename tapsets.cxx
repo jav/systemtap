@@ -2977,6 +2977,7 @@ query_module (Dwfl_Module *mod,
         case EM_PPC64: expect_machine = "ppc64"; break;
         case EM_S390: expect_machine = "s390x"; break;
         case EM_IA_64: expect_machine = "ia64"; break;
+        case EM_ARM: expect_machine = "armv*"; break;
           // XXX: fill in some more of these
         default: expect_machine = "?"; break;
         }
