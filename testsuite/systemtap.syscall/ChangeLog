@@ -1,3 +1,7 @@
+2007-05-25  Martin Hunt  <hunt@redhat.com>
+
+	* syscall.exp (test_procedure): Remove stray timeout assignment.
+
 2007-05-07  Martin Hunt  <hunt@redhat.com>
 
 	* signal.c (main):  Fix expected expression to accept
