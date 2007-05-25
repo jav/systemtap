@@ -301,8 +301,8 @@ proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
     catch {eval spawn $cmd}
     set stap_id $spawn_id
     set failed 1
-    set timeout 600
     expect {
+	-timeout 1800
 	-i $stap_id -re {^Pass\ ([1234]):\ [^\r]*\r\n} {
             set error_msg "pass$expect_out(1,string)";
             exp_continue
@@ -313,7 +313,7 @@ proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
             send -i $stap_id "\003"
             exp_continue
         }
-        -timeout 1800 -re {Pass\ 5:\ run\ completed} {
+        -re {Pass\ 5:\ run\ completed} {
             set failed 0
         }
 	-re {parse\ error|semantic\ error} { set detail "$expect_out(0,string)" }
@@ -327,7 +327,6 @@ proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
 
 proc runbenchs {} {
     global benchs
-    set timeout 900
     set runningcount 0
 
     foreach bench $benchs {
@@ -346,6 +345,7 @@ proc runbenchs {} {
 
     while {$runningcount > 0} {
     	expect {
+	        -timeout 900
     		-i $idlist -re {LTP\ Version:\ LTP-([0-9])+\r\n$} {
     			set from $expect_out(spawn_id)
     			lappend benchres($from) $expect_out(buffer)

@@ -1,3 +1,11 @@
+2007-05-25  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.samples/lket.exp (cleanfiles): Set timeout inside expect.
+	* systemtap.maps/absentstats.exp: Set timeout inside expect.
+	* lib/stap_run2.exp (stap_run2): Set timeout to 180 inside expect.
+	* lib/stap_run.exp (stap_run): Set timeout to 180 for slower machines.
+	Remove $ anchor on output. Fix a few minor nits in patterns.
+
 2007-05-24  David Smith  <dsmith@redhat.com>
 
 	PR4446
