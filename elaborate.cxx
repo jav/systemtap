@@ -146,6 +146,15 @@ derived_probe_builder::get_param (std::map<std::string, literal*> const & params
 }
 
 
+bool
+derived_probe_builder::has_null_param (std::map<std::string, literal*> const & params,
+                                       const std::string& key)
+{
+  map<string, literal *>::const_iterator i = params.find(key);
+  return (i != params.end() && i->second == NULL);
+}
+
+
 
 // ------------------------------------------------------------------------
 // Members of match_key.
@@ -1004,6 +1013,7 @@ systemtap_session::systemtap_session ():
   user_file (0),
   be_derived_probes(0), 
   dwarf_derived_probes(0), 
+  uprobe_derived_probes(0), 
   timer_derived_probes(0), 
   profile_derived_probes(0), 
   mark_derived_probes(0), 

@@ -382,7 +382,7 @@ static string TOK_RETURN("return");
 static string TOK_MAXACTIVE("maxactive");
 static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
-
+static string TOK_PROCESS("process");
 
 
 struct
@@ -2007,7 +2007,7 @@ struct base_query
 
   // Parameter extractors.
   static bool has_null_param(map<string, literal *> const & params,
-			     string const & k);
+                             string const & k);
   static bool get_string_param(map<string, literal *> const & params,
 			       string const & k, string & v);
   static bool get_number_param(map<string, literal *> const & params,
@@ -2046,10 +2046,7 @@ bool
 base_query::has_null_param(map<string, literal *> const & params,
 			   string const & k)
 {
-  map<string, literal *>::const_iterator i = params.find(k);
-  if (i != params.end() && i->second == NULL)
-    return true;
-  return false;
+  return derived_probe_builder::has_null_param(params, k);
 }
 
 
@@ -2183,6 +2180,7 @@ struct dwarf_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results);
 };
 
+
 dwarf_query::dwarf_query(systemtap_session & sess,
 			 probe * base_probe,
 			 probe_point * base_loc,
@@ -2191,10 +2189,8 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 vector<derived_probe *> & results)
   : base_query(sess, base_probe, base_loc, dw, params, results)
 {
-
   // Reduce the query to more reasonable semantic values (booleans,
   // extracted strings, numbers, etc).
-
   has_function_str = get_string_param(params, TOK_FUNCTION, function_str_val);
   has_function_num = get_number_param(params, TOK_FUNCTION, function_num_val);
 
@@ -3904,6 +3900,180 @@ dwarf_builder::build(systemtap_session & sess,
 
 
 // ------------------------------------------------------------------------
+// user-space probes
+// ------------------------------------------------------------------------
+
+struct uprobe_derived_probe: public derived_probe
+{
+  uint64_t process, address;
+  bool return_p;
+  uprobe_derived_probe (systemtap_session &s, probe* p, probe_point* l,
+                        uint64_t, uint64_t, bool);
+  void join_group (systemtap_session& s);
+};
+
+
+struct uprobe_derived_probe_group: public generic_dpg<uprobe_derived_probe>
+{
+public:
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
+
+uprobe_derived_probe::uprobe_derived_probe (systemtap_session &, 
+                                            probe* p, probe_point* l,
+                                            uint64_t pp, uint64_t aa, bool rr):
+  derived_probe(p, l), process(pp), address(aa), return_p (rr)
+{ 
+}
+
+
+void
+uprobe_derived_probe::join_group (systemtap_session& s)
+{
+  if (! s.uprobe_derived_probes)
+    s.uprobe_derived_probes = new uprobe_derived_probe_group ();
+  s.uprobe_derived_probes->enroll (this);
+}
+
+
+struct uprobe_builder: public derived_probe_builder
+{
+  uprobe_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results)
+  {
+    int64_t process, address;
+
+    bool b1 = get_param (parameters, TOK_PROCESS, process);
+    bool b2 = get_param (parameters, TOK_STATEMENT, address);
+    bool rr = has_null_param (parameters, TOK_RETURN);
+    assert (b1 && b2); // by pattern_root construction
+    
+    finished_results.push_back(new uprobe_derived_probe(sess, base, location,
+                                                        process, address, rr));
+  }
+};
+
+
+void
+uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- user probes ---- */";
+  
+  // Warn of misconfigured kernels
+  s.op->newline() << "#ifndef CONFIG_UPROBES";
+  s.op->newline() << "#error \"Need CONFIG_UPROBES!\"";
+  s.op->newline() << "#endif";
+
+  s.op->newline() << "#include <linux/uprobes.h>";
+
+  s.op->newline() << "struct stap_uprobe {";
+  s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
+  s.op->newline() << "unsigned registered_p:1;";
+  s.op->newline() << "unsigned return_p:1;";
+  s.op->newline() << "unsigned long process;";
+  s.op->newline() << "unsigned long address;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline(-1) << "} stap_uprobes [] = {";
+  s.op->indent(1);
+  for (unsigned i =0; i<probes.size(); i++)
+    {
+      uprobe_derived_probe* p = probes[i];
+      s.op->newline() << "{";
+      s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
+      s.op->line() << " .process=" << p->process << ",";
+      s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+      s.op->line() << " .ph=&" << p->name << ",";
+      if (p->return_p) s.op->line() << " .return_p=1,";
+      s.op->line() << " },";
+    }
+  s.op->newline(-1) << "};";
+
+  s.op->newline();
+  s.op->newline() << "void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = sup->pp;";
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "(*sup->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = sup->pp;";
+  // XXX: kretprobes saves "c->pi = inst;" too
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "(*sup->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+  s.op->newline(-1) << "}";
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- user probes ---- */";
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
+  s.op->newline() << "probe_point = sup->pp;";
+  s.op->newline() << "if (sup->return_p) {";
+  s.op->newline(1) << "sup->urp.u.pid = sup->process;";
+  s.op->newline() << "sup->urp.u.vaddr = sup->address;";
+  s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
+  s.op->newline() << "rc = register_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "sup->up.pid = sup->process;";
+  s.op->newline() << "sup->up.vaddr = sup->address;";
+  s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
+  s.op->newline() << "rc = register_uprobe (& sup->up);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
+  s.op->newline(1) << "struct stap_uprobe *sup2 = & stap_uprobes[j];";
+  s.op->newline() << "if (sup2->return_p) unregister_uretprobe (&sup2->urp);";
+  s.op->newline() << "else unregister_uprobe (&sup2->up);";
+  // NB: we don't have to clear sup2->registered_p, since the module_exit code is
+  // not run for this early-abort case.
+  s.op->newline(-1) << "}";
+  s.op->newline() << "break;"; // don't attempt to register any more probes
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else sup->registered_p = 1;";
+  s.op->newline(-1) << "}";
+}
+
+
+void
+uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes.empty()) return;
+  s.op->newline() << "/* ---- user probes ---- */";
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
+  s.op->newline() << "if (! sup->registered_p) continue;";
+  // s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
+  // s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline() << "if (sup->return_p) unregister_uretprobe (&sup->urp);";
+  s.op->newline() << "else unregister_uprobe (&sup->up);";
+  s.op->newline() << "sup->registered_p = 0;";
+  s.op->newline(-1) << "}";
+}
+
+
+
+// ------------------------------------------------------------------------
 // timer derived probes
 // ------------------------------------------------------------------------
 
@@ -5531,6 +5701,14 @@ register_standard_tapsets(systemtap_session & s)
   // dwarf-based kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
 
+  // XXX: user-space starter set
+  s.pattern_root->bind_num(TOK_PROCESS)
+    ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)
+    ->bind(new uprobe_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)
+    ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
+    ->bind(new uprobe_builder ());
+
   // marker-based kernel/module parts
   s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
   s.pattern_root->bind_str("module")->bind_str("mark")->bind(new mark_builder());
@@ -5551,6 +5729,7 @@ all_session_groups(systemtap_session& s)
   // c_unparser::emit_module_exit() will run this list backwards.
   DOONE(be);
   DOONE(dwarf);
+  DOONE(uprobe);
   DOONE(timer);
   DOONE(profile);
   DOONE(mark);

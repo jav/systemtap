@@ -29,6 +29,7 @@ struct functiondecl;
 struct derived_probe;
 struct be_derived_probe_group;
 struct dwarf_derived_probe_group;
+struct uprobe_derived_probe_group;
 struct timer_derived_probe_group;
 struct profile_derived_probe_group;
 struct mark_derived_probe_group;
@@ -69,6 +70,7 @@ struct systemtap_session
 {
   systemtap_session ();
   // NB: new POD members likely need to be explicitly cleared in the ctor.
+  // See elaborate.cxx.
 
   // command line args
   std::vector<std::string> include_path;
@@ -126,6 +128,7 @@ struct systemtap_session
   // session.probes vector.
   be_derived_probe_group* be_derived_probes;
   dwarf_derived_probe_group* dwarf_derived_probes;
+  uprobe_derived_probe_group* uprobe_derived_probes;
   timer_derived_probe_group* timer_derived_probes;
   profile_derived_probe_group* profile_derived_probes;
   mark_derived_probe_group* mark_derived_probes;

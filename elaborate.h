@@ -181,6 +181,8 @@ struct derived_probe_builder
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
 
+  static bool has_null_param (std::map<std::string, literal*> const & parameters,
+                              const std::string& key);
   static bool get_param (std::map<std::string, literal*> const & parameters,
                          const std::string& key, std::string& value);
   static bool get_param (std::map<std::string, literal*> const & parameters,

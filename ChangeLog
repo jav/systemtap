@@ -1,3 +1,15 @@
+2007-05-25  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4255 teaser.
+	* elaborate.cxx (has_null_param): New function.
+	* elaborate.h: Declare it.
+	* session.h: Include uprobe_derived_probes group.
+	* tapsets.cxx (uprobe_*): New classes.
+	(all_session_groups): List uprobes in list.
+	(register_standard_tapset): Interpret
+	process(#).statement(#).absolute and
+	process(#).statement(#).absolute.return probe points.
+
 2007-05-25  Martin Hunt  <hunt@redhat.com>
 
 	Patch from Quentin Barnes.
