@@ -1,3 +1,8 @@
+2007-05-29  Mike Mason <mmlnx@us.ibm.com>
+
+	* sig_count_by_pid.stp, sig_count_by_pid.txt, 
+	  sig_count_by_proc.stp, sig_count_by_proc.txt: Print signal activity
+
 2007-04-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* socket-trace.stp, small_demos/prof.stp, top.stp: Adapt to
