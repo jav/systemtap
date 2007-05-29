@@ -52,13 +52,14 @@ void _stp_print_flush (void)
 #else
 	{
 		void *buf;
-		spin_lock(&_stp_print_lock);
+		unsigned long flags;
+		spin_lock_irqsave(&_stp_print_lock, flags);
 		buf = relay_reserve(_stp_utt->rchan, len);		
 		if (likely(buf))
 			memcpy(buf, pb->buf, len);
 		else
 			atomic_inc (&_stp_transport_failures);
-		spin_unlock(&_stp_print_lock);
+		spin_unlock_irqrestore(&_stp_print_lock, flags);
 	}
 #endif /* STP_BULKMODE */
 }
