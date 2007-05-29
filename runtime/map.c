@@ -369,9 +369,13 @@ void _stp_pmap_clear(PMAP pmap)
 
 	for_each_cpu(i) {
 		MAP m = per_cpu_ptr (pmap->map, i);
+#if NEED_MAP_LOCKS
 		spin_lock(&m->lock);
+#endif
 		_stp_map_clear(m);
+#if NEED_MAP_LOCKS
 		spin_unlock(&m->lock);
+#endif
 	}
 	_stp_map_clear(&pmap->agg);
 }
@@ -873,7 +877,9 @@ MAP _stp_pmap_agg (PMAP pmap)
 
 	for_each_cpu(i) {
 		m = per_cpu_ptr (pmap->map, i);
+#if NEED_MAP_LOCKS
 		spin_lock(&m->lock);
+#endif
 		/* walk the hash chains. */
 		for (hash = 0; hash < HASH_TABLE_SIZE; hash++) {
 			head = &m->hashes[hash];
@@ -892,13 +898,17 @@ MAP _stp_pmap_agg (PMAP pmap)
 					_stp_add_agg(aptr, ptr);
 				else {
 					if (!_stp_new_agg(agg, ahead, ptr)) {
+#if NEED_MAP_LOCKS
 						spin_unlock(&m->lock);
+#endif
 						return NULL;
 					}
 				}
 			}
 		}
+#if NEED_MAP_LOCKS
 		spin_unlock(&m->lock);
+#endif
 	}
 	return agg;
 }

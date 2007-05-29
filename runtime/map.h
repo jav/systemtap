@@ -19,6 +19,23 @@
  * @{
  */
 
+
+/* Include map spinlocks only on demand.  Otherwise, assume that
+   caller does the right thing. */
+#ifndef NEED_MAP_LOCKS
+#define NEED_MAP_LOCKS 0
+#endif
+
+#if NEED_MAP_LOCKS
+#define MAP_GET_CPU() get_cpu()
+#define MAP_PUT_CPU() put_cpu()
+#else
+/* get/put_cpu wrappers.  Unnecessary if caller is already atomic. */
+#define MAP_GET_CPU() smp_processor_id()
+#define MAP_PUT_CPU() do {} while (0)
+#endif
+
+
 /* This sets the size of the hash table. */
 #ifndef HASH_TABLE_BITS
 #define HASH_TABLE_BITS 8
@@ -102,7 +119,9 @@ struct map_root {
 
 	int data_offset;
 
+#ifdef NEED_MAP_LOCKS
 	spinlock_t lock;
+#endif
 
 	/* the hash table for this array */
 	struct hlist_head hashes[HASH_TABLE_SIZE];

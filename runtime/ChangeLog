@@ -1,3 +1,11 @@
+2007-05-29  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 2224
+	* map.h (NEED_MAP_LOCKS): New config macro, defaults to 0.
+	(MAP_GET_CPU, MAP_PUT_CPU): Wrappers, default to ~no-op.
+	* map.c (_stp_pmap_clear,agg): Use them.
+	* pmap-gen.c (_stp_pmap_new,set,add,get_cpu,get,del): Ditto.
+	
 2007-05-15  Martin Hunt  <hunt@redhat.com>
 
 	* vsprintf.c: Add comment about %p.
@@ -34,6 +42,7 @@
 	* sym.c (_stp_module_relocate): Tolerate empty section string.
 
 2007-03-21  Martin Hunt  <hunt@redhat.com>
+
 
 	* sym.h: Declare _stp_module_relocate.
 	* sym.c (_stp_module_relocate): Add comments, reformat, add

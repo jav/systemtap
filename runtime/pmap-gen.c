@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * pmap API generator
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005-2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -411,7 +411,9 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
+#if NEED_MAP_LOCKS
 			m->lock = SPIN_LOCK_UNLOCKED;
+#endif
 		}
 		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
@@ -469,7 +471,9 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 			m->get_key = KEYSYM(pmap_get_key);
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
+#if NEED_MAP_LOCKS
 			m->lock = SPIN_LOCK_UNLOCKED;
+#endif
 		}
 		m = &pmap->agg;
 		m->get_key = KEYSYM(pmap_get_key);
@@ -530,24 +534,32 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 int KEYSYM(_stp_pmap_set) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
 	int res;
-	MAP m = per_cpu_ptr (pmap->map, get_cpu());
+	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU ());
+#if NEED_MAP_LOCKS
 	if (!spin_trylock(&m->lock))
 		return -3;
+#endif
 	res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 0);
+#if NEED_MAP_LOCKS
 	spin_unlock(&m->lock);
-	put_cpu();
+#endif
+        MAP_PUT_CPU ();
 	return res;
 }
 
 int KEYSYM(_stp_pmap_add) (PMAP pmap, ALLKEYSD(key), VSTYPE val)
 {
 	int res;
-	MAP m = per_cpu_ptr (pmap->map, get_cpu());
+	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU());
+#if NEED_MAP_LOCKS
 	if (!spin_trylock(&m->lock))
 		return -3;
+#endif
 	res = KEYSYM(__stp_pmap_set) (m, ALLKEYS(key), val, 1);
+#if NEED_MAP_LOCKS
 	spin_unlock(&m->lock);
-	put_cpu();
+#endif
+        MAP_PUT_CPU ();
 	return res;
 }
 
@@ -564,14 +576,15 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 	if (pmap == NULL)
 		return NULLRET;
 
-	map = per_cpu_ptr (pmap->map, get_cpu());
+	map = per_cpu_ptr (pmap->map, MAP_GET_CPU ());
 
 	hv = KEYSYM(phash) (ALLKEYS(key));
 	head = &map->hashes[hv];
 
+#if NEED_MAP_LOCKS
 	if (!spin_trylock(&map->lock))
 		return NULLRET;
-
+#endif
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
 		if (KEY1_EQ_P(n->key1, key1)
@@ -589,14 +602,18 @@ VALTYPE KEYSYM(_stp_pmap_get_cpu) (PMAP pmap, ALLKEYSD(key))
 #endif
 			) {
 			res = MAP_GET_VAL((struct map_node *)n);
+#if NEED_MAP_LOCKS
 			spin_unlock(&map->lock);
-			put_cpu();
+#endif
+			MAP_PUT_CPU ();
 			return res;
 		}
 	}
 	/* key not found */
+#if NEED_MAP_LOCKS
 	spin_unlock(&map->lock);
-	put_cpu();
+#endif
+        MAP_PUT_CPU ();
 	return NULLRET;
 }
 
@@ -645,8 +662,10 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 		map = per_cpu_ptr (pmap->map, cpu);
 		head = &map->hashes[hv];
 
+#if NEED_MAP_LOCKS
 		if (!spin_trylock(&map->lock))
 			return NULLRET;
+#endif
 
 		hlist_for_each(e, head) {
 			n = (struct KEYSYM(pmap_node) *)((long)e - sizeof(struct list_head));
@@ -676,7 +695,9 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 				}
 			}
 		}
+#if NEED_MAP_LOCKS
 		spin_unlock(&map->lock);
+#endif
 	}
 	if (anode && !clear_agg) 
 		return MAP_GET_VAL(anode);
@@ -730,12 +751,16 @@ int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
 int KEYSYM(_stp_pmap_del) (PMAP pmap, ALLKEYSD(key))
 {
 	int res;
-	MAP m = per_cpu_ptr (pmap->map, get_cpu());
+	MAP m = per_cpu_ptr (pmap->map, MAP_GET_CPU ());
+#if NEED_MAP_LOCKS
 	if (!spin_trylock(&m->lock))
 		return -1;
+#endif
 	res = KEYSYM(__stp_pmap_del) (m, ALLKEYS(key));
+#if NEED_MAP_LOCKS
 	spin_unlock(&m->lock);
-	put_cpu();
+#endif
+	MAP_PUT_CPU ();
 	return res;
 }
 
