@@ -1,3 +1,8 @@
+2007-05-29  Will Cohen  <wcohen@redhat.com>
+
+	PR4540
+	* systemtap.stress/conversions.exp: Adjust for ia64 address space.
+
 2007-05-25  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.samples/lket.exp (cleanfiles): Set timeout inside expect.
