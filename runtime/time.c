@@ -61,7 +61,7 @@ int stp_timer_reregister = 0;
 static unsigned int
 __stp_estimate_cpufreq(void)
 {
-#if defined (__s390__) || defined (__s390x__)
+#if defined (__s390__) || defined (__s390x__) || defined (__arm__)
     // We don't need to find the cpu freq on s390 as the 
     // TOD clock is always a fix freq. (see: POO pg 4-36.)
     return 0;
@@ -254,6 +254,12 @@ _stp_gettimeofday_ns(void)
     // (get_cycles() * 125) >> 7;  
 
     delta = (delta * 125) >> 7;
+
+#elif defined (__arm__)
+
+    /* arm always returns 0 for get_cycles() */
+    /* so this is just a fake value until we get a real fix. */
+    delta = 1000;
 
 #else /* __s390__ || __s390x__ */
 

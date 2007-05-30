@@ -85,7 +85,7 @@ do {									   \
 		: "i"(-EFAULT), "0"(count), "1"(count), "3"(src), "4"(dst) \
 		: "memory");						   \
 } while (0)
-#elif defined (__powerpc64__) || defined (__ia64__)
+#elif defined (__powerpc64__) || defined (__ia64__) || defined (__arm__)
 #define __stp_strncpy_from_user(dst,src,count,res) \
 	do { res = __strncpy_from_user(dst, src, count); } while(0)
 

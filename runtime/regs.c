@@ -1,7 +1,8 @@
 /* -*- linux-c -*- 
  * Functions to access the members of pt_regs struct
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005, 2007 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
+ * Copyright (C) 2007 Quentin Barnes.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -40,7 +41,7 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 		return 0;
 #elif defined (__i386__)
 	return regs->esp;
-#elif defined (__powerpc64__)
+#elif defined (__powerpc64__) || defined (__arm__)
 	return REG_LINK(regs);
 #elif defined (__ia64__)
 	return regs->b0;
@@ -205,6 +206,71 @@ void _stp_print_regs(struct pt_regs * regs)
 	}
 	_stp_printf("\nNIP [%016lx] ", regs->nip);
 	_stp_printf("LR [%016lx]\n", regs->link);
+}
+
+#elif defined (__arm__)
+
+static const char *processor_modes[]=
+{ "USER_26", "FIQ_26" , "IRQ_26" , "SVC_26" , "UK4_26" , "UK5_26" , "UK6_26" , "UK7_26" ,
+  "UK8_26" , "UK9_26" , "UK10_26", "UK11_26", "UK12_26", "UK13_26", "UK14_26", "UK15_26",
+  "USER_32", "FIQ_32" , "IRQ_32" , "SVC_32" , "UK4_32" , "UK5_32" , "UK6_32" , "ABT_32" ,
+  "UK8_32" , "UK9_32" , "UK10_32", "UND_32" , "UK12_32", "UK13_32", "UK14_32", "SYS_32"
+};
+
+
+void _stp_print_regs(struct pt_regs * regs)
+{
+	unsigned long flags = condition_codes(regs);
+
+#ifdef CONFIG_SMP
+	_stp_printf(" CPU: %d", smp_processor_id());
+#endif /* CONFIG_SMP */
+
+	_stp_printf("pc : [<%08lx>]    lr : [<%08lx>]\n"
+	       "sp : %08lx  ip : %08lx  fp : %08lx\n",
+		instruction_pointer(regs),
+		regs->ARM_lr, regs->ARM_sp,
+		regs->ARM_ip, regs->ARM_fp);
+	_stp_printf("r10: %08lx  r9 : %08lx  r8 : %08lx\n",
+		regs->ARM_r10, regs->ARM_r9,
+		regs->ARM_r8);
+	_stp_printf("r7 : %08lx  r6 : %08lx  r5 : %08lx  r4 : %08lx\n",
+		regs->ARM_r7, regs->ARM_r6,
+		regs->ARM_r5, regs->ARM_r4);
+	_stp_printf("r3 : %08lx  r2 : %08lx  r1 : %08lx  r0 : %08lx\n",
+		regs->ARM_r3, regs->ARM_r2,
+		regs->ARM_r1, regs->ARM_r0);
+	_stp_printf("Flags: %c%c%c%c",
+		flags & PSR_N_BIT ? 'N' : 'n',
+		flags & PSR_Z_BIT ? 'Z' : 'z',
+		flags & PSR_C_BIT ? 'C' : 'c',
+		flags & PSR_V_BIT ? 'V' : 'v');
+	_stp_printf("  IRQs o%s  FIQs o%s  Mode %s%s  Segment %s\n",
+		interrupts_enabled(regs) ? "n" : "ff",
+		fast_interrupts_enabled(regs) ? "n" : "ff",
+		processor_modes[processor_mode(regs)],
+		thumb_mode(regs) ? " (T)" : "",
+		get_fs() == get_ds() ? "kernel" : "user");
+#if CONFIG_CPU_CP15
+	{
+		unsigned int ctrl;
+		  __asm__ (
+		"	mrc p15, 0, %0, c1, c0\n"
+		: "=r" (ctrl));
+		_stp_printf("Control: %04X\n", ctrl);
+	}
+#ifdef CONFIG_CPU_CP15_MMU
+	{
+		unsigned int transbase, dac;
+		  __asm__ (
+		"	mrc p15, 0, %0, c2, c0\n"
+		"	mrc p15, 0, %1, c3, c0\n"
+		: "=r" (transbase), "=r" (dac));
+		_stp_printf("Table: %08X  DAC: %08X\n",
+		  	transbase, dac);
+	}
+#endif
+#endif
 }
 
 #elif defined (__s390x__) || defined (__s390__)

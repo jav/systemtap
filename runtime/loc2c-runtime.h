@@ -112,6 +112,13 @@
 #define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
 #define store_register(regno) (c->regs->gpr[regno] = (value))
 
+#elif defined (__arm__)
+
+#undef fetch_register
+#undef store_register
+#define fetch_register(regno) ((long) c->regs->uregs[regno])
+#define store_register(regno) (c->regs->uregs[regno] = (value))
+
 #elif defined (__s390__) || defined (__s390x__)
 #undef fetch_register
 #undef store_register
@@ -293,6 +300,37 @@
     if (_bad)								      \
       goto deref_fault;							      \
   })
+
+#elif defined (__arm__)
+
+#define deref(size, addr)						\
+  ({									\
+     int _bad = 0;							\
+     intptr_t _v=0;							\
+	switch (size){							\
+	case 1: __get_user_asm_byte(_v, addr, _bad); break; 		\
+	case 2: __get_user_asm_half(_v, addr, _bad); break;  		\
+	case 4: __get_user_asm_word(_v, addr, _bad); break;  		\
+	default: __get_user_bad(); break;				\
+	}								\
+    if (_bad)  								\
+	goto deref_fault;						\
+     _v;								\
+   })
+
+#define store_deref(size, addr, value)					\
+  ({									\
+    int _bad=0;								\
+	switch (size){							\
+	case 1: __put_user_asm_byte(value, addr, _bad); break;		\
+	case 2: __put_user_asm_half(value, addr, _bad); break;		\
+	case 4: __put_user_asm_word(value, addr, _bad); break;		\
+	case 8: __put_user_asm_dword(value, addr, _bad); break;		\
+	default: __put_user_bad(); break;				\
+	}								\
+    if (_bad)								\
+	   goto deref_fault;						\
+   })
 
 #elif defined (__s390__) || defined (__s390x__)
 

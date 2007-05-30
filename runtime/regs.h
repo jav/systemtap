@@ -32,6 +32,12 @@
 #define REG_SP(regs) regs->gpr[1]
 #define REG_LINK(regs) regs->link
 
+#elif defined (__arm__)
+
+#define REG_IP(regs) regs->ARM_pc
+#define REG_SP(regs) regs->ARM_sp
+#define REG_LINK(regs) regs->ARM_lr
+
 #elif defined (__s390__) || defined (__s390x__)
 #ifndef __s390x__
 #define PSW_ADDR_AMODE	0x80000000UL

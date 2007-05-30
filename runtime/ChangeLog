@@ -1,3 +1,15 @@
+2007-05-30  Martin Hunt  <hunt@redhat.com>
+
+	Patch from Quentin Barnes.
+	* arith.c: Add arm support for 64-bit division.
+	* copy.c: Enable arm support.
+	* loc2c-runtime.h: Ditto.
+	* regs.[ch]: Ditto.
+	* stack.c: Include stack-arm.c.
+	* stack-arm.c: New file.
+	* time.c (_stp_gettimeofday_ns):  hack
+	for arm. See PR 4569.
+
 2007-05-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4458
