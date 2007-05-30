@@ -723,8 +723,10 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   void visit_pre_crement (pre_crement *e);
   void visit_post_crement (post_crement *e);
   void visit_foreach_loop (foreach_loop *s);
-};
 
+  bool side_effect_free ();
+  bool side_effect_free_wrt (const std::set<vardecl*>& vars);
+};
 
 
 

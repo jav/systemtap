@@ -1,3 +1,14 @@
+2007-05-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4567.
+	* staptree.cxx (varuse_collecting_visitor): Add side-effect
+	result query functions.
+	* elaborate.cxx (dead_stmtexpr_remover::visit_expr_statement):
+	Switch to it.
+	(dead_assignment_remover::visit_assignment): Skip elision of
+	lvalues with side-effects in index exprs.
+	* staptree.h: Corresponding changes.
+
 2007-05-25  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4255 teaser.

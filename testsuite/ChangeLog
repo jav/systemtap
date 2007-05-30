@@ -1,3 +1,8 @@
+2007-05-30  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4567.
+	* systemtap.base/optim.stp, optim.exp: New test.
+	
 2007-05-29  Will Cohen  <wcohen@redhat.com>
 
 	PR4540

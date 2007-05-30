@@ -1497,11 +1497,22 @@ dead_assignment_remover::visit_assignment (assignment* e)
       // clog << "Checking assignment to " << leftvar->name << " at " << *e->tok << endl;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
-          if (session.verbose>2)
-            clog << "Eliding assignment to " << leftvar->name 
-                 << " at " << *e->tok << endl;
-          *current_expr = e->right; // goodbye assignment*
-          relaxed_p = false;
+          // NB: Not so fast!  The left side could be an array whose
+          // index expressions may have side-effects.  This would be
+          // OK if we could replace the array assignment with a 
+          // statement-expression containing all the index expressions
+          // and the rvalue... but we can't.
+
+          varuse_collecting_visitor vut;
+          e->left->visit (& vut);
+          if (vut.side_effect_free ()) // XXX: use _wrt() once we track focal_vars
+            {
+              if (session.verbose>2)
+                clog << "Eliding assignment to " << leftvar->name 
+                     << " at " << *e->tok << endl;
+              *current_expr = e->right; // goodbye assignment*
+              relaxed_p = false;
+            }
         }
     }
 }
@@ -1581,23 +1592,7 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
-
-  // Note that side-effect-freeness is not simply this test:
-  //
-  // (vut.written.empty() && !vut.embedded_seen)
-  //
-  // That's because the vut.written list may consist of local
-  // variables of called functions.  Visible side-effects occur if
-  // *our* locals, or any *globals* are written-to.
-
-
-  set<vardecl*> intersection;
-  insert_iterator<set<vardecl*> > int_it (intersection, intersection.begin());
-  set_intersection (vut.written.begin(), vut.written.end(),
-                    focal_vars.begin(), focal_vars.end(),
-                    int_it);
-
-  if (intersection.empty() && ! vut.embedded_seen)
+  if (vut.side_effect_free_wrt (focal_vars))
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free expression "
@@ -1613,15 +1608,6 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
       
       relaxed_p = false;
     }
-  else if(session.verbose>3)
-    {
-      clog << "keeping expression " << *s->tok 
-           << " because it writes: ";
-      for (std::set<vardecl*>::iterator k = intersection.begin();
-           k != intersection.end(); k++)
-        clog << (*k)->name << " ";
-      clog << "and/or embedded: " << vut.embedded_seen << endl;
-    }  
 }
 
 

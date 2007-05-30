@@ -1670,6 +1670,34 @@ varuse_collecting_visitor::visit_delete_statement (delete_statement* s)
   current_lrvalue = last_lrvalue;
 }
 
+bool
+varuse_collecting_visitor::side_effect_free ()
+{
+  return (written.empty() && !embedded_seen);
+}
+
+
+bool
+varuse_collecting_visitor::side_effect_free_wrt (const set<vardecl*>& vars)
+{
+  // A looser notion of side-effect-freeness with respect to a given
+  // list of variables.
+
+  // That's useful because the written list may consist of local
+  // variables of called functions.  But visible side-effects only
+  // occur if the client's locals, or any globals are written-to.
+
+  set<vardecl*> intersection;
+  insert_iterator<set<vardecl*> > int_it (intersection, intersection.begin());
+  set_intersection (written.begin(), written.end(),
+                    vars.begin(), vars.end(),
+                    int_it);
+
+  return (intersection.empty() && !embedded_seen);
+}
+
+
+
 
 // ------------------------------------------------------------------------
 
