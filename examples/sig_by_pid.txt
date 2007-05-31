@@ -1,4 +1,4 @@
-# stap sig_count_by_pid.stp 
+# stap sig_by_pid.stp 
 Collecting data... Type Ctrl-C to exit and display results
 ^C
 Collecting data... Type Ctrl-C to exit and display results

@@ -1,4 +1,4 @@
-# stap sig_count_by_proc.stp 
+# stap sig_by_proc.stp 
 Collecting data... Type Ctrl-C to exit and display results
 ^C
 SENDER           RECEIVER         SIGNAL           COUNT
