@@ -1,3 +1,9 @@
+2007-05-31  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3579
+	From Eugeniy Meshcheryakov <eugen@debian.org>
+	* cache.cxx, parse.cxx: Add #include <cstring> for gcc 4.3.
+
 2007-05-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4567.

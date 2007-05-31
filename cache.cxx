@@ -13,6 +13,7 @@
 #include <cerrno>
 #include <string>
 #include <fstream>
+#include <cstring>
 
 extern "C" {
 #include <sys/types.h>
