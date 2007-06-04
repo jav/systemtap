@@ -20,12 +20,12 @@ int use_old_transport = 0;
 #define ERR_MSG "\nUNEXPECTED FATAL ERROR in staprun. Please file a bug report.\n"
 void fatal_handler (int signum)
 {
-	char *str = strsignal(signum);
-	(void)write (STDERR_FILENO, ERR_MSG, sizeof(ERR_MSG));
-	(void)write (STDERR_FILENO, str, strlen(str));
-	(void)write (STDERR_FILENO, "\n", 1);
-	_exit(-1);
-
+        int rc;
+        char *str = strsignal(signum);
+        rc = write (STDERR_FILENO, ERR_MSG, sizeof(ERR_MSG));
+        rc = write (STDERR_FILENO, str, strlen(str));
+        rc = write (STDERR_FILENO, "\n", 1);
+        _exit(-1);
 }
 
 static void sigproc(int signum)
@@ -44,16 +44,19 @@ static void sigproc(int signum)
 		send_request(STP_EXIT, NULL, 0);
 }
 
-static void setup_main_signals(void)
+static void setup_main_signals(int cleanup)
 {
 	struct sigaction a;
 	memset(&a, 0, sizeof(a));
 	sigfillset(&a.sa_mask);
-	a.sa_handler = sigproc;
+	if (cleanup == 0) {
+		a.sa_handler = sigproc;
+		sigaction(SIGCHLD, &a, NULL);
+	} else 
+		a.sa_handler = SIG_IGN;
 	sigaction(SIGINT, &a, NULL);
 	sigaction(SIGTERM, &a, NULL);
 	sigaction(SIGHUP, &a, NULL);
-	sigaction(SIGCHLD, &a, NULL);
 	sigaction(SIGQUIT, &a, NULL);
 }
 
@@ -285,6 +288,8 @@ void cleanup_and_exit (int closed)
 		return;
 	exiting = 1;
 
+	setup_main_signals(1);
+
 	dbug(1, "CLEANUP AND EXIT  closed=%d\n", closed);
 
 	/* what about child processes? we will wait for them here. */
@@ -320,7 +325,6 @@ void cleanup_and_exit (int closed)
 /**
  *	stp_main_loop - loop forever reading data
  */
-static char recvbuf[8192];
 
 int stp_main_loop(void)
 {
@@ -328,9 +332,10 @@ int stp_main_loop(void)
 	void *data;
 	int type;
 	FILE *ofp = stdout;
+	char recvbuf[8192];
 
 	setvbuf(ofp, (char *)NULL, _IOLBF, 0);
-	setup_main_signals();
+	setup_main_signals(0);
 
 	dbug(2, "in main loop\n");
 

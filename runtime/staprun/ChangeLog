@@ -1,3 +1,10 @@
+2007-06-04  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (cleanup_and_exit): Disable signals
+	while exiting.
+	(fatal_handler): Use return values from write() to
+	avoid warnings.
+
 2007-05-24  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (cleanup_and_exit): Fix typo.
