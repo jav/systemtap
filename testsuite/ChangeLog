@@ -1,3 +1,8 @@
+2007-06-04  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4589.
+	* systemtap.base/optim.*: Rewritten, simplified.
+
 2007-05-30  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4567.

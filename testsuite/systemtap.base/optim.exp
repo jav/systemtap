@@ -1,3 +1,13 @@
 set test "optim"
-
-stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string
+if {![installtest_p]} { untested $test; return }
+spawn stap $srcdir/$subdir/optim.stp
+set ok 0
+expect {
+	-timeout 30
+	-re {i=1} { incr ok }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+close
+wait
+if {$ok == 1} { pass $test } { fail $test }

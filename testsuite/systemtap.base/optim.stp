@@ -3,10 +3,7 @@ function func(i) {
         array[i++] = 0;
         return i;
 }
-probe begin(1) {
-  if (func(0) == 1) log ("systemtap test success")
-  exit()
+probe begin {
+  printf ("i=%d\n", func(0))
+  exit ()
 }
-
-probe begin {  log("systemtap starting probe")  }
-probe end   {  log("systemtap ending probe")    }
