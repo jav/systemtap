@@ -1047,11 +1047,9 @@ probe begin(-1001)
 # INTERNAL FUNCTIONS #
 ######################
 
-# Hack to test for large number, required because of sign bit extension
-# problem with 32-bit return values on 64-bit systems (PR 3331)
 function _success_check(ret:long)
 {
-	return (ret > 0 && ret < 2147483648 ? 1 : 0)
+	return (ret > 0 ? 1 : 0)
 }
 
 function _get_sock_addr:long (file:long)
