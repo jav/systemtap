@@ -1,3 +1,11 @@
+2007-06-05  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 3331.
+	* loc2c.c (emit_base_fetch): Emit size/signedness cast
+	for every low-level fetch.
+	(translate_base_fetch, c_translate_fetch, c_translate_store,
+	c_translate_pointer): Fetch & pass the $target signedness.
+
 2007-05-31  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 3579

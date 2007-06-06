@@ -1017,24 +1017,25 @@ c_translate_location (struct obstack *pool,
 /* Emit "uintNN_t TARGET = ...;".  */
 static bool
 emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
-		 const char *target, bool decl, struct location *loc)
+                 bool signed_p, const char *target, struct location *loc)
 {
-  if (decl)
-    obstack_printf (pool, "uint%" PRIu64 "_t ", byte_size * 8);
+  obstack_printf (pool, "%s = ", target);
+
+  /* Emit size/signed coercion. */ 
+  obstack_printf (pool, "(%sint%" PRIu64 "_t)", 
+                  (signed_p ? "" : "u"), byte_size * 8);
 
   switch (loc->type)
     {
     case loc_address:
       if (byte_size != 0 && byte_size != (Dwarf_Word) -1)
-	obstack_printf (pool, "%s = deref (%" PRIu64 ", addr);",
-			target, byte_size);
+	obstack_printf (pool, "deref (%" PRIu64 ", addr);", byte_size);
       else
-	obstack_printf (pool, "%s = deref (sizeof %s, addr);",
-			target, target);
+	obstack_printf (pool, "deref (sizeof %s, addr);", target);
       return true;
 
     case loc_register:
-      obstack_printf (pool, "%s = fetch_register (%u);", target, loc->regno);
+      obstack_printf (pool, "fetch_register (%u);", loc->regno);
       break;
 
     case loc_noncontiguous:
@@ -1248,7 +1249,7 @@ get_bitfield (struct location *loc,
    at the *INPUT location and store it in lvalue TARGET.  */
 static void
 translate_base_fetch (struct obstack *pool, int indent, Dwarf_Word byte_size,
-		      struct location **input, const char *target)
+                      bool signed_p, struct location **input, const char *target)
 {
   bool deref = false;
 
@@ -1269,7 +1270,8 @@ translate_base_fetch (struct obstack *pool, int indent, Dwarf_Word byte_size,
 	  *input = newp;
 
 	  snprintf (&piece[sizeof "u.pieces.p" - 1], 20, "%" PRIu64, offset);
-	  translate_base_fetch (pool, indent, p->byte_size, input, piece);
+	  translate_base_fetch (pool, indent, p->byte_size, signed_p /* ? */,
+                                input, piece);
 	  (*input)->type = loc_fragment;
 
 	  offset += p->byte_size;
@@ -1287,7 +1289,7 @@ translate_base_fetch (struct obstack *pool, int indent, Dwarf_Word byte_size,
       case 4:
       case 8:
 	obstack_printf (pool, "%*s", indent * 2, "");
-	deref = emit_base_fetch (pool, byte_size, target, false, *input);
+	deref = emit_base_fetch (pool, byte_size, signed_p, target, *input);
 	obstack_printf (pool, "\n");
 	break;
 
@@ -1334,6 +1336,13 @@ c_translate_fetch (struct obstack *pool, int indent,
       || dwarf_formudata (&size_attr, &byte_size) != 0)
     byte_size = base_byte_size (typedie, *input);
 
+  Dwarf_Attribute encoding_attr;
+  Dwarf_Word encoding;
+  if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
+      || dwarf_formudata (&encoding_attr, &encoding) != 0)
+    encoding = DW_ATE_unsigned; /* default */
+  bool signed_p = (encoding == DW_ATE_signed);
+
   *input = discontiguify (pool, indent, *input, byte_size,
 			  max_fetch_size (*input, die));
 
@@ -1342,7 +1351,7 @@ c_translate_fetch (struct obstack *pool, int indent,
       /* This is a bit field.  Fetch the containing base type into a
 	 temporary variable.  */
 
-      translate_base_fetch (pool, indent, byte_size, input, "tmp");
+      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp");
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
@@ -1359,7 +1368,7 @@ c_translate_fetch (struct obstack *pool, int indent,
       *input = loc;
     }
   else
-    translate_base_fetch (pool, indent, byte_size, input, target);
+    translate_base_fetch (pool, indent, byte_size, signed_p, input, target);
 }
 
 /* Translate a fragment to store RVALUE into the base-type value of
@@ -1445,6 +1454,13 @@ c_translate_store (struct obstack *pool, int indent,
       || dwarf_formudata (&size_attr, &byte_size) != 0)
     byte_size = base_byte_size (typedie, *input);
 
+  Dwarf_Attribute encoding_attr;
+  Dwarf_Word encoding;
+  if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
+      || dwarf_formudata (&encoding_attr, &encoding) != 0)
+    encoding = DW_ATE_unsigned; /* default */
+  bool signed_p = (encoding == DW_ATE_signed);
+
   *input = discontiguify (pool, indent, *input, byte_size,
 			  max_fetch_size (*input, die));
 
@@ -1455,7 +1471,7 @@ c_translate_store (struct obstack *pool, int indent,
       /* This is a bit field.  Fetch the containing base type into a
 	 temporary variable.  */
 
-      translate_base_fetch (pool, indent, byte_size, input, "tmp");
+      translate_base_fetch (pool, indent, byte_size, signed_p, input, "tmp");
       (*input)->type = loc_fragment;
       (*input)->address.declare = "tmp";
 
@@ -1502,7 +1518,14 @@ c_translate_pointer (struct obstack *pool, int indent,
 	  dwarf_diename (typedie) ?: "<anonymous>",
 	  dwarf_errmsg (-1));
 
-  translate_base_fetch (pool, indent + 1, byte_size, input, "addr");
+  Dwarf_Attribute encoding_attr;
+  Dwarf_Word encoding;
+  if (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr) == NULL
+      || dwarf_formudata (&encoding_attr, &encoding) != 0)
+    encoding = DW_ATE_unsigned; /* default */
+  bool signed_p = (encoding == DW_ATE_signed);
+
+  translate_base_fetch (pool, indent + 1, byte_size, signed_p, input, "addr");
   (*input)->type = loc_address;
 }
 

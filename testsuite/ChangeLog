@@ -1,3 +1,8 @@
+2007-06-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3331.
+	* systemtap.base/deref2.*: New test, disabled.
+
 2007-06-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4589.

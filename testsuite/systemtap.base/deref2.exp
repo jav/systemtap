@@ -1,0 +1,29 @@
+set test "deref2"
+
+# XXX: the load-generation code below doesn't trigger reliably under dejagnu
+untested $test; continue
+
+
+if {![installtest_p]} { untested $test; continue }
+
+# This is asking perl to consume all of its file handles with sockets.
+# When there are no more, sock_alloc_fd will start returning errors (negatives).
+set load_gen_cmd {perl -e {use Socket; while ($i < 65536) { $i++; socket $Foo[$i], AF_UNIX, SOC_STREAM, PF_UNSPEC;} print "Toodaloo\n"; }}
+
+spawn stap $srcdir/$subdir/deref2.stp
+
+set pos 0
+set neg 0
+expect {
+    start\r\n {
+        catch { eval exec $load_gen_cmd }
+        verbose -log "starting loadgen" 
+    }
+    pos\r\n { verobse -log "pos"; incr pos; exp_continue }
+    neg\r\n { verbose -log "neg"; incr neg; exp_continue }
+    eof { }
+    timeout { }
+}
+wait
+
+if {$neg > 0} { pass "$test ($pos $neg)" } else { fail "$test ($pos $neg)" }
