@@ -247,8 +247,8 @@ probe syscall.chmod.return = kernel.function("sys_chmod").return {
 probe syscall.chown = kernel.function("sys_chown") {
 	name = "chown"
 	path = user_string($filename)
-	owner = $user
-	group = $group
+	owner = __int32($user)
+	group = __int32($group)
 	argstr = sprintf("%s, %d, %d",user_string_quoted($filename), owner, group) 
 }
 probe syscall.chown.return = kernel.function("sys_chown").return {
@@ -617,9 +617,9 @@ probe syscall.fchmod.return = kernel.function("sys_fchmod").return {
 probe syscall.fchown = kernel.function("sys_fchown") {
 	name = "fchown"
 	fd = $fd
-	owner = $user
-	group = $group
-	argstr = sprintf("%d, %d, %d", $fd, $user, $group) 
+	owner = __int32($user)
+	group = __int32($group)
+	argstr = sprintf("%d, %d, %d", $fd, owner, group) 
 }
 probe syscall.fchown.return = kernel.function("sys_fchown").return {
 	name = "fchown"
@@ -1599,8 +1599,8 @@ probe syscall.kill.return = kernel.function("sys_kill").return {
 probe syscall.lchown = kernel.function("sys_lchown") {
 	name = "lchown"
 	path = user_string($filename)
-	owner = $user
-	group = $group
+	owner = __int32($user)
+	group = __int32($group)
 	argstr = sprintf("%s, %d, %d",user_string_quoted($filename), owner, group)
 }	
 probe syscall.lchown.return = kernel.function("sys_lchown").return {
@@ -1764,10 +1764,10 @@ probe syscall.lremovexattr.return = kernel.function("sys_lremovexattr").return {
 probe syscall.lseek = kernel.function("sys_lseek") {
 	name = "lseek"
 	fildes = $fd
-	offset = $offset
+	offset = __int32($offset)
 	whence = $origin
 	whence_str = _seek_whence_str($origin)
-	argstr = sprintf("%d, %d, %s", $fd, $offset, whence_str)
+	argstr = sprintf("%d, %d, %s", $fd, offset, whence_str)
 }
 probe syscall.lseek.return = kernel.function("sys_lseek").return {
 	name = "lseek"

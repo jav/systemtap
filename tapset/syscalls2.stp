@@ -1350,8 +1350,8 @@ probe syscall.setpriority.return = kernel.function("sys_setpriority").return {
 #
 probe syscall.setregid = kernel.function("sys_setregid") {
 	name = "setregid"
-	rgid = __uid($rgid)
-	egid = __uid($egid)
+	rgid = __int32($rgid)
+	egid = __int32($egid)
 	argstr = sprintf("%d, %d", rgid, egid)
 }
 probe syscall.setregid.return = kernel.function("sys_setregid").return {
@@ -1376,9 +1376,9 @@ probe syscall.setregid16.return = kernel.function("sys_setregid16").return ? {
 #
 probe syscall.setresgid = kernel.function("sys_setresgid") {
 	name = "setresgid"
-	rgid = __uid($rgid)
-	egid = __uid($egid)
-	sgid = __uid($sgid)
+	rgid = __int32($rgid)
+	egid = __int32($egid)
+	sgid = __int32($sgid)
 	argstr = sprintf("%d, %d, %d", rgid, egid, sgid)
 }
 probe syscall.setresgid.return = kernel.function("sys_setresgid").return {
@@ -1409,9 +1409,9 @@ probe syscall.setresgid16.return = kernel.function("sys_setresgid16").return ? {
 #
 probe syscall.setresuid = kernel.function("sys_setresuid") {
 	name = "setresuid"
-	ruid = __uid($ruid)
-	euid = __uid($euid)
-	suid = __uid($suid)
+	ruid = __int32($ruid)
+	euid = __int32($euid)
+	suid = __int32($suid)
 	argstr = sprintf("%d, %d, %d", ruid, euid, suid)
 }
 probe syscall.setresuid.return = kernel.function("sys_setresuid").return {
@@ -1440,8 +1440,8 @@ probe syscall.setresuid16.return = kernel.function("sys_setresuid16").return ? {
 #
 probe syscall.setreuid = kernel.function("sys_setreuid") {
 	name = "setreuid"
-	ruid = __uid($ruid)
-	euid = __uid($euid)
+	ruid = __int32($ruid)
+	euid = __int32($euid)
 	argstr = sprintf("%d, %d", ruid, euid)
 }
 probe syscall.setreuid.return = kernel.function("sys_setreuid").return {

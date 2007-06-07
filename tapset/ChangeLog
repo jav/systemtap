@@ -1,3 +1,12 @@
+2007-06-07  Martin Hunt  <hunt@redhat.com>
+	Fallout from PR 3331 fix. Sometimes glibc and the
+	kernel disagree about signed vs unsigned.
+	* aux_syscalls.stp: Rename __uid() to __int32().
+	* syscalls.stp: Change syscall.chown, syscall.fchown, 
+	syscall.lchown, and syscall.lseek to use __int32().
+	* syscalls2.stp: Change syscall.setregid, syscall.resgid,
+	syscall.resuid, and syscall.setreuid to use __int32().
+
 2007-05-17  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp: Make optional sys_alarm, sys_fadvise64,

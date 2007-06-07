@@ -1499,10 +1499,9 @@ function __short:long(val:long) %{ /* pure */
 	THIS->__retvalue = (short)THIS->val;
 %}
 
-
-/* uid_t is unsigned, but calling functions take "-1" as a paremeter */
+/* uid_t is unsigned, but calling functions take "-1" as a parameter */
 /* so this hack is necessary to correct that mismatch. */
-function __uid:long(val:long) %{ /* pure */
-	THIS->__retvalue = (int)THIS->val;
+function __int32:long(val:long) %{ /* pure */
+	THIS->__retvalue = (int32_t)THIS->val;
 %}
 
