@@ -1,3 +1,8 @@
+2007-06-07  Martin Hunt  <hunt@redhat.com>
+	PR 4075 fix from Ananth Mavinakayanahalli 
+	* string.h (_stp_get_user): Define.
+	* string.c (_stp_text_str): Use _stp_get_user().
+
 2007-05-30  Martin Hunt  <hunt@redhat.com>
 
 	Patch from Quentin Barnes.

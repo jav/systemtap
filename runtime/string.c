@@ -75,7 +75,7 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 	if (user) {
 		if (!access_ok(VERIFY_READ, (char __user *)in, 1))
 			goto bad;
-		if (__get_user(c, in))
+		if (__stp_get_user(c, in))
 			goto bad;
 	} else
 		c = *in;
@@ -143,7 +143,7 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 		len -= num;
 		in++;
 		if (user) {
-			if (__get_user(c, in))
+			if (__stp_get_user(c, in))
 				goto bad;
 		} else
 			c = *in;
