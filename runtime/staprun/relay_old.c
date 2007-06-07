@@ -14,7 +14,6 @@
 #include "staprun.h"
 
 /* temporary per-cpu output written here for relayfs, filebase0...N */
-static char *percpu_tmpfilebase = "stpd_cpu";
 static int relay_fd[NR_CPUS];
 static int proc_fd[NR_CPUS];
 static FILE *percpu_tmpfile[NR_CPUS];
@@ -98,7 +97,15 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		goto err1;
 	}
 
-	sprintf(tmp, "%s%d", percpu_tmpfilebase, cpu);	
+	if (outfile_name) {
+		/* special case: for testing we sometimes want to write to /dev/null */
+		if (strcmp(outfile_name, "/dev/null") == 0)
+			strcpy(tmp, outfile_name);
+		else
+			sprintf(tmp, "%s_%d", outfile_name, cpu);
+	} else
+		sprintf(tmp, "stpd_cpu%d", cpu);	
+
 	if((percpu_tmpfile[cpu] = fopen(tmp, "w+")) == NULL) {
 		fprintf(stderr, "ERROR: Couldn't open output file %s: errcode = %s\n", tmp, strerror(errno));
 		goto err2;
