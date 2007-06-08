@@ -1,3 +1,10 @@
+2007-06-08  David Smith  <dsmith@redhat.com>
+
+	PR 4553.
+	* configure.ac: For x86 systems with gcc versions less than 4,
+	automatically default to enabling prologue searching.
+	* configure: Regenerated.
+	
 2007-06-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 3331.

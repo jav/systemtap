@@ -50,9 +50,30 @@ if test $perfmon_support = yes; then
   LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
 fi
 
+
+dnl If the user didn't specify --enable-prologues/--disable-prologues
+dnl and the x86 system has a version of gcc less than version 4,
+dnl automatically enable prologues.
+if test "${enable_prologues+set}" != set; then
+  AC_MSG_CHECKING([to see if prologue searching should be the default])
+  if { echo '#if __i386__ == 1 && __GNUC__ < 4'
+       echo ' yes '
+       echo '#endif'; } | ${CC} -E - | grep yes > /dev/null; then
+    enable_prologues=yes
+    AC_MSG_RESULT([yes])
+  else
+    AC_MSG_RESULT([no])
+  fi
+fi
+
 AC_ARG_ENABLE(prologues,
          AC_HELP_STRING([--enable-prologues],[make -P prologue-searching default]),
-         AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default]))
+	 [
+if test "$enable_prologues" = yes; then
+  AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
+fi])
+
+
 
 build_elfutils=no
 AC_ARG_WITH([elfutils],
