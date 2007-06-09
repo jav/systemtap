@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <sstream>
 #include <cassert>
+#include <algorithm>
 
 using namespace std;
 
