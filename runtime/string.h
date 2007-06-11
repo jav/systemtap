@@ -24,7 +24,7 @@ void _stp_text_str(char *out, char *in, int len, int quoted, int user);
  * to __get_user() if not. Other archs can use __get_user() as is
  */
 #ifdef __powerpc64__
-#ifdef __get_user_inatomic(x, ptr)
+#ifdef __get_user_inatomic
 #define __stp_get_user(x, ptr) __get_user_inatomic(x, ptr)
 #else /* __get_user_inatomic */
 #define __stp_get_user(x, ptr) __get_user(x, ptr)
