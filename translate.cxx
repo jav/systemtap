@@ -22,6 +22,10 @@
 #include <string>
 #include <cassert>
 
+extern "C" {
+#include <elfutils/libdwfl.h>
+}
+
 using namespace std;
 
 struct var;
@@ -1162,7 +1166,7 @@ c_unparser::emit_module_init ()
   // Print a message to the kernel log about this module.  This is
   // intended to help debug problems with systemtap modules.
   o->newline() << "printk (KERN_DEBUG \"%s: "
-               << "systemtap: " << VERSION
+               << "systemtap: " << VERSION << "/" << dwfl_version (NULL)
                << ", base: %p"
                << ", memory: %lu+%lu+%lu+%lu+%lu data+text+ctx+io+glob"
                << ", probes: " << session->probes.size()

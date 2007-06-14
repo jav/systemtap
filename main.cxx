@@ -44,8 +44,8 @@ version ()
 {
   clog
     << "SystemTap translator/driver "
-    << "(version " << VERSION << " built " << DATE << ")" << endl
-    << "(Using " << dwfl_version (NULL) << " libraries.)" << endl
+    << "(version " << VERSION << "/" << dwfl_version (NULL)
+    << " built " << DATE << ")" << endl
     << "Copyright (C) 2005-2007 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
@@ -563,9 +563,9 @@ main (int argc, char * const argv [])
             rc ++;
           // GLOB_NOMATCH is acceptable
 
-          if (s.verbose>1)
+          if (s.verbose>1 && globbuf.gl_pathc > 0)
             clog << "Searched '" << dir << "', "
-                 << "match count " << globbuf.gl_pathc << endl;
+                 << "found " << globbuf.gl_pathc << endl;
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
