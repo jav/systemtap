@@ -30,9 +30,9 @@ probe timer.ms(5000) {
 }
 probe end {
   foreach ([pid,syscall] in syscall_count-) {
-    log (command[pid] . "(" . sprint(pid) . ") " . syscall .
-         " count=" . sprint(syscall_count[pid,syscall]) .
-         " ttime=" . sprint(syscall_times[pid,syscall]))
+    printf("%s(%d) %s count=%d ttime=%d\n", command[pid], pid, syscall,
+	   syscall_count[pid,syscall], syscall_times[pid,syscall])
+
     if (count++ > 30) next
   }
 }

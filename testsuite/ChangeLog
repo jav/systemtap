@@ -1,3 +1,8 @@
+2007-06-14  David Smith  <dsmith@redhat.com>
+
+	* systemtap.samples/profile.stp: Change output to avoid problems
+	when kernel source path is long.
+
 2007-06-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 3331.
