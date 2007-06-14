@@ -1019,11 +1019,13 @@ static bool
 emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
                  bool signed_p, const char *target, struct location *loc)
 {
-  obstack_printf (pool, "%s = ", target);
+  bool deref = false;
+  /* int i; */
 
   /* Emit size/signed coercion. */ 
-  obstack_printf (pool, "(%sint%" PRIu64 "_t)", 
-                  (signed_p ? "" : "u"), byte_size * 8);
+  obstack_printf (pool, "{ ");
+  obstack_printf (pool, "%sint%u_t value = ", 
+                  (signed_p ? "" : "u"), (unsigned)(byte_size * 8));
 
   switch (loc->type)
     {
@@ -1032,7 +1034,8 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
 	obstack_printf (pool, "deref (%" PRIu64 ", addr);", byte_size);
       else
 	obstack_printf (pool, "deref (sizeof %s, addr);", target);
-      return true;
+      deref = true;
+      break;
 
     case loc_register:
       obstack_printf (pool, "fetch_register (%u);", loc->regno);
@@ -1047,7 +1050,9 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
       break;
     }
 
-  return false;
+  obstack_printf (pool, "%s = value; ", target);
+  obstack_printf (pool, "}");
+  return deref;
 }
 
 /* Emit "... = RVALUE;".  */
@@ -1232,6 +1237,27 @@ base_byte_size (Dwarf_Die *typedie, struct location *origin)
   return -1;
 }
 
+static Dwarf_Word
+base_encoding (Dwarf_Die *typedie, struct location *origin)
+{
+  assert (dwarf_tag (typedie) == DW_TAG_base_type ||
+	  dwarf_tag (typedie) == DW_TAG_enumeration_type);
+
+  Dwarf_Attribute attr_mem;
+  Dwarf_Word encoding;
+  if (dwarf_attr_integrate (typedie, DW_AT_encoding, &attr_mem) != NULL
+      && dwarf_formudata (&attr_mem, &encoding) == 0)
+    return encoding;
+
+  FAIL (origin,
+	 N_("cannot get encoding attribute for type %s: %s"),
+	 dwarf_diename (typedie) ?: "<anonymous>",
+	 dwarf_errmsg (-1));
+  return -1;
+}
+
+
+
 /* Fetch the bitfield parameters.  */
 static void
 get_bitfield (struct location *loc,
@@ -1340,8 +1366,9 @@ c_translate_fetch (struct obstack *pool, int indent,
   Dwarf_Word encoding;
   if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
       || dwarf_formudata (&encoding_attr, &encoding) != 0)
-    encoding = DW_ATE_unsigned; /* default */
-  bool signed_p = (encoding == DW_ATE_signed);
+    encoding = base_encoding (typedie, *input);
+  bool signed_p = (encoding == DW_ATE_signed 
+                   || encoding == DW_ATE_signed_char);
 
   *input = discontiguify (pool, indent, *input, byte_size,
 			  max_fetch_size (*input, die));
@@ -1458,8 +1485,9 @@ c_translate_store (struct obstack *pool, int indent,
   Dwarf_Word encoding;
   if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
       || dwarf_formudata (&encoding_attr, &encoding) != 0)
-    encoding = DW_ATE_unsigned; /* default */
-  bool signed_p = (encoding == DW_ATE_signed);
+    encoding = base_encoding (typedie, *input);
+  bool signed_p = (encoding == DW_ATE_signed 
+                   || encoding == DW_ATE_signed_char);
 
   *input = discontiguify (pool, indent, *input, byte_size,
 			  max_fetch_size (*input, die));
@@ -1522,8 +1550,9 @@ c_translate_pointer (struct obstack *pool, int indent,
   Dwarf_Word encoding;
   if (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr) == NULL
       || dwarf_formudata (&encoding_attr, &encoding) != 0)
-    encoding = DW_ATE_unsigned; /* default */
-  bool signed_p = (encoding == DW_ATE_signed);
+    encoding = base_encoding (typedie, *input);
+  bool signed_p = (encoding == DW_ATE_signed 
+                   || encoding == DW_ATE_signed_char);
 
   translate_base_fetch (pool, indent + 1, byte_size, signed_p, input, "addr");
   (*input)->type = loc_address;

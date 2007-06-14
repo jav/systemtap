@@ -1,3 +1,12 @@
+2007-06-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3331 cont'd.
+	* loc2c.c (emit_base_fetch): Emit size/signedness cast
+	slightly differently for every low-level fetch.
+	(translate_base_fetch, c_translate_fetch, c_translate_store,
+	c_translate_pointer): Fetch & pass the $target signedness.
+	(base_encoding): Follow typedefs etc.
+
 2007-06-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4609
