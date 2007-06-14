@@ -1,3 +1,11 @@
+2007-06-14  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.samples/syscalls.stp: Use printf
+	for output to avoid problems with long paths.
+
+	 From Quentin Barnes.
+	* systemtap.samples/system_func.exp: Change expect matching.
+	
 2007-06-14  David Smith  <dsmith@redhat.com>
 
 	* systemtap.samples/profile.stp: Change output to avoid problems

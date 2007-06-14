@@ -2,6 +2,6 @@
 
 global count
 probe kernel.function("sys_*").call {
-  print (sprint(pid()) . " " . pp() . "\n")
-  if (++count > 100) exit()
+	printf("%d %s\n", pid(), pp())
+	if (++count > 100) exit()
 }

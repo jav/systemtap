@@ -7,9 +7,14 @@ set saw_user 0
 set user [exec whoami]
 expect {
     -timeout 30
-    -re "^$user\[^\r\]*\[\r\n\]*" {incr saw_user; exp_continue}
-    -re {^sys_open[^\r]*[\r\n]*} {incr open; exp_continue }
-    -re {DONE[^\r]*[\r\n]*} {incr done; exp_continue }
+    -re "($user|sys_open|DONE)\r" {
+	switch $expect_out(1,string) {
+	    sys_open {incr open}
+	    DONE     {incr done}
+	    default  {incr saw_user}
+	}
+	exp_continue
+    }
     timeout { fail "$test (timeout)" }
     eof { }
 }
