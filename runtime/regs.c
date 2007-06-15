@@ -47,6 +47,8 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
 	return regs->b0;
 #elif defined (__s390__) || defined (__s390x__)
 	return regs->gprs[14];
+#elif defined (__arm__)
+	return regs->ARM_r0;
 #else
 	#error Unimplemented architecture
 #endif

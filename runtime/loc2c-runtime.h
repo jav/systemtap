@@ -1,6 +1,7 @@
 /* target operations
  * Copyright (C) 2005 Red Hat Inc.
  * Copyright (C) 2005, 2006, 2007 Intel Corporation.
+ * Copyright (C) 2007 Quentin Barnes.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -303,14 +304,148 @@
 
 #elif defined (__arm__)
 
+/* Macros for ARM lifted from 2.6.21.1's linux/include/asm-arm/uaccess.h
+ * and slightly altered. */
+
+#define __stp_get_user_asm_byte(x,addr,err)			\
+	__asm__ __volatile__(					\
+	"1:	ldrb	%1,[%2],#0\n"				\
+	"2:\n"							\
+	"	.section .fixup,\"ax\"\n"			\
+	"	.align	2\n"					\
+	"3:	mov	%0, %3\n"				\
+	"	mov	%1, #0\n"				\
+	"	b	2b\n"					\
+	"	.previous\n"					\
+	"	.section __ex_table,\"a\"\n"			\
+	"	.align	3\n"					\
+	"	.long	1b, 3b\n"				\
+	"	.previous"					\
+	: "+r" (err), "=&r" (x)					\
+	: "r" (addr), "i" (-EFAULT)				\
+	: "cc")
+
+#ifndef __ARMEB__
+#define __stp_get_user_asm_half(x,__gu_addr,err)		\
+({								\
+	unsigned long __b1, __b2;				\
+	__stp_get_user_asm_byte(__b1, __gu_addr, err);		\
+	__stp_get_user_asm_byte(__b2, __gu_addr + 1, err);	\
+	(x) = __b1 | (__b2 << 8);				\
+})
+#else
+#define __stp_get_user_asm_half(x,__gu_addr,err)		\
+({								\
+	unsigned long __b1, __b2;				\
+	__stp_get_user_asm_byte(__b1, __gu_addr, err);		\
+	__stp_get_user_asm_byte(__b2, __gu_addr + 1, err);	\
+	(x) = (__b1 << 8) | __b2;				\
+})
+#endif
+
+#define __stp_get_user_asm_word(x,addr,err)			\
+	__asm__ __volatile__(					\
+	"1:	ldr	%1,[%2],#0\n"				\
+	"2:\n"							\
+	"	.section .fixup,\"ax\"\n"			\
+	"	.align	2\n"					\
+	"3:	mov	%0, %3\n"				\
+	"	mov	%1, #0\n"				\
+	"	b	2b\n"					\
+	"	.previous\n"					\
+	"	.section __ex_table,\"a\"\n"			\
+	"	.align	3\n"					\
+	"	.long	1b, 3b\n"				\
+	"	.previous"					\
+	: "+r" (err), "=&r" (x)					\
+	: "r" (addr), "i" (-EFAULT)				\
+	: "cc")
+
+#define __stp_put_user_asm_byte(x,__pu_addr,err)		\
+	__asm__ __volatile__(					\
+	"1:	strb	%1,[%2],#0\n"				\
+	"2:\n"							\
+	"	.section .fixup,\"ax\"\n"			\
+	"	.align	2\n"					\
+	"3:	mov	%0, %3\n"				\
+	"	b	2b\n"					\
+	"	.previous\n"					\
+	"	.section __ex_table,\"a\"\n"			\
+	"	.align	3\n"					\
+	"	.long	1b, 3b\n"				\
+	"	.previous"					\
+	: "+r" (err)						\
+	: "r" (x), "r" (__pu_addr), "i" (-EFAULT)		\
+	: "cc")
+
+#ifndef __ARMEB__
+#define __stp_put_user_asm_half(x,__pu_addr,err)			\
+({									\
+	unsigned long __temp = (unsigned long)(x);			\
+	__stp_put_user_asm_byte(__temp, __pu_addr, err);		\
+	__stp_put_user_asm_byte(__temp >> 8, __pu_addr + 1, err);	\
+})
+#else
+#define __stp_put_user_asm_half(x,__pu_addr,err)			\
+({									\
+	unsigned long __temp = (unsigned long)(x);			\
+	__stp_put_user_asm_byte(__temp >> 8, __pu_addr, err);		\
+	__stp_put_user_asm_byte(__temp, __pu_addr + 1, err);		\
+})
+#endif
+
+#define __stp_put_user_asm_word(x,__pu_addr,err)		\
+	__asm__ __volatile__(					\
+	"1:	str	%1,[%2],#0\n"				\
+	"2:\n"							\
+	"	.section .fixup,\"ax\"\n"			\
+	"	.align	2\n"					\
+	"3:	mov	%0, %3\n"				\
+	"	b	2b\n"					\
+	"	.previous\n"					\
+	"	.section __ex_table,\"a\"\n"			\
+	"	.align	3\n"					\
+	"	.long	1b, 3b\n"				\
+	"	.previous"					\
+	: "+r" (err)						\
+	: "r" (x), "r" (__pu_addr), "i" (-EFAULT)		\
+	: "cc")
+
+#ifndef __ARMEB__
+#define	__reg_oper0	"%R2"
+#define	__reg_oper1	"%Q2"
+#else
+#define	__reg_oper0	"%Q2"
+#define	__reg_oper1	"%R2"
+#endif
+
+#define __stp_put_user_asm_dword(x,__pu_addr,err)		\
+	__asm__ __volatile__(					\
+	"1:	str	" __reg_oper1 ", [%1], #4\n"		\
+	"2:	str	" __reg_oper0 ", [%1], #0\n"		\
+	"3:\n"							\
+	"	.section .fixup,\"ax\"\n"			\
+	"	.align	2\n"					\
+	"4:	mov	%0, %3\n"				\
+	"	b	3b\n"					\
+	"	.previous\n"					\
+	"	.section __ex_table,\"a\"\n"			\
+	"	.align	3\n"					\
+	"	.long	1b, 4b\n"				\
+	"	.long	2b, 4b\n"				\
+	"	.previous"					\
+	: "+r" (err), "+r" (__pu_addr)				\
+	: "r" (x), "i" (-EFAULT)				\
+	: "cc")
+
 #define deref(size, addr)						\
   ({									\
      int _bad = 0;							\
      intptr_t _v=0;							\
 	switch (size){							\
-	case 1: __get_user_asm_byte(_v, addr, _bad); break; 		\
-	case 2: __get_user_asm_half(_v, addr, _bad); break;  		\
-	case 4: __get_user_asm_word(_v, addr, _bad); break;  		\
+	case 1: __stp_get_user_asm_byte(_v, addr, _bad); break; 	\
+	case 2: __stp_get_user_asm_half(_v, addr, _bad); break; 	\
+	case 4: __stp_get_user_asm_word(_v, addr, _bad); break; 	\
 	default: __get_user_bad(); break;				\
 	}								\
     if (_bad)  								\
@@ -322,10 +457,10 @@
   ({									\
     int _bad=0;								\
 	switch (size){							\
-	case 1: __put_user_asm_byte(value, addr, _bad); break;		\
-	case 2: __put_user_asm_half(value, addr, _bad); break;		\
-	case 4: __put_user_asm_word(value, addr, _bad); break;		\
-	case 8: __put_user_asm_dword(value, addr, _bad); break;		\
+	case 1: __stp_put_user_asm_byte(value, addr, _bad); break;	\
+	case 2: __stp_put_user_asm_half(value, addr, _bad); break;	\
+	case 4: __stp_put_user_asm_word(value, addr, _bad); break;	\
+	case 8: __stp_put_user_asm_dword(value, addr, _bad); break;	\
 	default: __put_user_bad(); break;				\
 	}								\
     if (_bad)								\

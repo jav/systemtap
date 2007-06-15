@@ -59,7 +59,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 			_stp_symbol_print((unsigned long)pc);
 			_stp_print_char('\n');
 		} else {
-			_stp_printf("%08lx ", pc);
+			_stp_printf("%08lx ", (unsigned long)pc);
 		}
 
 		/* Sanity check the next_fp. */
