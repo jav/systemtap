@@ -1036,22 +1036,21 @@ probe syscall.semtimedop.return = kernel.function("sys_semtimedop").return {
 }
 # send _______________________________________________________
 #
-# asmlinkage long
-# sys_send(int fd,
+# long sys_send(int fd,
 #		void __user * buff,
 #		size_t len,
 #		unsigned flags)
 #
-probe syscall.send = kernel.function("sys_sendto") {
+probe syscall.send = kernel.function("sys_send") {
 	name = "send"
 	s = $fd
 	buf_uaddr = $buff
 	len = $len
 	flags = $flags
 	flags_str = _send_flags_str($flags)
-	argstr = sprintf("%d, %p, %s", $fd, buf_uaddr, flags_str)
+	argstr = sprintf("%d, %p, %s", $fd, $buff, flags_str)
 }
-probe syscall.send.return = kernel.function("sys_sendto").return {
+probe syscall.send.return = kernel.function("sys_send").return {
 	name = "send"
 	retstr = returnstr(1)
 }
@@ -1071,7 +1070,7 @@ probe syscall.sendfile =
 	in_fd = $in_fd
 	offset_uaddr = $offset
 	count = $count
-	argstr = sprintf("%d, %d, %p, %d", $out_fd, $in_fd, offset_uaddr,
+	argstr = sprintf("%d, %d, %p, %d", $out_fd, $in_fd, $offset,
 				$count)
 }
 probe syscall.sendfile.return =
@@ -1084,8 +1083,7 @@ probe syscall.sendfile.return =
 
 # sendmsg ____________________________________________________
 #
-# asmlinkage long
-# sys_sendmsg(int fd,
+# long sys_sendmsg(int fd,
 #		 struct msghdr __user *msg,
 #		 unsigned flags)
 #
@@ -1095,7 +1093,7 @@ probe syscall.sendmsg = kernel.function("sys_sendmsg") {
 	msg_uaddr = $msg
 	flags = $flags
 	flags_str = _send_flags_str($flags)
-	argstr = sprintf("%d, %p, %s", $fd, msg_uaddr, flags_str)
+	argstr = sprintf("%d, %p, %s", $fd, $msg, flags_str)
 }
 probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return {
 	name = "sendmsg"
@@ -1103,8 +1101,7 @@ probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return {
 }
 # sendto _____________________________________________________
 #
-# asmlinkage long
-# sys_sendto(int fd,
+# long sys_sendto(int fd,
 #		void __user * buff,
 #		size_t len,
 #		unsigned flags,
@@ -1120,8 +1117,8 @@ probe syscall.sendto = kernel.function("sys_sendto") {
 	flags_str = _send_flags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
-	argstr = sprintf("%d, %p, %d, %s, %p, %d", $fd, buf_uaddr,
-			$len, flags_str, to_uaddr, $addr_len)
+	argstr = sprintf("%d, %p, %d, %s, %p, %d", $fd, $buff,
+			$len, flags_str, $addr, $addr_len)
 }
 probe syscall.sendto.return = kernel.function("sys_sendto").return {
 	name = "sendto"
