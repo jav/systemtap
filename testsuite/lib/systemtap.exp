@@ -88,5 +88,8 @@ proc stap_run_batch {args} {
     }
     set results [wait]
     verbose -log "wait results: $results"
+    # Crashed?
+    if {[llength $results] >= 5} {return 1}
+    # Not?
     return [lindex $results 3]
 }
