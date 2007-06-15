@@ -1,3 +1,10 @@
+2007-06-15  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: Add sys_fcntl64, sys_oabi_fstat64, 
+	  sys_oabi_lstat64.
+	* syscalls2.stp: Fix sys_send. Add sys_sendfile64.
+	* errno.stp: Add arm support.
+
 2007-06-14  Mike Mason <mmlnx@us.ibm.com>
 
         * socket.stp: removed extra assignment to "size" in 

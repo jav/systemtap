@@ -1,6 +1,7 @@
 // syscalls tapset part 2 [N-Z]
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1036,12 +1037,10 @@ probe syscall.semtimedop.return = kernel.function("sys_semtimedop").return {
 # send _______________________________________________________
 #
 # asmlinkage long
-# sys_sendto(int fd,
+# sys_send(int fd,
 #		void __user * buff,
 #		size_t len,
-#		unsigned flags,
-#		struct sockaddr __user *addr,
-#		int addr_len)
+#		unsigned flags)
 #
 probe syscall.send = kernel.function("sys_sendto") {
 	name = "send"
@@ -1050,10 +1049,7 @@ probe syscall.send = kernel.function("sys_sendto") {
 	len = $len
 	flags = $flags
 	flags_str = _send_flags_str($flags)
-	to_uaddr = $addr
-	tolen = $addr_len
-	argstr = sprintf("%d, %p, %s, %p, %d", $fd, buf_uaddr,
-			flags_str, to_uaddr, $addr_len)
+	argstr = sprintf("%d, %p, %s", $fd, buf_uaddr, flags_str)
 }
 probe syscall.send.return = kernel.function("sys_sendto").return {
 	name = "send"
@@ -1066,7 +1062,10 @@ probe syscall.send.return = kernel.function("sys_sendto").return {
 #		  off_t __user *offset,
 #		  size_t count)
 #
-probe syscall.sendfile = kernel.function("sys_sendfile") ?, kernel.function("sys_sendfile64") ? {
+probe syscall.sendfile =
+		kernel.function("sys_sendfile") ?,
+		kernel.function("sys_sendfile64") ?
+{
 	name = "sendfile"
 	out_fd = $out_fd
 	in_fd = $in_fd
@@ -1075,7 +1074,10 @@ probe syscall.sendfile = kernel.function("sys_sendfile") ?, kernel.function("sys
 	argstr = sprintf("%d, %d, %p, %d", $out_fd, $in_fd, offset_uaddr,
 				$count)
 }
-probe syscall.sendfile.return = kernel.function("sys_sendfile").return ?,  kernel.function("sys_sendfile64").return ? {
+probe syscall.sendfile.return =
+		kernel.function("sys_sendfile").return ?,
+		kernel.function("sys_sendfile64").return ?
+{
 	name = "sendfile"
 	retstr = returnstr(1)
 }
@@ -1838,12 +1840,14 @@ probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return ?{
 # long sys_stat(char __user * filename, struct __old_stat __user * statbuf)
 # long sys32_stat64(char __user * filename, struct stat64 __user *statbuf)
 # long sys_stat64(char __user * filename, struct stat64 __user * statbuf)
+# long sys_oabi_stat64(char __user * filename, struct oldabi_stat64 __user * statbuf)
 # long compat_sys_newstat(char __user * filename, struct compat_stat __user *statbuf)
 probe syscall.stat = 
 		kernel.function("sys_stat") ?, 
 		kernel.function("sys_newstat") ?,
 		kernel.function("sys32_stat64") ?,
 		kernel.function("sys_stat64") ?,
+		kernel.function("sys_oabi_stat64") ?,
 		kernel.function("compat_sys_newstat") ?
 {
 	name = "stat"
@@ -1857,6 +1861,7 @@ probe syscall.stat.return =
 		kernel.function("sys_newstat").return ?,
 		kernel.function("sys32_stat64").return ?,
 		kernel.function("sys_stat64").return ?,
+		kernel.function("sys_oabi_stat64").return ?,
 		kernel.function("compat_sys_newstat").return ? 
 {
 	name = "stat"

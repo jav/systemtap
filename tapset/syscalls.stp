@@ -1,6 +1,7 @@
 // syscalls tapset part 1 [A-M]
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -642,7 +643,11 @@ probe syscall.fchown16.return = kernel.function("sys_fchown16").return ? {
 
 # fcntl ______________________________________________________
 # long sys_fcntl(int fd, unsigned int cmd, unsigned long arg)
-probe syscall.fcntl = kernel.function("sys_fcntl") {
+# long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg)
+probe syscall.fcntl = 
+		kernel.function("sys_fcntl") ?,
+		kernel.function("sys_fcntl64") ?
+{
 	name = "fcntl"
 	fd = $fd
 	cmd = $cmd
@@ -650,7 +655,10 @@ probe syscall.fcntl = kernel.function("sys_fcntl") {
       	arg = $arg
 	argstr = sprintf("%d, %s, %p", $fd, cmd_str, $arg)
 }
-probe syscall.fcntl.return = kernel.function("sys_fcntl").return {
+probe syscall.fcntl.return = 
+		kernel.function("sys_fcntl").return ?,
+		kernel.function("sys_fcntl64").return ?
+{
 	name = "fcntl"
 	retstr = returnstr(1)
 }
@@ -783,6 +791,8 @@ probe syscall.fsetxattr.return = kernel.function("sys_fsetxattr").return {
 # long sys_fstat64(unsigned long fd, struct stat64 __user * statbuf)
 # long sys32_fstat64(unsigned int fd, struct stat64 __user *statbuf)
 # long sys_newfstat(unsigned int fd, struct stat __user * statbuf)
+# long sys_oabi_fstat64(char __user * filename,
+#			struct oldabi_stat64 __user * statbuf)
 # long compat_sys_newfstat(unsigned int fd, struct compat_stat __user * statbuf)
 #
 probe syscall.fstat = 
@@ -790,7 +800,8 @@ probe syscall.fstat =
 		kernel.function("sys_fstat64") ?,
 		kernel.function("sys32_fstat64") ?,
 		kernel.function("sys_newfstat") ?,
-		kernel.function("compat_sys_newfstat") ? 
+		kernel.function("sys_oabi_fstat64") ?,
+		kernel.function("compat_sys_newfstat") ?
 {
 	name = "fstat"
 	filedes = $fd
@@ -802,6 +813,7 @@ probe syscall.fstat.return =
 		kernel.function("sys_fstat64").return ?,
 		kernel.function("sys32_fstat64").return ?,
 		kernel.function("sys_newfstat").return ?,
+		kernel.function("sys_oabi_fstat64").return ?,
 		kernel.function("compat_sys_newfstat").return ?
 {
 	name = "fstat"
@@ -1806,13 +1818,16 @@ probe syscall.lsetxattr.return = kernel.function("sys_lsetxattr").return {
 # long compat_sys_newlstat(char __user * filename, struct compat_stat __user *statbuf)
 # long sys32_lstat64(char * filename, struct stat64 __user *statbuf)
 # long sys_lstat64(char __user * filename, struct stat64 __user * statbuf)
+# long sys_oabi_lstat64(char __user * filename,
+#			struct oldabi_stat64 __user * statbuf)
 #
 probe syscall.lstat = 
 		kernel.function("sys_lstat") ?,
 		kernel.function("sys_newlstat") ?,
 		kernel.function("compat_sys_newlstat") ?,
 		kernel.function("sys32_lstat64") ?,
-		kernel.function("sys_lstat64") ?
+		kernel.function("sys_lstat64") ?,
+		kernel.function("sys_oabi_lstat64") ?
 {
 	name = "lstat"
 	path = user_string($filename)
@@ -1824,7 +1839,8 @@ probe syscall.lstat.return =
 		kernel.function("sys_newlstat").return ?,
 		kernel.function("compat_sys_newlstat").return ?,
 		kernel.function("sys32_lstat64").return ?,
-		kernel.function("sys_lstat64").return ?
+		kernel.function("sys_lstat64").return ?,
+		kernel.function("sys_oabi_lstat64").return ?
 { 
 	name = "lstat"
 	retstr = returnstr(1)
