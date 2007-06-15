@@ -252,7 +252,6 @@ probe socket.aio_write.return = kernel.function ("sock_aio_write").return
 	name = "socket.aio_write.return"
 	size = $return
 	_sock = _get_sock_addr ($iocb->ki_filp)
-	size = _get_sock_size ($iov, $nr_segs)
 	protocol = _sock_prot_num (_sock)
 	family = _sock_fam_num (_sock)
 	state = _sock_state_num (_sock)

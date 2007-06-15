@@ -1,3 +1,8 @@
+2007-06-14  Mike Mason <mmlnx@us.ibm.com>
+
+        * socket.stp: removed extra assignment to "size" in 
+	socket.aio_write.return
+
 2007-06-07  Martin Hunt  <hunt@redhat.com>
 	Fallout from PR 3331 fix. Sometimes glibc and the
 	kernel disagree about signed vs unsigned.
