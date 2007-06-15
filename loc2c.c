@@ -1240,8 +1240,9 @@ base_byte_size (Dwarf_Die *typedie, struct location *origin)
 static Dwarf_Word
 base_encoding (Dwarf_Die *typedie, struct location *origin)
 {
-  assert (dwarf_tag (typedie) == DW_TAG_base_type ||
-	  dwarf_tag (typedie) == DW_TAG_enumeration_type);
+  if (! (dwarf_tag (typedie) == DW_TAG_base_type ||
+         dwarf_tag (typedie) == DW_TAG_enumeration_type))
+    return -1;
 
   Dwarf_Attribute attr_mem;
   Dwarf_Word encoding;
@@ -1249,10 +1250,13 @@ base_encoding (Dwarf_Die *typedie, struct location *origin)
       && dwarf_formudata (&attr_mem, &encoding) == 0)
     return encoding;
 
+  (void) origin;
+  /*
   FAIL (origin,
 	 N_("cannot get encoding attribute for type %s: %s"),
 	 dwarf_diename (typedie) ?: "<anonymous>",
 	 dwarf_errmsg (-1));
+  */
   return -1;
 }
 
@@ -1546,13 +1550,7 @@ c_translate_pointer (struct obstack *pool, int indent,
 	  dwarf_diename (typedie) ?: "<anonymous>",
 	  dwarf_errmsg (-1));
 
-  Dwarf_Attribute encoding_attr;
-  Dwarf_Word encoding;
-  if (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr) == NULL
-      || dwarf_formudata (&encoding_attr, &encoding) != 0)
-    encoding = base_encoding (typedie, *input);
-  bool signed_p = (encoding == DW_ATE_signed 
-                   || encoding == DW_ATE_signed_char);
+  bool signed_p = false; /* XXX: Does not matter? */
 
   translate_base_fetch (pool, indent + 1, byte_size, signed_p, input, "addr");
   (*input)->type = loc_address;

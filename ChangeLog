@@ -1,3 +1,10 @@
+2007-06-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 3331 cont'd.
+	* loc2c.c (base_encoding): Tolerate absenece of DW_AT_encoding.
+	(c_translate_pointer): Don't even try to find signedness, assume
+	unsigned.
+
 2007-06-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (emit_module_init): Emit translator/elfutils
