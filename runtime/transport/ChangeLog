@@ -1,3 +1,7 @@
+2007-06-18  Martin Hunt  <hunt@redhat.com>
+
+	* control.c (_stp_register_ctl_channel): Fix mode of cmd file.
+
 2007-05-16  Will Cohen  <wcohen@redhat.com>
 
 	* control.c: Explicit type cast for picky compilers.
