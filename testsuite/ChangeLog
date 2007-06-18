@@ -1,3 +1,20 @@
+2007-06-18  Martin Hunt  <hunt@redhat.com>
+	 From Quentin Barnes.
+	* lib/stap_run.exp, lib/stap_run2.exp, lib/systemtap.exp,
+	systemtap.base/cache.exp, systemtap.base/optim.exp,
+	systemtap.base/overload.exp, systemtap.base/prologues.exp,
+	systemtap.maps/absentstats.exp, systemtap.maps/foreach_fail.exp,
+	systemtap.maps/ix_clear*.exp, systemtap.maps/pmap_agg_overflow.exp,
+	systemtap.samples/args.exp, systemtap.samples/arith.exp,
+	systemtap.samples/arith_limits.exp, 
+	systemtap.samples/control_limits.exp, systemtap.samples/lket.exp,
+	systemtap.samples/pfaults.exp, systemtap.samples/poll_map.exp,
+	systemtap.samples/primes.exp, systemtap.samples/profile.exp,
+	systemtap.samples/queue_demo.exp, systemtap.samples/symbols.exp,
+	systemtap.samples/syscalls1.exp, systemtap.samples/syscalls2.exp,
+	systemtap.samples/transport.exp: Small fixes to patterns, plus
+	fix timeouts for slower systems.
+
 2007-06-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* lib/systemtap.exp (stap_run_batch): Detect crashing stap and
