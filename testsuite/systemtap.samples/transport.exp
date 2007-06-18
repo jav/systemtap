@@ -4,7 +4,7 @@ if {![installtest_p]} { untested $test; return }
 spawn stap -o probe.out -DMAXACTION=1000000 $srcdir/$subdir/transport1.stp
 set ok 0
 expect {
-    -timeout 60
+    -timeout 150
     timeout { fail "$test (timeout)" }
     eof { spawn $srcdir/$subdir/transport-counts probe.out
 	expect {
@@ -22,7 +22,7 @@ set test "transport normal - relayfs"
 spawn stap -b -o probe.out -DMAXACTION=1000000 $srcdir/$subdir/transport1.stp
 set ok 0
 expect {
-    -timeout 60
+    -timeout 150
     timeout { fail "$test (timeout)" }
     eof { spawn $srcdir/$subdir/transport-counts probe.out
 	expect {
@@ -40,7 +40,7 @@ set test "transport fill staging buffer - procfs"
 spawn stap -o probe.out -DMAXACTION=1000000 $srcdir/$subdir/transport2.stp
 set ok 0
 expect {
-    -timeout 60
+    -timeout 150
     timeout { fail "$test (timeout)" }
     eof { spawn $srcdir/$subdir/transport-counts probe.out
 	expect {
@@ -58,7 +58,7 @@ set test "transport fill staging buffer - relayfs"
 spawn stap -b -o probe.out -DMAXACTION=1000000 $srcdir/$subdir/transport2.stp
 set ok 0
 expect {
-    -timeout 60
+    -timeout 150
     timeout { fail "$test (timeout)" }
     eof { spawn $srcdir/$subdir/transport-counts probe.out
 	expect {

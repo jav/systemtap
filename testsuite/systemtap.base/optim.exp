@@ -3,7 +3,7 @@ if {![installtest_p]} { untested $test; return }
 spawn stap $srcdir/$subdir/optim.stp
 set ok 0
 expect {
-	-timeout 30
+	-timeout 120
 	-re {i=1} { incr ok }
 	timeout { fail "$test (timeout)" }
 	eof { }

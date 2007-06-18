@@ -4,7 +4,7 @@ if {![installtest_p]} { untested $test; return }
 spawn stap $srcdir/$subdir/primes.stp
 set ok 0
 expect {
-    -timeout 30
+    -timeout 150
     -ex {odds[0] = 1} { incr ok; exp_continue }
     -ex {odds[1] = 3} { incr ok; exp_continue }
     -ex {odds[3] = 7} { incr ok; exp_continue }

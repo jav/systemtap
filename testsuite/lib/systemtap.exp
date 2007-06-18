@@ -82,9 +82,9 @@ proc stap_run_batch {args} {
     }
 
     expect { 
+	-timeout -1
         -re {[^\r]*\r} { verbose -log $expect_out(0,string); exp_continue } 
         eof { }
-        timeout { exp_continue } 
     }
     set results [wait]
     verbose -log "wait results: $results"

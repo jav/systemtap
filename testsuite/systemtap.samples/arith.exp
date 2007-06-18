@@ -4,7 +4,7 @@ if {![installtest_p]} { untested $test; return }
 spawn stap -DMAXNESTING=5 $srcdir/$subdir/arith.stp
 set ok 0
 expect {
-    -timeout 30
+    -timeout 150
     -re {passes: [0-9]* failures: 0} { incr ok }
     timeout { fail "$test (timeout)" }
     eof { }

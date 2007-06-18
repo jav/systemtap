@@ -10,10 +10,11 @@ set pass_result {foo\[1\] = 1 1*ERROR: empty aggregate*}
 # spawn test
 spawn stap $srcdir/$subdir/$test.stp
 expect {
+  -timeout 150
   $pass_result {
     pass "$test passed"
   }
-  -timeout 30 { 
+  timeout {
     send "\003"
     fail "$test timed out"
   }

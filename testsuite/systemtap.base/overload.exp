@@ -25,8 +25,9 @@ proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
     set cmd [concat {stap -v} $args]
     eval spawn $cmd
     expect {
-	-re {^Pass\ [1234]: .+real\ ms.\r\n} {exp_continue}
-	-re {^Pass\ ([34]): using cached .+\r\n} {exp_continue}
+	-timeout 150
+	-re {^Pass\ [1234]: [^\r]+real\ ms\.\r\n} {exp_continue}
+	-re {^Pass\ ([34]): using cached [^\r]+\r\n} {exp_continue}
 	-re {^Pass 5: starting run.\r\n} {exp_continue}
 	-re {ERROR: probe overhead exceeded threshold\r\n} {
 	    if {$EXPECT_OVERLOAD} {
@@ -35,10 +36,11 @@ proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
 		fail "$TEST_NAME unexpected overload"
 	    }
 	}
-	-timeout 30 -re "^systemtap starting probe\r\n" {
+	-re "^systemtap starting probe\r\n" {
 	    send "\003"
 
 	    expect {
+		-timeout 10
 		-re {^systemtap ending probe\r\n} {
 		    if {$EXPECT_OVERLOAD} {
 			fail "$TEST_NAME didn't receive expected overload"

@@ -3,7 +3,8 @@ if {![installtest_p]} { untested $test; return }
 spawn stap $srcdir/$subdir/syscalls.stp
 set ok 0
 expect {
-    -timeout 60 -re {[0-9]* kernel.function[^\r]*\r} { incr ok; exp_continue }
+    -timeout 240
+    -re {[0-9]* kernel.function[^\r]*\r} { incr ok; exp_continue }
     timeout { fail "$test (timeout)" }
     eof { }
 }

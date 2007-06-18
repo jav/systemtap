@@ -7,6 +7,7 @@ if {![installtest_p]} { untested $test; return }
 
 spawn stap  $srcdir/$subdir/$test.stp
 expect {
+  -timeout 60
   timeout { 
     fail "$test timed out" }
   eof { 

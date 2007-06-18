@@ -10,7 +10,7 @@ set ko 0
 spawn stap -DMAXERRORS=20 $srcdir/$subdir/$test.stp
 # spawn echo hello children 0
 expect {
-  -timeout 60
+  -timeout 150
   -re {^ERROR: empty aggregate[^\r]*\r} { incr ko ; exp_continue }
   -re {^WARNING: Number of errors} { incr ko ; exp_continue }
   -re {^0\r} { incr ok ; exp_continue }

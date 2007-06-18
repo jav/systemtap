@@ -15,7 +15,7 @@ set modname "args_[pid]"
 spawn stap -k -p4 -m $modname $srcdir/$subdir/args.stp
 set tmpdir NO_SUCH_FILE
 expect {
-    -timeout 30
+    -timeout 120
     -re {Keeping temporary directory "([/a-zA-Z0-9_]*)"} { pass "$test compile";
 					set tmpdir $expect_out(1,string) }
     timeout { fail "$test compile (timeout)" }
@@ -40,7 +40,7 @@ if [file exists $modpath] {
 spawn sudo $staprunpath -d [pid] $modpath foo=hello bar=999
 set ok 0
 expect {
-    -timeout 30
+    -timeout 120
     -re {foo=hello bar=999} { incr ok }
     timeout { }
     eof { }
@@ -55,7 +55,7 @@ if {$ok == 1} {
 spawn sudo $staprunpath -d [pid] $modpath foo=goodbye bar=0
 set ok 0
 expect {
-    -timeout 30
+    -timeout 120
     -re {foo=goodbye bar=0} { incr ok }
     timeout { }
     eof { }
