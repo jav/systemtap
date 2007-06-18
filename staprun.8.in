@@ -25,7 +25,7 @@ module produced by the front-end
 tool.
 The
 .I staprun
-must be run as root.
+program must be run as root.
 .PP
 Splitting the systemtap tool into a front-end and a back-end allows a
 user to compile a systemtap script on a development machine that has
@@ -50,7 +50,7 @@ does.  The '_stp_target' variable will contain the pid for CMD.
 The '_stp_target' variable will be set to PID.
 .TP
 .B \-o FILE
-Send output to FILE. Is the module uses bulk mode, the output will
+Send output to FILE. If the module uses bulk mode, the output will
 be in percpu files FILE_x where 'x' is the cpu number.
 .TP
 .B \-u USERNAME
