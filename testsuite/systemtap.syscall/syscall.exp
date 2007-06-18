@@ -12,13 +12,19 @@ proc test_procedure {} {
     # Add any other 64-bit arcvhitecture you want tested below.
     # To find tcl's platform name for your machine, run the following:
     # echo "puts $::tcl_platform(machine)" | tclsh
-    set do_64_bit_pass 0
-    if {$::tcl_platform(machine) == "x86_64" || $::tcl_platform(machine) == "ppc64" || $::tcl_platform(machine) == "s390x" } {
-	set do_64_bit_pass 1
-	set flags "additional_flags=-m64"
-    }
-    if { $::tcl_platform(machine) == "ia64" } {
-	set do_64_bit_pass 1
+
+    switch -regexp $::tcl_platform(machine) {
+	^ia64$ {
+	    set do_64_bit_pass 1
+	    set flags "" 
+	}
+	^(x86_64|ppc64|s390x)$ { 
+	    set do_64_bit_pass 1
+	    set flags "additional_flags=-m64"
+	}
+	default {
+	    set do_64_bit_pass 0
+	}
     }
 
     if {$do_64_bit_pass} {
@@ -39,16 +45,18 @@ proc test_procedure {} {
 	    catch {exec rm -f $wd/$file}
 	}
     }
-    
-    set do_32_bit_pass 1
-    set flags "additional_flags=-m32"
-    # add any 64-bit only machines to this statement
-    if { $::tcl_platform(machine) == "ia64" } {
-	set do_32_bit_pass 0
-    }
 
-    if { $::tcl_platform(machine) == "s390x" } {
-	set flags "additional_flags=-m31"
+    set do_32_bit_pass 1    
+    switch -regexp $::tcl_platform(machine) {
+	^(x86_64|ppc64)$ {
+	    set flags "additional_flags=-m32"
+	}
+	^s390x$ {
+	    set flags "additional_flags=-m31"
+	}
+	^ia64$ {
+	    set do_32_bit_pass 0
+	}
     }
 
     if {$do_32_bit_pass} {
