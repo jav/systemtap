@@ -1,3 +1,9 @@
+2007-06-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Added AM_PROG_CC_C_O for compatibility with
+	automake 1.10.
+	* configure, aclocal.m4: Regenerated.
+
 2007-06-20  David Smith  <dsmith@redhat.com>
 
 	* buildrun.cxx (compile_pass): Unset environment variables that
