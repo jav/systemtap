@@ -1,0 +1,20 @@
+# Test of sprint() to 
+#
+# Use of this function is probably never a good idea
+# and is discouraged. Nevertheless, we still support it.
+
+probe begin {
+	a = "hello"
+	b = "world"
+	c = sprint(12345678)
+	print(sprint(a) . "\n")
+	print(sprint(a.b) . "\n")
+	print(c . "\n")
+	print(sprint(0) . "\n")
+	print(sprint(100) . "\n")
+	print(sprint(-42) . "\n")
+	print(sprint(0x42) . "\n")
+
+	exit()
+}
+

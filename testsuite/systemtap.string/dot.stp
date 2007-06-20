@@ -1,0 +1,23 @@
+# Test of "." concatenation operator
+#
+# Use of this function is probably never a good idea
+# and is discouraged. Nevertheless, we still support it.
+
+probe begin {
+	a = "hello"
+	b = "world"
+	c = ""
+
+	x = a.b
+	y = a.b.c
+
+	print(x . "\n")
+	print(y . "\n")
+	if (x == y) print("EQUAL\n")
+	if (x == a.b) print("EQUAL\n")
+
+	z = a."-".b." ". x . " FOO " . y . "\n"
+	print(z)
+
+	exit()
+}

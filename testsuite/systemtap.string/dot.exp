@@ -1,0 +1,10 @@
+set test "sprint"
+set ::result_string {hello
+helloworld
+12345678
+0
+100
+-42
+66
+}
+stap_run2 $srcdir/$subdir/$test.stp
