@@ -1,3 +1,8 @@
+2007-06-20  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.printf/*b.exp: Add code to look in the
+	toplevel directory for stap_merge.
+
 2007-06-18  Martin Hunt  <hunt@redhat.com>
 	 From Quentin Barnes.
 	* lib/stap_run.exp, lib/stap_run2.exp, lib/systemtap.exp,

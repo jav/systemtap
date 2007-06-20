@@ -3,8 +3,15 @@ set TEST_NAME "$subdir/out1b"
 
 if {![installtest_p]} { untested $TEST_NAME; return }
 
-if {[catch {exec which stap_merge} stap_merge_path]} {
-    untested "$TEST_NAME : could not find stap_merge"
+# Look for stap_merge in the toplevel build directory
+# and if that fails, use "which" to try to find a copy
+# in the path.
+set stap_merge_path "$srcdir/../stap_merge"
+if (![file executable $stap_merge_path]) {
+    catch {exec which stap_merge} stap_merge_path
+}
+if (![file executable $stap_merge_path]) {
+    FAIL "$TEST_NAME : could not find stap_merge"
     return
 }
 
