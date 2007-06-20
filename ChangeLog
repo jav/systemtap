@@ -1,3 +1,10 @@
+2007-06-20  David Smith  <dsmith@redhat.com>
+
+	* buildrun.cxx (compile_pass): Unset environment variables that
+	could interfere with building the kernel module.  Fixes PR 4664.
+	* main.cxx (main): Unsets a few standard environment variables for
+	safety.
+
 2007-06-18  David Smith  <dsmith@redhat.com>
 
 	* staprun.8.in: Fixed a couple of typos.

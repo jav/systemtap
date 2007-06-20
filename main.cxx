@@ -461,6 +461,16 @@ main (int argc, char * const argv [])
            << e << endl;
     }
 
+  // Get rid of a few standard environment variables (which might
+  // cause us to do unintended things).
+  rc = unsetenv("IFS") || unsetenv("CDPATH") || unsetenv("ENV")
+      || unsetenv("BASH_ENV");
+  if (rc)
+    {
+      const char* e = strerror (errno);
+      cerr << "unsetenv failed: " << e << endl;
+    }
+
   s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
 
   // arguments parsed; get down to business

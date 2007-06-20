@@ -93,6 +93,18 @@ compile_pass (systemtap_session& s)
 	return rc;
     }  
 
+  // Before running make, fix up the environment a bit.  PATH should
+  // already be overridden.  Clean out a few variables that
+  // /lib/modules/${KVER}/build/Makefile uses.
+  rc = unsetenv("ARCH") || unsetenv("KBUILD_EXTMOD")
+      || unsetenv("CROSS_COMPILE") || unsetenv("KBUILD_IMAGE")
+      || unsetenv("KCONFIG_CONFIG") || unsetenv("INSTALL_PATH");
+  if (rc)
+    {
+      const char* e = strerror (errno);
+      cerr << "unsetenv failed: " << e << endl;
+    }
+
   // Run make
   string make_cmd = string("make")
     + string (" -C \"") + module_dir + string("\"");
