@@ -1,3 +1,9 @@
+2007-06-20  Martin Hunt  <hunt@redhat.com>
+
+	* stap_merge.c (main): Add verbose option. Will realloc
+	buffer if current size is too small. Check return codes
+	from writes so gcc won't complain.
+
 2007-06-07  Martin Hunt  <hunt@redhat.com>
 
 	* relay_old.c (open_relayfs_files): Add support for

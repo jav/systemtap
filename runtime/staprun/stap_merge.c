@@ -27,8 +27,8 @@
 
 static void usage (char *prog)
 {
-	fprintf(stderr, "%s [-o output_filename] input_files ...\n", prog);
-	exit(1);
+	fprintf(stderr, "%s [-v] [-o output_filename] input_files ...\n", prog);
+	exit(-1);
 }
 
 #define TIMESTAMP_SIZE (sizeof(int))
@@ -36,15 +36,24 @@ static void usage (char *prog)
 
 int main (int argc, char *argv[])
 {
-	char *outfile_name = NULL;
-	char buf[8192];
-	int c, i, j, dropped=0;
+	char *buf, *outfile_name = NULL;
+	int c, i, j, rc, dropped=0;
 	long count=0, min, num[NR_CPUS];
 	FILE *ofp, *fp[NR_CPUS];
-	int ncpus, len;
+	int ncpus, len, verbose = 0;
+	int bufsize = 65536;
 
-	while ((c = getopt (argc, argv, "o:")) != EOF)  {
+	buf = malloc(bufsize);
+	if (buf == NULL) {
+		fprintf(stderr, "Memory allocation failed.\n");
+		exit(-2);
+	}
+
+	while ((c = getopt (argc, argv, "vo:")) != EOF)  {
 		switch (c) {
+		case 'v':
+			verbose = 1;
+			break;
 		case 'o':
 			outfile_name = optarg;
 			break;
@@ -92,9 +101,27 @@ int main (int argc, char *argv[])
 			}
 		}
 
+
 		if (fread(&len, sizeof(int), 1, fp[j])) {
-		  fread(buf, len, 1, fp[j]);
-		  fwrite(buf, len, 1, ofp);
+			if (verbose)
+				fprintf(stderr, "[CPU %d, seq=%ld, length=%d]\n", j, min, len);
+			if (len > bufsize) {
+				bufsize = len * 2;
+				if (verbose) fprintf(stderr, "reallocating %d bytes\n", bufsize);
+				buf = realloc(buf, bufsize);
+				if (buf == NULL) {
+					fprintf(stderr, "Memory allocation failed.\n");
+					exit(-2);
+				}
+			}
+			if ((rc = fread(buf, len, 1, fp[j]) <= 0)) {
+				fprintf(stderr, "fread error: got %d\n", rc);
+				exit(-3);
+			}
+			if ((rc = fwrite(buf, len, 1, ofp)) <= 0) {
+				fprintf(stderr, "fread error: got %d\n", rc);
+				exit(-3);
+			}
 		}
 
 		if (min && ++count != min) {
