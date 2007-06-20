@@ -1,3 +1,9 @@
+2007-06-20  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (noinst_PROGRAMS): Add stap_merge.
+	* Makefile.in: Rebuilt:
+	* config.in: Rebuilt
+
 2007-06-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Added AM_PROG_CC_C_O for compatibility with

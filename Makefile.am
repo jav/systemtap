@@ -61,11 +61,14 @@ staprun_LDADD = @PROCFLAGS@ -lpthread
 pkglibexec_SCRIPTS = stp_check
 CLEANFILES += $(pkglibexec_SCRIPTS)
 
-noinst_PROGRAMS = loc2c-test
+noinst_PROGRAMS = loc2c-test stap_merge
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)
 loc2c_test_LDADD = $(stap_LDADD)
+
+stap_merge_SOURCES = runtime/staprun/stap_merge.c
+stap_merge_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 
 # Get extra libs as needed
 LDADD =

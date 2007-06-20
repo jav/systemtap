@@ -44,7 +44,7 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT)
 
 @BUILD_ELFUTILS_TRUE@am__append_3 = stamp-elfutils
 @BUILD_ELFUTILS_FALSE@stap_DEPENDENCIES =
-noinst_PROGRAMS = loc2c-test$(EXEEXT)
+noinst_PROGRAMS = loc2c-test$(EXEEXT) stap_merge$(EXEEXT)
 @BUILD_LKET_B2A_TRUE@am__append_4 = runtime/lket/b2a
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
@@ -100,6 +100,10 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
 	stap-util.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
+am_stap_merge_OBJECTS = stap_merge-stap_merge.$(OBJEXT)
+stap_merge_OBJECTS = $(am_stap_merge_OBJECTS)
+stap_merge_LDADD = $(LDADD)
+stap_merge_DEPENDENCIES =
 am_staprun_OBJECTS = staprun-staprun.$(OBJEXT) \
 	staprun-mainloop.$(OBJEXT) staprun-symbols.$(OBJEXT) \
 	staprun-ctl.$(OBJEXT) staprun-relay.$(OBJEXT) \
@@ -120,9 +124,10 @@ CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 CXXLD = $(CXX)
 CXXLINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) \
 	-o $@
-SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(staprun_SOURCES)
-DIST_SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
+SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) $(stap_merge_SOURCES) \
 	$(staprun_SOURCES)
+DIST_SOURCES = $(loc2c_test_SOURCES) $(stap_SOURCES) \
+	$(stap_merge_SOURCES) $(staprun_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-exec-recursive install-info-recursive \
@@ -279,6 +284,8 @@ loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)
 loc2c_test_LDADD = $(stap_LDADD)
+stap_merge_SOURCES = runtime/staprun/stap_merge.c
+stap_merge_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 
 # Get extra libs as needed
 LDADD = 
@@ -428,6 +435,9 @@ loc2c-test$(EXEEXT): $(loc2c_test_OBJECTS) $(loc2c_test_DEPENDENCIES)
 stap$(EXEEXT): $(stap_OBJECTS) $(stap_DEPENDENCIES) 
 	@rm -f stap$(EXEEXT)
 	$(CXXLINK) $(stap_LDFLAGS) $(stap_OBJECTS) $(stap_LDADD) $(LIBS)
+stap_merge$(EXEEXT): $(stap_merge_OBJECTS) $(stap_merge_DEPENDENCIES) 
+	@rm -f stap_merge$(EXEEXT)
+	$(LINK) $(stap_merge_LDFLAGS) $(stap_merge_OBJECTS) $(stap_merge_LDADD) $(LIBS)
 staprun$(EXEEXT): $(staprun_OBJECTS) $(staprun_DEPENDENCIES) 
 	@rm -f staprun$(EXEEXT)
 	$(LINK) $(staprun_LDFLAGS) $(staprun_OBJECTS) $(staprun_LDADD) $(LIBS)
@@ -471,6 +481,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-tapsets.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-translate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap_merge-stap_merge.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-ctl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-mainloop.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-relay.Po@am__quote@
@@ -547,6 +558,20 @@ stap-mdfour.obj: mdfour.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='mdfour.c' object='stap-mdfour.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o stap-mdfour.obj `if test -f 'mdfour.c'; then $(CYGPATH_W) 'mdfour.c'; else $(CYGPATH_W) '$(srcdir)/mdfour.c'; fi`
+
+stap_merge-stap_merge.o: runtime/staprun/stap_merge.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.o -MD -MP -MF "$(DEPDIR)/stap_merge-stap_merge.Tpo" -c -o stap_merge-stap_merge.o `test -f 'runtime/staprun/stap_merge.c' || echo '$(srcdir)/'`runtime/staprun/stap_merge.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/stap_merge-stap_merge.Tpo" "$(DEPDIR)/stap_merge-stap_merge.Po"; else rm -f "$(DEPDIR)/stap_merge-stap_merge.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/stap_merge.c' object='stap_merge-stap_merge.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.o `test -f 'runtime/staprun/stap_merge.c' || echo '$(srcdir)/'`runtime/staprun/stap_merge.c
+
+stap_merge-stap_merge.obj: runtime/staprun/stap_merge.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -MT stap_merge-stap_merge.obj -MD -MP -MF "$(DEPDIR)/stap_merge-stap_merge.Tpo" -c -o stap_merge-stap_merge.obj `if test -f 'runtime/staprun/stap_merge.c'; then $(CYGPATH_W) 'runtime/staprun/stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/stap_merge.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/stap_merge-stap_merge.Tpo" "$(DEPDIR)/stap_merge-stap_merge.Po"; else rm -f "$(DEPDIR)/stap_merge-stap_merge.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/stap_merge.c' object='stap_merge-stap_merge.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(stap_merge_CFLAGS) $(CFLAGS) -c -o stap_merge-stap_merge.obj `if test -f 'runtime/staprun/stap_merge.c'; then $(CYGPATH_W) 'runtime/staprun/stap_merge.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/stap_merge.c'; fi`
 
 staprun-staprun.o: runtime/staprun/staprun.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(staprun_CFLAGS) $(CFLAGS) -MT staprun-staprun.o -MD -MP -MF "$(DEPDIR)/staprun-staprun.Tpo" -c -o staprun-staprun.o `test -f 'runtime/staprun/staprun.c' || echo '$(srcdir)/'`runtime/staprun/staprun.c; \
