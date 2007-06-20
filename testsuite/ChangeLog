@@ -1,5 +1,12 @@
 2007-06-20  Martin Hunt  <hunt@redhat.com>
 
+	* systemtap.string/dot.exp: New test.
+	* systemtap.string/sprint.exp: New test.
+
+	* systemtap.samples/transport*: Removed.
+	
+2007-06-20  Martin Hunt  <hunt@redhat.com>
+	
 	* systemtap.printf/*b.exp: Add code to look in the
 	toplevel directory for stap_merge.
 
