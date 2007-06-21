@@ -136,6 +136,8 @@ int init_relayfs(void)
 		return -1;
 	}
 
+	if (send_request(STP_BULK, buf, sizeof(buf)) < 0)
+		bulkmode = 1;
 
 	for (i = 0; i < NR_CPUS; i++) {
 		sprintf(buf, "%s/trace%d", relay_filebase, i);
@@ -145,14 +147,17 @@ int init_relayfs(void)
 			break;
 	}
 	ncpus = i;
-	dbug(2, "ncpus=%d\n", ncpus);
+	dbug(2, "ncpus=%d, bulkmode = %d\n", ncpus, bulkmode);
 
 	if (ncpus == 0) {
 		err("couldn't open %s.\n", buf);
 		return -1;
 	}
-	if (ncpus > 1)
-		bulkmode = 1;
+	if (ncpus > 1 && bulkmode == 0) {
+		err("ncpus=%d, bulkmode = %d\n", ncpus, bulkmode);
+		err("This is inconsistent! Please file a bug report. Exiting now.\n");
+		return -1;
+	}
 
 	if (bulkmode) {
 		for (i = 0; i < ncpus; i++) {

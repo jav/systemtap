@@ -1,3 +1,7 @@
+2007-06-21  Martin Hunt  <hunt@redhat.com>
+
+	* relay.c (init_relayfs): Send message to check for bulkmode.
+
 2007-06-20  Martin Hunt  <hunt@redhat.com>
 
 	* stap_merge.c (main): Add verbose option. Will realloc
