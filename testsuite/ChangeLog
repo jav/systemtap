@@ -1,3 +1,9 @@
+2007-06-21  David Smith  <dsmith@redhat.com>
+
+	* Makefile.in: Regenerated with automake 1.10.
+	* aclocal.m4: Regenerated with aclocal 1.10.
+	* configure: Regenerated.
+
 2007-06-20  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.string/dot.exp: New test.
