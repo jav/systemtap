@@ -59,6 +59,12 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	case STP_EXIT:
 		_stp_exit_flag = 1;
 		break;
+	case STP_BULK:
+#ifdef STP_BULKMODE
+		return count;
+#else
+		return -1;
+#endif
 	default:
 		errk ("invalid command type %d\n", type);
 		return -EINVAL;

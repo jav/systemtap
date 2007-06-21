@@ -26,6 +26,7 @@ enum
 	STP_TRANSPORT,
 	STP_CONNECT,
  	STP_DISCONNECT,
+	STP_BULK,
 #ifdef STP_OLD_TRANSPORT
 	/** deprecated **/
 	STP_BUF_INFO,

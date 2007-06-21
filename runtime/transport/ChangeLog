@@ -1,3 +1,8 @@
+2007-06-21  Martin Hunt  <hunt@redhat.com>
+
+	* control.c (_stp_ctl_write_cmd): Add support for STP_BULK.
+	* transport_msgs.h (enum): Add STP_BULK.
+
 2007-06-18  Martin Hunt  <hunt@redhat.com>
 
 	* control.c (_stp_register_ctl_channel): Fix mode of cmd file.
