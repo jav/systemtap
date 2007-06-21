@@ -1,3 +1,7 @@
+2007-06-21  David Smith  <dsmith@redhat.com>
+
+	* lket/b2a/Makefile.in: Regenerated with automake 1.10.
+
 2007-06-15  Martin Hunt  <hunt@redhat.com>
 	From Quentin Barnes.
 	* loc2c-runtime.h: Latest arm marcos.
