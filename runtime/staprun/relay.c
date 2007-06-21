@@ -136,7 +136,7 @@ int init_relayfs(void)
 		return -1;
 	}
 
-	if (send_request(STP_BULK, buf, sizeof(buf)) < 0)
+	if (send_request(STP_BULK, buf, sizeof(buf)) > 0)
 		bulkmode = 1;
 
 	for (i = 0; i < NR_CPUS; i++) {
