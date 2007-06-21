@@ -29,7 +29,7 @@ int main()
   // bind (NNNN, {AF_INET, 0.0.0.0, 8765}, 16) = 0
 
   listen (listenfd, 7);
-  // listen (4, 7) = 0
+  // listen (NNNN, 7) = 0
 
   cfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
   // accept (NNNN, 0x[0]+, 0x[0]+) = -NNNN (EAGAIN)

@@ -1,3 +1,8 @@
+2007-06-21  Martin Hunt  <hunt@redhat.com>
+
+	* chmod.c, dir.c, mmap.c, net1.c, readwrite.c, stat.c,
+	sync.c, trunc.c: Eliminated hardcoded fd numbers.
+
 2007-06-18  Martin Hunt  <hunt@redhat.com>
 
 	* syscall.exp (test_procedure): Use switch statements to clean

@@ -13,21 +13,21 @@ int main()
 
 	/* create a file with something in it */
 	fd = open("foobar",O_WRONLY|O_CREAT|O_TRUNC, 0600);
-	// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = 4
+	// open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
 	lseek(fd, 1024, SEEK_SET);
 	write(fd, "abcdef", 6);
 	close(fd);
-	// close (4) = 0
+	// close (NNNN) = 0
 
 	fd = open("foobar", O_RDONLY);
-	// open ("foobar", O_RDONLY) = 4
+	// open ("foobar", O_RDONLY) = NNNN
 
 	/* stat for file size */
 	ret = fstat(fd, &fs);
-	// fstat (4, XXXX) = 0
+	// fstat (NNNN, XXXX) = 0
 
 	r = mmap(NULL, fs.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	// mmap[2]* (XXXX, 1030, PROT_READ, MAP_SHARED, 4, XXXX) = XXXX
+	// mmap[2]* (XXXX, 1030, PROT_READ, MAP_SHARED, NNNN, XXXX) = XXXX
 
 	close(fd);
 

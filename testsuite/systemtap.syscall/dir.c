@@ -20,31 +20,31 @@ int main()
   // chdir ("..") = 0
 
   fd = open("foobar", O_RDONLY);
-  // open ("foobar", O_RDONLY) = 4
+  // open ("foobar", O_RDONLY) = NNNN
 
   fchdir(fd);
-  // fchdir (4) = 0
+  // fchdir (NNNN) = 0
 
   chdir("..");
   // chdir ("..") = 0
 
   close(fd);
-  // close (4) = 0
+  // close (NNNN) = 0
 
   rmdir("foobar");
   // rmdir ("foobar") = 0
 
   fd = open(".", O_RDONLY);
-  // open (".", O_RDONLY) = 4
+  // open (".", O_RDONLY) = NNNN
 
 #ifdef SYS_mkdirat
   mkdirat(fd, "xyzzy", 0765);
-  // mkdirat (4, "xyzzy", 0765) = 0
+  // mkdirat (NNNN, "xyzzy", 0765) = 0
 
 #endif
 
   close(fd);
-  // close (4) = 0
+  // close (NNNN) = 0
 
   rmdir("xyzzy");
   // rmdir ("xyzzy") =

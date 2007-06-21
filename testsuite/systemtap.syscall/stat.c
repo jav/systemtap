@@ -20,10 +20,10 @@ int main()
   // getcwd (XXXX, 128) = NNNN
 
   fd = creat("foobar",S_IREAD|S_IWRITE);
-  // open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = 4
+  // open ("foobar", O_WRONLY|O_CREAT|O_TRUNC, 0600) = NNNN
 
   fstat(fd, &sbuf);
-  // fstat (4, XXXX) = 0
+  // fstat (NNNN, XXXX) = 0
 
   close(fd);
 

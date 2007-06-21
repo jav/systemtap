@@ -16,10 +16,10 @@ int main()
   // sync () = 0
 
   fsync(fd);
-  // fsync (4) = 0
+  // fsync (NNNN) = 0
 
   fdatasync(fd);
-  // fdatasync (4) = 0
+  // fdatasync (NNNN) = 0
 
   close(fd);
 
