@@ -69,7 +69,7 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 		len = MAXSTRINGLEN-1;
 	if (quoted) {
 		len -= 2;
-		*out++ = '\"';
+		*out++ = '"';
 	}
 
 	if (user) {
@@ -82,8 +82,9 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 
 	while (c && len > 0) {
 		int num = 1;
-		if (isprint(c) && isascii(c))
-			*out++ = c;
+		if (isprint(c) && isascii(c)
+                    && c != '"' && c != '\\') /* quoteworthy characters */
+                  *out++ = c;
 		else {
 			switch (c) {
 			case '\a':
@@ -93,6 +94,8 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 			case '\r':
 			case '\t':
 			case '\v':
+			case '"':
+			case '\\':
 				num = 2;
 				break;
 			default:
@@ -131,6 +134,12 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 			case '\v':
 				*out++ = 'v';
 				break;
+			case '"':
+				*out++ = '"';
+				break;
+			case '\\':
+				*out++ = '\\';
+				break;
 			default:                  /* output octal representation */
 				if (c > 077)
 					*out++ = to_oct_digit(c >> 6);
@@ -152,12 +161,12 @@ void _stp_text_str(char *outstr, char *in, int len, int quoted, int user)
 	if (quoted) {
 		if (c) {
 			out = out - 3 + len;
-			*out++ = '\"';
+			*out++ = '"';
 			*out++ = '.';
 			*out++ = '.';
 			*out++ = '.';
 		} else
-			*out++ = '\"';
+			*out++ = '"';
 	}
 	*out = '\0';
 	return;
