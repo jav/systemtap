@@ -30,8 +30,8 @@ int main()
   write(fd,"Hello world", 11);
   // write (NNNN, "Hello world", 11) = 11
 
-  write(fd,"Hello world abcdefghijklmnopqrstuvwxyz 01234567890", 50);
-  // write (NNNN, "Hello world abc"..., 50) = 50
+  write(fd,"Hello world abcdefghijklmnopqrstuvwxyz 01234567890123456789", 59);
+  // write (NNNN, "Hello world abcdefghijklmnopqrstuvwxyz 012345"..., 59) = 59
 
   writev(fd, v, 3);
   // writev (NNNN, XXXX, 3) = 15
@@ -43,7 +43,7 @@ int main()
   // lseek (NNNN, 1, SEEK_CUR) = 1
 
   lseek(fd, -1, SEEK_END);
-  // lseek (NNNN, -1, SEEK_END) = 75
+  // lseek (NNNN, -1, SEEK_END) = 84
 
 #ifdef SYS__llseek
   syscall(SYS__llseek, fd, 1, 0, &res, SEEK_SET);
