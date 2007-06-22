@@ -83,7 +83,7 @@ probe syscall.add_key = kernel.function("sys_add_key") ? {
 	argstr = sprintf("%s, %s, %s, %d, %d", 
 			user_string_quoted($_type),
 			user_string_quoted($_description),
-			text_strn(user_string($_payload),20,1),
+			text_strn(user_string($_payload),syscall_string_trunc,1),
 			$plen, $ringid)
 }
 probe syscall.add_key.return = kernel.function("sys_add_key").return ? {
@@ -2071,7 +2071,7 @@ probe syscall.mount =
 	filesystemtype = user_string($type)
 	mountflags = $flags
 	mountflags_str = _mountflags_str($flags)
-	data = text_strn(user_string($data),30,1)
+	data = text_strn(user_string($data),syscall_string_trunc,1)
 	argstr = sprintf("%s, %s, %s, %s, %s", 
 		user_string_quoted($dev_name), 
 		user_string_quoted($dir_name), 

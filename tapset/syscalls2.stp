@@ -2488,7 +2488,7 @@ probe syscall.write = kernel.function("sys_write") {
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
-	argstr = sprintf("%d, %s, %d", $fd, text_strn(user_string($buf),20,1), $count)
+	argstr = sprintf("%d, %s, %d", $fd, text_strn(user_string($buf),syscall_string_trunc,1), $count)
 }
 probe syscall.write.return = kernel.function("sys_write").return {
 	name = "write"
