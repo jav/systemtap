@@ -3,26 +3,34 @@
 set test "pmap_agg_overflow"
 if {![installtest_p]} { untested $test; return }
 
-set pass_result "^(ERROR: \[^\r\]*overflow\[^\r\]*\r\n){2}WARNING: Number of errors: 2, skipped probes: 0\r\n$"
+set pass1 "^ERROR: \[^\r\]*overflow\[^\r\]*\r\n"
+set pass2 "WARNING: Number of errors: 2, skipped probes: 0\r\n"
 set skip_result "^WARNING: This test only applies to smp systems\.\.\.\r\n"
 
-# spawn test
+set pass 0
+
 spawn stap -DMAXERRORS=1 -g $srcdir/$subdir/$test.stp
 expect {
   -timeout 240
-  -re $pass_result {
-    pass "$test passed"
-  }
-  -re $skip_result {
-    unsupported "$test requires smp"
-  }
-  timeout {
-    send "\003"
-    fail "$test timed out"
-  }
-  eof { 
-    fail "$test unexpected EOF" }
-  -re "semantic error:" { fail "$test compilation" }
+    -re  $pass1 {incr pass; exp_continue}
+    -re  $pass2 {incr pass; exp_continue}
+    -re $skip_result {
+	unsupported "$test requires smp"
+    }
+    timeout {
+	send "\003"
+	fail "$test timed out"
+    }
+    eof {}
+    -re "semantic error:" { fail "$test compilation" }
 }
 catch { close }
 wait
+
+if {$pass == 3} {
+    pass $test
+} else {
+    fail "$test ($pass)"
+}
+
+
