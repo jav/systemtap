@@ -1,5 +1,9 @@
 2007-06-26  William Cohen  <wcohen@redhat.com>
 
+	* staptree.cxx (probe_point::print): Remove stray "\n".
+	
+2007-06-26  William Cohen  <wcohen@redhat.com>
+
 	PR 4529
 	* coveragedb.cxx: New.
 	* coveragedb.h: New.
