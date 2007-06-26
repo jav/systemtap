@@ -1,3 +1,23 @@
+2007-06-26  William Cohen  <wcohen@redhat.com>
+
+	PR 4529
+	* coveragedb.cxx: New.
+	* coveragedb.h: New.
+	* Makefile.am: Add coveragedb.cxx and sqlite3 to build.
+	* Makefile.in: Regenerated.
+	* configure.ac: Add test for sqlite3
+	* configure: Regenerated.
+	* systemtap.spec.in: Add dependencies for sqlite3/sqlite3-devel.
+	* elaborate.h, elaborate.cxx
+	  (derived_probe::collect_derivation_chain): New.
+	  (alias_expansion_builder::build): Correct token location.
+	  (semantic_pass_opt[12): Track used and unused variables/functions.
+	* session.h (tapset_compile_coverage, unused_globals,
+	  unused_probes, unused_functions): New fields.
+	* staptree.h (unused_locals, probe_point::str): New member.
+	* staptree.cxx: Ditto.
+	* main.cxx: Add "-q" tapset coverage option and SYSTEMTAP_COVERAGE env.
+	
 2007-06-21  David Smith  <dsmith@redhat.com>
 
 	* Makefile.in: Regenerated with automake 1.10.
