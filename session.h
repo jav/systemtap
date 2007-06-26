@@ -97,6 +97,7 @@ struct systemtap_session
   unsigned perfmon;
   bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
   bool prologue_searching;
+  bool tapset_compile_coverage;
 
   // Cache data
   bool use_cache;
@@ -122,6 +123,10 @@ struct systemtap_session
   std::vector<derived_probe*> probes; // see also *_probes groups below
   std::vector<embeddedcode*> embeds;
   std::map<std::string, statistic_decl> stat_decls;
+  // track things that are removed
+  std::vector<vardecl*> unused_globals;
+  std::vector<derived_probe*> unused_probes; // see also *_probes groups below
+  std::vector<functiondecl*> unused_functions;
   // XXX: vector<*> instead please?
 
   // Every probe in these groups must also appear in the

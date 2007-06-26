@@ -15,6 +15,7 @@
 #include <typeinfo>
 #include <sstream>
 #include <cassert>
+#include <vector>
 #include <algorithm>
 
 using namespace std;
@@ -848,6 +849,13 @@ void probe::printsig (ostream& o) const
 }
 
 
+void
+probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
+{
+  probes_list.push_back((derived_probe*)this);
+}
+
+
 void probe_point::print (ostream& o) const
 {
   for (unsigned i=0; i<components.size(); i++)
@@ -860,6 +868,23 @@ void probe_point::print (ostream& o) const
     }
   if (optional)
     o << "?";
+  o << "{" << tok->location << "}\n";
+}
+
+string probe_point::str ()
+{
+  ostringstream o;
+  for (unsigned i=0; i<components.size(); i++)
+    {
+      if (i>0) o << ".";
+      probe_point::component* c = components[i];
+      o << c->functor;
+      if (c->arg)
+        o << "(" << *c->arg << ")";
+    }
+  if (optional)
+    o << "?";
+  return o.str();
 }
 
 

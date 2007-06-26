@@ -96,6 +96,14 @@ derived_probe::printsig_nested (ostream& o) const
 }
 
 
+void
+derived_probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
+{
+  probes_list.push_back(this);
+  base->collect_derivation_chain(probes_list);
+}
+
+
 probe_point*
 derived_probe::sole_location () const
 {
@@ -424,9 +432,9 @@ alias_expansion_builder
     // The new probe gets the location list of the alias,
     n->locations = alias->locations;
   
-    // the token location of the use,
-    n->tok = use->tok;
-    n->body->tok = use->tok;
+    // the token location of the alias,
+    n->tok = location->tok;
+    n->body->tok = location->tok;
 
     // and statements representing the concatenation of the alias'
     // body with the use's. 
@@ -1367,6 +1375,9 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
           if (s.verbose>2)
             clog << "Eliding unused function " << s.functions[i]->name
                  << endl;
+	  if (s.tapset_compile_coverage) {
+	    s.unused_functions.push_back (s.functions[i]);
+	  }
           s.functions.erase (s.functions.begin() + i);
           relaxed_p = false;
           // NB: don't increment i
@@ -1407,6 +1418,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
             if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in " << s.probes[i]->name << endl;
+	    if (s.tapset_compile_coverage) {
+	      s.probes[i]->unused_locals.push_back
+		      (s.probes[i]->locals[j]);
+	    }
             s.probes[i]->locals.erase(s.probes[i]->locals.begin() + j);
             relaxed_p = false;
             // don't increment j
@@ -1425,6 +1440,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
               clog << "Eliding unused local variable "
                    << l->name << " in function " << s.functions[i]->name
                    << endl;
+	    if (s.tapset_compile_coverage) {
+              s.functions[i]->unused_locals.push_back
+		    (s.functions[i]->locals[j]);
+	    }
             s.functions[i]->locals.erase(s.functions[i]->locals.begin() + j);
             relaxed_p = false;
             // don't increment j
@@ -1441,6 +1460,9 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
+	  if (s.tapset_compile_coverage) {
+            s.unused_globals.push_back(s.globals[i]);
+	  }
           s.globals.erase(s.globals.begin() + i);
           relaxed_p = false;
           // don't increment i

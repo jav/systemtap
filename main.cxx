@@ -18,6 +18,7 @@
 #include "hash.h"
 #include "cache.h"
 #include "util.h"
+#include "coveragedb.h"
 
 #include <iostream>
 #include <fstream>
@@ -99,6 +100,8 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -t         collect probe timing information" << endl
+    << "   -q         generate information on tapset coverage"
+    << endl
     ;
   // -d: dump safety-related external references
 
@@ -216,6 +219,7 @@ main (int argc, char * const argv [])
   s.perfmon=0;
   s.symtab = false;
   s.use_cache = true;
+  s.tapset_compile_coverage = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)  
@@ -262,10 +266,14 @@ main (int argc, char * const argv [])
 	}
     }
 
+  const char* s_tc = getenv ("SYSTEMTAP_COVERAGE");
+  if (s_tc != NULL)
+    s.tapset_compile_coverage = true;
+
   while (true)
     {
       // NB: also see find_hash(), help(), switch stmt below, stap.1 man page
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:u");
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uq");
       if (grc < 0)
         break;
       switch (grc)
@@ -400,6 +408,10 @@ main (int argc, char * const argv [])
 
 	case 'D':
 	  s.macros.push_back (string (optarg));
+	  break;
+
+	case 'q':
+	  s.tapset_compile_coverage = true;
 	  break;
 
         case 'h':
@@ -787,6 +799,12 @@ pass_5:
   // if (rc) goto cleanup;
 
  cleanup:
+
+  // update the database information
+  if (!rc && s.tapset_compile_coverage) {
+    update_coverage_db(s);
+  }
+
   // Clean up temporary directory.  Obviously, be careful with this.
   if (s.tmpdir == "")
     ; // do nothing

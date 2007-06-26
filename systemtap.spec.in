@@ -39,6 +39,7 @@ Requires: kernel >= 2.6.9-11
 BuildRequires: glib2-devel >= 2.0.0
 # make check
 BuildRequires: dejagnu
+BuildRequires: sqlite-devel
 Requires: glib2 >= 2.0.0
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
@@ -46,6 +47,7 @@ Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
 Requires: sudo
+Requires: sqlite
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz

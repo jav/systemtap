@@ -15,8 +15,8 @@ bin_PROGRAMS = stap staprun
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-	cache.cxx util.cxx
-stap_LDADD = @stap_LIBS@
+	cache.cxx util.cxx coveragedb.cxx
+stap_LDADD = @stap_LIBS@ -lsqlite3
 
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)

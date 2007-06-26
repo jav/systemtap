@@ -96,7 +96,7 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
 	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT) \
 	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
-	stap-util.$(OBJEXT)
+	stap-util.$(OBJEXT) stap-coveragedb.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -268,9 +268,9 @@ dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-	cache.cxx util.cxx
+	cache.cxx util.cxx coveragedb.cxx
 
-stap_LDADD = @stap_LIBS@
+stap_LDADD = @stap_LIBS@ -lsqlite3
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
 stap_LDFLAGS = $(AM_LDFLAGS) $(am__append_2)
@@ -478,6 +478,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loc2c_test-loc2c.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cache.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-coveragedb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-elaborate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-loc2c.Po@am__quote@
@@ -817,6 +818,20 @@ stap-util.obj: util.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='util.cxx' object='stap-util.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-util.obj `if test -f 'util.cxx'; then $(CYGPATH_W) 'util.cxx'; else $(CYGPATH_W) '$(srcdir)/util.cxx'; fi`
+
+stap-coveragedb.o: coveragedb.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-coveragedb.o -MD -MP -MF $(DEPDIR)/stap-coveragedb.Tpo -c -o stap-coveragedb.o `test -f 'coveragedb.cxx' || echo '$(srcdir)/'`coveragedb.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-coveragedb.Tpo $(DEPDIR)/stap-coveragedb.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='coveragedb.cxx' object='stap-coveragedb.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-coveragedb.o `test -f 'coveragedb.cxx' || echo '$(srcdir)/'`coveragedb.cxx
+
+stap-coveragedb.obj: coveragedb.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-coveragedb.obj -MD -MP -MF $(DEPDIR)/stap-coveragedb.Tpo -c -o stap-coveragedb.obj `if test -f 'coveragedb.cxx'; then $(CYGPATH_W) 'coveragedb.cxx'; else $(CYGPATH_W) '$(srcdir)/coveragedb.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-coveragedb.Tpo $(DEPDIR)/stap-coveragedb.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='coveragedb.cxx' object='stap-coveragedb.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-coveragedb.obj `if test -f 'coveragedb.cxx'; then $(CYGPATH_W) 'coveragedb.cxx'; else $(CYGPATH_W) '$(srcdir)/coveragedb.cxx'; fi`
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man1dir)" || $(MKDIR_P) "$(DESTDIR)$(man1dir)"

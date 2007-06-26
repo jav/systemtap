@@ -411,6 +411,7 @@ struct functiondecl: public symboldecl
 {
   std::vector<vardecl*> formal_args;
   std::vector<vardecl*> locals;
+  std::vector<vardecl*> unused_locals;
   statement* body;
   functiondecl ();
   void print (std::ostream& o) const;
@@ -537,6 +538,7 @@ struct next_statement: public statement
 
 
 struct probe;
+struct derived_probe;
 struct probe_alias;
 struct embeddedcode;
 struct stapfile
@@ -570,6 +572,7 @@ struct probe_point
   void print (std::ostream& o) const;
   probe_point ();
   probe_point(std::vector<component*> const & comps,const token * t);
+  std::string str();
 };
 
 std::ostream& operator << (std::ostream& o, const probe_point& k);
@@ -581,9 +584,11 @@ struct probe
   block* body;
   const token* tok;
   std::vector<vardecl*> locals;
+  std::vector<vardecl*> unused_locals;
   probe ();
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
+  virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
   virtual probe* basest () { return this; }
   virtual ~probe() {}
   bool privileged;
