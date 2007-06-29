@@ -137,11 +137,16 @@ else
   # We built our own and stap_LDFLAGS points at the install.
   stap_LIBS="-ldw -lebl"
 fi
+
+save_LIBS="$LIBS"
+LIBS="$stap_LIBS"
+AC_CHECK_LIB(sqlite3, sqlite3_open,,[
+    AC_MSG_ERROR([missing sqlite development headers/libraries])])
+stap_LIBS="$LIBS"
+LIBS="$SAVE_LIBS"
+
 AC_SUBST(stap_LIBS)
 AC_MSG_NOTICE([stap will link $stap_LIBS])
-
-AC_CHECK_HEADER(sqlite3.h, AC_CHECK_LIB(sqlite3, sqlite3_open,
-    AC_MSG_ERROR([missing sqlite development headers/libraries])])
 
 dnl Plop in the build (configure) date
 date=`date +%Y-%m-%d`

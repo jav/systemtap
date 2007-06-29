@@ -1,3 +1,14 @@
+2007-06-29  William Cohen  <wcohen@redhat.com>
+
+	PR 4529
+	* configure.ac:
+	* Makefile.am: Limit where sqlite3 linked in.
+	* configure:
+	* Makefile.in: Regenerate.
+
+	* coveragedb.cxx (update_coverage_db): Remove unneeded print.
+	* coveragedb.cxx (increment_element): Correct formatting.
+	
 2007-06-26  William Cohen  <wcohen@redhat.com>
 
 	* staptree.cxx (probe_point::print): Remove stray "\n".

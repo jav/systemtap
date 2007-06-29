@@ -120,26 +120,26 @@ void enter_element(sqlite3 *db, coverage_element &x)
 void increment_element(sqlite3 *db, coverage_element &x)
 {
   // make sure value in table
-	enter_element(db, x);
-	// increment appropriate value
-	if (x.compiled) {
+  enter_element(db, x);
+  // increment appropriate value
+  if (x.compiled) {
     ostringstream command;
     command << "update counts set compiled = compiled + "
             << x.compiled << " where ("
             << "file == '" << x.file << "' and "
             << "line == '" << x.line << "' and "
             << "col == '" << x.col << "')";
-		sql_stmt(db, command.str().c_str());
-	}
-	if (x.removed) {
-		ostringstream command;
-		command << "update counts set removed = removed + "
+    sql_stmt(db, command.str().c_str());
+  }
+  if (x.removed) {
+    ostringstream command;
+    command << "update counts set removed = removed + "
             << x.removed << " where ("
             << "file == '" << x.file << "' and "
             << "line == '" << x.line << "' and "
             << "col == '" << x.col << "')";
-		sql_stmt(db, command.str().c_str());
-	}
+    sql_stmt(db, command.str().c_str());
+  }
 }
 
 
@@ -304,9 +304,6 @@ void update_coverage_db(systemtap_session &s)
 
   // update the number counts on things
   sql_stmt(db, create_table.c_str());
-
-  if (s.verbose >2)
-    print_coverage_info(s);
 
   sql_update_used_probes(db, s);
   sql_update_unused_probes(db, s);

@@ -6654,9 +6654,8 @@ else
   stap_LIBS="-ldw -lebl"
 fi
 
-{ echo "$as_me:$LINENO: stap will link $stap_LIBS" >&5
-echo "$as_me: stap will link $stap_LIBS" >&6;}
-
+save_LIBS="$LIBS"
+LIBS="$stap_LIBS"
 
 { echo "$as_me:$LINENO: checking for sqlite3_open in -lsqlite3" >&5
 echo $ECHO_N "checking for sqlite3_open in -lsqlite3... $ECHO_C" >&6; }
@@ -6728,11 +6727,17 @@ _ACEOF
 
 else
 
-  { { echo "$as_me:$LINENO: error: missing sqlite development headers/libraries" >&5
+    { { echo "$as_me:$LINENO: error: missing sqlite development headers/libraries" >&5
 echo "$as_me: error: missing sqlite development headers/libraries" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
+stap_LIBS="$LIBS"
+LIBS="$SAVE_LIBS"
+
+
+{ echo "$as_me:$LINENO: stap will link $stap_LIBS" >&5
+echo "$as_me: stap will link $stap_LIBS" >&6;}
 
 date=`date +%Y-%m-%d`
 

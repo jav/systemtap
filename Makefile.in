@@ -270,7 +270,7 @@ stap_SOURCES = main.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 	cache.cxx util.cxx coveragedb.cxx
 
-stap_LDADD = @stap_LIBS@ -lsqlite3
+stap_LDADD = @stap_LIBS@
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
 stap_LDFLAGS = $(AM_LDFLAGS) $(am__append_2)
