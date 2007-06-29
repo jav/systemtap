@@ -75,6 +75,12 @@ if test "$enable_prologues" = yes; then
 fi])
 
 
+SAVE_LIBS="$LIBS"
+AC_CHECK_LIB(sqlite3, sqlite3_open,,[
+    AC_MSG_ERROR([missing sqlite development headers/libraries])])
+sqlite3_LIBS="$LIBS"
+AC_SUBST(sqlite3_LIBS)
+LIBS="$SAVE_LIBS"
 
 build_elfutils=no
 AC_ARG_WITH([elfutils],
@@ -137,13 +143,6 @@ else
   # We built our own and stap_LDFLAGS points at the install.
   stap_LIBS="-ldw -lebl"
 fi
-
-save_LIBS="$LIBS"
-LIBS="$stap_LIBS"
-AC_CHECK_LIB(sqlite3, sqlite3_open,,[
-    AC_MSG_ERROR([missing sqlite development headers/libraries])])
-stap_LIBS="$LIBS"
-LIBS="$SAVE_LIBS"
 
 AC_SUBST(stap_LIBS)
 AC_MSG_NOTICE([stap will link $stap_LIBS])

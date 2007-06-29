@@ -1,4 +1,11 @@
 2007-06-29  William Cohen  <wcohen@redhat.com>
+	PR 4529
+	* configure.ac:
+	* Makefile.am: Limit where sqlite3 linked in.
+	* configure:
+	* Makefile.in: Regenerate.
+
+2007-06-29  William Cohen  <wcohen@redhat.com>
 
 	PR 4529
 	* configure.ac:

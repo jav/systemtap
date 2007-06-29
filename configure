@@ -705,6 +705,7 @@ EGREP
 U
 ANSI2KNR
 RANLIB
+sqlite3_LIBS
 BUILD_ELFUTILS_TRUE
 BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
@@ -5928,6 +5929,86 @@ fi
 
 
 
+SAVE_LIBS="$LIBS"
+
+{ echo "$as_me:$LINENO: checking for sqlite3_open in -lsqlite3" >&5
+echo $ECHO_N "checking for sqlite3_open in -lsqlite3... $ECHO_C" >&6; }
+if test "${ac_cv_lib_sqlite3_sqlite3_open+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lsqlite3  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char sqlite3_open ();
+int
+main ()
+{
+return sqlite3_open ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_cxx_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_sqlite3_sqlite3_open=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_sqlite3_sqlite3_open=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
+echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
+if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSQLITE3 1
+_ACEOF
+
+  LIBS="-lsqlite3 $LIBS"
+
+else
+
+    { { echo "$as_me:$LINENO: error: missing sqlite development headers/libraries" >&5
+echo "$as_me: error: missing sqlite development headers/libraries" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+sqlite3_LIBS="$LIBS"
+
+LIBS="$SAVE_LIBS"
 
 build_elfutils=no
 
@@ -6653,87 +6734,6 @@ else
   # We built our own and stap_LDFLAGS points at the install.
   stap_LIBS="-ldw -lebl"
 fi
-
-save_LIBS="$LIBS"
-LIBS="$stap_LIBS"
-
-{ echo "$as_me:$LINENO: checking for sqlite3_open in -lsqlite3" >&5
-echo $ECHO_N "checking for sqlite3_open in -lsqlite3... $ECHO_C" >&6; }
-if test "${ac_cv_lib_sqlite3_sqlite3_open+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lsqlite3  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char sqlite3_open ();
-int
-main ()
-{
-return sqlite3_open ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_cxx_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_sqlite3_sqlite3_open=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_sqlite3_sqlite3_open=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
-echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
-if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSQLITE3 1
-_ACEOF
-
-  LIBS="-lsqlite3 $LIBS"
-
-else
-
-    { { echo "$as_me:$LINENO: error: missing sqlite development headers/libraries" >&5
-echo "$as_me: error: missing sqlite development headers/libraries" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-stap_LIBS="$LIBS"
-LIBS="$SAVE_LIBS"
 
 
 { echo "$as_me:$LINENO: stap will link $stap_LIBS" >&5
@@ -7567,12 +7567,12 @@ EGREP!$EGREP$ac_delim
 U!$U$ac_delim
 ANSI2KNR!$ANSI2KNR$ac_delim
 RANLIB!$RANLIB$ac_delim
+sqlite3_LIBS!$sqlite3_LIBS$ac_delim
 BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
 BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
 elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
 BUILD_LKET_B2A_TRUE!$BUILD_LKET_B2A_TRUE$ac_delim
 BUILD_LKET_B2A_FALSE!$BUILD_LKET_B2A_FALSE$ac_delim
-MYSQL_CONFIG!$MYSQL_CONFIG$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7614,6 +7614,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+MYSQL_CONFIG!$MYSQL_CONFIG$ac_delim
 CXXCPP!$CXXCPP$ac_delim
 HAS_MYSQL_TRUE!$HAS_MYSQL_TRUE$ac_delim
 HAS_MYSQL_FALSE!$HAS_MYSQL_FALSE$ac_delim
@@ -7627,7 +7628,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 11; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 12; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
