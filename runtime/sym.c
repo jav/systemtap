@@ -32,7 +32,7 @@ unsigned long _stp_module_relocate (const char *module, const char *section, uns
 		return 0;
 	}
 
-	dbug("_stp_relocate_module: %s, %s, %lx\n", module, section, offset);
+	dbug("%s, %s, %lx\n", module, section, offset);
 
 	STP_LOCK_MODULES;
 	if (! module
@@ -47,6 +47,7 @@ unsigned long _stp_module_relocate (const char *module, const char *section, uns
 		if (!strcmp (module, last->name) && !strcmp (section, last_sec->symbol)) {
 			offset += last_sec->addr;
 			STP_UNLOCK_MODULES;
+			dbug("offset = %lx\n", offset);
 			return offset;
 		}
 	}
@@ -71,6 +72,7 @@ unsigned long _stp_module_relocate (const char *module, const char *section, uns
 				if (!strcmp (section, last_sec->symbol)) {
 					offset += last_sec->addr;
 					STP_UNLOCK_MODULES;
+					dbug("offset = %lx\n", offset);
 					return offset;
 				}
 			}
@@ -127,6 +129,14 @@ static const char * _stp_kallsyms_lookup (
 	begin = 0;
 	end = m->num_symbols;
 
+	/* m->data is the lowest address of a data section. It should be  */
+	/* after the text section. */
+	/* If our address is in the data section, then return now. */
+	if (m->data > m->text && addr >= m->data) {
+		STP_UNLOCK_MODULES;
+		return NULL;
+	}
+	
 	/* binary search for symbols within the module */
 	do {
 		unsigned mid = (begin + end) / 2;
@@ -187,6 +197,29 @@ void _stp_symbol_print (unsigned long address)
 			_stp_printf (" : %s+%#lx/%#lx [%s]", name, offset, size, modname);
 		else
 			_stp_printf (" : %s+%#lx/%#lx", name, offset, size);
+	}
+}
+
+/* Like _stp_symbol_print, except only print if the address is a valid function address */
+
+void _stp_func_print (unsigned long address, int verbose)
+{ 
+	char *modname;
+        const char *name;
+        unsigned long offset, size;
+
+        name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
+
+	if (name) {
+		if (verbose) {
+			if (modname)
+				_stp_printf (" %p : %s+%#lx/%#lx [%s]\n", 
+					     (int64_t)address, name, offset, size, modname);
+			else
+				_stp_printf (" %p : %s+%#lx/%#lx\n", 
+					     (int64_t)address, name, offset, size);
+		} else 
+			_stp_printf ("%p ", (int64_t)address);
 	}
 }
 

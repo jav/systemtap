@@ -1,3 +1,11 @@
+2007-07-02  Martin Hunt  <hunt@redhat.com>
+
+	* sym.c (_stp_kallsyms_lookup): Improve heuristic
+	for determining when a pointer is in a function.
+	(_stp_func_print): New function.	
+	* stack-i386.c, stack-x86_64.c: Remove obsolete
+	unwind code. Use _stp_func_print().
+	
 2007-06-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	* string.c (_stp_text_str): Fix handling of embedded
