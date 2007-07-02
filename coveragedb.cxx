@@ -16,6 +16,7 @@
 
 #include <iostream>
 #include <sqlite3.h>
+#include <cstdlib>
 
 using namespace std;
 
