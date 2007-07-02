@@ -1,4 +1,4 @@
-set testlist {backtrace args}
+set testlist {backtrace args pid}
 
 if {![installtest_p]} { 
     foreach test $testlist {

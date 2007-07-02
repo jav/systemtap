@@ -1,0 +1,15 @@
+probe module("systemtap_test_module2").function("yyy_int") {
+	printf("execname: %s\n", execname())
+	printf("pexecname: %s\n", pexecname())
+	printf("pid: %d\n", pid())
+	printf("ppid: %d\n", ppid())
+	printf("tid: %d\n", tid())
+	printf("uid: %d\n", uid())
+	printf("euid: %d\n", euid())
+	printf("gid: %d\n", gid())
+	printf("egid: %d\n", egid())
+	exit()
+}
+probe begin {
+	printf("READY\n")
+}
