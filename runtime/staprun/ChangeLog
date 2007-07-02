@@ -1,3 +1,8 @@
+2007-07-02  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (get_sections): Set data pointer to the lowest address
+	of any data section.
+
 2007-06-21  Martin Hunt  <hunt@redhat.com>
 
 	* relay.c (init_relayfs): Send message to check for bulkmode.

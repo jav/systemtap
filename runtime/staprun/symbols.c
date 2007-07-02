@@ -92,8 +92,10 @@ static int get_sections(char *name, char *data_start, int datalen)
 				strdata += strlen(secname) + 1;
 
 				/* These sections are used a lot so keep the values handy */
-				if (!strcmp(secname, ".data"))
-					mod->data = sec->addr;
+				if (!strcmp(secname, ".data") || !strncmp(secname, ".rodata", 7)) {
+					if (mod->data == 0 || sec->addr < mod->data)
+						mod->data = sec->addr;
+				}
 				if (!strcmp(secname, ".text"))
 					mod->text = sec->addr;
 				if (!strcmp(secname, ".gnu.linkonce.this_module"))
