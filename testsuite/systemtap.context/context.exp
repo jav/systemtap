@@ -1,0 +1,59 @@
+set testlist {backtrace args}
+
+if {![installtest_p]} { 
+    foreach test $testlist {
+	untested $test
+    }
+    return
+}
+
+proc cleanup {} {
+    catch {send "\003"}
+    foreach n {1 2} {
+	catch {exec sudo /bin/rm -f /lib/modules/$::uname/systemtap_test_module$n.ko}
+	catch {exec sudo /sbin/rmmod systemtap_test_module$n}
+    }
+}
+
+proc build_modules {} {
+    foreach n {1 2} {
+	exec cp makefile$n Makefile
+	if {[catch {exec make clean} res]} {
+	    puts $res
+	    return 0
+	}
+	catch {exec make} res
+	if {![file exists systemtap_test_module$n.ko]} {
+	    puts $res
+	    return 0
+	}
+	if {[catch {exec sudo cp systemtap_test_module$n.ko /lib/modules/$::uname} res]} {
+	    puts $res
+	    return 0
+	}
+    }
+    foreach n {2 1} {
+	catch {exec sudo /sbin/insmod systemtap_test_module$n.ko}
+    }
+    return 1
+}
+
+# first build the modules
+cd $srcdir/$subdir
+set uname [exec /bin/uname -r]
+
+if {[build_modules] == 0} {
+    puts "BUILD FAILED"
+    foreach test $testlist {
+	fail "$test - could not build modules"
+    }
+    return
+}
+
+foreach test $testlist {
+    source $test.tcl
+}
+
+
+
+

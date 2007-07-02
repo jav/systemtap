@@ -1,0 +1,39 @@
+probe module("systemtap_test_module2").function("yyy_int") {
+	printf("yyy_int %d %d %d\n", $a, $b, $c)
+}
+probe module("systemtap_test_module2").function("yyy_int").return {
+	printf("yyy_int returns %d\n", $return)
+}
+probe module("systemtap_test_module2").function("yyy_uint") {
+	printf("yyy_uint %d %d %d\n", $a, $b, $c)
+}
+probe module("systemtap_test_module2").function("yyy_uint").return {
+	printf("yyy_uint returns %d\n", $return)
+}
+probe module("systemtap_test_module2").function("yyy_long") {
+	printf("yyy_long %d %d %d\n", $a, $b, $c)
+}
+probe module("systemtap_test_module2").function("yyy_long").return {
+	printf("yyy_long returns %d\n", $return)
+}
+probe module("systemtap_test_module2").function("yyy_int64") {
+	printf("yyy_int64 %d %d %d\n", $a, $b, $c)
+}
+probe module("systemtap_test_module2").function("yyy_int64").return {
+	printf("yyy_int64 returns %d\n", $return)
+}
+probe module("systemtap_test_module2").function("yyy_char") {
+	printf("yyy_char %d %d %d\n", $a, $b, $c)
+}
+probe module("systemtap_test_module2").function("yyy_char").return {
+	printf("yyy_char returns %d\n", $return)
+}
+probe module("systemtap_test_module2").function("yyy_str") {
+	printf("yyy_str %s-%s-%s\n", kernel_string($a), kernel_string($b), kernel_string($c))
+}
+probe module("systemtap_test_module2").function("yyy_str").return {
+	printf("yyy_str returns %s\n", kernel_string($return))
+}
+probe begin {
+	printf("READY\n")
+}
