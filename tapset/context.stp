@@ -16,6 +16,8 @@ function print_regs () %{
 function print_backtrace () %{
 	if (CONTEXT->regs) {
 		_stp_stack_print(CONTEXT->regs, 1, CONTEXT->pi);
+	} else {
+		_stp_printf("Systemtap probe: %s\n", CONTEXT->probe_point);
 	}
 %}
 
