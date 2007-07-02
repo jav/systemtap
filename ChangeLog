@@ -1,3 +1,7 @@
+2007-07-02  William Cohen  <wcohen@redhat.com>
+	PR 4720
+	* staptree.cxx (probe_point::print): Remove stray output.
+	
 2007-06-29  William Cohen  <wcohen@redhat.com>
 	PR 4529
 	* configure.ac:

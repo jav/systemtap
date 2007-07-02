@@ -868,7 +868,6 @@ void probe_point::print (ostream& o) const
     }
   if (optional)
     o << "?";
-  o << "{" << tok->location << "}";
 }
 
 string probe_point::str ()
