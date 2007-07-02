@@ -1,5 +1,10 @@
 2007-07-02  Martin Hunt  <hunt@redhat.com>
 
+	* systemtap.context/context.exp: Add pid tests.
+	* systemtap.context/pid.*: New tests. 
+
+2007-07-02  Martin Hunt  <hunt@redhat.com>	
+
 	* systemtap.context/*: New context tests.
 
 2007-06-25  Martin Hunt  <hunt@redhat.com>
