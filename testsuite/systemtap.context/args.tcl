@@ -2,7 +2,6 @@ spawn stap args.stp
 expect {
     -timeout 240
     "READY" {
-	puts "READY"
 	exec echo 1 > /proc/stap_test_cmd
 	expect {
 	    -timeout 5
