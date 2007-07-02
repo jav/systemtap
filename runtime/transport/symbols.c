@@ -7,12 +7,14 @@
  * redistribute it and/or modify it under the terms of the GNU General
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
+ *
+ * The u32_swap(), generic_swap(), and sort() functions were adapted from
+ * lib/sort.c of kernel 2.6.22-rc5. It was written by Matt Mackall.
  */
 
 #ifndef _SYMBOLS_C_
 #define _SYMBOLS_C_
 #include "../sym.h"
-#include <linux/sort.h>
 
 spinlock_t _stp_module_lock = SPIN_LOCK_UNLOCKED;
 #define STP_TRYLOCK_MODULES  ({						\
@@ -208,6 +210,7 @@ static int _stp_do_symbols(const char __user *buf, int count)
 		_stp_symbol_state = 3;
                 /* NB: this mapping is used by kernel/_stext pseudo-relocations. */
 		_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
+		_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
 		_stp_modules_by_addr[0] = _stp_modules[0];
 		break;
 	default:
@@ -237,6 +240,75 @@ static void _stp_swap_symbol(void *x, void *y, int size)
 	b->symbol = symbol;
 }
 
+static void u32_swap(void *a, void *b, int size)
+{
+	u32 t = *(u32 *)a;
+	*(u32 *)a = *(u32 *)b;
+	*(u32 *)b = t;
+}
+
+static void generic_swap(void *a, void *b, int size)
+{
+	char t;
+
+	do {
+		t = *(char *)a;
+		*(char *)a++ = *(char *)b;
+		*(char *)b++ = t;
+	} while (--size > 0);
+}
+
+/**
+ * sort - sort an array of elements
+ * @base: pointer to data to sort
+ * @num: number of elements
+ * @size: size of each element
+ * @cmp: pointer to comparison function
+ * @swap: pointer to swap function or NULL
+ *
+ * This function does a heapsort on the given array. You may provide a
+ * swap function optimized to your element type.
+ *
+ * Sorting time is O(n log n) both on average and worst-case. While
+ * qsort is about 20% faster on average, it suffers from exploitable
+ * O(n*n) worst-case behavior and extra memory requirements that make
+ * it less suitable for kernel use.
+*/
+void _stp_sort(void *base, size_t num, size_t size,
+	int (*cmp)(const void *, const void *),
+	void (*swap)(void *, void *, int size))
+{
+	/* pre-scale counters for performance */
+	int i = (num/2 - 1) * size, n = num * size, c, r;
+
+	if (!swap)
+		swap = (size == 4 ? u32_swap : generic_swap);
+
+	/* heapify */
+	for ( ; i >= 0; i -= size) {
+		for (r = i; r * 2 + size < n; r  = c) {
+			c = r * 2 + size;
+			if (c < n - size && cmp(base + c, base + c + size) < 0)
+				c += size;
+			if (cmp(base + r, base + c) >= 0)
+				break;
+			swap(base + r, base + c, size);
+		}
+	}
+
+	/* sort */
+	for (i = n - size; i >= 0; i -= size) {
+		swap(base, base + i, size);
+		for (r = 0; r * 2 + size < i; r = c) {
+			c = r * 2 + size;
+			if (c < i - size && cmp(base + c, base + c + size) < 0)
+				c += size;
+			if (cmp(base + r, base + c) >= 0)
+				break;
+			swap(base + r, base + c, size);
+		}
+	}
+}
 
 /* Create a new _stp_module and load the symbols */
 static struct _stp_module *_stp_load_module_symbols (struct _stp_module *imod)
@@ -281,7 +353,7 @@ static struct _stp_module *_stp_load_module_symbols (struct _stp_module *imod)
 		module_put(m);
 
 		/* sort symbols by address */
-		sort (mod->symbols, num, sizeof(struct _stp_symbol), _stp_compare_addr, _stp_swap_symbol);
+		_stp_sort (mod->symbols, num, sizeof(struct _stp_symbol), _stp_compare_addr, _stp_swap_symbol);
 	}
 	return mod;
 }

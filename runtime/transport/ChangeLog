@@ -1,3 +1,9 @@
+2007-07-02  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_do_symbols): Set "data" pointer for kernel to _etext.
+	(_stp_sort): New. sort function from the kernel.
+	(_stp_load_module_symbols): Use _stp_sort().
+
 2007-06-21  Martin Hunt  <hunt@redhat.com>
 
 	* control.c (_stp_ctl_write_cmd): Add support for STP_BULK.
