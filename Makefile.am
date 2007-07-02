@@ -70,6 +70,18 @@ loc2c_test_LDADD = $(stap_LDADD)
 stap_merge_SOURCES = runtime/staprun/stap_merge.c
 stap_merge_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 
+# crash(8) extension
+if BUILD_CRASHMOD
+STAPLOG=staplog.so
+
+$(STAPLOG): staplog.c
+	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+all-local: $(STAPLOG)
+install-exec-local: $(STAPLOG)
+	$(INSTALL) $(STAPLOG) $(pkglibdir)
+else
+endif
+
 # Get extra libs as needed
 LDADD =
 
@@ -127,11 +139,14 @@ clean-local:
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
+	rm -rf staplog.so
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
+	rm -rf $(DESTDIR)$(libdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
+# XXX: leaves behind man pages
 
 SUBDIRS = testsuite
 if BUILD_LKET_B2A
@@ -145,5 +160,3 @@ check:
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
-
-#	env SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset $(MAKE) LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap PATH=$(DESTDIR)$(bindir):$$PATH -C testsuite installcheck

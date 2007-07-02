@@ -1,8 +1,19 @@
+2007-07-02  Frank Ch. Eigler  <fche@rechat.com>
+
+	* staplog.c: New file from Satoru MORIYA
+	<satoru.moriya.br@hitachi.com>, prototype crash(8) extension module.
+	* configure.ac: Look for crash/defs.h.
+	* Makefile.am: Build/install staplog.so shared library if found.
+	* configure, Makefile, config.in, runtime/lket/b2a/Makefile.in:
+	Regenerated.
+
 2007-07-02  William Cohen  <wcohen@redhat.com>
+
 	PR 4720
 	* staptree.cxx (probe_point::print): Remove stray output.
 	
 2007-06-29  William Cohen  <wcohen@redhat.com>
+
 	PR 4529
 	* configure.ac:
 	* Makefile.am: Limit where sqlite3 linked in.

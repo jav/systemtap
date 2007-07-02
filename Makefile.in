@@ -62,7 +62,8 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(top_srcdir)/man/stapprobes.socket.5.in \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in AUTHORS COPYING \
-	ChangeLog INSTALL NEWS compile depcomp install-sh missing
+	ChangeLog INSTALL NEWS compile config.guess config.sub depcomp \
+	install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -172,7 +173,6 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
-CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -295,6 +295,9 @@ loc2c_test_LDADD = $(stap_LDADD)
 stap_merge_SOURCES = runtime/staprun/stap_merge.c
 stap_merge_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 
+# crash(8) extension
+@BUILD_CRASHMOD_TRUE@STAPLOG = staplog.so
+
 # Get extra libs as needed
 LDADD = 
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
@@ -312,6 +315,7 @@ SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 	     $(srcdir)/testsuite/systemtap.samples/topsys.stp
 
 TEST_COV_DIR = coverage
+# XXX: leaves behind man pages
 SUBDIRS = testsuite $(am__append_4)
 SRCDIR = $(shell cd $(srcdir); pwd)
 all: $(BUILT_SOURCES) config.h
@@ -1248,7 +1252,8 @@ distcleancheck: distclean
 check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
-all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) config.h
+@BUILD_CRASHMOD_FALSE@all-local:
+all-am: Makefile $(PROGRAMS) $(SCRIPTS) $(MANS) config.h all-local
 installdirs: installdirs-recursive
 installdirs-am:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibexecdir)" "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(man5dir)" "$(DESTDIR)$(man8dir)"; do \
@@ -1279,7 +1284,7 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
-@BUILD_ELFUTILS_FALSE@install-exec-local:
+@BUILD_CRASHMOD_FALSE@@BUILD_ELFUTILS_FALSE@install-exec-local:
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-generic clean-local \
@@ -1349,16 +1354,16 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	install-strip
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am am--refresh check check-am clean clean-binPROGRAMS \
-	clean-generic clean-local clean-noinstPROGRAMS ctags \
-	ctags-recursive dist dist-all dist-bzip2 dist-gzip dist-hook \
-	dist-shar dist-tarZ dist-zip distcheck distclean \
-	distclean-compile distclean-generic distclean-hdr \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am \
-	install-data-local install-dvi install-dvi-am install-exec \
-	install-exec-am install-exec-local install-html \
+	all all-am all-local am--refresh check check-am clean \
+	clean-binPROGRAMS clean-generic clean-local \
+	clean-noinstPROGRAMS ctags ctags-recursive dist dist-all \
+	dist-bzip2 dist-gzip dist-hook dist-shar dist-tarZ dist-zip \
+	distcheck distclean distclean-compile distclean-generic \
+	distclean-hdr distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-binPROGRAMS install-data \
+	install-data-am install-data-local install-dvi install-dvi-am \
+	install-exec install-exec-am install-exec-local install-html \
 	install-html-am install-info install-info-am install-man \
 	install-man1 install-man5 install-man8 install-pdf \
 	install-pdf-am install-pkglibexecSCRIPTS install-ps \
@@ -1385,6 +1390,12 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 @BUILD_ELFUTILS_TRUE@	   $(INSTALL_PROGRAM) $$file $(pkglibdir); \
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
+
+@BUILD_CRASHMOD_TRUE@$(STAPLOG): staplog.c
+@BUILD_CRASHMOD_TRUE@	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+@BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
+@BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
+@BUILD_CRASHMOD_TRUE@	$(INSTALL) $(STAPLOG) $(pkglibdir)
 
 # Copy some of the testsuite sample scripts to the distdir
 # 'examples/samples' directory.
@@ -1423,10 +1434,12 @@ clean-local:
 	rm -rf ${PACKAGE_TARNAME}-${PACKAGE_VERSION}
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
+	rm -rf staplog.so
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
 	rm -rf $(DESTDIR)$(libexecdir)/$(PACKAGE)
+	rm -rf $(DESTDIR)$(libdir)/$(PACKAGE)
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 
 check:
@@ -1434,8 +1447,6 @@ check:
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
-
-#	env SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset $(MAKE) LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap PATH=$(DESTDIR)$(bindir):$$PATH -C testsuite installcheck
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

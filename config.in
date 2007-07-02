@@ -6,6 +6,9 @@
 /* make -P prologue-searching default */
 #undef ENABLE_PROLOGUES
 
+/* Define to 1 if you have the <crash/defs.h> header file. */
+#undef HAVE_CRASH_DEFS_H
+
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
@@ -17,6 +20,9 @@
 
 /* Define to 1 if you have the `pfm' library (-lpfm). */
 #undef HAVE_LIBPFM
+
+/* Define to 1 if you have the `sqlite3' library (-lsqlite3). */
+#undef HAVE_LIBSQLITE3
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

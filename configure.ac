@@ -16,7 +16,6 @@ AC_PROG_CPP
 AM_PROG_CC_STDC
 AM_PROG_CC_C_O
 AM_C_PROTOTYPES
-AC_LANG_CPLUSPLUS
 AC_PROG_RANLIB
 AC_OBJEXT
 AC_EXEEXT
@@ -97,6 +96,14 @@ AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
 
 AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
+
+
+AC_CHECK_HEADERS(crash/defs.h,
+        build_crashmod=yes,build_crashmod=no,
+        [
+#define NR_CPUS 256
+])
+AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
 
 mysql=false
 
