@@ -2386,7 +2386,7 @@ probe syscall.utimes = kernel.function("sys_utimes") {
 	filename = user_string($filename)
 	tvp_uaddr = $utimes
 	argstr = sprintf("%s, %s", user_string_quoted($filename),  
-		_struct_timeval_u($utimes))
+		_struct_timeval2_u($utimes))
 }
 probe syscall.utimes.return = kernel.function("sys_utimes").return {
 	name = "utimes"

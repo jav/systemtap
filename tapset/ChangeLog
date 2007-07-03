@@ -1,3 +1,10 @@
+2007-07-03  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp: Add sys_futimesat, compat_sys_futimesat.
+	* syscalls2.stp (utimes): Use _struct_timeval2_u.
+	* aux_syscalls.stp (_struct_timeval2_u): New function.
+	(_struct_compat_timeval2_u): New function.
+
 2007-07-02  Martin Hunt  <hunt@redhat.com>
 
 	* context.stp (print_backtrace): If no regs, just

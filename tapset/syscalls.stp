@@ -920,6 +920,39 @@ probe syscall.futex.return = kernel.function("sys_futex").return {
 	retstr = returnstr(1)
 }
 
+# futimesat _____________________________________________________
+#
+# long sys_futimesat(int dfd, char __user *filename, struct timeval __user *utimes)
+# long compat_sys_futimesat(unsigned int dfd, char __user *filename, struct compat_timeval __user *t)
+#
+
+probe syscall.futimesat = kernel.function("sys_futimesat") ? {
+	name = "futimesat"
+	dirfd = $dfd
+	filename_uaddr = $filename
+	filename = user_string($filename)
+	tvp_uaddr = $utimes
+	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
+		_struct_timeval2_u($utimes))
+}
+probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
+	name = "futimesat"
+	dirfd = $dfd
+	filename_uaddr = $filename
+	filename = user_string($filename)
+	tvp_uaddr = $utimes
+	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
+		_struct_compat_timeval2_u($utimes))
+}
+probe syscall.futimesat.return = kernel.function("sys_futimesat").return ? {
+	name = "futimesat"
+	retstr = returnstr(1)
+}
+probe syscall.compat_futimesat.return = kernel.function("compat_sys_futimesat").return ? {
+	name = "futimesat"
+	retstr = returnstr(1)
+}
+
 # getcwd _____________________________________________________
 # long sys_getcwd(char __user *buf, unsigned long size)
 probe syscall.getcwd = kernel.function("sys_getcwd") {

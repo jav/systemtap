@@ -2,6 +2,22 @@
 # Given a userspace pointer to a timeval,
 # copy and decode it and return a string.
 #
+function _struct_timeval2_u:string(uaddr:long)
+%{ /* pure */
+	struct timeval tv[2];
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&tv,ptr,2*sizeof(struct timeval)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+				tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
+	   	else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
 function _struct_timeval_u:string(uaddr:long)
 %{ /* pure */
 	struct timeval tv;
@@ -27,6 +43,22 @@ function _struct_compat_timeval_u:string(uaddr:long)
 	else {
 		if(_stp_copy_from_user((char*)&tv,ptr,sizeof(struct compat_timeval)) == 0)
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv.tv_sec, (long)tv.tv_usec);
+	   	else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
+function _struct_compat_timeval2_u:string(uaddr:long)
+%{ /* pure */
+	struct timeval tv[2];
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&tv,ptr,2*sizeof(struct compat_timeval)) == 0)
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+				tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
 	   	else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
@@ -820,7 +852,7 @@ function _get_wc_str(wc) {
    if(wc==3) return "CLOCK_THREAD_CPUTIME_ID"
    if(wc==4) return "CLOCK_REALTIME_HR"
    if(wc==5) return "CLOCK_MONOTONIC_HR"
-   return ""
+   return "CLOCK_UNKNOWN"
 }
 
 function _flock_cmd_str(c) {
