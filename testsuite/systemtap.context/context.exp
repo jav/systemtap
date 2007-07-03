@@ -7,34 +7,55 @@ if {![installtest_p]} {
     return
 }
 
+set build_dir ""
+
 proc cleanup {} {
+    global build_dir
     catch {send "\003"}
     foreach n {1 2} {
 	catch {exec sudo /bin/rm -f /lib/modules/$::uname/systemtap_test_module$n.ko}
 	catch {exec sudo /sbin/rmmod systemtap_test_module$n}
     }
+    if {$build_dir != ""} {exec rm -rf $build_dir}
 }
 
 proc build_modules {} {
+    global build_dir
+
+    if {[catch {exec mktemp -d staptestXXXXX} build_dir]} {
+	puts stderr "Failed to create temporary directory: $build_dir"
+	return 0
+    }
+
+    foreach f [glob systemtap_test_module*.c] {
+	exec cp $f $build_dir
+    }
+    set old_dir [pwd]
+    cd $build_dir
+
     foreach n {1 2} {
-	exec cp makefile$n Makefile
+	exec cp $old_dir/makefile$n Makefile
 	if {[catch {exec make clean} res]} {
 	    puts $res
+	    cd $old_dir
 	    return 0
 	}
 	catch {exec make} res
 	if {![file exists systemtap_test_module$n.ko]} {
 	    puts $res
+	    cd $old_dir
 	    return 0
 	}
 	if {[catch {exec sudo cp systemtap_test_module$n.ko /lib/modules/$::uname} res]} {
 	    puts $res
+	    cd $old_dir
 	    return 0
 	}
     }
     foreach n {2 1} {
 	catch {exec sudo /sbin/insmod systemtap_test_module$n.ko}
     }
+    cd $old_dir
     return 1
 }
 
