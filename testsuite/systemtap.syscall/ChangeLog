@@ -1,3 +1,7 @@
+2007-07-03  Martin Hunt  <hunt@redhat.com>
+
+	* futimes.c: New test.
+
 2007-06-21  Martin Hunt  <hunt@redhat.com>
 
 	* chmod.c, dir.c, mmap.c, net1.c, readwrite.c, stat.c,
