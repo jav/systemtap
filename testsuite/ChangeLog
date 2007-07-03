@@ -1,3 +1,9 @@
+2007-07-03  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.context/pid.tcl: Better error reporting.
+	* systemtap.context/args.*: Ditto.
+	* systemtap.context/context.exp: Build in temp dir.
+
 2007-07-02  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.context/context.exp: Add pid tests.
