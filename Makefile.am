@@ -87,7 +87,7 @@ LDADD =
 
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
-	     cache.h hash.h mdfour.h util.h \
+	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
 	     examples testsuite systemtap.spec runtime tapset
 
 SAMPLE_DEST_DIR = $(distdir)/examples/samples

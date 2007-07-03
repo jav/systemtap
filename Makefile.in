@@ -62,7 +62,8 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(top_srcdir)/man/stapprobes.socket.5.in \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in AUTHORS COPYING \
-	ChangeLog INSTALL NEWS compile depcomp install-sh missing
+	ChangeLog INSTALL NEWS compile config.guess depcomp install-sh \
+	missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -301,7 +302,7 @@ stap_merge_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 LDADD = 
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
-	     cache.h hash.h mdfour.h util.h \
+	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
 	     examples testsuite systemtap.spec runtime tapset
 
 SAMPLE_DEST_DIR = $(distdir)/examples/samples
