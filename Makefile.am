@@ -44,16 +44,16 @@ lib-elfutils/libdw.so: stamp-elfutils ;
 
 .PHONY: install-elfutils
 install-elfutils:
-	mkdir -p $(pkglibdir)
+	mkdir -p $(DESTDIR)$(pkglibdir)
 	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
-	   $(INSTALL_PROGRAM) $$file $(pkglibdir); \
+	   $(INSTALL_PROGRAM) $$file $(DESTDIR)$(pkglibdir); \
 	done
 install-exec-local: install-elfutils
 endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/mainloop.c \
 	runtime/staprun/symbols.c runtime/staprun/ctl.c \
-	runtime/staprun/relay.c runtime/staprun/relay_old.c 
+	runtime/staprun/relay.c runtime/staprun/relay_old.c
 
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 staprun_LDADD = @PROCFLAGS@ -lpthread
@@ -78,7 +78,7 @@ $(STAPLOG): staplog.c
 	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 all-local: $(STAPLOG)
 install-exec-local: $(STAPLOG)
-	$(INSTALL) $(STAPLOG) $(pkglibdir)
+	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 else
 endif
 
@@ -153,10 +153,9 @@ if BUILD_LKET_B2A
   SUBDIRS += runtime/lket/b2a
 endif
 
-SRCDIR = $(shell cd $(srcdir); pwd)
-
 check:
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$(SRCDIR)/runtime SYSTEMTAP_TAPSET=$(SRCDIR)/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
+	SRCDIR=`cd $(srcdir); pwd`; \
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"

@@ -62,8 +62,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(top_srcdir)/man/stapprobes.socket.5.in \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in AUTHORS COPYING \
-	ChangeLog INSTALL NEWS compile config.guess config.sub depcomp \
-	install-sh ltmain.sh missing
+	ChangeLog INSTALL NEWS compile depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -283,7 +282,7 @@ CLEANFILES = $(am__append_3) $(pkglibexec_SCRIPTS)
 @BUILD_ELFUTILS_TRUE@stap_DEPENDENCIES = lib-elfutils/libdw.so
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/mainloop.c \
 	runtime/staprun/symbols.c runtime/staprun/ctl.c \
-	runtime/staprun/relay.c runtime/staprun/relay_old.c 
+	runtime/staprun/relay.c runtime/staprun/relay_old.c
 
 staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 staprun_LDADD = @PROCFLAGS@ -lpthread
@@ -317,7 +316,6 @@ SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
 SUBDIRS = testsuite $(am__append_4)
-SRCDIR = $(shell cd $(srcdir); pwd)
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -1385,9 +1383,9 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 
 @BUILD_ELFUTILS_TRUE@.PHONY: install-elfutils
 @BUILD_ELFUTILS_TRUE@install-elfutils:
-@BUILD_ELFUTILS_TRUE@	mkdir -p $(pkglibdir)
+@BUILD_ELFUTILS_TRUE@	mkdir -p $(DESTDIR)$(pkglibdir)
 @BUILD_ELFUTILS_TRUE@	for file in lib-elfutils/*.so* lib-elfutils/${PACKAGE_NAME}/*.so*; do \
-@BUILD_ELFUTILS_TRUE@	   $(INSTALL_PROGRAM) $$file $(pkglibdir); \
+@BUILD_ELFUTILS_TRUE@	   $(INSTALL_PROGRAM) $$file $(DESTDIR)$(pkglibdir); \
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
@@ -1395,7 +1393,7 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 @BUILD_CRASHMOD_TRUE@	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 @BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
-@BUILD_CRASHMOD_TRUE@	$(INSTALL) $(STAPLOG) $(pkglibdir)
+@BUILD_CRASHMOD_TRUE@	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 
 # Copy some of the testsuite sample scripts to the distdir
 # 'examples/samples' directory.
@@ -1443,7 +1441,8 @@ uninstall-local:
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 
 check:
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$(SRCDIR)/runtime SYSTEMTAP_TAPSET=$(SRCDIR)/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
+	SRCDIR=`cd $(srcdir); pwd`; \
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
