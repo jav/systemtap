@@ -139,7 +139,7 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %if %{bundled_elfutils}
 %dir %{_libdir}/%{name}
-%{_libdir}/%{name}/lib*.so*
+%{_libdir}/%{name}/*.so*
 %endif
 
 %files runtime
@@ -151,6 +151,15 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc README AUTHORS NEWS COPYING
 
 %changelog
+* Tue Jul  2 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.14-1
+- Many robustness improvements: 1117, 1134, 1305, 1307, 1570, 1806,
+  2033, 2116, 2224, 2339, 2341, 2406, 2426, 2438, 2583, 3037,
+  3261, 3282, 3331, 3428 3519, 3545, 3625, 3648, 3880, 3888, 3911,
+  3952, 3965, 4066, 4071, 4075, 4078, 4081, 4096, 4119, 4122, 4127,
+  4146, 4171, 4179, 4183, 4221, 4224, 4254, 4281, 4319, 4323, 4326,
+  4329, 4332, 4337, 4415, 4432, 4444, 4445, 4458, 4467, 4470, 4471,
+  4518, 4567, 4570, 4579, 4589, 4609, 4664
+
 * Mon Mar 26 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.13-1
 - An emergency / preliminary refresh, mainly for compatibility
   with 2.6.21-pre kernels.
