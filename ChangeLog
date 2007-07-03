@@ -1,4 +1,12 @@
+2007-07-03  Roland McGrath  <roland@frob.com>
+
+	* Makefile.am (install-exec-local, install-elfutils): Use $(DESTDIR).
+	(SRCDIR): Variable removed.
+	(check): Use sh code in commands instead.
+	* Makefile.in: Regenerated.
+
 2007-07-02  William Cohen  <wcohen@redhat.com>
+
 	PR 4717
 	From Eugeniy Meshcheryakov <eugen@debian.org>
 	* staptree.cxx: Add #include <cstdlib> for gcc 4.3.
@@ -16,7 +24,7 @@
 
 	PR 4720
 	* staptree.cxx (probe_point::print): Remove stray output.
-	
+
 2007-06-29  William Cohen  <wcohen@redhat.com>
 
 	PR 4529
@@ -35,11 +43,11 @@
 
 	* coveragedb.cxx (update_coverage_db): Remove unneeded print.
 	* coveragedb.cxx (increment_element): Correct formatting.
-	
+
 2007-06-26  William Cohen  <wcohen@redhat.com>
 
 	* staptree.cxx (probe_point::print): Remove stray "\n".
-	
+
 2007-06-26  William Cohen  <wcohen@redhat.com>
 
 	PR 4529
@@ -59,7 +67,7 @@
 	* staptree.h (unused_locals, probe_point::str): New member.
 	* staptree.cxx: Ditto.
 	* main.cxx: Add "-q" tapset coverage option and SYSTEMTAP_COVERAGE env.
-	
+
 2007-06-21  David Smith  <dsmith@redhat.com>
 
 	* Makefile.in: Regenerated with automake 1.10.
@@ -124,7 +132,7 @@
 	* configure.ac: For x86 systems with gcc versions less than 4,
 	automatically default to enabling prologue searching.
 	* configure: Regenerated.
-	
+
 2007-06-05  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 3331.
@@ -212,7 +220,7 @@
 2007-05-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1305.
-	* tapsets.cxx (iterate_over_srcfile_lines): Exclude approximate 
+	* tapsets.cxx (iterate_over_srcfile_lines): Exclude approximate
 	file:lineno matches optimistically returned by dwarf_getsrc_file.
 	(query_srcfile_line): Use Dwarf_Line line number for constructing
 	derived_probe location string.
@@ -242,7 +250,7 @@
 	operators.
 	(c_tmpcounter_assignment::c_assignop): Updated temporary
 	handling.
-	
+
 2007-04-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Mention testsuite/configure.ac for version matching.
@@ -297,7 +305,7 @@
 2007-04-24  Mike Mason <mmlnx@us.ibm.com>
 
 	* man/stapprobes.socket.5.in: Removed do_write and do_read probes,
-	added aio_write, aio_read, writev and readv probes. 
+	added aio_write, aio_read, writev and readv probes.
 
 2007-04-24  David Smith  <dsmith@redhat.com>
 
