@@ -1,3 +1,6 @@
+* What's new since version 0.5.14?
+
+
 * What's new since version 0.5.13?
 
 - The way in which systemtap resolves function/inline probes has changed:
