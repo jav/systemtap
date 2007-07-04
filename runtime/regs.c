@@ -253,7 +253,7 @@ void _stp_print_regs(struct pt_regs * regs)
 		processor_modes[processor_mode(regs)],
 		thumb_mode(regs) ? " (T)" : "",
 		get_fs() == get_ds() ? "kernel" : "user");
-#if CONFIG_CPU_CP15
+#ifdef CONFIG_CPU_CP15
 	{
 		unsigned int ctrl;
 		  __asm__ (

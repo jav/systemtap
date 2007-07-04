@@ -1,3 +1,7 @@
+2007-07-05  Eugene Teo  <eteo@redhat.com>
+
+	* regs.c (_stp_print_regs): #ifdef CONFIG_CPU_CP15 instead.
+
 2007-07-02  Martin Hunt  <hunt@redhat.com>
 
 	* sym.c (_stp_kallsyms_lookup): Improve heuristic
