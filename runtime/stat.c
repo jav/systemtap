@@ -90,9 +90,16 @@ Stat _stp_stat_init (int type, ...)
 			start = va_arg(ap, int);
 			stop = va_arg(ap, int);
 			interval = va_arg(ap, int);
-			/* FIXME. check interval != 0 and not too large */
+			if (interval == 0) {
+				_stp_warn("histogram: interval cannot be zero.\n");
+				return NULL;
+			}
 			buckets = (stop - start) / interval;
 			if ((stop - start) % interval) buckets++;
+			if (buckets > 128) {
+				_stp_warn("histogram: Interval is too small. Maximum buckets is 128.\n");
+				return NULL;
+			}
 		}
 		va_end (ap);
 	}

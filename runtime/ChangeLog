@@ -1,3 +1,11 @@
+2007-07-06  Martin Hunt  <hunt@redhat.com>
+
+	* stat-common.c (__stp_stat_add): Fix calculations
+	for linear histogram buckets.
+
+	* stat.c (_stp_stat_init): Check for interval too
+	small.
+
 2007-07-05  Eugene Teo  <eteo@redhat.com>
 
 	* regs.c (_stp_print_regs): #ifdef CONFIG_CPU_CP15 instead.

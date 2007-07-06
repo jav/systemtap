@@ -237,10 +237,9 @@ static void __stp_stat_add (Hist st, stat *sd, int64_t val)
 		sd->histogram[n]++;
 		break;
 	case HIST_LINEAR:
-		if (val < st->start)
-			val = st->start;
-		else
-			val -= st->start;
+		val -= st->start;
+		if (val < 0)
+			val = 0;
 		do_div (val, st->interval);
 		if (val >= st->buckets)
 			val = st->buckets - 1;
