@@ -1,0 +1,25 @@
+# test of histogram with negative interval
+
+set test "linear_neg"
+
+if {![installtest_p]} { untested $test; return }
+
+set ok 0
+
+spawn stap -DMAXACTION=10000 $srcdir/$subdir/$test.stp
+expect {
+    -timeout 150
+    "saw: operator \'-\' at *linear_neg.stp" {
+	incr ok
+	exp_continue
+    }
+    eof { }
+}
+catch close
+wait
+
+if {$ok == 1} { 
+    pass $test 
+} else { 
+    fail $test 
+}

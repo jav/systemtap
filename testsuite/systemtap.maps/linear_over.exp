@@ -1,0 +1,18 @@
+# Test linear histogram
+
+set test "linear_over"
+set ::result_string {count=9000
+sum=49495500
+min=1000
+max=9999
+avg=5499
+value |-------------------------------------------------- count
+   70 |                                                      0
+   80 |                                                      0
+   90 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 9000
+
+}
+
+stap_run2 $srcdir/$subdir/$test.stp -DMAXACTION=10000
+
+

@@ -1,0 +1,16 @@
+# test that we can check the count of an empty array
+
+global agg
+
+probe begin
+{
+	printf("count=%d\n", @count(agg))
+	if (@count(agg) > 0) {
+		printf("sum=%d\n", @sum(agg))
+        	printf("min=%d\n", @min(agg))
+	        printf("max=%d\n", @max(agg))
+        	printf("avg=%d\n", @avg(agg))
+	        print(@hist_linear(agg, 0, 1500, 50))
+	}
+	exit()
+}

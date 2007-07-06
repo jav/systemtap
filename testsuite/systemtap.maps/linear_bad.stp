@@ -1,0 +1,21 @@
+# test of too many buckets (interval too small)
+
+global agg
+
+probe begin
+{
+	# Add items to the aggregate
+	for (key=0; key < 100; key++) {
+		agg <<< key
+	}
+
+	printf("count=%d\n", @count(agg))
+	printf("sum=%d\n", @sum(agg))
+	printf("min=%d\n", @min(agg))
+	printf("max=%d\n", @max(agg))
+	printf("avg=%d\n", @avg(agg))
+
+	print(@hist_linear(agg, 0, 1500, 2))
+	
+	exit()
+}

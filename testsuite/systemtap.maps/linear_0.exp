@@ -1,0 +1,25 @@
+# test of histogram with interval = 0 (error)
+
+set test "linear_0"
+
+if {![installtest_p]} { untested $test; return }
+
+set ok 0
+
+spawn stap -DMAXACTION=10000 $srcdir/$subdir/$test.stp
+expect {
+    -timeout 150
+    "WARNING: histogram: interval cannot be zero." { 
+	incr ok
+	exp_continue
+    }
+    eof { }
+}
+catch close
+wait
+
+if {$ok == 1} { 
+    pass $test 
+} else { 
+    fail $test 
+}

@@ -1,0 +1,22 @@
+# test of histogram where all the values are
+# over the histogram
+
+global agg
+
+probe begin
+{
+	# Add items to the aggregate
+	for (key=1000; key < 10000; key++) {
+		agg <<< key
+	}
+
+	printf("count=%d\n", @count(agg))
+	printf("sum=%d\n", @sum(agg))
+	printf("min=%d\n", @min(agg))
+	printf("max=%d\n", @max(agg))
+	printf("avg=%d\n", @avg(agg))
+
+	print(@hist_linear(agg, 0, 100, 10))
+	
+	exit()
+}
