@@ -1,3 +1,23 @@
+2007-07-08  William Cohen  <wcohen@redhat.com>
+
+	PR 4529
+	* coveragedb.h (db_type): New enum for type column in coverage_element.
+	(coverage_element): Remove removed column, change type to int.
+	* coveragedb.cxx (has_table, has_index): New.
+	(update_coverage_db): Use has_table, has_index.
+	(enter_element): Change for new table format.
+	(increment_element): Ditto.
+	(sql_update_used_probes): Ditto.
+	(sql_update_unused_probes): Ditto.
+	(sql_update_used_functions): Ditto.
+	(sql_update_unused_functions): Ditto.
+	(sql_update_used_globals): Ditto.
+	(sql_update_unused_globals): Ditto.
+	(update_coverage_db): Ditto.
+	(print_coverage_info(systemtap_session): Relocate vector.
+	(sql_update_used_probes): Ditto.
+	(sql_update_unused_probes): Ditto.
+	
 2007-07-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bumped version to 0.5.15 for development.

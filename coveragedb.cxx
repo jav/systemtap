@@ -22,12 +22,11 @@ using namespace std;
 
 void print_coverage_info(systemtap_session &s)
 {
-  vector<derived_probe*> used_probe_list;
-  vector<derived_probe*> unused_probe_list;
   // print out used probes
   clog << "---- used probes-----" << endl;
   for (unsigned i=0; i<s.probes.size(); i++) {
     // walk through the chain of probes
+    vector<derived_probe*> used_probe_list;
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
       for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k)
@@ -50,6 +49,7 @@ void print_coverage_info(systemtap_session &s)
   clog << "---- unused probes----- " << endl;
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
+    vector<derived_probe*> unused_probe_list;
     s.probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
       for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k)
@@ -89,6 +89,52 @@ void print_coverage_info(systemtap_session &s)
 }
 
 
+bool
+has_table(sqlite3 *db, const char * table)
+{
+  int rc, rows, columns;
+  char *errmsg;
+  char **results = NULL;
+
+  ostringstream command;
+  command << "SELECT name FROM sqlite_master "
+	  << "WHERE type='table' AND name='" << table << "'";
+
+  rc = sqlite3_get_table(db, command.str().c_str(),
+			 &results, &rows, &columns, &errmsg);
+
+  if(rc != SQLITE_OK) {
+    cerr << "Error in statement: " << command << " [" << errmsg << "]."
+				 << endl;
+  }
+  sqlite3_free_table(results);
+  return (rows !=0);
+}
+
+
+bool
+has_index(sqlite3 *db, const char * index)
+{
+  int rc, rows, columns;
+  char *errmsg;
+  char **results = NULL;
+
+  ostringstream command;
+  command << "SELECT name FROM sqlite_master "
+	  << "WHERE type='index' AND name='" << index << "'";
+
+  rc = sqlite3_get_table(db, command.str().c_str(),
+			 &results, &rows, &columns, &errmsg);
+
+  if(rc != SQLITE_OK) {
+    cerr << "Error in statement: " << command << " [" << errmsg << "]."
+				 << endl;
+  }
+  sqlite3_free_table(results);
+  return (rows !=0);
+}
+
+
 void sql_stmt(sqlite3 *db, const char* stmt)
 {
   char *errmsg;
@@ -114,51 +160,49 @@ void enter_element(sqlite3 *db, coverage_element &x)
           << x.type << "','"
           << x.name << "', '"
           << x.parent <<"',"
-          << "'0', '0', '0')";
+          << "'0', '0')";
   sql_stmt(db, command.str().c_str());
 }
 
+
 void increment_element(sqlite3 *db, coverage_element &x)
 {
+  ostringstream command;
   // make sure value in table
-  enter_element(db, x);
+  command << "insert or ignore into counts values ('"
+          << x.file << "', '"
+          << x.line << "', '"
+          << x.col  << "', '"
+          << x.type << "','"
+          << x.name << "', '"
+          << x.parent <<"',"
+          << "'0', '0'); "
   // increment appropriate value
-  if (x.compiled) {
-    ostringstream command;
-    command << "update counts set compiled = compiled + "
-            << x.compiled << " where ("
-            << "file == '" << x.file << "' and "
-            << "line == '" << x.line << "' and "
-            << "col == '" << x.col << "')";
-    sql_stmt(db, command.str().c_str());
-  }
-  if (x.removed) {
-    ostringstream command;
-    command << "update counts set removed = removed + "
-            << x.removed << " where ("
-            << "file == '" << x.file << "' and "
-            << "line == '" << x.line << "' and "
-            << "col == '" << x.col << "')";
-    sql_stmt(db, command.str().c_str());
-  }
+	  << "update counts set compiled=compiled+"
+	  << x.compiled << " where ("
+	  << "file=='" << x.file << "' and "
+	  << "line=='" << x.line << "' and "
+	  << "col=='" << x.col << "' and "
+	  << "type=='" << x.type << "' and "
+	  << "name=='" << x.name << "')";
+  sql_stmt(db, command.str().c_str());
 }
 
 
 void
 sql_update_used_probes(sqlite3 *db, systemtap_session &s)
 {
-  vector<derived_probe*> used_probe_list;
-
   // update database used probes
   for (unsigned i=0; i<s.probes.size(); i++) {
     // walk through the chain of probes
+    vector<derived_probe*> used_probe_list;
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k){
 		    struct source_loc place = used_probe_list[j]->locations[k]->tok->location;
 		    coverage_element x(place);
 
-		    x.type = string("p");
+		    x.type = db_type_probe;
 		    x.name = used_probe_list[j]->locations[k]->str();
 		    x.compiled = 1;
 		    increment_element(db, x);
@@ -170,7 +214,7 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
 	    struct source_loc place = s.probes[i]->locals[j]->tok->location;
 	    coverage_element x(place);
 
-	    x.type = string("l");
+	    x.type = db_type_local;
 	    x.name = s.probes[i]->locals[j]->tok->content;
 	    x.compiled = 1;
 	    increment_element(db, x);
@@ -179,9 +223,9 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
 	    struct source_loc place = s.probes[i]->unused_locals[j]->tok->location;
 	    coverage_element x(place);
 
-	    x.type = string("l");
+	    x.type = db_type_local;
 	    x.name = s.probes[i]->unused_locals[j]->tok->content;
-	    x.removed = 1;
+	    x.compiled = 0;
 	    increment_element(db, x);
     }
   }
@@ -191,11 +235,10 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
 void
 sql_update_unused_probes(sqlite3 *db, systemtap_session &s)
 {
-  vector<derived_probe*> unused_probe_list;
-
   // update database unused probes
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
+    vector<derived_probe*> unused_probe_list;
     s.probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k) {
@@ -203,9 +246,9 @@ sql_update_unused_probes(sqlite3 *db, systemtap_session &s)
 	      struct source_loc place = unused_probe_list[j]->locations[k]->tok->location;
 	      coverage_element x(place);
 
-	      x.type = string("p");
+	      x.type = db_type_probe;
 	      x.name = unused_probe_list[j]->locations[k]->str();
-	      x.removed = 1;
+	      x.compiled = 0;
 	      increment_element(db, x);
 	    }
     }
@@ -221,7 +264,7 @@ sql_update_used_functions(sqlite3 *db, systemtap_session &s)
     struct source_loc place = s.functions[i]->tok->location;
     coverage_element x(place);
 
-    x.type = string("f");
+    x.type = db_type_function;
     x.name = s.functions[i]->name;
     x.compiled = 1;
     increment_element(db, x);
@@ -237,9 +280,9 @@ sql_update_unused_functions(sqlite3 *db, systemtap_session &s)
     struct source_loc place = s.unused_functions[i]->tok->location;
     coverage_element x(place);
 
-    x.type = string("f");
+    x.type = db_type_function;
     x.name = s.unused_functions[i]->name;
-    x.removed = 1;
+    x.compiled = 0;
     increment_element(db, x);
   }
 }
@@ -250,11 +293,10 @@ sql_update_used_globals(sqlite3 *db, systemtap_session &s)
 {
   // update db used globals
   for (unsigned i=0; i<s.globals.size(); i++) {
-    sql_stmt(db, "--");
     struct source_loc place = s.globals[i]->tok->location;
     coverage_element x(place);
 
-    x.type = string("g");
+    x.type = db_type_global;
     x.name = s.globals[i]->name;
     x.compiled = 1;
     increment_element(db, x);
@@ -270,14 +312,12 @@ sql_update_unused_globals(sqlite3 *db, systemtap_session &s)
     struct source_loc place = s.unused_globals[i]->tok->location;
     coverage_element x(place);
 
-    x.type = string("g");
+    x.type = db_type_global;
     x.name = s.unused_globals[i]->name;
-    x.removed = 1;
+    x.compiled = 0;
     increment_element(db, x);
   }
 }
-
-
 
 void update_coverage_db(systemtap_session &s)
 {
@@ -293,18 +333,23 @@ void update_coverage_db(systemtap_session &s)
     exit(EXIT_FAILURE);
   }
 
-  string create_table("create table if not exists counts ("
-                      "file text, line integer, col integer, "
-                      "type text, name text, parent text, "
-                      "compiled integer, removed integer, executed integer, "
-                      "primary key (file, line, col))"
-          );
-
   // lock the database
   sql_stmt(db, "begin");
 
-  // update the number counts on things
-  sql_stmt(db, create_table.c_str());
+  string create_table("create table counts ("
+                      "file text, line integer, col integer, "
+                      "type text, name text, parent text, "
+                      "compiled integer, executed integer)");
+  string create_index("create index tokens on counts (file, line, col, "
+		      "type, name)");
+
+  // make sure the table is there
+  if (!has_table(db, "counts"))
+    sql_stmt(db, create_table.c_str());
+
+  // make sure the index is there
+  if (!has_index(db, "tokens"))
+    sql_stmt(db, create_index.c_str());
 
   sql_update_used_probes(db, s);
   sql_update_unused_probes(db, s);

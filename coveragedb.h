@@ -22,7 +22,8 @@ times executed
 
 if (compiled == 0) object never compiled
 if (compiled > 0) object compiled
-if (removed > 0) object parsed
+
+The following are not currently implemented.
 if (executed == 0) never executed
 if (executed > 0) executed
 
@@ -43,25 +44,33 @@ ratio of executed/total (overall, by file, by line)
 
 */
 
+enum db_type {
+  db_type_probe = 1,
+  db_type_function = 2,
+  db_type_local = 3,
+  db_type_global = 4,
+};
+
 class coverage_element {
 public:
   std::string file;
   int line;
   int col;
-  std::string type;
+  int type;
   std::string name;
   std::string parent;
   int compiled;
-  int removed;
   int executed;
 
   coverage_element() { line = 0; col = 0; 
-	  compiled = 0; removed = 0; executed = 0; }
+	  compiled = 0; executed = 0; }
 
   coverage_element(source_loc &place) {
 	  file = place.file; line = place.line; col = place.column; 
-	  compiled = 0; removed = 0; executed = 0; }
+	  compiled = 0; executed = 0; }
 };
+
+
 
 void print_coverage_info(systemtap_session &s);
 void update_coverage_db(systemtap_session &s);
