@@ -1,6 +1,11 @@
 2007-07-08  William Cohen  <wcohen@redhat.com>
 
 	PR 4529
+	* coveragedb.cxx (update_coverage_db): Make index "unique" to optimize.
+
+2007-07-08  William Cohen  <wcohen@redhat.com>
+
+	PR 4529
 	* coveragedb.h (db_type): New enum for type column in coverage_element.
 	(coverage_element): Remove removed column, change type to int.
 	* coveragedb.cxx (has_table, has_index): New.

@@ -340,7 +340,7 @@ void update_coverage_db(systemtap_session &s)
                       "file text, line integer, col integer, "
                       "type text, name text, parent text, "
                       "compiled integer, executed integer)");
-  string create_index("create index tokens on counts (file, line, col, "
+  string create_index("create unique index tokens on counts (file, line, col, "
 		      "type, name)");
 
   // make sure the table is there
