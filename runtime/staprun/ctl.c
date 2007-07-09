@@ -15,7 +15,7 @@
 /* This is only used in the old relayfs code */
 static void read_buffer_info(void)
 {
-	char buf[128];
+	char buf[PATH_MAX];
 	struct statfs st;
 	int fd, len, ret;
 
@@ -48,7 +48,7 @@ static void read_buffer_info(void)
 
 int init_ctl_channel(void)
 {
-	char buf[128];
+	char buf[PATH_MAX];
 	struct statfs st;
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)

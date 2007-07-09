@@ -1,3 +1,9 @@
+2007-07-09  David Smith  <dsmith@redhat.com>
+
+	* ctl.c (read_buffer_info): Make sure buffer is big enough to hold
+	a full path.
+	(init_ctl_channel): Ditto.
+
 2007-07-02  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (get_sections): Set data pointer to the lowest address
