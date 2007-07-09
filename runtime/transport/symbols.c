@@ -378,15 +378,22 @@ static int _stp_module_exists(struct _stp_module *mod)
 	return 0;
 }
 
-static void _stp_ins_module(struct _stp_module *mod)
+static int _stp_ins_module(struct _stp_module *mod)
 {
-	int i, num, res;
+	int i, num, res, ret = 0;
 	unsigned long flags;
 
 	// kbug("insert %s\n", mod->name);
 
 	STP_LOCK_MODULES;
 
+	/* check for overflow */
+	if (_stp_num_modules == STP_MAX_MODULES) {
+		errk("Exceeded the limit of %d modules\n", STP_MAX_MODULES);
+		ret = -ENOMEM;
+		goto done;
+	}
+	
 	/* insert alphabetically in _stp_modules[] */
 	for (num = 1; num < _stp_num_modules; num++) {
 		res = strcmp(_stp_modules[num]->name, mod->name);
@@ -412,7 +419,9 @@ static void _stp_ins_module(struct _stp_module *mod)
 
 	_stp_num_modules++;
 
+done:
 	STP_UNLOCK_MODULES;
+	return ret;
 }
 
 
@@ -462,7 +471,8 @@ static int _stp_do_module(const char __user *buf, int count)
 		return 0;
 	}
 
-	_stp_ins_module(mod);
+	if (_stp_ins_module(mod) < 0)
+		return -ENOMEM;
 	
 	return count;
 }
