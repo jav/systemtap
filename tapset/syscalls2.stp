@@ -2392,6 +2392,21 @@ probe syscall.utimes.return = kernel.function("sys_utimes").return {
 	name = "utimes"
 	retstr = returnstr(1)
 }
+# compat_sys_utimes ________________________________________
+#
+# long compat_sys_utimes(char __user *filename, struct compat_timeval __user *t)
+#
+probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes") ? {
+	name = "utimes"
+	filename = user_string($filename)
+	argstr = sprintf("%s, %s", user_string_quoted($filename),
+				 _struct_compat_timeval2_u($t))
+}
+probe syscall.compat_sys_utimes.return = kernel.function("compat_sys_utimes").return ? {
+	name = "utimes"
+	retstr = returnstr(1)
+}
+
 # vhangup ____________________________________________________
 #
 # asmlinkage long

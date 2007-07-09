@@ -1,5 +1,8 @@
 2007-07-09  Martin Hunt  <hunt@redhat.com>
 
+	* syscalls2.stp (compat_sys_utimes): New.
+	* ppc64/syscalls.stp (ciompat_sys_utimes): Removed.
+
 	* syscalls.stp (compat_sys_futimesat): Fix arg.
 
 2007-07-03  Martin Hunt  <hunt@redhat.com>

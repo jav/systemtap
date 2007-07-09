@@ -206,23 +206,6 @@ probe syscall.compat_sys_sched_getaffinity.return =
 	name = "compat_sys_sched_getaffinity"
 	retstr = returnstr(1)
 }
-# compat_sys_utimes ________________________________________
-#
-# asmlinkage long compat_sys_utimes(char __user *filename,
-#			struct compat_timeval __user *t)
-#
-probe syscall.compat_sys_utimes = kernel.function("compat_sys_utimes") {
-	name = "compat_sys_utimes"
-	path = user_string($filename)
-	tvp_uaddr = $t
-	argstr = sprintf("%s, %s", user_string_quoted($filename),
-				 _struct_timeval_u(tvp_uaddr))
-}
-probe syscall.compat_sys_utimes.return =
-	kernel.function("compat_sys_utimes").return {
-	name = "compat_sys_utimes"
-	retstr = returnstr(1)
-}
 # compat_sys_newlstat ________________________________________
 #
 # asmlinkage long compat_sys_newlstat(char __user * filename,
