@@ -41,7 +41,7 @@ static ssize_t stm_write_cmd (struct file *file, const char __user *buf,
 {
   char type;
 
-  if (get_user(type, (int __user *)buf))
+  if (get_user(type, (char __user *)buf))
 	  return -EFAULT;
 
   switch (type) {
@@ -67,7 +67,7 @@ static ssize_t stm_write_cmd (struct file *file, const char __user *buf,
 	  yyy_str("Hello", "System", "Tap");
 	  break;
   default:
-	  printk ("systemtap_bt_test_module: invalid command type %d\n", type);
+	  printk ("systemtap_test_module1: invalid command type %d\n", (int)type);
 	  return -EINVAL;
   }
   
