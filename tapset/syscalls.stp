@@ -940,9 +940,9 @@ probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
 	dirfd = $dfd
 	filename_uaddr = $filename
 	filename = user_string($filename)
-	tvp_uaddr = $utimes
+	tvp_uaddr = $t
 	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
-		_struct_compat_timeval2_u($utimes))
+		_struct_compat_timeval2_u($t))
 }
 probe syscall.futimesat.return = kernel.function("sys_futimesat").return ? {
 	name = "futimesat"
