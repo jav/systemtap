@@ -1,5 +1,11 @@
 2007-07-09  David Smith  <dsmith@redhat.com>
 
+	* relay.c (init_relayfs): Make sure buffers are big enough to hold
+	a full path.
+	* relay_old.c (init_oldrelayfs): Ditto.
+
+2007-07-09  David Smith  <dsmith@redhat.com>
+
 	* ctl.c (read_buffer_info): Make sure buffer is big enough to hold
 	a full path.
 	(init_ctl_channel): Ditto.

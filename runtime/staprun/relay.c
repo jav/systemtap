@@ -121,7 +121,7 @@ int init_relayfs(void)
 {
 	int i;
 	struct statfs st;
-	char buf[128], relay_filebase[128];
+	char buf[PATH_MAX], relay_filebase[PATH_MAX];
 
 	dbug(1, "initializing relayfs\n");
 

@@ -226,7 +226,7 @@ int init_oldrelayfs(void)
 {
 	int i, j;
 	struct statfs st;
-	char relay_filebase[128], proc_filebase[128];
+	char relay_filebase[PATH_MAX], proc_filebase[PATH_MAX];
 
 	dbug(2, "initializing relayfs.n_subbufs=%d subbuf_size=%d\n", n_subbufs, subbuf_size);
 
