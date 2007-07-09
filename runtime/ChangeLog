@@ -1,3 +1,7 @@
+2007-07-09  Martin Hunt  <hunt@redhat.com>
+
+	* sym.h (STP_MAX_MODULES): Raise limit to 256.
+
 2007-07-06  Martin Hunt  <hunt@redhat.com>
 
 	* stat-common.c (__stp_stat_add): Fix calculations

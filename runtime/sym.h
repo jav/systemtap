@@ -49,7 +49,7 @@ struct _stp_module {
 };
 
 #ifndef STP_MAX_MODULES
-#define STP_MAX_MODULES 128
+#define STP_MAX_MODULES 256
 #endif
 
 /* the alphabetical array of modules */
