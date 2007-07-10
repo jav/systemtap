@@ -1,3 +1,8 @@
+2007-07-10  Martin Hunt  <hunt@redhat.com>
+
+	* uid16.c (main): 16-bit syscalls now have
+	the same name as 32-bit. Fix patterns.
+
 2007-07-03  Martin Hunt  <hunt@redhat.com>
 
 	* futimes.c: New test.

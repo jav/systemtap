@@ -17,54 +17,54 @@ int main ()
 	gid_t gid, rgid, egid, sgid;
 
 	uid = syscall(__NR_getuid);
-	// getuid16 () = NNNN
+	// getuid () = NNNN
 
 	uid = syscall(__NR_geteuid);
-	// geteuid16 () = NNNN
+	// geteuid () = NNNN
 
 	gid = syscall(__NR_getgid);
-	// getgid16 () = NNNN
+	// getgid () = NNNN
 
 	gid = syscall(__NR_getegid);
-	// getegid16 () = NNNN
+	// getegid () = NNNN
 
 
 
 	syscall(__NR_setuid, 4096);
-	// setuid16 (4096) =
+	// setuid (4096) =
 
 	syscall(__NR_setresuid, -1, 4097, -1);
-	// setresuid16 (-1, 4097, -1) =
+	// setresuid (-1, 4097, -1) =
 
 	syscall(__NR_getresuid, &ruid, &euid, &suid);
-	// getresuid16 (XXXX, XXXX, XXXX) =
+	// getresuid (XXXX, XXXX, XXXX) =
 
 	syscall(__NR_setgid, 4098);
-	// setgid16 (4098) =
+	// setgid (4098) =
 
 	syscall(__NR_setresgid, -1, 4099, -1);
-	// setresgid16 (-1, 4099, -1) =
+	// setresgid (-1, 4099, -1) =
 	
 	syscall(__NR_getresgid, &rgid, &egid, &sgid);
-	// getresgid16 (XXXX, XXXX, XXXX) =
+	// getresgid (XXXX, XXXX, XXXX) =
 
 	syscall(__NR_setreuid, -1, 5000);
-	// setreuid16 (-1, 5000) = 
+	// setreuid (-1, 5000) = 
 
 	syscall(__NR_setreuid, 5001, -1);
-	// setreuid16 (5001, -1) = 
+	// setreuid (5001, -1) = 
 
 	syscall(__NR_setregid, -1, 5002);
-	// setregid16 (-1, 5002) = 
+	// setregid (-1, 5002) = 
 
 	syscall(__NR_setregid, 5003, -1);
-	// setregid16 (5003, -1) = 
+	// setregid (5003, -1) = 
 
 	syscall(__NR_setfsuid, 5004);
-	// setfsuid16 (5004) = 
+	// setfsuid (5004) = 
 	
 	syscall(__NR_setfsgid, 5005);
-	// setfsgid16 (5005) =
+	// setfsgid (5005) =
 
 	return 0;
 }	

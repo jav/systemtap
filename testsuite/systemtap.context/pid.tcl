@@ -14,7 +14,6 @@ expect {
 	
 	set i 0
 	foreach t $tests {
-	    puts "Expecting [lindex $results $i]"
 	    expect {
 		-timeout 5
 		-re [lindex $results $i] {
