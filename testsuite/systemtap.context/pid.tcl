@@ -1,6 +1,6 @@
 set tests [list execname pexecname pid ppid tid uid euid gid egid]
 spawn stap pid.stp
-exp_internal 1
+#exp_internal 1
 expect {
     -timeout 240
     "READY" {
