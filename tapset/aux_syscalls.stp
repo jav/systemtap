@@ -812,12 +812,24 @@ function _adjtx_mode_str(f) {
  *    syscall.sigprocmask
  *    syscall.rt_sigprocmask
  */
-function _sigprocmask_how_str(how) {
-   if(how==0) return "SIG_BLOCK"
-   if(how==1) return "SIG_UNBLOCK"
-   if(how==2) return "SIG_SETMASK"
-   return ""
-}
+function _sigprocmask_how_str:string(how:long)
+%{ /* pure */
+	int len;
+	char *str = THIS->__retvalue;
+	switch (THIS->how) {
+	case SIG_BLOCK:
+		strlcpy(str, "SIG_BLOCK", MAXSTRINGLEN);
+		break;
+	case SIG_UNBLOCK:
+		strlcpy(str, "SIG_UNBLOCK", MAXSTRINGLEN);
+		break;
+	case SIG_SETMASK:
+		strlcpy(str, "SIG_SETMASK", MAXSTRINGLEN);
+		break;
+	default:
+		snprintf(str, MAXSTRINGLEN, "0x%lx", (long)THIS->how);
+	}	
+%}
 
 /*
  * Return the symbolic string representation
@@ -826,12 +838,13 @@ function _sigprocmask_how_str(how) {
  * CALLERS:
  *    syscall.getitimer
  *    syscall.setitimer
+ * INCLUDE: <linux/time.h>
  */
 function _itimer_which_str(which) {
    if(which==0) return "ITIMER_REAL"
    if(which==1) return "ITIMER_VIRTUAL"
    if(which==2) return "ITIMER_PROF"
-   return ""
+   return sprintf("BAD VALUE: %d", which)
 }
 
 /*
@@ -852,7 +865,7 @@ function _get_wc_str(wc) {
    if(wc==3) return "CLOCK_THREAD_CPUTIME_ID"
    if(wc==4) return "CLOCK_REALTIME_HR"
    if(wc==5) return "CLOCK_MONOTONIC_HR"
-   return "CLOCK_UNKNOWN"
+   return sprintf("BAD VALUE: %d", wc)
 }
 
 function _flock_cmd_str(c) {
@@ -1022,12 +1035,26 @@ function _recvflags_str(f) {
    return substr(bs,0,strlen(bs)-1)
 }
 
+%{
+#include <linux/mman.h>
+%}
+
 /* `man mlockall` for more information */
-function _mlockall_flags_str(f) {
-   if(f & 1) bs="MCL_CURRENT|".bs
-   if(f & 2) bs="MCL_FUTURE|".bs
-   return substr(bs,0,strlen(bs)-1)
-}
+function _mlockall_flags_str:string(flags:long)
+%{ /* pure */
+	int len;
+	long f = THIS->flags;
+	char *str = THIS->__retvalue;
+	if (f & MCL_CURRENT)
+		strlcat(str, "MCL_CURRENT|", MAXSTRINGLEN);
+	if (f & MCL_FUTURE)
+		strlcat(str, "MCL_FUTURE|", MAXSTRINGLEN);
+	len = strlen(str);
+	if (len)
+		str[strlen(str)-1] = 0;
+	else	
+		snprintf(str, MAXSTRINGLEN, "0x%lx", f);
+%}
 
 /* used by sys_delete_module */
 function _module_flags_str(f) {	

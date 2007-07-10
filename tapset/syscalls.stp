@@ -1000,73 +1000,74 @@ probe syscall.getdents64.return = kernel.function("sys_getdents64").return {
 
 # getegid ____________________________________________________
 # long sys_getegid(void)
-probe syscall.getegid = kernel.function("sys_getegid") {
-	name = "getegid"
-}
-probe syscall.getegid.return = kernel.function("sys_getegid").return {
-	name = "getegid"
-	retstr = returnstr(1)
-}
-
-# getegid16 __________________________________________________
 # long sys_getegid16(void)
-probe syscall.getegid16 = kernel.function("sys_getegid16") ? {
-	name = "getegid16"
+#
+probe syscall.getegid =
+		kernel.function("sys_getegid16") ?,
+		kernel.function("sys_getegid")
+{
+	name = "getegid"
 }
-probe syscall.getegid16.return = kernel.function("sys_getegid16").return ? {
-	name = "getegid16"
+probe syscall.getegid.return =
+		kernel.function("sys_getegid16").return ?,
+		kernel.function("sys_getegid").return
+{
+	name = "getegid"
 	retstr = returnstr(1)
 }
 
 # geteuid ____________________________________________________
 # long sys_geteuid(void)
-probe syscall.geteuid = kernel.function("sys_geteuid") {
+probe syscall.geteuid = 
+		kernel.function("sys_geteuid16") ?,
+		kernel.function("sys_geteuid")
+{
 	name = "geteuid"
 }
-probe syscall.geteuid.return = kernel.function("sys_geteuid").return {
+probe syscall.geteuid.return = 
+		kernel.function("sys_geteuid16").return ?,
+		kernel.function("sys_geteuid").return
+{
 	name = "geteuid"
-	retstr = returnstr(1)
-}
-
-# geteuid16 __________________________________________________
-# long sys_geteuid16(void)
-probe syscall.geteuid16 = kernel.function("sys_geteuid16") ? {
-	name = "geteuid16"
-}
-probe syscall.geteuid16.return = kernel.function("sys_geteuid16").return ? {
-	name = "geteuid16"
 	retstr = returnstr(1)
 }
 
 # getgid _____________________________________________________
 # long sys_getgid(void)
-probe syscall.getgid =kernel.function("sys_getgid") {
+probe syscall.getgid = 
+		kernel.function("sys_getgid16") ?,
+		kernel.function("sys_getgid") 
+{
 	name = "getgid"
 }
-probe syscall.getgid.return = kernel.function("sys_getgid").return {
+probe syscall.getgid.return = 
+		kernel.function("sys_getgid16").return ?,
+		kernel.function("sys_getgid").return
+{
 	name = "getgid"
-	retstr = returnstr(1)
-}
-
-# getgid16 ___________________________________________________
-# long sys_getgid16(void)
-probe syscall.getgid16 = kernel.function("sys_getgid16") ? {
-	name = "getgid16"
-}
-probe syscall.getgid16.return = kernel.function("sys_getgid16").return ? {
-	name = "getgid16"
 	retstr = returnstr(1)
 }
 
 # getgroups __________________________________________________
 # long sys_getgroups(int gidsetsize, gid_t __user *grouplist)
-probe syscall.getgroups = kernel.function("sys_getgroups") {
+# long sys_getgroups16(int gidsetsize, old_gid_t __user *grouplist)
+# long sys32_getgroups16(int gidsetsize, u16 __user *grouplist)
+#
+probe syscall.getgroups = 
+		kernel.function("sys_getgroups") ?,
+		kernel.function("sys_getgroups16") ?,
+		kernel.function("sys32_getgroups16") ?
+{
 	name = "getgroups"
 	size = $gidsetsize
 	list_uaddr = $grouplist
-	argstr = sprintf("%d, %p", size, list_uaddr)
+	argstr = sprintf("%d, %p", $gidsetsize, $grouplist)
 }
-probe syscall.getgroups.return = kernel.function("sys_getgroups").return {
+probe syscall.getgroups.return = 
+		kernel.function("sys_getgroups").return ?,
+		kernel.function("sys_getgroups16").return ?,
+		kernel.function("sys32_getgroups16").return ?
+{
 	name = "getgroups"
 	retstr = returnstr(1)
 }
@@ -1085,7 +1086,8 @@ probe syscall.gethostname.return = kernel.function("sys_gethostname").return ? {
 }
 
 # getitimer __________________________________________________
-# long sys_getitimer(int which, struct itimerval __user *value)
+# sys_getitimer(int which, struct itimerval __user *value)
+#
 probe syscall.getitimer = kernel.function("sys_getitimer") {
 	name = "getitimer"
 	which = $which
@@ -1202,31 +1204,24 @@ probe syscall.getpriority.return = kernel.function("sys_getpriority").return {
 # long sys_getresgid(gid_t __user *rgid,
 #                    gid_t __user *egid,
 #                    gid_t __user *sgid)
-probe syscall.getresgid = kernel.function("sys_getresgid") {
-	name = "getresgid"
-	rgid_uaddr = $rgid
-	egid_uaddr = $egid
-	sgid_uaddr = $sgid
-	argstr = sprintf("%p, %p, %p", rgid_uaddr, egid_uaddr, sgid_uaddr)
-}
-probe syscall.getresgid.return = kernel.function("sys_getresgid").return {
-	name = "getresgid"
-	retstr = returnstr(1)
-}
-
-# getresgid16 ________________________________________________
 # long sys_getresgid16(old_uid_t __user *rgid,
 #                 old_uid_t __user *egid,
 #                 old_uid_t __user *sgid)
-probe syscall.getresgid16 = kernel.function("sys_getresgid16") ? {
-	name = "getresgid16"
+probe syscall.getresgid =
+		kernel.function("sys_getresgid16") ?,
+		kernel.function("sys_getresgid") 
+{
+	name = "getresgid"
 	rgid_uaddr = $rgid
 	egid_uaddr = $egid
 	sgid_uaddr = $sgid
-	argstr = sprintf("%p, %p, %p", rgid_uaddr, egid_uaddr, sgid_uaddr)
+	argstr = sprintf("%p, %p, %p", $rgid, $egid, $sgid)
 }
-probe syscall.getresgid16.return = kernel.function("sys_getresgid16").return ? {
-	name = "getresgid16"
+probe syscall.getresgid.return =
+		kernel.function("sys_getresgid16").return ?,
+		kernel.function("sys_getresgid").return
+{
+	name = "getresgid"
 	retstr = returnstr(1)
 }
 
@@ -1234,31 +1229,21 @@ probe syscall.getresgid16.return = kernel.function("sys_getresgid16").return ? {
 # long sys_getresuid(uid_t __user *ruid, 
 #		uid_t __user *euid,
 #		uid_t __user *suid)
-probe syscall.getresuid = kernel.function("sys_getresuid") {
+probe syscall.getresuid = 
+		kernel.function("sys_getresuid16") ?,
+		kernel.function("sys_getresuid")
+{
 	name = "getresuid"
 	ruid_uaddr = $ruid
 	euid_uaddr = $euid
 	suid_uaddr = $suid
-	argstr = sprintf("%p, %p, %p", ruid_uaddr, euid_uaddr, suid_uaddr)
+	argstr = sprintf("%p, %p, %p", $ruid, $euid, $suid)
 }
-probe syscall.getresuid.return = kernel.function("sys_getresuid").return {
+probe syscall.getresuid.return =
+		kernel.function("sys_getresuid16").return ?,
+		kernel.function("sys_getresuid").return 
+{
 	name = "getresuid"
-	retstr = returnstr(1)
-}
-
-# getresuid16 ________________________________________________
-# long sys_getresuid16(old_uid_t __user *ruid,
-#		old_uid_t __user *euid,
-#		old_uid_t __user *suid)
-probe syscall.getresuid16 = kernel.function("sys_getresuid16") ? {
-	name = "getresuid16"
-	ruid_uaddr = $ruid
-	euid_uaddr = $euid
-	suid_uaddr = $suid
-	argstr = sprintf("%p, %p, %p", ruid_uaddr, euid_uaddr, suid_uaddr)
-}
-probe syscall.getresuid16.return = kernel.function("sys_getresuid16").return ? {
-	name = "getresuid16"
 	retstr = returnstr(1)
 }
 
@@ -1388,22 +1373,20 @@ probe syscall.gettimeofday.return =
 }
 
 # getuid _____________________________________________________
-# long sys_getuid(void)
-probe syscall.getuid = kernel.function("sys_getuid") {
-	name = "getuid"
-}
-probe syscall.getuid.return = kernel.function("sys_getuid").return {
-	name = "getuid"
-	retstr = returnstr(1)
-}
-
-# getuid16 ___________________________________________________
+# long sys_getuid(void
 # long sys_getuid16(void)
-probe syscall.getuid16 = kernel.function("sys_getuid16") ? {
-	name = "getuid16"
+#
+probe syscall.getuid =
+		kernel.function("sys_getuid16") ?,
+		kernel.function("sys_getuid")
+{
+	name = "getuid"
 }
-probe syscall.getuid16.return = kernel.function("sys_getuid16").return ? {
-	name = "getuid16"
+probe syscall.getuid.return =
+		kernel.function("sys_getuid16").return ?,
+		kernel.function("sys_getuid").return
+{
+	name = "getuid"
 	retstr = returnstr(1)
 }
 
@@ -1440,6 +1423,51 @@ probe syscall.init_module = kernel.function("sys_init_module") {
 }
 probe syscall.init_module.return = kernel.function("sys_init_module").return {
 	name = "init_module"
+	retstr = returnstr(1)
+}
+
+# inotify_add_watch __________________________________________
+#
+# long sys_inotify_add_watch(int fd, const char __user *path, u32 mask)
+#
+probe syscall.inotify_add_watch = kernel.function("sys_inotify_add_watch") ? {
+	name = "inotify_add_watch"
+	fd = $fd
+	path_uaddr = $path
+	path = user_string($path)
+	mask = $mask
+	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($path), $mask)
+}
+probe syscall.inotify_add_watch.return = kernel.function("sys_inotify_add_watch").return ? {
+	name = "inotify_add_watch"
+	retstr = returnstr(1)
+}
+
+# inotify_init _______________________________________________
+#
+# long sys_inotify_init(void)
+#
+probe syscall.inotify_init = kernel.function("sys_inotify_init") ? {
+	name = "inotify_init"
+	argstr = ""
+}
+probe syscall.inotify_init.return = kernel.function("sys_inotify_init").return ? {
+	name = "inotify_init"
+	retstr = returnstr(1)
+}
+
+# inotify_rm_watch ___________________________________________
+#
+# long sys_inotify_rm_watch(int fd, u32 wd)
+#
+probe syscall.inotify_rm_watch = kernel.function("sys_inotify_rm_watch") ? {
+	name = "inotify_rm_watch"
+	fd = $fd
+	wd = $wd
+	argstr = sprintf("%d, %d", $fd, $wd)
+}
+probe syscall.inotify_rm_watch.return = kernel.function("sys_inotify_rm_watch").return ? {
+	name = "inotify_rm_watch"
 	retstr = returnstr(1)
 }
 
@@ -1980,15 +2008,13 @@ probe syscall.mknod.return = kernel.function("sys_mknod").return {
 
 # mlock ______________________________________________________
 #
-# asmlinkage long
-# sys_mlock(unsigned long start,
-#           size_t len)
+# long sys_mlock(unsigned long start, size_t len)
 #
 probe syscall.mlock = kernel.function("sys_mlock") {
 	name = "mlock"
 	addr = $start
 	len = $len
-	argstr = sprintf("0x%p, %d", addr, len)
+	argstr = sprintf("%p, %d", $start, $len)
 }
 probe syscall.mlock.return = kernel.function("sys_mlock").return {
 	name = "mlock"
@@ -1996,14 +2022,12 @@ probe syscall.mlock.return = kernel.function("sys_mlock").return {
 }
 # mlockall ___________________________________________________
 #
-# asmlinkage long
-# sys_mlockall(int flags)
+# long sys_mlockall(int flags)
 #
 probe syscall.mlockall = kernel.function("sys_mlockall") {
 	name = "mlockall"
 	flags = $flags
-	flags_str = _mlockall_flags_str($flags)
-	argstr = flags_str
+	argstr = _mlockall_flags_str($flags)
 }
 probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 	name = "mlockall"

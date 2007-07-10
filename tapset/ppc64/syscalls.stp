@@ -1,34 +1,4 @@
 
-# compat_sys_getitimer ________________________________________
-#
-# asmlinkage long compat_sys_getitimer(int which,
-#			struct compat_itimerval __user *it)
-#
-probe syscall.compat_sys_getitimer = kernel.function("compat_sys_getitimer") {
-	name = "compat_sys_getitimer"
-	which = $which
-	value_uaddr = $it
-	argstr = sprintf("%s, %p", _itimer_which_str(which), value_uaddr)
-}
-probe syscall.compat_sys_getitimer.return =
-	kernel.function("compat_sys_getitimer").return {
-	name = "compat_sys_getitimer"
-	retstr = returnstr(1)
-}
-# compat_sys_times ________________________________________
-#
-# asmlinkage long compat_sys_times(struct compat_tms __user *tbuf)
-#
-probe syscall.compat_sys_times = kernel.function("compat_sys_times") {
-	name = "compat_sys_times"
-	buf_uaddr = $tbuf
-	argstr = sprintf("%p", buf_uaddr)
-}
-probe syscall.compat_sys_times.return =
-	kernel.function("compat_sys_times").return {
-	name = "compat_sys_times"
-	retstr = returnstr(1)
-}
 # compat_sys_sigpending ________________________________________
 #
 # asmlinkage long compat_sys_sigpending(compat_old_sigset_t __user *set)
@@ -43,25 +13,7 @@ probe syscall.compat_sys_sigpending.return =
 	name = "compat_sys_sigpending"
 	retstr = returnstr(1)
 }
-# compat_sys_sigprocmask ________________________________________
-#
-# asmlinkage long compat_sys_sigprocmask(int how,
-#			compat_old_sigset_t __user *set,
-#			compat_old_sigset_t __user *oset)
-#
-probe syscall.compat_sys_sigprocmask = kernel.function("compat_sys_sigprocmask") {
-	name = "compat_sys_sigprocmask"
-	how  = $how
-	set_uaddr = $set
-	oldset_uaddr = $oset
-	argstr = sprintf("%s, %p, %p", _sigprocmask_how_str($how),
-			set_uaddr, oldset_uaddr)
-}
-probe syscall.compat_sys_sigprocmask.return =
-	kernel.function("compat_sys_sigprocmask").return {
-	name = "compat_sys_sigprocmask"
-	retstr = returnstr(1)
-}
+
 # compat_sys_futex ________________________________________
 #
 # asmlinkage long compat_sys_futex(u32 __user *uaddr, int op, int val,
@@ -388,28 +340,6 @@ probe syscall.compat_sys_select = kernel.function("compat_sys_select") {
 probe syscall.compat_sys_select.return =
 	kernel.function("compat_sys_select").return {
 	name = "compat_sys_select"
-	retstr = returnstr(1)
-}
-# compat_rt_sigaction _______________________________________________
-#
-# long compat_sys_rt_sigaction(int sig,
-#                       const struct sigaction __user *act,
-#                       struct sigaction __user *oact,
-#                       size_t sigsetsize)
-#
-probe syscall.compat_rt_sigaction = kernel.function("compat_sys_rt_sigaction")?,
-		kernel.function("sys32_rt_sigaction") ? {
-	name = "rt_sigaction"
-	sig = $sig
-	act_uaddr = $act
-	oact_uaddr = $oact
-	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
-}
-probe syscall.compat_rt_sigaction.return =
-	kernel.function("compat_sys_rt_sigaction").return ? ,
-	kernel.function("sys32_rt_sigaction").return ? {
-	name = "rt_sigaction"
 	retstr = returnstr(1)
 }
 
@@ -958,63 +888,6 @@ probe syscall.sys32_ptrace.return = kernel.function("sys32_ptrace").return ? {
 	name = "sys32_ptrace"
 	retstr = returnstr(1)
 }
-# sys32_pause ________________________________________
-#
-# asmlinkage long sys32_pause(void)
-#
-probe syscall.sys32_pause = kernel.function("sys32_pause") ? {
-	name = "sys32_pause"
-	argstr = ""
-}
-probe syscall.sys32_pause.return = kernel.function("sys32_pause").return ? {
-	name = "sys32_pause"
-	retstr = returnstr(1)
-}
-# sys32_olduname ________________________________________
-#
-# asmlinkage int sys32_olduname(struct oldold_utsname __user * name)
-#
-probe syscall.sys32_olduname = kernel.function("sys32_olduname") ? {
-	name = "sys32_olduname"
-	name_uaddr = $name
-	argstr = sprintf("%p", name_uaddr)
-}
-probe syscall.sys32_olduname.return = kernel.function("sys32_olduname").return ?{
-	name = "sys32_olduname"
-	retstr = returnstr(1)
-}
-# sys32_sigaction ________________________________________
-#
-# long sys32_sigaction(int sig, struct old_sigaction32 __user *act,
-#		struct old_sigaction32 __user *oact)
-#
-probe syscall.sys32_sigaction = kernel.function("sys32_sigaction") ? {
-	name = "sys32_sigaction"
-	sig = $sig
-	act_uaddr = $act
-	oact_uaddr = $oact
-	argstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
-}
-probe syscall.sys32_sigaction.return =
-	kernel.function("sys32_sigaction").return ? {
-	name = "sys32_sigaction"
-	retstr = returnstr(1)
-}
-# sys32_sigsuspend ________________________________________
-#
-# long sys32_sigsuspend(old_sigset_t mask, int p2, int p3, int p4, int p6,
-#			int p7, struct pt_regs *regs)
-#
-probe syscall.sys32_sigsuspend = kernel.function("sys32_sigsuspend") ? {
-	name = "sys32_sigsuspend"
-	mask = $mask
-	argstr = sprintf("%p", mask)
-}
-probe syscall.sys32_sigsuspend.return =
-	kernel.function("sys32_sigsuspend").return ? {
-	name = "sys32_sigsuspend"
-	retstr = returnstr(1)
-}
 # sys32_sysinfo ________________________________________
 #
 # asmlinkage long sys32_sysinfo(struct sysinfo32 __user *info)
@@ -1150,48 +1023,7 @@ probe syscall.sys32_sched_rr_get_interval.return =
 	name = "sys32_sched_rr_get_interval"
 	retstr = returnstr(1)
 }
-# sys32_rt_sigreturn ________________________________________
-#
-# long sys32_rt_sigreturn(int r3, int r4, int r5, int r6, int r7, int r8,
-#			struct pt_regs *regs)
-#
-#
-probe syscall.sys32_rt_sigreturn = kernel.function("sys32_rt_sigreturn") ? {
-	name = "sys32_rt_sigreturn"
-	r3 = $r3
-	r4 = $r4
-	r5 = $r5
-	r6 = $r6
-	r7 = $r7
-	r8 = $r8
-	argstr = sprintf("%p, %p, %p, %p, %p, %p",
-				r3, r4, r5, r6, r7, r8)
-}
-probe syscall.sys32_rt_sigreturn.return =
-	kernel.function("sys32_rt_sigreturn").return ? {
-	name = "sys32_rt_sigreturn"
-	retstr = returnstr(1)
-}
-# sys32_rt_sigprocmask ________________________________________
-#
-# long sys32_rt_sigprocmask(u32 how, compat_sigset_t __user *set,
-#		compat_sigset_t __user *oset, size_t sigsetsize)
-#
-probe syscall.sys32_rt_sigprocmask = kernel.function("sys32_rt_sigprocmask") ? {
-	name = "sys32_rt_sigprocmask"
-	how = $how
-	how_str = _sigprocmask_how_str($how)
-	set_uaddr = $set
-	oset_uaddr = $oset
-	sigsetsize = $sigsetsize
-	argstr = sprintf("%s, %p, %p, %d", how_str, $set,
-				$oset, $sigsetsize)
-}
-probe syscall.sys32_rt_sigprocmask.return =
-	kernel.function("sys32_rt_sigprocmask").return ? {
-	name = "sys32_rt_sigprocmask"
-	retstr = returnstr(1)
-}
+
 # sys32_rt_sigpending ________________________________________
 #
 # long sys32_rt_sigpending(compat_sigset_t __user *set,
