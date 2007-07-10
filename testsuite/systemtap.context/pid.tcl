@@ -1,10 +1,11 @@
 set tests [list execname pexecname pid ppid tid uid euid gid egid]
 spawn stap pid.stp
+exp_internal 1
 expect {
     -timeout 240
     "READY" {
 	set pid [exec echo 1 > /proc/stap_test_cmd &]
-	set ppid [lindex [split [exec grep PPid /proc/$pid/status]] 1]
+	set ppid {[0-9]*}
 	set uid [exec id -ru]
 	set gid [exec id -rg]
 	set euid [exec id -u]
@@ -13,9 +14,10 @@ expect {
 	
 	set i 0
 	foreach t $tests {
+	    puts "Expecting [lindex $results $i]"
 	    expect {
 		-timeout 5
-		[lindex $results $i] {
+		-re [lindex $results $i] {
 		    pass $t
 		}
 		timeout {fail "$t - timeout"}
