@@ -50,7 +50,7 @@ function _struct_compat_timeval_u:string(uaddr:long)
 
 function _struct_compat_timeval2_u:string(uaddr:long)
 %{ /* pure */
-	struct timeval tv[2];
+	struct compat_timeval tv[2];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
 	if (ptr == NULL)
@@ -58,7 +58,7 @@ function _struct_compat_timeval2_u:string(uaddr:long)
 	else {
 		if(_stp_copy_from_user((char*)&tv,ptr,2*sizeof(struct compat_timeval)) == 0)
 			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
-				tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
+				(long)tv[0].tv_sec, (long)tv[0].tv_usec, (long)tv[1].tv_sec, (long)tv[1].tv_usec);
 	   	else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}

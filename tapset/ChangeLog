@@ -1,5 +1,9 @@
 2007-07-10  Martin Hunt  <hunt@redhat.com>
 
+	* aux_syscalls.stp (_struct_compat_timeval2_u): 
+	Fixes.
+
+2007-07-10  Martin Hunt  <hunt@redhat.com>	
 	* syscall*.stp: Major reorganization work.
 	* aux_syscalls.stp (_sigprocmask_how_str): Rewrite
 	in C so real arch-dependent header files
@@ -12,7 +16,7 @@
 2007-07-09  Martin Hunt  <hunt@redhat.com>	
 
 	* syscalls2.stp (compat_sys_utimes): New.
-	* ppc64/syscalls.stp (ciompat_sys_utimes): Removed.
+	* ppc64/syscalls.stp (compat_sys_utimes): Removed.
 
 	* syscalls.stp (compat_sys_futimesat): Fix arg.
 
