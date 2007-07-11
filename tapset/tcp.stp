@@ -1,6 +1,7 @@
 // TCP tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2007 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -70,6 +71,9 @@ function tcp_ts_get_info_state:long(sock:long)
 	CATCH_DEREF_FAULT();
 %}
 
+function tcp_sockstate_str:string (state:long) {
+	return (state in sockstate ? sockstate[state] : "UNDEF")
+}
 
 // Get slow start threshold size.  If cwnd size is less than or equal to
 // threshold size, then TCP is in slow start; otherwise TCP is in congestion
@@ -100,6 +104,10 @@ function tcp_ts_get_info_rcv_mss:long(sock:long)
 #endif
 	CATCH_DEREF_FAULT();
 %}
+
+function tcp_sockopt_str:string (optname:long) {
+	return (optname in sockopt ? sockopt[optname] : "UNDEF")
+}
 
 // probe tcp.sendmsg
 //
@@ -189,4 +197,62 @@ probe tcp.disconnect = kernel.function("tcp_disconnect") {
 //
 probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
 	ret = $return 
+}
+
+// probe tcp.setsockopt
+//
+//  Fires whenever setsockopt(s, IPPROTO_TCP, TCP_*, ...) is called
+//
+// Context:
+//  The process which calls setsockopt
+//
+// Arguments:
+// sock	      - network socket
+// level      - the level at which the socket options will be manipulated
+// optname    - TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
+// optstr     - resolves optname to a human-readable format
+// optlen     - used to access values for setsockopt()
+//
+probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
+	sock = $sk
+	level = $level
+	optname = $optname
+	optstr = tcp_sockopt_str($optname)
+	optlen = $optlen
+}
+
+probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
+	ret = $return
+}
+
+global sockopt[15], sockstate[13]
+
+probe begin(-1) {
+        sockopt[1] = "TCP_NODELAY"
+        sockopt[2] = "TCP_MAXSEG"
+        sockopt[3] = "TCP_CORK"
+        sockopt[4] = "TCP_KEEPIDLE"
+        sockopt[5] = "TCP_KEEPINTVL"
+        sockopt[6] = "TCP_KEEPCNT"
+        sockopt[7] = "TCP_SYNCNT"
+        sockopt[8] = "TCP_LINGER2"
+        sockopt[9] = "TCP_DEFER_ACCEPT"
+        sockopt[10] = "TCP_WINDOW_CLAMP"
+        sockopt[11] = "TCP_INFO"
+        sockopt[12] = "TCP_QUICKACK"
+        sockopt[13] = "TCP_CONGESTION"
+        sockopt[14] = "TCP_MD5SIG"
+
+	sockstate[1] = "TCP_ESTABLISED"
+	sockstate[2] = "TCP_SYN_SENT"
+	sockstate[3] = "TCP_SYN_RECV"
+	sockstate[4] = "TCP_FIN_WAIT1"
+	sockstate[5] = "TCP_FIN_WAIT2"
+	sockstate[6] = "TCP_TIME_WAIT"
+	sockstate[7] = "TCP_CLOSE"
+	sockstate[8] = "TCP_CLOSE_WAIT"
+	sockstate[9] = "TCP_LAST_ACK"
+	sockstate[10] = "TCP_LISTEN"
+	sockstate[11] = "TCP_CLOSING"
+	sockstate[12] = "TCP_MAX_STATES"
 }

@@ -1,3 +1,9 @@
+2007-07-11  Eugene Teo  <eteo@redhat.com>
+
+	* tcp.stp (tcp_sockstate_str, tcp_sockopt_str,
+	tcp_setsockopt): New. Also added sockopt and sockstate
+	lookup tables.
+
 2007-07-10  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_struct_compat_timeval2_u): 
