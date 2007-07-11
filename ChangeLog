@@ -1,3 +1,7 @@
+2007-07-11  William Cohen  <wcohen@redhat.com>
+
+	* systemtap.spec.in: Make sqlite support selectable.
+	
 2007-07-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Don't AC_MSG_ERROR if don't HAVE_LIBSQLITE3.

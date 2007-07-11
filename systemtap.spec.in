@@ -1,20 +1,24 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 1
+%define release 2
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
 # Set bundled_elfutils to 0 on systems that have %{elfutils_version} or newer.
 %if 0%{?fedora}
 %define bundled_elfutils 1
+%define sqlite 0
 %if "%fedora" >= "6"
 %define bundled_elfutils 0
+%define sqlite 1
 %endif
 %endif
 
 %if 0%{?rhel}
 %define bundled_elfutils 1
+%define sqlite 0
 %if "%rhel" >= "5"
 %define bundled_elfutils 0
+%define sqlite 1
 %endif
 %endif
 
@@ -22,6 +26,12 @@
 # Yo!  DO NOT TOUCH THE FOLLOWING LINE.
 # You can use rpmbuild --define "bundled_elfutils 0" for a build of your own.
 %define bundled_elfutils 1
+%endif
+
+%if 0%{!?sqlite:1}
+# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
+# You can use rpmbuild --define "sqlite 1" for a build of your own.
+%define sqlite 0
 %endif
 
 Name: systemtap
@@ -39,7 +49,10 @@ Requires: kernel >= 2.6.9-11
 BuildRequires: glib2-devel >= 2.0.0
 # make check
 BuildRequires: dejagnu
+%if %{sqlite}
 BuildRequires: sqlite-devel
+Requires: sqlite
+%endif
 Requires: glib2 >= 2.0.0
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
@@ -47,7 +60,6 @@ Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
 Requires: sudo
-Requires: sqlite
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -104,7 +116,12 @@ cd ..
 %define elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
 %endif
 
-%configure %{?elfutils_config}
+%if %{sqlite}
+# Include the coverage testing support
+%define sqlite_config --enable-sqlitedb
+%endif
+
+%configure %{?elfutils_config} %{?sqlite_config}
 make %{?_smp_mflags}
 
 # Fix paths in the example scripts
@@ -151,6 +168,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc README AUTHORS NEWS COPYING
 
 %changelog
+* Wed Jul 11 2007 Will Cohen <wcohen@redhat.com> - 0.5.14-2
+- Fix Requires and BuildRequires for sqlite.
+
 * Tue Jul  2 2007 Frank Ch. Eigler <fche@redhat.com> - 0.5.14-1
 - Many robustness improvements: 1117, 1134, 1305, 1307, 1570, 1806,
   2033, 2116, 2224, 2339, 2341, 2406, 2426, 2438, 2583, 3037,
