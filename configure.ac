@@ -75,8 +75,7 @@ fi])
 
 
 SAVE_LIBS="$LIBS"
-AC_CHECK_LIB(sqlite3, sqlite3_open,,[
-    AC_MSG_ERROR([missing sqlite development headers/libraries])])
+AC_CHECK_LIB(sqlite3, sqlite3_open)
 sqlite3_LIBS="$LIBS"
 AC_SUBST(sqlite3_LIBS)
 LIBS="$SAVE_LIBS"

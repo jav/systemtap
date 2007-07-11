@@ -100,7 +100,9 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "   -x PID     sets target() to PID" << endl
     << "   -t         collect probe timing information" << endl
+#ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage"
+#endif /* HAVE_LIBSQLITE3 */
     << endl
     ;
   // -d: dump safety-related external references
@@ -802,7 +804,11 @@ pass_5:
 
   // update the database information
   if (!rc && s.tapset_compile_coverage) {
+#ifdef HAVE_LIBSQLITE3
     update_coverage_db(s);
+#else
+    cerr << "Coverage database not available without libsqlite3" << endl;
+#endif
   }
 
   // Clean up temporary directory.  Obviously, be careful with this.

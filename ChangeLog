@@ -1,3 +1,10 @@
+2007-07-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Don't AC_MSG_ERROR if don't HAVE_LIBSQLITE3.
+	* coveragedb.cxx: Compile to nothing unless HAVE_LIBSQLITE3.
+	* main.cxx: Print no error message on -q if HAVE_LIBSQLITE3.
+	* configure: Regenerated, looks rosier with HAVE_LIBSQLITE3.
+
 2007-07-08  William Cohen  <wcohen@redhat.com>
 
 	PR 4529

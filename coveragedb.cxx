@@ -14,6 +14,8 @@
 #include "session.h"
 #include "util.h"
 
+#ifdef HAVE_LIBSQLITE3
+
 #include <iostream>
 #include <sqlite3.h>
 #include <cstdlib>
@@ -363,3 +365,5 @@ void update_coverage_db(systemtap_session &s)
 
   sqlite3_close(db);
 }
+
+#endif /* HAVE_LIBSQLITE3 */

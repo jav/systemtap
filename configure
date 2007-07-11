@@ -5991,11 +5991,6 @@ _ACEOF
 
   LIBS="-lsqlite3 $LIBS"
 
-else
-
-    { { echo "$as_me:$LINENO: error: missing sqlite development headers/libraries" >&5
-echo "$as_me: error: missing sqlite development headers/libraries" >&2;}
-   { (exit 1); exit 1; }; }
 fi
 
 sqlite3_LIBS="$LIBS"
