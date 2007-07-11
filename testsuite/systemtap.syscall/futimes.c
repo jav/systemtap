@@ -19,7 +19,7 @@ int main()
   
   utimes("foobar", tv);
   // utimes ("foobar", \[1000000000.001234\]\[2000000000.005678\])
-
+#ifdef SYS_futimesat
   futimes(fd, tv);
   // futimesat (-100, "foobar", \[1000000000.001234\]\[2000000000.005678\])
 
@@ -28,6 +28,6 @@ int main()
 
   futimesat(AT_FDCWD, "foobar", tv);
   // futimesat (-100, "foobar", \[1000000000.001234\]\[2000000000.005678\])
-
+#endif /* SYS_futimesat */
   return 0;
 }
