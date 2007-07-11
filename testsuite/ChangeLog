@@ -1,3 +1,8 @@
+2007-07-10  Martin Hunt  <hunt@localhost.localdomain>
+
+	* systemtap.context/context.exp: Copy modules to
+	/lib/modules/`uname -r`/kernel for debug info.
+	
 2007-07-10  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.context/pid.tcl: Don't try to get real ppid,

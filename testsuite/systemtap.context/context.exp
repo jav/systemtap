@@ -13,7 +13,7 @@ proc cleanup {} {
     global build_dir
     catch {send "\003"}
     foreach n {1 2} {
-	catch {exec sudo /bin/rm -f /lib/modules/$::uname/systemtap_test_module$n.ko}
+	catch {exec sudo /bin/rm -f /lib/modules/$::uname/kernel/systemtap_test_module$n.ko}
 	catch {exec sudo /sbin/rmmod systemtap_test_module$n}
     }
     if {$build_dir != ""} {exec rm -rf $build_dir}
@@ -46,7 +46,7 @@ proc build_modules {} {
 	    cd $old_dir
 	    return 0
 	}
-	if {[catch {exec sudo cp systemtap_test_module$n.ko /lib/modules/$::uname} res]} {
+	if {[catch {exec sudo cp systemtap_test_module$n.ko /lib/modules/$::uname/kernel} res]} {
 	    puts $res
 	    cd $old_dir
 	    return 0
