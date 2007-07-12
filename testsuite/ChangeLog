@@ -1,3 +1,9 @@
+2007-07-12  David Smith  <dsmith@redhat.com>
+
+	* systemtap.maps/pmap_agg_overflow.exp: On single processor
+	systems, this test reported an unsupported test and a test failure
+	when it should have only reported an unsupported test.  Fixed.
+
 2007-07-10  Martin Hunt  <hunt@localhost.localdomain>
 
 	* systemtap.context/context.exp: Copy modules to

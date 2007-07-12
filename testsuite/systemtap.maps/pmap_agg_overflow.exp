@@ -8,6 +8,7 @@ set pass2 "WARNING: Number of errors: 2, skipped probes: 0\r\n"
 set skip_result "^WARNING: This test only applies to smp systems\.\.\.\r\n"
 
 set pass 0
+set unsupported 0
 
 spawn stap -DMAXERRORS=1 -g $srcdir/$subdir/$test.stp
 expect {
@@ -15,7 +16,7 @@ expect {
     -re  $pass1 {incr pass; exp_continue}
     -re  $pass2 {incr pass; exp_continue}
     -re $skip_result {
-	unsupported "$test requires smp"
+	set unsupported 1
     }
     timeout {
 	send "\003"
@@ -29,6 +30,8 @@ wait
 
 if {$pass == 3} {
     pass $test
+} elseif {$unsupported == 1} {
+    unsupported "$test requires smp"
 } else {
     fail "$test ($pass)"
 }
