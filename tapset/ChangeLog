@@ -1,5 +1,7 @@
 2007-07-16  Martin Hunt  <hunt@redhat.com>
+	(compat_sys_io_submit): Fix typo.
 
+2007-07-16  Martin Hunt  <hunt@redhat.com>	
 	* syscalls.stp (compat_sys_fcntl64, compat_sys_fcntl): Add.
 	(compat_sys_fstatfs64): Add.
 	(compat_sys_getdents, compat_sys_getdents64): Add.

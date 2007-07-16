@@ -1600,8 +1600,8 @@ probe syscall.io_setup.return = kernel.function("sys_io_setup").return {
 probe syscall.compat_io_setup = kernel.function("compat_sys_io_setup") ? {
 	name = "io_setup"
 	maxevents = $nr_reqs
-	ctxp_uaddr = $ctxp32p
-	argstr = sprintf("%d, %p", $nr_reqs, $ctxp32p)
+	ctxp_uaddr = $ctx32p
+	argstr = sprintf("%d, %p", $nr_reqs, $ctx32p)
 }
 
 probe syscall.compat_io_setup.return = kernel.function("compat_sys_io_setup").return ? {
