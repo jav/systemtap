@@ -175,23 +175,6 @@ probe syscall.compat_sys_newlstat.return =
 	retstr = returnstr(1)
 }
 
-# compat_sys_ioctl ________________________________________
-#
-# asmlinkage long compat_sys_ioctl(unsigned int fd, unsigned int cmd,
-#			unsigned long arg)
-#
-probe syscall.compat_sys_ioctl = kernel.function("compat_sys_ioctl") {
-	name = "compat_sys_ioctl"
-	d = $fd
-	request = cmd
-	arg = $arg
-	argstr = sprintf("%d, %d, %p", fd, request, arg)
-}
-probe syscall.compat_sys_ioctl.return =
-	kernel.function("compat_sys_ioctl").return {
-	name = "compat_sys_ioctl"
-	retstr = returnstr(1)
-}
 # compat_sys_fcntl64 ________________________________________
 #
 # asmlinkage long compat_sys_fcntl64(unsigned int fd, unsigned int cmd,
@@ -226,141 +209,7 @@ probe syscall.compat_sys_fcntl.return =
 	name = "compat_sys_fcntl"
 	retstr = returnstr(1)
 }
-# compat_sys_io_setup ________________________________________
-#
-# asmlinkage long compat_sys_io_setup(unsigned nr_reqs, u32 __user *ctx32p)
-#
-probe syscall.compat_sys_io_setup = kernel.function("compat_sys_io_setup") {
-	name = "compat_sys_io_setup"
-	maxevents = $nr_reqs
-	ctxp_uaddr = $ctx32p
-	argstr = sprintf("%d, %p", maxevents, ctxp_uaddr)
-}
-probe syscall.compat_sys_io_setup.return =
-	kernel.function("compat_sys_io_setup").return {
-	name = "compat_sys_io_setup"
-	retstr = returnstr(1)
-}
-# compat_sys_io_getevents ________________________________________
-#
-# asmlinkage long compat_sys_io_getevents(aio_context_t ctx_id,
-#				unsigned long min_nr,
-#				unsigned long nr,
-#				struct io_event __user *events,
-#				struct compat_timespec __user *timeout)
-#
-probe syscall.compat_sys_io_getevents = kernel.function("compat_sys_io_getevents") {
-	name = "compat_sys_io_getevents"
-	ctx_id = $ctx_id
-	min_nr = $min_nr
-	nr = $nr
-	events_uaddr = $events
-	timeout_uaddr = $timeout
-	argstr = sprintf("%d, %d, %d, %p,%p", ctx_id, min_nr, nr,
-				events_uaddr, timeout_uaddr)
-}
-probe syscall.compat_sys_io_getevents.return =
-	kernel.function("compat_sys_io_getevents").return {
-	name = "compat_sys_io_getevents"
-	retstr = returnstr(1)
-}
-# compat_sys_io_submit ________________________________________
-#
-# asmlinkage long compat_sys_io_submit(aio_context_t ctx_id, int nr,
-#				u32 __user *iocb)
-#
-probe syscall.compat_sys_io_submit = kernel.function("compat_sys_io_submit") {
-	name = "compat_sys_io_submit"
-	ctx_id = $ctx_id
-	nr = $nr
-	iocbpp_uaddr = iocb
-	argstr = sprintf("%d, %d, %p", ctx_id, nr, iocbpp_uaddr)
-}
-probe syscall.compat_sys_io_submit.return =
-	kernel.function("compat_sys_io_submit").return {
-	name = "compat_sys_io_submit"
-	retstr = returnstr(1)
-}
-# compat_sys_getdents ________________________________________
-#
-# asmlinkage long compat_sys_getdents(unsigned int fd,
-#				struct compat_linux_dirent __user *dirent,
-#				unsigned int count)
-#
-probe syscall.compat_sys_getdents = kernel.function("compat_sys_getdents") {
-	name = "compat_sys_getdentso"
-	fd = $fd
-	dirent_uaddr = $dirent
-	count = $count
-	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
-}
-probe syscall.compat_sys_getdents.return =
-	kernel.function("compat_sys_getdents").return {
-	name = "compat_sys_getdents"
-	retstr = returnstr(1)
-}
-# compat_sys_getdents64 ________________________________________
-#
-# asmlinkage long compat_sys_getdents64(unsigned int fd,
-#				struct linux_dirent64 __user * dirent,
-#				unsigned int count)
-#
-probe syscall.compat_sys_getdents64 = kernel.function("compat_sys_getdents64") {
-	name = "compat_sys_getdents64"
-	fd = $fd
-	dirent_uaddr = $dirent
-	count = $count
-	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
-}
-probe syscall.compat_sys_getdents64.return =
-	kernel.function("compat_sys_getdents64").return {
-	name = "compat_sys_getdents64"
-	retstr = returnstr(1)
-}
-#
-# asmlinkage long compat_sys_select(int n, compat_ulong_t __user *inp,
-#			compat_ulong_t __user *outp,
-#			compat_ulong_t __user *exp,
-#			struct compat_timeval __user *tvp)
-#
-probe syscall.compat_sys_select = kernel.function("compat_sys_select") {
-	name = "compat_sys_select"
-	n = $n
-	readfds_uaddr = $inp
-	writefds_uaddr = $outp
-	exceptfds_uaddr = $exp
-	timeout_uaddr = $tvp
-	argstr = sprintf("%d, %s, %s, %s, %s", n,
-			_fd_set_u(readfds_uaddr),
-			_fd_set_u(writefds_uaddr),
-			_fd_set_u(exceptfds_uaddr),
-			_struct_timeval_u(timeout_uaddr))
 
-}
-probe syscall.compat_sys_select.return =
-	kernel.function("compat_sys_select").return {
-	name = "compat_sys_select"
-	retstr = returnstr(1)
-}
-
-# compat_sys_nfsservctl ________________________________________
-#
-# asmlinkage long compat_sys_nfsservctl(int cmd,
-#				struct compat_nfsctl_arg __user *arg,
-#				union compat_nfsctl_res __user *res)
-#
-probe syscall.compat_sys_nfsservctl = kernel.function("compat_sys_nfsservctl") {
-	name = "compat_sys_nfsservctl"
-	cmd = $cmd
-	argp_uaddr = $arg
-	resp_uaddr = $res
-	argstr = sprintf("%p, %p, %p", cmd, argp_uaddr, resp_uaddr)
-}
-probe syscall.compat_sys_nfsservctl.return =
-	kernel.function("compat_sys_nfsservctl").return {
-	name = "compat_sys_nfsservctl"
-	retstr = returnstr(1)
-}
 # compat_sys_semctl ________________________________________
 #
 # long compat_sys_semctl(int first, int second, int third, void __user *uptr)
@@ -786,33 +635,6 @@ probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
 	retstr = returnstr(1)
 }
 
-#
-#
-# These system calls i(to eof) are removed in kernel version > 2.6.9
-#
-
-# quotactl ___________________________________________________
-#
-# asmlinkage long
-# sys_quotactl(unsigned int cmd,
-#		  const char __user *special,
-#		  qid_t id,
-#		  void __user *addr)
-#
-probe syscall.quotactl = kernel.function("sys_quotactl") ? {
-	name = "quotactl"
-	cmd = $cmd
-	cmd_str = _quotactl_cmd_str($cmd)
-	special_str = user_string($special)
-	id = $id
-	addr_uaddr = $addr
-	argstr = sprintf("%s, %s, %p, %p", cmd_str, special_str,
-				id, addr_uaddr)
-}
-probe syscall.quotactl.return = kernel.function("sys_quotactl").return ? {
-	name = "quotactl"
-	retstr = returnstr(1)
-}
 # request_key ________________________________________________
 #
 # asmlinkage long
@@ -1276,41 +1098,6 @@ probe syscall.sys32_utimes = kernel.function("sys32_utimes") ? {
 }
 probe syscall.sys32_utimes.return = kernel.function("sys32_utimes").return ? {
 	name = "sys32_utimes"
-	retstr = returnstr(1)
-}
-# compat_statfs64 ________________________________________
-#
-# asmlinkage long compat_statfs64(const char __user *path, compat_size_t sz,
-#		struct compat_statfs64 __user *buf)
-#
-probe syscall.compat_statfs64 = kernel.function("compat_statfs64") ? {
-	name = "compat_statfs64"
-	path_uaddr = $path
-	path = user_string($path)
-	sz = $sz
-	buf_uaddr = $buf
-	argstr = sprintf("%s, %d, %p", path, sz, buf_uaddr)
-}
-probe syscall.compat_statfs64.return =
-	kernel.function("compat_statfs64").return ? {
-	name = "compat_statfs64"
-	retstr = returnstr(1)
-}
-# compat_fstatfs64 ________________________________________
-#
-# asmlinkage long compat_fstatfs64(unsigned int fd, compat_size_t sz,
-#		struct compat_statfs64 __user *buf)
-#
-probe syscall.compat_fstatfs64 = kernel.function("compat_fstatfs64") ? {
-	name = "compat_fstatfs64"
-	fd = $fd
-	sz = $sz
-	buf_uaddr = $buf
-	argstr = sprintf("%d, %d, %p", fd, sz, buf_uaddr)
-}
-probe syscall.compat_fstatfs64.return =
-	kernel.function("compat_fstatfs64").return ? {
-	name = "compat_fstatfs64"
 	retstr = returnstr(1)
 }
 # compat_mbind ________________________________________

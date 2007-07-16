@@ -644,9 +644,14 @@ probe syscall.fchown16.return = kernel.function("sys_fchown16").return ? {
 # fcntl ______________________________________________________
 # long sys_fcntl(int fd, unsigned int cmd, unsigned long arg)
 # long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg)
+# long compat_sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg)
+# long compat_sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg)
+#
 probe syscall.fcntl = 
 		kernel.function("sys_fcntl") ?,
-		kernel.function("sys_fcntl64") ?
+		kernel.function("sys_fcntl64") ?,
+		kernel.function("compat_sys_fcntl") ?,
+		kernel.function("compat_sys_fcntl64") ?
 {
 	name = "fcntl"
 	fd = $fd
@@ -657,7 +662,9 @@ probe syscall.fcntl =
 }
 probe syscall.fcntl.return = 
 		kernel.function("sys_fcntl").return ?,
-		kernel.function("sys_fcntl64").return ?
+		kernel.function("sys_fcntl64").return ?,
+		kernel.function("compat_sys_fcntl").return ?,
+		kernel.function("compat_sys_fcntl64").return ?
 {
 	name = "fcntl"
 	retstr = returnstr(1)
@@ -843,14 +850,22 @@ probe syscall.fstatfs.return =
 
 # fstatfs64 __________________________________________________
 # long sys_fstatfs64(unsigned int fd, size_t sz, struct statfs64 __user *buf)
-probe syscall.fstatfs64 = kernel.function("sys_fstatfs64") {
+# long compat_sys_fstatfs64(unsigned int fd, compat_size_t sz, struct compat_statfs64 __user *buf)
+#
+probe syscall.fstatfs64 = 
+		kernel.function("sys_fstatfs64") ?,
+		kernel.function("comp_sys_fstatfs64") ?
+{
 	name = "fstatfs"
 	fd = $fd
 	sz = $sz
 	buf_uaddr = $buf
-	argstr = sprintf("%d, %d, %p", fd, sz, buf_uaddr)
+	argstr = sprintf("%d, %d, %p", $fd, $sz, $buf)
 }
-probe syscall.fstatfs64.return = kernel.function("sys_fstatfs64").return {
+probe syscall.fstatfs64.return =
+		kernel.function("sys_fstatfs64").return ?,
+		kernel.function("comp_sys_fstatfs64").return ?
+{
 	name = "fstatfs"
 	retstr = returnstr(1)
 }
@@ -967,33 +982,29 @@ probe syscall.getcwd.return = kernel.function("sys_getcwd").return {
 }
 
 # getdents ___________________________________________________
-# long sys_getdents(unsigned int fd,
-#              struct linux_dirent __user * dirent,
-#              unsigned int count)
-probe syscall.getdents = kernel.function("sys_getdents") {
+# long sys_getdents(unsigned int fd, struct linux_dirent __user * dirent, unsigned int count)
+# long compat_sys_getdents(unsigned int fd,struct compat_linux_dirent __user *dirent, unsigned int count)
+# long sys_getdents64(unsigned int fd, struct linux_dirent64 __user * dirent, unsigned int count)
+# long compat_sys_getdents64(unsigned int fd, struct linux_dirent64 __user * dirent, unsigned int count)
+#
+probe syscall.getdents =
+		kernel.function("sys_getdents") ?,
+		kernel.function("sys_getdents64") ?,
+		kernel.function("compat_sys_getdents") ?,
+		kernel.function("compat_sys_getdents64") ?
+{
 	name = "getdents"
 	fd = $fd
 	dirp_uaddr = $dirent
 	count = $count
-	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
+	argstr = sprintf("%d, %p, %d", $fd, $dirent, $count)
 }
-probe syscall.getdents.return = kernel.function("sys_getdents").return {
-	name = "getdents"
-	retstr = returnstr(1)
-}
-
-# getdents64 _________________________________________________
-# long sys_getdents64(unsigned int fd,
-#                struct linux_dirent64 __user * dirent,
-#                unsigned int count)
-probe syscall.getdents64 = kernel.function("sys_getdents64") {
-	name = "getdents"
-	fd = $fd
-	dirp_uaddr = $dirent
-	count = $count
-	argstr = sprintf("%d, %p, %d", fd, dirp_uaddr, count)
-}
-probe syscall.getdents64.return = kernel.function("sys_getdents64").return {
+probe syscall.getdents.return =
+		kernel.function("sys_getdents").return ?,
+		kernel.function("sys_getdents64").return ?,
+		kernel.function("compat_sys_getdents").return ?,
+		kernel.function("compat_sys_getdents64").return ?
+{
 	name = "getdents"
 	retstr = returnstr(1)
 }
@@ -1488,16 +1499,23 @@ probe syscall.io_cancel.return = kernel.function("sys_io_cancel").return {
 }
 
 # ioctl ______________________________________________________
-# long sys_ioctl(unsigned int fd, unsigned int cmd,
-#		unsigned long arg)
-probe syscall.ioctl = kernel.function("sys_ioctl") {
+# long sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
+# long compat_sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg)
+#
+probe syscall.ioctl =
+		kernel.function("sys_ioctl") ?,
+		kernel.function("compat_sys_ioctl") ?
+{
 	name = "ioctl"
 	fd = $fd
 	request = $cmd
 	argp = $arg
-	argstr = sprintf("%d, %d, %p", fd, request, argp)
+	argstr = sprintf("%d, %d, %p", $fd, $cmd, $arg)
 }
-probe syscall.ioctl.return = kernel.function("sys_ioctl").return {
+probe syscall.ioctl.return =
+		kernel.function("sys_ioctl").return ?,
+		kernel.function("compat_sys_ioctl").return ?
+{
 	name = "ioctl"
 	retstr = returnstr(1)
 }
@@ -1520,8 +1538,16 @@ probe syscall.io_destroy.return = kernel.function("sys_io_destroy").return {
 #		long nr,
 #		struct io_event __user *events,
 #		struct timespec __user *timeout)
-
-probe syscall.io_getevents = kernel.function("sys_io_getevents") {
+# long compat_sys_io_getevents(aio_context_t ctx_id,
+#		 unsigned long min_nr,
+#		 unsigned long nr,
+#		 struct io_event __user *events,
+#		 struct compat_timespec __user *timeout)
+#
+probe syscall.io_getevents =
+		kernel.function("sys_io_getevents") ?,
+		kernel.function("compat_sys_io_getevents") ?
+{
 	name = "io_getevents"
 	ctx_id = $ctx_id
 	min_nr = $min_nr
@@ -1529,10 +1555,13 @@ probe syscall.io_getevents = kernel.function("sys_io_getevents") {
 	events_uaddr = $events
 	timeout_uaddr = $timeout
 	timestr = _struct_timespec_u($timeout)
-	argstr = sprintf("%d, %d, %d, %p, %p, %s", ctx_id, min_nr,
-		nr, events_uaddr, timeout_uaddr, timestr)
+	argstr = sprintf("%d, %d, %d, %p, %p, %s", $ctx_id, $min_nr,
+		$nr, $events, $timeout, timestr)
 }
-probe syscall.io_getevents.return = kernel.function("sys_io_getevents").return {
+probe syscall.io_getevents.return =
+		kernel.function("sys_io_getevents").return ?,
+		kernel.function("compat_sys_io_getevents").return ?
+{
 	name = "io_getevents"
 	retstr = returnstr(1)
 }
@@ -1554,32 +1583,56 @@ probe syscall.ioperm.return = kernel.function("sys_ioperm").return ? {
 
 # io_setup ___________________________________________________
 # long sys_io_setup(unsigned nr_events, aio_context_t __user *ctxp)
-#
+# 
 probe syscall.io_setup = kernel.function("sys_io_setup") {
 	name = "io_setup"
 	maxevents = $nr_events
 	ctxp_uaddr = $ctxp
-	argstr = sprintf("%d, %p", maxevents, ctxp_uaddr)
+	argstr = sprintf("%d, %p", $nr_events, $ctxp)
 }
 
 probe syscall.io_setup.return = kernel.function("sys_io_setup").return {
 	name = "io_setup"
 	retstr = returnstr(1)
 }
+# long compat_sys_io_setup(unsigned nr_reqs, u32 __user *ctx32p)
+#
+probe syscall.compat_io_setup = kernel.function("compat_sys_io_setup") ? {
+	name = "io_setup"
+	maxevents = $nr_reqs
+	ctxp_uaddr = $ctxp32p
+	argstr = sprintf("%d, %p", $nr_reqs, $ctxp32p)
+}
+
+probe syscall.compat_io_setup.return = kernel.function("compat_sys_io_setup").return ? {
+	name = "io_setup"
+	retstr = returnstr(1)
+}
 
 # io_submit __________________________________________________
-# long sys_io_submit(aio_context_t ctx_id,
-#               long nr,
-#               struct iocb __user * __user *iocbpp)
+# long sys_io_submit(aio_context_t ctx_id, long nr, struct iocb __user * __user *iocbpp)
 #
 probe syscall.io_submit = kernel.function("sys_io_submit") {
 	name = "io_submit"
 	ctx_id = $ctx_id
 	nr = $nr
 	iocbpp_uaddr = $iocbpp
-	argstr = sprintf("%d, %d, %p", ctx_id, nr, iocbpp_uaddr)
+	argstr = sprintf("%d, %d, %p", $ctx_id, $nr, $iocbpp)
 }
 probe syscall.io_submit.return = kernel.function("sys_io_submit").return {
+	name = "io_submit"
+	retstr = returnstr(1)
+}
+# long compat_sys_io_submit(aio_context_t ctx_id, int nr, u32 __user *iocb)
+#
+probe syscall.compat_io_submit = kernel.function("compat_sys_io_submit") ? {
+	name = "io_submit"
+	ctx_id = $ctx_id
+	nr = $nr
+	iocbpp_uaddr = $iocb
+	argstr = sprintf("%d, %d, %p", $ctx_id, $nr, $iocb)
+}
+probe syscall.compat_io_submit.return = kernel.function("sys_io_submit").return ? {
 	name = "io_submit"
 	retstr = returnstr(1)
 }

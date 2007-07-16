@@ -489,22 +489,6 @@ function _fildes_u:string (uaddr:long)
 	}
 %}
 
-function _fd_set_u:string(uaddr:long)
-%{ /* pure */
-	fd_set fdset;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if (_stp_copy_from_user((char *)&fdset, ptr, sizeof(fd_set)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[0x%lx, 0x%lx, ...]", (long) fdset.fds_bits[0],  fdset.fds_bits[1]);
-		else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	} 
-%}
-
-
 function _semctl_cmd:string(cmd:long)
 %{ /* pure */
 	int cmd = THIS->cmd;
@@ -845,6 +829,20 @@ function _itimer_which_str(which) {
    if(which==1) return "ITIMER_VIRTUAL"
    if(which==2) return "ITIMER_PROF"
    return sprintf("BAD VALUE: %d", which)
+}
+
+/*
+ * Return the command name for nfsservctl()
+ */
+function _nfsctl_cmd_str(cmd) {
+	if(cmd == 0) return "NFSCTL_SVC"
+	if(cmd == 1) return "NFSCTL_ADDCLIENT"
+	if(cmd == 2) return "NFSCTL_DELCLIENT"
+	if(cmd == 3) return "NFSCTL_EXPORT"
+	if(cmd == 4) return "NFSCTL_UNEXPORT"
+	if(cmd == 5) return "NFSCTL_UGIDUPDATE"
+	if(cmd == 6) return "NFSCTL_GETFH"
+	return sprintf("UNRECOGNIZED VALUE: %d", cmd)
 }
 
 /*

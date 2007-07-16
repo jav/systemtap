@@ -1,6 +1,6 @@
 // syscalls tapset part 2 [N-Z]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -51,19 +51,24 @@ probe syscall.compat_nanosleep.return = kernel.function("compat_sys_nanosleep").
 
 # nfsservctl _________________________________________________
 #
-# long asmlinkage
-# sys_nfsservctl(int cmd,
-#		    struct nfsctl_arg __user *arg,
-#		    void __user *res)
+# long sys_nfsservctl(int cmd, struct nfsctl_arg __user *arg, void __user *res)
+# long compat_sys_nfsservctl(int cmd, struct compat_nfsctl_arg __user *arg,
+#					union compat_nfsctl_res __user *res)
 #
-probe syscall.nfsservctl = kernel.function("sys_nfsservctl") {
+probe syscall.nfsservctl =
+		kernel.function("sys_nfsservctl") ?,
+		kernel.function("compat_sys_nfsservctl") ?
+{
 	name = "nfsservctl"
 	cmd = $cmd
 	argp_uaddr = $arg
 	resp_uaddr = $res
-	argstr = sprintf("%p, %p, %p", cmd, argp_uaddr, resp_uaddr)
+	argstr = sprintf("%s, %p, %p", _nfsctl_cmd_str($cmd), $arg, $res)
 }
-probe syscall.nfsservctl.return = kernel.function("sys_nfsservctl").return {
+probe syscall.nfsservctl.return = 
+		kernel.function("sys_nfsservctl").return ?,
+		kernel.function("compat_sys_nfsservctl").return ?
+{
 	name = "nfsservctl"
 	retstr = returnstr(1)
 }
@@ -120,6 +125,36 @@ probe syscall.open.return =
 	name = "open"
 	retstr = returnstr(1)
 }
+
+# openat _______________________________________________________
+# long sys_openat(int dfd, const char __user *filename, int flags, int mode)
+# long compat_sys_openat(unsigned int dfd, const char __user *filename, int flags, int mode)
+#
+probe syscall.openat = 
+		kernel.function("sys_openat") ?,
+		kernel.function("compat_sys_openat") ?
+{
+	name = "openat"
+	filename = user_string($filename)
+	flags = $flags
+	mode = $mode
+	if ($flags & 64)
+		argstr = sprintf("%d, %s, %s, %#o", $dfd,
+				user_string_quoted($filename), 
+				_sys_open_flag_str($flags), $mode)
+	else
+		argstr = sprintf("%d, %s, %s", $dfd,
+			user_string_quoted($filename), 
+			_sys_open_flag_str($flags))
+}
+probe syscall.openat.return = 
+		kernel.function("sys_openat").return ?,
+		kernel.function("compat_sys_openat").return ?
+{
+	name = "openat"
+	retstr = returnstr(1)
+}
+
 
 # pause ______________________________________________________
 #
@@ -251,11 +286,10 @@ probe syscall.pipe.return = kernel.function("sys_pipe").return {
 	name = "pipe"
 	retstr = returnstr(1)
 }
+
 # pivot_root _________________________________________________
 #
-# asmlinkage long
-# sys_pivot_root(const char __user *new_root,
-#		    const char __user *put_old)
+# long sys_pivot_root(const char __user *new_root, const char __user *put_old)
 #
 probe syscall.pivot_root = kernel.function("sys_pivot_root") {
 	name = "pivot_root"
@@ -268,12 +302,10 @@ probe syscall.pivot_root.return = kernel.function("sys_pivot_root").return {
 	name = "pivot_root"
 	retstr = returnstr(1)
 }
+
 # poll _______________________________________________________
 #
-# asmlinkage long
-# sys_poll(struct pollfd __user * ufds,
-#	    unsigned int nfds,
-#	    long timeout)
+# long sys_poll(struct pollfd __user * ufds, unsigned int nfds, long timeout)
 #
 probe syscall.poll = kernel.function("sys_poll") {
 	name = "poll"
@@ -284,12 +316,50 @@ probe syscall.poll = kernel.function("sys_poll") {
 %:
 	timeout = $timeout
 %)
-	argstr = sprintf("%p, %d, %d", ufds_uaddr, nfds, timeout)
+	argstr = sprintf("%p, %d, %d", $ufds, $nfds, timeout)
 }
 probe syscall.poll.return = kernel.function("sys_poll").return {
 	name = "poll"
 	retstr = returnstr(1)
 }
+
+# ppoll _______________________________________________________
+#
+# long sys_ppoll(struct pollfd __user *ufds, unsigned int nfds,
+#	struct timespec __user *tsp, const sigset_t __user *sigmask,
+#	size_t sigsetsize)
+#
+probe syscall.ppoll = kernel.function("sys_ppoll") ? {
+	name = "ppoll"
+	argstr = sprintf("%p, %d, %s, %p, %d", 
+		$ufds,
+		$nfds,
+		_struct_timespec_u($tsp), 
+		$sigmask,
+		$sigsetsize)
+}
+probe syscall.ppoll.return = kernel.function("sys_ppoll").return ? {
+	name = "ppoll"
+	retstr = returnstr(1)
+}
+# long compat_sys_ppoll(struct pollfd __user *ufds,
+#	unsigned int nfds, struct compat_timespec __user *tsp,
+#	const compat_sigset_t __user *sigmask, compat_size_t sigsetsize)
+#
+probe syscall.compat_ppoll = kernel.function("compat_sys_ppoll") ? {
+	name = "ppoll"
+	argstr = sprintf("%p, %d, %s, %p, %d", 
+		$ufds,
+		$nfds,
+		_struct_compat_timespec_u($tsp), 
+		$sigmask,
+		$sigsetsize)
+}
+probe syscall.compat_ppoll.return = kernel.function("compat_sys_ppoll").return ? {
+	name = "ppoll"
+	retstr = returnstr(1)
+}
+
 # prctl ______________________________________________________
 #
 # asmlinkage long
@@ -315,25 +385,87 @@ probe syscall.prctl.return = kernel.function("sys_prctl").return {
 }
 # pread64 ____________________________________________________
 #
-# asmlinkage ssize_t
-# sys_pread64(unsigned int fd,
+# ssize_t sys_pread64(unsigned int fd,
 #		 char __user *buf,
 #		 size_t count,
 #		 loff_t pos)
 #
-probe syscall.pread64 = kernel.function("sys_pread64") {
-	name = "pread64"
+probe syscall.pread = kernel.function("sys_pread64") {
+	name = "pread"
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
 	offset = $pos
-	argstr = sprintf("%d, %p, %p, %p", fd, buf_uaddr,
-				count, offset)
+	argstr = sprintf("%d, %p, %p, %p", $fd, $buf, $count, $pos)
 }
-probe syscall.pread64.return = kernel.function("sys_pread64").return {
-	name = "pread64"
+probe syscall.pread.return = kernel.function("sys_pread64").return {
+	name = "pread"
 	retstr = returnstr(1)
 }
+#long sys32_pread64(unsigned int fd, char __user *ubuf,
+#				size_t count, u32 poshi, u32 poslo)
+probe syscall.pread32 = kernel.function("sys32_pread64") ? {
+	name = "pread"
+	fd = $fd
+	buf_uaddr = $buf
+	count = $count
+	offset = ($poshi << 32) + $poslo
+	argstr = sprintf("%d, %p, %p, %p", $fd, $buf, $count, ($poshi << 32) + $poslo)
+}
+probe syscall.pread32.return = kernel.function("sys32_pread64").return ? {
+	name = "pread"
+	retstr = returnstr(1)
+}
+
+# pselect6 _____________________________________________________
+#
+# long sys_pselect6(int n, fd_set __user *inp, fd_set __user *outp,
+#	fd_set __user *exp, struct timespec __user *tsp, void __user *sig)
+#
+probe syscall.pselect6 = kernel.function("sys_pselect6") ? {
+	name = "pselect6"
+	argstr = sprintf("%d, %p, %p, %p, %s, %p", $n, $inp, $outp, $exp,
+				_struct_timespec_u($tsp), $sig)
+}
+probe syscall.pselect6.return = kernel.function("sys_pselect6").return ? {
+	name = "pselect6"
+	retstr = returnstr(1)
+}
+probe syscall.compat_pselect6 = kernel.function("compat_sys_pselect6") ? {
+	name = "pselect6"
+	argstr = sprintf("%d, %p, %p, %p, %s, %p", $n, $inp, $outp, $exp,
+				_struct_compat_timespec_u($tsp), $sig)
+}
+probe syscall.compat_pselect6.return = kernel.function("compat_sys_pselect6").return ? {
+	name = "pselect6"
+	retstr = returnstr(1)
+}
+
+# pselect7 _____________________________________________________
+#
+# long sys_pselect7(int n, fd_set __user *inp, fd_set __user *outp,
+#	fd_set __user *exp, struct timespec __user *tsp, 
+#	const sigset_t __user *sigmask, size_t sigsetsize)
+#
+probe syscall.pselect7 = kernel.function("sys_pselect7") ? {
+	name = "pselect7"
+	argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,
+				_struct_timespec_u($tsp), $sigmask, $sigsetsize)
+}
+probe syscall.pselect7.return = kernel.function("sys_pselect7").return ? {
+	name = "pselect7"
+	retstr = returnstr(1)
+}
+probe syscall.compat_pselect7a = kernel.function("compat_sys_pselect7") ? {
+	name = "pselect7"
+	argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,
+				_struct_compat_timespec_u($tsp), $sigmask, $sigsetsize)
+}
+probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect").return ? {
+	name = "pselect7"
+	retstr = returnstr(1)
+}
+
 # ptrace _____________________________________________________
 #
 # asmlinkage int
@@ -355,25 +487,42 @@ probe syscall.ptrace.return = kernel.function("sys_ptrace").return {
 	name = "ptrace"
 	retstr = returnstr(1)
 }
+
 # pwrite64 ___________________________________________________
 #
-# asmlinkage ssize_t
-# sys_pwrite64(unsigned int fd,
+# ssize_t sys_pwrite64(unsigned int fd,
 #		  const char __user *buf,
 #		  size_t count,
 #		  loff_t pos)
 #
-probe syscall.pwrite64 = kernel.function("sys_pwrite64") {
-	name = "pwrite64"
+probe syscall.pwrite = kernel.function("sys_pwrite64") {
+	name = "pwrite"
 	fd = $fd
 	buf_uaddr = $buf
 	count = $count
 	offset = $pos
-	argstr = sprintf("%d, %p, %p, %p", fd, buf_uaddr,
-				count, offset)
+	argstr = sprintf("%d, %s, %d, %d", $fd, 
+			text_strn(user_string($buf),syscall_string_trunc,1),
+				$count, $pos)
 }
-probe syscall.pwrite64.return = kernel.function("sys_pwrite64").return {
-	name = "pwrite64"
+probe syscall.pwrite.return = kernel.function("sys_pwrite64").return {
+	name = "pwrite"
+	retstr = returnstr(1)
+}
+# long sys32_pwrite64(unsigned int fd, const char __user *ubuf,
+#				size_t count, u32 poshi, u32 poslo)
+probe syscall.pwrite32 = kernel.function("sys32_pwrite64") ? {
+	name = "pwrite"
+	fd = $fd
+	buf_uaddr = $buf
+	count = $count
+	offset = ($poshi << 32) + $poslo
+	argstr = sprintf("%d, %s, %d, %d", $fd, 
+			text_strn(user_string($buf),syscall_string_trunc,1),
+				$count, ($poshi << 32) + $poslo)
+}
+probe syscall.pwrite32.return = kernel.function("sys32_pwrite64").return ? {
+	name = "pwrite"
 	retstr = returnstr(1)
 }
 
@@ -431,6 +580,20 @@ probe syscall.readahead.return = kernel.function("sys_readahead").return {
 	name = "readahead"
 	retstr = returnstr(1)
 }
+
+# readdir ___________________________________________________
+#
+# long compat_sys_old_readdir(unsigned int fd, struct compat_old_linux_dirent __user *dirent, unsigned int count)
+#
+probe syscall.readdir = kernel.function("compat_sys_old_readdir") ? {
+	name = "readdir"
+	argstr = sprintf("%d, %p, %d", $fd, $dirent, $count)
+}
+probe syscall.readdir.return = kernel.function("compat_sys_old_readdir").return ? {
+	name = "readdir"
+	retstr = returnstr(1)
+}
+
 # readlink ___________________________________________________
 #
 # long sys_readlink(const char __user * path,
@@ -1046,13 +1209,31 @@ probe syscall.select = kernel.function("sys_select") {
 	readfds_uaddr = $inp
 	writefds_uaddr = $outp
 	exceptfds_uaddr = $exp
-	timeout_uaddr = $tvp
-	argstr = sprintf("%d, %s, %s, %s, %s", n, _fd_set_u(readfds_uaddr),
-				_fd_set_u(writefds_uaddr),
-				_fd_set_u(exceptfds_uaddr),
-				_struct_timeval_u(timeout_uaddr))
+	timeout_uaddr = $tv
+	argstr = sprintf("%d, %p, %p, %p, %s", $n, $inp, $outp, $exp,
+				_struct_timeval_u($tvp))
 }
 probe syscall.select.return = kernel.function("sys_select").return {
+	name = "select"
+	retstr = returnstr(1)
+}
+# long compat_sys_select(int n, 
+#		compat_ulong_t __user *inp,
+#		compat_ulong_t __user *outp, 
+#		compat_ulong_t __user *exp,
+#		struct compat_timeval __user *tvp)
+#
+probe syscall.compat_select = kernel.function("compat_sys_select") ? {
+	name = "select"
+	n = $n
+	readfds_uaddr = $inp
+	writefds_uaddr = $outp
+	exceptfds_uaddr = $exp
+	timeout_uaddr = $tvp
+	argstr = sprintf("%d, %p, %p, %p, %s", $n, $inp, $outp, $exp,
+				_struct_compat_timeval_u($tvp))
+}
+probe syscall.compat_select.return = kernel.function("compat_sys_select").return ? {
 	name = "select"
 	retstr = returnstr(1)
 }
@@ -2012,19 +2193,24 @@ probe syscall.statfs.return =
 
 # statfs64 ___________________________________________________
 #
-# long sys_statfs64(const char __user *path,
-#		  size_t sz,
-#		  struct statfs64 __user *buf)
+# long sys_statfs64(const char __user *path, size_t sz, struct statfs64 __user *buf)
+# long compat_sys_statfs64(const char __user *path, compat_size_t sz, struct compat_statfs64 __user *buf)
 #
-probe syscall.statfs64 = kernel.function("sys_statfs64") {
-	name = "statfs64"
+probe syscall.statfs64 =
+		kernel.function("sys_statfs64") ?,
+		kernel.function("comp_sys_statfs64") ?
+{
+	name = "statfs"
 	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
 	argstr = sprintf("%s, %d, %p", user_string_quoted($path), $sz, $buf) 
 }
-probe syscall.statfs64.return = kernel.function("sys_statfs64").return {
-	name = "statfs64"
+probe syscall.statfs64.return =
+		kernel.function("sys_statfs64").return ?,
+		kernel.function("comp_sys_statfs64").return ?
+{
+	name = "statfs"
 	retstr = returnstr(1)
 }
 
