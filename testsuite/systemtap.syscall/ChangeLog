@@ -1,8 +1,16 @@
 2007-07-16  Martin Hunt  <hunt@redhat.com>
 
+	* select.c (main): Ifdef SYS_pselect6.
+	* poll.c (main): Ifdef SYS_ppoll.
+
+2007-07-16  Martin Hunt  <hunt@redhat.com>
+	
 	* select.c, poll.c: New.
 
 2007-07-10  Martin Hunt  <hunt@redhat.com>
+
+	* futimes.c (main): Ifdef out futimesat tests
+	if not defined.
 
 	* uid16.c (main): 16-bit syscalls now have
 	the same name as 32-bit. Fix patterns.

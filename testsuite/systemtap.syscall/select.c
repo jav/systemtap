@@ -24,11 +24,13 @@ int main()
   select( 1, NULL, NULL, NULL, &tv);
   // select (1, 0x[0]+, 0x[0]+, 0x[0]+, \[0.000113\])
 
+#ifdef SYS_pselect6
   pselect( 1, &rfds, NULL, NULL, &tim, &sigs);
   //pselect[67] (1, XXXX, 0x[0]+, 0x[0]+, \[0.200000000\], XXXX)
 
   pselect( 0, NULL, NULL, NULL, &tim, &sigs);
   // pselect[67] (0, 0x[0]+, 0x[0]+, 0x[0]+, \[0.200000000\], XXXX) =
+#endif
 
   return 0;
 }

@@ -28,8 +28,10 @@ int main()
   poll(&pfd, 1, 0);
   // poll (XXXX, 1, 0)
 
+#ifdef SYS_ppoll
   ppoll(&pfd, 1, &tim, &sigs);
   //  ppoll (XXXX, 1, \[0.200000000\], XXXX, 8)
+#endif
 
   return 0;
 }
