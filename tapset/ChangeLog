@@ -1,3 +1,8 @@
+2007-07-17  Mike Mason <mmlnx@us.ibm.com>
+
+        * socket.stp: changed initialization of *num2str arrays to
+	foreach loops.
+
 2007-07-16  Martin Hunt  <hunt@redhat.com>
 	(compat_sys_io_submit): Fix typo.
 

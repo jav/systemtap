@@ -822,135 +822,8 @@ probe begin(-1001)
 	_prot_num2str[132] = "SCTP"
 	_prot_num2str[133] = "FC"
 
-	_prot_str2num["IP"]          = 0
-	_prot_str2num["ICMP"]        = 1
-	_prot_str2num["IGMP"]        = 2
-	_prot_str2num["GGP"]         = 3
-	_prot_str2num["IPENCAP"]     = 4
-	_prot_str2num["ST"]          = 5
-	_prot_str2num["TCP"]         = 6
-	_prot_str2num["CBT"]         = 7
-	_prot_str2num["EGP"]         = 8
-	_prot_str2num["IGP"]         = 9
-	_prot_str2num["BBN-RCC"]     = 10
-	_prot_str2num["NVP"]         = 11
-	_prot_str2num["PUP"]         = 12
-	_prot_str2num["ARGUS"]       = 13
-	_prot_str2num["EMCON"]       = 14
-	_prot_str2num["XNET"]        = 15
-	_prot_str2num["CHAOS"]       = 16
-	_prot_str2num["UDP"]         = 17
-	_prot_str2num["MUX"]         = 18
-	_prot_str2num["DCN"]         = 19
-	_prot_str2num["HMP"]         = 20
-	_prot_str2num["PRM"]         = 21
-	_prot_str2num["XNS-IDP"]     = 22
-	_prot_str2num["TRUNK-1"]     = 23
-	_prot_str2num["TRUNK-2"]     = 24
-	_prot_str2num["LEAF-1"]      = 25
-	_prot_str2num["LEAF-2"]      = 26
-	_prot_str2num["RDP"]         = 27
-	_prot_str2num["IRTP"]        = 28
-	_prot_str2num["ISO-TP4"]     = 29
-	_prot_str2num["NETBLT"]      = 30
-	_prot_str2num["MFE-NSP"]     = 31
-	_prot_str2num["MERIT-INP"]   = 32
-	_prot_str2num["SEP"]         = 33
-	_prot_str2num["3PC"]         = 34
-	_prot_str2num["IDPR"]        = 35
-	_prot_str2num["XTP"]         = 36
-	_prot_str2num["DDP"]         = 37
-	_prot_str2num["IDPR-CMTP"]   = 38
-	_prot_str2num["TP++"]        = 39
-	_prot_str2num["IL"]          = 40
-	_prot_str2num["IPV6"]        = 41
-	_prot_str2num["SDRP"]        = 42
-	_prot_str2num["IPV6-ROUTE"]  = 43
-	_prot_str2num["IPV6-FRAG"]   = 44
-	_prot_str2num["IDRP"]        = 45
-	_prot_str2num["RSVP"]        = 46
-	_prot_str2num["GRE"]         = 47
-	_prot_str2num["MHRP"]        = 48
-	_prot_str2num["BNA"]         = 49
-	_prot_str2num["IPV6-CRYPT"]  = 50
-	_prot_str2num["IPV6-AUTH"]   = 51
-	_prot_str2num["I-NLSP"]      = 52
-	_prot_str2num["SWIPE"]       = 53
-	_prot_str2num["NARP"]        = 54
-	_prot_str2num["MOBILE"]      = 55
-	_prot_str2num["TLSP"]        = 56
-	_prot_str2num["SKIP"]        = 57
-	_prot_str2num["IPV6-ICMP"]   = 58
-	_prot_str2num["IPV6-NONXT"]  = 59
-	_prot_str2num["IPV6-OPTS"]   = 60
-	_prot_str2num["CFTP"]        = 62
-	_prot_str2num["SAT-EXPAK"]   = 64
-	_prot_str2num["KRYPTOLAN"]   = 65
-	_prot_str2num["RVD"]         = 66
-	_prot_str2num["IPPC"]        = 67
-	_prot_str2num["SAT-MON"]     = 69
-	_prot_str2num["VISA"]        = 70
-	_prot_str2num["IPCV"]        = 71
-	_prot_str2num["CPNX"]        = 72
-	_prot_str2num["CPHB"]        = 73
-	_prot_str2num["WSN"]         = 74
-	_prot_str2num["PVP"]         = 75
-	_prot_str2num["BR-SAT-MON"]  = 76
-	_prot_str2num["SUN-ND"]      = 77
-	_prot_str2num["WB-MON"]      = 78
-	_prot_str2num["WB-EXPAK"]    = 79
-	_prot_str2num["ISO-IP"]      = 80
-	_prot_str2num["VMTP"]        = 81
-	_prot_str2num["SECURE-VMTP"] = 82
-	_prot_str2num["VINES"]       = 83
-	_prot_str2num["TTP"]         = 84
-	_prot_str2num["NSFNET-IGP"]  = 85
-	_prot_str2num["DGP"]         = 86
-	_prot_str2num["TCF"]         = 87
-	_prot_str2num["EIGRP"]       = 88
-	_prot_str2num["OSPF"]        = 89
-	_prot_str2num["SPRITE-RPC"]  = 90
-	_prot_str2num["LARP"]        = 91
-	_prot_str2num["MTP"]         = 92
-	_prot_str2num["AX.25"]       = 93
-	_prot_str2num["IPIP"]        = 94
-	_prot_str2num["MICP"]        = 95
-	_prot_str2num["SCC-SP"]      = 96
-	_prot_str2num["ETHERIP"]     = 97
-	_prot_str2num["ENCAP"]       = 98
-	_prot_str2num["GMTP"]        = 100
-	_prot_str2num["IFMP"]        = 101
-	_prot_str2num["PNNI"]        = 102
-	_prot_str2num["PIM"]         = 103
-	_prot_str2num["ARIS"]        = 104
-	_prot_str2num["SCPS"]        = 105
-	_prot_str2num["QNX"]         = 106
-	_prot_str2num["A/N"]         = 107
-	_prot_str2num["IPCOMP"]      = 108
-	_prot_str2num["SNP"]         = 109
-	_prot_str2num["COMPAQ-PEER"] = 110
-	_prot_str2num["IPX-IN-IP"]   = 111
-	_prot_str2num["VRRP"]        = 112
-	_prot_str2num["PGM"]         = 113
-	_prot_str2num["L2TP"]        = 115
-	_prot_str2num["DDX"]         = 116
-	_prot_str2num["IATP"]        = 117
-	_prot_str2num["STP"]         = 118
-	_prot_str2num["SRP"]         = 119
-	_prot_str2num["UTI"]         = 120
-	_prot_str2num["SMP"]         = 121
-	_prot_str2num["SM"]          = 122
-	_prot_str2num["PTP"]         = 123
-	_prot_str2num["ISIS"]        = 124
-	_prot_str2num["FIRE"]        = 125
-	_prot_str2num["CRTP"]        = 126
-	_prot_str2num["CRDUP"]       = 127
-	_prot_str2num["SSCOPMCE"]    = 128
-	_prot_str2num["IPLT"]        = 129
-	_prot_str2num["SPS"]         = 130
-	_prot_str2num["PIPE"]        = 131
-	_prot_str2num["SCTP"]        = 132
-	_prot_str2num["FC"]          = 133
+	foreach (num in _prot_num2str)
+		_prot_str2num[_prot_num2str[num]] = num 
 
 	/* from include/linux/socket.h */
 	_fam_num2str[0]  = "UNSPEC"
@@ -982,34 +855,8 @@ probe begin(-1001)
 	_fam_num2str[30] = "TIPC"
 	_fam_num2str[31] = "BLUETOOTH"
 
-	_fam_str2num["UNSPEC"]    = 0
-	_fam_str2num["LOCAL"]     = 1
-	_fam_str2num["INET"]      = 2
-	_fam_str2num["AX25"]      = 3
-	_fam_str2num["IPX"]       = 4
-	_fam_str2num["APPLETALK"] = 5
-	_fam_str2num["NETROM"]    = 6
-	_fam_str2num["BRIDGE"]    = 7
-	_fam_str2num["ATMPVC"]    = 8
-	_fam_str2num["X25"]       = 9
-	_fam_str2num["INET6"]     = 10
-	_fam_str2num["ROSE"]      = 11
-	_fam_str2num["DECNET"]    = 12
-	_fam_str2num["NETBEUI"]   = 13
-	_fam_str2num["SECURITY"]  = 14
-	_fam_str2num["KEY"]       = 15
-	_fam_str2num["NETLINK"]   = 16
-	_fam_str2num["PACKET"]    = 17
-	_fam_str2num["ASH"]       = 18
-	_fam_str2num["ECONET"]    = 19
-	_fam_str2num["ATMSVC"]    = 20
-	_fam_str2num["SNA"]       = 22
-	_fam_str2num["IRDA"]      = 23
-	_fam_str2num["PPPOX"]     = 24
-	_fam_str2num["WANPIPE"]   = 25
-	_fam_str2num["LLC"]       = 26
-	_fam_str2num["TIPC"]      = 30
-	_fam_str2num["BLUETOOTH"] = 31
+	foreach (num in _fam_num2str)
+		_fam_str2num[_fam_num2str[num]] = num 
 
 	/* from include/linux/net.h */
 	_state_num2str[0] = "FREE"
@@ -1018,11 +865,8 @@ probe begin(-1001)
 	_state_num2str[3] = "CONNECTED" 
 	_state_num2str[4] = "DISCONNECTING"
 
-	_state_str2num["FREE"]          = 0
-	_state_str2num["UNCONNECTED"]   = 1
-	_state_str2num["CONNECTING"]    = 2
-	_state_str2num["CONNECTED"]     = 3
-	_state_str2num["DISCONNECTING"] = 4
+	foreach (num in _state_num2str)
+		_state_str2num[_state_num2str[num]] = num 
 
 	/* from include/linux/net.h */
 	_type_num2str[1]  = "STREAM"
@@ -1033,13 +877,8 @@ probe begin(-1001)
 	_type_num2str[6]  = "DCCP"
 	_type_num2str[10] = "PACKET"
 
-	_type_str2num["STREAM"]    = 1
-	_type_str2num["DGRAM"]     = 2
-	_type_str2num["RAW"]       = 3
-	_type_str2num["RDM"]       = 4
-	_type_str2num["SEQPACKET"] = 5
-	_type_str2num["DCCP"]      = 6
-	_type_str2num["PACKET"]    = 10
+	foreach (num in _type_num2str)
+		_type_str2num[_type_num2str[num]] = num 
 }
 
 ######################
