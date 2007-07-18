@@ -19,10 +19,10 @@ int main()
   // epoll_create (32)
 
   epoll_ctl(fd, EPOLL_CTL_ADD, 13, &ev);
-  // epoll_ctl (3, EPOLL_CTL_ADD, 13, XXXX)
+  // epoll_ctl (NNNN, EPOLL_CTL_ADD, 13, XXXX)
 
   epoll_wait(fd, &ev, 17,0);
-  // epoll_wait (3, XXXX, 17, 0)
+  // epoll_wait (NNNN, XXXX, 17, 0)
   close(fd);
 
   poll(&pfd, 1, 0);

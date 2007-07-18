@@ -1,3 +1,7 @@
+2007-07-17  Martin Hunt  <hunt@redhat.com>
+
+	* poll.c (main): Don't hardcode fd.
+
 2007-07-16  Martin Hunt  <hunt@redhat.com>
 
 	* select.c (main): Ifdef SYS_pselect6.
