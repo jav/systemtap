@@ -1,6 +1,12 @@
 2007-07-25  Mike Mason <mmlnx@us.ibm.com>
 
 	PR 4836
+	* systemtap.samples/pfault.stp: Changed to
+	use memory tapset pagefault probes.
+
+2007-07-25  Mike Mason <mmlnx@us.ibm.com>
+
+	PR 4836
 	* buildok/twentytwo.stp, buildok/twentythree.stp:
 	Changed free_task() probes to deactivate_super() probes.  Changed 
 	references to timestamp in task_struct to s_maxbytes in super_block.

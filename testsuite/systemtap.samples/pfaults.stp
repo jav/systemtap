@@ -2,9 +2,7 @@
 
 global pidnames, faults, fault_types
 
-probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
-                                          %: "handle_mm_fault" %)) {
-
+probe vm.pagefault {
    # Maintain a pid-to-execname mapping.  This logic should get transplanted
    # into a tapset script that is automatically included upon reference to
    # its exported global variable.
@@ -13,8 +11,7 @@ probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
    faults [pid(), $write_access ? 1 : 0] ++
 }
 
-probe kernel.function(%( kernel_v > "2.6.9" %? "__handle_mm_fault"
-                                          %: "handle_mm_fault" %)).return {
+probe vm.pagefault.return {
   fault_types [pid(), $return] ++
 }
 
