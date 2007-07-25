@@ -109,9 +109,19 @@ function task_nice:long (task:long) %{ /* pure */
 
 
 // Return the scheduled cpu for the given task
-function task_cpu:long (task:long) %{ /* pure */
+function task_cpu:long (task:long)
+%( kernel_v >= "2.6.23" %? 
+%{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct thread_info *ti = kread(&(t->stack));
+    THIS->__retvalue = kread(&(ti->cpu));
+    CATCH_DEREF_FAULT();
+%}
+%:
+%{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
     struct thread_info *ti = kread(&(t->thread_info));
     THIS->__retvalue = kread(&(ti->cpu));
     CATCH_DEREF_FAULT();
 %}
+%)

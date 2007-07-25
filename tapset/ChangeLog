@@ -1,3 +1,13 @@
+2007-07-25  Mike Mason <mmlnx@us.ibm.com>
+
+	PR 4386
+	* memory.stp (vm.pagefault, vm.pagefault.return):
+	__handle_mm_fault renamed back to handle_mm_fault in 2.6.23.
+	Changed probes to look for either name in mm/memory.c and removed
+	kernel version check.
+	* task.stp (task_cpu): thread_info in task_struct changed
+	to stack in 2.6.23. Usage appears to be the same as before.
+
 2007-07-17  Mike Mason <mmlnx@us.ibm.com>
 
         * socket.stp: changed initialization of *num2str arrays to

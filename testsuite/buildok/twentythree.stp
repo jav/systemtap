@@ -2,8 +2,8 @@
 
 # Test for writing 64-bit target variable, PR 1271
 
-probe kernel.function("free_task")
+probe kernel.function("deactivate_super")
 {
-	$tsk->timestamp = 22;
-	printf("set to 22 => %d\n", $tsk->timestamp);
+	$s->s_maxbytes = 22;
+	printf("set to 22 => %d\n", $s->s_maxbytes)
 }

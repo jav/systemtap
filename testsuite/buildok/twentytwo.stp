@@ -2,9 +2,9 @@
 
 # Test for reading 64-bit target variable, PR 1271
 
-probe kernel.function("free_task")
+probe kernel.function("deactivate_super")
 {
-	printf("timestamp %d\n", $tsk->timestamp)
+	printf("s_maxbytes %d\n", $s->s_maxbytes)
 }
 
 probe kernel.function("vfs_llseek")
