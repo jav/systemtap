@@ -22,6 +22,16 @@ expect {
     eof { }
 }
 catch {close}; wait
+
+set modpath_cwd "$modname.ko"
+if [file exists $modpath_cwd] {
+    pass "$test search for probe module ($modpath_cwd)"
+} else {
+    fail "$test search for probe module ($modpath_cwd)"
+    return
+}
+exec /bin/rm -f $modpath_cwd
+
 if [file exists $tmpdir] {
     pass "$test search for tmpdir ($tmpdir)"
 } else {
@@ -33,7 +43,7 @@ set modpath "$tmpdir/$modname.ko"
 if [file exists $modpath] {
     pass "$test search for probe module ($modpath)"
 } else {
-    fail "$test search for probe module"
+    fail "$test search for probe module ($modpath)"
     return
 }
 

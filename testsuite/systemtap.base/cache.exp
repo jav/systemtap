@@ -117,7 +117,9 @@ set env(SYSTEMTAP_DIR) $local_systemtap_dir
 
 # Disable the cache with '-m'
 stap_compile MODNAM1 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+exec /bin/rm -f modnam.ko
 stap_compile MODNAM2 [F_UNCACHED_COMPILE] $basic_script1 -m modnam
+exec /bin/rm -f modnam.ko
 
 # Make sure scripts that don't actually compile don't get cached
 stap_compile ERROR1 [F_UNCACHED_NO_COMPILE] $error_script

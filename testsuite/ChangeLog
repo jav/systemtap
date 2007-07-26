@@ -1,3 +1,10 @@
+2007-07-26  David Smith  <dsmith@redhat.com>
+
+	PR 4295
+	* systemtap.samples/args.exp: Tests to make sure the '-m' option
+	leaves a module in the current directory.
+	* systemtap.base/cache.exp (stap_compile): Added cleanup.
+
 2007-07-25  Mike Mason <mmlnx@us.ibm.com>
 
 	PR 4836
