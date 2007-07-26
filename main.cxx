@@ -191,6 +191,7 @@ main (int argc, char * const argv [])
   string script_file; // FILE
   bool have_script = false;
   bool release_changed = false;
+  bool save_module = false;
 
   // Initialize defaults
   systemtap_session s;
@@ -330,6 +331,7 @@ main (int argc, char * const argv [])
 
         case 'm':
           s.module_name = string (optarg);
+	  save_module = true;
 	  {
 	    string::size_type len = s.module_name.length();
 
@@ -769,10 +771,25 @@ main (int argc, char * const argv [])
     cerr << "Pass 4: compilation failed.  "
          << "Try again with more '-v' (verbose) options."
          << endl;
-  else if (s.use_cache)
+  else
     {
       // Update cache.
-      add_to_cache(s);
+      if (s.use_cache)
+	add_to_cache(s);
+
+      // Copy module to the current directory.
+      if (save_module)
+        {
+	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
+	  string module_dest_path = s.module_name + ".ko";
+
+	  if (s.verbose > 1)
+	    clog << "Copying " << module_src_path << " to "
+		 << module_dest_path << endl;
+	  if (copy_file(module_src_path.c_str(), module_dest_path.c_str()) != 0)
+	    cerr << "Copy failed (\"" << module_src_path << "\" to \""
+		 << module_dest_path << "\"): " << strerror(errno) << endl;
+	}
     }
 
   if (rc || s.last_pass == 4) goto cleanup;

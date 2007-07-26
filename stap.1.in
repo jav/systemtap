@@ -137,7 +137,8 @@ Build for given kernel release instead of currently running one.
 .TP
 .BI \-m " MODULE"
 Use the given name for the generated kernel object module, instead
-of a unique randomized name.
+of a unique randomized name.  The generated kernel object module is
+copied to the current directory.
 .TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will

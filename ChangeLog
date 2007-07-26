@@ -1,3 +1,10 @@
+2007-07-26  David Smith  <dsmith@redhat.com>
+
+	PR 4295
+	* main.cxx (main): If '-m MODNAME' is used, the generated module
+	is saved in the current directory.
+	* stap.1.in: Updated '-m' description.
+
 2007-07-11  William Cohen  <wcohen@redhat.com>
 
 	* systemtap.spec.in: Make sqlite support selectable.
