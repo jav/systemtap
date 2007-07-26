@@ -406,7 +406,7 @@ err1:
 	for_each_cpu(j) {
 		if (j == i)
 			break;
-		sprintf(buf, "%d", i);
+		sprintf(buf, "%d", j);
 		remove_proc_entry (buf, _stp_proc_mod);
 		
 	}

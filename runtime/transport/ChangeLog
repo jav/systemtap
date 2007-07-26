@@ -1,3 +1,15 @@
+2007-07-26  Martin Hunt  <hunt@redhat.com>
+
+	Spotted by Ming Chang.
+	* procfs.c (_stp_register_ctl_channel): Fix iterator when removing
+	proc entries when an error occurs.
+
+2007-07-10  Michal Schmidt  <mschmidt@redhat.com>
+
+	* symbols.c (_stp_del_module): Split freeing of module memory into
+	a separate function _stp_free_module().
+	(_stp_do_module): Free module memory if _stp_ins_module() fails.
+
 2007-07-09  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c (_stp_ins_module): Check for overflow of
