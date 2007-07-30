@@ -33,6 +33,9 @@ int main()
   write(fd,"Hello world abcdefghijklmnopqrstuvwxyz 01234567890123456789", 59);
   // write (NNNN, "Hello world abcdefghijklmnopqrstuvwxyz 012345"..., 59) = 59
 
+  pwrite(fd,"Hello Again",11,12);
+  // pwrite (NNNN, "Hello Again", 11, 12) = 11
+
   writev(fd, v, 3);
   // writev (NNNN, XXXX, 3) = 15
 
@@ -69,6 +72,9 @@ int main()
 
   read(fd, buf, 50);
   // read (NNNN, XXXX, 50) = 50
+
+  pread(fd, buf, 11, 10);
+  // pread (NNNN, XXXX, 11, 10) = 11
 
   x[0].iov_base = buf1;
   x[0].iov_len = sizeof(STRING1);

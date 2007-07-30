@@ -1,3 +1,7 @@
+2007-07-30 David Wilder <dwilder@us.ibm.com>
+
+	* readdwrite.c: Added pwrite and pread test
+
 2007-07-17  Martin Hunt  <hunt@redhat.com>
 
 	* poll.c (main): Don't hardcode fd.

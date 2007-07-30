@@ -396,7 +396,7 @@ probe syscall.pread = kernel.function("sys_pread64") {
 	buf_uaddr = $buf
 	count = $count
 	offset = $pos
-	argstr = sprintf("%d, %p, %p, %p", $fd, $buf, $count, $pos)
+	argstr = sprintf("%d, %p, %d, %d", $fd, $buf, $count, $pos)
 }
 probe syscall.pread.return = kernel.function("sys_pread64").return {
 	name = "pread"
@@ -410,7 +410,13 @@ probe syscall.pread32 = kernel.function("sys32_pread64") ? {
 	buf_uaddr = $buf
 	count = $count
 	offset = ($poshi << 32) + $poslo
-	argstr = sprintf("%d, %p, %p, %p", $fd, $buf, $count, ($poshi << 32) + $poslo)
+%( arch == "s390x" %?
+	buf_uaddr = $ubuf
+	argstr = sprintf("%d, %p, %d, %d", $fd, $ubuf, $count, ($poshi << 32) + $poslo)
+%:
+	buf_uaddr = $buf
+        argstr = sprintf("%d, %p, %d, %d", $fd, $buf, $count, ($poshi << 32) + $poslo)
+%)
 }
 probe syscall.pread32.return = kernel.function("sys32_pread64").return ? {
 	name = "pread"
@@ -517,9 +523,17 @@ probe syscall.pwrite32 = kernel.function("sys32_pwrite64") ? {
 	buf_uaddr = $buf
 	count = $count
 	offset = ($poshi << 32) + $poslo
+%( arch == "s390x" %?
+        buf_uaddr = $ubuf
+        argstr = sprintf("%d, %s, %d, %d", $fd,
+                        text_strn(user_string($ubuf),syscall_string_trunc,1),
+                                $count, ($poshi << 32) + $poslo)
+%:
+	buf_uaddr = $buf
 	argstr = sprintf("%d, %s, %d, %d", $fd, 
 			text_strn(user_string($buf),syscall_string_trunc,1),
 				$count, ($poshi << 32) + $poslo)
+%)
 }
 probe syscall.pwrite32.return = kernel.function("sys32_pwrite64").return ? {
 	name = "pwrite"

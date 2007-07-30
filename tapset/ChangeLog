@@ -1,3 +1,10 @@
+2007-07-30 Dave Wilder <dwilder@us.ibm.com>
+	PR 4794
+	* syscalls2.stp (syscall.pread and syscall.pread32)
+	For s390x only changed the $buf argument to $ubuf.
+	Change the format for count and position from %p to %d
+	to make it consistant with sys_read and sys_write.
+
 2007-07-25  Mike Mason <mmlnx@us.ibm.com>
 
 	PR 4386
