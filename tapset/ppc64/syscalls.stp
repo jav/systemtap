@@ -635,28 +635,6 @@ probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
 	retstr = returnstr(1)
 }
 
-# request_key ________________________________________________
-#
-# asmlinkage long
-# sys_request_key(const char __user *_type,
-#		     const char __user *_description,
-#		     const char __user *_callout_info,
-#		     key_serial_t destringid)
-#
-probe syscall.request_key = kernel.function("sys_request_key") ? {
-	name = "request_key"
-	type_uaddr = $_type
-	description_uaddr = $_description
-	callout_info_uaddr = $_callout_info
-	destringid = $destringid
-	argstr = sprintf("%p, %p, %p, %p", type_uaddr,
-			description_uaddr, callout_info_uaddr, destringid)
-}
-probe syscall.request_key.return = kernel.function("sys_request_key").return ? {
-	name = "request_key"
-	retstr = returnstr(1)
-}
-
 # sys32_execve ________________________________________
 #
 # long sys32_execve(unsigned long a0, unsigned long a1, unsigned long a2,
