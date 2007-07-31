@@ -526,7 +526,7 @@ probe syscall.sys32_adjtimex = kernel.function("sys32_adjtimex") ? {
 	name = "sys32_adjtimex"
 	argstr = sprintf("%p", $utp)
 }
-probe syscall.sys32_adjtimex.return = kernel.function("sys32_adjtimex").return ?{
+probe syscall.sys32_adjtimex.return = kernel.function("sys32_adjtimex").return ? {
 	name = "sys32_adjtimex"
 	retstr = returnstr(1)
 }
@@ -549,20 +549,20 @@ probe syscall.sys32_getdents.return =
 	name = "sys32_getdents"
 	retstr = returnstr(1)
 }
-# sys32_sysctl ________________________________________
+
+# compat_sys_sysctl ________________________________________
 #
-# asmlinkage long sys32_sysctl(struct __sysctl_args32 __user *args)
+# long compat_sys_sysctl(struct __sysctl_args32 __user *args)
 #
-probe syscall.sys32_sysctl = kernel.function("sys32_sysctl") ? {
-	name = "sys32_sysctl"
-	args_uaddr = $args
-	argstr = sprintf("%p", args_uaddr)
+probe syscall.compat_sysctl = kernel.function("compat_sys_sysctl") ? {
+	name = "sysctl"
+	argstr = sprintf("%p", $args)
 }
-probe syscall.sys32_sysctl.return =
-	kernel.function("sys32_sysctl").return ? {
-	name = "sys32_sysctl"
+probe syscall.compat_sysctl.return = kernel.function("compat_sys_sysctl").return ? {
+	name = "sysctl"
 	retstr = returnstr(1)
 }
+
 # sys32_sched_setparam ________________________________________
 #
 # asmlinkage long sys32_sched_setparam(u32 pid,

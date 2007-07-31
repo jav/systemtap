@@ -49,6 +49,19 @@ probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 	retstr = returnstr(1)
 }
 
+# sysctl _____________________________________________________
+#
+# long sys32_sysctl(struct sysctl_ia32 __user *args32)
+#
+probe syscall.sysctl32 = kernel.function("sys32_sysctl") ? {
+	name = "sysctl"
+	argstr = sprintf("%p", $args32)
+}
+probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
+	name = "sysctl"
+	retstr = returnstr(1)
+}
+
 # mmap
 # long sys_mmap(unsigned long addr, unsigned long len,
 #          unsigned long prot, unsigned long flags,

@@ -41,3 +41,15 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
         retstr = returnstr(2)
 }
 
+# sysctl _____________________________________________________
+#
+# long sys32_sysctl (struct sysctl32 __user *args)
+#
+probe syscall.sysctl32 = kernel.function("sys32_sysctl") ? {
+	name = "sysctl"
+	argstr = sprintf("%p", $args)
+}
+probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
+	name = "sysctl"
+	retstr = returnstr(1)
+}

@@ -2374,7 +2374,6 @@ probe syscall.symlink.return = kernel.function("sys_symlink").return {
 }
 # sync _______________________________________________________
 #
-# asmlinkage long
 # sys_sync(void)
 #
 probe syscall.sync = kernel.function("sys_sync") {
@@ -2385,22 +2384,16 @@ probe syscall.sync.return = kernel.function("sys_sync").return {
 	name = "sync"
 	retstr = returnstr(1)
 }
+
 # sysctl _____________________________________________________
 #
 # long sys_sysctl(struct __sysctl_args __user *args)
-# long sys32_sysctl(struct __sysctl_args32 __user *args)
 #
-probe syscall.sysctl =
-		kernel.function("sys_sysctl"), 
-		kernel.function("sys32_sysctl") ?
-{
+probe syscall.sysctl = kernel.function("sys_sysctl") ? {
 	name = "sysctl"
 	argstr = sprintf("%p", $args)
 }
-probe syscall.sysctl.return =
-		kernel.function("sys_sysctl").return,
-		kernel.function("sys32_sysctl").return ?
-{
+probe syscall.sysctl.return = kernel.function("sys_sysctl").return ? {
 	name = "sysctl"
 	retstr = returnstr(1)
 }

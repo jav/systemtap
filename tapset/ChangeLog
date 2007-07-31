@@ -1,7 +1,10 @@
 2007-07-31  Martin Hunt  <hunt@redhat.com>
 
-	* syscalls.stp (clack_nanosleep): Fix flags string.
+	* syscalls*: Move sys32_sysctl to arch dirs.
+	
+2007-07-31  Martin Hunt  <hunt@redhat.com>
 
+	* syscalls.stp (clock_nanosleep): Fix flags string.
 	* syscalls2.stp: Fix typo.
 
 2007-07-31  Martin Hunt  <hunt@redhat.com>	
