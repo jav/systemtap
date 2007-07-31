@@ -70,8 +70,8 @@ int main()
   // clock_nanosleep (CLOCK_REALTIME, TIMER_ABSTIME, \[NNNN.NNNN\], XXXX) = 0
 
   ts.tv_sec = 0;   ts.tv_nsec = 10000;  
-  syscall(SYS_clock_nanosleep, CLOCK_REALTIME, 0, &ts);
-  // clock_nanosleep (CLOCK_REALTIME, 0, \[NNNN.NNNN\], XXXX) = 0
+  syscall(SYS_clock_nanosleep, CLOCK_REALTIME, 0x0, &ts);
+  // clock_nanosleep (CLOCK_REALTIME, 0x0, \[NNNN.NNNN\], XXXX) = 0
   
   return 0;
 }
