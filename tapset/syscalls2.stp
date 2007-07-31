@@ -1266,7 +1266,7 @@ probe syscall.semctl.return = kernel.function("sys_semctl").return ? {
 #
 probe syscall.compat_sys_semctl = kernel.function("compat_sys_semctl") ? {
 	name = "compat_sys_semctl"
-	argstr = sprintf("%d, %d, $d, %p", $first, $second, $third, $uptr) 
+	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr) 
 }
 probe syscall.compat_sys_semctl.return = kernel.function("compat_sys_semctl").return ? {
 	name = "compat_sys_semctl"

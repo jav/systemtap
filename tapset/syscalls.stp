@@ -343,7 +343,11 @@ probe syscall.clock_gettime.return =
 #
 probe syscall.clock_nanosleep = kernel.function("sys_clock_nanosleep") {
 	name = "clock_nanosleep"
-	argstr = sprintf("%s, 0x%x, %s, %p", _get_wc_str($which_clock), $flags,
+	if ($flags == 1)
+		flag_str = "TIMER_ABSTIME"
+	else
+		flag_str = sprintf("0x%x", $flags)
+	argstr = sprintf("%s, %s, %s, %p", _get_wc_str($which_clock), flag_str,
 			_struct_timespec_u($rqtp), $rmtp)
 }
 probe syscall.clock_nanosleep.return = kernel.function("sys_clock_nanosleep").return {
@@ -361,7 +365,11 @@ probe syscall.compat_clock_nanosleep =
 		kernel.function("compat_sys_clock_nanosleep") ?
 {
 	name = "compat_clock_nanosleep"
-	argstr = sprintf("%s, 0x%x, %s, %p", _get_wc_str($which_clock), $flags,
+	if ($flags == 1)
+		flag_str = "TIMER_ABSTIME"
+	else
+		flag_str = sprintf("0x%x", $flags)
+	argstr = sprintf("%s, %s, %s, %p", _get_wc_str($which_clock), flag_str,
 			_struct_compat_timespec_u($rqtp), $rmtp)
 }
 probe syscall.compat_clock_nanosleep.return =
