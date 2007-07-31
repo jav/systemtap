@@ -650,6 +650,64 @@ function __get_argv:string(a:long)
 	}
 	*str = 0;
 %}
+/* This function copies an argv from userspace. */
+function __get_compat_argv:string(a:long)
+%{ /* pure */
+  	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
+	compat_uptr_t __user *vstr;
+	int space, rc, len = MAXSTRINGLEN;
+	char *str = THIS->__retvalue;
+	char buf[80];
+	char *ptr = buf;
+
+	if (argv)
+		argv++;
+
+	while (argv != NULL) {
+		if (get_user (vstr, argv))
+      			break;
+
+		if (vstr == NULL)
+			break;
+
+		rc = _stp_strncpy_from_user(buf, vstr, 79);
+		if (rc <= 0)
+			break;
+
+		/* check for whitespace in string */
+		buf[rc] = 0;
+		ptr = buf;
+		space = 0;
+		while (*ptr && rc--) {
+			if (isspace(*ptr++)) {
+				space = 1;
+				break;
+			}
+		}
+
+		if (len != MAXSTRINGLEN && len) {
+			*str++=' ';
+			len--;
+		}
+
+		if (space && len) {
+			*str++='\"';
+			len--;
+		}
+	
+		rc = strlcpy (str, buf, len); 
+		str += rc;
+		len -= rc;
+
+		if (space && len) {
+			*str++='\"';
+			len--;
+		}
+
+		argv++;
+	}
+	*str = 0;
+%}
 
 /*
  * Return a integer member value of struct
@@ -1562,3 +1620,10 @@ function __int32:long(val:long) %{ /* pure */
 	THIS->__retvalue = (int32_t)THIS->val;
 %}
 
+function _shmat_flags_str(f) {
+   if(f & 010000) bs="SHM_RDONLY|".bs
+   if(f & 020000) bs="SHM_RND|".bs
+   if(f & 040000) bs="SHM_REMAP|".bs
+   if(f & 0100000) bs="SHM_EXEC|".bs
+   return substr(bs,0,strlen(bs)-1)
+}

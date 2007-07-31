@@ -95,11 +95,7 @@ probe syscall.add_key.return = kernel.function("sys_add_key").return ? {
 # long sys_adjtimex(struct timex __user *txc_p)
 probe syscall.adjtimex = kernel.function("sys_adjtimex") {
 	name = "adjtimex"
-	buf_uaddr = $txc_p
-	/*
-	* buf_modes        = __uget_timex_m($txc_p,0)
-	*/
-	buf_modes_str     = _adjtx_mode_str(buf_modes)
+	
 	/*
 	* buf_offset       = __uget_timex_m($txc_p,1)
 	* buf_freq         = __uget_timex_m($txc_p,2)
@@ -113,10 +109,19 @@ probe syscall.adjtimex = kernel.function("sys_adjtimex") {
 	* buf_time_tv_usec = __uget_timex_m($txc_p,10)
 	* buf_tick         = __uget_timex_m($txc_p,11)
 	*/
-	argstr = buf_modes_str
+	argstr = sprintf("%p", $txc_p)
 }
 probe syscall.adjtimex.return = kernel.function("sys_adjtimex").return {
 	name = "adjtimex"
+	retstr = returnstr(1)
+}
+# long compat_sys_adjtimex(struct compat_timex __user *utp)
+probe syscall.compat_adjtimex = kernel.function("compat_sys_adjtimex") ? {
+	name = "compat_adjtimex"
+	argstr = sprintf("%p", $utp)
+}
+probe syscall.compat_adjtimex.return = kernel.function("compat_sys_adjtimex").return ? {
+	name = "compat_adjtimex"
 	retstr = returnstr(1)
 }
 
@@ -286,28 +291,46 @@ probe syscall.chroot.return = kernel.function("sys_chroot").return {
 
 # clock_getres _______________________________________________
 # long sys_clock_getres(clockid_t which_clock, struct timespec __user *tp)
-probe syscall.clock_getres = kernel.function("sys_clock_getres") {
+# long compat_clock_getres(clockid_t which_clock, struct compat_timespec __user *tp)
+# 
+probe syscall.clock_getres =
+		kernel.function("sys_clock_getres"),
+		kernel.function("compat_clock_getres") ?
+{
 	name = "clock_getres"
 	clk_id = $which_clock
 	clk_id_str = _get_wc_str($which_clock)
 	res_uaddr = $tp
 	argstr = sprintf("%s, %p", _get_wc_str($which_clock), $tp)
 }
-probe syscall.clock_getres.return = kernel.function("sys_clock_getres").return {
+probe syscall.clock_getres.return =
+		kernel.function("sys_clock_getres").return,
+		kernel.function("compat_clock_getres").return ?
+{
 	name = "clock_getres"
 	retstr = returnstr(1)
 }
 
 # clock_gettime ______________________________________________
 # long sys_clock_gettime(clockid_t which_clock, struct timespec __user *tp)
-probe syscall.clock_gettime = kernel.function("sys_clock_gettime") {
+# long compat_clock_gettime(clockid_t which_clock, struct compat_timespec __user *tp)
+# long compat_sys_clock_gettime(clockid_t which_clock,struct compat_timespec __user *tp)
+#
+probe syscall.clock_gettime =
+		kernel.function("sys_clock_gettime"),
+		kernel.function("compat_clock_gettime") ?,
+		kernel.function("compat_sys_clock_gettime") ?
+{
 	name = "clock_gettime"
 	clk_id = $which_clock
 	clk_id_str = _get_wc_str($which_clock)
-	tp_uaddr = $tp
 	argstr = sprintf("%s, %p", _get_wc_str($which_clock), $tp)
 }
-probe syscall.clock_gettime.return = kernel.function("sys_clock_gettime").return {
+probe syscall.clock_gettime.return =
+		kernel.function("sys_clock_gettime").return,
+		kernel.function("compat_clock_gettime").return ?,
+		kernel.function("compat_sys_clock_gettime").return ?
+{
 	name = "clock_gettime"
 	retstr = returnstr(1)
 }
@@ -320,20 +343,32 @@ probe syscall.clock_gettime.return = kernel.function("sys_clock_gettime").return
 #
 probe syscall.clock_nanosleep = kernel.function("sys_clock_nanosleep") {
 	name = "clock_nanosleep"
-	clock_id = $which_clock
-	clock_id_str = _get_wc_str($which_clock)
-	flags = $flags
-	if ($flags == 0)
-		flag_str = "0"
-	else
-		flag_str = "TIMER_ABSTIME"
-	rqtp_uaddr = $rqtp
-	rmtp_uaddr = $rmtp
-	argstr = sprintf("%s, %s, %s, %p", clock_id_str, flag_str, 
+	argstr = sprintf("%s, 0x%x, %s, %p", _get_wc_str($which_clock), $flags,
 			_struct_timespec_u($rqtp), $rmtp)
 }
 probe syscall.clock_nanosleep.return = kernel.function("sys_clock_nanosleep").return {
 	name = "clock_nanosleep"
+	retstr = returnstr(1)
+}
+# compat_clock_nanosleep ________________________________________
+#
+# long compat_clock_nanosleep(clockid_t which_clock, int flags,
+#			struct compat_timespec __user *rqtp,
+#			struct compat_timespec __user *rmtp)
+#
+probe syscall.compat_clock_nanosleep =
+		kernel.function("compat_clock_nanosleep") ?,
+		kernel.function("compat_sys_clock_nanosleep") ?
+{
+	name = "compat_clock_nanosleep"
+	argstr = sprintf("%s, 0x%x, %s, %p", _get_wc_str($which_clock), $flags,
+			_struct_compat_timespec_u($rqtp), $rmtp)
+}
+probe syscall.compat_clock_nanosleep.return =
+		kernel.function("compat_clock_nanosleep").return ?,
+		kernel.function("compat_sys_clock_nanosleep").return ?
+{
+	name = "compat_clock_nanosleep"
 	retstr = returnstr(1)
 }
 
@@ -497,6 +532,20 @@ probe syscall.execve = kernel.function("do_execve") {
 # another reason to probe on do_execve
 probe syscall.execve.return = kernel.function("do_execve").return {
 	name = "execve"
+	retstr = returnstr(1)
+}
+# int compat_do_execve(char * filename,
+#	compat_uptr_t __user *argv,
+#	compat_uptr_t __user *envp,
+#	struct pt_regs * regs)
+probe syscall.compat_execve = kernel.function("compat_do_execve") {
+	name = "compat_execve"
+	filename = kernel_string($filename)
+	args = __get_compat_argv($argv)
+	argstr = sprintf("%s %s", filename, args)
+}
+probe syscall.compat_execve.return = kernel.function("compat_do_execve").return {
+	name = "compat_execve"
 	retstr = returnstr(1)
 }
 
@@ -827,6 +876,37 @@ probe syscall.fstat.return =
 	retstr = returnstr(1)
 }
 
+# fstatat ____________________________________________________
+# sys32_fstatat64(unsigned int dfd, char __user *filename, struct stat64_emu31 __user* statbuf, int flag)
+# long sys_newfstatat(int dfd, char __user *filename, struct stat __user *statbuf, int flag)
+# long sys_fstatat64(int dfd, char __user *filename, struct stat64 __user *statbuf, int flag)
+#
+probe syscall.fstatat = 
+		kernel.function("sys_fstatat64") ?, 
+		kernel.function("sys_newfstatat") ?,
+		kernel.function("sys32_fstatat64") ?
+{
+	name = "fstatat"
+	dirfd = $dfd
+	path = user_string($filename)
+	buf_uaddr = $statbuf
+
+	if ($flag == 0x100)
+		flags = "AT_SYMLINK_NOFOLLOW"
+	else
+		flags = sprintf("0x%x", $flag)
+
+	argstr = sprintf("%d, %s, %p, %s", $dfd, user_string_quoted($filename), $statbuf, flags)
+}
+probe syscall.fstatat.return = 
+		kernel.function("sys_fstatat64").return ?, 
+		kernel.function("sys_newfstatat").return ?,
+		kernel.function("sys32_fstatat64").return ?
+{
+	name = "fstatat"
+	retstr = returnstr(1)
+}
+
 # fstatfs ____________________________________________________
 # long sys_fstatfs(unsigned int fd, struct statfs __user * buf)
 # long compat_sys_fstatfs(unsigned int fd, struct compat_statfs __user *buf)
@@ -1012,15 +1092,18 @@ probe syscall.getdents.return =
 # getegid ____________________________________________________
 # long sys_getegid(void)
 # long sys_getegid16(void)
+# long sys32_getegid16(void)
 #
 probe syscall.getegid =
 		kernel.function("sys_getegid16") ?,
+		kernel.function("sys32_getegid16") ?,
 		kernel.function("sys_getegid")
 {
 	name = "getegid"
 }
 probe syscall.getegid.return =
 		kernel.function("sys_getegid16").return ?,
+		kernel.function("sys32_getegid16").return ?,
 		kernel.function("sys_getegid").return
 {
 	name = "getegid"
@@ -1029,14 +1112,18 @@ probe syscall.getegid.return =
 
 # geteuid ____________________________________________________
 # long sys_geteuid(void)
+# long sys32_geteuid16(void)
+#
 probe syscall.geteuid = 
 		kernel.function("sys_geteuid16") ?,
+		kernel.function("sys32_geteuid16") ?,
 		kernel.function("sys_geteuid")
 {
 	name = "geteuid"
 }
 probe syscall.geteuid.return = 
 		kernel.function("sys_geteuid16").return ?,
+		kernel.function("sys32_geteuid16").return ?,
 		kernel.function("sys_geteuid").return
 {
 	name = "geteuid"
@@ -1045,14 +1132,18 @@ probe syscall.geteuid.return =
 
 # getgid _____________________________________________________
 # long sys_getgid(void)
+# long sys32_getgid16(void)
+#
 probe syscall.getgid = 
 		kernel.function("sys_getgid16") ?,
+		kernel.function("sys32_getgid16") ?,
 		kernel.function("sys_getgid") 
 {
 	name = "getgid"
 }
 probe syscall.getgid.return = 
 		kernel.function("sys_getgid16").return ?,
+		kernel.function("sys32_getgid16").return ?,
 		kernel.function("sys_getgid").return
 {
 	name = "getgid"
@@ -1330,7 +1421,10 @@ probe syscall.getsockname.return = kernel.function("sys_getsockname").return {
 #                char __user *optval,
 #                int __user *optlen)
 #
-probe syscall.getsockopt = kernel.function("sys_getsockopt") {
+probe syscall.getsockopt = 
+		kernel.function("sys_getsockopt") ?,
+		kernel.function("compat_sys_getsockopt") ?
+{
 	name = "getsockopt"
 	fd = $fd
 	level = $level
@@ -1342,8 +1436,12 @@ probe syscall.getsockopt = kernel.function("sys_getsockopt") {
 	argstr = sprintf("%d, %s, %s, %p, %p", $fd,  _sockopt_level_str($level),
 			_sockopt_optname_str($optname), $optval, $optlen)
 }
-probe syscall.getsockopt.return = kernel.function("sys_getsockopt").return {
-	name = "getsockopt.return"
+probe syscall.getsockopt.return =
+		kernel.function("sys_getsockopt").return ?,
+		kernel.function("compat_sys_getsockopt").return ? 
+{
+	name = "getsockopt"
+	retstr = returnstr(1)
 }
 
 # gettid _____________________________________________________
@@ -1386,15 +1484,18 @@ probe syscall.gettimeofday.return =
 # getuid _____________________________________________________
 # long sys_getuid(void
 # long sys_getuid16(void)
+# long sys32_getuid16(void)
 #
 probe syscall.getuid =
 		kernel.function("sys_getuid16") ?,
+		kernel.function("sys32_getuid16") ?,
 		kernel.function("sys_getuid")
 {
 	name = "getuid"
 }
 probe syscall.getuid.return =
 		kernel.function("sys_getuid16").return ?,
+		kernel.function("sys32_getuid16").return ?,
 		kernel.function("sys_getuid").return
 {
 	name = "getuid"
@@ -2087,64 +2188,6 @@ probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
 	retstr = returnstr(1)
 }
 
-%(arch != "s390x" %?
-# mmap
-# long sys_mmap(unsigned long addr, unsigned long len,
-#          unsigned long prot, unsigned long flags,
-#          unsigned long fd, unsigned long off)
-probe syscall.mmap = kernel.function("sys_mmap") ? {
-	name = "mmap"
-	start = $addr
-	len = $len
-	prot = $prot
-	flags = $flags
-	fd = $fd
-%(arch != "ppc64" %?
-	offset = $off
-%:
-	offset = $offset
-%)
-	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
-		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, offset)
-}
-
-probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
-	name = "mmap"
-	retstr = returnstr(2)
-}
-
-# mmap2
-# long sys_mmap2(unsigned long addr, unsigned long len,
-#	unsigned long prot, unsigned long flags,
-#	unsigned long fd, unsigned long pgoff)
-# long sys32_mmap2(unsigned long addr, unsigned long len,
-#	unsigned long prot, unsigned long flags,
-#	unsigned long fd, unsigned long pgoff)
-#
-probe syscall.mmap2 = 
-		kernel.function("sys_mmap2") ?,
-		kernel.function("sys32_mmap2") ?
-{
-	name = "mmap2"
-	start = $addr
-	length = $len
-	prot = $prot
-	flags = $flags
-	fd = $fd
-	pgoffset = $pgoff
-	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, 
-		$len, _mprotect_prot_str($prot), _mmap_flags($flags),
-		$fd, $pgoff)
-}
-probe syscall.mmap2.return = 
-		kernel.function("sys_mmap2").return ?,
-		kernel.function("sys32_mmap2").return ?
-{
-	name = "mmap2"
-	retstr = returnstr(2)
-}
-%)
-
 # modify_ldt _________________________________________________
 # int sys_modify_ldt(int func, void __user *ptr, unsigned long bytecount)
 #
@@ -2361,6 +2404,18 @@ probe syscall.msgctl.return = kernel.function("sys_msgctl").return {
 	name = "msgctl"
 	retstr = returnstr(1)
 }
+# compat_sys_msgctl ________________________________________
+#
+# long compat_sys_msgctl(int first, int second, void __user *uptr)
+#
+probe syscall.compat_sys_msgctl = kernel.function("compat_sys_msgctl") ? {
+	name = "compat_sys_msgctl"
+	argstr = sprintf("%d, %d, %p", $first, $second, $uptr)
+}
+probe syscall.compat_sys_msgctl.return = kernel.function("compat_sys_msgctl").return ? {
+	name = "compat_sys_msgctl"
+	retstr = returnstr(1)
+}
 
 # msgget _____________________________________________________
 # long sys_msgget (key_t key, int msgflg)
@@ -2397,6 +2452,19 @@ probe syscall.msgrcv.return = kernel.function("sys_msgrcv").return {
 	name = "msgrcv"
 	retstr = returnstr(1)
 }
+# compat_sys_msgrcv ________________________________________
+#
+# long compat_sys_msgrcv(int first, int second, int msgtyp, int third,
+#			int version, void __user *uptr)
+#
+probe syscall.compat_sys_msgrcv = kernel.function("compat_sys_msgrcv") ? {
+	name = "compat_sys_msgrcv"
+	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
+}
+probe syscall.compat_sys_msgrcv.return = kernel.function("compat_sys_msgrcv").return ? {
+	name = "compat_sys_msgrcv"
+	retstr = returnstr(1)
+}
 
 # msgsnd _____________________________________________________
 # long sys_msgsnd (int msqid,
@@ -2414,7 +2482,20 @@ probe syscall.msgsnd = kernel.function("sys_msgsnd") {
 }
 probe syscall.msgsnd.return = kernel.function("sys_msgsnd").return {
 	name = "msgsnd"
-	retstr = returnstr(1)}
+	retstr = returnstr(1)
+}
+# compat_sys_msgsnd ________________________________________
+#
+# long compat_sys_msgsnd(int first, int second, int third, void __user *uptr)
+#
+probe syscall.compat_sys_msgsnd = kernel.function("compat_sys_msgsnd") ? {
+	name = "compat_sys_msgsnd"
+	argstr = sprintf("%d, %d, %d, %p", $first, $second, $third, $uptr)
+}
+probe syscall.compat_sys_msgsnd.return = kernel.function("compat_sys_msgsnd").return ? {
+	name = "compat_sys_msgsnd"
+	retstr = returnstr(1)
+}
 
 # msync ______________________________________________________
 # long sys_msync(unsigned long start, size_t len, int flags)

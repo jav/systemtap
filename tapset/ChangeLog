@@ -1,3 +1,56 @@
+2007-07-31  Martin Hunt  <hunt@redhat.com>
+
+	* */syscalls.stp: Added mmap functions.
+	Continued moving common compatibility functions to
+	the main tapset.
+
+	* aux_syscalls.stp (_shmat_flags_str): New.
+	(__get_compat_argv): New.
+
+	* syscalls.stp (adjtimex): Just print hex argument.
+	(compat_adjtimex): New.
+	(clock_getres): Also probe compat_clock_getres.
+	(clock_gettime): Also probe compat funcs.
+	(compat_clock_nanosleep): New.
+	(compat_execve): New.
+	(fstatat): New.
+	(get[e][gu]id): Also probe sys32.
+	(getsockopt): Make optional. Also probe compat.
+	(mmap, mmap2): These are arch-specific, so move to individual
+	architecture subdirs.
+	(compat_sys_msgctl): New.
+	(compat_sys_msgrcv): New.
+	(compat_sys_msgsnd): New.
+
+	* syscalls.stp (pread32): Remove. It calls pread64 .
+	(quotactl): Make optional.
+	(recv): Probe correct function.
+	(recvfrom): Fix args.
+	(compat_sys_recvmsg): New.
+	(semctl): Make optional.
+	(compat_sys_semctl): New.
+	(semget): Make optional.
+	(semop): Make optional.	
+	(semtimedop): Make optional.		
+	(compat_sys_semtimedop): New.	
+	(send): Make optional.
+	(sendmsg): Make optional.
+	(compat_sys_sendmsg): New.
+	(sendto): Make optional.
+	(setsockopt): Make optional. Add compat.
+	(shmat): New.
+	(compat_sys_shmat): New.
+	(shmctl): New.
+	(compat_sys_shmctl): New.
+	(shmdt): New.
+	(shmget): New.
+	(shutdown): Make optional.
+	(socket): Make optional.
+	(socketpair): Make optional.
+	(swapoff): Make optional.
+	(swapon): Make optional.
+	(sysctl): Add probe on sys32.
+
 2007-07-31  Frank Ch. Eigler  <fche@elastic.org>
 	
 	PR 4793

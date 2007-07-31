@@ -1,3 +1,5 @@
+# x86_64-specific system calls
+
 # arch_prctl _________________________________________________
 # long sys_arch_prctl(int code, unsigned long addr)
 #
@@ -47,4 +49,24 @@ probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 	retstr = returnstr(1)
 }
 
+# mmap
+# long sys_mmap(unsigned long addr, unsigned long len,
+#          unsigned long prot, unsigned long flags,
+#          unsigned long fd, unsigned long off)
+probe syscall.mmap = kernel.function("sys_mmap") ? {
+	name = "mmap"
+	start = $addr
+	len = $len
+	prot = $prot
+	flags = $flags
+	fd = $fd
+	offset = $off
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+}
+
+probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
+	name = "mmap"
+	retstr = returnstr(2)
+}
 

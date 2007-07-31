@@ -1,3 +1,7 @@
+# 32-bit x86-specific system calls
+# These are typically defined in arch/i386
+#
+
 # get_thread_area ____________________________________________
 /*
  * asmlinkage int
@@ -28,16 +32,9 @@ probe syscall.iopl.return = kernel.function("sys_iopl").return {
 }
 
 # ipc ________________________________________________________
-/*
- * asmlinkage int
- * sys_ipc(uint call,
- *         int first,
- *         int second,
- *         int third,
- *         void __user *ptr,
- *         long fifth)
- */
-probe syscall.ipc = kernel.function("sys_ipc") {
+#  int sys_ipc (uint call, int first, int second, int third, void __user *ptr, long fifth)
+#
+probe syscall.ipc = kernel.function("sys_ipc") ? {
 	name = "ipc"
 	call = $call
 	first = $first
@@ -46,11 +43,36 @@ probe syscall.ipc = kernel.function("sys_ipc") {
 	ptr_uaddr = $ptr
 	fifth = $fifth
 	argstr = sprintf("%d, %d, %d, %d, %p, %d", $call, $first,
-			$second, $third, ptr_uaddr, $fifth)
+			$second, $third, $ptr, $fifth)
 }
-probe syscall.ipc.return = kernel.function("sys_ipc").return {
+probe syscall.ipc.return = kernel.function("sys_ipc").return ? {
 	name = "ipc"
 	retstr = returnstr(1)
+}
+
+
+# mmap2 ____________________________________________
+# sys_mmap2(unsigned long addr, unsigned long len,
+#	  unsigned long prot, unsigned long flags,
+#	  unsigned long fd, unsigned long pgoff)
+#
+probe syscall.mmap2 = kernel.function("sys_mmap2") ?
+{
+        name = "mmap2"
+        start = $addr
+        length = $len
+        prot = $prot
+        flags = $flags
+        fd = $fd
+        pgoffset = $pgoff
+        argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, 
+                $len, _mprotect_prot_str($prot), _mmap_flags($flags),
+                $fd, $pgoff)
+}
+probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
+{
+        name = "mmap2"
+        retstr = returnstr(2)
 }
 
 # set_thread_area ____________________________________________
@@ -91,26 +113,6 @@ probe syscall.set_zone_reclaim.return =
 	retstr = returnstr(1)
 }
 %)
-# shmat ______________________________________________________
-/*
- * asmlinkage long
- * sys_shmat(int shmid,
- *           char __user *shmaddr,
- *           int shmflg)
- */
-probe syscall.shmat =
-	kernel.function("sys_shmat") {
-	name = "shmat"
-	shmid = $shmid
-	shmaddr_uaddr = $shmaddr
-	shmflg = $shmflg
-	argstr = sprintf("%d, %p, %d", $shmid, shmaddr_uaddr, $shmflg)
-}
-probe syscall.shmat.return =
-	kernel.function("sys_shmat").return {
-	name = "shmat"
-	retstr = returnstr(1)
-}
 
 # sigaltstack ________________________________________________
 # int sys_sigaltstack(unsigned long ebx)

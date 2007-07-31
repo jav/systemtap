@@ -1,0 +1,43 @@
+# IA64 system calls
+
+# mmap
+# sys_mmap (unsigned long addr, unsigned long len, int prot, int flags, int fd, long off)
+#
+probe syscall.mmap = kernel.function("sys_mmap") ? {
+        name = "mmap"
+        start = $addr
+        len = $len
+        prot = $prot
+        flags = $flags
+        fd = $fd
+        offset = $off
+        argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+                _mprotect_prot_str($prot), _mmap_flags($flags), $fd, $off)
+}
+
+probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
+        name = "mmap"
+        retstr = returnstr(2)
+}
+
+# mmap2
+# sys_mmap2 (unsigned long addr, unsigned long len, int prot, int flags, int fd, long pgoff)
+probe syscall.mmap2 = kernel.function("sys_mmap2") ?
+{
+        name = "mmap2"
+        start = $addr
+        length = $len
+        prot = $prot
+        flags = $flags
+        fd = $fd
+        pgoffset = $pgoff
+        argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, 
+                $len, _mprotect_prot_str($prot), _mmap_flags($flags),
+                $fd, $pgoff)
+}
+probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
+{
+        name = "mmap2"
+        retstr = returnstr(2)
+}
+

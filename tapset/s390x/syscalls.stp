@@ -1,22 +1,59 @@
+# S390-specific system calls
+
 %(arch == "s390x" %?
 
-# mmap - s390x  version of the syscall.mmap probes
+# getresgid __________________________________________________
+# long sys32_getresgid16(u16 __user *rgid, u16 __user *egid, u16 __user *sgid)
 #
+probe syscall.getresgid16 = kernel.function("sys32_getresgid16") ?
+{
+	name = "getresgid"
+	argstr = sprintf("%p, %p, %p", $rgid, $egid, $sgid)
+}
+probe syscall.getresgid16.return = kernel.function("sys32_getresgid16").return ?
+{
+	name = "getresgid"
+	retstr = returnstr(1)
+}
+# getresuid __________________________________________________
+# long sys32_getresuid16(u16 __user *ruid, u16 __user *euid, u16 __user *suid)
+#
+probe syscall.getresuid16 = kernel.function("sys32_getresuid16") ?
+{
+	name = "getresuid"
+	argstr = sprintf("%p, %p, %p", $ruid, $euid, $suid)
+}
+probe syscall.getresuid16.return = kernel.function("sys32_getresuid16").return ?
+{
+	name = "getresuid"
+	retstr = returnstr(1)
+}
+
+# ipc _________________________________________________
+# long sys32_ipc(u32 call, int first, int second, int third, u32 ptr)
+#
+probe syscall.ipc = kernel.function("sys32_ipc") ? {
+	name = "ipc"
+	argstr = sprintf("%d, %d, %d, %d, %p", $call, $first, $second, $third, $ptr)
+}
+probe syscall.ipc.return = kernel.function("sys_ipc").return ? {
+	name = "ipc"
+	retstr = returnstr(1)
+}
+
+# mmap _________________________________________________
 # long old_mmap(struct mmap_arg_struct __user *arg)
 # long old32_mmap(struct mmap_arg_struct_emu31 __user *arg)
 #
-
 probe syscall.mmap = kernel.function("old_mmap"),
 		     kernel.function("old32_mmap")
 {
 	name = "mmap"
 
-	if ( probefunc() == "old_mmap" ){
-		argstr = get_mmap_args($arg);
-        }else{
-		argstr = get_32mmap_args($arg);
-	}
-
+	if (probefunc() == "old_mmap")
+		argstr = get_mmap_args($arg)
+        else
+		argstr = get_32mmap_args($arg)
 }
 
 probe syscall.mmap.return = kernel.function("old_mmap").return,
@@ -27,7 +64,7 @@ probe syscall.mmap.return = kernel.function("old_mmap").return,
 }
 
 
-# mmap2 - s390x version of the syscall.mmap2 probes
+# mmap2 _________________________________________________
 #
 # long sys_mmap2(struct mmap_arg_struct __user  *arg)
 # long sys32_mmap2(struct mmap_arg_struct_emu31 __user *arg)
@@ -37,12 +74,10 @@ probe syscall.mmap2 = kernel.function("sys_mmap2"),
 {
         name = "mmap2"
 
-	if ( probefunc() == "sys_mmap2" ){
-		argstr = get_mmap_args($arg);
-	}else{
-		argstr = get_32mmap_args($arg);
-	}
-
+	if (probefunc() == "sys_mmap2")
+		argstr = get_mmap_args($arg)
+	else
+		argstr = get_32mmap_args($arg)
 }
 
 probe syscall.mmap2.return = kernel.function("sys_mmap2").return,
