@@ -1,9 +1,11 @@
 2007-07-31  Frank Ch. Eigler  <fche@elastic.org>
 	
+	PR 4793
 	* ppc64/syscalls.stp: Remove duplicate sys_request_key{,.return}
 	aliases.
 
 2007-07-30 Dave Wilder <dwilder@us.ibm.com>
+
 	PR 4794
 	* syscalls2.stp (syscall.pread and syscall.pread32)
 	For s390x only changed the $buf argument to $ubuf.
