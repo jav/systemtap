@@ -3,21 +3,20 @@
 global command, syscall_count, syscall_times, this_syscall_time, this_syscall
 
 function accumulate () {
-  pid = pid()
-  if (! ([pid] in command)) command[pid] = execname()
+  tid = tid()
+  if (! ([tid] in command)) command[tid] = execname()
   syscall=pp() # just the substring ideally
-  syscall_count[pid,syscall] ++
-  this_syscall[pid] = syscall
-  this_syscall_time[pid] = gettimeofday_us()
+  syscall_count[tid,syscall] ++
+  this_syscall[tid] = syscall
+  this_syscall_time[tid] = gettimeofday_us()
 }
 function decumulate () {
-  pid = pid()
-  syscall = this_syscall[pid]
-  syscall_times[pid,syscall] += 
-    gettimeofday_us() - this_syscall_time[pid]
+  tid = tid()
+  syscall = this_syscall[tid]
+  syscall_times[tid,syscall] += gettimeofday_us() - this_syscall_time[tid]
   # free up memory
-  this_syscall[pid] = ""
-  this_syscall_time[pid] = 0
+  delete(this_syscall[tid])
+  delete(this_syscall_time[tid])
 }
 probe kernel.function("sys_*").call {
   accumulate ()
@@ -29,9 +28,9 @@ probe timer.ms(5000) {
   exit ()
 }
 probe end {
-  foreach ([pid,syscall] in syscall_count-) {
-    printf("%s(%d) %s count=%d ttime=%d\n", command[pid], pid, syscall,
-	   syscall_count[pid,syscall], syscall_times[pid,syscall])
+  foreach ([tid,syscall] in syscall_count-) {
+    printf("%s(%d) %s count=%d ttime=%d\n", command[tid], tid, syscall,
+	   syscall_count[tid,syscall], syscall_times[tid,syscall])
 
     if (count++ > 30) next
   }
