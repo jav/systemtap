@@ -1,4 +1,9 @@
-2007-07-25  Mike Mason <mmlnx@us.ibm.com>
+2007-08-02  Mike Mason <mmlnx@us.ibm.com>
+
+	* systemtap.samples/profile.stp: Changed limit check in
+	foreach loop.
+
+2007-08-01  Mike Mason <mmlnx@us.ibm.com>
 
 	* systemtap.samples/profile.stp: Changed pid to tid throughout.
 	Changed delete method in decumulate().

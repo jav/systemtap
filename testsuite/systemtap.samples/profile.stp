@@ -28,10 +28,8 @@ probe timer.ms(5000) {
   exit ()
 }
 probe end {
-  foreach ([tid,syscall] in syscall_count-) {
+  foreach ([tid,syscall] in syscall_count- limit 30) {
     printf("%s(%d) %s count=%d ttime=%d\n", command[tid], tid, syscall,
 	   syscall_count[tid,syscall], syscall_times[tid,syscall])
-
-    if (count++ > 30) next
   }
 }
