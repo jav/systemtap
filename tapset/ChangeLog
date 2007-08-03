@@ -1,3 +1,7 @@
+2007-08-03  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (__get_compat_argv): Add cast.
+
 2007-07-31  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls*: Move sys32_sysctl to arch dirs.

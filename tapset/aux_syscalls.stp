@@ -670,7 +670,7 @@ function __get_compat_argv:string(a:long)
 		if (vstr == NULL)
 			break;
 
-		rc = _stp_strncpy_from_user(buf, vstr, 79);
+		rc = _stp_strncpy_from_user(buf, (char *)vstr, 79);
 		if (rc <= 0)
 			break;
 
