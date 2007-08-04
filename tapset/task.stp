@@ -110,7 +110,7 @@ function task_nice:long (task:long) %{ /* pure */
 
 // Return the scheduled cpu for the given task
 function task_cpu:long (task:long)
-%( kernel_v >= "2.6.23" %? 
+%( kernel_v >= "2.6.22" %? 
 %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
     struct thread_info *ti = kread(&(t->stack));
