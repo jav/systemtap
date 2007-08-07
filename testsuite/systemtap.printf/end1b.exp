@@ -11,7 +11,7 @@ if (![file executable $stap_merge_path]) {
     catch {exec which stap_merge} stap_merge_path
 }
 if (![file executable $stap_merge_path]) {
-    FAIL "$TEST_NAME : could not find stap_merge"
+    fail "$TEST_NAME : could not find stap_merge"
     return
 }
 

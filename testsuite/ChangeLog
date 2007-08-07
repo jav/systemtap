@@ -1,3 +1,13 @@
+2007-08-07  David Smith  <dsmith@redhat.com>
+
+	PR 4736 (partial fix)
+	* systemtap.printf/end1b.exp: Changed 'FAIL' to 'fail', so
+	the rest of the testsuite will continue.
+	* systemtap.printf/mixed_outb.exp: Ditto.
+	* systemtap.printf/out1b.exp: Ditto.
+	* systemtap.printf/out2b.exp: Ditto.
+	* systemtap.printf/out3b.exp: Ditto.
+
 2007-08-02  Mike Mason <mmlnx@us.ibm.com>
 
 	* systemtap.samples/profile.stp: Changed limit check in
