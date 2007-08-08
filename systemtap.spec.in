@@ -39,7 +39,7 @@ Version: @VERSION@
 Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
-License: GPL
+License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 
@@ -77,7 +77,7 @@ of the system.
 %package runtime
 Summary: Instrumentation System Runtime
 Group: Development/System
-License: GPL
+License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: kernel >= 2.6.9-11
 
