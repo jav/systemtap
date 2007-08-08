@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
+#include <cctype>
 
 const char *get_home_directory(void);
 int copy_file(const char *src, const char *dest);
@@ -65,9 +65,22 @@ lex_cast_qstring(IN const & in)
   out2 += '"';
   for (unsigned i=0; i<out.length(); i++)
     {
-      if (out[i] == '"' || out[i] == '\\') // XXX others?
-	out2 += '\\';
-      out2 += out[i];
+      char c = out[i];
+      if (! isprint(c))
+        {
+          out2 += '\\';
+          // quick & dirty octal converter
+          out2 += "01234567" [(c >> 6) & 0x07];
+          out2 += "01234567" [(c >> 3) & 0x07];
+          out2 += "01234567" [(c >> 0) & 0x07];
+        }        
+      else if (c == '"' || c == '\\')
+        {
+          out2 += '\\';
+          out2 += c;
+        }
+      else
+        out2 += c;
     }
   out2 += '"';
   return out2;

@@ -12,6 +12,8 @@
 #include "staptree.h"
 #include "parse.h"
 #include "session.h"
+#include "util.h"
+
 #include <iostream>
 #include <fstream>
 #include <cctype>
@@ -21,6 +23,7 @@
 #include <climits>
 #include <sstream>
 #include <cstring>
+#include <cctype>
 
 using namespace std;
 
@@ -488,7 +491,8 @@ parser::peek_kw (std::string const & kw)
 
 
 lexer::lexer (istream& i, const string& in, systemtap_session& s):
-  input (i), input_name (in), cursor_line (1), cursor_column (1), session(s)
+  input (i), input_name (in), cursor_suspend_count(0), 
+  cursor_line (1), cursor_column (1), session(s)
 { }
 
 
@@ -512,16 +516,36 @@ lexer::input_get ()
 
   if (c < 0) return c; // EOF
 
-  // update source cursor
-  if (c == '\n')
-    {
-      cursor_line ++;
-      cursor_column = 1;
-    }
+  if (cursor_suspend_count)
+    // Track effect of input_put: preserve previous cursor/line_column
+    // until all of its characters are consumed.
+    cursor_suspend_count --;
   else
-    cursor_column ++;
+    {
+      // update source cursor
+      if (c == '\n')
+        {
+          cursor_line ++;
+          cursor_column = 1;
+        }
+      else
+        cursor_column ++;
+    }
 
   return c;
+}
+
+
+void
+lexer::input_put (const string& chars)
+{
+  // clog << "[put:" << chars << "]";
+  for (int i=chars.size()-1; i>=0; i--)
+    {
+      int c = chars[i];
+      lookahead.insert (lookahead.begin(), c);
+      cursor_suspend_count ++;
+    }
 }
 
 
@@ -531,11 +555,22 @@ lexer::scan (bool expand_args)
   token* n = new token;
   n->location.file = input_name;
 
+  unsigned semiskipped_p = 0;
+
  skip:
   n->location.line = cursor_line;
   n->location.column = cursor_column;
 
+ semiskip:
+  if (semiskipped_p > 1)
+    {
+      input_get ();
+      throw parse_error ("invalid nested substitution of command line arguments");
+    }
+
   int c = input_get();
+  int c2 = input_peek ();
+  // clog << "{" << (char)c << (char)c2 << "}";
   if (c < 0)
     {
       delete n;
@@ -545,81 +580,77 @@ lexer::scan (bool expand_args)
   if (isspace (c))
     goto skip;
 
+  // Paste command line arguments as character streams into
+  // the beginning of a token.  $1..$999 go through as raw
+  // characters; @1..@999 are quoted/escaped as strings.
+  // $# and @# expand to the number of arguments, similarly
+  // raw or quoted.
+  if (expand_args &&
+      (c == '$' || c == '@') &&
+      (c2 == '#'))
+    {
+      input_get(); // swallow '#'
+      stringstream converter;
+      converter << session.args.size ();
+      if (c == '$') input_put (converter.str());
+      else input_put (lex_cast_qstring (converter.str()));
+      semiskipped_p ++;
+      goto semiskip;
+    }
+  else if (expand_args &&
+           (c == '$' || c == '@') &&
+           (isdigit (c2)))
+    {
+      unsigned idx = 0;
+      do
+        {
+          input_get ();
+          idx = (idx * 10) + (c2 - '0');
+          c2 = input_peek ();
+        } while (c2 > 0 &&
+                 isdigit (c2) && 
+                 idx <= session.args.size()); // prevent overflow
+      if (idx == 0 ||
+          idx-1 >= session.args.size())
+          throw parse_error ("command line argument index invalid or out of range", n);
+
+      string arg = session.args[idx-1];
+      if (c == '$') input_put (arg);
+      else input_put (lex_cast_qstring (arg));
+      semiskipped_p ++;
+      goto semiskip;
+    }
+
   else if (isalpha (c) || c == '$' || c == '@' || c == '_')
     {
       n->type = tok_identifier;
       n->content = (char) c;
-      while (1)
+      while (isalnum (c2) || c2 == '_' || c2 == '$')
 	{
-	  int c2 = input_peek ();
-	  if (! input)
-	    break;
-	  if ((isalnum(c2) || c2 == '_' || c2 == '$' || c2 == '#' ))
-	    {
-	      n->content.push_back(c2);
-	      input_get ();
-	    }
-	  else
-	    break;
-	}
-
-      // Expand command line arguments to literals.  $1 .. $999 as
-      // numbers and @1 .. @999 as strings.
-      if (n->content[0] == '@' || n->content[0] == '$')
-        {
-	  if (!expand_args)
-	    return n;
-	  if (n->content[1] == '#')
-	    {
-	      stringstream converter;
-	      converter << session.args.size ();
-	      n->type = (n->content[0] == '@') ? tok_string : tok_number;
-	      n->content = converter.str();
-	    }
-	  else
-	    {
-	      string idxstr = n->content.substr(1);
-	      const char* startp = idxstr.c_str();
-	      char *endp;
-	      errno = 0;
-	      unsigned long idx = strtoul (startp, &endp, 10);
-	      if (endp == startp)
-		; // no numbers at all - leave alone as identifier
-	      else
-		{
-		  // Use @1/$1 as the base, not @0/$0.  Thus the idx-1.
-		  if (errno == ERANGE || errno == EINVAL || *endp != '\0' ||
-		      idx == 0 || idx-1 >= session.args.size ())
-		    throw parse_error ("command line argument index invalid or out of range", n);
-
-		  string arg = session.args[idx-1];
-		  n->type = (n->content[0] == '@') ? tok_string : tok_number;
-		  n->content = arg;
-		}
-	    }
-        }
-      else
-        {
-	  if (n->content    == "probe"
-	      || n->content == "global"
-	      || n->content == "function"
-	      || n->content == "if"
-	      || n->content == "else"
-	      || n->content == "for"
-	      || n->content == "foreach"
-	      || n->content == "in"
-	      || n->content == "limit"
-	      || n->content == "return"
-	      || n->content == "delete"
-	      || n->content == "while"
-	      || n->content == "break"
-	      || n->content == "continue"
-	      || n->content == "next"
-	      || n->content == "string"
-	      || n->content == "long")
-	    n->type = tok_keyword;
+          input_get ();
+          n->content.push_back (c2);
+          c2 = input_peek ();
         }
 
+      if (n->content    == "probe"
+          || n->content == "global"
+          || n->content == "function"
+          || n->content == "if"
+          || n->content == "else"
+          || n->content == "for"
+          || n->content == "foreach"
+          || n->content == "in"
+          || n->content == "limit"
+          || n->content == "return"
+          || n->content == "delete"
+          || n->content == "while"
+          || n->content == "break"
+          || n->content == "continue"
+          || n->content == "next"
+          || n->content == "string"
+          || n->content == "long")
+        n->type = tok_keyword;
+      
       return n;
     }
 
@@ -631,7 +662,7 @@ lexer::scan (bool expand_args)
       while (1)
 	{
 	  int c2 = input_peek ();
-	  if (! input)
+	  if (c2 < 0)
 	    break;
 
           // NB: isalnum is very permissive.  We rely on strtol, called in
@@ -656,14 +687,14 @@ lexer::scan (bool expand_args)
 	{
 	  c = input_get ();
 
-	  if (! input || c == '\n')
+	  if (c < 0 || c == '\n')
 	    {
 	      n->type = tok_junk;
 	      break;
 	    }
 	  if (c == '\"') // closing double-quotes
 	    break;
-	  else if (c == '\\')
+	  else if (c == '\\') // see also input_put
 	    {	      
 	      c = input_get ();
 	      switch (c)
@@ -677,14 +708,13 @@ lexer::scan (bool expand_args)
 		case 'r':
 		case '0' ... '7': // NB: need only match the first digit
 		case '\\':
-
 		  // Pass these escapes through to the string value
-		  // beign parsed; it will be emitted into a C literal. 
+		  // being parsed; it will be emitted into a C literal. 
 
 		  n->content.push_back('\\');
 
+                  // fall through
 		default:
-
 		  n->content.push_back(c);
 		  break;
 		}

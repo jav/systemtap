@@ -1,3 +1,13 @@
+2007-08-07  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4846
+	* parse.cxx (input_put): New function, sort of like stdio ungetc.
+	(input_get): Skip cursor position changing for input_put strings.
+	(scan): Rework $.../@... substitution into character pasting.
+	* parse.h: Corresponding changes.
+	* util.h (lex_cast_qstring): Octal-quote unprintable characters.
+	* stap.1.in, NEWS: Document new behaviour.
+
 2007-07-26  David Smith  <dsmith@redhat.com>
 
 	PR 4295

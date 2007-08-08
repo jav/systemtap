@@ -168,7 +168,7 @@ precedence.
 Whitespace is ignored.  Three forms of comments are supported:
 .RS
 .br
-.BR # " ... shell style, to the end of line"
+.BR # " ... shell style, to the end of line, except for $# and @#"
 .br
 .BR // " ... C++ style, to the end of line"
 .br
@@ -182,17 +182,17 @@ Integers are 64-bit signed quantities, although the parser also accepts
 (and wraps around) values above positive 2**63.
 .PP
 In addition, script arguments given at the end of the command line may
-be expanded as literals.  Use
+be inserted.  Use
 .B $1 ... $<NN>
-for casting as a numeric literal and
+for insertion unquoted,
 .B @1 ... @<NN>
-for casting as string literal.  The number of arguments may be accessed
+for insertion as a string literal.  The number of arguments may be accessed
 through
 .B $#
-(as a numeric literal) or through
+(as an unquoted number) or through
 .B @#
-(as a string literal).  These may be used in all contexts where literals
-are accepted, including preprocessing stage.  Reference to an argument
+(as a quoted number).  These may be used at any place a token may begin,
+including within the preprocessing stage.  Reference to an argument
 number beyond what was actually given is an error.
 
 .SS PREPROCESSING

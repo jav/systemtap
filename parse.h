@@ -74,10 +74,13 @@ public:
 
 private:
   int input_get ();
+  void input_put (int);
+  void input_put (const std::string&);
   int input_peek (unsigned n=0);
   std::istream& input;
   std::string input_name;
   std::vector<int> lookahead;
+  unsigned cursor_suspend_count;
   unsigned cursor_line;
   unsigned cursor_column;
   systemtap_session& session;

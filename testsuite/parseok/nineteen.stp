@@ -1,0 +1,3 @@
+#! /bin/sh
+
+stap -p1 -e '$1 {log (@1.@2)}' 'probe foo' '' # <- control codes

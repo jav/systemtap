@@ -1,5 +1,21 @@
 * What's new since version 0.5.14?
 
+- The way in which command line arguments for scripts are substituted has
+  changed.  Previously, $1 etc. would interpret the corresponding command
+  line argument as an numeric literal, and @1 as a string literal.  Now,
+  the command line arguments are pasted uninterpreted wherever $1 etc.
+  appears at the beginning of a token.  @1 is similar, but is quoted as
+  a string.  This change does not modify old scripts, but has the effect
+  of permitting substitution of arbitrary token sequences.
+
+  # This worked before, and still does:
+  % stap -e 'probe timer.s($1) {}'        5
+  # Now this also works:
+  % stap -e 'probe syscall.$1 {log(@1)}'  open
+  # This won't crash, just signal a recursion error:
+  % stap -e '$1'                          '$1'
+  # As before, $1... is recognized only at the beginning of a token
+  % stap -e 'probe begin {foo$1=5}'
 
 * What's new since version 0.5.13?
 

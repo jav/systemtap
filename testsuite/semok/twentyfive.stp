@@ -1,0 +1,8 @@
+#! /bin/sh
+
+set -e
+stap -p2 -e 'probe begin {foo$1$2$3}' # $-expansion only at token head
+stap -p2 -e 'probe $1 $2' 'syscall.open,begin' '{log ("hello\n")}'
+stap -p2 -e 'probe begin {@1 @2}' 'syscall.open,begin' '{log ("hello\n")}'
+stap -p2 -e 'probe begin {log (@1.@2)}' 'syscall.open,begin' '{log ("hello\n")}'
+
