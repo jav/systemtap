@@ -1395,7 +1395,7 @@ function _sockopt_optname_str(opt) {
 /* `man 2 setsockopt` for more information */
 function _sockopt_level_str(l) {
    if(l==0) return "IP"
-   if(l==1) return "ICMP"
+   if(l==1) return "SOL_SOCKET" # not ICMP
    if(l==2) return "IGMP"
    if(l==3) return "GGP"
    if(l==4) return "IP-ENCAP"
