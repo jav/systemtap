@@ -559,6 +559,8 @@ function __fork_flags:string(flags:long)
 	int len;
   	long flags = THIS->flags;
 	char *str = THIS->__retvalue;
+	if (flags & CLONE_VM)
+		strlcat(str,"CLONE_VM|", MAXSTRINGLEN);
 	if (flags & CLONE_FS)
 		strlcat(str,"CLONE_FS|", MAXSTRINGLEN);
 	if (flags & CLONE_FILES)
@@ -573,6 +575,8 @@ function __fork_flags:string(flags:long)
 		strlcat(str, "CLONE_PARENT|", MAXSTRINGLEN);
 	if (flags & CLONE_THREAD)
 		strlcat(str, "CLONE_THREAD|", MAXSTRINGLEN);
+	if (flags & CLONE_NEWNS)
+		strlcat(str,"CLONE_NEWNS|", MAXSTRINGLEN);
 	if (flags & CLONE_SYSVSEM)
 		strlcat(str, "CLONE_SYSVSEM|", MAXSTRINGLEN);
 	if (flags & CLONE_SETTLS)
@@ -581,6 +585,8 @@ function __fork_flags:string(flags:long)
 		strlcat(str, "CLONE_PARENT_SETTID|", MAXSTRINGLEN);
 	if (flags & CLONE_CHILD_CLEARTID)
 		strlcat(str, "CLONE_CHILD_CLEARTID|", MAXSTRINGLEN);
+	if (flags & CLONE_DETACHED)
+		strlcat(str, "CLONE_DETACHED|", MAXSTRINGLEN);
 	if (flags & CLONE_UNTRACED)
 		strlcat(str, "CLONE_UNTRACED|", MAXSTRINGLEN);
 	if (flags & CLONE_CHILD_SETTID)

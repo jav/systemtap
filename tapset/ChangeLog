@@ -1,3 +1,8 @@
+2007-08-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	From Cai Fei <caifei@cn.fujitsu.com>:
+	* aux_syscalls.stp (__fork_flags): Decode CLONE_VM, NEWNS, DETACHED.
+
 2007-08-09  William Cohen  <wcohen@redhat.com>
 
 	* tapset/syscalls.stp (syscall.compat_execve,
