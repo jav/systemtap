@@ -1331,7 +1331,7 @@ probe syscall.semtimedop.return = kernel.function("sys_semtimedop").return ? {
 # long compat_sys_semtimedop(int semid, struct sembuf __user *tsems,
 #		unsigned nsops, const struct compat_timespec __user *timeout)
 #
-probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop") {
+probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop") ? {
 	name = "compat_sys_semtimedop"
 	semid = $semid
 	sops_uaddr = tsems
@@ -1340,7 +1340,7 @@ probe syscall.compat_sys_semtimedop = kernel.function("compat_sys_semtimedop") {
 	argstr = sprintf("%d, %p, %d, %s", $semid, $tsems, $nsops,
 			_struct_compat_timespec_u($timeout))
 }
-probe syscall.compat_sys_semtimedop.return = kernel.function("compat_sys_semtimedop").return {
+probe syscall.compat_sys_semtimedop.return = kernel.function("compat_sys_semtimedop").return ? {
 	name = "compat_sys_semtimedop"
 	retstr = returnstr(1)
 }

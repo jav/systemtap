@@ -546,13 +546,13 @@ probe syscall.execve.return = kernel.function("do_execve").return {
 #	compat_uptr_t __user *argv,
 #	compat_uptr_t __user *envp,
 #	struct pt_regs * regs)
-probe syscall.compat_execve = kernel.function("compat_do_execve") {
+probe syscall.compat_execve = kernel.function("compat_do_execve") ? {
 	name = "compat_execve"
 	filename = kernel_string($filename)
 	args = __get_compat_argv($argv)
 	argstr = sprintf("%s %s", filename, args)
 }
-probe syscall.compat_execve.return = kernel.function("compat_do_execve").return {
+probe syscall.compat_execve.return = kernel.function("compat_do_execve").return  ? {
 	name = "compat_execve"
 	retstr = returnstr(1)
 }
