@@ -1,4 +1,4 @@
-#! stap
+#! /usr/bin/stap
 
 # Copyright (C) 2006 IBM Corp.
 #

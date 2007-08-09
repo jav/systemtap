@@ -1,3 +1,5 @@
+#! /usr/bin/stap
+
 global ifxmit, ifrecv, ifdevs, ifpid, execname, user
 
 probe netdev.transmit

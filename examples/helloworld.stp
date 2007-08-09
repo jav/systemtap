@@ -1,1 +1,2 @@
+#! /usr/bin/stap
 probe begin { log("hello world") exit () }

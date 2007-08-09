@@ -1,3 +1,4 @@
+#! /usr/bin/stap
 probe kernel.function("*@net/socket.c").call {
   printf ("%s -> %s\n", thread_indent(1), probefunc())
 }

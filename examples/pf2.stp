@@ -1,4 +1,5 @@
-#! stap
+#! /usr/bin/stap
+
 global profile, pcount
 probe timer.profile {
   pcount ++

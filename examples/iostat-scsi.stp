@@ -1,3 +1,5 @@
+#! /usr/bin/stap
+
 global devices, reads, writes
 
 /* data collection: SCSI disk */

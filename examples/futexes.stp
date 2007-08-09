@@ -1,4 +1,4 @@
-#! stap
+#! /usr/bin/stap
 
 # This script tries to identify contended user-space locks by hooking
 # into the futex system call.

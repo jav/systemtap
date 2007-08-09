@@ -1,3 +1,4 @@
+#! /usr/bin/stap
 /*
  * Copyright (C) 2006 Daniel Berrange, Red Hat Inc.
  * Copyright (C) 2007 Will Cohen, Red Hat, Inc.
