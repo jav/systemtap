@@ -1395,6 +1395,8 @@ function _sockopt_optname_str(opt) {
    if(opt==19) return "SO_SNDLOWAT"
    if(opt==20) return "SO_RCVTIMEO"
    if(opt==21) return "SO_SNDTIMEO"
+   if(opt==32) return "SO_SNDBUFFORCE"
+   if(opt==33) return "SO_RCVBUFFORCE"
    return ""
 }
 
