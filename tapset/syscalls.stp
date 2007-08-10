@@ -1,6 +1,6 @@
 // syscalls tapset part 1 [A-M]
 // Copyright (C) 2005 IBM Corp.
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005-2007 Red Hat Inc.
 // Copyright (C) 2007 Quentin Barnes.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -2515,7 +2515,7 @@ probe syscall.msync = kernel.function("sys_msync") {
 	argstr = sprintf("%p, %d, %s",start, length, _msync_flag_str(flags))
 }
 probe syscall.msync.return = kernel.function("sys_msync").return {
-	name = "msync.return"
+	name = "msync"
 	retstr = returnstr(1)
 }
 
