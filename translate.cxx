@@ -1,6 +1,6 @@
 // translation pass
 // Copyright (C) 2005-2007 Red Hat Inc.
-// Copyright (C) 2005, 2006 Intel Corporation
+// Copyright (C) 2005-2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -853,6 +853,7 @@ c_unparser::emit_common_header ()
   o->newline() << "const char *probe_point;";
   o->newline() << "int actionremaining;";
   o->newline() << "unsigned nesting;";
+  o->newline() << "string_t error_buffer;";
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
   // While it's 0, execution continues

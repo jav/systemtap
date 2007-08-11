@@ -1,3 +1,10 @@
+2007-08-10  Josh Stone  <joshua.i.stone@intel.com>
+
+	* conversions.stp (kernel_string, kernel_long, kernel_int,
+	kernel_short, kernel_char, user_string_warn): Use the
+	CONTEXT->error_buffer to create an error message instead of a static
+	local array.
+
 2007-08-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	From "Zhaolei" zhaolei@cn.fujitsu.com:

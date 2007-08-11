@@ -1,3 +1,10 @@
+2007-08-10  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 4593
+	* loc2c-runtime.h (deref, store_deref): Set an error message with
+	the pointer value and name into last_error, since it's hard to
+	determine the details once you've already jumped to deref_fault.
+
 2007-07-09  Martin Hunt  <hunt@redhat.com>
 
 	* sym.h (STP_MAX_MODULES): Raise limit to 256.

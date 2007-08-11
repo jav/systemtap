@@ -60,6 +60,21 @@
    must work right for kernel addresses, and can use whatever existing
    machine-specific kernel macros are convenient.  */
 
+#define DEREF_FAULT(addr) ({						    \
+    snprintf(c->error_buffer, sizeof(c->error_buffer),			    \
+      "kernel read fault at 0x%p (%s)", (void *)(intptr_t)(addr), #addr);   \
+    c->last_error = c->error_buffer;					    \
+    goto deref_fault;							    \
+    })
+
+#define STORE_DEREF_FAULT(addr) ({					    \
+    snprintf(c->error_buffer, sizeof(c->error_buffer),			    \
+      "kernel write fault at 0x%p (%s)", (void *)(intptr_t)(addr), #addr);  \
+    c->last_error = c->error_buffer;					    \
+    goto deref_fault;							    \
+    })
+
+
 #if defined __i386__
 
 /* The stack pointer is unlike other registers.  When a trap happens in
@@ -143,7 +158,7 @@
       default: _v = __get_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      DEREF_FAULT(addr);							      \
     _v;									      \
   })
 
@@ -158,7 +173,7 @@
       default: __put_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      STORE_DEREF_FAULT(addr);							      \
   })
 
 
@@ -178,7 +193,7 @@
       default: _v = __get_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      DEREF_FAULT(addr);							      \
     _v;									      \
   })
 
@@ -194,7 +209,7 @@
       default: __put_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      STORE_DEREF_FAULT(addr);							      \
   })
 
 #elif defined __ia64__
@@ -210,7 +225,7 @@
 	default: __get_user_unknown(); break;				\
 	}								\
     if (_bad)  								\
-	goto deref_fault;						\
+	DEREF_FAULT(addr);						\
      _v;								\
    })
 
@@ -225,7 +240,7 @@
 	default: __put_user_unknown(); break;				\
 	}								\
     if (_bad)								\
-	   goto deref_fault;						\
+	   STORE_DEREF_FAULT(addr);						\
    })
 
 #elif defined __powerpc__ || defined __powerpc64__
@@ -283,7 +298,7 @@
       default: _v = __get_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      DEREF_FAULT(addr);							      \
     _v;									      \
   })
 
@@ -299,7 +314,7 @@
       default: __put_user_bad();					      \
       }									      \
     if (_bad)								      \
-      goto deref_fault;							      \
+      STORE_DEREF_FAULT(addr);							      \
   })
 
 #elif defined (__arm__)
@@ -449,7 +464,7 @@
 	default: __get_user_bad(); break;				\
 	}								\
     if (_bad)  								\
-	goto deref_fault;						\
+	DEREF_FAULT(addr);						\
      _v;								\
    })
 
@@ -464,7 +479,7 @@
 	default: __put_user_bad(); break;				\
 	}								\
     if (_bad)								\
-	   goto deref_fault;						\
+	   STORE_DEREF_FAULT(addr);						\
    })
 
 #elif defined (__s390__) || defined (__s390x__)
@@ -550,7 +565,7 @@
 		_bad = -EFAULT;					\
 	}							\
 	if (_bad)						\
-		goto deref_fault;				\
+		DEREF_FAULT(addr);				\
 	_v;							\
 })
 
@@ -562,7 +577,7 @@
 		__stp_put_asm((u8)(value>>((size-i-1)*8)&0xff),	\
                              (u64)addr+i,_bad); 		\
 		if (_bad)					\
-			goto deref_fault;			\
+			STORE_DEREF_FAULT(addr);			\
         }                                                       \
 })
 
@@ -617,6 +632,5 @@
 
 #define CATCH_DEREF_FAULT()				\
   if (0) {						\
-deref_fault:						\
-    CONTEXT->last_error = "pointer dereference fault";	\
+deref_fault: ;						\
   }

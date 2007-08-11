@@ -1,5 +1,6 @@
 // conversions tapset
 // Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -9,68 +10,52 @@
 function kernel_string:string (addr:long) %{ /* pure */
   char *destination = THIS->__retvalue;
   deref_string (destination, THIS->addr, MAXSTRINGLEN);
-  goto success;
-deref_fault: /* branched to from deref() */
-  {
-    /* XXX: concurrent errors could result in corrupted message string */
-    static char errmsg[60];
-    snprintf (errmsg, sizeof(errmsg), "kernel string copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+  if (0) {
+deref_fault: /* branched to from deref_string() */
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
   }
-success: ;
 %}
 
 function kernel_long:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (int64_t) deref (sizeof (long), (long *) (intptr_t) THIS->addr);
-  goto success;
+  THIS->__retvalue = kread((long *) (intptr_t) THIS->addr);
+  if (0) {
 deref_fault: /* branched to from deref() */
-  {
-    static char errmsg[60];
-    snprintf (errmsg, sizeof(errmsg), "kernel long copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel long copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
   }
-success: ;
 %}
 
 function kernel_int:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (int64_t) deref (sizeof (int), (int *) (intptr_t) THIS->addr);
-  goto success;
+  THIS->__retvalue = kread((int *) (intptr_t) THIS->addr);
+  if (0) {
 deref_fault: /* branched to from deref() */
-  {
-    static char errmsg[60];
-    snprintf (errmsg, sizeof(errmsg), "kernel int copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel int copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
   }
-success: ;
 %}
 
 function kernel_short:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (int64_t) deref (sizeof (short), (short *) (intptr_t) THIS->addr);
-  goto success;
+  THIS->__retvalue = kread((short *) (intptr_t) THIS->addr);
+  if (0) {
 deref_fault: /* branched to from deref() */
-  {
-    static char errmsg[60];
-    snprintf (errmsg, sizeof(errmsg), "kernel short copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel short copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
   }
-success: ;
 %}
 
 function kernel_char:long (addr:long) %{ /* pure */
-  THIS->__retvalue = (int64_t) deref (sizeof (char), (char *) (intptr_t) THIS->addr);
-  goto success;
+  THIS->__retvalue = kread((char *) (intptr_t) THIS->addr);
+  if (0) {
 deref_fault: /* branched to from deref() */
-  {
-    static char errmsg[60];
-    snprintf (errmsg, sizeof(errmsg), "kernel char copy fault at 0x%p",
-	 (void *) (uintptr_t) THIS->addr);
-    CONTEXT->last_error = errmsg;
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel char copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
   }
-success: ;
 %}
 
 
@@ -81,34 +66,37 @@ success: ;
 
 function user_string:string (addr:long) %{ /* pure */
   if (_stp_strncpy_from_user (THIS->__retvalue, 
-		(const char __user*) (uintptr_t) THIS->addr,
-		MAXSTRINGLEN) < 0)
-	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+        (const char __user*) (uintptr_t) THIS->addr,
+        MAXSTRINGLEN) < 0)
+    strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
 %}
 
 function user_string2:string (addr:long, err_msg:string) %{ /* pure */
   if (_stp_strncpy_from_user (THIS->__retvalue, 
-		(const char __user*) (uintptr_t) THIS->addr,
-		MAXSTRINGLEN) < 0)
+        (const char __user*) (uintptr_t) THIS->addr,
+        MAXSTRINGLEN) < 0)
     strlcpy (THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
 %}
 
 function user_string_warn:string (addr:long) %{ /* pure */
   long rc = _stp_strncpy_from_user (THIS->__retvalue,
-		(const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
+      (const char __user*) (uintptr_t) THIS->addr, MAXSTRINGLEN);
   if (rc < 0) {
-	static char errmsg[60];
-	snprintf (errmsg, sizeof(errmsg), "user string copy fault %ld at %p", rc,
-		(void *) (uintptr_t) THIS->addr);
-	_stp_warn(errmsg);
-	strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+    // NB: using error_buffer to get local space for the warning, but we're
+    // not aborting, so leave last_error alone.
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "user string copy fault %ld at %p", rc,
+        (void *) (uintptr_t) THIS->addr);
+    _stp_warn(CONTEXT->error_buffer);
+    strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
   }
 %}
 
 function user_string_quoted:string (addr:long) %{ /* pure */
   if (THIS->addr == 0)	
-	strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+    strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
   else
-        /* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
-	_stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr, MAXSTRINGLEN, 1, 1);
+    /* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
+    _stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr,
+        MAXSTRINGLEN, 1, 1);
 %}

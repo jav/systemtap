@@ -1763,12 +1763,9 @@ struct dwflpp
     fprintf(memstream, "if (0) goto deref_fault;\n");
 
     // XXX: deref flag not reliable; emit fault label unconditionally
-    // XXX: print the faulting address, like the user_string/kernel_string
-    // tapset functions do
     (void) deref;
     fprintf(memstream,
             "deref_fault:\n"
-            "  c->last_error = \"pointer dereference fault\";\n"
             "  goto out;\n");
     fprintf(memstream, "}\n");
 
