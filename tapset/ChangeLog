@@ -1,3 +1,8 @@
+
+2007-08-12  Wenji Huang  <wenji.huang@oracle.com>
+
+	* aux_syscalls.stp(_sched_policy_str,_nfsctl_cmd_str) : Add SCHED_BATCH to policy entries, NFSCTL_GETFD,NFSCTL_GETFS to nfsctl entries
+
 2007-08-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	* conversions.stp (kernel_string, kernel_long, kernel_int,

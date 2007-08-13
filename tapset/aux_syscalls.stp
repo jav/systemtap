@@ -905,7 +905,9 @@ function _nfsctl_cmd_str(cmd) {
 	if(cmd == 3) return "NFSCTL_EXPORT"
 	if(cmd == 4) return "NFSCTL_UNEXPORT"
 	if(cmd == 5) return "NFSCTL_UGIDUPDATE"
-	if(cmd == 6) return "NFSCTL_GETFH"
+	if(cmd == 6) return "NFSCTL_GETFH" 
+	if(cmd == 7) return "NFSCTL_GETFD"
+	if(cmd == 8) return "NFSCTL_GETFS"
 	return sprintf("UNRECOGNIZED VALUE: %d", cmd)
 }
 
@@ -1129,6 +1131,7 @@ function _sched_policy_str(policy) {
    if(policy==0) return "SCHED_OTHER"
    if(policy==1) return "SCHED_FIFO"
    if(policy==2) return "SCHED_RR"
+   if(policy==3) return "SCHED_BATCH"
    return ""
 }
 
