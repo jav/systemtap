@@ -5,6 +5,9 @@ extern "C" {
 #include <mdfour.h>
 }
 
+// Grabbed from linux/module.h kernel include.
+#define MODULE_NAME_LEN (64 - sizeof(unsigned long))
+
 class hash
 {
 private:

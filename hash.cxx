@@ -65,9 +65,6 @@ hash::result(string& r)
 }
 
 
-// Grabbed from linux/module.h kernel include.
-#define MODULE_NAME_LEN (64 - sizeof(unsigned long))
-
 void
 find_hash (systemtap_session& s, const string& script)
 {

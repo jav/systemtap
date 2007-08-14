@@ -1,14 +1,15 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.5.15, systemtap@sources.redhat.com, systemtap)
-dnl                  ^^^^^^ see also NEWS, testsuite/configure.ac
+AC_INIT([systemtap], 0.6, systemtap@sources.redhat.com, systemtap)
+dnl                  ^^^ see also NEWS, testsuite/configure.ac
 
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
 AM_MAINTAINER_MODE
 
+AC_PROG_MKDIR_P
 AC_PROG_LN_S
 AC_PROG_CC
 AC_PROG_CXX
@@ -104,6 +105,9 @@ AC_CHECK_HEADERS(crash/defs.h,
 ])
 AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
 
+AC_CHECK_HEADERS([sys/capability.h], , 
+	[AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
+
 mysql=false
 
 SAVE_LDFLAGS=$LDFLAGS
@@ -167,7 +171,7 @@ esac
 AC_SUBST([PROCFLAGS])
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stp_check stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_FILES(Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
 AC_CONFIG_SUBDIRS(testsuite)
 
 AC_OUTPUT

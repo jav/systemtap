@@ -1,0 +1,113 @@
+Systemtap builds kernel modules.  To insert a kernel module on a
+system, root access is needed.
+
+SECURITY MODEL
+==============
+
+Originally sudo(8) was used to grant root acess.  After compiling a
+new kernel module, stap ran "sudo staprun module_path".  This worked,
+but required all systemtap users to have root access.  Many sysadmins
+on enterprise systems do not have root access.
+
+So, a new security model was developed.  To run the staprun program
+(which install systemtap kernel modules), a user must be one of the
+following:
+
+ * the root user;
+
+ * a member of the 'stapdev' group; or
+
+ * a member of the 'stapusr' group.  Members of the stapusr group can
+   only use modules located in the /lib/modules/VERSION/systemtap
+   directory (where VERSION is the output of "uname -r").  This
+   directory must be owned by root and not be world writable.
+
+So, there are two classes of users: systemap developers (the root user
+and members of the stapdev group) and systemtap users (members of the
+stapusr group).  Systemtap developers can compile and run any
+systemtap script.  Systemtap users can only run "approved"
+pre-compiled modules located in /lib/modules/VERSION/systemtap.
+
+USAGE
+=====
+
+Here's the usage case.  A systemtap developer hears of a problem on a
+production machine (which doesn't have a compiler or kernel debuginfo
+installed).  So, he write a systemtap script to probe certain areas of
+the kernel that will give him a better idea of what is going on.  He
+develops the script on a development machine (that has the compiler
+and kernel debuginfo installed).  Once he is satisfied with the
+systemtap script, he creates the systemtap kernel module and copies it
+to /lib/modules/VERSION/systemtap on the target production machine.
+He then asks a systemtap user on that machine to run the module and
+report the results.
+
+The above usage case would look something like this:
+
+On the development machine:
+# vi pmod.stp
+(The systemtap developer writes the systemtap script.)
+
+# stap -m pmod pmod.stp
+(The systemtap developer compiles and runs the script.  If necessary,
+the script may need to be edited to fix any errors.)
+
+# scp pmod.ko prod_machine:/lib/modules/`uname -r`/systemtap
+(The systemtap develop copies the compiled kernel module to the proper
+directory on the production machine.  Of course other methods - ftp,
+nfs, etc. could be used to transfer the module.)
+
+On the production machine:
+$ staprun pmod
+(The systemtap user runs the newly developed systemtap kernel module.)
+
+There are (at least) 2 different usage scenarios for the
+/lib/modules/VERSION/systemtap directory.
+
+1) Most restrictive useage.  If only root should be able to able to
+add "approved" systemtap modules to /lib/modules/VERSION/systemtap,
+the permissions should be 755, like this:
+
+drwxr-xr-x 2 root root 4096 2007-08-07 13:54 systemtap/
+
+2) More permissive usage.  If all systemtap developers should be able
+to add "approved" systemtap modules to /lib/modules/VERSION/system,
+its permissions should be 775 (and be owned by root, group stapdev),
+like this:
+
+drwxrwxr-x 2 root stapdev 4096 2007-08-07 13:54 systemtap/
+
+INTERNALS
+=========
+
+To accomplish the new security model, staprun has been split into two
+programs: staprun and stapio.
+
+Here is a description of a typical systemtap session.  The staprun
+program is a setuid program that does some system setup, loads the
+kernel module, then runs stapio (and waits for it to finish).  The
+stapio program runs as the invoking user and is responsible for all
+communication with the kernel module.  After the script runs to
+completion, stapio exits and staprun unloads the kermel module.
+
+staprun is a setuid program that uses POSIX capabilities.  Using POSIX
+capabilities allows the program to only have the privileges to do
+certain things.  When staprun starts up, it only keeps the following
+POSIX capabilities and then switches its user-id/group-id to the
+invoking user:
+
+ * CAP_SYS_MODULE - insert and remove kernel modules
+ * CAP_SYS_ADMIN - misc, including mounting and unmounting
+ * CAP_SYS_NICE - setpriority()
+ * CAP_SETUID - allows setuid
+ * CAP_SETGID - allows setgid
+
+The above capabilities are the permitted set of capabilities for
+staprun, which is the list of all the capabilities staprun is ever
+permitted to have.  In addition, the effective set of capabilites, the
+capabilities from the permitted set that are currently enabled, is
+cleared.  When needed, a particular capability is enabled, the
+operation is performed, then the capability is disabled.  The staprun
+program was designed this way to prevent several classes of security
+attacks. Security is also heightened by the fact that the only
+external program that staprun executes is stapio.

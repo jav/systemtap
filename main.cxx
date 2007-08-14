@@ -362,6 +362,14 @@ main (int argc, char * const argv [])
 		    " characters [_a-zA-Z0-9])." << endl;
 		usage (s, 1);
 	      }
+
+	    // Make sure module name isn't too long.
+	    if (s.module_name.size() >= (MODULE_NAME_LEN - 1))
+	      {
+		s.module_name.resize(MODULE_NAME_LEN - 1);
+		cerr << "Truncating module name to '" << s.module_name
+		     << "'" << endl;
+	      }
 	  }
 
 	  cerr << "Warning: using '-m' disables cache support." << endl;

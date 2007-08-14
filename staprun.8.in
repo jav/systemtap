@@ -18,14 +18,11 @@ staprun \- systemtap runtime
 .SH DESCRIPTION
 
 The
-.IR staprun
-program is the back-end to the Systemtap tool.  It expects a kernel
+.I staprun
+program is the back-end of the Systemtap tool.  It expects a kernel
 module produced by the front-end
 .I stap
 tool.
-The
-.I staprun
-program must be run as root.
 .PP
 Splitting the systemtap tool into a front-end and a back-end allows a
 user to compile a systemtap script on a development machine that has
@@ -36,14 +33,18 @@ doesn't have any development tools or kernel debugging information installed.
 This manual corresponds to version @VERSION@.
 
 .SH OPTIONS
-The systemtap translator supports the following options.  Any other option
+The
+.I staprun
+program supports the following options.  Any other option
 prints a list of supported options.
 .TP
 .B \-v
 Verbose mode.
 .TP
 .B \-c CMD
-Command CMD will be run and the staprun program will exit when CMD
+Command CMD will be run and the
+.I staprun
+program will exit when CMD
 does.  The '_stp_target' variable will contain the pid for CMD.
 .TP
 .B \-x PID
@@ -53,17 +54,29 @@ The '_stp_target' variable will be set to PID.
 Send output to FILE. If the module uses bulk mode, the output will
 be in percpu files FILE_x where 'x' is the cpu number.
 .TP
-.B \-u USERNAME
-Run commands as USERNAME. Used with the \-c option.
-.TP
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.
 Setting one here will override that value. The value should be
 an integer between 1 and 64 which be assumed to be the
 buffer size in MB. That value will be per-cpu if bulk mode is used.
+.TP
+.B \-L
+Load module and start probes, then detach from the module leaving the
+probes running.  The module can be attached to later by using the
+.B \-A
+option.
+.TP
+.B \-A
+Attach to loaded systemtap module.
 
 .SH ARGUMENTS
-
+.B MODULE
+is either a module path or a module name.  If it is a module name,
+the module will be looked for in the following directory
+(where 'VERSION' is the output of "uname -r"):
+.IP
+/lib/modules/VERSION/systemtap
+.PP
 .\" TODO - we probably need a better description here.
 Any additional arguments on the command line are passed to the
 module.
@@ -73,7 +86,9 @@ See the
 .IR stapex (5)
 manual page for a collection of sample scripts.
 .PP
-Here is a very basic example of how to use staprun.  First, use
+Here is a very basic example of how to use
+.I staprun.
+First, use
 .I stap
 to compile a script.  The
 .I stap
@@ -86,28 +101,58 @@ program will report the pathname to the resulting module.
 .PP
 Run
 .I staprun
-with the pathname to the module as an argument.  The
-.IR sudo (8)
-command is used to grant root privileges.
+with the pathname to the module as an argument.
 .PP
 .Vb 1
-\& $ sudo staprun /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
+\& $ staprun /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
 .br
 \& Hello World!
-
+.SH MODULE DETACHING AND ATTACHING
+After the
+.I staprun
+program installs a Systemtap kernel module, users can detach from the
+kernel module and reattach to it later.  The
+.B \-L
+option loads the module and automatically detaches.  Users can also
+detach from the kernel module interactively by sending the SIGQUIT
+signal from the keyboard (typically by typing Ctrl\-\\).
+.PP
+To reattach to a kernel module, the
+.I staprun
+.B \-A
+option would be used.
 .SH SAFETY AND SECURITY
 Systemtap is an administrative tool.  It exposes kernel internal data
 structures and potentially private user information.  See the 
 .IR stap (1)
-manual page for more information on safety and security.
-
+manual page for additional information on safety and security.
+.PP
+To increase system security, only the root user and members of the
+.I stapdev
+group can use
+.I staprun
+to insert systemtap modules (or attach to existing ones).
+Members of the
+.I stapusr
+group can use
+.I staprun
+to insert systemtap modules (or attach to existing systemtap modules) that
+are located in the /lib/modules/VERSION/systemtap directory.
+.SH FILES
+.TP
+/lib/modules/VERSION/systemtap
+If MODULE is a module name, the module will be looked for in this directory.
+Users who are only in the
+.I 'stapusr'
+group can only install modules
+located in this directory.  This directory should be owned by the root
+user and not be world writable.
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (5),
 .IR stapfuncs (5),
 .IR stapex (5),
 .IR lket (5),
-.IR sudo (8)
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

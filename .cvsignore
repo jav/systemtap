@@ -1,2 +1,3 @@
 autom4te.* cscope*out Makefile config.h config.log config.status *.[158]
-.deps loc2c-test stamp-h1 stap staprun stp_check systemtap.spec testresults
+.deps loc2c-test stamp-h1 stap staprun systemtap.spec testresults
+stapio stap_merge

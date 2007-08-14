@@ -1,3 +1,45 @@
+2007-08-14  David Smith  <dsmith@redhat.com>
+
+	Merge from setuid-branch.  Changes also by Martin Hunt
+	<hunt@redhat.com>.
+
+	* Makefile.am: Added staprun_funcs.c and cap.c to
+	staprun_SOURCES.  Added -lcap to staprun_LDADD.  Removed
+	stp_check reference. Added stapio program.  Staprun is now
+	setuid.
+	* Makefile.in: Rebuilt.
+
+	* configure.ac: Version increase to 0.6 and checks for libcap
+	availability.  Removed stp_check reference.
+	* configure: Regenerated.
+	* stp_check.in: Removed.
+
+	* systemtap.spec.in: Version increase to 0.6-1 and added
+	BuildReq for libcap-devl (and removed sudo requirement).
+	Added %pre script to create new groups.  Staprun is now
+	setuid.
+
+	* NEWS: Added info on new security model.
+	* INTERNALS: Removed sudo reference.
+
+	* README.security: New file.
+
+	* main.cxx (main): Make sure module name isn't too long.
+	* hash.cxx: Moved MODULE_NAME_LEN define to hash.h.
+	* hash.h: Moved MODULE_NAME_LEN define here from hash.cxx.
+
+	* buildrun.cxx (run_pass): No longer runs staprun with "sudo".
+
+	* stap.1.in: Removed sudo references and added information about
+	the stapdev/stapusr groups.
+	* staprun.8.in: Added information about module detaching and
+	attaching.  Removed sudo references and added information
+	about the stapdev/stapusr groups.  Removed reference to
+	staprun needing to be run as root.  Removed reference to
+	removed '-u USERNAME' option.
+
+	* .cvsignore: Removed stp_check and added stapio and stap_merge.
+
 2007-08-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 4593

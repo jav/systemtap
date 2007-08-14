@@ -1,5 +1,5 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 2
+%define release 1
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
@@ -47,6 +47,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
 BuildRequires: glib2-devel >= 2.0.0
+BuildRequires: libcap-devel
 # make check
 BuildRequires: dejagnu
 %if %{sqlite}
@@ -59,7 +60,6 @@ Requires: glib2 >= 2.0.0
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-Requires: sudo
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -134,11 +134,23 @@ chmod -x examples/samples/kmalloc-top
 rm -rf ${RPM_BUILD_ROOT}
 make DESTDIR=$RPM_BUILD_ROOT install
 
+# Because "make install" installs staprun with mode 04111, the
+# post-processing programs rpmbuild runs won't be able to read it.
+# So, we change permissions so that they can read it.  We'll set the
+# permissions back to 04111 in the %files section below.
+chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
+
 %check
 make check %{?elfutils_mflags} || :
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
+
+%pre
+if [ $1 -eq 1 ]; then
+    groupadd -r stapdev >/dev/null 2>&1 || :
+    groupadd -r stapusr >/dev/null 2>&1 || :
+fi
 
 %files
 %defattr(-,root,root)
@@ -161,13 +173,16 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %files runtime
 %defattr(-,root,root)
-%{_bindir}/staprun
+%attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/systemtap
 %{_mandir}/man8/*
 
 %doc README AUTHORS NEWS COPYING
 
 %changelog
+* Thu Aug  9 2007 David Smith <dsmith@redhat.com> - 0.6-1
+- Bumped version, added libcap-devel BuildRequires.
+
 * Wed Jul 11 2007 Will Cohen <wcohen@redhat.com> - 0.5.14-2
 - Fix Requires and BuildRequires for sqlite.
 
