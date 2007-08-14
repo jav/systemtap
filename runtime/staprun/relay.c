@@ -74,9 +74,8 @@ static void *reader_thread(void *data)
 		cpu_set_t cpu_mask;
 		CPU_ZERO(&cpu_mask);
 		CPU_SET(cpu, &cpu_mask);
-		if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 ) {
-			perror("sched_setaffinity");
-		}
+		if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 )
+			_perr("sched_setaffinity");
 #ifdef NEED_PPOLL
 		/* Without a real ppoll, there is a small race condition that could */
 		/* block ppoll(). So use a timeout to prevent that. */
@@ -95,15 +94,14 @@ static void *reader_thread(void *data)
                 if (rc < 0) {
 			dbug(3, "cpu=%d poll=%d errno=%d\n", cpu, rc, errno);
                         if (errno != EINTR) {
-				fprintf(stderr, "poll error: %s\n",strerror(errno));
+				_perr("poll error");
 				return(NULL);
                         }
 			stop_threads = 1;
                 }
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
 			if (write(out_fd[cpu], buf, rc) != rc) {
-				fprintf(stderr, "Couldn't write to output fd %d for cpu %d, exiting: errcode = %d: %s\n", 
-					out_fd[cpu], cpu, errno, strerror(errno));
+				perr("Couldn't write to output %d for cpu %d, exiting.", out_fd[cpu], cpu);
 				return(NULL);
 			}
 		}
@@ -124,16 +122,21 @@ int init_relayfs(void)
 	char rqbuf[128];
 	char buf[PATH_MAX], relay_filebase[PATH_MAX];
 
-	dbug(1, "initializing relayfs\n");
+	dbug(2, "initializing relayfs\n");
 
 	reader[0] = (pthread_t)0;
 	relay_fd[0] = 0;
 	out_fd[0] = 0;
 
- 	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)
- 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap/%s", modname);
+ 	if (statfs("/sys/kernel/debug", &st) == 0
+	    && (int) st.f_type == (int) DEBUGFS_MAGIC) {
+		if (sprintf_chk(relay_filebase,
+				"/sys/kernel/debug/systemtap/%s",
+				modname))
+			return -1;
+	}
  	else {
-		fprintf(stderr,"Cannot find relayfs or debugfs mount point.\n");
+		err("Cannot find relayfs or debugfs mount point.\n");
 		return -1;
 	}
 
@@ -141,7 +144,8 @@ int init_relayfs(void)
 		bulkmode = 1;
 
 	for (i = 0; i < NR_CPUS; i++) {
-		sprintf(buf, "%s/trace%d", relay_filebase, i);
+		if (sprintf_chk(buf, "%s/trace%d", relay_filebase, i))
+			return -1;
 		dbug(2, "attempting to open %s\n", buf);
 		relay_fd[i] = open(buf, O_RDONLY | O_NONBLOCK);
 		if (relay_fd[i] < 0)
@@ -151,12 +155,12 @@ int init_relayfs(void)
 	dbug(2, "ncpus=%d, bulkmode = %d\n", ncpus, bulkmode);
 
 	if (ncpus == 0) {
-		err("couldn't open %s.\n", buf);
+		_err("couldn't open %s.\n", buf);
 		return -1;
 	}
 	if (ncpus > 1 && bulkmode == 0) {
-		err("ncpus=%d, bulkmode = %d\n", ncpus, bulkmode);
-		err("This is inconsistent! Please file a bug report. Exiting now.\n");
+		_err("ncpus=%d, bulkmode = %d\n", ncpus, bulkmode);
+		_err("This is inconsistent! Please file a bug report. Exiting now.\n");
 		return -1;
 	}
 
@@ -164,16 +168,20 @@ int init_relayfs(void)
 		for (i = 0; i < ncpus; i++) {
 			if (outfile_name) {
 				/* special case: for testing we sometimes want to write to /dev/null */
-				if (strcmp(outfile_name, "/dev/null") == 0)
-					strcpy(buf, outfile_name);
-				else
-					sprintf(buf, "%s_%d", outfile_name, i);
-			} else
-				sprintf(buf, "stpd_cpu%d", i);
+				if (strcmp(outfile_name, "/dev/null") == 0) {
+					strcpy(buf, "/dev/null");
+				} else {
+					if (sprintf_chk(buf, "%s_%d", outfile_name, i))
+						return -1;
+				}
+			} else {
+				if (sprintf_chk(buf, "stpd_cpu%d", i))
+					return -1;
+			}
 			
 			out_fd[i] = open (buf, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[i] < 0) {
-				fprintf(stderr, "ERROR: couldn't open output file %s.\n", buf);
+				perr("Couldn't open output file %s", buf);
 				return -1;
 			}
 		}
@@ -182,7 +190,7 @@ int init_relayfs(void)
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0) {
-				fprintf(stderr, "ERROR: couldn't open output file %s.\n", outfile_name);
+				perr("Couldn't open output file %s", outfile_name);
 				return -1;
 			}
 		} else
@@ -191,9 +199,9 @@ int init_relayfs(void)
 	}
 	dbug(2, "starting threads\n");
 	for (i = 0; i < ncpus; i++) {
-		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
-			fprintf(stderr, "failed to create thread\n");
-			perror("Error creating thread");
+		if (pthread_create(&reader[i], NULL, reader_thread,
+				   (void *)(long)i) < 0) {
+			_perr("failed to create thread");
 			return -1;
 		}
 	}		

@@ -21,166 +21,198 @@
  */
 
 #include "staprun.h"
-#include <pwd.h>
 
-extern char *optarg;
-extern int optopt;
-extern int optind;
+int inserted_module = 0;
 
-int verbose = 0;
-int target_pid = 0;
-unsigned int buffer_size = 0;
-char modname[128];
-char *modpath = NULL;
-#define MAXMODOPTIONS 64
-char *modoptions[MAXMODOPTIONS];
-char *target_cmd = NULL;
-char *outfile_name = NULL;
-char *username = NULL;
-uid_t cmd_uid;
-gid_t cmd_gid;
-int attach_mod = 0;
-int load_only = 0;
+/* used in dbug, _err and _perr */
+char *__name__ = "staprun";
 
-static void path_parse_modname (char *path)
+extern long delete_module(const char *, unsigned int);
+
+static int
+run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
-	char *mptr = rindex (path, '/');
-	if (mptr == NULL) 
-		mptr = path;
-	else
-		mptr++;
+	pid_t pid;
+	int rstatus;
 
-	if (strlen(mptr) >= sizeof(modname)) {
-		err("Module name larger than modname buffer.\n");
-		exit (-1);
+	if ((pid = fork()) < 0) {
+		_perr("fork");
+		return -1;
 	}
-	strcpy(modname, mptr);			
-	
-	mptr = rindex(modname, '.');
-	if (mptr)
-		*mptr = '\0';
+	else if (pid == 0) {
+		/* Make sure we run as the full user.  If we're
+		 * switching to a non-root user, this won't allow
+		 * that process to switch back to root (since the
+		 * original process is setuid). */
+		if (uid != getuid()) {
+			if (do_cap(CAP_SETGID, setresgid, gid, gid, gid) < 0) {
+				_perr("setresgid");
+				exit(1);
+			}
+			if (do_cap(CAP_SETUID, setresuid, uid, uid, uid) < 0) {
+				_perr("setresuid");
+				exit(1);
+			}
+		}
+
+		/* Actually run the command. */
+		if (execv(path, argv) < 0)
+			perror(path);
+		_exit(1);
+	}
+
+	if (waitpid(pid, &rstatus, 0) < 0)
+		return -1;
+
+	if (WIFEXITED(rstatus))
+		return WEXITSTATUS(rstatus);
+	return -1;
 }
 
-static void usage(char *prog)
+/* Keep the uid and gid settings because we will likely */
+/* conditionally restore "-u" */
+static int run_stapio(char **argv)
 {
-	fprintf(stderr, "\n%s [-v]  [-c cmd ] [-x pid] [-u user]\n"
-                "\t[-A modname]] [-L] [-b bufsize] [-o FILE] kmod-name [kmod-options]\n", prog);
-	fprintf(stderr, "-v  increase Verbosity.\n");
-	fprintf(stderr, "-c cmd.  Command \'cmd\' will be run and staprun will exit when it does.\n");
-	fprintf(stderr, "   _stp_target will contain the pid for the command.\n");
-	fprintf(stderr, "-x pid.  Sets _stp_target to pid.\n");
-	fprintf(stderr, "-o FILE. Send output to FILE.\n");
-	fprintf(stderr, "-u username. Run commands as username.\n");
-	fprintf(stderr, "-b buffer size. The systemtap module will specify a buffer size.\n");
-	fprintf(stderr, "   Setting one here will override that value. The value should be\n");
-	fprintf(stderr, "   an integer between 1 and 64 which be assumed to be the\n");
-	fprintf(stderr, "   buffer size in MB. That value will be per-cpu in bulk mode.\n");
-	fprintf(stderr, "-L  Load module and start probes, then detach.\n");
-	fprintf(stderr, "-A modname.  Attach to systemtap module modname.\n");
-	exit(1);
+	uid_t uid = getuid();
+	gid_t gid = getgid();
+	argv[0] = PKGLIBDIR "/stapio";
+
+	if (verbose >= 2) {
+		int i = 0;
+		err("execing: ");
+		while (argv[i]) {
+			err("%s ", argv[i]);
+			i++;
+		}
+		err("\n");		
+	}
+	return run_as(uid, gid, argv[0], argv);
+}
+
+
+int init_staprun(void)
+{
+	dbug(2, "init_staprun\n");
+
+	if (mountfs() < 0)
+		return -1;
+
+	/* We're done with CAP_SYS_ADMIN. */
+	drop_cap(CAP_SYS_ADMIN);
+ 
+	if (!attach_mod) {
+		if (insert_module() < 0)
+			return -1;
+		else
+			inserted_module = 1;
+	}
+	
+	return 0;
+}
+	
+static void cleanup(int rc)
+{
+	/* Only cleanup once. */
+	static int done = 0;
+	if (done == 0)
+		done = 1;
+	else
+		return;
+
+	dbug(2, "rc=%d, inserted_module=%d\n", rc, inserted_module);
+
+	/* rc == 2 means disconnected */
+	if (rc == 2)
+		return;
+
+	/* If we inserted the module and did not get rc==2, then */
+	/* we really want to remove it. */
+	if (inserted_module || rc == 3) {
+		long ret;
+		dbug(2, "removing module %s\n", modname);
+		ret = do_cap(CAP_SYS_MODULE, delete_module, modname, 0);
+		if (ret != 0)
+			err("Error removing module '%s': %s\n", modname, moderror(errno));
+	}
+}
+
+static void exit_cleanup(void)
+{
+	dbug(2, "something exited...\n");
+	cleanup(1);
 }
 
 int main(int argc, char **argv)
 {
-	int c;
+	int rc;
+
+	if (atexit(exit_cleanup)) {
+		_perr("cannot set exit function");
+		exit(1);
+	}
+
+	if (!init_cap())
+		return 1;
+
+	/* Get rid of a few standard environment variables (which */
+	/* might cause us to do unintended things). */
+	rc = unsetenv("IFS") || unsetenv("CDPATH") || unsetenv("ENV")
+		|| unsetenv("BASH_ENV");
+	if (rc) {
+		_perr("unsetenv failed");
+		exit(-1);
+	}
 
 	setup_signals();
 
-	while ((c = getopt(argc, argv, "ALvb:t:d:c:o:u:x:")) != EOF) {
-		switch (c) {
-		case 'v':
-			verbose++;
-			break;
-		case 'b':
-		{
-			int size = (unsigned)atoi(optarg);
-			if (!size)
-				usage(argv[0]);
-			if (size > 64) {
-				fprintf(stderr, "Maximum buffer size is 64 (MB)\n");
-				exit(1);
-			}
-			buffer_size = size;
-			break;
-		}
-		case 't':
-		case 'x':
-			target_pid = atoi(optarg);
-			break;
-		case 'd':
-			/* obsolete internal option used by stap */
-			break;
-		case 'c':
-			target_cmd = optarg;
-			break;
-		case 'o':
-			outfile_name = optarg;
-			break;
-		case 'u':
-			username = optarg;
-			break;
-		case 'A':
-			attach_mod = 1;
-			break;
-		case 'L':
-			load_only = 1;
-			break;
-		default:
-			usage(argv[0]);
-		}
-	}
+	parse_args(argc, argv);
 
-	if (verbose) {
-		if (buffer_size)
-			printf ("Using a buffer of %u bytes.\n", buffer_size);
-	}
+	if (buffer_size)
+		dbug(2, "Using a buffer of %u bytes.\n", buffer_size);
 
 	if (optind < argc) {
-		modpath = argv[optind++];
-		path_parse_modname(modpath);
+		parse_modpath(argv[optind++]);
 		dbug(2, "modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
 	}
 
         if (optind < argc) {
 		if (attach_mod) {
-			fprintf(stderr, "Cannot have module options with attach (-A).\n");
+			err("ERROR: Cannot have module options with attach (-A).\n");
 			usage(argv[0]);
 		} else {
-			unsigned start_idx = 3; /* reserve three slots in modoptions[] */
+			unsigned start_idx = 0;
 			while (optind < argc && start_idx+1 < MAXMODOPTIONS)
 				modoptions[start_idx++] = argv[optind++];
 			modoptions[start_idx] = NULL;
 		}
 	}
 
-	if (!modpath) {
-		fprintf (stderr, "Need a module to load.\n");
+	if (modpath == NULL || *modpath == '\0') {
+		err("ERROR: Need a module name or path to load.\n");
 		usage(argv[0]);
 	}
 
-	if (username) {
-		struct passwd *pw = getpwnam(username);
-		if (!pw) {
-			fprintf(stderr, "Cannot find user \"%s\".\n", username);
-			exit(1);
-		}
-		cmd_uid = pw->pw_uid;
-		cmd_gid = pw->pw_gid;
-	} else {
-		cmd_uid = getuid();
-		cmd_gid = getgid();
-	}
+	if (check_permissions() != 1)
+		usage(argv[0]);
 
 	/* now bump the priority */
-	setpriority (PRIO_PROCESS, 0, -10);
+	rc = do_cap(CAP_SYS_NICE, setpriority, PRIO_PROCESS, 0, -10);
+	/* failure is not fatal in this case */
+	if (rc < 0)
+		_perr("setpriority");
+
+	/* We're done with CAP_SYS_NICE. */
+	drop_cap(CAP_SYS_NICE);
 
 	if (init_staprun())
 		exit(1);
 
-	if (stp_main_loop()) {
-		fprintf(stderr,"Couldn't enter main loop. Exiting.\n");
-		exit(1);
-	}
+	setup_staprun_signals();
+	if (!attach_mod)
+		handle_symbols();
+
+	rc = run_stapio(argv);
+	cleanup(rc);
 
 	return 0;
 }

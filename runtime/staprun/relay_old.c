@@ -82,32 +82,40 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	memset(&status[cpu], 0, sizeof(struct buf_status));
 	status[cpu].info.cpu = cpu;
 
-	sprintf(tmp, "%s%d", relay_filebase, cpu);
+	if (sprintf_chk(tmp, "%s%d", relay_filebase, cpu))
+		return -1;
+	dbug(2, "Opening %s.\n", tmp); 
 	relay_fd[cpu] = open(tmp, O_RDONLY | O_NONBLOCK);
 	if (relay_fd[cpu] < 0) {
 		relay_fd[cpu] = 0;
 		return 0;
 	}
 
-	sprintf(tmp, "%s%d", proc_filebase, cpu);
+	if (sprintf_chk(tmp, "%s%d", proc_filebase, cpu))
+		goto err1;
 	dbug(2, "Opening %s.\n", tmp); 
 	proc_fd[cpu] = open(tmp, O_RDWR | O_NONBLOCK);
 	if (proc_fd[cpu] < 0) {
-		fprintf(stderr, "ERROR: couldn't open proc file %s: errcode = %s\n", tmp, strerror(errno));
+		perr("Couldn't open proc file %s", tmp);
 		goto err1;
 	}
 
 	if (outfile_name) {
-		/* special case: for testing we sometimes want to write to /dev/null */
-		if (strcmp(outfile_name, "/dev/null") == 0)
-			strcpy(tmp, outfile_name);
-		else
-			sprintf(tmp, "%s_%d", outfile_name, cpu);
-	} else
-		sprintf(tmp, "stpd_cpu%d", cpu);	
+		/* special case: for testing we sometimes want to
+		 * write to /dev/null */
+		if (strcmp(outfile_name, "/dev/null") == 0) {
+			strcpy(tmp, "/dev/null");
+		} else {
+			if (sprintf_chk(tmp, "%s_%d", outfile_name, cpu))
+				goto err1;
+		}
+	} else {
+		if (sprintf_chk(tmp, "stpd_cpu%d", cpu))
+			goto err1;
+	}
 
 	if((percpu_tmpfile[cpu] = fopen(tmp, "w+")) == NULL) {
-		fprintf(stderr, "ERROR: Couldn't open output file %s: errcode = %s\n", tmp, strerror(errno));
+		perr("Couldn't open output file %s", tmp);
 		goto err2;
 	}
 
@@ -117,12 +125,14 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 				 0);
 	if(relay_buffer[cpu] == MAP_FAILED)
 	{
-		fprintf(stderr, "ERROR: couldn't mmap relay file, total_bufsize (%d) = subbuf_size (%d) * n_subbufs(%d), error = %s \n", (int)total_bufsize, (int)subbuf_size, (int)n_subbufs, strerror(errno));
+		_perr("Couldn't mmap relay file, total_bufsize (%d)"	\
+		     "= subbuf_size (%d) * n_subbufs(%d)",
+		     (int)total_bufsize, (int)subbuf_size, (int)n_subbufs);
 		goto err3;
 	}
-
+	
 	return 1;
-
+	
 err3:
 	fclose(percpu_tmpfile[cpu]);
 err2:
@@ -157,7 +167,7 @@ static int process_subbufs(struct _stp_buf_info *info)
 		len = (subbuf_size - sizeof(padding)) - padding;
 		if (len) {
 			if (fwrite_unlocked (subbuf_ptr, len, 1, percpu_tmpfile[cpu]) != 1) {
-				fprintf(stderr, "ERROR: couldn't write to output file for cpu %d, exiting: errcode = %d: %s\n", cpu, errno, strerror(errno));
+				_perr("Couldn't write to output file for cpu %d, exiting:", cpu);
 				exit(1);
 			}
 		}
@@ -181,9 +191,8 @@ static void *reader_thread(void *data)
 
 	CPU_ZERO(&cpu_mask);
 	CPU_SET(cpu, &cpu_mask);
-	if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 ) {
-		perror("sched_setaffinity");
-	}
+	if( sched_setaffinity( 0, sizeof(cpu_mask), &cpu_mask ) < 0 )
+		_perr("sched_setaffinity");
 
 	pollfd.fd = relay_fd[cpu];
 	pollfd.events = POLLIN;
@@ -192,12 +201,10 @@ static void *reader_thread(void *data)
 		rc = poll(&pollfd, 1, -1);
 		if (rc < 0) {
 			if (errno != EINTR) {
-				fprintf(stderr, "ERROR: poll error: %s\n",
-					strerror(errno));
+				_perr("poll error");
 				exit(1);
 			}
-			fprintf(stderr, "WARNING: poll warning: %s\n",
-				strerror(errno));
+			err("WARNING: poll warning: %s\n", strerror(errno));
 			rc = 0;
 		}
 
@@ -210,7 +217,7 @@ static void *reader_thread(void *data)
 			consumed_info.cpu = cpu;
 			consumed_info.consumed = subbufs_consumed;
 			if (write (proc_fd[cpu], &consumed_info, sizeof(struct _stp_consumed_info)) < 0)
-				fprintf(stderr,"WARNING: writing consumed info failed.\n");
+				perr("writing consumed info failed");
 		}
 		if (status[cpu].info.flushing)
 			pthread_exit(NULL);
@@ -237,7 +244,7 @@ int init_oldrelayfs(void)
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
 			if (out_fd[0] < 0) {
-				fprintf(stderr, "ERROR: couldn't open output file %s.\n", outfile_name);
+				perr("Couldn't open output file '%s'", outfile_name);
 				return -1;
 			}
 		} else
@@ -245,14 +252,23 @@ int init_oldrelayfs(void)
 	  return 0;
 	}
 
- 	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
- 		sprintf(relay_filebase, "/sys/kernel/debug/systemtap/%s/trace", modname);
- 		sprintf(proc_filebase, "/sys/kernel/debug/systemtap/%s/", modname);
-	} else if (statfs("/mnt/relay", &st) == 0 && (int) st.f_type == (int) RELAYFS_MAGIC) {
- 		sprintf(relay_filebase, "/mnt/relay/systemtap/%s/trace", modname);
- 		sprintf(proc_filebase, "/proc/systemtap/%s/", modname);
+ 	if (statfs("/sys/kernel/debug", &st) == 0
+	    && (int) st.f_type == (int) DEBUGFS_MAGIC) {
+		if (sprintf_chk(relay_filebase,
+				"/sys/kernel/debug/systemtap/%s/trace",
+				modname))
+			return -1;
+ 		if (sprintf_chk(proc_filebase, 
+				"/sys/kernel/debug/systemtap/%s/", modname))
+			return -1;
+	} else if (statfs("/mnt/relay", &st) == 0
+		   && (int) st.f_type == (int) RELAYFS_MAGIC) {
+		if (sprintf_chk(relay_filebase, "/mnt/relay/systemtap/%s/trace", modname))
+			return -1;
+		if (sprintf_chk(proc_filebase, "/proc/systemtap/%s/", modname))
+			return -1;
  	} else {
-		fprintf(stderr,"Cannot find relayfs or debugfs mount point.\n");
+		err("Cannot find relayfs or debugfs mount point.\n");
 		return -1;
 	}
 
@@ -266,7 +282,7 @@ int init_oldrelayfs(void)
 		if (ret == 0)
 			break;
 		if (ret < 0) {
-			fprintf(stderr, "ERROR: couldn't open relayfs files, cpu = %d\n", i);
+			err("ERROR: couldn't open relayfs files, cpu = %d\n", i);
 			goto err;
 		}
 	}
@@ -274,11 +290,18 @@ int init_oldrelayfs(void)
 	ncpus = i;
 	dbug(2, "ncpus=%d\n", ncpus);
 
+	if (ncpus == 0) {
+		err("couldn't open relayfs files.\n");
+		return -1;
+	}
+
 	for (i = 0; i < ncpus; i++) {
 		/* create a thread for each per-cpu buffer */
 		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
+			int saved_errno = errno;
 			close_relayfs_files(i);
-			fprintf(stderr, "ERROR: Couldn't create reader thread, cpu = %d\n", i);
+			err("ERROR: Couldn't create reader thread, cpu = %d: %s\n",
+				i, strerror(saved_errno));
 			goto err;
 		}
 	}

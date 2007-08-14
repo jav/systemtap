@@ -1,3 +1,79 @@
+2007-08-14  David Smith  <dsmith@redhat.com>
+
+	Merge from setuid-branch.  Changes also by Martin Hunt
+	<hunt@redhat.com>.
+
+	* staprun.c (init_staprun): Drop CAP_SYS_ADMIN when we're done
+	with it.
+	(main): Calls parse_modpath instead of path_parse_modname.  Just
+	call parse_modpath with argv[optind]. Let it allocate and set
+	modpath and modname.  If no modulename was given, display usage
+	and exit.  Drop CAP_SYS_NICE when we're done with it.  Set
+	atexit(exit_cleanup) so cleanup always gets called and modules get
+	removed.  Call handle_symbols.
+	(run_stapio): Set argv[0] to stapio so that it executes as itself
+	instead of staprun.
+	(cleanup): Only do cleanups once and only try to remove module
+	when appropriate.
+	(exit_cleanup): New. Calls cleanup().
+	(mountfs): Sets uid to root before making directory and then
+	restores uid.
+	(setup_ctl_channel): Uses DEBUGFS define and improved
+	error message.
+	(setup_relayfs): Ditto.
+	(setup_oldrelayfs): Uses DEBUGFS and RELAYFS defines.
+	(run_stp_check): Replaced by mountfs().
+	(mountfs): New function.  Replaces an external script with C code.
+	(init_staprun): Calls mountfs() instead of run_stp_check().
+
+	* staprun.h: Renamed path_parse_modname to parse_modpath.  Added
+	MODULE_NAME_LEN define.  Added [_][p]err macros.  Removed
+	VERSION_CMD.
+
+	* mainloop.c (cleanup_and_exit): Make sure initialized is 2
+	before exiting with code 2.
+	(stp_main_loop): Set initialized to 2 when STP_TRANSPORT
+	is received. Call cleanup_and_exit() with proper status.
+	(start_cmd): exit 1 instead of -1.
+	(system_cmd): Ditto.
+	(init_staprun): Renamed init_stapio.
+	(cleanup_and_exit): Set exit status.
+
+	* cap.c: New file.
+	* common.c: New file.
+	* stapio.c: New file.
+	* staprun_funcs.c: New file.
+	* Makefile: Removed.
+
+	* symbols.c (get_sections): Move the filter code up so that 
+	uninteresting section names are filtered out before
+	attempting to open them.
+	(do_kernel_symbols): Better detect overfow conditions and realloc
+	new space.
+	(do_module): After sending all modules, send a null message to
+	indicate we are finished.
+
+	* ctl.c (init_ctl_channel): When attempting to attach, if the
+	control channel doesn't exist, print a better error message.
+
+	* relay_old.c (init_oldrelayfs): Errors out if
+	open_relayfs_files() couldn't open any files.
+
+	PR 4795
+	* mainloop.c (send_request): Fixed buffer overflow check.
+	* staprun.h: Added buffer overflow checking versions of
+	strcpy/sprintf/snprintf.
+	* common.c (path_parse_modname): Checks for overflows on
+	strcpy/sprintf/snprintf.
+	(read_buffer_info): Ditto.
+	* ctl.c (init_ctl_channel): Ditto.
+	* relay.c (init_relayfs): Ditto.
+	* relay_old.c (open_relayfs_files): Ditto.
+	(init_oldrelayfs): Ditto.
+	* staprun_funcs.c (insert_module): Ditto.
+	(check_path): Ditto.
+	* symbols.c (get_sections): Ditto.
+
 2007-07-09  David Smith  <dsmith@redhat.com>
 
 	* relay.c (init_relayfs): Fixed a buffer size bug introduced by

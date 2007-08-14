@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- * staprun.h - include file for staprun
+ * staprun.h - include file for staprun and stapio
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -33,32 +33,93 @@
 #include <sys/wait.h>
 #include <sys/statfs.h>
 #include <linux/version.h>
+#include <sys/capability.h>
 
 #define DEBUG
 #ifdef DEBUG
-#define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args);}}
+#define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
 #else
 #define dbug(level, args...) ;
 #endif /* DEBUG */
 
-#define err(args...) {fprintf(stderr,"%s:%d ",__FUNCTION__, __LINE__); fprintf(stderr,args); }
+extern char *__name__;
+
+/* print to stderr */
+#define err(args...) fprintf(stderr,args)
+
+/* better perror() */
+#define perr(args...) do {					\
+		int _errno = errno;				\
+		fputs("ERROR: ", stderr);			\
+		fprintf(stderr, args);				\
+		fprintf(stderr, ": %s\n", strerror(_errno));	\
+	} while (0)
+
+/* Error messages. Use these for serious errors, not informational messages to stderr. */
+#define _err(args...) do {fprintf(stderr,"%s:%s:%d: ERROR: ",__name__, __FUNCTION__, __LINE__); fprintf(stderr,args);} while(0)
+#define _perr(args...) do {					\
+		int _errno = errno;				\
+		_err(args);					\
+		fprintf(stderr, ": %s\n", strerror(_errno));	\
+	} while (0)
+#define overflow_error() _err("Internal buffer overflow. Please file a bug report.\n")
+		
+#define do_cap(cap,func,args...) ({			\
+			int _rc, _saved_errno;		\
+			add_cap(cap);			\
+			_rc = func(args);		\
+			_saved_errno = errno;		\
+			del_cap(cap);			\
+			errno = _saved_errno;		\
+			_rc;				\
+		})					\
+
+
+/* Error checking version of sprintf() - returns 1 if overflow error */
+#define sprintf_chk(str, args...) ({			\
+	int _rc;					\
+	_rc = snprintf(str, sizeof(str), args);		\
+	if (_rc >= (int)sizeof(str)) {			\
+		overflow_error();			\
+		_rc = 1;				\
+	}						\
+	else						\
+		_rc = 0;				\
+	_rc;						\
+})
+
+/* Error checking version of snprintf() - returns 1 if overflow error */
+#define snprintf_chk(str, size, args...) ({		\
+	int _rc;					\
+	_rc = snprintf(str, size, args);		\
+	if (_rc >= (int)size) {				\
+		overflow_error();			\
+		_rc = 1;				\
+	}						\
+	else						\
+		_rc = 0;				\
+	_rc;						\
+})
+
+/* Grabbed from linux/module.h kernel include. */
+#define MODULE_NAME_LEN (64 - sizeof(unsigned long))
 
 /* we define this so we are compatible with old transport, but we don't have to use it. */
 #define STP_OLD_TRANSPORT
 #include "../transport/transport_msgs.h"
 
-/* command to check system's kernel version */
-/* KERNEL_VERSION(2.6.15) = 132623 */
-#define VERSION_CMD "uname -r | awk \'{split($1,a,\".\"); split(a[3],b,\"-\"); exit (a[1]*65536+a[2]*256+b[1] <= 132623)}\'"
 extern int use_old_transport;
 
-#define RELAYFS_MAGIC			0xF0B4A981
-#define DEBUGFS_MAGIC			0x64626720
+#define RELAYFS_MAGIC	0xF0B4A981
+#define DEBUGFS_MAGIC	0x64626720
+#define DEBUGFSDIR	"/sys/kernel/debug"
+#define RELAYFSDIR	"/mnt/relay"
 
 /*
  * function prototypes
  */
 int init_staprun(void);
+int init_stapio(void);
 int stp_main_loop(void);
 int send_request(int type, void *data, int len);
 void cleanup_and_exit (int);
@@ -71,28 +132,50 @@ void close_relayfs(void);
 int init_oldrelayfs(void);
 void close_oldrelayfs(int);
 void setup_signals(void);
+/* cap.c */
+void print_cap(char *text);
+int init_cap(void);
+void add_cap(cap_value_t cap);
+void del_cap(cap_value_t cap);
+void drop_cap(cap_value_t cap);
+/* staprun_funcs.c */
+void setup_staprun_signals(void);
+const char *moderror(int err);
+int insert_module(void);
+int mountfs(void);
+int check_permissions(void);
+void handle_symbols(void);
+
+/* common.c functions */
+void parse_args(int argc, char **argv);
+void usage(char *prog);
+void parse_modpath(const char *);
+void setup_signals(void);
 
 /*
  * variables 
  */
 extern int control_channel;
 extern int ncpus;
+extern int initialized;
 
 /* flags */
 extern int verbose;
 extern unsigned int buffer_size;
-extern char modname[];
+extern char *modname;
 extern char *modpath;
-extern char *modoptions[];
+#define MAXMODOPTIONS 64
+extern char *modoptions[MAXMODOPTIONS];
 extern int target_pid;
 extern char *target_cmd;
 extern char *outfile_name;
 extern int attach_mod;
 extern int load_only;
 
-/* uid/gid to use when execing external programs */
-extern uid_t cmd_uid;
-extern gid_t cmd_gid;
+/* getopt variables */
+extern char *optarg;
+extern int optopt;
+extern int optind;
 
 /* maximum number of CPUs we can handle */
 #define NR_CPUS 256
