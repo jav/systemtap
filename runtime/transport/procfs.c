@@ -67,6 +67,7 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
 	int type;
+	static int started = 0, initialized = 0;
 
 	if (count < sizeof(int))
 		return 0;
@@ -87,20 +88,29 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	switch (type) {
 	case STP_START:
 	{
-		struct _stp_msg_start st;
-		if (count < sizeof(st))
-			return 0;
-		if (copy_from_user (&st, buf, sizeof(st)))
-			return -EFAULT;
-		_stp_handle_start (&st);
+		if (started == 0) {
+			struct _stp_msg_start st;
+			if (count < sizeof(st))
+				return 0;
+			if (copy_from_user (&st, buf, sizeof(st)))
+				return -EFAULT;
+			_stp_handle_start (&st);
+			started = 1;
+		}
 		break;
 	}
 
 	case STP_SYMBOLS:
-		count = _stp_do_symbols(buf, count);
+		if (initialized == 0 && count && current->pid == _stp_init_pid)
+			count = _stp_do_symbols(buf, count);
 		break;
 	case STP_MODULE:
-		count = _stp_do_module(buf, count);
+		if (initialized == 0 && current->pid == _stp_init_pid) {
+			if (count)
+				count = _stp_do_module(buf, count);
+			else
+				initialized = 1;
+		}
 		break;
 	case STP_EXIT:
 		_stp_exit_flag = 1;
@@ -150,6 +160,10 @@ static int _stp_ctl_write (int type, void *data, int len)
 	}
 	spin_unlock_irqrestore(&_stp_ready_lock, flags);
 #endif
+
+	/* make sure we won't overflow the buffer */
+	if (unlikely(len > STP_BUFFER_SIZE))
+		return 0;
 
 	numtrylock = 0;
 	while (!spin_trylock_irqsave (&_stp_pool_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
@@ -237,17 +251,23 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
+static int _stp_ctl_opens = 0;
 static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
 {
+	if (_stp_ctl_opens)
+		return -1;
+
+	_stp_ctl_opens++;
 	_stp_pid = current->pid;
 	return 0;
 }
 
 static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
 {
+	if (_stp_ctl_opens)
+		_stp_ctl_opens--;
 	_stp_pid = 0;
 	return 0;
-
 }
 
 static struct file_operations _stp_proc_fops_cmd = {
@@ -378,9 +398,11 @@ static int _stp_register_ctl_channel (void)
 	/* now for each cpu "n", create /proc/systemtap/module_name/n  */
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
-		de = create_proc_entry (buf, S_IFREG|S_IRUSR, _stp_proc_mod);
+		de = create_proc_entry (buf, 0600, _stp_proc_mod);
 		if (de == NULL) 
 			goto err1;
+		de->uid = _stp_uid;
+		de->gid = _stp_gid;
 		de->proc_fops = &_stp_proc_fops;
 		de->data = _stp_kmalloc(sizeof(int));
 		if (de->data == NULL) {
@@ -393,9 +415,11 @@ static int _stp_register_ctl_channel (void)
 #endif /* STP_BULKMODE */
 
 	/* finally create /proc/systemtap/module_name/cmd  */
-	de = create_proc_entry ("cmd", S_IFREG|S_IRUSR|S_IWUSR, _stp_proc_mod);
+	de = create_proc_entry ("cmd", 0600, _stp_proc_mod);
 	if (de == NULL) 
 		goto err1;
+	de->uid = _stp_uid;
+	de->gid = _stp_gid;
 	de->proc_fops = &_stp_proc_fops_cmd;
 	return 0;
 

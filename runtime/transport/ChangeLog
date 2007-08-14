@@ -1,3 +1,43 @@
+2007-08-14  David Smith  <dsmith@redhat.com>
+
+	Merge from setuid-branch.  Changes also by Martin Hunt
+	<hunt@redhat.com>.
+
+	* control.c (_stp_ctl_write): Make sure we don't overflow.
+	(_stp_ctl_open_cmd): Do not allow multiple opens of the control
+	file.
+	(_stp_ctl_write_cmd): Once STP_START is received, ignore
+	everything except STP_EXIT.  Create another state variable
+	"initialized". Don't respond to STP_SYMBOLS or STP_MODULES unless
+	initialized is 0. Also check that current pid is the same as the
+	pid that did insmod.
+	(_stp_register_ctl_channel): Bug fix - sets owner/group after
+	checking for NULL.
+
+	* procfs.c (_stp_ctl_write): Make sure we don't overflow.
+	(_stp_ctl_open_cmd): Do not allow multiple opens of the control
+	file.
+	(_stp_ctl_write_cmd): Once STP_START is received, ignore
+	everything except STP_EXIT.  Create another state variable
+	"initialized". Don't respond to STP_SYMBOLS or STP_MODULES unless
+	initialized is 0. Also check that current pid is the same as the
+	pid that did insmod.
+	(_stp_register_ctl_channel): Set ownership of cmd file and percpu
+	files for bulkmode.
+
+	* relayfs.c (utt_trace_setup): Set ownership of percpu files.
+	Improved error handling.
+	(utt_trace_remove): Improved error checking.
+
+	* utt.c (utt_remove_tree): Improved error checking.
+	(utt_trace_cleanup): Ditto.
+	(utt_create_buf_file_callback): Set file ownership.
+	(utt_create_global_buf_file_callback): Set file ownership.
+
+	* transport.h: Delcare _stp_uid, _stp_gid, and _stp_init_pid.
+	* transport.c (_stp_transport_init): Set _stp_uid, _stp_gid, and
+	_stp_init_pid.
+
 2007-07-26  Martin Hunt  <hunt@redhat.com>
 
 	Spotted by Ming Chang.

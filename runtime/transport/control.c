@@ -21,6 +21,7 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
 	int type;
+	static int started = 0, initialized = 0;
 
 	if (count < sizeof(int))
 		return 0;
@@ -28,7 +29,7 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	if (get_user(type, (int __user *)buf))
 		return -EFAULT;
 
-	//kbug ("count:%d type:%d\n", count, type);
+	// kbug ("count:%d type:%d\n", count, type);
 
 	if (type == STP_SYMBOLS) {
 		count -= sizeof(long);
@@ -41,20 +42,29 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	switch (type) {
 	case STP_START:
 	{
-		struct _stp_msg_start st;
-		if (count < sizeof(st))
-			return 0;
-		if (copy_from_user (&st, buf, sizeof(st)))
-			return -EFAULT;
-		_stp_handle_start (&st);
+		if (started == 0) {
+			struct _stp_msg_start st;
+			if (count < sizeof(st))
+				return 0;
+			if (copy_from_user (&st, buf, sizeof(st)))
+				return -EFAULT;
+			_stp_handle_start (&st);
+			started = 1;
+		}
 		break;
 	}
 
 	case STP_SYMBOLS:
-		count = _stp_do_symbols(buf, count);
+		if (initialized == 0 && count && current->pid == _stp_init_pid)
+			count = _stp_do_symbols(buf, count);
 		break;
 	case STP_MODULE:
-		count = _stp_do_module(buf, count);
+		if (initialized == 0 && current->pid == _stp_init_pid) {
+			if (count)
+				count = _stp_do_module(buf, count);
+			else
+				initialized = 1;
+		}
 		break;
 	case STP_EXIT:
 		_stp_exit_flag = 1;
@@ -73,11 +83,13 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	return count;
 }
 
+#define STP_CTL_BUFFER_SIZE 256
+
 struct _stp_buffer {
 	struct list_head list;
 	int len;
 	int type;
-	char buf[256];
+	char buf[STP_CTL_BUFFER_SIZE];
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
@@ -127,6 +139,10 @@ static int _stp_ctl_write (int type, void *data, unsigned len)
 	_stp_ctl_write_dbug(type, data, len);
 #endif
 
+	/* make sure we won't overflow the buffer */
+	if (unlikely(len > STP_CTL_BUFFER_SIZE))
+		return 0;
+
 	numtrylock = 0;
 	while (!spin_trylock_irqsave (&_stp_pool_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
 		ndelay (TRYLOCKDELAY);
@@ -145,7 +161,7 @@ static int _stp_ctl_write (int type, void *data, unsigned len)
 	spin_unlock_irqrestore(&_stp_pool_lock, flags);
 
 	bptr->type = type;
-	memcpy(bptr->buf, data, min((size_t) len, sizeof(bptr->buf)));
+	memcpy(bptr->buf, data, len);
 	bptr->len = len;
 	
 	/* put it on the pool of ready buffers */
@@ -215,17 +231,23 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
+static int _stp_ctl_opens = 0;
 static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
 {
+	if (_stp_ctl_opens)
+		return -1;
+
+	_stp_ctl_opens++;
 	_stp_pid = current->pid;
 	return 0;
 }
 
 static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
 {
+	if (_stp_ctl_opens)
+		_stp_ctl_opens--;
 	_stp_pid = 0;
 	return 0;
-
 }
 
 static struct file_operations _stp_ctl_fops_cmd = {
@@ -267,6 +289,8 @@ static int _stp_register_ctl_channel (void)
 	_stp_cmd_file = debugfs_create_file("cmd", 0600, _stp_utt->dir, NULL, &_stp_ctl_fops_cmd);
 	if (_stp_cmd_file == NULL) 
 		goto err0;
+	_stp_cmd_file->d_inode->i_uid = _stp_uid;;
+	_stp_cmd_file->d_inode->i_gid = _stp_gid;
 	return 0;
 
 err0:

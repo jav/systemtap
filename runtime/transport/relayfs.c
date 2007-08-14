@@ -80,14 +80,15 @@ static void _stp_remove_relay_root(struct dentry *root)
 struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 {
 	struct utt_trace *utt;
+	int i;
 
 	utt = _stp_kzalloc(sizeof(*utt));
 	if (!utt)
 		return NULL;
 
-	utt->utt_tree_root =  _stp_get_root_dir(utts->root);
+	utt->utt_tree_root = _stp_get_root_dir(utts->root);
 	if (!utt->utt_tree_root)
-		return NULL;
+		goto err;
 
 	utt->dir = relayfs_create_dir(utts->name, utt->utt_tree_root);
 	if (!utt->dir)
@@ -95,20 +96,29 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 
 	kbug("relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
 
-	utt->rchan = relay_open("trace", utt->dir, utts->buf_size, utts->buf_nr, 0, &stp_rchan_callbacks);
+	utt->rchan = relay_open("trace", utt->dir, utts->buf_size,
+				utts->buf_nr, 0, &stp_rchan_callbacks);
 	if (!utt->rchan)
-		goto err1;
+		goto err;
+
+	/* now set ownership */
+	for_each_online_cpu(i) {
+		utt->rchan->buf[i]->dentry->d_inode->i_uid = _stp_uid;
+		utt->rchan->buf[i]->dentry->d_inode->i_gid = _stp_gid;
+	}
 
 	utt->rchan->private_data = utt;
 	utt->trace_state = Utt_trace_setup;
 	utts->err = 0;
 	return utt;
 
-err1:
-	errk("couldn't create relay channel.\n");
-	_stp_remove_relay_dir(utt->dir);
 err:
-	_stp_remove_relay_root(utt->utt_tree_root);
+	errk("couldn't create relay channel.\n");
+	if (utt->dir)
+		_stp_remove_relay_dir(utt->dir);
+	if (utt->utt_tree_root)
+		_stp_remove_relay_root(utt->utt_tree_root);
+	kfree(utt);
 	return NULL;
 }
 
@@ -151,9 +161,12 @@ int utt_trace_remove(struct utt_trace *utt)
 {
 	kbug("removing relayfs files. %d\n", utt->trace_state);
 	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {
-		relay_close(utt->rchan);
-		_stp_remove_relay_dir(utt->dir);
-		_stp_remove_relay_root(utt->utt_tree_root);
+		if (utt->rchan)
+			relay_close(utt->rchan);
+		if (utt->dir)
+			_stp_remove_relay_dir(utt->dir);
+		if (utt->utt_tree_root)
+			_stp_remove_relay_root(utt->utt_tree_root);
 		kfree(utt);
 	}
 	return 0;

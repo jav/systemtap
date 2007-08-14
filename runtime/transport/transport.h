@@ -23,5 +23,7 @@ static struct dentry *_stp_get_root_dir(const char *name);
 static int _stp_lock_debugfs(void);
 static void _stp_unlock_debugfs(void);
 int _stp_pid = 0;
-
+uid_t _stp_uid = 0;
+gid_t _stp_gid = 0;
+pid_t _stp_init_pid = 0;
 #endif /* _TRANSPORT_TRANSPORT_H_ */

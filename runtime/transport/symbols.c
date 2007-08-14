@@ -104,6 +104,26 @@ static struct _stp_module * _stp_alloc_module_from_module (struct module *m)
 	return _stp_alloc_module(num, datasize);
 }
 
+static void _stp_free_module(struct _stp_module *mod)
+{
+	/* free symbol memory */
+	if (mod->num_symbols) {
+		if (mod->allocated & 1)
+			vfree(mod->symbols);
+		else
+			kfree(mod->symbols);
+		if (mod->allocated & 2)
+			vfree(mod->symbol_data);
+		else
+			kfree(mod->symbol_data);
+	}
+	if (mod->sections)
+		kfree(mod->sections);
+
+	/* free module memory */
+	kfree(mod);
+}
+
 /* Delete a module and free its memory. */
 /* The lock should already be held before calling this. */
 static void _stp_del_module(struct _stp_module *mod)
@@ -134,23 +154,8 @@ static void _stp_del_module(struct _stp_module *mod)
 		_stp_modules_by_addr[i] = _stp_modules_by_addr[i+1];
 
 	_stp_num_modules--;
-	
-	/* free symbol memory */
-	if (mod->num_symbols) {
-		if (mod->allocated & 1)
-			vfree(mod->symbols);
-		else
-			kfree(mod->symbols);
-		if (mod->allocated & 2)
-			vfree(mod->symbol_data);
-		else
-			kfree(mod->symbol_data);
-	}
-	if (mod->sections)
-		kfree(mod->sections);
 
-	/* free module memory */
-	kfree(mod);
+	_stp_free_module(mod);
 }
 
 static void _stp_free_modules(void)
@@ -471,8 +476,10 @@ static int _stp_do_module(const char __user *buf, int count)
 		return 0;
 	}
 
-	if (_stp_ins_module(mod) < 0)
+	if (_stp_ins_module(mod) < 0) {
+		_stp_free_module(mod);
 		return -ENOMEM;
+	}
 	
 	return count;
 }
