@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# options '-A' and '-c cmd' are mutually exclusive
+#
+# -A              Attach to loaded systemtap module.
+# -c cmd          Command 'cmd' will be run and staprun will
+#                 exit when it does.  The '_stp_target' variable
+#                 will contain the pid for the command.
+staprun -A -c bash fake_module

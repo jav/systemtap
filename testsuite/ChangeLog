@@ -1,3 +1,20 @@
+2007-08-14  David Smith  <dsmith@redhat.com>
+
+	Merge from setuid-branch.
+	* configure.ac: Version increase to 0.6.
+	* configure: Regenerated.
+
+	* parseko/cmdline09.stp: Added new test for staprun command line
+	options.
+	* parseko/cmdline10.stp: Ditto.
+	* parseko/cmdline11.stp: Ditto.
+	* parseko/cmdline12.stp: Ditto.
+	* parseko/cmdline13.stp: Ditto.
+	* parseko/cmdline14.stp: Ditto.
+
+	* systemtap.samples/args.exp: No longer necessary to use "sudo" to
+	run staprun.
+
 2007-08-07  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4846

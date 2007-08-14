@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# A module name can't have more than 60 chars (stap truncates the
+# module name before creating the kernel module but staprun can't
+# truncate an existing module name).
+staprun stap_123456789012345678901234567890123456789012345678901234567890

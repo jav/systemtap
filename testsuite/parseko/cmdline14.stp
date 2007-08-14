@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# options '-A' and '-x pid' are mutually exclusive
+#
+# -A              Attach to loaded systemtap module.
+# -x pid          Sets the '_stp_target' variable to pid.
+staprun -A -x 100 fake_module

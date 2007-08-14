@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# options '-A' and '-b size' are mutually exclusive (since the buffer
+# size option only has an effect when the module is inserted)
+#
+# -A              Attach to loaded systemtap module.
+# -b buffer size  The systemtap module specifies a buffer size.
+#                 Setting one here will override that value.  The
+#                 value should be an integer between 1 and 64
+#                 which be assumed to be the buffer size in MB.
+#                 That value will be per-cpu in bulk mode.
+staprun -A -b 2 fake_module

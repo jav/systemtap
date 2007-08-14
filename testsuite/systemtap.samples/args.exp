@@ -47,7 +47,7 @@ if [file exists $modpath] {
     return
 }
 
-spawn sudo $staprunpath -d [pid] $modpath foo=hello bar=999
+spawn $staprunpath -d [pid] $modpath foo=hello bar=999
 set ok 0
 expect {
     -timeout 120
@@ -62,7 +62,7 @@ if {$ok == 1} {
     fail "$test run 1"
 }
 
-spawn sudo $staprunpath -d [pid] $modpath foo=goodbye bar=0
+spawn $staprunpath -d [pid] $modpath foo=goodbye bar=0
 set ok 0
 expect {
     -timeout 120

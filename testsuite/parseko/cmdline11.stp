@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# options '-L' and '-A' are mutually exclusive
+#
+# -L              Load module and start probes, then detach.
+# -A              Attach to loaded systemtap module.
+
+staprun -L -A fake_module
