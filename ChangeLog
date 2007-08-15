@@ -1,3 +1,14 @@
+2007-08-15  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec.in: Updated %pre to latest Fedora group creation
+	guidelines.
+
+	* stap.1.in: Changed '/usr' to '@prefix@' so the values will be
+	updated correctly.
+	* stapfunc.5.in: Ditto.
+
+	* README.security: Typo fix.
+
 2007-08-15  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am: Removed stap_merge.
