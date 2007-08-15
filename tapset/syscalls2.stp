@@ -2680,10 +2680,13 @@ probe syscall.umount.return = kernel.function("sys_umount").return {
 # long sys_newuname(struct new_utsname __user * name)
 # int sys_olduname(struct oldold_utsname __user * name)
 # int sys32_olduname(struct oldold_utsname __user * name)
+# long sys32_uname(struct old_utsname __user * name)
+#
 probe syscall.uname = 
 		kernel.function("sys_uname") ?,
 		kernel.function("sys_olduname") ?,
 		kernel.function("sys32_olduname") ?,
+		kernel.function("sys32_uname") ?,
 		kernel.function("sys_newuname") ?
 {
 	name = "uname"
@@ -2694,6 +2697,7 @@ probe syscall.uname.return =
 		kernel.function("sys_uname").return ?,
 		kernel.function("sys_olduname").return ?,
 		kernel.function("sys32_olduname").return ?,
+		kernel.function("sys32_uname").return ?,
 		kernel.function("sys_newuname").return ?
 {
 	name = "uname"

@@ -100,60 +100,6 @@ probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
 	retstr = returnstr(1)
 }
 
-function get_mmap_args:string (args:long)
-%{
-	struct mmap_arg_struct {
-        	unsigned long addr;
-        	unsigned long len;
-        	unsigned long prot;
-        	unsigned long flags;
-        	unsigned long fd;
-        	unsigned long offset;
-	}a;
-
-	char proto[60];
-	char flags[256];
-
-	if(_stp_copy_from_user((char *)&a,
-		 (char *)THIS->args, sizeof(a))== 0){
-
-		/* _mprotect_prot_str */
-		proto[0] = '\0';
-		if(a.prot){ 
-			if(a.prot & 1) strcat (proto, "PROT_READ|");
-			if(a.prot & 2) strcat (proto, "PROT_WRITE|");
-			if(a.prot & 4) strcat (proto, "PROT_EXEC|");
-		} else {
-			strcat (proto, "PROT_NONE");
-		}
-		if (proto[0] != '\0') proto[strlen(proto)-1] = '\0';
-
-		/* _mmap_flags */
-		flags[0]='\0';
-		if (a.flags & 1) strcat (flags, "MAP_SHARED|");
-		if (a.flags & 2) strcat (flags, "MAP_PRIVATE|");
-		if (a.flags & 0x10) strcat (flags, "MAP_FIXED|");
-		if (a.flags & 0x20) strcat (flags, "MAP_ANONYMOUS|");
-		if (a.flags & 0x100) strcat (flags, "MAP_GROWSDOWN|");
-		if (a.flags & 0x800) strcat (flags, "MAP_DENYWRITE|");
-		if (a.flags & 0x1000) strcat (flags, "MAP_EXECUTABLE|");
-		if (a.flags & 0x2000) strcat (flags, "MAP_LOCKED|");
-		if (a.flags & 0x4000) strcat (flags, "MAP_NORESERVE|");
-		if (a.flags & 0x8000) strcat (flags, "MAP_POPULATE|");
-		if (a.flags & 0x10000) strcat (flags, "MAP_NONBLOCK|");
-		if (flags[0] != '\0') flags[strlen(flags)-1] = '\0';
-
-		sprintf(THIS->__retvalue,"0x%lx, %ld, %s, %s, %ld, %ld",
-			a.addr,
-			a.len,
-			proto,
-			flags,
-			a.fd,
-			a.offset);
-	}else{
-		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
-%}
 
 /* compat */
 function get_32mmap_args:string (args:long)

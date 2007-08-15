@@ -82,4 +82,54 @@ probe syscall.mmap.return = kernel.function("sys_mmap").return ? {
 	name = "mmap"
 	retstr = returnstr(2)
 }
+#
+# sys32_mmap(struct mmap_arg_struct __user *arg)
+#
+probe syscall.mmap32 = kernel.function("sys32_mmap") {
+	name = "mmap"
+	argstr = get_mmap_args($arg)
+}
 
+probe syscall.mmap32.return = kernel.function("sys32_mmap").return {
+        name = "mmap"
+        retstr = returnstr(2)
+}
+
+# sys32_mmap2(unsigned long addr, unsigned long len,
+#	unsigned long prot, unsigned long flags,
+#	unsigned long fd, unsigned long pgoff)
+#
+probe syscall.mmap2 = kernel.function("sys32_mmap2") {
+	name = "mmap2"
+	argstr = sprintf("%p, %d, %s, %s, %d, %d", $addr, $len,
+		_mprotect_prot_str($prot), _mmap_flags($flags), $fd, $pgoff)
+}
+
+probe syscall.mmap2.return = kernel.function("sys32_mmap2").return {
+	name = "mmap2"
+	retstr = returnstr(2)
+}
+
+# vm86_warning _____________________________________________________
+#
+# long sys32_vm86_warning(void)
+#
+probe syscall.vm86_warning = kernel.function("sys32_vm86_warning") {
+	name = "vm86_warning"
+}
+probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return {
+	name = "wm86_warning"
+	retstr = returnstr(1)
+}
+# pipe _______________________________________________________
+#
+# long sys32_pipe(int __user *fd)
+#
+probe syscall.pipe32 = kernel.function("sys32_pipe") {
+	name = "pipe"
+	argstr = sprintf("%p", fd)
+}
+probe syscall.pipe32.return = kernel.function("sys32_pipe").return {
+	name = "pipe"
+	retstr = returnstr(1)
+}

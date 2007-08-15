@@ -1,3 +1,12 @@
+2007-08-15  Martin Hunt  <hunt@redhat.com>
+
+	* x86_64/syscalls.stp: Add support for sys32_mmap[2],
+	sys32_vm86_warning, and sys32_pipe.
+	* s390x/syscalls.stp (get_mmap_args): Move to aux_syscalls.
+	* aux_syscalls.stp (get_mmap_args): Moved here.
+	* syscalls.stp: Add sys32_alarm.
+	* syscalls2.stp: Add sys32_uname.
+	
 2007-08-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	* context.stp (cpuid, cpu): Use smp_processor_id().

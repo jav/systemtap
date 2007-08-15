@@ -127,12 +127,20 @@ probe syscall.compat_adjtimex.return = kernel.function("compat_sys_adjtimex").re
 
 # alarm ______________________________________________________
 # unsigned long sys_alarm (unsigned int seconds)
-probe syscall.alarm = kernel.function("sys_alarm") ? {
+# long sys32_alarm(unsigned int seconds)
+#
+probe syscall.alarm =
+		kernel.function("sys_alarm") ?,
+		kernel.function("sys32_alarm") ?
+{
 	name = "alarm"
 	seconds = $seconds
 	argstr = sprint($seconds)
 }
-probe syscall.alarm.return = kernel.function("sys_alarm").return ? {
+probe syscall.alarm.return =
+		kernel.function("sys_alarm").return ?,
+		kernel.function("sys32_alarm").return ?
+{
 	name = "alarm"
 	retstr = returnstr(1)
 }
