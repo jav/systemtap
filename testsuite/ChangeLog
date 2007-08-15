@@ -1,3 +1,7 @@
+2007-08-15  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.printf/*b.exp: Use stap_merge.tcl.
+
 2007-08-14  David Smith  <dsmith@redhat.com>
 
 	Merge from setuid-branch.
