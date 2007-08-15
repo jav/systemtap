@@ -1,3 +1,8 @@
+2007-08-15  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am: Removed stap_merge.
+	* Makefile.in: Rebuilt.
+
 2007-08-14  David Smith  <dsmith@redhat.com>
 
 	Merge from setuid-branch.  Changes also by Martin Hunt
