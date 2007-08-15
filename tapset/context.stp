@@ -65,11 +65,11 @@ function euid:long () %{ /* pure */
 %}
 
 function cpuid:long () %{ /* pure */
-	THIS->__retvalue = current->thread_info->cpu;
+	THIS->__retvalue = smp_processor_id();
 %}
 
 function cpu:long () %{ /* pure */
-	THIS->__retvalue = current->thread_info->cpu; /* smp_processor_id()? */
+	THIS->__retvalue = smp_processor_id();
 %}
 
 function print_stack(stk:string) %{
