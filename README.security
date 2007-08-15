@@ -10,7 +10,7 @@ but required all systemtap users to have root access.  Many sysadmins
 on enterprise systems do not have root access.
 
 So, a new security model was developed.  To run the staprun program
-(which install systemtap kernel modules), a user must be one of the
+(which installs systemtap kernel modules), a user must be one of the
 following:
 
  * the root user;

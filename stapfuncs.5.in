@@ -5,7 +5,7 @@ stapfuncs \- systemtap functions
 
 .SH DESCRIPTION
 The following sections enumerate the public functions provided by
-standard tapsets installed under /usr/share/systemtap/tapset.  Each
+standard tapsets installed under @prefix@/share/systemtap/tapset.  Each
 function is described with a signature, and its behavior/restrictions.
 The signature line includes the name of the function, the type of
 its return value (if any), and the names and types of all parameters.
@@ -345,7 +345,7 @@ Returns the string representation of the given message flags bit map.
 
 .SH FILES
 .nh
-.IR /usr/share/systemtap/tapset
+.IR @prefix@/share/systemtap/tapset
 .hy
 
 .SH SEE ALSO

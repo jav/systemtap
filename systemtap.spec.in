@@ -60,6 +60,7 @@ Requires: glib2 >= 2.0.0
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
+Requires(pre): shadow-utils
 
 %if %{bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
@@ -147,10 +148,9 @@ make check %{?elfutils_mflags} || :
 rm -rf ${RPM_BUILD_ROOT}
 
 %pre
-if [ $1 -eq 1 ]; then
-    groupadd -r stapdev >/dev/null 2>&1 || :
-    groupadd -r stapusr >/dev/null 2>&1 || :
-fi
+getent group stapdev >/dev/null || groupadd -r stapdev
+getent group stapusr >/dev/null || groupadd -r stapusr
+exit 0
 
 %files
 %defattr(-,root,root)

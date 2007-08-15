@@ -660,7 +660,7 @@ functions in order to write compatible embedded-C ones.
 A set of builtin functions and probe point aliases are provided
 by the scripts installed under the
 .nh
-.IR /usr/share/systemtap/tapset
+.IR @prefix@/share/systemtap/tapset
 .hy
 directory.  These are described in the
 .IR stapfuncs "(5) and " stapprobes (5)
@@ -892,13 +892,13 @@ environment variable.
 Temporary directory for systemtap files, including translated C code
 and kernel object.
 .TP
-/usr/share/systemtap/tapset 
+@prefix@/share/systemtap/tapset 
 The automatic tapset search directory, unless overridden by
 the
 .I SYSTEMTAP_TAPSET
 environment variable.
 .TP
-/usr/share/systemtap/runtime
+@prefix@/share/systemtap/runtime
 The runtime sources, unless overridden by the
 .I SYSTEMTAP_RUNTIME
 environment variable.
@@ -906,12 +906,12 @@ environment variable.
 /lib/modules/VERSION/build
 The location of kernel module building infrastructure.
 .TP
-/usr/lib/debug/lib/modules/VERSION
+@prefix@/lib/debug/lib/modules/VERSION
 The location of kernel debugging information when packaged into the
 .IR kernel\-debuginfo
 RPM.
 .TP
-/usr/bin/staprun
+@prefix@/bin/staprun
 The auxiliary program supervising module loading, interaction, and
 unloading.
 
