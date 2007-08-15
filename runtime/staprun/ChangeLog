@@ -1,3 +1,7 @@
+2007-08-15  David Smith  <dsmith@redhat.com>
+
+	* staprun.c (main): Quit if effective uid is not root.
+
 2007-08-15  Martin Hunt  <hunt@redhat.com>
 	PR4736
 	* staprun.c (cleanup): Set priority back to normal

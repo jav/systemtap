@@ -154,8 +154,14 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	if (geteuid() != 0) {
+	    err("ERROR: The effective user ID of staprun must be set to the root user.\n"
+		"  Check permissions on staprun and ensure it is a setuid root program.\n");
+		exit(1);
+	}
+
 	if (!init_cap())
-		return 1;
+		exit(1);
 
 	/* Get rid of a few standard environment variables (which */
 	/* might cause us to do unintended things). */
