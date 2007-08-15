@@ -1,3 +1,7 @@
+2007-08-15  Martin Hunt  <hunt@redhat.com>
+
+	* stap_merge.tcl: New. 
+
 2007-08-14  David Smith  <dsmith@redhat.com>
 
 	Merge from setuid-branch.  Changes also by Martin Hunt
