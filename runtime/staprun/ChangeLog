@@ -1,5 +1,10 @@
 2007-08-15  Martin Hunt  <hunt@redhat.com>
+	PR4736
+	* staprun.c (cleanup): Set priority back to normal
+	before removing module.
 
+2007-08-15  Martin Hunt  <hunt@redhat.com>
+	
 	* stap_merge.tcl: New. 
 
 2007-08-14  David Smith  <dsmith@redhat.com>

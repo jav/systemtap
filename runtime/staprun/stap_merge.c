@@ -101,10 +101,9 @@ int main (int argc, char *argv[])
 			}
 		}
 
-
 		if (fread(&len, sizeof(int), 1, fp[j])) {
 			if (verbose)
-				fprintf(stderr, "[CPU %d, seq=%ld, length=%d]\n", j, min, len);
+				fprintf(stdout, "[CPU:%d, seq=%ld, length=%d]\n", j, min, len);
 			if (len > bufsize) {
 				bufsize = len * 2;
 				if (verbose) fprintf(stderr, "reallocating %d bytes\n", bufsize);

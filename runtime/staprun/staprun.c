@@ -121,6 +121,9 @@ static void cleanup(int rc)
 
 	dbug(2, "rc=%d, inserted_module=%d\n", rc, inserted_module);
 
+	if (setpriority (PRIO_PROCESS, 0, 0) < 0)
+		_perr("setpriority");
+	
 	/* rc == 2 means disconnected */
 	if (rc == 2)
 		return;
