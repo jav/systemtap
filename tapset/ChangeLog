@@ -1,5 +1,9 @@
 2007-08-15  Wenji Huang  <wenji.huang@oracle.com>
 
+        * errno.stp: Fix Typo for EADV
+
+2007-08-15  Wenji Huang  <wenji.huang@oracle.com>
+
         * aux_syscalls.stp(_reboot_flag_str,_futex_op_str,_mprotect_prot_str,
 	_fcntl_cmd_str, _quotaclt_cmd_str, _sock_type_str, _rlimit_resource_str,
 	_rusage_who_str): Add new entries, modify default return string.

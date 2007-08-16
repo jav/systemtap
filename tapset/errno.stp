@@ -140,7 +140,7 @@ const char * const errlist[] = {
 #ifdef ENOLINK
 	N(ENOLINK),
 #endif
-#ifdef EAVD
+#ifdef EADV
 	N(EADV),
 #endif
 #ifdef ESRMNT
