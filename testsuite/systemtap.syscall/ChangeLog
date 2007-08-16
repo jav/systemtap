@@ -1,3 +1,7 @@
+2007-08-16  Martin Hunt  <hunt@redhat.com>
+
+	* all_syscalls.stp: New file.  Useful for debugging.
+
 2007-07-31  Martin Hunt  <hunt@redhat.com>
 
 	* clock.c (main): Change flags to hex.
