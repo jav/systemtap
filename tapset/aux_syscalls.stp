@@ -1549,7 +1549,6 @@ function _sockopt_level_str(l) {
 
 function _sock_family_str(f) {
    if(f==0) return "PF_UNSPEC"
-   if(f==1) return "PF_UNIX"
    if(f==1) return "PF_LOCAL"
    if(f==2) return "PF_INET"
    if(f==3) return "PF_AX25"
@@ -1575,8 +1574,10 @@ function _sock_family_str(f) {
    if(f==24) return "PF_PPPOX"
    if(f==25) return "PF_WANPIPE"
    if(f==26) return "PF_LLC"
+   if(f==30) return "PF_TIPC"
    if(f==31) return "PF_BLUETOOTH"
-   if(f==32) return "PF_MAX"
+   if(f==32) return "PF_IUCV"
+   if(f==33) return "PF_RXRPC"
    return sprintf("UNKNOWN VALUE: %d", f)
 }
 

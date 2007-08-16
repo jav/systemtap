@@ -1,5 +1,13 @@
 2007-08-16  Martin Hunt  <hunt@redhat.com>
 
+	* aux_syscalls.stp (_sock_family_str):
+	Add PF_IUCV, PF_RXRPC, PF_TIPC.
+
+	From zhaolei@cn.fujitsu.com
+	Remove PF_UNIX. PF_LOCAL is correct.
+	
+2007-08-16  Martin Hunt  <hunt@redhat.com>	
+
 	* aux_syscalls.stp (__get_argv): Add parameter to 
 	optionally skip the first argv (argv[0]).
 	(__get_compat_argv): Ditto.
