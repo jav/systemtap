@@ -423,8 +423,8 @@ probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
 probe syscall.sys32_execve = kernel.function("sys32_execve") ? {
 	name = "sys32_execve"
 	filename = user_string($a0)
-	args = __get_argv($a1) 
-	argstr = sprintf("%s %s", user_string_quoted($a0), args)
+	args = __get_argv($a1, 0) 
+	argstr = sprintf("%s %s", user_string_quoted($a0), __get_argv($a1, 1))
 }
 probe syscall.sys32_execve.return =
 	kernel.function("sys32_execve").return ? {

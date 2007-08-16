@@ -541,8 +541,8 @@ probe syscall.epoll_wait.return = kernel.function("sys_epoll_wait").return {
 probe syscall.execve = kernel.function("do_execve") {
 	name = "execve"
 	filename = kernel_string($filename)
-	args = __get_argv($argv)
-	argstr = sprintf("%s %s", filename, args)
+	args = __get_argv($argv, 0)
+	argstr = sprintf("%s %s", filename, __get_argv($argv, 1))
 }
 # v2.6.15-rc2 or earlier has problems with sys_execve return probes
 # another reason to probe on do_execve
@@ -557,8 +557,8 @@ probe syscall.execve.return = kernel.function("do_execve").return {
 probe syscall.compat_execve = kernel.function("compat_do_execve") ? {
 	name = "compat_execve"
 	filename = kernel_string($filename)
-	args = __get_compat_argv($argv)
-	argstr = sprintf("%s %s", filename, args)
+	args = __get_compat_argv($argv, 0)
+	argstr = sprintf("%s %s", filename, __get_compat_argv($argv, 1))
 }
 probe syscall.compat_execve.return = kernel.function("compat_do_execve").return  ? {
 	name = "compat_execve"
@@ -1267,9 +1267,11 @@ probe syscall.getpeername.return = kernel.function("sys_getpeername").return {
 }
 
 # getpgid ____________________________________________________
-# long sys_getpgid(void)
+# long sys_getpgid(pid_t pid)
 probe syscall.getpgid = kernel.function("sys_getpgid") {
 	name = "getpgid"
+	pid = $pid
+	argstr = sprintf("%d", $pid)
 }
 probe syscall.getpgid.return = kernel.function("sys_getpgid").return {
 	name = "getpgid"

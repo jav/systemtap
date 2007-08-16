@@ -1,3 +1,17 @@
+2007-08-16  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (__get_argv): Add parameter to 
+	optionally skip the first argv (argv[0]).
+	(__get_compat_argv): Ditto.
+
+	* syscalls.stp (execve): Set args to the whole argv.
+	For argstr use filename plus argv starting at [1].
+	(compat_execve): Ditto.
+	* ppc64/syscalls.stp (sys32_exevve): Ditto.
+	
+	From Cai Fei <caifei@cn.fujitsu.com>	
+	* syscalls.stp (sts_getpgid): Add pid arg.
+
 2007-08-15  Wenji Huang  <wenji.huang@oracle.com>
 
         * errno.stp: Fix Typo for EADV

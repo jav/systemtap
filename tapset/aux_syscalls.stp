@@ -599,7 +599,7 @@ function __fork_flags:string(flags:long)
 %}
 
 /* This function copies an argv from userspace. */
-function __get_argv:string(a:long)
+function __get_argv:string(a:long, first:long)
 %{ /* pure */
   	char __user *__user *argv = (char __user *__user *)(long)THIS->a;
 	char __user *vstr;
@@ -608,7 +608,8 @@ function __get_argv:string(a:long)
 	char buf[80];
 	char *ptr = buf;
 
-	if (argv)
+	
+	if (THIS->first && argv)
 		argv++;
 
 	while (argv != NULL) {
@@ -657,7 +658,7 @@ function __get_argv:string(a:long)
 	*str = 0;
 %}
 /* This function copies an argv from userspace. */
-function __get_compat_argv:string(a:long)
+function __get_compat_argv:string(a:long, first:long)
 %{ /* pure */
   	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
 	compat_uptr_t __user *vstr;
@@ -666,7 +667,7 @@ function __get_compat_argv:string(a:long)
 	char buf[80];
 	char *ptr = buf;
 
-	if (argv)
+	if (THIS->first && argv)
 		argv++;
 
 	while (argv != NULL) {
