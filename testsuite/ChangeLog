@@ -1,3 +1,8 @@
+2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1315.
+	* buildok/fortyfive.stp: New test.
+
 2007-08-16  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 4591

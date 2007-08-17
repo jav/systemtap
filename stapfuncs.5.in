@@ -204,6 +204,15 @@ Return the pid of the target process.
 is_return:long ()
 Return 1 if the probe point is a return probe.  Deprecated.
 
+.SS TARGET_SET
+.TP
+target_set_pid:long (tid:long)
+Return whether the given process-id is within the "target set", that is whether
+it is a descendent of the top-level target() process.
+.TP
+target_set_report:unknown ()
+Print a report about the target set, and their ancestry. 
+
 .SS ERRNO
 .TP
 errno_str:string (e:long)

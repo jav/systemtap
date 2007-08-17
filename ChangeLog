@@ -1,5 +1,10 @@
 2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 1315.
+	* stapfuncs.5.in: Document new target_set tapset.
+
+2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
+
 	* Makefile.am (install-exec-hook): Only make staprun setuid if
 	"make install" is being run as root.
 	* Makefile.in: Regenerated.

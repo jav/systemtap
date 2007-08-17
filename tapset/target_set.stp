@@ -1,0 +1,27 @@
+
+global _target_set # map: target-set-pid -> ancestor-pid
+
+function target_set_pid (pid)
+{
+  return ([pid] in _target_set)	 
+}
+
+probe begin
+{
+  if (target()) _target_set [target()] = stp_pid()
+}
+
+probe syscall.fork.return
+{
+  pid=pid()
+  if (pid in _target_set) next
+  ppid=ppid()
+  if (ppid in _target_set) _target_set[pid]=ppid
+}
+
+function target_set_report ()
+{
+  printf("target set:\n")
+  foreach (pid in _target_set+)
+    printf("%d begat %d\n", _target_set[pid], pid)
+}

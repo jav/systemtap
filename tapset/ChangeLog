@@ -1,3 +1,8 @@
+2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 1315.
+	* target_set.stp: New tapset file.
+
 2007-08-16  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_sock_family_str):

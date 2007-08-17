@@ -1,0 +1,3 @@
+#! stap -p4
+probe syscall.write { if (target_set_pid (pid())) printf ("%d (%d)\n", pid(), ppid()) }
+probe end { target_set_report () }
