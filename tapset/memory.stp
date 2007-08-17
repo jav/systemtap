@@ -62,7 +62,7 @@ function addr_to_node:long(addr:long)  /* pure */
 
 /* Return whether a page to be copied is a zero page. */
 function _IS_ZERO_PAGE:long(from:long, vaddr:long) %{ /* pure */
-    THIS->__retvalue = (from == ZERO_PAGE(vaddr));
+    THIS->__retvalue = (THIS->from == (long) ZERO_PAGE(THIS->vaddr));
 %}
 
 

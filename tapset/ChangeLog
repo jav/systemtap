@@ -1,3 +1,10 @@
+2007-08-17  Wenji Huang  <wenji.huang@oracle.com>
+
+        * ioscheduler.stp (ioscheduler.elv_add_request,
+        ioscheduler.elv_completed_request): Add checking $rq.
+
+	* memory.stp (_IS_ZERO_PAGE): Modify reference to arguments.
+
 2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1315.
@@ -25,13 +32,13 @@
 	From Cai Fei <caifei@cn.fujitsu.com>	
 	* syscalls.stp (sts_getpgid): Add pid arg.
 
+2007-08-16  Wenji Huang  <wenji.huang@oracle.com>
+
+        * errno.stp: Fix Typo for EADV.
+
 2007-08-15  Wenji Huang  <wenji.huang@oracle.com>
 
-        * errno.stp: Fix Typo for EADV
-
-2007-08-15  Wenji Huang  <wenji.huang@oracle.com>
-
-        * aux_syscalls.stp(_reboot_flag_str,_futex_op_str,_mprotect_prot_str,
+        * aux_syscalls.stp (_reboot_flag_str,_futex_op_str,_mprotect_prot_str,
 	_fcntl_cmd_str, _quotaclt_cmd_str, _sock_type_str, _rlimit_resource_str,
 	_rusage_who_str): Add new entries, modify default return string.
 
