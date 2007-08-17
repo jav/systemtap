@@ -86,4 +86,4 @@ proc no_load {} {
 }
 
 # tests better all be true
-set all_pass_string "(systemtap test success\r\n)+"
+set all_pass_string "(systemtap test success\r\n)+$"

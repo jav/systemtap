@@ -1,0 +1,6 @@
+#! stap -p1
+
+probe begin {
+    // need more than one value to join
+    printdln(", ", 1)
+}

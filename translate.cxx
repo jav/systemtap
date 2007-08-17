@@ -4010,6 +4010,8 @@ c_unparser::visit_print_format (print_format* e)
 	  // directive for each argument.
 	  for (unsigned i = 0; i < e->args.size(); ++i)
 	    {
+	      if (i > 0 && e->print_with_delim)
+		components.push_back (e->delimiter);
 	      print_format::format_component curr;
 	      curr.clear();
 	      switch (e->args[i]->type)
@@ -4025,6 +4027,15 @@ c_unparser::visit_print_format (print_format* e)
 		  curr.type = print_format::conv_string;
 		  break;
 		}
+	      components.push_back (curr);
+	    }
+
+	  if (e->print_with_newline)
+	    {
+	      print_format::format_component curr;
+	      curr.clear();
+	      curr.type = print_format::conv_literal;
+	      curr.literal_string = "\\n";
 	      components.push_back (curr);
 	    }
 	}

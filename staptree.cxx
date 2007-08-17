@@ -338,6 +338,49 @@ void functioncall::print (ostream& o) const
 }  
 
 
+bool
+print_format::parse_print(const std::string &name,
+    bool &stream, bool &format, bool &delim, bool &newline)
+{
+  const char *n = name.c_str();
+
+  stream = true;
+  format = delim = newline = false;
+
+  if (*n == 's')
+    {
+      stream = false;
+      ++n;
+    }
+
+  if (0 != strncmp(n, "print", 5))
+    return false;
+  n += 5;
+
+  if (*n == 'f')
+    {
+      format = true;
+      ++n;
+    }
+  else
+    {
+      if (*n == 'd')
+        {
+	  delim = true;
+	  ++n;
+	}
+
+      if (*n == 'l' && *(n+1) == 'n')
+        {
+	  newline = true;
+	  n += 2;
+	}
+    }
+
+  return (*n == '\0');
+}
+
+
 string 
 print_format::components_to_string(vector<format_component> const & components)
 {
@@ -611,20 +654,17 @@ print_format::string_to_components(string const & str)
 
 void print_format::print (ostream& o) const
 {
-  string name = (string(print_to_stream ? "" : "s") 
-		 + string("print") 
-		 + string(print_with_format ? "f" : ""));
-  o << name << "(";
+  o << tok->content << "(";
   if (print_with_format)
-    {
-      o << lex_cast_qstring (raw_components);
-    }
+    o << lex_cast_qstring (raw_components);
+  if (print_with_delim)
+    o << lex_cast_qstring (delimiter.literal_string);
   if (hist)
     hist->print(o);
   for (vector<expression*>::const_iterator i = args.begin();
        i != args.end(); ++i)
     {
-      if (i != args.begin() || print_with_format)
+      if (i != args.begin() || print_with_format || print_with_delim)
 	o << ", ";
       (*i)->print(o);
     }
@@ -2252,10 +2292,13 @@ deep_copy_visitor::visit_print_format (print_format* e)
 {
   print_format* n = new print_format;
   n->tok = e->tok;
-  n->print_with_format = e->print_with_format;
   n->print_to_stream = e->print_to_stream;
+  n->print_with_format = e->print_with_format;
+  n->print_with_delim = e->print_with_delim;
+  n->print_with_newline = e->print_with_newline;
   n->raw_components = e->raw_components;
   n->components = e->components;
+  n->delimiter = e->delimiter;
   for (unsigned i = 0; i < e->args.size(); ++i)
     {
       expression* na;

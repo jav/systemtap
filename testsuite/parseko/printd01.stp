@@ -1,0 +1,6 @@
+#! stap -p1
+
+probe begin {
+    // missing the delimiter
+    printd(1, 2, 3, 4, 5)
+}

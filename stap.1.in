@@ -512,31 +512,32 @@ recursively, up to a fixed nesting limit.  This limit is defined by
 a macro in the translated C code and is in the neighbourhood of 10.
 
 .SS PRINTING
-The function names
-.IR print ", " printf ", " sprint ", and " sprintf
-are specially treated by the translator.  They format values for
-printing to the standard systemtap log stream in a more convenient
-way.
-.PP
+There are a set of function names that are specially treated by the
+translator.  They format values for printing to the standard systemtap
+log stream in a more convenient way.  The
+.IR sprint*
+variants return the formatted string instead of logging it.
 .TP
-print
-takes a single value of any type, and prints it
+.BR print ", " sprint
+Print one or more values of any type, concatenated directly together.
 .TP
-sprint
-operates like
-.IR print ,
-but returns the formatted string instead of logging it.
+.BR println ", " sprintln
+Print values like
+.IR print " and " sprint ,
+but also append a newline.
 .TP
-printf
-takes a formatting string, and a number of values of corresponding types,
-and prints them all.
+.BR printd ", " sprintd
+Take a string delimiter and two or more values of any type, and print the
+values with the delimiter interposed.
 .TP
-sprintf
-operates like
-.IR printf ,
-but like
-.IR sprint ,
-returns the formatted string instead of logging it.
+.BR printdln ", " sprintdln
+Print values with a delimiter like
+.IR printd " and " sprintd ,
+but also append a newline.
+.TP
+.BR printf ", " sprintf
+Take a formatting string and a number of values of corresponding types,
+and print them all.
 .PP
 The
 .IR printf
@@ -555,6 +556,10 @@ fully type-checked by the translator.
 		sprintf("%s before %s", 
 			sprint(1), sprint(3)), 
 		sprint("C"))
+	id[bob] = 1234
+	id[alice] = 5678
+	foreach (name in id)
+		printdln("|", strlen(name), name, id[name])
 .ESAMPLE
 
 .SS STATISTICS

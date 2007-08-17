@@ -262,8 +262,10 @@ struct functioncall: public expression
 
 struct print_format: public expression
 {
-  bool print_with_format;
   bool print_to_stream;
+  bool print_with_format;
+  bool print_with_delim;
+  bool print_with_newline;
 
   enum format_flag
     {
@@ -320,11 +322,14 @@ struct print_format: public expression
 
   std::string raw_components;
   std::vector<format_component> components;
+  format_component delimiter;
   std::vector<expression*> args;
   hist_op *hist;
 
   static std::string components_to_string(std::vector<format_component> const & components);
   static std::vector<format_component> string_to_components(std::string const & str);
+  static bool parse_print(const std::string &name,
+      bool &stream, bool &format, bool &delim, bool &newline);
 
   void print (std::ostream& o) const;
   void visit (visitor* u);

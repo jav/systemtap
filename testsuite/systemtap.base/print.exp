@@ -1,0 +1,5 @@
+# Test that all the print statements work
+
+set test "print"
+
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string

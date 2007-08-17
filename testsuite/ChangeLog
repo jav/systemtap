@@ -1,3 +1,16 @@
+2007-08-16  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 4591
+	* lib/stap_run.exp: Make sure to match the entire output, in case
+	there are multiple pass/fail messages.
+	* buildok/printf.stp: Add lines for new print variants.
+	* parseko/printd01.stp: Make sure that bad printd calls are handled.
+	* parseko/printd02.stp: Ditto.
+	* parseko/printd03.stp: Ditto.
+	* parseko/printd04.stp: Ditto.
+	* systemtap.base/print.stp: Try a bunch of different print calls.
+	* systemtap.base/print.exp: Driver for above.
+
 2007-08-15  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.printf/*b.exp: Use stap_merge.tcl.

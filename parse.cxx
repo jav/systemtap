@@ -2226,6 +2226,8 @@ parser::parse_symbol ()
       // now scrutinize this identifier for the various magic forms of identifier
       // (printf, @stat_op, and $var...)
 
+      bool pf_stream, pf_format, pf_delim, pf_newline;
+
       if (name.size() > 0 && name[0] == '@')
 	{
 	  stat_op *sop = new stat_op;
@@ -2248,36 +2250,19 @@ parser::parse_symbol ()
 	  return sop;
 	}
       
-      else if (name.size() > 0 && (name == "print"
-				   || name == "sprint"
-				   || name == "printf"
-				   || name == "sprintf"))
+      else if (print_format::parse_print(name,
+	    pf_stream, pf_format, pf_delim, pf_newline))
 	{
 	  print_format *fmt = new print_format;
 	  fmt->tok = t;
-	  fmt->print_with_format = (name[name.size() - 1] == 'f');
-	  fmt->print_to_stream = (name[0] == 'p');
+	  fmt->print_to_stream = pf_stream;
+	  fmt->print_with_format = pf_format;
+	  fmt->print_with_delim = pf_delim;
+	  fmt->print_with_newline = pf_newline;
 
 	  expect_op("(");
-	  if (fmt->print_with_format)
-	    {
-	      // Consume and convert a format string, and any subsequent
-	      // arguments. Agreement between the format string and the
-	      // arguments is postponed to the typechecking phase. 
-	      string tmp;
-	      expect_unknown (tok_string, tmp);
-              fmt->raw_components = tmp;
-	      fmt->components = print_format::string_to_components (tmp);
-	      while (!peek_op (")"))
-		{
-		  expect_op(",");
-		  expression *e = parse_expression ();	      
-		  fmt->args.push_back(e);
-		}
-	    }
-	  else if (name == "print" && 
-		   (peek_kw("@hist_linear") || 
-		    peek_kw("@hist_log")))
+	  if (name == "print" &&
+	      (peek_kw("@hist_linear") || peek_kw("@hist_log")))
 	    {
 	      // We have a special case where we recognize
 	      // print(@hist_foo(bar)) as a magic print-the-histogram
@@ -2312,10 +2297,42 @@ parser::parse_symbol ()
 	    }
 	  else
 	    {
-	      // If we are not printing with a format string, we permit
-	      // exactly one argument (of any type).
-	      expression *e = parse_expression ();	      
-	      fmt->args.push_back(e);
+	      int min_args = 0;
+	      if (fmt->print_with_format)
+		{
+		  // Consume and convert a format string. Agreement between the
+		  // format string and the arguments is postponed to the
+		  // typechecking phase.
+		  string tmp;
+		  expect_unknown (tok_string, tmp);
+		  fmt->raw_components = tmp;
+		  fmt->components = print_format::string_to_components (tmp);
+		}
+	      else if (fmt->print_with_delim)
+		{
+		  // Consume a delimiter to separate arguments.
+		  fmt->delimiter.clear();
+		  fmt->delimiter.type = print_format::conv_literal;
+		  expect_unknown (tok_string, fmt->delimiter.literal_string);
+		  min_args = 2;
+		}
+	      else
+		{
+		  // If we are not printing with a format string, we must have
+		  // at least one argument (of any type).
+		  expression *e = parse_expression ();
+		  fmt->args.push_back(e);
+		}
+
+	      // Consume any subsequent arguments.
+	      while (min_args || !peek_op (")"))
+		{
+		  expect_op(",");
+		  expression *e = parse_expression ();
+		  fmt->args.push_back(e);
+		  if (min_args)
+		    --min_args;
+		}
 	    }
 	  expect_op(")");
 	  return fmt;
