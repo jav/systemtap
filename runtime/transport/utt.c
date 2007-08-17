@@ -29,6 +29,8 @@
 #include <linux/relay.h>
 #include "utt.h"
 
+int utt_overwrite_flag = 0;
+
 static void utt_remove_root(struct utt_trace *utt)
 {
 	if (utt->utt_tree_root) {
@@ -129,7 +131,7 @@ static int utt_subbuf_start_callback(struct rchan_buf *buf, void *subbuf,
 {
 	struct utt_trace *utt;
 
-	if (!relay_buf_full(buf))
+	if (utt_overwrite_flag || !relay_buf_full(buf))
 		return 1;
 
 	utt = buf->chan->private_data;

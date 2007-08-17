@@ -239,6 +239,7 @@ static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
 
 	_stp_ctl_opens++;
 	_stp_pid = current->pid;
+	utt_overwrite_flag = 0;
 	return 0;
 }
 
@@ -247,6 +248,8 @@ static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
 	if (_stp_ctl_opens)
 		_stp_ctl_opens--;
 	_stp_pid = 0;
+	if (!_stp_exit_flag)
+ 		utt_overwrite_flag = 1;
 	return 0;
 }
 

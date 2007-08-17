@@ -39,4 +39,6 @@ extern int utt_trace_startstop(struct utt_trace *utt, int start,
 extern void utt_trace_cleanup(struct utt_trace *utt);
 extern int utt_trace_remove(struct utt_trace *utt);
 
+extern int utt_overwrite_flag;
+
 #endif
