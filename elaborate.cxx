@@ -1783,10 +1783,7 @@ semantic_pass_optimize1 (systemtap_session& s)
     }
 
   if (s.probes.size() == 0)
-    {
-      cerr << "semantic error: no probes found." << endl;
-      rc = 1;
-    }
+    throw semantic_error ("no probes found");
 
   return rc;
 }
@@ -1810,10 +1807,7 @@ semantic_pass_optimize2 (systemtap_session& s)
     }
 
   if (s.probes.size() == 0)
-    {
-      cerr << "semantic error: no probes found." << endl;
-      rc = 1;
-    }
+    throw semantic_error ("no probes found");
 
   return rc;
 }
@@ -1838,7 +1832,6 @@ semantic_pass_types (systemtap_session& s)
   while (1)
     {
       iterations ++;
-      // cerr << "Type resolution, iteration " << iterations << endl;
       ti.num_newly_resolved = 0;
       ti.num_still_unresolved = 0;
 
@@ -2729,15 +2722,12 @@ typeresolution_info::unresolved (const token* tok)
 
   if (assert_resolvability)
     {
+      stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
                    "?");
-      cerr << "semantic error: " + nm + " with unresolved type for ";
-      if (tok)
-        cerr << *tok;
-      else
-        cerr << "a token";
-      cerr << endl;
+      msg << nm + " with unresolved type";
+      session.print_error (semantic_error (msg.str(), tok));
     }
 }
 
@@ -2749,22 +2739,15 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
 
   if (assert_resolvability)
     {
+      stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
                    "?");
       if (tok && tok->type == tok_operator)
-        {
-	  cerr << "semantic error: " + nm + " uses invalid " << *tok;
-        }
+        msg << nm + " uses invalid operator";
       else
-        {
-	  cerr << "semantic error: " + nm + " with invalid type " << pe << " for ";
-	  if (tok)
-	      cerr << *tok;
-	  else
-	      cerr << "a token";
-	}
-      cerr << endl;
+        msg << nm + " with invalid type " << pe;
+      session.print_error (semantic_error (msg.str(), tok));
     }
 }
 
@@ -2776,15 +2759,12 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
 
   if (assert_resolvability)
     {
+      stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
                    "?");
-      cerr << "semantic error: " + nm + " with type mismatch for ";
-      if (tok)
-        cerr << *tok;
-      else
-        cerr << "a token";
-      cerr << ": " << t1 << " vs. " << t2 << endl;
+      msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
+      session.print_error (semantic_error (msg.str(), tok));
     }
 }
 
@@ -2793,6 +2773,5 @@ void
 typeresolution_info::resolved (const token*, exp_type)
 {
   num_newly_resolved ++;
-  // cerr << "resolved " << *e->tok << " type " << t << endl;
 }
 

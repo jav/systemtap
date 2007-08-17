@@ -1,3 +1,10 @@
+2007-08-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	As suggested by "Zhaolei" <zhaolei@cn.fujitsu.com>:
+	* elaborate.cxx (semantic_pass_optimize[12],
+	unresolved, invalid, mismatch): Use stringstream and
+	print_error(semantic_error) instead of ad-hoc cerr.
+
 2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1315.
