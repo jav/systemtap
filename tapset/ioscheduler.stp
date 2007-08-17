@@ -71,9 +71,9 @@ probe ioscheduler.elv_add_request
 
 	req = $rq
 %( kernel_v >= "2.6.19" %?
-	req_flags = $rq->cmd_flags
+	req_flags = $rq==0? 0:$rq->cmd_flags
 %:
-	req_flags = $rq->flags
+	req_flags = $rq==0? 0:$rq->flags
 %)
 }
 
@@ -101,9 +101,9 @@ probe ioscheduler.elv_completed_request
 
 	req = $rq
 %( kernel_v >= "2.6.19" %?
-	req_flags = $rq->cmd_flags
+	req_flags = $rq==0? 0:$rq->cmd_flags
 %:
-	req_flags = $rq->flags
+	req_flags = $rq==0? 0:$rq->flags
 %)
 }
 
