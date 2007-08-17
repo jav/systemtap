@@ -68,7 +68,11 @@ stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 stapio_LDADD = @PROCFLAGS@ -lpthread
 
 install-exec-hook:
-	chmod 04111 "$(DESTDIR)$(bindir)/staprun"
+	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
+
+# Why the "id -u" condition?  This way, an unprivileged user can run
+# make install, and have "sudo stap ...." or "sudo staprun ...." work later.
+
 
 pkglibexec_PROGRAMS = stapio
 CLEANFILES +=  $(pkglibexec_PROGRAMS)

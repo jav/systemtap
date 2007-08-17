@@ -1,3 +1,9 @@
+2007-08-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (install-exec-hook): Only make staprun setuid if
+	"make install" is being run as root.
+	* Makefile.in: Regenerated.
+
 2007-08-16  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 4591

@@ -67,7 +67,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in AUTHORS COPYING \
 	ChangeLog INSTALL NEWS compile config.guess depcomp install-sh \
-	missing
+	ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -1464,7 +1464,7 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 @BUILD_ELFUTILS_TRUE@install-exec-local: install-elfutils
 
 install-exec-hook:
-	chmod 04111 "$(DESTDIR)$(bindir)/staprun"
+	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
 
 @BUILD_CRASHMOD_TRUE@$(STAPLOG): staplog.c
 @BUILD_CRASHMOD_TRUE@	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
