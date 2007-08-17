@@ -1,3 +1,7 @@
+2007-08-17  Martin Hunt  <hunt@redhat.com>
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* syscalls.stp (creat): Fix argstr.
+
 2007-08-17  Wenji Huang  <wenji.huang@oracle.com>
 
         * ioscheduler.stp (ioscheduler.elv_add_request,

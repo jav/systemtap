@@ -436,8 +436,7 @@ probe syscall.creat = kernel.function("sys_creat") ?
 	name = "creat"
 	mode = $mode
 	pathname = user_string($pathname)
-	argstr = sprintf("%s, %s, %#o", user_string_quoted($pathname), 
-		_sys_open_flag_str(flags), $mode)
+	argstr = sprintf("%s, %#o", user_string_quoted($pathname), $mode)
 }
 probe syscall.creat.return = kernel.function("sys_creat").return ?
 {
