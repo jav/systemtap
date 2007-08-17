@@ -1,3 +1,7 @@
+2007-08-17  Martin Hunt  <hunt@redhat.com>
+
+	* bench2/bench.rb: Send HUP to stapio, instead of staprun.
+
 2007-08-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 4593

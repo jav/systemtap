@@ -67,7 +67,7 @@ class Bench
       load
       sum=0
       `./itest #{threads} > #{@dir}/bench`
-      `sudo killall -HUP staprun`
+      `sudo killall -HUP stapio`
       Process.wait	# wait for staprun to exit
       @results[threads] = `cat #{@dir}/bench`.split[0].to_i - @@ftime[threads]
       File.open("#{@dir}/xxx.out") do |file|
@@ -129,7 +129,7 @@ class Bench
   @@minfreq = 0
 
   def cleanup
-    system('sudo killall -HUP staprun &> /dev/null')
+    system('sudo killall -HUP stapio &> /dev/null')
     system('sudo /sbin/rmmod bench &> /dev/null')
     `/bin/rm -f stap.out` if File.exists?("stap.out")
     `/bin/rm -f bench.stp` if File.exists?("bench.stp")
@@ -264,12 +264,12 @@ class Stapbench < Bench
       load
       sum=0
       `./itest #{threads} > bench`
-      `sudo killall -HUP staprun`
+      `sudo killall -HUP stapio`
       if ($? != 0)
 	puts "status=#{$?}"
 	system("tail xxx.out")
       end
-      Process.wait	# wait for staprun to exit
+      Process.wait	# wait for stapio to exit
       @results[threads] = `cat bench`.split[0].to_i - @@ftime[threads]
       File.open("xxx.out") do |file|
 	file.each_line do |line|
