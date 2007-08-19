@@ -1,3 +1,10 @@
+2007-08-17  Martin Hunt  <hunt@redhat.com>
+	PR3857
+	From Masami Hiramatsu
+	* utt.c (utt_subbuf_start_callback): Use overwrite flag.
+	* control.c (_stp_ctl_open_cmd): Set overwrite_flag off.
+	(_stp_ctl_close_cmd): Set overwrite flag on.
+
 2007-08-14  David Smith  <dsmith@redhat.com>
 
 	Merge from setuid-branch.  Changes also by Martin Hunt
