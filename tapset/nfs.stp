@@ -253,6 +253,11 @@ function __file_parentname:string (file:long) %{ /* pure */
     CATCH_DEREF_FAULT();
 %}
 
+function __iov_length:long(iov:long, nr_segs:long) %{ /* pure */
+        size_t count = iov_length((const struct iovec *)(long)THIS->iov, (unsigned long)THIS->nr_segs);
+        THIS->__retvalue = (long)count;
+%}
+
 probe nfs.fop.entries = nfs.fop.llseek,
                         nfs.fop.read,
                         nfs.fop.write,
@@ -394,13 +399,14 @@ probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
 	s_id = __file_id($iocb->ki_filp)
 	devname = kernel_string(s_id)
 
-        count = $count
         pos = $pos
 
 %( kernel_v >= "2.6.19" %?
 	buf = $iov->iov_base
+        count = __iov_length($iov,$nr_segs)
 %:
         buf = $buf
+        count = $count
 %)
 
         parent_name = __file_parentname($iocb->ki_filp)
@@ -454,18 +460,19 @@ probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
 	s_id = __file_id($iocb->ki_filp)
 	devname = kernel_string(s_id)
 
-        count = $count
         pos = $pos
 %( kernel_v >= "2.6.19" %?
 	buf = $iov->iov_base
+        count = __iov_length($iov,$nr_segs)
 %:
         buf = $buf
+        count = $count
 %)
                
         parent_name = __file_parentname($iocb->ki_filp)
         file_name = __file_filename($iocb->ki_filp)
 
-        name = "nfs.fop.aio.write"
+        name = "nfs.fop.aio_write"
         argstr = sprintf("%p, %d, %d", buf, count, pos)
 
         size = count
@@ -754,7 +761,7 @@ probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") ?,
 probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return ?,
                               module("nfs").function("nfs_file_sendfile").return ?
 {
-        name = "nfs.fopsendfile.return"
+        name = "nfs.fop.sendfile.return"
         retstr = sprintf("%d", $return)
 
         if ($return > 0) {
@@ -926,7 +933,7 @@ probe nfs.aop.set_page_dirty =
         page_flag = $page->flags
 
         name = "nfs.aop.set_page_dirty"
-        argstr = sprintf("%d",flag)
+        argstr = sprintf("%d",page_flag)
 }
 
 probe nfs.aop.set_page_dirty.return =
@@ -1052,11 +1059,12 @@ probe nfs.aop.writepages.return =  kernel.function ("nfs_writepages").return ?,
  *     page_index : offset within mapping, can used a 
                      page identifier and position identifier
                      in the page frame
- *     size   : read bytes
+ *     size   : write bytes
 */
 probe nfs.aop.prepare_write=  kernel.function ("nfs_prepare_write") ?,
              module("nfs").function ("nfs_prepare_write") ?
 {
+        __page = $page
         dev = __page_dev(__page)
         devname = __find_bdevname(dev, __page_bdev(__page))
         ino = __page_ino(__page)      
@@ -1065,7 +1073,6 @@ probe nfs.aop.prepare_write=  kernel.function ("nfs_prepare_write") ?,
         to = $to
        
         page_index = $page->index
-        __page = $page
 
         name = "nfs.aop.prepare_write"
         argstr = sprintf("%d", page_index)
@@ -1078,7 +1085,7 @@ probe nfs.aop.prepare_write.return =
                  kernel.function ("nfs_prepare_write").return ?,
                  module("nfs").function ("nfs_prepare_write").return ?
 {
-        name = "nfs.aop.nfs_prepare_write.return"
+        name = "nfs.aop.prepare_write.return"
         retstr = sprintf("%d", $return)
 }
 
@@ -1100,7 +1107,7 @@ probe nfs.aop.prepare_write.return =
  *     page_index : offset within mapping, can used a 
                     page identifier and position identifier
                     in the page frame
- *     size   : read bytes
+ *     size   : write bytes
  */ 
 probe nfs.aop.commit_write=  kernel.function ("nfs_commit_write") ?,
              module("nfs").function ("nfs_commit_write") ?
@@ -1132,7 +1139,7 @@ probe nfs.aop.commit_write.return=
              kernel.function ("nfs_commit_write").return ?,
              module("nfs").function ("nfs_commit_write").return? 
 {
-        name = "nfs.aop.nfs_commit_write.return"
+        name = "nfs.aop.commit_write.return"
         retstr = sprintf("%d", $return)
 }
 
@@ -1159,7 +1166,7 @@ probe nfs.aop.release_page =  kernel.function ("nfs_release_page") ?,
 //        gfp = $gfp
         page_index = $page->index
 
-        name = "nfs.aop.releasepage"
+        name = "nfs.aop.release_page"
         argstr = sprintf("%d", page_index)
 
         size = 1
@@ -1170,7 +1177,7 @@ probe nfs.aop.release_page =  kernel.function ("nfs_release_page") ?,
 probe nfs.aop.release_page.return =  kernel.function ("nfs_release_page").return ?,
              module("nfs").function ("nfs_release_page").return?
 {
-        name = "nfs.aop.nfs_release_page.return"
+        name = "nfs.aop.release_page.return"
         retstr = sprintf("%d", $return)
 }
 
