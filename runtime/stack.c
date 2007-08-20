@@ -23,7 +23,6 @@
 
 #include "sym.c"
 #include "regs.h"
-static int _stp_kta(unsigned long addr);
 
 #define MAXBACKTRACE 20
 
@@ -42,30 +41,6 @@ static int _stp_kta(unsigned long addr);
 #else
 #error "Unsupported architecture"
 #endif
-
-
-/* our copy of kernel_text_address() */
-static int _stp_kta(unsigned long addr)
-{
-	static unsigned long stext, etext, sinittext, einittext;
-	static int init = 0;
-	
-	if (init == 0) {
-		init = 1;
-		etext = _stp_kallsyms_lookup_name("_etext");
-		stext = _stp_kallsyms_lookup_name("_stext");
-		sinittext = _stp_kallsyms_lookup_name("_sinittext");
-		einittext = _stp_kallsyms_lookup_name("_einittext");
-	}
-
-	if (addr >= stext && addr <= etext)
-		return 1;
-
-	if (addr >= sinittext && addr <= einittext)
-		return 1;
-
-	return 0;
-}
 
 /** Prints the stack backtrace
  * @param regs A pointer to the struct pt_regs.
