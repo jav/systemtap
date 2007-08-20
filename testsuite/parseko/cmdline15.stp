@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# options '-c cmd' and '-x pid' are mutually exclusive
+#
+# -c CMD     start the probes, run CMD, and exit when it finishes
+# -x PID     sets target() to PID
+stap -p1 -c /bin/ls -x 100 -e 'probe begin { exit() }'
