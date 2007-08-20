@@ -1,3 +1,8 @@
+2007-08-20  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* stack-x86_64.c: Fix backtrace to use the value of stack register
+	instead of its address.
+
 2007-08-17  Martin Hunt  <hunt@redhat.com>
 
 	* bench2/bench.rb: Send HUP to stapio, instead of staprun.

@@ -17,12 +17,17 @@ function __bio_ino:long(bio:long)
 %{
     struct bio *bio = (struct bio *)(long)THIS->bio;
     struct page *bv_page = bio? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
-    struct address_space *mapping = bv_page? kread(&(bv_page->mapping)) : NULL;
-    struct inode *host = mapping? kread(&(mapping->host)) : NULL;
-    if (host == NULL)
-        THIS->__retvalue = -1;
-    else
-        THIS->__retvalue = kread(&(host->i_ino));
+    struct address_space *mapping;
+    struct inode *host;
+    THIS->__retvalue = -1;
+    if (bv_page && !PageSlab(bv_page) && !PageSwapCache(bv_page)) {
+        mapping = kread(&(bv_page->mapping));
+        if (mapping && ((unsigned long)mapping & PAGE_MAPPING_ANON) == 0) {
+            host = kread(&(mapping->host));
+            if (host)
+                THIS->__retvalue = kread(&(host->i_ino));
+        }
+    }
     CATCH_DEREF_FAULT();
 %}
 

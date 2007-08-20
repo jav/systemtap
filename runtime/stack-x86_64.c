@@ -10,7 +10,7 @@
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 {
-	unsigned long *stack = (unsigned long *)&REG_SP(regs);
+	unsigned long *stack = (unsigned long *)REG_SP(regs);
 	unsigned long addr;
 
 	while ((long)stack & (THREAD_SIZE-1)) {

@@ -1,3 +1,8 @@
+2007-08-20  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* ioblock.stp: Fix __bio_ino() not to access i_ino if the page is not
+	assigned to any inode.
+
 2007-08-20  Wenji Huang  <wenji.huang@oracle.com>
 
         * nfs.stp (nfs.fop.aio_read, nfs.fop.aio_write): Modify evaluating count.
