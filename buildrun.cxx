@@ -139,7 +139,7 @@ run_pass (systemtap_session& s)
   staprun_cmd += "-d " + stringify(getpid()) + " ";
   
   if (s.cmd != "")
-    staprun_cmd += "-c \"" + s.cmd + "\" ";
+    staprun_cmd += "-c " + cmdstr_quoted(s.cmd) + " ";
   
   if (s.target_pid)
     staprun_cmd += "-t " + stringify(s.target_pid) + " ";

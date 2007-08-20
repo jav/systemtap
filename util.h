@@ -11,6 +11,7 @@ int create_dir(const char *dir);
 void tokenize(const std::string& str, std::vector<std::string>& tokens,
 	      const std::string& delimiters);
 bool find_executable(const char *name, std::string& retpath);
+const std::string cmdstr_quoted(const std::string& cmd);
 
 
 // stringification generics

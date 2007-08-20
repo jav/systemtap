@@ -1,3 +1,11 @@
+2007-08-20  Martin Hunt  <hunt@redhat.com>
+	PR2424
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	
+	* util.cxx (cmdstr_quoted): New. Properly quote 
+	command string.
+	* buildrun.cxx (run_pass): Call cmdstr_quoted().
+
 2007-08-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	From Satoru MORIYA <satoru.moriya.br@hitachi.com>

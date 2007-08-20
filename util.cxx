@@ -197,3 +197,34 @@ find_executable(const char *name, string& retpath)
 
   return false;
 }
+
+const string cmdstr_quoted(const string& cmd)
+{
+	// original cmd : substr1
+	//           or : substr1'substr2
+	//           or : substr1'substr2'substr3......
+	// after quoted :
+	// every substr(even it's empty) is quoted by ''
+	// every single-quote(') is quoted by ""
+	// examples: substr1 --> 'substr1'
+	//           substr1'substr2 --> 'substr1'"'"'substr2'
+
+	string quoted_cmd;
+	string quote("'");
+	string replace("'\"'\"'");
+	string::size_type pos = 0;
+
+	quoted_cmd += quote;
+	for (string::size_type quote_pos = cmd.find(quote, pos); 
+			quote_pos != string::npos; 
+			quote_pos = cmd.find(quote, pos)) {
+		quoted_cmd += cmd.substr(pos, quote_pos - pos);
+		quoted_cmd += replace;
+		pos = quote_pos + 1;
+	}
+	quoted_cmd += cmd.substr(pos, cmd.length() - pos);
+	quoted_cmd += quote;
+
+	return quoted_cmd;
+}
+
