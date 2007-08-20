@@ -104,6 +104,11 @@ void parse_args(int argc, char **argv)
 		    "option only has an effect when the module is inserted.\n");
 		usage(argv[0]);
 	}
+
+	if (target_cmd && target_pid) {
+		err("You can't specify the '-c' and '-x' options together.\n");
+		usage(argv[0]);
+	}
 }
 
 void usage(char *prog)

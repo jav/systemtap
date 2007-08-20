@@ -1,3 +1,9 @@
+2007-08-20  David Smith  <dsmith@redhat.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* common.c (parse_args): Make sure the '-c' and '-x' options can't
+	be specified together.
+
 2007-08-15  David Smith  <dsmith@redhat.com>
 
 	* staprun.c (main): Quit if effective uid is not root.
