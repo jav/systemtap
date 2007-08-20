@@ -1,0 +1,69 @@
+if {![installtest_p]} {
+    for {set i 0} { $i < 8} {incr i} {
+        untested cmd_parse$i
+    }
+    return
+}
+
+# stap -c 'echo "hello world"' -e 'probe begin {}'
+spawn stap -c {echo "hello world"} -e {probe begin {}}
+expect {
+    -timeout 60
+    "hello world" {pass "cmd_parse1"}
+    timeout {fail "cmd_parse1: unexpected timeout"}
+    eof {fail "cmd_parse1: unexpected EOF"}
+}
+
+# stap -c 'echo "hello "\"world\"' -e 'probe begin {}'
+spawn stap -c {echo "hello "\"world\"} -e {probe begin {}}
+expect {
+    -timeout 60
+    "hello \"world\"" {pass "cmd_parse2"}
+    timeout {fail "cmd_parse2: unexpected timeout"}
+    eof {fail "cmd_parse2: unexpected EOF"}
+}
+
+#stap -c '(a="hello world"; echo $a)' -e 'probe begin {}'
+spawn stap -c {(a="hello world"; echo $a)} -e {probe begin {}}
+expect {
+    -timeout 60
+    "hello world" {pass "cmd_parse3"}
+    timeout {fail "cmd_parse3: unexpected timeout"}
+    eof {fail "cmd_parse3: unexpected EOF"}
+}
+
+#stap -c '(a="hello "\"world\"; echo $a)' -e 'probe begin {}'
+spawn stap -c {(a="hello "\"world\"; echo $a)} -e {probe begin {}}
+expect {
+    -timeout 60
+    "hello \"world\"" {pass "cmd_parse4"}
+    timeout {fail "cmd_parse4: unexpected timeout"}
+    eof {fail "cmd_parse4: unexpected EOF"}
+}
+
+#stap -c '(a="hello "world; echo $a)' -e 'probe begin {}'
+spawn stap -c {(a="hello "world; echo $a)} -e {probe begin {}}
+expect {
+    -timeout 60
+    "hello world" {pass "cmd_parse5"}
+    timeout {fail "cmd_parse5: unexpected timeout"}
+    eof {fail "cmd_parse5: unexpected EOF"}
+}
+
+#stap -c '(((a=42+7)); echo "The answer is $a")' -e 'probe begin {}'
+spawn stap -c {(((a=42+7)); echo "The answer is $a")} -e {probe begin {}}
+expect {
+    -timeout 60
+    "The answer is 49" {pass "cmd_parse6"}
+    timeout {fail "cmd_parse6: unexpected timeout"}
+    eof {fail "cmd_parse6: unexpected EOF"}
+}
+
+#stap -c '(echo "Hello World" 1>&2) > /dev/null' -e 'probe begin {}'
+spawn stap -c {(echo "Hello World" 1>&2) > /dev/null} -e {probe begin {}}
+expect {
+    -timeout 60
+    "Hello World" {pass "cmd_parse7"}
+    timeout {fail "cmd_parse7: unexpected timeout"}
+    eof {fail "cmd_parse7: unexpected EOF"}
+}
