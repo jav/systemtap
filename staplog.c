@@ -48,9 +48,6 @@
 
 #include <crash/defs.h>
 
-#define STPLOG_NO_MOD  -1
-#define STPLOG_NO_SYM  -2
-
 struct rchan_offsets {
 	long	subbuf_size;
 	long	n_subbufs;
@@ -167,10 +164,35 @@ static void get_rchan_buf(int cpu, ulong rchan)
 static ulong get_rchan_addr(ulong stp_utt_addr)
 {
 	ulong stp_utt;
+	long offset;
 
 	readmem(stp_utt_addr, KVADDR, &stp_utt, sizeof(void*),
 		"stp_utt", FAULT_ON_ERROR);
-	return (stp_utt + sizeof(int));
+
+	/*
+	 * If we couldn't get the member offset of struct utt_trace.rchan,
+	 * i.e. the debuginfo of the trace module isn't available, we use
+	 * sizeof(long) as the offset instead. Currently struct utt_trace
+	 * is defined as below:
+	 *
+	 *     struct utt_trace {
+	 *             int trace_state;
+	 *             struct rchan *rchan;
+	 *             ...
+	 *     }
+	 *
+	 * Although the type of the preceding member is int, sizeof(long)
+	 * is OK, because rchan is aligned with long size on both 32-bit
+	 * and 64-bit environment. When the definision of struct utt_trace
+	 * changed, we must check if this code is correct.
+	 */
+	if ((offset = MEMBER_OFFSET("utt_trace", "rchan")) < 0) {
+		error(WARNING, "The debuginfo of the trace module hasn't been loaded. "
+		      "You may not be able to retrieve the correct trace data.\n");
+		offset = sizeof(long);
+	}
+
+	return (stp_utt + (ulong)offset);
 }
 
 static int check_global_buffer(ulong rchan)
@@ -220,24 +242,14 @@ static void setup_global_data(char *module)
 	return;
 }
 
-static void output_cpu_logs(char *filename)
+static void output_cpu_logs(char *dirname)
 {
 	int i, max = 256;
 	struct per_cpu_data *pcd;
 	size_t n, idx, start, end, ready, len;
-	unsigned padding;
+	size_t padding;
 	char fname[max + 1], *source;
 	DIR *dir;
-
-	/* check and create log directory */
-	dir = opendir(filename);
-	if (dir) {
-		closedir(dir);
-	} else {
-		if (mkdir(filename, S_IRWXU) < 0) {
-			error(FATAL, "cannot create log directory '%s\n'", filename);
-		}
-	}
 
 	/* allocate subbuf memory */
 	subbuf = GETBUF(chan.subbuf_size);
@@ -257,6 +269,15 @@ static void output_cpu_logs(char *filename)
 			adjust = 1;
 		}
 		ready = pcd->buf.subbufs_produced + adjust;
+		if (ready == 0) {
+			if (is_global == 1) {
+				error(WARNING, "There is no data in the relay buffer.\n");
+				break;
+			} else {
+				error(WARNING, "[cpu:%d]There is no data in the relay buffer.\n", i);
+				continue;
+			}
+		}
 
 		if (ready > chan.n_subbufs) {
 			start = ready;
@@ -266,13 +287,30 @@ static void output_cpu_logs(char *filename)
 			end = ready;
 		}
 		/* print information */
-		fprintf(fp, "--- generating 'cpu%d' ---\n", i);
+		if (is_global == 1) {
+			fprintf(fp, "--- generating 'global' ---\n");
+		} else {
+			fprintf(fp, "--- generating 'cpu%d' ---\n", i);
+		}
 		fprintf(fp, "  subbufs ready on relayfs:%ld\n", (long)ready);
-		fprintf(fp, "    n_subbufs:%ld, read from:%ld to:%ld (offset:%ld)\n\n",
-			(long)chan.n_subbufs, (long)start, (long)end, (long)pcd->buf.offset);
+		fprintf(fp, "  n_subbufs:%ld, read from:%ld to:%ld (offset:%ld)\n\n",
+			(long)chan.n_subbufs, (long)(start ? start - chan.n_subbufs : start),
+			(long)(start ? end - 1 - chan.n_subbufs : end - 1), (long)pcd->buf.offset);
 
-		/* create log file */
-		snprintf(fname, max, "%s/cpu%d", filename, i);
+		/* create log dir and file */
+		dir = opendir(dirname);
+		if (dir) {
+			closedir(dir);
+		} else {
+			if (mkdir(dirname, S_IRWXU) < 0) {
+				error(FATAL, "cannot create log directory '%s\n'", dirname);
+			}
+		}
+		if (is_global == 1) {
+			snprintf(fname, max, "%s/global", dirname, i);
+		} else {
+			snprintf(fname, max, "%s/cpu%d", dirname, i);
+		}
 		outfp = fopen(fname, "w");
 		if (!outfp) {
 			error(FATAL, "cannot create log file '%s'\n", fname);
@@ -316,10 +354,10 @@ static void output_cpu_logs(char *filename)
 	return;
 }
 
-static void do_staplog(char *module, char *filename)
+static void do_staplog(char *module, char *dirname)
 {
 	setup_global_data(module);
-	output_cpu_logs(filename);
+	output_cpu_logs(dirname);
 	return;
 }
 
@@ -328,12 +366,12 @@ void cmd_staplog(void)
 
 	int c;
 	char *module = NULL;
-	char *filename = NULL;
+	char *dirname = NULL;
 
 	while ((c = getopt(argcnt, args, "o:")) != EOF) {
 		switch (c) {
 		case 'o':
-			filename = optarg;
+			dirname = optarg;
 			break;
 		default:
 			argerrs++;
@@ -345,9 +383,9 @@ void cmd_staplog(void)
 	if (!module || argerrs)
 		cmd_usage(pc->curcmd, SYNOPSIS);
 
-	if (filename == NULL && module != NULL)
-		filename = module;
-	do_staplog(module, filename);
+	if (dirname == NULL && module != NULL)
+		dirname = module;
+	do_staplog(module, dirname);
 	return;
 }
 
