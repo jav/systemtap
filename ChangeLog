@@ -1,3 +1,9 @@
+2007-08-20  David Smith  <dsmith@redhat.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* main.cxx (main): Make sure the '-c' and '-x' options can't be
+	specified together.
+
 2007-08-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	As suggested by "Zhaolei" <zhaolei@cn.fujitsu.com>:

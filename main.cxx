@@ -448,6 +448,12 @@ main (int argc, char * const argv [])
       usage (s, 1);
     }
 
+  if((s.cmd != "") && (s.target_pid))
+    {
+      cerr << "You can't specify -c and -x options together." <<endl;
+      usage (s, 1);
+    }
+
   if (s.last_pass > 4 && release_changed)
     {
       if (s.verbose)
