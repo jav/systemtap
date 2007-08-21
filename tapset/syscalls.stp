@@ -1115,6 +1115,7 @@ probe syscall.getegid =
 		kernel.function("sys_getegid")
 {
 	name = "getegid"
+	argstr = ""
 }
 probe syscall.getegid.return =
 		kernel.function("sys_getegid16").return ?,
@@ -1135,6 +1136,7 @@ probe syscall.geteuid =
 		kernel.function("sys_geteuid")
 {
 	name = "geteuid"
+	argstr = ""
 }
 probe syscall.geteuid.return = 
 		kernel.function("sys_geteuid16").return ?,
@@ -1155,6 +1157,7 @@ probe syscall.getgid =
 		kernel.function("sys_getgid") 
 {
 	name = "getgid"
+	argstr = ""
 }
 probe syscall.getgid.return = 
 		kernel.function("sys_getgid16").return ?,
@@ -1281,6 +1284,7 @@ probe syscall.getpgid.return = kernel.function("sys_getpgid").return {
 # long sys_getpgrp(void)
 probe syscall.getpgrp = kernel.function("sys_getpgrp") ? {
 	name = "getpgrp"
+	argstr = ""
 }
 probe syscall.getpgrp.return = kernel.function("sys_getpgrp").return ? {
 	name = "getpgrp"
@@ -1291,6 +1295,7 @@ probe syscall.getpgrp.return = kernel.function("sys_getpgrp").return ? {
 # long sys_getpid(void)
 probe syscall.getpid = kernel.function("sys_getpid") {
 	name = "getpid"
+	argstr = ""
 }
 probe syscall.getpid.return = kernel.function("sys_getpid").return {
 	name = "getpid"
@@ -1301,9 +1306,11 @@ probe syscall.getpid.return = kernel.function("sys_getpid").return {
 # long sys_getppid(void)
 probe syscall.getppid = kernel.function("sys_getppid") {
 	name = "getppid"
+	argstr = ""
 }
 probe syscall.getppid.return = kernel.function("sys_getppid").return {
 	name = "getppid"
+	retstr = returnstr(1)
 }
 
 # getpriority ________________________________________________
@@ -1465,6 +1472,7 @@ probe syscall.getsockopt.return =
 # long sys_gettid(void)
 probe syscall.gettid = kernel.function("sys_gettid") {
 	name = "gettid"
+	argstr = ""
 }
 probe syscall.gettid.return = kernel.function("sys_gettid").return {
 	name = "gettid"
@@ -1509,6 +1517,7 @@ probe syscall.getuid =
 		kernel.function("sys_getuid")
 {
 	name = "getuid"
+	argstr = ""
 }
 probe syscall.getuid.return =
 		kernel.function("sys_getuid16").return ?,
@@ -2545,6 +2554,7 @@ probe syscall.munlock.return = kernel.function("sys_munlock").return {
 # long sys_munlockall(void)
 probe syscall.munlockall = kernel.function("sys_munlockall") {
 	name = "munlockall"
+	argstr = ""
 }
 probe syscall.munlockall.return = kernel.function("sys_munlockall").return {
 	name = "munlockall"

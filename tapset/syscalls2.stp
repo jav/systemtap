@@ -2147,6 +2147,7 @@ probe syscall.sigreturn.return =
 		kernel.function("sys32_sigreturn").return ?
 {
 	name = "sigreturn"
+	retstr = returnstr(1)
 }
 
 # sigsuspend _________________________________________________
