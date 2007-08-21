@@ -2489,19 +2489,29 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  // sort array if desired
 	  if (s->sort_direction)
 	    {
+	      int sort_column;
+
+	      // If the user wanted us to sort by value, we'll sort by
+	      // @count instead for aggregates.  '-5' tells the
+	      // runtime to sort by count.
+	      if (s->sort_column == 0)
+		sort_column = -5;
+	      else
+		sort_column = s->sort_column;
+
 	      o->newline() << "else"; // only sort if aggregation was ok
 	      if (s->limit)
 	        {
 		  o->newline(1) << "_stp_map_sortn ("
 				<< mv.fetch_existing_aggregate() << ", "
-				<< *res_limit << ", " << s->sort_column << ", "
+				<< *res_limit << ", " << sort_column << ", "
 				<< - s->sort_direction << ");";
 		}
 	      else
 	        {
 		  o->newline(1) << "_stp_map_sort ("
 				<< mv.fetch_existing_aggregate() << ", "
-				<< s->sort_column << ", "
+				<< sort_column << ", "
 				<< - s->sort_direction << ");";
 		}
 	      o->indent(-1);

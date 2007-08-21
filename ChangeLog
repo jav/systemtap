@@ -1,3 +1,10 @@
+2007-08-21  David Smith  <dsmith@redhat.com>
+
+	PR 2305
+	* translate.cxx (c_unparser::visit_foreach_loop): When the user
+	requested sorting an array of aggregates by value, sort by
+	@count.
+
 2007-08-20  Martin Hunt  <hunt@redhat.com>
 	PR2424
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
