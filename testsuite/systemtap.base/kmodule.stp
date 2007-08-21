@@ -14,7 +14,8 @@ probe begin
 
 probe module("ext3").function("ext3_sync_file") ?,
       module("sd_mod").function("sd_rw_intr") ? ,
-      module("ide").function("ide_intr") ?
+      module("ide").function("ide_intr") ?,
+      never /* in case the above probes all miss */
 {
 	++count;
 }
