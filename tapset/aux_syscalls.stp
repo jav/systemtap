@@ -1095,6 +1095,7 @@ function _recvflags_str(f) {
    if(f & 1) bs="MSG_OOB|".bs
    if(f & 2) bs="MSG_PEEK|".bs
    if(f & 32) bs="MSG_TRUNC|".bs
+   if(f & 64) bs="MSG_DONTWAIT|".bs
    if(f & 256) bs="MSG_WAITALL|".bs
    if(f & 8192) bs="MSG_ERRQUEUE|".bs
    return substr(bs,0,strlen(bs)-1)

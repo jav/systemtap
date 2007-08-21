@@ -2,6 +2,8 @@
 
 	* syscalls2.stp (syscall.select): Fixed variable name error
 	(timeout_uaddr = $tv->$tvp).
+	* aux_syscalls.stp (_recvflags_str): Add support for MSG_DONTWAIT
+	used in recv, recvfrom, recvmsg, compat_sys_recvmsg
 
 2007-08-20  Masami Hiramatsu <mhiramat@redhat.com>
 
