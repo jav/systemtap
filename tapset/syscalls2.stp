@@ -1210,7 +1210,7 @@ probe syscall.select = kernel.function("sys_select") {
 	readfds_uaddr = $inp
 	writefds_uaddr = $outp
 	exceptfds_uaddr = $exp
-	timeout_uaddr = $tv
+	timeout_uaddr = $tvp
 	argstr = sprintf("%d, %p, %p, %p, %s", $n, $inp, $outp, $exp,
 				_struct_timeval_u($tvp))
 }
