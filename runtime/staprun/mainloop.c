@@ -27,8 +27,7 @@ static void sigproc(int signum)
 			return;
 		send_request(STP_EXIT, NULL, 0);
 	} else if (signum == SIGQUIT)
-		cleanup_and_exit(2);
-	
+		cleanup_and_exit(2);	
 	else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM)
 		send_request(STP_EXIT, NULL, 0);
 }
@@ -63,10 +62,18 @@ void start_cmd(void)
 {
 	pid_t pid;
 	sigset_t usrset;
-		
+	struct sigaction a;
+
 	sigemptyset(&usrset);
 	sigaddset(&usrset, SIGUSR1);
 	pthread_sigmask(SIG_BLOCK, &usrset, NULL);
+
+	/* if we are execing a target cmd, ignore ^C in stapio */
+	/* and let the target cmd get it. */
+	sigemptyset(&a.sa_mask);
+	a.sa_flags = 0;
+	a.sa_handler = SIG_IGN;
+	sigaction(SIGINT, &a, NULL);
 
 	dbug (1, "execing target_cmd %s\n", target_cmd);
 	if ((pid = fork()) < 0) {
@@ -74,6 +81,9 @@ void start_cmd(void)
 		exit(1);
 	} else if (pid == 0) {
 		int signum;
+
+		a.sa_handler = SIG_DFL;
+		sigaction(SIGINT, &a, NULL);
 
 		/* wait here until signaled */
 		sigwait(&usrset, &signum);
@@ -212,6 +222,7 @@ int init_stapio(void)
 	/* It will not actually exec until signalled. */
 	if (target_cmd)
 		start_cmd();
+
 
 	return 0;
 }
