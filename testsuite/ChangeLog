@@ -1,3 +1,14 @@
+2007-08-21  David Smith  <dsmith@redhat.com>
+
+	* foreach_limit.stp: Added test for sorting numeric arrays by
+	value.
+	* foreach_limit.exp: Ditto.
+
+	PR 2305
+	* foreach_limit2.stp: New file.  Tests sorting aggregate arrays by
+	value.
+	* foreach_limit2.exp: Ditto.
+
 2007-08-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4942

@@ -5,11 +5,11 @@ set test "foreach_limit"
 set ::result_string {Arrays:
 unsorted:
 key 9, value 18
-key 1, value 2
+key 1, value 40
 key 8, value 16
 key 2, value 4
 key 7, value 14
-key 3, value 6
+key 3, value 36
 key 6, value 12
 key 5, value 10
 key 4, value 8
@@ -17,48 +17,56 @@ key 10, value 20
 
 unsorted limit 5:
 key 9, value 18
-key 1, value 2
+key 1, value 40
 key 8, value 16
 key 2, value 4
 key 7, value 14
 loop had 5 iterations
 
-sorted limit 5:
-key 1, value 2
+sorted (by values) limit 5:
 key 2, value 4
-key 3, value 6
+key 4, value 8
+key 5, value 10
+key 6, value 12
+key 7, value 14
+loop had 5 iterations
+
+sorted (by keys) limit 5:
+key 1, value 40
+key 2, value 4
+key 3, value 36
 key 4, value 8
 key 5, value 10
 loop had 5 iterations
 
-sorted limit x (3):
-key 1, value 2
+sorted (by values) limit x (3):
 key 2, value 4
-key 3, value 6
+key 4, value 8
+key 5, value 10
 loop had 3 iterations
 
-sorted limit x * 2 (6):
-key 1, value 2
+sorted (by values) limit x * 2 (6):
 key 2, value 4
-key 3, value 6
 key 4, value 8
 key 5, value 10
 key 6, value 12
+key 7, value 14
+key 8, value 16
 loop had 6 iterations
 
-sorted limit ++x:
-key 1, value 2
+sorted (by values) limit ++x:
 key 2, value 4
-key 3, value 6
 key 4, value 8
+key 5, value 10
+key 6, value 12
 loop had 4 iterations
 x ended up as 4
 
-sorted limit x++:
-key 1, value 2
+sorted (by values) limit x++:
 key 2, value 4
-key 3, value 6
 key 4, value 8
+key 5, value 10
+key 6, value 12
 loop had 4 iterations
 x ended up as 5
 
@@ -68,9 +76,9 @@ Aggregates:
 aggregate limit 5:
 bucket 0: 0
 bucket 1: 0
-bucket 2: 1
-bucket 3: 4
-bucket 4: 11
+bucket 2: 0
+bucket 3: 1
+bucket 4: 6
 loop had 5 iterations
 
 Done.

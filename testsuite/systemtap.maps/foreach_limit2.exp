@@ -1,0 +1,90 @@
+# Test of foreach statements using "limit EXP".
+
+set test "foreach_limit2"
+
+set ::result_string {Arrays of aggregates:
+unsorted:
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[2]: count:4  sum:22  avg:5  min:2  max:12
+agg_array[7]: count:3  sum:63  avg:21  min:7  max:42
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[9]: count:5  sum:84  avg:16  min:1  max:54
+agg_array[1]: count:5  sum:185  avg:37  min:2  max:120
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+agg_array[3]: count:3  sum:162  avg:54  min:18  max:108
+agg_array[8]: count:4  sum:75  avg:18  min:3  max:48
+
+sorted (by values):
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+agg_array[7]: count:3  sum:63  avg:21  min:7  max:42
+agg_array[3]: count:3  sum:162  avg:54  min:18  max:108
+agg_array[2]: count:4  sum:22  avg:5  min:2  max:12
+agg_array[8]: count:4  sum:75  avg:18  min:3  max:48
+agg_array[9]: count:5  sum:84  avg:16  min:1  max:54
+agg_array[1]: count:5  sum:185  avg:37  min:2  max:120
+
+unsorted limit 5:
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[2]: count:4  sum:22  avg:5  min:2  max:12
+agg_array[7]: count:3  sum:63  avg:21  min:7  max:42
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+loop had 5 iterations
+
+sorted (by values) limit 5:
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+agg_array[7]: count:3  sum:63  avg:21  min:7  max:42
+loop had 5 iterations
+
+sorted (by keys) limit 5:
+agg_array[1]: count:5  sum:185  avg:37  min:2  max:120
+agg_array[2]: count:4  sum:22  avg:5  min:2  max:12
+agg_array[3]: count:3  sum:162  avg:54  min:18  max:108
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+loop had 5 iterations
+
+sorted (by values) limit x (3):
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+loop had 3 iterations
+
+sorted (by values) limit x * 2 (6):
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+agg_array[7]: count:3  sum:63  avg:21  min:7  max:42
+agg_array[3]: count:3  sum:162  avg:54  min:18  max:108
+loop had 6 iterations
+
+sorted (by values) limit ++x:
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+loop had 4 iterations
+x ended up as 4
+
+sorted (by values) limit x++:
+agg_array[10]: count:1  sum:20  avg:20  min:20  max:20
+agg_array[4]: count:1  sum:8  avg:8  min:8  max:8
+agg_array[5]: count:2  sum:15  avg:7  min:5  max:10
+agg_array[6]: count:2  sum:18  avg:9  min:6  max:12
+loop had 4 iterations
+x ended up as 5
+
+Done.
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+
