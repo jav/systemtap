@@ -1,3 +1,7 @@
+2007-08-22  Martin Hunt  <hunt@redhat.com>
+
+	* futimes.c (main): Add utimensat tests.
+
 2007-08-16  Martin Hunt  <hunt@redhat.com>
 
 	* all_syscalls.stp: New file.  Useful for debugging.
