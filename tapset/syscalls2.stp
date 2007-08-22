@@ -1461,7 +1461,7 @@ probe syscall.setdomainname = kernel.function("sys_setdomainname") {
 	name = "setdomainname"
 	hostname_uaddr = $name
 	len = $len
-	argstr = ""
+	argstr = sprintf("%p, %d", $name, $len)
 }
 probe syscall.setdomainname.return =
 	kernel.function("sys_setdomainname").return {
