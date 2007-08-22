@@ -3,6 +3,7 @@
 #include <sys/epoll.h>
 #include <poll.h>
 #include <signal.h>
+#include <sys/syscall.h>
 
 int main()
 {

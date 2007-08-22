@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/select.h>
 #include <signal.h>
+#include <sys/syscall.h>
 
 int main()
 {

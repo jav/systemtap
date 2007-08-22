@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <linux/unistd.h>
 #include <sys/uio.h>
+#include <sys/syscall.h>
 
 #define STRING1 "red"
 #define STRING2 "green"
