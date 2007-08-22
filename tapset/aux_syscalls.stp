@@ -2,67 +2,46 @@
 # Given a userspace pointer to a timeval,
 # copy and decode it and return a string.
 #
-function _struct_timeval2_u:string(uaddr:long)
+function _struct_timeval_u:string(uaddr:long, n:long)
 %{ /* pure */
-	struct timeval tv[2];
+	int n = (int)THIS->n;
+	struct timeval tv[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
-
-	if (ptr == NULL)
+	
+	if (ptr == NULL || n > 2)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if(_stp_copy_from_user((char*)&tv,ptr,2*sizeof(struct timeval)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
-				tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
+		if(_stp_copy_from_user((char*)&tv, ptr, n*sizeof(struct timeval)) == 0) {
+			if (n == 2)
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+					tv[0].tv_sec, tv[0].tv_usec, tv[1].tv_sec, tv[1].tv_usec);
+			else
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv[0].tv_sec, tv[0].tv_usec);
+	   	} else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
+%}
+
+function _struct_compat_timeval_u:string(uaddr:long, n:long)
+%{ /* pure */
+	int n = (int)THIS->n;
+	struct compat_timeval tv[n];
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+
+	if (ptr == NULL || n > 2)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&tv, ptr, n*sizeof(struct compat_timeval)) == 0)
+			if (n == 2)
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
+					(long)tv[0].tv_sec, (long)tv[0].tv_usec, (long)tv[1].tv_sec, (long)tv[1].tv_usec);
+			else
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv.tv_sec, (long)tv.tv_usec);
 	   	else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
 
-function _struct_timeval_u:string(uaddr:long)
-%{ /* pure */
-	struct timeval tv;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&tv,ptr,sizeof(struct timeval)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", tv.tv_sec, tv.tv_usec);
-	   	else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
-%}
-
-function _struct_compat_timeval_u:string(uaddr:long)
-%{ /* pure */
-	struct compat_timeval tv;
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&tv,ptr,sizeof(struct compat_timeval)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv.tv_sec, (long)tv.tv_usec);
-	   	else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
-%}
-
-function _struct_compat_timeval2_u:string(uaddr:long)
-%{ /* pure */
-	struct compat_timeval tv[2];
-	char *ptr = (char *)(unsigned long)THIS->uaddr;
-
-	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&tv,ptr,2*sizeof(struct compat_timeval)) == 0)
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
-				(long)tv[0].tv_sec, (long)tv[0].tv_usec, (long)tv[1].tv_sec, (long)tv[1].tv_usec);
-	   	else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
-%}
 
 function _struct_timeval:string(addr:long)
 %{ /* pure */
@@ -163,34 +142,69 @@ function _struct_compat_utimbuf_u:string(uaddr:long)
 	}
 %} 
 
-function _struct_timespec_u:string(uaddr:long)
+%{
+#define STP_UTIME_NOW  ((1l << 30) - 1l)
+#define STP_UTIME_OMIT ((1l << 30) - 2l)
+%}
+
+function _struct_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
-	struct timespec ts;
+	int n = (int)THIS->n;
+	struct timespec ts[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
-	if (ptr == NULL)
+	if (ptr == NULL || n > 2)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if(_stp_copy_from_user((char *)&ts,ptr,sizeof(struct timespec)))  {
+		if(_stp_copy_from_user((char *)&ts, ptr, n*sizeof(struct timespec)))  {
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-		} else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
-				(unsigned long)ts.tv_sec, (unsigned long)ts.tv_nsec);
+		} else {
+			char *str;
+			int len, i = 0;
+			ptr = THIS->__retvalue;
+			while (i < n) {
+				str = NULL;
+				if (ts[i].tv_nsec == STP_UTIME_NOW)
+					str = "UTIME_NOW";
+				else if (ts[i].tv_nsec == STP_UTIME_OMIT)
+					str = "UTIME_OMIT";
+				if (str)
+					len = snprintf(ptr, MAXSTRINGLEN, "[%s]", str);
+				else
+					len = snprintf(ptr, MAXSTRINGLEN, "[%ld.%09ld]", (long)ts[i].tv_sec, ts[i].tv_nsec);
+				ptr += len; i++;
+			}
+		}
 	}
 %}
-function _struct_compat_timespec_u:string(uaddr:long)
+function _struct_compat_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
-	struct compat_timespec ts;
+	int n = (int)THIS->n;
+	struct compat_timespec ts[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
-	if (ptr == NULL)
+	if (ptr == NULL || n > 2)
 		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
 	else {
-		if(_stp_copy_from_user((char *)&ts,ptr,sizeof(struct compat_timespec)))  {
+		if(_stp_copy_from_user((char *)&ts, ptr, n*sizeof(struct compat_timespec)))  {
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-		} else
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
-				(unsigned long)ts.tv_sec, (unsigned long)ts.tv_nsec);
+		} else {
+			char *str;
+			int len, i = 0;
+			ptr = THIS->__retvalue;
+			while (i < n) {
+				str = NULL;
+				if (ts[i].tv_nsec == STP_UTIME_NOW)
+					str = "UTIME_NOW";
+				else if (ts[i].tv_nsec == STP_UTIME_OMIT)
+					str = "UTIME_OMIT";
+				if (str)
+					len = snprintf(ptr, MAXSTRINGLEN, "[%s]", str);
+				else
+					len = snprintf(ptr, MAXSTRINGLEN, "[%ld.%09ld]", (long)ts[i].tv_sec, ts[i].tv_nsec);
+				ptr += len; i++;
+			}
+		}
 	}
 %}
 
@@ -1715,3 +1729,14 @@ function get_mmap_args:string (args:long)
 		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
 %}
+
+# For utimensat and futimesat, the directory fd can have a special value
+function _dfd_str(d) {
+	if(d == -100) return "AT_FDCWD"
+	return sprint(d)
+}
+
+function _utimensat_flag_str(f) {
+	if (f == 0x100) return "AT_SYMLINK_NOFOLLOW"
+	return sprintf("0x%x", f)
+}

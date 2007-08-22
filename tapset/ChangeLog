@@ -1,3 +1,35 @@
+2007-08-22  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_utimensat_flag_str): New.
+	(_dfd_str): New.
+	(_struct_timeval2_u): Deleted.
+	(_struct_timeval_u): Take a number of structs to decode.
+	(_struct_compat_timeval2_u): Deleted	
+	(_struct_compat_timeval_u): Take a number of structs to decode.	
+	(_struct_timespec_u): Take a number of structs to decode.
+	Recognize UTIME_NOW and UTIME_OMIT.
+	(_struct_compat_timespec_u): Ditto.
+	
+	* syscalls.stp (compat_sys_old_getrlimit): Removed.
+	(sys_migrate_pages): New.
+	(sys_move_pages): New.
+
+	* syscalls2.stp (compat_sys_sigprocmask): Removed. Calls
+	sys_sigprocmask.
+	(compat_sys_sysinfo): New.	
+	(compat_sys_rt_sigtimedwait): New.
+	(sys_utimensat, compat_sys_utimensat): New.
+	
+	* ppc64/syscalls.stp (compat_sys_sigpending): Removed.
+	Calls sys_ func.
+	(compat_sys_setrlimit): Ditto.
+	(compat_sys_getrlimit): Ditto.
+	(compat_sys_old_getrlimit): Ditto.
+	(compat_sys_getrusage): Ditto.
+	(compat_sys_wait4): Ditto.
+	(compat_sys_sched_setaffinity): Ditto.
+	(compat_sys_sched_getaffinity): Ditto.	
+	
 2007-08-22  Wenji Huang  <wenji.huang@oracle.com>
 
         * nfsd.stp (nfsd.proc?.*): Modify evaluating client_ip 

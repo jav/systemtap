@@ -321,23 +321,16 @@ probe syscall.clock_getres.return =
 
 # clock_gettime ______________________________________________
 # long sys_clock_gettime(clockid_t which_clock, struct timespec __user *tp)
-# long compat_clock_gettime(clockid_t which_clock, struct compat_timespec __user *tp)
-# long compat_sys_clock_gettime(clockid_t which_clock,struct compat_timespec __user *tp)
 #
 probe syscall.clock_gettime =
-		kernel.function("sys_clock_gettime"),
-		kernel.function("compat_clock_gettime") ?,
-		kernel.function("compat_sys_clock_gettime") ?
+		kernel.function("sys_clock_gettime")
 {
 	name = "clock_gettime"
 	clk_id = $which_clock
 	clk_id_str = _get_wc_str($which_clock)
 	argstr = sprintf("%s, %p", _get_wc_str($which_clock), $tp)
 }
-probe syscall.clock_gettime.return =
-		kernel.function("sys_clock_gettime").return,
-		kernel.function("compat_clock_gettime").return ?,
-		kernel.function("compat_sys_clock_gettime").return ?
+probe syscall.clock_gettime.return = kernel.function("sys_clock_gettime").return
 {
 	name = "clock_gettime"
 	retstr = returnstr(1)
@@ -356,7 +349,7 @@ probe syscall.clock_nanosleep = kernel.function("sys_clock_nanosleep") {
 	else
 		flag_str = sprintf("0x%x", $flags)
 	argstr = sprintf("%s, %s, %s, %p", _get_wc_str($which_clock), flag_str,
-			_struct_timespec_u($rqtp), $rmtp)
+			_struct_timespec_u($rqtp,1), $rmtp)
 }
 probe syscall.clock_nanosleep.return = kernel.function("sys_clock_nanosleep").return {
 	name = "clock_nanosleep"
@@ -378,7 +371,7 @@ probe syscall.compat_clock_nanosleep =
 	else
 		flag_str = sprintf("0x%x", $flags)
 	argstr = sprintf("%s, %s, %s, %p", _get_wc_str($which_clock), flag_str,
-			_struct_compat_timespec_u($rqtp), $rmtp)
+			_struct_compat_timespec_u($rqtp,1), $rmtp)
 }
 probe syscall.compat_clock_nanosleep.return =
 		kernel.function("compat_clock_nanosleep").return ?,
@@ -397,7 +390,7 @@ probe syscall.clock_settime = kernel.function("sys_clock_settime") {
 	clk_id = $which_clock
 	clk_id_str = _get_wc_str($which_clock)
 	tp_uaddr = $tp
-	argstr = sprintf("%s, %s", clk_id_str, _struct_timespec_u($tp))
+	argstr = sprintf("%s, %s", clk_id_str, _struct_timespec_u($tp,1))
 }
 probe syscall.clock_settime.return = kernel.function("sys_clock_settime").return {
 	name = "clock_settime"
@@ -1020,7 +1013,7 @@ probe syscall.futex = kernel.function("sys_futex") {
 	val3 = $val3
 	if (op == 0)
 		argstr = sprintf("%p, %s, %d, %s", $uaddr, _futex_op_str($op), 
-			$val, _struct_timespec_u($utime)) 
+			$val, _struct_timespec_u($utime,1)) 
 	else
 		argstr = sprintf("%p, %s, %d", $uaddr, _futex_op_str($op), 
 			$val) 
@@ -1043,7 +1036,7 @@ probe syscall.futimesat = kernel.function("sys_futimesat") ? {
 	filename = user_string($filename)
 	tvp_uaddr = $utimes
 	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
-		_struct_timeval2_u($utimes))
+		_struct_timeval_u($utimes, 2))
 }
 probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
 	name = "futimesat"
@@ -1052,7 +1045,7 @@ probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
 	filename = user_string($filename)
 	tvp_uaddr = $t
 	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
-		_struct_compat_timeval2_u($t))
+		_struct_compat_timeval_u($t, 2))
 }
 probe syscall.futimesat.return = kernel.function("sys_futimesat").return ? {
 	name = "futimesat"
@@ -1244,11 +1237,10 @@ probe syscall.get_mempolicy = kernel.function("sys_get_mempolicy") ? {
 	maxnode = $maxnode
 	addr = $addr
 	flags = $flags
-	argstr = sprintf("%p, %p, %d, %p, %d", policy_uaddr,
-			nmask_uaddr, $maxnode, $addr, $flags)
+	argstr = sprintf("%p, %p, %d, %p, 0x%x", $policy,
+			$nmask, $maxnode, $addr, $flags)
 }
-probe syscall.get_mempolicy.return = 
-		kernel.function("sys_get_mempolicy").return ? {
+probe syscall.get_mempolicy.return = kernel.function("sys_get_mempolicy").return ? {
 	name = "get_mempolicy"
 	retstr = returnstr(1)
 }
@@ -1376,22 +1368,19 @@ probe syscall.getresuid.return =
 # getrlimit __________________________________________________
 # long sys_getrlimit(unsigned int resource, struct rlimit __user *rlim)
 # long sys_old_getrlimit(unsigned int resource, struct rlimit __user *rlim)
-# long compat_sys_old_getrlimit(unsigned int resource, struct compat_rlimit __user *rlim)
 # long compat_sys_getrlimit (unsigned int resource, struct compat_rlimit __user *rlim)
 probe syscall.getrlimit = kernel.function("sys_getrlimit"),
                           kernel.function("sys_old_getrlimit") ?,
-                          kernel.function("compat_sys_getrlimit") ?,
-                          kernel.function("compat_sys_old_getrlimit") ?
+                          kernel.function("compat_sys_getrlimit") ?
 {
 	name = "getrlimit"
 	resource = $resource
 	rlim_uaddr = $rlim
-	argstr = sprintf("%s, %p", _rlimit_resource_str($resource), rlim_uaddr)
+	argstr = sprintf("%s, %p", _rlimit_resource_str($resource), $rlim)
 }
 probe syscall.getrlimit.return = kernel.function("sys_getrlimit").return,
                                  kernel.function("sys_old_getrlimit").return ?,
-	                         kernel.function("compat_sys_getrlimit").return ?,
-                                 kernel.function("compat_sys_old_getrlimit").return ?
+	                         kernel.function("compat_sys_getrlimit").return ?
 {
 	name = "getrlimit"
 	retstr = returnstr(1)
@@ -1681,7 +1670,7 @@ probe syscall.io_getevents =
 	nr = $nr
 	events_uaddr = $events
 	timeout_uaddr = $timeout
-	timestr = _struct_timespec_u($timeout)
+	timestr = _struct_timespec_u($timeout,1)
 	argstr = sprintf("%d, %d, %d, %p, %p, %s", $ctx_id, $min_nr,
 		$nr, $events, $timeout, timestr)
 }
@@ -2017,7 +2006,8 @@ probe syscall.lremovexattr.return = kernel.function("sys_lremovexattr").return {
 probe syscall.lseek = kernel.function("sys_lseek") {
 	name = "lseek"
 	fildes = $fd
-	offset = __int32($offset)
+#	offset = __int32($offset)
+	offset = $offset
 	whence = $origin
 	whence_str = _seek_whence_str($origin)
 	argstr = sprintf("%d, %d, %s", $fd, offset, whence_str)
@@ -2119,11 +2109,24 @@ probe syscall.mbind = kernel.function("sys_mbind") ? {
 	nmask_uaddr = $nmask
 	maxnode = $maxnode
 	flags = $flags
-	argstr = sprintf("%d, %d, %d, %p, %d, %d", $start, $len, $mode,
-				nmask_uaddr, $maxnode, $flags)
+	argstr = sprintf("%d, %d, %d, %p, %d, 0x%x", $start, $len, $mode,
+				$nmask, $maxnode, $flags)
 }
 probe syscall.mbind.return = kernel.function("sys_mbind").return ? {
 	name = "mbind"
+	retstr = returnstr(1)
+}
+
+# migrate_pages ____________________________________________________
+# long sys_migrate_pages(pid_t pid, unsigned long maxnode,
+#		const unsigned long __user *old_nodes,
+#		const unsigned long __user *new_nodes)
+probe syscall.migrate_pages = kernel.function("sys_migrate_pages") ? {
+	name = "migrate_pages"
+	argstr = sprintf("%d, %d, %p, %p", $pid, $maxnode, $old_nodes, $new_nodes)
+}
+probe syscall.migrate_pages.return = kernel.function("sys_migrate_pages").return ? {
+	name = "migrate_pages"
 	retstr = returnstr(1)
 }
 
@@ -2226,6 +2229,21 @@ probe syscall.modify_ldt = kernel.function("sys_modify_ldt") ? {
 }
 probe syscall.modify_ldt.return = kernel.function("sys_modify_ldt").return ? {
 	name = "modify_ldt"
+	retstr = returnstr(1)
+}
+
+# move_pages ____________________________________________________
+# long sys_move_pages(pid_t pid, unsigned long nr_pages,
+#			const void __user * __user *pages,
+#			const int __user *nodes,
+#			int __user *status, int flags)
+#
+probe syscall.move_pages = kernel.function("sys_move_pages") ? {
+	name = "move_pages"
+	argstr = sprintf("%d, %d, %p, %p, 0x%x", $pid, $nr_pages, $nodes, $status, $flags)
+}
+probe syscall.move_pages.return = kernel.function("sys_move_pages").return ? {
+	name = "move_pages"
 	retstr = returnstr(1)
 }
 
