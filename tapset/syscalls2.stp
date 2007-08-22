@@ -101,6 +101,8 @@ probe syscall.ni_syscall.return = kernel.function("sys_ni_syscall").return {
 
 # open _______________________________________________________
 # long sys_open(const char __user * filename, int flags, int mode)
+# (obsolete) long sys32_open(const char * filename, int flags, int mode)
+#
 probe syscall.open = 
 		kernel.function("sys_open") ?,
 		kernel.function("compat_sys_open") ?,
@@ -447,7 +449,7 @@ probe syscall.compat_pselect7a = kernel.function("compat_sys_pselect7") ? {
 	argstr = sprintf("%d, %p, %p, %p, %s, %p, %d", $n, $inp, $outp, $exp,
 				_struct_compat_timespec_u($tsp,1), $sigmask, $sigsetsize)
 }
-probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect").return ? {
+probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect7").return ? {
 	name = "pselect7"
 	retstr = returnstr(1)
 }
@@ -578,12 +580,19 @@ probe syscall.readahead.return = kernel.function("sys_readahead").return {
 # readdir ___________________________________________________
 #
 # long compat_sys_old_readdir(unsigned int fd, struct compat_old_linux_dirent __user *dirent, unsigned int count)
-#
-probe syscall.readdir = kernel.function("compat_sys_old_readdir") ? {
+# int old32_readdir(unsigned int fd, struct old_linux_dirent32 *dirent, unsigned int count)
+# 
+probe syscall.readdir =
+		kernel.function("compat_sys_old_readdir") ?,
+		kernel.function("old32_readdir") ?
+{
 	name = "readdir"
 	argstr = sprintf("%d, %p, %d", $fd, $dirent, $count)
 }
-probe syscall.readdir.return = kernel.function("compat_sys_old_readdir").return ? {
+probe syscall.readdir.return =
+		kernel.function("compat_sys_old_readdir").return ?,
+		kernel.function("old32_readdir").return ?
+{
 	name = "readdir"
 	retstr = returnstr(1)
 }
@@ -674,7 +683,7 @@ probe syscall.recv = kernel.function("sys_recv") ? {
 	len = $size
 	flags = $flags
 	flags_str = _recvflags_str($flags)
-	argstr = sprintf("%d, %p, %d, %s", $fd, $ubuf, $size, flags_str)
+	argstr = sprintf("%d, %p, %d, %s", $fd, $ubuf, $size, _recvflags_str($flags))
 }
 probe syscall.recv.return = kernel.function("sys_recv").return ? {
 	name = "recv"
@@ -690,7 +699,7 @@ probe syscall.recv.return = kernel.function("sys_recv").return ? {
 #		  struct sockaddr __user *addr,
 #		  int __user *addr_len)
 #
-probe syscall.recvfrom = kernel.function("sys_recvfrom") {
+probe syscall.recvfrom = kernel.function("sys_recvfrom") ? {
 	name = "recvfrom"
 	s = $fd
 	buf_uaddr = $ubuf
@@ -700,7 +709,7 @@ probe syscall.recvfrom = kernel.function("sys_recvfrom") {
 	addr_uaddr = $addr
 	addrlen_uaddr = $addr_len
 	argstr = sprintf("%d, %p, %d, %s, %p, %p",
-		$fd, $ubuf, $size, flags_str, $addr, $addr_len)
+		$fd, $ubuf, $size, _recvflags_str($flags), $addr, $addr_len)
 }
 probe syscall.recvfrom.return = kernel.function("sys_recvfrom").return ? {
 	name = "recvfrom"
@@ -1102,34 +1111,28 @@ probe syscall.sched_get_priority_min.return =
 }
 # sched_getscheduler _________________________________________
 #
-# asmlinkage long
-# sys_sched_getscheduler(pid_t pid)
+# long sys_sched_getscheduler(pid_t pid)
 #
 probe syscall.sched_getscheduler = kernel.function("sys_sched_getscheduler") {
 	name = "sched_getscheduler"
 	pid = $pid
-	argstr = sprint(pid)
+	argstr = sprint($pid)
 }
-probe syscall.sched_getscheduler.return =
-	kernel.function("sys_sched_getscheduler").return {
+probe syscall.sched_getscheduler.return = kernel.function("sys_sched_getscheduler").return {
 	name = "sched_getscheduler"
 	retstr = returnstr(1)
 }
 # sched_rr_get_interval ______________________________________
 #
-# asmlinkage long
-# sys_sched_rr_get_interval(pid_t pid,
-#				   struct timespec __user *interval)
+# long sys_sched_rr_get_interval(pid_t pid, struct timespec __user *interval)
 #
-probe syscall.sched_rr_get_interval =
-	kernel.function("sys_sched_rr_get_interval") {
+probe syscall.sched_rr_get_interval = kernel.function("sys_sched_rr_get_interval") {
 	name = "sched_rr_get_interval"
 	pid = $pid
 	tp_uaddr = $interval
 	argstr = sprintf("%d, %s", $pid, _struct_timespec_u($interval,1))
 }
-probe syscall.sched_rr_get_interval.return =
-	kernel.function("sys_sched_rr_get_interval").return {
+probe syscall.sched_rr_get_interval.return = kernel.function("sys_sched_rr_get_interval").return {
 	name = "sched_rr_get_interval"
 	retstr = returnstr(1)
 }
@@ -2108,6 +2111,29 @@ probe syscall.signal.return = kernel.function("sys_signal").return ? {
 	retstr = returnstr(1)
 }
 
+# signalfd _____________________________________________________
+#
+# long sys_signalfd(int ufd, sigset_t __user *user_mask, size_t sizemask)
+# long compat_sys_signalfd(int ufd, const compat_sigset_t __user *sigmask,
+# 		 compat_size_t sigsetsize)
+#
+probe syscall.signalfd = kernel.function("sys_signalfd") ? {
+	name = "signalfd"
+	argstr = sprintf("%d, %p, %d", $ufd, $user_mask, $sizemask)
+}
+probe syscall.signalfd.return = kernel.function("sys_signalfd").return ? {
+	name = "signalfd"
+	retstr = returnstr(1)
+}
+probe syscall.compat_signalfd = kernel.function("compat_sys_signalfd") ? {
+	name = "compat_signalfd"
+	argstr = sprintf("%d, %p, %d", $ufd, $sigmask, $sigsetsize)
+}
+probe syscall.compat_signalfd.return = kernel.function("compat_sys_signalfd").return ? {
+	name = "compat_signalfd"
+	retstr = returnstr(1)
+}
+
 # sigpending _________________________________________________
 # long sys_sigpending(old_sigset_t __user *set)
 #
@@ -2195,13 +2221,13 @@ probe syscall.socket.return = kernel.function("sys_socket").return ? {
 #
 # long sys_socketcall(int call, unsigned long __user *args)
 #
-#probe syscall.socketcall = kernel.function("sys_socketcall") {
+#probe syscall.socketcall = kernel.function("sys_socketcall") ? {
 #	name = "socketcall"
 #	call = $call
 #	args_uaddr = $args
 #	argstr = sprintf("%d, %p", $call, args_uaddr)
 #}
-#probe syscall.socketcall.return = kernel.function("sys_socketcall").return {
+#probe syscall.socketcall.return = kernel.function("sys_socketcall").return ? {
 #	name = "socketcall"
 #	retstr = returnstr(1)
 #}
@@ -2228,17 +2254,32 @@ probe syscall.socketpair.return = kernel.function("sys_socketpair").return ? {
 	retstr = returnstr(1)
 }
 
+# splice ___________________________________________________
+#
+# long sys_splice(int fd_in, loff_t __user *off_in,
+#		   int fd_out, loff_t __user *off_out,
+#		   size_t len, unsigned int flags)
+#
+probe syscall.splice = kernel.function("sys_splice") ? {
+	name = "splice"
+	argstr = sprintf("%d, %p, %d, %p, %d, 0x%x",
+		$fd_in, $off_in, $fd_out, $off_out, $len, $flags)
+}
+probe syscall.splice.return = kernel.function("sys_splice").return ? {
+	name = "splice"
+	retstr = returnstr(1)
+}
+
 # ssetmask ___________________________________________________
 #
-# asmlinkage long
-# sys_ssetmask(int newmask)
+# long sys_ssetmask(int newmask)
 #
-probe syscall.ssetmask = kernel.function("sys_ssetmask")? {
+probe syscall.ssetmask = kernel.function("sys_ssetmask") ? {
 	name = "ssetmask"
 	newmask = $newmask
 	argstr = sprint($newmask)
 }
-probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return ?{
+probe syscall.ssetmask.return = kernel.function("sys_ssetmask").return ? {
 	name = "ssetmask"
 	retstr = returnstr(1)
 }
@@ -2303,7 +2344,7 @@ probe syscall.statfs.return =
 #
 probe syscall.statfs64 =
 		kernel.function("sys_statfs64") ?,
-		kernel.function("comp_sys_statfs64") ?
+		kernel.function("compat_sys_statfs64") ?
 {
 	name = "statfs"
 	path = user_string($path)
@@ -2313,7 +2354,7 @@ probe syscall.statfs64 =
 }
 probe syscall.statfs64.return =
 		kernel.function("sys_statfs64").return ?,
-		kernel.function("comp_sys_statfs64").return ?
+		kernel.function("compat_sys_statfs64").return ?
 {
 	name = "statfs"
 	retstr = returnstr(1)
@@ -2465,6 +2506,19 @@ probe syscall.syslog.return = kernel.function("sys_syslog").return {
 	retstr = returnstr(1)
 }
 
+# tee _____________________________________________________
+#
+# long sys_tee(int fdin, int fdout, size_t len, unsigned int flags)
+#
+probe syscall.tee = kernel.function("sys_tee") ? {
+	name = "tee"
+	argstr = sprintf("%d, %d, %d, 0x%x", $fdin, $fdout, $len, $flags) 
+}
+probe syscall.tee.return = kernel.function("sys_tee").return {
+	name = "tee"
+	retstr = returnstr(1)
+}
+
 # tgkill _____________________________________________________
 #
 # asmlinkage long
@@ -2596,6 +2650,28 @@ probe syscall.timer_settime = kernel.function("sys_timer_settime") {
 probe syscall.timer_settime.return =
 	kernel.function("sys_timer_settime").return {
 	name = "timer_settime"
+	retstr = returnstr(1)
+}
+
+# timerfd ______________________________________________
+#
+# long sys_timerfd(int ufd, int clockid, int flags,
+#	    const struct itimerspec __user *utmr)
+# long compat_sys_timerfd(int ufd, int clockid, int flags,
+#  	   const struct compat_itimerspec __user *utmr)
+#
+probe syscall.timerfd =
+		kernel.function("sys_timerfd") ?,
+		kernel.function("compat_sys_timerfd") ?
+{
+	name = "timerfd"
+	argstr = sprintf("%d, %d, 0x%x", $ufd, $clockid, $flags)
+}
+probe syscall.timerfd.return =
+		kernel.function("sys_timerfd").return ?,
+		kernel.function("compat_sys_timerfd").return ?
+{
+	name = "timerfd"
 	retstr = returnstr(1)
 }
 
@@ -2784,7 +2860,7 @@ probe syscall.utime = kernel.function("sys_utime") ? {
 	filename = user_string($filename)
 	buf_uaddr = $times
 	buf_str = _struct_utimbuf_u($times)
-	argstr = sprintf("%s, [%s]", user_string_quoted($filename), buf_str)
+	argstr = sprintf("%s, %s", user_string_quoted($filename), buf_str)
 }
 probe syscall.utime.return = kernel.function("sys_utime").return ? {
 	name = "utime"
@@ -2798,7 +2874,7 @@ probe syscall.compat_utime = kernel.function("compat_sys_utime") ? {
 	filename = user_string($filename)
 	buf_uaddr = $t
 	buf_str = _struct_compat_utimbuf_u($t)
-	argstr = sprintf("%s, [%s]", user_string_quoted($filename), _struct_compat_utimbuf_u($t))
+	argstr = sprintf("%s, %s", user_string_quoted($filename), _struct_compat_utimbuf_u($t))
 }
 probe syscall.compat_utime.return = kernel.function("compat_sys_utime").return ? {
 	name = "utime"
@@ -2843,17 +2919,18 @@ probe syscall.compat_sys_utimes.return = kernel.function("compat_sys_utimes").re
 probe syscall.utimensat = kernel.function("sys_utimensat") ? {
 	name = "utimensat"
 	argstr = sprintf("%s, %s, %s, %s", _dfd_str($dfd), user_string_quoted($filename), _struct_timespec_u($utimes,2),
-		_utimensat_flag_str($flags))
+		_at_flag_str($flags))
 }
 probe syscall.compat_utimensat = kernel.function("compat_sys_utimensat") ? {
 	name = "utimensat"
 	argstr = sprintf("%s, %s, %s, %s", _dfd_str($dfd), user_string_quoted($filename), _struct_compat_timespec_u($utimes,2),
-		_utimensat_flag_str($flags))
+		_at_flag_str($flags))
 }
-probe syscall.utimensat.return = 
-		kernel.function("sys_utimensat").return ?,
-		kernel.function("compat_sys_utimensat").return ?
-{
+probe syscall.utimensat.return =  kernel.function("sys_utimensat").return ? {
+	name = "utimensat"
+	retstr = returnstr(1)
+}
+probe syscall.compat_utimensat.return =  kernel.function("compat_sys_utimensat").return ? {
 	name = "utimensat"
 	retstr = returnstr(1)
 }
@@ -2869,6 +2946,30 @@ probe syscall.vhangup = kernel.function("sys_vhangup") {
 }
 probe syscall.vhangup.return = kernel.function("sys_vhangup").return {
 	name = "vhangup"
+	retstr = returnstr(1)
+}
+
+# vmsplice ___________________________________________________
+#
+# long sys_vmsplice(int fd, const struct iovec __user *iov,
+#	    unsigned long nr_segs, unsigned int flags)
+# long compat_sys_vmsplice(int fd, const struct compat_iovec __user *iov32,
+#	    unsigned int nr_segs, unsigned int flags)
+#
+probe syscall.vmsplice = kernel.function("sys_vmsplice") ? {
+	name = "vmsplice"
+	argstr = sprintf("%d, %p, %d, 0x%x", $fd, $iov, $nr_segs, $flags)
+}
+probe syscall.compat_vmsplice = kernel.function("compat_sys_vmsplice") ? {
+	name = "vmsplice"
+	argstr = sprintf("%d, %p, %d, 0x%x", $fd, $iov32, $nr_segs, $flags)
+}
+probe syscall.vmsplice.return = kernel.function("sys_vmsplice").return ? {
+	name = "vmsplice"
+	retstr = returnstr(1)
+}
+probe syscall.compat_vmsplice.return = kernel.function("compat_sys_vmsplice").return ? {
+	name = "vmsplice"
 	retstr = returnstr(1)
 }
 

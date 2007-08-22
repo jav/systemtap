@@ -1,5 +1,34 @@
 2007-08-22  Martin Hunt  <hunt@redhat.com>
 
+	* ppc64/syscalls.stp: Remove a bunch of
+	non-ppc64 specific probes.
+
+	* syscalls.stp (compat_sys_epoll_ctl): New.
+	(compat_sys_epoll_wait): New.
+	(sys_epoll_pwait): New.
+	(compat_sys_epoll_pwait): New.	
+	(compat_sys_keyctl): New.
+	(compat_sys_mq_open): New.
+	(compat_sys_futex): New.			      
+	(compat_sys_mq_timedsend): New.
+	(compat_sys_mq_timedreceive): New.
+	(compat_sys_mq_notify): New.
+	(compat_sys_mq_getsetattr): New.
+	(init_module): Make optional and quote args.
+	(sys_eventfd): New.
+	
+	* syscalls2.stp (sys_splice): New.
+	(sys_vmsplice): New.
+	(compat_sys_vmsplice): New.	
+	(sys_tee): New.
+	(sys_signalfd): New.	
+	(compat_sys_signalfd): New.	
+	(sys_timerfd): New.
+	(compat_sys_timerfd): New.
+	(old32_readdir): New.
+	
+2007-08-22  Martin Hunt  <hunt@redhat.com>
+	
 	* aux_syscalls.stp (_utimensat_flag_str): New.
 	(_dfd_str): New.
 	(_struct_timeval2_u): Deleted.

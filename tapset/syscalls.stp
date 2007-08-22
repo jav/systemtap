@@ -28,14 +28,14 @@
 # accept _____________________________________________________
 # long sys_accept(int fd, struct sockaddr __user *upeer_sockaddr,
 #                 int __user *upeer_addrlen)
-probe syscall.accept = kernel.function("sys_accept") {
+probe syscall.accept = kernel.function("sys_accept") ? {
 	name = "accept"
 	sockfd = $fd
 	addr_uaddr = $upeer_sockaddr
 	addrlen_uaddr = $upeer_addrlen
 	argstr = sprintf("%d, %p, %p", $fd, $upeer_sockaddr, $upeer_addrlen)
 }
-probe syscall.accept.return = kernel.function("sys_accept").return {
+probe syscall.accept.return = kernel.function("sys_accept").return ? {
 	name = "accept"
 	retstr = returnstr(1)
 }
@@ -160,14 +160,14 @@ probe syscall.bdflush.return = kernel.function("sys_bdflush").return {
 
 # bind _______________________________________________________
 # long sys_bind(int fd, struct sockaddr __user *umyaddr, int addrlen)
-probe syscall.bind = kernel.function("sys_bind") {
+probe syscall.bind = kernel.function("sys_bind") ? {
 	name = "bind"
 	sockfd = $fd
 	my_addr_uaddr = $umyaddr
 	addrlen = $addrlen
 	argstr = sprintf("%d, %s, %d", $fd, _struct_sockaddr_u($umyaddr,$addrlen),$addrlen)
 }
-probe syscall.bind.return = kernel.function("sys_bind").return {
+probe syscall.bind.return = kernel.function("sys_bind").return ? {
 	name = "bind"
 	retstr = returnstr(1)
 }
@@ -410,14 +410,14 @@ probe syscall.close.return = kernel.function("sys_close").return {
 }
 # connect ____________________________________________________
 # long sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
-probe syscall.connect = kernel.function("sys_connect") {
+probe syscall.connect = kernel.function("sys_connect") ? {
 	name = "connect"
 	sockfd = $fd
 	serv_addr_uaddr = $uservaddr
 	addrlen = $addrlen
 	argstr = sprintf("%d, %s, %d", $fd, _struct_sockaddr_u($uservaddr,$addrlen),$addrlen)
 }
-probe syscall.connect.return =	kernel.function("sys_connect").return {
+probe syscall.connect.return =	kernel.function("sys_connect").return ? {
 	name = "connect"
 	retstr = returnstr(1)
 }
@@ -439,13 +439,13 @@ probe syscall.creat.return = kernel.function("sys_creat").return ?
 
 # delete_module ______________________________________________
 # long sys_delete_module(const char __user *name_user, unsigned int flags)
-probe syscall.delete_module = kernel.function("sys_delete_module") {
+probe syscall.delete_module = kernel.function("sys_delete_module") ? {
 	name = "delete_module"
 	name_user = user_string($name_user)
 	flags = $flags
-	argstr = sprintf("%s, %s", user_string_quoted($name_user), _module_flags_str(flags))
+	argstr = sprintf("%s, %s", user_string_quoted($name_user), _module_flags_str($flags))
 }
-probe syscall.delete_module.return = kernel.function("sys_delete_module").return {
+probe syscall.delete_module.return = kernel.function("sys_delete_module").return ? {
 	name = "delete_module"
 	retstr = returnstr(1)
 }
@@ -477,12 +477,12 @@ probe syscall.dup2.return = kernel.function("sys_dup2").return {
 
 # epoll_create _______________________________________________
 # long sys_epoll_create(int size)
-probe syscall.epoll_create = kernel.function("sys_epoll_create") {
+probe syscall.epoll_create = kernel.function("sys_epoll_create") ? {
 	name = "epoll_create"
 	size = $size
 	argstr = sprint($size)
 }
-probe syscall.epoll_create.return = kernel.function("sys_epoll_create").return {
+probe syscall.epoll_create.return = kernel.function("sys_epoll_create").return ? {
 	name = "epoll_create"
 	retstr = returnstr(1)
 }
@@ -490,8 +490,13 @@ probe syscall.epoll_create.return = kernel.function("sys_epoll_create").return {
 # epoll_ctl __________________________________________________
 #
 # long sys_epoll_ctl(int epfd, int op, int fd, struct epoll_event __user *event)
+# long compat_sys_epoll_ctl(int epfd, int op, int fd,
+#			struct compat_epoll_event __user *event)
 #
-probe syscall.epoll_ctl = kernel.function("sys_epoll_ctl") {
+probe syscall.epoll_ctl =
+		kernel.function("sys_epoll_ctl") ?,
+		kernel.function("compat_sys_epoll_ctl") ?
+{
 	name = "epoll_ctl"
 	epfd = $epfd
 	op = $op
@@ -500,8 +505,38 @@ probe syscall.epoll_ctl = kernel.function("sys_epoll_ctl") {
 	event_uaddr = $event
 	argstr = sprintf("%d, %s, %d, %p", $epfd, _opoll_op_str($op), $fd, $event)
 }
-probe syscall.epoll_ctl.return = kernel.function("sys_epoll_ctl").return {
+probe syscall.epoll_ctl.return =
+		kernel.function("sys_epoll_ctl").return ?,
+		kernel.function("compat_sys_epoll_ctl").return ?
+{
 	name = "epoll_ctl"
+	retstr = returnstr(1)
+}
+
+# epoll_pwait _________________________________________________
+#
+# long sys_epoll_pwait(int epfd, struct epoll_event __user *events,
+#		int maxevents, int timeout, const sigset_t __user *sigmask,
+#		size_t sigsetsize)
+# long compat_sys_epoll_pwait(int epfd,
+#			struct compat_epoll_event __user *events,
+#			int maxevents, int timeout,
+#			const compat_sigset_t __user *sigmask,
+#			compat_size_t sigsetsize)
+#
+probe syscall.epoll_pwait =
+		kernel.function("sys_epoll_pwait") ?,
+		kernel.function("compat_sys_epoll_pwait") ?
+{
+	name = "epoll_pwait"
+	argstr = sprintf("%d, %p, %d, %d, %p, %d",
+		$epfd, $events, $maxevents, $timeout, $sigmask, $sigsetsize)
+}
+probe syscall.epoll_pwait.return =
+		kernel.function("sys_epoll_pwait").return ?,
+		kernel.function("compat_sys_epoll_pwait").return ?
+{
+	name = "epoll_pwait"
 	retstr = returnstr(1)
 }
 
@@ -509,8 +544,14 @@ probe syscall.epoll_ctl.return = kernel.function("sys_epoll_ctl").return {
 #
 # long sys_epoll_wait(int epfd, struct epoll_event __user *events,
 #               int maxevents, int timeout)
+# long compat_sys_epoll_wait(int epfd,
+#		struct compat_epoll_event __user *events,
+#		int maxevents, int timeout)
 #
-probe syscall.epoll_wait = kernel.function("sys_epoll_wait") {
+probe syscall.epoll_wait =
+		kernel.function("sys_epoll_wait") ?,
+		kernel.function("compat_sys_epoll_wait") ?
+{
 	name = "epoll_wait"
 	epfd = $epfd
 	events_uaddr = $events
@@ -518,8 +559,23 @@ probe syscall.epoll_wait = kernel.function("sys_epoll_wait") {
 	timeout = $timeout
 	argstr = sprintf("%d, %p, %d, %d", $epfd, $events, $maxevents, $timeout)
 }
-probe syscall.epoll_wait.return = kernel.function("sys_epoll_wait").return {
+probe syscall.epoll_wait.return =
+		kernel.function("sys_epoll_wait").return ?,
+		kernel.function("compat_sys_epoll_wait").return ?
+{
 	name = "epoll_wait"
+	retstr = returnstr(1)
+}
+
+# eventfd _____________________________________________________
+# long sys_eventfd(unsigned int count)
+#
+probe syscall.eventfd = kernel.function("sys_eventfd") ? {
+	name = "eventfd"
+	argstr = sprint($count)
+}
+probe syscall.eventfd.return = kernel.function("sys_eventfd").return ? {
+	name = "eventfd"
 	retstr = returnstr(1)
 }
 
@@ -715,7 +771,7 @@ probe syscall.fcntl =
 	cmd = $cmd
 	cmd_str = _fcntl_cmd_str($cmd)
       	arg = $arg
-	argstr = sprintf("%d, %s, %p", $fd, cmd_str, $arg)
+	argstr = sprintf("%d, %s, %p", $fd, _fcntl_cmd_str($cmd), $arg)
 }
 probe syscall.fcntl.return = 
 		kernel.function("sys_fcntl").return ?,
@@ -888,27 +944,23 @@ probe syscall.fstat.return =
 # sys32_fstatat64(unsigned int dfd, char __user *filename, struct stat64_emu31 __user* statbuf, int flag)
 # long sys_newfstatat(int dfd, char __user *filename, struct stat __user *statbuf, int flag)
 # long sys_fstatat64(int dfd, char __user *filename, struct stat64 __user *statbuf, int flag)
-#
+# long compat_sys_newfstatat(unsigned int dfd, char __user *filename, struct compat_stat __user *statbuf, int flag)
 probe syscall.fstatat = 
 		kernel.function("sys_fstatat64") ?, 
 		kernel.function("sys_newfstatat") ?,
+		kernel.function("compat_sys_newfstatat") ?,
 		kernel.function("sys32_fstatat64") ?
 {
 	name = "fstatat"
 	dirfd = $dfd
 	path = user_string($filename)
 	buf_uaddr = $statbuf
-
-	if ($flag == 0x100)
-		flags = "AT_SYMLINK_NOFOLLOW"
-	else
-		flags = sprintf("0x%x", $flag)
-
-	argstr = sprintf("%d, %s, %p, %s", $dfd, user_string_quoted($filename), $statbuf, flags)
+	argstr = sprintf("%s, %s, %p, %s", _dfd_str($dfd), user_string_quoted($filename), $statbuf, _at_flag_str($flag))
 }
 probe syscall.fstatat.return = 
 		kernel.function("sys_fstatat64").return ?, 
 		kernel.function("sys_newfstatat").return ?,
+		kernel.function("compat_sys_newfstatat").return ?,
 		kernel.function("sys32_fstatat64").return ?
 {
 	name = "fstatat"
@@ -942,7 +994,7 @@ probe syscall.fstatfs.return =
 #
 probe syscall.fstatfs64 = 
 		kernel.function("sys_fstatfs64") ?,
-		kernel.function("comp_sys_fstatfs64") ?
+		kernel.function("compat_sys_fstatfs64") ?
 {
 	name = "fstatfs"
 	fd = $fd
@@ -952,7 +1004,7 @@ probe syscall.fstatfs64 =
 }
 probe syscall.fstatfs64.return =
 		kernel.function("sys_fstatfs64").return ?,
-		kernel.function("comp_sys_fstatfs64").return ?
+		kernel.function("compat_sys_fstatfs64").return ?
 {
 	name = "fstatfs"
 	retstr = returnstr(1)
@@ -1002,8 +1054,11 @@ probe syscall.ftruncate64.return = kernel.function("sys_ftruncate64").return ? {
 #           struct timespec __user *utime,
 #           u32 __user *uaddr2,
 #           int val3)
+# long compat_sys_futex(u32 __user *uaddr, int op, u32 val,
+#		struct compat_timespec __user *utime, u32 __user *uaddr2,
+#		u32 val3)
 #
-probe syscall.futex = kernel.function("sys_futex") {
+probe syscall.futex = kernel.function("sys_futex") ? {
 	name = "futex"
 	futex_uaddr = $uaddr
 	op = $op
@@ -1018,7 +1073,26 @@ probe syscall.futex = kernel.function("sys_futex") {
 		argstr = sprintf("%p, %s, %d", $uaddr, _futex_op_str($op), 
 			$val) 
 }
-probe syscall.futex.return = kernel.function("sys_futex").return {
+probe syscall.futex.return = kernel.function("sys_futex").return ? {
+	name = "futex"
+	retstr = returnstr(1)
+}
+probe syscall.compat_futex = kernel.function("compat_sys_futex") ? {
+	name = "futex"
+	futex_uaddr = $uaddr
+	op = $op
+	val = $val
+	utime_uaddr = $utime
+	uaddr2_uaddr = $uaddr2
+	val3 = $val3
+	if (op == 0)
+		argstr = sprintf("%p, %s, %d, %s", $uaddr, _futex_op_str($op), 
+			$val, _struct_compat_timespec_u($utime,1)) 
+	else
+		argstr = sprintf("%p, %s, %d", $uaddr, _futex_op_str($op), 
+			$val) 
+}
+probe syscall.compat_futex.return = kernel.function("compat_sys_futex").return ? {
 	name = "futex"
 	retstr = returnstr(1)
 }
@@ -1035,7 +1109,7 @@ probe syscall.futimesat = kernel.function("sys_futimesat") ? {
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	tvp_uaddr = $utimes
-	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
+	argstr = sprintf("%s, %s, %s", _dfd_str($dfd), user_string_quoted($filename),  
 		_struct_timeval_u($utimes, 2))
 }
 probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
@@ -1044,7 +1118,7 @@ probe syscall.compat_futimesat = kernel.function("compat_sys_futimesat") ? {
 	filename_uaddr = $filename
 	filename = user_string($filename)
 	tvp_uaddr = $t
-	argstr = sprintf("%d, %s, %s", $dfd, user_string_quoted($filename),  
+	argstr = sprintf("%s, %s, %s", _dfd_str($dfd), user_string_quoted($filename),  
 		_struct_compat_timeval_u($t, 2))
 }
 probe syscall.futimesat.return = kernel.function("sys_futimesat").return ? {
@@ -1248,14 +1322,14 @@ probe syscall.get_mempolicy.return = kernel.function("sys_get_mempolicy").return
 # getpeername ________________________________________________
 # long sys_getpeername(int fd, struct sockaddr __user *usockaddr, int __user *usockaddr_len)
 #
-probe syscall.getpeername = kernel.function("sys_getpeername") {
+probe syscall.getpeername = kernel.function("sys_getpeername") ? {
 	name = "getpeername"
 	s = $fd
 	name_uaddr = $usockaddr
 	namelen_uaddr = $usockaddr_len
 	argstr = sprintf("%d, %p, %p", $fd, $usockaddr, $usockaddr_len)
 }
-probe syscall.getpeername.return = kernel.function("sys_getpeername").return {
+probe syscall.getpeername.return = kernel.function("sys_getpeername").return ? {
 	name = "getpeername"
 	retstr = returnstr(1)
 }
@@ -1415,14 +1489,14 @@ probe syscall.getsid.return = kernel.function("sys_getsid").return {
 # long sys_getsockname(int fd,
 #		struct sockaddr __user *usockaddr,
 #		int __user *usockaddr_len)
-probe syscall.getsockname = kernel.function("sys_getsockname") {
+probe syscall.getsockname = kernel.function("sys_getsockname") ? {
 	name = "getsockname"
 	s = $fd
 	name_uaddr = $usockaddr
 	namelen_uaddr = $usockaddr_len
 	argstr = sprintf("%d, %p, %p", $fd, $usockaddr, $usockaddr_len)
 }
-probe syscall.getsockname.return = kernel.function("sys_getsockname").return {
+probe syscall.getsockname.return = kernel.function("sys_getsockname").return ? {
 	name = "getsockname"
 	retstr = returnstr(1)
 }
@@ -1541,14 +1615,15 @@ probe syscall.getxattr.return = kernel.function("sys_getxattr").return {
 # long sys_init_module(void __user *umod,
 #		unsigned long len,
 #		const char __user *uargs)
-probe syscall.init_module = kernel.function("sys_init_module") {
+#
+probe syscall.init_module = kernel.function("sys_init_module") ? {
 	name = "init_module"
 	umod_uaddr = $umod
 	len = $len
 	uargs = user_string($uargs)
-	argstr = sprintf("%p, %d, %s", umod_uaddr, len, uargs)
+	argstr = sprintf("%p, %d, %s", $umod, $len, user_string_quoted($uargs))
 }
-probe syscall.init_module.return = kernel.function("sys_init_module").return {
+probe syscall.init_module.return = kernel.function("sys_init_module").return ? {
 	name = "init_module"
 	retstr = returnstr(1)
 }
@@ -1748,7 +1823,7 @@ probe syscall.compat_io_submit = kernel.function("compat_sys_io_submit") ? {
 	iocbpp_uaddr = $iocb
 	argstr = sprintf("%d, %d, %p", $ctx_id, $nr, $iocb)
 }
-probe syscall.compat_io_submit.return = kernel.function("sys_io_submit").return ? {
+probe syscall.compat_io_submit.return = kernel.function("compat_sys_io_submit").return ? {
 	name = "io_submit"
 	retstr = returnstr(1)
 }
@@ -1807,17 +1882,20 @@ probe syscall.kexec_load.return = kernel.function("sys_kexec_load").return ? {
 #            unsigned long arg3,
 #            unsigned long arg4,
 #            unsigned long arg5)
+# long compat_sys_keyctl(u32 option, u32 arg2, u32 arg3, u32 arg4, u32 arg5)
 #
-probe syscall.keyctl = kernel.function("sys_keyctl") ? {
+probe syscall.keyctl =
+		kernel.function("sys_keyctl") ?,
+		kernel.function("compat_sys_keyctl") ?
+{
 	name = "keyctl"
-	option = $option
-	arg2 = $arg2
-	arg3 = $arg3
-	arg4 = $arg4
-	arg5 = $arg5
-	argstr = sprintf("%d", $option)
+	argstr = sprintf("%d, ...", $option)
+
 }
-probe syscall.keyctl.return = kernel.function("sys_keyctl").return ? {
+probe syscall.keyctl.return =
+		kernel.function("sys_keyctl").return ?,
+		kernel.function("compat_sys_keyctl").return ?
+{
 	name = "keyctl"
 	retstr = returnstr(1)
 }
@@ -1905,13 +1983,13 @@ probe syscall.link.return = kernel.function("sys_link").return {
 
 # listen _____________________________________________________
 # long sys_listen(int fd, int backlog)
-probe syscall.listen = kernel.function("sys_listen") {
+probe syscall.listen = kernel.function("sys_listen") ? {
 	name = "listen"
 	sockfd = $fd
       	backlog = $backlog
 	argstr = sprintf("%d, %d", $fd, $backlog) 
 }	
-probe syscall.listen.return = kernel.function("sys_listen").return {
+probe syscall.listen.return = kernel.function("sys_listen").return ? {
 	name = "listen"
 	retstr = returnstr(1)
 }
@@ -1973,14 +2051,14 @@ probe syscall.llseek.return = kernel.function("sys_llseek").return ? {
 # lookup_dcookie _____________________________________________
 # long sys_lookup_dcookie(u64 cookie64, char __user * buf, size_t len)
 #
-probe syscall.lookup_dcookie = kernel.function("sys_lookup_dcookie") {
+probe syscall.lookup_dcookie = kernel.function("sys_lookup_dcookie") ? {
 	name = "lookup_dcookie"
 	cookie = $cookie64
 	buffer_uaddr = $buf
 	len = $len
 	argstr = sprintf("%d, %p, %d", $cookie64, $buf, $len)
 }
-probe syscall.lookup_dcookie.return = kernel.function("sys_lookup_dcookie").return {
+probe syscall.lookup_dcookie.return = kernel.function("sys_lookup_dcookie").return ? {
 	name = "lookup_dcookie"
 	retstr = returnstr(1)
 }
@@ -2303,29 +2381,45 @@ probe syscall.mprotect.return = kernel.function("sys_mprotect").return {
 # long sys_mq_getsetattr(mqd_t mqdes,
 #                  const struct mq_attr __user *u_mqstat,
 #                  struct mq_attr __user *u_omqstat)
+# long compat_sys_mq_getsetattr(mqd_t mqdes,
+#			const struct compat_mq_attr __user *u_mqstat,
+#			struct compat_mq_attr __user *u_omqstat)
 #
-probe syscall.mq_getsetattr = kernel.function("sys_mq_getsetattr") {
+probe syscall.mq_getsetattr =
+		kernel.function("sys_mq_getsetattr") ?,
+		kernel.function("compat_sys_mq_getsetattr") ?
+{
 	name = "mq_getsetattr"
 	mqdes = $mqdes
 	u_mqstat_uaddr = $u_mqstat
 	u_omqstat_uaddr = $u_omqstat
 	argstr = sprintf("%d, %p, %p", $mqdes, $u_mqstat, $u_omqstat)
 }
-probe syscall.mq_getsetattr.return = kernel.function("sys_mq_getsetattr").return {
+probe syscall.mq_getsetattr.return =
+		kernel.function("sys_mq_getsetattr").return ?,
+		kernel.function("compat_sys_mq_getsetattr").return ?
+{
 	name = "mq_getsetattr"
 	retstr = returnstr(1)
 }
 
 # mq_notify __________________________________________________
 # long sys_mq_notify(mqd_t mqdes, const struct sigevent __user *u_notification)
+# long compat_sys_mq_notify(mqd_t mqdes, const struct compat_sigevent __user *u_notification)
 #
-probe syscall.mq_notify = kernel.function("sys_mq_notify") {
+probe syscall.mq_notify =
+		kernel.function("sys_mq_notify") ?,
+		kernel.function("compat_sys_mq_notify") ?
+{
 	name = "mq_notify"
 	mqdes = $mqdes
 	notification_uaddr = $u_notification
 	argstr = sprintf("%d, %p", $mqdes, $u_notification)
 }
-probe syscall.mq_notify.return = kernel.function("sys_mq_notify").return {
+probe syscall.mq_notify.return =
+		kernel.function("sys_mq_notify").return ?,
+		kernel.function("compat_sys_mq_notify").return ?
+{
 	name = "mq_notify"
 	retstr = returnstr(1)
 }
@@ -2335,8 +2429,14 @@ probe syscall.mq_notify.return = kernel.function("sys_mq_notify").return {
 #             int oflag,
 #             mode_t mode,
 #             struct mq_attr __user *u_attr)
+# long compat_sys_mq_open(const char __user *u_name,
+#			int oflag, compat_mode_t mode,
+#			struct compat_mq_attr __user *u_attr)
 #
-probe syscall.mq_open = kernel.function("sys_mq_open") {
+probe syscall.mq_open =
+		kernel.function("sys_mq_open") ?,
+		kernel.function("compat_sys_mq_open") ?
+{
 	name = "mq_open"
 	name_uaddr = $u_name
 	filename = user_string($u_name)
@@ -2345,11 +2445,14 @@ probe syscall.mq_open = kernel.function("sys_mq_open") {
 	oflag = $oflag
 	if (oflag & 64)
 		argstr = sprintf("%s, %s, %#o, %p", user_string_quoted($u_name), 
-			_sys_open_flag_str(oflag), $mode, $u_attr)
+			_sys_open_flag_str($oflag), $mode, $u_attr)
 	else
-		argstr = sprintf("%s, %s", user_string_quoted($u_name), _sys_open_flag_str(oflag))
+		argstr = sprintf("%s, %s", user_string_quoted($u_name), _sys_open_flag_str($oflag))
 }
-probe syscall.mq_open.return = kernel.function("sys_mq_open").return {
+probe syscall.mq_open.return =
+		kernel.function("sys_mq_open").return ?,
+		kernel.function("compat_sys_mq_open").return ?
+{
 	name = "mq_open"
 	retstr = returnstr(1)
 }
@@ -2360,8 +2463,15 @@ probe syscall.mq_open.return = kernel.function("sys_mq_open").return {
 #                     size_t msg_len,
 #                     unsigned int __user *u_msg_prio,
 #                     const struct timespec __user *u_abs_timeout)
+# ssize_t compat_sys_mq_timedreceive(mqd_t mqdes,
+#			char __user *u_msg_ptr,
+#			size_t msg_len, unsigned int __user *u_msg_prio,
+#			const struct compat_timespec __user *u_abs_timeout)
 #
-probe syscall.mq_timedreceive = kernel.function("sys_mq_timedreceive") {
+probe syscall.mq_timedreceive =
+		kernel.function("sys_mq_timedreceive") ?,
+		kernel.function("compat_sys_mq_timedreceive") ?
+{
 	name = "mq_timedreceive"
 	mqdes = $mqdes
 	msg_ptr_uaddr = $u_msg_ptr
@@ -2371,7 +2481,10 @@ probe syscall.mq_timedreceive = kernel.function("sys_mq_timedreceive") {
 	argstr = sprintf("%d, %p, %d, %p, %p", $mqdes, $u_msg_ptr, $msg_len,
 			$u_msg_prio, $u_abs_timeout)
 }
-probe syscall.mq_timedreceive.return = kernel.function("sys_mq_timedreceive").return {
+probe syscall.mq_timedreceive.return =
+		kernel.function("sys_mq_timedreceive").return ?,
+		kernel.function("compat_sys_mq_timedreceive").return ?
+{
 	name = "mq_timedreceive"
 	retstr = returnstr(1)
 }
@@ -2382,8 +2495,15 @@ probe syscall.mq_timedreceive.return = kernel.function("sys_mq_timedreceive").re
 #                  size_t msg_len,
 #                  unsigned int msg_prio,
 #                  const struct timespec __user *u_abs_timeout)
+#  long compat_sys_mq_timedsend(mqd_t mqdes,
+#			const char __user *u_msg_ptr,
+#			size_t msg_len, unsigned int msg_prio,
+#			const struct compat_timespec __user *u_abs_timeout)
 #
-probe syscall.mq_timedsend = kernel.function("sys_mq_timedsend") {
+probe syscall.mq_timedsend =
+		kernel.function("sys_mq_timedsend") ?,
+		kernel.function("compat_sys_mq_timedsend") ?
+{
 	name = "mq_timedsend"
 	mqdes = $mqdes
 	msg_ptr_uaddr = $u_msg_ptr
@@ -2393,7 +2513,10 @@ probe syscall.mq_timedsend = kernel.function("sys_mq_timedsend") {
 	argstr = sprintf("%d, %p, %d, %d, %p", $mqdes, $u_msg_ptr, $msg_len,
 			$msg_prio, $u_abs_timeout)
 }
-probe syscall.mq_timedsend.return = kernel.function("sys_mq_timedsend").return {
+probe syscall.mq_timedsend.return =
+		kernel.function("sys_mq_timedsend").return ?,
+		kernel.function("compat_sys_mq_timedsend").return ?
+{
 	name = "mq_timedsend"
 	retstr = returnstr(1)
 }
@@ -2401,13 +2524,13 @@ probe syscall.mq_timedsend.return = kernel.function("sys_mq_timedsend").return {
 # mq_unlink __________________________________________________
 # long sys_mq_unlink(const char __user *u_name)
 #
-probe syscall.mq_unlink = kernel.function("sys_mq_unlink") {
+probe syscall.mq_unlink = kernel.function("sys_mq_unlink") ? {
 	name = "mq_unlink"
 	u_name_uaddr = $u_name
 	u_name = user_string($u_name)
 	argstr = user_string_quoted($u_name)
 }
-probe syscall.mq_unlink.return = kernel.function("sys_mq_unlink").return {
+probe syscall.mq_unlink.return = kernel.function("sys_mq_unlink").return ? {
 	name = "mq_unlink"
 	retstr = returnstr(1)
 }
@@ -2437,14 +2560,14 @@ probe syscall.mremap.return = kernel.function("sys_mremap").return {
 # msgctl _____________________________________________________
 # long sys_msgctl (int msqid, int cmd, struct msqid_ds __user *buf)
 #
-probe syscall.msgctl = kernel.function("sys_msgctl") {
+probe syscall.msgctl = kernel.function("sys_msgctl") ? {
 	name = "msgctl"
 	msqid = $msqid
 	cmd = $cmd
 	buf_uaddr = $buf
 	argstr = sprintf("%d, %d, %p", $msqid, $cmd, $buf)
 }
-probe syscall.msgctl.return = kernel.function("sys_msgctl").return {
+probe syscall.msgctl.return = kernel.function("sys_msgctl").return ? {
 	name = "msgctl"
 	retstr = returnstr(1)
 }
@@ -2464,14 +2587,14 @@ probe syscall.compat_sys_msgctl.return = kernel.function("compat_sys_msgctl").re
 # msgget _____________________________________________________
 # long sys_msgget (key_t key, int msgflg)
 #
-probe syscall.msgget = kernel.function("sys_msgget") {
+probe syscall.msgget = kernel.function("sys_msgget") ? {
 	name = "msgget"
 	key = $key
 	msgflg = $msgflg
 	msgflg_str = _sys_open_flag_str($msgflg)
 	argstr = sprintf("%d, %s", $key, _sys_open_flag_str($msgflg))
 }
-probe syscall.msgget.return = kernel.function("sys_msgget").return {
+probe syscall.msgget.return = kernel.function("sys_msgget").return ? {
 	name = "msgget"
 	retstr = returnstr(1)
 }
@@ -2483,7 +2606,7 @@ probe syscall.msgget.return = kernel.function("sys_msgget").return {
 #             long msgtyp,
 #             int msgflg)
 #
-probe syscall.msgrcv = kernel.function("sys_msgrcv") {
+probe syscall.msgrcv = kernel.function("sys_msgrcv") ? {
 	name = "msgrcv"
 	msqid = $msqid
 	msgp_uaddr = $msgp
@@ -2492,7 +2615,7 @@ probe syscall.msgrcv = kernel.function("sys_msgrcv") {
 	msgflg = $msgflg
 	argstr = sprintf("%d, %p, %d, %d, %d", $msqid, $msgp, $msgsz, $msgtyp, $msgflg)
 }
-probe syscall.msgrcv.return = kernel.function("sys_msgrcv").return {
+probe syscall.msgrcv.return = kernel.function("sys_msgrcv").return ? {
 	name = "msgrcv"
 	retstr = returnstr(1)
 }
@@ -2516,7 +2639,7 @@ probe syscall.compat_sys_msgrcv.return = kernel.function("compat_sys_msgrcv").re
 #             size_t msgsz,
 #             int msgflg)
 #
-probe syscall.msgsnd = kernel.function("sys_msgsnd") {
+probe syscall.msgsnd = kernel.function("sys_msgsnd") ? {
 	name = "msgsnd"
 	msqid = $msqid
 	msgp_uaddr = $msgp
@@ -2524,7 +2647,7 @@ probe syscall.msgsnd = kernel.function("sys_msgsnd") {
 	msgflg = $msgflg
 	argstr = sprintf("%d, %p, %d, %d", $msqid, $msgp, $msgsz, $msgflg)
 }
-probe syscall.msgsnd.return = kernel.function("sys_msgsnd").return {
+probe syscall.msgsnd.return = kernel.function("sys_msgsnd").return ? {
 	name = "msgsnd"
 	retstr = returnstr(1)
 }

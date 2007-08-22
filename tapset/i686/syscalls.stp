@@ -128,34 +128,35 @@ probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return {
 }
 
 # vm86 _______________________________________________________
-/*
- * asmlinkage int
- * sys_vm86(struct pt_regs regs)
- */
-probe syscall.vm86 = kernel.function("sys_vm86") {
+#
+# int sys_vm86(struct pt_regs regs)
+#
+probe syscall.vm86 = kernel.function("sys_vm86") ? {
 	name = "vm86"
       /*
        * unsupported type identifier '$regs'
        * regs = $regs
        */
+	argstr = ""
 }
-probe syscall.vm86.return = kernel.function("sys_vm86").return {
+probe syscall.vm86.return = kernel.function("sys_vm86").return ? {
 	name = "vm86"	
 	retstr = returnstr(1)
 }
+
 # vm86old ____________________________________________________
-/*
- * asmlinkage int
- * sys_vm86old(struct pt_regs regs)
- */
-probe syscall.vm86old = kernel.function("sys_vm86old") {
-	name = "vm86old"
+#
+# int sys_vm86old(struct pt_regs regs)
+#
+probe syscall.vm86old = kernel.function("sys_vm86old") ? {
+	name = "vm86old"	
       /*
        * unsupported type identifier '$regs'
        * regs = $regs
        */
+	argstr = ""
 }
-probe syscall.vm86old.return = kernel.function("sys_vm86old").return {
+probe syscall.vm86old.return = kernel.function("sys_vm86old").return ? {
 	name = "vm86old"
 	retstr = returnstr(1)
 }

@@ -117,7 +117,7 @@ function _struct_utimbuf_u:string(uaddr:long)
 		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
 			_stp_ctime(ubuf.actime, abuf, 24);
 			_stp_ctime(ubuf.modtime, mbuf, 24);
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s, %s", abuf, mbuf);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%s, %s]", abuf, mbuf);
 		} else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
@@ -136,7 +136,7 @@ function _struct_compat_utimbuf_u:string(uaddr:long)
 		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
 			_stp_ctime(ubuf.actime, abuf, 24);
 			_stp_ctime(ubuf.modtime, mbuf, 24);
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "%s, %s", abuf, mbuf);
+			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%s, %s]", abuf, mbuf);
 		} else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
@@ -1736,7 +1736,7 @@ function _dfd_str(d) {
 	return sprint(d)
 }
 
-function _utimensat_flag_str(f) {
+function _at_flag_str(f) {
 	if (f == 0x100) return "AT_SYMLINK_NOFOLLOW"
 	return sprintf("0x%x", f)
 }
