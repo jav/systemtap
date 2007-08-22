@@ -44,11 +44,13 @@ function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
         struct inode * dir = (struct inode *)(THIS->dir);
         struct rpc_clnt * clnt = NFS_CLIENT(dir); /* FIXME: deref hazard! */
         struct rpc_xprt * cl_xprt = kread(&(clnt->cl_xprt));
+  	/* sockaddr_storage is used since 2.6.19. Need cast*/
+	struct sockaddr_in *addr = (struct sockaddr_in *)&(cl_xprt->addr);
 
         if(index == 0) {
-                if (kread(&(cl_xprt->addr.sin_family)) == AF_INET) {
+                if (kread(&(addr->sin_family)) == AF_INET) {
                         /* Now consider ipv4 only */
-                        THIS->__retvalue = kread(&(cl_xprt->addr.sin_addr.s_addr));
+                        THIS->__retvalue = kread(&(addr->sin_addr.s_addr));
                 } else
                         THIS->__retvalue = 0;
         } else
@@ -303,8 +305,8 @@ probe nfs.proc2.read = kernel.function("nfs_proc_read") ?,
         version =2
 
 	flags = $rdata->flags
-        count = $rdata->args->count
-        offset = $rdata->args->offset
+        count = $rdata->args.count
+        offset = $rdata->args.offset
 
 	name = "nfs.proc2.read"
 	argstr = sprintf("%d,%d",count,offset)
@@ -319,13 +321,8 @@ probe nfs.proc2.read.return = kernel.function("nfs_proc_read").return ?,
         version =2
 	name = "nfs.proc2.read.return"
 	retstr = sprintf("%d", $return)
-       
-        if(retsrt >= 0)
-        {  
-        	size = retstr
-	        units = "bytes"
-	}
 }
+
 
 probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
                        module("nfs").function("nfs3_proc_read")?
@@ -335,8 +332,8 @@ probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
         version =3
 
 	flags = $rdata->flags
-        count = $rdata->args->count
-        offset = $rdata->args->offset
+        count = $rdata->args.count
+        offset = $rdata->args.offset
 
 	name = "nfs.proc3.read"
 	argstr = sprintf("%d,%d",count,offset)
@@ -345,21 +342,13 @@ probe nfs.proc3.read = kernel.function("nfs3_proc_read") ?,
         units = "bytes"
 }
 
-
 probe nfs.proc3.read.return = kernel.function("nfs3_proc_read").return ?,
                        module("nfs").function("nfs3_proc_read").return?
 {
         version =3
 	name = "nfs.proc3.read.return"
-	retstr = sprintf("%d", $return)
-
-        if(retsrt >= 0)
-        {  
-        	size = retstr
-	        units = "bytes"
-	}
+        retstr = sprintf("%d", $return)
 }
-
 
 probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
                        module("nfs").function("nfs4_proc_read")?
@@ -369,8 +358,8 @@ probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
         version =4
 
 	flags = $rdata->flags
-        count = $rdata->args->count
-        offset = $rdata->args->offset
+        count = $rdata->args.count
+        offset = $rdata->args.offset
 
 	name = "nfs.proc4.read"
 	argstr = sprintf("%d,%d",count,offset)
@@ -379,19 +368,12 @@ probe nfs.proc4.read = kernel.function("nfs4_proc_read") ?,
         units = "bytes"
 }
 
-
 probe nfs.proc4.read.return = kernel.function("nfs4_proc_read").return ?,
                        module("nfs").function("nfs4_proc_read").return?
 {
         version =4
 	name = "nfs.proc4.read.return"
-	retstr = sprintf("%d", $return)
-        
-        if(retsrt >= 0)
-        {  
-        	size = retstr
-	        units = "bytes"
-	}
+        retstr = sprintf("%d", $return)
 }
 
 
@@ -433,8 +415,8 @@ probe nfs.proc2.write = kernel.function("nfs_proc_write")?,
         version =2
 
 	flags = $wdata->flags
-        count = $wdata->args->count
-        offset = $wdata->args->offset
+        count = $wdata->args.count
+        offset = $wdata->args.offset
 
 	name = "nfs.proc2.write"
 	argstr = sprintf("%d,%d",count,offset)
@@ -443,17 +425,15 @@ probe nfs.proc2.write = kernel.function("nfs_proc_write")?,
         units = "bytes"
 }
 
-
 probe nfs.proc2.write.return = kernel.function("nfs_proc_write").return ?,
                        module("nfs").function("nfs_proc_write").return?
 {
         version =2
 	name = "nfs.proc2.write.return"
 	retstr = sprintf("%d", $return)
-        
-        if(retsrt >= 0)
+        if($return >= 0)
         {  
-        	size = retstr
+        	size = $return
 	        units = "bytes"
 	}
 }
@@ -468,8 +448,8 @@ probe nfs.proc3.write = kernel.function("nfs3_proc_write")?,
         version =3
 
 	flags = $wdata->flags
-        count = $wdata->args->count
-        offset = $wdata->args->offset
+        count = $wdata->args.count
+        offset = $wdata->args.offset
 
 	name = "nfs.proc3.write"
 	argstr = sprintf("%d,%d",count,offset)
@@ -486,9 +466,9 @@ probe nfs.proc3.write.return = kernel.function("nfs3_proc_write").return ?,
 	name = "nfs.proc3.write.return"
 	retstr = sprintf("%d", $return)
         
-        if(retsrt >= 0)
+        if($return >= 0)
         {  
-        	size = retstr
+        	size = $return
 	        units = "bytes"
 	}
 }
@@ -503,8 +483,8 @@ probe nfs.proc4.write = kernel.function("nfs4_proc_write")?,
         version =4
 
 	flags = $wdata->flags
-        count = $wdata->args->count
-        offset = $wdata->args->offset
+        count = $wdata->args.count
+        offset = $wdata->args.offset
         bitmask0 = __nfsv4_bitmask($wdata->inode,0)
         bitmask1 = __nfsv4_bitmask($wdata->inode,1)
 
@@ -523,9 +503,9 @@ probe nfs.proc4.write.return = kernel.function("nfs4_proc_write").return ?,
 	name = "nfs.proc4.write.return"
 	retstr = sprintf("%d", $return)
         
-        if(retsrt >= 0)
+        if($return >= 0)
         {  
-        	size = retstr
+        	size = $return
 	        units = "bytes"
 	}
 }
@@ -563,8 +543,8 @@ probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")?,
         prot = __nfs_write_data_info($cdata,1)
         version =3
 
-        count = $cdata->args->count
-        offset = $cdata->args->offset
+        count = $cdata->args.count
+        offset = $cdata->args.offset
 
 	name = "nfs.proc3.commit"
 	argstr = sprintf("%d,%d",count,offset)
@@ -580,9 +560,9 @@ probe nfs.proc3.commit.return = kernel.function ("nfs3_proc_commit").return?,
 	name = "nfs.proc3.commit.return"
 	retstr = sprintf("%d", $return)
         
-        if(retsrt >= 0)
+        if($return >= 0)
         {  
-        	size = retstr
+        	size = $return
 	        units = "bytes"
 	}
 }
@@ -595,8 +575,8 @@ probe nfs.proc4.commit = kernel.function ("nfs4_proc_commit")?,
         prot = __nfs_write_data_info($cdata,1)
         version =4
 
-        count = $cdata->args->count
-        offset = $cdata->args->offset
+        count = $cdata->args.count
+        offset = $cdata->args.offset
         bitmask0 = __nfsv4_bitmask($cdata->inode,0)
         bitmask1 = __nfsv4_bitmask($cdata->inode,1)
 
@@ -614,9 +594,9 @@ probe nfs.proc4.commit.return = kernel.function ("nfs4_proc_commit").return?,
 	name = "nfs.proc4.commit.return"
 	retstr = sprintf("%d", $return)
         
-        if(retsrt >= 0)
+        if($return >= 0)
         {  
-        	size = retstr
+        	size = $return
 	        units = "bytes"
 	}
 }
@@ -654,8 +634,8 @@ probe nfs.proc2.read_setup = kernel.function("nfs_proc_read_setup") ?,
         prot = __nfs_read_data_info($data,1)
         version =2
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 
 	name = "nfs.proc2.read_setup"
 	argstr = sprintf("%d,%d",count,offset)
@@ -679,8 +659,8 @@ probe nfs.proc3.read_setup = kernel.function("nfs3_proc_read_setup") ?,
         version =3
 	fh = 
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 
 	name = "nfs.proc3.read_setup"
 	argstr = sprintf("%d,%d",count,offset)
@@ -703,8 +683,8 @@ probe nfs.proc4.read_setup = kernel.function("nfs4_proc_read_setup") ?,
         prot = __nfs_read_data_info($data,1)
         version =4
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 	//timestamp = $jiffies
 
 	name = "nfs.proc4.read_setup"
@@ -869,8 +849,8 @@ probe nfs.proc2.write_setup = kernel.function("nfs_proc_write_setup") ?,
         prot = __nfs_write_data_info($data,1)
         version =2
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 
 	name = "nfs.proc2.write_setup"
 	argstr = sprintf("%d,%d",count,offset)
@@ -893,8 +873,8 @@ probe nfs.proc3.write_setup = kernel.function("nfs3_proc_write_setup") ?,
         prot = __nfs_write_data_info($data,1)
         version =3
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 	how = $how
 
 	name = "nfs.proc3.write_setup"
@@ -917,8 +897,8 @@ probe nfs.proc4.write_setup = kernel.function("nfs4_proc_write_setup") ?,
         prot = __nfs_write_data_info($data,1)
         version =4
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 	how = $how
         bitmask0 = __nfsv4_bitmask($data->inode,0)
         bitmask1 = __nfsv4_bitmask($data->inode,1)
@@ -1086,8 +1066,8 @@ probe nfs.proc3.commit_setup = kernel.function("nfs3_proc_commit_setup") ?,
         prot = __nfs_write_data_info($data,1)
         version =3
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
 
 	name = "nfs.proc3.commit_setup"
 	argstr = sprintf("%d,%d",count,offset)
@@ -1109,8 +1089,8 @@ probe nfs.proc4.commit_setup = kernel.function("nfs4_proc_commit_setup") ?,
         prot = __nfs_write_data_info($data,1)
         version =4
 
-        count = $data->args->count
-        offset = $data->args->offset
+        count = $data->args.count
+        offset = $data->args.offset
         bitmask0 = __nfsv4_bitmask($data->inode,0)
         bitmask1 = __nfsv4_bitmask($data->inode,1)
 	//timestamp = $jiffies
@@ -1338,8 +1318,8 @@ probe nfs.proc2.create = kernel.function("nfs_proc_create")?,
 	version =2
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
-	filelen = $dentry->d_name->len
+	filename = kernel_string($dentry->d_name.name)
+	filelen = $dentry->d_name.len
 	mode = $sattr->ia_mode
 
 	name = "nfs.proc2.create"
@@ -1362,8 +1342,8 @@ probe nfs.proc3.create = kernel.function("nfs3_proc_create")?,
 	version =3
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
-	filelen = $dentry->d_name->len
+	filename = kernel_string($dentry->d_name.name)
+	filelen = $dentry->d_name.len
 	flag = $flags
 	mode = $sattr->ia_mode
 
@@ -1387,8 +1367,8 @@ probe nfs.proc4.create = kernel.function("nfs4_proc_create")?,
 	version =4
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
-	filelen = $dentry->d_name->len
+	filename = kernel_string($dentry->d_name.name)
+	filelen = $dentry->d_name.len
 	flag = $flags
 	mode = $sattr->ia_mode
 
@@ -1534,7 +1514,7 @@ probe nfs.proc2.rename = kernel.function("nfs_proc_rename")?,
 	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
 
-	name = "nfs.proc2.remove"
+	name = "nfs.proc2.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 
@@ -1560,7 +1540,7 @@ probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")?,
 	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
 
-	name = "nfs.proc3.remove"
+	name = "nfs.proc3.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 
@@ -1586,7 +1566,7 @@ probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")?,
 	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
 
-	name = "nfs.proc4.remove"
+	name = "nfs.proc4.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
 }
 

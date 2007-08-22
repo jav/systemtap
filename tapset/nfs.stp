@@ -254,8 +254,17 @@ function __file_parentname:string (file:long) %{ /* pure */
 %}
 
 function __iov_length:long(iov:long, nr_segs:long) %{ /* pure */
-        size_t count = iov_length((const struct iovec *)(long)THIS->iov, (unsigned long)THIS->nr_segs);
-        THIS->__retvalue = (long)count;
+        unsigned long seg;
+        size_t ret = 0;
+        const struct iovec *iov = (const struct iovec *)(long)THIS->iov;
+        unsigned long nr_segs = (unsigned long)THIS->nr_segs;
+
+        for (seg = 0; seg < nr_segs; seg++)
+                ret += kread(&(iov[seg].iov_len));
+
+        THIS->__retvalue = (long)ret;
+        CATCH_DEREF_FAULT();
+
 %}
 
 probe nfs.fop.entries = nfs.fop.llseek,

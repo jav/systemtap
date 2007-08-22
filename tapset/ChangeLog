@@ -1,3 +1,13 @@
+2007-08-22  Wenji Huang  <wenji.huang@oracle.com>
+
+        * nfs.stp (__iov_length): Updated, Temporary here.
+        * nfs_proc.stp (__i2n_ip_proto): Add type cast to sockaddr_in.
+        (nfs.proc?.*): Modify evaluating count and offset.
+        (nfs.proc?.read.return): Delete evaluating size and units.
+        (nfs.proc?.write.return): Modify evaluating size.
+        (nfs.proc?.create): Modify evaluating filename and filelen.
+        (nfs.proc?.rename): Fix typo.
+
 2007-08-22  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp (syscall.setdomainname): Add argstr content
