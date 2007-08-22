@@ -1,5 +1,12 @@
 2007-08-22  Wenji Huang  <wenji.huang@oracle.com>
 
+        * nfsd.stp (nfsd.proc?.*): Modify evaluating client_ip 
+	with function addr_from_rqst to make it compatible in kernel>=2.6.19
+	(nfsd.proc4.compound,nfsd.read,nfsd.write): Fix typo.
+	(nfsd.unlink): Fix reference to variable iap.
+
+2007-08-22  Wenji Huang  <wenji.huang@oracle.com>
+
         * nfs.stp (__iov_length): Updated, Temporary here.
         * nfs_proc.stp (__i2n_ip_proto): Add type cast to sockaddr_in.
         (nfs.proc?.*): Modify evaluating count and offset.

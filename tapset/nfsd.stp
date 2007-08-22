@@ -204,7 +204,7 @@ probe nfsd.proc.lookup.return = nfsd.proc2.lookup.return,
 probe nfsd.proc2.lookup = kernel.function("nfsd_proc_lookup") ?,
                           module("nfsd").function("nfsd_proc_lookup") ?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip = addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,1)
@@ -228,7 +228,7 @@ probe nfsd.proc2.lookup.return = kernel.function("nfsd_proc_lookup").return ?,
 probe nfsd.proc3.lookup = kernel.function("nfsd3_proc_lookup") ?,
                           module("nfsd").function("nfsd3_proc_lookup") ?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip = addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,1)
@@ -278,7 +278,7 @@ probe nfsd.proc.read.return = nfsd.proc2.read.return,
 probe nfsd.proc2.read = kernel.function("nfsd_proc_read")?,
                         module("nfsd").function("nfsd_proc_read")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,3)
@@ -311,7 +311,7 @@ probe nfsd.proc2.read.return = kernel.function("nfsd_proc_read").return?,
 probe nfsd.proc3.read = kernel.function("nfsd3_proc_read")?,
                         module("nfsd").function("nfsd3_proc_read")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,4)
@@ -371,7 +371,7 @@ probe nfsd.proc.write.return = nfsd.proc2.write.return,
 probe nfsd.proc2.write = kernel.function("nfsd_proc_write")?,
                         module("nfsd").function("nfsd_proc_write")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,5)
@@ -404,7 +404,7 @@ probe nfsd.proc2.write.return = kernel.function("nfsd_proc_write").return?,
 probe nfsd.proc3.write = kernel.function("nfsd3_proc_write")?,
                         module("nfsd").function("nfsd3_proc_write")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,6)
@@ -461,7 +461,7 @@ probe nfsd.proc.commit.return = nfsd.proc3.commit.return
 probe nfsd.proc3.commit = kernel.function("nfsd3_proc_commit")?,
                         module("nfsd").function("nfsd3_proc_commit")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,7) 
@@ -506,7 +506,7 @@ probe nfsd.proc.create.return = nfsd.proc2.create.return,
 probe nfsd.proc2.create = kernel.function("nfsd_proc_create")?,
                          module("nfsd").function("nfsd_proc_create")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,8)
@@ -529,7 +529,7 @@ probe nfsd.proc2.create.return =  kernel.function("nfsd_proc_create").return?,
 probe nfsd.proc3.create = kernel.function("nfsd3_proc_create")?,
                          module("nfsd").function("nfsd3_proc_create")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,9)
@@ -571,7 +571,7 @@ probe nfsd.proc.remove.return = nfsd.proc2.remove.return,
 probe nfsd.proc2.remove = kernel.function("nfsd_proc_remove")?,
                          module("nfsd").function("nfsd_proc_remove")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,10)
@@ -594,7 +594,7 @@ probe nfsd.proc2.remove.return =  kernel.function("nfsd_proc_remove").return?,
 probe nfsd.proc3.remove = kernel.function("nfsd3_proc_remove")?,
                          module("nfsd").function("nfsd3_proc_remove")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,11)
@@ -637,7 +637,7 @@ probe nfsd.proc.rename.return = nfsd.proc2.rename.return,
 probe nfsd.proc2.rename =  kernel.function("nfsd_proc_rename")?,
                            module("nfsd").function("nfsd_proc_rename")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 2
 	fh = __get_fh($argp,12)
@@ -663,7 +663,7 @@ probe nfsd.proc2.rename.return =  kernel.function("nfsd_proc_rename").return?,
 probe nfsd.proc3.rename =  kernel.function("nfsd3_proc_rename")?,
                            module("nfsd").function("nfsd3_proc_rename")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 3
 	fh = __get_fh($argp,14)
@@ -705,14 +705,14 @@ probe nfsd.proc.compound.return = nfsd.proc4.compound.return
 probe nfsd.proc4.compound = kernel.function("nfsd4_proc_compound")?,
                             module("nfsd").function("nfsd4_proc_compound")?
 {
-	client_ip = $rqstp->rq_addr->sin_addr->s_addr
+	client_ip =  addr_from_rqst($rqstp)
 	proto = $rqstp->rq_prot
         version = 4
 
 	num = $args->opcnt
 	op = $args->ops
 	
-	name = "nfsd.proc4.cmpound"
+	name = "nfsd.proc4.compound"
 	argstr = sprintf("%d",num)
 }
 
@@ -816,7 +816,7 @@ probe nfsd.read = kernel.function("nfsd_read") ?,
 	vlen = $vlen
 
 	name = "nfsd.read"
-	argstr = sprintf("%d,%d",count,offsee)
+	argstr = sprintf("%d,%d",count,offset)
 
 	size = count
 	units = "bytes"
@@ -854,7 +854,7 @@ probe nfsd.write = kernel.function("nfsd_write")?,
 	vlen = $vlen
 
 	name = "nfsd.write"
-	argstr = sprintf("%d,%d",count,offsee)
+	argstr = sprintf("%d,%d",count,offset)
 
 	size = count
 	units = "bytes"
@@ -1027,7 +1027,7 @@ probe nfsd.unlink = kernel.function("nfsd_unlink")?,
 	type = $type
 
 	name = "nfsd.unlink"
-	argstr = sprintf("%s,%d",filename,iap)
+	argstr = sprintf("%s,%d",filename,type)
 }
 
 probe nfsd.unlink.return = kernel.function("nfsd_unlink").return?,         
