@@ -2514,7 +2514,7 @@ probe syscall.tee = kernel.function("sys_tee") ? {
 	name = "tee"
 	argstr = sprintf("%d, %d, %d, 0x%x", $fdin, $fdout, $len, $flags) 
 }
-probe syscall.tee.return = kernel.function("sys_tee").return {
+probe syscall.tee.return = kernel.function("sys_tee").return ? {
 	name = "tee"
 	retstr = returnstr(1)
 }
