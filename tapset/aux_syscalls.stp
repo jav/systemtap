@@ -1094,13 +1094,14 @@ function _wait4_opt_str(f) {
 }
 
 /* `man sendmsg` for more information */
-function _send_flags_str(f) {
+function _sendflags_str(f) {
    if(f & 0x0001) bs="MSG_OOB|".bs
    if(f & 0x0080) bs="MSG_EOR|".bs
    if(f & 0x0004) bs="MSG_DONTROUTE|".bs
    if(f & 0x0040) bs="MSG_DONTWAIT|".bs
    if(f & 0x4000) bs="MSG_NOSIGNAL|".bs
    if(f & 0x0800) bs="MSG_CONFIRM|".bs
+   if(f & 0x8000) bs="MSG_MORE|".bs
    return substr(bs,0,strlen(bs)-1)
 }
 
