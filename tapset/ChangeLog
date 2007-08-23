@@ -1,3 +1,7 @@
+2007-08-09  William Cohen  <wcohen@redhat.com>
+
+	* syscalls2.stp (compat_sys_utimensat): Correct function arg.
+
 2007-08-23  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp (sys_tee.return): Make optional

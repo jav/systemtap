@@ -2923,7 +2923,7 @@ probe syscall.utimensat = kernel.function("sys_utimensat") ? {
 }
 probe syscall.compat_utimensat = kernel.function("compat_sys_utimensat") ? {
 	name = "utimensat"
-	argstr = sprintf("%s, %s, %s, %s", _dfd_str($dfd), user_string_quoted($filename), _struct_compat_timespec_u($utimes,2),
+	argstr = sprintf("%s, %s, %s, %s", _dfd_str($dfd), user_string_quoted($filename), _struct_compat_timespec_u($t,2),
 		_at_flag_str($flags))
 }
 probe syscall.utimensat.return =  kernel.function("sys_utimensat").return ? {
