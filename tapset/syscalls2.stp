@@ -1370,7 +1370,7 @@ probe syscall.send = kernel.function("sys_send") ? {
 	buf_uaddr = $buff
 	len = $len
 	flags = $flags
-	flags_str = _send_flags_str($flags)
+	flags_str = _sendflags_str($flags)
 	argstr = sprintf("%d, %p, %s", $fd, $buff, flags_str)
 }
 probe syscall.send.return = kernel.function("sys_send").return ? {
@@ -1414,8 +1414,8 @@ probe syscall.sendmsg = kernel.function("sys_sendmsg") ? {
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
-	flags_str = _send_flags_str($flags)
-	argstr = sprintf("%d, %p, %s", $fd, $msg, _send_flags_str($flags))
+	flags_str = _sendflags_str($flags)
+	argstr = sprintf("%d, %p, %s", $fd, $msg, _sendflags_str($flags))
 }
 probe syscall.sendmsg.return = kernel.function("sys_sendmsg").return ? {
 	name = "sendmsg"
@@ -1430,7 +1430,7 @@ probe syscall.compat_sys_sendmsg = kernel.function("compat_sys_sendmsg") ? {
 	s = $fd
 	msg_uaddr = $msg
 	flags = $flags
-	argstr = sprintf("%d, %p, %s", $fd, $msg, _send_flags_str($flags))
+	argstr = sprintf("%d, %p, %s", $fd, $msg, _sendflags_str($flags))
 }
 probe syscall.compat_sys_sendmsg.return = kernel.function("compat_sys_sendmsg").return ? {
 	name = "compat_sys_sendmsg"
@@ -1452,7 +1452,7 @@ probe syscall.sendto = kernel.function("sys_sendto") ? {
 	buf_uaddr = $buff
 	len = $len
 	flags = $flags
-	flags_str = _send_flags_str($flags)
+	flags_str = _sendflags_str($flags)
 	to_uaddr = $addr
 	tolen = $addr_len
 	argstr = sprintf("%d, %p, %d, %s, %p, %d", $fd, $buff,
