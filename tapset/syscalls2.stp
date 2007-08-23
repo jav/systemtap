@@ -3009,10 +3009,10 @@ probe syscall.waitid = kernel.function("sys_waitid") {
 	pid = $pid
 	infop_uaddr = $infop
 	options = $options
-	options_str = _wait4_opt_str($options)
+	options_str = _waitid_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %d, %p, %s, %p", $which, $pid,
-				$infop, _wait4_opt_str($options), $ru)
+				$infop, _waitid_opt_str($options), $ru)
 }
 probe syscall.waitid.return = kernel.function("sys_waitid").return {
 	name = "waitid"
@@ -3021,8 +3021,7 @@ probe syscall.waitid.return = kernel.function("sys_waitid").return {
 /* FIXME:
 # waitpid ____________________________________________________
 #
-# asmlinkage long
-# sys_wait4(pid_t pid,
+# long sys_wait4(pid_t pid,
 #	     int __user *stat_addr,
 #	     int options,
 #	     struct rusage __user *ru)
@@ -3034,14 +3033,15 @@ probe syscall.waitpid = kernel.function("sys_wait4") {
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
-	argstr = sprintf("%d, %p, %s, %p", $pid, status_uaddr,
-				options_str, rusage_uaddr)
+	argstr = sprintf("%d, %p, %s, %p", $pid, $stat_addr,
+				options_str, $ru)
 }
 probe syscall.waitpid.return = kernel.function("sys_wait4").return {
 	name = "waitpid"
 	retstr = returnstr(1)
 }
 */
+
 # write ______________________________________________________
 #
 # ssize_t sys_write(unsigned int fd,
@@ -3059,6 +3059,7 @@ probe syscall.write.return = kernel.function("sys_write").return {
 	name = "write"
 	retstr = returnstr(1)
 }
+
 # writev _____________________________________________________
 #
 # ssize_t sys_writev(unsigned long fd,

@@ -1,3 +1,9 @@
+2007-08-23  Martin Hunt  <hunt@redhat.com>
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* aux_syscalls.stp (_waitid_opt_str): New.
+	(_wait4_opt_str): Just handle wait4 options.
+	* syscalls2.stp (sys_waitid): Use _waitid_opt_str.
+	
 2007-08-23  Wenji Huang  <wenji.huang@oracle.com>
 
         * rpc.stp (sunrpc.svc.process, sunrpc.svc.recv): Modify evaluating 

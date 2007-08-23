@@ -1085,6 +1085,14 @@ function _msync_flag_str(f) {
 
 /* `man wait4` for more information */
 function _wait4_opt_str(f) {
+   if(f & 8) bs="WCONTINUED|".bs
+   if(f & 2) bs="WUNTRACED|".bs
+   if(f & 1) bs="WNOHANG|".bs
+   return substr(bs,0,strlen(bs)-1)
+}
+
+/* `man waitid` for more information */
+function _waitid_opt_str(f) {
    if(f & 0x01000000) bs="WNOWAIT|".bs
    if(f & 8) bs="WCONTINUED|".bs
    if(f & 4) bs="WEXITED|".bs
