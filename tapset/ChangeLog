@@ -1,3 +1,10 @@
+2007-08-23  Wenji Huang  <wenji.huang@oracle.com>
+
+        * rpc.stp (sunrpc.svc.process, sunrpc.svc.recv): Modify evaluating 
+	sv_name,sv_prog,sv_nrthreads in kernel>=2.6.19.
+	(sunrpc.sched.delay,sunrpc.sched.delay): Fix typo.
+	(sunrpc.*.return): Change name by adding "return".
+
 2007-08-23  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* aux_syscalls.stp (_send_flags_str): Add support for MSG_MORE
