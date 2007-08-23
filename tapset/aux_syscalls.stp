@@ -36,7 +36,7 @@ function _struct_compat_timeval_u:string(uaddr:long, n:long)
 				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld][%ld.%.06ld]", 
 					(long)tv[0].tv_sec, (long)tv[0].tv_usec, (long)tv[1].tv_sec, (long)tv[1].tv_usec);
 			else
-				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv.tv_sec, (long)tv.tv_usec);
+				snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]", (long)tv[0].tv_sec, (long)tv[0].tv_usec);
 	   	else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
@@ -201,7 +201,7 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 				if (str)
 					len = snprintf(ptr, MAXSTRINGLEN, "[%s]", str);
 				else
-					len = snprintf(ptr, MAXSTRINGLEN, "[%ld.%09ld]", (long)ts[i].tv_sec, ts[i].tv_nsec);
+					len = snprintf(ptr, MAXSTRINGLEN, "[%ld.%09ld]", (long)ts[i].tv_sec, (long)ts[i].tv_nsec);
 				ptr += len; i++;
 			}
 		}
