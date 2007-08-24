@@ -429,6 +429,9 @@ dwarf_diename_integrate (Dwarf_Die *die)
   return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
 }
 
+
+struct dwarf_query; // forward decl
+
 struct dwflpp
 {
   systemtap_session & sess;
@@ -901,21 +904,7 @@ struct dwflpp
   }
 
 
-  bool has_single_line_record (char const * srcfile, int lineno)
-  {
-    if (lineno < 0)
-      return false;
-
-    Dwarf_Line **srcsp = NULL;
-    size_t nsrcs = 0;
-
-    dwarf_assert ("dwarf_getsrc_file",
-		  dwarf_getsrc_file (module_dwarf,
-				     srcfile, lineno, 0,
-				     &srcsp, &nsrcs));
-
-    return nsrcs == 1;
-  }
+  bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
   void iterate_over_srcfile_lines (char const * srcfile,
 				   int lineno,
@@ -925,6 +914,7 @@ struct dwflpp
   {
     Dwarf_Line **srcsp = NULL;
     size_t nsrcs = 0;
+    dwarf_query * q = static_cast<dwarf_query *>(data);
 
     get_module_dwarf();
 
@@ -932,7 +922,8 @@ struct dwflpp
 		  dwarf_getsrc_file (module_dwarf,
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
-    // BUT:
+
+    // NB: Formerly, we used to filter, because:
 
     // dwarf_getsrc_file gets one *near hits* for line numbers, not
     // exact matches.  For example, an existing file but a nonexistent
@@ -940,11 +931,14 @@ struct dwflpp
     // file.  This may be similar to the GDB breakpoint algorithm, but
     // we don't want to be so fuzzy in systemtap land.  So we filter.
 
+    // But we now see the error of our ways, and skip this filtering.
+
     // XXX: the code also fails to match e.g.  inline function
     // definitions when the srcfile is a header file rather than the
     // CU name.
 
     size_t remaining_nsrcs = nsrcs;
+#if 0
     for (size_t i = 0; i < nsrcs; ++i)
       {
         int l_no;
@@ -961,7 +955,7 @@ struct dwflpp
             remaining_nsrcs --;
           }
       }
-
+#endif
 
     if (need_single_match && remaining_nsrcs > 1)
       {
@@ -976,30 +970,27 @@ struct dwflpp
 	int hi_try = -1;
 	for (size_t i = 1; i < 6; ++i)
 	  {
-	    if (lo_try == -1 && has_single_line_record(srcfile, lineno - i))
+	    if (lo_try == -1 && has_single_line_record(q, srcfile, lineno - i))
 	      lo_try = lineno - i;
 
-	    if (hi_try == -1 && has_single_line_record(srcfile, lineno + i))
+	    if (hi_try == -1 && has_single_line_record(q, srcfile, lineno + i))
 	      hi_try = lineno + i;
 	  }
 
-	string advice = "";
+        stringstream advice;
+        advice << "multiple addresses for " << srcfile << ":" << lineno;
 	if (lo_try > 0 || hi_try > 0)
-	  advice = " (try "
-	    + (lo_try > 0
-	       ? (string(srcfile) + ":" + lex_cast<string>(lo_try))
-	       : string(""))
-	    + (lo_try > 0 && hi_try > 0 ? " or " : "")
-	    + (hi_try > 0
-	       ? (string(srcfile) + ":"+ lex_cast<string>(hi_try))
-	       : string(""))
-	    + ")";
-
-	throw semantic_error("multiple addresses for "
-			     + string(srcfile)
-			     + ":"
-			     + lex_cast<string>(lineno)
-			     + advice);
+          {
+            advice << " (try ";
+            if (lo_try > 0)
+              advice << srcfile << ":" << lo_try;
+            if (lo_try > 0 && hi_try > 0)
+              advice << " or ";
+            if (hi_try > 0)
+              advice << srcfile << ":" << hi_try;
+            advice << ")";
+          }
+        throw semantic_error (advice.str());
       }
 
     try
@@ -2148,6 +2139,73 @@ struct dwarf_query : public base_query
 };
 
 
+// This little test routine represents an unfortunate breakdown in
+// abstraction between dwflpp (putatively, a layer right on top of
+// elfutils), and dwarf_query (interpreting a systemtap probe point).
+// It arises because we sometimes try to fix up slightly-off
+// .statement() probes (something we find out in fairly low-level).
+//
+// An alternative would be to put some more intellgence into query_cu(),
+// and have it print additional suggestions after finding that 
+// q->dw.iterate_over_srcfile_lines resulted in no new finished_results.
+
+bool
+dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int lineno)
+{
+  if (lineno < 0)
+    return false;
+
+    Dwarf_Line **srcsp = NULL;
+    size_t nsrcs = 0;
+
+    dwarf_assert ("dwarf_getsrc_file",
+		  dwarf_getsrc_file (module_dwarf,
+				     srcfile, lineno, 0,
+				     &srcsp, &nsrcs));
+
+    if (nsrcs != 1) 
+      {
+        if (sess.verbose>4)
+          clog << "alternative line " << lineno << " rejected: nsrcs=" << nsrcs << endl;
+        return false;
+      }
+
+    // We also try to filter out lines that leave the selected
+    // functions (if any).
+
+    Dwarf_Line *line = srcsp[0];
+    Dwarf_Addr addr;
+    dwarf_lineaddr (line, &addr);
+
+    for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+         i != q->filtered_functions.end(); ++i)
+      {
+        if (q->dw.die_has_pc (&(i->second.die), addr))
+          {
+            if (q->sess.verbose>4)
+              clog << "alternative line " << lineno << " accepted: fn=" << i->second.name << endl;
+            return true;
+          }
+      }
+
+    for (map<Dwarf_Addr, inline_instance_info>::iterator i = q->filtered_inlines.begin();
+         i != q->filtered_inlines.end(); ++i)
+      {
+        if (q->dw.die_has_pc (&(i->second.die), addr))
+          {
+            if (sess.verbose>4)
+              clog << "alternative line " << lineno << " accepted: ifn=" << i->second.name << endl;
+            return true;
+          }
+      }
+
+    if (sess.verbose>4)
+      clog << "alternative line " << lineno << " rejected: leaves selected fns" << endl;
+    return false;
+  }
+
+
+
 struct dwarf_builder: public derived_probe_builder
 {
   dwflpp *kern_dw;
@@ -2672,7 +2730,7 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
 			     lineno, // NB: not q->line !
-                             NULL, addr, q);
+                             &(i->second.die), addr, q);
 	  else
 	    query_func_info (i->first, i->second, q);
 	}
@@ -2688,7 +2746,7 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
-			     q->line, NULL, addr, q);
+			     q->line, &(i->second.die), addr, q);
 	  else
 	    query_inline_instance_info (i->first, i->second, q);
 	}

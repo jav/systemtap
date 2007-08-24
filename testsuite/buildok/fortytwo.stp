@@ -1,0 +1,24 @@
+#! /bin/sh
+
+# This is a roundabout test of kernel.statement().
+
+set -e
+
+fn="do_readv_writev@fs/read_write.c"
+var="file"
+
+fullfn=`stap -p2 -e 'probe kernel.statement("'$fn'") {}' | grep kernel | cut -f2 -d'"'`
+lineno=`echo $fullfn | cut -f2 -d:`
+
+echo "$0: $fn found, starting line $lineno"
+
+for i in 0 1 2 4 6 10 15 20 25 # some random numbers, not larger than the number of lines in fn
+do
+    ilineno=`expr $lineno + $i`
+    errors=`stap -u -p4 -e 'probe kernel.statement("'$fn':'$ilineno'") {$'$var'}' 2>&1 >/dev/null ||true `
+    if echo "$errors" | grep -q unable.to.find.local
+    then
+	echo "Unexpected error $errors"; exit 1
+    fi
+    echo 'probe kernel.statement("'$fn':'$ilineno'") {$'$var'}' '#' OK
+done

@@ -1,10 +1,17 @@
 * What's new since version 0.5.15?
 
 - New security model.  To install a systemtap kernel module, a user
-must be one of the following: the root user; a member of the 'stapdev'
-group; or a member of the 'stapusr' group.  Members of the stapusr group can
-only use modules located in the /lib/modules/VERSION/systemtap
-directory (where VERSION is the output of "uname -r").
+  must be one of the following: the root user; a member of the
+  'stapdev' group; or a member of the 'stapusr' group.  Members of the
+  stapusr group can only use modules located in the
+  /lib/modules/VERSION/systemtap directory (where VERSION is the
+  output of "uname -r").
+
+- .statement("...@file:line") probes now apply heuristics to allow an
+  approximate match for the line number.  This works similarly to gdb,
+  where a breakpoint placed on an empty source line is automatically
+  moved to the next statement.  A silly bug that made many $target
+  variables inaccessible to .statement() probes was also fixed.
 
 * What's new since version 0.5.14?
 

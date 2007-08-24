@@ -1,3 +1,14 @@
+2007-08-24  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 4899
+	* tapsets.cxx (dwflpp::has_single_line_record): Extended,
+	abstraction violated.
+	(iterate_over_srcfile_lines): Remove exactly line number match
+	logic.  Improve error message to offered better-checked alternative
+	line numbers.
+	(query_srcfile_line): Whoops, pass scope_die down for statement("...")
+	probes, to enable $target var processing.
+
 2007-08-21  David Smith  <dsmith@redhat.com>
 
 	PR 2305
@@ -6,9 +17,9 @@
 	@count.
 
 2007-08-20  Martin Hunt  <hunt@redhat.com>
-	PR2424
-	From Lai Jiangshan <laijs@cn.fujitsu.com>
-	
+
+	PR 2424
+	From Lai Jiangshan <laijs@cn.fujitsu.com:
 	* util.cxx (cmdstr_quoted): New. Properly quote 
 	command string.
 	* buildrun.cxx (run_pass): Call cmdstr_quoted().
