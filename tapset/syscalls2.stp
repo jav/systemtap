@@ -1371,7 +1371,7 @@ probe syscall.send = kernel.function("sys_send") ? {
 	len = $len
 	flags = $flags
 	flags_str = _sendflags_str($flags)
-	argstr = sprintf("%d, %p, %s", $fd, $buff, flags_str)
+	argstr = sprintf("%d, %p, %d, %s", $fd, $buff, $len, flags_str)
 }
 probe syscall.send.return = kernel.function("sys_send").return ? {
 	name = "send"

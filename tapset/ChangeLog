@@ -1,3 +1,7 @@
+2007-08-24  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls2.stp(send): Add len argument into argstr.
+
 2007-08-09  William Cohen  <wcohen@redhat.com>
 
 	* syscalls2.stp (compat_sys_utimensat): Correct function arg.
