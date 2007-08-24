@@ -1,3 +1,8 @@
+2007-08-24  Wenji Huang  <wenji.huang@oracle.com>
+
+        * scheduler.stp (scheduler.cpu_on,scheduler.migrate): Make optional.
+	(scheduler.migrate): Modify evaluating cpu_from with task_cpu.
+
 2007-08-24  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp(send): Add len argument into argstr.
