@@ -2,6 +2,8 @@
 
 	PR 4899
 	* buildok/fortytwo.stp: New test.
+	* semko/thirtynine.stp: Removed test, now that bug #1305 has become
+	mooted/undone.
 
 2007-08-21  David Smith  <dsmith@redhat.com>
 

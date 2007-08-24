@@ -1,5 +1,0 @@
-#! stap -p2
-
-# bug 1305
-probe kernel.function("*@fs/open.c:1") {
-}
