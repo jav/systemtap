@@ -162,6 +162,12 @@ date=`date +%Y-%m-%d`
 AC_DEFINE_UNQUOTED(DATE, "$date", [Configuration/build date])
 AC_SUBST(DATE, "$date")
 
+
+# This procflags business is for staprun/stapio, which need to
+# be compiled with the same bitness as the kernel.  On e.g. PPC,
+# userspace might be 32-bit default, but staprun needs to be
+# 64-bit.  See also bug #4037.
+
 processor=`uname -p`
 case "$processor" in
 ppc64) PROCFLAGS=-m64 ;;
@@ -169,6 +175,16 @@ x86_64) PROCFLAGS=-m64 ;;
 *) PROCFLAGS=""
 esac
 AC_SUBST([PROCFLAGS])
+
+# -lcap is used for staprun, so PROCFLAGS comes in to play
+SAVE_LIBS="$LIBS"
+SAVE_CFLAGS="$CFLAGS"
+CFLAGS="$CFLAGS $PROCFLAGS"
+AC_CHECK_LIB(cap, cap_init, [], [AC_MSG_ERROR(need $PROCFLAGS -lcap)])
+cap_LIBS="$LIBS"
+AC_SUBST(cap_LIBS)
+LIBS="$SAVE_LIBS"
+CFLAGS="$SAVE_CFLAGS"
 
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
