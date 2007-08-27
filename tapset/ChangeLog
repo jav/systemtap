@@ -1,3 +1,7 @@
+2007-08-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls2.stp(sendto): Set $addr as content string in argstr.
+
 2007-08-24  Wenji Huang  <wenji.huang@oracle.com>
 
         * scheduler.stp (scheduler.cpu_on,scheduler.migrate): Make optional.
