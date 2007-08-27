@@ -33,7 +33,7 @@ proc build_modules {} {
     set old_dir [pwd]
     cd $build_dir
 
-    foreach n {1 2} {
+    foreach n {2 1} {
 	exec cp $old_dir/makefile$n Makefile
 	if {[catch {exec make clean} res]} {
 	    puts $res

@@ -1,3 +1,8 @@
+2007-08-27  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.context/context.exp (build_modules): Change
+	build order to prevent messages about no version for yyy_int64.
+
 2007-08-24  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4899
