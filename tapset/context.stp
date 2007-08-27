@@ -147,6 +147,10 @@ function target:long () %{ /* pure */
         THIS->__retvalue = _stp_target;
 %}
 
+function module_name:string () %{ /* pure */
+	strlcpy(THIS->__retvalue, THIS_MODULE->name, MAXSTRINGLEN);
+%}
+
 function stp_pid:long () %{ /* pure */
         THIS->__retvalue = _stp_pid;
 %}

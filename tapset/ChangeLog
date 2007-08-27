@@ -1,3 +1,10 @@
+2007-08-27  Martin Hunt  <hunt@redhat.com>
+
+	* context.stp (module_name): New. Returns the current
+	module name.
+
+	* tcp.stp (tcp_sendmsg): For 2.6.23, parameters change.
+
 2007-08-27  Wenji Huang  <wenji.huang@oracle.com>
 
         * signal.stp (signal.do_action): Modify evaluating sa_handler,sa_mask.

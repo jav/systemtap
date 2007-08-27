@@ -121,7 +121,11 @@ function tcp_sockopt_str:string (optname:long) {
 //  size         - number of bytes to send  
 //
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
+%( kernel_v < "2.6.23" %?
 	sock    = $sk
+%:
+	sock = $sock
+%)
 	size    = $size
 }
 
