@@ -105,27 +105,6 @@ AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
 AC_CHECK_HEADERS([sys/capability.h], , 
 	[AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
 
-mysql=false
-
-SAVE_LDFLAGS=$LDFLAGS
-SAVE_CPPFLAGS=$CPPFLAGS
-
-AC_PATH_PROG(MYSQL_CONFIG, mysql_config, no)
-if test "$MYSQL_CONFIG" = "no"; then
-  AC_MSG_NOTICE([*** Cannot find mysql_config executable. Guess MySQL compiling flags.])
-  CPPFLAGS="-I/usr/include/mysql $CPPFLAGS"
-  LDFLAGS="-L/usr/lib/mysql $LDFLAGS -L/usr/lib64/mysql"
-else
-  CPPFLAGS="`mysql_config --cflags` $CPPFLAGS"
-  LDFLAGS="`mysql_config --libs` $LDFLAGS"
-fi
-
-AM_CONDITIONAL(HAS_MYSQL, test "$mysql" = "true")
-AM_CONDITIONAL(HAS_MYSQL_CONFIG, test "$MYSQL_CONFIG" != "no")
-
-LDFLAGS=$SAVE_LDFLAGS
-CPPFLAGS=$SAVE_CPPFLAGS
-
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"

@@ -13,6 +13,10 @@
   moved to the next statement.  A silly bug that made many $target
   variables inaccessible to .statement() probes was also fixed.
 
+- LKET has been retired.  Please let us know on <systemtap@sourceware.org>
+  if you have been a user of the tapset/tools, so we can help you find
+  another way.
+
 * What's new since version 0.5.14?
 
 - The way in which command line arguments for scripts are substituted has

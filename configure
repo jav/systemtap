@@ -711,11 +711,6 @@ BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
 BUILD_CRASHMOD_TRUE
 BUILD_CRASHMOD_FALSE
-MYSQL_CONFIG
-HAS_MYSQL_TRUE
-HAS_MYSQL_FALSE
-HAS_MYSQL_CONFIG_TRUE
-HAS_MYSQL_CONFIG_FALSE
 stap_LIBS
 DATE
 PROCFLAGS
@@ -6287,292 +6282,6 @@ fi
 done
 
 
-mysql=false
-
-SAVE_LDFLAGS=$LDFLAGS
-SAVE_CPPFLAGS=$CPPFLAGS
-
-# Extract the first word of "mysql_config", so it can be a program name with args.
-set dummy mysql_config; ac_word=$2
-{ echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
-if test "${ac_cv_path_MYSQL_CONFIG+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $MYSQL_CONFIG in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_MYSQL_CONFIG="$MYSQL_CONFIG" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_MYSQL_CONFIG="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_path_MYSQL_CONFIG" && ac_cv_path_MYSQL_CONFIG="no"
-  ;;
-esac
-fi
-MYSQL_CONFIG=$ac_cv_path_MYSQL_CONFIG
-if test -n "$MYSQL_CONFIG"; then
-  { echo "$as_me:$LINENO: result: $MYSQL_CONFIG" >&5
-echo "${ECHO_T}$MYSQL_CONFIG" >&6; }
-else
-  { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-if test "$MYSQL_CONFIG" = "no"; then
-  { echo "$as_me:$LINENO: *** Cannot find mysql_config executable. Guess MySQL compiling flags." >&5
-echo "$as_me: *** Cannot find mysql_config executable. Guess MySQL compiling flags." >&6;}
-  CPPFLAGS="-I/usr/include/mysql $CPPFLAGS"
-  LDFLAGS="-L/usr/lib/mysql $LDFLAGS -L/usr/lib64/mysql"
-else
-  CPPFLAGS="`mysql_config --cflags` $CPPFLAGS"
-  LDFLAGS="`mysql_config --libs` $LDFLAGS"
-fi
-
-
-for ac_header in mysql/mysql.h
-do
-as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  { echo "$as_me:$LINENO: checking for $ac_header" >&5
-echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-fi
-ac_res=`eval echo '${'$as_ac_Header'}'`
-	       { echo "$as_me:$LINENO: result: $ac_res" >&5
-echo "${ECHO_T}$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ echo "$as_me:$LINENO: checking $ac_header usability" >&5
-echo $ECHO_N "checking $ac_header usability... $ECHO_C" >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-$ac_includes_default
-#include <$ac_header>
-_ACEOF
-rm -f conftest.$ac_objext
-if { (ac_try="$ac_compile"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_compile") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest.$ac_objext; then
-  ac_header_compiler=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_header_compiler=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
-echo "${ECHO_T}$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ echo "$as_me:$LINENO: checking $ac_header presence" >&5
-echo $ECHO_N "checking $ac_header presence... $ECHO_C" >&6; }
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-#include <$ac_header>
-_ACEOF
-if { (ac_try="$ac_cpp conftest.$ac_ext"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } >/dev/null && {
-	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       }; then
-  ac_header_preproc=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-  ac_header_preproc=no
-fi
-
-rm -f conftest.err conftest.$ac_ext
-{ echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
-echo "${ECHO_T}$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
-  yes:no: )
-    { echo "$as_me:$LINENO: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&5
-echo "$as_me: WARNING: $ac_header: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the compiler's result" >&5
-echo "$as_me: WARNING: $ac_header: proceeding with the compiler's result" >&2;}
-    ac_header_preproc=yes
-    ;;
-  no:yes:* )
-    { echo "$as_me:$LINENO: WARNING: $ac_header: present but cannot be compiled" >&5
-echo "$as_me: WARNING: $ac_header: present but cannot be compiled" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header:     check for missing prerequisite headers?" >&5
-echo "$as_me: WARNING: $ac_header:     check for missing prerequisite headers?" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header: see the Autoconf documentation" >&5
-echo "$as_me: WARNING: $ac_header: see the Autoconf documentation" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&5
-echo "$as_me: WARNING: $ac_header:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header: proceeding with the preprocessor's result" >&5
-echo "$as_me: WARNING: $ac_header: proceeding with the preprocessor's result" >&2;}
-    { echo "$as_me:$LINENO: WARNING: $ac_header: in the future, the compiler will take precedence" >&5
-echo "$as_me: WARNING: $ac_header: in the future, the compiler will take precedence" >&2;}
-    ( cat <<\_ASBOX
-## ------------------------------------------- ##
-## Report this to systemtap@sources.redhat.com ##
-## ------------------------------------------- ##
-_ASBOX
-     ) | sed "s/^/$as_me: WARNING:     /" >&2
-    ;;
-esac
-{ echo "$as_me:$LINENO: checking for $ac_header" >&5
-echo $ECHO_N "checking for $ac_header... $ECHO_C" >&6; }
-if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  eval "$as_ac_Header=\$ac_header_preproc"
-fi
-ac_res=`eval echo '${'$as_ac_Header'}'`
-	       { echo "$as_me:$LINENO: result: $ac_res" >&5
-echo "${ECHO_T}$ac_res" >&6; }
-
-fi
-if test `eval echo '${'$as_ac_Header'}'` = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
- { echo "$as_me:$LINENO: checking for mysql_init in -lmysqlclient" >&5
-echo $ECHO_N "checking for mysql_init in -lmysqlclient... $ECHO_C" >&6; }
-if test "${ac_cv_lib_mysqlclient_mysql_init+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lmysqlclient  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char mysql_init ();
-int
-main ()
-{
-return mysql_init ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_mysqlclient_mysql_init=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_mysqlclient_mysql_init=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_mysqlclient_mysql_init" >&5
-echo "${ECHO_T}$ac_cv_lib_mysqlclient_mysql_init" >&6; }
-if test $ac_cv_lib_mysqlclient_mysql_init = yes; then
-  mysql=true
-fi
-
-fi
-
-done
-
-
- if test "$mysql" = "true"; then
-  HAS_MYSQL_TRUE=
-  HAS_MYSQL_FALSE='#'
-else
-  HAS_MYSQL_TRUE='#'
-  HAS_MYSQL_FALSE=
-fi
-
- if test "$MYSQL_CONFIG" != "no"; then
-  HAS_MYSQL_CONFIG_TRUE=
-  HAS_MYSQL_CONFIG_FALSE='#'
-else
-  HAS_MYSQL_CONFIG_TRUE='#'
-  HAS_MYSQL_CONFIG_FALSE=
-fi
-
-
-LDFLAGS=$SAVE_LDFLAGS
-CPPFLAGS=$SAVE_CPPFLAGS
-
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
@@ -6995,20 +6704,6 @@ if test -z "${BUILD_CRASHMOD_TRUE}" && test -z "${BUILD_CRASHMOD_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_CRASHMOD\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_CRASHMOD\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${HAS_MYSQL_TRUE}" && test -z "${HAS_MYSQL_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"HAS_MYSQL\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"HAS_MYSQL\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${HAS_MYSQL_CONFIG_TRUE}" && test -z "${HAS_MYSQL_CONFIG_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"HAS_MYSQL_CONFIG\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"HAS_MYSQL_CONFIG\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7657,8 +7352,8 @@ sqlite3_LIBS!$sqlite3_LIBS$ac_delim
 BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
 BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
 elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
-BUILD_LKET_B2A_TRUE!$BUILD_LKET_B2A_TRUE$ac_delim
-BUILD_LKET_B2A_FALSE!$BUILD_LKET_B2A_FALSE$ac_delim
+BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
+BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7700,13 +7395,6 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
-BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
-BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
-MYSQL_CONFIG!$MYSQL_CONFIG$ac_delim
-HAS_MYSQL_TRUE!$HAS_MYSQL_TRUE$ac_delim
-HAS_MYSQL_FALSE!$HAS_MYSQL_FALSE$ac_delim
-HAS_MYSQL_CONFIG_TRUE!$HAS_MYSQL_CONFIG_TRUE$ac_delim
-HAS_MYSQL_CONFIG_FALSE!$HAS_MYSQL_CONFIG_FALSE$ac_delim
 stap_LIBS!$stap_LIBS$ac_delim
 DATE!$DATE$ac_delim
 PROCFLAGS!$PROCFLAGS$ac_delim
@@ -7716,7 +7404,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 14; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 7; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

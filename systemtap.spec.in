@@ -46,7 +46,6 @@ Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
-BuildRequires: glib2-devel >= 2.0.0
 BuildRequires: libcap-devel
 # make check
 BuildRequires: dejagnu
@@ -54,7 +53,6 @@ BuildRequires: dejagnu
 BuildRequires: sqlite-devel
 Requires: sqlite
 %endif
-Requires: glib2 >= 2.0.0
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
 Requires: gcc make
