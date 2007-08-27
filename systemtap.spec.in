@@ -158,7 +158,6 @@ exit 0
 %doc README AUTHORS NEWS COPYING examples
 
 %{_bindir}/stap
-%{_bindir}/lket-b2a
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 

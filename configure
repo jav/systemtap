@@ -709,8 +709,6 @@ sqlite3_LIBS
 BUILD_ELFUTILS_TRUE
 BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
-BUILD_LKET_B2A_TRUE
-BUILD_LKET_B2A_FALSE
 BUILD_CRASHMOD_TRUE
 BUILD_CRASHMOD_FALSE
 MYSQL_CONFIG
@@ -6068,16 +6066,6 @@ fi
 `
 
 
- if pkg-config --atleast-version 2.0.0 glib-2.0; then
-  BUILD_LKET_B2A_TRUE=
-  BUILD_LKET_B2A_FALSE='#'
-else
-  BUILD_LKET_B2A_TRUE='#'
-  BUILD_LKET_B2A_FALSE=
-fi
-
-
-
 
 for ac_header in crash/defs.h
 do
@@ -6558,14 +6546,8 @@ fi
 echo "${ECHO_T}$ac_cv_lib_mysqlclient_mysql_init" >&6; }
 if test $ac_cv_lib_mysqlclient_mysql_init = yes; then
   mysql=true
-else
-  { echo "$as_me:$LINENO: *** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support." >&5
-echo "$as_me: *** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support." >&6;}
 fi
 
-else
-  { echo "$as_me:$LINENO: *** Cannot find mysql header file. lket-b2a will be built without MySQL support." >&5
-echo "$as_me: *** Cannot find mysql header file. lket-b2a will be built without MySQL support." >&6;}
 fi
 
 done
@@ -6590,13 +6572,6 @@ fi
 
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
-
-if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
-  { echo "$as_me:$LINENO: WARNING: glib2-devel is required to build lket-b2a.
-  no glib2-devel found, skip building lket-b2a..." >&5
-echo "$as_me: WARNING: glib2-devel is required to build lket-b2a.
-  no glib2-devel found, skip building lket-b2a..." >&2;}
-fi
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
@@ -6873,7 +6848,7 @@ CFLAGS="$SAVE_CFLAGS"
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
+ac_config_files="$ac_config_files Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
 
 subdirs="$subdirs testsuite"
 
@@ -7013,13 +6988,6 @@ if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_ELFUTILS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_ELFUTILS\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${BUILD_LKET_B2A_TRUE}" && test -z "${BUILD_LKET_B2A_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"BUILD_LKET_B2A\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"BUILD_LKET_B2A\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7520,9 +7488,6 @@ do
     "stapfuncs.5") CONFIG_FILES="$CONFIG_FILES stapfuncs.5" ;;
     "stapex.5") CONFIG_FILES="$CONFIG_FILES stapex.5" ;;
     "staprun.8") CONFIG_FILES="$CONFIG_FILES staprun.8" ;;
-    "lket.5") CONFIG_FILES="$CONFIG_FILES lket.5" ;;
-    "lket-b2a.1") CONFIG_FILES="$CONFIG_FILES lket-b2a.1" ;;
-    "runtime/lket/b2a/Makefile") CONFIG_FILES="$CONFIG_FILES runtime/lket/b2a/Makefile" ;;
     "man/stapprobes.iosched.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.iosched.5" ;;
     "man/stapprobes.netdev.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.netdev.5" ;;
     "man/stapprobes.nfs.5") CONFIG_FILES="$CONFIG_FILES man/stapprobes.nfs.5" ;;

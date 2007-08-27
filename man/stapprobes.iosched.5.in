@@ -97,5 +97,4 @@ Fires when a request is completed
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (5),
-.IR lket (5)
 

@@ -75,4 +75,3 @@ Fires when the network device wants to transmit a buffer
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (5),
-.IR lket (5)

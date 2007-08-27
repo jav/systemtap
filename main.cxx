@@ -228,12 +228,10 @@ main (int argc, char * const argv [])
   if (s_p != NULL)  
   {
     s.include_path.push_back (s_p);
-    s.include_path.push_back (string(s_p) + "/LKET");
   }
   else
   {
     s.include_path.push_back (string(PKGDATADIR) + "/tapset");
-    s.include_path.push_back (string(PKGDATADIR) + "/tapset/LKET");
   }
 
   const char* s_r = getenv ("SYSTEMTAP_RUNTIME");

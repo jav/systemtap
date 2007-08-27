@@ -41,12 +41,10 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT)
 @BUILD_ELFUTILS_FALSE@stap_DEPENDENCIES =
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
-@BUILD_LKET_B2A_TRUE@am__append_4 = runtime/lket/b2a
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/config.in $(srcdir)/lket-b2a.1.in \
-	$(srcdir)/lket.5.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
+	$(srcdir)/config.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
 	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
 	$(srcdir)/staprun.8.in $(srcdir)/systemtap.spec.in \
 	$(top_srcdir)/configure \
@@ -73,7 +71,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
 CONFIG_CLEAN_FILES = systemtap.spec stap.1 stapprobes.5 stapfuncs.5 \
-	stapex.5 staprun.8 lket.5 lket-b2a.1 man/stapprobes.iosched.5 \
+	stapex.5 staprun.8 man/stapprobes.iosched.5 \
 	man/stapprobes.netdev.5 man/stapprobes.nfs.5 \
 	man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 \
 	man/stapprobes.process.5 man/stapprobes.rpc.5 \
@@ -149,7 +147,7 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = testsuite runtime/lket/b2a
+DIST_SUBDIRS = testsuite
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -266,7 +264,7 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Wextra -Werror -Wshadow -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Wextra -Werror
-dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
+dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
@@ -389,10 +387,6 @@ stapfuncs.5: $(top_builddir)/config.status $(srcdir)/stapfuncs.5.in
 stapex.5: $(top_builddir)/config.status $(srcdir)/stapex.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 staprun.8: $(top_builddir)/config.status $(srcdir)/staprun.8.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-lket.5: $(top_builddir)/config.status $(srcdir)/lket.5.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
-lket-b2a.1: $(top_builddir)/config.status $(srcdir)/lket-b2a.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 man/stapprobes.iosched.5: $(top_builddir)/config.status $(top_srcdir)/man/stapprobes.iosched.5.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@

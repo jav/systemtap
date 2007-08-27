@@ -152,7 +152,6 @@ user and not be world writable.
 .IR stapprobes (5),
 .IR stapfuncs (5),
 .IR stapex (5),
-.IR lket (5),
 
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.

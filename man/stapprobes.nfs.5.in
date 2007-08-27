@@ -1233,5 +1233,4 @@ Fires whenever nfs client renames a file on server
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (5),
-.IR lket (5)
 

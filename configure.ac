@@ -95,9 +95,6 @@ AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
 
-AM_CONDITIONAL(BUILD_LKET_B2A, pkg-config --atleast-version 2.0.0 glib-2.0)
-
-
 AC_CHECK_HEADERS(crash/defs.h,
         build_crashmod=yes,build_crashmod=no,
         [
@@ -123,22 +120,11 @@ else
   LDFLAGS="`mysql_config --libs` $LDFLAGS"
 fi
 
-AC_CHECK_HEADERS(mysql/mysql.h,
-  AC_CHECK_LIB(mysqlclient, mysql_init,
-    mysql=true,
-    AC_MSG_NOTICE([*** Cannot find mysqlclient lib. lket-b2a will be built without MySQL support.]), []),
-  AC_MSG_NOTICE([*** Cannot find mysql header file. lket-b2a will be built without MySQL support.]), [])
-
 AM_CONDITIONAL(HAS_MYSQL, test "$mysql" = "true")
 AM_CONDITIONAL(HAS_MYSQL_CONFIG, test "$MYSQL_CONFIG" != "no")
 
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
-
-if ! pkg-config --atleast-version 2.0.0 glib-2.0; then
-  AC_MSG_WARN([glib2-devel is required to build lket-b2a.
-  no glib2-devel found, skip building lket-b2a...])
-fi
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
@@ -187,7 +173,7 @@ LIBS="$SAVE_LIBS"
 CFLAGS="$SAVE_CFLAGS"
 
 AC_CONFIG_HEADERS([config.h:config.in])
-AC_CONFIG_FILES(Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 lket.5 lket-b2a.1 runtime/lket/b2a/Makefile man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
+AC_CONFIG_FILES(Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
 AC_CONFIG_SUBDIRS(testsuite)
 
 AC_OUTPUT

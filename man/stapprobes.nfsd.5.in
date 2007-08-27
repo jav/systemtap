@@ -510,5 +510,4 @@ Fires whenever server receives NFS operation from client
 .SH SEE ALSO
 .IR stap (1),
 .IR stapprobes (5),
-.IR lket (5)
 
