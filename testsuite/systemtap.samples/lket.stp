@@ -1,3 +1,0 @@
-#! stap -bM
-probe addevent.* ? {}
-probe timer.ms(30000) { exit() }

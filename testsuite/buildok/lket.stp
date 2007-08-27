@@ -1,3 +1,0 @@
-#! stap -p4 -bM
-
-probe addevent.* ? {}
