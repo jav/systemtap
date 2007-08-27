@@ -411,10 +411,10 @@ probe signal.do_action = kernel.function("do_sigaction")
     sig = $sig
     sigact_addr = $act
     oldsigact_addr = $oact
-    if(sigact_table != 0)
+    if(sigact_addr != 0)
     {
-         sa_handler = $act->sa->sa_handler
-         sa_mask = $act->sa->sa_mask
+         sa_handler = $act->sa.sa_handler
+         sa_mask = $act->sa.sa_mask
     }
 }
 

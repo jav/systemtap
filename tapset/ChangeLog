@@ -1,3 +1,7 @@
+2007-08-27  Wenji Huang  <wenji.huang@oracle.com>
+
+        * signal.stp (signal.do_action): Modify evaluating sa_handler,sa_mask.
+
 2007-08-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp(sendto): Set $addr as content string in argstr.
