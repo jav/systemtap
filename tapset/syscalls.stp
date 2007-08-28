@@ -151,7 +151,11 @@ probe syscall.bdflush = kernel.function("sys_bdflush") {
 	name = "bdflush"
 	func = $func
 	data = $data
-	argstr = sprintf("%d %p",func, data)
+        if (($func>=2)&&($func%2==0))
+                data_str = sprintf("%p", $data)
+        else
+                data_str = sprintf("%d", $data)
+        argstr = sprintf("%d, %s",func, data_str)
 }
 probe syscall.bdflush.return = kernel.function("sys_bdflush").return {
 	name = "bdflush"
