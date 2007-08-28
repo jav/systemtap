@@ -1,3 +1,9 @@
+2007-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls.stp (bdflush): Add comma between args in argstr
+	Set second parameter(data)'s type by first parameter(func)'s
+	value in argstr.
+
 2007-08-27  Martin Hunt  <hunt@redhat.com>
 
 	* context.stp (module_name): New. Returns the current
