@@ -1,3 +1,7 @@
+2007-08-28  Wenji Huang  <wenji.huang@oracle.com>
+
+        * tcp.stp (sockstate): Fix typo.
+
 2007-08-28  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls.stp (bdflush): Add comma between args in argstr

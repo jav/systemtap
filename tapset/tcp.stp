@@ -51,7 +51,7 @@ function tcp_get_info_snd_cwnd:long(sock:long)
 //
 //Definitions of the TCP protocol sk_state field listed below.
 //
-//     TCP_ESTABLISED = 1,   Normal data transfer
+//     TCP_ESTABLISHED = 1,   Normal data transfer
 //     TCP_SYN_SENT   = 2,   App. has started to open a connection
 //     TCP_SYN_RECV   = 3,   A connection request has arrived; wait for ACK
 //     TCP_FIN_WAIT1  = 4,   App. has said it is finished
@@ -247,7 +247,7 @@ probe begin(-1) {
         sockopt[13] = "TCP_CONGESTION"
         sockopt[14] = "TCP_MD5SIG"
 
-	sockstate[1] = "TCP_ESTABLISED"
+	sockstate[1] = "TCP_ESTABLISHED"
 	sockstate[2] = "TCP_SYN_SENT"
 	sockstate[3] = "TCP_SYN_RECV"
 	sockstate[4] = "TCP_FIN_WAIT1"
