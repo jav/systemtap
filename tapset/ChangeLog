@@ -1,3 +1,8 @@
+2007-08-29  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls2.stp (sysfs): Set argstr's format different
+	by value of option arg.
+
 2007-08-28  Wenji Huang  <wenji.huang@oracle.com>
 
         * tcp.stp (sockstate): Fix typo.

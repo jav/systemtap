@@ -2464,7 +2464,14 @@ probe syscall.sysfs = kernel.function("sys_sysfs") {
 	option = $option
 	arg1 = $arg1
 	arg2 = $arg2
-	argstr = sprintf("%d, %d, %d", $option, $arg1, $arg2)
+	if (option == 1)
+		argstr = sprintf("%d, %s", $option, user_string_quoted($arg1))
+	else if (option == 2)
+		argstr = sprintf("%d, %d, %p", $option, $arg1, $arg2)
+	else if (option == 3)
+		argstr = sprintf("%d", $option)
+	else
+		argstr = sprintf("%d, %d, %d", $option, $arg1, $arg2)
 }
 probe syscall.sysfs.return = kernel.function("sys_sysfs").return {
 	name = "sysfs"
