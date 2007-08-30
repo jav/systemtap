@@ -1,3 +1,14 @@
+2007-08-30  Wenji Huang  <wenji.huang@oracle.com>
+
+        * nfs.stp (__iov_length): Update.
+        (nfs.fop.aio_read, nfs.fop.aio_write): Update calling __iov_length.
+        * vfs.stp (generic.fop.aio_read, generic.fop.aio_write): Modify evaluating count,buf.
+        (generic.fop.readv*, generic.fop.writev*, generic.fop.splice_read*,
+        generic.fop.splice_write*, generic.fop.read*, generic.fop.write*): Make optional.
+        (vfs.__set_page_dirty_buffers.return): Add condition.
+        (vfs.remove_from_page_cache.return): Fix typo.
+        (vfs.block_sync_page.return): Remove size and units.
+
 2007-08-30  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp (syslog): Make $buf output as address in argstr.

@@ -177,10 +177,15 @@ probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
 	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
 	ino = __file_ino($iocb->ki_filp)
 
-	count = $count
 	pos = $pos
+        
+%( kernel_v >= "2.6.19" %?
+	count = __iov_length($iov,$nr_segs,1,1) /*FIX ME: should be VERIFY_WRITE instead of 1*/
+	buf = $iov->iov_base
+%:
         buf = $buf
-
+	count = $count
+%)
 	name = "generic_file_aio_read"
 	argstr = sprintf("%d, %d, %p", count, pos,buf)
 
@@ -204,10 +209,15 @@ probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
 	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
 	ino = __file_ino($iocb->ki_filp)
 
-	count = $count
-	pos = $pos
-	buf = $buf
+        pos = $pos
 
+%( kernel_v >= "2.6.19" %?
+        count = __iov_length($iov,$nr_segs,1,0)  /*FIX ME: should be VERIFY_READ instead of 0*/
+        buf = $iov->iov_base
+%:
+        buf = $buf
+        count = $count
+%)
 	name = "generic_file_aio_write"
 	argstr = sprintf("%d, %d ,%p", count, pos,buf)
 
@@ -225,7 +235,7 @@ probe generic.fop.aio_write.return = kernel.function ("generic_file_aio_write").
 	}
 }
 
-probe generic.fop.readv = kernel.function ("generic_file_readv")
+probe generic.fop.readv = kernel.function ("generic_file_readv") ?
 {
 	dev = __file_dev($filp)
 	devname = __find_bdevname(dev, __file_bdev($filp))
@@ -240,7 +250,7 @@ probe generic.fop.readv = kernel.function ("generic_file_readv")
 	size = nr_segs
 	units = "segs"
 }
-probe generic.fop.readv.return = kernel.function ("generic_file_readv").return
+probe generic.fop.readv.return = kernel.function ("generic_file_readv").return ?
 {
 	name = "generic_file_readv"
 	retstr = sprintf("%d", $return)
@@ -252,7 +262,7 @@ probe generic.fop.readv.return = kernel.function ("generic_file_readv").return
 }
 
 /* calls __generic_file_write_nolock */
-probe generic.fop.writev = kernel.function ("generic_file_writev")
+probe generic.fop.writev = kernel.function ("generic_file_writev")?
 {
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
@@ -267,7 +277,7 @@ probe generic.fop.writev = kernel.function ("generic_file_writev")
 	size = nr_segs
 	units = "segs"
 }
-probe generic.fop.writev.return = kernel.function ("generic_file_writev").return
+probe generic.fop.writev.return = kernel.function ("generic_file_writev").return ?
 {
 	name = "generic_file_writev"
 	retstr = sprintf("%d", $return)
@@ -345,7 +355,7 @@ probe generic.fop.sendfile.return = kernel.function ("generic_file_sendfile").re
 	}
 }
 
-probe generic.fop.splice_read = kernel.function ("generic_file_splice_read")
+probe generic.fop.splice_read = kernel.function ("generic_file_splice_read") ?
 {
 	dev = __file_dev($in)
 	devname = __find_bdevname(dev, __file_bdev($in))
@@ -360,7 +370,7 @@ probe generic.fop.splice_read = kernel.function ("generic_file_splice_read")
 	size = len
 	units = "bytes"
 }
-probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_read").return
+probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_read").return ?
 {
 	name = "generic_file_splice_read"
 	retstr = sprintf("%d", $return)
@@ -371,7 +381,7 @@ probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_rea
 	}
 }
 
-probe generic.fop.splice_write = kernel.function ("generic_file_splice_write")
+probe generic.fop.splice_write = kernel.function ("generic_file_splice_write") ?
 {
 	dev = __file_dev($out)
 	devname = __find_bdevname(dev, __file_bdev($out))
@@ -386,7 +396,7 @@ probe generic.fop.splice_write = kernel.function ("generic_file_splice_write")
 	size = len
 	units = "bytes"
 }
-probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_write").return
+probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_write").return ?
 {
 	name = "generic_file_splice_write"
 	retstr = sprintf("%d", $return)
@@ -397,7 +407,7 @@ probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_wr
 	}
 }
 
-probe generic.fop.read = kernel.function ("generic_file_read")
+probe generic.fop.read = kernel.function ("generic_file_read") ?
 {
 	dev = __file_dev($filp)
 	devname = __find_bdevname(dev, __file_bdev($filp))
@@ -411,7 +421,7 @@ probe generic.fop.read = kernel.function ("generic_file_read")
 	size = count
 	units = "bytes"
 }
-probe generic.fop.read.return = kernel.function ("generic_file_read").return
+probe generic.fop.read.return = kernel.function ("generic_file_read").return ?
 {
 	name = "generic_file_read"
 	retstr = sprintf("%d", $return)
@@ -422,7 +432,7 @@ probe generic.fop.read.return = kernel.function ("generic_file_read").return
 	}
 }
 
-probe generic.fop.write = kernel.function ("generic_file_write")
+probe generic.fop.write = kernel.function ("generic_file_write") ?
 {
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
@@ -436,7 +446,7 @@ probe generic.fop.write = kernel.function ("generic_file_write")
 	size = count
 	units = "bytes"
 }
-probe generic.fop.write.return = kernel.function ("generic_file_write").return
+probe generic.fop.write.return = kernel.function ("generic_file_write").return ?
 {
 	name = "generic_file_write"
 	retstr = sprintf("%d", $return)
@@ -540,9 +550,6 @@ probe vfs.block_sync_page.return = kernel.function ("block_sync_page").return
 {
 	name = "block_sync_page"
 	retstr = sprintf("N/A")
-
-	size = 1
-	units = "pages"
 }
 
 probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")?
@@ -591,7 +598,12 @@ probe vfs.__set_page_dirty_buffers.return = kernel.function ("__set_page_dirty_b
 	name = "__set_page_dirty_buffers"
 	retstr = sprintf("%d", $return)
 
-	if ($return == 1) {
+%( kernel_v >= "2.6.17" %?
+	if ($return == 1) 
+%:
+	if ($return == 0) 
+%)
+	{
 		size = 1
 		units = "pages"
 	}
@@ -655,7 +667,7 @@ probe vfs.remove_from_page_cache = kernel.function ("__remove_from_page_cache")
 	name = "vfs.remove_from_page_cache"
 	argstr = sprintf("%d", ino)
 }
-probe vfs.remove_from_page_cache.return = kernel.function ("remove_from_page_cache").return
+probe vfs.remove_from_page_cache.return = kernel.function ("__remove_from_page_cache").return
 {
 	name = "vfs.remove_from_page_cache"
 	retstr = sprintf("N/A")
