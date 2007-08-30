@@ -3938,7 +3938,9 @@ c_tmpcounter::visit_print_format (print_format* e)
 				   e->args[i]->tok);
 	    }
 
-	  t.declare (*parent);
+	  if (e->args[i]->tok->type != tok_number
+	      && e->args[i]->tok->type != tok_string)
+	    t.declare (*parent);
 	  e->args[i]->visit (this);
 	}
 
@@ -4004,7 +4006,17 @@ c_unparser::visit_print_format (print_format* e)
 
 	  o->newline() << "c->last_stmt = "
 		       << lex_cast_qstring(*e->args[i]->tok) << ";";
-	  c_assign (t.value(), e->args[i], "print format actual argument evaluation");	  
+
+	  // If we've got a numeric or string constant, instead of
+	  // assigning the numeric or string constant to a temporary,
+	  // then passing the temporary to _stp_printf/_stp_snprintf,
+	  // let's just override the temporary with the constant.
+	  if (e->args[i]->tok->type == tok_number
+	      || e->args[i]->tok->type == tok_string)
+	    tmp[i].override(c_expression(e->args[i]));
+	  else
+	    c_assign (t.value(), e->args[i],
+		      "print format actual argument evaluation");	  
 	}
 
       std::vector<print_format::format_component> components;

@@ -1,3 +1,11 @@
+2007-08-30  David Smith  <dsmith@redhat.com>
+
+	PR 4983
+	* translate.cxx (c_tmpcounter::visit_print_format): Don't declare
+	temporaries for number and string constants.
+	(c_unparser::visit_print_format): Use numeric and string constants
+	directly instead of copying them into temporaries.
+
 2007-08-27  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 4817
