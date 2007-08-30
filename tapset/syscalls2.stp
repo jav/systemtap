@@ -2506,7 +2506,7 @@ probe syscall.syslog = kernel.function("sys_syslog") {
 	type = $type
 	bufp_uaddr = $buf
 	len = $len
-	argstr = sprintf("%d, %s, %d", $type, text_strn(user_string($buf),syscall_string_trunc,1), $len)
+	argstr = sprintf("%d, %p, %d", $type, $buf, $len)
 }
 probe syscall.syslog.return = kernel.function("sys_syslog").return {
 	name = "syslog"
