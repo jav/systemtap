@@ -1,3 +1,8 @@
+2007-08-31  Zhaolei  <zhaolei@cn.fujitsu.com>
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* aux_syscalls.stp (_mknod_mode_str): Fix file type
+	judgement error.
+
 2007-08-30  Wenji Huang  <wenji.huang@oracle.com>
 
         * nfs.stp (__iov_length): Update.

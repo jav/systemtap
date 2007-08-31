@@ -1061,15 +1061,15 @@ function _sys_open_mode_str(f) {
 
 /* `man 2 mknod` for more information */
 function _mknod_mode_str(mode) {
-   if((mode & 0x8000)==0x8000)
+   if((mode & 0xF000)==0x8000)
         return "S_IFREG|"._sys_open_mode_str(mode)
-   if((mode & 0x2000)==0x2000)
+   if((mode & 0xF000)==0x2000)
         return "S_IFCHR|"._sys_open_mode_str(mode)
-   if((mode & 0x6000)==0x6000)
+   if((mode & 0xF000)==0x6000)
         return "S_IFBLK|"._sys_open_mode_str(mode)
-   if((mode & 0x1000)==0x1000)
+   if((mode & 0xF000)==0x1000)
         return "S_IFIFO|"._sys_open_mode_str(mode)
-   if((mode & 0xC000)==0xC000)
+   if((mode & 0xF000)==0xC000)
         return "S_IFSOCK|"._sys_open_mode_str(mode)
    return ""
 }
