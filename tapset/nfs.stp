@@ -253,18 +253,43 @@ function __file_parentname:string (file:long) %{ /* pure */
     CATCH_DEREF_FAULT();
 %}
 
-function __iov_length:long(iov:long, nr_segs:long) %{ /* pure */
+/*
+ * Combination of generic_segment_checks and iov_length functions
+ * @iov:        io vector request
+ * @nr_segs:    number of segments in the iovec
+ * @check_flag:  whether to check (0 as iov_length, 1 as generic_segment_checks)
+ * @access_flags: valid when check_flag >0, type of access: VERIFY_READ - 0 or VERIFY_WRITE - 1
+ *
+ * @return:      number of bytes to write/read
+*/
+function __iov_length:long(iov:long, nr_segs:long, check_flag:long, access_flags:long) %{ /* pure */
         unsigned long seg;
         size_t ret = 0;
         const struct iovec *iov = (const struct iovec *)(long)THIS->iov;
         unsigned long nr_segs = (unsigned long)THIS->nr_segs;
 
         for (seg = 0; seg < nr_segs; seg++)
-                ret += kread(&(iov[seg].iov_len));
+	{   __kernel_size_t iov_len  = kread(&(iov[seg].iov_len));
+            ret += iov_len;
+		
+	    if (THIS->check_flag) {
 
+                if (unlikely((ssize_t)(ret|iov_len) < 0)) {
+			THIS->__retvalue = -EINVAL;
+			return;
+		}
+                if (access_ok((int)THIS->access_flags, kread(&(iov[seg].iov_base)), iov_len))
+                        continue;
+                if (seg == 0) {
+        		THIS->__retvalue = -EFAULT;
+			return;
+		}
+                ret-= iov_len;     /* This segment is no good */
+                break;
+	   }
+	}
         THIS->__retvalue = (long)ret;
         CATCH_DEREF_FAULT();
-
 %}
 
 probe nfs.fop.entries = nfs.fop.llseek,
@@ -412,7 +437,7 @@ probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
 
 %( kernel_v >= "2.6.19" %?
 	buf = $iov->iov_base
-        count = __iov_length($iov,$nr_segs)
+        count = __iov_length($iov,$nr_segs,0,-1)
 %:
         buf = $buf
         count = $count
@@ -472,7 +497,7 @@ probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
         pos = $pos
 %( kernel_v >= "2.6.19" %?
 	buf = $iov->iov_base
-        count = __iov_length($iov,$nr_segs)
+        count = __iov_length($iov,$nr_segs,0,-1)
 %:
         buf = $buf
         count = $count
