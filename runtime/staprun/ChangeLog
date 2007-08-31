@@ -1,3 +1,8 @@
+2007-08-31  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (start_cmd): Set the priority to
+	forked processes back to normal.
+
 2007-08-21  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (start_cmd): Send SIGINT to target_cmd, 

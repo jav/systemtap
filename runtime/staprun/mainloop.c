@@ -85,6 +85,9 @@ void start_cmd(void)
 		a.sa_handler = SIG_DFL;
 		sigaction(SIGINT, &a, NULL);
 
+		/* commands we fork need to run at normal priority */
+		setpriority (PRIO_PROCESS, 0, 0);
+		
 		/* wait here until signaled */
 		sigwait(&usrset, &signum);
 
