@@ -2,6 +2,7 @@
 
 	* mainloop.c (start_cmd): Set the priority to
 	forked processes back to normal.
+	(system_cmd): Ditto.
 
 2007-08-21  Martin Hunt  <hunt@redhat.com>
 
