@@ -1,3 +1,9 @@
+2007-09-04  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* syscalls2.stp (quotactl): Init special_str before use.
+	(rt_sigqueueinfo): Change pid's type from %p to %d in argstr.
+
 2007-08-31  Zhaolei  <zhaolei@cn.fujitsu.com>
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
 	* aux_syscalls.stp (_mknod_mode_str): Fix file type

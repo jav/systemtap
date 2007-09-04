@@ -533,7 +533,8 @@ probe syscall.quotactl = kernel.function("sys_quotactl") ? {
 	name = "quotactl"
 	cmd = $cmd
 	cmd_str = _quotactl_cmd_str($cmd)
-	special = user_string($special)
+	special = $special
+	special_str = user_string($special)
 	id = $id
 	addr_uaddr = $addr
 	argstr = sprintf("%s, %s, %d, %p", cmd_str, special_str, $id, $addr)
@@ -967,7 +968,7 @@ probe syscall.rt_sigqueueinfo = kernel.function("sys_rt_sigqueueinfo") {
 	pid = $pid
 	sig = $sig
 	uinfo_uaddr = $uinfo
-	argstr = sprintf("%p, %s, %p", $pid, _signal_name($sig), $uinfo)
+	argstr = sprintf("%d, %s, %p", $pid, _signal_name($sig), $uinfo)
 }
 probe syscall.rt_sigqueueinfo.return =
 	kernel.function("sys_rt_sigqueueinfo").return {
