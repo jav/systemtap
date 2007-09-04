@@ -1,0 +1,207 @@
+.\" -*- nroff -*-
+.TH STAPPROBES.TASK 5 @DATE@ "IBM"
+.SH NAME
+stapprobes.task \- systemtap task information
+
+.\" macros
+.de SAMPLE
+.br
+.RS
+.nf
+.nh
+..
+.de ESAMPLE
+.hy
+.fi
+.RE
+..
+
+.SH DESCRIPTION
+
+This family of tapset functions is used to collect information about tasks.
+It contains the following functions.
+
+.P
+.TP
+.B task_current:long()
+
+Return the task_struct of the current process.
+
+.P
+.TP
+.B task_parent:long(task:long)
+
+Return the parent task_struct of the given task.
+
+.B Arguments:
+
+.I task
+   task_struct of the task.
+
+.P
+.TP
+.B task_state:long(task:long)
+
+Return the state of the given task. State of the task could be, one among the following.
+
+   TASK_RUNNING           0
+   TASK_INTERRUPTIBLE     1
+   TASK_UNINTERRUPTIBLE   2
+   TASK_STOPPED           4
+   TASK_TRACED            8
+   EXIT_ZOMBIE           16
+   EXIT_DEAD             32
+
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+.B task_execname:string(task:long)
+
+Return the name of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+
+.P
+.TP
+.B task_pid:long(task:long)
+
+Return the process id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+.B task_tid:long(task:long)
+
+Return the thread id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_gid:long(task:long)
+
+Return the group id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_egid:long(task:long)
+
+Return the effective group id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_uid:long(task:long)
+
+Return the user id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_euid:long(task:long)
+
+Return the effective user id of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_prio:long(task:long)
+
+Return the priority of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_nice:long(task:long)
+
+Return the nice value of the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_cpu:long(task:long)
+
+Return the scheduled cpu for the  given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_open_file_handles:long(task:long)
+
+Return the number of open file handles for the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+.P
+.TP
+
+.B task_max_file_handles:long(task:long)
+
+Return the maximum number of file handles for the given task.
+
+.B Arguments:
+
+.I task
+  task_struct of the task.
+
+
+.SH SEE ALSO
+.IR stap (1),
+.IR stapprobes (5),
+

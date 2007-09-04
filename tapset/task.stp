@@ -6,6 +6,10 @@
 // Public License (GPL); either version 2, or (at your option) any
 // later version.
 
+%{
+#include <linux/version.h>
+#include <linux/file.h>
+%}
 
 // Return the task_struct representing the current process
 function task_current:long () %{ /* pure */
@@ -125,3 +129,33 @@ function task_cpu:long (task:long)
     CATCH_DEREF_FAULT();
 %}
 %)
+
+
+// Return the number of open file handlers for the given task
+function task_open_file_handles:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct files_struct *f = kread(&(t->files));
+    struct fdtable *fdt = kread(&(f->fdt));
+    unsigned int count=0, fd, max;
+    rcu_read_lock();
+    max = kread(&(fdt->max_fds));
+    for (fd = 0; fd < max; fd++) {
+                if ( kread(&(fdt->fd[fd])) != NULL)
+                        count ++;
+        }
+    rcu_read_unlock();
+    THIS->__retvalue = count;
+    CATCH_DEREF_FAULT();
+%}
+
+
+// Return the maximum number of file handlers for the given task
+function task_max_file_handles:long (task:long) %{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct files_struct *f = kread (&(t->files));
+    struct fdtable *fdt = kread(&(f->fdt));
+    rcu_read_lock();
+    THIS->__retvalue = kread(&(fdt->max_fds));
+    rcu_read_unlock();
+    CATCH_DEREF_FAULT();
+%}

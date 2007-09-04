@@ -14,5 +14,7 @@ probe begin {
   log(sprint(task_prio(c)))
   log(sprint(task_nice(c)))
   log(sprint(task_cpu(c)))
+  log(sprint(task_open_file_handles(c)))
+  log(sprint(task_max_file_handles(c)))
   exit()
 }
