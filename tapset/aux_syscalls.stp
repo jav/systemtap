@@ -309,36 +309,31 @@ function _struct_itimerval:string(addr:long)
 void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
 {
 	struct sockaddr *sa = (struct sockaddr *)buf;
-	switch (sa->sa_family) {
-	case AF_INET: 
+	if ((sa->sa_family == AF_INET)&&(len == sizeof(struct sockaddr_in)))
 	{
 		struct sockaddr_in *sin = (struct sockaddr_in *)buf;
 		const unsigned char *addr = (unsigned char *)&sin->sin_addr;
 		snprintf(str, strlen, "{AF_INET, %d.%d.%d.%d, %d}", 
 			addr[0], addr[1], addr[2], addr[3], ntohs(sin->sin_port));
-		break;
 	}
-	case AF_UNIX:
+	else if ((sa->sa_family == AF_UNIX)&&(len == sizeof(struct sockaddr_un)))
 	{	
 		struct sockaddr_un *sun = (struct sockaddr_un *)buf;	
 		snprintf(str, strlen, "{AF_UNIX, %s}", sun->sun_path); 
-		break;
 	}
-	case AF_NETLINK:
+	else if ((sa->sa_family == AF_NETLINK)&&(len == sizeof(struct sockaddr_nl)))
 	{
 		struct sockaddr_nl *nl = (struct sockaddr_nl *)buf;
 		snprintf(str, strlen, "{AF_NETLINK, pid=%d, groups=%08x}", nl->nl_pid, nl->nl_groups); 
-		break;
 	}
-	case AF_INET6: 
+	else if ((sa->sa_family == AF_INET6)&&(len == sizeof(struct sockaddr_in6)))
 	{
 		// FIXME. Address is probably not correctly displayed
 		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)buf;
 		snprintf(str, strlen, "{AF_INET6, %016llx, %d}", 
 			*(long long *)&sin->sin6_addr, ntohs(sin->sin6_port));
-		break;
 	}
-	case AF_PACKET: 
+	else if ((sa->sa_family == AF_PACKET)&&(len == sizeof(struct sockaddr_ll))) 
 	{
 		/* FIXME. This needs tested */
 		struct sockaddr_ll *sll = (struct sockaddr_ll *)buf;
@@ -351,11 +346,17 @@ void _stp_sockaddr_str(char *str, const int strlen, char *buf, int len)
 			(int)sll->sll_protocol, sll->sll_ifindex, (int)sll->sll_hatype, (int)sll->sll_pkttype,
 			(int)sll->sll_halen, *(uint64_t *)sll->sll_addr);
 #endif
-		break;
 	}
-
-	default:
-		snprintf(str, strlen, "{unknown address family %d}", sa->sa_family);	
+	else
+	{
+		if (len >= sizeof(sa_family_t))
+		{
+			snprintf(str, strlen, "{unknown sockaddr with sa=%d, salen=%d}", sa->sa_family, len);
+		}
+		else
+		{
+			snprintf(str, strlen, "{unknown sockaddr with salen=%d}", len);
+		}
 	}
 }
 %}

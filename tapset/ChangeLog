@@ -1,5 +1,10 @@
 2007-09-06  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* aux_syscalls.stp (_stp_sockaddr_str): Fix memory access error
+	when calling with addrlen set to 0.
+
+2007-09-06  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* aux_syscalls.stp (_module_flags_str): Modify combination of
 	flags' values.
 
