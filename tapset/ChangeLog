@@ -1,3 +1,8 @@
+2007-09-06  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* aux_syscalls.stp (_module_flags_str): Modify combination of
+	flags' values.
+
 2007-09-04  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>

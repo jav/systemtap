@@ -1146,11 +1146,19 @@ function _mlockall_flags_str:string(flags:long)
 %}
 
 /* used by sys_delete_module */
-function _module_flags_str(f) {	
-   if(!(f & 2048)) bs="WAIT|"
-   if(f & 512) bs=bs."FORCE|"
-   return substr(bs,0,strlen(bs)-1)
-}
+function _module_flags_str:string(flags:long)
+%{ /* pure */
+	int len;
+	long flags = THIS->flags;
+	char *str = THIS->__retvalue;
+	if (flags & O_TRUNC)
+		strlcat(str,"O_TRUNC|", MAXSTRINGLEN);
+	if (flags & O_NONBLOCK)
+		strlcat(str,"O_NONBLOCK|", MAXSTRINGLEN);
+	len = strlen(str);
+	if (len)
+		str[strlen(str)-1] = 0;
+%}
 
 function _sched_policy_str(policy) {
    if(policy==0) return "SCHED_OTHER"
