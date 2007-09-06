@@ -1,3 +1,9 @@
+2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 4542
+	* systemtap.stress/current.stp: Don't probe the return of __switch_to
+	on i686.
+
 2007-08-27  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.context/context.exp (build_modules): Change

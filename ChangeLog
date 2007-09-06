@@ -1,3 +1,9 @@
+2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 4542
+	* tapsets.cxx (dwarf_query::build_blacklist): add __switch_to to
+	blacklisted_return_probes on i686
+
 2007-08-30  David Smith  <dsmith@redhat.com>
 
 	PR 4983

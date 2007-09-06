@@ -18,13 +18,16 @@ probe begin { log("systemtap starting probe") }
 
 probe
     timer.profile,
-    %( arch != "x86_64" %?
-      # __switch_to.return is broken on x86_64 - see PR2068
-      %( arch != "ia64" %?
-        # __switch_to is macro definition in ia64,
-        # and ia64_switch_to is defined in assemble language
-      kernel.function("__switch_to").call,
-      kernel.function("__switch_to").return,
+    %( arch != "ia64" %?
+      # __switch_to is macro definition in ia64,
+      # and ia64_switch_to is defined in assemble language
+      %( arch != "x86_64" %?
+        # __switch_to can not be probed on x86_64 - see PR2068
+        kernel.function("__switch_to").call,
+        %( arch != "i686" %?
+          # __switch_to.return is broken on i686 - see PR4542
+          kernel.function("__switch_to").return,
+        %)
       %)
     %)
 

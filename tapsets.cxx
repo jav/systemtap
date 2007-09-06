@@ -2348,9 +2348,12 @@ dwarf_query::build_blacklist()
   blacklisted_probes.insert("_spin_unlock");
   blacklisted_probes.insert("_spin_unlock_irqrestore");
 
-  // __switch_to is only disallowed on x86_64
+  // __switch_to changes "current" on x86_64 and i686, so return probes
+  // would cause kernel panic, and it is marked as "__kprobes" on x86_64
   if (sess.architecture == "x86_64")
     blacklisted_probes.insert("__switch_to");
+  if (sess.architecture == "i686")
+    blacklisted_return_probes.insert("__switch_to");
 
   // These functions don't return, so return probes would never be recovered
   blacklisted_return_probes.insert("do_exit");
