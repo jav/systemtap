@@ -5,3 +5,5 @@ other scripts can pull in definitions from.
 
 For samples of end-user scripts, see the web
 http://sources.redhat.com/systemtap/documentation.html
+
+See also http://sources.redhat.com/systemtap/wiki/TapsetStatus
