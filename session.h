@@ -35,6 +35,7 @@ struct profile_derived_probe_group;
 struct mark_derived_probe_group;
 struct hrtimer_derived_probe_group;
 struct perfmon_derived_probe_group;
+struct procfs_derived_probe_group;
 struct embeddedcode;
 struct translator_output;
 struct unparser;
@@ -139,6 +140,7 @@ struct systemtap_session
   mark_derived_probe_group* mark_derived_probes;
   hrtimer_derived_probe_group* hrtimer_derived_probes;
   perfmon_derived_probe_group* perfmon_derived_probes;
+  procfs_derived_probe_group* procfs_derived_probes;
 
   // unparser data
   translator_output* op;

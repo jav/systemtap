@@ -1,3 +1,8 @@
+2007-09-10  Martin Hunt  <hunt@redhat.com>
+
+	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs 
+	interaction support. PR 1154.
+
 2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 4542
