@@ -19,6 +19,7 @@
 #include "transport.h"
 #include "time.c"
 #include "symbols.c"
+#include "../procfs.c"
 
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
