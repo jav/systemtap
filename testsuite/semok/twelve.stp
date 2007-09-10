@@ -11,7 +11,7 @@ probe kernel.function("pipe_*")
 
 # resolve to a set of module functions
 
-probe module("jbd").function("journal_get_*_access@*/transaction.c")
+probe module("jbd").function("journal_get_*_access@*/transaction.c") ?
 {
 	trace("inside journal_get_*_access, in transaction.c")
 }

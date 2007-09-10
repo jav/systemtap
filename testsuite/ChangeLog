@@ -1,3 +1,10 @@
+2007-09-10 Wenji Huang  <wenji.huang@oracle.com>
+
+	* systemtap.stress/current.stp: Make module probe optional.
+	* buildok/four.stp: Ditto.
+	* buildok/twentyfive.stp: Ditto.
+	* semok/twelve.stp: Ditto.
+
 2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 4542

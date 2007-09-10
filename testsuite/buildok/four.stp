@@ -1,6 +1,12 @@
 #! stap -p4
 
-probe module("ext3").function("*")
+probe module("ext3").function("*") ?
 {
 	log ("ext3 fn")
+}
+
+/*to avoid empty file*/
+probe begin
+{
+
 }

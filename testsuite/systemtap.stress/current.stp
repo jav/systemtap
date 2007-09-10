@@ -55,8 +55,8 @@ probe
 
     kernel.function("*@kernel/sched.c").call,
     kernel.function("*@kernel/sched.c").return,
-    module("*").function("*interrupt*").call,
-    module("*").function("*interrupt*").return
+    module("*").function("*interrupt*").call ?,
+    module("*").function("*interrupt*").return ?
 {
     length <<< commlen()
     length <<< pcommlen()
