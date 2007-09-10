@@ -43,6 +43,9 @@
 #define for_each_cpu(cpu)  for_each_cpu_mask((cpu), cpu_possible_map)
 #endif
 
+static void _stp_dbug (const char *func, int line, const char *fmt, ...);
+void _stp_error (const char *fmt, ...);
+
 #ifdef DEBUG
 /** Prints debug line.
  * This function prints a debug message immediately to staprun. 
@@ -50,13 +53,13 @@
  * @param args A variable number of args in a format like printf.
  * @ingroup io
  */
-static void _stp_dbug (const char *func, int line, const char *fmt, ...);
 #define dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 #define kbug(args...) {printk("%s:%d ",__FUNCTION__, __LINE__); printk(args); }
 #else
 #define dbug(args...) ;
 #define kbug(args...) ;
 #endif /* DEBUG */
+#define _dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 #define errk(args...) {printk("Systemtap Error at %s:%d ",__FUNCTION__, __LINE__); printk(args); }
 
 /* atomic globals */
