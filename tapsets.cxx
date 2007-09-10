@@ -4417,9 +4417,11 @@ profile_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->indent(-1);
 }
 
+
 // ------------------------------------------------------------------------
 // procfs file derived probes
 // ------------------------------------------------------------------------
+
 
 struct procfs_derived_probe: public derived_probe
 {
@@ -4454,60 +4456,100 @@ procfs_derived_probe::join_group (systemtap_session& s)
   s.procfs_derived_probes->enroll (this);
 }
 
+
 void
-procfs_derived_probe_group::emit_module_decls (systemtap_session& )
+procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
+  if (probes.empty())
+    return;
+
+  s.op->newline() << "/* ---- procfs probes ---- */";
 }
+
 
 void
 procfs_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  static set<string> paths;
-  static int num = 0;
+  map<string, int> paths;
+  int num = 0;
+
+  if (probes.size () == 0)
+    return;
 
   for (unsigned i=0; i < probes.size(); i++)
     {
-      int create = 0;
-      if (paths.count(probes[i]->path) == 0) {
-	create = 1;
-	paths.insert(probes[i]->path);
-      }
+      if (paths.count(probes[i]->path) == 0)
+        {
+	  paths[probes[i]->path] = num++;
 
-      if (create)
-	{
-	  s.op->newline() << "rc = _stp_create_procfs(\"" << probes[i]->path << "\" ," << num << ");";
+	  s.op->newline() << "probe_point = "
+			  << lex_cast_qstring (*probes[i]->sole_location())
+			  << ";";
+	  s.op->newline() << "rc = _stp_create_procfs(\"" << probes[i]->path
+			  << "\", " << paths[probes[i]->path] << ");";
 	  s.op->newline() << "if (rc) {";
-	  s.op->newline(1) << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-	  s.op->newline() << "goto out;";
+	  s.op->indent(1);
+	  if (i != 0)
+	    s.op->newline() << "_stp_close_procfs();";
+	  s.op->newline() << "goto procfs_out;";
 	  s.op->newline(-1) << "}";
-	  num++; /* need to save this as the index to this procfs file. */
 	}
+
+      // FIXME: fill in real functions
+      if (probes[i]->write)
+	  s.op->newline() << "_stp_procfs_files[" << paths[probes[i]->path]
+			  << "]->write_proc = NULL;";
+      else
+	  s.op->newline() << "_stp_procfs_files[" << paths[probes[i]->path]
+			  << "]->read_proc = NULL;";
     }
+  s.op->newline(-1) << "procfs_out:";
+  s.op->indent(1);
 }
+
 
 void
 procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
-    s.op->newline() << "_stp_close_procfs();";    
+  s.op->newline() << "_stp_close_procfs();";    
 }
+
 
 struct procfs_builder: public derived_probe_builder
 {
   bool write;
-  procfs_builder(bool w) : write(w) {}
+  procfs_builder() {}
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & param,
-		     vector<derived_probe *> & finished_results)
-  {
-    string path;
-    if (!get_param (param, "write", path) && !get_param (param, "read", path))
-      path = "";
-
-    finished_results.push_back(new procfs_derived_probe(sess, base, location, path, write));
-  }
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results);
 };
+
+
+void
+procfs_builder::build(systemtap_session & sess,
+		      probe * base,
+		      probe_point * location,
+		      std::map<std::string, literal *> const & parameters,
+		      vector<derived_probe *> & finished_results)
+{
+  string path;
+  bool has_procfs = get_param(parameters, "procfs", path);
+  bool has_read = (parameters.find("read") != parameters.end());
+  bool has_write = (parameters.find("write") != parameters.end());
+
+  // If no procfs path, default to "command".
+  if (! has_procfs)
+    path = "command";
+
+  if (!(has_read ^ has_write))
+    throw semantic_error ("need read/write component", location->tok);
+
+  finished_results.push_back(new procfs_derived_probe(sess, base, location,
+						      path, has_write));
+}
+
 
 // ------------------------------------------------------------------------
 // statically inserted macro-based derived probes
@@ -5860,12 +5902,11 @@ register_standard_tapsets(systemtap_session & s)
   // marker-based kernel/module parts
   s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
   s.pattern_root->bind_str("module")->bind_str("mark")->bind(new mark_builder());
-
-  // control file interaction
-  s.pattern_root->bind("procfs")->bind("write")->bind(new procfs_builder(true));
-  s.pattern_root->bind("procfs")->bind("read")->bind(new procfs_builder(false));  
-  s.pattern_root->bind("procfs")->bind_str("write")->bind(new procfs_builder(true));
-  s.pattern_root->bind("procfs")->bind_str("read")->bind(new procfs_builder(false));  
+  // procfs parts
+  s.pattern_root->bind("procfs")->bind("read")->bind(new procfs_builder());
+  s.pattern_root->bind_str("procfs")->bind("read")->bind(new procfs_builder());
+  s.pattern_root->bind("procfs")->bind("write")->bind(new procfs_builder());
+  s.pattern_root->bind_str("procfs")->bind("write")->bind(new procfs_builder());
 }
 
 
@@ -5881,7 +5922,6 @@ all_session_groups(systemtap_session& s)
   // unregister (actually run) end probes after every other probe type
   // has be unregistered.  To do the latter,
   // c_unparser::emit_module_exit() will run this list backwards.
-  DOONE(procfs);
   DOONE(be);
   DOONE(dwarf);
   DOONE(uprobe);
@@ -5890,6 +5930,7 @@ all_session_groups(systemtap_session& s)
   DOONE(mark);
   DOONE(hrtimer);
   DOONE(perfmon);
+  DOONE(procfs);
 #undef DOONE
   return g;
 }

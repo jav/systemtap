@@ -1,3 +1,11 @@
+2007-09-10  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (procfs_derived_probe_group::emit_module_init):
+	Improved procfs probe handling (still non-working).
+	(procfs_builder::build): Ditto.
+	(register_standard_tapsets): Ditto.
+	(all_session_groups): Ditto.
+
 2007-09-10  Martin Hunt  <hunt@redhat.com>
 
 	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs 
