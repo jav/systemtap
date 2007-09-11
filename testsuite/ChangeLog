@@ -1,3 +1,9 @@
+2007-09-11  Josh Stone  <joshua.i.stone@intel.com>
+
+	* systemtap.maps/pmap_agg_overflow.stp: Ensure that the percpu arrays
+	don't overflow before we get the chance to test aggregation overflow.
+	Also use a more optimal overflow limit (MAXMAPENTRIES + 1).
+
 2007-09-10 Wenji Huang  <wenji.huang@oracle.com>
 
 	* systemtap.stress/current.stp: Make module probe optional.
