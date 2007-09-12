@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -up4
 
 probe begin
 {
@@ -7,8 +7,10 @@ probe begin
   long_max = 2147483647;
   ulong_max = 4294967295;
   long_min = -2147483647-1;
+  long_min2 = -2147483648;
 
   llong_max = 9223372036854775807;
   ullong_max = 18446744073709551615;
   llong_min = -9223372036854775807-1;
+  llong_min2 = -9223372036854775808;
 }
