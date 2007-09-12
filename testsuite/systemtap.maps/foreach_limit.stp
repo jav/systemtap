@@ -104,6 +104,8 @@ probe begin
     printf("\nAggregates:\n");
 
     # Add items to the aggregate
+    # 10 keys, 15 entries each = 150 entries.
+    # min = 4, max = 15 * 40 = 600
     foreach (key in array)
     {
 	agg <<< array[key]
@@ -118,24 +120,23 @@ probe begin
 	agg <<< array[key] * 10
 	agg <<< array[key] * 11
 	agg <<< array[key] * 12
-	agg <<< array[key] * 12
 	agg <<< array[key] * 13
 	agg <<< array[key] * 14
 	agg <<< array[key] * 15
     }
 
-    # Find the total number of aggregate entries
-    i = 0
-    foreach (bucket in @hist_log(agg))
-	i++;
-    printf("%d total aggregate entries\n", i);
+    printf("count=%d sum=%d\n", @count(agg), @sum(agg))
+    printf("min=%d max=%d\n", @min(agg), @max(agg))
+    print(@hist_log(agg))
 
-    # Print the 1st 5 aggregate entries
-    printf("\naggregate limit 5:\n");
+    # This is useless, but test anyway. Maybe it will
+    # trigger some obscure edge condition.
+    # log buckets run from 0 to 127.
     i = 0
-    foreach (bucket in @hist_log(agg) limit 5)
+    foreach (bucket in @hist_log(agg) limit 71)
     {
-	printf("bucket %d: %d\n", bucket, @hist_log(agg)[bucket]);
+	if (@hist_log(agg)[bucket])
+		printf("bucket %d: %d\n", bucket, @hist_log(agg)[bucket]);
 	i++;
     }
     printf("loop had %d iterations\n", i);

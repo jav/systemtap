@@ -1,0 +1,40 @@
+global foo
+
+probe begin
+{
+	foo <<< -1
+	foo <<< 1
+	print(@hist_log(foo))
+	foreach (bucket in @hist_log(foo))
+		if (@hist_log(foo)[bucket])
+                	printf("bucket %d: %d\n", bucket, @hist_log(foo)[bucket])
+	print("\n\n\n")
+	delete foo
+
+
+	foo <<< 0
+	print(@hist_log(foo))
+	foreach (bucket in @hist_log(foo))
+		if (@hist_log(foo)[bucket])
+                	printf("bucket %d: %d\n", bucket, @hist_log(foo)[bucket])
+	print("\n\n\n")
+	delete foo
+
+	foo <<< 0x7fffffffffffffff
+	print(@hist_log(foo))
+	foreach (bucket in @hist_log(foo))
+		if (@hist_log(foo)[bucket])
+                	printf("bucket %d: %d\n", bucket, @hist_log(foo)[bucket])
+	print("\n\n\n")
+	delete foo
+
+	foo <<< 1
+	foo <<< 2
+	foo <<< 3
+	foo <<< 4
+	print(@hist_log(foo))
+	foreach (bucket in @hist_log(foo))
+		if (@hist_log(foo)[bucket])
+                	printf("bucket %d: %d\n", bucket, @hist_log(foo)[bucket])
+	exit()
+}

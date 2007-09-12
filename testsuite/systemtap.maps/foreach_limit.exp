@@ -2,7 +2,8 @@
 
 set test "foreach_limit"
 
-set ::result_string {Arrays:
+set ::result_string {
+Arrays:
 unsorted:
 key 9, value 18
 key 1, value 40
@@ -71,15 +72,27 @@ loop had 4 iterations
 x ended up as 5
 
 Aggregates:
-64 total aggregate entries
+count=150 sum=21360
+min=4 max=600
+value |-------------------------------------------------- count
+    1 |                                                    0
+    2 |                                                    0
+    4 |@                                                   1
+    8 |@@@@@@                                              6
+   16 |@@@@@@@@@@@@@                                      13
+   32 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@                       28
+   64 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@            39
+  128 |@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@         42
+  256 |@@@@@@@@@@@@@@@@@                                  17
+  512 |@@@@                                                4
+ 1024 |                                                    0
+ 2048 |                                                    0
 
-aggregate limit 5:
-bucket 0: 0
-bucket 1: 0
-bucket 2: 0
-bucket 3: 1
-bucket 4: 6
-loop had 5 iterations
+bucket 67: 1
+bucket 68: 6
+bucket 69: 13
+bucket 70: 28
+loop had 71 iterations
 
 Done.
 }

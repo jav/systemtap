@@ -9,7 +9,7 @@ set ok 0
 spawn stap -DMAXACTION=10000 $srcdir/$subdir/$test.stp
 expect {
     -timeout 150
-    "saw: operator \'-\' at *linear_neg.stp" {
+   "Number of buckets" {
 	incr ok
 	exp_continue
     }

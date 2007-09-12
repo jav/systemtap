@@ -1,10 +1,27 @@
+2007-09-12  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.maps/foreach_limit.stp: Clean up the aggregates
+	section.
+
+	* systemtap.maps/foreach_limit2.stp: Remove newline that was 
+	confusing the output match.
+
+	* systemtap.maps/linear_bad.exp: Fix expected output.	
+	* systemtap.maps/linear_neg.exp: Ditto.
+
+	* systemtap.maps/log.*: New files.
+	* systemtap.maps/log_edge.*: New files.
+	
+	* lib/stap_run2.exp (stap_run2): Rewrite. Previous version
+	was too complex and buggy.
+
 2007-09-12  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 4633
 	* systemtap.context/backtrace.stp: Add testcases for the return
 	probe and the profile probe.
 	* systemtap.context/backtrace.tcl: Ditto.
-	* /systemtap.context/systemtap_test_module2.c: Ditto.
+	* systemtap.context/systemtap_test_module2.c: Ditto.
 
 2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
 

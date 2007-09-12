@@ -1,0 +1,25 @@
+global foo
+
+probe begin
+{
+	val = 1
+	# add in one of each power of two
+	for (i = 0; i < 63; i++) {
+		foo <<< val
+		val <<= 1
+	}
+
+	val = 1;
+	# now add the negative powers of two
+	for (i = 0; i < 64; i++) {
+		foo <<< -val
+		val <<= 1
+	}
+
+	# add in a bunch of zeros
+	for (i=0; i<20; i++)
+		foo <<< 0
+
+	print(@hist_log(foo))
+	exit()
+}
