@@ -1,3 +1,11 @@
+2007-09-12  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 4633
+	* systemtap.context/backtrace.stp: Add testcases for the return
+	probe and the profile probe.
+	* systemtap.context/backtrace.tcl: Ditto.
+	* /systemtap.context/systemtap_test_module2.c: Ditto.
+
 2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5023.

@@ -21,7 +21,11 @@
 /** Here are all the functions we will probe **/
 
 /* some nested functions to test backtraces */
+int noinline yyy_func4 (int foo) {
+        return foo + 1;
+}
 int noinline yyy_func3 (int foo) {
+	foo = yyy_func4(foo);
         return foo + 1;
 }
 int noinline yyy_func2 (int foo) {

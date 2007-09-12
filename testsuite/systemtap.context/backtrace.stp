@@ -1,9 +1,9 @@
-function print_all_trace_info() {
+function print_all_trace_info(point:string) {
 	printf("backtrace from %s:\n", pp())
         print_backtrace()
         print("--------\n")
 	bt = backtrace()
-	printf("the stack is %s\n", bt)
+	printf("the %s stack is %s\n", point, bt)
         print("--------\n")
 	print_stack(bt);
         print("--------\n")
@@ -17,8 +17,19 @@ probe end {
 	print_backtrace()
 }
 
-probe module("systemtap_test_module2").function("yyy_func3") {
-	print_all_trace_info()
+global flag = 0
+probe module("systemtap_test_module2").function("yyy_func3").call {
+	print_all_trace_info("call")
+	flag ++
 }
-
+probe module("systemtap_test_module2").function("yyy_func4").return {
+	print_all_trace_info("return")
+	flag ++
+}
+probe timer.profile {
+	if (cpu() == 0 && flag == 2 && probemod() != "systemtap_test_module2") {
+		print_all_trace_info("profile")
+		flag ++
+	}
+}
 
