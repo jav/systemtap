@@ -4427,24 +4427,68 @@ struct procfs_derived_probe: public derived_probe
 {
   string path;
   bool write;
+  bool target_symbol_seen;
+
   procfs_derived_probe (systemtap_session &, probe* p, probe_point* l, string ps, bool w);
   void join_group (systemtap_session& s);
 };
 
 
+struct procfs_probe_set
+{
+  procfs_derived_probe* read_probe;
+  procfs_derived_probe* write_probe;
+
+  procfs_probe_set () : read_probe (NULL), write_probe (NULL) {}
+};
+
+
 struct procfs_derived_probe_group: public generic_dpg<procfs_derived_probe>
 {
+private:
+  map<string, procfs_probe_set*> probes_by_path;
+  typedef map<string, procfs_probe_set*>::iterator p_b_p_iterator;
+  bool has_read_probes;
+  bool has_write_probes;
+
 public:
+  procfs_derived_probe_group () :
+    has_read_probes(false), has_write_probes(false) {}
+
+  void enroll (procfs_derived_probe* probe);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
 };
 
 
-procfs_derived_probe::procfs_derived_probe (systemtap_session &, probe* p, probe_point* l, string ps, bool w):
-  derived_probe(p, l), path(ps), write(w)
+struct procfs_var_expanding_copy_visitor: public var_expanding_copy_visitor
 {
+  procfs_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
+				    string path, bool write_probe):
+    sess (s), probe_name (pn), path (path), write_probe (write_probe),
+    target_symbol_seen (false) {}
 
+  systemtap_session& sess;
+  string probe_name;
+  string path;
+  bool write_probe;
+  bool target_symbol_seen;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+
+procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
+					    probe_point* l, string ps, bool w):
+  derived_probe(p, l), path(ps), write(w), target_symbol_seen(false)
+{
+  clog << "procfs_derived_probe::procfs_derived_probe" << endl;
+
+  // Make a local-variable-expanded copy of the probe body
+  procfs_var_expanding_copy_visitor v (s, name, path, write);
+  require <block*> (&v, &(this->body), base->body);
+  target_symbol_seen = v.target_symbol_seen;
 }
 
 
@@ -4458,66 +4502,272 @@ procfs_derived_probe::join_group (systemtap_session& s)
 
 
 void
+procfs_derived_probe_group::enroll (procfs_derived_probe* p)
+{
+  procfs_probe_set *pset;
+
+  if (probes_by_path.count(p->path) == 0)
+    {
+      pset = new procfs_probe_set;
+      probes_by_path[p->path] = pset;
+    }
+  else
+    {
+      pset = probes_by_path[p->path];
+
+      // You can only specify 1 read and 1 write probe.
+      if (p->write && pset->write_probe != NULL)
+	throw semantic_error("only one write procfs probe can exist for procfs path \"" + p->path + "\"");
+      else if (! p->write && pset->read_probe != NULL)
+	throw semantic_error("only one read procfs probe can exist for procfs path \"" + p->path + "\"");
+    }
+
+  if (p->write)
+  {
+    pset->write_probe = p;
+    has_write_probes = true;
+  }
+  else
+  {
+    pset->read_probe = p;
+    has_read_probes = true;
+  }
+}
+
+
+void
 procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
-  if (probes.empty())
+  if (probes_by_path.empty())
     return;
 
   s.op->newline() << "/* ---- procfs probes ---- */";
+
+  // Emit the procfs probe data list
+  s.op->newline() << "struct stap_procfs_probe {";
+  s.op->newline(1)<< "const char *path;";
+  s.op->newline() << "const char *read_pp;";
+  s.op->newline() << "void (*read_ph) (struct context*);";
+  s.op->newline() << "const char *write_pp;";
+  s.op->newline() << "void (*write_ph) (struct context*);";
+  s.op->newline(-1) << "} stap_procfs_probes[] = {";
+  s.op->indent(1);
+
+  for (p_b_p_iterator it = probes_by_path.begin(); it != probes_by_path.end();
+       it++)
+  {
+      procfs_probe_set *pset = it->second;
+
+      s.op->newline() << "{";
+      s.op->line() << " .path=" << lex_cast_qstring (it->first) << ",";
+
+      if (pset->read_probe != NULL)
+        {
+	  s.op->line() << " .read_pp="
+		       << lex_cast_qstring (*pset->read_probe->sole_location())
+		       << ",";
+	  s.op->line() << " .read_ph=&" << pset->read_probe->name << ",";
+	}
+      else
+        {
+	  s.op->line() << " .read_pp=NULL,";
+	  s.op->line() << " .read_ph=NULL,";
+	}
+
+      if (pset->write_probe != NULL)
+        {
+	  s.op->line() << " .write_pp="
+		       << lex_cast_qstring (*pset->write_probe->sole_location())
+		       << ",";
+	  s.op->line() << " .write_ph=&" << pset->write_probe->name;
+	}
+      else
+        {
+	  s.op->line() << " .write_pp=NULL,";
+	  s.op->line() << " .write_ph=NULL";
+	}
+      s.op->line() << " },";
+  }
+  s.op->newline(-1) << "};";
+
+  if (has_read_probes)
+    {
+      // Output routine to fill in 'page' with our data.
+      s.op->newline();
+
+      s.op->newline() << "static int _stp_procfs_read(char *page, char **start, off_t off, int count, int *eof, void *data) {";
+
+      s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
+      s.op->newline() << "int bytes = 0;";
+      s.op->newline() << "string_t strdata = {'\\0'};";
+
+      s.op->newline() << "/* common prologue start */";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "/* common prologue end */";
+      s.op->newline() << "c->probe_point = spp->read_pp;";
+
+      s.op->newline() << "if (c->data == NULL)";
+      s.op->newline(1) << "c->data = &strdata;";
+      s.op->newline(-1) << "else";
+      s.op->newline(1) << "/* FIXME: error */;";
+
+      // call probe function (which copies data into strdata)
+      s.op->newline(-1) << "(*spp->read_ph) (c);";
+
+      // copy string data into 'page'
+      s.op->newline() << "c->data = NULL;";
+      s.op->newline() << "bytes = strnlen(strdata, MAXSTRINGLEN);";
+      s.op->newline() << "if (off >= bytes)";
+      s.op->newline(1) << "*eof = 1;";
+      s.op->newline(-1) << "else {";
+      s.op->newline(1) << "bytes -= off;";
+      s.op->newline() << "if (bytes > count)";
+      s.op->newline(1) << "bytes = count;";
+      s.op->newline(-1) << "memcpy(page, strdata + off, bytes);";
+      s.op->newline() << "*start = page;";
+      s.op->newline(-1) << "}";
+
+      s.op->newline() << "/* common epilogue start */";
+      common_probe_entryfn_epilogue (s.op);
+      s.op->newline() << "/* common epilogue end */";
+
+      s.op->newline() << "return bytes;";
+
+      s.op->newline(-1) << "}";
+    }
+  if (has_write_probes)
+    {
+      s.op->newline() << "static int _stp_procfs_write(struct file *file, const char *buffer, unsigned long count, void *data) {";
+
+      s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
+
+      s.op->newline(1) << "return 0;";
+      s.op->newline(-1) << "}";
+    }
 }
 
 
 void
 procfs_derived_probe_group::emit_module_init (systemtap_session& s)
 {
-  map<string, int> paths;
-  int num = 0;
-
-  if (probes.size () == 0)
+  if (probes_by_path.empty())
     return;
 
-  for (unsigned i=0; i < probes.size(); i++)
-    {
-      if (paths.count(probes[i]->path) == 0)
-        {
-	  paths[probes[i]->path] = num++;
+  s.op->newline() << "for (i = 0; i < " << probes_by_path.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_procfs_probe *spp = &stap_procfs_probes[i];";
 
-	  s.op->newline() << "probe_point = "
-			  << lex_cast_qstring (*probes[i]->sole_location())
-			  << ";";
-	  s.op->newline() << "rc = _stp_create_procfs(\"" << probes[i]->path
-			  << "\", " << paths[probes[i]->path] << ");";
-	  s.op->newline() << "if (rc) {";
-	  s.op->indent(1);
-	  if (i != 0)
-	    s.op->newline() << "_stp_close_procfs();";
-	  s.op->newline() << "goto procfs_out;";
-	  s.op->newline(-1) << "}";
-	}
+  s.op->newline() << "if (spp->read_pp)";
+  s.op->newline(1) << "probe_point = spp->read_pp;";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "probe_point = spp->write_pp;";
 
-      // FIXME: fill in real functions
-      if (probes[i]->write)
-	  s.op->newline() << "_stp_procfs_files[" << paths[probes[i]->path]
-			  << "]->write_proc = NULL;";
-      else
-	  s.op->newline() << "_stp_procfs_files[" << paths[probes[i]->path]
-			  << "]->read_proc = NULL;";
-    }
-  s.op->newline(-1) << "procfs_out:";
-  s.op->indent(1);
+  s.op->newline(-1) << "rc = _stp_create_procfs(spp->path, i);";
+
+  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "_stp_close_procfs();";
+  s.op->newline() << "break;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "if (spp->read_pp)";
+  s.op->newline(1) << "_stp_procfs_files[i]->read_proc = &_stp_procfs_read;";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "_stp_procfs_files[i]->read_proc = NULL;";
+
+  s.op->newline(-1) << "if (spp->write_pp)";
+  s.op->newline(1) << "_stp_procfs_files[i]->write_proc = &_stp_procfs_write;";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "_stp_procfs_files[i]->write_proc = NULL;";
+
+  s.op->newline(-1) << "_stp_procfs_files[i]->data = spp;";
+  s.op->newline(-1) << "}"; // for loop
 }
 
 
 void
 procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
+  if (probes_by_path.empty())
+    return;
+
   s.op->newline() << "_stp_close_procfs();";    
+}
+
+
+void
+procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  clog << "procfs_var_expanding_copy_visitor::visit_target_symbol" << endl;
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name != "$value")
+    throw semantic_error ("invalid target symbol for procfs probe, $value expected",
+			  e->tok);
+
+  bool lvalue = is_active_lvalue(e);
+  if (write_probe && lvalue)
+    throw semantic_error("procfs $value variable is read-only in a procfs write probe", e->tok);
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+
+  string fname = (string(lvalue ? "_procfs_value_set" : "_procfs_value_get")
+		  + "_" + lex_cast<string>(tick++));
+  string locvalue = "CONTEXT->data";
+
+  if (! lvalue)
+    {
+      ec->code = string("strlcpy (THIS->__retvalue, ") + locvalue
+	+ string(", MAXSTRINGLEN);");
+      ec->code += "/* pure */";
+    }
+  else
+    ec->code = string("strlcpy (") + locvalue
+      + string(", THIS->value, MAXSTRINGLEN);");
+
+  fdecl->name = fname;
+  fdecl->body = ec;
+  fdecl->type = pe_string;
+
+  if (lvalue)
+    {
+      // Modify the fdecl so it carries a single pe_string formal
+      // argument called "value".
+
+      vardecl *v = new vardecl;
+      v->type = pe_string;
+      v->name = "value";
+      v->tok = e->tok;
+      fdecl->formal_args.push_back(v);
+    }
+  sess.functions.push_back(fdecl);
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+  if (lvalue)
+    {
+      // Provide the functioncall to our parent, so that it can be
+      // used to substitute for the assignment node immediately above
+      // us.
+      assert(!target_symbol_setter_functioncalls.empty());
+      *(target_symbol_setter_functioncalls.top()) = n;
+    }
+
+  provide <functioncall*> (this, n);
 }
 
 
 struct procfs_builder: public derived_probe_builder
 {
-  bool write;
   procfs_builder() {}
   virtual void build(systemtap_session & sess,
 		     probe * base,
@@ -4539,7 +4789,13 @@ procfs_builder::build(systemtap_session & sess,
   bool has_read = (parameters.find("read") != parameters.end());
   bool has_write = (parameters.find("write") != parameters.end());
 
-  // If no procfs path, default to "command".
+  // If no procfs path, default to "command".  The runtime will do
+  // this for us, but if we don't do it here, we'll think the
+  // following 2 probes are attached to different paths:
+  //
+  //   probe procfs("command").read {}"
+  //   probe procfs.write {}
+  
   if (! has_procfs)
     path = "command";
 

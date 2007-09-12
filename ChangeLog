@@ -1,3 +1,9 @@
+2007-09-12  David Smith  <dsmith@redhat.com>
+
+	* translate.cxx (c_unparser::emit_common_header): Added 'data'
+	variable to context structure to support procfs probes.
+	* tapsets.cxx: Improved procfs probe handling.
+
 2007-09-10  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (procfs_derived_probe_group::emit_module_init):
