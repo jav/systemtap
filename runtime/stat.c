@@ -85,21 +85,15 @@ Stat _stp_stat_init (int type, ...)
 		va_start (ap, type);
 		
 		if (type == HIST_LOG) {
-			buckets = va_arg(ap, int);
+			buckets = HIST_LOG_BUCKETS;
 		} else {
 			start = va_arg(ap, int);
 			stop = va_arg(ap, int);
 			interval = va_arg(ap, int);
-			if (interval == 0) {
-				_stp_warn("histogram: interval cannot be zero.\n");
+
+			buckets = _stp_stat_calc_buckets(stop, start, interval);
+			if (!buckets)
 				return NULL;
-			}
-			buckets = (stop - start) / interval;
-			if ((stop - start) % interval) buckets++;
-			if (buckets > 128) {
-				_stp_warn("histogram: Interval is too small. Maximum buckets is 128.\n");
-				return NULL;
-			}
 		}
 		va_end (ap);
 	}

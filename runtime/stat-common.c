@@ -12,6 +12,28 @@
 #define _STAT_COMMON_C_
 #include "stat.h"
 
+static int _stp_stat_calc_buckets(int stop, int start, int interval)
+{
+	int buckets;
+
+	if (interval == 0) {
+		_stp_warn("histogram: interval cannot be zero.\n");
+		return 0;
+	}
+	buckets = (stop - start) / interval;
+	if ((stop - start) % interval)
+		buckets++;
+
+	if (buckets > STP_MAX_BUCKETS || buckets <= 0) {
+		_stp_warn("histogram: Number of buckets must be between 1 and %d\n"
+			  "Number_of_buckets = (stop - start) / interval.\n"
+			  "Please adjust your start, stop, and interval values.\n",
+			  STP_MAX_BUCKETS);
+		return 0;
+	}
+	return buckets;
+}
+
 static int needed_space(int64_t v)
 {
 	int space = 0;
@@ -39,57 +61,72 @@ static void reprint (int num, char *s)
 	}
 }
 
-/* implements a log base 2 function, or Most Significant Bit */
-/* with bits from 1 (lsb) to 64 (msb) */
-/* msb64(0) = 0 */
-/* msb64(1) = 1 */
-/* msb64(8) = 4 */
-/* msb64(512) = 10 */
-
-static int msb64(int64_t val)
+/* Given a bucket number for a log histogram, return the value. */
+static int64_t _stp_bucket_to_val(int num)
 {
-  int res = 64;
+	if (num == HIST_LOG_BUCKET0)
+		return 0;
+	if (num < HIST_LOG_BUCKET0) {
+		int64_t val = 0x8000000000000000LL;
+		return  val >> num;
+	} else
+		return 1LL << (num - HIST_LOG_BUCKET0 - 1);
+}
 
-  if (val == 0)
-    return 0;
+/* Implements a log base 2 function. Returns a bucket 
+ * number from 0 to HIST_LOG_BUCKETS.
+ */
+static int _stp_val_to_bucket(int64_t val)
+{
+	int neg = 0, res = HIST_LOG_BUCKETS;
+	
+	if (val == 0)
+		return HIST_LOG_BUCKET0;
 
-  /* shortcut. most values will be 16-bit */
-  if (val & 0xffffffffffff0000ull) {
-    if (!(val & 0xffffffff00000000ull)) {
-      val <<= 32;
-      res -= 32;
-    }
+	if (val < 0) {
+		val = -val;
+		neg = 1;
+	}
+	
+	/* shortcut. most values will be 16-bit */
+	if (unlikely(val & 0xffffffffffff0000ull)) {
+		if (!(val & 0xffffffff00000000ull)) {
+			val <<= 32;
+			res -= 32;
+		}
+		
+		if (!(val & 0xffff000000000000ull)) {
+			val <<= 16;
+			res -= 16;
+		}
+	} else {
+		val <<= 48;
+		res -= 48;
+	}
+	
+	if (!(val & 0xff00000000000000ull)) {
+		val <<= 8;
+		res -= 8;
+	}
+	
+	if (!(val & 0xf000000000000000ull)) {
+		val <<= 4;
+		res -= 4;
+	}
+	
+	if (!(val & 0xc000000000000000ull)) {
+		val <<= 2;
+		res -= 2;
+	}
 
-    if (!(val & 0xffff000000000000ull)) {
-      val <<= 16;
-      res -= 16;
-    }
-  } else {
-      val <<= 48;
-      res -= 48;
-  }
+	if (!(val & 0x8000000000000000ull)) {
+		val <<= 1;
+		res -= 1;
+	}
+	if (neg)
+		res = HIST_LOG_BUCKETS - res;
 
-  if (!(val & 0xff00000000000000ull)) {
-    val <<= 8;
-    res -= 8;
-  }
-
-  if (!(val & 0xf000000000000000ull)) {
-    val <<= 4;
-    res -= 4;
-  }
-
-  if (!(val & 0xc000000000000000ull)) {
-    val <<= 2;
-    res -= 2;
-  }
-
-  if (!(val & 0x8000000000000000ull)) {
-    val <<= 1;
-    res -= 1;
-  }
-
-  return res;
+	return res;
 }
 
 #ifndef HIST_WIDTH
@@ -119,8 +156,14 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	/* Touch up the bucket margin to show up to two zero-slots on
 	   either side of the data range, seems aesthetically pleasant. */
 	for (i = 0; i < 2; i++) {
-		if (low_bucket > 0)
-			low_bucket--;
+		if (st->type == HIST_LOG) {
+			/* For log histograms, don't go negative */
+			/* unless there are negative values. */
+			if (low_bucket != HIST_LOG_BUCKET0 && low_bucket > 0)
+				low_bucket--;
+		} else
+			if (low_bucket > 0)
+				low_bucket--;
 		
 		if (high_bucket < (st->buckets-1))
 			high_bucket++;
@@ -138,8 +181,12 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	cnt_space = needed_space (max);
 	if (st->type == HIST_LINEAR)
 		val_space = needed_space (st->start +  st->interval * high_bucket);
-	else
-		val_space = needed_space (((int64_t)1) << high_bucket);
+	else {
+		int tmp = needed_space(_stp_bucket_to_val(high_bucket));
+		val_space = needed_space(_stp_bucket_to_val(low_bucket));
+		if (tmp > val_space)
+			val_space = tmp;
+	}
 	//dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
 
 	/* print header */
@@ -153,30 +200,22 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	_stp_print("value |");
 	reprint (HIST_WIDTH, "-");
 	_stp_print(" count\n");
-	if (st->type == HIST_LINEAR)
-		val = st->start;
-	else
-		val = 0;
-	for (i = 0; i < st->buckets; i++) {
-		if (i >= low_bucket && i <= high_bucket) {
-			reprint (val_space - needed_space(val), " ");
-			_stp_printf("%lld", val);
-			_stp_print(" |");
-			
-			/* v = s->histogram[i] / scale; */
-			v = sd->histogram[i];
-			do_div (v, scale);
-		
-			reprint (v, "@");
-			reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
-			_stp_printf ("%lld\n", sd->histogram[i]);
-		}
-		if (st->type == HIST_LINEAR) 
-			val += st->interval;
-		else if (val == 0)
-			val = 1;
+	for (i = low_bucket;  i <= high_bucket; i++) {
+		if (st->type == HIST_LINEAR)
+			val = st->start + i * st->interval;
 		else
-			val *= 2;
+			val = _stp_bucket_to_val(i);
+		reprint (val_space - needed_space(val), " ");
+		_stp_printf("%lld", val);
+		_stp_print(" |");
+		
+		/* v = s->histogram[i] / scale; */
+		v = sd->histogram[i];
+		do_div (v, scale);
+		
+		reprint (v, "@");
+		reprint (HIST_WIDTH - v + 1 + cnt_space - needed_space(sd->histogram[i]), " ");
+		_stp_printf ("%lld\n", sd->histogram[i]);
 	}
 	_stp_print_char('\n');
 	_stp_print_flush();
@@ -231,18 +270,24 @@ static void __stp_stat_add (Hist st, stat *sd, int64_t val)
 	}
 	switch (st->type) {
 	case HIST_LOG:
-		n = msb64 (val);
+		n = _stp_val_to_bucket (val);
 		if (n >= st->buckets)
 			n = st->buckets - 1;
 		sd->histogram[n]++;
 		break;
 	case HIST_LINEAR:
 		val -= st->start;
+
+		/* underflow */
 		if (val < 0)
 			val = 0;
+
 		do_div (val, st->interval);
+
+		/* overflow */
 		if (val >= st->buckets)
 			val = st->buckets - 1;
+
 		sd->histogram[val]++;
 	default:
 		break;

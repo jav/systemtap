@@ -424,25 +424,20 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 }
 #else
 /* _stp_pmap_new_key1_key2...val (num, HIST_LINEAR, start, end, interval) */
-/* _stp_pmap_new_key1_key2...val (num, HIST_LOG, buckets) */ 
+/* _stp_pmap_new_key1_key2...val (num, HIST_LOG) */ 
 
 PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 {
-	int buckets=0, start=0, stop=0, interval=0;
+	int start=0, stop=0, interval=0;
 	PMAP pmap;
-	va_list ap;
 
-	if (htype != HIST_NONE) {
+	if (htype == HIST_LINEAR) {
+		va_list ap;
 		va_start (ap, htype);		
-		if (htype == HIST_LOG) {
-			buckets = va_arg(ap, int);
-			// dbug ("buckets=%d\n", buckets);
-		} else {
-			start = va_arg(ap, int);
-			stop = va_arg(ap, int);
-			interval = va_arg(ap, int);
-			// dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
-		}
+		start = va_arg(ap, int);
+		stop = va_arg(ap, int);
+		interval = va_arg(ap, int);
+		// dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
 		va_end (ap);
 	}
 
@@ -451,8 +446,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 		pmap = _stp_pmap_new (max_entries, STAT, sizeof(struct KEYSYM(pmap_node)), 0);
 		break;
 	case HIST_LOG:
-		pmap = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(pmap_node)), 
-					    buckets);
+		pmap = _stp_pmap_new_hstat_log (max_entries, sizeof(struct KEYSYM(pmap_node)));
 		break;
 	case HIST_LINEAR:
 		pmap = _stp_pmap_new_hstat_linear (max_entries, sizeof(struct KEYSYM(pmap_node)),

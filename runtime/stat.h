@@ -15,6 +15,15 @@
 #define NEED_STAT_LOCKS 0
 #endif
 
+/* maximum buckets for a linear histogram */
+#ifndef STP_MAX_BUCKETS
+#define STP_MAX_BUCKETS 128
+#endif
+
+/* buckets for log histogram. */
+#define HIST_LOG_BUCKETS 128
+#define HIST_LOG_BUCKET0 64
+
 /** histogram type */
 enum histtype { HIST_NONE, HIST_LOG, HIST_LINEAR };
 

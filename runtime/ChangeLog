@@ -1,3 +1,26 @@
+2007-09-12  Martin Hunt  <hunt@redhat.com>
+
+	* map-stat.c (_stp_map_new_hstat_log): Set buckets to 
+	HIST_LOG_BUCKETS.
+	(_stp_pmap_new_hstat_log): Ditto.
+	(_stp_map_new_hstat_linear): Call _stp_stat_calc_buckets().
+	(_stp_pmap_new_hstat_linear): Ditto.
+
+	* stat.h (STP_MAX_BUCKETS): Define..
+	(HIST_LOG_BUCKETS): Define.
+
+	* stat.c (_stp_stat_init): Call _stp_stat_calc_buckets().
+
+	* stat-common.c (_stp_stat_calc_buckets): New function. Common
+	bucket calculation and error reporting code.
+	(_stp_bucket_to_val): New function.
+	(_stp_val_to_bucket): Renamed and now handles negative numbers.
+	(_stp_stat_print_histogram): Handle negative values in log histograms.
+	(__stp_stat_add): Cleanup..
+
+	* map-gen.c (_stp_map_new): Remove buckets param for HIST_LOG.
+	* pmap-gen.c (_stp_pmap_new): Ditto.
+	
 2007-09-10  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c: New file. Common runtime procfs functions.
