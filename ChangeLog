@@ -1,3 +1,16 @@
+2007-09-12  Martin Hunt  <hunt@redhat.com>
+	PR 5019
+	* elaborate.cxx (visit_hist_op): Remove log histogram param.
+	* translate.cxx (assert_hist_compatible): Ditto.
+	* staptree.cxx (hist_op::print): Ditto.
+	* session.h (statistic_decl): Ditto.
+	
+	* parse.cxx (expect_number): Allow negative numbers.
+	Also validate that input is really numeric. This is used 
+	by histograms to get the parameters.
+	(parse_hist_op_or_bare_name): Remove code to get parameter
+	for log histograms. 
+
 2007-09-12  David Smith  <dsmith@redhat.com>
 
 	* translate.cxx (c_unparser::emit_common_header): Added 'data'

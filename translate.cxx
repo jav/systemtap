@@ -313,8 +313,7 @@ public:
 	break;
       case statistic_decl::logarithmic:
 	assert(hop.htype == hist_log);
-	assert(hop.params.size() == 1);
-	assert(hop.params[0] == sd.logarithmic_buckets);
+	assert(hop.params.size() == 0);
 	break;
       case statistic_decl::none:
 	assert(false);
@@ -384,8 +383,7 @@ public:
               break;
               
             case statistic_decl::logarithmic:
-              prefix += string("HIST_LOG")
-                + ", " + stringify(sd.logarithmic_buckets);
+              prefix += string("HIST_LOG");
               break;
               
             default:
@@ -676,9 +674,7 @@ struct mapvar
 	    break;
 
 	  case statistic_decl::logarithmic:
-	    if (sdecl().logarithmic_buckets > 64)
-	      throw semantic_error("cannot support > 64 logarithmic buckets");	    
-	    prefix = prefix + ", HIST_LOG" + ", " + stringify(sdecl().logarithmic_buckets);
+	    prefix = prefix + ", HIST_LOG";
 	    break;
 	  }
       }

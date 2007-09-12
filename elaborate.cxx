@@ -831,8 +831,7 @@ struct stat_decl_collector
       {
 	assert (e->htype == hist_log);
 	new_stat.type = statistic_decl::logarithmic;
-	assert (e->params.size() == 1);
-	new_stat.logarithmic_buckets = e->params[0];
+	assert (e->params.size() == 0);
       }
 
     map<string, statistic_decl>::iterator i = session.stat_decls.find(sym->name);

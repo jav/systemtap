@@ -718,13 +718,9 @@ hist_op::print (ostream& o) const
       break;
 
     case hist_log:
-      assert(params.size() == 1);
+      assert(params.size() == 0);
       o << "hist_log(";
       stat->print(o);
-      for (size_t i = 0; i < params.size(); ++i)
-	{
-	  o << ", " << params[i];
-	}
       o << ")";
       break;
     }

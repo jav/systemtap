@@ -451,13 +451,37 @@ parser::expect_kw (std::string const & expected)
 }
 
 const token* 
-parser::expect_number (int64_t & expected)
+parser::expect_number (int64_t & value)
 {
-  std::string tmp;  
-  token const * tt = expect_unknown (tok_number, tmp);
-  istringstream iss(tmp);
-  iss >> expected;
-  return tt;
+  bool neg = false;
+  const token *t = next();
+  if (t->type == tok_operator && t->content == "-")
+    {
+      neg = true;
+      t = next ();
+    }
+  if (!(t && t->type == tok_number))
+    throw parse_error ("expected number");
+
+  const char* startp = t->content.c_str ();
+  char* endp = (char*) startp;
+
+  // NB: we allow controlled overflow from LLONG_MIN .. ULLONG_MAX
+  // Actually, this allows all the way from -ULLONG_MAX to ULLONG_MAX,
+  // since the lexer only gives us positive digit strings, but we'll
+  // limit it to LLONG_MIN when a '-' operator is fed into the literal.
+  errno = 0;
+  value = (int64_t) strtoull (startp, & endp, 0);
+  if (errno == ERANGE || errno == EINVAL || *endp != '\0'
+      || (neg && (unsigned long long) value > 9223372036854775808ULL)
+      || (unsigned long long) value > 18446744073709551615ULL
+      || value < -9223372036854775807LL-1)
+    throw parse_error ("number invalid or out of range"); 
+  
+  if (neg)
+    value = -value;
+
+  return t;
 }
 
 
@@ -2170,22 +2194,6 @@ parser::parse_hist_op_or_bare_name (hist_op *&hop, string &name)
 	      expect_number (tnum);
 	      hop->params.push_back (tnum);
 	    }
-	}
-      else
-	{
-	  assert(hop->htype == hist_log);
-	  if (peek_op (","))
-	    {
-	      expect_op (",");
-	      expect_number (tnum);
-	      hop->params.push_back (tnum);
-	    }
-	  else
-	    {
-	      // FIXME (magic value): Logarithmic histograms get 64
-	      // buckets by default.
-	      hop->params.push_back (64);
-	    }	      
 	}
       expect_op(")");
     }

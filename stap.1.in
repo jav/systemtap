@@ -599,12 +599,11 @@ integers.
 .PP
 Histograms are also available, but are more complicated because they
 have a vector rather than scalar value.
-.I @hist_linear(v,L,H,W)
-represents a linear histogram whose low/high/width parameters are
-given by the following three literal numbers.  Similarly,
-.I @hist_log(v,N)
-represents a base-2 logarithmic histogram with the given number of
-buckets.  N may be omitted, and defaults to 64.  Printing a histogram
+.I @hist_linear(v,start,stop,interval)
+represents a linear histogram from "start" to "stop" by increments 
+of "interval".  The interval must be positive. Similarly,
+.I @hist_log(v)
+represents a base-2 logarithmic histogram. Printing a histogram
 with the
 .I print
 family of functions renders a histogram object as a tabular
