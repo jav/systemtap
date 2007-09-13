@@ -1,3 +1,8 @@
+2007-09-13  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.base/limits.exp: New. Test 32 and 64-bit integer
+	extremes.
+
 2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* buildok/print_histograms.stp: Test println(@hist*()).

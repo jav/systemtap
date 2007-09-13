@@ -1,0 +1,51 @@
+# test integer limits. Set and print variables and print constants.
+
+probe begin {
+
+
+	long_max = 2147483647;
+	ulong_max = 4294967295;
+	long_min = -2147483647-1;
+	long_min2 = -2147483648;
+
+	printf("Maximum signed 32-bit number\n")
+	printf("%d 0x%x\n", long_max, long_max)
+	printf("%d 0x%x\n", 2147483647, 2147483647)
+	printf("%d 0x%x\n", 0x7fffffff, 0x7fffffff)
+
+	printf("\nMaximum unsigned 32-bit number\n")
+	printf("%d 0x%x\n", ulong_max, ulong_max)
+	printf("%d 0x%x\n", 4294967295, 4294967295)
+	printf("%d 0x%x\n", 0xffffffff, 0xffffffff)
+
+	printf("\nMinimum signed 32-bit number\n")
+	printf("%d 0x%x\n", long_min, long_min)
+	printf("%d 0x%x\n", long_min2, long_min2)
+	printf("%d 0x%x\n", -2147483648, -2147483648)
+	printf("%d 0x%x\n", 0xffffffff80000000, 0xffffffff80000000)
+
+	llong_max = 9223372036854775807;
+	ullong_max = 18446744073709551615;
+	llong_min = -9223372036854775807-1;
+	llong_min2 = -9223372036854775808;
+	llong_min3 = 9223372036854775808;
+
+	printf("\nMaximum signed 64-bit number\n")
+	printf("%d 0x%x\n", llong_max, llong_max)
+	printf("%d 0x%x\n", 9223372036854775807, 9223372036854775807)
+	printf("%d 0x%x\n", 0x7fffffffffffffff, 0x7fffffffffffffff)
+
+	printf("\nMaximum unsigned 64-bit number\n")
+	printf("%ud 0x%x\n", ullong_max, ullong_max)
+	printf("%ud 0x%x\n", 18446744073709551615, 18446744073709551615)
+	printf("%ud 0x%x\n", 0xffffffffffffffff, 0xffffffffffffffff)
+
+	printf("\nMinimum signed 64-bit number\n")
+	printf("%d 0x%x\n", llong_min, llong_min)
+	printf("%d 0x%x\n", llong_min2, llong_min2)
+	printf("%d 0x%x\n", llong_min3, llong_min3)
+	printf("%d 0x%x\n", -9223372036854775808, -9223372036854775808)
+	printf("%d 0x%x\n", 0x8000000000000000, 0x8000000000000000)
+
+        exit()
+}
