@@ -628,7 +628,7 @@ function __get_argv:string(a:long, first:long)
 		argv++;
 
 	while (argv != NULL) {
-		if (get_user (vstr, argv))
+		if (__stp_get_user (vstr, argv))
       			break;
 
 		if (vstr == NULL)
@@ -686,7 +686,7 @@ function __get_compat_argv:string(a:long, first:long)
 		argv++;
 
 	while (argv != NULL) {
-		if (get_user (vstr, argv))
+		if (__stp_get_user (vstr, argv))
       			break;
 
 		if (vstr == NULL)
