@@ -1,3 +1,11 @@
+2007-09-13  David Smith  <dsmith@redhat.com>
+
+	* procfs.c (_stp_procfs_dir_lookup): Added 'const' qualifier to
+	'dir' parameter.
+	(_stp_create_procfs): Added 'const' qualifier to 'path'
+	parameter.  Removed debug prints.
+	(_stp_close_procfs): Removed debug prints.
+
 2007-09-12  Martin Hunt  <hunt@redhat.com>
 
 	* map-stat.c (_stp_map_new_hstat_log): Set buckets to 

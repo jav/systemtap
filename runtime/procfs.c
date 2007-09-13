@@ -89,7 +89,7 @@ done:
 /*
  * This checks our local cache to see if we already made the dir.
  */
-static struct proc_dir_entry *_stp_procfs_dir_lookup(char *dir, struct proc_dir_entry *parent)
+static struct proc_dir_entry *_stp_procfs_dir_lookup(const char *dir, struct proc_dir_entry *parent)
 {
 	int i;
 	for (i = 0; i <_stp_num_pde; i++) {
@@ -100,9 +100,10 @@ static struct proc_dir_entry *_stp_procfs_dir_lookup(char *dir, struct proc_dir_
 	return NULL;
 }
 
-int _stp_create_procfs(char *path, int num)
+int _stp_create_procfs(const char *path, int num)
 {  
-	char *p = path, *next;
+	const char *p;
+	char *next;
 	struct proc_dir_entry *last_dir, *de;
 
 	if (num >= STP_MAX_PROCFS_FILES) {
@@ -115,16 +116,16 @@ int _stp_create_procfs(char *path, int num)
 	last_dir = _stp_proc_root;
 
 	/* if no path, use default one */
-	if (strlen(p) == 0)
+	if (strlen(path) == 0)
 		p = "command";
-	_dbug("path=/proc/systemtap/%s/%s\n", THIS_MODULE->name, p);
+	else
+		p = path;
 	
 	while ((next = strchr(p, '/'))) {
 		if (_stp_num_pde == STP_MAX_PROCFS_FILES)
 			goto too_many;
 		*next = 0;
 		de = _stp_procfs_dir_lookup(p, last_dir);
-		_dbug("lookup of %s %p returned %p\n", p, last_dir, de);
 		if (de == NULL) {
 			    last_dir = proc_mkdir(p, last_dir);
 			    if (!last_dir) {
@@ -132,7 +133,6 @@ int _stp_create_procfs(char *path, int num)
 					       "in path \"%s\"\n", p, path);
 				    goto err;
 			    }
-			    _dbug("mkdir %s returned %p\n", p, last_dir);
 			    _stp_pde[_stp_num_pde++] = last_dir;
 			    last_dir->uid = _stp_uid;
 			    last_dir->gid = _stp_gid;
@@ -144,7 +144,6 @@ int _stp_create_procfs(char *path, int num)
 	if (_stp_num_pde == STP_MAX_PROCFS_FILES)
 		goto too_many;
 	
-	_dbug("creating file %s\n", p);
 	de = create_proc_entry (p, 0600, last_dir);
 	if (de == NULL) {
 		_stp_error("Could not create file \"%s\" in path \"%s\"\n", p, path);
@@ -166,10 +165,8 @@ err:
 void _stp_close_procfs(void)
 {
 	int i;
-	_dbug("closing all procfs files\n");
 	for (i = _stp_num_pde-1; i >= 0; i--) {
 		struct proc_dir_entry *pde = _stp_pde[i];
-		_dbug("remove %s in %s\n", pde->name, pde->parent->name);
 		remove_proc_entry(pde->name, pde->parent);
 	}
 	_stp_num_pde = 0;
