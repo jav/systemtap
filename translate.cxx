@@ -1794,7 +1794,7 @@ c_unparser::c_expression (expression *e)
   // have the same value as being visited by c_unparser.  For
   // instance, a numeric constant evaluated using print() would return
   // "5", while c_unparser::visit_literal_number() would
-  // return "((int64_t)5LL)".  String constants evalutated using
+  // return "((int64_t)5LL)".  String constants evaluated using
   // print() would just return the string, while
   // c_unparser::visit_literal_string() would return the string with
   // escaped double quote characters.  So, we need to "visit" the
@@ -2860,7 +2860,10 @@ c_unparser::visit_literal_number (literal_number* e)
   // This looks ugly, but tries to be warning-free on 32- and 64-bit
   // hosts.
   // NB: this needs to be signed!
-  o->line() << "((int64_t)" << e->value << "LL)";
+  if (e->value == -9223372036854775807LL-1) // PR 5023
+    o->line() << "((int64_t)" << (unsigned long long) e->value << "ULL)";
+  else
+    o->line() << "((int64_t)" << e->value << "LL)";
 }
 
 
@@ -2958,9 +2961,25 @@ c_unparser::visit_unary_expression (unary_expression* e)
       e->operand->type != pe_long)
     throw semantic_error ("expected numeric types", e->tok);
 
-  o->line() << "(" << e->op << " (";
-  e->operand->visit (this);
-  o->line() << "))";
+  if (e->op == "-")
+    {
+      // NB: Subtraction is special, since negative literals in the
+      // script language show up as unary negations over positive
+      // literals here.  This makes it "exciting" for emitting pure
+      // C since: - 0x8000_0000_0000_0000 ==> - (- 9223372036854775808)
+      // This would constitute a signed overflow, which gcc warns on
+      // unless -ftrapv/-J are in CFLAGS - which they're not.
+
+      o->line() << "(int64_t)(0 " << e->op << " (uint64_t)(";
+      e->operand->visit (this);
+      o->line() << "))";
+    }
+  else
+    {
+      o->line() << "(" << e->op << " (";
+      e->operand->visit (this);
+      o->line() << "))";
+    }
 }
 
 void

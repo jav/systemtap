@@ -13,4 +13,9 @@ probe begin
   ullong_max = 18446744073709551615;
   llong_min = -9223372036854775807-1;
   llong_min2 = -9223372036854775808;
+  llong_min3 = 9223372036854775808;
+
+  // nearly out-of-range negative numbers
+  underflow_1 = -9223372036854775809;
+  underflow_2 = -18446744073709551615;
 }
