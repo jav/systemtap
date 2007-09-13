@@ -132,30 +132,60 @@ function task_cpu:long (task:long)
 
 
 // Return the number of open file handlers for the given task
-function task_open_file_handles:long (task:long) %{ /* pure */
+function task_open_file_handles:long (task:long)
+%( kernel_v >= "2.6.15" %?
+%{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *f = kread(&(t->files));
-    struct fdtable *fdt = kread(&(f->fdt));
+    struct files_struct *fs = kread(&(t->files));
+    struct fdtable *f = kread(&(fs->fdt));
     unsigned int count=0, fd, max;
     rcu_read_lock();
-    max = kread(&(fdt->max_fds));
+    max = kread(&(f->max_fds));
     for (fd = 0; fd < max; fd++) {
-                if ( kread(&(fdt->fd[fd])) != NULL)
+                if ( kread(&(f->fd[fd])) != NULL)
                         count ++;
         }
     rcu_read_unlock();
     THIS->__retvalue = count;
     CATCH_DEREF_FAULT();
 %}
+%:
+%{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct files_struct *f = kread(&(t->files));
+    unsigned int count=0, fd, max;
+    rcu_read_lock();
+    max = kread(&(f->max_fds));
+    for (fd = 0; fd < max; fd++) {
+                if ( kread(&(f->fd[fd])) != NULL)
+                        count ++;
+        }
+    rcu_read_unlock();
+    THIS->__retvalue = count;
+    CATCH_DEREF_FAULT();
+%}
+%)
 
 
 // Return the maximum number of file handlers for the given task
-function task_max_file_handles:long (task:long) %{ /* pure */
+function task_max_file_handles:long (task:long)
+%( kernel_v >= "2.6.15" %?
+%{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
-    struct files_struct *f = kread (&(t->files));
-    struct fdtable *fdt = kread(&(f->fdt));
+    struct files_struct *fs = kread (&(t->files));
+    struct fdtable *f = kread(&(fs->fdt));
     rcu_read_lock();
-    THIS->__retvalue = kread(&(fdt->max_fds));
+    THIS->__retvalue = kread(&(f->max_fds));
     rcu_read_unlock();
     CATCH_DEREF_FAULT();
 %}
+%:
+%{ /* pure */
+    struct task_struct *t = (struct task_struct *)(long)THIS->task;
+    struct files_struct *f = kread(&(t->files));
+    rcu_read_lock();
+    THIS->__retvalue = kread(&(f->max_fds));
+    rcu_read_unlock();
+    CATCH_DEREF_FAULT();
+%}
+%)
