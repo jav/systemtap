@@ -1,3 +1,13 @@
+2007-09-13  David Smith  <dsmith@redhat.com>
+
+	PR 1154
+	* tapsets.cxx (procfs_derived_probe::procfs_derived_probe):
+	Removed debug print.
+	(procfs_derived_probe_group::emit_module_decls): Improved error
+	handling and added support for procfs.write probes.
+	(procfs_var_expanding_copy_visitor::visit_target_symbol): Removed
+	debug print.
+
 2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	* parse.cxx (parse_symbol): Accept println(@hist*()).

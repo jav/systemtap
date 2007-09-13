@@ -4483,8 +4483,6 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 					    probe_point* l, string ps, bool w):
   derived_probe(p, l), path(ps), write(w), target_symbol_seen(false)
 {
-  clog << "procfs_derived_probe::procfs_derived_probe" << endl;
-
   // Make a local-variable-expanded copy of the probe body
   procfs_var_expanding_copy_visitor v (s, name, path, write);
   require <block*> (&v, &(this->body), base->body);
@@ -4601,22 +4599,27 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "int bytes = 0;";
       s.op->newline() << "string_t strdata = {'\\0'};";
 
-      s.op->newline() << "/* common prologue start */";
       common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-      s.op->newline() << "/* common prologue end */";
       s.op->newline() << "c->probe_point = spp->read_pp;";
 
       s.op->newline() << "if (c->data == NULL)";
       s.op->newline(1) << "c->data = &strdata;";
-      s.op->newline(-1) << "else";
-      s.op->newline(1) << "/* FIXME: error */;";
+      s.op->newline(-1) << "else {";
+
+      s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
+      s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      s.op->newline() << "_stp_exit ();";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "atomic_dec (& c->busy);";
+      s.op->newline() << "goto probe_epilogue;";
+      s.op->newline(-1) << "}";
 
       // call probe function (which copies data into strdata)
-      s.op->newline(-1) << "(*spp->read_ph) (c);";
+      s.op->newline() << "(*spp->read_ph) (c);";
 
       // copy string data into 'page'
       s.op->newline() << "c->data = NULL;";
-      s.op->newline() << "bytes = strnlen(strdata, MAXSTRINGLEN);";
+      s.op->newline() << "bytes = strnlen(strdata, MAXSTRINGLEN - 1);";
       s.op->newline() << "if (off >= bytes)";
       s.op->newline(1) << "*eof = 1;";
       s.op->newline(-1) << "else {";
@@ -4627,10 +4630,7 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "*start = page;";
       s.op->newline(-1) << "}";
 
-      s.op->newline() << "/* common epilogue start */";
       common_probe_entryfn_epilogue (s.op);
-      s.op->newline() << "/* common epilogue end */";
-
       s.op->newline() << "return bytes;";
 
       s.op->newline(-1) << "}";
@@ -4640,8 +4640,34 @@ procfs_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "static int _stp_procfs_write(struct file *file, const char *buffer, unsigned long count, void *data) {";
 
       s.op->newline(1) << "struct stap_procfs_probe *spp = (struct stap_procfs_probe *)data;";
+      s.op->newline() << "string_t strdata = {'\\0'};";
 
-      s.op->newline(1) << "return 0;";
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "c->probe_point = spp->write_pp;";
+
+      s.op->newline() << "if (count > (MAXSTRINGLEN - 1))";
+      s.op->newline(1) << "count = MAXSTRINGLEN - 1;";
+      s.op->newline(-1) << "_stp_copy_from_user(strdata, buffer, count);";
+
+      s.op->newline() << "if (c->data == NULL)";
+      s.op->newline(1) << "c->data = &strdata;";
+      s.op->newline(-1) << "else {";
+
+      s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
+      s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+      s.op->newline() << "_stp_exit ();";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "atomic_dec (& c->busy);";
+      s.op->newline() << "goto probe_epilogue;";
+      s.op->newline(-1) << "}";
+
+      // call probe function (which copies data out of strdata)
+      s.op->newline() << "(*spp->write_ph) (c);";
+
+      s.op->newline() << "c->data = NULL;";
+      common_probe_entryfn_epilogue (s.op);
+
+      s.op->newline() << "return count;";
       s.op->newline(-1) << "}";
     }
 }
@@ -4696,7 +4722,6 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
 void
 procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 {
-  clog << "procfs_var_expanding_copy_visitor::visit_target_symbol" << endl;
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
   if (e->base_name != "$value")
@@ -4721,11 +4746,8 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   string locvalue = "CONTEXT->data";
 
   if (! lvalue)
-    {
-      ec->code = string("strlcpy (THIS->__retvalue, ") + locvalue
-	+ string(", MAXSTRINGLEN);");
-      ec->code += "/* pure */";
-    }
+    ec->code = string("strlcpy (THIS->__retvalue, ") + locvalue
+      + string(", MAXSTRINGLEN); /* pure */");
   else
     ec->code = string("strlcpy (") + locvalue
       + string(", THIS->value, MAXSTRINGLEN);");
