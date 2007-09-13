@@ -17,6 +17,10 @@
   if you have been a user of the tapset/tools, so we can help you find
   another way.
 
+- New families of printing functions println() and printd() have been added.
+  println() is like print() but adds a newline at the end;
+  printd() is like a sequence of print()s, with a specified field delimiter.
+
 * What's new since version 0.5.14?
 
 - The way in which command line arguments for scripts are substituted has
