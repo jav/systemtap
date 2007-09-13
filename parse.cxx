@@ -2269,7 +2269,7 @@ parser::parse_symbol ()
 	  fmt->print_with_newline = pf_newline;
 
 	  expect_op("(");
-	  if (name == "print" &&
+	  if ((name == "print" || name == "println") &&
 	      (peek_kw("@hist_linear") || peek_kw("@hist_log")))
 	    {
 	      // We have a special case where we recognize

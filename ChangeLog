@@ -1,5 +1,9 @@
 2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
 
+	* parse.cxx (parse_symbol): Accept println(@hist*()).
+
+2007-09-12  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5023
 	* translate.cxx (c_unparser::visit_literal_number): Support LLONG_MIN.
 	(visit_unary_expression): Likewise.

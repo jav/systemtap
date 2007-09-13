@@ -24,5 +24,7 @@ probe end
 	printf("count %d, avg %d\n", @count(foo), @avg(foo))
 	print(@hist_log(foo))
 	print(@hist_linear(bar, 1000, 10000, 1000))
+	println(@hist_log(foo))
+	println(@hist_linear(bar, 1000, 10000, 1000))
 }
 
