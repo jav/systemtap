@@ -1,0 +1,6 @@
+#! stap -p2
+
+# write to $value in a procfs write probe
+probe procfs.write {
+      $value = "hi"
+}

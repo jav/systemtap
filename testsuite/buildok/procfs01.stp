@@ -1,0 +1,12 @@
+#! stap -p4
+
+global foo_value = "100\n"
+
+probe procfs("foo").read {
+      $value = foo_value
+}
+
+probe procfs("foo").write {
+      foo_value = $value
+      printf("value is %s", foo_value)
+}

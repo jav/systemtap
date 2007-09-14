@@ -1,0 +1,7 @@
+#! stap -p2
+
+# read from $value in a procfs read probe
+probe procfs.read {
+      x = $value
+      printf("%s\n", x)
+}

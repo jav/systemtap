@@ -1,3 +1,13 @@
+2007-09-14  David Smith  <dsmith@redhat.com>
+
+	PR 1154
+	* buildok/procfs01.stp: New test case.
+	* semko/procfs01.stp: Ditto.
+	* semko/procfs02.stp: Ditto.
+	* semko/procfs03.stp: Ditto.
+	* semko/procfs04.stp: Ditto.
+	* semko/procfs05.stp: Ditto.
+
 2007-09-13  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.base/limits.exp: New. Test 32 and 64-bit integer
