@@ -4707,7 +4707,7 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
 
   if (has_write_probes)
     {
-      s.op->newline(-1) << "if (spp->write_pp)";
+      s.op->newline() << "if (spp->write_pp)";
       s.op->newline(1) << "_stp_procfs_files[i]->write_proc = &_stp_procfs_write;";
       s.op->newline(-1) << "else";
       s.op->newline(1) << "_stp_procfs_files[i]->write_proc = NULL;";
@@ -4743,6 +4743,8 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   bool lvalue = is_active_lvalue(e);
   if (write_probe && lvalue)
     throw semantic_error("procfs $value variable is read-only in a procfs write probe", e->tok);
+  else if (! write_probe && ! lvalue)
+    throw semantic_error("procfs $value variable cannot be read in a procfs read probe", e->tok);
 
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
