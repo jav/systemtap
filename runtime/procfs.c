@@ -128,7 +128,6 @@ int _stp_create_procfs(const char *path, int num)
 		de = _stp_procfs_lookup(p, last_dir);
 		if (de == NULL) {
 			    last_dir = proc_mkdir(p, last_dir);
-			    _dbug("mkdir of %s returned %p\n", p, last_dir);
 			    if (!last_dir) {
 				    _stp_error("Could not create directory \"%s\"\n", p);
 				    goto err;
