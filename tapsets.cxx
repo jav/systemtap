@@ -4694,17 +4694,29 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "break;";
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "if (spp->read_pp)";
-  s.op->newline(1) << "_stp_procfs_files[i]->read_proc = &_stp_procfs_read;";
-  s.op->newline(-1) << "else";
-  s.op->newline(1) << "_stp_procfs_files[i]->read_proc = NULL;";
+  if (has_read_probes) 
+    {
+      s.op->newline() << "if (spp->read_pp)";
+      s.op->newline(1) << "_stp_procfs_files[i]->read_proc = &_stp_procfs_read;";
+      s.op->newline(-1) << "else";
+      s.op->newline(1) << "_stp_procfs_files[i]->read_proc = NULL;";
+      s.op->indent(-1);
+    }
+  else
+    s.op->newline() << "_stp_procfs_files[i]->read_proc = NULL;";
 
-  s.op->newline(-1) << "if (spp->write_pp)";
-  s.op->newline(1) << "_stp_procfs_files[i]->write_proc = &_stp_procfs_write;";
-  s.op->newline(-1) << "else";
-  s.op->newline(1) << "_stp_procfs_files[i]->write_proc = NULL;";
+  if (has_write_probes)
+    {
+      s.op->newline(-1) << "if (spp->write_pp)";
+      s.op->newline(1) << "_stp_procfs_files[i]->write_proc = &_stp_procfs_write;";
+      s.op->newline(-1) << "else";
+      s.op->newline(1) << "_stp_procfs_files[i]->write_proc = NULL;";
+      s.op->indent(-1);
+    }
+  else
+    s.op->newline() << "_stp_procfs_files[i]->write_proc = NULL;";
 
-  s.op->newline(-1) << "_stp_procfs_files[i]->data = spp;";
+  s.op->newline() << "_stp_procfs_files[i]->data = spp;";
   s.op->newline(-1) << "}"; // for loop
 }
 

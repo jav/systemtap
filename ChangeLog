@@ -1,3 +1,10 @@
+2007-09-14  David Smith  <dsmith@redhat.com>
+
+	PR 1154
+	* tapsets.cxx (procfs_derived_probe_group::emit_module_init):
+	Fixed problem where if only one type (read/write) of procfs probe
+	was defined, the generated code wouldn't compile.
+
 2007-09-13  David Smith  <dsmith@redhat.com>
 
 	PR 1154
