@@ -89,7 +89,7 @@ done:
 /*
  * This checks our local cache to see if we already made the dir.
  */
-static struct proc_dir_entry *_stp_procfs_dir_lookup(const char *dir, struct proc_dir_entry *parent)
+static struct proc_dir_entry *_stp_procfs_lookup(const char *dir, struct proc_dir_entry *parent)
 {
 	int i;
 	for (i = 0; i <_stp_num_pde; i++) {
@@ -111,7 +111,7 @@ int _stp_create_procfs(const char *path, int num)
 			   num, STP_MAX_PROCFS_FILES);
 		return -1;
 	}
-	
+
 	_stp_mkdir_proc_module();
 	last_dir = _stp_proc_root;
 
@@ -125,19 +125,24 @@ int _stp_create_procfs(const char *path, int num)
 		if (_stp_num_pde == STP_MAX_PROCFS_FILES)
 			goto too_many;
 		*next = 0;
-		de = _stp_procfs_dir_lookup(p, last_dir);
+		de = _stp_procfs_lookup(p, last_dir);
 		if (de == NULL) {
 			    last_dir = proc_mkdir(p, last_dir);
+			    _dbug("mkdir of %s returned %p\n", p, last_dir);
 			    if (!last_dir) {
-				    _stp_error("Could not create directory \"%s\" " \
-					       "in path \"%s\"\n", p, path);
+				    _stp_error("Could not create directory \"%s\"\n", p);
 				    goto err;
 			    }
 			    _stp_pde[_stp_num_pde++] = last_dir;
 			    last_dir->uid = _stp_uid;
 			    last_dir->gid = _stp_gid;
-		} else
+		} else {
+			if (!S_ISDIR(de->mode)) {
+				_stp_error("Could not create directory \"%s\"\n", p);
+				goto err;
+			}
 			last_dir = de;
+		}
 		p = next + 1;
 	}
 	
