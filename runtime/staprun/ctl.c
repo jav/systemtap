@@ -16,11 +16,13 @@ int init_ctl_channel(void)
 {
 	char buf[PATH_MAX];
 	struct statfs st;
+	int old_transport = 0;
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
 		if (sprintf_chk(buf, "/sys/kernel/debug/systemtap/%s/cmd", modname))
 			return -1;
 	} else {
+		old_transport = 1;
 		if (sprintf_chk(buf, "/proc/systemtap/%s/cmd", modname))
 			return -1;
 	}
@@ -34,7 +36,7 @@ int init_ctl_channel(void)
 			perr("Couldn't open control channel '%s'", buf);
 		return -1;
 	}
-	return 0;
+	return old_transport;
 }
 
 void close_ctl_channel(void)

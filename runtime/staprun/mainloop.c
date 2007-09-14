@@ -118,38 +118,6 @@ void system_cmd(char *cmd)
 	}
 }
 
-static int using_old_transport(void)
-{
-	struct utsname utsbuf;
-	int i;
-	long int kver[3];
-	char *start, *end;
-
-	if (uname(&utsbuf) != 0) {
-		_perr("Unable to determine kernel version, uname failed");
-		return -1;
-	}
-
-	start = utsbuf.release;
-	for (i = 0; i < 3; i++) {
-		errno = 0;
-		kver[i] = strtol(start, &end, 10);
-		if (errno != 0) {
-			_perr("Unable to parse kernel version, strtol failed");
-			return -1;
-		}
-		start = end;
-		start++;
-	}
-
-	if (KERNEL_VERSION(kver[0], kver[1], kver[2])
-	    <= KERNEL_VERSION(2, 6, 15)) {
-		dbug(2, "Using OLD TRANSPORT\n");
-		return 1;
-	}
-	return 0;
-}
-
 /* This is only used in the old relayfs code */
 static void read_buffer_info(void)
 {
@@ -195,12 +163,9 @@ int init_stapio(void)
 {
 	dbug(2, "init_stapio\n");
 
-	use_old_transport = using_old_transport();
-	if (use_old_transport < 0)
-		return -1;
-
 	/* create control channel */
-	if (init_ctl_channel() < 0) {
+	use_old_transport = init_ctl_channel();
+	if (use_old_transport < 0) {
 		err("Failed to initialize control channel.\n");
 		return -1;
 	}

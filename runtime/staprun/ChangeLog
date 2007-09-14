@@ -1,3 +1,12 @@
+2007-09-14  Martin Hunt  <hunt@redhat.com>
+
+	* ctl.c (init_ctl_channel): Return 1 if the ctl file opened
+	was for the old relayfs transport.
+
+	* mainloop.c (init_stapio): Don't call using_old_transport().
+	Use the return of init_ctl_channel() instead.
+	(using_old_transport): Deleted.
+
 2007-08-31  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (start_cmd): Set the priority to
