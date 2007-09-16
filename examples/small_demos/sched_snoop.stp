@@ -26,10 +26,10 @@ probe scheduler.tick {
     report(sprintf("tick%s", idle? " [idle]" : ""))
 }
 
-probe scheduler.migrate {
+probe scheduler.migrate ? {
     report("migrate")
 }
 
-probe scheduler.balance {
+probe scheduler.balance ? {
     report("balance")
 }

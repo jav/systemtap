@@ -1,3 +1,8 @@
+2007-09-15  Wenji Huang <wenji.huang@oracle.com>
+
+	* iostat-scsi.stp: Make module probe optional,clarify reference to flags.
+	* small_demos/sched_snoop.stp(scheduler.migrage,scheduler.balance): Make optional.
+
 2007-09-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	* pf2.stp: Exploit sortable aggregates.

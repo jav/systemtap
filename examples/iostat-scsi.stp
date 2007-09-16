@@ -1,20 +1,24 @@
-#! /usr/bin/stap
+#!/bin/env stap
 
 global devices, reads, writes
 
 /* data collection: SCSI disk */
-probe module("sd_mod").function("sd_init_command") {
+probe module("sd_mod").function("sd_init_command") ?, kernel.function("sd_init_command") ? {
   device=kernel_string($SCpnt->request->rq_disk->disk_name)
   sector_size=$SCpnt->device->sector_size
   nr_sectors=$SCpnt->request->nr_sectors
   devices[device] = 1
-  if ($SCpnt->request->flags /* cmd_flags on some kernels */ & 1)
+%(kernel_v>="2.6.19" %?
+  if ($SCpnt->request->cmd_flags & 1)
+%:
+  if ($SCpnt->request->flags & 1)
+%)
     writes[device] <<< nr_sectors * sector_size
   else
     reads[device] <<< nr_sectors * sector_size
 }
 /* data collection: SCSI tape */
-probe module("st").function("st_do_scsi") {
+probe module("st").function("st_do_scsi") ?, kernel.function("st_do_scsi") ? {
   device=kernel_string($STp->disk->disk_name)
   devices[device] = 1
   if ($direction)
