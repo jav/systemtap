@@ -1,3 +1,8 @@
+2007-09-15  Wenji Huang <wenji.huang@oracle.com>
+
+	PR 4930
+        * buildok/examples.stp: New test case.
+
 2007-09-14  David Smith  <dsmith@redhat.com>
 
 	PR 1154
