@@ -16,16 +16,16 @@ int main()
   // timer_create (CLOCK_REALTIME, 0x[0]+, XXXX)
 
   syscall(SYS_timer_gettime, tid, &val);
-  // timer_gettime (0, XXXX) = 0
+  // timer_gettime (0, XXXX)
 
   syscall(SYS_timer_settime, 0, tid, &val, &oval);
-  // timer_settime (0, 0, \[0.000000,0.000000\], XXXX) = 0
+  // timer_settime (0, 0, \[0.000000,0.000000\], XXXX)
 
   syscall(SYS_timer_getoverrun, tid);
-  // timer_getoverrun (0) = 0
+  // timer_getoverrun (0)
 
   syscall(SYS_timer_delete, tid);
-  // timer_delete (0) = 0
+  // timer_delete (0)
 
   return 0;
 }
