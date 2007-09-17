@@ -4834,6 +4834,38 @@ procfs_builder::build(systemtap_session & sess,
   
   if (! has_procfs)
     path = "command";
+  // If we have a path, we need to validate it.
+  else
+    {
+      string::size_type start_pos, end_pos;
+      string component;
+      start_pos = 0;
+      while ((end_pos = path.find('/', start_pos)) != string::npos)
+        {
+	  // Make sure it doesn't start with '/'.
+	  if (end_pos == 0)
+	    throw semantic_error ("procfs path cannot start with a '/'",
+				  location->tok);
+
+	  component = path.substr(start_pos, end_pos - start_pos);
+	  // Make sure it isn't empty.
+	  if (component.size() == 0)
+	    throw semantic_error ("procfs path component cannot be empty",
+				  location->tok);
+	  // Make sure it isn't relative.
+	  else if (component == "." || component == "..")
+	    throw semantic_error ("procfs path cannot be relative (and contain '.' or '..')", location->tok);
+
+	  start_pos = end_pos + 1;
+	}
+      component = path.substr(start_pos);
+      // Make sure it doesn't end with '/'.
+      if (component.size() == 0)
+	throw semantic_error ("procfs path cannot end with a '/'", location->tok);
+      // Make sure it isn't relative.
+      else if (component == "." || component == "..")
+	throw semantic_error ("procfs path cannot be relative (and contain '.' or '..')", location->tok);
+    }
 
   if (!(has_read ^ has_write))
     throw semantic_error ("need read/write component", location->tok);
