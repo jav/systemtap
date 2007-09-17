@@ -2,7 +2,7 @@
 
 # test the system() function
 
-global saw_echo
+global saw_echo, did_cat
 
 probe kernel.function("sys_open") {
   if (!saw_echo) {
@@ -16,9 +16,13 @@ probe kernel.function("sys_open") {
 probe timer.ms(100) {
   # should fail	
   system("cat __xyzzy123ABC__")
+  did_cat = 1
 }
 
-probe timer.ms(110) { exit() }
+probe timer.ms(150) { 
+	if (saw_echo && did_cat)
+		exit() 
+}
 
 probe begin {
   # should succeed
