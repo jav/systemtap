@@ -235,6 +235,52 @@ $var[N]
 indexes into an array.  The index is given with a
 literal number.
 
+.SS PROCFS
+
+These probe points allow procfs "files" in
+/proc/systemtap/MODNAME to be created, read and written
+.RI ( MODNAME
+is the name of the systemtap module). The
+.I proc
+filesystem is a pseudo-filesystem which is used an an interface to
+kernel data structures.  There are four probe point variants supported
+by the translator:
+.SAMPLE
+procfs("PATH").read
+procfs("PATH").write
+procfs.read
+procfs.write
+.ESAMPLE
+.I PATH
+is the file name (relative to /proc/systemtap/MODNAME) to be created.
+If no
+.I PATH
+is specified (as in the last two variants above),
+.I PATH
+defaults to "command".
+.PP
+When a user reads /proc/systemtap/MODNAME/PATH, the corresponding
+procfs
+.I read
+probe is triggered.  The string data to be read should be assigned to
+a variable named
+.IR $value ,
+like this:
+.SAMPLE
+procfs("PATH").read { $value = "100\\n" }
+.ESAMPLE
+.PP
+When a user writes into /proc/systemtap/MODNAME/PATH, the
+corresponding procfs
+.I write
+probe is triggered.  The data the user wrote is available in the
+string variable named
+.IR $value ,
+like this:
+.SAMPLE
+procfs("PATH").write { printf("user wrote: %s", $value) }
+.ESAMPLE
+
 .SS MARKERS
 
 This family of probe points hooks up to static probing markers
@@ -341,4 +387,4 @@ refers to the group of probe aliases with any name in the third position
 .IR stapprobes.socket (5),
 .IR stapprobes.tcp (5),
 .IR stapprobes.udp (5),
-
+.IR proc (5)

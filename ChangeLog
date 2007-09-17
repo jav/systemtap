@@ -1,5 +1,8 @@
 2007-09-17  David Smith  <dsmith@redhat.com>
 
+	PR 1154
+	* stapprobes.5.in: Documented procfs probes.
+
 	* tapsets.cxx (procfs_builder::build): Validate procfs path.
 
 2007-09-14  David Smith  <dsmith@redhat.com>
