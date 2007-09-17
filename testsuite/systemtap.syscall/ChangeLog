@@ -1,3 +1,7 @@
+2007-09-17  Martin Hunt  <hunt@redhat.com>
+
+	* timer.c (main): Remove the return value checks.
+
 2007-08-22  Martin Hunt  <hunt@redhat.com>
 
 	* futimes.c (main): Add utimensat tests.
