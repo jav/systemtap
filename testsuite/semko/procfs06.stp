@@ -1,0 +1,5 @@
+#! stap -p2
+
+# path can't start with '/'
+probe procfs("/foo").read { }
+

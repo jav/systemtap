@@ -1,0 +1,5 @@
+#! stap -p2
+
+# path can't contain an empty component
+probe procfs("a//c").read { }
+

@@ -1,3 +1,11 @@
+2007-09-17  David Smith  <dsmith@redhat.com>
+
+	* semko/procfs06.stp: New test case.
+	* semko/procfs07.stp: Ditto.
+	* semko/procfs08.stp: Ditto.
+	* semko/procfs09.stp: Ditto.
+	* semko/procfs10.stp: Ditto.
+
 2007-09-15  Wenji Huang <wenji.huang@oracle.com>
 
 	PR 4930

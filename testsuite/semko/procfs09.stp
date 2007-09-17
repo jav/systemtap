@@ -1,0 +1,5 @@
+#! stap -p2
+
+# path can't be a relative path
+probe procfs("foo/.").read { }
+
