@@ -1,0 +1,112 @@
+# Test cases for procfs probes
+
+set test "PROCFS"
+
+if {![installtest_p]} { untested $test; return }
+
+proc proc_read_value { test path} {
+    set value "<unknown>"
+    if [catch {open $path RDONLY} channel] {
+	fail "$test $channel"
+    } else {
+	set value [read -nonewline $channel]
+	close $channel
+	pass "$test read $value"
+    }
+    return $value
+}
+
+proc proc_write_value { test path value} {
+    if [catch {open $path WRONLY} channel] {
+	fail "$test $channel"
+    } else {
+	puts $channel $value
+	close $channel
+	pass "$test wrote $value"
+    }
+}
+
+proc proc_read_write {} {
+    set test "PROCFS"
+    set path "/proc/systemtap/$test/command"
+
+    # read the initial value, which should be '100'
+    set value [proc_read_value $test $path]
+    if { $value == "100" } {
+	pass "$test received correct initial value"
+    } else {
+	fail "$test received incorrect initial value: $value"
+    }
+
+    # write a new value of '200'
+    proc_write_value $test $path "200"
+
+    # make sure it got set to '200'
+    set value [proc_read_value $test $path]
+    if { $value == "200" } {
+	pass "$test received correct value"
+    } else {
+	fail "$test received incorrect value: $value"
+    }
+
+    # read it again to make sure nothing changed
+    set value [proc_read_value $test $path]
+    if { $value == "200" } {
+	pass "$test received correct value"
+    } else {
+	fail "$test received incorrect value: $value"
+    }
+
+    # write a new value of 'hello'
+    proc_write_value $test $path "hello"
+
+    # make sure it got set to 'hello'
+    set value [proc_read_value $test $path]
+    if { $value == "hello" } {
+	pass "$test received correct value"
+    } else {
+	fail "$test received incorrect value: $value"
+    }
+
+    # write a new value of 'goodbye'
+    proc_write_value $test $path "goodbye"
+
+    # make sure it got set to 'goodbye'
+    set value [proc_read_value $test $path]
+    if { $value == "goodbye" } {
+	pass "$test received correct value"
+    } else {
+	fail "$test received incorrect value: $value"
+    }
+
+    return 0;
+}
+
+# The script starts with a value of "100".  If the user writes into
+# /proc/systemtap/MODNAME/command, that value is returned by the next
+# read.
+
+
+set systemtap_script {
+    global saved_value
+
+    probe procfs("command").read {
+        $value = saved_value
+    }
+    probe procfs("command").write {
+	saved_value = $value
+    }
+
+    probe begin {
+	saved_value = "100\n"
+        printf("systemtap starting probe\n")
+    }
+    probe end {
+        printf("systemtap ending probe\n")
+	printf("final value = %s", saved_value)
+    }
+}
+
+# test procfs probes
+set output_string "\\mfinal value = goodbye\\M\r\n"
+stap_run $test proc_read_write $output_string -e $systemtap_script -m $test

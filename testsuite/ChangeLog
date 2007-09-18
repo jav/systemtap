@@ -1,3 +1,9 @@
+2007-09-18  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/procfs.exp: New test case.
+	* lib/stap_run.exp (stap_run): Handles the case where the stap
+	'-m' option was used.
+
 2007-09-17  David Smith  <dsmith@redhat.com>
 
 	* semko/procfs06.stp: New test case.
