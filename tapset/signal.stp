@@ -254,7 +254,11 @@ probe signal.handle_stop = kernel.function("handle_stop_signal")
  *  Forces SIGSEGV when there are some issues while handling signals for the process.
  *
  */
-probe signal.force_segv = kernel.function("force_sigsegv")
+probe signal.force_segv = _signal.force_segv.*
+{
+}
+
+probe _signal.force_segv.part1 = kernel.function("force_sigsegv")
 {
     sig_pid = $p->pid
     pid_name = kernel_string($p->comm)
@@ -262,7 +266,17 @@ probe signal.force_segv = kernel.function("force_sigsegv")
     sig_name = _signal_name($sig)
 }
 
-probe signal.force_segv.return = kernel.function("force_sigsegv").return
+probe _signal.force_segv.part2 = kernel.function("force_sigsegv_info") ?
+{
+    sig_pid = pid()
+    pid_name = execname()
+    sig = $sig
+    sig_name = _signal_name($sig)
+}
+
+probe signal.force_segv.return =
+		kernel.function("force_sigsegv").return,
+		kernel.function("force_sigsegv_info").return ?
 {
     name = "force_sigsegv"
     retstr = returnstr(1)
