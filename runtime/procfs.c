@@ -30,6 +30,9 @@ void _stp_close_procfs(void);
 void _stp_rmdir_proc_module(void)
 {
         if (_stp_proc_root && _stp_proc_root->subdir == NULL) {
+		if (atomic_read(&_stp_proc_root->count))
+			_stp_warn("Removal of /proc/systemtap/%s\nis deferred until it is no longer in use.\n"
+				  "Systemtap module removal will block.\n", THIS_MODULE->name);	
 		remove_proc_entry(THIS_MODULE->name, _stp_proc_stap);
 		_stp_proc_root = NULL;
 	}
@@ -40,7 +43,14 @@ void _stp_rmdir_proc_module(void)
 			return;
 		}
 
-		if (_stp_proc_stap->subdir == NULL) {
+		/* Important! Do not attempt removal of /proc/systemtap */
+		/* if in use.  This will put the PDE in deleted state */
+		/* pending usage count dropping to 0. During this time, */
+		/* path_lookup() will still find it and allow new */
+		/* modules to use it, even though it will not show up */
+		/* in directory listings. */
+
+ 		if (atomic_read(&_stp_proc_stap->count) == 0) {
 			remove_proc_entry("systemtap", NULL);
 			_stp_proc_stap = NULL;
 		}
@@ -76,10 +86,15 @@ int _stp_mkdir_proc_module(void)
 				_stp_unlock_debugfs();
 				goto done;
 			}
-		} else
+		} else {
 			_stp_proc_stap = PDE(nd.dentry->d_inode);
-
+			path_release (&nd);
+		}
+		
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
+		if (_stp_proc_root != NULL)
+			_stp_proc_root->owner = THIS_MODULE;
+
 		_stp_unlock_debugfs();
 	}
 done:
@@ -133,6 +148,7 @@ int _stp_create_procfs(const char *path, int num)
 				    goto err;
 			    }
 			    _stp_pde[_stp_num_pde++] = last_dir;
+			    last_dir->owner = THIS_MODULE;
 			    last_dir->uid = _stp_uid;
 			    last_dir->gid = _stp_gid;
 		} else {

@@ -1,3 +1,12 @@
+2007-09-19  Martin Hunt  <hunt@redhat.com>
+	PR 5042
+	* procfs.c (_stp_rmdir_proc_module): Warn if removal of
+	/proc/systemtap/module is deferred. Do not defer removal of
+	/proc/systemtap.
+	(_stp_mkdir_proc_module): Call path_release(). Set ownership of
+	/proc/systemtap/module to force deletion to be deferred.
+	(_stp_create_procfs): Set owner of all path components.
+
 2007-09-14  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_create_procfs): Be sure that directories in the path
