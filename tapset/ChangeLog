@@ -1,5 +1,10 @@
 2007-09-19  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* syscall.stp(getrusage) Fix the output of getrusage's argstr
+	when who is set to -2.
+
+2007-09-19  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
 	* ia64/syscalls.stp Add a probe point syscall.sigaltstack for
 	ia64.

@@ -1469,8 +1469,17 @@ probe syscall.getrlimit.return = kernel.function("sys_getrlimit").return,
 probe syscall.getrusage = kernel.function("sys_getrusage") {
 	name = "getrusage"
 	who = $who
+	if($who==-2)
+	{
+		# RUSAGE_BOTH is not valid argument for sys_getrusage
+		who_str = sprintf("UNKNOWN VALUE: %d", $who)
+	}
+	else
+	{
+		who_str = _rusage_who_str($who)
+	}
 	usage_uaddr = $ru
-	argstr = sprintf("%s, %p",_rusage_who_str($who), usage_uaddr)
+	argstr = sprintf("%s, %p", who_str, usage_uaddr)
 }
 probe syscall.getrusage.return = kernel.function("sys_getrusage").return {
 	name = "getrusage"
