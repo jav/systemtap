@@ -1,3 +1,11 @@
+2007-09-19  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* ia64/syscalls.stp Add a probe point syscall.sigaltstack for
+	ia64.
+	* signal.stp(signal.force_segv) Add a part(force_sigsegv_info)
+	for signal.force_segv.
+
 2007-09-13  David Smith  <dsmith@redhat.com>
 
 	* task.stp (task_open_file_handles): Fixed for kernels less than
