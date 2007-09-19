@@ -41,6 +41,25 @@ probe syscall.mmap2.return = kernel.function("sys_mmap2").return ?
         retstr = returnstr(2)
 }
 
+# sigaltstack _______________________________________________
+# asmlinkage long
+# sys_sigaltstack (const stack_t __user *uss, stack_t __user *uoss, long arg2,
+#                  long arg3, long arg4, long arg5, long arg6, long arg7,
+#                  struct pt_regs regs)
+#
+probe syscall.sigaltstack = kernel.function("sys_sigaltstack")
+{
+	name = "sigaltstack";
+	ss_uaddr = $uss
+	oss_uaddr = $uoss
+	argstr = sprintf("%p, %p", $uss, $uoss)
+}
+probe syscall.sigaltstack.return = kernel.function("sys_sigaltstack").return
+{
+	name = "sigaltstack";
+	retstr = returnstr(1)
+}
+
 # sysctl _____________________________________________________
 #
 # long sys32_sysctl (struct sysctl32 __user *args)
