@@ -1,32 +1,11 @@
 How these tests work:
 
 Dejagnu finds all *.c files, compiles them and runs them in a temporary 
-directory  while running the systemtap script sys.stp.  To avoid 
-recompiling sys.stp over and over, the test.exp is smart enough to 
-compile sys.stp once and save the module.
+directory  while running the systemtap script sys.stp.  
 
-
-You can run all the tests here with
-> runtest test.exp
-
-You can run single tests with
+If you need to know why a test is failing you can look in the test log, or
 > gcc -o testname testname.c
->./test.tcl testname
-
-OR, if you want to run multiple tests and don't want all the delays
-with recompiling sys.stp each time,
-
-> stap -kp4 sys.stp
-Keeping temporary directory "/tmp/stapPThTaQ"
-> ./test.tcl testname /tmp/stapPThTaQ/*.ko
-> ./test.tcl testname2 /tmp/stapPThTaQ/*.ko
-...
-> rm -rf /tmp/stapPThTaQ
-
-Finally, if you need to know why a test is failing, use
-"test-debug.tcl" exactly as above. After running the test, it will open a
-window with the results and expected results.
-
+> test-debug.tcl testname 
 
 
 HOW TO WRITE TESTS

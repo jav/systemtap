@@ -1,3 +1,13 @@
+2007-09-19  Martin Hunt  <hunt@redhat.com>
+	PR 4931
+	* test-debug.tcl (cleanup): Remove print.
+	* README: Update.
+	* syscall.exp: Source test.tcl and call run_one_test()
+	from there.
+	* test.tcl: Rewrite as a function. Do compilation
+	as well as testing. Compile into and execute in
+	a directory in /tmp.
+	
 2007-09-17  Martin Hunt  <hunt@redhat.com>
 
 	* timer.c (main): Remove the return value checks.

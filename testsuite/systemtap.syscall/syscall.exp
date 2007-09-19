@@ -1,3 +1,5 @@
+source $srcdir/$subdir/test.tcl
+
 proc test_procedure {} {
     global srcdir subdir
     set wd [pwd]
@@ -29,20 +31,18 @@ proc test_procedure {} {
 
     if {$do_64_bit_pass} {
 	foreach filename [lsort [glob $pattern]] {
-	    set file [file tail [string range $filename 0 end-2]]
-	    if {![installtest_p]} { untested $file; continue }
-	    target_compile $filename $wd/$file executable $flags
-	    send_log "Testing 64-bit ${file}\n"
-	    set res [exec $srcdir/$subdir/test.tcl $file $filename]
+	    set testname [file tail [string range $filename 0 end-2]]
+	    if {![installtest_p]} { untested $testname; continue }
+	    send_log "Testing 64-bit ${testname}\n"
+	    set res [run_one_test $filename $flags]
 	    if {$res == "PASS"} {
-		pass "$file"
+		pass "$testname"
 	    } elseif {$res == "UNSUPP"} {
-		unsupported "$file not supported on this arch"
+		unsupported "$testname not supported on this arch"
 	    } else {
-		fail "64-bit $file"
+		fail "64-bit $testname"
 		send_log "$res\n"
 	    }
-	    catch {exec rm -f $wd/$file}
 	}
     }
 
@@ -61,20 +61,18 @@ proc test_procedure {} {
 
     if {$do_32_bit_pass} {
 	foreach filename [lsort [glob $pattern]] {
-	    set file [file tail [string range $filename 0 end-2]]
-	    if {![installtest_p]} { untested $file; continue }
-	    target_compile $filename $wd/$file executable $flags
-	    send_log "Testing 32-bit ${file}\n"
-	    set res [exec $srcdir/$subdir/test.tcl $file $filename]
+	    set testname [file tail [string range $filename 0 end-2]]
+	    if {![installtest_p]} { untested $testname; continue }
+	    send_log "Testing 32-bit ${testname}\n"
+	    set res [run_one_test $filename $flags]
 	    if {$res == "PASS"} {
-		pass "32-bit $file"
+		pass "32-bit $testname"
 	    } elseif {$res == "UNSUPP"} {
-		unsupported "$file not supported on this arch"
+		unsupported "$testname not supported on this arch"
 	    } else {
-		fail "32-bit $file"
+		fail "32-bit $testname"
 		send_log "$res\n"
 	    }
-	    catch {exec rm -f $wd/$file}
 	}
     }
 }

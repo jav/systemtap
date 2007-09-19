@@ -6,7 +6,6 @@ set current_dir ""
 
 proc cleanup {} {
     global dir current_dir
-    puts "Cleanup"
     if {$current_dir != ""} {
         cd $current_dir
 	if {$dir != ""} {exec rm -rf $dir}
