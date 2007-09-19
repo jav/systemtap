@@ -147,7 +147,7 @@ probe syscall.alarm.return =
 
 # bdflush ____________________________________________________
 # long sys_bdflush(int func,long data)
-probe syscall.bdflush = kernel.function("sys_bdflush") {
+probe syscall.bdflush = kernel.function("sys_bdflush") ? {
 	name = "bdflush"
 	func = $func
 	data = $data
@@ -157,7 +157,7 @@ probe syscall.bdflush = kernel.function("sys_bdflush") {
                 data_str = sprintf("%d", $data)
         argstr = sprintf("%d, %s",func, data_str)
 }
-probe syscall.bdflush.return = kernel.function("sys_bdflush").return {
+probe syscall.bdflush.return = kernel.function("sys_bdflush").return ? {
 	name = "bdflush"
 	retstr = returnstr(1)
 }
@@ -2171,7 +2171,7 @@ probe syscall.lstat.return =
 # madvise ____________________________________________________
 # long sys_madvise(unsigned long start, size_t len_in, int behavior)
 #
-probe syscall.madvise = kernel.function("sys_madvise") {
+probe syscall.madvise = kernel.function("sys_madvise") ? {
 	name = "madvise"
 	start = $start
 	length = $len_in
@@ -2179,7 +2179,7 @@ probe syscall.madvise = kernel.function("sys_madvise") {
 	advice_str = _madvice_advice_str($behavior)
 	argstr = sprintf("%p, %d, %s", $start, $len_in, _madvice_advice_str($behavior))
 }
-probe syscall.madvise.return = kernel.function("sys_madvise").return {
+probe syscall.madvise.return = kernel.function("sys_madvise").return ? {
 	name = "madvise"
 	retstr = returnstr(1)
 }
@@ -2224,14 +2224,14 @@ probe syscall.migrate_pages.return = kernel.function("sys_migrate_pages").return
 # mincore ____________________________________________________
 # long sys_mincore(unsigned long start, size_t len, unsigned char __user * vec)
 #
-probe syscall.mincore = kernel.function("sys_mincore") {
+probe syscall.mincore = kernel.function("sys_mincore") ? {
 	name = "mincore"
 	start = $start
 	length = $len
 	vec_uaddr = $vec
 	argstr = sprintf("%p, %d, %p", $start, $len, $vec)
 }
-probe syscall.mincore.return = kernel.function("sys_mincore").return {
+probe syscall.mincore.return = kernel.function("sys_mincore").return ? {
 	name = "mincore"
 	retstr = returnstr(1)	
 }
@@ -2284,13 +2284,13 @@ probe syscall.mknod.return = kernel.function("sys_mknod").return {
 #
 # long sys_mlock(unsigned long start, size_t len)
 #
-probe syscall.mlock = kernel.function("sys_mlock") {
+probe syscall.mlock = kernel.function("sys_mlock") ? {
 	name = "mlock"
 	addr = $start
 	len = $len
 	argstr = sprintf("%p, %d", $start, $len)
 }
-probe syscall.mlock.return = kernel.function("sys_mlock").return {
+probe syscall.mlock.return = kernel.function("sys_mlock").return ? {
 	name = "mlock"
 	retstr = returnstr(1)
 }
@@ -2298,12 +2298,12 @@ probe syscall.mlock.return = kernel.function("sys_mlock").return {
 #
 # long sys_mlockall(int flags)
 #
-probe syscall.mlockall = kernel.function("sys_mlockall") {
+probe syscall.mlockall = kernel.function("sys_mlockall") ? {
 	name = "mlockall"
 	flags = $flags
 	argstr = _mlockall_flags_str($flags)
 }
-probe syscall.mlockall.return = kernel.function("sys_mlockall").return {
+probe syscall.mlockall.return = kernel.function("sys_mlockall").return ? {
 	name = "mlockall"
 	retstr = returnstr(1)
 }
@@ -2377,7 +2377,7 @@ probe syscall.mount.return =
 # mprotect ___________________________________________________
 # long sys_mprotect(unsigned long start, size_t len, unsigned long prot)
 #
-probe syscall.mprotect = kernel.function("sys_mprotect") {
+probe syscall.mprotect = kernel.function("sys_mprotect") ? {
 	name = "mprotect"
 	addr = $start
 	len = $len
@@ -2385,7 +2385,7 @@ probe syscall.mprotect = kernel.function("sys_mprotect") {
 	prot_str = _mprotect_prot_str($prot)
 	argstr = sprintf("%p, %d, %s", $start, $len, _mprotect_prot_str($prot))
 }
-probe syscall.mprotect.return = kernel.function("sys_mprotect").return {
+probe syscall.mprotect.return = kernel.function("sys_mprotect").return ? {
 	name = "mprotect"
 	retstr = returnstr(1)
 }
@@ -2555,7 +2555,7 @@ probe syscall.mq_unlink.return = kernel.function("sys_mq_unlink").return ? {
 #            unsigned long flags,
 #            unsigned long new_addr)
 #
-probe syscall.mremap = kernel.function("sys_mremap") {
+probe syscall.mremap = kernel.function("sys_mremap") ? {
 	name = "mremap"
 	old_address = $addr
 	old_size = $old_len
@@ -2565,7 +2565,7 @@ probe syscall.mremap = kernel.function("sys_mremap") {
 	argstr = sprintf("%p, %d, %d, %s, %p", $addr, $old_len, $new_len,
 		_mmap_flags($flags), $new_addr)
 }
-probe syscall.mremap.return = kernel.function("sys_mremap").return {
+probe syscall.mremap.return = kernel.function("sys_mremap").return ? {
 	name = "mremap"
 	retstr = returnstr(2)
 }
@@ -2679,38 +2679,38 @@ probe syscall.compat_sys_msgsnd.return = kernel.function("compat_sys_msgsnd").re
 
 # msync ______________________________________________________
 # long sys_msync(unsigned long start, size_t len, int flags)
-probe syscall.msync = kernel.function("sys_msync") {
+probe syscall.msync = kernel.function("sys_msync") ? {
 	name = "msync"
 	start = $start
 	length = $len
 	flags = $flags
 	argstr = sprintf("%p, %d, %s",start, length, _msync_flag_str(flags))
 }
-probe syscall.msync.return = kernel.function("sys_msync").return {
+probe syscall.msync.return = kernel.function("sys_msync").return ? {
 	name = "msync"
 	retstr = returnstr(1)
 }
 
 # munlock ____________________________________________________
 # long sys_munlock(unsigned long start, size_t len)
-probe syscall.munlock = kernel.function("sys_munlock") {
+probe syscall.munlock = kernel.function("sys_munlock") ? {
 	name = "munlock"
 	addr = $start
 	len = $len
 	argstr = sprintf("%p, %d", addr, len)
 }
-probe syscall.munlock.return = kernel.function("sys_munlock").return {
+probe syscall.munlock.return = kernel.function("sys_munlock").return ? {
 	name = "munlock"
 	retstr = returnstr(1)
 }
 
 # munlockall _________________________________________________
 # long sys_munlockall(void)
-probe syscall.munlockall = kernel.function("sys_munlockall") {
+probe syscall.munlockall = kernel.function("sys_munlockall") ? {
 	name = "munlockall"
 	argstr = ""
 }
-probe syscall.munlockall.return = kernel.function("sys_munlockall").return {
+probe syscall.munlockall.return = kernel.function("sys_munlockall").return ? {
 	name = "munlockall"
 	retstr = returnstr(1)
 }

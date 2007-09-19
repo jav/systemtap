@@ -1,3 +1,18 @@
+2007-09-19  Martin Hunt  <hunt@redhat.com>
+        PR 2295
+	* syscalls.stp (sys_bdflush): Make optional.
+	(sys_madvise): Ditto.
+	(sys_mincore): Ditto.
+	(sys_mlock): Ditto.
+	(sys_mlockall): Ditto.
+	(sys_mprotect): Ditto.
+	(sys_mremap): Ditto.
+	(sys_msync): Ditto.
+	(sys_munlock): Ditto.
+	(sys_munlockall): Ditto.
+	* syscalls2.stp (sys_remap_pages): Make optional.
+	* ppc64/syscalls.stp (ppc_rtas): Make optional.
+
 2007-09-19  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscall.stp(getrusage) Fix the output of getrusage's argstr

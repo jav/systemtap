@@ -31,12 +31,12 @@ probe syscall.ppc64_personality.return = kernel.function("ppc64_personality").re
 #
 # int ppc_rtas(struct rtas_args __user *uargs)
 #
-probe syscall.ppc_rtas = kernel.function("ppc_rtas") {
+probe syscall.ppc_rtas = kernel.function("ppc_rtas") ? {
 	name = "ppc_rtas"
 	uargs_uaddr = $uargs
 	argstr = sprintf("%p", $uargs)
 }
-probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return {
+probe syscall.ppc_rtas.return = kernel.function("ppc_rtas").return ? {
 	name = "ppc_rtas"
 	retstr = returnstr(1)
 }

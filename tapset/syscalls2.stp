@@ -755,14 +755,13 @@ probe syscall.compat_sys_recvmsg.return = kernel.function("compat_sys_recvmsg").
 
 # remap_file_pages ___________________________________________
 #
-# asmlinkage long
-# sys_remap_file_pages(unsigned long start,
+# long sys_remap_file_pages(unsigned long start,
 #			    unsigned long size,
 #			    unsigned long __prot,
 #			    unsigned long pgoff,
 #			    unsigned long flags)
 #
-probe syscall.remap_file_pages = kernel.function("sys_remap_file_pages") {
+probe syscall.remap_file_pages = kernel.function("sys_remap_file_pages") ? {
 	name = "remap_file_pages"
 	start = $start
 	size = $size
@@ -773,10 +772,11 @@ probe syscall.remap_file_pages = kernel.function("sys_remap_file_pages") {
 				pgoff, flags)
 }
 probe syscall.remap_file_pages.return =
-	kernel.function("sys_remap_file_pages").return {
+	kernel.function("sys_remap_file_pages").return ? {
 	name = "remap_file_pages"
 	retstr = returnstr(1)
 }
+
 # removexattr ________________________________________________
 #
 # asmlinkage long
