@@ -14,8 +14,8 @@ void _stp_warn (const char *fmt, ...);
 /* how often the work queue wakes up and checks buffers */
 #define STP_WORK_TIMER (HZ/100)
 
-static unsigned _stp_nsubbufs = 4;
-static unsigned _stp_subbuf_size = 65536*2;
+static unsigned _stp_nsubbufs = 8;
+static unsigned _stp_subbuf_size = 65536*4;
 extern void _stp_transport_close(void);
 extern int _stp_print_init(void);
 extern void _stp_print_cleanup(void);

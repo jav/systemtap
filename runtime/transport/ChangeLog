@@ -1,3 +1,8 @@
+2007-09-20  Martin Hunt  <hunt@redhat.com>
+
+	* transport.h: Increase default buffer size.
+	* control.c (_stp_ctl_read_cmd): Check buffer size.
+
 2007-09-10  Martin Hunt  <hunt@redhat.com>
 
 	* procfs.c (_stp_register_ctl_channel): Call 

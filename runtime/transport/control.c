@@ -195,8 +195,6 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	int len;
 	unsigned long flags;
 
-	/* FIXME FIXME FIXME. assuming count is large enough to hold buffer!! */
-
 	/* wait for nonempty ready queue */
 	spin_lock_irqsave(&_stp_ready_lock, flags);
 	while (list_empty(&_stp_ready_q)) {
@@ -215,11 +213,12 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 
 	/* write it out */
 	len = bptr->len + 4;
-	if (copy_to_user(buf, &bptr->type, len)) {
+	if (len > count || copy_to_user(buf, &bptr->type, len)) {
 		/* now what?  We took it off the queue then failed to send it */
 		/* we can't put it back on the queue because it will likely be out-of-order */
 		/* fortunately this should never happen */
 		/* FIXME need to mark this as a transport failure */
+		errk("Supplied buffer too small. count:%d len:%d\n", count, len);
 		return -EFAULT;
 	}
 
