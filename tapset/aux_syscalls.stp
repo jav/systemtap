@@ -984,6 +984,9 @@ function _sys_open_flag_str:string (f:long)
 #ifdef O_ASYNC
 	if (flags & O_ASYNC)
 		strlcat (THIS->__retvalue, "|O_ASYNC", MAXSTRINGLEN);
+#elif defined(FASYNC)
+	if (flags & FASYNC)
+		strlcat (THIS->__retvalue, "|O_ASYNC", MAXSTRINGLEN);
 #endif
 #ifdef O_DIRECT
 	if (flags & O_DIRECT)
@@ -1363,6 +1366,12 @@ function _mmap_flags(flags) {
 	if (flags & 0x4000) msg="MAP_NORESERVE|".msg
 	if (flags & 0x8000) msg="MAP_POPULATE|".msg
 	if (flags & 0x10000) msg="MAP_NONBLOCK|".msg
+	return substr(msg,0,strlen(msg)-1)
+}
+
+function _mremap_flags(flags) {
+	if (flags & 1) msg="MREMAP_MAYMOVE|"
+	if (flags & 2) msg="MREMAP_FIXED|".msg
 	return substr(msg,0,strlen(msg)-1)
 }
 

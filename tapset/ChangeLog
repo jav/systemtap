@@ -1,5 +1,16 @@
 2007-09-21  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* aux_syscalls.stp (_sys_open_flag_str): Fix bug that missing
+	"O_ASYNC".
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* aux_syscalls.stp: Add a function _mremap_flags.
+	* syscalls.stp (syscall.mremap): Use _mremap_flags instead of
+	_mmap_flags.
+
+2007-09-21  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* aux_syscalls.stp(_reboot_magic_str) Fix the problem that
 	LINUX_REBOOT_MAGIC1 printed as UNKNOWN VALUE.
 

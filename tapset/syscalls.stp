@@ -2563,7 +2563,7 @@ probe syscall.mremap = kernel.function("sys_mremap") ? {
 	flags = $flags
 	new_address = $new_addr
 	argstr = sprintf("%p, %d, %d, %s, %p", $addr, $old_len, $new_len,
-		_mmap_flags($flags), $new_addr)
+		_mremap_flags($flags), $new_addr)
 }
 probe syscall.mremap.return = kernel.function("sys_mremap").return ? {
 	name = "mremap"
