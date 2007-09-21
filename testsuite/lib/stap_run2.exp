@@ -22,9 +22,9 @@ proc stap_run2 { TEST_NAME args } {
     set expected [split $::result_string "\n"]
     foreach line [split $res "\n"] {
 	if {![string equal $line [lindex $expected $n]]} {
-	    puts "line [expr $n + 1]: expected \"[lindex $expected $n]\""
-	    puts "Got \"$line\""
 	    fail "$TEST_NAME"
+	    send_log "line [expr $n + 1]: expected \"[lindex $expected $n]\"\n"
+	    send_log "Got \"$line\"\n"
 	    return
 	}
 	incr n

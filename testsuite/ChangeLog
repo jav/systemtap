@@ -1,3 +1,8 @@
+2007-09-21  Martin Hunt  <hunt@redhat.com>
+
+	* lib/stap_run2.exp (stap_run2): Use send_log()
+	instead of puts to save failure context in the log.
+
 2007-09-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/optim.exp/stp: New test for rhbz# 300121.
