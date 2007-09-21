@@ -1,3 +1,10 @@
+2007-09-21  Martin Hunt  <hunt@redhat.com>
+	PR 5024
+	* stat-common.c (_stp_stat_print_histogram): Change
+	overflow and underflow handling for linear histograms.
+	(__stp_stat_add): For linear histograms, use under
+	and over buckets.
+
 2007-09-19  Martin Hunt  <hunt@redhat.com>
 	PR 5042
 	* procfs.c (_stp_rmdir_proc_module): Warn if removal of

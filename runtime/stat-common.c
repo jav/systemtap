@@ -20,15 +20,15 @@ static int _stp_stat_calc_buckets(int stop, int start, int interval)
 		_stp_warn("histogram: interval cannot be zero.\n");
 		return 0;
 	}
-	buckets = (stop - start) / interval;
-	if ((stop - start) % interval)
-		buckets++;
 
-	if (buckets > STP_MAX_BUCKETS || buckets <= 0) {
+	/* don't forget buckets for underflow and overflow */
+	buckets = (stop - start) / interval + 3;
+
+	if (buckets > STP_MAX_BUCKETS || buckets < 3) {
 		_stp_warn("histogram: Number of buckets must be between 1 and %d\n"
 			  "Number_of_buckets = (stop - start) / interval.\n"
 			  "Please adjust your start, stop, and interval values.\n",
-			  STP_MAX_BUCKETS);
+			  STP_MAX_BUCKETS-2);
 		return 0;
 	}
 	return buckets;
@@ -135,8 +135,8 @@ static int _stp_val_to_bucket(int64_t val)
 
 static void _stp_stat_print_histogram (Hist st, stat *sd)
 {
-	int scale, i, j, val_space, cnt_space, 
-		low_bucket = -1, high_bucket = 0;
+	int scale, i, j, val_space, cnt_space;
+	int low_bucket = -1, high_bucket = 0, over = 0, under = 0;
 	int64_t val, v, max = 0;
 
 	if (st->type != HIST_LOG && st->type != HIST_LINEAR)
@@ -161,14 +161,25 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 			/* unless there are negative values. */
 			if (low_bucket != HIST_LOG_BUCKET0 && low_bucket > 0)
 				low_bucket--;
-		} else
+		} else {
 			if (low_bucket > 0)
 				low_bucket--;
-		
+		}
 		if (high_bucket < (st->buckets-1))
 			high_bucket++;
 	}
-
+	if (st->type == HIST_LINEAR) {
+		/* Don't include under or overflow if they are 0. */
+		if (low_bucket == 0 && sd->histogram[0] == 0)
+			low_bucket++;
+		if (high_bucket == st->buckets-1 && sd->histogram[high_bucket] == 0)
+			high_bucket--;
+		if (low_bucket == 0)
+			under = 1;
+		if (high_bucket == st->buckets-1)
+			over = 1;
+	}
+	
 	if (max <= HIST_WIDTH)
 		scale = 1;
 	else {
@@ -178,16 +189,20 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 		if (rem) scale++;
 	}
 
+	/* count space */
 	cnt_space = needed_space (max);
-	if (st->type == HIST_LINEAR)
-		val_space = needed_space (st->start +  st->interval * high_bucket);
-	else {
-		int tmp = needed_space(_stp_bucket_to_val(high_bucket));
+
+	/* Compute value space */
+	if (st->type == HIST_LINEAR) {
+		i = needed_space (st->start) + under;
+		val_space = needed_space (st->start +  st->interval * high_bucket) + over;
+	} else {
+		i = needed_space(_stp_bucket_to_val(high_bucket));
 		val_space = needed_space(_stp_bucket_to_val(low_bucket));
-		if (tmp > val_space)
-			val_space = tmp;
 	}
-	//dbug ("max=%lld scale=%d val_space=%d\n", max, scale, val_space);
+	if (i > val_space)
+		val_space = i;
+
 
 	/* print header */
 	j = 0;
@@ -201,12 +216,33 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	reprint (HIST_WIDTH, "-");
 	_stp_print(" count\n");
 	for (i = low_bucket;  i <= high_bucket; i++) {
-		if (st->type == HIST_LINEAR)
-			val = st->start + i * st->interval;
-		else
+		int over_under = 0;
+		if (st->type == HIST_LINEAR) {
+			if (i == 0) {
+				/* underflow */
+				val = st->start;
+				over_under = 1;
+			} else if (i == st->buckets-1) {
+				/* overflow */
+				val = st->start + (i - 2) * st->interval;
+				over_under = 1;
+			} else				
+				val = st->start + (i - 1) * st->interval;
+		} else
 			val = _stp_bucket_to_val(i);
-		reprint (val_space - needed_space(val), " ");
-		_stp_printf("%lld", val);
+		
+		
+		reprint (val_space - needed_space(val) - over_under, " ");
+
+		if (over_under) {
+			if (i == 0)
+				_stp_printf("<%lld", val);
+			else if (i == st->buckets-1)
+				_stp_printf(">%lld", val);
+			else
+				_stp_printf("%lld", val);
+		} else
+			_stp_printf("%lld", val);
 		_stp_print(" |");
 		
 		/* v = s->histogram[i] / scale; */
@@ -281,11 +317,13 @@ static void __stp_stat_add (Hist st, stat *sd, int64_t val)
 		/* underflow */
 		if (val < 0)
 			val = 0;
-
-		do_div (val, st->interval);
+		else {
+			do_div (val, st->interval);
+			val++;
+		}
 
 		/* overflow */
-		if (val >= st->buckets)
+		if (val >= st->buckets - 1)
 			val = st->buckets - 1;
 
 		sd->histogram[val]++;
