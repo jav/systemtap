@@ -1,3 +1,7 @@
+2007-09-21  Martin Hunt  <hunt@redhat.com>
+	From Alan Brunelle
+	* control.c (_stp_ctl_read_cmd): Cast count to an int before printing.
+
 2007-09-20  Martin Hunt  <hunt@redhat.com>
 
 	* transport.h: Increase default buffer size.

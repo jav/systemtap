@@ -218,7 +218,7 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 		/* we can't put it back on the queue because it will likely be out-of-order */
 		/* fortunately this should never happen */
 		/* FIXME need to mark this as a transport failure */
-		errk("Supplied buffer too small. count:%d len:%d\n", count, len);
+		errk("Supplied buffer too small. count:%d len:%d\n", (int)count, len);
 		return -EFAULT;
 	}
 
