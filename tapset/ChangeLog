@@ -1,3 +1,8 @@
+2007-09-21  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* aux_syscalls.stp(_reboot_magic_str) Fix the problem that
+	LINUX_REBOOT_MAGIC1 printed as UNKNOWN VALUE.
+
 2007-09-19  Martin Hunt  <hunt@redhat.com>
         PR 2295
 	* syscalls.stp (sys_bdflush): Make optional.
