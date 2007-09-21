@@ -1577,6 +1577,9 @@ struct dead_stmtexpr_remover: public traversing_visitor
     session(s), relaxed_p(r), current_stmt(0) {}
 
   void visit_block (block *s);
+  void visit_if_statement (if_statement* s);
+  void visit_foreach_loop (foreach_loop *s);
+  void visit_for_loop (for_loop *s);
   // XXX: and other places where stmt_expr's might be nested
 
   void visit_expr_statement (expr_statement *s);
@@ -1594,6 +1597,39 @@ dead_stmtexpr_remover::visit_block (block *s)
       current_stmt = last_stmt;
     }
 }
+
+void
+dead_stmtexpr_remover::visit_if_statement (if_statement *s)
+{
+  statement** last_stmt = current_stmt;
+  current_stmt = & s->thenblock;
+  s->thenblock->visit (this);
+  if (s->elseblock)
+    {
+      current_stmt = & s->elseblock;
+      s->elseblock->visit (this);
+    }
+  current_stmt = last_stmt;
+}
+
+void
+dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
+{
+  statement** last_stmt = current_stmt;
+  current_stmt = & s->block;
+  s->block->visit (this);
+  current_stmt = last_stmt;
+}
+
+void
+dead_stmtexpr_remover::visit_for_loop (for_loop *s)
+{
+  statement** last_stmt = current_stmt;
+  current_stmt = & s->block;
+  s->block->visit (this);
+  current_stmt = last_stmt;
+}
+
 
 
 void
@@ -1614,7 +1650,8 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
 
   varuse_collecting_visitor vut;
   s->value->visit (& vut);
-  if (vut.side_effect_free_wrt (focal_vars))
+  if (vut.side_effect_free_wrt (focal_vars) &&
+      *current_stmt == s) // we're not nested any deeper than expected 
     {
       if (session.verbose>2)
         clog << "Eliding side-effect-free expression "

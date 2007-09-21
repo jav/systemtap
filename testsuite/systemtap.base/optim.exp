@@ -5,9 +5,10 @@ set ok 0
 expect {
 	-timeout 120
 	-re {i=1} { incr ok }
+	-re {j=2} { incr ok }
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
 close
 wait
-if {$ok == 1} { pass $test } { fail $test }
+if {$ok == 2} { pass $test } { fail $test }

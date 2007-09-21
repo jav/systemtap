@@ -1,3 +1,7 @@
+2007-09-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/optim.exp/stp: New test for rhbz# 300121.
+
 2007-09-18  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/procfs.exp: New test case.

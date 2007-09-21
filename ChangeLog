@@ -1,3 +1,11 @@
+2007-09-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	rhbz #300121
+	* elaborate.cxx (dead_stmtexpr_remover): Add visit_if_statement,
+	visit_foreach_loop, visit_for_loop): Support elision for unbraced
+	statement bodies.
+	(visit_expr_statement): Assert absence of unexpected nesting.
+
 2007-09-17  David Smith  <dsmith@redhat.com>
 
 	PR 1154

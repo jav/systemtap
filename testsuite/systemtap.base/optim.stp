@@ -3,7 +3,12 @@ function func(i) {
         array[i++] = 0;
         return i;
 }
+function bart() { # rhbz# 300121
+	if (1) var=2 else dummy=0
+	return var
+}
 probe begin {
   printf ("i=%d\n", func(0))
+  printf ("j=%d\n", bart())
   exit ()
 }
