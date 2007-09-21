@@ -1183,14 +1183,37 @@ function _shutdown_how_str(how) {
    return sprintf("UNKNOWN VALUE: %d", how)
 }
 
-function _reboot_magic_str(magic) {
-   if(magic==0xFEE1DEAD) return "LINUX_REBOOT_MAGIC1"
-   if(magic==672274793)  return "LINUX_REBOOT_MAGIC2"
-   if(magic==85072278)   return "LINUX_REBOOT_MAGIC2A"
-   if(magic==369367448)  return "LINUX_REBOOT_MAGIC2B"
-   if(magic==537993216)  return "LINUX_REBOOT_MAGIC2C"
-   return sprintf("UNKNOWN VALUE: %d", magic)
-}
+%{
+#include <linux/reboot.h>
+%}
+function _reboot_magic_str:string(magic:long)
+%{ /* pure */
+	int magic = (int)THIS->magic;
+	switch (magic) {
+	case LINUX_REBOOT_MAGIC1:
+		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC1", MAXSTRINGLEN);
+		break;
+	case LINUX_REBOOT_MAGIC2:
+		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2", MAXSTRINGLEN);
+		break;
+	case LINUX_REBOOT_MAGIC2A:
+		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2A", MAXSTRINGLEN);
+		break;
+	case LINUX_REBOOT_MAGIC2B:
+		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2B", MAXSTRINGLEN);
+		break;
+/*
+	LINUX_REBOOT_MAGIC2C is supported from kernel 2.6
+*/
+#ifdef LINUX_REBOOT_MAGIC2C
+	case LINUX_REBOOT_MAGIC2C:
+		strlcpy(THIS->__retvalue, "LINUX_REBOOT_MAGIC2C", MAXSTRINGLEN);
+		break;
+#endif
+	default:
+		snprintf(THIS->__retvalue, MAXSTRINGLEN, "UNKNOWN VALUE: %d", magic);
+	}
+%}
 
 function _reboot_flag_str(flag) {
    if(flag==0x01234567) return "LINUX_REBOOT_CMD_RESTART"
