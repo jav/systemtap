@@ -1,5 +1,7 @@
 2007-09-21  Martin Hunt  <hunt@redhat.com>
 
+	* systemtap.maps/linear*: Updated linear histogram tests.
+
 	* lib/stap_run2.exp (stap_run2): Use send_log()
 	instead of puts to save failure context in the log.
 

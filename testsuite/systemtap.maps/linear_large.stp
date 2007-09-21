@@ -1,0 +1,35 @@
+global agg
+
+probe begin
+{
+	# Add items to the aggregate
+
+	agg <<< 10000000
+	agg <<< 10000000
+	agg <<< 10000000
+
+	agg <<< 100000000
+	agg <<< 100000000
+
+	agg <<< 500000000
+	agg <<< 500000000
+	agg <<< 500000000
+	agg <<< 500000000
+	agg <<< 500000000
+
+	agg <<< 1000000000
+	agg <<< 1000000000
+	agg <<< 1000000000
+	agg <<< 1000000000
+
+	agg <<< 10000000000
+
+	printf("count=%d\n", @count(agg))
+	printf("sum=%d\n", @sum(agg))
+	printf("min=%d\n", @min(agg))
+	printf("max=%d\n", @max(agg))
+	printf("avg=%d\n", @avg(agg))
+	print(@hist_linear(agg, 0, 1000000000, 100000000))
+	
+	exit()
+}

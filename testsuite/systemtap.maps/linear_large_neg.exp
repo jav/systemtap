@@ -1,0 +1,27 @@
+# Test linear histogram with large negative numbers
+
+set test "linear_large_neg"
+set ::result_string {count=13
+sum=-16700000000
+min=-10000000000
+max=0
+avg=-1284615384
+       value |-------------------------------------------------- count
+<-1000000000 |@                                                  1
+ -1000000000 |@@@@                                               4
+  -900000000 |                                                   0
+  -800000000 |                                                   0
+  -700000000 |                                                   0
+  -600000000 |                                                   0
+  -500000000 |@@@@@                                              5
+  -400000000 |                                                   0
+  -300000000 |                                                   0
+  -200000000 |                                                   0
+  -100000000 |@@                                                 2
+           0 |@                                                  1
+
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+
