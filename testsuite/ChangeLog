@@ -8,6 +8,10 @@
 	* systemtap.maps/linear_nearlyempty.*: New test for
 	histogram printing elision.
 
+2007-09-22  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/optim.exp: Wait for both result lines.
+
 2007-09-21  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.maps/linear*: Updated linear histogram tests.
