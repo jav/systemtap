@@ -1,0 +1,25 @@
+# Test nearly empty linear histogram
+
+set test "linear_nearlyempty"
+set ::result_string {count=2
+sum=1443
+min=444
+max=999
+avg=721
+value |-------------------------------------------------- count
+  300 |                                                   0
+  350 |                                                   0
+  400 |@                                                  1
+  450 |                                                   0
+  500 |                                                   0
+      ~
+  850 |                                                   0
+  900 |                                                   0
+  950 |@                                                  1
+ 1000 |                                                   0
+ 1050 |                                                   0
+}
+
+stap_run2 $srcdir/$subdir/$test.stp
+
+

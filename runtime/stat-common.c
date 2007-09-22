@@ -133,11 +133,17 @@ static int _stp_val_to_bucket(int64_t val)
 #define HIST_WIDTH 50
 #endif
 
+#ifndef HIST_ELISION
+#define HIST_ELISION 2 /* zeroes before and after */
+#endif
+
+
 static void _stp_stat_print_histogram (Hist st, stat *sd)
 {
 	int scale, i, j, val_space, cnt_space;
 	int low_bucket = -1, high_bucket = 0, over = 0, under = 0;
 	int64_t val, v, max = 0;
+        int eliding = 0;
 
 	if (st->type != HIST_LOG && st->type != HIST_LINEAR)
 		return;
@@ -215,8 +221,38 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	_stp_print("value |");
 	reprint (HIST_WIDTH, "-");
 	_stp_print(" count\n");
+
+        eliding=0;
 	for (i = low_bucket;  i <= high_bucket; i++) {
 		int over_under = 0;
+
+                /* Elide consecutive zero buckets.  Specifically, skip
+                   this row if it is zero and some of its nearest
+                   neighbours are also zero.  */
+                int k;
+                int elide=1;
+                for (k=i-HIST_ELISION; k<=i+HIST_ELISION; k++)
+                  {
+                    if (k >= 0 && k < st->buckets && sd->histogram[k] != 0)
+                      elide = 0;
+                  }
+                if (elide)
+                  { 
+                    eliding = 1;
+                    continue;
+                  }
+
+                /* State change: we have elided some rows, but now are about
+                   to print a new one.  So let's print a mark on the vertical
+                   axis to represent the missing rows.  */
+                if (eliding)
+                  {
+                    reprint (val_space, " ");
+                    _stp_print(" ~\n");
+                    eliding = 0;
+                  }
+
+
 		if (st->type == HIST_LINEAR) {
 			if (i == 0) {
 				/* underflow */
