@@ -157,7 +157,6 @@ probe syscall.openat.return =
 	retstr = returnstr(1)
 }
 
-
 # pause ______________________________________________________
 #
 # sys_pause(void)
@@ -614,6 +613,30 @@ probe syscall.readlink = kernel.function("sys_readlink") {
 }
 probe syscall.readlink.return = kernel.function("sys_readlink").return {
 	name = "readlink"
+	retstr = returnstr(1)
+}
+
+# readlinkat ___________________________________________________
+#
+# long sys_readlinkat(int dfd, const char __user * path,
+#		  char __user * buf,
+#		  int bufsiz)
+#
+probe syscall.readlinkat = kernel.function("sys_readlinkat") {
+	name = "readlinkat"
+	dfd = $dfd
+	path = user_string($path)
+	buf_uaddr = $buf
+	bufsiz = $bufsiz
+	if (dfd == -100)
+		argstr = sprintf("AT_FDCWD, %s, %p, %d", user_string_quoted($path), 
+				buf_uaddr, bufsiz)
+	else
+		argstr = sprintf("%d, %s, %p, %d", dfd, user_string_quoted($path), 
+				buf_uaddr, bufsiz)
+}
+probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return {
+	name = "readlinkat"
 	retstr = returnstr(1)
 }
 
