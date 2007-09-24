@@ -838,7 +838,7 @@ probe sunrpc.sched.delay.return = kernel.function("rpc_delay").return ?,
  *****************************************************************/
 
 function xid_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	if (clnt == NULL)
 		THIS->__retvalue = 0;
@@ -850,7 +850,7 @@ function xid_from_clnt:long(clnt:long)
 %}
 
 function prog_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	if (clnt == NULL)
 		THIS->__retvalue = 0;
@@ -866,7 +866,7 @@ function prog_from_clnt:long(clnt:long)
 %}
 
 function vers_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	if (clnt == NULL)
 		THIS->__retvalue = 0;
@@ -882,7 +882,7 @@ function vers_from_clnt:long(clnt:long)
 %}
 
 function prot_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	if (clnt == NULL)
 		THIS->__retvalue = 0;
@@ -894,7 +894,7 @@ function prot_from_clnt:long(clnt:long)
 %}
 
 function port_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	struct rpc_xprt *cl_xprt = clnt? kread(&(clnt->cl_xprt)) : NULL;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)
@@ -914,19 +914,19 @@ function port_from_clnt:long(clnt:long)
 %}
 
 function clones_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = atomic_read(&clnt->cl_count); /* FIXME: deref hazard! */
 %}
 
 function tasks_from_clnt:long(clnt:long)
-%{
+%{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 	THIS->__retvalue = atomic_read(&clnt->cl_users); /* FIXME: deref hazard! */
 %}
 
 function proc_from_msg:long(msg:long)
-%{
+%{ /* pure */
 	struct rpc_message *msg = (struct rpc_message *)(long)THIS->msg;
 	if (msg == NULL)
 		THIS->__retvalue = 0;
@@ -938,7 +938,7 @@ function proc_from_msg:long(msg:long)
 %}
 
 function vers_from_prog:long(program:long, vers:long)
-%{
+%{ /* pure */
 	struct rpc_program *program = (struct rpc_program *)(long)THIS->program;
 	if (program && THIS->vers < kread(&(program->nrvers))) {
 		struct rpc_version **version_array = kread(&(program->version));
@@ -950,7 +950,7 @@ function vers_from_prog:long(program:long, vers:long)
 %}
 
 function addr_from_rqst:long(rqstp:long)
-%{
+%{ /* pure */
 	struct svc_rqst *rqstp = (struct svc_rqst *)(long)THIS->rqstp;
 
 	if (rqstp) {

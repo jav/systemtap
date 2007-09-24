@@ -24,7 +24,7 @@
 
 // Get local port number
 function inet_get_local_port:long(sock:long)
-%{
+%{ /* pure */
 	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
 	THIS->__retvalue = kread(&(LPORT));
 	CATCH_DEREF_FAULT();
@@ -32,7 +32,7 @@ function inet_get_local_port:long(sock:long)
 
 // Get IP source address string
 function inet_get_ip_source:string(sock:long)
-%{
+%{ /* pure */
 	struct inet_sock *inet = (struct inet_sock *) (long) THIS->sock;
 	union { __u32 d; unsigned char addr[4]; } u;
 	u.d = kread(DADDR);

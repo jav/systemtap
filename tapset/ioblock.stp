@@ -14,7 +14,7 @@
 
 /* get i-node number of mapped file */
 function __bio_ino:long(bio:long)
-%{
+%{ /* pure */
     struct bio *bio = (struct bio *)(long)THIS->bio;
     struct page *bv_page = bio? kread(&(bio->bi_io_vec[0].bv_page)) : NULL;
     struct address_space *mapping;
@@ -33,7 +33,7 @@ function __bio_ino:long(bio:long)
 
 /* returns 0 for read, 1 for write */
 function bio_rw_num:long(rw:long)
-%{
+%{ /* pure */
     long rw = (long)THIS->rw;
     THIS->__retvalue = (rw & (1 << BIO_RW));
 %}
@@ -46,7 +46,7 @@ function bio_rw_str(rw)
 
 /* returns start sector */
 function __bio_start_sect:long(bio:long)
-%{ 
+%{ /* pure */
     struct bio *bio = (struct bio *)(long)THIS->bio;
     struct block_device *bi_bdev = bio? kread(&(bio->bi_bdev)) : NULL;
     struct hd_struct *bd_part = bi_bdev? kread(&(bi_bdev->bd_part)) : NULL;
@@ -59,7 +59,7 @@ function __bio_start_sect:long(bio:long)
 
 /* returns the block device name */
 function __bio_devname:string(bio:long)
-%{
+%{ /* pure */
     char b[BDEVNAME_SIZE];
     struct bio *bio = (struct bio *)(long)THIS->bio;
     struct block_device *bdev = kread(&(bio->bi_bdev));
@@ -72,12 +72,8 @@ function __bio_devname:string(bio:long)
 	CATCH_DEREF_FAULT();
 %}
 
-global BIO_READ, BIO_WRITE
-probe begin
-{
-        BIO_READ = 0
-        BIO_WRITE = 1
-}
+global BIO_READ = 0, BIO_WRITE = 1
+
 
 /* probe ioblock.request
  *

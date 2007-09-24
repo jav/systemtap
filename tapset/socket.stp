@@ -625,7 +625,7 @@ function sock_type_str2num:long (type:string)
 ######### SOCKET FLAGS HELPER FUNCTIONS #########
 
 function sock_flags_num2str:string (flags:long)
-%{
+%{ /* pure */
 #ifndef SOCK_PASSSEC
 #define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
 #endif
@@ -650,7 +650,7 @@ function sock_flags_num2str:string (flags:long)
 ######### MESSAGE FLAGS HELPER FUNCTIONS #########
 
 function msg_flags_num2str:string (flags:long)
-%{
+%{ /* pure */
 	char str[256];
 
 	str[0] = '\0';
@@ -891,7 +891,7 @@ function _success_check(ret:long)
 }
 
 function _get_sock_addr:long (file:long)
-%{
+%{ /* pure */
 	struct file *filep = (struct file *)(long)(THIS->file);
 	struct socket *sockp = filep? kread(&(filep->private_data)) : NULL;
 	if (sockp == NULL)
@@ -902,7 +902,7 @@ function _get_sock_addr:long (file:long)
 %}
 
 function _get_sock_size:long (iov:long, nr_segs:long)
-%{
+%{ /* pure */
 	struct iovec *iovp = (struct iovec *)(long)(THIS->iov);
 	if (iovp == NULL)
 		THIS->__retvalue = -1;
@@ -916,7 +916,7 @@ function _get_sock_size:long (iov:long, nr_segs:long)
 %}
 
 function _sock_prot_num:long (sock:long)
-%{
+%{ /* pure */
 	struct socket *sktp = (struct socket *)(long)(THIS->sock);
 	struct sock *skp = sktp? kread(&(sktp->sk)) : NULL;
 	if (skp == NULL)
@@ -927,7 +927,7 @@ function _sock_prot_num:long (sock:long)
 %}
 
 function _sock_fam_num:long (sock:long)
-%{
+%{ /* pure */
 	struct socket *sockp = (struct socket *)(long)(THIS->sock);
 	const struct proto_ops *ops = sockp? kread(&(sockp->ops)) : NULL;
 	if (ops == NULL)
@@ -938,7 +938,7 @@ function _sock_fam_num:long (sock:long)
 %}
 
 function _sock_state_num:long (sock:long)
-%{
+%{ /* pure */
 	struct socket *sockp = (struct socket *)(long)(THIS->sock);
 	if (sockp == NULL)
 		THIS->__retvalue = -1;
@@ -948,7 +948,7 @@ function _sock_state_num:long (sock:long)
 %}
 
 function _sock_type_num:long (sock:long)
-%{
+%{ /* pure */
 	struct socket *sockp = (struct socket *)(long)(THIS->sock);
 	if (sockp == NULL)
 		THIS->__retvalue = -1;
@@ -958,7 +958,7 @@ function _sock_type_num:long (sock:long)
 %}
 
 function _sock_flags_num:long (sock:long)
-%{
+%{ /* pure */
 	struct socket *sockp = (struct socket *)(long)(THIS->sock);
 	if (sockp == NULL)
 		THIS->__retvalue = -1;

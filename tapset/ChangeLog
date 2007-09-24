@@ -9,6 +9,11 @@
 
 2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
 
+	* inet_sock.stp, ioblock.stp, rpc.stp, scsi.stp, socket.stp,
+	tcp.stp: Add /* pure */ to embedded-C functions.
+
+2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
+
 	* conversions.stp (user_string): Redefine in terms of user_string2.
 
 2007-09-23  Ulrich Drepper <drepper@redhat.com>

@@ -20,7 +20,7 @@
 // retransmit. It should always be less than the max value of TCP retransmission 
 // timeout (TCP_RTO_MAX)
 function tcp_get_info_rto:long(sock:long)
-%{
+%{ /* pure */
 	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
@@ -37,7 +37,7 @@ function tcp_get_info_rto:long(sock:long)
 //This congestion window size can be dynamically increased based on whether TCP
 //is performing slow start or congestion avoidance. 
 function tcp_get_info_snd_cwnd:long(sock:long)
-%{
+%{ /* pure */
 	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
@@ -65,7 +65,7 @@ function tcp_get_info_snd_cwnd:long(sock:long)
 //     TCP_MAX_STATES = 12   Max states number
 // 
 function tcp_ts_get_info_state:long(sock:long)
-%{
+%{ /* pure */
 	struct sock *sk = (struct sock *)(long) THIS->sock;
 	THIS->__retvalue = (int64_t) kread(&(sk->sk_state));
 	CATCH_DEREF_FAULT();
@@ -79,7 +79,7 @@ function tcp_sockstate_str:string (state:long) {
 // threshold size, then TCP is in slow start; otherwise TCP is in congestion
 // avoidance.
 function tcp_ts_get_info_snd_ssthresh:long(sock:long)
-%{
+%{ /* pure */
 	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
@@ -93,7 +93,7 @@ function tcp_ts_get_info_snd_ssthresh:long(sock:long)
 // Get receiver's advertised segment size.  TCP typically never sends more
 // than what receiver can accept.
 function tcp_ts_get_info_rcv_mss:long(sock:long)
-%{
+%{ /* pure */
 	struct sock *sk = (struct sock *)(long) THIS->sock;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,10)
 	struct tcp_opt *tp = tcp_sk(sk);
