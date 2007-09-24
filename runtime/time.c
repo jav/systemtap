@@ -7,6 +7,15 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  */
+#if defined (__i386__) || defined (__x86_64__)
+#include <asm/cpufeature.h>
+#endif
+#ifdef STAPCONF_TSC_KHZ
+#include <asm/tsc.h>
+#endif
+#ifdef STAPCONF_KTIME_GET_REAL
+#include <linux/ktime.h>
+#endif
 
 #include <linux/cpufreq.h>
 
@@ -37,9 +46,9 @@ typedef struct __stp_time_t {
     int64_t base_ns;
     cycles_t base_cycles;
 
-    /* The frequency in kHz of this CPU, for interpolating
+    /* The frequency in kHz of this CPU's time stamp counter, for interpolating
      * cycle counts from the base time. */
-    unsigned int cpufreq;
+    unsigned int freq;
 
     /* Callback used to schedule updates of the base time */
     struct timer_list timer;
@@ -59,14 +68,23 @@ int stp_timer_reregister = 0;
  * FIXME: This not very accurate on Xen kernels!
  */
 static unsigned int
-__stp_estimate_cpufreq(void)
+__stp_get_freq(void)
 {
-#if defined (__s390__) || defined (__s390x__) || defined (__arm__)
+    // If we can get the actual frequency of HW counter, we use it.
+#if defined (__i386__) || defined (__x86_64__)
+#ifdef STAPCONF_TSC_KHZ
+    return tsc_khz;
+#else /*STAPCONF_TSC_KHZ*/
+    return cpu_khz;
+#endif /*STAPCONF_TSC_KHZ*/
+#elif defined (__ia64__)
+    return local_cpu_data->itc_freq / 1000;
+#elif defined (__s390__) || defined (__s390x__) || defined (__arm__)
     // We don't need to find the cpu freq on s390 as the 
     // TOD clock is always a fix freq. (see: POO pg 4-36.)
     return 0;
-#else /* __s390x__ || __s390x__ */
-
+#else /* __i386__ || __x86_64__ || __ia64__ || __s390__ || __s390x__ || __arm__*/
+    // If we don't know the actual frequency, we estimate it.
     cycles_t beg, mid, end;
     beg = get_cycles(); barrier();
     udelay(1); barrier();
@@ -77,23 +95,35 @@ __stp_estimate_cpufreq(void)
 #endif
 }
 
+static void
+__stp_ktime_get_real_ts(struct timespec *ts)
+{
+#ifdef STAPCONF_KTIME_GET_REAL
+    ktime_get_real_ts(ts);
+#else /* STAPCONF_KTIME_GET_REAL */
+    struct timeval tv;
+    do_gettimeofday(&tv);
+    ts->tv_sec = tv.tv_sec;
+    ts->tv_nsec = tv.tv_usec * NSEC_PER_USEC;
+#endif
+}
+
 /* The timer callback is in a softIRQ -- interrupts enabled. */
 static void
 __stp_time_timer_callback(unsigned long val)
 {
     unsigned long flags;
     stp_time_t *time;
-    struct timeval tv;
+    struct timespec ts;
     int64_t ns;
     cycles_t cycles;
 
     local_irq_save(flags);
 
-    do_gettimeofday(&tv);
+    __stp_ktime_get_real_ts(&ts);
     cycles = get_cycles();
 
-    ns = (NSEC_PER_SEC * (int64_t)tv.tv_sec)
-        + (NSEC_PER_USEC * tv.tv_usec);
+    ns = (NSEC_PER_SEC * (int64_t)ts.tv_sec) + ts.tv_nsec;
 
     time = per_cpu_ptr(stp_time, smp_processor_id());
     write_seqlock(&time->lock);
@@ -111,15 +141,14 @@ __stp_time_timer_callback(unsigned long val)
 static void
 __stp_init_time(void *info)
 {
-    struct timeval tv;
+    struct timespec ts;
     stp_time_t *time = per_cpu_ptr(stp_time, smp_processor_id());
 
     seqlock_init(&time->lock);
-    do_gettimeofday(&tv);
+    __stp_ktime_get_real_ts(&ts);
     time->base_cycles = get_cycles();
-    time->base_ns = (NSEC_PER_SEC * (int64_t)tv.tv_sec)
-        + (NSEC_PER_USEC * tv.tv_usec);
-    time->cpufreq = __stp_estimate_cpufreq();
+    time->base_ns = (NSEC_PER_SEC * (int64_t)ts.tv_sec) + ts.tv_nsec;
+    time->freq = __stp_get_freq();
 
     init_timer(&time->timer);
     time->timer.expires = jiffies + 1;
@@ -145,7 +174,7 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
             freq_khz = freqs->new;
             time = per_cpu_ptr(stp_time, freqs->cpu);
             write_seqlock_irqsave(&time->lock, flags);
-            time->cpufreq = freq_khz;
+            time->freq = freq_khz;
             write_sequnlock_irqrestore(&time->lock, flags);
             break;
     }
@@ -156,26 +185,42 @@ __stp_time_cpufreq_callback(struct notifier_block *self,
 struct notifier_block __stp_time_notifier = {
     .notifier_call = __stp_time_cpufreq_callback,
 };
+
+static int
+__stp_constant_freq(void)
+{
+#ifdef STAPCONF_CONSTANT_TSC
+    // If the CPU has constant tsc, we don't need to use cpufreq.
+    return boot_cpu_has(X86_FEATURE_CONSTANT_TSC);
+#elif defined (__ia64__) || defined (__s390__) || defined (__s390x__) || defined (__arm__)
+    // these architectures have constant time counter.
+    return 1;
+#else
+    return 0;
+#endif
+}
 #endif /* CONFIG_CPU_FREQ */
 
 /* This function is called during module unloading. */
 void
 _stp_kill_time(void)
 {
-	if (stp_time) {
-		int cpu;
-		stp_timer_reregister = 0;
-		for_each_online_cpu(cpu) {
-			stp_time_t *time = per_cpu_ptr(stp_time, cpu);
-			del_timer_sync(&time->timer);
-		}
+    if (stp_time) {
+        int cpu;
+        stp_timer_reregister = 0;
+        for_each_online_cpu(cpu) {
+            stp_time_t *time = per_cpu_ptr(stp_time, cpu);
+            del_timer_sync(&time->timer);
+        }
 #ifdef CONFIG_CPU_FREQ
-		cpufreq_unregister_notifier(&__stp_time_notifier,
-					    CPUFREQ_TRANSITION_NOTIFIER);
+        if (!__stp_constant_freq()) {
+            cpufreq_unregister_notifier(&__stp_time_notifier,
+                                        CPUFREQ_TRANSITION_NOTIFIER);
+        }
 #endif
-		
-		free_percpu(stp_time);
-	}
+
+        free_percpu(stp_time);
+    }
 }
 
 /* This function is called during module loading. */
@@ -193,7 +238,7 @@ _stp_init_time(void)
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
 
 #ifdef CONFIG_CPU_FREQ
-    if (!ret) {
+    if (!ret && !__stp_constant_freq()) {
         ret = cpufreq_register_notifier(&__stp_time_notifier,
                 CPUFREQ_TRANSITION_NOTIFIER);
 
@@ -205,7 +250,7 @@ _stp_init_time(void)
                 if (freq_khz > 0) {
                     stp_time_t *time = per_cpu_ptr(stp_time, cpu);
                     write_seqlock_irqsave(&time->lock, flags);
-                    time->cpufreq = freq_khz;
+                    time->freq = freq_khz;
                     write_sequnlock_irqrestore(&time->lock, flags);
                 }
             }
@@ -233,7 +278,7 @@ _stp_gettimeofday_ns(void)
     seq = read_seqbegin(&time->lock);
     base = time->base_ns;
     last = time->base_cycles;
-    freq = time->cpufreq;
+    freq = time->freq;
     while (unlikely(read_seqretry(&time->lock, seq))) {
         if (unlikely(++i >= MAXTRYLOCK))
             return 0;
@@ -241,7 +286,7 @@ _stp_gettimeofday_ns(void)
         seq = read_seqbegin(&time->lock);
         base = time->base_ns;
         last = time->base_cycles;
-        freq = time->cpufreq;
+        freq = time->freq;
     }
 
     delta = get_cycles() - last;

@@ -54,6 +54,9 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " :=" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-tsc-khz.c, -DSTAPCONF_TSC_KHZ,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-ktime-get-real.c, -DSTAPCONF_KTIME_GET_REAL,)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;

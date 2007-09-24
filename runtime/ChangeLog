@@ -1,3 +1,22 @@
+2007-09-24  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 3916
+	* time.c (stp_time_t): Rename cpufreq to freq.
+	(__stp_get_freq): Rename from __stp_estimate_cpufreq. Use tsc_khz or
+	cpu_khz if it is available. Use itc_freq on ia64.
+	(__stp_ktime_get_real_ts): New function to get current kernel time.
+	(__stp_time_timer_callback): Call __stp_ktime_get_real_ts to get
+	base time.
+	(__stp_init_time): Ditto.
+	(__stp_constant_freq): New function to check the processor has
+	constant frequency timestamp counter.
+	(_stp_kill_time): Don't use the cpufreq notifier if the processor has
+	constant frequency timestamp counter.
+	(_stp_init_time): Ditto.
+	* autoconf-ktime-get-real.c : New file.
+	* autoconf-constant-tsc.c: Ditto.
+	* autoconf-tsc-khz.c: Ditto.
+
 2007-09-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5057.
