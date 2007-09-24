@@ -117,7 +117,7 @@ function __svc_fh:string(fh :long) %{  /* pure */
 			kread(&(fh->fh_base.fh_pad[2])),
 			kread(&(fh->fh_base.fh_pad[3])),
 			kread(&(fh->fh_base.fh_pad[4])),
-			kread(&(fh->fh_base.fh_pad[5])))
+			kread(&(fh->fh_base.fh_pad[5])));
 	CATCH_DEREF_FAULT();
 %}
 
