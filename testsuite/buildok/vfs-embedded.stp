@@ -1,0 +1,13 @@
+#! stap -p4
+
+probe begin {
+  print(ppos_pos (0) +
+	__page_ino (0) +
+	__page_dev (0) +
+	__page_bdev (0) +
+	__file_dev (0) +
+	__file_bdev (0) +
+	__file_ino (0) +
+	__file_maxbytes (0))
+  print(__file_filename (0))
+}

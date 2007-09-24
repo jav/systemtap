@@ -1,0 +1,7 @@
+#! stap -p4
+
+probe begin {
+	print (inet_get_local_port (0))
+	print (inet_get_ip_source (0))
+}
+

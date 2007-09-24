@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin {
+print (disk_major_from_request (0) +
+	disk_minor_from_request (0))
+}

@@ -1,0 +1,9 @@
+#! stap -p4
+
+probe begin {
+	print (_struct_timeval_u(0,0))
+	print (_struct_compat_timeval_u(0,0))
+	print (_struct_timeval (0))
+	print (_struct_timezone_u (0))
+}
+

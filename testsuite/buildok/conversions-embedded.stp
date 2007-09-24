@@ -1,0 +1,13 @@
+#! stap -p4
+
+probe begin {
+	print (kernel_string (0))
+	print (kernel_long (0))
+	print (kernel_int (0))
+	print (kernel_short (0))
+	print (kernel_char (0))
+	print (user_string2 (0, ""))
+	print (user_string_warn (0))
+	print (user_string_quoted (0))
+}
+

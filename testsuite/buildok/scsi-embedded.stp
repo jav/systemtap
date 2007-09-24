@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin {
+  print (scsi_timer_pending (0) + get_devstate_from_req (0))
+}
+

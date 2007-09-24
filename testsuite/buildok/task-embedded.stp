@@ -1,0 +1,19 @@
+#! stap -p4
+#
+probe begin {
+	print (task_current () +
+		task_parent (0) +
+		task_state (0) +
+		task_pid (0) +
+		task_tid (0) +
+		task_gid (0) +
+		task_egid (0) +
+		task_uid (0) +
+		task_euid (0) +
+		task_prio (0) +
+		task_nice (0) +
+		task_cpu (0) +
+		task_open_file_handles (0) +
+		task_max_file_handles (0))
+	print (task_execname (0))
+}

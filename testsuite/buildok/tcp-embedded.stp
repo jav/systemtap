@@ -1,0 +1,9 @@
+#! stap -p4
+#
+probe begin {
+	print (tcp_get_info_rto (0) +
+		tcp_get_info_snd_cwnd (0) +
+		tcp_ts_get_info_state (0) +
+		tcp_ts_get_info_snd_ssthresh (0) +
+		tcp_ts_get_info_rcv_mss (0))
+}

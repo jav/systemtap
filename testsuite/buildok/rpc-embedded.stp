@@ -1,0 +1,15 @@
+#! stap -p4
+
+probe begin {
+   print (xid_from_clnt (0) +
+ 	  prog_from_clnt (0) +
+	  vers_from_clnt (0) +
+	  prot_from_clnt (0) +
+	  port_from_clnt (0) +
+	  clones_from_clnt (0) +
+	  tasks_from_clnt (0) +
+	  proc_from_msg (0) +
+	  vers_from_clnt (0) +
+	  addr_from_rqst (0))
+}
+

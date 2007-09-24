@@ -1,0 +1,9 @@
+#! stap -p4
+
+probe begin {
+	print (__bio_ino (0) +
+		bio_rw_num (0) +
+		__bio_start_sect (0))
+		
+	print (__bio_devname (0))
+}

@@ -1,0 +1,27 @@
+#! stap -p4
+
+probe begin {
+	print (__nfsi_cache_valid (0) +
+		__nfsi_rcache_time (0) +
+		__nfsi_attr_time (0) +
+		__nfsi_ndirty (0) +
+		__nfs_server_rsize (0) +
+		__nfs_version (0) +
+		__nfs_server_wsize (0) +
+		__nfs_rpages (0) +
+		__nfs_wpages (0) +
+		__p2i(0) +
+		__p2i_flag (0) +
+		__p2i_state (0) +
+		__p2i_size (0) +
+		__p2sb_flag (0) +
+		__d_loff_t (0) +
+		__file_inode (0) +
+		__file_id (0) +
+		__file_mode (0) +
+		__iov_length (0,0,0,0))
+
+	print (__file_parentname (0))
+
+}
+

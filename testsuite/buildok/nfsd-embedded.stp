@@ -1,0 +1,6 @@
+#! stap -p4
+
+probe begin {
+	print (__get_fh (0,0))
+	print (__svc_fh (0))
+}

@@ -1,3 +1,8 @@
+2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildok/*-embedded.stp: New test case for every embedded-C 
+	function in the tapsets.
+
 2007-09-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.maps/linear_overunder.exp: Correct for actual data.
