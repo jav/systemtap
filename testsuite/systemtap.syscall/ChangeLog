@@ -1,3 +1,7 @@
+2007-09-24  Martin Hunt  <hunt@redhat.com>
+
+	* link.c (main): Don't check result code.
+
 2007-09-19  Martin Hunt  <hunt@redhat.com>
 	PR 4931
 	* test-debug.tcl (cleanup): Remove print.

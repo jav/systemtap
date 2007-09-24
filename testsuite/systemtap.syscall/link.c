@@ -25,7 +25,7 @@ int main()
   // symlink ("foobar", "Sfoobar") = 0
 
   readlink("Sfoobar", buf, sizeof(buf));
-  // readlink ("Sfoobar", XXXX, 128) = 6
+  // readlink ("Sfoobar", XXXX, 128)
 
   return 0;
 }
