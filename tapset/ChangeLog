@@ -7,6 +7,10 @@
 
 	* nfsd.stp (__svc_fh): Added missing semicolon.
 
+2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* conversions.stp (user_string): Redefine in terms of user_string2.
+
 2007-09-23  Ulrich Drepper <drepper@redhat.com>
 
 	* syscalls2.stp (readlinkat): Add.
