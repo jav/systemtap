@@ -52,6 +52,7 @@ function _struct_timeval:string(addr:long)
 	else
 		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]",
 				kread(&(tv->tv_sec)), kread(&(tv->tv_usec)));
+        CATCH_DEREF_FAULT();
 %}
 
 function _struct_timezone_u:string(uaddr:long)
@@ -67,6 +68,7 @@ function _struct_timezone_u:string(uaddr:long)
 		else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
+        CATCH_DEREF_FAULT();
 %} 
 
 %{
@@ -219,6 +221,7 @@ function _struct_timespec:string(addr:long)
 			(unsigned long)kread(&(ts->tv_sec)),
 			(unsigned long)kread(&(ts->tv_nsec)));
 	}
+        CATCH_DEREF_FAULT();
 %}
 
 function _struct_itimerspec_u:string(uaddr:long)
@@ -285,6 +288,7 @@ function _struct_itimerval:string(addr:long)
 			(int)kread(&(itv->it_value.tv_sec)),
 			(int)kread(&(itv->it_value.tv_usec)));
 	}
+        CATCH_DEREF_FAULT();
 %}
 
 %{

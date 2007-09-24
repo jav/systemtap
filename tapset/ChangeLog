@@ -9,6 +9,10 @@
 
 2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
 
+	* aux_syscalls.stp: Add missing CATCH_DEREF_FAULT()s. 
+
+2007-09-24  Frank Ch. Eigler  <fche@elastic.org>
+
 	* inet_sock.stp, ioblock.stp, rpc.stp, scsi.stp, socket.stp,
 	tcp.stp: Add /* pure */ to embedded-C functions.
 
