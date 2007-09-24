@@ -1,3 +1,8 @@
+2007-09-24  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_at_flag_str): Add some more flags.
+	* syscalls2.stp (openat): Call _dfd_str().
+
 2007-09-24  David Smith  <dsmith@redhat.com>
 
 	* nfsd.stp (__svc_fh): Added missing semicolon.

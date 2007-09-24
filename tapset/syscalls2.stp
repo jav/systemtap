@@ -141,11 +141,11 @@ probe syscall.openat =
 	flags = $flags
 	mode = $mode
 	if ($flags & 64)
-		argstr = sprintf("%d, %s, %s, %#o", $dfd,
+		argstr = sprintf("%s, %s, %s, %#o", _dfd_str($dfd),
 				user_string_quoted($filename), 
 				_sys_open_flag_str($flags), $mode)
 	else
-		argstr = sprintf("%d, %s, %s", $dfd,
+		argstr = sprintf("%s, %s, %s", _dfd_str($dfd),
 			user_string_quoted($filename), 
 			_sys_open_flag_str($flags))
 }
@@ -609,7 +609,7 @@ probe syscall.readlink = kernel.function("sys_readlink") {
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
 	argstr = sprintf("%s, %p, %d", user_string_quoted($path), 
-			buf_uaddr, bufsiz)
+			$buf, $bufsiz)
 }
 probe syscall.readlink.return = kernel.function("sys_readlink").return {
 	name = "readlink"
@@ -628,12 +628,8 @@ probe syscall.readlinkat = kernel.function("sys_readlinkat") {
 	path = user_string($path)
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-	if (dfd == -100)
-		argstr = sprintf("AT_FDCWD, %s, %p, %d", user_string_quoted($path), 
-				buf_uaddr, bufsiz)
-	else
-		argstr = sprintf("%d, %s, %p, %d", dfd, user_string_quoted($path), 
-				buf_uaddr, bufsiz)
+	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($path), 
+			$buf, $bufsiz)
 }
 probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return {
 	name = "readlinkat"
@@ -674,8 +670,7 @@ probe syscall.readv.return =
 
 # reboot _____________________________________________________
 #
-# asmlinkage long
-# sys_reboot(int magic1,
+# long sys_reboot(int magic1,
 #		int magic2,
 #		unsigned int cmd,
 #		void __user * arg)
@@ -687,15 +682,16 @@ probe syscall.reboot = kernel.function("sys_reboot") {
 	magic2 = $magic2
 	magic2_str =_reboot_magic_str($magic2)
 	flag = $cmd
-	flag_str =  _reboot_flag_str(flag)
+	flag_str =  _reboot_flag_str($cmd)
 	arg_uaddr = $arg
 	argstr = sprintf("%s, %s, %s, %p", magic_str, magic2_str,
-				flag_str, arg_uaddr)
+				flag_str, $arg)
 }
 probe syscall.reboot.return = kernel.function("sys_reboot").return {
 	name = "reboot"
 	retstr = returnstr(1)
 }
+
 # recv _______________________________________________________
 #
 # long sys_recv(int fd, void __user *ubuf, size_t size, unsigned flags)
