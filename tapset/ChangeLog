@@ -1,6 +1,12 @@
 2007-09-25  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp Fix the wrong calling of returnstr($return) to
+	returnstr(1) or returnstr(2).
+
+2007-09-25  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
 	* rpc.stp Add function for probe point sunrpc.clnt.create_client.
 
 2007-09-24  Martin Hunt  <hunt@redhat.com>
