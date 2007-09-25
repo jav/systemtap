@@ -56,6 +56,11 @@ probe sunrpc.clnt.return =
  *  rpc_create_client(struct rpc_xprt *xprt, char *servname, 
  *  	struct rpc_program *info, u32 version, 
  * 	rpc_authflavor_t authflavor)
+ *
+ *  static struct rpc_clnt * 
+ *  rpc_new_client(struct rpc_xprt *xprt, char *servname, 
+ * struct rpc_program *program, u32 vers, 
+ * rpc_authflavor_t flavor)
  * 
  *  @servername: the server machine name
  *  @progname:   the RPC program name
@@ -65,10 +70,19 @@ probe sunrpc.clnt.return =
  *  @port:	 the port number
  *  @authflavor: the authentication flavor
  */
-probe sunrpc.clnt.create_client = kernel.function("rpc_create_client") ?,
-      	module("sunrpc").function("rpc_create_client") ?
+probe sunrpc.clnt.create_client = _sunrpc.clnt.create_client.*
 {
 	servername = kernel_string($servname)
+	prot = $xprt->prot
+	port = $xprt->port
+	argstr = sprintf("%s %s %d %d %d %d %d", servername, progname, 
+		prog, vers, prot, port, authflavor)
+}
+
+probe _sunrpc.clnt.create_client.part1 = kernel.function("rpc_create_client") ?,
+	module("sunrpc").function("rpc_create_client") ?
+{
+	name = "sunrpc.clnt.create_client"
 %( kernel_v >= "2.6.10" %?
 	progname = kernel_string($info->name)
 	prog = $info->number
@@ -80,21 +94,35 @@ probe sunrpc.clnt.create_client = kernel.function("rpc_create_client") ?,
 	vers = vers_from_prog($program, $vers)
 	authflavor = $flavor
 %)
-	
-	prot = $xprt->prot
-	port = $xprt->port
-
-	name = "sunrpc.clnt.create_client"
-	argstr = sprintf("%s %s %d %d %d %d %d", servername, progname, 
-			prog, vers, prot, port, authflavor)
 }
 
-probe sunrpc.clnt.create_client.return = 
+probe _sunrpc.clnt.create_client.part2 = kernel.function("rpc_new_client") ?,
+	module("sunrpc").function("rpc_new_client") ?
+{
+	name = "sunrpc.clnt.new_client"
+	progname = kernel_string($program->name)
+	prog = $program->number
+	vers = vers_from_prog($program, $vers)
+	authflavor = $flavor
+}
+
+probe sunrpc.clnt.create_client.return = _sunrpc.clnt.create_client.return.* 
+{
+	retstr = returnstr($return)
+}
+
+probe _sunrpc.clnt.create_client.return.part1 = 
 	kernel.function("rpc_create_client").return ?,
-      	module("sunrpc").function("rpc_create_client").return ?
+	module("sunrpc").function("rpc_create_client").return ?
 {
 	name = "sunrpc.clnt.create_client.return"
-	retstr = returnstr($return)
+}
+
+probe _sunrpc.clnt.create_client.return.part2 =
+	kernel.function("rpc_new_client").return ?,
+	module("sunrpc").function("rpc_new_client").return ?
+{
+	name = "sunrpc.clnt.new_client.return"
 }
 
 /*
