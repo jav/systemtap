@@ -794,7 +794,7 @@ translator_output::translator_output (const string& filename, size_t bufsize):
 translator_output::~translator_output ()
 {
   delete o2;
-  delete buf;
+  delete [] buf;
 }
 
 
