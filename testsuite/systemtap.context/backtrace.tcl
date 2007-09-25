@@ -94,7 +94,7 @@ expect {
 	incr m5
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : [^\r\n]+\r\n 0x[a-f0-9]+ : [^\r\n]+\r\n} {
+	    -re {^ 0x[a-f0-9]+ : [^\r\n]+\r\n} {
 		if {$m5 == 1} {incr m5}
 	    }
 	}
@@ -104,7 +104,7 @@ expect {
 	incr m6
 	expect {
 	    -timeout 5
-	    -re {.*---\r\n 0x[a-f0-9]+ : [^\r\n]+\r\n 0x[a-f0-9]+ : [^\r\n]+\r\n} {
+	    -re {.*---\r\n 0x[a-f0-9]+ : [^\r\n]+\r\n} {
 		if {$m6 == 1} {incr m6}
 	    }
 	}

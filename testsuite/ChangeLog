@@ -1,3 +1,8 @@
+2007-09-25  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.context/backtrace.tcl: Handle single line timer.profile
+	backtraces.
+
 2007-09-25  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/marker.exp: Improved regexp to work correctly on
