@@ -1,5 +1,9 @@
 2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
 
+	* socket.stp (__i2n_ip_proto): Add a cast for 32-bit compatibility.
+
+2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
+
 	* signal.stp (_signal.send.part*): Remove sinfo alias variable,
 	since it's a struct rather than integral value.
 
