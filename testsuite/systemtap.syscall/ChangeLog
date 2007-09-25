@@ -1,3 +1,8 @@
+2007-09-25  Martin Hunt  <hunt@redhat.com>
+
+	* test.tcl (run_one_test): Fix unsupported results.
+	Send failure diffs to log.
+
 2007-09-24  Martin Hunt  <hunt@redhat.com>
 
 	* link.c (main): Don't check result code.
