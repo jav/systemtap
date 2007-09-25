@@ -66,9 +66,9 @@ proc run_one_test {filename flags} {
     }
 
     if {$ind == 0} {
-	puts "UNSUPP"
+	# unsupported
 	cleanup
-	return
+	return $result
     }
 
     set current_dir [pwd]
@@ -88,28 +88,28 @@ proc run_one_test {filename flags} {
 	puts "PASS $testname"
     } else {
 	set result "FAIL $testname"
-	puts "$testname FAILED. output of \"$cmd\" was:"
-	puts "------------------------------------------"
-	puts $output
-	puts "------------------------------------------"
-	puts "RESULTS: (\'*\' = MATCHED EXPECTED)"
+	send_log "$testname FAILED. output of \"$cmd\" was:"
+	send_log "------------------------------------------"
+	send_log $output
+	send_log "------------------------------------------"
+	send_log "RESULTS: (\'*\' = MATCHED EXPECTED)"
 	set i 0
 	foreach line [split $output "\n"] {
 	    if {[regexp "${testname}: " $line]} {
 		if {[regexp $results($i) $line]} {
-		    puts "*$line"
+		    send_log "*$line"
 		    incr i
 		    if {$i >= $ind} {break}
 		} else {
-		    puts "$line"
+		    send_log "$line"
 		}
 	    }
 	}
 	if {$i < $ind} {
-	    puts "--------- EXPECTED and NOT MATCHED ----------"
+	    send_log "--------- EXPECTED and NOT MATCHED ----------"
 	}
 	for {} {$i < $ind} {incr i} {
-	    puts "$results($i)"
+	    send_log "$results($i)"
 	}
     }
     cleanup
