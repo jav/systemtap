@@ -96,7 +96,8 @@ set km_script {"probe kernel.mark(\"%s\"), module(\"%s\").mark(\"%s\") { }"}
 # or in any loaded module
 set fl [open "| egrep __mark_.+\.\[0-9\]+ /proc/kallsyms"]
 while {[gets $fl s] >= 0} {
-    if [regexp {__mark_([^.]+).[0-9]+(\t+\[(.+)\])?} $s match name subexp module] {
+    if [regexp {__mark_([^.]+)\.[0-9]+(\t+\[(.+)\])?} $s match name subexp module] {
+	puts "$name $subexp $module"
 	if {$module == ""} {
 	    set kernel_markers_found 1
 	    lappend kernel_marker_names $name

@@ -1,5 +1,8 @@
 2007-09-25  David Smith  <dsmith@redhat.com>
 
+	* systemtap.base/marker.exp: Improved regexp to work correctly on
+	kernels with no markers.
+	
 	* systemtap.base/marker.exp: Updated for the 9/18/2007 markers
 	patch.
 
