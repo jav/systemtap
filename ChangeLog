@@ -1,3 +1,12 @@
+2007-09-25  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (mark_query::handle_query_module): Updated for
+	9/18/2007 markers patch.
+	(mark_derived_probe::parse_probe_sig): Ditto.
+	(mark_derived_probe_group::emit_module_decls): Ditto.
+	(mark_derived_probe_group::emit_module_init): Ditto.
+	(mark_derived_probe_group::emit_module_exit): Ditto.
+
 2007-09-24  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 3916

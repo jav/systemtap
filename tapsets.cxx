@@ -5014,15 +5014,52 @@ mark_query::handle_query_module()
   vector<markers_data *> markers;
   while (offset < data->d_size)
     {
+      // Grab the marker name
       if (offset >= data->d_size)
 	throw semantic_error("bad __markers_string section?");
       string name = (char *)(data->d_buf) + offset;
       offset += name.size() + 1;
-
-      if (offset >= data->d_size)
+      if (offset >= data->d_size || name.empty())
 	throw semantic_error("bad __markers_string section?");
+
+      // Skip any '\0' chars
+      while (offset < data->d_size)
+        {
+	  if (*((char *)(data->d_buf) + offset) != '\0')
+	    break;
+	  offset++;
+	}
+
+      // Grab the parameter string.
       string params = (char *)(data->d_buf) + offset;
       offset += params.size() + 1;
+      if (offset >= data->d_size)
+	throw semantic_error("bad __markers_string section?");
+
+      // Skip any '\0' chars
+      while (offset < data->d_size)
+        {
+	  if (*((char *)(data->d_buf) + offset) != '\0')
+	    break;
+	  offset++;
+	}
+
+      // Skip the arg string
+      while (offset < data->d_size)
+        {
+	  if (*((char *)(data->d_buf) + offset) == '\0')
+	    break;
+	  offset++;
+	}
+      offset++;
+
+      // Skip any '\0' chars
+      while (offset < data->d_size)
+        {
+	  if (*((char *)(data->d_buf) + offset) != '\0')
+	    break;
+	  offset++;
+	}
 
       markers_data *m = new markers_data;
       m->name = name;
@@ -5227,7 +5264,11 @@ repeat:
 	case 'p':
 	  arg = new mark_arg;
 	  arg->str = false;
-	  arg->c_type = "void *";
+	  // This should really be 'void *'.  But, then we'll get a
+	  // compile error when we assign the void pointer to an
+	  // integer without a cast.  So, we use 'long' instead, since
+	  // it should have the same size as 'void *'.
+	  arg->c_type = "long";
 	  arg->stp_type = pe_long;
 	  mark_args.push_back(arg);
 	  continue;
@@ -5387,7 +5428,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit the marker callback function
   s.op->newline();
-  s.op->newline() << "static void enter_marker_probe (const struct __mark_marker_data *mdata, const char *fmt, ...) {";
+  s.op->newline() << "static void enter_marker_probe (const struct __mark_marker *mdata, void *private_data, const char *fmt, ...) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)mdata->pdata;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
@@ -5412,12 +5453,15 @@ mark_derived_probe_group::emit_module_init (systemtap_session &s)
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
   s.op->newline() << "probe_point = smp->pp;";
-  s.op->newline() << "rc = (marker_set_probe(smp->name, smp->format, enter_marker_probe, smp) == 0);";
+  s.op->newline() << "rc = marker_probe_register(smp->name, smp->format, enter_marker_probe, smp);";
+  s.op->newline() << "if (! rc)";
 
-  s.op->newline() << "if (rc) {";
+  s.op->newline(1) << "rc = marker_arm(smp->name);";
+
+  s.op->newline(-1) << "if (rc) {";
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
   s.op->newline(1) << "struct stap_marker_probe *smp2 = &stap_marker_probes[j];";
-  s.op->newline() << "marker_remove_probe(smp2->name);";
+  s.op->newline() << "marker_probe_unregister(smp2->name);";
   s.op->newline(-1) << "}";
   s.op->newline() << "break;"; // don't attempt to register any more probes
   s.op->newline(-1) << "}";
@@ -5434,7 +5478,7 @@ mark_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "/* deregister marker probes */";
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
-  s.op->newline() << "marker_remove_probe(smp->name);";
+  s.op->newline() << "marker_probe_unregister(smp->name);";
   s.op->newline(-1) << "}"; // for loop
 }
 
