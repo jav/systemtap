@@ -626,6 +626,9 @@ function sock_type_str2num:long (type:string)
 
 function sock_flags_num2str:string (flags:long)
 %{ /* pure */
+#ifndef SOCK_PASSCRED
+#define SOCK_PASSCRED 3  /* introduced in 2.6.12? */
+#endif
 #ifndef SOCK_PASSSEC
 #define SOCK_PASSSEC 4   /* introduced in 2.6.18 */
 #endif
