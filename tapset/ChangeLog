@@ -1,5 +1,9 @@
 2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
 
+	* socket.stp (sock_flags_num2str): Define SOCK_PASSCRED if needed.
+
+2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
+
 	* socket.stp (__i2n_ip_proto): Add a cast for 32-bit compatibility.
 
 2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
