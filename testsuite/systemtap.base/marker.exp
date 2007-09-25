@@ -94,9 +94,9 @@ set km_script {"probe kernel.mark(\"%s\"), module(\"%s\").mark(\"%s\") { }"}
 
 # Try to figure out if kernel markers are present in the kernel itself
 # or in any loaded module
-set fl [open "| egrep __mark_data_.+\.\[0-9\]+ /proc/kallsyms"]
+set fl [open "| egrep __mark_.+\.\[0-9\]+ /proc/kallsyms"]
 while {[gets $fl s] >= 0} {
-    if [regexp {__mark_data_([^.]+).[0-9]+(\t+\[(.+)\])?} $s match name subexp module] {
+    if [regexp {__mark_([^.]+).[0-9]+(\t+\[(.+)\])?} $s match name subexp module] {
 	if {$module == ""} {
 	    set kernel_markers_found 1
 	    lappend kernel_marker_names $name
@@ -206,8 +206,23 @@ if {$kernel_markers_found == 0} {
 } else {
     # Try compiling a script that looks for the first kernel marker in
     # a module (which should fail).
-    set script [format $module_script "*" [lindex $kernel_marker_names 0]]
-    stap_compile $TEST_NAME 0 $script
+
+    # Find a kernel marker name that doesn't exist as a module marker
+    # name.
+    set found 0
+    foreach mark_name $kernel_marker_names {
+	if {[lsearch -exact $module_marker_names $mark_name] == -1} {
+	    set found 1
+	    break
+	}
+    }
+
+    if {$found} {
+	set script [format $module_script "*" $mark_name]
+	stap_compile $TEST_NAME 0 $script
+    } else {
+	untested "$TEST_NAME : no unique kernel markers present"
+    }
 }
 
 #
@@ -347,10 +362,25 @@ set TEST_NAME "M_MARKER12"
 if {$module_markers_found == 0} {
     untested "$TEST_NAME : no module markers present"
 } else {
-    # Try compiling a script that looks for the first module marker as
+    # Try compiling a script that looks for the a module marker as
     # a kernel marker (which should fail).
-    set script [format $kernel_script [lindex $module_marker_names 0]]
-    stap_compile $TEST_NAME 0 $script
+
+    # Find a module marker name that doesn't also exist as a kernel
+    # marker name.
+    set found 0
+    foreach mark_name $module_marker_names {
+	if {[lsearch -exact $kernel_marker_names $mark_name] == -1} {
+	    set found 1
+	    break
+	}
+    }
+
+    if {$found} {
+	set script [format $kernel_script $mark_name]
+	stap_compile $TEST_NAME 0 $script
+    } else {
+	untested "$TEST_NAME : no unique module markers present"
+    }
 }
 
 # 
