@@ -1,3 +1,8 @@
+2007-09-25  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp Add function for probe point sunrpc.clnt.create_client.
+
 2007-09-24  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_at_flag_str): Add some more flags.
