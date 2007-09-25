@@ -41,7 +41,7 @@
 */
 function __i2n_ip_proto :long(dir:long,index:long) %{ /* pure */
         int index = (int) (THIS->index);
-        struct inode * dir = (struct inode *)(THIS->dir);
+        struct inode * dir = (struct inode *)(uintptr_t)(THIS->dir);
         struct rpc_clnt * clnt = NFS_CLIENT(dir); /* FIXME: deref hazard! */
         struct rpc_xprt * cl_xprt = kread(&(clnt->cl_xprt));
   	/* sockaddr_storage is used since 2.6.19. Need cast*/
