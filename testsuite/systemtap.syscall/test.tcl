@@ -66,7 +66,7 @@ proc run_one_test {filename flags} {
     }
 
     if {$ind == 0} {
-	/* unsupported */
+	# unsupported
 	cleanup
 	return $result
     }
