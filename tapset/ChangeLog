@@ -1,5 +1,7 @@
 2007-09-25  Martin Hunt  <hunt@redhat.com>
 
+	* syscalls2.stp (sys_readlinkat): Make optional.
+
 	* aux_syscalls.stp (_struct_compat_timeval_u): ifdef
 	CONFIG_COMPAT so buildok test will pass.
 

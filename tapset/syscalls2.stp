@@ -622,7 +622,7 @@ probe syscall.readlink.return = kernel.function("sys_readlink").return {
 #		  char __user * buf,
 #		  int bufsiz)
 #
-probe syscall.readlinkat = kernel.function("sys_readlinkat") {
+probe syscall.readlinkat = kernel.function("sys_readlinkat") ? {
 	name = "readlinkat"
 	dfd = $dfd
 	path = user_string($path)
@@ -631,7 +631,7 @@ probe syscall.readlinkat = kernel.function("sys_readlinkat") {
 	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($path), 
 			$buf, $bufsiz)
 }
-probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return {
+probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return ? {
 	name = "readlinkat"
 	retstr = returnstr(1)
 }
