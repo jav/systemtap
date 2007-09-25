@@ -108,7 +108,7 @@ probe _sunrpc.clnt.create_client.part2 = kernel.function("rpc_new_client") ?,
 
 probe sunrpc.clnt.create_client.return = _sunrpc.clnt.create_client.return.* 
 {
-	retstr = returnstr($return)
+	retstr = returnstr(2)
 }
 
 probe _sunrpc.clnt.create_client.return.part1 = 
@@ -159,7 +159,7 @@ probe sunrpc.clnt.clone_client.return =
       	module("sunrpc").function("rpc_clone_client").return ?
 {
 	name = "sunrpc.clnt.clone_client.return"
-	retstr = returnstr($return)
+	retstr = returnstr(2)
 }
 
 /*
@@ -223,7 +223,7 @@ probe sunrpc.clnt.shutdown_client.return =
       	module("sunrpc").function("rpc_shutdown_client").return ?
 {
 	name = "sunrpc.clnt.shutdown_client.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -262,7 +262,7 @@ probe sunrpc.clnt.bind_new_program.return =
       	module("sunrpc").function("rpc_bind_new_program").return ?
 {
 	name = "sunrpc.clnt.bind_new_program.return"
-	retstr = returnstr($return)
+	retstr = returnstr(2)
 }
 
 /*
@@ -307,7 +307,7 @@ probe sunrpc.clnt.call_sync.return = kernel.function("rpc_call_sync").return ?,
       	module("sunrpc").function("rpc_call_sync").return ?
 {
 	name = "sunrpc.clnt.call_sync.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -354,7 +354,7 @@ probe sunrpc.clnt.call_async.return =
       	module("sunrpc").function("rpc_call_async").return ?
 {
 	name = "sunrpc.clnt.call_async.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -447,7 +447,7 @@ probe sunrpc.svc.register.return = kernel.function("svc_register").return ?,
       	module("sunrpc").function("svc_register").return ?
 {
 	name = "sunrpc.svc.register.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -477,6 +477,7 @@ probe sunrpc.svc.create.return = kernel.function("svc_create").return ?,
       	module("sunrpc").function("svc_create").return ?
 {
 	name = "sunrpc.svc.create.return"
+	retstr = returnstr(2)
 }
 
 /*
@@ -562,7 +563,7 @@ probe sunrpc.svc.process.return = kernel.function("svc_process").return ?,
       	module("sunrpc").function("svc_process").return ?
 {
 	name = "sunrpc.svc.process.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /* 
@@ -598,7 +599,7 @@ probe sunrpc.svc.authorise.return = kernel.function("svc_authorise").return ?,
       	module("sunrpc").function("svc_authorise").return ?
 {
 	name = "sunrpc.svc.authorise.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -633,7 +634,7 @@ probe sunrpc.svc.recv.return = kernel.function("svc_recv").return ?,
       	module("sunrpc").function("svc_recv").return ?
 {
 	name = "sunrpc.svc.recv.return"
-	argstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -669,7 +670,7 @@ probe sunrpc.svc.send.return = kernel.function("svc_send").return ?,
       	module("sunrpc").function("svc_send").return ?
 {
 	name = "sunrpc.svc.send.return"
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 }
 
 /*
@@ -753,6 +754,7 @@ probe sunrpc.sched.new_task.return = kernel.function("rpc_new_task").return ?,
       	module("sunrpc").function("rpc_new_task").return ?
 {
 	name = "sunrpc.sched.new_task.return"
+	retstr = returnstr(2)
 }
 
 /*
@@ -820,7 +822,7 @@ probe sunrpc.sched.execute.return = kernel.function("__rpc_execute").return ?,
 	name = "sunrpc.sched.execute.return"
 
 %( kernel_v <= "2.6.20" %?
-	retstr = returnstr($return)
+	retstr = returnstr(1)
 %:
 	retstr = "N/A"
 %)
