@@ -62,7 +62,7 @@ probe _signal.send.part2 = kernel.function("send_group_sigqueue")
 {
     name = "send_group_sigqueue"
     task = $p
-    sinfo = $q->info
+    # sinfo = $q->info
     shared = 1
     send2queue = 1
 }
@@ -71,7 +71,7 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
 {
     name = "send_sigqueue"
     task = $p
-    sinfo = $q->info
+    # sinfo = $q->info
     shared = 0
     send2queue = 1
 }

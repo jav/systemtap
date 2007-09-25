@@ -1,3 +1,8 @@
+2007-09-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* signal.stp (_signal.send.part*): Remove sinfo alias variable,
+	since it's a struct rather than integral value.
+
 2007-09-25  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp (sys_readlinkat): Make optional.
