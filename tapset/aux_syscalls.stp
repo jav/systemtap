@@ -1798,3 +1798,24 @@ function _at_flag_str(f) {
 	if (f == 0x400) return "AT_SYMLINK_FOLLOW"
 	return sprintf("0x%x", f)
 }
+
+function _adjtimex_return_str(ret) {
+	if (ret == 0)
+		val = "OK"
+	else if (ret == 1)
+		val = "INS"
+	else if (ret == 2)
+		val = "DEL"
+	else if (ret == 3)
+		val = "OOP"
+	else if (ret == 4)
+		val = "WAIT"
+	else if (ret == 5)
+		val = "BAD"
+
+	if (val != "")
+		return sprintf("%d (TIME_%s)", ret, val)
+	else
+		return returnstr(1)
+}
+
