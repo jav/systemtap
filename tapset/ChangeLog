@@ -1,6 +1,14 @@
 2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* syscall.stp (syscall.brk): Add probe point
+	kernel.function("ia64_brk").
+	* syscall.stp (syscall.mremap): Add probe point
+	kernel.function("ia64_mremap").
+
+2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
 	modify field-access operator from "." to "->" in all files.
 
 2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
