@@ -1,3 +1,16 @@
+2007-09-26  Mike Mason <mmlnx@us.ibm.com>
+
+	* vfs.stp:
+	Specified explicit types for __find_bdevname() parameters
+	and return value.  The types could not be determined correctly
+	when __find_bdevname() was used in nfs.stp
+
+	Added __page_index() to work around problem dereferencing unions
+	in stap language.
+	
+	Made generic.fop.sendfile conditional on kernel <= 2.6.22.
+	generic_file_sendfile() was removed in 2.6.23.
+
 2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
