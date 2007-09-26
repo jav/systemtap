@@ -178,12 +178,18 @@ probe syscall.bind.return = kernel.function("sys_bind").return ? {
 
 # brk ________________________________________________________
 # unsigned long sys_brk(unsigned long brk)
-probe syscall.brk = kernel.function("sys_brk") {
+probe syscall.brk =
+		kernel.function("sys_brk"),
+		kernel.function("ia64_brk") ?
+{
 	name = "brk"
 	brk = $brk
 	argstr = sprintf("%p", brk)
 }
-probe syscall.brk.return = kernel.function("sys_brk").return {
+probe syscall.brk.return =
+		kernel.function("sys_brk").return,
+		kernel.function("ia64_brk").return ?
+{
 	name = "brk"
 	retstr = returnstr(1)
 }
@@ -2555,7 +2561,10 @@ probe syscall.mq_unlink.return = kernel.function("sys_mq_unlink").return ? {
 #            unsigned long flags,
 #            unsigned long new_addr)
 #
-probe syscall.mremap = kernel.function("sys_mremap") ? {
+probe syscall.mremap =
+		kernel.function("sys_mremap") ?,
+		kernel.function("ia64_mremap") ?
+{
 	name = "mremap"
 	old_address = $addr
 	old_size = $old_len
@@ -2565,7 +2574,10 @@ probe syscall.mremap = kernel.function("sys_mremap") ? {
 	argstr = sprintf("%p, %d, %d, %s, %p", $addr, $old_len, $new_len,
 		_mremap_flags($flags), $new_addr)
 }
-probe syscall.mremap.return = kernel.function("sys_mremap").return ? {
+probe syscall.mremap.return =
+		kernel.function("sys_mremap").return ?,
+		kernel.function("ia64_mremap").return ?
+{
 	name = "mremap"
 	retstr = returnstr(2)
 }
