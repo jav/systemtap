@@ -1,5 +1,10 @@
 2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	modify field-access operator from "." to "->" in all files.
+
+2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* syscalls.stp (adjtimex.return): Improve retstr.
 	* aux_syscalls.stp: Add a function(_adjtimex_return_str) for
 	adjtimex.return.
