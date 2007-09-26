@@ -113,7 +113,7 @@ probe syscall.adjtimex = kernel.function("sys_adjtimex") {
 }
 probe syscall.adjtimex.return = kernel.function("sys_adjtimex").return {
 	name = "adjtimex"
-	retstr = returnstr(1)
+	retstr = _adjtimex_return_str($return)
 }
 # long compat_sys_adjtimex(struct compat_timex __user *utp)
 probe syscall.compat_adjtimex = kernel.function("compat_sys_adjtimex") ? {
