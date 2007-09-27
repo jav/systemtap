@@ -192,6 +192,7 @@ probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") ?,
       	module("sunrpc").function("rpc_shutdown_client") ?
 {
 	servername = kernel_string($clnt->cl_server)
+	progname = kernel_string($clnt->cl_protname)
 	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
 	prot = prot_from_clnt($clnt)
@@ -214,8 +215,8 @@ probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") ?,
 	om_execute = $clnt->cl_metrics->om_execute
 
 	name = "sunrpc.clnt.shutdown_client"
-	argstr = sprintf("%s %s %d %d %d %d %d %d", servername, progname, 
-			vers, prot, port, authflavor, clones, tasks)
+	argstr = sprintf("%s %s %d %d %d %d %d %d %d", servername, progname, 
+			prog, vers, prot, port, authflavor, clones, tasks)
 }
 
 probe sunrpc.clnt.shutdown_client.return = 

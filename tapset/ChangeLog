@@ -1,6 +1,13 @@
 2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp (sunrpc.clnt.shutdown_client): Add argument progname's
+	definition for probe sunrpc.clnt.shutdown_client, because it
+	is in the man page but not defined in tapset.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
 	* rpc.stp (sunrpc.clnt.call_sync, sunrpc.clnt.call_async): Fix
 	the output format of flags in argstr from hex to decimal just
 	to make it same as other probes.
