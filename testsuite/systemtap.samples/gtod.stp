@@ -1,0 +1,8 @@
+global count = 0
+
+probe syscall.setsid {
+	if (pid() == target()) {
+		printf("%014d :%02d kern\n", gettimeofday_us(), count);
+		count ++;
+	}
+}
