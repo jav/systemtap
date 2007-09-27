@@ -1,0 +1,40 @@
+# test for checking monotonic timer (PR3916)
+set test "gtod"
+if {![installtest_p]} { untested $test; continue }
+
+set wd [pwd]
+set filename "$srcdir/$subdir/gtod.c"
+
+target_compile $filename $wd/gtod executable ""
+
+# non interval (check timer drift in short range)
+spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod
+set ok 0
+expect {
+	-timeout 120
+	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+wait
+#10ms interval (check timer drift in middle range)
+spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 10000
+expect {
+	-timeout 120
+	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+wait
+#100ms interval (calm down processors and CPU freq might be changed)
+spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 100000
+expect {
+	-timeout 120
+	-re {^[0-9]+ \:([0-9]+) appl\r\n[0-9]+ \:\1 kern\r\n[0-9]+ \:\1 prog\r\n} { incr ok; exp_continue }
+	timeout { fail "$test (timeout)" }
+	eof { }
+}
+wait
+exec rm -f $wd/gtod
+if {$ok == 300} { pass "$test ($ok)" } { fail "$test ($ok)" }
+
