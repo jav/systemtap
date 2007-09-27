@@ -1,5 +1,12 @@
 2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp (sunrpc.clnt.call_sync, sunrpc.clnt.call_async): Fix
+	the output format of flags in argstr from hex to decimal just
+	to make it same as other probes.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* tcp.stp (sendmsg.return): Fix description of size variable.
 	* tcp.stp (recvmsg.return): Ditto.
 

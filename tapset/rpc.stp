@@ -299,7 +299,7 @@ probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") ?,
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_sync"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s %d", servername, xid, progname, 
 			vers, procname, flags)
 }
 
@@ -345,7 +345,7 @@ probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") ?,
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_async"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s %d", servername, xid, progname, 
 			vers, procname, flags)
 }
 
