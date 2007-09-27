@@ -1,3 +1,17 @@
+2007-09-27  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_stp_lookup_str, _stp_lookup_or_str):
+	New functions to efficiently and safely read arrays of values
+	and return a string.
+	(_signal_name): Reimplement using _stp_lookup_str().
+	(_semctl_cmd): Ditto.
+	(__fork_flags): Ditto.
+	(_mmap_flags): Ditto.
+	(_mprotect_prot_str): Ditto.
+	(_shmat_flags_str): Ditto.
+	(_at_flag_str): Ditto.
+	(get_mmap_args): Complete rewrite for safety and correctness.
+	
 2007-09-27  Wenji Huang  <wenji.huang@oracle.com>
 
         * rpc.stp (clones_from_clnt, tasks_from_clnt): Fix for kernel >= 2.6.22.

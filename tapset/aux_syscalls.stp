@@ -382,103 +382,6 @@ function _struct_sockaddr_u:string(uaddr:long, len:long)
 	}
 %}
 
-function _signal_name:string(sig:long)
-%{ /* pure */
-  	int sig = THIS->sig;
-	char *res = 0;
-
-	switch(sig) {
-	case 0:
-		res = "NO_SIGNAL";
-		break;
-	case SIGHUP:
-		res = "SIGHUP";
-		break;
-	case SIGINT:
-		res = "SIGINT";
-		break;
-	case SIGQUIT:
-		res = "SIGQUIT";
-		break;
-	case SIGILL:
-		res = "SIGILL";
-		break;
-	case SIGTRAP:
-		res = "SIGTRAP";
-		break;
-	case SIGABRT:
-		res = "SIGABRT";
-		break;
-	case SIGBUS:
-		res = "SIGBUS";
-		break;
-	case SIGFPE:
-		res = "SIGFPE";
-		break;
-	case SIGKILL:
-		res = "SIGKILL";
-		break;
-	case SIGUSR1:
-		res = "SIGUSR1";
-		break;
-	case SIGSEGV:
-		res = "SIGSEGV";
-		break;
-	case SIGPIPE:
-		res = "SIGPIPE";
-		break;
-	case SIGUSR2:
-		res = "SIGUSR2";
-		break;
-	case SIGALRM:
-		res = "SIGALRM";
-		break;
-	case SIGTERM:
-		res = "SIGTERM";
-		break;
-	case SIGCHLD:
-		res = "SIGCHLD";
-		break;
-	case SIGCONT:
-		res = "SIGCONT";
-		break;
-	case SIGSTOP:
-		res = "SIGSTOP";
-		break;
-	case SIGTSTP:
-		res = "SIGTSTP";
-		break;
-	case SIGTTIN:
-		res = "SIGTTIN";
-		break;
-	case SIGTTOU:
-		res = "SIGTTOU";
-		break;
-	case SIGURG:
-		res = "SIGURG";
-		break;
-	case SIGPROF:
-		res = "SIGPROF";
-		break;
-	case SIGWINCH:
-		res = "SIGWINCH";
-		break;
-	case SIGVTALRM:
-		res = "SIGVTALRM";
-		break;
-	case SIGIO:
-		res = "SIGIO/SIGPOLL";
-		break;
-	case SIGPWR:
-		res = "SIGPWR";
-		break;
-	}
-	if (res)
-		strlcpy (THIS->__retvalue, res, MAXSTRINGLEN);
-	else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", sig);
-%}
-
 function _struct_rlimit_u:string(uaddr:long)
 %{ /* pure */
 	struct rlimit rl;
@@ -510,57 +413,6 @@ function _fildes_u:string (uaddr:long)
 	}
 %}
 
-function _semctl_cmd:string(cmd:long)
-%{ /* pure */
-	int cmd = THIS->cmd;
-	char *res = 0;
-
-	switch(cmd) {
-		case IPC_INFO:
-			res = "IPC_INFO";
-			break;
-		case SEM_INFO:
-			res = "SEM_INFO";
-			break;
-		case SEM_STAT:
-			res = "SEM_STAT";
-			break;
-		case GETALL:
-			res = "GETALL";
-			break;
-		case GETVAL:
-			res = "GETVAL";
-			break;
-		case GETPID:
-			res = "GETPID";
-			break;
-		case GETNCNT:
-			res = "GETNCNT";
-			break;
-		case GETZCNT:
-			res = "GETZCNT";
-			break;
-		case IPC_STAT:
-			res = "IPC_STAT";
-			break;
-		case SETVAL:
-			res = "SETVAL";
-			break;
-		case SETALL:
-			res = "SETALL";
-			break;
-		case IPC_RMID:
-			res = "IPC_RMID";
-			break;
-		case IPC_SET:
-			res = "IPC_SET";
-			break;
-	}
-	if (res)
-		strlcpy (THIS->__retvalue, res, MAXSTRINGLEN);
-	else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "%d", cmd);	
-%}
 
 function __sem_flags:string(semflg:long)
 %{ /* pure */
@@ -575,49 +427,6 @@ function __sem_flags:string(semflg:long)
 	str[strlen(str)-1] = 0;
 %}
 
-function __fork_flags:string(flags:long)
-%{ /* pure */
-	int len;
-  	long flags = THIS->flags;
-	char *str = THIS->__retvalue;
-	if (flags & CLONE_VM)
-		strlcat(str,"CLONE_VM|", MAXSTRINGLEN);
-	if (flags & CLONE_FS)
-		strlcat(str,"CLONE_FS|", MAXSTRINGLEN);
-	if (flags & CLONE_FILES)
-		strlcat(str, "CLONE_FILES|", MAXSTRINGLEN);
-	if (flags & CLONE_SIGHAND)
-		strlcat(str, "CLONE_SIGHAND|", MAXSTRINGLEN);
-	if (flags & CLONE_PTRACE)
-		strlcat(str, "CLONE_PTRACE|", MAXSTRINGLEN);
-	if (flags & CLONE_VFORK)
-		strlcat(str, "CLONE_VFORK|", MAXSTRINGLEN);
-	if (flags & CLONE_PARENT)
-		strlcat(str, "CLONE_PARENT|", MAXSTRINGLEN);
-	if (flags & CLONE_THREAD)
-		strlcat(str, "CLONE_THREAD|", MAXSTRINGLEN);
-	if (flags & CLONE_NEWNS)
-		strlcat(str,"CLONE_NEWNS|", MAXSTRINGLEN);
-	if (flags & CLONE_SYSVSEM)
-		strlcat(str, "CLONE_SYSVSEM|", MAXSTRINGLEN);
-	if (flags & CLONE_SETTLS)
-		strlcat(str, "CLONE_SETTLS|", MAXSTRINGLEN);
-	if (flags & CLONE_PARENT_SETTID)
-		strlcat(str, "CLONE_PARENT_SETTID|", MAXSTRINGLEN);
-	if (flags & CLONE_CHILD_CLEARTID)
-		strlcat(str, "CLONE_CHILD_CLEARTID|", MAXSTRINGLEN);
-	if (flags & CLONE_DETACHED)
-		strlcat(str, "CLONE_DETACHED|", MAXSTRINGLEN);
-	if (flags & CLONE_UNTRACED)
-		strlcat(str, "CLONE_UNTRACED|", MAXSTRINGLEN);
-	if (flags & CLONE_CHILD_SETTID)
-		strlcat(str, "CLONE_CHILD_SETTID|", MAXSTRINGLEN);
-	if (flags & CLONE_STOPPED)
-		strlcat(str, "CLONE_STOPPED|", MAXSTRINGLEN);
-	len = strlen(str);
-	if (len)
-		str[strlen(str)-1] = 0;
-%}
 
 /* This function copies an argv from userspace. */
 function __get_argv:string(a:long, first:long)
@@ -1360,36 +1169,10 @@ function _statfs_f_type_str(f) {
    return sprintf("UNKNOWN VALUE: %d", f)
 }
 
-function _mmap_flags(flags) {
-	if (flags & 1) msg="MAP_SHARED|"
-	if (flags & 2) msg="MAP_PRIVATE|".msg
-	if (flags & 0x10) msg="MAP_FIXED|".msg
-	if (flags & 0x20) msg="MAP_ANONYMOUS|".msg
-	if (flags & 0x100) msg="MAP_GROWSDOWN|".msg
-	if (flags & 0x800) msg="MAP_DENYWRITE|".msg
-	if (flags & 0x1000) msg="MAP_EXECUTABLE|".msg
-	if (flags & 0x2000) msg="MAP_LOCKED|".msg
-	if (flags & 0x4000) msg="MAP_NORESERVE|".msg
-	if (flags & 0x8000) msg="MAP_POPULATE|".msg
-	if (flags & 0x10000) msg="MAP_NONBLOCK|".msg
-	return substr(msg,0,strlen(msg)-1)
-}
-
 function _mremap_flags(flags) {
 	if (flags & 1) msg="MREMAP_MAYMOVE|"
 	if (flags & 2) msg="MREMAP_FIXED|".msg
 	return substr(msg,0,strlen(msg)-1)
-}
-
-function _mprotect_prot_str(prot) {
-	if (prot) {
-		if(prot & 1) ps="PROT_READ|"
-		if(prot & 2) ps="PROT_WRITE|".ps
-		if(prot & 4) ps="PROT_EXEC|".ps
-		if(prot & 8) ps="PROT_SEM |".ps
-		return substr(ps,0,strlen(ps)-1)	
-	}
-	return "PROT_NONE"
 }
 
 function _madvice_advice_str(behavior) {
@@ -1723,80 +1506,11 @@ function __int32:long(val:long) %{ /* pure */
 	THIS->__retvalue = (int32_t)THIS->val;
 %}
 
-function _shmat_flags_str(f) {
-   if(f & 010000) bs="SHM_RDONLY|".bs
-   if(f & 020000) bs="SHM_RND|".bs
-   if(f & 040000) bs="SHM_REMAP|".bs
-   if(f & 0100000) bs="SHM_EXEC|".bs
-   return substr(bs,0,strlen(bs)-1)
-}
-
-function get_mmap_args:string (args:long)
-%{
-	struct mmap_arg_struct {
-        	unsigned long addr;
-        	unsigned long len;
-        	unsigned long prot;
-        	unsigned long flags;
-        	unsigned long fd;
-        	unsigned long offset;
-	}a;
-
-	char proto[60];
-	char flags[256];
-
-	if(_stp_copy_from_user((char *)&a,
-		 (char *)THIS->args, sizeof(a))== 0){
-
-		/* _mprotect_prot_str */
-		proto[0] = '\0';
-		if(a.prot){ 
-			if(a.prot & 1) strcat (proto, "PROT_READ|");
-			if(a.prot & 2) strcat (proto, "PROT_WRITE|");
-			if(a.prot & 4) strcat (proto, "PROT_EXEC|");
-		} else {
-			strcat (proto, "PROT_NONE");
-		}
-		if (proto[0] != '\0') proto[strlen(proto)-1] = '\0';
-
-		/* _mmap_flags */
-		flags[0]='\0';
-		if (a.flags & 1) strcat (flags, "MAP_SHARED|");
-		if (a.flags & 2) strcat (flags, "MAP_PRIVATE|");
-		if (a.flags & 0x10) strcat (flags, "MAP_FIXED|");
-		if (a.flags & 0x20) strcat (flags, "MAP_ANONYMOUS|");
-		if (a.flags & 0x100) strcat (flags, "MAP_GROWSDOWN|");
-		if (a.flags & 0x800) strcat (flags, "MAP_DENYWRITE|");
-		if (a.flags & 0x1000) strcat (flags, "MAP_EXECUTABLE|");
-		if (a.flags & 0x2000) strcat (flags, "MAP_LOCKED|");
-		if (a.flags & 0x4000) strcat (flags, "MAP_NORESERVE|");
-		if (a.flags & 0x8000) strcat (flags, "MAP_POPULATE|");
-		if (a.flags & 0x10000) strcat (flags, "MAP_NONBLOCK|");
-		if (flags[0] != '\0') flags[strlen(flags)-1] = '\0';
-
-		sprintf(THIS->__retvalue,"0x%lx, %ld, %s, %s, %ld, %ld",
-			a.addr,
-			a.len,
-			proto,
-			flags,
-			a.fd,
-			a.offset);
-	}else{
-		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
-%}
 
 # For utimensat and futimesat, the directory fd can have a special value
 function _dfd_str(d) {
 	if(d == -100) return "AT_FDCWD"
 	return sprint(d)
-}
-
-function _at_flag_str(f) {
-	if (f == 0x100) return "AT_SYMLINK_NOFOLLOW"
-	if (f == 0x200) return "AT_REMOVEDIR"
-	if (f == 0x400) return "AT_SYMLINK_FOLLOW"
-	return sprintf("0x%x", f)
 }
 
 function _adjtimex_return_str(ret) {
@@ -1819,3 +1533,257 @@ function _adjtimex_return_str(ret) {
 		return returnstr(1)
 }
 
+%{
+/*
+* Simple lookup functions for mapping values to names
+* using embedded C. Use these functions to create safe,
+* consistent lookups.
+*/
+
+/* Convenient macro to add defines to an array */
+#define V(a) {a,#a}
+
+typedef struct {
+	long val;
+	char *name;
+} _stp_val_array;
+
+void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, int len)
+{
+	int i = 0;
+	while (array[i].name) {
+		if (array[i].val == val) {
+			strlcat (ptr, array[i].name, len);
+			return;
+		}
+		i++;
+	}
+	snprintf(ptr, len, "%ld", val);
+}
+void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
+{
+	int i = 0, flag = 0;
+	while (array[i].name) {
+		if (array[i].val & val) {
+			if (flag)
+				strlcat(ptr, "|", len);
+			strlcat(ptr, array[i].name, len);
+			flag = 1;
+		}
+		i++;
+	}
+	if (flag == 0) {
+		int slen = strlen(ptr);
+		_stp_snprintf(ptr + slen, len - slen, "0x%lx", val);
+	}
+}
+%}
+
+%{
+const _stp_val_array const _stp_signal_list[] = {
+	{0, "SIG_0"},
+	V(SIGHUP),
+	V(SIGINT),
+	V(SIGQUIT),
+	V(SIGILL),
+	V(SIGTRAP),
+	V(SIGABRT),
+	V(SIGBUS),
+	V(SIGFPE),
+	V(SIGKILL),
+	V(SIGUSR1),
+	V(SIGSEGV),
+	V(SIGPIPE),
+	V(SIGUSR2),
+	V(SIGALRM),
+	V(SIGTERM),
+	V(SIGCHLD),
+	V(SIGCONT),
+	V(SIGSTOP),
+	V(SIGTSTP),
+	V(SIGTTIN),
+	V(SIGTTOU),
+	V(SIGURG),
+	V(SIGPROF),
+	V(SIGWINCH),
+	V(SIGVTALRM),
+	{SIGIO,"SIGIO/SIGPOLL"},
+	V(SIGPWR),
+	{0, NULL}
+};
+%}
+
+function _signal_name:string(sig:long)
+%{ /* pure */
+	_stp_lookup_str(_stp_signal_list, THIS->sig, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+%{
+const _stp_val_array const _stp_semctl_list[] = {
+	V(IPC_INFO),
+	V(SEM_INFO),
+	V(SEM_STAT),
+	V(GETALL),
+	V(GETVAL),
+	V(GETPID),
+	V(GETNCNT),
+	V(GETZCNT),
+	V(IPC_STAT),
+	V(SETVAL),
+	V(SETALL),
+	V(IPC_RMID),
+	V(IPC_SET),
+	{0, NULL}
+};
+%}
+
+function _semctl_cmd:string(cmd:long)
+%{ /* pure */
+	_stp_lookup_str(_stp_semctl_list, THIS->cmd, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+%{
+const _stp_val_array const _stp_fork_list[] = {
+	V(CLONE_VM),
+	V(CLONE_FS),
+	V(CLONE_FILES),
+	V(CLONE_SIGHAND),
+	V(CLONE_PTRACE),
+	V(CLONE_VFORK),
+	V(CLONE_PARENT),
+	V(CLONE_THREAD),
+	V(CLONE_NEWNS),
+	V(CLONE_SYSVSEM),
+	V(CLONE_SETTLS),
+	V(CLONE_PARENT_SETTID),
+	V(CLONE_CHILD_CLEARTID),
+	V(CLONE_DETACHED),
+	V(CLONE_UNTRACED),
+	V(CLONE_CHILD_SETTID),
+	V(CLONE_STOPPED),
+	{0, NULL}
+};
+%}
+
+function __fork_flags:string(flags:long)
+%{ /* pure */
+	_stp_lookup_or_str(_stp_fork_list, THIS->flags, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+%{
+const _stp_val_array const _stp_atflag_list[] = {
+#ifdef AT_SYMLINK_NOFOLLOW
+	V(AT_SYMLINK_NOFOLLOW),
+#endif
+#ifdef AT_REMOVEDIR
+	V(AT_REMOVEDIR),
+#endif
+#ifdef AT_SYMLINK_FOLLOW
+	V(AT_SYMLINK_FOLLOW),
+#endif
+	{0, NULL}
+};
+%}
+
+function _at_flag_str:string(f:long)
+%{ /* pure */
+	_stp_lookup_str(_stp_atflag_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+
+%{
+#include <linux/shm.h>
+const _stp_val_array const _stp_shmat_list[] = {
+	V(SHM_RDONLY),
+	V(SHM_RND),
+	V(SHM_REMAP),
+	V(SHM_EXEC),
+	{0, NULL}
+};
+%}
+
+function _shmat_flags_str:string(f:long)
+%{ /* pure */
+	_stp_lookup_or_str(_stp_shmat_list, THIS->f, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+
+%{
+const _stp_val_array const _stp_mprotect_list[] = {
+	V(PROT_READ),
+	V(PROT_WRITE),
+	V(PROT_EXEC),
+	V(PROT_SEM),
+	{0, NULL}
+};
+%}
+
+function _mprotect_prot_str:string(prot:long) 
+%{ /* pure */
+	if (THIS->prot)
+		_stp_lookup_or_str(_stp_mprotect_list, THIS->prot, THIS->__retvalue, MAXSTRINGLEN);
+	else
+		strlcpy (THIS->__retvalue, "PROT_NONE", MAXSTRINGLEN);
+%}
+
+%{
+const _stp_val_array const _stp_mmap_list[] = {
+	V(MAP_SHARED),
+	V(MAP_PRIVATE),
+	V(MAP_FIXED),
+	V(MAP_ANONYMOUS),
+	V(MAP_GROWSDOWN),
+	V(MAP_DENYWRITE),
+	V(MAP_EXECUTABLE),
+	V(MAP_LOCKED),
+	V(MAP_NORESERVE),
+	V(MAP_POPULATE),
+	V(MAP_NONBLOCK),
+	{0, NULL}
+};
+%}
+
+function _mmap_flags:string(flags:long) 
+%{ /* pure */
+	_stp_lookup_or_str(_stp_mmap_list, THIS->flags, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+# old mmap functions passed in a struct like this.
+#
+function get_mmap_args:string (args:long)
+%{
+#if defined (__x86_64__) || defined (__ia64__)
+	struct mmap_arg_struct {
+		unsigned int addr;
+		unsigned int len;
+		unsigned int prot;
+		unsigned int flags;
+		int fd;
+		unsigned int offset;
+	} a;
+#else
+	struct mmap_arg_struct {
+		unsigned long addr;
+		unsigned long len;
+		unsigned long prot;
+		unsigned long flags;
+		long fd;
+		unsigned long offset;
+	} a;
+#endif
+
+	if(_stp_copy_from_user((char *)&a,(char *)(unsigned long)THIS->args, sizeof(a))== 0) {
+		int len;
+		_stp_snprintf(THIS->__retvalue, MAXSTRINGLEN, "0x%lx, %ld, ", (long)a.addr, (long)a.len);
+		if (a.prot)
+			_stp_lookup_or_str(_stp_mprotect_list, a.prot, THIS->__retvalue, MAXSTRINGLEN);
+		else
+			strlcat (THIS->__retvalue, "PROT_NONE", MAXSTRINGLEN);
+		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
+		_stp_lookup_or_str(_stp_mmap_list, a.flags, THIS->__retvalue, MAXSTRINGLEN);
+		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
+		len = strlen(THIS->__retvalue);
+		_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "%ld, %ld", (long)a.fd, (long)a.offset);
+	} else
+		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+%}
