@@ -1,5 +1,10 @@
 2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* tcp.stp (sendmsg.return): Fix description of size variable.
+	* tcp.stp (recvmsg.return): Ditto.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* socket.stp (aio_read): Fix compile error with kernel version
 	less than 2.6.19.
 	* socket.stp (aio_write): Ditto.

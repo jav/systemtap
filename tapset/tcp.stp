@@ -137,7 +137,8 @@ probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 //  The process which sends a tcp message
 //
 // Arguments:
-//  size         - number of bytes sent 
+//  size         - number of bytes sent or
+//                 error code if an error occurred. 
 //
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
 	size = $return 
@@ -167,7 +168,8 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 //  The process which receives a tcp message
 //
 // Arguments:
-//  size         - number of bytes received
+//  size         - number of bytes received or
+//                 error code if an error occurred.
 //
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 	size = $return
