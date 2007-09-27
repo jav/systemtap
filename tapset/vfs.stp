@@ -31,7 +31,7 @@ function __bdevname:string (bdev:long) %{ /* pure */
 /* XXX: Is this hashing really that helpful?  The call to bdevname()
  * isn't very involved... */
 global __devnames
-function __find_bdevname(dev, bdev)
+function __find_bdevname:string(dev:long, bdev:long)
 {
 #	return ""
 
@@ -86,6 +86,12 @@ function __page_bdev:long (page:long) %{ /* pure */
 		struct super_block *i_sb = kread(&(host->i_sb));
 		THIS->__retvalue = (long)kread(&(i_sb->s_bdev));
 	}
+	CATCH_DEREF_FAULT();
+%}
+
+function __page_index:long (page:long) %{ /* pure */
+	struct page *page = (struct page *)(long)THIS->page;
+	THIS->__retvalue = (long)kread(&(page->index));
 	CATCH_DEREF_FAULT();
 %}
 
@@ -329,6 +335,7 @@ probe generic.fop.open.return = kernel.function ("generic_file_open").return
 	retstr = sprintf("%d", $return)
 }
 
+%( kernel_v < "2.6.23" %?
 probe generic.fop.sendfile = kernel.function ("generic_file_sendfile")
 {
 	dev = __file_dev($in_file)
@@ -354,6 +361,7 @@ probe generic.fop.sendfile.return = kernel.function ("generic_file_sendfile").re
 		units = "bytes"
 	}
 }
+%)
 
 probe generic.fop.splice_read = kernel.function ("generic_file_splice_read") ?
 {
@@ -538,7 +546,7 @@ probe vfs.block_sync_page = kernel.function ("block_sync_page")
 	devname = __find_bdevname(dev, __page_bdev(__page))
 	ino = __page_ino(__page)
 
-	page_index = $page->index
+	page_index = __page_index(__page)
 
 	name = "block_sync_page"
 	argstr = sprintf("%d", page_index)
@@ -554,11 +562,12 @@ probe vfs.block_sync_page.return = kernel.function ("block_sync_page").return
 
 probe vfs.buffer_migrate_page = kernel.function ("buffer_migrate_page")?
 {
-	dev = __page_dev($page)
-        ino = __page_ino($page)
-	devname = __find_bdevname(dev,__page_bdev($page))
+	__page = $page
+	dev = __page_dev(__page)
+        ino = __page_ino(__page)
+	devname = __find_bdevname(dev,__page_bdev(__page))
 
-	page_index = $page->index
+	page_index = __page_index(__page)
 
 	name = "buffer_migrate_page"
 	argstr = sprintf("%d", page_index)
@@ -585,7 +594,7 @@ probe vfs.__set_page_dirty_buffers = kernel.function ("__set_page_dirty_buffers"
 	devname = __find_bdevname(dev, __page_bdev(__page))
 	ino = __page_ino(__page)
 
-	index = $page->index
+	index = __page_index(__page)
 
 	name = "__set_page_dirty_buffers"
 	argstr = sprintf("%d", page_index)
@@ -616,7 +625,7 @@ probe vfs.do_mpage_readpage = kernel.function ("do_mpage_readpage")
 	devname = __find_bdevname(dev, __page_bdev(__page))
 	ino = __page_ino(__page)
 
-	index = $page->index
+	index = __page_index(__page)
 
 	name = "do_mpage_readpage"
 	argstr = sprintf("%d", index)
@@ -658,11 +667,12 @@ probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache").retur
 
 probe vfs.remove_from_page_cache = kernel.function ("__remove_from_page_cache")
 {
-	dev = __page_dev($page)
-	devname = __find_bdevname(dev, __page_bdev($page))
-	ino = __page_ino($page)
+	__page = $page
+	dev = __page_dev(__page)
+	devname = __find_bdevname(dev, __page_bdev(__page))
+	ino = __page_ino(__page)
 
-	index = $page->index
+	index = __page_index(__page)
 
 	name = "vfs.remove_from_page_cache"
 	argstr = sprintf("%d", ino)

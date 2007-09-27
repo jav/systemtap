@@ -60,7 +60,11 @@ function __nfsi_ndirty:long (inode:long) %{ /* pure */
         THIS->__retvalue = -1;
     else {
         struct nfs_inode * nfsi = NFS_I(inode);
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
         THIS->__retvalue = kread(&(nfsi->ndirty));
+#else
+        THIS->__retvalue = -1;
+#endif
     }
     CATCH_DEREF_FAULT();
 %}

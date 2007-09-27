@@ -192,6 +192,7 @@ probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") ?,
       	module("sunrpc").function("rpc_shutdown_client") ?
 {
 	servername = kernel_string($clnt->cl_server)
+	progname = kernel_string($clnt->cl_protname)
 	prog = prog_from_clnt($clnt)
 	vers = vers_from_clnt($clnt)
 	prot = prot_from_clnt($clnt)
@@ -214,8 +215,8 @@ probe sunrpc.clnt.shutdown_client = kernel.function("rpc_shutdown_client") ?,
 	om_execute = $clnt->cl_metrics->om_execute
 
 	name = "sunrpc.clnt.shutdown_client"
-	argstr = sprintf("%s %s %d %d %d %d %d %d", servername, progname, 
-			vers, prot, port, authflavor, clones, tasks)
+	argstr = sprintf("%s %s %d %d %d %d %d %d %d", servername, progname, 
+			prog, vers, prot, port, authflavor, clones, tasks)
 }
 
 probe sunrpc.clnt.shutdown_client.return = 
@@ -299,7 +300,7 @@ probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") ?,
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_sync"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s %d", servername, xid, progname, 
 			vers, procname, flags)
 }
 
@@ -345,7 +346,7 @@ probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") ?,
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_async"
-	argstr = sprintf("%s %d %s %d %s 0x%x", servername, xid, progname, 
+	argstr = sprintf("%s %d %s %d %s %d", servername, xid, progname, 
 			vers, procname, flags)
 }
 
@@ -946,13 +947,21 @@ function port_from_clnt:long(clnt:long)
 function clones_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = atomic_read(&clnt->cl_count); /* FIXME: deref hazard! */
+#else
+        THIS->__retvalue = -1;
+#endif
 %}
 
 function tasks_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = atomic_read(&clnt->cl_users); /* FIXME: deref hazard! */
+#else
+        THIS->__retvalue = -1;
+#endif
 %}
 
 function proc_from_msg:long(msg:long)

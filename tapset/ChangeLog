@@ -1,3 +1,47 @@
+2007-09-27  Wenji Huang  <wenji.huang@oracle.com>
+
+        * rpc.stp (clones_from_clnt, tasks_from_clnt): Fix for kernel >= 2.6.22.
+	* nfs.stp (__nfsi_ndirty) : Ditto.
+	* nfs_proc.stp (__nfsv4_bitmask) : Make bitmask valid according to CONFIG.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp (sunrpc.clnt.shutdown_client): Add argument progname's
+	definition for probe sunrpc.clnt.shutdown_client, because it
+	is in the man page but not defined in tapset.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp (sunrpc.clnt.call_sync, sunrpc.clnt.call_async): Fix
+	the output format of flags in argstr from hex to decimal just
+	to make it same as other probes.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* tcp.stp (sendmsg.return): Fix description of size variable.
+	* tcp.stp (recvmsg.return): Ditto.
+
+2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* socket.stp (aio_read): Fix compile error with kernel version
+	less than 2.6.19.
+	* socket.stp (aio_write): Ditto.
+
+2007-09-26  Mike Mason <mmlnx@us.ibm.com>
+
+	* vfs.stp:
+	Specified explicit types for __find_bdevname() parameters
+	and return value.  The types could not be determined correctly
+	when __find_bdevname() was used in nfs.stp
+
+	Added __page_index() to work around problem dereferencing unions
+	in stap language.
+	
+	Made generic.fop.sendfile conditional on kernel <= 2.6.22.
+	generic_file_sendfile() was removed in 2.6.23.
+
 2007-09-26  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
