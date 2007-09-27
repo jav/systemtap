@@ -124,8 +124,9 @@ function __nfsv4_bitmask :long(dir:long,i:long) %{ /* pure */
 	struct inode * dir = (struct inode *)(long)(THIS->dir);
         struct nfs_server * server = NFS_SERVER(dir); /* FIXME: deref hazard! */
 
+#ifdef CONFIG_NFS_V4
         THIS->__retvalue = kread(&(server->attr_bitmask[i]));
-
+#endif
         CATCH_DEREF_FAULT();
 %}
 

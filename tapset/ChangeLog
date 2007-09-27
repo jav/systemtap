@@ -1,3 +1,9 @@
+2007-09-27  Wenji Huang  <wenji.huang@oracle.com>
+
+        * rpc.stp (clones_from_clnt, tasks_from_clnt): Fix for kernel >= 2.6.22.
+	* nfs.stp (__nfsi_ndirty) : Ditto.
+	* nfs_proc.stp (__nfsv4_bitmask) : Make bitmask valid according to CONFIG.
+
 2007-09-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>

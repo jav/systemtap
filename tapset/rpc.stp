@@ -947,13 +947,21 @@ function port_from_clnt:long(clnt:long)
 function clones_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = atomic_read(&clnt->cl_count); /* FIXME: deref hazard! */
+#else
+        THIS->__retvalue = -1;
+#endif
 %}
 
 function tasks_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = atomic_read(&clnt->cl_users); /* FIXME: deref hazard! */
+#else
+        THIS->__retvalue = -1;
+#endif
 %}
 
 function proc_from_msg:long(msg:long)
