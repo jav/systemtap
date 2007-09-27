@@ -1,12 +1,12 @@
 > cd /root/systemtap
 
-A systemtap script can be as simple as a simgle line. For example,
-thge following script places a probepoint on the kernel sys_read() 
+A systemtap script can be as simple as a single line. For example,
+the following script places a probepoint on the kernel sys_read()
 function and prints all callers with the function's arguments.
 
 >stap -e 'probe syscall.open {printf("%s: %s\n", execname(), argstr)}'
 
-Most script are a bit longer. (show top.stp)
+Most scripts are a bit longer. (show top.stp)
 This script sets a probepoint on all kernel functions beginning with "sys_".
 When the probepoint is hit, it increments an entry in the map 
 (or associative array) "syscalls" with the key "probefunc()" which returns
@@ -25,24 +25,24 @@ while it is loading.)
 The "top" script looked only at the functions called. If we want more 
 detail about the functions, we can use systemtap to examine their local 
 arguments and variables. However that would be difficult because each 
-system call has different parameters. The Sycall Tapset solves 
+system call has different parameters. The Syscall Tapset solves
 this problem. To use it, we set probe points using the syntax "syscall.name"
 instead of kernel.function("sys_name"). The Syscall Tapset provides three
-defined variables we can use, 
+defined variables we can use:
 name - the name of the function
 argstr - on function entry, a formatted string containing the arguments
 retstr - on function exit, the return value and possibly error code
 
 In this example, we filter out programs named "staprun" because this is 
 part of the systemtap infrastructure. (It may be filtered out
-automatically in the future)
+automatically in the future.)
 
-The  next example shows how you can use systemtap to focus on
+The next example shows how you can use systemtap to focus on
 specific programs or pids. (show prof.stp)
 
 Like the "top" example, this script places probes on all kernel
 functions starting with "sys_". Only the probepoint also checks to see
-if the tid/pid matches the one returned by "target()" We'll show how 
+if the tid/pid matches the one returned by "target()". We'll show how
 the target pid is set later.
 
 Unlike the previous examples, this script sets a probe point on all the 
@@ -99,5 +99,4 @@ program name.  The output might be large so we'll redirect it to a file.
 (runs for 10 seconds)
 
 > more out
-
 
