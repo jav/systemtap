@@ -86,5 +86,16 @@ proc no_load {} {
     return 0
 }
 
+proc print_system_info {} {
+	global Host Snapshot Distro
+
+	clone_output "\nHost: $Host"
+	if {[string compare $Snapshot "unknown"]!=0} {
+		clone_output "Snapshot: $Snapshot"
+	}
+	clone_output "Distro: $Distro\n"
+}
+
+print_system_info
 # tests better all be true
 set all_pass_string "(systemtap test success\r\n)+$"

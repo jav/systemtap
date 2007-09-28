@@ -49,9 +49,25 @@ proc setup_systemtap_environment {} {
     }
 }
 
+proc get_system_info {} {
+    global Host Snapshot Distro env
+    
+    set Host [exec /bin/uname -a] 
+    if [file exists $env(SRCDIR)/../SNAPSHOT] {
+	set Snapshot [exec /bin/cat $env(SRCDIR)/../SNAPSHOT]
+    } else {
+	set Snapshot "unknown"
+	}
+    set Distro "Linux"
+    if [file exists /etc/fedora-release] {set Distro [exec /bin/cat /etc/fedora-release]}
+    if [file exists /etc/redhat-release] {set Distro [exec /bin/cat /etc/redhat-release]}
+    if [file exists /etc/suse-release] {set Distro [exec /bin/cat /etc/suse-release]}
+    if [file exists /etc/debian_version] {set Distro [exec /bin/cat /etc/debian_version]}
+}
 
 setup_systemtap_environment
 print_systemtap_version
+get_system_info
 
 proc systemtap_init {args} {}
 proc systemtap_version {} {}

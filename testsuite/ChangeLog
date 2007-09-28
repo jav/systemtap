@@ -1,3 +1,8 @@
+2007-09-28  Wenji Huang <wenji.huang@oracle.com>
+
+        * lib/systemtap.exp: New proc get_system_info.
+	* lib/stap_run.exp: New proc print_system_info.
+
 2007-09-27  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR3916
