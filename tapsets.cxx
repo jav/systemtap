@@ -4025,12 +4025,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
   
-  // Warn of misconfigured kernels
-  s.op->newline() << "#ifndef CONFIG_UPROBES";
-  s.op->newline() << "#error \"Need CONFIG_UPROBES!\"";
-  s.op->newline() << "#endif";
-
+  // If uprobes isn't in the kernel, pull it in from the runtime.
+  // TODO: Consider detecting uprobes installed as a module.
+  s.op->newline() << "#ifdef CONFIG_UPROBES";
   s.op->newline() << "#include <linux/uprobes.h>";
+  s.op->newline() << "#else";
+  s.op->newline() << "#include \"uprobes/uprobes.c\"";
+  s.op->newline() << "#endif";
 
   s.op->newline() << "struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
