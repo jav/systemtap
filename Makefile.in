@@ -61,7 +61,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(top_srcdir)/man/stapprobes.tcp.5.in \
 	$(top_srcdir)/man/stapprobes.udp.5.in AUTHORS COPYING \
 	ChangeLog INSTALL NEWS compile config.guess depcomp install-sh \
-	ltmain.sh missing
+	missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -147,7 +147,7 @@ RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = testsuite
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -196,7 +196,6 @@ LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
-MYSQL_CONFIG = @MYSQL_CONFIG@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -320,7 +319,7 @@ SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
-SUBDIRS = testsuite $(am__append_4)
+SUBDIRS = testsuite
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -1496,6 +1495,8 @@ install-data-local:
 	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
 	(cd $(srcdir)/runtime/transport; for f in *.[ch]; \
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
+	(cd $(srcdir)/runtime/uprobes; for f in *.[ch]; \
+		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
 
