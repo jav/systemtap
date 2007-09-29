@@ -1,3 +1,8 @@
+2007-09-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.in: Regenerated from Jim Keniston's uprobes Makefile.am
+	changes.
+
 2007-09-25  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (translator_output::~translator_output): Fix mismatched
