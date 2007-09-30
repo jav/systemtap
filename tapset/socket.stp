@@ -898,7 +898,7 @@ probe begin(-1001)
 
 function _success_check(ret:long)
 {
-	return (ret > 0 ? 1 : 0)
+	return (ret >= 0 ? 1 : 0)
 }
 
 function _get_sock_addr:long (file:long)
