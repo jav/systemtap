@@ -1,3 +1,8 @@
+2007-10-01  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_str_lookup_str): Print unmatched 
+	values in hex.
+
 2007-10-01  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* socket.stp (_success_check): Fix compare method.

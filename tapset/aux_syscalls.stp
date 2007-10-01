@@ -1558,7 +1558,7 @@ void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, in
 		}
 		i++;
 	}
-	snprintf(ptr, len, "%ld", val);
+	snprintf(ptr, len, "0x%lx", val);
 }
 void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
