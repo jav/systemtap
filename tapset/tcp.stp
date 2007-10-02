@@ -117,10 +117,12 @@ function tcp_sockopt_str:string (optname:long) {
 //  The process which sends a tcp message 
 //
 // Arguments:
+//  name         - name of this probe
 //  sock         - network socket 
 //  size         - number of bytes to send  
 //
 probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
+	name = "tcp.sendmsg"
 %( kernel_v < "2.6.23" %?
 	sock    = $sk
 %:
@@ -137,10 +139,12 @@ probe tcp.sendmsg = kernel.function("tcp_sendmsg") {
 //  The process which sends a tcp message
 //
 // Arguments:
+//  name         - name of this probe
 //  size         - number of bytes sent or
 //                 error code if an error occurred. 
 //
 probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
+	name = "tcp.sendmsg"
 	size = $return 
 }
 
@@ -152,10 +156,12 @@ probe tcp.sendmsg.return = kernel.function("tcp_sendmsg").return {
 //  The process which receives a tcp message
 //
 // Arguments:
+//  name         - name of this probe
 //  sock         - network socket
 //  size         - number of bytes to be received  
 //
 probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
+	name = "tcp.recvmsg"
 	sock    = $sk
 	size    = $len
 }
@@ -168,10 +174,12 @@ probe tcp.recvmsg = kernel.function("tcp_recvmsg") {
 //  The process which receives a tcp message
 //
 // Arguments:
+//  name         - name of this probe
 //  size         - number of bytes received or
 //                 error code if an error occurred.
 //
 probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
+	name = "tcp.recvmsg"
 	size = $return
 }
 
@@ -183,10 +191,12 @@ probe tcp.recvmsg.return = kernel.function("tcp_recvmsg").return {
 //  The process which disconnects tcp 
 //
 // Arguments:
-// sock       - network socket 
-// flags      - TCP flags (e.g. FIN, etc)  
+//  name         - name of this probe
+//  sock         - network socket 
+//  flags        - TCP flags (e.g. FIN, etc)  
 //
 probe tcp.disconnect = kernel.function("tcp_disconnect") {
+	name = "tcp.disconnect"
 	sock  = $sk
 	flags = $flags
 }
@@ -199,9 +209,11 @@ probe tcp.disconnect = kernel.function("tcp_disconnect") {
 //  The process which disconnects tcp
 // 
 // Arguments:
-//  ret         - error code (0: no error) 
+//  name         - name of this probe
+//  ret          - error code (0: no error) 
 //
 probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
+	name = "tcp.disconnect"
 	ret = $return 
 }
 
@@ -213,13 +225,15 @@ probe tcp.disconnect.return = kernel.function("tcp_disconnect").return {
 //  The process which calls setsockopt
 //
 // Arguments:
-// sock	      - network socket
-// level      - the level at which the socket options will be manipulated
-// optname    - TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
-// optstr     - resolves optname to a human-readable format
-// optlen     - used to access values for setsockopt()
+//  name         - name of this probe
+//  sock         - network socket
+//  level        - the level at which the socket options will be manipulated
+//  optname      - TCP socket options (e.g. TCP_NODELAY, TCP_MAXSEG, etc)
+//  optstr       - resolves optname to a human-readable format
+//  optlen       - used to access values for setsockopt()
 //
 probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
+	name = "tcp.setsockopt"
 	sock = $sk
 	level = $level
 	optname = $optname
@@ -227,7 +241,19 @@ probe tcp.setsockopt = kernel.function("tcp_setsockopt") {
 	optlen = $optlen
 }
 
+// probe tcp.setsockopt.return
+//
+//  Fires whenever setsockopt(s, IPPROTO_TCP, TCP_*, ...) is done
+//
+// Context:
+//  The process which calls setsockopt
+//
+// Arguments:
+//  name         - name of this probe
+//  ret          - error code (0: no error)
+//
 probe tcp.setsockopt.return = kernel.function("tcp_setsockopt").return {
+	name = "tcp.setsockopt"
 	ret = $return
 }
 

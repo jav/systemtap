@@ -1,3 +1,8 @@
+2007-10-02  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* tcp.stp: Add name argument for all probes.
+	* tcp.stp (tcp.setsockopt.return): Add comment.
+
 2007-10-01  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_str_lookup_str): Print unmatched 
