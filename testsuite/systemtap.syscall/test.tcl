@@ -30,7 +30,7 @@ proc run_one_test {filename flags} {
     global dir current_dir
 
     set testname [file tail [string range $filename 0 end-2]]
-    set result "UNSUPP $testname"
+    set result "UNSUPP"
 
     if {[catch {exec mktemp -td staptestXXXXX} dir]} {
 	puts stderr "Failed to create temporary directory: $dir"

@@ -5,14 +5,15 @@
 #include <sys/syscall.h>
 
 #ifdef SYS_signal
-
 static void 
 sig_act_handler(int signo)
 {
 }
+#endif
 
 int main()
 {
+#ifdef SYS_signal
   sigset_t mask;
   struct sigaction sa;
   pid_t pid;
@@ -51,8 +52,7 @@ int main()
   syscall(SYS_tgkill,pid,pid,SIGUSR1);
    tgkill (NNNN, NNNN, SIGUSR1) = 0
   */
+#endif
 
   return 0;
 }
-
-#endif

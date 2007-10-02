@@ -1,3 +1,9 @@
+2007-10-02  William Cohen  <wcohen@redhat.com>
+
+	* systemtap.syscall/signal.c:
+	* systemtap.syscall/uid16.c: Compilation regardless of defines.
+	* systemtap.syscall/test.tcl: Handle UNSUPP tests correctly.
+	
 2007-09-28  Wenji Huang <wenji.huang@oracle.com>
 
         * lib/systemtap.exp: New proc get_system_info.
