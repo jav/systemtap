@@ -2,8 +2,6 @@
 /* COVERAGE: getresuid16 setgid16 setresgid16 getresgid16 setreuid16 setregid16 */
 /* COVERAGE: setfsuid16 setfsgid16 */
 
-#ifdef __i386__
-
 /* These are all obsolete 16-bit calls that are still there for compatibility. */
 
 #include <sys/types.h>
@@ -13,6 +11,8 @@
 
 int main ()
 {
+#ifdef __i386__
+
 	uid_t uid, ruid, euid, suid;
 	gid_t gid, rgid, egid, sgid;
 
@@ -66,7 +66,7 @@ int main ()
 	syscall(__NR_setfsgid, 5005);
 	// setfsgid (5005) =
 
+#endif /* __i386__ */
+
 	return 0;
 }	
-
-#endif /* __i386__ */
