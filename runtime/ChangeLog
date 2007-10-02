@@ -1,3 +1,10 @@
+2007-10-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5041
+	From <michael.gruener@linux.vnet.ibm.com>:
+	* loc2c-runtime.h (store_register): Add value as macro parameter where
+	missing.
+
 2007-09-24  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 3916
