@@ -1,5 +1,12 @@
 2007-10-02  Frank Ch. Eigler  <fche@redhat.com>
 
+	PR 3635
+	* translate.cxx (emit_global): Wrap all globals and locks into one
+	top-level struct.  Update references to former "global_VAR" prefix.
+	* translate.h (emit_global_init): New function.
+	
+2007-10-02  Frank Ch. Eigler  <fche@redhat.com>
+
 	PR 5078
 	* tapsets.cxx (be_derived_probe): Rework to add error probe support.
 	Emit probe description array in C for traversal by generated code.

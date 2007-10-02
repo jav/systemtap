@@ -64,9 +64,13 @@ struct unparser
   //   ...
   // } context [MAXCONCURRENCY];
 
+  // struct {
   virtual void emit_global (vardecl* v) = 0;
-  // static TYPE global_NAME;
-  // static rwlock_t global_NAME_lock;
+  // TYPE s_NAME;  // NAME is prefixed with "s_" to avoid kernel id collisions
+  // rwlock_t s_NAME_lock;
+  // } global = {
+  virtual void emit_global_init (vardecl* v) = 0;
+  // };
 
   virtual void emit_global_param (vardecl* v) = 0;
   // module_param_... -- at end of file

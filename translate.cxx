@@ -56,6 +56,7 @@ struct c_unparser: public unparser, public visitor
   void emit_map_type_instantiations ();
   void emit_common_header ();
   void emit_global (vardecl* v);
+  void emit_global_init (vardecl* v);
   void emit_global_param (vardecl* v);
   void emit_functionsig (functiondecl* v);
   void emit_module_init ();
@@ -330,7 +331,7 @@ public:
     if (local)
       return "l->" + name;
     else
-      return "global_" + name;
+      return "global.s_" + name;
   }
 
   virtual string hist() const
@@ -988,13 +989,13 @@ c_unparser::emit_global_param (vardecl *v)
   if (v->arity == 0 && v->type == pe_long)
     {
       o->newline() << "module_param_named (" << vn << ", "
-                   << "global_" << vn << ", int64_t, 0);";
+                   << "global.s_" << vn << ", int64_t, 0);";
     }
   else if (v->arity == 0 && v->type == pe_string)
     {
       // NB: no special copying is needed.
       o->newline() << "module_param_string (" << vn << ", "
-                   << "global_" << vn
+                   << "global.s_" << vn
                    << ", MAXSTRINGLEN, 0);";
     }
 }
@@ -1006,30 +1007,31 @@ c_unparser::emit_global (vardecl *v)
   string vn = c_varname (v->name);
 
   if (v->arity == 0)
+    o->newline() << c_typename (v->type) << " s_" << vn << ";";
+  else if (v->type == pe_stats)
+    o->newline() << "PMAP s_" << vn << ";";
+  else
+    o->newline() << "MAP s_" << vn << ";";
+  o->newline() << "rwlock_t s_" << vn << "_lock;";
+}
+
+
+void
+c_unparser::emit_global_init (vardecl *v)
+{
+  string vn = c_varname (v->name);
+
+  if (v->arity == 0) // can only statically initialize some scalars
     {
-      o->newline() << "static __cacheline_aligned "
-		   << c_typename (v->type)
-		   << " " << "global_" << vn;
       if (v->init)
 	{
-	  o->line() << " = ";
+	  o->line() << ".s_" << vn << " = ";
 	  v->init->visit(this);
+          o->line() << ",";
 	}
-      o->line() << ";";
     }
-  else if (v->type == pe_stats)
-    {
-      o->newline() << "static __cacheline_aligned PMAP global_" 
-		   << vn << ";";
-    }
-  else
-    {
-      o->newline() << "static __cacheline_aligned MAP global_" 
-		   << vn << ";";
-    }
-  o->newline() << "static __cacheline_aligned rwlock_t "
-               << "global_" << vn << "_lock;";
 }
+
 
 
 void
@@ -1125,7 +1127,7 @@ c_unparser::emit_module_init ()
       o->newline() << "goto out;";
       o->newline(-1) << "}";
 
-      o->newline() << "rwlock_init (& global_" << c_varname (v->name) << "_lock);";
+      o->newline() << "rwlock_init (& global.s_" << c_varname (v->name) << "_lock);";
     }
 
   // initialize each Stat used for timing information 
@@ -1495,8 +1497,11 @@ c_unparser::emit_probe (derived_probe* v)
 
       o->newline(-1) << "out:";
       // NB: no need to uninitialize locals, except if arrays can
-      // somedays be local XXX: do this flush only if the body
-      // included a print/printf/etc. routine!
+      // somedays be local 
+
+
+      // XXX: do this flush only if the body included a
+      // print/printf/etc. routine!
       o->newline(1) << "_stp_print_flush();";
 
       if (v->needs_global_locks ())
@@ -1551,7 +1556,7 @@ c_unparser::emit_locks(const varuse_collecting_visitor& vut)
 
       string lockcall = 
         string (write_p ? "write" : "read") +
-        "_trylock (& global_" + v->name + "_lock)";
+        "_trylock (& global.s_" + v->name + "_lock)";
 
       o->newline() << "while (! " << lockcall
                    << "&& (++numtrylock < MAXTRYLOCK))";
@@ -1612,9 +1617,9 @@ c_unparser::emit_unlocks(const varuse_collecting_visitor& vut)
              << (write_p ? "w" : "")  << "] ";
 
       if (write_p) // emit write lock
-        o->newline() << "write_unlock (& global_" << v->name << "_lock);";
+        o->newline() << "write_unlock (& global.s_" << v->name << "_lock);";
       else // (read_p && !write_p) : emit read lock
-        o->newline() << "read_unlock (& global_" << v->name << "_lock);";
+        o->newline() << "read_unlock (& global.s_" << v->name << "_lock);";
 
       // fall through to next variable; thus the reverse ordering
     }
@@ -4411,11 +4416,19 @@ translate_pass (systemtap_session& s)
           s.op->newline() << s.embeds[i]->code << "\n";
         }
 
+      s.op->newline() << "static struct {";
+      s.op->indent(1);
       for (unsigned i=0; i<s.globals.size(); i++)
         {
-          s.op->newline();
           s.up->emit_global (s.globals[i]);
         }
+      s.op->newline(-1) << "} global = {";
+      s.op->newline(1);
+      for (unsigned i=0; i<s.globals.size(); i++)
+        {
+          s.up->emit_global_init (s.globals[i]);
+        }
+      s.op->newline(-1) << "};";
 
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
