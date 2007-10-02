@@ -1,3 +1,17 @@
+2007-10-02  Frank Ch. Eigler  <fche@redhat.com>
+
+	PR 5078
+	* tapsets.cxx (be_derived_probe): Rework to add error probe support.
+	Emit probe description array in C for traversal by generated code.
+	* register_standard_tapsets: Add error probes.
+	* stapprobes.5.in: Document.
+	* translate.cxx (emit_module_init): Handle errors that may occur
+	during begin probes.
+	(emit_module_exit): Use schedule() rather than cpu_relax() during
+	shutdown synchronization wait loop.
+	* staptree.cxx (probe::printsig): Put multiple probe points on same
+	line.
+
 2007-09-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.in: Regenerated from Jim Keniston's uprobes Makefile.am

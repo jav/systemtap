@@ -1144,23 +1144,6 @@ c_unparser::emit_module_init ()
     }
   o->newline() << "#endif";
 
-  for (unsigned i=0; i<g.size(); i++)
-    {
-      g[i]->emit_module_init (*session);
-      // NB: this gives O(N**2) amount of code, but luckily there
-      // are only seven or eight derived_probe_groups, so it's ok.
-      o->newline() << "if (rc) {";
-      o->newline(1) << "_stp_error (\"probe %s registration error (rc %d)\", probe_point, rc);";
-      // NB: we need to be in the error state so timers can shutdown cleanly,
-      // and so end probes don't run.
-      o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
-      if (i>0)
-        for (int j=i-1; j>=0; j--)
-          g[j]->emit_module_exit (*session);
-      o->newline() << "goto out;";
-      o->newline(-1) << "}";
-    }
-
   // Print a message to the kernel log about this module.  This is
   // intended to help debug problems with systemtap modules.
   o->newline() << "printk (KERN_DEBUG \"%s: "
@@ -1179,9 +1162,30 @@ c_unparser::emit_module_init ()
 	       << ", (unsigned long) _stp_allocated_memory"
                << ");";
 
+  // Run all probe registrations.  This actually runs begin probes.
+
+  for (unsigned i=0; i<g.size(); i++)
+    {
+      g[i]->emit_module_init (*session);
+      // NB: this gives O(N**2) amount of code, but luckily there
+      // are only seven or eight derived_probe_groups, so it's ok.
+      o->newline() << "if (rc) {";
+      o->newline(1) << "_stp_error (\"probe %s registration error (rc %d)\", probe_point, rc);";
+      // NB: we need to be in the error state so timers can shutdown cleanly,
+      // and so end probes don't run.  OTOH, error probes can run.
+      o->newline() << "atomic_set (&session_state, STAP_SESSION_ERROR);";
+      if (i>0)
+        for (int j=i-1; j>=0; j--)
+          g[j]->emit_module_exit (*session);
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
+    }
+
   // All registrations were successful.  Consider the system started.
-  o->newline() << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
-  o->newline() << "return 0;";
+  o->newline() << "if (atomic_read (&session_state) == STAP_SESSION_STARTING)";
+  // NB: only other valid state value is ERROR, in which case we don't 
+  o->newline(1) << "atomic_set (&session_state, STAP_SESSION_RUNNING);";
+  o->newline(-1) << "return 0;";
 
   // Error handling path; by now all partially registered probe groups
   // have been unregistered.
@@ -1237,8 +1241,7 @@ c_unparser::emit_module_exit ()
   o->newline(1) << "if (cpu_possible (i) && " 
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
-  o->newline () << "cpu_relax ();";
-  // o->newline(-1) << "if (holdon) msleep (5);";
+  o->newline () << "schedule ();";
   o->newline(-1) << "} while (holdon);";
   o->newline(-1);
   // XXX: might like to have an escape hatch, in case some probe is

@@ -1,0 +1,5 @@
+probe begin { println ("ok ".pp()) println (1/0) println ("ko ".pp()) } # handler should unwind before seemenot message
+probe begin(10) { println ("ko ".pp()) } # this late begin probe shouldn't run, ERROR
+probe end, end(10) { println ("ko ".pp()) } # end probes won't be run due to ERROR state
+probe error, error(10) { println ("ok ".pp()) } # these handlers should be run
+probe error(20),error(30) { println (1/0) println ("ko ".pp()) } # likewise

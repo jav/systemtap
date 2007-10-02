@@ -69,24 +69,31 @@ public:
 
 
 // ------------------------------------------------------------------------
-// begin/end probes are run right during registration / deregistration
+// begin/end/error probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
+
+enum be_t { BEGIN, END, ERROR };
 
 struct be_derived_probe: public derived_probe
 {
-  bool begin;
+  be_t type;
   int64_t priority;
 
-  be_derived_probe (probe* p, bool b, int64_t pr):
-    derived_probe (p), begin (b), priority (pr) {}
-  be_derived_probe (probe* p, probe_point* l, bool b, int64_t pr):
-    derived_probe (p, l), begin (b), priority (pr) {}
+  be_derived_probe (probe* p, be_t t, int64_t pr):
+    derived_probe (p), type (t), priority (pr) {}
+  be_derived_probe (probe* p, probe_point* l, be_t t, int64_t pr):
+    derived_probe (p, l), type (t), priority (pr) {}
 
   void join_group (systemtap_session& s);
 
   static inline bool comp(be_derived_probe const *a,
 			  be_derived_probe const *b)
-  { return a->priority < b->priority; }
+  {
+    // This allows the BEGIN/END/ERROR probes to intermingle.
+    // But that's OK - they're always treversed with a nested
+    // "if (type==FOO)" conditional.
+    return a->priority < b->priority; 
+  }
 
   bool needs_global_locks () { return false; }
   // begin/end probes don't need locks around global variables, since
@@ -105,8 +112,10 @@ public:
 
 struct be_builder: public derived_probe_builder
 {
-  bool begin;
-  be_builder(bool b) : begin(b) {}
+  be_t type;
+
+  be_builder(be_t t) : type(t) {}
+
   virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
@@ -114,11 +123,12 @@ struct be_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results)
   {
     int64_t priority;
-    if ((begin && !get_param(parameters, "begin", priority))
-	|| (!begin && !get_param(parameters, "end", priority)))
+    if ((type == BEGIN && !get_param(parameters, "begin", priority)) ||
+        (type == END && !get_param(parameters, "end", priority)) ||
+        (type == ERROR && !get_param(parameters, "error", priority)))
       priority = 0;
     finished_results.push_back(
-	new be_derived_probe(base, location, begin, priority));
+	new be_derived_probe(base, location, type, priority));
   }
 };
 
@@ -293,20 +303,52 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
 
   s.op->newline() << "/* ---- begin/end probes ---- */";
-  s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*)) {";
+  s.op->newline() << "void enter_begin_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_STARTING", false, true);
-  s.op->newline() << "c->probe_point = \"begin\";";
+  s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
-  s.op->newline() << "void enter_end_probe (void (*fn)(struct context*)) {";
+
+  s.op->newline() << "void enter_end_probe (void (*fn)(struct context*), const char* pp) {";
   s.op->indent(1);
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_STOPPING", false, true);
-  s.op->newline() << "c->probe_point = \"end\";";
+  s.op->newline() << "c->probe_point = pp;";
   s.op->newline() << "(*fn) (c);";
   common_probe_entryfn_epilogue (s.op, false, true);
   s.op->newline(-1) << "}";
+
+  s.op->newline() << "void enter_error_probe (void (*fn)(struct context*), const char* pp) {";
+  s.op->indent(1);
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_ERROR", false, true);
+  s.op->newline() << "c->probe_point = pp;";
+  s.op->newline() << "(*fn) (c);";
+  common_probe_entryfn_epilogue (s.op, false, true);
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "struct stap_be_probe {";
+  s.op->newline(1) << "void (*ph)(struct context*);";
+  s.op->newline() << "const char* pp;";
+  s.op->newline() << "int type;";
+  s.op->newline(-1) << "} stap_be_probes[] = {";
+  s.op->indent(1);
+
+  // NB: We emit the table in sorted order here, so we don't have to
+  // store the priority numbers as integers and sort at run time.
+
+  sort(probes.begin(), probes.end(), be_derived_probe::comp);
+
+  for (unsigned i=0; i < probes.size(); i++)
+    {
+      s.op->newline () << "{"; 
+      s.op->line() << " .pp=" 
+                   << lex_cast_qstring (*probes[i]->sole_location()) << ",";
+      s.op->line() << " .ph=&" << probes[i]->name << ",";
+      s.op->line() << " .type=" << probes[i]->type;
+      s.op->line() << " },";
+    }
+  s.op->newline(-1) << "};";
 }
 
 void
@@ -314,19 +356,17 @@ be_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  bool have_begin_probes = false;
-  sort(probes.begin(), probes.end(), be_derived_probe::comp);
-  for (unsigned i=0; i < probes.size (); i++)
-    if (probes[i]->begin)
-      {
-	have_begin_probes = true;
-	s.op->newline() << "enter_begin_probe (& " << probes[i]->name << ");";
-      }
-
-  // If any of the begin probes signaled an error, indicate
-  // failure to the rest of systemtap_module_init.
-  if (have_begin_probes)
-    s.op->newline() << "rc = (atomic_read (&session_state) == STAP_SESSION_ERROR);";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
+  s.op->newline() << "if (stp->type != " << BEGIN << ") continue;";
+  s.op->newline() << "enter_begin_probe (stp->ph, stp->pp);";
+  s.op->newline() << "/* rc = 0; */";
+  // NB: begin probes that cause errors do not constitute registration
+  // failures.  An error message will probably get printed and if
+  // MAXERRORS was left at 1, we'll get an stp_exit.  The
+  // error-handling probes will be run during the ordinary
+  // unregistration phase.
+  s.op->newline(-1) << "}";
 }
 
 void
@@ -334,10 +374,17 @@ be_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   if (probes.empty()) return;
 
-  sort(probes.begin(), probes.end(), be_derived_probe::comp);
-  for (unsigned i=0; i < probes.size (); i++)
-    if (! probes[i]->begin) // note polarity
-      s.op->newline() << "enter_end_probe (& " << probes[i]->name << ");";
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
+  s.op->newline() << "if (stp->type != " << END << ") continue;";
+  s.op->newline() << "enter_end_probe (stp->ph, stp->pp);";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_be_probe* stp = & stap_be_probes [i];";
+  s.op->newline() << "if (stp->type != " << ERROR << ") continue;";
+  s.op->newline() << "enter_error_probe (stp->ph, stp->pp);";
+  s.op->newline(-1) << "}";
 }
 
 
@@ -6246,10 +6293,12 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
 void
 register_standard_tapsets(systemtap_session & s)
 {
-  s.pattern_root->bind("begin")->bind(new be_builder(true));
-  s.pattern_root->bind_num("begin")->bind(new be_builder(true));
-  s.pattern_root->bind("end")->bind(new be_builder(false));
-  s.pattern_root->bind_num("end")->bind(new be_builder(false));
+  s.pattern_root->bind("begin")->bind(new be_builder(BEGIN));
+  s.pattern_root->bind_num("begin")->bind(new be_builder(BEGIN));
+  s.pattern_root->bind("end")->bind(new be_builder(END));
+  s.pattern_root->bind_num("end")->bind(new be_builder(END));
+  s.pattern_root->bind("error")->bind(new be_builder(ERROR));
+  s.pattern_root->bind_num("error")->bind(new be_builder(ERROR));
 
   s.pattern_root->bind("never")->bind(new never_builder());
 
