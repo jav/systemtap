@@ -100,7 +100,7 @@
 #undef store_register
 
 #define fetch_register(regno)		ia64_fetch_register(regno, c->regs)
-#define store_register(regno, value)	ia64_store_register(regno, c->regs, value)
+#define store_register(regno,value)	ia64_store_register(regno, c->regs, value)
 
 #elif defined __x86_64__
 
@@ -126,20 +126,20 @@
 #undef fetch_register
 #undef store_register
 #define fetch_register(regno) ((intptr_t) c->regs->gpr[regno])
-#define store_register(regno) (c->regs->gpr[regno] = (value))
+#define store_register(regno,value) (c->regs->gpr[regno] = (value))
 
 #elif defined (__arm__)
 
 #undef fetch_register
 #undef store_register
 #define fetch_register(regno) ((long) c->regs->uregs[regno])
-#define store_register(regno) (c->regs->uregs[regno] = (value))
+#define store_register(regno,value) (c->regs->uregs[regno] = (value))
 
 #elif defined (__s390__) || defined (__s390x__)
 #undef fetch_register
 #undef store_register
 #define fetch_register(regno) ((intptr_t) c->regs->gprs[regno])
-#define store_register(regno) (c->regs->gprs[regno] = (value))
+#define store_register(regno,value) (c->regs->gprs[regno] = (value))
 
 #endif
 
