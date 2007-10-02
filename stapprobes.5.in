@@ -53,7 +53,7 @@ wildcards or aliases), and all them are then probed.  A probe
 declaration may also contain several comma-separated specifications,
 all of which are probed.
 
-.SS BEGIN/END
+.SS BEGIN/END/ERROR
 
 The probe points
 .IR begin " and " end
@@ -79,6 +79,16 @@ The number N may be positive or negative.  The probe handlers are run in
 increasing order, and the order between handlers with the same sequence
 number is unspecified.  When "begin" or "end" are given without a
 sequence, they are effectively sequence zero.
+
+The
+.IR error
+probe point is similar to the 
+.IR end
+probe, except that each such probe handler run when the session and
+after errors having occurred.  In such cases, "end" probes are
+skipped, but each "error" prober is still attempted.  This kind of
+probe can be used to clean up or emit a final gasp message.  It may
+also be numerically parametrized to set a sequence.
 
 .SS NEVER
 The probe point

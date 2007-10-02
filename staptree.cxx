@@ -879,7 +879,7 @@ void probe::printsig (ostream& o) const
 {
   for (unsigned i=0; i<locations.size(); i++)
     {
-      if (i > 0) o << "," << endl;
+      if (i > 0) o << ",";
       locations[i]->print (o);
     }
 }

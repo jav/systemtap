@@ -1,0 +1,4 @@
+#! stap -p2
+
+probe begin,begin(10),end,end(10),error,error(10) 
+{ println (pp()) }
