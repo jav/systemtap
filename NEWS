@@ -1,4 +1,11 @@
-* What's new since version 0.5.15?
+* What's new in version 0.6 / since version 0.5.15?
+
+- You can add error-handling probes to a script, which are run if a
+  script was stopped due to errors.  In such a case, "end" probes are
+  not run, but "error" ones are.
+
+    probe error { println ("oops, errors encountered; here's a report anyway")
+                  foreach (coin in mint) { println (coin) } }
 
 - New security model.  To install a systemtap kernel module, a user
   must be one of the following: the root user; a member of the
