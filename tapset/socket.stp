@@ -692,7 +692,7 @@ function msg_flags_num2str:string (flags:long)
 # INTERNAL MAPPING ARRAYS #
 ###########################
 
-global _prot_num2str[134], _prot_str2num[134]
+global _prot_num2str[138], _prot_str2num[138]
 global _fam_num2str[32],   _fam_str2num[32]
 global _state_num2str[5],  _state_str2num[5]
 global _type_num2str[11],  _type_str2num[11]
@@ -832,6 +832,10 @@ probe begin(-1001)
 	_prot_num2str[131] = "PIPE"
 	_prot_num2str[132] = "SCTP"
 	_prot_num2str[133] = "FC"
+        _prot_num2str[134] = "RSVP-E2E-IGNORE"
+        _prot_num2str[135] = "Mobility-Header"
+        _prot_num2str[136] = "UDPLite"
+        _prot_num2str[137] = "MPLS-IN-IP"
 
 	foreach (num in _prot_num2str)
 		_prot_str2num[_prot_num2str[num]] = num 

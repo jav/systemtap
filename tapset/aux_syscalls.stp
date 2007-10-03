@@ -1398,6 +1398,10 @@ function _sockopt_level_str(l) {
    if(l==131) return "PIPE"
    if(l==132) return "SCTP"
    if(l==133) return "FC"
+   if(l==134) return "RSVP-E2E-IGNORE"
+   if(l==135) return "Mobility-Header"
+   if(l==136) return "UDPLite"
+   if(l==137) return "MPLS-IN-IP"
    return sprintf("UNKNOWN VALUE: %d", l)
 }
 
