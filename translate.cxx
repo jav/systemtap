@@ -1333,12 +1333,20 @@ c_unparser::emit_function (functiondecl* v)
     << "struct function_" << c_varname (v->name) << "_locals * "
     << " __restrict__ l =";
   o->newline(1)
-    << "& c->locals[c->nesting].function_" << c_varname (v->name)
+    << "& c->locals[c->nesting+1].function_" << c_varname (v->name) // NB: nesting+1
     << ";";
   o->newline(-1) << "(void) l;"; // make sure "l" is marked used
   o->newline() << "#define CONTEXT c";
   o->newline() << "#define THIS l";
   o->newline() << "if (0) goto out;"; // make sure out: is marked used
+
+  // check/increment nesting level
+  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
+  o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
+  o->newline() << "return;";
+  o->newline(-1) << "} else {";
+  o->newline(1) << "c->nesting ++;";
+  o->newline(-1) << "}";
 
   // initialize locals
   // XXX: optimization: use memset instead
@@ -1358,12 +1366,22 @@ c_unparser::emit_function (functiondecl* v)
       o->newline() << retvalue.init();
     }
 
+  o->newline() << "#define return goto out"; // redirect embedded-C return
   v->body->visit (this);
+  o->newline() << "#undef return";
 
   this->current_function = 0;
 
   o->newline(-1) << "out:";
   o->newline(1) << ";";
+
+  // Function prologue: this is why we redirect the "return" above.
+  // Decrement nesting level.
+  o->newline() << "c->nesting --;";
+  // Reset last_error to NULL if it was set to "" by script-level return()
+  o->newline() << "if (c->last_error && ! c->last_error[0])";
+  o->newline(1) << "c->last_error = 0;";
+  o->indent(-1);
 
   o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
@@ -3878,13 +3896,6 @@ c_unparser::visit_functioncall (functioncall* e)
       tmp.push_back(t);
     }
 
-  o->newline();
-  o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
-  o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
-  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
-  o->newline(-1) << "} else if (likely (! c->last_error)) {";
-  o->indent(1);
-
   // copy in actual arguments
   for (unsigned i=0; i<e->args.size(); i++)
     {
@@ -3902,19 +3913,9 @@ c_unparser::visit_functioncall (functioncall* e)
     }
 
   // call function
-  o->newline() << "c->nesting ++;";
   o->newline() << "function_" << c_varname (r->name) << " (c);";
-  o->newline() << "c->nesting --;";
-
-  // reset last_error to NULL if it was set to "" by return()
-  o->newline() << "if (c->last_error && ! c->last_error[0])";
-  o->newline(1) << "c->last_error = 0;";
-  o->indent(-1);
-
-  o->newline(-1) << "}";
 
   // return result from retvalue slot
-  
   if (r->type == pe_unknown)
     // If we passed typechecking, then nothing will use this return value
     o->newline() << "(void) 0;";
