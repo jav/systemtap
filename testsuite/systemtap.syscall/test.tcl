@@ -85,7 +85,7 @@ proc run_one_test {filename flags} {
     }
     if {$i >= $ind} {
 	set result "PASS"
-	puts "PASS $testname"
+	# puts "PASS $testname"
     } else {
 	set result "FAIL $testname"
 	send_log "$testname FAILED. output of \"$cmd\" was:"
