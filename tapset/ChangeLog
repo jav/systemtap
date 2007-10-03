@@ -1,3 +1,9 @@
+2007-10-03  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* aux_syscalls.stp(_sockopt_level_str): Add support for protocol
+	number 134~137.
+	* socket.stp (global define,begin): Ditto.
+
 2007-10-02  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* tcp.stp: Add name argument for all probes.
