@@ -1,3 +1,8 @@
+2007-10-04  David Smith  <dsmith@redhat.com>
+
+	* buildrun.cxx (compile_pass): Tweaked build system for the
+	2.6.23-rc8-mm2 kernel.
+
 2007-10-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5102
