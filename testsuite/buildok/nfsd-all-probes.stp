@@ -1,0 +1,5 @@
+#! stap -p4
+
+// Tests if all probes in nfsd.stp are resolvable.
+
+probe nfsd.*, nfsd.*.*, nfsd.*.*.* {}

@@ -1,3 +1,19 @@
+2007-10-04  Mike Mason <mmlnx@us.ibm.com>
+
+	* buildok/memory-all-probes.stp: New test that uses wildcarding to
+	  determine if all probes are resolvable. 
+	* buildok/nfs-all-probes.stp: Ditto
+	* buildok/nfsd-all-probes.stp: Ditto
+	* buildok/process-all-probes.stp: Ditto
+	* buildok/rpc-all-probes.stp: Ditto
+	* buildok/scheduler-all-probes.stp: Ditto
+	* buildok/scsi-all-probes.stp: Ditto
+	* buildok/signal-all-probes.stp: Ditto
+	* buildok/socket-all-probes.stp: Ditto
+	* buildok/tcp-all-probes.stp: Ditto
+	* buildok/udp-all-probes.stp: Ditto
+	* buildok/vfs-all-probes.stp: Ditto
+
 2007-10-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.syscall/test.tcl: Don't list PASS on stdout.
