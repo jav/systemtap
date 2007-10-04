@@ -109,7 +109,7 @@ struct c_unparser: public unparser, public visitor
   void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< pair<vector<exp_type>, exp_type> > & types);
 
-  void visit_statement (statement* s, unsigned actions);
+  void visit_statement (statement* s, unsigned actions, bool stmtize);
 
   void visit_block (block* s);
   void visit_embeddedcode (embeddedcode* s);
@@ -2165,7 +2165,7 @@ c_unparser::getiter(symbol *s)
 // An artificial common "header" for each statement.  This is where
 // activity counts limits and error state early exits are enforced.
 void
-c_unparser::visit_statement (statement *s, unsigned actions)
+c_unparser::visit_statement (statement *s, unsigned actions, bool stmtize)
 {
   // For some constructs, it is important to avoid an error branch
   // right to the bottom of the probe/function.  The foreach()
@@ -2182,7 +2182,8 @@ c_unparser::visit_statement (statement *s, unsigned actions)
     {
       o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
       assert (s->tok);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
+      if (stmtize)
+        o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
     }
 
   if (actions > 0)
@@ -2203,7 +2204,7 @@ c_unparser::visit_block (block *s)
   o->newline() << "{";
   o->indent (1);
 
-  // visit_statement (s, 0);
+  // visit_statement (s, 0, false);
   //
   // NB: this is not necessary, since the last_error can be handled
   // just as easily by the first real body statement, and the
@@ -2229,7 +2230,7 @@ c_unparser::visit_block (block *s)
 void
 c_unparser::visit_embeddedcode (embeddedcode *s)
 {
-  // visit_statement (s, 1); 
+  // visit_statement (s, 1, true); 
   //
   // NB: this is not necessary, since this can occur only at the top
   // level of a function (so no errors can be pending), and the
@@ -2244,7 +2245,7 @@ c_unparser::visit_embeddedcode (embeddedcode *s)
 void
 c_unparser::visit_null_statement (null_statement *)
 {
-  // visit_statement (s, 0);
+  // visit_statement (s, 0, false);
   //
   // NB: this is not necessary, since the last_error can be handled just as
   // easily by the next statement, and the last_stmt won't be used since this
@@ -2257,7 +2258,7 @@ c_unparser::visit_null_statement (null_statement *)
 void
 c_unparser::visit_expr_statement (expr_statement *s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
   o->newline() << "(void) ";
   s->value->visit (this);
   o->line() << ";";
@@ -2267,7 +2268,7 @@ c_unparser::visit_expr_statement (expr_statement *s)
 void
 c_unparser::visit_if_statement (if_statement *s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
   o->newline() << "if (";
   o->indent (1);
   s->condition->visit (this);
@@ -2330,7 +2331,7 @@ c_tmpcounter::visit_for_loop (for_loop *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
 
   string ctr = stringify (label_counter++);
   string toplabel = "top_" + ctr;
@@ -2347,7 +2348,7 @@ c_unparser::visit_for_loop (for_loop *s)
   // Equivalently, it can stand for the evaluation of the condition
   // expression.
   o->indent(1);
-  visit_statement (0, 1);
+  visit_statement (0, 1, false);
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -2479,7 +2480,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
   if (array)
     {
-      visit_statement (s, 1);
+      visit_statement (s, 1, false);
       
       mapvar mv = getmap (array->referent, s->tok);
       itervar iv = getiter (array);
@@ -2581,7 +2582,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // Equivalently, it can stand for the evaluation of the
       // condition expression.
       o->indent(1);
-      visit_statement (0, 1);
+      visit_statement (0, 1, false);
 
       o->newline() << "if (! (" << iv << ")) goto " << breaklabel << ";";
       
@@ -2678,7 +2679,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_return_statement (return_statement* s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
 
   if (current_function == 0)
     throw semantic_error ("cannot 'return' from probe", s->tok);
@@ -2697,7 +2698,7 @@ c_unparser::visit_return_statement (return_statement* s)
 void
 c_unparser::visit_next_statement (next_statement* s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
 
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
@@ -2829,7 +2830,7 @@ c_tmpcounter::visit_delete_statement (delete_statement* s)
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
   delete_statement_operand_visitor dv (this);
   s->value->visit (&dv);
 }
@@ -2838,7 +2839,7 @@ c_unparser::visit_delete_statement (delete_statement* s)
 void
 c_unparser::visit_break_statement (break_statement* s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
   if (loop_break_labels.size() == 0)
     throw semantic_error ("cannot 'break' outside loop", s->tok);
 
@@ -2850,7 +2851,7 @@ c_unparser::visit_break_statement (break_statement* s)
 void
 c_unparser::visit_continue_statement (continue_statement* s)
 {
-  visit_statement (s, 1);
+  visit_statement (s, 1, false);
   if (loop_continue_labels.size() == 0)
     throw semantic_error ("cannot 'continue' outside loop", s->tok);
 
@@ -2950,7 +2951,9 @@ c_unparser::visit_binary_expression (binary_expression* e)
       tmpvar right = gensym (pe_long);
 
       o->line() << "({";
-      o->newline(1) << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      o->indent(1);
+      // NB: Need last_stmt set here because of possible last_error generation
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
       if (e->left->tok->type == tok_number)
 	left.override(c_expression(e->left));
@@ -3091,7 +3094,7 @@ c_unparser::visit_array_in (array_in* e)
       
       vector<tmpvar> idx;
       load_map_indices (e->operand, idx);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       
       tmpvar res = gensym (pe_long);
       mapvar mvar = getmap (array->referent, e->tok);
@@ -3175,7 +3178,7 @@ c_unparser::visit_concatenation (concatenation* e)
   
   o->line() << "({ ";
   o->indent(1);
-  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
   c_assign (t.value(), e->left, "assignment");
   c_strcat (t.value(), e->right);
   o->newline() << t << ";";
@@ -3397,7 +3400,7 @@ c_unparser_assignment::visit_symbol (symbol *e)
   if (e->referent->index_types.size() != 0)
     throw semantic_error ("unexpected reference to array", e->tok);
 
-  parent->o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+  // parent->o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
   exp_type ty = rvalue ? rvalue->type : e->type;
   tmpvar rval = parent->gensym (ty);
   tmpvar res = parent->gensym (ty);
@@ -3481,8 +3484,8 @@ c_unparser::load_map_indices(arrayindex *e,
 	    ix.override(c_expression(e->indexes[i]));
 	  else
 	    {
-	      o->newline() << "c->last_stmt = "
-			   << lex_cast_qstring(*e->indexes[i]->tok) << ";";
+	      // o->newline() << "c->last_stmt = "
+              // << lex_cast_qstring(*e->indexes[i]->tok) << ";";
 	      c_assign (ix.value(), e->indexes[i], "array index copy");
 	    }
 	  idx.push_back (ix);
@@ -3493,8 +3496,8 @@ c_unparser::load_map_indices(arrayindex *e,
       assert (e->indexes.size() == 1);
       assert (e->indexes[0]->type == pe_long);
       tmpvar ix = gensym (pe_long);
-      o->newline() << "c->last_stmt = "
-		   << lex_cast_qstring(*e->indexes[0]->tok) << ";";
+      // o->newline() << "c->last_stmt = "
+      //	   << lex_cast_qstring(*e->indexes[0]->tok) << ";";
       c_assign (ix.value(), e->indexes[0], "array index copy");
       idx.push_back(ix);
     }  
@@ -3513,7 +3516,7 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
 
   if (sym->referent->arity == 0)
     {
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+      // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
       o->newline() << agg << " = _stp_stat_get (" << v << ", 0);";	  
     }
   else
@@ -3525,7 +3528,7 @@ c_unparser::load_aggregate (expression *e, aggvar & agg, bool pre_agg)
       vector<tmpvar> idx;
       load_map_indices (arr, idx);
       mapvar mvar = getmap (sym->referent, sym->tok);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
+      // o->newline() << "c->last_stmt = " << lex_cast_qstring(*sym->tok) << ";";
       o->newline() << agg << " = " << mvar.get(idx, pre_agg) << ";";
     }
 }
@@ -3643,20 +3646,8 @@ c_unparser::visit_arrayindex (arrayindex* e)
       load_map_indices (e, idx);
       tmpvar res = gensym (e->type);
   
-      // NB: because these expressions are nestable, emit this construct
-      // thusly:
-      // ({ tmp0=(idx0); ... tmpN=(idxN);
-      //    lock (array);
-      //    res = fetch (array, idx0...N);
-      //    unlock (array);
-      //    res; })
-      //
-      // we store all indices in temporary variables to avoid nasty
-      // reentrancy issues that pop up with nested expressions:
-      // e.g. a[a[c]=5] could deadlock
-  
       mapvar mvar = getmap (array->referent, e->tok);
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
       c_assign (res, mvar.get(idx), e->tok);
 
       o->newline() << res << ";";
@@ -3814,7 +3805,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
 	  assert (rvalue->type == pe_long);
 
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  o->newline() << mvar.add (idx, rvar) << ";";
           res = rvar;
 	  // no need for these dummy assignments
@@ -3824,7 +3815,7 @@ c_unparser_assignment::visit_arrayindex (arrayindex *e)
       else
 	{
 	  mapvar mvar = parent->getmap (array->referent, e->tok);
-	  o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	  // o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 	  if (op != "=") // don't bother fetch slot if we will just overwrite it
 	    parent->c_assign (lvar, mvar.get(idx), e->tok);
 	  c_assignop (res, lvar, rvar, e->tok); 
@@ -3888,8 +3879,8 @@ c_unparser::visit_functioncall (functioncall* e)
 	t.override(c_expression(e->args[i]));
       else
         {
-	  o->newline() << "c->last_stmt = "
-		       << lex_cast_qstring(*e->args[i]->tok) << ";";
+	  // o->newline() << "c->last_stmt = "
+          // << lex_cast_qstring(*e->args[i]->tok) << ";";
 	  c_assign (t.value(), e->args[i],
 		    "function actual argument evaluation");
 	}
@@ -4004,13 +3995,13 @@ c_unparser::visit_print_format (print_format* e)
 	  load_aggregate(e->hist->stat, agg, true);
 	else 
           load_aggregate(e->hist->stat, agg, false);
-	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
         // PR 2142+2610: empty aggregates
         o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
-                     << " || " <<  agg.value() << "->count == 0)";
+                     << " || " <<  agg.value() << "->count == 0) {";
         o->newline(1) << "c->last_error = \"empty aggregate\";";
-        o->newline(-1) << "else";
+	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+        o->newline(-1) << "} else";
 	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.value() << ");";
         o->indent(-1);
       }
@@ -4029,8 +4020,8 @@ c_unparser::visit_print_format (print_format* e)
 	  tmpvar t = gensym(e->args[i]->type);
 	  tmp.push_back(t);
 
-	  o->newline() << "c->last_stmt = "
-		       << lex_cast_qstring(*e->args[i]->tok) << ";";
+	  // o->newline() << "c->last_stmt = "
+          //	       << lex_cast_qstring(*e->args[i]->tok) << ";";
 
 	  // If we've got a numeric or string constant, instead of
 	  // assigning the numeric or string constant to a temporary,
