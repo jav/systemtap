@@ -1,5 +1,14 @@
 2007-10-03  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 5102
+	* translate.cxx (visit_statement): Add new parameter regarding whether
+	c->last_stmt needs to be updated.  Update callers, mostly passing
+	"false".
+	(visit_EXPRESSIONTYPE): Generally omit setting c->last_stmt, unless
+	the construct can set c->last_error.
+
+2007-10-03  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5096
 	* translate.cxx (emit_function): Put nesting limit/control logic into
 	function body ...

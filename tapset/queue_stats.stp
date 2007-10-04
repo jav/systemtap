@@ -106,10 +106,11 @@ function qsq_throughput (qname, scale) {
 # ------------------------------------------------------------------------
 
 function qsq_print (qname) {
+  qt = qsq_throughput (qname, 1000000000) # 1000 * (number of requests served per second)
   qwl = qsq_wait_queue_length (qname, 1000)
-  printf("%s: %d ops/s, %d.%03d qlen, %d await, %d svctm, %d%% wait, %d%% util\n", 
+  printf("%s: %d.%03d ops/s, %d.%03d qlen, %d await, %d svctm, %d%% wait, %d%% util\n",
     qname,
-    qsq_throughput (qname, 1000000), # number of qs_time() units per second
+    qt/1000, qt%1000,
     qwl/1000, qwl%1000,
     qsq_wait_time (qname, 1),
     qsq_service_time (qname, 1),

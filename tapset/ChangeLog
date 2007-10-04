@@ -1,3 +1,7 @@
+2007-10-04  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* queue_stats.stp (qsq_print): Make value of ops/s output as float
+
 2007-10-03  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* aux_syscalls.stp(_sockopt_level_str): Add support for protocol
