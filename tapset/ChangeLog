@@ -1,5 +1,8 @@
 2007-10-05  Martin Hunt  <hunt@redhat.com>
 
+	* aux_syscalls.stp: Put #ifdef CONFIG_COMPAT
+	around compat code.
+
 	* syscalls2.stp (rt_sigaction, sigaction): Call
 	_struct_sigaction_u().
 	
