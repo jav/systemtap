@@ -1,0 +1,6 @@
+#! stap -p4
+#
+probe begin {
+	print (ntohll(0xfedcba9876543210) + ntohl(0xdeadbeef) + ntohs(0xd00d) +
+	       htonll(0x0123456789abcdef) + htonl(0xff0000ff) + htons(0xabcd))
+}

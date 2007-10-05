@@ -352,6 +352,29 @@ Returns the string representation of the given socket flags value.
 msg_flags_num2str:string (flags:long)
 Returns the string representation of the given message flags bit map.
 
+.SS INET
+These functions convert between network (big-endian) and host byte order, like their
+namesake C functions.
+.TP
+ntohll:long (x:long)
+Convert from network to host byte order, 64-bit.
+.TP
+ntohl:long (x:long)
+Convert from network to host byte order, 32-bit.
+.TP
+ntohs:long (x:long)
+Convert from network to host byte order, 16-bit.
+.TP
+htonll:long (x:long)
+Convert from host to network byte order, 64-bit.
+.TP
+htonl:long (x:long)
+Convert from host to network byte order, 32-bit.
+.TP
+htons:long (x:long)
+Convert from host to network byte order, 16-bit.
+
+
 .SH FILES
 .nh
 .IR @prefix@/share/systemtap/tapset
