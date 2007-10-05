@@ -888,29 +888,16 @@ probe syscall.rmdir.return = kernel.function("sys_rmdir").return {
 #			struct sigaction __user *oact,
 #			size_t sigsetsize)
 #
-# compat_sys_rt_sigaction(int sig,
-#                       const struct sigaction __user *act,
-#                       struct sigaction __user *oact,
-#                       size_t sigsetsize)
-#
-probe syscall.rt_sigaction = 
-		kernel.function("sys_rt_sigaction") ?,
-		kernel.function("compat_sys_rt_sigaction") ?
-{
+probe syscall.rt_sigaction = kernel.function("sys_rt_sigaction") ? {
 	name = "rt_sigaction"
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
-
-	//FIXME - decode $act
-	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig),
-			$act, $oact, $sigsetsize)
+	argstr = sprintf("%s, {%s}, %p, %d", _signal_name($sig),
+			_struct_sigaction_u($act), $oact, $sigsetsize)
 }
-probe syscall.rt_sigaction.return = 
-		kernel.function("sys_rt_sigaction").return ?,
-		kernel.function("compat_sys_rt_sigaction").return ?
-{
+probe syscall.rt_sigaction.return = kernel.function("sys_rt_sigaction").return ? {
 	name = "rt_sigaction"
 	retstr = returnstr(1)
 }
@@ -920,18 +907,25 @@ probe syscall.rt_sigaction.return =
 #		struct sigaction32 __user *act,
 #		struct sigaction32 __user *oact,  
 #		unsigned int sigsetsize)
-probe syscall.rt_sigaction32 = kernel.function("sys32_rt_sigaction") ? {
+# ppc only
+# compat_sys_rt_sigaction(int sig, 
+#			const struct sigaction32 __user *act,
+#			struct sigaction32 __user *oact, 
+#			size_t sigsetsize)
+
+probe syscall.rt_sigaction32 = kernel.function("sys32_rt_sigaction") ?,
+		kernel.function("compat_sys_rt_sigaction") ?
+{
 	name = "rt_sigaction"
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
 	sigsetsize = $sigsetsize
-
-	//FIXME - decode $act
-	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig),
-			$act, $oact, $sigsetsize)
+	argstr = sprintf("%s, %p, %p, %d", _signal_name($sig), $act, $oact, $sigsetsize)
 }
-probe syscall.rt_sigaction32.return = kernel.function("sys32_rt_sigaction").return ? {
+probe syscall.rt_sigaction32.return = kernel.function("sys32_rt_sigaction").return ?,
+		kernel.function("compat_sys_rt_sigaction").return ?
+{
 	name = "rt_sigaction"
 	retstr = returnstr(1)
 }
@@ -966,7 +960,7 @@ probe syscall.rt_sigprocmask =
 	how_str = _sigprocmask_how_str($how)
 	set_uaddr    = $set
 	oldset_uaddr = $oset
-	argstr = sprintf("%s, %p, %p, %d", how_str, $set,
+	argstr = sprintf("%s, [%s], %p, %d", how_str, _stp_sigset_u($set),
 				$oset, $sigsetsize)
 }
 probe syscall.rt_sigprocmask.return = 
@@ -2098,21 +2092,25 @@ probe syscall.shutdown.return = kernel.function("sys_shutdown").return ? {
 # sys_sigaction(int sig, const struct old_sigaction __user *act, struct old_sigaction __user *oact)
 # sys32_sigaction(int sig, struct old_sigaction32 __user *act, struct old_sigaction32 __user *oact)
 #
-probe syscall.sigaction = 
-		kernel.function("sys_sigaction") ?,
-		kernel.function("sys32_sigaction") ?
-{
+probe syscall.sigaction = kernel.function("sys_sigaction") ? {
 	name = "sigaction"
 	sig = $sig
 	act_uaddr = $act
 	oact_uaddr = $oact
-	# FIXME - decode $act
+	argstr = sprintf("%s, {%s}, %p", _signal_name($sig), _struct_sigaction_u($act), $oact)
+}
+probe syscall.sigaction.return = kernel.function("sys_sigaction").return ? {
+	name = "sigaction"
+	retstr = returnstr(1)
+}
+probe syscall.sigaction32 = kernel.function("sys32_sigaction") ? {
+	name = "sigaction"
+	sig = $sig
+	act_uaddr = $act
+	oact_uaddr = $oact
 	argstr = sprintf("%s, %p, %p", _signal_name($sig), $act, $oact)
 }
-probe syscall.sigaction.return = 
-		kernel.function("sys_sigaction").return ?,
-		kernel.function("sys32_sigaction").return ?
-{
+probe syscall.sigaction32.return = kernel.function("sys32_sigaction").return ? {
 	name = "sigaction"
 	retstr = returnstr(1)
 }
