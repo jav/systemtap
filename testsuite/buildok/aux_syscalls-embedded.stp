@@ -3,7 +3,47 @@
 probe begin {
 	print (_struct_timeval_u(0,0))
 	print (_struct_compat_timeval_u(0,0))
-	print (_struct_timeval (0))
 	print (_struct_timezone_u (0))
+	print (_struct_utimbuf_u(0))
+	print (_struct_compat_utimbuf_u(0))
+	print (_struct_timespec_u(0,0))
+	print (_struct_compat_timespec_u(0,0))
+	print (_struct_itimerspec_u(0))
+	print (_struct_itimerval_u(0))
+	print (_struct_compat_itimerval_u(0))
+	print (_struct_sockaddr_u(0,0))
+	print (_struct_rlimit_u(0))
+	print (_fildes_u(0))
+
+	print (__sem_flags(0))
+	print (__get_argv(0,0))
+	print (__get_compat_argv(0,0))
+
+#	print (__uget_tz_m(0,0))
+#	print (__uget_timex_m(0,0))
+#	print (__uget_tms_m(0,0))
+#	print (__uget_ts_m(0,0))
+
+	print (_sigprocmask_how_str(0))
+	print (_sys_open_flag_str(0))
+	print (_mlockall_flags_str(0))
+	print (_module_flags_str(0))
+	print (_reboot_magic_str(0))
+	print (_mountflags_str(0))
+	print (_umountflags_str(0))
+
+	print (__short(0))
+	print (__int32(0))
+
+	print (_signal_name(0))
+	print (_semctl_cmd(0))
+	print (_stp_sigset_u(0))
+	print (__fork_flags(0))
+	print (_at_flag_str(0))
+	print (_shmat_flags_str(0))
+	print (_mprotect_prot_str(0))
+	print (_mmap_flags(0))
+	print (get_mmap_args(0))
+	print (_struct_sigaction_u(0))
 }
 
