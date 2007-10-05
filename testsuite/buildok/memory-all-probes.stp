@@ -1,0 +1,6 @@
+#! stap -p4
+
+// Tests if all probes in memory.stp are resolvable.
+
+probe vm.*,
+      vm.*.* {}

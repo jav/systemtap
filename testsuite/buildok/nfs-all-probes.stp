@@ -1,0 +1,5 @@
+#! stap -p4
+
+// Tests if all probes in nfs.stp and nfs_proc.stp are resolvable.
+
+probe nfs.*.*, nfs.*.*.* {}

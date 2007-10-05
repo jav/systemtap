@@ -42,7 +42,7 @@ compile_pass (systemtap_session& s)
 
   // Clever hacks copied from vmware modules
   o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " << "set -x; " << " if $(CC) $(CPPFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << "set -x; " << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
@@ -59,10 +59,10 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-ktime-get-real.c, -DSTAPCONF_KTIME_GET_REAL,)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
-    o << "CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
+    o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
 
   if (s.verbose > 2)
-    o << "CFLAGS += -ftime-report -Q" << endl;
+    o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
 
   // XXX: unfortunately, -save-temps can't work since linux kbuild cwd
   // is not writeable.
@@ -70,13 +70,13 @@ compile_pass (systemtap_session& s)
   // if (s.keep_tmpdir)
   // o << "CFLAGS += -fverbose-asm -save-temps" << endl;
 
-  o << "CFLAGS += -freorder-blocks" << endl; // improve on -Os
+  o << "EXTRA_CFLAGS += -freorder-blocks" << endl; // improve on -Os
 
   // o << "CFLAGS += -fno-unit-at-a-time" << endl;
     
   // Assumes linux 2.6 kbuild
-  o << "CFLAGS += -Wno-unused -Werror" << endl;
-  o << "CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
+  o << "EXTRA_CFLAGS += -Wno-unused -Werror" << endl;
+  o << "EXTRA_CFLAGS += -I\"" << s.runtime_path << "\"" << endl;
   // XXX: this may help ppc toc overflow
   // o << "CFLAGS := $(subst -Os,-O2,$(CFLAGS)) -fminimal-toc" << endl;
   o << "obj-m := " << s.module_name << ".o" << endl;

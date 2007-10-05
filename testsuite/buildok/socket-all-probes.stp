@@ -1,0 +1,6 @@
+#! stap -p4
+
+// Tests if all probes in the socket tapset are resolvable.
+
+probe socket.*, 
+      socket.*.* {}
