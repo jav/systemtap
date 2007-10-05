@@ -91,6 +91,7 @@ $(STAPLOG): staplog.c
 	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 all-local: $(STAPLOG)
 install-exec-local: $(STAPLOG)
+	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 else
 endif
@@ -171,3 +172,6 @@ check:
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+rpm:	systemtap.spec dist
+	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec

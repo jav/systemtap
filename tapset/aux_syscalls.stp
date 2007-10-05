@@ -44,19 +44,6 @@ function _struct_compat_timeval_u:string(uaddr:long, n:long)
 #endif
 %}
 
-
-function _struct_timeval:string(addr:long)
-%{ /* pure */
-	struct timeval *tv = (struct timeval *)(unsigned long)THIS->addr;
-
-	if (tv == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%06ld]",
-				kread(&(tv->tv_sec)), kread(&(tv->tv_usec)));
-        CATCH_DEREF_FAULT();
-%}
-
 function _struct_timezone_u:string(uaddr:long)
 %{ /* pure */
 	struct timezone tz;
@@ -70,7 +57,6 @@ function _struct_timezone_u:string(uaddr:long)
 		else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
-        CATCH_DEREF_FAULT();
 %} 
 
 %{
@@ -212,19 +198,6 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 	}
 %}
 
-function _struct_timespec:string(addr:long)
-%{ /* pure */
-	struct timespec *ts = (struct timespec *)(unsigned long)THIS->addr;
-
-	if (ts == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%ld.%09ld]", 
-			(unsigned long)kread(&(ts->tv_sec)),
-			(unsigned long)kread(&(ts->tv_nsec)));
-	}
-        CATCH_DEREF_FAULT();
-%}
 
 function _struct_itimerspec_u:string(uaddr:long)
 %{ /* pure */
@@ -277,21 +250,6 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 	}
 %}
 
-function _struct_itimerval:string(addr:long)
-%{ /* pure */
-	struct itimerval *itv = (char *)(unsigned long)THIS->addr;
-
-	if (itv == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%d.%06d,%d.%06d]", 
-			(int)kread(&(itv->it_interval.tv_sec)),
-			(int)kread(&(itv->it_interval.tv_usec)),
-			(int)kread(&(itv->it_value.tv_sec)),
-			(int)kread(&(itv->it_value.tv_usec)));
-	}
-        CATCH_DEREF_FAULT();
-%}
 
 %{
 #include <linux/version.h>
@@ -1615,6 +1573,23 @@ const _stp_val_array const _stp_signal_list[] = {
 	V(SIGPWR),
 	{0, NULL}
 };
+
+void _stp_sigset_str(sigset_t *mask, char *ptr, int len)
+{
+	const _stp_val_array * const array = _stp_signal_list;
+	int i = 0, flag = 0;
+	while (array[i].name) {
+		if (sigismember(mask, array[i].val)) {
+			if (flag)
+				strlcat(ptr, "|", len);
+			strlcat(ptr, array[i].name, len);
+			flag = 1;
+		}
+		i++;
+	}
+	if (flag == 0)
+		strlcat(ptr, "EMPTY", len);
+}
 %}
 
 function _signal_name:string(sig:long)
@@ -1644,6 +1619,21 @@ const _stp_val_array const _stp_semctl_list[] = {
 function _semctl_cmd:string(cmd:long)
 %{ /* pure */
 	_stp_lookup_str(_stp_semctl_list, THIS->cmd, THIS->__retvalue, MAXSTRINGLEN);
+%}
+
+function _stp_sigset_u:string(setptr:long)
+%{ /* pure */
+	char *ptr = (char *)(unsigned long)THIS->setptr;
+	sigset_t set;
+
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&set,ptr,sizeof(sigset_t)) == 0)
+			_stp_sigset_str(&set, THIS->__retvalue, MAXSTRINGLEN);			
+		else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
 %}
 
 %{
@@ -1714,6 +1704,7 @@ function _shmat_flags_str:string(f:long)
 
 %{
 const _stp_val_array const _stp_mprotect_list[] = {
+	{0, "PROT_NONE"},
 	V(PROT_READ),
 	V(PROT_WRITE),
 	V(PROT_EXEC),
@@ -1724,10 +1715,7 @@ const _stp_val_array const _stp_mprotect_list[] = {
 
 function _mprotect_prot_str:string(prot:long) 
 %{ /* pure */
-	if (THIS->prot)
-		_stp_lookup_or_str(_stp_mprotect_list, THIS->prot, THIS->__retvalue, MAXSTRINGLEN);
-	else
-		strlcpy (THIS->__retvalue, "PROT_NONE", MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_mprotect_list, THIS->prot, THIS->__retvalue, MAXSTRINGLEN);
 %}
 
 %{
@@ -1779,10 +1767,7 @@ function get_mmap_args:string (args:long)
 	if(_stp_copy_from_user((char *)&a,(char *)(unsigned long)THIS->args, sizeof(a))== 0) {
 		int len;
 		_stp_snprintf(THIS->__retvalue, MAXSTRINGLEN, "0x%lx, %ld, ", (long)a.addr, (long)a.len);
-		if (a.prot)
-			_stp_lookup_or_str(_stp_mprotect_list, a.prot, THIS->__retvalue, MAXSTRINGLEN);
-		else
-			strlcat (THIS->__retvalue, "PROT_NONE", MAXSTRINGLEN);
+		_stp_lookup_or_str(_stp_mprotect_list, a.prot, THIS->__retvalue, MAXSTRINGLEN);
 		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
 		_stp_lookup_or_str(_stp_mmap_list, a.flags, THIS->__retvalue, MAXSTRINGLEN);
 		strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
@@ -1790,4 +1775,47 @@ function get_mmap_args:string (args:long)
 		_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "%ld, %ld", (long)a.fd, (long)a.offset);
 	} else
 		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+%}
+
+function _struct_sigaction_u:string(uaddr:long)
+%{ /* pure */
+	static const _stp_val_array const _stp_sa_handler_list[] = {
+		{0, "SIG_DFL"},
+		{1, "SIG_IGN"},
+		{0, NULL}
+	};
+	static const _stp_val_array const _stp_sa_flags_list[] = {
+		V(SA_NOCLDSTOP),
+		V(SA_NOCLDWAIT),
+		V(SA_RESETHAND),
+		V(SA_ONSTACK),
+		V(SA_RESTART),
+		V(SA_NODEFER),
+		V(SA_SIGINFO),
+		V(SA_SIGINFO),
+		V(SA_RESTORER),
+		{0, NULL}
+	};
+
+	struct sigaction act;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else {
+		if(_stp_copy_from_user((char*)&act,ptr,sizeof(struct sigaction)) == 0) {
+			int len;
+			_stp_lookup_str(_stp_sa_handler_list, (long)act.sa_handler, THIS->__retvalue, MAXSTRINGLEN);
+			if (act.sa_handler != SIG_IGN && act.sa_handler != SIG_DFL) {
+				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
+				_stp_lookup_or_str(_stp_sa_flags_list, act.sa_flags, THIS->__retvalue, MAXSTRINGLEN);
+				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
+				len = strlen(THIS->__retvalue);
+				_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "0x%lx, [", (long)act.sa_restorer);
+				_stp_sigset_str(&act.sa_mask, THIS->__retvalue, MAXSTRINGLEN);
+				strlcat (THIS->__retvalue, "]", MAXSTRINGLEN);
+			}
+		} else
+			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+	}
 %}

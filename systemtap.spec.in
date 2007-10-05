@@ -85,6 +85,17 @@ SystemTap runtime is the runtime component of an instrumentation
 system for systems running Linux 2.6.  Developers can write
 instrumentation to collect data on the operation of the system.
 
+%package testsuite
+Summary: Instrumentation System Testsuite
+Group: Development/System
+License: GPLv2+
+URL: http://sourceware.org/systemtap/
+Requires: systemtap
+
+%description testsuite
+The testsuite allows testing of the entire SystemTap toolchain
+without having to rebuild from sources.
+
 %prep
 %setup -q %{?setup_elfutils}
 
@@ -133,11 +144,21 @@ chmod -x examples/samples/kmalloc-top
 rm -rf ${RPM_BUILD_ROOT}
 make DESTDIR=$RPM_BUILD_ROOT install
 
-# Because "make install" installs staprun with mode 04111, the
+# Because "make install" may install staprun with mode 04111, the
 # post-processing programs rpmbuild runs won't be able to read it.
 # So, we change permissions so that they can read it.  We'll set the
 # permissions back to 04111 in the %files section below.
 chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
+
+# Copy over the testsuite
+cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
+
+if [ -f $RPM_BUILD_ROOT%{_libdir}/%{name}/staplog.so ]; then
+	echo %{_libdir}/%{name}/staplog.so > runtime-addl-files.txt
+else
+	touch runtime-addl-files.txt
+fi
+
 
 %check
 make check %{?elfutils_mflags} || :
@@ -165,16 +186,21 @@ exit 0
 
 %if %{bundled_elfutils}
 %dir %{_libdir}/%{name}
-%{_libdir}/%{name}/*.so*
+%{_libdir}/%{name}/lib*.so*
 %endif
 
-%files runtime
+%files runtime -f runtime-addl-files.txt
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/systemtap
 %{_mandir}/man8/*
 
 %doc README AUTHORS NEWS COPYING
+
+%files testsuite
+%defattr(-,root,root)
+%{_datadir}/systemtap/testsuite
+
 
 %changelog
 * Thu Aug  9 2007 David Smith <dsmith@redhat.com> - 0.6-1

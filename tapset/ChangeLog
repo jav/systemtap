@@ -1,3 +1,17 @@
+2007-10-05  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp (rt_sigaction, sigaction): Call
+	_struct_sigaction_u().
+	
+	* aux_syscalls.stp (_struct_timeval): Removed. No longer 
+	necessary now that we have structure access in scripts. 
+	(_struct_timespec): Ditto.
+	(_struct_itimerval): Ditto.
+	(_struct_timezone_u): Remove random CATCH_DEREF_FAULT()
+	line.
+	(_stp_sigset_str): New.
+	(_struct_sigaction_u): New.
+	
 2007-10-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* inet.stp: New tapset for htonl and friends.

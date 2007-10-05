@@ -1476,6 +1476,7 @@ install-exec-hook:
 @BUILD_CRASHMOD_TRUE@	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 @BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
+@BUILD_CRASHMOD_TRUE@	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 @BUILD_CRASHMOD_TRUE@	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 
 # Copy some of the testsuite sample scripts to the distdir
@@ -1531,6 +1532,9 @@ check:
 
 installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
+
+rpm:	systemtap.spec dist
+	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
