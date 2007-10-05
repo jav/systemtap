@@ -115,6 +115,7 @@ function _struct_utimbuf_u:string(uaddr:long)
 
 function _struct_compat_utimbuf_u:string(uaddr:long)
 %{ /* pure */
+#ifdef CONFIG_COMPAT
 	#include <linux/utime.h>
 	struct compat_utimbuf ubuf;
 	static char abuf[24], mbuf[24];
@@ -130,6 +131,7 @@ function _struct_compat_utimbuf_u:string(uaddr:long)
 		} else
 			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
 	}
+#endif
 %} 
 
 %{
@@ -169,6 +171,7 @@ function _struct_timespec_u:string(uaddr:long, n:long)
 %}
 function _struct_compat_timespec_u:string(uaddr:long, n:long)
 %{ /* pure */
+#ifdef CONFIG_COMPAT
 	int n = (int)THIS->n;
 	struct compat_timespec ts[n];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
@@ -196,6 +199,7 @@ function _struct_compat_timespec_u:string(uaddr:long, n:long)
 			}
 		}
 	}
+#endif
 %}
 
 
@@ -235,6 +239,7 @@ function _struct_itimerval_u:string(uaddr:long)
 
 function _struct_compat_itimerval_u:string(uaddr:long)
 %{ /* pure */
+#ifdef CONFIG_COMPAT
 	struct compat_itimerval itv;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 
@@ -248,6 +253,7 @@ function _struct_compat_itimerval_u:string(uaddr:long)
 				(int)itv.it_interval.tv_sec, (int)itv.it_interval.tv_usec,
 				(int)itv.it_value.tv_sec, (int)itv.it_value.tv_usec);
 	}
+#endif
 %}
 
 
@@ -448,6 +454,7 @@ function __get_argv:string(a:long, first:long)
 /* This function copies an argv from userspace. */
 function __get_compat_argv:string(a:long, first:long)
 %{ /* pure */
+#ifdef CONFIG_COMPAT
   	compat_uptr_t __user *__user *argv = (compat_uptr_t __user *__user *)(long)THIS->a;
 	compat_uptr_t __user *vstr;
 	int space, rc, len = MAXSTRINGLEN;
@@ -502,6 +509,7 @@ function __get_compat_argv:string(a:long, first:long)
 		argv++;
 	}
 	*str = 0;
+#endif
 %}
 
 /*
