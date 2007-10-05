@@ -1,3 +1,11 @@
+2007-10-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5036
+	* systemtap.spec.in: Create new systemtap-testsuite sub-rpm.
+	Install crash(8)'s staplog.so into -runtime sub-rpm if built.
+	* Makefile.am (rpm): New target.
+	* Makefile.in: Regenerated.
+
 2007-10-04  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stapfuncs.5.in: Document inet.stp tapset functions.
