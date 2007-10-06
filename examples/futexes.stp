@@ -5,7 +5,7 @@
 
 global thread_thislock # short
 global thread_blocktime # 
-global FUTEX_WAIT = 0, FUTEX_WAKE = 1
+global FUTEX_WAIT = 0 /*, FUTEX_WAKE = 1 */
 
 global lock_waits # long-lived stats on (tid,lock) blockage elapsed time
 global process_names # long-lived pid-to-execname mapping

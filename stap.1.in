@@ -104,6 +104,9 @@ debbugging information for $target variables.
 .B \-u
 Unoptimized mode.  Disable unused code elision during elaboration.
 .TP
+.B \-w
+Suppressed warnings mode.  Disable warning messages for elided code in user script.
+.TP
 .BI \-b
 Use bulk mode (percpu files) for kernel-to-user data transfer.
 .TP

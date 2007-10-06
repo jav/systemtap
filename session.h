@@ -85,12 +85,13 @@ struct systemtap_session
   int target_pid;
   int last_pass;
   unsigned verbose;
-  unsigned timing;
+  bool timing;
   bool keep_tmpdir;
   bool guru_mode;
   bool bulk_mode;
   bool unoptimized;
   bool merge;
+  bool suppress_warnings;
   int buffer_size;
   unsigned perfmon;
   bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */

@@ -1,5 +1,9 @@
 * What's new in version 0.6 / since version 0.5.15?
 
+- Systemtap will warn you if your script contains unused variables or
+  functions.  This is helpful in case of misspelled variables.  If it
+  doth protest too much, turn it off with "stap -w ...".
+
 - You can add error-handling probes to a script, which are run if a
   script was stopped due to errors.  In such a case, "end" probes are
   not run, but "error" ones are.

@@ -11,7 +11,7 @@
 # Print signal counts by process name in descending order.
 #
 
-global sigcnt, pid2name, sig2name
+global sigcnt, sig2name
 
 probe begin {
 	print("Collecting data... Type Ctrl-C to exit and display results\n")

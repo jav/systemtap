@@ -1,0 +1,9 @@
+# PR 1119
+
+global elide_me1
+
+function elide_me2 () {}
+
+function foo:long () { elide_me3 = 1 }
+
+probe never { elide_me4 = 1; (elide_me5+5); print (foo()) }
