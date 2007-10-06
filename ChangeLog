@@ -1,5 +1,15 @@
 2007-10-05  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 1119
+	* elaborate.cxx (semantic_pass_opt[12]): Warn on elided
+	variables/functions in user script.
+	* session.h (suppress_warnings): New field.  Change
+	"timing" to plain old bool.
+	* main.cxx (main): Configure warnings on by default.
+	* stap.1.in: Document this.
+
+2007-10-05  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5036
 	* systemtap.spec.in: Create new systemtap-testsuite sub-rpm.
 	Install crash(8)'s staplog.so into -runtime sub-rpm if built.

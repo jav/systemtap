@@ -50,7 +50,10 @@ probe kernel.function("sys_write").return {
 probe end {
   foreach(name+ in names) { # sort by names
     printf ("process: %s\n", name)
-    if (opens[name]) printf ("opens n=%d\n", opens[name])
+    if (opens[name]) {
+      printf ("opens n=%d\n", opens[name])
+      print (@hist_log(time_opens[name]))
+    }
     if (@count(reads[name])) {
       printf ("reads n=%d, sum=%d, avg=%d\n",
          @count(reads[name]), # extracting stat results

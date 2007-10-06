@@ -1,0 +1,16 @@
+set test "warnings"
+
+spawn stap -p4 $srcdir/$subdir/warnings.stp
+set ok 0
+expect {
+    -re {^WARNING:[^\r\n]*\r\n} { incr ok; exp_continue }
+    -re {^[^\r\n]*.ko\r\n} { incr ok; exp_continue }
+    timeout { fail "$test (timeout)" }
+    eof { }
+}
+wait
+if {$ok == 6} {
+    pass $test
+} else {
+    fail $test
+}

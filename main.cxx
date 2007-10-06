@@ -71,6 +71,7 @@ usage (systemtap_session& s, int exitcode)
     << "   -V         show version" << endl
     << "   -k         keep temporary directory" << endl
     << "   -u         unoptimized translation" << (s.unoptimized ? " [set]" : "") << endl
+    << "   -w         suppress warnings" << (s.suppress_warnings ? " [set]" : "") << endl
     << "   -g         guru mode" << (s.guru_mode ? " [set]" : "") << endl
     << "   -P         prologue-searching for function probes" 
     << (s.prologue_searching ? " [set]" : "") << endl
@@ -200,10 +201,11 @@ main (int argc, char * const argv [])
   s.kernel_release = string (buf.release);
   s.architecture = string (buf.machine);
   s.verbose = 0;
-  s.timing = 0;
+  s.timing = false;
   s.guru_mode = false;
   s.bulk_mode = false;
   s.unoptimized = false;
+  s.suppress_warnings = false;
 
 #ifdef ENABLE_PROLOGUES
   s.prologue_searching = true;
@@ -273,8 +275,8 @@ main (int argc, char * const argv [])
 
   while (true)
     {
-      // NB: also see find_hash(), help(), switch stmt below, stap.1 man page
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uq");
+      // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqw");
       if (grc < 0)
         break;
       switch (grc)
@@ -292,7 +294,11 @@ main (int argc, char * const argv [])
 	  break;
 
         case 't':
-	  s.timing ++;
+	  s.timing = true;
+	  break;
+
+        case 'w':
+	  s.suppress_warnings = true;
 	  break;
 
         case 'p':

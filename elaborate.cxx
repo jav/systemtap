@@ -1372,7 +1372,10 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
     {
       if (ftv.traversed.find(s.functions[i]) == ftv.traversed.end())
         {
-          if (s.verbose>2)
+          if (s.functions[i]->tok->location.file == s.user_file->name && // !tapset
+              ! s.suppress_warnings)
+            clog << "WARNING: eliding unused function " << *s.functions[i]->tok << endl;
+          else if (s.verbose>2)
             clog << "Eliding unused function " << s.functions[i]->name
                  << endl;
 	  if (s.tapset_compile_coverage) {
@@ -1412,10 +1415,14 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
     for (unsigned j=0; j<s.probes[i]->locals.size(); /* see below */)
       {
         vardecl* l = s.probes[i]->locals[j];
+
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (s.verbose>2)
+            if (l->tok->location.file == s.user_file->name && // !tapset
+                ! s.suppress_warnings)
+              clog << "WARNING: eliding unused variable " << *l->tok << endl;
+            else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in " << s.probes[i]->name << endl;
 	    if (s.tapset_compile_coverage) {
@@ -1436,7 +1443,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         if (vut.read.find (l) == vut.read.end() &&
             vut.written.find (l) == vut.written.end())
           {
-            if (s.verbose>2)
+            if (l->tok->location.file == s.user_file->name && // !tapset
+                ! s.suppress_warnings)
+              clog << "WARNING: eliding unused variable " << *l->tok << endl;
+            else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in function " << s.functions[i]->name
                    << endl;
@@ -1457,7 +1467,10 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
       if (vut.read.find (l) == vut.read.end() &&
           vut.written.find (l) == vut.written.end())
         {
-          if (s.verbose>2)
+          if (l->tok->location.file == s.user_file->name && // !tapset
+              ! s.suppress_warnings)
+            clog << "WARNING: eliding unused variable " << *l->tok << endl;
+          else if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
 	  if (s.tapset_compile_coverage) {
@@ -1529,9 +1542,17 @@ dead_assignment_remover::visit_assignment (assignment* e)
           e->left->visit (& vut);
           if (vut.side_effect_free ()) // XXX: use _wrt() once we track focal_vars
             {
+              /* PR 1119: NB: This is not necessary here.  A write-only
+                 variable will also be elided soon at the next _opt2 iteration.
+              if (e->left->tok->location.file == session.user_file->name && // !tapset
+                  ! session.suppress_warnings)
+                clog << "WARNING: eliding write-only " << *e->left->tok << endl;
+              else
+              */
               if (session.verbose>2)
                 clog << "Eliding assignment to " << leftvar->name 
                      << " at " << *e->tok << endl;
+              
               *current_expr = e->right; // goodbye assignment*
               relaxed_p = false;
             }
@@ -1653,6 +1674,13 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
   if (vut.side_effect_free_wrt (focal_vars) &&
       *current_stmt == s) // we're not nested any deeper than expected 
     {
+      /* PR 1119: NB: this message is not a good idea here.  It can
+         name some arbitrary RHS expression of an assignment.
+      if (s->value->tok->location.file == session.user_file->name && // not tapset
+          ! session.suppress_warnings)
+        clog << "WARNING: eliding read-only " << *s->value->tok << endl;
+      else 
+      */
       if (session.verbose>2)
         clog << "Eliding side-effect-free expression "
              << *s->tok << endl;
