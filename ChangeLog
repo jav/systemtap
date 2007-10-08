@@ -1,3 +1,27 @@
+2007-10-08  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5079
+	* main.cxx: Add pass 4.5: make uprobes.ko in runtime/uprobes
+	* buildrun.cxx: Add uprobes_enabled() and make_uprobes().
+	Factor run_make_cmd() out of compile_pass().
+	* buildrun.h: Add uprobes_enabled and make_uprobes decls.
+	* tapsets.cxx: Do correct #include for modprobed uprobes.ko;
+	set need_uprobes in pass 2.
+	* session.h: Add need_uprobes
+
+	* runtime/staprun/common.c: Add -u option -> need_uprobes
+	* runtime/staprun/staprun_funcs.c: Generalize insert_module()
+	to support inserting uprobes.ko.
+	* runtime/staprun/staprun.c: Add enable_uprobes().  insert_module
+	call becomes insert_stap_module().
+	* runtime/staprun/staprun.h: Reflect insert_module() and
+	need_uprobes changes
+
+	* runtime/uprobes/*.[c,h]: uprobes is built as a module, 
+	rather than included into the source of the stap-generated 
+	module.
+	* runtime/uprobes/Makefile: Added
+
 2007-10-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1119
