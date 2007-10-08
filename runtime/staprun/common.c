@@ -23,6 +23,7 @@ char *target_cmd;
 char *outfile_name;
 int attach_mod;
 int load_only;
+int need_uprobes;
 
 /* module variables */
 char *modname = NULL;
@@ -44,9 +45,13 @@ void parse_args(int argc, char **argv)
 	outfile_name = NULL;
 	attach_mod = 0;
 	load_only = 0;
+	need_uprobes = 0;
 
-	while ((c = getopt(argc, argv, "ALvb:t:d:c:o:x:")) != EOF) {
+	while ((c = getopt(argc, argv, "ALuvb:t:d:c:o:x:")) != EOF) {
 		switch (c) {
+		case 'u':
+			need_uprobes = 1;
+			break;
 		case 'v':
 			verbose++;
 			break;

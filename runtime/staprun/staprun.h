@@ -141,7 +141,8 @@ void drop_cap(cap_value_t cap);
 /* staprun_funcs.c */
 void setup_staprun_signals(void);
 const char *moderror(int err);
-int insert_module(void);
+int insert_module(const char *path, const char *special_options,
+	char **options);
 int mountfs(void);
 int check_permissions(void);
 void handle_symbols(void);
@@ -171,6 +172,7 @@ extern char *target_cmd;
 extern char *outfile_name;
 extern int attach_mod;
 extern int load_only;
+extern int need_uprobes;
 
 /* getopt variables */
 extern char *optarg;

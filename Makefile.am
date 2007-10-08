@@ -131,7 +131,7 @@ install-data-local:
 	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
 	(cd $(srcdir)/runtime/transport; for f in *.[ch]; \
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
-	(cd $(srcdir)/runtime/uprobes; for f in *.[ch]; \
+	(cd $(srcdir)/runtime/uprobes; for f in Makefile *.[ch]; \
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)

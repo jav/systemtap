@@ -47,7 +47,7 @@ const char *moderror(int err)
 	}
 }
 
-int insert_module(void)
+int insert_module(const char *path, const char *special_options, char **options)
 {
 	int i;
 	long ret;
@@ -58,34 +58,35 @@ int insert_module(void)
 		
 	dbug(2, "inserting module\n");
 
-	opts = malloc(128);
+	if (special_options)
+		opts = strdup(special_options);
+	else
+		opts = strdup("");
 	if (opts == NULL) {
 		_perr("allocating memory failed");
 		return -1;
 	}
-	if (snprintf_chk(opts, 128, "_stp_bufsize=%d", buffer_size))
-		return -1;
-	for (i = 0; modoptions[i] != NULL; i++) {
-		opts = realloc(opts, strlen(opts) + strlen(modoptions[i]) + 2);
+	for (i = 0; options[i] != NULL; i++) {
+		opts = realloc(opts, strlen(opts) + strlen(options[i]) + 2);
 		if (opts == NULL) {
-			_perr("reallocating memory failed");
+			_perr("[re]allocating memory failed");
 			return -1;
 		}
 		strcat(opts, " ");
-		strcat(opts, modoptions[i]);
+		strcat(opts, options[i]);
 	}
 	dbug(2, "module options: %s\n", opts);
 
 	/* Open the module file. */
-	fd = open(modpath, O_RDONLY);
+	fd = open(path, O_RDONLY);
 	if (fd < 0) {
-		perr("Error opening '%s'", modpath);
+		perr("Error opening '%s'", path);
 		return -1;
 	}
 	
 	/* Now that the file is open, figure out how big it is. */
 	if (fstat(fd, &sbuf) < 0) {
-		_perr("Error stat'ing '%s'", modpath);
+		_perr("Error stat'ing '%s'", path);
 		close(fd);
 		return -1;
 	}
@@ -93,7 +94,7 @@ int insert_module(void)
 	/* mmap in the entire module. */
 	file = mmap(NULL, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (file == MAP_FAILED) {
-		_perr("Error mapping '%s'", modpath);
+		_perr("Error mapping '%s'", path);
 		close(fd);
 		free(opts);
 		return -1;
@@ -109,7 +110,7 @@ int insert_module(void)
 	close(fd);
 
 	if (ret != 0) {
-		err("Error inserting module '%s': %s\n", modpath, moderror(saved_errno));
+		err("Error inserting module '%s': %s\n", path, moderror(saved_errno));
 		return -1; 
 	}
 	return 0;

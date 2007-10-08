@@ -29,6 +29,32 @@ extern "C" {
 
 using namespace std;
 
+/* Adjust and run make_cmd to build a kernel module. */
+static int
+run_make_cmd(systemtap_session& s, string& make_cmd)
+{
+  // Before running make, fix up the environment a bit.  PATH should
+  // already be overridden.  Clean out a few variables that
+  // /lib/modules/${KVER}/build/Makefile uses.
+  int rc = unsetenv("ARCH") || unsetenv("KBUILD_EXTMOD")
+      || unsetenv("CROSS_COMPILE") || unsetenv("KBUILD_IMAGE")
+      || unsetenv("KCONFIG_CONFIG") || unsetenv("INSTALL_PATH");
+  if (rc)
+    {
+      const char* e = strerror (errno);
+      cerr << "unsetenv failed: " << e << endl;
+    }
+
+  if (s.verbose > 1)
+    make_cmd += " V=1";
+  else
+    make_cmd += " -s >/dev/null 2>&1";
+  
+  if (s.verbose > 1) clog << "Running " << make_cmd << endl;
+  rc = system (make_cmd.c_str());
+  
+  return rc;
+}
 
 int
 compile_pass (systemtap_session& s)
@@ -96,34 +122,49 @@ compile_pass (systemtap_session& s)
 	return rc;
     }  
 
-  // Before running make, fix up the environment a bit.  PATH should
-  // already be overridden.  Clean out a few variables that
-  // /lib/modules/${KVER}/build/Makefile uses.
-  rc = unsetenv("ARCH") || unsetenv("KBUILD_EXTMOD")
-      || unsetenv("CROSS_COMPILE") || unsetenv("KBUILD_IMAGE")
-      || unsetenv("KCONFIG_CONFIG") || unsetenv("INSTALL_PATH");
-  if (rc)
-    {
-      const char* e = strerror (errno);
-      cerr << "unsetenv failed: " << e << endl;
-    }
-
   // Run make
   string make_cmd = string("make")
     + string (" -C \"") + module_dir + string("\"");
   make_cmd += string(" M=\"") + s.tmpdir + string("\" modules");
 
-  if (s.verbose > 1)
-    make_cmd += " V=1";
-  else
-    make_cmd += " -s >/dev/null 2>&1";
-  
-  if (s.verbose > 1) clog << "Running " << make_cmd << endl;
-  rc = system (make_cmd.c_str());
+  rc = run_make_cmd(s, make_cmd);
   
   return rc;
 }
 
+
+bool
+uprobes_enabled (void)
+{
+  int rc = system ("/bin/grep -q unregister_uprobe /proc/kallsyms");
+  return (rc == 0);
+}
+
+int
+make_uprobes (systemtap_session& s)
+{
+  string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
+
+  // Quietly skip the build if the Makefile has been removed.
+  string makefile = uprobes_home + string("/Makefile");
+  struct stat buf;
+  if (stat(makefile.c_str(), &buf) != 0)
+  	return 2;	// make's exit value for No such file or directory.
+
+  if (s.verbose)
+    clog << "Pass 4, overtime: "
+	 << "(re)building SystemTap's version of uprobes."
+	 << endl;
+
+  string make_cmd = string("make -C ") + uprobes_home;
+  int rc = run_make_cmd(s, make_cmd);
+  if (rc && s.verbose)
+    clog << "Uprobes build failed. "
+    	 << "Hope uprobes is available at run time."
+	 << endl;
+
+  return rc;
+}
 
 int
 run_pass (systemtap_session& s)
@@ -150,6 +191,9 @@ run_pass (systemtap_session& s)
   if (s.buffer_size)
     staprun_cmd += "-b " + stringify(s.buffer_size) + " ";
   
+  if (s.need_uprobes)
+    staprun_cmd += "-u ";
+
   staprun_cmd += s.tmpdir + "/" + s.module_name + ".ko";
   
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
