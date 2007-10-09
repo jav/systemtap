@@ -1,3 +1,11 @@
+2007-10-09  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5083
+	* runtime/uprobes/uprobes.c: Adjust module ref-count
+	when creating or removing uprobe_process, so "rmmod
+	--wait uprobes" waits as needed until uretprobed
+	functions return.
+
 2007-10-08  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 5079
