@@ -1,3 +1,12 @@
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp (sys_signal): Call
+	_sighandler_str().
+
+	* aux_syscalls.stp (_stp_sigset_str): Don't
+	include SIG_0.
+	(_sighandler_str): New.
+	
 2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* queue_stats.stp (qsq_start): Add destruction for qs_utime.

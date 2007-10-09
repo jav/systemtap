@@ -1587,7 +1587,7 @@ void _stp_sigset_str(sigset_t *mask, char *ptr, int len)
 	const _stp_val_array * const array = _stp_signal_list;
 	int i = 0, flag = 0;
 	while (array[i].name) {
-		if (sigismember(mask, array[i].val)) {
+		if (array[i].val && sigismember(mask, array[i].val)) {
 			if (flag)
 				strlcat(ptr, "|", len);
 			strlcat(ptr, array[i].name, len);
@@ -1783,6 +1783,17 @@ function get_mmap_args:string (args:long)
 		_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "%ld, %ld", (long)a.fd, (long)a.offset);
 	} else
 		strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
+%}
+
+
+function _sighandler_str:string(uaddr:long)
+%{ /* pure */
+	static const _stp_val_array const _stp_sa_handler_list[] = {
+		{0, "SIG_DFL"},
+		{1, "SIG_IGN"},
+		{0, NULL}
+	};
+	_stp_lookup_str(_stp_sa_handler_list, (long)THIS->uaddr, THIS->__retvalue, MAXSTRINGLEN);
 %}
 
 function _struct_sigaction_u:string(uaddr:long)
