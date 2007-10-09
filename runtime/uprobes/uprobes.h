@@ -72,11 +72,11 @@ struct uretprobe_instance {
 	unsigned long reserved2;
 };
 
-static int register_uprobe(struct uprobe *u);
-static void unregister_uprobe(struct uprobe *u);
+extern int register_uprobe(struct uprobe *u);
+extern void unregister_uprobe(struct uprobe *u);
 /* For runtime, assume uprobes support includes uretprobes. */
-static int register_uretprobe(struct uretprobe *rp);
-static void unregister_uretprobe(struct uretprobe *rp);
+extern int register_uretprobe(struct uretprobe *rp);
+extern void unregister_uretprobe(struct uretprobe *rp);
 
 #ifdef UPROBES_IMPLEMENTATION
 

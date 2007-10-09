@@ -35,6 +35,16 @@ run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 	pid_t pid;
 	int rstatus;
 
+	if (verbose >= 2) {
+		int i = 0;
+		err("execing: ");
+		while (argv[i]) {
+			err("%s ", argv[i]);
+			i++;
+		}
+		err("\n");		
+	}
+
 	if ((pid = fork()) < 0) {
 		_perr("fork");
 		return -1;
@@ -77,16 +87,61 @@ static int run_stapio(char **argv)
 	gid_t gid = getgid();
 	argv[0] = PKGLIBDIR "/stapio";
 
-	if (verbose >= 2) {
-		int i = 0;
-		err("execing: ");
-		while (argv[i]) {
-			err("%s ", argv[i]);
-			i++;
-		}
-		err("\n");		
-	}
 	return run_as(uid, gid, argv[0], argv);
+}
+
+/*
+ * Module to be inserted has one or more user-space probes.  Make sure
+ * uprobes is enabled.
+ * If /proc/kallsyms lists a symbol in uprobes (e.g. unregister_uprobe),
+ * we're done.
+ * Else try "modprobe uprobes" to load the uprobes module (if any)
+ * built with the kernel.
+ * If that fails, load the uprobes module built in runtime/uprobes.
+ */
+static int enable_uprobes(void)
+{
+	int i;
+	char *argv[10];
+	uid_t uid = getuid();
+	gid_t gid = getgid();
+
+	i = 0;
+	argv[i++] = "/bin/grep";
+	argv[i++] = "-q";
+	argv[i++] = "unregister_uprobe";
+	argv[i++] = "/proc/kallsyms";
+	argv[i] = NULL;
+	if (run_as(uid, gid, argv[0], argv) == 0)
+		return 0;
+
+	/*
+	 * TODO: If user can't setresuid to root here, staprun will exit.
+	 * Is there a situation where that would fail but the subsequent
+	 * attempt to use CAP_SYS_MODULE privileges (in insert_module())
+	 * would succeed?
+	 */
+	dbug(2, "Inserting uprobes module from /lib/modules, if any.\n");
+	i = 0;
+	argv[i++] = "/sbin/modprobe";
+	argv[i++] = "-q";
+	argv[i++] = "uprobes";
+	argv[i] = NULL;
+	if (run_as(0, 0, argv[0], argv) == 0)
+		return 0;
+
+	dbug(2, "Inserting uprobes module from SystemTap runtime.\n");
+	argv[0] = NULL;
+	return insert_module(PKGDATADIR "/runtime/uprobes/uprobes.ko",
+		NULL, argv);
+}
+
+static int insert_stap_module(void)
+{
+	char bufsize_option[128];
+	if (snprintf_chk(bufsize_option, 128, "_stp_bufsize=%d", buffer_size))
+		return -1;
+	return insert_module(modpath, bufsize_option, modoptions);
 }
 
 
@@ -101,7 +156,9 @@ int init_staprun(void)
 	drop_cap(CAP_SYS_ADMIN);
  
 	if (!attach_mod) {
-		if (insert_module() < 0)
+		if (need_uprobes && enable_uprobes() != 0)
+			return -1;
+		if (insert_stap_module() < 0)
 			return -1;
 		else
 			inserted_module = 1;

@@ -59,36 +59,22 @@ typedef void (*uprobe_handler_t)(struct uprobe*, struct pt_regs*);
 /* Point utask->active_probe at this while running uretprobe handler. */
 static struct uprobe_probept uretprobe_trampoline_dummy_probe;
 
-/*
- * These data structures are shared by all SystemTap-generated modules
- * that use uprobes.
- */
-struct uprobe_globals {
-	struct hlist_head uproc_table[UPROBE_TABLE_SIZE];
-	struct mutex uproc_mutex;
-	struct hlist_head utask_table[UPROBE_TABLE_SIZE];
-	spinlock_t utask_table_lock;
-};
-static struct uprobe_globals *globals;
-static struct hlist_head *uproc_table;	/* = globals->uproc_table */
-static struct hlist_head *utask_table;	/* = globals->utask_table */
+/* Table of currently probed processes, hashed by tgid. */
+static struct hlist_head uproc_table[UPROBE_TABLE_SIZE];
 
-#define lock_uproc_table() mutex_lock(&globals->uproc_mutex)
-#define unlock_uproc_table() mutex_unlock(&globals->uproc_mutex)
+/* Protects uproc_table during uprobe (un)registration */
+static DEFINE_MUTEX(uproc_mutex);
 
-#define lock_utask_table(flags) \
-	spin_lock_irqsave(&globals->utask_table_lock, (flags))
+/* Table of uprobe_tasks, hashed by task_struct pointer. */
+static struct hlist_head utask_table[UPROBE_TABLE_SIZE];
+static DEFINE_SPINLOCK(utask_table_lock);
+
+#define lock_uproc_table() mutex_lock(&uproc_mutex)
+#define unlock_uproc_table() mutex_unlock(&uproc_mutex)
+
+#define lock_utask_table(flags) spin_lock_irqsave(&utask_table_lock, (flags))
 #define unlock_utask_table(flags) \
-	spin_unlock_irqrestore(&globals->utask_table_lock, (flags))
-
-/*
- * uprobes_data and uprobes_mutex are the only uprobes hooks in the kernel.
- * A pointer to the uprobes_global area is stored in uprobe_data.
- */
-extern void *uprobes_data;
-extern struct mutex uprobes_mutex;
-
-static int verify_uprobes(void);
+	spin_unlock_irqrestore(&utask_table_lock, (flags))
 
 /* p_uprobe_utrace_ops = &uprobe_utrace_ops.  Fwd refs are a pain w/o this. */
 static const struct utrace_engine_ops *p_uprobe_utrace_ops;
@@ -824,7 +810,6 @@ static int defer_registration(struct uprobe *u, int regflag,
 }
 
 /* See Documentation/uprobes.txt. */
-static
 int register_uprobe(struct uprobe *u)
 {
 	struct task_struct *p;
@@ -833,9 +818,6 @@ int register_uprobe(struct uprobe *u)
 	struct uprobe_probept *ppt;
 	struct uprobe_task *cur_utask, *cur_utask_quiescing = NULL;
 	int survivors, ret = 0, uproc_is_new = 0;
-	if ((ret = verify_uprobes()) < 0)
-		return ret;
-
 	if (!u || !u->handler)
 		return -EINVAL;
 
@@ -982,9 +964,9 @@ fail_tsk:
 	put_task_struct(p);
 	return ret;
 }
+EXPORT_SYMBOL_GPL(register_uprobe);
 
 /* See Documentation/uprobes.txt. */
-static
 void unregister_uprobe(struct uprobe *u)
 {
 	struct task_struct *p;
@@ -993,8 +975,6 @@ void unregister_uprobe(struct uprobe *u)
 	struct uprobe_probept *ppt;
 	struct uprobe_task *cur_utask, *cur_utask_quiescing = NULL;
 
-	if (verify_uprobes() < 0)
-		return;
 	if (!u)
 		return;
 	p = uprobe_get_task(u->pid);
@@ -1069,6 +1049,7 @@ done:
 	up_write(&uproc->rwsem);
 	uprobe_put_process(uproc);
 }
+EXPORT_SYMBOL_GPL(unregister_uprobe);
 
 /* Find a surviving thread in uproc.  Runs with uproc->rwsem locked. */
 static struct task_struct *find_surviving_thread(struct uprobe_process *uproc)
@@ -2071,63 +2052,25 @@ static const struct utrace_engine_ops uprobe_utrace_ops =
 	.report_exec = uprobe_report_exec
 };
 
-/*
- * Initialize the uprobes global data area, and return a pointer
- * to it.  Caller will initialize uprobes_data pointer afterward, to
- * ensure that no other module sees a non-null uprobes_data until it's
- * completely initialized.
- */
-static struct uprobe_globals *init_uprobes(void)
+static int __init init_uprobes(void)
 {
 	int i;
-	struct uprobe_globals *g = kmalloc(sizeof(*g), GFP_USER);
-	if (!g)
-		return ERR_PTR(-ENOMEM);
+
 	for (i = 0; i < UPROBE_TABLE_SIZE; i++) {
-		INIT_HLIST_HEAD(&g->uproc_table[i]);
-		INIT_HLIST_HEAD(&g->utask_table[i]);
+		INIT_HLIST_HEAD(&uproc_table[i]);
+		INIT_HLIST_HEAD(&utask_table[i]);
 	}
-	mutex_init(&g->uproc_mutex);
-	spin_lock_init(&g->utask_table_lock);
-	return g;
-}
 
-/*
- * Verify that the uprobes globals area has been set up, and that the
- * current module's globals variable points at it.  Returns 0 if the
- * area is successfully set up, or a negative erro otherwise.
- */
-static int verify_uprobes(void)
-{
-	if (unlikely(!globals)) {
-		/*
-		 * First time through for this instrumentation module.
-		 * uprobes_mutex protects both the global uprobes
-		 * initialization and this module's local initialization.
-		 */
-		struct uprobe_globals *g;
-
-		mutex_lock(&uprobes_mutex);
-		if (!uprobes_data) {
-			/* First time through since boot time */
-			g = init_uprobes();
-			uprobes_data = g;
-		} else
-			g = uprobes_data;
-		if (!IS_ERR(g)) {
-			p_uprobe_utrace_ops = &uprobe_utrace_ops;
-			uproc_table = g->uproc_table;
-			utask_table = g->utask_table;
-		}
-
-		/* Set globals pointer to signify all is initialized. */
-		globals = g;
-		mutex_unlock(&uprobes_mutex);
-	}
-	if (unlikely(IS_ERR(globals)))
-		return (int) PTR_ERR(globals);
+	p_uprobe_utrace_ops = &uprobe_utrace_ops;
 	return 0;
 }
+
+static void __exit exit_uprobes(void)
+{
+}
+
+module_init(init_uprobes);
+module_exit(exit_uprobes);
 
 #ifdef CONFIG_URETPROBES
 
@@ -2209,7 +2152,6 @@ static void uretprobe_handle_return(struct pt_regs *regs,
 	arch_restore_uret_addr(orig_ret_addr, regs);
 }
 
-static
 int register_uretprobe(struct uretprobe *rp)
 {
 	if (!rp || !rp->handler)
@@ -2217,6 +2159,7 @@ int register_uretprobe(struct uretprobe *rp)
 	rp->u.handler = URETPROBE_HANDLE_ENTRY;
 	return register_uprobe(&rp->u);
 }
+EXPORT_SYMBOL_GPL(register_uretprobe);
 
 /*
  * The uretprobe containing u is being unregistered.  Its uretprobe_instances
@@ -2244,13 +2187,13 @@ static void zap_uretprobe_instances(struct uprobe *u,
 	}
 }
 
-static
 void unregister_uretprobe(struct uretprobe *rp)
 {
 	if (!rp)
 		return;
 	unregister_uprobe(&rp->u);
 }
+EXPORT_SYMBOL_GPL(unregister_uretprobe);
 
 /*
  * uproc->ssol_area has been successfully set up.  Establish the
@@ -2295,3 +2238,4 @@ static void zap_uretprobe_instances(struct uprobe *u,
 #endif /* CONFIG_URETPROBES */
 
 #include "uprobes_arch.c"
+MODULE_LICENSE("GPL");

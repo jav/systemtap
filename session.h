@@ -97,6 +97,7 @@ struct systemtap_session
   bool symtab; /* true: emit symbol table at translation time; false: let staprun do it. */
   bool prologue_searching;
   bool tapset_compile_coverage;
+  bool need_uprobes;
 
   // Cache data
   bool use_cache;

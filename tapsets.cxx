@@ -4027,11 +4027,12 @@ public:
 };
 
 
-uprobe_derived_probe::uprobe_derived_probe (systemtap_session &, 
+uprobe_derived_probe::uprobe_derived_probe (systemtap_session &s, 
                                             probe* p, probe_point* l,
                                             uint64_t pp, uint64_t aa, bool rr):
   derived_probe(p, l), process(pp), address(aa), return_p (rr)
 { 
+  s.need_uprobes = true;
 }
 
 
@@ -4073,11 +4074,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "/* ---- user probes ---- */";
   
   // If uprobes isn't in the kernel, pull it in from the runtime.
-  // TODO: Consider detecting uprobes installed as a module.
-  s.op->newline() << "#ifdef CONFIG_UPROBES";
+  s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
   s.op->newline() << "#include <linux/uprobes.h>";
   s.op->newline() << "#else";
-  s.op->newline() << "#include \"uprobes/uprobes.c\"";
+  s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
 
   s.op->newline() << "struct stap_uprobe {";

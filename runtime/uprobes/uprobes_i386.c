@@ -18,8 +18,10 @@
  *
  * Copyright (C) IBM Corporation, 2006
  */
-#define UPROBES_IMPLEMENTATION 1
-#include "uprobes.h"
+/*
+ * In versions of uprobes built in the SystemTap runtime, this file
+ * is #included at the end of uprobes.c.
+ */
 #include <linux/uaccess.h>
 
 /* Adapted from arch/x86_64/kprobes.c */
