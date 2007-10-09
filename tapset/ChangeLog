@@ -1,3 +1,7 @@
+2007-10-09  Mike Mason  <mmlnx@us.ibm.com>
+
+	* rpc.stp: Replaced atomic_read()'s with kread()'s
+
 2007-10-09  Martin Hunt  <hunt@redhat.com>
         PR5153
 	* aux_syscalls.stp (_sighandler_str): No
