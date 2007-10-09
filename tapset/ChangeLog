@@ -1,5 +1,10 @@
 2007-10-09  Martin Hunt  <hunt@redhat.com>
+        PR5153
+	* aux_syscalls.stp (_sighandler_str): No
+	sa_restorer field for IA64.
 
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+	
 	* syscalls2.stp (sys_signal): Call
 	_sighandler_str().
 

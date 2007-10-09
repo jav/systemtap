@@ -1829,8 +1829,12 @@ function _struct_sigaction_u:string(uaddr:long)
 				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
 				_stp_lookup_or_str(_stp_sa_flags_list, act.sa_flags, THIS->__retvalue, MAXSTRINGLEN);
 				strlcat (THIS->__retvalue, ", ", MAXSTRINGLEN);
+#if !defined (__ia64__)
 				len = strlen(THIS->__retvalue);
 				_stp_snprintf(THIS->__retvalue + len, MAXSTRINGLEN - len, "0x%lx, [", (long)act.sa_restorer);
+#else
+				strlcat (THIS->__retvalue, "[", MAXSTRINGLEN);
+#endif
 				_stp_sigset_str(&act.sa_mask, THIS->__retvalue, MAXSTRINGLEN);
 				strlcat (THIS->__retvalue, "]", MAXSTRINGLEN);
 			}
