@@ -1,5 +1,9 @@
 2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* queue_stats.stp (qsq_start): Add destruction for qs_utime.
+
+2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	From Cai Fei <caifei@cn.fujitsu.com>
 	* memory.stp (addr_to_node): Fix the compilation error of function
 	addr_to_node on IA64.
