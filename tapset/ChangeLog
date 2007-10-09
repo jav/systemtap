@@ -1,3 +1,9 @@
+2007-10-10  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* aux_syscalls.stp (_stp_lookup_or_str) redirect to _stp_lookup_str
+	if val is 0.
+
 2007-10-09  Mike Mason  <mmlnx@us.ibm.com>
 
 	* rpc.stp: Replaced atomic_read()'s with kread()'s

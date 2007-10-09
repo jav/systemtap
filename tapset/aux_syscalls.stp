@@ -1533,6 +1533,10 @@ void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, in
 void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
 	int i = 0, flag = 0;
+	if (val == 0) {
+		_stp_lookup_str(array, val, ptr, len);
+		return;
+	}
 	while (array[i].name) {
 		if (array[i].val & val) {
 			if (flag)
