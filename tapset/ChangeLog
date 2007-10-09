@@ -1,3 +1,9 @@
+2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* memory.stp (addr_to_node): Fix the compilation error of function
+	addr_to_node on IA64.
+
 2007-10-05  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp: Put #ifdef CONFIG_COMPAT
