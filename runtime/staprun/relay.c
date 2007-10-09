@@ -148,7 +148,7 @@ int init_relayfs(void)
 			return -1;
 		dbug(2, "attempting to open %s\n", buf);
 		relay_fd[i] = open(buf, O_RDONLY | O_NONBLOCK);
-		if (relay_fd[i] < 0)
+		if (relay_fd[i] < 0 || set_clexec(relay_fd[i]) < 0)
 			break;
 	}
 	ncpus = i;
@@ -184,6 +184,8 @@ int init_relayfs(void)
 				perr("Couldn't open output file %s", buf);
 				return -1;
 			}
+			if (set_clexec(out_fd[i]) < 0)
+				return -1;
 		}
 	} else {
 		/* stream mode */
@@ -193,6 +195,8 @@ int init_relayfs(void)
 				perr("Couldn't open output file %s", outfile_name);
 				return -1;
 			}
+			if (set_clexec(out_fd[i]) < 0)
+				return -1;
 		} else
 			out_fd[0] = STDOUT_FILENO;
 		

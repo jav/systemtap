@@ -1,3 +1,10 @@
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+
+	* common.c (set_clexec): New.
+	* staprun.h: Add prototype for set_clexec.
+	* relay*.c, ctl.c: Call set_clexec after
+	file opens.
+
 2007-09-14  Martin Hunt  <hunt@redhat.com>
 
 	* ctl.c (init_ctl_channel): Return 1 if the ctl file opened

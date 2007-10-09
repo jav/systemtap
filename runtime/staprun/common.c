@@ -315,3 +315,22 @@ int send_request(int type, void *data, int len)
 	memcpy(&buf[4], data, len);
 	return write(control_channel, buf, len+4);
 }
+
+/*
+ * set FD_CLOEXEC for any file descriptor
+ */
+int set_clexec(int fd)
+{
+	int val;
+	if ((val = fcntl(fd, F_GETFD, 0)) < 0)
+		goto err;
+	
+	if ((val = fcntl(fd, F_SETFD, val | FD_CLOEXEC)) < 0)
+		goto err;	
+	
+	return 0;
+err:
+	perr("fcntl failed");
+	close(fd);
+	return -1;
+}
