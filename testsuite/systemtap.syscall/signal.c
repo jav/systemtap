@@ -2,56 +2,54 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#include <string.h>
 #include <sys/syscall.h>
 
-#ifdef SYS_signal
 static void 
 sig_act_handler(int signo)
 {
 }
-#endif
 
 int main()
 {
-#ifdef SYS_signal
   sigset_t mask;
   struct sigaction sa;
   pid_t pid;
 
+#ifdef SYS_signal
   syscall(SYS_signal, SIGUSR1, SIG_IGN);
-  // signal (SIGUSR1, 0x0+1) = 0
+  // signal (SIGUSR1, SIG_IGN)
 
-  syscall(SYS_signal, SIGUSR1, SIG_DFL);
-  // signal (SIGUSR1, 0x0+) = 1
+  syscall (SYS_signal, SIGUSR1, SIG_DFL);
+  // signal (SIGUSR1, SIG_DFL) = 1
 
-  syscall(SYS_signal, SIGUSR1, sig_act_handler);
+  syscall (SYS_signal, SIGUSR1, sig_act_handler);
   // signal (SIGUSR1, XXXX) = 0
+#endif
 
   sigemptyset(&mask);
-  sigaddset(&mask, SIGUSR1);
-  syscall(SYS_sigprocmask,SIG_BLOCK, &mask, NULL);
+  sigaddset(&mask, SIGUSR2);
+
+#ifdef SYS_sigprocmask
+  syscall (SYS_sigprocmask, SIG_BLOCK, &mask, NULL);
   // sigprocmask (SIG_BLOCK, XXXX, 0x0+) = 0
 
-  syscall(SYS_sigprocmask,SIG_UNBLOCK, &mask, NULL);
+  syscall (SYS_sigprocmask, SIG_UNBLOCK, &mask, NULL);
   // sigprocmask (SIG_UNBLOCK, XXXX, 0x0+) = 0
+#endif
 
+  memset(&sa, 0, sizeof(sa));
+  sigfillset(&sa.sa_mask);
   sa.sa_handler = SIG_IGN;
-  sigemptyset(&sa.sa_mask);
-  sigaddset(&sa.sa_mask, SIGALRM);
-  sa.sa_flags = 0;
-  syscall(SYS_sigaction,SIGUSR1, &sa, NULL);
-  // sigaction (SIGUSR1, XXXX, 0x0+) = 0
 
-  /* syscall(SYS_kill,0,SIGUSR1);
-   kill (0, SIGUSR1) = 0
+#ifdef SYS_sigaction
+  syscall (SYS_sigaction, SIGUSR1, &sa, NULL);
+  // sigaction (SIGUSR1, {SIG_IGN}, 0x0+) = 0
+ #endif
 
-   pid = getpid();
-   getpid () = NNNN
-
-
-  syscall(SYS_tgkill,pid,pid,SIGUSR1);
-   tgkill (NNNN, NNNN, SIGUSR1) = 0
-  */
+#ifdef SYS_tgkill
+  syscall(SYS_tgkill, 1234, 5678, 0);
+  // tgkill (1234, 5678, SIG_0)
 #endif
 
   return 0;
