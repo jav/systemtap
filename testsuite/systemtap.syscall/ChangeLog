@@ -1,8 +1,12 @@
 2007-10-09  Martin Hunt  <hunt@redhat.com>
 
+	* rt_signal.c: Fix expected results for IA64.
+
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+
 	* rt_signal.c: Fix expected patterns to match
-	recent changes in tapsets.
-	 
+	recent changes in tapsets. 
+
 	* signal.c: Use syscall(). Fix expected patterns.
 
 2007-10-01  Martin Hunt  <hunt@redhat.com>

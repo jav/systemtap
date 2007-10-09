@@ -39,7 +39,12 @@ int main()
   
   sa.sa_handler = sig_act_handler;
   sigaction(SIGUSR1, &sa, NULL);
+
+#ifdef __ia64__
+  // rt_sigaction (SIGUSR1, {XXXX, [^,]+, \[SIGALRM\]}, 0x[0]+, 8) = 0
+#else
   // rt_sigaction (SIGUSR1, {XXXX, [^,]+, XXXX, \[SIGALRM\]}, 0x[0]+, 8) = 0
+#endif
 
   return 0;
 }
