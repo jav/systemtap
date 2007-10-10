@@ -1520,7 +1520,7 @@ typedef struct {
 
 void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
-	int i = 0;
+	int i = 0, slen;
 	while (array[i].name) {
 		if (array[i].val == val) {
 			strlcat (ptr, array[i].name, len);
@@ -1528,15 +1528,18 @@ void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, in
 		}
 		i++;
 	}
-	snprintf(ptr, len, "0x%lx", val);
+	slen = strlen(ptr);
+	_stp_snprintf(ptr + slen, len - slen, "0x%lx", val);
 }
 void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
 	int i = 0, flag = 0;
+
 	if (val == 0) {
 		_stp_lookup_str(array, val, ptr, len);
 		return;
 	}
+
 	while (array[i].name) {
 		if (array[i].val & val) {
 			if (flag)
