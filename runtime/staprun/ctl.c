@@ -36,6 +36,9 @@ int init_ctl_channel(void)
 			perr("Couldn't open control channel '%s'", buf);
 		return -1;
 	}
+	if (set_clexec(control_channel) < 0)
+		return -1;
+	
 	return old_transport;
 }
 

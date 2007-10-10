@@ -948,7 +948,7 @@ function clones_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
-	THIS->__retvalue = atomic_read(&clnt->cl_count); /* FIXME: deref hazard! */
+	THIS->__retvalue = kread(&(clnt->cl_count));
 #else
         THIS->__retvalue = -1;
 #endif
@@ -958,7 +958,7 @@ function tasks_from_clnt:long(clnt:long)
 %{ /* pure */
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
-	THIS->__retvalue = atomic_read(&clnt->cl_users); /* FIXME: deref hazard! */
+	THIS->__retvalue = kread(&(clnt->cl_users));
 #else
         THIS->__retvalue = -1;
 #endif

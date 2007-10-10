@@ -59,6 +59,7 @@ function qsq_start (qname) {  # reset statistics for new baseline
   delete qs_wtime[qname]
   delete qs_wlentime[qname]
   delete qs_dcount[qname]
+  delete qs_utime[qname]
   qs_stime[qname] = qs_time ()
 }
 

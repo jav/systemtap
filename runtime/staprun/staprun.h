@@ -152,6 +152,7 @@ void parse_args(int argc, char **argv);
 void usage(char *prog);
 void parse_modpath(const char *);
 void setup_signals(void);
+int set_clexec(int fd);
 
 /*
  * variables 

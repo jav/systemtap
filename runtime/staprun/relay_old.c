@@ -86,7 +86,7 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 		return -1;
 	dbug(2, "Opening %s.\n", tmp); 
 	relay_fd[cpu] = open(tmp, O_RDONLY | O_NONBLOCK);
-	if (relay_fd[cpu] < 0) {
+	if (relay_fd[cpu] < 0 || set_clexec(relay_fd[cpu]) < 0) {
 		relay_fd[cpu] = 0;
 		return 0;
 	}
@@ -98,6 +98,10 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	if (proc_fd[cpu] < 0) {
 		perr("Couldn't open proc file %s", tmp);
 		goto err1;
+	}
+	if (set_clexec(relay_fd[cpu]) < 0) {
+		relay_fd[cpu] = 0;
+		return -1;
 	}
 
 	if (outfile_name) {
@@ -115,6 +119,10 @@ static int open_relayfs_files(int cpu, const char *relay_filebase, const char *p
 	}
 
 	if((percpu_tmpfile[cpu] = fopen(tmp, "w+")) == NULL) {
+		perr("Couldn't open output file %s", tmp);
+		goto err2;
+	}
+	if (set_clexec(fileno(percpu_tmpfile[cpu])) < 0) {
 		perr("Couldn't open output file %s", tmp);
 		goto err2;
 	}
@@ -243,7 +251,7 @@ int init_oldrelayfs(void)
 	if (!bulkmode) {
 		if (outfile_name) {
 			out_fd[0] = open (outfile_name, O_CREAT|O_TRUNC|O_WRONLY, 0666);
-			if (out_fd[0] < 0) {
+			if (out_fd[0] < 0 || set_clexec(out_fd[0]) < 0) {
 				perr("Couldn't open output file '%s'", outfile_name);
 				return -1;
 			}

@@ -2122,7 +2122,7 @@ probe syscall.signal = kernel.function("sys_signal") ? {
 	name = "signal"
 	sig = $sig
 	handler = $handler
-	argstr = sprintf("%s, %p", _signal_name($sig), $handler)
+	argstr = sprintf("%s, %s", _signal_name($sig), _sighandler_str($handler))
 }
 probe syscall.signal.return = kernel.function("sys_signal").return ? {
 	name = "signal"

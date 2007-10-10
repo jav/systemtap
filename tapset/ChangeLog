@@ -1,3 +1,36 @@
+2007-10-10  Martin Hunt  <hunt@redhat.com>
+
+	* aux_syscalls.stp (_stp_lookup_str): When defaulting
+	to a numeric value, append, don't overwrite.
+
+2007-10-10  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* aux_syscalls.stp (_stp_lookup_or_str) redirect to _stp_lookup_str
+	if val is 0.
+
+2007-10-09  Mike Mason  <mmlnx@us.ibm.com>
+
+	* rpc.stp: Replaced atomic_read()'s with kread()'s
+
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+        PR5153
+	* aux_syscalls.stp (_sighandler_str): No
+	sa_restorer field for IA64.
+
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+	
+	* syscalls2.stp (sys_signal): Call
+	_sighandler_str().
+
+	* aux_syscalls.stp (_stp_sigset_str): Don't
+	include SIG_0.
+	(_sighandler_str): New.
+	
+2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* queue_stats.stp (qsq_start): Add destruction for qs_utime.
+
 2007-10-09  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>

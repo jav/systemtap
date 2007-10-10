@@ -475,10 +475,16 @@ static void uprobe_free_process(struct uprobe_process *uproc)
  * Decrement uproc's ref count.  If it's zero, free uproc and return 1.
  * Else return 0.  If uproc is locked, don't call this; use
  * uprobe_decref_process().
+ *
+ * If we free uproc, we also decrement the ref-count on the uprobes
+ * module, if any.  If somebody is doing "rmmod --wait uprobes", this
+ * function could schedule removal of the module.  Therefore, don't call
+ * this function and then sleep in uprobes code, unless you know you'll
+ * return with the module ref-count > 0.
  */
 static int uprobe_put_process(struct uprobe_process *uproc)
 {
-	int ret = 0;
+	int freed = 0;
 	if (atomic_dec_and_test(&uproc->refcount)) {
 		lock_uproc_table();
 		down_write(&uproc->rwsem);
@@ -491,11 +497,13 @@ static int uprobe_put_process(struct uprobe_process *uproc)
 			up_write(&uproc->rwsem);
 		} else {
 			uprobe_free_process(uproc);
-			ret = 1;
+			freed = 1;
 		}
 		unlock_uproc_table();
 	}
-	return ret;
+	if (freed)
+		module_put(THIS_MODULE);
+	return freed;
 }
 
 static struct uprobe_kimg *uprobe_mk_kimg(struct uprobe *u)
@@ -842,10 +850,18 @@ int register_uprobe(struct uprobe *u)
 	if (uproc)
 		unlock_uproc_table();
 	else {
+		/* Creating a new uprobe_process.  Ref-count the module. */
+		if (!try_module_get(THIS_MODULE)) {
+			/* uprobes.ko is being removed. */
+			ret = -ENOSYS;
+			unlock_uproc_table();
+			goto fail_tsk;
+		}
 		uproc = uprobe_mk_process(p);
 		if (IS_ERR(uproc)) {
 			ret = (int) PTR_ERR(uproc);
 			unlock_uproc_table();
+			module_put(THIS_MODULE);
 			goto fail_tsk;
 		}
 		/* Hold uproc_mutex until we've added uproc to uproc_table. */
@@ -955,6 +971,7 @@ fail_uproc:
 	if (uproc_is_new) {
 		uprobe_free_process(uproc);
 		unlock_uproc_table();
+		module_put(THIS_MODULE);
 	} else {
 		up_write(&uproc->rwsem);
 		uprobe_put_process(uproc);
@@ -1063,8 +1080,9 @@ static struct task_struct *find_surviving_thread(struct uprobe_process *uproc)
 
 /*
  * Run all the deferred_registrations previously queued by the current utask.
- * Runs with no locks or mutexes held.  The current utask could disappear
- * as the result of unregister_u*probe() called here.
+ * Runs with no locks or mutexes held.  The current utask's uprobe_process
+ * is ref-counted, so they won't disappear as the result of
+ * unregister_u*probe() called here.
  */
 static void uprobe_run_def_regs(struct list_head *drlist)
 {
@@ -1577,7 +1595,7 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 	u32 ret;
 	unsigned long probept;
 	int hit_uretprobe_trampoline = 0;
-	LIST_HEAD(def_reg_list);
+	int registrations_deferred = 0;
 
 	utask = rcu_dereference((struct uprobe_task *)engine->data);
 	BUG_ON(!utask);
@@ -1673,12 +1691,16 @@ bkpt_done:
 
 		utask->active_probe = NULL;
 
-		/*
-		 * The deferred_registrations list accumulates in utask,
-		 * but utask could go away when we uprobe_run_def_regs.
-		 * So switch the list head to a local variable.
-		 */
-		list_splice_init(&utask->deferred_registrations, &def_reg_list);
+		if (!list_empty(&utask->deferred_registrations)) {
+			/*
+			 * Make sure utask doesn't go away before we run
+			 * the deferred registrations.  This also keeps
+			 * the module from getting unloaded before we're
+			 * ready.
+			 */
+			registrations_deferred = 1;
+			uprobe_get_process(uproc);
+		}
 
 		ret = UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN
 			| UTRACE_ACTION_NEWSTATE;
@@ -1698,7 +1720,10 @@ bkpt_done:
 			 */
 			uprobe_put_process(uproc);
 
-		uprobe_run_def_regs(&def_reg_list);
+		if (registrations_deferred) {
+			uprobe_run_def_regs(&utask->deferred_registrations);
+			uprobe_put_process(uproc);
+		}
 		break;
 	default:
 		goto no_interest;

@@ -1,3 +1,7 @@
+2007-10-09  Martin Hunt  <hunt@redhat.com>
+
+	* user/*: Removed obsolete userspace test files.
+
 2007-10-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5041
