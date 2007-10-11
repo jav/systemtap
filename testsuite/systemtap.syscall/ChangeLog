@@ -1,3 +1,8 @@
+2007-10-11 David Wilder <dwilder@us.ibm.com>
+
+	* futimes.c: Only test system calls that have 
+		     numbers assigned in asm/unistd.h. (see PR:4902)
+
 2007-10-09  Martin Hunt  <hunt@redhat.com>
 
 	* rt_signal.c: Fix expected results for IA64.
