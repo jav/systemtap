@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <sys/syscall.h>
+#include <linux/utime.h>
 
 #ifndef UTIME_NOW
 #define UTIME_NOW       ((1l << 30) - 1l)
@@ -15,6 +16,7 @@ int main()
   int fd;
   struct timeval tv[2];
   struct timespec ts[2];
+  struct utimbuf times;
 
   fd = creat("foobar", 0666);
 
@@ -23,19 +25,27 @@ int main()
   tv[0].tv_usec = 1234;
   tv[1].tv_sec = 2000000000;
   tv[1].tv_usec = 5678;
-  
-  utimes("foobar", tv);
-  // utimes ("foobar", \[1000000000.001234\]\[2000000000.005678\])
-#ifdef SYS_futimesat
-  futimes(fd, tv);
-  // futimesat (AT_FDCWD, "foobar", \[1000000000.001234\]\[2000000000.005678\])
 
-  futimesat(7, "foobar", tv);
+
+#ifdef __NR_utime
+ times.actime = 1000000000;
+ times.modtime = 2000000000;
+ syscall(__NR_utime, "foobar", &times );
+ // utime ("foobar", \[2001/09/09-01:46:40, 2033/05/18-03:33:20\])
+#endif /* __NR_utimes */
+  
+#ifdef __NR_utimes
+  syscall(__NR_utimes, "foobar", tv);
+  // utimes ("foobar", \[1000000000.001234\]\[2000000000.005678\])
+#endif /* __NR_utimes */
+
+#ifdef __NR_futimesat
+  syscall(__NR_futimesat, 7, "foobar", tv);
   // futimesat (7, "foobar", \[1000000000.001234\]\[2000000000.005678\])
 
-  futimesat(AT_FDCWD, "foobar", tv);
+  syscall(__NR_futimesat, AT_FDCWD, "foobar", tv);
   // futimesat (AT_FDCWD, "foobar", \[1000000000.001234\]\[2000000000.005678\])
-#endif /* SYS_futimesat */
+#endif /* __NR_futimesat */
 
 #ifdef __NR_utimensat
   ts[0].tv_sec = 1000000000;
