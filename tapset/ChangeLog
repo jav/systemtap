@@ -1,5 +1,11 @@
 2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* nfs_proc.stp (__nfs_write_data_info): Add data-access code for
+	count, valid and timestamp.
+
+2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* udp.stp: Add name argument for all probes.
 
 2007-10-10  Martin Hunt  <hunt@redhat.com>
