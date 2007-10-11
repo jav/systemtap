@@ -21,9 +21,11 @@
 //   The process which sends a udp message 
 //
 // Arguments:
-//   sock         - network socket 
-//   size         - number of bytes to send  
+//  name         - name of this probe
+//  sock         - network socket 
+//  size         - number of bytes to send  
 probe udp.sendmsg = kernel.function("udp_sendmsg") {
+	name = "udp.sendmsg"
 	sock    = $sk
 	size    = $len
 }
@@ -36,9 +38,11 @@ probe udp.sendmsg = kernel.function("udp_sendmsg") {
 // The process which sends a udp message
 //
 // Arguments:
+//  name         - name of this probe
 //  size         - number of bytes sent 
 //
 probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
+	name = "udp.sendmsg"
 	size = $return 
 }
 
@@ -50,10 +54,12 @@ probe udp.sendmsg.return = kernel.function("udp_sendmsg").return {
 //  The process which receives a udp message
 //
 // Arguments:
+//  name         - name of this probe
 //  sock         - network socket
 //  size         - number of bytes to be received  
 //
 probe udp.recvmsg = kernel.function("udp_recvmsg") {
+	name = "udp.recvmsg"
 	sock    = $sk
 	size    = $len
 }
@@ -66,9 +72,11 @@ probe udp.recvmsg = kernel.function("udp_recvmsg") {
 //  The process which receives a udp message
 //
 // Arguments:
+//  name         - name of this probe
 //  size         - number of bytes received
 //
 probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
+	name = "udp.recvmsg"
 	size = $return 
 }
 
@@ -80,10 +88,12 @@ probe udp.recvmsg.return = kernel.function("udp_recvmsg").return {
 //  The process which disconnects udp 
 //
 // Arguments:
-//  sock       - network socket 
-//  flags      - flags (e.g. FIN, etc)  
+//  name         - name of this probe
+//  sock         - network socket 
+//  flags        - flags (e.g. FIN, etc)  
 //
 probe udp.disconnect = kernel.function("udp_disconnect") {
+	name = "udp.disconnect"
 	sock  = $sk
 	flags = $flags
 }
@@ -96,8 +106,10 @@ probe udp.disconnect = kernel.function("udp_disconnect") {
 //  The process which disconnects udp 
 //
 // Arguments:
-//  ret         - error code (0: no error) 
+//  name         - name of this probe
+//  ret          - error code (0: no error) 
 //
 probe udp.disconnect.return = kernel.function("udp_disconnect").return {
+	name = "udp.disconnect"
 	ret = $return 
 }

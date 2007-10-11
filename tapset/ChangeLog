@@ -1,3 +1,23 @@
+2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* queue_stats.stp (qsq_utilization): Update queue account datas
+	before calculate.
+	(qsq_blocked): Ditto.
+	(qsq_wait_queue_length): Ditto.
+	(qsq_service_time): Ditto.
+	(qsq_wait_time): Ditto.
+	(qsq_throughput): Ditto.
+
+2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* nfs_proc.stp (__nfs_write_data_info): Add data-access code for
+	count, valid and timestamp.
+
+2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* udp.stp: Add name argument for all probes.
+
 2007-10-10  Martin Hunt  <hunt@redhat.com>
 
 	* aux_syscalls.stp (_stp_lookup_str): When defaulting

@@ -101,10 +101,14 @@ function __nfs_read_data_info:long (rdata :long,index :long) %{ /* pure */
 /*
   0: get ip address
   1: get proto
+  2: get res->count
+  3: get res->fattr->valid
+  4: get timestamp
 */
 function __nfs_write_data_info:long (wdata :long,index :long) %{ /* pure */
         struct nfs_write_data * wdata = (struct nfs_write_data *)(long)THIS->wdata;
 	struct rpc_task *task = &(wdata->task);
+	struct nfs_writeres *wres = &(wdata->res);
         int index = THIS->index;
 
 	switch(index) {
@@ -114,9 +118,25 @@ function __nfs_write_data_info:long (wdata :long,index :long) %{ /* pure */
 		case 1: 
 			THIS->__retvalue = get_prot(task);
 			break;
+
+		case 2:
+			THIS->__retvalue = kread(&(wres->count));
+			break;
+		case 3: {
+			struct nfs_fattr *fattr = kread(&(wres->fattr));
+			THIS->__retvalue = kread(&(fattr->valid));
+			break;
+		}
+#ifdef CONFIG_NFS_V4
+		case 4:
+			THIS->__retvalue = kread(&(wdata->timestamp));
+			break;
+#endif
 		default:
+			THIS->__retvalue = 0;
 			break;
 	}
+	CATCH_DEREF_FAULT();
 %}
 
 function __nfsv4_bitmask :long(dir:long,i:long) %{ /* pure */
