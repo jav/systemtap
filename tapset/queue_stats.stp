@@ -70,35 +70,41 @@ function qsq_start (qname) {  # reset statistics for new baseline
 
 # fraction of time that any request was being serviced
 function qsq_utilization (qname, scale) {
+  _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_rtime[qname]) / elapsed
 }
 
 # fraction of time that any request was blocked in the wait queue
 function qsq_blocked (qname, scale) {
+  _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_wtime[qname]) / elapsed
 }
 
 # length of wait queue 
 function qsq_wait_queue_length (qname, scale) {
+  _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_wlentime[qname]) / elapsed
 }
 
 # service time (amount of time per request service)
 function qsq_service_time (qname, scale) {
+  _qs_update (qname)
   return (scale * qs_rlentime[qname]) / qs_dcount[qname]
 }
 
 # wait time (amount of time in queue + service per request)
 function qsq_wait_time (qname, scale) {
+  _qs_update (qname)
   return (scale * (qs_rlentime[qname] + qs_wlentime[qname]))
     / qs_dcount[qname]
 }
 
 # service rate (number of requests served per unit time)
 function qsq_throughput (qname, scale) {
+  _qs_update (qname)
   elapsed = qs_time() - qs_stime[qname]
   return (scale * qs_dcount[qname]) / elapsed
 }
