@@ -12,18 +12,23 @@
 
 #include "staprun.h"
 
-int init_ctl_channel(void)
+int init_ctl_channel(int symbols)
 {
-	char buf[PATH_MAX];
+	char *cname, buf[PATH_MAX];
 	struct statfs st;
 	int old_transport = 0;
+	
+	if (symbols)
+		cname = ".symbols";
+	else
+		cname = ".cmd";
 
  	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
-		if (sprintf_chk(buf, "/sys/kernel/debug/systemtap/%s/cmd", modname))
+		if (sprintf_chk(buf, "/sys/kernel/debug/systemtap/%s/%s", modname, cname))
 			return -1;
 	} else {
 		old_transport = 1;
-		if (sprintf_chk(buf, "/proc/systemtap/%s/cmd", modname))
+		if (sprintf_chk(buf, "/proc/systemtap/%s/%s", modname, cname))
 			return -1;
 	}
 	

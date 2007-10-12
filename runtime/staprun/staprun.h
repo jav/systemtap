@@ -35,12 +35,7 @@
 #include <linux/version.h>
 #include <sys/capability.h>
 
-#define DEBUG
-#ifdef DEBUG
 #define dbug(level, args...) {if (verbose>=level) {fprintf(stderr,"%s:%s:%d ",__name__,__FUNCTION__, __LINE__); fprintf(stderr,args);}}
-#else
-#define dbug(level, args...) ;
-#endif /* DEBUG */
 
 extern char *__name__;
 
@@ -125,7 +120,7 @@ int send_request(int type, void *data, int len);
 void cleanup_and_exit (int);
 int do_module(void *);
 void do_kernel_symbols(void);
-int init_ctl_channel(void);
+int init_ctl_channel(int);
 void close_ctl_channel(void);
 int init_relayfs(void);
 void close_relayfs(void);
@@ -145,7 +140,8 @@ int insert_module(const char *path, const char *special_options,
 	char **options);
 int mountfs(void);
 int check_permissions(void);
-void handle_symbols(void);
+void start_symbol_thread(void);
+void stop_symbol_thread(void);
 
 /* common.c functions */
 void parse_args(int argc, char **argv);

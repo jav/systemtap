@@ -28,7 +28,7 @@
 		_perr(msg);					  \
 		exit(1);					  \
 	}							  \
-		
+
 /*
  * init_cap() sets up the initial capabilities for staprun. Then
  * it calls prctl( PR_SET_KEEPCAPS) to arrrange to keep these capabilities
@@ -57,7 +57,7 @@
 int init_cap(void)
 {
 	cap_t caps = cap_init();
-	cap_value_t capv[] = {CAP_SYS_MODULE, CAP_SYS_ADMIN, CAP_SYS_NICE, CAP_SETUID, CAP_SETGID};
+	cap_value_t capv[] = {CAP_SYS_MODULE, CAP_SYS_ADMIN, CAP_SYS_NICE, CAP_SETUID, CAP_SETGID, CAP_DAC_OVERRIDE};
 	const int numcaps = sizeof(capv) / sizeof(capv[0]);
 	uid_t uid = getuid();
 	gid_t gid = getgid();

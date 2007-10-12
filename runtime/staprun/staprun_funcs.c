@@ -385,8 +385,10 @@ int check_permissions(void)
 	return check_path();
 }
 
-/* wait for symbol requests and reply */
-void handle_symbols(void)
+pthread_t symbol_thread_id = (pthread_t)0;
+
+/* Symbol handling thread */
+void *handle_symbols(void __attribute__((unused)) *arg)
 {
 	ssize_t nb;
 	void *data;
@@ -394,12 +396,6 @@ void handle_symbols(void)
 	char recvbuf[8192];
 
 	dbug(2, "waiting for symbol requests\n");
-
-	/* create control channel */
-	if (init_ctl_channel() < 0) {
-		err("Failed to initialize control channel.\n");
-		exit(1);
-	}
 
 	while (1) { /* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
@@ -417,7 +413,7 @@ void handle_symbols(void)
 		{
 			dbug(2, "STP_MODULES request received\n");
 			do_module(data);
-			goto done;
+			break;
 		}		
 		case STP_SYMBOLS:
 		{
@@ -439,6 +435,36 @@ void handle_symbols(void)
 			err("WARNING: ignored message of type %d\n", (type));
 		}
 	}
-done:
+
+	return NULL;
+}
+
+void start_symbol_thread(void)
+{
+	int status;
+
+	/* create symbol control channel */
+	status = do_cap(CAP_DAC_OVERRIDE, init_ctl_channel, 1);
+	drop_cap(CAP_DAC_OVERRIDE);
+	if (status < 0) {
+		err("Failed to initialize control channel.\n");
+		exit(1);
+	}
+	status = pthread_create(&symbol_thread_id, NULL, handle_symbols, NULL);
+	if (status) {
+		perr("Failed to create symbol thread.\n");
+		exit(1);
+	}
+}
+
+void stop_symbol_thread(void)
+{
+
+	if (symbol_thread_id) {
+		dbug(2, "Stopping symbol thread.\n");
+		pthread_cancel(symbol_thread_id);
+		pthread_join(symbol_thread_id, NULL);
+	}
 	close_ctl_channel();
 }
+

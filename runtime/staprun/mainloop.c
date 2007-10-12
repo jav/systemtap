@@ -164,7 +164,7 @@ int init_stapio(void)
 	dbug(2, "init_stapio\n");
 
 	/* create control channel */
-	use_old_transport = init_ctl_channel();
+	use_old_transport = init_ctl_channel(0);
 	if (use_old_transport < 0) {
 		err("Failed to initialize control channel.\n");
 		return -1;

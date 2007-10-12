@@ -1,3 +1,18 @@
+2007-10-12  Martin Hunt  <hunt@redhat.com>
+	Changes to separate the symbols from the command channel.
+	
+	* cap.c (init_cap): Add CAP_DAC_OVERRIDE.
+	* staprun.h: Change init_ctl_channel prototype.
+	* ctl.c (init_ctl_channel): Modify to open either
+	a command or symbol channel. Use ".cmd" and ".symbols"
+	as the new names.
+	* mainloop.c (init_stapio): Call init_ctl_channel(0);
+	* staprun.c (cleanup): Call stop_symbol_thread().
+	(main): Call start_symbol_thread().
+	* staprun_funcs.c (handle_symbols): Make a thread.
+	(start_symbol_thread): New.
+	(stop_symbol_thread): New.
+	
 2007-10-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* staprun.c (main): Move checks for init_cap and getuid
