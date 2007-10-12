@@ -1,3 +1,8 @@
+2007-10-12  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* queue_stats.stp (qsq_start): Fix problem that compile fails when
+	calling qsq_utilization or other query functions next to qsq_start.
+
 2007-10-11  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* queue_stats.stp (qsq_utilization): Update queue account datas
