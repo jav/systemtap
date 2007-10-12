@@ -52,10 +52,10 @@ function qs_done (qname) { # done servicing request
 # ------------------------------------------------------------------------
 
 function qsq_start (qname) {  # reset statistics for new baseline
-  delete qs_rcount[qname]
+  qs_rcount[qname] = 0
   delete qs_rtime[qname]
   delete qs_rlentime[qname]
-  delete qs_wcount[qname]
+  qs_wcount[qname] = 0
   delete qs_wtime[qname]
   delete qs_wlentime[qname]
   delete qs_dcount[qname]
