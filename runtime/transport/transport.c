@@ -66,22 +66,20 @@ static struct workqueue_struct *_stp_wq;
 #include "control.c"
 #endif
 
-void _stp_ask_for_symbols(void)
+static void _stp_ask_for_symbols(void)
 {
 	struct _stp_msg_symbol req;
 	struct _stp_module mod;
 
-	/* ask for symbols, modules, and send transport info */
+	/* ask for symbols and modules */
 	kbug("AFS\n");
 
 	req.endian = 0x1234;
 	req.ptr_size = sizeof(char *);
 	_stp_ctl_send(STP_SYMBOLS, &req, sizeof(req));
-	
+
 	strcpy(mod.name, "");
 	_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
-
-	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 }
 
 /*
@@ -156,11 +154,10 @@ static void _stp_work_queue (void *data)
 	int do_io = 0;
 	unsigned long flags;
 
-	spin_lock_irqsave(&_stp_ready_lock, flags);
-	if (!list_empty(&_stp_ready_q))
+	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+	if (!list_empty(&_stp_ctl_ready_q))
 		do_io = 1;
-	spin_unlock_irqrestore(&_stp_ready_lock, flags);
-
+	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
 	if (do_io)
 		wake_up_interruptible(&_stp_ctl_wq);
 
