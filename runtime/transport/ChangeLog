@@ -1,3 +1,13 @@
+2007-10-12  Martin Hunt  <hunt@redhat.com>
+
+	* transport.c (_stp_ask_for_symbols): Don't ask for
+	transport_info yet.  Need to wait until symbols are
+	received.
+	(_stp_work_queue): Rename _stp_ready_q to _stp_ctl_ready_q.
+	* procfs.c: Create a ".symbols" channel and use it for
+	STP_MODULE and STP_SYMBOLS. Rename "cmd" channel to ".cmd".
+	* control.c: Ditto.
+
 2007-09-21  Martin Hunt  <hunt@redhat.com>
 	From Alan Brunelle
 	* control.c (_stp_ctl_read_cmd): Cast count to an int before printing.

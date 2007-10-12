@@ -26,6 +26,7 @@
 #include <vector>
 #include <cstdarg>
 #include <cassert>
+#include <iomanip>
 
 extern "C" {
 #include <fcntl.h>
@@ -712,7 +713,7 @@ struct dwflpp
   {}
 
 
-  void setup(bool kernel)
+  void setup(bool kernel, bool debuginfo_needed = true)
   {
     // XXX: this is where the session -R parameter could come in
     static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
@@ -741,11 +742,12 @@ struct dwflpp
 	  throw semantic_error ("cannot open dwfl");
 	dwfl_report_begin (dwfl);
 
-        dwfl_assert ("missing kernel debuginfo",
-                     dwfl_linux_kernel_report_offline 
-                     (dwfl,
-                      sess.kernel_release.c_str(),
-                      NULL /* selection predicate */));
+	int rc = dwfl_linux_kernel_report_offline (dwfl,
+						   sess.kernel_release.c_str(),
+						   /* selection predicate */
+						   NULL);
+	if (debuginfo_needed)
+	  dwfl_assert ("missing kernel debuginfo", rc);
 
         // XXX: it would be nice if we could do a single
         // ..._report_offline call for an entire systemtap script, so
@@ -5008,11 +5010,45 @@ mark_query::mark_query(systemtap_session & sess,
   assert (has_mark_str);
 }
 
-struct markers_data
+void
+hex_dump(unsigned char *data, size_t len)
 {
-  string name;
-  string params;
-};
+  // Dump data
+  size_t idx = 0;
+  while (idx < len)
+    {
+      string char_rep;
+
+      clog << "  0x" << setfill('0') << setw(8) << hex << internal << idx;
+
+      for (int i = 0; i < 4; i++)
+        {
+	  clog << " ";
+	  size_t limit = idx + 4;
+	  while (idx < len && idx < limit)
+	    {
+	      clog << setfill('0') << setw(2)
+		   << ((unsigned) *((unsigned char *)data + idx));
+	      if (isprint(*((char *)data + idx)))
+		char_rep += *((char *)data + idx);
+	      else
+		char_rep += '.';
+	      idx++;
+	    }
+	  while (idx < limit)
+	    {
+	      clog << "  ";
+	      idx++;
+	    }
+	}
+      clog << " " << char_rep << dec << setfill(' ') << endl;
+    }
+}
+
+struct __mark_marker {
+    char *name;
+    char *format;
+} __attribute__((aligned(8)));
 
 void
 mark_query::handle_query_module()
@@ -5021,114 +5057,240 @@ mark_query::handle_query_module()
   Elf *elf = dwfl_module_getelf(dw.module, &baseaddr);
   assert(elf);
   
-  string section_name;
+  GElf_Addr start_markers_addr = 0;
+  GElf_Addr stop_markers_addr = 0;
+  int syments = dwfl_module_getsymtab(dw.module);
+  assert(syments);
+
   size_t shstrndx;
   dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
 
-  // Find markers string section ("__markers_strings")
+  // Try to find the markers section (named "__markers") and use its
+  // extents for the start and stop marker addresses.
   Elf_Scn *scn = NULL;
-  Elf_Scn *markers_string_scn = NULL;
   while ((scn = elf_nextscn (elf, scn)) != NULL)
     {
-      // Handle the section if it is a string/progbits section.
       GElf_Shdr shdr_mem;
-      GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+      GElf_Shdr *shdr;
 
+      // Handle the section if it is a progbits section.
+      shdr = gelf_getshdr (scn, &shdr_mem);
       if (shdr != NULL && shdr->sh_type == SHT_PROGBITS)
         {
-	  section_name = elf_strptr (elf, shstrndx, shdr->sh_name);
-	  if (section_name == "__markers_strings")
+	  string section_name = elf_strptr (elf, shstrndx, shdr->sh_name);
+	  if (section_name == "__markers")
 	    {
-	      markers_string_scn = scn;
+	      start_markers_addr = shdr->sh_addr;
+	      stop_markers_addr = shdr->sh_addr + shdr->sh_size;
 	      break;
 	    }
 	}
     }
 
-  // If this module doesn't have a markers string section, just
+  // If we haven't found the start and stop marker addresses, look for
+  // the start and stop marker symbols.
+  if (start_markers_addr == 0 || stop_markers_addr == 0)
+    {
+      for (int i = 1; i < syments; ++i)
+        {
+	  GElf_Sym sym;
+	  const char *name = dwfl_module_getsym(dw.module, i, &sym, NULL);
+	  if (name != NULL
+	      // if it is a NOTYPE GLOBAL
+	      && sym.st_info == GELF_ST_INFO(STB_GLOBAL, STT_NOTYPE)
+	      // and it has default visibility rules,
+	      && GELF_ST_VISIBILITY(sym.st_other) == STV_DEFAULT
+	      // and its size is 0
+	      && sym.st_size == 0)
+	    {
+	      if (start_markers_addr == 0
+		  && strcmp(name, "__start___markers") == 0)
+	        {
+		  start_markers_addr = sym.st_value;
+		  if (stop_markers_addr != 0)
+		    break;
+		}
+	      else if (stop_markers_addr == 0
+		       && strcmp(name, "__stop___markers") == 0)
+	        {
+		  stop_markers_addr = sym.st_value;
+		  if (start_markers_addr != 0)
+		    break;
+		}
+	    }
+	}
+    }
+
+  if (sess.verbose > 2)
+    clog << "__start___markers: 0x" << hex << start_markers_addr << endl
+	 << "__stop___markers: 0x" << hex << stop_markers_addr << dec << endl;
+
+  // If we couldn't find the start and stop markers address, just
   // return.  Code above this will report an error if necessary.
-  if (markers_string_scn == NULL)
+  if (start_markers_addr == 0 || stop_markers_addr == 0)
     return;
 
-  // Get the string section data now.
-  Elf_Data *data = elf_getdata(markers_string_scn, NULL);
-  if (data == NULL)
-    throw semantic_error("no __markers_string data?");
+  GElf_Xword marker_sym_size = 0;
+  Elf_Scn *marker_data_scn = NULL;
+  GElf_Shdr marker_data_shdr_mem;
+  GElf_Shdr *marker_data_shdr = NULL;
+  Elf_Data *marker_data_data = NULL;
+  Elf_Scn *marker_string_scn = NULL;
+  GElf_Shdr marker_string_shdr_mem;
+  GElf_Shdr *marker_string_shdr = NULL;
+  Elf_Data *marker_string_data = NULL;
+  map<string, string> markers;
 
-  // Process each marker.  For each marker, there should be 2 strings
-  // in the __markers_string section: the marker name string and the
-  // marker parameter type list string.
-  size_t offset = 0;
-  vector<markers_data *> markers;
-  while (offset < data->d_size)
+  // Now we know starting/ending addresses of all marker symbols. Find
+  // all marker symbols.
+  for (int i = 1; i < syments; ++i)
     {
-      // Grab the marker name
-      if (offset >= data->d_size)
-	throw semantic_error("bad __markers_string section?");
-      string name = (char *)(data->d_buf) + offset;
-      offset += name.size() + 1;
-      if (offset >= data->d_size || name.empty())
-	throw semantic_error("bad __markers_string section?");
+      GElf_Sym sym;
+      GElf_Word shndxp;
 
-      // Skip any '\0' chars
-      while (offset < data->d_size)
+      const char *name = dwfl_module_getsym(dw.module, i, &sym, &shndxp);
+      if (name != NULL
+	  // if it is a LOCAL OBJECT
+	  && sym.st_info == GELF_ST_INFO(STB_LOCAL, STT_OBJECT)
+	  // and it has default visibility rules,
+	  && GELF_ST_VISIBILITY(sym.st_other) == STV_DEFAULT
+	  // and its value is between start_marker_value and
+	  // stop_marker_value
+	  && sym.st_value >= start_markers_addr
+	  && sym.st_value < stop_markers_addr)
         {
-	  if (*((char *)(data->d_buf) + offset) != '\0')
-	    break;
-	  offset++;
+	    // Remember the marker size - all marker structs are the
+	    // same size.
+	    if (marker_sym_size == 0)
+	      marker_sym_size = sym.st_size;
+
+	    if (sess.verbose > 2)
+	      clog << endl << setw(6) << dec << i << ": "
+		   << setfill('0') << setw(8) << hex << sym.st_value
+		   << " "
+		   << setfill(' ') << setw(5) << hex << sym.st_size << dec
+		   << " " << name << endl;
+
+	    // Since all marker data lives in the same section, we'll
+	    // just grab the section from the first marker we find.
+	    if (marker_data_scn == NULL)
+	      {
+		marker_data_scn = elf_getscn (elf, shndxp);
+		if (marker_data_scn == NULL)
+		  throw semantic_error("couldn't get section "
+				       + lex_cast<string>(shndxp));
+
+		// Get the marker data section header
+		marker_data_shdr = gelf_getshdr (marker_data_scn,
+						 &marker_data_shdr_mem);
+		if (marker_data_shdr == NULL)
+		  throw semantic_error("couldn't get section header for section "
+				       + lex_cast<string>(shndxp));
+
+		if (sess.verbose > 2)
+		  clog << "section addr: " << setw(8) << setfill('0') << hex
+		       << marker_data_shdr->sh_addr
+		       << dec << setfill(' ') << endl;
+
+		// Get the data of the section.
+		marker_data_data = elf_getdata (marker_data_scn,
+						NULL);
+		if (marker_data_data == NULL)
+		  throw semantic_error("couldn't get section data in section "
+				       + lex_cast<string>(shndxp));
+	      }
+
+	    GElf_Addr offset = sym.st_value - marker_data_shdr->sh_addr;
+	    if (sess.verbose > 2)
+	      clog << "value: "
+		   << setw(8) << setfill('0') << hex << sym.st_value
+		   << "  section addr: " << setw(8) << marker_data_shdr->sh_addr
+		   << "  section offset: " << setw(8) << offset
+		   << setfill(' ') << dec << endl;
+	    
+	    if ((offset + marker_sym_size) <= marker_data_shdr->sh_size)
+	      {
+		if (sess.verbose > 2)
+		  hex_dump((unsigned char *)marker_data_data->d_buf + offset,
+			   marker_sym_size);
+
+		struct __mark_marker *mark = ((struct __mark_marker *)((unsigned char *)marker_data_data->d_buf + offset));
+		if (sess.verbose > 2)
+		  clog << "Dump of marker:" << endl
+		       << "  name:   0x"
+		       << setfill('0') << setw(8) << hex << (unsigned int)mark->name << endl
+		       << "  format: 0x"
+		       << setw(8) << (unsigned int)mark->format
+		       << setfill(' ') << dec << endl;
+
+		// Since all marker string data lives in the same
+		// section, we'll just grab the section from the first
+		// marker string we find.
+		if (marker_string_data == NULL)
+		  {
+		    bool found = false;
+		    while ((marker_string_scn = elf_nextscn (elf, marker_string_scn)) != NULL)
+		      {
+			// Handle the section if it is a progbits section.
+			marker_string_shdr = gelf_getshdr (marker_string_scn,
+							   &marker_string_shdr_mem);
+			if (marker_string_shdr != NULL
+			    && marker_string_shdr->sh_type == SHT_PROGBITS
+			    && (GElf_Addr)(uint)mark->name >= marker_string_shdr->sh_addr
+			    && (GElf_Addr)(uint)mark->name < (marker_string_shdr->sh_addr + marker_string_shdr->sh_size))
+			  {
+			    found = true;
+			    break;
+			  }
+		      }
+		    if (! found)
+		      throw semantic_error("cannot find marker string section");
+
+		    marker_string_data = elf_getdata(marker_string_scn, NULL);
+		    if (marker_string_data == NULL)
+		      throw semantic_error("cannot get marker string section data");
+		  }
+
+		GElf_Addr offset = (GElf_Addr)(uint)mark->name
+		    - marker_string_shdr->sh_addr;
+		char *name = NULL;
+		char *format = NULL;
+		if ((GElf_Addr)(uint)mark->name >= marker_string_shdr->sh_addr
+		    && offset < marker_string_shdr->sh_size)
+		  {
+		    name = (char *)(marker_string_data->d_buf) + offset;
+		    if (sess.verbose > 2)
+		      clog << "  name: " << name << endl;
+		  }
+
+		offset = (GElf_Addr)(uint)mark->format
+		    - marker_string_shdr->sh_addr;
+		if ((GElf_Addr)(uint)mark->format >= marker_string_shdr->sh_addr
+		    && offset < marker_string_shdr->sh_size)
+		  {
+		    format = (char *)(marker_string_data->d_buf) + offset;
+		    if (sess.verbose > 2)
+		      clog << "  format: " << format << endl;
+		  }
+
+		if (name != NULL && format != NULL)
+		  markers[name] = format;
+	    }
 	}
-
-      // Grab the parameter string.
-      string params = (char *)(data->d_buf) + offset;
-      offset += params.size() + 1;
-      if (offset >= data->d_size)
-	throw semantic_error("bad __markers_string section?");
-
-      // Skip any '\0' chars
-      while (offset < data->d_size)
-        {
-	  if (*((char *)(data->d_buf) + offset) != '\0')
-	    break;
-	  offset++;
-	}
-
-      // Skip the arg string
-      while (offset < data->d_size)
-        {
-	  if (*((char *)(data->d_buf) + offset) == '\0')
-	    break;
-	  offset++;
-	}
-      offset++;
-
-      // Skip any '\0' chars
-      while (offset < data->d_size)
-        {
-	  if (*((char *)(data->d_buf) + offset) != '\0')
-	    break;
-	  offset++;
-	}
-
-      markers_data *m = new markers_data;
-      m->name = name;
-      m->params = params;
-      markers.push_back(m);
     }
 
   // Search marker list for matching markers
-  for (size_t i = 0; i < markers.size(); i++)
+  for (map<string,string>::iterator it = markers.begin(); it != markers.end(); it++)
     {
-      const markers_data *m = markers.at(i);
-
       // Below, "rc" has negative polarity: zero iff matching.  Also,
       // we don't have to worry about the module not matching.  If it
       // didn't  match, this function wouldn't get called.
-      int rc = fnmatch(mark_str_val.c_str(), m->name.c_str(), 0);
+      int rc = fnmatch(mark_str_val.c_str(), it->first.c_str(), 0);
       if (! rc)
         {
 	  derived_probe *dp
 	      = new mark_derived_probe (sess,
-					m->name, m->params,
+					it->first, it->second,
 					module_val,
 					base_probe);
 	  results.push_back (dp);
@@ -5221,7 +5383,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   require <block*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 
-  if (sess.verbose > 1)
+  if (sess.verbose > 2)
     clog << "marker-based " << name << " signature=" << probe_sig << endl;
 }
 
@@ -5584,7 +5746,7 @@ mark_builder::build(systemtap_session & sess,
     {
       kern_dw = new dwflpp(sess);
       assert(kern_dw);
-      kern_dw->setup(true);
+      kern_dw->setup(true, false);
     }
 
   mark_query mq(sess, base, location, *kern_dw, parameters, finished_results);

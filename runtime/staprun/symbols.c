@@ -140,7 +140,10 @@ err0:
 }
 #undef SECDIR
 
-void send_module (char *mname)
+/* 
+ * For modules, we send the name, section names, and offsets
+ */
+static void send_module (char *mname)
 {
 	char data[32768];
 	int len = get_sections(mname, data, sizeof(data));
@@ -152,6 +155,9 @@ void send_module (char *mname)
 	}
 }
 
+/*
+ * Send either all modules, or a specific one.
+ */
 int do_module (void *data)
 {
 	struct _stp_module *mod = (struct _stp_module *)data;
@@ -183,6 +189,11 @@ static int compar(const void *p1, const void *p2)
 
 #define MAX_SYMBOLS 32*1024
 
+/*
+ * Read /proc/kallsyms and send all kernel symbols to the
+ * systemtap module.  Ignore module symbols; the systemtap module
+ * can access them directly.
+ */
 void do_kernel_symbols(void)
 {
 	FILE *kallsyms=NULL;

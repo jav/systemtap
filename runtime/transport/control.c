@@ -12,16 +12,17 @@
 #define STP_DEFAULT_BUFFERS 50
 static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
-static struct list_head _stp_ready_q;
+static struct list_head _stp_ctl_ready_q;
+static struct list_head _stp_sym_ready_q;
 static struct list_head _stp_pool_q;
 spinlock_t _stp_pool_lock = SPIN_LOCK_UNLOCKED;
-spinlock_t _stp_ready_lock = SPIN_LOCK_UNLOCKED;
+spinlock_t _stp_ctl_ready_lock = SPIN_LOCK_UNLOCKED;
+spinlock_t _stp_sym_ready_lock = SPIN_LOCK_UNLOCKED;
 
-static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
+static ssize_t _stp_sym_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
 	int type;
-	static int started = 0, initialized = 0;
 
 	if (count < sizeof(int))
 		return 0;
@@ -29,7 +30,7 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	if (get_user(type, (int __user *)buf))
 		return -EFAULT;
 
-	// kbug ("count:%d type:%d\n", count, type);
+	kbug ("count:%d type:%d\n", count, type);
 
 	if (type == STP_SYMBOLS) {
 		count -= sizeof(long);
@@ -40,8 +41,45 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	}
 
 	switch (type) {
+	case STP_SYMBOLS:
+		
+		if (count)
+			count = _stp_do_symbols(buf, count);
+		break;
+	case STP_MODULE:
+		if (count)
+			count = _stp_do_module(buf, count);
+		else {
+			/* count == 0 indicates end of initial modules list */
+			_stp_ctl_send(STP_TRANSPORT, NULL, 0);			
+		}
+		break;
+	default:
+		errk ("invalid symbol command type %d\n", type);
+		return -EINVAL;
+	}
+
+	return count;
+}
+static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
+				    size_t count, loff_t *ppos)
+{
+	int type;
+	static int started = 0;
+
+	if (count < sizeof(int))
+		return 0;
+
+	if (get_user(type, (int __user *)buf))
+		return -EFAULT;
+
+	// kbug ("count:%d type:%d\n", count, type);
+
+	count -= sizeof(int);
+	buf += sizeof(int);
+
+	switch (type) {
 	case STP_START:
-	{
 		if (started == 0) {
 			struct _stp_msg_start st;
 			if (count < sizeof(st))
@@ -50,20 +88,6 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 				return -EFAULT;
 			_stp_handle_start (&st);
 			started = 1;
-		}
-		break;
-	}
-
-	case STP_SYMBOLS:
-		if (initialized == 0 && count && current->pid == _stp_init_pid)
-			count = _stp_do_symbols(buf, count);
-		break;
-	case STP_MODULE:
-		if (initialized == 0 && current->pid == _stp_init_pid) {
-			if (count)
-				count = _stp_do_module(buf, count);
-			else
-				initialized = 1;
 		}
 		break;
 	case STP_EXIT:
@@ -93,6 +117,7 @@ struct _stp_buffer {
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
+static DECLARE_WAIT_QUEUE_HEAD(_stp_sym_wq);
 
 #ifdef DEBUG
 static void _stp_ctl_write_dbug (int type, void *data, int len)
@@ -113,17 +138,25 @@ static void _stp_ctl_write_dbug (int type, void *data, int len)
 		snprintf(buf, sizeof(buf), "%s", (char *)data); 
 		printk("_stp_ctl_write: sending STP_SYSTEM: %s\n", buf);
 		break;
-	case STP_SYMBOLS:
-		printk("_stp_ctl_write: sending STP_SYMBOLS\n");
-		break;
-	case STP_MODULE:
-		printk("_stp_ctl_write: sending STP_MODULE\n");
-		break;
 	case STP_TRANSPORT:
 		printk("_stp_ctl_write: sending STP_TRANSPORT\n");
 		break;
 	default:
 		printk("_stp_ctl_write: ERROR: unknown message type: %d\n", type);
+		break;
+	}
+}
+static void _stp_sym_write_dbug (int type, void *data, int len)
+{
+	switch (type) {
+	case STP_SYMBOLS:
+		printk("_stp_sym_write: sending STP_SYMBOLS\n");
+		break;
+	case STP_MODULE:
+		printk("_stp_sym_write: sending STP_MODULE\n");
+		break;
+	default:
+		printk("_stp_sym_write: ERROR: unknown message type: %d\n", type);
 		break;
 	}
 }
@@ -134,7 +167,6 @@ static int _stp_ctl_write (int type, void *data, unsigned len)
 	struct _stp_buffer *bptr;
 	unsigned long flags;
 	unsigned numtrylock;
-
 #ifdef DEBUG
 	_stp_ctl_write_dbug(type, data, len);
 #endif
@@ -166,13 +198,54 @@ static int _stp_ctl_write (int type, void *data, unsigned len)
 	
 	/* put it on the pool of ready buffers */
 	numtrylock = 0;
-	while (!spin_trylock_irqsave (&_stp_ready_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
+	while (!spin_trylock_irqsave (&_stp_ctl_ready_lock, flags) && (++numtrylock < MAXTRYLOCK)) 
 		ndelay (TRYLOCKDELAY);
+
 	if (unlikely (numtrylock >= MAXTRYLOCK)) 
 		return 0;
 
-	list_add_tail(&bptr->list, &_stp_ready_q);
-	spin_unlock_irqrestore(&_stp_ready_lock, flags);
+	list_add_tail(&bptr->list, &_stp_ctl_ready_q);
+	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	return len;
+}
+
+static int _stp_sym_write (int type, void *data, unsigned len)
+{
+	struct _stp_buffer *bptr;
+	unsigned long flags;
+
+#ifdef DEBUG
+	_stp_sym_write_dbug(type, data, len);
+#endif
+
+	/* make sure we won't overflow the buffer */
+	if (unlikely(len > STP_CTL_BUFFER_SIZE))
+		return 0;
+
+	spin_lock_irqsave (&_stp_pool_lock, flags);
+	if (unlikely(list_empty(&_stp_pool_q))) {
+		spin_unlock_irqrestore(&_stp_pool_lock, flags); 
+		dbug("_stp_pool_q empty\n");
+		return -1;
+	}
+
+	/* get the next buffer from the pool */
+	bptr = (struct _stp_buffer *)_stp_pool_q.next;
+	list_del_init(&bptr->list);
+	spin_unlock_irqrestore(&_stp_pool_lock, flags);
+
+	bptr->type = type;
+	memcpy(bptr->buf, data, len);
+	bptr->len = len;
+	
+	/* put it on the pool of ready buffers */
+	spin_lock_irqsave (&_stp_sym_ready_lock, flags);
+	list_add_tail(&bptr->list, &_stp_sym_ready_q);
+	spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
+
+	/* OK, it's queued. Now signal any waiters. */
+	wake_up_interruptible(&_stp_sym_wq);
 
 	return len;
 }
@@ -182,34 +255,39 @@ static int _stp_ctl_send (int type, void *data, int len)
 {
 	int err, trylimit = 50;
 	kbug("ctl_send: type=%d len=%d\n", type, len);
-	while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
-		msleep (5);
+	if (unlikely(type == STP_SYMBOLS || type == STP_MODULE)) {
+		while ((err = _stp_sym_write(type, data, len)) < 0 && trylimit--)
+			msleep (5);
+	} else {
+		while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
+			msleep (5);
+	}
 	kbug("returning %d\n", err);
 	return err;
 }
 
 static ssize_t
-_stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
+_stp_sym_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
 	struct _stp_buffer *bptr;
 	int len;
 	unsigned long flags;
 
 	/* wait for nonempty ready queue */
-	spin_lock_irqsave(&_stp_ready_lock, flags);
-	while (list_empty(&_stp_ready_q)) {
-		spin_unlock_irqrestore(&_stp_ready_lock, flags);
+	spin_lock_irqsave(&_stp_sym_ready_lock, flags);
+	while (list_empty(&_stp_sym_ready_q)) {
+		spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
-		if (wait_event_interruptible(_stp_ctl_wq, !list_empty(&_stp_ready_q)))
+		if (wait_event_interruptible(_stp_sym_wq, !list_empty(&_stp_sym_ready_q)))
 			return -ERESTARTSYS;
-		spin_lock_irqsave(&_stp_ready_lock, flags);
+		spin_lock_irqsave(&_stp_sym_ready_lock, flags);
 	}
   
 	/* get the next buffer off the ready list */
-	bptr = (struct _stp_buffer *)_stp_ready_q.next;
+	bptr = (struct _stp_buffer *)_stp_sym_ready_q.next;
 	list_del_init(&bptr->list);
-	spin_unlock_irqrestore(&_stp_ready_lock, flags);
+	spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
 
 	/* write it out */
 	len = bptr->len + 4;
@@ -230,9 +308,70 @@ _stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *pp
 	return len;
 }
 
+static ssize_t
+_stp_ctl_read_cmd (struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+	struct _stp_buffer *bptr;
+	int len;
+	unsigned long flags;
+
+	/* wait for nonempty ready queue */
+	spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+	while (list_empty(&_stp_ctl_ready_q)) {
+		spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+		if (file->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+		if (wait_event_interruptible(_stp_ctl_wq, !list_empty(&_stp_ctl_ready_q)))
+			return -ERESTARTSYS;
+		spin_lock_irqsave(&_stp_ctl_ready_lock, flags);
+	}
+  
+	/* get the next buffer off the ready list */
+	bptr = (struct _stp_buffer *)_stp_ctl_ready_q.next;
+	list_del_init(&bptr->list);
+	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
+
+	/* write it out */
+	len = bptr->len + 4;
+	if (len > count || copy_to_user(buf, &bptr->type, len)) {
+		/* now what?  We took it off the queue then failed to send it */
+		/* we can't put it back on the queue because it will likely be out-of-order */
+		/* fortunately this should never happen */
+		/* FIXME need to mark this as a transport failure */
+		errk("Supplied buffer too small. count:%d len:%d\n", (int)count, len);
+		return -EFAULT;
+	}
+
+	/* put it on the pool of free buffers */
+	spin_lock_irqsave(&_stp_pool_lock, flags);
+	list_add_tail(&bptr->list, &_stp_pool_q);
+	spin_unlock_irqrestore(&_stp_pool_lock, flags);
+
+	return len;
+}
+
+static int _stp_sym_opens = 0;
+static int _stp_sym_open_cmd (struct inode *inode, struct file *file)
+{
+	/* only allow one reader */
+	if (_stp_sym_opens)
+		return -1;
+
+	_stp_sym_opens++;
+	return 0;
+}
+
+static int _stp_sym_close_cmd (struct inode *inode, struct file *file)
+{
+	if (_stp_sym_opens)
+		_stp_sym_opens--;
+	return 0;
+}
+
 static int _stp_ctl_opens = 0;
 static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
 {
+	/* only allow one reader */
 	if (_stp_ctl_opens)
 		return -1;
 
@@ -260,20 +399,30 @@ static struct file_operations _stp_ctl_fops_cmd = {
 	.release = _stp_ctl_close_cmd,
 };
 
+static struct file_operations _stp_sym_fops_cmd = {
+	.owner = THIS_MODULE,
+	.read = _stp_sym_read_cmd,
+	.write = _stp_sym_write_cmd,
+	.open = _stp_sym_open_cmd,
+	.release = _stp_sym_close_cmd,
+};
+
 static struct dentry *_stp_cmd_file = NULL;
+static struct dentry *_stp_sym_file = NULL;
 
 static int _stp_register_ctl_channel (void)
 {
 	int i;
 	struct list_head *p, *tmp;
 	char buf[32];
-
+	
 	if (_stp_utt == NULL) {
 		errk("_expected _stp_utt to be set.\n");
 		return -1;
 	}
 
-	INIT_LIST_HEAD(&_stp_ready_q);
+	INIT_LIST_HEAD(&_stp_ctl_ready_q);
+	INIT_LIST_HEAD(&_stp_sym_ready_q);
 	INIT_LIST_HEAD(&_stp_pool_q);
 
 	/* allocate buffers */
@@ -285,17 +434,23 @@ static int _stp_register_ctl_channel (void)
 		_stp_allocated_net_memory += sizeof(struct _stp_buffer);
 		list_add (p, &_stp_pool_q);
 	}
-	
 
-	/* create [debugfs]/systemtap/module_name/cmd  */
-	_stp_cmd_file = debugfs_create_file("cmd", 0600, _stp_utt->dir, NULL, &_stp_ctl_fops_cmd);
+	/* create [debugfs]/systemtap/module_name/.cmd  */
+	_stp_cmd_file = debugfs_create_file(".cmd", 0600, _stp_utt->dir, NULL, &_stp_ctl_fops_cmd);
 	if (_stp_cmd_file == NULL) 
 		goto err0;
-	_stp_cmd_file->d_inode->i_uid = _stp_uid;;
+	_stp_cmd_file->d_inode->i_uid = _stp_uid;
 	_stp_cmd_file->d_inode->i_gid = _stp_gid;
+
+	/* create [debugfs]/systemtap/module_name/.symbols  */
+	_stp_sym_file = debugfs_create_file(".symbols", 0600, _stp_utt->dir, NULL, &_stp_sym_fops_cmd);
+	if (_stp_sym_file == NULL)
+		goto err0;
 	return 0;
 
 err0:
+	if (_stp_cmd_file) debugfs_remove(_stp_cmd_file);
+
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
 		kfree(p);
@@ -308,6 +463,7 @@ err0:
 static void _stp_unregister_ctl_channel (void)
 {
 	struct list_head *p, *tmp;
+	if (_stp_sym_file) debugfs_remove(_stp_sym_file);
 	if (_stp_cmd_file) debugfs_remove(_stp_cmd_file);
 
 	/* free memory pools */
@@ -315,7 +471,11 @@ static void _stp_unregister_ctl_channel (void)
 		list_del(p);
 		kfree(p);
 	}
-	list_for_each_safe(p, tmp, &_stp_ready_q) {
+	list_for_each_safe(p, tmp, &_stp_sym_ready_q) {
+		list_del(p);
+		kfree(p);
+	}
+	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {
 		list_del(p);
 		kfree(p);
 	}
