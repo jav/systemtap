@@ -1,3 +1,12 @@
+2007-10-12  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (dwflpp::setup): Added 'debuginfo_needed' parameter
+	to not error if no debuginfo present.
+	(hex_dump): New function.
+	(mark_query::handle_query_module): Updated for
+	10/2/2007 markers patch.  Currently only handles markers in the
+	kernel image itself - not in modules.
+	
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (staprun_LDADD): Add -lpthread.
