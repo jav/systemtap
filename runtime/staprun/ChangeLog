@@ -1,3 +1,8 @@
+2007-10-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* staprun.c (main): Move checks for init_cap and getuid
+	from just before command line argument parsing to just after.
+
 2007-10-09  Martin Hunt  <hunt@redhat.com>
 
 	* common.c (set_clexec): New.

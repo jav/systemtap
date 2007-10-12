@@ -211,15 +211,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (geteuid() != 0) {
-	    err("ERROR: The effective user ID of staprun must be set to the root user.\n"
-		"  Check permissions on staprun and ensure it is a setuid root program.\n");
-		exit(1);
-	}
-
-	if (!init_cap())
-		exit(1);
-
+        /* NB: Don't do the geteuid()!=0 check here, since we want to
+           test command-line error-handling while running non-root. */
 	/* Get rid of a few standard environment variables (which */
 	/* might cause us to do unintended things). */
 	rc = unsetenv("IFS") || unsetenv("CDPATH") || unsetenv("ENV")
@@ -257,6 +250,15 @@ int main(int argc, char **argv)
 		err("ERROR: Need a module name or path to load.\n");
 		usage(argv[0]);
 	}
+
+	if (geteuid() != 0) {
+	    err("ERROR: The effective user ID of staprun must be set to the root user.\n"
+		"  Check permissions on staprun and ensure it is a setuid root program.\n");
+		exit(1);
+	}
+
+	if (!init_cap())
+		exit(1);
 
 	if (check_permissions() != 1)
 		usage(argv[0]);
