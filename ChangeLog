@@ -1,3 +1,8 @@
+2007-10-12  Martin Hunt  <hunt@redhat.com>
+
+	* Makefile.am (staprun_LDADD): Add -lpthread.
+	* Makefile.in: Rebuilt.
+
 2007-10-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in: Make -testsuite subrpm require dejagnu.
