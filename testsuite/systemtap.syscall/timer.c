@@ -9,7 +9,7 @@
 
 int main()
 {
-  timer_t tid;
+  timer_t tid=0;
   struct itimerspec val, oval;
 
   syscall(SYS_timer_create, CLOCK_REALTIME, NULL, &tid);
