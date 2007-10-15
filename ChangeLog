@@ -1,3 +1,9 @@
+2007-10-15  David Smith  <dsmith@redhat.com>
+
+	From David Wilder <dwilder@us.ibm.com>
+	* tapsets.cxx (mark_query::handle_query_module): Updated to handle
+	64-bit platforms correctly.
+
 2007-10-15  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>

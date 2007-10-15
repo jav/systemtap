@@ -5218,9 +5218,9 @@ mark_query::handle_query_module()
 		if (sess.verbose > 2)
 		  clog << "Dump of marker:" << endl
 		       << "  name:   0x"
-		       << setfill('0') << setw(8) << hex << (unsigned int)mark->name << endl
+		       << setfill('0') << setw(8) << hex << (unsigned long)mark->name << endl
 		       << "  format: 0x"
-		       << setw(8) << (unsigned int)mark->format
+		       << setw(8) << (unsigned long)mark->format
 		       << setfill(' ') << dec << endl;
 
 		// Since all marker string data lives in the same
@@ -5236,8 +5236,8 @@ mark_query::handle_query_module()
 							   &marker_string_shdr_mem);
 			if (marker_string_shdr != NULL
 			    && marker_string_shdr->sh_type == SHT_PROGBITS
-			    && (GElf_Addr)(uint)mark->name >= marker_string_shdr->sh_addr
-			    && (GElf_Addr)(uint)mark->name < (marker_string_shdr->sh_addr + marker_string_shdr->sh_size))
+			    && (GElf_Addr)(ulong)mark->name >= marker_string_shdr->sh_addr
+			    && (GElf_Addr)(ulong)mark->name < (marker_string_shdr->sh_addr + marker_string_shdr->sh_size))
 			  {
 			    found = true;
 			    break;
@@ -5251,11 +5251,11 @@ mark_query::handle_query_module()
 		      throw semantic_error("cannot get marker string section data");
 		  }
 
-		GElf_Addr offset = (GElf_Addr)(uint)mark->name
+		GElf_Addr offset = (GElf_Addr)(ulong)mark->name
 		    - marker_string_shdr->sh_addr;
 		char *name = NULL;
 		char *format = NULL;
-		if ((GElf_Addr)(uint)mark->name >= marker_string_shdr->sh_addr
+		if ((GElf_Addr)(ulong)mark->name >= marker_string_shdr->sh_addr
 		    && offset < marker_string_shdr->sh_size)
 		  {
 		    name = (char *)(marker_string_data->d_buf) + offset;
@@ -5263,9 +5263,9 @@ mark_query::handle_query_module()
 		      clog << "  name: " << name << endl;
 		  }
 
-		offset = (GElf_Addr)(uint)mark->format
+		offset = (GElf_Addr)(ulong)mark->format
 		    - marker_string_shdr->sh_addr;
-		if ((GElf_Addr)(uint)mark->format >= marker_string_shdr->sh_addr
+		if ((GElf_Addr)(ulong)mark->format >= marker_string_shdr->sh_addr
 		    && offset < marker_string_shdr->sh_size)
 		  {
 		    format = (char *)(marker_string_data->d_buf) + offset;
