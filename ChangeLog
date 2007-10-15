@@ -1,3 +1,14 @@
+2007-10-15  Roland McGrath  <roland@redhat.com>
+
+	PR 5101
+	* loc2c.c (struct location): Replace regno union member with struct
+	member reg, fields regno and offset.
+	(translate): Update uses.
+	(emit_base_fetch, emit_base_store, emit_loc_register): Likewise.
+	Fail if reg.offset is not zero.
+	(location_relative): Handle DW_OP_plus_uconst relative to loc_register.
+	(c_translate_array): Handle array index into loc_register.
+
 2007-10-15  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (mark_query::handle_query_module): Checks for marker
@@ -28,7 +39,7 @@
 	(mark_query::handle_query_module): Updated for
 	10/2/2007 markers patch.  Currently only handles markers in the
 	kernel image itself - not in modules.
-	
+
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (staprun_LDADD): Add -lpthread.
@@ -70,8 +81,8 @@
 	* runtime/staprun/staprun.h: Reflect insert_module() and
 	need_uprobes changes
 
-	* runtime/uprobes/*.[c,h]: uprobes is built as a module, 
-	rather than included into the source of the stap-generated 
+	* runtime/uprobes/*.[c,h]: uprobes is built as a module,
+	rather than included into the source of the stap-generated
 	module.
 	* runtime/uprobes/Makefile: Added
 
@@ -124,7 +135,7 @@
 	* translate.cxx (emit_global): Wrap all globals and locks into one
 	top-level struct.  Update references to former "global_VAR" prefix.
 	* translate.h (emit_global_init): New function.
-	
+
 2007-10-02  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 5078
@@ -185,7 +196,7 @@
 	* tapsets.cxx
 	(procfs_var_expanding_copy_visitor::visit_target_symbol):
 	Disallows reading from $value in a procfs read probe.
-	
+
 2007-09-14  David Smith  <dsmith@redhat.com>
 
 	PR 1154
@@ -220,12 +231,12 @@
 	* translate.cxx (assert_hist_compatible): Ditto.
 	* staptree.cxx (hist_op::print): Ditto.
 	* session.h (statistic_decl): Ditto.
-	
+
 	* parse.cxx (expect_number): Allow negative numbers.
-	Also validate that input is really numeric. This is used 
+	Also validate that input is really numeric. This is used
 	by histograms to get the parameters.
 	(parse_hist_op_or_bare_name): Remove code to get parameter
-	for log histograms. 
+	for log histograms.
 
 2007-09-12  David Smith  <dsmith@redhat.com>
 
@@ -243,7 +254,7 @@
 
 2007-09-10  Martin Hunt  <hunt@redhat.com>
 
-	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs 
+	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs
 	interaction support. PR 1154.
 
 2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
@@ -297,7 +308,7 @@
 
 	PR 2424
 	From Lai Jiangshan <laijs@cn.fujitsu.com:
-	* util.cxx (cmdstr_quoted): New. Properly quote 
+	* util.cxx (cmdstr_quoted): New. Properly quote
 	command string.
 	* buildrun.cxx (run_pass): Call cmdstr_quoted().
 
@@ -436,7 +447,7 @@
 2007-07-11  William Cohen  <wcohen@redhat.com>
 
 	* systemtap.spec.in: Make sqlite support selectable.
-	
+
 2007-07-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Don't AC_MSG_ERROR if don't HAVE_LIBSQLITE3.
@@ -468,7 +479,7 @@
 	(print_coverage_info(systemtap_session): Relocate vector.
 	(sql_update_used_probes): Ditto.
 	(sql_update_unused_probes): Ditto.
-	
+
 2007-07-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bumped version to 0.5.15 for development.
