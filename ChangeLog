@@ -1,5 +1,10 @@
 2007-10-15  David Smith  <dsmith@redhat.com>
 
+	* tapsets.cxx (mark_query::handle_query_module): Checks for marker
+	to be in the proper section.
+	(mark_derived_probe_group::emit_module_decls): Updated emitted
+	marker C code for 10/2/2007 markers patch.  Fixes PR 5178.
+
 	From David Wilder <dwilder@us.ibm.com>
 	* tapsets.cxx (mark_query::handle_query_module): Updated to handle
 	64-bit platforms correctly.
