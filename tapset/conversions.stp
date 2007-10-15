@@ -18,6 +18,19 @@ deref_fault: /* branched to from deref_string() */
   }
 %}
 
+function kernel_string_n:string (addr:long, n:long) %{ /* pure */
+  char *destination = THIS->__retvalue;
+  long len = THIS->n + 1;
+  len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
+  deref_string (destination, THIS->addr, len);
+  if (0) {
+deref_fault: /* branched to from deref_string() */
+    snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        "kernel string copy fault at 0x%p", (void *) (uintptr_t) THIS->addr);
+    CONTEXT->last_error = CONTEXT->error_buffer;
+  }
+%}
+
 function kernel_long:long (addr:long) %{ /* pure */
   THIS->__retvalue = kread((long *) (intptr_t) THIS->addr);
   if (0) {

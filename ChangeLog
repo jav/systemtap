@@ -1,3 +1,20 @@
+2007-10-15  David Smith  <dsmith@redhat.com>
+
+	From David Wilder <dwilder@us.ibm.com>
+	* tapsets.cxx (mark_query::handle_query_module): Updated to handle
+	64-bit platforms correctly.
+
+2007-10-15  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* conversions.stp: Add a function kernel_string_n for copy
+	non-0-terminated string with fixed length from kernel space at
+	given address.
+	* stapfuncs.5.in: Add kernel_string_n.
+	* nfsd.stp: Using kernel_string_n to copy non-0-terminated string
+	with fixed length from kernel space at given address.
+	* nfs_proc.stp: Ditto.
+
 2007-10-12  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (dwflpp::setup): Added 'debuginfo_needed' parameter
