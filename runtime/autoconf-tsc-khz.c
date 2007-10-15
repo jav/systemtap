@@ -1,3 +1,3 @@
 #include <asm/tsc.h>
 
-unsigned int tsc = tsc_khz;
+unsigned int *ptsc = &tsc_khz;
