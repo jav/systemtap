@@ -1,3 +1,7 @@
+2007-10-15 Dave Wilder <dwilder@us.ibm.com>
+
+	*aux_syscalls.stp:_dfd_str  Added test for 32-bit value of AT_FDCWD
+
 2007-10-15  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>
