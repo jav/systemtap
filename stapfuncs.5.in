@@ -73,6 +73,12 @@ or if a user-space access would cause a fault.
 kernel_string:string (addr:long)
 Copy a 0-terminated string from kernel space at given address.
 .TP
+kernel_string_n:string (addr:long, n:long)
+Similar with kernel_string, except that not more than n bytes are copied.
+Thus, if there are null bytes among the first n bytes, it is same as
+kernel_string(addr). If not, n bytes will be copied and a null byte will
+be padded to the end.
+.TP
 kernel_long:long (addr:long)
 Copy a long from kernel space at given address.
 .TP

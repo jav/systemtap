@@ -227,8 +227,8 @@ probe nfs.proc2.lookup = kernel.function("nfs_proc_lookup")?,
         prot   = __i2n_ip_proto($dir,1)
         version =2
 
-	filename = kernel_string($name->name)
-        name_len = $name->len
+	name_len = $name->len
+	filename = kernel_string_n($name->name, name_len)
 
         name = "nfs.proc2.lookup"
         argstr = sprintf("%s",filename) 
@@ -250,8 +250,8 @@ probe nfs.proc3.lookup = kernel.function("nfs3_proc_lookup")?,
         prot   = __i2n_ip_proto($dir,1)
         version =3
 
-	filename = kernel_string($name->name)
-        name_len = $name->len
+	name_len = $name->len
+	filename = kernel_string_n($name->name, name_len)
 
         name = "nfs.proc3.lookup"
         argstr = sprintf("%s",filename) 
@@ -274,8 +274,8 @@ probe nfs.proc4.lookup = kernel.function("nfs4_proc_lookup")?,
         prot   = __i2n_ip_proto($dir,1)
         version =4
 
-	filename = kernel_string($name->name)
-        name_len = $name->len
+	name_len = $name->len
+	filename = kernel_string_n($name->name, name_len)
         bitmask0 = __nfsv4_bitmask($dir,0)
         bitmask1 = __nfsv4_bitmask($dir,1)
 
@@ -1339,8 +1339,8 @@ probe nfs.proc2.create = kernel.function("nfs_proc_create")?,
 	version =2
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
 	filelen = $dentry->d_name->len
+	filename = kernel_string_n($dentry->d_name->name, filelen)
 	mode = $sattr->ia_mode
 
 	name = "nfs.proc2.create"
@@ -1363,8 +1363,8 @@ probe nfs.proc3.create = kernel.function("nfs3_proc_create")?,
 	version =3
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
 	filelen = $dentry->d_name->len
+	filename = kernel_string_n($dentry->d_name->name, filelen)
 	flag = $flags
 	mode = $sattr->ia_mode
 
@@ -1388,8 +1388,8 @@ probe nfs.proc4.create = kernel.function("nfs4_proc_create")?,
 	version =4
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($dentry->d_name->name)
 	filelen = $dentry->d_name->len
+	filename = kernel_string_n($dentry->d_name->name, filelen)
 	flag = $flags
 	mode = $sattr->ia_mode
 
@@ -1435,8 +1435,8 @@ probe nfs.proc2.remove = kernel.function("nfs_proc_remove")?,
 	version =2
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($name->name)
 	filelen = $name->len
+	filename = kernel_string_n($name->name, filelen)
 
 	name = "nfs.proc2.remove"
 	argstr = sprintf("%s",filename)
@@ -1458,8 +1458,8 @@ probe nfs.proc3.remove = kernel.function("nfs3_proc_remove")?,
 	version =3
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($name->name)
 	filelen = $name->len
+	filename = kernel_string_n($name->name, filelen)
 
 	name = "nfs.proc3.remove"
 	argstr = sprintf("%s",filename)
@@ -1481,8 +1481,8 @@ probe nfs.proc4.remove = kernel.function("nfs4_proc_remove")?,
 	version =4
 
 	fh = __getfh_inode($dir)
-	filename = kernel_string($name->name)
 	filelen = $name->len
+	filename = kernel_string_n($name->name, filelen)
 
 	name = "nfs.proc4.remove"
 	argstr = sprintf("%s",filename)
@@ -1529,11 +1529,11 @@ probe nfs.proc2.rename = kernel.function("nfs_proc_rename")?,
 	version =2
 
 	old_fh = __getfh_inode($old_dir)
-	old_name = kernel_string($old_name->name)
 	old_filelen = $old_name->len
+	old_name = kernel_string_n($old_name->name, old_filelen)
 	new_fh = __getfh_inode($new_dir)
-	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
+	new_name = kernel_string_n($new_name->name, new_filelen)
 
 	name = "nfs.proc2.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
@@ -1555,11 +1555,11 @@ probe nfs.proc3.rename = kernel.function("nfs3_proc_rename")?,
 	version =3
 
 	old_fh = __getfh_inode($old_dir)
-	old_name = kernel_string($old_name->name)
 	old_filelen = $old_name->len
+	old_name = kernel_string_n($old_name->name, old_filelen)
 	new_fh = __getfh_inode($new_dir)
-	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
+	new_name = kernel_string_n($new_name->name, new_filelen)
 
 	name = "nfs.proc3.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
@@ -1581,11 +1581,11 @@ probe nfs.proc4.rename = kernel.function("nfs4_proc_rename")?,
 	version =4
 
 	old_fh = __getfh_inode($old_dir)
-	old_name = kernel_string($old_name->name)
 	old_filelen = $old_name->len
+	old_name = kernel_string_n($old_name->name, old_filelen)
 	new_fh = __getfh_inode($new_dir)
-	new_name = kernel_string($new_name->name)
 	new_filelen = $new_name->len
+	new_name = kernel_string_n($new_name->name, new_filelen)
 
 	name = "nfs.proc4.rename"
 	argstr = sprintf("%s,%s",old_name,new_name)
