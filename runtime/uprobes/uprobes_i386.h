@@ -32,17 +32,22 @@ typedef u8 uprobe_opcode_t;
 #define BREAKPOINT_INSTRUCTION	0xcc
 #define BP_INSN_SIZE 1
 #define MAX_UINSN_BYTES 16
-#define SLOT_IP 12	/* instruction pointer slot from include/asm/elf.h */
+#define SLOT_IP(tsk) 12	/* instruction pointer slot from include/asm/elf.h */
 
 #define BREAKPOINT_SIGNAL SIGTRAP
 #define SSTEP_SIGNAL SIGTRAP
+
+struct uprobe_probept_arch_info {};
+struct uprobe_task_arch_info {};
 
 /* Architecture specific switch for where the IP points after a bp hit */
 #define ARCH_BP_INST_PTR(inst_ptr)	(inst_ptr - BP_INSN_SIZE)
 
 struct uprobe_probept;
 struct uprobe_task;
-static int arch_validate_probed_insn(struct uprobe_probept *ppt);
+struct task_struct;
+static int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk);
 
 /* On i386, the int3 traps leaves eip pointing past the int3 instruction. */
 static inline unsigned long arch_get_probept(struct pt_regs *regs)

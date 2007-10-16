@@ -40,9 +40,9 @@ typedef u16 uprobe_opcode_t;
 #define SSTEP_SIGNAL SIGTRAP
 
 #ifdef CONFIG_COMPAT
-#define SLOT_IP (test_tsk_thread_flag(current, TIF_31BIT) ? 0x04 : 0x08)
+#define SLOT_IP(tsk) (test_tsk_thread_flag(tsk, TIF_31BIT) ? 0x04 : 0x08)
 #else
-#define SLOT_IP 0x08
+#define SLOT_IP(tsk) 0x08
 #endif
 
 #define FIXUP_PSW_NORMAL        0x08
@@ -50,12 +50,16 @@ typedef u16 uprobe_opcode_t;
 #define FIXUP_RETURN_REGISTER   0x02
 #define FIXUP_NOT_REQUIRED      0x01
 
+struct uprobe_probept_arch_info {};
+struct uprobe_task_arch_info {};
+
 /* Architecture specific switch for where the IP points after a bp hit */
 #define ARCH_BP_INST_PTR(inst_ptr)	(inst_ptr - BP_INSN_SIZE)
 
 struct uprobe_probept;
 struct uprobe_task;
-static int arch_validate_probed_insn(struct uprobe_probept *ppt);
+static int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk);
 
 /*
  * On s390, a trap leaves the instruction pointer pointing past the

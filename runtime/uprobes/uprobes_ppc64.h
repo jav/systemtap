@@ -34,15 +34,20 @@ typedef unsigned int uprobe_opcode_t;
 #define BREAKPOINT_INSTRUCTION	0x7fe00008	/* trap */
 #define BP_INSN_SIZE 4
 #define MAX_UINSN_BYTES 4
-#define SLOT_IP 32	/* instruction pointer slot from include/asm/elf.h */
+#define SLOT_IP(tsk) 32	/* instruction pointer slot from include/asm/elf.h */
+
+struct uprobe_probept_arch_info {};
+struct uprobe_task_arch_info {};
 
 /* Architecture specific switch for where the IP points after a bp hit */
 #define ARCH_BP_INST_PTR(inst_ptr)	(inst_ptr)
 
 struct uprobe_probept;
 struct uprobe_task;
+struct task_struct;
 
-static inline int arch_validate_probed_insn(struct uprobe_probept *ppt)
+static inline int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk);
 {
 	return 0;
 }

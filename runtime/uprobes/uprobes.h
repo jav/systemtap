@@ -278,8 +278,14 @@ struct uprobe_probept {
 	/* Saved opcode (which has been replaced with breakpoint) */
 	uprobe_opcode_t opcode;
 
-	/* Saved original instruction */
+	/*
+	 * Saved original instruction.  This may be modified by
+	 * architecture-specific code if the original instruction
+	 * can't be single-stepped out of line as-is.
+	 */
 	uprobe_opcode_t insn[MAX_UINSN_BYTES / sizeof(uprobe_opcode_t)];
+
+	struct uprobe_probept_arch_info arch_info;
 
 	/* The parent uprobe_process */
 	struct uprobe_process *uproc;
@@ -358,6 +364,8 @@ struct uprobe_task {
 
 	/* Saved address of copied original instruction */
 	long singlestep_addr;
+
+	struct uprobe_task_arch_info arch_info;
 
 	/*
 	 * Unexpected error in probepoint handling has left task's

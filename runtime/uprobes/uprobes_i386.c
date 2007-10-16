@@ -69,8 +69,8 @@
 		W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
 		W(0x90, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 90 */
 		W(0xa0, 1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1)| /* a0 */
-		W(0xb0, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* b0 */
-		W(0xc0, 1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1)| /* c0 */
+		W(0xb0, 1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1), /* b0 */
+		W(0xc0, 1,1,0,0,0,0,0,1,1,1,1,1,1,1,1,1)| /* c0 */
 		W(0xd0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0), /* d0 */
 		W(0xe0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)| /* e0 */
 		W(0xf0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)  /* f0 */
@@ -80,10 +80,8 @@
 
 /*
  * TODO:
- * - Allow valid 2-byte opcodes (first byte = 0x0f).
- * - Where necessary, examine the modrm byte and allow valid instructions
+ * - Where necessary, examine the modrm byte and allow only valid instructions
  * in the different Groups and fpu instructions.
- * - Allow at least some instruction prefixes.
  * - Note: If we go past the first byte, do we need to verify that
  * subsequent bytes were actually there, rather than off the last page?
  * Probably overkill.  We don't verify that they specified the first byte
@@ -104,12 +102,11 @@
  * fa, fb - cli, sti
  *
  * opcodes we may need to refine support for:
- * 0f - valid 2-byte opcodes
  * 66 - data16 prefix
  * 8f - Group 1 - only reg = 0 is OK
  * c6-c7 - Group 11 - only reg = 0 is OK
  * d9-df - fpu insns with some illegal encodings
- * fe - Group 4 - only reg = 1 or 2 is OK
+ * fe - Group 4 - only reg = 0 or 1 is OK
  * ff - Group 5 - only reg = 0-6 is OK
  *
  * others -- Do we need to support these?
@@ -123,7 +120,8 @@
  */
 
 static
-int arch_validate_probed_insn(struct uprobe_probept *ppt)
+int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk)
 {
 	uprobe_opcode_t *insn = ppt->insn;
 
@@ -138,9 +136,9 @@ int arch_validate_probed_insn(struct uprobe_probept *ppt)
 		printk(KERN_ERR "uprobes does not currently support probing "
 			"instructions with the 2-byte opcode 0x0f 0x%2.2x\n",
 			insn[1]);
-	}
-	printk(KERN_ERR "uprobes does not currently support probing "
-		"instructions whose first byte is 0x%2.2x\n", insn[0]);
+	} else 
+		printk(KERN_ERR "uprobes does not currently support probing "
+			"instructions whose first byte is 0x%2.2x\n", insn[0]);
 	return -EPERM;
 }
 

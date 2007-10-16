@@ -1,3 +1,13 @@
+2007-10-16  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.[ch], uprobes_i386.[ch],
+	uprobes_ppc64.h, uprobes_s390.h: Adjusted SLOT_IP and
+	arch_validate_probed_insn to accept task pointer (needed by
+	x86_64); added uprobe_probept_arch_info and uprobe_task_arch_info
+	(ditto).
+	* runtime/uprobes/uprobes_i386.c: Fixed a couple of glitches
+	discovered when porting to x86_64
+
 2007-10-15  Roland McGrath  <roland@redhat.com>
 
 	PR 5101
