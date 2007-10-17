@@ -1,3 +1,8 @@
+2007-10-17  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* autoconf-tsc-khz.c: Not to be compiled if the kernel version is
+	younger than 2.6.23 on i386.
+
 2007-10-17  Martin Hunt  <hunt@redhat.com>
 	PR5000
 	* vsprintf.c: Remove _stp_endian.
