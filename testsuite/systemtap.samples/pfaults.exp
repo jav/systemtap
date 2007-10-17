@@ -1,7 +1,7 @@
 set test "pfaults"
 if {![installtest_p]} { untested $test; return }
 
-spawn stap -g $srcdir/$subdir/pfaults.stp
+spawn stap -DMAXACTION=10000 -g $srcdir/$subdir/pfaults.stp
 set pid $spawn_id
 set ok 0
 expect {

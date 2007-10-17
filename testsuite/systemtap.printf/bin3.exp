@@ -6,5 +6,3 @@ cd 20 63 3d 88 88 20 64
 
 set test "bin3"
 stap_run_binary $srcdir/$subdir/$test.stp
-set test "bin3a"
-stap_run_binary $srcdir/$subdir/$test.stp
