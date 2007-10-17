@@ -1,3 +1,7 @@
+2007-10-17  Martin Hunt  <hunt@redhat.com>
+	PR5000
+	* vsprintf.c: Remove _stp_endian.
+
 2007-10-15  Masami Hiramatsu <mhiramat@redhat.com>
 
 	* autoconf-tsc-khz.c: Fix a bug to be configured correctly.
