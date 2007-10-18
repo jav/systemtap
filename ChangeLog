@@ -1,5 +1,12 @@
 2007-10-18  Mike Mason <mmlnx@us.ibm.com>
 
+	* stapprobes.5.in: Removed C label reference.
+	Clarified source path requirements for probe
+	definitions.  Fixed some vertical spacing 
+	issues. 
+
+2007-10-18  Mike Mason <mmlnx@us.ibm.com>
+
 	* stapfuncs.5.in: Corrected tokenize description.
 	Added task_* functions.  
 
