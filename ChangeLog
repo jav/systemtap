@@ -1,3 +1,8 @@
+2007-10-18  Mike Mason <mmlnx@us.ibm.com>
+
+	* stapfuncs.5.in: Corrected tokenize description.
+	Added task_* functions.  
+
 2007-10-16  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.[ch], uprobes_i386.[ch],
