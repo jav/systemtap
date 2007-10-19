@@ -1,3 +1,17 @@
+2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
+
+	From Satoru Moriya <satoru.moriya.br@hitachi.com>:
+	* staplog.c :(create_output_dir): New function for creating output
+	directory.
+	(create_output_filename): New function for making output filename.
+	(print_rchan_info): New function for displaying relay channel status.
+	(open_output_file): New function for opening output file.
+	(output_cpu_logs): Cleanup code and fix bugs to retrieve buffer
+	data even when the last buffer is full and even if the systemtap
+	uses old(non-utt) format. Add a routine for '-a' option.
+	(cmd_staplog): Add '-a' option.
+	(help_staplog): Ditto.
+
 2007-10-18  Mike Mason <mmlnx@us.ibm.com>
 
 	* stapprobes.5.in: Removed C label reference.

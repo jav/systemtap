@@ -1,7 +1,7 @@
 /*
  crash shared object for retrieving systemtap buffer
  Copyright (c) 2007 Hitachi,Ltd.,
- Created by Satoru Moriya &lt;satoru.moriya.br@hitachi.com&gt;
+ Created by Satoru Moriya <satoru.moriya.br@hitachi.com>
  
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -80,7 +80,9 @@ static struct per_cpu_data per_cpu[NR_CPUS];
 static FILE *outfp;
 static char *subbuf;
 static int is_global;
+static int is_broken;
 static int old_format;
+static int retrieve_all;
 
 void cmd_staplog(void);
 void cmd_staplog_cleanup(void);
@@ -242,14 +244,94 @@ static void setup_global_data(char *module)
 	return;
 }
 
+static char *create_output_filename(int cpu)
+{
+	size_t max = 128;
+	char *fname;
+
+	fname = (char *)malloc(sizeof(char) * max);
+	if (is_global) {
+		sprintf(fname, "global");
+	} else {
+		sprintf(fname, "cpu%d", cpu);
+	}
+	if (is_broken) {
+		strcat(fname, ".may_broken");
+	}
+	return fname;
+}
+
+static void print_rchan_info(size_t start, size_t end, size_t ready, 
+			     size_t offset, char *dname, char *fname, int cpu)
+{
+	size_t start_subbuf, end_subbuf;
+	
+	start_subbuf = start ? start - chan.n_subbufs : start;
+	end_subbuf = start ? end - 1 - chan.n_subbufs : end - 1;
+	
+	fprintf(fp, "--- generating '%s/%s' ---\n", dname, fname);
+	if (is_broken) {
+		fprintf(fp, "  read subbuf %ld(%ld) (offset:%ld-%ld)\n",
+			(long)end_subbuf - chan.n_subbufs, 
+			(long)(end_subbuf % chan.n_subbufs),
+			(long)offset,
+			(long)chan.subbuf_size);
+	} else {
+		fprintf(fp, "  subbufs ready on relayfs:%ld\n", (long)ready);
+		fprintf(fp, "  n_subbufs:%ld, read subbuf from:%ld(%ld) "
+			"to:%ld(%ld) (offset:0-%ld)\n\n",
+			(long)chan.n_subbufs, 
+			(long)start_subbuf,
+			(long)(start_subbuf % chan.n_subbufs),
+			(long)end_subbuf, 
+			(long)(end_subbuf % chan.n_subbufs),
+			(long)offset);
+	}
+}
+
+static void create_output_dir(char *dirname)
+{
+	DIR *dir;
+	dir = opendir(dirname);
+	if (dir) {
+		closedir(dir);
+	} else {
+		if (mkdir(dirname, S_IRWXU) < 0) {
+			error(FATAL, "cannot create log directory '%s\n'", dirname);
+		}
+	}
+}
+
+static FILE *open_output_file(char *dname, char *fname)
+{
+	FILE *filp = NULL;
+	char *output_file;
+	size_t dlength, flength;
+
+	dlength = strlen(dname);
+	flength = strlen(fname);
+
+	output_file = (char *)malloc(sizeof(char) * (dlength + flength) + 1);
+	output_file[dlength + flength] = '\0';
+
+	create_output_dir(dname);
+	sprintf(output_file,"%s/%s", dname, fname);
+
+	filp = fopen(output_file, "w");
+	if (!filp) {
+		error(FATAL, "cannot create log file '%s'\n", output_file);
+	}
+
+	return filp;
+}
+
 static void output_cpu_logs(char *dirname)
 {
-	int i, max = 256;
+	int i;
 	struct per_cpu_data *pcd;
-	size_t n, idx, start, end, ready, len;
+	size_t n, idx, start, end, len;
 	size_t padding;
-	char fname[max + 1], *source;
-	DIR *dir;
+	char *source, *fname;
 
 	/* allocate subbuf memory */
 	subbuf = GETBUF(chan.subbuf_size);
@@ -257,19 +339,11 @@ static void output_cpu_logs(char *dirname)
 		error(FATAL, "cannot allocate memory\n");
 	}
 
-	fname[max] = '\0';
 	for (i = 0; i < kt->cpus; i++) {
-		int adjust = 0;
+		is_broken = 0;
 		pcd = &per_cpu[i];
 
-		if (pcd->buf.offset == 0 || 
-		    pcd->buf.offset == chan.subbuf_size + 1) {
-			adjust = 0;
-		} else {
-			adjust = 1;
-		}
-		ready = pcd->buf.subbufs_produced + adjust;
-		if (ready == 0) {
+		if (pcd->buf.subbufs_produced == 0 && pcd->buf.offset == 0) {
 			if (is_global == 1) {
 				error(WARNING, "There is no data in the relay buffer.\n");
 				break;
@@ -279,42 +353,19 @@ static void output_cpu_logs(char *dirname)
 			}
 		}
 
-		if (ready > chan.n_subbufs) {
-			start = ready;
+		if (pcd->buf.subbufs_produced >= chan.n_subbufs) {
+			start = pcd->buf.subbufs_produced + 1;
 			end = start + chan.n_subbufs;
 		} else {
 			start = 0;
-			end = ready;
+			end = pcd->buf.subbufs_produced + 1;
 		}
-		/* print information */
-		if (is_global == 1) {
-			fprintf(fp, "--- generating 'global' ---\n");
-		} else {
-			fprintf(fp, "--- generating 'cpu%d' ---\n", i);
-		}
-		fprintf(fp, "  subbufs ready on relayfs:%ld\n", (long)ready);
-		fprintf(fp, "  n_subbufs:%ld, read from:%ld to:%ld (offset:%ld)\n\n",
-			(long)chan.n_subbufs, (long)(start ? start - chan.n_subbufs : start),
-			(long)(start ? end - 1 - chan.n_subbufs : end - 1), (long)pcd->buf.offset);
 
-		/* create log dir and file */
-		dir = opendir(dirname);
-		if (dir) {
-			closedir(dir);
-		} else {
-			if (mkdir(dirname, S_IRWXU) < 0) {
-				error(FATAL, "cannot create log directory '%s\n'", dirname);
-			}
-		}
-		if (is_global == 1) {
-			snprintf(fname, max, "%s/global", dirname, i);
-		} else {
-			snprintf(fname, max, "%s/cpu%d", dirname, i);
-		}
-		outfp = fopen(fname, "w");
-		if (!outfp) {
-			error(FATAL, "cannot create log file '%s'\n", fname);
-		}
+		fname = create_output_filename(i);
+		print_rchan_info(start, end, pcd->buf.subbufs_produced + 1,
+				 pcd->buf.offset, dirname, fname, i);
+		outfp = open_output_file(dirname, fname);
+
 		for (n = start; n < end; n++) {
 			/* read relayfs subbufs and write to log file */
 			idx = n % chan.n_subbufs;
@@ -322,15 +373,15 @@ static void output_cpu_logs(char *dirname)
 			readmem((ulong)pcd->buf.padding + sizeof(padding) * idx,
 				KVADDR, &padding, sizeof(padding),
 				"padding", FAULT_ON_ERROR);
-			if (n == end - 1 &&  0 < pcd->buf.offset &&
+			if (n == end - 1 && 
 			    pcd->buf.offset < chan.subbuf_size) {
 				len = pcd->buf.offset;
 			} else {
 				len = chan.subbuf_size;
 			}			
 			if (old_format == 1) {
-				source += sizeof(padding);
-				len -= sizeof(padding) + padding;
+				source += sizeof(unsigned int);
+				len -= sizeof(unsigned int) + padding;
 			} else {
 				len -= padding;
 			}
@@ -344,6 +395,41 @@ static void output_cpu_logs(char *dirname)
 		}
 		fclose(outfp);
 		outfp = NULL;
+		free(fname);
+		fname = NULL;
+
+		/*
+		 * -a option retrieve the old data of subbuffer where the  
+		 * probe record is written at that time.
+		 */
+		if (retrieve_all == 1 && 
+		    pcd->buf.subbufs_produced >= chan.n_subbufs) {
+			is_broken = 1;
+			fname = create_output_filename(i);
+			print_rchan_info(start, end, 
+					 pcd->buf.subbufs_produced + 1, 
+					 pcd->buf.offset, dirname, fname, i);
+			outfp = open_output_file(dirname, fname);
+			idx = (end - 1) % chan.n_subbufs;
+			source = pcd->buf.start + idx * chan.subbuf_size + 
+				 pcd->buf.offset;
+			readmem((ulong)pcd->buf.padding + sizeof(padding)*idx,
+				KVADDR, &padding, sizeof(padding),
+				"padding", FAULT_ON_ERROR);
+			len = chan.subbuf_size - pcd->buf.offset;
+			if (len) {
+				readmem((ulong)source, KVADDR, subbuf, len,
+					"may_broken_subbuf", FAULT_ON_ERROR);
+				if(fwrite(subbuf, len, 1, outfp) != 1) {
+					error(FATAL, 
+					      "cannot write log data(may_broken)\n");
+				}
+			}
+			fclose(outfp);
+			outfp = NULL;
+			free(fname);
+			fname = NULL;
+		}
 		if (is_global == 1)
 			break;
 	}
@@ -368,8 +454,11 @@ void cmd_staplog(void)
 	char *module = NULL;
 	char *dirname = NULL;
 
-	while ((c = getopt(argcnt, args, "o:")) != EOF) {
+	while ((c = getopt(argcnt, args, "+ao:")) != EOF) {
 		switch (c) {
+		case 'a':
+			retrieve_all = 1;
+			break;
 		case 'o':
 			dirname = optarg;
 			break;
@@ -401,16 +490,24 @@ void cmd_staplog_cleanup(void)
 char *help_staplog[] = {
 	"systemtaplog",
 	"Retrieve SystemTap log data",
-	"[-o dir_name] module_name",
+	"[-a] [-o dir_name] module_name",
 	"  Retrieve SystemTap's log data and write them to files.\n",
-	"    module_name     All valid SystemTap log data made by the trace",
-	"                    module which name is 'module_name' are written",
-	"                    into log files. If you don't use -o option, the",
-	"                    log files are created in `module_name` directory.", 
-	"                    The name of each log file is cpu0, cpu1...cpuN. ",
-	"                    They have same format data as channel buffer",
-	"                    except padding(This command removes padding). ",
+	"  All valid SystemTap's log data made by the trace module which name",
+	"  is 'module_name' are written into log files. This command starts",
+	"  to retrieve log data from the subbuffer which is next to current",
+	"  written subbuffer. Therefore some old data in the current written",
+	"  subbuffer may not be retrieved. But -a option retrieve these data",
+	"  and write them into another log file which have the special ",
+	"  postfix `.may_broken`.",
+	"  If you don't use -o option, the log files are created in",
+	"  `module_name` directory. The name of each log file is cpu0, cpu1..",
+	"  ...cpuN. This command don't change the log data format, but remove",
+ 	"  only padding.",
 	"",
+	"              -a    Retrieve the old data which is recorded in",
+	"                    current written subbufer and create another file",
+	"                    that have the special postfix `.may_broken`",
+	"                    for these data.",
 	"    -o file_name    Specify the output directory.",
 	NULL,
 };
