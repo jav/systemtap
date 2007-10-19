@@ -1,3 +1,8 @@
+2007-10-19  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes_ppc64.h,uprobes_s390.c: Fixed 10/16
+	update to arch_validate_probed_insn() decl.
+
 2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
 
 	* staplog.c: Cleanup code and remove end-of-line spaces.

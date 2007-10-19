@@ -47,7 +47,7 @@ struct uprobe_task;
 struct task_struct;
 
 static inline int arch_validate_probed_insn(struct uprobe_probept *ppt,
-						struct task_struct *tsk);
+						struct task_struct *tsk)
 {
 	return 0;
 }
