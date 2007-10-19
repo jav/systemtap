@@ -1473,7 +1473,7 @@ install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
 
 @BUILD_CRASHMOD_TRUE@$(STAPLOG): staplog.c
-@BUILD_CRASHMOD_TRUE@	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+@BUILD_CRASHMOD_TRUE@	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 @BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)

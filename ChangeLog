@@ -1,7 +1,20 @@
 2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
 
+	* staplog.c: Cleanup code and remove end-of-line spaces.
+	(create_output_filename): Use snprintf instead of sprintf and remove
+	malloc().
+	(print_rchan_info): Merge into output_cpu_logs().
+	(open_output_file): Use GETBUF() instead of malloc().
+	(output_cpu_logs): Simplify logic and remove unused code.
+	(do_staplog): Merge into cmd_staplog().
+	(help_staplog): Fix typos.
+	* Makefile.am (STAPLOG): Add -Wall option.
+	* Makefile.in: Regenerated.
+
+2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
+
 	From Satoru Moriya <satoru.moriya.br@hitachi.com>:
-	* staplog.c :(create_output_dir): New function for creating output
+	* staplog.c (create_output_dir): New function for creating output
 	directory.
 	(create_output_filename): New function for making output filename.
 	(print_rchan_info): New function for displaying relay channel status.

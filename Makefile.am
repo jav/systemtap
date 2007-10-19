@@ -88,7 +88,7 @@ if BUILD_CRASHMOD
 STAPLOG=staplog.so
 
 $(STAPLOG): staplog.c
-	$(CC) -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 all-local: $(STAPLOG)
 install-exec-local: $(STAPLOG)
 	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)
