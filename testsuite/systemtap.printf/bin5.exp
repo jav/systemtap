@@ -15,5 +15,3 @@ cd ef 20 62 3d 11 11 22
 
 set test "bin5"
 stap_run_binary $srcdir/$subdir/$test.stp
-set test "bin5a"
-stap_run_binary $srcdir/$subdir/$test.stp

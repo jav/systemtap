@@ -32,6 +32,7 @@ and that no error should result if it fails to expand.  Optionalness
 passes down through all levels of alias/wildcard expansion.
 
 These are all syntactically valid probe points:
+
 .SAMPLE
 kernel.function("foo").return
 syscall(22)
@@ -71,10 +72,12 @@ target variables available in either context.
 .PP
 If the order of execution among "begin" or "end" probes is significant,
 then an optional sequence number may be provided:
+
 .SAMPLE
 begin(N)
 end(N)
 .ESAMPLE
+
 The number N may be positive or negative.  The probe handlers are run in
 increasing order, and the order between handlers with the same sequence
 number is unspecified.  When "begin" or "end" are given without a
@@ -103,10 +106,12 @@ conjunction with optional probes.
 Intervals defined by the standard kernel "jiffies" timer may be used
 to trigger probe handlers asynchronously.  Two probe point variants
 are supported by the translator:
+
 .SAMPLE
 timer.jiffies(N)
 timer.jiffies(N).randomize(M)
 .ESAMPLE
+
 The probe handler is run every N jiffies (a kernel-defined unit of
 time, typically between 1 and 60 ms).  If the "randomize" component is
 given, a linearly distributed random value in the range [\-M..+M] is
@@ -118,10 +123,12 @@ a multi-processor computer.
 .PP
 Alternatively, intervals may be specified in units of time.
 There are two probe point variants similar to the jiffies timer:
+
 .SAMPLE
 timer.ms(N)
 timer.ms(N).randomize(M)
 .ESAMPLE
+
 Here, N and M are specified in milliseconds, but the full options for units
 are seconds (s/sec), milliseconds (ms/msec), microseconds (us/usec),
 nanoseconds (ns/nsec), and hertz (hz).  Randomization is not supported for
@@ -137,9 +144,11 @@ before any rounding occurs.
 .PP
 Profiling timers are also available to provide probes that execute on all
 CPUs at the rate of the system tick.  This probe takes no parameters.
+
 .SAMPLE
 timer.profile
 .ESAMPLE
+
 Full context information of the interrupted process is available, making
 this probe suitable for a time-based sampling profiler.
 
@@ -155,7 +164,7 @@ source or object code.  When a matching statement executes on any
 processor, the probe handler is run in that context.
 .PP
 Points in a kernel, which are identified by
-module, source file, line number, function name, C label name, or some
+module, source file, line number, function name, or some
 combination of these.  
 .PP
 Here is a list of probe point families currently supported.  The
@@ -181,6 +190,7 @@ probes. The
 .B .statement
 variant places a probe at the exact spot, exposing those local variables
 that are visible there.
+
 .SAMPLE
 kernel.function(PATTERN)
 .br
@@ -205,20 +215,28 @@ kernel.statement(ADDRESS).absolute
 .br
 module(MPATTERN).statement(PATTERN)
 .ESAMPLE
+
 In the above list, MPATTERN stands for a string literal that aims to
 identify the loaded kernel module of interest.  It may include "*", "[]",
 and "?" wildcards.  PATTERN stands for a string literal that
 aims to identify a point in the program.  It is made up of three
-parts.  The first part is the name of a function, as would appear in
-the
+parts:
+.IP \(bu 4
+The first part is the name of a function, as would appear in the
 .I nm
 program's output.  This part may use the "*" and "?" wildcarding
-operators to match multiple names.  The second part is optional, and
-begins with the "@" character.  It is followed by a source file name
-wildcard pattern, such as
-.IR mm/slab* .
+operators to match multiple names.
+.IP \(bu 4
+The second part is optional and begins with the "@" character. 
+It is followed by the path to the source file containing the function,
+which may include a wildcard pattern, such as mm/slab*.
+In most cases, the path should be relative to the top of the
+linux source directory, although an absolute path may be necessary for some kernels.
+If a relative pathname doesn't work, try absolute.
+.IP \(bu 4
 Finally, the third part is optional if the file name part was given,
 and identifies the line number in the source file, preceded by a ":".
+.PP
 As an alternative, PATTERN may be a numeric constant, indicating an
 (module-relative or kernel-_stext-relative) address.  In guru mode
 only, absolute kernel addresses may be specified with the ".absolute"
@@ -255,12 +273,14 @@ is the name of the systemtap module). The
 filesystem is a pseudo-filesystem which is used an an interface to
 kernel data structures.  There are four probe point variants supported
 by the translator:
+
 .SAMPLE
 procfs("PATH").read
 procfs("PATH").write
 procfs.read
 procfs.write
 .ESAMPLE
+
 .I PATH
 is the file name (relative to /proc/systemtap/MODNAME) to be created.
 If no
@@ -276,6 +296,7 @@ probe is triggered.  The string data to be read should be assigned to
 a variable named
 .IR $value ,
 like this:
+
 .SAMPLE
 procfs("PATH").read { $value = "100\\n" }
 .ESAMPLE
@@ -287,6 +308,7 @@ probe is triggered.  The data the user wrote is available in the
 string variable named
 .IR $value ,
 like this:
+
 .SAMPLE
 procfs("PATH").write { printf("user wrote: %s", $value) }
 .ESAMPLE
@@ -335,6 +357,7 @@ events, which are available on all processors. This sets up a counter
 on the processor to count the number of events occuring on the
 processor. For more details on the performance monitoring events
 available on a specific processor use the command perfmon2 command:
+
 .SAMPLE
 pfmon \-l
 .ESAMPLE

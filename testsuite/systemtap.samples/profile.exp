@@ -1,7 +1,7 @@
 set test "profile"
 if {![installtest_p]} { untested $test; return }
 
-spawn stap $srcdir/$subdir/profile.stp
+spawn stap -DMAXMAPENTRIES=10000 $srcdir/$subdir/profile.stp
 set ok 0
 expect {
     -timeout 360

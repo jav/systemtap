@@ -5059,6 +5059,7 @@ mark_query::handle_query_module()
   
   GElf_Addr start_markers_addr = 0;
   GElf_Addr stop_markers_addr = 0;
+  size_t markers_scn_ndx = 0;
   int syments = dwfl_module_getsymtab(dw.module);
   assert(syments);
 
@@ -5082,6 +5083,7 @@ mark_query::handle_query_module()
 	    {
 	      start_markers_addr = shdr->sh_addr;
 	      stop_markers_addr = shdr->sh_addr + shdr->sh_size;
+	      markers_scn_ndx = elf_ndxscn(scn);
 	      break;
 	    }
 	}
@@ -5107,6 +5109,7 @@ mark_query::handle_query_module()
 		  && strcmp(name, "__start___markers") == 0)
 	        {
 		  start_markers_addr = sym.st_value;
+		  markers_scn_ndx = sym.st_shndx;
 		  if (stop_markers_addr != 0)
 		    break;
 		}
@@ -5154,6 +5157,8 @@ mark_query::handle_query_module()
 	  && sym.st_info == GELF_ST_INFO(STB_LOCAL, STT_OBJECT)
 	  // and it has default visibility rules,
 	  && GELF_ST_VISIBILITY(sym.st_other) == STV_DEFAULT
+	  // and it is in the right section
+	  && markers_scn_ndx == sym.st_shndx
 	  // and its value is between start_marker_value and
 	  // stop_marker_value
 	  && sym.st_value >= start_markers_addr
@@ -5638,8 +5643,8 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit the marker callback function
   s.op->newline();
-  s.op->newline() << "static void enter_marker_probe (const struct __mark_marker *mdata, void *private_data, const char *fmt, ...) {";
-  s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)mdata->pdata;";
+  s.op->newline() << "static void enter_marker_probe (const struct marker *mdata, void *private_data, const char *fmt, ...) {";
+  s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)mdata->private;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
 

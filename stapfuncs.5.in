@@ -119,11 +119,12 @@ specified by base.  For example, strtol("1000", 16) returns 4096.  Returns 0 if 
 string cannot be converted.
 .TP
 tokenize:string (str:string, delim:string)
-Given a string and a token delimiter, return the next token in the string.
-If str is non-NULL, returns the first token.  If str is NULL, returns the
-next token in the str passed in the previous call to tokenize().  Only the
-first character in delim is used as the delimiter.  Returns NULL when no
-more tokens are left.
+Return the next token in the given str string, where the tokens are delimited
+by one of the characters in the delim string.  If the str string is non-NULL,
+it returns the first token.  If the str string is NULL, it returns the next
+token in the string passed in the previous call to tokenize. If no delimiter
+is found, the entire remaining str string is returned.  Returns NULL when 
+no more tokens are left.
 
 .SS TIMESTAMP
 .TP
@@ -142,7 +143,7 @@ Return the number of milliseconds since the UNIX epoch.
 gettimeofday_s:long ()
 Return the number of seconds since the UNIX epoch.
 
-.SS CONTEXTINFO
+.SS CONTEXT INFO
 .TP
 cpu:long ()
 Return the current cpu number.
@@ -224,6 +225,79 @@ Print a report about the target set, and their ancestry.
 errno_str:string (e:long)
 Return the symbolic string associated with the given error code, like
 "ENOENT" for the number 2, or "E#3333" for an out-of-range value like 3333.
+
+.SS TASK
+.PP
+These functions return data about a task.  They all require
+a task handle as input, such as the value return by task_current() or the variables
+prev_task and next_task in the scheduler.ctxswitch probe alias.
+
+.TP
+task_current:long()
+Return the task_struct of the current process.
+
+.TP
+task_parent:long(task:long)
+Return the parent task_struct of the given task.
+.TP
+task_state:long(task:long)
+Return the state of the given task, which can be one of the following:
+
+   TASK_RUNNING           0
+   TASK_INTERRUPTIBLE     1
+   TASK_UNINTERRUPTIBLE   2
+   TASK_STOPPED           4
+   TASK_TRACED            8
+   EXIT_ZOMBIE           16
+   EXIT_DEAD             32
+
+.TP
+task_execname:string(task:long)
+Return the name of the given task.
+
+.TP
+task_pid:long(task:long)
+Return the process id of the given task.
+
+.TP
+task_tid:long(task:long)
+Return the thread id of the given task.
+
+.TP
+task_gid:long(task:long)
+Return the group id of the given task.
+
+.TP
+task_egid:long(task:long)
+Return the effective group id of the given task.
+
+.TP
+task_uid:long(task:long)
+Return the user id of the given task.
+
+.TP
+task_euid:long(task:long)
+Return the effective user id of the given task.
+
+.TP
+task_prio:long(task:long)
+Return the priority of the given task.
+
+.TP
+task_nice:long(task:long)
+Return the nice value of the given task.
+
+.TP
+task_cpu:long(task:long)
+Return the scheduled cpu for the given task.
+
+.TP
+task_open_file_handles:long(task:long)
+Return the number of open file handles for the given task.
+
+.TP
+task_max_file_handles:long(task:long)
+Return the maximum number of file handles for the given task.
 
 .SS QUEUE_STATS
 .PP

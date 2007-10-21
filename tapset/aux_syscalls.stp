@@ -1479,7 +1479,8 @@ function __int32:long(val:long) %{ /* pure */
 
 # For utimensat and futimesat, the directory fd can have a special value
 function _dfd_str(d) {
-	if(d == -100) return "AT_FDCWD"
+	# 0xffffff9c is a 32-bit -100, for compatability mode.
+	if((d == -100) || (d == 0xffffff9c)) return "AT_FDCWD"
 	return sprint(d)
 }
 

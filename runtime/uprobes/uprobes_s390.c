@@ -48,7 +48,8 @@ static int prohibited_opcode(uprobe_opcode_t *instruction)
 }
 
 static
-int arch_validate_probed_insn(struct uprobe_probept *ppt)
+int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk)
 {
 	if (ppt->vaddr & 0x01) {
 		printk("Attempt to register uprobe at an unaligned address\n");

@@ -1,4 +1,74 @@
+2007-10-19  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes_ppc64.h,uprobes_s390.c: Fixed 10/16
+	update to arch_validate_probed_insn() decl.
+
+2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* staplog.c: Cleanup code and remove end-of-line spaces.
+	(create_output_filename): Use snprintf instead of sprintf and remove
+	malloc().
+	(print_rchan_info): Merge into output_cpu_logs().
+	(open_output_file): Use GETBUF() instead of malloc().
+	(output_cpu_logs): Simplify logic and remove unused code.
+	(do_staplog): Merge into cmd_staplog().
+	(help_staplog): Fix typos.
+	* Makefile.am (STAPLOG): Add -Wall option.
+	* Makefile.in: Regenerated.
+
+2007-10-19  Masami Hiramatsu <mhiramat@redhat.com>
+
+	From Satoru Moriya <satoru.moriya.br@hitachi.com>:
+	* staplog.c (create_output_dir): New function for creating output
+	directory.
+	(create_output_filename): New function for making output filename.
+	(print_rchan_info): New function for displaying relay channel status.
+	(open_output_file): New function for opening output file.
+	(output_cpu_logs): Cleanup code and fix bugs to retrieve buffer
+	data even when the last buffer is full and even if the systemtap
+	uses old(non-utt) format. Add a routine for '-a' option.
+	(cmd_staplog): Add '-a' option.
+	(help_staplog): Ditto.
+
+2007-10-18  Mike Mason <mmlnx@us.ibm.com>
+
+	* stapprobes.5.in: Removed C label reference.
+	Clarified source path requirements for probe
+	definitions.  Fixed some vertical spacing 
+	issues. 
+
+2007-10-18  Mike Mason <mmlnx@us.ibm.com>
+
+	* stapfuncs.5.in: Corrected tokenize description.
+	Added task_* functions.  
+
+2007-10-16  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.[ch], uprobes_i386.[ch],
+	uprobes_ppc64.h, uprobes_s390.h: Adjusted SLOT_IP and
+	arch_validate_probed_insn to accept task pointer (needed by
+	x86_64); added uprobe_probept_arch_info and uprobe_task_arch_info
+	(ditto).
+	* runtime/uprobes/uprobes_i386.c: Fixed a couple of glitches
+	discovered when porting to x86_64
+
+2007-10-15  Roland McGrath  <roland@redhat.com>
+
+	PR 5101
+	* loc2c.c (struct location): Replace regno union member with struct
+	member reg, fields regno and offset.
+	(translate): Update uses.
+	(emit_base_fetch, emit_base_store, emit_loc_register): Likewise.
+	Fail if reg.offset is not zero.
+	(location_relative): Handle DW_OP_plus_uconst relative to loc_register.
+	(c_translate_array): Handle array index into loc_register.
+
 2007-10-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (mark_query::handle_query_module): Checks for marker
+	to be in the proper section.
+	(mark_derived_probe_group::emit_module_decls): Updated emitted
+	marker C code for 10/2/2007 markers patch.  Fixes PR 5178.
 
 	From David Wilder <dwilder@us.ibm.com>
 	* tapsets.cxx (mark_query::handle_query_module): Updated to handle
@@ -23,7 +93,7 @@
 	(mark_query::handle_query_module): Updated for
 	10/2/2007 markers patch.  Currently only handles markers in the
 	kernel image itself - not in modules.
-	
+
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* Makefile.am (staprun_LDADD): Add -lpthread.
@@ -65,8 +135,8 @@
 	* runtime/staprun/staprun.h: Reflect insert_module() and
 	need_uprobes changes
 
-	* runtime/uprobes/*.[c,h]: uprobes is built as a module, 
-	rather than included into the source of the stap-generated 
+	* runtime/uprobes/*.[c,h]: uprobes is built as a module,
+	rather than included into the source of the stap-generated
 	module.
 	* runtime/uprobes/Makefile: Added
 
@@ -119,7 +189,7 @@
 	* translate.cxx (emit_global): Wrap all globals and locks into one
 	top-level struct.  Update references to former "global_VAR" prefix.
 	* translate.h (emit_global_init): New function.
-	
+
 2007-10-02  Frank Ch. Eigler  <fche@redhat.com>
 
 	PR 5078
@@ -180,7 +250,7 @@
 	* tapsets.cxx
 	(procfs_var_expanding_copy_visitor::visit_target_symbol):
 	Disallows reading from $value in a procfs read probe.
-	
+
 2007-09-14  David Smith  <dsmith@redhat.com>
 
 	PR 1154
@@ -215,12 +285,12 @@
 	* translate.cxx (assert_hist_compatible): Ditto.
 	* staptree.cxx (hist_op::print): Ditto.
 	* session.h (statistic_decl): Ditto.
-	
+
 	* parse.cxx (expect_number): Allow negative numbers.
-	Also validate that input is really numeric. This is used 
+	Also validate that input is really numeric. This is used
 	by histograms to get the parameters.
 	(parse_hist_op_or_bare_name): Remove code to get parameter
-	for log histograms. 
+	for log histograms.
 
 2007-09-12  David Smith  <dsmith@redhat.com>
 
@@ -238,7 +308,7 @@
 
 2007-09-10  Martin Hunt  <hunt@redhat.com>
 
-	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs 
+	* tapsets.cxx, session.h, elaborate.cxx: Start of procfs
 	interaction support. PR 1154.
 
 2007-09-06  Masami Hiramatsu <mhiramat@redhat.com>
@@ -292,7 +362,7 @@
 
 	PR 2424
 	From Lai Jiangshan <laijs@cn.fujitsu.com:
-	* util.cxx (cmdstr_quoted): New. Properly quote 
+	* util.cxx (cmdstr_quoted): New. Properly quote
 	command string.
 	* buildrun.cxx (run_pass): Call cmdstr_quoted().
 
@@ -431,7 +501,7 @@
 2007-07-11  William Cohen  <wcohen@redhat.com>
 
 	* systemtap.spec.in: Make sqlite support selectable.
-	
+
 2007-07-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Don't AC_MSG_ERROR if don't HAVE_LIBSQLITE3.
@@ -463,7 +533,7 @@
 	(print_coverage_info(systemtap_session): Relocate vector.
 	(sql_update_used_probes): Ditto.
 	(sql_update_unused_probes): Ditto.
-	
+
 2007-07-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bumped version to 0.5.15 for development.

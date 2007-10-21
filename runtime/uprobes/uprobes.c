@@ -251,7 +251,7 @@ static void insert_bkpt(struct uprobe_probept *ppt, struct task_struct *tsk)
 		goto out;
 	}
 
-	if ((result = arch_validate_probed_insn(ppt)) < 0) {
+	if ((result = arch_validate_probed_insn(ppt, tsk)) < 0) {
 		bkpt_insertion_failed(ppt, "instruction type cannot be probed");
 		goto out;
 	}
@@ -1754,7 +1754,8 @@ static int utask_quiesce_pending_sigtrap(struct uprobe_task *utask)
 	if (unlikely(regset == NULL))
 		return -EIO;
 
-	if ((*regset->get)(utask->tsk, regset, SLOT_IP * regset->size,
+	if ((*regset->get)(utask->tsk, regset,
+			SLOT_IP(utask->tsk) * regset->size,
 			regset->size, &insn_ptr, NULL) != 0)
 		return -EIO;
 

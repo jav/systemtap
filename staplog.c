@@ -1,8 +1,9 @@
 /*
  crash shared object for retrieving systemtap buffer
- Copyright (c) 2007 Hitachi,Ltd.,
- Created by Satoru Moriya &lt;satoru.moriya.br@hitachi.com&gt;
- 
+ Copyright (c) 2007, Hitachi, Ltd.,
+ Created by Satoru Moriya <satoru.moriya.br@hitachi.com>
+ Updated by Masami Hiramatsu <mhiramat@redhat.com>
+
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation; either version 2 of the License, or
@@ -77,10 +78,11 @@ struct per_cpu_data {
 static struct rchan_offsets rchan_offsets;
 static struct fake_rchan chan;
 static struct per_cpu_data per_cpu[NR_CPUS];
-static FILE *outfp;
-static char *subbuf;
-static int is_global;
-static int old_format;
+static FILE *outfp = NULL;
+static char *subbuf = NULL;
+static int is_global = 0;
+static int old_format = 0;
+static int retrieve_all = 0;
 
 void cmd_staplog(void);
 void cmd_staplog_cleanup(void);
@@ -122,7 +124,7 @@ ERR:
 	error(FATAL, "cannot get rchan offset\n");
 }
 
-static ulong get_rchan(ulong chan_addr) 
+static ulong get_rchan(ulong chan_addr)
 {
 	ulong rchan;
 
@@ -137,7 +139,7 @@ static ulong get_rchan(ulong chan_addr)
 	return rchan;
 }
 
-static void get_rchan_buf(int cpu, ulong rchan) 
+static void get_rchan_buf(int cpu, ulong rchan)
 {
 	ulong rchan_buf;
 	struct per_cpu_data *pcd;
@@ -199,7 +201,7 @@ static int check_global_buffer(ulong rchan)
 {
 	int cpu;
 	ulong rchan_buf[2];
-	
+
 	for (cpu = 0; cpu < 2; cpu++) {
 		readmem(rchan + rchan_offsets.buf + sizeof(void*) * cpu,
 			KVADDR, &rchan_buf[cpu], sizeof(void*),
@@ -210,7 +212,7 @@ static int check_global_buffer(ulong rchan)
 	return 0;
 }
 
-static void setup_global_data(char *module) 
+static void setup_global_data(char *module)
 {
 	int i;
 	ulong stp_utt_addr = 0;
@@ -242,14 +244,59 @@ static void setup_global_data(char *module)
 	return;
 }
 
+static void create_output_filename(char *buf, int len, int cpu)
+{
+	if (is_global) {
+		snprintf(buf, len, "global");
+	} else {
+		snprintf(buf, len, "cpu%d", cpu);
+	}
+}
+
+static void create_output_dir(const char *dirname)
+{
+	DIR *dir;
+	dir = opendir(dirname);
+	if (dir) {
+		closedir(dir);
+	} else {
+		if (mkdir(dirname, S_IRWXU) < 0) {
+			error(FATAL, "cannot create log directory '%s\n'", dirname);
+		}
+	}
+}
+
+static FILE *open_output_file(const char *dname, const char *fname)
+{
+	FILE *filp = NULL;
+	char *output_file;
+
+	output_file = GETBUF(sizeof(char) * (strlen(dname) + strlen(fname) + 2));
+	if (output_file == NULL) {
+		error(FATAL, "cannot allocate memory for logfile name\n");
+	}
+
+	create_output_dir(dname);
+	sprintf(output_file,"%s/%s", dname, fname);
+
+	filp = fopen(output_file, "w");
+	if (!filp) {
+		error(FATAL, "cannot create log file '%s'\n", output_file);
+	}
+	FREEBUF(output_file);
+
+	return filp;
+}
+
+#define MAX_FNAME 128
+
 static void output_cpu_logs(char *dirname)
 {
-	int i, max = 256;
+	int i;
 	struct per_cpu_data *pcd;
-	size_t n, idx, start, end, ready, len;
+	size_t n, idx, start, end, len;
 	size_t padding;
-	char fname[max + 1], *source;
-	DIR *dir;
+	char *source, fname[MAX_FNAME + 1];
 
 	/* allocate subbuf memory */
 	subbuf = GETBUF(chan.subbuf_size);
@@ -257,19 +304,10 @@ static void output_cpu_logs(char *dirname)
 		error(FATAL, "cannot allocate memory\n");
 	}
 
-	fname[max] = '\0';
 	for (i = 0; i < kt->cpus; i++) {
-		int adjust = 0;
 		pcd = &per_cpu[i];
 
-		if (pcd->buf.offset == 0 || 
-		    pcd->buf.offset == chan.subbuf_size + 1) {
-			adjust = 0;
-		} else {
-			adjust = 1;
-		}
-		ready = pcd->buf.subbufs_produced + adjust;
-		if (ready == 0) {
+		if (pcd->buf.subbufs_produced == 0 && pcd->buf.offset == 0) {
 			if (is_global == 1) {
 				error(WARNING, "There is no data in the relay buffer.\n");
 				break;
@@ -279,42 +317,26 @@ static void output_cpu_logs(char *dirname)
 			}
 		}
 
-		if (ready > chan.n_subbufs) {
-			start = ready;
-			end = start + chan.n_subbufs;
+		end = pcd->buf.subbufs_produced + 1;
+		if (pcd->buf.subbufs_produced >= chan.n_subbufs) {
+			start = end - chan.n_subbufs;
 		} else {
 			start = 0;
-			end = ready;
 		}
-		/* print information */
-		if (is_global == 1) {
-			fprintf(fp, "--- generating 'global' ---\n");
-		} else {
-			fprintf(fp, "--- generating 'cpu%d' ---\n", i);
-		}
-		fprintf(fp, "  subbufs ready on relayfs:%ld\n", (long)ready);
-		fprintf(fp, "  n_subbufs:%ld, read from:%ld to:%ld (offset:%ld)\n\n",
-			(long)chan.n_subbufs, (long)(start ? start - chan.n_subbufs : start),
-			(long)(start ? end - 1 - chan.n_subbufs : end - 1), (long)pcd->buf.offset);
 
-		/* create log dir and file */
-		dir = opendir(dirname);
-		if (dir) {
-			closedir(dir);
-		} else {
-			if (mkdir(dirname, S_IRWXU) < 0) {
-				error(FATAL, "cannot create log directory '%s\n'", dirname);
-			}
-		}
-		if (is_global == 1) {
-			snprintf(fname, max, "%s/global", dirname, i);
-		} else {
-			snprintf(fname, max, "%s/cpu%d", dirname, i);
-		}
-		outfp = fopen(fname, "w");
-		if (!outfp) {
-			error(FATAL, "cannot create log file '%s'\n", fname);
-		}
+		create_output_filename(fname, MAX_FNAME, i);
+		fprintf(fp, "--- generating '%s/%s' ---\n", dirname, fname);
+		fprintf(fp, "  subbufs ready on relayfs:%ld\n", (long)end);
+		fprintf(fp, "  n_subbufs:%ld, read subbuf from:%ld(%ld) "
+			"to:%ld(%ld) (offset:0-%ld)\n\n",
+			(long)chan.n_subbufs,
+			(long)start,
+			(long)(start % chan.n_subbufs),
+			(long)end-1,
+			(long)((end-1) % chan.n_subbufs),
+			(long) pcd->buf.offset);
+		outfp = open_output_file(dirname, fname);
+
 		for (n = start; n < end; n++) {
 			/* read relayfs subbufs and write to log file */
 			idx = n % chan.n_subbufs;
@@ -322,19 +344,18 @@ static void output_cpu_logs(char *dirname)
 			readmem((ulong)pcd->buf.padding + sizeof(padding) * idx,
 				KVADDR, &padding, sizeof(padding),
 				"padding", FAULT_ON_ERROR);
-			if (n == end - 1 &&  0 < pcd->buf.offset &&
-			    pcd->buf.offset < chan.subbuf_size) {
+			if (n == end - 1) {
 				len = pcd->buf.offset;
 			} else {
 				len = chan.subbuf_size;
-			}			
+			}
 			if (old_format == 1) {
-				source += sizeof(padding);
-				len -= sizeof(padding) + padding;
+				source += sizeof(unsigned int);
+				len -= sizeof(unsigned int) + padding;
 			} else {
 				len -= padding;
 			}
-			if (len) {
+			if (len > 0) {
 				readmem((ulong)source, KVADDR, subbuf, len,
 					"subbuf", FAULT_ON_ERROR);
 				if (fwrite(subbuf, len, 1, outfp) != 1) {
@@ -344,6 +365,36 @@ static void output_cpu_logs(char *dirname)
 		}
 		fclose(outfp);
 		outfp = NULL;
+
+		/*
+		 * -a option retrieve the old data of subbuffer where the
+		 * probe record is written at that time.
+		 */
+		if (retrieve_all == 1 && start != 0) {
+			strncat(fname, ".may_broken", MAX_FNAME);
+			fprintf(fp, "--- generating '%s/%s' ---\n", dirname, fname);
+			fprintf(fp, "  read subbuf %ld(%ld) (offset:%ld-%ld)\n",
+				(long)start-1,
+				(long)((start-1) % chan.n_subbufs),
+				(long)pcd->buf.offset,
+				(long)chan.subbuf_size);
+			outfp = open_output_file(dirname, fname);
+
+			idx = (start - 1) % chan.n_subbufs;
+			source = pcd->buf.start + idx * chan.subbuf_size +
+				 pcd->buf.offset;
+			len = chan.subbuf_size - pcd->buf.offset;
+			if (len) {
+				readmem((ulong)source, KVADDR, subbuf, len,
+					"may_broken_subbuf", FAULT_ON_ERROR);
+				if(fwrite(subbuf, len, 1, outfp) != 1) {
+					error(FATAL,
+					      "cannot write log data(may_broken)\n");
+				}
+			}
+			fclose(outfp);
+			outfp = NULL;
+		}
 		if (is_global == 1)
 			break;
 	}
@@ -354,13 +405,6 @@ static void output_cpu_logs(char *dirname)
 	return;
 }
 
-static void do_staplog(char *module, char *dirname)
-{
-	setup_global_data(module);
-	output_cpu_logs(dirname);
-	return;
-}
-
 void cmd_staplog(void)
 {
 
@@ -368,8 +412,11 @@ void cmd_staplog(void)
 	char *module = NULL;
 	char *dirname = NULL;
 
-	while ((c = getopt(argcnt, args, "o:")) != EOF) {
+	while ((c = getopt(argcnt, args, "+ao:")) != EOF) {
 		switch (c) {
+		case 'a':
+			retrieve_all = 1;
+			break;
 		case 'o':
 			dirname = optarg;
 			break;
@@ -385,7 +432,9 @@ void cmd_staplog(void)
 
 	if (dirname == NULL && module != NULL)
 		dirname = module;
-	do_staplog(module, dirname);
+
+	setup_global_data(module);
+	output_cpu_logs(dirname);
 	return;
 }
 
@@ -401,16 +450,24 @@ void cmd_staplog_cleanup(void)
 char *help_staplog[] = {
 	"systemtaplog",
 	"Retrieve SystemTap log data",
-	"[-o dir_name] module_name",
+	"[-a] [-o dir_name] module_name",
 	"  Retrieve SystemTap's log data and write them to files.\n",
-	"    module_name     All valid SystemTap log data made by the trace",
-	"                    module which name is 'module_name' are written",
-	"                    into log files. If you don't use -o option, the",
-	"                    log files are created in `module_name` directory.", 
-	"                    The name of each log file is cpu0, cpu1...cpuN. ",
-	"                    They have same format data as channel buffer",
-	"                    except padding(This command removes padding). ",
+	"  All valid SystemTap's log data made by the trace module which name",
+	"  is 'module_name' are written into log files. This command starts",
+	"  to retrieve log data from the subbuffer which is next to current",
+	"  written subbuffer. Therefore some old data in the current written",
+	"  subbuffer may not be retrieved. But -a option retrieves these data",
+	"  and write them into another log file which have the special ",
+	"  postfix `.may_broken`.",
+	"  If you don't use -o option, the log files are created in",
+	"  `module_name` directory. The name of each log file is cpu0, cpu1..",
+	"  ...cpuN. This command doesn't change the log data format, but remove",
+ 	"  only padding.",
 	"",
+	"              -a    Retrieve the old data which is recorded in",
+	"                    current written subbuffer and create another files",
+	"                    which have the special postfix `.may_broken`",
+	"                    for these data.",
 	"    -o file_name    Specify the output directory.",
 	NULL,
 };
@@ -425,7 +482,7 @@ char *help_staplog_cleanup[] = {
 	NULL,
 };
 
-static void __attribute__ ((constructor)) _init(void) 
+static void __attribute__ ((constructor)) _init(void)
 {
 	get_rchan_offsets();
 	register_extension(command_table);

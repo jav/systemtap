@@ -1,3 +1,21 @@
+2007-10-16  Martin Hunt  <hunt@redhat.com>
+
+	PR 5000
+	* systemtap.printf/bin3.stp. Removed.
+	* systemtap.printf/bin3a.stp. Renamed bin3.stp.	
+	* systemtap.printf/bin4.stp. Removed.
+	* systemtap.printf/bin4a.stp. Renamed bin4.stp.	
+	* systemtap.printf/bin5.stp. Removed.
+	* systemtap.printf/bin5a.stp. Renamed bin5.stp.	
+	* systemtap.printf/bin3.exp: Don't run bin3a.stp.	
+	* systemtap.printf/bin4.exp: Don't run bin4a.stp.
+	* systemtap.printf/bin5.exp: Don't run bin5a.stp.
+
+	Increase reliability under loads.
+	* systemtap.samples/pfaults.exp: Increase MAXACTION.
+	* systemtap.context/backtrace.tcl: Handle just
+	a single userspace address.
+
 2007-10-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 1119.

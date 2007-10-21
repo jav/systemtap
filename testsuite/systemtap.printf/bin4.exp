@@ -9,5 +9,3 @@ ef 00 00               }
 
 set test "bin4"
 stap_run_binary $srcdir/$subdir/$test.stp
-set test "bin4a"
-stap_run_binary $srcdir/$subdir/$test.stp

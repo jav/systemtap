@@ -48,7 +48,11 @@ struct location
       unsigned int stack_depth;	/* Temporaries "s0..<N>" used by it.  */
       bool used_deref;		/* Program uses "deref" macro.  */
     } address;
-    unsigned int regno;		/* loc_register */
+    struct			/* loc_register */
+    {
+      unsigned int regno;
+      Dwarf_Word offset;
+    } reg;
     struct location *pieces;	/* loc_noncontiguous */
   };
 };
@@ -182,7 +186,7 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
 	break;
 
       case loc_register:
-	tos_register = input->regno;
+	tos_register = input->reg.regno;
 	break;
 
       default:
@@ -215,7 +219,8 @@ translate (struct obstack *pool, int indent, Dwarf_Addr addrbias,
       else
 	{
 	  piece->type = loc_register;
-	  piece->regno = tos_register;
+	  piece->reg.regno = tos_register;
+	  piece->reg.offset = 0;
 	}
       return NULL;
     }
@@ -914,7 +919,9 @@ location_relative (struct obstack *pool,
 	      }
 
 	    case loc_register:
-	      // XXX
+	      /* This piece (or the whole struct) fits in a register.  */
+	      (*input)->reg.offset += value;
+	      return head ?: *input;
 
 	    default:
 	      abort ();
@@ -1020,11 +1027,10 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
                  bool signed_p, const char *target, struct location *loc)
 {
   bool deref = false;
-  /* int i; */
 
-  /* Emit size/signed coercion. */ 
+  /* Emit size/signed coercion. */
   obstack_printf (pool, "{ ");
-  obstack_printf (pool, "%sint%u_t value = ", 
+  obstack_printf (pool, "%sint%u_t value = ",
                   (signed_p ? "" : "u"), (unsigned)(byte_size * 8));
 
   switch (loc->type)
@@ -1038,7 +1044,9 @@ emit_base_fetch (struct obstack *pool, Dwarf_Word byte_size,
       break;
 
     case loc_register:
-      obstack_printf (pool, "fetch_register (%u);", loc->regno);
+      if (loc->reg.offset != 0)
+	FAIL (loc, N_("cannot handle offset into register in fetch"));
+      obstack_printf (pool, "fetch_register (%u);", loc->reg.regno);
       break;
 
     case loc_noncontiguous:
@@ -1072,7 +1080,9 @@ emit_base_store (struct obstack *pool, Dwarf_Word byte_size,
       return true;
 
     case loc_register:
-      obstack_printf (pool, "store_register (%u, %s);", loc->regno, rvalue);
+      if (loc->reg.offset != 0)
+	FAIL (loc, N_("cannot handle offset into register in store"));
+      obstack_printf (pool, "store_register (%u, %s);", loc->reg.regno, rvalue);
       break;
 
     case loc_noncontiguous:
@@ -1371,7 +1381,7 @@ c_translate_fetch (struct obstack *pool, int indent,
   if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
       || dwarf_formudata (&encoding_attr, &encoding) != 0)
     encoding = base_encoding (typedie, *input);
-  bool signed_p = (encoding == DW_ATE_signed 
+  bool signed_p = (encoding == DW_ATE_signed
                    || encoding == DW_ATE_signed_char);
 
   *input = discontiguify (pool, indent, *input, byte_size,
@@ -1490,7 +1500,7 @@ c_translate_store (struct obstack *pool, int indent,
   if (dwarf_attr_integrate (die, DW_AT_encoding, &encoding_attr) == NULL
       || dwarf_formudata (&encoding_attr, &encoding) != 0)
     encoding = base_encoding (typedie, *input);
-  bool signed_p = (encoding == DW_ATE_signed 
+  bool signed_p = (encoding == DW_ATE_signed
                    || encoding == DW_ATE_signed_char);
 
   *input = discontiguify (pool, indent, *input, byte_size,
@@ -1677,7 +1687,15 @@ c_translate_array (struct obstack *pool, int indent,
       break;
 
     case loc_register:
-      FAIL (*input, N_("cannot index array stored in a register"));
+      if (idx != NULL)
+	FAIL (*input, N_("cannot index array stored in a register"));
+      else if (const_idx > max_fetch_size (loc, typedie) / stride)
+	FAIL (*input, N_("constant index is outside array held in register"));
+      else
+	{
+	  loc->reg.offset += const_idx * stride;
+	  return;
+	}
       break;
 
     default:
@@ -1728,8 +1746,11 @@ emit_loc_register (FILE *out, struct location *loc, unsigned int indent,
 {
   assert (loc->type == loc_register);
 
+  if (loc->reg.offset != 0)
+    FAIL (loc, N_("cannot handle offset into register in fetch"));
+
   emit ("%*s%s = fetch_register (%u);\n",
-	indent * 2, "", target, loc->regno);
+	indent * 2, "", target, loc->reg.regno);
 }
 
 /* Emit a code fragment to assign the target variable to an address.  */
