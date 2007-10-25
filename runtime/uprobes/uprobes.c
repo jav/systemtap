@@ -40,6 +40,8 @@
 #define SET_ENGINE_FLAGS	1
 #define CLEAR_ENGINE_FLAGS	0
 
+#define MAX_SSOL_SLOTS		1024
+
 extern int access_process_vm(struct task_struct *tsk, unsigned long addr,
 	void *buf, int len, int write);
 static int utask_fake_quiesce(struct uprobe_task *utask);
@@ -1240,6 +1242,8 @@ static noinline void uprobe_init_ssol(struct uprobe_process *uproc)
 		return;
 
 	area->nfree = area->nslots = PAGE_SIZE / MAX_UINSN_BYTES;
+	if (area->nslots > MAX_SSOL_SLOTS)
+		area->nfree = area->nslots = MAX_SSOL_SLOTS;
 	area->slots = (struct uprobe_ssol_slot *)
 		kzalloc(sizeof(struct uprobe_ssol_slot) * area->nslots,
 								GFP_USER);
