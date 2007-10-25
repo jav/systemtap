@@ -1,0 +1,46 @@
+# test the printd function with string and integers,
+# variables and constants.
+
+probe begin {
+	a = "hello"
+	b = " "
+	c = "world"
+	d = 777
+	e = "<-->"
+
+	# print variables
+	printd(b,a)
+	println("")
+	printd(b,a,c)
+	println("")
+	printd(e,a,c,d)
+	println("")
+	
+	# print literals
+	printd(",","foo")
+	println("")
+	printd(" *** ","foo","bar")
+	println("")
+	printd(" *** ","foo","bar","baz")
+	println("")
+
+	printd(", " , 777)
+	println("")
+	printd(",","foo",99)
+	println("")
+	println(",",99, "foo")
+	println("")
+	
+	printd("",123,456,789)
+	println("")
+	printd(" ",123,456,789)
+	println("")
+
+	# mixed
+	printd("-",a,999)
+	println("")
+	printd("-",999,a)
+	println("")
+
+	exit()
+}

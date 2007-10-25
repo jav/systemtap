@@ -1,0 +1,33 @@
+# test the printdln function with string and integers,
+# variables and constants.
+
+probe begin {
+	a = "hello"
+	b = " "
+	c = "world"
+	d = 777
+	e = "<-->"
+
+	# print variables
+	printdln(b,a)
+	printdln(b,a,c)
+	printdln(e,a,c,d)
+	
+	# print literals
+	printdln(",","foo")
+	printdln(" *** ","foo","bar")
+	printdln(" *** ","foo","bar","baz")
+
+	printdln(", " , 777)
+	printdln(",","foo",99)
+	println(",",99, "foo")
+	
+	printdln("",123,456,789)
+	printdln(" ",123,456,789)
+
+	# mixed
+	printdln("-",a,999)
+	printdln("-",999,a)
+
+	exit()
+}
