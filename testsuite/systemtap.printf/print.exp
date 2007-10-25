@@ -1,0 +1,18 @@
+set test "print"
+set ::result_string {hello world
+777
+hello world
+hello world
+foo
+foobar
+foobar
+foobar
+foo99
+99foo
+777
+888
+123456789
+hello999
+999hello
+}
+stap_run2 $srcdir/$subdir/$test.stp

@@ -1,0 +1,16 @@
+# test the print_char function
+
+probe begin {
+	endl = 10
+	print_char(65)
+	print_char(66)
+	print_char(67)
+	print_char(endl)
+
+	for (i = 65; i < 91; i++)
+		print_char(i)
+	print_char(endl)
+
+	
+	exit()
+}
