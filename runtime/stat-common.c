@@ -222,36 +222,43 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	reprint (HIST_WIDTH, "-");
 	_stp_print(" count\n");
 
-        eliding=0;
+	eliding=0;
 	for (i = low_bucket;  i <= high_bucket; i++) {
 		int over_under = 0;
 
-                /* Elide consecutive zero buckets.  Specifically, skip
-                   this row if it is zero and some of its nearest
-                   neighbours are also zero.  */
-                int k;
-                int elide=1;
-                for (k=i-HIST_ELISION; k<=i+HIST_ELISION; k++)
-                  {
-                    if (k >= 0 && k < st->buckets && sd->histogram[k] != 0)
-                      elide = 0;
-                  }
-                if (elide)
-                  { 
-                    eliding = 1;
-                    continue;
-                  }
+		/* Elide consecutive zero buckets.  Specifically, skip
+		   this row if it is zero and some of its nearest
+		   neighbours are also zero. Don't elide zero buckets
+		   if HIST_ELISION is negative */
+		if ((long)HIST_ELISION >= 0) {
+			int k, elide=1;
+			/* Can't elide more than the total # of buckets */
+			int max_elide = min_t(long, HIST_ELISION, st->buckets);
+			int min_bucket = low_bucket;
+			int max_bucket = high_bucket;
 
-                /* State change: we have elided some rows, but now are about
-                   to print a new one.  So let's print a mark on the vertical
-                   axis to represent the missing rows.  */
-                if (eliding)
-                  {
-                    reprint (val_space, " ");
-                    _stp_print(" ~\n");
-                    eliding = 0;
-                  }
+			if (i - max_elide > min_bucket)
+				min_bucket = i - max_elide;
+			if (i + max_elide < max_bucket)
+				max_bucket = i + max_elide;
+			for (k = min_bucket; k <= max_bucket; k++) {
+				if (sd->histogram[k] != 0)
+					elide = 0;
+			}
+			if (elide) {
+				eliding = 1;
+				continue;
+			}
 
+			/* State change: we have elided some rows, but now are
+			   about to print a new one.  So let's print a mark on
+			   the vertical axis to represent the missing rows. */
+			if (eliding) {
+				reprint (val_space, " ");
+				_stp_print(" ~\n");
+				eliding = 0;
+			}
+		}
 
 		if (st->type == HIST_LINEAR) {
 			if (i == 0) {
@@ -266,8 +273,7 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 				val = st->start + (i - 1) * st->interval;
 		} else
 			val = _stp_bucket_to_val(i);
-		
-		
+
 		reprint (val_space - needed_space(val) - over_under, " ");
 
 		if (over_under) {

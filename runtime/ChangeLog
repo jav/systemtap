@@ -1,3 +1,9 @@
+2007-10-25  Mike Mason <mmlnx@us.ibm.com>
+
+	* stat-common.c: Allow histogram bucket elision to be turned off
+	with -DHIST_ELISION=<negative #>.  Also cleaned up looping code
+	to prevent unnecessary interation over non-existent buckets.
+
 2007-10-17  Masami Hiramatsu <mhiramat@redhat.com>
 
 	* autoconf-tsc-khz.c: Not to be compiled if the kernel version is
