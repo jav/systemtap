@@ -59,7 +59,11 @@ int main(int argc, char **argv)
 		exit(1);
 	
 	initialized = 1;
-
+	if (attach_mod) {
+		/* already started */
+		initialized++; 
+	}
+	
 	if (stp_main_loop()) {
 		err("ERROR: Couldn't enter main loop. Exiting.\n");
 		exit(1);
