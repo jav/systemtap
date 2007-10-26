@@ -1,0 +1,20 @@
+# printd and printdln tests
+
+# both tests have the same result
+
+set ::result_string {hello world
+hello<-->world<-->777
+foo *** bar
+foo *** bar *** baz
+foo,99
+99,foo
+123 456 789
+hello-999
+999-hello
+}
+
+foreach x {"d" "dln"} {
+    set test "print$x"
+    stap_run_exact $test $srcdir/$subdir/$test.stp
+}
+

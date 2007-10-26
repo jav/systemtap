@@ -3,36 +3,26 @@
 
 probe begin {
 	a = "hello"
-	b = " "
 	c = "world"
 	d = 777
-	e = "<-->"
 
 	# print variables
-	printd(b,a)
+	printd(" ",a,c)
 	println("")
-	printd(b,a,c)
-	println("")
-	printd(e,a,c,d)
+	printd("<-->",a,c,d)
 	println("")
 	
 	# print literals
-	printd(",","foo")
-	println("")
 	printd(" *** ","foo","bar")
 	println("")
 	printd(" *** ","foo","bar","baz")
 	println("")
 
-	printd(", " , 777)
-	println("")
 	printd(",","foo",99)
 	println("")
-	println(",",99, "foo")
+	printd(",",99, "foo")
 	println("")
 	
-	printd("",123,456,789)
-	println("")
 	printd(" ",123,456,789)
 	println("")
 

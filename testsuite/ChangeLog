@@ -1,5 +1,12 @@
 2007-10-25  Martin Hunt  <hunt@redhat.com>
 
+	* systemtap.printf/printd.exp: New.
+	Runs printd.stp and printdln.stp.
+	* systemtap.printf/printdln.stp: Removed bad tests.	
+	* systemtap.printf/printd.stp: Ditto.
+
+2007-10-25  Martin Hunt  <hunt@redhat.com>
+	
 	* systemtap.printf/print_char.*: New test. 
 	* systemtap.printf/print.*: New test.
 	* systemtap.printf/println.*: New test.
