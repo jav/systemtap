@@ -949,6 +949,7 @@ function clones_from_clnt:long(clnt:long)
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = kread(&(clnt->cl_count));
+	CATCH_DEREF_FAULT();
 #else
         THIS->__retvalue = -1;
 #endif
@@ -959,6 +960,7 @@ function tasks_from_clnt:long(clnt:long)
 	struct rpc_clnt *clnt = (struct rpc_clnt *)(long)THIS->clnt;
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,22)
 	THIS->__retvalue = kread(&(clnt->cl_users));
+	CATCH_DEREF_FAULT();
 #else
         THIS->__retvalue = -1;
 #endif

@@ -1,3 +1,9 @@
+2007-11-1  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* rpc.stp (clones_from_clnt): Add CATCH_DEREF_FAULT().
+	(tasks_from_clnt): Ditto.
+
 2007-10-17  Martin Hunt  <hunt@redhat.com>
 	PR5000
 	* endian.stp (set_endian): Remove.
