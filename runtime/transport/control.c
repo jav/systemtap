@@ -261,6 +261,8 @@ static int _stp_ctl_send (int type, void *data, int len)
 	} else {
 		while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
 			msleep (5);
+		if (err > 0)
+			wake_up_interruptible(&_stp_ctl_wq);
 	}
 	kbug("returning %d\n", err);
 	return err;
@@ -368,26 +370,19 @@ static int _stp_sym_close_cmd (struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int _stp_ctl_opens = 0;
 static int _stp_ctl_open_cmd (struct inode *inode, struct file *file)
 {
-	/* only allow one reader */
-	if (_stp_ctl_opens)
+	if (_stp_attached)
 		return -1;
 
-	_stp_ctl_opens++;
-	_stp_pid = current->pid;
-	utt_overwrite_flag = 0;
+	_stp_attach();
 	return 0;
 }
 
 static int _stp_ctl_close_cmd (struct inode *inode, struct file *file)
 {
-	if (_stp_ctl_opens)
-		_stp_ctl_opens--;
-	_stp_pid = 0;
-	if (!_stp_exit_flag)
- 		utt_overwrite_flag = 1;
+	if (_stp_attached)
+		_stp_detach();
 	return 0;
 }
 

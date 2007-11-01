@@ -47,7 +47,8 @@ void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
 void _stp_handle_start (struct _stp_msg_start *st);
-
+static void _stp_detach(void);
+static void _stp_attach(void);
 
 /* check for new workqueue API */
 #ifdef DECLARE_DELAYED_WORK 
@@ -115,6 +116,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 	if (!_stp_exit_called) {
 		int failures;
 
+		_stp_exit_flag = 1;
 		unregister_module_notifier(&_stp_module_load_nb);
 
 		/* we only want to do this stuff once */
@@ -142,6 +144,34 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 }
 
 /*
+ * Called when stapio closes the control channel.
+ */
+static void _stp_detach(void)
+{
+	kbug("detach\n");
+	_stp_attached = 0;
+	_stp_pid = 0;
+
+	if (!_stp_exit_flag)
+ 		utt_overwrite_flag = 1;
+
+	cancel_delayed_work(&_stp_work);
+	wake_up_interruptible(&_stp_ctl_wq);
+}
+
+/*
+ * Called when stapio opens the control channel.
+ */
+static void _stp_attach(void)
+{
+	kbug("attach\n");
+	_stp_attached = 1;
+	_stp_pid = current->pid;
+	utt_overwrite_flag = 0;
+	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
+}
+
+/*
  *	_stp_work_queue - periodically check for IO or exit
  *	This is run by a kernel thread and may sleep.
  */
@@ -162,12 +192,9 @@ static void _stp_work_queue (void *data)
 		wake_up_interruptible(&_stp_ctl_wq);
 
 	/* if exit flag is set AND we have finished with probe_start() */
-	if (unlikely(_stp_exit_flag && _stp_start_finished)) {
+	if (unlikely(_stp_exit_flag && _stp_start_finished))
 		_stp_cleanup_and_exit(0);
-		cancel_delayed_work(&_stp_work);
-		flush_workqueue(_stp_wq);
-		wake_up_interruptible(&_stp_ctl_wq);
-	} else
+	else if (likely(_stp_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -179,18 +206,14 @@ static void _stp_work_queue (void *data)
  */
 void _stp_transport_close()
 {
-	kbug("************** transport_close *************\n");
+	kbug("%d: ************** transport_close *************\n", current->pid);
 	_stp_cleanup_and_exit(1);
-	cancel_delayed_work(&_stp_work);
 	destroy_workqueue(_stp_wq);
-	wake_up_interruptible(&_stp_ctl_wq);
-	unregister_module_notifier(&_stp_module_load_nb);
 	_stp_unregister_ctl_channel();
 	if (_stp_utt) utt_trace_remove(_stp_utt);
 	_stp_free_modules();
 	_stp_kill_time();
 	_stp_print_cleanup(); 	/* free print buffers */
-
 	kbug("---- CLOSED ----\n");
 }
 
@@ -257,9 +280,7 @@ int _stp_transport_init(void)
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
 		goto err3;
-
-	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
-
+	
 	/* request symbolic information */
 	_stp_ask_for_symbols();
 	return 0;
