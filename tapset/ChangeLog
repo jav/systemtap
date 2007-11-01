@@ -1,3 +1,8 @@
+2007-11-1  Will Cohen  <wcohen@redhat.com>
+
+	* syscall2.stp (sys_remap_file_pages): Fix compile error with kernel
+	version greater than 2.6.23.
+
 2007-11-1  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
