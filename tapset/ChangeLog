@@ -1,3 +1,10 @@
+2007-11-2  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* nfsd.stp: Fix the semantic error caused by the difference of
+	kernel versions.
+	* nfs_proc.stp: Ditto.
+
 2007-11-1  Will Cohen  <wcohen@redhat.com>
 
 	* syscall2.stp (sys_remap_file_pages): Fix compile error with kernel
