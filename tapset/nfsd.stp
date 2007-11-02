@@ -809,7 +809,9 @@ probe nfsd.read = kernel.function("nfsd_read") ?,
 {
 	fh = __svc_fh($fhp)
 
+%( kernel_v >= "2.6.12" %?
 	file = $file
+%)
 	count = p_long($count)
 	offset = $offset
 	vec = $vec
@@ -847,7 +849,9 @@ probe nfsd.write = kernel.function("nfsd_write")?,
 {
 	fh = __svc_fh($fhp)
 
+%( kernel_v >= "2.6.12" %?
 	file = $file
+%)
 	count = $cnt
 	offset = $offset
 	vec = $vec

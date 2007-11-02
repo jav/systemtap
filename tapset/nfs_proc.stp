@@ -770,7 +770,9 @@ probe nfs.proc2.read_done.return = kernel.function("nfs_read_done").return?,
 {
         version =2
 	name = "nfs.proc2.read_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 
@@ -799,7 +801,9 @@ probe nfs.proc3.read_done.return = kernel.function("nfs3_read_done").return?,
 {
         version =3
 	name = "nfs.proc3.read_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 
@@ -830,7 +834,9 @@ probe nfs.proc4.read_done.return = kernel.function("nfs4_read_done").return?,
 {
         version =4
 	name = "nfs.proc4.read_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 /*probe nfs.proc.write_setup
@@ -990,7 +996,9 @@ probe nfs.proc2.write_done.return = kernel.function("nfs_write_done").return ?,
 {
         version =2
 	name = "nfs.proc2.write_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 probe nfs.proc3.write_done = kernel.function("nfs3_write_done") ?,
@@ -1019,7 +1027,9 @@ probe nfs.proc3.write_done.return = kernel.function("nfs3_write_done").return ?,
 {
         version =3
 	name = "nfs.proc3.write_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 probe nfs.proc4.write_done = kernel.function("nfs4_write_done") ?,
@@ -1050,7 +1060,9 @@ probe nfs.proc4.write_done.return = kernel.function("nfs4_write_done").return ?,
 {
         version =4
 	name = "nfs.proc4.write_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 
@@ -1182,7 +1194,9 @@ probe nfs.proc3.commit_done.return = kernel.function("nfs3_commit_done").return 
 {
         version =3
 	name = "nfs.proc3.commit_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 
 probe nfs.proc4.commit_done = kernel.function("nfs4_commit_done") ?,
@@ -1213,7 +1227,9 @@ probe nfs.proc4.commit_done.return = kernel.function("nfs4_commit_done").return 
 {
         version =4
 	name = "nfs.proc4.commit_done.return"
+%( kernel_v >= "2.6.17" %?
 	retstr = sprintf("%d", $return)
+%)
 }
 /*probe nfs.proc.open
 *
