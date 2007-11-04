@@ -1,0 +1,47 @@
+# test the print function with string and integers,
+# variables and constants.
+
+probe begin {
+	a = "hello"
+	b = " "
+	c = "world"
+	d = 777
+
+	# print variables
+	print(a)
+	print(b)
+	print(c)
+	print("\n")
+
+	print(d)
+	print("\n")
+	
+	print(a,b,c,"\n")
+	print(a.b.c."\n")
+
+	# print literals
+	print("foo")
+	print("\n")
+
+	print("foo")
+	print("bar")
+	print("\n")
+
+	print("foo","bar","\n")
+	print("foo"."bar"."\n")
+
+	print("foo",99,"\n")
+	print(99, "foo","\n")
+	
+	print(777)
+	print("\n")
+	print(888,"\n")
+
+	print(123,456,789,"\n")
+
+	# mixed
+	print(a,999,"\n")
+	print(999,a,"\n")
+
+	exit()
+}

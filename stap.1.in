@@ -531,7 +531,8 @@ but also append a newline.
 .TP
 .BR printd ", " sprintd
 Take a string delimiter and two or more values of any type, and print the
-values with the delimiter interposed.
+values with the delimiter interposed.  The delimiter must be a literal
+string constant.
 .TP
 .BR printdln ", " sprintdln
 Print values with a delimiter like
@@ -540,7 +541,7 @@ but also append a newline.
 .TP
 .BR printf ", " sprintf
 Take a formatting string and a number of values of corresponding types,
-and print them all.
+and print them all.  The format must be a literal string constant.
 .PP
 The
 .IR printf

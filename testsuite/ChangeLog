@@ -1,3 +1,27 @@
+2007-10-25  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.printf/printd.exp: New.
+	Runs printd.stp and printdln.stp.
+	* systemtap.printf/printdln.stp: Removed bad tests.	
+	* systemtap.printf/printd.stp: Ditto.
+
+2007-10-25  Martin Hunt  <hunt@redhat.com>
+	
+	* systemtap.printf/print_char.*: New test. 
+	* systemtap.printf/print.*: New test.
+	* systemtap.printf/println.*: New test.
+	
+	* systemtap.maps/elision.*: New tests.
+
+	* config/unix.exp: Added stap_run_exact.
+	* lib/stap_run_exact.exp: New. Like stap_run2 but
+	takes a seperate test name. 
+
+2007-10-25  Martin Hunt  <hunt@redhat.com>
+	
+	* systemtap.printf/printd.stp: New
+	* systemtap.printf/printdln.stp: New	
+
 2007-10-16  Martin Hunt  <hunt@redhat.com>
 
 	PR 5000

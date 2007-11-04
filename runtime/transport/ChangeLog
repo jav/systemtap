@@ -1,3 +1,9 @@
+2007-11-01  Martin Hunt  <hunt@redhat.com>
+
+	* procfs.c, control.c, transport.c: Recognize when stapio 
+	is detached and disable delayed work. Enable when attached.
+	Cleanup code to destroy workqueue on exit.
+
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 
 	* transport.c (_stp_ask_for_symbols): Don't ask for

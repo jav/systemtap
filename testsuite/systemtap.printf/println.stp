@@ -1,0 +1,37 @@
+# test the println function with string and integers,
+# variables and constants.
+
+probe begin {
+	a = "hello"
+	b = " "
+	c = "world"
+	d = 777
+
+	# println variables
+	println(a)
+	println(b)
+	println(c)
+
+	println(d)
+	
+	println(a,b,c)
+	println(a.b.c)
+
+	# println literals
+	println("foo")
+
+	println("foo","bar")
+	println("foo"."bar")
+
+	println(777)
+	println("foo",99)
+	println(99, "foo")
+	
+	println(123,456,789)
+
+	# mixed
+	println(a,999)
+	println(999,a)
+
+	exit()
+}

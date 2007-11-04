@@ -1,3 +1,13 @@
+2007-10-25  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 5219
+	* stap.1.in: Add a note about string literal limitations in printf
+	and printd.
+
+2007-10-22  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes_x86_64.[ch]: Added x86_64 uprobes support
+
 2007-10-19  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes_ppc64.h,uprobes_s390.c: Fixed 10/16

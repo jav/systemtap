@@ -27,7 +27,7 @@
 #define SSTEP_SIGNAL SIGTRAP
 
 /* Normally defined in Kconfig */
-#undef CONFIG_UPROBES_SSOL
+#define CONFIG_UPROBES_SSOL
 #define CONFIG_URETPROBES 1
 
 typedef unsigned int uprobe_opcode_t;
@@ -46,12 +46,6 @@ struct uprobe_probept;
 struct uprobe_task;
 struct task_struct;
 
-static inline int arch_validate_probed_insn(struct uprobe_probept *ppt,
-						struct task_struct *tsk)
-{
-	return 0;
-}
-
 /* On powerpc, nip points to the trap. */
 static inline unsigned long arch_get_probept(struct pt_regs *regs)
 {
@@ -62,14 +56,15 @@ static inline void arch_reset_ip_for_sstep(struct pt_regs *regs)
 {
 }
 
-#ifdef CONFIG_URETPROBES
-static inline void arch_restore_uret_addr(unsigned long ret_addr,
-		                struct pt_regs *regs)
-{
-	        regs->nip = ret_addr;
-}
-#endif /* CONFIG_URETPROBES */
+static inline int arch_validate_probed_insn(struct uprobe_probept *ppt,
+						struct task_struct *tsk);
 
 static unsigned long arch_hijack_uret_addr(unsigned long trampoline_addr,
 		struct pt_regs *regs, struct uprobe_task *utask);
+
+static inline void arch_restore_uret_addr(unsigned long ret_addr,
+		struct pt_regs *regs)
+{
+	regs->nip = ret_addr;
+}
 #endif				/* _ASM_UPROBES_H */

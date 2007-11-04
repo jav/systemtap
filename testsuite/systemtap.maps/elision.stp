@@ -1,0 +1,54 @@
+# test that we can check the count of an empty array
+
+global a,b,c
+
+probe begin
+{
+	a <<< 444
+	a <<< 999
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	a <<< 444
+	a <<< 500
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	a <<< 0
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	a <<< 50
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	a <<< 1450
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	a <<< 1500
+        print(@hist_linear(a, 0, 1500, 50))
+	delete a
+
+	b <<< -10
+        print(@hist_linear(b, -100, 100, 10))
+	delete b
+
+	b <<< 0
+        print(@hist_linear(b, -100, 100, 10))
+	delete b
+
+	c <<< 128
+	print(@hist_log(c))
+	delete c
+
+	c <<< 0
+	print(@hist_log(c))
+	delete c
+
+	c <<< -2
+	c <<< -4096
+	print(@hist_log(c))
+
+	exit()
+}

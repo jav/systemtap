@@ -1,4 +1,5 @@
 load_lib "systemtap.exp"
 load_lib "stap_run2.exp"
+load_lib "stap_run_exact.exp"
 load_lib "stap_run_binary.exp"
 load_lib "stap_run.exp"

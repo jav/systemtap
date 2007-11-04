@@ -1,3 +1,8 @@
+2007-10-26  Martin Hunt  <hunt@redhat.com>
+	PR5218
+	* stapio.c (main): Set initialized properly when
+	attached.
+
 2007-10-12  Martin Hunt  <hunt@redhat.com>
 	Changes to separate the symbols from the command channel.
 	
