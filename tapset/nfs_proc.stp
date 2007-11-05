@@ -5,34 +5,36 @@
 
 %{
 /*Get ip address from a rpc_task*/
-	__u32 get_ip(struct rpc_task *);
+	__u32 get_ip(struct rpc_task *, struct context * __restrict__);
 /*Get protocol types from a rpc_task*/
-	int get_prot(struct rpc_task *);
+	int get_prot(struct rpc_task *, struct context * __restrict__);
 %}
 %{
-     __u32 get_ip(struct rpc_task * task)
+     __u32 get_ip(struct rpc_task * task, struct context * __restrict__ c)
      {
-        /* FIXME: deref hazards! */
         struct rpc_clnt * tk_client;
         struct rpc_xprt * cl_xprt;
         struct sockaddr_in *addr;
-        tk_client = task->tk_client;
-        cl_xprt= tk_client->cl_xprt;
+        tk_client = kread(&(task->tk_client));
+        cl_xprt= kread(&(tk_client->cl_xprt));
         addr = (struct sockaddr_in *)&(cl_xprt->addr);
-        if (addr->sin_family != AF_INET)
+        if (kread(&(addr->sin_family)) != AF_INET)
                 /* Now consider ipv4 only */
                 return 0;
-        return addr->sin_addr.s_addr;
+        return kread(&(addr->sin_addr.s_addr));
+	CATCH_DEREF_FAULT();
+	return -1;
      }
-     int get_prot(struct rpc_task * task)
+     int get_prot(struct rpc_task * task, struct context * __restrict__ c)
      {
-        /* FIXME: deref hazards! */
         struct rpc_clnt * tk_client;
         struct rpc_xprt * cl_xprt;
-        tk_client = task->tk_client;
-        cl_xprt= tk_client->cl_xprt;
+        tk_client = kread(&(task->tk_client));
+        cl_xprt= kread(&(tk_client->cl_xprt));
 
-        return cl_xprt->prot;
+        return kread(&(cl_xprt->prot));
+	CATCH_DEREF_FAULT();
+	return -1;
     }
 %}
 /*
@@ -73,10 +75,10 @@ function __nfs_read_data_info:long (rdata :long,index :long) %{ /* pure */
 
 	switch(index) {
 		case 0:
-			THIS->__retvalue = get_ip(task); 
+			THIS->__retvalue = get_ip(task, CONTEXT); 
 			break;
 		case 1: 
-			THIS->__retvalue = get_prot(task);
+			THIS->__retvalue = get_prot(task, CONTEXT);
 			break;
 		case 2:
 			THIS->__retvalue = kread(&(rres->count));
@@ -113,10 +115,10 @@ function __nfs_write_data_info:long (wdata :long,index :long) %{ /* pure */
 
 	switch(index) {
 		case 0:
-			THIS->__retvalue = get_ip(task); 
+			THIS->__retvalue = get_ip(task, CONTEXT); 
 			break;
 		case 1: 
-			THIS->__retvalue = get_prot(task);
+			THIS->__retvalue = get_prot(task, CONTEXT);
 			break;
 
 		case 2:

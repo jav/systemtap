@@ -1,3 +1,9 @@
+2007-11-5  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* nfs_proc.stp: Use kread in get_ip and get_prot to avoid kernel
+	panic.
+
 2007-11-2  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>
