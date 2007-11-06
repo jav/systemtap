@@ -1,3 +1,10 @@
+2007-11-6  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* rpc.stp (sunrpc.clnt.call_sync): Define procname only for
+	kernel>=2.6.17.
+	(sunrpc.clnt.call_async): Ditto.
+
 2007-11-5  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>
