@@ -294,8 +294,10 @@ probe sunrpc.clnt.call_sync = kernel.function("rpc_call_sync") ?,
 	xid  = xid_from_clnt($clnt)
 	dead = $clnt->cl_dead
 
+%( kernel_v >= "2.6.17" %?
 	procname= $msg->rpc_proc->p_name 
 		? kernel_string($msg->rpc_proc->p_name) : "NULL"
+%)
 	proc = proc_from_msg($msg)
 	flags = $flags
 	
@@ -340,9 +342,10 @@ probe sunrpc.clnt.call_async = kernel.function("rpc_call_async") ?,
 	dead = $clnt->cl_dead
 
 	proc = proc_from_msg($msg)
+%( kernel_v >= "2.6.17" %?
 	procname= $msg->rpc_proc->p_name 
 		? kernel_string($msg->rpc_proc->p_name) : "NULL"
-
+%)
 	flags = $flags
 	
 	name = "sunrpc.clnt.call_async"
