@@ -1,5 +1,5 @@
 /* -*- linux-c -*- 
- * relayfs.c - relayfstransport functions
+ * relayfs.c - relayfs transport functions
  *
  * Copyright (C) IBM Corporation, 2005, 2006
  * Copyright (C) Red Hat Inc, 2005, 2006, 2007
@@ -120,6 +120,12 @@ err:
 		_stp_remove_relay_root(utt->utt_tree_root);
 	kfree(utt);
 	return NULL;
+}
+
+void utt_set_overwrite(int overwrite)
+{
+	if (_stp_utt)
+		_stp_utt->rchan->overwrite = overwrite;
 }
 
 int utt_trace_startstop(struct utt_trace *utt, int start,

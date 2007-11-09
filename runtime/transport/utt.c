@@ -29,7 +29,12 @@
 #include <linux/relay.h>
 #include "utt.h"
 
-int utt_overwrite_flag = 0;
+static int utt_overwrite_flag = 0;
+
+void utt_set_overwrite(int overwrite)
+{
+	utt_overwrite_flag = overwrite;
+}
 
 static void utt_remove_root(struct utt_trace *utt)
 {
