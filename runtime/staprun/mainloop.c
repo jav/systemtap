@@ -249,7 +249,7 @@ int stp_main_loop(void)
 	void *data;
 	int type;
 	FILE *ofp = stdout;
-	char recvbuf[8192];
+	char recvbuf[8196];
 
 	setvbuf(ofp, (char *)NULL, _IOLBF, 0);
 	setup_main_signals(0);
