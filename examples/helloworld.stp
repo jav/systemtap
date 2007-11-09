@@ -1,2 +1,2 @@
-#! /usr/bin/stap
-probe begin { log("hello world") exit () }
+#! /usr/bin/env stap
+probe begin { println("hello world") exit () }

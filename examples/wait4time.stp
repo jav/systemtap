@@ -1,4 +1,4 @@
-#! /usr/bin/stap
+#! /usr/bin/env stap
 
 /*
  * Copyright (C) 2006 Daniel Berrange, Red Hat Inc.

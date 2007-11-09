@@ -1,4 +1,4 @@
-#! /usr/bin/stap
+#! /usr/bin/env stap
 
 global ifxmit, ifrecv, ifdevs, ifpid, execname, user
 

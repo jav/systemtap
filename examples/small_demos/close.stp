@@ -7,3 +7,8 @@ probe syscall.close {
 probe syscall.close.return {
 	printf("%s\n", returnstr(returnp))
 }
+
+probe end {
+	printf("DONE\n")
+}
+

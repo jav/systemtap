@@ -1,4 +1,4 @@
-#!/bin/env stap
+#! /usr/bin/env stap
 
 global devices, reads, writes
 
