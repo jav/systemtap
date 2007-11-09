@@ -17,9 +17,8 @@
  */
 spinlock_t _stp_print_lock = SPIN_LOCK_UNLOCKED;
 
-void _stp_print_flush (void)
+void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 {
-	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	uint32_t len = pb->len;
 
 	/* check to see if there is anything in the buffer */

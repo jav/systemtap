@@ -1,3 +1,11 @@
+2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR3858
+	* systemtap.printf/sharedbuf.exp: New test for buffer sharing option.
+	* systemtap.printf/sharedbuf.stp: Ditto.
+	* systemtap.printf/hello.stp: Ditto.
+	* systemtap.printf/hello2.stp: Ditto.
+
 2007-10-25  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.printf/printd.exp: New.

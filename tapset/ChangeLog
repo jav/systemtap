@@ -1,3 +1,11 @@
+2007-11-8  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* rpc.stp (clones_from_clnt): Use deref to check, then use
+	atomic_read to read an atomic_t to avoid compilation error of
+	type matching.
+	(tasks_from_clnt): Ditto.
+
 2007-11-6  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>

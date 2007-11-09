@@ -21,13 +21,14 @@
 #include "symbols.c"
 #include "../procfs.c"
 
+static struct utt_trace *_stp_utt = NULL;
+
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
 #else
 #include "utt.c"
 #endif
 
-static struct utt_trace *_stp_utt = NULL;
 static unsigned int utt_seq = 1;
 
 static int _stp_start_finished = 0;
@@ -153,7 +154,7 @@ static void _stp_detach(void)
 	_stp_pid = 0;
 
 	if (!_stp_exit_flag)
- 		utt_overwrite_flag = 1;
+		utt_set_overwrite(1);
 
 	cancel_delayed_work(&_stp_work);
 	wake_up_interruptible(&_stp_ctl_wq);
@@ -167,7 +168,7 @@ static void _stp_attach(void)
 	kbug("attach\n");
 	_stp_attached = 1;
 	_stp_pid = current->pid;
-	utt_overwrite_flag = 0;
+		utt_set_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -247,6 +248,12 @@ int _stp_transport_init(void)
 	_stp_init_pid = current->pid;
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
+
+#ifdef RELAY_GUEST
+        /* Guest scripts use relay only for reporting warnings and errors */
+        _stp_subbuf_size = 65536;
+        _stp_nsubbufs = 2;
+#endif
 
 	if (_stp_bufsize) {
 		unsigned size = _stp_bufsize * 1024 * 1024;

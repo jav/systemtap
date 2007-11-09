@@ -1,3 +1,13 @@
+2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR3858
+	* print.c: Add -DRELAY_HOST=<hostname> and -DRELAY_GUEST=<hostname>
+	options support.
+	(_stp_print_flush): Disable irqs if -DRELAY_* option is specified.
+	* print_old.c: Export stp_print_flush to other modules if the
+	-DRELAY_HOST option is specified.
+	* print_new.c: Ditto.
+
 2007-10-25  Mike Mason <mmlnx@us.ibm.com>
 
 	* stat-common.c: Allow histogram bucket elision to be turned off

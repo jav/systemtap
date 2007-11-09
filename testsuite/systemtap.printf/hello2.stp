@@ -1,0 +1,7 @@
+probe begin
+{
+	print("Print");
+	log("Systemtap");
+	warn("warning");
+	exit()
+}
