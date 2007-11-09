@@ -249,6 +249,12 @@ int _stp_transport_init(void)
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
 
+#ifdef RELAY_GUEST
+        /* Guest scripts use relay only for reporting warnings and errors */
+        _stp_subbuf_size = 65536;
+        _stp_nsubbufs = 2;
+#endif
+
 	if (_stp_bufsize) {
 		unsigned size = _stp_bufsize * 1024 * 1024;
 		_stp_subbuf_size = ((size >> 2) + 1) * 65536;

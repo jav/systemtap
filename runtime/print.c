@@ -72,6 +72,21 @@ void _stp_print_cleanup (void)
 		free_percpu(Stp_lbuf);
 }
 
+#define __DEF_EXPORT_FN(fn, postfix) fn ## _ ## postfix
+#define DEF_EXPORT_FN(fn, postfix) __DEF_EXPORT_FN(fn, postfix)
+
+#if defined(RELAY_GUEST)
+#if defined(RELAY_HOST)
+        #error "Cannot specify both RELAY_HOST and RELAY_GUEST"
+#endif
+#define EXPORT_FN(fn) DEF_EXPORT_FN(fn, RELAY_GUEST)
+#elif defined(RELAY_HOST)
+#define EXPORT_FN(fn) DEF_EXPORT_FN(fn, RELAY_HOST)
+#else /* defined(RELAY_GUEST) || defined(RELAY_HOST) */
+#define EXPORT_FN(fn) fn
+#endif
+
+#if !defined(RELAY_GUEST)
 /* The relayfs API changed between 2.6.15 and 2.6.16. */
 /* Use the appropriate print flush function. */
 
@@ -79,6 +94,26 @@ void _stp_print_cleanup (void)
 #include "print_old.c"
 #else
 #include "print_new.c"
+#endif
+#if defined(RELAY_HOST)
+EXPORT_SYMBOL_GPL(EXPORT_FN(stp_print_flush));
+#endif
+
+#endif /*!RELAY_GUEST*/
+
+#if defined(RELAY_GUEST) || defined(RELAY_HOST)
+/* Prohibit irqs to avoid racing on a relayfs */
+extern void EXPORT_FN(stp_print_flush) (_stp_pbuf *);
+static inline void _stp_print_flush(void)
+{
+	unsigned long flags;
+	local_irq_save(flags);
+	EXPORT_FN(stp_print_flush) (per_cpu_ptr(Stp_pbuf, smp_processor_id()));
+	local_irq_restore(flags);
+}
+#else
+#define _stp_print_flush() \
+	EXPORT_FN(stp_print_flush)(per_cpu_ptr(Stp_pbuf, smp_processor_id()))
 #endif
 
 #ifndef STP_MAXBINARYARGS

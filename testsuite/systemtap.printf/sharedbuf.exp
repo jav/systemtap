@@ -1,0 +1,62 @@
+# Simple test that systemtap can share the buffer with other scripts.
+set test "sharedbuf"
+set TEST_NAME "$subdir/$test"
+
+if {![installtest_p]} { untested $TEST_NAME; return }
+
+set c1 0
+set c2 0
+
+# Load a host script
+spawn stap $srcdir/$subdir/$test.stp -DRELAY_HOST=test1
+
+expect {
+	-timeout 120
+	"Host: begin\r\n" {
+		pass "shared buffer hosting"
+		# Run a guest script which uses printf.
+		if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test1} res]} {
+			fail "shared buffer guest"
+			print $res
+		} else {
+			incr c1
+			exp_continue
+		}
+	}
+	"HelloWorld" {
+		if {$c1 == 1} {incr c1}
+		# Run a guest script which uses print, log and warn.
+		if {[catch {exec stap $srcdir/$subdir/hello2.stp -DRELAY_GUEST=test1} res]} {
+			# check that the guest outputs a warning message.
+			if {$res == "WARNING: warning"} {
+				xfail "shared buffer guest2"
+				incr c2
+				exp_continue
+			} else {
+				fail "shared buffer guest2"
+			}
+		} else {
+			kpass "shared buffer guest2"
+			incr c2
+			exp_continue
+		}
+	}
+	"PrintSystemtap" {
+		if {$c2 == 1} {incr c2}
+		# Run a guest script which tries to use nonexist buffer.
+		if {[catch {exec stap $srcdir/$subdir/hello.stp -DRELAY_GUEST=test2} res]} {
+			xfail "nonexist buffer sharing"
+		} else {
+			fail "nonexist buffer sharing"
+		}
+	}
+	eof {fail "shared buffer hosting. unexpected EOF" }
+}
+send "\003"
+if {$c1 == 2 && $c2 == 2} {
+	pass "buffer sharing"
+} else {
+	fail "buffer sharing ($c1, $c2)"
+}
+close
+wait

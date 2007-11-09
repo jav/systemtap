@@ -1,3 +1,9 @@
+2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR3858
+	* transport.c (_stp_transport_init): Reduce relay buffer size to
+	64KB*2 if -DRELAY_GUEST is specified.
+
 2007-11-09  Martin Hunt  <hunt@redhat.com>
 	PR 5281
 	* transport.c (_stp_detach, _stp_attach): Call utt_set_overwrite()
