@@ -1,0 +1,9 @@
+This directory contains example scripts.  
+
+Each script should be checked in as executable.
+
+The first line should be
+#! /usr/bin/env stap
+
+There should be an accompanying ".txt" file describing what the
+script does and how to use it.

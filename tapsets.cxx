@@ -2357,6 +2357,7 @@ dwarf_query::build_blacklist()
   // them here so the translator can block them on older kernels that
   // don't have the __kprobes function decorator.  This also allows
   // detection of problems at translate- rather than run-time.
+  blacklisted_probes.insert("__raw_spin_is_locked");
   blacklisted_probes.insert("atomic_notifier_call_chain");
   blacklisted_probes.insert("default_do_nmi");
   blacklisted_probes.insert("__die");

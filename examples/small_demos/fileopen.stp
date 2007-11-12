@@ -1,9 +1,14 @@
+#! /usr/bin/env stap
+
+#
 # fileopen.stp
 #
 # This is based on dtrace script from 
 # http://www.gnome.org/~gman/blog/2006/Jan
 #
-#stap  fileopen.stp  -c "zenity --about"
+# stap  fileopen.stp  -c "zenity --about"
+# or
+# ./fileopen.stp -c "program or script"
 
 global opens
 

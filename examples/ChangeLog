@@ -1,3 +1,9 @@
+2007-11-09  Martin Hunt  <hunt@redhat.com>
+
+	* README: New.
+
+	* *.stp. Fix path.  See PR 4718.
+
 2007-10-10  Mike Mason
 
 	* syscalltimes, syscalltime.txt:  New combination shell/SystemTap script
