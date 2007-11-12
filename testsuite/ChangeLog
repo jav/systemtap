@@ -1,3 +1,11 @@
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+	 
+	* systemtap.base/*.stp: Replace log() calls with
+	println() (or printf() if formatting would help.)
+	* systemtap.maps/*.stp: Ditto.
+	* systemtap.samples/*.stp: Ditto.	
+	* systemtap.stress/*.stp: Ditto.		
+
 2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR3858

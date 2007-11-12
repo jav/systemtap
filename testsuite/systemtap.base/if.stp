@@ -4,19 +4,19 @@
  * Check the systemtap if statement works
  */
 
-probe begin { log("systemtap starting probe") }
+probe begin { println("systemtap starting probe") }
 
 probe end
 {
-	log("systemtap ending probe")
+	println("systemtap ending probe")
 	if (1) {
-		log("systemtap test success");
+		println("systemtap test success");
 	} else {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	}
 	if (0) {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	} else {
-		log("systemtap test success");
+		println("systemtap test success");
 	}
 }

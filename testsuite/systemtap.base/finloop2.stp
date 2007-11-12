@@ -10,7 +10,7 @@ global loop_count
 
 probe begin
 {
-	log("systemtap starting probe")
+	println("systemtap starting probe")
 }
 
 probe kernel.function("schedule")
@@ -23,12 +23,12 @@ probe kernel.function("schedule")
 
 probe end
 {
-	log("systemtap ending probe")
-	log("count = " . sprint(count));
-	log("loop_count = " . sprint(loop_count));
+	println("systemtap ending probe")
+	printf("count = %d\n", count)
+	printf("loop_count = %d\n", loop_count)
 	if ( count * 10 == loop_count) {
-		log("systemtap test success");
+		println("systemtap test success");
 	} else {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	}
 }

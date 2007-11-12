@@ -7,10 +7,10 @@
 
 probe begin
 {
-	log("systemtap starting probe")
+	println("systemtap starting probe")
 }
 
 probe end
 {
-	log("systemtap ending probe")
+	println("systemtap ending probe")
 }

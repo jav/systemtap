@@ -14,7 +14,7 @@ function pcommlen:long () %{
     THIS->__retvalue = strlen(current->parent->comm);
 %}
 
-probe begin { log("systemtap starting probe") }
+probe begin { println("systemtap starting probe") }
 
 probe
     timer.profile,
@@ -73,7 +73,7 @@ function get_TASK_COMM_LEN:long() %{
 %}
 
 probe end {
-    log("systemtap ending probe")
+    println("systemtap ending probe")
     printf("count = %d\n", @count(length))
     printf("sum = %d\n", @sum(length))
     printf("min = %d\n", @min(length))
@@ -86,15 +86,15 @@ probe end {
      * valid, even though it dereferenced without crashing.
      */
     if (@min(length) > 0) {
-        log("systemtap test success")
+        println("systemtap test success")
     } else {
-        log("unexpected minimum length")
-        log("systemtap test failure")
+        println("unexpected minimum length")
+        println("systemtap test failure")
     }
     if (@max(length) < get_TASK_COMM_LEN()) {
-        log("systemtap test success")
+        println("systemtap test success")
     } else {
-        log("unexpected maximum length")
-        log("systemtap test failure")
+        println("unexpected maximum length")
+        println("systemtap test failure")
     }
 }

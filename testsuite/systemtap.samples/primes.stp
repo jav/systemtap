@@ -1,5 +1,7 @@
 #! stap
+
 global odds, evens
+
 probe begin {
   # "no" and "ne" are local integers
   for (i=1; i<10; i++) {
@@ -13,9 +15,9 @@ probe begin {
 
 probe end {
   foreach (x+ in odds) {
-    log("odds[" . sprint(x) . "] = " . sprint(odds[x]))
+    printf("odds[%d] = %d\n", x, odds[x])
   }
   foreach (x in evens-) {
-    log("evens[" . sprint(x) . "] = " . sprint(evens[x]))
+    printf("evens[%d] = %d\n", x, evens[x])
   }
 }

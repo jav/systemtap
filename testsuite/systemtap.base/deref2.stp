@@ -3,7 +3,7 @@
 # It's just an ordinary function that returns a 4-byte signed value,
 # even on a 64-bit hosts.
 probe kernel.function("sock_alloc_fd").return {
-      log ($return < 0 ? "neg" : "pos")
+      println ($return < 0 ? "neg" : "pos")
 }
 probe timer.s (5) { exit () }
-probe begin { log ("start") }
+probe begin { println ("start") }

@@ -4,8 +4,8 @@
  * Check that ordering of begin/end probes works
  */
 
-probe begin {  log("systemtap starting probe")  }
-probe end   {  log("systemtap ending probe")    }
+probe begin {  println("systemtap starting probe")  }
+probe end   {  println("systemtap ending probe")    }
 
 global beginstr, endstr
 
@@ -24,12 +24,12 @@ probe end(9223372036854775807) {
   endstr .= "z"
 
   if (beginstr == "abccde")
-    log("systemtap test success")
+    println("systemtap test success")
   else
     printf("systemtap test failure - beginstr:%s != abccde\n", beginstr)
 
   if (endstr == "vwxxyz")
-    log("systemtap test success")
+    println("systemtap test success")
   else
     printf("systemtap test failure - endstr:%s != vwxxyz\n", endstr)
 }

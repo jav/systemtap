@@ -9,7 +9,7 @@ global count
 
 probe begin
 {
-	log("systemtap starting probe")
+	println("systemtap starting probe")
 }
 
 probe kernel.function("schedule")
@@ -19,6 +19,6 @@ probe kernel.function("schedule")
 
 probe end
 {
-	log("systemtap ending probe")
-	log("count = " . sprint(count));
+	println("systemtap ending probe")
+	printf("count = %d\n", count)
 }
