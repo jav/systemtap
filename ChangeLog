@@ -1,5 +1,12 @@
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
+	* stap.1.in: Replaced references to the log() function.
+	* stapex.5.in: Ditto.
+	* stapfuncs.5.in: Ditto. ALso remove print and printf.  They are
+	documented in stap.1.in.
+	
+2007-11-12  Martin Hunt  <hunt@redhat.com>	
+
 	* translate.cxx (visit_print_format): Strings without a format or
 	formatted with "%s" or "%s\n" should be printed with calls to _stp_print().
 	Call _stp_print_char() if printing a char.

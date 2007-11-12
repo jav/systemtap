@@ -23,32 +23,22 @@ example2:unknown ()
 In function "example2", do something.  There is no explicit return value
 and take no parameters.
 
-.SS LOGGING
+.SS PRINTING
 
 .TP
 log:unknown (msg:string)
-Log the given string to the common trace buffer.  Append an implicit
-end-of-line.
-
-.TP
-print:unknown (...)
-Print the given integer, string, or statistics value to
-the common trace buffer.
-
-.TP
-printf:unknown (fmt:string, ...)
-Like the C printf, except valid types are limited to string ("%s")
-and integer ("%d"). 
+Writes the given string to the common trace buffer.  Append an implicit
+end-of-line. Deprecated.  Please use the faster print functions.
 
 .TP
 warn:unknown (msg:string)
-Log the given string to the warning stream.  Append an implicit end-of-line.
+Write the given string to the warning stream.  Append an implicit end-of-line.
 .I staprun
 prepends the string "WARNING:". 
 
 .TP
 error:unknown (msg:string)
-An error has occurred.  Log the given string to the error stream.
+An error has occurred.  Write the given string to the error stream.
 Append an implicit end-of-line.
 .I staprun
 prepends the string "ERROR:".

@@ -97,8 +97,8 @@ limits, and result in an error.
 
 To trace entry and exit from a function, use a pair of probes:
 .SAMPLE
-probe kernel.function("sys_mkdir") { log ("enter") }
-probe kernel.function("sys_mkdir").return { log ("exit") }
+probe kernel.function("sys_mkdir") { println ("enter") }
+probe kernel.function("sys_mkdir").return { println ("exit") }
 .ESAMPLE
 
 To list the probeable functions in the kernel, use the last-pass
