@@ -1,3 +1,8 @@
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp (sys_remap_file_pages: : Change kernel 
+	version check to >= 2.6.24.
+
 2007-11-8  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
