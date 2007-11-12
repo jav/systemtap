@@ -1,3 +1,8 @@
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+
+	* print.c (_stp_print): Rewrite to eliminate the strlen()
+	call and save a bit of time.
+
 2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR3858
