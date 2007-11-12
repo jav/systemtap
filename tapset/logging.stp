@@ -1,5 +1,5 @@
 // logging tapset
-// Copyright (C) 2005, 2006 Red Hat Inc.
+// Copyright (C) 2005, 2006, 2007 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -7,6 +7,7 @@
 // later version.
 
 // send a string out with a newline
+// Deprecated.  print* functions are much more efficient.
 function log (msg:string) %{
 	_stp_printf ("%s\n", THIS->msg);
 %}
@@ -34,10 +35,4 @@ function error (msg:string) %{
 
 function stp_print_binary(n:long, arg1:long, arg2:long, arg3:long, arg4:long) %{
 	_stp_print_binary (THIS->n, THIS->arg1, THIS->arg2, THIS->arg3, THIS->arg4);
-%}
-
-function print_char(c:long)  %{
-{
-	_stp_print_char((char)THIS->c);
-}
 %}

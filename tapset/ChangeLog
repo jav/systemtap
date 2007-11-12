@@ -1,5 +1,11 @@
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
+	* logging.stp (print_char): Remove.  Now implemented by 
+	stap.
+	(log): Add a comment that it is deprecated.
+	
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+	
 	* syscalls2.stp (sys_remap_file_pages: : Change kernel 
 	version check to >= 2.6.24.
 
