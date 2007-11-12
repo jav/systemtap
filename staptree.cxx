@@ -340,12 +340,18 @@ void functioncall::print (ostream& o) const
 
 bool
 print_format::parse_print(const std::string &name,
-    bool &stream, bool &format, bool &delim, bool &newline)
+  bool &stream, bool &format, bool &delim, bool &newline, bool &_char)
 {
   const char *n = name.c_str();
 
   stream = true;
-  format = delim = newline = false;
+  format = delim = newline = _char = false;
+
+  if (strcmp(n, "print_char") == 0)
+    {
+      _char = true;
+      return true;
+    }
 
   if (*n == 's')
     {
@@ -2292,6 +2298,7 @@ deep_copy_visitor::visit_print_format (print_format* e)
   n->print_with_format = e->print_with_format;
   n->print_with_delim = e->print_with_delim;
   n->print_with_newline = e->print_with_newline;
+  n->print_char = e->print_char;
   n->raw_components = e->raw_components;
   n->components = e->components;
   n->delimiter = e->delimiter;

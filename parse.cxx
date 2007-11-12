@@ -2234,7 +2234,7 @@ parser::parse_symbol ()
       // now scrutinize this identifier for the various magic forms of identifier
       // (printf, @stat_op, and $var...)
 
-      bool pf_stream, pf_format, pf_delim, pf_newline;
+      bool pf_stream, pf_format, pf_delim, pf_newline, pf_char;
 
       if (name.size() > 0 && name[0] == '@')
 	{
@@ -2259,7 +2259,7 @@ parser::parse_symbol ()
 	}
       
       else if (print_format::parse_print(name,
-	    pf_stream, pf_format, pf_delim, pf_newline))
+	 pf_stream, pf_format, pf_delim, pf_newline, pf_char))
 	{
 	  print_format *fmt = new print_format;
 	  fmt->tok = t;
@@ -2267,6 +2267,7 @@ parser::parse_symbol ()
 	  fmt->print_with_format = pf_format;
 	  fmt->print_with_delim = pf_delim;
 	  fmt->print_with_newline = pf_newline;
+	  fmt->print_char = pf_char;
 
 	  expect_op("(");
 	  if ((name == "print" || name == "println") &&

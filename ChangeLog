@@ -1,3 +1,20 @@
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+
+	* translate.cxx (visit_print_format): Strings without a format or
+	formatted with "%s" or "%s\n" should be printed with calls to _stp_print().
+	Call _stp_print_char() if printing a char.
+
+	* staptree.cxx (parse_print): Check for "print_char".
+
+	* staptree.h (struct print_format): Add print_char.
+	(parse_print): Update prototype.
+
+	* parse.cxx (parse_symbol): Set print_char bool in print_format.
+
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+	
+	* tapsets.cxx (build_blacklist): Add __raw_spin_is_locked.
+
 2007-10-25  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 5219

@@ -4078,16 +4078,48 @@ c_unparser::visit_print_format (print_format* e)
 	    }
 	}
 
-
       // Allocate the result
       exp_type ty = e->print_to_stream ? pe_long : pe_string;
       tmpvar res = gensym (ty);      
+      int use_print = 0;
+
+      string format_string = print_format::components_to_string(components);
+      if (tmp.size() == 0 || (tmp.size() == 1 && format_string == "%s"))
+	use_print = 1;
+      else if (tmp.size() == 1 
+	       && e->args[0]->tok->type == tok_string
+	       && format_string == "%s\\n")
+	{
+	  use_print = 1;
+	  tmp[0].override(tmp[0].value() + "\"\\n\"");
+	}
 
       // Make the [s]printf call, but not if there was an error evaluating the args
       o->newline() << "if (likely (! c->last_error)) {";
       o->indent(1);
       if (e->print_to_stream)
         {
+	  if (e->print_char)
+	    {
+	      o->newline() << "_stp_print_char (";
+	      if (tmp.size())
+		o->line() << tmp[0].value() << ");";
+	      else
+		o->line() << '"' << format_string << "\");";
+	      o->newline(-1) << "}";
+	      return; 
+	    }
+	  if (use_print)
+	    {
+	      o->newline() << "_stp_print (";
+	      if (tmp.size())
+		o->line() << tmp[0].value() << ");";
+	      else
+		o->line() << '"' << format_string << "\");";
+	      o->newline(-1) << "}";
+	      return;
+	    }
+
 	  // We'll just hardcode the result of 0 instead of using the
 	  // temporary.
 	  res.override("((int64_t)0LL)");
@@ -4096,8 +4128,8 @@ c_unparser::visit_print_format (print_format* e)
       else
 	o->newline() << "_stp_snprintf (" << res.value() << ", MAXSTRINGLEN, ";
 
-      o->line() << '"' << print_format::components_to_string(components) << '"';
-
+      o->line() << '"' << format_string << '"';
+      
       for (unsigned i = 0; i < tmp.size(); ++i)
 	o->line() << ", " << tmp[i].value();
       o->line() << ");";
