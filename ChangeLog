@@ -1,3 +1,17 @@
+2007-11-13  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5270
+	* main.cxx: Restored pre-10-08 version: moved uprobes build to
+	buildrun.cxx.
+	* buildrun.cxx: Reworked uprobes build so that the resulting
+	Module.symvers can be used in building the stap-generated
+	module.  If user isn't root, call verify_uprobes_uptodate()
+	rather than trying (and failing) to rebuild uprobes.ko.
+	* buildrun.h: uprobes_enabled() and make_uprobes() are no
+	longer extern.
+	* runtime/uprobes/Makefile: Added uprobes.ko target for use
+	by verify_uprobes_uptodate().
+
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
 	* stap.1.in: Replaced references to the log() function.

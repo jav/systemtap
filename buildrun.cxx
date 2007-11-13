@@ -29,6 +29,8 @@ extern "C" {
 
 using namespace std;
 
+static int uprobes_pass (systemtap_session& s);
+
 /* Adjust and run make_cmd to build a kernel module. */
 static int
 run_make_cmd(systemtap_session& s, string& make_cmd)
@@ -59,10 +61,13 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
 int
 compile_pass (systemtap_session& s)
 {
+  int rc = uprobes_pass (s);
+  if (rc)
+    return rc;
+
   // fill in a quick Makefile
   string makefile_nm = s.tmpdir + "/Makefile";
   ofstream o (makefile_nm.c_str());
-  int rc = 0;
 
   // Create makefile
 
@@ -132,37 +137,98 @@ compile_pass (systemtap_session& s)
   return rc;
 }
 
+static const string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
 
-bool
-uprobes_enabled (void)
+/*
+ * If uprobes was built as part of the kernel build (either built-in
+ * or as a module), the uprobes exports should show up in
+ * /lib/modules/`uname -r`/build/Module.symvers.  Return true if so.
+ */
+static bool
+kernel_built_uprobes (systemtap_session& s)
 {
-  int rc = system ("/bin/grep -q unregister_uprobe /proc/kallsyms");
+  string grep_cmd = string ("/bin/grep -q unregister_uprobe /lib/modules/")
+    + s.kernel_release + string ("/build/Module.symvers");
+  int rc = system (grep_cmd.c_str());
   return (rc == 0);
 }
 
-int
+static bool
+verify_uprobes_uptodate (systemtap_session& s)
+{
+  if (s.verbose)
+    clog << "Pass 4, preamble: "
+	 << "verifying that SystemTap's version of uprobes is up to date."
+	 << endl;
+
+  string make_cmd = string("make -q -C ") + uprobes_home
+    + string(" uprobes.ko");
+  int rc = run_make_cmd(s, make_cmd);
+  if (rc) {
+    clog << "SystemTap's version of uprobes is out of date." << endl;
+    clog << "As root, run \"make\" in " << uprobes_home << "." << endl;
+  }
+
+  return rc;
+}
+
+static int
 make_uprobes (systemtap_session& s)
 {
-  string uprobes_home = string(PKGDATADIR "/runtime/uprobes");
-
-  // Quietly skip the build if the Makefile has been removed.
-  string makefile = uprobes_home + string("/Makefile");
-  struct stat buf;
-  if (stat(makefile.c_str(), &buf) != 0)
-  	return 2;	// make's exit value for No such file or directory.
-
   if (s.verbose)
-    clog << "Pass 4, overtime: "
+    clog << "Pass 4, preamble: "
 	 << "(re)building SystemTap's version of uprobes."
 	 << endl;
 
   string make_cmd = string("make -C ") + uprobes_home;
   int rc = run_make_cmd(s, make_cmd);
-  if (rc && s.verbose)
-    clog << "Uprobes build failed. "
-    	 << "Hope uprobes is available at run time."
-	 << endl;
+  if (s.verbose) {
+    if (rc)
+      clog << "Uprobes (re)build failed." << endl;
+    else
+      clog << "Uprobes (re)build complete." << endl;
+  }
 
+  return rc;
+}
+
+/*
+ * Copy uprobes' exports (in Module.symvers) into the temporary directory
+ * so the script-module build can find them.
+ */
+static int
+copy_uprobes_symbols (systemtap_session& s)
+{
+  string cp_cmd = string("/bin/cp ") + uprobes_home +
+    string("/Module.symvers ") + s.tmpdir;
+  int rc = system (cp_cmd.c_str());
+  return rc;
+}
+
+static int
+uprobes_pass (systemtap_session& s)
+{
+  if (!s.need_uprobes || kernel_built_uprobes(s))
+    return 0;
+  /*
+   * We need to use the version of uprobes that comes with SystemTap, so
+   * we may need to rebuild uprobes.ko there.  Unfortunately, this is
+   * never a no-op; e.g., the modpost step gets run every time.  We don't
+   * want non-root users modifying uprobes, so we keep the uprobes
+   * directory writable only by root.  But that means a non-root member
+   * of group stapdev can't run the make even if everything's up to date.
+   *
+   * So for non-root users, we just use "make -q" with a fake target to
+   * verify that uprobes doesn't need to be rebuilt.  If that's not so,
+   * stap must fail.
+   */
+  int rc;
+  if (geteuid() == 0) {
+    rc = make_uprobes(s);
+    if (rc == 0)
+      rc = copy_uprobes_symbols(s);
+  } else
+    rc = verify_uprobes_uptodate(s);
   return rc;
 }
 
