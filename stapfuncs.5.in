@@ -110,10 +110,10 @@ string cannot be converted.
 .TP
 tokenize:string (str:string, delim:string)
 Return the next token in the given str string, where the tokens are delimited
-by one of the characters in the delim string.  If the str string is non-NULL,
-it returns the first token.  If the str string is NULL, it returns the next
+by one of the characters in the delim string.  If the str string is not blank,
+it returns the first token.  If the str string is blank, it returns the next
 token in the string passed in the previous call to tokenize. If no delimiter
-is found, the entire remaining str string is returned.  Returns NULL when 
+is found, the entire remaining str string is returned.  Returns blank when 
 no more tokens are left.
 
 .SS TIMESTAMP
