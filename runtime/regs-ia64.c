@@ -39,6 +39,9 @@ static long ia64_fetch_register(int regno, struct pt_regs *pt_regs)
 {
 	struct ia64_stap_get_arbsp_param pa;
 
+	if (regno == 12)
+		return pt_regs->r12;
+
 	if (regno >= 8 && regno <= 11)
 		return *(unsigned long *)(&pt_regs->r8 + regno - 8);
 	else if (regno < 32 || regno > 127)
