@@ -427,8 +427,8 @@ probe signal.do_action = kernel.function("do_sigaction")
     oldsigact_addr = $oact
     if(sigact_addr != 0)
     {
-         sa_handler = $act->sa->sa_handler
-         sa_mask = $act->sa->sa_mask
+        sa_handler = $act->sa->sa_handler
+        sa_mask = __get_action_mask($act)
     }
 }
 
@@ -436,6 +436,18 @@ probe signal.do_action.return = kernel.function("do_sigaction").return
 {
     retstr = returnstr(1)
 }
+
+function __get_action_mask:long(act:long) %{ /* pure */
+    int i;
+    struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);
+    sigset_t *sigset = &act->sa.sa_mask;
+    THIS->__retvalue = kread(&(sigset->sig[0]));
+    for (i=1; i<_NSIG_WORDS; ++i) {
+        uint64_t part = kread(&(sigset->sig[i]));
+        THIS->__retvalue |= part << (_NSIG_BPW*i);
+    }
+    CATCH_DEREF_FAULT();
+%}
 
 
 /* probe signal.procmask

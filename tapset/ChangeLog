@@ -1,3 +1,10 @@
+2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Lai Jiangshan <laijs@cn.fujitsu.com>
+	* signal.stp (signal.do_action): Call __get_action_mask to get mask
+	to fix semantic error of accessing a struct.
+	* signal.stp (__get_action_mask): Add.
+
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
 	* logging.stp (print_char): Remove.  Now implemented by 
