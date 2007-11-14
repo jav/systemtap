@@ -1,3 +1,9 @@
+2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Cai Fei <caifei@cn.fujitsu.com>
+	* regs-ia64.c (ia64_fetch_register): Fix the bug of fetching
+	register 12 on IA64.
+
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 
 	* print.c (_stp_print): Rewrite to eliminate the strlen()
