@@ -225,6 +225,7 @@ main (int argc, char * const argv [])
   s.symtab = false;
   s.use_cache = true;
   s.tapset_compile_coverage = false;
+  s.need_uprobes = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)  

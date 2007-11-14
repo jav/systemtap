@@ -1,3 +1,9 @@
+2007-11-14  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5324
+	* main.cxx: Restored initialization of need_uprobes flag,
+	mistakenly backed out in PR 5270 fix.
+
 2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* stapfuncs.5.in (tokenize): Change NULL to blank to avoid
