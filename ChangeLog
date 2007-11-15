@@ -1,3 +1,17 @@
+2007-11-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx: Removed mark_query structure.
+	(mark_derived_probe::mark_derived_probe): Just looks for "kernel"
+	marker probes.
+	(mark_builder::build_no_more): No longer kern_dw, instead clears
+	the marker cache.
+	(mark_builder::build): Now parses Module.markers file to find
+	marker list and stores them in a cache.
+	(register_standard_tapsets): Removed 'module("foo").mark("bar")'.
+	All markers now go through 'kernel.mark("bar")'.
+
+	* stapprobes.5.in (parts): Updated marker text.
+
 2007-11-14  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 5324
