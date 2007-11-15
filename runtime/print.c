@@ -210,16 +210,26 @@ void _stp_printf (const char *fmt, ...)
 
 void _stp_print (const char *str)
 {
-	int num = strlen (str);
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
-	int size = STP_BUFFER_SIZE - pb->len;
-	if (unlikely(num >= size)) {
+	char *end = pb->buf + STP_BUFFER_SIZE;
+	char *ptr = pb->buf + pb->len;
+	char *instr = (char *)str;
+
+	while (ptr < end && *instr)
+		*ptr++ = *instr++;
+
+	/* Did loop terminate due to lack of buffer space? */
+	if (unlikely(*instr)) {
+		/* Don't break strings across subbufs. */
+		/* Restart after flushing. */
 		_stp_print_flush();
-		if (num > STP_BUFFER_SIZE)
-			num = STP_BUFFER_SIZE;
+		end = pb->buf + STP_BUFFER_SIZE;
+		ptr = pb->buf + pb->len;
+		instr = (char *)str;
+		while (ptr < end && *instr)
+			*ptr++ = *instr++;
 	}
-	memcpy (pb->buf + pb->len, str, num);
-	pb->len += num;
+	pb->len = ptr - pb->buf;
 }
 
 void _stp_print_char (const char c)

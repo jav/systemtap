@@ -8,29 +8,29 @@ global x1, x2, x3, x4, x5, x6
 
 probe begin
 {
-	log("systemtap starting probe");
+	println("systemtap starting probe");
 	x1 = 0; x2 = 1; x3=30;
 }
 
 probe end
 {
-	log("systemtap ending probe")
+	println("systemtap ending probe")
 	x4 = x1 ? 9: 10;
 	x5 = x2 ? 99: 100;
 	x6 = x3 ? 999: 1000;
 	if (x4 != 10 ) {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	} else {
-		log("systemtap test success");
+		println("systemtap test success");
 	}
 	if (x5 != 99 ) {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	} else {
-		log("systemtap test success");
+		println("systemtap test success");
 	}
 	if (x6 != 999 ) {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	} else {
-		log("systemtap test success");
+		println("systemtap test success");
 	}
 }

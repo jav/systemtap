@@ -266,6 +266,7 @@ struct print_format: public expression
   bool print_with_format;
   bool print_with_delim;
   bool print_with_newline;
+  bool print_char;
 
   enum format_flag
     {
@@ -328,8 +329,8 @@ struct print_format: public expression
 
   static std::string components_to_string(std::vector<format_component> const & components);
   static std::vector<format_component> string_to_components(std::string const & str);
-  static bool parse_print(const std::string &name,
-      bool &stream, bool &format, bool &delim, bool &newline);
+  static bool parse_print(const std::string &name, bool &stream, 
+	            bool &format, bool &delim, bool &newline, bool &_char);
 
   void print (std::ostream& o) const;
   void visit (visitor* u);
@@ -558,8 +559,6 @@ struct stapfile
   stapfile (): privileged (false) {}
   void print (std::ostream& o) const;
 };
-
-
 
 
 struct probe_point

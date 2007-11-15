@@ -1,9 +1,9 @@
 global names, opens, reads, writes
 
-probe begin { log("starting probe") }
+probe begin { println("starting probe") }
 
 probe timer.ms(10000) {
-  log("stopping probe after 10 seconds") 
+  println("stopping probe after 10 seconds") 
   exit()
 }
 

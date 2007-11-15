@@ -784,7 +784,7 @@ probe syscall.remap_file_pages = kernel.function("sys_remap_file_pages") ? {
 	name = "remap_file_pages"
 	start = $start
 	size = $size
-%( kernel_vr > "2.6.23" %?
+%( kernel_vr >= "2.6.24" %?
 	prot = $prot
 %:
 	prot = $__prot

@@ -729,13 +729,12 @@ main (int argc, char * const argv [])
       // See if we can use cached source/module.
       if (get_from_cache(s))
         {
-	  // If our last pass isn't 5, and we don't need to build
-	  // uprobes, we're done (since passes 3 and 4 just generate
-	  // what we just pulled out of the cache).
-	  if (s.last_pass < 4) goto cleanup;
+	  // If our last pass isn't 5, we're done (since passes 3 and
+	  // 4 just generate what we just pulled out of the cache).
+	  if (s.last_pass < 5) goto cleanup;
 
-	  // Short-circuit to pass 4.5.
-	  goto pass_4point5;
+	  // Short-circuit to pass 5.
+	  goto pass_5;
 	}
     }
 
@@ -812,20 +811,8 @@ main (int argc, char * const argv [])
 	}
     }
 
-  if (rc) goto cleanup;
+  if (rc || s.last_pass == 4) goto cleanup;
 
-  // PASS 4.5: BUILD SYSTEMTAP'S VERSION OF UPROBES (IF NECESSARY)
-pass_4point5:
-  if (s.need_uprobes)
-    {
-      if (s.last_pass == 5 && uprobes_enabled())
-	// Uprobes symbols are currently available in the kernel,
-	// so staprun won't use what we'd build anyway.
-	goto pass_5;
-
-	(void) make_uprobes(s);
-    }
-  if (s.last_pass == 4) goto cleanup;
 
   // PASS 5: RUN
 pass_5:

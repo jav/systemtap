@@ -1,3 +1,66 @@
+2007-11-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx: Removed mark_query structure.
+	(mark_derived_probe::mark_derived_probe): Just looks for "kernel"
+	marker probes.
+	(mark_builder::build_no_more): No longer kern_dw, instead clears
+	the marker cache.
+	(mark_builder::build): Now parses Module.markers file to find
+	marker list and stores them in a cache.
+	(register_standard_tapsets): Removed 'module("foo").mark("bar")'.
+	All markers now go through 'kernel.mark("bar")'.
+
+	* stapprobes.5.in (parts): Updated marker text.
+
+2007-11-14  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5324
+	* main.cxx: Restored initialization of need_uprobes flag,
+	mistakenly backed out in PR 5270 fix.
+
+2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* stapfuncs.5.in (tokenize): Change NULL to blank to avoid
+	misunderstanding.
+
+2007-11-13  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5270
+	* main.cxx: Restored pre-10-08 version: moved uprobes build to
+	buildrun.cxx.
+	* buildrun.cxx: Reworked uprobes build so that the resulting
+	Module.symvers can be used in building the stap-generated
+	module.  If user isn't root, call verify_uprobes_uptodate()
+	rather than trying (and failing) to rebuild uprobes.ko.
+	* buildrun.h: uprobes_enabled() and make_uprobes() are no
+	longer extern.
+	* runtime/uprobes/Makefile: Added uprobes.ko target for use
+	by verify_uprobes_uptodate().
+
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+
+	* stap.1.in: Replaced references to the log() function.
+	* stapex.5.in: Ditto.
+	* stapfuncs.5.in: Ditto. ALso remove print and printf.  They are
+	documented in stap.1.in.
+	
+2007-11-12  Martin Hunt  <hunt@redhat.com>	
+
+	* translate.cxx (visit_print_format): Strings without a format or
+	formatted with "%s" or "%s\n" should be printed with calls to _stp_print().
+	Call _stp_print_char() if printing a char.
+
+	* staptree.cxx (parse_print): Check for "print_char".
+
+	* staptree.h (struct print_format): Add print_char.
+	(parse_print): Update prototype.
+
+	* parse.cxx (parse_symbol): Set print_char bool in print_format.
+
+2007-11-12  Martin Hunt  <hunt@redhat.com>
+	
+	* tapsets.cxx (build_blacklist): Add __raw_spin_is_locked.
+
 2007-10-25  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 5219

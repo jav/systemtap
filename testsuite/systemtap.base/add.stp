@@ -1,7 +1,7 @@
 /*
  * add.stp
  *
- * Check the systemtap "addition" works
+ * Check that systemtap "addition" works
  */
 
 global x3
@@ -10,17 +10,17 @@ global x2
 
 probe begin
 {
-	log("systemtap starting probe")
+	println("systemtap starting probe")
 	x1 = 42; x2 = 53;
 }
 
 probe end
 {
-	log("systemtap ending probe")
+	println("systemtap ending probe")
 	x3 = x1 + x2;
 	if (x3 != 95 ) {
-		log("systemtap test failure");
+		println("systemtap test failure")
 	} else {
-		log("systemtap test success");
+		println("systemtap test success")
 	}
 }

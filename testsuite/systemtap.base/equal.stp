@@ -7,22 +7,22 @@
 global count
 global count2
 
-probe begin { log("systemtap starting probe") }
+probe begin { println("systemtap starting probe") }
 
 probe kernel.function("schedule") { ++count; ++count2; }
 
 probe end
 {
-	log("systemtap ending probe")
-	log("count = " . sprint(count));
-	log("count2 = " . sprint(count));
+	println("systemtap ending probe")
+	printf("count = %d\n", count)
+	printf("count2 = %d\n", count)
 	if ( count == count2) {
 		if ( (count-1) == count2 ) {
-			log("systemtap test failure");
+			println("systemtap test failure");
 		} else {
-			log("systemtap test success");
+			println("systemtap test success");
 		}
 	} else {
-		log("systemtap test failure");
+		println("systemtap test failure");
 	}
 }

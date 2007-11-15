@@ -9,7 +9,7 @@ global count
 
 probe begin
 {
-	log("systemtap starting probe")
+	println("systemtap starting probe")
 }
 
 probe module("ext3").function("ext3_sync_file") ?,
@@ -22,6 +22,6 @@ probe module("ext3").function("ext3_sync_file") ?,
 
 probe end
 {
-	log("systemtap ending probe")
-	log("count = " . sprint(count));
+	println("systemtap ending probe")
+	println("count = " . sprint(count));
 }

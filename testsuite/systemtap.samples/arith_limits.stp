@@ -8,7 +8,7 @@ function test (v,n1,n2) {
     failures ++
     result = "fail"
   }
-  log ("test " . (sprint (testno++)) . " [" . v . "]\t\t" . result)
+  printf ("test %d [%s]\t\t%s\n", testno++, v, result)
 }
 
 # Exactly the same as test() except it will magically work for strings.
@@ -22,7 +22,7 @@ function teststr (v,n1,n2) {
     failures ++
     result = "fail"
   }
-  log ("test " . (sprint (testno++)) . " [" . v . "]\t\t" . result)
+  printf ("test %d [%s]\t\t%s\n", testno++, v, result)
 }
 
 
@@ -76,6 +76,5 @@ probe begin {
 }
 
 probe end {
-	print ("passes: " . sprint(passes))
-	print (" failures: " . sprint(failures). "\n")
+	printf ("passes: %d failures: %d\n", passes, failures)
 }

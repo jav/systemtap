@@ -12,8 +12,6 @@
 #include "elaborate.h"
 
 int compile_pass (systemtap_session& s);
-bool uprobes_enabled (void);
-int make_uprobes (systemtap_session& s);
 int run_pass (systemtap_session& s);
 
 

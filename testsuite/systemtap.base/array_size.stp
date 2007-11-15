@@ -6,8 +6,8 @@
  * Call with MAXMAPENTRIES << 100
  */
 
-probe begin {  log("systemtap starting probe")  }
-probe end   {  log("systemtap ending probe")    }
+probe begin {  println("systemtap starting probe")  }
+probe end   {  println("systemtap ending probe")    }
 
 global a[100]
 
@@ -24,7 +24,7 @@ probe end(1) {
             ++bad
     }
     if (ok == 100 && bad == 0)
-        log("systemtap test success")
+        println("systemtap test success")
     else
         printf("systemtap test failure - ok:%d, bad:%d\n", ok, bad)
 }

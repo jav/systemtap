@@ -276,7 +276,7 @@ var1 = 5
 var2 = "bar"
 array1 [pid()] = "name"     # single numeric key
 array2 ["foo",4,i++] += 5   # vector of string/num/num keys
-if (["hello",5,4] in array2) log ("yes")  # membership test
+if (["hello",5,4] in array2) println ("yes")  # membership test
 .ESAMPLE
 .PP
 The translator performs
@@ -517,9 +517,9 @@ a macro in the translated C code and is in the neighbourhood of 10.
 .SS PRINTING
 There are a set of function names that are specially treated by the
 translator.  They format values for printing to the standard systemtap
-log stream in a more convenient way.  The
+output stream in a more convenient way.  The
 .IR sprint*
-variants return the formatted string instead of logging it.
+variants return the formatted string instead of printing it.
 .TP
 .BR print ", " sprint
 Print one or more values of any type, concatenated directly together.

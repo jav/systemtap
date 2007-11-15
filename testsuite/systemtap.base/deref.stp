@@ -4,8 +4,8 @@
  * Check that the deref mechanisms work correctly.
  */
 
-probe begin {  log("systemtap starting probe")  }
-probe end   {  log("systemtap ending probe")    }
+probe begin {  println("systemtap starting probe")  }
+probe end   {  println("systemtap ending probe")    }
 
 probe end(1) {
   log_test("kread u8", kread_u8())
@@ -29,7 +29,7 @@ probe end(1) {
 
 function log_test(test:string, result:long) {
   if (result)
-    log("systemtap test success")
+    println("systemtap test success")
   else
     printf("systemtap test failure - %s\n", test)
 }

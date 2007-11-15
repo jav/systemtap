@@ -23,23 +23,21 @@ probe kernel.function("sys_write") {
   write_bytes[execname()] += $count;
 }
 
-probe begin { log( "starting probe" ); }
+probe begin { println( "starting probe" ); }
 
 probe end {
   foreach( name in names){
-    log ("process: " . name);
+    printf ("process: %s\n", name);
     if (opens[name]) 
-      log( "opens n=" . sprint(opens[name]));
-    if ( reads[name]){
+      printf ("opens=%d\n",opens[name])
+    if (reads[name]){
       count = reads[name]; total=read_bytes[name];
-      log("reads n, sum, avg=". sprint(count)
-        . "," . sprint(total) . "," . sprint(total/count));
+      printf("reads=%d, sum=%d, avg=%d\n", count, total, total/count);
     }
     if (writes[name]){
       count = writes[name]; total=write_bytes[name];
-      log("writes n, sum, avg=". sprint(count)
-        . "," . sprint(total) . "," . sprint(total/count));
+      printf("writes=%d, sum=%d, avg=%d\n", count, total, total/count);
     }
-    log("");
+    println("");
   }
 }

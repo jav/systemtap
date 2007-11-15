@@ -324,13 +324,12 @@ information is
 required to probe markers.
 
 Marker probe points begin with 
-.BR kernel " or " module("name") ,
-just like DWARF probes.  This identifies the source of symbol table
-used for finding markers.  The next part names the marker itself:
+.BR kernel .
+The next part names the marker itself:
 .BR mark("name") .
 The marker name string, which may contain the usual wildcard characters,
 is matched against the names given to the marker macros when the kernel
-or module was compiled.
+and/or module was compiled.
 
 The handler associated with a marker-based probe may read the
 optional parameters specified at the macro call site.  These are

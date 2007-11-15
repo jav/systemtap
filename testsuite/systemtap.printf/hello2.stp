@@ -1,7 +1,7 @@
 probe begin
 {
 	print("Print");
-	log("Systemtap");
+	println("Systemtap");
 	warn("warning");
 	exit()
 }

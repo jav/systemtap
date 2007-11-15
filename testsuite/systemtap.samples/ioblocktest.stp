@@ -1,12 +1,12 @@
 #! stap
 global teststr
-probe begin { log("systemtap starting probe") }
+probe begin { println("systemtap starting probe") }
 
 probe ioblock.request, ioblock.end {
    teststr = sprintf("ioblock: %s\t%d\t%s\t%d\n", devname, sector,
                       bio_rw_str(rw), bio_rw_num(rw))
 }
 probe end { 
-   log("systemtap ending probe")
+   println("systemtap ending probe")
    printf("%s", teststr)
 }

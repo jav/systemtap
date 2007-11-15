@@ -8,7 +8,7 @@ function test (v,n1,n2) {
     failures ++
     result = "fail"
   }
-  log ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
+  println ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
 }
 
 function stest (v,n1,n2) {
@@ -19,7 +19,7 @@ function stest (v,n1,n2) {
     failures ++
     result = "fail"
   }
-  log ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
+  println ("test " . (sprint (++testno)) . " [" . v . "]\t" . result)
 }
 
 
@@ -75,5 +75,5 @@ probe timer.jiffies(1) { # some time after all the begin probes
 }
 
 probe end {
-  log ("passes: " . sprint(passes) . " failures: " . sprint(failures))
+	printf ("passes: %d failures: %d\n", passes, failures)
 }

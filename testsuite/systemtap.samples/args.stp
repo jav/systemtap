@@ -3,7 +3,7 @@
 global foo, bar
 
 probe begin { 
-  log ("foo=" . foo . " bar=" . sprint (bar+0 /* cast bar to integer */))
+  printf("foo=%s bar=%d\n", foo, bar)
   exit ()
 }
 
