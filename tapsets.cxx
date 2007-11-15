@@ -5291,7 +5291,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
       switch (mark_args[i]->stp_type)
         {
 	case pe_long:
-	  o->newline() << localname << " = va_arg(c->mark_va_list, "
+	  o->newline() << localname << " = va_arg(*c->mark_va_list, "
 		       << mark_args[i]->c_type << ");";
 	  break;
 
@@ -5299,7 +5299,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 	  // We're assuming that this is a kernel string (this code is
 	  // basically the guts of kernel_string), not a user string.
 	  o->newline() << "{ " << mark_args[i]->c_type
-		       << " tmp_str = va_arg(c->mark_va_list, "
+		       << " tmp_str = va_arg(*c->mark_va_list, "
 		       << mark_args[i]->c_type << ");";
 	  o->newline() << "deref_string (" << localname
 		       << ", tmp_str, MAXSTRINGLEN);";
@@ -5355,14 +5355,14 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Emit the marker callback function
   s.op->newline();
-  s.op->newline() << "static void enter_marker_probe (const struct marker *mdata, void *private_data, const char *fmt, ...) {";
-  s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)mdata->private;";
+  s.op->newline() << "static void enter_marker_probe (void *probe_data, void *call_data, const char *fmt, va_list *args) {";
+  s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
 
-  s.op->newline() << "va_start(c->mark_va_list, fmt);";
+  s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->ph) (c);";
-  s.op->newline() << "va_end(c->mark_va_list);";
+  s.op->newline() << "c->mark_va_list = NULL;";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
@@ -5381,14 +5381,10 @@ mark_derived_probe_group::emit_module_init (systemtap_session &s)
   s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
   s.op->newline() << "probe_point = smp->pp;";
   s.op->newline() << "rc = marker_probe_register(smp->name, smp->format, enter_marker_probe, smp);";
-  s.op->newline() << "if (! rc)";
-
-  s.op->newline(1) << "rc = marker_arm(smp->name);";
-
-  s.op->newline(-1) << "if (rc) {";
+  s.op->newline() << "if (rc) {";
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
   s.op->newline(1) << "struct stap_marker_probe *smp2 = &stap_marker_probes[j];";
-  s.op->newline() << "marker_probe_unregister(smp2->name);";
+  s.op->newline() << "marker_probe_unregister(smp2->name, enter_marker_probe, smp2);";
   s.op->newline(-1) << "}";
   s.op->newline() << "break;"; // don't attempt to register any more probes
   s.op->newline(-1) << "}";
@@ -5405,7 +5401,7 @@ mark_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "/* deregister marker probes */";
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_marker_probe *smp = &stap_marker_probes[i];";
-  s.op->newline() << "marker_probe_unregister(smp->name);";
+  s.op->newline() << "marker_probe_unregister(smp->name, enter_marker_probe, smp);";
   s.op->newline(-1) << "}"; // for loop
 }
 

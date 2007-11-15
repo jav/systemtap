@@ -1,4 +1,16 @@
+2007-11-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (mark_derived_probe::initialize_probe_context_vars):
+	Updated to work with latest LTTNG patch
+	patch-2.6.24-rc2-lttng-0.10-pre23.tar.bz2.
+	(mark_derived_probe_group::emit_module_decls): Ditto.
+	(mark_derived_probe_group::emit_module_init): Ditto.
+	(mark_derived_probe_group::emit_module_exit): Ditto.
+
+	* translate.cxx (c_unparser::emit_common_header): Ditto.
+
 2007-11-15  Mike Mason <mmlnx@us.ibm.com>
+
         * systemtap.spec.in: Removed "make check" from rpm build steps
 
 2007-11-15  David Smith  <dsmith@redhat.com>

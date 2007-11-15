@@ -860,7 +860,7 @@ c_unparser::emit_common_header ()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "struct kretprobe_instance *pi;";
-  o->newline() << "va_list mark_va_list;";
+  o->newline() << "va_list *mark_va_list;";
   o->newline() << "void *data;";
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "Stat *statp;";
