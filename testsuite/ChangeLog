@@ -1,3 +1,8 @@
+2007-11-15  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/marker.exp: Removed 'module("foo").mark("bar")'
+	tests since that facility was removed.
+
 2007-11-12  Martin Hunt  <hunt@redhat.com>
 	 
 	* systemtap.base/*.stp: Replace log() calls with
