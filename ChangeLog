@@ -1,3 +1,6 @@
+2007-11-15  Mike Mason <mmlnx@us.ibm.com>
+        * systemtap.spec.in: Removed "make check" from rpm build steps
+
 2007-11-15  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx: Removed mark_query structure.

@@ -159,10 +159,6 @@ else
 	touch runtime-addl-files.txt
 fi
 
-
-%check
-make check %{?elfutils_mflags} || :
-
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
