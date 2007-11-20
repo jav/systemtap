@@ -996,7 +996,6 @@ parser::parse_probe (std::vector<probe *> & probe_ret,
           next ();
           continue;
         }
-
       else if (t && t->type == tok_operator && t->content == ",")
         {
           locations.push_back(pp);
@@ -1348,9 +1347,12 @@ parser::parse_probe_point ()
       // We only fall through here at the end of a probe point (past
       // all the dotted/parametrized components).
 
-      if (t && t->type == tok_operator && t->content == "?")
+      if (t && t->type == tok_operator &&
+          (t->content == "?" || t->content == "!"))
         {
           pl->optional = true;
+          if (t->content == "!") pl->sufficient = true;
+          // NB: sufficient implies optional
           next ();
           t = peek ();
           // fall through
@@ -1361,7 +1363,7 @@ parser::parse_probe_point ()
               t->content == "=" || t->content == "+=" ))
         break;
       
-      throw parse_error ("expected '.' or ',' or '(' or '?' or '{' or '=' or '+='");
+      throw parse_error ("expected one of '. , ( ? ! { = +='");
     }
 
   return pl;

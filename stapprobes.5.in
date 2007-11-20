@@ -25,11 +25,22 @@ The general probe point syntax is a dotted-symbol sequence.  This
 allows a breakdown of the event namespace into parts, somewhat like
 the Domain Name System does on the Internet.  Each component
 identifier may be parametrized by a string or number literal, with a
-syntax like a function call.  A component may include a "*"
-character, to expand to other matching probe points.  A probe point
-may be followed by a "?" character, to indicate that it is optional,
-and that no error should result if it fails to expand.  Optionalness
-passes down through all levels of alias/wildcard expansion.
+syntax like a function call.  A component may include a "*" character,
+to expand to a set of matching probe points.  Probe aliases likewise
+expand to other probe points.  Each and every resulting probe point is
+normally resolved to some low-level system instrumentation facility
+(e.g., a kprobe address, marker, or a timer configuration), otherwise
+the elaboration phase will fail.
+.PP
+However, a probe point may be followed by a "?" character, to indicate
+that it is optional, and that no error should result if it fails to
+resolve.  Optionalness passes down through all levels of
+alias/wildcard expansion.  Alternately, a probe point may be followed
+by a "!" character, to indicate that it is both optional and
+sufficient.  (Think vaguely of the prolog cut operator.) If it does
+resolve, then no further probe points in the same comma-separated list
+will be resolved.  Therefore, the "!"  sufficiency mark only makes
+sense in a list of probe point alternatives.
 
 These are all syntactically valid probe points:
 
@@ -40,6 +51,7 @@ user.inode("/bin/vi").statement(0x2222)
 end
 syscall.*
 kernel.function("no_such_function") ?
+module("awol").function("no_such_function") !
 .ESAMPLE
 
 Probes may be broadly classified into "synchronous" and
@@ -87,11 +99,11 @@ The
 .IR error
 probe point is similar to the 
 .IR end
-probe, except that each such probe handler run when the session and
-after errors having occurred.  In such cases, "end" probes are
-skipped, but each "error" prober is still attempted.  This kind of
-probe can be used to clean up or emit a final gasp message.  It may
-also be numerically parametrized to set a sequence.
+probe, except that each such probe handler run when the session ends
+after errors have occurred.  In such cases, "end" probes are skipped,
+but each "error" prober is still attempted.  This kind of probe can be
+used to clean up or emit a "final gasp".  It may also be numerically
+parametrized to set a sequence.
 
 .SS NEVER
 The probe point

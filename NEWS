@@ -11,6 +11,21 @@
     probe error { println ("oops, errors encountered; here's a report anyway")
                   foreach (coin in mint) { println (coin) } }
 
+- In a related twist, one may list probe points in order of preference,
+  and mark any of them as "sufficient" beyond just "optional".  Probe
+  point sequence expansion stops if a sufficient-marked probe point has a hit.
+  This is useful for probes on functions that may be in a module (CONFIG_FOO=m)
+  or may have been compiled into the kernel (CONFIG_FOO=y), but we don't know
+  which.  Instead of
+
+    probe module("sd").function("sd_init_command") ? ,
+          kernel.function("sd_init_command") ? { ... }
+
+  which might match neither, now one can write this:
+
+    probe module("sd").function("sd_init_command") ! , /* <-- note excl. mark */
+          kernel.function("sd_init_command")  { ... }
+
 - New security model.  To install a systemtap kernel module, a user
   must be one of the following: the root user; a member of the
   'stapdev' group; or a member of the 'stapusr' group.  Members of the

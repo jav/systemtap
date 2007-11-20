@@ -553,23 +553,40 @@ derive_probes (systemtap_session& s,
     {
       probe_point *loc = p->locations[i];
 
-      // Pass down optional flag from e.g. alias reference to each
-      // probe_point instance.  We do this by temporarily overriding
-      // the probe_point optional flag.  We could instead deep-copy
-      // and set a flag on the copy permanently.
-
-      bool old_loc_opt = loc->optional;
-      loc->optional = loc->optional || optional;
-
       try
         {
           unsigned num_atbegin = dps.size();
-          s.pattern_root->find_and_build (s, p, loc, 0, dps);
+
+          // Pass down optional flag from e.g. alias reference to each
+          // probe_point instance.  We do this by temporarily overriding
+          // the probe_point optional flag.  We could instead deep-copy
+          // and set a flag on the copy permanently.
+          bool old_loc_opt = loc->optional;
+          loc->optional = loc->optional || optional;
+          s.pattern_root->find_and_build (s, p, loc, 0, dps); // <-- actual derivation!
+          loc->optional = old_loc_opt;
           unsigned num_atend = dps.size();
-          
-          if (! loc->optional && // something required, but
+
+          if (! (loc->optional||optional) && // something required, but
               num_atbegin == num_atend) // nothing new derived!
-            throw semantic_error ("no match for probe point");
+            throw semantic_error ("no match");
+
+          if (loc->sufficient && (num_atend > num_atbegin))
+            {
+              if (s.verbose > 1)
+                {
+                  clog << "Probe point ";
+                  p->locations[i]->print(clog);
+                  clog << " sufficient, skipped";
+                  for (unsigned j = i+1; j < p->locations.size(); ++j)
+                    {
+                      clog << " ";
+                      p->locations[j]->print(clog);
+                    }
+                  clog << endl;
+                }
+              break; // we need not try to derive for any other locations
+            }
         }
       catch (const semantic_error& e)
         {
@@ -584,7 +601,6 @@ derive_probes (systemtap_session& s,
           delete er;
         }
 
-      loc->optional = old_loc_opt;
     }
 }
 
