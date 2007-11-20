@@ -75,12 +75,12 @@ symboldecl::~symboldecl ()
 
 probe_point::probe_point (std::vector<component*> const & comps,
 			  const token * t):
-  components(comps), tok(t), optional (false)
+  components(comps), tok(t), optional (false), sufficient (false)
 {
 }
 
 probe_point::probe_point ():
-  tok (0), optional (false)
+  tok (0), optional (false), sufficient (false)
 {
 }
 
@@ -530,7 +530,7 @@ print_format::string_to_components(string const & str)
 	break;
 
       // Now we are definitely parsing a conversion. 
-      // Begin by parsing flags (whicih are optional).
+      // Begin by parsing flags (which are optional).
 
       switch (*i)
 	{
@@ -908,7 +908,9 @@ void probe_point::print (ostream& o) const
       if (c->arg)
         o << "(" << *c->arg << ")";
     }
-  if (optional)
+  if (sufficient)
+    o << "!";
+  else if (optional) // sufficient implies optional
     o << "?";
 }
 
@@ -923,7 +925,9 @@ string probe_point::str ()
       if (c->arg)
         o << "(" << *c->arg << ")";
     }
-  if (optional)
+  if (sufficient)
+    o << "!";
+  else if (optional) // sufficient implies optional
     o << "?";
   return o.str();
 }
@@ -944,7 +948,7 @@ void probe_alias::printsig (ostream& o) const
   o << " = ";
   for (unsigned i=0; i<locations.size(); i++)
     {
-      o << (i>0 ? ", " : "");
+      if (i > 0) o << ", ";
       locations[i]->print (o);
     }
 }

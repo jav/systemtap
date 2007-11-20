@@ -1,0 +1,11 @@
+#! stap -p2
+
+probe foo.a = kernel.function("sys_read") /* some */ ! /* sufficient */ ,
+              kernel.function("no_such_function")
+      { "foo.a" }
+
+probe foo.b = module("*scsi*").function("no_such_thing") /* none */ ? ,
+      	      module("*scsi*").function("*queue*") /* some */ ! , /* suff'nt */
+	      module("no_such_module").function("no_such_function") 
+      { "foo.b" }
+probe foo.* { }
