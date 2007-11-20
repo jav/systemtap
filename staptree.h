@@ -574,6 +574,7 @@ struct probe_point
   const token* tok; // points to first component's functor
   bool optional;
   bool sufficient;
+  expression* condition;
   void print (std::ostream& o) const;
   probe_point ();
   probe_point(std::vector<component*> const & comps,const token * t);
@@ -590,8 +591,10 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
+  expression* condition;
   probe ();
   void print (std::ostream& o) const;
+  void add_condition (expression* e);
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
   virtual probe* basest () { return this; }
@@ -794,6 +797,7 @@ struct deep_copy_visitor: public visitor
 {
   std::stack<void *> targets;
 
+  static expression *deep_copy (expression *s);
   static statement *deep_copy (statement *s);
   static block *deep_copy (block *s);
 

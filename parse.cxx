@@ -1358,6 +1358,24 @@ parser::parse_probe_point ()
           // fall through
         }
 
+      if (t && t->type == tok_keyword && t->content == "if")
+        {
+          next ();
+          t = peek ();
+          if (! (t->type == tok_operator && t->content == "("))
+            throw parse_error ("expected '('");
+          next ();
+
+          pl->condition = parse_expression ();
+
+          t = peek ();
+          if (! (t->type == tok_operator && t->content == ")"))
+            throw parse_error ("expected ')'");
+          next ();
+          t = peek ();
+          // fall through
+        }
+
       if (t && t->type == tok_operator 
           && (t->content == "{" || t->content == "," ||
               t->content == "=" || t->content == "+=" ))
