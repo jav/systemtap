@@ -75,12 +75,13 @@ symboldecl::~symboldecl ()
 
 probe_point::probe_point (std::vector<component*> const & comps,
 			  const token * t):
-  components(comps), tok(t), optional (false), sufficient (false)
+  components(comps), tok(t), optional (false), sufficient (false),
+  condition (NULL)
 {
 }
 
 probe_point::probe_point ():
-  tok (0), optional (false), sufficient (false)
+  tok (0), optional (false), sufficient (false), condition (NULL)
 {
 }
 
@@ -897,6 +898,26 @@ probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
   probes_list.push_back((derived_probe*)this);
 }
 
+void
+probe::add_condition (expression* e)
+{
+  if (e)
+    {
+      if (this->condition)
+        {
+          logical_and_expr *la = new logical_and_expr ();
+          la->op = "&&";
+          la->left = this->condition;
+          la->right = e;
+          la->tok = e->tok;
+          this->condition = la;
+        }
+      else
+        {
+          this->condition = e;
+        }
+    }
+}
 
 void probe_point::print (ostream& o) const
 {
@@ -912,6 +933,8 @@ void probe_point::print (ostream& o) const
     o << "!";
   else if (optional) // sufficient implies optional
     o << "?";
+  if (condition)
+    o<< " if (" << *condition << ")";
 }
 
 string probe_point::str ()
@@ -929,6 +952,8 @@ string probe_point::str ()
     o << "!";
   else if (optional) // sufficient implies optional
     o << "?";
+  if (condition)
+    o<< " if (" << *condition << ")";
   return o.str();
 }
 
@@ -2353,5 +2378,14 @@ deep_copy_visitor::deep_copy (statement* s)
   statement* n;
   deep_copy_visitor v;
   require <statement*> (&v, &n, s);
+  return n;
+}
+
+expression*
+deep_copy_visitor::deep_copy (expression* s)
+{
+  expression* n;
+  deep_copy_visitor v;
+  require <expression*> (&v, &n, s);
   return n;
 }

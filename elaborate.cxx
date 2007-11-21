@@ -39,7 +39,8 @@ derived_probe::derived_probe (probe *p):
 {
   if (p)
     {
-      this->locations = p->locations;  
+      this->locations = p->locations;
+      this->condition = deep_copy_visitor::deep_copy(p->condition);
       this->tok = p->tok;
       this->privileged = p->privileged;
       this->body = deep_copy_visitor::deep_copy(p->body);
@@ -50,17 +51,41 @@ derived_probe::derived_probe (probe *p):
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
-  if (l)
-    this->locations.push_back (l);
-
   if (p)
     {
+      this->condition = deep_copy_visitor::deep_copy(p->condition);
       this->tok = p->tok;
       this->privileged = p->privileged;
       this->body = deep_copy_visitor::deep_copy(p->body);
     }
+
+  if (l)
+    {
+      probe_point *pp = new probe_point (l->components, l->tok);
+      this->locations.push_back (pp);
+      this->add_condition (l->condition);
+      this->insert_condition_statement ();
+    }
 }
 
+void
+derived_probe::insert_condition_statement (void)
+{
+  if (this->condition)
+    {
+      if_statement *ifs = new if_statement ();
+      ifs->tok = this->tok;
+      ifs->thenblock = new next_statement ();
+      ifs->thenblock->tok = this->tok;
+      ifs->elseblock = NULL;
+      unary_expression *notex = new unary_expression ();
+      notex->op = "!";
+      notex->tok = this->tok;
+      notex->operand = this->condition;
+      ifs->condition = notex;
+      body->statements.insert (body->statements.begin(), ifs);
+    }
+}
 
 void
 derived_probe::printsig (ostream& o) const
@@ -435,6 +460,8 @@ alias_expansion_builder
     // the token location of the alias,
     n->tok = location->tok;
     n->body->tok = location->tok;
+    // The new probe takes over condition.
+    n->add_condition (location->condition);
 
     // and statements representing the concatenation of the alias'
     // body with the use's. 

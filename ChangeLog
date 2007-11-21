@@ -1,3 +1,30 @@
+2007-11-20  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 4935.
+	* parse.cxx (parser::parse_probe_point): Parse "if" condition
+	following probe point.
+	* staptree.h (probe_point): Add "condition" field.
+	(probe): Add "condition" field and "add_condition" method.
+	(deep_copy_visitor): Add "deep_copy" method for the expression.
+	* staptree.cxx (probe_point::probe_point): Initalize it.
+	(probe::add_condition): Implement it.
+	(probe::print): Output "condition" field.
+	(probe::str): Ditto.
+	(deep_copy_visitor::deep_copy): Implement it.
+	* elaborate.h (derived_probe): Add "insert_condition_statement"
+	method.
+	* elaborate.cxx (derived_probe::derived_probe): Initialize "condition"
+	field, and insert a condition check routine on the top of body.
+	(derived_probe::insert_condition_statement): Implement it.
+	(alias_expansion_builder::build): Pass the condition from the alias
+	referer to new alias.
+	* tapsets.cxx (be_derived_probe): Remove unused constructor.
+	(dwarf_derived_probe::dwarf_derived_probe): Insert a condition check
+	routine on the top of body.
+	(mark_derived_probe::mark_derived_probe): Ditto.
+	(mark_builder::build): Pass the base location to mark_derived_probe.
+
+
 2007-11-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 3887.

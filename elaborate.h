@@ -118,6 +118,7 @@ struct derived_probe: public probe
   virtual probe_point* sole_location () const;
   virtual void printsig (std::ostream &o) const;
   void printsig_nested (std::ostream &o) const;
+  void insert_condition_statement (void);
   virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
 
   virtual void emit_probe_context_vars (translator_output*) {}

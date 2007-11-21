@@ -81,8 +81,6 @@ struct be_derived_probe: public derived_probe
   be_t type;
   int64_t priority;
 
-  be_derived_probe (probe* p, be_t t, int64_t pr):
-    derived_probe (p), type (t), priority (pr) {}
   be_derived_probe (probe* p, probe_point* l, be_t t, int64_t pr):
     derived_probe (p, l), type (t), priority (pr) {}
 
@@ -3720,6 +3718,9 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                      (TOK_MAXACTIVE, new literal_number(maxactive_val)));
 
   locations.push_back(new probe_point(comps, q.base_loc->tok));
+  if (q.base_loc->condition)
+  	add_condition (q.base_loc->condition);
+  insert_condition_statement ();
 }
 
 
@@ -4943,7 +4944,7 @@ struct mark_derived_probe: public derived_probe
 {
   mark_derived_probe (systemtap_session &s,
                       const string& probe_name, const string& probe_sig,
-                      probe* base_probe);
+                      probe* base_probe, expression* cond);
 
   systemtap_session& sess;
   string probe_name, probe_sig;
@@ -5076,7 +5077,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_s,
-                                        probe* base):
+                                        probe* base, expression* cond):
   derived_probe (base, 0), sess (s), probe_name (p_n), probe_sig (p_s),
   target_symbol_seen (false)
 {
@@ -5090,6 +5091,10 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                   new literal_string (probe_name));
   pp->components.push_back (c);
   this->locations.push_back (pp);
+
+  if (cond)
+  	add_condition (cond);
+  insert_condition_statement ();
 
   // expand the signature string
   parse_probe_sig();
@@ -5436,7 +5441,7 @@ public:
 void
 mark_builder::build(systemtap_session & sess,
 		    probe * base,
-		    probe_point *,
+		    probe_point *loc,
 		    std::map<std::string, literal *> const & parameters,
 		    vector<derived_probe *> & finished_results)
 {
@@ -5491,7 +5496,7 @@ mark_builder::build(systemtap_session & sess,
 	  derived_probe *dp
 	      = new mark_derived_probe (sess,
 					it->first, it->second,
-					base);
+					base, loc->condition);
 	  finished_results.push_back (dp);
 	}
     }
