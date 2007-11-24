@@ -1017,14 +1017,16 @@ probe syscall.rt_sigreturn.return =
 #
 probe syscall.rt_sigsuspend = 
 		kernel.function("sys_rt_sigsuspend") ?,
-		kernel.function("compat_sys_rt_sigsuspend") ?
+		kernel.function("compat_sys_rt_sigsuspend") ?,
+		kernel.function("ia64_rt_sigsuspend") ?
 {
 	name = "rt_sigsuspend"
 	argstr = ""
 }
 probe syscall.rt_sigsuspend.return = 
 		kernel.function("sys_rt_sigsuspend").return ?,
-		kernel.function("compat_sys_rt_sigsuspend").return ?
+		kernel.function("compat_sys_rt_sigsuspend").return ?,
+		kernel.function("ia64_rt_sigsuspend").return ?
 {
 	name = "rt_sigsuspend"
 	retstr = returnstr(1)

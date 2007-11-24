@@ -1,3 +1,9 @@
+2007-11-21  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Bai Weidong <baiwd@cn.fujitsu.com>
+	* syscalls2.stp (rt_sigsuspend): Fix the semantic error caused by
+	the difference of kernel versions on IA64.
+
 2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Lai Jiangshan <laijs@cn.fujitsu.com>
