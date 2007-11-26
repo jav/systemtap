@@ -1,3 +1,8 @@
+2007-11-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (derived_probe ctor): Don't duplicate condition
+	if it doesn't exist.
+
 2007-11-20  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 4935.
