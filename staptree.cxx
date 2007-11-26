@@ -76,19 +76,19 @@ symboldecl::~symboldecl ()
 probe_point::probe_point (std::vector<component*> const & comps,
 			  const token * t):
   components(comps), tok(t), optional (false), sufficient (false),
-  condition (NULL)
+  condition (0)
 {
 }
 
 probe_point::probe_point ():
-  tok (0), optional (false), sufficient (false), condition (NULL)
+  tok (0), optional (false), sufficient (false), condition (0)
 {
 }
 
 
 unsigned probe::last_probeidx = 0;
 probe::probe ():
-  body (0), tok (0)
+  body (0), tok (0), condition (0)
 {
   this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
 }

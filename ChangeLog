@@ -2,6 +2,7 @@
 
 	* elaborate.cxx (derived_probe ctor): Don't duplicate condition
 	if it doesn't exist.
+	* staptree.cxx (probe_point, probe ctors): Initialize to 0.
 
 2007-11-20  Masami Hiramatsu  <mhiramat@redhat.com>
 
