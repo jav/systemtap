@@ -53,7 +53,8 @@ derived_probe::derived_probe (probe *p, probe_point *l):
 {
   if (p)
     {
-      this->condition = deep_copy_visitor::deep_copy(p->condition);
+      if (p->condition) 
+        this->condition = deep_copy_visitor::deep_copy(p->condition);
       this->tok = p->tok;
       this->privileged = p->privileged;
       this->body = deep_copy_visitor::deep_copy(p->body);
