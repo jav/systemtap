@@ -357,16 +357,35 @@ match_node::find_and_build (systemtap_session& s,
 
 	  if (match.globmatch(subkey))
 	    {
-	      // recurse
+	      if (s.verbose > 2)
+		clog << "wildcard '" << loc->components[pos]->functor
+		     << "' matched '" << subkey.name << "'" << endl;
+
+	      // When we have a wildcard, we need to create a copy of
+	      // the probe point.  Then we'll create a copy of the
+	      // wildcard component, and substitute the non-wildcard
+	      // functor.
+	      probe_point *non_wildcard_pp = new probe_point(*loc);
+	      probe_point::component *non_wildcard_component
+		= new probe_point::component(*loc->components[pos]);
+	      non_wildcard_component->functor = subkey.name;
+	      non_wildcard_pp->components[pos] = non_wildcard_component;
+
+	      // recurse (with the non-wildcard probe point)
 	      try
 	        {
-		  subnode->find_and_build (s, p, loc, pos+1, results);
+		  subnode->find_and_build (s, p, non_wildcard_pp, pos+1,
+					   results);
 	        }
 	      catch (const semantic_error& e)
 	        {
 		  // Ignore semantic_errors while expanding wildcards.
 		  // If we get done and nothing was expanded, the code
 		  // following the loop will complain.
+
+		  // If this wildcard didn't match, cleanup.
+		  delete non_wildcard_pp;
+		  delete non_wildcard_component;
 		}
 	    }
 	}
