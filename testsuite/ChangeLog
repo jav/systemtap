@@ -1,3 +1,9 @@
+2007-11-29  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/marker.exp: Gets marker list from
+	Module.markers.  K_MARKER03 is always run since it is designed to
+	fail.
+
 2007-11-27  David Smith  <dsmith@redhat.com>
 
 	* semok/twentyeight.stp: Tests wildcarded probe points.

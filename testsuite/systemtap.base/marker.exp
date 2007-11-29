@@ -51,16 +51,21 @@ set kernel_script {"probe kernel.mark(\"%s\") { }"}
 set kernel_script_arg {"probe kernel.mark(\"%s\") { print(%s) }"}
 set kernel_script_arg2 {"probe kernel.mark(\"%s\") { %s = 0 }"}
 
-# Try to figure out if kernel markers are present in the kernel itself
-# or in any loaded module
-set fl [open "| egrep __mark_.+\.\[0-9\]+ /proc/kallsyms"]
-while {[gets $fl s] >= 0} {
-    if [regexp {__mark_([^.]+)\.[0-9]+\t?} $s match name subexp module] {
-	set kernel_markers_found 1
-	lappend kernel_marker_names $name
+# Try to read in the marker list from the Module.markers file.
+set uname [exec /bin/uname -r]
+set arch [exec arch]
+set path "/usr/src/kernels/$uname-$arch/Module.markers"
+if {! [catch {open $path RDONLY} fl]} {
+    while {[gets $fl s] >= 0} {
+	# This regexp only picks up markers that contain arguments.
+	# This helps ensure that K_MARKER04 passes correctly.
+	if [regexp {^([^ \t]+)\t[^ \t]+.+$} $s match name] {
+	    set kernel_markers_found 1
+	    lappend kernel_marker_names $name
+	}
     }
+    catch {close $fl}
 }
-catch {close $fl}
 
 #
 # Do some marker tests.
@@ -86,15 +91,13 @@ if {$kernel_markers_found == 0} {
     stap_compile $TEST_NAME 1 $script
 }
 
+# We can go ahead and try this test even if the kernel doesn't have
+# marker support, since we're probing a marker that doesn't exist.
 set TEST_NAME "K_MARKER03"
-if {$kernel_markers_found == 0} {
-    untested "$TEST_NAME : no kernel markers present"
-} else {
-    # Try compiling a script that probes a kernel marker that doesn't
-    # exist.
-    set script [format $kernel_script "X_marker_that_does_not_exist_X"]
-    stap_compile $TEST_NAME 0 $script
-}
+# Try compiling a script that probes a kernel marker that doesn't
+# exist.
+set script [format $kernel_script "X_marker_that_does_not_exist_X"]
+stap_compile $TEST_NAME 0 $script
 
 set TEST_NAME "K_MARKER04"
 if {$kernel_markers_found == 0} {
@@ -102,7 +105,8 @@ if {$kernel_markers_found == 0} {
 } else {
     # Try compiling a script that prints the first argument of a
     # marker.  This one might fail if the marker we pick doesn't have
-    # any arguments.
+    # any arguments (but hopefully our kernel marker list only
+    # contains markers that have at least one argument).
     set script [format $kernel_script_arg \
 		    [lindex $kernel_marker_names 0] {\$arg1}]
     stap_compile $TEST_NAME 1 $script
