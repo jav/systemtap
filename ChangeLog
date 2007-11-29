@@ -1,3 +1,9 @@
+2007-11-29  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (mark_derived_probe::initialize_probe_context_vars):
+	Handles the case where one marker has more than one string
+	argument.
+
 2007-11-27  David Smith  <dsmith@redhat.com>
 
 	PR 5377.
