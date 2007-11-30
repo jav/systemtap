@@ -25,9 +25,9 @@ Installation steps:
 
 Build steps:
 
-- Install the kernel-debuginfo, kernel-[smp-]devel, gcc packages
-  (or see below if you are building your own kernels from source).
-- Download the latest elfutils snapshot:
+- Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
+  packages (or see below if you are building your own kernels from source).
+- Download the latest elfutils snapshot (if desired):
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
 - Untar the snapshot in some new directory; apply patch (don't ask, long story)
@@ -44,7 +44,7 @@ Build steps:
   cd src
   ./configure --with-elfutils=PATCHED-ELFUTILS-DIR [other autoconf options]
   make all check
-  make install
+  sudo make install
 
 Tips:
 
