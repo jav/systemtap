@@ -5290,6 +5290,7 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
   if (! target_symbol_seen)
     return;
 
+  bool deref_fault_needed = false;
   for (unsigned i = 0; i < mark_args.size(); i++)
     {
       string localname = "l->__mark_arg" + lex_cast<string>(i+1);
@@ -5307,9 +5308,8 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 		       << " tmp_str = va_arg(*c->mark_va_list, "
 		       << mark_args[i]->c_type << ");";
 	  o->newline() << "deref_string (" << localname
-		       << ", tmp_str, MAXSTRINGLEN);";
-	  // Need to report errors?
-	  o->newline() << "deref_fault: ; }";
+		       << ", tmp_str, MAXSTRINGLEN); }";
+	  deref_fault_needed = true;
 	  break;
 
 	default:
@@ -5317,6 +5317,9 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
 	  break;
 	}
     }
+  if (deref_fault_needed)
+    // Need to report errors?
+    o->newline() << "deref_fault: ;";
 }
 
 
