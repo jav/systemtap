@@ -8,7 +8,6 @@
 ./coveragedb.h
 ./elaborate.cxx
 ./elaborate.h
-./gen-stapmark.h
 ./hash.cxx
 ./hash.h
 ./loc2c.c
@@ -142,7 +141,6 @@
 ./runtime/user/test.h
 ./runtime/vsprintf.c
 ./session.h
-./stapmark.h
 ./staptree.cxx
 ./staptree.h
 ./tapsets.cxx
