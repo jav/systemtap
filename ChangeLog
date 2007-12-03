@@ -1,3 +1,14 @@
+2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5376
+	* parse.cxx (lexer::scan): Treat '*' as an alphabet if the wildcard
+	flag is true.
+	(parser::parse_probe_point): Call parser::next() with wildcard = true.
+	(parser::scan_pp): Add wildcard flag and pass it to lexer::scan.
+	(parser::next): Ditto.
+	(parser::peek): Ditto.
+	* parse.h : Ditto.
+
 2007-12-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* gen-stapmark.h, stapmark.h: Retire.

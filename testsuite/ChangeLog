@@ -1,3 +1,9 @@
+2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5376
+	* perseko/twentytwo.stp: Change testcase to the wildcarded probe
+	points with spaces.
+
 2007-11-29  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/marker.exp: Gets marker list from
