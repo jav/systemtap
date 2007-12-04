@@ -263,7 +263,7 @@ bool eval_pp_conditional (systemtap_session& s,
 // expand_args is used to know if we must expand $x and @x identifiers.
 // Only tokens corresponding to the TRUE statement must be expanded
 const token*
-parser::scan_pp (bool expand_args)
+parser::scan_pp (bool wildcard, bool expand_args)
 {
   while (true)
     {
@@ -274,7 +274,7 @@ parser::scan_pp (bool expand_args)
           return t;
         }
 
-      const token* t = input.scan (expand_args); // NB: not recursive!
+      const token* t = input.scan (wildcard, expand_args); // NB: not recursive!
       if (t == 0) // EOF
         return t;
       
@@ -284,9 +284,9 @@ parser::scan_pp (bool expand_args)
       // We have a %( - it's time to throw a preprocessing party!
 
       const token *l, *op, *r;
-      l = input.scan (expand_args); // NB: not recursive, though perhaps could be
-      op = input.scan (expand_args);
-      r = input.scan (expand_args);
+      l = input.scan (false, expand_args); // NB: not recursive, though perhaps could be
+      op = input.scan (false, expand_args);
+      r = input.scan (false, expand_args);
       if (l == 0 || op == 0 || r == 0)
         throw parse_error ("incomplete condition after '%('", t);
       // NB: consider generalizing to consume all tokens until %?, and
@@ -309,7 +309,7 @@ parser::scan_pp (bool expand_args)
       
       while (true) // consume THEN tokens
         {
-          m = scan_pp (result); // NB: recursive
+          m = scan_pp (wildcard, result); // NB: recursive
           if (m == 0)
             throw parse_error (have_token ?
                                "incomplete conditional - missing %: or %)" :
@@ -334,7 +334,7 @@ parser::scan_pp (bool expand_args)
           delete m; // "%:"
           while (true)
             {
-              m = scan_pp (expand_args && !result); // NB: recursive
+              m = scan_pp (wildcard, expand_args && !result); // NB: recursive
               if (m == 0)
 		  throw parse_error (have_token ?
                                      "incomplete conditional - missing %)" :
@@ -372,10 +372,10 @@ parser::scan_pp (bool expand_args)
 
 
 const token*
-parser::next ()
+parser::next (bool wildcard)
 {
   if (! next_t)
-    next_t = scan_pp ();
+    next_t = scan_pp (wildcard);
   if (! next_t)
     throw parse_error ("unexpected end-of-file");
 
@@ -387,10 +387,10 @@ parser::next ()
 
 
 const token*
-parser::peek ()
+parser::peek (bool wildcard)
 {
   if (! next_t)
-    next_t = scan_pp ();
+    next_t = scan_pp (wildcard);
 
   // don't advance by zeroing next_t
   last_t = next_t;
@@ -574,7 +574,7 @@ lexer::input_put (const string& chars)
 
 
 token*
-lexer::scan (bool expand_args)
+lexer::scan (bool wildcard, bool expand_args)
 {
   token* n = new token;
   n->location.file = input_name;
@@ -645,11 +645,13 @@ lexer::scan (bool expand_args)
       goto semiskip;
     }
 
-  else if (isalpha (c) || c == '$' || c == '@' || c == '_')
+  else if (isalpha (c) || c == '$' || c == '@' || c == '_' ||
+	   (wildcard && c == '*'))
     {
       n->type = tok_identifier;
       n->content = (char) c;
-      while (isalnum (c2) || c2 == '_' || c2 == '$')
+      while (isalnum (c2) || c2 == '_' || c2 == '$' ||
+	     (wildcard && c2 == '*'))
 	{
           input_get ();
           n->content.push_back (c2);
@@ -1289,11 +1291,10 @@ parser::parse_probe_point ()
 
   while (1)
     {
-      const token* t = next ();
+      const token* t = next (true); // wildcard scanning here
       if (! (t->type == tok_identifier
 	     // we must allow ".return" and ".function", which are keywords
-	     || t->type == tok_keyword
-	     || (t->type == tok_operator && t->content == "*")))
+	     || t->type == tok_keyword))
         throw parse_error ("expected identifier or '*'");
 
       if (pl->tok == 0) pl->tok = t;
@@ -1303,27 +1304,7 @@ parser::parse_probe_point ()
       pl->components.push_back (c);
       // NB we may add c->arg soon
 
-      const token* last_t = t;
       t = peek ();
-
-      // We need to keep going until we find something other than a
-      // '*' or identifier, since a probe point wildcard can be
-      // something like "*a", "*a*", "a*b", "a*b*", etc.
-      while (t &&
-	     // case 1: '*{identifier}'
-	     ((last_t->type == tok_operator && last_t->content == "*"
-	       && (t->type == tok_identifier || t->type == tok_keyword))
-	      // case 2: '{identifier}*'
-	      || ((last_t->type == tok_identifier
-		   || last_t->type == tok_keyword)
-		  && t->type == tok_operator && t->content == "*")))
-        {
-	  c->functor += t->content;
-	  next ();			// consume the identifier or '*'
-
-	  last_t = t;
-	  t = peek ();
-	}
 
       // consume optional parameter
       if (t && t->type == tok_operator && t->content == "(")

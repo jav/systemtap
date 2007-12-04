@@ -1,5 +1,5 @@
 #! stap -p1
 
-# bad wildcard
+# wildcard with space
 
-probe a** { }
+probe a * b { }

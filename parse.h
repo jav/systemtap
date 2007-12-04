@@ -69,7 +69,7 @@ struct systemtap_session;
 class lexer
 {
 public:
-  token* scan (bool expand_args=true);
+  token* scan (bool wildcard=false, bool expand_args=true);
   lexer (std::istream&, const std::string&, systemtap_session&);
 
 private:
@@ -132,12 +132,12 @@ private:
 
   // preprocessing subordinate
   std::vector<const token*> enqueued_pp;
-  const token* scan_pp (bool expand_args=true);
+  const token* scan_pp (bool wildcard=false, bool expand_args=true);
 
   // scanning state
   const token* last ();
-  const token* next ();
-  const token* peek ();
+  const token* next (bool wildcard=false);
+  const token* peek (bool wildcard=false);
 
   const token* last_t; // the last value returned by peek() or next()
   const token* next_t; // lookahead token
