@@ -1,0 +1,4 @@
+#! stap -p1
+
+# bad probe point
+probe foo(5) if

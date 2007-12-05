@@ -1,3 +1,11 @@
+2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 4935
+	* tapsets.cxx (dwarf_derived_probe::dwarf_derived_probe): Allow user
+	to access kernel variables in the condition of probe points.
+	* stapprobes.5.in : Document the conditional probe point.
+	* NEWS : Ditto.
+
 2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5376

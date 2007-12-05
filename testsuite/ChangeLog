@@ -1,3 +1,17 @@
+2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 4935
+	* parseok/five.stp: Add an example of conditional probe point.
+	* parseko/probepoint04.stp: New test for conditional probe point.
+	* parseko/probepoint05.stp: Ditto.
+	* parseko/probepoint06.stp: Ditto.
+	* parseko/probepoint07.stp: Ditto.
+	* parseko/probepoint08.stp: Ditto.
+	* parseko/probepoint09.stp: Ditto.
+	* semok/twentynine.stp: Ditto.
+	* semko/thirtynine.stp: Ditto.
+	* systemtap.base/onoffprobe.*: Ditto.
+
 2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5376

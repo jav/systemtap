@@ -3642,11 +3642,16 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   this->tok = q.base_probe->tok;
 
+  // add condition from base location
+  if (q.base_loc->condition)
+  	add_condition (q.base_loc->condition);
+  insert_condition_statement ();
+
   // Make a target-variable-expanded copy of the probe body
   if (scope_die)
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-      require <block*> (&v, &(this->body), q.base_probe->body);
+      require <block*> (&v, &(this->body), this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
@@ -3718,9 +3723,6 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                      (TOK_MAXACTIVE, new literal_number(maxactive_val)));
 
   locations.push_back(new probe_point(comps, q.base_loc->tok));
-  if (q.base_loc->condition)
-  	add_condition (q.base_loc->condition);
-  insert_condition_statement ();
 }
 
 

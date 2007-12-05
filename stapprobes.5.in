@@ -41,6 +41,13 @@ sufficient.  (Think vaguely of the prolog cut operator.) If it does
 resolve, then no further probe points in the same comma-separated list
 will be resolved.  Therefore, the "!"  sufficiency mark only makes
 sense in a list of probe point alternatives.
+.PP
+Additionally, a probe point may be followed by a "if (expr)" statement, in
+order to enable/disable the probe point on-the-fly. With the "if" statement,
+if the "expr" is false when the probe point is hit, the whole probe body
+including alias's body is skipped. The condition is stacked up through
+all levels of alias/wildcard expansion. So the final condition becomes
+the logical-and of conditions of all expanded alias/wildcard.
 
 These are all syntactically valid probe points:
 
@@ -52,6 +59,7 @@ end
 syscall.*
 kernel.function("no_such_function") ?
 module("awol").function("no_such_function") !
+signal.*? if (switch)
 .ESAMPLE
 
 Probes may be broadly classified into "synchronous" and
