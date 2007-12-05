@@ -1,3 +1,7 @@
+2007-12-05  William Cohen  <wcohen@redhat.com>
+
+	* systemtap.spec.in: Correct Source to point to location contain code.
+
 2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 4935
