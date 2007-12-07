@@ -1,5 +1,10 @@
 2007-12-7  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* syscalls2.stp: Add missed compat* probes in syscalls2.stp.
+
+2007-12-7  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	From Bai Weidong <baiwd@cn.fujitsu.com>
 	* aux_syscalls.stp (__sem_flags): Add the missed mode display,
 	Fix calculation error when string is empty.
