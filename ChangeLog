@@ -1,3 +1,8 @@
+2007-12-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* staptree.cxx, staptree.h: More GCC 4.3 build fixes from
+	Eugeniy Meshcheryakov <eugen@debian.org>.
+
 2007-12-05  William Cohen  <wcohen@redhat.com>
 
 	* systemtap.spec.in: Correct Source to point to location contain code.
