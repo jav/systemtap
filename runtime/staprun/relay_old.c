@@ -303,14 +303,17 @@ int init_oldrelayfs(void)
 		return -1;
 	}
 
-	for (i = 0; i < ncpus; i++) {
-		/* create a thread for each per-cpu buffer */
-		if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
-			int saved_errno = errno;
-			close_relayfs_files(i);
-			err("ERROR: Couldn't create reader thread, cpu = %d: %s\n",
-				i, strerror(saved_errno));
-			goto err;
+	if (!load_only) {
+		dbug(2, "starting threads\n");
+		for (i = 0; i < ncpus; i++) {
+			/* create a thread for each per-cpu buffer */
+			if (pthread_create(&reader[i], NULL, reader_thread, (void *)(long)i) < 0) {
+				int saved_errno = errno;
+				close_relayfs_files(i);
+				err("ERROR: Couldn't create reader thread, cpu = %d: %s\n",
+				    i, strerror(saved_errno));
+				goto err;
+			}
 		}
 	}
 	return 0;

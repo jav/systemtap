@@ -97,7 +97,6 @@ static void *reader_thread(void *data)
 				_perr("poll error");
 				return(NULL);
                         }
-			stop_threads = 1;
                 }
 		while ((rc = read(relay_fd[cpu], buf, sizeof(buf))) > 0) {
 			if (write(out_fd[cpu], buf, rc) != rc) {
@@ -201,15 +200,17 @@ int init_relayfs(void)
 			out_fd[0] = STDOUT_FILENO;
 		
 	}
-	dbug(2, "starting threads\n");
-	for (i = 0; i < ncpus; i++) {
-		if (pthread_create(&reader[i], NULL, reader_thread,
-				   (void *)(long)i) < 0) {
-			_perr("failed to create thread");
-			return -1;
+	if (!load_only) {
+		dbug(2, "starting threads\n");
+		for (i = 0; i < ncpus; i++) {
+			if (pthread_create(&reader[i], NULL, reader_thread,
+					   (void *)(long)i) < 0) {
+				_perr("failed to create thread");
+				return -1;
+			}
 		}
-	}		
-
+	}
+	
 	return 0;
 }
 
