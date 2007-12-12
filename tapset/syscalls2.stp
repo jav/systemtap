@@ -455,28 +455,20 @@ probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect7").re
 
 # ptrace _____________________________________________________
 #
-# asmlinkage int
-# sys_ptrace(long request,
+# int sys_ptrace(long request,
 #		long pid,
 #		long addr,
 #		long data)
 #
-probe syscall.ptrace =
-		kernel.function("sys_ptrace") ?,
-		kernel.function("compat_sys_ptrace") ?
-{
-	name = "ptrace"
+probe syscall.ptrace = kernel.function("sys_ptrace") ? {
+	name = "ptrace"	
 	request = $request
 	pid = $pid
 	addr = $addr
 	data = $data
-	argstr = sprintf("%p, %p, %p, %p", request, pid,
-				addr, data)
+	argstr = sprintf("%d, %d, %p, %p", request, pid, addr, data)
 }
-probe syscall.ptrace.return =
-		kernel.function("sys_ptrace").return ?,
-		kernel.function("compat_sys_ptrace").return ?
-{
+probe syscall.ptrace.return = kernel.function("sys_ptrace").return ? {
 	name = "ptrace"
 	retstr = returnstr(1)
 }

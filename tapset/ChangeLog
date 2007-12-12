@@ -1,3 +1,8 @@
+2007-12-12  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls2.stp (compat_sys_ptrace): Remove for now.
+	Utrace-patched kernels have a different compat_sys_ptrace().
+
 2007-12-7  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
