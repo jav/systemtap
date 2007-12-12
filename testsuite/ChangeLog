@@ -1,3 +1,13 @@
+2007-12-12  Martin Hunt  <hunt@redhat.com>
+	Detect crashing stap and report as a test failure.
+	* lib/systemtap.exp (stap_run_batch): Return -1 if stap
+	crashed.
+	* systemtap.pass1-4/buildko.exp: If stap_run_batch returned
+	-1 then mark test as failed.
+	* systemtap.pass1-4/parseko.exp: Ditto.
+	* systemtap.pass1-4/semko.exp: Ditto.
+	* systemtap.pass1-4/transko.exp: Ditto.
+
 2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 4935
