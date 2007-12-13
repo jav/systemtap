@@ -1,5 +1,26 @@
 * What's new in version 0.6 / since version 0.5.15?
 
+- Crash utility can retrieve systemtap's relay buffer from a kernel dump
+  image by using staplog which is a crash extension module. To use this
+  feature, type commands as below from crash(8)'s command line:
+
+    crash> extend staplog.so
+    crash> help systemtaplog
+
+  Then, you can see more precise help message.
+
+- You can share a relay buffer amoung several scripts and merge outputs from
+  several scripts by using "-DRELAY_HOST" and "-DRELAY_GUEST" options.
+  For example:
+
+    # run a host script
+    % stap -ve 'probe begin{}' -o merged.out -DRELAY_HOST &
+    # wait until starting the host.
+    % stap -ve 'probe begin{print("hello ");exit()}' -DRELAY_GUEST
+    % stap -ve 'probe begin{print("world\n");exit()}' -DRELAY_GUEST
+
+  Then, you'll see "hello world" in merged.out.
+
 - You can add a conditional statement for each probe point or aliase, which
   is evaluated when the probe point is hit. If the condition is false, the
   whole probe body(including aliases) is skipped. For example:

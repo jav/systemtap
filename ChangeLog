@@ -1,3 +1,8 @@
+2007-12-13  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stap.1.in: Document about relay buffer sharing.
+	* NEWS: Document about relay buffer sharing and staplog crash extension.
+
 2007-12-12  Wenji Huang <wenji.huang@oracle.com>
 
         PR 5470
