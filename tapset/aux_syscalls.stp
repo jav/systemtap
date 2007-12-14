@@ -382,13 +382,19 @@ function __sem_flags:string(semflg:long)
 %{ /* pure */
 	long semflg = THIS->semflg;
 	char *str = THIS->__retvalue;
+	int mode = semflg & S_IRWXUGO;
+	int len;
 
+	if (mode)
+		snprintf(str, MAXSTRINGLEN, "%#o|", mode); 
 	if (semflg & IPC_CREAT)
 		strlcat(str, "IPC_CREAT|", MAXSTRINGLEN);
 	if (semflg & IPC_EXCL)
 		strlcat(str, "IPC_EXCL|", MAXSTRINGLEN);
 
-	str[strlen(str)-1] = 0;
+	len = strlen(str);
+	if (len)
+		str[len-1] = 0;
 %}
 
 

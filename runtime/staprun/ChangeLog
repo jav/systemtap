@@ -1,3 +1,9 @@
+2007-12-11  Martin Hunt  <hunt@redhat.com>
+	PR5368
+	* relay_old.c (init_oldrelayfs): Don't start threads
+	if load_only.
+	* relay.c (init_relayfs): Ditto.	
+	
 2007-11-09  Martin Hunt  <hunt@redhat.com>
 
 	* mainloop.c (stp_main_loop): Bump recvbuf to 8196 for

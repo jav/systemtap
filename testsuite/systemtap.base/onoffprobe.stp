@@ -1,0 +1,35 @@
+global switch=0
+
+#begin probe
+probe begin if (switch==0) {
+	log("begin probed\n");
+}
+
+#dwarf probe (return)
+probe kernel.function("sys_write").return if (switch == 1) {
+	log("function return probed\n")
+	switch = 0
+}
+
+#dwarf probe (entry)
+probe kernel.function("sys_write") if (switch == 2) {
+	log("function entry probed\n")
+	switch = 0
+}
+
+#timer probe
+probe timer.s(1) if (switch == 3) {
+	log("timer probed\n")
+	switch = 0
+}
+
+#profile probe
+probe timer.profile if (switch == 4) {
+	log("profile probed\n")
+	switch = 0
+}
+
+probe procfs("switch").write {
+	switch = strtol($value, 10)
+}
+

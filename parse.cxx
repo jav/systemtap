@@ -1343,14 +1343,14 @@ parser::parse_probe_point ()
         {
           next ();
           t = peek ();
-          if (! (t->type == tok_operator && t->content == "("))
+          if (t && ! (t->type == tok_operator && t->content == "("))
             throw parse_error ("expected '('");
           next ();
 
           pl->condition = parse_expression ();
 
           t = peek ();
-          if (! (t->type == tok_operator && t->content == ")"))
+          if (t && ! (t->type == tok_operator && t->content == ")"))
             throw parse_error ("expected ')'");
           next ();
           t = peek ();

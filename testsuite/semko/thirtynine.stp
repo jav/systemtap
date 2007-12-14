@@ -1,0 +1,3 @@
+#! stap -p2
+
+probe kernel.function("sys_open").if(1) {} /* if statement doesn't need '.'*/

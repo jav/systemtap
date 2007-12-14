@@ -1,3 +1,30 @@
+2007-12-13  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stap.1.in: Document about relay buffer sharing.
+	* NEWS: Document about relay buffer sharing and staplog crash extension.
+
+2007-12-12  Wenji Huang <wenji.huang@oracle.com>
+
+        PR 5470
+        * parse.cxx (parser::parse_probe_point): Add checking pointer t.
+
+2007-12-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* staptree.cxx, staptree.h: More GCC 4.3 build fixes from
+	Eugeniy Meshcheryakov <eugen@debian.org>.
+
+2007-12-05  William Cohen  <wcohen@redhat.com>
+
+	* systemtap.spec.in: Correct Source to point to location contain code.
+
+2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 4935
+	* tapsets.cxx (dwarf_derived_probe::dwarf_derived_probe): Allow user
+	to access kernel variables in the condition of probe points.
+	* stapprobes.5.in : Document the conditional probe point.
+	* NEWS : Ditto.
+
 2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5376

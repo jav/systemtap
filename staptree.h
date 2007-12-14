@@ -835,7 +835,7 @@ struct deep_copy_visitor: public visitor
   virtual void visit_hist_op (hist_op* e);
 };
 
-template <typename T> static void
+template <typename T> void
 require (deep_copy_visitor* v, T* dst, T src)
 {
   *dst = NULL;
@@ -874,7 +874,7 @@ require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
     }
 }
 
-template <typename T> static void
+template <typename T> void
 provide (deep_copy_visitor* v, T src)
 {
   assert(!v->targets.empty());

@@ -3,6 +3,11 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     set test $self/[file tail $file]
     verbose -log "Running $file"
     set rc [stap_run_batch $file]
-    setup_xfail *-*-*
-    if {$rc == 0} { pass $test } else { fail $test }
+    if {$rc < 0} {
+	# crashed
+	fail $test
+    } else {
+	setup_xfail *-*-*
+	if {$rc == 0} { pass $test } else { fail $test }
+    }
 }

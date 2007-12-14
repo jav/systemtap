@@ -19,3 +19,4 @@ probe resource.freemembelow(50) {} # pages?
 probe begin {}
 probe something?, or?, nothing? {}
 probe something!, or, nothing!, and?, zoo {}
+probe something? if (ture), or, nothing! if (false), then* if (0) {}

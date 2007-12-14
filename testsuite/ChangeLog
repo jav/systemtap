@@ -1,3 +1,27 @@
+2007-12-12  Martin Hunt  <hunt@redhat.com>
+	Detect crashing stap and report as a test failure.
+	* lib/systemtap.exp (stap_run_batch): Return -1 if stap
+	crashed.
+	* systemtap.pass1-4/buildko.exp: If stap_run_batch returned
+	-1 then mark test as failed.
+	* systemtap.pass1-4/parseko.exp: Ditto.
+	* systemtap.pass1-4/semko.exp: Ditto.
+	* systemtap.pass1-4/transko.exp: Ditto.
+
+2007-12-05  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 4935
+	* parseok/five.stp: Add an example of conditional probe point.
+	* parseko/probepoint04.stp: New test for conditional probe point.
+	* parseko/probepoint05.stp: Ditto.
+	* parseko/probepoint06.stp: Ditto.
+	* parseko/probepoint07.stp: Ditto.
+	* parseko/probepoint08.stp: Ditto.
+	* parseko/probepoint09.stp: Ditto.
+	* semok/twentynine.stp: Ditto.
+	* semko/thirtynine.stp: Ditto.
+	* systemtap.base/onoffprobe.*: Ditto.
+
 2007-12-03  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5376

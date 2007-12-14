@@ -1,0 +1,57 @@
+set test "onoffprobe"
+if {![installtest_p]} { untested $test; return }
+
+spawn stap $srcdir/$subdir/$test.stp -m $test
+set pid $spawn_id
+set ok 0
+expect {
+  -timeout 240
+  "begin probed\r\n" {
+	if {$ok == 0} {
+		incr ok
+		pass "conditional begin probe"
+		exec echo 1 > /proc/systemtap/$test/switch
+		exec echo "dummy" > /dev/null
+		exp_continue;
+	}
+  }
+  "function return probed\r\n" {
+	if {$ok == 1} {
+		incr ok
+		pass "conditional dwarf probe (return)"
+		exec echo 2 > /proc/systemtap/$test/switch
+		exec echo "dummy" > /dev/null
+		exp_continue;
+	}
+  }
+  "function entry probed\r\n" {
+	if {$ok == 2} {
+		incr ok
+		pass "conditional dwarf probe (entry)"
+		exec echo 3 > /proc/systemtap/$test/switch
+		exp_continue;
+	}
+  }
+  "timer probed\r\n" {
+	if {$ok == 3} {
+		incr ok
+		pass "conditional timer probe"
+		exec echo 4 > /proc/systemtap/$test/switch
+		exp_continue;
+	}
+  }
+  "profile probed\r\n" {
+	if {$ok == 4} {
+		incr ok
+		pass "conditional profile probe"
+	}
+  }
+   timeout { fail "$test (timeout)" }
+    eof { }
+}
+send "\003"
+#FIXME does not handle case of hanging pfaults.stp correctly
+wait
+exec rm -f $test.ko
+if {$ok != 5} {fail "conditional probes ($ok)"}
+

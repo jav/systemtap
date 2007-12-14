@@ -1,5 +1,5 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 1
+%define release 2
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
@@ -41,7 +41,7 @@ Summary: Instrumentation System
 Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
-Source: ftp://sourceware.org/pub/%{name}/%{name}-%{version}.tar.gz
+Source: ftp://sourceware.org/pub/%{name}/releases/%{name}-%{version}.tar.gz
 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -199,6 +199,9 @@ exit 0
 
 
 %changelog
+* Wed Dec  5 2007 Will Cohen <wcohen@redhat.com> - 0.6-2
+- Correct Source to point to location contain code.
+
 * Thu Aug  9 2007 David Smith <dsmith@redhat.com> - 0.6-1
 - Bumped version, added libcap-devel BuildRequires.
 

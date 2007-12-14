@@ -455,22 +455,20 @@ probe syscall.compat_pselect7.return = kernel.function("compat_sys_pselect7").re
 
 # ptrace _____________________________________________________
 #
-# asmlinkage int
-# sys_ptrace(long request,
+# int sys_ptrace(long request,
 #		long pid,
 #		long addr,
 #		long data)
 #
-probe syscall.ptrace = kernel.function("sys_ptrace") {
-	name = "ptrace"
+probe syscall.ptrace = kernel.function("sys_ptrace") ? {
+	name = "ptrace"	
 	request = $request
 	pid = $pid
 	addr = $addr
 	data = $data
-	argstr = sprintf("%p, %p, %p, %p", request, pid,
-				addr, data)
+	argstr = sprintf("%d, %d, %p, %p", request, pid, addr, data)
 }
-probe syscall.ptrace.return = kernel.function("sys_ptrace").return {
+probe syscall.ptrace.return = kernel.function("sys_ptrace").return ? {
 	name = "ptrace"
 	retstr = returnstr(1)
 }
@@ -1645,14 +1643,20 @@ probe syscall.compat_setitimer.return = kernel.function("compat_sys_setitimer").
 #	unsigned long __user *nmask,
 #	unsigned long maxnode)
 #
-probe syscall.set_mempolicy = kernel.function("sys_set_mempolicy") ? {
+probe syscall.set_mempolicy =
+		kernel.function("sys_set_mempolicy") ?,
+		kernel.function("compat_sys_set_mempolicy") ?
+{
 	name = "set_mempolicy"
 	mode = $mode
 	nmask_uaddr = $nmask
 	maxnode = $maxnode
 	argstr = sprintf("%d, %p, %d", $mode, $nmask, $maxnode)
 }
-probe syscall.set_mempolicy.return = kernel.function("sys_set_mempolicy").return ? {
+probe syscall.set_mempolicy.return =
+		kernel.function("sys_set_mempolicy").return ?,
+		kernel.function("compat_sys_set_mempolicy").return ?
+{
 	name = "set_mempolicy"
 	retstr = returnstr(1)
 }
@@ -2467,11 +2471,17 @@ probe syscall.sync.return = kernel.function("sys_sync").return {
 #
 # long sys_sysctl(struct __sysctl_args __user *args)
 #
-probe syscall.sysctl = kernel.function("sys_sysctl") ? {
+probe syscall.sysctl =
+		kernel.function("sys_sysctl") ?,
+		kernel.function("compat_sys_sysctl") ?
+{
 	name = "sysctl"
 	argstr = sprintf("%p", $args)
 }
-probe syscall.sysctl.return = kernel.function("sys_sysctl").return ? {
+probe syscall.sysctl.return =
+		kernel.function("sys_sysctl").return ?,
+		kernel.function("compat_sys_sysctl").return ?
+{
 	name = "sysctl"
 	retstr = returnstr(1)
 }
