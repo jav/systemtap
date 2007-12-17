@@ -1,3 +1,10 @@
+2007-12-17  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp (get_mempolicy): Fix syntax. Add prototype.
+	(kexec_load): Ditto.
+	(mbind): Ditto.
+	(move_pages): Ditto.
+	
 2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
