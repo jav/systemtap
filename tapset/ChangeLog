@@ -1,5 +1,10 @@
 2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* Add new address family to _fam_num2str: IUCV and RXRPC.
+
+2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	From Bai Weidong <baiwd@cn.fujitsu.com>
 	* syscalls.stp: Add missed compat* probes in syscalls.stp.
 
