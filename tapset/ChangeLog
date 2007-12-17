@@ -1,3 +1,8 @@
+2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Bai Weidong <baiwd@cn.fujitsu.com>
+	* syscalls.stp: Add missed compat* probes in syscalls.stp.
+
 2007-12-12  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp (compat_sys_ptrace): Remove for now.
