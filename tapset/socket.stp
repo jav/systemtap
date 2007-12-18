@@ -693,7 +693,7 @@ function msg_flags_num2str:string (flags:long)
 ###########################
 
 global _prot_num2str[138], _prot_str2num[138]
-global _fam_num2str[32],   _fam_str2num[32]
+global _fam_num2str[34],   _fam_str2num[34]
 global _state_num2str[5],  _state_str2num[5]
 global _type_num2str[11],  _type_str2num[11]
 
@@ -869,6 +869,8 @@ probe begin(-1001)
 	_fam_num2str[26] = "LLC"
 	_fam_num2str[30] = "TIPC"
 	_fam_num2str[31] = "BLUETOOTH"
+	_fam_num2str[32] = "IUCV"
+	_fam_num2str[33] = "RXRPC"
 
 	foreach (num in _fam_num2str)
 		_fam_str2num[_fam_num2str[num]] = num 

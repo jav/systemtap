@@ -1,3 +1,20 @@
+2007-12-17  Martin Hunt  <hunt@redhat.com>
+
+	* syscalls.stp (get_mempolicy): Fix syntax. Add prototype.
+	(kexec_load): Ditto.
+	(mbind): Ditto.
+	(move_pages): Ditto.
+	
+2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* Add new address family to _fam_num2str: IUCV and RXRPC.
+
+2007-12-17  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Bai Weidong <baiwd@cn.fujitsu.com>
+	* syscalls.stp: Add missed compat* probes in syscalls.stp.
+
 2007-12-12  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls2.stp (compat_sys_ptrace): Remove for now.

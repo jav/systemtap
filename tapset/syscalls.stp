@@ -1313,8 +1313,15 @@ probe syscall.compat_getitimer.return = kernel.function("compat_sys_getitimer").
 #                   unsigned long maxnode,
 #                   unsigned long addr,
 #                   unsigned long flags)
+# long compat_sys_get_mempolicy(int __user *policy,
+#		     compat_ulong_t __user *nmask,
+#		     compat_ulong_t maxnode,
+#		     compat_ulong_t addr, compat_ulong_t flags)
 #
-probe syscall.get_mempolicy = kernel.function("sys_get_mempolicy") ? {
+probe syscall.get_mempolicy = 
+		kernel.function("sys_get_mempolicy") ?,
+		kernel.function("compat_sys_get_mempolicy") ?
+{
 	name = "get_mempolicy"
 	policy_uaddr = $policy
 	nmask_uaddr = $nmask
@@ -1324,7 +1331,10 @@ probe syscall.get_mempolicy = kernel.function("sys_get_mempolicy") ? {
 	argstr = sprintf("%p, %p, %d, %p, 0x%x", $policy,
 			$nmask, $maxnode, $addr, $flags)
 }
-probe syscall.get_mempolicy.return = kernel.function("sys_get_mempolicy").return ? {
+probe syscall.get_mempolicy.return = 
+	kernel.function("sys_get_mempolicy").return ?,
+	kernel.function("compat_sys_get_mempolicy").return ?
+{
 	name = "get_mempolicy"
 	retstr = returnstr(1)
 }
@@ -1881,8 +1891,15 @@ probe syscall.ioprio_set.return = kernel.function("sys_ioprio_set").return ? {
 #                unsigned long nr_segments,
 #                struct kexec_segment __user *segments,
 #                unsigned long flags)
+# long compat_sys_kexec_load(unsigned long entry,
+#		unsigned long nr_segments,
+#		struct compat_kexec_segment __user *segments,
+#		unsigned long flags)
 #
-probe syscall.kexec_load = kernel.function("sys_kexec_load") ? {
+probe syscall.kexec_load = 
+		kernel.function("sys_kexec_load") ?,
+		kernel.function("compat_sys_kexec_load") ?
+{
 	name = "kexec_load"
 	entry = $entry
 	nr_segments = $nr_segments
@@ -1890,7 +1907,10 @@ probe syscall.kexec_load = kernel.function("sys_kexec_load") ? {
 	flags = $flags
 	argstr = sprintf("%p, %d, %p, %d", $entry, $nr_segments, $segments, $flags)
 }
-probe syscall.kexec_load.return = kernel.function("sys_kexec_load").return ? {
+probe syscall.kexec_load.return = 
+		kernel.function("sys_kexec_load").return ?,
+		kernel.function("compat_sys_kexec_load").return ?
+{
 	name = "kexec_load"
 	retstr = returnstr(1)	
 }
@@ -2198,7 +2218,17 @@ probe syscall.madvise.return = kernel.function("sys_madvise").return ? {
 #	unsigned long maxnode,
 #	unsigned flags)
 #
-probe syscall.mbind = kernel.function("sys_mbind") ? {
+# long compat_sys_mbind(compat_ulong_t start,
+#	compat_ulong_t len,
+#	compat_ulong_t mode,
+#	compat_ulong_t __user *nmask,
+#	compat_ulong_t maxnode,
+#	compat_ulong_t flags)
+#
+probe syscall.mbind = 
+		kernel.function("sys_mbind") ?,
+		kernel.function("compat_sys_mbind") ?
+{
 	name = "mbind"
 	start = $start
 	len = $len
@@ -2209,7 +2239,10 @@ probe syscall.mbind = kernel.function("sys_mbind") ? {
 	argstr = sprintf("%d, %d, %d, %p, %d, 0x%x", $start, $len, $mode,
 				$nmask, $maxnode, $flags)
 }
-probe syscall.mbind.return = kernel.function("sys_mbind").return ? {
+probe syscall.mbind.return = 
+		kernel.function("sys_mbind").return ?,
+		kernel.function("compat_sys_mbind").return ?
+{
 	name = "mbind"
 	retstr = returnstr(1)
 }
@@ -2333,13 +2366,26 @@ probe syscall.modify_ldt.return = kernel.function("sys_modify_ldt").return ? {
 # long sys_move_pages(pid_t pid, unsigned long nr_pages,
 #			const void __user * __user *pages,
 #			const int __user *nodes,
-#			int __user *status, int flags)
+#			int __user *status,
+#			int flags)
 #
-probe syscall.move_pages = kernel.function("sys_move_pages") ? {
+# long compat_sys_move_pages(pid_t pid, unsigned long nr_pages,
+#                compat_uptr_t __user *pages32,
+#                const int __user *nodes,
+#                int __user *status,
+#                int flags)
+#
+probe syscall.move_pages = 
+		kernel.function("sys_move_pages") ?,
+		kernel.function("compat_sys_move_pages") ?
+{
 	name = "move_pages"
 	argstr = sprintf("%d, %d, %p, %p, 0x%x", $pid, $nr_pages, $nodes, $status, $flags)
 }
-probe syscall.move_pages.return = kernel.function("sys_move_pages").return ? {
+probe syscall.move_pages.return = 
+		kernel.function("sys_move_pages").return ?,
+		kernel.function("compat_sys_move_pages").return ?
+{
 	name = "move_pages"
 	retstr = returnstr(1)
 }
