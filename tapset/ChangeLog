@@ -1,3 +1,9 @@
+2007-12-21  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* aux_syscalls.stp (_futex_op_str): Add new futex options.
+	(_stp_fork_list[]): Add new clone flags.
+
 2007-12-17  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp (get_mempolicy): Fix syntax. Add prototype.
