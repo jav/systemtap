@@ -1835,7 +1835,6 @@ function _struct_sigaction_u:string(uaddr:long)
 		V(SA_RESTART),
 		V(SA_NODEFER),
 		V(SA_SIGINFO),
-		V(SA_SIGINFO),
 		V(SA_RESTORER),
 		{0, NULL}
 	};

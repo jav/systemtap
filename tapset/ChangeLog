@@ -1,3 +1,9 @@
+2007-12-25  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* aux_syscalls.stp (_struct_sigaction_u): Delete overlaped
+	SA_SIGINFO from _stp_sa_flags_list[].
+
 2007-12-21  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
