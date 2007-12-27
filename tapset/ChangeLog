@@ -1,3 +1,20 @@
+2007-12-27  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* signal.stp (_signal.send.part3.return): Correct name variable.
+
+2007-12-25  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* aux_syscalls.stp (_struct_sigaction_u): Delete overlaped
+	SA_SIGINFO from _stp_sa_flags_list[].
+
+2007-12-21  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
+	* aux_syscalls.stp (_futex_op_str): Add new futex options.
+	(_stp_fork_list[]): Add new clone flags.
+
 2007-12-17  Martin Hunt  <hunt@redhat.com>
 
 	* syscalls.stp (get_mempolicy): Fix syntax. Add prototype.

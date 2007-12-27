@@ -1034,6 +1034,14 @@ function _futex_op_str(op) {
    if(op==6) return "FUTEX_LOCK_PI"
    if(op==7) return "FUTEX_UNLOCK_PI"
    if(op==8) return "FUTEX_TRYLOCK_PI"
+   if(op==128) return "FUTEX_WAIT_PRIVATE"
+   if(op==129) return "FUTEX_WAKE_PRIVATE"
+   if(op==131) return "FUTEX_REQUEUE_PRIVATE"
+   if(op==132) return "FUTEX_CMP_REQUEUE_PRIVATE"
+   if(op==133) return "FUTEX_WAKE_OP_PRIVATE"
+   if(op==134) return "FUTEX_LOCK_PI_PRIVATE"
+   if(op==135) return "FUTEX_UNLOCK_PI_PRIVATE"
+   if(op==136) return "FUTEX_TRYLOCK_PI_PRIVATE"
    return sprintf("UNKNOWN VALUE: %d", op)
 }
 
@@ -1677,6 +1685,8 @@ const _stp_val_array const _stp_fork_list[] = {
 	V(CLONE_UNTRACED),
 	V(CLONE_CHILD_SETTID),
 	V(CLONE_STOPPED),
+	V(CLONE_NEWIPC),
+	V(CLONE_NEWUSER),
 	{0, NULL}
 };
 %}
@@ -1824,7 +1834,6 @@ function _struct_sigaction_u:string(uaddr:long)
 		V(SA_ONSTACK),
 		V(SA_RESTART),
 		V(SA_NODEFER),
-		V(SA_SIGINFO),
 		V(SA_SIGINFO),
 		V(SA_RESTORER),
 		{0, NULL}
