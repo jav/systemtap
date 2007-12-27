@@ -149,7 +149,7 @@ probe _signal.send.part2.return = kernel.function("send_group_sigqueue").return
 
 probe _signal.send.part3.return = kernel.function("send_sigqueue").return
 {
-    name = "send_sigqueueu"
+    name = "send_sigqueue"
     shared = 0
     send2queue = 1
 }
