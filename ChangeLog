@@ -1,3 +1,9 @@
+2007-12-27  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes_x86_64.c: Fix handling of indirect
+	jmps and calls that use rip-relative addressing.  Allow probing
+	of opcode 0x63.
+
 2007-12-13  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	* stap.1.in: Document about relay buffer sharing.
