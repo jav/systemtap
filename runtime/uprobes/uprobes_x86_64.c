@@ -43,7 +43,7 @@ static const unsigned long good_insns_64[256 / 64] = {
 	W(0x30, 1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0), /* 30 */
 	W(0x40, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)| /* 40 */
 	W(0x50, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 50 */
-	W(0x60, 0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0)| /* 60 */
+	W(0x60, 0,0,0,1,0,0,0,0,1,1,1,1,0,0,0,0)| /* 60 */
 	W(0x70, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1), /* 70 */
 	W(0x80, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)| /* 80 */
 	W(0x90, 1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1)| /* 90 */
@@ -603,8 +603,13 @@ void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 			regs->rax = utask->arch_info.saved_scratch_register;
 		else
 			regs->rcx = utask->arch_info.saved_scratch_register;
-		regs->rip += (4 + correction);
-		return;
+		/*
+		 * The original instruction includes a displacement, and so
+		 * is 4 bytes longer than what we've just single-stepped.
+		 * Fall through to handle stuff like "jmpq *...(%rip)" and
+		 * "callq *...(%rip)".
+		 */
+		correction += 4;
 	}
 
 	/*
@@ -613,8 +618,8 @@ void uprobe_post_ssout(struct uprobe_task *utask, struct uprobe_probept *ppt,
 	 * ppt->arch_info.flags.
 	 *
 	 * We don't bother skipping prefixes here because none of the
-	 * non-rip-relative instructions that require special treatment
-	 * involve prefixes.
+	 * instructions that require special treatment (other than
+	 * rip-relative instructions, handled above) involve prefixes.
 	 */
 
 	switch (*insn) {
