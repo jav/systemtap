@@ -521,7 +521,9 @@ main (int argc, char * const argv [])
     
     string stapdir = "/stapXXXXXX";
     string tmpdirt = tmpdir_env + stapdir;
+    mode_t mask = umask(0);
     const char* tmpdir = mkdtemp((char *)tmpdirt.c_str());
+    umask(mask);
     if (! tmpdir)
       {
         const char* e = strerror (errno);
