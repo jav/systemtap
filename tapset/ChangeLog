@@ -1,3 +1,9 @@
+2008-1-4  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR5152
+	* scheduler.stp (scheduler.ctxswitch): Change probe point __switch_to
+	to context_switch on ia64.
+
 2007-12-27  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Yang Zhiguo <yzgcsu@cn.fujitsu.com>
