@@ -59,7 +59,7 @@ if {! [catch {open $path RDONLY} fl]} {
     while {[gets $fl s] >= 0} {
 	# This regexp only picks up markers that contain arguments.
 	# This helps ensure that K_MARKER04 passes correctly.
-	if [regexp {^([^ \t]+)\t[^ \t]+.+$} $s match name] {
+	if [regexp {^([^ \t]+)\t[^ \t]+.*%.+$} $s match name] {
 	    set kernel_markers_found 1
 	    lappend kernel_marker_names $name
 	}
