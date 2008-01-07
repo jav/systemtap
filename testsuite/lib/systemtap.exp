@@ -111,3 +111,14 @@ proc stap_run_batch {args} {
 	return [lindex $results 3]
     }
 }
+
+proc as_root { command } {
+
+     set effective_pid [exec /usr/bin/id -u]
+
+     if {$effective_pid != 0} {
+	 set command "sudo $command"
+     }
+     set res [catch {eval exec $command} value]
+     return  $res
+ }

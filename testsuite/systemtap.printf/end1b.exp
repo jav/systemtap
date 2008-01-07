@@ -24,24 +24,24 @@ if {[catch {exec mktemp -t staptestXXXXX} tmpfile]} {
 if {[catch {exec stap -b -o $tmpfile $test} res]} {
     untested $TEST_NAME
     puts "stap failed: $res"
-    catch {eval [list exec sudo /bin/rm -f] [glob ${tmpfile}*]}
+    as_root {/bin/rm -f [glob ${tmpfile}*]}
     return
 }
 
 if {[catch {eval [list exec $stap_merge_path -o $tmpfile] [glob "${tmpfile}_*"]} res]} {
     puts "merge failed: $res"
     fail "$TEST_NAME failed"
-    catch {eval [list exec sudo /bin/rm -f] [glob ${tmpfile}*]}
+    as_root {/bin/rm -f [glob ${tmpfile}*]}
     return
 }
 
 if {[catch {exec cmp $tmpfile $srcdir/$subdir/large_output} res]} {
     puts "$res"
     fail "$TEST_NAME failed"
-    catch {eval [list exec sudo /bin/rm -f] [glob ${tmpfile}*]}
+    as_root {/bin/rm -f [glob ${tmpfile}*]}
     return
 }
 
 pass "$TEST_NAME passed"
-catch {eval [list exec sudo /bin/rm -f] [glob ${tmpfile}*]}
+as_root {/bin/rm -f [glob ${tmpfile}*]}
 
