@@ -47,8 +47,6 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
 BuildRequires: libcap-devel
-# make check
-BuildRequires: dejagnu
 %if %{sqlite}
 BuildRequires: sqlite-devel
 Requires: sqlite

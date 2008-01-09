@@ -1,3 +1,9 @@
+2008-01-09  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec.in: Since "make check" was removed
+	from the rpm build step, we no longer need to require dejagnu at
+	build time.
+
 2008-01-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (dwflpp::setup): Improve missing kernel-debuginfo
