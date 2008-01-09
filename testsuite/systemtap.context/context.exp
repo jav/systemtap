@@ -13,8 +13,8 @@ proc cleanup {} {
     global build_dir
     catch {send "\003"}
     foreach n {1 2} {
-	catch {exec sudo /bin/rm -f /lib/modules/$::uname/kernel/systemtap_test_module$n.ko}
-	catch {exec sudo /sbin/rmmod systemtap_test_module$n}
+	as_root  [list /bin/rm -f /lib/modules/$::uname/kernel/systemtap_test_module$n.ko]
+	as_root [list /sbin/rmmod systemtap_test_module$n]
     }
     if {$build_dir != ""} {exec rm -rf $build_dir}
 }
@@ -46,14 +46,15 @@ proc build_modules {} {
 	    cd $old_dir
 	    return 0
 	}
-	if {[catch {exec sudo cp systemtap_test_module$n.ko /lib/modules/$::uname/kernel} res]} {
+	set res [as_root  [list cp systemtap_test_module$n.ko /lib/modules/$::uname/kernel]]
+	if { $res != 0 } {
 	    puts $res
 	    cd $old_dir
 	    return 0
 	}
     }
     foreach n {2 1} {
-	catch {exec sudo /sbin/insmod systemtap_test_module$n.ko}
+	as_root [list /sbin/insmod systemtap_test_module$n.ko]
     }
     cd $old_dir
     return 1

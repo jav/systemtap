@@ -1,3 +1,8 @@
+2008-01-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	From Mark McLoughlin <markmc@redhat.com>:
+	* main.cxx (main): Set/restore umask around mkdtemp().
+
 2007-12-27  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes_x86_64.c: Fix handling of indirect

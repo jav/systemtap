@@ -1,3 +1,17 @@
+2008-01-07  William Cohen  <wcohen@redhat.com>
+	* lib/systemtap.exp (as_root): new proc.
+	* systemtap.context/context.exp:
+	* systemtap.printf/end1b.exp: 
+	* systemtap.printf/mixed_outb.exp:
+	* systemtap.printf/out1b.exp:
+	* systemtap.printf/out2b.exp:
+	* systemtap.printf/out3b.exp: Use as_root proc.
+
+2008-01-04  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/marker.exp: Improved regexp that finds markers
+	with arguments.
+
 2007-12-12  Martin Hunt  <hunt@redhat.com>
 	Detect crashing stap and report as a test failure.
 	* lib/systemtap.exp (stap_run_batch): Return -1 if stap
