@@ -746,7 +746,12 @@ struct dwflpp
 						   /* selection predicate */
 						   NULL);
 	if (debuginfo_needed)
-	  dwfl_assert ("missing kernel debuginfo", rc);
+	  dwfl_assert (string("missing kernel ") +
+                       sess.kernel_release +
+                       string(" ") +
+                       sess.architecture +
+                       string(" debuginfo"), 
+                       rc);
 
         // XXX: it would be nice if we could do a single
         // ..._report_offline call for an entire systemtap script, so
