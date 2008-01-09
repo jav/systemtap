@@ -1,5 +1,11 @@
 2008-01-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	PR5554
+	* systemtap.syscall/alarm.c: Fix expected output patterns on ia64.
+	* systemtap.syscall/stat.c: Ditto.
+
+2008-01-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	PR5544
 	* lib/stap_run.exp (stap_run): Support warning before ending probe.
 
