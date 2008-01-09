@@ -1,3 +1,8 @@
+2008-01-09  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR5544
+	* lib/stap_run.exp (stap_run): Support warning before ending probe.
+
 2008-01-07  William Cohen  <wcohen@redhat.com>
 	* lib/systemtap.exp (as_root): new proc.
 	* systemtap.context/context.exp:
