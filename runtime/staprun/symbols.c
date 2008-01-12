@@ -198,7 +198,7 @@ void do_kernel_symbols(void)
 {
 	FILE *kallsyms=NULL;
 	char *sym_base=NULL, *data_base=NULL;
-	char buf[128], *ptr, *name, *data, *dataptr, *datamax, type;
+	char buf[256], *ptr, *name, *data, *dataptr, *datamax, type;
 	unsigned long addr;
 	struct _stp_symbol *syms;
 	int num_syms, i = 0, max_syms= MAX_SYMBOLS;
@@ -226,7 +226,7 @@ void do_kernel_symbols(void)
 	/* put empty string in data */
 	*dataptr++ = 0;
 
-	while (fgets_unlocked(buf, 128, kallsyms) && dataptr < datamax) {
+	while (fgets_unlocked(buf, 256, kallsyms) && dataptr < datamax) {
 		addr = strtoul(buf, &ptr, 16);
 		while (isspace(*ptr)) ptr++;
 		type = *ptr++;

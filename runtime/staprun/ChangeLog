@@ -1,3 +1,8 @@
+2008-01-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5603 horrible hack.
+	* symbols.c (do_kernel_symbols): Make buf[256] instead of [128].
+
 2007-12-11  Martin Hunt  <hunt@redhat.com>
 	PR5368
 	* relay_old.c (init_oldrelayfs): Don't start threads
