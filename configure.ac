@@ -25,6 +25,8 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
+
+
 dnl enable option to generate code for using perfmon
 AC_ARG_ENABLE(perfmon,
 	[  --enable-perfmon                 enable perfmon support (default is disabled)],
@@ -80,6 +82,14 @@ AC_CHECK_LIB(sqlite3, sqlite3_open)
 sqlite3_LIBS="$LIBS"
 AC_SUBST(sqlite3_LIBS)
 LIBS="$SAVE_LIBS"
+
+
+AC_ARG_ENABLE([ssp],
+            [AC_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
+AS_IF([test "x$enable_ssp" == xyes],
+      [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
 
 build_elfutils=no
 AC_ARG_WITH([elfutils],
