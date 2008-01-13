@@ -6572,6 +6572,13 @@ cap_LIBS="$LIBS"
 LIBS="$SAVE_LIBS"
 CFLAGS="$SAVE_CFLAGS"
 
+if test -d $srcdir/.git -a ! -f $srcdir/SNAPSHOT; then
+   snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
+   echo $snapshot > SNAPSHOT
+   { echo "$as_me:$LINENO: Created git SNAPSHOT $snapshot" >&5
+echo "$as_me: Created git SNAPSHOT $snapshot" >&6;}
+fi
+
 ac_config_headers="$ac_config_headers config.h:config.in"
 
 ac_config_files="$ac_config_files Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"

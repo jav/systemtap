@@ -53,7 +53,9 @@ proc get_system_info {} {
     global Host Snapshot Distro env
     
     set Host [exec /bin/uname -a] 
-    if [file exists $env(SRCDIR)/../SNAPSHOT] {
+    if [file exists ../SNAPSHOT] {
+	set Snapshot [exec /bin/cat ../SNAPSHOT]
+    } elseif [file exists $env(SRCDIR)/../SNAPSHOT] {
 	set Snapshot [exec /bin/cat $env(SRCDIR)/../SNAPSHOT]
     } else {
 	set Snapshot "unknown"

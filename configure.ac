@@ -161,6 +161,13 @@ AC_SUBST(cap_LIBS)
 LIBS="$SAVE_LIBS"
 CFLAGS="$SAVE_CFLAGS"
 
+dnl Create SNAPSHOT file from git commit id if possible
+if test -d $srcdir/.git -a ! -f $srcdir/SNAPSHOT; then
+   snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
+   echo $snapshot > SNAPSHOT
+   AC_MSG_NOTICE([Created git SNAPSHOT $snapshot]) 
+fi
+
 AC_CONFIG_HEADERS([config.h:config.in])
 AC_CONFIG_FILES(Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5)
 AC_CONFIG_SUBDIRS(testsuite)
