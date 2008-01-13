@@ -19,13 +19,25 @@ int main()
   sigaction(SIGALRM, &sigrt_act, NULL);
 
   alarm(1);
+#ifdef __ia64__
+  // setitimer (ITIMER_REAL, \[0.000000,1.000000\], XXXX) = 0
+#else
   // alarm (1) = 0
+#endif
 
   pause();
+#ifdef __ia64__
+  // rt_sigsuspend () =
+#else
   // pause () =
+#endif
 
   alarm(0);
+#ifdef __ia64__
+  // setitimer (ITIMER_REAL, \[0.000000,0.000000\], XXXX) = 0
+#else
   // alarm (0) = 0
+#endif
 
   sleep(1);
   // nanosleep (\[1.000000000\], XXXX) = 0

@@ -28,7 +28,7 @@ probe kernel.function("sys_*").return {
 probe end {
 	printf("\n")
 	foreach (x in ttime)
-		printf("%-20s\tcalls:%6d\tavg time (ms):%5d\ttotal(ms):%7d\n", 
+		printf("%-20s\tcalls:%6d\tavg time (us):%5d\ttotal(us):%7d\n", 
 			x, @count(ttime[x]), @avg(ttime[x]), @sum(ttime[x]))
 }
 

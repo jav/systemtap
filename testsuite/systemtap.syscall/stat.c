@@ -36,12 +36,19 @@ int main()
   ubuf.actime = 1;
   ubuf.modtime = 1135641600;
   utime("foobar", &ubuf);
+#ifdef __ia64__
+  // utimes ("foobar", \[1.000000\]\[1135641600.000000\]) =
+#else
   // utime ("foobar", \[1970/01/01-00:00:01, 2005/12/27-00:00:00\]) = 0
+#endif
 
   ubuf.actime =  1135690000;
   ubuf.modtime = 1135700000;
   utime("foobar", &ubuf);
+#ifdef __ia64__
+  // utimes ("foobar", \[1135690000.000000\]\[1135700000.000000\]) =
+#else
   // utime ("foobar", \[2005/12/27-13:26:40, 2005/12/27-16:13:20\]) = 0
-
+#endif
   return 0;
 }
