@@ -1,5 +1,11 @@
 2008-01-12  Frank Ch. Eigler  <fche@elastic.org>
 
+	* configure.ac: Generate a build tree SNAPSHOT file from git-rev-list,
+	if we suspect the source tree came from git.
+	* configure: Regenerated.
+
+2008-01-12  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5603.
 	* configure.ac: Add "--enable-ssp" to select -fstack-protector-all
 	and similar runtime checking directives.
