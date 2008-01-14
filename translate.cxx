@@ -1298,6 +1298,7 @@ c_unparser::emit_module_exit ()
             o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
             o->newline(-1) << "}";
+	    o->newline() << "_stp_stat_del (time_" << p->name << ");";
             o->newline(-1) << "}";
           }
       }
