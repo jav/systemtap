@@ -1,3 +1,25 @@
+2008-01-14  Martin Hunt  <hunt@redhat.com>
+
+	PR4037 and fixes to better synchronize staprun and stapio.	
+	* symbols.c (send_data): Send header and data seperately, saving
+	a memcpy and avoiding any alignment issues.
+	(get_sections): Return -1 on error instead of just exiting
+	and leaving stapio hanging. Send data in proper format even if kernel 
+	pointers are different size.
+	(send_module): Return -1 on error instead of just exiting
+	and leaving stapio hanging.
+	(do_module): Ditto.
+	(compar): Removed.
+	(do_kernel_symbols): Rewrite to be more robust. Return -1 on 
+	error instead of just exiting and leaving stapio hanging.
+	
+	* staprun_funcs.c (handle_symbols): Signal stapio if we error out.
+	Set kernel_ptr_size;
+	
+	* staprun.h (kernel_ptr_size): Declare.
+
+	* mainloop.c (stp_main_loop): When ready, send STP_READY.
+
 2008-01-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5603 horrible hack.

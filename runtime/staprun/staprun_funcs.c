@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2008 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -15,6 +15,8 @@
 #include <sys/utsname.h>
 #include <grp.h>
 #include <pwd.h>
+
+void cleanup(int rc);
 
 void setup_staprun_signals(void)
 {
@@ -386,18 +388,20 @@ int check_permissions(void)
 }
 
 pthread_t symbol_thread_id = (pthread_t)0;
+int kernel_ptr_size = 0;
 
 /* Symbol handling thread */
 void *handle_symbols(void __attribute__((unused)) *arg)
 {
 	ssize_t nb;
 	void *data;
-	int type;
+	int32_t type;
 	char recvbuf[8192];
 
 	dbug(2, "waiting for symbol requests\n");
 
-	while (1) { /* handle messages from control channel */
+	/* handle messages from control channel */
+	while (1) {
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		if (nb <= 0) {
 			if (errno != EINTR)
@@ -405,14 +409,15 @@ void *handle_symbols(void __attribute__((unused)) *arg)
 			continue;
 		}
 		
-		type = *(int *)recvbuf;
-		data = (void *)(recvbuf + sizeof(int));
-
+		type = *(int32_t *)recvbuf;
+		data = (void *)(recvbuf + sizeof(int32_t));
+		
 		switch (type) { 
 		case STP_MODULE:
 		{
 			dbug(2, "STP_MODULES request received\n");
-			do_module(data);
+			if (do_module(data) < 0)
+				goto done;
 			break;
 		}		
 		case STP_SYMBOLS:
@@ -421,20 +426,25 @@ void *handle_symbols(void __attribute__((unused)) *arg)
 			dbug(2, "STP_SYMBOLS request received\n");
 			if (req->endian != 0x1234) {
 				err("ERROR: staprun is compiled with different endianess than the kernel!\n");
-				exit(1);
+				goto done;
 			}
-			if (req->ptr_size != sizeof(char *)) {
-				err("ERROR: staprun is compiled with %d-bit pointers and the kernel uses %d-bit.\n",
-					8*(int)sizeof(char *), 8*req->ptr_size);
-				exit(1);
+			kernel_ptr_size = req->ptr_size;
+			if (kernel_ptr_size != 4 && kernel_ptr_size != 8) {
+				err("ERROR: invalid kernel pointer size %d\n", kernel_ptr_size);
+				goto done;
 			}
-			do_kernel_symbols();
+			if (do_kernel_symbols() < 0)
+				goto done;
 			break;
 		}
 		default:
 			err("WARNING: ignored message of type %d\n", (type));
 		}
 	}
+
+done:
+	/* signal stapio we're done */
+	kill(0, SIGINT);
 
 	return NULL;
 }

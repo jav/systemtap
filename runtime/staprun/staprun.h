@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  */
 
 #include <stdio.h>
@@ -119,7 +119,7 @@ int stp_main_loop(void);
 int send_request(int type, void *data, int len);
 void cleanup_and_exit (int);
 int do_module(void *);
-void do_kernel_symbols(void);
+int do_kernel_symbols(void);
 int init_ctl_channel(int);
 void close_ctl_channel(void);
 int init_relayfs(void);
@@ -156,6 +156,7 @@ int set_clexec(int fd);
 extern int control_channel;
 extern int ncpus;
 extern int initialized;
+extern int kernel_ptr_size;
 
 /* flags */
 extern int verbose;

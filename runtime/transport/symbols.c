@@ -1,7 +1,7 @@
 /* -*- linux-c -*- 
  * symbols.c - stp symbol and module functions
  *
- * Copyright (C) Red Hat Inc, 2006, 2007
+ * Copyright (C) Red Hat Inc, 2006-2008
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -84,15 +84,19 @@ static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 			goto bad;
 		mod->allocated |= 2;
 	}
+
 	mod->num_symbols = num;
 	return mod;
 
 bad:
 	if (mod) {
-		if (mod->allocated && mod->symbols)
-			_stp_vfree(mod->symbols);
-		else
-			_stp_kfree(mod->symbols);
+		if (mod->symbols) {
+			if (mod->allocated & 1)
+				_stp_vfree(mod->symbols);
+			else
+				_stp_kfree(mod->symbols);
+			mod->symbols = NULL;
+		}
 		_stp_kfree(mod); 
 	}
 	return NULL;
@@ -107,19 +111,25 @@ static struct _stp_module * _stp_alloc_module_from_module (struct module *m)
 static void _stp_free_module(struct _stp_module *mod)
 {
 	/* free symbol memory */
-	if (mod->num_symbols) {
+	if (mod->symbols) {
 		if (mod->allocated & 1)
 			_stp_vfree(mod->symbols);
 		else
 			_stp_kfree(mod->symbols);
+		mod->symbols = NULL;
+	}
+	if (mod->symbol_data) {
 		if (mod->allocated & 2)
 			_stp_vfree(mod->symbol_data);
 		else
 			_stp_kfree(mod->symbol_data);
-	}
-	if (mod->sections)
-		_stp_kfree(mod->sections);
+		mod->symbol_data = NULL;
 
+	}
+	if (mod->sections) {
+		_stp_kfree(mod->sections);
+		mod->sections = NULL;
+	}
 	/* free module memory */
 	_stp_kfree(mod);
 }
@@ -174,20 +184,21 @@ static unsigned long _stp_kallsyms_lookup_name(const char *name);
 /* process the KERNEL symbols */
 static int _stp_do_symbols(const char __user *buf, int count)
 {
-	unsigned i, datasize, num;
 	struct _stp_symbol *s;
+	unsigned datasize, num;	
+	int i;
 
 	switch (_stp_symbol_state) {
 	case 0:
-		if (count != 8) {
-			errk(" _stp_do_symbols: count=%d\n", count);
+		if (count != sizeof(struct _stp_msg_symbol_hdr)) {
+			errk("count=%d\n", count);
 			return -EFAULT;
 		}		
 		if (get_user(num, (unsigned __user *)buf))
 			return -EFAULT;
 		if (get_user(datasize, (unsigned __user *)(buf+4)))
 			return -EFAULT;
-		// kbug("num=%d datasize=%d\n", num, datasize);
+		//kbug("num=%d datasize=%d\n", num, datasize);
 
 		_stp_modules[0] = _stp_alloc_module(num, datasize);
 		if (_stp_modules[0] == NULL) {
@@ -197,26 +208,27 @@ static int _stp_do_symbols(const char __user *buf, int count)
 		_stp_symbol_state = 1;
 		break;
 	case 1:
+		//kbug("got stap_symbols, count=%d\n", count);
 		if (copy_from_user ((char *)_stp_modules[0]->symbols, buf, count))
 			return -EFAULT;
-		// kbug("got stap_symbols, count=%d\n", count);
 		_stp_symbol_state = 2;
 		break;
 	case 2:
+		//kbug("got symbol data, count=%d buf=%p\n", count, buf);
 		if (copy_from_user (_stp_modules[0]->symbol_data, buf, count))
 			return -EFAULT;
-		// kbug("got symbol data, count=%d\n", count);
 		_stp_num_modules = 1;
-
 		
 		s = _stp_modules[0]->symbols;
 		for (i = 0; i < _stp_modules[0]->num_symbols; i++) 
 			s[i].symbol += (long)_stp_modules[0]->symbol_data;
+
 		_stp_symbol_state = 3;
                 /* NB: this mapping is used by kernel/_stext pseudo-relocations. */
 		_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
 		_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
 		_stp_modules_by_addr[0] = _stp_modules[0];
+		//kbug("done with symbol data\n");
 		break;
 	default:
 		errk("unexpected symbol data of size %d.\n", count);
@@ -433,8 +445,9 @@ done:
 /* Called from procfs.c when a STP_MODULE msg is received */
 static int _stp_do_module(const char __user *buf, int count)
 {
-	struct _stp_module tmpmod, *mod;
-	unsigned i;
+	struct _stp_msg_module tmpmod;
+	struct _stp_module mod, *m;
+	unsigned i, section_len;
 
 	if (count < (int)sizeof(tmpmod)) {
 		errk("expected %d and got %d\n", (int)sizeof(tmpmod), count);
@@ -443,41 +456,53 @@ static int _stp_do_module(const char __user *buf, int count)
 	if (copy_from_user ((char *)&tmpmod, buf, sizeof(tmpmod)))
 		return -EFAULT;
 
-	// kbug("Got module %s, count=%d(0x%x)\n", tmpmod.name, count,count);
+	section_len = count - sizeof(tmpmod);
+	if (section_len <= 0) {
+		errk("section_len = %d\n", section_len);
+		return -EFAULT;
+	}
+	kbug("Got module %s, count=%d section_len=%d\n", 
+	     tmpmod.name, count, section_len);
 
-	if (_stp_module_exists(&tmpmod))
+	strcpy(mod.name, tmpmod.name);
+	mod.module = tmpmod.module;
+	mod.text = tmpmod.text;
+	mod.data = tmpmod.data;
+	mod.num_sections = tmpmod.num_sections;
+	
+	if (_stp_module_exists(&mod))
 		return count;
 
 	/* copy in section data */
-	tmpmod.sections = _stp_kmalloc(count - sizeof(tmpmod));
-	if (tmpmod.sections == NULL) {
+	mod.sections = _stp_kmalloc(section_len);
+	if (mod.sections == NULL) {
 		errk("unable to allocate memory.\n");
 		return -EFAULT;
 	}
-	if (copy_from_user ((char *)tmpmod.sections, buf+sizeof(tmpmod), count-sizeof(tmpmod))) {
-		_stp_kfree(tmpmod.sections);
+	if (copy_from_user ((char *)mod.sections, buf+sizeof(tmpmod), section_len)) {
+		_stp_kfree(mod.sections);
 		return -EFAULT;
 	}
-	for (i = 0; i < tmpmod.num_sections; i++) {
-		tmpmod.sections[i].symbol =  
-			(char *)((long)tmpmod.sections[i].symbol 
-				 + (long)((long)tmpmod.sections + tmpmod.num_sections * sizeof(struct _stp_symbol)));
+	for (i = 0; i < mod.num_sections; i++) {
+		mod.sections[i].symbol =  
+			(char *)((long)mod.sections[i].symbol 
+				 + (long)((long)mod.sections + mod.num_sections * sizeof(struct _stp_symbol)));
 	}
 
 	#ifdef DEBUG_SYMBOLS
-	for (i = 0; i < tmpmod.num_sections; i++)
-		printk("section %d (stored at %p): %s %lx\n", i, &tmpmod.sections[i], tmpmod.sections[i].symbol, tmpmod.sections[i].addr);
+	for (i = 0; i < mod.num_sections; i++)
+		printk("section %d (stored at %p): %s %lx\n", i, &mod.sections[i], mod.sections[i].symbol, mod.sections[i].addr);
 	#endif
 
 	/* load symbols from tmpmod.module to mod */
-	mod = _stp_load_module_symbols(&tmpmod);	
-	if (mod == NULL) {
-		_stp_kfree(tmpmod.sections);
+	m = _stp_load_module_symbols(&mod);	
+	if (m == NULL) {
+		_stp_kfree(mod.sections);
 		return 0;
 	}
 
-	if (_stp_ins_module(mod) < 0) {
-		_stp_free_module(mod);
+	if (_stp_ins_module(m) < 0) {
+		_stp_free_module(m);
 		return -ENOMEM;
 	}
 	

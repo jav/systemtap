@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * debugfs control channel
- * Copyright (C) 2007, 2008 Red Hat Inc.
+ * Copyright (C) 2007 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -22,37 +22,43 @@ spinlock_t _stp_sym_ready_lock = SPIN_LOCK_UNLOCKED;
 static ssize_t _stp_sym_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
+	static int saved_type = 0;
 	int type;
 
-	if (count < sizeof(int))
+	if (count < sizeof(int32_t))
 		return 0;
 
-	if (get_user(type, (int __user *)buf))
-		return -EFAULT;
-
-	kbug ("count:%d type:%d\n", count, type);
-
-	if (type == STP_SYMBOLS) {
-		count -= sizeof(long);
-		buf += sizeof(long);
+	/* Allow sending of packet type followed by data in the next packet.*/
+	if (count == sizeof(int32_t)) {
+		if (get_user(saved_type, (int __user *)buf))
+			return -EFAULT;
+		return count;
+	} else if (saved_type) {
+		type = saved_type;
+		saved_type = 0;
 	} else {
+		if (get_user(type, (int __user *)buf))
+			return -EFAULT;
 		count -= sizeof(int);
 		buf += sizeof(int);
 	}
+	
+	kbug ("count:%d type:%d\n", (int)count, type);
 
 	switch (type) {
-	case STP_SYMBOLS:
-		
-		if (count)
-			count = _stp_do_symbols(buf, count);
+	case STP_SYMBOLS:		
+		count = _stp_do_symbols(buf, count);
 		break;
 	case STP_MODULE:
-		if (count)
+		if (count > 1)
 			count = _stp_do_module(buf, count);
 		else {
-			/* count == 0 indicates end of initial modules list */
+			/* count == 1 indicates end of initial modules list */
 			_stp_ctl_send(STP_TRANSPORT, NULL, 0);			
 		}
+		break;
+	case STP_EXIT:
+		_stp_exit_flag = 1;
 		break;
 	default:
 		errk ("invalid symbol command type %d\n", type);
@@ -73,7 +79,7 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 	if (get_user(type, (int __user *)buf))
 		return -EFAULT;
 
-	// kbug ("count:%d type:%d\n", count, type);
+	kbug ("count:%d type:%d\n", (int)count, type);
 
 	count -= sizeof(int);
 	buf += sizeof(int);
@@ -99,6 +105,11 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 #else
 		return -1;
 #endif
+	case STP_READY:
+		/* request symbolic information */
+		_stp_ask_for_symbols();		
+		break;
+		
 	default:
 		errk ("invalid command type %d\n", type);
 		return -EINVAL;
