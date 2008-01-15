@@ -193,7 +193,7 @@ void _stp_symbol_print (unsigned long address)
 	_stp_printf ("%p", (int64_t)address);
 
 	if (name) {		
-		if (modname)
+		if (modname && *modname)
 			_stp_printf (" : %s+%#lx/%#lx [%s]", name, offset, size, modname);
 		else
 			_stp_printf (" : %s+%#lx/%#lx", name, offset, size);
@@ -202,22 +202,28 @@ void _stp_symbol_print (unsigned long address)
 
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
 
-void _stp_func_print (unsigned long address, int verbose)
+void _stp_func_print (unsigned long address, int verbose, int exact)
 { 
 	char *modname;
         const char *name;
         unsigned long offset, size;
+	char *exstr;
+
+	if (exact)
+		exstr = "";
+	else
+		exstr = " (inexact)";
 
         name = _stp_kallsyms_lookup(address, &size, &offset, &modname, NULL);
 
 	if (name) {
 		if (verbose) {
-			if (modname)
-				_stp_printf (" %p : %s+%#lx/%#lx [%s]\n", 
-					     (int64_t)address, name, offset, size, modname);
+			if (modname && *modname)
+				_stp_printf (" %p : %s+%#lx/%#lx [%s]%s\n", 
+					     (int64_t)address, name, offset, size, modname, exstr);
 			else
-				_stp_printf (" %p : %s+%#lx/%#lx\n", 
-					     (int64_t)address, name, offset, size);
+				_stp_printf (" %p : %s+%#lx/%#lx%s\n", 
+					     (int64_t)address, name, offset, size, exstr);
 		} else 
 			_stp_printf ("%p ", (int64_t)address);
 	}

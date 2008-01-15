@@ -1,3 +1,13 @@
+2008-01-14  Martin Hunt  <hunt@redhat.com>
+
+	* print.c (_stp_print_kernel_info): New function.
+	(all):  Call stp memory functions.
+
+	* alloc.c: Rewrite to track allocated memory if 
+	DEBUG_MEM is defined.
+	* counter.c, map.c, stat.c, time.c: Call stp
+	memory functions.
+	
 2007-11-14  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	From Cai Fei <caifei@cn.fujitsu.com>

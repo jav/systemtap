@@ -88,7 +88,7 @@ void utt_trace_cleanup(struct utt_trace *utt)
 	if (utt->dropped_file)
 		debugfs_remove(utt->dropped_file);
 	utt_remove_tree(utt);
-	kfree(utt);
+	_stp_kfree(utt);
 }
 
 int utt_trace_remove(struct utt_trace *utt)
@@ -207,7 +207,7 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 		goto err;
 
 	ret = -ENOMEM;
-	utt = kzalloc(sizeof(*utt), GFP_KERNEL);
+	utt = _stp_kzalloc(sizeof(*utt));
 	if (!utt)
 		goto err;
 
@@ -251,7 +251,7 @@ err:
 			debugfs_remove(utt->dropped_file);
 		if (utt->rchan)
 			relay_close(utt->rchan);
-		kfree(utt);
+		_stp_kfree(utt);
 	}
 	if (dir)
 		utt_remove_tree(utt);

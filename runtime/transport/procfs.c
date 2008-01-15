@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -485,7 +485,7 @@ static int _stp_set_buffers(int num)
 	
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
-			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
+			p = (struct list_head *)_stp_kmalloc(sizeof(struct _stp_buffer));
 			if (!p)	{
 				_stp_current_buffers += i;
 				goto err;
@@ -501,7 +501,7 @@ static int _stp_set_buffers(int num)
 			p = _stp_pool_q.next;
 			list_del(p);
 			spin_unlock_irqrestore(&_stp_pool_lock, flags);
-			kfree(p);
+			_stp_kfree(p);
 		}
 	}
 	_stp_current_buffers = num;
@@ -542,7 +542,7 @@ static int _stp_register_ctl_channel (void)
 
 	/* allocate buffers */
 	for (i = 0; i < STP_DEFAULT_BUFFERS; i++) {
-		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
+		p = (struct list_head *)_stp_kmalloc(sizeof(struct _stp_buffer));
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err0;
@@ -593,7 +593,7 @@ err2:
 err1:
 #ifdef STP_BULKMODE
 	for (de = _stp_proc_root->subdir; de; de = de->next)
-		kfree (de->data);
+		_stp_kfree (de->data);
 	for_each_cpu(j) {
 		if (j == i)
 			break;
@@ -607,7 +607,7 @@ err1:
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 
 	errk ("Error creating systemtap /proc entries.\n");
@@ -624,7 +624,7 @@ static void _stp_unregister_ctl_channel (void)
 	struct proc_dir_entry *de;
 	kbug("unregistering procfs\n");
 	for (de = _stp_proc_root->subdir; de; de = de->next)
-		kfree (de->data);
+		_stp_kfree (de->data);
 
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
@@ -640,15 +640,15 @@ static void _stp_unregister_ctl_channel (void)
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_sym_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 }
 

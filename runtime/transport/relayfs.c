@@ -118,7 +118,7 @@ err:
 		_stp_remove_relay_dir(utt->dir);
 	if (utt->utt_tree_root)
 		_stp_remove_relay_root(utt->utt_tree_root);
-	kfree(utt);
+	_stp_kfree(utt);
 	return NULL;
 }
 
@@ -173,7 +173,7 @@ int utt_trace_remove(struct utt_trace *utt)
 			_stp_remove_relay_dir(utt->dir);
 		if (utt->utt_tree_root)
 			_stp_remove_relay_root(utt->utt_tree_root);
-		kfree(utt);
+		_stp_kfree(utt);
 	}
 	return 0;
 }

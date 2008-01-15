@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * debugfs control channel
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007, 2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -422,7 +422,7 @@ static int _stp_register_ctl_channel (void)
 
 	/* allocate buffers */
 	for (i = 0; i < STP_DEFAULT_BUFFERS; i++) {
-		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
+		p = (struct list_head *)_stp_kmalloc(sizeof(struct _stp_buffer));
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err0;
@@ -448,7 +448,7 @@ err0:
 
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	errk ("Error creating systemtap debugfs entries.\n");
 	return -1;
@@ -464,15 +464,15 @@ static void _stp_unregister_ctl_channel (void)
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_sym_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 }
 

@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005-2007
+ * Copyright (C) Red Hat Inc, 2005-2008
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -215,6 +215,7 @@ void _stp_transport_close()
 	_stp_free_modules();
 	_stp_kill_time();
 	_stp_print_cleanup(); 	/* free print buffers */
+	_stp_mem_debug_done();
 	kbug("---- CLOSED ----\n");
 }
 

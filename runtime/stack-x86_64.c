@@ -15,6 +15,6 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 
 	while ((long)stack & (THREAD_SIZE-1)) {
 		addr = *stack++;
-		_stp_func_print(addr, verbose);
+		_stp_func_print(addr, verbose, 1);
 	}
 }

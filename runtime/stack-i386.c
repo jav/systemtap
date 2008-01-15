@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * i386 stack tracing functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -37,7 +37,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 #else
 	while (_stp_valid_stack_ptr(context, (unsigned long)stack)) {
 		addr = *stack++;
-		_stp_func_print(addr, verbose);
+		_stp_func_print(addr, verbose, 1);
 	}
 #endif
 }

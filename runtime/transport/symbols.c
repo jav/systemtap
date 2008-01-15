@@ -90,10 +90,10 @@ static struct _stp_module * _stp_alloc_module(unsigned num, unsigned datasize)
 bad:
 	if (mod) {
 		if (mod->allocated && mod->symbols)
-			vfree(mod->symbols);
+			_stp_vfree(mod->symbols);
 		else
-			kfree(mod->symbols);
-		kfree(mod); 
+			_stp_kfree(mod->symbols);
+		_stp_kfree(mod); 
 	}
 	return NULL;
 }
@@ -109,19 +109,19 @@ static void _stp_free_module(struct _stp_module *mod)
 	/* free symbol memory */
 	if (mod->num_symbols) {
 		if (mod->allocated & 1)
-			vfree(mod->symbols);
+			_stp_vfree(mod->symbols);
 		else
-			kfree(mod->symbols);
+			_stp_kfree(mod->symbols);
 		if (mod->allocated & 2)
-			vfree(mod->symbol_data);
+			_stp_vfree(mod->symbol_data);
 		else
-			kfree(mod->symbol_data);
+			_stp_kfree(mod->symbol_data);
 	}
 	if (mod->sections)
-		kfree(mod->sections);
+		_stp_kfree(mod->sections);
 
 	/* free module memory */
-	kfree(mod);
+	_stp_kfree(mod);
 }
 
 /* Delete a module and free its memory. */
@@ -455,7 +455,7 @@ static int _stp_do_module(const char __user *buf, int count)
 		return -EFAULT;
 	}
 	if (copy_from_user ((char *)tmpmod.sections, buf+sizeof(tmpmod), count-sizeof(tmpmod))) {
-		kfree(tmpmod.sections);
+		_stp_kfree(tmpmod.sections);
 		return -EFAULT;
 	}
 	for (i = 0; i < tmpmod.num_sections; i++) {
@@ -472,7 +472,7 @@ static int _stp_do_module(const char __user *buf, int count)
 	/* load symbols from tmpmod.module to mod */
 	mod = _stp_load_module_symbols(&tmpmod);	
 	if (mod == NULL) {
-		kfree(tmpmod.sections);
+		_stp_kfree(tmpmod.sections);
 		return 0;
 	}
 
