@@ -14,7 +14,7 @@
 static int _stp_allocated_net_memory = 0;
 #define STP_ALLOC_FLAGS (GFP_KERNEL | __GFP_NORETRY | __GFP_NOWARN)
 
-#define DEBUG_MEM
+//#define DEBUG_MEM
 /*
  * If DEBUG_MEM is defined (stap -DDEBUG_MEM ...) then full memory
  * tracking is used. Each allocation is recorded and matched with 
