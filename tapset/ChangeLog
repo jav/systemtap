@@ -1,3 +1,16 @@
+2008-01-16  Eugene Teo  <eteo@redhat.com>
+
+	* signal.stp (get_sa_flags, get_sa_handler): New functions to
+	return addresses of sa_flags and sa_handler of struct k_sigaction.
+	(sigset_mask_str): New function. Returns a string containing the
+	set of signals to be blocked when executing the signal handler.
+	(is_sig_blocked): New function. Checks task_struct->blocked signal
+	mask for signals that are currently blocked.
+	(signal_str): New function. Translates a signal number.
+	(sa_flags_str): New function. Translates the sa_flags.
+	(sa_handler_str): New function. Returns the signal action or handler
+	associated to the signal.
+
 2008-1-4  Masami Hiramatsu <mhiramat@redhat.com>
 
 	* aux_syscalls.stp (_stp_fork_list): Check kernel version for new

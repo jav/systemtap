@@ -1,6 +1,7 @@
 // Signal tapset
 // Copyright (C) 2006 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
+// Copyright (C) 2008 Red Hat, Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -505,3 +506,165 @@ probe signal.flush = kernel.function("flush_signals")
     sig_pid = $t->pid
     pid_name = kernel_string($t->comm)
 } 
+
+function get_sa_flags:long (act:long) %{ /* pure */
+	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);	
+	THIS->__retvalue = kread(&act->sa.sa_flags);
+	CATCH_DEREF_FAULT();
+%}
+
+function get_sa_handler:long (act:long) %{ /* pure */
+	struct k_sigaction *act = (struct k_sigaction *)((long)THIS->act);	
+	THIS->__retvalue = (long)kread(&act->sa.sa_handler);
+	CATCH_DEREF_FAULT();
+%}
+
+/*
+ * sa_mask contains the set of signals to be blocked when executing the
+ * signal handler. This function returns a string, delimited by ",".
+ *
+ * struct task_struct {
+ * [...]
+ *         struct signal_struct *signal;
+ *         struct sighand_struct *sighand;
+ * [...]
+ * struct sighand_struct {
+ *         atomic_t                count;
+ *         struct k_sigaction      action[_NSIG];
+ * [...]
+ * struct k_sigaction {
+ *         struct sigaction sa;
+ * };
+ *
+ * struct sigaction {
+ * [...]
+ *         sigset_t sa_mask;
+ * };
+ */
+function sigset_mask_str:string (mask:long) %{ /* pure */
+	int i, len;
+	char *str = THIS->__retvalue, tmp[5];
+	for (i = 1; i < _NSIG; ++i, THIS->mask >>=1)
+		if (THIS->mask & 1) {
+			sprintf(tmp, "%u,", i);
+			strlcat(str, tmp, MAXSTRINGLEN);
+		}
+	len = strlen(str);
+	if (len) str[len - 1] = '\0';
+%}
+
+/*
+ * task_struct->blocked signal mask contains the set of signals that are
+ * currently blocked.
+ *
+ * struct task_struct {
+ * [...]
+ *         sigset_t blocked, real_blocked;
+ */
+function is_sig_blocked:long (task:long, sig:long) %{ /* pure */
+	int i;
+	sigset_t blocked;
+	struct task_struct *p = (struct task_struct *)((long)THIS->task);
+	for (i = 0; i < _NSIG_WORDS; ++i)
+		blocked.sig[i] = kread(&p->blocked.sig[i]);
+	THIS->__retvalue = sigismember(&blocked, THIS->sig);
+	CATCH_DEREF_FAULT();
+%}
+
+function sa_flags_str:string (sa_flags:long) %{ /* pure */
+	int len;
+	char *str = THIS->__retvalue;
+	if (THIS->sa_flags & 0x00000001u) strlcat(str, "NOCLDSTOP|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x00000002u) strlcat(str, "NOCLDWAIT|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x00000004u) strlcat(str, "SIGINFO|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x08000000u) strlcat(str, "ONSTACK|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x10000000u) strlcat(str, "RESTART|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x40000000u) strlcat(str, "NODEFER|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x80000000u) strlcat(str, "RESETHAND|", MAXSTRINGLEN);
+	if (THIS->sa_flags & 0x04000000) strlcat(str, "RESTORER|", MAXSTRINGLEN);
+	len = strlen(str);
+	if (len) str[len - 1] = '\0';
+%}
+
+function sa_handler_str(handler) {
+	if (handler == 0) return "default"; /* SIG_DFL */
+	if (handler == 1) return "ignored"; /* SIG_IGN */
+	if (handler == -1) return "error"; /* SIG_ERR */
+	return sprintf("%p", handler); /* userspace address */
+}
+
+/*
+ * Signals start from 1 not 0.
+ */
+function signal_str(num) {
+	return __sig[num]
+}
+
+global __sig[64]
+
+probe begin(-1) {	
+	__sig[1] = "HUP"
+	__sig[2] = "INT"
+	__sig[3] = "QUIT"
+	__sig[4] = "ILL"
+	__sig[5] = "TRAP"
+	__sig[6] = "ABRT" /* or IOT */
+	__sig[7] = "BUS"
+	__sig[8] = "FPE"
+	__sig[9] = "KILL"
+	__sig[10] = "USR1"
+	__sig[11] = "SEGV"
+	__sig[12] = "USR2"
+	__sig[13] = "PIPE"
+	__sig[14] = "ALRM"
+	__sig[15] = "TERM"
+	__sig[16] = "STKFLT"
+	__sig[17] = "CHLD" /* or CLD */
+	__sig[18] = "CONT"
+	__sig[19] = "STOP"
+	__sig[20] = "TSTP"
+	__sig[21] = "TTIN"
+	__sig[22] = "TTOU"
+	__sig[23] = "URG"
+	__sig[24] = "XCPU"
+	__sig[25] = "XFSZ"
+	__sig[26] = "VTALRM"
+	__sig[27] = "PROF"
+	__sig[28] = "WINCH"
+	__sig[29] = "IO/POLL"
+	__sig[30] = "PWR"
+	__sig[31] = "SYS" /* or UNUSED */
+	__sig[32] = "RTMIN"
+	__sig[33] = "RTMIN+1"
+	__sig[34] = "RTMIN+2"
+	__sig[35] = "RTMIN+3"
+	__sig[36] = "RTMIN+4"
+	__sig[37] = "RTMIN+5"
+	__sig[38] = "RTMIN+6"
+	__sig[39] = "RTMIN+7"
+	__sig[40] = "RTMIN+8"
+	__sig[41] = "RTMIN+9"
+	__sig[42] = "RTMIN+10"
+	__sig[43] = "RTMIN+11"
+	__sig[44] = "RTMIN+12"
+	__sig[45] = "RTMIN+13"
+	__sig[46] = "RTMIN+14"
+	__sig[47] = "RTMIN+15"
+	__sig[48] = "RTMIN+16"
+	__sig[49] = "RTMIN+17"
+	__sig[50] = "RTMIN+18"
+	__sig[51] = "RTMIN+19"
+	__sig[52] = "RTMIN+20"
+	__sig[53] = "RTMIN+21"
+	__sig[54] = "RTMIN+22"
+	__sig[55] = "RTMIN+23"
+	__sig[56] = "RTMIN+24"
+	__sig[57] = "RTMIN+25"
+	__sig[58] = "RTMIN+26"
+	__sig[59] = "RTMIN+27"
+	__sig[60] = "RTMIN+28"
+	__sig[61] = "RTMIN+29"
+	__sig[62] = "RTMIN+30"
+	__sig[63] = "RTMIN+31"
+	__sig[64] = "RTMIN+32"
+}

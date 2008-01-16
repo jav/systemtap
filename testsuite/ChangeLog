@@ -1,3 +1,8 @@
+2008-01-16  Eugene Teo  <eteo@redhat.com>
+
+	* buildok/signal-embedded.stp: Add all new embedded C functions
+	in signal.
+
 2008-01-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4935.

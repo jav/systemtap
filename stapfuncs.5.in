@@ -444,6 +444,29 @@ Convert from host to network byte order, 32-bit.
 htons:long (x:long)
 Convert from host to network byte order, 16-bit.
 
+.SS SIGNAL
+.TP
+get_sa_flags:long (act:long)
+Returns the numeric value of sa_flags.
+.TP
+get_sa_handler:long (act:long)
+Returns the numeric value of sa_handler.
+.TP
+sigset_mask_str:string (mask:long)
+Returns the string representation of the sigset sa_mask.
+.TP
+is_sig_blocked:long (task:long, sig:long)
+Returns 1 if the signal is currently blocked, or 0 if it is not.
+.TP
+sa_flags_str:string (sa_flags:long)
+Returns the string representation of sa_flags.
+.TP
+sa_handler_str(handler)
+Returns the string representation of sa_handler. If it is not SIG_DFL, SIG_IGN
+or SIG_ERR, it will return the address of the handler.
+.TP
+signal_str(num)
+Returns the string representation of the given signal number.
 
 .SH FILES
 .nh

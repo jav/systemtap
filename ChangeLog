@@ -1,3 +1,7 @@
+2008-01-16  Eugene Teo  <eteo@redhat.com>
+
+	* stapfuncs.5.in: Document signal.stp tapset functions.
+
 2008-01-14  Martin Hunt  <hunt@redhat.com>
 	* translate.cxx (emit_module_init): Call _stp_print_kernel_info()
 	to print out version information and internal memory usage stats.
