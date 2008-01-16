@@ -1,3 +1,9 @@
+2008-01-16  David Smith  <dsmith@redhat.com>
+
+	PR 5608.
+	* tapsets.cxx (visit_target_symbol): Print an error when trying to
+	use a marker argument as an array or structure.
+
 2008-01-16  Eugene Teo  <eteo@redhat.com>
 
 	* stapfuncs.5.in: Document signal.stp tapset functions.

@@ -5044,6 +5044,24 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   if (is_active_lvalue (e))
     throw semantic_error("write to marker parameter not permitted", e->tok);
 
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("marker argument may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("marker argument may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid marker argument use", e->tok);
+	  break;
+	}
+    }
+
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
@@ -5100,7 +5118,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   this->locations.push_back (pp);
 
   if (cond)
-  	add_condition (cond);
+    add_condition (cond);
   insert_condition_statement ();
 
   // expand the signature string
