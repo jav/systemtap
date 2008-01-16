@@ -1,3 +1,9 @@
+2008-01-16  David Smith  <dsmith@redhat.com>
+
+	PR 5608.
+	* systemtap.base/marker.exp:  Added 2 tests for treating marker
+	arguments incorrectly.
+
 2008-01-16  Eugene Teo  <eteo@redhat.com>
 
 	* buildok/signal-embedded.stp: Add all new embedded C functions
