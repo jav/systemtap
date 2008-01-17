@@ -1,0 +1,4 @@
+#! stap -p2
+
+# use $value as a structure pointer in a procfs probe
+probe procfs.write { print($value->foo) }
