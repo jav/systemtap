@@ -4800,6 +4800,25 @@ procfs_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
     throw semantic_error ("invalid target symbol for procfs probe, $value expected",
 			  e->tok);
 
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("procfs target variable '$value' may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("procfs target variable '$value' may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of procfs target variable '$value'",
+				e->tok);
+	  break;
+	}
+    }
+
   bool lvalue = is_active_lvalue(e);
   if (write_probe && lvalue)
     throw semantic_error("procfs $value variable is read-only in a procfs write probe", e->tok);

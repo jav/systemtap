@@ -1,8 +1,17 @@
+2008-01-17  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx
+	(procfs_var_expanding_copy_visitor::visit_target_symbol): Print an
+	error when trying to use the procfs target variable '$value' as an
+	array or structure.
+
 2008-01-16  David Smith  <dsmith@redhat.com>
 
 	PR 5608.
-	* tapsets.cxx (visit_target_symbol): Print an error when trying to
-	use a marker argument as an array or structure.
+	* tapsets.cxx
+	(mark_var_expanding_copy_visitor::visit_target_symbol): Print an
+	error when trying to use a marker argument as an array or
+	structure.
 
 2008-01-16  Eugene Teo  <eteo@redhat.com>
 
