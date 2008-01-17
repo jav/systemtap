@@ -1343,14 +1343,15 @@ struct dwflpp
     dwfl_assert ("dwfl_addrmodule", mod == NULL);
     int n = dwfl_module_relocations (mod);
     dwfl_assert ("dwfl_module_relocations", n < 0);
-    if (n > 0)
-      {
-	int i = dwfl_module_relocate_address (mod, &address);
-	dwfl_assert ("dwfl_module_relocate_address", i < 0);
-	const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
-						NULL, NULL, NULL, NULL);
-	dwfl_assert ("dwfl_module_info", modname == NULL);
-	const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+    int i = dwfl_module_relocate_address (mod, &address);
+    dwfl_assert ("dwfl_module_relocate_address", i < 0);
+    const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
+                                                NULL, NULL, NULL, NULL);
+    dwfl_assert ("dwfl_module_info", modname == NULL);
+    const char *secname = dwfl_module_relocation_info (mod, i, NULL);
+
+    if (n > 0 && !(n == 1 && secname == NULL))
+     {
 	dwfl_assert ("dwfl_module_relocation_info", secname == NULL);
 	if (n > 1 || secname[0] != '\0')
           {
@@ -2137,6 +2138,7 @@ struct dwarf_query : public base_query
 		       int line,
 		       Dwarf_Die *scope_die,
 		       Dwarf_Addr addr);
+  string get_blacklist_section(Dwarf_Addr addr);
 
   set<string> blacklisted_probes;
   set<string> blacklisted_return_probes;
@@ -2551,6 +2553,34 @@ dwarf_query::blacklisted_p(const string& funcname,
   return false;
 }
 
+string dwarf_query::get_blacklist_section(Dwarf_Addr addr)
+{
+       Dwarf_Addr baseaddr;
+       string blacklist_section;
+       Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
+       Dwarf_Addr offset = addr - baseaddr;
+       if (elf)
+        {
+          Elf_Scn* scn = 0;
+          size_t shstrndx;
+          dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+          while ((scn = elf_nextscn (elf, scn)) != NULL)
+            {
+              GElf_Shdr shdr_mem;
+              GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
+              if (! shdr) continue; // XXX error?
+
+              GElf_Addr start = shdr->sh_addr;
+              GElf_Addr end = start + shdr->sh_size;
+              if (! (offset >= start && offset < end))
+                continue;
+
+              blacklist_section =  elf_strptr (elf, shstrndx, shdr->sh_name);
+              break;
+            }
+         }
+	return blacklist_section;
+}
 
 
 void
@@ -2577,43 +2607,13 @@ dwarf_query::add_probe_point(const string& funcname,
       if (r_s)
         reloc_section = r_s;
       blacklist_section = reloc_section;
+
+     if(reloc_section == "" && dwfl_module_relocations (dw.module) == 1)
+	blacklist_section = this->get_blacklist_section(addr);
     }
   else
     {
-      // This is not a relocatable module, so addr is all set.  To
-      // find the section name, must do this the long way - scan
-      // through elf section headers.
-      Dwarf_Addr baseaddr;
-      Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
-      Dwarf_Addr offset = addr - baseaddr;
-      // NB: this offset does not end up as reloc_addr, since the latter is
-      // only computed differently if load-time relocation is needed.  For
-      // non-relocatable modules, this is not the case.
-      if (elf)
-        {
-          // Iterate through section headers to find which one
-          // contains the given offset.
-          Elf_Scn* scn = 0;
-          size_t shstrndx;
-          dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
-          while ((scn = elf_nextscn (elf, scn)) != NULL)
-            {
-              GElf_Shdr shdr_mem;
-              GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
-              if (! shdr) continue; // XXX error?
-
-              // check for address inclusion
-              GElf_Addr start = shdr->sh_addr;
-              GElf_Addr end = start + shdr->sh_size;
-              if (! (offset >= start && offset < end))
-                continue;
-
-              // check for section name
-              blacklist_section =  elf_strptr (elf, shstrndx, shdr->sh_name);
-              break;
-            }
-        }
-
+      blacklist_section = this->get_blacklist_section(addr);
       reloc_section = "";
     }
 
