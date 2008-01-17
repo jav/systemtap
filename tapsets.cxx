@@ -5882,6 +5882,25 @@ perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   if (e->base_name != "$counter")
     throw semantic_error ("target variables not available to perfmon probes");
 
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("perfmon probe '$counter' variable may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("perfmon probe '$counter' variable may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of perfmon probe '$counter' variable",
+				e->tok);
+	  break;
+	}
+    }
+
   ec->code = "THIS->__retvalue = _pfm_pmd_x[" + 
 	  lex_cast<string>(counter_number) + "].reg_num;";
   ec->code += "/* pure */";

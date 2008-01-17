@@ -4,6 +4,9 @@
 	(procfs_var_expanding_copy_visitor::visit_target_symbol): Print an
 	error when trying to use the procfs target variable '$value' as an
 	array or structure.
+	(perfmon_var_expanding_copy_visitor::visit_target_symbol): Print an
+	error when trying to use the perfmon target variable '$counter as
+	an array or structure.
 
 2008-01-16  David Smith  <dsmith@redhat.com>
 
