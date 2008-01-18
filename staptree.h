@@ -591,10 +591,8 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
-  expression* condition;
   probe ();
   void print (std::ostream& o) const;
-  void add_condition (expression* e);
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
   virtual probe* basest () { return this; }

@@ -1,0 +1,10 @@
+#! stap -p2
+
+probe kernel.function("sys_open") if (foo(2)) { }  # must not call functions
+
+function foo(x) { return x }
+
+# NB: If this condition is relaxed, then this will have to be blocked:
+#    global y function foo () { return y++ }   # since global y is written-to
+# but this one would be fine:
+#    function foo () { return y++ }   # since y is written-to

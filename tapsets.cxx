@@ -3632,7 +3632,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Addr addr,
                                          dwarf_query& q,
                                          Dwarf_Die* scope_die /* may be null */)
-  : derived_probe (q.base_probe, 0 /* location-less */),
+  : derived_probe (q.base_probe, q.base_loc /* NB: base_loc.components will be overwritten */ ),
     module (module), section (section), addr (addr),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
@@ -3644,13 +3644,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (section != "" && dwfl_addr == addr) // addr should be an offset
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
-
   this->tok = q.base_probe->tok;
-
-  // add condition from base location
-  if (q.base_loc->condition)
-  	add_condition (q.base_loc->condition);
-  insert_condition_statement ();
 
   // Make a target-variable-expanded copy of the probe body
   if (scope_die)
@@ -3674,7 +3668,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     }
   // else - null scope_die - $target variables will produce an error during translate phase
 
-  // Set the sole element of the "locations" vector as a
+  // Reset the sole element of the "locations" vector as a
   // "reverse-engineered" form of the incoming (q.base_loc) probe
   // point.  This allows a user to see what function / file / line
   // number any particular match of the wildcards.
@@ -3727,7 +3721,8 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     comps.push_back (new probe_point::component
                      (TOK_MAXACTIVE, new literal_number(maxactive_val)));
 
-  locations.push_back(new probe_point(comps, q.base_loc->tok));
+  // Overwrite it.
+  this->sole_location()->components = comps;
 }
 
 
@@ -4578,6 +4573,8 @@ procfs_derived_probe_group::enroll (procfs_derived_probe* p)
 	throw semantic_error("only one write procfs probe can exist for procfs path \"" + p->path + "\"");
       else if (! p->write && pset->read_probe != NULL)
 	throw semantic_error("only one read procfs probe can exist for procfs path \"" + p->path + "\"");
+
+      // XXX: multiple writes should be acceptable
     }
 
   if (p->write)
@@ -4970,7 +4967,7 @@ struct mark_derived_probe: public derived_probe
 {
   mark_derived_probe (systemtap_session &s,
                       const string& probe_name, const string& probe_sig,
-                      probe* base_probe, expression* cond);
+                      probe* base_probe, probe_point* location);
 
   systemtap_session& sess;
   string probe_name, probe_sig;
@@ -5121,24 +5118,15 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_s,
-                                        probe* base, expression* cond):
-  derived_probe (base, 0), sess (s), probe_name (p_n), probe_sig (p_s),
+                                        probe* base, probe_point* loc):
+  derived_probe (base, loc), sess (s), probe_name (p_n), probe_sig (p_s),
   target_symbol_seen (false)
 {
-  // create synthetic probe point
-  probe_point* pp = new probe_point;
-
-  probe_point::component* c;
-  c = new probe_point::component ("kernel");
-  pp->components.push_back (c);
-  c = new probe_point::component ("mark",
-                                  new literal_string (probe_name));
-  pp->components.push_back (c);
-  this->locations.push_back (pp);
-
-  if (cond)
-    add_condition (cond);
-  insert_condition_statement ();
+  // create synthetic probe point name; preserve condition
+  vector<probe_point::component*> comps;
+  comps.push_back (new probe_point::component ("kernel"));
+  comps.push_back (new probe_point::component ("mark", new literal_string (probe_name)));
+  this->sole_location()->components = comps;
 
   // expand the signature string
   parse_probe_sig();
@@ -5543,7 +5531,7 @@ mark_builder::build(systemtap_session & sess,
 	  derived_probe *dp
 	      = new mark_derived_probe (sess,
 					it->first, it->second,
-					base, loc->condition);
+					base, loc);
 	  finished_results.push_back (dp);
 	}
     }

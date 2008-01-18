@@ -1,3 +1,26 @@
+2008-01-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4935.
+	Reorganize probe condition implementation.
+	* elaborate.cxx (add_condition): New function.
+	(derived_probe): Remove condition member.
+	(derived_probe ctors): Assert non-null incoming probe/location ptrs.
+	(insert_condition_statement): Remove; turn into ...
+	(semantic_pass_conditions): New pass-2 subpass.
+	(semantic_pass_symbols, visit_symbol, visit_functioncall, find_var):
+	Detect some condition-related error cases.
+	(match_key): Change type to exp_type from tok_type.  Update callers.
+	(alias_expansion_builder): Propagate probe conditions.
+	* staptree.cxx (probe): Remove condition field and related functions.
+	* tapsets.cxx (dwarf_derived_probe ctor): Compute replacement
+	wildcard-expanded probe_point preserving more of the original
+	location.
+	(mark_derived_probe ctor): Make similar to others - take location
+	rather than condition parameters.
+	* translate.cxx (emit_common_header): Tweak ordering of tmpcounter
+	traversal and hashkey expression generation.
+	* elaborate.h: Corresponding changes.
+
 2008-01-17  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx
