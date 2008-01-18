@@ -1,5 +1,5 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 3
+%define release 1
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
@@ -200,7 +200,7 @@ exit 0
 
 
 %changelog
-* Fri Jan 18 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6-3
+* Fri Jan 18 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6.1-1
 - Add crash-devel buildreq to build staplog.so crash(8) module.
 - Many robustness & functionality improvements:
 
