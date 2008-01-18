@@ -75,7 +75,37 @@
     })
 
 
-#if defined __i386__
+#if defined (STAPCONF_X86_UNIREGS) && defined (__i386__)
+
+#define dwarf_register_0(regs)  regs->ax
+#define dwarf_register_1(regs)  regs->cx
+#define dwarf_register_2(regs)  regs->dx
+#define dwarf_register_3(regs)  regs->bx
+#define dwarf_register_4(regs)  ((long) &regs->sp)
+#define dwarf_register_5(regs)  regs->bp
+#define dwarf_register_6(regs)  regs->si
+#define dwarf_register_7(regs)  regs->di
+
+#elif defined (STAPCONF_X86_UNIREGS) && defined (__x86_64__)
+
+#define dwarf_register_0(regs)  regs->ax
+#define dwarf_register_1(regs)  regs->dx
+#define dwarf_register_2(regs)  regs->cx
+#define dwarf_register_3(regs)  regs->bx
+#define dwarf_register_4(regs)  regs->si
+#define dwarf_register_5(regs)  regs->di
+#define dwarf_register_6(regs)  regs->bp
+#define dwarf_register_7(regs)  regs->sp
+#define dwarf_register_8(regs)  regs->r8
+#define dwarf_register_9(regs)  regs->r9
+#define dwarf_register_10(regs) regs->r10
+#define dwarf_register_11(regs) regs->r11
+#define dwarf_register_12(regs) regs->r12
+#define dwarf_register_13(regs) regs->r13
+#define dwarf_register_14(regs) regs->r14
+#define dwarf_register_15(regs) regs->r15
+
+#elif defined __i386__
 
 /* The stack pointer is unlike other registers.  When a trap happens in
    kernel mode, it is not saved in the trap frame (struct pt_regs).

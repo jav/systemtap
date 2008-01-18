@@ -87,8 +87,14 @@ int _stp_mkdir_proc_module(void)
 				goto done;
 			}
 		} else {
+                        #ifdef STAPCONF_NAMEIDATA_CLEANUP
+                        _stp_proc_stap = PDE(nd.path.dentry->d_inode);
+                        path_put (&nd.path);
+
+                        #else
 			_stp_proc_stap = PDE(nd.dentry->d_inode);
 			path_release (&nd);
+			#endif
 		}
 		
 		_stp_proc_root = proc_mkdir(THIS_MODULE->name, _stp_proc_stap);
