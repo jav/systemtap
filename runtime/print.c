@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Functions
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -50,26 +50,25 @@ void *Stp_lbuf = NULL;
 /* create percpu print and io buffers */
 int _stp_print_init (void)
 {
-	Stp_pbuf = alloc_percpu(_stp_pbuf);
+	Stp_pbuf = _stp_alloc_percpu(sizeof(_stp_pbuf));
 	if (unlikely(Stp_pbuf == 0))
 		return -1;
 
 	/* now initialize IO buffer used in io.c */
-	Stp_lbuf = alloc_percpu(_stp_lbuf);
+	Stp_lbuf = _stp_alloc_percpu(sizeof(_stp_lbuf));
 	if (unlikely(Stp_lbuf == 0)) {
-		free_percpu(Stp_pbuf);
+		_stp_free_percpu(Stp_pbuf);
 		return -1;
 	}
-	_stp_allocated_memory += (sizeof(_stp_pbuf)+sizeof(_stp_lbuf)) * num_online_cpus();
 	return 0;
 }
 
 void _stp_print_cleanup (void)
 {
 	if (Stp_pbuf)
-		free_percpu(Stp_pbuf);
+		_stp_free_percpu(Stp_pbuf);
 	if (Stp_lbuf)
-		free_percpu(Stp_lbuf);
+		_stp_free_percpu(Stp_lbuf);
 }
 
 #define __DEF_EXPORT_FN(fn, postfix) fn ## _ ## postfix
@@ -274,6 +273,32 @@ static char *next_fmt(char *fmt, int *num)
 		f++;
 	}
 	return f;
+}
+
+void _stp_print_kernel_info(char *vstr, int ctx, int num_probes)
+{
+#ifdef DEBUG_MEM
+	printk(KERN_DEBUG "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u+%u data+text+ctx+net+alloc, probes: %d\n",
+	       THIS_MODULE->name,
+	       vstr, 
+	       THIS_MODULE->module_core,  
+	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
+               (unsigned long) THIS_MODULE->core_text_size,
+	       ctx,
+	       _stp_allocated_net_memory,
+	       _stp_allocated_memory - _stp_allocated_net_memory,
+		num_probes);
+#else
+	printk(KERN_DEBUG "%s: systemtap: %s, base: %p, memory: %lu+%lu+%u+%u data+text+ctx+net, probes: %d\n",
+	       THIS_MODULE->name,
+	       vstr, 
+	       THIS_MODULE->module_core,  
+	       (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size),
+               (unsigned long) THIS_MODULE->core_text_size,
+	       ctx,
+	       _stp_allocated_net_memory,
+	       num_probes);
+#endif
 }
 
 /** @} */

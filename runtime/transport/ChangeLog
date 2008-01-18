@@ -1,3 +1,32 @@
+2008-01-15  Martin Hunt  <hunt@redhat.com>
+	    
+	PR4037 and fixes to better synchronize staprun and stapio.
+	* transport_msgs.h (struct _stp_symbol32): New.
+	(struct _stp_symbol64): New.
+	(struct _stp_msg_symbol_hdr): New.
+	(struct _stp_msg_module): New.
+	(STP_READY): Declare.
+
+	* transport.c (_stp_handle_start): Don't set _stp_start_finished.
+	(_stp_work_queue): Don't use _stp_start_finished.
+	(_stp_transport_init): Don't call _stp_ask_for_symbols().
+	
+	* symbols.c (_stp_do_symbols): Use _stp_msg_symbol_hdr;
+
+	* control.c (_stp_sym_write_cmd): Allow sending of headers
+	and data in separate messages.
+	(_stp_ctl_write_cmd): Add STP_READY message.
+
+	* procfs.c (_stp_sym_write_cmd): Allow sending of headers
+	and data in separate messages.
+	(_stp_ctl_write_cmd): Add STP_READY message.
+	
+2008-01-15  Martin Hunt  <hunt@redhat.com>
+
+	Support for DEBUG_MEM
+	* transport.c (_stp_transport): Call stp_mem_debug_done();
+        * (*.c):  Call stp malloc and free functions.
+
 2007-11-09  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR3858

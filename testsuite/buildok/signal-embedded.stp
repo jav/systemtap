@@ -2,5 +2,10 @@
 
 probe begin {
 	print (get_sigset(0))
+	print (get_sa_flags(0))
+	print (get_sa_handler(0))
+	print (sigset_mask_str(0))
+	print (is_sig_blocked(0, 0))
+	print (sa_flags_str(0))
 }
 

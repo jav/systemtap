@@ -52,7 +52,7 @@
 /** Stat struct for stat.c. Maps do not need this */
 struct _Stat {
 	struct _Hist hist;
-	/* per-cpu data. allocated with alloc_percpu() */
+	/* per-cpu data. allocated with _stp_alloc_percpu() */
 	stat *sd;
 	/* aggregated data */   
 	stat *agg;  
@@ -130,9 +130,9 @@ Stat _stp_stat_init (int type, ...)
 	return st;
 
 exit2:
-	kfree (sd);
+	_stp_kfree (sd);
 exit1:
-	kfree (st);
+	_stp_kfree (st);
 	return NULL;
 }
 
@@ -144,9 +144,9 @@ exit1:
 void _stp_stat_del (Stat st)
 {
 	if (st) {
-		free_percpu (st->sd);
-		kfree (st->agg);
-		kfree (st);
+		_stp_free_percpu (st->sd);
+		_stp_kfree (st->agg);
+		_stp_kfree (st);
 	}
 }
 	

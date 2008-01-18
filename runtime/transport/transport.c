@@ -2,7 +2,7 @@
  * transport.c - stp transport functions
  *
  * Copyright (C) IBM Corporation, 2005
- * Copyright (C) Red Hat Inc, 2005-2007
+ * Copyright (C) Red Hat Inc, 2005-2008
  * Copyright (C) Intel Corporation, 2006
  *
  * This file is part of systemtap, and is free software.  You can
@@ -31,7 +31,6 @@ static struct utt_trace *_stp_utt = NULL;
 
 static unsigned int utt_seq = 1;
 
-static int _stp_start_finished = 0;
 static int _stp_probes_started = 0;
 
 /* module parameters */
@@ -61,6 +60,7 @@ static DECLARE_WORK(_stp_work, _stp_work_queue, NULL);
 #endif
 
 static struct workqueue_struct *_stp_wq;
+static void _stp_ask_for_symbols(void);
 
 #ifdef STP_OLD_TRANSPORT
 #include "procfs.c"
@@ -72,16 +72,20 @@ static void _stp_ask_for_symbols(void)
 {
 	struct _stp_msg_symbol req;
 	struct _stp_module mod;
+	static int sent_symbols = 0;
 
-	/* ask for symbols and modules */
-	kbug("AFS\n");
-
-	req.endian = 0x1234;
-	req.ptr_size = sizeof(char *);
-	_stp_ctl_send(STP_SYMBOLS, &req, sizeof(req));
-
-	strcpy(mod.name, "");
-	_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
+	if (sent_symbols == 0) {
+		/* ask for symbols and modules */
+		kbug("AFS\n");
+		
+		req.endian = 0x1234;
+		req.ptr_size = sizeof(char *);
+		_stp_ctl_send(STP_SYMBOLS, &req, sizeof(req));
+		
+		strcpy(mod.name, "");
+		_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
+		sent_symbols = 1;
+	}
 }
 
 /*
@@ -97,7 +101,6 @@ void _stp_handle_start (struct _stp_msg_start *st)
 
 	_stp_target = st->target;
 	st->res = probe_start();
-	_stp_start_finished = 1;
 	if (st->res >= 0)
 		_stp_probes_started = 1;
 
@@ -193,7 +196,7 @@ static void _stp_work_queue (void *data)
 		wake_up_interruptible(&_stp_ctl_wq);
 
 	/* if exit flag is set AND we have finished with probe_start() */
-	if (unlikely(_stp_exit_flag && _stp_start_finished))
+	if (unlikely(_stp_exit_flag))
 		_stp_cleanup_and_exit(0);
 	else if (likely(_stp_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
@@ -215,6 +218,7 @@ void _stp_transport_close()
 	_stp_free_modules();
 	_stp_kill_time();
 	_stp_print_cleanup(); 	/* free print buffers */
+	_stp_mem_debug_done();
 	kbug("---- CLOSED ----\n");
 }
 
@@ -287,9 +291,6 @@ int _stp_transport_init(void)
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
 		goto err3;
-	
-	/* request symbolic information */
-	_stp_ask_for_symbols();
 	return 0;
 
 err3:

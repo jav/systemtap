@@ -1,0 +1,4 @@
+#! stap -p2
+
+# use $value as an array in a procfs probe
+probe procfs.write { print($value[0]) }

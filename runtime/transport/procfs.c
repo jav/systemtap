@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * /proc transport and control
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -68,35 +68,38 @@ static struct file_operations _stp_proc_fops = {
 static ssize_t _stp_sym_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
 {
+	static int saved_type = 0;
 	int type;
 
-	if (count < sizeof(int))
+	if (count < sizeof(int32_t))
 		return 0;
 
-	if (get_user(type, (int __user *)buf))
-		return -EFAULT;
-
-	kbug ("count:%d type:%d\n", (int)count, type);
-
-	if (type == STP_SYMBOLS) {
-		count -= sizeof(long);
-		buf += sizeof(long);
+	/* Allow sending of packet type followed by data in the next packet.*/
+	if (count == sizeof(int32_t)) {
+		if (get_user(saved_type, (int __user *)buf))
+			return -EFAULT;
+		return count;
+	} else if (saved_type) {
+		type = saved_type;
+		saved_type = 0;
 	} else {
+		if (get_user(type, (int __user *)buf))
+			return -EFAULT;
 		count -= sizeof(int);
 		buf += sizeof(int);
 	}
+	
+	// kbug ("count:%d type:%d\n", (int)count, type);
 
 	switch (type) {
-	case STP_SYMBOLS:
-		
-		if (count)
-			count = _stp_do_symbols(buf, count);
+	case STP_SYMBOLS:		
+		count = _stp_do_symbols(buf, count);
 		break;
 	case STP_MODULE:
-		if (count)
+		if (count > 1)
 			count = _stp_do_module(buf, count);
 		else {
-			/* count == 0 indicates end of initial modules list */
+			/* count == 1 indicates end of initial modules list */
 			_stp_ctl_send(STP_TRANSPORT, NULL, 0);			
 		}
 		break;
@@ -106,6 +109,7 @@ static ssize_t _stp_sym_write_cmd (struct file *file, const char __user *buf,
 	}
 
 	return count;
+
 }
 static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
@@ -138,6 +142,10 @@ static ssize_t _stp_ctl_write_cmd (struct file *file, const char __user *buf,
 		break;
 	case STP_EXIT:
 		_stp_exit_flag = 1;
+		break;
+	case STP_READY:
+		/* request symbolic information */
+		_stp_ask_for_symbols();		
 		break;
 	default:
 		errk ("invalid command type %d\n", type);
@@ -485,7 +493,7 @@ static int _stp_set_buffers(int num)
 	
 	if (num > _stp_current_buffers) {
 		for (i = 0; i < num - _stp_current_buffers; i++) {
-			p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
+			p = (struct list_head *)_stp_kmalloc(sizeof(struct _stp_buffer));
 			if (!p)	{
 				_stp_current_buffers += i;
 				goto err;
@@ -501,7 +509,7 @@ static int _stp_set_buffers(int num)
 			p = _stp_pool_q.next;
 			list_del(p);
 			spin_unlock_irqrestore(&_stp_pool_lock, flags);
-			kfree(p);
+			_stp_kfree(p);
 		}
 	}
 	_stp_current_buffers = num;
@@ -542,7 +550,7 @@ static int _stp_register_ctl_channel (void)
 
 	/* allocate buffers */
 	for (i = 0; i < STP_DEFAULT_BUFFERS; i++) {
-		p = (struct list_head *)kmalloc(sizeof(struct _stp_buffer),STP_ALLOC_FLAGS);
+		p = (struct list_head *)_stp_kmalloc(sizeof(struct _stp_buffer));
 		// printk("allocated buffer at %lx\n", (long)p);
 		if (!p)
 			goto err0;
@@ -593,7 +601,7 @@ err2:
 err1:
 #ifdef STP_BULKMODE
 	for (de = _stp_proc_root->subdir; de; de = de->next)
-		kfree (de->data);
+		_stp_kfree (de->data);
 	for_each_cpu(j) {
 		if (j == i)
 			break;
@@ -607,7 +615,7 @@ err1:
 err0:
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 
 	errk ("Error creating systemtap /proc entries.\n");
@@ -624,7 +632,7 @@ static void _stp_unregister_ctl_channel (void)
 	struct proc_dir_entry *de;
 	kbug("unregistering procfs\n");
 	for (de = _stp_proc_root->subdir; de; de = de->next)
-		kfree (de->data);
+		_stp_kfree (de->data);
 
 	for_each_cpu(i) {
 		sprintf(buf, "%d", i);
@@ -640,15 +648,15 @@ static void _stp_unregister_ctl_channel (void)
 	/* free memory pools */
 	list_for_each_safe(p, tmp, &_stp_pool_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_sym_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 }
 

@@ -54,7 +54,7 @@ typedef struct _counter *Counter;
  */
 Counter _stp_counter_init (void)
 {
-	Counter cnt = alloc_percpu (struct _counter);
+	Counter cnt = _stp_alloc_percpu (struct _counter);
 #if NEED_COUNTER_LOCKS == 1
 	{
 		int i;
@@ -135,7 +135,7 @@ int64_t _stp_counter_get (Counter cnt, int clear)
  */
 void _stp_counter_free (Counter cnt)
 {
-	free_percpu (cnt);
+	_stp_free_percpu (cnt);
 }
 
 /** @} */

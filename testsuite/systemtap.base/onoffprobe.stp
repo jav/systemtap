@@ -1,33 +1,44 @@
-global switch=0
+global switch=-1
 
 #begin probe
+probe begin if (switch==-1) {
+	log("begin1 probed");
+}
+
 probe begin if (switch==0) {
-	log("begin probed\n");
+	log("begin2 probed");
 }
 
 #dwarf probe (return)
 probe kernel.function("sys_write").return if (switch == 1) {
-	log("function return probed\n")
+	log("function return probed")
 	switch = 0
 }
 
 #dwarf probe (entry)
 probe kernel.function("sys_write") if (switch == 2) {
-	log("function entry probed\n")
+	log("function entry probed")
 	switch = 0
 }
 
 #timer probe
 probe timer.s(1) if (switch == 3) {
-	log("timer probed\n")
+	log("timer probed")
 	switch = 0
 }
 
 #profile probe
 probe timer.profile if (switch == 4) {
-	log("profile probed\n")
+	log("profile probed")
 	switch = 0
 }
+
+# aliasess
+probe alias.one.a  = timer.s(2) if (switch == 5) { print("alias.one.a and") }
+probe alias.one.b  = timer.s(3) if (switch == 6) { print("alias.one.b and") }
+probe alias.one = alias.one.* if (switch >= 5 && switch < 7) { print(" alias.one and") }
+probe alias.two = timer.s(4) if (switch == 7) { print("alias.two and") }
+probe alias.* if (switch) { log(" alias.* probed") }
 
 probe procfs("switch").write {
 	switch = strtol($value, 10)

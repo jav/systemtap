@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  * Symbols and modules functions for staprun.
  *
- * Copyright (C) 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2006-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -10,16 +10,19 @@
  */
 
 #include "staprun.h"
-#include "../sym.h"
 
+/* send symbol data */
 static int send_data(void *data, int len)
 {
+	int32_t type = STP_SYMBOLS;
+	if (write(control_channel, &type, 4) <= 0)
+		return -1;
 	return write(control_channel, data, len);
 }
 
 /* Get the sections for a module. Put them in the supplied buffer */
 /* in the following order: */
-/* [struct _stp_module][struct _stp_symbol sections ...][string data] */
+/* [struct _stp_msg_module][struct _stp_symbol sections ...][string data]*/
 /* Return the total length of all the data. */
 
 #define SECDIR "/sys/module/%s/sections"
@@ -30,33 +33,35 @@ static int get_sections(char *name, char *data_start, int datalen)
 	char buf[32], strdata_start[32768];
 	char *strdata=strdata_start, *data=data_start;
 	int fd, len, res;
-	struct _stp_module *mod = (struct _stp_module *)data_start;
+	struct _stp_msg_module *mod = (struct _stp_msg_module *)data_start;
 	struct dirent *d;
 	DIR *secdir;
-	struct _stp_symbol *sec;
+	void *sec;
+	int struct_symbol_size = kernel_ptr_size == 8 ? sizeof(struct _stp_symbol64) : sizeof(struct _stp_symbol32);
+	uint64_t sec_addr;
 
-	/* start of data is a struct _stp_module */
-	data += sizeof(struct _stp_module);
+	/* start of data is a struct _stp_msg_module */
+	data += sizeof(struct _stp_msg_module);
 
 	res = snprintf(dir, sizeof(dir), SECDIR, name);
 	if (res >= (int)sizeof(dir)) {
 		_err("Couldn't fit module \"%s\" into dir buffer.\n"	\
 		    "This should never happen. Please file a bug report.\n", name);
-		exit(1);
+		return -1;
 	}
 	
 	if ((secdir = opendir(dir)) == NULL)
 		return 0;
 
 	/* Initialize mod. */
-	memset(mod, 0, sizeof(struct _stp_module));
+	memset(mod, 0, sizeof(struct _stp_msg_module));
 
 	/* Copy name in and check for overflow. */
 	strncpy(mod->name, name, STP_MODULE_NAME_LEN);
 	if (mod->name[STP_MODULE_NAME_LEN - 1] != '\0') {
 		_err("Couldn't fit module \"%s\" into mod->name buffer.\n" \
 		    "This should never happen. Please file a bug report.\n", name);
-		exit(1);
+		return -1;
 	}
 
 	while ((d = readdir(secdir))) {
@@ -68,7 +73,7 @@ static int get_sections(char *name, char *data_start, int datalen)
 			_err("Couldn't fit secname \"%s\" into filename buffer.\n" \
 			    "This should never happen. Please file a bug report.\n", secname);
 			closedir(secdir);
-			exit(1);
+			return -1;
 		}
 		
 		/* filter out some non-useful stuff */
@@ -88,12 +93,19 @@ static int get_sections(char *name, char *data_start, int datalen)
 		if ((fd = open(filename,O_RDONLY)) >= 0) {
 			if (read(fd, buf, 32) > 0) {
 				/* create next section */
-				sec = (struct _stp_symbol *)data;
-				if (data - data_start + (int)sizeof(struct _stp_symbol) > datalen)
+				sec = data;
+				if (data - data_start + struct_symbol_size > datalen)
 					goto err1;
-				data += sizeof(struct _stp_symbol);
-				sec->addr = strtoul(buf,NULL,16);
-				sec->symbol = (char *)(strdata - strdata_start);
+				data += struct_symbol_size;
+
+				sec_addr = (uint64_t)strtoull(buf,NULL,16);
+				if (kernel_ptr_size == 8) {
+					((struct _stp_symbol64 *)sec)->addr = sec_addr; 
+					((struct _stp_symbol64 *)sec)->symbol = (uint64_t)(strdata - strdata_start);
+				} else {
+					((struct _stp_symbol32 *)sec)->addr = (uint32_t)sec_addr;
+					((struct _stp_symbol32 *)sec)->symbol = (uint32_t)(strdata - strdata_start);
+				}
 				mod->num_sections++;
 
 				/* now create string data for the
@@ -106,13 +118,13 @@ static int get_sections(char *name, char *data_start, int datalen)
 
 				/* These sections are used a lot so keep the values handy */
 				if (!strcmp(secname, ".data") || !strncmp(secname, ".rodata", 7)) {
-					if (mod->data == 0 || sec->addr < mod->data)
-						mod->data = sec->addr;
+					if (mod->data == 0 || sec_addr < mod->data)
+						mod->data = sec_addr;
 				}
 				if (!strcmp(secname, ".text"))
-					mod->text = sec->addr;
+					mod->text = sec_addr;
 				if (!strcmp(secname, ".gnu.linkonce.this_module"))
-					mod->module = sec->addr;
+					mod->module = sec_addr;
 			}
 			close(fd);
 		}
@@ -135,56 +147,55 @@ err1:
 err0:
 	/* if this happens, something went seriously wrong. */
 	_err("Unexpected error. Overflowed buffers.\n");
-	exit(1);
-	return 0; /* not reached */
+	return -1;
 }
 #undef SECDIR
 
 /* 
  * For modules, we send the name, section names, and offsets
  */
-static void send_module (char *mname)
+static int send_module (char *mname)
 {
-	char data[32768];
-	int len = get_sections(mname, data, sizeof(data));
-	if (len) {
-		if (send_request(STP_MODULE, data, len) < 0) {
+	char data[65536];
+	int len;
+	*(int32_t *)data = STP_MODULE;
+	len = get_sections(mname, data + sizeof(int32_t),
+			   sizeof(data) - sizeof(int32_t));
+	if (len > 0) {
+		if (write(control_channel, data, len + sizeof(int32_t)) <= 0) {
 			_err("Loading of module %s failed. Exiting...\n", mname);
-			exit(1);
+			return -1;
 		}
 	}
+	return len;
 }
 
 /*
  * Send either all modules, or a specific one.
+ * Returns:
+ *   >=0 : OK
+ *    -1 : serious error (exit)
  */
 int do_module (void *data)
 {
-	struct _stp_module *mod = (struct _stp_module *)data;
+	struct _stp_msg_module *mod = (struct _stp_msg_module *)data;
 
 	if (mod->name[0] == 0) {
 		struct dirent *d;
 		DIR *moddir = opendir("/sys/module");
 		if (moddir) {
 			while ((d = readdir(moddir)))
-				send_module(d->d_name);
+				if (send_module(d->d_name) < 0) {
+					closedir(moddir);
+					return -1;
+				}
 			closedir(moddir);
 		}
-		send_request(STP_MODULE, data, 0);
-		return 1;
+		send_request(STP_MODULE, data, 1);
+		return 0;
 	}
 
-	send_module(mod->name);
-	return 0;
-}
-
-static int compar(const void *p1, const void *p2)
-{
-	struct _stp_symbol *s1 = (struct _stp_symbol *)p1;
-	struct _stp_symbol *s2 = (struct _stp_symbol *)p2;
-	if (s1->addr == s2->addr) return 0;
-	if (s1->addr < s2->addr) return -1;
-	return 1;
+	return send_module(mod->name);
 }
 
 #define MAX_SYMBOLS 32*1024
@@ -194,28 +205,28 @@ static int compar(const void *p1, const void *p2)
  * systemtap module.  Ignore module symbols; the systemtap module
  * can access them directly.
  */
-void do_kernel_symbols(void)
+int do_kernel_symbols(void)
 {
 	FILE *kallsyms=NULL;
-	char *sym_base=NULL, *data_base=NULL;
-	char buf[256], *ptr, *name, *data, *dataptr, *datamax, type;
-	unsigned long addr;
-	struct _stp_symbol *syms;
-	int num_syms, i = 0, max_syms= MAX_SYMBOLS;
-	int data_basesize = MAX_SYMBOLS*32;
+	char *name, *mod, *dataptr, *datamax, type, *data_base=NULL;
+	unsigned long long addr;
+	void *syms = NULL;
+	int ret, num_syms, i = 0, struct_symbol_size;
+	int max_syms= MAX_SYMBOLS, data_basesize = MAX_SYMBOLS*32;
 
-	sym_base = malloc(max_syms*sizeof(struct _stp_symbol)+sizeof(long));
+	if (kernel_ptr_size == 8) 
+		struct_symbol_size = sizeof(struct _stp_symbol64);
+	else
+		struct_symbol_size = sizeof(struct _stp_symbol32);
+
+	syms = malloc(max_syms * struct_symbol_size);
 	data_base = malloc(data_basesize);
-	if (data_base == NULL || sym_base == NULL) {
+	if (data_base == NULL || syms == NULL) {
 		_err("Failed to allocate memory for symbols\n");
 		goto err;
 	}
-	*(int *)data_base = STP_SYMBOLS;
-	dataptr = data = data_base + sizeof(long);
+	dataptr = data_base;
 	datamax = data_base + data_basesize;
-
-	*(int *)sym_base = STP_SYMBOLS;
-	syms = (struct _stp_symbol *)(sym_base + sizeof(long));
 
 	kallsyms = fopen ("/proc/kallsyms", "r");
 	if (!kallsyms) {
@@ -226,35 +237,28 @@ void do_kernel_symbols(void)
 	/* put empty string in data */
 	*dataptr++ = 0;
 
-	while (fgets_unlocked(buf, 256, kallsyms) && dataptr < datamax) {
-		addr = strtoul(buf, &ptr, 16);
-		while (isspace(*ptr)) ptr++;
-		type = *ptr++;
+	while ((ret = fscanf(kallsyms, "%llx %c %as [%as", &addr, &type, &name, &mod))>0 
+	       && dataptr < datamax) {
+		if (ret < 3)
+			continue;
+		if (ret > 3) {
+			/* ignore modules */
+			free(name);
+			free(mod);
+			/* modules are loaded above the kernel, so if we */
+			/* are getting modules, then we're done. */
+			break;
+		}
+
 		if (type == 't' || type == 'T' || type == 'A') {
-			while (isspace(*ptr)) ptr++;
-			name = ptr++;
-			while (!isspace(*ptr)) ptr++;
-			*ptr++ = 0;
-			while (*ptr && *ptr != '[') ptr++;
-			if (*ptr)
-				continue; /* it was a module */
-			syms[i].addr = addr;
-			syms[i].symbol = (char *)(dataptr - data);
-			while (*name) *dataptr++ = *name++;
-			*dataptr++ = 0;
-			i++;
-			if (i >= max_syms) {
-				char *s;
-				max_syms *= 2;
-				s = realloc(sym_base, max_syms*sizeof(struct _stp_symbol)+sizeof(long));
-				if (s == NULL) {
-					_err("Could not allocate enough space for symbols.\n");
-					goto err;
-				}
-				syms = (struct _stp_symbol *)(s + sizeof(long));
-				sym_base = s;
-			}
-			if (dataptr > datamax - 1024) {
+			if (kernel_ptr_size == 8) {
+                                ((struct _stp_symbol64 *)syms)[i].addr = (uint64_t)addr;
+                                ((struct _stp_symbol64 *)syms)[i].symbol = (uint64_t)(dataptr - data_base);
+                        } else {
+                                ((struct _stp_symbol32 *)syms)[i].addr = (uint32_t)addr;
+                                ((struct _stp_symbol32 *)syms)[i].symbol = (uint32_t)(dataptr - data_base);
+                        }
+			if (dataptr >= datamax - strlen(name)) {
 				char *db;
 				data_basesize *= 2;
 				db = realloc(data_base, data_basesize);
@@ -263,43 +267,55 @@ void do_kernel_symbols(void)
 					goto err;
 				}
 				dataptr = db + (dataptr - data_base);
-				data = db + sizeof(long);
 				datamax = db + data_basesize;
 				data_base = db;
+			}
+			strcpy(dataptr, name);
+			dataptr += strlen(name) + 1;
+			free(name);
+			i++;
+			if (i >= max_syms) {
+				max_syms *= 2;
+				syms = realloc(syms, max_syms*struct_symbol_size);
+				if (syms == NULL) {
+					_err("Could not allocate enough space for symbols.\n");
+					goto err;
+				}
 			}
 		}
 	}
 	num_syms = i;
-	qsort(syms, num_syms, sizeof(struct _stp_symbol), compar);
+	if (num_syms <= 0)
+		goto err;
 
 	/* send header */
-	*(int *)buf = STP_SYMBOLS;
-	*(int *)(buf+sizeof(long)) = num_syms;
-	*(int *)(buf+sizeof(long)+sizeof(int)) = (unsigned)(dataptr - data);
-	if (send_data(buf, 2*sizeof(int)+sizeof(long)) < 0)
+	struct _stp_msg_symbol_hdr smsh;
+	smsh.num_syms = num_syms;
+	smsh.sym_size = (uint32_t)(dataptr - data_base);
+	if (send_request(STP_SYMBOLS, &smsh, sizeof(smsh)) <= 0)
 		goto err;
 
 	/* send syms */
-	if (send_data(sym_base, num_syms*sizeof(struct _stp_symbol)+sizeof(long)) < 0)
+	if (send_data(syms, num_syms*struct_symbol_size) < 0)
 		goto err;
 	
 	/* send data */
-	if (send_data(data_base, dataptr-data+sizeof(long)) < 0)
+	if (send_data(data_base, dataptr-data_base) < 0)
 		goto err;
 
 	free(data_base);
-	free(sym_base);
+	free(syms);
 	fclose(kallsyms);
-	return;
+	return 0;
 
 err:
 	if (data_base)
 		free(data_base);
-	if (sym_base)
-		free(sym_base);
+	if (syms)
+		free(syms);
 	if (kallsyms)
 		fclose(kallsyms);
 
 	_err("Loading of symbols failed. Exiting...\n");
-	exit(1);
+	return -1;
 }

@@ -205,18 +205,13 @@ static int _stp_map_init(MAP m, unsigned max_entries, int type, int key_size, in
 		
 		for (i = 0; i < max_entries; i++) {
 			if (cpu < 0)
-				tmp = kmalloc(size, STP_ALLOC_FLAGS);
+				tmp = _stp_kmalloc(size);
 			else
-				tmp = kmalloc_node(size, STP_ALLOC_FLAGS, cpu_to_node(cpu));
+				tmp = _stp_kmalloc_node(size, cpu_to_node(cpu));
 		
 			if (!tmp)
 				return -1;
 			
-			if (cpu < 0)
-				_stp_allocated_memory += size;
-			else
-				_stp_allocated_memory += size * num_online_cpus();
-				
 //			dbug ("allocated %lx\n", (long)tmp);
 			list_add((struct list_head *)tmp, &m->pool);
 			((struct map_node *)tmp)->map = m;
@@ -252,10 +247,9 @@ static PMAP _stp_pmap_new(unsigned max_entries, int type, int key_size, int data
 	if (pmap == NULL)
 		return NULL;
 
-	pmap->map = map = (MAP) alloc_percpu (struct map_root);
+	pmap->map = map = (MAP) _stp_alloc_percpu (sizeof(struct map_root));
 	if (map == NULL) 
 		goto err;
-	_stp_allocated_memory += sizeof(struct map_root) * num_online_cpus();
 
 	/* initialize the memory lists first so if allocations fail */
         /* at some point, it is easy to clean up. */
@@ -284,9 +278,9 @@ err1:
 		m = per_cpu_ptr (map, i);
 		__stp_map_del(m);
 	}
-	free_percpu(map);
+	_stp_free_percpu(map);
 err:
-	kfree(pmap);
+	_stp_kfree(pmap);
 	return NULL;
 }
 
@@ -387,13 +381,13 @@ static void __stp_map_del(MAP map)
 	/* free unused pool */
 	list_for_each_safe(p, tmp, &map->pool) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 
 	/* free used list */
 	list_for_each_safe(p, tmp, &map->head) {
 		list_del(p);
-		kfree(p);
+		_stp_kfree(p);
 	}
 }
 
@@ -409,7 +403,7 @@ void _stp_map_del(MAP map)
 
 	__stp_map_del(map);
 
-	kfree(map);
+	_stp_kfree(map);
 }
 
 void _stp_pmap_del(PMAP pmap)
@@ -423,12 +417,12 @@ void _stp_pmap_del(PMAP pmap)
 		MAP m = per_cpu_ptr (pmap->map, i);
 		__stp_map_del(m);
 	}
-	free_percpu(pmap->map);
+	_stp_free_percpu(pmap->map);
 
 	/* free agg map elements */
 	__stp_map_del(&pmap->agg);
 	
-	kfree(pmap);
+	_stp_kfree(pmap);
 }
 
 /* sort keynum values */

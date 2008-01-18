@@ -1,5 +1,5 @@
 // translation pass
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -1148,21 +1148,13 @@ c_unparser::emit_module_init ()
 
   // Print a message to the kernel log about this module.  This is
   // intended to help debug problems with systemtap modules.
-  o->newline() << "printk (KERN_DEBUG \"%s: "
-               << "systemtap: " << VERSION << "/" << dwfl_version (NULL)
-               << ", base: %p"
-               << ", memory: %lu+%lu+%lu+%lu+%lu data+text+ctx+io+glob"
-               << ", probes: " << session->probes.size()
-               << "\\n\""
-    // printk arguments
-               << ", THIS_MODULE->name"
-               << ", THIS_MODULE->module_core"
-               << ", (unsigned long) (THIS_MODULE->core_size - THIS_MODULE->core_text_size)"
-               << ", (unsigned long) THIS_MODULE->core_text_size"
-	       << ", (unsigned long) (num_online_cpus() * sizeof(struct context))"
-	       << ", (unsigned long) _stp_allocated_net_memory"
-	       << ", (unsigned long) _stp_allocated_memory"
-               << ");";
+
+  o->newline() << "_stp_print_kernel_info("
+	       << "\"" << VERSION 
+	       << "/" << dwfl_version (NULL) << "\""
+	       << ", (num_online_cpus() * sizeof(struct context))"
+	       << ", " << session->probes.size()
+	       << ");";
 
   // Run all probe registrations.  This actually runs begin probes.
 
@@ -1298,6 +1290,7 @@ c_unparser::emit_module_exit ()
             o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
             o->newline(-1) << "}";
+	    o->newline() << "_stp_stat_del (time_" << p->name << ");";
             o->newline(-1) << "}";
           }
       }

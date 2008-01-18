@@ -7,7 +7,7 @@
  * Public License (GPL); either version 2, or (at your option) any
  * later version.
  *
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  */
 
 #include "staprun.h"
@@ -255,6 +255,7 @@ int stp_main_loop(void)
 	setup_main_signals(0);
 
 	dbug(2, "in main loop\n");
+	send_request(STP_READY, NULL, 0);
 
 	while (1) { /* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));

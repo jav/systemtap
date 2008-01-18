@@ -219,7 +219,7 @@ _stp_kill_time(void)
         }
 #endif
 
-        free_percpu(stp_time);
+        _stp_free_percpu(stp_time);
     }
 }
 
@@ -229,10 +229,9 @@ _stp_init_time(void)
 {
     int ret = 0;
 
-    stp_time = alloc_percpu(stp_time_t);
+    stp_time = _stp_alloc_percpu(sizeof(stp_time_t));
     if (unlikely(stp_time == 0))
 	    return -1;
-    _stp_allocated_memory += sizeof(stp_time_t) * num_online_cpus();
     
     stp_timer_reregister = 1;
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);

@@ -138,9 +138,8 @@ class Bench
   end
 
   def load
-    args = "-q"
-    fork do exec "sudo #{@@staprun} #{args} -o #{@outfile} #{@dir}/bench.ko &> #{@dir}/xxx.out" end
-    sleep 10
+    fork do exec "sudo #{@@staprun} -o #{@outfile} #{@dir}/bench.ko &> #{@dir}/xxx.out" end
+    sleep 5
   end
 
   def compile
@@ -287,10 +286,8 @@ class Stapbench < Bench
   protected
 
   def load
-    args = "-vv -DSTP_NO_OVERLOAD"
-    if @trans == BULK then args = "-bvv -DSTP_NO_OVERLOAD" end
-    fork do exec "stap #{args} -o #{@outfile} bench.stp &> xxx.out" end
-    sleep 30
+    fork do exec "sudo #{@@staprun} bench.ko &> xxx.out" end
+    sleep 5
   end
   
   def compile
@@ -316,6 +313,14 @@ class Stapbench < Bench
     else
       puts "NO CODE!"
     end
+    args = "-p4 -vv -DSTP_NO_OVERLOAD"
+    if @trans == BULK then args = "-p4 -bvv -DSTP_NO_OVERLOAD" end
+    `stap #{args} -m bench.ko bench.stp &> xxx.out`
+    if ($? != 0)
+      puts "compile failed. status=#{$?}"
+      system("tail xxx.out")
+      exit
+    end
   end
-
+  
 end
