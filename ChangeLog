@@ -1,3 +1,8 @@
+2008-01-18  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.c: Added static copy of
+	access_process_vm(), for kernels that don't export it.
+
 2008-01-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac, systemtap.spec.in: Update version to 0.6.1
