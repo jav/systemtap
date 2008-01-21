@@ -10,8 +10,6 @@
  */
 
 #include "staprun.h"
-#include <elfutils/libdwfl.h>
-#include <dwarf.h>
 
 /* send symbol data */
 static int send_data(int32_t type, void *data, int len)
@@ -21,53 +19,9 @@ static int send_data(int32_t type, void *data, int len)
 	return write(control_channel, data, len);
 }
 
-static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
-static char *debuginfo_path = debuginfo_path_arr;
-static const Dwfl_Callbacks kernel_callbacks =
-{
-  .find_debuginfo = dwfl_standard_find_debuginfo,
-  .debuginfo_path = &debuginfo_path,
-  .find_elf = dwfl_linux_kernel_find_elf,
-  .section_address = dwfl_linux_kernel_module_section_address,
-};
-
-void *get_module_unwind_data(Dwfl *dwfl, const char *name, int *len)
-{
-	Dwarf_Addr bias = 0;
-	Dwarf *dw;
-	GElf_Ehdr *ehdr, ehdr_mem;
-	GElf_Shdr *shdr, shdr_mem;
-	Elf_Scn *scn = NULL;
-	Elf_Data *data = NULL;
-	
-	Dwfl_Module *mod = dwfl_report_module(dwfl, name, 0, 0);
-	dwfl_report_end (dwfl, NULL, NULL);
-	dw = dwfl_module_getdwarf (mod, &bias);
-	Elf *elf = dwarf_getelf(dw);
-	ehdr = gelf_getehdr (elf, &ehdr_mem);
-	while ((scn = elf_nextscn(elf, scn)))
-	{
-		shdr = gelf_getshdr (scn, &shdr_mem);
-		if (strcmp(elf_strptr (elf, ehdr->e_shstrndx, shdr->sh_name), ".debug_frame") == 0) {
-			data = elf_rawdata(scn, NULL);
-			break;
-		}
-	}
-
-	if (data == NULL) {
-		*len = 0;
-		dbug(2, "module %s returns NULL\n", name);
-		return NULL;
-	}
-	dbug(2, "module %s returns %d\n", name, (int)data->d_size);	
-	*len = data->d_size;
-	return data->d_buf;
-}
-
-
 /* Get the sections for a module. Put them in the supplied buffer */
 /* in the following order: */
-/* [struct _stp_msg_module][struct _stp_symbol sections ...][string data][unwind data] */
+/* [struct _stp_msg_module][struct _stp_symbol sections ...][string data]*/
 /* Return the total length of all the data. */
 
 #define SECDIR "/sys/module/%s/sections"
@@ -77,9 +31,8 @@ static int get_sections(char *name, char *data_start, int datalen)
 	char filename[STP_MODULE_NAME_LEN + 256]; 
 	char buf[32], strdata_start[32768];
 	char *strdata=strdata_start, *data=data_start;
-	int fd, len, res, unwind_data_len=0;
+	int fd, len, res;
 	struct _stp_msg_module *mod = (struct _stp_msg_module *)data_start;
-
 	struct dirent *d;
 	DIR *secdir;
 	void *sec;
@@ -109,10 +62,6 @@ static int get_sections(char *name, char *data_start, int datalen)
 		    "This should never happen. Please file a bug report.\n", name);
 		return -1;
 	}
-
-	Dwfl *dwfl = dwfl_begin(&kernel_callbacks);
-	void *unwind_data = get_module_unwind_data (dwfl, name, &unwind_data_len);
-	mod->unwind_len = unwind_data_len;
 
 	while ((d = readdir(secdir))) {
 		char *secname = d->d_name;
@@ -189,20 +138,12 @@ static int get_sections(char *name, char *data_start, int datalen)
 	while (len--)
 		*data++ = *strdata++;
 	
-	if (unwind_data) {
-		if ((unwind_data_len + data - data_start) > datalen)
-			goto err0;
-		memcpy(data, unwind_data, unwind_data_len);
-		data += unwind_data_len;
-	}
-	dwfl_end (dwfl);
 	return data - data_start;
 
 err1:
 	close(fd);
 	closedir(secdir);
 err0:
-	dwfl_end (dwfl);
 	/* if this happens, something went seriously wrong. */
 	_err("Unexpected error. Overflowed buffers.\n");
 	return -1;
@@ -251,8 +192,7 @@ int do_module (void *data)
 		return 0;
 	}
 
-	send_module(mod->name);
-	return 0;
+	return send_module(mod->name);
 }
 
 #define MAX_SYMBOLS 32*1024
@@ -271,7 +211,7 @@ int do_kernel_symbols(void)
 	int ret, num_syms, i = 0, struct_symbol_size;
 	int max_syms= MAX_SYMBOLS, data_basesize = MAX_SYMBOLS*32;
 
-	if (kernel_ptr_size == 8)
+	if (kernel_ptr_size == 8) 
 		struct_symbol_size = sizeof(struct _stp_symbol64);
 	else
 		struct_symbol_size = sizeof(struct _stp_symbol32);
@@ -345,18 +285,10 @@ int do_kernel_symbols(void)
 	if (num_syms <= 0)
 		goto err;
 
-	/* get unwind data */
-	int unwind_data_len;
-	void *unwind_data;
-	Dwfl *dwfl = dwfl_begin(&kernel_callbacks);
-	unwind_data = get_module_unwind_data (dwfl, "kernel", &unwind_data_len);
-
-
 	/* send header */
 	struct _stp_msg_symbol_hdr smsh;
 	smsh.num_syms = num_syms;
 	smsh.sym_size = (uint32_t)(dataptr - data_base);
-	smsh.unwind_size = (uint32_t)unwind_data_len;
 	if (send_request(STP_SYMBOLS, &smsh, sizeof(smsh)) <= 0)
 		goto err;
 
@@ -367,11 +299,6 @@ int do_kernel_symbols(void)
 	/* send data */
 	if (send_data(STP_SYMBOLS, data_base, dataptr-data_base) < 0)
 		goto err;
-
-	/* send unwind data */
-	if (send_data(STP_SYMBOLS, unwind_data, unwind_data_len) < 0)
-		goto err;
-	dwfl_end (dwfl);
 
 	free(data_base);
 	free(syms);
