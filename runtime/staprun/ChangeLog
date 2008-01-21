@@ -1,3 +1,8 @@
+2008-01-21  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (send_module): Simplify and use new send_data() function to keep
+	longword alignment.
+
 2008-01-14  Martin Hunt  <hunt@redhat.com>
 
 	PR4037 and fixes to better synchronize staprun and stapio.	
