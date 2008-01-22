@@ -1607,7 +1607,7 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 	int hit_uretprobe_trampoline = 0;
 	int registrations_deferred = 0;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 
 	if (info->si_signo != BREAKPOINT_SIGNAL &&
@@ -1791,7 +1791,7 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 	uproc = utask->uproc;
 	if (current == utask->quiesce_master) {
@@ -1892,7 +1892,7 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 	struct uprobe_probept *ppt;
 	int utask_quiescing;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
@@ -1971,7 +1971,7 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	struct uprobe_process *uproc;
 	struct uprobe_task *ptask, *ctask;
 
-	ptask = rcu_dereference((struct uprobe_task *)engine->data);
+	ptask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = ptask->uproc;
 
 	/*
@@ -2060,7 +2060,7 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 	struct uprobe_task *utask;
 	int uproc_freed;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 

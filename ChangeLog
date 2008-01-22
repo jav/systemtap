@@ -1,3 +1,9 @@
+2008-01-22  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.c: Fix from Srinivasa: Recast
+	rcu_dereferences of engine->data to resync with kernel.org
+	builds.
+
 2008-01-18  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Added static copy of
