@@ -1,3 +1,13 @@
+2008-01-23  David Smith  <dsmith@redhat.com>
+
+	PR 5661.
+	* configure.ac: Checks elfutils version number.
+	* acsite.m4: New file containing macro to return elfutils version
+	number.
+	* configure: Regenerated.
+	* systemtap.spec.in: Minimum elfutils version number is now filled
+	in by configure.
+
 2008-01-23  Dave Brolley  <brolley@redhat.com>
 
 	* translate.cxx (var::fini): New method.

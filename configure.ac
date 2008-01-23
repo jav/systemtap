@@ -4,6 +4,8 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT([systemtap], 0.6.1, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^ see also NEWS, testsuite/configure.ac
 
+dnl Version number of oldest elfutils release that works with systemtap.
+AC_SUBST(ELFUTILS_REQUIRED_VERSION, 0.127)
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -122,6 +124,31 @@ if test $build_elfutils = no; then
     AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])])
   AC_CHECK_LIB(ebl, ebl_openbackend,,[
     AC_MSG_ERROR([missing elfutils development headers/libraries (ebl 0.123+)])])
+
+  # Try to get the elfutils library version
+  AC_MSG_CHECKING([to see if we can get the elfutils version])
+  AX_ELFUTILS_GET_VERSION(, [
+    AC_MSG_FAILURE([unable to get elfutils library version])])
+
+  # Is the elfutils library version >= ELFUTILS_REQUIRED_VERSION?
+  AC_MSG_CHECKING([for elfutils version $ELFUTILS_REQUIRED_VERSION or higher])
+  [current_version="`echo \"$ax_elfutils_get_version_VERSION\" | sed -e 's/^[^0-9]//g'`"]
+  if test -z "$current_version" ; then
+    AC_MSG_FAILURE([unsupported elfutils version format])
+  fi
+
+  AS_VERSION_COMPARE($current_version, $ELFUTILS_REQUIRED_VERSION,
+ 		     [bad_elfutils_version=yes], dnl ACTION-IF-LESS
+		     [bad_elfutils_version=no],	 dnl ACTION-IF-EQUAL
+		     [bad_elfutils_version=no])	 dnl ACTION-IF-GREATER
+
+  if test $bad_elfutils_version = yes; then
+    AC_MSG_RESULT([no])
+    AC_MSG_ERROR([elfutils library version ($current_version) must be version $ELFUTILS_REQUIRED_VERSION or higher])
+  else
+    AC_MSG_RESULT([yes])
+  fi
+
   stap_LIBS="$LIBS"
   LIBS="$SAVE_LIBS"
 else
