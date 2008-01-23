@@ -932,7 +932,14 @@ The location of kernel module building infrastructure.
 @prefix@/lib/debug/lib/modules/VERSION
 The location of kernel debugging information when packaged into the
 .IR kernel\-debuginfo
-RPM.
+RPM, unless overridden by the
+.I SYSTEMTAP_DEBUGINFO_PATH
+environment variable.  The default value for this variable is
+.IR \-:.debug:/usr/lib/debug .
+This path is interpreted by elfutils as a list of base directories of
+which various subdirectories will be searched.  The \- at the front
+means to skip CRC matching for separated debug objects and is a small
+performance win if no possible corruption is suspected.
 .TP
 @prefix@/bin/staprun
 The auxiliary program supervising module loading, interaction, and

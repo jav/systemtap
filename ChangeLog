@@ -15,6 +15,12 @@
 	variables without indices.
 	(c_unparser::emit_module_exit): Likewise.
 
+2008-01-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2151
+	* tapsets.cxx (dwflpp::setup): Parametrize debuginfo_path.
+	* stap.1.in: Document this.
+
 2008-01-22  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Fix from Srinivasa: Recast
