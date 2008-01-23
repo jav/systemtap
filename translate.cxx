@@ -400,6 +400,20 @@ public:
       }
   }
 
+  string fini () const
+  {
+    switch (type())
+      {
+      case pe_string:
+      case pe_long:
+	return ""; // no action required
+      case pe_stats:
+	return "_stp_stat_del (" + value () + ");";
+      default:
+	throw semantic_error("unsupported deallocator for " + value());
+      }
+  }
+
   void declare(c_unparser &c) const
   {
     c.c_declare(ty, name);
@@ -1201,6 +1215,8 @@ c_unparser::emit_module_init ()
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
+      else
+	o->newline() << getvar (v).fini();
     }
 
   o->newline() << "return rc;";
@@ -1262,6 +1278,8 @@ c_unparser::emit_module_exit ()
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
+      else
+	o->newline() << getvar (v).fini();
     }
 
   o->newline() << "free_percpu (contexts);";

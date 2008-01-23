@@ -1,3 +1,10 @@
+2008-01-23  Dave Brolley  <brolley@redhat.com>
+
+	* translate.cxx (var::fini): New method.
+	(c_unparser::emit_module_init): Call var::fini when deregistering
+	variables without indices.
+	(c_unparser::emit_module_exit): Likewise.
+
 2008-01-22  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Fix from Srinivasa: Recast
