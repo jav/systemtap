@@ -1,5 +1,12 @@
 2008-01-24  David Smith  <dsmith@redhat.com>
 
+	PR 5661 (reverted).
+	* configure.ac: Removed elfutils version number check.
+	* configure: Regenerated.
+	* acsite.m4: Removed.
+	* systemtap.spec.in: Minimum elfutils version number is no longer
+	filled in by configure.
+	
 	PR 5650 (partial).
 	* configure.ac: Handles sqlite optional functionality correctly.
 	If enabled/disabled by the user, do the right thing.  If not
