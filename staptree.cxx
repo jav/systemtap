@@ -18,6 +18,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
@@ -2370,3 +2371,30 @@ deep_copy_visitor::deep_copy (expression* s)
   require <expression*> (&v, &n, s);
   return n;
 }
+
+template <> void
+require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
+{
+  if (src != NULL)
+    {
+      symbol *array_src=NULL, *array_dst=NULL;
+      hist_op *hist_src=NULL, *hist_dst=NULL;
+
+      classify_indexable(src, array_src, hist_src);
+
+      *dst = NULL;
+
+      if (array_src)
+	{
+	  require <symbol*> (v, &array_dst, array_src);
+	  *dst = array_dst;
+	}
+      else
+	{
+	  require <hist_op*> (v, &hist_dst, hist_src);
+	  *dst = hist_dst;
+	}
+      assert (*dst);
+    }
+}
+

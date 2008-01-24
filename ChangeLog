@@ -1,3 +1,11 @@
+2008-01-24  Dave Brolley  <brolley@redhat.com>
+
+	PR 5017.
+	* staptree.cxx (<cstring>): #include it.
+	(required <indexable *>): Remove 'static' from instantiation and
+	move instantiation to here from...
+	* staptree.h: ...here.
+
 2008-01-23  David Smith  <dsmith@redhat.com>
 
 	PR 5661.
@@ -10,6 +18,7 @@
 
 2008-01-23  Dave Brolley  <brolley@redhat.com>
 
+	PR 5613.
 	* translate.cxx (var::fini): New method.
 	(c_unparser::emit_module_init): Call var::fini when deregistering
 	variables without indices.
@@ -17,7 +26,7 @@
 
 2008-01-23  Frank Ch. Eigler  <fche@elastic.org>
 
-	PR 2151
+	PR 2151.
 	* tapsets.cxx (dwflpp::setup): Parametrize debuginfo_path.
 	* stap.1.in: Document this.
 
