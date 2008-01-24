@@ -1374,6 +1374,7 @@ Optional Features:
   --enable-perfmon                 enable perfmon support (default is disabled)
   --enable-prologues      make -P prologue-searching default
   --enable-ssp            enable gcc stack-protector
+  --enable-sqlite         build with sqlite support
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6022,10 +6023,28 @@ fi
 fi
 
 
+# Check whether --enable-ssp was given.
+if test "${enable_ssp+set}" = set; then
+  enableval=$enable_ssp;
+fi
 
-SAVE_LIBS="$LIBS"
+if test "x$enable_ssp" == xyes; then
+  CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
+echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
+fi
 
-{ echo "$as_me:$LINENO: checking for sqlite3_open in -lsqlite3" >&5
+
+# Check whether --enable-sqlite was given.
+if test "${enable_sqlite+set}" = set; then
+  enableval=$enable_sqlite;
+else
+  	enable_sqlite=check
+fi
+		sqlite3_LIBS=
+if test "x$enable_sqlite" != xno; then
+  { echo "$as_me:$LINENO: checking for sqlite3_open in -lsqlite3" >&5
 echo $ECHO_N "checking for sqlite3_open in -lsqlite3... $ECHO_C" >&6; }
 if test "${ac_cv_lib_sqlite3_sqlite3_open+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -6087,17 +6106,19 @@ fi
 { echo "$as_me:$LINENO: result: $ac_cv_lib_sqlite3_sqlite3_open" >&5
 echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
 if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSQLITE3 1
-_ACEOF
+  sqlite3_LIBS=-lsqlite3
 
-  LIBS="-lsqlite3 $LIBS"
-
+else
+  if test "x$enable_sqlite" != xcheck; then
+      { { echo "$as_me:$LINENO: error: --enable-sqlite was given, but test for sqlite failed
+See \`config.log' for more details." >&5
+echo "$as_me: error: --enable-sqlite was given, but test for sqlite failed
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+     fi
 fi
 
-sqlite3_LIBS="$LIBS"
-
-LIBS="$SAVE_LIBS"
+fi
 
 
 # Check whether --enable-ssp was given.

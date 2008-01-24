@@ -127,9 +127,11 @@ cd ..
 %define elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
 %endif
 
+# Enable/disable the sqlite coverage testing support
 %if %{sqlite}
-# Include the coverage testing support
-%define sqlite_config --enable-sqlitedb
+%define sqlite_config --enable-sqlite
+%else
+%define sqlite_config --disable-sqlite
 %endif
 
 %configure %{?elfutils_config} %{?sqlite_config}

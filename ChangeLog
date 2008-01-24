@@ -1,3 +1,13 @@
+2008-01-24  David Smith  <dsmith@redhat.com>
+
+	PR 5650 (partial).
+	* configure.ac: Handles sqlite optional functionality correctly.
+	If enabled/disabled by the user, do the right thing.  If not
+	specified by the user, use it if present.
+	* configure: Regenerated.
+	* systemtap.spec.in: Always specify to configure whether to use
+	sqlite or not.
+
 2008-01-24  Dave Brolley  <brolley@redhat.com>
 
 	PR 5017.
