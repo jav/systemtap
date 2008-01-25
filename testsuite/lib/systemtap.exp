@@ -121,6 +121,9 @@ proc as_root { command } {
      if {$effective_pid != 0} {
 	 set command "sudo $command"
      }
+     verbose -log "as_root $command"
      set res [catch {eval exec $command} value]
+     verbose -log "OUT $value"
+     verbose -log "RC $res"
      return  $res
  }

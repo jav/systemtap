@@ -181,6 +181,7 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ELFUTILS_REQUIRED_VERSION = @ELFUTILS_REQUIRED_VERSION@
 EXEEXT = @EXEEXT@
 GREP = @GREP@
 INSTALL = @INSTALL@
@@ -1476,7 +1477,7 @@ install-exec-hook:
 @BUILD_CRASHMOD_TRUE@	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 @BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
-@BUILD_CRASHMOD_TRUE@	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)
+@BUILD_CRASHMOD_TRUE@	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 @BUILD_CRASHMOD_TRUE@	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 
 # Copy some of the testsuite sample scripts to the distdir

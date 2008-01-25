@@ -91,7 +91,7 @@ $(STAPLOG): staplog.c
 	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
 all-local: $(STAPLOG)
 install-exec-local: $(STAPLOG)
-	-$(MKDIR_P) $(DESTDIR)$(pkglibdir)
+	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
 else
 endif

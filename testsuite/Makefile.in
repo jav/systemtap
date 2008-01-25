@@ -36,7 +36,8 @@ DIST_COMMON = $(am__configure_deps) $(srcdir)/../install-sh \
 	$(srcdir)/../missing $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure ../AUTHORS \
 	../COPYING ../ChangeLog ../INSTALL ../NEWS ../README \
-	../compile ../depcomp ../install-sh ../missing ChangeLog
+	../compile ../config.guess ../depcomp ../install-sh ../missing \
+	ChangeLog
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -146,8 +147,9 @@ EXTRA_DIST = config lib systemtap \
 SYSTEMTAP_RUNTIME = $(DESTDIR)$(pkgdatadir)/runtime
 SYSTEMTAP_TAPSET = $(DESTDIR)$(pkgdatadir)/tapset
 LD_LIBRARY_PATH = $(DESTDIR)$(libdir)/systemtap
+CRASH_LIBDIR = $(DESTDIR)$(libdir)/systemtap
 SYSTEMTAP_PATH = $(DESTDIR)$(bindir)
-RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) PATH=$(SYSTEMTAP_PATH):$$PATH runtest"
+RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH runtest"
 all: all-am
 
 .SUFFIXES:
