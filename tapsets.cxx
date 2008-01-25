@@ -3635,7 +3635,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          Dwarf_Addr addr,
                                          dwarf_query& q,
                                          Dwarf_Die* scope_die /* may be null */)
-  : derived_probe (q.base_probe, q.base_loc /* NB: base_loc.components will be overwritten */ ),
+  : derived_probe (q.base_probe, new probe_point(*q.base_loc) /* .components soon rewritten */ ),
     module (module), section (section), addr (addr),
     has_return (q.has_return),
     has_maxactive (q.has_maxactive),
