@@ -649,6 +649,7 @@ static struct uprobe_process *uprobe_mk_process(struct task_struct *p)
 	uproc->ssol_area.insn_area = NULL;
 	uproc->ssol_area.initialized = 0;
 	mutex_init(&uproc->ssol_area.setup_mutex);
+	/* Initialize rest of area in uprobe_init_ssol(). */
 #ifdef CONFIG_UPROBES_SSOL
 	uproc->sstep_out_of_line = 1;
 #else
@@ -1257,6 +1258,7 @@ static noinline void uprobe_init_ssol(struct uprobe_process *uproc)
 		area->insn_area = ERR_PTR(-ENOMEM);
 		return;
 	}
+	mutex_init(&area->populate_mutex);
 	spin_lock_init(&area->lock);
 	area->next_slot = 0;
 	slot_addr = (char*) area->insn_area;
@@ -1405,8 +1407,10 @@ found_slot:
 	s->last_used = jiffies;
 	s->state = SSOL_ASSIGNED;
 	/* Copy the original instruction to the chosen slot. */
+	mutex_lock(&area->populate_mutex);
 	len = access_process_vm(current, (unsigned long)s->insn,
 					 ppt->insn, MAX_UINSN_BYTES, 1);
+	mutex_unlock(&area->populate_mutex);
         if (unlikely(len < MAX_UINSN_BYTES)) {
 		up_write(&s->rwsem);
 		printk(KERN_ERR "Failed to copy instruction at %#lx"
@@ -1450,12 +1454,18 @@ static struct uprobe_ssol_slot
 static
 struct uprobe_ssol_slot *uprobe_get_insn_slot(struct uprobe_probept *ppt)
 {
-	struct uprobe_ssol_slot *slot = ppt->slot;
+	struct uprobe_ssol_slot *slot;
 
+retry:
+	slot = ppt->slot;
 	if (unlikely(!slot))
 		return uprobe_find_insn_slot(ppt);
 
 	down_read(&slot->rwsem);
+	if (unlikely(slot != ppt->slot)) {
+		up_read(&slot->rwsem);
+		goto retry;
+	}
 	if (unlikely(slot->owner != ppt)) {
 		up_read(&slot->rwsem);
 		return uprobe_find_insn_slot(ppt);

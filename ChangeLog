@@ -1,3 +1,11 @@
+2008-01-25  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.c: Within a probed process, serialize
+	calls to access_process_vm() when populating instructions
+	slots.	Fixes an SMP bug on multithreaded apps with many
+	active probepoints.
+	* runtime/uprobes/uprobes.h: Ditto
+
 2008-01-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5672.
