@@ -5828,13 +5828,12 @@ fi
 # Check whether --enable-perfmon was given.
 if test "${enable_perfmon+set}" = set; then
   enableval=$enable_perfmon;
-
-  CFLAGS="$CFLAGS -DPERFMON"
+    CFLAGS="$CFLAGS -DPERFMON"
   CXXFLAGS="$CXXFLAGS -DPERFMON"
   LIBS="$LIBS -lpfm"
     if test "$enable_perfmon" != "yes"; then
-    CFLAGS="$CFLAGS -DPERFMON -I$enable_perfmon/include"
-    CXXFLAGS="$CXXFLAGS -DPERFMON -I$enable_perfmon/include"
+    CFLAGS="$CFLAGS -I$enable_perfmon/include"
+    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
     LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
   fi
 
@@ -5915,26 +5914,6 @@ fi
 
 
 fi
-
-
-#AC_ARG_WITH([perfmon],
-#  AS_HELP_STRING([--with-perfmon=DIRECTORY],
-#    [Path to Perfmon installation to use]),
-#  [
-#case "$with_perfmon" in
-#yes ) AC_MSG_ERROR([--with-perfmon requires an argument]) ;;
-#''|no) ;;
-#*) perfmon_support=yes ;;
-#esac])
-
-
-#if test $perfmon_support = yes; then
-#  AC_CHECK_LIB(pfm, pfm_start,,[
-#    AC_MSG_ERROR([systemtap cannot find required perfmon libs])])
-#  CFLAGS="$CFLAGS -DPERFMON -I$with_perfmon/include"
-#  CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
-#  LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
-#fi
 
 
 if test "${enable_prologues+set}" != set; then
