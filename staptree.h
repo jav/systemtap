@@ -577,6 +577,7 @@ struct probe_point
   expression* condition;
   void print (std::ostream& o) const;
   probe_point ();
+  probe_point(const probe_point& pp);
   probe_point(std::vector<component*> const & comps,const token * t);
   std::string str();
 };
