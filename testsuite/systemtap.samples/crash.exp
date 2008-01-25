@@ -1,0 +1,45 @@
+# Simple test for staplog.so crash(8) extension
+set test "crash"
+
+if {![installtest_p]} { untested $test; return }
+if {![file exists $env(CRASH_LIBDIR)/staplog.so]} { untested "$test - no staplog.so"; return }
+
+# Load a test script
+spawn stap $srcdir/$subdir/testlog.stp -m testlog
+expect {
+    -timeout 120
+    "HelloWorld\r\n" { 
+        pass "$test - testlog.stp"
+        # Need to run crash(8) while this script is still running.
+        # Since crash(8) needs /dev/mem access, need it run as_root too.
+        # This [ eval ... \{ \} ] business is necessary because as_root
+        # evals the given list/variables in its own scope.
+        eval as_root \{ $srcdir/$subdir/crash.sh $env(CRASH_LIBDIR) \}
+    }
+    timeout { fail "$test - testlog.stp timeout" }
+    timeout { fail "$test - testlog.stp eof" }
+}
+catch { send "\003"; close ; wait }
+
+# The crash(8) script creates testlog/global or testlog/cpu<n>
+as_root { chmod -R a+rX testlog }
+
+set ok 0
+foreach f [glob -nocomplain testlog/*] {
+    pass "$test - crash(8) generated $f"
+    set fp [open $f]
+    set chars [read $fp]
+    close $fp
+    if [string match "HelloWorld*" $chars] {
+        incr ok
+        pass "$test - crash(8) data"
+    } else {
+        fail "$test - crash(8) data $chars"
+    }
+}
+if {$ok == 0} {
+    fail "$test - crash(8) data"
+}
+
+as_root { rm -rf testlog testlog.ko }
+

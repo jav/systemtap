@@ -1,5 +1,5 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 2
+%define release 1
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
@@ -50,6 +50,9 @@ BuildRequires: libcap-devel
 %if %{sqlite}
 BuildRequires: sqlite-devel
 Requires: sqlite
+%endif
+%if "%rhel" >= "5"
+BuildRequires: crash-devel
 %endif
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
@@ -124,9 +127,11 @@ cd ..
 %define elfutils_mflags LD_LIBRARY_PATH=`pwd`/lib-elfutils
 %endif
 
+# Enable/disable the sqlite coverage testing support
 %if %{sqlite}
-# Include the coverage testing support
-%define sqlite_config --enable-sqlitedb
+%define sqlite_config --enable-sqlite
+%else
+%define sqlite_config --disable-sqlite
 %endif
 
 %configure %{?elfutils_config} %{?sqlite_config}
@@ -197,6 +202,10 @@ exit 0
 
 
 %changelog
+* Fri Jan 18 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6.1-1
+- Add crash-devel buildreq to build staplog.so crash(8) module.
+- Many robustness & functionality improvements:
+
 * Wed Dec  5 2007 Will Cohen <wcohen@redhat.com> - 0.6-2
 - Correct Source to point to location contain code.
 

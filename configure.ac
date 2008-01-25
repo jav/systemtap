@@ -1,9 +1,8 @@
 dnl configure.ac --- autoconf input file for systemtap
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([systemtap], 0.6, systemtap@sources.redhat.com, systemtap)
+AC_INIT([systemtap], 0.6.1, systemtap@sources.redhat.com, systemtap)
 dnl                  ^^^ see also NEWS, testsuite/configure.ac
-
 
 AC_PREREQ(2.59)
 AM_INIT_AUTOMAKE
@@ -24,8 +23,6 @@ AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
-
-
 
 dnl enable option to generate code for using perfmon
 AC_ARG_ENABLE(perfmon,
@@ -76,13 +73,27 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+AC_ARG_ENABLE([ssp],
+            [AC_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
+AS_IF([test "x$enable_ssp" == xyes],
+      [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
 
-SAVE_LIBS="$LIBS"
-AC_CHECK_LIB(sqlite3, sqlite3_open)
-sqlite3_LIBS="$LIBS"
-AC_SUBST(sqlite3_LIBS)
-LIBS="$SAVE_LIBS"
-
+dnl Handle optional sqlite support.  If enabled/disabled by the user,
+dnl do the right thing.  If not specified by the user, use it if
+dnl present.
+AC_ARG_ENABLE([sqlite],
+	AS_HELP_STRING([--enable-sqlite], [build with sqlite support]),
+	[],				dnl ACTION-IF-GIVEN
+	[enable_sqlite=check])		dnl ACTION-IF-NOT-GIVEN
+sqlite3_LIBS=
+AS_IF([test "x$enable_sqlite" != xno],
+  [AC_CHECK_LIB([sqlite3], [sqlite3_open],
+    [AC_SUBST([sqlite3_LIBS], [-lsqlite3])],
+    [if test "x$enable_sqlite" != xcheck; then
+      AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
+     fi])])
 
 AC_ARG_ENABLE([ssp],
             [AC_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
@@ -122,6 +133,7 @@ if test $build_elfutils = no; then
     AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])])
   AC_CHECK_LIB(ebl, ebl_openbackend,,[
     AC_MSG_ERROR([missing elfutils development headers/libraries (ebl 0.123+)])])
+
   stap_LIBS="$LIBS"
   LIBS="$SAVE_LIBS"
 else

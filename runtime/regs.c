@@ -33,7 +33,13 @@
  
 unsigned long _stp_ret_addr (struct pt_regs *regs)
 {
-#ifdef __x86_64__
+#if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
+         unsigned long *ra = (unsigned long *)regs->sp;
+          if (ra)
+                  return *ra;
+          else
+                  return 0;
+#elif defined  (__x86_64__)
 	unsigned long *ra = (unsigned long *)regs->rsp;
 	if (ra)
 		return *ra;
@@ -77,7 +83,76 @@ unsigned long _stp_ret_addr (struct pt_regs *regs)
  */
 #define _stp_probe_addr_r(ri) (ri->rp->kp.addr)
 
-#ifdef  __x86_64__
+#if defined  (STAPCONF_X86_UNIREGS)  && defined (__x86_64__)
+
+void _stp_print_regs(struct pt_regs * regs)
+{
+        unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L, fs, gs, shadowgs;
+        unsigned int fsindex,gsindex;
+        unsigned int ds,cs,es;
+
+        _stp_printf("RIP: %016lx\nRSP: %016lx  EFLAGS: %08lx\n", regs->ip, regs->sp, regs->flags);
+        _stp_printf("RAX: %016lx RBX: %016lx RCX: %016lx\n",
+               regs->ax, regs->bx, regs->cx);
+        _stp_printf("RDX: %016lx RSI: %016lx RDI: %016lx\n",
+               regs->dx, regs->si, regs->di);
+        _stp_printf("RBP: %016lx R08: %016lx R09: %016lx\n",
+               regs->bp, regs->r8, regs->r9);
+        _stp_printf("R10: %016lx R11: %016lx R12: %016lx\n",
+               regs->r10, regs->r11, regs->r12);
+        _stp_printf("R13: %016lx R14: %016lx R15: %016lx\n",
+               regs->r13, regs->r14, regs->r15);
+
+        asm("movl %%ds,%0" : "=r" (ds));
+        asm("movl %%cs,%0" : "=r" (cs));
+        asm("movl %%es,%0" : "=r" (es));
+        asm("movl %%fs,%0" : "=r" (fsindex));
+        asm("movl %%gs,%0" : "=r" (gsindex));
+
+        rdmsrl(MSR_FS_BASE, fs);
+        rdmsrl(MSR_GS_BASE, gs);
+        rdmsrl(MSR_KERNEL_GS_BASE, shadowgs);
+
+        asm("movq %%cr0, %0": "=r" (cr0));
+        asm("movq %%cr2, %0": "=r" (cr2));
+        asm("movq %%cr3, %0": "=r" (cr3));
+        asm("movq %%cr4, %0": "=r" (cr4));
+
+        _stp_printf("FS:  %016lx(%04x) GS:%016lx(%04x) knlGS:%016lx\n",
+               fs,fsindex,gs,gsindex,shadowgs);
+        _stp_printf("CS:  %04x DS: %04x ES: %04x CR0: %016lx\n", cs, ds, es, cr0);
+        _stp_printf("CR2: %016lx CR3: %016lx CR4: %016lx\n", cr2, cr3, cr4);
+}
+
+ #elif defined (STAPCONF_X86_UNIREGS) && defined (__i386__)
+
+void _stp_print_regs(struct pt_regs * regs)
+{
+       unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L;
+
+       _stp_printf ("EIP: %08lx\n",regs->ip);
+       _stp_printf ("ESP: %08lx\n",regs->sp);
+       _stp_printf ("EAX: %08lx EBX: %08lx ECX: %08lx EDX: %08lx\n",
+                     regs->ax,regs->bx,regs->cx,regs->dx);
+       _stp_printf ("ESI: %08lx EDI: %08lx EBP: %08lx",
+                     regs->si, regs->di, regs->bp);
+       _stp_printf (" DS: %04x ES: %04x\n",
+                     0xffff & regs->ds,0xffff & regs->es);
+
+       __asm__("movl %%cr0, %0": "=r" (cr0));
+       __asm__("movl %%cr2, %0": "=r" (cr2));
+       __asm__("movl %%cr3, %0": "=r" (cr3));
+       /* This could fault if %cr4 does not exist */
+       __asm__("1: movl %%cr4, %0              \n"
+               "2:                             \n"
+               ".section __ex_table,\"a\"      \n"
+               ".long 1b,2b                    \n"
+               ".previous                      \n"
+               : "=r" (cr4): "0" (0));
+       _stp_printf ("CR0: %08lx CR2: %08lx CR3: %08lx CR4: %08lx\n", cr0, cr2, cr3, cr4);
+}
+
+#elif defined  (__x86_64__)
 void _stp_print_regs(struct pt_regs * regs)
 {
         unsigned long cr0 = 0L, cr2 = 0L, cr3 = 0L, cr4 = 0L, fs, gs, shadowgs;

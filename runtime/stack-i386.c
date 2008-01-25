@@ -21,7 +21,11 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 
 #ifdef	CONFIG_FRAME_POINTER
 	{
+                #ifdef STAPCONF_X86_UNIREGS
+                unsigned long ebp = regs->bp;
+                #elif
 		unsigned long ebp = regs->ebp;
+		#endif
 		
 		while (_stp_valid_stack_ptr(context, (unsigned long)ebp)) {
 			addr = *(unsigned long *)(ebp + 4);

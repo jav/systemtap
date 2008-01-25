@@ -591,10 +591,8 @@ struct probe
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;
-  expression* condition;
   probe ();
   void print (std::ostream& o) const;
-  void add_condition (expression* e);
   virtual void printsig (std::ostream &o) const;
   virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
   virtual probe* basest () { return this; }
@@ -848,31 +846,8 @@ require (deep_copy_visitor* v, T* dst, T src)
     }
 }
 
-template <> static void
-require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
-{
-  if (src != NULL)
-    {
-      symbol *array_src=NULL, *array_dst=NULL;
-      hist_op *hist_src=NULL, *hist_dst=NULL;
-
-      classify_indexable(src, array_src, hist_src);
-
-      *dst = NULL;
-
-      if (array_src)
-	{
-	  require <symbol*> (v, &array_dst, array_src);
-	  *dst = array_dst;
-	}
-      else
-	{
-	  require <hist_op*> (v, &hist_dst, hist_src);
-	  *dst = hist_dst;
-	}
-      assert (*dst);
-    }
-}
+template <> void
+require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src);
 
 template <typename T> void
 provide (deep_copy_visitor* v, T src)

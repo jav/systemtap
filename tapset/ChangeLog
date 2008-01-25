@@ -1,3 +1,10 @@
+2008-01-23  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR5554
+	* syscalls.stp (__is_user_regs): Add new function to check whether
+	pt_regs is user mode registers.
+	(syscall.fork): Use __is_user_regs() to decide syscall name.
+
 2008-01-16  Eugene Teo  <eteo@redhat.com>
 
 	* signal.stp (get_sa_flags, get_sa_handler): New functions to

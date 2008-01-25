@@ -1,4 +1,4 @@
-* What's new in version 0.6 / since version 0.5.15?
+* What's new in version 0.6 / 0.6.1
 
 - Crash utility can retrieve systemtap's relay buffer from a kernel dump
   image by using staplog which is a crash extension module. To use this

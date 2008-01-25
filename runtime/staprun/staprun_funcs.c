@@ -16,8 +16,6 @@
 #include <grp.h>
 #include <pwd.h>
 
-void cleanup(int rc);
-
 void setup_staprun_signals(void)
 {
 	struct sigaction a;

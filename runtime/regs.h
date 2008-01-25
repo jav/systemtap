@@ -11,8 +11,11 @@
 #ifndef _REGS_H_ /* -*- linux-c -*- */
 #define _REGS_H_
 
+#if defined  (STAPCONF_X86_UNIREGS) && (defined (__x86_64__) || defined (__i386__))
+#define REG_IP(regs) regs->ip
+#define REG_SP(regs) regs->sp
 
-#ifdef __x86_64__
+#elif defined  (__x86_64__)
 
 #define REG_IP(regs) regs->rip
 #define REG_SP(regs) regs->rsp

@@ -42,8 +42,14 @@
 
 #define MAX_SSOL_SLOTS		1024
 
+#ifdef NO_ACCESS_PROCESS_VM_EXPORT
+static int __access_process_vm(struct task_struct *tsk, unsigned long addr,
+	void *buf, int len, int write);
+#define access_process_vm __access_process_vm
+#else
 extern int access_process_vm(struct task_struct *tsk, unsigned long addr,
 	void *buf, int len, int write);
+#endif
 static int utask_fake_quiesce(struct uprobe_task *utask);
 static void uprobe_release_ssol_vma(struct uprobe_process *uproc);
 
@@ -1601,7 +1607,7 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 	int hit_uretprobe_trampoline = 0;
 	int registrations_deferred = 0;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 
 	if (info->si_signo != BREAKPOINT_SIGNAL &&
@@ -1785,7 +1791,7 @@ static u32 uprobe_report_quiesce(struct utrace_attached_engine *engine,
 	struct uprobe_task *utask;
 	struct uprobe_process *uproc;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
 	uproc = utask->uproc;
 	if (current == utask->quiesce_master) {
@@ -1886,7 +1892,7 @@ static u32 uprobe_report_exit(struct utrace_attached_engine *engine,
 	struct uprobe_probept *ppt;
 	int utask_quiescing;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
@@ -1965,7 +1971,7 @@ static u32 uprobe_report_clone(struct utrace_attached_engine *engine,
 	struct uprobe_process *uproc;
 	struct uprobe_task *ptask, *ctask;
 
-	ptask = rcu_dereference((struct uprobe_task *)engine->data);
+	ptask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = ptask->uproc;
 
 	/*
@@ -2054,7 +2060,7 @@ static u32 uprobe_report_exec(struct utrace_attached_engine *engine,
 	struct uprobe_task *utask;
 	int uproc_freed;
 
-	utask = rcu_dereference((struct uprobe_task *)engine->data);
+	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	uproc = utask->uproc;
 	uprobe_get_process(uproc);
 
@@ -2267,5 +2273,61 @@ static void zap_uretprobe_instances(struct uprobe *u,
 }
 #endif /* CONFIG_URETPROBES */
 
+#ifdef NO_ACCESS_PROCESS_VM_EXPORT
+/*
+ * Some kernel versions export everything that uprobes.ko needs except
+ * access_process_vm, so we copied and pasted it here.  Fortunately,
+ * everything it calls is exported.
+ */
+#include <linux/pagemap.h>
+#include <asm/cacheflush.h>
+static int __access_process_vm(struct task_struct *tsk, unsigned long addr, void *buf, int len, int write)
+{
+	struct mm_struct *mm;
+	struct vm_area_struct *vma;
+	struct page *page;
+	void *old_buf = buf;
+
+	mm = get_task_mm(tsk);
+	if (!mm)
+		return 0;
+
+	down_read(&mm->mmap_sem);
+	/* ignore errors, just check how much was sucessfully transfered */
+	while (len) {
+		int bytes, ret, offset;
+		void *maddr;
+
+		ret = get_user_pages(tsk, mm, addr, 1,
+				write, 1, &page, &vma);
+		if (ret <= 0)
+			break;
+
+		bytes = len;
+		offset = addr & (PAGE_SIZE-1);
+		if (bytes > PAGE_SIZE-offset)
+			bytes = PAGE_SIZE-offset;
+
+		maddr = kmap(page);
+		if (write) {
+			copy_to_user_page(vma, page, addr,
+					  maddr + offset, buf, bytes);
+			set_page_dirty_lock(page);
+		} else {
+			copy_from_user_page(vma, page, addr,
+					    buf, maddr + offset, bytes);
+		}
+		kunmap(page);
+		page_cache_release(page);
+		len -= bytes;
+		buf += bytes;
+		addr += bytes;
+	}
+	up_read(&mm->mmap_sem);
+	mmput(mm);
+
+	return buf - old_buf;
+}
+#endif
 #include "uprobes_arch.c"
 MODULE_LICENSE("GPL");

@@ -400,6 +400,20 @@ public:
       }
   }
 
+  string fini () const
+  {
+    switch (type())
+      {
+      case pe_string:
+      case pe_long:
+	return ""; // no action required
+      case pe_stats:
+	return "_stp_stat_del (" + value () + ");";
+      default:
+	throw semantic_error("unsupported deallocator for " + value());
+      }
+  }
+
   void declare(c_unparser &c) const
   {
     c.c_declare(ty, name);
@@ -887,8 +901,12 @@ c_unparser::emit_common_header ()
       // NB: see c_unparser::emit_probe() for original copy of duplicate-hashing logic.
       ostringstream oss;
       oss << "c->statp = & time_" << dp->basest()->name << ";" << endl;  // -t anti-dupe
-      dp->body->print(oss);
       oss << "# needs_global_locks: " << dp->needs_global_locks () << endl;
+      dp->body->print(oss);
+      // NB: dependent probe conditions *could* be listed here, but don't need to be.
+      // That's because they're only dependent on the probe body, which is already
+      // "hashed" in above.
+
 
       if (tmp_probe_contents.count(oss.str()) == 0) // unique
         {
@@ -911,9 +929,13 @@ c_unparser::emit_common_header ()
                 throw e2;
               }
             }
+
+          // NB: This part is finicky.  The logic here must
+          // match up with 
           c_tmpcounter ct (this);
-          dp->body->visit (& ct);
           dp->emit_probe_context_vars (o);
+          dp->body->visit (& ct);
+
           o->newline(-1) << "} " << dp->name << ";";
         }
     }
@@ -1193,6 +1215,8 @@ c_unparser::emit_module_init ()
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
+      else
+	o->newline() << getvar (v).fini();
     }
 
   o->newline() << "return rc;";
@@ -1254,6 +1278,8 @@ c_unparser::emit_module_exit ()
       vardecl* v = session->globals[i];      
       if (v->index_types.size() > 0)
 	o->newline() << getmap (v).fini();
+      else
+	o->newline() << getvar (v).fini();
     }
 
   o->newline() << "free_percpu (contexts);";
@@ -1404,8 +1430,11 @@ c_unparser::emit_probe (derived_probe* v)
   //
   // which would make comparisons impossible.
   //
-  // NB: see also c_unparser:emit_common_header(), which duplicates
-  // this calculation.
+  // --------------------------------------------------------------------------
+  // NB: see also c_unparser:emit_common_header(), which deliberately but sadly
+  // duplicates this calculation.
+  // --------------------------------------------------------------------------
+  //
   ostringstream oss;
 
   // NB: statp is just for avoiding designation as duplicate.  It need not be C.
@@ -1503,13 +1532,12 @@ c_unparser::emit_probe (derived_probe* v)
         }
 
       v->initialize_probe_context_vars (o);
-  
+
       v->body->visit (this);
 
       o->newline(-1) << "out:";
-      // NB: no need to uninitialize locals, except if arrays can
-      // somedays be local 
-
+      // NB: no need to uninitialize locals, except if arrays/stats can
+      // someday be local 
 
       // XXX: do this flush only if the body included a
       // print/printf/etc. routine!

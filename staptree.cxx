@@ -18,6 +18,7 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
@@ -89,7 +90,7 @@ probe_point::probe_point ():
 
 unsigned probe::last_probeidx = 0;
 probe::probe ():
-  body (0), tok (0), condition (0)
+  body (0), tok (0)
 {
   this->name = string ("probe_") + lex_cast<string>(last_probeidx ++);
 }
@@ -899,26 +900,6 @@ probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
   probes_list.push_back((derived_probe*)this);
 }
 
-void
-probe::add_condition (expression* e)
-{
-  if (e)
-    {
-      if (this->condition)
-        {
-          logical_and_expr *la = new logical_and_expr ();
-          la->op = "&&";
-          la->left = this->condition;
-          la->right = e;
-          la->tok = e->tok;
-          this->condition = la;
-        }
-      else
-        {
-          this->condition = e;
-        }
-    }
-}
 
 void probe_point::print (ostream& o) const
 {
@@ -2390,3 +2371,30 @@ deep_copy_visitor::deep_copy (expression* s)
   require <expression*> (&v, &n, s);
   return n;
 }
+
+template <> void
+require <indexable *> (deep_copy_visitor* v, indexable** dst, indexable* src)
+{
+  if (src != NULL)
+    {
+      symbol *array_src=NULL, *array_dst=NULL;
+      hist_op *hist_src=NULL, *hist_dst=NULL;
+
+      classify_indexable(src, array_src, hist_src);
+
+      *dst = NULL;
+
+      if (array_src)
+	{
+	  require <symbol*> (v, &array_dst, array_src);
+	  *dst = array_dst;
+	}
+      else
+	{
+	  require <hist_op*> (v, &hist_dst, hist_src);
+	  *dst = hist_dst;
+	}
+      assert (*dst);
+    }
+}
+

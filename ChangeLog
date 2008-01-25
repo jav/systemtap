@@ -1,3 +1,96 @@
+2008-01-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am: Make another $(MKDIR) call visible.
+	* Makefile.in: Regenerated.
+
+2008-01-24  David Smith  <dsmith@redhat.com>
+
+	PR 5661 (reverted).
+	* configure.ac: Removed elfutils version number check.
+	* configure: Regenerated.
+	* acsite.m4: Removed.
+	* systemtap.spec.in: Minimum elfutils version number is no longer
+	filled in by configure.
+	
+	PR 5650 (partial).
+	* configure.ac: Handles sqlite optional functionality correctly.
+	If enabled/disabled by the user, do the right thing.  If not
+	specified by the user, use it if present.
+	* configure: Regenerated.
+	* systemtap.spec.in: Always specify to configure whether to use
+	sqlite or not.
+
+2008-01-24  Dave Brolley  <brolley@redhat.com>
+
+	PR 5017.
+	* staptree.cxx (<cstring>): #include it.
+	(required <indexable *>): Remove 'static' from instantiation and
+	move instantiation to here from...
+	* staptree.h: ...here.
+
+2008-01-23  David Smith  <dsmith@redhat.com>
+
+	PR 5661.
+	* configure.ac: Checks elfutils version number.
+	* acsite.m4: New file containing macro to return elfutils version
+	number.
+	* configure: Regenerated.
+	* systemtap.spec.in: Minimum elfutils version number is now filled
+	in by configure.
+
+2008-01-23  Dave Brolley  <brolley@redhat.com>
+
+	PR 5613.
+	* translate.cxx (var::fini): New method.
+	(c_unparser::emit_module_init): Call var::fini when deregistering
+	variables without indices.
+	(c_unparser::emit_module_exit): Likewise.
+
+2008-01-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2151.
+	* tapsets.cxx (dwflpp::setup): Parametrize debuginfo_path.
+	* stap.1.in: Document this.
+
+2008-01-22  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.c: Fix from Srinivasa: Recast
+	rcu_dereferences of engine->data to resync with kernel.org
+	builds.
+
+2008-01-18  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* runtime/uprobes/uprobes.c: Added static copy of
+	access_process_vm(), for kernels that don't export it.
+
+2008-01-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, systemtap.spec.in: Update version to 0.6.1
+	* configure: Regenerated.
+
+2008-01-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4935.
+	Reorganize probe condition implementation.
+	* elaborate.cxx (add_condition): New function.
+	(derived_probe): Remove condition member.
+	(derived_probe ctors): Assert non-null incoming probe/location ptrs.
+	(insert_condition_statement): Remove; turn into ...
+	(semantic_pass_conditions): New pass-2 subpass.
+	(semantic_pass_symbols, visit_symbol, visit_functioncall, find_var):
+	Detect some condition-related error cases.
+	(match_key): Change type to exp_type from tok_type.  Update callers.
+	(alias_expansion_builder): Propagate probe conditions.
+	* staptree.cxx (probe): Remove condition field and related functions.
+	* tapsets.cxx (dwarf_derived_probe ctor): Compute replacement
+	wildcard-expanded probe_point preserving more of the original
+	location.
+	(mark_derived_probe ctor): Make similar to others - take location
+	rather than condition parameters.
+	* translate.cxx (emit_common_header): Tweak ordering of tmpcounter
+	traversal and hashkey expression generation.
+	* elaborate.h: Corresponding changes.
+
 2008-01-17  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx

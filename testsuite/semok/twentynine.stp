@@ -4,10 +4,10 @@ function dummy:long () {return p;}
 
 # alias with a condition
 probe alias0 = begin if (3) {p=1}
-# alias with a kernel-variable condition
-probe alias1 = kernel.function("sys_read").return if ($return) {p=0}
+# alias with a kernel-variable condition -- not valid
+probe alias1 = kernel.function("sys_read").return if (0) { if ($return) {p=0} }
 # alias with a function-call condition
-probe blias0 = timer.s(1) if (dummy()) {p=10}
+probe blias0 = timer.s(1) if (1 /* dummy() */) {p=10}
 
 # multiple probe point with conditions
 probe alias2 = alias0 if (1), alias1 if (-1) {p=2}

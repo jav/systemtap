@@ -33,60 +33,49 @@ using namespace std;
 
 // ------------------------------------------------------------------------
 
+// Used in probe_point condition construction.  Either argument may be
+// NULL; if both, return NULL too.  Resulting expression is a deep
+// copy for symbol resolution purposes.
+expression* add_condition (expression* a, expression* b)
+{
+  if (!a && !b) return 0;
+  if (! a) return deep_copy_visitor::deep_copy(b);
+  if (! b) return deep_copy_visitor::deep_copy(a);
+  logical_and_expr la;
+  la.op = "&&";
+  la.left = a;
+  la.right = b;
+  la.tok = a->tok; // or could be b->tok
+  return deep_copy_visitor::deep_copy(& la);
+}
+
+// ------------------------------------------------------------------------
+
+
 
 derived_probe::derived_probe (probe *p):
   base (p)
 {
-  if (p)
-    {
-      this->locations = p->locations;
-      this->condition = deep_copy_visitor::deep_copy(p->condition);
-      this->tok = p->tok;
-      this->privileged = p->privileged;
-      this->body = deep_copy_visitor::deep_copy(p->body);
-    }
+  assert (p);
+  this->locations = p->locations;
+  this->tok = p->tok;
+  this->privileged = p->privileged;
+  this->body = deep_copy_visitor::deep_copy(p->body);
 }
 
 
 derived_probe::derived_probe (probe *p, probe_point *l):
   base (p)
 {
-  if (p)
-    {
-      if (p->condition) 
-        this->condition = deep_copy_visitor::deep_copy(p->condition);
-      this->tok = p->tok;
-      this->privileged = p->privileged;
-      this->body = deep_copy_visitor::deep_copy(p->body);
-    }
+  assert (p);
+  this->tok = p->tok;
+  this->privileged = p->privileged;
+  this->body = deep_copy_visitor::deep_copy(p->body);
 
-  if (l)
-    {
-      probe_point *pp = new probe_point (l->components, l->tok);
-      this->locations.push_back (pp);
-      this->add_condition (l->condition);
-      this->insert_condition_statement ();
-    }
+  assert (l);
+  this->locations.push_back (l);
 }
 
-void
-derived_probe::insert_condition_statement (void)
-{
-  if (this->condition)
-    {
-      if_statement *ifs = new if_statement ();
-      ifs->tok = this->tok;
-      ifs->thenblock = new next_statement ();
-      ifs->thenblock->tok = this->tok;
-      ifs->elseblock = NULL;
-      unary_expression *notex = new unary_expression ();
-      notex->op = "!";
-      notex->tok = this->tok;
-      notex->operand = this->condition;
-      ifs->condition = notex;
-      body->statements.insert (body->statements.begin(), ifs);
-    }
-}
 
 void
 derived_probe::printsig (ostream& o) const
@@ -196,14 +185,14 @@ derived_probe_builder::has_null_param (std::map<std::string, literal*> const & p
 match_key::match_key(string const & n) 
   : name(n), 
     have_parameter(false), 
-    parameter_type(tok_junk)
+    parameter_type(pe_unknown)
 {
 }
 
 match_key::match_key(probe_point::component const & c)
   : name(c.functor),
     have_parameter(c.arg != NULL),
-    parameter_type(c.arg ? c.arg->tok->type : tok_junk)
+    parameter_type(c.arg ? c.arg->type : pe_unknown)
 {
 }
 
@@ -211,7 +200,7 @@ match_key &
 match_key::with_number() 
 {
   have_parameter = true;
-  parameter_type = tok_number;
+  parameter_type = pe_long;
   return *this;
 }
 
@@ -219,7 +208,7 @@ match_key &
 match_key::with_string() 
 {
   have_parameter = true;
-  parameter_type = tok_string;
+  parameter_type = pe_string;
   return *this;
 }
 
@@ -229,8 +218,8 @@ match_key::str() const
   if (have_parameter)
     switch (parameter_type)
       {
-      case tok_string: return name + "(string)";
-      case tok_number: return name + "(number)";
+      case pe_string: return name + "(string)";
+      case pe_long: return name + "(number)";
       default: return name + "(...)";
       }
   return name;
@@ -371,6 +360,10 @@ match_node::find_and_build (systemtap_session& s,
 	      non_wildcard_component->functor = subkey.name;
 	      non_wildcard_pp->components[pos] = non_wildcard_component;
 
+              // NB: probe conditions are not attached at the wildcard
+              // (component/functor) level, but at the overall
+              // probe_point level.
+
 	      // recurse (with the non-wildcard probe point)
 	      try
 	        {
@@ -439,7 +432,7 @@ match_node::build_no_more (systemtap_session& s)
 
 struct alias_derived_probe: public derived_probe
 {
-  alias_derived_probe (probe* base): derived_probe (base) {}
+  alias_derived_probe (probe* base, probe_point *l): derived_probe (base, l) {}
 
   void upchuck () { throw semantic_error ("inappropriate", this->tok); }
 
@@ -471,17 +464,18 @@ alias_expansion_builder
     // alias_expansion_probe so that the expansion loop recognizes it as
     // such and re-expands its expansion.
     
-    probe * n = new alias_derived_probe (use);
+    alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */);
     n->body = new block();
 
-    // The new probe gets the location list of the alias,
+    // The new probe gets the location list of the alias (with incoming condition joined)
     n->locations = alias->locations;
-  
+    for (unsigned i=0; i<n->locations.size(); i++)
+      n->locations[i]->condition = add_condition (n->locations[i]->condition,
+                                                  location->condition);
+
     // the token location of the alias,
     n->tok = location->tok;
     n->body->tok = location->tok;
-    // The new probe takes over condition.
-    n->add_condition (location->condition);
 
     // and statements representing the concatenation of the alias'
     // body with the use's. 
@@ -813,40 +807,6 @@ struct no_var_mutation_during_iteration_check
 };
 
 
-static int
-semantic_pass_vars (systemtap_session & sess)
-{
-  
-  map<functiondecl *, set<vardecl *> *> fmv;
-  no_var_mutation_during_iteration_check chk(sess, fmv);
-  
-  for (unsigned i = 0; i < sess.functions.size(); ++i)
-    {
-      functiondecl * fn = sess.functions[i];
-      if (fn->body)
-	{
-	  set<vardecl *> * m = new set<vardecl *>();
-	  mutated_var_collector mc (m);
-	  fn->body->visit (&mc);
-	  fmv[fn] = m;
-	}
-    }
-
-  for (unsigned i = 0; i < sess.functions.size(); ++i)
-    {
-      if (sess.functions[i]->body)
-	sess.functions[i]->body->visit (&chk);
-    }
-
-  for (unsigned i = 0; i < sess.probes.size(); ++i)
-    {
-      if (sess.probes[i]->body)
-	sess.probes[i]->body->visit (&chk);
-    }  
-
-  return sess.num_errors();
-}
-
 // ------------------------------------------------------------------------
 
 struct stat_decl_collector
@@ -950,6 +910,106 @@ semantic_pass_stats (systemtap_session & sess)
 
 // ------------------------------------------------------------------------
 
+// Enforce variable-related invariants: no modification of
+// a foreach()-iterated array.
+static int
+semantic_pass_vars (systemtap_session & sess)
+{
+  
+  map<functiondecl *, set<vardecl *> *> fmv;
+  no_var_mutation_during_iteration_check chk(sess, fmv);
+  
+  for (unsigned i = 0; i < sess.functions.size(); ++i)
+    {
+      functiondecl * fn = sess.functions[i];
+      if (fn->body)
+	{
+	  set<vardecl *> * m = new set<vardecl *>();
+	  mutated_var_collector mc (m);
+	  fn->body->visit (&mc);
+	  fmv[fn] = m;
+	}
+    }
+
+  for (unsigned i = 0; i < sess.functions.size(); ++i)
+    {
+      if (sess.functions[i]->body)
+	sess.functions[i]->body->visit (&chk);
+    }
+
+  for (unsigned i = 0; i < sess.probes.size(); ++i)
+    {
+      if (sess.probes[i]->body)
+	sess.probes[i]->body->visit (&chk);
+    }  
+
+  return sess.num_errors();
+}
+
+
+// ------------------------------------------------------------------------
+
+// Rewrite probe condition expressions into probe bodies.  Tricky and
+// exciting business, this.  This:
+//
+// probe foo if (g1 || g2) { ... }
+// probe bar { ... g1 ++ ... }
+//
+// becomes:
+//
+// probe begin(MAX) { if (! (g1 || g2)) %{ disable_probe_foo %} }
+// probe foo { if (! (g1 || g2)) next; ... }
+// probe bar { ... g1 ++ ...; 
+//             if (g1 || g2) %{ enable_probe_foo %} else %{ disable_probe_foo %}
+//           }
+//
+// XXX: As a first cut, do only the "inline probe condition" part of the
+// transform.
+
+static int
+semantic_pass_conditions (systemtap_session & sess)
+{
+  for (unsigned i = 0; i < sess.probes.size(); ++i)
+    {
+      derived_probe* p = sess.probes[i];
+      expression* e = p->sole_location()->condition;
+      if (e)
+        {
+          varuse_collecting_visitor vut;
+          e->visit (& vut);
+
+          if (! vut.written.empty())
+            {
+              string err = ("probe condition must not modify any variables");
+              sess.print_error (semantic_error (err, e->tok));
+            }
+          else if (vut.embedded_seen)
+            {
+              sess.print_error (semantic_error ("probe condition must not include impure embedded-C", e->tok));
+            }
+
+          // Add the condition expression to the front of the
+          // derived_probe body.
+          if_statement *ifs = new if_statement ();
+          ifs->tok = e->tok;
+          ifs->thenblock = new next_statement ();
+          ifs->thenblock->tok = e->tok;
+          ifs->elseblock = NULL;
+          unary_expression *notex = new unary_expression ();
+          notex->op = "!";
+          notex->tok = e->tok;
+          notex->operand = e;
+          ifs->condition = notex;
+          p->body->statements.insert (p->body->statements.begin(), ifs);
+        }
+    }  
+
+  return sess.num_errors();
+}
+
+
+// ------------------------------------------------------------------------
+
 
 static int semantic_pass_symbols (systemtap_session&);
 static int semantic_pass_optimize1 (systemtap_session&);
@@ -957,7 +1017,7 @@ static int semantic_pass_optimize2 (systemtap_session&);
 static int semantic_pass_types (systemtap_session&);
 static int semantic_pass_vars (systemtap_session&);
 static int semantic_pass_stats (systemtap_session&);
-
+static int semantic_pass_conditions (systemtap_session&);
 
 
 // Link up symbols to their declarations.  Set the session's
@@ -1030,6 +1090,12 @@ semantic_pass_symbols (systemtap_session& s)
                   sym.current_function = 0;
                   sym.current_probe = dp;
                   dp->body->visit (& sym);
+
+                  // Process the probe-point condition expression.
+                  sym.current_function = 0;
+                  sym.current_probe = 0;
+                  if (dp->sole_location()->condition)
+                    dp->sole_location()->condition->visit (& sym);
                 }
               catch (const semantic_error& e)
                 {
@@ -1058,7 +1124,8 @@ semantic_pass (systemtap_session& s)
       s.register_library_aliases();
       register_standard_tapsets(s);
       
-      rc = semantic_pass_symbols (s);
+      if (rc == 0) rc = semantic_pass_symbols (s);
+      if (rc == 0) rc = semantic_pass_conditions (s);
       if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize1 (s);
       if (rc == 0) rc = semantic_pass_types (s);
       if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize2 (s);
@@ -1248,8 +1315,8 @@ symresolution_info::visit_symbol (symbol* e)
       else if (current_probe)
         current_probe->locals.push_back (v);
       else
-        // must not happen
-        throw semantic_error ("no current probe/function", e->tok);
+        // must be probe-condition expression
+        throw semantic_error ("probe condition must not reference undeclared global", e->tok);
       e->referent = v;
     }
 }
@@ -1301,6 +1368,14 @@ symresolution_info::visit_arrayindex (arrayindex* e)
 void
 symresolution_info::visit_functioncall (functioncall* e)
 {
+  // XXX: we could relax this, if we're going to examine the
+  // vartracking data recursively.  See testsuite/semko/fortytwo.stp.
+  if (! (current_function || current_probe))
+    {
+      // must be probe-condition expression
+      throw semantic_error ("probe condition must not reference function", e->tok);
+    }
+
   for (unsigned i=0; i<e->args.size(); i++)
     e->args[i]->visit (this);
 
@@ -1323,20 +1398,22 @@ symresolution_info::visit_functioncall (functioncall* e)
 vardecl* 
 symresolution_info::find_var (const string& name, int arity)
 {
-
-  // search locals
-  vector<vardecl*>& locals = (current_function ? 
-                              current_function->locals :
-			      current_probe->locals);
-
-
-  for (unsigned i=0; i<locals.size(); i++)
-    if (locals[i]->name == name 
-	&& locals[i]->compatible_arity(arity))
-      {
-	locals[i]->set_arity (arity);
-	return locals[i];
-      }
+  if (current_function || current_probe)
+    {
+      // search locals
+      vector<vardecl*>& locals = (current_function ? 
+                                  current_function->locals :
+                                  current_probe->locals);
+      
+      
+      for (unsigned i=0; i<locals.size(); i++)
+        if (locals[i]->name == name 
+            && locals[i]->compatible_arity(arity))
+          {
+            locals[i]->set_arity (arity);
+            return locals[i];
+          }
+    }
 
   // search function formal parameters (for scalars)
   if (arity == 0 && current_function)
@@ -1430,7 +1507,11 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
 {
   functioncall_traversing_visitor ftv;
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body->visit (& ftv);
+    {
+      s.probes[i]->body->visit (& ftv);
+      if (s.probes[i]->sole_location()->condition)
+        s.probes[i]->sole_location()->condition->visit (& ftv);
+    }
   for (unsigned i=0; i<s.functions.size(); /* see below */)
     {
       if (ftv.traversed.find(s.functions[i]) == ftv.traversed.end())
@@ -1463,7 +1544,13 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
   varuse_collecting_visitor vut;
   
   for (unsigned i=0; i<s.probes.size(); i++)
-    s.probes[i]->body->visit (& vut);
+    {
+      s.probes[i]->body->visit (& vut);
+
+      if (s.probes[i]->sole_location()->condition)
+        s.probes[i]->sole_location()->condition->visit (& vut);
+    }
+
   // NB: Since varuse_collecting_visitor also traverses down
   // actually called functions, we don't need to explicitly
   // iterate over them.  Uncalled ones should have been pruned
@@ -1985,6 +2072,15 @@ semantic_pass_types (systemtap_session& s)
           ti.current_probe = pn;
           ti.t = pe_unknown;
           pn->body->visit (& ti);
+
+          probe_point* pp = pn->sole_location();
+          if (pp->condition)
+            {
+              ti.current_function = 0;
+              ti.current_probe = 0;
+              ti.t = pe_long; // NB: expected type
+              pp->condition->visit (& ti);
+            }
         }
 
       for (unsigned j=0; j<s.globals.size(); j++)
@@ -2853,7 +2949,7 @@ typeresolution_info::unresolved (const token* tok)
       stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
-                   "?");
+                   "probe condition");
       msg << nm + " with unresolved type";
       session.print_error (semantic_error (msg.str(), tok));
     }
@@ -2870,7 +2966,7 @@ typeresolution_info::invalid (const token* tok, exp_type pe)
       stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
-                   "?");
+                   "probe condition");
       if (tok && tok->type == tok_operator)
         msg << nm + " uses invalid operator";
       else
@@ -2890,7 +2986,7 @@ typeresolution_info::mismatch (const token* tok, exp_type t1, exp_type t2)
       stringstream msg;
       string nm = (current_function ? current_function->name :
                    current_probe ? current_probe->name :
-                   "?");
+                   "probe condition");
       msg << nm + " with type mismatch (" << t1 << " vs. " << t2 << ")";
       session.print_error (semantic_error (msg.str(), tok));
     }

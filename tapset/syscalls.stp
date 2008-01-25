@@ -848,6 +848,37 @@ probe syscall.flock.return = kernel.function("sys_flock").return {
 	retstr = returnstr(1)
 }
 
+function __is_user_regs:long (regs:long) %{ /* pure */
+	struct pt_regs * regs = (void *)((unsigned long)THIS->regs);
+/* copied from asm/ptrace.h */
+#if defined(__i386__)
+#ifdef STAPCONF_X86_UNIREGS
+	int cs = kread(&regs->cs);
+#else
+	int cs = kread(&regs->xcs);
+#endif
+	THIS->__retvalue = ((cs & SEGMENT_RPL_MASK) == USER_RPL);
+#elif defined(__x86_64__)
+	unsigned long cs = kread(&regs->cs);
+	THIS->__retvalue = (!!((cs & 3)));
+#elif defined(__ia64__)
+	unsigned long psr = kread(&regs->cr_ipsr);
+	THIS->__retvalue = (((struct ia64_psr *) &psr)->cpl != 0);
+#elif defined(__powerpc64__)
+	unsigned long msr = kread(&regs->msr);
+	THIS->__retvalue = ((msr >> MSR_PR_LG) & 0x1);
+#elif defined(__arm__)
+	long cpsr = kread(&regs->ARM_cpsr);
+	THIS->__retvalue = ((cpsr & 0xf) == 0);
+#elif defined(__s390__) || defined(__s390x__)
+	unsigned long mask = kread(&regs->psw.mask);
+	THIS->__retvalue = ((mask & PSW_MASK_PSTATE) != 0);
+#else
+#error "Unimplemented architecture"
+#endif
+CATCH_DEREF_FAULT();
+%}
+
 # fork _______________________________________________________
 # long do_fork(unsigned long clone_flags,
 #	unsigned long stack_start,
@@ -863,7 +894,7 @@ probe syscall.fork = kernel.function("do_fork") {
 	parent_tid_uaddr = $parent_tidptr
 	child_tid_uaddr = $child_tidptr
 	
-	if (stack_start == 0) {
+	if (!__is_user_regs(regs)) {
 		name = "fork_kernel_thread"
 		argstr = __fork_flags(clone_flags) 
 	} else if (clone_flags == 17)

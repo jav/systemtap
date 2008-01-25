@@ -12,9 +12,8 @@
 #include "staprun.h"
 
 /* send symbol data */
-static int send_data(void *data, int len)
+static int send_data(int32_t type, void *data, int len)
 {
-	int32_t type = STP_SYMBOLS;
 	if (write(control_channel, &type, 4) <= 0)
 		return -1;
 	return write(control_channel, data, len);
@@ -158,11 +157,9 @@ static int send_module (char *mname)
 {
 	char data[65536];
 	int len;
-	*(int32_t *)data = STP_MODULE;
-	len = get_sections(mname, data + sizeof(int32_t),
-			   sizeof(data) - sizeof(int32_t));
+	len = get_sections(mname, data, sizeof(data));
 	if (len > 0) {
-		if (write(control_channel, data, len + sizeof(int32_t)) <= 0) {
+		if (send_data(STP_MODULE, data, len) < 0) {
 			_err("Loading of module %s failed. Exiting...\n", mname);
 			return -1;
 		}
@@ -296,11 +293,11 @@ int do_kernel_symbols(void)
 		goto err;
 
 	/* send syms */
-	if (send_data(syms, num_syms*struct_symbol_size) < 0)
+	if (send_data(STP_SYMBOLS, syms, num_syms*struct_symbol_size) < 0)
 		goto err;
 	
 	/* send data */
-	if (send_data(data_base, dataptr-data_base) < 0)
+	if (send_data(STP_SYMBOLS, data_base, dataptr-data_base) < 0)
 		goto err;
 
 	free(data_base);
