@@ -1,3 +1,8 @@
+2008-01-25  Will Cohen  <wcohen@redhat.com>
+	
+	PR5554
+	* syscalls.stp (__is_user_regs): Modify to work with older kernels.
+
 2008-01-23  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR5554

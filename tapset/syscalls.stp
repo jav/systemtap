@@ -857,7 +857,7 @@ function __is_user_regs:long (regs:long) %{ /* pure */
 #else
 	int cs = kread(&regs->xcs);
 #endif
-	THIS->__retvalue = ((cs & SEGMENT_RPL_MASK) == USER_RPL);
+	THIS->__retvalue = (!!((cs & 3)));
 #elif defined(__x86_64__)
 	unsigned long cs = kread(&regs->cs);
 	THIS->__retvalue = (!!((cs & 3)));
