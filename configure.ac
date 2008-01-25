@@ -24,33 +24,28 @@ AC_PROG_MAKE_SET
 AC_SUBST(CFLAGS)
 AC_SUBST(CXXFLAGS)
 
-dnl enable option to generate code for using perfmon
-AC_ARG_ENABLE(perfmon,
-	[  --enable-perfmon                 enable perfmon support (default is disabled)],
-	perfmon_support=$enableval, perfmon_support=no)
-
-AC_ARG_WITH([perfmon],
-	     AC_HELP_STRING([--with-perfmon=DIRECTORY],
-			    [Path to Perfmon installation to use]),
-	    [
-case "$with_perfmon" in
-yes ) AC_MSG_ERROR([--with-perfmon requires an argument]) ;;
-''|no) ;;
-*) perfmon_support=yes ;;
-esac])
-
-
-dnl XXX fixme so that it it can use perfmon installed for real
-dnl check that perfmon libraries are actually there
-if test $perfmon_support = yes; then
-  AC_CHECK_LIB(pfm, pfm_start,,[
+dnl Handle the perfmon option.
+AC_ARG_ENABLE([perfmon],
+  AS_HELP_STRING([--enable-perfmon@<:@=DIRECTORY@:>@],
+    [enable perfmon support (default is disabled).  Optional DIRECTORY
+    is the path to the perfmon installation (needed if installed in a
+    non-standard location).]), [
+  dnl Add perfmon define and library
+  CFLAGS="$CFLAGS -DPERFMON"
+  CXXFLAGS="$CXXFLAGS -DPERFMON"
+  LIBS="$LIBS -lpfm"
+  dnl Handle custom install dir (if needed)
+  if test "$enable_perfmon" != "yes"; then
+    CFLAGS="$CFLAGS -I$enable_perfmon/include"
+    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
+    LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
+  fi
+  AC_CHECK_LIB([pfm], [pfm_start], [], [
     AC_MSG_ERROR([systemtap cannot find required perfmon libs])])
-  CFLAGS="$CFLAGS -DPERFMON -I$with_perfmon/include"
-  CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
-  LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
-fi
+])
 
-
+dnl Handle the prologues option.
+dnl
 dnl If the user didn't specify --enable-prologues/--disable-prologues
 dnl and the x86 system has a version of gcc less than version 4,
 dnl automatically enable prologues.
@@ -65,28 +60,28 @@ if test "${enable_prologues+set}" != set; then
     AC_MSG_RESULT([no])
   fi
 fi
-
-AC_ARG_ENABLE(prologues,
-         AC_HELP_STRING([--enable-prologues],[make -P prologue-searching default]),
-	 [
+AC_ARG_ENABLE([prologues],
+  AS_HELP_STRING([--enable-prologues], [make -P prologue-searching default]),
+  [
 if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
+
 AC_ARG_ENABLE([ssp],
-            [AC_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
+  [AS_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
 AS_IF([test "x$enable_ssp" == xyes],
-      [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
+  [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
 
 dnl Handle optional sqlite support.  If enabled/disabled by the user,
 dnl do the right thing.  If not specified by the user, use it if
 dnl present.
 AC_ARG_ENABLE([sqlite],
-	AS_HELP_STRING([--enable-sqlite], [build with sqlite support]),
-	[],				dnl ACTION-IF-GIVEN
-	[enable_sqlite=check])		dnl ACTION-IF-NOT-GIVEN
+  AS_HELP_STRING([--enable-sqlite], [build with sqlite support]),
+  [],					dnl ACTION-IF-GIVEN
+  [enable_sqlite=check])		dnl ACTION-IF-NOT-GIVEN
 sqlite3_LIBS=
 AS_IF([test "x$enable_sqlite" != xno],
   [AC_CHECK_LIB([sqlite3], [sqlite3_open],
@@ -95,18 +90,23 @@ AS_IF([test "x$enable_sqlite" != xno],
       AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
      fi])])
 
-AC_ARG_ENABLE([ssp],
-            [AC_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
-AS_IF([test "x$enable_ssp" == xyes],
-      [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
+AC_CHECK_HEADERS(crash/defs.h,
+  build_crashmod=yes,build_crashmod=no,
+  [
+#define NR_CPUS 256
+])
+AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
 
+AC_CHECK_HEADERS([sys/capability.h], , 
+  [AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
+
+dnl Handle elfutils.  If '--with-elfutils=DIR' wasn't specified, used
+dnl the system's elfutils.
 build_elfutils=no
 AC_ARG_WITH([elfutils],
-            AC_HELP_STRING([--with-elfutils=DIRECTORY],
-                           [find elfutils source code in DIRECTORY]),
-	    [
+  AS_HELP_STRING([--with-elfutils=DIRECTORY],
+    [find elfutils source code in DIRECTORY]),
+  [
 case "$with_elfutils" in
 yes) AC_MSG_ERROR([--with-elfutils requires an argument]) ;;
 ''|no) ;;
@@ -115,16 +115,6 @@ esac])
 AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
-
-AC_CHECK_HEADERS(crash/defs.h,
-        build_crashmod=yes,build_crashmod=no,
-        [
-#define NR_CPUS 256
-])
-AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
-
-AC_CHECK_HEADERS([sys/capability.h], , 
-	[AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
 
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
@@ -135,7 +125,7 @@ if test $build_elfutils = no; then
     AC_MSG_ERROR([missing elfutils development headers/libraries (ebl 0.123+)])])
 
   stap_LIBS="$LIBS"
-  LIBS="$SAVE_LIBS"
+  LIBS="$save_LIBS"
 else
   # We built our own and stap_LDFLAGS points at the install.
   stap_LIBS="-ldw -lebl"
@@ -175,9 +165,9 @@ CFLAGS="$SAVE_CFLAGS"
 
 dnl Create SNAPSHOT file from git commit id if possible
 if test -d $srcdir/.git -a ! -f $srcdir/SNAPSHOT; then
-   snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
-   echo $snapshot > SNAPSHOT
-   AC_MSG_NOTICE([Created git SNAPSHOT $snapshot]) 
+ snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
+ echo $snapshot > SNAPSHOT
+ AC_MSG_NOTICE([Created git SNAPSHOT $snapshot]) 
 fi
 
 AC_CONFIG_HEADERS([config.h:config.in])

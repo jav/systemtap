@@ -706,11 +706,11 @@ U
 ANSI2KNR
 RANLIB
 sqlite3_LIBS
+BUILD_CRASHMOD_TRUE
+BUILD_CRASHMOD_FALSE
 BUILD_ELFUTILS_TRUE
 BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
-BUILD_CRASHMOD_TRUE
-BUILD_CRASHMOD_FALSE
 stap_LIBS
 DATE
 PROCFLAGS
@@ -1310,7 +1310,11 @@ Optional Features:
 			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
-  --enable-perfmon                 enable perfmon support (default is disabled)
+  --enable-perfmon[=DIRECTORY]
+                          enable perfmon support (default is disabled).
+                          Optional DIRECTORY is the path to the perfmon
+                          installation (needed if installed in a non-standard
+                          location).
   --enable-prologues      make -P prologue-searching default
   --enable-ssp            enable gcc stack-protector
   --enable-sqlite         build with sqlite support
@@ -1318,8 +1322,6 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-perfmon=DIRECTORY
-                          Path to Perfmon installation to use
   --with-elfutils=DIRECTORY
                           find elfutils source code in DIRECTORY
 
@@ -5825,28 +5827,15 @@ fi
 
 # Check whether --enable-perfmon was given.
 if test "${enable_perfmon+set}" = set; then
-  enableval=$enable_perfmon; perfmon_support=$enableval
-else
-  perfmon_support=no
-fi
-
-
-
-# Check whether --with-perfmon was given.
-if test "${with_perfmon+set}" = set; then
-  withval=$with_perfmon;
-case "$with_perfmon" in
-yes ) { { echo "$as_me:$LINENO: error: --with-perfmon requires an argument" >&5
-echo "$as_me: error: --with-perfmon requires an argument" >&2;}
-   { (exit 1); exit 1; }; } ;;
-''|no) ;;
-*) perfmon_support=yes ;;
-esac
-fi
-
-
-
-if test $perfmon_support = yes; then
+  enableval=$enable_perfmon;
+    CFLAGS="$CFLAGS -DPERFMON"
+  CXXFLAGS="$CXXFLAGS -DPERFMON"
+  LIBS="$LIBS -lpfm"
+    if test "$enable_perfmon" != "yes"; then
+    CFLAGS="$CFLAGS -I$enable_perfmon/include"
+    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
+    LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
+  fi
 
 { echo "$as_me:$LINENO: checking for pfm_start in -lpfm" >&5
 echo $ECHO_N "checking for pfm_start in -lpfm... $ECHO_C" >&6; }
@@ -5923,9 +5912,7 @@ echo "$as_me: error: systemtap cannot find required perfmon libs" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-  CFLAGS="$CFLAGS -DPERFMON -I$with_perfmon/include"
-  CXXFLAGS="$CXXFLAGS -DPERFMON -I$with_perfmon/include"
-  LDFLAGS="$LDFLAGS -DPERFMON -L$with_perfmon/lib -lpfm"
+
 fi
 
 
@@ -5943,7 +5930,6 @@ echo "${ECHO_T}yes" >&6; }
 echo "${ECHO_T}no" >&6; }
   fi
 fi
-
 # Check whether --enable-prologues was given.
 if test "${enable_prologues+set}" = set; then
   enableval=$enable_prologues;
@@ -5957,6 +5943,7 @@ fi
 fi
 
 
+
 # Check whether --enable-ssp was given.
 if test "${enable_ssp+set}" = set; then
   enableval=$enable_ssp;
@@ -5964,8 +5951,8 @@ fi
 
 if test "x$enable_ssp" == xyes; then
   CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
+   CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
 echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
 fi
 
@@ -5974,7 +5961,7 @@ fi
 if test "${enable_sqlite+set}" = set; then
   enableval=$enable_sqlite;
 else
-  	enable_sqlite=check
+    enable_sqlite=check
 fi
 		sqlite3_LIBS=
 if test "x$enable_sqlite" != xno; then
@@ -6053,47 +6040,6 @@ See \`config.log' for more details." >&2;}
 fi
 
 fi
-
-
-# Check whether --enable-ssp was given.
-if test "${enable_ssp+set}" = set; then
-  enableval=$enable_ssp;
-fi
-
-if test "x$enable_ssp" == xyes; then
-  CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-       { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
-echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
-fi
-
-
-build_elfutils=no
-
-# Check whether --with-elfutils was given.
-if test "${with_elfutils+set}" = set; then
-  withval=$with_elfutils;
-case "$with_elfutils" in
-yes) { { echo "$as_me:$LINENO: error: --with-elfutils requires an argument" >&5
-echo "$as_me: error: --with-elfutils requires an argument" >&2;}
-   { (exit 1); exit 1; }; } ;;
-''|no) ;;
-*) build_elfutils=yes ;;
-esac
-fi
-
- if test $build_elfutils = yes; then
-  BUILD_ELFUTILS_TRUE=
-  BUILD_ELFUTILS_FALSE='#'
-else
-  BUILD_ELFUTILS_TRUE='#'
-  BUILD_ELFUTILS_FALSE=
-fi
-
-elfutils_abs_srcdir=`if test $build_elfutils = yes; then
-  cd $with_elfutils && pwd
-fi
-`
 
 
 
@@ -6317,6 +6263,34 @@ fi
 done
 
 
+build_elfutils=no
+
+# Check whether --with-elfutils was given.
+if test "${with_elfutils+set}" = set; then
+  withval=$with_elfutils;
+case "$with_elfutils" in
+yes) { { echo "$as_me:$LINENO: error: --with-elfutils requires an argument" >&5
+echo "$as_me: error: --with-elfutils requires an argument" >&2;}
+   { (exit 1); exit 1; }; } ;;
+''|no) ;;
+*) build_elfutils=yes ;;
+esac
+fi
+
+ if test $build_elfutils = yes; then
+  BUILD_ELFUTILS_TRUE=
+  BUILD_ELFUTILS_FALSE='#'
+else
+  BUILD_ELFUTILS_TRUE='#'
+  BUILD_ELFUTILS_FALSE=
+fi
+
+elfutils_abs_srcdir=`if test $build_elfutils = yes; then
+  cd $with_elfutils && pwd
+fi
+`
+
+
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
@@ -6474,7 +6448,7 @@ fi
 
 
   stap_LIBS="$LIBS"
-  LIBS="$SAVE_LIBS"
+  LIBS="$save_LIBS"
 else
   # We built our own and stap_LDFLAGS points at the install.
   stap_LIBS="-ldw -lebl"
@@ -6592,9 +6566,9 @@ LIBS="$SAVE_LIBS"
 CFLAGS="$SAVE_CFLAGS"
 
 if test -d $srcdir/.git -a ! -f $srcdir/SNAPSHOT; then
-   snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
-   echo $snapshot > SNAPSHOT
-   { echo "$as_me:$LINENO: Created git SNAPSHOT $snapshot" >&5
+ snapshot=`cd $srcdir; git-rev-list --abbrev-commit --max-count=1 HEAD`
+ echo $snapshot > SNAPSHOT
+ { echo "$as_me:$LINENO: Created git SNAPSHOT $snapshot" >&5
 echo "$as_me: Created git SNAPSHOT $snapshot" >&6;}
 fi
 
@@ -6736,17 +6710,17 @@ echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
-if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"BUILD_ELFUTILS\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"BUILD_ELFUTILS\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
 if test -z "${BUILD_CRASHMOD_TRUE}" && test -z "${BUILD_CRASHMOD_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_CRASHMOD\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_CRASHMOD\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_ELFUTILS_TRUE}" && test -z "${BUILD_ELFUTILS_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_ELFUTILS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_ELFUTILS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7392,11 +7366,11 @@ U!$U$ac_delim
 ANSI2KNR!$ANSI2KNR$ac_delim
 RANLIB!$RANLIB$ac_delim
 sqlite3_LIBS!$sqlite3_LIBS$ac_delim
+BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
+BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
 BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
 BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
 elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
-BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
-BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then

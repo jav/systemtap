@@ -4,7 +4,7 @@
 	* Makefile.am (CRASH_LIBDIR): Pass in $(RUNTEST).
 	* lib/systemtap.exp (as_root): Trace command string, output, and
 	result.
-	* sysetmtap.samples/crash.*, testlog.stp: New test case.
+	* systemtap.samples/crash.*, testlog.stp: New test case.
 	* Makefile.in: Regenerated.
 
 2008-01-23  Frank Ch. Eigler  <fche@elastic.org>
