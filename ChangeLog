@@ -1,3 +1,11 @@
+2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5673.
+	* tapsets.cxx (dwarf_derived_probe_group): Split stap_dwarf_probes[]
+	into bss-carried kprobes structs.  Tune embedded strings for
+	minimizing relocation-vs-fixed-buffer wastage.
+	* tapsets.cxx (dwarf_derived_probe): Impose .maxactive() limits.
+
 2008-01-25  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Within a probed process, serialize

@@ -1,0 +1,5 @@
+#! stap -p2
+
+probe kernel.function("sys_open").return.maxactive(99999999)
+{
+}

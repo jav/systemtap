@@ -3649,6 +3649,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   this->tok = q.base_probe->tok;
 
+  // Range limit maxactive() value
+  if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
+    throw semantic_error ("maxactive value out of range [0,"
+                          + lex_cast<string>(USHRT_MAX) + "]",
+                          q.base_loc->tok);
+
   // Make a target-variable-expanded copy of the probe body
   if (scope_die)
     {
@@ -3810,16 +3816,61 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->line() << " struct pt_regs *regs);";
 
   // Emit the actual probe list.
-  s.op->newline() << "struct stap_dwarf_probe {";
+
+  // NB: we used to plop a union { struct kprobe; struct kretprobe } into
+  // struct stap_dwarf_probe, but it being initialized data makes it add
+  // hundreds of bytes of padding per stap_dwarf_probe.  (PR5673)
+  s.op->newline() << "struct stap_dwarf_kprobe {";
   s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
-  s.op->newline() << "unsigned return_p:1;";
+  s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
+  // NB: bss!
+
+  s.op->newline() << "struct stap_dwarf_probe {";
+  s.op->newline(1) << "unsigned return_p:1;";
   s.op->newline() << "unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
-  s.op->newline() << "const char *module;";
-  s.op->newline() << "const char *section;";
+  s.op->newline() << "unsigned short maxactive_val;";
+
+  // Let's find some stats for the three embedded strings.  Maybe they
+  // are small and uniform enough to justify putting char[MAX]'s into
+  // the array instead of relocated char*'s.
+  size_t module_name_max = 0, section_name_max = 0, pp_name_max = 0;
+  size_t module_name_tot = 0, section_name_tot = 0, pp_name_tot = 0;
+  size_t all_name_cnt = probes_by_module.size(); // for average
+  for (p_b_m_iterator it = probes_by_module.begin(); it != probes_by_module.end(); it++)
+    {
+      dwarf_derived_probe* p = it->second;
+#define DOIT(var,expr) do {                             \
+        size_t var##_size = (expr) + 1;                 \
+        var##_max = max (var##_max, var##_size);        \
+        var##_tot += var##_size; } while (0)
+      DOIT(module_name, p->module.size());
+      DOIT(section_name, p->section.size());
+      DOIT(pp_name, lex_cast_qstring(*p->sole_location()).size());
+#undef DOIT
+    }
+
+  // Decide whether it's worthwhile to use char[] or char* by comparing
+  // the amount of average waste (max - avg) to the relocation data size
+  // (3 native long words).
+#define CALCIT(var)                                                     \
+  if ((var##_name_max-(var##_name_tot/all_name_cnt)) < (3 * sizeof(void*))) \
+    {                                                                   \
+      s.op->newline() << "const char " << #var << "[" << var##_name_max << "];"; \
+      if (s.verbose > 2) clog << "stap_dwarf_probe " << #var            \
+                              << "[" << var##_name_max << "]" << endl;  \
+    }                                                                   \
+  else                                                                  \
+    {                                                                   \
+      s.op->newline() << "const char *" << #var << ";";                 \
+      if (s.verbose > 2) clog << "stap_dwarf_probe *" << #var << endl;  \
+    }
+
+  CALCIT(module);
+  CALCIT(section);
+  CALCIT(pp);
+
   s.op->newline() << "unsigned long address;";
-  s.op->newline() << "unsigned long maxactive_val;";
-  s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
@@ -3831,12 +3882,14 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
       if (p->has_return)
         s.op->line() << " .return_p=1,";
       if (p->has_maxactive)
-        s.op->line() << " .maxactive_p=1,";
+        {
+          s.op->line() << " .maxactive_p=1,";
+          assert (p->maxactive_val >= 0 && p->maxactive_val <= USHRT_MAX);
+          s.op->line() << " .maxactive_val=" << p->maxactive_val << ",";
+        }
       s.op->line() << " .address=0x" << hex << p->addr << dec << "UL,";
       s.op->line() << " .module=\"" << p->module << "\",";
       s.op->line() << " .section=\"" << p->section << "\",";
-      if (p->has_maxactive)
-	s.op->line() << " .maxactive_val=" << p->maxactive_val << "UL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name;
       s.op->line() << " },";
@@ -3848,7 +3901,14 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
   s.op->line() << " struct pt_regs *regs) {";
-  s.op->newline(1) << "struct stap_dwarf_probe *sdp = container_of(inst, struct stap_dwarf_probe, u.kp);";
+  // NB: as of PR5673, the kprobe|kretprobe union struct is in BSS
+  s.op->newline(1) << "int kprobe_idx = ((uintptr_t)inst-(uintptr_t)stap_dwarf_kprobes)/sizeof(struct stap_dwarf_kprobe);";
+  // Check that the index is plausible
+  s.op->newline() << "struct stap_dwarf_probe *sdp = &stap_dwarf_probes[";
+  s.op->line() << "((kprobe_idx >= 0 && kprobe_idx < " << probes_by_module.size() << ")?";
+  s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
+  // XXX: it would be nice to give a more verbose error though; BUG_ON later?
+  s.op->line() << "];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = sdp->pp;";
   s.op->newline() << "c->regs = regs;";
@@ -3862,7 +3922,16 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
   s.op->line() << " struct pt_regs *regs) {";
   s.op->newline(1) << "struct kretprobe *krp = inst->rp;";
-  s.op->newline() << "struct stap_dwarf_probe *sdp = container_of(krp, struct stap_dwarf_probe, u.krp);";
+
+  // NB: as of PR5673, the kprobe|kretprobe union struct is in BSS
+  s.op->newline(1) << "int kprobe_idx = ((uintptr_t)krp-(uintptr_t)stap_dwarf_kprobes)/sizeof(struct stap_dwarf_kprobe);";
+  // Check that the index is plausible
+  s.op->newline() << "struct stap_dwarf_probe *sdp = &stap_dwarf_probes[";
+  s.op->line() << "((kprobe_idx >= 0 && kprobe_idx < " << probes_by_module.size() << ")?";
+  s.op->line() << "kprobe_idx:0)"; // NB: at least we avoid memory corruption
+  // XXX: it would be nice to give a more verbose error though; BUG_ON later?
+  s.op->line() << "];";
+
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = sdp->pp;";
   s.op->newline() << "c->regs = regs;";
@@ -3879,28 +3948,30 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline(1) << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "probe_point = sdp->pp;";
   s.op->newline() << "if (sdp->return_p) {";
-  s.op->newline(1) << "sdp->u.krp.kp.addr = (void *) relocated_addr;";
+  s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "if (sdp->maxactive_p) {";
-  s.op->newline(1) << "sdp->u.krp.maxactive = sdp->maxactive_val;";
+  s.op->newline(1) << "kp->u.krp.maxactive = sdp->maxactive_val;";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "sdp->u.krp.maxactive = max(10, 4*NR_CPUS);";
+  s.op->newline(1) << "kp->u.krp.maxactive = max(10, 4*NR_CPUS);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "sdp->u.krp.handler = &enter_kretprobe_probe;";
-  s.op->newline() << "rc = register_kretprobe (& sdp->u.krp);";
+  s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
+  s.op->newline() << "rc = register_kretprobe (& kp->u.krp);";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "sdp->u.kp.addr = (void *) relocated_addr;";
-  s.op->newline() << "sdp->u.kp.pre_handler = &enter_kprobe_probe;";
-  s.op->newline() << "rc = register_kprobe (& sdp->u.kp);";
+  s.op->newline(1) << "kp->u.kp.addr = (void *) relocated_addr;";
+  s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "rc = register_kprobe (& kp->u.kp);";
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
   s.op->newline(1) << "struct stap_dwarf_probe *sdp2 = & stap_dwarf_probes[j];";
-  s.op->newline() << "if (sdp2->return_p) unregister_kretprobe (&sdp2->u.krp);";
-  s.op->newline() << "else unregister_kprobe (&sdp2->u.kp);";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp2 = & stap_dwarf_kprobes[j];";
+  s.op->newline() << "if (sdp2->return_p) unregister_kretprobe (&kp2->u.krp);";
+  s.op->newline() << "else unregister_kprobe (&kp2->u.kp);";
   // NB: we don't have to clear sdp2->registered_p, since the module_exit code is
   // not run for this early-abort case.
   s.op->newline(-1) << "}";
@@ -3916,14 +3987,15 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline(1) << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (sdp->return_p) {";
-  s.op->newline(1) << "unregister_kretprobe (&sdp->u.krp);";
-  s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
-  s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
+  s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
+  s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
+  s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "unregister_kprobe (&sdp->u.kp);";
-  s.op->newline() << "atomic_add (sdp->u.kp.nmissed, & skipped_count);";
+  s.op->newline(1) << "unregister_kprobe (&kp->u.kp);";
+  s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "}";
   s.op->newline() << "sdp->registered_p = 0;";
   s.op->newline(-1) << "}";

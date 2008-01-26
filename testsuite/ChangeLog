@@ -1,3 +1,8 @@
+2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5673.
+	* testsuite/parseko/maxactive{04,05}.stp: New tests.
+
 2008-01-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	crash(8) tests, based on Masami Hiramatsu <mhiramat@redhat.com>:
