@@ -157,6 +157,13 @@ struct uprobe_ssol_area {
 	/* lock held while finding a free slot */
 	spinlock_t lock;
 
+	/*
+	 * We currently use access_process_vm() to populate instruction
+	 * slots.  Calls must be serialized because access_process_vm()
+	 * isn't thread-safe.
+	 */
+	struct mutex populate_mutex;
+
 	/* Next slot to steal */
 	int next_slot;
 
