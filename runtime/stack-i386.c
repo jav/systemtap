@@ -23,7 +23,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 	{
                 #ifdef STAPCONF_X86_UNIREGS
                 unsigned long ebp = regs->bp;
-                #elif
+                #else
 		unsigned long ebp = regs->ebp;
 		#endif
 		
