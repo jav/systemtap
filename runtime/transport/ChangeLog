@@ -1,3 +1,7 @@
+2008-01-28  Martin Hunt  <hunt@redhat.com>
+
+	* control.c, procfs.c, symbols.c: Use DEFINE_SPINLOCK
+
 2008-01-15  Martin Hunt  <hunt@redhat.com>
 	    
 	PR4037 and fixes to better synchronize staprun and stapio.

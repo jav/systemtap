@@ -16,7 +16,7 @@
 #define _SYMBOLS_C_
 #include "../sym.h"
 
-spinlock_t _stp_module_lock = SPIN_LOCK_UNLOCKED;
+DEFINE_SPINLOCK(_stp_module_lock);
 #define STP_TRYLOCK_MODULES  ({						\
 		int numtrylock = 0;					\
 		while (!spin_trylock_irqsave (&_stp_module_lock, flags) && (++numtrylock < MAXTRYLOCK)) \

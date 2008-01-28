@@ -1,7 +1,7 @@
 /* -*- linux-c -*-
  *
  * debugfs control channel
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -15,9 +15,9 @@ static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 static struct list_head _stp_ctl_ready_q;
 static struct list_head _stp_sym_ready_q;
 static struct list_head _stp_pool_q;
-spinlock_t _stp_pool_lock = SPIN_LOCK_UNLOCKED;
-spinlock_t _stp_ctl_ready_lock = SPIN_LOCK_UNLOCKED;
-spinlock_t _stp_sym_ready_lock = SPIN_LOCK_UNLOCKED;
+DEFINE_SPINLOCK(_stp_pool_lock);
+DEFINE_SPINLOCK(_stp_ctl_ready_lock);
+DEFINE_SPINLOCK(_stp_sym_ready_lock);
 
 static ssize_t _stp_sym_write_cmd (struct file *file, const char __user *buf,
 				    size_t count, loff_t *ppos)
