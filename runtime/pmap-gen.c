@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * pmap API generator
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -412,7 +412,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries)
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
 #if NEED_MAP_LOCKS
-			m->lock = SPIN_LOCK_UNLOCKED;
+			spin_lock_init(m->lock);
 #endif
 		}
 		m = &pmap->agg;
@@ -466,7 +466,7 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 			m->copy = KEYSYM(pmap_copy_keys);
 			m->cmp = KEYSYM(pmap_key_cmp);
 #if NEED_MAP_LOCKS
-			m->lock = SPIN_LOCK_UNLOCKED;
+			spin_lock_init(m->lock);
 #endif
 		}
 		m = &pmap->agg;

@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Counter aggregation Functions
- * Copyright (C) 2005 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -60,7 +60,7 @@ Counter _stp_counter_init (void)
 		int i;
 		for_each_cpu(i) {
 			Counter c = per_cpu_ptr (cnt, i);
-			c->lock = SPIN_LOCK_UNLOCKED;
+			spin_lock_init(c->lock);
 		}
 	}
 #endif
