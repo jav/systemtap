@@ -1,5 +1,8 @@
 2008-01-28  David Smith  <dsmith@redhat.com>
 
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_decls):
+	Added 'const' to several members of stap_dwarf_probes.
+
 	PR 5685.  From Eugeniy Meshcheryakov <eugen@debian.org>
 	* configure.ac: If "--enable-sqlite" is specified, define
 	HAVE_LIBSQLITE3.

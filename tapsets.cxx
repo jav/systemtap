@@ -3826,10 +3826,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // NB: bss!
 
   s.op->newline() << "struct stap_dwarf_probe {";
-  s.op->newline(1) << "unsigned return_p:1;";
-  s.op->newline() << "unsigned maxactive_p:1;";
+  s.op->newline(1) << "const unsigned return_p:1;";
+  s.op->newline() << "const unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
-  s.op->newline() << "unsigned short maxactive_val;";
+  s.op->newline() << "const unsigned short maxactive_val;";
 
   // Let's find some stats for the three embedded strings.  Maybe they
   // are small and uniform enough to justify putting char[MAX]'s into
@@ -3862,7 +3862,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
     }                                                                   \
   else                                                                  \
     {                                                                   \
-      s.op->newline() << "const char *" << #var << ";";                 \
+      s.op->newline() << "const char * const " << #var << ";";                 \
       if (s.verbose > 2) clog << "stap_dwarf_probe *" << #var << endl;  \
     }
 
@@ -3870,8 +3870,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   CALCIT(section);
   CALCIT(pp);
 
-  s.op->newline() << "unsigned long address;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "const unsigned long address;";
+  s.op->newline() << "void (* const ph) (struct context*);";
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
 
