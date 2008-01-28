@@ -1,5 +1,11 @@
 2008-01-28  David Smith  <dsmith@redhat.com>
 
+	* configure.ac: Fixed a bug when "--disable-permon" was used.
+	Added "--enable-crash" option.
+	* configure: Regenerated.
+	* Makefile.am: Improved staplog.so compile command.
+	* Makefile.in: Regenerated.
+
 	* tapsets.cxx (dwarf_derived_probe_group::emit_module_decls):
 	Added 'const' to several members of stap_dwarf_probes.
 

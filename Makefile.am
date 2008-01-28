@@ -88,12 +88,12 @@ if BUILD_CRASHMOD
 STAPLOG=staplog.so
 
 $(STAPLOG): staplog.c
-	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
+		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
 all-local: $(STAPLOG)
 install-exec-local: $(STAPLOG)
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
-else
 endif
 
 # Get extra libs as needed

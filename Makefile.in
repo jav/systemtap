@@ -181,7 +181,6 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
-ELFUTILS_REQUIRED_VERSION = @ELFUTILS_REQUIRED_VERSION@
 EXEEXT = @EXEEXT@
 GREP = @GREP@
 INSTALL = @INSTALL@
@@ -254,6 +253,7 @@ sharedstatedir = @sharedstatedir@
 sqlite3_LIBS = @sqlite3_LIBS@
 srcdir = @srcdir@
 stap_LIBS = @stap_LIBS@
+staplog_CPPFLAGS = @staplog_CPPFLAGS@
 subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
@@ -1474,7 +1474,8 @@ install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
 
 @BUILD_CRASHMOD_TRUE@$(STAPLOG): staplog.c
-@BUILD_CRASHMOD_TRUE@	$(CC) -Wall -shared -rdynamic $(LDFLAGS) $(CFLAGS) -fPIC -o $@ $<
+@BUILD_CRASHMOD_TRUE@	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
+@BUILD_CRASHMOD_TRUE@		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
 @BUILD_CRASHMOD_TRUE@all-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@install-exec-local: $(STAPLOG)
 @BUILD_CRASHMOD_TRUE@	$(MKDIR_P) $(DESTDIR)$(pkglibdir)

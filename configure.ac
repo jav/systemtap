@@ -30,19 +30,18 @@ AC_ARG_ENABLE([perfmon],
     [enable perfmon support (default is disabled).  Optional DIRECTORY
     is the path to the perfmon installation (needed if installed in a
     non-standard location).]), [
-  dnl Add perfmon define and library
-  CFLAGS="$CFLAGS -DPERFMON"
-  CXXFLAGS="$CXXFLAGS -DPERFMON"
-  LIBS="$LIBS -lpfm"
-  dnl Handle custom install dir (if needed)
-  if test "$enable_perfmon" != "yes"; then
-    CFLAGS="$CFLAGS -I$enable_perfmon/include"
-    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
-    LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
-  fi
-  AC_CHECK_LIB([pfm], [pfm_start], [], [
-    AC_MSG_ERROR([systemtap cannot find required perfmon libs])])
-])
+  if test "$enable_perfmon" != "no"; then
+    dnl Add perfmon define and library
+    CPPFLAGS="$CPPFLAGS -DPERFMON"
+    LIBS="$LIBS -lpfm"
+    dnl Handle custom install dir (if needed)
+    if test "$enable_perfmon" != "yes"; then
+      CPPFLAGS="$CPPFLAGS -I$enable_perfmon/include"
+      LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
+    fi
+    AC_CHECK_LIB([pfm], [pfm_start], [], [
+      AC_MSG_ERROR([systemtap cannot find required perfmon libs (libpfm-devel may need to be installed])])
+  fi])
 
 dnl Handle the prologues option.
 dnl
@@ -91,12 +90,29 @@ AS_IF([test "x$enable_sqlite" != xno],
       AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
      fi])])
 
-AC_CHECK_HEADERS(crash/defs.h,
-  build_crashmod=yes,build_crashmod=no,
-  [
+dnl Handle the option to build the crash extension
+AC_ARG_ENABLE([crash],
+  AS_HELP_STRING([--enable-crash@<:@=DIRECTORY@:>@],
+    [enable crash extension (default is disabled).  Optional DIRECTORY
+    is the path to the crash header file (needed if installed in a
+    non-standard location).]),
+  [if test "$enable_crash" != "no"; then
+    dnl Handle custom install dir (if needed)
+    save_CPPFLAGS="$CPPFLAGS"
+    if test "$enable_crash" != "yes"; then
+      staplog_CPPFLAGS=-I$enable_crash
+      CPPFLAGS="${staplog_CPPFLAGS} $CPPFLAGS"
+      AC_SUBST([staplog_CPPFLAGS])
+    fi
+    AC_CHECK_HEADERS([crash/defs.h], [],
+     [AC_MSG_ERROR([cannot find required crash header (crash-devel may need to be installed)])],
+     [
 #define NR_CPUS 256
-])
-AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
+     ])
+    CPPFLAGS="$save_CPPFLAGS"
+  fi],
+  [enable_crash="no"])
+AM_CONDITIONAL([BUILD_CRASHMOD], [test "$enable_crash" != "no"])
 
 AC_CHECK_HEADERS([sys/capability.h], , 
   [AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])
