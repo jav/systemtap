@@ -1,3 +1,10 @@
+2008-01-28  David Smith  <dsmith@redhat.com>
+
+	PR 5685.  From Eugeniy Meshcheryakov <eugen@debian.org>
+	* configure.ac: If "--enable-sqlite" is specified, define
+	HAVE_LIBSQLITE3.
+	* configure: Regenerated.
+
 2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5673.

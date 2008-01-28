@@ -6029,6 +6029,10 @@ echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
 if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
   sqlite3_LIBS=-lsqlite3
 
+     cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBSQLITE3 1
+_ACEOF
+
 else
   if test "x$enable_sqlite" != xcheck; then
       { { echo "$as_me:$LINENO: error: --enable-sqlite was given, but test for sqlite failed
