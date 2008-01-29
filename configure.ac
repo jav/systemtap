@@ -66,13 +66,18 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
-
 AC_ARG_ENABLE([ssp],
-  [AS_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
-AS_IF([test "x$enable_ssp" == xyes],
-  [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+  [AS_HELP_STRING([--disable-ssp], [disable gcc stack-protector])])
+AS_IF([test "x$enable_ssp" != xno],[
+   save_CFLAGS="$CFLAGS"
+   save_CXXFLAGS="$CXXFLAGS"
    CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
+   CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   AC_COMPILE_IFELSE([int something ();], [
+       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])], [
+       AC_MSG_NOTICE([Compiler does not support -fstack-protector-all et al.])
+       CFLAGS="$save_CFLAGS"
+       CXXFLAGS="$save_CXXFLAGS"])])
 
 dnl Handle optional sqlite support.  If enabled/disabled by the user,
 dnl do the right thing.  If not specified by the user, use it if

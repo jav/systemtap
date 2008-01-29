@@ -1317,7 +1317,7 @@ Optional Features:
                           installation (needed if installed in a non-standard
                           location).
   --enable-prologues      make -P prologue-searching default
-  --enable-ssp            enable gcc stack-protector
+  --disable-ssp           disable gcc stack-protector
   --enable-sqlite         build with sqlite support
   --enable-crash[=DIRECTORY]
                           enable crash extension (default is disabled).
@@ -5948,17 +5948,52 @@ fi
 fi
 
 
-
 # Check whether --enable-ssp was given.
 if test "${enable_ssp+set}" = set; then
   enableval=$enable_ssp;
 fi
 
-if test "x$enable_ssp" == xyes; then
-  CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+if test "x$enable_ssp" != xno; then
+
+   save_CFLAGS="$CFLAGS"
+   save_CXXFLAGS="$CXXFLAGS"
    CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
+   CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   cat >conftest.$ac_ext <<_ACEOF
+int something ();
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+
+       { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
 echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+       { echo "$as_me:$LINENO: Compiler does not support -fstack-protector-all et al." >&5
+echo "$as_me: Compiler does not support -fstack-protector-all et al." >&6;}
+       CFLAGS="$save_CFLAGS"
+       CXXFLAGS="$save_CXXFLAGS"
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 
 

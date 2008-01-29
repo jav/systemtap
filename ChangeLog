@@ -1,3 +1,10 @@
+2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5647
+	* configure.ac (--enable-ssp): Make default on compilers that
+	support it.
+	* configure: Regenerated.
+
 2008-01-28  David Smith  <dsmith@redhat.com>
 
 	* configure.ac: Fixed a bug when "--disable-permon" was used.
