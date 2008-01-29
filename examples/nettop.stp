@@ -1,25 +1,15 @@
 #! /usr/bin/env stap
 
-global ifxmit, ifrecv, ifdevs, ifpid, execname, user
+global ifxmit, ifrecv
 
 probe netdev.transmit
 {
-        p = pid()
-        execname[p] = execname()
-        user[p] = uid()
-        ifdevs[p, dev_name] = dev_name
-        ifxmit[p, dev_name] <<< length
-        ifpid[p, dev_name] ++
+        ifxmit[pid(), dev_name, execname(), uid()] <<< length
 }
 
 probe netdev.receive
 {
-        p = pid()
-        execname[p] = execname()
-        user[p] = uid()
-        ifdevs[p, dev_name] = dev_name
-        ifrecv[p, dev_name] <<< length
-        ifpid[p, dev_name] ++
+        ifrecv[pid(), dev_name, execname(), uid()] <<< length
 }
 
 
@@ -29,27 +19,24 @@ function print_activity()
                 "PID", "UID", "DEV", "XMIT_PK", "RECV_PK",
                 "XMIT_KB", "RECV_KB", "COMMAND")
 
-        foreach ([pid, dev] in ifpid-) {
-                n_xmit = @count(ifxmit[pid, dev])
-                n_recv = @count(ifrecv[pid, dev])
+        foreach ([pid, dev, exec, uid] in ifrecv-) {
+                n_xmit = @count(ifxmit[pid, dev, exec, uid])
+                n_recv = @count(ifrecv[pid, dev, exec, uid])
                 printf("%5d %5d %-7s %7d %7d %7d %7d %-15s\n",
-                        pid, user[pid], dev, n_xmit, n_recv,
-                        n_xmit ? @sum(ifxmit[pid, dev])/1024 : 0,
-                        n_recv ? @sum(ifrecv[pid, dev])/1024 : 0,
-                        execname[pid])
+                        pid, uid, dev, n_xmit, n_recv,
+                        n_xmit ? @sum(ifxmit[pid, dev, exec, uid])/1024 : 0,
+                        n_recv ? @sum(ifrecv[pid, dev, exec, uid])/1024 : 0,
+                        exec)
         }
 
         print("\n")
 
-        delete execname
-        delete user
-        delete ifdevs
         delete ifxmit
         delete ifrecv
-        delete ifpid
 }
 
-probe timer.ms(5000)
+probe timer.ms(5000), end, error
 {
         print_activity()
 }
+
