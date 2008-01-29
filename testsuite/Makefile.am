@@ -8,8 +8,8 @@ all-local:
 	@echo Run \"make check\" or \"make installcheck\".
 
 clean-local:
-	@rm -f ./stap site.exp systemtap.sum systemtap.log
-	@rm -rf .systemtap .cache_test
+	-rm -f ./stap site.exp systemtap.sum systemtap.log
+	-rm -rf .systemtap .cache_test 2>/dev/null
 
 installcheck-local: clean site.exp
 	$(MAKE) AM_RUNTESTFLAGS="--tool_opts install" check-DEJAGNU

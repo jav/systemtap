@@ -1,3 +1,9 @@
+2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (clean-local): Allow "rm -rf" to fail due to
+	root-owned .ko files in the local cache.
+	* Makefile.in: Regenerated.
+
 2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5673.
