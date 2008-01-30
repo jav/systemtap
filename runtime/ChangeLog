@@ -1,3 +1,8 @@
+2008-01-29  Martin Hunt  <hunt@redhat.com>
+
+	* alloc.c (struct _stp_malloc_type): Remove
+	redundant field.
+
 2008-01-28  Martin Hunt  <hunt@redhat.com>
 
 	* alloc.c: Use DEFINE_SPINLOCK.

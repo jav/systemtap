@@ -41,15 +41,14 @@ static int _stp_allocated_memory = 0;
 enum _stp_memtype { MEM_KMALLOC, MEM_VMALLOC, MEM_PERCPU };
 
 typedef struct {
-	enum _stp_memtype type;
 	char *alloc;
 	char *free;
 } _stp_malloc_type;
 
 static const _stp_malloc_type const _stp_malloc_types[] = {
-	{MEM_KMALLOC, "kmalloc", "kfree"},
-	{MEM_VMALLOC, "vmalloc", "vfree"},
-	{MEM_PERCPU, "alloc_percpu", "free_percpu"}
+	{"kmalloc", "kfree"},
+	{"vmalloc", "vfree"},
+	{"alloc_percpu", "free_percpu"}
 };
 
 struct _stp_mem_entry {
