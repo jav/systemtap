@@ -52,7 +52,7 @@ void print_coverage_info(systemtap_session &s)
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
     vector<derived_probe*> unused_probe_list;
-    s.probes[i]->collect_derivation_chain(unused_probe_list);
+    s.unused_probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
       for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k)
         clog << "probe: "
@@ -241,7 +241,7 @@ sql_update_unused_probes(sqlite3 *db, systemtap_session &s)
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
     vector<derived_probe*> unused_probe_list;
-    s.probes[i]->collect_derivation_chain(unused_probe_list);
+    s.unused_probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k) {
 
