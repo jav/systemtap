@@ -1,5 +1,11 @@
 2008-01-29  Martin Hunt  <hunt@redhat.com>
 
+	* io.c (_stp_vlog): Use get_cpu() instead
+	of smp_processor_id() because this function can get 
+	called with interrupts enabled.
+
+2008-01-29  Martin Hunt  <hunt@redhat.com>	
+
 	* alloc.c (struct _stp_malloc_type): Remove
 	redundant field.
 
