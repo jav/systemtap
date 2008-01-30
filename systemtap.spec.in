@@ -3,35 +3,32 @@
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
-# Set bundled_elfutils to 0 on systems that have %{elfutils_version} or newer.
-%if 0%{?fedora}
-%define bundled_elfutils 1
-%define sqlite 0
-%if "%fedora" >= "6"
-%define bundled_elfutils 0
-%define sqlite 1
-%endif
-%endif
+# The following build options are enabled by default.  Use either
+# '--without <opt>' in your rpmbuild command or force values to 0 in
+# here to disable them.
 
+# Build with sqlite support
+%define with_sqlite %{?_without_sqlite: 0} %{?!_without_sqlite: 1}
+
+# The following build options are disabled by default.  Use either
+# '--with <opt>' in your rpmbuild command or force values to 1 in here
+# to enable them.
+
+# Build with crash extension.
+%define with_crash %{?_with_crash: 1} %{?!_with_crash: 0}
+# Use the bundled version of elfutils (vs. the system's version).  Use
+# the system's version of elfutils on systems that have
+# %{elfutils_version} or higher.
+%define with_bundled_elfutils %{?_with_bundled_elfutils: 1} %{?!_with_bundled_elfutils: 0}
+
+# Set up OS specific defaults.
 %if 0%{?rhel}
-%define bundled_elfutils 1
-%define sqlite 0
 %if "%rhel" >= "5"
-%define bundled_elfutils 0
-%define sqlite 1
+# Enable these options by default for RHEL (unless the user has
+# specified them on the command line).
+%define with_crash %{?_without_crash: 0} %{?!_without_crash: 1}
+%define with_bundled_elfutils %{?_without_bundled_elfutils: 0} %{?!_without_bundled_elfutils: 1}
 %endif
-%endif
-
-%if 0%{!?bundled_elfutils:1}
-# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
-# You can use rpmbuild --define "bundled_elfutils 0" for a build of your own.
-%define bundled_elfutils 1
-%endif
-
-%if 0%{!?sqlite:1}
-# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
-# You can use rpmbuild --define "sqlite 1" for a build of your own.
-%define sqlite 0
 %endif
 
 Name: systemtap
@@ -47,11 +44,11 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
 BuildRequires: libcap-devel
-%if %{sqlite}
+%if %{with_sqlite}
 BuildRequires: sqlite-devel
 Requires: sqlite
 %endif
-%if "%rhel" >= "5"
+%if %{with_crash}
 BuildRequires: crash-devel
 %endif
 # Requires: kernel-devel
@@ -61,12 +58,15 @@ Requires: gcc make
 Requires: systemtap-runtime = %{version}-%{release}
 Requires(pre): shadow-utils
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
 %define setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
+%endif
+%if %{with_crash}
+Requires: crash
 %endif
 
 %description
@@ -100,7 +100,7 @@ without having to rebuild from sources.
 %prep
 %setup -q %{?setup_elfutils}
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 cd elfutils-%{elfutils_version}
 %patch1 -p1
 sleep 1
@@ -112,7 +112,7 @@ cd ..
 
 %build
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 # Build our own copy of elfutils.
 %define elfutils_config --with-elfutils=elfutils-%{elfutils_version}
 
@@ -128,13 +128,20 @@ cd ..
 %endif
 
 # Enable/disable the sqlite coverage testing support
-%if %{sqlite}
+%if %{with_sqlite}
 %define sqlite_config --enable-sqlite
 %else
 %define sqlite_config --disable-sqlite
 %endif
 
-%configure %{?elfutils_config} %{?sqlite_config}
+# Enable/disable the crash extension
+%if %{with_crash}
+%define crash_config --enable-crash
+%else
+%define crash_config --disable-crash
+%endif
+
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config}
 make %{?_smp_mflags}
 
 # Fix paths in the example scripts
@@ -155,12 +162,6 @@ chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 
 # Copy over the testsuite
 cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
-
-if [ -f $RPM_BUILD_ROOT%{_libdir}/%{name}/staplog.so ]; then
-	echo %{_libdir}/%{name}/staplog.so > runtime-addl-files.txt
-else
-	touch runtime-addl-files.txt
-fi
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -183,12 +184,17 @@ exit 0
 %{_datadir}/systemtap/runtime
 %{_datadir}/systemtap/tapset
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils} || %{with_crash}
 %dir %{_libdir}/%{name}
+%endif
+%if %{with_bundled_elfutils}
 %{_libdir}/%{name}/lib*.so*
 %endif
+%if %{with_crash}
+%{_libdir}/%{name}/staplog.so*
+%endif
 
-%files runtime -f runtime-addl-files.txt
+%files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/systemtap

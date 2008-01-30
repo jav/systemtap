@@ -1,3 +1,9 @@
+2008-01-30  David Smith  <dsmith@redhat.com>
+
+	PR 5650
+	* systemtap.spec.in: Simplified and explicitly specifies configure
+	options.
+
 2008-01-30  Dave Brolley  <brolley@redhat.com>
 
 	* coveragedb.cxx (print_coverage_info): Fix typo: s.probes -> s.unused_probes
