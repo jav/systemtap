@@ -6,6 +6,7 @@ foreach file [lsort [glob -nocomplain $srcdir/$self/*.stp]] {
     # some tests are known to fail.
     switch $test {
         buildok/perfmon01.stp {setup_kfail 909 *-*-*}
+        buildok/seventeen.stp {setup_kfail 4393 *-*-*}
         buildok/twentysix.stp {setup_kfail 4105 *-*-*}
         buildok/twentyseven.stp {setup_kfail 4166 *-*-*}
 	buildok/process_test.stp {setup_kfail 1155 *-*-*}

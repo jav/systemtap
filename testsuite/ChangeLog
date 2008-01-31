@@ -1,3 +1,7 @@
+2008-01-31  Will Cohen <wcohen@redhat.com>
+
+	* systemtap.pass1-4/buildok.exp: Add some kfails.
+
 2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (clean-local): Allow "rm -rf" to fail due to
