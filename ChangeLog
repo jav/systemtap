@@ -166,6 +166,12 @@
 	error when trying to use the perfmon target variable '$counter as
 	an array or structure.
 
+2008-01-17  Srinivasa DS  <srinivasa@in.ibm.com>
+
+	PR 5483.
+	* tapsets.cxx (emit_address): Tolerate dummy relocation entry
+	added for kernel by recent elfutils.
+
 2008-01-16  David Smith  <dsmith@redhat.com>
 
 	PR 5608.
