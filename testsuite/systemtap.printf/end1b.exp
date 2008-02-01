@@ -3,13 +3,7 @@ set TEST_NAME "$subdir/end1b"
 
 if {![installtest_p]} { untested $TEST_NAME; return }
 
-# Look for stap_merge in the toplevel build directory
-# and if that fails, use "which" to try to find a copy
-# in the path.
-set stap_merge_path "$srcdir/../runtime/staprun/stap_merge.tcl"
-if (![file executable $stap_merge_path]) {
-    catch {exec which stap_merge} stap_merge_path
-}
+set stap_merge_path "$srcdir/$subdir/stap_merge.tcl"
 if (![file executable $stap_merge_path]) {
     fail "$TEST_NAME : could not find stap_merge"
     return

@@ -1,3 +1,8 @@
+2008-02-01  Martin Hunt  <hunt@redhat.com>
+	PR4736
+	* systemtap.printf/stap_merge.tcl: Copied here so
+	it will always be available.
+
 2008-01-31  Will Cohen <wcohen@redhat.com>
 
 	* systemtap.pass1-4/buildok.exp: Add some kfails.
