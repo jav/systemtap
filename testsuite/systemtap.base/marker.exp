@@ -11,7 +11,7 @@
 proc stap_compile { TEST_NAME compile script args } {
     set cmd [concat {stap -v -p4 -e} $script $args]
     
-    puts "running $cmd" 
+    verbose -log "running $cmd" 
     eval spawn $cmd
     set compile_errors 0
     expect {
@@ -190,5 +190,49 @@ if {$kernel_markers_found == 0} {
     # Try compiling a script that treats its first marker argument
     # like an array (which isn't allowed).
     set script [format $kernel_script_arg3 $num_marker_name {\[0\]}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER11"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that prints the format string of a
+    # marker.
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$format}]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "K_MARKER12"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that writes to a marker format string
+    # (which isn't allowed).
+    set script [format $kernel_script_arg2 \
+		    [lindex $kernel_marker_names 0] {\$format}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER13"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that treats the marker format string as a
+    # structure (which isn't allowed).
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$format->foo}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER14"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that treats the marker format string like
+    # an array (which isn't allowed).
+    set script [format $kernel_script_arg \
+		    [lindex $kernel_marker_names 0] {\$format\[0\]}]
     stap_compile $TEST_NAME 0 $script
 }
