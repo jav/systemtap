@@ -5079,6 +5079,8 @@ struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
   bool target_symbol_seen;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_format (target_symbol* e);
 };
 
 
@@ -5119,13 +5121,8 @@ hex_dump(unsigned char *data, size_t len)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
-
-  if (e->base_name.substr(0,4) != "$arg")
-    throw semantic_error ("invalid target symbol for marker, $argN expected",
-			  e->tok);
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = atoi (argnum_s.c_str());
 
@@ -5152,7 +5149,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 	  break;
 	}
     }
-
+  
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
@@ -5186,6 +5183,73 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
   provide <functioncall*> (this, n);
+}
+
+
+void
+mark_var_expanding_copy_visitor::visit_target_symbol_format (target_symbol* e)
+{
+  static bool function_synthesized = false;
+
+  if (is_active_lvalue (e))
+    throw semantic_error("write to marker format not permitted", e->tok);
+
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("marker format may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("marker format may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid marker format use", e->tok);
+	  break;
+	}
+    }
+  
+  string fname = string("_mark_format_get");
+
+  // Synthesize a function (if not already synthesized).
+  if (! function_synthesized)
+    {
+      function_synthesized = true;
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->data, MAXSTRINGLEN); /* pure */");
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_string;
+      sess.functions.push_back(fdecl);
+    }
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+  provide <functioncall*> (this, n);
+}
+
+void
+mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name.substr(0,4) == "$arg")
+    visit_target_symbol_arg (e);
+  else if (e->base_name == "$format")
+    visit_target_symbol_format (e);
+  else
+    throw semantic_error ("invalid target symbol for marker, $argN or $format expected",
+			  e->tok);
 }
 
 
@@ -5445,10 +5509,10 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "struct stap_marker_probe {";
-  s.op->newline(1) << "const char *name;";
-  s.op->newline() << "const char *format;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context *);";
+  s.op->newline(1) << "const char * const name;";
+  s.op->newline() << "const char * const format;";
+  s.op->newline() << "const char * const pp;";
+  s.op->newline() << "void (* const ph) (struct context *);";
 
   s.op->newline(-1) << "} stap_marker_probes [" << probes.size() << "] = {";
   s.op->indent(1);
@@ -5474,10 +5538,13 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
+  s.op->newline() << "c->data = (char *)smp->format;";
 
   s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";
+  s.op->newline() << "c->data = NULL;";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 

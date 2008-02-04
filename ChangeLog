@@ -1,5 +1,16 @@
 2008-02-04  David Smith  <dsmith@redhat.com>
 
+	PR 4446 (partial)
+	* tapsets.cxx
+	(mark_var_expanding_copy_visitor::visit_target_symbol_arg): New
+	function.
+	(mark_var_expanding_copy_visitor::visit_target_symbol_format): New
+	function.
+	(mark_var_expanding_copy_visitor::visit_target_symbol): Handles
+	"$arg" or "$format".
+	(mark_derived_probe_group::emit_module_decls): Sets up "$format"
+	data.
+	
 	PR 5670 (parital)
 	* systemtap.spec.in: Moved %pre section to the systemtap-runtime
 	rpm.
