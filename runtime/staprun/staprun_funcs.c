@@ -336,7 +336,11 @@ int check_permissions(void)
 
 	/* If neither group was found, just return an error. */
 	if (stapdev_gid == (gid_t)-1 && stapusr_gid == (gid_t)-1) {
-		err("ERROR: unable to find either group \"stapdev\" or group \"stapusr\"\n");
+		err("ERROR: You are trying to run stap as a normal user.\n"
+			"You should either be root, or be part of either "
+			"group \"stapdev\" or group \"stapusr\".\n"
+			"Your system doesn't seem to have either group.\n"
+			"For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage\n");
 		return -1;
 	}
 
@@ -374,7 +378,10 @@ int check_permissions(void)
 	/* If path_check is 0, then the user isn't a member of either
 	 * group.  Error out. */
 	if (path_check == 0) {
-		err("ERROR: you must be a member of either group \"stapdev\" or group \"stapusr\"\n");
+		err("ERROR: You are trying to run stap as a normal user.\n"
+			"You must be a member of either group \"stapdev\" or group \"stapusr\".\n"
+			"Please contact your system administrator to get yourself membership to either of those groups.\n"
+			"For more information, please consult the \"SAFETY AND SECURITY\" section of the \"stap(1)\" manpage.\n");
 		return 0;
 	}
 
