@@ -1,5 +1,10 @@
 2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* systemtap.base/cmd_parse.exp: Added 'wait' between tests for
+	preventing unexpected EOF.
+
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* systemtap.base/procfs.exp: Added PROCFS.ko cleanup.
 	* systemtap.context/context.exp: Added cleanup call.
 	* systemtap.printf/end1b.exp: Passed evaluated command string to
