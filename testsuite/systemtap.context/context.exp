@@ -76,6 +76,5 @@ foreach test $testlist {
     source $test.tcl
 }
 
-
-
+cleanup
 

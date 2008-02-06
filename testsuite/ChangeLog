@@ -1,3 +1,14 @@
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* systemtap.base/procfs.exp: Added PROCFS.ko cleanup.
+	* systemtap.context/context.exp: Added cleanup call.
+	* systemtap.printf/end1b.exp: Passed evaluated command string to
+	as_root.
+	* systemtap.printf/mixed_outb.exp: Ditto.
+	* systemtap.printf/out1b.exp: Ditto.
+	* systemtap.printf/out2b.exp: Ditto.
+	* systemtap.printf/out3b.exp: Ditto.
+
 2008-02-04  David Smith  <dsmith@redhat.com>
 
 	PR 4446.
