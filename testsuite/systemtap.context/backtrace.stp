@@ -4,7 +4,7 @@ function print_all_trace_info(point:string) {
         print("--------\n")
 	bt = backtrace()
 	printf("the %s stack is %s\n", point, bt)
-        print("--------\n")
+        printf("--<%s>--\n", point)
 	print_stack(bt);
         print("--------\n")
 }

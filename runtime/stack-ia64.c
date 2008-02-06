@@ -23,8 +23,8 @@ static void __stp_show_stack_sym(struct unw_frame_info *info, void *arg)
                 if (skip){
 			if (ip == REG_IP(regs))
 				skip = 0;
-                        else continue;
-                }
+			continue;
+		}
 		_stp_print_char(' ');
 		_stp_symbol_print(ip);
 		_stp_print_char('\n');

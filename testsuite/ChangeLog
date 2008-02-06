@@ -1,5 +1,12 @@
 2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	* systemtap.context/backtrace.tcl: Fixed regular expressions and Added
+	new expression for checking return probe's stacktrace on ia64.
+	* systemtap.context/backtrace.stp (print_all_trace_info): Added
+	trace point output before calling print_stack().
+
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* systemtap.base/cmd_parse.exp: Added 'wait' between tests for
 	preventing unexpected EOF.
 

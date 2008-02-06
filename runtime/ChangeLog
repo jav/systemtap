@@ -1,3 +1,8 @@
+2008-02-06  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* stack-ia64.c (__stp_show_stack_sym): Skip printing symbol if (ip ==
+	REG_IP(regs)).
+
 2008-01-29  Martin Hunt  <hunt@redhat.com>
 
 	* io.c (_stp_vlog): Use get_cpu() instead
