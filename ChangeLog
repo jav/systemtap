@@ -1,3 +1,8 @@
+2008-02-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx (run_make_cmd, compile_pass): Tweak kbuild
+	parametrization to produce useful compile logs at -vv.
+
 2008-02-04  David Smith  <dsmith@redhat.com>
 
 	PR 4446 (partial)
