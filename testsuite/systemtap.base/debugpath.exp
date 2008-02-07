@@ -17,3 +17,4 @@ expect {
 	eof { fail "$test (eof)" }
 }
 
+wait
