@@ -3,32 +3,15 @@
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
-# The following build options are enabled by default.  Use either
-# '--without <opt>' in your rpmbuild command or force values to 0 in
-# here to disable them.
+# Default options (suitable for fedora)
+%define with_sqlite 1
+%define with_crash 0
+%define with_bundled_elfutils 0
 
-# Build with sqlite support
-%define with_sqlite %{?_without_sqlite: 0} %{?!_without_sqlite: 1}
-
-# The following build options are disabled by default.  Use either
-# '--with <opt>' in your rpmbuild command or force values to 1 in here
-# to enable them.
-
-# Build with crash extension.
-%define with_crash %{?_with_crash: 1} %{?!_with_crash: 0}
-# Use the bundled version of elfutils (vs. the system's version).  Use
-# the system's version of elfutils on systems that have
-# %{elfutils_version} or higher.
-%define with_bundled_elfutils %{?_with_bundled_elfutils: 1} %{?!_with_bundled_elfutils: 0}
-
-# Set up OS specific defaults.
-%if 0%{?rhel}
-%if "%rhel" >= "5"
-# Enable these options by default for RHEL (unless the user has
-# specified them on the command line).
-%define with_crash %{?_without_crash: 0} %{?!_without_crash: 1}
-%define with_bundled_elfutils %{?_without_bundled_elfutils: 0} %{?!_without_bundled_elfutils: 1}
-%endif
+# Enable these options by default for RHEL
+%if 0%{?rhel} >= 5
+%define with_crash 1
+%define with_bundled_elfutils 1
 %endif
 
 Name: systemtap

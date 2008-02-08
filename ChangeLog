@@ -1,3 +1,8 @@
+2008-02-08  David Smith  <dsmith@redhat.com>
+
+	PR 5670
+	* systemtap.spec.in: Further simplification.
+
 2008-02-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* buildrun.cxx (run_make_cmd, compile_pass): Tweak kbuild
