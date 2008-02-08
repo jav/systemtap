@@ -1,6 +1,6 @@
 2008-02-08  David Smith  <dsmith@redhat.com>
 
-	PR 5670
+	PR 5650
 	* systemtap.spec.in: Further simplification.
 
 2008-02-07  Frank Ch. Eigler  <fche@elastic.org>
@@ -21,7 +21,7 @@
 	(mark_derived_probe_group::emit_module_decls): Sets up "$format"
 	data.
 	
-	PR 5670 (parital)
+	PR 5650 (parital)
 	* systemtap.spec.in: Moved %pre section to the systemtap-runtime
 	rpm.
 
