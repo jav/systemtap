@@ -5957,8 +5957,8 @@ if test "x$enable_ssp" != xno; then
 
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
-   CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   CXXFLAGS="$CXXFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   CFLAGS="$CFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
    cat >conftest.$ac_ext <<_ACEOF
 int something ();
 _ACEOF
@@ -5982,6 +5982,8 @@ eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
 
        { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
 echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
+	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+	CXFXLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
 else
   echo "$as_me: failed program was:" >&5
 sed 's/^/| /' conftest.$ac_ext >&5

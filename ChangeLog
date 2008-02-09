@@ -1,3 +1,10 @@
+2008-02-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5751.
+	* configure.ac: Add -Werror to trial compilation with
+	-fstack-protector-all, for hosts that don't quite support it.
+	* configure: Regenerated.
+
 2008-02-08  David Smith  <dsmith@redhat.com>
 
 	PR 5650
