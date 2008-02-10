@@ -6071,7 +6071,8 @@ echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
 if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
   sqlite3_LIBS=-lsqlite3
 
-     cat >>confdefs.h <<\_ACEOF
+
+cat >>confdefs.h <<\_ACEOF
 #define HAVE_LIBSQLITE3 1
 _ACEOF
 

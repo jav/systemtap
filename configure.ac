@@ -92,7 +92,7 @@ sqlite3_LIBS=
 AS_IF([test "x$enable_sqlite" != xno],
   [AC_CHECK_LIB([sqlite3], [sqlite3_open],
     [AC_SUBST([sqlite3_LIBS], [-lsqlite3])
-     AC_DEFINE([HAVE_LIBSQLITE3])],
+     AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define to 1 if you have the `sqlite3' library (-lsqlite3).])],
     [if test "x$enable_sqlite" != xcheck; then
       AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
      fi])])

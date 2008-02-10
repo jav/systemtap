@@ -1,5 +1,14 @@
 2008-02-09  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR5750.
+	From Eugeniy Meshcheryakov eugen@debian.org:
+	* configure.ac (HAVE_LIBSQLITE3): Complete AC_DEFINE.
+	
+	* configure, INSTALL, missing, compile, depcomp, install-sh:
+	autoreconf -fi'd.
+
+2008-02-09  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5751.
 	* configure.ac: Add -Werror to trial compilation with
 	-fstack-protector-all, for hosts that don't quite support it.
