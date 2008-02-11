@@ -94,6 +94,15 @@ struct deferred_registration {
 	enum uprobe_type type;
 };
 
+/*
+ * Calling a signal handler cancels single-stepping, so uprobes delays
+ * calling the handler, as necessary, until after single-stepping is completed.
+ */
+struct delayed_signal {
+	struct list_head list;
+	siginfo_t info;
+};
+
 static struct uprobe_task *uprobe_find_utask(struct task_struct *tsk)
 {
 	struct hlist_head *head;
@@ -436,6 +445,7 @@ static int quiesce_all_threads(struct uprobe_process *uproc,
 static void uprobe_free_task(struct uprobe_task *utask)
 {
 	struct deferred_registration *dr, *d;
+	struct delayed_signal *ds, *ds2;
 	struct uretprobe_instance *ri;
 	struct hlist_node *r1, *r2;
 
@@ -445,6 +455,12 @@ static void uprobe_free_task(struct uprobe_task *utask)
 		list_del(&dr->list);
 		kfree(dr);
 	}
+
+	list_for_each_entry_safe(ds, ds2, &utask->delayed_signals, list) {
+		list_del(&ds->list);
+		kfree(ds);
+	}
+
 	hlist_for_each_entry_safe(ri, r1, r2, &utask->uretprobe_instances,
 			hlist) {
 		hlist_del(&ri->hlist);
@@ -557,6 +573,7 @@ static struct uprobe_task *uprobe_add_task(struct task_struct *t,
 	utask->doomed = 0;
 	INIT_HLIST_HEAD(&utask->uretprobe_instances);
 	INIT_LIST_HEAD(&utask->deferred_registrations);
+	INIT_LIST_HEAD(&utask->delayed_signals);
 	INIT_LIST_HEAD(&utask->list);
 	list_add_tail(&utask->list, &uproc->thread_list);
 	uprobe_hash_utask(utask);
@@ -1577,6 +1594,33 @@ static inline void uprobe_post_ssin(struct uprobe_task *utask,
 /* uprobe_pre_ssout() and uprobe_post_ssout() are architecture-specific. */
 
 /*
+ * Delay delivery of the indicated signal until after single-step.
+ * Otherwise single-stepping will be cancelled as part of calling
+ * the signal handler.
+ */
+static u32 uprobe_delay_signal(struct uprobe_task *utask, siginfo_t *info)
+{
+	struct delayed_signal *ds = kmalloc(sizeof(*ds), GFP_USER);
+	if (ds) {
+		ds->info = *info;
+		INIT_LIST_HEAD(&ds->list);
+		list_add_tail(&ds->list, &utask->delayed_signals);
+	}
+	return UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN |
+			UTRACE_ACTION_SINGLESTEP | UTRACE_ACTION_NEWSTATE;
+}
+
+static void uprobe_inject_delayed_signals(struct list_head *delayed_signals)
+{
+	struct delayed_signal *ds, *tmp;
+	list_for_each_entry_safe(ds, tmp, delayed_signals, list) {
+		send_sig_info(ds->info.si_signo, &ds->info, current);
+		list_del(&ds->list);
+		kfree(ds);
+	}
+}
+
+/*
  * Signal callback:
  *
  * We get called here with:
@@ -1616,9 +1660,23 @@ static u32 uprobe_report_signal(struct utrace_attached_engine *engine,
 	unsigned long probept;
 	int hit_uretprobe_trampoline = 0;
 	int registrations_deferred = 0;
+	int uproc_freed = 0;
+	struct list_head delayed_signals;
 
 	utask = (struct uprobe_task *)rcu_dereference(engine->data);
 	BUG_ON(!utask);
+
+	/*
+	 * info will be null if we're called with action=UTRACE_SIGNAL_HANDLER,
+	 * which means that single-stepping has been disabled so a signal
+	 * handler can be called in the probed process.  That should never
+	 * happen because we intercept and delay handled signals (action =
+	 * UTRACE_ACTION_RESUME) until after we're done single-stepping.
+	 */
+	BUG_ON(!info);
+	if (action == UTRACE_ACTION_RESUME && utask->active_probe &&
+					info->si_signo != SSTEP_SIGNAL)
+		return uprobe_delay_signal(utask, info);
 
 	if (info->si_signo != BREAKPOINT_SIGNAL &&
 					info->si_signo != SSTEP_SIGNAL)
@@ -1722,13 +1780,21 @@ bkpt_done:
 			uprobe_get_process(uproc);
 		}
 
+		/*
+		 * Delayed signals are a little different.  We want
+		 * them delivered even if all the probes get unregistered
+		 * and uproc and utask go away.  So disconnect the list
+		 * from utask and make it a local list.
+		 */
+		INIT_LIST_HEAD(&delayed_signals);
+		list_splice_init(&utask->delayed_signals, &delayed_signals);
+
 		ret = UTRACE_ACTION_HIDE | UTRACE_SIGNAL_IGN
 			| UTRACE_ACTION_NEWSTATE;
 		utask->state = UPTASK_RUNNING;
 		if (utask->quiescing) {
 			up_read(&uproc->rwsem);
-			if (utask_fake_quiesce(utask) == 1)
-				ret |= UTRACE_ACTION_DETACH;
+			uproc_freed |= utask_fake_quiesce(utask);
 		} else
 			up_read(&uproc->rwsem);
 
@@ -1738,12 +1804,17 @@ bkpt_done:
 			 * we just recycled was the last reason for
 			 * keeping uproc around.
 			 */
-			uprobe_put_process(uproc);
+			uproc_freed |= uprobe_put_process(uproc);
 
 		if (registrations_deferred) {
 			uprobe_run_def_regs(&utask->deferred_registrations);
-			uprobe_put_process(uproc);
+			uproc_freed |= uprobe_put_process(uproc);
 		}
+
+		uprobe_inject_delayed_signals(&delayed_signals);
+
+		if (uproc_freed)
+			ret |= UTRACE_ACTION_DETACH;
 		break;
 	default:
 		goto no_interest;
