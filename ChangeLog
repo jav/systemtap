@@ -1,6 +1,6 @@
 2008-02-12  Martin Hunt  <hunt@redhat.com>
 	PR 5757
-	* tapsets.cxx, translate.cxx: Cleanup findentation a bit.
+	* tapsets.cxx, translate.cxx: Cleanup indentation a bit.
 
 2008-02-11  Jim Keniston  <jkenisto@us.ibm.com>
 
