@@ -1135,6 +1135,7 @@ semantic_pass (systemtap_session& s)
   catch (const semantic_error& e)
     {
       s.print_error (e);
+      rc ++;
     }
   
   return rc;

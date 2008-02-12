@@ -1,3 +1,7 @@
+2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.pass1-4/buildok.exp: No longer kfail buildok/seventeen.
+
 2008-02-07  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.base/debugpath.exp: Remove explicit closes.

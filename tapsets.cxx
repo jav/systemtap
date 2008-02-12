@@ -1365,6 +1365,17 @@ struct dwflpp
                             modname, secname, address);
             obstack_printf (pool, "addr; })");
           }
+        else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0') 
+          {
+            // elfutils' way of telling us that this is a relocatable kernel address, which we
+            // need to treat the same way here as dwarf_query::add_probe_point does: _stext.
+            address -= sess.sym_stext;
+            secname = "_stext";
+            obstack_printf (pool, "({ static unsigned long addr = 0; ");
+            obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+                            modname, secname, address);
+            obstack_printf (pool, "addr; })");
+          }
 	else
           {
             throw semantic_error ("cannot relocate user-space dso (?) address");
@@ -3648,6 +3659,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
 
   this->tok = q.base_probe->tok;
+
+  // XXX: hack for strange g++/gcc's
+#ifndef USHRT_MAX
+#define USHRT_MAX 32767
+#endif
 
   // Range limit maxactive() value
   if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
