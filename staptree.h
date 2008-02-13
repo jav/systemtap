@@ -595,7 +595,8 @@ struct probe
   probe ();
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
-  virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
+  virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
+  virtual const probe_alias *get_alias () const { return 0; }
   virtual probe* basest () { return this; }
   virtual ~probe() {}
   bool privileged;

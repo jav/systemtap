@@ -1,3 +1,20 @@
+2008-02-13  Dave Brolley  <brolley@redhat.com>
+
+	PR5609
+	* staptree.h (probe::collect_derivation_chain): Now takes vector<probe*>.
+	(probe::get_alias): New virtual method.
+	* elaborate.h (derived_probe::collect_derivation_chain): Now takes vector<probe*>.
+	* staptree.cxx (probe::collect_derivation_chain): Now takes vector<probe*>. Don't
+	cast 'this' to (derived_probe*).
+	* elaborate.cxx (derived_probe::collect_derivation_chain): Now takes vector<probe*>.
+	(alias_derived_probe::get_alias): New virtual method.
+	(alias_derived_probe::alias): New member.
+	(alias_expansion_builder::build): Call checkForRecursiveExpansion and emit a
+	diagnostic if recursion is detected. Pass alias to constructor of
+	alias_derived_probe.
+	(alias_expansion_builder::checkForRecursiveExpansion): New method.
+	* coveragedb.cxx: Pass vector<probe*> on all calls to collect_derivation_chain.
+
 2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 4393

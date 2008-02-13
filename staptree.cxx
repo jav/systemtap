@@ -903,9 +903,9 @@ void probe::printsig (ostream& o) const
 
 
 void
-probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
+probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 {
-  probes_list.push_back((derived_probe*)this);
+  probes_list.push_back(this);
 }
 
 
