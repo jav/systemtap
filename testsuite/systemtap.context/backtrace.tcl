@@ -11,7 +11,7 @@ if {[istarget ia64-*-*]} {
 	set retexp {.*return\>--\r\n 0x[a-f0-9]+ : kretprobe_trampoline_holder[^\r\n]+\r\n}
 }
 
-spawn stap backtrace.stp
+spawn stap $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 240

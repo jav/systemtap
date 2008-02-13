@@ -1,5 +1,13 @@
 2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
 
+	* systemtap.context/context.exp: Build temporary modules under
+	build tree, to tolerate read-only source trees.
+	* {args,backtrace,pid}.tcl: Corresponding changes.
+	* systemtap_test_module2.c: Add a bunch of asm("")'s to prevent
+	inlining even better than noinline does.
+
+2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
+
 	* systemtap.pass1-4/buildok.exp: No longer kfail buildok/seventeen.
 
 2008-02-07  Martin Hunt  <hunt@redhat.com>

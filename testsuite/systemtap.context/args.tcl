@@ -1,4 +1,4 @@
-spawn stap args.stp
+spawn stap $srcdir/$subdir/args.stp
 expect {
     -timeout 240
     "READY" {
