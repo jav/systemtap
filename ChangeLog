@@ -1,3 +1,9 @@
+2008-02-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5759
+	* tapsets.cxx (build_blacklist): Add some CONFIG_PREEMPT-related
+	functions.
+
 2008-02-13  Dave Brolley  <brolley@redhat.com>
 
 	PR5609

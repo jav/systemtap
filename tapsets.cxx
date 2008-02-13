@@ -2418,6 +2418,11 @@ dwarf_query::build_blacklist()
   blacklisted_probes.insert("_spin_unlock");
   blacklisted_probes.insert("_spin_unlock_irqrestore");
 
+  // PR 5759, CONFIG_PREEMPT kernels
+  blacklisted_probes.insert("add_preempt_count");
+  blacklisted_probes.insert("preempt_schedule");
+  blacklisted_probes.insert("sub_preempt_count");
+
   // __switch_to changes "current" on x86_64 and i686, so return probes
   // would cause kernel panic, and it is marked as "__kprobes" on x86_64
   if (sess.architecture == "x86_64")
