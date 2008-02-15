@@ -660,6 +660,10 @@ struct dwflpp
 	   << "function '" << function_name << "'" << "\n";
     return t;
   }
+  bool function_name_final_match(string pattern)
+  {
+    return module_name_final_match (pattern);
+  }
 
 
   bool cu_name_matches(string pattern)
@@ -2887,6 +2891,9 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
+
+          if (q->dw.function_name_final_match (q->function))
+            return DWARF_CB_ABORT;
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
@@ -2923,6 +2930,9 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 		  q->dw.function_file (&func.decl_file);
 		  q->dw.function_line (&func.decl_line);
 		  q->filtered_functions[entrypc] = func;
+
+                  if (q->dw.function_name_final_match (q->function))
+                    return DWARF_CB_ABORT;
 		}
 	      else
 		throw semantic_error("no entrypc found for function '"

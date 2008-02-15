@@ -1,3 +1,8 @@
+2008-02-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (function_name_last_match): New function.
+	(query_dwarf_func): Call it to stop unnecessary further iteration.
+
 2008-02-13  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5759
