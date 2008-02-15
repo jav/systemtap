@@ -1260,8 +1260,8 @@ c_unparser::emit_module_exit ()
                 << "atomic_read (& ((struct context *)per_cpu_ptr(contexts, i))->busy)) "
                 << "holdon = 1;";
   o->newline () << "schedule ();";
-  o->newline(-1) << "} while (holdon);";
-  o->newline(-1);
+  o->newline(-2) << "} while (holdon);";
+
   // XXX: might like to have an escape hatch, in case some probe is
   // genuinely stuck somehow
 

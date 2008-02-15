@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * I/O for printing warnings, errors and debug messages
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -25,7 +25,7 @@ enum code { INFO=0, WARN, ERROR, DBUG };
 static void _stp_vlog (enum code type, const char *func, int line, const char *fmt, va_list args)
 {
 	int num;
-	char *buf = per_cpu_ptr(Stp_lbuf, smp_processor_id());
+	char *buf = per_cpu_ptr(Stp_lbuf, get_cpu());
 	int start = 0;
 
 	if (type == DBUG) {
@@ -53,6 +53,7 @@ static void _stp_vlog (enum code type, const char *func, int line, const char *f
 			_stp_print_flush();
 		}
 	}
+	put_cpu();
 }
 
 /** Logs Data.

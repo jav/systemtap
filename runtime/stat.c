@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * Statistics Aggregation
- * Copyright (C) 2005, 2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  * Copyright (C) 2006 Intel Corporation
  *
  * This file is part of systemtap, and is free software.  You can
@@ -111,7 +111,7 @@ Stat _stp_stat_init (int type, ...)
 		int i;
 		for_each_cpu(i) {
 			stat *sdp = per_cpu_ptr (sd, i);
-			sdp->lock = SPIN_LOCK_UNLOCKED;
+			spin_lock_init(sdp->lock);
 		}
 	}
 #endif

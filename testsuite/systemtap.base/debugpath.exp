@@ -6,7 +6,8 @@ expect {
 	timeout { fail "$test (timeout1)" }
 	eof { fail "$test (eof)" }
 }
-catch { close; wait }
+
+wait
 
 set test "debugpath-good"
 spawn env SYSTEMTAP_DEBUGINFO_PATH=:/usr/lib/debug stap -e "probe kernel.function(\"sys_open\") {}" -p2
@@ -15,4 +16,5 @@ expect {
 	timeout { fail "$test (timeout2)" }
 	eof { fail "$test (eof)" }
 }
-catch { close ; wait }
+
+wait

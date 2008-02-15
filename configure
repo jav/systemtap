@@ -706,6 +706,7 @@ U
 ANSI2KNR
 RANLIB
 sqlite3_LIBS
+staplog_CPPFLAGS
 BUILD_CRASHMOD_TRUE
 BUILD_CRASHMOD_FALSE
 BUILD_ELFUTILS_TRUE
@@ -1316,8 +1317,13 @@ Optional Features:
                           installation (needed if installed in a non-standard
                           location).
   --enable-prologues      make -P prologue-searching default
-  --enable-ssp            enable gcc stack-protector
+  --disable-ssp           disable gcc stack-protector
   --enable-sqlite         build with sqlite support
+  --enable-crash[=DIRECTORY]
+                          enable crash extension (default is disabled).
+                          Optional DIRECTORY is the path to the crash header
+                          file (needed if installed in a non-standard
+                          location).
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -5828,14 +5834,13 @@ fi
 # Check whether --enable-perfmon was given.
 if test "${enable_perfmon+set}" = set; then
   enableval=$enable_perfmon;
-    CFLAGS="$CFLAGS -DPERFMON"
-  CXXFLAGS="$CXXFLAGS -DPERFMON"
-  LIBS="$LIBS -lpfm"
-    if test "$enable_perfmon" != "yes"; then
-    CFLAGS="$CFLAGS -I$enable_perfmon/include"
-    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
-    LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
-  fi
+  if test "$enable_perfmon" != "no"; then
+        CPPFLAGS="$CPPFLAGS -DPERFMON"
+    LIBS="$LIBS -lpfm"
+        if test "$enable_perfmon" != "yes"; then
+      CPPFLAGS="$CPPFLAGS -I$enable_perfmon/include"
+      LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
+    fi
 
 { echo "$as_me:$LINENO: checking for pfm_start in -lpfm" >&5
 echo $ECHO_N "checking for pfm_start in -lpfm... $ECHO_C" >&6; }
@@ -5907,12 +5912,12 @@ _ACEOF
 
 else
 
-    { { echo "$as_me:$LINENO: error: systemtap cannot find required perfmon libs" >&5
-echo "$as_me: error: systemtap cannot find required perfmon libs" >&2;}
+      { { echo "$as_me:$LINENO: error: systemtap cannot find required perfmon libs (libpfm-devel may need to be installed" >&5
+echo "$as_me: error: systemtap cannot find required perfmon libs (libpfm-devel may need to be installed" >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-
+  fi
 fi
 
 
@@ -5943,17 +5948,54 @@ fi
 fi
 
 
-
 # Check whether --enable-ssp was given.
 if test "${enable_ssp+set}" = set; then
   enableval=$enable_ssp;
 fi
 
-if test "x$enable_ssp" == xyes; then
-  CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
+if test "x$enable_ssp" != xno; then
+
+   save_CFLAGS="$CFLAGS"
+   save_CXXFLAGS="$CXXFLAGS"
+   CXXFLAGS="$CXXFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   CFLAGS="$CFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   cat >conftest.$ac_ext <<_ACEOF
+int something ();
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+
+       { echo "$as_me:$LINENO: Compiling with gcc -fstack-protector-all et al." >&5
 echo "$as_me: Compiling with gcc -fstack-protector-all et al." >&6;}
+	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+	CXFXLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+       { echo "$as_me:$LINENO: Compiler does not support -fstack-protector-all et al." >&5
+echo "$as_me: Compiler does not support -fstack-protector-all et al." >&6;}
+       CFLAGS="$save_CFLAGS"
+       CXXFLAGS="$save_CXXFLAGS"
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 fi
 
 
@@ -6029,6 +6071,11 @@ echo "${ECHO_T}$ac_cv_lib_sqlite3_sqlite3_open" >&6; }
 if test $ac_cv_lib_sqlite3_sqlite3_open = yes; then
   sqlite3_LIBS=-lsqlite3
 
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBSQLITE3 1
+_ACEOF
+
 else
   if test "x$enable_sqlite" != xcheck; then
       { { echo "$as_me:$LINENO: error: --enable-sqlite was given, but test for sqlite failed
@@ -6042,6 +6089,15 @@ fi
 fi
 
 
+# Check whether --enable-crash was given.
+if test "${enable_crash+set}" = set; then
+  enableval=$enable_crash; if test "$enable_crash" != "no"; then
+        save_CPPFLAGS="$CPPFLAGS"
+    if test "$enable_crash" != "yes"; then
+      staplog_CPPFLAGS=-I$enable_crash
+      CPPFLAGS="${staplog_CPPFLAGS} $CPPFLAGS"
+
+    fi
 
 for ac_header in crash/defs.h
 do
@@ -6097,14 +6153,22 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
   cat >>confdefs.h <<_ACEOF
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
- build_crashmod=yes
+
 else
-  build_crashmod=no
+  { { echo "$as_me:$LINENO: error: cannot find required crash header (crash-devel may need to be installed)" >&5
+echo "$as_me: error: cannot find required crash header (crash-devel may need to be installed)" >&2;}
+   { (exit 1); exit 1; }; }
 fi
 
 done
 
- if test $build_crashmod = yes; then
+    CPPFLAGS="$save_CPPFLAGS"
+  fi
+else
+  enable_crash="no"
+fi
+
+ if test "$enable_crash" != "no"; then
   BUILD_CRASHMOD_TRUE=
   BUILD_CRASHMOD_FALSE='#'
 else
@@ -7366,11 +7430,11 @@ U!$U$ac_delim
 ANSI2KNR!$ANSI2KNR$ac_delim
 RANLIB!$RANLIB$ac_delim
 sqlite3_LIBS!$sqlite3_LIBS$ac_delim
+staplog_CPPFLAGS!$staplog_CPPFLAGS$ac_delim
 BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
 BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
 BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
 BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
-elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7412,6 +7476,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
 stap_LIBS!$stap_LIBS$ac_delim
 DATE!$DATE$ac_delim
 PROCFLAGS!$PROCFLAGS$ac_delim
@@ -7421,7 +7486,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 7; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 8; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

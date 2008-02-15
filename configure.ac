@@ -30,19 +30,18 @@ AC_ARG_ENABLE([perfmon],
     [enable perfmon support (default is disabled).  Optional DIRECTORY
     is the path to the perfmon installation (needed if installed in a
     non-standard location).]), [
-  dnl Add perfmon define and library
-  CFLAGS="$CFLAGS -DPERFMON"
-  CXXFLAGS="$CXXFLAGS -DPERFMON"
-  LIBS="$LIBS -lpfm"
-  dnl Handle custom install dir (if needed)
-  if test "$enable_perfmon" != "yes"; then
-    CFLAGS="$CFLAGS -I$enable_perfmon/include"
-    CXXFLAGS="$CXXFLAGS -I$enable_perfmon/include"
-    LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
-  fi
-  AC_CHECK_LIB([pfm], [pfm_start], [], [
-    AC_MSG_ERROR([systemtap cannot find required perfmon libs])])
-])
+  if test "$enable_perfmon" != "no"; then
+    dnl Add perfmon define and library
+    CPPFLAGS="$CPPFLAGS -DPERFMON"
+    LIBS="$LIBS -lpfm"
+    dnl Handle custom install dir (if needed)
+    if test "$enable_perfmon" != "yes"; then
+      CPPFLAGS="$CPPFLAGS -I$enable_perfmon/include"
+      LDFLAGS="$LDFLAGS -L$enable_perfmon/lib"
+    fi
+    AC_CHECK_LIB([pfm], [pfm_start], [], [
+      AC_MSG_ERROR([systemtap cannot find required perfmon libs (libpfm-devel may need to be installed])])
+  fi])
 
 dnl Handle the prologues option.
 dnl
@@ -67,13 +66,20 @@ if test "$enable_prologues" = yes; then
   AC_DEFINE([ENABLE_PROLOGUES],[],[make -P prologue-searching default])
 fi])
 
-
 AC_ARG_ENABLE([ssp],
-  [AS_HELP_STRING([--enable-ssp], [enable gcc stack-protector])])
-AS_IF([test "x$enable_ssp" == xyes],
-  [CFLAGS="$CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   CXXFLAGS="$CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
-   AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])])
+  [AS_HELP_STRING([--disable-ssp], [disable gcc stack-protector])])
+AS_IF([test "x$enable_ssp" != xno],[
+   save_CFLAGS="$CFLAGS"
+   save_CXXFLAGS="$CXXFLAGS"
+   CXXFLAGS="$CXXFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   CFLAGS="$CFLAGS -Werror -fstack-protector-all -D_FORTIFY_SOURCE=2"
+   AC_COMPILE_IFELSE([int something ();], [
+       AC_MSG_NOTICE([Compiling with gcc -fstack-protector-all et al.])
+	CFLAGS="$save_CFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"
+	CXFXLAGS="$save_CXXFLAGS -fstack-protector-all -D_FORTIFY_SOURCE=2"],[
+       AC_MSG_NOTICE([Compiler does not support -fstack-protector-all et al.])
+       CFLAGS="$save_CFLAGS"
+       CXXFLAGS="$save_CXXFLAGS"])])
 
 dnl Handle optional sqlite support.  If enabled/disabled by the user,
 dnl do the right thing.  If not specified by the user, use it if
@@ -85,17 +91,35 @@ AC_ARG_ENABLE([sqlite],
 sqlite3_LIBS=
 AS_IF([test "x$enable_sqlite" != xno],
   [AC_CHECK_LIB([sqlite3], [sqlite3_open],
-    [AC_SUBST([sqlite3_LIBS], [-lsqlite3])],
+    [AC_SUBST([sqlite3_LIBS], [-lsqlite3])
+     AC_DEFINE([HAVE_LIBSQLITE3], [1], [Define to 1 if you have the `sqlite3' library (-lsqlite3).])],
     [if test "x$enable_sqlite" != xcheck; then
       AC_MSG_FAILURE([--enable-sqlite was given, but test for sqlite failed])
      fi])])
 
-AC_CHECK_HEADERS(crash/defs.h,
-  build_crashmod=yes,build_crashmod=no,
-  [
+dnl Handle the option to build the crash extension
+AC_ARG_ENABLE([crash],
+  AS_HELP_STRING([--enable-crash@<:@=DIRECTORY@:>@],
+    [enable crash extension (default is disabled).  Optional DIRECTORY
+    is the path to the crash header file (needed if installed in a
+    non-standard location).]),
+  [if test "$enable_crash" != "no"; then
+    dnl Handle custom install dir (if needed)
+    save_CPPFLAGS="$CPPFLAGS"
+    if test "$enable_crash" != "yes"; then
+      staplog_CPPFLAGS=-I$enable_crash
+      CPPFLAGS="${staplog_CPPFLAGS} $CPPFLAGS"
+      AC_SUBST([staplog_CPPFLAGS])
+    fi
+    AC_CHECK_HEADERS([crash/defs.h], [],
+     [AC_MSG_ERROR([cannot find required crash header (crash-devel may need to be installed)])],
+     [
 #define NR_CPUS 256
-])
-AM_CONDITIONAL(BUILD_CRASHMOD, test $build_crashmod = yes)
+     ])
+    CPPFLAGS="$save_CPPFLAGS"
+  fi],
+  [enable_crash="no"])
+AM_CONDITIONAL([BUILD_CRASHMOD], [test "$enable_crash" != "no"])
 
 AC_CHECK_HEADERS([sys/capability.h], , 
   [AC_MSG_ERROR([cannot find required libcap header (libcap-devel may need to be installed)])])

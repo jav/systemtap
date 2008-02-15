@@ -47,8 +47,10 @@ run_make_cmd(systemtap_session& s, string& make_cmd)
       cerr << "unsetenv failed: " << e << endl;
     }
 
-  if (s.verbose > 1)
+  if (s.verbose > 2)
     make_cmd += " V=1";
+  else if (s.verbose > 1)
+    make_cmd += " >/dev/null";
   else
     make_cmd += " -s >/dev/null 2>&1";
   
@@ -73,7 +75,7 @@ compile_pass (systemtap_session& s)
 
   // Clever hacks copied from vmware modules
   o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " << "set -x; " << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1 ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;

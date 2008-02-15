@@ -15,9 +15,9 @@ static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 static struct list_head _stp_ctl_ready_q;
 static struct list_head _stp_sym_ready_q;
 static struct list_head _stp_pool_q;
-spinlock_t _stp_pool_lock = SPIN_LOCK_UNLOCKED;
-spinlock_t _stp_ctl_ready_lock = SPIN_LOCK_UNLOCKED;
-spinlock_t _stp_sym_ready_lock = SPIN_LOCK_UNLOCKED;
+DEFINE_SPINLOCK(_stp_pool_lock);
+DEFINE_SPINLOCK(_stp_ctl_ready_lock);
+DEFINE_SPINLOCK(_stp_sym_ready_lock);
 
 #ifdef STP_BULKMODE
 extern int _stp_relay_flushing;

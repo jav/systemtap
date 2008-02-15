@@ -28,7 +28,7 @@ void print_coverage_info(systemtap_session &s)
   clog << "---- used probes-----" << endl;
   for (unsigned i=0; i<s.probes.size(); i++) {
     // walk through the chain of probes
-    vector<derived_probe*> used_probe_list;
+    vector<probe*> used_probe_list;
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
       for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k)
@@ -51,8 +51,8 @@ void print_coverage_info(systemtap_session &s)
   clog << "---- unused probes----- " << endl;
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
-    vector<derived_probe*> unused_probe_list;
-    s.probes[i]->collect_derivation_chain(unused_probe_list);
+    vector<probe*> unused_probe_list;
+    s.unused_probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
       for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k)
         clog << "probe: "
@@ -197,7 +197,7 @@ sql_update_used_probes(sqlite3 *db, systemtap_session &s)
   // update database used probes
   for (unsigned i=0; i<s.probes.size(); i++) {
     // walk through the chain of probes
-    vector<derived_probe*> used_probe_list;
+    vector<probe*> used_probe_list;
     s.probes[i]->collect_derivation_chain(used_probe_list);
     for (unsigned j=0; j<used_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< used_probe_list[j]->locations.size(); ++k){
@@ -240,8 +240,8 @@ sql_update_unused_probes(sqlite3 *db, systemtap_session &s)
   // update database unused probes
   for (unsigned i=0; i<s.unused_probes.size(); i++) {
     // walk through the chain of probes
-    vector<derived_probe*> unused_probe_list;
-    s.probes[i]->collect_derivation_chain(unused_probe_list);
+    vector<probe*> unused_probe_list;
+    s.unused_probes[i]->collect_derivation_chain(unused_probe_list);
     for (unsigned j=0; j<unused_probe_list.size(); ++j) {
 	    for (unsigned k=0; k< unused_probe_list[j]->locations.size(); ++k) {
 

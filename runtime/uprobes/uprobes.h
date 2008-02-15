@@ -385,6 +385,9 @@ struct uprobe_task {
 
 	/* [un]registrations initiated by handlers must be asynchronous. */
 	struct list_head deferred_registrations;
+
+	/* Delay handler-destined signals 'til after single-step done. */
+	struct list_head delayed_signals;
 };
 
 #ifdef CONFIG_UPROBES_SSOL

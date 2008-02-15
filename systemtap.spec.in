@@ -1,37 +1,17 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 1
+%define release 3
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 
-# Set bundled_elfutils to 0 on systems that have %{elfutils_version} or newer.
-%if 0%{?fedora}
-%define bundled_elfutils 1
-%define sqlite 0
-%if "%fedora" >= "6"
-%define bundled_elfutils 0
-%define sqlite 1
-%endif
-%endif
+# Default options (suitable for fedora)
+%define with_sqlite 1
+%define with_crash 0
+%define with_bundled_elfutils 0
 
-%if 0%{?rhel}
-%define bundled_elfutils 1
-%define sqlite 0
-%if "%rhel" >= "5"
-%define bundled_elfutils 0
-%define sqlite 1
-%endif
-%endif
-
-%if 0%{!?bundled_elfutils:1}
-# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
-# You can use rpmbuild --define "bundled_elfutils 0" for a build of your own.
-%define bundled_elfutils 1
-%endif
-
-%if 0%{!?sqlite:1}
-# Yo!  DO NOT TOUCH THE FOLLOWING LINE.
-# You can use rpmbuild --define "sqlite 1" for a build of your own.
-%define sqlite 0
+# Enable these options by default for RHEL
+%if 0%{?rhel} >= 5
+%define with_crash 1
+%define with_bundled_elfutils 1
 %endif
 
 Name: systemtap
@@ -47,26 +27,28 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 Requires: kernel >= 2.6.9-11
 BuildRequires: libcap-devel
-%if %{sqlite}
+%if %{with_sqlite}
 BuildRequires: sqlite-devel
 Requires: sqlite
 %endif
-%if "%rhel" >= "5"
-BuildRequires: crash-devel
+%if %{with_crash}
+BuildRequires: crash-devel zlib-devel
 %endif
 # Requires: kernel-devel
 # or is that kernel-smp-devel?  kernel-hugemem-devel?
 Requires: gcc make
 # Suggest: kernel-debuginfo
 Requires: systemtap-runtime = %{version}-%{release}
-Requires(pre): shadow-utils
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 Source1: elfutils-%{elfutils_version}.tar.gz
 Patch1: elfutils-portability.patch
 %define setup_elfutils -a1
 %else
 BuildRequires: elfutils-devel >= %{elfutils_version}
+%endif
+%if %{with_crash}
+Requires: crash
 %endif
 
 %description
@@ -80,6 +62,7 @@ Group: Development/System
 License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: kernel >= 2.6.9-11
+Requires(pre): shadow-utils
 
 %description runtime
 SystemTap runtime is the runtime component of an instrumentation
@@ -100,7 +83,7 @@ without having to rebuild from sources.
 %prep
 %setup -q %{?setup_elfutils}
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 cd elfutils-%{elfutils_version}
 %patch1 -p1
 sleep 1
@@ -112,7 +95,7 @@ cd ..
 
 %build
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils}
 # Build our own copy of elfutils.
 %define elfutils_config --with-elfutils=elfutils-%{elfutils_version}
 
@@ -128,17 +111,24 @@ cd ..
 %endif
 
 # Enable/disable the sqlite coverage testing support
-%if %{sqlite}
+%if %{with_sqlite}
 %define sqlite_config --enable-sqlite
 %else
 %define sqlite_config --disable-sqlite
 %endif
 
-%configure %{?elfutils_config} %{?sqlite_config}
+# Enable/disable the crash extension
+%if %{with_crash}
+%define crash_config --enable-crash
+%else
+%define crash_config --disable-crash
+%endif
+
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config}
 make %{?_smp_mflags}
 
-# Fix paths in the example scripts
-find examples -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
+# Fix paths in the example & testsuite scripts
+find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
 # To avoid perl dependency, make perl sample script non-executable
 chmod -x examples/samples/kmalloc-top
@@ -156,16 +146,10 @@ chmod 755 $RPM_BUILD_ROOT%{_bindir}/staprun
 # Copy over the testsuite
 cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 
-if [ -f $RPM_BUILD_ROOT%{_libdir}/%{name}/staplog.so ]; then
-	echo %{_libdir}/%{name}/staplog.so > runtime-addl-files.txt
-else
-	touch runtime-addl-files.txt
-fi
-
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
-%pre
+%pre runtime
 getent group stapdev >/dev/null || groupadd -r stapdev
 getent group stapusr >/dev/null || groupadd -r stapusr
 exit 0
@@ -183,12 +167,17 @@ exit 0
 %{_datadir}/systemtap/runtime
 %{_datadir}/systemtap/tapset
 
-%if %{bundled_elfutils}
+%if %{with_bundled_elfutils} || %{with_crash}
 %dir %{_libdir}/%{name}
+%endif
+%if %{with_bundled_elfutils}
 %{_libdir}/%{name}/lib*.so*
 %endif
+%if %{with_crash}
+%{_libdir}/%{name}/staplog.so*
+%endif
 
-%files runtime -f runtime-addl-files.txt
+%files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_libexecdir}/systemtap
@@ -202,6 +191,10 @@ exit 0
 
 
 %changelog
+* Fri Feb  1 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6.1-3
+- Add zlib-devel to buildreq; missing from crash-devel
+- Process testsuite .stp files for #!stap->#!/usr/bin/stap
+
 * Fri Jan 18 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6.1-1
 - Add crash-devel buildreq to build staplog.so crash(8) module.
 - Many robustness & functionality improvements:

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2006 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -595,7 +595,8 @@ struct probe
   probe ();
   void print (std::ostream& o) const;
   virtual void printsig (std::ostream &o) const;
-  virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
+  virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
+  virtual const probe_alias *get_alias () const { return 0; }
   virtual probe* basest () { return this; }
   virtual ~probe() {}
   bool privileged;

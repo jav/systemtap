@@ -1,0 +1,4 @@
+#! stap -p2
+
+probe foo.bar = foo.* { }
+probe foo.* { }

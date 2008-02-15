@@ -1,3 +1,128 @@
+2008-02-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (function_name_last_match): New function.
+	(query_dwarf_func): Call it to stop unnecessary further iteration.
+
+2008-02-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5759
+	* tapsets.cxx (build_blacklist): Add some CONFIG_PREEMPT-related
+	functions.
+
+2008-02-13  Dave Brolley  <brolley@redhat.com>
+
+	PR5609
+	* staptree.h (probe::collect_derivation_chain): Now takes vector<probe*>.
+	(probe::get_alias): New virtual method.
+	* elaborate.h (derived_probe::collect_derivation_chain): Now takes vector<probe*>.
+	* staptree.cxx (probe::collect_derivation_chain): Now takes vector<probe*>. Don't
+	cast 'this' to (derived_probe*).
+	* elaborate.cxx (derived_probe::collect_derivation_chain): Now takes vector<probe*>.
+	(alias_derived_probe::get_alias): New virtual method.
+	(alias_derived_probe::alias): New member.
+	(alias_expansion_builder::build): Call checkForRecursiveExpansion and emit a
+	diagnostic if recursion is detected. Pass alias to constructor of
+	alias_derived_probe.
+	(alias_expansion_builder::checkForRecursiveExpansion): New method.
+	* coveragedb.cxx: Pass vector<probe*> on all calls to collect_derivation_chain.
+
+2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 4393
+	* tapsets.cxx (emit_address): Support relocatable kernels.
+	(dwarf_derived_probe ctor): Hack around for missing USHRT_MAX.
+	* elaborate.cxx (semantic_pass): Increment rc if exception caught.
+
+2008-02-12  Martin Hunt  <hunt@redhat.com>
+	PR 5757
+	* tapsets.cxx, translate.cxx: Cleanup indentation a bit.
+
+2008-02-11  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 5693
+	* runtime/uprobes/uprobes.c: Intercept handler-destined
+	signals received while we're single-stepping, and re-queue
+	them afterward.
+	* runtime/uprobes/uprobes.h: Ditto
+
+2008-02-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5750.
+	From Eugeniy Meshcheryakov eugen@debian.org:
+	* configure.ac (HAVE_LIBSQLITE3): Complete AC_DEFINE.
+	
+	* configure, INSTALL, missing, compile, depcomp, install-sh:
+	autoreconf -fi'd.
+
+2008-02-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5751.
+	* configure.ac: Add -Werror to trial compilation with
+	-fstack-protector-all, for hosts that don't quite support it.
+	* configure: Regenerated.
+
+2008-02-08  David Smith  <dsmith@redhat.com>
+
+	PR 5650
+	* systemtap.spec.in: Further simplification.
+
+2008-02-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx (run_make_cmd, compile_pass): Tweak kbuild
+	parametrization to produce useful compile logs at -vv.
+
+2008-02-04  David Smith  <dsmith@redhat.com>
+
+	PR 4446 (partial)
+	* tapsets.cxx
+	(mark_var_expanding_copy_visitor::visit_target_symbol_arg): New
+	function.
+	(mark_var_expanding_copy_visitor::visit_target_symbol_format): New
+	function.
+	(mark_var_expanding_copy_visitor::visit_target_symbol): Handles
+	"$arg" or "$format".
+	(mark_derived_probe_group::emit_module_decls): Sets up "$format"
+	data.
+	
+	PR 5650 (parital)
+	* systemtap.spec.in: Moved %pre section to the systemtap-runtime
+	rpm.
+
+2008-01-30  David Smith  <dsmith@redhat.com>
+
+	PR 5650
+	* systemtap.spec.in: Simplified and explicitly specifies configure
+	options.
+
+2008-01-30  Dave Brolley  <brolley@redhat.com>
+
+	* coveragedb.cxx (print_coverage_info): Fix typo: s.probes -> s.unused_probes
+	where appropriate.
+	(sql_update_unused_probes): Likewise.
+
+2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5647
+	* configure.ac (--enable-ssp): Make default on compilers that
+	support it.
+	* configure: Regenerated.
+
+2008-01-28  David Smith  <dsmith@redhat.com>
+
+	* configure.ac: Fixed a bug when "--disable-permon" was used.
+	Added "--enable-crash" option.
+	* configure: Regenerated.
+	* Makefile.am: Improved staplog.so compile command.
+	* Makefile.in: Regenerated.
+
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_decls):
+	Added 'const' to several members of stap_dwarf_probes.
+
+	PR 5685.  From Eugeniy Meshcheryakov <eugen@debian.org>
+	* configure.ac: If "--enable-sqlite" is specified, define
+	HAVE_LIBSQLITE3.
+	* configure: Regenerated.
+
 2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5673.
@@ -130,6 +255,12 @@
 	(perfmon_var_expanding_copy_visitor::visit_target_symbol): Print an
 	error when trying to use the perfmon target variable '$counter as
 	an array or structure.
+
+2008-01-17  Srinivasa DS  <srinivasa@in.ibm.com>
+
+	PR 5483.
+	* tapsets.cxx (emit_address): Tolerate dummy relocation entry
+	added for kernel by recent elfutils.
 
 2008-01-16  David Smith  <dsmith@redhat.com>
 

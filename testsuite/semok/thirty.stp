@@ -1,0 +1,9 @@
+#! stap -p2
+
+probe foo.a.one = foo.b, foo.c {} // not recursive
+probe foo.a.two = foo.c, foo.b {} // not recursive
+probe foo.b = foo.c {}
+probe foo.c = begin {}
+probe foo.a.one {}
+probe foo.a.two {}
+

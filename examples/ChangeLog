@@ -1,3 +1,7 @@
+2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* nettop.stp: Reorganize array usage to minimize contention.
+
 2007-11-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	* iostat-scsi.stp: Adopt "!" probe point flag.

@@ -21,20 +21,21 @@ proc cleanup {} {
 
 proc build_modules {} {
     global build_dir
+    global srcdir subdir
 
     if {[catch {exec mktemp -d staptestXXXXX} build_dir]} {
 	puts stderr "Failed to create temporary directory: $build_dir"
 	return 0
     }
 
-    foreach f [glob systemtap_test_module*.c] {
+    foreach f [glob $srcdir/$subdir/systemtap_test_module*.c] {
 	exec cp $f $build_dir
     }
     set old_dir [pwd]
     cd $build_dir
 
     foreach n {2 1} {
-	exec cp $old_dir/makefile$n Makefile
+	exec cp $srcdir/$subdir/makefile$n Makefile
 	if {[catch {exec make clean} res]} {
 	    puts $res
 	    cd $old_dir
@@ -61,7 +62,13 @@ proc build_modules {} {
 }
 
 # first build the modules
-cd $srcdir/$subdir
+
+# NB: We cannot "cd" on behalf the whole dejagnu process, especially
+# without going back to the build tree, and especially not to the
+# source tree expecting to be able to write there.
+#
+# cd $srcdir/$subdir
+
 set uname [exec /bin/uname -r]
 
 if {[build_modules] == 0} {
@@ -73,9 +80,8 @@ if {[build_modules] == 0} {
 }
 
 foreach test $testlist {
-    source $test.tcl
+    source $srcdir/$subdir/$test.tcl
 }
 
-
-
+cleanup
 

@@ -22,19 +22,23 @@
 
 /* some nested functions to test backtraces */
 int noinline yyy_func4 (int foo) {
+        asm ("");
         return foo + 1;
 }
 int noinline yyy_func3 (int foo) {
 	foo = yyy_func4(foo);
+        asm ("");
         return foo + 1;
 }
 int noinline yyy_func2 (int foo) {
         foo = yyy_func3(foo);
+        asm ("");
         return foo + 1;
 }
 
 int noinline yyy_func1 (int foo) {
 	foo = yyy_func2(foo);
+        asm ("");
         return foo + 1;
 }
 EXPORT_SYMBOL(yyy_func1);
@@ -42,31 +46,37 @@ EXPORT_SYMBOL(yyy_func1);
 /* 1. int argument testing */
 int noinline yyy_int(int a, int b, int c)
 {
+        asm ("");
 	return a+b+c;
 }
 /* 2. uint argument testing */
 unsigned noinline yyy_uint(unsigned a, unsigned b, unsigned c)
 {
+        asm ("");
 	return a+b+c;
 }
 /* 3. long argument testing */
 long noinline yyy_long(long a, long b, long c)
 {
+        asm ("");
 	return a+b+c;
 }
 /* 4. int64_t argument testing */
 int noinline yyy_int64(int64_t a, int64_t b, int64_t c)
 {
+        asm ("");
 	return a+b+c;
 }
 /* 5. char argument testing */
 char noinline yyy_char(char a, char b, char c)
 {
+        asm ("");
 	return 'Q';
 }
 /* 5. string argument testing */
 char * noinline yyy_str(char *a, char *b, char *c)
 {
+        asm ("");
 	return "XYZZY";
 }
 

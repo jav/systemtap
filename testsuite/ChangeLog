@@ -1,3 +1,64 @@
+2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.context/context.exp: Build temporary modules under
+	build tree, to tolerate read-only source trees.
+	* {args,backtrace,pid}.tcl: Corresponding changes.
+	* systemtap_test_module2.c: Add a bunch of asm("")'s to prevent
+	inlining even better than noinline does.
+
+2008-02-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.pass1-4/buildok.exp: No longer kfail buildok/seventeen.
+
+2008-02-07  Martin Hunt  <hunt@redhat.com>
+
+	* systemtap.base/debugpath.exp: Remove explicit closes.
+	Stap will terminate without help, and cleanup after itself.
+
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* systemtap.context/backtrace.tcl: Fixed regular expressions and Added
+	new expression for checking return probe's stacktrace on ia64.
+	* systemtap.context/backtrace.stp (print_all_trace_info): Added
+	trace point output before calling print_stack().
+
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* systemtap.base/cmd_parse.exp: Added 'wait' between tests for
+	preventing unexpected EOF.
+
+2008-02-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* systemtap.base/procfs.exp: Added PROCFS.ko cleanup.
+	* systemtap.context/context.exp: Added cleanup call.
+	* systemtap.printf/end1b.exp: Passed evaluated command string to
+	as_root.
+	* systemtap.printf/mixed_outb.exp: Ditto.
+	* systemtap.printf/out1b.exp: Ditto.
+	* systemtap.printf/out2b.exp: Ditto.
+	* systemtap.printf/out3b.exp: Ditto.
+
+2008-02-04  David Smith  <dsmith@redhat.com>
+
+	PR 4446.
+	* systemtap.base/marker.exp: Added tests for marker "$format"
+	variable.
+
+2008-02-01  Martin Hunt  <hunt@redhat.com>
+	PR4736
+	* systemtap.printf/stap_merge.tcl: Copied here so
+	it will always be available.
+
+2008-01-31  Will Cohen <wcohen@redhat.com>
+
+	* systemtap.pass1-4/buildok.exp: Add some kfails.
+
+2008-01-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (clean-local): Allow "rm -rf" to fail due to
+	root-owned .ko files in the local cache.
+	* Makefile.in: Regenerated.
+
 2008-01-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5673.

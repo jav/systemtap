@@ -1,3 +1,31 @@
+2008-02-06  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* stack-ia64.c (__stp_show_stack_sym): Skip printing symbol if (ip ==
+	REG_IP(regs)).
+
+2008-01-29  Martin Hunt  <hunt@redhat.com>
+
+	* io.c (_stp_vlog): Use get_cpu() instead
+	of smp_processor_id() because this function can get 
+	called with interrupts enabled.
+
+2008-01-29  Martin Hunt  <hunt@redhat.com>	
+
+	* alloc.c (struct _stp_malloc_type): Remove
+	redundant field.
+
+2008-01-28  Martin Hunt  <hunt@redhat.com>
+
+	* alloc.c: Use DEFINE_SPINLOCK.
+	* counter.c: Ditto.
+	* pmap-gen.c: Ditto.
+	* print_new.c: Ditto.
+	* stat.c: Ditto.
+	
+2008-01-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stack-i386.c (__stp_stack_print): Correct #elif->#else typo.
+
 2008-01-14  Martin Hunt  <hunt@redhat.com>
 
 	* print.c (_stp_print_kernel_info): New function.

@@ -110,3 +110,5 @@ set systemtap_script {
 # test procfs probes
 set output_string "\\mfinal value = goodbye\\M\r\n"
 stap_run $test proc_read_write $output_string -e $systemtap_script -m $test
+
+exec /bin/rm -f ${test}.ko

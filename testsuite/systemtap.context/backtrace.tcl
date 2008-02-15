@@ -5,7 +5,13 @@ set m4 0
 set m5 0
 set m6 0
 
-spawn stap backtrace.stp
+if {[istarget ia64-*-*]} {
+	set retexp {.*return\>--\r\n 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n}
+} else {
+	set retexp {.*return\>--\r\n 0x[a-f0-9]+ : kretprobe_trampoline_holder[^\r\n]+\r\n}
+}
+
+spawn stap $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 240
@@ -36,7 +42,7 @@ expect {
 	incr m2
 	expect {
 	    -timeout 5
-	    -re {.*---\r\n 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {.*call\>--\r\n 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m2 == 1} {incr m2}
 		exp_continue
 	    }
@@ -76,7 +82,7 @@ expect {
 	incr m4
 	expect {
 	    -timeout 5
-	    -re {.*0x[a-f0-9]+ : kretprobe_trampoline_holder[^\[]+\[\]\r\n} {
+	    -re $retexp {
 		if {$m4 == 1} {incr m4}
 		exp_continue
 	    }
@@ -104,7 +110,7 @@ expect {
 	incr m6
 	expect {
 	    -timeout 5
-	    -re {.*---\r\n 0x[a-f0-9]+[^\r\n]+\r\n} {
+	    -re {.*profile>--\r\n 0x[a-f0-9]+[^\r\n]+\r\n} {
 		if {$m6 == 1} {incr m6}
 	    }
 	}

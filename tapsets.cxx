@@ -1,5 +1,5 @@
 // tapset resolution
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -659,6 +659,10 @@ struct dwflpp
 	   << "matches "
 	   << "function '" << function_name << "'" << "\n";
     return t;
+  }
+  bool function_name_final_match(string pattern)
+  {
+    return module_name_final_match (pattern);
   }
 
 
@@ -1360,6 +1364,17 @@ struct dwflpp
           {
             // This gives us the module name, and section name within the
             // module, for a kernel module (or other ET_REL module object).
+            obstack_printf (pool, "({ static unsigned long addr = 0; ");
+            obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
+                            modname, secname, address);
+            obstack_printf (pool, "addr; })");
+          }
+        else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0') 
+          {
+            // elfutils' way of telling us that this is a relocatable kernel address, which we
+            // need to treat the same way here as dwarf_query::add_probe_point does: _stext.
+            address -= sess.sym_stext;
+            secname = "_stext";
             obstack_printf (pool, "({ static unsigned long addr = 0; ");
             obstack_printf (pool, "if (addr==0) addr = _stp_module_relocate (\"%s\",\"%s\",%#" PRIx64 "); ",
                             modname, secname, address);
@@ -2407,6 +2422,11 @@ dwarf_query::build_blacklist()
   blacklisted_probes.insert("_spin_unlock");
   blacklisted_probes.insert("_spin_unlock_irqrestore");
 
+  // PR 5759, CONFIG_PREEMPT kernels
+  blacklisted_probes.insert("add_preempt_count");
+  blacklisted_probes.insert("preempt_schedule");
+  blacklisted_probes.insert("sub_preempt_count");
+
   // __switch_to changes "current" on x86_64 and i686, so return probes
   // would cause kernel panic, and it is marked as "__kprobes" on x86_64
   if (sess.architecture == "x86_64")
@@ -2871,6 +2891,9 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	    clog << "checking instances of inline " << q->dw.function_name
                  << "\n";
 	  q->dw.iterate_over_inline_instances (query_dwarf_inline_instance, arg);
+
+          if (q->dw.function_name_final_match (q->function))
+            return DWARF_CB_ABORT;
 	}
       else if (!q->dw.func_is_inline () && (! q->has_inline))
 	{
@@ -2907,6 +2930,9 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 		  q->dw.function_file (&func.decl_file);
 		  q->dw.function_line (&func.decl_line);
 		  q->filtered_functions[entrypc] = func;
+
+                  if (q->dw.function_name_final_match (q->function))
+                    return DWARF_CB_ABORT;
 		}
 	      else
 		throw semantic_error("no entrypc found for function '"
@@ -3649,6 +3675,11 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
 
   this->tok = q.base_probe->tok;
 
+  // XXX: hack for strange g++/gcc's
+#ifndef USHRT_MAX
+#define USHRT_MAX 32767
+#endif
+
   // Range limit maxactive() value
   if (q.has_maxactive && (q.maxactive_val < 0 || q.maxactive_val > USHRT_MAX))
     throw semantic_error ("maxactive value out of range [0,"
@@ -3826,10 +3857,10 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // NB: bss!
 
   s.op->newline() << "struct stap_dwarf_probe {";
-  s.op->newline(1) << "unsigned return_p:1;";
-  s.op->newline() << "unsigned maxactive_p:1;";
+  s.op->newline(1) << "const unsigned return_p:1;";
+  s.op->newline() << "const unsigned maxactive_p:1;";
   s.op->newline() << "unsigned registered_p:1;";
-  s.op->newline() << "unsigned short maxactive_val;";
+  s.op->newline() << "const unsigned short maxactive_val;";
 
   // Let's find some stats for the three embedded strings.  Maybe they
   // are small and uniform enough to justify putting char[MAX]'s into
@@ -3862,7 +3893,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
     }                                                                   \
   else                                                                  \
     {                                                                   \
-      s.op->newline() << "const char *" << #var << ";";                 \
+      s.op->newline() << "const char * const " << #var << ";";                 \
       if (s.verbose > 2) clog << "stap_dwarf_probe *" << #var << endl;  \
     }
 
@@ -3870,8 +3901,8 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   CALCIT(section);
   CALCIT(pp);
 
-  s.op->newline() << "unsigned long address;";
-  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "const unsigned long address;";
+  s.op->newline() << "void (* const ph) (struct context*);";
   s.op->newline(-1) << "} stap_dwarf_probes[] = {";
   s.op->indent(1);
 
@@ -3924,7 +3955,7 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct kretprobe *krp = inst->rp;";
 
   // NB: as of PR5673, the kprobe|kretprobe union struct is in BSS
-  s.op->newline(1) << "int kprobe_idx = ((uintptr_t)krp-(uintptr_t)stap_dwarf_kprobes)/sizeof(struct stap_dwarf_kprobe);";
+  s.op->newline() << "int kprobe_idx = ((uintptr_t)krp-(uintptr_t)stap_dwarf_kprobes)/sizeof(struct stap_dwarf_kprobe);";
   // Check that the index is plausible
   s.op->newline() << "struct stap_dwarf_probe *sdp = &stap_dwarf_probes[";
   s.op->line() << "((kprobe_idx >= 0 && kprobe_idx < " << probes_by_module.size() << ")?";
@@ -3948,7 +3979,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
-  s.op->newline(1) << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
   s.op->newline() << "probe_point = sdp->pp;";
@@ -3987,7 +4018,7 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
-  s.op->newline(1) << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
@@ -5079,6 +5110,8 @@ struct mark_var_expanding_copy_visitor: public var_expanding_copy_visitor
   bool target_symbol_seen;
 
   void visit_target_symbol (target_symbol* e);
+  void visit_target_symbol_arg (target_symbol* e);
+  void visit_target_symbol_format (target_symbol* e);
 };
 
 
@@ -5119,13 +5152,8 @@ hex_dump(unsigned char *data, size_t len)
 
 
 void
-mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 {
-  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
-
-  if (e->base_name.substr(0,4) != "$arg")
-    throw semantic_error ("invalid target symbol for marker, $argN expected",
-			  e->tok);
   string argnum_s = e->base_name.substr(4,e->base_name.length()-4);
   int argnum = atoi (argnum_s.c_str());
 
@@ -5152,7 +5180,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 	  break;
 	}
     }
-
+  
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
@@ -5186,6 +5214,73 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   n->function = fname;
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
   provide <functioncall*> (this, n);
+}
+
+
+void
+mark_var_expanding_copy_visitor::visit_target_symbol_format (target_symbol* e)
+{
+  static bool function_synthesized = false;
+
+  if (is_active_lvalue (e))
+    throw semantic_error("write to marker format not permitted", e->tok);
+
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("marker format may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("marker format may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid marker format use", e->tok);
+	  break;
+	}
+    }
+  
+  string fname = string("_mark_format_get");
+
+  // Synthesize a function (if not already synthesized).
+  if (! function_synthesized)
+    {
+      function_synthesized = true;
+      functiondecl *fdecl = new functiondecl;
+      fdecl->tok = e->tok;
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = e->tok;
+
+      ec->code = string("strlcpy (THIS->__retvalue, CONTEXT->data, MAXSTRINGLEN); /* pure */");
+      fdecl->name = fname;
+      fdecl->body = ec;
+      fdecl->type = pe_string;
+      sess.functions.push_back(fdecl);
+    }
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+  provide <functioncall*> (this, n);
+}
+
+void
+mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (e->base_name.substr(0,4) == "$arg")
+    visit_target_symbol_arg (e);
+  else if (e->base_name == "$format")
+    visit_target_symbol_format (e);
+  else
+    throw semantic_error ("invalid target symbol for marker, $argN or $format expected",
+			  e->tok);
 }
 
 
@@ -5445,10 +5540,10 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline();
 
   s.op->newline() << "struct stap_marker_probe {";
-  s.op->newline(1) << "const char *name;";
-  s.op->newline() << "const char *format;";
-  s.op->newline() << "const char *pp;";
-  s.op->newline() << "void (*ph) (struct context *);";
+  s.op->newline(1) << "const char * const name;";
+  s.op->newline() << "const char * const format;";
+  s.op->newline() << "const char * const pp;";
+  s.op->newline() << "void (* const ph) (struct context *);";
 
   s.op->newline(-1) << "} stap_marker_probes [" << probes.size() << "] = {";
   s.op->indent(1);
@@ -5474,10 +5569,13 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "struct stap_marker_probe *smp = (struct stap_marker_probe *)probe_data;";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
   s.op->newline() << "c->probe_point = smp->pp;";
+  s.op->newline() << "c->data = (char *)smp->format;";
 
   s.op->newline() << "c->mark_va_list = args;";
   s.op->newline() << "(*smp->ph) (c);";
   s.op->newline() << "c->mark_va_list = NULL;";
+  s.op->newline() << "c->data = NULL;";
+
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 

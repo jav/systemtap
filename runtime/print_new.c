@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Print Flush Function
- * Copyright (C) 2007 Red Hat Inc.
+ * Copyright (C) 2007-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -15,7 +15,8 @@
  *
  * @note Preemption must be disabled to use this.
  */
-spinlock_t _stp_print_lock = SPIN_LOCK_UNLOCKED;
+
+DEFINE_SPINLOCK(_stp_print_lock);
 
 void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 {

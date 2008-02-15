@@ -1,5 +1,5 @@
 // elaboration functions
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -112,7 +112,7 @@ derived_probe::printsig_nested (ostream& o) const
 
 
 void
-derived_probe::collect_derivation_chain (std::vector<derived_probe*> &probes_list)
+derived_probe::collect_derivation_chain (std::vector<probe*> &probes_list)
 {
   probes_list.push_back(this);
   base->collect_derivation_chain(probes_list);
@@ -432,7 +432,8 @@ match_node::build_no_more (systemtap_session& s)
 
 struct alias_derived_probe: public derived_probe
 {
-  alias_derived_probe (probe* base, probe_point *l): derived_probe (base, l) {}
+  alias_derived_probe (probe* base, probe_point *l, const probe_alias *a):
+    derived_probe (base, l), alias(a) {}
 
   void upchuck () { throw semantic_error ("inappropriate", this->tok); }
 
@@ -441,6 +442,11 @@ struct alias_derived_probe: public derived_probe
   // systemtap_session.probes
 
   void join_group (systemtap_session&) { upchuck (); }
+
+  virtual const probe_alias *get_alias () const { return alias; }
+
+private:
+  const probe_alias *alias; // Used to check for recursion
 };
 
 
@@ -460,11 +466,20 @@ alias_expansion_builder
 		     std::map<std::string, literal *> const &,
 		     vector<derived_probe *> & finished_results)
   {
+    // Don't build the alias expansion if infinite recursion is detected.
+    if (checkForRecursiveExpansion (use)) {
+      stringstream msg;
+      msg << "Recursive loop in alias expansion of " << *location  << " at " << location->tok->location;
+      // semantic_errors thrown here are ignored.
+      sess.print_error (semantic_error (msg.str()));
+      return;
+    }
+
     // We're going to build a new probe and wrap it up in an
     // alias_expansion_probe so that the expansion loop recognizes it as
     // such and re-expands its expansion.
     
-    alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */);
+    alias_derived_probe * n = new alias_derived_probe (use, location /* soon overwritten */, this->alias);
     n->body = new block();
 
     // The new probe gets the location list of the alias (with incoming condition joined)
@@ -507,6 +522,26 @@ alias_expansion_builder
       }
     
     derive_probes (sess, n, finished_results, location->optional);
+  }
+
+  bool checkForRecursiveExpansion (probe *use)
+  {
+    // Collect the derivation chain of this probe.
+    vector<probe*>derivations;
+    use->collect_derivation_chain (derivations);
+
+    // Check all probe points in the alias expansion against the currently-being-expanded probe point
+    // of each of the probes in the derivation chain, looking for a match. This
+    // indicates infinite recursion.
+    // The first element of the derivation chain will be the derived_probe representing 'use', so
+    // start the search with the second element.
+    assert (derivations.size() > 0);
+    assert (derivations[0] == use);
+    for (unsigned d = 1; d < derivations.size(); ++d) {
+      if (use->get_alias() == derivations[d]->get_alias())
+	return true; // recursion detected
+    }
+    return false;
   }
 };
 
@@ -1135,6 +1170,7 @@ semantic_pass (systemtap_session& s)
   catch (const semantic_error& e)
     {
       s.print_error (e);
+      rc ++;
     }
   
   return rc;

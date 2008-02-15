@@ -1,5 +1,5 @@
 // systemtap translator/driver
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2005 IBM Corp.
 // Copyright (C) 2006 Intel Corporation.
 //
@@ -47,7 +47,7 @@ version ()
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
     << " built " << DATE << ")" << endl
-    << "Copyright (C) 2005-2007 Red Hat, Inc. and others" << endl
+    << "Copyright (C) 2005-2008 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
 

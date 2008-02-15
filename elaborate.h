@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -118,7 +118,7 @@ struct derived_probe: public probe
   virtual probe_point* sole_location () const;
   virtual void printsig (std::ostream &o) const;
   void printsig_nested (std::ostream &o) const;
-  virtual void collect_derivation_chain (std::vector<derived_probe*> &probes_list);
+  virtual void collect_derivation_chain (std::vector<probe*> &probes_list);
 
   virtual void emit_probe_context_vars (translator_output*) {}
   // From within unparser::emit_common_header, add any extra variables
