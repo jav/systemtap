@@ -283,6 +283,20 @@ $var[N]
 indexes into an array.  The index is given with a
 literal number.
 
+.SS USER-SPACE
+Early prototype support for user-space probing is available in the
+form of a non-symbolic probe point:
+.SAMPLE
+process(PID).statement(ADDRESS).absolute
+.ESAMPLE
+is analogous to 
+.IR
+kernel.statement(ADDRESS).absolute
+in that both use raw (unverified) virtual addresses and provide
+no $variables.  The target PID parameter must identify a running
+process, and ADDRESS should identify a valid instruction address.
+All threads of that process will be probed.
+
 .SS PROCFS
 
 These probe points allow procfs "files" in
