@@ -1,4 +1,4 @@
-#! stap -p3
+#! stap -p2
 
 probe begin {
   print (1 = a)
