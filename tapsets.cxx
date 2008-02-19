@@ -3132,8 +3132,10 @@ query_module (Dwfl_Module *mod,
 
       Dwarf_Addr _junk;
       Elf* elf = dwfl_module_getelf (mod, &_junk);
-      Ebl* ebl = ebl_openbackend (elf);
-      int elf_machine = ebl_get_elfmachine (ebl);
+      GElf_Ehdr ehdr_mem;
+      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+      if (em == 0) { q->dw.dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+      int elf_machine = em->e_machine;
       const char* debug_filename = "";
       const char* main_filename = "";
       (void) dwfl_module_info (mod, NULL, NULL, 
