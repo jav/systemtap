@@ -1,5 +1,16 @@
 * What's new in version 0.6 / 0.6.1
 
+- Prototype support for user-space probing is showing some progress.
+  No symbolic notations are supported yet (so no probing by function names,
+  file names, process names, and no access to $context variables), but at
+  least it's something:
+
+    probe process(PID).statement(ADDRESS).absolute { }
+
+  This will set a uprobe on the given process-id and given virtual address.
+  The proble handler runs in kernel-space as usual, and can generally use
+  existing tapset functions.
+
 - Crash utility can retrieve systemtap's relay buffer from a kernel dump
   image by using staplog which is a crash extension module. To use this
   feature, type commands as below from crash(8)'s command line:
