@@ -1,3 +1,10 @@
+2008-02-19  David Smith  <dsmith@redhat.com>
+
+	PR 5672.
+	* tapsets.cxx (mark_derived_probe): Call probe_point copy ctor to
+	shallow-copy incoming base probe location before
+	recomputing/overwriting it.
+
 2008-02-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	* NEWS, stapprobes.5.in: Document basic (non-symbolic prototype)

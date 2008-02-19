@@ -5289,7 +5289,8 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
                                         const string& p_s,
                                         probe* base, probe_point* loc):
-  derived_probe (base, loc), sess (s), probe_name (p_n), probe_sig (p_s),
+  derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
+  sess (s), probe_name (p_n), probe_sig (p_s),
   target_symbol_seen (false)
 {
   // create synthetic probe point name; preserve condition
