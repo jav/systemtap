@@ -2158,8 +2158,9 @@ struct dwarf_query : public base_query
 		       Dwarf_Addr addr);
   string get_blacklist_section(Dwarf_Addr addr);
 
-  set<string> blacklisted_probes;
-  set<string> blacklisted_return_probes;
+  regex_t blacklist_func; // function/statement probes
+  regex_t blacklist_func_ret; // only for .return probes
+  regex_t blacklist_file; // file name
   void build_blacklist();
 
   bool blacklisted_p(const string& funcname,
@@ -2374,70 +2375,110 @@ dwarf_query::handle_query_module()
 void
 dwarf_query::build_blacklist()
 {
-  // FIXME: it would be nice if these blacklisted functions were pulled in
-  // dynamically, instead of being statically defined here.
+  // We build up the regexps in these strings
+
+  // Add ^ anchors at the front; $ will be added just before regcomp.
+
+  // NB: all the regexp strings will start with "^(|foo|bar)$", note the
+  // empty first alternative.  It's a bit unsightly, but it lets all the
+  // regexp concatenation statements look uniform, and we should have no
+  // empty actual strings to match against anyway.
+
+  string blfn = "^(";
+  string blfn_ret = "^(";
+  string blfile = "^(";
+
+  blfile += "|kernel/kprobes.c";
+  blfile += "|arch/.*/kernel/kprobes.c";
+
+  // XXX: it would be nice if these blacklisted functions were pulled
+  // in dynamically, instead of being statically defined here.
+  // Perhaps it could be populated from script files.  A "noprobe
+  // kernel.function("...")"  construct might do the trick.
 
   // Most of these are marked __kprobes in newer kernels.  We list
-  // them here so the translator can block them on older kernels that
-  // don't have the __kprobes function decorator.  This also allows
-  // detection of problems at translate- rather than run-time.
-  blacklisted_probes.insert("__raw_spin_is_locked");
-  blacklisted_probes.insert("atomic_notifier_call_chain");
-  blacklisted_probes.insert("default_do_nmi");
-  blacklisted_probes.insert("__die");
-  blacklisted_probes.insert("die_nmi");
-  blacklisted_probes.insert("do_debug");
-  blacklisted_probes.insert("do_general_protection");
-  blacklisted_probes.insert("do_int3");
-  blacklisted_probes.insert("do_IRQ");
-  blacklisted_probes.insert("do_page_fault");
-  blacklisted_probes.insert("do_sparc64_fault");
-  blacklisted_probes.insert("do_trap");
-  blacklisted_probes.insert("dummy_nmi_callback");
-  blacklisted_probes.insert("flush_icache_range");
-  blacklisted_probes.insert("ia64_bad_break");
-  blacklisted_probes.insert("ia64_do_page_fault");
-  blacklisted_probes.insert("ia64_fault");
-  blacklisted_probes.insert("io_check_error");
-  blacklisted_probes.insert("mem_parity_error");
-  blacklisted_probes.insert("nmi_watchdog_tick");
-  blacklisted_probes.insert("notifier_call_chain");
-  blacklisted_probes.insert("oops_begin");
-  blacklisted_probes.insert("oops_end");
-  blacklisted_probes.insert("program_check_exception");
-  blacklisted_probes.insert("single_step_exception");
-  blacklisted_probes.insert("sync_regs");
-  blacklisted_probes.insert("unhandled_fault");
-  blacklisted_probes.insert("unknown_nmi_error");
+  // them here (anyway) so the translator can block them on older
+  // kernels that don't have the __kprobes function decorator.  This
+  // also allows detection of problems at translate- rather than
+  // run-time.
 
-  blacklisted_probes.insert("_read_trylock");
-  blacklisted_probes.insert("_read_lock");
-  blacklisted_probes.insert("_read_unlock");
-  blacklisted_probes.insert("_write_trylock");
-  blacklisted_probes.insert("_write_lock");
-  blacklisted_probes.insert("_write_unlock");
-  blacklisted_probes.insert("_spin_lock");
-  blacklisted_probes.insert("_spin_lock_irqsave");
-  blacklisted_probes.insert("_spin_trylock");
-  blacklisted_probes.insert("_spin_unlock");
-  blacklisted_probes.insert("_spin_unlock_irqrestore");
+  blfn += "|atomic_notifier_call_chain";
+  blfn += "|default_do_nmi";
+  blfn += "|__die";
+  blfn += "|die_nmi";
+  blfn += "|do_debug";
+  blfn += "|do_general_protection";
+  blfn += "|do_int3";
+  blfn += "|do_IRQ";
+  blfn += "|do_page_fault";
+  blfn += "|do_sparc64_fault";
+  blfn += "|do_trap";
+  blfn += "|dummy_nmi_callback";
+  blfn += "|flush_icache_range";
+  blfn += "|ia64_bad_break";
+  blfn += "|ia64_do_page_fault";
+  blfn += "|ia64_fault";
+  blfn += "|io_check_error";
+  blfn += "|mem_parity_error";
+  blfn += "|nmi_watchdog_tick";
+  blfn += "|notifier_call_chain";
+  blfn += "|oops_begin";
+  blfn += "|oops_end";
+  blfn += "|program_check_exception";
+  blfn += "|single_step_exception";
+  blfn += "|sync_regs";
+  blfn += "|unhandled_fault";
+  blfn += "|unknown_nmi_error";
+
+  // Lots of locks
+  blfn += "|.*raw_.*lock.*";
+  blfn += "|.*read_.*lock.*";
+  blfn += "|.*write_.*lock.*";
+  blfn += "|.*spin_.*lock.*";
+  blfn += "|.*rwlock_.*lock.*";
+  blfn += "|.*rwsem_.*lock.*";
+  blfn += "|.*mutex_.*lock.*";
+  blfn += "|raw_.*";
+  blfn += "|.*seq_.*lock.*";
+
+  // Experimental
+  blfn += "|.*apic.*|.*APIC.*";
+  blfn += "|.*softirq.*";
+  blfn += "|.*IRQ.*";
+  blfn += "|.*_intr.*";
+  blfn += "|__delay";
+  blfn += "|.*kernel_text.*";
+  blfn += "|get_current";
+  blfn += "|current_.*";
+  blfn += "|.*exception_tables.*";
+  blfn += "|.*setup_rt_frame.*";
 
   // PR 5759, CONFIG_PREEMPT kernels
-  blacklisted_probes.insert("add_preempt_count");
-  blacklisted_probes.insert("preempt_schedule");
-  blacklisted_probes.insert("sub_preempt_count");
+  blfn += "|.*preempt_count.*";
+  blfn += "|preempt_schedule";
 
   // __switch_to changes "current" on x86_64 and i686, so return probes
   // would cause kernel panic, and it is marked as "__kprobes" on x86_64
   if (sess.architecture == "x86_64")
-    blacklisted_probes.insert("__switch_to");
+    blfn += "|__switch_to";
   if (sess.architecture == "i686")
-    blacklisted_return_probes.insert("__switch_to");
+    blfn_ret += "|__switch_to";
 
   // These functions don't return, so return probes would never be recovered
-  blacklisted_return_probes.insert("do_exit");
-  blacklisted_return_probes.insert("sys_exit");
-  blacklisted_return_probes.insert("sys_exit_group");
+  blfn_ret += "|do_exit";
+  blfn_ret += "|sys_exit";
+  blfn_ret += "|sys_exit_group";
+
+  blfn += ")$";
+  blfn_ret += ")$";
+  blfile += ")$";
+
+  int rc = regcomp (& blacklist_func, blfn.c_str(), REG_NOSUB|REG_EXTENDED);
+  if (rc) throw semantic_error ("blacklist_func regcomp failed");
+  rc = regcomp (& blacklist_func_ret, blfn_ret.c_str(), REG_NOSUB|REG_EXTENDED);
+  if (rc) throw semantic_error ("blacklist_func_ret regcomp failed");
+  rc = regcomp (& blacklist_file, blfile.c_str(), REG_NOSUB|REG_EXTENDED);
+  if (rc) throw semantic_error ("blacklist_file regcomp failed");
 }
 
 
@@ -2555,17 +2596,13 @@ dwarf_query::blacklisted_p(const string& funcname,
       return true;
     }
   
-  // Check probe point against blacklist.  XXX: This has to be
-  // properly generalized, perhaps via a table populated from script
-  // files.  A "noprobe kernel.function("...")"  construct might do
-  // the trick.
-  if (blacklisted_probes.count(funcname) > 0 ||
-      (has_return && blacklisted_return_probes.count(funcname) > 0) ||
-      filename == "kernel/kprobes.c" ||
-      0 == fnmatch ("arch/*/kernel/kprobes.c", filename.c_str(), 0))
-    // XXX: these tests (set lookup, fnmatch) could be combined into a
-    // single synthetic compiled regexp, which would allow blacklisted
-    // functions to be identified by wildcard instead of exact name.
+  // Check probe point against blacklist.
+  int goodfn = regexec (&blacklist_func, funcname.c_str(), 0, NULL, 0);
+  if (has_return)
+    goodfn = goodfn && regexec (&blacklist_func_ret, funcname.c_str(), 0, NULL, 0);
+  int goodfile = regexec (&blacklist_file, filename.c_str(), 0, NULL, 0);
+
+  if (! (goodfn && goodfile))
     {
       if (sess.verbose>1)
 	clog << " skipping - blacklisted";

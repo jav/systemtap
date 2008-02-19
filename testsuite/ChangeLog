@@ -1,5 +1,10 @@
 2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR5766.
+	* semko/fortyfive.stp: New test.
+
+2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR5771.
 	* transko/one.stp: Remove, or rather, move to this ...
 	* semko/zero.stp: new file.

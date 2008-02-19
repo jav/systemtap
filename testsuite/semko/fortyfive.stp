@@ -1,0 +1,3 @@
+#! stap -p2
+
+probe kernel.function("*@kernel/kprobes.c") {} // blacklisted
