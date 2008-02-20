@@ -1,3 +1,20 @@
+2008-02-20  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (struct mark_derived_probe): Renamed 'probe_sig' to
+	'probe_format'.
+	(mark_derived_probe::mark_derived_probe): Added new "format" probe
+	point component.
+	(mark_derived_probe::parse_probe_format): Renamed from
+	'mark_derived_probe::parse_probe_sig'.
+	(struct mark_builder): Added typedefs.  Converted mark_cache from
+	a map to a multimap to handle markers with the same name but
+	different formats.
+	(mark_builder::build): Added new 'format' probe parameter.
+	(register_standard_tapsets): Added new 'format' marker probe
+	optional parameter.
+	* stapprobes.5.in (parts): Documented new "format" probe
+	component. 
+
 2008-02-19  Roland McGrath  <roland@redhat.com>
 
 	* tapsets.cxx (query_module): Use dwfl_module_getdwarf rather

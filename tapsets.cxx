@@ -5124,11 +5124,11 @@ struct mark_arg
 struct mark_derived_probe: public derived_probe
 {
   mark_derived_probe (systemtap_session &s,
-                      const string& probe_name, const string& probe_sig,
+                      const string& probe_name, const string& probe_format,
                       probe* base_probe, probe_point* location);
 
   systemtap_session& sess;
-  string probe_name, probe_sig;
+  string probe_name, probe_format;
   vector <struct mark_arg *> mark_args;
   bool target_symbol_seen;
 
@@ -5136,7 +5136,7 @@ struct mark_derived_probe: public derived_probe
   void emit_probe_context_vars (translator_output* o);
   void initialize_probe_context_vars (translator_output* o);
 
-  void parse_probe_sig ();
+  void parse_probe_format ();
 };
 
 
@@ -5339,20 +5339,21 @@ mark_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 
 mark_derived_probe::mark_derived_probe (systemtap_session &s,
                                         const string& p_n,
-                                        const string& p_s,
+                                        const string& p_f,
                                         probe* base, probe_point* loc):
   derived_probe (base, new probe_point(*loc) /* .components soon rewritten */),
-  sess (s), probe_name (p_n), probe_sig (p_s),
+  sess (s), probe_name (p_n), probe_format (p_f),
   target_symbol_seen (false)
 {
   // create synthetic probe point name; preserve condition
   vector<probe_point::component*> comps;
   comps.push_back (new probe_point::component ("kernel"));
   comps.push_back (new probe_point::component ("mark", new literal_string (probe_name)));
+  comps.push_back (new probe_point::component ("format", new literal_string (probe_format)));
   this->sole_location()->components = comps;
 
-  // expand the signature string
-  parse_probe_sig();
+  // expand the marker format
+  parse_probe_format();
 
   // Now make a local-variable-expanded copy of the probe body
   mark_var_expanding_copy_visitor v (sess, name, mark_args);
@@ -5360,7 +5361,8 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
-    clog << "marker-based " << name << " signature=" << probe_sig << endl;
+    clog << "marker-based " << name << " mark=" << probe_name
+	 << " fmt='" << probe_format << "'" << endl;
 }
 
 
@@ -5375,9 +5377,9 @@ skip_atoi(const char **s)
 
 
 void
-mark_derived_probe::parse_probe_sig()
+mark_derived_probe::parse_probe_format()
 {
-  const char *fmt = probe_sig.c_str();
+  const char *fmt = probe_format.c_str();
   int qualifier;		// 'h', 'l', or 'L' for integer fields
   mark_arg *arg;
 
@@ -5605,7 +5607,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline () << "{";
       s.op->line() << " .name=" << lex_cast_qstring(probes[i]->probe_name)
 		   << ",";
-      s.op->line() << " .format=" << lex_cast_qstring(probes[i]->probe_sig)
+      s.op->line() << " .format=" << lex_cast_qstring(probes[i]->probe_format)
 		   << ",";
       s.op->line() << " .pp=" << lex_cast_qstring (*probes[i]->sole_location())
 		   << ",";
@@ -5676,7 +5678,11 @@ struct mark_builder: public derived_probe_builder
 {
 private:
   bool cache_initialized;
-  map<std::string, std::string> mark_cache;
+  typedef multimap<string, string> mark_cache_t;
+  typedef multimap<string, string>::const_iterator mark_cache_const_iterator_t;
+  typedef pair<mark_cache_const_iterator_t, mark_cache_const_iterator_t>
+    mark_cache_const_iterator_pair_t;
+  mark_cache_t mark_cache;
 
 public:
   mark_builder(): cache_initialized(false) {}
@@ -5708,6 +5714,8 @@ mark_builder::build(systemtap_session & sess,
 {
   string mark_str_val;
   bool has_mark_str = get_param (parameters, "mark", mark_str_val);
+  string mark_format_val;
+  bool has_mark_format = get_param (parameters, "format", mark_format_val);
   assert (has_mark_str);
 
   if (! cache_initialized)
@@ -5740,25 +5748,59 @@ mark_builder::build(systemtap_session & sess,
 	    clog << "'" << name << "' '" << module << "' '" << format
 		 << "'" << endl;
 
-	  mark_cache[name] = format;
+	  if (mark_cache.count(name) > 0)
+	    {
+	      // If we have 2 markers with the same we've got 2 cases:
+	      // different format strings or duplicate format strings.
+	      // If an existing marker in the cache doesn't have the
+	      // same format string, add this marker.
+	      mark_cache_const_iterator_pair_t ret;
+	      mark_cache_const_iterator_t it;
+	      bool matching_format_string = false;
+		  
+	      ret = mark_cache.equal_range(name);
+	      for (it = ret.first; it != ret.second; ++it)
+	        {
+		  if (format == it->second)
+		    {
+		      matching_format_string = true;
+		      break;
+		    }
+		}
+
+	      if (! matching_format_string)
+	        mark_cache.insert(pair<string,string>(name, format));
+	  }
+	  else
+	    mark_cache.insert(pair<string,string>(name, format));
 	}
       while (! module_markers.eof());
       module_markers.close();
     }
 
   // Search marker list for matching markers
-  for (map<string,string>::iterator it = mark_cache.begin();
+  for (mark_cache_const_iterator_t it = mark_cache.begin();
        it != mark_cache.end(); it++)
     {
       // Below, "rc" has negative polarity: zero iff matching.
       int rc = fnmatch(mark_str_val.c_str(), it->first.c_str(), 0);
       if (! rc)
         {
-	  derived_probe *dp
-	      = new mark_derived_probe (sess,
-					it->first, it->second,
-					base, loc);
-	  finished_results.push_back (dp);
+	  bool add_result = true;
+
+	  // Match format strings (if the user specified one)
+	  if (has_mark_format && fnmatch(mark_format_val.c_str(),
+					 it->second.c_str(), 0))
+	    add_result = false;
+
+	  if (add_result)
+	    {
+	      derived_probe *dp
+		= new mark_derived_probe (sess,
+					  it->first, it->second,
+					  base, loc);
+	      finished_results.push_back (dp);
+	    }
 	}
     }
 }
@@ -6509,6 +6551,8 @@ register_standard_tapsets(systemtap_session & s)
 
   // marker-based parts
   s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
+  s.pattern_root->bind("kernel")->bind_str("mark")->bind_str("format")
+    ->bind(new mark_builder());
 
   // procfs parts
   s.pattern_root->bind("procfs")->bind("read")->bind(new procfs_builder());

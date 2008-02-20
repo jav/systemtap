@@ -363,7 +363,10 @@ The next part names the marker itself:
 .BR mark("name") .
 The marker name string, which may contain the usual wildcard characters,
 is matched against the names given to the marker macros when the kernel
-and/or module was compiled.
+and/or module was compiled.    Optionally, you can specify
+.BR format("format") .
+Specifying the marker format string allows differentation between two
+markers with the same name but different marker format strings.
 
 The handler associated with a marker-based probe may read the
 optional parameters specified at the macro call site.  These are
@@ -371,6 +374,9 @@ named
 .BR $arg1 " through " $argNN ,
 where NN is the number of parameters supplied by the macro.  Number
 and string parameters are passed in a type-safe manner.
+
+The marker format string associated with a marker is available in
+.BR $format .
 
 .SS PERFORMANCE MONITORING HARDWARE
 
