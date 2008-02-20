@@ -1,3 +1,8 @@
+2008-02-20  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/marker.exp: Added tests for marker probe
+	".format" component.
+
 2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5766.
