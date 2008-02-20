@@ -2,6 +2,8 @@
 
 	* tapsets.cxx (query_module): Use dwfl_module_getdwarf rather
 	than dwfl_module_getelf for e_machine check.
+	(dwarf_query::get_blacklist_section): Likewise for section search.
+	Ignore non-SHF_ALLOC sections.
 
 2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
