@@ -92,7 +92,7 @@ struct be_derived_probe: public derived_probe
     // This allows the BEGIN/END/ERROR probes to intermingle.
     // But that's OK - they're always treversed with a nested
     // "if (type==FOO)" conditional.
-    return a->priority < b->priority; 
+    return a->priority < b->priority;
   }
 
   bool needs_global_locks () { return false; }
@@ -341,8 +341,8 @@ be_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   for (unsigned i=0; i < probes.size(); i++)
     {
-      s.op->newline () << "{"; 
-      s.op->line() << " .pp=" 
+      s.op->newline () << "{";
+      s.op->line() << " .pp="
                    << lex_cast_qstring (*probes[i]->sole_location()) << ",";
       s.op->line() << " .ph=&" << probes[i]->name << ",";
       s.op->line() << " .type=" << probes[i]->type;
@@ -757,7 +757,7 @@ struct dwflpp
                        sess.kernel_release +
                        string(" ") +
                        sess.architecture +
-                       string(" debuginfo"), 
+                       string(" debuginfo"),
                        rc);
 
         // XXX: it would be nice if we could do a single
@@ -796,12 +796,12 @@ struct dwflpp
   struct module_cache_entry {
     Dwfl_Module* mod;
     const char* name;
-    Dwarf_Addr addr; 
+    Dwarf_Addr addr;
   };
   typedef vector<module_cache_entry> module_cache_t;
   module_cache_t module_cache;
 
-  static int module_caching_callback(Dwfl_Module * mod, 
+  static int module_caching_callback(Dwfl_Module * mod,
                                      void **,
                                      const char *name,
                                      Dwarf_Addr addr,
@@ -1008,7 +1008,7 @@ struct dwflpp
           {
             if (sess.verbose > 3)
 	      clog << "skipping line number mismatch "
-                   << "(" << l_no << " vs " << lineno << ")" 
+                   << "(" << l_no << " vs " << lineno << ")"
                    << " in file '" << srcfile << "'"
                    << "\n";
             srcsp[i] = 0;
@@ -1246,7 +1246,7 @@ struct dwflpp
     lookup_method = "dwarf_entrypc";
     rc = dwarf_entrypc (die, addr);
 
-    if (rc) 
+    if (rc)
       {
         lookup_method = "dwarf_lowpc";
         rc = dwarf_lowpc (die, addr);
@@ -1281,10 +1281,10 @@ struct dwflpp
               lookup_method += ", ignored " + lex_cast<string>(extra) + " more";
           }
       }
-    
+
     if (sess.verbose > 2)
       clog << "entry-pc lookup (" << lookup_method << ") = 0x" << hex << *addr << dec
-           << " (rc " << rc << ")" 
+           << " (rc " << rc << ")"
            << endl;
     return (rc == 0);
   }
@@ -1369,7 +1369,7 @@ struct dwflpp
                             modname, secname, address);
             obstack_printf (pool, "addr; })");
           }
-        else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0') 
+        else if (n == 1 && module_name == TOK_KERNEL && secname[0] == '\0')
           {
             // elfutils' way of telling us that this is a relocatable kernel address, which we
             // need to treat the same way here as dwarf_query::add_probe_point does: _stext.
@@ -1559,7 +1559,7 @@ struct dwflpp
     while (dwarf_tag (die) == DW_TAG_member)
       {
 	const char *member = (dwarf_diename_integrate (die) ?: "<anonymous>");
-	
+
 	o << " " << member;
 
 	if (dwarf_siblingof (die, &die_mem) != 0)
@@ -2095,7 +2095,7 @@ base_query::base_query(systemtap_session & sess,
   has_kernel = has_null_param(params, TOK_KERNEL);
   if (has_kernel)
     module_val = "kernel";
-  else 
+  else
     {
       bool has_module = get_string_param(params, TOK_MODULE, module_val);
       assert (has_module); // no other options are possible by construction
@@ -2220,7 +2220,7 @@ struct dwarf_query : public base_query
 // .statement() probes (something we find out in fairly low-level).
 //
 // An alternative would be to put some more intellgence into query_cu(),
-// and have it print additional suggestions after finding that 
+// and have it print additional suggestions after finding that
 // q->dw.iterate_over_srcfile_lines resulted in no new finished_results.
 
 bool
@@ -2237,7 +2237,7 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
 				     srcfile, lineno, 0,
 				     &srcsp, &nsrcs));
 
-    if (nsrcs != 1) 
+    if (nsrcs != 1)
       {
         if (sess.verbose>4)
           clog << "alternative line " << lineno << " rejected: nsrcs=" << nsrcs << endl;
@@ -2356,7 +2356,7 @@ dwarf_query::handle_query_module()
 	addr = function_num_val;
       else
 	addr = statement_num_val;
-          
+
       // NB: we don't need to add the module base address or bias
       // value here (for reasons that may be coincidental).
       dw.query_cu_containing_module_address(addr, this);
@@ -2595,7 +2595,7 @@ dwarf_query::blacklisted_p(const string& funcname,
 	clog << " skipping - __kprobes";
       return true;
     }
-  
+
   // Check probe point against blacklist.
   int goodfn = regexec (&blacklist_func, funcname.c_str(), 0, NULL, 0);
   if (has_return)
@@ -2688,7 +2688,7 @@ dwarf_query::add_probe_point(const string& funcname,
       if (blacklist_section != "") clog << " section=" << blacklist_section;
       clog << " pc=0x" << hex << addr << dec;
     }
-  
+
   bool bad = blacklisted_p (funcname, filename, line, module, blacklist_section, addr);
   if (sess.verbose > 1)
     clog << endl;
@@ -2702,7 +2702,7 @@ dwarf_query::add_probe_point(const string& funcname,
 
   if (! bad)
     {
-      probe = new dwarf_derived_probe(funcname, filename, line, 
+      probe = new dwarf_derived_probe(funcname, filename, line,
                                       module, reloc_section, addr, reloc_addr, *this, scope_die);
       results.push_back(probe);
     }
@@ -2882,7 +2882,7 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
       if (q->sess.verbose>2)
 	clog << "examining inline instance of " << q->dw.function_name << "\n";
 
-      if ((q->has_function_str && ! q->has_call) 
+      if ((q->has_function_str && ! q->has_call)
           || q->has_statement_str)
 	{
 	  if (q->sess.verbose>2)
@@ -3130,17 +3130,22 @@ query_module (Dwfl_Module *mod,
       // While we can tell i686 apart from x86-64, unfortunately
       // we can't help confusing i586 vs i686 (both EM_386).
 
-      Dwarf_Addr _junk;
-      Elf* elf = dwfl_module_getelf (mod, &_junk);
+      Dwarf_Addr bias;
+      // We prefer dwfl_module_getdwarf to dwfl_module_getelf here,
+      // because dwfl_module_getelf can force costly section relocations
+      // we don't really need, while either will do for this purpose.
+      Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (mod, &bias))
+		  ?: dwfl_module_getelf (mod, &bias));
+
       GElf_Ehdr ehdr_mem;
       GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
       if (em == 0) { q->dw.dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
       int elf_machine = em->e_machine;
       const char* debug_filename = "";
       const char* main_filename = "";
-      (void) dwfl_module_info (mod, NULL, NULL, 
+      (void) dwfl_module_info (mod, NULL, NULL,
                                NULL, NULL, NULL,
-                               & main_filename, 
+                               & main_filename,
                                & debug_filename);
       const string& sess_machine = q->sess.architecture;
       string expect_machine;
@@ -3157,7 +3162,7 @@ query_module (Dwfl_Module *mod,
           // XXX: fill in some more of these
         default: expect_machine = "?"; break;
         }
-     
+
       if (! debug_filename) debug_filename = main_filename;
       if (! debug_filename) debug_filename = name;
 
@@ -3174,7 +3179,7 @@ query_module (Dwfl_Module *mod,
 	clog << "focused on module '" << q->dw.module_name
 	     << " = [0x" << hex << q->dw.module_start
 	     << "-0x" << q->dw.module_end
-	     << ", bias 0x" << q->dw.module_bias << "]" << dec 
+	     << ", bias 0x" << q->dw.module_bias << "]" << dec
              << " file " << debug_filename
              << " ELF machine " << expect_machine
              << " (code " << elf_machine << ")"
@@ -3455,7 +3460,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // this:
       //   if (! _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid])
       //       delete _dwarf_tvar_{name}_{num}_ctr[_dwarf_tvar_tid]
-      
+
       ds = new delete_statement;
       ds->tok = e->tok;
       ds->value = ai_ctr;
@@ -3470,7 +3475,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       ifs->condition = ue;
       ifs->thenblock = ds;
       ifs->elseblock = NULL;
-      
+
       add_block->statements.push_back (ifs);
 
       // (3) We need an entry probe that saves the value for us in the
@@ -3539,13 +3544,13 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       //       = ${param}
       arrayindex* ai_tvar_preinc = new arrayindex;
       *ai_tvar_preinc = *ai_tvar_base;
-      
+
       pre_crement* preinc = new pre_crement;
       preinc->tok = e->tok;
       preinc->op = "++";
       preinc->operand = ai_ctr;
       ai_tvar_preinc->indexes.push_back(preinc);
-      
+
       a = new assignment;
       a->tok = e->tok;
       a->op = "=";
@@ -3707,7 +3712,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
     maxactive_val (q.maxactive_val)
 {
   // Assert relocation invariants
-  if (section == "" && dwfl_addr != addr) // addr should be absolute 
+  if (section == "" && dwfl_addr != addr) // addr should be absolute
     throw semantic_error ("missing relocation base against", q.base_loc->tok);
   if (section != "" && dwfl_addr == addr) // addr should be an offset
     throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
@@ -3735,7 +3740,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
       // of code, add it to the start of the probe.
       if (v.add_block)
         this->body->statements.insert(this->body->statements.begin(), v.add_block);
-      
+
       // If when target-variable-expanding the probe, we added a new
       // probe, add it in a new file to the list of files to be processed.
       if (v.add_probe)
@@ -4117,7 +4122,7 @@ dwarf_builder::build(systemtap_session & sess,
       sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
       sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
       sess.sym_stext = lookup_symbol_address (km, "_stext");
-      
+
       if (sess.verbose > 2)
         {
           clog << "control symbols:"
@@ -4134,7 +4139,7 @@ dwarf_builder::build(systemtap_session & sess,
 
   if (q.has_absolute)
     {
-      // assert guru mode for absolute probes 
+      // assert guru mode for absolute probes
       if (! q.base_probe->privileged)
         {
           throw semantic_error ("absolute statement probe in unprivileged script", q.base_probe->tok);
@@ -4143,7 +4148,7 @@ dwarf_builder::build(systemtap_session & sess,
       // For kernel.statement(NUM).absolute probe points, we bypass
       // all the debuginfo stuff: We just wire up a
       // dwarf_derived_probe right here and now.
-      dwarf_derived_probe* p = 
+      dwarf_derived_probe* p =
         new dwarf_derived_probe ("", "", 0, "kernel", "",
                                  q.statement_num_val, q.statement_num_val,
                                  q, 0);
@@ -4179,11 +4184,11 @@ public:
 };
 
 
-uprobe_derived_probe::uprobe_derived_probe (systemtap_session &s, 
+uprobe_derived_probe::uprobe_derived_probe (systemtap_session &s,
                                             probe* p, probe_point* l,
                                             uint64_t pp, uint64_t aa, bool rr):
   derived_probe(p, l), process(pp), address(aa), return_p (rr)
-{ 
+{
   s.need_uprobes = true;
 }
 
@@ -4212,7 +4217,7 @@ struct uprobe_builder: public derived_probe_builder
     bool b2 = get_param (parameters, TOK_STATEMENT, address);
     bool rr = has_null_param (parameters, TOK_RETURN);
     assert (b1 && b2); // by pattern_root construction
-    
+
     finished_results.push_back(new uprobe_derived_probe(sess, base, location,
                                                         process, address, rr));
   }
@@ -4224,7 +4229,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
-  
+
   // If uprobes isn't in the kernel, pull it in from the runtime.
   s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
   s.op->newline() << "#include <linux/uprobes.h>";
@@ -4407,8 +4412,8 @@ timer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      s.op->newline () << "{"; 
-      s.op->line() << " .pp=" 
+      s.op->newline () << "{";
+      s.op->line() << " .pp="
                    << lex_cast_qstring (*probes[i]->sole_location()) << ",";
       s.op->line() << " .ph=&" << probes[i]->name << ",";
       s.op->line() << " .intrv=" << probes[i]->interval << ",";
@@ -4498,7 +4503,7 @@ public:
 
 profile_derived_probe::profile_derived_probe (systemtap_session &, probe* p, probe_point* l):
   derived_probe(p, l)
-{ 
+{
 }
 
 
@@ -4558,7 +4563,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       if (i > 0)
         {
-          // Some lightweight inter-probe context resetting 
+          // Some lightweight inter-probe context resetting
           // XXX: not quite right: MAXERRORS not respected
           s.op->newline() << "c->actionremaining = MAXACTION;";
         }
@@ -4577,7 +4582,7 @@ profile_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "}";
   s.op->newline() << "struct notifier_block stap_profile_notifier = {"
                   << " .notifier_call = & enter_profile_probes };";
-  
+
   s.op->newline() << "#else";
 
   s.op->newline() << "int enter_profile_probes (struct pt_regs *regs) {";
@@ -4896,7 +4901,7 @@ procfs_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "break;";
   s.op->newline(-1) << "}";
 
-  if (has_read_probes) 
+  if (has_read_probes)
     {
       s.op->newline() << "if (spp->read_pp)";
       s.op->newline(1) << "_stp_procfs_files[i]->read_proc = &_stp_procfs_read;";
@@ -4929,7 +4934,7 @@ procfs_derived_probe_group::emit_module_exit (systemtap_session& s)
   if (probes_by_path.empty())
     return;
 
-  s.op->newline() << "_stp_close_procfs();";    
+  s.op->newline() << "_stp_close_procfs();";
 }
 
 
@@ -5052,7 +5057,7 @@ procfs_builder::build(systemtap_session & sess,
   //
   //   probe procfs("command").read {}"
   //   probe procfs.write {}
-  
+
   if (! has_procfs)
     path = "command";
   // If we have a path, we need to validate it.
@@ -5219,7 +5224,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_arg (target_symbol* e)
 	  break;
 	}
     }
-  
+
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
@@ -5281,7 +5286,7 @@ mark_var_expanding_copy_visitor::visit_target_symbol_format (target_symbol* e)
 	  break;
 	}
     }
-  
+
   string fname = string("_mark_format_get");
 
   // Synthesize a function (if not already synthesized).
@@ -5589,7 +5594,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      s.op->newline () << "{"; 
+      s.op->newline () << "{";
       s.op->line() << " .name=" << lex_cast_qstring(probes[i]->probe_name)
 		   << ",";
       s.op->line() << " .format=" << lex_cast_qstring(probes[i]->probe_sig)
@@ -5601,7 +5606,7 @@ mark_derived_probe_group::emit_module_decls (systemtap_session& s)
     }
   s.op->newline(-1) << "};";
   s.op->newline();
-  
+
 
   // Emit the marker callback function
   s.op->newline();
@@ -5726,7 +5731,7 @@ mark_builder::build(systemtap_session & sess,
 	  if (sess.verbose>3)
 	    clog << "'" << name << "' '" << module << "' '" << format
 		 << "'" << endl;
-	  
+
 	  mark_cache[name] = format;
 	}
       while (! module_markers.eof());
@@ -5849,7 +5854,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->indent(1);
   for (unsigned i=0; i < probes.size(); i++)
     {
-      s.op->newline () << "{"; 
+      s.op->newline () << "{";
       s.op->line() << " .pp=" << lex_cast_qstring (*probes[i]->sole_location()) << ",";
       s.op->line() << " .ph=&" << probes[i]->name << ",";
       s.op->line() << " .intrv=" << probes[i]->interval << "LL,";
@@ -5863,7 +5868,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#ifdef STAPCONF_HRTIMER_REL";
   s.op->newline() << "#define HRTIMER_MODE_REL HRTIMER_REL";
   s.op->newline() << "#endif";
-  
+
   // The function signature changed in 2.6.21.
   s.op->newline() << "#ifdef STAPCONF_HRTIMER_REL";
   s.op->newline() << "static int ";
@@ -5872,7 +5877,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#endif";
   s.op->newline() << "enter_hrtimer_probe (struct hrtimer *timer) {";
 
-  s.op->newline(1) << "int rc = HRTIMER_NORESTART;"; 
+  s.op->newline(1) << "int rc = HRTIMER_NORESTART;";
   s.op->newline() << "struct stap_hrtimer_probe *stp = container_of(timer, struct stap_hrtimer_probe, hrtimer);";
   s.op->newline() << "if ((atomic_read (&session_state) == STAP_SESSION_STARTING) ||";
   s.op->newline() << "    (atomic_read (&session_state) == STAP_SESSION_RUNNING)) {";
@@ -5880,7 +5885,7 @@ hrtimer_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "timer->expires = ktime_add (timer->expires,";
   emit_interval (s.op);
   s.op->line() << ");";
-  s.op->newline() << "rc = HRTIMER_RESTART;"; 
+  s.op->newline() << "rc = HRTIMER_RESTART;";
   s.op->newline(-1) << "}";
   s.op->newline() << "{";
   s.op->indent(1);
@@ -6039,7 +6044,7 @@ timer_builder::register_patterns(match_node *root)
 
   root->bind_num("jiffies")->bind(builder);
   root->bind_num("jiffies")->bind_num("randomize")->bind(builder);
-  
+
   root->bind_num("hz")->bind(builder);
 }
 
@@ -6102,7 +6107,7 @@ perfmon_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	}
     }
 
-  ec->code = "THIS->__retvalue = _pfm_pmd_x[" + 
+  ec->code = "THIS->__retvalue = _pfm_pmd_x[" +
 	  lex_cast<string>(counter_number) + "].reg_num;";
   ec->code += "/* pure */";
   fdecl->name = fname;
@@ -6167,7 +6172,7 @@ struct perfmon_builder: public derived_probe_builder
 
     sess.perfmon++;
 
-    // XXX: need to revise when doing sampling 
+    // XXX: need to revise when doing sampling
     finished_results.push_back(new perfmon_derived_probe(base, location,
 							 sess, event,
 							 perfmon_count));
@@ -6387,7 +6392,7 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
   /* count events both in kernel and user-space */
   inp.pfp_dfl_plm   = PFM_PLM0 | PFM_PLM3;
 
-  /* XXX: some cases a perfmon register might be used of watch dog 
+  /* XXX: some cases a perfmon register might be used of watch dog
      this code doesn't handle that case */
 
   /* figure out the pmcs for the events */
