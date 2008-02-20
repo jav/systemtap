@@ -1,3 +1,8 @@
+2008-02-19  Roland McGrath  <roland@redhat.com>
+
+	* tapsets.cxx (query_module): Use dwfl_module_getdwarf rather
+	tha dwfl_module_getelf for e_machine check.
+
 2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (query_module): Tweak elf-machine checking to
@@ -74,7 +79,7 @@
 	PR5750.
 	From Eugeniy Meshcheryakov eugen@debian.org:
 	* configure.ac (HAVE_LIBSQLITE3): Complete AC_DEFINE.
-	
+
 	* configure, INSTALL, missing, compile, depcomp, install-sh:
 	autoreconf -fi'd.
 
@@ -107,7 +112,7 @@
 	"$arg" or "$format".
 	(mark_derived_probe_group::emit_module_decls): Sets up "$format"
 	data.
-	
+
 	PR 5650 (parital)
 	* systemtap.spec.in: Moved %pre section to the systemtap-runtime
 	rpm.
@@ -190,7 +195,7 @@
 	* acsite.m4: Removed.
 	* systemtap.spec.in: Minimum elfutils version number is no longer
 	filled in by configure.
-	
+
 	PR 5650 (partial).
 	* configure.ac: Handles sqlite optional functionality correctly.
 	If enabled/disabled by the user, do the right thing.  If not
@@ -498,8 +503,8 @@
 	* stapex.5.in: Ditto.
 	* stapfuncs.5.in: Ditto. ALso remove print and printf.  They are
 	documented in stap.1.in.
-	
-2007-11-12  Martin Hunt  <hunt@redhat.com>	
+
+2007-11-12  Martin Hunt  <hunt@redhat.com>
 
 	* translate.cxx (visit_print_format): Strings without a format or
 	formatted with "%s" or "%s\n" should be printed with calls to _stp_print().
@@ -513,7 +518,7 @@
 	* parse.cxx (parse_symbol): Set print_char bool in print_format.
 
 2007-11-12  Martin Hunt  <hunt@redhat.com>
-	
+
 	* tapsets.cxx (build_blacklist): Add __raw_spin_is_locked.
 
 2007-10-25  Josh Stone  <joshua.i.stone@intel.com>
@@ -562,13 +567,13 @@
 
 	* stapprobes.5.in: Removed C label reference.
 	Clarified source path requirements for probe
-	definitions.  Fixed some vertical spacing 
-	issues. 
+	definitions.  Fixed some vertical spacing
+	issues.
 
 2007-10-18  Mike Mason <mmlnx@us.ibm.com>
 
 	* stapfuncs.5.in: Corrected tokenize description.
-	Added task_* functions.  
+	Added task_* functions.
 
 2007-10-16  Jim Keniston  <jkenisto@us.ibm.com>
 
