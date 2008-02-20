@@ -1,7 +1,7 @@
 2008-02-19  Roland McGrath  <roland@redhat.com>
 
 	* tapsets.cxx (query_module): Use dwfl_module_getdwarf rather
-	tha dwfl_module_getelf for e_machine check.
+	than dwfl_module_getelf for e_machine check.
 
 2008-02-19  Frank Ch. Eigler  <fche@elastic.org>
 
