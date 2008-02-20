@@ -2615,10 +2615,15 @@ dwarf_query::blacklisted_p(const string& funcname,
 
 string dwarf_query::get_blacklist_section(Dwarf_Addr addr)
 {
-       Dwarf_Addr baseaddr;
        string blacklist_section;
-       Elf* elf = dwfl_module_getelf (dw.module, & baseaddr);
-       Dwarf_Addr offset = addr - baseaddr;
+       Dwarf_Addr bias;
+       // We prefer dwfl_module_getdwarf to dwfl_module_getelf here,
+       // because dwfl_module_getelf can force costly section relocations
+       // we don't really need, while either will do for this purpose.
+       Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (dw.module, &bias))
+		   ?: dwfl_module_getelf (dw.module, &bias));
+
+       Dwarf_Addr offset = addr - bias;
        if (elf)
         {
           Elf_Scn* scn = 0;
@@ -2629,6 +2634,9 @@ string dwarf_query::get_blacklist_section(Dwarf_Addr addr)
               GElf_Shdr shdr_mem;
               GElf_Shdr *shdr = gelf_getshdr (scn, &shdr_mem);
               if (! shdr) continue; // XXX error?
+
+	      if (!(shdr->sh_flags & SHF_ALLOC))
+		continue;
 
               GElf_Addr start = shdr->sh_addr;
               GElf_Addr end = start + shdr->sh_size;
