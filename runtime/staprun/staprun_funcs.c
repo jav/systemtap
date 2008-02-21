@@ -277,10 +277,20 @@ check_path(void)
 	
 	/* Use realpath() to canonicalize the module path. */
 	if (realpath(modpath, module_realpath) == NULL) {
-		perr("Unable to canonicalize path \"%s\"",modpath);
+		perr("Unable to canonicalize path \"%s\"", modpath);
 		return -1;
 	}
 	
+	/* To make sure the user can't specify something like
+	 * /lib/modules/`uname -r`/systemtapmod.ko, put a '/' on the
+	 * end of staplib_dir_realpath. */
+	if (strlen(staplib_dir_realpath) < (PATH_MAX - 1))
+		strcat(staplib_dir_realpath, "/");
+	else {
+		err("Path \"%s\" is too long.", modpath);
+		return -1;
+	}
+
 	/* Now we've got two canonicalized paths.  Make sure
 	 * module_realpath starts with staplib_dir_realpath. */
 	if (strncmp(staplib_dir_realpath, module_realpath,
