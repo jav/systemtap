@@ -1,3 +1,7 @@
+2008-02-21  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.base/beginenderror.exp: Increase timeout for slow machines.
+
 2008-02-20  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/marker.exp: Added tests for marker probe
