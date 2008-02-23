@@ -32,7 +32,7 @@ expect {
   timeout { fail "$test (timeout)" }
   eof { }
 }
-send "\003"
+exec kill -INT -[exp_pid]
 #FIXME does not handle case of hanging pfaults.stp correctly
 wait
 exec rm -f $test.ko

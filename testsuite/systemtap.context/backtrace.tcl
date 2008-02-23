@@ -117,7 +117,7 @@ expect {
     }
    eof {fail "backtrace of yyy_func3, yyy_func4.return and timer.profile. unexpected EOF" }
 }
-send "\003"
+exec kill -INT -[exp_pid]
 if {$m1 == 4} {
     pass "backtrace of yyy_func3"
 } else {

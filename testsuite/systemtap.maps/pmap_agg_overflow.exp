@@ -19,7 +19,7 @@ expect {
 	set unsupported 1
     }
     timeout {
-	send "\003"
+        exec kill -INT -[exp_pid]
 	fail "$test timed out"
     }
     eof {}

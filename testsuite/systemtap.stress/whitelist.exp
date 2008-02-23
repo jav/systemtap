@@ -310,14 +310,14 @@ proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
 	-re {Pass\ 5:\ starting\ run.\r\n} {
             set error_msg "stap runtime"
             runbenchs
-            send -i $stap_id "\003"
+            exec kill -INT -[exp_pid -i $stap_id]
             exp_continue
         }
         -re {Pass\ 5:\ run\ completed} {
             set failed 0
         }
 	-re {parse\ error|semantic\ error} { set detail "$expect_out(0,string)" }
-	timeout { set detail "stap timeout"; send "\003" }
+	timeout { set detail "stap timeout"; exec kill -INT -[exp_pid -i $stap_id] }
 	eof { set failed 0 }
     }
     catch {close -i $stap_id}

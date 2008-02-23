@@ -11,7 +11,7 @@ set build_dir ""
 
 proc cleanup {} {
     global build_dir
-    catch {send "\003"}
+    catch { exec kill -INT -[exp_pid] }
     foreach n {1 2} {
 	as_root  [list /bin/rm -f /lib/modules/$::uname/kernel/systemtap_test_module$n.ko]
 	as_root [list /sbin/rmmod systemtap_test_module$n]
