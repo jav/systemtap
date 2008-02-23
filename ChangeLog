@@ -1,3 +1,16 @@
+2008-02-22  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5787, PR2608, .statement()
+	* tapsets.cxx (query_dwarf_func): Process .statement(NUM) probes too.
+	(query_cu): Ditto.
+	(query_func_info): Bypass prologue searching for .statement() probes.
+	(query_cu): Ditto.
+
+	(build_blacklist): Remove unsightly empty first alternative in
+	"^(|foo)$" regexps.  Show them for -vvv.
+
+	* buildrun.cxx (compile_pass): Don't turn on "gcc -Q" on until -vvvv.
+
 2008-02-20  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (struct mark_derived_probe): Renamed 'probe_sig' to
