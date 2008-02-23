@@ -5,7 +5,7 @@ set stappath [exec which stap]
 set staprunpath [exec which staprun]
 
 if [file exists $staprunpath] {
-    pass "$test search for staprun ($staprunpath)"
+    pass "$test search for staprun"
 } else {
     fail "$test search for staprun"
     return
@@ -25,15 +25,15 @@ catch {close}; wait
 
 set modpath_cwd "$modname.ko"
 if [file exists $modpath_cwd] {
-    pass "$test search for probe module ($modpath_cwd)"
+    pass "$test search for probe module"
 } else {
-    fail "$test search for probe module ($modpath_cwd)"
+    fail "$test search for probe module"
     return
 }
 exec /bin/rm -f $modpath_cwd
 
 if [file exists $tmpdir] {
-    pass "$test search for tmpdir ($tmpdir)"
+    pass "$test search for tmpdir"
 } else {
     fail "$test search for tmpdir"
     return
@@ -41,9 +41,9 @@ if [file exists $tmpdir] {
 
 set modpath "$tmpdir/$modname.ko"
 if [file exists $modpath] {
-    pass "$test search for probe module ($modpath)"
+    pass "$test search for tmpdir probe module"
 } else {
-    fail "$test search for probe module ($modpath)"
+    fail "$test search for tmpdir probe module"
     return
 }
 
