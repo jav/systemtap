@@ -97,7 +97,7 @@ compile_pass (systemtap_session& s)
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;
 
-  if (s.verbose > 2)
+  if (s.verbose > 3)
     o << "EXTRA_CFLAGS += -ftime-report -Q" << endl;
 
   // XXX: unfortunately, -save-temps can't work since linux kbuild cwd

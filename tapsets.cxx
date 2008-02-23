@@ -2379,16 +2379,11 @@ dwarf_query::build_blacklist()
 
   // Add ^ anchors at the front; $ will be added just before regcomp.
 
-  // NB: all the regexp strings will start with "^(|foo|bar)$", note the
-  // empty first alternative.  It's a bit unsightly, but it lets all the
-  // regexp concatenation statements look uniform, and we should have no
-  // empty actual strings to match against anyway.
-
   string blfn = "^(";
   string blfn_ret = "^(";
   string blfile = "^(";
 
-  blfile += "|kernel/kprobes.c";
+  blfile += "kernel/kprobes.c"; // first alternative, no "|"
   blfile += "|arch/.*/kernel/kprobes.c";
 
   // XXX: it would be nice if these blacklisted functions were pulled
@@ -2402,7 +2397,7 @@ dwarf_query::build_blacklist()
   // also allows detection of problems at translate- rather than
   // run-time.
 
-  blfn += "|atomic_notifier_call_chain";
+  blfn += "atomic_notifier_call_chain"; // first blfn; no "|"
   blfn += "|default_do_nmi";
   blfn += "|__die";
   blfn += "|die_nmi";
@@ -2457,6 +2452,11 @@ dwarf_query::build_blacklist()
   blfn += "|.*preempt_count.*";
   blfn += "|preempt_schedule";
 
+  // These functions don't return, so return probes would never be recovered
+  blfn_ret += "do_exit"; // no "|"
+  blfn_ret += "|sys_exit";
+  blfn_ret += "|sys_exit_group";
+
   // __switch_to changes "current" on x86_64 and i686, so return probes
   // would cause kernel panic, and it is marked as "__kprobes" on x86_64
   if (sess.architecture == "x86_64")
@@ -2464,14 +2464,17 @@ dwarf_query::build_blacklist()
   if (sess.architecture == "i686")
     blfn_ret += "|__switch_to";
 
-  // These functions don't return, so return probes would never be recovered
-  blfn_ret += "|do_exit";
-  blfn_ret += "|sys_exit";
-  blfn_ret += "|sys_exit_group";
-
   blfn += ")$";
   blfn_ret += ")$";
   blfile += ")$";
+
+  if (sess.verbose > 2) 
+    {
+      clog << "blacklist regexps:" << endl;
+      clog << "blfn: " << blfn << endl;
+      clog << "blfn_ret: " << blfn_ret << endl;
+      clog << "blfile: " << blfile << endl;
+    }
 
   int rc = regcomp (& blacklist_func, blfn.c_str(), REG_NOSUB|REG_EXTENDED);
   if (rc) throw semantic_error ("blacklist_func regcomp failed");
@@ -2804,7 +2807,8 @@ query_func_info (Dwarf_Addr entrypc,
 	}
       else
 	{
-          if (q->sess.prologue_searching)
+          if (q->sess.prologue_searching
+              && !q->has_statement_str && !q->has_statement_num) // PR 2608
             {
               if (fi.prologue_end == 0)
                 throw semantic_error("could not find prologue-end "
@@ -2913,7 +2917,6 @@ static int
 query_dwarf_func (Dwarf_Die * func, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
-  assert (!q->has_statement_num);
 
   try
     {
@@ -2941,11 +2944,12 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	    {
 	      record_this_function = true;
 	    }
-	  else if (q->has_function_num)
+	  else if (q->has_function_num || q->has_statement_num)
 	    {
-	      Dwarf_Addr query_addr = q->function_num_val;
-              query_addr = q->dw.module_address_to_global(query_addr);
-
+              Dwarf_Addr query_addr =
+                q->dw.module_address_to_global(q->has_function_num ? q->function_num_val :
+                                               q->has_statement_num ? q->statement_num_val :
+                                               (assert(0) , 0));
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
 
@@ -2958,22 +2962,33 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	      if (q->sess.verbose>2)
 		clog << "selected function " << q->dw.function_name << "\n";
 
-	      Dwarf_Addr entrypc;
-	      if (q->dw.function_entrypc (&entrypc))
-		{
-		  func_info func;
-		  q->dw.function_die (&func.die);
-		  func.name = q->dw.function_name;
-		  q->dw.function_file (&func.decl_file);
-		  q->dw.function_line (&func.decl_line);
-		  q->filtered_functions[entrypc] = func;
+              func_info func;
+              q->dw.function_die (&func.die);
+              func.name = q->dw.function_name;
+              q->dw.function_file (&func.decl_file);
+              q->dw.function_line (&func.decl_line);
 
+              if (q->has_function_num || q->has_function_str || q->has_statement_str)
+                {
+                  Dwarf_Addr entrypc;
+                  if (q->dw.function_entrypc (&entrypc))
+                    q->filtered_functions[entrypc] = func;
+                  else
+                    throw semantic_error("no entrypc found for function '"
+                                         + q->dw.function_name + "'");
+                }
+              else if (q->has_statement_num)
+                {
+                  Dwarf_Addr probepc = q->statement_num_val;
+		  q->filtered_functions[probepc] = func;
                   if (q->dw.function_name_final_match (q->function))
                     return DWARF_CB_ABORT;
-		}
-	      else
-		throw semantic_error("no entrypc found for function '"
-				     + q->dw.function_name + "'");
+                }
+              else
+                assert(0);
+
+              if (q->dw.function_name_final_match (q->function))
+                return DWARF_CB_ABORT;
 	    }
 	}
       return DWARF_CB_OK;
@@ -2998,7 +3013,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
         clog << "focused on CU '" << q->dw.cu_name
              << "', in module '" << q->dw.module_name << "'\n";
 
-      if (q->has_statement_str
+      if (q->has_statement_str || q->has_statement_num
 	  || q->has_function_str || q->has_function_num)
 	{
 	  q->filtered_srcfiles.clear();
@@ -3029,7 +3044,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // all in a single pass.
 	  q->dw.iterate_over_functions (query_dwarf_func, q);
 
-          if (q->sess.prologue_searching)
+          if (q->sess.prologue_searching 
+              && !q->has_statement_str && !q->has_statement_num) // PR 2608
             if (! q->filtered_functions.empty())
               q->dw.resolve_prologue_endings (q->filtered_functions);
 
@@ -3045,32 +3061,35 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	    }
 	  else
 	    {
-	      // Otherwise, simply probe all resolved functions (if
-	      // we're scanning functions)
-	      if (q->has_statement_str || q->has_function_str || q->has_function_num)
-		for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
-		     i != q->filtered_functions.end(); ++i)
-		  query_func_info (i->first, i->second, q);
+	      // Otherwise, simply probe all resolved functions.
+              for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+                   i != q->filtered_functions.end(); ++i)
+                query_func_info (i->first, i->second, q);
 
-	      // Or all inline instances (if we're scanning inlines)
-	      if (q->has_statement_str
-                  || ((q->has_function_str || q->has_function_num) && !q->has_call))
+	      // And all inline instances (if we're not excluding inlines with ".call")
+	      if (! q->has_call)
 		for (map<Dwarf_Addr, inline_instance_info>::iterator i
 		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
 		  query_inline_instance_info (i->first, i->second, q);
-
 	    }
 	}
       else
         {
+          // Before PR 5787, we used to have this:
+#if 0
 	  // Otherwise we have a statement number, and we can just
 	  // query it directly within this module.
-
 	  assert (q->has_statement_num);
 	  Dwarf_Addr query_addr = q->statement_num_val;
           query_addr = q->dw.module_address_to_global(query_addr);
 
 	  query_statement ("", "", -1, NULL, query_addr, q);
+#endif
+          // But now, we traverse CUs/functions even for
+          // statement_num's, for blacklist sensitivity and $var
+          // resolution purposes.
+
+          assert (0); // NOTREACHED
         }
       return DWARF_CB_OK;
     }
