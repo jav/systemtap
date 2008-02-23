@@ -1,5 +1,9 @@
 2008-02-23  Frank Ch. Eigler  <fche@elastic.org>
 
+	* systemtap.printf/*.exp: Canonicalize pass/fail messages.
+
+2008-02-23  Frank Ch. Eigler  <fche@elastic.org>
+
 	* systemtap.samples/args.exp: Remove installation-specific paths from
 	pass/fail judgements.
 

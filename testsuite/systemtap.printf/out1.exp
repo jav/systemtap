@@ -18,12 +18,12 @@ if {[catch {exec stap -o $tmpfile $tpath} res]} {
 }
 
 if {[catch {exec cmp $tmpfile $srcdir/$subdir/large_output} res]} {
-    fail "$TEST_NAME failed"
+    fail $TEST_NAME
     puts "$res"
     catch {exec rm -f $tmpfile}
     return
 }
 
-pass "$TEST_NAME passed"
+pass $TEST_NAME
 catch {exec rm -f $tmpfile}
 

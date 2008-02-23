@@ -102,16 +102,16 @@ t is <12345678901234567890123456789012345678901234567890123456789012345678901234
 98: 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
 99: 1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890}
 
-set TEST_NAME "$srcdir/$subdir/$test.stp"
+set TEST_NAME "$subdir/$test.stp"
 
 if {![installtest_p]} { untested $TEST_NAME; return }
 
-set res [exec stap $TEST_NAME]
+set res [exec stap $srcdir/$subdir/$test.stp]
 
 if {[string compare $res $::result_string] == 0} {
-      pass "$TEST_NAME passed"
+      pass $TEST_NAME
 } else {
-      fail "$TEST_NAME failed"
+      fail $TEST_NAME
       puts "EXPECTED:\n-----------------------\n<$::result_string>"
       puts "-----------------------\n"
       puts "GOT:\n-----------------------\n<$res>"
