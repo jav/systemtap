@@ -1,7 +1,11 @@
+2008-02-21  David Smith  <dsmith@redhat.com>
+
+	* staprun_funcs.c (check_path): Small security fix.
+
 2008-01-21  Martin Hunt  <hunt@redhat.com>
 
-	* symbols.c (send_module): Simplify and use new send_data() function to keep
-	longword alignment.
+	* symbols.c (send_module): Simplify and use new send_data()
+	function to keep longword alignment.
 
 2008-01-14  Martin Hunt  <hunt@redhat.com>
 

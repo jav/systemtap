@@ -7,6 +7,7 @@ set ok1 0
 set ok2 0
 set ko 0
 expect {
+    -timeout 30
     -re {^ERROR:[^\r\n]*\r\n} { incr ok1; exp_continue }
     -re {^WARNING:[^\r\n]*\r\n} { incr ok1; exp_continue }
     -re {^ok[^\r\n]*\r\n} { incr ok2; exp_continue }

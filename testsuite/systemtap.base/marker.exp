@@ -46,6 +46,7 @@ proc stap_compile { TEST_NAME compile script args } {
 # Initialize variables
 set kernel_markers_found 0
 set kernel_marker_names {}
+set kernel_marker_formats {}
 
 set num_marker_found 0
 set num_marker_name ""
@@ -54,6 +55,7 @@ set kernel_script {"probe kernel.mark(\"%s\") { }"}
 set kernel_script_arg {"probe kernel.mark(\"%s\") { print(%s) }"}
 set kernel_script_arg2 {"probe kernel.mark(\"%s\") { %s = 0 }"}
 set kernel_script_arg3 {"probe kernel.mark(\"%s\") { print(\$arg1%s) }"}
+set kernel_format_script {"probe kernel.mark(\"%s\").format(\"%s\") { }"}
 
 # Try to read in the marker list from the Module.markers file.
 set uname [exec /bin/uname -r]
@@ -63,14 +65,15 @@ if {! [catch {open $path RDONLY} fl]} {
     while {[gets $fl s] >= 0} {
 	# This regexp only picks up markers that contain arguments.
 	# This helps ensure that K_MARKER04 passes correctly.
-	if [regexp {^([^ \t]+)\t[^ \t]+.*(%.+)$} $s match name fmt] {
+	if [regexp {^([^ \t]+)\t[^ \t]+\t(.*%.+)$} $s match name fmt] {
 	    set kernel_markers_found 1
 	    lappend kernel_marker_names $name
+	    lappend kernel_marker_formats $fmt
 	    
 	    # Look for a marker whose first argument is numeric
 	    # (either '%d', '%u', or '%p').  If we find such a marker,
-	    # we can run K_MARKER09 and K_MARKER10.
-	    if {$num_marker_found == 0 && [regexp {^%[dup]} $fmt]} {
+	    # we can run K_MARKER09, K_MARKER10, etc.
+	    if {$num_marker_found == 0 && [regexp {^[^%]*%[dup]} $fmt]} {
 		set num_marker_found 1
 		set num_marker_name $name
 	    }
@@ -234,5 +237,37 @@ if {$kernel_markers_found == 0} {
     # an array (which isn't allowed).
     set script [format $kernel_script_arg \
 		    [lindex $kernel_marker_names 0] {\$format\[0\]}]
+    stap_compile $TEST_NAME 0 $script
+}
+
+set TEST_NAME "K_MARKER15"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that specifies the marker format as a
+    # wildcard.
+    set script [format $kernel_format_script \
+		    [lindex $kernel_marker_names 0] "*"]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "K_MARKER16"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that specifies the marker format.
+    set script [format $kernel_format_script \
+		    [lindex $kernel_marker_names 0] \
+		    [lindex $kernel_marker_formats 0]]
+    stap_compile $TEST_NAME 1 $script
+}
+
+set TEST_NAME "K_MARKER17"
+if {$kernel_markers_found == 0} {
+    untested "$TEST_NAME : no kernel markers present"
+} else {
+    # Try compiling a script that specifies the wrong marker format.
+    set script [format $kernel_format_script \
+		    [lindex $kernel_marker_names 0] "foo"]
     stap_compile $TEST_NAME 0 $script
 }
