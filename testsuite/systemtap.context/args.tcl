@@ -53,6 +53,6 @@ expect {
     }
     eof {fail "function arguments: unexpected timeout"}
 }
-send "\003"
+exec kill -INT -[exp_pid]
 close
 wait

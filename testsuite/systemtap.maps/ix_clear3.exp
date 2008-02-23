@@ -13,7 +13,7 @@ expect {
     pass "$test passed"
   }
   timeout {
-    send "\003"
+    exec kill -INT -[exp_pid]
     fail "$test timed out"
   }
   eof { 

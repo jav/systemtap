@@ -37,7 +37,7 @@ proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
 	    }
 	}
 	-re "^systemtap starting probe\r\n" {
-	    send "\003"
+  	    exec kill -INT -[exp_pid]
 
 	    expect {
 		-timeout 10
@@ -58,7 +58,8 @@ proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
 	    }
 	}
 	-re "semantic error:" { fail "$TEST_NAME compilation" }
-	timeout { fail "$TEST_NAME startup (timeout)"; send "\003" }
+	timeout { fail "$TEST_NAME startup (timeout)"; 
+   	          exec kill -INT -[exp_pid] }
 	eof { fail "$TEST_NAME startup (eof)" }
     }
     catch close
