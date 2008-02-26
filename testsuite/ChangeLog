@@ -1,3 +1,8 @@
+2008-02-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5792.
+	* systemtap.base/preprocessor.exp: New test.
+
 2008-02-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.printf/*.exp: Canonicalize pass/fail messages.

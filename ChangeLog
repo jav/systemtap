@@ -1,3 +1,10 @@
+2008-02-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5792.
+	* parse.cxx (eval_pp_conditional): Support wildcards in 
+	%( kernel_v/kernel_vr/arch ==/!= "*foo?" %) operands.
+	* NEWS, stap.1.in: Document this.
+
 2008-02-22  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5787, PR2608, .statement()
