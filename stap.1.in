@@ -258,7 +258,7 @@ The following code might adapt to hypothetical kernel version drift:
 .SAMPLE
 probe kernel.function ( 
   %( kernel_v <= "2.6.12" %? "__mm_do_fault" %: 
-     %( kernel_vr == "2.6.13\-1.8273FC3smp" %? "do_page_fault" %:
+     %( kernel_vr == "2.6.13*smp" %? "do_page_fault" %:
         UNSUPPORTED %) %)
 ) { /* ... */ }
 
