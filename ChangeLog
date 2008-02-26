@@ -1,3 +1,8 @@
+2008-02-26  Dave Brolley  <brolley@redhat.com>
+
+	PR5018
+	* staprun.8.in: Escape dashes ('-') as appropriate.
+
 2008-02-26  Srinivasa DS   <srinivasa@in.ibm.com>
 	PR5772
 	* tapset/syscall2.stp: Modify wait4,waitid argument list
