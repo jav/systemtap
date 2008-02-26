@@ -1,3 +1,8 @@
+2008-02-26  Srinivasa DS   <srinivasa@in.ibm.com>
+	PR5772
+	* tapset/syscall2.stp: Modify wait4,waitid argument list
+	for kernel > 2.6.24.
+
 2008-02-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5792.
