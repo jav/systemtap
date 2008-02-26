@@ -1,5 +1,9 @@
 * What's new in version 0.6 / 0.6.1
 
+- Preprocessor conditional expressions can now include wildcard style
+  matches on kernel versions. 
+  %( kernel_vr != "*xen" %? foo %: bar %)
+
 - Prototype support for user-space probing is showing some progress.
   No symbolic notations are supported yet (so no probing by function names,
   file names, process names, and no access to $context variables), but at

@@ -224,6 +224,15 @@ version of the target kernel (as optionally overridden by the
 option) compares to the given version string.  The comparison is
 performed by the glibc function
 .BR strverscmp .
+As a special case, if the operator is for simple equality 
+.RB ( == ),
+or inequality
+.RB ( != ),
+and the third part contains any wildcard characters
+.RB ( * " or " ? " or " [ "),"
+then the expression is treated as a wildcard (mis)match as evaluated
+by
+.BR fnmatch .
 .PP
 If, on the other hand, the first part is the identifier
 .BR arch
@@ -231,7 +240,7 @@ to refer to the processor architecture, then the second part
 then the second part is one of the two string comparison operators
 .BR == " or " != ,
 and the third part is a string literal for matching it.  This
-comparison is simple string (in)equality.
+comparison is a wildcard (mis)match.
 .PP
 Otherwise, the CONDITION is expected to be a comparison between two string
 literals or two numeric literals.  In this case, the arguments are the only
@@ -249,7 +258,7 @@ The following code might adapt to hypothetical kernel version drift:
 .SAMPLE
 probe kernel.function ( 
   %( kernel_v <= "2.6.12" %? "__mm_do_fault" %: 
-     %( kernel_vr == "2.6.13\-1.8273FC3smp" %? "do_page_fault" %:
+     %( kernel_vr == "2.6.13*smp" %? "do_page_fault" %:
         UNSUPPORTED %) %)
 ) { /* ... */ }
 

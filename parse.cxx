@@ -24,6 +24,9 @@
 #include <sstream>
 #include <cstring>
 #include <cctype>
+extern "C" {
+#include <fnmatch.h>
+}
 
 using namespace std;
 
@@ -173,10 +176,16 @@ bool eval_pp_conditional (systemtap_session& s,
       
       if (! (r->type == tok_string))
         throw parse_error ("expected string literal", r);
-      string query_kernel_vr = r->content;
-      
+
+      string target = (l->content == "kernel_vr" ? 
+                       target_kernel_vr.c_str() :
+                       target_kernel_v.c_str());
+      string query = r->content;
+      bool rhs_wildcard = (strpbrk (query.c_str(), "*?[") != 0);
+
       // collect acceptable strverscmp results.
       int rvc_ok1, rvc_ok2;
+      bool wc_ok = false;
       if (op->type == tok_operator && op->content == "<=")
         { rvc_ok1 = -1; rvc_ok2 = 0; }
       else if (op->type == tok_operator && op->content == ">=")
@@ -186,21 +195,30 @@ bool eval_pp_conditional (systemtap_session& s,
       else if (op->type == tok_operator && op->content == ">")
         { rvc_ok1 = 1; rvc_ok2 = 1; }
       else if (op->type == tok_operator && op->content == "==")
-        { rvc_ok1 = 0; rvc_ok2 = 0; }
+        { rvc_ok1 = 0; rvc_ok2 = 0; wc_ok = true; }
       else if (op->type == tok_operator && op->content == "!=")
-        { rvc_ok1 = -1; rvc_ok2 = 1; }
+        { rvc_ok1 = -1; rvc_ok2 = 1; wc_ok = true; }
       else
         throw parse_error ("expected comparison operator", op);
-      
-      int rvc_result = strverscmp ((l->content == "kernel_vr" ? 
-                                    target_kernel_vr.c_str() :
-                                    target_kernel_v.c_str()),
-                                   query_kernel_vr.c_str());
-      // normalize rvc_result
-      if (rvc_result < 0) rvc_result = -1;
-      if (rvc_result > 0) rvc_result = 1;
-      
-      return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+
+      if ((!wc_ok) && rhs_wildcard)
+        throw parse_error ("wildcard not allowed with order comparison operators", op);
+
+      if (rhs_wildcard)
+        {
+          int rvc_result = fnmatch (query.c_str(), target.c_str(),
+                                    FNM_NOESCAPE); // spooky
+          bool badness = (rvc_result == 0) ^ (op->content == "==");
+          return !badness;
+        }
+      else
+        {
+          int rvc_result = strverscmp (target.c_str(), query.c_str());
+          // normalize rvc_result
+          if (rvc_result < 0) rvc_result = -1;
+          if (rvc_result > 0) rvc_result = 1;
+          return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+        }
     }
   else if (l->type == tok_identifier && l->content == "arch")
     {
@@ -209,11 +227,15 @@ bool eval_pp_conditional (systemtap_session& s,
         throw parse_error ("expected string literal", r);
       string query_architecture = r->content;
       
+      int nomatch = fnmatch (query_architecture.c_str(),
+                             target_architecture.c_str(),
+                             FNM_NOESCAPE); // still spooky
+
       bool result;
       if (op->type == tok_operator && op->content == "==")
-        result = target_architecture == query_architecture;
+        result = !nomatch;
       else if (op->type == tok_operator && op->content == "!=")
-        result = target_architecture != query_architecture;
+        result = nomatch;
       else
         throw parse_error ("expected '==' or '!='", op);
       
@@ -244,6 +266,8 @@ bool eval_pp_conditional (systemtap_session& s,
       // normalize rvc_result
       if (rvc_result < 0) rvc_result = -1;
       if (rvc_result > 0) rvc_result = 1;
+
+      // NB: no wildcarding option here
 
       return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
     }

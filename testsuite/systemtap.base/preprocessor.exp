@@ -1,0 +1,52 @@
+
+set kvr [exec uname -r]
+set kv [exec uname -r | cut -f1 -d-]
+# a pattern bound to match
+set kr {2?[0-9]*}
+# a pattern bound to mismatch
+set krx {?noSuchKernel*}
+
+set arch [exec uname -m]
+set ar "?[string range $arch 1 end-1]?"
+set arx {?noSuchArch?}
+
+# This test works so that if all the preprocessor conditionals
+# work as expected, stap will indicate no error.
+
+set test "preprocessor basic ops"
+spawn stap -p2 -e "probe never {}
+%( kernel_v == \"$kv\"   %? %: ERROR %)
+%( kernel_v == \"$kr\"   %? %: ERROR %)
+%( kernel_v == \"$krx\"   %? ERROR %: %)
+%( kernel_v != \"$kv\"   %? ERROR %: %)
+%( kernel_v != \"$kr\"   %? ERROR %: %)
+%( kernel_v != \"$krx\"   %? %: ERROR %)
+%( kernel_v < \"9.9999\"  %? %: ERROR %)
+%( kernel_v <= \"9.9999\" %? %: ERROR %)
+%( kernel_v > \"9.9999\"  %? ERROR %: %)
+%( kernel_v >= \"9.9999\" %? ERROR %: %)
+%( kernel_vr == \"$kvr\"  %? %: ERROR %)
+%( kernel_vr == \"$kr\"  %? %: ERROR %)
+%( kernel_vr == \"$krx\"  %? ERROR %: %)
+%( kernel_vr != \"$kvr\"  %? ERROR %: %)
+%( kernel_vr != \"$kr\"   %? ERROR %: %)
+%( kernel_vr != \"$krx\"   %? %: ERROR %)
+%( kernel_vr < \"9.9999\"  %? %: ERROR %)
+%( kernel_vr <= \"9.9999\" %? %: ERROR %)
+%( kernel_vr > \"9.9999\"  %? ERROR %: %)
+%( kernel_vr >= \"9.9999\" %? ERROR %: %)
+%( arch == \"$arch\"      %? %: ERROR %)
+%( arch == \"$ar\"        %? %: ERROR %)
+%( arch == \"$arx\"        %? ERROR %: %)
+%( arch != \"$arch\"      %? ERROR %: %)
+%( arch != \"$ar\"        %? ERROR %: %)
+%( arch != \"$arx\"        %? %: ERROR %)
+"
+set ok 0
+expect {
+    "never" { incr ok }
+    eof { }
+    timeout { }
+}
+catch {close; wait}
+if {$ok == 1} { pass $test } { fail $test }
