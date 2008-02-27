@@ -59,8 +59,7 @@ set kernel_format_script {"probe kernel.mark(\"%s\").format(\"%s\") { }"}
 
 # Try to read in the marker list from the Module.markers file.
 set uname [exec /bin/uname -r]
-set arch [exec arch]
-set path "/usr/src/kernels/$uname-$arch/Module.markers"
+set path "/lib/modules/$uname/build/Module.markers"
 if {! [catch {open $path RDONLY} fl]} {
     while {[gets $fl s] >= 0} {
 	# This regexp only picks up markers that contain arguments.

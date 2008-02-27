@@ -1,3 +1,36 @@
+2008-02-21  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* staptree.h (print_format::conv_memory): New enumerator.
+	(print_format::width_type): New enumeration.
+	(print_format::precision_type): New enumeration.
+	(format_component::widthtype): New member.
+	(format_component::prectype): New member.
+	(format_component::is_empty): Test widthtype and prectype.
+	(format_component::clear): Clear widthtype and prectype.
+	* staptree.cxx (print_format::components_to_string): Handle dynamic width and precision.
+	Handle conv_memory.
+	(print_format::string_to_components): Parse dynamic width and precision specifiers.
+	Set widthtype and prectype. Parse %m format specifier.
+	* elaborate.h (typeresolution_info::check_arg_type): New method.
+	* elaborate.cxx (typeresolution_info::visit_print_format): Account for dynamic width
+	and precision when computing the expected number of arguments. Check the types of
+	arguments for dynamic width and precision. Use check_arg_type to check the types of
+	all arguments. Handle print_format::conv_memory.
+	(typeresolution_info::check_arg_type): New method.
+	* NEWS: Describe the enhancements above.
+
+2008-02-27  David Smith  <dsmith@redhat.com>
+
+	PR5729
+	* systemtap.spec.in: Adds examples to the testsuite rpm so that
+	systemtap.samples/examples.exp works correctly.
+
+2008-02-26  Dave Brolley  <brolley@redhat.com>
+
+	PR5018
+	* staprun.8.in: Escape dashes ('-') as appropriate.
+
 2008-02-26  Srinivasa DS   <srinivasa@in.ibm.com>
 	PR5772
 	* tapset/syscall2.stp: Modify wait4,waitid argument list
@@ -286,6 +319,16 @@
 	rcu_dereferences of engine->data to resync with kernel.org
 	builds.
 
+2008-01-18  Srinivasa DS <srinivasa@in.ibm.com>
+
+	PR 5549
+	* buildrun.cxx : Verify whether kernel has register rename patch
+	through autoconf files.
+	* runtime/(loc2c-runtime.h, procfs.c, regs.c, regs.h,
+	stack-i386.c, autoconf-x86-uniregs.c, autoconf-nameidata.c) : Use
+	appropriate register name at runtime, based on whether kernel has
+	register rename patch or not.
+
 2008-01-18  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Added static copy of
@@ -295,6 +338,12 @@
 
 	* configure.ac, systemtap.spec.in: Update version to 0.6.1
 	* configure: Regenerated.
+
+2008-01-17  Srinivasa DS <srinivasa@in.ibm.com>
+	
+	PR 5483
+	* tapsets.cxx : Possible fix for making systemtap compatible with
+	the elfutils-0.131
 
 2008-01-17  Frank Ch. Eigler  <fche@elastic.org>
 

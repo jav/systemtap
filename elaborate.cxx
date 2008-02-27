@@ -2854,6 +2854,7 @@ typeresolution_info::visit_print_format (print_format* e)
       // First we extract the subsequence of formatting components
       // which are conversions (not just literal string components)
 
+      unsigned expected_num_args = 0;
       std::vector<print_format::format_component> components;
       for (size_t i = 0; i < e->components.size(); ++i)
 	{
@@ -2864,19 +2865,39 @@ typeresolution_info::visit_print_format (print_format* e)
 		   || e->components[i].type == print_format::conv_size)
 	    continue;
 	  components.push_back(e->components[i]);
+	  ++expected_num_args;
+	  if (e->components[i].widthtype == print_format::width_dynamic)
+	    ++expected_num_args;
+	  if (e->components[i].prectype == print_format::prec_dynamic)
+	    ++expected_num_args;
 	}
 
       // Then we check that the number of conversions and the number
       // of args agree.
 
-      if (components.size() != e->args.size())
+      if (expected_num_args != e->args.size())
 	throw semantic_error ("Wrong number of args to formatted print operator",
 			      e->tok);
 
       // Then we check that the types of the conversions match the types
       // of the args.
+      unsigned argno = 0;
       for (size_t i = 0; i < components.size(); ++i)
 	{
+	  // Check the dynamic width, if specified
+	  if (components[i].widthtype == print_format::width_dynamic)
+	    {
+	      check_arg_type (pe_long, e->args[argno]);
+	      ++argno;
+	    }
+
+	  // Check the dynamic precision, if specified
+	  if (components[i].prectype == print_format::prec_dynamic)
+	    {
+	      check_arg_type (pe_long, e->args[argno]);
+	      ++argno;
+	    }
+
 	  exp_type wanted = pe_unknown;
 
 	  switch (components[i].type)
@@ -2898,24 +2919,14 @@ typeresolution_info::visit_print_format (print_format* e)
 	      break;
 
 	    case print_format::conv_string:
+	    case print_format::conv_memory:
 	      wanted = pe_string;
 	      break;
 	    }
 
 	  assert (wanted != pe_unknown);
-
-	  t = wanted;
-	  e->args[i]->visit (this);
-
-	  if (e->args[i]->type == pe_unknown)
-	    {
-	      e->args[i]->type = wanted;
-	      resolved (e->args[i]->tok, wanted);
-	    }
-	  else if (e->args[i]->type != wanted)
-	    {
-	      mismatch (e->args[i]->tok, e->args[i]->type, wanted);
-	    }
+	  check_arg_type (wanted, e->args[argno]);
+	  ++argno;
 	}
     }
   else
@@ -2972,6 +2983,24 @@ typeresolution_info::visit_hist_op (hist_op* e)
 {
   t = pe_stats;
   e->stat->visit (this);
+}
+
+
+void
+typeresolution_info::check_arg_type (exp_type wanted, expression* arg)
+{
+  t = wanted;
+  arg->visit (this);
+
+  if (arg->type == pe_unknown)
+    {
+      arg->type = wanted;
+      resolved (arg->tok, wanted);
+    }
+  else if (arg->type != wanted)
+    {
+      mismatch (arg->tok, arg->type, wanted);
+    }
 }
 
 

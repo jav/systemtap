@@ -1,0 +1,18 @@
+set test "memory1"
+set ::result_string {Memory default width and precision	:m:
+Memory static precision smaller than input	:my st:
+Memory dynamic precision smaller than input	:my st:
+Memory static precision equal to input	:my string:
+Memory dynamic precision equal to input	:my string:
+Memory static width default precision	:    m:
+Memory dynamic width default precision	:    m:
+Memory static width smaller than static precision	:my string:
+Memory static width larger than static precision	:      my string:
+Memory dynamic width smaller than static precision	:my string:
+Memory dynamic width larger than static precision	:      my string:
+Memory static width smaller than dynamic precision	:my string:
+Memory static width larger than dynamic precision	:      my string:
+Memory dynamic width smaller than dynamic precision	:my string:
+Memory dynamic width larger than dynamic precision	:      my string:
+}
+stap_run2 $srcdir/$subdir/$test.stp

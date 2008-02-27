@@ -73,7 +73,7 @@ Attach to loaded systemtap module.
 .B MODULE
 is either a module path or a module name.  If it is a module name,
 the module will be looked for in the following directory
-(where 'VERSION' is the output of "uname -r"):
+(where 'VERSION' is the output of "uname \-r"):
 .IP
 /lib/modules/VERSION/systemtap
 .PP
@@ -95,7 +95,7 @@ to compile a script.  The
 program will report the pathname to the resulting module.
 .PP
 .Vb 1
-\& $ stap -p4 -e 'probe begin { printf("Hello World!\\n"); exit() }'
+\& $ stap \-p4 \-e 'probe begin { printf("Hello World!\\n"); exit() }'
 .br
 \& /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
 .PP

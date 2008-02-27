@@ -1,0 +1,27 @@
+probe begin {
+      five = 5;
+      nine = 9;
+      fifteen = 15;
+      s = "my string";
+
+      printf ("Memory default width and precision\t:%m:\n", s);
+
+      printf ("Memory static precision smaller than input\t:%.5m:\n", s);
+      printf ("Memory dynamic precision smaller than input\t:%.*m:\n", five, s);
+      printf ("Memory static precision equal to input\t:%.9m:\n", s);
+      printf ("Memory dynamic precision equal to input\t:%.*m:\n", nine, s);
+
+      printf ("Memory static width default precision\t:%5m:\n", s);
+      printf ("Memory dynamic width default precision\t:%*m:\n", five, s);
+
+      printf ("Memory static width smaller than static precision\t:%5.9m:\n", s);
+      printf ("Memory static width larger than static precision\t:%15.9m:\n", s);
+      printf ("Memory dynamic width smaller than static precision\t:%*.9m:\n", five, s);
+      printf ("Memory dynamic width larger than static precision\t:%*.9m:\n", fifteen, s);
+      printf ("Memory static width smaller than dynamic precision\t:%5.*m:\n", nine, s);
+      printf ("Memory static width larger than dynamic precision\t:%15.*m:\n", nine, s);
+      printf ("Memory dynamic width smaller than dynamic precision\t:%*.*m:\n", five, nine, s);
+      printf ("Memory dynamic width larger than dynamic precision\t:%*.*m:\n", fifteen, nine, s);
+
+      exit()
+}
