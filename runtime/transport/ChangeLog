@@ -1,3 +1,16 @@
+2008-02-27  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c: Use rwlocks. Use new dbug macros. Handle
+	unwind info if present.
+
+	* transport.c: Include mempool.c. Update dbug and kbug calls
+	to new macros.
+	* transport_msgs.h (_stp_command_name): Add
+	struct containing message names for debugging.
+
+	* control.c, procfs.c: Use new dbug macros. Use
+	new mempool functions.
+
 2008-01-28  Martin Hunt  <hunt@redhat.com>
 
 	* control.c, procfs.c, symbols.c: Use DEFINE_SPINLOCK

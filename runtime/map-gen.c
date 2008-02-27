@@ -229,7 +229,6 @@ static key_data KEYSYM(map_get_key) (struct map_node *mn, int n, int *type)
 	key_data ptr;
 	struct KEYSYM(map_node) *m = (struct KEYSYM(map_node) *)mn;	
 
-	dbug ("n = %d type=%lx\n", n, type);
 	if (n > KEY_ARITY || n < 1) {
 		if (type)
 			*type = END;
@@ -359,7 +358,6 @@ MAP KEYSYM(_stp_map_new) (unsigned max_entries, int htype, ...)
 		start = va_arg(ap, int);
 		stop = va_arg(ap, int);
 		interval = va_arg(ap, int);
-		// dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
 		va_end (ap);
 	}
 
@@ -404,7 +402,6 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 
 	hlist_for_each(e, head) {
 		n = (struct KEYSYM(map_node) *)((long)e - sizeof(struct list_head));
-		//dbug ("n=%lx  key1=%ld n->key1=%ld\n", (long)n, key1, n->key1);
 		if (KEY1_EQ_P(n->key1, key1)
 #if KEY_ARITY > 1
 		    && KEY2_EQ_P(n->key2, key2)
@@ -423,8 +420,6 @@ int KEYSYM(__stp_map_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 		}
 	}
 	/* key not found */
-	dbug("key not found\n");
-
 	n = (struct KEYSYM(map_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
