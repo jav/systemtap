@@ -291,6 +291,16 @@
 	rcu_dereferences of engine->data to resync with kernel.org
 	builds.
 
+2008-01-18  Srinivasa DS <srinivasa@in.ibm.com>
+
+	PR 5549
+	* buildrun.cxx : Verify whether kernel has register rename patch
+	through autoconf files.
+	* runtime/(loc2c-runtime.h, procfs.c, regs.c, regs.h,
+	stack-i386.c, autoconf-x86-uniregs.c, autoconf-nameidata.c) : Use
+	appropriate register name at runtime, based on whether kernel has
+	register rename patch or not.
+
 2008-01-18  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* runtime/uprobes/uprobes.c: Added static copy of
@@ -300,6 +310,12 @@
 
 	* configure.ac, systemtap.spec.in: Update version to 0.6.1
 	* configure: Regenerated.
+
+2008-01-17  Srinivasa DS <srinivasa@in.ibm.com>
+	
+	PR 5483
+	* tapsets.cxx : Possible fix for making systemtap compatible with
+	the elfutils-0.131
 
 2008-01-17  Frank Ch. Eigler  <fche@elastic.org>
 
