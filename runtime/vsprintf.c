@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  * vsprintf.c
- * Copyright (C) 2006 Red Hat Inc.
+ * Copyright (C) 2006, 2008 Red Hat Inc.
  * Based on code from the Linux kernel
  * Copyright (C) 1991, 1992  Linus Torvalds
  *
@@ -115,6 +115,22 @@ static char * number(char * buf, char * end, uint64_t num, int base, int size, i
 	return buf;
 }
 
+static int check_binary_precision (int precision) {
+  /* precision can be unspecified (-1) or one of 1, 2, 4 or 8.  */
+  switch (precision) {
+  case -1:
+  case 1:
+  case 2:
+  case 4:
+  case 8:
+    break;
+  default:
+    precision = -1;
+    break;
+  }
+  return precision;
+}
+
 int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 {
 	int len;
@@ -164,7 +180,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		else if (*fmt == '*') {
 			++fmt;
 			/* it's the next argument */
-			field_width = va_arg(args, int);
+			field_width = va_arg(args, int64_t);
 			if (field_width < 0) {
 				field_width = -field_width;
 				flags |= STP_LEFT;
@@ -180,7 +196,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			else if (*fmt == '*') {
 				++fmt;
 				/* it's the next argument */
-				precision = va_arg(args, int);
+				precision = va_arg(args, int64_t);
 			}
 			if (precision < 0)
 				precision = 0;
@@ -203,7 +219,36 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		switch (*fmt) {
 		case 'b':
 			num = va_arg(args, int64_t);
-			switch(field_width) {
+
+			/* Only certain values are valid for the precision.  */
+			precision = check_binary_precision (precision);
+
+			/* Unspecified field width defaults to the specified
+			   precision and vice versa. If neither is specified,
+			   then both default to 8.  */
+			if (field_width == -1) {
+			  if (precision == -1) {
+			    field_width = 8;
+			    precision = 8;
+			  }
+			  else
+			    field_width = precision;
+			}
+			else if (precision == -1) {
+			  precision = check_binary_precision (field_width);
+			  if (precision == -1)
+			    precision = 8;
+			}
+
+			len = precision;
+			if (!(flags & STP_LEFT)) {
+				while (len < field_width--) {
+					if (str <= end)
+						*str = '\0';
+					++str;
+				}
+			}
+			switch(precision) {
 			case 1:
 				if(str <= end)
 					*(int8_t *)str = (int8_t)num;
@@ -214,26 +259,37 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 					*(int16_t *)str = (int16_t)num;
 				str+=2;
 				break;
+			case 4:
+				if((str + 3) <= end)
+					*(int32_t *)str = num;
+				str+=4;
+				break;
+			default: // "%.8b" by default
 			case 8:
 				if((str + 7) <= end)
 					*(int64_t *)str = num;
 				str+=8;
 				break;
-			case 4:
-			default: // "%4b" by default
-				if((str + 3) <= end)
-					*(int32_t *)str = num;
-				str+=4;
-				break;
+			}
+			while (len < field_width--) {
+				if (str <= end)
+					*str = '\0';
+				++str;
 			}
 			continue;
 			
 		case 's':
+		case 'm':
 			s = va_arg(args, char *);
 			if ((unsigned long)s < PAGE_SIZE)
 				s = "<NULL>";
 
-			len = strnlen(s, precision);
+			if (*fmt == 's')
+			  len = strnlen(s, precision);
+			else if (precision > 0)
+			  len = precision;
+			else
+			  len = 1;
 
 			if (!(flags & STP_LEFT)) {
 				while (len < field_width--) {
