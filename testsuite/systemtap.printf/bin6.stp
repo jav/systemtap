@@ -1,0 +1,40 @@
+# test of width and precision on binary prints
+
+probe begin {
+      one = 1;
+      two = 2;
+      four = 4;
+      eight = 8;
+      deadbeef = big_endian8 (0x6465616462656566);
+
+      printf ("Binary default width default precision\t:%b:\n", deadbeef);
+
+      printf ("Binary static width default precision\t:%1b:\n", deadbeef);
+      printf ("Binary static width default precision\t:%2b:\n", deadbeef);
+      printf ("Binary static width default precision\t:%4b:\n", deadbeef);
+      printf ("Binary static width default precision\t:%8b:\n", deadbeef);
+      printf ("Binary dynamic width default precision\t:%*b:\n", one, deadbeef);
+      printf ("Binary dynamic width default precision\t:%*b:\n", two, deadbeef);
+      printf ("Binary dynamic width default precision\t:%*b:\n", four, deadbeef);
+      printf ("Binary dynamic width default precision\t:%*b:\n", eight, deadbeef);
+
+      printf ("Binary default width static precision\t:%.8b:\n", deadbeef);
+      printf ("Binary default width static precision\t:%.4b:\n", deadbeef);
+      printf ("Binary default width static precision\t:%.2b:\n", deadbeef);
+      printf ("Binary default width static precision\t:%.1b:\n", deadbeef);
+      printf ("Binary default width dynamic precision\t:%.*b:\n", eight, deadbeef);
+      printf ("Binary default width dynamic precision\t:%.*b:\n", four, deadbeef);
+      printf ("Binary default width dynamic precision\t:%.*b:\n", two, deadbeef);
+      printf ("Binary default width dynamic precision\t:%.*b:\n", one, deadbeef);
+
+      printf ("Binary static width static precision\t:%1.8b:\n", deadbeef);
+      printf ("Binary static width static precision\t:%2.4b:\n", deadbeef);
+      printf ("Binary static width static precision\t:%4.2b:\n", deadbeef);
+      printf ("Binary static width static precision\t:%8.1b:\n", deadbeef);
+      printf ("Binary dynamic width dynamic precision\t:%*.*b:\n", one, eight, deadbeef);
+      printf ("Binary dynamic width dynamic precision\t:%*.*b:\n", two, four, deadbeef);
+      printf ("Binary dynamic width dynamic precision\t:%*.*b:\n", four, two, deadbeef);
+      printf ("Binary dynamic width dynamic precision\t:%*.*b:\n", eight, one, deadbeef);
+
+      exit ();
+}
