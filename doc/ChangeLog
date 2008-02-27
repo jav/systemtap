@@ -1,0 +1,7 @@
+2008-02-27  Frank Ch. Eigler  <fche@redhat.com>
+
+	* langref.tex, tutorial.tex: Copied over & aggregated
+	from former comfy digs under /cvs/doc.
+	* tutorial/*: Samples scripts from tutorial.
+	* Makefile.am: New build instructions.
+	* Makefile.in: New generated file.
