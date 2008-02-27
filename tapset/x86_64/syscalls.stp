@@ -23,8 +23,12 @@ probe syscall.arch_prctl.return = kernel.function("sys_arch_prctl").return {
 #
 probe syscall.iopl = kernel.function("sys_iopl") {
 	name = "iopl"
+%( kernel_vr == "*xen" %?
+	level = $new_iopl
+%:
 	level = $level
-	argstr = sprint($level)	
+%)
+	argstr = sprint(level)
 }
 probe syscall.iopl.return = kernel.function("sys_iopl").return {
 	name = "iopl"

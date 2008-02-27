@@ -1,3 +1,8 @@
+2008-02-27  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* x86_64/syscalls.stp (syscall.iopl): Use new_iopl instead of level
+	on xen kernel.
+
 2008-01-25  Will Cohen  <wcohen@redhat.com>
 	
 	PR5554
