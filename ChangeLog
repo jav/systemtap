@@ -1,3 +1,9 @@
+2008-02-27  David Smith  <dsmith@redhat.com>
+
+	PR5729
+	* systemtap.spec.in: Adds examples to the testsuite rpm so that
+	systemtap.samples/examples.exp works correctly.
+
 2008-02-26  Dave Brolley  <brolley@redhat.com>
 
 	PR5018
