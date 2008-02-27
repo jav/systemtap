@@ -1,3 +1,25 @@
+2008-02-21  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* staptree.h (print_format::conv_memory): New enumerator.
+	(print_format::width_type): New enumeration.
+	(print_format::precision_type): New enumeration.
+	(format_component::widthtype): New member.
+	(format_component::prectype): New member.
+	(format_component::is_empty): Test widthtype and prectype.
+	(format_component::clear): Clear widthtype and prectype.
+	* staptree.cxx (print_format::components_to_string): Handle dynamic width and precision.
+	Handle conv_memory.
+	(print_format::string_to_components): Parse dynamic width and precision specifiers.
+	Set widthtype and prectype. Parse %m format specifier.
+	* elaborate.h (typeresolution_info::check_arg_type): New method.
+	* elaborate.cxx (typeresolution_info::visit_print_format): Account for dynamic width
+	and precision when computing the expected number of arguments. Check the types of
+	arguments for dynamic width and precision. Use check_arg_type to check the types of
+	all arguments. Handle print_format::conv_memory.
+	(typeresolution_info::check_arg_type): New method.
+	* NEWS: Describe the enhancements above.
+
 2008-02-27  David Smith  <dsmith@redhat.com>
 
 	PR5729

@@ -287,9 +287,24 @@ struct print_format: public expression
       conv_unsigned_uppercase_hex,
       conv_unsigned_lowercase_hex,
       conv_string,
+      conv_memory,
       conv_literal,
       conv_binary,
       conv_size
+    };
+
+  enum width_type
+    {
+      width_unspecified,
+      width_static,
+      width_dynamic
+    };
+
+  enum precision_type
+    {
+      prec_unspecified,
+      prec_static,
+      prec_dynamic
     };
 
   struct format_component
@@ -297,21 +312,23 @@ struct print_format: public expression
     unsigned long flags;
     unsigned width;
     unsigned precision;
+    width_type widthtype;
+    precision_type prectype;
     conversion_type type;
     std::string literal_string;
     bool is_empty() const
     {
       return flags == 0
-	&& width == 0
-	&& precision == 0
+	&& widthtype == width_unspecified
+	&& prectype == prec_unspecified
 	&& type == conv_unspecified
 	&& literal_string.empty();
     }
     void clear()
     {
       flags = 0;
-      width = 0;
-      precision = 0;
+      widthtype = width_unspecified;
+      prectype = prec_unspecified;
       type = conv_unspecified;
       literal_string.clear();
     }

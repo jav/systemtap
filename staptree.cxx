@@ -442,10 +442,14 @@ print_format::components_to_string(vector<format_component> const & components)
 	  if (i->flags & static_cast<unsigned long>(fmt_flag_special))
 	    oss << '#';
 
-	  if (i->width > 0)
+	  if (i->widthtype == width_dynamic)
+	    oss << '*';
+	  else if (i->widthtype != width_unspecified && i->width > 0)
 	    oss << i->width;
 
-	  if (i->precision > 0)
+	  if (i->prectype == prec_dynamic)
+	    oss << ".*";
+	  else if (i->prectype != prec_unspecified && i->precision > 0)
 	    oss << '.' << i->precision;
 
 	  switch (i->type)	
@@ -480,6 +484,10 @@ print_format::components_to_string(vector<format_component> const & components)
 
 	    case conv_string:
 	      oss << 's';
+	      break;
+	      
+	    case conv_memory:
+	      oss << 'm';
 	      break;
 	      
 	    case conv_size:
@@ -574,13 +582,26 @@ print_format::string_to_components(string const & str)
 	  break;
 	}
 
+      if (i == str.end())
+	break;
+
       // Parse optional width
-	  
-      while (i != str.end() && isdigit(*i))
+      if (*i == '*')
 	{
-	  curr.width *= 10;
-	  curr.width += (*i - '0');
+	  curr.widthtype = width_dynamic;
 	  ++i;
+	}
+      else if (isdigit(*i))
+	{
+	  curr.widthtype = width_static;
+	  curr.width = 0;
+	  do
+	    {
+	      curr.width *= 10;
+	      curr.width += (*i - '0');
+	      ++i;
+	    }
+	  while (i != str.end() && isdigit(*i));
 	}
 
       if (i == str.end())
@@ -592,11 +613,22 @@ print_format::string_to_components(string const & str)
 	  ++i;
 	  if (i == str.end())
 	    break;
-	  while (i != str.end() && isdigit(*i))
+	  if (*i == '*')
 	    {
-	      curr.precision *= 10;
-	      curr.precision += (*i - '0');
+	      curr.prectype = prec_dynamic;
 	      ++i;
+	    }
+	  else if (isdigit(*i))
+	    {
+	      curr.prectype = prec_static;
+	      curr.precision = 0;
+	      do
+		{
+		  curr.precision *= 10;
+		  curr.precision += (*i - '0');
+		  ++i;
+		}
+	      while (i != str.end() && isdigit(*i));
 	    }
 	}
 
@@ -613,6 +645,10 @@ print_format::string_to_components(string const & str)
 	  
 	case 's':
 	  curr.type = conv_string;
+	  break;
+	  
+	case 'm':
+	  curr.type = conv_memory;
 	  break;
 	  
 	case 'd':

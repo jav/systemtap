@@ -54,6 +54,7 @@ struct typeresolution_info: public visitor
   functiondecl* current_function;
   derived_probe* current_probe;
 
+  void check_arg_type (exp_type wanted, expression* arg);
   void mismatch (const token* tok, exp_type t1, exp_type t2);
   void unresolved (const token* tok);
   void resolved (const token* tok, exp_type t);

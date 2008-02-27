@@ -1,5 +1,34 @@
 * What's new in version 0.6 / 0.6.1
 
+- There is a new format specifier, %m, for the printf family of
+  functions.  It functions like %s, except that it does not stop when
+  a nul ('\0') byte is encountered.  The number of bytes output is
+  determined by the precision specifier.  The default precision is 1.
+  For example:
+
+      printf ("%m", "My String") // prints one character: M
+      printf ("%.5", myString)   // prints 5 bytes beginning at the start
+      	     	     		 // of myString
+
+- The %b format specifier for the printf family of functions has been enhanced
+  as follows:
+
+  1) When the width and precision are both unspecified, the default is %8.8b.
+  2) When only one of the width or precision is specified, the other defaults
+     to the same value.  For example, %4b == %.4b == %4.4b
+  3) Nul ('\0') bytes are used for field width padding.  For example,
+
+     printf ("%b", 0x1111deadbeef2222) // prints all eight bytes
+     printf ("%4.2b", 0xdeadbeef)      // prints  \0\0\xbe\xef
+
+- Dynamic width and precision are now supported for all printf family format
+  specifiers.  For example:
+
+     four = 4
+     two = 2
+     printf ("%*.*b", four, two, 0xdeadbbeef) // prints  \0\0\xbe\xef
+     printf ("%*d", four, two)                // prints  <space><space><space>2
+
 - Preprocessor conditional expressions can now include wildcard style
   matches on kernel versions. 
   %( kernel_vr != "*xen" %? foo %: bar %)
