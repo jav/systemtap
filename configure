@@ -709,6 +709,12 @@ sqlite3_LIBS
 staplog_CPPFLAGS
 BUILD_CRASHMOD_TRUE
 BUILD_CRASHMOD_FALSE
+have_latex
+have_dvips
+have_ps2pdf
+have_latex2html
+BUILD_DOCS_TRUE
+BUILD_DOCS_FALSE
 BUILD_ELFUTILS_TRUE
 BUILD_ELFUTILS_FALSE
 elfutils_abs_srcdir
@@ -1324,6 +1330,8 @@ Optional Features:
                           Optional DIRECTORY is the path to the crash header
                           file (needed if installed in a non-standard
                           location).
+  --enable-docs           enable building documentation (default on if latex
+                          etc. found).
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6177,6 +6185,181 @@ else
 fi
 
 
+# Check whether --enable-docs was given.
+if test "${enable_docs+set}" = set; then
+  enableval=$enable_docs; enable_docs=$enableval
+else
+  enable_docs="check"
+fi
+
+# Extract the first word of "latex", so it can be a program name with args.
+set dummy latex; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_have_latex+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$have_latex"; then
+  ac_cv_prog_have_latex="$have_latex" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_latex="yes"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_latex" && ac_cv_prog_have_latex="no"
+fi
+fi
+have_latex=$ac_cv_prog_have_latex
+if test -n "$have_latex"; then
+  { echo "$as_me:$LINENO: result: $have_latex" >&5
+echo "${ECHO_T}$have_latex" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "dvips", so it can be a program name with args.
+set dummy dvips; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_have_dvips+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$have_dvips"; then
+  ac_cv_prog_have_dvips="$have_dvips" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_dvips="yes"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_dvips" && ac_cv_prog_have_dvips="no"
+fi
+fi
+have_dvips=$ac_cv_prog_have_dvips
+if test -n "$have_dvips"; then
+  { echo "$as_me:$LINENO: result: $have_dvips" >&5
+echo "${ECHO_T}$have_dvips" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "ps2pdf", so it can be a program name with args.
+set dummy ps2pdf; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_have_ps2pdf+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$have_ps2pdf"; then
+  ac_cv_prog_have_ps2pdf="$have_ps2pdf" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_ps2pdf="yes"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_ps2pdf" && ac_cv_prog_have_ps2pdf="no"
+fi
+fi
+have_ps2pdf=$ac_cv_prog_have_ps2pdf
+if test -n "$have_ps2pdf"; then
+  { echo "$as_me:$LINENO: result: $have_ps2pdf" >&5
+echo "${ECHO_T}$have_ps2pdf" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "latex2html", so it can be a program name with args.
+set dummy latex2html; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_prog_have_latex2html+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test -n "$have_latex2html"; then
+  ac_cv_prog_have_latex2html="$have_latex2html" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_have_latex2html="yes"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_have_latex2html" && ac_cv_prog_have_latex2html="no"
+fi
+fi
+have_latex2html=$ac_cv_prog_have_latex2html
+if test -n "$have_latex2html"; then
+  { echo "$as_me:$LINENO: result: $have_latex2html" >&5
+echo "${ECHO_T}$have_latex2html" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+if test "$enable_docs" == "yes"; then
+   if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" != "xyesyesyesyes"; then
+      { { echo "$as_me:$LINENO: error: cannot find all tools for building documentation" >&5
+echo "$as_me: error: cannot find all tools for building documentation" >&2;}
+   { (exit 1); exit 1; }; }
+   fi
+fi
+ if test "x${have_latex}${have_dvips}${have_ps2pdf}${have_latex2html}" == "xyesyesyesyes" -a "$enable_docs" != "no"; then
+  BUILD_DOCS_TRUE=
+  BUILD_DOCS_FALSE='#'
+else
+  BUILD_DOCS_TRUE='#'
+  BUILD_DOCS_FALSE=
+fi
+
+
 
 for ac_header in sys/capability.h
 do
@@ -6638,7 +6821,7 @@ fi
 
 ac_config_headers="$ac_config_headers config.h:config.in"
 
-ac_config_files="$ac_config_files Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
+ac_config_files="$ac_config_files Makefile doc/Makefile systemtap.spec stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5"
 
 subdirs="$subdirs testsuite"
 
@@ -6778,6 +6961,13 @@ if test -z "${BUILD_CRASHMOD_TRUE}" && test -z "${BUILD_CRASHMOD_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_CRASHMOD\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_CRASHMOD\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_DOCS_TRUE}" && test -z "${BUILD_DOCS_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_DOCS\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_DOCS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7258,6 +7448,7 @@ do
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
     "systemtap.spec") CONFIG_FILES="$CONFIG_FILES systemtap.spec" ;;
     "stap.1") CONFIG_FILES="$CONFIG_FILES stap.1" ;;
     "stapprobes.5") CONFIG_FILES="$CONFIG_FILES stapprobes.5" ;;
@@ -7433,8 +7624,8 @@ sqlite3_LIBS!$sqlite3_LIBS$ac_delim
 staplog_CPPFLAGS!$staplog_CPPFLAGS$ac_delim
 BUILD_CRASHMOD_TRUE!$BUILD_CRASHMOD_TRUE$ac_delim
 BUILD_CRASHMOD_FALSE!$BUILD_CRASHMOD_FALSE$ac_delim
-BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
-BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
+have_latex!$have_latex$ac_delim
+have_dvips!$have_dvips$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7476,6 +7667,12 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+have_ps2pdf!$have_ps2pdf$ac_delim
+have_latex2html!$have_latex2html$ac_delim
+BUILD_DOCS_TRUE!$BUILD_DOCS_TRUE$ac_delim
+BUILD_DOCS_FALSE!$BUILD_DOCS_FALSE$ac_delim
+BUILD_ELFUTILS_TRUE!$BUILD_ELFUTILS_TRUE$ac_delim
+BUILD_ELFUTILS_FALSE!$BUILD_ELFUTILS_FALSE$ac_delim
 elfutils_abs_srcdir!$elfutils_abs_srcdir$ac_delim
 stap_LIBS!$stap_LIBS$ac_delim
 DATE!$DATE$ac_delim
@@ -7486,7 +7683,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 8; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 14; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

@@ -164,7 +164,7 @@ uninstall-local:
 	-rm -rf $(DESTDIR)$(localstatedir)/cache/$(PACKAGE)
 # XXX: leaves behind man pages
 
-SUBDIRS = testsuite
+SUBDIRS = testsuite doc
 
 check:
 	SRCDIR=`cd $(srcdir); pwd`; \
