@@ -138,7 +138,6 @@ int64_t _stp_key_get_int64 (struct map_node *mn, int n)
 
 	if (mn) {
 		res = (*mn->map->get_key)(mn, n, &type).val;
-		dbug("type=%d\n", type);
 		if (type != INT64)
 			res = 0;
 	}
@@ -159,7 +158,6 @@ char *_stp_key_get_str (struct map_node *mn, int n)
 
 	if (mn) {
 		str = (*mn->map->get_key)(mn, n, &type).strp;
-		dbug("type=%d\n", type);
 		if (type != STRING)
 			str = "bad type";
 	}
@@ -716,7 +714,6 @@ void _stp_map_printn (MAP map, int n, const char *fmt)
 	struct map_node *ptr;
 	int type, num;
 	key_data kd;
-	dbug ("print map %lx fmt=%s\n", (long)map, fmt);
 
 	if (n < 0)
 		return;
@@ -763,7 +760,6 @@ static struct map_node *_stp_new_agg(MAP agg, struct hlist_head *ahead, struct m
 {
 	struct map_node *aptr;
 	/* copy keys and aggregate */
-	dbug("creating new entry in %lx\n", (long)agg);
 	aptr = _new_map_create(agg, ahead);
 	if (aptr == NULL)
 		return NULL;
@@ -952,12 +948,10 @@ static struct map_node *_new_map_create (MAP map, struct hlist_head *head)
 			return NULL;
 		}
 		m = (struct map_node *)map->head.next;
-		dbug ("got %lx off head\n", (long)m);
 		hlist_del_init(&m->hnode);
 	} else {
 		m = (struct map_node *)map->pool.next;
 		map->num++;
-		dbug ("got %lx off pool\n", (long)m);
 	}
 	list_move_tail(&m->lnode, &map->head);
 	

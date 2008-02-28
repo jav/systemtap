@@ -1,0 +1,18 @@
+# Red Hat convention
+function system_uid_p (u) { return u < 500 }
+
+# kernel device number assembly macro
+function makedev (major,minor) { return major << 20 | minor }
+
+function trace_common ()
+{
+  printf("%d %s(%d)", gettimeofday_s(), execname(), pid())
+  # no return value
+} 
+
+function fibonacci (i)
+{
+  if (i < 1) return 0
+  else if (i < 2) return 1
+  else return fibonacci(i-1) + fibonacci(i-2)
+}

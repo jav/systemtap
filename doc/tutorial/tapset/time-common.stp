@@ -1,0 +1,4 @@
+global __time_vars
+function timer_begin (name) { __time_vars[name] = __time_value () }
+function timer_end (name) { return __time_value() - __time_vars[name] }
+

@@ -1,0 +1,25 @@
+%{
+#include <linux/utsname.h>
+%}
+
+function utsname:string (field:long)
+%{
+  if (down_read_trylock (& uts_sem))
+    {
+      const char *f =
+         (THIS->field == 0 ? system_utsname.sysname :
+          THIS->field == 1 ? system_utsname.nodename :
+          THIS->field == 2 ? system_utsname.release :
+          THIS->field == 3 ? system_utsname.version :
+          THIS->field == 4 ? system_utsname.machine :
+          THIS->field == 5 ? system_utsname.domainname : "");
+      strlcpy (THIS->__retvalue, f, MAXSTRINGLEN);
+      up_read (& uts_sem);
+    }
+%}
+
+probe begin
+{
+  printf ("%s %s\n", utsname(0), utsname(2))
+  exit ()
+}

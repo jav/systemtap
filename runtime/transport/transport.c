@@ -18,6 +18,7 @@
 #include <linux/namei.h>
 #include "transport.h"
 #include "time.c"
+#include "../mempool.c"
 #include "symbols.c"
 #include "../procfs.c"
 
@@ -76,7 +77,7 @@ static void _stp_ask_for_symbols(void)
 
 	if (sent_symbols == 0) {
 		/* ask for symbols and modules */
-		kbug("AFS\n");
+		kbug(DEBUG_SYMBOLS|DEBUG_TRANSPORT, "AFS\n");
 		
 		req.endian = 0x1234;
 		req.ptr_size = sizeof(char *);
@@ -94,7 +95,7 @@ static void _stp_ask_for_symbols(void)
 
 void _stp_handle_start (struct _stp_msg_start *st)
 {
-	kbug ("stp_handle_start\n");
+	kbug (DEBUG_TRANSPORT, "stp_handle_start\n");
 
 	if (register_module_notifier(&_stp_module_load_nb))
 		errk("failed to load module notifier\n");
@@ -116,7 +117,7 @@ void _stp_handle_start (struct _stp_msg_start *st)
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
 static void _stp_cleanup_and_exit (int dont_rmmod)
 {
-	kbug("cleanup_and_exit (%d)\n", dont_rmmod);
+	kbug(DEBUG_TRANSPORT, "cleanup_and_exit (%d)\n", dont_rmmod);
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -127,23 +128,23 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
-			kbug("calling probe_exit\n");
+			kbug(DEBUG_TRANSPORT, "calling probe_exit\n");
 			/* tell the stap-generated code to unload its probes, etc */
 			probe_exit();
-			kbug("done with probe_exit\n");
+			kbug(DEBUG_TRANSPORT, "done with probe_exit\n");
 		}
 
 		failures = atomic_read(&_stp_transport_failures);
 		if (failures)
 			_stp_warn ("There were %d transport failures.\n", failures);
 
-		kbug("************** calling startstop 0 *************\n");
+		kbug(DEBUG_TRANSPORT, "************** calling startstop 0 *************\n");
 		if (_stp_utt) utt_trace_startstop(_stp_utt, 0, &utt_seq);
 
-		kbug("ctl_send STP_EXIT\n");
+		kbug(DEBUG_TRANSPORT, "ctl_send STP_EXIT\n");
 		/* tell staprun to exit (if it is still there) */
 		_stp_ctl_send(STP_EXIT, &dont_rmmod, sizeof(int));
-		kbug("done with ctl_send STP_EXIT\n");
+		kbug(DEBUG_TRANSPORT, "done with ctl_send STP_EXIT\n");
 	}
 }
 
@@ -152,7 +153,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
  */
 static void _stp_detach(void)
 {
-	kbug("detach\n");
+	kbug(DEBUG_TRANSPORT, "detach\n");
 	_stp_attached = 0;
 	_stp_pid = 0;
 
@@ -168,7 +169,7 @@ static void _stp_detach(void)
  */
 static void _stp_attach(void)
 {
-	kbug("attach\n");
+	kbug(DEBUG_TRANSPORT, "attach\n");
 	_stp_attached = 1;
 	_stp_pid = current->pid;
 		utt_set_overwrite(0);
@@ -210,7 +211,7 @@ static void _stp_work_queue (void *data)
  */
 void _stp_transport_close()
 {
-	kbug("%d: ************** transport_close *************\n", current->pid);
+	kbug(DEBUG_TRANSPORT, "%d: ************** transport_close *************\n", current->pid);
 	_stp_cleanup_and_exit(1);
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
@@ -219,7 +220,7 @@ void _stp_transport_close()
 	_stp_kill_time();
 	_stp_print_cleanup(); 	/* free print buffers */
 	_stp_mem_debug_done();
-	kbug("---- CLOSED ----\n");
+	kbug(DEBUG_TRANSPORT, "---- CLOSED ----\n");
 }
 
 
@@ -248,7 +249,7 @@ int _stp_transport_init(void)
 {
 	int ret;
 
-	kbug("transport_init\n");
+	kbug(DEBUG_TRANSPORT, "transport_init\n");
 	_stp_init_pid = current->pid;
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
@@ -263,7 +264,7 @@ int _stp_transport_init(void)
 		unsigned size = _stp_bufsize * 1024 * 1024;
 		_stp_subbuf_size = ((size >> 2) + 1) * 65536;
 		_stp_nsubbufs = size / _stp_subbuf_size;
-		kbug("Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
+		kbug(DEBUG_TRANSPORT, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
 
 	/* initialize timer code */
@@ -388,12 +389,12 @@ static struct dentry *_stp_get_root_dir(const char *name) {
 		_stp_lock_inode(sb->s_root->d_inode);
 		root = lookup_one_len(name, sb->s_root, strlen(name));
 		_stp_unlock_inode(sb->s_root->d_inode);
-		kbug("root=%p\n", root);
+		kbug(DEBUG_TRANSPORT, "root=%p\n", root);
 		if (!IS_ERR(root))
 			dput(root);
 		else {
 			root = NULL;
-			kbug("Could not create or find transport directory.\n");
+			kbug(DEBUG_TRANSPORT, "Could not create or find transport directory.\n");
 		}
 	}
 	_stp_unlock_debugfs();

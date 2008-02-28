@@ -1,5 +1,5 @@
 /* main header file
- * Copyright (C) 2005-2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  * Copyright (C) 2005, 2006 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -46,21 +46,7 @@
 static void _stp_dbug (const char *func, int line, const char *fmt, ...);
 void _stp_error (const char *fmt, ...);
 
-#ifdef DEBUG
-/** Prints debug line.
- * This function prints a debug message immediately to staprun. 
- * If the last character is not a newline, then one is added. 
- * @param args A variable number of args in a format like printf.
- * @ingroup io
- */
-#define dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
-#define kbug(args...) {printk("%s:%d ",__FUNCTION__, __LINE__); printk(args); }
-#else
-#define dbug(args...) ;
-#define kbug(args...) ;
-#endif /* DEBUG */
-#define _dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
-#define errk(args...) {printk("Systemtap Error at %s:%d ",__FUNCTION__, __LINE__); printk(args); }
+#include "debug.h"
 
 /* atomic globals */
 static atomic_t _stp_transport_failures = ATOMIC_INIT (0);

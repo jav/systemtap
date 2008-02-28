@@ -437,7 +437,6 @@ PMAP KEYSYM(_stp_pmap_new) (unsigned max_entries, int htype, ...)
 		start = va_arg(ap, int);
 		stop = va_arg(ap, int);
 		interval = va_arg(ap, int);
-		// dbug ("start=%d stop=%d interval=%d\n", start, stop, interval);
 		va_end (ap);
 	}
 
@@ -515,8 +514,6 @@ int KEYSYM(__stp_pmap_set) (MAP map, ALLKEYSD(key), VSTYPE val, int add)
 	}
 
 	/* key not found */
-	dbug("key not found\n");
-
 	n = (struct KEYSYM(pmap_node)*)_new_map_create (map, head);
 	if (n == NULL)
 		return -1;
@@ -678,7 +675,6 @@ VALTYPE KEYSYM(_stp_pmap_get) (PMAP pmap, ALLKEYSD(key))
 #endif
 				) {
 				if (anode == NULL) {
-					// dbug("agg=%lx ahead=%lx\n", (long)agg, (long)ahead);
 					anode = _stp_new_agg(agg, ahead, (struct map_node *)n);
 				} else {
 					if (clear_agg) {
@@ -738,7 +734,6 @@ int KEYSYM(__stp_pmap_del) (MAP map, ALLKEYSD(key))
 	}
 
 	/* key not found */
-	dbug("key not found\n");
 	return 0;
 }
 

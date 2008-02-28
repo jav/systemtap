@@ -1,0 +1,6 @@
+probe kernel.function("*@net/socket.c") {
+  printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return {
+  printf ("%s <- %s\n", thread_indent(-1), probefunc())
+}

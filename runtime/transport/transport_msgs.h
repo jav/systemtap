@@ -36,7 +36,30 @@ enum
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
 #endif
+
+	STP_MAX_CMD
 };
+
+#ifdef DEBUG_TRANSPORT
+static const char *_stp_command_name[] = {
+	"STP_START",
+	"STP_EXIT",
+	"STP_OOB_DATA",
+	"STP_SYSTEM",
+	"STP_SYMBOLS",
+	"STP_MODULE",
+	"STP_TRANSPORT",
+	"STP_CONNECT",
+	"STP_DISCONNECT",
+	"STP_BULK",
+	"STP_READY",
+#ifdef STP_OLD_TRANSPORT
+	"STP_BUF_INFO",
+	"STP_SUBBUFS_CONSUMED",
+	"STP_REALTIME_DATA",
+#endif
+};
+#endif /* DEBUG_TRANSPORT */
 
 /* control channel messages */
 

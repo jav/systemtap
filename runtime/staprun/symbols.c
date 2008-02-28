@@ -19,9 +19,10 @@ static int send_data(int32_t type, void *data, int len)
 	return write(control_channel, data, len);
 }
 
+
 /* Get the sections for a module. Put them in the supplied buffer */
 /* in the following order: */
-/* [struct _stp_msg_module][struct _stp_symbol sections ...][string data]*/
+/* [struct _stp_msg_module][struct _stp_symbol sections ...][string data][unwind data] */
 /* Return the total length of all the data. */
 
 #define SECDIR "/sys/module/%s/sections"
@@ -31,8 +32,9 @@ static int get_sections(char *name, char *data_start, int datalen)
 	char filename[STP_MODULE_NAME_LEN + 256]; 
 	char buf[32], strdata_start[32768];
 	char *strdata=strdata_start, *data=data_start;
-	int fd, len, res;
+	int fd, len, res, unwind_data_len=0;
 	struct _stp_msg_module *mod = (struct _stp_msg_module *)data_start;
+
 	struct dirent *d;
 	DIR *secdir;
 	void *sec;
@@ -62,6 +64,9 @@ static int get_sections(char *name, char *data_start, int datalen)
 		    "This should never happen. Please file a bug report.\n", name);
 		return -1;
 	}
+
+	/* FIXME: optionally fill in unwind data here */
+	mod->unwind_len = unwind_data_len;
 
 	while ((d = readdir(secdir))) {
 		char *secname = d->d_name;
@@ -138,6 +143,14 @@ static int get_sections(char *name, char *data_start, int datalen)
 	while (len--)
 		*data++ = *strdata++;
 	
+#if 0
+	if (unwind_data_len) {
+		if ((unwind_data_len + data - data_start) > datalen)
+			goto err0;
+		memcpy(data, unwind_data, unwind_data_len);
+		data += unwind_data_len;
+	}
+#endif
 	return data - data_start;
 
 err1:
@@ -211,7 +224,7 @@ int do_kernel_symbols(void)
 	int ret, num_syms, i = 0, struct_symbol_size;
 	int max_syms= MAX_SYMBOLS, data_basesize = MAX_SYMBOLS*32;
 
-	if (kernel_ptr_size == 8) 
+	if (kernel_ptr_size == 8)
 		struct_symbol_size = sizeof(struct _stp_symbol64);
 	else
 		struct_symbol_size = sizeof(struct _stp_symbol32);
@@ -285,10 +298,12 @@ int do_kernel_symbols(void)
 	if (num_syms <= 0)
 		goto err;
 
+
 	/* send header */
 	struct _stp_msg_symbol_hdr smsh;
 	smsh.num_syms = num_syms;
 	smsh.sym_size = (uint32_t)(dataptr - data_base);
+	smsh.unwind_size = (uint32_t)0;
 	if (send_request(STP_SYMBOLS, &smsh, sizeof(smsh)) <= 0)
 		goto err;
 

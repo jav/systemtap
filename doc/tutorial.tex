@@ -1,0 +1,1210 @@
+% Copyright (C) 2005-2007 Red Hat Inc.
+% This file is part of systemtap, and is free software.  You can
+% redistribute it and/or modify it under the terms of the GNU General
+% Public License (GPL); either version 2, or (at your option) any
+% later version.
+
+\documentclass{article}
+\usepackage{html}
+\usepackage{graphicx}
+% \usepackage{moreverb}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\usepackage{fullpage}
+\usepackage{fancybox}
+\usepackage[compatible]{nomencl}
+% \usepackage{geometry}
+% \geometry{letterpaper,text={7in,8.5in}}
+\usepackage{charter}
+
+\newenvironment{boxedminipage}%% Boxed minipage
+    {\begin{makeimage}\begin{center}\begin{Sbox}\begin{minipage}}%
+    {\end{minipage}\end{Sbox}\fbox{\TheSbox}\end{center}\end{makeimage}}
+
+\begin{htmlonly}
+\renewcommand{\nomenclature}[2]{}
+\end{htmlonly}
+
+% \usepackage{draftcopy} % ugly
+\bibliographystyle{plain}
+\makeglossary
+\parindent0.0cm
+\parskip0.2cm
+
+\begin{document}
+
+\begin{center}
+\LARGE {\bf Systemtap tutorial}
+\end{center}
+
+\hfill \begin{minipage}{2.5in}
+% contributors please add your names to the list
+Frank Ch. Eigler {\tt \small <fche@redhat.com>} \\
+
+\hfill \today
+\end{minipage}
+
+\tableofcontents
+
+\section{Introduction}
+
+Systemtap is a tool that allows developers and administrators to write
+and reuse simple scripts to deeply examine the activities of a live
+Linux system.  Data may be extracted, filtered, and summarized quickly
+and safely, to enable diagnoses of complex performance or functional
+problems.
+
+\nomenclature{script}{A simple programming language understood by systemtap.}
+
+The essential idea behind a systemtap script is to name {\em events},
+and to give them {\em handlers}.  Whenever a specified event occurs,
+the Linux kernel runs the handler as if it were a quick subroutine,
+then resumes.  There are several kind of events, such as entering or
+exiting a function, a timer expiring, or the entire systemtap session
+starting or stopping.  A handler is a series of script language
+statements that specify the work to be done whenever the event occurs.
+This work normally includes extracting data from the event context,
+storing them into internal variables, or printing results.
+
+\nomenclature{event}{An identifiable instant in the operating system's
+execution state, such as entry to a function, or expiry of a timer.}
+\nomenclature{session}{A complete run of a systemtap script program.}
+\nomenclature{handler}{A series of statements, written in script, which
+is to be performed whenever an event occurs.}
+\nomenclature{\tt .stp}{The standard file name extension for systemtap
+scripts.}
+
+Systemtap works by translating the script to C, running the system C
+compiler to create a kernel module from that.  When the module is
+loaded, it activates all the probed events by hooking into the kernel.
+Then, as events occur on any processor, the compiled handlers run.
+Eventually, the session stops, the hooks are disconnected, and the
+module removed.  This entire process is driven from a single
+command-line program, \verb+stap+.
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat hello-world.stp
+probe begin 
+{
+  print ("hello world\n")
+  exit ()
+}
+
+# stap hello-world.stp
+hello world
+\end{verbatim}
+\end{boxedminipage}
+\label{fig:hello-world}
+\caption{A systemtap smoke test.}
+\end{figure}
+
+This paper assumes that you have installed systemtap and its
+prerequisite kernel development tools and debugging data, so that you
+can run the scripts such as the simple one in
+Figure~\ref{fig:hello-world}.  Log on as \verb+root+, or even better,
+as a user authorized to \verb+sudo+, before running systemtap.
+
+\begin{figure}[h]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat strace-open.stp
+probe syscall.open
+{
+  printf ("%s(%d) open (%s)\n", execname(), pid(), argstr) 
+}
+probe timer.ms(4000) # after 4 seconds
+{
+  exit ()
+}
+
+# stap strace-open.stp
+vmware-guestd(2206) open ("/etc/redhat-release", O_RDONLY)
+hald(2360) open ("/dev/hdc", O_RDONLY|O_EXCL|O_NONBLOCK)
+hald(2360) open ("/dev/hdc", O_RDONLY|O_EXCL|O_NONBLOCK)
+hald(2360) open ("/dev/hdc", O_RDONLY|O_EXCL|O_NONBLOCK)
+df(3433) open ("/etc/ld.so.cache", O_RDONLY)
+df(3433) open ("/lib/tls/libc.so.6", O_RDONLY)
+df(3433) open ("/etc/mtab", O_RDONLY)
+hald(2360) open ("/dev/hdc", O_RDONLY|O_EXCL|O_NONBLOCK)
+\end{verbatim}
+\end{boxedminipage}
+\label{fig:strace-open}
+\caption{A taste of systemtap: a system-wide {\tt strace}, just for
+the {\tt open} system call.}
+\end{figure}
+\nomenclature{strace}{A standard ptrace-based command line tool to trace system call activity of a process.}
+
+\section{Tracing}
+
+The simplest kind of probe is simply to {\em trace} an event.
+\nomenclature{trace}{A compact textual record of an event occurrence.}
+This is the effect of inserting strategically located \verb+print+
+statements into a program.  This is often the first step of problem
+solving: explore by seeing a history of what has happened.
+
+This style of instrumentation is the simplest.  It just asks systemtap
+to print something at each event.  To express this in the script
+language, you need to say where to probe and what to print there.
+
+\subsection{Where to probe}
+
+Systemtap supports a number of built-in events.  The library of
+scripts that comes with systemtap, each called a ``tapset'', may
+define additional ones defined in terms of the built-in family.  See
+the \verb+stapprobes+ man page for details.  \nomenclature{tapset}{A
+reusable script forming part of the automatically searched tapset
+library.}  All these events are named using a unified syntax that
+looks like dot-separated parameterized identifiers:
+
+\begin{tabular}{rl}
+\verb+begin+ & The startup of the systemtap session. \\
+\verb+end+ & The end of the systemtap session. \\
+\verb+kernel.function("sys_open")+ & The entry to the function named
+\verb+sys_open+ in the kernel. \\
+\verb+syscall.close.return+ & The return from the \verb+close+ system
+call. \\
+\verb+module("ext3").statement(0xdeadbeef)+ & The addressed instruction
+in the \verb+ext3+ filesystem driver. \\
+\verb+timer.ms(200)+ & A timer that fires every 200 milliseconds. \\
+\end{tabular}
+
+Let's say that you would like to trace all function entries and exits
+in a source file, say \verb+net/socket.c+ in the kernel.  The
+\verb+kernel.function+ probe point lets you express that easily, since
+systemtap examines the kernel's debugging information to relate object
+code to source code.  It works like a debugger: if you can name or
+place it, you can probe it.  Use
+\verb+kernel.function("*@net/socket.c")+ for the function entries, and
+\verb+kernel.function("*@net/socket.c").return+ for the exits.  Note
+the use of wildcards in the function name part, and the subsequent
+\verb+@FILENAME+ part.  You can also put wildcards into the file name,
+and even add a colon (\verb+:+) and a line number, if you want to
+restrict the search that precisely.  Since systemtap will put a
+separate probe in every place that matches a probe point, a few
+wildcards can expand to hundreds or thousands of probes, so be careful
+what you ask for.  \nomenclature{debug information}{Data created by the
+compiler when the kernel or application was built, sometimes packaged into
+{\tt debuginfo} files, for use by a symbolic debugger.}
+\nomenclature{wildcard}{Presence of \verb+*+ globbing patterns in probe points.}
+
+Once you identify the probe points, the skeleton of the systemtap
+script appears.  The \verb+probe+ keyword introduces a probe point, or
+a comma-separated list of them.  The following \verb+{+ and \verb+}+
+braces enclose the handler for all listed probe points.
+\begin{verbatim}
+probe kernel.function("*@net/socket.c") { }
+probe kernel.function("*@net/socket.c").return { }
+\end{verbatim}
+You can run this script as is, though with empty handlers there will
+be no output.  Put the two lines into a new file.  Run
+\verb+stap -v FILE+.  Terminate it any time with \verb+^C+.  (The
+\verb+-v+ option tells systemtap to print more verbose messages during
+its processing.  Try the \verb+-h+ option to see more options.)
+
+\subsection{What to print}
+
+Since you are interested in each function that was entered and exited,
+a line should be printed for each, containing the function name.  In
+order to make that list easy to read, systemtap should indent the
+lines so that functions called by other traced functions are nested
+deeper.  To tell each single process apart from any others that may be
+running concurrently, systemtap should also print the process ID in
+the line.
+
+Systemtap provides a variety of such contextual data, ready for
+formatting.  They usually appear as function calls within the handler,
+like you already saw in Figure~\ref{fig:strace-open}.  See the
+\verb+stapfuncs+ man page for those functions and more defined in the
+tapset library, but here's a sampling:
+
+\begin{tabular}{rl}
+\verb+tid()+ & The id of the current thread. \\
+\verb+pid()+ & The process (task group) id of the current thread. \\
+\verb+uid()+ & The id of the current user. \\
+\verb+execname()+ & The name of the current process. \\
+\verb+cpu()+ & The current cpu number. \\
+\verb+gettimeofday_s()+ & Number of seconds since epoch. \\
+\verb+get_cycles()+ & Snapshot of hardware cycle counter. \\
+\verb+pp()+ & A string describing the probe point being currently handled. \\
+\verb+probefunc()+ & If known, the name of the function in which
+                     this probe was placed. \\
+\end{tabular}
+
+The values returned may be strings or numbers.  The \verb+print()+
+built-in function accepts either as its sole argument.  Or, you can
+use the C-style \verb+printf()+ built-in, whose formatting argument
+may include \verb+%s+ for a string, \verb+%d+ for a number.
+\verb+printf+ and other functions take comma-separated arguments.
+Don't forget a \verb+"\n"+ at the end.
+
+A particularly handy function in the tapset library is
+\verb+thread_indent+.  Given an indentation delta parameter, it stores
+internally an indentation counter for each thread (\verb+tid()+), and
+returns a string with some generic trace data plus an appropriate
+number of indentation spaces.  That generic data includes a timestamp
+(number of microseconds since the most recent initial indentation), a
+process name and the thread id itself.  It therefore gives an idea not
+only about what functions were called, but who called them, and how
+long they took.  Figure~\ref{fig:socket-trace} shows the finished
+script.  It lacks a call to the \verb+exit()+ function, so you need to
+interrupt it with \verb+^C+ when you want the tracing to stop.
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat socket-trace.stp
+probe kernel.function("*@net/socket.c") {
+  printf ("%s -> %s\n", thread_indent(1), probefunc())
+}
+probe kernel.function("*@net/socket.c").return {
+  printf ("%s <- %s\n", thread_indent(-1), probefunc())
+}
+
+# stap socket-trace.stp
+     0 hald(2632): -> sock_poll
+    28 hald(2632): <- sock_poll
+[...]
+     0 ftp(7223): -> sys_socketcall
+  1159 ftp(7223):  -> sys_socket
+  2173 ftp(7223):   -> __sock_create
+  2286 ftp(7223):    -> sock_alloc_inode
+  2737 ftp(7223):    <- sock_alloc_inode
+  3349 ftp(7223):    -> sock_alloc
+  3389 ftp(7223):    <- sock_alloc
+  3417 ftp(7223):   <- __sock_create
+  4117 ftp(7223):   -> sock_create
+  4160 ftp(7223):   <- sock_create
+  4301 ftp(7223):   -> sock_map_fd
+  4644 ftp(7223):    -> sock_map_file
+  4699 ftp(7223):    <- sock_map_file
+  4715 ftp(7223):   <- sock_map_fd
+  4732 ftp(7223):  <- sys_socket
+  4775 ftp(7223): <- sys_socketcall
+[...]
+\end{verbatim}
+\end{boxedminipage}
+\caption{Tracing and timing functions in {\tt net/sockets.c}.}
+\label{fig:socket-trace}
+\end{figure}
+
+\subsection{Exercises}
+
+\begin{enumerate}
+\item Use the \verb+-p2+ option to systemtap to list all the kernel
+functions named with the word ``nit'' in them.  The probe handlers
+might as well be empty.
+
+\item Trace some system calls (use \verb+syscall.NAME+ and \verb+.return+
+probe points), with the same \verb+thread_indent+ probe handler as in
+Figure~\ref{fig:socket-trace}.  Interpret the results.
+
+\end{enumerate}
+
+\section{Analysis}
+
+Pages of generic tracing text may give you enough information for
+exploring a system.  With systemtap, it is possible to analyze that
+data, to filter, aggregate, transform, and summarize it.  Different
+probes can work together to share data.  Probe handlers can use a rich
+set of control constructs to describe algorithms, with a syntax taken
+roughly from \verb+awk+.  With these tools, systemtap scripts can
+focus on a specific question and provide a compact response: no
+\verb+grep+ needed.
+\nomenclature{awk}{A classic UNIX stream processing language.}
+
+\subsection{Basic constructs}
+
+Most systemtap scripts include conditionals, to limit tracing or other
+logic to those processes or users or {\em whatever} of interest.  The
+syntax is simple:
+
+\begin{tabular}{rl}
+\verb+if (+{\em EXPR}\verb+)+ {\em STATEMENT} [\verb+else+ {\em STATEMENT}\verb+]+ & if/else statement \\
+\verb+while (+{\em EXPR}\verb+)+ {\em STATEMENT} & while loop \\
+\verb+for (+{\em A}\verb+;+ {\em B}\verb+;+ {\em C}\verb+)+ {\em STATEMENT} & for loop \\
+\end{tabular}
+
+Scripts may use \verb+break+/\verb+continue+ as in C.
+Probe handlers can return early using \verb+next+ as in \verb+awk+.
+Blocks of statements are enclosed in \verb+{+ and \verb+}+.  In
+systemtap, the semicolon (\verb+;+) is accepted as a null statement
+rather than as a statement terminator, so is only rarely\footnote{Use
+them between consecutive expressions that place unary {\tt +},{\tt -}
+or mixed pre/post {\tt ++},{\tt --} in an ambiguous manner.}
+necessary.  Shell-style (\verb+#+), C-style (\verb+/* */+), and
+C++-style (\verb+//+) comments are all accepted.
+
+Expressions look like C or \verb+awk+, and support the usual
+operators, precedences, and numeric literals.  Strings are treated as
+atomic values rather than arrays of characters.  String concatenation
+is done with the dot (\verb+"a" . "b"+).  Some examples:
+
+\begin{tabular}{rl}
+\verb+(uid() > 100)+ & probably an ordinary user \\
+\verb+(execname() == "sed")+ & current process is sed \\
+\verb+(cpu() == 0 && gettimeofday_s() > 1140498000)+ & after Feb. 21, 2006, on CPU 0 \\
+\verb+"hello" . " " . "world"+ & a string in three easy pieces \\
+\end{tabular}
+
+Variables may be used as well.  Just pick a name, assign to it, and
+use it in expressions.  They are automatically initialized and
+declared.  The type of each identifier -- string vs. number -- is
+automatically inferred by systemtap from the kinds of operators and
+literals used on it.  Any inconsistencies will be reported as errors.
+Conversion between string and number types is done through explicit
+function calls.
+
+\nomenclature{type}{A designation of each identifier such as a
+variable, or function, or array value or index, as containing a string
+or number.}  \nomenclature{string}{A \verb+\0+-terminated character
+string of up to a fixed limit in length.}  \nomenclature{number}{A
+64-bit signed integer.}  \nomenclature{type inference}{The automatic
+determination of the type of each variable, function parameter, array
+value and index, based on their use.}
+
+\begin{tabular}{rl}
+\verb+foo = gettimeofday_s()+ & foo is a number \\
+\verb+bar = "/usr/bin/" . execname()+ & bar is a string \\
+\verb|c++| & c is a number \\
+\verb+s = sprint(2345)+ & s becomes the string "2345" \\
+\end{tabular}
+
+By default, variables are local to the probe they are used in.  That
+is, they are initialized, used, and disposed of at each probe handler
+invocation.  To share variables between probes, declare them global
+anywhere in the script.  Because of possible concurrency (multiple
+probe handlers running on different CPUs), each global variable used
+by a probe is automatically read- or write-locked while the handler is
+running.  \nomenclature{global variable}{A scalar, array, or aggregate that was
+named in a \verb+global+ declaration, sharing that object amongst all
+probe handlers and functions executed during a systemtap session.}
+\nomenclature{locking}{An automated facility used by systemtap to
+protect global variables against concurrent modification and/or
+access.}
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat timer-jiffies.stp
+global count_jiffies, count_ms
+probe timer.jiffies(100) { count_jiffies ++ }
+probe timer.ms(100) { count_ms ++ }
+probe timer.ms(12345) 
+{
+  hz=(1000*count_jiffies) / count_ms
+  printf ("jiffies:ms ratio %d:%d => CONFIG_HZ=%d\n",
+    count_jiffies, count_ms, hz)
+  exit ()
+}
+
+# stap timer-jiffies.stp
+jiffies:ms ratio 30:123 => CONFIG_HZ=243
+\end{verbatim}
+\end{boxedminipage}
+\caption{Experimentally measuring {\tt CONFIG\_HZ}.}
+\label{fig:timer-jiffies}
+\end{figure}
+
+\subsection{Target variables}
+
+A class of special ``target variables'' allow access to the probe
+point context.  \nomenclature{target variable}{A value that may be
+extracted from the kernel context of the probe point, such as a
+parameter or local variable within a probed function.}  In a symbolic
+debugger, when you're stopped at a breakpoint, you can print values
+from the program's context.  In systemtap scripts, for those probe
+points that match with specific executable point (rather than an
+asynchronous event like a timer), you can do the same.  To know which
+variables are likely to be available, you will need to be familiar
+with the kernel source you are probing.  In addition, you will need to
+check that the compiler has not optimized those values into
+unreachable nonexistence.
+
+Let's say that you are trying to trace filesystem reads/writes to a
+particular device/inode.  From your knowledge of the kernel, you know
+that two functions of interest could be \verb+vfs_read+ and
+\verb+vfs_write+.  Each takes a \verb+struct file *+ argument, inside
+which there is a \verb+struct dentry *+, a \verb+struct inode *+, and
+so on.  Systemtap allows limited dereferencing of such pointer chains.
+Two functions, \verb+user_string+ and \verb+kernel_string+, can copy
+\verb+char *+ target variables into systemtap strings.
+Figure~\ref{fig:inode-watch} demonstrates one way to monitor a
+particular file (identifed by device number and inode number).  This
+example also demonstrates pasting numeric command-line arguments
+(\verb+$1+ etc.) into scripts.
+%$
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat inode-watch.stp
+probe kernel.function ("vfs_write"),
+      kernel.function ("vfs_read")
+{
+  dev_nr = $file->f_dentry->d_inode->i_sb->s_dev
+  inode_nr = $file->f_dentry->d_inode->i_ino
+
+  if (dev_nr == ($1 << 20 | $2) # major/minor device
+      && inode_nr == $3)
+    printf ("%s(%d) %s 0x%x/%u\n",
+      execname(), pid(), probefunc(), dev_nr, inode_nr)
+}
+# stat -c '%D %i' /etc/crontab
+803 988136
+# stap inode-watch.stp 8 3 988136
+crond(2419) vfs_read 0x800003/988136
+crond(2419) vfs_read 0x800003/988136
+crond(2419) vfs_read 0x800003/988136
+\end{verbatim}
+% $
+\end{boxedminipage}
+\caption{Watching for reads/writes to a particular file.}
+\label{fig:inode-watch}
+\end{figure}
+
+\subsection{Functions}
+
+Functions are conveniently packaged reusable software: it would be a
+shame to have to duplicate a complex condition expression or logging
+directive in every placed it's used.  So, systemtap lets you define
+functions of your own.  Like global variables, systemtap functions may
+be defined anywhere in the script.  They may take any number of string
+or numeric arguments (by value), and may return a single string or
+number.  The parameter types are inferred as for ordinary variables,
+and must be consistent throughout the program.  Local and global
+script variables are available, but target variables are {\em not}.
+That's because there is no specific debugging-level context associated
+with a function.
+\nomenclature{function}{A clump of parametrized script statements that
+may be repeatedly and recursively called from probe handlers and other
+functions.}
+
+A function is defined with the keyword \verb+function+ followed by a
+name.  Then comes a comma-separated formal argument list (just a list
+of variable names).  The \verb+{ }+-enclosed body consists of any list
+of statements, including expressions that call functions.  Recursion
+is possible, up to a nesting depth limit.  Figure~\ref{fig:functions}
+displays function syntax.
+
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# Red Hat convention
+function system_uid_p (u) { return u < 500 }
+
+# kernel device number assembly macro
+function makedev (major,minor) { return major << 20 | minor }
+
+function trace_common ()
+{
+  printf("%d %s(%d)", gettimeofday_s(), execname(), pid())
+  # no return value necessary
+} 
+
+function fibonacci (i)
+{
+  if (i < 1) return 0
+  else if (i < 2) return 1
+  else return fibonacci(i-1) + fibonacci(i-2)
+}
+\end{verbatim}
+\end{boxedminipage}
+\caption{Some functions of dubious utility.}
+\label{fig:functions}
+\end{figure}
+
+\subsection{Arrays}
+
+Often, probes will want to share data that cannot be represented as a
+simple scalar value.  Much data is naturally tabular in nature,
+indexed by some tuple of thread numbers, processor ids, names, time,
+and so on.  Systemtap offers associative arrays for this purpose.
+These arrays are implemented as hash tables with a maximum size that
+is fixed at startup.  Because they are too large to be created
+dynamically for inidividual probes handler runs, they must be declared
+as global.  \nomenclature{array}{A global
+\verb+[+$k_1,k_2,\ldots,k_n\verb+]+\rightarrow value$
+associative lookup table, with a string,
+number for each index; the value may be a string, number, or an aggregate.}
+
+\begin{tabular}{rl}
+\verb|global a| & declare global scalar or array variable \\
+\verb|global b[400]| & declare array, reserving space for up to 400 tuples \\
+\end{tabular}
+
+The basic operations for arrays are setting and looking up elements.
+These are expressed in \verb+awk+ syntax: the array name followed by
+an opening \verb+[+ bracket, a comma-separated list of index
+expressions, and a closing \verb+]+ bracket.  Each index expression
+may be string or numeric, as long as it is consistently typed
+throughout the script.
+\nomenclature{arity}{Number of indexes to an array, or number of parameters
+to a function.}
+
+\begin{tabular}{rl}
+\verb|foo [4,"hello"] ++ | & increment the named array slot \\
+\verb|processusage [uid(),execname()] ++| & update a statistic \\
+\verb|times [tid()] = get_cycles()| & set a timestamp reference point \\
+\verb|delta = get_cycles() - times [tid()]| & compute a timestamp delta \\
+\end{tabular}
+
+Array elements that have not been set {\em may} be fetched, and return
+a dummy null value (zero or an empty string) as appropriate.  However,
+assigning a null value does not delete the element: an explicit
+\verb|delete| statement is required.  \nomenclature{null value}{A
+default initialized value for globals and array elements: a zero or an
+empty string, depending on type.}  Systemtap provides syntactic sugar
+for these operations, in the form of explicit membership testing and
+deletion.
+
+\begin{tabular}{rl}
+\verb|if ([4,"hello"] in foo) { }| & membership test \\
+\verb|delete times[tid()]| & deletion of a single element \\
+\verb|delete times| & deletion of all elements \\
+\end{tabular}
+
+One final and important operation is iteration over arrays.  This uses
+the keyword \verb+foreach+.  Like \verb+awk+, this creates a loop that
+{\em iterates over key tuples} of an array, not just {\em values}.  In
+addition, the iteration may be {\em sorted} by any single key or the
+value by adding an extra \verb|+| or \verb|-| code.
+
+The \verb+break+ and \verb+continue+ statements work inside
+\verb+foreach+ loops, too.  Since arrays can be large but probe
+handlers must not run for long, it is a good idea to exit iteration
+early if possible.  The \verb+limit+ option in the \verb+foreach+
+expression is one way.  For simplicity, systemtap forbids any {\em
+modification} of an array while it is being iterated using a
+\verb+foreach+.
+
+\begin{tabular}{rl}
+\verb|foreach ([a,b] in foo) { fuss_with(foo[a,b]) }| & simple loop in arbitrary sequence \\
+\verb|foreach ([a,b] in foo+ limit 5) { }| & loop in increasing sequence of value, stop after 5 \\
+\verb|foreach ([a-,b] in foo) { }| & loop in decreasing sequence of first key \\
+\end{tabular}
+
+\subsection{Aggregates}
+
+When we said above that values can only be strings or numbers, we lied
+a little.  There is a third type: statistics aggregates, or aggregates
+for short.  Instances of this type are used to collect statistics on
+numerical values, where it is important to accumulate new data quickly
+({\em without} exclusive locks) and in large volume (storing only
+aggregated stream statistics).  This type only makes sense for global
+variables, and may be stored individually or as elements of an array.
+\nomenclature{aggregate}{A special ``write-mostly'' data type used to
+efficiently store aggregated statistical values of a potentially huge
+data stream.}
+
+To add a value to a statistics aggregate, systemtap uses the special
+operator \verb+<<<+.  Think of it like C++'s \verb+<<+ output
+streamer: the left hand side object accumulates the data sample given
+on the right hand side.  This operation is efficient (taking a shared
+lock) because the aggregate values are kept separately on each
+processor, and are only aggregated across processors on request.
+
+\begin{verbatim}
+a <<< delta_timestamp
+writes[execname()] <<< count
+\end{verbatim}
+
+To read the aggregate value, special functions are available to
+extract a selected statistical function. {\em The aggregate value
+cannot be read by simply naming it as if it were an ordinary
+variable.}  These operations take an exclusive lock on the respective
+globals, and should therefore be relatively rare.  The simple ones
+are: \verb+@min+, \verb+@max+, \verb+@count+, \verb+@avg+, and
+\verb+@sum+, and evaluate to a single number.  In addition, histograms
+of the data stream may be extracted using the \verb+@hist_log+ and
+\verb+@hist_linear+.  These evaluate to a special sort of array that
+may at present\footnote{We anticipate support for indexing and looping
+using {\tt foreach} shortly.} only be printed.
+\nomenclature{extractor}{A function-like expression in a script that
+computes a single statistic for a given aggregate.}
+
+\begin{tabular}{rl}
+\verb+@avg(a)+ & the average of all the values accumulated
+                        into \verb+a+ \\
+\verb+print(@hist_linear(a,0,100,10))+ & print an ``ascii art'' linear
+                  histogram of the same data stream, \\
+    & bounds $0 \ldots 100$, bucket width is $10$ \\
+\verb|@count(writes["zsh"])| & the number of times ``zsh''
+                ran the probe handler \\
+\verb+print(@hist_log(writes["zsh"]))+ & print an ``ascii art'' logarithmic
+                  histogram of the same data stream \\
+\end{tabular}
+
+\subsection{Safety}
+\label{sec:safety}
+
+The full expressivity of the scripting language raises good questions
+of safety.  Here is a set of Q\&A:
+
+\begin{description}
+\item{\bf What about infinite loops?  recursion?} A probe handler is
+bounded in time.  The C code generated by systemtap includes explicit
+checks that limit the total number of statements executed to a small
+number.  A similar limit is imposed on the nesting depth of function
+calls.  When either limit is exceeded, that probe handler cleanly
+aborts and signals an error.  The systemtap session is normally
+configured to abort as a whole at that time.
+
+\item{\bf What about running out of memory?}  No dynamic memory
+allocation whatsoever takes place during the execution of probe
+handlers.  Arrays, function contexts, and buffers are allocated during
+initialization.  These resources may run out during a session, and
+generally result in errors.
+
+\item{\bf What about locking?}  If multiple probes seek conflicting
+locks on the same global variables, one or more of them will time out,
+and be aborted.  Such events are tallied as ``skipped'' probes, and a
+count is displayed at session end.  A configurable number of skipped
+probes can trigger an abort of the session.
+
+\item{\bf What about null pointers? division by zero?}  The C code
+generated by systemtap translates potentially dangerous operations to
+routines that check their arguments at run time.  These signal errors
+if they are invalid.  Many arithmetic and string operations silently
+overflow if the results exceed representation limits.
+
+\item{\bf What about bugs in the translator?  compiler?}  While bugs
+in the translator, or the runtime layer certainly exist\footnote{See
+\tt http://sources.redhat.com/bugzilla}, our test suite gives some
+assurance.  Plus, the entire generated C code may be inspected (try
+the \verb+-p3+ option).  Compiler bugs are unlikely to be of any
+greater concern for systemtap than for the kernel as a whole.  In
+other words, if it was reliable enough to build the kernel, it will
+build the systemtap modules properly too.
+
+\item{\bf Is that the whole truth?}  In practice, there are several
+weak points in systemtap and the underlying kprobes system at the time
+of writing.  Putting probes indiscriminately into unusually sensitive
+parts of the kernel (low level context switching, interrupt
+dispatching) has reportedly caused crashes in the past.  We are
+fixing these bugs as they are found, and
+constructing a probe point ``blacklist'', but it is not complete.
+\nomenclature{blacklist}{A list of probe point patterns encoded into
+the translator or the kernel, where probing is prohibited for safety
+reasons.}  \nomenclature{kprobes}{A breakpoint dispatching system for
+dynamic kernel probes, used by systemtap to implement some families of
+probe points.}
+
+\end{description}
+
+
+\subsection{Exercises}
+\begin{enumerate}
+\item Alter the last probe in \verb+timer-jiffies.stp+ to reset the
+counters and continue reporting instead of exiting.
+
+\item Write a script that, every ten seconds, displays the top five
+most frequent users of \verb+open+ system call during that interval.
+
+\item Write a script that experimentally measures the speed of the
+\verb+get_cycles()+ counter on each processor.
+
+\item Use any suitable probe point to get an approximate profile of
+process CPU usage: which processes/users use how much of each CPU.
+\end{enumerate}
+
+\section{Tapsets}
+
+After writing enough analysis scripts for yourself, your may become
+known as an expert to your colleagues, who will want to use your
+scripts.  Systemtap makes it possible to share in a controlled manner;
+to build libraries of scripts that build on each other.  In fact, all
+of the functions (\verb+pid()+, etc.) used in the scripts above come
+from tapset scripts like that.  A ``tapset'' is just a script that
+designed for reuse by installation into a special directory.
+
+\subsection{Automatic selection}
+
+Systemtap attempts to resolve references to global symbols (probes,
+functions, variables) that are not defined within the script by a
+systematic search through the tapset library for scripts that define
+those symbols.  Tapset scripts are installed under the default
+directory named \verb+/usr/share/systemtap/tapset+.  A user may give
+additional directories with the \verb+-I DIR+ option.  Systemtap
+searches these directories for script (\verb+.stp+) files.
+
+The search process includes subdirectories that are specialized for a
+particular kernel version and/or architecture, and ones that name only
+larger kernel families.  Naturally, the search is ordered from
+specific to general, as shown in Figure~\ref{fig:tapset-search}.
+\nomenclature{tapset search path}{A list of subdirectories searched by
+systemtap for tapset scripts, allowing specialization by version
+architecture.}
+
+\begin{figure}[h!]
+\begin{boxedminipage}{6in}
+\begin{verbatim}
+# stap -p1 -vv -e 'probe begin { }' > /dev/null
+Created temporary directory "/tmp/staplnEBh7"
+Searched '/usr/share/systemtap/tapset/2.6.15/i686/*.stp', match count 0
+Searched '/usr/share/systemtap/tapset/2.6.15/*.stp', match count 0
+Searched '/usr/share/systemtap/tapset/2.6/i686/*.stp', match count 0
+Searched '/usr/share/systemtap/tapset/2.6/*.stp', match count 0
+Searched '/usr/share/systemtap/tapset/i686/*.stp', match count 1
+Searched '/usr/share/systemtap/tapset/*.stp', match count 12
+Pass 1: parsed user script and 13 library script(s) in 350usr/10sys/375real ms.
+Running rm -rf /tmp/staplnEBh7
+\end{verbatim}
+\end{boxedminipage}
+\caption{Listing the tapset search path.}
+\label{fig:tapset-search}
+\end{figure}
+
+When a script file is found that {\em defines} one of the undefined
+symbols, that {\em entire file} is added to the probing session being
+analyzed.  This search is repeated until no more references can become
+satisfied.  Systemtap signals an error if any are still unresolved.
+
+This mechanism enables several programming idioms.  First, it allows
+some global symbols to be defined only for applicable kernel
+version/architecture pairs, and cause an error if their use is
+attempted on an inapplicable host.  Similarly, the same symbol can be
+defined differently depending on kernels, in much the same way that
+different kernel \verb+include/asm/ARCH/+ files contain macros that
+provide a porting layer.
+
+Another use is to separate the default parameters of a tapset routine
+from its implementation.  For example, consider a tapset that defines
+code for relating elapsed time intervals to process scheduling
+activities.  The data collection code can be generic with respect to
+which time unit (jiffies, wall-clock seconds, cycle counts) it can
+use.  It should have a default, but should not require additional
+run-time checks to let a user choose another.
+Figure~\ref{fig:tapset-default} shows a way.
+
+\begin{figure}[h!]
+\begin{boxedminipage}{6in}
+\begin{verbatim}
+# cat tapset/time-common.stp
+global __time_vars
+function timer_begin (name) { __time_vars[name] = __time_value () }
+function timer_end (name) { return __time_value() - __time_vars[name] }
+
+# cat tapset/time-default.stp
+function __time_value () { return gettimeofday_us () }
+
+# cat tapset-time-user.stp
+probe begin
+{
+  timer_begin ("bench")
+  for (i=0; i<100; i++) ; 
+  printf ("%d cycles\n", timer_end ("bench"))
+  exit ()
+}
+function __time_value () { return get_ticks () } # override for greater precision
+
+\end{verbatim}
+\end{boxedminipage}
+\caption{Providing an overrideable default.}
+\label{fig:tapset-default}
+\end{figure}
+
+A tapset that exports only {\em data} may be as useful as ones that
+exports functions or probe point aliases (see below).  Such global
+data can be computed and kept up-to-date using probes internal to the
+tapset.  Any outside reference to the global variable would
+incidentally activate all the required probes.
+
+\subsection{Probe point aliases}
+
+\nomenclature{probe point alias}{A probe point that is defined in
+terms of another probe point.}  Probe point aliases allow creation of
+new probe points from existing ones.  This is useful if the new probe
+points are named to provide a higher level of abstraction.  For
+example, the system-calls tapset defines probe point aliases of the
+form \verb+syscall.open+ etc., in terms of lower level ones like
+\verb+kernel.function("sys_open")+.  Even if some future kernel
+renames \verb+sys_open+, the aliased name can remain valid.
+
+A probe point alias definition looks like a normal probe.  Both start
+with the keyword \verb+probe+ and have a probe handler statement block
+at the end.  But where a normal probe just lists its probe points, an
+alias creates a new name using the assignment (\verb+=+) operator.
+Another probe that names the new probe point will create an actual
+probe, with the handler of the alias {\em prepended}.
+
+This prepending behavior serves several purposes.  It allows the alias
+definition to ``preprocess'' the context of the probe before passing
+control to the user-specified handler.  This has several possible uses:
+\begin{tabular}{rl}
+\verb+if ($flag1 != $flag2) next+ & skip probe unless given condition is met \\
+\verb+name = "foo"+ & supply probe-describing values \\
+\verb+var = $var+ & extract target variable to plain local variable \\ %$
+\end{tabular}
+
+Figure~\ref{fig:probe-alias} demonstrates a probe point alias
+definition as well as its use.  It demonstrates how a single probe
+point alias can expand to multiple probe points, even to other
+aliases.  It also includes probe point wildcarding.  These functions
+are designed to compose sensibly.
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat probe-alias.stp
+probe syscallgroup.io = syscall.open, syscall.close, 
+                        syscall.read, syscall.write
+{ groupname = "io" }
+
+probe syscallgroup.process = syscall.fork, syscall.execve
+{ groupname = "process" }
+
+probe syscallgroup.* 
+{ groups [execname() . "/" . groupname] ++ }
+
+probe end
+{
+  foreach (eg+ in groups)
+    printf ("%s: %d\n", eg, groups[eg])
+}
+
+global groups
+
+# stap probe-alias.stp
+05-wait_for_sys/io: 19
+10-udev.hotplug/io: 17
+20-hal.hotplug/io: 12
+X/io: 73
+apcsmart/io: 59
+[...]
+make/io: 515
+make/process: 16
+[...]
+xfce-mcs-manage/io: 3
+xfdesktop/io: 5
+[...]
+xmms/io: 7070
+zsh/io: 78
+zsh/process: 5
+\end{verbatim}
+\end{boxedminipage}
+\caption{Classified system call activity.}
+\label{fig:probe-alias}
+\end{figure}
+
+\subsection{Embedded C}
+\label{embedded-c}
+
+Sometimes, a tapset needs provide data values from the kernel that
+cannot be extracted using ordinary target variables (\verb+$var+).  %$
+This may be because the values are in complicated data structures, may
+require lock awareness, or are defined by layers of macros.  Systemtap
+provides an ``escape hatch'' to go beyond what the language can safely
+offer.  In certain contexts, you may embed plain raw C in tapsets,
+exchanging power for the safety guarantees listed in
+section~\ref{sec:safety}.  End-user scripts {\em may not} include
+embedded C code, unless systemtap is run with the \verb+-g+ (``guru''
+mode) option.  Tapset scripts get guru mode privileges automatically.
+\nomenclature{embedded C}{Special syntax permitting tapsets to include
+literal C code.}
+
+Embedded C can be the body of a script function.  Instead enclosing
+the function body statements in \verb+{+ and \verb+}+, use \verb+%{+
+and \verb+%}+.  Any enclosed C code is literally transcribed into the
+kernel module: it is up to you to make it safe and correct.  In order
+to take parameters and return a value, a pointer macro \verb+THIS+ is
+available.  Function parameters and a place for the return value are
+available as fields of that pointer.  The familiar data-gathering
+functions \verb+pid()+, \verb+execname()+, and their neighbours are
+all embedded C functions.  Figure~\ref{fig:embedded-C} contains
+another example.
+
+Since systemtap cannot examine the C code to infer these types, an
+optional\footnote{This is only necessary if the types cannot be
+inferred from other sources, such as the call sites.} annotation
+syntax is available to assist the type inference process.  Simply
+suffix parameter names and/or the function name with \verb+:string+ or
+\verb+:long+ to designate the string or numeric type.  In addition,
+the script may include a \verb+%{+ \verb+%}+ block at the outermost
+level of the script, in order to transcribe declarative code like
+\verb+#include <linux/foo.h>+.  These enable the embedded C functions
+to refer to general kernel types.
+
+There are a number of safety-related constraints that should be
+observed by developers of embedded C code.
+\begin{enumerate}
+\item Do not dereference pointers that are not known or testable valid.
+\item Do not call any kernel routine that may cause a sleep or fault.
+\item Consider possible undesirable recursion, where your embedded C
+function calls a routine that may be the subject of a probe.  If that
+probe handler calls your embedded C function, you may suffer infinite
+regress.  Similar problems may arise with respect to non-reentrant
+locks.
+\item If locking of a data structure is necessary, use a
+\verb+trylock+ type call to attempt to take the lock.  If that fails,
+give up, do not block.
+\end{enumerate}
+
+\begin{figure}[h!]
+\begin{boxedminipage}{4.5in}
+\begin{verbatim}
+# cat embedded-C.stp
+%{
+#include <linux/utsname.h>
+%}
+
+function utsname:string (field:long)
+%{
+  if (down_read_trylock (& uts_sem))
+    {
+      const char *f =
+         (THIS->field == 0 ? system_utsname.sysname :
+          THIS->field == 1 ? system_utsname.nodename :
+          THIS->field == 2 ? system_utsname.release :
+          THIS->field == 3 ? system_utsname.version :
+          THIS->field == 4 ? system_utsname.machine :
+          THIS->field == 5 ? system_utsname.domainname : "");
+      strlcpy (THIS->__retvalue, f, MAXSTRINGLEN);
+      up_read (& uts_sem);
+    }
+%}
+
+probe begin
+{
+  printf ("%s %s\n", utsname(0), utsname(2))
+  exit ()
+}
+
+# stap -g embedded-C.stp
+Linux 2.6.15
+\end{verbatim}
+\end{boxedminipage}
+\caption{Embedded C function.}
+\label{fig:embedded-C}
+\end{figure}
+
+\subsection{Naming conventions}
+
+Using the tapset search mechanism just described, potentially many
+script files can become selected for inclusion in a single session.
+This raises the problem of name collisions, where different tapsets
+accidentally use the same names for functions/globals.  This can
+result in errors at translate or run time.
+
+To control this problem, systemtap tapset developers are advised to
+follow naming conventions.  Here is some of the guidance.
+\nomenclature{naming convention}{Guidelines for naming variables and
+functions to prevent unintentional duplication.}
+\begin{enumerate}
+\item Pick a unique name for your tapset, and substitute it for
+{\em TAPSET} below.
+\item Separate identifiers meant to be used by tapset users from
+those that are internal implementation artifacts.
+\item Document the first set in the appropriate \verb+man+ pages.
+\item Prefix the names of external identifiers with {\em TAPSET}\_ if
+there is any likelihood of collision with other tapsets or end-user
+scripts.
+\item Prefix any probe point aliases with an appropriate prefix.
+\item Prefix the names of internal identifiers with \_\_{\em TAPSET}\_.
+\end{enumerate}
+
+\subsection{Exercises}
+
+\begin{enumerate}
+\item Write a tapset that implements deferred and ``cancelable''
+logging.  Export a function that enqueues a text string (into some
+private array), returning an id token.  Include a timer-based probe
+that periodically flushes the array to the standard log output.
+Export another function that, if the entry was not already flushed,
+allows a text string to be cancelled from the queue.
+
+\item Create a ``relative timestamp'' tapset with functions return all
+the same values as the ones in the timestamp tapset, except that they
+are made relative to the start time of the script.
+
+\item Create a tapset that exports a global array that contains a
+mapping of recently seen process ID numbers to process names.
+Intercept key system calls (\verb+execve+?) to update the list
+incrementally.
+
+\item Send your tapset ideas to the mailing list!
+\end{enumerate}
+
+\section{Further information}
+
+For further information about systemtap, several sources are available.
+
+There are \verb+man+ pages:
+
+\begin{tabular}{rl}
+\verb+stap+ & systemtap program usage, language summary \\
+\verb+stapfuncs+ & functions provided by tapsets \\
+\verb+stapprobes+ & probes / probe aliases provided by tapsets \\
+\verb+stapex+ & some example scripts \\
+\end{tabular}
+
+Then, there is the source code itself.  Since systemtap is {\em free
+software}, you should have available the entire source code.  The
+source files in the \verb+tapset/+ directory are also packaged along
+with the systemtap binary.  Since systemtap reads these files rather
+than their documentation, they are the most reliable way to see what's
+inside all the tapsets.  Use the \verb+-v+ (verbose) command line
+option, several times if you like, to show inner workings.
+\nomenclature{free software}{Software licensed under terms such as the
+GNU GPL, which aims to enforce certain specified user freedoms such
+as study, modification, and sharing.}
+
+Finally, there is the project web site
+(\verb+http://sources.redhat.com/systemtap/+) with several articles,
+an archived public mailing list for users and developers
+(\verb+systemtap@sources.redhat.com+), and a live CVS source
+repository.  Come join us!
+
+
+\appendix
+
+\section{Glossary}
+\renewcommand{\nomname}{}
+\printglossary
+\begin{htmlonly}
+{\em Sorry, not available in HTML.}
+\end{htmlonly}
+
+\section{Errors}
+
+We explain some common systemtap error messages in this section.  Most
+error messages include line/character numbers with which one can
+locate the precise location of error in the script code.  There is
+sometimes a subsequent or prior line that elaborates.
+
+{\large {\em error} {\tt at:} {\em filename}:{\em line}:{\em column}: {\em details}}
+
+\subsection{Parse errors}
+
+\begin{description}
+\item{\bf parse error: expected {\em foo}, saw {\em bar} $\ldots$} \\
+The script contained a grammar error.  A different type of construct
+was expected in the given context.
+
+\item{\bf parse error: embedded code in unprivileged script} \\ The
+script contained unsafe constructs such as embedded C (section
+\ref{embedded-c}), but was run without the \verb+-g+ (guru mode)
+option.  Confirm that the constructs are used safely, then try
+again with \verb+-g+.
+\end{description}
+
+\subsection{Type errors}
+
+\begin{description}
+\item{\bf semantic error: type mismatch for identifier '{\em foo}'
+$\ldots$ string vs. long} \\ In this case, the identifier {\em foo}
+was previously inferred as a numeric type (``long''), but at the given
+point is being used as a string.  Similar messages appear if an array
+index or function parameter slot is used with conflicting types.
+
+\item{\bf semantic error: unresolved type for identifier '{\em foo}'}
+\\ The identifier {\em foo} was used, for example in a \verb+print+,
+but without any operations that could assign it a type.  Similar
+messages may appear if a symbol is misspelled by a typo.
+
+\item{\bf semantic error: Expecting symbol or array index expression}
+\\ Something other than an assignable lvalue was on the left hand sign
+of an assignment.
+\end{description}
+
+\subsection{Symbol errors}
+
+\begin{description}
+\item{\bf while searching for arity {\em N} function, semantic error:
+unresolved function call} \\ The script calls a function with {\em N}
+arguments that does not exist.  The function may exist with different
+arity.
+
+\item{\bf semantic error: array locals not supported: $\ldots$} \\ An
+array operation is present for which no matching global declaration
+was found.  Similar messages appear if an array is used with
+inconsistent arities.
+
+\item{\bf semantic error: variable '{\em foo}' modified during 'foreach'} \\
+The array {\em foo} is being modified (being assigned to or deleted from)
+within an active \verb+foreach+ loop.  This invalid operation is also
+detected within a function called from within the loop. 
+\end{description}
+
+\subsection{Probing errors }
+
+\begin{description}
+\item{\bf semantic error: probe point mismatch at position {\em N},
+while resolving probe point {\em foo}} \\ A probe point was named that
+neither directly understood by systemtap, nor defined as an alias by a
+tapset script.  The divergence from the ``tree'' of probe point
+namespace is at position {\em N} (starting with zero at left).
+
+\item{\bf semantic error: no match for probe point, while resolving
+probe point {\em foo}} \\ A probe point cannot be resolved for any of
+a variety of reasons.  It may be a debuginfo-based probe point such as
+\verb+kernel.function("foobar")+ where no \verb+foobar+ function was
+found.  This can occur if the script specifies a wildcard on function
+names, or an invalid file name or source line number.
+
+\item{\bf semantic error: unresolved target-symbol expression} \\ A
+target variable was referred to in a probe handler that was not
+resolvable.  Or, a target variable is not valid at all in a context
+such as a script function.  This variable may have been elided by an
+optimizing compiler, or may not have a suitable type, or there might
+just be an annoying bug somewhere.  Try again with a slightly
+different probe point (use \verb+statement()+ instead of
+\verb+function()+) to search for a more cooperative neighbour in the
+same area.
+
+\item{\bf semantic error: libdwfl failure $\ldots$} \\ There was a
+problem processing the debugging information.  It may simply be
+missing, or may have some consistency / correctness problems.  Later
+compilers tend to produce better debugging information, so if you can
+upgrade and recompile your kernel/application, it may help.
+
+\item{\bf semantic error: cannot find {\em foo} debuginfo} \\ Similarly,
+suitable debugging information was not found.  Check that your kernel
+build/installation includes a matching version of debugging data.
+\end{description}
+
+\subsection{Runtime errors}
+
+\begin{description}
+
+\item{\bf WARNING: Number of errors: {\em N}, skipped probes: {\em M}} \\
+Errors and/or skipped probes occurred during this run.
+\nomenclature{skipped probe}{A probe handler that should have run but
+couldn't, due to contention or temporary resource problems.}
+
+\item{\bf division by 0} \\ The script code performed an invalid
+division.
+
+\item{\bf aggregate element not found} \\ An statistics extractor
+function other than \verb+@count+ was invoked on an aggregate that has
+not had any values accumulated yet.  This is similar to a division by
+zero.
+
+\item{\bf aggregation overflow} \\ An array containing aggregate
+values contains too many distinct key tuples at this time.
+
+\item{\bf MAXNESTING exceeded} \\ Too many levels of function call nesting
+were attempted.
+
+\item{\bf MAXACTION exceeded} \\ The probe handler attempted to execute
+too many statements.
+
+\item{\bf kernel/user string copy fault at {\em 0xaddr}} \\
+The probe handler attempted to copy a string from kernel or user space
+at an invalid address. 
+
+\item{\bf pointer dereference fault} \\ 
+There was a fault encountered during a pointer dereference operation such
+as a target variable evaluation.
+
+\end{description}
+
+
+\section{Acknowledgments}
+
+The author thanks Martin Hunt, Will Cohen, and Jim Keniston for
+improvement advice for this paper.
+
+\end{document}
