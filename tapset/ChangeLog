@@ -1,3 +1,8 @@
+2008-02-28  Will Cohen  <wcohen@redhat.com>
+	
+	PR433780
+	* errno.stp (returnstr): Handle unified i386/x86_64 reg names.
+
 2008-02-27  Masami Hiramatsu <mhiramat@redhat.com>
 
 	* x86_64/syscalls.stp (syscall.iopl): Use new_iopl instead of level
