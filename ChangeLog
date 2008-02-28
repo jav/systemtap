@@ -1,3 +1,12 @@
+2008-02-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5045
+	* session.h (pending_interrupts): New global.
+	* main.cxx (handle_interrupts): New fn to handle SIGINT* etc.
+	* elaborate.cxx, translate.cxx, tapsets.cxx, main.cxx (*): Insert
+	pending_interrupts escape hatches inside potentially timetaking loops.
+	* buildrun.cxx: Don't deal with signals.
+
 2008-02-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5697

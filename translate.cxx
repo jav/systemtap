@@ -4471,18 +4471,21 @@ translate_pass (systemtap_session& s)
       s.op->newline(1);
       for (unsigned i=0; i<s.globals.size(); i++)
         {
+          if (pending_interrupts) return 1;
           s.up->emit_global_init (s.globals[i]);
         }
       s.op->newline(-1) << "};";
 
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
+          if (pending_interrupts) return 1;
 	  s.op->newline();
 	  s.up->emit_functionsig (s.functions[i]);
 	}
 
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
+          if (pending_interrupts) return 1;
 	  s.op->newline();
 	  s.up->emit_function (s.functions[i]);
 	}
@@ -4492,12 +4495,16 @@ translate_pass (systemtap_session& s)
       // emit_locks()/emit_unlocks().
       for (unsigned i=0; i<s.probes.size(); i++)
 	{
-	  if (s.probes[i]->needs_global_locks())
+        if (pending_interrupts) return 1;
+        if (s.probes[i]->needs_global_locks())
 	    s.probes[i]->body->visit (&cup.vcv_needs_global_locks);
 	}
 
       for (unsigned i=0; i<s.probes.size(); i++)
-        s.up->emit_probe (s.probes[i]);
+        {
+          if (pending_interrupts) return 1;
+          s.up->emit_probe (s.probes[i]);
+        }
 
       s.op->newline();
       s.up->emit_module_init ();
