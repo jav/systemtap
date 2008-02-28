@@ -232,6 +232,9 @@ docdir = @docdir@
 dvidir = @dvidir@
 elfutils_abs_srcdir = @elfutils_abs_srcdir@
 exec_prefix = @exec_prefix@
+have_dvips = @have_dvips@
+have_latex = @have_latex@
+have_ps2pdf = @have_ps2pdf@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -320,7 +323,7 @@ SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 
 TEST_COV_DIR = coverage
 # XXX: leaves behind man pages
-SUBDIRS = testsuite
+SUBDIRS = testsuite doc
 all: $(BUILT_SOURCES) config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

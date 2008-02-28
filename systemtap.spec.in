@@ -5,6 +5,7 @@
 
 # Default options (suitable for fedora)
 %define with_sqlite 1
+%define with_docs 1
 %define with_crash 0
 %define with_bundled_elfutils 0
 
@@ -49,6 +50,10 @@ BuildRequires: elfutils-devel >= %{elfutils_version}
 %endif
 %if %{with_crash}
 Requires: crash
+%endif
+
+%if %{with_docs}
+BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 %endif
 
 %description
@@ -124,7 +129,15 @@ cd ..
 %define crash_config --disable-crash
 %endif
 
-%configure %{?elfutils_config} %{sqlite_config} %{crash_config}
+%if %{with_docs}
+%define docs_config --enable-docs
+%else
+%define docs_config --disable-docs
+%endif
+
+
+
+%configure %{?elfutils_config} %{sqlite_config} %{crash_config} %{docs_config}
 make %{?_smp_mflags}
 
 # Fix paths in the example & testsuite scripts
@@ -160,6 +173,10 @@ exit 0
 %defattr(-,root,root)
 
 %doc README AUTHORS NEWS COPYING examples
+%if %{with_docs}
+%doc doc/tutorial.pdf
+%doc doc/langref.pdf
+%endif
 
 %{_bindir}/stap
 %{_mandir}/man1/*
