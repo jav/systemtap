@@ -29,6 +29,7 @@
 extern "C" {
 #include <glob.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/utsname.h>
 #include <sys/times.h>
 #include <sys/time.h>
@@ -184,6 +185,23 @@ printscript(systemtap_session& s, ostream& o)
 	}
     }
 }
+
+
+int pending_interrupts;
+
+extern "C"
+void handle_interrupt (int /* sig */) 
+{
+  pending_interrupts ++;
+  if (pending_interrupts > 1) // XXX: should be configurable? time-based?
+    {
+      char msg[] = "Too many interrupts received, exiting.\n";
+      int rc = write (2, msg, sizeof(msg)-1);
+      if (rc) {/* Do nothing; we don't care if our last gasp went out. */ ;}
+      _exit (1);
+    }
+}
+
 
 int
 main (int argc, char * const argv [])
@@ -541,6 +559,13 @@ main (int argc, char * const argv [])
   // directory.
   s.translated_source = string(s.tmpdir) + "/" + s.module_name + ".c";
 
+  // Set up our handler to catch routine signals, to allow clean 
+  // and reasonably timely exit.
+  signal (SIGHUP, handle_interrupt);
+  signal (SIGPIPE, handle_interrupt);
+  signal (SIGINT, handle_interrupt);
+  signal (SIGTERM, handle_interrupt);
+
   struct tms tms_before;
   times (& tms_before);
   struct timeval tv_before;
@@ -616,8 +641,10 @@ main (int argc, char * const argv [])
 
           for (unsigned j=0; j<globbuf.gl_pathc; j++)
             {
-              // privilege only for /usr/share/systemtap?
-              
+              if (pending_interrupts)
+                break;
+
+              // XXX: privilege only for /usr/share/systemtap?
               stapfile* f = parser::parse (s, globbuf.gl_pathv[j], true);
               if (f == 0)
                 rc ++;
@@ -683,7 +710,7 @@ main (int argc, char * const argv [])
          << "Try again with more '-v' (verbose) options."
          << endl;
 
-  if (rc || s.last_pass == 1) goto cleanup;
+  if (rc || s.last_pass == 1 || pending_interrupts) goto cleanup;
 
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
@@ -733,14 +760,14 @@ main (int argc, char * const argv [])
         {
 	  // If our last pass isn't 5, we're done (since passes 3 and
 	  // 4 just generate what we just pulled out of the cache).
-	  if (s.last_pass < 5) goto cleanup;
+	  if (s.last_pass < 5 || pending_interrupts) goto cleanup;
 
 	  // Short-circuit to pass 5.
 	  goto pass_5;
 	}
     }
 
-  if (rc || s.last_pass == 2) goto cleanup;
+  if (rc || s.last_pass == 2 || pending_interrupts) goto cleanup;
 
   // PASS 3: TRANSLATION
 
@@ -769,7 +796,7 @@ main (int argc, char * const argv [])
          << "Try again with more '-v' (verbose) options."
          << endl;
 
-  if (rc || s.last_pass == 3) goto cleanup;
+  if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
 
   // PASS 4: COMPILATION
   times (& tms_before);
@@ -799,7 +826,7 @@ main (int argc, char * const argv [])
 	add_to_cache(s);
 
       // Copy module to the current directory.
-      if (save_module)
+      if (save_module && !pending_interrupts)
         {
 	  string module_src_path = s.tmpdir + "/" + s.module_name + ".ko";
 	  string module_dest_path = s.module_name + ".ko";
@@ -813,7 +840,7 @@ main (int argc, char * const argv [])
 	}
     }
 
-  if (rc || s.last_pass == 4) goto cleanup;
+  if (rc || s.last_pass == 4 || pending_interrupts) goto cleanup;
 
 
   // PASS 5: RUN
@@ -841,7 +868,7 @@ pass_5:
  cleanup:
 
   // update the database information
-  if (!rc && s.tapset_compile_coverage) {
+  if (!rc && s.tapset_compile_coverage && !pending_interrupts) {
 #ifdef HAVE_LIBSQLITE3
     update_coverage_db(s);
 #else
@@ -867,5 +894,5 @@ pass_5:
         }
     }
 
-  return rc ? EXIT_FAILURE : EXIT_SUCCESS;
+  return (rc||pending_interrupts) ? EXIT_FAILURE : EXIT_SUCCESS;
 }

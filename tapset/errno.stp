@@ -358,7 +358,9 @@ function returnstr:string (returnp:long) %{ /* pure */
 	/* XXX: unfortunate duplication with return.stp:retval() */
 
 	if (CONTEXT->regs) {
-#if defined (__i386__)
+#if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
+		ret = CONTEXT->regs->ax;
+#elif defined (__i386__)
 		ret = CONTEXT->regs->eax;
 #elif defined (__x86_64__)
 		ret = CONTEXT->regs->rax;

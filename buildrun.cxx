@@ -16,7 +16,7 @@
 #include <sstream>
 
 extern "C" {
-#include "signal.h"
+#include <signal.h>
 #include <sys/wait.h>
 #include <pwd.h>
 #include <sys/types.h>
@@ -269,9 +269,6 @@ run_pass (systemtap_session& s)
   
   if (s.verbose>1) clog << "Running " << staprun_cmd << endl;
   
-  signal (SIGHUP, SIG_IGN);
-  signal (SIGINT, SIG_IGN);
   rc = system (staprun_cmd.c_str ());
-
   return rc;
 }

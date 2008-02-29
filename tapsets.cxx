@@ -827,6 +827,7 @@ struct dwflpp
         ptrdiff_t off = 0;
         do
           {
+            if (pending_interrupts) return;
             off = dwfl_getmodules (dwfl, module_caching_callback,
                                    & module_cache, off);
           }
@@ -837,6 +838,7 @@ struct dwflpp
     // Traverse the cache.
     for (unsigned i = 0; i < module_cache.size(); i++)
       {
+        if (pending_interrupts) return;
         module_cache_entry& it = module_cache[i];
         int rc = callback (it.mod, 0, it.name, it.addr, data);
         if (rc != DWARF_CB_OK) break;
@@ -868,6 +870,7 @@ struct dwflpp
         Dwarf_Off noff;
         while (dwarf_nextcu (dw, off, &noff, &cuhl, NULL, NULL, NULL) == 0)
           {
+            if (pending_interrupts) return;
             Dwarf_Die die_mem;
             Dwarf_Die *die;
             die = dwarf_offdie (dw, off + cuhl, &die_mem);
@@ -878,6 +881,7 @@ struct dwflpp
 
     for (unsigned i = 0; i < v->size(); i++)
       {
+        if (pending_interrupts) return;
         Dwarf_Die die = v->at(i);
         int rc = (*callback)(& die, data);
         if (rc != DWARF_CB_OK) break;
@@ -1057,6 +1061,7 @@ struct dwflpp
       {
 	for (size_t i = 0; i < nsrcs; ++i)
 	  {
+            if (pending_interrupts) return;
             if (srcsp [i]) // skip over mismatched lines
               callback (srcsp[i], data);
 	  }
@@ -3012,6 +3017,7 @@ static int
 query_cu (Dwarf_Die * cudie, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
+  if (pending_interrupts) return DWARF_CB_ABORT;
 
   try
     {

@@ -344,6 +344,8 @@ match_node::find_and_build (systemtap_session& s,
 	  const match_key& subkey = i->first;
 	  match_node* subnode = i->second;
 
+          if (pending_interrupts) break;
+
 	  if (match.globmatch(subkey))
 	    {
 	      if (s.verbose > 2)
@@ -627,6 +629,8 @@ derive_probes (systemtap_session& s,
 {
   for (unsigned i = 0; i < p->locations.size(); ++i)
     {
+      if (pending_interrupts) break;
+
       probe_point *loc = p->locations[i];
 
       try
@@ -1070,6 +1074,7 @@ semantic_pass_symbols (systemtap_session& s)
   s.files.push_back (s.user_file);
   for (unsigned i = 0; i < s.files.size(); i++)
     {
+      if (pending_interrupts) break;
       stapfile* dome = s.files[i];
 
       // Pass 1: add globals and functions to systemtap-session master list,
@@ -1088,6 +1093,7 @@ semantic_pass_symbols (systemtap_session& s)
 
       for (unsigned i=0; i<dome->functions.size(); i++)
         {
+          if (pending_interrupts) break;
           functiondecl* fd = dome->functions[i];
 
           try 
@@ -1107,6 +1113,7 @@ semantic_pass_symbols (systemtap_session& s)
 
       for (unsigned i=0; i<dome->probes.size(); i++)
         {
+          if (pending_interrupts) break;
           probe* p = dome->probes [i];
           vector<derived_probe*> dps;
 
@@ -1116,6 +1123,7 @@ semantic_pass_symbols (systemtap_session& s)
 
           for (unsigned j=0; j<dps.size(); j++)
             {
+              if (pending_interrupts) break;
               derived_probe* dp = dps[j];
               s.probes.push_back (dp);
               dp->join_group (s);
@@ -2025,6 +2033,8 @@ semantic_pass_optimize1 (systemtap_session& s)
   bool relaxed_p = false;
   while (! relaxed_p)
     {
+      if (pending_interrupts) break;
+
       relaxed_p = true; // until proven otherwise
 
       semantic_pass_opt1 (s, relaxed_p);
@@ -2052,6 +2062,7 @@ semantic_pass_optimize2 (systemtap_session& s)
   bool relaxed_p = false;
   while (! relaxed_p)
     {
+      if (pending_interrupts) break;
       relaxed_p = true; // until proven otherwise
 
       semantic_pass_opt5 (s, relaxed_p);
@@ -2082,12 +2093,16 @@ semantic_pass_types (systemtap_session& s)
   // XXX: maybe convert to exception-based error signalling
   while (1)
     {
+      if (pending_interrupts) break;
+
       iterations ++;
       ti.num_newly_resolved = 0;
       ti.num_still_unresolved = 0;
 
       for (unsigned j=0; j<s.functions.size(); j++)
         {
+          if (pending_interrupts) break;
+
           functiondecl* fn = s.functions[j];
           ti.current_probe = 0;
           ti.current_function = fn;
@@ -2103,6 +2118,8 @@ semantic_pass_types (systemtap_session& s)
 
       for (unsigned j=0; j<s.probes.size(); j++)
         {
+          if (pending_interrupts) break;
+
           derived_probe* pn = s.probes[j];
           ti.current_function = 0;
           ti.current_probe = pn;
