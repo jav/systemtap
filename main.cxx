@@ -197,7 +197,7 @@ void handle_interrupt (int /* sig */)
     {
       char msg[] = "Too many interrupts received, exiting.\n";
       int rc = write (2, msg, sizeof(msg)-1);
-      if (rc) /* Do nothing; we don't care if our last gasp went out. */ ;
+      if (rc) {/* Do nothing; we don't care if our last gasp went out. */ ;}
       _exit (1);
     }
 }
