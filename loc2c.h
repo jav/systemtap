@@ -77,6 +77,15 @@ void c_translate_store (struct obstack *pool, int indent,
 			Dwarf_Die *die, Dwarf_Die *typedie,
 			struct location **input, const char *rvalue);
 
+/* Translate a fragment to write the given pointer value,
+   where *INPUT is the location of the pointer with that type. */
+void
+c_translate_pointer_store (struct obstack *pool, int indent,
+                           Dwarf_Addr dwbias __attribute__ ((unused)),
+                           Dwarf_Die *typedie, struct location **input,
+                           const char *rvalue);
+
+
 /* Emit the C fragment built up at LOC (i.e., the return value from the
    first c_translate_location call made).  INDENT should match that
    passed to c_translate_* previously.

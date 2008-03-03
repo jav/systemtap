@@ -1,3 +1,17 @@
+2008-03-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5516
+	* elaborate.cxx (symbol_fetcher, dead_assignment_remover):
+	Support unresolved $target lvalues.  Propagate pretty error
+	messages.
+	* staptree.cxx (varuse_collecting_visitor target_symbol): Ditto.
+	* staptree.h: Corresponding decl.
+
+	* loc2c.c: c_translate_pointer_store: New function.
+	* loc2c.h: Corresponding decl.
+	* tapsets.cxx (dwflpp::translate_final_fetch_or_store): Call it
+	for $target pointer assignments.
+
 2008-02-29  Will Cohen  <wcohen@redhat.com>
 
 	* main.cxx (handle_interrupts): Make compatible with GCC 4.3.

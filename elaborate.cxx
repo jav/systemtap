@@ -696,11 +696,15 @@ struct symbol_fetcher
 {
   symbol *&sym;
 
-  symbol_fetcher (symbol *&sym)
-    : sym(sym) 
+  symbol_fetcher (symbol *&sym): sym(sym) 
   {}
 
   void visit_symbol (symbol* e)
+  {
+    sym = e;
+  }
+
+  void visit_target_symbol (target_symbol* e)
   {
     sym = e;
   }
@@ -722,9 +726,7 @@ get_symbol_within_expression (expression *e)
   symbol *sym = NULL;
   symbol_fetcher fetcher(sym);
   e->visit (&fetcher);
-  if (!sym)
-    throw semantic_error("Unable to find symbol in expression", e->tok);
-  return sym;
+  return sym; // NB: may be null!
 }
 
 static symbol *
@@ -1718,12 +1720,12 @@ void
 dead_assignment_remover::visit_assignment (assignment* e)
 {
   symbol* left = get_symbol_within_expression (e->left);
-  vardecl* leftvar = left->referent;
+  vardecl* leftvar = left->referent; // NB: may be 0 for unresolved $target
   if (current_expr && // see XXX above: this case represents a missed
                       // optimization opportunity
-      *current_expr == e) // we're not nested any deeper than expected 
+      *current_expr == e && // we're not nested any deeper than expected 
+      leftvar) // not unresolved $target; intended sideeffect cannot be elided
     {
-      // clog << "Checking assignment to " << leftvar->name << " at " << *e->tok << endl;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose

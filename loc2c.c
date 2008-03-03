@@ -1601,6 +1601,37 @@ c_translate_addressof (struct obstack *pool, int indent,
 }
 
 
+/* Translate a fragment to write the given pointer value,
+   where *INPUT is the location of the pointer with that type.
+*/
+
+void
+c_translate_pointer_store (struct obstack *pool, int indent,
+                           Dwarf_Addr dwbias __attribute__ ((unused)),
+                           Dwarf_Die *typedie, struct location **input,
+                           const char *rvalue)
+{
+  assert (dwarf_tag (typedie) == DW_TAG_pointer_type);
+
+  Dwarf_Attribute attr_mem;
+  Dwarf_Word byte_size;
+  if (dwarf_attr_integrate (typedie, DW_AT_byte_size, &attr_mem) == NULL)
+    byte_size = 0;
+  else if (dwarf_formudata (&attr_mem, &byte_size) != 0)
+    FAIL (*input,
+	  N_("cannot get byte_size attribute for type %s: %s"),
+	  dwarf_diename (typedie) ?: "<anonymous>",
+	  dwarf_errmsg (-1));
+
+  translate_base_store (pool, indent + 1, byte_size,
+                        input, *input, rvalue);
+
+  // XXX: what about multiple-location lvalues?
+}
+
+
+
+
 /* Determine the element stride of an array type.  */
 static Dwarf_Word
 array_stride (Dwarf_Die *typedie, struct location *origin)

@@ -222,7 +222,7 @@ struct symbol:
 };
 
 
-struct target_symbol : public expression
+struct target_symbol: public symbol
 {
   enum component_type
     {
@@ -749,6 +749,7 @@ struct varuse_collecting_visitor: public functioncall_traversing_visitor
   void visit_print_format (print_format *e);
   void visit_assignment (assignment *e);
   void visit_arrayindex (arrayindex *e);
+  void visit_target_symbol (target_symbol *e);
   void visit_symbol (symbol *e);
   void visit_pre_crement (pre_crement *e);
   void visit_post_crement (post_crement *e);
