@@ -147,7 +147,7 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUFFIXES = ps pdf dvi ps tex
-EXTRA_DIST = tutorial.tex langref.tex tutorial
+EXTRA_DIST = tutorial.tex langref.tex tutorial nomencl.sty
 all: all-am
 
 .SUFFIXES:
