@@ -40,7 +40,6 @@
 \hfill \begin{minipage}{2.5in}
 % contributors please add your names to the list
 Frank Ch. Eigler {\tt \small <fche@redhat.com>} \\
-
 \hfill \today
 \end{minipage}
 
@@ -82,7 +81,7 @@ Eventually, the session stops, the hooks are disconnected, and the
 module removed.  This entire process is driven from a single
 command-line program, \verb+stap+.
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat hello-world.stp
@@ -106,7 +105,7 @@ can run the scripts such as the simple one in
 Figure~\ref{fig:hello-world}.  Log on as \verb+root+, or even better,
 as a user authorized to \verb+sudo+, before running systemtap.
 
-\begin{figure}[h]
+\begin{figure}[ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat strace-open.stp
@@ -251,7 +250,7 @@ long they took.  Figure~\ref{fig:socket-trace} shows the finished
 script.  It lacks a call to the \verb+exit()+ function, so you need to
 interrupt it with \verb+^C+ when you want the tracing to stop.
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat socket-trace.stp
@@ -384,7 +383,7 @@ probe handlers and functions executed during a systemtap session.}
 protect global variables against concurrent modification and/or
 access.}
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat timer-jiffies.stp
@@ -436,7 +435,7 @@ example also demonstrates pasting numeric command-line arguments
 (\verb+$1+ etc.) into scripts.
 %$
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat inode-watch.stp
@@ -489,7 +488,7 @@ is possible, up to a nesting depth limit.  Figure~\ref{fig:functions}
 displays function syntax.
 
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # Red Hat convention
@@ -580,7 +579,7 @@ expression is one way.  For simplicity, systemtap forbids any {\em
 modification} of an array while it is being iterated using a
 \verb+foreach+.
 
-\begin{tabular}{rl}
+\begin{tabular}{rp{0.4\textwidth}}
 \verb|foreach ([a,b] in foo) { fuss_with(foo[a,b]) }| & simple loop in arbitrary sequence \\
 \verb|foreach ([a,b] in foo+ limit 5) { }| & loop in increasing sequence of value, stop after 5 \\
 \verb|foreach ([a-,b] in foo) { }| & loop in decreasing sequence of first key \\
@@ -625,12 +624,12 @@ using {\tt foreach} shortly.} only be printed.
 \nomenclature{extractor}{A function-like expression in a script that
 computes a single statistic for a given aggregate.}
 
-\begin{tabular}{rl}
+\begin{tabular}{rp{0.5\textwidth}}
 \verb+@avg(a)+ & the average of all the values accumulated
                         into \verb+a+ \\
 \verb+print(@hist_linear(a,0,100,10))+ & print an ``ascii art'' linear
-                  histogram of the same data stream, \\
-    & bounds $0 \ldots 100$, bucket width is $10$ \\
+                  histogram of the same data stream,
+     bounds $0 \ldots 100$, bucket width is $10$ \\
 \verb|@count(writes["zsh"])| & the number of times ``zsh''
                 ran the probe handler \\
 \verb+print(@hist_log(writes["zsh"]))+ & print an ``ascii art'' logarithmic
@@ -738,7 +737,7 @@ specific to general, as shown in Figure~\ref{fig:tapset-search}.
 systemtap for tapset scripts, allowing specialization by version
 architecture.}
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{6in}
 \begin{verbatim}
 # stap -p1 -vv -e 'probe begin { }' > /dev/null
@@ -779,7 +778,7 @@ use.  It should have a default, but should not require additional
 run-time checks to let a user choose another.
 Figure~\ref{fig:tapset-default} shows a way.
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{6in}
 \begin{verbatim}
 # cat tapset/time-common.stp
@@ -845,7 +844,7 @@ point alias can expand to multiple probe points, even to other
 aliases.  It also includes probe point wildcarding.  These functions
 are designed to compose sensibly.
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat probe-alias.stp
@@ -942,7 +941,7 @@ locks.
 give up, do not block.
 \end{enumerate}
 
-\begin{figure}[h!]
+\begin{figure}[!ht]
 \begin{boxedminipage}{4.5in}
 \begin{verbatim}
 # cat embedded-C.stp
