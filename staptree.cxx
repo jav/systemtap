@@ -1644,6 +1644,17 @@ varuse_collecting_visitor::visit_embeddedcode (embeddedcode *s)
   embedded_seen = true;
 }
 
+void
+varuse_collecting_visitor::visit_target_symbol (target_symbol *e)
+{
+  // Still-unresolved target symbol assignments get treated as
+  // generating side-effects like embedded-C, to prevent premature
+  // elision and later error message suppression (PR5516).  rvalue use
+  // of unresolved target symbols is OTOH not considered a side-effect.
+
+  if (is_active_lvalue (e))
+    embedded_seen = true;
+}
 
 void
 varuse_collecting_visitor::visit_print_format (print_format* e)

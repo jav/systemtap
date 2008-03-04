@@ -1601,7 +1601,7 @@ struct dwflpp
 	    if (components[i].first == target_symbol::comp_literal_array_index)
               throw semantic_error ("cannot index pointer");
             // XXX: of course, we should support this the same way C does,
-            // by explicit pointer arithmetic etc.
+            // by explicit pointer arithmetic etc.  PR4166.
 
 	    c_translate_pointer (pool, 1, module_bias, die, tail);
 	    break;
@@ -1773,10 +1773,7 @@ struct dwflpp
       case DW_TAG_array_type:
       case DW_TAG_pointer_type:
 
-	if (lvalue)
-	  throw semantic_error ("cannot store into target pointer value");
-
-	{
+          {
 	  Dwarf_Die pointee_typedie_mem;
 	  Dwarf_Die *pointee_typedie;
 	  Dwarf_Word pointee_encoding;
@@ -1790,21 +1787,33 @@ struct dwflpp
 	  dwarf_formudata (dwarf_attr_integrate (pointee_typedie, DW_AT_encoding, attr_mem),
 			   &pointee_encoding);
 
-	  // We have the pointer: cast it to an integral type via &(*(...))
-
-	  // NB: per bug #1187, at one point char*-like types were
-	  // automagically converted here to systemtap string values.
-	  // For several reasons, this was taken back out, leaving
-	  // pointer-to-string "conversion" (copying) to tapset functions.
-
-	  ty = pe_long;
-	  if (typetag == DW_TAG_array_type)
-	    c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
-	  else
-	    c_translate_pointer (pool, 1, module_bias, typedie, tail);
-	  c_translate_addressof (pool, 1, module_bias, NULL, pointee_typedie, tail,
-				 "THIS->__retvalue");
-	}
+          if (lvalue)
+            {
+              ty = pe_long;
+              if (typetag == DW_TAG_array_type)
+                throw semantic_error ("cannot write to array address");
+              assert (typetag == DW_TAG_pointer_type);
+              c_translate_pointer_store (pool, 1, module_bias, typedie, tail,
+                                         "THIS->value");
+            }
+          else
+            {
+              // We have the pointer: cast it to an integral type via &(*(...))
+              
+              // NB: per bug #1187, at one point char*-like types were
+              // automagically converted here to systemtap string values.
+              // For several reasons, this was taken back out, leaving
+              // pointer-to-string "conversion" (copying) to tapset functions.
+              
+              ty = pe_long;
+              if (typetag == DW_TAG_array_type)
+                c_translate_array (pool, 1, module_bias, typedie, tail, NULL, 0);
+              else
+                c_translate_pointer (pool, 1, module_bias, typedie, tail);
+              c_translate_addressof (pool, 1, module_bias, NULL, pointee_typedie, tail,
+                                     "THIS->__retvalue");
+            }
+          }
 	break;
       }
   }

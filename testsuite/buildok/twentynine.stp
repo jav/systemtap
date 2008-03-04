@@ -1,0 +1,6 @@
+#! stap -gp4
+
+probe kernel.function("icmp_rcv") {
+       printf("skb = %x\n", $skb);
+       $skb = 0;
+}
