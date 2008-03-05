@@ -1,6 +1,6 @@
 From: http://sourceware.org/systemtap/wiki/WSiostatSCSI
 
-# stap iostat-scsi.stp 10 # seconds between reports
+# stap -g iostat-scsi.stp 10 # seconds between reports
   Device:       tps blk_read/s blk_wrtn/s  blk_read  blk_wrtn
       sda      1.30      2.40    105.60        24      1056
 
