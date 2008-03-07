@@ -1,3 +1,8 @@
+2008-03-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (AM_CXXFLAGS, AM_CFLAGS): Remove -Werror.
+	* Makefile.in, doc/Makefile.in: Regenerated.
+
 2008-03-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5516

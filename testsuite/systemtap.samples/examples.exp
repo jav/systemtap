@@ -1,7 +1,7 @@
 foreach file [lsort [glob -nocomplain $srcdir/../examples/*.stp $srcdir/../examples/small_demos/*.stp]] {
     set test [file tail $file]
     switch $test {
-        {iostat-scsi.stp} {set cmd "stap -p4 $file 5"}
+        {iostat-scsi.stp} {set cmd "stap -p4 -g $file 5"}
         {sigmon.stp} {set cmd "stap -p4 -x 1234 $file SIGKILL"}
         {keyhack.stp} {set cmd "stap -p4 -g $file"}
         default {set cmd "stap -p4 $file"}

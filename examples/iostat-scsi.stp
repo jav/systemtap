@@ -3,6 +3,7 @@
 global devices, reads, writes
 
 /* data collection: SCSI disk */
+%(kernel_v<"2.6.24" %?
 probe module("sd_mod").function("sd_init_command") !, kernel.function("sd_init_command") {
   device=kernel_string($SCpnt->request->rq_disk->disk_name)
   sector_size=$SCpnt->device->sector_size
@@ -17,6 +18,29 @@ probe module("sd_mod").function("sd_init_command") !, kernel.function("sd_init_c
   else
     reads[device] <<< nr_sectors * sector_size
 }
+%:
+%{
+#include <scsi/scsi_device.h>
+%}
+
+function get_sector_size:long (data:long) %{ /* pure */
+  struct scsi_device *sdp = (struct scsi_device *)((long)THIS->data);
+  THIS->__retvalue = kread(&(sdp->sector_size));
+  CATCH_DEREF_FAULT();
+%}
+
+probe module("sd_mod").function("sd_prep_fn") !, kernel.function("sd_prep_fn") {
+  device=kernel_string($rq->rq_disk->disk_name)
+  sector_size=get_sector_size($q->queuedata)
+  nr_sectors=$rq->nr_sectors
+  devices[device] = 1
+  if ($rq->cmd_flags & 1)
+    writes[device] <<< nr_sectors * sector_size
+  else
+    reads[device] <<< nr_sectors * sector_size
+}
+%)
+
 /* data collection: SCSI tape */
 probe module("st").function("st_do_scsi") !, kernel.function("st_do_scsi") {
   device=kernel_string($STp->disk->disk_name)

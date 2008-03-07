@@ -1,3 +1,8 @@
+2008-03-06  Ananth N Mavinakayanahalli <ananth@in.ibm.com
+
+	* i686/syscalls.stp: Handle sys_sigaltstack parameter after
+	register unification
+
 2008-02-28  Will Cohen  <wcohen@redhat.com>
 	
 	PR433780
