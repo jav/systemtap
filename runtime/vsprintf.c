@@ -180,7 +180,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 		else if (*fmt == '*') {
 			++fmt;
 			/* it's the next argument */
-			field_width = va_arg(args, int64_t);
+			field_width = va_arg(args, int);
 			if (field_width < 0) {
 				field_width = -field_width;
 				flags |= STP_LEFT;
@@ -196,7 +196,7 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 			else if (*fmt == '*') {
 				++fmt;
 				/* it's the next argument */
-				precision = va_arg(args, int64_t);
+				precision = va_arg(args, int);
 			}
 			if (precision < 0)
 				precision = 0;

@@ -623,8 +623,26 @@
     for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
 	 _len > 1 && (_c = deref (1, _addr)) != '\0';			      \
 	 --_len, ++_addr)						      \
-      *_d++ = _c;							      \
-    *_d = '\0';								      \
+      if (_d)								      \
+	 *_d++ = _c;							      \
+    if (_d)								      \
+      *_d = '\0';							      \
+    (dst);								      \
+  })
+
+#define deref_buffer(dst, addr, numbytes)				      \
+  ({									      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    unsigned char _c;							      \
+    char *_d = (dst);							      \
+    for (_len = (numbytes), _addr = (uintptr_t)(addr);			      \
+	 _len >= 1;			                                      \
+	 --_len, ++_addr) {						      \
+      _c = deref (1, _addr);						      \
+      if (_d)								      \
+	 *_d++ = _c;							      \
+    }                                                                         \
     (dst);								      \
   })
 
