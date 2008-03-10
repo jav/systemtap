@@ -19,6 +19,6 @@ foreach value {0 0xffffffff 0xffffffffffffffff} {
     }
     verbose -log "done exp $test $errs"
     wait
-    if {$errs == 8} { pass $test } else { fail "$test ($errs)" }
+    if {$errs == 9} { pass $test } else { fail "$test ($errs)" }
     verbose -log "done $test $errs"
 }

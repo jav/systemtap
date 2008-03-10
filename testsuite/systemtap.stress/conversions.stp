@@ -8,6 +8,7 @@ probe begin { print (kernel_int ($1)) }
 probe begin { print (kernel_short ($1)) }
 probe begin { print (kernel_char ($1)) }
 probe begin { print (kernel_int ($1)) }
+probe begin { printf ("%m", $1) }
 probe begin { print (user_string ($1)) }
 probe begin { print (user_string2 ($1,"<only suspected, not known>")) }
 probe begin { print (user_string_warn ($1)) }
