@@ -1,3 +1,8 @@
+
+2008-03-09  Wenji Huang  <wenji.huang@oracle.com>
+
+	* wait4time.stp: Change reference of $pid to local variable pid. 
+
 2008-03-05  David Smith  <dsmith@redhat.com>
 
 	PR5422

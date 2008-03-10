@@ -47,7 +47,7 @@ probe begin {
 probe syscall.wait4 {
   t = gettimeofday_us(); p = pid()
   entry_wait4[p] = t
-  wait4_pid[p]=$pid
+  wait4_pid[p]=pid
 }
 
 probe syscall.wait4.return {
