@@ -1,3 +1,17 @@
+2008-03-10  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* translate.cxx (probe_or_function_needs_deref_fault_handler): New member of
+	c_unparser.
+	(c_unparser::emit_function): Initialize probe_or_function_needs_deref_fault_handler.
+	Check it after the body is visited and generate a deref fault handler if necessary.
+	(c_unparser::emit_probe): Likewise.
+	(c_unparser::visit_print_format): Correct the compoenent type for an overridden string
+	literal.  Generate code to check that pointer arguments to %m can be dereferenced.
+	Generate casts for printf arguments as necessary.
+	* elaborate.cxx (typeresolution_info::visit_print_format): Desired type for conv_memory
+	is pe_long.
+
 2008-03-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (AM_CXXFLAGS, AM_CFLAGS): Remove -Werror.

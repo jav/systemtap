@@ -43,6 +43,7 @@ struct c_unparser: public unparser, public visitor
   functiondecl* current_function;
   unsigned tmpvar_counter;
   unsigned label_counter;
+  bool probe_or_function_needs_deref_fault_handler;
 
   varuse_collecting_visitor vcv_needs_global_locks;
 
@@ -1386,6 +1387,7 @@ c_unparser::emit_function (functiondecl* v)
     }
 
   o->newline() << "#define return goto out"; // redirect embedded-C return
+  this->probe_or_function_needs_deref_fault_handler = false;
   v->body->visit (this);
   o->newline() << "#undef return";
 
@@ -1401,6 +1403,15 @@ c_unparser::emit_function (functiondecl* v)
   o->newline() << "if (c->last_error && ! c->last_error[0])";
   o->newline(1) << "c->last_error = 0;";
   o->indent(-1);
+
+  if (this->probe_or_function_needs_deref_fault_handler) {
+    // Emit this handler only if the body included a
+    // print/printf/etc. using a string or memory buffer!
+    o->newline(1) << "return;";
+    o->newline() << "CATCH_DEREF_FAULT ();";
+    o->newline() << "goto out;";
+    o->indent(-1);
+  }
 
   o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
@@ -1486,6 +1497,8 @@ c_unparser::emit_probe (derived_probe* v)
     }
   else // This probe is unique.  Remember it and output it.
     {
+      this->probe_or_function_needs_deref_fault_handler = false;
+
       o->newline();
       o->newline() << "#ifdef STP_TIMING";
       o->newline() << "static __cacheline_aligned Stat " << "time_" << v->basest()->name << ";";
@@ -1545,6 +1558,14 @@ c_unparser::emit_probe (derived_probe* v)
 
       if (v->needs_global_locks ())
 	emit_unlocks (vut);
+
+      if (this->probe_or_function_needs_deref_fault_handler) {
+	// Emit this handler only if the body included a
+	// print/printf/etc. using a string or memory buffer!
+	o->newline() << "return;";
+	o->newline() << "CATCH_DEREF_FAULT ();";
+	o->newline() << "goto out;";
+      }
 
       o->newline(-1) << "}\n";
     }
@@ -4113,11 +4134,43 @@ c_unparser::visit_print_format (print_format* e)
 	{
 	  use_print = 1;
 	  tmp[0].override(tmp[0].value() + "\"\\n\"");
+	  components[0].type = print_format::conv_literal;
 	}
 
       // Make the [s]printf call, but not if there was an error evaluating the args
       o->newline() << "if (likely (! c->last_error)) {";
       o->indent(1);
+
+      // Generate code to check that any pointer arguments are actually accessible.  */
+      int arg_ix = 0;
+      for (unsigned i = 0; i < components.size(); ++i) {
+	if (components[i].type == print_format::conv_literal)
+	  continue;
+
+	/* Take note of the width and precision arguments, if any.  */
+	int width_ix = -1, prec_ix= -1;
+	if (components[i].widthtype == print_format::width_dynamic)
+	  width_ix = arg_ix++;
+	if (components[i].prectype == print_format::prec_dynamic)
+	  prec_ix = arg_ix++;
+
+	/* Generate a noop call to deref_buffer for %m.  */
+	if (components[i].type == print_format::conv_memory) {
+	  this->probe_or_function_needs_deref_fault_handler = true;
+	  o->newline() << "deref_buffer (0, " << tmp[arg_ix].value() << ", ";
+	  if (prec_ix == -1)
+	    if (width_ix != -1)
+	      prec_ix = width_ix;
+	  if (prec_ix != -1)
+	    o->line() << tmp[prec_ix].value();
+	  else
+	    o->line() << "1";
+	  o->line() << ");";
+	}
+
+	++arg_ix;
+      }
+
       if (e->print_to_stream)
         {
 	  if (e->print_char)
@@ -4151,8 +4204,26 @@ c_unparser::visit_print_format (print_format* e)
 
       o->line() << '"' << format_string << '"';
       
-      for (unsigned i = 0; i < tmp.size(); ++i)
-	o->line() << ", " << tmp[i].value();
+      /* Generate the actual arguments. Make sure that they match the expected type of the
+	 format specifier.  */
+      arg_ix = 0;
+      for (unsigned i = 0; i < components.size(); ++i) {
+	if (components[i].type == print_format::conv_literal)
+	  continue;
+
+	/* Cast the width and precision arguments, if any, to 'int'.  */
+	if (components[i].widthtype == print_format::width_dynamic)
+	  o->line() << ", (int)" << tmp[arg_ix++].value();
+	if (components[i].prectype == print_format::prec_dynamic)
+	  o->line() << ", (int)" << tmp[arg_ix++].value();
+
+	/* The type of the %m argument is 'char*'.  */
+	if (components[i].type == print_format::conv_memory)
+	  o->line() << ", (char*)(uintptr_t)" << tmp[arg_ix++].value();
+	else
+	  o->line() << ", " << tmp[arg_ix++].value();
+      }
+
       o->line() << ");";
       o->newline(-1) << "}";
       o->newline() << res.value() << ";";
