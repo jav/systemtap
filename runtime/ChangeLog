@@ -1,3 +1,8 @@
+2008-03-14  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 3542
+	* autoconf-unregister-kprobes.c : New file.
+
 2008-03-10  Dave Brolley  <brolley@redhat.com>
 
 	PR5189
