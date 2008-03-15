@@ -49,7 +49,7 @@ set skipped2 $skipped_probes
 # time of the scripts.
 set test "MAXACTIVE03"
 if {$skipped1 <= $skipped2} {
-    pass "$test ($skipped1 skipped probes <= $skipped2 skipped probes)"
+    pass $test
 } else {
     fail "$test ($skipped1 skipped probes > $skipped2 skipped probes)"
 }
