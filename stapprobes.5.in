@@ -192,9 +192,10 @@ Here is a list of probe point families currently supported.  The
 variant places a probe near the beginning of the named function, so that
 parameters are available as context variables.  The
 .B .return
-variant places a probe at the moment of return from the named function, so
-the return value is available as the "$return" context variable. 
-The
+variant places a probe at the moment
+.B after
+the return from the named function, so the return value is available
+as the "$return" context variable.  The
 .B .inline
 modifier for
 .B .function
@@ -262,7 +263,7 @@ As an alternative, PATTERN may be a numeric constant, indicating an
 only, absolute kernel addresses may be specified with the ".absolute"
 suffix.
 .PP
-Some of the source-level variables, such as function parameters,
+Some of the source-level context variables, such as function parameters,
 locals, globals visible in the compilation unit, may be visible to
 probe handlers.  They may refer to these variables by prefixing their
 name with "$" within the scripts.  In addition, a special syntax
@@ -282,6 +283,15 @@ may be repeated to follow more levels of pointers.
 $var[N]
 indexes into an array.  The index is given with a
 literal number.
+.PP
+For ".return" probes, context variables other than the "$return"
+value itself are only available for the function call parameters.
+The expressions evaluate to the
+.IR entry-time
+values of those variables, since that is when a snapshot is taken.
+Other local variables are not generally accessible, since by the time
+a ".return" probe hits, the probed function will have already returned.
+
 
 .SS USER-SPACE
 Early prototype support for user-space probing is available in the
