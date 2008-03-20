@@ -2113,6 +2113,7 @@ base_query::base_query(systemtap_session & sess,
     {
       bool has_module = get_string_param(params, TOK_MODULE, module_val);
       assert (has_module); // no other options are possible by construction
+      (void) has_module;
     }
 }
 
@@ -4287,7 +4288,9 @@ struct uprobe_builder: public derived_probe_builder
     int64_t process, address;
 
     bool b1 = get_param (parameters, TOK_PROCESS, process);
+    (void) b1;
     bool b2 = get_param (parameters, TOK_STATEMENT, address);
+    (void) b2;
     bool rr = has_null_param (parameters, TOK_RETURN);
     assert (b1 && b2); // by pattern_root construction
 
@@ -5782,6 +5785,7 @@ mark_builder::build(systemtap_session & sess,
   string mark_format_val;
   bool has_mark_format = get_param (parameters, "format", mark_format_val);
   assert (has_mark_str);
+  (void) has_mark_str;
 
   if (! cache_initialized)
     {
