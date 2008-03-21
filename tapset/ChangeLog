@@ -1,3 +1,11 @@
+2008-03-21  Eugene Teo  <eugeneteo@kernel.sg>
+
+	PR 5528
+	* conversions.stp (user_string_n, user_string_n2, user_string_n_warn,
+	user_string_n_quoted, user_short, user_short_warn, user_int,
+	user_int_warn, user_long, user_long_warn, user_char, user_char_warn):
+	New user_* functions.
+
 2008-03-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5956.

@@ -13,4 +13,16 @@ probe begin { print (user_string ($1)) }
 probe begin { print (user_string2 ($1,"<only suspected, not known>")) }
 probe begin { print (user_string_warn ($1)) }
 probe begin { print (user_string_quoted ($1)) }
+probe begin { print (user_string_n ($1, 5)) }
+probe begin { print (user_string_n2 ($1, 5, "<only suspected, not known>")) }
+probe begin { print (user_string_n_warn ($1, 5)) }
+probe begin { print (user_string_n_quoted ($1, 5)) }
+probe begin { print (user_short ($1)) }
+probe begin { print (user_short_warn ($1)) }
+probe begin { print (user_int ($1)) }
+probe begin { print (user_int_warn ($1)) }
+probe begin { print (user_long ($1)) }
+probe begin { print (user_long_warn ($1)) }
+probe begin { print (user_char ($1)) }
+probe begin { print (user_char_warn ($1)) }
 probe begin(1) { print ("\n") exit () }
