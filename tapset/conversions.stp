@@ -1,5 +1,5 @@
 // conversions tapset
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2007 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
@@ -108,3 +108,131 @@ function user_string_quoted:string (addr:long) %{ /* pure */
     _stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr,
         MAXSTRINGLEN, 1, 1);
 %}
+
+function user_string_n:string (addr:long, n:long) {
+	return user_string_n2(addr, n, "<unknown>")
+}
+	
+function user_string_n2:string (addr:long, n:long, err_msg:string) %{ /* pure */
+	long len = THIS->n + 1;
+	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
+	if (_stp_strncpy_from_user(THIS->__retvalue,
+				(char __user *) (uintptr_t) THIS->addr,
+				len) < 0)
+		strlcpy(THIS->__retvalue, THIS->err_msg, MAXSTRINGLEN);
+%}
+
+function user_string_n_warn:string (addr:long, n:long) %{ /* pure */
+	long len = THIS->n + 1;
+	long rc;
+
+	len = (len > MAXSTRINGLEN) ? MAXSTRINGLEN : len;
+	rc = _stp_strncpy_from_user(THIS->__retvalue,
+			(char __user *) (uintptr_t) THIS->addr, len);
+	if (rc < 0) {
+		// NB: using error_buffer to get local space for the warning, but we're
+		// not aborting, so leave last_error alone.
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"user string copy fault %ld at %p", rc,
+				(void *) (uintptr_t) THIS->addr);
+		_stp_warn(CONTEXT->error_buffer);
+		strlcpy (THIS->__retvalue, "<unknown>", MAXSTRINGLEN);
+	}
+%}
+
+function user_string_n_quoted:string (addr:long, n:long) %{ /* pure */
+	long len = THIS->n + 1;
+	if (THIS->addr == 0)
+		strlcpy(THIS->__retvalue, "NULL", MAXSTRINGLEN);
+	else
+		/* XXX: stp_text_str uses sleepy __get_user() => unsafe ?!  */
+		_stp_text_str(THIS->__retvalue, (char *)(uintptr_t)THIS->addr,
+				len, 1, 1);
+%}
+
+// When userspace data is not accessible, the following functions return 0
+
+function user_short:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (short *) (intptr_t) THIS->addr)) {
+fault:
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_short_warn:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (short *) (intptr_t) THIS->addr, sizeof(short)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (short *) (intptr_t) THIS->addr)) {
+fault:
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"user short copy fault %p", (void *) (uintptr_t) THIS->addr);
+		_stp_warn(CONTEXT->error_buffer);
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_int:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (int *) (intptr_t) THIS->addr)) {
+fault:
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_int_warn:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (int *) (intptr_t) THIS->addr, sizeof(int)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (int *) (intptr_t) THIS->addr)) {
+fault:
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"user int copy fault %p", (void *) (uintptr_t) THIS->addr);
+		_stp_warn(CONTEXT->error_buffer);
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_long:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
+fault:
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_long_warn:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (long *) (intptr_t) THIS->addr, sizeof(long)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (long *) (intptr_t) THIS->addr)) {
+fault:
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"user long copy fault %p", (void *) (uintptr_t) THIS->addr);
+		_stp_warn(CONTEXT->error_buffer);
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_char:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (char *) (intptr_t) THIS->addr)) {
+fault:
+		THIS->__retvalue = 0;
+	}
+%}
+
+function user_char_warn:long (addr:long) %{ /* pure */
+	if (!access_ok(VERIFY_READ, (char *) (intptr_t) THIS->addr, sizeof(char)))
+		goto fault;
+	if (__stp_get_user(THIS->__retvalue, (char *) (intptr_t) THIS->addr)) {
+fault:
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"user char copy fault %p", (void *) (uintptr_t) THIS->addr);
+		_stp_warn(CONTEXT->error_buffer);
+		THIS->__retvalue = 0;
+	}
+%}
+
