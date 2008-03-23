@@ -1,5 +1,10 @@
 2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
 
+	* lib/stap_run.exp (stap_run): Ignore missing debuginfo warnings.
+	Try harder to kill stap child in case of timeouts and errors.
+
+2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5980.
 	* lib/systemtap.exp: Set default Snapshot: value from "stap -V"
 	output.
