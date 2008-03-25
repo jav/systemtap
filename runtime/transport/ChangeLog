@@ -1,3 +1,8 @@
+2008-03-25  Martin Hunt  <hunt@redhat.com>
+	    32-bit systems can't do 64-bit get_user(), so
+	* symbols.c (_stp_do_unwind_data): Change unwind_len to a u32.	
+	* transport_msgs.h (struct _stp_msg_unwind): Ditto.
+
 2008-02-27  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c: Use rwlocks. Use new dbug macros. Handle

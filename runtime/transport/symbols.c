@@ -205,7 +205,7 @@ static int _stp_init_kernel_symbols(void)
 
 static void _stp_do_unwind_data(const char __user *buf, size_t count)
 {
-	u64 unwind_len;
+	u32 unwind_len;
 	unsigned long flags;
 	char name[STP_MODULE_NAME_LEN];
 	int i;
@@ -213,7 +213,7 @@ static void _stp_do_unwind_data(const char __user *buf, size_t count)
 
 	dbug_unwind(1, "got unwind data, count=%d\n", count);
 
-	if (count < STP_MODULE_NAME_LEN + sizeof(u64)) {
+	if (count < STP_MODULE_NAME_LEN + sizeof(unwind_len)) {
 		dbug_unwind(1, "unwind message too short\n");
 		return;
 	}
@@ -230,12 +230,12 @@ static void _stp_do_unwind_data(const char __user *buf, size_t count)
 	count -= STP_MODULE_NAME_LEN;
 	buf += STP_MODULE_NAME_LEN;
 
-	if (get_user(unwind_len, (u64 __user *)buf)) {
+	if (get_user(unwind_len, (u32 __user *)buf)) {
 		errk("userspace copy failed\n");
 		return;
 	}
-	count -= sizeof(u64);
-	buf += sizeof(u64);
+	count -= sizeof(unwind_len);
+	buf += sizeof(unwind_len);
 	if (count != unwind_len) {
 		dbug_unwind(1, "count=%d unwind_len=%d\n", (int)count, (int)unwind_len);
 		return;

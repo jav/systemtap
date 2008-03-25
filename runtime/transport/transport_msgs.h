@@ -72,7 +72,7 @@ struct _stp_msg_unwind
 	/* the module name, or "*" for all */
 	char name[STP_MODULE_NAME_LEN];
 	/* length of unwind data */
-	uint64_t unwind_len;
+	uint32_t unwind_len;
 	/* data ...*/
 };
 
