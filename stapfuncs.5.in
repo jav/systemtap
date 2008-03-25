@@ -92,60 +92,6 @@ fault, return instead the err_msg value.
 user_string_warn:string (addr:long)
 Copy a string from user space at given address.  If the access would
 fault, signal a warning and return "<unknown>".
-.TP
-user_string_quoted:string (addr:long)
-Copy a string from user space at given address. Any ASCII characters
-that are not printable are replaced by the corresponding escape
-sequence in the returned string.
-.TP
-user_string_n:string (addr:long, n:long)
-Copy a string of n bytes from user space at given address. If the access
-would fault, return "<unknown>".
-.TP
-user_string_n2:string (addr:long, n:long, err_msg:string)
-Copy a string of n bytes from user space at given address. If the access
-would fault, return the err_msg value.
-.TP
-user_string_n_warn:string (addr:long, n:long)
-Copy a string of n bytes from user space at given address. If the access
-would fault, signal a warning and return "<unknown>".
-.TP
-user_string_n_quoted:string (addr:long, n:long)
-Copy a string of n bytes from user space at given address. Any ASCII
-characters that are not printable are replaced by the corresponding escape
-sequence in the returned string. If the access would fault, return "<unknown>".
-.TP
-user_short:long (addr:long)
-Copy a short from user space at given address. If the access would fault,
-return 0.
-.TP
-user_short_warn:long (addr:long)
-Copy a short from user space at given address. If the access would fault,
-signal a warning and return 0.
-.TP
-user_int:long (addr:long)
-Copy an int from user space at given address. If the access would fault,
-return 0.
-.TP
-user_int_warn:long (addr:long)
-Copy an int from user space at given address. If the access would fault,
-signal a warning and return 0.
-.TP
-user_long:long (addr:long)
-Copy a long from user space at given address. If the access would fault,
-return 0.
-.TP
-user_long_warn:long (addr:long)
-Copy a long from user space at given address. If the access would fault,
-signal a warning and return 0.
-.TP
-user_char:long (addr:long)
-Copy a char from user space at given address. If the access would fault,
-return 0.
-.TP
-user_char_warn:long (addr:long)
-Copy a char from user space at given address. If the access would fault,
-signal a warning and return 0.
 .SS STRING
 .TP
 strlen:long (str:string)

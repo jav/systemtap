@@ -23,83 +23,47 @@
 #include "../procfs.c"
 
 static struct utt_trace *_stp_utt = NULL;
-
+static unsigned int utt_seq = 1;
+static int _stp_probes_started = 0;
+pid_t _stp_target = 0;
+static int _stp_exit_called = 0;
+int _stp_exit_flag = 0;
 #ifdef STP_OLD_TRANSPORT
 #include "relayfs.c"
+#include "procfs.c"
 #else
 #include "utt.c"
+#include "control.c"
 #endif
-
-static unsigned int utt_seq = 1;
-
-static int _stp_probes_started = 0;
 
 /* module parameters */
 static int _stp_bufsize;
 module_param(_stp_bufsize, int, 0);
 MODULE_PARM_DESC(_stp_bufsize, "buffer size");
 
-pid_t _stp_target = 0;
-static int _stp_exit_called = 0;
-int _stp_exit_flag = 0;
-
 /* forward declarations */
 void probe_exit(void);
 int probe_start(void);
 void _stp_exit(void);
-void _stp_handle_start (struct _stp_msg_start *st);
-static void _stp_detach(void);
-static void _stp_attach(void);
 
 /* check for new workqueue API */
-#ifdef DECLARE_DELAYED_WORK 
-static void _stp_work_queue (struct work_struct *data);
+#ifdef DECLARE_DELAYED_WORK
+static void _stp_work_queue(struct work_struct *data);
 static DECLARE_DELAYED_WORK(_stp_work, _stp_work_queue);
 #else
-static void _stp_work_queue (void *data);
+static void _stp_work_queue(void *data);
 static DECLARE_WORK(_stp_work, _stp_work_queue, NULL);
 #endif
 
 static struct workqueue_struct *_stp_wq;
-static void _stp_ask_for_symbols(void);
-
-#ifdef STP_OLD_TRANSPORT
-#include "procfs.c"
-#else
-#include "control.c"
-#endif
-
-static void _stp_ask_for_symbols(void)
-{
-	struct _stp_msg_symbol req;
-	struct _stp_module mod;
-	static int sent_symbols = 0;
-
-	if (sent_symbols == 0) {
-		/* ask for symbols and modules */
-		kbug(DEBUG_SYMBOLS|DEBUG_TRANSPORT, "AFS\n");
-		
-		req.endian = 0x1234;
-		req.ptr_size = sizeof(char *);
-		_stp_ctl_send(STP_SYMBOLS, &req, sizeof(req));
-		
-		strcpy(mod.name, "");
-		_stp_ctl_send(STP_MODULE, &mod, sizeof(mod));
-		sent_symbols = 1;
-	}
-}
 
 /*
  *	_stp_handle_start - handle STP_START
  */
 
-void _stp_handle_start (struct _stp_msg_start *st)
+void _stp_handle_start(struct _stp_msg_start *st)
 {
-	kbug (DEBUG_TRANSPORT, "stp_handle_start\n");
-
-	if (register_module_notifier(&_stp_module_load_nb))
-		errk("failed to load module notifier\n");
-
+	dbug_trans(1, "stp_handle_start\n");
 	_stp_target = st->target;
 	st->res = probe_start();
 	if (st->res >= 0)
@@ -108,16 +72,15 @@ void _stp_handle_start (struct _stp_msg_start *st)
 	_stp_ctl_send(STP_START, st, sizeof(*st));
 }
 
-
 /* common cleanup code. */
 /* This is called from the kernel thread when an exit was requested */
 /* by staprun or the exit() function. It is also called by transport_close() */
 /* when the module  is removed. In that case "dont_rmmod" is set to 1. */
 /* We need to call it both times because we want to clean up properly */
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
-static void _stp_cleanup_and_exit (int dont_rmmod)
+static void _stp_cleanup_and_exit(int dont_rmmod)
 {
-	kbug(DEBUG_TRANSPORT, "cleanup_and_exit (%d)\n", dont_rmmod);
+	dbug_trans(1, "cleanup_and_exit (%d)\n", dont_rmmod);
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -128,23 +91,24 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
 		_stp_exit_called = 1;
 
 		if (_stp_probes_started) {
-			kbug(DEBUG_TRANSPORT, "calling probe_exit\n");
+			dbug_trans(1, "calling probe_exit\n");
 			/* tell the stap-generated code to unload its probes, etc */
 			probe_exit();
-			kbug(DEBUG_TRANSPORT, "done with probe_exit\n");
+			dbug_trans(1, "done with probe_exit\n");
 		}
 
 		failures = atomic_read(&_stp_transport_failures);
 		if (failures)
-			_stp_warn ("There were %d transport failures.\n", failures);
+			_stp_warn("There were %d transport failures.\n", failures);
 
-		kbug(DEBUG_TRANSPORT, "************** calling startstop 0 *************\n");
-		if (_stp_utt) utt_trace_startstop(_stp_utt, 0, &utt_seq);
+		dbug_trans(1, "************** calling startstop 0 *************\n");
+		if (_stp_utt)
+			utt_trace_startstop(_stp_utt, 0, &utt_seq);
 
-		kbug(DEBUG_TRANSPORT, "ctl_send STP_EXIT\n");
+		dbug_trans(1, "ctl_send STP_EXIT\n");
 		/* tell staprun to exit (if it is still there) */
 		_stp_ctl_send(STP_EXIT, &dont_rmmod, sizeof(int));
-		kbug(DEBUG_TRANSPORT, "done with ctl_send STP_EXIT\n");
+		dbug_trans(1, "done with ctl_send STP_EXIT\n");
 	}
 }
 
@@ -153,7 +117,7 @@ static void _stp_cleanup_and_exit (int dont_rmmod)
  */
 static void _stp_detach(void)
 {
-	kbug(DEBUG_TRANSPORT, "detach\n");
+	dbug_trans(1, "detach\n");
 	_stp_attached = 0;
 	_stp_pid = 0;
 
@@ -169,10 +133,10 @@ static void _stp_detach(void)
  */
 static void _stp_attach(void)
 {
-	kbug(DEBUG_TRANSPORT, "attach\n");
+	dbug_trans(1, "attach\n");
 	_stp_attached = 1;
 	_stp_pid = current->pid;
-		utt_set_overwrite(0);
+	utt_set_overwrite(0);
 	queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
 
@@ -180,10 +144,10 @@ static void _stp_attach(void)
  *	_stp_work_queue - periodically check for IO or exit
  *	This is run by a kernel thread and may sleep.
  */
-#ifdef DECLARE_DELAYED_WORK 
-static void _stp_work_queue (struct work_struct *data)
+#ifdef DECLARE_DELAYED_WORK
+static void _stp_work_queue(struct work_struct *data)
 #else
-static void _stp_work_queue (void *data)
+static void _stp_work_queue(void *data)
 #endif
 {
 	int do_io = 0;
@@ -211,18 +175,18 @@ static void _stp_work_queue (void *data)
  */
 void _stp_transport_close()
 {
-	kbug(DEBUG_TRANSPORT, "%d: ************** transport_close *************\n", current->pid);
+	dbug_trans(1, "%d: ************** transport_close *************\n", current->pid);
 	_stp_cleanup_and_exit(1);
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
-	if (_stp_utt) utt_trace_remove(_stp_utt);
+	if (_stp_utt)
+		utt_trace_remove(_stp_utt);
 	_stp_free_modules();
 	_stp_kill_time();
-	_stp_print_cleanup(); 	/* free print buffers */
+	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
-	kbug(DEBUG_TRANSPORT, "---- CLOSED ----\n");
+	dbug_trans(1, "---- CLOSED ----\n");
 }
-
 
 static struct utt_trace *_stp_utt_open(void)
 {
@@ -249,22 +213,22 @@ int _stp_transport_init(void)
 {
 	int ret;
 
-	kbug(DEBUG_TRANSPORT, "transport_init\n");
+	dbug_trans(1, "transport_init\n");
 	_stp_init_pid = current->pid;
 	_stp_uid = current->uid;
 	_stp_gid = current->gid;
 
 #ifdef RELAY_GUEST
-        /* Guest scripts use relay only for reporting warnings and errors */
-        _stp_subbuf_size = 65536;
-        _stp_nsubbufs = 2;
+	/* Guest scripts use relay only for reporting warnings and errors */
+	_stp_subbuf_size = 65536;
+	_stp_nsubbufs = 2;
 #endif
 
 	if (_stp_bufsize) {
 		unsigned size = _stp_bufsize * 1024 * 1024;
 		_stp_subbuf_size = ((size >> 2) + 1) * 65536;
 		_stp_nsubbufs = size / _stp_subbuf_size;
-		kbug(DEBUG_TRANSPORT, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
+		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
 
 	/* initialize timer code */
@@ -286,41 +250,57 @@ int _stp_transport_init(void)
 	if (_stp_print_init() < 0)
 		goto err2;
 
+	/* start transport */
 	utt_trace_startstop(_stp_utt, 1, &utt_seq);
 
 	/* create workqueue of kernel threads */
 	_stp_wq = create_workqueue("systemtap");
 	if (!_stp_wq)
 		goto err3;
+	
+	_stp_transport_state = 1;
+	
+	dbug_trans(1, "calling init_kernel_symbols\n");
+	if (_stp_init_kernel_symbols() < 0)
+		goto err4;
+	
+	dbug_trans(1, "calling init_modules\n");
+	if (_stp_init_modules() < 0)
+		goto err4;
+
 	return 0;
 
+err4:
+	errk("failed to initialize modules\n");
+	_stp_free_modules();
+	destroy_workqueue(_stp_wq);
 err3:
 	_stp_print_cleanup();
 err2:
 	_stp_unregister_ctl_channel();
 err1:
-	if (_stp_utt) utt_trace_remove(_stp_utt);	
+	if (_stp_utt)
+		utt_trace_remove(_stp_utt);
 err0:
 	_stp_kill_time();
 	return -1;
 }
 
-
 static inline void _stp_lock_inode(struct inode *inode)
 {
 #ifdef DEFINE_MUTEX
-        mutex_lock(&inode->i_mutex);
+	mutex_lock(&inode->i_mutex);
 #else
-        down(&inode->i_sem);
+	down(&inode->i_sem);
 #endif
 }
 
 static inline void _stp_unlock_inode(struct inode *inode)
 {
 #ifdef DEFINE_MUTEX
-        mutex_unlock(&inode->i_mutex);
+	mutex_unlock(&inode->i_mutex);
 #else
-        up(&inode->i_sem);
+	up(&inode->i_sem);
 #endif
 }
 
@@ -358,7 +338,8 @@ static void _stp_unlock_debugfs(void)
 /* utt.c and relayfs.c. Will not be necessary if utt is included */
 /* in the kernel. */
 
-static struct dentry *_stp_get_root_dir(const char *name) {
+static struct dentry *_stp_get_root_dir(const char *name)
+{
 	struct file_system_type *fs;
 	struct dentry *root;
 	struct super_block *sb;
@@ -377,7 +358,6 @@ static struct dentry *_stp_get_root_dir(const char *name) {
 		errk("Couldn't lock transport directory.\n");
 		return NULL;
 	}
-
 #ifdef STP_OLD_TRANSPORT
 	root = relayfs_create_dir(name, NULL);
 #else
@@ -389,12 +369,12 @@ static struct dentry *_stp_get_root_dir(const char *name) {
 		_stp_lock_inode(sb->s_root->d_inode);
 		root = lookup_one_len(name, sb->s_root, strlen(name));
 		_stp_unlock_inode(sb->s_root->d_inode);
-		kbug(DEBUG_TRANSPORT, "root=%p\n", root);
+		errk("ERROR: root=%p\n", root);
 		if (!IS_ERR(root))
 			dput(root);
 		else {
 			root = NULL;
-			kbug(DEBUG_TRANSPORT, "Could not create or find transport directory.\n");
+			errk("Could not create or find transport directory.\n");
 		}
 	}
 	_stp_unlock_debugfs();

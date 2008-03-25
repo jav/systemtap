@@ -4356,80 +4356,43 @@ c_unparser::visit_hist_op (hist_op*)
 int
 emit_symbol_data (systemtap_session& s)
 {
-  int rc = 0;
-
   // Instead of processing elf symbol tables, for now we just snatch
-  // /proc/kallsyms and convert it to our use.  We need it sorted by
-  // address (so we can binary search) , and filtered (to show text
-  // symbols only), a task that we defer to grep(1) and sort(1).  It
-  // may be useful to cache the symbols.sorted file, perhaps indexed
-  // by md5sum(/proc/modules), but let's not until this simple method
-  // proves too costly.  LC_ALL=C is already set to avoid the
-  // excessive penalty of i18n code in some glibc/coreutils versions.
+  // /proc/kallsyms and convert it to our use.  
 
-  string sorted_kallsyms = s.tmpdir + "/symbols.sorted";
-  string sortcmd = "grep \" [AtT] \" /proc/kallsyms | ";
- 
-  if (s.symtab == false)
-    {
-      s.op->newline() << "/* filled in by runtime */";
-      s.op->newline() << "struct stap_symbol *stap_symbols;";
-      s.op->newline() << "unsigned stap_num_symbols;\n";
-      return 0;
-    }
-
-  sortcmd += "sort ";
-#if __LP64__
-  sortcmd += "-k 1,16 ";
-#else
-  sortcmd += "-k 1,8 ";
-#endif
-  sortcmd += "-s -o " + sorted_kallsyms;
-
-  if (s.verbose>1) clog << "Running " << sortcmd << endl;
-  rc = system(sortcmd.c_str());
-  if (rc == 0)
-    {
-      ifstream kallsyms (sorted_kallsyms.c_str());
-      char kallsyms_outbuf [4096];
-      ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
-      kallsyms_out.rdbuf()->pubsetbuf (kallsyms_outbuf,
+  unsigned i=0;
+  ifstream kallsyms("/proc/kallsyms");
+  char kallsyms_outbuf [4096];
+  ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
+  kallsyms_out.rdbuf()->pubsetbuf (kallsyms_outbuf,
                                        sizeof(kallsyms_outbuf));
+
+  s.op->newline() << "\n\n#include \"stap-symbols.h\"";
+  kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
+  string lastaddr, modules_op_addr;
+
+  while (! kallsyms.eof())
+    {
+      string addr, type, sym;
+      kallsyms >> addr >> type >> sym >> ws;
+
+      if (kallsyms.peek() == '[')
+	break;
       
-      s.op->newline() << "\n\n#include \"stap-symbols.h\"";
-
-      unsigned i=0;
-      kallsyms_out << "struct stap_symbol _stp_stap_symbols [] = {";
-      string lastaddr;
-      while (! kallsyms.eof())
+      // NB: kallsyms includes some duplicate addresses
+      if ((type == "t" || type == "T" || type == "A") && lastaddr != addr)
 	{
-	  string addr, type, sym, module;
-	  kallsyms >> addr >> type >> sym;
-	  kallsyms >> ws;
-	  if (kallsyms.peek() == '[')
-	    {
-	      string bracketed;
-	      kallsyms >> bracketed;
-	      module = bracketed.substr (1, bracketed.length()-2);
-	    }
-	  
-	  // NB: kallsyms includes some duplicate addresses
-	  if ((type == "t" || type == "T" || type == "A") && lastaddr != addr)
-	    {
-	      kallsyms_out << "  { 0x" << addr << ", "
-                           << "\"" << sym << "\", "
-                           << "\"" << module << "\" },"
-                           << "\n";
-	      lastaddr = addr;
-	      i ++;
-	    }
+	  kallsyms_out << "  { 0x" << addr << ", " << "\"" << sym << "\" },\n";
+	  lastaddr = addr;
+	  i ++;
 	}
-      kallsyms_out << "};\n";
-      kallsyms_out << "struct stap_symbol *stap_symbols = _stp_stap_symbols;";
-      kallsyms_out << "unsigned stap_num_symbols = " << i << ";\n";
+      else if (sym == "modules_op")
+	modules_op_addr = addr;
     }
+  kallsyms_out << "};\n";
+  kallsyms_out << "unsigned _stp_num_kernel_symbols = " << i << ";\n";
+  kallsyms_out << "unsigned long _stp_modules_op = 0x" << modules_op_addr << ";\n";
 
-  return rc;
+  return (i == 0);
 }
 
 
@@ -4515,7 +4478,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/random.h>";
       s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
-      
+
       // XXX: old 2.6 kernel hack
       s.op->newline() << "#ifndef read_trylock";
       s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";

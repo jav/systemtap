@@ -1,21 +1,3 @@
-2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
-
-	* lib/stap_run.exp (stap_run): Ignore missing debuginfo warnings.
-	Try harder to kill stap child in case of timeouts and errors.
-
-2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
-
-	PR 5980.
-	* lib/systemtap.exp: Set default Snapshot: value from "stap -V"
-	output.
-
-2008-03-21  Eugene Teo  <eugeneteo@kernel.sg>
-
-	PR 5528
-	* systemtap.stress/conversions.stp: Test new user_* functions.
-	* buildok/conversions.stp: Test new user_* functions.
-	* buildok/conversions-embedded.stp: Test new user_* functions.
-
 2008-03-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5956.

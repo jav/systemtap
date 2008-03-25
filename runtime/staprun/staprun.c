@@ -181,8 +181,6 @@ static void cleanup(int rc)
 	if (setpriority (PRIO_PROCESS, 0, 0) < 0)
 		_perr("setpriority");
 	
-	stop_symbol_thread();
-
 	/* rc == 2 means disconnected */
 	if (rc == 2)
 		return;
@@ -278,7 +276,6 @@ int main(int argc, char **argv)
 		exit(1);
 
 	setup_staprun_signals();
-	start_symbol_thread();
 
 	rc = run_stapio(argv);
 	cleanup(rc);

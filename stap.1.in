@@ -467,12 +467,11 @@ For prologue style alias, the statement block that follows an alias
 definition is implicitly added as a prologue to any probe that refers
 to the alias. While for the epilogue style alias, the statement block
 that follows an alias definition is implicitly added as an epilogue to
-any probe that refers to the alias.  For example:
+any probe that refers to the alias. For example:
 
 .SAMPLE
 probe syscall.read = kernel.function("sys_read") {
   fildes = $fd
-  if (execname == "init") next  # skip rest of probe
 }
 .ESAMPLE
 defines a new probe point
@@ -483,23 +482,19 @@ which expands to
 .nh
 .IR kernel.function("sys_read") ,
 .hy
-with the given statement as a prologue, which is useful to predefine
-some variables for the alias user and/or to skip probe processing
-entirely based on some conditions.  And
+with the given statement as a prologue. And 
 .SAMPLE
 probe syscall.read += kernel.function("sys_read") {
-  if (tracethis) println ($fd)
+  fildes = $fd
 }
 .ESAMPLE
-defines a new probe point with the given statement as an epilogue, which
-is useful to take actions based upon variables set or left over by the
-the alias user.
+defines a new probe point with the given statement as an epilogue. 
 
-An alias is used just like a built-in probe type.
+Another probe definition
+may use the alias like this:
 .SAMPLE
 probe syscall.read {
   printf("reading fd=%d\n", fildes)
-  if (fildes > 10) tracethis = 1
 }
 .ESAMPLE
 

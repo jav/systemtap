@@ -14,6 +14,8 @@
  * _dbug() writes to systemtap stderr.
  * errk() writes to the system log.
  */
+int _stp_transport_state = 0;
+
 #define _dbug(args...) _stp_dbug(__FUNCTION__, __LINE__, args)
 
 #define errk(args...) do {						\
@@ -21,46 +23,42 @@
 		printk(args);						\
 	} while (0)
 
-#ifdef DEBUG_TRANSPORT
-#undef DEBUG_TRANSPORT
-#define DEBUG_TRANSPORT 1
-#else
-#define DEBUG_TRANSPORT 0
-#endif
+/*
+ * To use these, enable them from the command line when compiling. 
+ * For example, "stap -DDEBUG_UNWIND=3"
+ * will activate dbug_unwind() and print messages with level <= 3.
+ */
 
-#ifdef DEBUG_UNWIND
-#undef DEBUG_UNWIND
-#define DEBUG_UNWIND 2
-#else
-#define DEBUG_UNWIND 0
-#endif
+/* Note: DEBUG_MEM is implemented in alloc.c */
 
-#ifdef DEBUG_SYMBOLS
-#undef DEBUG_SYMBOLS
-#define DEBUG_SYMBOLS 4
-#else
-#define DEBUG_SYMBOLS 0
-#endif
-
-#define DEBUG_TYPE (DEBUG_TRANSPORT|DEBUG_UNWIND|DEBUG_SYMBOLS)
-
-#if DEBUG_TYPE > 0
-
-#define dbug(type, args...) do {					\
-		if ((type) & DEBUG_TYPE)				\
-			_stp_dbug(__FUNCTION__, __LINE__, args);	\
-	} while (0)
-
-#define kbug(type, args...) do {					\
-		if ((type) & DEBUG_TYPE) {				\
+#ifdef DEBUG_TRANS /* transport */
+/* Note: transport is debugged using printk() */
+#define dbug_trans(level, args...) do {					\
+		if ((level) <= DEBUG_TRANS) {				\
 			printk("%s:%d ",__FUNCTION__, __LINE__);	\
 			printk(args);					\
 		}							\
 	} while (0)
-
 #else
-#define dbug(type, args...) ;
-#define kbug(type, args...) ;
-#endif /* DEBUG_TYPE > 0 */
+#define dbug_trans(level, args...) ;
+#endif
+
+#ifdef DEBUG_UNWIND /* stack unwinder */
+#define dbug_unwind(level, args...) do {					\
+		if ((level) <= DEBUG_UNWIND)				\
+			_stp_dbug(__FUNCTION__, __LINE__, args);	\
+	} while (0)
+#else
+#define dbug_unwind(level, args...) ;
+#endif
+
+#ifdef DEBUG_SYMBOLS
+#define dbug_sym(level, args...) do {					\
+		if ((level) <= DEBUG_SYMBOLS)				\
+			_stp_dbug(__FUNCTION__, __LINE__, args);	\
+	} while (0)
+#else
+#define dbug_sym(level, args...) ;
+#endif
 
 #endif /* _STP_DEBUG_H_ */

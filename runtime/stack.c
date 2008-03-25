@@ -1,6 +1,6 @@
 /*  -*- linux-c -*-
  * Stack tracing functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005-2008 Red Hat Inc.
  * Copyright (C) 2005 Intel Corporation.
  *
  * This file is part of systemtap, and is free software.  You can
@@ -23,6 +23,7 @@
 
 #include "sym.c"
 #include "regs.h"
+#include "unwind.c"
 
 #define MAXBACKTRACE 20
 

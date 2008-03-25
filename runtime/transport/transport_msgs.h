@@ -23,8 +23,7 @@ enum
         STP_EXIT,
 	STP_OOB_DATA,
 	STP_SYSTEM,
-	STP_SYMBOLS,
-	STP_MODULE,
+	STP_UNWIND,
 	STP_TRANSPORT,
 	STP_CONNECT,
  	STP_DISCONNECT,
@@ -36,18 +35,16 @@ enum
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
 #endif
-
 	STP_MAX_CMD
 };
 
-#ifdef DEBUG_TRANSPORT
+#ifdef DEBUG_TRANS
 static const char *_stp_command_name[] = {
 	"STP_START",
 	"STP_EXIT",
 	"STP_OOB_DATA",
 	"STP_SYSTEM",
-	"STP_SYMBOLS",
-	"STP_MODULE",
+	"STP_UNWIND",
 	"STP_TRANSPORT",
 	"STP_CONNECT",
 	"STP_DISCONNECT",
@@ -59,66 +56,32 @@ static const char *_stp_command_name[] = {
 	"STP_REALTIME_DATA",
 #endif
 };
-#endif /* DEBUG_TRANSPORT */
+#endif /* DEBUG_TRANS */
 
 /* control channel messages */
 
-/* command to execute: sent to staprun */
+/* command to execute: module->stapio */
 struct _stp_msg_cmd
 {
 	char cmd[128];
 };
 
-/* request for symbol data. sent to staprun */
-struct _stp_msg_symbol
+/* Unwind data. stapio->module */
+struct _stp_msg_unwind
 {
-	int32_t endian;
-	int32_t ptr_size;
+	/* the module name, or "*" for all */
+	char name[STP_MODULE_NAME_LEN];
+	/* length of unwind data */
+	uint64_t unwind_len;
+	/* data ...*/
 };
 
 /* Request to start probes. */
-/* Sent from staprun. Then returned from module. */
+/* stapio->module->stapio */
 struct _stp_msg_start
 {
 	pid_t target;
         int32_t res;    // for reply: result of probe_start()
-};
-
-struct _stp_symbol32
-{
-	uint32_t addr;
-	uint32_t symbol;
-};
-
-struct _stp_symbol64
-{
-	uint64_t addr;
-	uint64_t symbol;
-};
-
-struct _stp_msg_symbol_hdr
-{
-	uint32_t num_syms;
-	uint32_t sym_size;
-	uint32_t unwind_size;
-};
-
-struct _stp_msg_module {
-	/* the module name, or "" for kernel */
-	char name[STP_MODULE_NAME_LEN];
-	
-	/* A pointer to the struct module */
-	uint64_t module;
-
-	/* the start of the module's text and data sections */
-	uint64_t text;
-	uint64_t data;
-	
-	/* how many sections this module has */
-	uint32_t num_sections;
-
-	/* length of unwind data */
-	uint32_t unwind_len;
 };
 
 #ifdef STP_OLD_TRANSPORT

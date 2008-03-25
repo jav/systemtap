@@ -18,3 +18,9 @@ systemtap.spec
 testresults
 stapio
 stap_merge
+CVS
+.checkstyle
+.cproject
+.metadata
+.project
+.settings
