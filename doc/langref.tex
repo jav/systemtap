@@ -230,7 +230,7 @@ This prints:
 \end{verbatim}
 \end{vindent}
 Any larger number input to the function may exceed the MAXACTION or MAXNESTING
-limits, which will be caught by the parser and result in an error. For more
+limits, which will be caught at run time and result in an error. For more
 about limits see Section~\ref{sub:SystemTap-safety}.
 \newpage{}
 \subsection{The stap command}
@@ -436,8 +436,10 @@ probe syscall.read = kernel.function("sys_read") {
 \index{epilogue-style aliases}
 \index{+=}
 The statement block that follows an alias definition is implicitly added
-as an epilogue to any probe that refers to the alias. The following is an
-example:
+as an epilogue to any probe that refers to the alias.  It is not useful
+to define new variable there (since no subsequent code will see it), but
+rather the code can take action based upon variables left set by the
+prologue or by the user code.  The following is an example:
 
 \begin{vindent}
 \begin{verbatim}
@@ -445,15 +447,15 @@ example:
 # epilogue.
 #
 probe syscall.read += kernel.function("sys_read") {
-    fildes = $fd
+    if (traceme) println ("tracing me")
 }
 \end{verbatim}
 \end{vindent}
 
 \subsubsection{Probe alias usage}
 
-Another probe definition may use a previously defined alias. The following
-is an example.
+A probe alias is used the same way as any built-in probe type, by
+naming it:
 
 \begin{vindent}
 \begin{verbatim}
@@ -1027,12 +1029,6 @@ type conversions between strings and numbers. Inconsistent type-related use
 of identifiers signals an error.
 
 
-\subsubsection{Numbers}
-\index{numbers}
-Numbers are 64-bit signed integers. The parser will also accept (and wrap
-around) values above positive $2^{63}$.
-
-
 \subsubsection{Literals}
 \index{literals}
 Literals are either strings or integers. Literals can be expressed as decimal,
@@ -1041,10 +1037,10 @@ octal, or hexadecimal, using C notation. Type suffixes (e.g., \emph{L} or
 
 
 \subsubsection{Integers\label{sub:Integers}}
-\index{integers}
+\index{integers} \index{numbers}
 Integers are decimal, hexadecimal, or octal, and use the same notation as
 in C. Integers are 64-bit signed quantities, although the parser also accepts
-(and wraps around) values above positive $2^{63}$.
+(and wraps around) values above positive $2^{63}$ but below $2^{64}$.
 
 
 \subsubsection{Strings\label{sub:Strings}}
