@@ -1,3 +1,8 @@
+2008-03-25  Martin Hunt  <hunt@redhat.com>
+
+	* unwind.c (unwind): Return a positive number to indicate
+	that unwinding is done.
+
 2008-03-17  Eugene Teo  <eteo@redhat.com>
 
 	PR 5947

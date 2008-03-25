@@ -24,3 +24,4 @@ CVS
 .metadata
 .project
 .settings
+*.o

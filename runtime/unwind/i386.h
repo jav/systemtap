@@ -1,3 +1,14 @@
+/* -*- linux-c -*-
+ *
+ * 32-bit x86 dwarf unwinder header file
+ * Copyright (C) 2008 Red Hat Inc.
+ * Copyright (C) 2002-2006 Novell, Inc.
+ * 
+ * This file is part of systemtap, and is free software.  You can
+ * redistribute it and/or modify it under the terms of the GNU General
+ * Public License (GPL); either version 2, or (at your option) any
+ * later version.
+ */
 #ifndef _STP_I386_UNWIND_H
 #define _STP_I386_UNWIND_H
 

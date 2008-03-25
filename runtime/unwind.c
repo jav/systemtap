@@ -1,12 +1,16 @@
-/*
+/* -*- linux-c -*- 
+ * kernel stack unwinding
+ * Copyright (C) 2008 Red Hat Inc.
+ *
+ * Based on old kernel code that is
  * Copyright (C) 2002-2006 Novell, Inc.
  *	Jan Beulich <jbeulich@novell.com>
+ *
  * This code is released under version 2 of the GNU GPL.
  *
- * A simple API for unwinding kernel stacks.  This is used for
- * debugging and error reporting purposes.  The kernel doesn't need
- * full-blown stack unwinding with all the bells and whistles, so there
- * is not much point in implementing the full Dwarf2 unwind API.
+ * This code currently does stack unwinding in the
+ * kernel and modules. It will need some extension to handle
+ * userspace unwinding.
  */
 
 #include "unwind/unwind.h"
@@ -231,8 +235,8 @@ static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *m)
 	/* CIE_pointer must be a proper offset */
 	if ((fde[1] & (sizeof(*fde) - 1)) || fde[1] > (unsigned long)(fde + 1) - (unsigned long)m->unwind_data) {
 		dbug_unwind(1, "fde[1]=%lx fde+1=%lx, unwind_data=%lx  %lx\n",
-		     (unsigned long)fde[1], (unsigned long)(fde + 1),
-		     (unsigned long)m->unwind_data, (unsigned long)(fde + 1) - (unsigned long)m->unwind_data);
+			    (unsigned long)fde[1], (unsigned long)(fde + 1),
+			    (unsigned long)m->unwind_data, (unsigned long)(fde + 1) - (unsigned long)m->unwind_data);
 		return NULL;	/* this is not a valid FDE */
 	}
 
@@ -400,6 +404,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 	} ptr;
 	int result = 1;
 
+	dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 	if (start != state->cieStart) {
 		state->loc = state->org;
 		result = processCFI(state->cieStart, state->cieEnd, 0, ptrType, state);
@@ -542,6 +547,7 @@ static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc, s
 			dbug_unwind(1, "case 3\n");
 			break;
 		}
+		dbug_unwind(1, "targetLoc=%lx state->loc=%lx\n", targetLoc, state->loc);
 		if (ptr.p8 > end)
 			result = 0;
 		if (result && targetLoc != 0 && targetLoc < state->loc)
@@ -559,9 +565,6 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
 	unsigned long startLoc;
 	u32 *fde = NULL;
 	unsigned num, tableSize, t2;
-
-	/* TOTO: only really need to test hdr == NULL */
-	/* The rest should be validated at load time */
 
 	if (hdr == NULL || hdr[0] != 1)
 		return NULL;
@@ -614,12 +617,13 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
 	if (num == 1 && (startLoc = read_pointer(&ptr, ptr + tableSize, hdr[3])) != 0 && pc >= startLoc)
 		fde = (void *)read_pointer(&ptr, ptr + tableSize, hdr[3]);
 
-	dbug_unwind(1, "returning %lx", fde);
+	dbug_unwind(1, "returning fde=%lx startLoc=%lx", fde, startLoc);
 	return fde;
 }
 
 /* Unwind to previous to frame.  Returns 0 if successful, negative
- * number in case of an error. */
+ * number in case of an error.  A positive return means unwinding is finished; */
+/* don't try to fallback to dumping addresses on the stack. */
 int unwind(struct unwind_frame_info *frame)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
@@ -646,32 +650,36 @@ int unwind(struct unwind_frame_info *frame)
 
 	if (unlikely(m->unwind_data_len == 0 || m->unwind_data_len & (sizeof(*fde) - 1))) {
 		dbug_unwind(1, "Module %s: unwind_data_len=%d", m->name, m->unwind_data_len);
-		goto done;
+		goto err;
 	}
 
 	fde = _stp_search_unwind_hdr(pc, m);
 	dbug_unwind(1, "%s: fde=%lx\n", m->name, fde);
 
+	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
 		cie = cie_for_fde(fde, m);
 		ptr = (const u8 *)(fde + 2);
-		if (cie != NULL
-		    && cie != &bad_cie
-		    && cie != &not_fde
-		    && (ptrType = fde_pointer_type(cie)) >= 0
-		    && read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType) == startLoc) {
+		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
+			ptrType = fde_pointer_type(cie);
+			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			if (pc >= endLoc)
-				fde = NULL;
-		} else
+			if (pc > endLoc) {
+				dbug_unwind(1, "pc (%lx) > endLoc(%x)\n", pc, endLoc);
+				/* finished? */
+				goto done;
+			}
+		} else {
+			dbug_unwind(1, "fde found in header, but cie is bad!\n");
 			fde = NULL;
+		}
 	}
 	if (fde == NULL) {
 		for (fde = m->unwind_data, tableSize = m->unwind_data_len; cie = NULL, tableSize > sizeof(*fde)
 		     && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
-			// dbug_unwind(1,"fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
+			dbug_unwind(3, "fde=%lx tableSize=%d\n", (long)*fde, (int)tableSize);
 			cie = cie_for_fde(fde, m);
 			if (cie == &bad_cie) {
 				cie = NULL;
@@ -682,13 +690,13 @@ int unwind(struct unwind_frame_info *frame)
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			// dbug_unwind(1,"startLoc=%p\n",(u64)startLoc);                                
+			dbug_unwind(3, "startLoc=%p\n", (u64)startLoc);
 			if (!startLoc)
 				continue;
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			// dbug_unwind(1,"endLoc=%p\n",(u64)endLoc);                                                            
+			dbug_unwind(3, "endLoc=%p\n", (u64)endLoc);
 			if (pc >= startLoc && pc < endLoc)
 				break;
 		}
@@ -696,7 +704,7 @@ int unwind(struct unwind_frame_info *frame)
 
 	dbug_unwind(1, "cie=%lx fde=%lx startLoc=%lx endLoc=%lx\n", cie, fde, startLoc, endLoc);
 	if (cie == NULL || fde == NULL)
-		goto done;
+		goto err;
 
 	/* found the CIE and FDE */
 
@@ -707,7 +715,7 @@ int unwind(struct unwind_frame_info *frame)
 	frame->call_frame = 1;
 	if ((state.version = *ptr) != 1) {
 		dbug_unwind(1, "CIE version number is %d.  1 is supported.\n", state.version);
-		goto done;	/* unsupported version */
+		goto err;	/* unsupported version */
 	}
 	if (*++ptr) {
 		/* check if augmentation size is first (and thus present) */
@@ -731,7 +739,7 @@ int unwind(struct unwind_frame_info *frame)
 		}
 		if (ptr >= end || *ptr) {
 			dbug_unwind(1, "Problem parsing the augmentation string.\n");
-			goto done;
+			goto err;
 		}
 	}
 	++ptr;
@@ -741,7 +749,7 @@ int unwind(struct unwind_frame_info *frame)
 	/* get data aligment factor */
 	state.dataAlign = get_sleb128(&ptr, end);
 	if (state.codeAlign == 0 || state.dataAlign == 0 || ptr >= end)
-		goto done;;
+		goto err;;
 
 	retAddrReg = state.version <= 1 ? *ptr++ : get_uleb128(&ptr, end);
 
@@ -753,7 +761,7 @@ int unwind(struct unwind_frame_info *frame)
 	if (ptr > end || retAddrReg >= ARRAY_SIZE(reg_info)
 	    || REG_INVALID(retAddrReg)
 	    || reg_info[retAddrReg].width != sizeof(unsigned long))
-		goto done;
+		goto err;
 
 	state.cieStart = ptr;
 	ptr = state.cieEnd;
@@ -764,7 +772,7 @@ int unwind(struct unwind_frame_info *frame)
 	if (((const char *)(cie + 2))[1] == 'z') {
 		uleb128_t augSize = get_uleb128(&ptr, end);
 		if ((ptr += augSize) > end)
-			goto done;
+			goto err;
 	}
 
 	state.org = startLoc;
@@ -774,7 +782,7 @@ int unwind(struct unwind_frame_info *frame)
 	    || state.loc > endLoc || state.regs[retAddrReg].where == Nowhere || state.cfa.reg >= ARRAY_SIZE(reg_info)
 	    || reg_info[state.cfa.reg].width != sizeof(unsigned long)
 	    || state.cfa.offs % sizeof(unsigned long))
-		goto done;
+		goto err;
 
 	/* update frame */
 	dbug_unwind(1, "cie=%lx fde=%lx\n", cie, fde);
@@ -801,10 +809,10 @@ int unwind(struct unwind_frame_info *frame)
 		if (REG_INVALID(i)) {
 			if (state.regs[i].where == Nowhere)
 				continue;
-			dbug_unwind(1, "REG_INVALID %d\n", i);
-			goto done;
+			dbug_unwind(2, "REG_INVALID %d\n", i);
+			goto err;
 		}
-		dbug_unwind(1, "register %d. where=%d\n", i, state.regs[i].where);
+		dbug_unwind(2, "register %d. where=%d\n", i, state.regs[i].where);
 		switch (state.regs[i].where) {
 		default:
 			break;
@@ -812,8 +820,8 @@ int unwind(struct unwind_frame_info *frame)
 			if (state.regs[i].value >= ARRAY_SIZE(reg_info)
 			    || REG_INVALID(state.regs[i].value)
 			    || reg_info[i].width > reg_info[state.regs[i].value].width) {
-				dbug_unwind(1, "case Register bad\n");
-				goto done;
+				dbug_unwind(2, "case Register bad\n");
+				goto err;
 			}
 			switch (reg_info[state.regs[i].value].width) {
 #define CASE(n) \
@@ -824,17 +832,17 @@ int unwind(struct unwind_frame_info *frame)
 				CASES;
 #undef CASE
 			default:
-				dbug_unwind(1, "default\n");
-				goto done;
+				dbug_unwind(2, "default\n");
+				goto err;
 			}
 			break;
 		}
 	}
 	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
-		dbug_unwind(1, "register %d. invalid=%d\n", i, REG_INVALID(i));
+		dbug_unwind(2, "register %d. invalid=%d\n", i, REG_INVALID(i));
 		if (REG_INVALID(i))
 			continue;
-		dbug_unwind(1, "register %d. where=%d\n", i, state.regs[i].where);
+		dbug_unwind(2, "register %d. where=%d\n", i, state.regs[i].where);
 		switch (state.regs[i].where) {
 		case Nowhere:
 			if (reg_info[i].width != sizeof(UNW_SP(frame))
@@ -851,20 +859,20 @@ int unwind(struct unwind_frame_info *frame)
 				CASES;
 #undef CASE
 			default:
-				dbug_unwind(1, "default\n");
-				goto done;
+				dbug_unwind(2, "default\n");
+				goto err;
 			}
 			break;
 		case Value:
 			if (reg_info[i].width != sizeof(unsigned long)) {
-				dbug_unwind(1, "Value\n");
-				goto done;
+				dbug_unwind(2, "Value\n");
+				goto err;
 			}
 			FRAME_REG(i, unsigned long) = cfa + state.regs[i].value * state.dataAlign;
 			break;
 		case Memory:{
 				unsigned long addr = cfa + state.regs[i].value * state.dataAlign;
-				dbug_unwind(1, "addr=%lx width=%d\n", addr, reg_info[i].width);
+				dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
 				switch (reg_info[i].width) {
 #define CASE(n)     case sizeof(u##n): \
 					if (unlikely(__stp_get_user(FRAME_REG(i, u##n), (u##n *)addr))) \
@@ -874,8 +882,8 @@ int unwind(struct unwind_frame_info *frame)
 					CASES;
 #undef CASE
 				default:
-					dbug_unwind(1, "default\n");
-					goto done;
+					dbug_unwind(2, "default\n");
+					goto err;
 				}
 			}
 			break;
@@ -887,9 +895,12 @@ int unwind(struct unwind_frame_info *frame)
 
 copy_failed:
 	dbug_unwind(1, "_stp_get_user failed to access memory\n");
-done:
+err:
 	read_unlock(&m->lock);
 	return -EIO;
+done:
+	read_unlock(&m->lock);
+	return 1;
 #undef CASES
 #undef FRAME_REG
 }
