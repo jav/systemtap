@@ -93,11 +93,6 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	info->regs.ss = __KERNEL_DS;
 }
 
-extern int arch_unwind_init_running(struct unwind_frame_info *,
-                                    int (*callback)(struct unwind_frame_info *,
-                                                    void *arg),
-                                    void *arg);
-
 static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
 {
 #if 0 /* This can only work when selector register saves/restores

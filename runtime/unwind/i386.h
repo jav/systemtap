@@ -12,13 +12,6 @@
 #ifndef _STP_I386_UNWIND_H
 #define _STP_I386_UNWIND_H
 
-/*
- * Copyright (C) 2002-2006 Novell, Inc.
- *	Jan Beulich <jbeulich@novell.com>
- * This code is released under version 2 of the GNU GPL.
- */
-
-
 #include <linux/sched.h>
 #include <asm/fixmap.h>
 #include <asm/ptrace.h>
@@ -73,6 +66,7 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 		info->regs.esp = (unsigned long)&regs->esp;
 		info->regs.xss = __KERNEL_DS;
 	}
+	info->call_frame = 1;
 }
 
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
@@ -87,10 +81,6 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	info->regs.xes = __USER_DS;
 }
 
-extern asmlinkage int arch_unwind_init_running(struct unwind_frame_info *,
-                                               asmlinkage int (*callback)(struct unwind_frame_info *,
-                                                                          void *arg),
-                                               void *arg);
 
 static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
 {

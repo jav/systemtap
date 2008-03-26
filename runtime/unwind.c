@@ -804,7 +804,7 @@ int unwind(struct unwind_frame_info *frame)
 #else
 # define CASES CASE(8); CASE(16); CASE(32); CASE(64)
 #endif
-	dbug_unwind(1, "cie=%p fde=%p\n", (u64)cie, (u64)fde);
+	dbug_unwind(1, "cie=%lx fde=%lx\n", cie, fde);
 	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
 		if (REG_INVALID(i)) {
 			if (state.regs[i].where == Nowhere)
