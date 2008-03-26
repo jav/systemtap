@@ -1587,6 +1587,15 @@ struct dwflpp
     unsigned i = 0;
     while (i < components.size())
       {
+        /* XXX: This would be desirable, but we don't get the target_symbol token,
+           and printing that gives us the file:line number too early anyway. */
+#if 0
+        // Emit a marker to note which field is being access-attempted, to give
+        // better error messages if deref() fails.
+        string piece = string(...target_symbol token...) + string ("#") + stringify(components[i].second);
+        obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
+#endif
+
 	die = dwarf_formref_die (attr_mem, die_mem);
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
