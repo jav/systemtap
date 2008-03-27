@@ -201,6 +201,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "goto probe_epilogue;";
   o->newline(-1) << "}";
   o->newline();
+  o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
