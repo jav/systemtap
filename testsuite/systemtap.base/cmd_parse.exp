@@ -56,7 +56,8 @@ expect {
 wait
 
 #stap -c '(((a=42+7)); echo "The answer is $a")' -e 'probe begin {}'
-spawn stap -c {(((a=42+7)); echo "The answer is $a")} -e {probe begin {}}
+# NB: not  ((a=42+7)) - must not assume bash
+spawn stap -c {(a=49; echo "The answer is $a")} -e {probe begin {}}
 expect {
     -timeout 60
     "The answer is 49" {pass "cmd_parse6"}
