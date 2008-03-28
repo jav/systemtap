@@ -18,7 +18,7 @@ static void _stp_stack_print_fallback(unsigned long context, unsigned long stack
 {
 	unsigned long addr;
 	while (_stp_valid_stack_ptr(context, stack)) {
-		if (unlikely(__stp_get_user(addr, (unsigned long *)stack))) {
+		if (unlikely(_stp_read_address(addr, (unsigned long *)stack, KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
 		}
@@ -43,7 +43,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 #endif /* STAPCONF_X86_UNIREGS */
 	
 	while (_stp_valid_stack_ptr(context, (unsigned long)ebp)) {
-		if (unlikely(__stp_get_user(addr, (unsigned long *)(ebp + 4)))) {
+		if (unlikely(_stp_read_address(addr, (unsigned long *)(ebp + 4), KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
 		}

@@ -321,7 +321,7 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 		return 0;
 	}
 	if ((ptrType & DW_EH_PE_indirect)
-			&& __stp_get_user(value, (unsigned long *)value))
+	    && _stp_read_address(value, (unsigned long *)value, KERNEL_DS))
 		return 0;
 	*pLoc = ptr.p8;
 
@@ -676,7 +676,7 @@ int unwind(struct unwind_frame_info *frame)
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;
 	const u8 *ptr = NULL, *end = NULL;
-	unsigned long pc = UNW_PC(frame);
+	unsigned long pc = UNW_PC(frame) - frame->call_frame;
 	unsigned long tableSize, startLoc = 0, endLoc = 0, cfa;
 	unsigned i;
 	signed ptrType = -1;
@@ -684,15 +684,6 @@ int unwind(struct unwind_frame_info *frame)
 	struct _stp_module *m;
 	struct unwind_state state;
 
-	if (pc != _stp_kretprobe_trampoline)
-		pc -= frame->call_frame;
-	else {
-		unsigned long a1, a2, *addr = (unsigned long *)UNW_SP(frame);
-		__stp_get_user(a1, addr);
-		__stp_get_user(a2, addr+1);
-		dbug_unwind(1, "TRAMPOLINE: SP=%lx *SP=%lx  *(SP+1)=%lx\n", UNW_SP(frame), a1, a2);
-		return -EINVAL;
-	}
 	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
 
 	if (UNW_PC(frame) == 0)
@@ -933,7 +924,7 @@ int unwind(struct unwind_frame_info *frame)
 				dbug_unwind(2, "addr=%lx width=%d\n", addr, reg_info[i].width);
 				switch (reg_info[i].width) {
 #define CASE(n)     case sizeof(u##n): \
-					if (unlikely(__stp_get_user(FRAME_REG(i, u##n), (u##n *)addr))) \
+					if (unlikely(_stp_read_address(FRAME_REG(i, u##n), (u##n *)addr, KERNEL_DS))) \
 						goto copy_failed;\
 					dbug_unwind(1, "set register %d to %lx\n", i, (long)FRAME_REG(i,u##n));\
 					break
@@ -952,7 +943,7 @@ int unwind(struct unwind_frame_info *frame)
 	return 0;
 
 copy_failed:
-	dbug_unwind(1, "_stp_get_user failed to access memory\n");
+	dbug_unwind(1, "_stp_read_address failed to access memory\n");
 err:
 	read_unlock(&m->lock);
 	return -EIO;

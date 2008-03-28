@@ -1,3 +1,8 @@
+2008-03-28  Martin Hunt  <hunt@redhat.com>
+
+	* copy.c (_stp_read_address): New function. Safely read 
+	kernel or userspace.
+
 2008-03-26  Martin Hunt  <hunt@redhat.com>
 	    Fixes to get i386 working.
 	* unwind.c (unwind): Fix types in debug print.

@@ -62,7 +62,7 @@ void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instan
 		}
 		_stp_print_char('\n');
 	} else if (pi)
-		_stp_printf("%p %p ", (int64_t) _stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
+		_stp_printf("%p %p ", (int64_t)(long)_stp_ret_addr_r(pi), (int64_t) REG_IP(regs));
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 

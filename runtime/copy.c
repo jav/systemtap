@@ -9,11 +9,10 @@
  * later version.
  */
 
-#ifndef _COPY_C_ /* -*- linux-c -*- */
+#ifndef _COPY_C_		/* -*- linux-c -*- */
 #define _COPY_C_
 
 #include "string.c"
-
 /** @file copy.c
  * @brief Functions to copy from user space.
  */
@@ -25,6 +24,28 @@
  * in user space will not present and these functions will return an error.
  * @{
  */
+
+/** Safely read from userspace or kernelspace.
+ * On success, returns 0. Returns -EFAULT on error.
+ *
+ * This uses __get_user() to read from userspace or
+ * kernelspace.  Will not sleep or cause pagefaults when
+ * called from within a kprobe context.
+ *
+ * @param segment . KERNEL_DS for kernel access
+ *                  USER_DS for userspace.
+ */
+
+#define _stp_read_address(x, ptr, segment)    \
+	({				      \
+		long ret;		      \
+		mm_segment_t ofs = get_fs();  \
+		set_fs(segment);	      \
+		ret = __stp_get_user(x, ptr); \
+		set_fs(ofs);		      \
+		ret;   			      \
+	})
+
 
 long _stp_strncpy_from_user(char *dst, const char __user *src, long count);
 //static long __stp_strncpy_from_user(char *dst, const char __user *src, long count);
@@ -110,15 +131,13 @@ do {									   \
  * <i>count</i> bytes and returns <i>count</i>.
  */
 
-long
-_stp_strncpy_from_user(char *dst, const char __user *src, long count)
+long _stp_strncpy_from_user(char *dst, const char __user *src, long count)
 {
 	long res = -EFAULT;
 	if (access_ok(VERIFY_READ, src, count))
 		__stp_strncpy_from_user(dst, src, count, res);
 	return res;
 }
-
 
 /** Copy a block of data from user space.
  *
@@ -133,8 +152,7 @@ _stp_strncpy_from_user(char *dst, const char __user *src, long count)
  *
  */
 
-unsigned long
-_stp_copy_from_user (char *dst, const char __user *src, unsigned long count)
+unsigned long _stp_copy_from_user(char *dst, const char __user *src, unsigned long count)
 {
 	if (count) {
 		if (access_ok(VERIFY_READ, src, count))
