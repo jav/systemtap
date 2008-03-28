@@ -84,6 +84,7 @@ struct _stp_module *_stp_modules_by_addr[STP_MAX_MODULES];
 
 /* the number of modules in the arrays */
 int _stp_num_modules = 0;
+static unsigned long _stp_kretprobe_trampoline = 0;
 
 unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);

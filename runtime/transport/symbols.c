@@ -200,6 +200,8 @@ static int _stp_init_kernel_symbols(void)
 	_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
 	_stp_modules[0]->text_size = _stp_modules[0]->data - _stp_modules[0]->text;
 	_stp_modules_by_addr[0] = _stp_modules[0];
+	
+	_stp_kretprobe_trampoline = _stp_kallsyms_lookup_name("kretprobe_trampoline");
 	return 0;
 }
 

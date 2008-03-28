@@ -321,7 +321,7 @@ static unsigned long read_pointer(const u8 **pLoc, const void *end, signed ptrTy
 		return 0;
 	}
 	if ((ptrType & DW_EH_PE_indirect)
-	    && __stp_get_user(value, (unsigned long *)value))
+			&& __stp_get_user(value, (unsigned long *)value))
 		return 0;
 	*pLoc = ptr.p8;
 
@@ -621,15 +621,62 @@ static u32 *_stp_search_unwind_hdr(unsigned long pc, struct _stp_module *m)
 	return fde;
 }
 
+#ifdef DEBUG_UNWIND
+static const char *_stp_enc_hi_name[] = {
+	"",
+	"DW_EH_PE_pcrel",
+	"DW_EH_PE_textrel",
+	"DW_EH_PE_datarel",
+	"DW_EH_PE_funcrel",
+	"DW_EH_PE_aligned"
+};
+static const char *_stp_enc_lo_name[] = {
+	"DW_EH_PE_absptr",
+	"DW_EH_PE_uleb128",
+	"DW_EH_PE_udata2",
+	"DW_EH_PE_udata4",
+	"DW_EH_PE_udata8",
+	"DW_EH_PE_sleb128",
+	"DW_EH_PE_sdata2",
+	"DW_EH_PE_sdata4",
+	"DW_EH_PE_sdata8"
+};
+char *_stp_eh_enc_name(signed type)
+{
+	static char buf[64];
+	int hi, low;
+	if (type == DW_EH_PE_omit)
+		return "DW_EH_PE_omit";
+
+	hi = (type & DW_EH_PE_ADJUST) >> 4;
+	low = type & DW_EH_PE_FORM;
+	if (hi > 5 || low > 4 || (low == 0 && (type & DW_EH_PE_signed))) {
+		sprintf(buf, "ERROR:encoding=0x%x", type);
+		return buf;
+	}
+
+	buf[0] = 0;
+	if (type & DW_EH_PE_indirect)
+		strlcpy(buf, "DW_EH_PE_indirect|", sizeof(buf));
+	if (hi)
+		strlcat(buf, _stp_enc_hi_name[hi], sizeof(buf));
+
+	if (type & DW_EH_PE_signed)
+		low += 4;
+	strlcat(buf, _stp_enc_lo_name[low], sizeof(buf));
+	return buf;
+}
+#endif /* DEBUG_UNWIND */
+
 /* Unwind to previous to frame.  Returns 0 if successful, negative
- * number in case of an error.  A positive return means unwinding is finished; */
-/* don't try to fallback to dumping addresses on the stack. */
+ * number in case of an error.  A positive return means unwinding is finished; 
+ * don't try to fallback to dumping addresses on the stack. */
 int unwind(struct unwind_frame_info *frame)
 {
 #define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
 	const u32 *fde, *cie = NULL;
 	const u8 *ptr = NULL, *end = NULL;
-	unsigned long pc = UNW_PC(frame) - frame->call_frame;
+	unsigned long pc = UNW_PC(frame);
 	unsigned long tableSize, startLoc = 0, endLoc = 0, cfa;
 	unsigned i;
 	signed ptrType = -1;
@@ -637,6 +684,15 @@ int unwind(struct unwind_frame_info *frame)
 	struct _stp_module *m;
 	struct unwind_state state;
 
+	if (pc != _stp_kretprobe_trampoline)
+		pc -= frame->call_frame;
+	else {
+		unsigned long a1, a2, *addr = (unsigned long *)UNW_SP(frame);
+		__stp_get_user(a1, addr);
+		__stp_get_user(a2, addr+1);
+		dbug_unwind(1, "TRAMPOLINE: SP=%lx *SP=%lx  *(SP+1)=%lx\n", UNW_SP(frame), a1, a2);
+		return -EINVAL;
+	}
 	dbug_unwind(1, "pc=%lx, %lx", pc, UNW_PC(frame));
 
 	if (UNW_PC(frame) == 0)
@@ -659,16 +715,16 @@ int unwind(struct unwind_frame_info *frame)
 	/* found the fde, now set startLoc and endLoc */
 	if (fde != NULL) {
 		cie = cie_for_fde(fde, m);
-		ptr = (const u8 *)(fde + 2);
 		if (likely(cie != NULL && cie != &bad_cie && cie != &not_fde)) {
+			ptr = (const u8 *)(fde + 2);
 			ptrType = fde_pointer_type(cie);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
+			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
 			if (pc > endLoc) {
-				dbug_unwind(1, "pc (%lx) > endLoc(%x)\n", pc, endLoc);
-				/* finished? */
+				dbug_unwind(1, "pc (%lx) > endLoc(%lx)\n", pc, endLoc);
 				goto done;
 			}
 		} else {
@@ -676,6 +732,8 @@ int unwind(struct unwind_frame_info *frame)
 			fde = NULL;
 		}
 	}
+
+	/* did not a good fde find with binary search, so do slow linear search */
 	if (fde == NULL) {
 		for (fde = m->unwind_data, tableSize = m->unwind_data_len; cie = NULL, tableSize > sizeof(*fde)
 		     && tableSize - sizeof(*fde) >= *fde; tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
@@ -690,13 +748,13 @@ int unwind(struct unwind_frame_info *frame)
 
 			ptr = (const u8 *)(fde + 2);
 			startLoc = read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			dbug_unwind(3, "startLoc=%p\n", (u64)startLoc);
+			dbug_unwind(2, "startLoc=%lx, ptrType=%s", startLoc, _stp_eh_enc_name(ptrType));
 			if (!startLoc)
 				continue;
 			if (!(ptrType & DW_EH_PE_indirect))
 				ptrType &= DW_EH_PE_FORM | DW_EH_PE_signed;
 			endLoc = startLoc + read_pointer(&ptr, (const u8 *)(fde + 1) + *fde, ptrType);
-			dbug_unwind(3, "endLoc=%p\n", (u64)endLoc);
+			dbug_unwind(3, "endLoc=%lx\n", endLoc);
 			if (pc >= startLoc && pc < endLoc)
 				break;
 		}
@@ -729,6 +787,7 @@ int unwind(struct unwind_frame_info *frame)
 				case 'R':
 					continue;
 				case 'S':
+					dbug_unwind(1, "This is a signal frame\n");
 					frame->call_frame = 0;
 					continue;
 				default:
@@ -785,7 +844,6 @@ int unwind(struct unwind_frame_info *frame)
 		goto err;
 
 	/* update frame */
-	dbug_unwind(1, "cie=%lx fde=%lx\n", cie, fde);
 #ifndef CONFIG_AS_CFI_SIGNAL_FRAME
 	if (frame->call_frame && !UNW_DEFAULT_RA(state.regs[retAddrReg], state.dataAlign))
 		frame->call_frame = 0;
@@ -793,11 +851,11 @@ int unwind(struct unwind_frame_info *frame)
 	cfa = FRAME_REG(state.cfa.reg, unsigned long) + state.cfa.offs;
 	startLoc = min((unsigned long)UNW_SP(frame), cfa);
 	endLoc = max((unsigned long)UNW_SP(frame), cfa);
-	dbug_unwind(1, "cfa=%lx SP startLoc=%lx, endLoc=%lx\n", cfa, startLoc, endLoc);
+	dbug_unwind(1, "cfa=%lx startLoc=%lx, endLoc=%lx\n", cfa, startLoc, endLoc);
 	if (STACK_LIMIT(startLoc) != STACK_LIMIT(endLoc)) {
 		startLoc = min(STACK_LIMIT(cfa), cfa);
 		endLoc = max(STACK_LIMIT(cfa), cfa);
-		dbug_unwind(1, "SP startLoc=%p, endLoc=%p\n", (u64)startLoc, (u64)endLoc);
+		dbug_unwind(1, "cfa startLoc=%p, endLoc=%p\n", (u64)startLoc, (u64)endLoc);
 	}
 #ifndef CONFIG_64BIT
 # define CASES CASE(8); CASE(16); CASE(32)
@@ -898,7 +956,11 @@ copy_failed:
 err:
 	read_unlock(&m->lock);
 	return -EIO;
+	
 done:
+	/* PC was in a range convered by a module but no unwind info */
+	/* found for the specific PC. This seems to happen only for kretprobe */
+	/* trampolines and at the end of interrupt backtraces. */
 	read_unlock(&m->lock);
 	return 1;
 #undef CASES

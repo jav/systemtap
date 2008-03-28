@@ -8,13 +8,12 @@
  * later version.
  */
 
-// todo: don't use unwinder  for kernel if CONFIG_FRAME
+// todo: don't use unwinder for kernel if CONFIG_FRAME
 
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
 static void _stp_stack_print_fallback(unsigned long stack, int verbose)
 {
 	unsigned long addr;
-
 	while (stack & (THREAD_SIZE - 1)) {
 		if (unlikely(__stp_get_user(addr, (unsigned long *)stack))) {
 			/* cannot access stack.  give up. */
@@ -33,12 +32,14 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
 	while (!arch_unw_user_mode(&info)) {
 		int ret = unwind(&info);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
-		if (ret < 0) {
-			_stp_stack_print_fallback(UNW_SP(&info), verbose);
-			break;
+		if (ret == 0) {
+			_stp_func_print(UNW_PC(&info), verbose, 1);
+			continue;
 		}
-		if (ret)
-			break;
-		_stp_func_print(UNW_PC(&info), verbose, 1);
+		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
+		/* FIXME: is there a way to unwind across kretprobe trampolines? */
+		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+			_stp_stack_print_fallback(UNW_SP(&info), verbose);
+		break;
 	}
 }

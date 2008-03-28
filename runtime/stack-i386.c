@@ -43,7 +43,10 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 #endif /* STAPCONF_X86_UNIREGS */
 	
 	while (_stp_valid_stack_ptr(context, (unsigned long)ebp)) {
-		addr = *(unsigned long *)(ebp + 4);
+		if (unlikely(__stp_get_user(addr, (unsigned long *)(ebp + 4)))) {
+			/* cannot access stack.  give up. */
+			return;
+		}
 		if (verbose) {
 			_stp_print_char(' ');
 			_stp_symbol_print (addr);
@@ -55,18 +58,19 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 #else
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
+	
 	while (!arch_unw_user_mode(&info)) {
 		int ret = unwind(&info);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
-		if (ret < 0) {
-			_stp_stack_print_fallback(context, UNW_SP(&info), verbose);
-			break;
+		if (ret == 0) {
+			_stp_func_print(UNW_PC(&info), verbose, 1);
+			continue;
 		}
-		if (ret)
-			break;
-		_stp_func_print(UNW_PC(&info), verbose, 1);
+		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
+		/* FIXME: is there a way to unwind across kretprobe trampolines? */
+		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
+			_stp_stack_print_fallback(UNW_SP(&info), verbose);
+		break;
 	}
-//	_stp_printf("***********************\n");
-//	_stp_stack_print_fallback(context, (unsigned long)stack, verbose);
 #endif /* CONFIG_FRAME_POINTER */
 }
