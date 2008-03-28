@@ -69,7 +69,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 		/* If an error happened or we hit a kretprobe trampoline, use fallback backtrace */
 		/* FIXME: is there a way to unwind across kretprobe trampolines? */
 		if (ret < 0 || (ret > 0 && UNW_PC(&info) == _stp_kretprobe_trampoline))
-			_stp_stack_print_fallback(UNW_SP(&info), verbose);
+			_stp_stack_print_fallback(context, UNW_SP(&info), verbose);
 		break;
 	}
 #endif /* CONFIG_FRAME_POINTER */
