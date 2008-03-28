@@ -1,5 +1,5 @@
 # Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
-%define release 3
+%define release 1
 # Version number of oldest elfutils release that works with systemtap.
 %define elfutils_version 0.127
 

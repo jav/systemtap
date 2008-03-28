@@ -42,7 +42,7 @@ set prefix "probefunc:"
 set output_string "\\mscheduler_tick\\M\r\n"
 set probepoint "kernel.statement(0x$addr).absolute"
 set script [format $systemtap_script $probepoint]
-stap_run $prefix$probepoint sleep_one_sec $output_string -g -e $script
+stap_run "${prefix}.statement.(0xaddr).absolute" sleep_one_sec $output_string -g -e $script
 
 # test probefunc() with kernel.function()
 set probepoint "kernel.function(\"scheduler_tick\")"

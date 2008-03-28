@@ -1,4 +1,7 @@
-* What's new in version 0.6 / 0.6.1
+* What's new in version 0.6
+
+- A copy of the systemtap tutorial and language reference guide
+  are now included.
 
 - There is a new format specifier, %m, for the printf family of
   functions.  It functions like %s, except that it does not stop when

@@ -1,3 +1,40 @@
+2008-03-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/cmd_parse.exp: Don't assume $SHELL=bash.
+
+2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	* lib/stap_run.exp (stap_run): Ignore missing debuginfo warnings.
+	Try harder to kill stap child in case of timeouts and errors.
+
+2008-03-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5980.
+	* lib/systemtap.exp: Set default Snapshot: value from "stap -V"
+	output.
+
+2008-03-21  Eugene Teo  <eugeneteo@kernel.sg>
+
+	PR 5528
+	* systemtap.stress/conversions.stp: Test new user_* functions.
+	* buildok/conversions.stp: Test new user_* functions.
+	* buildok/conversions-embedded.stp: Test new user_* functions.
+
+2008-03-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5956.
+	* semko/fortyfive.stp: New test.
+
+2008-03-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.base/maxactive.exp, probefunc.exp: Standardize pass msg.
+
+2008-03-10  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* systemtap.printf/memory1.{stp,exp}: Rewrite to reflect new %m safety checks.
+	* systemtap.stress/conversions.exp: Add a test for invalid argument to %m.
+
 2008-03-05  David Smith  <dsmith@redhat.com>
 
 	PR5422
@@ -30,7 +67,7 @@
 2008-02-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.samples/args.exp: Remove installation-specific paths from
-	pass/fail judgements.
+	pass/fail judgements.<
 
 2008-02-23  Frank Ch. Eigler  <fche@elastic.org>
 

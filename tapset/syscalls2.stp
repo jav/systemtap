@@ -3023,13 +3023,13 @@ probe syscall.compat_vmsplice.return = kernel.function("compat_sys_vmsplice").re
 #
 probe syscall.wait4 = kernel.function("sys_wait4") {
 	name = "wait4"
-	pid = %( kernel_vr > "2.6.24"%? $upid %: $pid%)
+	pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
 	status_uaddr = $stat_addr
 	options = $options
 	options_str = _wait4_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %p, %s, %p",
-			 %( kernel_vr > "2.6.24"%? $upid %: $pid%),
+			 %( kernel_vr >= "2.6.25" %? $upid %: $pid%),
 			 $stat_addr,_wait4_opt_str($options), $ru)
 }
 probe syscall.wait4.return = kernel.function("sys_wait4").return {
@@ -3046,7 +3046,7 @@ probe syscall.wait4.return = kernel.function("sys_wait4").return {
 #
 probe syscall.waitid = kernel.function("sys_waitid") {
 	name = "waitid"
-	pid = %( kernel_vr > "2.6.24"%? $upid %: $pid%)
+	pid = %( kernel_vr >= "2.6.25" %? $upid %: $pid%)
 	which = $which
 	which_str = _waitid_which_str($which)
 	infop_uaddr = $infop
@@ -3054,7 +3054,7 @@ probe syscall.waitid = kernel.function("sys_waitid") {
 	options_str = _waitid_opt_str($options)
 	rusage_uaddr = $ru
 	argstr = sprintf("%d, %d, %p, %s, %p", $which,
-		   %( kernel_vr > "2.6.24"%? $upid %: $pid%), $infop,
+		   %( kernel_vr >= "2.6.25" %? $upid %: $pid%), $infop,
 		    _waitid_opt_str($options), $ru)
 }
 probe syscall.waitid.return = kernel.function("sys_waitid").return {

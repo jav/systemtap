@@ -1,3 +1,75 @@
+2008-03-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (common_probe_entryfn_prologue): Clear last_stmt.
+
+2008-03-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (emit_function): Set context last_stmt, in case
+	an error occurs during the function.
+
+2008-03-25  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap.1.in: Clarify utility of epilogue type probe aliases.
+
+2008-03-21  Eugene Teo  <eugeneteo@kernel.sg>
+
+	PR 5528
+	* tapset/conversions.stp (user_string_n, user_string_n2,
+	user_string_n_warn, user_string_n_quoted, user_short, user_short_warn,
+	user_int, user_int_warn, user_long, user_long_warn, user_char,
+	user_char_warn): New user_* functions.
+	* stapfuncs.5.in: Documented the new functions.
+	* testsuite/systemtap.stress/conversions.stp: Test new functions.
+	* testsuite/buildok/conversions.stp: Test new functions.
+	* testsuite/buildok/conversions-embedded.stp: Test new functions.
+
+2008-03-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5975.
+	* tapsets.cxx (*): Added a few (void) expressions for asserts that
+	may be compiled out.
+
+2008-03-14  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 3542
+	* buildrun.cxx (compile_pass): Add an autoconf to check the kernel
+	supports batch unregistration.
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_decls): Add an
+	array of probe pointers for batch unregistration.
+	* tapsets.cxx (dwarf_derived_probe_group::emit_module_exit): Use
+	unregister_k(ret)probes if it is supported.
+
+2008-03-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5928.
+	* buildrun.cxx (compile_pass): Use EXTRA_CFLAGS for autoconf'd values
+	instead of CFLAGS_<module>.o.
+
+2008-03-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac, systemtap.spec.in: Bumped version to 0.6.2.
+	* configure: Regenerated.
+
+2008-03-12  Dave Brolley  <brolley@redhat.com>
+
+	PR5897
+	* staptree.cxx (probe::printsig): If this probe was derived from an alias,
+	call the printsig method of the alias.
+
+2008-03-10  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* translate.cxx (probe_or_function_needs_deref_fault_handler): New member of
+	c_unparser.
+	(c_unparser::emit_function): Initialize probe_or_function_needs_deref_fault_handler.
+	Check it after the body is visited and generate a deref fault handler if necessary.
+	(c_unparser::emit_probe): Likewise.
+	(c_unparser::visit_print_format): Correct the compoenent type for an overridden string
+	literal.  Generate code to check that pointer arguments to %m can be dereferenced.
+	Generate casts for printf arguments as necessary.
+	* elaborate.cxx (typeresolution_info::visit_print_format): Desired type for conv_memory
+	is pe_long.
+
 2008-03-06  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (AM_CXXFLAGS, AM_CFLAGS): Remove -Werror.

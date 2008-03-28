@@ -2934,11 +2934,11 @@ typeresolution_info::visit_print_format (print_format* e)
 	    case print_format::conv_unsigned_uppercase_hex:
 	    case print_format::conv_unsigned_lowercase_hex:
 	    case print_format::conv_binary:
+	    case print_format::conv_memory:
 	      wanted = pe_long;
 	      break;
 
 	    case print_format::conv_string:
-	    case print_format::conv_memory:
 	      wanted = pe_string;
 	      break;
 	    }

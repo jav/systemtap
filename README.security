@@ -4,7 +4,7 @@ system, root access is needed.
 SECURITY MODEL
 ==============
 
-Originally sudo(8) was used to grant root acess.  After compiling a
+Originally sudo(8) was used to grant root access.  After compiling a
 new kernel module, stap ran "sudo staprun module_path".  This worked,
 but required all systemtap users to have root access.  Many sysadmins
 on enterprise systems do not have root access.
@@ -22,7 +22,7 @@ following:
    directory (where VERSION is the output of "uname -r").  This
    directory must be owned by root and not be world writable.
 
-So, there are two classes of users: systemap developers (the root user
+So, there are two classes of users: systemtap developers (the root user
 and members of the stapdev group) and systemtap users (members of the
 stapusr group).  Systemtap developers can compile and run any
 systemtap script.  Systemtap users can only run "approved"
@@ -53,7 +53,7 @@ On the development machine:
 the script may need to be edited to fix any errors.)
 
 # scp pmod.ko prod_machine:/lib/modules/`uname -r`/systemtap
-(The systemtap develop copies the compiled kernel module to the proper
+(The systemtap developer copies the compiled kernel module to the proper
 directory on the production machine.  Of course other methods - ftp,
 nfs, etc. could be used to transfer the module.)
 
@@ -64,7 +64,7 @@ $ staprun pmod
 There are (at least) 2 different usage scenarios for the
 /lib/modules/VERSION/systemtap directory.
 
-1) Most restrictive useage.  If only root should be able to able to
+1) Most restrictive usage.  If only root should be able to able to
 add "approved" systemtap modules to /lib/modules/VERSION/systemtap,
 the permissions should be 755, like this:
 
@@ -88,7 +88,7 @@ program is a setuid program that does some system setup, loads the
 kernel module, then runs stapio (and waits for it to finish).  The
 stapio program runs as the invoking user and is responsible for all
 communication with the kernel module.  After the script runs to
-completion, stapio exits and staprun unloads the kermel module.
+completion, stapio exits and staprun unloads the kernel module.
 
 staprun is a setuid program that uses POSIX capabilities.  Using POSIX
 capabilities allows the program to only have the privileges to do
@@ -104,7 +104,7 @@ invoking user:
 
 The above capabilities are the permitted set of capabilities for
 staprun, which is the list of all the capabilities staprun is ever
-permitted to have.  In addition, the effective set of capabilites, the
+permitted to have.  In addition, the effective set of capabilities, the
 capabilities from the permitted set that are currently enabled, is
 cleared.  When needed, a particular capability is enabled, the
 operation is performed, then the capability is disabled.  The staprun

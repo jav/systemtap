@@ -201,6 +201,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "goto probe_epilogue;";
   o->newline(-1) << "}";
   o->newline();
+  o->newline() << "c->last_stmt = 0;";
   o->newline() << "c->last_error = 0;";
   o->newline() << "c->nesting = 0;";
   o->newline() << "c->regs = 0;";
@@ -1587,6 +1588,15 @@ struct dwflpp
     unsigned i = 0;
     while (i < components.size())
       {
+        /* XXX: This would be desirable, but we don't get the target_symbol token,
+           and printing that gives us the file:line number too early anyway. */
+#if 0
+        // Emit a marker to note which field is being access-attempted, to give
+        // better error messages if deref() fails.
+        string piece = string(...target_symbol token...) + string ("#") + stringify(components[i].second);
+        obstack_printf (pool, "c->last_stmt = %s;", lex_cast_qstring(piece).c_str());
+#endif
+
 	die = dwarf_formref_die (attr_mem, die_mem);
 	const int typetag = dwarf_tag (die);
 	switch (typetag)
@@ -2113,6 +2123,7 @@ base_query::base_query(systemtap_session & sess,
     {
       bool has_module = get_string_param(params, TOK_MODULE, module_val);
       assert (has_module); // no other options are possible by construction
+      (void) has_module;
     }
 }
 
@@ -3932,6 +3943,11 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "static int enter_kretprobe_probe (struct kretprobe_instance *inst,";
   s.op->line() << " struct pt_regs *regs);";
 
+  // Emit an array of kprobe/kretprobe pointers
+  s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
+  s.op->newline() << "static void * stap_unreg_kprobes[" << probes_by_module.size() << "];";
+  s.op->newline() << "#endif";
+
   // Emit the actual probe list.
 
   // NB: we used to plop a union { struct kprobe; struct kretprobe } into
@@ -4102,16 +4118,42 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
 void
 dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 {
+  //Unregister kprobes by batch interfaces.
+  s.op->newline() << "#if defined(STAPCONF_UNREGISTER_KPROBES)";
+  s.op->newline() << "j = 0;";
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "if (! sdp->registered_p) continue;";
+  s.op->newline() << "if (!sdp->return_p)";
+  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.kp;";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "j = 0;";
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "if (! sdp->registered_p) continue;";
+  s.op->newline() << "if (sdp->return_p)";
+  s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.krp;";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "#endif";
+
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
   s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "if (! sdp->registered_p) continue;";
   s.op->newline() << "if (sdp->return_p) {";
+  s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
   s.op->newline(1) << "unregister_kretprobe (&kp->u.krp);";
+  s.op->newline() << "#endif";
   s.op->newline() << "atomic_add (kp->u.krp.nmissed, & skipped_count);";
   s.op->newline() << "atomic_add (kp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "} else {";
+  s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES)";
   s.op->newline(1) << "unregister_kprobe (&kp->u.kp);";
+  s.op->newline() << "#endif";
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "}";
   s.op->newline() << "sdp->registered_p = 0;";
@@ -4256,7 +4298,9 @@ struct uprobe_builder: public derived_probe_builder
     int64_t process, address;
 
     bool b1 = get_param (parameters, TOK_PROCESS, process);
+    (void) b1;
     bool b2 = get_param (parameters, TOK_STATEMENT, address);
+    (void) b2;
     bool rr = has_null_param (parameters, TOK_RETURN);
     assert (b1 && b2); // by pattern_root construction
 
@@ -5751,6 +5795,7 @@ mark_builder::build(systemtap_session & sess,
   string mark_format_val;
   bool has_mark_format = get_param (parameters, "format", mark_format_val);
   assert (has_mark_str);
+  (void) has_mark_str;
 
   if (! cache_initialized)
     {

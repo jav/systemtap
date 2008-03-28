@@ -1,3 +1,22 @@
+2008-03-17  Eugene Teo  <eteo@redhat.com>
+
+	PR 5947
+	* autoconf-tsc-khz.c: Remove "&& defined(__i386__)" to make the test
+	more pessimistic.
+
+2008-03-14  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 3542
+	* autoconf-unregister-kprobes.c : New file.
+
+2008-03-10  Dave Brolley  <brolley@redhat.com>
+
+	PR5189
+	* vsprintf.c (_stp_vsnprintf): Arguments for dynamic width and precision
+	are of type 'int' again.
+	* loc2c-runtime.h (deref_string): Copy the data only if dst is not NULL.
+	(deref_buffer): New macro.
+
 2008-02-27  Martin Hunt  <hunt@redhat.com>
 
 	* sym.h (_stp_module): Add text_size, lock, and unwind data

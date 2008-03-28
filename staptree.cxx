@@ -930,6 +930,13 @@ void probe::print (ostream& o) const
 
 void probe::printsig (ostream& o) const
 {
+  const probe_alias *alias = get_alias ();
+  if (alias)
+    {
+      alias->printsig (o);
+      return;
+    }
+    
   for (unsigned i=0; i<locations.size(); i++)
     {
       if (i > 0) o << ",";

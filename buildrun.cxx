@@ -74,16 +74,18 @@ compile_pass (systemtap_session& s)
   // Create makefile
 
   // Clever hacks copied from vmware modules
-  o << "stap_check_gcc = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1 ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  string superverbose;
+  if (s.verbose > 3)
+    superverbose = "set -x;";
 
+  o << "stap_check_gcc = $(shell " << superverbose << " if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1 ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 
   // "autoconf" options go here
 
-  // enum hrtimer_mode renaming near 2.6.21; see tapsets.cxx hrtimer_derived_probe_group::emit_module_decls
-  string module_cflags = "CFLAGS_" + s.module_name + ".o";
+  string module_cflags = "EXTRA_CFLAGS";
   o << module_cflags << " :=" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
@@ -93,6 +95,7 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-x86-uniregs.c, -DSTAPCONF_X86_UNIREGS,)" << endl;
 
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-nameidata.c, -DSTAPCONF_NAMEIDATA_CLEANUP,)" << endl;
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-unregister-kprobes.c, -DSTAPCONF_UNREGISTER_KPROBES,)" << endl;
 
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;

@@ -1,27 +1,121 @@
-probe begin {
-      five = 5;
-      nine = 9;
-      fifteen = 15;
-      s = "my string";
+probe syscall.open {
+      actualLength = strlen (filename);
 
-      printf ("Memory default width and precision\t:%m:\n", s);
+      if (actualLength > 5 && actualLength < 15 && filename != "<unknown>") {
+        four = 4;
+        five = 5;
+        fifteen = 15;
+	success = 1;
 
-      printf ("Memory static precision smaller than input\t:%.5m:\n", s);
-      printf ("Memory dynamic precision smaller than input\t:%.*m:\n", five, s);
-      printf ("Memory static precision equal to input\t:%.9m:\n", s);
-      printf ("Memory dynamic precision equal to input\t:%.*m:\n", nine, s);
+	expected_1_1 = sprintf ("%.1s", filename);
+        testName = "%m default width and precision";
+        result = sprintf ("%m", $filename);
+	if (result != expected_1_1) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
 
-      printf ("Memory static width default precision\t:%5m:\n", s);
-      printf ("Memory dynamic width default precision\t:%*m:\n", five, s);
+	expected_5_5 = sprintf ("%.5s", filename);
+        testName = "%m static precision smaller than input";
+        result = sprintf ("%.5m", $filename);
+	if (result != expected_5_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
 
-      printf ("Memory static width smaller than static precision\t:%5.9m:\n", s);
-      printf ("Memory static width larger than static precision\t:%15.9m:\n", s);
-      printf ("Memory dynamic width smaller than static precision\t:%*.9m:\n", five, s);
-      printf ("Memory dynamic width larger than static precision\t:%*.9m:\n", fifteen, s);
-      printf ("Memory static width smaller than dynamic precision\t:%5.*m:\n", nine, s);
-      printf ("Memory static width larger than dynamic precision\t:%15.*m:\n", nine, s);
-      printf ("Memory dynamic width smaller than dynamic precision\t:%*.*m:\n", five, nine, s);
-      printf ("Memory dynamic width larger than dynamic precision\t:%*.*m:\n", fifteen, nine, s);
+        testName = "%m dynamic precision smaller than input";
+        result = sprintf ("%.*m", five, $filename);
+	if (result != expected_5_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
 
-      exit()
+        testName = "%m dynamic precision equal to input";
+	expected_actual_actual = filename;
+        result = sprintf ("%.*m", actualLength, $filename);
+	if (result != expected_actual_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	expected_5_1 = sprintf ("    %.1s", filename);
+        testName = "%m static width default precision";
+        result = sprintf ("%5m", $filename);
+	if (result != expected_5_1) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+        testName = "%m dynamic width default precision";
+        result = sprintf ("%*m", five, $filename);
+	if (result != expected_5_1) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	expected_4_5 = expected_5_5;
+        testName = "%m static width smaller than static precision";
+        result = sprintf ("%4.5m", $filename);
+	if (result != expected_4_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	expected_15_5 = sprintf ("          %.5s", filename);
+        testName = "%m static width larger than static precision";
+        result = sprintf ("%15.5m", $filename);
+	if (result != expected_15_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+        testName = "%m dynamic width smaller than static precision";
+        result = sprintf ("%*.5m", four, $filename);
+	if (result != expected_4_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+        testName = "%m dynamic width larger than static precision";
+        result = sprintf ("%*.5m", fifteen, $filename);
+	if (result != expected_15_5) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	expected_4_actual = expected_actual_actual;
+        testName = "%m static width smaller than dynamic precision";
+        result = sprintf ("%4.*m", actualLength, $filename);
+	if (result != expected_4_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	expected_15_actual = sprintf ("%15s", filename);
+        testName = "%m static width larger than dynamic precision";
+        result = sprintf ("%15.*m", actualLength, $filename);
+	if (result != expected_15_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+        testName = "%m dynamic width smaller than dynamic precision";
+        result = sprintf ("%*.*m", four, actualLength, $filename);
+	if (result != expected_4_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+        testName = "%m dynamic width larger than dynamic precision";
+        result = sprintf ("%*.*m", fifteen, actualLength, $filename);
+	if (result != expected_15_actual) {
+		printf ("Test %s failed\n", testName);
+		success = 0;
+	}
+
+	if (success)
+	   print ("Test passed\n");
+
+        exit();
+    }
 }

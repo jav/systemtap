@@ -58,8 +58,9 @@ proc get_system_info {} {
     } elseif [file exists $env(SRCDIR)/../SNAPSHOT] {
 	set Snapshot [exec /bin/cat $env(SRCDIR)/../SNAPSHOT]
     } else {
-	set Snapshot "unknown"
-	}
+        regexp {version [^)]*} [exec stap -V 2>@ stdout] version
+	set Snapshot $version
+    }
     set Distro "Linux"
     if [file exists /etc/fedora-release] {set Distro [exec /bin/cat /etc/fedora-release]}
     if [file exists /etc/redhat-release] {set Distro [exec /bin/cat /etc/redhat-release]}
