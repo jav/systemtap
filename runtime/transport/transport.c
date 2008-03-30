@@ -259,7 +259,7 @@ int _stp_transport_init(void)
 		goto err3;
 	
 	_stp_transport_state = 1;
-	
+
 	dbug_trans(1, "calling init_kernel_symbols\n");
 	if (_stp_init_kernel_symbols() < 0)
 		goto err4;

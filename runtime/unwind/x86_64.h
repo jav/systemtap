@@ -35,13 +35,16 @@ struct unwind_frame_info
 
 #define UNW_PC(frame)        (frame)->regs.rip
 #define UNW_SP(frame)        (frame)->regs.rsp
-#ifdef CONFIG_FRAME_POINTER
+
+#if 0 /* STP_USE_FRAME_POINTER */
+/* Frame pointers not implemented in x86_64 currently */
 #define UNW_FP(frame)        (frame)->regs.rbp
 #define FRAME_RETADDR_OFFSET 8
 #define FRAME_LINK_OFFSET    0
 #define STACK_BOTTOM(tsk)    (((tsk)->thread.rsp0 - 1) & ~(THREAD_SIZE - 1))
 #define STACK_TOP(tsk)       ((tsk)->thread.rsp0)
 #endif
+
 /* Might need to account for the special exception and interrupt handling
    stacks here, since normally
 	EXCEPTION_STACK_ORDER < THREAD_ORDER < IRQSTACK_ORDER,

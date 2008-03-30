@@ -581,7 +581,10 @@ static int _stp_init_modules(void)
 	/* unlocks the list */
 	modules_op->stop(NULL, NULL);
 
-#ifndef CONFIG_FRAME_POINTER
+#ifdef STP_USE_FRAME_POINTER
+	/* done with modules, now go */
+	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
+#else
 	/* now that we have all the modules, ask for their unwind info */
 	{
 		unsigned long flags;

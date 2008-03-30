@@ -33,7 +33,7 @@ static int __init find_str_pc_offset(void)
 
 static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 {
-#if defined(CONFIG_FRAME_POINTER)
+#ifdef STP_USE_FRAME_POINTER
 	int		pc_offset = find_str_pc_offset();
 	unsigned long	*fp = (unsigned long *)regs->ARM_fp;
 	unsigned long	*next_fp, *pc;
@@ -68,5 +68,5 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 
 		fp = next_fp;
 	}
-#endif
+#endif /* STP_USE_FRAME_POINTER */
 }

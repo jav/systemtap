@@ -32,7 +32,7 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 	unsigned long *stack = (unsigned long *)&REG_SP(regs);
 	unsigned long context = (unsigned long)stack & ~(THREAD_SIZE - 1);
 
-#ifdef	CONFIG_FRAME_POINTER
+#ifdef	STP_USE_FRAME_POINTER
 	/* FIXME: need to use _stp_func_print() and safe copy */
 	unsigned long addr;
 	
@@ -72,5 +72,5 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 			_stp_stack_print_fallback(context, UNW_SP(&info), verbose);
 		break;
 	}
-#endif /* CONFIG_FRAME_POINTER */
+#endif /* STP_USE_FRAME_POINTER */
 }

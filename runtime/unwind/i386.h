@@ -30,7 +30,7 @@ struct unwind_frame_info
 
 #define UNW_PC(frame)        (frame)->regs.eip
 #define UNW_SP(frame)        (frame)->regs.esp
-#ifdef CONFIG_FRAME_POINTER
+#ifdef STP_USE_FRAME_POINTER
 #define UNW_FP(frame)        (frame)->regs.ebp
 #define FRAME_RETADDR_OFFSET 4
 #define FRAME_LINK_OFFSET    0

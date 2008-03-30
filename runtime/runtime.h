@@ -70,6 +70,13 @@ static struct
 #define MAXSTRINGLEN 128
 #endif
 
+#ifdef CONFIG_FRAME_POINTER
+/* Just because frame pointers are available does not mean we can trust them. */
+#if defined (__i386__) || defined (__arm__)
+#define STP_USE_FRAME_POINTER
+#endif
+#endif
+
 #include "alloc.c"
 #include "print.c"
 #include "string.c"
