@@ -369,7 +369,6 @@ static struct dentry *_stp_get_root_dir(const char *name)
 		_stp_lock_inode(sb->s_root->d_inode);
 		root = lookup_one_len(name, sb->s_root, strlen(name));
 		_stp_unlock_inode(sb->s_root->d_inode);
-		errk("ERROR: root=%p\n", root);
 		if (!IS_ERR(root))
 			dput(root);
 		else {
