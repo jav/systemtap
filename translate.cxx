@@ -1360,6 +1360,9 @@ c_unparser::emit_function (functiondecl* v)
   o->newline() << "#define THIS l";
   o->newline() << "if (0) goto out;"; // make sure out: is marked used
 
+  // set this, in case embedded-c code sets last_error but doesn't otherwise identify itself 
+  o->newline() << "c->last_stmt = " << lex_cast_qstring(*v->tok) << ";";
+
   // check/increment nesting level
   o->newline() << "if (unlikely (c->nesting+2 >= MAXNESTING)) {";
   o->newline(1) << "c->last_error = \"MAXNESTING exceeded\";";
