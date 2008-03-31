@@ -74,3 +74,4 @@ Building a kernel.org kernel:
      mkdir /lib/modules/`uname -r`  (if needed)
      ln -s /home/me/linux/2.6.17-rc6 /lib/modules/`uname -r`/build
      ln -s /home/me/linux/2.6.17-rc6 /lib/modules/`uname -r`/source
+testing 1 2 3
