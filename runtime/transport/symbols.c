@@ -581,10 +581,7 @@ static int _stp_init_modules(void)
 	/* unlocks the list */
 	modules_op->stop(NULL, NULL);
 
-#ifdef STP_USE_FRAME_POINTER
-	/* done with modules, now go */
-	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
-#else
+#ifdef STP_USE_DWARF_UNWINDER
 	/* now that we have all the modules, ask for their unwind info */
 	{
 		unsigned long flags;
@@ -616,7 +613,11 @@ static int _stp_init_modules(void)
 		left -= 2;
 		_stp_ctl_send(STP_UNWIND, buf, sizeof(buf) - left);
 	}
-#endif
+#else
+	/* done with modules, now go */
+	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
+#endif /* STP_USE_DWARF_UNWINDER */
+
 	return 0;
 }
 

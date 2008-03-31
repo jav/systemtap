@@ -77,6 +77,11 @@ static struct
 #endif
 #endif
 
+/* dwarf unwinder only tested so far on i386 and x86_64 */
+#if !defined(STP_USE_FRAME_BUFFER) && (defined(__i386__) || defined(__x86_64__))
+#define STP_USE_DWARF_UNWINDER
+#endif
+
 #include "alloc.c"
 #include "print.c"
 #include "string.c"

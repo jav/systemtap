@@ -1,5 +1,7 @@
 2008-03-31  Martin Hunt  <hunt@redhat.com>
 
+	* symbols.c (_stp_init_modules): Use STP_USE_DWARF_UNWINDER.
+
 	* transport.c (_stp_get_root_dir): Remove misleading error message.
 
 2008-03-30  Martin Hunt  <hunt@redhat.com>

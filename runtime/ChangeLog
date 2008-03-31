@@ -1,3 +1,7 @@
+2008-03-31  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (STP_USE_DWARF_UNWINDER): Define.
+
 2008-03-30  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (STP_USE_FRAME_POINTER): Define when frame pointers
