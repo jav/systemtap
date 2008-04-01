@@ -31,12 +31,8 @@ Build steps:
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
 - Untar the snapshot in some new directory; apply patch (don't ask, long story)
-- Download systemtap sources snapshot or from CVS or GIT:
+- Download systemtap sources snapshot or from GIT:
   ftp://sources.redhat.com/pub/systemtap/snapshots/ 
-  (or)
-  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap login
-  # enter "anoncvs" as the password
-  cvs -d :pserver:anoncvs@sources.redhat.com:/cvs/systemtap co src
   (or)
   git clone git://sources.redhat.com/git/systemtap.git
       (or) http://sources.redhat.com/git/systemtap.git

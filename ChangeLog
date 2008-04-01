@@ -1,3 +1,17 @@
+2008-03-31  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Bump version to 0.7.
+	* configure: Regenerated.
+
+2008-03-27  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (common_probe_entryfn_prologue): Clear last_stmt.
+
+2008-03-26  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (emit_function): Set context last_stmt, in case
+	an error occurs during the function.
+
 2008-03-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* stap.1.in: Clarify utility of epilogue type probe aliases.
