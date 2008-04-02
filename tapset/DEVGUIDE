@@ -106,7 +106,7 @@ of "Tapset files", "Namespace" and "Embedded C & Safety."
 
 Tapset files
 ------------
-Tapset files are stored in src/tapset in the SystemTap CVS directory.  
+Tapset files are stored in src/tapset in the SystemTap GIT directory.  
 Most are kept at that level. If you have code that only works on a specific
 architecture or kernel-version, you may choose to put that in the
 corresponding subdirectories.
@@ -161,7 +161,7 @@ Update other Makefiles as necessary.
 Test cases
 ----------
 All tapsets should be accompanied by test scripts.  The tests are kept
-in src/testsuite in CVS and based on dejagnu.  You must have dejagnu and
+in src/testsuite in GIT and based on dejagnu.  You must have dejagnu and
 expect installed on your system to run the tests.
 
 Your tests should validate that:
@@ -182,7 +182,7 @@ most important, it validates that the tapset can actually be used for
 something useful.  If you can't write a script that uses the tapset in a
 meaningful way, perhaps you should rethink what the tapset provides.
 
-Example scripts are stored in src/examples in CVS.
+Example scripts are stored in src/examples in GIT.
 
 Change Logs
 -----------
@@ -211,7 +211,7 @@ mailing list archive is found at http://sources.redhat.com/ml/systemtap/.
 The systemtap-cvs mailing list archive is at
 http://sources.redhat.com/ml/systemtap-cvs/.
 
-You can request CVS write access at
+You can request GIT write access at
 http://sources.redhat.com/cgi-bin/pdw/ps_form.cgi.
 
 
@@ -227,11 +227,11 @@ you with SystemTap:
 - SystemTap project home page
   (http://sourceware.org/systemtap/index.html)
 
-- SystemTap mailing lists, IRC channels and CVS instructions
+- SystemTap mailing lists, IRC channels and GIT instructions
   (http://sourceware.org/systemtap/getinvolved.html)
 
-- CVS repository
-  (http://sources.redhat.com/cgi-bin/cvsweb.cgi/src/?cvsroot=systemtap)
+- GIT repository
+  (http://sources.redhat.com/git/?p=systemtap.git;a=summary
 
 - HACKING file in the source directory.  This file outlines what's 
   expected of project contributors.

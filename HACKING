@@ -11,7 +11,7 @@ the <systemtap@sources.redhat.com> mailing list.
   and after your changes, and regressions avoided, explained, or
   corrected.
 
-  Established contributors may be considered for direct CVS write
+  Established contributors may be considered for direct GIT write
   access.  Other contributors should simply pack up the goods into a
   plain text email message to the mailing list.
 
