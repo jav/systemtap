@@ -35,7 +35,7 @@ static void ia64_stap_get_arbsp(struct unw_frame_info *info, void *arg)
 	lp->address = 0;
 }
 
-static long ia64_fetch_register(int regno, struct pt_regs *pt_regs)
+static long ia64_fetch_register(int regno, struct pt_regs *pt_regs, unsigned long **cache)
 {
 	struct ia64_stap_get_arbsp_param pa;
 
@@ -47,12 +47,15 @@ static long ia64_fetch_register(int regno, struct pt_regs *pt_regs)
 	else if (regno < 32 || regno > 127)
 		return 0;
 
-	pa.ip = pt_regs->cr_iip;
-	unw_init_running(ia64_stap_get_arbsp, &pa);
-	if (pa.address == 0)
-		return 0;
+	if (!*cache) {
+		pa.ip = pt_regs->cr_iip;
+		unw_init_running(ia64_stap_get_arbsp, &pa);
+		if (pa.address == 0)
+			return 0;
+		*cache = pa.address;
+	}
 
-	return *ia64_rse_skip_regs(pa.address, regno-32);
+	return *ia64_rse_skip_regs(*cache, regno-32);
 }
 
 static void ia64_store_register(int regno,
