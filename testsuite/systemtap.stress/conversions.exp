@@ -12,13 +12,12 @@ foreach value {0 0xffffffff 0xffffffffffffffff} {
     verbose -log "exp $test $errs"
     expect {
         -timeout 180
-        -re {ERROR[^\r\n]*\r\n} { incr errs; exp_continue }
-        -re {WARNING[^\r\n]*\r\n} { incr errs; exp_continue }
+        -re {(ERROR|WARNING)[^\r\n]*\r\n} { incr errs; exp_continue }
         eof { }
         timeout { fail "$test (timeout)" }
     }
     verbose -log "done exp $test $errs"
     wait
-    if {$errs == 9} { pass $test } else { fail "$test ($errs)" }
+    if {$errs == 14} { pass $test } else { fail "$test ($errs)" }
     verbose -log "done $test $errs"
 }
