@@ -187,8 +187,8 @@ static int _stp_init_kernel_symbols(void)
 {
 	_stp_modules[0] = (struct _stp_module *)_stp_kzalloc(sizeof(struct _stp_module));
 	if (_stp_modules[0] == NULL) {
-		errk("cannot allocate memory\n");
-		return -EFAULT;
+		_dbug("cannot allocate memory\n");
+		return -1;
 	}
 	_stp_modules[0]->symbols = _stp_kernel_symbols;
 	_stp_modules[0]->num_symbols = _stp_num_kernel_symbols;
@@ -197,11 +197,21 @@ static int _stp_init_kernel_symbols(void)
 
 	/* Note: this mapping is used by kernel/_stext pseudo-relocations. */
 	_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
+	if (_stp_modules[0]->text == 0) {
+	  _dbug("Lookup of _stext failed. Exiting.\n");
+	  return -1;
+	}
 	_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
+	if (_stp_modules[0]->data == 0) {
+	  _dbug("Lookup of _etext failed. Exiting.\n");
+	  return -1;
+	}
 	_stp_modules[0]->text_size = _stp_modules[0]->data - _stp_modules[0]->text;
 	_stp_modules_by_addr[0] = _stp_modules[0];
 	
 	_stp_kretprobe_trampoline = _stp_kallsyms_lookup_name("kretprobe_trampoline");
+	/* Lookup failure is not fatal */
+
 	return 0;
 }
 
@@ -559,14 +569,19 @@ static struct notifier_block _stp_module_load_nb = {
 };
 
 #include <linux/seq_file.h>
-extern unsigned long _stp_modules_op;	/* from stap */
+
 static int _stp_init_modules(void)
 {
 	loff_t pos = 0;
 	void *res;
 	struct module *mod;
+	const struct seq_operations *modules_op = (const struct seq_operations *)_stp_kallsyms_lookup_name("modules_op");
+	
+	if (modules_op == NULL) {
+	  _dbug("Lookup of modules_op failed.\n");
+	  return -1;
+	}
 
-	const struct seq_operations *modules_op = (const struct seq_operations *)_stp_modules_op;
 	/* Use the seq_file interface to safely get a list of installed modules */
 	res = modules_op->start(NULL, &pos);
 	while (res) {

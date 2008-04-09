@@ -4356,45 +4356,124 @@ c_unparser::visit_hist_op (hist_op*)
   assert(false);
 }
 
+
+static map< Dwarf_Addr, string>  addrmap;
+
+static int 
+kernel_filter (const char *module, const char *file __attribute__((unused)))
+{
+  return !strcmp(module,"kernel");
+}
+
+static int
+get_symbols (Dwfl_Module *m,
+	     void **userdata __attribute__ ((unused)),
+	     const char *name __attribute__ ((unused)),
+	     Dwarf_Addr base __attribute__ ((unused)),
+	     void *arg __attribute__ ((unused)))
+{
+  int syments = dwfl_module_getsymtab(m);
+  assert(syments);
+  for (int i = 1; i < syments; ++i)
+    {
+      GElf_Sym sym;
+      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
+      if (name) {
+	if (GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
+	    strcmp(name, "_etext") == 0 || 
+	    strcmp(name, "_stext") == 0 || 
+	    strcmp(name, "modules_op") == 0)
+	  addrmap[sym.st_value] = name; 
+      }
+    }
+  return DWARF_CB_OK;
+}
+
+int 
+emit_symbol_data_from_debuginfo(systemtap_session& s, ofstream& kallsyms_out)
+{
+  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
+  static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+  
+  static char *debuginfo_path = (debuginfo_env_arr ?
+				 debuginfo_env_arr : debuginfo_path_arr);
+  
+  static const Dwfl_Callbacks kernel_callbacks =
+    {
+      dwfl_linux_kernel_find_elf,
+      dwfl_standard_find_debuginfo,
+      dwfl_offline_section_address,
+      & debuginfo_path
+    };
+  
+      Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
+      if (!dwfl)
+	throw semantic_error ("cannot open dwfl");
+      dwfl_report_begin (dwfl);
+      
+      int rc = dwfl_linux_kernel_report_offline (dwfl,
+						 s.kernel_release.c_str(),
+						 kernel_filter);
+      dwfl_report_end (dwfl, NULL, NULL);
+      if (rc < 0)
+	return rc;
+      
+      dwfl_getmodules (dwfl, &get_symbols, NULL, 0);      
+      dwfl_end(dwfl);
+
+      int i = 0;
+      map< Dwarf_Addr, string>::iterator pos;
+      kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
+      for (pos = addrmap.begin(); pos != addrmap.end(); pos++) {
+	kallsyms_out << "  { 0x" << hex << pos->first << ", " << "\"" << pos->second << "\" },\n";
+	i++;
+      }
+
+      kallsyms_out << "};\n";
+      kallsyms_out << "unsigned _stp_num_kernel_symbols = " << dec << i << ";\n";
+      return i == 0;
+}
+
 int
 emit_symbol_data (systemtap_session& s)
 {
-  // Instead of processing elf symbol tables, for now we just snatch
-  // /proc/kallsyms and convert it to our use.  
-
   unsigned i=0;
-  ifstream kallsyms("/proc/kallsyms");
   char kallsyms_outbuf [4096];
   ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
   kallsyms_out.rdbuf()->pubsetbuf (kallsyms_outbuf,
-                                       sizeof(kallsyms_outbuf));
-
+				   sizeof(kallsyms_outbuf));
   s.op->newline() << "\n\n#include \"stap-symbols.h\"";
-  kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
-  string lastaddr, modules_op_addr;
 
-  while (! kallsyms.eof())
-    {
-      string addr, type, sym;
-      kallsyms >> addr >> type >> sym >> ws;
+  // FIXME for non-debuginfo use.
+  if (true) {
+      return emit_symbol_data_from_debuginfo(s, kallsyms_out);
+  } else {
+    // For symbol-table only operation, we don't have debuginfo,
+    // so parse /proc/kallsyms.
 
-      if (kallsyms.peek() == '[')
-	break;
-      
-      // NB: kallsyms includes some duplicate addresses
-      if ((type == "t" || type == "T" || type == "A") && lastaddr != addr)
-	{
-	  kallsyms_out << "  { 0x" << addr << ", " << "\"" << sym << "\" },\n";
-	  lastaddr = addr;
-	  i ++;
-	}
-      else if (sym == "modules_op")
-	modules_op_addr = addr;
-    }
-  kallsyms_out << "};\n";
-  kallsyms_out << "unsigned _stp_num_kernel_symbols = " << i << ";\n";
-  kallsyms_out << "unsigned long _stp_modules_op = 0x" << modules_op_addr << ";\n";
-
+    ifstream kallsyms("/proc/kallsyms");
+    string lastaddr, modules_op_addr;
+    
+    kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
+    while (! kallsyms.eof())
+      {
+	string addr, type, sym;
+	kallsyms >> addr >> type >> sym >> ws;
+	
+	if (kallsyms.peek() == '[')
+	  break;
+	
+	// NB: kallsyms includes some duplicate addresses
+	if ((type == "t" || type == "T" || type == "A" || sym == "modules_op") && lastaddr != addr)
+	  {
+	    kallsyms_out << "  { 0x" << addr << ", " << "\"" << sym << "\" },\n";
+	    lastaddr = addr;
+	    i ++;
+	  }
+      }
+    kallsyms_out << "};\n";
+    kallsyms_out << "unsigned _stp_num_kernel_symbols = " << i << ";\n";
+  }
   return (i == 0);
 }
 
