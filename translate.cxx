@@ -4359,6 +4359,8 @@ c_unparser::visit_hist_op (hist_op*)
 
 static map< Dwarf_Addr, string>  addrmap;
 
+#include <string.h>
+
 static int 
 kernel_filter (const char *module, const char *file __attribute__((unused)))
 {
