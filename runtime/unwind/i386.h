@@ -28,6 +28,35 @@ struct unwind_frame_info
 	unsigned call_frame:1;
 };
 
+#define STACK_LIMIT(ptr)     (((ptr) - 1) & ~(THREAD_SIZE - 1))
+
+#ifdef STAPCONF_X86_UNIREGS
+
+#define UNW_PC(frame)        (frame)->regs.ip
+#define UNW_SP(frame)        (frame)->regs.sp
+#ifdef STP_USE_FRAME_POINTER
+#define UNW_FP(frame)        (frame)->regs.bp
+#define FRAME_RETADDR_OFFSET 4
+#define FRAME_LINK_OFFSET    0
+#define STACK_BOTTOM(tsk)    STACK_LIMIT((tsk)->thread.sp0)
+#define STACK_TOP(tsk)       ((tsk)->thread.sp0)
+#else
+#define UNW_FP(frame) ((void)(frame), 0)
+#endif
+
+#define UNW_REGISTER_INFO \
+	PTREGS_INFO(ax), \
+	PTREGS_INFO(cx), \
+	PTREGS_INFO(dx), \
+	PTREGS_INFO(bx), \
+	PTREGS_INFO(sp), \
+	PTREGS_INFO(bp), \
+	PTREGS_INFO(si), \
+	PTREGS_INFO(di), \
+	PTREGS_INFO(ip)
+
+#else /* !STAPCONF_X86_UNIREGS */
+
 #define UNW_PC(frame)        (frame)->regs.eip
 #define UNW_SP(frame)        (frame)->regs.esp
 #ifdef STP_USE_FRAME_POINTER
@@ -39,7 +68,6 @@ struct unwind_frame_info
 #else
 #define UNW_FP(frame) ((void)(frame), 0)
 #endif
-#define STACK_LIMIT(ptr)     (((ptr) - 1) & ~(THREAD_SIZE - 1))
 
 #define UNW_REGISTER_INFO \
 	PTREGS_INFO(eax), \
@@ -52,6 +80,8 @@ struct unwind_frame_info
 	PTREGS_INFO(edi), \
 	PTREGS_INFO(eip)
 
+#endif /* STAPCONF_X86_UNIREGS */
+
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \
 	 !((raItem).value * (dataAlign) + 4))
@@ -62,9 +92,16 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 	if (user_mode_vm(regs))
 		info->regs = *regs;
 	else {
+#ifdef STAPCONF_X86_UNIREGS
+		memcpy(&info->regs, regs, offsetof(struct pt_regs, sp));
+		info->regs.sp = (unsigned long)&regs->sp;
+		info->regs.ss = __KERNEL_DS;
+#else
 		memcpy(&info->regs, regs, offsetof(struct pt_regs, esp));
 		info->regs.esp = (unsigned long)&regs->esp;
-		info->regs.xss = __KERNEL_DS;
+		info->regs.xss = __KERNEL_DS;		
+#endif
+		
 	}
 	info->call_frame = 1;
 }
@@ -72,6 +109,15 @@ static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
 static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 {
 	memset(&info->regs, 0, sizeof(info->regs));
+#ifdef STAPCONF_X86_UNIREGS	
+	info->regs.ip = info->task->thread.ip;
+	info->regs.cs = __KERNEL_CS;
+	__get_user(info->regs.bp, (long *)info->task->thread.sp);
+	info->regs.sp = info->task->thread.sp;
+	info->regs.ss = __KERNEL_DS;
+	info->regs.ds = __USER_DS;
+	info->regs.es = __USER_DS;
+#else
 	info->regs.eip = info->task->thread.eip;
 	info->regs.xcs = __KERNEL_CS;
 	__get_user(info->regs.ebp, (long *)info->task->thread.esp);
@@ -79,6 +125,8 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	info->regs.xss = __KERNEL_DS;
 	info->regs.xds = __USER_DS;
 	info->regs.xes = __USER_DS;
+#endif
+	
 }
 
 
@@ -88,10 +136,17 @@ static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
          are properly annotated (and tracked in UNW_REGISTER_INFO). */
 	return user_mode_vm(&info->regs);
 #else
+#ifdef STAPCONF_X86_UNIREGS		
+	return info->regs.ip < PAGE_OFFSET
+	       || (info->regs.ip >= __fix_to_virt(FIX_VDSO)
+	            && info->regs.ip < __fix_to_virt(FIX_VDSO) + PAGE_SIZE)
+	       || info->regs.sp < PAGE_OFFSET;
+#else
 	return info->regs.eip < PAGE_OFFSET
 	       || (info->regs.eip >= __fix_to_virt(FIX_VDSO)
 	            && info->regs.eip < __fix_to_virt(FIX_VDSO) + PAGE_SIZE)
 	       || info->regs.esp < PAGE_OFFSET;
+#endif	
 #endif
 }
 

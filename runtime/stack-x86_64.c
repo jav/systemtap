@@ -8,8 +8,6 @@
  * later version.
  */
 
-// todo: don't use unwinder for kernel if CONFIG_FRAME
-
 /* DWARF unwinder failed.  Just dump intereting addresses on kernel stack. */
 static void _stp_stack_print_fallback(unsigned long stack, int verbose)
 {
@@ -26,6 +24,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose)
 
 static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
 {
+	// FIXME: large stack allocation
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
 

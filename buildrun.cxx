@@ -254,8 +254,6 @@ run_pass (systemtap_session& s)
     + (s.verbose>2 ? "-v " : "")
     + (s.output_file.empty() ? "" : "-o " + s.output_file + " ");
   
-  staprun_cmd += "-d " + stringify(getpid()) + " ";
-  
   if (s.cmd != "")
     staprun_cmd += "-c " + cmdstr_quoted(s.cmd) + " ";
   

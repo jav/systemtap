@@ -33,8 +33,13 @@ struct unwind_frame_info
 	unsigned call_frame:1;
 };
 
+#ifdef STAPCONF_X86_UNIREGS
+#define UNW_PC(frame)        (frame)->regs.ip
+#define UNW_SP(frame)        (frame)->regs.sp
+#else
 #define UNW_PC(frame)        (frame)->regs.rip
 #define UNW_SP(frame)        (frame)->regs.rsp
+#endif /* STAPCONF_X86_UNIREGS */
 
 #if 0 /* STP_USE_FRAME_POINTER */
 /* Frame pointers not implemented in x86_64 currently */
@@ -54,6 +59,26 @@ struct unwind_frame_info
    not desirable. */
 #define STACK_LIMIT(ptr)     (((ptr) - 1) & ~(THREAD_SIZE - 1))
 
+#ifdef STAPCONF_X86_UNIREGS
+#define UNW_REGISTER_INFO \
+	PTREGS_INFO(ax), \
+	PTREGS_INFO(dx), \
+	PTREGS_INFO(cx), \
+	PTREGS_INFO(bx), \
+	PTREGS_INFO(si), \
+	PTREGS_INFO(di), \
+	PTREGS_INFO(bp), \
+	PTREGS_INFO(sp), \
+	PTREGS_INFO(r8), \
+	PTREGS_INFO(r9), \
+	PTREGS_INFO(r10), \
+	PTREGS_INFO(r11), \
+	PTREGS_INFO(r12), \
+	PTREGS_INFO(r13), \
+	PTREGS_INFO(r14), \
+	PTREGS_INFO(r15), \
+	PTREGS_INFO(ip)
+#else
 #define UNW_REGISTER_INFO \
 	PTREGS_INFO(rax), \
 	PTREGS_INFO(rdx), \
@@ -72,6 +97,7 @@ struct unwind_frame_info
 	PTREGS_INFO(r14), \
 	PTREGS_INFO(r15), \
 	PTREGS_INFO(rip)
+#endif /* STAPCONF_X86_UNIREGS */
 
 #define UNW_DEFAULT_RA(raItem, dataAlign) \
 	((raItem).where == Memory && \
@@ -89,11 +115,18 @@ static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
 	extern const char thread_return[];
 
 	memset(&info->regs, 0, sizeof(info->regs));
-	info->regs.rip = (unsigned long)thread_return;
 	info->regs.cs = __KERNEL_CS;
+	info->regs.ss = __KERNEL_DS;	
+	
+#ifdef STAPCONF_X86_UNIREGS	
+	info->regs.ip = (unsigned long)thread_return;
+	__get_user(info->regs.bp, (unsigned long *)info->task->thread.sp);
+	info->regs.sp = info->task->thread.sp;
+#else
+	info->regs.rip = (unsigned long)thread_return;
 	__get_user(info->regs.rbp, (unsigned long *)info->task->thread.rsp);
 	info->regs.rsp = info->task->thread.rsp;
-	info->regs.ss = __KERNEL_DS;
+#endif
 }
 
 static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
@@ -102,9 +135,15 @@ static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
          are properly annotated (and tracked in UNW_REGISTER_INFO). */
 	return user_mode(&info->regs);
 #else
+#ifdef STAPCONF_X86_UNIREGS	
+	return (long)info->regs.ip >= 0
+	       || (info->regs.ip >= VSYSCALL_START && info->regs.ip < VSYSCALL_END)
+	       || (long)info->regs.sp >= 0;
+#else
 	return (long)info->regs.rip >= 0
 	       || (info->regs.rip >= VSYSCALL_START && info->regs.rip < VSYSCALL_END)
 	       || (long)info->regs.rsp >= 0;
+#endif
 #endif
 }
 

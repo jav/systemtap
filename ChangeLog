@@ -1,5 +1,8 @@
 2008-04-09  Martin Hunt  <hunt@dragon>
 
+	* buildrun.cxx (run_pass): Remove unused "-d" option
+	passed to staprun.
+
 	* translate.cxx (emit_symbol_data): When available,
 	grab symbols from debuginfo instead of /proc/kallsyms.
 
