@@ -18,3 +18,5 @@ systemtap.spec
 testresults
 stapio
 stap_merge
+SNAPSHOT
+*.o
