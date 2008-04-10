@@ -48,8 +48,7 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
-    << " " << GIT_MESSAGE
-    << " built " << DATE << ")" << endl
+    << " " << GIT_MESSAGE << ")" << endl
     << "Copyright (C) 2005-2008 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
