@@ -3,6 +3,7 @@
 	PR 2949.
 	* session.h (listing_mode): New field.
 	* main.cxx (main): Test it.  Enjoy it.
+	(printscript): Do it.
 	(usage): Document it.
 	* stap.1.in, stapex.5.in: Ditto.
 	* elaborate.cxx (print_error): Disable error messages in listing mode.
