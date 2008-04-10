@@ -1,5 +1,12 @@
 2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6393 cont'd.
+	* Makefile.am: Also copy RadeonHD.am fragment to force
+	git_version.h regeneration at every make, and also special
+	tagging for "make dist".  Thanks <ndim>.
+
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6393.
 	* git_version.sh: New file, copied from radeonhd.
 	* configure.ac: No longer generate $builddir/SNAPSHOT.

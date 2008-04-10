@@ -17,15 +17,53 @@ stap_SOURCES = main.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 	cache.cxx util.cxx coveragedb.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
-main.o:	git_version.h
+
+BUILT_SOURCES =
+CLEANFILES =
+
+# Arrange for git_version.h to be regenerated at every "make".
+# Code fragment is based upon RadeonHD.am. 
+
+# The stamp file which is never created ensures that git_version.h is updated
+# before every build. Having git_version.h in foo_SOURCES ensures a recompile
+# of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
+# instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
+# which may cause false GIT_FOO readings.
+BUILT_SOURCES += git_version.stamp
+CLEANFILES += git_version.h
+GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
+git_version.stamp:
+	@if test -f "$(srcdir)/git_version.h"; then \
+		if test -f "git_version.h"; then :; \
+		else \
+			cp "$(srcdir)/git_version.h" "git_version.h"; \
+		fi; \
+	fi
+	$(GIT_VERSION_CMD) -k -s $(top_srcdir) -o git_version.h
+	@if test -s "$(srcdir)/git_version.h"; then \
+		if cmp "$(srcdir)/git_version.h" "git_version.h"; then :; \
+		else \
+			echo "Error: $(srcdir)/git_version.h and git_version.h differ."; \
+			echo "       You probably want to remove the former."; \
+			exit 1; \
+		fi; \
+	fi
+
+dist-gitversion: git_version.stamp
+	if test -f "git_version.h"; then \
+		sed -e 's|^#undef GIT_IS_DIST.*|#define GIT_IS_DIST 1|' \
+			"git_version.h" > "$(distdir)/git_version.h"; \
+	fi
+
+
 git_version.h:
 	$(srcdir)/git_version.sh -k --srcdir $(srcdir) -o git_version.h
+
+
 
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS)
-
-CLEANFILES =
 
 if BUILD_ELFUTILS
 # This tells automake's "make distcheck" what we need to compile.
@@ -34,7 +72,7 @@ DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
-BUILT_SOURCES = stamp-elfutils
+BUILT_SOURCES += stamp-elfutils
 CLEANFILES += stamp-elfutils
 stamp-elfutils: config.status
 	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all
@@ -125,7 +163,7 @@ dist-add-samples: $(SAMPLE_SRC)
 	mkdir -p $(SAMPLE_DEST_DIR)
 	cp $(SAMPLE_SRC) $(SAMPLE_DEST_DIR)
 
-dist-hook: dist-add-samples
+dist-hook: dist-add-samples dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf
@@ -160,7 +198,6 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
-	rm -f git_version.h
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
