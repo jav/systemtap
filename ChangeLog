@@ -1,5 +1,14 @@
 2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 2949.
+	* session.h (listing_mode): New field.
+	* main.cxx (main): Test it.  Enjoy it.
+	(usage): Document it.
+	* stap.1.in, stapex.5.in: Ditto.
+	* elaborate.cxx (print_error): Disable error messages in listing mode.
+
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6393 cont'd.
 	* Makefile.am: Also copy RadeonHD.am fragment to force
 	git_version.h regeneration at every make, and also special
