@@ -19,6 +19,7 @@
 #include "cache.h"
 #include "util.h"
 #include "coveragedb.h"
+#include "git_version.h"
 
 #include <iostream>
 #include <fstream>
@@ -47,6 +48,7 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
+    << " " << GIT_MESSAGE
     << " built " << DATE << ")" << endl
     << "Copyright (C) 2005-2008 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;

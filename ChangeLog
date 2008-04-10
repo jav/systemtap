@@ -1,3 +1,13 @@
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6393.
+	* git_version.sh: New file, copied from radeonhd.
+	* configure.ac: No longer generate $builddir/SNAPSHOT.
+	* Makefile.am: Generate $builddir/git_version.h.
+	(EXTRA_DIST): Add git_version.h and git_version.sh.
+	* main.cxx (version): Print generated GIT_MESSAGE therefrom.
+	* Makefile.in, configure: Regenerated.
+
 2008-04-09  David Smith  <dsmith@redhat.com>
 
 	* .gitignore: Added more files to ignore.

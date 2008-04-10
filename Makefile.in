@@ -311,7 +311,8 @@ LDADD =
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
-	     examples testsuite systemtap.spec runtime tapset
+	     examples testsuite systemtap.spec runtime tapset \
+	     git_version.h git_version.sh
 
 SAMPLE_DEST_DIR = $(distdir)/examples/samples
 SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
@@ -1458,6 +1459,9 @@ uninstall-man: uninstall-man1 uninstall-man5 uninstall-man8
 	uninstall-man uninstall-man1 uninstall-man5 uninstall-man8 \
 	uninstall-pkglibexecPROGRAMS
 
+main.o:	git_version.h
+git_version.h:
+	$(srcdir)/git_version.sh -k --srcdir $(srcdir) -o git_version.h
 @BUILD_ELFUTILS_TRUE@stamp-elfutils: config.status
 @BUILD_ELFUTILS_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all
 @BUILD_ELFUTILS_TRUE@	for dir in libelf libebl libdw libdwfl backends; do \
@@ -1525,6 +1529,7 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
+	rm -f git_version.h
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)

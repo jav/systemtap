@@ -17,6 +17,9 @@ stap_SOURCES = main.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
 	cache.cxx util.cxx coveragedb.cxx
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
+main.o:	git_version.h
+git_version.h:
+	$(srcdir)/git_version.sh -k --srcdir $(srcdir) -o git_version.h
 
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
@@ -102,7 +105,8 @@ LDADD =
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
-	     examples testsuite systemtap.spec runtime tapset
+	     examples testsuite systemtap.spec runtime tapset \
+	     git_version.h git_version.sh
 
 SAMPLE_DEST_DIR = $(distdir)/examples/samples
 
@@ -156,6 +160,7 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
+	rm -f git_version.h
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)
