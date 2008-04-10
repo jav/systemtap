@@ -114,6 +114,8 @@ struct derived_probe: public probe
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
   virtual probe* basest () { return base->basest(); }
+  // XXX: might be helpful for listing and stepwise expansion, but aliases/wildcards don't show up right
+  // virtual probe* almost_basest () { probe* bb = base->basest(); return (bb == base) ? this : bb; }
   virtual ~derived_probe () {}
   virtual void join_group (systemtap_session& s) = 0;
   virtual probe_point* sole_location () const;

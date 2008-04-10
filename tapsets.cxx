@@ -2069,7 +2069,7 @@ private:
 
 public:
   void enroll (dwarf_derived_probe* probe);
-  void emit_module_header (systemtap_session& ) { };
+  void emit_module_header (systemtap_session& s);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -3929,7 +3929,7 @@ dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 
 
 void
-dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
+dwarf_derived_probe_group::emit_module_header (systemtap_session& s)
 {
   if (probes_by_module.empty()) return;
 
@@ -4271,7 +4271,7 @@ struct uprobe_derived_probe: public derived_probe
 struct uprobe_derived_probe_group: public generic_dpg<uprobe_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& ) { };
+  void emit_module_header (systemtap_session& s);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);

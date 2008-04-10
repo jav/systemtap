@@ -45,6 +45,15 @@ stap \- systemtap script translator/driver
 [
 .I ARGUMENTS
 ]
+.br
+.B stap
+[
+.I OPTIONS
+]
+.BI \-l " PROBE"
+[
+.I ARGUMENTS
+]
 
 .SH DESCRIPTION
 
@@ -153,6 +162,11 @@ Start the probes, run CMD, and exit when CMD finishes.
 .BI \-x " PID"
 Sets target() to PID. This allows scripts to be written that filter on 
 a specific process.
+.TP
+.BI \-l " PROBE"
+Instead of running a probe script, just list all available probe
+points matching the given pattern.  The pattern may include wildcards
+and aliases.
 
 .SH ARGUMENTS
 
