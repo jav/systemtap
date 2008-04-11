@@ -1214,6 +1214,9 @@ systemtap_session::print_error (const semantic_error& e)
   string message_str;
   stringstream message;
 
+  // NB: we don't print error messages during listing mode.
+  if (listing_mode) return;
+
   message << "semantic error: " << e.what ();
   if (e.tok1 || e.tok2)
     message << ": ";

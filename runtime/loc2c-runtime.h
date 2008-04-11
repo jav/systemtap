@@ -129,7 +129,7 @@
 #undef fetch_register
 #undef store_register
 
-#define fetch_register(regno)		ia64_fetch_register(regno, c->regs)
+#define fetch_register(regno)		ia64_fetch_register(regno, c->regs, &c->unwaddr)
 #define store_register(regno,value)	ia64_store_register(regno, c->regs, value)
 
 #elif defined __x86_64__

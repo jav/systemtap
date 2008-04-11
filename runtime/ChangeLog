@@ -1,3 +1,16 @@
+2008-04-04  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 6028
+	* loc2c-runtime.h (fetch_register): Call ia64_fetch_register with
+	the address of c->unwaddr.
+	* regs-ia64.c (ia64_fetch_register): Don't unwind stack if it has
+	already unwound stack in same probe.
+
+2008-04-04  David Smith  <dsmith@redhat.com>
+
+	PR 5961 (partial)
+	* task_finder.c: New file.
+
 2008-04-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* lket/*: Belatedly remove retired LKET code.

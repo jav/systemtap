@@ -1,3 +1,41 @@
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 2949.
+	* session.h (listing_mode): New field.
+	* main.cxx (main): Test it.  Enjoy it.
+	(printscript): Do it.
+	(usage): Document it.
+	* stap.1.in, stapex.5.in: Ditto.
+	* elaborate.cxx (print_error): Disable error messages in listing mode.
+
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6393 cont'd.
+	* Makefile.am: Also copy RadeonHD.am fragment to force
+	git_version.h regeneration at every make, and also special
+	tagging for "make dist".  Thanks <ndim>.
+
+2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6393.
+	* git_version.sh: New file, copied from radeonhd.
+	* configure.ac: No longer generate $builddir/SNAPSHOT.
+	* Makefile.am: Generate $builddir/git_version.h.
+	(EXTRA_DIST): Add git_version.h and git_version.sh.
+	* main.cxx (version): Print generated GIT_MESSAGE therefrom.
+	* Makefile.in, configure: Regenerated.
+
+2008-04-09  David Smith  <dsmith@redhat.com>
+
+	* .gitignore: Added more files to ignore.
+
+2008-04-04  Masami Hiramatsu <mhiramat@redhat.com>
+
+	PR 6028
+	* translate.cxx (c_unparser::emit_common_header): Add unwaddr for
+	caching unwound address.
+	* tapsets.cxx (common_probe_entryfn_prologue): Clear unwaddr.
+
 2008-04-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* safety/*: Removed subdirectory containing abandoned experiment.
