@@ -150,6 +150,12 @@ struct derived_probe_group
 {
   virtual ~derived_probe_group () {}
 
+  virtual void emit_module_header (systemtap_session& s) = 0;
+  // The _header-generated code may assume that only basic includes
+  // have been generated.  _header is called near the start of the
+  // code generation process, before the context, embedded-C code,
+  // etc. are generated.
+
   virtual void emit_module_decls (systemtap_session& s) = 0;
   // The _decls-generated code may assume that declarations such as
   // the context, embedded-C code, function and probe handler bodies
