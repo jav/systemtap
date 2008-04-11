@@ -20,3 +20,4 @@ stapio
 stap_merge
 SNAPSHOT
 *.o
+git_version.h
