@@ -75,3 +75,12 @@ expect {
     eof {fail "cmd_parse7: unexpected EOF"}
 }
 wait
+
+spawn stap -l {vm.*}
+expect {
+    -timeout 60
+    -re "vm.*" {pass "cmd_parse8"}
+    timeout {fail "cmd_parse8: unexpected timeout"}
+    eof {fail "cmd_parse8: unexpected EOF"}
+}
+wait

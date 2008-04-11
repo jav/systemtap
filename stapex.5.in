@@ -101,11 +101,9 @@ probe kernel.function("sys_mkdir") { println ("enter") }
 probe kernel.function("sys_mkdir").return { println ("exit") }
 .ESAMPLE
 
-To list the probeable functions in the kernel, use the last-pass
-option to the translator.  That output needs to be filtered because
-each inlined function instance is listed separately.
+To list the probeable functions in the kernel, use the listings mode.
 .SAMPLE
-% stap \-p2 \-e \[aq]probe kernel.function("*") {}\[aq] | sort | uniq
+% stap \-l \[aq]kernel.function("*")\[aq]
 .ESAMPLE
 
 .SH SEE ALSO
