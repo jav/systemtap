@@ -24,4 +24,6 @@ CVS
 .metadata
 .project
 .settings
+SNAPSHOT
 *.o
+git_version.h

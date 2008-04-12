@@ -19,6 +19,7 @@
 #include "cache.h"
 #include "util.h"
 #include "coveragedb.h"
+#include "git_version.h"
 
 #include <iostream>
 #include <fstream>
@@ -47,7 +48,7 @@ version ()
   clog
     << "SystemTap translator/driver "
     << "(version " << VERSION << "/" << dwfl_version (NULL)
-    << " built " << DATE << ")" << endl
+    << " " << GIT_MESSAGE << ")" << endl
     << "Copyright (C) 2005-2008 Red Hat, Inc. and others" << endl
     << "This is free software; see the source for copying conditions." << endl;
 }
@@ -64,9 +65,11 @@ usage (systemtap_session& s, int exitcode)
     << endl
     << "   or: stap [options] -e SCRIPT    Run given script."
     << endl
+    << "   or: stap [options] -l PROBE     List matching probes."
+    << endl
     << endl
     << "Options:" << endl
-    << "   --         no more options after this" << endl
+    << "   --         end of translator options, script options follow" << endl
     << "   -v         increase verbosity [" << s.verbose << "]" << endl
     << "   -h         show help" << endl
     << "   -V         show version" << endl
@@ -116,75 +119,118 @@ usage (systemtap_session& s, int exitcode)
 static void
 printscript(systemtap_session& s, ostream& o)
 {
-  if (s.embeds.size() > 0)
-    o << "# global embedded code" << endl;
-  for (unsigned i=0; i<s.embeds.size(); i++)
+  if (s.listing_mode)
     {
-      embeddedcode* ec = s.embeds[i];
-      ec->print (o);
-      o << endl;
-    }
+      // We go through some heroic measures to produce clean output.
+      set<string> seen;
 
-  if (s.globals.size() > 0)
-    o << "# globals" << endl;
-  for (unsigned i=0; i<s.globals.size(); i++)
-    {
-      vardecl* v = s.globals[i];
-      v->printsig (o);
-      if (s.verbose && v->init)
+      for (unsigned i=0; i<s.probes.size(); i++)
         {
-          o << " = ";
-          v->init->print(o);
+          derived_probe* p = s.probes[i];
+          // NB: p->basest() is not so interesting;
+          // p->almost_basest() doesn't quite work, so ...
+          vector<probe*> chain;
+          p->collect_derivation_chain (chain);
+          probe* second = (chain.size()>1) ? chain[chain.size()-2] : chain[0];
+
+          #if 0
+          cerr << "\tchain[" << chain.size() << "]:" << endl;
+          for (unsigned i=0; i<chain.size(); i++)
+            { cerr << "\t"; chain[i]->printsig(cerr); cerr << endl; }
+          #endif
+
+          stringstream tmps;
+          second->printsig (tmps);
+          string tmp = tmps.str();
+          // trim anything other than the "head" of the probe point signature:
+          // alias1 *CUT* = exp1, exp2
+          // probe1 *CUT* /* pc=0xdeadbeef */ /* <- foo */
+          string::size_type space_pos = tmp.find(' ');
+          assert (space_pos != string::npos);
+          string pp = tmp.substr (0, space_pos);
+
+          // Now duplicate-eliminate.  An alias may have expanded to
+          // several actual derived probe points, but we only want to
+          // print the alias head name once.
+          if (seen.find (pp) == seen.end())
+            {
+              o << pp << endl;
+              seen.insert (pp);
+            }
         }
-      o << endl;
     }
-
-  if (s.functions.size() > 0)
-    o << "# functions" << endl;
-  for (unsigned i=0; i<s.functions.size(); i++)
+  else
     {
-      functiondecl* f = s.functions[i];
-      f->printsig (o);
-      o << endl;
-      if (f->locals.size() > 0)
-	o << "  # locals" << endl;
-      for (unsigned j=0; j<f->locals.size(); j++)
+      if (s.embeds.size() > 0)
+        o << "# global embedded code" << endl;
+      for (unsigned i=0; i<s.embeds.size(); i++)
         {
-	  vardecl* v = f->locals[j];
-	  o << "  ";
-	  v->printsig (o);
-	  o << endl;
-	}
-      if (s.verbose)
+          embeddedcode* ec = s.embeds[i];
+          ec->print (o);
+          o << endl;
+        }
+      
+      if (s.globals.size() > 0)
+        o << "# globals" << endl;
+      for (unsigned i=0; i<s.globals.size(); i++)
         {
-	  f->body->print (o);
-	  o << endl;
-	}
+          vardecl* v = s.globals[i];
+          v->printsig (o);
+          if (s.verbose && v->init)
+            {
+              o << " = ";
+              v->init->print(o);
+            }
+          o << endl;
+        }
+      
+      if (s.functions.size() > 0)
+        o << "# functions" << endl;
+      for (unsigned i=0; i<s.functions.size(); i++)
+        {
+          functiondecl* f = s.functions[i];
+          f->printsig (o);
+          o << endl;
+          if (f->locals.size() > 0)
+            o << "  # locals" << endl;
+          for (unsigned j=0; j<f->locals.size(); j++)
+            {
+              vardecl* v = f->locals[j];
+              o << "  ";
+              v->printsig (o);
+              o << endl;
+            }
+          if (s.verbose)
+            {
+              f->body->print (o);
+              o << endl;
+            }
+        }
+      
+      if (s.probes.size() > 0)
+        o << "# probes" << endl;
+      for (unsigned i=0; i<s.probes.size(); i++)
+        {
+          derived_probe* p = s.probes[i];
+          p->printsig (o);
+          o << endl;
+          if (p->locals.size() > 0)
+            o << "  # locals" << endl;
+          for (unsigned j=0; j<p->locals.size(); j++)
+            {
+              vardecl* v = p->locals[j];
+              o << "  ";
+              v->printsig (o);
+              o << endl;
+            }
+          if (s.verbose)
+            {
+              p->body->print (o);
+              o << endl;
+            }
+        }
     }
-
-  if (s.probes.size() > 0)
-    o << "# probes" << endl;
-  for (unsigned i=0; i<s.probes.size(); i++)
-    {
-      derived_probe* p = s.probes[i];
-      p->printsig (o);
-      o << endl;
-      if (p->locals.size() > 0)
-        o << "  # locals" << endl;
-      for (unsigned j=0; j<p->locals.size(); j++)
-        {
-	  vardecl* v = p->locals[j];
-	  o << "  ";
-	  v->printsig (o);
-	  o << endl;
-	}
-      if (s.verbose)
-        {
-	  p->body->print (o);
-	  o << endl;
-	}
     }
-}
 
 
 int pending_interrupts;
@@ -224,6 +270,7 @@ main (int argc, char * const argv [])
   s.bulk_mode = false;
   s.unoptimized = false;
   s.suppress_warnings = false;
+  s.listing_mode = false;
 
 #ifdef ENABLE_PROLOGUES
   s.prologue_searching = true;
@@ -295,7 +342,7 @@ main (int argc, char * const argv [])
   while (true)
     {
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqw");
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:");
       if (grc < 0)
         break;
       switch (grc)
@@ -321,6 +368,11 @@ main (int argc, char * const argv [])
 	  break;
 
         case 'p':
+          if (s.listing_mode)
+            {
+              cerr << "Listing (-l) mode implies pass 2." << endl;
+              usage (s, 1);
+            }
           s.last_pass = atoi (optarg);
           if (s.last_pass < 1 || s.last_pass > 5)
             {
@@ -451,6 +503,19 @@ main (int argc, char * const argv [])
 
         case 'h':
           usage (s, 0);
+          break;
+
+        case 'l':
+          s.listing_mode = true;
+          s.last_pass = 2;
+          if (have_script)
+            {
+	      cerr << "Only one script can be given on the command line."
+		   << endl;
+	      usage (s, 1);
+            }
+          cmdline_script = string("probe ") + string(optarg) + " {}";
+          have_script = true;
           break;
 
         default:
@@ -718,7 +783,7 @@ main (int argc, char * const argv [])
   // PASS 2: ELABORATION
   rc = semantic_pass (s);
 
-  if (rc == 0 && s.last_pass == 2)
+  if (s.listing_mode || (rc == 0 && s.last_pass == 2))
     printscript(s, cout);
 
   times (& tms_after);
@@ -767,7 +832,7 @@ main (int argc, char * const argv [])
 	}
     }
 
-  if (rc || s.last_pass == 2 || pending_interrupts) goto cleanup;
+  if (rc || s.listing_mode || s.last_pass == 2 || pending_interrupts) goto cleanup;
 
   // PASS 3: TRANSLATION
 

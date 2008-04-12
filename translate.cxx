@@ -849,6 +849,11 @@ translator_output::line ()
 void
 c_unparser::emit_common_header ()
 {
+  vector<derived_probe_group*> g = all_session_groups (*session);
+  for (unsigned i=0; i<g.size(); i++)
+    g[i]->emit_module_header (*session);
+  
+  o->newline();
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
   o->newline();
   o->newline() << "#define STAP_SESSION_STARTING 0";
@@ -874,6 +879,8 @@ c_unparser::emit_common_header ()
   // See c_unparser::visit_statement()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
+  o->newline() << "unsigned long *unwaddr;";
+  // unwaddr is caching unwound address in each probe handler on ia64.
   o->newline() << "struct kretprobe_instance *pi;";
   o->newline() << "va_list *mark_va_list;";
   o->newline() << "void *data;";
@@ -4566,10 +4573,6 @@ translate_pass (systemtap_session& s)
       // XXX: old 2.6 kernel hack
       s.op->newline() << "#ifndef read_trylock";
       s.op->newline() << "#define read_trylock(x) ({ read_lock(x); 1; })";
-      s.op->newline() << "#endif";
-
-      s.op->newline() << "#if defined(CONFIG_MARKERS)";
-      s.op->newline() << "#include <linux/marker.h>";
       s.op->newline() << "#endif";
 
       s.up->emit_common_header (); // context etc.

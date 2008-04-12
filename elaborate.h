@@ -114,6 +114,8 @@ struct derived_probe: public probe
   derived_probe (probe* b, probe_point* l);
   probe* base; // the original parsed probe
   virtual probe* basest () { return base->basest(); }
+  // XXX: might be helpful for listing and stepwise expansion, but aliases/wildcards don't show up right
+  // virtual probe* almost_basest () { probe* bb = base->basest(); return (bb == base) ? this : bb; }
   virtual ~derived_probe () {}
   virtual void join_group (systemtap_session& s) = 0;
   virtual probe_point* sole_location () const;
@@ -147,6 +149,12 @@ struct unparser;
 struct derived_probe_group
 {
   virtual ~derived_probe_group () {}
+
+  virtual void emit_module_header (systemtap_session& s) = 0;
+  // The _header-generated code may assume that only basic includes
+  // have been generated.  _header is called near the start of the
+  // code generation process, before the context, embedded-C code,
+  // etc. are generated.
 
   virtual void emit_module_decls (systemtap_session& s) = 0;
   // The _decls-generated code may assume that declarations such as

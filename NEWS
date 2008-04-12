@@ -1,3 +1,15 @@
+* What's new in version 0.7
+
+- A probe listing mode is available.
+  % stap -l vm.*
+  vm.brk
+  vm.mmap
+  vm.munmap
+  vm.oom_kill
+  vm.pagefault
+  vm.write_shared
+
+
 * What's new in version 0.6
 
 - A copy of the systemtap tutorial and language reference guide
