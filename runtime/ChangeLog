@@ -1,3 +1,9 @@
+2008-04-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* print.c (_stp_pbuf_full): New function to note full print buffer.
+	* stack-{i386,x86_64}.c: Use it in all stack-searching loops, to
+	impose another limit against unbounded iteration.
+
 2008-03-31  Martin Hunt  <hunt@redhat.com>
 
 	* runtime.h (STP_USE_DWARF_UNWINDER): Define.

@@ -17,7 +17,8 @@ static int _stp_valid_stack_ptr(unsigned long context, unsigned long p)
 static void _stp_stack_print_fallback(unsigned long context, unsigned long stack, int verbose)
 {
 	unsigned long addr;
-	while (_stp_valid_stack_ptr(context, stack)) {
+	while (_stp_valid_stack_ptr(context, stack) &&
+               !_stp_pbuf_full()) {
 		if (unlikely(_stp_read_address(addr, (unsigned long *)stack, KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
@@ -42,7 +43,8 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 	unsigned long ebp = regs->ebp;
 #endif /* STAPCONF_X86_UNIREGS */
 	
-	while (_stp_valid_stack_ptr(context, (unsigned long)ebp)) {
+	while (_stp_valid_stack_ptr(context, (unsigned long)ebp) &&
+               !_stp_pbuf_full()) {
 		if (unlikely(_stp_read_address(addr, (unsigned long *)(ebp + 4), KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
@@ -59,7 +61,8 @@ static void __stp_stack_print (struct pt_regs *regs, int verbose, int levels)
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
 	
-	while (!arch_unw_user_mode(&info)) {
+	while (!arch_unw_user_mode(&info) &&
+               !_stp_pbuf_full ()) {
 		int ret = unwind(&info);
 		dbug_unwind(1, "ret=%d PC=%lx SP=%lx\n", ret, UNW_PC(&info), UNW_SP(&info));
 		if (ret == 0) {

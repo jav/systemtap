@@ -243,6 +243,16 @@ void _stp_print_char (const char c)
 	pb->len ++;
 }
 
+/** Check whether the print buffer is full.
+ * @return non-zero if full
+ */
+
+static int _stp_pbuf_full (void)
+{
+	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
+        return (pb->len >= STP_BUFFER_SIZE);
+}
+
 
 /* This function is used when printing maps or stats. */
 /* Probably belongs elsewhere, but is here for now. */

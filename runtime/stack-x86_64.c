@@ -12,7 +12,8 @@
 static void _stp_stack_print_fallback(unsigned long stack, int verbose)
 {
 	unsigned long addr;
-	while (stack & (THREAD_SIZE - 1)) {
+	while (stack & (THREAD_SIZE - 1) &&
+               !_stp_pbuf_full()) {
 		if (unlikely(_stp_read_address(addr, (unsigned long *)stack, KERNEL_DS))) {
 			/* cannot access stack.  give up. */
 			return;
