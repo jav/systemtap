@@ -175,8 +175,10 @@ in a source file, say \verb+net/socket.c+ in the kernel.  The
 systemtap examines the kernel's debugging information to relate object
 code to source code.  It works like a debugger: if you can name or
 place it, you can probe it.  Use
-\verb+kernel.function("*@net/socket.c")+ for the function entries, and
-\verb+kernel.function("*@net/socket.c").return+ for the exits.  Note
+\verb+kernel.function("*@net/socket.c").call+ for the function
+entries\footnote{Without the {\tt .call} qualifier, inlined function
+instances are also probed, but they have no corresponding {\tt .return}.},
+and \verb+kernel.function("*@net/socket.c").return+ for matching exits.  Note
 the use of wildcards in the function name part, and the subsequent
 \verb+@FILENAME+ part.  You can also put wildcards into the file name,
 and even add a colon (\verb+:+) and a line number, if you want to
