@@ -94,19 +94,19 @@ endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c \
-	runtime/staprun/cap.c runtime/staprun/symbols.c
+	runtime/staprun/cap.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-staprun_LDADD = @PROCFLAGS@ @cap_LIBS@ -lpthread
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
+staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c \
+	runtime/staprun/ctl.c runtime/staprun/unwind_data.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c 
 
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-stapio_LDADD = @PROCFLAGS@ -lpthread
+stapio_LDADD = @PROCFLAGS@ -ldw -lpthread
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -169,8 +169,9 @@ dist-hook: dist-add-samples dist-gitversion
 	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf
 
 install-data-local:
-#	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport $(DESTDIR)$(pkgdatadir)/tapset
 	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
+	(cd $(srcdir)/runtime/unwind; find . \( -name '*.[ch]' \) -print \
+		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/unwind/$$f; done)
 	(cd $(srcdir)/runtime/transport; for f in *.[ch]; \
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
 	(cd $(srcdir)/runtime/uprobes; for f in Makefile *.[ch]; \

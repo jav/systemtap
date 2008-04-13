@@ -27,7 +27,7 @@ static void sigproc(int signum)
 			return;
 		send_request(STP_EXIT, NULL, 0);
 	} else if (signum == SIGQUIT)
-		cleanup_and_exit(2);	
+		cleanup_and_exit(2);
 	else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM)
 		send_request(STP_EXIT, NULL, 0);
 }
@@ -40,14 +40,13 @@ static void setup_main_signals(int cleanup)
 	if (cleanup == 0) {
 		a.sa_handler = sigproc;
 		sigaction(SIGCHLD, &a, NULL);
-	} else 
+	} else
 		a.sa_handler = SIG_IGN;
 	sigaction(SIGINT, &a, NULL);
 	sigaction(SIGTERM, &a, NULL);
 	sigaction(SIGHUP, &a, NULL);
 	sigaction(SIGQUIT, &a, NULL);
 }
-
 
 /* 
  * start_cmd forks the command given on the command line
@@ -75,7 +74,7 @@ void start_cmd(void)
 	a.sa_handler = SIG_IGN;
 	sigaction(SIGINT, &a, NULL);
 
-	dbug (1, "execing target_cmd %s\n", target_cmd);
+	dbug(1, "execing target_cmd %s\n", target_cmd);
 	if ((pid = fork()) < 0) {
 		_perr("fork");
 		exit(1);
@@ -86,8 +85,8 @@ void start_cmd(void)
 		sigaction(SIGINT, &a, NULL);
 
 		/* commands we fork need to run at normal priority */
-		setpriority (PRIO_PROCESS, 0, 0);
-		
+		setpriority(PRIO_PROCESS, 0, 0);
+
 		/* wait here until signaled */
 		sigwait(&usrset, &signum);
 
@@ -107,11 +106,11 @@ void system_cmd(char *cmd)
 {
 	pid_t pid;
 
-	dbug (2, "system %s\n", cmd);
+	dbug(2, "system %s\n", cmd);
 	if ((pid = fork()) < 0) {
 		_perr("fork");
 	} else if (pid == 0) {
-		setpriority (PRIO_PROCESS, 0, 0);
+		setpriority(PRIO_PROCESS, 0, 0);
 		if (execl("/bin/sh", "sh", "-c", cmd, NULL) < 0)
 			perr("%s", cmd);
 		_exit(1);
@@ -128,7 +127,7 @@ static void read_buffer_info(void)
 	if (!use_old_transport)
 		return;
 
- 	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC)
+	if (statfs("/sys/kernel/debug", &st) == 0 && (int)st.f_type == (int)DEBUGFS_MAGIC)
 		return;
 
 	if (sprintf_chk(buf, "/proc/systemtap/%s/bufsize", modname))
@@ -151,7 +150,6 @@ static void read_buffer_info(void)
 	close(fd);
 	return;
 }
-
 
 /**
  *	init_stapio - initialize the app
@@ -177,7 +175,7 @@ int init_stapio(void)
 			if (init_oldrelayfs() < 0) {
 				close_ctl_channel();
 				return -1;
-			} 
+			}
 		} else {
 			if (init_relayfs() < 0) {
 				close_ctl_channel();
@@ -192,7 +190,6 @@ int init_stapio(void)
 	if (target_cmd)
 		start_cmd();
 
-
 	return 0;
 }
 
@@ -202,7 +199,7 @@ int init_stapio(void)
  * 2 - disconnected
  * 3 - initialized
  */
-void cleanup_and_exit (int closed)
+void cleanup_and_exit(int closed)
 {
 	pid_t err;
 	static int exiting = 0;
@@ -219,7 +216,7 @@ void cleanup_and_exit (int closed)
 	err = waitpid(-1, NULL, WNOHANG);
 	if (err >= 0)
 		err("\nWaiting for processes to exit\n");
-	while(wait(NULL) > 0) ;
+	while (wait(NULL) > 0) ;
 
 	if (use_old_transport)
 		close_oldrelayfs(closed == 2);
@@ -230,8 +227,7 @@ void cleanup_and_exit (int closed)
 	close_ctl_channel();
 
 	if (initialized == 2 && closed == 2) {
-		err("\nDisconnecting from systemtap module.\n"		\
-		    "To reconnect, type \"staprun -A %s\"\n", modname);
+		err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
 	} else if (initialized)
 		closed = 3;
 	else
@@ -247,7 +243,7 @@ int stp_main_loop(void)
 {
 	ssize_t nb;
 	void *data;
-	int type;
+	uint32_t type;
 	FILE *ofp = stdout;
 	char recvbuf[8196];
 
@@ -257,80 +253,93 @@ int stp_main_loop(void)
 	dbug(2, "in main loop\n");
 	send_request(STP_READY, NULL, 0);
 
-	while (1) { /* handle messages from control channel */
+	while (1) {		/* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		if (nb <= 0) {
 			if (errno != EINTR)
 				_perr("Unexpected EOF in read (nb=%ld)", (long)nb);
 			continue;
 		}
-		
-		type = *(int *)recvbuf;
-		data = (void *)(recvbuf + sizeof(int));
 
-		switch (type) { 
+		type = *(uint32_t *)recvbuf;
+		data = (void *)(recvbuf + sizeof(uint32_t));
+		nb -= sizeof(uint32_t);
+
+		switch (type) {
 #ifdef STP_OLD_TRANSPORT
 		case STP_REALTIME_DATA:
-		{
-			ssize_t bw = write(out_fd[0], data, nb - sizeof(int));
-			if (bw >= 0 && bw != (nb - (ssize_t)sizeof(int))) {
-				nb = nb - bw; 
-				bw = write(out_fd[0], data, nb - sizeof(int));
+			{
+				ssize_t bw = write(out_fd[0], data, nb);
+				if (bw >= 0 && bw != nb) {
+					nb = nb - bw;
+					bw = write(out_fd[0], data, nb);
+				}
+				if (bw != nb) {
+					_perr("write error (nb=%ld)", (long)nb);
+					cleanup_and_exit(1);
+				}
+				break;
 			}
-			if (bw != (nb - (ssize_t)sizeof(int))) {
-				_perr("write error (nb=%ld)", (long)nb);
-				cleanup_and_exit(1);
-			}
-                        break;
-		}
 #endif
 		case STP_OOB_DATA:
-			fputs ((char *)data, stderr);
+			fputs((char *)data, stderr);
 			break;
-		case STP_EXIT: 
-		{
-			/* module asks us to unload it and exit */
-			int *closed = (int *)data;
-			dbug(2, "got STP_EXIT, closed=%d\n", *closed);
-			cleanup_and_exit(*closed);
-			break;
-		}
-		case STP_START: 
-		{
-			struct _stp_msg_start *t = (struct _stp_msg_start *)data;
-			dbug(2, "probe_start() returned %d\n", t->res);
-			if (t->res < 0) {
-				if (target_cmd)
-					kill (target_pid, SIGKILL);
-				cleanup_and_exit(1);
-			} else if (target_cmd)
-				kill (target_pid, SIGUSR1);
-			break;
-		}
-		case STP_SYSTEM:
-		{
-			struct _stp_msg_cmd *c = (struct _stp_msg_cmd *)data;
-			dbug(2, "STP_SYSTEM: %s\n", c->cmd);
-			system_cmd(c->cmd);
-			break;
-		}
-		case STP_TRANSPORT:
-		{
-			struct _stp_msg_start ts;
-			if (use_old_transport) {
-				if (init_oldrelayfs() < 0)
-					cleanup_and_exit(1);
-			} else {
-				if (init_relayfs() < 0)
-					cleanup_and_exit(1);
+		case STP_EXIT:
+			{
+				/* module asks us to unload it and exit */
+				int *closed = (int *)data;
+				dbug(2, "got STP_EXIT, closed=%d\n", *closed);
+				cleanup_and_exit(*closed);
+				break;
 			}
-			ts.target = target_pid;
-			initialized = 2;
-			send_request(STP_START, &ts, sizeof(ts));
-			if (load_only)
-				cleanup_and_exit(2);
-			break;
-		}
+		case STP_START:
+			{
+				struct _stp_msg_start *t = (struct _stp_msg_start *)data;
+				dbug(2, "probe_start() returned %d\n", t->res);
+				if (t->res < 0) {
+					if (target_cmd)
+						kill(target_pid, SIGKILL);
+					cleanup_and_exit(1);
+				} else if (target_cmd)
+					kill(target_pid, SIGUSR1);
+				break;
+			}
+		case STP_SYSTEM:
+			{
+				struct _stp_msg_cmd *c = (struct _stp_msg_cmd *)data;
+				dbug(2, "STP_SYSTEM: %s\n", c->cmd);
+				system_cmd(c->cmd);
+				break;
+			}
+		case STP_TRANSPORT:
+			{
+				struct _stp_msg_start ts;
+				if (use_old_transport) {
+					if (init_oldrelayfs() < 0)
+						cleanup_and_exit(1);
+				} else {
+					if (init_relayfs() < 0)
+						cleanup_and_exit(1);
+				}
+				ts.target = target_pid;
+				initialized = 2;
+				send_request(STP_START, &ts, sizeof(ts));
+				if (load_only)
+					cleanup_and_exit(2);
+				break;
+			}
+		case STP_UNWIND:
+			{
+				int len;
+				char *ptr = (char *)data;
+				while (nb > 0) {
+					send_unwind_data(ptr);
+					len = strlen(ptr) + 1;
+					ptr += len;
+					nb -= len;
+				}
+				break;
+			}
 		default:
 			err("WARNING: ignored message of type %d\n", (type));
 		}

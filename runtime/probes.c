@@ -25,7 +25,7 @@ void _stp_unregister_jprobes (struct jprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_jprobe(&probes[i]);
-	dbug("All jprobes removed\n");
+	// dbug("All jprobes removed\n");
 }
 
 /** Register a group of jprobes.
@@ -46,7 +46,7 @@ int _stp_register_jprobes (struct jprobe *probes, int num_probes)
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		dbug("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
+		// dbug("inserting jprobe at %s (%p)\n", probes[i].kp.addr, addr);
 		probes[i].kp.addr = (kprobe_opcode_t *)addr;
 		ret = register_jprobe(&probes[i]);
 		if (ret)
@@ -69,7 +69,7 @@ void _stp_unregister_kprobes (struct kprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_kprobe(&probes[i]);
-	dbug("All kprobes removed\n");
+	// dbug("All kprobes removed\n");
 }
 
 
@@ -83,7 +83,7 @@ void _stp_unregister_kretprobes (struct kretprobe *probes, int num_probes)
 	int i;
 	for (i = 0; i < num_probes; i++)
 		unregister_kretprobe(&probes[i]);
-	dbug("All return probes removed\n");
+	// dbug("All return probes removed\n");
 }
 #endif
 
@@ -104,7 +104,7 @@ int _stp_register_kprobes (struct kprobe *probes, int num_probes)
 			ret = -1;
 			goto out;
 		}
-		dbug("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
+		// dbug("inserting kprobe at %s (%p)\n", probes[i].addr, addr);
 		probes[i].addr = (kprobe_opcode_t *)addr;
 		ret = register_kprobe(&probes[i]);
 		if (ret)
@@ -136,7 +136,7 @@ int _stp_register_kretprobes (struct kretprobe *probes, int num_probes)
 			ret = -1; /* FIXME */
 			goto out;
 		}
-		dbug("inserting kretprobe at %s (%p)\n", probes[i].kp.addr, addr);
+		// dbug("inserting kretprobe at %s (%p)\n", probes[i].kp.addr, addr);
 		probes[i].kp.addr = (kprobe_opcode_t *)addr;
 		ret = register_kretprobe(&probes[i]);
 		if (ret)

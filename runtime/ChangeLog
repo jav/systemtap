@@ -1,3 +1,7 @@
+2008-03-31  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (STP_USE_DWARF_UNWINDER): Define.
+
 2008-04-04  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 6028
@@ -6,10 +10,36 @@
 	* regs-ia64.c (ia64_fetch_register): Don't unwind stack if it has
 	already unwound stack in same probe.
 
+2008-03-30  Martin Hunt  <hunt@redhat.com>
+
+	* runtime.h (STP_USE_FRAME_POINTER): Define when frame pointers
+	are available in the kernel and can be used.
+	* stack-arm.c: Use STP_USE_FRAME_POINTER.
+	* stack-i386.c: Ditto.
+	* unwind/i386.h: Ditto.
+	* unwind/x86_64.h: Ditto.
+
 2008-04-04  David Smith  <dsmith@redhat.com>
 
 	PR 5961 (partial)
 	* task_finder.c: New file.
+
+2008-03-28  Martin Hunt  <hunt@redhat.com>
+
+	* copy.c (_stp_read_address): New function. Safely read 
+	kernel or userspace.
+
+2008-03-26  Martin Hunt  <hunt@redhat.com>
+	    Fixes to get i386 working.
+	* unwind.c (unwind): Fix types in debug print.
+	* stack-i386.c (_stp_stack_print_fallback): New function.
+	(__stp_stack_print): Call _stp_stack_print_fallback() if unwinder
+	appears to fail.
+
+2008-03-25  Martin Hunt  <hunt@redhat.com>
+
+	* unwind.c (unwind): Return a positive number to indicate
+	that unwinding is done.
 
 2008-04-01  Frank Ch. Eigler  <fche@elastic.org>
 

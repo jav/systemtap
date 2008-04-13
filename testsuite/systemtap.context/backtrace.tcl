@@ -5,13 +5,7 @@ set m4 0
 set m5 0
 set m6 0
 
-if {[istarget ia64-*-*]} {
-	set retexp {.*return\>--\r\n 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n}
-} else {
-	set retexp {.*return\>--\r\n 0x[a-f0-9]+ : kretprobe_trampoline_holder[^\r\n]+\r\n}
-}
-
-spawn stap $srcdir/$subdir/backtrace.stp
+spawn stap -DMAXSTRINGLEN=256 $srcdir/$subdir/backtrace.stp
 #exp_internal 1
 expect {
     -timeout 240
@@ -20,69 +14,61 @@ expect {
 	exec echo 0 > /proc/stap_test_cmd
 	exp_continue
     }
-    -re {^backtrace from module\(\"systemtap_test_module2\"\)\.function\(\"yyy_func3@[^\r\n]+\r\n} {
+
+    #backtrace from yyy_func2
+    -re {^backtrace from module\(\"systemtap_test_module2\"\)\.function\(\"yyy_func2@[^\r\n]+\r\n} {
 	incr m1
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m1 == 1} {incr m1}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m1 == 2} {incr m1}
-		exp_continue
-	    }
 	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m1 == 3} {incr m1}
+		if {$m1 == 2} {incr m1}
 	    }
 	}
 	exp_continue
     }
-    -re {.*---\r\nthe call stack is 0x[a-f0-9]+ [^\r\n]+\r\n} {
+    -re {.*--- yyy_func2 ---\r\nthe stack is 0x[a-f0-9]+ [^\r\n]+\r\n} {
 	incr m2
 	expect {
 	    -timeout 5
-	    -re {.*call\>--\r\n 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m2 == 1} {incr m2}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m2 == 2} {incr m2}
-		exp_continue
-	    }
 	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m2 == 3} {incr m2}
+		if {$m2 == 2} {incr m2}
 	    }
 	}
 	exp_continue
     }
-    -re {.*backtrace from module\(\"systemtap_test_module2\"\)\.function\(\"yyy_func4@[^\r\n]+\r\n} {
+
+    #backtrace from yyy_func3
+    -re {.*backtrace from module\(\"systemtap_test_module2\"\)\.function\(\"yyy_func3@[^\r\n]+\r\n} {
 	incr m3
 	expect {
 	    -timeout 5
-            -re {^Returning from: 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m3 == 1} {incr m3}
 		exp_continue
-            }
-            -re {^Returning to  : 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m3 == 2} {incr m3}
-		exp_continue
-            }
+	    }
 	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m3 == 3} {incr m3}
+		if {$m3 == 2} {incr m3}
 		exp_continue
 	    }
 	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
-		if {$m3 == 4} {incr m3}
+		if {$m3 == 3} {incr m3}
 	    }
 	}
 	exp_continue
     }
-    -re {.*---\r\nthe return stack is 0x[a-f0-9]+ [^\r\n]+\r\n} {
+    -re {.*--- yyy_func3 ---\r\nthe stack is 0x[a-f0-9]+ [^\r\n]+\r\n} {
 	incr m4
 	expect {
 	    -timeout 5
-	    -re $retexp {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m4 == 1} {incr m4}
 		exp_continue
 	    }
@@ -96,58 +82,87 @@ expect {
 	}
 	exp_continue
     }
-    -re {.*backtrace from timer.profile:\r\n} {
+
+    #backtrace from yyy_func4
+    -re {.*backtrace from module\(\"systemtap_test_module2\"\)\.function\(\"yyy_func4@[^\r\n]+\r\n} {
 	incr m5
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+[^\r\n]+\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m5 == 1} {incr m5}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m5 == 2} {incr m5}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m5 == 3} {incr m5}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m5 == 4} {incr m5}
 	    }
 	}
 	exp_continue
     }
-    -re {.*---\r\nthe profile stack is 0x[a-f0-9]+[^\r\n]+\r\n} {
+    -re {.*--- yyy_func4 ---\r\nthe stack is 0x[a-f0-9]+ [^\r\n]+\r\n} {
 	incr m6
 	expect {
 	    -timeout 5
-	    -re {.*profile>--\r\n 0x[a-f0-9]+[^\r\n]+\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
 		if {$m6 == 1} {incr m6}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m6 == 2} {incr m6}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m6 == 3} {incr m6}
+		exp_continue
+	    }
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+		if {$m6 == 4} {incr m6}
 	    }
 	}
+	exp_continue
     }
-   eof {fail "backtrace of yyy_func3, yyy_func4.return and timer.profile. unexpected EOF" }
+    eof {fail "backtrace of yyy_func[2-4]: unexpected EOF" }
 }
 exec kill -INT -[exp_pid]
-if {$m1 == 4} {
+if {$m1 == 3} {
+    pass "backtrace of yyy_func2"
+} else {
+    fail "backtrace of yyy_func2 ($m1)"
+}
+if {$m2 == 3} {
+    pass "print_stack of yyy_func2"
+} else {
+    fail "print_stack of yyy_func2 ($m2)"
+}
+if {$m3 == 4} {
     pass "backtrace of yyy_func3"
 } else {
-    fail "backtrace of yyy_func3 ($m1)"
-}
-if {$m2 == 4} {
-    pass "print_stack of yyy_func3"
-} else {
-    fail "print_stack of yyy_func3 ($m2)"
-}
-if {$m3 == 5} {
-    pass "backtrace of yyy_func4.return"
-} else {
-    fail "backtrace of yyy_func4.return ($m3)"
+    fail "backtrace of yyy_func3 ($m3)"
 }
 if {$m4 == 4} {
-    pass "print_stack of yyy_func4.return"
+    pass "print_stack of yyy_func3"
 } else {
-    fail "print_stack of yyy_func4.return ($m4)"
+    fail "print_stack of yyy_func3 ($m4)"
 }
-if {$m5 == 2} {
-    pass "backtrace of timer.profile"
+if {$m5 == 5} {
+    pass "backtrace of yyy_func4"
 } else {
-    fail "backtrace of timer.profile ($m5)"
+    fail "backtrace of yyy_func4 ($m5)"
 }
-if {$m6 == 2} {
-    pass "print_stack of timer.profile"
+if {$m6 == 5} {
+    pass "print_stack of yyy_func4"
 } else {
-    fail "print_stack of timer.profile ($m6)"
+    fail "print_stack of yyy_func4 ($m6)"
 }
+
+
 
 close
 wait
