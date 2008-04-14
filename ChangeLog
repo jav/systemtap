@@ -1,3 +1,37 @@
+2008-04-09  Martin Hunt  <hunt@dragon>
+
+	* buildrun.cxx (run_pass): Remove unused "-d" option
+	passed to staprun.
+
+	* translate.cxx (emit_symbol_data): When available,
+	grab symbols from debuginfo instead of /proc/kallsyms.
+
+2008-04-11  David Smith  <dsmith@redhat.com>
+
+	* elaborate.h (struct derived_probe_group): Added
+	emit_module_header virtual function.
+	* translate.cxx (c_unparser::emit_common_header): Calls each probe
+	group's emit_module_header function.
+	(translate_pass): Moved inclusion of linux/marker.h to
+	mark_derived_probe_group::emit_module_header().
+	* tapsets.cxx (struct be_derived_probe_group): Added empty
+	emit_module_header function.
+	(struct timer_derived_probe_group): Ditto.
+	(struct profile_derived_probe_group): Ditto.
+	(struct procfs_derived_probe_group): Ditto.
+	(struct hrtimer_derived_probe_group): Ditto.
+	(struct perfmon_derived_probe_group): Ditto.
+	(dwarf_derived_probe_group::emit_module_header): Moved kprobes
+	kernel check from emit_module_decls() to here.
+	(uprobe_derived_probe_group::emit_module_header): Moved uprobe
+	kernel check from emit_module_decls() to here.
+	(uprobe_derived_probe_group::emit_module_decls): Moved uprobe
+	kernel check to emit_module_header().
+	(mark_derived_probe_group::emit_module_header): Moved marker
+	kernel check from emit_module_decls and translate_pass() to here.
+	(uprobe_derived_probe_group::emit_module_decls): Moved marker
+	kernel check to emit_module_header().
+
 2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2949.

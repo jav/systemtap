@@ -4,7 +4,6 @@
 .#*
 autom4te.*
 cscope*out
-Makefile
 config.h
 config.log
 config.status
@@ -18,5 +17,12 @@ systemtap.spec
 testresults
 stapio
 stap_merge
+CVS
+.checkstyle
+.cproject
+.metadata
+.project
+.settings
 SNAPSHOT
 *.o
+git_version.h

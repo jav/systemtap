@@ -7,19 +7,14 @@
  * later version.
  */
 
-#ifndef _STAP_SYMBOLS_H_
-#define _STAP_SYMBOLS_H_
+#ifndef _STP_SYM_H_
+#define _STP_SYM_H_
 
 #define STP_MODULE_NAME_LEN 64
 
 struct _stp_symbol {
 	unsigned long addr;
 	const char *symbol;
-};
-struct stap_symbol {
-	unsigned long addr;
-	const char *symbol;
-	const char *module;
 };
 
 DEFINE_RWLOCK(_stp_module_lock);
@@ -50,8 +45,14 @@ struct _stp_module {
 	/* how many sections this module has */
 	uint32_t num_sections;
 	
-	/* how the symbol_data below was allocated */
-	int32_t allocated;  /* 0 = kmalloc, 1 = vmalloc */
+	/* how the data below was allocated */
+	/* 0 = kmalloc, 1 = vmalloc */
+	struct {
+		unsigned symbols :1;
+		unsigned symbol_data :1;
+		unsigned unwind_data :1;
+		unsigned unwind_hdr :1;
+	} allocated;
 	
 	struct _stp_symbol *sections;
 	
@@ -63,7 +64,10 @@ struct _stp_module {
 	
 	/* the stack unwind data for this module */
 	void *unwind_data;
+	void *unwind_hdr;	
 	uint32_t unwind_data_len;
+	uint32_t unwind_hdr_len;
+	uint32_t unwind_is_ehframe; /* unwind data comes from .eh_frame */
 	rwlock_t lock; /* lock while unwinding is happening */
 	
 };
@@ -80,7 +84,8 @@ struct _stp_module *_stp_modules_by_addr[STP_MAX_MODULES];
 
 /* the number of modules in the arrays */
 int _stp_num_modules = 0;
+static unsigned long _stp_kretprobe_trampoline = 0;
 
 unsigned long _stp_module_relocate (const char *module, const char *section, unsigned long offset);
 static struct _stp_module *_stp_get_unwind_info (unsigned long addr);
-#endif /* _STAP_SYMBOLS_H_ */
+#endif /* _STP_SYM_H_ */
