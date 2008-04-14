@@ -849,10 +849,6 @@ translator_output::line ()
 void
 c_unparser::emit_common_header ()
 {
-  vector<derived_probe_group*> g = all_session_groups (*session);
-  for (unsigned i=0; i<g.size(); i++)
-    g[i]->emit_module_header (*session);
-  
   o->newline();
   o->newline() << "typedef char string_t[MAXSTRINGLEN];";
   o->newline();

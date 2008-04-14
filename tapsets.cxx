@@ -104,7 +104,6 @@ struct be_derived_probe: public derived_probe
 struct be_derived_probe_group: public generic_dpg<be_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -2069,7 +2068,6 @@ private:
 
 public:
   void enroll (dwarf_derived_probe* probe);
-  void emit_module_header (systemtap_session& s);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -3929,22 +3927,17 @@ dwarf_derived_probe_group::enroll (dwarf_derived_probe* p)
 
 
 void
-dwarf_derived_probe_group::emit_module_header (systemtap_session& s)
-{
-  if (probes_by_module.empty()) return;
-
-   // Warn of misconfigured kernels
-  s.op->newline() << "#if ! defined(CONFIG_KPROBES)";
-  s.op->newline() << "#error \"Need CONFIG_KPROBES!\"";
-  s.op->newline() << "#endif";
-}
-
-void
 dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes_by_module.empty()) return;
 
   s.op->newline() << "/* ---- dwarf probes ---- */";
+
+  // Warn of misconfigured kernels
+  s.op->newline() << "#if ! defined(CONFIG_KPROBES)";
+  s.op->newline() << "#error \"Need CONFIG_KPROBES!\"";
+  s.op->newline() << "#endif";
+  s.op->newline();
 
   // Forward declare the master entry functions
   s.op->newline() << "static int enter_kprobe_probe (struct kprobe *inst,";
@@ -4271,7 +4264,6 @@ struct uprobe_derived_probe: public derived_probe
 struct uprobe_derived_probe_group: public generic_dpg<uprobe_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& s);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -4321,9 +4313,10 @@ struct uprobe_builder: public derived_probe_builder
 
 
 void
-uprobe_derived_probe_group::emit_module_header (systemtap_session& s)
+uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
 {
   if (probes.empty()) return;
+  s.op->newline() << "/* ---- user probes ---- */";
 
   // If uprobes isn't in the kernel, pull it in from the runtime.
   s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
@@ -4331,14 +4324,6 @@ uprobe_derived_probe_group::emit_module_header (systemtap_session& s)
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
-}
-
-
-void
-uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
-{
-  if (probes.empty()) return;
-  s.op->newline() << "/* ---- user probes ---- */";
 
   s.op->newline() << "struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
@@ -4457,7 +4442,6 @@ struct timer_derived_probe_group: public generic_dpg<timer_derived_probe>
 {
   void emit_interval (translator_output* o);
 public:
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -4599,7 +4583,6 @@ struct profile_derived_probe: public derived_probe
 struct profile_derived_probe_group: public generic_dpg<profile_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -4767,7 +4750,6 @@ public:
     has_read_probes(false), has_write_probes(false) {}
 
   void enroll (procfs_derived_probe* probe);
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -5243,7 +5225,6 @@ struct mark_derived_probe: public derived_probe
 struct mark_derived_probe_group: public generic_dpg<mark_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& s);
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -5610,7 +5591,19 @@ void
 mark_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.mark_derived_probes)
-    s.mark_derived_probes = new mark_derived_probe_group ();
+    {
+      s.mark_derived_probes = new mark_derived_probe_group ();
+
+      // Make sure <linux/marker.h> is included early.
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = NULL;
+      ec->code = string("#if ! defined(CONFIG_MARKERS)\n")
+	+ string("#error \"Need CONFIG_MARKERS!\"\n")
+	+ string("#endif\n")
+	+ string("#include <linux/marker.h>\n");
+
+      s.embeds.push_back(ec);
+    }
   s.mark_derived_probes->enroll (this);
 }
 
@@ -5680,20 +5673,6 @@ mark_derived_probe::initialize_probe_context_vars (translator_output* o)
     o->newline() << "deref_fault: ;";
 }
 
-
-void
-mark_derived_probe_group::emit_module_header (systemtap_session& s)
-{
-  if (probes.empty())
-    return;
-
-  // Warn of misconfigured kernels
-  s.op->newline() << "#if ! defined(CONFIG_MARKERS)";
-  s.op->newline() << "#error \"Need CONFIG_MARKERS!\"";
-  s.op->newline() << "#endif";
-  s.op->newline() << "#include <linux/marker.h>";
-  s.op->newline();
-}
 
 void
 mark_derived_probe_group::emit_module_decls (systemtap_session& s)
@@ -5958,7 +5937,6 @@ struct hrtimer_derived_probe_group: public generic_dpg<hrtimer_derived_probe>
 {
   void emit_interval (translator_output* o);
 public:
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session& s);
   void emit_module_init (systemtap_session& s);
   void emit_module_exit (systemtap_session& s);
@@ -6314,7 +6292,6 @@ public:
 struct perfmon_derived_probe_group: public generic_dpg<perfmon_derived_probe>
 {
 public:
-  void emit_module_header (systemtap_session& ) { };
   void emit_module_decls (systemtap_session&) {}
   void emit_module_init (systemtap_session&) {}
   void emit_module_exit (systemtap_session&) {}
