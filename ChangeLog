@@ -1,3 +1,36 @@
+2008-04-14  David Smith  <dsmith@redhat.com>
+
+	* elaborate.h (struct derived_probe_group): Removed
+	emit_module_header virtual function.
+	* translate.cxx (c_unparser::emit_common_header): Removed calls to
+	emit_module_header function.
+	* tapsets.cxx (be_derived_probe>): Removed emit_module_header function.
+	(struct timer_derived_probe_group): Ditto.
+	(struct profile_derived_probe_group): Ditto.
+	(struct procfs_derived_probe_group): Ditto.
+	(struct hrtimer_derived_probe_group): Ditto.
+	(struct perfmon_derived_probe_group): Ditto.
+	(dwarf_derived_probe_group::emit_module_decls): Moved kernel check
+	back from deleted emit_module_header function.
+	(uprobe_derived_probe_group::emit_module_decls): Ditto.
+	(mark_derived_probe_group::join_group): Moved marker
+	kernel check (to a new embedded code section) from deleted
+	emit_module_header function.
+
+2008-04-14  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (stapio_*): Become able to link/compile against
+	bundled elfutils.
+	* Makefile.in: Regenerated.
+
+2008-04-09  Martin Hunt  <hunt@dragon>
+
+	* buildrun.cxx (run_pass): Remove unused "-d" option
+	passed to staprun.
+
+	* translate.cxx (emit_symbol_data): When available,
+	grab symbols from debuginfo instead of /proc/kallsyms.
+
 2008-04-11  David Smith  <dsmith@redhat.com>
 
 	* elaborate.h (struct derived_probe_group): Added

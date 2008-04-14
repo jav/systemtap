@@ -33,7 +33,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 		return 0;
 	}
 
-	dbug(DEBUG_SYMBOLS, "%s, %s, %lx\n", module, section, offset);
+	dbug_sym(1, "%s, %s, %lx\n", module, section, offset);
 
 	STP_RLOCK_MODULES;
 	if (!module || !strcmp(section, "")	/* absolute, unrelocated address */
@@ -47,7 +47,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 		if (!strcmp(module, last->name) && !strcmp(section, last_sec->symbol)) {
 			offset += last_sec->addr;
 			STP_RUNLOCK_MODULES;
-			dbug(DEBUG_SYMBOLS, "offset = %lx\n", offset);
+			dbug_sym(1, "offset = %lx\n", offset);
 			return offset;
 		}
 	}
@@ -72,7 +72,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 				if (!strcmp(section, last_sec->symbol)) {
 					offset += last_sec->addr;
 					STP_RUNLOCK_MODULES;
-					dbug(DEBUG_SYMBOLS, "offset = %lx\n", offset);
+					dbug_sym(1, "offset = %lx\n", offset);
 					return offset;
 				}
 			}

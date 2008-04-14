@@ -65,6 +65,9 @@ stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS)
 
+stapio_CPPFLAGS = $(AM_CPPFLAGS)
+stapio_LDFLAGS = $(AM_LDFLAGS)
+
 if BUILD_ELFUTILS
 # This tells automake's "make distcheck" what we need to compile.
 DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
@@ -72,6 +75,11 @@ DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
+stapio_CPPFLAGS += -Iinclude-elfutils
+stapio_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+			-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
+
+
 BUILT_SOURCES += stamp-elfutils
 CLEANFILES += stamp-elfutils
 stamp-elfutils: config.status
@@ -94,19 +102,18 @@ endif
 
 staprun_SOURCES = runtime/staprun/staprun.c runtime/staprun/staprun_funcs.c\
 	runtime/staprun/ctl.c runtime/staprun/common.c \
-	runtime/staprun/cap.c runtime/staprun/symbols.c
+	runtime/staprun/cap.c
 
 staprun_CPPFLAGS = $(AM_CPPFLAGS)
-staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-staprun_LDADD = @PROCFLAGS@ @cap_LIBS@ -lpthread
+staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
+staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c \
+	runtime/staprun/ctl.c runtime/staprun/unwind_data.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c 
-
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-stapio_LDADD = @PROCFLAGS@ -lpthread
+stapio_LDADD = @PROCFLAGS@ -ldw -lpthread
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi
@@ -169,8 +176,9 @@ dist-hook: dist-add-samples dist-gitversion
 	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf
 
 install-data-local:
-#	mkdir -p $(DESTDIR)$(pkgdatadir)/runtime/transport $(DESTDIR)$(pkgdatadir)/tapset
 	(cd $(srcdir)/runtime; for f in *.[ch]; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/$$f; done)
+	(cd $(srcdir)/runtime/unwind; find . \( -name '*.[ch]' \) -print \
+		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/unwind/$$f; done)
 	(cd $(srcdir)/runtime/transport; for f in *.[ch]; \
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/transport/$$f; done)
 	(cd $(srcdir)/runtime/uprobes; for f in Makefile *.[ch]; \

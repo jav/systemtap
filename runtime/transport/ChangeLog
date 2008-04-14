@@ -1,3 +1,28 @@
+2008-04-09  Martin Hunt  <hunt@dragon>
+
+	* symbols.c (_stp_init_kernel_symbols): Print error
+	messages and exit if symbol lookups fail.
+	(_stp_init_modules): Lookup modules_op.
+
+2008-03-31  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_init_modules): Use STP_USE_DWARF_UNWINDER.
+
+	* transport.c (_stp_get_root_dir): Remove misleading error message.
+
+2008-03-30  Martin Hunt  <hunt@redhat.com>
+
+	* symbols.c (_stp_init_modules): If using frames, don't
+	request unwind info.
+
+2008-03-25  Martin Hunt  <hunt@redhat.com>
+
+	* control.c (_stp_ctl_write_dbug): Insert missing break.
+
+	    32-bit systems can't do 64-bit get_user(), so
+	* symbols.c (_stp_do_unwind_data): Change unwind_len to a u32.	
+	* transport_msgs.h (struct _stp_msg_unwind): Ditto.
+
 2008-02-27  Martin Hunt  <hunt@redhat.com>
 
 	* symbols.c: Use rwlocks. Use new dbug macros. Handle

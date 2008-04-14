@@ -15,7 +15,6 @@
  * @brief Implements maps (associative arrays) and lists
  */
 
-#include "alloc.c"
 #include "sym.c"
 #include "stat-common.c"
 #include "map-stat.c"

@@ -161,7 +161,7 @@ struct _stp_buffer {
 	struct list_head list;
 	int len;
 	int type;
-	char buf[STP_BUFFER_SIZE];
+	char buf[STP_CTL_BUFFER_SIZE];
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
