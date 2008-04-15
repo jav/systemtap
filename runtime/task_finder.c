@@ -394,6 +394,25 @@ stap_start_task_finder(void)
 						   (int)tsk->pid, rc);
 					break;
 				}
+
+				// Set up thread death notification.
+				memset(&cb_tgt->ops, 0, sizeof(cb_tgt->ops));
+				cb_tgt->ops.report_death
+					= &__stp_utrace_task_finder_death;
+
+				engine = utrace_attach(tsk,
+						       UTRACE_ATTACH_CREATE,
+						       &cb_tgt->ops, cb_tgt);
+				if (IS_ERR(engine)) {
+					_stp_error("attach to %d failed: %ld",
+						   (int)tsk->pid,
+						   PTR_ERR(engine));
+				}
+				else {
+					utrace_set_flags(tsk, engine,
+							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
+					cb_tgt->engine_attached = 1;
+				}
 			}
 		}
 	}

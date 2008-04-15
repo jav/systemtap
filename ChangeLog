@@ -1,3 +1,15 @@
+2008-04-15  David Smith  <dsmith@redhat.com>
+
+	* session.h (struct systemtap_session): Added utrace_derived_probe
+	group and task_finder_derived_probe_group members.
+	* elaborate.cxx (systemtap_session::systemtap_session): Added
+	initialization of utrace_derived_probes and
+	task_finder_derived_probes.
+	* tapsets.cxx (struct task_finder_derived_probe_group): New
+	derived_probe_group to handle task_finder framework.
+	(struct utrace_derived_probe_group): New derived_probe_group to
+	handle utrace probes.
+
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6405 cont'd.

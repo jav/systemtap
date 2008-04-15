@@ -4248,6 +4248,564 @@ dwarf_builder::build(systemtap_session & sess,
 
 
 // ------------------------------------------------------------------------
+// task_finder derived 'probes': These don't really exist.  The whole
+// purpose of the task_finder_derived_probe_group is to make sure that
+// stap_start_task_finder()/stap_stop_task_finder() get called only
+// once and in the right place.
+// ------------------------------------------------------------------------
+
+struct task_finder_derived_probe: public derived_probe
+{
+};
+
+
+struct task_finder_derived_probe_group: public generic_dpg<task_finder_derived_probe>
+{
+public:
+  static void create_session_group (systemtap_session& s);
+
+  void emit_module_decls (systemtap_session& ) { }
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
+
+void
+task_finder_derived_probe_group::create_session_group (systemtap_session& s)
+{
+  if (! s.task_finder_derived_probes)
+    {
+      s.task_finder_derived_probes = new task_finder_derived_probe_group();
+
+      // Make sure we've got the stuff we need early in the output code.
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = NULL;
+      ec->code = string("#if ! defined(CONFIG_UTRACE)\n")
+        + string("#error \"Need CONFIG_UTRACE!\"\n")
+	+ string("#endif\n")
+	+ string("#include <linux/utrace.h>\n")
+	+ string("#include <linux/mount.h>\n")
+	+ string("#include \"task_finder.c\"\n");
+
+      s.embeds.push_back(ec);
+    }
+}
+
+
+void
+task_finder_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  s.op->newline();
+  s.op->newline() << "/* ---- task finder ---- */";
+  s.op->newline() << "rc = stap_start_task_finder();";
+
+  s.op->newline() << "if (rc) {";
+  s.op->indent(1);
+  s.op->newline() << "stap_stop_task_finder();";
+  s.op->newline(-1) << "}";
+}
+
+
+void
+task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  s.op->newline();
+  s.op->newline() << "/* ---- task finder ---- */";
+  s.op->newline() << "stap_stop_task_finder();";
+}
+
+
+// ------------------------------------------------------------------------
+// utrace user-space probes
+// ------------------------------------------------------------------------
+
+// Since we don't have access to <linux/utrace.h>, we'll have to
+// define our own version of the UTRACE_EVENT flags.
+enum utrace_derived_probe_flags {
+  UDPF_NONE,
+  UDPF_QUIESCE,				// UTRACE_EVENT(QUIESCE)
+  UDPF_REAP,				// UTRACE_EVENT(REAP)
+  UDPF_CLONE,				// UTRACE_EVENT(CLONE)
+  UDPF_VFORK_DONE,			// UTRACE_EVENT(VFORK_DONE)
+  UDPF_EXEC,				// UTRACE_EVENT(EXEC)
+  UDPF_EXIT,				// UTRACE_EVENT(EXIT)
+  UDPF_DEATH,				// UTRACE_EVENT(DEATH)
+  UDPF_SYSCALL_ENTRY,			// UTRACE_EVENT(SYSCALL_ENTRY)
+  UDPF_SYSCALL_EXIT,			// UTRACE_EVENT(SYSCALL_EXIT)
+  UDPF_SIGNAL,				// UTRACE_EVENT(SIGNAL)
+  UDPF_SIGNAL_IGN,			// UTRACE_EVENT(SIGNAL_IGN)
+  UDPF_SIGNAL_STOP,			// UTRACE_EVENT(SIGNAL_STOP)
+  UDPF_SIGNAL_TERM,			// UTRACE_EVENT(SIGNAL_TERM)
+  UDPF_SIGNAL_CORE,			// UTRACE_EVENT(SIGNAL_CORE)
+  UDPF_JCTL,				// UTRACE_EVENT(JCTL)
+  UDPF_NFLAGS
+};
+
+struct utrace_derived_probe: public derived_probe
+{
+  bool has_path;
+  string path;
+  int64_t pid;
+  enum utrace_derived_probe_flags flags;
+  bool target_symbol_seen;
+
+  utrace_derived_probe (systemtap_session &s, probe* p, probe_point* l,
+                        bool hp, string &pn, int64_t pd,
+			enum utrace_derived_probe_flags f);
+  void join_group (systemtap_session& s);
+};
+
+
+struct utrace_derived_probe_group: public generic_dpg<utrace_derived_probe>
+{
+private:
+  map<string, vector<utrace_derived_probe*> > probes_by_path;
+  typedef map<string, vector<utrace_derived_probe*> >::iterator p_b_path_iterator;
+  map<int64_t, vector<utrace_derived_probe*> > probes_by_pid;
+  typedef map<int64_t, vector<utrace_derived_probe*> >::iterator p_b_pid_iterator;
+  unsigned num_probes;
+  bool flags_seen[UDPF_NFLAGS];
+
+  void emit_probe_decl (systemtap_session& s, utrace_derived_probe *p);
+
+public:
+  utrace_derived_probe_group(): num_probes(0), flags_seen() { }
+
+  void enroll (utrace_derived_probe* probe);
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
+
+struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
+{
+  utrace_var_expanding_copy_visitor(systemtap_session& s, const string& pn,
+				    enum utrace_derived_probe_flags f):
+    sess (s), probe_name (pn), flags (f), target_symbol_seen (false) {}
+
+  systemtap_session& sess;
+  string probe_name;
+  enum utrace_derived_probe_flags flags;
+  bool target_symbol_seen;
+
+  void visit_target_symbol (target_symbol* e);
+};
+
+
+utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
+                                            probe* p, probe_point* l,
+                                            bool hp, string &pn, int64_t pd,
+					    enum utrace_derived_probe_flags f):
+  derived_probe(p, l), has_path(hp), path(pn), pid(pd), flags(f),
+  target_symbol_seen(false)
+{
+  // Make a local-variable-expanded copy of the probe body
+  utrace_var_expanding_copy_visitor v (s, name, flags);
+  require <block*> (&v, &(this->body), base->body);
+  target_symbol_seen = v.target_symbol_seen;
+}
+
+
+void
+utrace_derived_probe::join_group (systemtap_session& s)
+{
+  if (! s.utrace_derived_probes)
+  {
+      s.utrace_derived_probes = new utrace_derived_probe_group ();
+
+      // Make sure <linux/tracehook.h> is included early.
+      embeddedcode *ec = new embeddedcode;
+      ec->tok = NULL;
+      ec->code = string("#include <linux/tracehook.h>\n");
+      s.embeds.push_back(ec);
+  }
+  s.utrace_derived_probes->enroll (this);
+
+  task_finder_derived_probe_group::create_session_group (s);
+}
+
+
+void
+utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
+{
+  assert(e->base_name.size() > 0 && e->base_name[0] == '$');
+
+  if (flags != UDPF_SYSCALL_ENTRY && flags != UDPF_SYSCALL_EXIT)
+    throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
+			  e->tok);
+
+  if (e->base_name != "$syscall")
+    throw semantic_error ("invalid target symbol for utrace probe, $syscall expected",
+			  e->tok);
+
+  if (e->components.size() > 0)
+    {
+      switch (e->components[0].first)
+	{
+	case target_symbol::comp_literal_array_index:
+	  throw semantic_error("utrace target variable '$syscall' may not be used as array",
+			       e->tok);
+	  break;
+	case target_symbol::comp_struct_member:
+	  throw semantic_error("utrace target variable '$syscall' may not be used as a structure",
+			       e->tok);
+	  break;
+	default:
+	  throw semantic_error ("invalid use of utrace target variable '$syscall'",
+				e->tok);
+	  break;
+	}
+    }
+
+  bool lvalue = is_active_lvalue(e);
+  if (lvalue)
+    throw semantic_error("utrace $syscall variable is read-only", e->tok);
+
+  // Remember that we've seen a target variable.
+  target_symbol_seen = true;
+
+  // Synthesize a function.
+  functiondecl *fdecl = new functiondecl;
+  fdecl->tok = e->tok;
+  embeddedcode *ec = new embeddedcode;
+  ec->tok = e->tok;
+
+  string fname = (string("_utrace_syscall_get") + "_"
+		  + lex_cast<string>(tick++));
+  string locvalue = "CONTEXT->data";
+
+  ec->code = string("THIS->__retvalue = *tracehook_syscall_callno(CONTEXT->regs); /* pure */");
+
+  fdecl->name = fname;
+  fdecl->body = ec;
+  fdecl->type = pe_long;
+
+  sess.functions.push_back(fdecl);
+
+  // Synthesize a functioncall.
+  functioncall* n = new functioncall;
+  n->tok = e->tok;
+  n->function = fname;
+  n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
+
+  provide <functioncall*> (this, n);
+}
+
+
+struct utrace_builder: public derived_probe_builder
+{
+  utrace_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results)
+  {
+    string path;
+    int64_t pid;
+
+    bool has_path = get_param (parameters, TOK_PROCESS, path);
+    bool has_pid = get_param (parameters, TOK_PROCESS, pid);
+    enum utrace_derived_probe_flags flags = UDPF_NONE;
+    assert (has_path || has_pid);
+
+    if (has_null_param (parameters, "death"))
+      flags = UDPF_DEATH;
+    else if (has_null_param (parameters, "syscall"))
+      {
+	if (has_null_param (parameters, TOK_RETURN))
+	  flags = UDPF_SYSCALL_EXIT;
+	else
+	  flags = UDPF_SYSCALL_ENTRY;
+      }
+    else if (has_null_param (parameters, "clone"))
+      flags = UDPF_CLONE;
+
+    finished_results.push_back(new utrace_derived_probe(sess, base, location,
+                                                        has_path, path, pid,
+							flags));
+  }
+};
+
+
+void
+utrace_derived_probe_group::enroll (utrace_derived_probe* p)
+{
+  if (p->has_path)
+    probes_by_path[p->path].push_back(p);
+  else
+    probes_by_pid[p->pid].push_back(p);
+  num_probes++;
+  flags_seen[p->flags] = true;
+
+  // XXX: multiple exec probes (for instance) for the same path (or
+  // pid) should all share a utrace report function, and have their
+  // handlers executed sequentially.
+}
+
+
+void
+utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
+					     utrace_derived_probe *p)
+{
+  s.op->newline() << "{";
+  s.op->line() << " .tgt={";
+
+  if (p->has_path)
+    {
+      s.op->line() << " .pathname=\"" << p->path << "\",";
+      s.op->line() << " .pid=0,";
+    }
+  else
+    {
+      s.op->line() << " .pathname=NULL,";
+      s.op->line() << " .pid=" << p->pid << ",";
+    }
+
+  s.op->line() << " .callback=&_stp_utrace_probe_cb,";
+  s.op->line() << " },";
+  s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+  s.op->line() << " .ph=&" << p->name << ",";
+
+  // Handle flags
+  switch (p->flags)
+    {
+    case UDPF_CLONE:
+      // Notice we're not setting up a .ops/.report_clone handler
+      // here.  Instead, we'll just call the probe directly when we
+      // get notified the clone happened.
+      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)),";
+      break;
+    case UDPF_DEATH:
+      // Notice we're not setting up a .ops/.report_death handler
+      // here.  Instead, we'll just call the probe directly when we
+      // get notified the death happened.
+      s.op->line() << " .flags=(UTRACE_EVENT(DEATH)),";
+      break;
+    case UDPF_SYSCALL_ENTRY:
+      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)),";
+      break;
+    case UDPF_SYSCALL_EXIT:
+      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)),";
+      break;
+    default:
+      throw semantic_error ("bad utrace probe flag");
+      break;
+    }
+  s.op->line() << " .engine_attached=0,";
+  s.op->line() << " },";
+}
+
+
+void
+utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty())
+    return;
+
+  s.op->newline();
+  s.op->newline() << "/* ---- utrace probes ---- */";
+  s.op->newline() << "struct stap_utrace_probe {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_task_finder_target tgt;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "struct utrace_engine_ops ops;";
+  s.op->newline() << "unsigned long flags;";
+  s.op->newline() << "int engine_attached;";
+  s.op->newline(-1) << "};";
+
+  // DRS: need to make output conditional (only output handlers for
+  // probe types that are actually used), but for now, just output
+
+  // Output handler function for CLONE and DEATH events
+  if (flags_seen[UDPF_CLONE] || flags_seen[UDPF_DEATH])
+   {
+      s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
+      s.op->indent(1);
+
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "c->probe_point = p->pp;";
+
+      // call probe function
+      s.op->newline() << "(*p->ph) (c);";
+      common_probe_entryfn_epilogue (s.op);
+
+      s.op->newline() << "return;";
+      s.op->newline(-1) << "}";
+   }
+
+  // Output handler function for SYSCALL_ENTRY and SYSCALL_EXIT events
+  if (flags_seen[UDPF_SYSCALL_ENTRY] || flags_seen[UDPF_SYSCALL_EXIT])
+    {
+      s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
+      s.op->indent(1);
+      s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
+
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "c->probe_point = p->pp;";
+      s.op->newline() << "c->regs = regs;";
+
+      // call probe function
+      s.op->newline() << "(*p->ph) (c);";
+      common_probe_entryfn_epilogue (s.op);
+
+      s.op->newline() << "return UTRACE_ACTION_RESUME;";
+      s.op->newline(-1) << "}";
+    }
+
+  // Output task finder callback routine that gets called for all
+  // utrace probe types.
+  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, struct stap_task_finder_target *tgt) {";
+  s.op->indent(1);
+  s.op->newline() << "int rc = 0;";
+  s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
+  s.op->newline() << "struct utrace_attached_engine *engine;";
+
+  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%d: %s\\n\", register_p, p->pp);";
+  s.op->newline() << "if (register_p) {";
+  s.op->indent(1);
+
+  s.op->newline() << "if (p->flags == UTRACE_EVENT(CLONE)) {";
+  s.op->indent(1);
+  // For the clone case, we can't install a utrace engine, since we're
+  // already in a clone event.  So, we just call the probe directly.
+  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
+  s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+  s.op->newline(-1) << "}";
+  // For death probes, do nothing at clone time.  We'll handle these
+  // in the 'register_p == 0' case.
+  s.op->newline() << "else if (p->flags == UTRACE_EVENT(DEATH)) {";
+  s.op->indent(1);
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else {";
+  s.op->indent(1);
+  
+  s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
+  s.op->newline() << "if (IS_ERR(engine)) {";
+  s.op->indent(1);
+  s.op->newline() << "int error = -PTR_ERR(engine);";
+  s.op->newline() << "if (error != ENOENT) {";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error(\"utrace_attach returned error %d on pid %d\", error, (int)tsk->pid);";
+  s.op->newline() << "rc = error;";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else if (unlikely(engine == NULL)) {";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error(\"utrace_attach returned NULL on pid %d!\", (int)tsk->pid);";
+  s.op->newline() << "rc = ENOENT;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else {";
+  s.op->indent(1);
+  s.op->newline() << "utrace_set_flags(tsk, engine, p->flags);";
+  s.op->newline() << "p->engine_attached = 1;";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "else {";
+  s.op->indent(1);
+  // Since this engine could be attached to multiple threads, don't
+  // cleanup here.  We'll cleanup at module unload time.  For death
+  // probes, go ahead and call the probe directly.
+  s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH)) {";
+  s.op->indent(1);
+  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
+  s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "return rc;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "struct stap_utrace_probe stap_utrace_probes[] = {";
+  s.op->indent(1);
+
+  // Set up 'process(PATH)' probes
+  if (! probes_by_path.empty())
+    {
+      for (p_b_path_iterator it = probes_by_path.begin();
+	   it != probes_by_path.end(); it++)
+        {
+	  for (unsigned i = 0; i < it->second.size(); i++)
+	    {
+	      utrace_derived_probe *p = it->second[i];
+	      emit_probe_decl(s, p);
+	    }
+	}
+    }
+
+  // Set up 'process(PID)' probes
+  if (! probes_by_pid.empty())
+    {
+      for (p_b_pid_iterator it = probes_by_pid.begin();
+	   it != probes_by_pid.end(); it++)
+        {
+	  for (unsigned i = 0; i < it->second.size(); i++)
+	    {
+	      utrace_derived_probe *p = it->second[i];
+	      emit_probe_decl(s, p);
+	    }
+	}
+    }
+  s.op->newline(-1) << "};";
+}
+
+
+void
+utrace_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty())
+    return;
+
+  s.op->newline();
+  s.op->newline() << "/* ---- utrace probes ---- */";
+
+  s.op->newline() << "for (i=0; i<" << num_probes << "; i++) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+  s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
+  s.op->newline(-1) << "}";
+
+  // rollback all utrace probes
+  s.op->newline() << "if (rc) {";
+  s.op->indent(1);
+  s.op->newline() << "for (j=i-1; j>=0; j--) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[j];";
+
+  s.op->newline() << "if (p->engine_attached) {";
+  s.op->indent(1);
+  s.op->newline() << "stap_utrace_detach_ops(&p->ops);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+
+  s.op->newline(-1) << "}";
+}
+
+
+void
+utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty()) return;
+
+  s.op->newline();
+  s.op->newline() << "/* ---- utrace probes ---- */";
+  s.op->newline() << "for (i=0; i<" << num_probes << "; i++) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_utrace_probe *p = &stap_utrace_probes[i];";
+
+  s.op->newline() << "if (p->engine_attached) {";
+  s.op->indent(1);
+  s.op->newline() << "stap_utrace_detach_ops(&p->ops);";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+}
+
+
+// ------------------------------------------------------------------------
 // user-space probes
 // ------------------------------------------------------------------------
 
@@ -6640,6 +7198,24 @@ register_standard_tapsets(systemtap_session & s)
     ->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(TOK_RETURN)
     ->bind(new uprobe_builder ());
 
+  // utrace user-space probes
+  s.pattern_root->bind_str(TOK_PROCESS)->bind("clone")
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind("clone")
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind("syscall")
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind("syscall")
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind("syscall")->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind("syscall")->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind("death")
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind("death")
+    ->bind(new utrace_builder ());
+
   // marker-based parts
   s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
   s.pattern_root->bind("kernel")->bind_str("mark")->bind_str("format")
@@ -6674,6 +7250,12 @@ all_session_groups(systemtap_session& s)
   DOONE(hrtimer);
   DOONE(perfmon);
   DOONE(procfs);
+
+  // Another "order is important" item.  We want to make sure we
+  // "register" the dummy task_finder probe group after all probe
+  // groups that use the task_finder.
+  DOONE(utrace);
+  DOONE(task_finder);
 #undef DOONE
   return g;
 }
