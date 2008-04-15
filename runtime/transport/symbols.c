@@ -290,7 +290,9 @@ static void _stp_do_unwind_data(const char __user *buf, size_t count)
 		goto done;
 	}
 	m->unwind_data_len = count;
+#ifdef STP_USE_DWARF_UNWINDER
 	_stp_create_unwind_hdr(m);
+#endif
 done:
 	write_unlock(&m->lock);
 }

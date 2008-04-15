@@ -1,5 +1,11 @@
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6410.
+	* unwind.c, unwind.h: Make body conditional in STP_USE_DWARF_UNWINDER.
+	* stack-x86_64.c (__stp_stack_print): Tolerate !unwinder.
+
+2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6405
 	* autoconf-module-nsections.c: New file.
 

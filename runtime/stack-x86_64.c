@@ -25,6 +25,7 @@ static void _stp_stack_print_fallback(unsigned long stack, int verbose)
 
 static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
 {
+#ifdef STP_USE_DWARF_UNWINDER
 	// FIXME: large stack allocation
 	struct unwind_frame_info info;
 	arch_unw_init_frame_info(&info, regs);
@@ -42,4 +43,7 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
 			_stp_stack_print_fallback(UNW_SP(&info), verbose);
 		break;
 	}
+#else /* ! STP_USE_DWARF_UNWINDER */
+        _stp_stack_print_fallback(REG_SP(regs), verbose);
+#endif
 }
