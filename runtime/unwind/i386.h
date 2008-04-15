@@ -38,8 +38,8 @@ struct unwind_frame_info
 #define UNW_FP(frame)        (frame)->regs.bp
 #define FRAME_RETADDR_OFFSET 4
 #define FRAME_LINK_OFFSET    0
-#define STACK_BOTTOM(tsk)    STACK_LIMIT((tsk)->thread.sp0)
-#define STACK_TOP(tsk)       ((tsk)->thread.sp0)
+/* #define STACK_BOTTOM(tsk)    STACK_LIMIT((tsk)->thread.sp0) */
+/* #define STACK_TOP(tsk)       ((tsk)->thread.sp0) */
 #else
 #define UNW_FP(frame) ((void)(frame), 0)
 #endif
@@ -63,8 +63,8 @@ struct unwind_frame_info
 #define UNW_FP(frame)        (frame)->regs.ebp
 #define FRAME_RETADDR_OFFSET 4
 #define FRAME_LINK_OFFSET    0
-#define STACK_BOTTOM(tsk)    STACK_LIMIT((tsk)->thread.esp0)
-#define STACK_TOP(tsk)       ((tsk)->thread.esp0)
+/* #define STACK_BOTTOM(tsk)    STACK_LIMIT((tsk)->thread.esp0) */
+/* #define STACK_TOP(tsk)       ((tsk)->thread.esp0) */
 #else
 #define UNW_FP(frame) ((void)(frame), 0)
 #endif
