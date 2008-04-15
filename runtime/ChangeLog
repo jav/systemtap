@@ -1,5 +1,10 @@
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6405
+	* autoconf-module-nsections.c: New file.
+
+2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
+
 	* unwind/i386.h (STACK_BOTTOM, STACK_TOP): Comment out these
 	unused definitions, for they collide with some kernels
 	(2.6.25-0.121.rc5.git4 rawhide).

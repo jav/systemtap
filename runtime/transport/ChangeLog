@@ -1,3 +1,9 @@
+2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6405
+	* symbols.c (_stp_load_module_symbols): Support older kernels
+	without module->sect_attrs->nsections.
+
 2008-04-09  Martin Hunt  <hunt@dragon>
 
 	* symbols.c (_stp_init_kernel_symbols): Print error

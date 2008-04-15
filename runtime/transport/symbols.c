@@ -401,14 +401,25 @@ static int _stp_section_is_interesting(const char *name)
 static struct _stp_module *_stp_load_module_symbols(struct module *mod)
 {
 	int i, num, overflow = 0;
-	struct module_sect_attrs *sa;
+	struct module_sect_attrs *sa = mod->sect_attrs;
+        struct attribute_group *sag = & sa->grp;
 	unsigned sect_size = 0, sect_num = 0, sym_size, sym_num;
 	struct _stp_module *sm;
 	char *dataptr, *endptr;
+        unsigned nsections = 0;
 
-	sa = mod->sect_attrs;
+#ifdef STAPCONF_MODULE_NSECTIONS
+        nsections = sa->nsections;
+#else
+        /* count section attributes on older kernel */
+        struct attribute** gattr;
+        for (gattr = sag->attrs; *gattr; gattr++)
+          nsections++;
+        dbug_sym(2, "\tcount %d\n", nsections);
+#endif
+
 	/* calculate how much space to allocate for section strings */
-	for (i = 0; i < sa->nsections; i++) {
+	for (i = 0; i < nsections; i++) {
 		if (_stp_section_is_interesting(sa->attrs[i].name)) {
 			sect_num++;
 			sect_size += strlen(sa->attrs[i].name) + 1;
@@ -438,7 +449,7 @@ static struct _stp_module *_stp_load_module_symbols(struct module *mod)
 	dataptr = (char *)((long)sm->sections + sect_num * sizeof(struct _stp_symbol));
 	endptr = (char *)((long)sm->sections + sect_size);
 	num = 0;
-	for (i = 0; i < sa->nsections; i++) {
+	for (i = 0; i < nsections; i++) {
 		size_t len, maxlen;
 		if (_stp_section_is_interesting(sa->attrs[i].name)) {
 			sm->sections[num].addr = sa->attrs[i].address;
