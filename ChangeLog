@@ -1,5 +1,11 @@
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6405 cont'd.
+	* Makefile.am (AM_CFLAGS): Remove -Wshadow, as it triggers for
+	new stapio (modname global vs. dwfl headers).
+
+2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6405
 	* buildrun.cxx (compile_pass): Add STAPCONF_MODULE_NSECTIONS.
 
