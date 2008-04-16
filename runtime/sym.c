@@ -223,8 +223,7 @@ void _stp_symbol_print(unsigned long address)
 }
 
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
-
-void _stp_func_print(unsigned long address, int verbose, int exact)
+int _stp_func_print(unsigned long address, int verbose, int exact)
 {
 	char *modname;
 	const char *name;
@@ -247,7 +246,9 @@ void _stp_func_print(unsigned long address, int verbose, int exact)
 				_stp_printf(" %p : %s+%#lx/%#lx%s\n", (int64_t) address, name, offset, size, exstr);
 		} else
 			_stp_printf("%p ", (int64_t) address);
+		return 1;
 	}
+	return 0;
 }
 
 void _stp_symbol_snprint(char *str, size_t len, unsigned long address)

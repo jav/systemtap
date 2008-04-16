@@ -1,3 +1,7 @@
+2008-04-15  Martin Hunt  <hunt@monkey>
+
+	* context.stp (print_backtrace, backtrace): Use MAXTRACE.
+
 2008-03-21  Eugene Teo  <eugeneteo@kernel.sg>
 
 	PR 5528
