@@ -7,7 +7,7 @@ pkglibexecdir = ${libexecdir}/${PACKAGE}
 
 AM_CPPFLAGS = -DBINDIR='"$(bindir)"' -DPKGDATADIR='"${pkgdatadir}"' -DPKGLIBDIR='"$(pkglibexecdir)"'
 
-AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wshadow -Wunused -Wformat=2 -W
+AM_CFLAGS = -D_GNU_SOURCE -fexceptions -Wall -Werror -Wunused -Wformat=2 -W
 AM_CXXFLAGS = -Wall -Werror
 
 dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapex.5 staprun.8 man/stapprobes.iosched.5 man/stapprobes.netdev.5 man/stapprobes.nfs.5 man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 man/stapprobes.process.5 man/stapprobes.rpc.5 man/stapprobes.scsi.5 man/stapprobes.signal.5 man/stapprobes.socket.5 man/stapprobes.tcp.5 man/stapprobes.udp.5
@@ -65,6 +65,9 @@ stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
 stap_LDFLAGS = $(AM_LDFLAGS)
 
+stapio_CPPFLAGS = $(AM_CPPFLAGS)
+stapio_LDFLAGS = $(AM_LDFLAGS)
+
 if BUILD_ELFUTILS
 # This tells automake's "make distcheck" what we need to compile.
 DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
@@ -72,6 +75,11 @@ DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
+stapio_CPPFLAGS += -Iinclude-elfutils
+stapio_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
+			-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
+
+
 BUILT_SOURCES += stamp-elfutils
 CLEANFILES += stamp-elfutils
 stamp-elfutils: config.status
@@ -104,7 +112,6 @@ stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
 	runtime/staprun/ctl.c runtime/staprun/unwind_data.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c 
-
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
 stapio_LDADD = @PROCFLAGS@ -ldw -lpthread
 

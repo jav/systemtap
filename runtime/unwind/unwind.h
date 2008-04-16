@@ -13,6 +13,8 @@
 #ifndef _STP_UNWIND_H_
 #define _STP_UNWIND_H_
 
+#ifdef STP_USE_DWARF_UNWINDER
+
 #if defined (__x86_64__)
 #include "x86_64.h"
 #elif  defined (__i386__)
@@ -139,4 +141,6 @@ static const u32 bad_cie, not_fde;
 static const u32 *cie_for_fde(const u32 *fde, const struct _stp_module *);
 static signed fde_pointer_type(const u32 *cie);
 
+
+#endif /* STP_USE_DWARF_UNWINDER */
 #endif /*_STP_UNWIND_H_*/

@@ -15,6 +15,8 @@
 
 #include "unwind/unwind.h"
 
+#ifdef STP_USE_DWARF_UNWINDER
+
 struct eh_frame_hdr_table_entry {
 	unsigned long start, fde;
 };
@@ -957,3 +959,6 @@ done:
 #undef CASES
 #undef FRAME_REG
 }
+
+
+#endif /* STP_USE_DWARF_UNWINDER */

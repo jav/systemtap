@@ -70,6 +70,10 @@ static struct
 #define MAXSTRINGLEN 128
 #endif
 
+#ifndef MAXTRACE
+#define MAXTRACE 20
+#endif
+
 #ifdef CONFIG_FRAME_POINTER
 /* Just because frame pointers are available does not mean we can trust them. */
 #if defined (__i386__) || defined (__arm__)

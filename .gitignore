@@ -26,3 +26,4 @@ CVS
 SNAPSHOT
 *.o
 git_version.h
+Makefile
