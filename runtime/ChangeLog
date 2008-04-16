@@ -1,3 +1,19 @@
+2008-04-15  Martin Hunt  <hunt@redhat.com>
+
+	Finish support for limits on backtrace depth.
+	* runtime.h (MAXTRACE): Default to 20.
+	* stack.c (_stp_stack_print): Call __stp_stack_print
+	with levels set properly.
+	* sym.c (_stp_func_print): Return a value indicating 
+	if something was printed.
+
+	Support for i386 and x86_64 on 2.6.25 kernel
+	* unwind/i386.h: Support unified registers on 2.6.25.
+	Remove unused frame stuff, including STACK_*.
+	* stack-i386.c (__stp_stack_print): Support unified
+	registers on 2.6.25.
+	* regs.h (REG_FP): Define for i386.
+
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6410.

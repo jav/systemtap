@@ -47,7 +47,7 @@
  * @param regs A pointer to the struct pt_regs.
  */
 
-void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
+void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
 {
 	if (verbose) {
 		/* print the current address */
@@ -66,7 +66,7 @@ void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instan
 	else 
 		_stp_printf("%p ", (int64_t) REG_IP(regs));
 
-	__stp_stack_print(regs, verbose, 0);
+	__stp_stack_print(regs, verbose, levels);
 }
 
 /** Writes stack backtrace to a string
@@ -75,14 +75,14 @@ void _stp_stack_print(struct pt_regs *regs, int verbose, struct kretprobe_instan
  * @param regs A pointer to the struct pt_regs.
  * @returns void
  */
-void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi)
+void _stp_stack_snprint(char *str, int size, struct pt_regs *regs, int verbose, struct kretprobe_instance *pi, int levels)
 {
 	/* To get a string, we use a simple trick. First flush the print buffer, */
 	/* then call _stp_stack_print, then copy the result into the output string  */
 	/* and clear the print buffer. */
 	_stp_pbuf *pb = per_cpu_ptr(Stp_pbuf, smp_processor_id());
 	_stp_print_flush();
-	_stp_stack_print(regs, verbose, pi);
+	_stp_stack_print(regs, verbose, pi, levels);
 	strlcpy(str, pb->buf, size < (int)pb->len ? size : (int)pb->len);
 	pb->len = 0;
 }
