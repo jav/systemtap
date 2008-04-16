@@ -4270,6 +4270,8 @@ dwarf_builder::build(systemtap_session & sess,
 
 struct task_finder_derived_probe: public derived_probe
 {
+  // Dummy constructor for gcc 3.4 compatibility
+  task_finder_derived_probe (): derived_probe (0) { assert(0); }
 };
 
 
