@@ -1,4 +1,5 @@
 #include <linux/list.h>
+#include <linux/binfmts.h>
 
 static LIST_HEAD(__stp_task_finder_list);
 
@@ -152,8 +153,8 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 		vma = vma->vm_next;
 	}
 	if (vma) {
-		struct vfsmount *mnt = mntget(vma->vm_file->f_path.mnt);
-		struct dentry *dentry = dget(vma->vm_file->f_path.dentry);
+		struct vfsmount *mnt = mntget(vma->vm_file->f_vfsmnt);
+		struct dentry *dentry = dget(vma->vm_file->f_dentry);
 		rc = d_path(dentry, mnt, buf, buflen);
 		dput(dentry);
 		mntput(mnt);

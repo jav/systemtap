@@ -1,3 +1,7 @@
+2008-04-16  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_get_mm_path): Made kernel 2.6.18 changes.
+
 2008-04-15  David Smith  <dsmith@redhat.com>
 
 	PR 5961 (partial)
