@@ -2463,6 +2463,20 @@ dwarf_query::build_blacklist()
   blfn += "|raw_.*";
   blfn += "|.*seq_.*lock.*";
 
+  // atomic functions
+  blfn += "|atomic_long*";
+  blfn += "|atomic_add*";
+  blfn += "|atomic_dec*";
+  blfn += "|atomic_inc*";
+  blfn += "|atomic_set*";
+  blfn += "|atomic_read*";
+  blfn += "|atomic_sub*";
+  blfn += "|atomic64_*";
+
+  // few other problematic cases
+  blfn += "|get_bh";
+  blfn += "|put_bh";
+
   // Experimental
   blfn += "|.*apic.*|.*APIC.*";
   blfn += "|.*softirq.*";

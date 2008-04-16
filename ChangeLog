@@ -1,3 +1,8 @@
+2008-04-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6417: From Srinivasa DS <srinivasa@in.ibm.com>:
+	* tapsets.cxx (build_blacklist): Extend.
+
 2008-04-15  David Smith  <dsmith@redhat.com>
 
 	* session.h (struct systemtap_session): Added utrace_derived_probe
