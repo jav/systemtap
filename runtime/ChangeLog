@@ -1,3 +1,8 @@
+2008-04-15  hunt  <hunt@redhat.com>
+
+	* stack-x86_64.c (_stp_stack_print_fallback): Add levels.
+	(__stp_stack_print): Count levels properly.
+
 2008-04-15  Martin Hunt  <hunt@redhat.com>
 
 	Finish support for limits on backtrace depth.
