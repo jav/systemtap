@@ -1,0 +1,4 @@
+#! stap -p2
+
+# missing process NAME|PID
+probe process.death { }

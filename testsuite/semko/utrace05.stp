@@ -1,0 +1,4 @@
+#! stap -p2
+
+# can't write to $syscall
+probe process("/bin/cat").syscall { $syscall = 1 }

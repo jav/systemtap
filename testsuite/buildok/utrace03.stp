@@ -1,0 +1,8 @@
+#! stap -p4
+
+probe process("/bin/ls").syscall {
+      printf("|%d", $syscall)
+}
+probe process("/bin/ls").syscall.return {
+      print("+\n")
+}

@@ -1,0 +1,4 @@
+#! stap -p2
+
+# treat $syscall as an array
+probe process("/bin/cat").syscall { print($syscall[0]) }

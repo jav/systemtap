@@ -1,3 +1,22 @@
+2008-04-17  David Smith  <dsmith@redhat.com>
+
+	* buildok/utrace01.stp: New test.
+	* buildok/utrace02.stp: Ditto.
+	* buildok/utrace03.stp: Ditto.
+	* semko/utrace01.stp: Ditto.
+	* semko/utrace02.stp: Ditto.
+	* semko/utrace03.stp: Ditto.
+	* semko/utrace04.stp: Ditto.
+	* semko/utrace05.stp: Ditto.
+	* semko/utrace06.stp: Ditto.
+	* semko/utrace07.stp: Ditto.
+	* semko/utrace08.stp: Ditto.
+	* semko/utrace09.stp: Ditto.
+	* semko/utrace10.stp: Ditto.
+	* semko/utrace11.stp: Ditto.
+	* semko/utrace12.stp: Ditto.
+	* semko/utrace13.stp: Ditto.
+
 2008-04-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 2949

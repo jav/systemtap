@@ -1,0 +1,4 @@
+#! stap -p2
+
+# process NAME must be a string
+probe process(/bin/cat).death { }

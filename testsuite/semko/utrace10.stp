@@ -1,0 +1,4 @@
+#! stap -p2
+
+# path can't contain an empty component
+probe process("/foo//bar").death { }
