@@ -4538,6 +4538,40 @@ struct utrace_builder: public derived_probe_builder
     else if (has_null_param (parameters, "clone"))
       flags = UDPF_CLONE;
 
+    // If we have a path, we need to validate it.
+    if (has_path)
+    {
+	string::size_type start_pos, end_pos;
+	string component;
+
+	// Make sure it starts with '/'.
+	if (path[0] != '/')
+	    throw semantic_error ("process path must start with a '/'",
+				  location->tok);
+
+	start_pos = 1;			// get past the initial '/'
+	while ((end_pos = path.find('/', start_pos)) != string::npos)
+        {
+	    component = path.substr(start_pos, end_pos - start_pos);
+	    // Make sure it isn't empty.
+	    if (component.size() == 0)
+		throw semantic_error ("process path component cannot be empty",
+				      location->tok);
+	    // Make sure it isn't relative.
+	    else if (component == "." || component == "..")
+		throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+
+	    start_pos = end_pos + 1;
+	}
+	component = path.substr(start_pos);
+	// Make sure it doesn't end with '/'.
+	if (component.size() == 0)
+	    throw semantic_error ("process path cannot end with a '/'", location->tok);
+	// Make sure it isn't relative.
+	else if (component == "." || component == "..")
+	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+    }
+
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
                                                         has_path, path, pid,
 							flags));
@@ -4634,9 +4668,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "int engine_attached;";
   s.op->newline(-1) << "};";
 
-  // DRS: need to make output conditional (only output handlers for
-  // probe types that are actually used), but for now, just output
-
   // Output handler function for CLONE and DEATH events
   if (flags_seen[UDPF_CLONE] || flags_seen[UDPF_DEATH])
    {
@@ -4685,53 +4716,76 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "if (register_p) {";
   s.op->indent(1);
 
-  s.op->newline() << "if (p->flags == UTRACE_EVENT(CLONE)) {";
+  s.op->newline() << "switch (p->flags) {";
   s.op->indent(1);
-  // For the clone case, we can't install a utrace engine, since we're
-  // already in a clone event.  So, we just call the probe directly.
-  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
-  s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
-  s.op->newline(-1) << "}";
+  // For the register/clone case, we can't install a utrace engine,
+  // since we're already in a clone event.  So, we just call the probe
+  // directly.  Note that for existing threads, this won't really work
+  // since our state isn't STAP_SESSION_RUNNING yet.  But that's OK,
+  // since this isn't really a 'clone' event - it is a notification
+  // that task_finder found an interesting process.
+  if (flags_seen[UDPF_CLONE])
+    {
+      s.op->newline() << "case UTRACE_EVENT(CLONE):";
+      s.op->indent(1);
+      s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
+      s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline() << "break;";
+      s.op->indent(-1);
+    }
   // For death probes, do nothing at clone time.  We'll handle these
   // in the 'register_p == 0' case.
-  s.op->newline() << "else if (p->flags == UTRACE_EVENT(DEATH)) {";
-  s.op->indent(1);
+  if (flags_seen[UDPF_DEATH])
+    {
+      s.op->newline() << "case UTRACE_EVENT(DEATH):";
+      s.op->indent(1);
+      s.op->newline() << "break;";
+      s.op->indent(-1);
+    }
+  // Attach an engine for SYSCALL_ENTRY and SYSCALL_EXIT events.
+  if (flags_seen[UDPF_SYSCALL_ENTRY] || flags_seen[UDPF_SYSCALL_EXIT])
+    {
+      s.op->newline() << "case UTRACE_EVENT(SYSCALL_ENTRY):";
+      s.op->newline() << "case UTRACE_EVENT(SYSCALL_EXIT):";
+      s.op->indent(1);
+      s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
+      s.op->newline() << "if (IS_ERR(engine)) {";
+      s.op->indent(1);
+      s.op->newline() << "int error = -PTR_ERR(engine);";
+      s.op->newline() << "if (error != ENOENT) {";
+      s.op->indent(1);
+      s.op->newline() << "_stp_error(\"utrace_attach returned error %d on pid %d\", error, (int)tsk->pid);";
+      s.op->newline() << "rc = error;";
+      s.op->newline(-1) << "}";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "else if (unlikely(engine == NULL)) {";
+      s.op->indent(1);
+      s.op->newline() << "_stp_error(\"utrace_attach returned NULL on pid %d!\", (int)tsk->pid);";
+      s.op->newline() << "rc = ENOENT;";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "else {";
+      s.op->indent(1);
+      s.op->newline() << "utrace_set_flags(tsk, engine, p->flags);";
+      s.op->newline() << "p->engine_attached = 1;";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "break;";
+      s.op->indent(-1);
+    }
   s.op->newline(-1) << "}";
-  s.op->newline() << "else {";
-  s.op->indent(1);
-  
-  s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
-  s.op->newline() << "if (IS_ERR(engine)) {";
-  s.op->indent(1);
-  s.op->newline() << "int error = -PTR_ERR(engine);";
-  s.op->newline() << "if (error != ENOENT) {";
-  s.op->indent(1);
-  s.op->newline() << "_stp_error(\"utrace_attach returned error %d on pid %d\", error, (int)tsk->pid);";
-  s.op->newline() << "rc = error;";
   s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "else if (unlikely(engine == NULL)) {";
-  s.op->indent(1);
-  s.op->newline() << "_stp_error(\"utrace_attach returned NULL on pid %d!\", (int)tsk->pid);";
-  s.op->newline() << "rc = ENOENT;";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "else {";
-  s.op->indent(1);
-  s.op->newline() << "utrace_set_flags(tsk, engine, p->flags);";
-  s.op->newline() << "p->engine_attached = 1;";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
-  s.op->newline() << "else {";
-  s.op->indent(1);
   // Since this engine could be attached to multiple threads, don't
-  // cleanup here.  We'll cleanup at module unload time.  For death
-  // probes, go ahead and call the probe directly.
-  s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH)) {";
+  // cleanup here.  We'll cleanup at module unload time.
+  s.op->newline() << "else {";
   s.op->indent(1);
-  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
-  s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
-  s.op->newline(-1) << "}";
+  // For death probes, go ahead and call the probe directly.
+  if (flags_seen[UDPF_DEATH])
+    {
+      s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH)) {";
+      s.op->indent(1);
+      s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
+      s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline(-1) << "}";
+    }
   s.op->newline(-1) << "}";
   s.op->newline() << "return rc;";
   s.op->newline(-1) << "}";

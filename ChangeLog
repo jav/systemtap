@@ -1,3 +1,11 @@
+2008-04-17  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_builder::build): Make sure that the PATH of
+	'process("PATH")' probes is an absolute path.
+	(utrace_derived_probe_group::emit_module_decls): Made calls to
+	utrace probe handler functions conditional on which types of
+	utrace probes are going to be output.
+
 2008-04-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (task_finder_derived_probe): Add dummy constructor
