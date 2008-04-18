@@ -5,7 +5,7 @@ set pc 0
 set vars ""
 spawn stap -e "probe kernel.function(\"sys_open\") {\$foo}" -p4 -vv -u
 expect {
-    -re {probe sys_open.*pc=(0x.*)\r\n} { set pc $expect_out(1,string); exp_continue }
+    -re {probe sys_open.*pc=(0x.*)\r\nsemantic} { set pc $expect_out(1,string); exp_continue }
     -re {alternatives: ([^\r\n]*) identifier [^\r\n]*\r\n} { set vars $expect_out(1,string)
         exp_continue }
     timeout { fail "$test (timeout)" }
@@ -19,7 +19,7 @@ set pc2 0
 set vars2 ""
 spawn stap -e "probe kernel.statement($pc) {\$foo}" -p4 -vv -u
 expect {
-    -re {probe sys_open.*pc=(0x.*)\r\n} { set pc2 $expect_out(1,string); exp_continue }
+    -re {probe sys_open.*pc=(0x.*)\r\nsemantic} { set pc2 $expect_out(1,string); exp_continue }
     -re {alternatives: ([^\r\n]*) identifier [^\r\n]*\r\n} { set vars2 $expect_out(1,string)
         exp_continue }
     timeout { fail "$test (timeout)" }
