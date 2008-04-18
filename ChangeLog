@@ -1,3 +1,7 @@
+2008-04-18  David Smith  <dsmith@redhat.com>
+
+	* stapprobes.5.in: Added information about utrace probes.
+
 2008-04-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (build_blacklist): Fix regexps for atomics.
