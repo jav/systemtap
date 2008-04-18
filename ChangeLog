@@ -1,6 +1,8 @@
 2008-04-17  Josh Stone  <joshua.i.stone@intel.com>
 
 	* tapsets.cxx (build_blacklist): Fix regexps for atomics.
+	* vim/syntax/stap.vim: Recognize the 'limit' keyword and script arguments,
+	allow '$' in variable names, and highlight $target variables.
 
 2008-04-17  David Smith  <dsmith@redhat.com>
 

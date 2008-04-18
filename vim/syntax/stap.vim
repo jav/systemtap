@@ -1,7 +1,7 @@
 " Vim syntax file
-" Language:	SystemTap
-" Maintainer:	Josh Stone <joshua.i.stone@intel.com>
-" Last Change:	2005 Dec 20
+" Language:     SystemTap
+" Maintainer:   Josh Stone <joshua.i.stone@intel.com>
+" Last Change:  2008 Apr 17
 
 " For version 5.x: Clear all syntax items
 " For version 6.x: Quit when a syntax file was already loaded
@@ -11,11 +11,13 @@ elseif exists("b:current_syntax")
   finish
 endif
 
-syn keyword stapStatement   contained break continue return next delete containedin=stapBlock
-syn keyword stapRepeat      contained while for foreach in containedin=stapBlock
+setlocal iskeyword=@,48-57,_,$
+
+syn keyword stapStatement contained break continue return next delete containedin=stapBlock
+syn keyword stapRepeat contained while for foreach in limit containedin=stapBlock
 syn keyword stapConditional contained if else containedin=stapBlock
 syn keyword stapDeclaration global probe function
-syn keyword stapType        string long
+syn keyword stapType string long
 
 syn region stapProbeDec start="\<probe\>"lc=5 end="{"me=s-1 contains=stapString,stapNumber
 syn match stapProbe contained "\<\w\+\>" containedin=stapProbeDec
@@ -27,17 +29,25 @@ syn match stapFunc contained "\<\w\+\>" containedin=stapFuncDec,stapFuncCall
 syn match stapStat contained "@\<\w\+\ze\(\s\|\n\)*(" containedin=stapBlock
 
 " decimal number
-syn match	stapNumber		"\<\d\+\>" containedin=stapBlock
+syn match stapNumber "\<\d\+\>" containedin=stapBlock
 " octal number
-syn match	stapNumber      "\<0\o\+\>" contains=stapOctalZero containedin=stapBlock
+syn match stapNumber "\<0\o\+\>" contains=stapOctalZero containedin=stapBlock
 " Flag the first zero of an octal number as something special
-syn match	stapOctalZero	contained "\<0"
+syn match stapOctalZero contained "\<0"
 " flag an octal number with wrong digits
-syn match	stapOctalError	"\<0\o*[89]\d*" containedin=stapBlock
+syn match stapOctalError "\<0\o*[89]\d*" containedin=stapBlock
 " hex number
-syn match	stapNumber		"0x\x\+\>" containedin=stapBlock
+syn match stapNumber "\<0x\x\+\>" containedin=stapBlock
+" numeric arguments
+syn match stapNumber "\<\$\d\+\>" containedin=stapBlock
+syn match stapNumber "\<\$#" containedin=stapBlock
 
-syn region  stapString  oneline start=+"+ skip=+\\"+ end=+"+ containedin=stapBlock
+syn region stapString oneline start=+"+ skip=+\\"+ end=+"+ containedin=stapBlock
+" string arguments
+syn match stapString "@\d\+\>" containedin=stapBlock
+syn match stapString "@#" containedin=stapBlock
+
+syn match stapTarget contained "\w\@<!\$\h\w*\>" containedin=stapBlock
 
 syn region stapPreProc fold start="%(" end="%)" contains=stapNumber,stapString containedin=ALL
 syn keyword stapPreProcCond contained kernel_v kernel_vr arch containedin=stapPreProc
@@ -48,15 +58,15 @@ syn region  stapCBlock fold matchgroup=stapCBlockDelims start="%{"rs=e end="%}"r
 
 syn region stapBlock fold matchgroup=stapBlockEnds start="{"rs=e end="}"re=s containedin=stapBlock
 
-syn keyword stapTodo    contained TODO FIXME XXX
+syn keyword stapTodo contained TODO FIXME XXX
 
-syn match   stapComment "#.*" contains=stapTodo containedin=stapBlock
-syn match   stapComment "//.*" contains=stapTodo containedin=stapBlock
-syn region  stapComment matchgroup=stapComment start="/\*" end="\*/" contains=stapTodo,stapCommentBad containedin=stapBlock
-syn match   stapCommentBad contained "/\*"
+syn match stapComment "#.*" contains=stapTodo containedin=stapBlock
+syn match stapComment "//.*" contains=stapTodo containedin=stapBlock
+syn region stapComment matchgroup=stapComment start="/\*" end="\*/" contains=stapTodo,stapCommentBad containedin=stapBlock
+syn match stapCommentBad contained "/\*"
 
 " treat ^#! as special
-syn match   stapSharpBang   "^#!.*"
+syn match stapSharpBang "^#!.*"
 
 
 " define the default highlighting
@@ -70,26 +80,27 @@ if version >= 508 || !exists("did_stap_syn_inits")
     command -nargs=+ HiLink hi def link <args>
   endif
 
-  HiLink stapNumber		Number
-  HiLink stapOctalZero		PreProc " c.vim does it this way...
-  HiLink stapOctalError		Error
-  HiLink stapString		String
-  HiLink stapTodo       Todo
-  HiLink stapComment    Comment
+  HiLink stapNumber Number
+  HiLink stapOctalZero PreProc " c.vim does it this way...
+  HiLink stapOctalError Error
+  HiLink stapString String
+  HiLink stapTodo Todo
+  HiLink stapComment Comment
   HiLink stapCommentBad Error
-  HiLink stapSharpBang  PreProc
-  HiLink stapCBlockDelims  Special
+  HiLink stapSharpBang PreProc
+  HiLink stapCBlockDelims Special
   HiLink stapCMacro Macro
-  HiLink stapStatement  Statement
-  HiLink stapConditional  Conditional
-  HiLink stapRepeat  Repeat
-  HiLink stapType  Type
-  HiLink stapProbe  Function
-  HiLink stapFunc  Function
-  HiLink stapStat  Function
-  HiLink stapPreProc  PreProc
-  HiLink stapPreProcCond  Special
-  HiLink stapDeclaration  Typedef
+  HiLink stapStatement Statement
+  HiLink stapConditional Conditional
+  HiLink stapRepeat Repeat
+  HiLink stapType Type
+  HiLink stapProbe Function
+  HiLink stapFunc Function
+  HiLink stapStat Function
+  HiLink stapPreProc PreProc
+  HiLink stapPreProcCond Special
+  HiLink stapDeclaration Typedef
+  HiLink stapTarget Special
 
   delcommand HiLink
 endif
