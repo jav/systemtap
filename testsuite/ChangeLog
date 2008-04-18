@@ -1,5 +1,7 @@
 2008-04-18  David Smith  <dsmith@redhat.com>
 
+	* systemtap.base/utrace_p4.exp: Added exec probe test.
+
 	* buildok/utrace01.stp: Removed.
 	* buildok/utrace02.stp: Ditto.
 	* buildok/utrace03.stp: Ditto.

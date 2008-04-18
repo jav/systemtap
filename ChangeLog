@@ -1,5 +1,12 @@
 2008-04-18  David Smith  <dsmith@redhat.com>
 
+	* tapsets.cxx (struct utrace_builder): Added exec probes.
+	(utrace_derived_probe_group::emit_probe_decl): Ditto.
+	(utrace_derived_probe_group::emit_module_decls): Ditto.
+	(register_standard_tapsets): Ditto.
+	* stapprobes.5.in: Added information about exec probes.
+	* NEWS: Added information about utrace probes.
+
 	* stapprobes.5.in: Added information about utrace probes.
 
 2008-04-17  Josh Stone  <joshua.i.stone@intel.com>

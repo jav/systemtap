@@ -311,6 +311,8 @@ Additional user-space probing is available in the following forms:
 .SAMPLE
 process(PID).clone
 process("PATH").clone
+process(PID).exec
+process("PATH").exec
 process(PID).death
 process("PATH").death
 process(PID).syscall
@@ -323,6 +325,10 @@ A
 .B .clone
 probe gets called when a thread described by PID or PATH creates a new
 thread.
+A
+.B .exec
+probe gets called when a thread described by PID or PATH returns from
+.IR exec() .
 A
 .B .death
 probe gets called when a thread described by PID or PATH dies.

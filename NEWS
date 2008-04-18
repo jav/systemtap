@@ -13,6 +13,18 @@
   vm.pagefault
   vm.write_shared
 
+- More user-space probe types are added:
+
+  probe process(PID).clone { }
+  probe process("PATH").clone { }
+  probe process(PID).exec { }
+  probe process("PATH").exec { }
+  probe process(PID).death { }
+  probe process("PATH").death { }
+  probe process(PID).syscall { }
+  probe process("PATH").syscall { }
+  probe process(PID).syscall.return { }
+  probe process("PATH").syscall.return { }
 
 * What's new in version 0.6
 
