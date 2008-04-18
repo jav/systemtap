@@ -104,6 +104,12 @@ struct systemtap_session
   std::string cache_path;
   std::string hash_path;
 
+  // dwarfless operation
+  bool consult_symtab;
+  std::string kernel_symtab_path;
+  bool ignore_vmlinux;
+  bool ignore_dwarf;
+
   // temporary directory for module builds etc.
   // hazardous - it is "rm -rf"'d at exit
   std::string tmpdir;

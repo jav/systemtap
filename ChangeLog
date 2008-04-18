@@ -1,3 +1,16 @@
+2008-04-18  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 4311 - Function boundary tracing without debuginfo: Phase I
+	* tapsets.cxx: Major rework of dwflpp, dwarf_query, and related
+	code to make do with elf info if dwarf info is absent, or
+	(in the case of vmlinux) make do with a System.map-style
+	symbol table if even the elf file is absent.
+	* main.cxx: Use getopt_long instead of getopt.	Added --kelf,
+	--kmap, --ignore-vmlinux, and --ignore-dwarf.
+	* hash.cxx, session.h, stap.1.in: Added --kelf, --kmap,
+	--ignore-vmlinux, and --ignore-dwarf.
+	* testsuite/{semok,semko}/nodwf*.stp
+
 2008-04-04  Masami Hiramatsu <mhiramat@redhat.com>
 
 	PR 6028
