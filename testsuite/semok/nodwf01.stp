@@ -1,0 +1,12 @@
+#!/bin/sh
+
+stap -p2 --ignore-vmlinux --kmap=/proc/kallsyms -e '
+global nret
+
+probe syscall.*.return {
+	/* NB: $return does NOT currently work here. */
+	printf("%s returns %s\n", name, returnstr(2));
+	if (nret++ > 50)
+		exit()
+}
+'
