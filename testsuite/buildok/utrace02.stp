@@ -1,5 +1,0 @@
-#! stap -p4
-
-probe process("/bin/ls").death {
-      print("ls death")
-}
