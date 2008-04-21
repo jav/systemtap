@@ -74,13 +74,12 @@ void _stp_handle_start(struct _stp_msg_start *st)
 
 /* common cleanup code. */
 /* This is called from the kernel thread when an exit was requested */
-/* by staprun or the exit() function. It is also called by transport_close() */
-/* when the module  is removed. In that case "dont_rmmod" is set to 1. */
+/* by staprun or the exit() function. */
 /* We need to call it both times because we want to clean up properly */
 /* when someone does /sbin/rmmod on a loaded systemtap module. */
-static void _stp_cleanup_and_exit(int dont_rmmod)
+static void _stp_cleanup_and_exit(int send_exit)
 {
-	dbug_trans(1, "cleanup_and_exit (%d)\n", dont_rmmod);
+	dbug_trans(1, "cleanup_and_exit (%d)\n", send_exit);
 	if (!_stp_exit_called) {
 		int failures;
 
@@ -106,8 +105,8 @@ static void _stp_cleanup_and_exit(int dont_rmmod)
 			utt_trace_startstop(_stp_utt, 0, &utt_seq);
 
 		dbug_trans(1, "ctl_send STP_EXIT\n");
-		/* tell staprun to exit (if it is still there) */
-		_stp_ctl_send(STP_EXIT, &dont_rmmod, sizeof(int));
+		if (send_exit)
+			_stp_ctl_send(STP_EXIT, NULL, 0);
 		dbug_trans(1, "done with ctl_send STP_EXIT\n");
 	}
 }
@@ -162,7 +161,7 @@ static void _stp_work_queue(void *data)
 
 	/* if exit flag is set AND we have finished with probe_start() */
 	if (unlikely(_stp_exit_flag))
-		_stp_cleanup_and_exit(0);
+		_stp_cleanup_and_exit(1);
 	else if (likely(_stp_attached))
 		queue_delayed_work(_stp_wq, &_stp_work, STP_WORK_TIMER);
 }
@@ -176,7 +175,7 @@ static void _stp_work_queue(void *data)
 void _stp_transport_close()
 {
 	dbug_trans(1, "%d: ************** transport_close *************\n", current->pid);
-	_stp_cleanup_and_exit(1);
+	_stp_cleanup_and_exit(0);
 	destroy_workqueue(_stp_wq);
 	_stp_unregister_ctl_channel();
 	if (_stp_utt)

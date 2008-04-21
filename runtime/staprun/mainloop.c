@@ -15,7 +15,9 @@
 
 /* globals */
 int ncpus;
-int use_old_transport = 0;
+static int use_old_transport = 0;
+enum _stp_sig_type { sig_none, sig_done, sig_detach };
+static enum _stp_sig_type got_signal = sig_none;
 
 static void sigproc(int signum)
 {
@@ -27,9 +29,9 @@ static void sigproc(int signum)
 			return;
 		send_request(STP_EXIT, NULL, 0);
 	} else if (signum == SIGQUIT)
-		cleanup_and_exit(2);
+		got_signal = sig_detach;
 	else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM)
-		send_request(STP_EXIT, NULL, 0);
+		got_signal = sig_done;
 }
 
 static void setup_main_signals(int cleanup)
@@ -162,7 +164,7 @@ int init_stapio(void)
 	dbug(2, "init_stapio\n");
 
 	/* create control channel */
-	use_old_transport = init_ctl_channel(0);
+	use_old_transport = init_ctl_channel(modname, 1);
 	if (use_old_transport < 0) {
 		err("Failed to initialize control channel.\n");
 		return -1;
@@ -193,13 +195,9 @@ int init_stapio(void)
 	return 0;
 }
 
-/* cleanup_and_exit() closed channels and frees memory
- * then exits with the following status codes:
- * 1 - failed to initialize.
- * 2 - disconnected
- * 3 - initialized
- */
-void cleanup_and_exit(int closed)
+/* cleanup_and_exit() closed channels, frees memory,
+ * removes the module (if necessary) and exits. */
+void cleanup_and_exit(int detach)
 {
 	pid_t err;
 	static int exiting = 0;
@@ -210,7 +208,7 @@ void cleanup_and_exit(int closed)
 
 	setup_main_signals(1);
 
-	dbug(1, "CLEANUP AND EXIT  closed=%d\n", closed);
+	dbug(1, "detach=%d\n", detach);
 
 	/* what about child processes? we will wait for them here. */
 	err = waitpid(-1, NULL, WNOHANG);
@@ -219,20 +217,23 @@ void cleanup_and_exit(int closed)
 	while (wait(NULL) > 0) ;
 
 	if (use_old_transport)
-		close_oldrelayfs(closed == 2);
+		close_oldrelayfs(detach);
 	else
 		close_relayfs();
 
 	dbug(1, "closing control channel\n");
 	close_ctl_channel();
 
-	if (initialized == 2 && closed == 2) {
+	if (detach) {
 		err("\nDisconnecting from systemtap module.\n" "To reconnect, type \"staprun -A %s\"\n", modname);
-	} else if (initialized)
-		closed = 3;
-	else
-		closed = 1;
-	exit(closed);
+	} else {
+		dbug(2, "removing %s\n", modname);
+		if (execl(BINDIR "/staprun", "staprun", "-d", modname, NULL) < 0) {
+			perror(modname);
+			_exit(1);
+		}
+	}
+	_exit(0);
 }
 
 /**
@@ -255,13 +256,18 @@ int stp_main_loop(void)
 
 	while (1) {		/* handle messages from control channel */
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
+		dbug(2, "nb=%d\n", (int)nb);
 		if (nb <= 0) {
-			if (errno != EINTR)
+			if (got_signal == sig_done)
+				send_request(STP_EXIT, NULL, 0);
+			else if (got_signal == sig_detach)
+				cleanup_and_exit(1);
+			else if (errno != EINTR)
 				_perr("Unexpected EOF in read (nb=%ld)", (long)nb);
 			continue;
 		}
 
-		type = *(uint32_t *)recvbuf;
+		type = *(uint32_t *) recvbuf;
 		data = (void *)(recvbuf + sizeof(uint32_t));
 		nb -= sizeof(uint32_t);
 
@@ -276,7 +282,7 @@ int stp_main_loop(void)
 				}
 				if (bw != nb) {
 					_perr("write error (nb=%ld)", (long)nb);
-					cleanup_and_exit(1);
+					cleanup_and_exit(0);
 				}
 				break;
 			}
@@ -287,9 +293,8 @@ int stp_main_loop(void)
 		case STP_EXIT:
 			{
 				/* module asks us to unload it and exit */
-				int *closed = (int *)data;
-				dbug(2, "got STP_EXIT, closed=%d\n", *closed);
-				cleanup_and_exit(*closed);
+				dbug(2, "got STP_EXIT\n");
+				cleanup_and_exit(0);
 				break;
 			}
 		case STP_START:
@@ -299,7 +304,7 @@ int stp_main_loop(void)
 				if (t->res < 0) {
 					if (target_cmd)
 						kill(target_pid, SIGKILL);
-					cleanup_and_exit(1);
+					cleanup_and_exit(0);
 				} else if (target_cmd)
 					kill(target_pid, SIGUSR1);
 				break;
@@ -316,16 +321,15 @@ int stp_main_loop(void)
 				struct _stp_msg_start ts;
 				if (use_old_transport) {
 					if (init_oldrelayfs() < 0)
-						cleanup_and_exit(1);
+						cleanup_and_exit(0);
 				} else {
 					if (init_relayfs() < 0)
-						cleanup_and_exit(1);
+						cleanup_and_exit(0);
 				}
 				ts.target = target_pid;
-				initialized = 2;
 				send_request(STP_START, &ts, sizeof(ts));
 				if (load_only)
-					cleanup_and_exit(2);
+					cleanup_and_exit(1);
 				break;
 			}
 		case STP_UNWIND:

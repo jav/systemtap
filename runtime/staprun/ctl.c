@@ -12,38 +12,35 @@
 
 #include "staprun.h"
 
-int init_ctl_channel(int symbols)
+int init_ctl_channel(const char *name, int verb)
 {
-	char *cname, buf[PATH_MAX];
+	char buf[PATH_MAX];
 	struct statfs st;
 	int old_transport = 0;
-	
-	if (symbols)
-		cname = ".symbols";
-	else
-		cname = ".cmd";
 
- 	if (statfs("/sys/kernel/debug", &st) == 0 && (int) st.f_type == (int) DEBUGFS_MAGIC) {
-		if (sprintf_chk(buf, "/sys/kernel/debug/systemtap/%s/%s", modname, cname))
+	if (statfs("/sys/kernel/debug", &st) == 0 && (int)st.f_type == (int)DEBUGFS_MAGIC) {
+		if (sprintf_chk(buf, "/sys/kernel/debug/systemtap/%s/.cmd", name))
 			return -1;
 	} else {
 		old_transport = 1;
-		if (sprintf_chk(buf, "/proc/systemtap/%s/%s", modname, cname))
+		if (sprintf_chk(buf, "/proc/systemtap/%s/.cmd", name))
 			return -1;
 	}
-	
-	dbug(2, "Opening %s\n", buf); 
+
+	dbug(2, "Opening %s\n", buf);
 	control_channel = open(buf, O_RDWR);
 	if (control_channel < 0) {
-		if (attach_mod && errno == ENOENT)
-			err("ERROR: Can not attach. Module %s not running.\n", modname);
-		else
-			perr("Couldn't open control channel '%s'", buf);
+		if (verb) {
+			if (attach_mod && errno == ENOENT)
+				err("ERROR: Can not attach. Module %s not running.\n", name);
+			else
+				perr("Couldn't open control channel '%s'", buf);
+		}
 		return -1;
 	}
 	if (set_clexec(control_channel) < 0)
 		return -1;
-	
+
 	return old_transport;
 }
 

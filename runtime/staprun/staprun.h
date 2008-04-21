@@ -103,8 +103,6 @@ extern char *__name__;
 #define STP_OLD_TRANSPORT
 #include "../transport/transport_msgs.h"
 
-extern int use_old_transport;
-
 #define RELAYFS_MAGIC	0xF0B4A981
 #define DEBUGFS_MAGIC	0x64626720
 #define DEBUGFSDIR	"/sys/kernel/debug"
@@ -119,7 +117,7 @@ int stp_main_loop(void);
 int send_request(int type, void *data, int len);
 void cleanup_and_exit (int);
 void send_unwind_data(const char *name);
-int init_ctl_channel(int);
+int init_ctl_channel(const char *name, int verb);
 void close_ctl_channel(void);
 int init_relayfs(void);
 void close_relayfs(void);
@@ -168,6 +166,7 @@ extern int target_pid;
 extern char *target_cmd;
 extern char *outfile_name;
 extern int attach_mod;
+extern int delete_mod;
 extern int load_only;
 extern int need_uprobes;
 

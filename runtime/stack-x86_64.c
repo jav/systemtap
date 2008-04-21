@@ -45,6 +45,6 @@ static void __stp_stack_print(struct pt_regs *regs, int verbose, int levels)
 		break;
 	}
 #else /* ! STP_USE_DWARF_UNWINDER */
-        _stp_stack_print_fallback(REG_SP(regs), verbose);
+	_stp_stack_print_fallback(REG_SP(regs), verbose);
 #endif
 }

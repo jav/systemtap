@@ -16,21 +16,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
- * Copyright (C) 2005-2007 Red Hat, Inc.
+ * Copyright (C) 2005-2008 Red Hat, Inc.
  *
  */
 
 #include "staprun.h"
-
-int inserted_module = 0;
 
 /* used in dbug, _err and _perr */
 char *__name__ = "staprun";
 
 extern long delete_module(const char *, unsigned int);
 
-static int
-run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
+static int run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
 	pid_t pid;
 	int rstatus;
@@ -42,14 +39,13 @@ run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 			err("%s ", argv[i]);
 			i++;
 		}
-		err("\n");		
+		err("\n");
 	}
 
 	if ((pid = fork()) < 0) {
 		_perr("fork");
 		return -1;
-	}
-	else if (pid == 0) {
+	} else if (pid == 0) {
 		/* Make sure we run as the full user.  If we're
 		 * switching to a non-root user, this won't allow
 		 * that process to switch back to root (since the
@@ -77,17 +73,6 @@ run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 	if (WIFEXITED(rstatus))
 		return WEXITSTATUS(rstatus);
 	return -1;
-}
-
-/* Keep the uid and gid settings because we will likely */
-/* conditionally restore "-u" */
-static int run_stapio(char **argv)
-{
-	uid_t uid = getuid();
-	gid_t gid = getgid();
-	argv[0] = PKGLIBDIR "/stapio";
-
-	return run_as(uid, gid, argv[0], argv);
 }
 
 /*
@@ -132,8 +117,7 @@ static int enable_uprobes(void)
 
 	dbug(2, "Inserting uprobes module from SystemTap runtime.\n");
 	argv[0] = NULL;
-	return insert_module(PKGDATADIR "/runtime/uprobes/uprobes.ko",
-		NULL, argv);
+	return insert_module(PKGDATADIR "/runtime/uprobes/uprobes.ko", NULL, argv);
 }
 
 static int insert_stap_module(void)
@@ -144,6 +128,66 @@ static int insert_stap_module(void)
 	return insert_module(modpath, bufsize_option, modoptions);
 }
 
+static int remove_module(const char *name, int verb);
+
+static void remove_all_modules(void)
+{
+	char *base;
+	struct statfs st;
+	struct dirent *d;
+	DIR *moddir;
+
+	if (statfs("/sys/kernel/debug", &st) == 0 && (int)st.f_type == (int)DEBUGFS_MAGIC)
+		base = "/sys/kernel/debug/systemtap";
+	else
+		base = "/proc/systemtap";
+
+	moddir = opendir(base);
+	if (moddir) {
+		while ((d = readdir(moddir)))
+			if (remove_module(d->d_name, 0) == 0)
+				printf("Module %s removed.\n", d->d_name);
+		closedir(moddir);
+	}
+}
+
+static int remove_module(const char *name, int verb)
+{
+	int ret;
+	dbug(2, "%s\n", name);
+
+	if (strcmp(name, "*") == 0) {
+		remove_all_modules();
+		return 0;
+	}
+
+	/* Call init_ctl_channel() which actually attempts an open()
+	 * of the control channel. This is better than using access() because 
+	 * an open on an already open channel will fail, preventing us from attempting
+	 * to remove an in-use module. 
+	 */
+	if (init_ctl_channel(name, 0) < 0) {
+		if (verb)
+			err("Error accessing systemtap module %s: %s\n", name, strerror(errno));
+		return 1;
+	}
+	close_ctl_channel();
+
+	dbug(2, "removing module %s\n", name);
+
+	/* Don't remove module when priority is elevated. */
+	if (setpriority(PRIO_PROCESS, 0, 0) < 0)
+		_perr("setpriority");
+
+	ret = do_cap(CAP_SYS_MODULE, delete_module, name, 0);
+	if (ret != 0) {
+		err("Error removing module '%s': %s.\n", name, strerror(errno));
+		return 1;
+	}
+
+	dbug(1, "Module %s removed.\n", name);
+	return 0;
+}
 
 int init_staprun(void)
 {
@@ -154,69 +198,28 @@ int init_staprun(void)
 
 	/* We're done with CAP_SYS_ADMIN. */
 	drop_cap(CAP_SYS_ADMIN);
- 
-	if (!attach_mod) {
+
+	if (delete_mod)
+		exit(remove_module(modname, 1));
+	else if (!attach_mod) {
 		if (need_uprobes && enable_uprobes() != 0)
 			return -1;
 		if (insert_stap_module() < 0)
 			return -1;
-		else
-			inserted_module = 1;
 	}
-	
 	return 0;
-}
-	
-static void cleanup(int rc)
-{
-	/* Only cleanup once. */
-	static int done = 0;
-	if (done == 0)
-		done = 1;
-	else
-		return;
-
-	dbug(2, "rc=%d, inserted_module=%d\n", rc, inserted_module);
-
-	if (setpriority (PRIO_PROCESS, 0, 0) < 0)
-		_perr("setpriority");
-	
-	/* rc == 2 means disconnected */
-	if (rc == 2)
-		return;
-
-	/* If we inserted the module and did not get rc==2, then */
-	/* we really want to remove it. */
-	if (inserted_module || rc == 3) {
-		long ret;
-		dbug(2, "removing module %s\n", modname);
-		ret = do_cap(CAP_SYS_MODULE, delete_module, modname, 0);
-		if (ret != 0)
-			err("Error removing module '%s': %s\n", modname, moderror(errno));
-	}
-}
-
-static void exit_cleanup(void)
-{
-	dbug(2, "something exited...\n");
-	cleanup(1);
 }
 
 int main(int argc, char **argv)
 {
 	int rc;
 
-	if (atexit(exit_cleanup)) {
-		_perr("cannot set exit function");
-		exit(1);
-	}
-
-        /* NB: Don't do the geteuid()!=0 check here, since we want to
-           test command-line error-handling while running non-root. */
+	/* NB: Don't do the geteuid()!=0 check here, since we want to
+	   test command-line error-handling while running non-root. */
 	/* Get rid of a few standard environment variables (which */
 	/* might cause us to do unintended things). */
 	rc = unsetenv("IFS") || unsetenv("CDPATH") || unsetenv("ENV")
-		|| unsetenv("BASH_ENV");
+	    || unsetenv("BASH_ENV");
 	if (rc) {
 		_perr("unsetenv failed");
 		exit(-1);
@@ -234,13 +237,13 @@ int main(int argc, char **argv)
 		dbug(2, "modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
 	}
 
-        if (optind < argc) {
+	if (optind < argc) {
 		if (attach_mod) {
 			err("ERROR: Cannot have module options with attach (-A).\n");
 			usage(argv[0]);
 		} else {
 			unsigned start_idx = 0;
-			while (optind < argc && start_idx+1 < MAXMODOPTIONS)
+			while (optind < argc && start_idx + 1 < MAXMODOPTIONS)
 				modoptions[start_idx++] = argv[optind++];
 			modoptions[start_idx] = NULL;
 		}
@@ -252,8 +255,8 @@ int main(int argc, char **argv)
 	}
 
 	if (geteuid() != 0) {
-	    err("ERROR: The effective user ID of staprun must be set to the root user.\n"
-		"  Check permissions on staprun and ensure it is a setuid root program.\n");
+		err("ERROR: The effective user ID of staprun must be set to the root user.\n"
+		    "  Check permissions on staprun and ensure it is a setuid root program.\n");
 		exit(1);
 	}
 
@@ -275,10 +278,14 @@ int main(int argc, char **argv)
 	if (init_staprun())
 		exit(1);
 
-	setup_staprun_signals();
-
-	rc = run_stapio(argv);
-	cleanup(rc);
-
+	argv[0] = PKGLIBDIR "/stapio";
+	if (execv(argv[0], argv) < 0) {
+		perror(argv[0]);
+		goto err;
+	}
 	return 0;
+
+err:
+	remove_module(modname, 1);
+	return 1;
 }

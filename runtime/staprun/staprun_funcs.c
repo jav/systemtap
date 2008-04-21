@@ -16,18 +16,6 @@
 #include <grp.h>
 #include <pwd.h>
 
-void setup_staprun_signals(void)
-{
-	struct sigaction a;
-	memset(&a, 0, sizeof(a));
-	sigfillset(&a.sa_mask);
-	a.sa_handler = SIG_IGN;
-	sigaction(SIGINT, &a, NULL);
-	sigaction(SIGTERM, &a, NULL);
-	sigaction(SIGHUP, &a, NULL);
-	sigaction(SIGQUIT, &a, NULL);
-}
-
 extern long init_module(void *, unsigned long, const char *);
 
 /* Module errors get translated. */

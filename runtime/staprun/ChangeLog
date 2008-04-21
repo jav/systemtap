@@ -1,3 +1,15 @@
+2008-04-21  Martin Hunt <hunt@redhat.com>
+
+	* staprun.c, stapio.c, staprun.h, mainloop.c, staprun_funcs.c, 
+	ctl.c, common.c: Add "-d" option to have staprun remove
+	modules. Have staprun exec stapio and then have stapio
+	exec "staprun -d" to remove the module when finished.
+
+2008-04-16  Martin Hunt  <hunt@redhat.com>
+
+	* ctl.c (init_ctl_channel): Remove unused parameter.
+	Just opens one channel now.
+
 2008-02-21  David Smith  <dsmith@redhat.com>
 
 	* staprun_funcs.c (check_path): Small security fix.

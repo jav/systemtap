@@ -1,3 +1,9 @@
+2008-04-21  hunt  <hunt@redhat.com>
+
+	* control.c (_stp_ctl_write): Return len + sizeof(int) so
+	sending an empty command doesn't return 0 and look like a failure.
+	* transport.c: _stp_cleanup_and_exit(): Cleanup.
+
 2008-04-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6410

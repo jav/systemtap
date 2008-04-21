@@ -22,6 +22,7 @@ unsigned int buffer_size;
 char *target_cmd;
 char *outfile_name;
 int attach_mod;
+int delete_mod;
 int load_only;
 int need_uprobes;
 
@@ -30,7 +31,6 @@ char *modname = NULL;
 char *modpath = "";
 char *modoptions[MAXMODOPTIONS];
 
-int initialized = 0;
 int control_channel = 0;
 
 void parse_args(int argc, char **argv)
@@ -44,10 +44,11 @@ void parse_args(int argc, char **argv)
 	target_cmd = NULL;
 	outfile_name = NULL;
 	attach_mod = 0;
+	delete_mod = 0;
 	load_only = 0;
 	need_uprobes = 0;
 
-	while ((c = getopt(argc, argv, "ALuvb:t:d:c:o:x:")) != EOF) {
+	while ((c = getopt(argc, argv, "ALuvb:t:dc:o:x:")) != EOF) {
 		switch (c) {
 		case 'u':
 			need_uprobes = 1;
@@ -67,7 +68,8 @@ void parse_args(int argc, char **argv)
 			target_pid = atoi(optarg);
 			break;
 		case 'd':
-			/* obsolete internal option used by stap */
+			/* delete module */
+			delete_mod = 1;
 			break;
 		case 'c':
 			target_cmd = optarg;
@@ -250,10 +252,7 @@ static void fatal_handler (int signum)
         rc = write (STDERR_FILENO, ERR_MSG, sizeof(ERR_MSG));
         rc = write (STDERR_FILENO, str, strlen(str));
         rc = write (STDERR_FILENO, "\n", 1);
-	if (initialized)
-		_exit(3);
-	else
-		_exit(1);
+	_exit(1);
 }
 
 void setup_signals(void)

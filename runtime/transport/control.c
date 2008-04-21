@@ -141,7 +141,7 @@ static int _stp_ctl_write(int type, void *data, unsigned len)
 	list_add_tail(&bptr->list, &_stp_ctl_ready_q);
 	spin_unlock_irqrestore(&_stp_ctl_ready_lock, flags);
 
-	return len;
+	return len + sizeof(bptr->type);
 }
 
 /* send commands with timeout and retry */
