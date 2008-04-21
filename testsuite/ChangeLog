@@ -1,3 +1,8 @@
+2008-04-21  David Smith  <dsmith@redhat.com>
+
+	* parseko/utrace01.stp: Renamed from semko/utrace02.stp (since it
+	received a parse error, not a semantic error).
+
 2008-04-21  Martin Hunt  <hunt@redhat.com>
 
 	* systemtap.samples/args.exp: Remove obsolete "-d" option.
