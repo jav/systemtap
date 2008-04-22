@@ -19,6 +19,29 @@ static int use_old_transport = 0;
 enum _stp_sig_type { sig_none, sig_done, sig_detach };
 static enum _stp_sig_type got_signal = sig_none;
 
+/**
+ *      send_request - send request to kernel over control channel
+ *      @type: the relay-app command id
+ *      @data: pointer to the data to be sent
+ *      @len: length of the data to be sent
+ *
+ *      Returns 0 on success, negative otherwise.
+ */
+int send_request(int type, void *data, int len)
+{
+        char buf[1024];
+
+        /* Before doing memcpy, make sure 'buf' is big enough. */
+        if ((len + 4) > (int)sizeof(buf)) {
+                _err("exceeded maximum send_request size.\n");
+                return -1;
+        }
+        memcpy(buf, &type, 4);
+        memcpy(&buf[4], data, len);
+        return write(control_channel, buf, len+4);
+}
+
+
 static void sigproc(int signum)
 {
 	dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));

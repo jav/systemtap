@@ -296,28 +296,6 @@ void setup_signals(void)
 #endif
 }
 
-/**
- *	send_request - send request to kernel over control channel
- *	@type: the relay-app command id
- *	@data: pointer to the data to be sent
- *	@len: length of the data to be sent
- *
- *	Returns 0 on success, negative otherwise.
- */
-int send_request(int type, void *data, int len)
-{
-	char buf[1024];
-
-	/* Before doing memcpy, make sure 'buf' is big enough. */
-	if ((len + 4) > (int)sizeof(buf)) {
-		_err("exceeded maximum send_request size.\n");
-		return -1;
-	}
-	memcpy(buf, &type, 4);
-	memcpy(&buf[4], data, len);
-	return write(control_channel, buf, len+4);
-}
-
 /*
  * set FD_CLOEXEC for any file descriptor
  */

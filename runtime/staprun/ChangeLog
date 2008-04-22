@@ -1,3 +1,8 @@
+2008-04-22  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (send_request): Move here from common.c
+	staprun no longer send any messages.
+
 2008-04-22  hunt  <hunt@redhat.com>
 
 	* common.c (usage): Add -d option.

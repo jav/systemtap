@@ -27,7 +27,6 @@ char *__name__ = "stapio";
 int main(int argc, char **argv)
 {
 	setup_signals();
-	
 	parse_args(argc, argv);
 
 	if (buffer_size)
@@ -38,13 +37,13 @@ int main(int argc, char **argv)
 		dbug(2, "modpath=\"%s\", modname=\"%s\"\n", modpath, modname);
 	}
 
-        if (optind < argc) {
+	if (optind < argc) {
 		if (attach_mod) {
 			err("ERROR: Cannot have module options with attach (-A).\n");
 			usage(argv[0]);
 		} else {
-			unsigned start_idx = 3; /* reserve three slots in modoptions[] */
-			while (optind < argc && start_idx+1 < MAXMODOPTIONS)
+			unsigned start_idx = 3;	/* reserve three slots in modoptions[] */
+			while (optind < argc && start_idx + 1 < MAXMODOPTIONS)
 				modoptions[start_idx++] = argv[optind++];
 			modoptions[start_idx] = NULL;
 		}
@@ -57,7 +56,7 @@ int main(int argc, char **argv)
 
 	if (init_stapio())
 		exit(1);
-	
+
 	if (stp_main_loop()) {
 		err("ERROR: Couldn't enter main loop. Exiting.\n");
 		exit(1);
