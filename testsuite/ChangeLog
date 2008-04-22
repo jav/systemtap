@@ -1,3 +1,7 @@
+2008-04-22  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p5.exp: Added run-time utrace tests.
+
 2008-04-21  David Smith  <dsmith@redhat.com>
 
 	* parseko/utrace01.stp: Renamed from semko/utrace02.stp (since it

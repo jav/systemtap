@@ -1,0 +1,145 @@
+# Utrace run (pass 5) tests.
+
+# Initialize variables
+set utrace_support_found 0
+set exepath "[pwd]/cat_[pid]"
+
+set death_script {
+    global death_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").death { death_probes_fired++ }
+    probe timer.ms(10000) { exit() }
+    probe end { printf("systemtap ending probe\n")
+	printf("deaths = %%d\n", death_probes_fired) }
+}
+set death_script_output "deaths = 1\r\n"
+
+set exec_script {
+    global exec_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").exec { exec_probes_fired++ }
+    probe timer.ms(10000) { exit() }
+    probe end { printf("systemtap ending probe\n")
+	printf("execs = %%d\n", exec_probes_fired) }
+}
+set exec_script_output "execs = 1\r\n"
+
+set syscall_script {
+    global syscall_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").syscall { syscall_probes_fired++ }
+    probe timer.ms(10000) { exit() }
+    probe end { printf("systemtap ending probe\n")
+	if (syscall_probes_fired > 0) {
+	    printf("syscalls = %%d\n", syscall_probes_fired)
+	}
+    }
+}
+set syscall_script_output "syscalls = \\d+\r\n"
+
+set syscall_return_script {
+    global syscall_return_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").syscall.return { syscall_return_probes_fired++ }
+    probe timer.ms(10000) { exit() }
+    probe end { printf("systemtap ending probe\n")
+	if (syscall_return_probes_fired > 0) {
+	    printf("syscall_returns = %%d\n", syscall_return_probes_fired)
+	}
+    }
+}
+set syscall_return_script_output "syscall_returns = \\d+\r\n"
+
+set clone_script {
+    global clone_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process(%d).clone { clone_probes_fired++ }
+    probe timer.ms(10000) { exit() }
+    probe end { printf("systemtap ending probe\n")
+	if (clone_probes_fired > 0) {
+	    printf("clones = %%d\n", clone_probes_fired)
+	}
+    }
+}
+set clone_script_output "clones = \\d+\r\n"
+
+# Try to find utrace_attach symbol in /proc/kallsyms
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+
+# Set up our own copy of /bin/cat, to make testing for a particular
+# executable easy.  We can't use 'ln' here, since we might be creating
+# a cross-device link.  We can't use 'ln -s' here, since the kernel
+# resolves the symbolic link and reports that /bin/cat is being
+# exec'ed (instead of our local copy).
+if {[catch {exec cp /bin/cat $exepath} res]} {
+    fail "unable to copy /bin/cat: $res"
+    return
+}
+
+# "load" generation function for stap_run.  It spawns our own copy of
+# /bin/cat, waits 5 seconds, then kills it.
+proc run_cat_5_sec {} {
+    global exepath
+
+    spawn $exepath
+    set exe_id $spawn_id
+    after 5000;
+    exec kill -INT -[exp_pid -i $exe_id]
+    return 0;
+}
+
+set TEST_NAME "UTRACE_P5_01"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $death_script $exepath]
+    stap_run $TEST_NAME run_cat_5_sec $death_script_output -e $script
+}
+
+set TEST_NAME "UTRACE_P5_02"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $exec_script $exepath]
+    stap_run $TEST_NAME run_cat_5_sec $exec_script_output -e $script
+}
+
+set TEST_NAME "UTRACE_P5_03"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $syscall_script $exepath]
+    stap_run $TEST_NAME run_cat_5_sec $syscall_script_output -e $script
+}
+
+set TEST_NAME "UTRACE_P5_04"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $syscall_return_script $exepath]
+    stap_run $TEST_NAME run_cat_5_sec $syscall_return_script_output -e $script
+}
+
+set TEST_NAME "UTRACE_P5_05"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $clone_script [pid]]
+    stap_run $TEST_NAME run_cat_5_sec $clone_script_output -e $script
+}
+
+# Cleanup
+exec rm -f $exepath
