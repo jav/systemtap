@@ -1,3 +1,8 @@
+2008-04-22  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Removed debug statements.
+
 2008-04-18  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (struct utrace_builder): Added exec probes.

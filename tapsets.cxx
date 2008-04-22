@@ -4730,7 +4730,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
   s.op->newline() << "struct utrace_attached_engine *engine;";
 
-  s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%d: %s\\n\", register_p, p->pp);";
   s.op->newline() << "if (register_p) {";
   s.op->indent(1);
 
@@ -4746,7 +4745,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "case UTRACE_EVENT(EXEC):";
       s.op->indent(1);
-      s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
       s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
       s.op->newline() << "break;";
       s.op->indent(-1);
@@ -4802,7 +4800,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH)) {";
       s.op->indent(1);
-      s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"%s\\n\", p->pp);";
       s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
       s.op->newline(-1) << "}";
     }
