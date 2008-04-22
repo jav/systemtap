@@ -69,7 +69,7 @@ option.
 .B \-A
 Attach to loaded systemtap module.
 .TP
-.B \-d MODULENAME
+.B \-d
 Delete a module.  Only detached or unused modules
 the user has permission to access will be deleted. Use "*"
 (quoted) to delete all unused modules.

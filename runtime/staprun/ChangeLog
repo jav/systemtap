@@ -1,5 +1,10 @@
 2008-04-22  Martin Hunt  <hunt@redhat.com>
 
+	* cap.c (init_cap): Detect capabilities failure and
+	run with them disabled.
+	
+2008-04-22  Martin Hunt  <hunt@redhat.com>
+	
 	* mainloop.c (send_request): Move here from common.c
 	staprun no longer send any messages.
 

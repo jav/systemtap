@@ -126,7 +126,7 @@ void close_oldrelayfs(int);
 void setup_signals(void);
 /* cap.c */
 void print_cap(char *text);
-int init_cap(void);
+void init_cap(void);
 void add_cap(cap_value_t cap);
 void del_cap(cap_value_t cap);
 void drop_cap(cap_value_t cap);

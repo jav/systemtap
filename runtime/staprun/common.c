@@ -135,7 +135,7 @@ void usage(char *prog)
 	err("                That value will be per-cpu in bulk mode.\n");
 	err("-L              Load module and start probes, then detach.\n");
 	err("-A              Attach to loaded systemtap module.\n");
-	err("-d modulename   Delete a module.  Only detached or unused modules\n");
+	err("-d              Delete a module.  Only detached or unused modules\n");
 	err("                the user has permission to access will be deleted. Use \"*\"\n");
 	err("                (quoted) to delete all unused modules.\n");
 	err("MODULE can be either a module name or a module path.  If a\n");

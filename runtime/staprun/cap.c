@@ -23,6 +23,8 @@
 #include "staprun.h"
 #include <sys/prctl.h>
 
+static int _stp_no_caps = 0;
+
 /* like perror, but exits */
 #define ferror(msg) {						  \
 		_perr(msg);					  \
@@ -54,10 +56,10 @@
  * CAP_CHOWN - allows chown
  */
 
-int init_cap(void)
+void init_cap(void)
 {
 	cap_t caps = cap_init();
-	cap_value_t capv[] = {CAP_SYS_MODULE, CAP_SYS_ADMIN, CAP_SYS_NICE, CAP_SETUID, CAP_SETGID, CAP_DAC_OVERRIDE};
+	cap_value_t capv[] = { CAP_SYS_MODULE, CAP_SYS_ADMIN, CAP_SYS_NICE, CAP_SETUID, CAP_SETGID, CAP_DAC_OVERRIDE };
 	const int numcaps = sizeof(capv) / sizeof(capv[0]);
 	uid_t uid = getuid();
 	gid_t gid = getgid();
@@ -69,8 +71,11 @@ int init_cap(void)
 	if (cap_set_flag(caps, CAP_PERMITTED, numcaps, capv, CAP_SET) < 0)
 		ferror("cap_set_flag");
 
-	if (cap_set_proc(caps) < 0)
-		ferror("cap_set_proc");
+	if (cap_set_proc(caps) < 0) {
+		dbug(1, "Setting capabilities failed. Capabilities disabled.\n");
+		_stp_no_caps = 1;
+		return;
+	}
 
 	cap_free(caps);
 
@@ -82,8 +87,6 @@ int init_cap(void)
 
 	if (setresgid(gid, gid, gid) < 0)
 		ferror("setresgid");
-
-	return 1;
 }
 
 void print_cap(char *text)
@@ -97,19 +100,18 @@ void print_cap(char *text)
 		perr("cap_get_proc");
 		return;
 	}
-	
+
 	getresuid(&uid, &euid, &suid);
 	getresgid(&gid, &egid, &sgid);
 
 	printf("***** %s\n", text);
 
-	if ((p=prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0)) < 0)
+	if ((p = prctl(PR_GET_KEEPCAPS, 0, 0, 0, 0)) < 0)
 		perr("Couldn't get PR_SET_KEEPCAPS flag value");
-	else 
+	else
 		printf("KEEPCAPS: %d\n", p);
 
-	printf("uid: %d, euid: %d, suid: %d\ngid: %d. egid: %d, sgid: %d\n", 
-	       uid, euid, suid, gid, egid, sgid );
+	printf("uid: %d, euid: %d, suid: %d\ngid: %d. egid: %d, sgid: %d\n", uid, euid, suid, gid, egid, sgid);
 	printf("Caps: %s\n", cap_to_text(caps, NULL));
 	cap_free(caps);
 	printf("*****\n\n");
@@ -121,38 +123,44 @@ void print_cap(char *text)
  */
 void drop_cap(cap_value_t cap)
 {
-	cap_t caps = cap_get_proc();
-	if (caps == NULL)
-		ferror("cap_get_proc failed");
-	if (cap_set_flag(caps, CAP_PERMITTED, 1, &cap, CAP_CLEAR) < 0)
-		ferror("Could not clear effective capabilities");
-	if (cap_set_proc(caps) < 0)
-		ferror("Could not apply capability set");
-	cap_free(caps);
+	if (_stp_no_caps == 0) {
+		cap_t caps = cap_get_proc();
+		if (caps == NULL)
+			ferror("cap_get_proc failed");
+		if (cap_set_flag(caps, CAP_PERMITTED, 1, &cap, CAP_CLEAR) < 0)
+			ferror("Could not clear effective capabilities");
+		if (cap_set_proc(caps) < 0)
+			ferror("Could not apply capability set");
+		cap_free(caps);
+	}
 }
 
 /* add_cap() adds a permitted capability to the effective set. */
 void add_cap(cap_value_t cap)
 {
-	cap_t caps = cap_get_proc();
-	if (caps == NULL)
-		ferror("cap_get_proc failed");
-	if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &cap, CAP_SET) < 0)
-		ferror("Could not set effective capabilities");
-	if (cap_set_proc(caps) < 0)
-		ferror("Could not apply capability set");
-	cap_free(caps);
+	if (_stp_no_caps == 0) {
+		cap_t caps = cap_get_proc();
+		if (caps == NULL)
+			ferror("cap_get_proc failed");
+		if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &cap, CAP_SET) < 0)
+			ferror("Could not set effective capabilities");
+		if (cap_set_proc(caps) < 0)
+			ferror("Could not apply capability set");
+		cap_free(caps);
+	}
 }
 
 /* del_cap() deletes a permitted capability from the effective set. */
 void del_cap(cap_value_t cap)
 {
-	cap_t caps = cap_get_proc();
-	if (caps == NULL)
-		ferror("cap_get_proc failed");
-	if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &cap, CAP_CLEAR) < 0)
-		ferror("Could not clear effective capabilities");
-	if (cap_set_proc(caps) < 0)
-		ferror("Could not apply capability set");
-	cap_free(caps);
+	if (_stp_no_caps == 0) {
+		cap_t caps = cap_get_proc();
+		if (caps == NULL)
+			ferror("cap_get_proc failed");
+		if (cap_set_flag(caps, CAP_EFFECTIVE, 1, &cap, CAP_CLEAR) < 0)
+			ferror("Could not clear effective capabilities");
+		if (cap_set_proc(caps) < 0)
+			ferror("Could not apply capability set");
+		cap_free(caps);
+	}
 }

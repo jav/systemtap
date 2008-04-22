@@ -260,9 +260,8 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	if (!init_cap())
-		exit(1);
-
+	init_cap();
+		
 	if (check_permissions() != 1)
 		usage(argv[0]);
 
