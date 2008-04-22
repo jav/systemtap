@@ -68,6 +68,11 @@ option.
 .TP
 .B \-A
 Attach to loaded systemtap module.
+.TP
+.B \-d MODULENAME
+Delete a module.  Only detached or unused modules
+the user has permission to access will be deleted. Use "*"
+(quoted) to delete all unused modules.
 
 .SH ARGUMENTS
 .B MODULE
@@ -136,7 +141,7 @@ Members of the
 .I stapusr
 group can use
 .I staprun
-to insert systemtap modules (or attach to existing systemtap modules) that
+to insert or remove systemtap modules (or attach to existing systemtap modules) that
 are located in the /lib/modules/VERSION/systemtap directory.
 .SH FILES
 .TP

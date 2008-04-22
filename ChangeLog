@@ -1,3 +1,6 @@
+2008-04-22  hunt  <hunt@redhat.com>
+        * staprun.8.in: Add documentation for -d option.
+
 2008-04-22  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):

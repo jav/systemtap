@@ -1,3 +1,7 @@
+2008-04-22  hunt  <hunt@redhat.com>
+
+	* common.c (usage): Add -d option.
+
 2008-04-21  Martin Hunt <hunt@redhat.com>
 
 	* staprun.c, stapio.c, staprun.h, mainloop.c, staprun_funcs.c, 
