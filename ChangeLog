@@ -1,5 +1,11 @@
+2008-04-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (common_probe_entryfn_prologue): Clear
+	overload-related context vars.
+
 2008-04-22  hunt  <hunt@redhat.com>
-        * staprun.8.in: Add documentation for -d option.
+
+	* staprun.8.in: Add documentation for -d option.
 
 2008-04-22  David Smith  <dsmith@redhat.com>
 

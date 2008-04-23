@@ -216,6 +216,10 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
+  o->newline() << "#ifdef STP_OVERLOAD";
+  o->newline() << "c->cycles_sum = 0;";
+  o->newline() << "c->cycles_base = 0;";
+  o->newline() << "#endif";  
 }
 
 
