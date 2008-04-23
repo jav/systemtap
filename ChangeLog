@@ -1,5 +1,10 @@
 2008-04-23  Frank Ch. Eigler  <fche@elastic.org>
 
+	From: Srinivasa DS <srinivasa@in.ibm.com>
+	* tapsets.cxx (blacklisted_p): Blacklist more init/exit sections.
+
+2008-04-23  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx (common_probe_entryfn_prologue): Clear
 	overload-related context vars.
 

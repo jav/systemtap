@@ -2618,7 +2618,13 @@ dwarf_query::blacklisted_p(const string& funcname,
                            Dwarf_Addr addr)
 {
   if (section.substr(0, 6) == string(".init.") ||
-      section.substr(0, 6) == string(".exit."))
+      section.substr(0, 6) == string(".exit.") ||
+      section.substr(0, 9) == string(".devinit.") ||
+      section.substr(0, 9) == string(".devexit.") ||
+      section.substr(0, 9) == string(".cpuinit.") ||
+      section.substr(0, 9) == string(".cpuexit.") ||
+      section.substr(0, 9) == string(".meminit.") ||
+      section.substr(0, 9) == string(".memexit."))
     {
       // NB: module .exit. routines could be probed in theory:
       // if the exit handler in "struct module" is diverted,
