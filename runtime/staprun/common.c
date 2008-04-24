@@ -31,7 +31,7 @@ char *modname = NULL;
 char *modpath = "";
 char *modoptions[MAXMODOPTIONS];
 
-int control_channel = 0;
+int control_channel = -1; /* NB: fd==0 possible */
 
 void parse_args(int argc, char **argv)
 {
