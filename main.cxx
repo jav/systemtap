@@ -104,6 +104,14 @@ usage (systemtap_session& s, int exitcode)
     << "   -c CMD     start the probes, run CMD, and exit when it finishes"
     << endl
     << "   -x PID     sets target() to PID" << endl
+    << "   -d OBJECT  add unwind/symbol data for OBJECT file";
+  if (s.unwindsym_modules.size() == 0)
+    clog << endl;
+  else
+    clog << ", in addition to" << endl;
+  for (unsigned i=0; i<s.unwindsym_modules.size(); i++)
+    clog << "              " << s.unwindsym_modules[i] << endl;
+  clog
     << "   -t         collect probe timing information" << endl
 #ifdef HAVE_LIBSQLITE3
     << "   -q         generate information on tapset coverage"
@@ -342,7 +350,7 @@ main (int argc, char * const argv [])
   while (true)
     {
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:");
+      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:d:");
       if (grc < 0)
         break;
       switch (grc)
@@ -383,6 +391,10 @@ main (int argc, char * const argv [])
 
         case 'I':
           s.include_path.push_back (string (optarg));
+          break;
+
+        case 'd':
+          s.unwindsym_modules.push_back (string (optarg));
           break;
 
         case 'e':

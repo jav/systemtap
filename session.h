@@ -156,6 +156,9 @@ struct systemtap_session
   Dwarf_Addr sym_kprobes_text_end;
   Dwarf_Addr sym_stext;
 
+  // List of libdwfl module names to extract symbol/unwind data for.
+  std::vector<std::string> unwindsym_modules;
+
   std::set<std::string> seen_errors;
   unsigned num_errors () { return seen_errors.size(); }
   // void print_error (const parse_error& e);
