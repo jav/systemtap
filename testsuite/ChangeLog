@@ -1,3 +1,7 @@
+2008-04-24  Will Cohen  <wcohen@redhat.com>
+
+	* systemtap.examples: examples moved into testsuite.
+
 2008-04-22  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p5.exp: Simplfied a little.

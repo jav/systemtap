@@ -1,3 +1,7 @@
+2008-04-24  Will Cohen  <wcohen@redhat.com>
+
+	* Makefile.in: Regenerated.
+	
 2008-04-09  David Smith  <dsmith@redhat.com>
 
 	* .gitignore: New file.

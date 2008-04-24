@@ -150,10 +150,13 @@ LDADD =
 EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
-	     examples testsuite systemtap.spec runtime tapset \
+	     testsuite systemtap.spec runtime tapset \
 	     git_version.h git_version.sh
 
-SAMPLE_DEST_DIR = $(distdir)/examples/samples
+EXAMPLE_DEST_DIR = $(distdir)/examples
+SAMPLE_DEST_DIR = $(EXAMPLE_DEST_DIR)/samples
+
+EXAMPLE_SRC = $(srcdir)/testsuite/systemtap.examples
 
 SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 	     $(srcdir)/testsuite/systemtap.samples/kmalloc-stacks.stp \
@@ -163,9 +166,14 @@ SAMPLE_SRC = $(srcdir)/testsuite/systemtap.samples/iotask.stp \
 	     $(srcdir)/testsuite/systemtap.samples/tcp_connections.stp \
 	     $(srcdir)/testsuite/systemtap.samples/topsys.stp
 
+dist-add-examples: $(EXAMPLE_SRC)
+	rm -rf $(EXAMPLE_DEST_DIR)
+	mkdir -p $(EXAMPLE_DEST_DIR)
+	cp -a $(EXAMPLE_SRC)/* $(EXAMPLE_DEST_DIR)/.
+
 # Copy some of the testsuite sample scripts to the distdir
 # 'examples/samples' directory.
-dist-add-samples: $(SAMPLE_SRC)
+dist-add-samples: $(SAMPLE_SRC) dist-add-examples
 	rm -rf $(SAMPLE_DEST_DIR)
 	mkdir -p $(SAMPLE_DEST_DIR)
 	cp $(SAMPLE_SRC) $(SAMPLE_DEST_DIR)

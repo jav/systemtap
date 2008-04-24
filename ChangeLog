@@ -1,3 +1,9 @@
+2008-04-24  Will Cohen  <wcohen@redhat.com>
+
+	* aclocal.m4: Regenerated.
+	* Makefile.am (example/*): Moved to testsuite/systemtap.examples.
+	* Makefile.in: Regenerated.
+
 2008-04-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	From: Srinivasa DS <srinivasa@in.ibm.com>
