@@ -1,19 +1,9 @@
-# Release number for rpm build.  Stays at 1 for new PACKAGE_VERSION increases.
 %define release 1
-# Version number of oldest elfutils release that works with systemtap.
-%define elfutils_version 0.127
-
-# Default options (suitable for fedora)
 %define with_sqlite 1
 %define with_docs 1
 %define with_crash 0
 %define with_bundled_elfutils 0
-
-# Enable these options by default for RHEL
-%if 0%{?rhel} >= 5
-%define with_crash 1
-%define with_bundled_elfutils 1
-%endif
+%define elfutils_version 0.127
 
 Name: systemtap
 Version: @VERSION@

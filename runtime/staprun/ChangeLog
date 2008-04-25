@@ -1,3 +1,9 @@
+2008-04-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6451.
+	* common.c (control_channel): Initialize to -1.
+	* ctl.c (close_ctl_channel): Tolerate fd=0.
+
 2008-04-22  Martin Hunt  <hunt@redhat.com>
 
 	* cap.c (init_cap): Detect capabilities failure and

@@ -153,11 +153,12 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 		vma = vma->vm_next;
 	}
 	if (vma) {
-		struct vfsmount *mnt = mntget(vma->vm_file->f_vfsmnt);
-		struct dentry *dentry = dget(vma->vm_file->f_dentry);
-		rc = d_path(dentry, mnt, buf, buflen);
-		dput(dentry);
-		mntput(mnt);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
+		rc = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
+			    buf, buflen);
+#else
+		rc = d_path(&(vma->vm_file->f_path), buf, buflen);
+#endif
 	}
 	else {
 		*buf = '\0';

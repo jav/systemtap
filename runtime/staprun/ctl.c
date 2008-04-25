@@ -46,8 +46,8 @@ int init_ctl_channel(const char *name, int verb)
 
 void close_ctl_channel(void)
 {
-	if (control_channel > 0) {
+  if (control_channel >= 0) {
 		close(control_channel);
-		control_channel = 0;
+		control_channel = -1;
 	}
 }

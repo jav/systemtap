@@ -148,14 +148,18 @@ printscript(systemtap_session& s, ostream& o)
           #endif
 
           stringstream tmps;
-          second->printsig (tmps);
-          string tmp = tmps.str();
-          // trim anything other than the "head" of the probe point signature:
-          // alias1 *CUT* = exp1, exp2
-          // probe1 *CUT* /* pc=0xdeadbeef */ /* <- foo */
-          string::size_type space_pos = tmp.find(' ');
-          assert (space_pos != string::npos);
-          string pp = tmp.substr (0, space_pos);
+          const probe_alias *a = second->get_alias();
+          if (a)
+            {
+              assert (a->alias_names.size() >= 1);
+              a->alias_names[0]->print(tmps); // XXX: [0] is arbitrary; perhaps print all
+            }            
+          else
+            {
+              assert (second->locations.size() >= 1);
+              second->locations[0]->print(tmps); // XXX: [0] is less arbitrary here, but still ...
+            }
+          string pp = tmps.str();
 
           // Now duplicate-eliminate.  An alias may have expanded to
           // several actual derived probe points, but we only want to
