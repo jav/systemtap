@@ -157,7 +157,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 		rc = d_path(vma->vm_file->f_dentry, vma->vm_file->f_vfsmnt,
 			    buf, buflen);
 #else
-		rc = d_path(vma->vm_file, buf, buflen);
+		rc = d_path(&(vma->vm_file->f_path), buf, buflen);
 #endif
 	}
 	else {
