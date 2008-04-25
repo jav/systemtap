@@ -1,3 +1,8 @@
+2008-04-25  David Smith  <dsmith@redhat.com>
+
+	From Srinivasa <srinivasa@in.ibm.com>
+	* task_finder.c (__stp_get_mm_path): Fixed kernel 2.6.25 change.
+
 2008-04-24  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_get_mm_path): Made kernel 2.6.25 changes.

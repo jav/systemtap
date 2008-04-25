@@ -6488,6 +6488,11 @@ mark_builder::build(systemtap_session & sess,
 	  string::size_type notwhite = format.find_first_not_of(" \t");
 	  format.erase(0, notwhite);
 
+	  // If the format is empty, make sure we add back a space
+	  // character, which is what MARK_NOARGS expands to.
+	  if (format.length() == 0)
+	    format = " ";
+
 	  if (sess.verbose>3)
 	    clog << "'" << name << "' '" << module << "' '" << format
 		 << "'" << endl;
