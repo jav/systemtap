@@ -216,10 +216,16 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "#ifdef STP_TIMING";
   o->newline() << "c->statp = 0;";
   o->newline() << "#endif";
+  // NB: The following would actually be incorrect.
+  // That's because cycles_sum/cycles_base values are supposed to survive
+  // between consecutive probes.  Periodically (STP_OVERLOAD_INTERVAL
+  // cycles), the values will be reset.
+  /*
   o->newline() << "#ifdef STP_OVERLOAD";
   o->newline() << "c->cycles_sum = 0;";
   o->newline() << "c->cycles_base = 0;";
   o->newline() << "#endif";  
+  */
 }
 
 
