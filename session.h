@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -157,7 +157,7 @@ struct systemtap_session
   Dwarf_Addr sym_stext;
 
   // List of libdwfl module names to extract symbol/unwind data for.
-  std::vector<std::string> unwindsym_modules;
+  std::set<std::string> unwindsym_modules;
 
   std::set<std::string> seen_errors;
   unsigned num_errors () { return seen_errors.size(); }

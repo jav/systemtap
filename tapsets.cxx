@@ -2764,12 +2764,12 @@ dwarf_query::add_probe_point(const string& funcname,
 
   if (! bad)
     {
+      sess.unwindsym_modules.insert (module);
       probe = new dwarf_derived_probe(funcname, filename, line,
                                       module, reloc_section, addr, reloc_addr, *this, scope_die);
       results.push_back(probe);
     }
 }
-
 
 
 
@@ -4263,6 +4263,7 @@ dwarf_builder::build(systemtap_session & sess,
                                  q.statement_num_val, q.statement_num_val,
                                  q, 0);
       finished_results.push_back (p);
+      sess.unwindsym_modules.insert ("kernel");
       return;
     }
 

@@ -4394,9 +4394,24 @@ get_symbols (Dwfl_Module *m,
   return DWARF_CB_OK;
 }
 
-int 
-emit_symbol_data_from_debuginfo(systemtap_session& s, ofstream& kallsyms_out)
+
+void
+emit_symbol_data (systemtap_session& s)
 {
+  ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
+  s.op->newline() << "\n\n#include \"stap-symbols.h\"";
+
+  if (s.verbose > 1)
+    {
+      std::set<std::string>::iterator it = s.unwindsym_modules.begin();
+      clog << "unwindsym modules: ";
+      while (it != s.unwindsym_modules.end())
+        {
+          clog << *(it++) << " ";
+        }
+      clog << endl;
+    }
+
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
   
@@ -4411,75 +4426,31 @@ emit_symbol_data_from_debuginfo(systemtap_session& s, ofstream& kallsyms_out)
       & debuginfo_path
     };
   
-      Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
-      if (!dwfl)
-	throw semantic_error ("cannot open dwfl");
-      dwfl_report_begin (dwfl);
-      
-      int rc = dwfl_linux_kernel_report_offline (dwfl,
-						 s.kernel_release.c_str(),
-						 kernel_filter);
-      dwfl_report_end (dwfl, NULL, NULL);
-      if (rc < 0)
-	return rc;
-      
-      dwfl_getmodules (dwfl, &get_symbols, NULL, 0);      
-      dwfl_end(dwfl);
-
-      int i = 0;
-      map< Dwarf_Addr, string>::iterator pos;
-      kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
-      for (pos = addrmap.begin(); pos != addrmap.end(); pos++) {
-	kallsyms_out << "  { 0x" << hex << pos->first << ", " << "\"" << pos->second << "\" },\n";
-	i++;
-      }
-
-      kallsyms_out << "};\n";
-      kallsyms_out << "unsigned _stp_num_kernel_symbols = " << dec << i << ";\n";
-      return i == 0;
-}
-
-int
-emit_symbol_data (systemtap_session& s)
-{
-  unsigned i=0;
-  char kallsyms_outbuf [4096];
-  ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
-  kallsyms_out.rdbuf()->pubsetbuf (kallsyms_outbuf,
-				   sizeof(kallsyms_outbuf));
-  s.op->newline() << "\n\n#include \"stap-symbols.h\"";
-
-  // FIXME for non-debuginfo use.
-  if (true) {
-      return emit_symbol_data_from_debuginfo(s, kallsyms_out);
-  } else {
-    // For symbol-table only operation, we don't have debuginfo,
-    // so parse /proc/kallsyms.
-
-    ifstream kallsyms("/proc/kallsyms");
-    string lastaddr, modules_op_addr;
-    
-    kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
-    while (! kallsyms.eof())
-      {
-	string addr, type, sym;
-	kallsyms >> addr >> type >> sym >> ws;
-	
-	if (kallsyms.peek() == '[')
-	  break;
-	
-	// NB: kallsyms includes some duplicate addresses
-	if ((type == "t" || type == "T" || type == "A" || sym == "modules_op") && lastaddr != addr)
-	  {
-	    kallsyms_out << "  { 0x" << addr << ", " << "\"" << sym << "\" },\n";
-	    lastaddr = addr;
-	    i ++;
-	  }
-      }
-    kallsyms_out << "};\n";
-    kallsyms_out << "unsigned _stp_num_kernel_symbols = " << i << ";\n";
+  Dwfl *dwfl = dwfl_begin (&kernel_callbacks);
+  if (!dwfl)
+    throw semantic_error ("cannot open dwfl");
+  dwfl_report_begin (dwfl);
+  
+  int rc = dwfl_linux_kernel_report_offline (dwfl,
+                                             s.kernel_release.c_str(),
+                                             kernel_filter);
+  dwfl_report_end (dwfl, NULL, NULL);
+  if (rc < 0)
+    throw semantic_error ("dwfl rc");
+  
+  dwfl_getmodules (dwfl, &get_symbols, NULL, 0);      
+  dwfl_end(dwfl);
+  
+  int i = 0;
+  map< Dwarf_Addr, string>::iterator pos;
+  kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
+  for (pos = addrmap.begin(); pos != addrmap.end(); pos++) {
+    kallsyms_out << "  { 0x" << hex << pos->first << ", " << "\"" << pos->second << "\" },\n";
+    i++;
   }
-  return (i == 0);
+  
+  kallsyms_out << "};\n";
+  kallsyms_out << "unsigned _stp_num_kernel_symbols = " << dec << i << ";\n";
 }
 
 
@@ -4645,16 +4616,16 @@ translate_pass (systemtap_session& s)
           s.up->emit_global_param (s.globals[i]);
         }
 
-      s.op->newline() << "MODULE_DESCRIPTION(\"systemtap probe\");";
-      s.op->newline() << "MODULE_LICENSE(\"GPL\");"; // XXX
+      emit_symbol_data (s);
+
+      s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
+      s.op->newline() << "MODULE_LICENSE(\"GPL\");";
     }
   catch (const semantic_error& e)
     {
       s.print_error (e);
     }
 
-  rc |= emit_symbol_data (s);
-  
   s.op->line() << "\n";
 
   delete s.op;
