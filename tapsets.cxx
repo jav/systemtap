@@ -5387,6 +5387,9 @@ struct utrace_builder: public derived_probe_builder
 	string::size_type start_pos, end_pos;
 	string component;
 
+        // XXX: these checks should be done in terms of filesystem
+        // operations.
+
 	// Make sure it starts with '/'.
 	if (path[0] != '/')
 	    throw semantic_error ("process path must start with a '/'",
@@ -5413,6 +5416,8 @@ struct utrace_builder: public derived_probe_builder
 	// Make sure it isn't relative.
 	else if (component == "." || component == "..")
 	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+
+      sess.unwindsym_modules.insert (path);
     }
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
