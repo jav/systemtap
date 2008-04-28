@@ -1,3 +1,7 @@
+2008-04-28  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (translate_pass): Don't #define TEST_MODE.
+
 2008-04-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (common_probe_entryfn_prologue): Undo

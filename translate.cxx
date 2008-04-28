@@ -4467,9 +4467,6 @@ translate_pass (systemtap_session& s)
     {
       // This is at the very top of the file.
       
-      // XXX: the runtime uses #ifdef TEST_MODE to infer systemtap usage.
-      s.op->line() << "#define TEST_MODE 0\n";
-
       s.op->newline() << "#ifndef MAXNESTING";
       s.op->newline() << "#define MAXNESTING 10";
       s.op->newline() << "#endif";

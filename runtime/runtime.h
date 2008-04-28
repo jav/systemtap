@@ -58,14 +58,6 @@ static struct
 
 #define _stp_seq_inc() (atomic_inc_return(&_stp_seq.seq))
 
-/* TEST_MODE is always defined by systemtap */
-#ifdef TEST_MODE
-#define SYSTEMTAP 1
-#else
-#define MAXTRYLOCK 1000
-#define TRYLOCKDELAY 100
-#endif
-
 #ifndef MAXSTRINGLEN
 #define MAXSTRINGLEN 128
 #endif
