@@ -111,8 +111,11 @@ usage (systemtap_session& s, int exitcode)
     clog << endl;
   else
     clog << ", in addition to" << endl;
-  for (unsigned i=0; i<s.unwindsym_modules.size(); i++)
-    clog << "              " << s.unwindsym_modules[i] << endl;
+  {
+    vector<string> syms (s.unwindsym_modules.begin(), s.unwindsym_modules.end());
+    for (unsigned i=0; i<syms.size(); i++)
+      clog << "              " << syms[i] << endl;
+  }
   clog
     << "   -t         collect probe timing information" << endl
 #ifdef HAVE_LIBSQLITE3
@@ -446,7 +449,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'd':
-          s.unwindsym_modules.push_back (string (optarg));
+          s.unwindsym_modules.insert (string (optarg));
           break;
 
         case 'e':

@@ -3145,6 +3145,7 @@ dwarf_query::add_probe_point(const string& funcname,
 
   if (! bad)
     {
+      sess.unwindsym_modules.insert (module);
       probe = new dwarf_derived_probe(funcname, filename, line,
                                       module, reloc_section, addr, reloc_addr, *this, scope_die);
       results.push_back(probe);
@@ -3189,7 +3190,6 @@ dwarf_query::assess_dbinfo_reqt()
   // Symbol table tells us nothing about source files or line numbers.
   return dbr_need_dwarf;
 }
-
 
 
 // The critical determining factor when interpreting a pattern
@@ -4732,6 +4732,7 @@ dwarf_builder::build(systemtap_session & sess,
                                  q.statement_num_val, q.statement_num_val,
                                  q, 0);
       finished_results.push_back (p);
+      sess.unwindsym_modules.insert ("kernel");
       return;
     }
 
