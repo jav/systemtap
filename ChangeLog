@@ -1,3 +1,10 @@
+2008-04-29  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl): Added
+	death event handlers to ensure that for every utrace_attach there
+	is a corresponding utrace_detach.
+	(utrace_derived_probe_group::emit_module_decls): Ditto.
+
 2008-04-28  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (translate_pass): Don't #define TEST_MODE.
@@ -10,6 +17,8 @@
 2008-04-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in: Simplify configuration defaults.
+
+2008-04-29  David Smith  <dsmith@redhat.com>:ChangeLog
 
 2008-04-25  David Smith  <dsmith@redhat.com>
 

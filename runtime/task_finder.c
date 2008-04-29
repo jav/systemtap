@@ -5,6 +5,12 @@ static LIST_HEAD(__stp_task_finder_list);
 
 struct stap_task_finder_target;
 
+#define __STP_TF_STARTING	0
+#define __STP_TF_RUNNING	1
+#define __STP_TF_STOPPING	2
+#define __STP_TF_STOPPED	3
+atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
+
 typedef int (*stap_task_finder_callback)(struct task_struct *tsk,
 					 int register_p,
 					 struct stap_task_finder_target *tgt);
@@ -24,6 +30,10 @@ struct stap_task_finder_target {
 	stap_task_finder_callback callback;
 };
 
+static u32
+__stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
+				      struct task_struct *tsk);
+
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 {
@@ -38,6 +48,11 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 		new_tgt->pathlen = strlen(new_tgt->pathname);
 	else
 		new_tgt->pathlen = 0;
+
+	// Make sure everything is initialized properly.
+	new_tgt->engine_attached = 0;
+	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
+	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
 
 	// Search the list for an existing entry for pathname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
@@ -63,7 +78,6 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	}
 
 	// Add this target to the callback list for this task.
-	new_tgt->engine_attached = 0;
 	list_add_tail(&new_tgt->callback_list, &tgt->callback_list_head);
 	return 0;
 }
@@ -169,18 +183,22 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 }
 
 #define __STP_UTRACE_TASK_FINDER_EVENTS (UTRACE_EVENT(CLONE)	\
-					 | UTRACE_EVENT(EXEC))
+					 | UTRACE_EVENT(EXEC)	\
+					 | UTRACE_EVENT(DEATH))
 
 #define __STP_UTRACE_ATTACHED_TASK_EVENTS (UTRACE_EVENT(DEATH))
 
 static u32
-__stp_utrace_task_finder_clone(struct utrace_attached_engine *engine,
-			       struct task_struct *parent,
-			       unsigned long clone_flags,
-			       struct task_struct *child)
+__stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
+				      struct task_struct *parent,
+				      unsigned long clone_flags,
+				      struct task_struct *child)
 {
 	struct utrace_attached_engine *child_engine;
 	struct mm_struct *mm;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return UTRACE_ACTION_RESUME;
 
 	// On clone, attach to the child.  Ignore threads with no mm
 	// (which are kernel threads).
@@ -201,43 +219,18 @@ __stp_utrace_task_finder_clone(struct utrace_attached_engine *engine,
 }
 
 static u32
-__stp_utrace_task_finder_death(struct utrace_attached_engine *engine,
-			       struct task_struct *tsk)
-{
-	struct stap_task_finder_target *tgt = engine->data;
-
-	// The first implementation of this added a
-	// UTRACE_EVENT(DEATH) handler to
-	// __stp_utrace_task_finder_ops.  However, dead threads don't
-	// have a mm_struct, so we can't find the exe's path.  So, we
-	// don't know which callback(s) to call.
-	//
-	// So, now when an "interesting" thread is found, we add a
-	// separate UTRACE_EVENT(DEATH) handler for every probe.
-
-	if (tgt != NULL && tgt->callback != NULL) {
-		int rc;
-
-		// Call the callback
-		rc = tgt->callback(tsk, 0, tgt);
-		if (rc != 0) {
-			_stp_error("death callback for %d failed: %d",
-				   (int)tsk->pid, rc);
-		}
-	}
-	return UTRACE_ACTION_RESUME;
-}
-
-static u32
-__stp_utrace_task_finder_exec(struct utrace_attached_engine *engine,
-			      struct task_struct *tsk,
-			      const struct linux_binprm *bprm,
-			      struct pt_regs *regs)
+__stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
+				     struct task_struct *tsk,
+				     const struct linux_binprm *bprm,
+				     struct pt_regs *regs)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
 	int found_node = 0;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return UTRACE_ACTION_RESUME;
 
 	// On exec, check bprm
 	if (bprm->filename == NULL)
@@ -276,10 +269,6 @@ __stp_utrace_task_finder_exec(struct utrace_attached_engine *engine,
 			}
 
 			// Set up thread death notification.
-			memset(&cb_tgt->ops, 0, sizeof(cb_tgt->ops));
-			cb_tgt->ops.report_death
-				= &__stp_utrace_task_finder_death;
-
 			engine = utrace_attach(tsk,
 					       UTRACE_ATTACH_CREATE,
 					       &cb_tgt->ops, cb_tgt);
@@ -298,9 +287,49 @@ __stp_utrace_task_finder_exec(struct utrace_attached_engine *engine,
 	return UTRACE_ACTION_RESUME;
 }
 
+static u32
+stap_utrace_task_finder_report_death(struct utrace_attached_engine *engine,
+				     struct task_struct *tsk)
+{
+	return UTRACE_ACTION_DETACH;
+}
+
+static u32
+__stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
+				      struct task_struct *tsk)
+{
+	struct stap_task_finder_target *tgt = engine->data;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		return UTRACE_ACTION_DETACH;
+	}
+
+	// The first implementation of this added a
+	// UTRACE_EVENT(DEATH) handler to
+	// __stp_utrace_task_finder_ops.  However, dead threads don't
+	// have a mm_struct, so we can't find the exe's path.  So, we
+	// don't know which callback(s) to call.
+	//
+	// So, now when an "interesting" thread is found, we add a
+	// separate UTRACE_EVENT(DEATH) handler for every probe.
+
+	if (tgt != NULL && tgt->callback != NULL) {
+		int rc;
+
+		// Call the callback
+		rc = tgt->callback(tsk, 0, tgt);
+		if (rc != 0) {
+			_stp_error("death callback for %d failed: %d",
+				   (int)tsk->pid, rc);
+		}
+	}
+	return UTRACE_ACTION_DETACH;
+}
+
 struct utrace_engine_ops __stp_utrace_task_finder_ops = {
-	.report_clone = __stp_utrace_task_finder_clone,
-	.report_exec = __stp_utrace_task_finder_exec,
+	.report_clone = __stp_utrace_task_finder_report_clone,
+	.report_exec = __stp_utrace_task_finder_report_exec,
+	.report_death = stap_utrace_task_finder_report_death,
 };
 
 int
@@ -315,6 +344,9 @@ stap_start_task_finder(void)
 		_stp_error("Unable to allocate space for path");
 		return ENOMEM;
 	}
+
+	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
+	printk(KERN_ERR "SYSTEMTAP: in RUNNING state\n");
 
 	rcu_read_lock();
 	for_each_process(tsk) {
@@ -398,10 +430,6 @@ stap_start_task_finder(void)
 				}
 
 				// Set up thread death notification.
-				memset(&cb_tgt->ops, 0, sizeof(cb_tgt->ops));
-				cb_tgt->ops.report_death
-					= &__stp_utrace_task_finder_death;
-
 				engine = utrace_attach(tsk,
 						       UTRACE_ATTACH_CREATE,
 						       &cb_tgt->ops, cb_tgt);
@@ -426,6 +454,8 @@ stap_start_task_finder(void)
 static void
 stap_stop_task_finder(void)
 {
+	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
 	stap_utrace_detach_ops(&__stp_utrace_task_finder_ops);
 	__stp_task_finder_cleanup();
+	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
 }

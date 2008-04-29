@@ -4634,8 +4634,8 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
   switch (p->flags)
     {
     case UDPF_CLONE:
-      s.op->line() << " .ops={ .report_clone=stap_utrace_probe_clone },";
-      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)),";
+      s.op->line() << " .ops={ .report_clone=stap_utrace_probe_clone, .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)|UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_EXEC:
       // Notice we're not setting up a .ops/.report_exec handler here.
@@ -4650,12 +4650,12 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       s.op->line() << " .flags=(UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_SYSCALL_ENTRY:
-      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)),";
+      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_SYSCALL_EXIT:
-      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)),";
+      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
       break;
     default:
       throw semantic_error ("bad utrace probe flag");
@@ -4778,9 +4778,9 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (flags_seen[UDPF_CLONE] || flags_seen[UDPF_SYSCALL_ENTRY]
       || flags_seen[UDPF_SYSCALL_EXIT])
     {
-      s.op->newline() << "case UTRACE_EVENT(CLONE):";
-      s.op->newline() << "case UTRACE_EVENT(SYSCALL_ENTRY):";
-      s.op->newline() << "case UTRACE_EVENT(SYSCALL_EXIT):";
+      s.op->newline() << "case (UTRACE_EVENT(CLONE)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)):";
       s.op->indent(1);
       s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
       s.op->newline() << "if (IS_ERR(engine)) {";
