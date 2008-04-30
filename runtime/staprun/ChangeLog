@@ -1,5 +1,12 @@
 2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
 
+	PR 6008
+	* common.c (parse_args): Increase the limitation of the buffer size
+	to 4095MB.
+	* common.c (usage): Ditto.
+
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
 	* stapio.c (main): Fix a typo in a debug message.
 	* staprun.c (main): Ditto.
 

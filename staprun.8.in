@@ -57,7 +57,7 @@ be in percpu files FILE_x where 'x' is the cpu number.
 .B \-b BUFFER_SIZE
 The systemtap module will specify a buffer size.
 Setting one here will override that value. The value should be
-an integer between 1 and 64 which be assumed to be the
+an integer between 1 and 4095 which be assumed to be the
 buffer size in MB. That value will be per-cpu if bulk mode is used.
 .TP
 .B \-L
