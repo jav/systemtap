@@ -3607,7 +3607,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	   expr_statement* es = new expr_statement;
 	   es->tok = e->tok;
 	   es->value = a;
-	   add_probe->body->statements.push_back (es);
+           add_probe->body = new block(add_probe->body, es);
 
 	   vardecl* vd = new vardecl;
 	   vd->tok = e->tok;
@@ -3640,7 +3640,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       es->tok = e->tok;
       es->value = a;
 
-      add_probe->body->statements.push_back (es);
+      add_probe->body = new block(add_probe->body, es);
 
       // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
       // our parent so it can be used as a substitute for the target
@@ -3813,12 +3813,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (scope_die)
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-      require <block*> (&v, &(this->body), this->body);
+      require <statement*> (&v, &(this->body), this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
       if (v.add_block)
-        this->body->statements.insert(this->body->statements.begin(), v.add_block);
+        this->body = new block(v.add_block, this->body);
 
       // If when target-variable-expanding the probe, we added a new
       // probe, add it in a new file to the list of files to be processed.
@@ -4428,7 +4428,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
 {
   // Make a local-variable-expanded copy of the probe body
   utrace_var_expanding_copy_visitor v (s, name, flags);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -5440,7 +5440,7 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 {
   // Make a local-variable-expanded copy of the probe body
   procfs_var_expanding_copy_visitor v (s, name, path, write);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -6100,7 +6100,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
   // Now make a local-variable-expanded copy of the probe body
   mark_var_expanding_copy_visitor v (sess, name, mark_args);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
@@ -6998,7 +6998,7 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
   // Now make a local-variable-expanded copy of the probe body
   perfmon_var_expanding_copy_visitor v (sess, probes_allocated-1);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;

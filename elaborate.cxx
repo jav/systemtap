@@ -492,7 +492,6 @@ alias_expansion_builder
 
     // the token location of the alias,
     n->tok = location->tok;
-    n->body->tok = location->tok;
 
     // and statements representing the concatenation of the alias'
     // body with the use's. 
@@ -503,25 +502,9 @@ alias_expansion_builder
     // resulting variable.
 
     if (alias->epilogue_style)
-      {
-        for (unsigned i = 0; i < use->body->statements.size(); ++i)
-          n->body->statements.push_back
-            (deep_copy_visitor::deep_copy(use->body->statements[i]));
-
-        for (unsigned i = 0; i < alias->body->statements.size(); ++i)
-          n->body->statements.push_back
-            (deep_copy_visitor::deep_copy(alias->body->statements[i]));
-      }
+      n->body = new block (use->body, alias->body);
     else
-      {
-        for (unsigned i = 0; i < alias->body->statements.size(); ++i)
-          n->body->statements.push_back
-            (deep_copy_visitor::deep_copy(alias->body->statements[i]));
-        
-        for (unsigned i = 0; i < use->body->statements.size(); ++i)
-          n->body->statements.push_back
-            (deep_copy_visitor::deep_copy(use->body->statements[i]));
-      }
+      n->body = new block (alias->body, use->body);
     
     derive_probes (sess, n, finished_results, location->optional);
   }
@@ -1041,7 +1024,7 @@ semantic_pass_conditions (systemtap_session & sess)
           notex->tok = e->tok;
           notex->operand = e;
           ifs->condition = notex;
-          p->body->statements.insert (p->body->statements.begin(), ifs);
+          p->body = new block (ifs, p->body);
         }
     }  
 
@@ -1799,6 +1782,7 @@ struct dead_stmtexpr_remover: public traversing_visitor
     session(s), relaxed_p(r), current_stmt(0) {}
 
   void visit_block (block *s);
+  void visit_null_statement (null_statement *s);
   void visit_if_statement (if_statement* s);
   void visit_foreach_loop (foreach_loop *s);
   void visit_for_loop (for_loop *s);
@@ -1809,14 +1793,43 @@ struct dead_stmtexpr_remover: public traversing_visitor
 
 
 void
+dead_stmtexpr_remover::visit_null_statement (null_statement *s)
+{
+  // easy!
+  if (session.verbose>2)
+    clog << "Eliding side-effect-free null statement " << *s->tok << endl;
+  *current_stmt = 0;
+}
+
+
+void
 dead_stmtexpr_remover::visit_block (block *s)
 {
-  for (unsigned i=0; i<s->statements.size(); i++)
+  vector<statement*> new_stmts;
+  for (unsigned i=0; i<s->statements.size(); i++ )
     {
       statement** last_stmt = current_stmt;
       current_stmt = & s->statements[i];
       s->statements[i]->visit (this);
+      if (*current_stmt != 0) 
+        new_stmts.push_back (*current_stmt);
       current_stmt = last_stmt;
+    }
+  if (new_stmts.size() == 0)
+    {
+      if (session.verbose>2)
+        clog << "Eliding side-effect-free empty block " << *s->tok << endl;
+      *current_stmt = 0;
+    }
+  else if (new_stmts.size() == 1)
+    {
+      if (session.verbose>2)
+        clog << "Eliding side-effect-free singleton block " << *s->tok << endl;
+      *current_stmt = new_stmts[0];
+    }
+  else
+    {
+      s->statements = new_stmts;
     }
 }
 
@@ -1826,12 +1839,36 @@ dead_stmtexpr_remover::visit_if_statement (if_statement *s)
   statement** last_stmt = current_stmt;
   current_stmt = & s->thenblock;
   s->thenblock->visit (this);
+
   if (s->elseblock)
     {
       current_stmt = & s->elseblock;
       s->elseblock->visit (this);
+      // null *current_stmt is OK here.
     }
   current_stmt = last_stmt;
+
+  if (s->elseblock == 0 && s->thenblock == 0)
+    {
+      // We may be able to elide this statement, if the condition
+      // expression is side-effect-free.
+      varuse_collecting_visitor vct;
+      s->condition->visit(& vct);
+      if (vct.side_effect_free ())
+        {
+          if (session.verbose>2)
+            clog << "Eliding side-effect-free if statement " << *s->tok << endl;
+          *current_stmt = 0; // yeah, baby
+          return;
+        }
+    }
+
+  if (s->thenblock == 0)
+    {
+      // Can't elide this whole if/else statement; put a null in there.
+      s->thenblock = new null_statement();
+      s->thenblock->tok = s->tok;
+    }
 }
 
 void
@@ -1841,6 +1878,13 @@ dead_stmtexpr_remover::visit_foreach_loop (foreach_loop *s)
   current_stmt = & s->block;
   s->block->visit (this);
   current_stmt = last_stmt;
+
+  if (s->block == 0)
+    {
+      if (session.verbose>2)
+        clog << "Eliding side-effect-free foreach statement " << *s->tok << endl;
+      *current_stmt = 0; // yeah, baby
+    }
 }
 
 void
@@ -1850,6 +1894,27 @@ dead_stmtexpr_remover::visit_for_loop (for_loop *s)
   current_stmt = & s->block;
   s->block->visit (this);
   current_stmt = last_stmt;
+
+  if (s->block == 0)
+    {
+      // We may be able to elide this statement, if the condition
+      // expression is side-effect-free.
+      varuse_collecting_visitor vct;
+      if (s->init) s->init->visit(& vct);
+      s->cond->visit(& vct);
+      if (s->incr) s->incr->visit(& vct);
+      if (vct.side_effect_free ())
+        {
+          if (session.verbose>2)
+            clog << "Eliding side-effect-free for statement " << *s->tok << endl;
+          *current_stmt = 0; // yeah, baby
+          return;
+        }
+
+      // Can't elide this whole statement; put a null in there.
+      s->block = new null_statement();
+      s->block->tok = s->tok;
+    }
 }
 
 
@@ -1886,14 +1951,10 @@ dead_stmtexpr_remover::visit_expr_statement (expr_statement *s)
         clog << "Eliding side-effect-free expression "
              << *s->tok << endl;
 
-      null_statement* ns = new null_statement;
-      ns->tok = s->tok;
-      * current_stmt = ns;
-      // XXX: A null_statement carries more weight in the translator's
-      // output than a nonexistent statement.  It might be nice to
-      // work a little harder and completely eliminate all traces of
-      // an elided statement.
-      
+      // NB: this 0 pointer is invalid to leave around for any length of
+      // time, but the parent parse tree objects above handle it.
+      * current_stmt = 0;
+
       relaxed_p = false;
     }
 }
@@ -1910,23 +1971,48 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
   for (unsigned i=0; i<s.probes.size(); i++)
     {
+      derived_probe* p = s.probes[i];
+
       duv.focal_vars.clear ();
       duv.focal_vars.insert (s.globals.begin(),
                              s.globals.end());
-      duv.focal_vars.insert (s.probes[i]->locals.begin(),
-                             s.probes[i]->locals.end());
-      s.probes[i]->body->visit (& duv);
+      duv.focal_vars.insert (p->locals.begin(),
+                             p->locals.end());
+
+      duv.current_stmt = & p->body;
+      p->body->visit (& duv);
+      if (p->body == 0)
+        {
+          if (! s.suppress_warnings)
+            clog << "WARNING: side-effect-free probe '" << p->name << "' " 
+                 << *p->tok << endl;
+
+          p->body = new null_statement();
+          p->body->tok = p->tok;
+        }
     }
   for (unsigned i=0; i<s.functions.size(); i++)
     {
+      functiondecl* fn = s.functions[i];
       duv.focal_vars.clear ();
-      duv.focal_vars.insert (s.functions[i]->locals.begin(),
-                             s.functions[i]->locals.end());
-      duv.focal_vars.insert (s.functions[i]->formal_args.begin(),
-                             s.functions[i]->formal_args.end());
+      duv.focal_vars.insert (fn->locals.begin(),
+                             fn->locals.end());
+      duv.focal_vars.insert (fn->formal_args.begin(),
+                             fn->formal_args.end());
       duv.focal_vars.insert (s.globals.begin(),
                              s.globals.end());
-      s.functions[i]->body->visit (& duv);
+
+      duv.current_stmt = & fn->body;
+      fn->body->visit (& duv);
+      if (fn->body == 0)
+        {
+          if (! s.suppress_warnings)
+            clog << "WARNING: side-effect-free function '" << fn->name << "' "
+                 << *fn->tok << endl;
+
+          fn->body = new null_statement();
+          fn->body->tok = fn->tok;
+        }
     }
 }
 
@@ -2509,6 +2595,26 @@ typeresolution_info::visit_target_symbol (target_symbol* e)
   // later unused-expression-elimination pass didn't get rid of it
   // either.  So we have a target symbol that is believed to be of
   // genuine use, yet unresolved by the provider.
+
+  if (session.verbose > 2)
+    {
+      clog << "Resolution problem with ";
+      if (current_function)
+        {
+          clog << "function " << current_function->name << endl;
+          current_function->body->print (clog);
+          clog << endl;
+        }
+      else if (current_probe)
+        {
+          clog << "probe " << current_probe->name << endl;
+          current_probe->body->print (clog);
+          clog << endl;
+        }
+      else 
+        clog << "other" << endl;
+    }
+
   if (e->saved_conversion_error)
     throw (* (e->saved_conversion_error));
   else

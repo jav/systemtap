@@ -1,4 +1,4 @@
-#! stap -p2
+#! stap -wp2
 
 probe kernel.function("*") {}
 probe module("*").function("*") {}

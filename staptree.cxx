@@ -801,6 +801,14 @@ void block::print (ostream& o) const
   o << "}";
 }
 
+block::block (statement* car, statement* cdr)
+{
+  statements.push_back(car);
+  statements.push_back(cdr);
+  this->tok = car->tok;
+}
+
+
 
 void for_loop::print (ostream& o) const
 {

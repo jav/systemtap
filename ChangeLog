@@ -1,3 +1,18 @@
+2008-04-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6466
+	* elaborate.cxx
+	(dead_stmtexpr_remover): Expand scope to kill far more
+	side-effect-free statemnets, including if/for/foreach.
+	(semantic_pass_opt4): Warn on elided function/probe bodies.
+	(typeresolution_info::visit_target_symbol): Dump parse tree of
+	resolution-challenged functions/probes.
+	(*): Adapt to probe->body being a statement*
+	rather than a block*.
+	* tapsets.cxx (*): Ditto.
+	* staptree.cxx (block::block ctor): New cons constructor.
+	* staptree.h: Corresponding changes.
+
 2008-04-29  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl): Added

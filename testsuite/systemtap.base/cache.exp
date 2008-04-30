@@ -74,8 +74,8 @@ if [info exists env(SYSTEMTAP_DIR)] {
 set env(SYSTEMTAP_DIR) $local_systemtap_dir
 
 # Set up the scripts we'll use.
-set basic_script1 "\"probe begin { }\""
-set basic_script2 "\"probe begin, end { }\""
+set basic_script1 "\"probe begin { println(1) }\""
+set basic_script2 "\"probe begin, end { println(2) }\""
 set error_script "\"probe XbeginX { }\""
 
 # Check basic functionality.  The 1st compilation of a script won't

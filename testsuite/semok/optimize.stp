@@ -1,4 +1,4 @@
-#! stap -p2
+#! stap -wp2
 
 # We count on the optimizer to blow away these ridiculous
 # expressions, since they have no effect on the output.
@@ -21,3 +21,19 @@ probe begin {
 probe begin{for(i=1;i-=2;i++);}
 probe begin{while(i+=2);}
 probe begin{if(i=j);}
+
+global ii
+probe begin{for(ii=1;ii-=2;ii++);}
+probe begin{while(ii+=2);}
+probe begin{if(ii=j);}
+
+# bug #6466
+global goo
+
+probe begin { while (24) ; }
+probe begin { for (2<$i; zoo(333); poo) ; }
+probe begin { foreach (x in goo) goo[x]+1; }
+probe begin { foo = $bar; if (foo) {} }
+probe begin { { { { } } } }
+function useful () { return 1 }
+probe begin { println (useful()) } /* don't elide this one! */
