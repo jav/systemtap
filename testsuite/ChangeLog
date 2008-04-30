@@ -1,3 +1,13 @@
+2008-04-29  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6466.
+	* semko/twelve.stp, semok/twenty.stp, systemtap.base/cache.exp,
+	systemtap.base/maxactive.exp, systemtap.base/warnings.exp,
+	transok/eight.stp: Adapt to new elision capabilities; add new
+	side-effects or -w warning-suppression flags.
+	* systemtap.pass1-4/buildok.exp: Remove two kfails.
+	* semok/optimize.stp: Test new elision.
+
 2008-04-24  Will Cohen  <wcohen@redhat.com>
 
 	* systemtap.examples: examples moved into testsuite.

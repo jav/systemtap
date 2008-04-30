@@ -13,8 +13,9 @@ proc sleep_five_sec {} {
 # Script1.  For 5 seconds, probe the return of "sys_select" and
 # "sys_read".  See if we skip any probes.
 set script1 {
+    global foo
     probe kernel.function("sys_select").return,
-        kernel.function("sys_read").return { }
+        kernel.function("sys_read").return { foo++ }
 
     probe timer.ms(5000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}
@@ -29,8 +30,9 @@ set skipped1 $skipped_probes
 # "sys_read", with a limit of 1 probe active at a time.  See if we
 # skip any probes.
 set script2 {
+    global foo
     probe kernel.function("sys_select").return.maxactive(1),
-        kernel.function("sys_read").return.maxactive(1) { }
+        kernel.function("sys_read").return.maxactive(1) { foo++ }
 
     probe timer.ms(5000) { exit(); }
     probe begin { log("systemtap starting probe"); log("systemtap ending probe");}

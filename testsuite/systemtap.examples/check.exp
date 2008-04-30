@@ -1,0 +1,75 @@
+# check.exp
+#
+# This script searches the systemtap.examples directory for .meta files
+# The .meta files contain information categorizing the script.  The
+# .meta files are composed of lines of tags. Each tag is followed by a
+# value.
+
+#open the file and read in all the lines of data in FILE
+#return a string with the data
+proc get_meta_data { FILE } {
+    set meta_data ""
+    
+    if [catch {open "$FILE" RDONLY} fl] {
+	puts "open $FILE failed: $err"
+	return ""
+    } else {
+	set meta_data [read -nonewline $fl]
+	close $fl
+	return "$meta_data"
+    }
+}
+
+#extract value for TAG from string META_DATA
+#if there is no matching tag return ""
+proc extract_tag { META_DATA TAG } {
+    set taglines ""
+    set value ""
+    set expr "^$TAG:\[^\$\]*"
+    regexp -line -all $expr $META_DATA taglines
+    set expr "$TAG:"
+    regsub -line $expr $taglines "" value
+    return $value
+}
+
+set curdir [pwd]
+
+set src_examples $srcdir/systemtap.examples
+set meta_files [lsort [exec find  $src_examples -path "*.meta"]]
+foreach file $meta_files {
+    set dir [file dirname $file]
+    set test [regsub {.*/testsuite/} $file ""]
+    
+    cd $dir
+    
+    set meta_data [get_meta_data $file]
+    set test_check [extract_tag "$meta_data" "test_check"]
+    set test_installcheck [extract_tag "$meta_data" "test_installcheck"]
+    # Would like to run the tests (-p5), but pass fail logic too
+    # simple and fails for many examples
+    # FIXME following line prevents installcheck with "--tools_opts install"
+    set test_installcheck ""
+    if {[info procs installtest_p] != "" && [installtest_p]
+	&& $test_installcheck != "" } then {
+	set command $test_installcheck
+    } else {
+	set command $test_check
+    }
+
+    #FIXME tcl says that single quotes not dealt with
+    if { $command != "" } then {
+	verbose -log "attempting command $command"
+	set res [catch {eval exec $command} value]
+	verbose -log "OUT $value"
+	verbose -log "RC $res"
+	if {$res != 0 } {
+	    fail $test
+	} else {
+	    pass $test
+	}
+    } else {
+	untested $test
+    }
+}
+
+cd $curdir

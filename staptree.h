@@ -470,6 +470,8 @@ struct block: public statement
   std::vector<statement*> statements;
   void print (std::ostream& o) const;
   void visit (visitor* u);
+  block () {}
+  block (statement* car, statement* cdr);
 };
 
 
@@ -605,7 +607,7 @@ std::ostream& operator << (std::ostream& o, const probe_point& k);
 struct probe
 {
   std::vector<probe_point*> locations;
-  block* body;
+  statement* body;
   const token* tok;
   std::vector<vardecl*> locals;
   std::vector<vardecl*> unused_locals;

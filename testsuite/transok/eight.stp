@@ -2,10 +2,11 @@
 
 global foo
 global baz
+global zoo
 
 function bar()
 {
-	return foo["hello"]
+	return foo["hello"]+(zoo++)
 }
 
 probe begin

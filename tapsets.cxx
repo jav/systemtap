@@ -3607,7 +3607,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	   expr_statement* es = new expr_statement;
 	   es->tok = e->tok;
 	   es->value = a;
-	   add_probe->body->statements.push_back (es);
+           add_probe->body = new block(add_probe->body, es);
 
 	   vardecl* vd = new vardecl;
 	   vd->tok = e->tok;
@@ -3640,7 +3640,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       es->tok = e->tok;
       es->value = a;
 
-      add_probe->body->statements.push_back (es);
+      add_probe->body = new block(add_probe->body, es);
 
       // (4) Provide the '_dwarf_tvar_{name}_{num}_tmp' variable to
       // our parent so it can be used as a substitute for the target
@@ -3813,12 +3813,12 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   if (scope_die)
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
-      require <block*> (&v, &(this->body), this->body);
+      require <statement*> (&v, &(this->body), this->body);
 
       // If during target-variable-expanding the probe, we added a new block
       // of code, add it to the start of the probe.
       if (v.add_block)
-        this->body->statements.insert(this->body->statements.begin(), v.add_block);
+        this->body = new block(v.add_block, this->body);
 
       // If when target-variable-expanding the probe, we added a new
       // probe, add it in a new file to the list of files to be processed.
@@ -4429,7 +4429,7 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
 {
   // Make a local-variable-expanded copy of the probe body
   utrace_var_expanding_copy_visitor v (s, name, flags);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -4640,8 +4640,8 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
   switch (p->flags)
     {
     case UDPF_CLONE:
-      s.op->line() << " .ops={ .report_clone=stap_utrace_probe_clone },";
-      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)),";
+      s.op->line() << " .ops={ .report_clone=stap_utrace_probe_clone, .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)|UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_EXEC:
       // Notice we're not setting up a .ops/.report_exec handler here.
@@ -4656,12 +4656,12 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       s.op->line() << " .flags=(UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_SYSCALL_ENTRY:
-      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)),";
+      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_SYSCALL_EXIT:
-      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)),";
+      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
+      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
       break;
     default:
       throw semantic_error ("bad utrace probe flag");
@@ -4784,9 +4784,9 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (flags_seen[UDPF_CLONE] || flags_seen[UDPF_SYSCALL_ENTRY]
       || flags_seen[UDPF_SYSCALL_EXIT])
     {
-      s.op->newline() << "case UTRACE_EVENT(CLONE):";
-      s.op->newline() << "case UTRACE_EVENT(SYSCALL_ENTRY):";
-      s.op->newline() << "case UTRACE_EVENT(SYSCALL_EXIT):";
+      s.op->newline() << "case (UTRACE_EVENT(CLONE)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)):";
       s.op->indent(1);
       s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
       s.op->newline() << "if (IS_ERR(engine)) {";
@@ -5446,7 +5446,7 @@ procfs_derived_probe::procfs_derived_probe (systemtap_session &s, probe* p,
 {
   // Make a local-variable-expanded copy of the probe body
   procfs_var_expanding_copy_visitor v (s, name, path, write);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 }
 
@@ -6106,7 +6106,7 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 
   // Now make a local-variable-expanded copy of the probe body
   mark_var_expanding_copy_visitor v (sess, name, mark_args);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
 
   if (sess.verbose > 2)
@@ -7004,7 +7004,7 @@ perfmon_derived_probe::perfmon_derived_probe (probe* p, probe_point* l,
 
   // Now make a local-variable-expanded copy of the probe body
   perfmon_var_expanding_copy_visitor v (sess, probes_allocated-1);
-  require <block*> (&v, &(this->body), base->body);
+  require <statement*> (&v, &(this->body), base->body);
 
   if (sess.verbose > 1)
     clog << "perfmon-based probe" << endl;
