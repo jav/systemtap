@@ -36,6 +36,9 @@ the <systemtap@sources.redhat.com> mailing list.
   Some subdirectories have ChangeLog files of their own, so make sure
   you find the correct ones to prepend.
 
+  In the git commit message, make the first line an brief summary of
+  the patch.  There is no need to transcribe the ChangeLog entries there.
+
 - test suites
 
   As far as practicable, changes should be accompanied by test cases
