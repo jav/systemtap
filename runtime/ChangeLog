@@ -1,3 +1,9 @@
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5648
+	From Shaohua Li <shaohua.li@intel.com>
+	* vsprintf.c (_stp_vsnprintf): Fix unaligned access warning on ia64.
+
 2008-04-29  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c: Made more robust by ensuring that all utrace

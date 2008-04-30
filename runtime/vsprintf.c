@@ -256,18 +256,18 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				break;
 			case 2:
 				if((str + 1) <= end)
-					*(int16_t *)str = (int16_t)num;
+					memcpy(str, &num, 2);
 				str+=2;
 				break;
 			case 4:
 				if((str + 3) <= end)
-					*(int32_t *)str = num;
+					memcpy(str, &num, 4);
 				str+=4;
 				break;
 			default: // "%.8b" by default
 			case 8:
 				if((str + 7) <= end)
-					*(int64_t *)str = num;
+					memcpy(str, &num, 8);
 				str+=8;
 				break;
 			}
