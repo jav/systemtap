@@ -1,3 +1,8 @@
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stapio.c (main): Fix a typo in a debug message.
+	* staprun.c (main): Ditto.
+
 2008-04-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6451.
