@@ -1,3 +1,7 @@
+2008-05-01  William Cohen  <wcohen@redhat.com>
+
+	* helloworld.meta: New file.
+
 2008-04-27  William Cohen  <wcohen@redhat.com>
 
 	* check.exp: New script to run tests on cataloged examples.
