@@ -1,3 +1,11 @@
+2008-05-01  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6474
+	* configure.ac (--enable-pie): Add default option.
+	* Makefile.am (stap* binaries): Use -fpie/-z relro/-z now as
+	applicable.
+	* configure, aclocal.m4, Makefile.in, doc/Makefile.in: Regenerated.
+
 2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 6008
