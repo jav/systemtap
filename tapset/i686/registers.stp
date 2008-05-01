@@ -1,0 +1,75 @@
+/* Return the named register value as a signed value. */
+function register:long (name:string) %{ /* pure */
+	if (CONTEXT->regs)
+		THIS->__retvalue = (int64_t)
+			_stp_get_reg32_by_name(THIS->name, CONTEXT->regs);
+	else
+		THIS->__retvalue = 0;
+%}
+
+/*
+ * Return the named register value as an unsigned value.  Specifically,
+ * don't sign-extend the register value when promoting it to 64 bits.
+ */
+function u_register:long (name:string) {
+	return register(name) & 0xffffffff;
+}
+
+/* Return the value of function arg #argnum (1=first arg) as a signed value. */
+function arg:long (argnum:long) %{
+	long val;
+	int n;
+	int result;
+
+	THIS->__retvalue = 0;
+	if (!CONTEXT->regs) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+			"cannot access function args in this context");
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		return;
+	}
+	if (THIS->argnum < 1)
+		goto bad_argnum;
+	n = (int) THIS->argnum;
+	// TODO: Get nr_regargs from .linkage clause.
+	result = _stp_get_arg32_by_number(n, 0, CONTEXT->regs, &val);
+	switch (result) {
+	case 0:
+		THIS->__retvalue = (int64_t) val;
+		break;
+	case 1:
+		THIS->__retvalue = kread((long *) val);
+		break;
+	case 2:
+		/*
+		 * Is copy_from_user satisfactory, since uprobe
+		 * handlers can block?
+		 */
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"arg() not yet implemented for user functions");
+		CONTEXT->last_error = CONTEXT->error_buffer;
+		break;
+	default:
+		goto bad_argnum;
+	}
+	return;
+
+bad_argnum:
+	snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+				"cannot access arg(%lld)", THIS->argnum);
+	CONTEXT->last_error = CONTEXT->error_buffer;
+	return;
+
+	if (0) {
+deref_fault: /* branched to from deref() */
+		snprintf (CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+        		"kernel fault at %#lx accessing arg(%lld)", val,
+			THIS->argnum);
+    		CONTEXT->last_error = CONTEXT->error_buffer;
+	}
+%}
+
+/* Return the value of function arg #argnum as an unsigned value. */
+function u_arg:long (argnum:long) {
+	return arg(argnum) & 0xffffffff;
+}
