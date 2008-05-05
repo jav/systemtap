@@ -1,3 +1,9 @@
+2008-05-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6481.
+	* time.c (__stp_time_timer_callback): Reenable irq's before
+	mod_timer.
+
 2008-05-05  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (stap_utrace_detach_ops): Make sure we ignore

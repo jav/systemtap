@@ -131,10 +131,13 @@ __stp_time_timer_callback(unsigned long val)
     time->base_cycles = cycles;
     write_sequnlock(&time->lock);
 
+    local_irq_restore(flags);
+    /* PR6481: reenable IRQs before resetting the timer.
+       XXX: The worst that can probably happen is that we get
+	    two consecutive timer resets.  */
+
     if (likely(stp_timer_reregister))
         mod_timer(&time->timer, jiffies + 1);
-
-    local_irq_restore(flags);
 }
 
 /* This is called as an IPI, with interrupts disabled. */
