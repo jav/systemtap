@@ -16,8 +16,8 @@
 /* globals */
 int ncpus;
 static int use_old_transport = 0;
-enum _stp_sig_type { sig_none, sig_done, sig_detach };
-static enum _stp_sig_type got_signal = sig_none;
+//enum _stp_sig_type { sig_none, sig_done, sig_detach };
+//static enum _stp_sig_type got_signal = sig_none;
 
 /**
  *      send_request - send request to kernel over control channel
@@ -29,48 +29,76 @@ static enum _stp_sig_type got_signal = sig_none;
  */
 int send_request(int type, void *data, int len)
 {
-        char buf[1024];
+	char buf[1024];
 
-        /* Before doing memcpy, make sure 'buf' is big enough. */
-        if ((len + 4) > (int)sizeof(buf)) {
-                _err("exceeded maximum send_request size.\n");
-                return -1;
-        }
-        memcpy(buf, &type, 4);
-        memcpy(&buf[4], data, len);
-        return write(control_channel, buf, len+4);
+	/* Before doing memcpy, make sure 'buf' is big enough. */
+	if ((len + 4) > (int)sizeof(buf)) {
+		_err("exceeded maximum send_request size.\n");
+		return -1;
+	}
+	memcpy(buf, &type, 4);
+	memcpy(&buf[4], data, len);
+	return write(control_channel, buf, len + 4);
 }
 
-
-static void sigproc(int signum)
+static void *signal_thread(void *arg)
 {
-	dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
+	sigset_t *s = (sigset_t *) arg;
+	int signum;
 
-	if (signum == SIGCHLD) {
-		pid_t pid = waitpid(-1, NULL, WNOHANG);
-		if (pid != target_pid)
-			return;
-		send_request(STP_EXIT, NULL, 0);
-	} else if (signum == SIGQUIT)
-		got_signal = sig_detach;
-	else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM)
-		got_signal = sig_done;
+	while (1) {
+		if (sigwait(s, &signum) < 0) {
+			_perr("sigwait");
+			continue;
+		}
+		dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
+		if (signum == SIGCHLD) {
+			pid_t pid = waitpid(-1, NULL, WNOHANG);
+			if (pid == target_pid) {
+				send_request(STP_EXIT, NULL, 0);
+				break;
+			}
+		} else if (signum == SIGQUIT)
+			cleanup_and_exit(1);
+		else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM) {
+			send_request(STP_EXIT, NULL, 0);
+			break;
+		}
+	}
+	return NULL;
 }
 
-static void setup_main_signals(int cleanup)
+static void setup_main_signals(void)
 {
-	struct sigaction a;
-	memset(&a, 0, sizeof(a));
-	sigfillset(&a.sa_mask);
-	if (cleanup == 0) {
-		a.sa_handler = sigproc;
-		sigaction(SIGCHLD, &a, NULL);
-	} else
-		a.sa_handler = SIG_IGN;
-	sigaction(SIGINT, &a, NULL);
-	sigaction(SIGTERM, &a, NULL);
-	sigaction(SIGHUP, &a, NULL);
-	sigaction(SIGQUIT, &a, NULL);
+	pthread_t tid;
+	struct sigaction sa;
+	sigset_t *s = malloc(sizeof(*s));
+	if (!s) {
+		_perr("malloc failed");
+		exit(1);
+	}
+	sigfillset(s);
+	pthread_sigmask(SIG_SETMASK, s, NULL);
+	memset(&sa, 0, sizeof(sa));
+	sigfillset(&sa.sa_mask);
+	sa.sa_handler = SIG_IGN;
+	sigaction(SIGCHLD, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+
+	sigemptyset(s);
+	sigaddset(s, SIGCHLD);
+	sigaddset(s, SIGINT);
+	sigaddset(s, SIGTERM);
+	sigaddset(s, SIGHUP);
+	sigaddset(s, SIGQUIT);
+	pthread_sigmask(SIG_SETMASK, s, NULL);
+	if (pthread_create(&tid, NULL, signal_thread, s) < 0) {
+		_perr("failed to create thread");
+		exit(1);
+	}
 }
 
 /* 
@@ -229,7 +257,7 @@ void cleanup_and_exit(int detach)
 		return;
 	exiting = 1;
 
-	setup_main_signals(1);
+	setup_main_signals();
 
 	dbug(1, "detach=%d\n", detach);
 
@@ -272,20 +300,17 @@ int stp_main_loop(void)
 	char recvbuf[8196];
 
 	setvbuf(ofp, (char *)NULL, _IOLBF, 0);
-	setup_main_signals(0);
+	setup_main_signals();
 
 	dbug(2, "in main loop\n");
 	send_request(STP_READY, NULL, 0);
 
-	while (1) {		/* handle messages from control channel */
+	/* handle messages from control channel */
+	while (1) {
 		nb = read(control_channel, recvbuf, sizeof(recvbuf));
 		dbug(2, "nb=%d\n", (int)nb);
 		if (nb <= 0) {
-			if (got_signal == sig_done)
-				send_request(STP_EXIT, NULL, 0);
-			else if (got_signal == sig_detach)
-				cleanup_and_exit(1);
-			else if (errno != EINTR)
+			if (errno != EINTR)
 				_perr("Unexpected EOF in read (nb=%ld)", (long)nb);
 			continue;
 		}
