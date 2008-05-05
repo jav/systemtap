@@ -1,5 +1,10 @@
 2008-05-05  Martin Hunt  <hunt@redhat.com>
 
+	* mainloop.c (child_proc): Handle sig_chld
+	in the proper thread.
+
+2008-05-05  Martin Hunt  <hunt@redhat.com>
+
 	* mainloop.c (signal_thread): New thread to handle signals
 	better.
 	(setup_main_signals): Create signal thread.

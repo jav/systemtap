@@ -68,6 +68,17 @@ static void *signal_thread(void *arg)
 	return NULL;
 }
 
+static void chld_proc(int signum)
+{
+	int32_t rc, btype = STP_EXIT;
+	dbug(2, "chld_proc %d (%s)\n", signum, strsignal(signum));
+	pid_t pid = waitpid(-1, NULL, WNOHANG);
+	if (pid != target_pid)
+		return;
+	// send STP_EXIT
+	rc = write(control_channel, &btype, sizeof(btype));
+}
+
 static void setup_main_signals(void)
 {
 	pthread_t tid;
@@ -82,14 +93,15 @@ static void setup_main_signals(void)
 	memset(&sa, 0, sizeof(sa));
 	sigfillset(&sa.sa_mask);
 	sa.sa_handler = SIG_IGN;
-	sigaction(SIGCHLD, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGQUIT, &sa, NULL);
 
+	sa.sa_handler = chld_proc;
+	sigaction(SIGCHLD, &sa, NULL);
+
 	sigemptyset(s);
-	sigaddset(s, SIGCHLD);
 	sigaddset(s, SIGINT);
 	sigaddset(s, SIGTERM);
 	sigaddset(s, SIGHUP);
