@@ -1,3 +1,14 @@
+2008-05-05  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (stap_utrace_detach_ops): Make sure we ignore
+	/sbin/init.
+	(__stp_utrace_attach): Added function to handle details of
+	attaching a utrace engine.
+	(__stp_utrace_task_finder_report_clone): Calls
+	__stp_utrace_attach.
+	(__stp_utrace_task_finder_report_exec): Ditto.
+	(stap_start_task_finder): Ditto.
+
 2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5648
