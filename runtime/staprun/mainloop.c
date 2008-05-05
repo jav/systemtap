@@ -44,7 +44,7 @@ int send_request(int type, void *data, int len)
 static void *signal_thread(void *arg)
 {
 	sigset_t *s = (sigset_t *) arg;
-	int signum;
+	int signum, rc, btype = STP_EXIT;
 
 	while (1) {
 		if (sigwait(s, &signum) < 0) {
@@ -52,16 +52,11 @@ static void *signal_thread(void *arg)
 			continue;
 		}
 		dbug(2, "sigproc %d (%s)\n", signum, strsignal(signum));
-		if (signum == SIGCHLD) {
-			pid_t pid = waitpid(-1, NULL, WNOHANG);
-			if (pid == target_pid) {
-				send_request(STP_EXIT, NULL, 0);
-				break;
-			}
-		} else if (signum == SIGQUIT)
+		if (signum == SIGQUIT)
 			cleanup_and_exit(1);
 		else if (signum == SIGINT || signum == SIGHUP || signum == SIGTERM) {
-			send_request(STP_EXIT, NULL, 0);
+			// send STP_EXIT
+			rc = write(control_channel, &btype, sizeof(btype));			
 			break;
 		}
 	}

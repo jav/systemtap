@@ -2,6 +2,8 @@
 
 	* mainloop.c (child_proc): Handle sig_chld
 	in the proper thread.
+	(signal_thread): Don't call send_request()
+	because it isn't thread-safe.
 
 2008-05-05  Martin Hunt  <hunt@redhat.com>
 
