@@ -209,6 +209,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->unwaddr = 0;";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
+  o->newline() << "c->regparm = 0;";
   o->newline() << "c->probe_point = 0;";
   if (! interruptible)
     o->newline() << "c->actionremaining = MAXACTION;";

@@ -1,10 +1,7 @@
 /* Return the named register value as a signed value. */
 function register:long (name:string) %{ /* pure */
-	if (CONTEXT->regs)
-		THIS->__retvalue = (int64_t)
+	THIS->__retvalue = (int64_t)
 			_stp_get_reg32_by_name(THIS->name, CONTEXT->regs);
-	else
-		THIS->__retvalue = 0;
 %}
 
 /*
@@ -16,10 +13,9 @@ function u_register:long (name:string) {
 }
 
 /* Return the value of function arg #argnum (1=first arg) as a signed value. */
-function arg:long (argnum:long) %{
+function _stp_arg:long (argnum:long) %{
 	long val;
-	int n;
-	int result;
+	int n, nr_regargs, result;
 
 	THIS->__retvalue = 0;
 	if (!CONTEXT->regs) {
@@ -31,24 +27,30 @@ function arg:long (argnum:long) %{
 	if (THIS->argnum < 1)
 		goto bad_argnum;
 	n = (int) THIS->argnum;
-	// TODO: Get nr_regargs from .linkage clause.
-	result = _stp_get_arg32_by_number(n, 0, CONTEXT->regs, &val);
+	nr_regargs = _stp_get_regparm(CONTEXT->regparm, CONTEXT->regs);
+	result = _stp_get_arg32_by_number(n, nr_regargs, CONTEXT->regs, &val);
 	switch (result) {
 	case 0:
+		/* Arg is in register. */
 		THIS->__retvalue = (int64_t) val;
 		break;
 	case 1:
+		/* Arg is on kernel stack. */
 		THIS->__retvalue = kread((long *) val);
 		break;
 	case 2:
-		/*
-		 * Is copy_from_user satisfactory, since uprobe
-		 * handlers can block?
-		 */
-		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
-				"arg() not yet implemented for user functions");
-		CONTEXT->last_error = CONTEXT->error_buffer;
+	    {
+		/* Arg is on user stack. */
+	    	const char __user *vaddr = (const char __user*) val;
+		if (_stp_copy_from_user((char*)&val, vaddr, sizeof(val)) != 0) {
+			/* Stack page not resident. */
+			_stp_warn("cannot access arg(%d) "
+				"at user stack address %p\n", n, vaddr);
+			THIS->__retvalue = 0;
+		} else
+			THIS->__retvalue = (int64_t) val;
 		break;
+	    }
 	default:
 		goto bad_argnum;
 	}
@@ -69,7 +71,71 @@ deref_fault: /* branched to from deref() */
 	}
 %}
 
-/* Return the value of function arg #argnum as an unsigned value. */
-function u_arg:long (argnum:long) {
-	return arg(argnum) & 0xffffffff;
+/* Return the value of function arg #argnum as a signed int. */
+function int_arg:long (argnum:long) {
+	return _stp_arg(argnum)
 }
+
+/* Return the value of function arg #argnum as an unsigned int. */
+function uint_arg:long (argnum:long) {
+	return _stp_arg(argnum) & 0xffffffff;
+}
+
+function long_arg:long (argnum:long) {
+	return int_arg(argnum)
+}
+
+function ulong_arg:long (argnum:long) {
+	return uint_arg(argnum)
+}
+
+function longlong_arg:long (argnum:long) {
+	/*
+	 * TODO: If argnum == nr_regarg, gcc puts the whole 64-bit arg
+	 * on the stack.
+	 */
+	lowbits = uint_arg(argnum)
+	highbits = uint_arg(argnum+1)
+	return ((highbits << 32) | lowbits)
+}
+
+function ulonglong_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function pointer_arg:long (argnum:long) {
+	return ulong_arg(argnum)
+}
+
+function s32_arg:long (argnum:long) {
+	return int_arg(argnum)
+}
+
+function u32_arg:long (argnum:long) {
+	return uint_arg(argnum)
+}
+
+function s64_arg:long (argnum:long) {
+	return longlong_arg(argnum)
+}
+
+function u64_arg:long (argnum:long) {
+	return ulonglong_arg(argnum)
+}
+
+function asmlinkage() %{
+	CONTEXT->regparm = _STP_REGPARM | 0;
+%}
+
+function fastcall() %{
+	CONTEXT->regparm = _STP_REGPARM | 3;
+%}
+
+function regparm(n) %{
+	if (THIS->n < 0 || THIS->n > 3) {
+		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
+			"For i386, regparm value must be in the range 0-3.");
+		CONTEXT->last_error = CONTEXT->error_buffer;
+	} else
+		CONTEXT->regparm = _STP_REGPARM | (int) n;
+%}

@@ -400,6 +400,7 @@ struct _stp_register_table {
 	unsigned nr_slots;	// capacity
 };
 
+static DEFINE_SPINLOCK(_stp_register_table_lock);
 static void _stp_populate_register_table(void);
 
 /*
@@ -445,12 +446,17 @@ static int _stp_find_register(const char *name,
 	struct _stp_register_table *table, size_t *size, size_t *offset)
 {
 	int slot, found;
-	if (table->nr_registers == 0)
+	if (unlikely(table->nr_registers == 0)) {
+		unsigned long flags;
 		/*
 		 * Should we do this at the beginning of time to avoid
 		 * the possibility of spending too long in a handler?
 		 */
-		_stp_populate_register_table();
+		spin_lock_irqsave(&_stp_register_table_lock, flags);
+		if (table->nr_registers == 0)
+			_stp_populate_register_table();
+		spin_unlock_irqrestore(&_stp_register_table_lock, flags);
+	}
 	slot = _stp_lookup_register(name, table, &found);
 	if (found) {
 		if (size)
@@ -549,6 +555,7 @@ static struct _stp_register_table i386_register_table = {
 #define ADD_EREG(nm) ADD_PT_REG("e" #nm, r##nm)
 #define ADD_XREG(nm) ADD_PT_REG("x" #nm, nm)
 #define ADD_FLAGS_REG() ADD2NAMES("flags", "eflags", eflags)
+/* Note: After a store to %eax, %rax holds the ZERO-extended %eax. */
 #define EREG(nm, regs) ((regs)->r##nm)
 #define RREG(nm, regs) ((regs)->r##nm)
 #endif	/* __x86_64__ */
@@ -592,6 +599,10 @@ static void _stp_populate_i386_register_table(void)
 	ADD_XREG(ss);
 }
 
+/*
+ * For x86_64, this gets a copy of the saved 64-bit register (e.g., regs->rax).
+ * After a store to %eax, %rax holds the ZERO-extended %eax.
+ */
 static long
 _stp_get_reg32_by_name(const char *name, struct pt_regs *regs)
 {
@@ -687,30 +698,49 @@ static void _stp_populate_register_table(void)
 
 static int _stp_probing_32bit_app(struct pt_regs *regs)
 {
+	if (!regs)
+		return 0;
 	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_IA32));
 }
 
+/* Ensure that the upper 32 bits of val are a sign-extension of the lower 32. */
+static long _stp_sign_extend32(long val)
+{
+	int32_t *val_ptr32 = (int32_t*) &val;
+	return *val_ptr32;
+}
+
+/*
+ * Get the value of the 64-bit register with the specified name.  "rax",
+ * "ax", and "eax" all get you regs->[r]ax.  Sets *reg32=1 if the name
+ * designates a 32-bit register (e.g., "eax"), 0 otherwise.
+ */
 static unsigned long
-_stp_get_reg64_by_name(const char *name, struct pt_regs *regs)
+_stp_get_reg64_by_name(const char *name, struct pt_regs *regs, int *reg32)
 {
 	size_t offset = 0;
 	unsigned long value;
 	BUG_ON(!name);
-	if (!regs)
+	if (!regs) {
 		_stp_error("Register values not available in this context.\n");
+		return 0;
+	}
 	if (_stp_find_register(name, &x86_64_register_table, NULL, &offset)) {
+		if (reg32)
+			*reg32 = 0;
 		(void) memcpy(&value, ((char*)regs) + offset, sizeof(value));
 		return value;
 	}
-	if (_stp_probing_32bit_app(regs))
-		return _stp_get_reg32_by_name(name, regs);
-	_stp_error("Unknown register name: %s\n", name);
-	/* NOTREACHED */
-	return 0;
+	if (reg32)
+		*reg32 = 1;
+	return _stp_get_reg32_by_name(name, regs);
 }
 #endif /* __x86_64__ */
 
 /* Function arguments */
+
+#define _STP_REGPARM 0x8000
+#define _STP_REGPARM_MASK ((_STP_REGPARM) - 1)
 
 #if defined(__i386__) || defined(__x86_64__)
 static long _stp_get_sp(struct pt_regs *regs)
@@ -762,6 +792,21 @@ static int _stp_get_arg32_by_number(int n, int nr_regargs,
 }
 #endif	/* __i386__ || __x86_64__ */
 
+#ifdef __i386__
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
+{
+	if (regparm == 0) {
+		/* Default */
+		if (user_mode(regs))
+			return 0;
+		else
+			// Kernel is built with -mregparm=3.
+			return 3;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
+}
+#endif
+
 #ifdef __x86_64__
 /* See _stp_get_arg32_by_number(). */
 static int _stp_get_arg64_by_number(int n, int nr_regargs,
@@ -789,6 +834,18 @@ static int _stp_get_arg64_by_number(int n, int nr_regargs,
 		}
 		return 0;
 	}
+}
+
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
+{
+	if (regparm == 0) {
+		/* Default */
+		if (_stp_probing_32bit_app(regs))
+			return 0;
+		else
+			return 6;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
 }
 #endif	/* __x86_64__ */
 
