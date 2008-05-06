@@ -1,3 +1,21 @@
+2008-05-06  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 4311 - Function boundary tracing without debuginfo: Phase II
+	* stapfuncs.5.in: Added sections on CPU REGISTERS and
+	NUMBERED FUNCTION ARGUMENTS.
+
+2008-05-05  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 4311 - Function boundary tracing without debuginfo: Phase II
+	* runtime/regs.c: Added register name:value lookup facility.
+	Added support for register and arg lookup for i386 and x86_64.
+	* tapset/{i686,x86_64}/registers.stp: New: support for register
+	and arg lookup.
+	* tapsets.cxx, translate.cxx: Added regparm field to struct
+	context.
+	* tapset/nd_syscall.stp: syscall.stp migrating toward numbered
+	args rather than named args.
+
 2008-04-18  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 4311 - Function boundary tracing without debuginfo: Phase I
