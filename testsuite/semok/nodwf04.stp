@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Like nodwf01.stp, but extract the symbol table from vmlinux.
+
+stap -p2 --ignore-dwarf --kelf -e '
+global nret
+
+probe syscall.*.return {
+	/* NB: $return does NOT currently work here. */
+	printf("%s returns %s\n", name, returnstr(2));
+	if (nret++ > 50)
+		exit()
+}
+'

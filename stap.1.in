@@ -167,6 +167,40 @@ a specific process.
 Instead of running a probe script, just list all available probe
 points matching the given pattern.  The pattern may include wildcards
 and aliases.
+.B \-\-kelf
+For names and addresses of functions to probe,
+consult the symbol tables in the kernel and modules.
+This can be useful if your kernel and/or modules were compiled
+without debugging information, or the function you want to probe
+is in an assembly-language file built without debugging information.
+See the
+.B "MAKING DO WITH SYMBOL TABLES"
+section for more information.
+.TP
+.BI \-\-kmap [=FILE]
+For names and addresses of kernel functions to probe,
+consult the symbol table in the indicated text file.
+The default is /boot/System.map-VERSION.
+The contents of this file should be in the form of the default output from
+.IR nm (1).
+Only symbols of type T or t are used.
+If you specify /proc/kallsyms or some other file in that format,
+where lines for module symbols contain a fourth column,
+reading of the symbol table stops with the first module symbol
+(which should be right after the last kernel symbol).
+As with
+.BR \-\-kelf ,
+the symbol table in each module's .ko file will also be consulted.
+See the
+.B "MAKING DO WITH SYMBOL TABLES"
+section for more information.
+.TP
+.B \-\-ignore\-vmlinux
+For testing, act as though neither the uncompressed kernel (vmlinux)
+nor the kernel debugging information can be found.
+.TP
+.B \-\-ignore\-dwarf
+For testing, act as though vmlinux and modules lack debugging information.
 
 .SH ARGUMENTS
 
@@ -929,6 +963,47 @@ have overloaded the system and an exit is triggered.
 .PP
 By default, overload processing is turned on for all modules.  If you
 would like to disable overload processing, define STP_NO_OVERLOAD.
+
+.SH MAKING DO WITH SYMBOL TABLES
+Systemtap performs best when it has access to the debugging information
+associated with your kernel and modules.
+However, if this information is not available,
+systemtap can still support probing of function entries and returns
+using symbols read from vmlinux and/or the modules in /lib/modules.
+Systemtap can also read the kernel symbol table from a text file
+such as /boot/System.map or /proc/kallsyms.
+See the
+.B \-\--kelf
+and
+.B \-\--kmap
+options.
+.PP
+If systemtap finds relevant debugging information,
+it will use it even if you specify
+.B \-\--kelf
+or
+.BR \-\--kmap .
+.PP
+Without debugging information, systemtap cannot support the
+following types of language constructs:
+.IP \(bu 4
+probe specifications that refer to source files or line numbers
+.IP \(bu 4
+probe specifications that refer to inline functions
+.IP \(bu 4
+statements that refer to $target variables
+.IP \(bu 4
+tapset-defined variables defined using any of the above constructs.
+In particular, at this writing,
+the prologue blocks for certain aliases in the syscall tapset
+(e.g., syscall.open) contain "if" statements that refer to $target variables.
+If your script refers to any such aliases,
+systemtap must have access to the kernel's debugging information.
+.PP
+Most T and t symbols correspond to function entry points, but some do not.
+Based only on the symbol table, systemtap cannot tell the difference.
+Placing return probes on symbols that aren't entry points
+will most likely lead to kernel stack corruption.
 
 .SH FILES
 .\" consider autoconf-substituting these directories

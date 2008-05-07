@@ -40,6 +40,7 @@ extern "C" {
 #include <regex.h>
 #include <glob.h>
 #include <fnmatch.h>
+#include <stdio.h>
 
 #include "loc2c.h"
 #define __STDC_FORMAT_MACROS
@@ -208,6 +209,7 @@ common_probe_entryfn_prologue (translator_output* o, string statestr,
   o->newline() << "c->unwaddr = 0;";
   // reset unwound address cache
   o->newline() << "c->pi = 0;";
+  o->newline() << "c->regparm = 0;";
   o->newline() << "c->probe_point = 0;";
   if (! interruptible)
     o->newline() << "c->actionremaining = MAXACTION;";
@@ -444,12 +446,27 @@ static string TOK_STATEMENT("statement");
 static string TOK_ABSOLUTE("absolute");
 static string TOK_PROCESS("process");
 
+// Can we handle this query with just symbol-table info?
+enum dbinfo_reqt
+{
+  dbr_unknown,
+  dbr_none,		// kernel.statement(NUM).absolute
+  dbr_need_symtab,	// can get by with symbol table if there's no dwarf
+  dbr_need_dwarf
+};
+
+enum info_status
+{
+  info_unknown,
+  info_present,
+  info_absent
+};
 
 struct
 func_info
 {
   func_info()
-    : decl_file(NULL), decl_line(-1), prologue_end(0)
+    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0)
   {
     memset(&die, 0, sizeof(die));
   }
@@ -457,6 +474,7 @@ func_info
   char const * decl_file;
   int decl_line;
   Dwarf_Die die;
+  Dwarf_Addr addr;
   Dwarf_Addr prologue_end;
 };
 
@@ -475,6 +493,78 @@ inline_instance_info
 };
 
 
+struct dwarf_query; // forward decls
+struct dwflpp;
+struct symbol_table;
+
+struct
+module_info
+{
+  Dwfl_Module* mod;
+  const char* name;
+  string elf_path;
+  Dwarf_Addr addr;
+  Dwarf_Addr bias;
+  symbol_table *sym_table;
+  info_status dwarf_status;	// module has dwarf info?
+  info_status symtab_status;	// symbol table cached?
+
+  void get_symtab(dwarf_query *q);
+
+  module_info(const char *name) :
+    mod(NULL),
+    name(name),
+    addr(0),
+    bias(0),
+    sym_table(NULL),
+    dwarf_status(info_unknown),
+    symtab_status(info_unknown)
+  {}
+
+  ~module_info();
+};
+
+struct
+module_cache
+{
+  map<string, module_info*> cache;
+  bool paths_collected;
+  bool dwarf_collected;
+
+  module_cache() : paths_collected(false), dwarf_collected(false) {}
+};
+typedef struct module_cache module_cache_t;
+
+typedef map<string, vector<Dwarf_Die>*> cu_function_cache_t;
+
+struct
+symbol_table
+{
+  module_info *mod_info;	// associated module
+  map<string, func_info*> map_by_name;
+  vector<func_info*> list_by_addr;
+
+  void add_symbol(const char *name, Dwarf_Addr addr, Dwarf_Addr *high_addr);
+  enum info_status read_symbols(FILE *f, const string& path);
+  enum info_status read_from_elf_file(const string& path);
+  enum info_status read_from_text_file(const string& path);
+  enum info_status get_from_elf();
+  void mark_dwarf_redundancies(dwflpp *dw);
+  func_info *lookup_symbol(const string& name);
+  Dwarf_Addr lookup_symbol_address(const string& name);
+  func_info *get_func_containing_address(Dwarf_Addr addr);
+  int get_index_for_address(Dwarf_Addr addr);
+
+  symbol_table(module_info *mi) : mod_info(mi) {}
+  ~symbol_table();
+};
+
+static bool null_die(Dwarf_Die *die)
+{
+  static Dwarf_Die null = { 0 };
+  return (!die || !memcmp(die, &null, sizeof(null)));
+}
+
 static int
 query_cu (Dwarf_Die * cudie, void * arg);
 
@@ -489,9 +579,6 @@ dwarf_diename_integrate (Dwarf_Die *die)
   return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
 }
 
-
-struct dwarf_query; // forward decl
-
 struct dwflpp
 {
   systemtap_session & sess;
@@ -501,6 +588,7 @@ struct dwflpp
   Dwfl_Module * module;
   Dwarf * module_dwarf;
   Dwarf_Addr module_bias;
+  module_info * mod_info;
 
   // These describe the current module's PC address range
   Dwarf_Addr module_start;
@@ -522,40 +610,55 @@ struct dwflpp
   }
 
 
-  void get_module_dwarf(bool required = false)
+  void get_module_dwarf(bool required = false, bool report = true)
   {
-    if (!module_dwarf)
-      module_dwarf = dwfl_module_getdwarf(module, &module_bias);
-
-    if (!module_dwarf)
+    if (!module_dwarf && mod_info->dwarf_status != info_absent)
       {
-	string msg = "cannot find ";
-	if (module_name == "")
-	  msg += "kernel";
-	else
-	  msg += string("module ") + module_name;
-	msg += " debuginfo";
+        if (!sess.ignore_dwarf)
+          module_dwarf = dwfl_module_getdwarf(module, &module_bias);
+        mod_info->dwarf_status = (module_dwarf ? info_present : info_absent);
+      }
 
-	int i = dwfl_errno();
-	if (i)
-	  msg += string(": ") + dwfl_errmsg (i);
+    if (!module_dwarf && report)
+      {
+        string msg = "cannot find ";
+        if (module_name == "")
+          msg += "kernel";
+        else
+          msg += string("module ") + module_name;
+        msg += " debuginfo";
 
-	if (required)
-	  throw semantic_error (msg);
-	else
-	  cerr << "WARNING: " << msg << "\n";
+        int i = dwfl_errno();
+        if (i)
+          msg += string(": ") + dwfl_errmsg (i);
+
+        if (required)
+          throw semantic_error (msg);
+        else
+          cerr << "WARNING: " << msg << "\n";
       }
   }
 
-  void focus_on_module(Dwfl_Module * m)
+  void focus_on_module(Dwfl_Module * m, module_info * mi)
   {
-    assert(m);
     module = m;
-    module_name = default_name(dwfl_module_info(module, NULL,
+    mod_info = mi;
+    if (m)
+      {
+        module_name = default_name(dwfl_module_info(module, NULL,
 						&module_start, &module_end,
 						NULL, NULL,
 						NULL, NULL),
 			       "module");
+      }
+    else
+      {
+        assert(mi && mi->name && mi->name == TOK_KERNEL);
+        module_name = mi->name;
+        module_start = 0;
+        module_end = 0;
+        module_bias = mi->bias;
+      }
 
     // Reset existing pointers and names
 
@@ -601,7 +704,7 @@ struct dwflpp
     cu = NULL;
     Dwfl_Module* mod = dwfl_addrmodule(dwfl, a);
     if (mod) // address could be wildly out of range
-      focus_on_module(mod);
+      focus_on_module(mod, NULL);
   }
 
 
@@ -644,7 +747,6 @@ struct dwflpp
 
   bool module_name_matches(string pattern)
   {
-    assert(module);
     bool t = (fnmatch(pattern.c_str(), module_name.c_str(), 0) == 0);
     if (t && sess.verbose>3)
       clog << "pattern '" << pattern << "' "
@@ -652,26 +754,34 @@ struct dwflpp
 	   << "module '" << module_name << "'" << "\n";
     return t;
   }
+  bool name_has_wildcard(string pattern)
+  {
+    return (pattern.find('*') != string::npos ||
+            pattern.find('?') != string::npos ||
+            pattern.find('[') != string::npos);
+  }
   bool module_name_final_match(string pattern)
   {
     // Assume module_name_matches().  Can there be any more matches?
     // Not unless the pattern is a wildcard, since module names are
     // presumed unique.
-    return (pattern.find('*') == string::npos &&
-            pattern.find('?') == string::npos &&
-            pattern.find('[') == string::npos);
+    return !name_has_wildcard(pattern);
   }
 
 
-  bool function_name_matches(string pattern)
+  bool function_name_matches_pattern(string name, string pattern)
   {
-    assert(function);
-    bool t = (fnmatch(pattern.c_str(), function_name.c_str(), 0) == 0);
+    bool t = (fnmatch(pattern.c_str(), name.c_str(), 0) == 0);
     if (t && sess.verbose>3)
       clog << "pattern '" << pattern << "' "
 	   << "matches "
-	   << "function '" << function_name << "'" << "\n";
+	   << "function '" << name << "'" << "\n";
     return t;
+  }
+  bool function_name_matches(string pattern)
+  {
+    assert(function);
+    return function_name_matches_pattern(function_name, pattern);
   }
   bool function_name_final_match(string pattern)
   {
@@ -714,20 +824,57 @@ struct dwflpp
       throw semantic_error (msg);
   }
 
+  // static so pathname_caching_callback() can access them
+  static module_cache_t module_cache;
+  static bool ignore_vmlinux;
 
-  dwflpp(systemtap_session & sess)
+
+  dwflpp(systemtap_session & session)
     :
-    sess(sess),
+    sess(session),
     dwfl(NULL),
     module(NULL),
     module_dwarf(NULL),
     module_bias(0),
+    mod_info(NULL),
     module_start(0),
     module_end(0),
     cu(NULL),
     function(NULL)
-  {}
+  {
+    ignore_vmlinux = sess.ignore_vmlinux;
+  }
 
+  // Called by dwfl_linux_kernel_report_offline().  We may not have
+  // dwarf info for the kernel and/or modules, so remember this
+  // module's pathname in case we need to extract elf info from it.
+  // (Currently, we get all the elf info we need via elfutils -- if the
+  // elf file exists -- so remembering the pathname isn't strictly needed.
+  // But we still need to handle the case where there's no vmlinux.)
+  static int pathname_caching_callback(const char *name, const char *path)
+  {
+    module_info *mi = new module_info(name);
+    module_cache.cache[name] = mi;
+
+    if (ignore_vmlinux && path && name == TOK_KERNEL)
+      {
+        // report_kernel() in elfutils found vmlinux, but pretend it didn't.
+        // Given a non-null path, returning 1 means keep reporting modules.
+        mi->dwarf_status = info_absent;
+        return 1;
+      }
+    else if (path)
+      {
+        mi->elf_path = path;
+        return 1;
+      }
+
+    // No vmlinux.  Here returning 0 to report_kernel() means go ahead
+    // and keep reporting modules.
+    assert(name == TOK_KERNEL);
+    mi->dwarf_status = info_absent;
+    return 0;
+  }
 
   void setup(bool kernel, bool debuginfo_needed = true)
   {
@@ -761,10 +908,18 @@ struct dwflpp
 	  throw semantic_error ("cannot open dwfl");
 	dwfl_report_begin (dwfl);
 
+        int (*callback)(const char *name, const char *path);
+        if (sess.consult_symtab && !module_cache.paths_collected)
+          {
+            callback = pathname_caching_callback;
+            module_cache.paths_collected = true;
+          }
+        else
+          callback = NULL;
 	int rc = dwfl_linux_kernel_report_offline (dwfl,
 						   sess.kernel_release.c_str(),
 						   /* selection predicate */
-						   NULL);
+						   callback);
 	if (debuginfo_needed)
 	  dwfl_assert (string("missing kernel ") +
                        sess.kernel_release +
@@ -806,36 +961,34 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
-  struct module_cache_entry {
-    Dwfl_Module* mod;
-    const char* name;
-    Dwarf_Addr addr;
-  };
-  typedef vector<module_cache_entry> module_cache_t;
-  module_cache_t module_cache;
-
   static int module_caching_callback(Dwfl_Module * mod,
                                      void **,
                                      const char *name,
                                      Dwarf_Addr addr,
                                      void *param)
   {
-    module_cache_t* cache = static_cast<module_cache_t*>(param);
-    module_cache_entry it;
-    it.mod = mod;
-    it.name = name;
-    it.addr = addr;
-    cache->push_back (it);
+    module_cache_t *cache = static_cast<module_cache_t*>(param);
+    module_info *mi = NULL;
+
+    if (ignore_vmlinux && name == TOK_KERNEL)
+      // This wouldn't be called for vmlinux if vmlinux weren't there.
+      return DWARF_CB_OK;
+
+    if (cache->paths_collected)
+      mi = cache->cache[name];
+    if (!mi)
+      {
+        mi = new module_info(name);
+        cache->cache[name] = mi;
+      }
+    mi->mod = mod;
+    mi->addr = addr;
     return DWARF_CB_OK;
   }
 
-
-  void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
-					     const char *, Dwarf_Addr,
-					     void *),
-			    void * data)
+  void cache_modules_dwarf()
   {
-    if (module_cache.empty())
+    if (!module_cache.dwarf_collected)
       {
         ptrdiff_t off = 0;
         do
@@ -846,18 +999,29 @@ struct dwflpp
           }
         while (off > 0);
         dwfl_assert("dwfl_getmodules", off);
+        module_cache.dwarf_collected = true;
       }
+  }
 
-    // Traverse the cache.
-    for (unsigned i = 0; i < module_cache.size(); i++)
+  void iterate_over_modules(int (* callback)(Dwfl_Module *, module_info *,
+					     const char *, Dwarf_Addr,
+					     void *),
+			    void * data)
+  {
+    cache_modules_dwarf();
+
+    map<string, module_info*>::iterator i;
+    for (i = module_cache.cache.begin(); i != module_cache.cache.end(); i++)
       {
         if (pending_interrupts) return;
-        module_cache_entry& it = module_cache[i];
-        int rc = callback (it.mod, 0, it.name, it.addr, data);
+        module_info *mi = i->second;
+        int rc = callback (mi->mod, mi, mi->name, mi->addr, data);
         if (rc != DWARF_CB_OK) break;
       }
   }
 
+  // Defined after dwarf_query
+  void query_modules(dwarf_query *q);
 
 
   // -----------------------------------------------------------------
@@ -947,7 +1111,6 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
-  typedef map<string, vector<Dwarf_Die>*> cu_function_cache_t;
   cu_function_cache_t cu_function_cache;
 
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg)
@@ -957,9 +1120,10 @@ struct dwflpp
     return DWARF_CB_OK;
   }
 
-  void iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
+  int iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
 			       void * data)
   {
+    int rc = DWARF_CB_OK;
     assert (module);
     assert (cu);
 
@@ -975,9 +1139,10 @@ struct dwflpp
     for (unsigned i=0; i<v->size(); i++)
       {
         Dwarf_Die die = v->at(i);
-        int rc = (*callback)(& die, data);
+        rc = (*callback)(& die, data);
         if (rc != DWARF_CB_OK) break;
       }
+    return rc;
   }
 
 
@@ -2018,6 +2183,9 @@ struct dwflpp
   }
 };
 
+module_cache_t dwflpp::module_cache;
+bool dwflpp::ignore_vmlinux = false;
+
 
 enum
 function_spec_type
@@ -2029,7 +2197,6 @@ function_spec_type
 
 
 struct dwarf_builder;
-struct dwarf_query;
 
 
 // XXX: This class is a candidate for subclassing to separate
@@ -2187,6 +2354,8 @@ struct dwarf_query : public base_query
 	      vector<derived_probe *> & results);
 
   virtual void handle_query_module();
+  void query_module_dwarf();
+  void query_module_symtab();
 
   void add_probe_point(string const & funcname,
 		       char const * filename,
@@ -2234,11 +2403,15 @@ struct dwarf_query : public base_query
 
   bool has_absolute;
 
+  enum dbinfo_reqt dbinfo_reqt;
+  enum dbinfo_reqt assess_dbinfo_reqt();
+
   function_spec_type parse_function_spec(string & spec);
   function_spec_type spec_type;
   string function;
   string file;
   int line;
+  bool query_done;	// Found exact match
 
   set<char const *> filtered_srcfiles;
 
@@ -2375,11 +2548,13 @@ dwarf_query::dwarf_query(systemtap_session & sess,
     spec_type = parse_function_spec(statement_str_val);
 
   build_blacklist(); // XXX: why not reuse amongst dwarf_query instances?
+  dbinfo_reqt = assess_dbinfo_reqt();
+  query_done = false;
 }
 
 
 void
-dwarf_query::handle_query_module()
+dwarf_query::query_module_dwarf()
 {
   if (has_function_num || has_statement_num)
     {
@@ -2406,6 +2581,110 @@ dwarf_query::handle_query_module()
       assert(has_function_str || has_statement_str);
       dw.iterate_over_cus(&query_cu, this);
     }
+}
+
+static void query_func_info (Dwarf_Addr entrypc, func_info & fi,
+							dwarf_query * q);
+
+void
+dwarf_query::query_module_symtab()
+{
+  // Get the symbol table if it's necessary, sufficient, and not already got.
+  if (dbinfo_reqt == dbr_need_dwarf)
+    return;
+
+  module_info *mi = dw.mod_info;
+  if (dbinfo_reqt == dbr_need_symtab)
+    {
+      if (mi->symtab_status == info_unknown)
+        mi->get_symtab(this);
+      if (mi->symtab_status == info_absent)
+        return;
+    }
+
+  func_info *fi = NULL;
+  symbol_table *sym_table = mi->sym_table;
+
+  if (has_function_str)
+    {
+      // Per dwarf_query::assess_dbinfo_reqt()...
+      assert(spec_type == function_alone);
+      if (dw.name_has_wildcard(function_str_val))
+        {
+          // Until we augment the blacklist sufficently...
+          if (function_str_val.find_first_not_of("*?") == string::npos)
+            {
+              // e.g., kernel.function("*")
+              cerr << "Error: Pattern '"
+                   << function_str_val
+                   << "' matches every instruction address in the symbol table,"
+                   << endl
+                   << "some of which aren't even functions."
+                   << "  Please be more precise."
+                   << endl;
+              return;
+            }
+
+          size_t i;
+          size_t nsyms = sym_table->list_by_addr.size();
+          for (i = 0; i < nsyms; i++)
+            {
+              fi = sym_table->list_by_addr.at(i);
+              if (!null_die(&fi->die))
+                continue;       // already handled in query_module_dwarf()
+              if (dw.function_name_matches_pattern(fi->name, function_str_val))
+                query_func_info(fi->addr, *fi, this);
+            }
+        }
+      else
+        {
+          fi = sym_table->lookup_symbol(function_str_val);
+          if (fi && null_die(&fi->die))
+            query_func_info(fi->addr, *fi, this);
+        }
+    }
+  else
+    {
+      assert(has_function_num || has_statement_num);
+      // Find the "function" in which the indicated address resides.
+      Dwarf_Addr addr =
+      		(has_function_num ? function_num_val : statement_num_val);
+      fi = sym_table->get_func_containing_address(addr);
+      if (!fi)
+        {
+          cerr << "Warning: address "
+               << hex << addr << dec
+               << " out of range for module "
+               << dw.module_name;
+          return;
+        }
+      if (!null_die(&fi->die))
+        {
+          // addr looks like it's in the compilation unit containing
+          // the indicated function, but query_module_dwarf() didn't
+          // match addr to any compilation unit, so addr must be
+          // above that cu's address range.
+          cerr << "Warning: address "
+               << hex << addr << dec
+               << " maps to no known compilation unit in module "
+               << dw.module_name;
+          return;
+        }
+      query_func_info(fi->addr, *fi, this);
+    }
+}
+
+void
+dwarf_query::handle_query_module()
+{
+  dw.get_module_dwarf(false,
+              (dbinfo_reqt == dbr_need_dwarf || !sess.consult_symtab));
+  if (dw.mod_info->dwarf_status == info_present)
+    query_module_dwarf();
+  // Consult the symbol table if we haven't found all we're looking for.
+  // asm functions can show up in the symbol table but not in dwarf.
+  if (sess.consult_symtab && !query_done)
+    query_module_symtab();
 }
 
 
@@ -2596,7 +2875,7 @@ dwarf_query::parse_function_spec(string & spec)
 
 
 // Forward declaration.
-static int query_kernel_module (Dwfl_Module *, void **, const char *,
+static int query_kernel_module (Dwfl_Module *, module_info *, const char *,
 				Dwarf_Addr, void *);
 
 
@@ -2720,7 +2999,13 @@ dwarf_query::add_probe_point(const string& funcname,
 
   assert (! has_absolute); // already handled in dwarf_builder::build()
 
-  if (dwfl_module_relocations (dw.module) > 0)
+  if (!dw.module)
+    {
+      assert(module == TOK_KERNEL);
+      reloc_section = "";
+      blacklist_section = "";
+    }
+  else if (dwfl_module_relocations (dw.module) > 0)
     {
       // This is arelocatable module; libdwfl already knows its
       // sections, so we can relativize addr.
@@ -2771,6 +3056,44 @@ dwarf_query::add_probe_point(const string& funcname,
     }
 }
 
+enum dbinfo_reqt
+dwarf_query::assess_dbinfo_reqt()
+{
+  if (has_absolute)
+    {
+      // kernel.statement(NUM).absolute
+      return dbr_none;
+    }
+  if (has_inline)
+    {
+      // kernel.function("f").inline or module("m").function("f").inline
+      return dbr_need_dwarf;
+    }
+  if (has_function_str && spec_type == function_alone)
+    {
+      // kernel.function("f") or module("m").function("f")
+      return dbr_need_symtab;
+    }
+  if (has_statement_num)
+    {
+      // kernel.statement(NUM) or module("m").statement(NUM)
+      // Technically, all we need is the module offset (or _stext, for
+      // the kernel).  But for that we need either the ELF file or (for
+      // _stext) the symbol table.  In either case, the symbol table
+      // is available, and that allows us to map the NUM (address)
+      // to a function, which is goodness.
+      return dbr_need_symtab;
+    }
+  if (has_function_num)
+    {
+      // kernel.function(NUM) or module("m").function(NUM)
+      // Need the symbol table so we can back up from NUM to the
+      // start of the function.
+      return dbr_need_symtab;
+    }
+  // Symbol table tells us nothing about source files or line numbers.
+  return dbr_need_dwarf;
+}
 
 
 // The critical determining factor when interpreting a pattern
@@ -3102,7 +3425,9 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  // Pick up [entrypc, name, DIE] tuples for all the functions
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
-	  q->dw.iterate_over_functions (query_dwarf_func, q);
+	  int rc = q->dw.iterate_over_functions (query_dwarf_func, q);
+	  if (rc != DWARF_CB_OK)
+	    q->query_done = true;
 
           if (q->sess.prologue_searching 
               && !q->has_statement_str && !q->has_statement_num) // PR 2608
@@ -3163,7 +3488,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 
 static int
 query_kernel_module (Dwfl_Module *mod,
-		     void **,
+                     module_info *,
 		     const char *name,
 		     Dwarf_Addr,
 		     void *arg)
@@ -3178,10 +3503,74 @@ query_kernel_module (Dwfl_Module *mod,
   return DWARF_CB_OK;
 }
 
+static void
+validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
+{
+  // Validate the machine code in this elf file against the
+  // session machine.  This is important, in case the wrong kind
+  // of debuginfo is being automagically processed by elfutils.
+  // While we can tell i686 apart from x86-64, unfortunately
+  // we can't help confusing i586 vs i686 (both EM_386).
+
+  Dwarf_Addr bias;
+  // We prefer dwfl_module_getdwarf to dwfl_module_getelf here,
+  // because dwfl_module_getelf can force costly section relocations
+  // we don't really need, while either will do for this purpose.
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (mod, &bias))
+		  ?: dwfl_module_getelf (mod, &bias));
+
+  GElf_Ehdr ehdr_mem;
+  GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
+  if (em == 0) { q->dw.dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+  int elf_machine = em->e_machine;
+  const char* debug_filename = "";
+  const char* main_filename = "";
+  (void) dwfl_module_info (mod, NULL, NULL,
+                               NULL, NULL, NULL,
+                               & main_filename,
+                               & debug_filename);
+  const string& sess_machine = q->sess.architecture;
+  string expect_machine;
+
+  switch (elf_machine)
+    {
+    case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
+    case EM_X86_64: expect_machine = "x86_64"; break;
+    case EM_PPC: expect_machine = "ppc"; break;
+    case EM_PPC64: expect_machine = "ppc64"; break;
+    case EM_S390: expect_machine = "s390x"; break;
+    case EM_IA_64: expect_machine = "ia64"; break;
+    case EM_ARM: expect_machine = "armv*"; break;
+      // XXX: fill in some more of these
+    default: expect_machine = "?"; break;
+    }
+
+  if (! debug_filename) debug_filename = main_filename;
+  if (! debug_filename) debug_filename = name;
+
+  if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
+    {
+      stringstream msg;
+      msg << "ELF machine " << expect_machine << " (code " << elf_machine
+          << ") mismatch with target " << sess_machine
+          << " in '" << debug_filename << "'";
+      throw semantic_error(msg.str ());
+    }
+
+  if (q->sess.verbose>2)
+    clog << "focused on module '" << q->dw.module_name
+         << " = [0x" << hex << q->dw.module_start
+         << "-0x" << q->dw.module_end
+         << ", bias 0x" << q->dw.module_bias << "]" << dec
+         << " file " << debug_filename
+         << " ELF machine " << expect_machine
+         << " (code " << elf_machine << ")"
+         << "\n";
+}
 
 static int
 query_module (Dwfl_Module *mod,
-	      void **,
+              module_info *mi,
 	      const char *name,
               Dwarf_Addr,
 	      void *arg)
@@ -3190,7 +3579,7 @@ query_module (Dwfl_Module *mod,
 
   try
     {
-      q->dw.focus_on_module(mod);
+      q->dw.focus_on_module(mod, mi);
 
       // If we have enough information in the pattern to skip a module and
       // the module does not match that information, return early.
@@ -3203,66 +3592,14 @@ query_module (Dwfl_Module *mod,
       if (q->dw.module_name == TOK_KERNEL && ! q->has_kernel)
         return DWARF_CB_OK;
 
-      // Validate the machine code in this elf file against the
-      // session machine.  This is important, in case the wrong kind
-      // of debuginfo is being automagically processed by elfutils.
-      // While we can tell i686 apart from x86-64, unfortunately
-      // we can't help confusing i586 vs i686 (both EM_386).
-
-      Dwarf_Addr bias;
-      // We prefer dwfl_module_getdwarf to dwfl_module_getelf here,
-      // because dwfl_module_getelf can force costly section relocations
-      // we don't really need, while either will do for this purpose.
-      Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (mod, &bias))
-		  ?: dwfl_module_getelf (mod, &bias));
-
-      GElf_Ehdr ehdr_mem;
-      GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
-      if (em == 0) { q->dw.dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
-      int elf_machine = em->e_machine;
-      const char* debug_filename = "";
-      const char* main_filename = "";
-      (void) dwfl_module_info (mod, NULL, NULL,
-                               NULL, NULL, NULL,
-                               & main_filename,
-                               & debug_filename);
-      const string& sess_machine = q->sess.architecture;
-      string expect_machine;
-
-      switch (elf_machine)
+      if (mod)
+        validate_module_elf(mod, name, q);
+      else
         {
-        case EM_386: expect_machine = "i?86"; break; // accept e.g. i586
-        case EM_X86_64: expect_machine = "x86_64"; break;
-        case EM_PPC: expect_machine = "ppc"; break;
-        case EM_PPC64: expect_machine = "ppc64"; break;
-        case EM_S390: expect_machine = "s390x"; break;
-        case EM_IA_64: expect_machine = "ia64"; break;
-        case EM_ARM: expect_machine = "armv*"; break;
-          // XXX: fill in some more of these
-        default: expect_machine = "?"; break;
+          assert(q->has_kernel);        // and no vmlinux to examine
+          if (q->sess.verbose>2)
+            cerr << "focused on module '" << q->dw.module_name << "'\n";
         }
-
-      if (! debug_filename) debug_filename = main_filename;
-      if (! debug_filename) debug_filename = name;
-
-      if (fnmatch (expect_machine.c_str(), sess_machine.c_str(), 0) != 0)
-        {
-          stringstream msg;
-          msg << "ELF machine " << expect_machine << " (code " << elf_machine
-              << ") mismatch with target " << sess_machine
-              << " in '" << debug_filename << "'";
-          throw semantic_error(msg.str ());
-        }
-
-      if (q->sess.verbose>2)
-	clog << "focused on module '" << q->dw.module_name
-	     << " = [0x" << hex << q->dw.module_start
-	     << "-0x" << q->dw.module_end
-	     << ", bias 0x" << q->dw.module_bias << "]" << dec
-             << " file " << debug_filename
-             << " ELF machine " << expect_machine
-             << " (code " << elf_machine << ")"
-             << "\n";
 
       q->handle_query_module();
 
@@ -3279,6 +3616,24 @@ query_module (Dwfl_Module *mod,
     }
 }
 
+void
+dwflpp::query_modules(dwarf_query *q)
+{
+  string name = q->module_val;
+  if (name_has_wildcard(name))
+    iterate_over_modules(&query_module, q);
+  else
+    {
+      cache_modules_dwarf();
+
+      map<string, module_info*>::iterator i = module_cache.cache.find(name);
+      if (i != module_cache.cache.end())
+        {
+          module_info *mi = i->second;
+          query_module(mi->mod, mi, name.c_str(), mi->addr, q);
+        }
+    }
+}
 
 struct var_expanding_copy_visitor: public deep_copy_visitor
 {
@@ -3810,7 +4165,7 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                           q.base_loc->tok);
 
   // Make a target-variable-expanded copy of the probe body
-  if (scope_die)
+  if (!null_die(scope_die))
     {
       dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr);
       require <statement*> (&v, &(this->body), this->body);
@@ -4267,7 +4622,300 @@ dwarf_builder::build(systemtap_session & sess,
       return;
     }
 
-  dw->iterate_over_modules(&query_module, &q);
+  // dw->iterate_over_modules(&query_module, &q);
+  dw->query_modules(&q);
+}
+
+symbol_table::~symbol_table()
+{
+  // map::clear() and vector::clear() don't call destructors for
+  // pointers, only for objects.
+  int i;
+  int nsym = (int) list_by_addr.size();
+  for (i = 0; i < nsym; i++)
+    delete list_by_addr.at(i);
+  list_by_addr.clear();
+  map_by_name.clear();
+}
+
+void
+symbol_table::add_symbol(const char *name, Dwarf_Addr addr,
+                                     Dwarf_Addr *high_addr)
+{
+  func_info *fi = new func_info();
+  fi->addr = addr;
+  fi->name = name;
+  map_by_name[fi->name] = fi;
+  // TODO: Use a multimap in case there are multiple static
+  // functions with the same name?
+  if (addr >= *high_addr)
+    {
+      list_by_addr.push_back(fi);
+      *high_addr = addr;
+    }
+  else
+    {
+      // Symbols aren't in numerical order.  FWIW, sort(1) doesn't
+      // handle hex numbers without the leading 0x.
+      int index = get_index_for_address(fi->addr);
+      list_by_addr.insert(list_by_addr.begin()+(index+1), fi);
+    }
+}
+
+enum info_status
+symbol_table::read_symbols(FILE *f, const string& path)
+{
+  // Based on do_kernel_symbols() in runtime/staprun/symbols.c
+  int ret;
+  char *name, *mod;
+  char type;
+  unsigned long long addr;
+  Dwarf_Addr high_addr = 0;
+  int line = 0;
+
+  // %as (non-POSIX) mallocs space for the string and stores its address.
+  while ((ret = fscanf(f, "%llx %c %as [%as", &addr, &type, &name, &mod)) > 0)
+    {
+      line++;
+      if (ret < 3)
+        {
+          cerr << "Symbol table error: Line " 
+               << line
+               << " of symbol list from "
+               << path
+               << " is not in correct format: address type name [module]";
+          // Caller should delete symbol_table object.
+          return info_absent;
+        }
+      if (ret > 3)
+        {
+          // Modules are loaded above the kernel, so if we're getting
+          // modules, we're done.
+          free(name);
+          free(mod);
+          goto done;
+        }
+      if (type == 'T' || type == 't')
+        add_symbol(name, (Dwarf_Addr) addr, &high_addr);
+      free(name);
+    }
+
+done:
+  if (list_by_addr.size() < 1)
+    {
+      cerr << "Symbol table error: "
+           << path << " contains no function symbols." << endl;
+      return info_absent;
+    }
+  return info_present;
+}
+
+// NB: This currently unused.  We use get_from_elf() instead because
+// that gives us raw addresses -- which we need for modules -- whereas
+// nm provides the address relative to the beginning of the section.
+enum info_status
+symbol_table::read_from_elf_file(const string &path)
+{
+  FILE *f;
+  string cmd = string("/usr/bin/nm -n --defined-only ") + path;
+  f = popen(cmd.c_str(), "r");
+  if (!f)
+    {
+      // nm failures are detected by pclose, not popen.
+      cerr << "Internal error reading symbol table from "
+           << path << " -- " << strerror (errno);
+      return info_absent;
+    }
+  enum info_status status = read_symbols(f, path);
+  if (pclose(f) != 0)
+    {
+      if (status == info_present)
+        cerr << "Warning: nm cannot read symbol table from " << path;
+      return info_absent;
+    }
+  return status;
+}
+
+enum info_status
+symbol_table::read_from_text_file(const string& path)
+{
+  FILE *f = fopen(path.c_str(), "r");
+  if (!f)
+    {
+      cerr << "Warning: cannot read symbol table from "
+           << path << " -- " << strerror (errno);
+      return info_absent;
+    }
+  enum info_status status = read_symbols(f, path);
+  (void) fclose(f);
+  return status;
+}
+
+enum info_status
+symbol_table::get_from_elf()
+{
+  Dwarf_Addr high_addr = 0;
+  Dwfl_Module *mod = mod_info->mod;
+  int syments = dwfl_module_getsymtab(mod);
+  assert(syments);
+  for (int i = 1; i < syments; ++i)
+    {
+      GElf_Sym sym;
+      const char *name = dwfl_module_getsym(mod, i, &sym, NULL);
+      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC)
+        add_symbol(name, sym.st_value, &high_addr);
+    }
+  return info_present;
+}
+
+void
+symbol_table::mark_dwarf_redundancies(dwflpp *dw)
+{
+  // dwflpp.cu_function_cache maps each module_name:cu_name to a
+  // vector of Dwarf_Dies, one per function.
+  string module_prefix = string(mod_info->name) + ":";
+
+  cu_function_cache_t::iterator cu;
+  for (cu = dw->cu_function_cache.begin();
+                                cu != dw->cu_function_cache.end(); cu++)
+    {
+      string key = cu->first;
+      if (key.find(module_prefix) == 0)
+        {
+          // Found a compilation unit in the module of interest.
+          // Mark all its functions in the symbol table.
+          vector<Dwarf_Die>* v = cu->second;
+          assert(v);
+          for (unsigned f=0; f < v->size(); f++)
+            {
+              Dwarf_Die func = v->at(f);
+              string func_name = dwarf_diename(&func);
+              // map_by_name[func_name]->die = func;
+              map<string, func_info*>::iterator i = map_by_name.find(func_name);
+              // Func names can show up in the dwarf but not the symtab (!).
+              if (i != map_by_name.end())
+                {
+                  func_info *fi = i->second;
+                  fi->die = func;
+                }
+            }
+        }
+    }
+}
+
+func_info *
+symbol_table::get_func_containing_address(Dwarf_Addr addr)
+{
+  int index = get_index_for_address(addr);
+  if (index < 0)
+    return NULL;
+  return list_by_addr.at(index);
+}
+
+// Find the index in list_by_addr of the last element whose address
+// is <= addr.  Returns -1 if addr is less than the first address in
+// list_by_addr.
+int
+symbol_table::get_index_for_address(Dwarf_Addr addr)
+{
+  // binary search from runtime/sym.c
+  int begin = 0;
+  int mid;
+  int end = list_by_addr.size();
+
+  if (end == 0 || addr < list_by_addr.at(0)->addr)
+    return -1;
+  do
+    {
+    mid = (begin + end) / 2;
+    if (addr < list_by_addr.at(mid)->addr)
+      end = mid;
+    else
+      begin = mid;
+    }
+  while (begin + 1 < end);
+  return begin;
+}
+
+func_info *
+symbol_table::lookup_symbol(const string& name)
+{
+  map<string, func_info*>::iterator i = map_by_name.find(name);
+  if (i == map_by_name.end())
+    return NULL;
+  return i->second;
+}
+
+Dwarf_Addr
+symbol_table::lookup_symbol_address(const string& name)
+{
+  func_info *fi = lookup_symbol(name);
+  if (fi)
+    return fi->addr;
+  return 0;
+}
+
+void
+module_info::get_symtab(dwarf_query *q)
+{
+  systemtap_session &sess = q->sess;
+
+  sym_table = new symbol_table(this);
+  if (!elf_path.empty())
+    {
+      if (name == TOK_KERNEL && !sess.kernel_symtab_path.empty())
+        cerr << "Warning: reading symbol table from "
+             << elf_path
+             << " -- ignoring "
+             << sess.kernel_symtab_path
+             << endl ;;
+      symtab_status = sym_table->get_from_elf();
+    }
+  else
+    {
+      assert(name == TOK_KERNEL);
+      if (sess.kernel_symtab_path.empty())
+        {
+          symtab_status = info_absent;
+          cerr << "Error: Cannot find vmlinux."
+               << "  Consider using --kmap instead of --kelf."
+               << endl;;
+        }
+      else
+        {
+          symtab_status =
+      		sym_table->read_from_text_file(sess.kernel_symtab_path);
+          if (symtab_status == info_present)
+            {
+              sess.sym_kprobes_text_start =
+                sym_table->lookup_symbol_address("__kprobes_text_start");
+              sess.sym_kprobes_text_end =
+                sym_table->lookup_symbol_address("__kprobes_text_end");
+              sess.sym_stext = sym_table->lookup_symbol_address("_stext");
+              bias = sym_table->lookup_symbol_address("_text");
+            }
+        }
+    }
+  if (symtab_status == info_absent)
+    {
+      delete sym_table;
+      sym_table = NULL;
+      return;
+    }
+
+  // If we have dwarf for the same module, mark the redundant symtab
+  // entries.
+  //
+  // In dwarf_query::handle_query_module(), the call to query_module_dwarf()
+  // precedes the call to query_module_symtab().  So we should never read
+  // a module's symbol table without first having tried to get its dwarf.
+  sym_table->mark_dwarf_redundancies(&q->dw);
+}
+
+module_info::~module_info()
+{
+  if (sym_table)
+    delete sym_table;
 }
 
 

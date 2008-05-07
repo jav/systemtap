@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Verify that --ignore-dwarf "hides" dwarf info.
+
+stap -p2 --ignore-dwarf -e '
+probe kernel.function("printk") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(30) {
+	exit()
+}
+'

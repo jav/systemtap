@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# --kelf doesn't work if vmlinux can't be found.
+
+stap -p2 --ignore-vmlinux --kelf -e '
+probe kernel.function("printk") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(30) {
+	exit()
+}
+'

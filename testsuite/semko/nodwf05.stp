@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# The symbol table doesn't give us enough info to map source files to functions.
+
+stap -p2 --ignore-vmlinux --kmap=/proc/kallsyms -e '
+probe kernel.function("*@kernel/printk.c") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(15) {
+	exit()
+}
+'

@@ -343,6 +343,110 @@ Return the number of open file handles for the given task.
 task_max_file_handles:long(task:long)
 Return the maximum number of file handles for the given task.
 
+.SS CPU REGISTERS
+.TP
+register:long (name:string)
+Return the value of the named CPU register,
+as it was saved when the current probe point was hit.
+If the register is 32 bits, it is sign-extended to 64 bits.
+
+For the i386 architecture, the following names are recognized.
+(name1/name2 indicates that name1 and name2 are alternative names
+for the same register.)
+eax/ax, ebp/bp, ebx/bx, ecx/cx, edi/di, edx/dx, eflags/flags,
+eip/ip, esi/si, esp/sp, orig_eax/orig_ax,
+xcs/cs, xds/ds, xes/es, xfs/fs, xss/ss.
+
+For the x86_64 architecture, the following names are recognized:
+64-bit registers:
+r8, r9, r10, r11, r12, r13, r14, r15,
+rax/ax, rbp/bp, rbx/bx, rcx/cx, rdi/di, rdx/dx,
+rip/ip, rsi/si, rsp/sp;
+32-bit registers:
+eax, ebp, ebx, ecx, edx, edi, edx, eip, esi, esp, flags/eflags, orig_eax;
+segment registers: xcs/cs, xss/ss.
+.TP
+u_register:long (name:string)
+Same as register(name), except that
+if the register is 32 bits, it is zero-extended to 64 bits.
+
+.SS NUMBERED FUNCTION ARGUMENTS
+The functions in this section provide the values of a probed function's
+arguments.
+They can be called when you have hit
+a probe point at the entry to a function.
+Arguments are referred to by number, starting at 1.
+Ordinarily, you can access arguments by name as well,
+but you may find these functions useful if the code you are probing
+was built without debugging information.
+
+On 32-bit architectures
+\(em and when probing 32-bit applications on 64-bit architectures \(em
+a 64-bit argument occupies two "arg slots."
+For example, if you are probing the following function
+
+   void f(int a, long long b, char *c)
+
+you would refer to a, b, and c as int_arg(1), longlong_arg(2), and
+pointer_arg(3), respectively, on a 64-bit architecture;
+but on a 32-bit architecture, you would refer to c as pointer_arg(4)
+(since b occupies slots 2 and 3).
+
+If the function you are probing doesn't follow the default rules
+for argument passing, you need to call one of the following functions
+(which see) in your handler before calling any *_arg function:
+asmlinkage(), fastcall(), or regparm().
+(This isn't necessary when referring to arguments only by name.)
+.TP
+int_arg:long (n:long)
+Return the value of argument n as a signed int
+(i.e., a 32-bit integer sign-extended to 64 bits).
+.TP
+uint_arg:long (n:long)
+Return the value of argument n as an unsigned int
+(i.e., a 32-bit integer zero-extended to 64 bits).
+.TP
+long_arg:long (n:long)
+Return the value of argument n as a signed long.
+On architectures where a long is 32 bits, the value is sign-extended to 64 bits.
+.TP
+ulong_arg:long (n:long)
+Return the value of argument n as an unsigned long.
+On architectures where a long is 32 bits, the value is zero-extended to 64 bits.
+.TP
+longlong_arg:long (n:long)
+Return the value of argument n as a 64-bit value.
+.TP
+ulonglong_arg:long (n:long)
+Same as longlong_arg(n).
+.TP
+pointer_arg:long (n:long)
+Same as ulong_arg(n).
+Use with any type of pointer.
+.TP
+s32_arg:long (n:long)
+Same as int_arg(n).
+.TP
+u32_arg:long (n:long)
+Same as uint_arg(n).
+.TP
+s64_arg:long (n:long)
+Same as longlong_arg(n).
+.TP
+u64_arg:long (n:long)
+Same as [u]longlong_arg(n).
+.TP
+asmlinkage:unknown ()
+The probed kernel function is declared asmlinkage in the source.
+.TP
+fastcall:unknown ()
+The probed kernel function is declared fastcall in the source.
+.TP
+regparm:unknown (n:long)
+The probed function was built with the gcc \-mregparm=n option.
+(The i386 kernel is built with \-mregparm=3, so systemtap considers
+regparm(3) the default for kernel functions on that architecture.)
+
 .SS QUEUE_STATS
 .PP
 The queue_stats tapset provides functions that, given notifications of
