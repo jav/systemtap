@@ -510,6 +510,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'l':
+	  s.suppress_warnings = true;
           s.listing_mode = true;
           s.last_pass = 2;
           if (have_script)
