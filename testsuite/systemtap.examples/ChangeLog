@@ -1,3 +1,7 @@
+2008-05-07  William Cohen  <wcohen@redhat.com>
+
+	* pf2.stp: Clean up output.
+
 2008-05-01  William Cohen  <wcohen@redhat.com>
 
 	* helloworld.meta: New file.
