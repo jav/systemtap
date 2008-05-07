@@ -1,3 +1,28 @@
+2008-05-05  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (child_proc): Handle sig_chld
+	in the proper thread.
+	(signal_thread): Don't call send_request()
+	because it isn't thread-safe.
+
+2008-05-05  Martin Hunt  <hunt@redhat.com>
+
+	* mainloop.c (signal_thread): New thread to handle signals
+	better.
+	(setup_main_signals): Create signal thread.
+
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 6008
+	* common.c (parse_args): Increase the limitation of the buffer size
+	to 4095MB.
+	* common.c (usage): Ditto.
+
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	* stapio.c (main): Fix a typo in a debug message.
+	* staprun.c (main): Ditto.
+
 2008-04-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6451.

@@ -58,8 +58,8 @@ void parse_args(int argc, char **argv)
 			break;
 		case 'b':
 			buffer_size = (unsigned)atoi(optarg);
-			if (buffer_size < 1 || buffer_size > 64) {
-				err("Invalid buffer size '%d' (should be 1-64).\n", buffer_size);
+			if (buffer_size < 1 || buffer_size > 4095) {
+				err("Invalid buffer size '%d' (should be 1-4095).\n", buffer_size);
 				usage(argv[0]);
 			}
 			break;
@@ -130,7 +130,7 @@ void usage(char *prog)
 	err("-o FILE         Send output to FILE.\n");
 	err("-b buffer size  The systemtap module specifies a buffer size.\n");
 	err("                Setting one here will override that value.  The\n");
-	err("                value should be an integer between 1 and 64\n");
+	err("                value should be an integer between 1 and 4095 \n");
 	err("                which be assumed to be the buffer size in MB.\n");
 	err("                That value will be per-cpu in bulk mode.\n");
 	err("-L              Load module and start probes, then detach.\n");

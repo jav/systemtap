@@ -497,9 +497,9 @@ main (int argc, char * const argv [])
 
         case 's':
           s.buffer_size = atoi (optarg);
-          if (s.buffer_size < 1 || s.buffer_size > 64)
+          if (s.buffer_size < 1 || s.buffer_size > 4095)
             {
-              cerr << "Invalid buffer size (should be 1-64)." << endl;
+              cerr << "Invalid buffer size (should be 1-4095)." << endl;
 	      usage (s, 1);
             }
           break;

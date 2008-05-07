@@ -1,3 +1,26 @@
+2008-05-05  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6481.
+	* time.c (__stp_time_timer_callback): Reenable irq's before
+	mod_timer.
+
+2008-05-05  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (stap_utrace_detach_ops): Make sure we ignore
+	/sbin/init.
+	(__stp_utrace_attach): Added function to handle details of
+	attaching a utrace engine.
+	(__stp_utrace_task_finder_report_clone): Calls
+	__stp_utrace_attach.
+	(__stp_utrace_task_finder_report_exec): Ditto.
+	(stap_start_task_finder): Ditto.
+
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5648
+	From Shaohua Li <shaohua.li@intel.com>
+	* vsprintf.c (_stp_vsnprintf): Fix unaligned access warning on ia64.
+
 2008-04-29  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c: Made more robust by ensuring that all utrace

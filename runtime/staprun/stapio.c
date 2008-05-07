@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	parse_args(argc, argv);
 
 	if (buffer_size)
-		dbug(1, "Using a buffer of %u bytes.\n", buffer_size);
+		dbug(1, "Using a buffer of %u MB.\n", buffer_size);
 
 	if (optind < argc) {
 		parse_modpath(argv[optind++]);

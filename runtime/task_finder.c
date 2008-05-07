@@ -93,6 +93,10 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 	rcu_read_lock();
 	for_each_process(tsk) {
 		struct mm_struct *mm;
+
+		if (tsk->pid <= 1)
+			continue;
+
 		mm = get_task_mm(tsk);
 		if (mm) {
 			mmput(mm);
@@ -188,6 +192,45 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 
 #define __STP_UTRACE_ATTACHED_TASK_EVENTS (UTRACE_EVENT(DEATH))
 
+static int
+__stp_utrace_attach(struct task_struct *tsk,
+		    const struct utrace_engine_ops *ops, void *data,
+		    unsigned long event_flags)
+{
+	struct utrace_attached_engine *engine;
+	struct mm_struct *mm;
+	int rc = 0;
+
+	// Ignore init
+	if (tsk->pid <= 1)
+		return EPERM;
+
+	// Ignore threads with no mm (which are kernel threads).
+	mm = get_task_mm(tsk);
+	if (! mm)
+		return EPERM;
+	mmput(mm);
+
+	engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, ops, data);
+	if (IS_ERR(engine)) {
+		int error = -PTR_ERR(engine);
+		if (error != ENOENT) {
+			_stp_error("utrace_attach returned error %d on pid %d",
+				   error, (int)tsk->pid);
+			rc = error;
+		}
+	}
+	else if (unlikely(engine == NULL)) {
+		_stp_error("utrace_attach returned NULL on pid %d",
+			   (int)tsk->pid);
+		rc = EFAULT;
+	}
+	else {
+		utrace_set_flags(tsk, engine, event_flags);
+	}
+	return rc;
+}
+
 static u32
 __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 				      struct task_struct *parent,
@@ -200,21 +243,9 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
 		return UTRACE_ACTION_RESUME;
 
-	// On clone, attach to the child.  Ignore threads with no mm
-	// (which are kernel threads).
-	mm = get_task_mm(child);
-	if (mm) {
-		mmput(mm);
-		child_engine = utrace_attach(child, UTRACE_ATTACH_CREATE,
-					     engine->ops, 0);
-		if (IS_ERR(child_engine))
-			_stp_error("attach to clone child %d failed: %ld",
-				   (int)child->pid, PTR_ERR(child_engine));
-		else {
-			utrace_set_flags(child, child_engine,
-					 __STP_UTRACE_TASK_FINDER_EVENTS);
-		}
-	}
+	// On clone, attach to the child.
+	(void) __stp_utrace_attach(child, engine->ops, 0,
+				   __STP_UTRACE_TASK_FINDER_EVENTS);
 	return UTRACE_ACTION_RESUME;
 }
 
@@ -253,6 +284,8 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 		struct list_head *cb_node;
 		list_for_each(cb_node, &tgt->callback_list_head) {
 			struct stap_task_finder_target *cb_tgt;
+			int rc;
+
 			cb_tgt = list_entry(cb_node,
 					    struct stap_task_finder_target,
 					    callback_list);
@@ -269,19 +302,11 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 			}
 
 			// Set up thread death notification.
-			engine = utrace_attach(tsk,
-					       UTRACE_ATTACH_CREATE,
-					       &cb_tgt->ops, cb_tgt);
-			if (IS_ERR(engine)) {
-				_stp_error("attach to exec'ed %d failed: %ld",
-					   (int)tsk->pid,
-					   PTR_ERR(engine));
-			}
-			else {
-				utrace_set_flags(tsk, engine,
+			rc = __stp_utrace_attach(tsk, &cb_tgt->ops, cb_tgt,
 						 __STP_UTRACE_ATTACHED_TASK_EVENTS);
-				cb_tgt->engine_attached = 1;
-			}
+			if (rc != 0 && rc != EPERM)
+				break;
+			cb_tgt->engine_attached = 1;
 		}
 	}
 	return UTRACE_ACTION_RESUME;
@@ -346,46 +371,35 @@ stap_start_task_finder(void)
 	}
 
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
-	printk(KERN_ERR "SYSTEMTAP: in RUNNING state\n");
 
 	rcu_read_lock();
 	for_each_process(tsk) {
-		struct utrace_attached_engine *engine;
 		struct mm_struct *mm;
 		char *mmpath;
 		size_t mmpathlen;
 		struct list_head *tgt_node;
 
+		/* Attach to the thread */
+		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+					 __STP_UTRACE_TASK_FINDER_EVENTS);
+		if (rc == EPERM) {
+			/* Ignore EPERM errors, which mean this wasn't
+			 * a thread we can attach to. */
+			rc = 0;
+			continue;
+		}
+		else if (rc != 0) {
+			/* If we get a real error, quit. */
+			break;
+		}
+
+		/* Grab the path associated with this task. */
 		mm = get_task_mm(tsk);
 		if (! mm) {
 		    /* If the thread doesn't have a mm_struct, it is
 		     * a kernel thread which we need to skip. */
 		    continue;
 		}
-
-		/* Attach to the thread */
-		engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE,
-				       &__stp_utrace_task_finder_ops, 0);
-		if (IS_ERR(engine)) {
-			int error = -PTR_ERR(engine);
-			if (error != ENOENT) {
-				mmput(mm);
-				_stp_error("utrace_attach returned error %d on pid %d",
-					   error, (int)tsk->pid);
-				rc = error;
-				break;
-			}
-		}
-		else if (unlikely(engine == NULL)) {
-			mmput(mm);
-			_stp_error("utrace_attach returned NULL on pid %d",
-				   (int)tsk->pid);
-			rc = EFAULT;
-			break;
-		}
-		utrace_set_flags(tsk, engine, __STP_UTRACE_TASK_FINDER_EVENTS);
-
-		/* Check the thread's exe's path/pid against our list. */
 		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
 		mmput(mm);		/* We're done with mm */
 		if (IS_ERR(mmpath)) {
@@ -395,6 +409,7 @@ stap_start_task_finder(void)
 			break;
 		}
 
+		/* Check the thread's exe's path/pid against our list. */
 		mmpathlen = strlen(mmpath);
 		list_for_each(tgt_node, &__stp_task_finder_list) {
 			struct stap_task_finder_target *tgt;
@@ -430,23 +445,17 @@ stap_start_task_finder(void)
 				}
 
 				// Set up thread death notification.
-				engine = utrace_attach(tsk,
-						       UTRACE_ATTACH_CREATE,
-						       &cb_tgt->ops, cb_tgt);
-				if (IS_ERR(engine)) {
-					_stp_error("attach to %d failed: %ld",
-						   (int)tsk->pid,
-						   PTR_ERR(engine));
-				}
-				else {
-					utrace_set_flags(tsk, engine,
+				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
+							 cb_tgt,
 							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
-					cb_tgt->engine_attached = 1;
-				}
+				if (rc != 0 && rc != EPERM)
+					break;
+				cb_tgt->engine_attached = 1;
 			}
 		}
 	}
 	rcu_read_unlock();
+
 	_stp_kfree(mmpath_buf);
 	return rc;
 }

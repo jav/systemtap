@@ -4412,7 +4412,7 @@ emit_symbol_data (systemtap_session& s)
       clog << endl;
     }
 
-  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
+  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
   
   static char *debuginfo_path = (debuginfo_env_arr ?

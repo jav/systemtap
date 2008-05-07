@@ -63,10 +63,10 @@ git_version.h:
 
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS)
-stap_LDFLAGS = $(AM_LDFLAGS)
-
+stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
+staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 stapio_CPPFLAGS = $(AM_CPPFLAGS)
-stapio_LDFLAGS = $(AM_LDFLAGS)
+stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
 if BUILD_ELFUTILS
 # This tells automake's "make distcheck" what we need to compile.

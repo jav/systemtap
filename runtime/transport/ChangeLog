@@ -1,3 +1,9 @@
+2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5645
+	* transport.c (_stp_transport_init): Fix subbuffer size calculation
+	overflow.
+
 2008-04-21  hunt  <hunt@redhat.com>
 
 	* control.c (_stp_ctl_write): Return len + sizeof(int) so

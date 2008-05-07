@@ -225,7 +225,11 @@ int _stp_transport_init(void)
 
 	if (_stp_bufsize) {
 		unsigned size = _stp_bufsize * 1024 * 1024;
-		_stp_subbuf_size = ((size >> 2) + 1) * 65536;
+		_stp_subbuf_size = 65536;
+		while (size / _stp_subbuf_size > 64 &&
+		       _stp_subbuf_size < 1024 * 1024) {
+			_stp_subbuf_size <<= 1;
+		}
 		_stp_nsubbufs = size / _stp_subbuf_size;
 		dbug_trans(1, "Using %d subbufs of size %d\n", _stp_nsubbufs, _stp_subbuf_size);
 	}
