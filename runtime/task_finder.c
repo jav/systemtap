@@ -231,43 +231,16 @@ __stp_utrace_attach(struct task_struct *tsk,
 	return rc;
 }
 
-static u32
-__stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
-				      struct task_struct *parent,
-				      unsigned long clone_flags,
-				      struct task_struct *child)
-{
-	struct utrace_attached_engine *child_engine;
-	struct mm_struct *mm;
-
-	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
-		return UTRACE_ACTION_RESUME;
-
-	// On clone, attach to the child.
-	(void) __stp_utrace_attach(child, engine->ops, 0,
-				   __STP_UTRACE_TASK_FINDER_EVENTS);
-	return UTRACE_ACTION_RESUME;
-}
-
-static u32
-__stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
-				     struct task_struct *tsk,
-				     const struct linux_binprm *bprm,
-				     struct pt_regs *regs)
+static inline void
+__stp_utrace_attach_match_filename(struct task_struct *tsk,
+				   const char * const filename)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
 	int found_node = 0;
 
-	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
-		return UTRACE_ACTION_RESUME;
-
-	// On exec, check bprm
-	if (bprm->filename == NULL)
-		return UTRACE_ACTION_RESUME;
-
-	filelen = strlen(bprm->filename);
+	filelen = strlen(filename);
 	list_for_each(tgt_node, &__stp_task_finder_list) {
 		tgt = list_entry(tgt_node, struct stap_task_finder_target,
 				 list);
@@ -275,7 +248,7 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 		// here, since they are handled at startup.
 		if (tgt != NULL && tgt->pathlen > 0
 		    && tgt->pathlen == filelen
-		    && strcmp(tgt->pathname, bprm->filename) == 0) {
+		    && strcmp(tgt->pathname, filename) == 0) {
 			found_node = 1;
 			break;
 		}
@@ -309,6 +282,79 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 			cb_tgt->engine_attached = 1;
 		}
 	}
+}
+
+static u32
+__stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
+				      struct task_struct *parent,
+				      unsigned long clone_flags,
+				      struct task_struct *child)
+{
+	int rc;
+	struct mm_struct *mm;
+	char *mmpath_buf;
+	char *mmpath;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return UTRACE_ACTION_RESUME;
+
+	// On clone, attach to the child.
+	rc = __stp_utrace_attach(child, engine->ops, 0,
+				 __STP_UTRACE_TASK_FINDER_EVENTS);
+	if (rc != 0 && rc != EPERM)
+		return UTRACE_ACTION_RESUME;
+
+	/* Grab the path associated with this task. */
+	mm = get_task_mm(child);
+	if (! mm) {
+		/* If the thread doesn't have a mm_struct, it is
+		 * a kernel thread which we need to skip. */
+		return UTRACE_ACTION_RESUME;
+	}
+
+	// Allocate space for a path
+	mmpath_buf = _stp_kmalloc(PATH_MAX);
+	if (mmpath_buf == NULL) {
+		_stp_error("Unable to allocate space for path");
+		return UTRACE_ACTION_RESUME;
+	}
+
+	// Grab the path associated with the new task
+	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
+	mmput(mm);			/* We're done with mm */
+	if (IS_ERR(mmpath)) {
+		rc = -PTR_ERR(mmpath);
+		_stp_error("Unable to get path (error %d) for pid %d",
+			   rc, (int)child->pid);
+	}
+	else {
+		__stp_utrace_attach_match_filename(child, mmpath);
+	}
+
+	_stp_kfree(mmpath_buf);
+	return UTRACE_ACTION_RESUME;
+}
+
+static u32
+__stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
+				     struct task_struct *tsk,
+				     const struct linux_binprm *bprm,
+				     struct pt_regs *regs)
+{
+	size_t filelen;
+	struct list_head *tgt_node;
+	struct stap_task_finder_target *tgt;
+	int found_node = 0;
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
+		return UTRACE_ACTION_RESUME;
+
+	// On exec, check bprm
+	if (bprm->filename == NULL)
+		return UTRACE_ACTION_RESUME;
+
+	__stp_utrace_attach_match_filename(tsk, bprm->filename);
+
 	return UTRACE_ACTION_RESUME;
 }
 
