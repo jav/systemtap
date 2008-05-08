@@ -1,3 +1,9 @@
+2008-05-08  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+
+	PR 5231
+	* ioblock.stp (ioblock.end): Set bytes_done depending on kernel
+	version.
+	
 2008-04-29  Frank Ch. Eigler  <fche@elastic.org>
 	
 	PR 6466

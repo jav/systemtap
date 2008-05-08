@@ -167,7 +167,7 @@ probe ioblock.end = kernel.function("bio_endio")
         devname = __bio_devname($bio)
         ino = __bio_ino($bio)
 
-        bytes_done = $bytes_done
+        bytes_done = %( kernel_vr < "2.6.24" %? $bytes_done %: $bio->bi_size %)
         error = $error
 
         sector = $bio->bi_sector
