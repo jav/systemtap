@@ -1,3 +1,13 @@
+2008-05-08  David Smith  <dsmith@redhat.com>
+
+	PR 6500.
+	* task_finder.c (__stp_utrace_task_finder_report_exec): Moved
+	attach logic to __stp_utrace_attach_match_filename().
+	(__stp_utrace_attach_match_filename): New function.
+	(__stp_utrace_task_finder_report_clone): Calls
+	__stp_utrace_attach_match_filename() to attach to newly cloned
+	threads.
+
 2008-05-06  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5648
