@@ -1,3 +1,11 @@
+2008-05-08  William Cohen  <wcohen@redhat.com>
+
+	* iotime.meta: New.
+
+2008-05-08  William Cohen  <wcohen@redhat.com>
+
+	* sleeptime.meta, wait4time.meta: New.
+
 2008-05-08  Mark Wielaard  <mwielaard@redhat.com>
 
 	* futexes.meta (test_check,test_installcheck): Change futex.stp to
