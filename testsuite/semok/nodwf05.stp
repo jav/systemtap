@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Like nodwf02.stp, but extract the symbol table from vmlinux.
+
+stap -p2 --ignore-dwarf --kelf -e '
+global ncall
+
+/*
+ * We want
+ *	probe syscall.*
+ * but in the syscall tapset, the prologue blocks for the following system
+ * calls contain "if" statements that cause target variables to be read...
+ * and we cannot evaluate target variables without dwarf.
+ *	bdflush, clock_nanosleep, fork, futex, getrusage, mq_open, open, sysfs
+ */
+probe
+	syscall.a*,
+	/* skip b */
+	/* skip c */
+	syscall.d*,
+	syscall.e*,
+	/* skip f */
+	/* skip g */
+	/* no h */
+	syscall.i*,
+	/* no j */
+	syscall.k*,
+	syscall.l*,
+	/* skip m */
+	syscall.n*,
+	/* skip o */
+	syscall.p*,
+	syscall.q*,
+	syscall.r*,
+	/* skip s */
+	syscall.t*,
+	syscall.u*,
+	syscall.v*,
+	syscall.w*
+	/* no xyz */
+{
+	printf("%s called\n", name)
+	if (ncall++ > 50)
+		exit()
+}
+'

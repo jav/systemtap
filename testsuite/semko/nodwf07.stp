@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# This should fail until/unless we expand our blacklist to cover symbols
+# in the symbol table that don't show up in dwarf.
+
+stap -p2 --ignore-vmlinux --kmap=/proc/kallsyms -e '
+probe kernel.function("*") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(15) {
+	exit()
+}
+'

@@ -97,6 +97,21 @@ find_hash (systemtap_session& s, const string& script)
   h.add(s.merge);			// '-M'
   h.add(s.timing);			// '-t'
   h.add(s.prologue_searching);		// '-P'
+  h.add(s.ignore_vmlinux);		// --ignore-vmlinux
+  h.add(s.ignore_dwarf);		// --ignore-dwarf
+  h.add(s.consult_symtab);		// --kelf, --kmap
+  if (!s.kernel_symtab_path.empty())	// --kmap
+    {
+      h.add(s.kernel_symtab_path);
+      if (stat(s.kernel_symtab_path.c_str(), &st) == 0)
+        {
+	  // NB: stat of /proc/kallsyms always returns size=0, mtime=now...
+	  // which is a good reason to use the default /boot/System.map-2.6.xx
+	  // instead.
+          h.add(st.st_size);
+	  h.add(st.st_mtime);
+        }
+    }
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 

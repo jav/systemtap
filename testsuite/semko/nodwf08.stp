@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# The regular blacklist should thwart this.
+
+stap -p2 --ignore-vmlinux --kmap=/proc/kallsyms -e '
+probe kernel.function("register_kprobe") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(30) {
+	exit()
+}
+'
