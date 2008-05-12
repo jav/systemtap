@@ -37,6 +37,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <time.h>
 #include <elfutils/libdwfl.h>
+#include <getopt.h>
 }
 
 using namespace std;
@@ -106,8 +107,15 @@ usage (systemtap_session& s, int exitcode)
     << "   -x PID     sets target() to PID" << endl
     << "   -t         collect probe timing information" << endl
 #ifdef HAVE_LIBSQLITE3
-    << "   -q         generate information on tapset coverage"
+    << "   -q         generate information on tapset coverage" << endl
 #endif /* HAVE_LIBSQLITE3 */
+    << "   --kelf     make do with symbol table from vmlinux" << endl
+    << "   --kmap[=FILE]" << endl
+    << "              make do with symbol table from nm listing" << endl
+    << "   --ignore-vmlinux" << endl
+    << "              for testing, pretend vmlinux can't be found" << endl
+    << "   --ignore-dwarf" << endl
+    << "              for testing, pretend vmlinux and modules lack debug info"
     << endl
     ;
   // -d: dump safety-related external references
@@ -295,6 +303,9 @@ main (int argc, char * const argv [])
   s.use_cache = true;
   s.tapset_compile_coverage = false;
   s.need_uprobes = false;
+  s.consult_symtab = false;
+  s.ignore_vmlinux = false;
+  s.ignore_dwarf = false;
 
   const char* s_p = getenv ("SYSTEMTAP_TAPSET");
   if (s_p != NULL)  
@@ -345,8 +356,21 @@ main (int argc, char * const argv [])
 
   while (true)
     {
+      int long_opt;
+#define LONG_OPT_KELF 1
+#define LONG_OPT_KMAP 2
+#define LONG_OPT_IGNORE_VMLINUX 3
+#define LONG_OPT_IGNORE_DWARF 4
       // NB: also see find_hash(), usage(), switch stmt below, stap.1 man page
-      int grc = getopt (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:");
+      static struct option long_options[] = {
+        { "kelf", 0, &long_opt, LONG_OPT_KELF },
+        { "kmap", 2, &long_opt, LONG_OPT_KMAP },
+        { "ignore-vmlinux", 0, &long_opt, LONG_OPT_IGNORE_VMLINUX },
+        { "ignore-dwarf", 0, &long_opt, LONG_OPT_IGNORE_DWARF },
+        { NULL, 0, NULL, 0 }
+      };
+      int grc = getopt_long (argc, argv, "hVMvtp:I:e:o:R:r:m:kgPc:x:D:bs:uqwl:",
+                                                          long_options, NULL);
       if (grc < 0)
         break;
       switch (grc)
@@ -523,6 +547,37 @@ main (int argc, char * const argv [])
           have_script = true;
           break;
 
+        case 0:
+          switch (long_opt)
+            {
+            case LONG_OPT_KELF:
+	      s.consult_symtab = true;
+	      break;
+            case LONG_OPT_KMAP:
+	      // Leave s.consult_symtab unset for now, to ease error checking.
+              if (!s.kernel_symtab_path.empty())
+		{
+		  cerr << "You can't specify multiple --kmap options." << endl;
+		  usage(s, 1);
+		}
+              if (optarg)
+                s.kernel_symtab_path = optarg;
+              else
+#define PATH_TBD string("__TBD__")
+                s.kernel_symtab_path = PATH_TBD;
+	      break;
+	    case LONG_OPT_IGNORE_VMLINUX:
+	      s.ignore_vmlinux = true;
+	      break;
+	    case LONG_OPT_IGNORE_DWARF:
+	      s.ignore_dwarf = true;
+	      break;
+            default:
+              cerr << "Internal error parsing command arguments." << endl;
+              usage(s, 1);
+            }
+          break;
+
         default:
           usage (s, 1);
           break;
@@ -545,6 +600,18 @@ main (int argc, char * const argv [])
     {
       cerr << "You can't specify -c and -x options together." <<endl;
       usage (s, 1);
+    }
+
+  if (!s.kernel_symtab_path.empty())
+    {
+      if (s.consult_symtab)
+      {
+        cerr << "You can't specify --kelf and --kmap together." << endl;
+	usage (s, 1);
+      }
+      s.consult_symtab = true;
+      if (s.kernel_symtab_path == PATH_TBD)
+        s.kernel_symtab_path = string("/boot/System.map-") + s.kernel_release;
     }
 
   if (s.last_pass > 4 && release_changed)

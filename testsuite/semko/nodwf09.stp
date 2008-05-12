@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# The symbol table doesn't give us enough info to evaluate target variables.
+
+stap -p2 --ignore-vmlinux --kmap=/proc/kallsyms -e '
+probe kernel.function("printk") {
+	printf("%s called; fmt = \"%s\"\n", probefunc(), kernel_string($fmt))
+	exit()
+}
+
+probe timer.sec(15) {
+	exit()
+}
+'

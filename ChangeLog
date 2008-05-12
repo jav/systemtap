@@ -1,3 +1,48 @@
+2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 4311 - Function boundary tracing without debuginfo: Phase II
+	Merged dwarfless branch into mainline.  But first...
+	* runtime/regs.c: Removed register name:value lookup facility.
+	Moved basically all register-lookup code to the i686 and x86_64
+	registers.stp tapsets.  Args stuff shared between i386 and
+	x86_64 remains in regs.c.
+	* tapset/{i686,x86_64}/registers.stp: Moved register-lookup
+	code from runtime/regs.c to here.
+	
+2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
+
+	(2008-05-06 in dwarfless branch)
+	PR 4311 - Function boundary tracing without debuginfo: Phase II
+	* stapfuncs.5.in: Added sections on CPU REGISTERS and
+	NUMBERED FUNCTION ARGUMENTS.
+
+2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
+
+	(2008-05-05 in dwarfless branch)
+	PR 4311 - Function boundary tracing without debuginfo: Phase II
+	* runtime/regs.c: Added register name:value lookup facility.
+	Added support for register and arg lookup for i386 and x86_64.
+	* tapset/{i686,x86_64}/registers.stp: New: support for register
+	and arg lookup.
+	* tapsets.cxx, translate.cxx: Added regparm field to struct
+	context.
+	* tapset/nd_syscall.stp: syscall.stp migrating toward numbered
+	args rather than named args.
+
+2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
+
+	(2008-04-18 in dwarfless branch)
+	PR 4311 - Function boundary tracing without debuginfo: Phase I
+	* tapsets.cxx: Major rework of dwflpp, dwarf_query, and related
+	code to make do with elf info if dwarf info is absent, or
+	(in the case of vmlinux) make do with a System.map-style
+	symbol table if even the elf file is absent.
+	* main.cxx: Use getopt_long instead of getopt.	Added --kelf,
+	--kmap, --ignore-vmlinux, and --ignore-dwarf.
+	* hash.cxx, session.h, stap.1.in: Added --kelf, --kmap,
+	--ignore-vmlinux, and --ignore-dwarf.
+	* testsuite/{semok,semko}/nodwf*.stp
+
 2008-05-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6492.

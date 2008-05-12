@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Test function-name wildcard.
+# Like nodwf03.stp, but extract the symbol table from vmlinux.
+
+stap -p2 --ignore-dwarf --kelf -e '
+global ncall
+
+probe kernel.function("sys_*") {
+	printf("%s called\n", probefunc())
+	if (ncall++ > 50)
+		exit()
+}
+'

@@ -1,0 +1,14 @@
+#!/bin/sh
+#
+# Verify that --ignore-vmlinux "hides" vmlinux.
+
+stap -p2 --ignore-vmlinux -e '
+probe kernel.function("printk") {
+	printf("%s called\n", probefunc())
+	exit()
+}
+
+probe timer.sec(30) {
+	exit()
+}
+'

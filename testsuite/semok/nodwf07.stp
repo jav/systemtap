@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# Test module-name and function-name wildcards.
+
+stap -p2 --ignore-dwarf --kelf -e '
+global ncall
+
+probe module("*").function("*_probe") {
+	printf("%s called\n", probefunc())
+	if (ncall++ > 50)
+		exit()
+}
+
+probe timer.sec(5) {
+	exit()
+}
+'

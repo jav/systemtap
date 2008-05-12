@@ -383,5 +383,159 @@ void _stp_print_regs(struct pt_regs * regs)
 
 #endif
 
+
+/* Function arguments */
+
+#define _STP_REGPARM 0x8000
+#define _STP_REGPARM_MASK ((_STP_REGPARM) - 1)
+
+/*
+ * x86_64 and i386 are especially ugly because:
+ * 1)  the pt_reg member names changed as part of the x86 merge.  We use
+ * either the pre-merge name or the post-merge name, as needed.
+ * 2) -m32 apps on x86_64 look like i386 apps, so we need to support
+ * those semantics on both i386 and x86_64.
+ */
+
+#ifdef __i386__
+#ifdef STAPCONF_X86_UNIREGS
+#define EREG(nm, regs) ((regs)->nm)
+#else
+#define EREG(nm, regs) ((regs)->e##nm)
+#endif
+
+static long _stp_get_sp(struct pt_regs *regs)
+{
+	if (!user_mode(regs))
+		return (long) &EREG(sp, regs);
+	return EREG(sp, regs);
+}
+
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
+{
+	if (regparm == 0) {
+		/* Default */
+		if (user_mode(regs))
+			return 0;
+		else
+			// Kernel is built with -mregparm=3.
+			return 3;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
+}
+#endif	/* __i386__ */
+
+#ifdef __x86_64__
+#ifdef STAPCONF_X86_UNIREGS
+#define EREG(nm, regs) ((regs)->nm)
+#define RREG(nm, regs) ((regs)->nm)
+#else
+#define EREG(nm, regs) ((regs)->r##nm)
+#define RREG(nm, regs) ((regs)->r##nm)
+#endif
+
+static long _stp_get_sp(struct pt_regs *regs)
+{
+	return RREG(sp, regs);
+}
+
+static int _stp_probing_32bit_app(struct pt_regs *regs)
+{
+	if (!regs)
+		return 0;
+	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_IA32));
+}
+
+/* Ensure that the upper 32 bits of val are a sign-extension of the lower 32. */
+static int64_t __stp_sign_extend32(int64_t val)
+{
+	int32_t *val_ptr32 = (int32_t*) &val;
+	return *val_ptr32;
+}
+
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
+{
+	if (regparm == 0) {
+		/* Default */
+		if (_stp_probing_32bit_app(regs))
+			return 0;
+		else
+			return 6;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
+}
+#endif	/* __x86_64__ */
+
+#if defined(__i386__) || defined(__x86_64__)
+/*
+ * Use this for i386 kernel and apps, and for 32-bit apps running on x86_64.
+ * Does arch-specific work for fetching function arg #argnum (1 = first arg).
+ * nr_regargs is the number of arguments that reside in registers (e.g.,
+ * 3 for fastcall functions).
+ * Returns:
+ * 0 if the arg resides in a register.  *val contains its value.
+ * 1 if the arg resides on the kernel stack.  *val contains its address.
+ * 2 if the arg resides on the user stack.  *val contains its address.
+ * -1 if the arg number is invalid.
+ * We assume that the regs pointer is valid.
+ */
+static int _stp_get_arg32_by_number(int n, int nr_regargs,
+					struct pt_regs *regs, long *val)
+{
+	if (nr_regargs < 0)
+		return -1;
+	if (n > nr_regargs) {
+		/*
+		 * The typical case: arg n is on the stack.
+		 * stack[0] = return address
+		 */
+		int stack_index = n - nr_regargs;
+		int32_t *stack = (int32_t*) _stp_get_sp(regs);
+		*val = (long) &stack[stack_index];
+		return (user_mode(regs) ? 2 : 1);
+	} else {
+		switch (n) {
+		case 1: *val = EREG(ax, regs); break;
+		case 2: *val = EREG(dx, regs); break;
+		case 3: *val = EREG(cx, regs); break;
+		default:
+			/* gcc rejects regparm values > 3. */
+			return -1;
+		}
+		return 0;
+	}
+}
+#endif	/* __i386__ || __x86_64__ */
+
+#ifdef __x86_64__
+/* See _stp_get_arg32_by_number(). */
+static int _stp_get_arg64_by_number(int n, int nr_regargs,
+				struct pt_regs *regs, unsigned long *val)
+{
+	if (nr_regargs < 0)
+		return -1;
+	if (n > nr_regargs) {
+		/* arg n is on the stack.  stack[0] = return address */
+		int stack_index = n - nr_regargs;
+		unsigned long *stack = (unsigned long*) _stp_get_sp(regs);
+		*val = (unsigned long) &stack[stack_index];
+		return (user_mode(regs) ? 2 : 1);
+	} else {
+		switch (n) {
+		case 1: *val = RREG(di, regs); break;
+		case 2: *val = RREG(si, regs); break;
+		case 3: *val = RREG(dx, regs); break;
+		case 4: *val = RREG(cx, regs); break;
+		case 5: *val = regs->r8; break;
+		case 6: *val = regs->r9; break;
+		default:
+			/* gcc rejects regparm values > 6. */
+			return -1;
+		}
+		return 0;
+	}
+}
+#endif	/* __x86_64__ */
+
 /** @} */
 #endif /* _REGS_C_ */
