@@ -2425,11 +2425,8 @@ dwarf_query::build_blacklist()
 
   // XXX: it would be nice if these blacklisted functions were pulled
   // in dynamically, instead of being statically defined here.
-  // Perhaps it could be populated from script files.  A 
-  //
-  //    noprobe kernel.function("...")" 
-  //
-  // construct might do the trick.
+  // Perhaps it could be populated from script files.  A "noprobe
+  // kernel.function("...")"  construct might do the trick.
 
   // Most of these are marked __kprobes in newer kernels.  We list
   // them here (anyway) so the translator can block them on older
@@ -2499,11 +2496,6 @@ dwarf_query::build_blacklist()
   // PR 5759, CONFIG_PREEMPT kernels
   blfn += "|.*preempt_count.*";
   blfn += "|preempt_schedule";
-
-  // PR 6487, relay/timer interactions
-  blfile += "|kernel/relay.c";
-  blfile += "|kernel/timer.c";
-  //  blfile += "|kernel/workqueue.c";
 
   // These functions don't return, so return probes would never be recovered
   blfn_ret += "do_exit"; // no "|"
