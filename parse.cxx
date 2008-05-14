@@ -1215,6 +1215,9 @@ parser::parse_global (vector <vardecl*>& globals, vector<probe*>&)
 	  t = peek ();
 	}
 
+      if (t && t->type == tok_operator && t->content == ";") // termination
+	  next();
+
       if (t && t->type == tok_operator && t->content == ",") // next global
 	{
 	  next ();

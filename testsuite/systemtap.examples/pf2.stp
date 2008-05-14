@@ -6,10 +6,10 @@ probe timer.profile {
   fn = probefunc ()
   if (fn != "") profile[fn] <<< 1
 }
-probe timer.ms(4000) {
+probe timer.ms(5000) {
   printf ("\n--- %d samples recorded:\n", @count(pcount))
   foreach (f in profile- limit 10) {
-    printf ("%s\t%d\n", f, @count(profile[f]))
+    printf ("%-30s\t%6d\n", f, @count(profile[f]))
   }
   delete profile
   delete pcount

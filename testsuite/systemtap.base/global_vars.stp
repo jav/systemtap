@@ -1,0 +1,57 @@
+/*
+ * global_vars.stp
+ *
+ * Check that global variables with a ; termination work fine
+ */
+
+probe begin {  println("systemtap starting probe")  }
+probe end   {  println("systemtap ending probe")    }
+
+global a;
+global c, d;
+global g = 42;
+global e[1], f;
+global gstr = "foobar";
+
+global gstr_saved;
+probe begin(-9223372036854775808) {
+    c = g
+    d = c + g
+    a = d
+    f = c
+    e[0] = "a";
+    gstr_saved = gstr
+}
+
+probe end {
+  if (c == 42)
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - c:%d != 42\n", c)
+
+  if (d == (c + g))
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - d:%d != %d\n", d, (c+g))
+
+  if (a == d)
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - a:%d != %d\n", a, d)
+
+  if (f == c)
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - f:%d != %d\n", f, c)
+
+  if (e[0] == "a")
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - e:%s != a\n", e[0])
+
+  if (gstr_saved == "foobar")
+    println("systemtap test success")
+  else
+    printf("systemtap test failure - gstr_saved:%s != foobar\n", gstr_saved)
+}
+

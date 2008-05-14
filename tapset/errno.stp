@@ -351,33 +351,45 @@ function errno_str:string (err:long) %{ /* pure */
 		strlcpy (THIS->__retvalue, errlist[e], MAXSTRINGLEN);
 %}
 
+%{
+static long _stp_returnval(struct pt_regs *regs) {
+	if (regs) {
+#if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
+		return regs->ax;
+#elif defined (__i386__)
+		return regs->eax;
+#elif defined (__x86_64__)
+		// TODO: Handle -m32 apps.
+		return regs->rax;
+#elif defined (__powerpc64__)
+		return regs->gpr[3];
+#elif defined (__ia64__)
+		return regs->r8;
+#elif defined (__sparc64__)
+		return regs->u_regs[UREG_RETPC];
+#elif defined (__s390x__)
+		return regs->gprs[2];
+#elif defined (__arm__)
+		return regs->ARM_r0;
+#else
+		_stp_error("returnval() not defined for this architecture");
+		return 0;
+#endif
+	} else {
+		_stp_error("returnval() not defined in this context");
+		return 0;
+	}
+}
+%}
+
+function returnval:long () %{ /* pure */
+	THIS->__retvalue = _stp_returnval(CONTEXT->regs);
+%}
+
 /* for syscall tapset. set returnp = 1 for decimal, 2 for hex */
 function returnstr:string (returnp:long) %{ /* pure */
-	long ret;
-
-	/* XXX: unfortunate duplication with return.stp:retval() */
-
 	if (CONTEXT->regs) {
-#if defined  (STAPCONF_X86_UNIREGS)  && (defined (__x86_64__) || defined (__i386__))
-		ret = CONTEXT->regs->ax;
-#elif defined (__i386__)
-		ret = CONTEXT->regs->eax;
-#elif defined (__x86_64__)
-		ret = CONTEXT->regs->rax;
-#elif defined (__powerpc64__)
-		ret = CONTEXT->regs->gpr[3];
-#elif defined (__ia64__)
-		ret = CONTEXT->regs->r8;
-#elif defined (__sparc64__)
-		ret = CONTEXT->regs->u_regs[UREG_RETPC];
-#elif defined (__s390x__)
-		ret = CONTEXT->regs->gprs[2];
-#elif defined (__arm__)
-		ret = CONTEXT->regs->ARM_r0;
-#else
-		goto no_ret;
-#endif
-
+		long ret = _stp_returnval(CONTEXT->regs);
 		if (ret < 0 && ret > -Maxerrno && errlist[-ret])
 			snprintf (THIS->__retvalue, MAXSTRINGLEN, "%ld (%s)", ret, errlist[-ret]);
 		else if (THIS->returnp == 2)

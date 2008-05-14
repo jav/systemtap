@@ -167,6 +167,7 @@ a specific process.
 Instead of running a probe script, just list all available probe
 points matching the given pattern.  The pattern may include wildcards
 and aliases.
+.TP
 .B \-\-kelf
 For names and addresses of functions to probe,
 consult the symbol tables in the kernel and modules.

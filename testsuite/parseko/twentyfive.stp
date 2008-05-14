@@ -1,0 +1,3 @@
+#! stap -p1
+
+global a,;b

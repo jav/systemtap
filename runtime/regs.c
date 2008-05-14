@@ -383,317 +383,60 @@ void _stp_print_regs(struct pt_regs * regs)
 
 #endif
 
-/*
- * (Theoretically) arch-independent scheme for binary lookup of register
- * values (from pt_regs) by register name.  A register may be called by
- * more than one name.
- */
-struct _stp_register_desc {
-	const char *name;
-	unsigned short size;	// in bytes
-	unsigned short offset;	// in bytes, from start of pt_regs
-};
 
-struct _stp_register_table {
-	struct _stp_register_desc *registers;
-	unsigned nr_registers;
-	unsigned nr_slots;	// capacity
-};
+/* Function arguments */
 
-static DEFINE_SPINLOCK(_stp_register_table_lock);
-static void _stp_populate_register_table(void);
+#define _STP_REGPARM 0x8000
+#define _STP_REGPARM_MASK ((_STP_REGPARM) - 1)
 
 /*
- * If the named register is in the list, return its slot number and *found=1.
- * Else *found=0 and return the slot number where the name should be inserted.
- */
-static int _stp_lookup_register(const char *name,
-			struct _stp_register_table *table, int *found)
-{
-	unsigned begin, mid, end;
-
-	*found = 0;
-	end = table->nr_registers;
-	if (end == 0)
-		return 0;
-	begin = 0;
-	mid = -1;
-	for (;;) {
-		int cmp;
-		int prev_mid = mid;
-		mid = (begin + end) / 2;
-		if (mid == prev_mid)
-			break;
-		cmp = strcmp(name, table->registers[mid].name);
-		if (cmp == 0) {
-			*found = 1;
-			return mid;
-		} else if (cmp < 0)
-			end = mid;
-		else
-			begin = mid;
-	}
-	if (begin == 0 && strcmp(name, table->registers[0].name) < 0)
-		return 0;
-	return begin + 1;
-}
-
-/*
- * If found, return 1 and the size and/or offset in the pt_regs array.
- * Else return 0.
- */
-static int _stp_find_register(const char *name,
-	struct _stp_register_table *table, size_t *size, size_t *offset)
-{
-	int slot, found;
-	if (unlikely(table->nr_registers == 0)) {
-		unsigned long flags;
-		/*
-		 * Should we do this at the beginning of time to avoid
-		 * the possibility of spending too long in a handler?
-		 */
-		spin_lock_irqsave(&_stp_register_table_lock, flags);
-		if (table->nr_registers == 0)
-			_stp_populate_register_table();
-		spin_unlock_irqrestore(&_stp_register_table_lock, flags);
-	}
-	slot = _stp_lookup_register(name, table, &found);
-	if (found) {
-		if (size)
-			*size = table->registers[slot].size;
-		if (offset)
-			*offset = table->registers[slot].offset;
-		return 1;
-	}
-	return 0;
-}
-
-/*
- * Add name to the register-lookup table.  Note that the name pointer
- * is merely copied, not strdup-ed.
- */
-void _stp_add_register(const char *name, struct _stp_register_table *table,
-						size_t size, size_t offset)
-{
-	int idx, found;
-	struct _stp_register_desc *slot;
-
-	idx = _stp_lookup_register(name, table, &found);
-	if (found)
-		_stp_error("stap runtime internal error: "
-				"register name %s used twice\n", name);
-	if (table->nr_registers >= table->nr_slots)
-		_stp_error("stap runtime internal error: "
-				"register table overflow\n");
-	slot = &table->registers[idx];
-
-	// Move the slots later in the array out of the way.
-	if (idx < table->nr_registers)
-		memmove(slot+1, slot,
-			sizeof(*slot) * (table->nr_registers - idx));
-	table->nr_registers++;
-	slot->name = name;
-	slot->size = size;
-	slot->offset = offset;
-}
-
-#if defined(__i386__) || defined(__x86_64__)
-/*
- * This register set is used for i386 kernel and apps, and for 32-bit apps
- * running on x86_64.  For the latter case, this allows the user to use
- * things like reg("eax") as well as the standard x86_64 pt_regs names.
+ * x86_64 and i386 are especially ugly because:
+ * 1)  the pt_reg member names changed as part of the x86 merge.  We use
+ * either the pre-merge name or the post-merge name, as needed.
+ * 2) -m32 apps on x86_64 look like i386 apps, so we need to support
+ * those semantics on both i386 and x86_64.
  */
 
-/*
- * x86_64 and i386 are especially ugly because the pt_reg member names
- * changed as part of the x86 merge.  We allow (and use, as needed)
- * either the pre-merge name or the post-merge name.
- */
-
-// I count 32 different names, but add a fudge factor.
-static struct _stp_register_desc i386_registers[32+8];
-static struct _stp_register_table i386_register_table = {
-	.registers = i386_registers,
-	.nr_slots = ARRAY_SIZE(i386_registers)
-};
-
-/*
- * sizeof(long) is indeed what we want here, for both i386 and x86_64.
- * Unlike function args, x86_64 pt_regs is the same even if the int3
- * was in an -m32 app.
- */
-#define ADD_PT_REG(name, member) \
-	_stp_add_register(name, &i386_register_table, \
-		sizeof(long), offsetof(struct pt_regs, member))
-#define ADD2NAMES(nm1, nm2, member) \
-	do { \
-		ADD_PT_REG(nm1, member); \
-		ADD_PT_REG(nm2, member); \
-	} while (0)
-
+#ifdef __i386__
 #ifdef STAPCONF_X86_UNIREGS
-
-/* Map "ax" and "eax" to regs->ax, and "cs" and "xcs" to regs->cs */
-#define ADD_EREG(nm) ADD2NAMES(#nm, "e" #nm, nm)
-#define ADD_XREG(nm) ADD2NAMES(#nm, "x" #nm, nm)
-#define ADD_FLAGS_REG() ADD_EREG(flags)
 #define EREG(nm, regs) ((regs)->nm)
-#define RREG(nm, regs) ((regs)->nm)
-
-#else	/* ! STAPCONF_X86_UNIREGS */
-
-#ifdef __i386__
-#define ADD_EREG(nm) ADD2NAMES(#nm, "e" #nm, e##nm)
-#define ADD_XREG(nm) ADD2NAMES(#nm, "x" #nm, x##nm)
-#define ADD_FLAGS_REG() ADD_EREG(flags)
-#define EREG(nm, regs) ((regs)->e##nm)
-#else	/* __x86_64__ */
-/*
- * Map "eax" to regs->rax and "xcs" to regs->cs.  Other mappings are
- * handled in x86_64_register_table.
- */
-#define ADD_EREG(nm) ADD_PT_REG("e" #nm, r##nm)
-#define ADD_XREG(nm) ADD_PT_REG("x" #nm, nm)
-#define ADD_FLAGS_REG() ADD2NAMES("flags", "eflags", eflags)
-/* Note: After a store to %eax, %rax holds the ZERO-extended %eax. */
-#define EREG(nm, regs) ((regs)->r##nm)
-#define RREG(nm, regs) ((regs)->r##nm)
-#endif	/* __x86_64__ */
-
-#endif	/* ! STAPCONF_X86_UNIREGS */
-
-static void _stp_populate_i386_register_table(void)
-{
-	/*
-	 * The order here is the same as in i386 struct pt_regs.
-	 * It's a different order from x86_64 pt_regs; but that doesn't
-	 * matter -- even when compiling for x86_64 -- because the
-	 * offsets are determined by offsetof(), not the calling order.
-	 */
-	ADD_EREG(bx);
-	ADD_EREG(cx);
-	ADD_EREG(dx);
-	ADD_EREG(si);
-	ADD_EREG(di);
-	ADD_EREG(bp);
-	ADD_EREG(ax);
-#ifdef __i386__
-	ADD_XREG(ds);
-	ADD_XREG(es);
-	ADD_XREG(fs);
-	/* gs not saved */
-#endif
-#ifdef STAPCONF_X86_UNIREGS
-	ADD2NAMES("orig_ax", "orig_eax", orig_ax);
 #else
-#ifdef __i386__
-	ADD2NAMES("orig_ax", "orig_eax", orig_eax);
-#else	/* __x86_64__ */
-	ADD2NAMES("orig_ax", "orig_eax", orig_rax);
+#define EREG(nm, regs) ((regs)->e##nm)
 #endif
-#endif	/* STAPCONF_X86_UNIREGS */
-	ADD_EREG(ip);
-	ADD_XREG(cs);
-	ADD_FLAGS_REG();
-	ADD_EREG(sp);
-	ADD_XREG(ss);
+
+static long _stp_get_sp(struct pt_regs *regs)
+{
+	if (!user_mode(regs))
+		return (long) &EREG(sp, regs);
+	return EREG(sp, regs);
 }
 
-/*
- * For x86_64, this gets a copy of the saved 64-bit register (e.g., regs->rax).
- * After a store to %eax, %rax holds the ZERO-extended %eax.
- */
-static long
-_stp_get_reg32_by_name(const char *name, struct pt_regs *regs)
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
 {
-	size_t offset = 0;
-	long value;	// works for i386 or x86_64
-	BUG_ON(!name);
-	if (!regs)
-		_stp_error("Register values not available in this context.\n");
-#ifdef __i386__
-	if (!user_mode(regs)) {
-		/* esp and ss aren't saved on trap from kernel mode. */
-		if (!strcmp(name,"esp") || !strcmp(name, "sp"))
-			return (long) &EREG(sp, regs);
-		if (!strcmp(name,"xss") || !strcmp(name, "ss")) {
-			/*
-			 * Assume ss register hasn't changed since we took
-			 * the trap.
-			 */
-			unsigned short ss;
-			asm volatile("movw %%ss, %0" : : "m" (ss));
-			return ss;
-		}
-	}
-#endif
-	if (!_stp_find_register(name, &i386_register_table, NULL, &offset))
-		_stp_error("Unknown register name: %s\n", name);
-	(void) memcpy(&value, ((char*)regs) + offset, sizeof(value));
-	return value;
-}
-
-#endif	/* __i386__ || __x86_64__ */
-
-#ifdef __i386__
-static void _stp_populate_register_table(void)
-{
-	_stp_populate_i386_register_table();
+	if (regparm == 0) {
+		/* Default */
+		if (user_mode(regs))
+			return 0;
+		else
+			// Kernel is built with -mregparm=3.
+			return 3;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
 }
 #endif	/* __i386__ */
 
 #ifdef __x86_64__
-// I count 32 different names (not the same 32 as i386), but add a fudge factor.
-static struct _stp_register_desc x86_64_registers[32+8];
-static struct _stp_register_table x86_64_register_table = {
-	.registers = x86_64_registers,
-	.nr_slots = ARRAY_SIZE(x86_64_registers)
-};
-
-/* NB: Redefining ADD_PT_REG here.  ADD2NAMES and such change accordingly. */
-#undef ADD_PT_REG
-#define ADD_PT_REG(name, member) \
-	_stp_add_register(name, &x86_64_register_table, \
-		sizeof(unsigned long), offsetof(struct pt_regs, member))
-
-#define ADD_NREG(nm) ADD_PT_REG(#nm, nm)
-
 #ifdef STAPCONF_X86_UNIREGS
-#define ADD_RREG(nm) ADD2NAMES(#nm, "r" #nm, nm)
+#define EREG(nm, regs) ((regs)->nm)
+#define RREG(nm, regs) ((regs)->nm)
 #else
-#define ADD_RREG(nm) ADD2NAMES(#nm, "r" #nm, r##nm)
+#define EREG(nm, regs) ((regs)->r##nm)
+#define RREG(nm, regs) ((regs)->r##nm)
 #endif
 
-static void _stp_populate_register_table(void)
+static long _stp_get_sp(struct pt_regs *regs)
 {
-	/* Same order as in struct pt_regs */
-	ADD_NREG(r15);
-	ADD_NREG(r14);
-	ADD_NREG(r13);
-	ADD_NREG(r12);
-	ADD_RREG(bp);
-	ADD_RREG(bx);
-	ADD_NREG(r11);
-	ADD_NREG(r10);
-	ADD_NREG(r9);
-	ADD_NREG(r8);
-	ADD_RREG(ax);
-	ADD_RREG(cx);
-	ADD_RREG(dx);
-	ADD_RREG(si);
-	ADD_RREG(di);
-#ifdef STAPCONF_X86_UNIREGS
-	ADD2NAMES("orig_ax", "orig_rax", orig_ax);
-#else
-	ADD2NAMES("orig_ax", "orig_rax", orig_rax);
-#endif
-	ADD_RREG(ip);
-	ADD_NREG(cs);
-	ADD_FLAGS_REG();
-	ADD_RREG(sp);
-	ADD_NREG(ss);
-
-	_stp_populate_i386_register_table();
+	return RREG(sp, regs);
 }
 
 static int _stp_probing_32bit_app(struct pt_regs *regs)
@@ -704,54 +447,26 @@ static int _stp_probing_32bit_app(struct pt_regs *regs)
 }
 
 /* Ensure that the upper 32 bits of val are a sign-extension of the lower 32. */
-static long _stp_sign_extend32(long val)
+static int64_t __stp_sign_extend32(int64_t val)
 {
 	int32_t *val_ptr32 = (int32_t*) &val;
 	return *val_ptr32;
 }
 
-/*
- * Get the value of the 64-bit register with the specified name.  "rax",
- * "ax", and "eax" all get you regs->[r]ax.  Sets *reg32=1 if the name
- * designates a 32-bit register (e.g., "eax"), 0 otherwise.
- */
-static unsigned long
-_stp_get_reg64_by_name(const char *name, struct pt_regs *regs, int *reg32)
+static int _stp_get_regparm(int regparm, struct pt_regs *regs)
 {
-	size_t offset = 0;
-	unsigned long value;
-	BUG_ON(!name);
-	if (!regs) {
-		_stp_error("Register values not available in this context.\n");
-		return 0;
-	}
-	if (_stp_find_register(name, &x86_64_register_table, NULL, &offset)) {
-		if (reg32)
-			*reg32 = 0;
-		(void) memcpy(&value, ((char*)regs) + offset, sizeof(value));
-		return value;
-	}
-	if (reg32)
-		*reg32 = 1;
-	return _stp_get_reg32_by_name(name, regs);
+	if (regparm == 0) {
+		/* Default */
+		if (_stp_probing_32bit_app(regs))
+			return 0;
+		else
+			return 6;
+	} else
+		return (regparm & _STP_REGPARM_MASK);
 }
-#endif /* __x86_64__ */
-
-/* Function arguments */
-
-#define _STP_REGPARM 0x8000
-#define _STP_REGPARM_MASK ((_STP_REGPARM) - 1)
+#endif	/* __x86_64__ */
 
 #if defined(__i386__) || defined(__x86_64__)
-static long _stp_get_sp(struct pt_regs *regs)
-{
-#ifdef __i386__
-	if (!user_mode(regs))
-		return (long) &EREG(sp, regs);
-#endif
-	return EREG(sp, regs);
-}
-
 /*
  * Use this for i386 kernel and apps, and for 32-bit apps running on x86_64.
  * Does arch-specific work for fetching function arg #argnum (1 = first arg).
@@ -792,21 +507,6 @@ static int _stp_get_arg32_by_number(int n, int nr_regargs,
 }
 #endif	/* __i386__ || __x86_64__ */
 
-#ifdef __i386__
-static int _stp_get_regparm(int regparm, struct pt_regs *regs)
-{
-	if (regparm == 0) {
-		/* Default */
-		if (user_mode(regs))
-			return 0;
-		else
-			// Kernel is built with -mregparm=3.
-			return 3;
-	} else
-		return (regparm & _STP_REGPARM_MASK);
-}
-#endif
-
 #ifdef __x86_64__
 /* See _stp_get_arg32_by_number(). */
 static int _stp_get_arg64_by_number(int n, int nr_regargs,
@@ -834,18 +534,6 @@ static int _stp_get_arg64_by_number(int n, int nr_regargs,
 		}
 		return 0;
 	}
-}
-
-static int _stp_get_regparm(int regparm, struct pt_regs *regs)
-{
-	if (regparm == 0) {
-		/* Default */
-		if (_stp_probing_32bit_app(regs))
-			return 0;
-		else
-			return 6;
-	} else
-		return (regparm & _STP_REGPARM_MASK);
 }
 #endif	/* __x86_64__ */
 

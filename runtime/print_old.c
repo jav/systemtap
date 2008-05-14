@@ -35,11 +35,13 @@ void EXPORT_FN(stp_print_flush) (_stp_pbuf *pb)
 		else
 			atomic_inc (&_stp_transport_failures);
 #else
-		struct _stp_trace *t = relay_reserve(_stp_utt->rchan, sizeof(*t) + len);
-		if (likely(t)) {
-			t->sequence = _stp_seq_inc();
-			t->pdu_len = len;
-			memcpy((void *) t + sizeof(*t), pb->buf, len);
+		void *buf = relay_reserve(_stp_utt->rchan,
+					sizeof(struct _stp_trace) + len);
+		if (likely(buf)) {
+			struct _stp_trace t = {	.sequence = _stp_seq_inc(),
+						.pdu_len = len};
+			memcpy(buf, &t, sizeof(t)); // prevent unaligned access
+			memcpy(buf + sizeof(t), pb->buf, len);
 		} else 
 			atomic_inc (&_stp_transport_failures);
 #endif

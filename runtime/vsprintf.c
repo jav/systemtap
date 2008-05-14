@@ -248,6 +248,11 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 					++str;
 				}
 			}
+#ifdef __ia64__
+			if ((str + precision - 1) <= end)
+				memcpy(str, &num, precision); //to prevent unaligned access
+			str += precision;
+#else
 			switch(precision) {
 			case 1:
 				if(str <= end)
@@ -256,21 +261,22 @@ int _stp_vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				break;
 			case 2:
 				if((str + 1) <= end)
-					memcpy(str, &num, 2);
+					*(int16_t *)str = (int16_t)num;
 				str+=2;
 				break;
 			case 4:
 				if((str + 3) <= end)
-					memcpy(str, &num, 4);
+					*(int32_t *)str = num;
 				str+=4;
 				break;
 			default: // "%.8b" by default
 			case 8:
 				if((str + 7) <= end)
-					memcpy(str, &num, 8);
+					*(int64_t *)str = num;
 				str+=8;
 				break;
 			}
+#endif
 			while (len < field_width--) {
 				if (str <= end)
 					*str = '\0';

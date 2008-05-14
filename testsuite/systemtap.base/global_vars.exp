@@ -1,0 +1,5 @@
+# Check that global variables terminated with a ; work fine
+
+set test "global_vars"
+
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string

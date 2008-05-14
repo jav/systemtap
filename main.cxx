@@ -549,6 +549,7 @@ main (int argc, char * const argv [])
           break;
 
         case 'l':
+	  s.suppress_warnings = true;
           s.listing_mode = true;
           s.last_pass = 2;
           if (have_script)
@@ -559,6 +560,7 @@ main (int argc, char * const argv [])
             }
           cmdline_script = string("probe ") + string(optarg) + " {}";
           have_script = true;
+          break;
 
         case 0:
           switch (long_opt)

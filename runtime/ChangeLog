@@ -1,3 +1,25 @@
+2008-05-08  David Smith  <dsmith@redhat.com>
+
+	PR 6500.
+	* task_finder.c (__stp_utrace_task_finder_report_exec): Moved
+	attach logic to __stp_utrace_attach_match_filename().
+	(__stp_utrace_attach_match_filename): New function.
+	(__stp_utrace_task_finder_report_clone): Calls
+	__stp_utrace_attach_match_filename() to attach to newly cloned
+	threads.
+
+2008-05-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5648
+	* print_old.c (stp_print_flush): Fix unaligned access warning on
+	ia64.
+	* print_new.c (stp_print_flush): Ditto.
+
+2008-05-06  Masami Hiramatsu  <mhiramat@redhat.com>
+
+	PR 5648
+	* vsprintf.c (_stp_vsnprintf): Fix memcpy's endianess issue.
+
 2008-05-05  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6481.
