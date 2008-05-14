@@ -1,3 +1,10 @@
+2008-05-13  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+	PR 5955.
+	* parse.cxx (parser::parse_global): accept ";" terminated globals
+	* NEWS - update documentation
+	* testsuite/systemtap.base/global_vars.(stp/exp) - supporting tests
+	* testsuite/parseko/twenty(four/five).stp - supporting tests
+
 2008-05-12  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 4311 - Function boundary tracing without debuginfo: Phase II

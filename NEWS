@@ -26,6 +26,11 @@
   probe process(PID).syscall.return { }
   probe process("PATH").syscall.return { }
 
+- Globals now accept ; terminators
+
+  global odds, evens;
+  global little[10], big[5];
+
 * What's new in version 0.6
 
 - A copy of the systemtap tutorial and language reference guide
