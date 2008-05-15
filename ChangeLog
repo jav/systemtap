@@ -1,3 +1,9 @@
+2008-05-15  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (setup_signals): New function.
+	(main): Calls setup_signals() to setup signal handling.  When
+	removing the temporary directory, ignore signals.
+
 2008-05-13  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 	PR 5955.
 	* parse.cxx (parser::parse_global): accept ";" terminated globals
