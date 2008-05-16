@@ -1,3 +1,14 @@
+2008-05-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5643
+	* tapsets.cxx (cu_function_cache_t): Reorganize into
+	mod:cu->function->DIE lookup table.  Consider merging into symtab
+	later.
+	(mark_dwarf_redudancies): Adapt.
+	(iterate_over_functions): Rewrite.
+	(dwarf_builder::build): Cache kprobes etc. symbol addresses.
+	* elaborate.cxx (systemtap_session ctor): Clear additional POD fields.
+
 2008-05-15  David Smith  <dsmith@redhat.com>
 
 	* main.cxx (setup_signals): New function.

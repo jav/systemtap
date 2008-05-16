@@ -1188,7 +1188,10 @@ systemtap_session::systemtap_session ():
   hrtimer_derived_probes(0), 
   perfmon_derived_probes(0), 
   procfs_derived_probes(0), 
-  op (0), up (0)
+  op (0), up (0),
+  sym_kprobes_text_start (0),
+  sym_kprobes_text_end (0),
+  sym_stext (0)
 {
 }
 
