@@ -41,6 +41,7 @@ Build steps:
   ./configure --with-elfutils=PATCHED-ELFUTILS-DIR [other autoconf options]
   make all check
   sudo make install
+  sudo make installcheck
 
 Tips:
 
