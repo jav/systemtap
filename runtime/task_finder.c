@@ -44,6 +44,9 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	struct stap_task_finder_target *tgt = NULL;
 	int found_node = 0;
 
+	if (new_tgt == NULL)
+		return EFAULT;
+
 	if (new_tgt->pathname != NULL)
 		new_tgt->pathlen = strlen(new_tgt->pathname);
 	else
@@ -85,13 +88,13 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 static void
 stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 {
-	struct task_struct *tsk;
+	struct task_struct *grp, *tsk;
 	struct utrace_attached_engine *engine;
 	long error = 0;
 	pid_t pid = 0;
 
 	rcu_read_lock();
-	for_each_process(tsk) {
+	do_each_thread(grp, tsk) {
 		struct mm_struct *mm;
 
 		if (tsk->pid <= 1)
@@ -106,7 +109,7 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 				error = -PTR_ERR(engine);
 				if (error != ENOENT) {
 					pid = tsk->pid;
-					break;
+					goto udo_err;
 				}
 				error = 0;
 			}
@@ -114,7 +117,8 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 				utrace_detach(tsk, engine);
 			}
 		}
-	}
+	} while_each_thread(grp, tsk);
+udo_err:
 	rcu_read_unlock();
 
 	if (error != 0) {
@@ -322,7 +326,7 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 	// Grab the path associated with the new task
 	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
 	mmput(mm);			/* We're done with mm */
-	if (IS_ERR(mmpath)) {
+	if (mmpath == NULL || IS_ERR(mmpath)) {
 		rc = -PTR_ERR(mmpath);
 		_stp_error("Unable to get path (error %d) for pid %d",
 			   rc, (int)child->pid);
@@ -407,7 +411,7 @@ int
 stap_start_task_finder(void)
 {
 	int rc = 0;
-	struct task_struct *tsk;
+	struct task_struct *grp, *tsk;
 	char *mmpath_buf;
 
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
@@ -419,13 +423,12 @@ stap_start_task_finder(void)
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
 	rcu_read_lock();
-	for_each_process(tsk) {
+	do_each_thread(grp, tsk) {
 		struct mm_struct *mm;
 		char *mmpath;
 		size_t mmpathlen;
 		struct list_head *tgt_node;
 
-		/* Attach to the thread */
 		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
 					 __STP_UTRACE_TASK_FINDER_EVENTS);
 		if (rc == EPERM) {
@@ -436,7 +439,7 @@ stap_start_task_finder(void)
 		}
 		else if (rc != 0) {
 			/* If we get a real error, quit. */
-			break;
+			goto stf_err;
 		}
 
 		/* Grab the path associated with this task. */
@@ -448,11 +451,11 @@ stap_start_task_finder(void)
 		}
 		mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
 		mmput(mm);		/* We're done with mm */
-		if (IS_ERR(mmpath)) {
+		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = -PTR_ERR(mmpath);
 			_stp_error("Unable to get path (error %d) for pid %d",
 				   rc, (int)tsk->pid);
-			break;
+			goto stf_err;
 		}
 
 		/* Check the thread's exe's path/pid against our list. */
@@ -487,7 +490,7 @@ stap_start_task_finder(void)
 				if (rc != 0) {
 					_stp_error("attach callback for %d failed: %d",
 						   (int)tsk->pid, rc);
-					break;
+					goto stf_err;
 				}
 
 				// Set up thread death notification.
@@ -495,11 +498,12 @@ stap_start_task_finder(void)
 							 cb_tgt,
 							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
-					break;
+					goto stf_err;
 				cb_tgt->engine_attached = 1;
 			}
 		}
-	}
+	} while_each_thread(grp, tsk);
+ stf_err:
 	rcu_read_unlock();
 
 	_stp_kfree(mmpath_buf);
