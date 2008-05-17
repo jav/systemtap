@@ -20,6 +20,7 @@
 #include <deque>
 #include <iostream>
 #include <map>
+#include <ext/hash_map>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -54,6 +55,7 @@ extern "C" {
 #endif
 
 using namespace std;
+using namespace __gnu_cxx;
 
 
 // ------------------------------------------------------------------------
@@ -535,8 +537,12 @@ module_cache
 };
 typedef struct module_cache module_cache_t;
 
-typedef map<string,Dwarf_Die> cu_function_cache_t;
-typedef map<string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
+struct stringhash {
+  size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
+};
+
+typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
+typedef hash_map<string,cu_function_cache_t*,stringhash> mod_cu_function_cache_t; // module:cu -> function -> die
 
 struct
 symbol_table
@@ -2491,7 +2497,7 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
   string subkey = q->function;
   if (v->find(subkey) != v->end())
     {
-      Dwarf_Die die = v->at(subkey);
+      Dwarf_Die die = v->find(subkey)->second;
       if (q->sess.verbose > 4)
         clog << "function cache " << key << " hit " << subkey << endl;
       return (*callback)(& die, data);

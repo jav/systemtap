@@ -1,3 +1,8 @@
+2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (cu_function_cache_t): Switch to <ext/hash_map>s,
+	since these tables tend to get pretty big.
+
 2008-05-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 5643
