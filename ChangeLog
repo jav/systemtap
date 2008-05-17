@@ -1,3 +1,31 @@
+2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (semantic_pass): Error on #probes=0, but not in
+	listing mode.
+	(semantic_pass_optimize[12]): Remove inappropriate check from here.
+
+2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (cu_function_cache_t): Switch to <ext/hash_map>s,
+	since these tables tend to get pretty big.
+
+2008-05-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 5643
+	* tapsets.cxx (cu_function_cache_t): Reorganize into
+	mod:cu->function->DIE lookup table.  Consider merging into symtab
+	later.
+	(mark_dwarf_redudancies): Adapt.
+	(iterate_over_functions): Rewrite.
+	(dwarf_builder::build): Cache kprobes etc. symbol addresses.
+	* elaborate.cxx (systemtap_session ctor): Clear additional POD fields.
+
+2008-05-15  David Smith  <dsmith@redhat.com>
+
+	* main.cxx (setup_signals): New function.
+	(main): Calls setup_signals() to setup signal handling.  When
+	removing the temporary directory, ignore signals.
+
 2008-05-13  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 	PR 5955.
 	* parse.cxx (parser::parse_global): accept ";" terminated globals

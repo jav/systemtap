@@ -253,7 +253,7 @@ printscript(systemtap_session& s, ostream& o)
             }
         }
     }
-    }
+}
 
 
 int pending_interrupts;
@@ -269,6 +269,30 @@ void handle_interrupt (int /* sig */)
       if (rc) {/* Do nothing; we don't care if our last gasp went out. */ ;}
       _exit (1);
     }
+}
+
+
+void
+setup_signals (sighandler_t handler)
+{
+  struct sigaction sa;
+
+  sa.sa_handler = handler;
+  sigemptyset (&sa.sa_mask);
+  if (handler != SIG_IGN)
+    {
+      sigaddset (&sa.sa_mask, SIGHUP);
+      sigaddset (&sa.sa_mask, SIGPIPE);
+      sigaddset (&sa.sa_mask, SIGINT);
+      sigaddset (&sa.sa_mask, SIGTERM);
+    }
+  sa.sa_flags = 0;
+  sa.sa_restorer = NULL;
+
+  sigaction (SIGHUP, &sa, NULL);
+  sigaction (SIGPIPE, &sa, NULL);
+  sigaction (SIGINT, &sa, NULL);
+  sigaction (SIGTERM, &sa, NULL);
 }
 
 
@@ -713,10 +737,7 @@ main (int argc, char * const argv [])
 
   // Set up our handler to catch routine signals, to allow clean 
   // and reasonably timely exit.
-  signal (SIGHUP, handle_interrupt);
-  signal (SIGPIPE, handle_interrupt);
-  signal (SIGINT, handle_interrupt);
-  signal (SIGTERM, handle_interrupt);
+  setup_signals(&handle_interrupt);
 
   struct tms tms_before;
   times (& tms_before);
@@ -1037,6 +1058,10 @@ pass_5:
         clog << "Keeping temporary directory \"" << s.tmpdir << "\"" << endl;
       else
         {
+	  // Ignore signals while we're deleting the temporary directory.
+	  setup_signals (SIG_IGN);
+
+	  // Remove the temporary directory.
           string cleanupcmd = "rm -rf ";
           cleanupcmd += s.tmpdir;
           if (s.verbose>1) clog << "Running " << cleanupcmd << endl;

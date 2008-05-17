@@ -20,6 +20,7 @@
 #include <deque>
 #include <iostream>
 #include <map>
+#include <ext/hash_map>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -54,6 +55,7 @@ extern "C" {
 #endif
 
 using namespace std;
+using namespace __gnu_cxx;
 
 
 // ------------------------------------------------------------------------
@@ -535,7 +537,12 @@ module_cache
 };
 typedef struct module_cache module_cache_t;
 
-typedef map<string, vector<Dwarf_Die>*> cu_function_cache_t;
+struct stringhash {
+  size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
+};
+
+typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
+typedef hash_map<string,cu_function_cache_t*,stringhash> mod_cu_function_cache_t; // module:cu -> function -> die
 
 struct
 symbol_table
@@ -1111,40 +1118,18 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
-  cu_function_cache_t cu_function_cache;
+  mod_cu_function_cache_t cu_function_cache;
 
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg)
   {
-    vector<Dwarf_Die>* v = static_cast<vector<Dwarf_Die>*>(arg);
-    v->push_back (* func);
+    cu_function_cache_t* v = static_cast<cu_function_cache_t*>(arg);
+    string function_name = dwarf_diename(func);
+    (*v)[function_name] = * func;
     return DWARF_CB_OK;
   }
 
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
-			       void * data)
-  {
-    int rc = DWARF_CB_OK;
-    assert (module);
-    assert (cu);
-
-    string key = module_name + ":" + cu_name;
-    vector<Dwarf_Die>* v = cu_function_cache[key];
-    if (v == 0)
-      {
-        v = new vector<Dwarf_Die>;
-        cu_function_cache[key] = v;
-        dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
-      }
-
-    for (unsigned i=0; i<v->size(); i++)
-      {
-        Dwarf_Die die = v->at(i);
-        rc = (*callback)(& die, data);
-        if (rc != DWARF_CB_OK) break;
-      }
-    return rc;
-  }
-
+                              void * data);
 
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
@@ -2487,6 +2472,58 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
       clog << "alternative line " << lineno << " rejected: leaves selected fns" << endl;
     return false;
   }
+
+
+int
+dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
+                                void * data)
+{
+  int rc = DWARF_CB_OK;
+  assert (module);
+  assert (cu);
+  dwarf_query * q = static_cast<dwarf_query *>(data);
+  
+  string key = module_name + ":" + cu_name;
+  cu_function_cache_t *v = cu_function_cache[key];
+  if (v == 0)
+    {
+      v = new cu_function_cache_t;
+      cu_function_cache[key] = v;
+      dwarf_getfuncs (cu, cu_function_caching_callback, v, 0);
+      if (q->sess.verbose > 4)
+        clog << "function cache " << key << " size " << v->size() << endl;
+    }
+  
+  string subkey = q->function;
+  if (v->find(subkey) != v->end())
+    {
+      Dwarf_Die die = v->find(subkey)->second;
+      if (q->sess.verbose > 4)
+        clog << "function cache " << key << " hit " << subkey << endl;
+      return (*callback)(& die, data);
+    }
+  else if (name_has_wildcard (subkey))
+    {
+      for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
+        {
+          string func_name = it->first;
+          Dwarf_Die die = it->second;
+          if (function_name_matches_pattern (func_name, subkey))
+            {
+              if (q->sess.verbose > 4)
+                clog << "function cache " << key << " match " << func_name << " vs " << subkey << endl;
+              
+              rc = (*callback)(& die, data);
+              if (rc != DWARF_CB_OK) break;
+            }
+        }
+    }
+  else // not a wildcard and no match in this CU
+    {
+      // do nothing
+    }
+  return rc;
+}
 
 
 
@@ -4584,10 +4621,13 @@ dwarf_builder::build(systemtap_session & sess,
   kern_dw->iterate_over_modules(&query_kernel_module, &km);
   if (km)
     {
-      sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
-      sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
-      sess.sym_stext = lookup_symbol_address (km, "_stext");
-
+      if (! sess.sym_kprobes_text_start)
+        sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
+      if (! sess.sym_kprobes_text_end)
+        sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
+      if (! sess.sym_stext)
+        sess.sym_stext = lookup_symbol_address (km, "_stext");
+      
       if (sess.verbose > 2)
         {
           clog << "control symbols:"
@@ -4775,21 +4815,21 @@ symbol_table::mark_dwarf_redundancies(dwflpp *dw)
   // vector of Dwarf_Dies, one per function.
   string module_prefix = string(mod_info->name) + ":";
 
-  cu_function_cache_t::iterator cu;
+  mod_cu_function_cache_t::iterator cu;
   for (cu = dw->cu_function_cache.begin();
-                                cu != dw->cu_function_cache.end(); cu++)
+       cu != dw->cu_function_cache.end(); cu++)
     {
       string key = cu->first;
       if (key.find(module_prefix) == 0)
         {
           // Found a compilation unit in the module of interest.
           // Mark all its functions in the symbol table.
-          vector<Dwarf_Die>* v = cu->second;
+          cu_function_cache_t* v = cu->second;
           assert(v);
-          for (unsigned f=0; f < v->size(); f++)
+          for (cu_function_cache_t::iterator fc = v->begin(); fc != v->end(); fc++)
             {
-              Dwarf_Die func = v->at(f);
-              string func_name = dwarf_diename(&func);
+              Dwarf_Die func = fc->second;
+              string func_name = fc->first; // == dwarf_diename(&func);
               // map_by_name[func_name]->die = func;
               map<string, func_info*>::iterator i = map_by_name.find(func_name);
               // Func names can show up in the dwarf but not the symtab (!).

@@ -1,3 +1,9 @@
+2008-05-09  William Cohen  <wcohen@redhat.com>
+
+	* syscalls_by_pid.meta, syscalls_by_proc.meta:
+	* sigmon.meta, sig_by_pid.meta, sig_by_proc.meta:
+	* socket-trace.meta: New.
+
 2008-05-08  William Cohen  <wcohen@redhat.com>
 
 	* iotime.meta: New.
