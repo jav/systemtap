@@ -1159,6 +1159,9 @@ semantic_pass (systemtap_session& s)
       if (rc == 0 && ! s.unoptimized) rc = semantic_pass_optimize2 (s);
       if (rc == 0) rc = semantic_pass_vars (s);
       if (rc == 0) rc = semantic_pass_stats (s);
+      
+      if (s.probes.size() == 0 && !s.listing_mode)
+        throw semantic_error ("no probes found");
     }
   catch (const semantic_error& e)
     {
@@ -2139,9 +2142,6 @@ semantic_pass_optimize1 (systemtap_session& s)
       semantic_pass_opt4 (s, relaxed_p);
     }
 
-  if (s.probes.size() == 0)
-    throw semantic_error ("no probes found");
-
   return rc;
 }
 
@@ -2163,9 +2163,6 @@ semantic_pass_optimize2 (systemtap_session& s)
 
       semantic_pass_opt5 (s, relaxed_p);
     }
-
-  if (s.probes.size() == 0)
-    throw semantic_error ("no probes found");
 
   return rc;
 }

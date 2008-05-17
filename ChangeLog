@@ -1,5 +1,11 @@
 2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
 
+	* elaborate.cxx (semantic_pass): Error on #probes=0, but not in
+	listing mode.
+	(semantic_pass_optimize[12]): Remove inappropriate check from here.
+
+2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx (cu_function_cache_t): Switch to <ext/hash_map>s,
 	since these tables tend to get pretty big.
 

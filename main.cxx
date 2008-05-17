@@ -242,7 +242,7 @@ printscript(systemtap_session& s, ostream& o)
             }
         }
     }
-    }
+}
 
 
 int pending_interrupts;
