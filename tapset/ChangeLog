@@ -1,3 +1,8 @@
+2008-05-19  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR6524
+	* ctime.stp: Don't try to convert values that won't fit in 32bits.
+
 2008-05-08  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 
 	PR 5231
