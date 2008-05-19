@@ -1,3 +1,7 @@
+2008-05-19  William Cohen  <wcohen@redhat.com>
+
+	* main.cxx (setup_signals): Remove sa_restorer initialization.
+
 2008-05-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* elaborate.cxx (semantic_pass): Error on #probes=0, but not in
