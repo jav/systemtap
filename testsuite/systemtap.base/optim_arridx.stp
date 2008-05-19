@@ -1,0 +1,39 @@
+global arr1, arr2, arr3, elide_idx1, elide_global_a, elide_global_b
+
+function fna(a:long) {return a}
+function fnb(a:long, b:long) {return a+b}
+
+probe begin {
+  // array indices
+  arr2[elide_idx1 = 1] = 10
+  arr2[idx2 = 2] = 20
+  arr2[elide_i=3] = 30
+  arr2[j=4] = 40
+  arr1[fna(k = 0), k] = 1
+  arr1[b = 1, b] = 2
+  arr1[elide_c = 2,2] = 3
+  fnb(arr3[0] = 4, arr3[0])
+  m = 1
+  for (elide_n=2; m <= 10; m++)
+    arr2[m] = m * 10
+  printf ("%d %d %d %d\n", arr1[0], arr2[0,0], idx2, j)
+  
+  // function args
+  aa = fna(elide_aa = 1)
+  bb = fnb(cc = 1, elide_global_a = 2)
+
+  // loop
+  for (elide_bb = 1; bb < 10; bb++)
+     cc += bb
+  for (dd = 1; dd < 10; elide_ee = 1)
+     dd += 1
+
+  // conditional
+  if (elide_ff = 0)
+     elide_ff = 1
+  if (elide_global_b = 1)
+     ee = 1
+
+  printf("%d %d %d %d %d", aa, bb, cc, dd, ee)
+  exit ()
+}

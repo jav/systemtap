@@ -1696,6 +1696,10 @@ struct dead_assignment_remover: public traversing_visitor
   // called with null current_expr.
 
   void visit_assignment (assignment* e);
+  void visit_arrayindex (arrayindex* e);
+  void visit_functioncall (functioncall* e);
+  void visit_if_statement (if_statement* e);
+  void visit_for_loop (for_loop* e);
 };
 
 
@@ -1720,6 +1724,10 @@ dead_assignment_remover::visit_assignment (assignment* e)
       *current_expr == e && // we're not nested any deeper than expected 
       leftvar) // not unresolved $target; intended sideeffect cannot be elided
     {
+      expression** last_expr = current_expr;
+      e->left->visit (this);
+      e->right->visit (this);
+      current_expr = last_expr;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose
@@ -1750,6 +1758,60 @@ dead_assignment_remover::visit_assignment (assignment* e)
     }
 }
 
+void
+dead_assignment_remover::visit_arrayindex (arrayindex *e)
+{
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
+
+  if (array)
+    {
+      expression** last_expr = current_expr;
+      for (unsigned i=0; i < e->indexes.size(); i++)
+	{
+	  current_expr = & e->indexes[i];
+	  e->indexes[i]->visit (this);
+	}
+      current_expr = last_expr;
+    }
+}
+
+void
+dead_assignment_remover::visit_functioncall (functioncall* e)
+{
+  expression** last_expr = current_expr;
+  for (unsigned i=0; i<e->args.size(); i++)
+    {
+      current_expr = & e->args[i];
+      e->args[i]->visit (this);
+    }
+  current_expr = last_expr;
+}
+
+void
+dead_assignment_remover::visit_if_statement (if_statement* s)
+{
+  expression** last_expr = current_expr;
+  current_expr = & s->condition;
+  s->condition->visit (this);
+  s->thenblock->visit (this);
+  if (s->elseblock)
+    s->elseblock->visit (this);
+  current_expr = last_expr;
+}
+
+void
+dead_assignment_remover::visit_for_loop (for_loop* s)
+{
+  expression** last_expr = current_expr;
+  if (s->init) s->init->visit (this);
+  current_expr = & s->cond;
+  s->cond->visit (this);
+  if (s->incr) s->incr->visit (this);
+  s->block->visit (this);
+  current_expr = last_expr;
+}
 
 // Let's remove assignments to variables that are never read.  We
 // rewrite "(foo = expr)" as "(expr)".  This makes foo a candidate to
