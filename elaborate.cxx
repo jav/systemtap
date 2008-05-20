@@ -1624,7 +1624,13 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
             // don't increment j
           }
         else
-          j++;
+          {
+            if (vut.written.find (l) == vut.written.end())
+              if (! s.suppress_warnings)
+                clog << "WARNING: read-only local variable " << *l->tok << endl;
+
+            j++;
+          }
       }
   for (unsigned i=0; i<s.functions.size(); i++)
     for (unsigned j=0; j<s.functions[i]->locals.size(); /* see below */)
@@ -1649,7 +1655,12 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
             // don't increment j
           }
         else
-          j++;
+          {
+            if (vut.written.find (l) == vut.written.end())
+              if (! s.suppress_warnings)
+                clog << "WARNING: read-only local variable " << *l->tok << endl;
+            j++;
+          }
       }
   for (unsigned i=0; i<s.globals.size(); /* see below */)
     {
@@ -1671,7 +1682,12 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           // don't increment i
         }
       else
-        i++;
+        {
+          if (vut.written.find (l) == vut.written.end())
+            if (! s.suppress_warnings)
+              clog << "WARNING: read-only global variable " << *l->tok << endl;
+          i++;
+        }
     }
 }
 
@@ -1834,6 +1850,8 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   for (unsigned i=0; i<s.functions.size(); i++)
     s.functions[i]->body->visit (& dar);
   // The rewrite operation is performed within the visitor.
+
+  // XXX: we could also zap write-only globals here
 }
 
 
@@ -2057,6 +2075,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
           p->body = new null_statement();
           p->body->tok = p->tok;
+
+          // XXX: possible duplicate warnings; see below
         }
     }
   for (unsigned i=0; i<s.functions.size(); i++)
@@ -2080,6 +2100,12 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
           fn->body = new null_statement();
           fn->body->tok = fn->tok;
+
+          // XXX: the next iteration of the outer optimization loop may
+          // take this new null_statement away again, and thus give us a
+          // fresh warning.  It would be better if this fixup was performed
+          // only after the relaxation iterations.
+          // XXX: or else see bug #6469.
         }
     }
 }
