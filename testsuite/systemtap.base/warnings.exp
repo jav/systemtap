@@ -9,7 +9,7 @@ expect {
     eof { }
 }
 wait
-if {$ok == 9} {
+if {$ok == 22} {
     pass $test
 } else {
     fail "$test ($ok)"

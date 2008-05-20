@@ -1,5 +1,12 @@
 2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6538
+	* systemtap.base/warnings.*: New tests.
+	* buildok/eleven.stp, systemtap.examples/disktop.stp,
+	transok/three.stp: Adapt to new warnings.
+
+2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 5001
 	* buildok/aux_syscalls-embedded.stp: Grieve for *utimbuf_u.
 

@@ -42,7 +42,7 @@ probe kernel.function("vfs_write").return {
 
 probe timer.ms(5000) {
 	/* skip non-read/write disk */
-	if (read_bytes+write+bytes) {
+	if (read_bytes+write_bytes) {
 
 		printf("\n%-25s, %-8s%4dKb/sec, %-7s%6dKb, %-7s%6dKb\n\n",ctime(gettimeofday_s()),"Average:",
       		((read_bytes+write_bytes)/1024)/5,"Read:",read_bytes/1024,"Write:",write_bytes/1024)

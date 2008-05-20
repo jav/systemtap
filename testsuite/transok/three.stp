@@ -7,6 +7,7 @@ function f1 (a, b) {
   d = "hello";
   # poo[c] = bab[d] = "hi"
   bab = "hi";
+  poo [c+1] = c+2;
   bab = poo[c];
   return 0
 } 

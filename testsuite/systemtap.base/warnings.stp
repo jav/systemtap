@@ -1,9 +1,8 @@
-# PR 1119
+# PR 1119, 6538
 
 global elide_me1
-
 function elide_me2 () {}
-
 function foo:long () { elide_me3 = 1 }
-
+function bar() { print(elide+me1) ; ; ; }
 probe never { elide_me4 = 1; (elide_me5+5); print (foo()) }
+probe never { print(elide+me1) bar () }
