@@ -1,6 +1,19 @@
+2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 5001
+	* aux_syscalls.stp (_stp_ctime): Removed.
+	(_struct_utimbuf_u): Removed.
+	(_struct_compat_utimbuf_u): Removed.
+	(_struct_utimbuf_actime): New function.
+	(_struct_utimbuf_modtime): New function.
+	(_struct_compat_utimbuf_actime): New function.
+	(_struct_compat_utimbuf_modtime): New function.
+	* syscalls2.stp (syscall.utime): Use new functions and ctime.
+	(syscall.compat_utime): Likewise.
+
 2008-05-19  Mark Wielaard  <mwielaard@redhat.com>
 
-	PR6524
+	PR 6524
 	* ctime.stp: Don't try to convert values that won't fit in 32bits.
 
 2008-05-08  Ananth N Mavinakayanahalli <ananth@in.ibm.com>

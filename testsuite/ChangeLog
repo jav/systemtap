@@ -1,3 +1,9 @@
+2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 5001
+	* systemtap.syscall/futimes.c (utime): Expect new time format.
+	* systemtap.syscall/stat.c (utime): Likewise.
+
 2008-05-19  Mark Wielaard  <mwielaard@redhat.com>
 
 	PR 6524

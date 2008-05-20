@@ -31,7 +31,7 @@ int main()
  times.actime = 1000000000;
  times.modtime = 2000000000;
  syscall(__NR_utime, "foobar", &times );
- // utime ("foobar", \[2001/09/09-01:46:40, 2033/05/18-03:33:20\])
+ // utime ("foobar", \[Sun Sep  9 01:46:40 2001, Wed May 18 03:33:20 2033])
 #endif /* __NR_utimes */
   
 #ifdef __NR_utimes
