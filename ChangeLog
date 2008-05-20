@@ -1,3 +1,9 @@
+2008-05-20  Tim Moore  <timoore@redhat.com>
+
+	* configure.ac: Check for tr1/unordered_map header.
+	* tapsets.cxx: Use tr1::unordered_map if available.
+	* configure, config.in: Regenerated.
+
 2008-05-19  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (dead_assignment_remover::visit_arrayindex): New method.
