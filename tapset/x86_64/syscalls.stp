@@ -131,7 +131,7 @@ probe syscall.vm86_warning.return = kernel.function("sys32_vm86_warning").return
 #
 probe syscall.pipe32 = kernel.function("sys32_pipe") {
 	name = "pipe"
-	argstr = sprintf("%p", fd)
+	argstr = sprintf("%p", $fd)
 }
 probe syscall.pipe32.return = kernel.function("sys32_pipe").return {
 	name = "pipe"

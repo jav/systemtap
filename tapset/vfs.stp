@@ -33,16 +33,10 @@ function __bdevname:string (bdev:long) %{ /* pure */
 global __devnames
 function __find_bdevname:string(dev:long, bdev:long)
 {
-#	return ""
-
-	__devname = __devnames[dev]
-
-	if (__devname != null)
-		return __devname
-
-	__devname = __devnames[dev] = __bdevname(bdev)
-
-	return __devname
+	if (dev in __devnames)
+		return __devnames[dev]
+	else
+		return __devnames[dev] = __bdevname(bdev)
 }
 
 function ppos_pos:long (ppos:long) %{ /* pure */

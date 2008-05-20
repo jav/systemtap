@@ -1,3 +1,11 @@
+2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6538
+	* signal.stp (_signal.send.part[23]): Initialize dummy sinfo.
+	* syscalls2.stp (syscall.compat_sys_semtimedop): Fix sops_uaddr.
+	* vfs.stp (__find_bdevname): Rewrite.
+	* x86_64/syscalls.stp (syscall.pipe32): Fix argstr.
+
 2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
 
 	PR 5001
