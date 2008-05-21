@@ -6,6 +6,11 @@
 	* vfs.stp (__find_bdevname): Rewrite.
 	* x86_64/syscalls.stp (syscall.pipe32): Fix argstr.
 
+2008-05-21  Mark Wielaard  <mwielaard@redhat.com>
+
+	* syscalls2.stp (syscall.utime): Use pointer_arg to fetch arguments.
+	(syscall.compat_utime): Likewise.
+
 2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
 
 	PR 5001

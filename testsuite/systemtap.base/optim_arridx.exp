@@ -45,6 +45,8 @@ for (1; (bb) < (10); (bb)++) (cc) += (bb)
 for ((dd) = (1); (dd) < (10); 1) (dd) += (1)
 if (1) (ee) = (1)
 
+(cc) = ((dd) = (5))
+(cc) = ((4) + ((cc) = (1)))
 printf("%d %d %d %d %d", aa, bb, cc, dd, ee)
 exit()
 }
