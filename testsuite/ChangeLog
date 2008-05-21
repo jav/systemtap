@@ -1,3 +1,11 @@
+2008-05-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6538
+	* buildok/ioscheduler.stp, nine.stp, scsi.stp, sixteen.stp,
+	socket.stp, stat_insert.stp: Adapt to new warnings.
+	* systemtap.maps/linear_empty.exp, systemtap.samples/args.exp,
+	systemtap.samples/poll_map.stp, systemtap.string/strtol.stp: Ditto.
+
 2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6538

@@ -6,7 +6,7 @@
 global called, num_polls
 
 probe kernel.function( "sys_*" ).call {
-	called[execname(),name]++
+	called[execname(),probefunc()]++
 }
 
 probe timer.ms(1000)

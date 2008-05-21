@@ -3,7 +3,7 @@
 global a
 
 function foo () {
-  if (a[k] == "sayonara") { return 2 }
+  if (a[4] == "sayonara") { return 2 }
 }
 
 
