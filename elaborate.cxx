@@ -1683,7 +1683,8 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         }
       else
         {
-          if (vut.written.find (l) == vut.written.end())
+          if (vut.written.find (l) == vut.written.end() &&
+              ! l->init) // no initializer
             if (! s.suppress_warnings)
               clog << "WARNING: read-only global variable " << *l->tok << endl;
           i++;

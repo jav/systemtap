@@ -1713,9 +1713,14 @@ varuse_collecting_visitor::visit_symbol (symbol *e)
   if (e->referent == 0)
     throw semantic_error ("symbol without referent", e->tok);
 
-  // handle initialized globals
+  // We could handle initialized globals by marking them as "written".
+  // However, this current visitor may be called for a function or
+  // probe body, from the point of view of which this global is
+  // already initialized, so not written.
+  /*
   if (e->referent->init)
     written.insert (e->referent);
+  */
 
   if (current_lvalue == e || current_lrvalue == e)
     {

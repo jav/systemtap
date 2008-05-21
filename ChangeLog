@@ -3,8 +3,6 @@
 	PR 6538
 	* elaborate.cxx (semantic_pass_opt2): Warn about read-only locals and
 	globals.
-	* staptree.cxx (varuse_collecting_visitor::visit_symbol): Recognize
-	initialized global as written-to.
 	(visit_foreach_loop): Belatedly recognize index symbols as lvalues.
 
 2008-05-20  Tim Moore  <timoore@redhat.com>
