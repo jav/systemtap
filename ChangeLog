@@ -1,3 +1,8 @@
+2008-05-21  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (dead_assignment_remover::visit_binary_expression): New.
+	(dead_assignment_remover::visit_assignment): Allow rhs simplification.
+	
 2008-05-20  Tim Moore  <timoore@redhat.com>
 
 	* configure.ac: Check for tr1/unordered_map header.

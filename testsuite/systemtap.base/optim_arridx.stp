@@ -34,6 +34,12 @@ probe begin {
   if (elide_global_b = 1)
      ee = 1
 
+  // compound assignment
+  cc = elide_gg=dd=5
+
+  // binary expression
+  cc = ((elide_hh = 4) + (cc = 1))
+
   printf("%d %d %d %d %d", aa, bb, cc, dd, ee)
   exit ()
 }

@@ -1,3 +1,9 @@
+2008-05-21  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/optim_arridx.stp: Test compound assignment and
+	binary expression.
+	* systemtap.base/optim_arridx.exp: Likewise.
+
 2008-05-21  Mark Wielaard  <mwielaard@redhat.com>
 
 	* buildok/aux_syscalls-embedded.stp: Don't check _struct_utimbuf_u

@@ -1696,6 +1696,7 @@ struct dead_assignment_remover: public traversing_visitor
   // called with null current_expr.
 
   void visit_assignment (assignment* e);
+  void visit_binary_expression (binary_expression* e);
   void visit_arrayindex (arrayindex* e);
   void visit_functioncall (functioncall* e);
   void visit_if_statement (if_statement* e);
@@ -1726,6 +1727,7 @@ dead_assignment_remover::visit_assignment (assignment* e)
     {
       expression** last_expr = current_expr;
       e->left->visit (this);
+      current_expr = &e->right;
       e->right->visit (this);
       current_expr = last_expr;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
@@ -1756,6 +1758,17 @@ dead_assignment_remover::visit_assignment (assignment* e)
             }
         }
     }
+}
+
+void
+dead_assignment_remover::visit_binary_expression (binary_expression* e)
+{
+  expression** last_expr = current_expr;
+  current_expr = &e->left;
+  e->left->visit (this);
+  current_expr = &e->right;
+  e->right->visit (this);
+  current_expr = last_expr;
 }
 
 void
