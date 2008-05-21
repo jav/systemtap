@@ -5,10 +5,12 @@
 	* buildok/eleven.stp, systemtap.examples/disktop.stp,
 	transok/three.stp: Adapt to new warnings.
 
-2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
+2008-05-21  Mark Wielaard  <mwielaard@redhat.com>
 
-	PR 5001
-	* buildok/aux_syscalls-embedded.stp: Grieve for *utimbuf_u.
+	* buildok/aux_syscalls-embedded.stp: Don't check _struct_utimbuf_u
+	and _struct_compat_utimbuf_u. Check new _struct_utimbuf_actime,
+	_struct_utimbuf_modtime, _struct_compat_utimbuf_actime and
+	_struct_compat_utimbuf_modtime.
 
 2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
 
