@@ -890,7 +890,7 @@ probe nfs.aop.readpage = kernel.function ("nfs_readpage") ?,
         rsize = __nfs_server_rsize(__inode)
 
         name = "nfs.aop.readpage"
-        argstr = sprintf("%d,%d" , page_index,r_size)
+        argstr = sprintf("%d,%d" , page_index,rsize)
 
         size = 1
         units = "pages"
