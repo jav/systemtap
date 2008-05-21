@@ -18,6 +18,7 @@
 	* systemtap.base/optim_arridx.stp: Test compound assignment and
 	binary expression.
 	* systemtap.base/optim_arridx.exp: Likewise.
+	(optim_arridx_run): Don't check warnings.
 
 2008-05-21  Mark Wielaard  <mwielaard@redhat.com>
 
