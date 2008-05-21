@@ -2897,12 +2897,12 @@ probe syscall.ustat.return =
 # long sys_utime(char __user * filename, struct utimbuf __user * times)
 probe syscall.utime = kernel.function("sys_utime") ? {
 	name = "utime"
-	filename_uaddr = $filename
-	filename = user_string($filename)
-	buf_uaddr = $times
+	filename_uaddr = pointer_arg(1)
+	filename = user_string_quoted(filename_uaddr)
+	buf_uaddr = pointer_arg(2)
 	actime = _struct_utimbuf_actime(buf_uaddr)
 	modtime = _struct_utimbuf_modtime(buf_uaddr)
-	argstr = sprintf("%s, [%s, %s]", user_string_quoted($filename),
+	argstr = sprintf("%s, [%s, %s]", filename,
 	       	 	 ctime(actime), ctime(modtime))
 }
 probe syscall.utime.return = kernel.function("sys_utime").return ? {
@@ -2913,12 +2913,12 @@ probe syscall.utime.return = kernel.function("sys_utime").return ? {
 # long compat_sys_utime(char __user *filename, struct compat_utimbuf __user *t)
 probe syscall.compat_utime = kernel.function("compat_sys_utime") ? {
 	name = "utime"
-	filename_uaddr = $filename
-	filename = user_string($filename)
-	buf_uaddr = $t
+	filename_uaddr = pointer_arg(1)
+	filename = user_string_quoted(filename_uaddr)
+	buf_uaddr = pointer_arg(2)
 	actime = _struct_compat_utimbuf_actime(buf_uaddr)
 	modtime = _struct_compat_utimbuf_modtime(buf_uaddr)
-	argstr = sprintf("%s, [%s, %s]", user_string_quoted($filename),
+	argstr = sprintf("%s, [%s, %s]", filename,
 	       	 	 ctime(actime), ctime(modtime))
 }
 probe syscall.compat_utime.return = kernel.function("compat_sys_utime").return ? {
