@@ -5487,7 +5487,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   // Output task finder callback routine that gets called for all
   // utrace probe types.
-  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, unsigned long event_flag, struct stap_task_finder_target *tgt) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
@@ -5508,7 +5508,10 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       s.op->newline() << "case UTRACE_EVENT(EXEC):";
       s.op->indent(1);
+      s.op->newline() << "if (event_flag == UTRACE_EVENT(EXEC)) {";
+      s.op->indent(1);
       s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
@@ -5561,7 +5564,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   // For death probes, go ahead and call the probe directly.
   if (flags_seen[UDPF_DEATH])
     {
-      s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH)) {";
+      s.op->newline() << "if (p->flags == UTRACE_EVENT(DEATH) && event_flag == UTRACE_EVENT(DEATH)) {";
       s.op->indent(1);
       s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
       s.op->newline(-1) << "}";

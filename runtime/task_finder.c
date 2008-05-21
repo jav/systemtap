@@ -13,6 +13,7 @@ atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
 
 typedef int (*stap_task_finder_callback)(struct task_struct *tsk,
 					 int register_p,
+					 unsigned long event_flag,
 					 struct stap_task_finder_target *tgt);
 
 struct stap_task_finder_target {
@@ -237,7 +238,8 @@ __stp_utrace_attach(struct task_struct *tsk,
 
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
-				   const char * const filename)
+				   const char * const filename,
+				   unsigned long event_flag)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
@@ -270,9 +272,10 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				continue;
 
 			if (cb_tgt->callback != NULL) {
-				int rc = cb_tgt->callback(tsk, 1, cb_tgt);
+				int rc = cb_tgt->callback(tsk, 1, event_flag,
+							  cb_tgt);
 				if (rc != 0) {
-					_stp_error("exec callback for %d failed: %d",
+					_stp_error("callback for %d failed: %d",
 						   (int)tsk->pid, rc);
 					break;
 				}
@@ -332,7 +335,8 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 			   rc, (int)child->pid);
 	}
 	else {
-		__stp_utrace_attach_match_filename(child, mmpath);
+		__stp_utrace_attach_match_filename(child, mmpath,
+						   UTRACE_EVENT(CLONE));
 	}
 
 	_stp_kfree(mmpath_buf);
@@ -357,7 +361,8 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 	if (bprm->filename == NULL)
 		return UTRACE_ACTION_RESUME;
 
-	__stp_utrace_attach_match_filename(tsk, bprm->filename);
+	__stp_utrace_attach_match_filename(tsk, bprm->filename,
+					   UTRACE_EVENT(EXEC));
 
 	return UTRACE_ACTION_RESUME;
 }
@@ -392,7 +397,7 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 		int rc;
 
 		// Call the callback
-		rc = tgt->callback(tsk, 0, tgt);
+		rc = tgt->callback(tsk, 0, UTRACE_EVENT(DEATH), tgt);
 		if (rc != 0) {
 			_stp_error("death callback for %d failed: %d",
 				   (int)tsk->pid, rc);
@@ -485,8 +490,17 @@ stap_start_task_finder(void)
 				if (cb_tgt == NULL || cb_tgt->callback == NULL)
 					continue;
 					
-				// Call the callback.
-				rc = cb_tgt->callback(tsk, 1, cb_tgt);
+				// Call the callback.  Notice we're
+				// not passing a valid event_flag
+				// here.  That's OK, for 2 reasons.
+				// (1) We're not in the
+				// STAP_SESSION_RUNNING state yet, so
+				// probes won't get called anyway.
+				// (2) There really isn't an event
+				// associated with this callback call,
+				// we just want to let the caller
+				// attach to the thread.
+				rc = cb_tgt->callback(tsk, 1, 0, cb_tgt);
 				if (rc != 0) {
 					_stp_error("attach callback for %d failed: %d",
 						   (int)tsk->pid, rc);

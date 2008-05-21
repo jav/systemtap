@@ -6,6 +6,17 @@
 	facilites (controlled by autoconf).
 	* autoconf-probe-kernel.c: test for above.
 
+2008-05-21  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach_match_filename): Added
+	event_flag parameter of event to pass to callback.
+	(__stp_utrace_task_finder_target_death): Ditto.
+	(__stp_utrace_task_finder_report_clone): Calls
+	__stp_utrace_attach_match_filename() with new argument.
+	(__stp_utrace_task_finder_report_exec): Ditto.
+	(stap_start_task_finder): Calls callback with an invalid
+	event_flag since this callback call isn't related to an event.
+
 2008-05-16  David Smith  <dsmith@redhat.com>
 
 	PR 6499.
