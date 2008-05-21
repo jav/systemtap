@@ -4,6 +4,5 @@ set test "linear_empty"
 set ::result_string {count=0
 }
 
-stap_run2 $srcdir/$subdir/$test.stp
-
+stap_run2 $srcdir/$subdir/$test.stp -w
 

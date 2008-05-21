@@ -1,4 +1,4 @@
-#! stap -p4
+#! stap -wp4
 
 probe socket.send, socket.receive,
       socket.sendmsg, socket.sendmsg.return,
@@ -33,7 +33,7 @@ probe socket.send, socket.receive,
 	typ = sock_type_str2num(tstr)
 	log(sprintf("%d, %d, %s", type, typ, tstr))
 
-	log(sprintf("%d", success))
+	log(sprintf("%d", success))  # -w since success is not universally defined
 }
 
 

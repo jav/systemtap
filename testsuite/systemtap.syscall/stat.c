@@ -39,7 +39,7 @@ int main()
 #ifdef __ia64__
   // utimes ("foobar", \[1.000000\]\[1135641600.000000\]) =
 #else
-  // utime ("foobar", \[1970/01/01-00:00:01, 2005/12/27-00:00:00\]) = 0
+  // utime ("foobar", \[Thu Jan  1 00:00:01 1970, Tue Dec 27 00:00:00 2005\]) = 0
 #endif
 
   ubuf.actime =  1135690000;
@@ -48,7 +48,7 @@ int main()
 #ifdef __ia64__
   // utimes ("foobar", \[1135690000.000000\]\[1135700000.000000\]) =
 #else
-  // utime ("foobar", \[2005/12/27-13:26:40, 2005/12/27-16:13:20\]) = 0
+  // utime ("foobar", \[Tue Dec 27 13:26:40 2005, Tue Dec 27 16:13:20 2005\]) = 0
 #endif
   return 0;
 }

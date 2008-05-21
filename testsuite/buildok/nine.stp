@@ -4,5 +4,5 @@ function f () { }
 function g (arg) { }
 
 probe begin {
-  true ? f() : g(1);
+  (true=1) ? f() : g(1);
 }

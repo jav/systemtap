@@ -4,7 +4,23 @@
  * Takes an argument of seconds since the epoch as returned by
  * gettimeofday_s(). Returns a string of the form
  *
- *   "Wed Jun 30 21:49:008 1993"
+ *   "Wed Jun 30 21:49:08 1993"
+ *
+ * The string will always be exactly 24 characters. If the time would
+ * be unreasonable far in the past (before what can be represented
+ * with a 32 bit offset in seconds from the epoch) the returned string
+ * will be "a long, long time ago...". If the time would be
+ * unreasonable far in the future the returned string will be "far far
+ * in the future..." (both these strings are also 24 characters wide).
+ *
+ * Note that the epoch (zero) corresponds to
+ *
+ *   "Thu Jan  1 00:00:00 1970"
+ *
+ * The earliest full date given by ctime, corresponding to epochsecs
+ * -2147483648 is "Fri Dec 13 20:45:52 1901". The latest full date
+ * given by ctime, corresponding to epachsecs 2147483647 is
+ * "Tue Jan 19 03:14:07 2038".
  *
  * The abbreviations for the days of the week are ‘Sun’, ‘Mon’, ‘Tue’,
  * ‘Wed’, ‘Thu’, ‘Fri’, and ‘Sat’.  The abbreviations for the months
@@ -21,7 +37,7 @@
  * tzcode maintained by Arthur David Olson.  In newlib, asctime_r.c
  * doesn't have any author/copyright information.
  *
- * Changes copyright (C) 2006 Red Hat Inc.
+ * Changes copyright (C) 2006, 2008 Red Hat Inc.
  */
 
 function ctime:string(epochsecs:long)
@@ -69,6 +85,25 @@ function ctime:string(epochsecs:long)
     int tm_mon;         /* month */
     int tm_year;        /* year */
     int tm_wday;        /* day of the week */
+
+    // Check that the numer of seconds is "reasonable".
+    // Otherwise (especially on 64bit machines) we will be spending
+    // way too much time calculating the correct year, month and
+    // day. Also we would like the returned string to always be 24 chars.
+    // So cap to what can be represented normally on a 32bit machine.
+    int64_t MAX_POS_SECS =  2147483647LL;
+    int64_t MIN_NEG_SECS = -2147483648LL;
+
+    if (THIS->epochsecs > MAX_POS_SECS)
+      {
+        strlcpy(THIS->__retvalue, "far far in the future...", MAXSTRINGLEN);
+	return;
+      }
+    if (THIS->epochsecs < MIN_NEG_SECS)
+      {
+        strlcpy(THIS->__retvalue, "a long, long time ago...", MAXSTRINGLEN);
+        return;
+      }
 
     lcltime = THIS->epochsecs;
    

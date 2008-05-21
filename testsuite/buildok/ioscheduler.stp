@@ -1,4 +1,6 @@
-#! stap -p4
+#! stap -wp4
+
+# PR6538: "-w" is above since disk_major/disk_minor are not defined by all aliases.
 
 probe ioscheduler.*
 {

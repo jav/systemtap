@@ -15,8 +15,8 @@ function wibble()
 	i = 0
 	logmap[i++, "stewed"] <<< 1
 	logmap[i++, "boiled"] <<< 1 + 2
-	logmap[i++, "baked"] <<< x
-	logmap[i++, "fried"] <<< (x * y) + 3
+	logmap[i++, "baked"] <<< (x = 0)
+	logmap[i++, "fried"] <<< (x * (y=2)) + 3
 }
 
 function wobble()

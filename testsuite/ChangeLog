@@ -1,3 +1,49 @@
+2008-05-21  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6538
+	* buildok/ioscheduler.stp, nine.stp, scsi.stp, sixteen.stp,
+	socket.stp, stat_insert.stp: Adapt to new warnings.
+	* systemtap.maps/linear_empty.exp, systemtap.samples/args.exp,
+	systemtap.samples/poll_map.stp, systemtap.string/strtol.stp: Ditto.
+
+2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6538
+	* systemtap.base/warnings.*: New tests.
+	* buildok/eleven.stp, systemtap.examples/disktop.stp,
+	transok/three.stp: Adapt to new warnings.
+
+2008-05-21  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/optim_arridx.stp: Test compound assignment and
+	binary expression.
+	* systemtap.base/optim_arridx.exp: Likewise.
+	(optim_arridx_run): Don't check warnings.
+
+2008-05-21  Mark Wielaard  <mwielaard@redhat.com>
+
+	* buildok/aux_syscalls-embedded.stp: Don't check _struct_utimbuf_u
+	and _struct_compat_utimbuf_u. Check new _struct_utimbuf_actime,
+	_struct_utimbuf_modtime, _struct_compat_utimbuf_actime and
+	_struct_compat_utimbuf_modtime.
+
+2008-05-20  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 5001
+	* systemtap.syscall/futimes.c (utime): Expect new time format.
+	* systemtap.syscall/stat.c (utime): Likewise.
+
+2008-05-19  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 6524
+	* systemtap.base/ctime.stp: New test.
+	* systemtap.base/ctime.exp: New expect file.
+
+2008-05-19  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/optim_arridx.stp: New test.
+	* systemtap.base/optim_arridx.exp: New test.
+
 2008-04-29  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6466.

@@ -23,7 +23,7 @@ probe scsi.iodispatching
 {
 	printf("ppname: %s, %d, %d, %d, %d, %d, %d, %p, %d\n", probefunc(), 
 		host_no, channel, lun, dev_id, device_state, data_direction, 
-		request_buffer, req_bufflen)
+		request_buffer, request_bufflen)
 }
 
 

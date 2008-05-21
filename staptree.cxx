@@ -1713,6 +1713,15 @@ varuse_collecting_visitor::visit_symbol (symbol *e)
   if (e->referent == 0)
     throw semantic_error ("symbol without referent", e->tok);
 
+  // We could handle initialized globals by marking them as "written".
+  // However, this current visitor may be called for a function or
+  // probe body, from the point of view of which this global is
+  // already initialized, so not written.
+  /*
+  if (e->referent->init)
+    written.insert (e->referent);
+  */
+
   if (current_lvalue == e || current_lrvalue == e)
     {
       written.insert (e->referent);
@@ -1789,10 +1798,19 @@ varuse_collecting_visitor::visit_post_crement (post_crement *e)
 void
 varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
 {
-  functioncall_traversing_visitor::visit_foreach_loop (s);
+  // NB: we duplicate so don't bother call
+  // functioncall_traversing_visitor::visit_foreach_loop (s);
+
+  symbol *array = NULL;  
+  hist_op *hist = NULL;
+  classify_indexable (s->base, array, hist);
+  if (array)
+    array->visit(this);
+  else
+    hist->visit(this);
+
   // If the collection is sorted, imply a "write" access to the
-  // array in addition to the "read" one already noted in the
-  // base class call above.
+  // array in addition to the "read" one already noted above.
   if (s->sort_direction)
     {
       symbol *array = NULL;  
@@ -1801,6 +1819,20 @@ varuse_collecting_visitor::visit_foreach_loop (foreach_loop* s)
       if (array) this->written.insert (array->referent);
       // XXX: Can hist_op iterations be sorted?
     }
+
+  // NB: don't forget to visit the index expressions, which are lvalues.
+  for (unsigned i=0; i<s->indexes.size(); i++)
+    {
+      expression* last_lvalue = current_lvalue;
+      current_lvalue = s->indexes[i]; // leave a mark for ::visit_symbol
+      s->indexes[i]->visit (this);
+      current_lvalue = last_lvalue;
+    }
+
+  if (s->limit)
+    s->limit->visit (this);
+
+  s->block->visit (this);
 }
 
 

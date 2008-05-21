@@ -287,7 +287,6 @@ setup_signals (sighandler_t handler)
       sigaddset (&sa.sa_mask, SIGTERM);
     }
   sa.sa_flags = 0;
-  sa.sa_restorer = NULL;
 
   sigaction (SIGHUP, &sa, NULL);
   sigaction (SIGPIPE, &sa, NULL);

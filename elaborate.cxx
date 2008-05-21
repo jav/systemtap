@@ -1624,7 +1624,13 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
             // don't increment j
           }
         else
-          j++;
+          {
+            if (vut.written.find (l) == vut.written.end())
+              if (! s.suppress_warnings)
+                clog << "WARNING: read-only local variable " << *l->tok << endl;
+
+            j++;
+          }
       }
   for (unsigned i=0; i<s.functions.size(); i++)
     for (unsigned j=0; j<s.functions[i]->locals.size(); /* see below */)
@@ -1649,7 +1655,12 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
             // don't increment j
           }
         else
-          j++;
+          {
+            if (vut.written.find (l) == vut.written.end())
+              if (! s.suppress_warnings)
+                clog << "WARNING: read-only local variable " << *l->tok << endl;
+            j++;
+          }
       }
   for (unsigned i=0; i<s.globals.size(); /* see below */)
     {
@@ -1671,7 +1682,13 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           // don't increment i
         }
       else
-        i++;
+        {
+          if (vut.written.find (l) == vut.written.end() &&
+              ! l->init) // no initializer
+            if (! s.suppress_warnings)
+              clog << "WARNING: read-only global variable " << *l->tok << endl;
+          i++;
+        }
     }
 }
 
@@ -1696,6 +1713,11 @@ struct dead_assignment_remover: public traversing_visitor
   // called with null current_expr.
 
   void visit_assignment (assignment* e);
+  void visit_binary_expression (binary_expression* e);
+  void visit_arrayindex (arrayindex* e);
+  void visit_functioncall (functioncall* e);
+  void visit_if_statement (if_statement* e);
+  void visit_for_loop (for_loop* e);
 };
 
 
@@ -1720,6 +1742,11 @@ dead_assignment_remover::visit_assignment (assignment* e)
       *current_expr == e && // we're not nested any deeper than expected 
       leftvar) // not unresolved $target; intended sideeffect cannot be elided
     {
+      expression** last_expr = current_expr;
+      e->left->visit (this);
+      current_expr = &e->right;
+      e->right->visit (this);
+      current_expr = last_expr;
       if (vut.read.find(leftvar) == vut.read.end()) // var never read?
         {
           // NB: Not so fast!  The left side could be an array whose
@@ -1750,6 +1777,71 @@ dead_assignment_remover::visit_assignment (assignment* e)
     }
 }
 
+void
+dead_assignment_remover::visit_binary_expression (binary_expression* e)
+{
+  expression** last_expr = current_expr;
+  current_expr = &e->left;
+  e->left->visit (this);
+  current_expr = &e->right;
+  e->right->visit (this);
+  current_expr = last_expr;
+}
+
+void
+dead_assignment_remover::visit_arrayindex (arrayindex *e)
+{
+  symbol *array = NULL;
+  hist_op *hist = NULL;
+  classify_indexable(e->base, array, hist);
+
+  if (array)
+    {
+      expression** last_expr = current_expr;
+      for (unsigned i=0; i < e->indexes.size(); i++)
+	{
+	  current_expr = & e->indexes[i];
+	  e->indexes[i]->visit (this);
+	}
+      current_expr = last_expr;
+    }
+}
+
+void
+dead_assignment_remover::visit_functioncall (functioncall* e)
+{
+  expression** last_expr = current_expr;
+  for (unsigned i=0; i<e->args.size(); i++)
+    {
+      current_expr = & e->args[i];
+      e->args[i]->visit (this);
+    }
+  current_expr = last_expr;
+}
+
+void
+dead_assignment_remover::visit_if_statement (if_statement* s)
+{
+  expression** last_expr = current_expr;
+  current_expr = & s->condition;
+  s->condition->visit (this);
+  s->thenblock->visit (this);
+  if (s->elseblock)
+    s->elseblock->visit (this);
+  current_expr = last_expr;
+}
+
+void
+dead_assignment_remover::visit_for_loop (for_loop* s)
+{
+  expression** last_expr = current_expr;
+  if (s->init) s->init->visit (this);
+  current_expr = & s->cond;
+  s->cond->visit (this);
+  if (s->incr) s->incr->visit (this);
+  s->block->visit (this);
+  current_expr = last_expr;
+}
 
 // Let's remove assignments to variables that are never read.  We
 // rewrite "(foo = expr)" as "(expr)".  This makes foo a candidate to
@@ -1772,6 +1864,8 @@ void semantic_pass_opt3 (systemtap_session& s, bool& relaxed_p)
   for (unsigned i=0; i<s.functions.size(); i++)
     s.functions[i]->body->visit (& dar);
   // The rewrite operation is performed within the visitor.
+
+  // XXX: we could also zap write-only globals here
 }
 
 
@@ -1995,6 +2089,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
           p->body = new null_statement();
           p->body->tok = p->tok;
+
+          // XXX: possible duplicate warnings; see below
         }
     }
   for (unsigned i=0; i<s.functions.size(); i++)
@@ -2018,6 +2114,12 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
 
           fn->body = new null_statement();
           fn->body->tok = fn->tok;
+
+          // XXX: the next iteration of the outer optimization loop may
+          // take this new null_statement away again, and thus give us a
+          // fresh warning.  It would be better if this fixup was performed
+          // only after the relaxation iterations.
+          // XXX: or else see bug #6469.
         }
     }
 }

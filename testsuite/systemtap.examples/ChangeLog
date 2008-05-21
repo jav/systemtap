@@ -1,3 +1,11 @@
+2008-05-20  William Cohen  <wcohen@redhat.com>
+
+	* io_submit.stp, io_submit.meta:
+	* traceio.stp, traceio.meta:
+	* iotop.stp, iotop.meta:
+	* disktop.stp, disktop.meta:
+	* sigkill.stp, sigkill.meta: New.
+	
 2008-05-09  William Cohen  <wcohen@redhat.com>
 
 	* syscalls_by_pid.meta, syscalls_by_proc.meta:

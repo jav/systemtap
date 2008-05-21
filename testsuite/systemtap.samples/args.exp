@@ -12,7 +12,7 @@ if [file exists $staprunpath] {
 }
 
 set modname "args_[pid]"
-spawn stap -k -p4 -m $modname $srcdir/$subdir/args.stp
+spawn stap -w -k -p4 -m $modname $srcdir/$subdir/args.stp
 set tmpdir NO_SUCH_FILE
 expect {
     -timeout 120

@@ -23,7 +23,6 @@ probe begin
 	printf("%d\n", strtol(teststr9, 16))
 	printf("%d\n", strtol(teststr9, 8))
 	printf("%d\n", strtol(teststr9, 2))
-	printf("%d\n", strtol(teststr10, 2))
 
 	exit()
 }

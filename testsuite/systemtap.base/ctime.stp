@@ -1,0 +1,55 @@
+probe begin 
+{
+	// epoch
+	println(ctime(0))
+
+	// epoch - 1
+	println(ctime(-1))
+
+	// epoch + 1
+	println(ctime(1))
+
+	// Some funny numbers
+	println(ctime(100000000))
+	println(ctime(1234567890))
+	println(ctime(1073741824))
+	println(ctime(0x50000000))
+
+	// some time really long ago
+	secspermin = 60
+	minsperhour = 60
+	hoursperday = 24
+	secsperhour = secspermin * minsperhour
+	secsperday = secsperhour * hoursperday
+	epoch_year = 1970
+	time = -1 * (epoch_year - 1000) * 365 * secsperday
+	println(ctime(time))
+
+	// some time in the far future
+	time = (9999 - epoch_year) * 365 * secsperday
+	println(ctime(time))
+
+	// min 32 bit
+	time = -2147483648
+	println(ctime(time))
+
+	// over the edge, a long, long time ago...
+	time--
+	println(ctime(time))
+
+	// max 32 bit
+	time = 2147483647
+	println(ctime(time))
+
+	// over the edge, far far in the future...
+	time++
+	println(ctime(time))
+
+	// min 64 bit
+	println(ctime(-9223372036854775808))
+
+	// max 64 bit
+	println(ctime(9223372036854775807))
+
+	exit()
+}

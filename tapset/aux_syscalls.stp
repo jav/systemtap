@@ -60,77 +60,77 @@ function _struct_timezone_u:string(uaddr:long)
 %} 
 
 %{
-static const int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-static void _stp_ctime(time_t t, char *buf, int buflen)
-{
-	int mon=1, day, hour, min, sec, num, d, year = 1970;
-	
-	sec = t % 60; 
-	min = t/60 % 60;
-	hour = t/(60*60) % 24;	
-	day = t/(24*60*60);
-
-	while(1) {
-		d =  (!(year % 4) && ((year % 100) || !(year % 400))) ? 366 : 365;
-		if (day >= d)
-			day -= d;
-		else
-			break;
-		year++;
-	}
-	while (mon < 12) {
-		num = days_in_month[mon-1];
-		if (mon == 2 && d == 366)
-			num++;
-		if (day >= num)
-			day -= num;
-		else
-			break;
-		mon++;
-	}
-	
-	snprintf(buf, buflen, "%4d/%02d/%02d-%02d:%02d:%02d", year, mon, day+1, hour, min, sec);
-	buf[buflen-1] = 0;
-}
+	// Needed for the following four functions
+	// _struct_utimbuf_actime, _struct_utimbuf_modtime,
+	// _struct_compat_utimbuf_actime, _struct_compat_utimbuf_modtime
+	#include <linux/utime.h>
 %}
 
-function _struct_utimbuf_u:string(uaddr:long)
+// Returns the value of the actime field of a utimbuf in user space
+// at the given address, or zero on when userspace data is not accessible.
+function _struct_utimbuf_actime:long(uaddr:long)
 %{ /* pure */
-	#include <linux/utime.h>
 	struct utimbuf ubuf;
-	static char abuf[24], mbuf[24];
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 	
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
-			_stp_ctime(ubuf.actime, abuf, 24);
-			_stp_ctime(ubuf.modtime, mbuf, 24);
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%s, %s]", abuf, mbuf);
-		} else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
+	  THIS->__retvalue = 0;
+	else
+	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
+	    THIS->__retvalue = ubuf.actime;
+	  else
+	    THIS->__retvalue = 0;
 %} 
 
-function _struct_compat_utimbuf_u:string(uaddr:long)
+// Returns the value of the modtime field of a utimbuf in user space
+// at the given address, or zero on when userspace data is not accessible.
+function _struct_utimbuf_modtime:long(uaddr:long)
 %{ /* pure */
-#ifdef CONFIG_COMPAT
-	#include <linux/utime.h>
-	struct compat_utimbuf ubuf;
-	static char abuf[24], mbuf[24];
+	struct utimbuf ubuf;
 	char *ptr = (char *)(unsigned long)THIS->uaddr;
 	
 	if (ptr == NULL)
-		strlcpy (THIS->__retvalue, "NULL", MAXSTRINGLEN);
-	else {
-		if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0) {
-			_stp_ctime(ubuf.actime, abuf, 24);
-			_stp_ctime(ubuf.modtime, mbuf, 24);
-			snprintf(THIS->__retvalue, MAXSTRINGLEN, "[%s, %s]", abuf, mbuf);
-		} else
-			strlcpy (THIS->__retvalue, "UNKNOWN", MAXSTRINGLEN);
-	}
+	  THIS->__retvalue = 0;
+	else
+	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
+	    THIS->__retvalue = ubuf.modtime;
+	  else
+	    THIS->__retvalue = 0;
+%} 
+
+// Returns the value of the actime field of a compat_utimbuf in user space
+// at the given address, or zero on when userspace data is not accessible.
+function _struct_compat_utimbuf_actime:long(uaddr:long)
+%{ /* pure */
+#ifdef CONFIG_COMPAT
+	struct compat_utimbuf ubuf;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+	  THIS->__retvalue = 0;
+	else
+	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
+	    THIS->__retvalue = ubuf.actime;
+	  else
+	    THIS->__retvalue = 0;
+#endif
+%} 
+
+// Returns the value of the modtime field of a compat_utimbuf in user space
+// at the given address, or zero on when userspace data is not accessible.
+function _struct_compat_utimbuf_modtime:long(uaddr:long)
+%{ /* pure */
+#ifdef CONFIG_COMPAT
+	struct compat_utimbuf ubuf;
+	char *ptr = (char *)(unsigned long)THIS->uaddr;
+	
+	if (ptr == NULL)
+	  THIS->__retvalue = 0;
+	else
+	  if(_stp_copy_from_user((char*)&ubuf,ptr,sizeof(ubuf)) == 0)
+	    THIS->__retvalue = ubuf.modtime;
+	  else
+	    THIS->__retvalue = 0;
 #endif
 %} 
 

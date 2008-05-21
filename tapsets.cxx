@@ -20,7 +20,11 @@
 #include <deque>
 #include <iostream>
 #include <map>
+#ifdef HAVE_TR1_UNORDERED_MAP
+#include <tr1/unordered_map>
+#else
 #include <ext/hash_map>
+#endif
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -537,12 +541,17 @@ module_cache
 };
 typedef struct module_cache module_cache_t;
 
+#ifdef HAVE_TR1_UNORDERED_MAP
+typedef tr1::unordered_map<string,Dwarf_Die> cu_function_cache_t;
+typedef tr1::unordered_map<string,cu_function_cache_t*> mod_cu_function_cache_t; // module:cu -> function -> die
+#else
 struct stringhash {
   size_t operator() (const string& s) const { hash<const char*> h; return h(s.c_str()); }
 };
 
 typedef hash_map<string,Dwarf_Die,stringhash> cu_function_cache_t;
 typedef hash_map<string,cu_function_cache_t*,stringhash> mod_cu_function_cache_t; // module:cu -> function -> die
+#endif
 
 struct
 symbol_table
