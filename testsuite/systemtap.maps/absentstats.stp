@@ -1,5 +1,9 @@
 # stap -DMAXERRORS=40
 
+# NB: PR 6538 will cause systemtap to warn about the read-only globals;
+# we can't help that though since the point of this test is to see what
+# happens when an empty (never written-to) aggregate is queried.
+
 global sc
 probe begin { println(@count(sc)) }
 probe begin { print(@sum(sc)) }
