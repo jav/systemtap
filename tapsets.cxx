@@ -2527,6 +2527,15 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
             }
         }
     }
+  else if (q->has_statement_num) // searching all for kernel.statement
+    {
+      for (cu_function_cache_t::iterator it = v->begin(); it != v->end(); it++)
+        {
+          Dwarf_Die die = it->second;
+          rc = (*callback)(& die, data);
+          if (rc != DWARF_CB_OK) break;
+        }
+    }
   else // not a wildcard and no match in this CU
     {
       // do nothing
