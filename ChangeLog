@@ -1,3 +1,7 @@
+2008-05-22  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+	* tapset/ppc64/registers.stp: Support powerpc register + arg lookup
+	* stapfuncs.5.in: Add powerpc bits; indicate scope of uarg_* access
+
 2008-05-20  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6538
