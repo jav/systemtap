@@ -46,7 +46,7 @@ probe nd_syscall.accept = kernel.function("sys_accept") ? {
 	asmlinkage()
 	sockfd = int_arg(1)
 	addr_uaddr = pointer_arg(2)
-	addrlen_uaddr = int_arg(3)
+	addrlen_uaddr = pointer_arg(3)
 	argstr = sprintf("%d, %p, %p", sockfd, addr_uaddr, addrlen_uaddr)
 }
 probe nd_syscall.accept.return = kernel.function("sys_accept").return ? {
