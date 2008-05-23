@@ -196,7 +196,11 @@ static int _stp_init_kernel_symbols(void)
 	_stp_num_modules = 1;
 
 	/* Note: this mapping is used by kernel/_stext pseudo-relocations. */
+	#ifdef __powerpc__
+	_stp_modules[0]->text = _stp_kallsyms_lookup_name(".__start");
+	#else
 	_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
+	#endif
 	if (_stp_modules[0]->text == 0) {
 	  _dbug("Lookup of _stext failed. Exiting.\n");
 	  return -1;
@@ -398,6 +402,22 @@ static int _stp_section_is_interesting(const char *name)
 		ret = 0;
 	return ret;
 }
+
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,25)
+struct module_sect_attr
+{
+        struct module_attribute mattr;
+        char *name;
+        unsigned long address;
+};
+
+struct module_sect_attrs
+{
+        struct attribute_group grp;
+        unsigned int nsections;
+        struct module_sect_attr attrs[0];
+};
+#endif
 
 /* Create a new _stp_module and load the symbols */
 static struct _stp_module *_stp_load_module_symbols(struct module *mod)

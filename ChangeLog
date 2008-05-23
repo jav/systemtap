@@ -1,3 +1,8 @@
+2008-05-23  Srinivasa DS <srinivasa@in.ibm.com>
+ 	PR 6429: Inerim fix to avoid compilation error of systemtap module
+ 	* runtime/transport/symbols.c:  added definitions of struct
+ 	module_sect_attr, struct module_sect_attrs for 2.6.25 above kernels.
+
 2008-05-22  Wenji Huang <wenji.huang@oracle.com>
 
 	* tapsets.cxx (iterate_over_functions): Fix .statement(NUM) regression.
