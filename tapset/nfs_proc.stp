@@ -559,6 +559,9 @@ probe nfs.proc.commit.return = nfs.proc3.commit.return,
                                nfs.proc4.commit.return
 {}
 
+// XXX: on kernels > 2.6.18 (?), module("nfs") -> module("nfsd") and
+// function("nfsN...") becomes function("nfsdN...").  PR3833.
+   
 probe nfs.proc3.commit = kernel.function ("nfs3_proc_commit")?,
                          module("nfs").function("nfs3_proc_commit")?
 {

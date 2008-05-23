@@ -1,5 +1,9 @@
 2008-05-23  Frank Ch. Eigler  <fche@elastic.org>
 
+	* nfs.stp (*): Similarly convert kernel?,module? -> kernel!,module.
+
+2008-05-23  Frank Ch. Eigler  <fche@elastic.org>
+
 	* rpc.stp (*): Convert kernel?,module? -> kernel!,module probe points.
 	(rpc_create_task): Make conditional on kernel <= 2.6.18.
 
