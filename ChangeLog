@@ -1,3 +1,10 @@
+2008-05-23  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 4311, cont.  Address powerpc dwarfless test failures.
+	* tapsets.cxx: Convert .funcname to funcname when adding it
+	to our symbol table.  Accept all weak symbols except those
+	that map to sys_ni_syscall.
+	
 2008-05-23  Srinivasa DS <srinivasa@in.ibm.com>
  	PR 6429: Inerim fix to avoid compilation error of systemtap module
  	* runtime/transport/symbols.c:  added definitions of struct

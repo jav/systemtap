@@ -472,7 +472,7 @@ struct
 func_info
 {
   func_info()
-    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0)
+    : decl_file(NULL), decl_line(-1), addr(0), prologue_end(0), weak(false)
   {
     memset(&die, 0, sizeof(die));
   }
@@ -482,6 +482,7 @@ func_info
   Dwarf_Die die;
   Dwarf_Addr addr;
   Dwarf_Addr prologue_end;
+  bool weak;
 };
 
 struct
@@ -560,12 +561,14 @@ symbol_table
   map<string, func_info*> map_by_name;
   vector<func_info*> list_by_addr;
 
-  void add_symbol(const char *name, Dwarf_Addr addr, Dwarf_Addr *high_addr);
+  void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
+                                               Dwarf_Addr *high_addr);
   enum info_status read_symbols(FILE *f, const string& path);
   enum info_status read_from_elf_file(const string& path);
   enum info_status read_from_text_file(const string& path);
   enum info_status get_from_elf();
   void mark_dwarf_redundancies(dwflpp *dw);
+  void purge_syscall_stubs();
   func_info *lookup_symbol(const string& name);
   Dwarf_Addr lookup_symbol_address(const string& name);
   func_info *get_func_containing_address(Dwarf_Addr addr);
@@ -4696,12 +4699,18 @@ symbol_table::~symbol_table()
 }
 
 void
-symbol_table::add_symbol(const char *name, Dwarf_Addr addr,
-                                     Dwarf_Addr *high_addr)
+symbol_table::add_symbol(const char *name, bool weak, Dwarf_Addr addr,
+                                                      Dwarf_Addr *high_addr)
 {
+#ifdef __powerpc__
+  // Map ".sys_foo" to "sys_foo".
+  if (name[0] == '.')
+    name++;
+#endif
   func_info *fi = new func_info();
   fi->addr = addr;
   fi->name = name;
+  fi->weak = weak;
   map_by_name[fi->name] = fi;
   // TODO: Use a multimap in case there are multiple static
   // functions with the same name?
@@ -4752,8 +4761,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
           free(mod);
           goto done;
         }
-      if (type == 'T' || type == 't')
-        add_symbol(name, (Dwarf_Addr) addr, &high_addr);
+      if (type == 'T' || type == 't' || type == 'W')
+        add_symbol(name, (type == 'W'), (Dwarf_Addr) addr, &high_addr);
       free(name);
     }
 
@@ -4818,9 +4827,11 @@ symbol_table::get_from_elf()
   for (int i = 1; i < syments; ++i)
     {
       GElf_Sym sym;
-      const char *name = dwfl_module_getsym(mod, i, &sym, NULL);
-      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC)
-        add_symbol(name, sym.st_value, &high_addr);
+      GElf_Word section;
+      const char *name = dwfl_module_getsym(mod, i, &sym, &section);
+      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC && section != SHN_UNDEF)
+        add_symbol(name, (GELF_ST_BIND(sym.st_info) == STB_WEAK),
+                                              sym.st_value, &high_addr);
     }
   return info_present;
 }
@@ -4912,6 +4923,33 @@ symbol_table::lookup_symbol_address(const string& name)
   return 0;
 }
 
+// This is the kernel symbol table.  The kernel macro cond_syscall creates
+// a weak symbol for each system call and maps it to sys_ni_syscall.
+// For system calls not implemented elsewhere, this weak symbol shows up
+// in the kernel symbol table.  Following the precedent of dwarfful stap,
+// we refuse to consider such symbols.  Here we delete them from our
+// symbol table.
+// TODO: Consider generalizing this and/or making it part of blacklist
+// processing.
+void
+symbol_table::purge_syscall_stubs()
+{
+  Dwarf_Addr stub_addr = lookup_symbol_address("sys_ni_syscall");
+  if (stub_addr == 0)
+    return;
+  for (size_t i = 0; i < list_by_addr.size(); i++)
+    {
+      func_info *fi = list_by_addr.at(i);
+      if (fi->weak && fi->addr == stub_addr && fi->name != "sys_ni_syscall")
+        {
+	  list_by_addr.erase(list_by_addr.begin()+i);
+	  map_by_name.erase(fi->name);
+	  delete fi;
+	  i--;
+	}
+    }
+}
+
 void
 module_info::get_symtab(dwarf_query *q)
 {
@@ -4967,6 +5005,9 @@ module_info::get_symtab(dwarf_query *q)
   // precedes the call to query_module_symtab().  So we should never read
   // a module's symbol table without first having tried to get its dwarf.
   sym_table->mark_dwarf_redundancies(&q->dw);
+
+  if (name == TOK_KERNEL)
+    sym_table->purge_syscall_stubs();
 }
 
 module_info::~module_info()
