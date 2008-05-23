@@ -1,3 +1,11 @@
+2008-05-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildok/{nfs,rpc}-all-probes.stp: Suppress warnings from empty probe
+	bodies.
+	* systemtap.pass1-4/buidok.exp: Mark above as kfail due to bug #4413.
+	While there, also mark the process_test kfail for #1155, though even
+	it fails only sporadically.
+
 2008-05-21  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6538
