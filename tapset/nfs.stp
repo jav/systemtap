@@ -305,9 +305,9 @@ probe nfs.fop.entries = nfs.fop.llseek,
                         nfs.fop.open,
                         nfs.fop.flush,
                         nfs.fop.release,
+                        %( kernel_v <= "2.6.18" %? nfs.fop.sendfile, %)
                         nfs.fop.fsync,
-                        nfs.fop.lock,
-                        nfs.fop.sendfile
+                        nfs.fop.lock
 {
 }
 
@@ -320,9 +320,9 @@ probe nfs.fop.return = nfs.fop.llseek.return,
                         nfs.fop.open.return,
                         nfs.fop.flush.return,
                         nfs.fop.release.return,
+                        %( kernel_v <= "2.6.18" %? nfs.fop.sendfile.return, %)
                         nfs.fop.fsync.return,
-                        nfs.fop.lock.return,
-                        nfs.fop.sendfile.return
+                        nfs.fop.lock.return
 {
 }
 
@@ -344,8 +344,8 @@ probe nfs.fop.return = nfs.fop.llseek.return,
  *               The offset is set to the size of the file plus offset bytes.
  *
 */
-probe nfs.fop.llseek = kernel.function ("nfs_file_llseek") ?,
-                       module("nfs").function("nfs_file_llseek") ?
+probe nfs.fop.llseek = kernel.function ("nfs_file_llseek") !,
+                       module("nfs").function("nfs_file_llseek")
 {
         dev = __file_dev($filp)
         ino = __file_ino($filp)
@@ -360,8 +360,8 @@ probe nfs.fop.llseek = kernel.function ("nfs_file_llseek") ?,
         argstr = sprintf("%d, %d", offset, origin)
 }
 
-probe nfs.fop.llseek.return = kernel.function ("nfs_file_llseek").return ?,
-                              module("nfs").function("nfs_file_llseek").return ?
+probe nfs.fop.llseek.return = kernel.function ("nfs_file_llseek").return !,
+                              module("nfs").function("nfs_file_llseek").return
 {
         name = "nfs.fop.llseek.return"
         retstr = sprintf("%d", $return)
@@ -429,8 +429,8 @@ probe nfs.fop.write.return = vfs.do_sync_write.return
  *
  *      jiffies - read_cache_jiffies > attrtimeo
 */
-probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
-                       module("nfs").function("nfs_file_read") ?
+probe nfs.fop.aio_read = kernel.function ("nfs_file_read") !,
+                       module("nfs").function("nfs_file_read")
 {
         dev = __file_dev($iocb->ki_filp)
         ino = __file_ino($iocb->ki_filp)
@@ -464,8 +464,8 @@ probe nfs.fop.aio_read = kernel.function ("nfs_file_read") ?,
 }
 
 
-probe nfs.fop.aio_read.return = kernel.function ("nfs_file_read").return ?,
-                                module("nfs").function("nfs_file_read").return ?
+probe nfs.fop.aio_read.return = kernel.function ("nfs_file_read").return !,
+                                module("nfs").function("nfs_file_read").return
 {
         name = "nfs.fop.aio_read.return"
         retstr = sprintf("%d", $return)
@@ -490,8 +490,8 @@ probe nfs.fop.aio_read.return = kernel.function ("nfs_file_read").return ?,
  *    file_name : file name
  *
 */
-probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
-                          module("nfs").function("nfs_file_write") ?
+probe nfs.fop.aio_write = kernel.function("nfs_file_write") !,
+                          module("nfs").function("nfs_file_write")
 {
         dev = __file_dev($iocb->ki_filp)
         ino = __file_ino($iocb->ki_filp)
@@ -517,8 +517,8 @@ probe nfs.fop.aio_write = kernel.function("nfs_file_write") ?,
         units = "bytes"
 }
 
-probe nfs.fop.aio_write.return =  kernel.function("nfs_file_write").return ?,
-                          module("nfs").function("nfs_file_write").return ?
+probe nfs.fop.aio_write.return =  kernel.function("nfs_file_write").return !,
+                          module("nfs").function("nfs_file_write").return
 {
         name = "nfs.fop.aio_write.return"
         retstr = sprintf("%d", $return)
@@ -551,8 +551,8 @@ probe nfs.fop.aio_write.return =  kernel.function("nfs_file_write").return ?,
  *
  *      jiffies - read_cache_jiffies > attrtimeo
 */
-probe nfs.fop.mmap = kernel.function("nfs_file_mmap") ?,
-                     module("nfs").function("nfs_file_mmap") ?
+probe nfs.fop.mmap = kernel.function("nfs_file_mmap") !,
+                     module("nfs").function("nfs_file_mmap")
 {
         dev = __file_dev($file)
         ino = __file_ino($file)
@@ -574,8 +574,8 @@ probe nfs.fop.mmap = kernel.function("nfs_file_mmap") ?,
         argstr = sprintf("0x%x, 0x%x, 0x%x", vm_start, vm_end, vm_flags)
 }
 
-probe nfs.fop.mmap.return = kernel.function("nfs_file_mmap").return ?,
-                     module("nfs").function("nfs_file_mmap").return ?
+probe nfs.fop.mmap.return = kernel.function("nfs_file_mmap").return !,
+                     module("nfs").function("nfs_file_mmap").return
 {
         name = "nfs.fop.mmap.return"
         retstr = sprintf("%d", $return)
@@ -593,8 +593,8 @@ probe nfs.fop.mmap.return = kernel.function("nfs_file_mmap").return ?,
  *    flag : file flag
  *    i_size : file length in bytes 
 */
-probe nfs.fop.open = kernel.function("nfs_file_open") ?,
-                     module("nfs").function("nfs_file_open") ?
+probe nfs.fop.open = kernel.function("nfs_file_open") !,
+                     module("nfs").function("nfs_file_open")
 {
         dev = __file_dev($filp)
         ino = $inode->i_ino
@@ -610,8 +610,8 @@ probe nfs.fop.open = kernel.function("nfs_file_open") ?,
         argstr = sprintf("%d,%d, %s", flag, ino, filename)
 }
 
-probe nfs.fop.open.return = kernel.function("nfs_file_open").return ?,
-                            module("nfs").function("nfs_file_open").return ?
+probe nfs.fop.open.return = kernel.function("nfs_file_open").return !,
+                            module("nfs").function("nfs_file_open").return
 {
         name = "nfs.fop.open.return"
         retstr = sprintf("%d", $return)        
@@ -628,8 +628,8 @@ probe nfs.fop.open.return = kernel.function("nfs_file_open").return ?,
  *    mode : file mode
  *    ndirty : number of dirty page
 */
-probe nfs.fop.flush = kernel.function("nfs_file_flush") ?,
-                      module("nfs").function("nfs_file_flush") ?
+probe nfs.fop.flush = kernel.function("nfs_file_flush") !,
+                      module("nfs").function("nfs_file_flush")
 {
         dev = __file_dev($file)
         ino = __file_ino($file)
@@ -643,8 +643,8 @@ probe nfs.fop.flush = kernel.function("nfs_file_flush") ?,
         argstr = sprintf("%d",ino)
 }
 
-probe nfs.fop.flush.return = kernel.function("nfs_file_flush").return ?,
-                      module("nfs").function("nfs_file_flush").return ?
+probe nfs.fop.flush.return = kernel.function("nfs_file_flush").return !,
+                      module("nfs").function("nfs_file_flush").return
 {
         name = "nfs.fop.flush.return"
         retstr = sprintf("%d",$return)
@@ -660,8 +660,8 @@ probe nfs.fop.flush.return = kernel.function("nfs_file_flush").return ?,
  *    ino : inode number        
  *    mode : file mode
 */
-probe nfs.fop.release = kernel.function("nfs_file_release") ?,
-                      module("nfs").function("nfs_file_release") ?
+probe nfs.fop.release = kernel.function("nfs_file_release") !,
+                      module("nfs").function("nfs_file_release")
 {
         dev = __file_dev($filp)
         ino = $inode->i_ino
@@ -674,8 +674,8 @@ probe nfs.fop.release = kernel.function("nfs_file_release") ?,
         argstr = sprintf("%d" , ino)
 }
 
-probe nfs.fop.release.return = kernel.function("nfs_file_release").return ?,
-                               module("nfs").function("nfs_file_release").return ?
+probe nfs.fop.release.return = kernel.function("nfs_file_release").return !,
+                               module("nfs").function("nfs_file_release").return
 {
         name = "nfs.fop.release.return"
         retstr = sprintf("%d", $return)
@@ -691,8 +691,8 @@ probe nfs.fop.release.return = kernel.function("nfs_file_release").return ?,
  *    ino : inode number       
  *    ndirty : number of dirty pages 
 */
-probe nfs.fop.fsync = kernel.function("nfs_fsync") ?,
-                      module("nfs").function("nfs_fsync") ?
+probe nfs.fop.fsync = kernel.function("nfs_fsync") !,
+                      module("nfs").function("nfs_fsync")
 {
         dev = __file_dev($file)
         ino = __file_ino($file)
@@ -705,8 +705,8 @@ probe nfs.fop.fsync = kernel.function("nfs_fsync") ?,
 	argstr = sprintf("%d",ino)  
 }
 
-probe nfs.fop.fsync.return = kernel.function("nfs_fsync").return ?,
-                             module("nfs").function("nfs_fsync").return ?
+probe nfs.fop.fsync.return = kernel.function("nfs_fsync").return !,
+                             module("nfs").function("nfs_fsync").return
 {
         name = "nfs.fop.fsync.return"
         retstr = sprintf("%d", $return)
@@ -727,8 +727,8 @@ probe nfs.fop.fsync.return = kernel.function("nfs_fsync").return ?,
  *    fl_start : starting offset of locked region 
  *    fl_end   : ending offset of locked region  
 */
-probe nfs.fop.lock = kernel.function("nfs_lock") ?,
-                     module("nfs").function("nfs_lock") ?
+probe nfs.fop.lock = kernel.function("nfs_lock") !,
+                     module("nfs").function("nfs_lock")
 {
         dev = __file_dev($filp)
         ino = __file_ino($filp)
@@ -747,8 +747,8 @@ probe nfs.fop.lock = kernel.function("nfs_lock") ?,
         argstr = sprintf("%d,%d",cmd,i_mode)
 }
 
-probe nfs.fop.lock.return = kernel.function("nfs_lock").return ?,
-                             module("nfs").function("nfs_lock").return ?
+probe nfs.fop.lock.return = kernel.function("nfs_lock").return !,
+                             module("nfs").function("nfs_lock").return
 {
          name = "nfs.fop.lock.return"
          retstr = sprintf("%d",$return)
@@ -773,8 +773,9 @@ probe nfs.fop.lock.return = kernel.function("nfs_lock").return ?,
  *
  *      jiffies - read_cache_jiffies > attrtimeo
 */
-probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") ?,
-                              module("nfs").function("nfs_file_sendfile") ?
+%( kernel_v <= "2.6.18" %?
+probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") !,
+                              module("nfs").function("nfs_file_sendfile")
 {
 
         dev = __file_dev($filp)
@@ -796,8 +797,8 @@ probe nfs.fop.sendfile = kernel.function("nfs_file_sendfile") ?,
         units = "bytes"
 }
 
-probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return ?,
-                              module("nfs").function("nfs_file_sendfile").return ?
+probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return !,
+                              module("nfs").function("nfs_file_sendfile").return
 {
         name = "nfs.fop.sendfile.return"
         retstr = sprintf("%d", $return)
@@ -807,6 +808,7 @@ probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return ?,
                 units = "bytes"
         }
 }
+%)
 
 /*probe nfs.fop.check_flags
  *
@@ -816,8 +818,8 @@ probe nfs.fop.sendfile.return = kernel.function("nfs_file_sendfile").return ?,
  * Arguments:
  *    flag : file flag
 */
-probe nfs.fop.check_flags =  kernel.function("nfs_check_flags") ?,
-                             module("nfs").function("nfs_check_flags") ?
+probe nfs.fop.check_flags =  kernel.function("nfs_check_flags") !,
+                             module("nfs").function("nfs_check_flags")
 {
         flag = $flags
         
@@ -825,8 +827,8 @@ probe nfs.fop.check_flags =  kernel.function("nfs_check_flags") ?,
         argstr = sprintf("%d",flag)
 }
 
-probe nfs.fop.check_flags.return =  kernel.function("nfs_check_flags").return ?,
-                             module("nfs").function("nfs_check_flags").return ?
+probe nfs.fop.check_flags.return =  kernel.function("nfs_check_flags").return !,
+                             module("nfs").function("nfs_check_flags").return
 {
         name = "nfs.fop.check_flags.return"
         retstr = sprintf("%d",$return)
@@ -871,8 +873,8 @@ probe nfs.aop.return = nfs.aop.readpage.return,
  *   rsize :  read size  (in bytes)
  *   size :  number of pages to be read in this execution 
  */
-probe nfs.aop.readpage = kernel.function ("nfs_readpage") ?,
-        module("nfs").function ("nfs_readpage") ?
+probe nfs.aop.readpage = kernel.function ("nfs_readpage") !,
+        module("nfs").function ("nfs_readpage")
 {
         __page = $page
         dev = __page_dev(__page)
@@ -896,8 +898,8 @@ probe nfs.aop.readpage = kernel.function ("nfs_readpage") ?,
         units = "pages"
 }
 
-probe nfs.aop.readpage.return = kernel.function ("nfs_readpage").return ?,
-        module("nfs").function ("nfs_readpage").return ?
+probe nfs.aop.readpage.return = kernel.function ("nfs_readpage").return !,
+        module("nfs").function ("nfs_readpage").return
 {
         name = "nfs.aop.readpage.return"
         retstr = sprintf("%d", $return)
@@ -918,8 +920,8 @@ probe nfs.aop.readpage.return = kernel.function ("nfs_readpage").return ?,
  *   rsize  : read size (in bytes)
  *   size :  number of pages attempted to read in this execution 
  */
-probe nfs.aop.readpages =  kernel.function ("nfs_readpages") ?,
-        module("nfs").function ("nfs_readpages") ?
+probe nfs.aop.readpages =  kernel.function ("nfs_readpages") !,
+        module("nfs").function ("nfs_readpages")
 {
         dev = $mapping->host->i_sb->s_dev
         ino = $mapping->host->i_ino
@@ -937,8 +939,8 @@ probe nfs.aop.readpages =  kernel.function ("nfs_readpages") ?,
         units = "pages"
 }
 
-probe nfs.aop.readpages.return = kernel.function ("nfs_readpages").return ?,
-        module("nfs").function ("nfs_readpages").return ?
+probe nfs.aop.readpages.return = kernel.function ("nfs_readpages").return !,
+        module("nfs").function ("nfs_readpages").return
 {
         name = "nfs.aop.readpages.return"
         retstr = sprintf("%d", $return)
@@ -960,8 +962,8 @@ probe nfs.aop.readpages.return = kernel.function ("nfs_readpages").return ?,
  *      page_flag : page flags
 */
 probe nfs.aop.set_page_dirty =
-            kernel.function ("__set_page_dirty_nobuffers") ?,
-             module("nfs").function ("__set_page_dirty_nobuffers") ?
+            kernel.function ("__set_page_dirty_nobuffers") !,
+             module("nfs").function ("__set_page_dirty_nobuffers")
 {
  /*       dev = $mapping->host->i_sb->s_dev
         devname = __find_bdevname(dev, $mapping->host->i_sb->s_bdev)
@@ -975,8 +977,8 @@ probe nfs.aop.set_page_dirty =
 }
 
 probe nfs.aop.set_page_dirty.return =
-            kernel.function ("__set_page_dirty_nobuffers") .return?,
-            module("nfs").function ("__set_page_dirty_nobuffers").return ?
+            kernel.function ("__set_page_dirty_nobuffers") .return !,
+            module("nfs").function ("__set_page_dirty_nobuffers").return
 {
         name = "nfs.aop.set_page_dirty.return"
         retstr = sprintf("%d", $return)
@@ -1003,8 +1005,8 @@ probe nfs.aop.set_page_dirty.return =
  *     wsize :  write size
  *     size  :  number of pages to be written in this execution 
 */
-probe nfs.aop.writepage =  kernel.function ("nfs_writepage") ?,
-             module("nfs").function ("nfs_writepage") ?
+probe nfs.aop.writepage =  kernel.function ("nfs_writepage") !,
+             module("nfs").function ("nfs_writepage")
 {
         __page = $page
         dev = __page_dev(__page)
@@ -1033,8 +1035,8 @@ probe nfs.aop.writepage =  kernel.function ("nfs_writepage") ?,
         units = "pages"
 }
 
-probe nfs.aop.writepage.return =  kernel.function ("nfs_writepage").return ?,
-             module("nfs").function ("nfs_writepage").return ?
+probe nfs.aop.writepage.return =  kernel.function ("nfs_writepage").return !,
+             module("nfs").function ("nfs_writepage").return
 {
         name = "nfs.aop.writepage.return"
         retstr = sprintf("%d", $return)
@@ -1053,8 +1055,8 @@ probe nfs.aop.writepage.return =  kernel.function ("nfs_writepage").return ?,
  *      nr_to_write : number of pages attempted to be written in this execution  
  *      size : number of pages attempted to be written in this execution  
 */
-probe nfs.aop.writepages =  kernel.function ("nfs_writepages") ?,
-             module("nfs").function ("nfs_writepages") ?
+probe nfs.aop.writepages =  kernel.function ("nfs_writepages") !,
+             module("nfs").function ("nfs_writepages")
 {
         dev = $mapping->host->i_sb->s_dev
         ino = $mapping->host->i_ino
@@ -1073,8 +1075,8 @@ probe nfs.aop.writepages =  kernel.function ("nfs_writepages") ?,
         units = "pages"         
 }
 
-probe nfs.aop.writepages.return =  kernel.function ("nfs_writepages").return ?,
-             module("nfs").function ("nfs_writepages").return ?
+probe nfs.aop.writepages.return =  kernel.function ("nfs_writepages").return !,
+             module("nfs").function ("nfs_writepages").return
 {
         name = "nfs.aop.writepages.return"
         retstr = sprintf("%d", $return)
@@ -1099,8 +1101,8 @@ probe nfs.aop.writepages.return =  kernel.function ("nfs_writepages").return ?,
                      in the page frame
  *     size   : write bytes
 */
-probe nfs.aop.prepare_write=  kernel.function ("nfs_prepare_write") ?,
-             module("nfs").function ("nfs_prepare_write") ?
+probe nfs.aop.prepare_write=  kernel.function ("nfs_prepare_write") !,
+             module("nfs").function ("nfs_prepare_write")
 {
         __page = $page
         dev = __page_dev(__page)
@@ -1120,8 +1122,8 @@ probe nfs.aop.prepare_write=  kernel.function ("nfs_prepare_write") ?,
 }
 
 probe nfs.aop.prepare_write.return = 
-                 kernel.function ("nfs_prepare_write").return ?,
-                 module("nfs").function ("nfs_prepare_write").return ?
+                 kernel.function ("nfs_prepare_write").return !,
+                 module("nfs").function ("nfs_prepare_write").return
 {
         name = "nfs.aop.prepare_write.return"
         retstr = sprintf("%d", $return)
@@ -1147,8 +1149,8 @@ probe nfs.aop.prepare_write.return =
                     in the page frame
  *     size   : write bytes
  */ 
-probe nfs.aop.commit_write=  kernel.function ("nfs_commit_write") ?,
-             module("nfs").function ("nfs_commit_write") ?
+probe nfs.aop.commit_write=  kernel.function ("nfs_commit_write") !,
+             module("nfs").function ("nfs_commit_write")
 {
          __page = $page
         dev = __page_dev(__page)
@@ -1174,8 +1176,8 @@ probe nfs.aop.commit_write=  kernel.function ("nfs_commit_write") ?,
 
 
 probe nfs.aop.commit_write.return=  
-             kernel.function ("nfs_commit_write").return ?,
-             module("nfs").function ("nfs_commit_write").return? 
+             kernel.function ("nfs_commit_write").return !,
+             module("nfs").function ("nfs_commit_write").return
 {
         name = "nfs.aop.commit_write.return"
         retstr = sprintf("%d", $return)
@@ -1194,8 +1196,8 @@ probe nfs.aop.commit_write.return=
                     in the page frame
  *     size : release pages
 */
-probe nfs.aop.release_page =  kernel.function ("nfs_release_page") ?,
-             module("nfs").function ("nfs_release_page")?
+probe nfs.aop.release_page =  kernel.function ("nfs_release_page") !,
+             module("nfs").function ("nfs_release_page")
 {
         __page = $page
         dev = __page_dev(__page)
@@ -1212,8 +1214,8 @@ probe nfs.aop.release_page =  kernel.function ("nfs_release_page") ?,
 
 }  
 
-probe nfs.aop.release_page.return =  kernel.function ("nfs_release_page").return ?,
-             module("nfs").function ("nfs_release_page").return?
+probe nfs.aop.release_page.return =  kernel.function ("nfs_release_page").return !,
+             module("nfs").function ("nfs_release_page").return
 {
         name = "nfs.aop.release_page.return"
         retstr = sprintf("%d", $return)
