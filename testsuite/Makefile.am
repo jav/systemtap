@@ -24,7 +24,7 @@ installcheck: clean site.exp
 
 SRCDIR = $(shell cd $(srcdir); pwd)
 
-EXTRA_DIST = config lib systemtap \
+EXTRA_DIST = execrc config lib systemtap \
 	parseok parseko semok semko transok transko buildok buildok \
 	systemtap.syscall systemtap.stress systemtap.string \
 	systemtap.pass1-4 systemtap.samples systemtap.printf \
