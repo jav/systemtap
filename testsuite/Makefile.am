@@ -14,6 +14,8 @@ clean-local:
 DEJAZILLA=@dejazilla@
 
 # automake's dejagnu library already runs check-DEJAGNU before check-local
+# That's why we need to add "execrc" to $(RUNTEST) - to ensure that this
+# subtarget gets run even if runtest per se exits with a failure.
 check-local:
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
