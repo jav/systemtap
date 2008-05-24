@@ -640,6 +640,7 @@ am__untar
 MAINTAINER_MODE_TRUE
 MAINTAINER_MODE_FALSE
 MAINT
+dejazilla
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -1223,6 +1224,11 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-maintainer-mode  enable make rules and dependencies not useful
 			  (and sometimes confusing) to the casual installer
+  --enable-dejazilla[=EMAIL]
+                          enable dejazilla support to automatically email test
+                          results to a central public collection point
+                          (default is disabled). Optional EMAIL overrides the
+                          default email address.
 
 Report bugs to <systemtap@sources.redhat.com>.
 _ACEOF
@@ -2160,6 +2166,22 @@ fi
 
 
 
+# Check whether --enable-dejazilla was given.
+if test "${enable_dejazilla+set}" = set; then
+  enableval=$enable_dejazilla;
+fi
+
+case "$enable_dejazilla" in
+     no) dejazilla= ;;
+     yes) dejazilla=dejazilla@elastic.org ;;
+     *) dejazilla="$enable_dejazilla" ;;
+esac
+if test -n "$dejazilla"; then
+   { echo "$as_me:$LINENO: A \"make *check\" will email results to $dejazilla" >&5
+echo "$as_me: A \"make *check\" will email results to $dejazilla" >&6;}
+fi
+
+
 ac_config_files="$ac_config_files Makefile"
 
 cat >confcache <<\_ACEOF
@@ -2861,11 +2883,12 @@ am__untar!$am__untar$ac_delim
 MAINTAINER_MODE_TRUE!$MAINTAINER_MODE_TRUE$ac_delim
 MAINTAINER_MODE_FALSE!$MAINTAINER_MODE_FALSE$ac_delim
 MAINT!$MAINT$ac_delim
+dejazilla!$dejazilla$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 64; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 65; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
