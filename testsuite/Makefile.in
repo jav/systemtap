@@ -49,8 +49,6 @@ CONFIG_CLEAN_FILES =
 SOURCES =
 DIST_SOURCES =
 DEJATOOL = $(PACKAGE)
-RUNTESTDEFAULTFLAGS = --tool $$tool --srcdir $$srcdir
-EXPECT = expect
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -107,6 +105,7 @@ build_alias = @build_alias@
 builddir = @builddir@
 datadir = @datadir@
 datarootdir = @datarootdir@
+dejazilla = @dejazilla@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
@@ -134,6 +133,7 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = dejagnu
+DEJAZILLA = @dejazilla@
 SRCDIR = $(shell cd $(srcdir); pwd)
 EXTRA_DIST = config lib systemtap \
 	parseok parseko semok semko transok transko buildok buildok \
@@ -149,7 +149,9 @@ SYSTEMTAP_TAPSET = $(DESTDIR)$(pkgdatadir)/tapset
 LD_LIBRARY_PATH = $(DESTDIR)$(libdir)/systemtap
 CRASH_LIBDIR = $(DESTDIR)$(libdir)/systemtap
 SYSTEMTAP_PATH = $(DESTDIR)$(bindir)
-RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH runtest"
+RUNTESTDEFAULTFLAGS = --tool $$tool --srcdir $$srcdir
+EXPECT = expect
+RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH $(srcdir)/execrc runtest"
 all: all-am
 
 .SUFFIXES:
@@ -351,7 +353,7 @@ distcleancheck: distclean
 	       $(distcleancheck_listfiles) ; \
 	       exit 1; } >&2
 check-am: all-am
-	$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU
+	$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU check-local
 check: check-am
 all-am: Makefile all-local
 installdirs:
@@ -362,8 +364,6 @@ uninstall: uninstall-am
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
-
-installcheck: installcheck-am
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -414,7 +414,7 @@ install-pdf: install-pdf-am
 
 install-ps: install-ps-am
 
-installcheck-am: installcheck-local
+installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -439,30 +439,36 @@ uninstall-am:
 .MAKE: install-am install-strip
 
 .PHONY: all all-am all-local am--refresh check check-DEJAGNU check-am \
-	clean clean-generic clean-local dist dist-all dist-bzip2 \
-	dist-gzip dist-shar dist-tarZ dist-zip distcheck distclean \
-	distclean-DEJAGNU distclean-generic distcleancheck distdir \
-	distuninstallcheck dvi dvi-am html html-am info info-am \
-	install install-am install-data install-data-am install-dvi \
-	install-dvi-am install-exec install-exec-am install-html \
-	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installcheck-local \
+	check-local clean clean-generic clean-local dist dist-all \
+	dist-bzip2 dist-gzip dist-shar dist-tarZ dist-zip distcheck \
+	distclean distclean-DEJAGNU distclean-generic distcleancheck \
+	distdir distuninstallcheck dvi dvi-am html html-am info \
+	info-am install install-am install-data install-data-am \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-html install-html-am install-info install-info-am \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
 	installdirs maintainer-clean maintainer-clean-generic \
 	mostlyclean mostlyclean-generic pdf pdf-am ps ps-am uninstall \
 	uninstall-am
 
 
-# The stap symlink is to enable "#! stap" test scripts.
 all-local:
 	@echo Run \"make check\" or \"make installcheck\".
+	@if test -n "$(DEJAZILLA)"; then echo Test results will be emailed to $(DEJAZILLA); fi
 
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
 	-rm -rf .systemtap .cache_test 2>/dev/null
 
-installcheck-local: clean site.exp
-	$(MAKE) AM_RUNTESTFLAGS="--tool_opts install" check-DEJAGNU
+# automake's dejagnu library already runs check-DEJAGNU before check-local
+check-local:
+	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
+
+# but installcheck does not follow an implicit check-DEJAGNU, go figure
+installcheck: clean site.exp
+	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts install"
+	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

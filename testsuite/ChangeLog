@@ -1,3 +1,10 @@
+2008-05-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac (enable-dejazilla): Add option, default off.
+	* Makefile.am (*check): Send systemtap.sum to dejazilla if enabled$a
+	* execrc: New helper script for runtest rc overriding.
+	* configure, Makefile.in: Regenerated.
+
 2008-05-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* buildok/{nfs,rpc}-all-probes.stp: Suppress warnings from empty probe
