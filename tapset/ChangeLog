@@ -1,3 +1,6 @@
+2008-05-26  Mark Wielaard  <mwielaard@redhat.com>
+
+	* task.stp : Only include fdtable.h for kernel versions > 2.6.25.
 
 2008-05-26  Wenji Huang  <wenji.huang@oracle.com>
 

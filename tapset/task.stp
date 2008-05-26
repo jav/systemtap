@@ -9,7 +9,9 @@
 %{
 #include <linux/version.h>
 #include <linux/file.h>
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,25)
 #include <linux/fdtable.h>
+#endif
 %}
 
 // Return the task_struct representing the current process
