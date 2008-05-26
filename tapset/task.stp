@@ -9,6 +9,7 @@
 %{
 #include <linux/version.h>
 #include <linux/file.h>
+#include <linux/fdtable.h>
 %}
 
 // Return the task_struct representing the current process

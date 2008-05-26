@@ -1,6 +1,10 @@
 
 2008-05-26  Wenji Huang  <wenji.huang@oracle.com>
 
+	* task.stp : Include fdtable.h for 2.6.26.
+
+2008-05-26  Wenji Huang  <wenji.huang@oracle.com>
+
 	* signal.stp (send.*): Correct for 2.6.26.
 
 2008-05-23  Frank Ch. Eigler  <fche@elastic.org>

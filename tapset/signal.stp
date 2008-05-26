@@ -52,7 +52,7 @@ probe signal.send = _signal.send.*
 probe _signal.send.part1 = kernel.function("__group_send_sig_info")
 {
     name = "__group_send_sig_info"
-    sig=$sig
+    sig = $sig
     task = $p
     sinfo = $info
     shared = 1
@@ -63,7 +63,7 @@ probe _signal.send.part1 = kernel.function("__group_send_sig_info")
 probe _signal.send.part2 = kernel.function("send_group_sigqueue")
 {
     name = "send_group_sigqueue"
-    sig=$sig
+    sig = $sig
     task = $p
     sinfo = 0 # $q->info
     shared = 1
@@ -74,12 +74,12 @@ probe _signal.send.part2 = kernel.function("send_group_sigqueue")
 probe _signal.send.part3 = kernel.function("send_sigqueue")
 {
     name = "send_sigqueue"
-%( kernel_v >= "2.6.25" %?
+%( kernel_v > "2.6.25" %?
     task = $t
-    sig=$q->info->si_signo
+    sig = $q->info->si_signo
 %:
     task = $p
-    sig=$sig
+    sig = $sig
 %)
     sinfo = 0 # $q->info
     shared = 0
@@ -89,7 +89,7 @@ probe _signal.send.part3 = kernel.function("send_sigqueue")
 probe _signal.send.part4 = kernel.function("specific_send_sig_info")
 {
     name = "specific_send_sig_info"
-    sig=$sig
+    sig = $sig
     task = $t
     sinfo = $info
     shared = 0
