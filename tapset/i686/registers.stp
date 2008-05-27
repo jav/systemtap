@@ -192,11 +192,11 @@ function fastcall() %{
 	CONTEXT->regparm = _STP_REGPARM | 3;
 %}
 
-function regparm(n) %{
+function regparm(n:long) %{
 	if (THIS->n < 0 || THIS->n > 3) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
 			"For i386, regparm value must be in the range 0-3.");
 		CONTEXT->last_error = CONTEXT->error_buffer;
 	} else
-		CONTEXT->regparm = _STP_REGPARM | (int) n;
+		CONTEXT->regparm = _STP_REGPARM | (int) THIS->n;
 %}

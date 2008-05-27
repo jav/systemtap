@@ -227,7 +227,7 @@ function asmlinkage() {
 function fastcall() {
 }
 
-function regparm(n) %{
+function regparm(n:long) %{
 	if (_stp_probing_32bit_app(CONTEXT->regs) &&
 					(THIS->n < 0 || THIS->n > 3)) {
 		snprintf(CONTEXT->error_buffer, sizeof(CONTEXT->error_buffer),
@@ -239,5 +239,5 @@ function regparm(n) %{
 			"For x86_64, regparm value must be in the range 0-6.");
 		CONTEXT->last_error = CONTEXT->error_buffer;
 	} else
-		CONTEXT->regparm = _STP_REGPARM | (int) n;
+		CONTEXT->regparm = _STP_REGPARM | (int) THIS->n;
 %}
