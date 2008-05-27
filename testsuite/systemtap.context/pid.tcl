@@ -28,5 +28,4 @@ expect {
     timeout {fail "all pid tests - timeout"}
     eof {fail "all pid tests - unexpected EOF"}
 }
-catch {close}
-wait
+closewait

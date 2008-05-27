@@ -15,7 +15,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
-wait
+closewait
 if {$ok1 == 4 && $ok2 == 3 && $ko == 0} then {
     pass "$test ($ok1 $ok2 $ko)"
 } else {

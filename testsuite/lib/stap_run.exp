@@ -90,8 +90,7 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
     }
   # again for good measure
   exec kill -INT -[exp_pid]
-  catch close
-  wait
+  closewait
 }
 
 proc no_load {} {

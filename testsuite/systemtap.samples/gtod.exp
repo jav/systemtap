@@ -16,7 +16,7 @@ expect {
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
-wait
+closewait
 #10ms interval (check timer drift in middle range)
 spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 10000
 expect {
@@ -25,7 +25,7 @@ expect {
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
-wait
+closewait
 #100ms interval (calm down processors and CPU freq might be changed)
 spawn $srcdir/$subdir/gtod.sh $srcdir/$subdir/gtod.stp $wd/gtod 100000
 expect {
@@ -34,7 +34,7 @@ expect {
 	timeout { fail "$test (timeout)" }
 	eof { }
 }
-wait
+closewait
 exec rm -f $wd/gtod
 if {$ok == 300} { pass "$test ($ok)" } { fail "$test ($ok)" }
 

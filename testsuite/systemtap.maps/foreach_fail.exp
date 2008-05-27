@@ -14,5 +14,4 @@ expect {
     fail "$test unexpected EOF" }
   -re "semantic error:" { pass "$test correctly failed to compile" }
 }
-close
-wait
+closewait

@@ -21,5 +21,4 @@ expect {
     fail "$test unexpected EOF" }
   -re "semantic error:" { fail "$test compilation" }
 }
-catch { close }
-wait
+closewait

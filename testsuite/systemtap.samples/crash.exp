@@ -19,7 +19,7 @@ expect {
     timeout { fail "$test - testlog.stp timeout" }
     timeout { fail "$test - testlog.stp eof" }
 }
-catch { exec kill -INT -[exp_pid]; close ; wait }
+catch { exec kill -INT -[exp_pid]; closewait }
 
 # The crash(8) script creates testlog/global or testlog/cpu<n>
 as_root { chmod -R a+rX testlog }

@@ -128,3 +128,8 @@ proc as_root { command } {
      verbose -log "RC $res"
      return  $res
  }
+
+proc closewait { args } {
+     catch { if {"$args" == "" } then { close -slave } else { eval "close $args" } }
+     catch { wait }
+}

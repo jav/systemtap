@@ -320,8 +320,7 @@ proc whitelist_run { TEST_NAME {LOAD_GEN_FUNCTION ""} args } {
 	timeout { set detail "stap timeout"; exec kill -INT -[exp_pid -i $stap_id] }
 	eof { set failed 0 }
     }
-    catch {close -i $stap_id}
-    wait -i $stap_id
+    closewait -i $stap_id
     if {$failed} { puts "whitelist_run failure \($detail\)" }
 }
 
@@ -353,7 +352,7 @@ proc runbenchs {} {
     			set donepos [lsearch $idlist $expect_out(spawn_id)]
     			set idlist [lreplace $idlist $donepos $donepos]
     			incr runningcount -1
-                        wait -i $expect_out(spawn_id)
+                        closewait -i $expect_out(spawn_id)
     		} timeout {
     			break
     		}

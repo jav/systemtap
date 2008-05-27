@@ -16,6 +16,6 @@ expect {
     eof { }
 }
 #FIXME does not handle case of hanging primes.stp correctly
-wait
+closewait
 
 if {$ok == 7} { pass "$test" } { fail "$test" }

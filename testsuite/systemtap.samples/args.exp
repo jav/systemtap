@@ -21,7 +21,7 @@ expect {
     timeout { fail "$test compile (timeout)" }
     eof { }
 }
-catch {close}; wait
+closewait
 
 set modpath_cwd "$modname.ko"
 if [file exists $modpath_cwd] {
@@ -55,7 +55,7 @@ expect {
     timeout { }
     eof { }
 }
-catch {close}; wait
+closewait
 if {$ok == 1} {
     pass "$test run 1"
 } else {
@@ -70,7 +70,7 @@ expect {
     timeout { }
     eof { }
 }
-catch {close}; wait
+closewait
 if {$ok == 1} {
     pass "$test run 2"
 } else {

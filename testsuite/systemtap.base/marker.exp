@@ -23,8 +23,7 @@ proc stap_compile { TEST_NAME compile script args } {
 	-re "compilation failed" {incr compile_errors 1; exp_continue}
 	-re "semantic error:" {incr compile_errors 1; exp_continue}
     }
-    catch close
-    wait
+    closewait
 
     # If we've got compile errors and the script was supposed to
     # compile, fail.

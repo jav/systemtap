@@ -48,5 +48,5 @@ expect {
     eof { }
     timeout { }
 }
-catch {close; wait}
+closewait
 if {$ok == 1} { pass $test } { fail $test }

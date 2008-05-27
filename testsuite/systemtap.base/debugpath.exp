@@ -7,7 +7,7 @@ expect {
 	eof { fail "$test (eof)" }
 }
 
-wait
+closewait
 
 set test "debugpath-good"
 spawn env SYSTEMTAP_DEBUGINFO_PATH=:/usr/lib/debug stap -e "probe kernel.function(\"sys_open\") {}" -p2
@@ -17,4 +17,4 @@ expect {
 	eof { fail "$test (eof)" }
 }
 
-wait
+closewait

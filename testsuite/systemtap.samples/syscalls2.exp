@@ -9,7 +9,7 @@ expect {
     eof { }
 }
 #FIXME does not handle case of hanging psyscalls.stp correctly
-wait
+closewait
 # 150 is conservative - it's larger than 100 to allow a bit of slop
 # between the exit() call and the actual shutdown
 if {$ok >= 100 && $ok < 150} { pass "$test ($ok)" } { fail "$test ($ok)" }

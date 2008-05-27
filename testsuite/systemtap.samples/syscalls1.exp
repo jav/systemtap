@@ -10,5 +10,5 @@ expect {
     eof { }
 }
 #FIXME does not handle case of hanging psyscalls.stp correctly
-wait
+closewait
 if {$ok > 200 && $ok < 350} { pass "$test ($ok)" } { fail "$test ($ok)" }

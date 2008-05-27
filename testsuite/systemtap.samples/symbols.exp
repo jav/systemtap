@@ -10,5 +10,5 @@ expect {
     eof { }
 }
 #FIXME does not handle case of hanging symbols.stp correctly
-wait
+closewait
 if {$ok == 11} { pass "$test ($ok)" } { fail "$test ($ok)" }

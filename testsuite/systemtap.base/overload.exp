@@ -62,8 +62,7 @@ proc stap_run_overload { TEST_NAME EXPECT_OVERLOAD args } {
    	          exec kill -INT -[exp_pid] }
 	eof { fail "$TEST_NAME startup (eof)" }
     }
-    catch close
-    wait
+    closewait
 }
 
 # OVERLOAD1 tests to make sure normal operation doesn't receive an

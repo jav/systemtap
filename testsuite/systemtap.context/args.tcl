@@ -54,5 +54,4 @@ expect {
     eof {fail "function arguments: unexpected timeout"}
 }
 exec kill -INT -[exp_pid]
-close
-wait
+closewait
