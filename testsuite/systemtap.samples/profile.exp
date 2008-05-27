@@ -12,4 +12,4 @@ expect {
 #FIXME does not handle case of hanging primes.stp correctly
 closewait
 
-if {$ok > 0} { pass "$test ($ok)" } { fail "$test" }
+if {$ok > 0} { pass $test } { fail $test }
