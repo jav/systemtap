@@ -239,6 +239,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
+				   int register_p,
 				   unsigned long event_flag)
 {
 	size_t filelen;
@@ -272,8 +273,8 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				continue;
 
 			if (cb_tgt->callback != NULL) {
-				int rc = cb_tgt->callback(tsk, 1, event_flag,
-							  cb_tgt);
+				int rc = cb_tgt->callback(tsk, register_p,
+							  event_flag, cb_tgt);
 				if (rc != 0) {
 					_stp_error("callback for %d failed: %d",
 						   (int)tsk->pid, rc);
@@ -282,13 +283,79 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			}
 
 			// Set up thread death notification.
-			rc = __stp_utrace_attach(tsk, &cb_tgt->ops, cb_tgt,
-						 __STP_UTRACE_ATTACHED_TASK_EVENTS);
-			if (rc != 0 && rc != EPERM)
-				break;
-			cb_tgt->engine_attached = 1;
+			if (register_p) {
+				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
+							 cb_tgt,
+							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
+				if (rc != 0 && rc != EPERM)
+					break;
+				cb_tgt->engine_attached = 1;
+			}
+			else {
+				struct utrace_attached_engine *engine;
+				engine = utrace_attach(tsk,
+						       UTRACE_ATTACH_MATCH_OPS,
+						       &cb_tgt->ops, 0);
+				if (! IS_ERR(engine) && engine != NULL) {
+					utrace_detach(tsk, engine);
+				}
+			}
 		}
 	}
+}
+
+// This function handles the details of getting a task's associated
+// pathname, and calling __stp_utrace_attach_match_filename() to
+// attach to it if we find the pathname "interesting".  So, what's the
+// difference between path_tsk and match_tsk?  Normally they are the
+// same, except in one case.  In an UTRACE_EVENT(EXEC), we need to
+// detach engines from the newly exec'ed process (since its path has
+// changed).  In this case, we have to match the path of the parent
+// (path_tsk) against the child (match_tsk).
+
+static void
+__stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
+			      struct task_struct *match_tsk, int register_p,
+			      unsigned long event_flag)
+{
+	struct mm_struct *mm;
+	char *mmpath_buf;
+	char *mmpath;
+
+	if (path_tsk->pid <= 1 || match_tsk->pid <= 1)
+		return;
+
+	/* Grab the path associated with the path_tsk. */
+	mm = get_task_mm(path_tsk);
+	if (! mm) {
+		/* If the thread doesn't have a mm_struct, it is
+		 * a kernel thread which we need to skip. */
+		return;
+	}
+
+	// Allocate space for a path
+	mmpath_buf = _stp_kmalloc(PATH_MAX);
+	if (mmpath_buf == NULL) {
+		mmput(mm);
+		_stp_error("Unable to allocate space for path");
+		return;
+	}
+
+	// Grab the path associated with the new task
+	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
+	mmput(mm);			/* We're done with mm */
+	if (mmpath == NULL || IS_ERR(mmpath)) {
+		int rc = -PTR_ERR(mmpath);
+		_stp_error("Unable to get path (error %d) for pid %d",
+			   rc, (int)path_tsk->pid);
+	}
+	else {
+		__stp_utrace_attach_match_filename(match_tsk, mmpath,
+						   register_p, event_flag);
+	}
+
+	_stp_kfree(mmpath_buf);
+	return;
 }
 
 static u32
@@ -311,35 +378,7 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 	if (rc != 0 && rc != EPERM)
 		return UTRACE_ACTION_RESUME;
 
-	/* Grab the path associated with this task. */
-	mm = get_task_mm(child);
-	if (! mm) {
-		/* If the thread doesn't have a mm_struct, it is
-		 * a kernel thread which we need to skip. */
-		return UTRACE_ACTION_RESUME;
-	}
-
-	// Allocate space for a path
-	mmpath_buf = _stp_kmalloc(PATH_MAX);
-	if (mmpath_buf == NULL) {
-		_stp_error("Unable to allocate space for path");
-		return UTRACE_ACTION_RESUME;
-	}
-
-	// Grab the path associated with the new task
-	mmpath = __stp_get_mm_path(mm, mmpath_buf, PATH_MAX);
-	mmput(mm);			/* We're done with mm */
-	if (mmpath == NULL || IS_ERR(mmpath)) {
-		rc = -PTR_ERR(mmpath);
-		_stp_error("Unable to get path (error %d) for pid %d",
-			   rc, (int)child->pid);
-	}
-	else {
-		__stp_utrace_attach_match_filename(child, mmpath,
-						   UTRACE_EVENT(CLONE));
-	}
-
-	_stp_kfree(mmpath_buf);
+	__stp_utrace_attach_match_tsk(parent, child, 1, UTRACE_EVENT(CLONE));
 	return UTRACE_ACTION_RESUME;
 }
 
@@ -357,11 +396,21 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING)
 		return UTRACE_ACTION_RESUME;
 
+	// When exec'ing, we need to let callers detach from the
+	// parent thread (if necessary).  For instance, assume
+	// '/bin/bash' clones and then execs '/bin/ls'.  If the user
+	// was probing '/bin/bash', the cloned thread is still
+	// '/bin/bash' up until the exec.
+	if (tsk != NULL && tsk->parent != NULL && tsk->parent->pid > 1) {
+		__stp_utrace_attach_match_tsk(tsk->parent, tsk, 0,
+					      UTRACE_EVENT(EXEC));
+	}
+
 	// On exec, check bprm
 	if (bprm->filename == NULL)
 		return UTRACE_ACTION_RESUME;
 
-	__stp_utrace_attach_match_filename(tsk, bprm->filename,
+	__stp_utrace_attach_match_filename(tsk, bprm->filename, 1,
 					   UTRACE_EVENT(EXEC));
 
 	return UTRACE_ACTION_RESUME;

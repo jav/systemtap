@@ -1,3 +1,17 @@
+2008-05-28  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach_match_filename): Added
+	register_p parameter, which is passed on to the callback.  Only
+	adds death notification if register_p is 1.  If register_p is 0,
+	removes death notification.
+	(__stp_utrace_attach_match_tsk): Moved code from
+	__stp_utrace_task_finder_report_clone that handles the details of
+	grabbing a task's path.
+	(__stp_utrace_task_finder_report_clone): Calls new
+	__stp_utrace_attach_match_tsk().
+	(__stp_utrace_task_finder_report_exec): Notifies upper layer that
+	it might need to detach from newly exec'ed process.`
+
 2008-05-27  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 6432

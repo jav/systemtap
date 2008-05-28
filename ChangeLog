@@ -1,3 +1,10 @@
+2008-05-28  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
+	Instead of adding clone handlers, just call the probes directly.
+	(utrace_derived_probe_group::emit_module_decls): For syscall
+	probes, on exec detach the parent's utrace engine from the child.
+
 2008-05-27  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 6432
@@ -25,7 +32,7 @@
 	* tapset/ppc64/registers.stp: Support powerpc register + arg lookup
 	* stapfuncs.5.in: Add powerpc bits; indicate scope of uarg_* access
 
-2008-05-21  David Smith  <dsmith@redhat.com>:ChangeLog
+2008-05-21  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
 	Added new 'event_flag' parameter to task_finder callback.  Only
@@ -199,8 +206,6 @@
 2008-04-25  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.spec.in: Simplify configuration defaults.
-
-2008-04-29  David Smith  <dsmith@redhat.com>:ChangeLog
 
 2008-04-25  David Smith  <dsmith@redhat.com>
 
