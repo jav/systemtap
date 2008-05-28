@@ -17,7 +17,7 @@ foreach value {0 0xffffffff 0xffffffffffffffff} {
         timeout { fail "$test (timeout)" }
     }
     verbose -log "done exp $test $errs"
-    closewait
+    wait
     if {$errs == 14} { pass $test } else { fail "$test ($errs)" }
     verbose -log "done $test $errs"
 }

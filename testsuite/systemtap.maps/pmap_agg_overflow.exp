@@ -25,7 +25,8 @@ expect {
     eof {}
     -re "semantic error:" { fail "$test compilation" }
 }
-closewait
+catch { close }
+wait
 
 if {$pass == 3} {
     pass $test

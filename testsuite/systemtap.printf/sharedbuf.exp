@@ -58,4 +58,5 @@ if {$c1 == 2 && $c2 == 2} {
 } else {
 	fail "buffer sharing ($c1, $c2)"
 }
-closewait
+close
+wait

@@ -18,5 +18,5 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
-closewait
+catch {close}; wait
 if {$open == 1 && $saw_user == 1 && $done == 1 } { pass "$test" } { fail "$test ($open,$saw_user,$done)" }

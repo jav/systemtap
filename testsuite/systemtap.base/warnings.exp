@@ -8,7 +8,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof { }
 }
-closewait
+wait
 if {$ok == 22} {
     pass $test
 } else {

@@ -12,5 +12,5 @@ expect {
     eof { }
 }
 #FIXME does not handle case of hanging pfaults.stp correctly
-closewait
+wait
 if {$ok == 2} { pass "$test ($ok)" } { fail "$test ($ok)" }

@@ -163,4 +163,6 @@ if {$m6 == 5} {
 }
 
 
-closewait
+
+close
+wait

@@ -24,6 +24,6 @@ expect {
     eof { }
     timeout { }
 }
-closewait
+wait
 
 if {$neg > 0} { pass "$test ($pos $neg)" } else { fail "$test ($pos $neg)" }

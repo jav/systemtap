@@ -9,7 +9,7 @@ if {! [installtest_p]} { untested $test } else {
         timeout { fail "$test (timeout)" }
         eof
     }
-    closewait
+    wait
     if {$ok > 10} { pass $test } else { fail $test }
 }
 
@@ -24,7 +24,7 @@ if {! [installtest_p]} { untested $test } else {
         timeout { fail "$test (timeout)" }
         eof
     }
-    closewait
+    wait
     if {$ok > 10} { pass $test } else { fail $test }
 }
 

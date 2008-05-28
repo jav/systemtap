@@ -1,9 +1,3 @@
-2008-05-27  Frank Ch. Eigler  <fche@elastic.org>
-
-	* lib/systemtap.exp (closewait): New proc for aggressive child
-	process reaping.
-	ALL/*.exp: Updated to use it instead of ad-hoc catch/close/wait.
-
 2008-05-26  Frank Ch. Eigler  <fche@elastic.org>
 
 	* testsuite/stmtvars.exp: Tweaked matching regexps, tested on

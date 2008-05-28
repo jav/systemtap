@@ -34,7 +34,7 @@ expect {
 }
 exec kill -INT -[exp_pid]
 #FIXME does not handle case of hanging pfaults.stp correctly
-closewait
+wait
 exec rm -f $test.ko
 if {$ok != 8} {fail "conditional probes ($ok)"}
 

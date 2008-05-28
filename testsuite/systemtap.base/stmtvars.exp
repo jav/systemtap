@@ -10,7 +10,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof
     }
-closewait
+wait
 verbose -log "pc=$pc vars=$vars"
 if {$pc != 0 && $vars != ""} { pass "$test - .function" } { fail "$test - .function" }
 
@@ -23,7 +23,7 @@ expect {
     timeout { fail "$test (timeout)" }
     eof
     }
-closewait
+wait
 
 verbose -log "pc2=$pc2 vars2=$vars2"
 if {$pc == $pc2 && $vars == $vars2} { pass $test } { fail $test }
