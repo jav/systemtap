@@ -1,5 +1,8 @@
 2008-05-28  David Smith  <dsmith@redhat.com>
 
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Removed debug print.
+
 	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
 	Instead of adding clone handlers, just call the probes directly.
 	(utrace_derived_probe_group::emit_module_decls): For syscall

@@ -5580,7 +5580,6 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "if (! IS_ERR(engine) && engine != NULL) {";
       s.op->indent(1);
       s.op->newline() << "utrace_detach(tsk, engine);";
-      s.op->newline() << "_stp_dbug(__FUNCTION__, __LINE__, \"*** disconnected!\\n\");";
       s.op->newline(-1) << "}";
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
