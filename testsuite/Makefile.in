@@ -459,7 +459,7 @@ all-local:
 
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
-	-rm -rf .systemtap .cache_test 2>/dev/null
+	-rm -rf .systemtap* .cache_test* 2>/dev/null
 
 # automake's dejagnu library already runs check-DEJAGNU before check-local
 # That's why we need to add "execrc" to $(RUNTEST) - to ensure that this
@@ -468,7 +468,7 @@ check-local:
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
 # but installcheck does not follow an implicit check-DEJAGNU, go figure
-installcheck: clean site.exp
+installcheck: site.exp
 	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts install"
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

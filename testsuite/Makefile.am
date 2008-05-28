@@ -9,7 +9,7 @@ all-local:
 
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
-	-rm -rf .systemtap* .cache_test* 2>&1 /dev/null
+	-rm -rf .systemtap* .cache_test* 2>/dev/null
 
 DEJAZILLA=@dejazilla@
 
@@ -20,7 +20,7 @@ check-local:
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
 # but installcheck does not follow an implicit check-DEJAGNU, go figure
-installcheck: clean site.exp
+installcheck: site.exp
 	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts install"
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
