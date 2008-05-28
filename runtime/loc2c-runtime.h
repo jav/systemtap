@@ -9,6 +9,7 @@
  * later version.
  */
 
+#include <linux/uaccess.h>
 #include <linux/types.h>
 #define intptr_t long
 #define uintptr_t unsigned long
@@ -30,9 +31,6 @@
 	    | ((__typeof (base)) (base)					      \
 	       << (sizeof (base) * 8 - (higherbits) - (nbits))))
 
-
-/* These operations are target-specific.  */
-#include <asm/uaccess.h>
 
 /* Given a DWARF register number, fetch its intptr_t (long) value from the
    probe context, or store a new value into the probe context.
@@ -172,6 +170,61 @@
 #define store_register(regno,value) (c->regs->gprs[regno] = (value))
 
 #endif
+
+
+/* NB: this autoconf is always disabled, pending further performance eval. */
+#if defined STAPCONF_PROBE_KERNEL
+
+/* Kernel 2.6.26 adds probe_kernel_{read,write}, which lets us write
+ * architecture-neutral implementations of kread, kwrite, deref, and
+ * store_deref.
+ *
+ * NB: deref and store_deref shouldn't be used with 64-bit values on 32-bit
+ * platforms, because they will lose data in the conversion to intptr_t.  We
+ * generally want to encourage using kread and kwrite instead.
+ */
+
+#define kread(ptr) ({ \
+        typeof(*(ptr)) _v; \
+        if (probe_kernel_read((void *)&_v, (void *)(ptr), sizeof(*(ptr)))) \
+            DEREF_FAULT(ptr); \
+        _v; \
+    })
+
+#define kwrite(ptr, value) ({ \
+        typeof(*(ptr)) _v; \
+        _v = (typeof(*(ptr)))(value); \
+        if (probe_kernel_write((void *)(ptr), (void *)&_v, sizeof(*(ptr)))) \
+            STORE_DEREF_FAULT(ptr); \
+    })
+
+#define deref(size, addr) ({ \
+    intptr_t _i; \
+    switch (size) { \
+      case 1: _i = kread((u8 *)(addr)); break; \
+      case 2: _i = kread((u16 *)(addr)); break; \
+      case 4: _i = kread((u32 *)(addr)); break; \
+      case 8: _i = kread((u64 *)(addr)); break; \
+      default: __deref_bad(); \
+      /* uninitialized _i should also be caught by -Werror */ \
+    } \
+    _i; \
+  })
+
+#define store_deref(size, addr, value) ({ \
+    switch (size) { \
+      case 1: kwrite((u8 *)(addr), (value)); break; \
+      case 2: kwrite((u16 *)(addr), (value)); break; \
+      case 4: kwrite((u32 *)(addr), (value)); break; \
+      case 8: kwrite((u64 *)(addr), (value)); break; \
+      default: __store_deref_bad(); \
+    } \
+  })
+
+extern void __deref_bad(void);
+extern void __store_deref_bad(void);
+
+#else /* !STAPCONF_PROBE_KERNEL */
 
 #if defined __i386__
 
@@ -614,38 +667,6 @@
 
 #endif /* (s390) || (s390x) */
 
-#define deref_string(dst, addr, maxbytes)				      \
-  ({									      \
-    uintptr_t _addr;							      \
-    size_t _len;							      \
-    unsigned char _c;							      \
-    char *_d = (dst);							      \
-    for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
-	 _len > 1 && (_c = deref (1, _addr)) != '\0';			      \
-	 --_len, ++_addr)						      \
-      if (_d)								      \
-	 *_d++ = _c;							      \
-    if (_d)								      \
-      *_d = '\0';							      \
-    (dst);								      \
-  })
-
-#define deref_buffer(dst, addr, numbytes)				      \
-  ({									      \
-    uintptr_t _addr;							      \
-    size_t _len;							      \
-    unsigned char _c;							      \
-    char *_d = (dst);							      \
-    for (_len = (numbytes), _addr = (uintptr_t)(addr);			      \
-	 _len >= 1;			                                      \
-	 --_len, ++_addr) {						      \
-      _c = deref (1, _addr);						      \
-      if (_d)								      \
-	 *_d++ = _c;							      \
-    }                                                                         \
-    (dst);								      \
-  })
-
 
 #if defined __i386__
 
@@ -677,6 +698,40 @@
   ( store_deref(sizeof(*(ptr)), (ptr), (long)(typeof(*(ptr)))(value)) )
 
 #endif
+
+#endif /* STAPCONF_PROBE_KERNEL */
+
+#define deref_string(dst, addr, maxbytes)				      \
+  ({									      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    unsigned char _c;							      \
+    char *_d = (dst);							      \
+    for (_len = (maxbytes), _addr = (uintptr_t)(addr);			      \
+	 _len > 1 && (_c = deref (1, _addr)) != '\0';			      \
+	 --_len, ++_addr)						      \
+      if (_d)								      \
+	 *_d++ = _c;							      \
+    if (_d)								      \
+      *_d = '\0';							      \
+    (dst);								      \
+  })
+
+#define deref_buffer(dst, addr, numbytes)				      \
+  ({									      \
+    uintptr_t _addr;							      \
+    size_t _len;							      \
+    unsigned char _c;							      \
+    char *_d = (dst);							      \
+    for (_len = (numbytes), _addr = (uintptr_t)(addr);			      \
+	 _len >= 1;			                                      \
+	 --_len, ++_addr) {						      \
+      _c = deref (1, _addr);						      \
+      if (_d)								      \
+	 *_d++ = _c;							      \
+    }                                                                         \
+    (dst);								      \
+  })
 
 #define CATCH_DEREF_FAULT()				\
   if (0) {						\

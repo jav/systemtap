@@ -1,3 +1,9 @@
+2008-05-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6432
+	* buildrun.cxx (compile_pass): Add the autoconf test for probe_kernel_*
+	functions, but leave it #if-0'ed for now.
+
 2008-05-23  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 4311, cont.  Address powerpc dwarfless test failures.
@@ -6,9 +12,9 @@
 	that map to sys_ni_syscall.
 	
 2008-05-23  Srinivasa DS <srinivasa@in.ibm.com>
- 	PR 6429: Inerim fix to avoid compilation error of systemtap module
- 	* runtime/transport/symbols.c:  added definitions of struct
- 	module_sect_attr, struct module_sect_attrs for 2.6.25 above kernels.
+	PR 6429: Inerim fix to avoid compilation error of systemtap module
+	* runtime/transport/symbols.c:  added definitions of struct
+	module_sect_attr, struct module_sect_attrs for 2.6.25 above kernels.
 
 2008-05-22  Wenji Huang <wenji.huang@oracle.com>
 

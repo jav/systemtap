@@ -27,6 +27,7 @@
 ./runtime/autoconf-ktime-get-real.c
 ./runtime/autoconf-module-nsections.c
 ./runtime/autoconf-nameidata.c
+./runtime/autoconf-probe-kernel.c
 ./runtime/autoconf-tsc-khz.c
 ./runtime/autoconf-unregister-kprobes.c
 ./runtime/autoconf-x86-uniregs.c
@@ -94,7 +95,6 @@
 ./runtime/staprun/staprun.c
 ./runtime/staprun/staprun_funcs.c
 ./runtime/staprun/staprun.h
-./runtime/staprun/symbols.c
 ./runtime/staprun/unwind_data.c
 ./runtime/stat.c
 ./runtime/stat-common.c

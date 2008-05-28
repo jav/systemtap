@@ -1,3 +1,11 @@
+2008-05-27  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6432
+	* loc2c-runtime.h (kread, kwrite, deref, store_deref): Add
+	architecture-neutral implementations, using probe_kernel_*
+	facilites (controlled by autoconf).
+	* autoconf-probe-kernel.c: test for above.
+
 2008-05-16  David Smith  <dsmith@redhat.com>
 
 	PR 6499.

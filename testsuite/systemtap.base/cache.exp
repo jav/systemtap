@@ -65,8 +65,9 @@ proc stap_compile { TEST_NAME flags script args } {
 }
 
 # Since we need a clean cache directory, we'll use a temporary
-# systemtap directory and cache
-set local_systemtap_dir [exec pwd]/.cache_test
+# systemtap directory and cache (add user name so make check and
+# sudo make installcheck don't clobber each others)
+set local_systemtap_dir [exec pwd]/.cache_test-[exec whoami]
 exec /bin/rm -rf $local_systemtap_dir
 if [info exists env(SYSTEMTAP_DIR)] {
     set old_systemtap_dir $env(SYSTEMTAP_DIR)

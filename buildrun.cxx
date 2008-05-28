@@ -96,6 +96,12 @@ compile_pass (systemtap_session& s)
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-nameidata.c, -DSTAPCONF_NAMEIDATA_CLEANUP,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-unregister-kprobes.c, -DSTAPCONF_UNREGISTER_KPROBES,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-module-nsections.c, -DSTAPCONF_MODULE_NSECTIONS,)" << endl;
+#if 0
+  /* NB: For now, the performance hit of probe_kernel_read/write (vs. our
+   * homegrown safe-access functions) is deemed undesireable, so we'll skip
+   * this autoconf. */
+  o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-probe-kernel.c, -DSTAPCONF_PROBE_KERNEL,)" << endl;
+#endif
 
   for (unsigned i=0; i<s.macros.size(); i++)
     o << "EXTRA_CFLAGS += -D " << lex_cast_qstring(s.macros[i]) << endl;

@@ -38,8 +38,9 @@ proc setup_systemtap_environment {} {
         set env(SRCDIR) $srcdir/..
     }
 
-    # Use a local systemtap directory and cache
-    set env(SYSTEMTAP_DIR) [exec pwd]/.systemtap
+    # Use a local systemtap directory and cache.  Add user name so
+    # make check and sudo make check don't clobber each other.
+    set env(SYSTEMTAP_DIR) [exec pwd]/.systemtap-[exec whoami]
 
     # PATH, SYSTEMTAP_TAPSET, SYSTEMTAP_RUNTIME, LD_LIBRARY_PATH are already set.
     foreach var {PATH STAP SRCDIR SYSTEMTAP_TAPSET SYSTEMTAP_RUNTIME SYSTEMTAP_DIR LD_LIBRARY_PATH} {
