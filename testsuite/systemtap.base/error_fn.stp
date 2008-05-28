@@ -1,0 +1,17 @@
+probe begin {
+    println("systemtap starting probe")
+    println("systemtap ending probe")
+}
+
+function generate_error:long() {
+    error("synthetic error")
+    return 1
+}
+
+function compute:long() {
+    return generate_error()
+}
+
+probe end {
+    compute()
+}

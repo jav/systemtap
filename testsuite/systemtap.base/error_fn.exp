@@ -1,0 +1,7 @@
+# check that errors in nested functions are not lost on return
+# bugzilla 6529
+
+set test "error_fn"
+
+stap_run $srcdir/$subdir/$test.stp no_load ".*synthetic error.*"
+
