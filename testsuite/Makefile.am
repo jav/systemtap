@@ -9,7 +9,7 @@ all-local:
 
 clean-local:
 	-rm -f ./stap site.exp systemtap.sum systemtap.log
-	-rm -rf .systemtap .cache_test 2>/dev/null
+	-rm -rf .systemtap* .cache_test* 2>&1 /dev/null
 
 DEJAZILLA=@dejazilla@
 

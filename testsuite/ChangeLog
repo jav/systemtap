@@ -1,3 +1,12 @@
+2008-05-28  Mark Wielaard  <mwielaard@redhat.com>
+
+	* lib/systemtap.exp (setup_systemtap_environment): Create user
+	based cache dir.
+	* systemtap.base/cache.exp: Likewise.
+	* Makefile.am (clean-local): Try to remove all .systemtap and
+	.cache_test dirs.
+
+
 2008-05-27  Frank Ch. Eigler  <fche@elastic.org>
 
 	* lib/systemtap.exp (closewait): New proc for aggressive child
