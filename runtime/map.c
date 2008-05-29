@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * Map Functions
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007, 2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -631,130 +631,6 @@ void _stp_map_sortn(MAP map, int n, int keynum, int dir)
 	}
 }
 
-static int print_keytype (char *fmt, int type, key_data *kd)
-{
-	//dbug ("*fmt = %c\n", *fmt);
-	switch (type) {
-	case STRING:
-		if (*fmt != 's')
-			return 1;
-		_stp_print (kd->strp);
-		break;
-	case INT64:
-		if (*fmt == 'x')
-			_stp_printf("%llx", kd->val);
-		else if (*fmt == 'X')
-			_stp_printf("%llX", kd->val);
-		else if (*fmt == 'd')
-			_stp_printf("%lld", kd->val);
-		else if (*fmt == 'p') {
-#if BITS_PER_LONG == 64
-			_stp_printf("%016llx", kd->val);
-#else
-			_stp_printf("%08llx", kd->val);
-#endif
-		} else if (*fmt == 'P')
-			_stp_symbol_print ((unsigned long)kd->val);
-		else
-			return 1;
-		break;
-	default:
-		return 1;
-		break;
-	}
-	return 0;
-}
-
-static void print_valtype (MAP map, char *fmt, struct map_node *ptr)
-{
-	switch (map->type) {
-	case STRING:
-		if (*fmt == 's')
-			_stp_print (_stp_get_str(ptr));
-		break;
-	case INT64:
-	{
-		int64_t val = _stp_get_int64(ptr);
-		if (*fmt == 'x')
-			_stp_printf("%llx", val);
-		else if (*fmt == 'X')
-			_stp_printf("%llX", val);
-		else if (*fmt == 'd')
-			_stp_printf("%lld", val);
-		else if (*fmt == 'p') {
-#if BITS_PER_LONG == 64
-			_stp_printf("%016llx", val);
-#else
-			_stp_printf("%08llx", val);
-#endif
-		} else if (*fmt == 'P')
-			_stp_symbol_print ((unsigned long)val);
-		break;
-	}
-	case STAT:
-	{
-		stat *sd = _stp_get_stat(ptr);
-		_stp_stat_print_valtype (fmt, &map->hist, sd, 0); 
-		break;
-	}
-	default:
-		break;
-	}
-}
-
-/** Print a Map.
- * Print a Map using a format string.
- *
- * @param map Map
- * @param fmt @ref format_string
- */
-void _stp_map_printn (MAP map, int n, const char *fmt)
-{
-	struct map_node *ptr;
-	int type, num;
-	key_data kd;
-
-	if (n < 0)
-		return;
-
-	foreach (map, ptr) {
-		char *f = (char *)fmt;
-		while (*f) {
-			f = next_fmt (f, &num);
-			if (num) {
-				/* key */
-				kd = (*map->get_key)(ptr, num, &type);
-				if (type != END)
-					print_keytype (f, type, &kd);
-			} else {
-				/* value */
-				print_valtype (map, f, ptr);
-			}
-			if (*f)
-				f++;
-		}
-		_stp_print_char ('\n');
-		if (n && (--n <= 0))
-			break;
-	}
-	_stp_print_char ('\n');
-	_stp_print_flush();
-}
-
-/** Print a Map.
- * Print a Map using a format string.
- *
- * @param map Map
- * @param fmt @ref format_string
- */
-#define _stp_map_print(map,fmt) _stp_map_printn(map,0,fmt)
-
-void _stp_pmap_printn_cpu (PMAP pmap, int n, const char *fmt, int cpu)
-{
-	MAP m = per_cpu_ptr (pmap->map, cpu);
-	_stp_map_printn (m, n, fmt);
-}
-
 static struct map_node *_stp_new_agg(MAP agg, struct hlist_head *ahead, struct map_node *ptr)
 {
 	struct map_node *aptr;
@@ -911,8 +787,8 @@ MAP _stp_pmap_agg (PMAP pmap)
  */
 #define _stp_pmap_get_agg(pmap) (&pmap->agg)
 
-#define _stp_pmap_printn(map,n,fmt) _stp_map_printn (_stp_pmap_agg(map), n, fmt)
-#define _stp_pmap_print(map,fmt) _stp_map_printn(_stp_pmap_agg(map),0,fmt)
+/* #define _stp_pmap_printn(map,n,fmt) _stp_map_printn (_stp_pmap_agg(map), n, fmt) */
+/* #define _stp_pmap_print(map,fmt) _stp_map_printn(_stp_pmap_agg(map),0,fmt) */
 
 static void _new_map_clear_node (struct map_node *m)
 {

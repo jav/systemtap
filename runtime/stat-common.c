@@ -1,6 +1,6 @@
 /* -*- linux-c -*- 
  * common stats functions for aggragations and maps
- * Copyright (C) 2005, 2006, 2007 Red Hat Inc.
+ * Copyright (C) 2005, 2006, 2007, 2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -297,39 +297,6 @@ static void _stp_stat_print_histogram (Hist st, stat *sd)
 	}
 	_stp_print_char('\n');
 	_stp_print_flush();
-}
-
-static void _stp_stat_print_valtype (char *fmt, Hist st, stat *sd, int cpu)
-{
-	switch (*fmt) {
-	case 'C':
-		_stp_printf("%lld", sd->count);
-		break;
-	case 'm':
-		_stp_printf("%lld", sd->min);
-		break;
-	case 'M':
-		_stp_printf("%lld", sd->max);
-		break;
-	case 'S':
-		_stp_printf("%lld", sd->sum);
-		break;
-	case 'A':
-	{
-		int64_t avg = 0;
-		if (sd->count)
-			avg = _stp_div64 (NULL, sd->sum, sd->count);
-		_stp_printf("%lld", avg);
-		break;
-	}
-	case 'H':
-		_stp_stat_print_histogram (st, sd);
-		_stp_print_flush();
-		break;
-	case 'c':
-		_stp_printf("%d", cpu);
-		break;
-	}
 }
 
 static void __stp_stat_add (Hist st, stat *sd, int64_t val)

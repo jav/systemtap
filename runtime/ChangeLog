@@ -1,3 +1,18 @@
+2008-05-29  Stan Cox  <scox@redhat.com>
+
+	* map.c (print_keytype): Remove.
+	(print_valtype): Remove.
+	(_stp_map_printn): Remove.
+	(_stp_map_print): Remove.
+	(_stp_pmap_printn): Remove.
+	* stat-common.c (_stp_stat_print_valtype): Remove.
+	* stat.c (__stp_stat_print): Remove.
+	(_stp_stat_print_cpu): Remove.
+	(_stp_stat_print): Remove.
+	* Makefile: Delete.
+	* tests: Delete.
+	* probes: Delete.
+
 2008-05-28  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_attach_match_filename): Added

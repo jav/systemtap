@@ -1,9 +1,0 @@
-/** @dir tasklet
-Sample probe in a tasklet.  Useful for interrupt context testing.
-
-\verbatim
-> make
-> ./stp stp_tasklet.ko
-\endverbatim
-
-*/
