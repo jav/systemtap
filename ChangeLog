@@ -1,3 +1,9 @@
+2008-05-28  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6529
+	* translate.cxx (c_unparser::visit_return_statement): Make sure we
+	notice errors from evaluating return values.
+
 2008-05-28  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):

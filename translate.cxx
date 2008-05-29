@@ -2738,6 +2738,10 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
+
+  // make sure we reports errors from computing s->value
+  visit_statement (s, 0, false);
+
   o->newline() << "c->last_error = \"\";";
   // NB: last_error needs to get reset to NULL in the caller
   // probe/function
