@@ -1594,6 +1594,14 @@ check:
 	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH=$(PWD) RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 installcheck:
+	if test \! -e $(DESTDIR)$(bindir)/stap; then \
+	  echo $(DESTDIR)$(bindir)/stap doesn\'t exist, run make install; \
+	  exit -1; \
+	fi
+	if test $(builddir)/stap -nt $(DESTDIR)$(bindir)/stap; then \
+	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
+	  exit -1; \
+	fi
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)"
 
 rpm:	systemtap.spec dist

@@ -147,6 +147,10 @@
 
 	PR 6429.
 	* Makefile.am: Don't link stapio with -ldw.
+
+2008-05-29  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (installcheck): Check that make install was run.
 	* Makefile.in: Regenerated.
 
 2008-06-02  Frank Ch. Eigler  <fche@elastic.org>
