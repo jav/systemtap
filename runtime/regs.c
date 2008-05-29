@@ -256,6 +256,13 @@ void _stp_print_regs(struct pt_regs * regs)
 
 #elif defined (__powerpc64__)
 
+static int _stp_probing_32bit_app(struct pt_regs *regs)
+{
+	if (!regs)
+		return 0;
+	return (user_mode(regs) && test_tsk_thread_flag(current, TIF_32BIT));
+}
+
 void _stp_print_regs(struct pt_regs * regs)
 {
 	int i;

@@ -1,3 +1,8 @@
+2008-05-29  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
+
+	PR 6563
+	* tapset/ppc64/registers.stp: Fix powerpc dwarfless argument access
+
 2008-05-28  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 6529
