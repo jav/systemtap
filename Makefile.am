@@ -59,6 +59,10 @@ dist-gitversion: git_version.stamp
 git_version.h:
 	$(srcdir)/git_version.sh -k --srcdir $(srcdir) -o git_version.h
 
+.PHONY: cscope
+cscope:
+	git ls-files '*.cxx' '*.c' '*.h' | grep -v '^testsuite' > cscope.files
+	cscope -b -q
 
 
 stap_CXXFLAGS = $(AM_CXXFLAGS)

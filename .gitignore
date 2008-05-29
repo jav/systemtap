@@ -3,6 +3,7 @@
 *#
 .#*
 autom4te.*
+cscope.files
 cscope*out
 config.h
 config.log
