@@ -1,4 +1,4 @@
-global _reg_offsets, _stp_regs_registered
+global _reg_offsets, _stp_regs_registered, _sp_offset, _ss_offset
 
 function _stp_register_regs() {
 	/* Same order as pt_regs */
@@ -16,8 +16,10 @@ function _stp_register_regs() {
 	_reg_offsets["eip"] = 44	_reg_offsets["ip"] = 44
 	_reg_offsets["xcs"] = 48	_reg_offsets["cs"] = 48
 	_reg_offsets["eflags"] = 52	_reg_offsets["flags"] = 52
-	_reg_offsets["esp"] = 56	_reg_offsets["sp"] = 56	sp_offset = 56
-	_reg_offsets["xss"] = 60	_reg_offsets["ss"] = 60	ss_offset = 60
+	_reg_offsets["esp"] = 56	_reg_offsets["sp"] = 56
+	_reg_offsets["xss"] = 60	_reg_offsets["ss"] = 60
+	_sp_offset = 56
+	_ss_offset = 60
 
 	_stp_regs_registered = 1
 }
@@ -49,6 +51,10 @@ function _stp_kernel_ss:long () %{
 
 /* Return the named register value as a signed value. */
 function register:long (name:string) {
+	if (!registers_valid()) {
+		error("cannot access CPU registers in this context")
+		return 0
+	}
 	if (!_stp_regs_registered)
 		_stp_register_regs()
 	offset = _reg_offsets[name]
@@ -57,9 +63,9 @@ function register:long (name:string) {
 		return 0
 	}
 	if (_stp_probing_kernel()) {
-		if (offset == sp_offset)
-			return _stp_kernel_sp(sp_offset)
-		else if (offset == ss_offset)
+		if (offset == _sp_offset)
+			return _stp_kernel_sp(_sp_offset)
+		else if (offset == _ss_offset)
 			return _stp_kernel_ss()
 	}
 	return _stp_get_register_by_offset(offset)

@@ -1,3 +1,13 @@
+2008-05-29  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 6582
+	* tapset/context.stp: Added registers_valid().
+	* stapfuncs.5.in: Ditto.
+	* tapset/x86_64/registers.stp: Added registers_valid() check.
+	* tapset/ppc64/registers.stp: Ditto.
+	* tapset/i686/registers.stp: Ditto.  Also fixed warnings due to
+	sp_offset and ss_offset not being global.
+
 2008-05-29  Ananth N Mavinakayanahalli <ananth@in.ibm.com>
 
 	PR 6563

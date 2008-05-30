@@ -345,6 +345,11 @@ Return the maximum number of file handles for the given task.
 
 .SS CPU REGISTERS
 .TP
+registers_valid:long ()
+Return 1 if register() and u_register() can be used
+in the current context, or 0 otherwise.
+For example, registers_valid() returns 0 when called from a begin or end probe.
+.TP
 register:long (name:string)
 Return the value of the named CPU register,
 as it was saved when the current probe point was hit.
@@ -368,7 +373,7 @@ segment registers: xcs/cs, xss/ss.
 
 For powerpc, the following names are recognized:
 r1, r2... r31, nip, msr, orig_gpr3, ctr, link, xer, ccr, softe, trap,
-dar, dsisr, result;
+dar, dsisr, result.
 
 .TP
 u_register:long (name:string)

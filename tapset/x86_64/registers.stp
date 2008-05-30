@@ -54,6 +54,10 @@ function _stp_sign_extend32:long (value:long) %{
 
 function _stp_register:long (name:string, sign_extend:long) {
 	reg32 = 0
+	if (!registers_valid()) {
+		error("cannot access CPU registers in this context")
+		return 0
+	}
 	if (!_stp_regs_registered)
 		_stp_register_regs()
 	offset = _reg_offsets[name]
