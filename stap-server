@@ -1,0 +1,436 @@
+#!/bin/bash
+
+# Compile server for systemtap
+#
+# Copyright (C) 2008 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# This script unpacks the tar file provided on stdin and uses the information
+# contained in the unpacked tree to build the requested systemtap kernel module.
+# This module is then written to stdout.
+
+#-----------------------------------------------------------------------------
+# Helper functions.
+#-----------------------------------------------------------------------------
+# function: configuration
+function configuration {
+    # Configuration
+    tmpdir_prefix_client=stap.client
+    tmpdir_prefix_server=stap.server
+}
+
+# function: initialization
+function initialization {
+    # Initialization
+    wd=`pwd`
+
+    # Default options settings
+    p_phase=5
+    keep_temps=0
+
+    # Make a temp directory to work in.
+    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
+	fatal "ERROR: cannot create temporary directory " $tmpdir_server
+    tmpdir_env=`dirname $tmpdir_server`
+}
+
+# function: receive_request
+#
+# Receive a tar file representing the request from the client:
+# The protocol is:
+#   client -> "request: $tmpdir_client"
+#   server -> "send: $tar_client"
+#   client: copies file to server:$tar_client
+#   client -> "waiting:"
+#
+# $tmpdir_client is provided on the request so that we know what
+# the tar file will expand to.
+function receive_request {
+    cd $tmpdir_server
+
+    # Request from the client is on stdin
+    read
+    line=$REPLY
+
+    # Extract the name of the client's temp directory.
+    tmpdir_client=`expr "$line" : 'request: \([^ ]*\)$'`
+    test "X$tmpdir_client" == "X" && \
+	fatal "ERROR: client request temp dir name is missing" $tmpdir_server
+    tmpdir_client=$tmpdir_server/$tmpdir_client
+
+    # Create the client's temp dir now to guarantee that it won't clash with
+    # any files we need to create later.
+    mkdir $tmpdir_client || \
+	fatal "ERROR: cannot create client temp dir" $tmpdir_client
+
+    # Create a place to receive the client's tar file
+    tar_client=`mktemp -t $tmpdir_prefix_client.tgz.XXXXXX` || \
+	fatal "ERROR: cannot create temporary tar file " $tar_client
+
+    # Request that the file be sent.
+    echo "send: $tar_client"
+
+    # Wait for confirmation that the tar file has arrived via rysnc
+    read
+    line=$REPLY
+    test "X$line" = "Xwaiting:" || \
+	fatal "ERROR: client send confirmation, '$line', is incorrect"
+}
+
+# function: unpack_request
+#
+# Unpack the tar file received from the client and make the contents
+# available for use when running 'stap'
+function unpack_request {
+    cd $tmpdir_server
+
+    # Unpack the tar file.
+    tar -xzf $tar_client || \
+	fatal "ERROR: cannot unpack tar archive $tar_client"
+
+    # Move the client's temp directory to a local temp location
+    local tmpdir_client_base=`basename $tar_client | sed 's,\.tgz,,'`
+    local local_tmpdir_client=`mktemp -dt $tmpdir_client_base.XXXXXX` || \
+	fatal "ERROR: cannot create temporary tar file " $local_tmpdir_client
+    mv $tmpdir_client/* $local_tmpdir_client
+    rm -fr $tmpdir_client
+    tmpdir_client=$local_tmpdir_client
+}
+
+# function: check_request
+#
+# Examine the contents of the request to make sure that they are valid.
+function check_request {
+    # Work in the temporary directory provided by the client
+    cd $tmpdir_client
+
+    # Add the necessary info from files in our temporary directory.
+    cmdline=`read_data_file cmdline`
+    test "X$cmdline" != "X" || exit 1
+    client_sysinfo=`read_data_file sysinfo`
+    test "X$client_sysinfo" != "X" || exit 1
+
+    # Extract the client's config info.
+    client_name=`expr "$client_sysinfo" : 'stap [^ ]* [^ ]* \([^ ]*\).*'`
+    client_sysinfo=`echo $client_sysinfo | sed s,$client_name,,`
+
+    # Extract the server's config info.
+    server_sysinfo=`uname -sr`
+    server_name=`expr "$server_sysinfo" : '[^ ]* \([^ ]*\).*'`
+    server_sysinfo=`echo $server_sysinfo | sed s,$server_name,,`
+    local stap_version=`stap -V 2>&1 | grep version`
+    stap_version=`expr "$stap_version" : '.*version \([0-9./]*\).*'`
+    server_sysinfo="stap $stap_version $server_sysinfo"
+
+    check_compatibility "$client_sysinfo" "$server_sysinfo"
+}
+
+# function check_compaibility SYSINFO1 SYSINFO2
+#
+# Make sure that systemtap as described by SYSINFO1 and SYSINFO2 are compaible
+function check_compatibility {
+    # TODO: This needs work
+    # - In stap version x/y, require that the y matches
+    # - Make sure the linux kernel matches exactly
+    local sysinfo1=`echo $1 | sed 's,stap [^/]*/,stap ,'`
+    local sysinfo2=`echo $2 | sed 's,stap [^/]*/,stap ,'`
+
+    if test "$sysinfo1" != "$sysinfo2"; then
+	error "ERROR: system configuration mismatch"
+	error "  client: $sysinfo1"
+	fatal "  server: $sysinfo2"
+    fi
+}
+
+# function: read_data_file PREFIX
+#
+# Find a file whose name matches '$1.??????' whose first line
+# contents are '$1: .*'. Read and echo the first line.
+function read_data_file {
+    for f in `ls $1.??????`
+    do
+	read < $f
+	line=$REPLY
+	data=`expr "$line" : "$1: \\\(.*\\\)"`
+	if test "X$data" != "X"; then
+	    echo $data
+	    return
+	fi
+    done
+    fatal "ERROR: Data file for $1 not found"
+}
+
+# function: parse_options [ STAP-OPTIONS ]
+#
+# Examine the command line. We need not do much checking, but we do need to
+# parse all options in order to discover the ones we're interested in.
+function parse_options {
+    while test $# != 0
+    do
+	advance_p=0
+	dash_seen=0
+
+        # Start of a new token.
+	first_token=$1
+	until test $advance_p != 0
+	do
+            # Identify the next option
+	    first_char=`expr "$first_token" : '\(.\).*'`
+	    if test $dash_seen = 0; then
+		if test "$first_char" = "-"; then
+		    if test "$first_token" != "-"; then
+	                # It's not a lone dash, so it's an option. Remove the dash.
+			first_token=`expr "$first_token" : '-\(.*\)'`
+			dash_seen=1
+			first_char=`expr "$first_token" : '\(.\).*'`
+		    fi
+		fi
+		if test $dash_seen = 0; then
+	            # The dash has not been seen. This is either the script file
+	            # name or an arument to be passed to the probe module.
+	            # If this is the first time, and -e has not been specified,
+	            # then it could be the name of the script file.
+		    if test "X$e_script" = "X" -a "X$script_file" = "X"; then
+			script_file=$first_token
+		    fi
+		    advance_p=$(($advance_p + 1))
+		    break
+		fi
+	    fi
+	    
+            # We are at the start of an option. Look at the first character.
+	    case $first_char in
+		c)
+		    get_arg $first_token "$2"
+		    ;;
+		D)
+		    get_arg $first_token $2
+		    ;;
+		e)
+		    get_arg $first_token "$2"
+		    process_e "$stap_arg"
+		    ;;
+		I)
+		    get_arg $first_token $2
+		    ;;	
+		k)
+		    keep_temps=1
+		    ;;
+		l)
+		    get_arg $first_token $2
+		    ;;
+		m)
+		    get_arg $first_token $2
+		    ;;
+		o)
+		    get_arg $first_token $2
+		    ;;
+		p)
+		    get_arg $first_token $2
+		    process_p $stap_arg
+		    ;;
+		r)
+		    get_arg $first_token $2
+		    ;;	
+		R)
+		    get_arg $first_token $2
+		    ;;	
+		s)
+		    get_arg $first_token $2
+		    ;;	
+		x)
+		    get_arg $first_token $2
+		    ;;
+		*)
+		    # An unknown flag. Ignore it.
+		    ;;
+	    esac
+
+	    if test $advance_p = 0; then
+	        # Just another flag character. Consume it.
+		first_token=`expr "$first_token" : '.\(.*\)'`
+		if test "X$first_token" = "X"; then
+		    advance_p=$(($advance_p + 1))
+		fi
+	    fi
+	done
+
+        # Consume the arguments we just processed.
+	while test $advance_p != 0
+	do
+	    shift
+	    advance_p=$(($advance_p - 1))
+	done
+    done
+}
+
+# function: get_arg FIRSTWORD SECONDWORD
+#
+# Collect an argument to the given option
+function get_arg {
+    # Remove first character. Advance to the next token, if the first one
+    # is exhausted.
+    local first=`expr "$1" : '.\(.*\)'`
+    if test "X$first" = "X"; then
+	shift
+	advance_p=$(($advance_p + 1))
+	first=$1
+    fi
+
+    stap_arg="$first"
+    advance_p=$(($advance_p + 1))
+}
+
+# function: process_e ARGUMENT
+#
+# Process the -e flag.
+function process_e {
+    if test "X$e_script" = "X"; then
+	e_script="$1"
+	script_file=
+    fi
+}
+
+# function: process_p ARGUMENT
+#
+# Process the -p flag.
+function process_p {
+    if test $1 -ge 1 -a $1 -le 5; then
+	p_phase=$1
+    fi
+}
+
+# function: call_stap
+#
+# Call 'stap' with the options provided. Don't run past phase 4.
+function call_stap {
+    # Invoke systemtap.
+    # Use -k so we can return results to the client
+    # Limit to -p4. i.e. don't run the module
+    cd $tmpdir_client
+    if test $p_phase -gt 4; then
+	server_p_phase=4
+    else
+	server_p_phase=$p_phase
+    fi
+    eval stap $cmdline -k -p $server_p_phase \
+	>>  $tmpdir_server/stdout \
+	2>> $tmpdir_server/stderr
+}
+
+# function: create_response
+#
+# Add information to the server's temp directory representing the response
+# to the client.
+function create_response {
+    cd $tmpdir_server
+
+    # Get the name of the stap temp directory, which was kept, from stderr.
+    tmpdir_line=`cat stderr | grep "Keeping temp"`
+    tmpdir_stap=`expr "$tmpdir_line" : '.*"\(.*\)".*'`
+
+    # Remove the message about keeping th<e stap temp directory from stderr, unless
+    # the user did request to keep it.
+    if test $keep_temps != 1; then
+	sed -i "/^Keeping temp/d" stderr
+    fi
+
+    # If the user specified -p5, remove the name of the kernel module from stdout.
+    if test $p_phase = 5; then
+	sed -i '/\.ko$/d' stdout
+    fi
+
+    # Add the contents of the stap temp directory to the server output directory
+    ln -s $tmpdir_stap `basename $tmpdir_stap`
+}
+
+# function: package_response
+#
+# Package the server's temp directory into a form suitable for sending to the
+# client.
+function package_response {
+    cd $tmpdir_env
+    # Create a place to generate our tar file of our temporary directory
+    local tmpdir_server_base=`basename $tmpdir_server`
+    tar_server=$tmpdir_env/`mktemp $tmpdir_server_base.tgz.XXXXXX` || \
+	fatal "ERROR: cannot create temporary tar file " $tar_server
+    chmod +r $tar_server
+
+    # Generate the tar file
+    tar -czphf $tar_server `basename $tmpdir_server` || \
+	fatal "ERROR: tar of $tmpdir_server failed"
+}
+
+# function: send_response
+#
+# Notify the client that $tar_server is ready and wait for the client to take
+# it.
+# The protocol is:
+#   server -> "sending: $tar_server $tmpdir_server $tmpdir_stap"
+#   client: copies file from server:$tar_server
+#   client -> "OK"
+function send_response {
+    # TODO needed for rsync from client to work
+    chmod +r $tmpdir_server
+
+    # Tell the client where to get it.
+    echo "sending: $tar_server `basename $tmpdir_server` `basename $tmpdir_stap`"
+
+    # Wait for the confirmation
+    read
+    line=$REPLY
+    test $line = "OK" || \
+	fatal "ERROR: client final confirmation, '$line' is incorrect"
+}
+
+# function: fatal [ MESSAGE ]
+#
+# Fatal error
+# Prints its arguments to stderr and exits
+function fatal {
+    echo "$@" >&2
+    cleanup
+    exit 1
+}
+
+# Non fatal error
+# Prints its arguments to stderr but does not exit
+function error {
+    echo "$@" >&2
+}
+
+# function cleanup
+#
+# Cleanup work files unless asked to keep them.
+function cleanup {
+    # Clean up.
+    cd $tmpdir_env
+    if test $keep_temps != 1; then
+	rm -fr $tar_client
+	rm -fr $tmpdir_client
+	rm -fr $tar_server
+	rm -fr $tmpdir_server
+	rm -fr $tmpdir_stap
+    fi
+}
+
+#-----------------------------------------------------------------------------
+# Beginning of main line execution.
+#-----------------------------------------------------------------------------
+configuration
+initialization
+receive_request
+unpack_request
+check_request
+eval parse_options $cmdline
+call_stap
+create_response
+package_response
+send_response 
+cleanup
+
+exit 0
