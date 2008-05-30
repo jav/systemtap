@@ -114,7 +114,6 @@ builddir = @builddir@
 cap_LIBS = @cap_LIBS@
 datadir = @datadir@
 datarootdir = @datarootdir@
-dejazilla = @dejazilla@
 docdir = @docdir@
 dvidir = @dvidir@
 elfutils_abs_srcdir = @elfutils_abs_srcdir@
