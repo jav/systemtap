@@ -4407,6 +4407,8 @@ emit_symbol_data_from_debuginfo(systemtap_session& s, ofstream& kallsyms_out)
   
   static char *debuginfo_path = (debuginfo_env_arr ?
 				 debuginfo_env_arr : debuginfo_path_arr);
+  static const  char *debug_path = (debuginfo_env_arr ?
+				 debuginfo_env_arr : s.kernel_release.c_str());
   
   static const Dwfl_Callbacks kernel_callbacks =
     {
@@ -4422,7 +4424,7 @@ emit_symbol_data_from_debuginfo(systemtap_session& s, ofstream& kallsyms_out)
       dwfl_report_begin (dwfl);
       
       int rc = dwfl_linux_kernel_report_offline (dwfl,
-						 s.kernel_release.c_str(),
+						 debug_path,
 						 kernel_filter);
       dwfl_report_end (dwfl, NULL, NULL);
       if (rc < 0)

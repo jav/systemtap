@@ -1040,10 +1040,8 @@ RPM, unless overridden by the
 .I SYSTEMTAP_DEBUGINFO_PATH
 environment variable.  The default value for this variable is
 .IR \-:.debug:/usr/lib/debug .
-This path is interpreted by elfutils as a list of base directories of
-which various subdirectories will be searched.  The \- at the front
-means to skip CRC matching for separated debug objects and is a small
-performance win if no possible corruption is suspected.
+Elfutils searches vmlinux in this path and it interprets the path as a base
+directory of which various subdirectories will be searched for finding modules.
 .TP
 @prefix@/bin/staprun
 The auxiliary program supervising module loading, interaction, and

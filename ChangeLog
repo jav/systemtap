@@ -1,3 +1,11 @@
+2008-05-30  Srinivasa DS  <srinivasa@in.ibm.com>
+	PR 6562
+	* tapsets.cxx, translate.cxx: modified one argument for
+				dwfl_linux_kernel_report_offline().
+	* testsuite/systemtap.base/debugpath.exp: Modified testsuite for new
+				SYSTEMTAP_DEBUGINFO_PATH behaviour.
+	* stap.1.in: Modified manpage for new SYSTEMTAP_DEBUGINFO_PATH behaviour.
+
 2008-05-29  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 6582

@@ -903,6 +903,8 @@ struct dwflpp
 
     static char *debuginfo_path = (debuginfo_env_arr ?
                                    debuginfo_env_arr : debuginfo_path_arr);
+    static const char *debug_path = (debuginfo_env_arr ?
+                                   debuginfo_env_arr : sess.kernel_release.c_str());
 
     static const Dwfl_Callbacks proc_callbacks =
       {
@@ -936,7 +938,7 @@ struct dwflpp
         else
           callback = NULL;
 	int rc = dwfl_linux_kernel_report_offline (dwfl,
-						   sess.kernel_release.c_str(),
+						   debug_path,
 						   /* selection predicate */
 						   callback);
 	if (debuginfo_needed)

@@ -10,7 +10,8 @@ expect {
 wait
 
 set test "debugpath-good"
-spawn env SYSTEMTAP_DEBUGINFO_PATH=:/usr/lib/debug:build stap -e "probe kernel.function(\"sys_open\") {}" -p2
+set uname [exec /bin/uname -r]
+spawn env SYSTEMTAP_DEBUGINFO_PATH=/lib/modules/$uname/build stap -e "probe kernel.function(\"sys_open\") {}" -p2
 expect {
 	-re {kernel.function.*pc=} { pass $test }
 	timeout { fail "$test (timeout2)" }
