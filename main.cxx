@@ -662,6 +662,16 @@ main (int argc, char * const argv [])
       usage(s, 1);
     }
 
+  // translate path of runtime to absolute path
+  if (s.runtime_path[0] != '/')
+    {
+      char cwd[PATH_MAX];
+      if (getcwd(cwd, sizeof(cwd)))
+        {
+          s.runtime_path = string(cwd) + "/" + s.runtime_path;
+        }
+    }
+
   int rc = 0;
 
   // override PATH and LC_ALL

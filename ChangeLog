@@ -1,3 +1,8 @@
+2008-06-02  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* main.cxx (main): Fix the problem that kernel module compile
+	failure when runtime directory is set to relative path(stap -R).
+
 2008-05-30  Srinivasa DS  <srinivasa@in.ibm.com>
 	PR 6562
 	* tapsets.cxx, translate.cxx: modified one argument for
