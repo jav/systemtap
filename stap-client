@@ -23,7 +23,7 @@
 function configuration {
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
-    port=65000
+    avahi_service_tag=_stap._tcp
 }
 
 # function: initialization
@@ -442,9 +442,12 @@ function unpack_response {
 # Find and establish connection with a compatibale stap server.
 function find_and_connect_to_server {
     # Find a server
-    server=`avahi-browse --all --terminate | match_server`
+    server=`avahi-browse $avahi_service_tag --terminate -r 2>/dev/null | match_server`
     test "X$server" != "X" || \
 	fatal "ERROR: cannot find a server"
+
+    port=`expr "$server" : '[^/]*/\(.*\)'`
+    server=`expr "$server" : '\([^/]*\)/.*'`
 
     # Open a connection to the server
     if ! exec 3<> /dev/tcp/$server/$port; then
@@ -462,45 +465,60 @@ function match_server {
     while read
     do
 	# Examine the next service descriptor
-	avahi_service=$REPLY
-
 	# Is it a stap server?
-	server_name=`expr "$avahi_service" : '\+.*stap.*on \([^ ]*\).*'`
-	if test "X$server_name" = "X"; then
-	    continue
-	fi
+	(echo $REPLY | grep -q "^=.*_stap") || continue
+	
+	# Get the details of the service
+	local service_tag equal data
+	while read service_tag equal service_data
+	do
+	    case $service_tag in
+		'=' )
+		    break ;;
+		hostname )
+		    server_name=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    ;;
+		address )
+		    # Sometimes (seems random), avahi-resolve-host-name resolves a local server to its
+		    # hardware address rather its ip address. Keep trying until we get
+		    # an ip address.
+		    server_ip=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    local attempt
+		    for ((attempt=0; $attempt < 5; ++attempt))
+		    do
+			server_ip=`expr "$server_ip" : '^\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
+			if test "X$server_ip" != "X"; then
+			    break
+			fi
+		        # Resolve the server.domain to an ip address.
+			server_ip=`avahi-resolve-host-name $hostname`
+			server_ip=`expr "$server_ip" : '.*	\(.*\)$'`
+		    done
+		    ;;
+		port )
+		    port=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    ;;
+		txt )
+		    sysinfo_server=`expr "$service_data" : '\[\"\([^]]*\)\"\]'`
+		    sysinfo_server=`expr "$sysinfo_server" : '[^/]*/\(.*\)'`
+		    ;;
+		* )
+		    break ;;
+	    esac
+	done
 
 	# It is a stap server, but is it compatible?
-	sysinfo_server=`expr "$avahi_service" : '\+.*stap[^/]*/\(.*\) on.*'`
 	sysinfo_server="stap $sysinfo_server"
 	if test "$sysinfo_server" != "`client_sysinfo`"; then
 	    continue
 	fi
 
-	# Now resolve the server's ip address. First find the domain.
-	domain_name=`expr "$avahi_service" : '\+.* \([^ ]*\)$'`
-
-	# Sometimes (seems random), avahi-resolve-host-name resolves a local server to its
-	# hardware address rather its ip address. Keep trying until we get
-	# an ip address.
-	local attempt
-	for ((attempt=0; $attempt < 5; ++attempt))
-	do
-	    # Resolve the server.domain to an ip address.
-	    server=`avahi-resolve-host-name $server_name.$domain_name`
-	    server=`expr "$server" : '.*	\(.*\)$'`
-
-	    server_ip=`expr "$server" : '^\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
-	    if test "X$server_ip" != "X"; then
-		break
-	    fi
-	done
 	if test "X$server_ip" != "X"; then
 	    break
 	fi
     done
 
-    echo $server_ip
+    echo $server_ip/$port
 }
 
 # function: disconnect_from_server

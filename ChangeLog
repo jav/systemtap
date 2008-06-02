@@ -1,7 +1,20 @@
+2008-06-02    <brolley@redhat.com>
+
+	* stap-client (initialization): port is no longer hard coded.
+	Initialize avahi_service_tag to _stap._tcp.
+	(find_and_connect_to_server): Handle server/port returned by
+	match_server.
+	(match_server): Obtain server ip address and port from output
+	of the -r option to avahi-browse. Echo a server/port pair.
+
 2008-06-02  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* main.cxx (main): Fix the problem that kernel module compile
 	failure when runtime directory is set to relative path(stap -R).
+
+2008-05-30  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client, stap-server: New compile server and client scripts.
 
 2008-05-30  Srinivasa DS  <srinivasa@in.ibm.com>
 	PR 6562
