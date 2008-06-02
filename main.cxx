@@ -26,6 +26,7 @@
 #include <sstream>
 #include <cerrno>
 #include <cstdlib>
+#include <limits.h>
 
 extern "C" {
 #include <glob.h>
