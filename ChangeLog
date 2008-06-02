@@ -1,3 +1,9 @@
+2008-06-02  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR6534
+	* translate.cxx (c_unparser::emit_module_init): Use UTS_RELEASE
+	instead of uts_sem/utsname() as kernel version-checking hack.
+
 2008-06-02    <brolley@redhat.com>
 
 	* stap-client (initialization): port is no longer hard coded.

@@ -1087,27 +1087,12 @@ c_unparser::emit_module_init ()
   // one may install the incorrect debuginfo or -devel RPM, and try to
   // run a probe compiled for a different version.  Catch this early,
   // just in case modversions didn't.
-  o->newline() << "down_read (& uts_sem);";
   o->newline() << "{";
-  o->indent(1);
+  o->newline(1) << "const char* release = UTS_RELEASE;";
 
-  // Args, linux 2.6.19+ did a switcheroo on system_utsname to utsname().
-  o->newline() << "#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,19)";
-  o->newline() << "const char* machine = utsname()->machine;";
-  o->newline() << "const char* release = utsname()->release;";
-  o->newline() << "#else";
-  o->newline() << "const char* machine = system_utsname.machine;";
-  o->newline() << "const char* release = system_utsname.release;";
-  o->newline() << "#endif";
-
-  o->newline() << "if (strcmp (machine, "
-               << lex_cast_qstring (session->architecture) << ")) {";
-  o->newline(1) << "_stp_error (\"module machine mismatch (%s vs %s)\", "
-                << "machine, "
-                << lex_cast_qstring (session->architecture)
-                << ");";
-  o->newline() << "rc = -EINVAL;";
-  o->newline(-1) << "}";
+  // o->newline() << "const char* machine = UTS_MACHINE;";
+  // NB: We could compare UTS_MACHINE too, but on x86 it lies
+  // (UTS_MACHINE=i386, but uname -m is i686).  Sheesh.
 
   o->newline() << "if (strcmp (release, "
                << lex_cast_qstring (session->kernel_release) << ")) {";
@@ -1118,8 +1103,9 @@ c_unparser::emit_module_init ()
   o->newline() << "rc = -EINVAL;";
   o->newline(-1) << "}";
 
+  // XXX: perform buildid-based checking if able
+
   o->newline(-1) << "}";
-  o->newline() << "up_read (& uts_sem);";
   o->newline() << "if (rc) goto out;";
 
   o->newline() << "(void) probe_point;";
@@ -4567,7 +4553,10 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#include <linux/random.h>";
+      s.op->newline() << "#include <linux/utsrelease.h>";
       s.op->newline() << "#include <linux/utsname.h>";
+      s.op->newline() << "#include <linux/version.h>";
+      s.op->newline() << "#include <linux/compile.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
 
       // XXX: old 2.6 kernel hack
