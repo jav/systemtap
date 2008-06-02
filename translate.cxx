@@ -1090,6 +1090,12 @@ c_unparser::emit_module_init ()
   o->newline() << "{";
   o->newline(1) << "const char* release = UTS_RELEASE;";
 
+  // NB: This UTS_RELEASE compile-time macro directly checks only that 
+  // the compile-time kbuild tree matches the compile-time debuginfo/etc.
+  // It does not check the run time kernel value.  However, this is
+  // probably OK since the kbuild modversions system aims to prevent
+  // mismatches between kbuild and runtime versions at module-loading time.
+
   // o->newline() << "const char* machine = UTS_MACHINE;";
   // NB: We could compare UTS_MACHINE too, but on x86 it lies
   // (UTS_MACHINE=i386, but uname -m is i686).  Sheesh.
