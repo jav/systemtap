@@ -1,3 +1,8 @@
+2008-06-03  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* aux_syscalls.stp (__fork_flags): Support for new clone flags
+	before linux-2.6.25.
+
 2008-05-26  Mark Wielaard  <mwielaard@redhat.com>
 
 	* task.stp : Only include fdtable.h for kernel versions > 2.6.25.
