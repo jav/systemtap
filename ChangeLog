@@ -251,6 +251,7 @@
 
 	PR 6429.
 	* Makefile.am: Don't link stapio with -ldw.
+	* Makefile.in: Regenerated.
 
 2008-05-29  Mark Wielaard  <mwielaard@redhat.com>
 
