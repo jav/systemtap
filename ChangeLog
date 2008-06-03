@@ -1,3 +1,9 @@
+2008-06-03  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx: Added several string tokens that are used instead
+	of hard-coded strings.
+	(register_standard_tapsets): Uses new string tokens.
+
 2008-06-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6429.

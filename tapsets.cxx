@@ -81,6 +81,10 @@ public:
 // begin/end/error probes are run right during registration / deregistration
 // ------------------------------------------------------------------------
 
+static string TOK_BEGIN("begin");
+static string TOK_END("end");
+static string TOK_ERROR("error");
+
 enum be_t { BEGIN, END, ERROR };
 
 struct be_derived_probe: public derived_probe
@@ -130,9 +134,9 @@ struct be_builder: public derived_probe_builder
 		     vector<derived_probe *> & finished_results)
   {
     int64_t priority;
-    if ((type == BEGIN && !get_param(parameters, "begin", priority)) ||
-        (type == END && !get_param(parameters, "end", priority)) ||
-        (type == ERROR && !get_param(parameters, "error", priority)))
+    if ((type == BEGIN && !get_param(parameters, TOK_BEGIN, priority)) ||
+        (type == END && !get_param(parameters, TOK_END, priority)) ||
+        (type == ERROR && !get_param(parameters, TOK_ERROR, priority)))
       priority = 0;
     finished_results.push_back(
 	new be_derived_probe(base, location, type, priority));
@@ -413,6 +417,8 @@ be_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 // never probes are never run
 // ------------------------------------------------------------------------
+
+static string TOK_NEVER("never");
 
 struct never_derived_probe: public derived_probe
 {
@@ -5094,6 +5100,8 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
 // utrace user-space probes
 // ------------------------------------------------------------------------
 
+static string TOK_SYSCALL("syscall");
+
 // Since we don't have access to <linux/utrace.h>, we'll have to
 // define our own version of the UTRACE_EVENT flags.
 enum utrace_derived_probe_flags {
@@ -5287,7 +5295,7 @@ struct utrace_builder: public derived_probe_builder
 
     if (has_null_param (parameters, "death"))
       flags = UDPF_DEATH;
-    else if (has_null_param (parameters, "syscall"))
+    else if (has_null_param (parameters, TOK_SYSCALL))
       {
 	if (has_null_param (parameters, TOK_RETURN))
 	  flags = UDPF_SYSCALL_EXIT;
@@ -5859,6 +5867,8 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
 // ------------------------------------------------------------------------
 
 
+static string TOK_TIMER("timer");
+
 struct timer_derived_probe: public derived_probe
 {
   int64_t interval, randomize;
@@ -6146,6 +6156,10 @@ profile_derived_probe_group::emit_module_exit (systemtap_session& s)
 // procfs file derived probes
 // ------------------------------------------------------------------------
 
+
+static string TOK_PROCFS("procfs");
+static string TOK_READ("read");
+static string TOK_WRITE("write");
 
 struct procfs_derived_probe: public derived_probe
 {
@@ -6566,9 +6580,9 @@ procfs_builder::build(systemtap_session & sess,
 		      vector<derived_probe *> & finished_results)
 {
   string path;
-  bool has_procfs = get_param(parameters, "procfs", path);
-  bool has_read = (parameters.find("read") != parameters.end());
-  bool has_write = (parameters.find("write") != parameters.end());
+  bool has_procfs = get_param(parameters, TOK_PROCFS, path);
+  bool has_read = (parameters.find(TOK_READ) != parameters.end());
+  bool has_write = (parameters.find(TOK_WRITE) != parameters.end());
 
   // If no procfs path, default to "command".  The runtime will do
   // this for us, but if we don't do it here, we'll think the
@@ -6625,6 +6639,8 @@ procfs_builder::build(systemtap_session & sess,
 // statically inserted macro-based derived probes
 // ------------------------------------------------------------------------
 
+static string TOK_MARK("mark");
+static string TOK_FORMAT("format");
 
 struct mark_arg
 {
@@ -6859,9 +6875,9 @@ mark_derived_probe::mark_derived_probe (systemtap_session &s,
 {
   // create synthetic probe point name; preserve condition
   vector<probe_point::component*> comps;
-  comps.push_back (new probe_point::component ("kernel"));
-  comps.push_back (new probe_point::component ("mark", new literal_string (probe_name)));
-  comps.push_back (new probe_point::component ("format", new literal_string (probe_format)));
+  comps.push_back (new probe_point::component (TOK_KERNEL));
+  comps.push_back (new probe_point::component (TOK_MARK, new literal_string (probe_name)));
+  comps.push_back (new probe_point::component (TOK_FORMAT, new literal_string (probe_format)));
   this->sole_location()->components = comps;
 
   // expand the marker format
@@ -7231,9 +7247,9 @@ mark_builder::build(systemtap_session & sess,
 		    vector<derived_probe *> & finished_results)
 {
   string mark_str_val;
-  bool has_mark_str = get_param (parameters, "mark", mark_str_val);
+  bool has_mark_str = get_param (parameters, TOK_MARK, mark_str_val);
   string mark_format_val;
-  bool has_mark_format = get_param (parameters, "format", mark_format_val);
+  bool has_mark_format = get_param (parameters, TOK_FORMAT, mark_format_val);
   assert (has_mark_str);
   (void) has_mark_str;
 
@@ -7595,7 +7611,7 @@ timer_builder::register_patterns(match_node *root)
 {
   derived_probe_builder *builder = new timer_builder();
 
-  root = root->bind("timer");
+  root = root->bind(TOK_TIMER);
 
   root->bind_num("s")->bind(builder);
   root->bind_num("s")->bind_num("randomize")->bind(builder);
@@ -8051,18 +8067,19 @@ perfmon_derived_probe_group::emit_module_init (translator_output* o)
 void
 register_standard_tapsets(systemtap_session & s)
 {
-  s.pattern_root->bind("begin")->bind(new be_builder(BEGIN));
-  s.pattern_root->bind_num("begin")->bind(new be_builder(BEGIN));
-  s.pattern_root->bind("end")->bind(new be_builder(END));
-  s.pattern_root->bind_num("end")->bind(new be_builder(END));
-  s.pattern_root->bind("error")->bind(new be_builder(ERROR));
-  s.pattern_root->bind_num("error")->bind(new be_builder(ERROR));
+  s.pattern_root->bind(TOK_BEGIN)->bind(new be_builder(BEGIN));
+  s.pattern_root->bind_num(TOK_BEGIN)->bind(new be_builder(BEGIN));
+  s.pattern_root->bind(TOK_END)->bind(new be_builder(END));
+  s.pattern_root->bind_num(TOK_END)->bind(new be_builder(END));
+  s.pattern_root->bind(TOK_ERROR)->bind(new be_builder(ERROR));
+  s.pattern_root->bind_num(TOK_ERROR)->bind(new be_builder(ERROR));
 
-  s.pattern_root->bind("never")->bind(new never_builder());
+  s.pattern_root->bind(TOK_NEVER)->bind(new never_builder());
 
   timer_builder::register_patterns(s.pattern_root);
-  s.pattern_root->bind("timer")->bind("profile")->bind(new profile_builder());
-  s.pattern_root->bind("perfmon")->bind_str("counter")->bind(new perfmon_builder());
+  s.pattern_root->bind(TOK_TIMER)->bind("profile")->bind(new profile_builder());
+  s.pattern_root->bind("perfmon")->bind_str("counter")
+    ->bind(new perfmon_builder());
 
   // dwarf-based kernel/module parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
@@ -8084,13 +8101,13 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind("exec")
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("syscall")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("syscall")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("syscall")->bind(TOK_RETURN)
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("syscall")->bind(TOK_RETURN)
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind("death")
     ->bind(new utrace_builder ());
@@ -8098,15 +8115,18 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
 
   // marker-based parts
-  s.pattern_root->bind("kernel")->bind_str("mark")->bind(new mark_builder());
-  s.pattern_root->bind("kernel")->bind_str("mark")->bind_str("format")
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)
+    ->bind(new mark_builder());
+  s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)->bind_str(TOK_FORMAT)
     ->bind(new mark_builder());
 
   // procfs parts
-  s.pattern_root->bind("procfs")->bind("read")->bind(new procfs_builder());
-  s.pattern_root->bind_str("procfs")->bind("read")->bind(new procfs_builder());
-  s.pattern_root->bind("procfs")->bind("write")->bind(new procfs_builder());
-  s.pattern_root->bind_str("procfs")->bind("write")->bind(new procfs_builder());
+  s.pattern_root->bind(TOK_PROCFS)->bind(TOK_READ)->bind(new procfs_builder());
+  s.pattern_root->bind_str(TOK_PROCFS)->bind(TOK_READ)
+    ->bind(new procfs_builder());
+  s.pattern_root->bind(TOK_PROCFS)->bind(TOK_WRITE)->bind(new procfs_builder());
+  s.pattern_root->bind_str(TOK_PROCFS)->bind(TOK_WRITE)
+    ->bind(new procfs_builder());
 }
 
 
