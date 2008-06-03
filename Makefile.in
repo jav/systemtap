@@ -37,12 +37,8 @@ bin_PROGRAMS = stap$(EXEEXT) staprun$(EXEEXT)
 @BUILD_ELFUTILS_TRUE@am__append_2 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 @BUILD_ELFUTILS_TRUE@		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
-@BUILD_ELFUTILS_TRUE@am__append_3 = -Iinclude-elfutils
-@BUILD_ELFUTILS_TRUE@am__append_4 = -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
-@BUILD_ELFUTILS_TRUE@			-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
-
-@BUILD_ELFUTILS_TRUE@am__append_5 = stamp-elfutils
-@BUILD_ELFUTILS_TRUE@am__append_6 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_3 = stamp-elfutils
+@BUILD_ELFUTILS_TRUE@am__append_4 = stamp-elfutils
 @BUILD_ELFUTILS_FALSE@stap_DEPENDENCIES =
 pkglibexec_PROGRAMS = stapio$(EXEEXT)
 noinst_PROGRAMS = loc2c-test$(EXEEXT)
@@ -107,8 +103,7 @@ stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
 am_stapio_OBJECTS = stapio-stapio.$(OBJEXT) stapio-mainloop.$(OBJEXT) \
 	stapio-common.$(OBJEXT) stapio-ctl.$(OBJEXT) \
-	stapio-unwind_data.$(OBJEXT) stapio-relay.$(OBJEXT) \
-	stapio-relay_old.$(OBJEXT)
+	stapio-relay.$(OBJEXT) stapio-relay_old.$(OBJEXT)
 stapio_OBJECTS = $(am_stapio_OBJECTS)
 stapio_DEPENDENCIES =
 stapio_LINK = $(CCLD) $(stapio_CFLAGS) $(CFLAGS) $(stapio_LDFLAGS) \
@@ -291,15 +286,15 @@ stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 # of foo-bar.c if it is newer than the foo-bar.o file. Using noinst_foo_SOURCES
 # instead of foo_SOURCES prevents shipping git_version.h in dist tarballs,
 # which may cause false GIT_FOO readings.
-BUILT_SOURCES = git_version.stamp $(am__append_5)
-CLEANFILES = git_version.h $(am__append_6) $(pkglibexec_PROGRAMS)
+BUILT_SOURCES = git_version.stamp $(am__append_3)
+CLEANFILES = git_version.h $(am__append_4) $(pkglibexec_PROGRAMS)
 GIT_VERSION_CMD = $(SHELL) $(top_srcdir)/git_version.sh
 stap_CXXFLAGS = $(AM_CXXFLAGS)
 stap_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_1)
 stap_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_2)
 staprun_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
-stapio_CPPFLAGS = $(AM_CPPFLAGS) $(am__append_3)
-stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@ $(am__append_4)
+stapio_CPPFLAGS = $(AM_CPPFLAGS)
+stapio_LDFLAGS = $(AM_LDFLAGS) @PIELDFLAGS@
 
 # This tells automake's "make distcheck" what we need to compile.
 @BUILD_ELFUTILS_TRUE@DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
@@ -313,11 +308,11 @@ staprun_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS) -DSINGLE_THREADED
 staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c runtime/staprun/unwind_data.c \
+	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c 
 
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-stapio_LDADD = @PROCFLAGS@ -ldw -lpthread
+stapio_LDADD = @PROCFLAGS@ -lpthread
 loc2c_test_SOURCES = loc2c-test.c loc2c.c
 loc2c_test_CPPFLAGS = $(stap_CPPFLAGS)
 loc2c_test_LDFLAGS = $(stap_LDFLAGS)
@@ -528,7 +523,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-relay.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-relay_old.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-stapio.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stapio-unwind_data.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-cap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/staprun-ctl.Po@am__quote@
@@ -660,20 +654,6 @@ stapio-ctl.obj: runtime/staprun/ctl.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/ctl.c' object='stapio-ctl.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -c -o stapio-ctl.obj `if test -f 'runtime/staprun/ctl.c'; then $(CYGPATH_W) 'runtime/staprun/ctl.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/ctl.c'; fi`
-
-stapio-unwind_data.o: runtime/staprun/unwind_data.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -MT stapio-unwind_data.o -MD -MP -MF $(DEPDIR)/stapio-unwind_data.Tpo -c -o stapio-unwind_data.o `test -f 'runtime/staprun/unwind_data.c' || echo '$(srcdir)/'`runtime/staprun/unwind_data.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/stapio-unwind_data.Tpo $(DEPDIR)/stapio-unwind_data.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/unwind_data.c' object='stapio-unwind_data.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -c -o stapio-unwind_data.o `test -f 'runtime/staprun/unwind_data.c' || echo '$(srcdir)/'`runtime/staprun/unwind_data.c
-
-stapio-unwind_data.obj: runtime/staprun/unwind_data.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -MT stapio-unwind_data.obj -MD -MP -MF $(DEPDIR)/stapio-unwind_data.Tpo -c -o stapio-unwind_data.obj `if test -f 'runtime/staprun/unwind_data.c'; then $(CYGPATH_W) 'runtime/staprun/unwind_data.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/unwind_data.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/stapio-unwind_data.Tpo $(DEPDIR)/stapio-unwind_data.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/staprun/unwind_data.c' object='stapio-unwind_data.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -c -o stapio-unwind_data.obj `if test -f 'runtime/staprun/unwind_data.c'; then $(CYGPATH_W) 'runtime/staprun/unwind_data.c'; else $(CYGPATH_W) '$(srcdir)/runtime/staprun/unwind_data.c'; fi`
 
 stapio-relay.o: runtime/staprun/relay.c
 @am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stapio_CPPFLAGS) $(CPPFLAGS) $(stapio_CFLAGS) $(CFLAGS) -MT stapio-relay.o -MD -MP -MF $(DEPDIR)/stapio-relay.Tpo -c -o stapio-relay.o `test -f 'runtime/staprun/relay.c' || echo '$(srcdir)/'`runtime/staprun/relay.c

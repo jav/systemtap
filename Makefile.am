@@ -79,9 +79,6 @@ DISTCHECK_CONFIGURE_FLAGS = --with-elfutils=$(elfutils_abs_srcdir)
 stap_CPPFLAGS += -Iinclude-elfutils
 stap_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
 		-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
-stapio_CPPFLAGS += -Iinclude-elfutils
-stapio_LDFLAGS += -Llib-elfutils -Wl,-rpath-link,lib-elfutils \
-			-Wl,--enable-new-dtags,-rpath,$(pkglibdir)
 
 
 BUILT_SOURCES += stamp-elfutils
@@ -114,10 +111,10 @@ staprun_LDADD = @PROCFLAGS@ @cap_LIBS@
 
 stapio_SOURCES = runtime/staprun/stapio.c \
 	runtime/staprun/mainloop.c runtime/staprun/common.c \
-	runtime/staprun/ctl.c runtime/staprun/unwind_data.c \
+	runtime/staprun/ctl.c \
 	runtime/staprun/relay.c runtime/staprun/relay_old.c 
 stapio_CFLAGS = @PROCFLAGS@ $(AM_CFLAGS)
-stapio_LDADD = @PROCFLAGS@ -ldw -lpthread
+stapio_LDADD = @PROCFLAGS@ -lpthread
 
 install-exec-hook:
 	if [ `id -u` -eq 0 ]; then chmod 04111 "$(DESTDIR)$(bindir)/staprun"; fi

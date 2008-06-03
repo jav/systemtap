@@ -629,7 +629,7 @@ static int _stp_init_modules(void)
 	/* unlocks the list */
 	modules_op->stop(NULL, NULL);
 
-#ifdef STP_USE_DWARF_UNWINDER
+#if 0 /* def STP_USE_DWARF_UNWINDER */
 	/* now that we have all the modules, ask for their unwind info */
 	{
 		unsigned long flags;

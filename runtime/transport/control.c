@@ -36,9 +36,6 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 #endif
 
 	switch (type) {
-	case STP_UNWIND:
-		_stp_do_unwind_data(buf, count);
-		break;
 	case STP_START:
 		if (started == 0) {
 			struct _stp_msg_start st;

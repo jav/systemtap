@@ -1,3 +1,10 @@
+2008-06-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6429
+	* symbols.c (_stp_init_modules): Don't ask stapio for unwind data.
+	* control.c (_stp_ctl_write_cmd): Remove STP_UNWIND support.
+	* transport_msgs.h (STP_UNWIND): Remove declaration.
+
 2008-04-30  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	PR 5645

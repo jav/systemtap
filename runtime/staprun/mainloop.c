@@ -387,18 +387,6 @@ int stp_main_loop(void)
 					cleanup_and_exit(1);
 				break;
 			}
-		case STP_UNWIND:
-			{
-				int len;
-				char *ptr = (char *)data;
-				while (nb > 0) {
-					send_unwind_data(ptr);
-					len = strlen(ptr) + 1;
-					ptr += len;
-					nb -= len;
-				}
-				break;
-			}
 		default:
 			err("WARNING: ignored message of type %d\n", (type));
 		}
