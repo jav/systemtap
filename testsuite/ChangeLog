@@ -1,6 +1,10 @@
+2008-06-03  Frank Ch. Eigler  <fche@elastic.org>
+
+	* systemtap.context/backtrace.tcl: Tolerate "(inexact)" backtraces.
+
 2008-05-30  Wenji Huang <wenji.huang@oracle.com>
 
-        * systemtap.base/debugpath.exp: Add path for self-built kernel.
+	* systemtap.base/debugpath.exp: Add path for self-built kernel.
 
 2008-05-28  Josh Stone  <joshua.i.stone@intel.com>
 

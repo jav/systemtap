@@ -20,11 +20,11 @@ expect {
 	incr m1
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m1 == 1} {incr m1}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m1 == 2} {incr m1}
 	    }
 	}
@@ -34,11 +34,11 @@ expect {
 	incr m2
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m2 == 1} {incr m2}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m2 == 2} {incr m2}
 	    }
 	}
@@ -50,15 +50,15 @@ expect {
 	incr m3
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m3 == 1} {incr m3}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m3 == 2} {incr m3}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m3 == 3} {incr m3}
 	    }
 	}
@@ -68,11 +68,11 @@ expect {
 	incr m4
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m4 == 1} {incr m4}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m4 == 2} {incr m4}
 		exp_continue
 	    }
@@ -88,19 +88,19 @@ expect {
 	incr m5
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m5 == 1} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m5 == 2} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m5 == 3} {incr m5}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m5 == 4} {incr m5}
 	    }
 	}
@@ -110,19 +110,19 @@ expect {
 	incr m6
 	expect {
 	    -timeout 5
-	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func4[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m6 == 1} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func3[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m6 == 2} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func2[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m6 == 3} {incr m6}
 		exp_continue
 	    }
-	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]\r\n} {
+	    -re {^ 0x[a-f0-9]+ : yyy_func1[^\[]+\[systemtap_test_module2\]( \(inexact\))?\r\n} {
 		if {$m6 == 4} {incr m6}
 	    }
 	}
