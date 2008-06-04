@@ -2853,6 +2853,20 @@ probe syscall.unlink.return = kernel.function("sys_unlink").return {
 	name = "unlink"
 	retstr = returnstr(1)
 }
+
+# unshare ____________________________________________________
+# new function with 2.6.16
+# long sys_unshare(unsigned long unshare_flags)
+probe syscall.unshare = kernel.function("sys_unshare") ? {
+	name = "unshare"
+	unshare_flags = $unshare_flags
+	argstr = __fork_flags(unshare_flags)
+}
+probe syscall.unshare.return = kernel.function("sys_unshare").return ? {
+	name = "unshare"
+	retstr = returnstr(1)
+}
+
 # uselib _____________________________________________________
 #
 # asmlinkage long

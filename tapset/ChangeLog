@@ -1,3 +1,7 @@
+2008-06-04  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls2.stp: Add sys_unshare.
+
 2008-06-03  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* aux_syscalls.stp (__fork_flags): Support for new clone flags
