@@ -1,0 +1,53 @@
+%( arch == "i386" %? global ir = "eax", lr = "eax" %)
+%( arch == "i686" %? global ir = "eax", lr = "eax" %)
+%( arch == "x86_64" %? global ir = "eax", lr = "rax" %)
+%( arch == "ppc64" %? global ir = "r3", lr = "r3" %)
+
+probe module("systemtap_test_module2").function("yyy_int") {
+	printf("yyy_int %d %d %d\n", int_arg(1), int_arg(2), int_arg(3))
+}
+probe module("systemtap_test_module2").function("yyy_int").return {
+	printf("yyy_int returns %d\n", register(ir))
+}
+probe module("systemtap_test_module2").function("yyy_uint") {
+	printf("yyy_uint %d %d %d\n", uint_arg(1), uint_arg(2), uint_arg(3))
+}
+probe module("systemtap_test_module2").function("yyy_uint").return {
+	printf("yyy_uint returns %d\n", u_register(ir))
+}
+probe module("systemtap_test_module2").function("yyy_long") {
+	printf("yyy_long %d %d %d\n", long_arg(1), long_arg(2), long_arg(3))
+}
+probe module("systemtap_test_module2").function("yyy_long").return {
+	printf("yyy_long returns %d\n", register(lr))
+}
+probe module("systemtap_test_module2").function("yyy_int64") {
+# On i386, kernel is built with -mregparm=3.  The first arg occupies the
+# first two registers.  The 2nd arg is not split between the 3rd register
+# and the stack, but rather passed entirely on the stack.
+	printf("yyy_int64 %d %d %d\n",
+%( arch == "i386" %? s64_arg(1), s64_arg(4), s64_arg(6)
+%: %( arch == "i686" %? s64_arg(1), s64_arg(4), s64_arg(6)
+   %: s64_arg(1), s64_arg(2), s64_arg(3)
+   %)
+%)
+					)
+}
+probe module("systemtap_test_module2").function("yyy_int64").return {
+	printf("yyy_int64 returns %d\n", register(ir))
+}
+probe module("systemtap_test_module2").function("yyy_char") {
+	printf("yyy_char %1b %1b %1b\n", int_arg(1), int_arg(2), int_arg(3))
+}
+probe module("systemtap_test_module2").function("yyy_char").return {
+	printf("yyy_char returns %1b\n", register(ir))
+}
+probe module("systemtap_test_module2").function("yyy_str") {
+	printf("yyy_str %s-%s-%s\n", kernel_string(pointer_arg(1)), kernel_string(pointer_arg(2)), kernel_string(pointer_arg(3)))
+}
+probe module("systemtap_test_module2").function("yyy_str").return {
+	printf("yyy_str returns %s\n", kernel_string(register(lr)))
+}
+probe begin {
+	printf("READY\n")
+}

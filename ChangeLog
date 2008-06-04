@@ -1,5 +1,10 @@
 2008-06-04  Jim Keniston  <jkenisto@us.ibm.com>
 
+	* testsuite/systemtap.context/num_args.{stp,tcl}: Added.
+	Same as args.{stp,tcl}, but refs args using *_arg().
+
+2008-06-04  Jim Keniston  <jkenisto@us.ibm.com>
+
 	PR 6588
 	* tapset/syscalls.stp: Remove return aliases for exit and exit_group.
 	* testsuite/semok/syscalls_return.stp: Regression test
