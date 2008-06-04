@@ -1,0 +1,4 @@
+#!/bin/sh
+# Per bz6588, this should get through the semantic pass without warnings.
+stap -p2 -e 'probe syscall.*.return { printf("%s returns %s\n", name, retstr) }' 2>&1 | grep -q WARNING && exit 1
+exit 0

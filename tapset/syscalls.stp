@@ -630,7 +630,8 @@ probe syscall.exit = kernel.function("do_exit") {
 	status = $code
 	argstr = sprint($code)
 }
-probe syscall.exit.return = end {}
+# sys_exit() never returns, and is blacklisted for return probes,
+# so no alias here.  See bz6588.
 
 # exit_group _________________________________________________
 # void sys_exit_group(int error_code)
@@ -640,8 +641,8 @@ probe syscall.exit_group = kernel.function("sys_exit_group") {
 	status = $error_code
 	argstr = sprint($error_code)
 }
-
-probe syscall.exit_group.return = end {}
+# sys_exit_group() never returns, and is blacklisted for return probes,
+# so no alias here.  See bz6588.
 
 %(arch != "x86_64" %?
 # fadvise64 __________________________________________________

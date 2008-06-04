@@ -1,3 +1,9 @@
+2008-06-04  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 6588
+	* tapset/syscalls.stp: Remove return aliases for exit and exit_group.
+	* testsuite/semok/syscalls_return.stp: Regression test
+
 2008-06-03  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx: Added several string tokens that are used instead
