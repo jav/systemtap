@@ -87,8 +87,8 @@ AS_IF([test "x$enable_pie" != xno],[
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
    save_LDFLAGS="$LDFLAGS"
-   CFLAGS="$CFLAGS -fpie"
-   CXXFLAGS="$CXXFLAGS -fpie"
+   CFLAGS="$CFLAGS -fPIE"
+   CXXFLAGS="$CXXFLAGS -fPIE"
    LDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
    AC_LINK_IFELSE([void main () {}], [
        AC_MSG_NOTICE([Compiling with gcc pie et al.])

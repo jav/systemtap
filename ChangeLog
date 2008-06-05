@@ -1,3 +1,8 @@
+2008-06-05  Srinivasa DS <srinivasa@in.ibm.com>
+	*configure,configure.ac: -fpie option puts limit on GOT size
+	   and hence systemtap build fails on s390. So use -fPIE which
+	   doesn't put limit on GOT size.
+
 2008-06-04  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* testsuite/systemtap.context/num_args.{stp,tcl}: Added.

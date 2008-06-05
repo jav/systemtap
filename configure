@@ -6022,8 +6022,8 @@ if test "x$enable_pie" != xno; then
    save_CFLAGS="$CFLAGS"
    save_CXXFLAGS="$CXXFLAGS"
    save_LDFLAGS="$LDFLAGS"
-   CFLAGS="$CFLAGS -fpie"
-   CXXFLAGS="$CXXFLAGS -fpie"
+   CFLAGS="$CFLAGS -fPIE"
+   CXXFLAGS="$CXXFLAGS -fPIE"
    LDFLAGS="$LDFLAGS -pie -Wl,-z,relro -Wl,-z,now"
    cat >conftest.$ac_ext <<_ACEOF
 void main () {}
