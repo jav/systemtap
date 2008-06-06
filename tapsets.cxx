@@ -1156,6 +1156,7 @@ struct dwflpp
   void iterate_over_srcfile_lines (char const * srcfile,
 				   int lineno,
 				   bool need_single_match,
+				   bool line_type_relative,
 				   void (* callback) (Dwarf_Line * line, void * arg),
 				   void *data)
   {
@@ -1164,6 +1165,19 @@ struct dwflpp
     dwarf_query * q = static_cast<dwarf_query *>(data);
 
     get_module_dwarf();
+
+    if (line_type_relative) 
+      {
+	Dwarf_Addr addr;
+	Dwarf_Line *line;
+	int line_number;
+	
+	dwarf_assert ("dwarf_entrypc", dwarf_entrypc (this->function, &addr));
+	line = dwarf_getsrc_die (this->cu, addr);
+	dwarf_assert ("dwarf_getsrc_die", line == NULL);
+	dwarf_assert ("dwarf_lineno", dwarf_lineno (line, &line_number));
+	lineno += line_number;
+      }
 
     dwarf_assert ("dwarf_getsrc_file",
 		  dwarf_getsrc_file (module_dwarf,
@@ -2349,6 +2363,8 @@ base_query::get_number_param(map<string, literal *> const & params,
 }
 
 
+enum line_t { ABSOLUTE, RELATIVE };
+
 struct dwarf_query : public base_query
 {
   dwarf_query(systemtap_session & sess,
@@ -2415,6 +2431,7 @@ struct dwarf_query : public base_query
   function_spec_type spec_type;
   string function;
   string file;
+  line_t line_type;
   int line;
   bool query_done;	// Found exact match
 
@@ -2886,7 +2903,7 @@ dwarf_query::parse_function_spec(string & spec)
 
   while (i != e && *i != '@')
     {
-      if (*i == ':')
+      if (*i == ':' || *i == '+')
 	goto bad;
       function += *i++;
     }
@@ -2903,8 +2920,12 @@ dwarf_query::parse_function_spec(string & spec)
   if (i++ == e)
     goto bad;
 
-  while (i != e && *i != ':')
+  while (i != e && *i != ':' && *i != '+')
     file += *i++;
+  if (*i == ':') 
+    line_type = ABSOLUTE;
+  else if (*i == '+')
+    line_type = RELATIVE;
 
   if (i == e)
     {
@@ -3508,7 +3529,7 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      for (set<char const *>::const_iterator i = q->filtered_srcfiles.begin();
 		   i != q->filtered_srcfiles.end(); ++i)
 		q->dw.iterate_over_srcfile_lines (*i, q->line, q->has_statement_str,
-						  query_srcfile_line, q);
+						  q->line_type, query_srcfile_line, q);
 	    }
 	  else
 	    {

@@ -1,3 +1,11 @@
+2008-06-06  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines): 
+	Add parameter line_type_relative.  
+	(enum line_t): New.
+	(dwarf_query::line_type): New.
+	(dwarf_query::parse_function_spec): Set line_type.
+
 2008-06-06  David Smith  <dsmith@redhat.com>
 
 	* NEWS: Updated utrace probes descriptions.
