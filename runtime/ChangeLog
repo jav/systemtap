@@ -1,3 +1,17 @@
+2008-06-06  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c: Added some debug logic.  Use
+	'-DDEBUG_TASK_FINDER' to enable.
+	(stap_utrace_attach): Renamed from '__stp_utrace_attach'.
+	(__stp_utrace_attach_match_filename): Calls callback with
+	notification that this is a process or thread event.
+	(__stp_utrace_attach_match_tsk): Ditto.
+	(__stp_utrace_task_finder_report_clone): Ditto.
+	(__stp_utrace_task_finder_report_exec): Ditto.
+	(stap_utrace_task_finder_report_death): Ditto.
+	(stap_start_task_finder): Ditto.
+	(stap_stop_task_finder): Added debug logic.
+
 2008-05-29  Stan Cox  <scox@redhat.com>
 
 	* map.c (print_keytype): Remove.

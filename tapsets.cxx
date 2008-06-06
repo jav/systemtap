@@ -5100,27 +5100,19 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
 // utrace user-space probes
 // ------------------------------------------------------------------------
 
+static string TOK_THREAD("thread");
 static string TOK_SYSCALL("syscall");
 
-// Since we don't have access to <linux/utrace.h>, we'll have to
-// define our own version of the UTRACE_EVENT flags.
+// Note that these flags don't match up exactly with UTRACE_EVENT
+// flags (and that's OK).
 enum utrace_derived_probe_flags {
   UDPF_NONE,
-  UDPF_QUIESCE,				// UTRACE_EVENT(QUIESCE)
-  UDPF_REAP,				// UTRACE_EVENT(REAP)
-  UDPF_CLONE,				// UTRACE_EVENT(CLONE)
-  UDPF_VFORK_DONE,			// UTRACE_EVENT(VFORK_DONE)
-  UDPF_EXEC,				// UTRACE_EVENT(EXEC)
-  UDPF_EXIT,				// UTRACE_EVENT(EXIT)
-  UDPF_DEATH,				// UTRACE_EVENT(DEATH)
-  UDPF_SYSCALL_ENTRY,			// UTRACE_EVENT(SYSCALL_ENTRY)
-  UDPF_SYSCALL_EXIT,			// UTRACE_EVENT(SYSCALL_EXIT)
-  UDPF_SIGNAL,				// UTRACE_EVENT(SIGNAL)
-  UDPF_SIGNAL_IGN,			// UTRACE_EVENT(SIGNAL_IGN)
-  UDPF_SIGNAL_STOP,			// UTRACE_EVENT(SIGNAL_STOP)
-  UDPF_SIGNAL_TERM,			// UTRACE_EVENT(SIGNAL_TERM)
-  UDPF_SIGNAL_CORE,			// UTRACE_EVENT(SIGNAL_CORE)
-  UDPF_JCTL,				// UTRACE_EVENT(JCTL)
+  UDPF_BEGIN,				// process begin
+  UDPF_END,				// process end
+  UDPF_THREAD_BEGIN,			// thread begin
+  UDPF_THREAD_END,			// thread end
+  UDPF_SYSCALL,				// syscall entry
+  UDPF_SYSCALL_RETURN,			// syscall exit
   UDPF_NFLAGS
 };
 
@@ -5214,7 +5206,7 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
 {
   assert(e->base_name.size() > 0 && e->base_name[0] == '$');
 
-  if (flags != UDPF_SYSCALL_ENTRY && flags != UDPF_SYSCALL_EXIT)
+  if (flags != UDPF_SYSCALL && flags != UDPF_SYSCALL_RETURN)
     throw semantic_error ("only \"process(PATH_OR_PID).syscall\" and \"process(PATH_OR_PID).syscall.return\" probes support target symbols",
 			  e->tok);
 
@@ -5293,19 +5285,24 @@ struct utrace_builder: public derived_probe_builder
     enum utrace_derived_probe_flags flags = UDPF_NONE;
     assert (has_path || has_pid);
 
-    if (has_null_param (parameters, "death"))
-      flags = UDPF_DEATH;
+    if (has_null_param (parameters, TOK_THREAD))
+      {
+	if (has_null_param (parameters, TOK_BEGIN))
+	  flags = UDPF_THREAD_BEGIN;
+	else if (has_null_param (parameters, TOK_END))
+	  flags = UDPF_THREAD_END;
+      }
     else if (has_null_param (parameters, TOK_SYSCALL))
       {
 	if (has_null_param (parameters, TOK_RETURN))
-	  flags = UDPF_SYSCALL_EXIT;
+	  flags = UDPF_SYSCALL_RETURN;
 	else
-	  flags = UDPF_SYSCALL_ENTRY;
+	  flags = UDPF_SYSCALL;
       }
-    else if (has_null_param (parameters, "clone"))
-      flags = UDPF_CLONE;
-    else if (has_null_param (parameters, "exec"))
-      flags = UDPF_EXEC;
+    else if (has_null_param (parameters, TOK_BEGIN))
+      flags = UDPF_BEGIN;
+    else if (has_null_param (parameters, TOK_END))
+      flags = UDPF_END;
 
     // If we have a path, we need to validate it.
     if (has_path)
@@ -5390,31 +5387,41 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
   // Handle flags
   switch (p->flags)
     {
-    case UDPF_CLONE:
-      // Notice we're not setting up a .ops/.report_clone handler here.
-      // Instead, we'll just call the probe directly when we get
-      // notified the clone happened.
-      s.op->line() << " .flags=(UTRACE_EVENT(CLONE)),";
+    // Look in _stp_utrace_probe_cb for description of why quiesce is
+    // used here.
+    case UDPF_BEGIN:				// process begin
+      s.op->line() << " .flags=(UDPF_BEGIN),";
+      s.op->line() << " .ops={ .report_quiesce=stap_utrace_probe_quiesce },";
+      s.op->line() << " .events=(UTRACE_ACTION_QUIESCE|UTRACE_EVENT(QUIESCE)),";
       break;
-    case UDPF_EXEC:
-      // Notice we're not setting up a .ops/.report_exec handler here.
-      // Instead, we'll just call the probe directly when we get
-      // notified the exec happened.
-      s.op->line() << " .flags=(UTRACE_EVENT(EXEC)),";
+    case UDPF_THREAD_BEGIN:			// thread begin
+      s.op->line() << " .flags=(UDPF_THREAD_BEGIN),";
+      s.op->line() << " .ops={ .report_quiesce=stap_utrace_probe_quiesce },";
+      s.op->line() << " .events=(UTRACE_ACTION_QUIESCE|UTRACE_EVENT(QUIESCE)),";
       break;
-    case UDPF_DEATH:
-      // Notice we're not setting up a .ops/.report_death handler
-      // here.  Instead, we'll just call the probe directly when we
-      // get notified the death happened.
-      s.op->line() << " .flags=(UTRACE_EVENT(DEATH)),";
+
+    // Notice we're not setting up a .ops/.report_death handler for
+    // either UDPF_END or UDPF_THREAD_END.  Instead, we'll just call
+    // the probe directly when we get notified.
+    case UDPF_END:				// process end
+      s.op->line() << " .flags=(UDPF_END),";
       break;
-    case UDPF_SYSCALL_ENTRY:
+    case UDPF_THREAD_END:			// thread end
+      s.op->line() << " .flags=(UDPF_THREAD_END),";
+      break;
+
+    // For UDPF_SYSCALL/UDPF_SYSCALL_RETURN probes, the .report_death
+    // handler isn't strictly necessary.  However, it helps to keep
+    // our attaches/detaches symmetrical.
+    case UDPF_SYSCALL:
+      s.op->line() << " .flags=(UDPF_SYSCALL),";
       s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
+      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
       break;
-    case UDPF_SYSCALL_EXIT:
+    case UDPF_SYSCALL_RETURN:
+      s.op->line() << " .flags=(UDPF_SYSCALL_RETURN),";
       s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
-      s.op->line() << " .flags=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
+      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
       break;
     default:
       throw semantic_error ("bad utrace probe flag");
@@ -5433,19 +5440,53 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- utrace probes ---- */";
+  s.op->newline() << "enum utrace_derived_probe_flags {";
+  s.op->indent(1);
+  s.op->newline() << "UDPF_NONE,";
+  s.op->newline() << "UDPF_BEGIN,";
+  s.op->newline() << "UDPF_END,";
+  s.op->newline() << "UDPF_THREAD_BEGIN,";
+  s.op->newline() << "UDPF_THREAD_END,";
+  s.op->newline() << "UDPF_SYSCALL,";
+  s.op->newline() << "UDPF_SYSCALL_RETURN,";
+  s.op->newline() << "UDPF_NFLAGS";
+  s.op->newline(-1) << "};";
+
   s.op->newline() << "struct stap_utrace_probe {";
   s.op->indent(1);
   s.op->newline() << "struct stap_task_finder_target tgt;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "enum utrace_derived_probe_flags flags;";
   s.op->newline() << "struct utrace_engine_ops ops;";
-  s.op->newline() << "unsigned long flags;";
+  s.op->newline() << "unsigned long events;";
   s.op->newline() << "int engine_attached;";
   s.op->newline(-1) << "};";
 
-  // Output handler function for CLONE, EXEC, and DEATH events
-  if (flags_seen[UDPF_CLONE] || flags_seen[UDPF_EXEC]
-      || flags_seen[UDPF_DEATH])
+
+  // Output handler function for UDPF_BEGIN and UDPF_THREAD_BEGIN
+  if (flags_seen[UDPF_BEGIN] || flags_seen[UDPF_THREAD_BEGIN])
+    {
+      s.op->newline() << "static u32 stap_utrace_probe_quiesce(struct utrace_attached_engine *engine, struct task_struct *tsk) {";
+      s.op->indent(1);
+      s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
+
+      common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+      s.op->newline() << "c->probe_point = p->pp;";
+
+      // call probe function
+      s.op->newline() << "(*p->ph) (c);";
+      common_probe_entryfn_epilogue (s.op);
+
+      // UTRACE_ACTION_NEWSTATE not needed here to clear quiesce since
+      // we're detaching - utrace automatically restarts the thread.
+      s.op->newline() << "debug_task_finder_detach();";
+      s.op->newline() << "return UTRACE_ACTION_DETACH;";
+      s.op->newline(-1) << "}";
+    }
+
+  // Output handler function for UDPF_END and UDPF_THREAD_END
+  if (flags_seen[UDPF_END] || flags_seen[UDPF_THREAD_END])
     {
       s.op->newline() << "static void stap_utrace_probe_handler(struct task_struct *tsk, struct stap_utrace_probe *p) {";
       s.op->indent(1);
@@ -5462,7 +5503,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
     }
 
   // Output handler function for SYSCALL_ENTRY and SYSCALL_EXIT events
-  if (flags_seen[UDPF_SYSCALL_ENTRY] || flags_seen[UDPF_SYSCALL_EXIT])
+  if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
       s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->indent(1);
@@ -5480,9 +5521,9 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline(-1) << "}";
     }
 
-  // Output task finder callback routine that gets called for all
+  // Output task_finder callback routine that gets called for all
   // utrace probe types.
-  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, unsigned long event_flag, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int _stp_utrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
   s.op->indent(1);
   s.op->newline() << "int rc = 0;";
   s.op->newline() << "struct stap_utrace_probe *p = container_of(tgt, struct stap_utrace_probe, tgt);";
@@ -5493,108 +5534,134 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline() << "switch (p->flags) {";
   s.op->indent(1);
-  // When registering an clone/exec probe, we can't install a utrace
-  // engine, since we're already in the clone/exec event.  So, we just
-  // call the probe directly.  Note that for existing threads, this
-  // won't really work since our state isn't STAP_SESSION_RUNNING yet.
-  // But that's OK, since this isn't really a 'clone/exec' event - it
-  // is a notification that task_finder found an interesting process.
-  if (flags_seen[UDPF_CLONE])
-    {
-      s.op->newline() << "case UTRACE_EVENT(CLONE):";
+
+  // When receiving a UTRACE_EVENT(CLONE) event, we can't call the
+  // begin/thread.begin probe directly.  So, we'll just attach an
+  // engine that waits for the thread to quiesce.  When the thread
+  // quiesces, then call the probe.
+  if (flags_seen[UDPF_BEGIN])
+  {
+      s.op->newline() << "case UDPF_BEGIN:";
       s.op->indent(1);
-      s.op->newline() << "if (event_flag == UTRACE_EVENT(CLONE)) {";
+      s.op->newline() << "if (process_p) {";
       s.op->indent(1);
-      s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline() << "rc = stap_utrace_attach(tsk, &p->ops, p, p->events);";
+      s.op->newline() << "if (rc == 0) {";
+      s.op->indent(1);
+      s.op->newline() << "p->engine_attached = 1;";
+      s.op->newline(-1) << "}";
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
-    }
-  if (flags_seen[UDPF_EXEC])
-    {
-      s.op->newline() << "case UTRACE_EVENT(EXEC):";
+  }
+  if (flags_seen[UDPF_THREAD_BEGIN])
+  {
+      s.op->newline() << "case UDPF_THREAD_BEGIN:";
       s.op->indent(1);
-      s.op->newline() << "if (event_flag == UTRACE_EVENT(EXEC)) {";
+      s.op->newline() << "if (! process_p) {";
       s.op->indent(1);
-      s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline() << "rc = stap_utrace_attach(tsk, &p->ops, p, p->events);";
+      s.op->newline() << "if (rc == 0) {";
+      s.op->indent(1);
+      s.op->newline() << "p->engine_attached = 1;";
+      s.op->newline(-1) << "}";
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
-    }
-  // For death probes, do nothing at registration time.  We'll handle
-  // these in the 'register_p == 0' case.
-  if (flags_seen[UDPF_DEATH])
+  }
+
+  // For end/thread_end probes, do nothing at registration time.
+  // We'll handle these in the 'register_p == 0' case.
+  if (flags_seen[UDPF_END] || flags_seen[UDPF_THREAD_END])
     {
-      s.op->newline() << "case UTRACE_EVENT(DEATH):";
+      s.op->newline() << "case UDPF_END:";
+      s.op->newline() << "case UDPF_THREAD_END:";
       s.op->indent(1);
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
+
   // Attach an engine for SYSCALL_ENTRY and SYSCALL_EXIT events.
-  if (flags_seen[UDPF_SYSCALL_ENTRY] || flags_seen[UDPF_SYSCALL_EXIT])
+  if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
-      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)):";
-      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case UDPF_SYSCALL:";
+      s.op->newline() << "case UDPF_SYSCALL_RETURN:";
       s.op->indent(1);
-      s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_CREATE, &p->ops, p);";
-      s.op->newline() << "if (IS_ERR(engine)) {";
+      s.op->newline() << "rc = stap_utrace_attach(tsk, &p->ops, p, p->events);";
+      s.op->newline() << "if (rc == 0) {";
       s.op->indent(1);
-      s.op->newline() << "int error = -PTR_ERR(engine);";
-      s.op->newline() << "if (error != ENOENT) {";
-      s.op->indent(1);
-      s.op->newline() << "_stp_error(\"utrace_attach returned error %d on pid %d\", error, (int)tsk->pid);";
-      s.op->newline() << "rc = error;";
-      s.op->newline(-1) << "}";
-      s.op->newline(-1) << "}";
-      s.op->newline() << "else if (unlikely(engine == NULL)) {";
-      s.op->indent(1);
-      s.op->newline() << "_stp_error(\"utrace_attach returned NULL on pid %d!\", (int)tsk->pid);";
-      s.op->newline() << "rc = ENOENT;";
-      s.op->newline(-1) << "}";
-      s.op->newline() << "else {";
-      s.op->indent(1);
-      s.op->newline() << "utrace_set_flags(tsk, engine, p->flags);";
       s.op->newline() << "p->engine_attached = 1;";
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
+
+  s.op->newline() << "default:";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error(\"unhandled flag value %d at %s:%d\", p->flags, __FUNCTION__, __LINE__);";
+  s.op->newline() << "break;";
+  s.op->indent(-1);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
+
   // Since this engine could be attached to multiple threads, don't
-  // cleanup here.  We'll cleanup at module unload time.
+  // call stap_utrace_detach_ops() here.
   s.op->newline() << "else {";
   s.op->indent(1);
   s.op->newline() << "switch (p->flags) {";
   s.op->indent(1);
   // For death probes, go ahead and call the probe directly.
-  if (flags_seen[UDPF_DEATH])
+  if (flags_seen[UDPF_END])
     {
-      s.op->newline() << "case UTRACE_EVENT(DEATH):";
+      s.op->newline() << "case UDPF_END:";
       s.op->indent(1);
-      s.op->newline() << "if (event_flag == UTRACE_EVENT(DEATH)) {";
+      s.op->newline() << "if (process_p) {";
       s.op->indent(1);
       s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
-  if (flags_seen[UDPF_SYSCALL_ENTRY] || flags_seen[UDPF_SYSCALL_EXIT])
+  if (flags_seen[UDPF_THREAD_END])
     {
-      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)):";
-      s.op->newline() << "case (UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)):";
+      s.op->newline() << "case UDPF_THREAD_END:";
       s.op->indent(1);
-      s.op->newline() << "if (event_flag == UTRACE_EVENT(EXEC)) {";
+      s.op->newline() << "if (! process_p) {";
+      s.op->indent(1);
+      s.op->newline() << "stap_utrace_probe_handler(tsk, p);";
+      s.op->newline(-1) << "}";
+      s.op->newline() << "break;";
+      s.op->indent(-1);
+    }
+
+  // For begin/thread_begin probes, at deregistration time we'll try
+  // to detach.  This will only be necessary if the new thread/process
+  // got killed before the probe got run in the UTRACE_EVENT(QUIESCE)
+  // handler.
+  if (flags_seen[UDPF_BEGIN] || flags_seen[UDPF_THREAD_BEGIN]
+      || flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
+    {
+      s.op->newline() << "case UDPF_BEGIN:";
+      s.op->newline() << "case UDPF_THREAD_BEGIN:";
+      s.op->newline() << "case UDPF_SYSCALL:";
+      s.op->newline() << "case UDPF_SYSCALL_RETURN:";
       s.op->indent(1);
       s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS, &p->ops, 0);";
       s.op->newline() << "if (! IS_ERR(engine) && engine != NULL) {";
       s.op->indent(1);
       s.op->newline() << "utrace_detach(tsk, engine);";
-      s.op->newline(-1) << "}";
+      s.op->newline() << "debug_task_finder_detach();";
+
       s.op->newline(-1) << "}";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
+
+  s.op->newline() << "default:";
+  s.op->indent(1);
+  s.op->newline() << "_stp_error(\"unhandled flag value %d at %s:%d\", p->flags, __FUNCTION__, __LINE__);";
+  s.op->newline() << "break;";
+  s.op->indent(-1);
   s.op->newline(-1) << "}";
   s.op->newline(-1) << "}";
   s.op->newline() << "return rc;";
@@ -8093,13 +8160,21 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new uprobe_builder ());
 
   // utrace user-space probes
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("clone")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("clone")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("exec")
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("exec")
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
     ->bind(new utrace_builder ());
@@ -8108,10 +8183,6 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind("death")
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind("death")
     ->bind(new utrace_builder ());
 
   // marker-based parts

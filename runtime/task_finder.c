@@ -11,9 +11,22 @@ struct stap_task_finder_target;
 #define __STP_TF_STOPPED	3
 atomic_t __stp_task_finder_state = ATOMIC_INIT(__STP_TF_STARTING);
 
+#ifdef DEBUG_TASK_FINDER
+atomic_t __stp_attach_count = ATOMIC_INIT (0);
+
+#define debug_task_finder_attach() (atomic_inc(&__stp_attach_count))
+#define debug_task_finder_detach() (atomic_dec(&__stp_attach_count))
+#define debug_task_finder_report() (_stp_dbug(__FUNCTION__, __LINE__, \
+	"attach count: %d\n", atomic_read(&__stp_attach_count)))
+#else
+#define debug_task_finder_attach()	/* empty */
+#define debug_task_finder_detach()	/* empty */
+#define debug_task_finder_report()	/* empty */
+#endif
+
 typedef int (*stap_task_finder_callback)(struct task_struct *tsk,
 					 int register_p,
-					 unsigned long event_flag,
+					 int process_p,
 					 struct stap_task_finder_target *tgt);
 
 struct stap_task_finder_target {
@@ -116,6 +129,7 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 			}
 			else if (engine != NULL) {
 				utrace_detach(tsk, engine);
+				debug_task_finder_detach();
 			}
 		}
 	} while_each_thread(grp, tsk);
@@ -126,6 +140,7 @@ udo_err:
 		_stp_error("utrace_attach returned error %d on pid %d",
 			   error, pid);
 	}
+	debug_task_finder_report();
 }
 
 static void
@@ -198,9 +213,9 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 #define __STP_UTRACE_ATTACHED_TASK_EVENTS (UTRACE_EVENT(DEATH))
 
 static int
-__stp_utrace_attach(struct task_struct *tsk,
-		    const struct utrace_engine_ops *ops, void *data,
-		    unsigned long event_flags)
+stap_utrace_attach(struct task_struct *tsk,
+		   const struct utrace_engine_ops *ops, void *data,
+		   unsigned long event_flags)
 {
 	struct utrace_attached_engine *engine;
 	struct mm_struct *mm;
@@ -232,6 +247,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 	}
 	else {
 		utrace_set_flags(tsk, engine, event_flags);
+		debug_task_finder_attach();
 	}
 	return rc;
 }
@@ -239,8 +255,7 @@ __stp_utrace_attach(struct task_struct *tsk,
 static inline void
 __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				   const char * const filename,
-				   int register_p,
-				   unsigned long event_flag)
+				   int register_p, int process_p)
 {
 	size_t filelen;
 	struct list_head *tgt_node;
@@ -274,7 +289,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 			if (cb_tgt->callback != NULL) {
 				int rc = cb_tgt->callback(tsk, register_p,
-							  event_flag, cb_tgt);
+							  process_p, cb_tgt);
 				if (rc != 0) {
 					_stp_error("callback for %d failed: %d",
 						   (int)tsk->pid, rc);
@@ -284,9 +299,9 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 
 			// Set up thread death notification.
 			if (register_p) {
-				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
-							 cb_tgt,
-							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
+				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
+							cb_tgt,
+							__STP_UTRACE_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					break;
 				cb_tgt->engine_attached = 1;
@@ -298,6 +313,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 						       &cb_tgt->ops, 0);
 				if (! IS_ERR(engine) && engine != NULL) {
 					utrace_detach(tsk, engine);
+					debug_task_finder_detach();
 				}
 			}
 		}
@@ -316,7 +332,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 static void
 __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 			      struct task_struct *match_tsk, int register_p,
-			      unsigned long event_flag)
+			      int process_p)
 {
 	struct mm_struct *mm;
 	char *mmpath_buf;
@@ -351,7 +367,7 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	}
 	else {
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
-						   register_p, event_flag);
+						   register_p, process_p);
 	}
 
 	_stp_kfree(mmpath_buf);
@@ -373,12 +389,13 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 		return UTRACE_ACTION_RESUME;
 
 	// On clone, attach to the child.
-	rc = __stp_utrace_attach(child, engine->ops, 0,
-				 __STP_UTRACE_TASK_FINDER_EVENTS);
+	rc = stap_utrace_attach(child, engine->ops, 0,
+				__STP_UTRACE_TASK_FINDER_EVENTS);
 	if (rc != 0 && rc != EPERM)
 		return UTRACE_ACTION_RESUME;
 
-	__stp_utrace_attach_match_tsk(parent, child, 1, UTRACE_EVENT(CLONE));
+	__stp_utrace_attach_match_tsk(parent, child, 1,
+				      (clone_flags & CLONE_THREAD) == 0);
 	return UTRACE_ACTION_RESUME;
 }
 
@@ -402,16 +419,17 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 	// was probing '/bin/bash', the cloned thread is still
 	// '/bin/bash' up until the exec.
 	if (tsk != NULL && tsk->parent != NULL && tsk->parent->pid > 1) {
-		__stp_utrace_attach_match_tsk(tsk->parent, tsk, 0,
-					      UTRACE_EVENT(EXEC));
+		// We'll hardcode this as a process end, but a thread
+		// *could* call exec (although they aren't supposed to).
+		__stp_utrace_attach_match_tsk(tsk->parent, tsk, 0, 1);
 	}
 
 	// On exec, check bprm
 	if (bprm->filename == NULL)
 		return UTRACE_ACTION_RESUME;
 
-	__stp_utrace_attach_match_filename(tsk, bprm->filename, 1,
-					   UTRACE_EVENT(EXEC));
+	// We assume that all exec's are exec'ing a new process
+	__stp_utrace_attach_match_filename(tsk, bprm->filename, 1, 1);
 
 	return UTRACE_ACTION_RESUME;
 }
@@ -420,6 +438,7 @@ static u32
 stap_utrace_task_finder_report_death(struct utrace_attached_engine *engine,
 				     struct task_struct *tsk)
 {
+	debug_task_finder_detach();
 	return UTRACE_ACTION_DETACH;
 }
 
@@ -430,6 +449,7 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 	struct stap_task_finder_target *tgt = engine->data;
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		debug_task_finder_detach();
 		return UTRACE_ACTION_DETACH;
 	}
 
@@ -446,12 +466,15 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 		int rc;
 
 		// Call the callback
-		rc = tgt->callback(tsk, 0, UTRACE_EVENT(DEATH), tgt);
+		rc = tgt->callback(tsk, 0,
+				   (atomic_read(&tsk->signal->live) == 0),
+				   tgt);
 		if (rc != 0) {
 			_stp_error("death callback for %d failed: %d",
 				   (int)tsk->pid, rc);
 		}
 	}
+	debug_task_finder_detach();
 	return UTRACE_ACTION_DETACH;
 }
 
@@ -483,8 +506,8 @@ stap_start_task_finder(void)
 		size_t mmpathlen;
 		struct list_head *tgt_node;
 
-		rc = __stp_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
-					 __STP_UTRACE_TASK_FINDER_EVENTS);
+		rc = stap_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
+					__STP_UTRACE_TASK_FINDER_EVENTS);
 		if (rc == EPERM) {
 			/* Ignore EPERM errors, which mean this wasn't
 			 * a thread we can attach to. */
@@ -539,17 +562,12 @@ stap_start_task_finder(void)
 				if (cb_tgt == NULL || cb_tgt->callback == NULL)
 					continue;
 					
-				// Call the callback.  Notice we're
-				// not passing a valid event_flag
-				// here.  That's OK, for 2 reasons.
-				// (1) We're not in the
-				// STAP_SESSION_RUNNING state yet, so
-				// probes won't get called anyway.
-				// (2) There really isn't an event
-				// associated with this callback call,
-				// we just want to let the caller
-				// attach to the thread.
-				rc = cb_tgt->callback(tsk, 1, 0, cb_tgt);
+				// Call the callback.  Assume that if
+				// the thread is a thread group
+				// leader, it is a process.
+				rc = cb_tgt->callback(tsk, 1,
+						      (tsk->pid == tsk->tgid),
+						      cb_tgt);
 				if (rc != 0) {
 					_stp_error("attach callback for %d failed: %d",
 						   (int)tsk->pid, rc);
@@ -557,9 +575,9 @@ stap_start_task_finder(void)
 				}
 
 				// Set up thread death notification.
-				rc = __stp_utrace_attach(tsk, &cb_tgt->ops,
-							 cb_tgt,
-							 __STP_UTRACE_ATTACHED_TASK_EVENTS);
+				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
+							cb_tgt,
+							__STP_UTRACE_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					goto stf_err;
 				cb_tgt->engine_attached = 1;
@@ -577,7 +595,9 @@ static void
 stap_stop_task_finder(void)
 {
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPING);
+	debug_task_finder_report();
 	stap_utrace_detach_ops(&__stp_utrace_task_finder_ops);
 	__stp_task_finder_cleanup();
+	debug_task_finder_report();
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
 }

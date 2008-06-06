@@ -1,3 +1,19 @@
+2008-06-06  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (enum utrace_derived_probe_flags): Redefined in
+	terms of probe types instead of utrace events.
+	(utrace_var_expanding_copy_visitor::visit_target_symbol): Uses new
+	utrace_derived_probes_flags values.
+	(utrace_builder::build): Handles new probe types and new
+	utrace_derived_probes_flags values.
+	(utrace_derived_probe_group::emit_probe_decl): Updated to handle
+	new utrace_derived_probe_flags values.
+	(utrace_derived_probe_group::emit_module_decls): Ditto.  Also
+	correctly handles 'begin' events correctly by installing a quiesce
+	handler (instead of running the probe directly).
+	(register_standard_tapsets): Registers updated utrace probe
+	types.
+
 2008-06-05  Srinivasa DS <srinivasa@in.ibm.com>
 	*configure,configure.ac: -fpie option puts limit on GOT size
 	   and hence systemtap build fails on s390. So use -fPIE which

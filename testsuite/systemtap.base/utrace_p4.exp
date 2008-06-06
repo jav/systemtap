@@ -49,11 +49,12 @@ proc stap_compile { TEST_NAME compile script args } {
 # Initialize variables
 set utrace_support_found 0
 
-set clone_script {"probe process(\"/bin/ls\").clone { print(\"ls clone\") }"}
-set death_script {"probe process(\"/bin/ls\").death { print(\"ls death\") }"}
+set begin_script {"probe process(\"/bin/ls\").begin { print(\"ls begin\") }"}
+set end_script {"probe process(\"/bin/ls\").end { print(\"ls end\") }"}
 set syscall_script {"probe process(\"/bin/ls\").syscall { printf(\"|%d\", \$syscall) }"}
 set syscall_return_script {"probe process(\"/bin/ls\").syscall.return { printf(\"|%d\", \$syscall) }"}
-set exec_script {"probe process(\"/bin/ls\").exec { print(\"ls exec\") }"}
+set thread_begin_script {"probe process(\"/bin/ls\").thread.begin { print(\"ls thread.begin\") }"}
+set thread_end_script {"probe process(\"/bin/ls\").thread.end { print(\"ls thread.end\") }"}
 
 # Try to find utrace_attach symbol in /proc/kallsyms
 set path "/proc/kallsyms"
@@ -69,16 +70,16 @@ set TEST_NAME "UTRACE_P4_01"
 if {$utrace_support_found == 0} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
-    # Try compiling a clone script
-    stap_compile $TEST_NAME 1 $clone_script
+    # Try compiling a begin script
+    stap_compile $TEST_NAME 1 $begin_script
 }
 
 set TEST_NAME "UTRACE_P4_02"
 if {$utrace_support_found == 0} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
-    # Try compiling a death script
-    stap_compile $TEST_NAME 1 $death_script
+    # Try compiling a end script
+    stap_compile $TEST_NAME 1 $end_script
 }
 
 set TEST_NAME "UTRACE_P4_03"
@@ -101,6 +102,14 @@ set TEST_NAME "UTRACE_P4_05"
 if {$utrace_support_found == 0} {
     untested "$TEST_NAME : no kernel utrace support found"
 } else {
-    # Try compiling an exec script
-    stap_compile $TEST_NAME 1 $exec_script
+    # Try compiling an thread.begin script
+    stap_compile $TEST_NAME 1 $thread_begin_script
+}
+
+set TEST_NAME "UTRACE_P4_06"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} else {
+    # Try compiling an thread.end script
+    stap_compile $TEST_NAME 1 $thread_end_script
 }
