@@ -309,12 +309,14 @@ All threads of that process will be probed.
 .PP
 Additional user-space probing is available in the following forms:
 .SAMPLE
-process(PID).clone
-process("PATH").clone
-process(PID).exec
-process("PATH").exec
-process(PID).death
-process("PATH").death
+process(PID).begin
+process("PATH").begin
+process(PID).thread.begin
+process("PATH").thread.begin
+process(PID).end
+process("PATH").end
+process(PID).thread.end
+process("PATH").thread.end
 process(PID).syscall
 process("PATH").syscall
 process(PID).syscall.return
@@ -322,15 +324,16 @@ process("PATH").syscall.return
 .ESAMPLE
 .PP
 A
-.B .clone
-probe gets called when a thread described by PID or PATH creates a new
-thread.
+.B .begin
+probe gets called when new process described by PID or PATH gets created.
 A
-.B .exec
-probe gets called when a thread described by PID or PATH returns from
-.IR exec() .
+.B .thread.begin
+probe gets called when a new thread described by PID or PATH gets created.
 A
-.B .death
+.B .end
+probe gets called when process described by PID or PATH dies.
+A
+.B .thread.end
 probe gets called when a thread described by PID or PATH dies.
 A
 .B .syscall

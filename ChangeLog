@@ -1,5 +1,8 @@
 2008-06-06  David Smith  <dsmith@redhat.com>
 
+	* NEWS: Updated utrace probes descriptions.
+	* stapprobes.5.in: Ditto.
+
 	* tapsets.cxx (enum utrace_derived_probe_flags): Redefined in
 	terms of probe types instead of utrace events.
 	(utrace_var_expanding_copy_visitor::visit_target_symbol): Uses new

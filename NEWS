@@ -15,12 +15,14 @@
 
 - More user-space probe types are added:
 
-  probe process(PID).clone { }
-  probe process("PATH").clone { }
-  probe process(PID).exec { }
-  probe process("PATH").exec { }
-  probe process(PID).death { }
-  probe process("PATH").death { }
+  probe process(PID).begin { }
+  probe process("PATH").begin { }
+  probe process(PID).thread.begin { }
+  probe process("PATH").thread.begin { }
+  probe process(PID).end { }
+  probe process("PATH").end { }
+  probe process(PID).thread.end { }
+  probe process("PATH").thread.end { }
   probe process(PID).syscall { }
   probe process("PATH").syscall { }
   probe process(PID).syscall.return { }
