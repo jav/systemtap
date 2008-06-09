@@ -1,3 +1,9 @@
+2008-06-09  Jim Keniston  <jkenisto@us.ibm.com>
+
+	PR 6601
+	* tapsets.cxx: For powerpc, reject symbols in .opd
+	(function descriptor) section.
+
 2008-06-09  Stan Cox  <scox@redhat.com>
 
 	* NEWS: Updated kernel.statement relative line number.

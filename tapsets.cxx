@@ -566,6 +566,9 @@ symbol_table
   module_info *mod_info;	// associated module
   map<string, func_info*> map_by_name;
   vector<func_info*> list_by_addr;
+#ifdef __powerpc__
+  GElf_Word opd_section;
+#endif
 
   void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
                                                Dwarf_Addr *high_addr);
@@ -573,6 +576,8 @@ symbol_table
   enum info_status read_from_elf_file(const string& path);
   enum info_status read_from_text_file(const string& path);
   enum info_status get_from_elf();
+  void prepare_section_rejection(Dwfl_Module *mod);
+  bool reject_section(GElf_Word section);
   void mark_dwarf_redundancies(dwflpp *dw);
   void purge_syscall_stubs();
   func_info *lookup_symbol(const string& name);
@@ -4846,6 +4851,55 @@ symbol_table::read_from_text_file(const string& path)
   return status;
 }
 
+void
+symbol_table::prepare_section_rejection(Dwfl_Module *mod)
+{
+#ifdef __powerpc__
+  /*
+   * The .opd section contains function descriptors that can look
+   * just like function entry points.  For example, there's a function
+   * descriptor called "do_exit" that links to the entry point ".do_exit".
+   * Reject all symbols in .opd.
+   */
+  opd_section = SHN_UNDEF;
+  Dwarf_Addr bias;
+  Elf* elf = (dwarf_getelf (dwfl_module_getdwarf (mod, &bias))
+                                    ?: dwfl_module_getelf (mod, &bias));
+  Elf_Scn* scn = 0;
+  size_t shstrndx;
+
+  if (!elf)
+    return;
+  if (elf_getshstrndx(elf, &shstrndx) != 0)
+    return;
+  while ((scn = elf_nextscn(elf, scn)) != NULL)
+    {
+      GElf_Shdr shdr_mem;
+      GElf_Shdr *shdr = gelf_getshdr(scn, &shdr_mem);
+      if (!shdr)
+        continue;
+      const char *name = elf_strptr(elf, shstrndx, shdr->sh_name);
+      if (!strcmp(name, ".opd"))
+        {
+          opd_section = elf_ndxscn(scn);
+          return;
+        }
+    }
+#endif
+}
+
+bool
+symbol_table::reject_section(GElf_Word section)
+{
+  if (section == SHN_UNDEF)
+    return true;
+#ifdef __powerpc__
+  if (section == opd_section)
+    return true;
+#endif
+  return false;
+}
+
 enum info_status
 symbol_table::get_from_elf()
 {
@@ -4853,12 +4907,14 @@ symbol_table::get_from_elf()
   Dwfl_Module *mod = mod_info->mod;
   int syments = dwfl_module_getsymtab(mod);
   assert(syments);
+  prepare_section_rejection(mod);
   for (int i = 1; i < syments; ++i)
     {
       GElf_Sym sym;
       GElf_Word section;
       const char *name = dwfl_module_getsym(mod, i, &sym, &section);
-      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC && section != SHN_UNDEF)
+      if (name && GELF_ST_TYPE(sym.st_info) == STT_FUNC &&
+                                                   !reject_section(section))
         add_symbol(name, (GELF_ST_BIND(sym.st_info) == STB_WEAK),
                                               sym.st_value, &high_addr);
     }
