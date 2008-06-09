@@ -1,3 +1,8 @@
+2008-06-09  David Smith  <dsmith@redhat.com>
+
+	* x86_64/registers.stp (syscall_nr): Added syscall_nr function.
+	* i686/registers.stp (syscall_nr): Ditto.
+
 2008-06-04  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp: Add sys_unshare.

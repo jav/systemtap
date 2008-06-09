@@ -5311,24 +5311,11 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // We're going to substitute '_stp_arg(0)' for the '$syscall'
-  // reference.
-
-  // First, synthesize the '0' argument.  We can't use 'e->tok' as the
-  // token, since the token's type gets checked during pass 3.  So,
-  // we'll synthesize a new token.
-  literal_number* arg = new literal_number(0);
-  token* arg_tok = new token;
-  arg_tok->type = tok_number;
-  arg_tok->location = e->tok->location;
-  arg_tok->content = e->tok->content;
-  arg->tok = arg_tok;
-  
-  // Synthesize a functioncall with our argument.
+  // We're going to substitute a synthesized 'syscall_nr' function
+  // call for the '$syscall' reference.
   functioncall* n = new functioncall;
   n->tok = e->tok;
-  n->function = "_stp_arg";
-  n->args.push_back(arg);
+  n->function = "syscall_nr";
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
   provide <functioncall*> (this, n);
