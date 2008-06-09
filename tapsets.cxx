@@ -5207,15 +5207,9 @@ void
 utrace_derived_probe::join_group (systemtap_session& s)
 {
   if (! s.utrace_derived_probes)
-  {
+    {
       s.utrace_derived_probes = new utrace_derived_probe_group ();
-
-      // Make sure <linux/tracehook.h> is included early.
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = NULL;
-      ec->code = string("#include <linux/tracehook.h>\n");
-      s.embeds.push_back(ec);
-  }
+    }
   s.utrace_derived_probes->enroll (this);
 
   task_finder_derived_probe_group::create_session_group (s);
@@ -5261,28 +5255,24 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // Synthesize a function.
-  functiondecl *fdecl = new functiondecl;
-  fdecl->tok = e->tok;
-  embeddedcode *ec = new embeddedcode;
-  ec->tok = e->tok;
+  // We're going to substitute '_stp_arg(0)' for the '$syscall'
+  // reference.
 
-  string fname = (string("_utrace_syscall_get") + "_"
-		  + lex_cast<string>(tick++));
-  string locvalue = "CONTEXT->data";
-
-  ec->code = string("THIS->__retvalue = *tracehook_syscall_callno(CONTEXT->regs); /* pure */");
-
-  fdecl->name = fname;
-  fdecl->body = ec;
-  fdecl->type = pe_long;
-
-  sess.functions.push_back(fdecl);
-
-  // Synthesize a functioncall.
+  // First, synthesize the '0' argument.  We can't use 'e->tok' as the
+  // token, since the token's type gets checked during pass 3.  So,
+  // we'll synthesize a new token.
+  literal_number* arg = new literal_number(0);
+  token* arg_tok = new token;
+  arg_tok->type = tok_number;
+  arg_tok->location = e->tok->location;
+  arg_tok->content = e->tok->content;
+  arg->tok = arg_tok;
+  
+  // Synthesize a functioncall with our argument.
   functioncall* n = new functioncall;
   n->tok = e->tok;
-  n->function = fname;
+  n->function = "_stp_arg";
+  n->args.push_back(arg);
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
   provide <functioncall*> (this, n);

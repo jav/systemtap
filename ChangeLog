@@ -1,3 +1,10 @@
+2008-06-09  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe::join_group): Removed
+	generated inclusion of tracehook.h.
+	(utrace_var_expanding_copy_visitor::visit_target_symbol): Uses
+	'_stp_arg(0)' to get value of '$syscall'.
+
 2008-06-06  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwflpp::iterate_over_srcfile_lines): 

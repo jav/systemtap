@@ -418,10 +418,14 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 	// '/bin/bash' clones and then execs '/bin/ls'.  If the user
 	// was probing '/bin/bash', the cloned thread is still
 	// '/bin/bash' up until the exec.
-	if (tsk != NULL && tsk->parent != NULL && tsk->parent->pid > 1) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
+#define real_parent parent
+#endif
+	if (tsk != NULL && tsk->real_parent != NULL
+	    && tsk->real_parent->pid > 1) {
 		// We'll hardcode this as a process end, but a thread
 		// *could* call exec (although they aren't supposed to).
-		__stp_utrace_attach_match_tsk(tsk->parent, tsk, 0, 1);
+		__stp_utrace_attach_match_tsk(tsk->real_parent, tsk, 0, 1);
 	}
 
 	// On exec, check bprm

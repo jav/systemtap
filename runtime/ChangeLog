@@ -1,3 +1,8 @@
+2008-06-09  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_task_finder_report_exec): Handles
+	2.6.25 kernels.
+
 2008-06-06  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c: Added some debug logic.  Use
