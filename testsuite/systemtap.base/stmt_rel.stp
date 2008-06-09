@@ -1,0 +1,43 @@
+global stack2, stack2pp, stack2func
+
+probe kernel.statement("bio_init@fs/bio.c+2") {
+  stack2 = tokenize(backtrace(), " ")
+  stack2func = probefunc()
+  stack2pp = pp()
+}
+probe kernel.statement("bio_init@fs/bio.c+3") {
+  stack3 = tokenize(backtrace(), " " )
+  stack3func = probefunc()
+  stack3pp = pp()
+
+  stack2pp = tokenize(stack2pp,":")
+  stack2pp = tokenize("",":")
+  stack3pp = tokenize(stack3pp,":")
+  stack3pp = tokenize("",":")
+
+  stack2line = strtol (substr(stack2pp,0,strlen(stack2pp)-2), 10)
+  stack3line = strtol (substr(stack3pp,0,strlen(stack3pp)-2), 10)
+
+  if (stack2func == stack3func) {
+     printf ("PASS %s\n", stack2func)
+  }
+  else {
+     printf ("FAIL %s %s\n", stack2func, stack3func)
+  }
+
+  if ((stack2line + 1) == stack3line) {
+     printf ("PASS line number\n")
+  }
+  else {
+     printf ("FAIL line number %d %d\n", stack2line, stack3line)
+  }
+
+  if (stack2 < stack3) {
+     printf ("PASS address\n")
+  }
+  else {
+     printf ("FAIL address %s %s\n", stack2, stack3)
+  }
+  
+  exit()
+}

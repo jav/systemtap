@@ -1,0 +1,9 @@
+# test integer limits. Set and print variables and print constants.
+
+set test "stmt_rel"
+set ::result_string {PASS bio_init
+PASS line number
+PASS address
+}
+
+stap_run2 $srcdir/$subdir/$test.stp

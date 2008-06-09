@@ -1,3 +1,8 @@
+2008-06-09  Stan Cox  <scox@redhat.com>
+
+	* NEWS: Updated kernel.statement relative line number.
+	* stapprobes.5.in: Likewise.
+
 2008-06-09  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe::join_group): Removed

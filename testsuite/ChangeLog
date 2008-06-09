@@ -1,3 +1,8 @@
+2008-06-09  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/stmt_rel.stp: New test.
+	* systemtap.base/stmt_rel.exp: Likewise.
+
 2008-06-06  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p4.exp: Updated for utrace probe changes.

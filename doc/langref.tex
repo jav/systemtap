@@ -751,7 +751,11 @@ In most cases, the path should be relative to the top of the
 linux source directory, although an absolute path may be necessary for some kernels.
 If a relative pathname doesn't work, try absolute.
 \item The third part is optional if the file name part was given. It identifies
-the line number in the source file, preceded by a colon. 
+the line number in the source file, preceded by a '':'' or ''+''.   
+The line number is assumed to be an
+absolute line number if preceded by a '':'', or relative to the entry of
+function if preceded by a ''+''.
+
 \end{enumerate}
 Alternately, specify PATTERN as a numeric constant to indicate a relative
 module address or an absolute kernel address.
@@ -825,6 +829,8 @@ Example:
 # Refers to the statement at line 2917 within the
 # kernel/sched.c file:
 kernel.statement("*@kernel/sched.c:2917")
+# Refers to the statement at line bio_init+3 within the fs/bio.c file:
+kernel.statement("bio_init@fs/bio.c+3")
 \end{verbatim}
 \end{vindent}
 
