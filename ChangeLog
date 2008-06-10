@@ -1,3 +1,10 @@
+2008-06-10  Jim Keniston  <jkenisto@us.ibm.com>
+
+	* testsuite/systemtap.context/num_args.tcl: Run twice --
+	once with dwarf (default) and once with --kelf --ignore-dwarf.
+	* testsuite/systemtap.context/context.exp: Add num_args to
+	testlist. :-}
+
 2008-06-10  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
