@@ -1,5 +1,9 @@
 2008-06-10  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* syscalls.stp: Add sys_faccessat.
+
+2008-06-10  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* syscalls.stp(syscall.mkdirat): Use _dfd_str() to add support
 	for AT_FDCWD.
 

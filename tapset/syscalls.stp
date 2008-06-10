@@ -644,6 +644,24 @@ probe syscall.exit_group = kernel.function("sys_exit_group") {
 # sys_exit_group() never returns, and is blacklisted for return probes,
 # so no alias here.  See bz6588.
 
+# faccessat __________________________________________________
+# new function with 2.6.16
+# long sys_faccessat(int dfd, const char __user *filename, int mode)
+probe syscall.faccessat = kernel.function("sys_faccessat") ? {
+	name = "faccessat"
+	dfd = $dfd
+	dfd_str = _dfd_str($dfd)
+	filename = $filename
+	filename_str = user_string($filename)
+	mode = $mode
+	mode_str = _access_mode_str($mode)
+	argstr = sprintf("%s, %s, %s", dfd_str, user_string_quoted($filename), mode_str)
+}
+probe syscall.faccessat.return = kernel.function("sys_faccessat").return ? {
+	name = "faccessat"
+	retstr = returnstr(1)
+}
+
 %(arch != "x86_64" %?
 # fadvise64 __________________________________________________
 # long sys_fadvise64(int fd, loff_t offset, size_t len,  int advice)
