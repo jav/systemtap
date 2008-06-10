@@ -10,6 +10,14 @@
 	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
 	Initializes .vm_callback.
 
+2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6470
+	* parse.cxx (eval_comparison): New template function.
+	(eval_pp_conditional): Call it separately for string/string and
+	int64/int64 cases.
+	(lexer::scan): Provide better error message for invalid $NNN.
+
 2008-06-09  Jim Keniston  <jkenisto@us.ibm.com>
 
 	PR 6601

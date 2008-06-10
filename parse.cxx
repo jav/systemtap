@@ -150,6 +150,27 @@ parser::last ()
 }
 
 
+
+template <typename OPERAND>
+bool eval_comparison (const OPERAND& lhs, const token* op, const OPERAND& rhs)
+{
+  if (op->type == tok_operator && op->content == "<=")
+    { return lhs <= rhs; }
+  else if (op->type == tok_operator && op->content == ">=")
+    { return lhs >= rhs; }
+  else if (op->type == tok_operator && op->content == "<")
+    { return lhs < rhs; }
+  else if (op->type == tok_operator && op->content == ">")
+    { return lhs > rhs; }
+  else if (op->type == tok_operator && op->content == "==")
+    { return lhs == rhs; }
+  else if (op->type == tok_operator && op->content == "!=")
+    { return lhs != rhs; }
+  else
+    throw parse_error ("expected comparison operator", op);
+}
+
+
 // Here, we perform on-the-fly preprocessing.
 // The basic form is %( CONDITION %? THEN-TOKENS %: ELSE-TOKENS %)
 // where CONDITION is: kernel_v[r] COMPARISON-OP "version-string"
@@ -159,7 +180,7 @@ parser::last ()
 // The %: ELSE-TOKENS part is optional.
 //
 // e.g. %( kernel_v > "2.5" %? "foo" %: "baz" %)
-// e.g. %( arch != "i686" %? "foo" %: "baz" %)
+// e.g. %( arch != "i?86" %? "foo" %: "baz" %)
 //
 // Up to an entire %( ... %) expression is processed by a single call
 // to this function.  Tokens included by any nested conditions are
@@ -241,35 +262,19 @@ bool eval_pp_conditional (systemtap_session& s,
       
       return result;
     }  
-  else if ((l->type == tok_string && r->type == tok_string)
-	   || (l->type == tok_number && r->type == tok_number))
+  else if (l->type == tok_string && r->type == tok_string)
     {
-      // collect acceptable strverscmp results.
-      int rvc_ok1, rvc_ok2;
-      if (op->type == tok_operator && op->content == "<=")
-        { rvc_ok1 = -1; rvc_ok2 = 0; }
-      else if (op->type == tok_operator && op->content == ">=")
-        { rvc_ok1 = 1; rvc_ok2 = 0; }
-      else if (op->type == tok_operator && op->content == "<")
-        { rvc_ok1 = -1; rvc_ok2 = -1; }
-      else if (op->type == tok_operator && op->content == ">")
-        { rvc_ok1 = 1; rvc_ok2 = 1; }
-      else if (op->type == tok_operator && op->content == "==")
-        { rvc_ok1 = 0; rvc_ok2 = 0; }
-      else if (op->type == tok_operator && op->content == "!=")
-        { rvc_ok1 = -1; rvc_ok2 = 1; }
-      else
-        throw parse_error ("expected comparison operator", op);
-
-      int rvc_result = l->content.compare(r->content);
-
-      // normalize rvc_result
-      if (rvc_result < 0) rvc_result = -1;
-      if (rvc_result > 0) rvc_result = 1;
-
+      string lhs = l->content;
+      string rhs = r->content;
+      return eval_comparison (lhs, op, rhs);
       // NB: no wildcarding option here
-
-      return (rvc_result == rvc_ok1 || rvc_result == rvc_ok2);
+    }
+  else if (l->type == tok_number && r->type == tok_number)
+    {
+      int64_t lhs = lex_cast<int64_t>(l->content);
+      int64_t rhs = lex_cast<int64_t>(r->content);
+      return eval_comparison (lhs, op, rhs);
+      // NB: no wildcarding option here
     }
   else if (l->type == tok_string && r->type == tok_number
 	    && op->type == tok_operator)
@@ -277,7 +282,9 @@ bool eval_pp_conditional (systemtap_session& s,
   else if (l->type == tok_number && r->type == tok_string
 	    && op->type == tok_operator)
     throw parse_error ("expected number literal as right value", r);
+
   // XXX: support other forms?  "CONFIG_SMP" ?
+
   else
     throw parse_error ("expected 'arch' or 'kernel_v' or 'kernel_vr'\n"
 		       "             or comparison between strings or integers", l);
@@ -317,7 +324,7 @@ parser::scan_pp (bool wildcard, bool expand_args)
       // passing that as a vector to an evaluator.
 
       // Do not evaluate the condition if we haven't expanded everything.
-      // This may occured when having several recursive conditionals.
+      // This may occur when having several recursive conditionals.
       bool result = expand_args && eval_pp_conditional (session, l, op, r);
       delete l;
       delete op;
@@ -660,7 +667,8 @@ lexer::scan (bool wildcard, bool expand_args)
                  idx <= session.args.size()); // prevent overflow
       if (idx == 0 ||
           idx-1 >= session.args.size())
-          throw parse_error ("command line argument index invalid or out of range", n);
+        throw parse_error ("command line argument index " + lex_cast<string>(idx)
+                           + " out of range [1-" + lex_cast<string>(session.args.size()) + "]", n);
 
       string arg = session.args[idx-1];
       if (c == '$') input_put (arg);
