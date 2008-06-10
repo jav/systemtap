@@ -2329,7 +2329,7 @@ probe syscall.mkdirat = kernel.function("sys_mkdirat") ? {
 	dirfd = $dfd
 	pathname = user_string($pathname)
 	mode = $mode
-	argstr = sprintf("%d, %s, %#o", $dfd, user_string_quoted($pathname), $mode)
+	argstr = sprintf("%s, %s, %#o", _dfd_str($dfd), user_string_quoted($pathname), $mode)
 }
 probe syscall.mkdirat.return = kernel.function("sys_mkdirat").return ? {
 	name = "mkdirat"

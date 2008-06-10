@@ -1,3 +1,8 @@
+2008-06-10  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls.stp(syscall.mkdirat): Use _dfd_str() to add support
+	for AT_FDCWD.
+
 2008-06-09  David Smith  <dsmith@redhat.com>
 
 	* x86_64/registers.stp (syscall_nr): Added syscall_nr function.
