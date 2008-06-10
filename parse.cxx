@@ -291,10 +291,9 @@ bool eval_pp_conditional (systemtap_session& s,
 }
 
 
-// expand_args is used to know if we must expand $x and @x identifiers.
 // Only tokens corresponding to the TRUE statement must be expanded
 const token*
-parser::scan_pp (bool wildcard, bool expand_args)
+parser::scan_pp (bool wildcard)
 {
   while (true)
     {
@@ -305,7 +304,7 @@ parser::scan_pp (bool wildcard, bool expand_args)
           return t;
         }
 
-      const token* t = input.scan (wildcard, expand_args); // NB: not recursive!
+      const token* t = input.scan (wildcard); // NB: not recursive!
       if (t == 0) // EOF
         return t;
       
@@ -315,9 +314,9 @@ parser::scan_pp (bool wildcard, bool expand_args)
       // We have a %( - it's time to throw a preprocessing party!
 
       const token *l, *op, *r;
-      l = input.scan (false, expand_args); // NB: not recursive, though perhaps could be
-      op = input.scan (false, expand_args);
-      r = input.scan (false, expand_args);
+      l = input.scan (false); // NB: not recursive, though perhaps could be
+      op = input.scan (false);
+      r = input.scan (false);
       if (l == 0 || op == 0 || r == 0)
         throw parse_error ("incomplete condition after '%('", t);
       // NB: consider generalizing to consume all tokens until %?, and
@@ -325,66 +324,101 @@ parser::scan_pp (bool wildcard, bool expand_args)
 
       // Do not evaluate the condition if we haven't expanded everything.
       // This may occur when having several recursive conditionals.
-      bool result = expand_args && eval_pp_conditional (session, l, op, r);
+      bool result = eval_pp_conditional (session, l, op, r);
       delete l;
       delete op;
       delete r;
-      
+
+      /*
+      clog << "PP eval (" << *t << ") == " << result << endl;
+      */
+
       const token *m = input.scan (); // NB: not recursive
       if (! (m && m->type == tok_operator && m->content == "%?"))
         throw parse_error ("expected '%?' marker for conditional", t);
       delete m; // "%?"
 
       vector<const token*> my_enqueued_pp;
-      bool have_token = false;
-      
+
+      int nesting = 0;
       while (true) // consume THEN tokens
         {
-          m = scan_pp (wildcard, result); // NB: recursive
-          if (m == 0)
-            throw parse_error (have_token ?
-                               "incomplete conditional - missing %: or %)" :
-                               "missing THEN tokens for conditional",
-                               t);
+          try
+            {
+              m = result ? scan_pp (wildcard) : input.scan (wildcard);
+            }
+          catch (const parse_error &e)
+            {
+              if (result) throw e; // propagate errors if THEN branch taken 
+              m = 0;
+            }
 
-	  have_token = true;
-          if (m->type == tok_operator && (m->content == "%:" || // ELSE
-                                          m->content == "%)")) // END
+          if (m && m->type == tok_operator && m->content == "%(") // nested %(
+            nesting ++;
+          if (nesting == 0 && m && (m->type == tok_operator && (m->content == "%:" || // ELSE
+                                                                m->content == "%)"))) // END
             break;
-          // enqueue token
-          if (result) 
+          if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
+            nesting --;
+
+          if (result && !m)
+            throw parse_error ("unexpected end-of-file");
+          if (result && m)
             my_enqueued_pp.push_back (m);
-          else
-            delete m; // unused token
-          // continue
+          if (!result && !m)
+            // do nothing; probably a parse error in an unkept THEN token
+          if (!result && m)
+            delete m; // do nothing, just dispose of unkept THEN token
+
+          continue;
         }
       
-      have_token = false;
       if (m && m->type == tok_operator && m->content == "%:") // ELSE
         {
           delete m; // "%:"
+          int nesting = 0;
           while (true)
             {
-              m = scan_pp (wildcard, expand_args && !result); // NB: recursive
-              if (m == 0)
-		  throw parse_error (have_token ?
-                                     "incomplete conditional - missing %)" :
-                                     "missing ELSE tokens for conditional",
-                                     t);
+              try
+                {
+                  m = result ? input.scan (wildcard) : scan_pp (wildcard);
+                } 
+              catch (const parse_error& e)
+                {
+                  if (!result) throw e; // propagate errors if ELSE branch taken 
+                  m = 0;
+                }
 
-	      have_token = true;
-              if (m->type == tok_operator && m->content == "%)") // END
+              if (m && m->type == tok_operator && m->content == "%(") // nested %(
+                nesting ++;
+              if (nesting == 0 && m && m->type == tok_operator && m->content == "%)") // END
                 break;
-              // enqueue token
-              if (! result) 
-                my_enqueued_pp.push_back (m);
-              else
-                delete m; // unused token
-              // continue
+              if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
+                nesting --;
+
+              if (!result && !m)
+                throw parse_error ("incomplete conditional - missing %)", t);
+              if (!result && m)
+                my_enqueued_pp.push_back (m);                
+              if (result && !m)
+                // do nothing; probably a parse error in an unkept ELSE token
+              if (result && m)
+                delete m; // do nothing, just dispose of unkept ELSE token
+
+              continue;
             }
         }
+
+      /*
+      clog << "PP eval (" << *t << ") == " << result << " tokens: " << endl;
+      for (unsigned k=0; k<my_enqueued_pp.size(); k++)
+        clog << * my_enqueued_pp[k] << endl;
+      clog << endl;
+      */
+
       delete t; // "%("
       delete m; // "%)"
+
 
       // NB: we transcribe the retained tokens here, and not inside
       // the THEN/ELSE while loops.  If it were done there, each loop
@@ -605,7 +639,7 @@ lexer::input_put (const string& chars)
 
 
 token*
-lexer::scan (bool wildcard, bool expand_args)
+lexer::scan (bool wildcard)
 {
   token* n = new token;
   n->location.file = input_name;
@@ -640,8 +674,7 @@ lexer::scan (bool wildcard, bool expand_args)
   // characters; @1..@999 are quoted/escaped as strings.
   // $# and @# expand to the number of arguments, similarly
   // raw or quoted.
-  if (expand_args &&
-      (c == '$' || c == '@') &&
+  if ((c == '$' || c == '@') &&
       (c2 == '#'))
     {
       input_get(); // swallow '#'
@@ -652,8 +685,7 @@ lexer::scan (bool wildcard, bool expand_args)
       semiskipped_p ++;
       goto semiskip;
     }
-  else if (expand_args &&
-           (c == '$' || c == '@') &&
+  else if ((c == '$' || c == '@') &&
            (isdigit (c2)))
     {
       unsigned idx = 0;

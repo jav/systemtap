@@ -13,6 +13,16 @@
 2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6470
+	* parse.cxx (scan_pp): Eliminate expand_args argument to control
+	nested preprocess evaluation.  Rewrite to use a combination of
+	exceptions and non-recursion.
+	(lexer::scan): Ditto.  Interpret "$#" as the argc value in all
+	cases.
+	* parse.h: Corresponding decl changes.
+	
+2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6470
 	* parse.cxx (eval_comparison): New template function.
 	(eval_pp_conditional): Call it separately for string/string and
 	int64/int64 cases.
