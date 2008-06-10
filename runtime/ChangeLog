@@ -1,3 +1,11 @@
+2008-06-10  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (struct stap_task_finder_target): Added
+	vm_callback public field.
+	(stap_register_task_finder_target): Sets up .report_quiesce
+	handler.
+	(__stp_utrace_task_finder_target_quiesce): New function.
+
 2008-06-09  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_task_finder_report_exec): Handles

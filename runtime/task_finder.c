@@ -29,6 +29,12 @@ typedef int (*stap_task_finder_callback)(struct task_struct *tsk,
 					 int process_p,
 					 struct stap_task_finder_target *tgt);
 
+typedef int (*stap_task_finder_vm_callback)(struct task_struct *tsk,
+					    int map_p, char *vm_path,
+					    unsigned long vm_start,
+					    unsigned long vm_end,
+					    unsigned long vm_pgoff);
+
 struct stap_task_finder_target {
 /* private: */
 	struct list_head list;		/* __stp_task_finder_list linkage */
@@ -42,11 +48,16 @@ struct stap_task_finder_target {
     	const char *pathname;
 	pid_t pid;
 	stap_task_finder_callback callback;
+	stap_task_finder_vm_callback vm_callback;
 };
 
 static u32
 __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 				      struct task_struct *tsk);
+
+static u32
+__stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
+					struct task_struct *tsk);
 
 static int
 stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
@@ -70,6 +81,7 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	new_tgt->engine_attached = 0;
 	memset(&new_tgt->ops, 0, sizeof(new_tgt->ops));
 	new_tgt->ops.report_death = &__stp_utrace_task_finder_target_death;
+	new_tgt->ops.report_quiesce = &__stp_utrace_task_finder_target_quiesce;
 
 	// Search the list for an existing entry for pathname/pid.
 	list_for_each(node, &__stp_task_finder_list) {
@@ -206,11 +218,15 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	return rc;
 }
 
-#define __STP_UTRACE_TASK_FINDER_EVENTS (UTRACE_EVENT(CLONE)	\
-					 | UTRACE_EVENT(EXEC)	\
-					 | UTRACE_EVENT(DEATH))
+#define __STP_TASK_FINDER_EVENTS (UTRACE_EVENT(CLONE)		\
+				  | UTRACE_EVENT(EXEC)		\
+				  | UTRACE_EVENT(DEATH))
 
-#define __STP_UTRACE_ATTACHED_TASK_EVENTS (UTRACE_EVENT(DEATH))
+#define __STP_ATTACHED_TASK_BASE_EVENTS (UTRACE_EVENT(DEATH))
+
+#define __STP_ATTACHED_TASK_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
+				    | UTRACE_ACTION_QUIESCE	\
+				    | UTRACE_EVENT(QUIESCE))
 
 static int
 stap_utrace_attach(struct task_struct *tsk,
@@ -297,11 +313,11 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				}
 			}
 
-			// Set up thread death notification.
+			// Set up events we need for attached tasks.
 			if (register_p) {
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_UTRACE_ATTACHED_TASK_EVENTS);
+							__STP_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					break;
 				cb_tgt->engine_attached = 1;
@@ -390,7 +406,7 @@ __stp_utrace_task_finder_report_clone(struct utrace_attached_engine *engine,
 
 	// On clone, attach to the child.
 	rc = stap_utrace_attach(child, engine->ops, 0,
-				__STP_UTRACE_TASK_FINDER_EVENTS);
+				__STP_TASK_FINDER_EVENTS);
 	if (rc != 0 && rc != EPERM)
 		return UTRACE_ACTION_RESUME;
 
@@ -482,6 +498,81 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 	return UTRACE_ACTION_DETACH;
 }
 
+static u32
+__stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
+					struct task_struct *tsk)
+{
+	struct stap_task_finder_target *tgt = engine->data;
+
+	// Turn off quiesce handling.
+	utrace_set_flags(tsk, engine, __STP_ATTACHED_TASK_BASE_EVENTS);
+
+	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
+		debug_task_finder_detach();
+		return UTRACE_ACTION_DETACH;
+	}
+
+	if (tgt != NULL && tgt->vm_callback != NULL) {
+		struct mm_struct *mm;
+		char *mmpath_buf;
+		char *mmpath;
+		struct vm_area_struct *vma;
+		int rc;
+
+		/* Call the vm_callback for every vma associated with
+		 * a file. */
+		mm = get_task_mm(tsk);
+		if (! mm)
+			goto utftq_out;
+
+		// Allocate space for a path
+		mmpath_buf = _stp_kmalloc(PATH_MAX);
+		if (mmpath_buf == NULL) {
+			mmput(mm);
+			_stp_error("Unable to allocate space for path");
+			goto utftq_out;
+		}
+
+		down_read(&mm->mmap_sem);
+		vma = mm->mmap;
+		while (vma) {
+			if (vma->vm_file) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,25)
+				mmpath = d_path(vma->vm_file->f_dentry,
+						vma->vm_file->f_vfsmnt,
+						mmpath_buf, PATH_MAX);
+#else
+				mmpath = d_path(&(vma->vm_file->f_path),
+						mmpath_buf, PATH_MAX);
+#endif
+				if (mmpath) {
+					// Call the callback
+					rc = tgt->vm_callback(tsk, 1, mmpath,
+							      vma->vm_start,
+							      vma->vm_end,
+							      vma->vm_pgoff);
+					if (rc != 0) {
+					    _stp_error("vm callback for %d failed: %d",
+						       (int)tsk->pid, rc);
+					}
+
+				}
+				else {
+					_stp_dbug(__FUNCTION__, __LINE__,
+						  "no mmpath?\n");
+				}
+			}
+			vma = vma->vm_next;
+		}
+		up_read(&mm->mmap_sem);
+		mmput(mm);		/* We're done with mm */
+		_stp_kfree(mmpath_buf);
+	}
+
+utftq_out:
+	return (UTRACE_ACTION_NEWSTATE | UTRACE_ACTION_RESUME);
+}
+
 struct utrace_engine_ops __stp_utrace_task_finder_ops = {
 	.report_clone = __stp_utrace_task_finder_report_clone,
 	.report_exec = __stp_utrace_task_finder_report_exec,
@@ -511,7 +602,7 @@ stap_start_task_finder(void)
 		struct list_head *tgt_node;
 
 		rc = stap_utrace_attach(tsk, &__stp_utrace_task_finder_ops, 0,
-					__STP_UTRACE_TASK_FINDER_EVENTS);
+					__STP_TASK_FINDER_EVENTS);
 		if (rc == EPERM) {
 			/* Ignore EPERM errors, which mean this wasn't
 			 * a thread we can attach to. */
@@ -578,10 +669,10 @@ stap_start_task_finder(void)
 					goto stf_err;
 				}
 
-				// Set up thread death notification.
+				// Set up events we need for attached tasks.
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_UTRACE_ATTACHED_TASK_EVENTS);
+							__STP_ATTACHED_TASK_EVENTS);
 				if (rc != 0 && rc != EPERM)
 					goto stf_err;
 				cb_tgt->engine_attached = 1;

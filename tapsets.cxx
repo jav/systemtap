@@ -5434,6 +5434,7 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
     }
 
   s.op->line() << " .callback=&_stp_utrace_probe_cb,";
+  s.op->line() << " .vm_callback=NULL,";
   s.op->line() << " },";
   s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
   s.op->line() << " .ph=&" << p->name << ",";
