@@ -1,5 +1,8 @@
 * What's new in version 0.7
 
+- Scripts relying on probe point wildcards like "syscall.*" that expand
+  to distinct kprobes are processed significantly faster than before.
+
 - The vector of script command line arguments is available in a
   tapset-provided global array argv[].  It is indexed 1 ... argc,
   another global.  This can substitute for of preprocessor
