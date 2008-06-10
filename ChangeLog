@@ -13,6 +13,17 @@
 2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6470
+	* NEWS: Note argv[] tapset.
+	* parse.cxx (scan_pp): Better handle premature EOF.
+	* stapvars.5.in: New file.
+	* stap.1.in: Mention it.
+	* Makefile.am (dist_man_MANS): Add stapvars.5.
+	* configure.ac (AC_CONFIG_FILES): Add stapvars.5.in.
+	* Makefile.in, configure: Regenerated.
+
+2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6470
 	* parse.cxx (scan_pp): Eliminate expand_args argument to control
 	nested preprocess evaluation.  Rewrite to use a combination of
 	exceptions and non-recursion.

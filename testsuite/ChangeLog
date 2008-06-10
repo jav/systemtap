@@ -1,3 +1,9 @@
+2008-06-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6470.
+	* parseko/preprocess08.stp, ...08b.stp: Revised/new test.
+	* systemtap.base/cmd_parse.exp: Added some argv[] tests.
+
 2008-06-09  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/stmt_rel.stp: New test.

@@ -1,0 +1,48 @@
+// argument vector tapset
+// Copyright (C) 2008 Red Hat Inc.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+
+global argc = $#
+global argv %( $# >= 1 %? [$#] %: [1] %)
+
+probe begin(-1) {
+      %( $# == 0 %? argv[0] = "nothing"; delete argv[0] %)  # ensure argv is set sometime
+      %( $# >= 1 %? argv[1]=@1 %)
+      %( $# >= 2 %? argv[2]=@2 %)
+      %( $# >= 3 %? argv[3]=@3 %)
+      %( $# >= 4 %? argv[4]=@4 %)
+      %( $# >= 5 %? argv[5]=@5 %)
+      %( $# >= 6 %? argv[6]=@6 %)
+      %( $# >= 7 %? argv[7]=@7 %)
+      %( $# >= 8 %? argv[8]=@8 %)
+      %( $# >= 9 %? argv[9]=@9 %)
+      %( $# >= 10 %? argv[10]=@10 %)
+      %( $# >= 11 %? argv[11]=@11 %)
+      %( $# >= 12 %? argv[12]=@12 %)
+      %( $# >= 13 %? argv[13]=@13 %)
+      %( $# >= 14 %? argv[14]=@14 %)
+      %( $# >= 15 %? argv[15]=@15 %)
+      %( $# >= 16 %? argv[16]=@16 %)
+      %( $# >= 17 %? argv[17]=@17 %)
+      %( $# >= 18 %? argv[18]=@18 %)
+      %( $# >= 19 %? argv[19]=@19 %)
+      %( $# >= 20 %? argv[20]=@20 %)
+      %( $# >= 21 %? argv[21]=@21 %)
+      %( $# >= 22 %? argv[22]=@22 %)
+      %( $# >= 23 %? argv[23]=@23 %)
+      %( $# >= 24 %? argv[24]=@24 %)
+      %( $# >= 25 %? argv[25]=@25 %)
+      %( $# >= 26 %? argv[26]=@26 %)
+      %( $# >= 27 %? argv[27]=@27 %)
+      %( $# >= 28 %? argv[28]=@28 %)
+      %( $# >= 29 %? argv[29]=@29 %)
+      %( $# >= 30 %? argv[30]=@30 %)
+      %( $# >= 31 %? argv[31]=@31 %)
+      %( $# >= 32 %? argv[32]=@32 %)
+      %( $# >= 33 %? warn(sprintf("argv is limited to 32 arguments")) %)
+}

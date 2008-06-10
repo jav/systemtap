@@ -1050,6 +1050,7 @@ unloading.
 .SH SEE ALSO
 .IR stapprobes (5),
 .IR stapfuncs (5),
+.IR stapvars (5),
 .IR stapex (5),
 .IR awk (1),
 .IR gdb (1)

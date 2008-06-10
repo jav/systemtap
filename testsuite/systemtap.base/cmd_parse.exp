@@ -84,3 +84,40 @@ expect {
     eof {fail "cmd_parse8: unexpected EOF"}
 }
 wait
+
+spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 1
+expect {
+    -timeout 60
+    "1 1" { pass cmd_parse9 }
+    timeout { fail "cmd_parse9 timeout" }
+    eof { fail "cmd_parse9 eof" }
+}
+wait
+
+spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 5 a b c d
+expect {
+    -timeout 60
+    "5 d" { pass cmd_parse10 }
+    timeout { fail "cmd_parse10 timeout" }
+    eof { fail "cmd_parse10 eof" }
+}
+wait
+
+spawn stap -e {probe begin { printf("%d %s\n", argc, argv[$1]) exit() }} 10 a b c d
+expect {
+    -timeout 60
+    "5 " { pass cmd_parse11 }
+    timeout { fail "cmd_parse11 timeout" }
+    eof { fail "cmd_parse11 eof" }
+}
+wait
+
+spawn stap -e {probe begin { printf("%d %s\n", argc, argv[0]) exit() }}
+expect {
+    -timeout 60
+    "0 " { pass cmd_parse12 }
+    timeout { fail "cmd_parse12 timeout" }
+    eof { fail "cmd_parse12 eof" }
+}
+wait
+

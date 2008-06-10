@@ -1,4 +1,4 @@
 #! stap -p1
 
-# missing "then" token
-%( arch == "2.6" %?
+# premature EOF during THEN tokens
+%( 0 == 0 %?

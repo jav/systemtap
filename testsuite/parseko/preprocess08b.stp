@@ -1,0 +1,4 @@
+#! stap -p1
+
+# premature EOF during ELSE tokens
+%( 0 == 1 %? %:

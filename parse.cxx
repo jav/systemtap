@@ -350,7 +350,7 @@ parser::scan_pp (bool wildcard)
           catch (const parse_error &e)
             {
               if (result) throw e; // propagate errors if THEN branch taken 
-              m = 0;
+              continue;
             }
 
           if (m && m->type == tok_operator && m->content == "%(") // nested %(
@@ -361,13 +361,11 @@ parser::scan_pp (bool wildcard)
           if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
             nesting --;
 
-          if (result && !m)
-            throw parse_error ("unexpected end-of-file");
-          if (result && m)
+          if (!m)
+            throw parse_error ("incomplete conditional - missing '%:' or '%)'", t);
+          if (result)
             my_enqueued_pp.push_back (m);
-          if (!result && !m)
-            // do nothing; probably a parse error in an unkept THEN token
-          if (!result && m)
+          if (!result)
             delete m; // do nothing, just dispose of unkept THEN token
 
           continue;
@@ -386,7 +384,7 @@ parser::scan_pp (bool wildcard)
               catch (const parse_error& e)
                 {
                   if (!result) throw e; // propagate errors if ELSE branch taken 
-                  m = 0;
+                  continue;
                 }
 
               if (m && m->type == tok_operator && m->content == "%(") // nested %(
@@ -396,13 +394,11 @@ parser::scan_pp (bool wildcard)
               if (nesting && m && m->type == tok_operator && m->content == "%)") // nested %)
                 nesting --;
 
-              if (!result && !m)
+              if (!m)
                 throw parse_error ("incomplete conditional - missing %)", t);
-              if (!result && m)
+              if (!result)
                 my_enqueued_pp.push_back (m);                
-              if (result && !m)
-                // do nothing; probably a parse error in an unkept ELSE token
-              if (result && m)
+              if (result)
                 delete m; // do nothing, just dispose of unkept ELSE token
 
               continue;
