@@ -1,3 +1,8 @@
+2008-06-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.base/warnings.exp: Expect 11 warning plus 1 .ko output
+	line.
+
 2008-06-11  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p5.exp: Made changes to work when not

@@ -1231,12 +1231,11 @@ systemtap_session::print_error (const semantic_error& e)
 void
 systemtap_session::print_warning (string message_str)
 {
-  message_str.insert(0, "WARNING: ");
   // Duplicate elimination
   if (seen_warnings.find (message_str) == seen_warnings.end())
     {
       seen_warnings.insert (message_str);
-      clog << message_str << endl;
+      clog << "WARNING: " << message_str << endl;
     }
 }
 

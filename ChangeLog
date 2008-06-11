@@ -1,3 +1,9 @@
+2008-06-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* elaborate.cxx (print_warning): Only output WARNING, don't put it
+	in the message_str and seen_warnings.
+	* session.h (print_waring): Reindent.
+
 2008-06-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* elaborate.cxx (print_warning): Use session.seen_warnings[].
