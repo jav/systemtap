@@ -755,6 +755,24 @@ probe syscall.fchmod.return = kernel.function("sys_fchmod").return {
 	retstr = returnstr(1)
 }
 
+# fchmodat ___________________________________________________
+# new function with 2.6.16
+# long sys_fchmodat(int dfd, const char __user *filename,
+#	mode_t mode)
+probe syscall.fchmodat = kernel.function("sys_fchmodat") ? {
+	name = "fchmodat"
+	dfd = $dfd
+	dfd_str = _dfd_str($dfd)
+	filename = $filename
+	filename_str = user_string($filename)
+	mode = $mode
+	argstr = sprintf("%s, %s, %#o", dfd_str, user_string_quoted($filename), $mode)
+}
+probe syscall.fchmodat.return = kernel.function("sys_fchmodat").return ? {
+	name = "fchmodat"
+	retstr = returnstr(1)
+}
+
 # fchown _____________________________________________________
 # long sys_fchown(unsigned int fd, uid_t user, gid_t group)
 probe syscall.fchown = kernel.function("sys_fchown") {

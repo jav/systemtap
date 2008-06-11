@@ -1,3 +1,7 @@
+2008-06-11  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls.stp: Add sys_fchmodat.
+
 2008-06-10  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls.stp: Add sys_faccessat.
