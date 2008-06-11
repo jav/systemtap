@@ -1,3 +1,7 @@
+2008-06-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (EXTRA_DIST): Add dwarf_wrappers.h.
+
 2008-06-11  Mark Wielaard  <mwielaard@redhat.com>
 
 	* elaborate.cxx (print_warning): Only output WARNING, don't put it
