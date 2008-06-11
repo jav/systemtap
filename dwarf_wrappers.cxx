@@ -38,3 +38,9 @@ void dwarf_assert(const string& desc, int rc)
     msg += std::strerror (rc);
   throw semantic_error (msg);
 }
+
+void dwfl_assert(const std::string& desc, bool condition)
+{
+    if (!condition)
+        dwarf_assert(desc, -1);
+}

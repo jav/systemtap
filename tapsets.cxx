@@ -1530,9 +1530,9 @@ struct dwflpp
     Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
     dwfl_assert ("dwfl_addrmodule", mod);
     int n = dwfl_module_relocations (mod);
-    dwfl_assert ("dwfl_module_relocations", n);
+    dwfl_assert ("dwfl_module_relocations", n >= 0);
     int i = dwfl_module_relocate_address (mod, &address);
-    dwfl_assert ("dwfl_module_relocate_address", i);
+    dwfl_assert ("dwfl_module_relocate_address", i >= 0);
     const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                                 NULL, NULL, NULL, NULL);
     dwfl_assert ("dwfl_module_info", modname);
@@ -1540,7 +1540,7 @@ struct dwflpp
 
     if (n > 0 && !(n == 1 && secname == NULL))
      {
-	dwfl_assert ("dwfl_module_relocation_info", secname == NULL);
+	dwfl_assert ("dwfl_module_relocation_info", secname);
 	if (n > 1 || secname[0] != '\0')
           {
             // This gives us the module name, and section name within the

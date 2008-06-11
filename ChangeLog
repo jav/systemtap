@@ -1,5 +1,12 @@
 2008-06-11  Tim Moore  <timoore@redhat.com>
 
+	* dwarf_wrappers.h (dwfl_assert): Add overload with boolean value
+	for assertion test.
+	* dwarf_wrappers.cxx (dwfl_assert): Write boolean condition
+	version.
+	* tapsets.cxx (emit_address): Fix up dwfl_asserts that got negated
+	in changes to dwfl_assert.
+
 	PR 2608
 	* dwarf_wrappers.h, dwarf_wrappers.cxx: New files.
 	* Makefile.in: Regenerated.

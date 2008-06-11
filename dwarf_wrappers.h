@@ -15,6 +15,7 @@
 // NB: "rc == 0" means OK in this case
 void dwfl_assert(const std::string& desc, int rc);
 
+// Throw error if pointer is NULL.
 template <typename T>
 void dwfl_assert(const std::string& desc, T* ptr)
 {
@@ -22,6 +23,7 @@ void dwfl_assert(const std::string& desc, T* ptr)
     dwfl_assert(desc, -1);
 }
 
+// Throw error if pointer is NULL
 template <typename T>
 void dwfl_assert(const std::string& desc, const T* ptr)
 {
@@ -29,9 +31,13 @@ void dwfl_assert(const std::string& desc, const T* ptr)
     dwfl_assert(desc, -1);
 }
 
+// Throw error if condition is false
+void dwfl_assert(const std::string& desc, bool condition);
+
 // NB: "rc == 0" means OK in this case
 void dwarf_assert(const std::string& desc, int rc);
 
+// Throw error if pointer is NULL
 template <typename T>
 void dwarf_assert(const std::string& desc, T* ptr)
 {
