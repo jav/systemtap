@@ -13,7 +13,8 @@
 #include "parse.h"
 #include <string>
 #include <vector>
-#include <iostream>
+//#include <iostream>
+#include <iosfwd>
 #include <sstream>
 #include <map>
 
@@ -175,21 +176,23 @@ struct derived_probe_group
 
 // ------------------------------------------------------------------------
 
+typedef std::map<std::string, literal*> literal_map_t;
+
 struct derived_probe_builder
 {
   virtual void build(systemtap_session & sess,
 		     probe* base, 
 		     probe_point* location,
-		     std::map<std::string, literal*> const & parameters,
+		     literal_map_t const & parameters,
 		     std::vector<derived_probe*> & finished_results) = 0;
   virtual ~derived_probe_builder() {}
   virtual void build_no_more (systemtap_session &) {}
 
-  static bool has_null_param (std::map<std::string, literal*> const & parameters,
+  static bool has_null_param (literal_map_t const & parameters,
                               const std::string& key);
-  static bool get_param (std::map<std::string, literal*> const & parameters,
+  static bool get_param (literal_map_t const & parameters,
                          const std::string& key, std::string& value);
-  static bool get_param (std::map<std::string, literal*> const & parameters,
+  static bool get_param (literal_map_t const & parameters,
                          const std::string& key, int64_t& value);
 };
 

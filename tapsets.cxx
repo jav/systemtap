@@ -14,6 +14,7 @@
 #include "translate.h"
 #include "session.h"
 #include "util.h"
+#include "dwarf_wrappers.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -60,7 +61,6 @@ extern "C" {
 
 using namespace std;
 using namespace __gnu_cxx;
-
 
 // ------------------------------------------------------------------------
 // Generic derived_probe_group: contains an ordinary vector of the
@@ -120,7 +120,6 @@ public:
   void emit_module_exit (systemtap_session& s);
 };
 
-
 struct be_builder: public derived_probe_builder
 {
   be_t type;
@@ -130,7 +129,7 @@ struct be_builder: public derived_probe_builder
   virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
     int64_t priority;
@@ -434,7 +433,7 @@ struct never_builder: public derived_probe_builder
   virtual void build(systemtap_session &,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const &,
+		     literal_map_t const &,
 		     vector<derived_probe *> & finished_results)
   {
     finished_results.push_back(new never_derived_probe(base, location));
@@ -831,29 +830,6 @@ struct dwflpp
   }
 
 
-  // NB: "rc == 0" means OK in this case
-  static void dwfl_assert(string desc, int rc, string extra_msg = "")
-  {
-    string msg = "libdwfl failure (" + desc + "): ";
-    if (rc < 0) msg += dwfl_errmsg (rc);
-    else if (rc > 0) msg += strerror (rc);
-    if (rc != 0)
-      {
-	if (extra_msg.length() > 0)
-	  msg += "\n" + extra_msg;
-	throw semantic_error (msg);
-      }
-  }
-
-  void dwarf_assert(string desc, int rc) // NB: "rc == 0" means OK in this case
-  {
-    string msg = "libdw failure (" + desc + "): ";
-    if (rc < 0) msg += dwarf_errmsg (rc);
-    else if (rc > 0) msg += strerror (rc);
-    if (rc != 0)
-      throw semantic_error (msg);
-  }
-
   // static so pathname_caching_callback() can access them
   static module_cache_t module_cache;
   static bool ignore_vmlinux;
@@ -1162,7 +1138,8 @@ struct dwflpp
 				   int lineno,
 				   bool need_single_match,
 				   bool line_type_relative,
-				   void (* callback) (Dwarf_Line * line, void * arg),
+				   void (* callback) (const dwarf_line_t& line,
+                                                      void * arg),
 				   void *data)
   {
     Dwarf_Line **srcsp = NULL;
@@ -1265,7 +1242,7 @@ struct dwflpp
 	  {
             if (pending_interrupts) return;
             if (srcsp [i]) // skip over mismatched lines
-              callback (srcsp[i], data);
+              callback (dwarf_line_t(srcsp[i]), data);
 	  }
       }
     catch (...)
@@ -1346,23 +1323,23 @@ struct dwflpp
         if (func->decl_file == 0) func->decl_file = "";
 
         unsigned entrypc_srcline_idx = 0;
-        Dwarf_Line* entrypc_srcline = 0;
+        dwarf_line_t entrypc_srcline;
         // open-code binary search for exact match
         {
           unsigned l = 0, h = nlines;
           while (l < h)
             {
               entrypc_srcline_idx = (l + h) / 2;
-              Dwarf_Addr addr;
-              Dwarf_Line *lr = dwarf_onesrcline(lines, entrypc_srcline_idx);
-              dwarf_lineaddr (lr, &addr);
+              const dwarf_line_t lr(dwarf_onesrcline(lines,
+                                                     entrypc_srcline_idx));
+              Dwarf_Addr addr = lr.addr();
               if (addr == entrypc) { entrypc_srcline = lr; break; }
               else if (l + 1 == h) { break; } // ran off bottom of tree
               else if (addr < entrypc) { l = entrypc_srcline_idx; }
               else { h = entrypc_srcline_idx; }
             }
         }
-        if (entrypc_srcline == 0)
+        if (!entrypc_srcline)
           throw semantic_error ("missing entrypc dwarf line record for function '"
                                 + func->name + "'");
 
@@ -1387,13 +1364,10 @@ struct dwflpp
         bool ranoff_end = false;
         while (postprologue_srcline_idx < nlines)
           {
-            Dwarf_Addr postprologue_addr;
-            Dwarf_Line *lr = dwarf_onesrcline(lines, postprologue_srcline_idx);
-            dwarf_lineaddr (lr, &postprologue_addr);
-            const char* postprologue_file = dwarf_linesrc (lr, NULL, NULL);
-            int postprologue_lineno;
-            dwfl_assert ("dwarf_lineno",
-                         dwarf_lineno (lr, & postprologue_lineno));
+            dwarf_line_t lr(dwarf_onesrcline(lines, postprologue_srcline_idx));
+            Dwarf_Addr postprologue_addr = lr.addr();
+            const char* postprologue_file = lr.linesrc();
+            int postprologue_lineno = lr.lineno();
 
             if (sess.verbose>2)
               clog << "checking line record 0x" << hex << postprologue_addr << dec
@@ -1515,9 +1489,9 @@ struct dwflpp
     dwarf_decl_line (function, linep);
   }
 
-  bool die_has_pc (Dwarf_Die * die, Dwarf_Addr pc)
+  bool die_has_pc (Dwarf_Die & die, Dwarf_Addr pc)
   {
-    int res = dwarf_haspc (die, pc);
+    int res = dwarf_haspc (&die, pc);
     if (res == -1)
       dwarf_assert ("dwarf_haspc", res);
     return res == 1;
@@ -1554,14 +1528,14 @@ struct dwflpp
     // We emit a comment approximating the variable+offset expression that
     // relocatable module probing code will need to have.
     Dwfl_Module *mod = dwfl_addrmodule (dwfl, address);
-    dwfl_assert ("dwfl_addrmodule", mod == NULL);
+    dwfl_assert ("dwfl_addrmodule", mod);
     int n = dwfl_module_relocations (mod);
-    dwfl_assert ("dwfl_module_relocations", n < 0);
+    dwfl_assert ("dwfl_module_relocations", n);
     int i = dwfl_module_relocate_address (mod, &address);
-    dwfl_assert ("dwfl_module_relocate_address", i < 0);
+    dwfl_assert ("dwfl_module_relocate_address", i);
     const char *modname = dwfl_module_info (mod, NULL, NULL, NULL,
                                                 NULL, NULL, NULL, NULL);
-    dwfl_assert ("dwfl_module_info", modname == NULL);
+    dwfl_assert ("dwfl_module_info", modname);
     const char *secname = dwfl_module_relocation_info (mod, i, NULL);
 
     if (n > 0 && !(n == 1 && secname == NULL))
@@ -2282,7 +2256,7 @@ struct base_query
 	     probe * base_probe,
 	     probe_point * base_loc,
 	     dwflpp & dw,
-	     map<string, literal *> const & params,
+	     literal_map_t const & params,
 	     vector<derived_probe *> & results);
   virtual ~base_query() {}
 
@@ -2293,13 +2267,13 @@ struct base_query
   vector<derived_probe *> & results;
 
   // Parameter extractors.
-  static bool has_null_param(map<string, literal *> const & params,
+  static bool has_null_param(literal_map_t const & params,
                              string const & k);
-  static bool get_string_param(map<string, literal *> const & params,
+  static bool get_string_param(literal_map_t const & params,
 			       string const & k, string & v);
-  static bool get_number_param(map<string, literal *> const & params,
+  static bool get_number_param(literal_map_t const & params,
 			       string const & k, long & v);
-  static bool get_number_param(map<string, literal *> const & params,
+  static bool get_number_param(literal_map_t const & params,
 			       string const & k, Dwarf_Addr & v);
 
   // Extracted parameters.
@@ -2314,7 +2288,7 @@ base_query::base_query(systemtap_session & sess,
 		       probe * base_probe,
 		       probe_point * base_loc,
 		       dwflpp & dw,
-		       map<string, literal *> const & params,
+		       literal_map_t const & params,
 		       vector<derived_probe *> & results)
   : sess(sess), base_probe(base_probe), base_loc(base_loc), dw(dw),
     results(results)
@@ -2331,7 +2305,7 @@ base_query::base_query(systemtap_session & sess,
 }
 
 bool
-base_query::has_null_param(map<string, literal *> const & params,
+base_query::has_null_param(literal_map_t const & params,
 			   string const & k)
 {
   return derived_probe_builder::has_null_param(params, k);
@@ -2339,7 +2313,7 @@ base_query::has_null_param(map<string, literal *> const & params,
 
 
 bool
-base_query::get_string_param(map<string, literal *> const & params,
+base_query::get_string_param(literal_map_t const & params,
 			     string const & k, string & v)
 {
   return derived_probe_builder::get_param (params, k, v);
@@ -2347,7 +2321,7 @@ base_query::get_string_param(map<string, literal *> const & params,
 
 
 bool
-base_query::get_number_param(map<string, literal *> const & params,
+base_query::get_number_param(literal_map_t const & params,
 			     string const & k, long & v)
 {
   int64_t value;
@@ -2358,7 +2332,7 @@ base_query::get_number_param(map<string, literal *> const & params,
 
 
 bool
-base_query::get_number_param(map<string, literal *> const & params,
+base_query::get_number_param(literal_map_t const & params,
 			     string const & k, Dwarf_Addr & v)
 {
   int64_t value;
@@ -2367,6 +2341,8 @@ base_query::get_number_param(map<string, literal *> const & params,
   return present;
 }
 
+typedef map<Dwarf_Addr, inline_instance_info> inline_instance_map_t;
+typedef map<Dwarf_Addr, func_info> func_info_map_t;
 
 enum line_t { ABSOLUTE, RELATIVE };
 
@@ -2376,7 +2352,7 @@ struct dwarf_query : public base_query
 	      probe * base_probe,
 	      probe_point * base_loc,
 	      dwflpp & dw,
-	      map<string, literal *> const & params,
+	      literal_map_t const & params,
 	      vector<derived_probe *> & results);
 
   virtual void handle_query_module();
@@ -2443,8 +2419,8 @@ struct dwarf_query : public base_query
   set<char const *> filtered_srcfiles;
 
   // Map official entrypc -> func_info object
-  map<Dwarf_Addr, inline_instance_info> filtered_inlines;
-  map<Dwarf_Addr, func_info> filtered_functions;
+  inline_instance_map_t filtered_inlines;
+  func_info_map_t filtered_functions;
   bool choose_next_line;
   Dwarf_Addr entrypc_for_next_line;
 };
@@ -2484,14 +2460,13 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
     // We also try to filter out lines that leave the selected
     // functions (if any).
 
-    Dwarf_Line *line = srcsp[0];
-    Dwarf_Addr addr;
-    dwarf_lineaddr (line, &addr);
+    dwarf_line_t line(srcsp[0]);
+    Dwarf_Addr addr = line.addr();
 
-    for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+    for (func_info_map_t::iterator i = q->filtered_functions.begin();
          i != q->filtered_functions.end(); ++i)
       {
-        if (q->dw.die_has_pc (&(i->second.die), addr))
+        if (q->dw.die_has_pc (i->second.die, addr))
           {
             if (q->sess.verbose>4)
               clog << "alternative line " << lineno << " accepted: fn=" << i->second.name << endl;
@@ -2499,10 +2474,10 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
           }
       }
 
-    for (map<Dwarf_Addr, inline_instance_info>::iterator i = q->filtered_inlines.begin();
+    for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
          i != q->filtered_inlines.end(); ++i)
       {
-        if (q->dw.die_has_pc (&(i->second.die), addr))
+        if (q->dw.die_has_pc (i->second.die, addr))
           {
             if (sess.verbose>4)
               clog << "alternative line " << lineno << " accepted: ifn=" << i->second.name << endl;
@@ -2603,7 +2578,7 @@ struct dwarf_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results);
 };
 
@@ -2612,7 +2587,7 @@ dwarf_query::dwarf_query(systemtap_session & sess,
 			 probe * base_probe,
 			 probe_point * base_loc,
 			 dwflpp & dw,
-			 map<string, literal *> const & params,
+			 literal_map_t const & params,
 			 vector<derived_probe *> & results)
   : base_query(sess, base_probe, base_loc, dw, params, results)
 {
@@ -3053,7 +3028,7 @@ string dwarf_query::get_blacklist_section(Dwarf_Addr addr)
         {
           Elf_Scn* scn = 0;
           size_t shstrndx;
-          dw.dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
+          dwfl_assert ("getshstrndx", elf_getshstrndx (elf, &shstrndx));
           while ((scn = elf_nextscn (elf, scn)) != NULL)
             {
               GElf_Shdr shdr_mem;
@@ -3305,20 +3280,18 @@ query_func_info (Dwarf_Addr entrypc,
 
 
 static void
-query_srcfile_line (Dwarf_Line * line, void * arg)
+query_srcfile_line (const dwarf_line_t& line, void * arg)
 {
   dwarf_query * q = static_cast<dwarf_query *>(arg);
 
-  Dwarf_Addr addr;
-  dwarf_lineaddr(line, &addr);
+  Dwarf_Addr addr = line.addr();
 
-  int lineno;
-  dwarf_lineno (line, &lineno);
+  int lineno = line.lineno();
 
-  for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+  for (func_info_map_t::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     {
-      if (q->dw.die_has_pc (&(i->second.die), addr))
+      if (q->dw.die_has_pc (i->second.die, addr))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "function DIE lands on srcfile\n";
@@ -3331,11 +3304,11 @@ query_srcfile_line (Dwarf_Line * line, void * arg)
 	}
     }
 
-  for (map<Dwarf_Addr, inline_instance_info>::iterator i
+  for (inline_instance_map_t::iterator i
 	 = q->filtered_inlines.begin();
        i != q->filtered_inlines.end(); ++i)
     {
-      if (q->dw.die_has_pc (&(i->second.die), addr))
+      if (q->dw.die_has_pc (i->second.die, addr))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "inline instance DIE lands on srcfile\n";
@@ -3427,7 +3400,7 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
 	      Dwarf_Die d;
 	      q->dw.function_die (&d);
 
-	      if (q->dw.die_has_pc (&d, query_addr))
+	      if (q->dw.die_has_pc (d, query_addr))
 		record_this_function = true;
 	    }
 
@@ -3513,7 +3486,24 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      if (q->filtered_srcfiles.empty())
 		return DWARF_CB_OK;
 	    }
-
+          // Verify that a raw address matches the beginning of a
+          // statement. This is a somewhat lame check that the address
+          // is at the start of an assembly instruction.
+          if (q->has_statement_num)
+            {
+              Dwarf_Addr queryaddr = q->statement_num_val;
+              dwarf_line_t address_line(dwarf_getsrc_die(cudie, queryaddr));
+              Dwarf_Addr lineaddr = 0;
+              if (address_line)
+                lineaddr = address_line.addr();
+              if (!address_line || lineaddr != queryaddr)
+                {
+                  stringstream msg;
+                  msg << "address 0x" << hex << queryaddr
+                      << "does not match the begining of a statement";
+                  throw semantic_error(msg.str());
+                }
+            }
 	  // Pick up [entrypc, name, DIE] tuples for all the functions
 	  // matching the query, and fill in the prologue endings of them
 	  // all in a single pass.
@@ -3539,13 +3529,13 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	  else
 	    {
 	      // Otherwise, simply probe all resolved functions.
-              for (map<Dwarf_Addr, func_info>::iterator i = q->filtered_functions.begin();
+              for (func_info_map_t::iterator i = q->filtered_functions.begin();
                    i != q->filtered_functions.end(); ++i)
                 query_func_info (i->first, i->second, q);
 
 	      // And all inline instances (if we're not excluding inlines with ".call")
 	      if (! q->has_call)
-		for (map<Dwarf_Addr, inline_instance_info>::iterator i
+		for (inline_instance_map_t::iterator i
 		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
 		  query_inline_instance_info (i->first, i->second, q);
 	    }
@@ -3613,7 +3603,7 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
 
   GElf_Ehdr ehdr_mem;
   GElf_Ehdr* em = gelf_getehdr (elf, &ehdr_mem);
-  if (em == 0) { q->dw.dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
+  if (em == 0) { dwfl_assert ("dwfl_getehdr", dwfl_errno()); }
   int elf_machine = em->e_machine;
   const char* debug_filename = "";
   const char* main_filename = "";
@@ -4658,7 +4648,7 @@ void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
 {
   // NB: the kernel/user dwlfpp objects are long-lived.
@@ -5328,7 +5318,7 @@ struct utrace_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
     string path;
@@ -5854,7 +5844,7 @@ struct uprobe_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
     int64_t process, address;
@@ -6172,7 +6162,7 @@ struct profile_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const &,
+		     literal_map_t const &,
 		     vector<derived_probe *> & finished_results)
   {
     finished_results.push_back(new profile_derived_probe(sess, base, location));
@@ -6689,7 +6679,7 @@ struct procfs_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results);
 };
 
@@ -6698,7 +6688,7 @@ void
 procfs_builder::build(systemtap_session & sess,
 		      probe * base,
 		      probe_point * location,
-		      std::map<std::string, literal *> const & parameters,
+		      literal_map_t const & parameters,
 		      vector<derived_probe *> & finished_results)
 {
   string path;
@@ -7356,7 +7346,7 @@ public:
   void build(systemtap_session & sess,
              probe * base,
              probe_point * location,
-             std::map<std::string, literal *> const & parameters,
+             literal_map_t const & parameters,
              vector<derived_probe *> & finished_results);
 };
 
@@ -7365,7 +7355,7 @@ void
 mark_builder::build(systemtap_session & sess,
 		    probe * base,
 		    probe_point *loc,
-		    std::map<std::string, literal *> const & parameters,
+		    literal_map_t const & parameters,
 		    vector<derived_probe *> & finished_results)
 {
   string mark_str_val;
@@ -7655,7 +7645,7 @@ struct timer_builder: public derived_probe_builder
 {
     virtual void build(systemtap_session & sess,
 	probe * base, probe_point * location,
-	std::map<std::string, literal *> const & parameters,
+	literal_map_t const & parameters,
 	vector<derived_probe *> & finished_results);
 
     static void register_patterns(match_node *root);
@@ -7665,7 +7655,7 @@ void
 timer_builder::build(systemtap_session & sess,
     probe * base,
     probe_point * location,
-    std::map<std::string, literal *> const & parameters,
+    literal_map_t const & parameters,
     vector<derived_probe *> & finished_results)
 {
   int64_t period, rand=0;
@@ -7877,7 +7867,7 @@ struct perfmon_builder: public derived_probe_builder
   virtual void build(systemtap_session & sess,
 		     probe * base,
 		     probe_point * location,
-		     std::map<std::string, literal *> const & parameters,
+		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
     string event;

@@ -97,7 +97,8 @@ am_stap_OBJECTS = stap-main.$(OBJEXT) stap-parse.$(OBJEXT) \
 	stap-translate.$(OBJEXT) stap-tapsets.$(OBJEXT) \
 	stap-buildrun.$(OBJEXT) stap-loc2c.$(OBJEXT) \
 	stap-hash.$(OBJEXT) stap-mdfour.$(OBJEXT) stap-cache.$(OBJEXT) \
-	stap-util.$(OBJEXT) stap-coveragedb.$(OBJEXT)
+	stap-util.$(OBJEXT) stap-coveragedb.$(OBJEXT) \
+	stap-dwarf_wrappers.$(OBJEXT)
 stap_OBJECTS = $(am_stap_OBJECTS)
 stap_LINK = $(CXXLD) $(stap_CXXFLAGS) $(CXXFLAGS) $(stap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -274,7 +275,7 @@ dist_man_MANS = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 stapex.5 staprun.8 ma
 stap_SOURCES = main.cxx \
 	parse.cxx staptree.cxx elaborate.cxx translate.cxx \
 	tapsets.cxx buildrun.cxx loc2c.c hash.cxx mdfour.c \
-	cache.cxx util.cxx coveragedb.cxx
+	cache.cxx util.cxx coveragedb.cxx dwarf_wrappers.cxx
 
 stap_LDADD = @stap_LIBS@ @sqlite3_LIBS@
 
@@ -509,6 +510,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-buildrun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-coveragedb.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-dwarf_wrappers.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-elaborate.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/stap-loc2c.Po@am__quote@
@@ -922,6 +924,20 @@ stap-coveragedb.obj: coveragedb.cxx
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='coveragedb.cxx' object='stap-coveragedb.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-coveragedb.obj `if test -f 'coveragedb.cxx'; then $(CYGPATH_W) 'coveragedb.cxx'; else $(CYGPATH_W) '$(srcdir)/coveragedb.cxx'; fi`
+
+stap-dwarf_wrappers.o: dwarf_wrappers.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-dwarf_wrappers.o -MD -MP -MF $(DEPDIR)/stap-dwarf_wrappers.Tpo -c -o stap-dwarf_wrappers.o `test -f 'dwarf_wrappers.cxx' || echo '$(srcdir)/'`dwarf_wrappers.cxx
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-dwarf_wrappers.Tpo $(DEPDIR)/stap-dwarf_wrappers.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='dwarf_wrappers.cxx' object='stap-dwarf_wrappers.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-dwarf_wrappers.o `test -f 'dwarf_wrappers.cxx' || echo '$(srcdir)/'`dwarf_wrappers.cxx
+
+stap-dwarf_wrappers.obj: dwarf_wrappers.cxx
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -MT stap-dwarf_wrappers.obj -MD -MP -MF $(DEPDIR)/stap-dwarf_wrappers.Tpo -c -o stap-dwarf_wrappers.obj `if test -f 'dwarf_wrappers.cxx'; then $(CYGPATH_W) 'dwarf_wrappers.cxx'; else $(CYGPATH_W) '$(srcdir)/dwarf_wrappers.cxx'; fi`
+@am__fastdepCXX_TRUE@	mv -f $(DEPDIR)/stap-dwarf_wrappers.Tpo $(DEPDIR)/stap-dwarf_wrappers.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='dwarf_wrappers.cxx' object='stap-dwarf_wrappers.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(stap_CPPFLAGS) $(CPPFLAGS) $(stap_CXXFLAGS) $(CXXFLAGS) -c -o stap-dwarf_wrappers.obj `if test -f 'dwarf_wrappers.cxx'; then $(CYGPATH_W) 'dwarf_wrappers.cxx'; else $(CYGPATH_W) '$(srcdir)/dwarf_wrappers.cxx'; fi`
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
 	test -z "$(man1dir)" || $(MKDIR_P) "$(DESTDIR)$(man1dir)"

@@ -1,3 +1,20 @@
+2008-06-11  Tim Moore  <timoore@redhat.com>
+
+	PR 2608
+	* dwarf_wrappers.h, dwarf_wrappers.cxx: New files.
+	* Makefile.in: Regenerated.
+	* tapsets.cxx (dwarf_assert, dwfl_assert): Move to
+	dwarf_wrappers.h.
+	(iterate_over_srcfile_lines, has_single_line_record,
+	 query_srcfile_line): Use dwarf_line_t wrapper. 
+	(die_has_pc): Take a reference to a Dwarf_Die instead of a
+	pointer. Clean up use of dwfl_assert.
+	(query_cu): Check that statement raw address matches the beginning
+	of a statement record.
+	* elaborate.h: Include iosfwd instead of iostream.
+	(literal_map_t, resolve_prologue_endings,): New typedef.
+	
+
 2008-06-10  Jim Keniston  <jkenisto@us.ibm.com>
 
 	* testsuite/systemtap.context/num_args.tcl: Run twice --
