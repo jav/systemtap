@@ -1,4 +1,4 @@
-.systemtap
+.systemtap-*
 site.exp
 systemtap.log
 systemtap.sum

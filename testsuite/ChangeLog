@@ -1,3 +1,11 @@
+2008-06-11  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p5.exp: Added 'process().thread.begin' and
+	'process().thread.end' tests.
+	* systemtap.base/utrace_p5_multi.c: Added multi-threaded test
+	program for utrace_p5.exp.
+	* .gitignore: Updated.
+
 2008-06-10  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/warnings.exp: Adjust for duplicate warning elimination.

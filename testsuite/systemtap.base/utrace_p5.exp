@@ -3,6 +3,9 @@
 # Initialize variables
 set utrace_support_found 0
 set exepath "[pwd]/cat_[pid]"
+set multi_srcpath "systemtap.base/utrace_p5_multi.c"
+set multi_exepath "[pwd]/utrace_p5_multi_[pid]"
+set multi_flags "libs=-lpthread"
 
 set end_script {
     global end_probes_fired = 0
@@ -46,6 +49,30 @@ set syscall_return_script {
 }
 set syscall_return_script_output "syscall_returns = \\d+\r\n"
 
+set thread_begin_script {
+    global thread_begin_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").thread.begin { thread_begin_probes_fired++ }
+    probe end { printf("systemtap ending probe\n")
+	if (thread_begin_probes_fired > 0) {
+	    printf("thread_begins = %%d\n", thread_begin_probes_fired)
+	}
+    }
+}
+set thread_begin_script_output "thread_begins = \\d+\r\n"
+
+set thread_end_script {
+    global thread_end_probes_fired = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").thread.end { thread_end_probes_fired++ }
+    probe end { printf("systemtap ending probe\n")
+	if (thread_end_probes_fired > 0) {
+	    printf("thread_ends = %%d\n", thread_end_probes_fired)
+	}
+    }
+}
+set thread_end_script_output "thread_ends = \\d+\r\n"
+
 # Try to find utrace_attach symbol in /proc/kallsyms
 set path "/proc/kallsyms"
 if {! [catch {exec grep -q utrace_attach $path} dummy]} {
@@ -71,6 +98,25 @@ proc run_cat_5_sec {} {
     set exe_id $spawn_id
     after 5000;
     exec kill -INT -[exp_pid -i $exe_id]
+    return 0;
+}
+
+# Compile our multi-threaded test program.
+set res [target_compile $multi_srcpath $multi_exepath executable $multi_flags]
+if { $res != "" } {
+    verbose "target_compile failed: $res" 2
+    fail "unable to compile $multi_srcpath"
+    return
+}
+
+# "load" generation function for stap_run.  It spawns our
+# multi-threaded test program and waits for it to finish. 
+proc run_utrace_p5_multi {} {
+    global multi_exepath
+
+    if {[catch {exec $multi_exepath} res]} {
+	verbose "unable to run $multi_exepath: $res"
+    }
     return 0;
 }
 
@@ -114,7 +160,27 @@ if {$utrace_support_found == 0} {
     stap_run $TEST_NAME run_cat_5_sec $syscall_return_script_output -e $script
 }
 
-# We need thread.begin and thread.end tests!
+set TEST_NAME "UTRACE_P5_05"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $thread_begin_script $multi_exepath]
+    stap_run $TEST_NAME run_utrace_p5_multi $thread_begin_script_output \
+	-e $script
+}
+
+set TEST_NAME "UTRACE_P5_06"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME"
+} else {
+    set script [format $thread_end_script $multi_exepath]
+    stap_run $TEST_NAME run_utrace_p5_multi $thread_end_script_output \
+	-e $script
+}
 
 # Cleanup
-exec rm -f $exepath
+exec rm -f $exepath $multi_exepath
