@@ -1006,7 +1006,7 @@ struct dwflpp
                                    & module_cache, off);
           }
         while (off > 0);
-        dwfl_assert("dwfl_getmodules", off);
+        dwfl_assert("dwfl_getmodules", off == 0);
         module_cache.dwarf_collected = true;
       }
   }
