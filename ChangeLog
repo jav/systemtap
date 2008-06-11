@@ -1,3 +1,7 @@
+2008-06-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (print_warning): Use session.seen_warnings[].
+
 2008-06-10  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (print_warning): New.
