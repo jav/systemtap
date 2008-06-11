@@ -1,5 +1,10 @@
 2008-06-11  David Smith  <dsmith@redhat.com>
 
+	* systemtap.base/utrace_p5.exp: Made changes to work when not
+	configured in the src directory.
+	* systemtap.base/utrace_p5_multi.c: Made changes to work on x86_64
+	systems. 
+
 	* systemtap.base/utrace_p5.exp: Added 'process().thread.begin' and
 	'process().thread.end' tests.
 	* systemtap.base/utrace_p5_multi.c: Added multi-threaded test

@@ -3,7 +3,7 @@
 # Initialize variables
 set utrace_support_found 0
 set exepath "[pwd]/cat_[pid]"
-set multi_srcpath "systemtap.base/utrace_p5_multi.c"
+set multi_srcpath "$srcdir/systemtap.base/utrace_p5_multi.c"
 set multi_exepath "[pwd]/utrace_p5_multi_[pid]"
 set multi_flags "libs=-lpthread"
 

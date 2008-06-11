@@ -7,6 +7,10 @@
 
 void *thread_function( void *ptr );
 
+struct thread_data {
+    int tnum;
+};
+
 int
 main()
 {
@@ -14,8 +18,10 @@ main()
     int iret1, iret2;
 
     /* Create independent threads each of which will execute function */
-    iret1 = pthread_create(&thread1, NULL, thread_function, (void*) 1);
-    iret2 = pthread_create(&thread2, NULL, thread_function, (void*) 2);
+    struct thread_data t1 = { 1 };
+    struct thread_data t2 = { 2 };
+    iret1 = pthread_create(&thread1, NULL, thread_function, (void*) &t1);
+    iret2 = pthread_create(&thread2, NULL, thread_function, (void*) &t2);
 
     /* Wait till threads are complete before main continues. Unless we
      * wait we run the risk of executing an exit which will terminate
@@ -31,8 +37,8 @@ main()
 
 void *thread_function(void *ptr)
 {
-    int tnum = (int)ptr;
-    if (tnum == 1) {
+    struct thread_data *td = ptr;
+    if (td->tnum == 1) {
 	int fd = open("/dev/null", O_RDONLY);
 	close(fd);
     }
