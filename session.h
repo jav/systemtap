@@ -163,9 +163,11 @@ struct systemtap_session
   Dwarf_Addr sym_stext;
 
   std::set<std::string> seen_errors;
+  std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
   // void print_error (const parse_error& e);
   void print_error (const semantic_error& e);
+    void print_warning (std::string w);
 
   // reNB: new POD members likely need to be explicitly cleared in the ctor.
 };

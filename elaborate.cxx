@@ -1228,6 +1228,18 @@ systemtap_session::print_error (const semantic_error& e)
     print_error (* e.chain);
 }
 
+void
+systemtap_session::print_warning (string message_str)
+{
+  message_str.insert(0, "WARNING: ");
+  // Duplicate elimination
+  if (seen_errors.find (message_str) == seen_errors.end())
+    {
+      seen_errors.insert (message_str);
+      clog << message_str << endl;
+    }
+}
+
 
 // ------------------------------------------------------------------------
 // semantic processing: symbol resolution
@@ -1558,7 +1570,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
         {
           if (s.functions[i]->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-            clog << "WARNING: eliding unused function " << *s.functions[i]->tok << endl;
+	    s.print_warning ("eliding unused function " + stringify(*s.functions[i]->tok));
           else if (s.verbose>2)
             clog << "Eliding unused function " << s.functions[i]->name
                  << endl;
@@ -1611,7 +1623,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (l->tok->location.file == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
-              clog << "WARNING: eliding unused variable " << *l->tok << endl;
+	      s.print_warning ("eliding unused variable " + stringify(*l->tok));
             else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in " << s.probes[i]->name << endl;
@@ -1627,7 +1639,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (vut.written.find (l) == vut.written.end())
               if (! s.suppress_warnings)
-                clog << "WARNING: read-only local variable " << *l->tok << endl;
+		s.print_warning ("read-only local variable " + stringify(*l->tok));
 
             j++;
           }
@@ -1641,7 +1653,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (l->tok->location.file == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
-              clog << "WARNING: eliding unused variable " << *l->tok << endl;
+              s.print_warning ("eliding unused variable " + stringify(*l->tok));
             else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in function " << s.functions[i]->name
@@ -1658,7 +1670,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (vut.written.find (l) == vut.written.end())
               if (! s.suppress_warnings)
-                clog << "WARNING: read-only local variable " << *l->tok << endl;
+                s.print_warning ("read-only local variable " + stringify(*l->tok));
             j++;
           }
       }
@@ -1670,7 +1682,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         {
           if (l->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-            clog << "WARNING: eliding unused variable " << *l->tok << endl;
+            s.print_warning ("eliding unused variable " + stringify(*l->tok));
           else if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
@@ -1686,7 +1698,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           if (vut.written.find (l) == vut.written.end() &&
               ! l->init) // no initializer
             if (! s.suppress_warnings)
-              clog << "WARNING: read-only global variable " << *l->tok << endl;
+              s.print_warning ("read-only global variable " + stringify(*l->tok));
           i++;
         }
     }
@@ -2084,8 +2096,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       if (p->body == 0)
         {
           if (! s.suppress_warnings)
-            clog << "WARNING: side-effect-free probe '" << p->name << "' " 
-                 << *p->tok << endl;
+            s.print_warning ("side-effect-free probe '" + p->name + "' " 
+			     + stringify(*p->tok));
 
           p->body = new null_statement();
           p->body->tok = p->tok;
@@ -2109,8 +2121,8 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)
-            clog << "WARNING: side-effect-free function '" << fn->name << "' "
-                 << *fn->tok << endl;
+            s.print_warning ("side-effect-free function '" + fn->name + "' "
+			     + stringify(*fn->tok));
 
           fn->body = new null_statement();
           fn->body->tok = fn->tok;

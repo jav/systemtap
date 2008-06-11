@@ -1,3 +1,8 @@
+2008-06-10  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (print_warning): New.
+	* elaborate.cxx (semantic_pass_opt1): Use it.
+
 2008-06-11  Tim Moore  <timoore@redhat.com>
 
 	* dwarf_wrappers.h (dwfl_assert): Add overload with boolean value
