@@ -1,3 +1,7 @@
+2008-06-12  William Cohen  <wcohen@redhat.com>
+
+	* thread-times.stp, thread-times.meta: New.
+
 2008-05-20  William Cohen  <wcohen@redhat.com>
 
 	* io_submit.stp, io_submit.meta:
