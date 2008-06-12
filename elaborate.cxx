@@ -1229,7 +1229,7 @@ systemtap_session::print_error (const semantic_error& e)
 }
 
 void
-systemtap_session::print_warning (string message_str)
+systemtap_session::print_warning (const string& message_str)
 {
   // Duplicate elimination
   if (seen_warnings.find (message_str) == seen_warnings.end())
