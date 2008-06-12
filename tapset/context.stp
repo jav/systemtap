@@ -140,6 +140,18 @@ function registers_valid:long () %{ /* pure */
 	THIS->__retvalue = (CONTEXT->regs != NULL);
 %}
 
+function user_mode:long () %{ /* pure */ /* currently a user-mode address? */
+  if (CONTEXT->regs) {
+#if defined(__i386__) || defined(__x86_64__)
+     THIS->__retvalue = (uint64_t) user_mode_vm (CONTEXT->regs);
+#else
+    THIS->__retvalue = (uint64_t) user_mode (CONTEXT->regs);
+#endif
+  } else {
+    THIS->__retvalue = 0;
+  }
+%}
+
 function is_return:long () %{ /* pure */
 	if (CONTEXT->pi)
 		THIS->__retvalue = 1;

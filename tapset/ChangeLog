@@ -1,3 +1,7 @@
+2008-06-12  Will Cohen  <wcohen@redhat.com>
+
+	* tasks.stp: Add user_mode.
+
 2008-06-11  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls.stp: Add sys_fchmodat.

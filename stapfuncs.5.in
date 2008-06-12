@@ -252,6 +252,9 @@ Return the probe point's module name, if known.
 target:long ()
 Return the pid of the target process.
 .TP
+user_mode:long ()
+Return 1 if the probe point occurred in user-mode.
+.TP
 is_return:long ()
 Return 1 if the probe point is a return probe.  Deprecated.
 
