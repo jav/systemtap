@@ -1,6 +1,6 @@
 // translation pass
 // Copyright (C) 2005-2008 Red Hat Inc.
-// Copyright (C) 2005-2007 Intel Corporation.
+// Copyright (C) 2005-2008 Intel Corporation.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -619,10 +619,10 @@ struct mapvar
     else
       throw semantic_error("adding a value of an unsupported map type");
 
-    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check " +
+    res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
       stringify(maxsize > 0 ?
 	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
-      + "\"; }";
+      + "\"; goto out; }}";
 
     return res;
   }
@@ -640,10 +640,10 @@ struct mapvar
     else
       throw semantic_error("setting a value of an unsupported map type");
 
-    res += "; if (unlikely(rc)) c->last_error = \"Array overflow, check " +
+    res += "; if (unlikely(rc)) { c->last_error = \"Array overflow, check " +
       stringify(maxsize > 0 ?
 	  "size limit (" + stringify(maxsize) + ")" : "MAXMAPENTRIES")
-      + "\"; }";
+      + "\"; goto out; }}";
 
     return res;
   }
@@ -870,9 +870,7 @@ c_unparser::emit_common_header ()
   o->newline() << "const char *last_error;";
   // NB: last_error is used as a health flag within a probe.
   // While it's 0, execution continues
-  // When it's "", current function or probe unwinds and returns early
   // When it's "something", probe code unwinds, _stp_error's, sets error state
-  // See c_unparser::visit_statement()
   o->newline() << "const char *last_stmt;";
   o->newline() << "struct pt_regs *regs;";
   o->newline() << "unsigned long *unwaddr;";
@@ -1307,9 +1305,8 @@ c_unparser::emit_module_exit ()
             o->newline() << "struct stat_data *stats = _stp_stat_get (time_"
                          << p->name
                          << ", 0);";
-            o->newline() << "const char *error;";
             o->newline() << "if (stats->count) {";
-            o->newline(1) << "int64_t avg = _stp_div64 (&error, stats->sum, stats->count);";
+            o->newline(1) << "int64_t avg = _stp_div64 (NULL, stats->sum, stats->count);";
             o->newline() << "_stp_printf (\"probe %s (%s), hits: %lld, cycles: %lldmin/%lldavg/%lldmax\\n\",";
             o->newline() << "probe_point, decl_location, (long long) stats->count, (long long) stats->min, (long long) avg, (long long) stats->max);";
             o->newline(-1) << "}";
@@ -1392,25 +1389,18 @@ c_unparser::emit_function (functiondecl* v)
 
   this->current_function = 0;
 
+  if (this->probe_or_function_needs_deref_fault_handler) {
+    // Emit this handler only if the body included a
+    // print/printf/etc. using a string or memory buffer!
+    o->newline() << "CATCH_DEREF_FAULT ();";
+  }
+
   o->newline(-1) << "out:";
   o->newline(1) << ";";
 
   // Function prologue: this is why we redirect the "return" above.
   // Decrement nesting level.
   o->newline() << "c->nesting --;";
-  // Reset last_error to NULL if it was set to "" by script-level return()
-  o->newline() << "if (c->last_error && ! c->last_error[0])";
-  o->newline(1) << "c->last_error = 0;";
-  o->indent(-1);
-
-  if (this->probe_or_function_needs_deref_fault_handler) {
-    // Emit this handler only if the body included a
-    // print/printf/etc. using a string or memory buffer!
-    o->newline(1) << "return;";
-    o->newline() << "CATCH_DEREF_FAULT ();";
-    o->newline() << "goto out;";
-    o->indent(-1);
-  }
 
   o->newline() << "#undef CONTEXT";
   o->newline() << "#undef THIS";
@@ -2041,18 +2031,22 @@ c_unparser_assignment::c_assignop(tmpvar & res,
 	      o->newline() << lval << " = " << rval << ";";
 	      res = rval;
 	    }
-          else
-            {
-              if (macop == "/=")
-                o->newline() << lval << " = _stp_div64 (&c->last_error, "
-                             << lval << ", " << rval << ");";
-              else if (macop == "%=")
-                o->newline() << lval << " = _stp_mod64 (&c->last_error, "
-                             << lval << ", " << rval << ");";
+	  else
+	    {
+	      if (macop == "/=" || macop == "%=")
+		{
+		  o->newline() << "if (unlikely(!" << rval << ")) {";
+		  o->newline(1) << "c->last_error = \"division by 0\";";
+		  o->newline() << "goto out;";
+		  o->newline(-1) << "}";
+		  o->newline() << lval << " = "
+			       << ((macop == "/=") ? "_stp_div64" : "_stp_mod64")
+			       << " (NULL, " << lval << ", " << rval << ");";
+		}
 	      else
 		o->newline() << lval << " " << macop << " " << rval << ";";
 	      res = lval;
-            }
+	    }
 	}
     }
     else
@@ -2208,20 +2202,8 @@ c_unparser::getiter(symbol *s)
 void
 c_unparser::visit_statement (statement *s, unsigned actions, bool stmtize)
 {
-  // For some constructs, it is important to avoid an error branch
-  // right to the bottom of the probe/function.  The foreach()
-  // iteration construct is one example.  Instead, if we are nested
-  // within a loop, we branch merely to its "break" label.  The next
-  // statement will branch one level higher, and so on, until we can
-  // go straight "out".
-  string outlabel = "out";
-  unsigned loops = loop_break_labels.size();
-  if (loops > 0)
-    outlabel = loop_break_labels[loops-1];
-
   if (s)
     {
-      o->newline() << "if (unlikely (c->last_error)) goto " << outlabel << ";";
       assert (s->tok);
       if (stmtize)
         o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
@@ -2233,7 +2215,7 @@ c_unparser::visit_statement (statement *s, unsigned actions, bool stmtize)
       // XXX: This check is inserted too frequently.
       o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
-      o->newline() << "goto " << outlabel << ";";
+      o->newline() << "goto out;";
       o->newline(-1) << "}";
     }
 }
@@ -2244,13 +2226,6 @@ c_unparser::visit_block (block *s)
 {
   o->newline() << "{";
   o->indent (1);
-
-  // visit_statement (s, 0, false);
-  //
-  // NB: this is not necessary, since the last_error can be handled
-  // just as easily by the first real body statement, and the
-  // last_stmt won't be used since this nesting structure cannot
-  // itself cause an error.
 
   for (unsigned i=0; i<s->statements.size(); i++)
     {
@@ -2286,12 +2261,6 @@ c_unparser::visit_embeddedcode (embeddedcode *s)
 void
 c_unparser::visit_null_statement (null_statement *)
 {
-  // visit_statement (s, 0, false);
-  //
-  // NB: this is not necessary, since the last_error can be handled just as
-  // easily by the next statement, and the last_stmt won't be used since this
-  // statement cannot cause an error.
-
   o->newline() << "/* null */;";
 }
 
@@ -2547,9 +2516,10 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // aggregate array if required
       if (mv.is_parallel())
 	{
-	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << "))";
+	  o->newline() << "if (unlikely(NULL == " << mv.calculate_aggregate() << ")) {";
 	  o->newline(1) << "c->last_error = \"aggregation overflow in " << mv << "\";";
-	  o->indent(-1);
+	  o->newline() << "goto out;";
+	  o->newline(-1) << "}";
 
 	  // sort array if desired
 	  if (s->sort_direction)
@@ -2730,13 +2700,7 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
-
-  // make sure we reports errors from computing s->value
-  visit_statement (s, 0, false);
-
-  o->newline() << "c->last_error = \"\";";
-  // NB: last_error needs to get reset to NULL in the caller
-  // probe/function
+  o->newline() << "goto out;";
 }
 
 
@@ -2748,7 +2712,7 @@ c_unparser::visit_next_statement (next_statement* s)
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
 
-  o->newline() << "c->last_error = \"\";";
+  o->newline() << "goto out;";
 }
 
 
@@ -2997,8 +2961,6 @@ c_unparser::visit_binary_expression (binary_expression* e)
 
       o->line() << "({";
       o->indent(1);
-      // NB: Need last_stmt set here because of possible last_error generation
-      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
 
       if (e->left->tok->type == tok_number)
 	left.override(c_expression(e->left));
@@ -3018,8 +2980,13 @@ c_unparser::visit_binary_expression (binary_expression* e)
 	  o->line() << ";";
 	}
 
+      o->newline() << "if (unlikely(!" << right << ")) {";
+      o->newline(1) << "c->last_error = \"division by 0\";";
+      o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
       o->newline() << ((e->op == "/") ? "_stp_div64" : "_stp_mod64")
-                   << " (&c->last_error, " << left << ", " << right << ");";
+		   << " (NULL, " << left << ", " << right << ");";
 
       o->newline(-1) << "})";
     }
@@ -3737,16 +3704,19 @@ c_unparser::visit_arrayindex (arrayindex* e)
 
       // PR 2142+2610: empty aggregates
       o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
-                   << " || " <<  agg.value() << "->count == 0)";
+                   << " || " <<  agg.value() << "->count == 0) {";
       o->newline(1) << "c->last_error = \"empty aggregate\";";
-      o->newline(-1) << "else {";
+      o->newline() << "goto out;";
+      o->newline(-1) << "} else {";
       o->newline(1) << "if (" << histogram_index_check(*v, idx[0]) << ")";
       o->newline(1)  << res << " = " << agg << "->histogram[" << idx[0] << "];";
-      o->newline(-1) << "else";
+      o->newline(-1) << "else {";
       o->newline(1)  << "c->last_error = \"histogram index out of range\";";
+      o->newline() << "goto out;";
+      o->newline(-1) << "}";
 
       o->newline(-1) << "}";
-      o->newline(-1) << res << ";";
+      o->newline() << res << ";";
             
       delete v;
     }
@@ -3950,6 +3920,7 @@ c_unparser::visit_functioncall (functioncall* e)
 
   // call function
   o->newline() << "function_" << c_varname (r->name) << " (c);";
+  o->newline() << "if (unlikely(c->last_error)) goto out;";
 
   // return result from retvalue slot
   if (r->type == pe_unknown)
@@ -4046,6 +4017,7 @@ c_unparser::visit_print_format (print_format* e)
                      << " || " <<  agg.value() << "->count == 0) {";
         o->newline(1) << "c->last_error = \"empty aggregate\";";
 	o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+	o->newline() << "goto out;";
         o->newline(-1) << "} else";
 	o->newline(1) << "_stp_stat_print_histogram (" << v->hist() << ", " << agg.value() << ");";
         o->indent(-1);
@@ -4140,9 +4112,7 @@ c_unparser::visit_print_format (print_format* e)
 	  components[0].type = print_format::conv_literal;
 	}
 
-      // Make the [s]printf call, but not if there was an error evaluating the args
-      o->newline() << "if (likely (! c->last_error)) {";
-      o->indent(1);
+      // Make the [s]printf call...
 
       // Generate code to check that any pointer arguments are actually accessible.  */
       int arg_ix = 0;
@@ -4183,7 +4153,6 @@ c_unparser::visit_print_format (print_format* e)
 		o->line() << tmp[0].value() << ");";
 	      else
 		o->line() << '"' << format_string << "\");";
-	      o->newline(-1) << "}";
 	      return; 
 	    }
 	  if (use_print)
@@ -4193,7 +4162,6 @@ c_unparser::visit_print_format (print_format* e)
 		o->line() << tmp[0].value() << ");";
 	      else
 		o->line() << '"' << format_string << "\");";
-	      o->newline(-1) << "}";
 	      return;
 	    }
 
@@ -4228,7 +4196,6 @@ c_unparser::visit_print_format (print_format* e)
       }
 
       o->line() << ");";
-      o->newline(-1) << "}";
       o->newline() << res.value() << ";";
     }
 }
@@ -4303,16 +4270,18 @@ c_unparser::visit_stat_op (stat_op* e)
       else
         {
           o->newline() << "if (unlikely (" << agg.value() << " == NULL)"
-                       << " || " <<  agg.value() << "->count == 0)";
+                       << " || " <<  agg.value() << "->count == 0) {";
           o->newline(1) << "c->last_error = \"empty aggregate\";";
-          o->indent(-1);
+          o->newline() << "c->last_stmt = " << lex_cast_qstring(*e->tok) << ";";
+          o->newline() << "goto out;";
+          o->newline(-1) << "}";
         }
       o->newline() << "else";
       o->indent(1);
       switch (e->ctype)
         {
         case sc_average:
-          c_assign(res, ("_stp_div64(&c->last_error, " + agg.value() + "->sum, "
+          c_assign(res, ("_stp_div64(NULL, " + agg.value() + "->sum, "
                          + agg.value() + "->count)"),
                    e->tok);
           break;
