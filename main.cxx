@@ -499,7 +499,6 @@ main (int argc, char * const argv [])
 	      }
 	  }
 
-	  cerr << "Warning: using '-m' disables cache support." << endl;
 	  s.use_cache = false;
           break;
 
@@ -972,7 +971,10 @@ main (int argc, char * const argv [])
   rc = compile_pass (s);
 
   if (rc == 0 && s.last_pass == 4)
-    cout << s.hash_path << endl;
+    {
+      cout << ((s.hash_path == "") ? (s.module_name + string(".ko")) : s.hash_path);
+      cout << endl;
+    }
 
   times (& tms_after);
   gettimeofday (&tv_after, NULL);

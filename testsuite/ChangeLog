@@ -1,3 +1,7 @@
+2008-06-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* lib/stap_run.exp: Remove module/cache warning boilerplate.
+
 2008-06-11  Mark Wielaard  <mwielaard@redhat.com>
 
 	* systemtap.base/warnings.exp: Expect 11 warning plus 1 .ko output
