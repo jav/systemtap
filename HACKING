@@ -56,6 +56,15 @@ the <systemtap@sources.redhat.com> mailing list.
   Tests that execute probes (pass 5) should include their own .exp/.stp
   files under any other appropriate systemtap.* testsuite subdirectory.
 
+  To run a particular test or set of tests, do:
+    cd testsuite
+    make check RUNTESTFLAGS=testname.exp
+  or
+    make installcheck RUNTESTFLAGS=testname.exp
+  To disambiguate among multiple tests with the same name, specify
+  the directory as well -- for example:
+    make installcheck RUNTESTFLAGS=systemtap.base/print.exp
+
 - translator
 
   Translator changes can easily invalidate tapsets and user script
