@@ -1,3 +1,6 @@
+2008-06-13  Wenji Huang  <wenji.huang@oracle.com>
+        * control.c (_stp_ctl_write_dbug): Remove STP_UNWIND support.
+
 2008-06-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6429

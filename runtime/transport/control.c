@@ -100,10 +100,6 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 	case STP_TRANSPORT:
 		_dbug("sending STP_TRANSPORT\n");
 		break;
-	case STP_UNWIND:
-		snprintf(buf, sizeof(buf), "%s", (char *)data);
-		_dbug("sending STP_UNWIND %s [len=%d]\n", buf, len);
-		break;
 	default:
 		_dbug("ERROR: unknown message type: %d\n", type);
 		break;
