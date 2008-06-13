@@ -801,6 +801,28 @@ probe syscall.fchown16.return = kernel.function("sys_fchown16").return ? {
 	retstr = returnstr(1)
 }
 
+# fchownat ___________________________________________________
+# new function with 2.6.16
+# long sys_fchownat(int dfd, const char __user *filename,
+#	uid_t user, gid_t group, int flag)
+probe syscall.fchownat = kernel.function("sys_fchownat") ? {
+	name = "fchownat"
+	dfd = $dfd
+	dfd_str = _dfd_str($dfd)
+	filename = $filename
+	filename_str = user_string($filename)
+	user = __int32($user)
+	group = __int32($group)
+	flag = $flag
+	flag_str = _at_flag_str($flag)
+	argstr = sprintf("%s, %s, %d, %d, %s",
+		dfd_str, user_string_quoted($filename), user, group, flag_str)
+}
+probe syscall.fchownat.return = kernel.function("sys_fchownat").return ? {
+	name = "fchownat"
+	retstr = returnstr(1)
+}
+
 # fcntl ______________________________________________________
 # long sys_fcntl(int fd, unsigned int cmd, unsigned long arg)
 # long sys_fcntl64(unsigned int fd, unsigned int cmd, unsigned long arg)
