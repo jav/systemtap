@@ -2,6 +2,9 @@
 
 	* translate.cxx: Jump out directly after setting last_error, rather
 	than passively checking last_error everywhere.
+	* translate.cxx: Only make actionremaining checks at control points,
+	i.e. roughly at the end of basic blocks, or after executing a few
+	statements in a row.
 
 2008-06-13  Frank Ch. Eigler  <fche@elastic.org>
 

@@ -43,6 +43,7 @@ struct c_unparser: public unparser, public visitor
   functiondecl* current_function;
   unsigned tmpvar_counter;
   unsigned label_counter;
+  unsigned action_counter;
   bool probe_or_function_needs_deref_fault_handler;
 
   varuse_collecting_visitor vcv_needs_global_locks;
@@ -110,7 +111,7 @@ struct c_unparser: public unparser, public visitor
   void collect_map_index_types(vector<vardecl* > const & vars,
 			       set< pair<vector<exp_type>, exp_type> > & types);
 
-  void visit_statement (statement* s, unsigned actions, bool stmtize);
+  void record_actions (unsigned actions, bool update=false);
 
   void visit_block (block* s);
   void visit_embeddedcode (embeddedcode* s);
@@ -1341,6 +1342,7 @@ c_unparser::emit_function (functiondecl* v)
   this->current_probe = 0;
   this->current_function = v;
   this->tmpvar_counter = 0;
+  this->action_counter = 0;
 
   o->newline()
     << "struct function_" << c_varname (v->name) << "_locals * "
@@ -1389,6 +1391,8 @@ c_unparser::emit_function (functiondecl* v)
 
   this->current_function = 0;
 
+  record_actions(0, true);
+
   if (this->probe_or_function_needs_deref_fault_handler) {
     // Emit this handler only if the body included a
     // print/printf/etc. using a string or memory buffer!
@@ -1418,6 +1422,7 @@ c_unparser::emit_probe (derived_probe* v)
   this->current_function = 0;
   this->current_probe = v;
   this->tmpvar_counter = 0;
+  this->action_counter = 0;
 
   // If we about to emit a probe that is exactly the same as another
   // probe previously emitted, make the second probe just call the
@@ -1537,6 +1542,14 @@ c_unparser::emit_probe (derived_probe* v)
 
       v->body->visit (this);
 
+      record_actions(0, true);
+
+      if (this->probe_or_function_needs_deref_fault_handler) {
+	// Emit this handler only if the body included a
+	// print/printf/etc. using a string or memory buffer!
+	o->newline() << "CATCH_DEREF_FAULT ();";
+      }
+
       o->newline(-1) << "out:";
       // NB: no need to uninitialize locals, except if arrays/stats can
       // someday be local 
@@ -1547,14 +1560,6 @@ c_unparser::emit_probe (derived_probe* v)
 
       if (v->needs_global_locks ())
 	emit_unlocks (vut);
-
-      if (this->probe_or_function_needs_deref_fault_handler) {
-	// Emit this handler only if the body included a
-	// print/printf/etc. using a string or memory buffer!
-	o->newline() << "return;";
-	o->newline() << "CATCH_DEREF_FAULT ();";
-	o->newline() << "goto out;";
-      }
 
       o->newline(-1) << "}\n";
     }
@@ -2196,27 +2201,24 @@ c_unparser::getiter(symbol *s)
 }
 
 
-
-// An artificial common "header" for each statement.  This is where
-// activity counts limits and error state early exits are enforced.
+// Queue up some actions to remove from actionremaining.  Set update=true at
+// the end of basic blocks to actually update actionremaining and check it
+// against MAXACTION.
 void
-c_unparser::visit_statement (statement *s, unsigned actions, bool stmtize)
+c_unparser::record_actions (unsigned actions, bool update)
 {
-  if (s)
-    {
-      assert (s->tok);
-      if (stmtize)
-        o->newline() << "c->last_stmt = " << lex_cast_qstring(*s->tok) << ";";
-    }
+  action_counter += actions;
 
-  if (actions > 0)
+  // Update if needed, or after queueing up a few actions, in case of very
+  // large code sequences.
+  if ((update && action_counter > 0) || action_counter >= 10/*<-arbitrary*/)
     {
-      o->newline() << "c->actionremaining -= " << actions << ";";
-      // XXX: This check is inserted too frequently.
+      o->newline() << "c->actionremaining -= " << action_counter << ";";
       o->newline() << "if (unlikely (c->actionremaining <= 0)) {";
       o->newline(1) << "c->last_error = \"MAXACTION exceeded\";";
       o->newline() << "goto out;";
       o->newline(-1) << "}";
+      action_counter = 0;
     }
 }
 
@@ -2246,12 +2248,6 @@ c_unparser::visit_block (block *s)
 void
 c_unparser::visit_embeddedcode (embeddedcode *s)
 {
-  // visit_statement (s, 1, true); 
-  //
-  // NB: this is not necessary, since this can occur only at the top
-  // level of a function (so no errors can be pending), and the
-  // action-count is already incremented at the point of call.
-
   o->newline() << "{";
   o->newline(1) << s->code;
   o->newline(-1) << "}";
@@ -2268,17 +2264,17 @@ c_unparser::visit_null_statement (null_statement *)
 void
 c_unparser::visit_expr_statement (expr_statement *s)
 {
-  visit_statement (s, 1, false);
   o->newline() << "(void) ";
   s->value->visit (this);
   o->line() << ";";
+  record_actions(1);
 }
 
 
 void
 c_unparser::visit_if_statement (if_statement *s)
 {
-  visit_statement (s, 1, false);
+  record_actions(1, true);
   o->newline() << "if (";
   o->indent (1);
   s->condition->visit (this);
@@ -2286,12 +2282,14 @@ c_unparser::visit_if_statement (if_statement *s)
   o->line() << ") {";
   o->indent (1);
   s->thenblock->visit (this);
+  record_actions(0, true);
   o->newline(-1) << "}";
   if (s->elseblock)
     {
       o->newline() << "else {";
       o->indent (1);
       s->elseblock->visit (this);
+      record_actions(0, true);
       o->newline(-1) << "}";
     }
 }
@@ -2341,8 +2339,6 @@ c_tmpcounter::visit_for_loop (for_loop *s)
 void
 c_unparser::visit_for_loop (for_loop *s)
 {
-  visit_statement (s, 1, false);
-
   string ctr = stringify (label_counter++);
   string toplabel = "top_" + ctr;
   string contlabel = "continue_" + ctr;
@@ -2350,6 +2346,7 @@ c_unparser::visit_for_loop (for_loop *s)
 
   // initialization
   if (s->init) s->init->visit (this);
+  record_actions(1, true);
 
   // condition
   o->newline(-1) << toplabel << ":";
@@ -2358,7 +2355,7 @@ c_unparser::visit_for_loop (for_loop *s)
   // Equivalently, it can stand for the evaluation of the condition
   // expression.
   o->indent(1);
-  visit_statement (0, 1, false);
+  record_actions(1);
 
   o->newline() << "if (! (";
   if (s->cond->type != pe_long)
@@ -2370,6 +2367,7 @@ c_unparser::visit_for_loop (for_loop *s)
   loop_break_labels.push_back (breaklabel);
   loop_continue_labels.push_back (contlabel);
   s->block->visit (this);
+  record_actions(0, true);
   loop_break_labels.pop_back ();
   loop_continue_labels.pop_back ();
 
@@ -2490,8 +2488,6 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 
   if (array)
     {
-      visit_statement (s, 1, false);
-      
       mapvar mv = getmap (array->referent, s->tok);
       itervar iv = getiter (array);
       vector<var> keys;
@@ -2586,6 +2582,8 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  o->newline() << *limitv << " = 0LL;";
       }
 
+      record_actions(1, true);
+
       // condition
       o->newline(-1) << toplabel << ":";
 
@@ -2593,7 +2591,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       // Equivalently, it can stand for the evaluation of the
       // condition expression.
       o->indent(1);
-      visit_statement (0, 1, false);
+      record_actions(1);
 
       o->newline() << "if (! (" << iv << ")) goto " << breaklabel << ";";
       
@@ -2621,6 +2619,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	  c_assign (v, iv.get_key (v.type(), i), s->tok);
 	}
       s->block->visit (this);
+      record_actions(0, true);
       o->newline(-1) << "}";
       loop_break_labels.pop_back ();
       loop_continue_labels.pop_back ();
@@ -2665,6 +2664,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 	}
       
       // XXX: break / continue don't work here yet
+      record_actions(1, true);
       o->newline() << "for (" << bucketvar << " = 0; " 
 		   << bucketvar << " < " << v.buckets() << "; "
 		   << bucketvar << "++) { ";
@@ -2682,6 +2682,7 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
       }
 
       s->block->visit (this);
+      record_actions(1, true);
       o->newline(-1) << "}";
     }
 }
@@ -2690,8 +2691,6 @@ c_unparser::visit_foreach_loop (foreach_loop *s)
 void
 c_unparser::visit_return_statement (return_statement* s)
 {
-  visit_statement (s, 1, false);
-
   if (current_function == 0)
     throw semantic_error ("cannot 'return' from probe", s->tok);
 
@@ -2700,6 +2699,7 @@ c_unparser::visit_return_statement (return_statement* s)
                          "vs", s->tok);
 
   c_assign ("l->__retvalue", s->value, "return value");
+  record_actions(1, true);
   o->newline() << "goto out;";
 }
 
@@ -2707,11 +2707,10 @@ c_unparser::visit_return_statement (return_statement* s)
 void
 c_unparser::visit_next_statement (next_statement* s)
 {
-  visit_statement (s, 1, false);
-
   if (current_probe == 0)
     throw semantic_error ("cannot 'next' from function", s->tok);
 
+  record_actions(1, true);
   o->newline() << "goto out;";
 }
 
@@ -2839,19 +2838,19 @@ c_tmpcounter::visit_delete_statement (delete_statement* s)
 void
 c_unparser::visit_delete_statement (delete_statement* s)
 {
-  visit_statement (s, 1, false);
   delete_statement_operand_visitor dv (this);
   s->value->visit (&dv);
+  record_actions(1);
 }
 
 
 void
 c_unparser::visit_break_statement (break_statement* s)
 {
-  visit_statement (s, 1, false);
   if (loop_break_labels.size() == 0)
     throw semantic_error ("cannot 'break' outside loop", s->tok);
 
+  record_actions(1, true);
   string label = loop_break_labels[loop_break_labels.size()-1];
   o->newline() << "goto " << label << ";";
 }
@@ -2860,10 +2859,10 @@ c_unparser::visit_break_statement (break_statement* s)
 void
 c_unparser::visit_continue_statement (continue_statement* s)
 {
-  visit_statement (s, 1, false);
   if (loop_continue_labels.size() == 0)
     throw semantic_error ("cannot 'continue' outside loop", s->tok);
 
+  record_actions(1, true);
   string label = loop_continue_labels[loop_continue_labels.size()-1];
   o->newline() << "goto " << label << ";";
 }
