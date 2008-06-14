@@ -58,11 +58,11 @@ function _stp_register_regs() {
 	_stp_regs_registered = 1
 }
 
-function probing_32bit_app() %{
+function probing_32bit_app() %{ /* pure */
         THIS->__retvalue = _stp_probing_32bit_app(CONTEXT->regs);
 %}
 
-function _stp_get_register_by_offset:long (offset:long) %{
+function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;

@@ -46,8 +46,7 @@ probe vm.pagefault.return = kernel.function("__handle_mm_fault@mm/memory.c").ret
 }
 
 /* Return which node the given address belongs to in a NUMA system */
-function addr_to_node:long(addr:long)  /* pure */ 
-%{
+function addr_to_node:long(addr:long) %{ /* pure */ 
 	int nid;
 	int pfn = __pa(THIS->addr) >> PAGE_SHIFT;
 	for_each_online_node(nid)

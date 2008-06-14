@@ -1787,7 +1787,7 @@ function _mmap_flags:string(flags:long)
 # old mmap functions passed in a struct like this.
 #
 function get_mmap_args:string (args:long)
-%{
+%{ /* pure */
 #if defined (__x86_64__) || defined (__ia64__)
 	struct mmap_arg_struct {
 		unsigned int addr;

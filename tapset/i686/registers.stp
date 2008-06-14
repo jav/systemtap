@@ -24,13 +24,13 @@ function _stp_register_regs() {
 	_stp_regs_registered = 1
 }
 
-function _stp_get_register_by_offset:long (offset:long) %{
+function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
 %}
 
-function _stp_probing_kernel:long () %{
+function _stp_probing_kernel:long () %{ /* pure */
 	THIS->__retvalue = !user_mode(CONTEXT->regs);
 %}
 
@@ -38,12 +38,12 @@ function _stp_probing_kernel:long () %{
  * esp and ss aren't saved on a breakpoint in kernel mode, so
  * the pre-trap stack pointer is &regs->sp.
  */
-function _stp_kernel_sp:long (sp_offset:long) %{
+function _stp_kernel_sp:long (sp_offset:long) %{ /* pure */
 	THIS->__retvalue = ((long) CONTEXT->regs) + THIS->sp_offset;
 %}
 
 /* Assume ss register hasn't changed since we took the trap. */
-function _stp_kernel_ss:long () %{
+function _stp_kernel_ss:long () %{ /* pure */
 	unsigned short ss;
 	asm volatile("movw %%ss, %0" : : "m" (ss));
 	THIS->__retvalue = ss;
@@ -80,7 +80,7 @@ function u_register:long (name:string) {
 }
 
 /* Return the value of function arg #argnum (1=first arg) as a signed value. */
-function _stp_arg:long (argnum:long) %{
+function _stp_arg:long (argnum:long) %{ /* pure */
 	long val;
 	int n, nr_regargs, result;
 

@@ -41,7 +41,7 @@
  */
 
 function ctime:string(epochsecs:long)
-%{
+%{ /* pure */
 
 #define SECSPERMIN	60L
 #define MINSPERHOUR	60L

@@ -38,7 +38,7 @@ function _stp_register_regs() {
 	_stp_regs_registered = 1
 }
 
-function _stp_get_register_by_offset:long (offset:long) %{
+function _stp_get_register_by_offset:long (offset:long) %{ /* pure */
 	long value;
 	memcpy(&value, ((char *)CONTEXT->regs) + THIS->offset, sizeof(value));
 	THIS->__retvalue = value;
@@ -48,7 +48,7 @@ function _stp_get_register_by_offset:long (offset:long) %{
  * _stp_sign_extend32() is callable from a script function.
  * __stp_sign_extend32() (in regs.c) is callable from a C function.
  */
-function _stp_sign_extend32:long (value:long) %{
+function _stp_sign_extend32:long (value:long) %{ /* pure */
 	THIS->__retvalue = __stp_sign_extend32(THIS->value);
 %}
 
@@ -98,7 +98,7 @@ function u_register:long (name:string) {
  * If sign_extend=1 and (truncate=1 or the probepoint we've hit is in a
  * 32-bit app), sign-extend the 32-bit value.
  */
-function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) %{
+function _stp_arg:long (argnum:long, sign_extend:long, truncate:long) %{ /* pure */
 	long val;
 	int result, n, nr_regargs;
 	size_t argsz = sizeof(long);
@@ -170,7 +170,7 @@ deref_fault: /* branched to from deref() */
 	}
 %}
 
-function probing_32bit_app() %{
+function probing_32bit_app() %{ /* pure */
 	THIS->__retvalue = _stp_probing_32bit_app(CONTEXT->regs);
 %}
 

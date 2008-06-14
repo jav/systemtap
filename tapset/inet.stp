@@ -1,8 +1,8 @@
 /* Some functions from libc <arpa/inet.h> */
 
-function htonll:long (x:long) %{ THIS->__retvalue = (int64_t) cpu_to_be64 ((u64) THIS->x); %}
-function htonl:long (x:long) %{ THIS->__retvalue = (int64_t) cpu_to_be32 ((u32) THIS->x); %}
-function htons:long (x:long) %{ THIS->__retvalue = (int64_t) cpu_to_be16 ((u16) THIS->x); %}
-function ntohll:long (x:long) %{ THIS->__retvalue = (int64_t) be64_to_cpu ((u64) THIS->x); %}
-function ntohl:long (x:long) %{ THIS->__retvalue = (int64_t) be32_to_cpu ((u32) THIS->x); %}
-function ntohs:long (x:long) %{ THIS->__retvalue = (int64_t) be16_to_cpu ((u16) THIS->x); %}
+function htonll:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be64 ((u64) THIS->x); %}
+function htonl:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be32 ((u32) THIS->x); %}
+function htons:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) cpu_to_be16 ((u16) THIS->x); %}
+function ntohll:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be64_to_cpu ((u64) THIS->x); %}
+function ntohl:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be32_to_cpu ((u32) THIS->x); %}
+function ntohs:long (x:long) %{ /* pure */ THIS->__retvalue = (int64_t) be16_to_cpu ((u16) THIS->x); %}

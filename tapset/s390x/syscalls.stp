@@ -103,7 +103,7 @@ probe syscall.sysctl32.return = kernel.function("sys32_sysctl").return ? {
 
 /* compat */
 function get_32mmap_args:string (args:long)
-%{
+%{ /* pure */
 	struct mmap_arg_struct_emu31 {
 		u32     addr;
 		u32     len;
