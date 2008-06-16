@@ -1229,13 +1229,13 @@ systemtap_session::print_error (const semantic_error& e)
 }
 
 void
-systemtap_session::print_warning (const string& message_str)
+systemtap_session::print_warning (const string& message_str, string optional_str = "")
 {
   // Duplicate elimination
   if (seen_warnings.find (message_str) == seen_warnings.end())
     {
       seen_warnings.insert (message_str);
-      clog << "WARNING: " << message_str << endl;
+      clog << "WARNING: " << message_str << optional_str << endl;
     }
 }
 
@@ -1612,7 +1612,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
   
   // Now in vut.read/written, we have a mixture of all locals, globals
   
-  for (unsigned i=0; i<s.probes.size(); i++)
+  for (unsigned i=0; i<s.probes.size(); i++) 
     for (unsigned j=0; j<s.probes[i]->locals.size(); /* see below */)
       {
         vardecl* l = s.probes[i]->locals[j];
@@ -1638,11 +1638,27 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (vut.written.find (l) == vut.written.end())
               if (! s.suppress_warnings)
-		s.print_warning ("read-only local variable " + stringify(*l->tok));
+		  {
+		    stringstream o;
+		    vector<vardecl*>::iterator it;
+		    for ( it = s.probes[i]->locals.begin() ;
+			  it != s.probes[i]->locals.end(); it++ )
+		      if (l->name.compare(((vardecl*)*it)->name) != 0)
+			o << " " <<  ((vardecl*)*it)->name;
+		    for ( it = s.globals.begin() ;
+			  it != s.globals.end() ; it++ )
+		      if (l->name.compare(((vardecl*)*it)->name) != 0)
+			o << " " <<  ((vardecl*)*it)->name;
 
+		    s.print_warning ("read-only local variable "
+				     + stringify(*l->tok),
+				     " (alternatives: " + o.str () + ")");
+		  }
+	    
             j++;
           }
       }
+  
   for (unsigned i=0; i<s.functions.size(); i++)
     for (unsigned j=0; j<s.functions[i]->locals.size(); /* see below */)
       {
@@ -1667,9 +1683,27 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           }
         else
           {
+	    stringstream o;
+	    vector<vardecl*>::iterator it;
+	    for ( it = s.functions[i]->formal_args.begin() ;
+		  it != s.functions[i]->formal_args.end(); it++ )
+	      if (l->name.compare(((vardecl*)*it)->name) != 0)
+		o << " " <<  ((vardecl*)*it)->name;
+	    for ( it = s.functions[i]->locals.begin() ;
+		  it != s.functions[i]->locals.end(); it++ )
+	      if (l->name.compare(((vardecl*)*it)->name) != 0)
+		o << " " <<  ((vardecl*)*it)->name;
+	    for ( it = s.globals.begin() ;
+		  it != s.globals.end() ; it++ )
+	      if (l->name.compare(((vardecl*)*it)->name) != 0)
+		o << " " <<  ((vardecl*)*it)->name;
+
             if (vut.written.find (l) == vut.written.end())
               if (! s.suppress_warnings)
-                s.print_warning ("read-only local variable " + stringify(*l->tok));
+                s.print_warning ("read-only local variable "
+				 + stringify(*l->tok),
+				 " (alternatives:" + o.str () + ")");
+		  
             j++;
           }
       }

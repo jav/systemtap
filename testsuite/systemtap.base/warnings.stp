@@ -1,4 +1,4 @@
-# PR 1119, 6538
+# PR 1119
 
 global elide_me1
 function elide_me2 () {}
@@ -6,3 +6,13 @@ function foo:long () { elide_me3 = 1 }
 function bar() { print(elide+me1) ; ; ; }
 probe never { elide_me4 = 1; (elide_me5+5); print (foo()) }
 probe never { print(elide+me1) bar () }
+
+# PR 6611
+
+probe probea = kernel.statement("bio_init@fs/bio.c:135")
+               { printf("%d", funca(2)); elide_me6="foo" }
+probe probea { printf("%d", funcb(2,3)); printf("%s",var) }
+
+function funcb(a:long, b:long) {return a + b}
+function funca(a:long) {a=b; elide_me7=1; return a}
+

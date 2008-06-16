@@ -1,5 +1,5 @@
 // -*- C++ -*-
-// Copyright (C) 2005-2007 Red Hat Inc.
+// Copyright (C) 2005-2008 Red Hat Inc.
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -167,7 +167,7 @@ struct systemtap_session
   unsigned num_errors () { return seen_errors.size(); }
   // void print_error (const parse_error& e);
   void print_error (const semantic_error& e);
-  void print_warning (const std::string& w);
+  void print_warning (const std::string& w, std::string o);
 
   // reNB: new POD members likely need to be explicitly cleared in the ctor.
 };

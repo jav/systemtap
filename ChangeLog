@@ -1,3 +1,10 @@
+2008-06-13  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (print_warning): Add optional_str parameter.
+	(semantic_pass_opt2): List variable alternatives for probes and
+	functions.
+	* session.h (print_warning): Add optional_str parameter.
+
 2008-06-13  Josh Stone  <joshua.i.stone@intel.com>
 
 	* translate.cxx: Jump out directly after setting last_error, rather
@@ -23,7 +30,7 @@
 
 	* elaborate.cxx (print_warning): Only output WARNING, don't put it
 	in the message_str and seen_warnings.
-	* session.h (print_waring): Reindent.
+	* session.h (print_warning): Reindent.
 
 2008-06-11  Frank Ch. Eigler  <fche@elastic.org>
 
