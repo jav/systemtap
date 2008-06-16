@@ -322,7 +322,7 @@ match_node::find_and_build (systemtap_session& s,
 
           throw semantic_error (string("probe point truncated at position ") + 
                                 lex_cast<string> (pos) +
-                                " (follow:" + alternatives + ")");
+                                " (follow:" + alternatives + ")", loc->tok);
         }
 
       map<string, literal *> param_map;
@@ -394,7 +394,8 @@ match_node::find_and_build (systemtap_session& s,
           
 	  throw semantic_error(string("probe point mismatch at position ") +
 			       lex_cast<string> (pos) +
-			       " (alternatives:" + alternatives + ")");
+			       " (alternatives:" + alternatives + ")",
+                               loc->tok);
 	}
     }
   else 
@@ -409,7 +410,8 @@ match_node::find_and_build (systemtap_session& s,
           
           throw semantic_error (string("probe point mismatch at position ") + 
                                 lex_cast<string> (pos) +
-                                " (alternatives:" + alternatives + ")");
+                                " (alternatives:" + alternatives + ")",
+                                loc->tok);
         }
 
       match_node* subnode = i->second;
@@ -1194,9 +1196,37 @@ systemtap_session::systemtap_session ():
   op (0), up (0),
   sym_kprobes_text_start (0),
   sym_kprobes_text_end (0),
-  sym_stext (0)
+  sym_stext (0),
+  last_token (0)
 {
 }
+
+
+// Print this given token, but abbreviate it if the last one had the
+// same file name.
+void
+systemtap_session::print_token (ostream& o, const token* tok)
+{
+  assert (tok);
+
+  if (last_token && last_token->location.file == tok->location.file)
+    {
+      stringstream tmpo;
+      tmpo << *tok;
+      string ts = tmpo.str();
+      // search & replace the file name with nothing
+      size_t idx = ts.find (tok->location.file);
+      if (idx != string::npos)
+          ts.replace (idx, tok->location.file.size(), "");
+      
+      o << ts;
+    }
+  else
+    o << *tok;
+
+  last_token = tok;
+}
+
 
 
 void
@@ -1211,9 +1241,9 @@ systemtap_session::print_error (const semantic_error& e)
   message << "semantic error: " << e.what ();
   if (e.tok1 || e.tok2)
     message << ": ";
-  if (e.tok1) message << *e.tok1;
+  if (e.tok1) print_token (message, e.tok1);
   message << e.msg2;
-  if (e.tok2) message << *e.tok2;
+  if (e.tok2) print_token (message, e.tok2);
   message << endl;
   message_str = message.str();
 
@@ -1229,13 +1259,15 @@ systemtap_session::print_error (const semantic_error& e)
 }
 
 void
-systemtap_session::print_warning (const string& message_str, string optional_str = "")
+systemtap_session::print_warning (const string& message_str, const token* tok)
 {
   // Duplicate elimination
   if (seen_warnings.find (message_str) == seen_warnings.end())
     {
       seen_warnings.insert (message_str);
-      clog << "WARNING: " << message_str << optional_str << endl;
+      clog << "WARNING: " << message_str;
+      if (tok) { clog << ": "; print_token (clog, tok); }
+      clog << endl;
     }
 }
 
@@ -1569,7 +1601,7 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
         {
           if (s.functions[i]->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-	    s.print_warning ("eliding unused function " + stringify(*s.functions[i]->tok));
+	    s.print_warning ("eliding unused function '" + s.functions[i]->name + "'", s.functions[i]->tok);
           else if (s.verbose>2)
             clog << "Eliding unused function " << s.functions[i]->name
                  << endl;
@@ -1590,10 +1622,10 @@ void semantic_pass_opt1 (systemtap_session& s, bool& relaxed_p)
 
 // Do away with local & global variables that are never
 // written nor read.
-void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
+void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterations)
 {
   varuse_collecting_visitor vut;
-  
+
   for (unsigned i=0; i<s.probes.size(); i++)
     {
       s.probes[i]->body->visit (& vut);
@@ -1622,7 +1654,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (l->tok->location.file == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
-	      s.print_warning ("eliding unused variable " + stringify(*l->tok));
+	      s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
             else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in " << s.probes[i]->name << endl;
@@ -1637,22 +1669,19 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         else
           {
             if (vut.written.find (l) == vut.written.end())
-              if (! s.suppress_warnings)
+              if (iterations == 0 && ! s.suppress_warnings)
 		  {
 		    stringstream o;
 		    vector<vardecl*>::iterator it;
-		    for ( it = s.probes[i]->locals.begin() ;
-			  it != s.probes[i]->locals.end(); it++ )
-		      if (l->name.compare(((vardecl*)*it)->name) != 0)
-			o << " " <<  ((vardecl*)*it)->name;
-		    for ( it = s.globals.begin() ;
-			  it != s.globals.end() ; it++ )
-		      if (l->name.compare(((vardecl*)*it)->name) != 0)
-			o << " " <<  ((vardecl*)*it)->name;
+		    for (it = s.probes[i]->locals.begin(); it != s.probes[i]->locals.end(); it++)
+		      if (l->name != (*it)->name)
+			o << " " <<  (*it)->name;
+		    for (it = s.globals.begin(); it != s.globals.end(); it++)
+		      if (l->name != (*it)->name)
+			o << " " <<  (*it)->name;
 
-		    s.print_warning ("read-only local variable "
-				     + stringify(*l->tok),
-				     " (alternatives: " + o.str () + ")");
+		    s.print_warning ("read-only local variable '" + l->name + "' " +
+                                     (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
 		  }
 	    
             j++;
@@ -1668,7 +1697,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           {
             if (l->tok->location.file == s.user_file->name && // !tapset
                 ! s.suppress_warnings)
-              s.print_warning ("eliding unused variable " + stringify(*l->tok));
+              s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
             else if (s.verbose>2)
               clog << "Eliding unused local variable "
                    << l->name << " in function " << s.functions[i]->name
@@ -1683,27 +1712,26 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
           }
         else
           {
-	    stringstream o;
-	    vector<vardecl*>::iterator it;
-	    for ( it = s.functions[i]->formal_args.begin() ;
-		  it != s.functions[i]->formal_args.end(); it++ )
-	      if (l->name.compare(((vardecl*)*it)->name) != 0)
-		o << " " <<  ((vardecl*)*it)->name;
-	    for ( it = s.functions[i]->locals.begin() ;
-		  it != s.functions[i]->locals.end(); it++ )
-	      if (l->name.compare(((vardecl*)*it)->name) != 0)
-		o << " " <<  ((vardecl*)*it)->name;
-	    for ( it = s.globals.begin() ;
-		  it != s.globals.end() ; it++ )
-	      if (l->name.compare(((vardecl*)*it)->name) != 0)
-		o << " " <<  ((vardecl*)*it)->name;
-
             if (vut.written.find (l) == vut.written.end())
-              if (! s.suppress_warnings)
-                s.print_warning ("read-only local variable "
-				 + stringify(*l->tok),
-				 " (alternatives:" + o.str () + ")");
-		  
+              if (iterations == 0 && ! s.suppress_warnings)
+                {
+                  stringstream o;
+                  vector<vardecl*>::iterator it;
+                  for ( it = s.functions[i]->formal_args.begin() ;
+                        it != s.functions[i]->formal_args.end(); it++)
+                    if (l->name != (*it)->name)
+                      o << " " << (*it)->name;
+                  for (it = s.functions[i]->locals.begin(); it != s.functions[i]->locals.end(); it++)
+                    if (l->name != (*it)->name)
+                      o << " " << (*it)->name;
+                  for (it = s.globals.begin(); it != s.globals.end(); it++)
+                    if (l->name != (*it)->name)
+                      o << " " << (*it)->name;
+
+                  s.print_warning ("read-only local variable '" + l->name + "' " +
+                                   (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+                }
+
             j++;
           }
       }
@@ -1715,7 +1743,7 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         {
           if (l->tok->location.file == s.user_file->name && // !tapset
               ! s.suppress_warnings)
-            s.print_warning ("eliding unused variable " + stringify(*l->tok));
+            s.print_warning ("eliding unused variable '" + l->name + "'", l->tok);
           else if (s.verbose>2)
             clog << "Eliding unused global variable "
                  << l->name << endl;
@@ -1728,10 +1756,19 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p)
         }
       else
         {
-          if (vut.written.find (l) == vut.written.end() &&
-              ! l->init) // no initializer
-            if (! s.suppress_warnings)
-              s.print_warning ("read-only global variable " + stringify(*l->tok));
+          if (vut.written.find (l) == vut.written.end() && ! l->init) // no initializer
+            if (iterations == 0 && ! s.suppress_warnings)
+              {
+                stringstream o;
+                vector<vardecl*>::iterator it;
+                for (it = s.globals.begin(); it != s.globals.end(); it++)
+                  if (l->name != (*it)->name)
+                    o << " " << (*it)->name;
+                
+                s.print_warning ("read-only global variable '" + l->name + "' " +
+                                 (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
+              }
+
           i++;
         }
     }
@@ -2129,8 +2166,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       if (p->body == 0)
         {
           if (! s.suppress_warnings)
-            s.print_warning ("side-effect-free probe '" + p->name + "' " 
-			     + stringify(*p->tok));
+            s.print_warning ("side-effect-free probe '" + p->name + "'", p->tok);
 
           p->body = new null_statement();
           p->body->tok = p->tok;
@@ -2154,8 +2190,7 @@ void semantic_pass_opt4 (systemtap_session& s, bool& relaxed_p)
       if (fn->body == 0)
         {
           if (! s.suppress_warnings)
-            s.print_warning ("side-effect-free function '" + fn->name + "' "
-			     + stringify(*fn->tok));
+            s.print_warning ("side-effect-free function '" + fn->name + "'", fn->tok);
 
           fn->body = new null_statement();
           fn->body->tok = fn->tok;
@@ -2277,6 +2312,7 @@ semantic_pass_optimize1 (systemtap_session& s)
   int rc = 0;
 
   bool relaxed_p = false;
+  unsigned iterations = 0;
   while (! relaxed_p)
     {
       if (pending_interrupts) break;
@@ -2284,9 +2320,11 @@ semantic_pass_optimize1 (systemtap_session& s)
       relaxed_p = true; // until proven otherwise
 
       semantic_pass_opt1 (s, relaxed_p);
-      semantic_pass_opt2 (s, relaxed_p);
+      semantic_pass_opt2 (s, relaxed_p, iterations); // produce some warnings only on iteration=0
       semantic_pass_opt3 (s, relaxed_p);
       semantic_pass_opt4 (s, relaxed_p);
+
+      iterations ++;
     }
 
   return rc;
