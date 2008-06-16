@@ -1683,7 +1683,6 @@ void semantic_pass_opt2 (systemtap_session& s, bool& relaxed_p, unsigned iterati
 		    s.print_warning ("read-only local variable '" + l->name + "' " +
                                      (o.str() == "" ? "" : ("(alternatives:" + o.str() + ")")), l->tok);
 		  }
-	    
             j++;
           }
       }

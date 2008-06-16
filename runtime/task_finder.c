@@ -654,19 +654,21 @@ stap_start_task_finder(void)
 				cb_tgt = list_entry(cb_node,
 						    struct stap_task_finder_target,
 						    callback_list);
-				if (cb_tgt == NULL || cb_tgt->callback == NULL)
+				if (cb_tgt == NULL)
 					continue;
 					
 				// Call the callback.  Assume that if
 				// the thread is a thread group
 				// leader, it is a process.
-				rc = cb_tgt->callback(tsk, 1,
-						      (tsk->pid == tsk->tgid),
-						      cb_tgt);
-				if (rc != 0) {
-					_stp_error("attach callback for %d failed: %d",
-						   (int)tsk->pid, rc);
-					goto stf_err;
+				if (cb_tgt->callback != NULL) {
+					rc = cb_tgt->callback(tsk, 1,
+							      (tsk->pid == tsk->tgid),
+							      cb_tgt);
+					if (rc != 0) {
+						_stp_error("attach callback for %d failed: %d",
+							   (int)tsk->pid, rc);
+						goto stf_err;
+					}
 				}
 
 				// Set up events we need for attached tasks.
