@@ -1,3 +1,8 @@
+2008-06-16  Stan Cox  <scox@redhat.com>
+
+	* elaborate.cxx (semantic_pass_opt2): Only create function
+	alternatives if needed.  Overload compare.
+
 2008-06-13  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (print_warning): Add optional_str parameter.
