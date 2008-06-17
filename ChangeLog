@@ -1,5 +1,10 @@
 2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (print_locals): Produce nothing instead of
+	"(alternatives: (none found))" if no alternatives were found.
+
+2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
+
 	* elaborate.cxx (session::print_warning): Change to take optional
 	token as argument.
 	(*): Adjust callers of print_warning() to pass a token.

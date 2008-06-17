@@ -1585,7 +1585,6 @@ struct dwflpp
   void print_locals(Dwarf_Die *die, ostream &o)
   {
     // Try to get the first child of die.
-    bool local_found = false;
     Dwarf_Die child;
     if (dwarf_child (die, &child) == 0)
       {
@@ -1598,7 +1597,6 @@ struct dwflpp
 	      case DW_TAG_variable:
 	      case DW_TAG_formal_parameter:
 		o << " " << dwarf_diename (&child);
-		local_found = true;
 		break;
 	      default:
 		break;
@@ -1606,9 +1604,6 @@ struct dwflpp
 	  }
 	while (dwarf_siblingof (&child, &child) == 0);
       }
-
-    if (! local_found)
-      o << " (none found)";
   }
 
   Dwarf_Attribute *
@@ -1646,8 +1641,7 @@ struct dwflpp
 	print_locals (scopes, alternatives);
 	throw semantic_error ("unable to find local '" + local + "'"
 			      + " near pc " + lex_cast_hex<string>(pc)
-			      + " (alternatives:" + alternatives.str ()
-			      + ")");
+			      + (alternatives.str() == "" ? "" : (" (alternatives:" + alternatives.str () + ")")));
       }
 
     for (int inner = 0; inner < nscopes; ++inner)
