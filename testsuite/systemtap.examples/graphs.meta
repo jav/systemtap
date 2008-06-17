@@ -1,0 +1,13 @@
+title: Graphing Disk and CPU Utilization
+name: graphs.stp
+version: 1.0
+author: anonymous
+keywords: disk cpu use graph
+subsystem: disk cpu
+status: production
+exit: user-controlled
+output: plot data
+scope: system-wide
+description: The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.
+test_check: stap -p4 graphs.stp
+test_installcheck: stap graphs.stp -c "sleep 1"

@@ -1,3 +1,7 @@
+2008-06-17  William Cohen  <wcohen@redhat.com>
+
+	* graphs.stp, graphs.meta: New.
+
 2008-06-12  William Cohen  <wcohen@redhat.com>
 
 	* thread-times.stp, thread-times.meta: New.
