@@ -2072,6 +2072,7 @@ probe syscall.lchown16.return = kernel.function("sys_lchown16").return ? {
 	name = "lchown16"
 	retstr = returnstr(1)
 }
+
 # lgetxattr __________________________________________________
 # ssize_t sys_lgetxattr(char __user *path,
 #               char __user *name,
@@ -2094,6 +2095,7 @@ probe syscall.lgetxattr.return = kernel.function("sys_lgetxattr").return {
 	name = "lgetxattr"
 	retstr = returnstr(1)
 }
+
 # link _______________________________________________________
 # long sys_link(const char __user * oldname,
 #          const char __user * newname)
@@ -2108,6 +2110,32 @@ probe syscall.link = kernel.function("sys_link") {
 probe syscall.link.return = kernel.function("sys_link").return {
 	name = "link"
 	retstr = returnstr(1)	
+}
+
+# linkat _____________________________________________________
+# new function with 2.6.16
+# long sys_linkat(int olddfd, const char __user *oldname,
+#	int newdfd, const char __user *newname, int flags)
+probe syscall.linkat = kernel.function("sys_linkat") ? {
+	name = "linkat"
+	olddfd = $olddfd
+	olddfd_str = _dfd_str($olddfd)
+	oldname = $oldname
+	oldname_str = user_string($oldname)
+	newdfd = $newdfd
+	newdfd_str = _dfd_str($newdfd)
+	newname = $newname
+	newname_str = user_string($newname)
+	flags = $flags
+	flags_str = _at_flag_str($flags)
+	argstr = sprintf("%s, %s, %s, %s, %s",
+		olddfd_str, user_string_quoted($oldname),
+		newdfd_str, user_string_quoted($newname),
+		flags_str)
+}
+probe syscall.linkat.return = kernel.function("sys_linkat").return ? {
+	name = "linkat"
+	retstr = returnstr(1)
 }
 
 # listen _____________________________________________________

@@ -1,5 +1,9 @@
 2008-06-17  Zhaolei  <zhaolei@cn.fujitsu.com>
 
+	* syscalls.stp: Add sys_linkat.
+
+2008-06-17  Zhaolei  <zhaolei@cn.fujitsu.com>
+
 	* aux_syscalls.stp (__fork_flags): Add termination signal.
 
 2008-06-13  Josh Stone  <joshua.i.stone@intel.com>
