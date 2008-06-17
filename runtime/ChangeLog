@@ -1,3 +1,11 @@
+2008-06-17  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_attach_match_filename): Uses new
+	__STP_ATTACHED_TASK_EVENTS macro to determine which events to set
+	on a newly found process based on whether the
+	stap_task_finder_target structure has a vm_callback defined.
+	(stap_start_task_finder): Ditto.
+
 2008-06-16  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (stap_start_task_finder): Improved callback

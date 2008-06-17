@@ -224,9 +224,13 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 
 #define __STP_ATTACHED_TASK_BASE_EVENTS (UTRACE_EVENT(DEATH))
 
-#define __STP_ATTACHED_TASK_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
+#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
 				    | UTRACE_ACTION_QUIESCE	\
 				    | UTRACE_EVENT(QUIESCE))
+
+#define __STP_ATTACHED_TASK_EVENTS(tgt) \
+	((((tgt)->vm_callback) == NULL) ? __STP_ATTACHED_TASK_BASE_EVENTS \
+	 : __STP_ATTACHED_TASK_VM_EVENTS)
 
 static int
 stap_utrace_attach(struct task_struct *tsk,
@@ -317,7 +321,7 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 			if (register_p) {
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS);
+							__STP_ATTACHED_TASK_EVENTS(cb_tgt));
 				if (rc != 0 && rc != EPERM)
 					break;
 				cb_tgt->engine_attached = 1;
@@ -674,7 +678,7 @@ stap_start_task_finder(void)
 				// Set up events we need for attached tasks.
 				rc = stap_utrace_attach(tsk, &cb_tgt->ops,
 							cb_tgt,
-							__STP_ATTACHED_TASK_EVENTS);
+							__STP_ATTACHED_TASK_EVENTS(cb_tgt));
 				if (rc != 0 && rc != EPERM)
 					goto stf_err;
 				cb_tgt->engine_attached = 1;
