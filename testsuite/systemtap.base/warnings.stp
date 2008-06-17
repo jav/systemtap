@@ -15,4 +15,3 @@ probe probea { printf("%d", funcb(2,3)); printf("%s",var) }
 
 function funcb(a:long, b:long) {return a + b}
 function funca(a:long) {a=b; elide_me7=1; return a}
-

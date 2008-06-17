@@ -1705,7 +1705,13 @@ const _stp_val_array const _stp_fork_list[] = {
 
 function __fork_flags:string(flags:long)
 %{ /* pure */
-	_stp_lookup_or_str(_stp_fork_list, THIS->flags, THIS->__retvalue, MAXSTRINGLEN);
+	_stp_lookup_or_str(_stp_fork_list, THIS->flags & ~0xff, THIS->__retvalue, MAXSTRINGLEN);
+	if ( THIS->flags & 0xff ) {
+		/* flags contains the termination signal */
+		if (*THIS->__retvalue)
+			strlcat(THIS->__retvalue, "|", MAXSTRINGLEN);
+		_stp_lookup_str(_stp_signal_list, THIS->flags & 0xff, THIS->__retvalue, MAXSTRINGLEN);
+	}
 %}
 
 %{

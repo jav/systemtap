@@ -25,6 +25,7 @@ extern "C" {
 struct match_node;
 struct stapfile;
 struct vardecl;
+struct token;
 struct functiondecl;
 struct derived_probe;
 struct be_derived_probe_group;
@@ -165,9 +166,12 @@ struct systemtap_session
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
+
   // void print_error (const parse_error& e);
+  const token* last_token;
+  void print_token (std::ostream& o, const token* tok);
   void print_error (const semantic_error& e);
-  void print_warning (const std::string& w, const std::string& o);
+  void print_warning (const std::string& w, const token* tok = 0);
 
   // reNB: new POD members likely need to be explicitly cleared in the ctor.
 };

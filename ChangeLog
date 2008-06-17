@@ -1,3 +1,20 @@
+2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (print_locals): Produce nothing instead of
+	"(alternatives: (none found))" if no alternatives were found.
+
+2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	* elaborate.cxx (session::print_warning): Change to take optional
+	token as argument.
+	(*): Adjust callers of print_warning() to pass a token.
+	(print_token): New function, eliminate recent file name duplication.
+	(print_error): Use it too.
+	(semantic_pass_opt2): Tweak way read-only vars' alternatives are
+	printed.  Eliminate relaxation-loop duplicates by printing warnings
+	only on first iteration.  Print alternatives for globals too.
+	* session.h: Corresponding changes.
+
 2008-06-16  Stan Cox  <scox@redhat.com>
 
 	* elaborate.cxx (semantic_pass_opt2): Only create function
