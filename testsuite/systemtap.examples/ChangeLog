@@ -1,3 +1,7 @@
+2008-06-18  William Cohen  <wcohen@redhat.com>
+
+	* sleepingBeauties.stp, sleepingBeauties.meta: New.
+
 2008-06-17  William Cohen  <wcohen@redhat.com>
 
 	* graphs.stp, graphs.meta: New.

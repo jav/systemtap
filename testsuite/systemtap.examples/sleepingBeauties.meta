@@ -1,0 +1,13 @@
+title: Generating Backtraces of Threads Waiting for IO Operations
+name: sleepingBeauties.stp
+version: 1.0
+author: anonymous
+keywords: io scheduler
+subsystem: scheduler
+status: production
+exit: user-controlled
+output: trace
+scope: system-wide
+description: The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.
+test_check: stap -p4 sleepingBeauties.stp
+test_installcheck: stap sleepingBeauties.stp -c "sleep 1"
