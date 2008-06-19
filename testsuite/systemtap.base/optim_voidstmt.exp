@@ -1,0 +1,5 @@
+# Make sure that optimization works with void statements
+
+set test "optim_voidstmt"
+
+stap_run $srcdir/$subdir/$test.stp no_load $all_pass_string -g

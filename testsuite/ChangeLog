@@ -1,3 +1,8 @@
+2008-06-18  Josh Stone  <joshua.i.stone@intel.com>
+
+	* systemtap.base/optim_voidstmt.stp: Add tests for various statement
+	optimizations that we should now be eliding.
+
 2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/warnings.exp: Adjust warning count again (me1 and

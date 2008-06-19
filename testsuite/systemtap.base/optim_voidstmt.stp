@@ -1,0 +1,95 @@
+/*
+ * optim_voidstmt.stp
+ *
+ * Verify statement optimizations in void contexts.
+ */
+
+/* The printfs here force it not to be pure.  */
+function goodL() { printf(""); return 1 }
+function goodS() { printf(""); return "1" }
+
+/* These two functions lie about being pure, so they should be optimized out.
+ * If they get called, you get an error, and the test fails.
+ */
+function badL:long() %{ /* pure */ CONTEXT->last_error = "NOSEE"; %}
+function badS:string() %{ /* pure */ CONTEXT->last_error = "NOSEE"; %}
+
+function fn1(x) { return x }
+function fn2(x, y) { return x * y }
+
+probe begin {
+	println("systemtap starting probe")
+}
+
+probe end {
+	println("systemtap ending probe")
+
+    // most of these wouldn't have been optimized before, because part of the
+    // expression has an apparant side-effect in the good* calls
+
+    // unary numeric operators
+    (+(goodL() + badL()))
+    (-(goodL() + badL()))
+    (!(goodL() + badL()))
+    (~(goodL() + badL()))
+
+    // binary numeric operators
+    goodL() * badL()
+    goodL() / badL()
+    goodL() % badL()
+    goodL() + badL()
+    goodL() - badL()
+    goodL() >> badL()
+    goodL() << badL()
+    goodL() & badL()
+    goodL() ^ badL()
+    goodL() | badL()
+    goodL() < badL()
+    goodL() > badL()
+    goodL() <= badL()
+    goodL() >= badL()
+    goodL() == badL()
+    goodL() != badL()
+
+    // logical operators
+    goodL() && badL()
+    badL() && badL()
+    goodL() || badL()
+    badL() || badL()
+
+    // ternary operator
+    goodL() ? badL() : goodL()
+    goodL() ? goodL() : badL()
+    badL() ? badL() : badL()
+
+    // binary string operators
+    goodS() . badS()
+    goodS() < badS()
+    goodS() > badS()
+    goodS() <= badS()
+    goodS() >= badS()
+    goodS() == badS()
+    goodS() != badS()
+
+    // string-printing
+    sprintf("%d\n", goodL() + badL())
+    sprintf("%d %d %s %s\n", goodL(), badL(), goodS(), badS())
+
+    // function calls
+    fn1(badL() + goodL())
+    fn2(badL(), goodL())
+
+    // something complex, but harmless enough that only
+    // the good* calls should survive
+    fn1(fn2(goodL() - strlen(badL() + badL() * badL()  / strlen(goodS()) ?
+                    badS() . badS() . sprint(badL())
+                    : sprint(badL(), badS())),
+                badL() < badL() || badS() == badS()) +
+            goodL() % strlen(goodS()))
+
+    println("systemtap test success")
+}
+
+probe never {
+    print(goodL(), badL(), goodS(), badS(), fn1(1), fn2(1, 1))
+}
