@@ -1548,7 +1548,7 @@ void _stp_lookup_str(const _stp_val_array * const array, long val, char *ptr, in
 }
 void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr, int len)
 {
-	int i = 0, flag = 0;
+	int i = 0, flag = 0, slen;
 
 	if (val == 0) {
 		_stp_lookup_str(array, val, ptr, len);
@@ -1560,12 +1560,15 @@ void _stp_lookup_or_str(const _stp_val_array * const array, long val, char *ptr,
 			if (flag)
 				strlcat(ptr, "|", len);
 			strlcat(ptr, array[i].name, len);
+			val &= (~array[i].val);
 			flag = 1;
 		}
 		i++;
 	}
-	if (flag == 0) {
-		int slen = strlen(ptr);
+	if (val) {
+		if (flag)
+			strlcat(ptr, "|", len);
+		slen = strlen(ptr);
 		_stp_snprintf(ptr + slen, len - slen, "0x%lx", val);
 	}
 }
