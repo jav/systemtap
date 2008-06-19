@@ -36,6 +36,12 @@ there was at least one command line argument.  Arguments beyond #32 are not
 transcribed, and produce a warning message within the begin(-1) probe that
 initializes this array.
 
+.SS NULL
+
+.TP
+NULL:long
+Simply defined as the number 0.
+
 .SH FILES
 .nh
 .IR @prefix@/share/systemtap/tapset
