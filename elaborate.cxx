@@ -1,5 +1,6 @@
 // elaboration functions
 // Copyright (C) 2005-2008 Red Hat Inc.
+// Copyright (C) 2008 Intel Corporation
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
