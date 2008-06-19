@@ -2495,7 +2495,7 @@ void
 void_statement_reducer::visit_functioncall (functioncall* e)
 {
   // If a function call is pure and its result ignored, we can elide the call
-  // and just evaluate the arguements in sequence
+  // and just evaluate the arguments in sequence
 
   if (!e->args.size())
     return;
