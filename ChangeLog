@@ -1,3 +1,19 @@
+2008-06-18  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6644
+	* elaborate.cxx (dead_stmtexpr_remover::visit_block): Flatten nested
+	block statements into a single block.
+	(dead_stmtexpr_remover::visit_if_statement): Remove the possibility
+	of if_statements with a null thenblock.  When an if lacks both then
+	and else, either remove it completely or reduce it to a simple
+	statment evaluating the condition.  With an else and no then, invert
+	the condition and else becomes then.
+	(void_statement_reducer): New optimization visitor that breaks
+	statements in void context into smaller pieces, to expose more
+	optimization opportunities.
+	(semantic_pass_opt5, semantic_pass_opt6): Bump opt5 to opt6, and
+	create a new opt5 that runs through void_statement_reducer.
+
 2008-06-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (print_locals): Produce nothing instead of
