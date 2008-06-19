@@ -1,7 +1,7 @@
 global arr1, arr2, arr3, elide_idx1, elide_global_a, elide_global_b
 
 function fna(a:long) {return a}
-function fnb(a:long, b:long) {return a+b}
+function fnb(a:long, b:long) {return a+b+printf("")}
 
 probe begin {
   // array indices

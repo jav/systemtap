@@ -9,7 +9,7 @@ arr3:long [long]
 fna:long (a:long)
 return a
 fnb:long (a:long, b:long)
-return (a) + (b)
+return ((a) + (b)) + (printf(""))
 exit:unknown ()
 %{
     atomic_set (&session_state, STAP_SESSION_STOPPING);
