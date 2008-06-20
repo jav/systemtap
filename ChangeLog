@@ -1,3 +1,7 @@
+2008-06-20  wcohen  <wcohen@redhat.com>
+
+	* stapfuncs.5.in: Add documentation for tapset/dev.stp functions.
+
 2008-06-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	PR 6644

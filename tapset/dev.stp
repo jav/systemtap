@@ -1,0 +1,33 @@
+// Device numbering tapset
+// Copyright (C) 2008 Red Hat Corp.
+//
+// This file is part of systemtap, and is free software.  You can
+// redistribute it and/or modify it under the terms of the GNU General
+// Public License (GPL); either version 2, or (at your option) any
+// later version.
+
+%{
+#include <linux/kdev_t.h>
+%}
+
+function MAJOR:long(dev:long)
+%{ /* pure */
+    THIS->__retvalue = MAJOR(THIS->dev);
+%}
+
+
+function MINOR:long(dev:long)
+%{ /* pure */
+    THIS->__retvalue = MINOR(THIS->dev);
+%}
+
+
+function MKDEV:long(major:long, minor:long)
+%{ /* pure */
+    THIS->__retvalue = MKDEV(THIS->major,THIS->minor);
+%}
+
+function usrdev2kerndev:long(dev:long)
+%{ /* pure */
+    THIS->__retvalue = new_decode_dev(THIS->dev);
+%}

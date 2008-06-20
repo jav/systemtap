@@ -1,3 +1,7 @@
+2008-06-20  wcohen  <wcohen@redhat.com>
+
+	* dev.stp: New.
+	
 2008-06-19  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* aux_syscalls.stp: Output unknown bits in _stp_lookup_or_str.

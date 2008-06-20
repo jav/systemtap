@@ -642,6 +642,20 @@ or SIG_ERR, it will return the address of the handler.
 signal_str(num)
 Returns the string representation of the given signal number.
 
+.SS DEVICE
+.TP
+MAJOR:long(dev:long)
+Extracts the major device number from a kernel device number (kdev_t).
+.TP
+MINOR:long(dev:long)
+Extracts the minor device number from a kernel device number (kdev_t).
+.TP
+MKDEV:long(major:long, minor:long)
+Creates a value that can be compared to a kernel device number (kdev_t).
+.TP
+usrdev2kerndev:long(dev:long)
+Converts a user-space device number into the format used in the kernel.
+
 .SH FILES
 .nh
 .IR @prefix@/share/systemtap/tapset
