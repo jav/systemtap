@@ -2251,13 +2251,15 @@ struct void_statement_reducer: public traversing_visitor
   systemtap_session& session;
   bool& relaxed_p;
   statement** current_stmt; // pointer to current stmt* being iterated
+  expr_statement* current_expr; // pointer to current expr being iterated
   set<vardecl*> focal_vars; // vars considered subject to side-effects
 
   void_statement_reducer(systemtap_session& s, bool& r):
-    session(s), relaxed_p(r), current_stmt(0) {}
+    session(s), relaxed_p(r), current_stmt(0), current_expr(0) {}
 
   // these just maintain current_stmt while recursing, but don't visit
   // expressions in the conditional / loop controls.
+  void visit_expr_statement (expr_statement* s);
   void visit_block (block *s);
   void visit_if_statement (if_statement* s);
   void visit_for_loop (for_loop* s);
@@ -2291,6 +2293,15 @@ struct void_statement_reducer: public traversing_visitor
   void visit_assignment (assignment* e) {}
 };
 
+
+void
+void_statement_reducer::visit_expr_statement (expr_statement* s)
+{
+  assert(!current_expr); // it shouldn't be possible to have nested expr's
+  current_expr = s;
+  s->value->visit (this);
+  current_expr = NULL;
+}
 
 void
 void_statement_reducer::visit_block (block *s)
@@ -2343,8 +2354,7 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   // In void context, the evaluation of "a || b" is exactly like
   // "if (!a) b", so let's do that instead.
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Creating if statement from unused logical-or "
@@ -2354,6 +2364,7 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   is->tok = e->tok;
   is->elseblock = 0;
   *current_stmt = is;
+  current_expr = NULL;
 
   unary_expression *ue = new unary_expression;
   ue->operand = e->left;
@@ -2361,7 +2372,7 @@ void_statement_reducer::visit_logical_or_expr (logical_or_expr* e)
   ue->op = "!";
   is->condition = ue;
 
-  // NB: reusing the expr_statement for the thenblock
+  expr_statement *es = new expr_statement;
   es->value = e->right;
   es->tok = es->value->tok;
   is->thenblock = es;
@@ -2376,8 +2387,7 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
   // In void context, the evaluation of "a && b" is exactly like
   // "if (a) b", so let's do that instead.
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Creating if statement from unused logical-and "
@@ -2388,8 +2398,9 @@ void_statement_reducer::visit_logical_and_expr (logical_and_expr* e)
   is->elseblock = 0;
   is->condition = e->left;
   *current_stmt = is;
+  current_expr = NULL;
 
-  // NB: reusing the expr_statement for the thenblock
+  expr_statement *es = new expr_statement;
   es->value = e->right;
   es->tok = es->value->tok;
   is->thenblock = es;
@@ -2404,8 +2415,7 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
   // In void context, the evaluation of "a ? b : c" is exactly like
   // "if (a) b else c", so let's do that instead.
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Creating if statement from unused ternary expression "
@@ -2415,8 +2425,9 @@ void_statement_reducer::visit_ternary_expression (ternary_expression* e)
   is->tok = e->tok;
   is->condition = e->cond;
   *current_stmt = is;
+  current_expr = NULL;
 
-  // NB: reusing the expr_statement for the thenblock
+  expr_statement *es = new expr_statement;
   es->value = e->truevalue;
   es->tok = es->value->tok;
   is->thenblock = es;
@@ -2436,17 +2447,17 @@ void_statement_reducer::visit_binary_expression (binary_expression* e)
   // When the result of a binary operation isn't needed, it's just as good to
   // evaluate the operands as sequential statements in a block.
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Eliding unused binary " << *e->tok << endl;
 
   block *b = new block;
-  b->tok = es->tok;
+  b->tok = current_expr->tok;
   *current_stmt = b;
+  current_expr = NULL;
 
-  // NB: reusing the existing expr_statement for the first one...
+  expr_statement *es = new expr_statement;
   es->value = e->left;
   es->tok = es->value->tok;
   b->statements.push_back(es);
@@ -2466,15 +2477,14 @@ void_statement_reducer::visit_unary_expression (unary_expression* e)
   // When the result of a unary operation isn't needed, it's just as good to
   // evaluate the operand directly
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Eliding unused unary " << *e->tok << endl;
 
-  es->value = e->operand;
-  es->tok = es->value->tok;
-  es->value->visit(this);
+  current_expr->value = e->operand;
+  current_expr->tok = current_expr->value->tok;
+  current_expr->value->visit(this);
 
   relaxed_p = false;
 }
@@ -2507,34 +2517,25 @@ void_statement_reducer::visit_functioncall (functioncall* e)
   if (!vut.side_effect_free_wrt (focal_vars))
     return;
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Eliding side-effect-free function call " << *e->tok << endl;
 
-  // NB: reusing the existing expr_statement for the first arg...
-  es->value = e->args[0];
-  es->tok = es->value->tok;
+  block *b = new block;
+  b->tok = e->tok;
+  *current_stmt = b;
+  current_expr = NULL;
 
-  if (e->args.size() > 1)
+  for (unsigned i=0; i<e->args.size(); i++ )
     {
-      block *b = new block;
-      b->tok = es->tok;
-      *current_stmt = b;
-
+      expr_statement *es = new expr_statement;
+      es->value = e->args[i];
+      es->tok = es->value->tok;
       b->statements.push_back(es);
-
-      for (unsigned i=1; i<e->args.size(); i++ )
-        {
-          es = new expr_statement;
-          es->value = e->args[i];
-          es->tok = es->value->tok;
-          b->statements.push_back(es);
-        }
     }
 
-  (*current_stmt)->visit(this);
+  b->visit(this);
   relaxed_p = false;
 }
 
@@ -2547,34 +2548,25 @@ void_statement_reducer::visit_print_format (print_format* e)
   if (e->print_to_stream || !e->args.size())
     return;
 
-  expr_statement *es = dynamic_cast<expr_statement *>(*current_stmt);
-  assert(es && es->value == e);
+  assert(current_expr && current_expr->value == e);
 
   if (session.verbose>2)
     clog << "Eliding unused print " << *e->tok << endl;
 
-  // NB: reusing the existing expr_statement for the first arg...
-  es->value = e->args[0];
-  es->tok = es->value->tok;
+  block *b = new block;
+  b->tok = e->tok;
+  *current_stmt = b;
+  current_expr = NULL;
 
-  if (e->args.size() > 1)
+  for (unsigned i=0; i<e->args.size(); i++ )
     {
-      block *b = new block;
-      b->tok = es->tok;
-      *current_stmt = b;
-
+      expr_statement *es = new expr_statement;
+      es->value = e->args[i];
+      es->tok = es->value->tok;
       b->statements.push_back(es);
-
-      for (unsigned i=1; i<e->args.size(); i++ )
-        {
-          es = new expr_statement;
-          es->value = e->args[i];
-          es->tok = es->value->tok;
-          b->statements.push_back(es);
-        }
     }
 
-  (*current_stmt)->visit(this);
+  b->visit(this);
   relaxed_p = false;
 }
 
