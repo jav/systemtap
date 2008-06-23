@@ -5225,6 +5225,9 @@ private:
   bool flags_seen[UDPF_NFLAGS];
 
   void emit_probe_decl (systemtap_session& s, utrace_derived_probe *p);
+  void emit_vm_callback_probe_decl (systemtap_session& s, bool has_path,
+				    string path, int64_t pid,
+				    string vm_callback);
 
 public:
   utrace_derived_probe_group(): num_probes(0), flags_seen() { }
@@ -5484,10 +5487,49 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
       s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
       s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
       break;
+    case UDPF_NONE:
+      s.op->line() << " .flags=(UDPF_NONE),";
+      s.op->line() << " .ops={ },";
+      s.op->line() << " .events=0,";
+      break;
     default:
       throw semantic_error ("bad utrace probe flag");
       break;
     }
+  s.op->line() << " .engine_attached=0,";
+  s.op->line() << " },";
+}
+
+
+void
+utrace_derived_probe_group::emit_vm_callback_probe_decl (systemtap_session& s,
+							 bool has_path,
+							 string path,
+							 int64_t pid,
+							 string vm_callback)
+{
+  s.op->newline() << "{";
+  s.op->line() << " .tgt={";
+
+  if (has_path)
+    {
+      s.op->line() << " .pathname=\"" << path << "\",";
+      s.op->line() << " .pid=0,";
+    }
+  else
+    {
+      s.op->line() << " .pathname=NULL,";
+      s.op->line() << " .pid=" << pid << ",";
+    }
+
+  s.op->line() << " .callback=NULL,";
+  s.op->line() << " .vm_callback=&" << vm_callback << ",";
+  s.op->line() << " },";
+  s.op->line() << " .pp=\"internal\",";
+  s.op->line() << " .ph=NULL,";
+  s.op->line() << " .flags=(UDPF_NONE),";
+  s.op->line() << " .ops={ NULL },";
+  s.op->line() << " .events=0,";
   s.op->line() << " .engine_attached=0,";
   s.op->line() << " },";
 }
@@ -5737,6 +5779,14 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (p_b_path_iterator it = probes_by_path.begin();
 	   it != probes_by_path.end(); it++)
         {
+	  // Emit a "fake" probe decl that is really a hook for to get
+	  // our vm_callback called.
+	  string path = it->first;
+	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+	  emit_vm_callback_probe_decl (s, true, path, (int64_t)0,
+				       "__stp_tf_vm_cb");
+	  s.op->newline() << "#endif";
+
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
 	      utrace_derived_probe *p = it->second[i];
@@ -5751,6 +5801,13 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       for (p_b_pid_iterator it = probes_by_pid.begin();
 	   it != probes_by_pid.end(); it++)
         {
+	  // Emit a "fake" probe decl that is really a hook for to get
+	  // our vm_callback called.
+	  s.op->newline() << "#ifdef DEBUG_TASK_FINDER_VMA";
+	  emit_vm_callback_probe_decl (s, false, NULL, it->first,
+				       "__stp_tf_vm_cb");
+	  s.op->newline() << "#endif";
+
 	  for (unsigned i = 0; i < it->second.size(); i++)
 	    {
 	      utrace_derived_probe *p = it->second[i];

@@ -1,3 +1,12 @@
+2008-06-23  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
+	Handles UDPF_NONE value.
+	(utrace_derived_probe_group::emit_vm_callback_probe_decl): New
+	function.
+	(utrace_derived_probe_group::emit_module_decls): Calls
+	emit_vm_callback_probe_decl() to set up vm_callbacks.
+
 2008-06-23  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (enum line_t): Add RANGE and WILDCARD.
