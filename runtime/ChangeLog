@@ -1,5 +1,8 @@
 2008-06-23  David Smith  <dsmith@redhat.com>
 
+	* task_finder.c (__stp_utrace_task_finder_report_exec): Handles
+	relative exec paths correctly.
+
 	* task_finder_vma.c (__stp_tf_vma_hash): Improved determination of
 	whether this is a 64-bit platform.
 	* syscall.h: Handles kernels with older style register

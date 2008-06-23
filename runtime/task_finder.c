@@ -482,12 +482,10 @@ __stp_utrace_task_finder_report_exec(struct utrace_attached_engine *engine,
 		__stp_utrace_attach_match_tsk(tsk->real_parent, tsk, 0, 1);
 	}
 
-	// On exec, check bprm
-	if (bprm->filename == NULL)
-		return UTRACE_ACTION_RESUME;
-
-	// We assume that all exec's are exec'ing a new process
-	__stp_utrace_attach_match_filename(tsk, bprm->filename, 1, 1);
+	// We assume that all exec's are exec'ing a new process.  Note
+	// that we don't use bprm->filename, since that path can be
+	// relative.
+	__stp_utrace_attach_match_tsk(tsk, tsk, 1, 1);
 
 	return UTRACE_ACTION_RESUME;
 }
