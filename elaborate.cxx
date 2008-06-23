@@ -1198,6 +1198,7 @@ systemtap_session::systemtap_session ():
   sym_kprobes_text_start (0),
   sym_kprobes_text_end (0),
   sym_stext (0),
+  module_cache (0),
   last_token (0)
 {
 }

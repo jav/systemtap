@@ -509,6 +509,7 @@ struct dwarf_query; // forward decls
 struct dwflpp;
 struct symbol_table;
 
+
 struct
 module_info
 {
@@ -831,12 +832,6 @@ struct dwflpp
     return t;
   }
 
-
-  // static so pathname_caching_callback() can access them
-  static module_cache_t module_cache;
-  static bool ignore_vmlinux;
-
-
   dwflpp(systemtap_session & session)
     :
     sess(session),
@@ -850,7 +845,6 @@ struct dwflpp
     cu(NULL),
     function(NULL)
   {
-    ignore_vmlinux = sess.ignore_vmlinux;
   }
 
   // Called by dwfl_linux_kernel_report_offline().  We may not have
@@ -859,12 +853,16 @@ struct dwflpp
   // (Currently, we get all the elf info we need via elfutils -- if the
   // elf file exists -- so remembering the pathname isn't strictly needed.
   // But we still need to handle the case where there's no vmlinux.)
+
+  static systemtap_session* this_session; // XXX: used only due to elfutils shortcoming
+
   static int pathname_caching_callback(const char *name, const char *path)
   {
     module_info *mi = new module_info(name);
-    module_cache.cache[name] = mi;
+    assert (this_session);
+    this_session->module_cache->cache[name] = mi;
 
-    if (ignore_vmlinux && path && name == TOK_KERNEL)
+    if (this_session->ignore_vmlinux && path && name == TOK_KERNEL)
       {
         // report_kernel() in elfutils found vmlinux, but pretend it didn't.
         // Given a non-null path, returning 1 means keep reporting modules.
@@ -886,6 +884,9 @@ struct dwflpp
 
   void setup(bool kernel, bool debuginfo_needed = true)
   {
+    if (! sess.module_cache)
+      sess.module_cache = new module_cache ();
+
     // XXX: this is where the session -R parameter could come in
     static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
     static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
@@ -919,17 +920,24 @@ struct dwflpp
 	dwfl_report_begin (dwfl);
 
         int (*callback)(const char *name, const char *path);
-        if (sess.consult_symtab && !module_cache.paths_collected)
+        if (sess.consult_symtab && !sess.module_cache->paths_collected)
           {
             callback = pathname_caching_callback;
-            module_cache.paths_collected = true;
+            sess.module_cache->paths_collected = true;
           }
         else
           callback = NULL;
+
+        // XXX: we should not need to set this static variable just
+        // for the callback.  The following elfutils routine should
+        // take some void* parameter to pass context to the callback.
+        this_session = & sess;
 	int rc = dwfl_linux_kernel_report_offline (dwfl,
 						   debug_path,
 						   /* selection predicate */
 						   callback);
+        this_session = 0;
+
 	if (debuginfo_needed)
 	  dwfl_assert (string("missing kernel ") +
                        sess.kernel_release +
@@ -977,10 +985,13 @@ struct dwflpp
                                      Dwarf_Addr addr,
                                      void *param)
   {
-    module_cache_t *cache = static_cast<module_cache_t*>(param);
+    systemtap_session *sess = static_cast<systemtap_session*>(param);
+    module_cache_t *cache = sess->module_cache;
     module_info *mi = NULL;
 
-    if (ignore_vmlinux && name == TOK_KERNEL)
+    assert (cache);
+
+    if (sess->ignore_vmlinux && name == TOK_KERNEL)
       // This wouldn't be called for vmlinux if vmlinux weren't there.
       return DWARF_CB_OK;
 
@@ -998,18 +1009,18 @@ struct dwflpp
 
   void cache_modules_dwarf()
   {
-    if (!module_cache.dwarf_collected)
+    if (!sess.module_cache->dwarf_collected)
       {
         ptrdiff_t off = 0;
         do
           {
             if (pending_interrupts) return;
             off = dwfl_getmodules (dwfl, module_caching_callback,
-                                   & module_cache, off);
+                                   & sess, off);
           }
         while (off > 0);
         dwfl_assert("dwfl_getmodules", off == 0);
-        module_cache.dwarf_collected = true;
+        sess.module_cache->dwarf_collected = true;
       }
   }
 
@@ -1021,7 +1032,7 @@ struct dwflpp
     cache_modules_dwarf();
 
     map<string, module_info*>::iterator i;
-    for (i = module_cache.cache.begin(); i != module_cache.cache.end(); i++)
+    for (i = sess.module_cache->cache.begin(); i != sess.module_cache->cache.end(); i++)
       {
         if (pending_interrupts) return;
         module_info *mi = i->second;
@@ -2178,8 +2189,10 @@ struct dwflpp
   }
 };
 
-module_cache_t dwflpp::module_cache;
-bool dwflpp::ignore_vmlinux = false;
+
+systemtap_session* dwflpp::this_session = 0; // XXX: used only due to elfutils shortcoming
+
+
 
 
 enum
@@ -3724,8 +3737,8 @@ dwflpp::query_modules(dwarf_query *q)
     {
       cache_modules_dwarf();
 
-      map<string, module_info*>::iterator i = module_cache.cache.find(name);
-      if (i != module_cache.cache.end())
+      map<string, module_info*>::iterator i = sess.module_cache->cache.find(name);
+      if (i != sess.module_cache->cache.end())
         {
           module_info *mi = i->second;
           query_module(mi->mod, mi, name.c_str(), mi->addr, q);

@@ -43,6 +43,7 @@ struct embeddedcode;
 struct translator_output;
 struct unparser;
 struct semantic_error;
+struct module_cache;
 
 
 // XXX: a generalized form of this descriptor could be associated with
@@ -163,6 +164,7 @@ struct systemtap_session
   Dwarf_Addr sym_kprobes_text_end;
   Dwarf_Addr sym_stext;
 
+  struct module_cache* module_cache;
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
   unsigned num_errors () { return seen_errors.size(); }
