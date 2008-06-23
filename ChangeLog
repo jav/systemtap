@@ -1,3 +1,11 @@
+2008-06-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	* session.h (module_cache): Add field here.
+	* tapsets.cxx (dwflpp): Remove static field from here.
+	(pathname_caching_callback): Use hacky micro-static to get to it.
+	(*): Update other users of module_cache.
+	* elaborate.cxx (systemtap_session ctor): Corresponding changes.
+
 2008-06-23  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
