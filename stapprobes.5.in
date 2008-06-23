@@ -259,7 +259,9 @@ Finally, the third part is optional if the file name part was given,
 and identifies the line number in the source file preceded by a ":"
 or a "+".  The line number is assumed to be an
 absolute line number if preceded by a ":", or relative to the entry of
-function if preceded by a "+".
+the function if preceded by a "+".  
+All the lines in the function can be matched with ":*".  
+A range of lines x through y can be matched with ":x-y".
 .PP
 As an alternative, PATTERN may be a numeric constant, indicating an
 (module-relative or kernel-_stext-relative) address.  In guru mode

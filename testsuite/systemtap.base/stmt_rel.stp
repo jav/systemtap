@@ -1,13 +1,13 @@
-global stack2, stack2pp, stack2func, stack3, stack3pp, stack3func
+global stack2pp, stack2func, stack3pp, stack3func
 global wildcardpp, wild_count
 
 probe kernel.statement("bio_init@fs/bio.c+2") {
-  stack2 = tokenize(backtrace(), " ")
+  # stack2 = tokenize(backtrace(), " ")
   stack2func = probefunc()
   stack2pp = pp()
 }
 probe kernel.statement("bio_init@fs/bio.c+3") {
-  stack3 = tokenize(backtrace(), " " )
+  # stack3 = tokenize(backtrace(), " " )
   stack3func = probefunc()
   stack3pp = pp()
 }
@@ -46,13 +46,14 @@ probe kernel.statement("bio_put@fs/bio.c:*") {
      printf ("FAIL line number %d %d\n", stack2line, stack3line)
   }
 
+  # This test does not take optimized code into account
   # Was address for bio_init probe +2 < address for bio_init probe +3?
-  if (stack2 < stack3) {
-     printf ("PASS address\n")
-  }
-  else {
-     printf ("FAIL address %s %s\n", stack2, stack3)
-  }
+  # if (stack2 < stack3) {
+  #   printf ("PASS address\n")
+  # }
+  # else {
+  #   printf ("FAIL address %s %s\n", stack2, stack3)
+  # }
   
   # Did wildcard probe hit at least 5 different statements?
   foreach ([i] in wildcardpp) {

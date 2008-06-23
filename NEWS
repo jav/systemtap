@@ -1,5 +1,9 @@
 * What's new in version 0.7
 
+- .statement("func@file:*") and .statement("func@file:M-N") probes are now
+  supported to allow matching a range of lines in a function.  This allows
+  tracing the execution of a function.
+
 - Scripts relying on probe point wildcards like "syscall.*" that expand
   to distinct kprobes are processed significantly faster than before.
 

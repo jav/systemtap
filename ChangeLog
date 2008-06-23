@@ -17,6 +17,9 @@
 
 2008-06-23  Stan Cox  <scox@redhat.com>
 
+	* NEWS: Updated .statement line number wildcard and line number range.
+	* stapprobes.5.in: Likewise.
+	* doc/langref.tex: Likewise.
 	* tapsets.cxx (enum line_t): Add RANGE and WILDCARD.
 	(iterate_over_srcfile_lines): Change lineno parm to lines[].
 	Support RANGE and WILDCARD.
