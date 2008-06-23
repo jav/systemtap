@@ -1,3 +1,8 @@
+2008-06-23  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/stmt_rel.stp: Added test for
+	kernel.statement("Func@File:*")
+
 2008-06-18  Josh Stone  <joshua.i.stone@intel.com>
 
 	* systemtap.base/optim_voidstmt.stp: Add tests for various statement

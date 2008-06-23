@@ -1,4 +1,5 @@
-global stack2, stack2pp, stack2func
+global stack2, stack2pp, stack2func, stack3, stack3pp, stack3func
+global wildcardpp, wild_count
 
 probe kernel.statement("bio_init@fs/bio.c+2") {
   stack2 = tokenize(backtrace(), " ")
@@ -9,6 +10,17 @@ probe kernel.statement("bio_init@fs/bio.c+3") {
   stack3 = tokenize(backtrace(), " " )
   stack3func = probefunc()
   stack3pp = pp()
+}
+
+probe kernel.statement("bio_put@fs/bio.c:*") {
+  line = tokenize(pp(),":")
+  line = tokenize("",":")
+  line = substr(line,0,strlen(line)-2)
+  wildcardpp[strtol(line,10)]++
+
+  if (wild_count++ <= 10) {
+     next
+  }
 
   stack2pp = tokenize(stack2pp,":")
   stack2pp = tokenize("",":")
@@ -18,6 +30,7 @@ probe kernel.statement("bio_init@fs/bio.c+3") {
   stack2line = strtol (substr(stack2pp,0,strlen(stack2pp)-2), 10)
   stack3line = strtol (substr(stack3pp,0,strlen(stack3pp)-2), 10)
 
+  # Did functions for both bio_init probes match?
   if (stack2func == stack3func) {
      printf ("PASS %s\n", stack2func)
   }
@@ -25,6 +38,7 @@ probe kernel.statement("bio_init@fs/bio.c+3") {
      printf ("FAIL %s %s\n", stack2func, stack3func)
   }
 
+  # Was line # for bio_init probe +2 < line # for bio_init probe +3?
   if ((stack2line + 1) == stack3line) {
      printf ("PASS line number\n")
   }
@@ -32,6 +46,7 @@ probe kernel.statement("bio_init@fs/bio.c+3") {
      printf ("FAIL line number %d %d\n", stack2line, stack3line)
   }
 
+  # Was address for bio_init probe +2 < address for bio_init probe +3?
   if (stack2 < stack3) {
      printf ("PASS address\n")
   }
@@ -39,5 +54,17 @@ probe kernel.statement("bio_init@fs/bio.c+3") {
      printf ("FAIL address %s %s\n", stack2, stack3)
   }
   
+  # Did wildcard probe hit at least 5 different statements?
+  foreach ([i] in wildcardpp) {
+     statement_count += 1
+  }
+  if (statement_count >= 5) {
+     printf ("PASS wildcard\n")
+  }
+  else
+  {
+     printf ("FAIL wildcard %d\n", statement_count)
+  }
+
   exit()
 }

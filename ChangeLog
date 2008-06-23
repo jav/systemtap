@@ -1,3 +1,11 @@
+2008-06-23  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (enum line_t): Add RANGE and WILDCARD.
+	(iterate_over_srcfile_lines): Change lineno parm to lines[].
+	Support RANGE and WILDCARD.
+	(dwarf_query): Change line to line[]
+	(dwarf_query::parse_function_spec): Parse RANGE and WILDCARD.
+
 2008-06-20  wcohen  <wcohen@redhat.com>
 
 	* stapfuncs.5.in: Add documentation for tapset/dev.stp functions.

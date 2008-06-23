@@ -608,6 +608,8 @@ dwarf_diename_integrate (Dwarf_Die *die)
   return dwarf_formstring (dwarf_attr_integrate (die, DW_AT_name, &attr_mem));
 }
 
+enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
+
 struct dwflpp
 {
   systemtap_session & sess;
@@ -1135,9 +1137,9 @@ struct dwflpp
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
   void iterate_over_srcfile_lines (char const * srcfile,
-				   int lineno,
+				   int lines[2],
 				   bool need_single_match,
-				   bool line_type_relative,
+				   enum line_t line_type,
 				   void (* callback) (const dwarf_line_t& line,
                                                       void * arg),
 				   void *data)
@@ -1145,10 +1147,11 @@ struct dwflpp
     Dwarf_Line **srcsp = NULL;
     size_t nsrcs = 0;
     dwarf_query * q = static_cast<dwarf_query *>(data);
+    int lineno = lines[0];
 
     get_module_dwarf();
 
-    if (line_type_relative) 
+    if (line_type == RELATIVE) 
       {
 	Dwarf_Addr addr;
 	Dwarf_Line *line;
@@ -1160,95 +1163,95 @@ struct dwflpp
 	dwarf_assert ("dwarf_lineno", dwarf_lineno (line, &line_number));
 	lineno += line_number;
       }
-
-    dwarf_assert ("dwarf_getsrc_file",
-		  dwarf_getsrc_file (module_dwarf,
-				     srcfile, lineno, 0,
-				     &srcsp, &nsrcs));
-
-    // NB: Formerly, we used to filter, because:
-
-    // dwarf_getsrc_file gets one *near hits* for line numbers, not
-    // exact matches.  For example, an existing file but a nonexistent
-    // line number will be rounded up to the next definition in that
-    // file.  This may be similar to the GDB breakpoint algorithm, but
-    // we don't want to be so fuzzy in systemtap land.  So we filter.
-
-    // But we now see the error of our ways, and skip this filtering.
-
-    // XXX: the code also fails to match e.g.  inline function
-    // definitions when the srcfile is a header file rather than the
-    // CU name.
-
-    size_t remaining_nsrcs = nsrcs;
-#if 0
-    for (size_t i = 0; i < nsrcs; ++i)
+    else if (line_type == WILDCARD)
+      function_line (&lineno);
+    
+    for (int l = lineno; ; l = l + 1)
       {
-        int l_no;
-        Dwarf_Line* l = srcsp[i];
-        dwarf_assert ("dwarf_lineno", dwarf_lineno (l, & l_no));
-        if (l_no != lineno)
-          {
-            if (sess.verbose > 3)
-	      clog << "skipping line number mismatch "
-                   << "(" << l_no << " vs " << lineno << ")"
-                   << " in file '" << srcfile << "'"
-                   << "\n";
-            srcsp[i] = 0;
-            remaining_nsrcs --;
-          }
-      }
-#endif
+	dwarf_assert ("dwarf_getsrc_file",
+		      dwarf_getsrc_file (module_dwarf,
+					 srcfile, l, 0,
+					 &srcsp, &nsrcs));
 
-    if (need_single_match && remaining_nsrcs > 1)
-      {
-	// We wanted a single line record (a unique address for the
-	// line) and we got a bunch of line records. We're going to
-	// skip this probe (throw an exception) but before we throw
-	// we're going to look around a bit to see if there's a low or
-	// high line number nearby which *doesn't* have this problem,
-	// so we can give the user some advice.
-
-	int lo_try = -1;
-	int hi_try = -1;
-	for (size_t i = 1; i < 6; ++i)
+	if (line_type == WILDCARD || line_type == RANGE)
 	  {
-	    if (lo_try == -1 && has_single_line_record(q, srcfile, lineno - i))
-	      lo_try = lineno - i;
-
-	    if (hi_try == -1 && has_single_line_record(q, srcfile, lineno + i))
-	      hi_try = lineno + i;
+	    Dwarf_Addr line_addr;
+	    dwarf_lineno (srcsp [0], &lineno);
+	    if (lineno != l)
+	      continue;
+	    dwarf_lineaddr (srcsp [0], &line_addr);
+	    if (dwarf_haspc (function, line_addr) != 1)
+	      break;
 	  }
 
-        stringstream advice;
-        advice << "multiple addresses for " << srcfile << ":" << lineno;
-	if (lo_try > 0 || hi_try > 0)
-          {
-            advice << " (try ";
-            if (lo_try > 0)
-              advice << srcfile << ":" << lo_try;
-            if (lo_try > 0 && hi_try > 0)
-              advice << " or ";
-            if (hi_try > 0)
-              advice << srcfile << ":" << hi_try;
-            advice << ")";
-          }
-        throw semantic_error (advice.str());
-      }
+	// NB: Formerly, we used to filter, because:
 
-    try
-      {
-	for (size_t i = 0; i < nsrcs; ++i)
+	// dwarf_getsrc_file gets one *near hits* for line numbers, not
+	// exact matches.  For example, an existing file but a nonexistent
+	// line number will be rounded up to the next definition in that
+	// file.  This may be similar to the GDB breakpoint algorithm, but
+	// we don't want to be so fuzzy in systemtap land.  So we filter.
+
+	// But we now see the error of our ways, and skip this filtering.
+
+	// XXX: the code also fails to match e.g.  inline function
+	// definitions when the srcfile is a header file rather than the
+	// CU name.
+
+	size_t remaining_nsrcs = nsrcs;
+
+	if (need_single_match && remaining_nsrcs > 1)
 	  {
-            if (pending_interrupts) return;
-            if (srcsp [i]) // skip over mismatched lines
-              callback (dwarf_line_t(srcsp[i]), data);
+	    // We wanted a single line record (a unique address for the
+	    // line) and we got a bunch of line records. We're going to
+	    // skip this probe (throw an exception) but before we throw
+	    // we're going to look around a bit to see if there's a low or
+	    // high line number nearby which *doesn't* have this problem,
+	    // so we can give the user some advice.
+
+	    int lo_try = -1;
+	    int hi_try = -1;
+	    for (size_t i = 1; i < 6; ++i)
+	      {
+		if (lo_try == -1 && has_single_line_record(q, srcfile, lineno - i))
+		  lo_try = lineno - i;
+
+		if (hi_try == -1 && has_single_line_record(q, srcfile, lineno + i))
+		  hi_try = lineno + i;
+	      }
+
+	    stringstream advice;
+	    advice << "multiple addresses for " << srcfile << ":" << lineno;
+	    if (lo_try > 0 || hi_try > 0)
+	      {
+		advice << " (try ";
+		if (lo_try > 0)
+		  advice << srcfile << ":" << lo_try;
+		if (lo_try > 0 && hi_try > 0)
+		  advice << " or ";
+		if (hi_try > 0)
+		  advice << srcfile << ":" << hi_try;
+		advice << ")";
+	      }
+	    throw semantic_error (advice.str());
 	  }
-      }
-    catch (...)
-      {
-	free (srcsp);
-	throw;
+
+	try
+	  {
+	    for (size_t i = 0; i < nsrcs; ++i)
+	      {
+		if (pending_interrupts) return;
+		if (srcsp [i]) // skip over mismatched lines
+		  callback (dwarf_line_t(srcsp[i]), data);
+	      }
+	  }
+	catch (...)
+	  {
+	    free (srcsp);
+	    throw;
+	  }
+	if (line_type != WILDCARD || l == lines[1])
+	  break;
       }
     free (srcsp);
   }
@@ -2338,8 +2341,6 @@ base_query::get_number_param(literal_map_t const & params,
 typedef map<Dwarf_Addr, inline_instance_info> inline_instance_map_t;
 typedef map<Dwarf_Addr, func_info> func_info_map_t;
 
-enum line_t { ABSOLUTE, RELATIVE };
-
 struct dwarf_query : public base_query
 {
   dwarf_query(systemtap_session & sess,
@@ -2407,7 +2408,7 @@ struct dwarf_query : public base_query
   string function;
   string file;
   line_t line_type;
-  int line;
+  int line[2];
   bool query_done;	// Found exact match
 
   set<char const *> filtered_srcfiles;
@@ -2873,7 +2874,8 @@ dwarf_query::parse_function_spec(string & spec)
 
   function.clear();
   file.clear();
-  line = 0;
+  line[0] = 0;
+  line[1] = 0;
 
   while (i != e && *i != '@')
     {
@@ -2897,7 +2899,12 @@ dwarf_query::parse_function_spec(string & spec)
   while (i != e && *i != ':' && *i != '+')
     file += *i++;
   if (*i == ':') 
-    line_type = ABSOLUTE;
+    {
+      if (*(i + 1) == '*')
+	line_type = WILDCARD;
+      else
+	line_type = ABSOLUTE;
+    }
   else if (*i == '+')
     line_type = RELATIVE;
 
@@ -2916,7 +2923,22 @@ dwarf_query::parse_function_spec(string & spec)
 
   try
     {
-      line = lex_cast<int>(string(i, e));
+      if (line_type != WILDCARD)
+	{
+	  string::const_iterator dash = i;
+	  
+	  while (dash != e && *dash != '-')
+	    dash++;
+	  if (dash == e)
+	    line[0] = line[1] = lex_cast<int>(string(i, e));
+	  else
+	    {
+	      line_type = RANGE;
+	      line[0] = lex_cast<int>(string(i, dash));
+	      line[1] = lex_cast<int>(string(dash + 1, e));
+	    }
+	}
+      
       if (sess.verbose>2)
 	clog << "parsed '" << spec
 	     << "' -> func '"<< function
@@ -3308,7 +3330,7 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
 	    query_statement (i->second.name, i->second.decl_file,
-			     q->line, &(i->second.die), addr, q);
+			     q->line[0], &(i->second.die), addr, q);
 	  else
 	    query_inline_instance_info (i->first, i->second, q);
 	}

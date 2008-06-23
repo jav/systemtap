@@ -4,6 +4,7 @@ set test "stmt_rel"
 set ::result_string {PASS bio_init
 PASS line number
 PASS address
+PASS wildcard
 }
 
 stap_run2 $srcdir/$subdir/$test.stp
