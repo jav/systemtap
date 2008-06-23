@@ -24,7 +24,7 @@ static struct hlist_head __stp_tf_vma_table[__STP_TF_TABLE_SIZE];
 static inline u32
 __stp_tf_vma_hash(struct task_struct *tsk, unsigned long addr)
 {
-#if (__SIZEOF_LONG__ == 8)
+#ifdef CONFIG_64BIT
     return (jhash_3words(tsk->pid, (u32)addr, (u32)(addr >> 32), 0)
 	    & (__STP_TF_TABLE_SIZE - 1));
 #else

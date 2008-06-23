@@ -84,7 +84,13 @@ __stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
 		regs->ax = (long) (int) regs->ax;
 # endif
 #endif
+#if defined(STAPCONF_X86_UNIREGS)
 	return &regs->ax;
+#elif defined(__x86_64__)
+	return &regs->rax;
+#elif defined (__i386__)
+	return &regs->eax;
+#endif
 }
 #endif
 
@@ -93,34 +99,56 @@ static inline long *
 __stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 		       unsigned int n)
 {
-#if defined(CONFIG_X86_32)
+#if defined(__i386__)
 	if (n > 5) {
 		_stp_error("syscall arg > 5");
 		return NULL;
 	}
+#if defined(STAPCONF_X86_UNIREGS)
 	return &regs->bx + n;
-#elif defined(CONFIG_X86_64)
+#else
+	return &regs->ebx + n;
+#endif
+#elif defined(__x86_64__)
 #ifdef CONFIG_IA32_EMULATION
 	if (test_tsk_thread_flag(task, TIF_IA32))
 		switch (n) {
+#if defined(STAPCONF_X86_UNIREGS)
 		case 0: return &regs->bx;
 		case 1: return &regs->cx;
 		case 2: return &regs->dx;
 		case 3: return &regs->si;
 		case 4: return &regs->di;
 		case 5: return &regs->bp;
+#else
+		case 0: return &regs->rbx;
+		case 1: return &regs->rcx;
+		case 2: return &regs->rdx;
+		case 3: return &regs->rsi;
+		case 4: return &regs->rdi;
+		case 5: return &regs->rbp;
+#endif
 		default: 
 			_stp_error("syscall arg > 5");
 			return NULL;
 		}
 #endif /* CONFIG_IA32_EMULATION */
 	switch (n) {
+#if defined(STAPCONF_X86_UNIREGS)
 	case 0: return &regs->di;
 	case 1: return &regs->si;
 	case 2: return &regs->dx;
 	case 3: return &regs->r10;
 	case 4: return &regs->r8;
 	case 5: return &regs->r9;
+#else
+	case 0: return &regs->rdi;
+	case 1: return &regs->rsi;
+	case 2: return &regs->rdx;
+	case 3: return &regs->r10;
+	case 4: return &regs->r8;
+	case 5: return &regs->r9;
+#endif
 	default: 
 		_stp_error("syscall arg > 5");
 		return NULL;

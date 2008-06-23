@@ -1,5 +1,10 @@
 2008-06-23  David Smith  <dsmith@redhat.com>
 
+	* task_finder_vma.c (__stp_tf_vma_hash): Improved determination of
+	whether this is a 64-bit platform.
+	* syscall.h: Handles kernels with older style register
+	definitions.
+
 	* task_finder.c (__stp_tf_vm_cb): New function.
 	(stap_register_task_finder_target): Sets up syscall entry and
 	syscall exit handlers.
