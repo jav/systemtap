@@ -14,6 +14,7 @@
 #include "session.h"
 #include "tapsets.h"
 #include "util.h"
+#include "dwarf_wrappers.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -4325,36 +4326,50 @@ c_unparser::visit_hist_op (hist_op*)
 }
 
 
-static map< Dwarf_Addr, string>  addrmap;
 
-#include <string.h>
-
-static int 
-kernel_filter (const char *module, const char *file __attribute__((unused)))
+struct unwindsym_dump_context
 {
-  return !strcmp(module,"kernel");
-}
+  systemtap_session& session;
+  ostream& output;
+};
+
 
 static int
-get_symbols (Dwfl_Module *m,
-	     void **userdata __attribute__ ((unused)),
-	     const char *name __attribute__ ((unused)),
-	     Dwarf_Addr base __attribute__ ((unused)),
-	     void *arg __attribute__ ((unused)))
+dump_unwindsyms (Dwfl_Module *m,
+                 void **userdata __attribute__ ((unused)),
+                 const char *name,
+                 Dwarf_Addr base,
+                 void *arg)
 {
+  unwindsym_dump_context* c = (unwindsym_dump_context*) arg;
+  assert (c);
+
+  string modname = name;
+
+  // skip modules/files we're not actually interested in
+  if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
+    return DWARF_CB_OK;
+
+  if (c->session.verbose > 1)
+    clog << "dump_unwindsyms " << name << " base=0x" << hex << base << dec << endl;
+
+  // We want to extract several bits of information:
+  // - parts of the program-header that map the file's physical offsets to the text section
+  // - symbol table of the text section
+  // - the contents .debug_frame section
+  // In the future, we'll also care about data symbols.
+
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
   for (int i = 1; i < syments; ++i)
     {
       GElf_Sym sym;
       const char *name = dwfl_module_getsym(m, i, &sym, NULL);
-      if (name) {
-	if (GELF_ST_TYPE (sym.st_info) == STT_FUNC ||
-	    strcmp(name, "_etext") == 0 || 
-	    strcmp(name, "_stext") == 0 || 
-	    strcmp(name, "modules_op") == 0)
-	  addrmap[sym.st_value] = name; 
-      }
+      if (name)
+        { 
+          if (GELF_ST_TYPE (sym.st_info) == STT_FUNC)
+            ; // addrmap[sym.st_value] = name; 
+        }
     }
   return DWARF_CB_OK;
 }
@@ -4363,26 +4378,23 @@ get_symbols (Dwfl_Module *m,
 void
 emit_symbol_data (systemtap_session& s)
 {
-  ofstream kallsyms_out ((s.tmpdir + "/stap-symbols.h").c_str());
-  s.op->newline() << "\n\n#include \"stap-symbols.h\"";
+  string symfile = "stap-symbols.h";
+  ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  if (s.verbose > 1)
-    {
-      std::set<std::string>::iterator it = s.unwindsym_modules.begin();
-      clog << "unwindsym modules: ";
-      while (it != s.unwindsym_modules.end())
-        {
-          clog << *(it++) << " ";
-        }
-      clog << endl;
-    }
+  unwindsym_dump_context ctx = { s, kallsyms_out };
 
-  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug";
+  s.op->newline() << "\n\n#include \"" << symfile << "\"";
+
+  // XXX: copied from tapsets.cxx, sadly
+  static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
   
   static char *debuginfo_path = (debuginfo_env_arr ?
-				 debuginfo_env_arr : debuginfo_path_arr);
-  
+                                 debuginfo_env_arr : debuginfo_path_arr);
+  static const  char *debug_path = (debuginfo_env_arr ?
+                                    debuginfo_env_arr : s.kernel_release.c_str());
+
+  // ---- step 1: process any kernel modules listed
   static const Dwfl_Callbacks kernel_callbacks =
     {
       dwfl_linux_kernel_find_elf,
@@ -4395,27 +4407,55 @@ emit_symbol_data (systemtap_session& s)
   if (!dwfl)
     throw semantic_error ("cannot open dwfl");
   dwfl_report_begin (dwfl);
-  
-  int rc = dwfl_linux_kernel_report_offline (dwfl,
-                                             s.kernel_release.c_str(),
-                                             kernel_filter);
+  int rc = dwfl_linux_kernel_report_offline (dwfl, debug_path, NULL /* XXX: filtering callback */);
   dwfl_report_end (dwfl, NULL, NULL);
-  if (rc < 0)
-    throw semantic_error ("dwfl rc");
-  
-  dwfl_getmodules (dwfl, &get_symbols, NULL, 0);      
+  dwfl_assert ("dwfl_linux_kernel_report_offline", rc);
+  ptrdiff_t off = 0;
+  do
+    {
+      if (pending_interrupts) return;
+      off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+    }
+  while (off > 0);
+  dwfl_assert("dwfl_getmodules", off == 0);
   dwfl_end(dwfl);
-  
-  int i = 0;
-  map< Dwarf_Addr, string>::iterator pos;
-  kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
-  for (pos = addrmap.begin(); pos != addrmap.end(); pos++) {
-    kallsyms_out << "  { 0x" << hex << pos->first << ", " << "\"" << pos->second << "\" },\n";
-    i++;
-  }
-  
-  kallsyms_out << "};\n";
-  kallsyms_out << "unsigned _stp_num_kernel_symbols = " << dec << i << ";\n";
+
+
+  // ---- step 2: process any user modules (files) listed
+  static const Dwfl_Callbacks user_callbacks =
+    {
+      NULL, /* dwfl_linux_kernel_find_elf, */
+      dwfl_standard_find_debuginfo,
+      dwfl_offline_section_address,
+      & debuginfo_path
+    };
+
+  for (std::set<std::string>::iterator it = s.unwindsym_modules.begin();
+       it != s.unwindsym_modules.end();
+       it++)
+    {
+      string modname = *it;
+      assert (modname.length() != 0);
+      if (modname[0] != '/') continue; // user-space files must be full paths
+
+      Dwfl *dwfl = dwfl_begin (&user_callbacks);
+      if (!dwfl)
+        throw semantic_error ("cannot create dwfl for " + modname);
+
+      dwfl_report_begin (dwfl);
+      Dwfl_Module* mod = dwfl_report_offline (dwfl, modname.c_str(), modname.c_str(), -1);
+      dwfl_report_end (dwfl, NULL, NULL);
+      dwfl_assert ("dwfl_report_offline", mod);
+      ptrdiff_t off = 0;
+      do
+        {
+          if (pending_interrupts) return;
+          off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+        }
+      while (off > 0);
+      dwfl_assert("dwfl_getmodules", off == 0);
+      dwfl_end(dwfl);
+    }
 }
 
 
