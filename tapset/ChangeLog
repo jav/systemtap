@@ -1,3 +1,7 @@
+2008-06-23  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls.stp: Add sys_mknodat.
+
 2008-06-20  wcohen  <wcohen@redhat.com>
 
 	* dev.stp: New.

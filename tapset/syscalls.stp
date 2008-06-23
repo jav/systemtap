@@ -2437,6 +2437,27 @@ probe syscall.mknod.return = kernel.function("sys_mknod").return {
 	retstr = returnstr(1)
 }
 
+# mknodat ____________________________________________________
+# new function with 2.6.16
+# long sys_mknodat(int dfd, const char __user *filename,
+#	int mode, unsigned dev)
+probe syscall.mknodat = kernel.function("sys_mknodat") ? {
+	name = "mknodat"
+	dfd = $dfd
+	dfd_str = _dfd_str($dfd)
+	filename = $filename
+	filename_str = user_string($filename)
+	mode = $mode
+	mode_str = _mknod_mode_str($mode)
+	dev = $dev
+	argstr = sprintf("%s, %s, %s, %p",
+		dfd_str, user_string_quoted($filename), mode_str, $dev)
+}
+probe syscall.mknodat.return = kernel.function("sys_mknodat").return ? {
+	name = "mknodat"
+	retstr = returnstr(1)
+}
+
 # mlock ______________________________________________________
 #
 # long sys_mlock(unsigned long start, size_t len)
