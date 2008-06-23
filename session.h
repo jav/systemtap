@@ -165,8 +165,8 @@ struct systemtap_session
   Dwarf_Addr sym_stext;
 
   // List of libdwfl module names to extract symbol/unwind data for.
-  struct module_cache* module_cache;
   std::set<std::string> unwindsym_modules;
+  struct module_cache* module_cache;
 
   std::set<std::string> seen_errors;
   std::set<std::string> seen_warnings;
