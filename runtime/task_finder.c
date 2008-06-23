@@ -586,7 +586,8 @@ __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
 					rc = tgt->vm_callback(tsk, 1, mmpath,
 							      vma->vm_start,
 							      vma->vm_end,
-							      vma->vm_pgoff);
+							      (vma->vm_pgoff
+							       << PAGE_SHIFT));
 					if (rc != 0) {
 					    _stp_error("vm callback for %d failed: %d",
 						       (int)tsk->pid, rc);
@@ -709,7 +710,8 @@ __stp_target_call_vm_callback(struct stap_task_finder_target *tgt,
 	}
 	else {
 		rc = tgt->vm_callback(tsk, 1, mmpath, vma->vm_start,
-				      vma->vm_end, vma->vm_pgoff);
+				      vma->vm_end,
+				      (vma->vm_pgoff << PAGE_SHIFT));
 		if (rc != 0) {
 			_stp_error("vm callback for %d failed: %d",
 				   (int)tsk->pid, rc);
@@ -819,7 +821,8 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 				rc = tgt->vm_callback(tsk, 0, NULL,
 						      entry->vm_start,
 						      entry->vm_end,
-						      entry->vm_pgoff);
+						      (entry->vm_pgoff
+						       << PAGE_SHIFT));
 				if (rc != 0) {
 					_stp_error("vm callback for %d failed: %d",
 						   (int)tsk->pid, rc);
@@ -852,7 +855,8 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 				rc = tgt->vm_callback(tsk, 0, NULL,
 						      entry->vm_start,
 						      entry->vm_end,
-						      entry->vm_pgoff);
+						      (entry->vm_pgoff
+						       << PAGE_SHIFT));
 				if (rc != 0) {
 					_stp_error("vm callback for %d failed: %d",
 						   (int)tsk->pid, rc);
