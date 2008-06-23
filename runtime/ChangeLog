@@ -1,3 +1,7 @@
+2008-06-23  David Smith  <dsmith@redhat.com>
+
+	* regs.h: Removed trailing semicolons from macro definitions.
+
 2008-06-17  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_attach_match_filename): Uses new

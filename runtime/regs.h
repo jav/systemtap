@@ -14,7 +14,7 @@
 #if defined  (STAPCONF_X86_UNIREGS) && (defined (__x86_64__) || defined (__i386__))
 #define REG_IP(regs) regs->ip
 #define REG_SP(regs) regs->sp
-#define REG_FP(regs) regs->bp;
+#define REG_FP(regs) regs->bp
 
 #elif defined  (__x86_64__)
 
@@ -25,7 +25,7 @@
 
 #define REG_IP(regs) regs->eip
 #define REG_SP(regs) regs->esp
-#define REG_FP(regs) regs->ebp;
+#define REG_FP(regs) regs->ebp
 
 #elif defined (__ia64__)
 #define REG_IP(regs)    ((regs)->cr_iip +ia64_psr(regs)->ri)
