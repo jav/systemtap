@@ -15,6 +15,7 @@
 #include "session.h"
 #include "util.h"
 #include "dwarf_wrappers.h"
+#include "auto_free.h"
 
 #include <cstdlib>
 #include <algorithm>
@@ -488,6 +489,27 @@ func_info
   Dwarf_Addr addr;
   Dwarf_Addr prologue_end;
   bool weak;
+  // Comparison functor for list of functions sorted by address. The
+  // two versions that take a Dwarf_Addr let us use the STL algorithms
+  // upper_bound, equal_range et al., but we don't know whether the
+  // searched-for value will be passed as the first or the second
+  // argument.
+  struct Compare
+  {
+    bool operator() (const func_info* f1, const func_info* f2) const
+    {
+      return f1->addr < f2->addr;
+    }
+    // For doing lookups by address.
+    bool operator() (Dwarf_Addr addr, const func_info* f2) const
+    {
+      return addr < f2->addr;
+    }
+    bool operator() (const func_info* f1, Dwarf_Addr addr) const
+    {
+      return f1->addr < addr;
+    }
+  };
 };
 
 struct
@@ -566,12 +588,16 @@ symbol_table
   module_info *mod_info;	// associated module
   map<string, func_info*> map_by_name;
   vector<func_info*> list_by_addr;
+  typedef vector<func_info*>::iterator iterator_t;
+  typedef pair<iterator_t, iterator_t> range_t;
 #ifdef __powerpc__
   GElf_Word opd_section;
 #endif
-
+  // add_symbol doesn't leave symbol table in order; call
+  // symbol_table::sort() when done adding symbols.
   void add_symbol(const char *name, bool weak, Dwarf_Addr addr,
                                                Dwarf_Addr *high_addr);
+  void sort();
   enum info_status read_symbols(FILE *f, const string& path);
   enum info_status read_from_elf_file(const string& path);
   enum info_status read_from_text_file(const string& path);
@@ -583,7 +609,6 @@ symbol_table
   func_info *lookup_symbol(const string& name);
   Dwarf_Addr lookup_symbol_address(const string& name);
   func_info *get_func_containing_address(Dwarf_Addr addr);
-  int get_index_for_address(Dwarf_Addr addr);
 
   symbol_table(module_info *mi) : mod_info(mi) {}
   ~symbol_table();
@@ -1183,7 +1208,7 @@ struct dwflpp
 		      dwarf_getsrc_file (module_dwarf,
 					 srcfile, l, 0,
 					 &srcsp, &nsrcs));
-
+        auto_free srcsp_af(srcsp);
 	if (line_type == WILDCARD || line_type == RANGE)
 	  {
 	    Dwarf_Addr line_addr;
@@ -1247,24 +1272,15 @@ struct dwflpp
 	    throw semantic_error (advice.str());
 	  }
 
-	try
-	  {
-	    for (size_t i = 0; i < nsrcs; ++i)
-	      {
-		if (pending_interrupts) return;
-		if (srcsp [i]) // skip over mismatched lines
-		  callback (dwarf_line_t(srcsp[i]), data);
-	      }
-	  }
-	catch (...)
-	  {
-	    free (srcsp);
-	    throw;
-	  }
-	if (line_type != WILDCARD || l == lines[1])
-	  break;
+        for (size_t i = 0; i < nsrcs; ++i)
+          {
+            if (pending_interrupts) return;
+            if (srcsp [i]) // skip over mismatched lines
+              callback (dwarf_line_t(srcsp[i]), data);
+          }
+        if (line_type != WILDCARD || l == lines[1])
+          break;
       }
-    free (srcsp);
   }
 
 
@@ -2695,12 +2711,12 @@ dwarf_query::query_module_symtab()
                    << endl;
               return;
             }
-
-          size_t i;
-          size_t nsyms = sym_table->list_by_addr.size();
-          for (i = 0; i < nsyms; i++)
+          symbol_table::iterator_t iter;
+          for (iter = sym_table->list_by_addr.begin();
+               iter != sym_table->list_by_addr.end();
+               ++iter)
             {
-              fi = sym_table->list_by_addr.at(i);
+              fi = *iter;
               if (!null_die(&fi->die))
                 continue;       // already handled in query_module_dwarf()
               if (dw.function_name_matches_pattern(fi->name, function_str_val))
@@ -4741,14 +4757,8 @@ dwarf_builder::build(systemtap_session & sess,
 
 symbol_table::~symbol_table()
 {
-  // map::clear() and vector::clear() don't call destructors for
-  // pointers, only for objects.
-  int i;
-  int nsym = (int) list_by_addr.size();
-  for (i = 0; i < nsym; i++)
-    delete list_by_addr.at(i);
-  list_by_addr.clear();
-  map_by_name.clear();
+  for (iterator_t i = list_by_addr.begin(); i != list_by_addr.end(); ++i)
+    delete *i;
 }
 
 void
@@ -4767,18 +4777,7 @@ symbol_table::add_symbol(const char *name, bool weak, Dwarf_Addr addr,
   map_by_name[fi->name] = fi;
   // TODO: Use a multimap in case there are multiple static
   // functions with the same name?
-  if (addr >= *high_addr)
-    {
-      list_by_addr.push_back(fi);
-      *high_addr = addr;
-    }
-  else
-    {
-      // Symbols aren't in numerical order.  FWIW, sort(1) doesn't
-      // handle hex numbers without the leading 0x.
-      int index = get_index_for_address(fi->addr);
-      list_by_addr.insert(list_by_addr.begin()+(index+1), fi);
-    }
+  list_by_addr.push_back(fi);
 }
 
 enum info_status
@@ -4786,7 +4785,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
 {
   // Based on do_kernel_symbols() in runtime/staprun/symbols.c
   int ret;
-  char *name, *mod;
+  char *name = 0;
+  char *mod = 0;
   char type;
   unsigned long long addr;
   Dwarf_Addr high_addr = 0;
@@ -4795,6 +4795,8 @@ symbol_table::read_symbols(FILE *f, const string& path)
   // %as (non-POSIX) mallocs space for the string and stores its address.
   while ((ret = fscanf(f, "%llx %c %as [%as", &addr, &type, &name, &mod)) > 0)
     {
+      auto_free free_name(name);
+      auto_free free_mod(mod);
       line++;
       if (ret < 3)
         {
@@ -4806,26 +4808,23 @@ symbol_table::read_symbols(FILE *f, const string& path)
           // Caller should delete symbol_table object.
           return info_absent;
         }
-      if (ret > 3)
+      else if (ret > 3)
         {
           // Modules are loaded above the kernel, so if we're getting
           // modules, we're done.
-          free(name);
-          free(mod);
-          goto done;
+          break;
         }
       if (type == 'T' || type == 't' || type == 'W')
         add_symbol(name, (type == 'W'), (Dwarf_Addr) addr, &high_addr);
-      free(name);
     }
 
-done:
   if (list_by_addr.size() < 1)
     {
       cerr << "Symbol table error: "
            << path << " contains no function symbols." << endl;
       return info_absent;
     }
+  sort();
   return info_present;
 }
 
@@ -4937,6 +4936,7 @@ symbol_table::get_from_elf()
         add_symbol(name, (GELF_ST_BIND(sym.st_info) == STB_WEAK),
                                               sym.st_value, &high_addr);
     }
+  sort();
   return info_present;
 }
 
@@ -4978,35 +4978,12 @@ symbol_table::mark_dwarf_redundancies(dwflpp *dw)
 func_info *
 symbol_table::get_func_containing_address(Dwarf_Addr addr)
 {
-  int index = get_index_for_address(addr);
-  if (index < 0)
+  iterator_t iter = upper_bound(list_by_addr.begin(), list_by_addr.end(), addr,
+                              func_info::Compare());
+  if (iter == list_by_addr.begin())
     return NULL;
-  return list_by_addr.at(index);
-}
-
-// Find the index in list_by_addr of the last element whose address
-// is <= addr.  Returns -1 if addr is less than the first address in
-// list_by_addr.
-int
-symbol_table::get_index_for_address(Dwarf_Addr addr)
-{
-  // binary search from runtime/sym.c
-  int begin = 0;
-  int mid;
-  int end = list_by_addr.size();
-
-  if (end == 0 || addr < list_by_addr.at(0)->addr)
-    return -1;
-  do
-    {
-    mid = (begin + end) / 2;
-    if (addr < list_by_addr.at(mid)->addr)
-      end = mid;
-    else
-      begin = mid;
-    }
-  while (begin + 1 < end);
-  return begin;
+  else
+    return *(iter - 1);
 }
 
 func_info *
@@ -5041,17 +5018,30 @@ symbol_table::purge_syscall_stubs()
   Dwarf_Addr stub_addr = lookup_symbol_address("sys_ni_syscall");
   if (stub_addr == 0)
     return;
-  for (size_t i = 0; i < list_by_addr.size(); i++)
+  range_t purge_range = equal_range(list_by_addr.begin(), list_by_addr.end(),
+                                    stub_addr, func_info::Compare());
+  for (iterator_t iter = purge_range.first;
+       iter != purge_range.second;
+       ++iter)
     {
-      func_info *fi = list_by_addr.at(i);
-      if (fi->weak && fi->addr == stub_addr && fi->name != "sys_ni_syscall")
+      func_info *fi = *iter;
+      if (fi->weak && fi->name != "sys_ni_syscall")
         {
-	  list_by_addr.erase(list_by_addr.begin()+i);
-	  map_by_name.erase(fi->name);
-	  delete fi;
-	  i--;
-	}
+          map_by_name.erase(fi->name);
+          delete fi;
+          *iter = 0;
+        }
     }
+  // Range might have null pointer entries that should be erased.
+  list_by_addr.erase(remove(purge_range.first, purge_range.second,
+                            (func_info*)0),
+                     purge_range.second);
+}
+
+void
+symbol_table::sort()
+{
+  stable_sort(list_by_addr.begin(), list_by_addr.end(), func_info::Compare());
 }
 
 void

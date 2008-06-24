@@ -1,3 +1,22 @@
+2008-06-24  Tim Moore  <timoore@redhat.com>
+
+	* auto_free.h: New file.
+	* tapsets.cxx (iterate_over_srcfile_lines, read_symbols): Use
+	auto_free instead of explicit calls to ::free().
+	(Compare): Class for comparing func_info objects and their
+	addresses.
+	(get_index_for_address): Remove.
+	(symbol_table::sort): new function.
+	(query_module_symtab): Iterate over list_by_addr using iterator
+	instead of index.
+	(~symbol_table): Don't bother clearing list_by_addr and
+	map_by_name.
+	(add_symbol): Don't keep list_by_addr in order.
+	(read_symbols, get_from_elf): Sort symbols after all are read.
+	(get_func_containing_address): Use std::upper_bound.
+	(purge_syscall_stubs): Don't iterate over whole list_by_addr
+	vector; use std::equal_range to look for possible stub addresses.
+
 2008-06-23  Frank Ch. Eigler  <fche@elastic.org>
 
 	* session.h (module_cache): Add field here.
