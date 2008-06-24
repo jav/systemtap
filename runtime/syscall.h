@@ -49,6 +49,13 @@
 # endif
 #endif
 
+#if defined(__powerpc__)
+#define MMAP_SYSCALL_NO(tsk)		90
+#define MPROTECT_SYSCALL_NO(tsk)	125
+#define MUNMAP_SYSCALL_NO(tsk)		91
+#define MREMAP_SYSCALL_NO(tsk)		163
+#endif
+ 
 #if !defined(MMAP_SYSCALL_NO) || !defined(MPROTECT_SYSCALL_NO) \
 	|| !defined(MUNMAP_SYSCALL_NO) || !defined(MREMAP_SYSCALL_NO)
 #error "Unimplemented architecture"
@@ -59,12 +66,20 @@ static inline unsigned long
 __stp_user_syscall_nr(struct pt_regs *regs)
 {
 #if defined(STAPCONF_X86_UNIREGS)
-    return regs->orig_ax;
+	return regs->orig_ax;
 #elif defined(__x86_64__)
-    return regs->orig_rax;
+	return regs->orig_rax;
 #elif defined (__i386__)
-    return regs->orig_eax;
+	return regs->orig_eax;
 #endif
+}
+#endif
+
+#if defined(__powerpc__)
+static inline unsigned long
+__stp_user_syscall_nr(struct pt_regs *regs)
+{
+	return regs->gpr[0];
 }
 #endif
 
@@ -92,6 +107,14 @@ __stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
 	return &regs->eax;
 #endif
 }
+#endif
+
+#if defined(__powerpc__)
+static inline long *
+__stp_user_syscall_return_value(struct task_struct *task, struct pt_regs *regs)
+{
+	return &regs->gpr[3];
+} 
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
@@ -154,6 +177,25 @@ __stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
 		return NULL;
 	}
 #endif /* CONFIG_X86_32 */
+}
+#endif
+
+#if defined(__powerpc__)
+static inline long *
+__stp_user_syscall_arg(struct task_struct *task, struct pt_regs *regs,
+		       unsigned int n)
+{
+	switch (n) {
+	case 0: return &regs->gpr[3];
+	case 1: return &regs->gpr[4];
+	case 2: return &regs->gpr[5];
+	case 3: return &regs->gpr[6];
+	case 4: return &regs->gpr[7];
+	case 5: return &regs->gpr[8];
+	default:
+		_stp_error("syscall arg > 5");
+		return NULL;
+	}
 }
 #endif
 

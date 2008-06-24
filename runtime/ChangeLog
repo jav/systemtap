@@ -1,3 +1,8 @@
+2008-06-24  David Smith  <dsmith@redhat.com>
+
+	From: Srinivasa DS <srinivasa@in.ibm.com>
+	* syscall.h: Added powerpc support.
+
 2008-06-23  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_utrace_task_finder_target_quiesce): Fixed
