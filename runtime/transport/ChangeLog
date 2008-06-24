@@ -1,3 +1,8 @@
+
+2008-06-23  Wenji Huang  <wenji.huang@oracle.com>
+	PR 6646
+        * symbols.c (_stp_validate_addr): Add validating address in runtime.
+
 2008-06-13  Wenji Huang  <wenji.huang@oracle.com>
         * control.c (_stp_ctl_write_dbug): Remove STP_UNWIND support.
 
