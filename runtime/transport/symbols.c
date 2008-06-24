@@ -224,13 +224,6 @@ static int _stp_init_kernel_symbols(void)
 	  return -1;
 	}
 
-	#ifdef __powerpc__
-	if (_stp_validate_addr(".__start", (unsigned long)_stp_modules[0]->text))
-	#else 
-	if (_stp_validate_addr("_stext", (unsigned long)_stp_modules[0]->text))
-	#endif
-	  return -1;
-
 	_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
 	if (_stp_modules[0]->data == 0) {
 	  _dbug("Lookup of _etext failed. Exiting.\n");
