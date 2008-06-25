@@ -176,24 +176,6 @@ static void _stp_free_modules(void)
 		_stp_del_module(_stp_modules[i]);
 }
 
-/* validate the addr in runtime kernel*/
-static int _stp_validate_addr(char *name, unsigned long addr)
-{
-
-	char addr_str[KSYM_SYMBOL_LEN];
-	size_t len;
-
-	sprint_symbol(addr_str, addr);
-	len = strlen(name);
-	if (strlen(addr_str) < len+1
-		|| strncmp(addr_str, name, len) 
-		|| addr_str[len]!='+') {
-          errk("Incorrect mapping 0x%lx vs %s.\n", addr, name);
-          return 1;
-        }
-        return 0;
-}
-
 static unsigned long _stp_kallsyms_lookup_name(const char *name);
 static void _stp_create_unwind_hdr(struct _stp_module *m);
 
@@ -229,8 +211,6 @@ static int _stp_init_kernel_symbols(void)
 	  _dbug("Lookup of _etext failed. Exiting.\n");
 	  return -1;
 	}
-	if (_stp_validate_addr("_etext", (unsigned long)_stp_modules[0]->data))
-	  return -1;
 
 	_stp_modules[0]->text_size = _stp_modules[0]->data - _stp_modules[0]->text;
 	_stp_modules_by_addr[0] = _stp_modules[0];
@@ -636,9 +616,6 @@ static int _stp_init_modules(void)
 	  _dbug("Lookup of modules_op failed.\n");
 	  return -1;
 	}
-
-	if (_stp_validate_addr("modules_op", (unsigned long)modules_op))
-	  return -1;
 
 	/* Use the seq_file interface to safely get a list of installed modules */
 	res = modules_op->start(NULL, &pos);

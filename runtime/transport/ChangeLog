@@ -1,4 +1,9 @@
 
+
+2008-06-23  Wenji Huang  <wenji.huang@oracle.com>
+	PR 6646
+        * symbols.c (_stp_validate_addr): Revert the previous code.
+
 2008-06-23  Wenji Huang  <wenji.huang@oracle.com>
 	PR 6646
         * symbols.c (_stp_validate_addr): Add validating address in runtime.
