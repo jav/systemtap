@@ -1,3 +1,9 @@
+2008-06-24  Frank Ch. Eigler  <fche@elastic.org>
+
+	rhbz 451707
+	* systemtap.stress/conversions.exp: Reorder value overrides
+	so $test name conveys correct tested value.
+
 2008-06-23  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/stmt_rel.stp: Added test for

@@ -1,12 +1,12 @@
 
 set file $srcdir/$subdir/conversions.stp
 foreach value {0 0xffffffff 0xffffffffffffffff} {
-    set test "conversions.stp $value"
-    if {![installtest_p]} { untested $test; continue }
     # PR 4121: address 0 is valid on s390x
     if {[istarget s390x-*-*] && $value == 0} { set value 0x7777777777 }
     # PR 4540: ia64 thinks 0xffffffffffffffff okay for character accesses
     if {[istarget ia64-*-*] && $value == 0xffffffffffffffff } { set value 0xafffffffffffffff }
+    set test "conversions.stp $value"
+    if {![installtest_p]} { untested $test; continue }
     spawn stap -DMAXERRORS=40 $file $value
     set errs 0
     verbose -log "exp $test $errs"
