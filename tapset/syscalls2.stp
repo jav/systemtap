@@ -833,6 +833,29 @@ probe syscall.rename.return = kernel.function("sys_rename").return {
 	retstr = returnstr(1)
 }
 
+# renameat ___________________________________________________
+# new function with 2.6.16
+# long sys_renameat(int olddfd, const char __user *oldname,
+#	int newdfd, const char __user *newname)
+probe syscall.renameat = kernel.function("sys_renameat") ? {
+	name = "renameat"
+	olddfd = $olddfd
+	olddfd_str = _dfd_str($olddfd)
+	oldname = $oldname
+	oldname_str = user_string($oldname)
+	newdfd = $newdfd
+	newdfd_str = _dfd_str($newdfd)
+	newname = $newname
+	newname_str = user_string($newname)
+	argstr = sprintf("%s, %s, %s, %s",
+		olddfd_str, user_string_quoted($oldname),
+		newdfd_str, user_string_quoted($newname))
+}
+probe syscall.renameat.return = kernel.function("sys_renameat").return ? {
+	name = "renameat"
+	retstr = returnstr(1)
+}
+
 # request_key ________________________________________________
 #
 # long sys_request_key(const char __user *_type,
