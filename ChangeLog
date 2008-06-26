@@ -1,3 +1,7 @@
+2008-06-25  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (iterate_over_srcfile_lines): Only probe a line once.
+
 2008-06-24  Tim Moore  <timoore@redhat.com>
 
 	* auto_free.h: New file.

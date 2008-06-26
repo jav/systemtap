@@ -1204,6 +1204,8 @@ struct dwflpp
     
     for (int l = lineno; ; l = l + 1)
       {
+	set<int> lines_probed;
+	pair<set<int>::iterator,bool> line_probed;
 	dwarf_assert ("dwarf_getsrc_file",
 		      dwarf_getsrc_file (module_dwarf,
 					 srcfile, l, 0,
@@ -1213,7 +1215,8 @@ struct dwflpp
 	  {
 	    Dwarf_Addr line_addr;
 	    dwarf_lineno (srcsp [0], &lineno);
-	    if (lineno != l)
+	    line_probed = lines_probed.insert(lineno);
+	    if (lineno != l || line_probed.second == false)
 	      continue;
 	    dwarf_lineaddr (srcsp [0], &line_addr);
 	    if (dwarf_haspc (function, line_addr) != 1)
