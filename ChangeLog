@@ -1,3 +1,13 @@
+2008-06-24  K.Prasad  <prasad@linux.vnet.ibm.com>
+
+	* tapset/vfs.stp: Deprecate probe points on old functions, namely
+	generic_file_readv(), generic_file_writev(),
+	generic_file_read() and generic_file_write().
+	* tapset/vfs.stp: Enhance the tapset by
+	providing more pure C functions, probes for newer VFS related functions
+	* testsuite/buildok/vfs_testcase.stp: Created a testsuite for the
+	new enhanced VFS Tapset which does a compile test i.e. with flags -up4
+
 2008-06-25  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (iterate_over_srcfile_lines): Only probe a line once.

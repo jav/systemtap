@@ -1,0 +1,461 @@
+#! stap -up4
+probe generic.fop.llseek
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("file = %p\n", file);
+	print("offset = %ll\n", offset);
+	print("origin = %d\n", origin);
+	print("maxbyte = %l\n", maxbyte);
+}
+
+probe generic.fop.llseek.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.aio_read
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("pos = %ll\n", pos);
+	print("size = %l\n", size);
+	print("buf = %p\n", buf);
+}
+
+probe generic.fop.aio_read.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.aio_write
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("pos = %ll\n", pos);
+	print("size = %l\n", size);
+	print("buf = %p\n", buf);
+}
+
+probe generic.fop.aio_write.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+%( kernel_v < "2.6.19" %?
+probe generic.fop.readv
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %lu\n", size);
+	print("pos = %ll\n", pos);
+}
+
+probe generic.fop.readv.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.writev
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %lu\n", size);
+	print("pos = %ll\n", pos);
+}
+
+probe generic.fop.writev.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+%:
+%)
+
+probe generic.fop.mmap
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("vm_start = %lu\n", vm_start);
+	print("vm_end = %lu\n", vm_end);
+	print("vm_flags = %lu\n", vm_flags);
+}
+
+probe generic.fop.mmap.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.open
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %lu\n", size);
+	print("filename: %s\n", filename);
+	print("flag = %u\n", flag);
+}
+
+probe generic.fop.open.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+%( kernel_v < "2.6.23" %?
+probe generic.fop.sendfile
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("pos = %ll\n", pos);
+	print("size = %l\n", size);
+}
+
+probe generic.fop.sendfile.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+%)
+
+
+probe generic.fop.splice_read
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("flags = %u\n", flags);
+}
+
+probe generic.fop.splice_read.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.splice_write
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("flags = %u\n", flags);
+}
+
+probe generic.fop.splice_write.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+%( kernel_v < "2.6.19" %?
+probe generic.fop.read
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("file = %p\n", file);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+}
+
+probe generic.fop.read.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe generic.fop.write
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+}
+
+probe generic.fop.write.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+%)
+
+probe generic.aop.writepages
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+}
+
+probe generic.aop.writepages.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.do_sync_read
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("pos = %ll\n", pos);
+	print("buf = %u\n", buf);
+}
+
+probe vfs.do_sync_read.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.do_sync_write
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("pos = %ll\n", pos);
+	print("buf = %u\n", buf);
+}
+
+probe vfs.do_sync_write.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.block_sync_page
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("page_index = %l\n", page_index);
+}
+
+probe vfs.block_sync_page.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+
+probe vfs.__set_page_dirty_buffers
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("index = %l\n", index);
+}
+
+probe vfs.__set_page_dirty_buffers.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.do_mpage_readpage
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("size = %l\n", size);
+	print("index = %l\n", index);
+}
+
+probe vfs.do_mpage_readpage.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.add_to_page_cache
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("index = %ll\n", index);
+	print("nrpages = %lu\n", nrpages);
+}
+
+probe vfs.add_to_page_cache.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.remove_from_page_cache
+{
+	print("Probe hit the function: %s\n", name);
+	print("Probe function argstr: %s\n", argstr);
+	print("dev = %l\n", dev);
+	print("devname = %s\n", devname);
+	print("ino = %l\n", ino);
+	print("index = %ll\n", index);
+}
+
+probe vfs.remove_from_page_cache.return
+{
+	print("Probe return from function: %s with return value = %s\n", name, retstr);
+}
+
+probe vfs.read
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %p\n", pos);
+	print("buf = %p\n", buf);
+}
+
+probe vfs.read.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe vfs.readv
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %p\n", pos);
+	print("vec = %p\n", vec);
+	print("vlen = %lu\n", vlen);
+}
+
+probe vfs.readv.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe vfs.write
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %p\n", pos);
+	print("buf = %p\n", buf);
+}
+
+probe vfs.write.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe vfs.writev
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %p\n", pos);
+	print("vec = %p\n", vec);
+	print("vlen = %lu\n", vlen);
+}
+
+probe vfs.writev.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe _vfs.generic_file_readonly_mmap
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("vma = %p\n", vma);
+}
+
+probe _vfs.generic_file_readonly_mmap.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe _vfs.generic_block_bmap
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("mapping = %p\n", mapping);
+	print("block = %llu\n", block);
+	print("get_block = %p\n", get_block);
+}
+
+probe _vfs.generic_commit_write
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("page = %p\n", page);
+	print("from = %u to=%u\n", from, to);
+}
+
+probe _vfs.block_prepare_write
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("_inode = %p\n", _inode);
+	print("page = %p\n", page);
+	print("write_from = %u write_upto=%u\n", write_from, write_upto);
+}
+probe _vfs.block_prepare_write.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe _vfs.block_write_begin
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %llu\n", pos);
+	print("len = %u\n", len);
+	print("flags = %u\n", flags);
+	print("_inode = %l\n", _inode);
+}
+probe _vfs.block_write_begin.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
+probe _vfs.block_write_end
+{
+	print("Probe hit the function: %s\n", probefunc());
+	print("file = %p\n", file);
+	print("pos = %llu\n", pos);
+	print("len = %u\n", len);
+	print("page = %p\n", page);
+	print("_inode = %l\n", _inode);
+}
+
+probe _vfs.block_write_end.return
+{
+	print("Probe return from function: %s with return value = %s\n", probefunc(), ret);
+}
+
