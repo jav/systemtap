@@ -1,3 +1,8 @@
+2008-06-27  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls): Fix
+	bug in handling process(PID) probes.
+
 2008-06-24  K.Prasad  <prasad@linux.vnet.ibm.com>
 
 	* tapset/vfs.stp: Deprecate probe points on old functions, namely
