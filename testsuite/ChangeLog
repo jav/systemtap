@@ -1,3 +1,8 @@
+2008-06-27  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p4.exp: Added tests for 'process(PID)'
+	variants.
+
 2008-06-24  Frank Ch. Eigler  <fche@elastic.org>
 
 	rhbz 451707
