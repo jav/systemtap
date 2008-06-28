@@ -1,4 +1,14 @@
+2008-06-24  David Smith  <dsmith@redhat.com>
+
+	From: Srinivasa DS <srinivasa@in.ibm.com>
+	* syscall.h: Added powerpc support.
+
 2008-06-23  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_task_finder_target_quiesce): Fixed
+	vm_callback offset by shifting it left PAGE_SHIFT bits.
+	(__stp_target_call_vm_callback): Ditto.
+	(__stp_utrace_task_finder_target_syscall_exit): Ditto.
 
 	* task_finder.c (__stp_utrace_task_finder_report_exec): Handles
 	relative exec paths correctly.

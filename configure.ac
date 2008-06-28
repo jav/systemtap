@@ -180,36 +180,17 @@ AM_CONDITIONAL(BUILD_ELFUTILS, test $build_elfutils = yes)
 AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
 
-AC_ARG_ENABLE([staticdw],
-  [AS_HELP_STRING([--enable-staticdw], [support distributions with static libdw])])
-
 if test $build_elfutils = no; then
   # Need libdwfl-capable recent elfutils from Fedora
   save_LIBS="$LIBS"
-  AS_IF([test "x$enable_staticdw" != xyes],[
-    AC_CHECK_LIB(dw, dwfl_module_getsym,,[
-      AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])])
-    AC_CHECK_LIB(ebl, ebl_openbackend,,[
-      AC_MSG_ERROR([missing elfutils development headers/libraries (ebl 0.123+)])])
-
-    stap_LIBS="$LIBS"
-  ],[
-    # Debian ships with a static libdw, which has a circular dependency on libebl
-    AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
-      AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])],
-      [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
-    dnl  XXX Do we need the ebl check, since it was referenced above?
-    AC_CHECK_LIB(ebl, ebl_openbackend,[],[
-      AC_MSG_ERROR([missing elfutils development headers/libraries (ebl 0.123+)])],
-      [-lelf])
-
-    stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
-  ])
+  AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
+    AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])],
+    [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
+  stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
   LIBS="$save_LIBS"
 else
   # We built our own and stap_LDFLAGS points at the install.
-  AS_IF([test "x$enable_staticdw" != xyes],[stap_LIBS="-ldw -lebl"],
-	[stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"])
+  stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
 fi
 
 AC_SUBST(stap_LIBS)

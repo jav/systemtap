@@ -205,11 +205,13 @@ static int _stp_init_kernel_symbols(void)
 	  _dbug("Lookup of _stext failed. Exiting.\n");
 	  return -1;
 	}
+
 	_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
 	if (_stp_modules[0]->data == 0) {
 	  _dbug("Lookup of _etext failed. Exiting.\n");
 	  return -1;
 	}
+
 	_stp_modules[0]->text_size = _stp_modules[0]->data - _stp_modules[0]->text;
 	_stp_modules_by_addr[0] = _stp_modules[0];
 	
@@ -609,7 +611,7 @@ static int _stp_init_modules(void)
 	void *res;
 	struct module *mod;
 	const struct seq_operations *modules_op = (const struct seq_operations *)_stp_kallsyms_lookup_name("modules_op");
-	
+
 	if (modules_op == NULL) {
 	  _dbug("Lookup of modules_op failed.\n");
 	  return -1;

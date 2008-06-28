@@ -57,6 +57,18 @@ function __page_ino:long (page:long) %{ /* pure */
 	CATCH_DEREF_FAULT();
 %}
 
+function __address_inode:long (page:long) %{ /* pure */
+	struct page *page = (struct page *)(long)THIS->page;
+	struct address_space *mapping =
+			(struct address_space *)(long)THIS;
+	if (mapping == NULL) {
+		THIS->__retvalue = -1;
+	} else {
+		THIS->__retvalue = (long)kread(&(mapping->host));
+	}
+	CATCH_DEREF_FAULT();
+%}
+
 function __page_dev:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
 	struct address_space *mapping = page? kread(&(page->mapping)) : NULL;
@@ -152,11 +164,47 @@ function __file_filename:string (file:long) %{ /* pure */
 	CATCH_DEREF_FAULT();
 %}
 
+function __inode_num:long(file:long)
+%{
+	struct file *file = NULL;
+	struct dentry *dentry = NULL;
+	struct inode *inode = NULL;
+
+	file = (struct file *)(long)THIS->file;
+	dentry = file? kread(&(file->f_dentry)) : NULL;
+	inode = dentry? kread(&(dentry->d_inode)) : NULL;
+	THIS->__retvalue = inode? (long)(kread(&(inode->i_ino))) : 0;
+	CATCH_DEREF_FAULT();
+%}
+
+function _get_fopv_size:long (iov:long, nr_segs:long)
+%{
+	struct iovec *iovp = (struct iovec *)(long)THIS->iov;
+	if (iovp) {
+		int i;
+		THIS->__retvalue = 0;
+		for (i = 0 ; i < THIS->nr_segs ; i++)
+			THIS->__retvalue += kread(&(iovp[i].iov_len));
+	} else
+		THIS->__retvalue = -1;
+
+	CATCH_DEREF_FAULT();
+%}
+
+function _dev_minor:long (dev:long) %{ /* pure */
+	THIS->__retvalue = (long)MINOR((dev_t)THIS->dev);
+%}
+
+function _dev_major:long (dev:long) %{ /* pure */
+	THIS->__retvalue = (long)MAJOR((dev_t)THIS->dev);
+%}
+
 probe generic.fop.llseek = kernel.function ("generic_file_llseek")
 {
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
 	ino = __file_ino($file)
+	file = $file
 
 	offset = $offset
 	origin = $origin
@@ -168,11 +216,19 @@ probe generic.fop.llseek = kernel.function ("generic_file_llseek")
 probe generic.fop.llseek.return = kernel.function ("generic_file_llseek").return
 {
 	name = "generic_file_llseek"
-	retstr = returnstr(1)
+	name = "generic_file_llseek"
+	retstr = $return
+	file = $file
+	offset = $offset
+	origin = $origin
+
+	error = $return < 0 ? $return : 0
+	error_str = error ? errno_str(error) : ""
 }
 
 probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
 {
+	file = $iocb->ki_filp
 	dev = __file_dev($iocb->ki_filp)
 	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
 	ino = __file_ino($iocb->ki_filp)
@@ -194,8 +250,14 @@ probe generic.fop.aio_read = kernel.function ("generic_file_aio_read")
 }
 probe generic.fop.aio_read.return = kernel.function ("generic_file_aio_read").return
 {
+	file = $iocb->ki_filp
+	nr_segs = $nr_segs
 	name = "generic_file_aio_read"
 	retstr = sprintf("%d", $return)
+
+	bytes_read = $return > 0 ? $return : 0
+	error = $return < 0 ? $return : 0
+ 	error_str = error ? errno_str(error) : ""
 
 	if ($return > 0) {
 		size = $return
@@ -205,6 +267,7 @@ probe generic.fop.aio_read.return = kernel.function ("generic_file_aio_read").re
 
 probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
 {
+	file = $iocb->ki_filp
 	dev = __file_dev($iocb->ki_filp)
 	devname = __find_bdevname(dev, __file_bdev($iocb->ki_filp))
 	ino = __file_ino($iocb->ki_filp)
@@ -226,6 +289,7 @@ probe generic.fop.aio_write = kernel.function ("generic_file_aio_write")
 }
 probe generic.fop.aio_write.return = kernel.function ("generic_file_aio_write").return
 {
+	file = $iocb->ki_filp
 	name = "generic_file_aio_write"
 	retstr = sprintf("%d", $return)
 
@@ -235,6 +299,7 @@ probe generic.fop.aio_write.return = kernel.function ("generic_file_aio_write").
 	}
 }
 
+%( kernel_v < "2.6.19" %?
 probe generic.fop.readv = kernel.function ("generic_file_readv") ?
 {
 	dev = __file_dev($filp)
@@ -279,20 +344,28 @@ probe generic.fop.writev = kernel.function ("generic_file_writev")?
 }
 probe generic.fop.writev.return = kernel.function ("generic_file_writev").return ?
 {
+	file = $file
 	name = "generic_file_writev"
 	retstr = sprintf("%d", $return)
+
+	bytes_written = $return > 0 ? $return : 0
+	error = $return < 0 ? $return : 0
+	error_str = error ? errno_str(error) : ""
 
 	if ($return > 0) {
 		size = $return
 		units = "bytes"
 	}
 }
+%:
+%)
 
 /* checks for aops->readpage, if not defined, return -ENOEXEC
    else assigns generic_file_vm_ops to vma
    add filemap_nopage, filemap_populate */
 probe generic.fop.mmap = kernel.function ("generic_file_mmap")
 {
+	file = $file
 	dev = __file_dev($file)
 	devname = __find_bdevname(dev, __file_bdev($file))
 	ino = __file_ino($file)
@@ -306,8 +379,12 @@ probe generic.fop.mmap = kernel.function ("generic_file_mmap")
 }
 probe generic.fop.mmap.return = kernel.function ("generic_file_mmap").return
 {
+	file = $file
 	name = "generic_file_mmap"
 	retstr = sprintf("%d", $return)
+
+	error = $return < 0 ? $return : 0
+	error_str = error ? errno_str(error) : ""
 }
 
 probe generic.fop.open = kernel.function ("generic_file_open")
@@ -362,6 +439,7 @@ probe generic.fop.splice_read = kernel.function ("generic_file_splice_read") ?
 	dev = __file_dev($in)
 	devname = __find_bdevname(dev, __file_bdev($in))
 	ino = __file_ino($in)
+	file = $in
 
 	len = $len
 	flags = $flags
@@ -376,9 +454,17 @@ probe generic.fop.splice_read.return = kernel.function ("generic_file_splice_rea
 {
 	name = "generic_file_splice_read"
 	retstr = sprintf("%d", $return)
+	file = $in
+	ino = __file_ino($in)
+	dev_major = _dev_major(_dev)
+	dev_minor = _dev_minor(_dev)
 
-	if ($return > 0) {
-		size = $return
+	ret = $return
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+
+	if (error) {
+		size = ret
 		units = "bytes"
 	}
 }
@@ -388,6 +474,7 @@ probe generic.fop.splice_write = kernel.function ("generic_file_splice_write") ?
 	dev = __file_dev($out)
 	devname = __find_bdevname(dev, __file_bdev($out))
 	ino = __file_ino($out)
+	file = $out
 
 	len = $len
 	flags = $flags
@@ -403,12 +490,18 @@ probe generic.fop.splice_write.return = kernel.function ("generic_file_splice_wr
 	name = "generic_file_splice_write"
 	retstr = sprintf("%d", $return)
 
-	if ($return > 0) {
+	file = $out
+
+	error = $return < 0 ? $return : 0
+	error_str = error ? errno_str(error) : ""
+
+	if (error) {
 		size = $return
 		units = "bytes"
 	}
 }
 
+%( kernel_v < "2.6.19" %?
 probe generic.fop.read = kernel.function ("generic_file_read") ?
 {
 	dev = __file_dev($filp)
@@ -458,6 +551,7 @@ probe generic.fop.write.return = kernel.function ("generic_file_write").return ?
 		units = "bytes"
 	}
 }
+%)
 
 /* generic_writepages calls mpage_writepages(mapping, wbc, NULL) */
 probe generic.aop.writepages = kernel.function ("mpage_writepages")
@@ -494,11 +588,18 @@ probe vfs.do_sync_read = kernel.function ("do_sync_read")
 
 	size = len
 	units = "bytes"
+	bytes_to_read = len
 }
 probe vfs.do_sync_read.return = kernel.function ("do_sync_read").return
 {
 	name = "do_sync_read"
 	retstr = sprintf("%d", $return)
+
+	bytes_to_read = $len
+	ret = $return
+	bytes_read = ret > 0 ? ret : 0
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
 
 	if ($return > 0) {
 		size = $return
@@ -515,6 +616,7 @@ probe vfs.do_sync_write = kernel.function ("do_sync_write")
 	len = $len
 	pos = ppos_pos($ppos)
 	buf = $buf
+	bytes_to_write = len
 
 	name = "do_sync_write"
 	argstr = sprintf("%d, %d , %p", len, pos, buf)
@@ -527,8 +629,15 @@ probe vfs.do_sync_write.return = kernel.function ("do_sync_write").return
 	name = "do_sync_write"
 	retstr = sprintf("%d", $return)
 
-	if ($return > 0) {
-		size = $return
+	bytes_to_write = $len
+	ppos = $ppos
+	ret = $return
+	bytes_written = ret > 0 ? ret : 0
+	error = $return < 0 ? ret : 0
+ 	error_str = error ? errno_str(error) : ""
+
+	if (error) {
+		size = ret
 		units = "bytes"
 	}
 }
@@ -677,3 +786,185 @@ probe vfs.remove_from_page_cache.return = kernel.function ("__remove_from_page_c
 	retstr = sprintf("N/A")
 }
 
+probe vfs.read = kernel.function ("vfs_read")
+{
+	file = $file
+	pos = $pos
+	buf = $buf
+	bytes_to_read = $count
+}
+
+probe vfs.read.return = kernel.function ("vfs_read").return
+{
+	file = $file
+	pos = $pos
+	buf = $buf
+	bytes_to_read = $count
+
+	ret = $return
+	bytes_read = ret > 0 ? ret : 0
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe vfs.readv = kernel.function ("vfs_readv")
+{
+	file = $file
+	pos = $pos
+	vec = $vec
+	vlen = $vlen
+	bytes_to_read = _get_fopv_size($vec, $vlen)
+}
+
+probe vfs.readv.return = kernel.function ("vfs_readv").return
+{
+	file = $file
+	pos = $pos
+	vec = $vec
+	vlen = $vlen
+	bytes_to_read = _get_fopv_size($vec, $vlen)
+
+	ret = $return
+	bytes_read = ret > 0 ? ret : 0
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe vfs.write = kernel.function ("vfs_write")
+{
+	file = $file
+	pos = $pos
+	buf = $buf
+	bytes_to_write = $count
+}
+
+probe vfs.write.return = kernel.function ("vfs_write").return
+{
+	file = $file
+	pos = $pos
+	buf = $buf
+	bytes_to_write = $count
+
+	ret = $return
+	bytes_written = ret > 0 ? ret : 0
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe vfs.writev = kernel.function("vfs_writev")
+{
+	file = $file
+	pos = $pos
+	vlen = $vlen
+	vec = $vec
+	bytes_to_write = _get_fopv_size($vec, $vlen)
+}
+
+probe vfs.writev.return = kernel.function ("vfs_writev").return
+{
+	file = $file
+	pos = $pos
+	vlen = $vlen
+	vec = $vec
+	bytes_to_write = _get_fopv_size($vec, $vlen)
+
+	ret = $return
+	bytes_written = ret > 0 ? ret : 0
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe _vfs.generic_file_readonly_mmap =
+kernel.function("generic_file_readonly_mmap")
+{
+	file = $file
+	vma = $vma
+}
+
+probe _vfs.generic_file_readonly_mmap.return = kernel.function ("generic_file_readonly_mmap").return
+{
+	file = $file
+	vma = $vma
+
+	ret = $return
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe _vfs.generic_block_bmap = kernel.function ("generic_block_bmap")
+{
+	mapping = $mapping
+	block = $block
+	get_block = $get_block
+}
+
+probe _vfs.generic_commit_write = kernel.function ("generic_commit_write")
+{
+	file = $file
+	page = $page
+	from = $from
+	to = $to
+}
+
+probe _vfs.block_prepare_write = kernel.function ("__block_prepare_write")
+{
+	_inode = $inode
+	page = $page
+	write_from = $from
+	write_upto = $to
+}
+
+probe _vfs.block_prepare_write.return = kernel.function("__block_prepare_write").return
+{
+	_inode = $inode
+	page = $page
+	write_from = $from
+	write_upto = $to
+
+	ret = $return
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe _vfs.block_write_begin = kernel.function ("block_write_begin")
+{
+	file = $file
+	pos = $pos
+	len = $len
+	flags = $flags
+
+	_inode = __address_inode($mapping)
+}
+
+probe _vfs.block_write_begin.return = kernel.function ("block_write_begin").return
+{
+	file = $file
+	pos = $pos
+	len = $len
+	flags = $flags
+
+	_inode = __address_inode($mapping)
+
+	ret = $return
+	error = ret < 0 ? ret : 0
+	error_str = error ? errno_str(error) : ""
+}
+
+probe _vfs.block_write_end = kernel.function ("block_write_end")
+{
+	file = $file
+	pos = $pos
+	len = $len
+	page = $page
+	_inode = __address_inode($mapping)
+}
+
+probe _vfs.block_write_end.return = kernel.function ("block_write_end").return
+{
+	file = $file
+	pos = $pos
+	len = $len
+	page = $page
+	_inode = __address_inode($mapping)
+	ret = $return
+}
