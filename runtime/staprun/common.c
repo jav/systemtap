@@ -14,6 +14,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <assert.h>
+
 
 /* variables needed by parse_args() */
 int verbose;
@@ -323,11 +325,11 @@ err:
  *      @len: length of the data to be sent
  *
  *      Returns 0 on success, negative otherwise.
- *      XXX: no, it doesn't ... it should return @len on success.
  */
 int send_request(int type, void *data, int len)
 {
 	char buf[1024];
+        int rc = 0;
 
 	/* Before doing memcpy, make sure 'buf' is big enough. */
 	if ((len + 4) > (int)sizeof(buf)) {
@@ -337,5 +339,8 @@ int send_request(int type, void *data, int len)
 	memcpy(buf, &type, 4);
 	memcpy(&buf[4], data, len);
 
-	return write(control_channel, buf, len + 4);
+        assert (control_channel >= 0);
+	rc = write (control_channel, buf, len + 4);
+        if (rc < 0) return rc;
+        return (rc != len+4);
 }

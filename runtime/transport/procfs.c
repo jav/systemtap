@@ -122,6 +122,8 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	if (get_user(type, (int __user *)buf))
 		return -EFAULT;
 
+        printk (KERN_INFO " procfs write_cmd: Got %s. len=%d\n", _stp_command_name[type], (int)count);
+
 #if DEBUG_TRANSPORT > 0
 	if (type < STP_MAX_CMD)
 		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);

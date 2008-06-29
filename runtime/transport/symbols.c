@@ -203,8 +203,7 @@ static int _stp_init_kernel_symbols(void)
 	_stp_kretprobe_trampoline = 0; /* XXX */
 	_stp_modules_by_addr[0] = _stp_modules[0];
 
-        printk (KERN_INFO "stap kernel data: symbols[%u]=%p\n", 
-                _stp_num_kernel_symbols, _stp_kernel_symbols);
+        dbug_sym(2, "systemtap supplied %u kernel symbols\n", _stp_num_kernel_symbols);
 
 	return 0;
 }
@@ -222,8 +221,7 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
   if (unlikely(copy_from_user (& msg, buf, count)))
     return;
 
-  dbug_sym (1, "STP_RELOCATE (%s %s %lx)\n", msg.module, msg.reloc,
-            (unsigned long) msg.address);
+  dbug_sym(2, "relocate (%s %s 0x%lx)\n", msg.module, msg.reloc, (unsigned long) msg.address);
 
   if (!strcmp (msg.module, "kernel") &&
       !strcmp (msg.reloc, "_stext"))

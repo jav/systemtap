@@ -1,6 +1,6 @@
 /* -*- linux-c -*-
  *
- * mainloop - staprun main loop
+ * mainloop - stapio main loop
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General

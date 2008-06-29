@@ -29,13 +29,11 @@ enum
  	STP_DISCONNECT,
 	STP_BULK,
 	STP_READY,
-#ifdef STP_OLD_TRANSPORT
-	/** deprecated **/
+        STP_RELOCATION,
+	/** deprecated STP_OLD_TRANSPORT **/
 	STP_BUF_INFO,
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
-#endif
-        STP_RELOCATION,
 	STP_MAX_CMD
 };
 
@@ -50,12 +48,10 @@ static const char *_stp_command_name[] = {
 	"STP_DISCONNECT",
 	"STP_BULK",
 	"STP_READY",
-#ifdef STP_OLD_TRANSPORT
+	"STP_RELOCATION",
 	"STP_BUF_INFO",
 	"STP_SUBBUFS_CONSUMED",
 	"STP_REALTIME_DATA",
-#endif
-	"STP_RELOCATION",
 };
 #endif /* DEBUG_TRANS */
 

@@ -30,7 +30,9 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 	count -= sizeof(u32);
 	buf += sizeof(u32);
 
+
 #ifdef DEBUG_TRANS
+        printk (KERN_INFO " control write_cmd: Got %s. len=%d\n", _stp_command_name[type], (int)count);
 	if (type < STP_MAX_CMD)
 		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);
 #endif
@@ -57,7 +59,8 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		return -1;
 #endif
 	case STP_RELOCATION:
-          _stp_do_relocation (buf, count);
+          	_stp_do_relocation (buf, count);
+          	break;
 
 	case STP_READY:
 		break;

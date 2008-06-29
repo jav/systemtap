@@ -272,6 +272,10 @@ int _stp_transport_init(void)
 	if (_stp_init_modules() < 0)
 		goto err4;
         */
+
+        /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
+	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
+
 	return 0;
 
 err4:

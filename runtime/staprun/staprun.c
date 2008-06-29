@@ -385,8 +385,13 @@ void send_relocation_modules ()
 
 int send_relocations ()
 {
-  int rc = send_relocation_kernel ();
+  int rc;
+  rc = init_ctl_channel (modname, 0);
+  if (rc < 0) goto out;
+  rc = send_relocation_kernel ();
   send_relocation_modules ();
+  close_ctl_channel ();
+ out:
   return rc;
 }
 
