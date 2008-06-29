@@ -56,9 +56,10 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 #else
 		return -1;
 #endif
+	case STP_RELOCATION:
+          _stp_do_relocation (buf, count);
+
 	case STP_READY:
-		/* request symbolic information */
-		/*  _stp_ask_for_symbols(); */
 		break;
 
 	default:
@@ -66,7 +67,7 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 		return -EINVAL;
 	}
 
-	return count;
+	return count; /* Pretend that we absorbed the entire message. */
 }
 
 struct _stp_buffer {

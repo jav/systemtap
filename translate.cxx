@@ -4361,6 +4361,8 @@ dump_unwindsyms (Dwfl_Module *m,
 
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
+
+  c->output << "struct _stp_symbol _stp_kernel_symbols[] = {" << endl;
   for (int i = 1; i < syments; ++i)
     {
       GElf_Sym sym;
@@ -4368,9 +4370,20 @@ dump_unwindsyms (Dwfl_Module *m,
       if (name)
         { 
           if (GELF_ST_TYPE (sym.st_info) == STT_FUNC)
-            ; // addrmap[sym.st_value] = name; 
+            {
+              if (sym.st_value < c->session.sym_stext) continue;
+
+              c->output << "  { 0x" << hex 
+                        << sym.st_value - c->session.sym_stext  /* <<---- note _stext subtraction */
+                        << dec
+                        << ", " << lex_cast_qstring (name) << " }," << endl;
+            }
         }
     }
+  c->output << "};" << endl;
+  c->output << "unsigned _stp_num_kernel_symbols = "
+            << "sizeof (_stp_kernel_symbols)/sizeof(struct _stp_symbol);" << endl;
+
   return DWARF_CB_OK;
 }
 

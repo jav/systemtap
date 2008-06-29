@@ -267,10 +267,11 @@ int _stp_transport_init(void)
 	if (_stp_init_kernel_symbols() < 0)
 		goto err4;
 	
+        /*
 	dbug_trans(1, "calling init_modules\n");
 	if (_stp_init_modules() < 0)
 		goto err4;
-
+        */
 	return 0;
 
 err4:

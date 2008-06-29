@@ -59,6 +59,8 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 		/* See also transport/symbols.c (_stp_do_symbols). */
 		if (strcmp(section, "_stext"))
 			return 0;
+                else if (_stp_modules[0]->text == 0) /* kernel->text unavailable?  STP_RELOCATE */
+                  	return 0;
 		else
 			return offset + _stp_modules[0]->text;
 	} else {
@@ -88,11 +90,12 @@ static unsigned long _stp_kallsyms_lookup_name(const char *name)
 {
 	struct _stp_symbol *s = _stp_modules[0]->symbols;
 	unsigned num = _stp_modules[0]->num_symbols;
+        unsigned i;
 
-	while (num--) {
-		if (strcmp(name, s->symbol) == 0)
-			return s->addr;
-		s++;
+        for (i=0; i<num; i++, s++) {
+          	if (strcmp(name, s->symbol) == 0)
+            		return s->addr;
+          	s++;
 	}
 	return 0;
 }

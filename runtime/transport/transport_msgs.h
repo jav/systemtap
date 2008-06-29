@@ -10,6 +10,7 @@
  */
 
 #define STP_MODULE_NAME_LEN 64
+#define STP_SYMBOL_NAME_LEN 64
 
 struct _stp_trace {
 	uint32_t sequence;	/* event number */
@@ -34,6 +35,7 @@ enum
 	STP_SUBBUFS_CONSUMED,
 	STP_REALTIME_DATA,
 #endif
+        STP_RELOCATION,
 	STP_MAX_CMD
 };
 
@@ -53,6 +55,7 @@ static const char *_stp_command_name[] = {
 	"STP_SUBBUFS_CONSUMED",
 	"STP_REALTIME_DATA",
 #endif
+	"STP_RELOCATION",
 };
 #endif /* DEBUG_TRANS */
 
@@ -97,3 +100,11 @@ struct _stp_consumed_info
         uint32_t consumed;
 };
 #endif
+
+/* Unwind data. stapio->module */
+struct _stp_msg_relocation
+{
+	char module[STP_MODULE_NAME_LEN];
+	char reloc[STP_SYMBOL_NAME_LEN];
+	uint64_t address;
+};

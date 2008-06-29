@@ -21,11 +21,16 @@
  */
 
 #include "staprun.h"
+#include <sys/uio.h>
+
 
 /* used in dbug, _err and _perr */
 char *__name__ = "staprun";
 
 extern long delete_module(const char *, unsigned int);
+
+int send_relocations ();
+
 
 static int run_as(uid_t uid, gid_t gid, const char *path, char *const argv[])
 {
@@ -206,6 +211,8 @@ int init_staprun(void)
 			return -1;
 		if (insert_stap_module() < 0)
 			return -1;
+                if (send_relocations() < 0)
+                  	return -1;
 	}
 	return 0;
 }
@@ -288,3 +295,98 @@ err:
 	remove_module(modname, 1);
 	return 1;
 }
+
+
+
+/* Send a variety of relocation-related data to the kernel: for the
+   kernel proper, just the "_stext" symbol address; for all loaded
+   modules, a variety of symbol base addresses.
+
+   We do this under protest.  The kernel ought expose this data to
+   modules such as ourselves, but instead the upstream community
+   continually shrinks its module-facing interfaces, including this
+   stuff, even when users exist.
+*/
+
+
+void send_a_relocation (const char* module, const char* reloc, unsigned long long address)
+{
+  struct _stp_msg_relocation msg;
+
+  if (strlen(module) >= STP_MODULE_NAME_LEN)
+    { _perr ("module name too long: %s", module); return; }
+  strcpy (msg.module, module);
+
+  if (strlen(reloc) >= STP_SYMBOL_NAME_LEN)
+    { _perr ("reloc name too long: %s", reloc); return; }
+  strcpy (msg.reloc, reloc);
+
+  msg.address = address;
+
+  send_request (STP_RELOCATION, & msg, sizeof (msg));
+  /* XXX: verify send_request RC */
+}
+
+
+int send_relocation_kernel ()
+{
+  FILE* kallsyms = fopen ("/proc/kallsyms", "r");
+  if (kallsyms == NULL)
+    {
+      perror("cannot open /proc/kallsyms");    
+      // ... and the kernel module will almost certainly fail to initialize.
+    }
+  else
+    {
+      while (! feof(kallsyms))
+        {
+          char *line = NULL;
+          size_t linesz = 0;
+          ssize_t linesize = getline (& line, & linesz, kallsyms);
+          if (linesize < 0)
+            break;
+          else
+            {
+              unsigned long long address;
+              char type;
+              char* symbol = NULL;
+              int rc = sscanf (line, "%llx %c %as", &address, &type, &symbol);
+              free (line); line=NULL;
+
+#ifdef __powerpc__
+#define KERNEL_RELOC_SYMBOL ".__start"
+#else
+#define KERNEL_RELOC_SYMBOL "_stext"
+#endif
+              if ((rc == 3) && (0 == strcmp(symbol,KERNEL_RELOC_SYMBOL)))
+                {
+                  send_a_relocation ("kernel", KERNEL_RELOC_SYMBOL, address);
+
+                  /* We need nothing more from the kernel. */
+                  fclose (kallsyms);
+                  return 0;
+                }
+              if (symbol != NULL) free (symbol);
+            }
+        }
+      fclose (kallsyms);
+    }
+  
+  return -1;
+}
+
+
+void send_relocation_modules ()
+{
+  /* XXX */
+}
+
+
+
+int send_relocations ()
+{
+  int rc = send_relocation_kernel ();
+  send_relocation_modules ();
+  return rc;
+}
+

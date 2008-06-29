@@ -196,31 +196,54 @@ static int _stp_init_kernel_symbols(void)
 	_stp_num_modules = 1;
 
 	/* Note: this mapping is used by kernel/_stext pseudo-relocations. */
-	#ifdef __powerpc__
-	_stp_modules[0]->text = _stp_kallsyms_lookup_name(".__start");
-	#else
-	_stp_modules[0]->text = _stp_kallsyms_lookup_name("_stext");
-	#endif
-	if (_stp_modules[0]->text == 0) {
-	  _dbug("Lookup of _stext failed. Exiting.\n");
-	  return -1;
-	}
+        _stp_modules[0]->text = 0; /* This should be set by a STP_RELOCATE message. */
+	_stp_modules[0]->data = 0; /* XXX */
+	_stp_modules[0]->text_size = 0; /* XXX */
 
-	_stp_modules[0]->data = _stp_kallsyms_lookup_name("_etext");
-	if (_stp_modules[0]->data == 0) {
-	  _dbug("Lookup of _etext failed. Exiting.\n");
-	  return -1;
-	}
-
-	_stp_modules[0]->text_size = _stp_modules[0]->data - _stp_modules[0]->text;
+	_stp_kretprobe_trampoline = 0; /* XXX */
 	_stp_modules_by_addr[0] = _stp_modules[0];
-	
-	_stp_kretprobe_trampoline = _stp_kallsyms_lookup_name("kretprobe_trampoline");
-	/* Lookup failure is not fatal */
+
+        printk (KERN_INFO "stap kernel data: symbols[%u]=%p\n", 
+                _stp_num_kernel_symbols, _stp_kernel_symbols);
 
 	return 0;
 }
 
+
+static void _stp_do_relocation(const char __user *buf, size_t count)
+{
+  struct _stp_msg_relocation msg;
+  if (sizeof(msg) != count)
+    {
+      errk ("STP_RELOCATE message size mismatch (%u vs %u)\n", sizeof(msg), count);
+      return;
+    }
+
+  if (unlikely(copy_from_user (& msg, buf, count)))
+    return;
+
+  dbug_sym (1, "STP_RELOCATE (%s %s %lx)\n", msg.module, msg.reloc,
+            (unsigned long) msg.address);
+
+  if (!strcmp (msg.module, "kernel") &&
+      !strcmp (msg.reloc, "_stext"))
+    
+    {
+      unsigned i;
+
+      _stp_modules[0]->text = (unsigned long) msg.address;
+
+      /* Now, relocate all the elements in the kernel symbol table.
+      We should at that point arrive at a strict subset of the
+      /proc/kallsyms table. */
+
+      for (i=0; i<_stp_modules[0]->num_symbols; i++)
+        _stp_modules[0]->symbols[i].addr += msg.address;
+    } 
+}
+
+
+#if 0
 static void _stp_do_unwind_data(const char __user *buf, size_t count)
 {
 	u32 unwind_len;
@@ -302,6 +325,8 @@ static void _stp_do_unwind_data(const char __user *buf, size_t count)
 done:
 	write_unlock(&m->lock);
 }
+#endif /* do_unwind_data; not used */
+
 
 static int _stp_compare_addr(const void *p1, const void *p2)
 {
