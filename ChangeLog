@@ -1,3 +1,12 @@
+2008-06-29  Tim Moore  <timoore@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): Add auto_free.h.
+	* Makefile.in: Regenerated.
+	* auto_free.h (auto_free_ref): New class to free references to
+	pointers allocated with malloc / realloc.
+	* tapsets.cxx (iterate_over_srcfile_lines): Use auto_free_ref at
+	top level of function to free srcsp.
+
 2008-06-27  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls): Fix
