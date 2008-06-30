@@ -28,7 +28,9 @@ Build steps:
 - Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
   packages (or see below if you are building your own kernels from source).
 
-- If desired, download the latest elfutils snapshot to build in "bundled mode"
+- If desired, download a recent elfutils snapshot to build in "bundled mode".
+  If desired, build it separately one time, and install it to /usr/local.
+
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
 - Untar the snapshot in some new directory; apply patch (don't ask, long story)
