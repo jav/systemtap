@@ -1,3 +1,11 @@
+2008-06-30  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (stap_utrace_detach_ops): Removed check to see if
+	thread has a mm (in the case where a thread isn't quite dead
+	yet).
+	(stap_utrace_attach): Minor error handling improvement.
+	(__stp_utrace_attach_match_tsk): Ditto.
+
 2008-06-24  David Smith  <dsmith@redhat.com>
 
 	From: Srinivasa DS <srinivasa@in.ibm.com>
