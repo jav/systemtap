@@ -249,7 +249,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	}
 	else {
 		*buf = '\0';
-		rc = ERR_PTR(ENOENT);
+		rc = ERR_PTR(-ENOENT);
 	}
 	up_read(&mm->mmap_sem);
 	return rc;
@@ -428,8 +428,9 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	mmput(mm);			/* We're done with mm */
 	if (mmpath == NULL || IS_ERR(mmpath)) {
 		int rc = -PTR_ERR(mmpath);
-		_stp_error("Unable to get path (error %d) for pid %d",
-			   rc, (int)path_tsk->pid);
+		if (rc != ENOENT)
+			_stp_error("Unable to get path (error %d) for pid %d",
+				   rc, (int)path_tsk->pid);
 	}
 	else {
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
@@ -952,9 +953,14 @@ stap_start_task_finder(void)
 		mmput(mm);		/* We're done with mm */
 		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = -PTR_ERR(mmpath);
-			_stp_error("Unable to get path (error %d) for pid %d",
-				   rc, (int)tsk->pid);
-			goto stf_err;
+			if (rc == ENOENT) {
+				continue;
+			}
+			else {
+				_stp_error("Unable to get path (error %d) for pid %d",
+					   rc, (int)tsk->pid);
+				goto stf_err;
+			}
 		}
 
 		/* Check the thread's exe's path/pid against our list. */
