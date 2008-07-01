@@ -698,7 +698,12 @@ main (int argc, char * const argv [])
 
   // arguments parsed; get down to business
   if (s.verbose > 1)
-    version ();
+    {
+      version ();
+      clog << "Session arch: " << s.architecture
+           << " release: " << s.kernel_release
+           << endl;
+    }
 
   // Create a temporary directory to build within.
   // Be careful with this, as "s.tmpdir" is "rm -rf"'d at the end.
