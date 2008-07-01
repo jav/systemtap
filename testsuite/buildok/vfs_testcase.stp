@@ -410,6 +410,7 @@ probe _vfs.generic_block_bmap
 	print("get_block = %p\n", get_block);
 }
 
+%( kernel_v <= "2.6.25" %?
 probe _vfs.generic_commit_write
 {
 	print("Probe hit the function: %s\n", probefunc());
@@ -417,6 +418,7 @@ probe _vfs.generic_commit_write
 	print("page = %p\n", page);
 	print("from = %u to=%u\n", from, to);
 }
+%)
 
 probe _vfs.block_prepare_write
 {
