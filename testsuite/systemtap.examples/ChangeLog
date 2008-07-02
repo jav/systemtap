@@ -1,5 +1,9 @@
 2008-07-02  William Cohen  <wcohen@redhat.com>
 
+	* functioncallcount.meta, functioncallcount.stp: New.
+
+2008-07-02  William Cohen  <wcohen@redhat.com>
+
 	* para-callgraph.stp, para-callgraph.meta: New.
 
 2008-06-20  William Cohen  <wcohen@redhat.com>
