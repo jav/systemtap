@@ -1,3 +1,7 @@
+2008-07-02  William Cohen  <wcohen@redhat.com>
+
+	* para-callgraph.stp, para-callgraph.meta: New.
+
 2008-06-20  William Cohen  <wcohen@redhat.com>
 
 	* traceio2.meta: Correct test_check and test_installcheck commands.
