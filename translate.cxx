@@ -4530,7 +4530,7 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/utsrelease.h>";
       s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include <linux/version.h>";
-      s.op->newline() << "#include <linux/compile.h>";
+      // s.op->newline() << "#include <linux/compile.h>";
       s.op->newline() << "#include \"loc2c-runtime.h\" ";
 
       // XXX: old 2.6 kernel hack
