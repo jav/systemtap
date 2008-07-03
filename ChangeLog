@@ -1,3 +1,33 @@
+2008-07-03    <brolley@redhat.com>
+
+	* stap-serverd: New script.
+	* stap-client (client_sysinfo): Client sysinfo is stripped down to
+	the output of `uname -r` for now.
+	(package_request): Don't create temporary server tar file here.
+	(send_request): Communication protocol simplified. Use nc to send
+	the tar file.
+	(receive_response): Communication protocol eliminated. Simply wait
+	for the file from the server using nc.
+	(unpack_response): Create temporary server tar file here. Verify the
+	contents of the server's response.
+	(find_and_connect_to_server): Obtain server address and port from
+	avahi-browse.
+	(server_fatal): New function.
+	(check_server_error): Call server_fatal.
+	* stap-server (configuration): port is now provided as an argument.
+	Default to port 65001.
+	(initialization): Don't create temp work directory here.
+	(receive_request): Communication protocol simplified. Receive the
+	request file using nc.
+	(unpack_request): Make temp work directory here. Verify the contents
+	of the request.
+	(server_sysinfo): New function.
+	(check_compatibility): Exact match required.
+	(package_response): Don't use -p on tar command.
+	(send_response): Communication protocol eliminated. Simply send the
+	file using nc.
+	(main line): Pass "$@" to configuration.
+
 2008-07-01  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): In -vv mode, also dump out session arch/release

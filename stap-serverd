@@ -1,0 +1,93 @@
+#!/bin/bash
+
+# Compile server manager for systemtap
+#
+# Copyright (C) 2008 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# This script publishes its presence on the network and then listens for
+# incoming connections. When a connection is detected, the stap-server script
+# is run to handle the request.
+
+# Catch ctrl-c
+trap 'handle_sigint' SIGINT
+
+#-----------------------------------------------------------------------------
+# Helper functions.
+#-----------------------------------------------------------------------------
+# function: initialization PORT
+function initialization {
+    # Default settings.
+    tmpdir_prefix_serverd=stap.serverd
+    avahi_type=_stap._tcp
+    port=$1
+    test "X$port" = "X" && port=65000
+}
+
+# function: advertise_presence
+#
+# Advertise the availability of the server on the network.
+function advertise_presence {
+    # Build up a string representing our server's properties.
+    # TODO: this needs fleshing out.
+
+    local sysinfo=`uname -r`
+    local txt="$sysinfo"
+
+    # Call avahi-publish-service to advertise our presence.
+    avahi-publish-service "Systemtap Compile Server on `uname -n`" \
+	$avahi_type $port $txt > /dev/null 2>&1 &
+
+    echo "Systemtap Compile Server on `uname -n` listening on port $port"
+}
+
+# function: listen
+#
+# Listen for and handle requests to the server.
+function listen {
+    # Work in a temporary directory
+    tmpdir=`mktemp -dt $tmpdir_prefix_serverd.XXXXXX` || \
+	fatal "ERROR: cannot create temporary directory " $tmpdir
+    cd $tmpdir
+
+    # Create a fifo for communicating with the server
+    local fifo_name=$tmpdir_prefix_serverd.fifo
+    mknod $fifo_name p || \
+	fatal "ERROR: cannot create temporary fifo " $tmpdir/$fifo_name
+
+    # Loop forever accepting requests
+    while true
+    do
+	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1
+    done
+}
+
+# function: fatal [ MESSAGE ]
+#
+# Fatal error
+# Prints its arguments to stderr and exits
+function fatal {
+    echo "$@" >&2
+    exit 1
+}
+
+# function: handle_sigint
+#
+# Terminate gracefully when SIGINT is received.
+function handle_sigint {
+    echo "$0: received SIGINT. Exiting."
+    cd `dirname $tmpdir`
+    rm -fr $tmpdir
+    exit
+}
+
+#-----------------------------------------------------------------------------
+# Beginning of main line execution.
+#-----------------------------------------------------------------------------
+initialization "$@"
+advertise_presence
+listen
