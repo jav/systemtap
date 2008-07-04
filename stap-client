@@ -314,12 +314,8 @@ function create_request {
 # Generate the client's sysinfo and echo it to stdout
 function client_sysinfo {
     if test "X$sysinfo_client" = "X"; then
-	# Get the stap version
-	stap_version=`stap -V 2>&1 | grep version`
-	# Remove the number before the first slash
-	stap_version=`expr "$stap_version" : '.*version [^/]*/\([0-9./]*\).*'`
 	# Add some info from uname
-	sysinfo_client="stap $stap_version `uname -sr`"
+	sysinfo_client="`uname -r`"
     fi
     echo $sysinfo_client
 }
@@ -338,67 +334,50 @@ function package_request {
 
     tar -czhf $tar_client $tmpdir_client_base || \
 	fatal "ERROR: tar of request tree, $tmpdir_client, failed"
-
-    tar_server=$tmpdir_env/`mktemp $tmpdir_prefix_server.tgz.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tar_server
 }
 
 # function: send_request
 #
-# Notify the server and then send $tar_client to the server as $tar_server
+# Notify the server and then send $tar_client to the server
 # The protocol is:
-#   client -> "request: $tmpdir_client"
-#   server -> "send: $tar_server"
-#   client: rsync local:$tar_client server:$tar_server
-#   client -> "waiting:"
+#   client -> "request:"
+#   server -> "ready:"
+#   client -> $tar_client
 #
 # $tmpdir_client is provided on the request so that the server knows what
 # the tar file will expand to.
 function send_request {
-    echo "request: `basename $tmpdir_client`" >&3
+    echo "request:" >&3
 
+    # Get the server's response.
     read <&3
     local line=$REPLY
     check_server_error $line
 
-    local tar_dest=`expr "$line" : 'send: \([^ ]*\)$'`
-    test "X$tar_dest" == "X" && \
-	fatal "ERROR: destination tar file not provided"
+    # Check for the proper response.
+    test "$line" = "ready:" || \
+	fatal "ERROR: server response, '$line', is incorrect"
 
-    rsync -essh -a --delete $tar_client root@$server:$tar_dest || \
-	fatal "ERROR: rsync of client request, $tar_client to $server:$tar_dest, failed"
-
-    echo "waiting:" >&3
+    # Send the request file.
+    until nc $server $(($port + 1)) < $tar_client
+    do
+	sleep 1
+    done
 }
 
 # function: receive_response
 #
 # Wait for a response from the server indicating the results of our request.
-# The protocol is:
-#   server -> "sending: remote-tar-name server-tempdir-name stap-tempdir-name"
-#   client -> "OK"
 function receive_response {
-    read <&3
-    local line=$REPLY
-    check_server_error $line
-
-    tar_dest=`expr "$line" : 'sending: \([^ ]*\) [^ ]* [^ ]*$'`
-    test "X$tar_dest" == "X" && \
-	fatal "ERROR: server response remote file is missing"
-
-    tmpdir_server=`expr "$line" : 'sending: [^ ]* \([^ ]*\) [^ ]*$'`
-    test "X$tmpdir_server" == "X" && \
-	fatal "ERROR: server response temp dir is missing"
-
-    tmpdir_stap=`expr "$line" : 'sending: [^ ]* [^ ]* \([^ ]*\)$'`
-    test "X$tmpdir_stap" == "X" && \
-	fatal "ERROR: server response stap temp dir is missing"
-
+    # Make a place to receive the response file.
+    tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
+	fatal "ERROR: cannot create temporary file " $tar_server
 
     # Retrieve the file
-    rsync -essh -a --delete root@$server:$tar_dest $tar_server || \
-	fatal "ERROR: rsync of server response, $server:$tar_dest to $tar_server, failed"
-    echo "OK" >&3
+    until nc $server $(($port + 1)) > $tar_server
+    do
+	sleep 1
+    done
 }
 
 # function: unpack_response
@@ -406,17 +385,45 @@ function receive_response {
 # Unpack the tar file received from the server and make the contents available
 # for printing the results and/or running 'staprun'.
 function unpack_response {
+    tmpdir_server=`mktemp -dt $tmpdir_prefix_client.server.XXXXXX` || \
+	fatal "ERROR: cannot create temporary file " $tmpdir_server
+
     # Unpack the server output directory
-    cd $tmpdir_client
+    cd $tmpdir_server
     tar -xzf $tar_server || \
 	fatal "ERROR: Unpacking of server response, $tar_server, failed"
 
-    # Create a local location for the server response.
-    local local_tmpdir_server_base=`basename $tar_server | sed 's,\.tgz,,'`
-    local local_tmpdir_server=`mktemp -dt $local_tmpdir_server_base.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $local_tmpdir_server
+    # Identify the server's request tree. The tar file should have expanded
+    # into a single directory named to match $tmpdir_prefix_server.??????
+    # which should now be the only item in the current directory.
+    test "`ls | wc -l`" = 1 || \
+	fatal "ERROR: Wrong number of files after expansion of server's tar file"
 
-    # Move the systemtap temp directory to our a local temp location, if -k
+    tmpdir_server=`ls`
+    tmpdir_server=`expr "$tmpdir_server" : "\\\($tmpdir_prefix_server\\\\.......\\\)"`
+
+    test "X$tmpdir_server" != "X" || \
+	fatal "ERROR: server tar file did not expand as expected"
+
+    # Check the contents of the expanded directory. It should contain:
+    # 1) a file called stdout
+    # 2) a file called stderr
+    # 3) a directory named to match stap??????
+    test "`ls $tmpdir_server | wc -l`" = 3 || \
+	fatal "ERROR: Wrong number of files after expansion of server's tar file"
+    test -f $tmpdir_server/stdout || \
+	fatal "ERROR: `pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
+    test -f $tmpdir_server/stderr || \
+	fatal "ERROR: `pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
+
+    tmpdir_stap=`ls $tmpdir_server | grep stap`
+    tmpdir_stap=`expr "$tmpdir_stap" : "\\\(stap......\\\)"`
+    test "X$tmpdir_stap" = "X" && \
+	fatal "ERROR: `pwd`/$tmpdir_server/stap?????? does not exist"
+    test -d $tmpdir_server/$tmpdir_stap || \
+	fatal "ERROR: `pwd`/$tmpdir_server/$tmpdir_stap is not a directory"
+
+    # Move the systemtap temp directory to a local temp location, if -k
     # was specified.
     if test $keep_temps = 1; then
 	local local_tmpdir_stap=`mktemp -dt stapXXXXXX` || \
@@ -428,13 +435,17 @@ function unpack_response {
 	sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
 	tmpdir_stap=$local_tmpdir_stap
     else
-	tmpdir_stap=$local_tmpdir_server/$tmpdir_stap
+	tmpdir_stap=`pwd`/$tmpdir_stap
     fi
 
-    # Move the extracted tree to our local location
-    mv $tmpdir_server/* $local_tmpdir_server
+    # Move the contents of the server's tmpdir down one level to the
+    # current directory (our local server tmpdir)
+    mv $tmpdir_server/* . 2>/dev/null
     rm -fr $tmpdir_server
-    tmpdir_server=$local_tmpdir_server
+    tmpdir_server=`pwd`
+
+    # Make sure we own the systemtap temp directory if we are root.
+    test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
 }
 
 # function: find_and_connect_to_server
@@ -443,11 +454,14 @@ function unpack_response {
 function find_and_connect_to_server {
     # Find a server
     server=`avahi-browse $avahi_service_tag --terminate -r 2>/dev/null | match_server`
+    port=`expr "$server" : '[^/]*/\(.*\)'`
+    server=`expr "$server" : '\([^/]*\)/.*'`
+
     test "X$server" != "X" || \
 	fatal "ERROR: cannot find a server"
 
-    port=`expr "$server" : '[^/]*/\(.*\)'`
-    server=`expr "$server" : '\([^/]*\)/.*'`
+    test "X$port" != "X" || \
+	fatal "ERROR: server port not provided"
 
     # Open a connection to the server
     if ! exec 3<> /dev/tcp/$server/$port; then
@@ -500,7 +514,6 @@ function match_server {
 		    ;;
 		txt )
 		    sysinfo_server=`expr "$service_data" : '\[\"\([^]]*\)\"\]'`
-		    sysinfo_server=`expr "$sysinfo_server" : '[^/]*/\(.*\)'`
 		    ;;
 		* )
 		    break ;;
@@ -508,7 +521,6 @@ function match_server {
 	done
 
 	# It is a stap server, but is it compatible?
-	sysinfo_server="stap $sysinfo_server"
 	if test "$sysinfo_server" != "`client_sysinfo`"; then
 	    continue
 	fi
@@ -534,9 +546,9 @@ function disconnect_from_server {
 # Write the stdout and stderr from the server to stdout and stderr respectively.
 function stream_output {
     # Output stdout and stderr as directed
-    cd $local_tmpdir_server
-    cat ${tmpdir_server}/stderr >&2
-    eval cat ${tmpdir_server}/stdout $stdout_redirection
+    cd $tmpdir_server
+    cat stderr >&2
+    eval cat stdout $stdout_redirection
 }
 
 # function: maybe_call_staprun
@@ -558,7 +570,7 @@ function maybe_call_staprun {
 # Check the given server response for an error message.
 function check_server_error {
     echo $1 | grep -q "^ERROR:" && \
-	fatal "Server:" "$@"
+	server_fatal "Server:" "$@"
 }
 
 # function: fatal [ MESSAGE ]
@@ -566,6 +578,16 @@ function check_server_error {
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
+    echo $0: "$@" >&2
+    cleanup
+    exit 1
+}
+
+# function: server_fatal [ MESSAGE ]
+#
+# Fatal error
+# Prints its arguments to stderr and exits
+function server_fatal {
     echo $0: "$@" >&2
     cat <&3 >&2
     cleanup

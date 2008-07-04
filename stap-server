@@ -21,6 +21,8 @@ function configuration {
     # Configuration
     tmpdir_prefix_client=stap.client
     tmpdir_prefix_server=stap.server
+    port=$1
+    test "X$port" = "X" && port=65001
 }
 
 # function: initialization
@@ -31,54 +33,33 @@ function initialization {
     # Default options settings
     p_phase=5
     keep_temps=0
-
-    # Make a temp directory to work in.
-    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $tmpdir_server
-    tmpdir_env=`dirname $tmpdir_server`
 }
 
 # function: receive_request
 #
 # Receive a tar file representing the request from the client:
 # The protocol is:
-#   client -> "request: $tmpdir_client"
-#   server -> "send: $tar_client"
-#   client: copies file to server:$tar_client
-#   client -> "waiting:"
-#
-# $tmpdir_client is provided on the request so that we know what
-# the tar file will expand to.
+#   client -> "request:"
+#   server -> "ready:"
+#   client -> $tar_client
 function receive_request {
-    cd $tmpdir_server
-
     # Request from the client is on stdin
     read
     line=$REPLY
 
-    # Extract the name of the client's temp directory.
-    tmpdir_client=`expr "$line" : 'request: \([^ ]*\)$'`
-    test "X$tmpdir_client" == "X" && \
-	fatal "ERROR: client request temp dir name is missing" $tmpdir_server
-    tmpdir_client=$tmpdir_server/$tmpdir_client
-
-    # Create the client's temp dir now to guarantee that it won't clash with
-    # any files we need to create later.
-    mkdir $tmpdir_client || \
-	fatal "ERROR: cannot create client temp dir" $tmpdir_client
+    # Check to see that it is a client request
+    test "$line" = "request:" || \
+	fatal "ERROR: client request, '$line' is incorrect"
 
     # Create a place to receive the client's tar file
-    tar_client=`mktemp -t $tmpdir_prefix_client.tgz.XXXXXX` || \
+    tar_client=`mktemp -t $tmpdir_prefix_server.client.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary tar file " $tar_client
 
     # Request that the file be sent.
-    echo "send: $tar_client"
+    echo "ready:"
 
-    # Wait for confirmation that the tar file has arrived via rysnc
-    read
-    line=$REPLY
-    test "X$line" = "Xwaiting:" || \
-	fatal "ERROR: client send confirmation, '$line', is incorrect"
+    # Receive the file.
+    nc -l $port < /dev/null > $tar_client
 }
 
 # function: unpack_request
@@ -86,15 +67,31 @@ function receive_request {
 # Unpack the tar file received from the client and make the contents
 # available for use when running 'stap'
 function unpack_request {
+    # Make a temp directory to work in.
+    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
+	fatal "ERROR: cannot create temporary directory " $tmpdir_server
+    tmpdir_env=`dirname $tmpdir_server`
+
     cd $tmpdir_server
 
     # Unpack the tar file.
     tar -xzf $tar_client || \
 	fatal "ERROR: cannot unpack tar archive $tar_client"
 
+    # Identify the client's request tree. The tar file should have expanded
+    # into a single directory named to match $tmpdir_prefix_client.??????
+    # which should now be the only item in the current directory.
+    test "`ls | wc -l`" = 1 || \
+	fatal "ERROR: Wrong number of files after expansion of client's tar file"
+
+    tmpdir_client=`ls`
+    tmpdir_client=`expr "$tmpdir_client" : "\\\($tmpdir_prefix_client\\\\.......\\\)"`
+
+    test "X$tmpdir_client" != "X" || \
+	fatal "ERROR: client tar file did not expand as expected"
+
     # Move the client's temp directory to a local temp location
-    local tmpdir_client_base=`basename $tar_client | sed 's,\.tgz,,'`
-    local local_tmpdir_client=`mktemp -dt $tmpdir_client_base.XXXXXX` || \
+    local local_tmpdir_client=`mktemp -dt $tmpdir_prefix_server.client.XXXXXX` || \
 	fatal "ERROR: cannot create temporary tar file " $local_tmpdir_client
     mv $tmpdir_client/* $local_tmpdir_client
     rm -fr $tmpdir_client
@@ -114,19 +111,18 @@ function check_request {
     client_sysinfo=`read_data_file sysinfo`
     test "X$client_sysinfo" != "X" || exit 1
 
-    # Extract the client's config info.
-    client_name=`expr "$client_sysinfo" : 'stap [^ ]* [^ ]* \([^ ]*\).*'`
-    client_sysinfo=`echo $client_sysinfo | sed s,$client_name,,`
+    check_compatibility "$client_sysinfo" `server_sysinfo`
+}
 
-    # Extract the server's config info.
-    server_sysinfo=`uname -sr`
-    server_name=`expr "$server_sysinfo" : '[^ ]* \([^ ]*\).*'`
-    server_sysinfo=`echo $server_sysinfo | sed s,$server_name,,`
-    local stap_version=`stap -V 2>&1 | grep version`
-    stap_version=`expr "$stap_version" : '.*version \([0-9./]*\).*'`
-    server_sysinfo="stap $stap_version $server_sysinfo"
-
-    check_compatibility "$client_sysinfo" "$server_sysinfo"
+# function server_sysinfo
+#
+# Generate the server's sysinfo and echo it to stdout
+function server_sysinfo {
+    if test "X$sysinfo_server" = "X"; then
+	# Add some info from uname
+	sysinfo_server="`uname -r`"
+    fi
+    echo $sysinfo_server
 }
 
 # function check_compaibility SYSINFO1 SYSINFO2
@@ -134,10 +130,9 @@ function check_request {
 # Make sure that systemtap as described by SYSINFO1 and SYSINFO2 are compaible
 function check_compatibility {
     # TODO: This needs work
-    # - In stap version x/y, require that the y matches
     # - Make sure the linux kernel matches exactly
-    local sysinfo1=`echo $1 | sed 's,stap [^/]*/,stap ,'`
-    local sysinfo2=`echo $2 | sed 's,stap [^/]*/,stap ,'`
+    local sysinfo1=$1
+    local sysinfo2=$2
 
     if test "$sysinfo1" != "$sysinfo2"; then
 	error "ERROR: system configuration mismatch"
@@ -361,7 +356,7 @@ function package_response {
     chmod +r $tar_server
 
     # Generate the tar file
-    tar -czphf $tar_server `basename $tmpdir_server` || \
+    tar -czhf $tar_server `basename $tmpdir_server` || \
 	fatal "ERROR: tar of $tmpdir_server failed"
 }
 
@@ -370,21 +365,11 @@ function package_response {
 # Notify the client that $tar_server is ready and wait for the client to take
 # it.
 # The protocol is:
-#   server -> "sending: $tar_server $tmpdir_server $tmpdir_stap"
-#   client: copies file from server:$tar_server
-#   client -> "OK"
+#   server -> "sending: $tmpdir_server $tmpdir_stap"
+#   server -> $tar_server
 function send_response {
-    # TODO needed for rsync from client to work
-    chmod +r $tmpdir_server
-
-    # Tell the client where to get it.
-    echo "sending: $tar_server `basename $tmpdir_server` `basename $tmpdir_stap`"
-
-    # Wait for the confirmation
-    read
-    line=$REPLY
-    test $line = "OK" || \
-	fatal "ERROR: client final confirmation, '$line' is incorrect"
+    # Now send it
+    nc -l $port < $tar_server > /dev/null
 }
 
 # function: fatal [ MESSAGE ]
@@ -421,7 +406,7 @@ function cleanup {
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
-configuration
+configuration "$@"
 initialization
 receive_request
 unpack_request

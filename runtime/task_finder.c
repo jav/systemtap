@@ -149,30 +149,37 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 	long error = 0;
 	pid_t pid = 0;
 
+	// Notice we're not calling get_task_mm() in this loop. In
+	// every other instance when calling do_each_thread, we avoid
+	// tasks with no mm, because those are kernel threads.  So,
+	// why is this function different?  When a thread is in the
+	// process of dying, its mm gets freed.  Then, later the
+	// thread gets in the dying state and the thread's
+	// UTRACE_EVENT(DEATH) event handler gets called (if any).
+	//
+	// If a thread is in this "mortally wounded" state - no mm
+	// but not dead - and at that moment this function is called,
+	// we'd miss detaching from it if we were checking to see if
+	// it had an mm.
+
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
-		struct mm_struct *mm;
-
-		if (tsk->pid <= 1)
+		if (tsk == NULL || tsk->pid <= 1)
 			continue;
 
-		mm = get_task_mm(tsk);
-		if (mm) {
-			mmput(mm);
-			engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS,
-					       ops, 0);
-			if (IS_ERR(engine)) {
-				error = -PTR_ERR(engine);
-				if (error != ENOENT) {
-					pid = tsk->pid;
-					goto udo_err;
-				}
-				error = 0;
+		engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS,
+				       ops, 0);
+		if (IS_ERR(engine)) {
+			error = -PTR_ERR(engine);
+			if (error != ENOENT) {
+				pid = tsk->pid;
+				goto udo_err;
 			}
-			else if (engine != NULL) {
-				utrace_detach(tsk, engine);
-				debug_task_finder_detach();
-			}
+			error = 0;
+		}
+		else if (engine != NULL) {
+			utrace_detach(tsk, engine);
+			debug_task_finder_detach();
 		}
 	} while_each_thread(grp, tsk);
 udo_err:
@@ -242,7 +249,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 	}
 	else {
 		*buf = '\0';
-		rc = ERR_PTR(ENOENT);
+		rc = ERR_PTR(-ENOENT);
 	}
 	up_read(&mm->mmap_sem);
 	return rc;
@@ -276,7 +283,7 @@ stap_utrace_attach(struct task_struct *tsk,
 	int rc = 0;
 
 	// Ignore init
-	if (tsk->pid <= 1)
+	if (tsk == NULL || tsk->pid <= 1)
 		return EPERM;
 
 	// Ignore threads with no mm (which are kernel threads).
@@ -300,8 +307,12 @@ stap_utrace_attach(struct task_struct *tsk,
 		rc = EFAULT;
 	}
 	else {
-		utrace_set_flags(tsk, engine, event_flags);
-		debug_task_finder_attach();
+		rc = utrace_set_flags(tsk, engine, event_flags);
+		if (rc == 0)
+			debug_task_finder_attach();
+		else
+			_stp_error("utrace_set_flags returned error %d on pid %d",
+				   rc, (int)tsk->pid);
 	}
 	return rc;
 }
@@ -392,7 +403,8 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	char *mmpath_buf;
 	char *mmpath;
 
-	if (path_tsk->pid <= 1 || match_tsk->pid <= 1)
+	if (path_tsk == NULL || path_tsk->pid <= 1
+	    || match_tsk == NULL || match_tsk->pid <= 1)
 		return;
 
 	/* Grab the path associated with the path_tsk. */
@@ -416,8 +428,9 @@ __stp_utrace_attach_match_tsk(struct task_struct *path_tsk,
 	mmput(mm);			/* We're done with mm */
 	if (mmpath == NULL || IS_ERR(mmpath)) {
 		int rc = -PTR_ERR(mmpath);
-		_stp_error("Unable to get path (error %d) for pid %d",
-			   rc, (int)path_tsk->pid);
+		if (rc != ENOENT)
+			_stp_error("Unable to get path (error %d) for pid %d",
+				   rc, (int)path_tsk->pid);
 	}
 	else {
 		__stp_utrace_attach_match_filename(match_tsk, mmpath,
@@ -940,9 +953,14 @@ stap_start_task_finder(void)
 		mmput(mm);		/* We're done with mm */
 		if (mmpath == NULL || IS_ERR(mmpath)) {
 			rc = -PTR_ERR(mmpath);
-			_stp_error("Unable to get path (error %d) for pid %d",
-				   rc, (int)tsk->pid);
-			goto stf_err;
+			if (rc == ENOENT) {
+				continue;
+			}
+			else {
+				_stp_error("Unable to get path (error %d) for pid %d",
+					   rc, (int)tsk->pid);
+				goto stf_err;
+			}
 		}
 
 		/* Check the thread's exe's path/pid against our list. */

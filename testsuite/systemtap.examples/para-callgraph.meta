@@ -1,0 +1,13 @@
+title: Tracing Calls for Sections of Code
+name: para-callgraph.stp
+version: 1.0
+author: anonymous
+keywords: trace callgraph
+subsystem: kernel
+status: production
+exit: user-controlled
+output: trace
+scope: system-wide
+description: The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.
+test_check: stap -p4 para-callgraph.stp sys_read "*@fs/*.c"
+test_installcheck: stap  para-callgraph.stp sys_read "*@fs/*.c" -c "sleep 1"

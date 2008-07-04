@@ -1,0 +1,20 @@
+function trace(entry_p) {
+   if(tid() in trace)
+       printf("%s%s%s\n",thread_indent(entry_p),
+		       	 (entry_p>0?"->":"<-"),
+		         probefunc())
+}
+
+global trace
+probe kernel.function(@1).call {
+   if (execname() == "stapio") next # skip our own helper process
+   trace[tid()] = 1
+   trace(1)
+}
+probe kernel.function(@1).return {
+   trace(-1)
+   delete trace[tid()]
+}
+
+probe kernel.function(@2).call { trace(1) }
+probe kernel.function(@2).return { trace(-1) }

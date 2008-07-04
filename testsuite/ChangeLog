@@ -1,3 +1,9 @@
+
+2008-07-01  Wenji Huang <wenji.huang@oracle.com>
+
+	* buildok/vfs_testcase.stp: Test _vfs.generic_commit_write only when
+	kernel<=2.6.25.
+
 2008-06-27  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p4.exp: Added tests for 'process(PID)'

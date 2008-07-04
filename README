@@ -27,18 +27,23 @@ Build steps:
 
 - Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
   packages (or see below if you are building your own kernels from source).
-- Download the latest elfutils snapshot (if desired):
+
+- If desired, download a recent elfutils snapshot to build in "bundled mode".
+  If desired, build it separately one time, and install it to /usr/local.
+
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
   ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
 - Untar the snapshot in some new directory; apply patch (don't ask, long story)
-- Download systemtap sources snapshot or from GIT:
-  ftp://sources.redhat.com/pub/systemtap/snapshots/ 
+
+- Download systemtap sources:
+  http://sources.redhat.com/systemtap/ftp/releases/
+  http://sources.redhat.com/systemtap/ftp/snapshots/
   (or)
   git clone git://sources.redhat.com/git/systemtap.git
       (or) http://sources.redhat.com/git/systemtap.git
+
 - Build it:
-  cd src
-  ./configure --with-elfutils=PATCHED-ELFUTILS-DIR [other autoconf options]
+  .../configure [--with-elfutils=PATCHED-ELFUTILS-DIR] [other autoconf options]
   make all check
   sudo make install
   sudo make installcheck

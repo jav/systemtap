@@ -1184,7 +1184,8 @@ struct dwflpp
     size_t nsrcs = 0;
     dwarf_query * q = static_cast<dwarf_query *>(data);
     int lineno = lines[0];
-
+    auto_free_ref<Dwarf_Line**> free_srcsp(srcsp);
+    
     get_module_dwarf();
 
     if (line_type == RELATIVE) 
@@ -1210,7 +1211,6 @@ struct dwflpp
 		      dwarf_getsrc_file (module_dwarf,
 					 srcfile, l, 0,
 					 &srcsp, &nsrcs));
-        auto_free srcsp_af(srcsp);
 	if (line_type == WILDCARD || line_type == RANGE)
 	  {
 	    Dwarf_Addr line_addr;

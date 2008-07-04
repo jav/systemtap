@@ -148,7 +148,7 @@ endif
 # Get extra libs as needed
 LDADD =
 
-EXTRA_DIST = buildrun.h elaborate.h loc2c.h session.h \
+EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     parse.h staptree.h tapsets.h translate.h \
 	     cache.h hash.h mdfour.h util.h staplog.c coveragedb.h \
 	     testsuite systemtap.spec runtime tapset \

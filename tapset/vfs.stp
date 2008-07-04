@@ -898,6 +898,7 @@ probe _vfs.generic_block_bmap = kernel.function ("generic_block_bmap")
 	get_block = $get_block
 }
 
+%( kernel_v <= "2.6.25" %?
 probe _vfs.generic_commit_write = kernel.function ("generic_commit_write")
 {
 	file = $file
@@ -905,6 +906,7 @@ probe _vfs.generic_commit_write = kernel.function ("generic_commit_write")
 	from = $from
 	to = $to
 }
+%)
 
 probe _vfs.block_prepare_write = kernel.function ("__block_prepare_write")
 {

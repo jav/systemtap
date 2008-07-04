@@ -1,3 +1,7 @@
+2008-07-01  Wenji Huang  <wenji.huang@oracle.com>
+
+	* vfs.stp : Make _vfs.generic_commit_write only for kernel<=2.6.25
+
 2008-06-26  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp: Add sys_renameat.
