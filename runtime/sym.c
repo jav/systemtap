@@ -56,6 +56,10 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
           for (j = 0; j < last->num_sections; j++) {
             last_sec = &last->sections[j];
             if (!strcmp(section, last_sec->symbol)) {
+            
+              if (last_sec->addr == 0) /* module/section not in memory */
+                continue;
+
               offset += last_sec->addr;
               dbug_sym(1, "address=%lx\n", offset);
               return offset;
