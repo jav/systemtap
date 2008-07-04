@@ -108,7 +108,6 @@ static void _stp_create_unwind_hdr(struct _stp_module *m)
 		header = _stp_vmalloc(hdrSize);
 		if (header == NULL)
 			return;
-		m->allocated.unwind_hdr = 1;
 	}
 
 	header->version = 1;
@@ -156,17 +155,10 @@ static void _stp_create_unwind_hdr(struct _stp_module *m)
 bad:
 	dbug_unwind(1, "unwind data for %s is unacceptable. Freeing.", m->name);
 	if (header) {
-		if (m->allocated.unwind_hdr) {
-			m->allocated.unwind_hdr = 0;
-			_stp_vfree(header);
-		} else
-			_stp_kfree(header);
+          _stp_vfree(header);
 	}
 	if (m->unwind_data) {
-		if (m->allocated.unwind_data)
-			_stp_vfree(m->unwind_data);
-		else
-			_stp_kfree(m->unwind_data);
+          _stp_vfree(m->unwind_data);
 		m->unwind_data = NULL;
 		m->unwind_data_len = 0;
 	}
@@ -691,7 +683,7 @@ int unwind(struct unwind_frame_info *frame)
 	if (UNW_PC(frame) == 0)
 		return -EINVAL;
 
-	m = _stp_get_unwind_info(pc);
+	m = NULL /*_stp_get_unwind_info(pc) */;
 	if (unlikely(m == NULL)) {
 		dbug_unwind(1, "No module found for pc=%lx", pc);
 		return -EINVAL;
@@ -940,21 +932,18 @@ int unwind(struct unwind_frame_info *frame)
 			break;
 		}
 	}
-	read_unlock(&m->lock);
 	dbug_unwind(1, "returning 0 (%lx)\n", UNW_PC(frame));
 	return 0;
 
 copy_failed:
 	dbug_unwind(1, "_stp_read_address failed to access memory\n");
 err:
-	read_unlock(&m->lock);
 	return -EIO;
 	
 done:
 	/* PC was in a range convered by a module but no unwind info */
 	/* found for the specific PC. This seems to happen only for kretprobe */
 	/* trampolines and at the end of interrupt backtraces. */
-	read_unlock(&m->lock);
 	return 1;
 #undef CASES
 #undef FRAME_REG

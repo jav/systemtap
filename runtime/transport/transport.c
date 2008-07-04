@@ -84,7 +84,6 @@ static void _stp_cleanup_and_exit(int send_exit)
 		int failures;
 
 		_stp_exit_flag = 1;
-		unregister_module_notifier(&_stp_module_load_nb);
 
 		/* we only want to do this stuff once */
 		_stp_exit_called = 1;
@@ -180,8 +179,7 @@ void _stp_transport_close()
 	_stp_unregister_ctl_channel();
 	if (_stp_utt)
 		utt_trace_remove(_stp_utt);
-	_stp_free_modules();
-	_stp_kill_time();
+	_stp_kill_time();  /* Go to a beach.  Drink a beer.  */
 	_stp_print_cleanup();	/* free print buffers */
 	_stp_mem_debug_done();
 	dbug_trans(1, "---- CLOSED ----\n");
@@ -263,25 +261,11 @@ int _stp_transport_init(void)
 	
 	_stp_transport_state = 1;
 
-	dbug_trans(1, "calling init_kernel_symbols\n");
-	if (_stp_init_kernel_symbols() < 0)
-		goto err4;
-	
-        /*
-	dbug_trans(1, "calling init_modules\n");
-	if (_stp_init_modules() < 0)
-		goto err4;
-        */
-
         /* Signal stapio to send us STP_START back (XXX: ?!?!?!).  */
 	_stp_ctl_send(STP_TRANSPORT, NULL, 0);
 
 	return 0;
 
-err4:
-	errk("failed to initialize modules\n");
-	_stp_free_modules();
-	destroy_workqueue(_stp_wq);
 err3:
 	_stp_print_cleanup();
 err2:

@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 #include <cassert>
+#include <cstring>
 
 extern "C" {
 #include <elfutils/libdwfl.h>
@@ -4331,6 +4332,7 @@ struct unwindsym_dump_context
 {
   systemtap_session& session;
   ostream& output;
+  unsigned stp_module_index;
 };
 
 
@@ -4343,6 +4345,7 @@ dump_unwindsyms (Dwfl_Module *m,
 {
   unwindsym_dump_context* c = (unwindsym_dump_context*) arg;
   assert (c);
+  unsigned real_stpmodules_index = c->stp_module_index;
 
   string modname = name;
 
@@ -4350,53 +4353,138 @@ dump_unwindsyms (Dwfl_Module *m,
   if (c->session.unwindsym_modules.find(modname) == c->session.unwindsym_modules.end())
     return DWARF_CB_OK;
 
+  c->stp_module_index ++;
+
   if (c->session.verbose > 1)
-    clog << "dump_unwindsyms " << name << " base=0x" << hex << base << dec << endl;
+    clog << "dump_unwindsyms " << name
+         << " index=" << real_stpmodules_index
+         << " base=0x" << hex << base << dec << endl;
 
   // We want to extract several bits of information:
   // - parts of the program-header that map the file's physical offsets to the text section
-  // - symbol table of the text section
-  // - the contents .debug_frame section
+  // - section table: just a list of section (relocation) base addresses
+  // - symbol table of the text section, with all addresses relativized to .text base
+  // - the contents of .debug_frame section, for unwinding purposes
   // In the future, we'll also care about data symbols.
+
+  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_sections[] = {" << endl;
+  if (modname != "kernel")
+    c->output << "  { 0, \".text\" }, " << endl; // XXX
+  else
+    c->output << "  { 0, \"_stext\" }, " << endl; // XXX
+  c->output << "};" << endl;
 
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
 
-  c->output << "struct _stp_symbol _stp_kernel_symbols[] = {" << endl;
+  // Look up the relocation basis for symbols
+  int n = dwfl_module_relocations (m);
+  dwfl_assert ("dwfl_module_relocations", n >= 0);
+
+  // XXX: unfortunate duplication with tapsets.cxx:emit_address()
+
+  typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
+  addrmap_t addrmap; // NB: plain map, sorted by address
+  
+  Dwarf_Addr extra_offset = 0;
+  
   for (int i = 1; i < syments; ++i)
     {
       GElf_Sym sym;
       const char *name = dwfl_module_getsym(m, i, &sym, NULL);
       if (name)
         { 
+          // NB: Yey, we found the kernel's _stext value.
+          // Sess.sym_stext may be unset (0) at this point, since
+          // there may have been no kernel probes set.  We could
+          // use tapsets.cxx:lookup_symbol_address(), but then
+          // we're already iterating over the same data here...
+          if (modname == "kernel" && !strcmp(name, "_stext"))
+            {
+              extra_offset = sym.st_value;
+              if (c->session.verbose > 2)
+                clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
+            }
+
           if (GELF_ST_TYPE (sym.st_info) == STT_FUNC)
             {
-              if (sym.st_value < c->session.sym_stext) continue;
+              Dwarf_Addr sym_addr = sym.st_value;
 
-              c->output << "  { 0x" << hex 
-                        << sym.st_value - c->session.sym_stext  /* <<---- note _stext subtraction */
-                        << dec
-                        << ", " << lex_cast_qstring (name) << " }," << endl;
+              int i = dwfl_module_relocate_address (m, &sym_addr);
+              dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+              const char *secname = dwfl_module_relocation_info (m, i, NULL);
+
+              if (n == 0 || (n==1 && secname == NULL))
+                {
+                  if (c->session.verbose > 2)
+                    clog << "Skipped absolute symbol " << name << endl;
+                  continue;
+                }
+              
+              if (n == 1 && modname == "kernel" && secname[0] == '\0')
+                {
+                  // This is a symbol within a relocatable kernel image.
+                  secname = "_stext"; // not actually used
+                  // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
+                }
+              else if (strcmp (secname, ".text")) /* XXX: only care about .text-related relocations for now. */
+                {
+                  if (c->session.verbose > 2)
+                    clog << "Skipped symbol " << name << ", due to non-.text relocation section " << secname << endl;
+                  continue;
+                }
+              else
+                {
+                  // sym_addr has already been relocate relative to .text
+                }
+
+              addrmap[sym_addr] = name;
             }
         }
     }
+
+  // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
+  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_symbols[] = {" << endl;
+  for (addrmap_t::iterator it = addrmap.begin(); it != addrmap.end(); it++)
+    {
+      if (it->first < extra_offset)
+        continue; // skip symbols that occur before our chosen base address
+
+      c->output << "  { 0x" << hex << it->first-extra_offset << dec
+                << ", " << lex_cast_qstring (it->second) << " }," << endl;
+    }
   c->output << "};" << endl;
-  c->output << "unsigned _stp_num_kernel_symbols = "
-            << "sizeof (_stp_kernel_symbols)/sizeof(struct _stp_symbol);" << endl;
+
+  c->output << "struct _stp_module _stp_module_" << real_stpmodules_index << " = {" << endl;
+  c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
+
+  c->output << ".sections = _stp_module_" << real_stpmodules_index << "_sections" << ", " << endl; 
+  c->output << ".num_sections = sizeof(_stp_module_" << real_stpmodules_index << "_sections)/"
+            << "sizeof(struct _stp_symbol), " << endl; 
+  
+  c->output << ".symbols = _stp_module_" << real_stpmodules_index << "_symbols" << ", " << endl; 
+  c->output << ".num_symbols = sizeof(_stp_module_" << real_stpmodules_index << "_symbols)/"
+            << "sizeof(struct _stp_symbol), " << endl; 
+
+  c->output << "};" << endl << endl;
 
   return DWARF_CB_OK;
 }
 
 
+// Emit symbol table & unwind data, plus any calls needed to register
+// them with the runtime.
+
 void
 emit_symbol_data (systemtap_session& s)
 {
   string symfile = "stap-symbols.h";
+
+  s.op->newline() << "#include " << lex_cast_qstring (symfile);
+
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out };
-
-  s.op->newline() << "\n\n#include \"" << symfile << "\"";
+  unwindsym_dump_context ctx = { s, kallsyms_out, 0 };
 
   // XXX: copied from tapsets.cxx, sadly
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
@@ -4450,7 +4538,6 @@ emit_symbol_data (systemtap_session& s)
       string modname = *it;
       assert (modname.length() != 0);
       if (modname[0] != '/') continue; // user-space files must be full paths
-
       Dwfl *dwfl = dwfl_begin (&user_callbacks);
       if (!dwfl)
         throw semantic_error ("cannot create dwfl for " + modname);
@@ -4469,6 +4556,18 @@ emit_symbol_data (systemtap_session& s)
       dwfl_assert("dwfl_getmodules", off == 0);
       dwfl_end(dwfl);
     }
+
+
+  // Print out a definition of the runtime's _stp_modules[] globals.
+
+  kallsyms_out << endl;
+  kallsyms_out << "struct _stp_module *_stp_modules [] = {" << endl;
+  for (unsigned i=0; i<ctx.stp_module_index; i++)
+    {
+      kallsyms_out << "& _stp_module_" << i << "," << endl;
+    }
+  kallsyms_out << "};" << endl;
+  kallsyms_out << "int _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
 }
 
 

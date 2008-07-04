@@ -360,7 +360,8 @@ int send_relocation_kernel ()
 #endif
               if ((rc == 3) && (0 == strcmp(symbol,KERNEL_RELOC_SYMBOL)))
                 {
-                  send_a_relocation ("kernel", KERNEL_RELOC_SYMBOL, address);
+                  /* NB: even on ppc, we use the _stext relocation name. */
+                  send_a_relocation ("kernel", "_stext", address);
 
                   /* We need nothing more from the kernel. */
                   fclose (kallsyms);

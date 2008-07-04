@@ -25,7 +25,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 	static struct _stp_module *last = NULL;
 	static struct _stp_symbol *last_sec;
 	unsigned long flags;
-	int i, j;
+	unsigned i, j;
 
 	/* if module is -1, we invalidate last. _stp_del_module calls this when modules are deleted. */
 	if ((long)module == -1) {
@@ -35,10 +35,8 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 
 	dbug_sym(1, "%s, %s, %lx\n", module, section, offset);
 
-	STP_RLOCK_MODULES;
 	if (!module || !strcmp(section, "")	/* absolute, unrelocated address */
 	    ||_stp_num_modules == 0) {
-		STP_RUNLOCK_MODULES;
 		return offset;
 	}
 
@@ -46,122 +44,76 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 	if (last) {
 		if (!strcmp(module, last->name) && !strcmp(section, last_sec->symbol)) {
 			offset += last_sec->addr;
-			STP_RUNLOCK_MODULES;
-			dbug_sym(1, "offset = %lx\n", offset);
+			dbug_sym(1, "cached address=%lx\n", offset);
 			return offset;
 		}
 	}
 
-	/* not cached. need to scan all modules */
-	if (!strcmp(module, "kernel")) {
-		STP_RUNLOCK_MODULES;
-
-		/* See also transport/symbols.c (_stp_do_symbols). */
-		if (strcmp(section, "_stext"))
-			return 0;
-                else if (_stp_modules[0]->text == 0) /* kernel->text unavailable?  STP_RELOCATE */
-                  	return 0;
-		else
-			return offset + _stp_modules[0]->text;
-	} else {
-		/* relocatable module */
-		for (i = 1; i < _stp_num_modules; i++) {	/* skip over [0]=kernel */
-			last = _stp_modules[i];
-			if (strcmp(module, last->name))
-				continue;
-			for (j = 0; j < (int)last->num_sections; j++) {
-				last_sec = &last->sections[j];
-				if (!strcmp(section, last_sec->symbol)) {
-					offset += last_sec->addr;
-					STP_RUNLOCK_MODULES;
-					dbug_sym(1, "offset = %lx\n", offset);
-					return offset;
-				}
-			}
-		}
+        for (i = 0; i < _stp_num_modules; i++) {
+          last = _stp_modules[i];
+          if (strcmp(module, last->name))
+            continue;
+          for (j = 0; j < last->num_sections; j++) {
+            last_sec = &last->sections[j];
+            if (!strcmp(section, last_sec->symbol)) {
+              offset += last_sec->addr;
+              dbug_sym(1, "address=%lx\n", offset);
+              return offset;
+            }
+          }
 	}
-	STP_RUNLOCK_MODULES;
+
 	last = NULL;
 	return 0;
 }
 
-/* Lookup the kernel address for this symbol. Returns 0 if not found. */
-static unsigned long _stp_kallsyms_lookup_name(const char *name)
-{
-	struct _stp_symbol *s = _stp_modules[0]->symbols;
-	unsigned num = _stp_modules[0]->num_symbols;
-        unsigned i;
 
-        for (i=0; i<num; i++, s++) {
-          	if (strcmp(name, s->symbol) == 0)
-            		return s->addr;
-          	s++;
-	}
-	return 0;
-}
-
+/* Return the module that likely contains the given address.  */
+/* XXX: This query only makes sense with respect to a particular
+   address space.  A more general interface would have to identify
+   the address space, and also pass back the section. */ 
 static struct _stp_module *_stp_find_module_by_addr(unsigned long addr)
 {
-	unsigned begin = 0;
-	unsigned end = _stp_num_modules;
+  unsigned i;
+  struct _stp_module *closest_module = NULL;
+  unsigned long closest_module_offset = ~0; /* minimum[addr - module->.text] */
+  
+  for (i=0; i<_stp_num_modules; i++)
+    {
+      unsigned long module_text_addr, this_module_offset;
 
-	if (unlikely(addr < _stp_modules_by_addr[0]->text))
-		return NULL;
+      if (_stp_modules[i]->num_sections < 1) continue;
+      module_text_addr = _stp_modules[i]->sections[0].addr; /* XXX: assume section[0]=>text */
+      if (addr < module_text_addr) continue;
+      this_module_offset = module_text_addr - addr;
+      
+      if (this_module_offset < closest_module_offset)
+        {
+          closest_module = _stp_modules[i];
+          closest_module_offset = this_module_offset;
+        }
+    }
 
-	if (_stp_num_modules > 1 && addr > _stp_modules_by_addr[0]->data) {
-		/* binary search on index [begin,end) */
-		do {
-			unsigned mid = (begin + end) / 2;
-			if (addr < _stp_modules_by_addr[mid]->text)
-				end = mid;
-			else
-				begin = mid;
-		} while (begin + 1 < end);
-		/* result index in $begin, guaranteed between [0,_stp_num_modules) */
-	}
-	/* check if addr is past the last module */
-	if (unlikely(begin == _stp_num_modules - 1
-		     && (addr > _stp_modules_by_addr[begin]->text + _stp_modules_by_addr[begin]->text_size)))
-		return NULL;
-
-	return _stp_modules_by_addr[begin];
+  return closest_module;
 }
 
-static struct _stp_module *_stp_get_unwind_info(unsigned long addr)
-{
-	struct _stp_module *m;
-	struct _stp_symbol *s;
-	unsigned long flags;
 
-	STP_RLOCK_MODULES;
-	m = _stp_find_module_by_addr(addr);
-	if (unlikely(m == NULL)) {
-		STP_RUNLOCK_MODULES;
-		return NULL;
-	}
-	/* Lock the module struct so it doesn't go away while being used. */
-	/* Probably could never happen, but lock it to be sure for now. */
-	read_lock(&m->lock);
 
-	STP_RUNLOCK_MODULES;
-	return m;
-}
-
-static const char *_stp_kallsyms_lookup(unsigned long addr,
-					unsigned long *symbolsize, unsigned long *offset, char **modname, char *namebuf)
+static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
+                                        unsigned long *offset, char **modname, char *namebuf)
 {
 	struct _stp_module *m;
 	struct _stp_symbol *s;
 	unsigned long flags;
 	unsigned end, begin = 0;
 
-	STP_RLOCK_MODULES;
 	m = _stp_find_module_by_addr(addr);
 	if (unlikely(m == NULL)) {
-		STP_RUNLOCK_MODULES;
 		return NULL;
 	}
 
+        /* NB: relativize the address to the (XXX) presumed text section. */
+        addr -= m->sections[0].addr;
 	end = m->num_symbols;
 
 	/* binary search for symbols within the module */
@@ -190,16 +142,14 @@ static const char *_stp_kallsyms_lookup(unsigned long addr,
 		}
 		if (namebuf) {
 			strlcpy(namebuf, s->symbol, KSYM_NAME_LEN + 1);
-			STP_RUNLOCK_MODULES;
 			return namebuf;
 		} else {
-			STP_RUNLOCK_MODULES;
 			return s->symbol;
 		}
 	}
-	STP_RUNLOCK_MODULES;
 	return NULL;
 }
+
 
 /** Print an address symbolically.
  * @param address The address to lookup.
