@@ -151,6 +151,12 @@ cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 mkdir $RPM_BUILD_ROOT%{_datadir}/%{name}/src
 cp -rp examples $RPM_BUILD_ROOT%{_datadir}/%{name}/src
 
+#%if %{with_docs}
+# We want the manuals in the special doc dir, not the generic doc install dir.
+mkdir docs.installed
+mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
+#%endif
+
 %clean
 rm -rf ${RPM_BUILD_ROOT}
 
@@ -164,8 +170,7 @@ exit 0
 
 %doc README AUTHORS NEWS COPYING examples
 %if %{with_docs}
-%doc doc/tutorial.pdf
-%doc doc/langref.pdf
+%doc docs.installed/*.pdf
 %endif
 
 %{_bindir}/stap

@@ -1,3 +1,8 @@
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec.in (%install): Move installed pdf files.
+	(%files): Mark moved installed pdf as %doc files.
+
 2008-07-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (translate_pass): Don't #include <linux/compile.h>.
