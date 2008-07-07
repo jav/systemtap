@@ -22,6 +22,8 @@
 
 #include "staprun.h"
 #include <sys/uio.h>
+#include <glob.h>
+
 
 
 /* used in dbug, _err and _perr */
@@ -330,6 +332,8 @@ void send_a_relocation (const char* module, const char* reloc, unsigned long lon
 
 int send_relocation_kernel ()
 {
+  int srkrc = 0;
+
   FILE* kallsyms = fopen ("/proc/kallsyms", "r");
   if (kallsyms == NULL)
     {
@@ -338,7 +342,8 @@ int send_relocation_kernel ()
     }
   else
     {
-      while (! feof(kallsyms))
+      int done_with_kallsyms = 0;
+      while (! feof(kallsyms) && !done_with_kallsyms)
         {
           char *line = NULL;
           size_t linesz = 0;
@@ -352,6 +357,7 @@ int send_relocation_kernel ()
               char* symbol = NULL;
               int rc = sscanf (line, "%llx %c %as", &address, &type, &symbol);
               free (line); line=NULL;
+              if (symbol == NULL) continue; /* OOM? */
 
 #ifdef __powerpc__
 #define KERNEL_RELOC_SYMBOL ".__start"
@@ -364,22 +370,92 @@ int send_relocation_kernel ()
                   send_a_relocation ("kernel", "_stext", address);
 
                   /* We need nothing more from the kernel. */
-                  fclose (kallsyms);
-                  return 0;
+                  done_with_kallsyms=1;
                 }
-              if (symbol != NULL) free (symbol);
+
+              free (symbol);
             }
         }
       fclose (kallsyms);
+      if (!done_with_kallsyms) srkrc = -1;
     }
-  
-  return -1;
+
+  return srkrc;
 }
 
 
 void send_relocation_modules ()
 {
-  /* XXX */
+  unsigned i;
+  glob_t globbuf;
+  int r = glob("/sys/module/*/sections/*", GLOB_PERIOD, NULL, &globbuf);
+
+  if (r == GLOB_NOSPACE || r == GLOB_ABORTED)
+    return;
+
+  for (i=0; i<globbuf.gl_pathc; i++)
+    {
+      char *module_section_file;
+      char *section_name;
+      char *module_name;
+      char *module_name_end;
+      FILE* secfile;
+      unsigned long long section_address;
+
+      module_section_file = globbuf.gl_pathv[i];
+
+      /* Tokenize the file name.  
+         Sample gl_pathv[]: /sys/modules/zlib_deflate/sections/.text
+         Pieces:                         ^^^^^^^^^^^^          ^^^^^
+      */
+      section_name = rindex (module_section_file, '/'); 
+      if (! section_name) continue;
+      section_name ++;
+
+      if (!strcmp (section_name, ".")) continue;
+      if (!strcmp (section_name, "..")) continue;
+      
+      module_name = index (module_section_file, '/'); 
+      if (! module_name) continue;
+      module_name ++;
+      module_name = index (module_name, '/');
+      if (! module_name) continue;
+      module_name ++;
+      module_name = index (module_name, '/');
+      if (! module_name) continue;
+      module_name ++;
+
+      module_name_end = index (module_name, '/');
+      if (! module_name_end) continue;
+
+      secfile = fopen (module_section_file, "r");
+      if (! secfile) continue;
+
+      if (1 == fscanf (secfile, "0x%llx", &section_address))
+        {
+          /* Now we destructively modify the string, but by now the file
+             is open so we won't need the full name again. */
+          *module_name_end = '\0';
+          
+          send_a_relocation (module_name, section_name, section_address);
+        }
+
+      if (strcmp (section_name, ".gnu.linkonce.this_module"))
+        fclose (secfile);
+      else
+        {
+          set_clexec (fileno (secfile));
+          /* NB: don't fclose this arbitrarily-chosen section file.
+             This forces the kernel to keep a nonzero reference count
+             on the subject module, until staprun exits, by which time
+             the kernel module will have inserted its separate claws
+             into the probeworthy modules.  This prevents a race
+             condition where a probe may be just starting up at the
+             same time that a probeworthy module is being unloaded. */
+        }
+    }
+  
+  globfree (& globbuf);
 }
 
 
