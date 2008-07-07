@@ -1,5 +1,10 @@
 2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
 
+	* stapex.5.in: Add section on installed examples, samples and demos
+	and how they are documented.
+
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
 	* Makefile.am (install-data-hook): Install examples, demos and
 	samples.
 	(uninstall-local): Remove examples, demos and samples.
