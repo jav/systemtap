@@ -1,5 +1,16 @@
 2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
 
+	* Makefile.am (install-data-hook): Install examples, demos and
+	samples.
+	(uninstall-local): Remove examples, demos and samples.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* systemtap.spec.in (%install): Move examples.
+	Don't copy over examples to src.
+	(testsuite): Don't include src/examples.
+
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
 	* systemtap.spec.in (%install): Move installed pdf files.
 	(%files): Mark moved installed pdf as %doc files.
 
