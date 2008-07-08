@@ -1,0 +1,19 @@
+# Declaration tests.  Specifically looking for resolution of
+# DW_AT_declaration from another module
+
+set TEST_NAME "RESOLVE_FAIL"
+
+# this test just makes sure $device is still stubbed with DW_AT_declaration
+set failscript {
+    probe\ module(\"libata\").function(\"ata_qc_issue\")\ \{\ print(\$qc->\$scsicmd->\$device->\$host->\$host_no)\ \};
+}
+
+stap_compile $TEST_NAME 0 $failscript
+
+set TEST_NAME "RESOLVE_PASS"
+
+set passscript {
+    probe\ module(\"scsi_mod\").function(\"scsi_request_fn\")\ \{print(\$q)\}
+}
+
+stap_compile $TEST_NAME 1 [concat $passscript $failscript ]
