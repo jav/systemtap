@@ -1,6 +1,7 @@
 // tapset resolution
 // Copyright (C) 2005-2008 Red Hat Inc.
 // Copyright (C) 2005-2007 Intel Corporation.
+// Copyright (C) 2008 James.Bottomley@HansenPartnership.com
 //
 // This file is part of systemtap, and is free software.  You can
 // redistribute it and/or modify it under the terms of the GNU General
@@ -1157,6 +1158,47 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
+  /* The global alias cache is used to resolve any DIE found in a
+   * module that is stubbed out with DW_AT_declaration with a defining
+   * DIE found in a different module.  The current assumption is that
+   * this only applies to structures and unions, which have a global
+   * namespace (it deliberately only traverses program scope), so this
+   * cache is indexed by name.  If other declaration lookups were
+   * added to it, it would have to be indexed by name and tag
+   */
+  cu_function_cache_t global_alias_cache;
+
+  static int global_alias_caching_callback(Dwarf_Die *die, void *arg)
+  {
+    dwflpp *dw = static_cast<struct dwflpp *>(arg);
+    const char *name = dwarf_diename(die);
+
+    if (!name)
+      return DWARF_CB_OK;
+
+    string structure_name = name;
+
+    if (!dwarf_hasattr(die, DW_AT_declaration) &&
+	dw->global_alias_cache.find(structure_name) ==
+	dw->global_alias_cache.end())
+      dw->global_alias_cache[structure_name] = *die;
+
+    return DWARF_CB_OK;
+  }
+
+  Dwarf_Die *declaration_resolve(Dwarf_Die *die)
+  {
+    const char *name = dwarf_diename(die);
+
+    if (!name)
+      return NULL;
+
+    if (global_alias_cache.find(name) == global_alias_cache.end())
+      return NULL;
+
+    return &global_alias_cache[name];
+  }
+
   mod_cu_function_cache_t cu_function_cache;
 
   static int cu_function_caching_callback (Dwarf_Die* func, void *arg)
@@ -1169,6 +1211,16 @@ struct dwflpp
 
   int iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
                               void * data);
+  int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
+				 void * data);
+
+  int update_alias_cache(void)
+  {
+    int rc;
+
+    rc = iterate_over_globals(global_alias_caching_callback, this);
+    return rc;
+  }
 
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
@@ -1834,6 +1886,14 @@ struct dwflpp
 	  case DW_TAG_structure_type:
 	  case DW_TAG_union_type:
 	    struct_die = *die;
+	    if (dwarf_hasattr(die, DW_AT_declaration))
+	      {
+		Dwarf_Die *tmpdie = dwflpp::declaration_resolve(die);
+		if (tmpdie == NULL)
+		  throw semantic_error ("unresolved struct "
+					+ string (dwarf_diename_integrate (die) ?: "<anonymous>"));
+		*die_mem = *tmpdie;
+	      }
 	    switch (dwarf_child (die, die_mem))
 	      {
 	      case 1:		/* No children.  */
@@ -2517,6 +2577,37 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
     return false;
   }
 
+/* This basically only goes one level down from the compile unit so it
+ * only picks up top level stuff (i.e. nothing in a lower scope) */
+int
+dwflpp::iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
+				   void * data)
+{
+  int rc = DWARF_CB_OK;
+  Dwarf_Die die;
+
+  assert (module);
+  assert (cu);
+  assert (dwarf_tag(cu) == DW_TAG_compile_unit);
+
+  if (dwarf_child(cu, &die) != 0)
+    return rc;
+
+  do {
+    /* We're only currently looking for structures and unions,
+     * although other types of declarations exist */
+    if (dwarf_tag(&die) != DW_TAG_structure_type &&
+	dwarf_tag(&die) != DW_TAG_union_type)
+      continue;
+
+    rc = (*callback)(&die, data);
+    if (rc != DWARF_CB_OK)
+      break;
+
+  } while (dwarf_siblingof(&die, &die) == 0);
+
+  return rc;
+}
 
 int
 dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
@@ -3504,6 +3595,8 @@ query_cu (Dwarf_Die * cudie, void * arg)
   try
     {
       q->dw.focus_on_cu (cudie);
+
+      q->dw.update_alias_cache();
 
       if (false && q->sess.verbose>2)
         clog << "focused on CU '" << q->dw.cu_name
