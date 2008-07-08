@@ -1,3 +1,13 @@
+2008-07-08    <brolley@redhat.com>
+
+	* stap-client (client_sysinfo): Use `uname -rvm`.
+	(receive_response): Wait for "done:" from the server. Clear server_ip
+	when the server is incompatible.
+	* stap-server (check_request): Quote "`server_sysinfo`".
+	(server_sysinfo): Use `uname -rvm`.
+	(send_response): Send "done:".
+	* stap-serverd (advertise_presence): Use `uname -rvm`. Quote "$txt".
+
 2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
 
 	* stapex.5.in: Add section on installed examples, samples and demos
