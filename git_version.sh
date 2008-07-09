@@ -155,6 +155,29 @@ cat<<EOF
 
 EOF
 
+# Backwards compatibility hack for git 1.6.0 (and people running the
+# latest pre-release version of git.) 
+#
+# For now, we'll do this to support git 1.6, with minimal changes to
+# the rest of this script, but no guarantees how long this will work.
+# The hyphenated git-foo-bar names really are deprecated, and may
+# disappear in the future as more of git gets rewritten as built-in C
+# programs.  Google summer of code students and other git developers
+# are hard at work doing this, in order to make git more
+# portable/usable for Windows users.  As a result, some of the
+# git-foo-bar programs, which will be moved to the exec-dir directory
+# in git 1.6, may disappear altogether in the future.  Hence the only
+# truly safe and future-compatible way of running commands such as
+# git-diff-files, git-rev-parse, etc., are "git diff-files" and 
+# "git rev-parse".  Here endeth the git portability sermon, which
+# I suspect will have as much effect as abstinence-only sex ed 
+# classes.  :-)   TYT, 2008-07-08
+
+execdir=$(git --exec-path 2> /dev/null)
+if test -n "$execdir"; then
+    PATH=$PATH:$execdir
+fi
+
 # Detect git tools (should work with old and new git versions)
 git_found=yes
 for git_tool in git-symbolic-ref git-rev-parse git-diff-files git-diff-index git
