@@ -1,3 +1,9 @@
+2008-07-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	From James Bottomley <James.Bottomley@HansenPartnership.com>
+	* tapsets.cxx: (dwflpp::global_alias_cache): New member.
+	(declaration_resolve): Search it, called from translate_components.
+	(update_alias_cache): Populate it, called from query_cu.
 
 2008-07-09    <wenji.huang@oracle.com>
 
