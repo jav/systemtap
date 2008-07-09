@@ -1,3 +1,11 @@
+2008-07-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 6732
+	* autoconf-real-parent.c: New file.
+	* task_finder.c (__stp_utrace_task_finder_report_exec): Define
+	real_parent using STAPCONF_REAL_PARENT. Undefine when no longer
+	needed.
+
 2008-07-01  David Smith  <dsmith@redhat.com>
 
 	* task_finder.c (__stp_get_mm_path): Corrected error return code.
