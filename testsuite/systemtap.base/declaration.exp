@@ -1,7 +1,7 @@
 # Declaration tests.  Specifically looking for resolution of
 # DW_AT_declaration from another module
 
-set TEST_NAME "RESOLVE_FAIL"
+set TEST_NAME "empty-struct resolve-fail"
 
 # this test just makes sure $device is still stubbed with DW_AT_declaration
 set failscript {
@@ -10,7 +10,7 @@ set failscript {
 
 stap_compile $TEST_NAME 0 $failscript
 
-set TEST_NAME "RESOLVE_PASS"
+set TEST_NAME "empty-struct resolve-pass"
 
 set passscript {
     probe\ module(\"scsi_mod\").function(\"scsi_request_fn\")\ \{print(\$q)\}
