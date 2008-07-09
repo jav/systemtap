@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
     const char *const prog = (idx)?(idx+1):(argv[0]);
 #ifdef PACKAGE_VERSION
     printf("%s: version %s, built from %s\n", prog, PACKAGE_VERSION, GIT_MESSAGE);
-#elif defined(GIT_USED)
+#elif defined(GIT_MESSAGE)
     printf("%s: built from %s\n", prog, GIT_MESSAGE);
 #endif
     return 0;
