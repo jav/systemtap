@@ -3578,8 +3578,8 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
                       q->filtered_functions.push_back (func);
                     }
                   else
-                    throw semantic_error("no entrypc found for function '"
-                                         + q->dw.function_name + "'");
+                    /* this function just be fully inlined, just ignore it */
+                    return DWARF_CB_OK;
                 }
               else if (q->has_statement_num)
                 {
