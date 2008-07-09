@@ -1,3 +1,9 @@
+
+2008-07-09    <wenji.huang@oracle.com>
+
+	* translate.cxx (visit_comparison): Remove unnecessary comparison.
+	* translate.cxx (emit_symbol_data): Remove unused local variable.
+
 2008-07-08    <brolley@redhat.com>
 
 	* stap-client (client_sysinfo): Use `uname -rvm`.

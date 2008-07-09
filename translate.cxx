@@ -3134,8 +3134,7 @@ c_unparser::visit_comparison (comparison* e)
 
   if (e->left->type == pe_string)
     {
-      if (e->left->type != pe_string ||
-          e->right->type != pe_string)
+      if (e->right->type != pe_string)
         throw semantic_error ("expected string types", e->tok);
 
       o->line() << "strncmp (";
@@ -3147,8 +3146,7 @@ c_unparser::visit_comparison (comparison* e)
     }
   else if (e->left->type == pe_long)
     {
-      if (e->left->type != pe_long ||
-          e->right->type != pe_long)
+      if (e->right->type != pe_long)
         throw semantic_error ("expected numeric types", e->tok);
 
       o->line() << "((";
@@ -4424,7 +4422,7 @@ emit_symbol_data (systemtap_session& s)
     // so parse /proc/kallsyms.
 
     ifstream kallsyms("/proc/kallsyms");
-    string lastaddr, modules_op_addr;
+    string lastaddr;
     
     kallsyms_out << "struct _stp_symbol _stp_kernel_symbols [] = {";
     while (! kallsyms.eof())
