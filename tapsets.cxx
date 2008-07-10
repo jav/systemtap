@@ -2329,6 +2329,8 @@ struct dwarf_derived_probe: public derived_probe
 
   void join_group (systemtap_session& s);
 
+  void emit_probe_local_init(translator_output * o);
+
   // Pattern registration helpers.
   static void register_statement_variants(match_node * root,
 					  dwarf_builder * dw);
@@ -4528,6 +4530,12 @@ dwarf_derived_probe::register_patterns(match_node * root)
   // register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
 
+void
+dwarf_derived_probe::emit_probe_local_init(translator_output * o)
+{
+  // emit bsp cache setup
+  o->newline() << "bspcache(c->unwaddr, c->regs, c->probe_point);";
+}
 
 // ------------------------------------------------------------------------
 

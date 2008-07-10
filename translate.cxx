@@ -1515,6 +1515,9 @@ c_unparser::emit_probe (derived_probe* v)
       o->newline() << "c->statp = & time_" << v->basest()->name << ";";
       o->newline() << "#endif";
 
+      // emit probe local initialization block
+      v->emit_probe_local_init(o);
+
       // emit all read/write locks for global variables
       varuse_collecting_visitor vut;
       if (v->needs_global_locks ())

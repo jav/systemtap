@@ -132,6 +132,10 @@ struct derived_probe: public probe
   // From within unparser::emit_probe, initialized any extra variables
   // in this probe's context locals.
 
+  virtual void emit_probe_local_init (translator_output*) {}
+  // From within unparser::emit_probe, emit any extra processing block
+  // for this probe.
+
 public:
   static void emit_common_header (translator_output* o);
   // from c_unparser::emit_common_header
