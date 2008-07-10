@@ -59,8 +59,7 @@ function __page_ino:long (page:long) %{ /* pure */
 
 function __address_inode:long (page:long) %{ /* pure */
 	struct page *page = (struct page *)(long)THIS->page;
-	struct address_space *mapping =
-			(struct address_space *)(long)THIS;
+	struct address_space *mapping = kread(&(page->mapping));
 	if (mapping == NULL) {
 		THIS->__retvalue = -1;
 	} else {
