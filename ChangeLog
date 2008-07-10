@@ -1,3 +1,18 @@
+2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6736.
+	* main.cxx (main,usage): Support new "-d MODULE" option to
+	populate comp-unwindsyms module list.
+	* stap.1.in: Document it.
+	* tapsets.cxx (dwarf_query::add_probe_point): Add probed module
+	to comp-unwindsyms set.
+	(utrace_builder::build): Ditto for probed user-space program.
+	* translate.cxx (emit_symbol_data): Emit _stp_module[] entry
+	for each comp-unwindsyms member, including relocation bases
+	and symbols, but not yet unwind data.
+	* NEWS: Remove mention of temporarily disabled unwinder.
+	* session.h: Corresponding changes.
+
 2008-07-09  Mark Wielaard  <mwielaard@redhat.com>
 
 	PR 6732

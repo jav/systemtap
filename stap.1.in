@@ -152,6 +152,11 @@ Use the given name for the generated kernel object module, instead
 of a unique randomized name.  The generated kernel object module is
 copied to the current directory.
 .TP
+.BI \-d " MODULE"
+Add symbol/unwind information for the given module into the kernel object
+module.  This may enable symbolic tracebacks from those modules/programs,
+even if they do not have an explicit probe placed into them.
+.TP
 .BI \-o " FILE"
 Send standard output to named file. In bulk mode, percpu files will
 start with FILE_ followed by the cpu number.

@@ -1,3 +1,16 @@
+2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6736.
+	* sym.c (_stp_module_relocate): Generalized to search all
+	_stp_module[]s.
+	(_stp_kallsyms_lookup_name): Gone.
+	(_stp_find_module_by_addr): Rewritten.
+	(_stp_get_unwind_info): Temporarily gone.
+	* sym.h (_stp_module): Simplify structure.
+	* unwind.c: Adapt just enough to compile with eliminated elements.
+
+	* probes.stp: Removed unused file.
+
 2008-07-09  Mark Wielaard  <mwielaard@redhat.com>
 
 	PR 6732

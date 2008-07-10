@@ -1,3 +1,12 @@
+2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6736.
+	* common.c (send_request): Move here ...
+	* mainloop.c: from here.
+	* staprun.c (send_relocations): New function to send kernel
+	and module relocation bases to probe module.
+	* staprun.h: Corresponding changes.
+
 2008-06-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6429.

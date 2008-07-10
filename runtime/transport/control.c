@@ -32,7 +32,6 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 
 
 #ifdef DEBUG_TRANS
-        printk (KERN_INFO " control write_cmd: Got %s. len=%d\n", _stp_command_name[type], (int)count);
 	if (type < STP_MAX_CMD)
 		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);
 #endif
