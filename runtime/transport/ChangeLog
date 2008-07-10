@@ -1,4 +1,8 @@
+2008-07-09  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR5963
+	* transport.c (_stp_work_queue): Don't signal a premature exit
+	if a begin probe happened to exit().
 
 2008-06-23  Wenji Huang  <wenji.huang@oracle.com>
 	PR 6646
