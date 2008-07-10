@@ -23,7 +23,11 @@ function task_current:long () %{ /* pure */
 // Return the parent task_struct of the given task
 function task_parent:long (task:long) %{ /* pure */
     struct task_struct *t = (struct task_struct *)(long)THIS->task;
+#if defined(STAPCONF_REAL_PARENT)
+    THIS->__retvalue = (long)kread(&(t->real_parent));
+#else
     THIS->__retvalue = (long)kread(&(t->parent));
+#endif
     CATCH_DEREF_FAULT();
 %}
 

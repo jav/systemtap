@@ -1,11 +1,24 @@
 # Makefile.am --- automake input file for systemtap docs
 ## process this file with automake to produce Makefile.in
 
+PDF_FILES = tutorial.pdf langref.pdf
+DOC_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap
+
 if BUILD_DOCS
-all-local: tutorial.pdf langref.pdf
+all-local: $(PDF_FILES)
 
 clean-local:
 	rm -f *.pdf *.out *.log *.aux *.toc *.lot *.idx *.glo
+
+install-data-hook:
+	$(MKDIR_P) $(DOC_INSTALL_DIR)
+	$(INSTALL_DATA) $(PDF_FILES) $(DOC_INSTALL_DIR)
+
+uninstall-local:
+	@list='$(PDF_FILES)'; for p in $$list; do \
+	  echo " rm -f '$(DOC_INSTALL_DIR)/$$p'"; \
+	  rm -f "$(DOC_INSTALL_DIR)/$$p"; \
+	done
 endif
 
 SUFFIXES = ps pdf dvi ps tex

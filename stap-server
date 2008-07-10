@@ -111,7 +111,7 @@ function check_request {
     client_sysinfo=`read_data_file sysinfo`
     test "X$client_sysinfo" != "X" || exit 1
 
-    check_compatibility "$client_sysinfo" `server_sysinfo`
+    check_compatibility "$client_sysinfo" "`server_sysinfo`"
 }
 
 # function server_sysinfo
@@ -120,7 +120,7 @@ function check_request {
 function server_sysinfo {
     if test "X$sysinfo_server" = "X"; then
 	# Add some info from uname
-	sysinfo_server="`uname -r`"
+	sysinfo_server="`uname -rvm`"
     fi
     echo $sysinfo_server
 }
@@ -365,9 +365,10 @@ function package_response {
 # Notify the client that $tar_server is ready and wait for the client to take
 # it.
 # The protocol is:
-#   server -> "sending: $tmpdir_server $tmpdir_stap"
+#   server -> "done:"
 #   server -> $tar_server
 function send_response {
+    echo "done:"
     # Now send it
     nc -l $port < $tar_server > /dev/null
 }

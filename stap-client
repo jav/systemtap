@@ -315,7 +315,7 @@ function create_request {
 function client_sysinfo {
     if test "X$sysinfo_client" = "X"; then
 	# Add some info from uname
-	sysinfo_client="`uname -r`"
+	sysinfo_client="`uname -rvm`"
     fi
     echo $sysinfo_client
 }
@@ -348,7 +348,6 @@ function package_request {
 # the tar file will expand to.
 function send_request {
     echo "request:" >&3
-
     # Get the server's response.
     read <&3
     local line=$REPLY
@@ -368,7 +367,19 @@ function send_request {
 # function: receive_response
 #
 # Wait for a response from the server indicating the results of our request.
+# protocol is:
+# server -> "done:"
+# server -> $tar_server
 function receive_response {
+    # Get the server's response.
+    read <&3
+    local line=$REPLY
+    check_server_error $line
+
+    # Check for the proper response.
+    test "$line" = "done:" || \
+	fatal "ERROR: server response, '$line', is incorrect"
+
     # Make a place to receive the response file.
     tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $tar_server
@@ -522,6 +533,7 @@ function match_server {
 
 	# It is a stap server, but is it compatible?
 	if test "$sysinfo_server" != "`client_sysinfo`"; then
+	    server_ip=
 	    continue
 	fi
 

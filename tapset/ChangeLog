@@ -1,3 +1,10 @@
+2008-07-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 6732
+	* context.stp (ppid): Use STAPCONF_REAL_PARENT.
+	(pexecname): Likewise.
+	* task.stp (task_parent): Likewise.
+
 2008-07-01  Wenji Huang  <wenji.huang@oracle.com>
 
 	* vfs.stp : Make _vfs.generic_commit_write only for kernel<=2.6.25

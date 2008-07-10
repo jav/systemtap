@@ -1,3 +1,9 @@
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (install-data-hook): New, install pdf files.
+	(uninstall-local): New, uninstall them again.
+	* Makefile.in: Regenerated.
+
 2008-04-24  Will Cohen  <wcohen@redhat.com>
 
 	* Makefile.in: Regenerated.

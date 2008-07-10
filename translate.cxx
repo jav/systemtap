@@ -3136,8 +3136,7 @@ c_unparser::visit_comparison (comparison* e)
 
   if (e->left->type == pe_string)
     {
-      if (e->left->type != pe_string ||
-          e->right->type != pe_string)
+      if (e->right->type != pe_string)
         throw semantic_error ("expected string types", e->tok);
 
       o->line() << "strncmp (";
@@ -3149,8 +3148,7 @@ c_unparser::visit_comparison (comparison* e)
     }
   else if (e->left->type == pe_long)
     {
-      if (e->left->type != pe_long ||
-          e->right->type != pe_long)
+      if (e->right->type != pe_long)
         throw semantic_error ("expected numeric types", e->tok);
 
       o->line() << "((";

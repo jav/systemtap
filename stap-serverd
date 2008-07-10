@@ -34,13 +34,12 @@ function initialization {
 function advertise_presence {
     # Build up a string representing our server's properties.
     # TODO: this needs fleshing out.
-
-    local sysinfo=`uname -r`
+    local sysinfo=`uname -rvm`
     local txt="$sysinfo"
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
-	$avahi_type $port $txt > /dev/null 2>&1 &
+	$avahi_type $port "$txt" > /dev/null 2>&1 &
 
     echo "Systemtap Compile Server on `uname -n` listening on port $port"
 }

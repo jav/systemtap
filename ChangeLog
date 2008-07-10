@@ -1,3 +1,52 @@
+2008-07-09  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR 6732
+	* buildrun.cxx (compile_pass): Define STAPCONF_REAL_PARENT by
+	calling autoconf-real-parent.c
+
+2008-07-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	From James Bottomley <James.Bottomley@HansenPartnership.com>
+	* tapsets.cxx: (dwflpp::global_alias_cache): New member.
+	(declaration_resolve): Search it, called from translate_components.
+	(update_alias_cache): Populate it, called from query_cu.
+
+2008-07-09    <wenji.huang@oracle.com>
+
+	* translate.cxx (visit_comparison): Remove unnecessary comparison.
+	* translate.cxx (emit_symbol_data): Remove unused local variable.
+
+2008-07-08    <brolley@redhat.com>
+
+	* stap-client (client_sysinfo): Use `uname -rvm`.
+	(receive_response): Wait for "done:" from the server. Clear server_ip
+	when the server is incompatible.
+	* stap-server (check_request): Quote "`server_sysinfo`".
+	(server_sysinfo): Use `uname -rvm`.
+	(send_response): Send "done:".
+	* stap-serverd (advertise_presence): Use `uname -rvm`. Quote "$txt".
+
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* stapex.5.in: Add section on installed examples, samples and demos
+	and how they are documented.
+
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (install-data-hook): Install examples, demos and
+	samples.
+	(uninstall-local): Remove examples, demos and samples.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+	* systemtap.spec.in (%install): Move examples.
+	Don't copy over examples to src.
+	(testsuite): Don't include src/examples.
+
+2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec.in (%install): Move installed pdf files.
+	(%files): Mark moved installed pdf as %doc files.
+
 2008-07-03  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (translate_pass): Don't #include <linux/compile.h>.

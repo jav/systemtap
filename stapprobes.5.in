@@ -121,6 +121,47 @@ handler is never run, though its statements are analyzed for symbol /
 type correctness as usual.  This probe point may be useful in
 conjunction with optional probes.
 
+.SS SYSCALL
+
+The
+.IR syscall.*
+aliases define several hundred probes, too many to
+summarize here.  They are:
+
+.SAMPLE
+syscall.NAME
+.br
+syscall.NAME.return
+.ESAMPLE
+
+Generally, two probes are defined for each normal system call as listed in the
+.IR syscalls(2)
+manual page, one for entry and one for return.  Those system calls that never
+return do not have a corresponding
+.IR .return
+probe.
+.PP
+Each probe alias defines a variety of variables. Looking at the tapset source
+code is the most reliable way.  Generally, each variable listed in the standard
+manual page is made available as a script-level variable, so
+.IR syscall.open
+exposes
+.IR filename ", " flags ", and " mode .
+In addition, a standard suite of variables is available at most aliases:
+.TP
+.IR argstr
+A pretty-printed form of the entire argument list, without parentheses.
+.TP
+.IR name
+The name of the system call.
+.TP
+.IR retstr
+For return probes, a pretty-printed form of the system-call result.
+.PP
+Not all probe aliases obey all of these general guidelines.  Please report
+any bothersome ones you encounter as a bug.
+
+
 .SS TIMERS
 
 Intervals defined by the standard kernel "jiffies" timer may be used

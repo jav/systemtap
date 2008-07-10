@@ -106,6 +106,13 @@ To list the probeable functions in the kernel, use the listings mode.
 % stap \-l \[aq]kernel.function("*")\[aq]
 .ESAMPLE
 
+.SH MORE EXAMPLES
+
+Larger examples, demos and samples can be found in
+@prefix@/doc/systemtap*/examples, each example comes with either a .txt
+or .meta file explaining what the example, sample or demo does and how
+it is ordinarily run.
+
 .SH SEE ALSO
 .BR @prefix@/doc/systemtap*/examples
 .IR stap (1)

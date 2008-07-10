@@ -41,11 +41,19 @@ function tid:long () %{ /* pure */
 %}
 
 function ppid:long () %{ /* pure */
+#if defined(STAPCONF_REAL_PARENT)
+	THIS->__retvalue = current->real_parent->tgid;
+#else
 	THIS->__retvalue = current->parent->tgid;
+#endif
 %}
 
 function pexecname:string () %{ /* pure */
+#if defined(STAPCONF_REAL_PARENT)
+	strlcpy (THIS->__retvalue, current->real_parent->comm, MAXSTRINGLEN);
+#else
 	strlcpy (THIS->__retvalue, current->parent->comm, MAXSTRINGLEN);
+#endif
 %}
 
 function gid:long () %{ /* pure */
