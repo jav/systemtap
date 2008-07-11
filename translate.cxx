@@ -4365,19 +4365,22 @@ dump_unwindsyms (Dwfl_Module *m,
   // - the contents of .debug_frame section, for unwinding purposes
   // In the future, we'll also care about data symbols.
 
-  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_sections[] = {" << endl;
-  if (modname != "kernel")
-    c->output << "  { 0, \".text\" }, " << endl; // XXX
-  else
-    c->output << "  { 0, \"_stext\" }, " << endl; // XXX
-  c->output << "};" << endl;
 
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
 
   // Look up the relocation basis for symbols
   int n = dwfl_module_relocations (m);
+
   dwfl_assert ("dwfl_module_relocations", n >= 0);
+
+  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_sections[] = {" << endl;
+  if (n > 0 && modname != "kernel")
+    c->output << "  { 0, \".text\" }, " << endl; // XXX
+  else if (n >= 0 && modname == "kernel")
+    c->output << "  { 0, \"_stext\" }, " << endl;
+  c->output << "};" << endl;
+
 
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
@@ -4404,36 +4407,38 @@ dump_unwindsyms (Dwfl_Module *m,
                 clog << "Found kernel _stext 0x" << hex << extra_offset << dec << endl;
             }
 
-          if (GELF_ST_TYPE (sym.st_info) == STT_FUNC)
+          if (GELF_ST_TYPE (sym.st_info) == STT_FUNC &&
+              sym.st_shndx != SHN_UNDEF)
             {
               Dwarf_Addr sym_addr = sym.st_value;
+              const char *secname = NULL;
 
-              int i = dwfl_module_relocate_address (m, &sym_addr);
-              dwfl_assert ("dwfl_module_relocate_address", i >= 0);
-              const char *secname = dwfl_module_relocation_info (m, i, NULL);
-
-              if (n == 0 || (n==1 && secname == NULL))
+              if (n > 0) // only try to relocate if there exist relocation bases
                 {
-                  if (c->session.verbose > 2)
-                    clog << "Skipped absolute symbol " << name << endl;
-                  continue;
+                  i = dwfl_module_relocate_address (m, &sym_addr);
+                  dwfl_assert ("dwfl_module_relocate_address", i >= 0);
+                  secname = dwfl_module_relocation_info (m, i, NULL);
                 }
-              
-              if (n == 1 && modname == "kernel" && secname[0] == '\0')
+
+              if (n == 1 && modname == "kernel" && secname && secname[0] == '\0')
                 {
                   // This is a symbol within a relocatable kernel image.
                   secname = "_stext"; // not actually used
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
                 }
-              else if (strcmp (secname, ".text")) /* XXX: only care about .text-related relocations for now. */
+              else if (n > 0 && strcmp (secname, ".text")) /* XXX: only care about .text-related relocations for now. */
                 {
                   if (c->session.verbose > 2)
                     clog << "Skipped symbol " << name << ", due to non-.text relocation section " << secname << endl;
                   continue;
                 }
+              else if (n == 0)
+                {
+                  // sym_addr is absolute, as it must be since there are no relocation bases
+                }
               else
                 {
-                  // sym_addr has already been relocate relative to .text
+                  // sym_addr has already been relocated relative to .text
                 }
 
               addrmap[sym_addr] = name;
