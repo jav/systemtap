@@ -5044,8 +5044,7 @@ symbol_table::mark_dwarf_redundancies(dwflpp *dw)
   // vector of Dwarf_Dies, one per function.
   string module_prefix = string(mod_info->name) + ":";
 
-  mod_cu_function_cache_t::iterator cu;
-  for (cu = dw->cu_function_cache.begin();
+  for (mod_cu_function_cache_t::iterator cu = dw->cu_function_cache.begin();
        cu != dw->cu_function_cache.end(); cu++)
     {
       string key = cu->first;

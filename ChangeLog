@@ -1,5 +1,11 @@
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6703.
+	* tapsets.cxx (mark_dwarf_redundancies): Tweak hashtable/iterator
+	syntax for gcc 4.1 compatibility.
+
+2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6736.
 	* main.cxx (main,usage): Support new "-d MODULE" option to
 	populate comp-unwindsyms module list.
