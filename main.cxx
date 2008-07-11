@@ -524,6 +524,7 @@ main (int argc, char * const argv [])
 
         case 'k':
           s.keep_tmpdir = true;
+          s.use_cache = false; /* User wants to keep a usable build tree. */
           break;
 
         case 'g':
