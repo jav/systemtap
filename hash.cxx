@@ -1,5 +1,5 @@
 // Copyright (C) Andrew Tridgell 2002 (original file)
-// Copyright (C) 2006-2007 Red Hat Inc. (systemtap changes)
+// Copyright (C) 2006-2008 Red Hat Inc. (systemtap changes)
 // 
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -115,7 +115,14 @@ find_hash (systemtap_session& s, const string& script)
   for (unsigned i = 0; i < s.macros.size(); i++)
     h.add(s.macros[i]);
 
-  // Hash runtime path (that gets added in as "-I path").
+  // -d MODULE
+  for (set<string>::iterator it = s.unwindsym_modules.begin();
+       it != s.unwindsym_modules.end();
+       it++)
+    h.add(*it);
+    // XXX: a build-id of each module might be even better
+
+  // Hash runtime path (that gets added in as "-R path").
   h.add(s.runtime_path);
 
   // Hash compiler path, size, and mtime.  We're just going to assume

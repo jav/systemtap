@@ -1,3 +1,7 @@
+2008-07-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* hash.cxx (find_hash): Mix in -d MODULE names.
+
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	* main.cxx (main): If "-k" (save temp directory) was supplied, 
