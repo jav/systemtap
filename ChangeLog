@@ -1,5 +1,14 @@
 2008-07-11  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6739
+	* tapsets.cxx (global_alias_cache): Make this a per-module/cu cache,
+	just like the function cache.
+	(update_alias_cache): Removed.  Instead ...
+	(declaration_resolve): Compute the lookup table for this module/cu,
+	but only once.
+
+2008-07-11  Frank Ch. Eigler  <fche@elastic.org>
+
 	* translate.cxx (dump_unwindsyms): Start tolerating user-space programs,
 	which may be unrelocatable.
 

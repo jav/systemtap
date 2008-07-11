@@ -1158,7 +1158,7 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
-  /* The global alias cache is used to resolve any DIE found in a
+   /* The global alias cache is used to resolve any DIE found in a
    * module that is stubbed out with DW_AT_declaration with a defining
    * DIE found in a different module.  The current assumption is that
    * this only applies to structures and unions, which have a global
@@ -1166,11 +1166,10 @@ struct dwflpp
    * cache is indexed by name.  If other declaration lookups were
    * added to it, it would have to be indexed by name and tag
    */
-  cu_function_cache_t global_alias_cache;
-
+  mod_cu_function_cache_t global_alias_cache;
   static int global_alias_caching_callback(Dwarf_Die *die, void *arg)
   {
-    dwflpp *dw = static_cast<struct dwflpp *>(arg);
+    cu_function_cache_t *cache = static_cast<cu_function_cache_t*>(arg);
     const char *name = dwarf_diename(die);
 
     if (!name)
@@ -1179,9 +1178,8 @@ struct dwflpp
     string structure_name = name;
 
     if (!dwarf_hasattr(die, DW_AT_declaration) &&
-	dw->global_alias_cache.find(structure_name) ==
-	dw->global_alias_cache.end())
-      dw->global_alias_cache[structure_name] = *die;
+	cache->find(structure_name) == cache->end())
+      (*cache)[structure_name] = *die;
 
     return DWARF_CB_OK;
   }
@@ -1193,10 +1191,29 @@ struct dwflpp
     if (!name)
       return NULL;
 
-    if (global_alias_cache.find(name) == global_alias_cache.end())
+    string key = module_name + ":" + cu_name;
+    cu_function_cache_t *v = global_alias_cache[key];
+    if (v == 0) // need to build the cache, just once per encountered module/cu
+      {
+        v = new cu_function_cache_t;
+        global_alias_cache[key] = v;
+        iterate_over_globals(global_alias_caching_callback, v);
+        if (sess.verbose > 4)
+          clog << "global alias cache " << key << " size " << v->size() << endl;
+      }
+
+    // XXX: it may be desirable to search other modules' declarations
+    // too, in case a module/shared-library processes a
+    // forward-declared pointer type only, where the actual definition
+    // may only be in vmlinux or the application.
+
+    // XXX: it is probably desirable to search other CU's declarations
+    // in the same module.
+    
+    if (v->find(name) == v->end())
       return NULL;
 
-    return &global_alias_cache[name];
+    return & ((*v)[name]);
   }
 
   mod_cu_function_cache_t cu_function_cache;
@@ -1213,14 +1230,6 @@ struct dwflpp
                               void * data);
   int iterate_over_globals (int (* callback)(Dwarf_Die *, void *),
 				 void * data);
-
-  int update_alias_cache(void)
-  {
-    int rc;
-
-    rc = iterate_over_globals(global_alias_caching_callback, this);
-    return rc;
-  }
 
   bool has_single_line_record (dwarf_query * q, char const * srcfile, int lineno);
 
@@ -3595,8 +3604,6 @@ query_cu (Dwarf_Die * cudie, void * arg)
   try
     {
       q->dw.focus_on_cu (cudie);
-
-      q->dw.update_alias_cache();
 
       if (false && q->sess.verbose>2)
         clog << "focused on CU '" << q->dw.cu_name
