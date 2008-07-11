@@ -4415,9 +4415,9 @@ dump_unwindsyms (Dwfl_Module *m,
 
               if (n > 0) // only try to relocate if there exist relocation bases
                 {
-                  i = dwfl_module_relocate_address (m, &sym_addr);
-                  dwfl_assert ("dwfl_module_relocate_address", i >= 0);
-                  secname = dwfl_module_relocation_info (m, i, NULL);
+                  int ki = dwfl_module_relocate_address (m, &sym_addr);
+                  dwfl_assert ("dwfl_module_relocate_address", ki >= 0);
+                  secname = dwfl_module_relocation_info (m, ki, NULL);
                 }
 
               if (n == 1 && modname == "kernel" && secname && secname[0] == '\0')
