@@ -1,3 +1,8 @@
+2008-07-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* traceio.meta: s/decending/descending/ in description.
+	* iotop.meta: Likewise.
+
 2008-07-02  William Cohen  <wcohen@redhat.com>
 
 	* functioncallcount.meta, functioncallcount.stp: New.
