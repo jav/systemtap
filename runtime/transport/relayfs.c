@@ -2,7 +2,7 @@
  * relayfs.c - relayfs transport functions
  *
  * Copyright (C) IBM Corporation, 2005, 2006
- * Copyright (C) Red Hat Inc, 2005, 2006, 2007
+ * Copyright (C) 2005-2008 Red Hat Inc.
  *
  * This file is part of systemtap, and is free software.  You can
  * redistribute it and/or modify it under the terms of the GNU General
@@ -94,7 +94,7 @@ struct utt_trace *utt_trace_setup(struct utt_trace_setup *utts)
 	if (!utt->dir)
 		goto err;
 
-	kbug("relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
+	dbug_trans(1, "relay_open %d %d\n",  utts->buf_size, utts->buf_nr);
 
 	utt->rchan = relay_open("trace", utt->dir, utts->buf_size,
 				utts->buf_nr, 0, &stp_rchan_callbacks);
@@ -165,7 +165,7 @@ int utt_trace_startstop(struct utt_trace *utt, int start,
 
 int utt_trace_remove(struct utt_trace *utt)
 {
-	kbug("removing relayfs files. %d\n", utt->trace_state);
+  	dbug_trans(1, "removing relayfs files. %d\n", utt->trace_state);
 	if (utt && (utt->trace_state == Utt_trace_setup || utt->trace_state == Utt_trace_stopped)) {
 		if (utt->rchan)
 			relay_close(utt->rchan);

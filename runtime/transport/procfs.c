@@ -14,9 +14,7 @@ static int _stp_current_buffers = STP_DEFAULT_BUFFERS;
 
 static _stp_mempool_t *_stp_pool_q;
 static struct list_head _stp_ctl_ready_q;
-static struct list_head _stp_sym_ready_q;
 DEFINE_SPINLOCK(_stp_ctl_ready_lock);
-DEFINE_SPINLOCK(_stp_sym_ready_lock);
 
 #ifdef STP_BULKMODE
 extern int _stp_relay_flushing;
@@ -62,54 +60,6 @@ static struct file_operations _stp_proc_fops = {
 };
 #endif /* STP_BULKMODE */
 
-static ssize_t _stp_sym_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
-{
-	static int saved_type = 0;
-	int type;
-
-	if (count < sizeof(int32_t))
-		return 0;
-
-	/* Allow sending of packet type followed by data in the next packet. */
-	if (count == sizeof(int32_t)) {
-		if (get_user(saved_type, (int __user *)buf))
-			return -EFAULT;
-		return count;
-	} else if (saved_type) {
-		type = saved_type;
-		saved_type = 0;
-	} else {
-		if (get_user(type, (int __user *)buf))
-			return -EFAULT;
-		count -= sizeof(int);
-		buf += sizeof(int);
-	}
-
-#if DEBUG_TRANSPORT > 0
-	if (type < STP_MAX_CMD)
-		_dbug("Got %s. len=%d\n", _stp_command_name[type], (int)count);
-#endif
-
-	switch (type) {
-	case STP_SYMBOLS:
-		count = _stp_do_symbols(buf, count);
-		break;
-	case STP_MODULE:
-		if (count > 1)
-			count = _stp_do_module(buf, count);
-		else {
-			/* count == 1 indicates end of initial modules list */
-			_stp_ctl_send(STP_TRANSPORT, NULL, 0);
-		}
-		break;
-	default:
-		errk("invalid symbol command type %d\n", type);
-		return -EINVAL;
-	}
-
-	return count;
-
-}
 
 static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
@@ -142,13 +92,18 @@ static ssize_t _stp_ctl_write_cmd(struct file *file, const char __user *buf, siz
 			started = 1;
 		}
 		break;
+
 	case STP_EXIT:
 		_stp_exit_flag = 1;
 		break;
+
+	case STP_RELOCATION:
+          	_stp_do_relocation (buf, count);
+          	break;
+
 	case STP_READY:
-		/* request symbolic information */
-		_stp_ask_for_symbols();
 		break;
+
 	default:
 		errk("invalid command type %d\n", type);
 		return -EINVAL;
@@ -165,7 +120,6 @@ struct _stp_buffer {
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(_stp_ctl_wq);
-static DECLARE_WAIT_QUEUE_HEAD(_stp_sym_wq);
 
 #if DEBUG_TRANSPORT > 0
 static void _stp_ctl_write_dbug(int type, void *data, int len)
@@ -188,20 +142,6 @@ static void _stp_ctl_write_dbug(int type, void *data, int len)
 		break;
 	case STP_TRANSPORT:
 		_dbug("sending STP_TRANSPORT\n");
-		break;
-	default:
-		_dbug("ERROR: unknown message type: %d\n", type);
-		break;
-	}
-}
-static void _stp_sym_write_dbug(int type, void *data, int len)
-{
-	switch (type) {
-	case STP_SYMBOLS:
-		_dbug("sending STP_SYMBOLS\n");
-		break;
-	case STP_MODULE:
-		_dbug("sending STP_MODULE\n");
 		break;
 	default:
 		_dbug("ERROR: unknown message type: %d\n", type);
@@ -256,95 +196,20 @@ static int _stp_ctl_write(int type, void *data, int len)
 	return len;
 }
 
-static int _stp_sym_write(int type, void *data, unsigned len)
-{
-	struct _stp_buffer *bptr;
-	unsigned long flags;
-
-#if DEBUG_TRANSPORT > 0
-	_stp_sym_write_dbug(type, data, len);
-#endif
-
-	/* make sure we won't overflow the buffer */
-	if (unlikely(len > STP_BUFFER_SIZE))
-		return 0;
-
-	/* get a buffer from the free pool */
-	bptr = _stp_mempool_alloc(_stp_pool_q);
-	if (unlikely(bptr == NULL))
-		return -1;
-
-	bptr->type = type;
-	memcpy(bptr->buf, data, len);
-	bptr->len = len;
-
-	/* put it on the pool of ready buffers */
-	spin_lock_irqsave(&_stp_sym_ready_lock, flags);
-	list_add_tail(&bptr->list, &_stp_sym_ready_q);
-	spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
-
-	/* OK, it's queued. Now signal any waiters. */
-	wake_up_interruptible(&_stp_sym_wq);
-
-	return len;
-}
 
 /* send commands with timeout and retry */
 static int _stp_ctl_send(int type, void *data, int len)
 {
 	int err, trylimit = 50;
-	kbug(DEBUG_TRANSPORT, "ctl_send: type=%d len=%d\n", type, len);
-	if (unlikely(type == STP_SYMBOLS || type == STP_MODULE)) {
-		while ((err = _stp_sym_write(type, data, len)) < 0 && trylimit--)
-			msleep(5);
-	} else {
-		while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
-			msleep(5);
-		if (err > 0)
-			wake_up_interruptible(&_stp_ctl_wq);
-	}
-	kbug(DEBUG_TRANSPORT, "returning %d\n", err);
+	dbug_trans(1, "ctl_send: type=%d len=%d\n", type, len);
+        while ((err = _stp_ctl_write(type, data, len)) < 0 && trylimit--)
+          msleep(5);
+        if (err > 0)
+          wake_up_interruptible(&_stp_ctl_wq);
+	dbug_trans(1, "returning %d\n", err);
 	return err;
 }
 
-static ssize_t _stp_sym_read_cmd(struct file *file, char __user *buf, size_t count, loff_t *ppos)
-{
-	struct _stp_buffer *bptr;
-	int len;
-	unsigned long flags;
-
-	/* wait for nonempty ready queue */
-	spin_lock_irqsave(&_stp_sym_ready_lock, flags);
-	while (list_empty(&_stp_sym_ready_q)) {
-		spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
-		if (file->f_flags & O_NONBLOCK)
-			return -EAGAIN;
-		if (wait_event_interruptible(_stp_sym_wq, !list_empty(&_stp_sym_ready_q)))
-			return -ERESTARTSYS;
-		spin_lock_irqsave(&_stp_sym_ready_lock, flags);
-	}
-
-	/* get the next buffer off the ready list */
-	bptr = (struct _stp_buffer *)_stp_sym_ready_q.next;
-	list_del_init(&bptr->list);
-	spin_unlock_irqrestore(&_stp_sym_ready_lock, flags);
-
-	/* write it out */
-	len = bptr->len + 4;
-	if (len > count || copy_to_user(buf, &bptr->type, len)) {
-		/* now what?  We took it off the queue then failed to send it */
-		/* we can't put it back on the queue because it will likely be out-of-order */
-		/* fortunately this should never happen */
-		/* FIXME need to mark this as a transport failure */
-		errk("Supplied buffer too small. count:%d len:%d\n", (int)count, len);
-		return -EFAULT;
-	}
-
-	/* put it on the pool of free buffers */
-	_stp_mempool_free(bptr);
-
-	return len;
-}
 
 static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
@@ -385,24 +250,6 @@ static ssize_t _stp_ctl_read_cmd(struct file *file, char __user *buf, size_t cou
 	return len;
 }
 
-static int _stp_sym_opens = 0;
-static int _stp_sym_open_cmd(struct inode *inode, struct file *file)
-{
-	/* only allow one reader */
-	if (_stp_sym_opens)
-		return -1;
-
-	_stp_sym_opens++;
-	return 0;
-}
-
-static int _stp_sym_close_cmd(struct inode *inode, struct file *file)
-{
-	if (_stp_sym_opens)
-		_stp_sym_opens--;
-	return 0;
-}
-
 static int _stp_ctl_open_cmd(struct inode *inode, struct file *file)
 {
 	if (_stp_attached)
@@ -426,13 +273,6 @@ static struct file_operations _stp_proc_fops_cmd = {
 	.open = _stp_ctl_open_cmd,
 	.release = _stp_ctl_close_cmd,
 };
-static struct file_operations _stp_sym_fops_cmd = {
-	.owner = THIS_MODULE,
-	.read = _stp_sym_read_cmd,
-	.write = _stp_sym_write_cmd,
-	.open = _stp_sym_open_cmd,
-	.release = _stp_sym_close_cmd,
-};
 
 /* copy since proc_match is not MODULE_EXPORT'd */
 static int my_proc_match(int len, const char *name, struct proc_dir_entry *de)
@@ -445,7 +285,7 @@ static int my_proc_match(int len, const char *name, struct proc_dir_entry *de)
 /* set the number of buffers to use to 'num' */
 static int _stp_set_buffers(int num)
 {
-	kbug(DEBUG_TRANSPORT, "stp_set_buffers %d\n", num);
+	dbug_trans(1, "stp_set_buffers %d\n", num);
 	return _stp_mempool_resize(_stp_pool_q, num);
 }
 
@@ -476,7 +316,6 @@ static int _stp_register_ctl_channel(void)
 	struct list_head *p, *tmp;
 
 	INIT_LIST_HEAD(&_stp_ctl_ready_q);
-	INIT_LIST_HEAD(&_stp_sym_ready_q);
 
 	/* allocate buffers */
 	_stp_pool_q = _stp_mempool_init(sizeof(struct _stp_buffer), STP_DEFAULT_BUFFERS);
@@ -515,12 +354,6 @@ static int _stp_register_ctl_channel(void)
 	de->gid = _stp_gid;
 	de->proc_fops = &_stp_proc_fops_cmd;
 
-	/* create /proc/systemtap/module_name/.symbols  */
-	de = create_proc_entry(".symbols", 0600, _stp_proc_root);
-	if (de == NULL)
-		goto err2;
-	de->proc_fops = &_stp_sym_fops_cmd;
-
 	return 0;
 err2:
 	remove_proc_entry(".cmd", _stp_proc_root);
@@ -552,7 +385,7 @@ static void _stp_unregister_ctl_channel(void)
 #ifdef STP_BULKMODE
 	int i;
 	struct proc_dir_entry *de;
-	kbug("unregistering procfs\n");
+	dbug_trans(1, "unregistering procfs\n");
 	for (de = _stp_proc_root->subdir; de; de = de->next)
 		_stp_kfree(de->data);
 
@@ -568,10 +401,6 @@ static void _stp_unregister_ctl_channel(void)
 	_stp_rmdir_proc_module();
 
 	/* Return memory to pool and free it. */
-	list_for_each_safe(p, tmp, &_stp_sym_ready_q) {
-		list_del(p);
-		_stp_mempool_free(p);
-	}
 	list_for_each_safe(p, tmp, &_stp_ctl_ready_q) {
 		list_del(p);
 		_stp_mempool_free(p);

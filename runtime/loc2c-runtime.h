@@ -9,7 +9,11 @@
  * later version.
  */
 
+#ifdef STAPCONF_LINUX_UACCESS_H
 #include <linux/uaccess.h>
+#else
+#include <asm/uaccess.h>
+#endif
 #include <linux/types.h>
 #define intptr_t long
 #define uintptr_t unsigned long

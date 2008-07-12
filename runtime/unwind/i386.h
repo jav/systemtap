@@ -68,6 +68,13 @@ struct unwind_frame_info
 	((raItem).where == Memory && \
 	 !((raItem).value * (dataAlign) + 4))
 
+
+/* 2.6.9-era compatibility */
+#ifndef user_mode_vm
+#define user_mode_vm(regs)  user_mode(regs)
+#endif
+
+
 static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
                                             /*const*/ struct pt_regs *regs)
 {
@@ -125,8 +132,10 @@ static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
 	       || info->regs.sp < PAGE_OFFSET;
 #else
 	return info->regs.eip < PAGE_OFFSET
+#ifdef FIX_VDSO /* newer kernel? */
 	       || (info->regs.eip >= __fix_to_virt(FIX_VDSO)
 	            && info->regs.eip < __fix_to_virt(FIX_VDSO) + PAGE_SIZE)
+#endif
 	       || info->regs.esp < PAGE_OFFSET;
 #endif	
 #endif

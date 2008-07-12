@@ -4651,7 +4651,8 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "#include <linux/delay.h>";
       s.op->newline() << "#include <linux/profile.h>";
       s.op->newline() << "#include <linux/random.h>";
-      s.op->newline() << "#include <linux/utsrelease.h>";
+      // s.op->newline() << "#include <linux/utsrelease.h>"; // newer kernels only
+      s.op->newline() << "#include <linux/vermagic.h>";
       s.op->newline() << "#include <linux/utsname.h>";
       s.op->newline() << "#include <linux/version.h>";
       // s.op->newline() << "#include <linux/compile.h>";

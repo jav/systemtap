@@ -33,7 +33,6 @@ extern void _stp_print_cleanup(void);
 static struct dentry *_stp_get_root_dir(const char *name);
 static int _stp_lock_debugfs(void);
 static void _stp_unlock_debugfs(void);
-static int _stp_ctl_send(int type, void *data, int len);
 static void _stp_attach(void);
 static void _stp_detach(void);
 void _stp_handle_start(struct _stp_msg_start *st);

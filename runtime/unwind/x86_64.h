@@ -137,11 +137,15 @@ static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
 #else
 #ifdef STAPCONF_X86_UNIREGS	
 	return (long)info->regs.ip >= 0
+#ifdef VSYSCALL_START
 	       || (info->regs.ip >= VSYSCALL_START && info->regs.ip < VSYSCALL_END)
+#endif
 	       || (long)info->regs.sp >= 0;
 #else
 	return (long)info->regs.rip >= 0
+#ifdef VSYSCALL_START
 	       || (info->regs.rip >= VSYSCALL_START && info->regs.rip < VSYSCALL_END)
+#endif
 	       || (long)info->regs.rsp >= 0;
 #endif
 #endif

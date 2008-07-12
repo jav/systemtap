@@ -25,6 +25,11 @@
 
 #define MAX_STACK_DEPTH 8
 
+#ifndef BUILD_BUG_ON_ZERO
+#define BUILD_BUG_ON_ZERO(e) (sizeof(char[1 - 2 * !!(e)]) - 1)
+#endif
+
+
 #define EXTRA_INFO(f) { \
 		BUILD_BUG_ON_ZERO(offsetof(struct unwind_frame_info, f) \
 		                  % FIELD_SIZEOF(struct unwind_frame_info, f)) \

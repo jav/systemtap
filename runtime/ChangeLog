@@ -1,3 +1,11 @@
+2008-07-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6738.
+	* loc2c-runtime.h: #include {asm,linux}/uaccess.h as autoconf'd.
+	* unwind/i386.h (user_mode_vm, FIX_VDSO): #ifdef for older kernels.
+	* unwind/x86_64.h (VSYSCALL_START): speculative #ifdef for same.
+	* unwind/unwind.h (BUILD_BUG_ON_ZER): Ditto.
+
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6736.

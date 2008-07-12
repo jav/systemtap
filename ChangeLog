@@ -1,5 +1,12 @@
 2008-07-12  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6738.
+	* buildrun.cxx (compile_pass): Add autoconf-uaccess.c.
+	* translate.cxx (translate_pass): #include <linux/vermagic.h> for
+	maximum version compatibility for UTS_RELEASE.
+
+2008-07-12  Frank Ch. Eigler  <fche@elastic.org>
+
 	By Andy Fitzsimon <afitzsim@redhat.com>:
 	* smileytap.svg: New file.
 

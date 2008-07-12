@@ -1,3 +1,13 @@
+2008-07-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6738.
+	* procfs.c (*): Remove code/data associated with symbol/unwind data
+	uploading.
+	(_stp_ctl_write_cmd): Support STP_RELOCATION message.
+	(kbug): Replace calls with dbug_trans().
+	* relayfs.c (kbug): Ditto.
+	* transport.h: Corresponding changes.
+
 2008-07-10  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6736.
