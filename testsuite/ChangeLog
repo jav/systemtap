@@ -1,3 +1,19 @@
+2008-07-14    <brolley@redhat.com>
+
+	* Makefile.am (TOOL_OPTS): New variable.
+	(installcheck): Add $(TOOL_OPTS) to --tool_opts.
+	(RUNTESTDEFAULTFLAGS): Likewise.
+	* Makefile.in: Regenerated.
+	* lib/systemtap.exp (installtest_p): Look for 'install' as a substring
+	of $TOOL_OPTIONS.
+	(use_server_p): New proc.
+	(stap_exec): New proc.
+	* lib/stap_compile.exp: Use [stap_exec] to call systemtap.
+	* lib/stap_run.exp: Likewise.
+	* lib/stap_run2.exp: Likewise.
+	* lib/stap_run_binary.exp: Likewise.
+	* lib/stap_run_exact.exp: Likewise.
+
 2008-07-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	From <James.Bottomley@HansenPartnership.com>:

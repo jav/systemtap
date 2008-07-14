@@ -1,3 +1,7 @@
+2008-07-14    <brolley@redhat.com>
+
+	* Makefile.in: Regenerated.
+
 2008-07-07  Mark Wielaard  <mwielaard@redhat.com>
 
 	* Makefile.am (install-data-hook): New, install pdf files.

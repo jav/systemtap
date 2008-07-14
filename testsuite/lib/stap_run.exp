@@ -26,7 +26,7 @@ proc stap_run { TEST_NAME {LOAD_GEN_FUNCTION ""} {OUTPUT_CHECK_STRING ""} args }
 
     if {[info procs installtest_p] != "" && ![installtest_p]} { untested $TEST_NAME; return }
 
-    set cmd [concat {stap -v} $args]
+    set cmd [concat [stap_exec] -v $args]
     if [file readable $test_file_name] {
         lappend cmd $test_file_name
     }

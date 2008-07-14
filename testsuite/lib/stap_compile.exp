@@ -4,7 +4,7 @@
 # - script is the script to compile
 # Additional arguments are passed to stap as-is.
 proc stap_compile { TEST_NAME compile script args } {
-    set cmd [concat {stap -v -p4 -e} $script $args]
+    set cmd [concat [stap_exec] {-v -p4 -e} $script $args]
 
     verbose -log "running $cmd" 
     eval spawn $cmd

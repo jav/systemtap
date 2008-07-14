@@ -13,6 +13,8 @@ clean-local:
 
 DEJAZILLA=@dejazilla@
 
+TOOL_OPTS=$(EXTRA_TOOL_OPTS)
+
 # automake's dejagnu library already runs check-DEJAGNU before check-local
 # That's why we need to add "execrc" to $(RUNTEST) - to ensure that this
 # subtarget gets run even if runtest per se exits with a failure.
@@ -21,7 +23,7 @@ check-local:
 
 # but installcheck does not follow an implicit check-DEJAGNU, go figure
 installcheck: site.exp
-	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts install"
+	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts \'install $(TOOL_OPTS)\'"
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 
 SRCDIR = $(shell cd $(srcdir); pwd)
@@ -40,6 +42,6 @@ LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap
 CRASH_LIBDIR=$(DESTDIR)$(libdir)/systemtap
 SYSTEMTAP_PATH=$(DESTDIR)$(bindir)
 
-RUNTESTDEFAULTFLAGS = --tool $$tool --srcdir $$srcdir
+RUNTESTDEFAULTFLAGS = --tool $$tool --tool_opts \'$(TOOL_OPTS)\' --srcdir $$srcdir
 EXPECT = expect
 RUNTEST="env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH $(srcdir)/execrc runtest"

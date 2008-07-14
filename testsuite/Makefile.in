@@ -134,6 +134,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = dejagnu
 DEJAZILLA = @dejazilla@
+TOOL_OPTS = $(EXTRA_TOOL_OPTS)
 SRCDIR = $(shell cd $(srcdir); pwd)
 EXTRA_DIST = execrc config lib systemtap \
 	parseok parseko semok semko transok transko buildok buildok \
@@ -149,7 +150,7 @@ SYSTEMTAP_TAPSET = $(DESTDIR)$(pkgdatadir)/tapset
 LD_LIBRARY_PATH = $(DESTDIR)$(libdir)/systemtap
 CRASH_LIBDIR = $(DESTDIR)$(libdir)/systemtap
 SYSTEMTAP_PATH = $(DESTDIR)$(bindir)
-RUNTESTDEFAULTFLAGS = --tool $$tool --srcdir $$srcdir
+RUNTESTDEFAULTFLAGS = --tool $$tool --tool_opts \'$(TOOL_OPTS)\' --srcdir $$srcdir
 EXPECT = expect
 RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH $(srcdir)/execrc runtest"
 all: all-am
@@ -469,7 +470,7 @@ check-local:
 
 # but installcheck does not follow an implicit check-DEJAGNU, go figure
 installcheck: site.exp
-	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts install"
+	-$(MAKE) $(AM_MAKEFLAGS) check-DEJAGNU RUNTESTFLAGS="$(RUNTESTFLAGS) --tool_opts \'install $(TOOL_OPTS)\'"
 	if test -n "$(DEJAZILLA)"; then mail $(DEJAZILLA) < systemtap.sum; fi
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
