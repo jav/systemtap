@@ -488,6 +488,7 @@ func_info
   int decl_line;
   Dwarf_Die die;
   Dwarf_Addr addr;
+  Dwarf_Addr entrypc;
   Dwarf_Addr prologue_end;
   bool weak;
   // Comparison functor for list of functions sorted by address. The
@@ -524,6 +525,7 @@ inline_instance_info
   string name;
   char const * decl_file;
   int decl_line;
+  Dwarf_Addr entrypc;
   Dwarf_Die die;
 };
 
@@ -636,6 +638,9 @@ dwarf_diename_integrate (Dwarf_Die *die)
 }
 
 enum line_t { ABSOLUTE, RELATIVE, RANGE, WILDCARD };
+
+typedef vector<inline_instance_info> inline_instance_map_t;
+typedef vector<func_info> func_info_map_t;
 
 struct dwflpp
 {
@@ -1373,7 +1378,7 @@ struct dwflpp
     }
   }
 
-  void resolve_prologue_endings (map<Dwarf_Addr, func_info> & funcs)
+  void resolve_prologue_endings (func_info_map_t & funcs)
   {
     // This heuristic attempts to pick the first address that has a
     // source line distinct from the function declaration's.  In a
@@ -1399,22 +1404,21 @@ struct dwflpp
 		  dwarf_getsrclines(cu, &lines, &nlines));
     // XXX: free lines[] later, but how?
 
-    for(map<Dwarf_Addr,func_info>::iterator it = funcs.begin(); it != funcs.end(); it++)
+    for(func_info_map_t::iterator it = funcs.begin(); it != funcs.end(); it++)
       {
 #if 0 /* someday */
         Dwarf_Addr* bkpts = 0;
-        int n = dwarf_entry_breakpoints (& it->second.die, & bkpts);
+        int n = dwarf_entry_breakpoints (& it->die, & bkpts);
         // ...
         free (bkpts);
 #endif
 
-        Dwarf_Addr entrypc = it->first;
+        Dwarf_Addr entrypc = it->entrypc;
         Dwarf_Addr highpc; // NB: highpc is exclusive: [entrypc,highpc)
-        func_info* func = &it->second;
-        dwfl_assert ("dwarf_highpc", dwarf_highpc (& func->die,
+        dwfl_assert ("dwarf_highpc", dwarf_highpc (& it->die,
                                                    & highpc));
 
-        if (func->decl_file == 0) func->decl_file = "";
+        if (it->decl_file == 0) it->decl_file = "";
 
         unsigned entrypc_srcline_idx = 0;
         dwarf_line_t entrypc_srcline;
@@ -1435,12 +1439,12 @@ struct dwflpp
         }
         if (!entrypc_srcline)
           throw semantic_error ("missing entrypc dwarf line record for function '"
-                                + func->name + "'");
+                                + it->name + "'");
 
         if (sess.verbose>2)
-          clog << "prologue searching function '" << func->name << "'"
+          clog << "prologue searching function '" << it->name << "'"
                << " 0x" << hex << entrypc << "-0x" << highpc << dec
-               << "@" << func->decl_file << ":" << func->decl_line
+               << "@" << it->decl_file << ":" << it->decl_line
                << "\n";
 
         // Now we go searching for the first line record that has a
@@ -1474,14 +1478,14 @@ struct dwflpp
                 continue;
               }
             if (ranoff_end ||
-                (strcmp (postprologue_file, func->decl_file) || // We have a winner!
-                 (postprologue_lineno != func->decl_line)))
+                (strcmp (postprologue_file, it->decl_file) || // We have a winner!
+                 (postprologue_lineno != it->decl_line)))
               {
-                func->prologue_end = postprologue_addr;
+                it->prologue_end = postprologue_addr;
 
                 if (sess.verbose>2)
                   {
-                    clog << "prologue found function '" << func->name << "'";
+                    clog << "prologue found function '" << it->name << "'";
                     // Add a little classification datum
                     if (postprologue_srcline_idx == entrypc_srcline_idx) clog << " (naked)";
                     if (ranoff_end) clog << " (tail-call?)";
@@ -1495,7 +1499,7 @@ struct dwflpp
             postprologue_srcline_idx ++;
           } // loop over srclines
 
-        // if (strlen(func->decl_file) == 0) func->decl_file = NULL;
+        // if (strlen(it->decl_file) == 0) it->decl_file = NULL;
 
       } // loop over functions
 
@@ -2439,9 +2443,6 @@ base_query::get_number_param(literal_map_t const & params,
   return present;
 }
 
-typedef map<Dwarf_Addr, inline_instance_info> inline_instance_map_t;
-typedef map<Dwarf_Addr, func_info> func_info_map_t;
-
 struct dwarf_query : public base_query
 {
   dwarf_query(systemtap_session & sess,
@@ -2562,10 +2563,10 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
     for (func_info_map_t::iterator i = q->filtered_functions.begin();
          i != q->filtered_functions.end(); ++i)
       {
-        if (q->dw.die_has_pc (i->second.die, addr))
+        if (q->dw.die_has_pc (i->die, addr))
           {
             if (q->sess.verbose>4)
-              clog << "alternative line " << lineno << " accepted: fn=" << i->second.name << endl;
+              clog << "alternative line " << lineno << " accepted: fn=" << i->name << endl;
             return true;
           }
       }
@@ -2573,10 +2574,10 @@ dwflpp::has_single_line_record (dwarf_query * q, char const * srcfile, int linen
     for (inline_instance_map_t::iterator i = q->filtered_inlines.begin();
          i != q->filtered_inlines.end(); ++i)
       {
-        if (q->dw.die_has_pc (i->second.die, addr))
+        if (q->dw.die_has_pc (i->die, addr))
           {
             if (sess.verbose>4)
-              clog << "alternative line " << lineno << " accepted: ifn=" << i->second.name << endl;
+              clog << "alternative line " << lineno << " accepted: ifn=" << i->name << endl;
             return true;
           }
       }
@@ -3362,8 +3363,7 @@ query_statement (string const & func,
 }
 
 static void
-query_inline_instance_info (Dwarf_Addr entrypc,
-			    inline_instance_info & ii,
+query_inline_instance_info (inline_instance_info & ii,
 			    dwarf_query * q)
 {
   try
@@ -3376,10 +3376,10 @@ query_inline_instance_info (Dwarf_Addr entrypc,
 	{
 	  if (q->sess.verbose>2)
 	    clog << "querying entrypc "
-		 << hex << entrypc << dec
+		 << hex << ii.entrypc << dec
 		 << " of instance of inline '" << ii.name << "'\n";
 	  query_statement (ii.name, ii.decl_file, ii.decl_line,
-			   &ii.die, entrypc, q);
+			   &ii.die, ii.entrypc, q);
 	}
     }
   catch (semantic_error &e)
@@ -3439,16 +3439,16 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
   for (func_info_map_t::iterator i = q->filtered_functions.begin();
        i != q->filtered_functions.end(); ++i)
     {
-      if (q->dw.die_has_pc (i->second.die, addr))
+      if (q->dw.die_has_pc (i->die, addr))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "function DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->second.name, i->second.decl_file,
+	    query_statement (i->name, i->decl_file,
 			     lineno, // NB: not q->line !
-                             &(i->second.die), addr, q);
+                             &(i->die), addr, q);
 	  else
-	    query_func_info (i->first, i->second, q);
+	    query_func_info (i->entrypc, *i, q);
 	}
     }
 
@@ -3456,15 +3456,15 @@ query_srcfile_line (const dwarf_line_t& line, void * arg)
 	 = q->filtered_inlines.begin();
        i != q->filtered_inlines.end(); ++i)
     {
-      if (q->dw.die_has_pc (i->second.die, addr))
+      if (q->dw.die_has_pc (i->die, addr))
 	{
 	  if (q->sess.verbose>3)
 	    clog << "inline instance DIE lands on srcfile\n";
 	  if (q->has_statement_str)
-	    query_statement (i->second.name, i->second.decl_file,
-			     q->line[0], &(i->second.die), addr, q);
+	    query_statement (i->name, i->decl_file,
+			     q->line[0], &(i->die), addr, q);
 	  else
-	    query_inline_instance_info (i->first, i->second, q);
+	    query_inline_instance_info (*i, q);
 	}
     }
 }
@@ -3494,9 +3494,10 @@ query_dwarf_inline_instance (Dwarf_Die * die, void * arg)
 	      inline_instance_info inl;
 	      inl.die = *die;
 	      inl.name = q->dw.function_name;
+	      inl.entrypc = entrypc;
 	      q->dw.function_file (&inl.decl_file);
 	      q->dw.function_line (&inl.decl_line);
-	      q->filtered_inlines[entrypc] = inl;
+	      q->filtered_inlines.push_back(inl);
 	    }
 	}
       return DWARF_CB_OK;
@@ -3567,15 +3568,18 @@ query_dwarf_func (Dwarf_Die * func, void * arg)
                 {
                   Dwarf_Addr entrypc;
                   if (q->dw.function_entrypc (&entrypc))
-                    q->filtered_functions[entrypc] = func;
+                    {
+                      func.entrypc = entrypc;
+                      q->filtered_functions.push_back (func);
+                    }
                   else
                     throw semantic_error("no entrypc found for function '"
                                          + q->dw.function_name + "'");
                 }
               else if (q->has_statement_num)
                 {
-                  Dwarf_Addr probepc = q->statement_num_val;
-		  q->filtered_functions[probepc] = func;
+                  func.entrypc = q->statement_num_val;
+                  q->filtered_functions.push_back (func);
                   if (q->dw.function_name_final_match (q->function))
                     return DWARF_CB_ABORT;
                 }
@@ -3679,13 +3683,13 @@ query_cu (Dwarf_Die * cudie, void * arg)
 	      // Otherwise, simply probe all resolved functions.
               for (func_info_map_t::iterator i = q->filtered_functions.begin();
                    i != q->filtered_functions.end(); ++i)
-                query_func_info (i->first, i->second, q);
+                query_func_info (i->entrypc, *i, q);
 
 	      // And all inline instances (if we're not excluding inlines with ".call")
 	      if (! q->has_call)
 		for (inline_instance_map_t::iterator i
 		       = q->filtered_inlines.begin(); i != q->filtered_inlines.end(); ++i)
-		  query_inline_instance_info (i->first, i->second, q);
+		  query_inline_instance_info (*i, q);
 	    }
 	}
       else
