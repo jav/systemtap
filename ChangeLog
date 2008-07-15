@@ -1,3 +1,9 @@
+2008-07-14  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx
+	(utrace_var_expanding_copy_visitor::visit_target_symbol):
+	Synthesize a function to get the value of $syscall.
+
 2008-07-14    <brolley@redhat.com>
 
 	* Makefile.am (bin_SCRIPTS): Add stap-client, stap-server, stap-serverd.

@@ -1,3 +1,8 @@
+2008-07-14  David Smith  <dsmith@redhat.com>
+
+	* i686/registers.stp: Removed syscall_nr function.
+	* x86_64/registers.stp: Ditto.
+
 2008-07-10  Josh Stone  <joshua.i.stone@intel.com>
 
 	* vfs.stp (__address_inode): Correct access to the mapping field.

@@ -245,7 +245,3 @@ function regparm(n:long) %{
 	} else
 		CONTEXT->regparm = _STP_REGPARM | (int) THIS->n;
 %}
-
-function syscall_nr:long() {
-	return _stp_register("orig_ax", 1)
-}
