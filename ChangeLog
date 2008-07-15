@@ -4,7 +4,7 @@
 	(utrace_var_expanding_copy_visitor::visit_target_symbol):
 	Synthesize a function to get the value of $syscall.
 
-2008-07-14    <brolley@redhat.com>
+2008-07-14  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (bin_SCRIPTS): Add stap-client, stap-server, stap-serverd.
 	* Makefile.in: Regenerated.
@@ -84,7 +84,7 @@
 	* translate.cxx (visit_comparison): Remove unnecessary comparison.
 	* translate.cxx (emit_symbol_data): Remove unused local variable.
 
-2008-07-08    <brolley@redhat.com>
+2008-07-08  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (client_sysinfo): Use `uname -rvm`.
 	(receive_response): Wait for "done:" from the server. Clear server_ip
@@ -119,7 +119,7 @@
 
 	* translate.cxx (translate_pass): Don't #include <linux/compile.h>.
 
-2008-07-03    <brolley@redhat.com>
+2008-07-03  Dave Brolley  <brolley@redhat.com>
 
 	* stap-serverd: New script.
 	* stap-client (client_sysinfo): Client sysinfo is stripped down to
@@ -467,7 +467,7 @@
 	* translate.cxx (c_unparser::emit_module_init): Use UTS_RELEASE
 	instead of uts_sem/utsname() as kernel version-checking hack.
 
-2008-06-02    <brolley@redhat.com>
+2008-06-02  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (initialization): port is no longer hard coded.
 	Initialize avahi_service_tag to _stap._tcp.

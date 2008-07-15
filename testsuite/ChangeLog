@@ -1,4 +1,4 @@
-2008-07-14    <brolley@redhat.com>
+2008-07-14  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (TOOL_OPTS): New variable.
 	(installcheck): Add $(TOOL_OPTS) to --tool_opts.
