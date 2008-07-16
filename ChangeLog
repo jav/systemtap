@@ -1,3 +1,8 @@
+2008-07-16  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (EXTRA_DIST): Add stap-client, stap-server, stap-serverd.
+	* Makefile.in: Regenerated.
+
 2008-07-14  David Smith  <dsmith@redhat.com>
 
 	* tapsets.cxx
