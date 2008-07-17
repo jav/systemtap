@@ -260,11 +260,16 @@ printscript(systemtap_session& s, ostream& o)
 int pending_interrupts;
 
 extern "C"
-void handle_interrupt (int sig) 
+void handle_interrupt (int sig)
 {
+  if (pending_interrupts == 0)
+    kill (0, sig); // Forward signals to child processes if any.
+
   pending_interrupts ++;
-  kill (0, sig); // forward signals to child processes if any
-  if (pending_interrupts > 1) // XXX: should be configurable? time-based?
+  // NB: the "2" below is intended to skip the effect of the self-induced
+  // deferred signal coming from the kill() above.
+
+  if (pending_interrupts > 2) // XXX: should be configurable? time-based?
     {
       char msg[] = "Too many interrupts received, exiting.\n";
       int rc = write (2, msg, sizeof(msg)-1);
