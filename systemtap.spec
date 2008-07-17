@@ -6,7 +6,8 @@
 %define elfutils_version 0.127
 
 Name: systemtap
-Version: 0.7.1 # see also configure.ac
+# for version, see also configure.ac
+Version: 0.7.1
 Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System

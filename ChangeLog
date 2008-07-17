@@ -1,3 +1,8 @@
+2008-07-17  David Smith  <dsmith@redhat.com>
+
+	* systemtap.spec: Moved comment that was on the same line as
+	"Version", which rpmbuild didn't like.
+
 2008-07-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.cxx (dump_unwindsyms): Produce symbol tables and section
