@@ -4344,7 +4344,7 @@ dump_unwindsyms (Dwfl_Module *m,
 {
   unwindsym_dump_context* c = (unwindsym_dump_context*) arg;
   assert (c);
-  unsigned real_stpmodules_index = c->stp_module_index;
+  unsigned stpmod_idx = c->stp_module_index;
 
   string modname = name;
 
@@ -4356,14 +4356,16 @@ dump_unwindsyms (Dwfl_Module *m,
 
   if (c->session.verbose > 1)
     clog << "dump_unwindsyms " << name
-         << " index=" << real_stpmodules_index
+         << " index=" << stpmod_idx
          << " base=0x" << hex << base << dec << endl;
 
   // We want to extract several bits of information:
+  //
   // - parts of the program-header that map the file's physical offsets to the text section
   // - section table: just a list of section (relocation) base addresses
-  // - symbol table of the text section, with all addresses relativized to .text base
+  // - symbol table of the text-like sections, with all addresses relativized to each base
   // - the contents of .debug_frame section, for unwinding purposes
+  //
   // In the future, we'll also care about data symbols.
 
   int syments = dwfl_module_getsymtab(m);
@@ -4374,22 +4376,16 @@ dump_unwindsyms (Dwfl_Module *m,
 
   dwfl_assert ("dwfl_module_relocations", n >= 0);
 
-  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_sections[] = {" << endl;
-  if (n > 0 && modname != "kernel")
-    c->output << "  { 0, \".text\" }, " << endl; // XXX
-  else if (n >= 0 && modname == "kernel")
-    c->output << "  { 0, \"_stext\" }, " << endl;
-  c->output << "};" << endl;
-
 
   // XXX: unfortunate duplication with tapsets.cxx:emit_address()
 
   typedef map<Dwarf_Addr,const char*> addrmap_t; // NB: plain map, sorted by address
-  addrmap_t addrmap; // NB: plain map, sorted by address
-  
+  vector<string> seclist; // encountered relocation bases (section names)
+  map<unsigned, addrmap_t> addrmap; // per-relocation-base sorted addrmap
+
   Dwarf_Addr extra_offset = 0;
   
-  for (int i = 1; i < syments; ++i)
+  for (int i = 1 /* XXX: why not 0? */ ; i < syments; ++i)
     {
       GElf_Sym sym;
       const char *name = dwfl_module_getsym(m, i, &sym, NULL);
@@ -4423,52 +4419,69 @@ dump_unwindsyms (Dwfl_Module *m,
               if (n == 1 && modname == "kernel" && secname && secname[0] == '\0')
                 {
                   // This is a symbol within a relocatable kernel image.
-                  secname = "_stext"; // not actually used
+                  secname = "_stext";
                   // NB: don't subtract session.sym_stext, which could be inconveniently NULL.
+                  // Instead, sym_addr will get compensated later via extra_offset.
                 }
-              else if (n > 0 && strcmp (secname, ".text")) /* XXX: only care about .text-related relocations for now. */
+              else if (n > 0)
                 {
-                  if (c->session.verbose > 2)
-                    clog << "Skipped symbol " << name << ", due to non-.text relocation section " << secname << endl;
-                  continue;
+                  assert (secname != NULL);
+                  // secname adequately set
                 }
-              else if (n == 0)
+              else 
                 {
+                  assert (n == 0);
                   // sym_addr is absolute, as it must be since there are no relocation bases
-                }
-              else
-                {
-                  // sym_addr has already been relocated relative to .text
+                  secname = ".absolute"; // sentinel 
                 }
 
-              addrmap[sym_addr] = name;
+              // Compute our section number
+              unsigned secidx;
+              for (secidx=0; secidx<seclist.size(); secidx++)
+                if (seclist[secidx]==secname) break;
+
+              if (secidx == seclist.size()) // new section name 
+                seclist.push_back (secname);
+
+              (addrmap[secidx])[sym_addr] = name;
             }
         }
     }
 
-  // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
-  c->output << "struct _stp_symbol _stp_module_" << real_stpmodules_index<< "_symbols[] = {" << endl;
-  for (addrmap_t::iterator it = addrmap.begin(); it != addrmap.end(); it++)
+  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
     {
-      if (it->first < extra_offset)
-        continue; // skip symbols that occur before our chosen base address
+      c->output << "struct _stp_symbol "
+                << "_stp_module_" << stpmod_idx<< "_symbols_" << secidx << "[] = {" << endl;
 
-      c->output << "  { 0x" << hex << it->first-extra_offset << dec
-                << ", " << lex_cast_qstring (it->second) << " }," << endl;
+      // We write out a *sorted* symbol table, so the runtime doesn't have to sort them later.
+      for (addrmap_t::iterator it = addrmap[secidx].begin(); it != addrmap[secidx].end(); it++)
+        {
+          if (it->first < extra_offset)
+            continue; // skip symbols that occur before our chosen base address
+          
+          c->output << "  { 0x" << hex << it->first-extra_offset << dec
+                    << ", " << lex_cast_qstring (it->second) << " }," << endl;
+        }
+      c->output << "};" << endl;
+    }
+
+  c->output << "struct _stp_section _stp_module_" << stpmod_idx<< "_sections[] = {" << endl;
+  for (unsigned secidx = 0; secidx < seclist.size(); secidx++)
+    {
+      c->output << "{" << endl
+                << ".name = " << lex_cast_qstring(seclist[secidx]) << "," << endl
+                << ".symbols = _stp_module_" << stpmod_idx << "_symbols_" << secidx << "," << endl
+                << ".num_symbols = sizeof(_stp_module_" << stpmod_idx << "_symbols_" << secidx << ")/sizeof(struct _stp_symbol)" << endl
+                << "}," << endl;
     }
   c->output << "};" << endl;
 
-  c->output << "struct _stp_module _stp_module_" << real_stpmodules_index << " = {" << endl;
+  c->output << "struct _stp_module _stp_module_" << stpmod_idx << " = {" << endl;
   c->output << ".name = " << lex_cast_qstring (modname) << ", " << endl;
-
-  c->output << ".sections = _stp_module_" << real_stpmodules_index << "_sections" << ", " << endl; 
-  c->output << ".num_sections = sizeof(_stp_module_" << real_stpmodules_index << "_sections)/"
-            << "sizeof(struct _stp_symbol), " << endl; 
+  c->output << ".sections = _stp_module_" << stpmod_idx << "_sections" << ", " << endl; 
+  c->output << ".num_sections = sizeof(_stp_module_" << stpmod_idx << "_sections)/"
+            << "sizeof(struct _stp_section), " << endl; 
   
-  c->output << ".symbols = _stp_module_" << real_stpmodules_index << "_symbols" << ", " << endl; 
-  c->output << ".num_symbols = sizeof(_stp_module_" << real_stpmodules_index << "_symbols)/"
-            << "sizeof(struct _stp_symbol), " << endl; 
-
   c->output << "};" << endl << endl;
 
   c->undone_unwindsym_modules.erase (modname);
@@ -4552,7 +4565,7 @@ emit_symbol_data (systemtap_session& s)
       dwfl_report_begin (dwfl);
       Dwfl_Module* mod = dwfl_report_offline (dwfl, modname.c_str(), modname.c_str(), -1);
       dwfl_report_end (dwfl, NULL, NULL);
-      if (mod != 0) // tolerate missing data; will inform user
+      if (mod != 0) // tolerate missing data; will warn below
         {
           ptrdiff_t off = 0;
           do
@@ -4575,7 +4588,7 @@ emit_symbol_data (systemtap_session& s)
       kallsyms_out << "& _stp_module_" << i << "," << endl;
     }
   kallsyms_out << "};" << endl;
-  kallsyms_out << "int _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
+  kallsyms_out << "unsigned _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
 
   // Some nonexistent modules may have been identified with "-d".  Note them.
   for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();

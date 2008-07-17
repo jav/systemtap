@@ -53,7 +53,7 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
 
       for (si=0; si<_stp_modules[mi]->num_sections; si++)
         {
-          if (strcmp (_stp_modules[mi]->sections[si].symbol, msg.reloc))
+          if (strcmp (_stp_modules[mi]->sections[si].name, msg.reloc))
             continue;
 
           _stp_modules[mi]->sections[si].addr = msg.address;
@@ -61,29 +61,6 @@ static void _stp_do_relocation(const char __user *buf, size_t count)
     } /* loop over modules */
 }
 
-
-static int _stp_compare_addr(const void *p1, const void *p2)
-{
-	struct _stp_symbol *s1 = (struct _stp_symbol *)p1;
-	struct _stp_symbol *s2 = (struct _stp_symbol *)p2;
-	if (s1->addr == s2->addr)
-		return 0;
-	if (s1->addr < s2->addr)
-		return -1;
-	return 1;
-}
-
-static void _stp_swap_symbol(void *x, void *y, int size)
-{
-	struct _stp_symbol *a = (struct _stp_symbol *)x;
-	struct _stp_symbol *b = (struct _stp_symbol *)y;
-	unsigned long addr = a->addr;
-	const char *symbol = a->symbol;
-	a->addr = b->addr;
-	a->symbol = b->symbol;
-	b->addr = addr;
-	b->symbol = symbol;
-}
 
 static void u32_swap(void *a, void *b, int size)
 {

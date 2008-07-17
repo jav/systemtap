@@ -1,3 +1,11 @@
+2008-07-17  Frank Ch. Eigler  <fche@elastic.org>
+
+	* translate.cxx (dump_unwindsyms): Produce symbol tables and section
+	lists for all text-like sections, useful for -ffunction-sections type
+	kernel modules.
+	(emit_symbol_data): Tolerate missing unwind/symbol data during
+	elf processing.  Subsequently warn about anything missing.
+
 2008-07-16  Frank Ch. Eigler  <fche@elastic.org>
 
 	* configure.ac: Bumped version to 0.7.1.

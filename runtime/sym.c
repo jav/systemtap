@@ -20,10 +20,11 @@
  * @{
  */
 
+/* XXX: this needs to be address-space-specific. */
 unsigned long _stp_module_relocate(const char *module, const char *section, unsigned long offset)
 {
 	static struct _stp_module *last = NULL;
-	static struct _stp_symbol *last_sec;
+	static struct _stp_section *last_sec;
 	unsigned long flags;
 	unsigned i, j;
 
@@ -42,7 +43,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 
 	/* Most likely our relocation is in the same section of the same module as the last. */
 	if (last) {
-		if (!strcmp(module, last->name) && !strcmp(section, last_sec->symbol)) {
+		if (!strcmp(module, last->name) && !strcmp(section, last_sec->name)) {
 			offset += last_sec->addr;
 			dbug_sym(1, "cached address=%lx\n", offset);
 			return offset;
@@ -55,7 +56,7 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
             continue;
           for (j = 0; j < last->num_sections; j++) {
             last_sec = &last->sections[j];
-            if (!strcmp(section, last_sec->symbol)) {
+            if (!strcmp(section, last_sec->name)) {
             
               if (last_sec->addr == 0) /* module/section not in memory */
                 continue;
@@ -72,73 +73,69 @@ unsigned long _stp_module_relocate(const char *module, const char *section, unsi
 }
 
 
-/* Return the module that likely contains the given address.  */
-/* XXX: This query only makes sense with respect to a particular
-   address space.  A more general interface would have to identify
-   the address space, and also pass back the section. */ 
-static struct _stp_module *_stp_find_module_by_addr(unsigned long addr)
-{
-  unsigned i;
-  struct _stp_module *closest_module = NULL;
-  unsigned long closest_module_offset = ~0; /* minimum[addr - module->.text] */
-  
-  for (i=0; i<_stp_num_modules; i++)
-    {
-      unsigned long module_text_addr, this_module_offset;
-
-      if (_stp_modules[i]->num_sections < 1) continue;
-      module_text_addr = _stp_modules[i]->sections[0].addr; /* XXX: assume section[0]=>text */
-      if (addr < module_text_addr) continue;
-      this_module_offset = module_text_addr - addr;
-      
-      if (this_module_offset < closest_module_offset)
-        {
-          closest_module = _stp_modules[i];
-          closest_module_offset = this_module_offset;
-        }
-    }
-
-  return closest_module;
-}
-
-
-
+/* XXX: needs to be address-space-specific. */
 static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbolsize,
-                                        unsigned long *offset, char **modname, char *namebuf)
+                                        unsigned long *offset, 
+                                        const char **modname, 
+                                        /* char ** secname? */
+                                        char *namebuf)
 {
-	struct _stp_module *m;
-	struct _stp_symbol *s;
+	struct _stp_module *m = NULL;
+	struct _stp_section *sec = NULL;
+	struct _stp_symbol *s = NULL;
 	unsigned long flags;
 	unsigned end, begin = 0;
 
-	m = _stp_find_module_by_addr(addr);
-	if (unlikely(m == NULL)) {
-		return NULL;
-	}
-
-        /* NB: relativize the address to the (XXX) presumed text section. */
-        addr -= m->sections[0].addr;
-	end = m->num_symbols;
+        /* Find the closest section (and its owner module); fill in m & sec. */
+        {
+          unsigned midx = 0;
+          unsigned long closest_section_offset = ~0;
+          for (midx = 0; midx < _stp_num_modules; midx++)
+            {
+              unsigned secidx;
+              for (secidx = 0; secidx < _stp_modules[midx]->num_sections; secidx++)
+                {
+                  unsigned long this_section_addr = _stp_modules[midx]->sections[secidx].addr;
+                  unsigned long this_section_offset;
+                  if (addr < this_section_addr) continue;
+                  this_section_offset = this_section_addr - addr;
+                  if (this_section_offset < closest_section_offset)
+                    {
+                      closest_section_offset = this_section_offset;
+                      m = _stp_modules[midx];
+                      sec = & m->sections[secidx];
+                    }
+                }
+            }
+        }
+        
+        if (unlikely (m == NULL || sec == NULL))
+          return NULL;
+        
+        /* NB: relativize the address to the section. */
+        addr -= sec->addr;
+	end = sec->num_symbols;
 
 	/* binary search for symbols within the module */
 	do {
 		unsigned mid = (begin + end) / 2;
-		if (addr < m->symbols[mid].addr)
+		if (addr < sec->symbols[mid].addr)
 			end = mid;
 		else
 			begin = mid;
 	} while (begin + 1 < end);
 	/* result index in $begin */
 
-	s = &m->symbols[begin];
+	s = & sec->symbols[begin];
 	if (likely(addr >= s->addr)) {
 		if (offset)
 			*offset = addr - s->addr;
 		if (modname)
 			*modname = m->name;
+                /* We could also pass sec->name here. */
 		if (symbolsize) {
-			if ((begin + 1) < m->num_symbols)
-				*symbolsize = m->symbols[begin + 1].addr - s->addr;
+			if ((begin + 1) < sec->num_symbols)
+				*symbolsize = sec->symbols[begin + 1].addr - s->addr;
 			else
 				*symbolsize = 0;
 			// NB: This is only a heuristic.  Sometimes there are large
@@ -163,7 +160,7 @@ static const char *_stp_kallsyms_lookup(unsigned long addr, unsigned long *symbo
 
 void _stp_symbol_print(unsigned long address)
 {
-	char *modname;
+	const char *modname;
 	const char *name;
 	unsigned long offset, size;
 
@@ -182,7 +179,7 @@ void _stp_symbol_print(unsigned long address)
 /* Like _stp_symbol_print, except only print if the address is a valid function address */
 int _stp_func_print(unsigned long address, int verbose, int exact)
 {
-	char *modname;
+	const char *modname;
 	const char *name;
 	unsigned long offset, size;
 	char *exstr;
@@ -210,7 +207,7 @@ int _stp_func_print(unsigned long address, int verbose, int exact)
 
 void _stp_symbol_snprint(char *str, size_t len, unsigned long address)
 {
-	char *modname;
+	const char *modname;
 	const char *name;
 	unsigned long offset, size;
 
