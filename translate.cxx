@@ -4331,6 +4331,7 @@ struct unwindsym_dump_context
   systemtap_session& session;
   ostream& output;
   unsigned stp_module_index;
+  set<string> undone_unwindsym_modules;
 };
 
 
@@ -4364,7 +4365,6 @@ dump_unwindsyms (Dwfl_Module *m,
   // - symbol table of the text section, with all addresses relativized to .text base
   // - the contents of .debug_frame section, for unwinding purposes
   // In the future, we'll also care about data symbols.
-
 
   int syments = dwfl_module_getsymtab(m);
   assert(syments);
@@ -4471,6 +4471,8 @@ dump_unwindsyms (Dwfl_Module *m,
 
   c->output << "};" << endl << endl;
 
+  c->undone_unwindsym_modules.erase (modname);
+
   return DWARF_CB_OK;
 }
 
@@ -4487,7 +4489,7 @@ emit_symbol_data (systemtap_session& s)
 
   ofstream kallsyms_out ((s.tmpdir + "/" + symfile).c_str());
 
-  unwindsym_dump_context ctx = { s, kallsyms_out, 0 };
+  unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
 
   // XXX: copied from tapsets.cxx, sadly
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
@@ -4513,15 +4515,17 @@ emit_symbol_data (systemtap_session& s)
   dwfl_report_begin (dwfl);
   int rc = dwfl_linux_kernel_report_offline (dwfl, debug_path, NULL /* XXX: filtering callback */);
   dwfl_report_end (dwfl, NULL, NULL);
-  dwfl_assert ("dwfl_linux_kernel_report_offline", rc);
-  ptrdiff_t off = 0;
-  do
+  if (rc == 0) // tolerate missing data; will warn user about it anyway
     {
-      if (pending_interrupts) return;
-      off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+      ptrdiff_t off = 0;
+      do
+        {
+          if (pending_interrupts) return;
+          off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+        }
+      while (off > 0);
+      dwfl_assert("dwfl_getmodules", off == 0);
     }
-  while (off > 0);
-  dwfl_assert("dwfl_getmodules", off == 0);
   dwfl_end(dwfl);
 
 
@@ -4548,21 +4552,22 @@ emit_symbol_data (systemtap_session& s)
       dwfl_report_begin (dwfl);
       Dwfl_Module* mod = dwfl_report_offline (dwfl, modname.c_str(), modname.c_str(), -1);
       dwfl_report_end (dwfl, NULL, NULL);
-      dwfl_assert ("dwfl_report_offline", mod);
-      ptrdiff_t off = 0;
-      do
+      if (mod != 0) // tolerate missing data; will inform user
         {
-          if (pending_interrupts) return;
-          off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+          ptrdiff_t off = 0;
+          do
+            {
+              if (pending_interrupts) return;
+              off = dwfl_getmodules (dwfl, &dump_unwindsyms, (void *) &ctx, 0);
+            }
+          while (off > 0);
+          dwfl_assert("dwfl_getmodules", off == 0);
         }
-      while (off > 0);
-      dwfl_assert("dwfl_getmodules", off == 0);
       dwfl_end(dwfl);
     }
 
 
   // Print out a definition of the runtime's _stp_modules[] globals.
-
   kallsyms_out << endl;
   kallsyms_out << "struct _stp_module *_stp_modules [] = {" << endl;
   for (unsigned i=0; i<ctx.stp_module_index; i++)
@@ -4571,6 +4576,14 @@ emit_symbol_data (systemtap_session& s)
     }
   kallsyms_out << "};" << endl;
   kallsyms_out << "int _stp_num_modules = " << ctx.stp_module_index << ";" << endl;
+
+  // Some nonexistent modules may have been identified with "-d".  Note them.
+  for (set<string>::iterator it = ctx.undone_unwindsym_modules.begin();
+       it != ctx.undone_unwindsym_modules.end();
+       it ++)
+    {
+      s.print_warning ("missing unwind/symbol data for module `" + (*it) + "'");
+    }
 }
 
 
