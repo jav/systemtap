@@ -260,9 +260,10 @@ printscript(systemtap_session& s, ostream& o)
 int pending_interrupts;
 
 extern "C"
-void handle_interrupt (int /* sig */) 
+void handle_interrupt (int sig) 
 {
   pending_interrupts ++;
+  kill (0, sig); // forward signals to child processes if any
   if (pending_interrupts > 1) // XXX: should be configurable? time-based?
     {
       char msg[] = "Too many interrupts received, exiting.\n";
