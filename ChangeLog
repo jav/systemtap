@@ -1,3 +1,11 @@
+2008-07-16  Frank Ch. Eigler  <fche@elastic.org>
+
+	* configure.ac: Bumped version to 0.7.1.
+	* systemtap.spec: Renamed from systemtap.spec.in; don't autoconf it
+	just on account of @VERSION@.
+	* Makefile.am (EXTRA_DIST): Distribute it.
+	* Makefile.in, configure, testsuite/configure: Regenerated.
+
 2008-07-16  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (EXTRA_DIST): Add stap-client, stap-server, stap-serverd.

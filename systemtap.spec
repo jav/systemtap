@@ -6,7 +6,7 @@
 %define elfutils_version 0.127
 
 Name: systemtap
-Version: @VERSION@
+Version: 0.7.1 # see also configure.ac
 Release: %{release}%{?dist}
 Summary: Instrumentation System
 Group: Development/System
@@ -206,6 +206,9 @@ exit 0
 
 
 %changelog
+* Tue Jul 15 2008 Frank Ch. Eigler <fche@redhat.com> - 0.7-1
+- Upstream release.
+
 * Fri Feb  1 2008 Frank Ch. Eigler <fche@redhat.com> - 0.6.1-3
 - Add zlib-devel to buildreq; missing from crash-devel
 - Process testsuite .stp files for #!stap->#!/usr/bin/stap

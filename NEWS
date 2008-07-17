@@ -1,3 +1,6 @@
+* What's new
+
+
 * What's new in version 0.7
 
 - .statement("func@file:*") and .statement("func@file:M-N") probes are now

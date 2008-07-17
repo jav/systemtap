@@ -155,7 +155,8 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     testsuite systemtap.spec runtime tapset \
 	     dwarf_wrappers.h \
 	     git_version.h git_version.sh \
-	     stap-client stap-server stap-serverd
+	     stap-client stap-server stap-serverd \
+	     systemtap.spec
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples

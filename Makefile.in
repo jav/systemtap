@@ -49,7 +49,7 @@ DIST_COMMON = README $(am__configure_deps) $(dist_man_MANS) \
 	$(srcdir)/config.in $(srcdir)/stap.1.in $(srcdir)/stapex.5.in \
 	$(srcdir)/stapfuncs.5.in $(srcdir)/stapprobes.5.in \
 	$(srcdir)/staprun.8.in $(srcdir)/stapvars.5.in \
-	$(srcdir)/systemtap.spec.in $(top_srcdir)/configure \
+	$(top_srcdir)/configure \
 	$(top_srcdir)/man/stapprobes.iosched.5.in \
 	$(top_srcdir)/man/stapprobes.netdev.5.in \
 	$(top_srcdir)/man/stapprobes.nfs.5.in \
@@ -72,8 +72,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = systemtap.spec stap.1 stapprobes.5 stapfuncs.5 \
-	stapvars.5 stapex.5 staprun.8 man/stapprobes.iosched.5 \
+CONFIG_CLEAN_FILES = stap.1 stapprobes.5 stapfuncs.5 stapvars.5 \
+	stapex.5 staprun.8 man/stapprobes.iosched.5 \
 	man/stapprobes.netdev.5 man/stapprobes.nfs.5 \
 	man/stapprobes.nfsd.5 man/stapprobes.pagefault.5 \
 	man/stapprobes.process.5 man/stapprobes.rpc.5 \
@@ -334,7 +334,8 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     testsuite systemtap.spec runtime tapset \
 	     dwarf_wrappers.h \
 	     git_version.h git_version.sh \
-	     stap-client stap-server stap-serverd
+	     stap-client stap-server stap-serverd \
+	     systemtap.spec
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples
@@ -419,8 +420,6 @@ $(srcdir)/config.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-systemtap.spec: $(top_builddir)/config.status $(srcdir)/systemtap.spec.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 stap.1: $(top_builddir)/config.status $(srcdir)/stap.1.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 stapprobes.5: $(top_builddir)/config.status $(srcdir)/stapprobes.5.in

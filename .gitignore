@@ -14,7 +14,6 @@ loc2c-test
 stamp-h1
 stap
 staprun
-systemtap.spec
 testresults
 stapio
 stap_merge
