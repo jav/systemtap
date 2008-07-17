@@ -1,3 +1,8 @@
+2008-07-17  Masami Hiramatsu <mhiramat@redhat.com>
+
+	* systemtap.spec (%files): Add stap-server and stap-serverd.
+	(%files runtime): Add stap-client.
+
 2008-07-17  David Smith  <dsmith@redhat.com>
 
 	* systemtap.spec: Moved comment that was on the same line as

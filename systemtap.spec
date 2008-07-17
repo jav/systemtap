@@ -176,6 +176,8 @@ exit 0
 %endif
 
 %{_bindir}/stap
+%{_bindir}/stap-server
+%{_bindir}/stap-serverd
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
@@ -196,6 +198,7 @@ exit 0
 %files runtime
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
+%{_bindir}/stap-client
 %{_libexecdir}/%{name}
 %{_mandir}/man8/*
 
