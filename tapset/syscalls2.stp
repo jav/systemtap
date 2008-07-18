@@ -2463,6 +2463,7 @@ probe syscall.swapon.return = kernel.function("sys_swapon").return ? {
 	name = "swapon"
 	retstr = returnstr(1)
 }
+
 # symlink ____________________________________________________
 # long sys_symlink(const char __user * oldname,
 #		 const char __user * newname)
@@ -2477,6 +2478,27 @@ probe syscall.symlink.return = kernel.function("sys_symlink").return {
 	name = "symlink"
 	retstr = returnstr(1)
 }
+
+# symlinkat __________________________________________________
+# new function with 2.6.16
+# long sys_symlinkat(const char __user *oldname, int newdfd,
+#	const char __user *newname)
+probe syscall.symlinkat = kernel.function("sys_symlinkat") ? {
+	name = "symlinkat"
+	oldname = $oldname
+	oldname_str = user_string($oldname)
+	newdfd = $newdfd
+	newdfd_str = _dfd_str($newdfd)
+	newname = $newname
+	newname_str = user_string($newname)
+	argstr = sprintf("%s, %s, %s", user_string_quoted($oldname),
+		newdfd_str, user_string_quoted($newname))
+}
+probe syscall.symlinkat.return = kernel.function("sys_symlinkat").return ? {
+	name = "symlinkat"
+	retstr = returnstr(1)
+}
+
 # sync _______________________________________________________
 #
 # sys_sync(void)
