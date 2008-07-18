@@ -4581,6 +4581,9 @@ dwarf_derived_probe_group::emit_module_decls (systemtap_session& s)
   // hundreds of bytes of padding per stap_dwarf_probe.  (PR5673)
   s.op->newline() << "struct stap_dwarf_kprobe {";
   s.op->newline(1) << "union { struct kprobe kp; struct kretprobe krp; } u;";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "struct kprobe dummy;";
+  s.op->newline() << "#endif";
   s.op->newline(-1) << "} stap_dwarf_kprobes[" << probes_by_module.size() << "];";
   // NB: bss!
 
@@ -4719,11 +4722,35 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline(1) << "kp->u.krp.maxactive = max(10, 4*NR_CPUS);";
   s.op->newline(-1) << "}";
   s.op->newline() << "kp->u.krp.handler = &enter_kretprobe_probe;";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.krp.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
   s.op->newline() << "rc = register_kretprobe (& kp->u.krp);";
+  s.op->newline() << "#endif";
   s.op->newline(-1) << "} else {";
+  // to ensure safeness of bspcache, always use aggr_kprobe on ia64
   s.op->newline(1) << "kp->u.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "kp->u.kp.pre_handler = &enter_kprobe_probe;";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "kp->dummy.addr = kp->u.kp.addr;";
+  s.op->newline() << "kp->dummy.pre_handler = NULL;";
+  s.op->newline() << "rc = register_kprobe (& kp->dummy);";
+  s.op->newline() << "if (rc == 0) {";
+  s.op->newline(1) << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "if (rc != 0)";
+  s.op->newline(1) << "unregister_kprobe (& kp->dummy);";
+  s.op->newline(-2) << "}";
+  s.op->newline() << "#else";
   s.op->newline() << "rc = register_kprobe (& kp->u.kp);";
+  s.op->newline() << "#endif";
   s.op->newline(-1) << "}";
   s.op->newline() << "if (rc) {";
   s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
@@ -4731,6 +4758,9 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "struct stap_dwarf_kprobe *kp2 = & stap_dwarf_kprobes[j];";
   s.op->newline() << "if (sdp2->return_p) unregister_kretprobe (&kp2->u.krp);";
   s.op->newline() << "else unregister_kprobe (&kp2->u.kp);";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "unregister_kprobe (&kp2->dummy);";
+  s.op->newline() << "#endif";
   // NB: we don't have to clear sdp2->registered_p, since the module_exit code is
   // not run for this early-abort case.
   s.op->newline(-1) << "}";
@@ -4764,6 +4794,16 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline(1) << "stap_unreg_kprobes[j++] = &kp->u.krp;";
   s.op->newline(-2) << "}";
   s.op->newline() << "unregister_kretprobes((struct kretprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "#ifdef __ia64__";
+  s.op->newline() << "j = 0;";
+  s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
+  s.op->newline(1) << "struct stap_dwarf_probe *sdp = & stap_dwarf_probes[i];";
+  s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
+  s.op->newline() << "if (! sdp->registered_p) continue;";
+  s.op->newline() << "stap_unreg_kprobes[j++] = &kp->dummy;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "unregister_kprobes((struct kprobe **)stap_unreg_kprobes, j);";
+  s.op->newline() << "#endif";
   s.op->newline() << "#endif";
 
   s.op->newline() << "for (i=0; i<" << probes_by_module.size() << "; i++) {";
@@ -4782,6 +4822,9 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "#endif";
   s.op->newline() << "atomic_add (kp->u.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "}";
+  s.op->newline() << "#if !defined(STAPCONF_UNREGISTER_KPROBES) && defined(__ia64__)";
+  s.op->newline() << "unregister_kprobe (&kp->dummy);";
+  s.op->newline() << "#endif";
   s.op->newline() << "sdp->registered_p = 0;";
   s.op->newline(-1) << "}";
 }
