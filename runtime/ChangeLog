@@ -1,3 +1,8 @@
+2008-07-18  Frank Ch. Eigler  <fche@elastic.org>
+
+	BZ 442528, From Masami Hiramatsu <mhiramat@redhat.com>
+	* regs-ia64.c (ia64_stap_get_arbsp): New function.
+
 2008-07-17  Frank Ch. Eigler  <fche@elastic.org>
 
 	* sym.c (_stp_kallsyms_lookup, _stp_module_relocate): Add
