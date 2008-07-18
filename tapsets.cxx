@@ -1282,7 +1282,7 @@ struct dwflpp
 	    Dwarf_Addr line_addr;
 	    dwarf_lineno (srcsp [0], &lineno);
 	    line_probed = lines_probed.insert(lineno);
-	    if (lineno != l || line_probed.second == false)
+	    if (lineno != l || line_probed.second == false || nsrcs > 1)
 	      continue;
 	    dwarf_lineaddr (srcsp [0], &line_addr);
 	    if (dwarf_haspc (function, line_addr) != 1)
@@ -1347,8 +1347,11 @@ struct dwflpp
             if (srcsp [i]) // skip over mismatched lines
               callback (dwarf_line_t(srcsp[i]), data);
           }
-        if (line_type != WILDCARD || l == lines[1])
-          break;
+
+	if (line_type == ABSOLUTE || line_type == RELATIVE)
+	  break;
+	else if (line_type == RANGE && l == lines[1])
+	  break;
       }
   }
 
