@@ -2,11 +2,19 @@
 #include <linux/jhash.h>
 #include <linux/mutex.h>
 
+// When handling memcpy() syscall tracing to notice memory map
+// changes, we need to cache memcpy() entry parameter values for
+// processing at memcpy() exit.
+
 // __stp_tf_vma_mutex protects the hash table.
 static DEFINE_MUTEX(__stp_tf_vma_mutex);
 
 #define __STP_TF_HASH_BITS 4
 #define __STP_TF_TABLE_SIZE (1 << __STP_TF_HASH_BITS)
+
+#ifndef TASK_FINDER_VMA_ENTRY_ITEMS
+#define TASK_FINDER_VMA_ENTRY_ITEMS 100
+#endif
 
 struct __stp_tf_vma_entry {
 	struct hlist_node hlist;
@@ -19,8 +27,62 @@ struct __stp_tf_vma_entry {
 	// Is that enough?  Should we store a dcookie for vm_file?
 };
 
+static struct __stp_tf_vma_entry
+__stp_tf_vma_free_list_items[TASK_FINDER_VMA_ENTRY_ITEMS];
+
+static struct hlist_head __stp_tf_vma_free_list[1];
+
 static struct hlist_head __stp_tf_vma_table[__STP_TF_TABLE_SIZE];
 
+// __stp_tf_vma_initialize():  Initialize the free list.  Grabs the
+// mutex.
+static void
+__stp_tf_vma_initialize(void)
+{
+	int i;
+	struct hlist_head *head = &__stp_tf_vma_free_list[0];
+
+	mutex_lock(&__stp_tf_vma_mutex);
+	for (i = 0; i < TASK_FINDER_VMA_ENTRY_ITEMS; i++) {
+		hlist_add_head(&__stp_tf_vma_free_list_items[i].hlist, head);
+	}
+	mutex_unlock(&__stp_tf_vma_mutex);
+}
+
+
+// __stp_tf_vma_get_free_entry(): Returns an entry from the free list
+// or NULL.  The __stp_tf_vma_mutex must be locked before calling this
+// function.
+static struct __stp_tf_vma_entry *
+__stp_tf_vma_get_free_entry(void)
+{
+	struct hlist_head *head = &__stp_tf_vma_free_list[0];
+	struct hlist_node *node;
+	struct __stp_tf_vma_entry *entry;
+
+	if (hlist_empty(head))
+		return NULL;
+	hlist_for_each_entry(entry, node, head, hlist) {
+		break;
+	}
+	if (entry != NULL)
+		hlist_del(&entry->hlist);
+	return entry;
+}
+
+
+// __stp_tf_vma_put_free_entry(): Puts an entry back on the free
+// list.  The __stp_tf_vma_mutex must be locked before calling this
+// function.
+static void
+__stp_tf_vma_put_free_entry(struct __stp_tf_vma_entry *entry)
+{
+	struct hlist_head *head = &__stp_tf_vma_free_list[0];
+	hlist_add_head(&entry->hlist, head);
+}
+
+
+// __stp_tf_vma_hash(): Compute the vma hash.
 static inline u32
 __stp_tf_vma_hash(struct task_struct *tsk, unsigned long addr)
 {
@@ -77,9 +139,8 @@ __stp_tf_add_vma(struct task_struct *tsk, unsigned long addr,
 		}
 	}
 
-	// Using kmalloc here to allocate an element. Could cause some
-	// memory fragmentation if overused.
-	entry = kmalloc(sizeof(struct __stp_tf_vma_entry), GFP_KERNEL);
+	// Get an element from the free list.
+	entry = __stp_tf_vma_get_free_entry();
 	if (!entry) {
 		mutex_unlock(&__stp_tf_vma_mutex);
 		return -ENOMEM;
@@ -105,7 +166,7 @@ __stp_tf_remove_vma_entry(struct __stp_tf_vma_entry *entry)
 	if (entry != NULL) {
 		mutex_lock(&__stp_tf_vma_mutex);
 		hlist_del(&entry->hlist);
-		kfree(entry);
+		__stp_tf_vma_put_free_entry(entry);
 		mutex_unlock(&__stp_tf_vma_mutex);
 	}
 	return 0;

@@ -1,3 +1,16 @@
+2008-07-21  David Smith  <dsmith@redhat.com>
+
+	* task_finder_vma.c (__stp_tf_vma_initialize): New function to
+	initialize the free list.
+	(__stp_tf_vma_put_free_entry): Puts a vma entry back on the free
+	list.
+	(__stp_tf_add_vma): Instead of allocating a vma entry, grab one
+	from the free list by calling __stp_tf_vma_put_free_entry().
+	(__stp_tf_remove_vma_entry): Instead of freeing a vma entry, call
+	__stp_tf_vma_put_free_entry() to put it on the free list instead.
+	* task_finder.c (stap_start_task_finder): Calls
+	__stp_tf_vma_initialize().
+
 2008-07-18  Frank Ch. Eigler  <fche@elastic.org>
 
 	BZ 442528, From Masami Hiramatsu <mhiramat@redhat.com>

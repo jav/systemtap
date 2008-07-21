@@ -921,6 +921,8 @@ stap_start_task_finder(void)
 		return ENOMEM;
 	}
 
+	__stp_tf_vma_initialize();
+
 	atomic_set(&__stp_task_finder_state, __STP_TF_RUNNING);
 
 	rcu_read_lock();
