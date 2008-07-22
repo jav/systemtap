@@ -913,7 +913,7 @@ struct dwflpp
     return 0;
   }
 
-  void setup(bool kernel, bool debuginfo_needed = true)
+  void setup_kernel(bool debuginfo_needed = true)
   {
     if (! sess.module_cache)
       sess.module_cache = new module_cache ();
@@ -927,14 +927,6 @@ struct dwflpp
     static const char *debug_path = (debuginfo_env_arr ?
                                    debuginfo_env_arr : sess.kernel_release.c_str());
 
-    static const Dwfl_Callbacks proc_callbacks =
-      {
-	dwfl_linux_proc_find_elf,
-	dwfl_standard_find_debuginfo,
-	NULL,
-        & debuginfo_path
-      };
-
     static const Dwfl_Callbacks kernel_callbacks =
       {
 	dwfl_linux_kernel_find_elf,
@@ -943,65 +935,108 @@ struct dwflpp
         & debuginfo_path
       };
 
-    if (kernel)
+    dwfl = dwfl_begin (&kernel_callbacks);
+    if (!dwfl)
+      throw semantic_error ("cannot open dwfl");
+    dwfl_report_begin (dwfl);
+    
+    int (*callback)(const char *name, const char *path);
+    if (sess.consult_symtab && !sess.module_cache->paths_collected)
       {
-	dwfl = dwfl_begin (&kernel_callbacks);
-	if (!dwfl)
-	  throw semantic_error ("cannot open dwfl");
-	dwfl_report_begin (dwfl);
-
-        int (*callback)(const char *name, const char *path);
-        if (sess.consult_symtab && !sess.module_cache->paths_collected)
-          {
-            callback = pathname_caching_callback;
-            sess.module_cache->paths_collected = true;
-          }
-        else
-          callback = NULL;
-
-        // XXX: we should not need to set this static variable just
-        // for the callback.  The following elfutils routine should
-        // take some void* parameter to pass context to the callback.
-        this_session = & sess;
-	int rc = dwfl_linux_kernel_report_offline (dwfl,
-						   debug_path,
-						   /* selection predicate */
-						   callback);
-        this_session = 0;
-
-	if (debuginfo_needed)
-	  dwfl_assert (string("missing kernel ") +
-                       sess.kernel_release +
-                       string(" ") +
-                       sess.architecture +
-                       string(" debuginfo"),
-                       rc);
-
-        // XXX: it would be nice if we could do a single
-        // ..._report_offline call for an entire systemtap script, so
-        // that a selection predicate would filter out modules outside
-        // the union of all the requested wildcards.  But we build
-        // derived_probes one-by-one and we don't have lookahead.
-
-        // XXX: a special case: if we have only kernel.* probe points,
-        // we shouldn't waste time looking for module debug-info (and
-        // vice versa).
-
-        // NB: the result of an _offline call is the assignment of
-        // virtualized addresses to relocatable objects such as
-        // modules.  These have to be converted to real addresses at
-        // run time.  See the dwarf_derived_probe ctor and its caller.
+        callback = pathname_caching_callback;
+        sess.module_cache->paths_collected = true;
       }
     else
-      {
-	dwfl = dwfl_begin (&proc_callbacks);
-	dwfl_report_begin (dwfl);
-	if (!dwfl)
-	  throw semantic_error ("cannot open dwfl");
+      callback = NULL;
+    
+    // XXX: we should not need to set this static variable just
+    // for the callback.  The following elfutils routine should
+    // take some void* parameter to pass context to the callback.
+    this_session = & sess;
+    int rc = dwfl_linux_kernel_report_offline (dwfl,
+                                               debug_path,
+                                               /* selection predicate */
+                                               callback);
+    this_session = 0;
+    
+    if (debuginfo_needed)
+      dwfl_assert (string("missing kernel ") +
+                   sess.kernel_release +
+                   string(" ") +
+                   sess.architecture +
+                   string(" debuginfo"),
+                   rc);
+    
+    // XXX: it would be nice if we could do a single
+    // ..._report_offline call for an entire systemtap script, so
+    // that a selection predicate would filter out modules outside
+    // the union of all the requested wildcards.  But we build
+    // derived_probes one-by-one and we don't have lookahead.
+    // PR 3498.
+    
+    // XXX: a special case: if we have only kernel.* probe points,
+    // we shouldn't waste time looking for module debug-info (and
+    // vice versa).
+    
+    // NB: the result of an _offline call is the assignment of
+    // virtualized addresses to relocatable objects such as
+    // modules.  These have to be converted to real addresses at
+    // run time.  See the dwarf_derived_probe ctor and its caller.
 
-        throw semantic_error ("user-space probes not yet implemented");
-	// XXX: Find pids or processes, do userspace stuff.
-      }
+    dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
+  }
+
+  void setup_user(string module_name, bool debuginfo_needed = true)
+  {
+    // XXX: this is where the session -R parameter could come in
+    static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
+    static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
+    static char *debuginfo_path = (debuginfo_env_arr ?: debuginfo_path_arr);
+
+    static const Dwfl_Callbacks user_callbacks =
+      {
+        NULL, /* dwfl_linux_kernel_find_elf, */
+        dwfl_standard_find_debuginfo,
+        dwfl_offline_section_address,
+        & debuginfo_path
+      };
+
+    dwfl = dwfl_begin (&user_callbacks);
+    if (!dwfl)
+      throw semantic_error ("cannot open dwfl");
+    dwfl_report_begin (dwfl);
+
+    // XXX: pathname caching?
+
+    // XXX: need to map module_name to fully-qualified directory names,
+    // searching PATH etc.
+
+    // XXX: should support buildid-based naming
+   
+    // XXX: we should not need to set this static variable just
+    // for the callback.  The following elfutils routine should
+    // take some void* parameter to pass context to the callback.
+    this_session = & sess;
+    Dwfl_Module *mod = dwfl_report_offline (dwfl,
+                                  module_name.c_str(),
+                                  module_name.c_str(),
+                                  -1);
+    // XXX: save mod!
+
+    this_session = 0;
+    
+    if (debuginfo_needed)
+      dwfl_assert (string("missing process ") +
+                   module_name +
+                   string(" ") +
+                   sess.architecture +
+                   string(" debuginfo"),
+                   mod);
+    
+    // NB: the result of an _offline call is the assignment of
+    // virtualized addresses to relocatable objects such as
+    // modules.  These have to be converted to real addresses at
+    // run time.  See the dwarf_derived_probe ctor and its caller.
 
     dwfl_assert ("dwfl_report_end", dwfl_report_end(dwfl, NULL, NULL));
   }
@@ -2405,9 +2440,11 @@ base_query::base_query(systemtap_session & sess,
     module_val = "kernel";
   else
     {
-      bool has_module = get_string_param(params, TOK_MODULE, module_val);
-      assert (has_module); // no other options are possible by construction
-      (void) has_module;
+      bool has_module_or_process =
+        get_string_param(params, TOK_MODULE, module_val) ||
+        get_string_param(params, TOK_PROCESS, module_val);
+      assert (has_module_or_process); // no other options are possible by construction
+      (void) has_module_or_process; // for -DNDEBUG
     }
 }
 
@@ -2689,23 +2726,40 @@ dwflpp::iterate_over_functions (int (* callback)(Dwarf_Die * func, void * arg),
 struct dwarf_builder: public derived_probe_builder
 {
   dwflpp *kern_dw;
+  map <string,dwflpp*> user_dw;
   dwarf_builder(): kern_dw(0) {}
 
-  void build_no_more (systemtap_session &s)
+
+  /* NB: not virtual, so can be called from dtor too: */
+  void dwarf_build_no_more (bool verbose) 
   {
     if (kern_dw)
       {
-        if (s.verbose > 3)
-          clog << "dwarf_builder releasing dwflpp" << endl;
+        if (verbose)
+          clog << "dwarf_builder releasing kernel dwflpp" << endl;
         delete kern_dw;
         kern_dw = 0;
       }
+
+    for (map<string,dwflpp*>::iterator udi = user_dw.begin();
+         udi != user_dw.end();
+         udi ++)
+      {
+        if (verbose)
+          clog << "dwarf_builder releasing user dwflpp " << udi->first << endl;
+        delete udi->second;
+      }
+    user_dw.erase (user_dw.begin(), user_dw.end());
+  }
+
+  void build_no_more (systemtap_session &s)
+  {
+    dwarf_build_no_more (s.verbose > 3);
   }
 
   ~dwarf_builder()
   {
-    // XXX: in practice, NOTREACHED
-    delete kern_dw;
+    dwarf_build_no_more (false);
   }
 
   virtual void build(systemtap_session & sess,
@@ -4527,7 +4581,7 @@ dwarf_derived_probe::register_patterns(match_node * root)
   register_function_and_statement_variants(root->bind_str(TOK_MODULE), dw);
   root->bind(TOK_KERNEL)->bind_num(TOK_STATEMENT)->bind(TOK_ABSOLUTE)->bind(dw);
 
-  // register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
+  register_function_and_statement_variants(root->bind_str(TOK_PROCESS), dw);
 }
 
 void
@@ -4861,39 +4915,72 @@ dwarf_builder::build(systemtap_session & sess,
   // XXX: but they should be per-session, as this builder object
   // may be reused if we try to cross-instrument multiple targets.
 
-  if (!kern_dw)
-    {
-      kern_dw = new dwflpp(sess);
-      assert(kern_dw);
-      kern_dw->setup(true);
-    }
+  dwflpp* dw = 0;
 
-  Dwfl_Module* km = 0;
-  kern_dw->iterate_over_modules(&query_kernel_module, &km);
-  if (km)
+  if (! sess.module_cache)
+    sess.module_cache = new module_cache ();
+
+  string module_name;
+  if (has_null_param (parameters, TOK_KERNEL)
+      || get_param (parameters, TOK_MODULE, module_name))
     {
-      if (! sess.sym_kprobes_text_start)
-        sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
-      if (! sess.sym_kprobes_text_end)
-        sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
-      if (! sess.sym_stext)
-        sess.sym_stext = lookup_symbol_address (km, "_stext");
-      
-      if (sess.verbose > 2)
+      // kernel or kernel module target
+      if (! kern_dw)
         {
-          clog << "control symbols:"
-            // abbreviate the names - they're for our debugging only anyway
-               << " kts: 0x" << hex << sess.sym_kprobes_text_start
-               << " kte: 0x" << sess.sym_kprobes_text_end
-               << " stext: 0x" << sess.sym_stext
-               << dec << endl;
+          kern_dw = new dwflpp(sess);
+          // XXX: PR 3498
+          kern_dw->setup_kernel(); 
+        }
+      dw = kern_dw;
+
+      // Extract some kernel-side blacklist/relocation information.
+      // XXX: This really should be per-module rather than per-kernel, since
+      // .ko's may conceivably contain __kprobe-marked code
+      Dwfl_Module* km = 0;
+      kern_dw->iterate_over_modules(&query_kernel_module, &km);
+      if (km)
+        {
+          if (! sess.sym_kprobes_text_start)
+            sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
+          if (! sess.sym_kprobes_text_end)
+            sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
+          if (! sess.sym_stext)
+            sess.sym_stext = lookup_symbol_address (km, "_stext");
+          
+          if (sess.verbose > 2)
+            {
+              clog << "control symbols:"
+                // abbreviate the names - they're for our debugging only anyway
+                   << " kts: 0x" << hex << sess.sym_kprobes_text_start
+                   << " kte: 0x" << sess.sym_kprobes_text_end
+                   << " stext: 0x" << sess.sym_stext
+                   << dec << endl;
+            }
         }
     }
+  else if (get_param (parameters, TOK_PROCESS, module_name))
+    {
+      // user-space target; we use one dwflpp instance per module name
+      // (= program or shared library)
+      if (user_dw.find(module_name) == user_dw.end())
+        {
+          dw = new dwflpp(sess);
+          // XXX: PR 3498
+          dw->setup_user(module_name);
+          user_dw[module_name] = dw;
+        }
+      else
+        dw = user_dw[module_name];
+    }
 
-  dwflpp* dw = kern_dw;
+
   dwarf_query q(sess, base, location, *dw, parameters, finished_results);
 
-  if (q.has_absolute)
+
+  // XXX: kernel.statement.absolute is a special case that requires no
+  // dwfl processing.  This code should be in a separate builder.
+
+  if (q.has_kernel && q.has_absolute)
     {
       // assert guru mode for absolute probes
       if (! q.base_probe->privileged)
@@ -4913,7 +5000,6 @@ dwarf_builder::build(systemtap_session & sess,
       return;
     }
 
-  // dw->iterate_over_modules(&query_module, &q);
   dw->query_modules(&q);
 }
 
@@ -8455,7 +8541,7 @@ register_standard_tapsets(systemtap_session & s)
   s.pattern_root->bind("perfmon")->bind_str("counter")
     ->bind(new perfmon_builder());
 
-  // dwarf-based kernel/module parts
+  // dwarf-based kprobe/uprobe parts
   dwarf_derived_probe::register_patterns(s.pattern_root);
 
   // XXX: user-space starter set

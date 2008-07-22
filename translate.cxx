@@ -4507,7 +4507,7 @@ emit_symbol_data (systemtap_session& s)
 
   unwindsym_dump_context ctx = { s, kallsyms_out, 0, s.unwindsym_modules };
 
-  // XXX: copied from tapsets.cxx, sadly
+  // XXX: copied from tapsets.cxx dwflpp::, sadly
   static char debuginfo_path_arr[] = "-:.debug:/usr/lib/debug:build";
   static char *debuginfo_env_arr = getenv("SYSTEMTAP_DEBUGINFO_PATH");
   
@@ -4546,6 +4546,7 @@ emit_symbol_data (systemtap_session& s)
 
 
   // ---- step 2: process any user modules (files) listed
+  // XXX: see dwflpp::setup_user.
   static const Dwfl_Callbacks user_callbacks =
     {
       NULL, /* dwfl_linux_kernel_find_elf, */
