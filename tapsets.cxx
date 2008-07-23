@@ -675,13 +675,8 @@ struct dwflpp
 
   void get_module_dwarf(bool required = false, bool report = true)
   {
-    if (!module_dwarf && mod_info->dwarf_status != info_absent)
-      {
-        if (!sess.ignore_dwarf)
-          module_dwarf = dwfl_module_getdwarf(module, &module_bias);
-        mod_info->dwarf_status = (module_dwarf ? info_present : info_absent);
-      }
-
+    module_dwarf = dwfl_module_getdwarf(module, &module_bias);
+    mod_info->dwarf_status = (module_dwarf ? info_present : info_absent);
     if (!module_dwarf && report)
       {
         string msg = "cannot find ";
@@ -878,40 +873,6 @@ struct dwflpp
   {
   }
 
-  // Called by dwfl_linux_kernel_report_offline().  We may not have
-  // dwarf info for the kernel and/or modules, so remember this
-  // module's pathname in case we need to extract elf info from it.
-  // (Currently, we get all the elf info we need via elfutils -- if the
-  // elf file exists -- so remembering the pathname isn't strictly needed.
-  // But we still need to handle the case where there's no vmlinux.)
-
-  static systemtap_session* this_session; // XXX: used only due to elfutils shortcoming
-
-  static int pathname_caching_callback(const char *name, const char *path)
-  {
-    module_info *mi = new module_info(name);
-    assert (this_session);
-    this_session->module_cache->cache[name] = mi;
-
-    if (this_session->ignore_vmlinux && path && name == TOK_KERNEL)
-      {
-        // report_kernel() in elfutils found vmlinux, but pretend it didn't.
-        // Given a non-null path, returning 1 means keep reporting modules.
-        mi->dwarf_status = info_absent;
-        return 1;
-      }
-    else if (path)
-      {
-        mi->elf_path = path;
-        return 1;
-      }
-
-    // No vmlinux.  Here returning 0 to report_kernel() means go ahead
-    // and keep reporting modules.
-    assert(name == TOK_KERNEL);
-    mi->dwarf_status = info_absent;
-    return 0;
-  }
 
   void setup_kernel(bool debuginfo_needed = true)
   {
@@ -940,24 +901,9 @@ struct dwflpp
       throw semantic_error ("cannot open dwfl");
     dwfl_report_begin (dwfl);
     
-    int (*callback)(const char *name, const char *path);
-    if (sess.consult_symtab && !sess.module_cache->paths_collected)
-      {
-        callback = pathname_caching_callback;
-        sess.module_cache->paths_collected = true;
-      }
-    else
-      callback = NULL;
-    
-    // XXX: we should not need to set this static variable just
-    // for the callback.  The following elfutils routine should
-    // take some void* parameter to pass context to the callback.
-    this_session = & sess;
     int rc = dwfl_linux_kernel_report_offline (dwfl,
                                                debug_path,
-                                               /* selection predicate */
-                                               callback);
-    this_session = 0;
+                                               NULL);
     
     if (debuginfo_needed)
       dwfl_assert (string("missing kernel ") +
@@ -1006,24 +952,16 @@ struct dwflpp
       throw semantic_error ("cannot open dwfl");
     dwfl_report_begin (dwfl);
 
-    // XXX: pathname caching?
-
     // XXX: need to map module_name to fully-qualified directory names,
     // searching PATH etc.
 
     // XXX: should support buildid-based naming
    
-    // XXX: we should not need to set this static variable just
-    // for the callback.  The following elfutils routine should
-    // take some void* parameter to pass context to the callback.
-    this_session = & sess;
     Dwfl_Module *mod = dwfl_report_offline (dwfl,
                                   module_name.c_str(),
                                   module_name.c_str(),
                                   -1);
     // XXX: save mod!
-
-    this_session = 0;
     
     if (debuginfo_needed)
       dwfl_assert (string("missing process ") +
@@ -1045,67 +983,21 @@ struct dwflpp
 
   // -----------------------------------------------------------------
 
-  static int module_caching_callback(Dwfl_Module * mod,
-                                     void **,
-                                     const char *name,
-                                     Dwarf_Addr addr,
-                                     void *param)
-  {
-    systemtap_session *sess = static_cast<systemtap_session*>(param);
-    module_cache_t *cache = sess->module_cache;
-    module_info *mi = NULL;
-
-    assert (cache);
-
-    if (sess->ignore_vmlinux && name == TOK_KERNEL)
-      // This wouldn't be called for vmlinux if vmlinux weren't there.
-      return DWARF_CB_OK;
-
-    if (cache->paths_collected)
-      mi = cache->cache[name];
-    if (!mi)
-      {
-        mi = new module_info(name);
-        cache->cache[name] = mi;
-      }
-    mi->mod = mod;
-    mi->addr = addr;
-    return DWARF_CB_OK;
-  }
-
-  void cache_modules_dwarf()
-  {
-    if (!sess.module_cache->dwarf_collected)
-      {
-        ptrdiff_t off = 0;
-        do
-          {
-            if (pending_interrupts) return;
-            off = dwfl_getmodules (dwfl, module_caching_callback,
-                                   & sess, off);
-          }
-        while (off > 0);
-        dwfl_assert("dwfl_getmodules", off == 0);
-        sess.module_cache->dwarf_collected = true;
-      }
-  }
-
-  void iterate_over_modules(int (* callback)(Dwfl_Module *, module_info *,
+  void iterate_over_modules(int (* callback)(Dwfl_Module *, void **,
 					     const char *, Dwarf_Addr,
 					     void *),
-			    void * data)
+			    dwarf_query *data)
   {
-    cache_modules_dwarf();
-
-    map<string, module_info*>::iterator i;
-    for (i = sess.module_cache->cache.begin(); i != sess.module_cache->cache.end(); i++)
+    ptrdiff_t off = 0;
+    do
       {
         if (pending_interrupts) return;
-        module_info *mi = i->second;
-        int rc = callback (mi->mod, mi, mi->name, mi->addr, data);
-        if (rc != DWARF_CB_OK) break;
+        off = dwfl_getmodules (dwfl, callback, data, off);
       }
+    while (off > 0);
+    dwfl_assert("dwfl_getmodules", off == 0);
   }
+
 
   // Defined after dwarf_query
   void query_modules(dwarf_query *q);
@@ -2320,10 +2212,6 @@ struct dwflpp
 };
 
 
-systemtap_session* dwflpp::this_session = 0; // XXX: used only due to elfutils shortcoming
-
-
-
 
 enum
 function_spec_type
@@ -2420,6 +2308,8 @@ struct base_query
 
   // Extracted parameters.
   bool has_kernel;
+  bool has_module;
+  bool has_process;
   string module_val; // has_kernel => module_val = "kernel"
 
   virtual void handle_query_module() = 0;
@@ -2435,17 +2325,17 @@ base_query::base_query(systemtap_session & sess,
   : sess(sess), base_probe(base_probe), base_loc(base_loc), dw(dw),
     results(results)
 {
-  has_kernel = has_null_param(params, TOK_KERNEL);
+  has_kernel = has_null_param (params, TOK_KERNEL);
   if (has_kernel)
     module_val = "kernel";
+
+  has_module = get_string_param (params, TOK_MODULE, module_val);
+  if (has_module)
+    has_process = false;
   else
-    {
-      bool has_module_or_process =
-        get_string_param(params, TOK_MODULE, module_val) ||
-        get_string_param(params, TOK_PROCESS, module_val);
-      assert (has_module_or_process); // no other options are possible by construction
-      (void) has_module_or_process; // for -DNDEBUG
-    }
+    has_process = get_string_param(params, TOK_PROCESS, module_val);
+
+  assert (has_kernel || has_process || has_module);
 }
 
 bool
@@ -2941,6 +2831,10 @@ dwarf_query::handle_query_module()
 void
 dwarf_query::build_blacklist()
 {
+  // No blacklist for userspace.
+  if (has_process)
+    return;
+
   // We build up the regexps in these strings
 
   // Add ^ anchors at the front; $ will be added just before regcomp.
@@ -3149,9 +3043,11 @@ dwarf_query::parse_function_spec(string & spec)
 }
 
 
+#if 0
 // Forward declaration.
-static int query_kernel_module (Dwfl_Module *, module_info *, const char *,
+static int query_kernel_module (Dwfl_Module *, void **, const char *,
 				Dwarf_Addr, void *);
+#endif
 
 
 // XXX: pull this into dwflpp
@@ -3177,6 +3073,9 @@ dwarf_query::blacklisted_p(const string& funcname,
                            const string& section,
                            Dwarf_Addr addr)
 {
+  if (has_process)
+    return false; // no blacklist for userspace
+
   if (section.substr(0, 6) == string(".init.") ||
       section.substr(0, 6) == string(".exit.") ||
       section.substr(0, 9) == string(".devinit.") ||
@@ -3304,8 +3203,10 @@ dwarf_query::add_probe_point(const string& funcname,
       clog << "probe " << funcname << "@" << filename << ":" << line;
       if (string(module) == TOK_KERNEL)
         clog << " kernel";
-      else
+      else if (has_module)
         clog << " module=" << module;
+      else if (has_process)
+        clog << " process=" << module;
       if (reloc_section != "") clog << " reloc=" << reloc_section;
       if (blacklist_section != "") clog << " section=" << blacklist_section;
       clog << " pc=0x" << hex << addr << dec;
@@ -3779,9 +3680,10 @@ query_cu (Dwarf_Die * cudie, void * arg)
 }
 
 
+#if 0
 static int
 query_kernel_module (Dwfl_Module *mod,
-                     module_info *,
+                     void **,
 		     const char *name,
 		     Dwarf_Addr,
 		     void *arg)
@@ -3795,6 +3697,8 @@ query_kernel_module (Dwfl_Module *mod,
   }
   return DWARF_CB_OK;
 }
+#endif
+
 
 static void
 validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
@@ -3861,17 +3765,61 @@ validate_module_elf (Dwfl_Module *mod, const char *name,  base_query *q)
          << "\n";
 }
 
+
+
+static Dwarf_Addr
+lookup_symbol_address (Dwfl_Module *m, const char* wanted)
+{
+  int syments = dwfl_module_getsymtab(m);
+  assert(syments);
+  for (int i = 1; i < syments; ++i)
+    {
+      GElf_Sym sym;
+      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
+      if (name != NULL && strcmp(name, wanted) == 0)
+        return sym.st_value;
+    }
+
+  return 0;
+}
+
+
+
 static int
 query_module (Dwfl_Module *mod,
-              module_info *mi,
+              void **,
 	      const char *name,
               Dwarf_Addr,
 	      void *arg)
 {
-  base_query * q = static_cast<base_query *>(arg);
+  base_query *q = static_cast<base_query *>(arg);
 
   try
     {
+      module_info* mi = q->sess.module_cache->cache[name];
+      if (mi == 0)
+        {
+          mi = q->sess.module_cache->cache[name] = new module_info(name);
+
+          const char *path = NULL; // XXX: unbreak this
+
+          if (q->sess.ignore_vmlinux && path && name == TOK_KERNEL)
+            {
+              // report_kernel() in elfutils found vmlinux, but pretend it didn't.
+              // Given a non-null path, returning 1 means keep reporting modules.
+              mi->dwarf_status = info_absent;
+            }
+          else if (path)
+            {
+              mi->elf_path = path;
+            }
+      
+          // No vmlinux.  Here returning 0 to report_kernel() means go ahead
+          // and keep reporting modules.
+          mi->dwarf_status = info_absent;
+        }
+      // OK, enough of that module_info caching business.
+
       q->dw.focus_on_module(mod, mi);
 
       // If we have enough information in the pattern to skip a module and
@@ -3888,13 +3836,27 @@ query_module (Dwfl_Module *mod,
       if (mod)
         validate_module_elf(mod, name, q);
       else
+        assert(q->has_kernel);   // and no vmlinux to examine
+
+      if (q->sess.verbose>2)
+        cerr << "focused on module '" << q->dw.module_name << "'\n";
+
+
+      // Collect a few kernel addresses.  XXX: these belong better
+      // to the sess.module_info["kernel"] struct.
+      if (q->dw.module_name == TOK_KERNEL)
         {
-          assert(q->has_kernel);        // and no vmlinux to examine
-          if (q->sess.verbose>2)
-            cerr << "focused on module '" << q->dw.module_name << "'\n";
+          if (! q->sess.sym_kprobes_text_start)
+            q->sess.sym_kprobes_text_start = lookup_symbol_address (mod, "__kprobes_text_start");
+          if (! q->sess.sym_kprobes_text_end)
+            q->sess.sym_kprobes_text_end = lookup_symbol_address (mod, "__kprobes_text_end");
+          if (! q->sess.sym_stext)
+            q->sess.sym_stext = lookup_symbol_address (mod, "_stext");
         }
 
+      // Finally, search the module for matches of the probe point.
       q->handle_query_module();
+
 
       // If we know that there will be no more matches, abort early.
       if (q->dw.module_name_final_match(q->module_val))
@@ -3912,20 +3874,7 @@ query_module (Dwfl_Module *mod,
 void
 dwflpp::query_modules(dwarf_query *q)
 {
-  string name = q->module_val;
-  if (name_has_wildcard(name))
-    iterate_over_modules(&query_module, q);
-  else
-    {
-      cache_modules_dwarf();
-
-      map<string, module_info*>::iterator i = sess.module_cache->cache.find(name);
-      if (i != sess.module_cache->cache.end())
-        {
-          module_info *mi = i->second;
-          query_module(mi->mod, mi, name.c_str(), mi->addr, q);
-        }
-    }
+  iterate_over_modules(&query_module, q);
 }
 
 struct var_expanding_copy_visitor: public deep_copy_visitor
@@ -4419,7 +4368,7 @@ dwarf_derived_probe::join_group (systemtap_session& s)
 dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
                                          const string& filename,
                                          int line,
-                                         // module & section speficy a relocation
+                                         // module & section specify a relocation
                                          // base for <addr>, unless section==""
                                          // (equivalently module=="kernel")
                                          const string& module,
@@ -4485,11 +4434,15 @@ dwarf_derived_probe::dwarf_derived_probe(const string& funcname,
   // number any particular match of the wildcards.
 
   vector<probe_point::component*> comps;
-  comps.push_back
-    (module == TOK_KERNEL
-     ? new probe_point::component(TOK_KERNEL)
-     : new probe_point::component(TOK_MODULE, new literal_string(module)));
-
+  if (q.has_kernel)
+    comps.push_back (new probe_point::component(TOK_KERNEL));
+  else if(q.has_module)
+    comps.push_back (new probe_point::component(TOK_MODULE, new literal_string(module)));
+  else if(q.has_process)
+    comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(module)));
+  else
+    assert (0);
+     
   string fn_or_stmt;
   if (q.has_function_str || q.has_function_num)
     fn_or_stmt = "function";
@@ -4884,26 +4837,6 @@ dwarf_derived_probe_group::emit_module_exit (systemtap_session& s)
 }
 
 
-
-static Dwarf_Addr
-lookup_symbol_address (Dwfl_Module *m, const char* wanted)
-{
-  int syments = dwfl_module_getsymtab(m);
-  assert(syments);
-  for (int i = 1; i < syments; ++i)
-    {
-      GElf_Sym sym;
-      const char *name = dwfl_module_getsym(m, i, &sym, NULL);
-      if (name != NULL && strcmp(name, wanted) == 0)
-        return sym.st_value;
-    }
-
-  return 0;
-}
-
-
-
-
 void
 dwarf_builder::build(systemtap_session & sess,
 		     probe * base,
@@ -4933,6 +4866,7 @@ dwarf_builder::build(systemtap_session & sess,
         }
       dw = kern_dw;
 
+#if 0
       // Extract some kernel-side blacklist/relocation information.
       // XXX: This really should be per-module rather than per-kernel, since
       // .ko's may conceivably contain __kprobe-marked code
@@ -4940,12 +4874,6 @@ dwarf_builder::build(systemtap_session & sess,
       kern_dw->iterate_over_modules(&query_kernel_module, &km);
       if (km)
         {
-          if (! sess.sym_kprobes_text_start)
-            sess.sym_kprobes_text_start = lookup_symbol_address (km, "__kprobes_text_start");
-          if (! sess.sym_kprobes_text_end)
-            sess.sym_kprobes_text_end = lookup_symbol_address (km, "__kprobes_text_end");
-          if (! sess.sym_stext)
-            sess.sym_stext = lookup_symbol_address (km, "_stext");
           
           if (sess.verbose > 2)
             {
@@ -4957,6 +4885,7 @@ dwarf_builder::build(systemtap_session & sess,
                    << dec << endl;
             }
         }
+#endif
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
