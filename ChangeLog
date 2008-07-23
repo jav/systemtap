@@ -1,3 +1,9 @@
+2008-07-23  Frank Ch. Eigler  <fche@elastic.org>
+
+	From James Bottomley <James.Bottomley@HansenPartnership.com>:
+	* tapsets.cxx (query_dwarf_func): Silently skip inlined function
+	instances that have no entrypc.
+
 2008-07-18  Masami Hiramatsu  <mhiramat@redhat.com>
 
 	BZ 442528 (PR6028)
