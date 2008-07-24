@@ -1,6 +1,7 @@
 2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	* runtime/autoconf-module-nsections.c: removed
+	* runtime/autoconf-oneachcpu-retry.c: added
 
 2008-07-21  David Smith  <dsmith@redhat.com>
 

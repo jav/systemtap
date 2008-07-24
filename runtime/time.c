@@ -237,7 +237,11 @@ _stp_init_time(void)
 	    return -1;
     
     stp_timer_reregister = 1;
+#ifdef STAPCONF_ONEACHCPU_RETRY
     ret = on_each_cpu(__stp_init_time, NULL, 0, 1);
+#else
+    ret = on_each_cpu(__stp_init_time, NULL, 1);
+#endif
 
 #ifdef CONFIG_CPU_FREQ
     if (!ret && !__stp_constant_freq()) {

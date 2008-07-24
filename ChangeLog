@@ -1,6 +1,7 @@
 2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
 
-	* buildrun.cxx (compile_pass): Remove STAPCONF_MODULE_NSECTIONS
+	* buildrun.cxx (compile_pass): Remove STAPCONF_MODULE_NSECTIONS,
+	and add STAPCONF_ONEACHCPU_RETRY
 
 2008-07-23  Frank Ch. Eigler  <fche@elastic.org>
 
