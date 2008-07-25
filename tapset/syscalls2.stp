@@ -2899,6 +2899,25 @@ probe syscall.unlink.return = kernel.function("sys_unlink").return {
 	retstr = returnstr(1)
 }
 
+# unlinkat ___________________________________________________
+# new function with 2.6.16
+# long sys_unlinkat(int dfd, const char __user *pathname,
+#	int flag)
+probe syscall.unlinkat = kernel.function("sys_unlinkat") ? {
+	name = "unlinkat"
+	dfd = $dfd
+	dfd_str = _dfd_str($dfd)
+	pathname = $pathname
+	pathname_str = user_string($pathname)
+	flag = $flag
+	flag_str = _at_flag_str($flag)
+	argstr = sprintf("%s, %s, %s", dfd_str, user_string_quoted($pathname), flag_str)
+}
+probe syscall.unlinkat.return = kernel.function("sys_unlinkat").return ? {
+	name = "unlinkat"
+	retstr = returnstr(1)
+}
+
 # unshare ____________________________________________________
 # new function with 2.6.16
 # long sys_unshare(unsigned long unshare_flags)

@@ -1,3 +1,7 @@
+2008-07-25  Zhaolei  <zhaolei@cn.fujitsu.com>
+
+	* syscalls2.stp: Add sys_unlinkat.
+
 2008-07-18  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp: Add sys_symlinkat.
