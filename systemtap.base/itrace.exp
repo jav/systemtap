@@ -1,0 +1,102 @@
+# itrace test
+
+# Initialize variables
+set utrace_support_found 0
+set exepath "[pwd]/ls_[pid]"
+
+set itrace1_script {
+    global instrs = 0
+    probe begin { printf("systemtap starting probe\n") }
+    probe process("%s").itrace
+    {
+        instrs += 1
+	if (instrs == 5)
+		exit()
+    }
+
+
+    probe end { printf("systemtap ending probe\n")
+          printf("itraced = %%d\n", instrs)
+    }
+}
+set itrace1_script_output "itraced = 5\r\n"
+
+set itrace2_script {
+    global instrs = 0, itrace_on = 0, start_timer = 0
+    probe begin { start_timer = 1; printf("systemtap starting probe\n") }
+    probe process("%s").itrace if (itrace_on)
+    {
+        instrs += 1
+	if (instrs == 5)
+		exit()
+    }
+
+
+    probe timer.ms(1) if (start_timer)
+    {   
+        itrace_on = 1
+    }
+
+    probe timer.ms(10) if (start_timer)
+    {   
+        itrace_on = 0
+    }
+    probe end { printf("systemtap ending probe\n")
+          printf("itraced = %%d\n", instrs)
+    }
+}
+set itrace2_script_output "itraced = 5\r\n"
+
+
+# Set up our own copy of /bin/ls, to make testing for a particular
+# executable easy.  We can't use 'ln' here, since we might be creating
+# a cross-device link.  We can't use 'ln -s' here, since the kernel
+# resolves the symbolic link and reports that /bin/ls is being
+# exec'ed (instead of our local copy).
+if {[catch {exec cp /bin/ls $exepath} res]} {
+    fail "unable to copy /bin/ls: $res"
+    return
+}
+
+# "load" generation function for stap_run.  It spawns our own copy of
+# /bin/ls, waits 5 seconds, then kills it.
+proc run_ls_5_sec {} {
+    global exepath
+
+    spawn $exepath
+    set exe_id $spawn_id
+    after 5000;
+    exec kill -INT -[exp_pid -i $exe_id]
+    return 0;
+}
+
+
+# Try to find utrace_attach symbol in /proc/kallsyms
+set path "/proc/kallsyms"
+if {! [catch {exec grep -q utrace_attach $path} dummy]} {
+    set utrace_support_found 1
+}
+
+set TEST_NAME "itrace1"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME : not installtest_p"
+} else {
+    set script [format $itrace1_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace1_script_output -e $script
+}
+
+
+set TEST_NAME "itrace2"
+if {$utrace_support_found == 0} {
+    untested "$TEST_NAME : no kernel utrace support found"
+} elseif {![installtest_p]} {
+    untested "$TEST_NAME : not installtest_p"
+} else {
+    set script [format $itrace2_script $exepath]
+    stap_run $TEST_NAME run_ls_5_sec $itrace2_script_output -e $script
+}
+
+# Cleanup
+exec rm -f $exepath

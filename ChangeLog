@@ -1,3 +1,23 @@
+2008-07-28  Dave Nomura  <dcnltc@us.ibm.com>
+
+	* session.h (struct systemtap_session): Added itrace_derived_probe
+	group.
+	* elaborate.cxx (systemtap_session::systemtap_session): Added
+	initialization of itrace_derived_probes.
+	* tapsets.cxx (struct itrace_derived_probe): Add derived_probe
+	struct for holding info needed by itrace probes.
+	(struct itrace_derived_probe_group): New derived_probe_group
+	to handle itrace probes.
+	(itrace_derived_probe::itrace_derived_probe): Needed for use with
+	task_finder.
+	(itrace_derived_probe_group::join_group): Ditto.
+	(itrace_derived_probe_group::enroll): Ditto.
+	(itrace_derived_probe_group::emit_probe_decl): Ditto.
+	(itrace_derived_probe_group::emit_module_decls): Ditto.
+	(itrace_derived_probe_group::emit_module_init): Ditto.
+	(itrace_derived_probe_group::emit_module_exit): Ditto.
+	* stapprobes.5.in : Added documentation of itrace probe.
+
 2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	* buildrun.cxx (compile_pass): Remove STAPCONF_MODULE_NSECTIONS,

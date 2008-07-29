@@ -367,6 +367,8 @@ process(PID).syscall
 process("PATH").syscall
 process(PID).syscall.return
 process("PATH").syscall.return
+process(PID).itrace
+process("PATH").itrace
 .ESAMPLE
 .PP
 A
@@ -391,6 +393,9 @@ A
 probe gets called when a thread described by PID or PATH returns from a
 system call.  The system call number is available in the "$syscall"
 context variable.
+A
+.B .itrace
+probe gets called for every single step of the process described by PID or PATH.
 .PP
 Note that
 .I PATH

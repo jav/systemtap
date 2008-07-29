@@ -5342,6 +5342,280 @@ task_finder_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "stap_stop_task_finder();";
 }
 
+// ------------------------------------------------------------------------
+// itrace user-space probes
+// ------------------------------------------------------------------------
+
+
+struct itrace_derived_probe: public derived_probe
+{
+  bool has_path;
+  string path;
+  int64_t pid;
+  int single_step;
+
+  itrace_derived_probe (systemtap_session &s, probe* p, probe_point* l,
+                        bool hp, string &pn, int64_t pd, int ss
+			);
+  void join_group (systemtap_session& s);
+};
+
+
+struct itrace_derived_probe_group: public generic_dpg<itrace_derived_probe>
+{
+private:
+  map<string, vector<itrace_derived_probe*> > probes_by_path;
+  typedef map<string, vector<itrace_derived_probe*> >::iterator p_b_path_iterator;
+  map<int64_t, vector<itrace_derived_probe*> > probes_by_pid;
+  typedef map<int64_t, vector<itrace_derived_probe*> >::iterator p_b_pid_iterator;
+  unsigned num_probes;
+
+  void emit_probe_decl (systemtap_session& s, itrace_derived_probe *p);
+
+public:
+  itrace_derived_probe_group(): num_probes(0) { }
+
+  void enroll (itrace_derived_probe* probe);
+  void emit_module_decls (systemtap_session& s);
+  void emit_module_init (systemtap_session& s);
+  void emit_module_exit (systemtap_session& s);
+};
+
+
+itrace_derived_probe::itrace_derived_probe (systemtap_session &s,
+                                            probe* p, probe_point* l,
+                                            bool hp, string &pn, int64_t pd,
+											int ss
+					    ):
+  derived_probe(p, l), has_path(hp), path(pn), pid(pd), single_step(ss)
+{
+}
+
+
+void
+itrace_derived_probe::join_group (systemtap_session& s)
+{
+  if (! s.itrace_derived_probes)
+      s.itrace_derived_probes = new itrace_derived_probe_group ();
+
+  s.itrace_derived_probes->enroll (this);
+
+  task_finder_derived_probe_group::create_session_group (s);
+}
+
+struct itrace_builder: public derived_probe_builder
+{
+  itrace_builder() {}
+  virtual void build(systemtap_session & sess,
+		     probe * base,
+		     probe_point * location,
+		     std::map<std::string, literal *> const & parameters,
+		     vector<derived_probe *> & finished_results)
+  {
+    string path;
+    int64_t pid;
+    int single_step;
+
+    bool has_path = get_param (parameters, TOK_PROCESS, path);
+    bool has_pid = get_param (parameters, TOK_PROCESS, pid);
+    assert (has_path || has_pid);
+
+    single_step = 1;
+
+    // If we have a path, we need to validate it.
+    if (has_path)
+    {
+	string::size_type start_pos, end_pos;
+	string component;
+
+	// Make sure it starts with '/'.
+	if (path[0] != '/')
+	    throw semantic_error ("process path must start with a '/'",
+				  location->tok);
+
+	start_pos = 1;			// get past the initial '/'
+	while ((end_pos = path.find('/', start_pos)) != string::npos)
+        {
+	    component = path.substr(start_pos, end_pos - start_pos);
+	    // Make sure it isn't empty.
+	    if (component.size() == 0)
+		throw semantic_error ("process path component cannot be empty",
+				      location->tok);
+	    // Make sure it isn't relative.
+	    else if (component == "." || component == "..")
+		throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+
+	    start_pos = end_pos + 1;
+	}
+	component = path.substr(start_pos);
+	// Make sure it doesn't end with '/'.
+	if (component.size() == 0)
+	    throw semantic_error ("process path cannot end with a '/'", location->tok);
+	// Make sure it isn't relative.
+	else if (component == "." || component == "..")
+	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+    }
+
+    finished_results.push_back(new itrace_derived_probe(sess, base, location,
+                                                        has_path, path, pid,
+																	single_step
+							));
+  }
+};
+
+
+void
+itrace_derived_probe_group::enroll (itrace_derived_probe* p)
+{
+  if (p->has_path)
+    probes_by_path[p->path].push_back(p);
+  else
+    probes_by_pid[p->pid].push_back(p);
+  num_probes++;
+
+  // XXX: multiple exec probes (for instance) for the same path (or
+  // pid) should all share a itrace report function, and have their
+  // handlers executed sequentially.
+}
+
+
+void
+itrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
+					     itrace_derived_probe *p)
+{
+  s.op->newline() << "{";
+  s.op->line() << " .tgt={";
+
+  if (p->has_path)
+    {
+      s.op->line() << " .pathname=\"" << p->path << "\",";
+      s.op->line() << " .pid=0,";
+    }
+  else
+    {
+      s.op->line() << " .pathname=NULL,";
+      s.op->line() << " .pid=" << p->pid << ",";
+    }
+
+  s.op->line() << " .callback=&_stp_itrace_probe_cb,";
+  s.op->line() << " },";
+  s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
+  s.op->line() << " .single_step=" << p->single_step << ",";
+  s.op->line() << " .ph=&" << p->name << ",";
+
+  s.op->line() << " },";
+}
+
+
+void
+itrace_derived_probe_group::emit_module_decls (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty())
+    return;
+
+  s.op->newline();
+  s.op->newline() << "/* ---- itrace probes ---- */";
+  s.op->newline() << "struct stap_itrace_probe {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_task_finder_target tgt;";
+  s.op->newline() << "const char *pp;";
+  s.op->newline() << "void (*ph) (struct context*);";
+  s.op->newline() << "int single_step;";
+  s.op->newline(-1) << "};";
+  s.op->newline() << "static void enter_itrace_probe(struct stap_itrace_probe *p, struct pt_regs *regs, void *data);";
+  s.op->newline() << "#include \"itrace.c\"";
+
+  // output routine to call itrace probe
+  s.op->newline() << "static void enter_itrace_probe(struct stap_itrace_probe *p, struct pt_regs *regs, void *data) {";
+  s.op->indent(1);
+
+  common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
+  s.op->newline() << "c->probe_point = p->pp;";
+  s.op->newline() << "c->regs = regs;";
+  s.op->newline() << "c->data = data;";
+
+  // call probe function
+  s.op->newline() << "(*p->ph) (c);";
+  common_probe_entryfn_epilogue (s.op);
+
+  s.op->newline() << "return;";
+  s.op->newline(-1) << "}";
+
+  // Output task finder callback routine that gets called for all
+  // itrace probe types.
+  s.op->newline() << "static int _stp_itrace_probe_cb(struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->indent(1);
+  s.op->newline() << "int rc = 0;";
+  s.op->newline() << "struct stap_itrace_probe *p = container_of(tgt, struct stap_itrace_probe, tgt);";
+
+  s.op->newline() << "if (register_p) ";
+  s.op->indent(1);
+
+  s.op->newline() << "rc = usr_itrace_init(p->single_step, tsk->pid, p);";
+  s.op->newline(-1) << "else";
+  s.op->newline(1) << "remove_usr_itrace_info(find_itrace_info(p->tgt.pid));";
+  s.op->newline(-1) << "return rc;";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "struct stap_itrace_probe stap_itrace_probes[] = {";
+  s.op->indent(1);
+
+  // Set up 'process(PATH)' probes
+  if (! probes_by_path.empty())
+    {
+      for (p_b_path_iterator it = probes_by_path.begin();
+	   it != probes_by_path.end(); it++)
+        {
+	  for (unsigned i = 0; i < it->second.size(); i++)
+	    {
+	      itrace_derived_probe *p = it->second[i];
+	      emit_probe_decl(s, p);
+	    }
+	}
+    }
+
+  // Set up 'process(PID)' probes
+  if (! probes_by_pid.empty())
+    {
+      for (p_b_pid_iterator it = probes_by_pid.begin();
+	   it != probes_by_pid.end(); it++)
+        {
+	  for (unsigned i = 0; i < it->second.size(); i++)
+	    {
+	      itrace_derived_probe *p = it->second[i];
+	      emit_probe_decl(s, p);
+	    }
+	}
+    }
+  s.op->newline(-1) << "};";
+}
+
+
+void
+itrace_derived_probe_group::emit_module_init (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty())
+    return;
+
+  s.op->newline();
+  s.op->newline() << "/* ---- itrace probes ---- */";
+
+  s.op->newline() << "for (i=0; i<" << num_probes << "; i++) {";
+  s.op->indent(1);
+  s.op->newline() << "struct stap_itrace_probe *p = &stap_itrace_probes[i];";
+  s.op->newline() << "rc = stap_register_task_finder_target(&p->tgt);";
+  s.op->newline(-1) << "}";
+}
+
+
+void
+itrace_derived_probe_group::emit_module_exit (systemtap_session& s)
+{
+  if (probes_by_path.empty() && probes_by_pid.empty()) return;
+  s.op->newline();
+  s.op->newline() << "/* ---- itrace probes ---- */";
+  s.op->newline() << "cleanup_usr_itrace();";
+}
 
 // ------------------------------------------------------------------------
 // utrace user-space probes
@@ -8483,6 +8757,13 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
+
+  // itrace user-space probes
+  s.pattern_root->bind_str(TOK_PROCESS)->bind("itrace")
+    ->bind(new itrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
+    ->bind(new itrace_builder ());
+
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
@@ -8534,6 +8815,7 @@ all_session_groups(systemtap_session& s)
   // "register" the dummy task_finder probe group after all probe
   // groups that use the task_finder.
   DOONE(utrace);
+  DOONE(itrace);
   DOONE(task_finder);
 #undef DOONE
   return g;
