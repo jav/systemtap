@@ -16,15 +16,6 @@ proc use_server_p {} {
 }
 
 
-proc stap_exec {} {
-    if {[info procs use_server_p] != "" && [use_server_p]} then {
-	return "stap-client"
-    } else {
-	return "stap"
-    }
-}
-
-
 proc print_systemtap_version {} {
     set version [exec /bin/uname -r]
     set location "/boot/vmlinux-$version"

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Start a systemtap server
+#
+# Copyright (C) 2008 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# This script attempts to start a systemtap server and echoes the
+# process id, if successful.
+
+# start the server
+stap-serverd </dev/null >/dev/null 2>&1 &
+server_pid=$!
+
+# Exit if the server did not start ok
+(ps | grep -q $server_pid) || exit 1
+
+# The server started ok. Echo its process id.
+echo $server_pid
+exit 0

@@ -13,6 +13,9 @@
 # contained in the unpacked tree to build the requested systemtap kernel module.
 # This module is then written to stdout.
 
+# Catch ctrl-c and other termination signals
+trap 'terminate' SIGTERM SIGINT
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
@@ -312,6 +315,7 @@ function call_stap {
     else
 	server_p_phase=$p_phase
     fi
+
     eval stap $cmdline -k -p $server_p_phase \
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
@@ -328,19 +332,21 @@ function create_response {
     tmpdir_line=`cat stderr | grep "Keeping temp"`
     tmpdir_stap=`expr "$tmpdir_line" : '.*"\(.*\)".*'`
 
-    # Remove the message about keeping th<e stap temp directory from stderr, unless
+    # Remove the message about keeping the stap temp directory from stderr, unless
     # the user did request to keep it.
-    if test $keep_temps != 1; then
-	sed -i "/^Keeping temp/d" stderr
+    if test "X$tmpdir_stap" != "X"; then
+	if test $keep_temps != 1; then
+	    sed -i "/^Keeping temp/d" stderr
+	fi
+
+        # Add the contents of the stap temp directory to the server output directory
+	ln -s $tmpdir_stap `basename $tmpdir_stap`
     fi
 
     # If the user specified -p5, remove the name of the kernel module from stdout.
     if test $p_phase = 5; then
 	sed -i '/\.ko$/d' stdout
     fi
-
-    # Add the contents of the stap temp directory to the server output directory
-    ln -s $tmpdir_stap `basename $tmpdir_stap`
 }
 
 # function: package_response
@@ -402,6 +408,15 @@ function cleanup {
 	rm -fr $tmpdir_server
 	rm -fr $tmpdir_stap
     fi
+}
+
+# function: terminate
+#
+# Terminate gracefully.
+function terminate {
+    # Clean up
+    cleanup
+    exit
 }
 
 #-----------------------------------------------------------------------------

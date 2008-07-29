@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# Find compile servers for systemtap
+#
+# Copyright (C) 2008 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# This script uses avahi to find systemtap compile servers on the local
+# network. Information about each server found is printed to stdout.
+
+#-----------------------------------------------------------------------------
+# Helper functions.
+#-----------------------------------------------------------------------------
+# function: configuration
+function configuration {
+    avahi_service_tag=_stap._tcp
+}
+
+# function: initialization
+function initialization {
+    rc=1 # not found yet
+    if test "X$1" = "X--all"; then
+	find_all=1
+    else
+	find_all=0
+    fi
+}
+
+# function: find_and_connect_to_server
+#
+# Find and establish connection with a compatibale stap server.
+function find_servers {
+    # Find a server
+    avahi-browse $avahi_service_tag --terminate -r 2>/dev/null | match_server
+    rc=$?
+}
+
+# function: match_server
+#
+# Find a suitable server using the avahi-browse output provided on stdin.
+function match_server {
+    local server_ip
+    local server_name
+    local server_sysinfo
+    local server_port
+    local rc=1 # not found yet
+
+    # Loop over the avahi service descriptors.
+    while read
+    do
+	# Examine the next service descriptor
+	# Is it a stap server?
+	(echo $REPLY | grep -q "^=.*_stap") || continue
+	
+	# Get the details of the service
+	local service_tag equal data
+	while read service_tag equal service_data
+	do
+	    case $service_tag in
+		'=' )
+		    break ;;
+		hostname )
+		    server_name=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    ;;
+		address )
+		    # Sometimes (seems random), avahi-resolve-host-name resolves a local server to its
+		    # hardware address rather its ip address. Keep trying until we get
+		    # an ip address.
+		    server_ip=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    local attempt
+		    for ((attempt=0; $attempt < 5; ++attempt))
+		    do
+			server_ip=`expr "$server_ip" : '^\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
+			if test "X$server_ip" != "X"; then
+			    break
+			fi
+		        # Resolve the server.domain to an ip address.
+			server_ip=`avahi-resolve-host-name $hostname`
+			server_ip=`expr "$server_ip" : '.*	\(.*\)$'`
+		    done
+		    ;;
+		port )
+		    server_port=`expr "$service_data" : '\[\([^]]*\)\]'`
+		    ;;
+		txt )
+		    server_sysinfo=`expr "$service_data" : '\[\"\([^]]*\)\"\]'`
+		    ;;
+		* )
+		    break ;;
+	    esac
+	done
+
+	# It is a stap server, but is it compatible?
+	if test $find_all = 0 -a "$server_sysinfo" != "`client_sysinfo`"; then
+	    continue
+	fi
+
+	# It's compatible, or we're finding all servers. Print a summary line
+	echo $server_name $server_ip $server_port "'$server_sysinfo'"
+	rc=0
+    done
+
+    exit $rc
+}
+
+# function client_sysinfo
+#
+# Generate the client's sysinfo and echo it to stdout
+function client_sysinfo {
+    if test "X$sysinfo_client" = "X"; then
+	# Add some info from uname
+	sysinfo_client="`uname -rvm`"
+    fi
+    echo $sysinfo_client
+}
+
+#-----------------------------------------------------------------------------
+# Beginning of main line execution.
+#-----------------------------------------------------------------------------
+configuration
+initialization "$@"
+find_servers
+
+exit $rc

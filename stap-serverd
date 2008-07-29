@@ -13,8 +13,8 @@
 # incoming connections. When a connection is detected, the stap-server script
 # is run to handle the request.
 
-# Catch ctrl-c
-trap 'handle_sigint' SIGINT
+# Catch ctrl-c and other termination signals
+trap 'terminate' SIGTERM SIGINT
 
 #-----------------------------------------------------------------------------
 # Helper functions.
@@ -61,7 +61,10 @@ function listen {
     # Loop forever accepting requests
     while true
     do
-	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1
+	# Run this in the background and wait for it. This way any signals
+	# received (i.e. SIGTERM) will be processed.
+	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
+	wait %nc
     done
 }
 
@@ -74,13 +77,24 @@ function fatal {
     exit 1
 }
 
-# function: handle_sigint
+# function: terminate
 #
-# Terminate gracefully when SIGINT is received.
-function handle_sigint {
-    echo "$0: received SIGINT. Exiting."
+# Terminate gracefully.
+function terminate {
+    echo "$0: Exiting"
+
+    # Kill the running 'avahi-publish-service' job
+    kill -s SIGTERM %avahi-publish-service 2> /dev/null
+    wait %avahi-publish-service 2> /dev/null
+
+    # Kill any running 'nc -l' job.
+    kill -s SIGTERM "%nc -l" 2> /dev/null
+    wait "%nc - l" 2> /dev/null
+
+    # Clean up
     cd `dirname $tmpdir`
     rm -fr $tmpdir
+
     exit
 }
 

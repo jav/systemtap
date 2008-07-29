@@ -1,3 +1,38 @@
+2008-07-29  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (bin_SCRIPTS): add stap-find-servers, stap-start-server,
+	stap-find-or-start-server, stap-stop-server.
+	(EXTRA_DIST): Likewise.
+	(check): Ensure that a compatible systemtap server is running before
+	running the tests, if requested. If we start a sterver, stop it after
+	running the tests.
+	(installcheck): Likewise.
+	* stap-client (parse_options): Specify stdin as 'scripts/-' on the
+	generated command line.
+	(create_request): Use $script_file instead of '-'.
+	(unpack_response): Existence of the systemtap temp directory is
+	optional.
+	(find_and_connect_to_server): Use stap-find-servers and choose_server.
+	(choose_server): Rewritten from match_server. Examine multiple
+	servers.
+	(connect_to_server): New function.
+	(maybe_call_staprun): Check for existence of a module.
+	Use staprun_PATH.
+	(staprun_PATH): New function.
+	(fatal): Call disconnect_from_server.
+	(server_fatal): Likewise.
+	* stap-server: Catch SIGTERM and SIGINT.
+	(create_response): Check for the existence of $tmpdir_stap.
+	(terminate): New function.
+	* stap-serverd: Catch SIGTERM and SIGINT.
+	(listen): Run 'nc | stap-server' in the background and wait for them
+	to finish.
+	(terminate): Renamed from handle_sigint. Kill avahi-publish-service
+	and nc.
+	* systemtap.spec: Add stap-find-servers, stap-start-server,
+	stap-find-or-start-server, stap-stop-server.
+	* Makefile.in: Regenerated.
+
 2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	* buildrun.cxx (compile_pass): Remove STAPCONF_MODULE_NSECTIONS,
