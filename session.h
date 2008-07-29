@@ -32,6 +32,7 @@ struct be_derived_probe_group;
 struct dwarf_derived_probe_group;
 struct uprobe_derived_probe_group;
 struct utrace_derived_probe_group;
+struct itrace_derived_probe_group;
 struct task_finder_derived_probe_group;
 struct timer_derived_probe_group;
 struct profile_derived_probe_group;
@@ -146,6 +147,7 @@ struct systemtap_session
   dwarf_derived_probe_group* dwarf_derived_probes;
   uprobe_derived_probe_group* uprobe_derived_probes;
   utrace_derived_probe_group* utrace_derived_probes;
+  itrace_derived_probe_group* itrace_derived_probes;
   task_finder_derived_probe_group* task_finder_derived_probes;
   timer_derived_probe_group* timer_derived_probes;
   profile_derived_probe_group* profile_derived_probes;
