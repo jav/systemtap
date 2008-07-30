@@ -296,22 +296,16 @@ function create_request {
     if test "X$script_file" != "X"; then
 	if test "$script_file" = "-"; then
 	    mkdir -p $tmpdir_client/script || \
-		fatal "ERROR: cannot create temporary diectory " $tmpdir_client/script
+		fatal "ERROR: cannot create temporary directory " $tmpdir_client/script
 	    cat > $tmpdir_client/script/$script_file
 	else
 	    include_file_or_directory script $script_file > /dev/null
 	fi
     fi
 
-    # Add the necessary info to special files in our temporary directory. Do this
-    # after linking in -I and -R directories in order to guarantee no name clashes.
-    tmpfile=`mktemp cmdline.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file "
-    echo "cmdline: $cmdline" > $tmpfile
-
-    tmpfile=`mktemp sysinfo.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tmpfile
-    echo "sysinfo: `client_sysinfo`" > $tmpfile
+    # Add the necessary info to special files in our temporary directory.
+    echo "cmdline: $cmdline" > cmdline
+    echo "sysinfo: `client_sysinfo`" > sysinfo
 }
 
 # function client_sysinfo
@@ -467,9 +461,9 @@ function unpack_response {
 #
 # Find and establish connection with a compatible stap server.
 function find_and_connect_to_server {
-    cd $tmpdir_client
     # Use a temp file here instead of a pipeline so that the side effects
     # of choose_server are seen by the rest of this script.
+    cd $tmpdir_client
     stap-find-servers > servers
     choose_server < servers
     rm -fr servers

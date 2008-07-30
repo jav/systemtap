@@ -1,3 +1,10 @@
+2008-07-30  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (create_request): No need for random suffix for
+	cmdline and sysinfo files.
+	* stap-server (read_data_file): File name is exactly as specified.
+	Check that it exists.
+
 2008-07-29  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (bin_SCRIPTS): add stap-find-servers, stap-start-server,

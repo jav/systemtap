@@ -146,20 +146,20 @@ function check_compatibility {
 
 # function: read_data_file PREFIX
 #
-# Find a file whose name matches '$1.??????' whose first line
+# Find a file whose name is '$1' and whose first line
 # contents are '$1: .*'. Read and echo the first line.
 function read_data_file {
-    for f in `ls $1.??????`
-    do
-	read < $f
-	line=$REPLY
-	data=`expr "$line" : "$1: \\\(.*\\\)"`
-	if test "X$data" != "X"; then
-	    echo $data
-	    return
-	fi
-    done
-    fatal "ERROR: Data file for $1 not found"
+    test -f $1 || \
+	fatal "ERROR: Data file $1 not found"
+
+    read < $1
+    line=$REPLY
+    data=`expr "$line" : "$1: \\\(.*\\\)"`
+    if test "X$data" != "X"; then
+	echo $data
+	return
+    fi
+    fatal "ERROR: Data in file $1 is incorrect"
 }
 
 # function: parse_options [ STAP-OPTIONS ]
