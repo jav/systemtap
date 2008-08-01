@@ -1,3 +1,7 @@
+2008-08-01  William Cohen  <wcohen@redhat.com>	
+
+	* check.exp: Run both tests for installcheck tests.
+	
 2008-07-11  Mark Wielaard  <mwielaard@redhat.com>
 
 	* traceio.meta: s/decending/descending/ in description.

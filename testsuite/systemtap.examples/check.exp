@@ -32,30 +32,7 @@ proc extract_tag { META_DATA TAG } {
     return $value
 }
 
-set curdir [pwd]
-
-set src_examples $srcdir/systemtap.examples
-set meta_files [lsort [exec find  $src_examples -path "*.meta"]]
-foreach file $meta_files {
-    set dir [file dirname $file]
-    set test [regsub {.*/testsuite/} $file ""]
-    
-    cd $dir
-    
-    set meta_data [get_meta_data $file]
-    set test_check [extract_tag "$meta_data" "test_check"]
-    set test_installcheck [extract_tag "$meta_data" "test_installcheck"]
-    # Would like to run the tests (-p5), but pass fail logic too
-    # simple and fails for many examples
-    # FIXME following line prevents installcheck with "--tools_opts install"
-    set test_installcheck ""
-    if {[info procs installtest_p] != "" && [installtest_p]
-	&& $test_installcheck != "" } then {
-	set command $test_installcheck
-    } else {
-	set command $test_check
-    }
-
+proc run_command { test command } {
     #FIXME tcl says that single quotes not dealt with
     if { $command != "" } then {
 	verbose -log "attempting command $command"
@@ -69,6 +46,31 @@ foreach file $meta_files {
 	}
     } else {
 	untested $test
+    }
+}
+
+set curdir [pwd]
+
+set src_examples $srcdir/systemtap.examples
+set meta_files [lsort [exec find  $src_examples -path "*.meta"]]
+foreach file $meta_files {
+    set dir [file dirname $file]
+    set test [regsub {.*/testsuite/} $file ""]
+    set test [regsub {.meta} $test ""]
+    
+    cd $dir
+    
+    set meta_data [get_meta_data $file]
+    set test_check [extract_tag "$meta_data" "test_check"]
+    set command $test_check
+    run_command "$test build" $command
+    set test_installcheck [extract_tag "$meta_data" "test_installcheck"]
+    # The pass/fail logic too simple and fails for some examples
+    # FIXME would like to be able to run more complicated test code
+    if {[info procs installtest_p] != "" && [installtest_p]
+	&& $test_installcheck != "" } then {
+	set command $test_installcheck
+	run_command "$test run" $command
     }
 }
 
