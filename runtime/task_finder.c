@@ -1,5 +1,15 @@
+#ifndef TASK_FINDER_C
+#define TASK_FINDER_C
+
+#if ! defined(CONFIG_UTRACE)
+#error "Need CONFIG_UTRACE!"
+#endif
+
+#include <linux/utrace.h>
 #include <linux/list.h>
 #include <linux/binfmts.h>
+#include <linux/mount.h>
+
 #include "syscall.h"
 #include "task_finder_vma.c"
 
@@ -915,6 +925,7 @@ stap_start_task_finder(void)
 	struct task_struct *grp, *tsk;
 	char *mmpath_buf;
 
+	debug_task_finder_report();
 	mmpath_buf = _stp_kmalloc(PATH_MAX);
 	if (mmpath_buf == NULL) {
 		_stp_error("Unable to allocate space for path");
@@ -1034,3 +1045,6 @@ stap_stop_task_finder(void)
 	debug_task_finder_report();
 	atomic_set(&__stp_task_finder_state, __STP_TF_STOPPED);
 }
+
+
+#endif /* TASK_FINDER_C */

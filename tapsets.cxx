@@ -2249,9 +2249,7 @@ struct dwarf_derived_probe: public derived_probe
   long maxactive_val;
 
   void printsig (std::ostream &o) const;
-
   void join_group (systemtap_session& s);
-
   void emit_probe_local_init(translator_output * o);
 
   // Pattern registration helpers.
@@ -2263,6 +2261,32 @@ struct dwarf_derived_probe: public derived_probe
 						       dwarf_builder * dw);
   static void register_patterns(match_node * root);
 };
+
+
+struct uprobe_derived_probe: public derived_probe
+{
+  bool return_p;
+  string module; // * => unrestricted
+  int pid; // 0 => unrestricted
+  string section; // empty => absolute address
+  Dwarf_Addr address;
+  // bool has_maxactive;
+  // long maxactive_val;
+  uprobe_derived_probe (const string& function,
+                        const string& filename,
+                        int line,
+                        const string& module,
+                        int pid,
+                        const string& section,
+                        Dwarf_Addr dwfl_addr,
+                        Dwarf_Addr addr,
+                        dwarf_query & q,
+                        Dwarf_Die* scope_die);
+
+  void printsig (std::ostream &o) const;
+  void join_group (systemtap_session& s);
+};
+
 
 
 struct dwarf_derived_probe_group: public derived_probe_group
@@ -3165,7 +3189,6 @@ dwarf_query::add_probe_point(const string& funcname,
 			     Dwarf_Die* scope_die,
 			     Dwarf_Addr addr)
 {
-  dwarf_derived_probe *probe = NULL;
   string reloc_section; // base section for relocation purposes
   Dwarf_Addr reloc_addr = addr; // relocated
   string blacklist_section; // linking section for blacklist purposes
@@ -3226,9 +3249,20 @@ dwarf_query::add_probe_point(const string& funcname,
   if (! bad)
     {
       sess.unwindsym_modules.insert (module);
-      probe = new dwarf_derived_probe(funcname, filename, line,
-                                      module, reloc_section, addr, reloc_addr, *this, scope_die);
-      results.push_back(probe);
+
+      if (has_process)
+        {
+          results.push_back (new uprobe_derived_probe(funcname, filename, line,
+                                                      module, 0, reloc_section, addr, reloc_addr,
+                                                      *this, scope_die));
+        }
+      else
+        {
+          assert (has_kernel || has_module);
+          results.push_back (new dwarf_derived_probe(funcname, filename, line,
+                                                     module, reloc_section, addr, reloc_addr, 
+                                                     *this, scope_die));
+        }
     }
 }
 
@@ -4350,7 +4384,7 @@ dwarf_derived_probe::printsig (ostream& o) const
   // function instances.  This is distinct from the verbose/clog
   // output, since this part goes into the cache hash calculations.
   sole_location()->print (o);
-  o << " /* pc=0x" << hex << addr << dec << " */";
+  o << " /* pc=" << section << "+0x" << hex << addr << dec << " */";
   printsig_nested (o);
 }
 
@@ -4720,7 +4754,7 @@ dwarf_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "struct stap_dwarf_kprobe *kp = & stap_dwarf_kprobes[i];";
   s.op->newline() << "unsigned long relocated_addr = _stp_module_relocate (sdp->module, sdp->section, sdp->address);";
   s.op->newline() << "if (relocated_addr == 0) continue;"; // quietly; assume module is absent
-  s.op->newline() << "probe_point = sdp->pp;";
+  s.op->newline() << "probe_point = sdp->pp;"; // for error messages
   s.op->newline() << "if (sdp->return_p) {";
   s.op->newline(1) << "kp->u.krp.kp.addr = (void *) relocated_addr;";
   s.op->newline() << "if (sdp->maxactive_p) {";
@@ -5317,21 +5351,7 @@ void
 task_finder_derived_probe_group::create_session_group (systemtap_session& s)
 {
   if (! s.task_finder_derived_probes)
-    {
-      s.task_finder_derived_probes = new task_finder_derived_probe_group();
-
-      // Make sure we've got the stuff we need early in the output code.
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = NULL;
-      ec->code = string("#if ! defined(CONFIG_UTRACE)\n")
-        + string("#error \"Need CONFIG_UTRACE!\"\n")
-	+ string("#endif\n")
-	+ string("#include <linux/utrace.h>\n")
-	+ string("#include <linux/mount.h>\n")
-	+ string("#include \"task_finder.c\"\n");
-
-      s.embeds.push_back(ec);
-    }
+    s.task_finder_derived_probes = new task_finder_derived_probe_group();
 }
 
 
@@ -5343,8 +5363,7 @@ task_finder_derived_probe_group::emit_module_init (systemtap_session& s)
   s.op->newline() << "rc = stap_start_task_finder();";
 
   s.op->newline() << "if (rc) {";
-  s.op->indent(1);
-  s.op->newline() << "stap_stop_task_finder();";
+  s.op->newline(1) << "stap_stop_task_finder();";
   s.op->newline(-1) << "}";
 }
 
@@ -6078,15 +6097,6 @@ utrace_derived_probe_group::emit_module_exit (systemtap_session& s)
 // user-space probes
 // ------------------------------------------------------------------------
 
-struct uprobe_derived_probe: public derived_probe
-{
-  uint64_t process, address;
-  bool return_p;
-  uprobe_derived_probe (systemtap_session &s, probe* p, probe_point* l,
-                        uint64_t, uint64_t, bool);
-  void join_group (systemtap_session& s);
-};
-
 
 struct uprobe_derived_probe_group: public generic_dpg<uprobe_derived_probe>
 {
@@ -6097,12 +6107,119 @@ public:
 };
 
 
-uprobe_derived_probe::uprobe_derived_probe (systemtap_session &s,
-                                            probe* p, probe_point* l,
-                                            uint64_t pp, uint64_t aa, bool rr):
-  derived_probe(p, l), process(pp), address(aa), return_p (rr)
+uprobe_derived_probe::uprobe_derived_probe (const string& function,
+                                            const string& filename,
+                                            int line,
+                                            const string& module,
+                                            int pid,
+                                            const string& section,
+                                            Dwarf_Addr dwfl_addr,
+                                            Dwarf_Addr addr,
+                                            dwarf_query & q,
+                                            Dwarf_Die* scope_die /* may be null */):
+  derived_probe (q.base_probe, new probe_point (*q.base_loc) /* .components soon rewritten */ ),
+  return_p (q.has_return), module (module), pid (pid), section (section), address (addr)
 {
-  s.need_uprobes = true;
+  // Assert relocation invariants
+  if (section == "" && dwfl_addr != addr) // addr should be absolute
+    throw semantic_error ("missing relocation base against", q.base_loc->tok);
+  if (section != "" && dwfl_addr == addr) // addr should be an offset
+    throw semantic_error ("inconsistent relocation address", q.base_loc->tok);
+
+  // For now, we don't try to handle relocatable addresses
+  if (section != "") throw semantic_error ("cannot relocate user-space probes yet", q.base_loc->tok);
+
+  this->tok = q.base_probe->tok;
+
+  // Make a target-variable-expanded copy of the probe body
+  if (!null_die(scope_die))
+    {
+      dwarf_var_expanding_copy_visitor v (q, scope_die, dwfl_addr); // XXX: user-space deref's!
+      require <statement*> (&v, &(this->body), this->body);
+
+      // If during target-variable-expanding the probe, we added a new block
+      // of code, add it to the start of the probe.
+      if (v.add_block)
+        this->body = new block(v.add_block, this->body);
+
+      // If when target-variable-expanding the probe, we added a new
+      // probe, add it in a new file to the list of files to be processed.
+      if (v.add_probe)
+        {
+          stapfile *f = new stapfile;
+          f->probes.push_back(v.add_probe);
+          q.sess.files.push_back(f);
+        }
+    }
+  // else - null scope_die - $target variables will produce an error during translate phase
+
+  // Reset the sole element of the "locations" vector as a
+  // "reverse-engineered" form of the incoming (q.base_loc) probe
+  // point.  This allows a user to see what function / file / line
+  // number any particular match of the wildcards.
+
+  vector<probe_point::component*> comps;
+  if(q.has_process)
+    comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(module)));
+  else
+    assert (0);
+     
+  string fn_or_stmt;
+  if (q.has_function_str || q.has_function_num)
+    fn_or_stmt = "function";
+  else
+    fn_or_stmt = "statement";
+
+  if (q.has_function_str || q.has_statement_str)
+      {
+        string retro_name = function;
+	if (filename != "")
+	  retro_name += ("@" + string (filename));
+	if (line != -1)
+	  retro_name += (":" + lex_cast<string> (line));
+        comps.push_back
+          (new probe_point::component
+           (fn_or_stmt, new literal_string (retro_name)));
+      }
+  else if (q.has_function_num || q.has_statement_num)
+    {
+      Dwarf_Addr retro_addr;
+      if (q.has_function_num)
+        retro_addr = q.function_num_val;
+      else
+        retro_addr = q.statement_num_val;
+      comps.push_back (new probe_point::component
+                       (fn_or_stmt,
+                        new literal_number(retro_addr))); // XXX: should be hex if possible
+
+      if (q.has_absolute)
+        comps.push_back (new probe_point::component (TOK_ABSOLUTE));
+    }
+
+  if (q.has_call)
+      comps.push_back (new probe_point::component(TOK_CALL));
+  if (q.has_inline)
+      comps.push_back (new probe_point::component(TOK_INLINE));
+  if (return_p)
+    comps.push_back (new probe_point::component(TOK_RETURN));
+  /*
+  if (has_maxactive)
+    comps.push_back (new probe_point::component
+                     (TOK_MAXACTIVE, new literal_number(maxactive_val)));
+  */
+
+  // Overwrite it.
+  this->sole_location()->components = comps;
+}
+
+
+void
+uprobe_derived_probe::printsig (ostream& o) const
+{
+  // Same as dwarf_derived_probe.
+  sole_location()->print (o);
+  o << " /* pc=" << section << "+0x" << hex << address << dec << " */";
+  printsig_nested (o);
 }
 
 
@@ -6112,6 +6229,7 @@ uprobe_derived_probe::join_group (systemtap_session& s)
   if (! s.uprobe_derived_probes)
     s.uprobe_derived_probes = new uprobe_derived_probe_group ();
   s.uprobe_derived_probes->enroll (this);
+  task_finder_derived_probe_group::create_session_group (s);
 }
 
 
@@ -6124,6 +6242,7 @@ struct uprobe_builder: public derived_probe_builder
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
+#if 0
     int64_t process, address;
 
     bool b1 = get_param (parameters, TOK_PROCESS, process);
@@ -6135,6 +6254,7 @@ struct uprobe_builder: public derived_probe_builder
 
     finished_results.push_back(new uprobe_derived_probe(sess, base, location,
                                                         process, address, rr));
+#endif
   }
 };
 
@@ -6145,29 +6265,43 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
 
+  s.need_uprobes = true; // Ask buildrun.cxx to build extra module if needed
+
   // If uprobes isn't in the kernel, pull it in from the runtime.
   s.op->newline() << "#if defined(CONFIG_UPROBES) || defined(CONFIG_UPROBES_MODULE)";
   s.op->newline() << "#include <linux/uprobes.h>";
   s.op->newline() << "#else";
   s.op->newline() << "#include \"uprobes/uprobes.h\"";
   s.op->newline() << "#endif";
+  s.op->newline() << "#include \"task_finder.c\"";
+
+  s.op->newline() << "#ifndef MAXUPROBES";
+  s.op->newline() << "#define MAXUPROBES 100"; // maximum possible armed uprobes per process() probe point
+  s.op->newline() << "#endif";
 
   s.op->newline() << "struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
-  s.op->newline() << "unsigned registered_p:1;";
-  s.op->newline() << "unsigned return_p:1;";
-  s.op->newline() << "unsigned long process;";
+  s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
+  s.op->newline(-1) << "};"; // kept in per-uprobe_spec pointer arrays
+
+  s.op->newline() << "struct stap_uprobe_spec {";
+  s.op->newline(1) << "struct stap_uprobe probes [MAXUPROBES];"; // XXX: make dynamic or .maxactive(NN)
+  s.op->newline() << "struct mutex probes_lock;";
+  s.op->newline() << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
-  s.op->newline(-1) << "} stap_uprobes [] = {";
+  s.op->newline() << "unsigned return_p:1;";
+  s.op->newline(-1) << "} stap_uprobe_specs [] = {";
   s.op->indent(1);
   for (unsigned i =0; i<probes.size(); i++)
     {
       uprobe_derived_probe* p = probes[i];
       s.op->newline() << "{";
+      s.op->line() << " .finder = {"
+                   << " .pathname=" << lex_cast_qstring(p->module) << ", "
+                   << "},";
       s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
-      s.op->line() << " .process=" << p->process << ",";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
       if (p->return_p) s.op->line() << " .return_p=1,";
@@ -6175,25 +6309,110 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
     }
   s.op->newline(-1) << "};";
 
-  s.op->newline();
   s.op->newline() << "void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
+  s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = sup->pp;";
+  s.op->newline() << "if (sup->spec_index < 0 ||"
+                  << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
+  s.op->newline() << "c->probe_point = sups->pp;";
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "(*sup->ph) (c);";
+  s.op->newline() << "(*sups->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
   s.op->newline() << "void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
+  s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
-  s.op->newline() << "c->probe_point = sup->pp;";
+  s.op->newline() << "if (sup->spec_index < 0 ||"
+                  << "sup->spec_index >= " << probes.size() << ") return;"; // XXX: should not happen
+  s.op->newline() << "c->probe_point = sups->pp;";
   // XXX: kretprobes saves "c->pi = inst;" too
   s.op->newline() << "c->regs = regs;";
-  s.op->newline() << "(*sup->ph) (c);";
+  s.op->newline() << "(*sups->ph) (c);";
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
+
+  // XXX: This sort of plain process.begin/end callback will only work
+  // for uprobes on unrelocatable executables.
+  //
+  // NB: Because these utrace callbacks only occur before / after
+  // userspace instructions run, there is no concurrency control issue
+  // between active uprobe callbacks and these registration /
+  // unregistration pieces.  
+
+  // We protect the stap_uprobe->spec_index (which also serves as a
+  // free/busy flag) value with the outer protective probes_lock
+  // mutex, to protect it against concurrent registration /
+  // unregistration.  XXX: This should become less naive and let the
+  // mutex only protect stap_uprobe slot allocation and let the uprobe
+  // calls occur outside the critical section.
+
+  s.op->newline();
+  s.op->newline() << "int stap_uprobe_process_found (struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
+  s.op->newline() << "int spec_index = (sups - stap_uprobe_specs);";
+  s.op->newline() << "int handled_p = 0;";
+  s.op->newline() << "int rc = 0;";
+  s.op->newline() << "int i;";
+  // s.op->newline() << "printk (KERN_EMERG \"probe %d %d %d %p\\n\", tsk->tgid, register_p, process_p, tgt);";
+  s.op->newline() << "if (! process_p) return 0;"; // we don't care about threads
+  s.op->newline() << "mutex_lock (& sups->probes_lock);";
+
+  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & sups->probes[i];";
+
+  // register new uprobe
+  s.op->newline() << "if (register_p && sup->spec_index < 0) {";
+  s.op->newline(1) << "sup->spec_index = spec_index;";
+  s.op->newline() << "if (sups->return_p) {";
+  s.op->newline(1) << "sup->urp.u.pid = tsk->tgid;";
+  s.op->newline() << "sup->urp.u.vaddr = sups->address;";
+  s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
+  s.op->newline() << "rc = register_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "sup->up.pid = tsk->tgid;";
+  s.op->newline() << "sup->up.vaddr = sups->address;";
+  s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
+  s.op->newline() << "rc = register_uprobe (& sup->up);";
+  s.op->newline(-1) << "}";
+
+  s.op->newline() << "if (rc) {"; // failed to register
+  s.op->newline(1) << "sup->spec_index = -1;";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "handled_p = 1;"; // success
+  s.op->newline(-1) << "}";
+  s.op->newline() << "break;";
+
+  // unregister old uprobe
+  s.op->newline(-1) << "} else if (!register_p && "
+                    << "((sups->return_p && sup->urp.u.pid == tsk->tgid) ||" // dying uretprobe
+                    << "(!sups->return_p && sup->up.pid == tsk->tgid))) {"; // dying uprobe
+  s.op->newline(1) << "sup->spec_index = -1;";
+  s.op->newline() << "if (sups->return_p) {";
+  s.op->newline(1) << "unregister_uretprobe (& sup->urp);";
+  s.op->newline(-1) << "} else {";
+  s.op->newline(1) << "unregister_uprobe (& sup->up);";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "handled_p = 1;";
+
+  s.op->newline(-1) << "}"; // if/else
+
+  s.op->newline(-1) << "}"; // for-over-sups->probes[] loop
+  s.op->newline() << "mutex_unlock (& sups->probes_lock);";
+  s.op->newline() << "if (! handled_p) {";
+  s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
+  s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
+  s.op->newline() << "_stp_exit ();";
+  s.op->newline(-1) << "}";
+  s.op->newline(-1) << "}";
+  
+  s.op->newline() << "return 0;"; // XXX: or rc?
+  s.op->newline(-1) << "}";
+  s.op->assert_0_indent();
+
+  s.op->newline();
 }
 
 
@@ -6201,33 +6420,28 @@ void
 uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
-  s.op->newline() << "/* ---- user probes ---- */";
+  s.op->newline() << "/* ---- " << probes.size() << " user probes ---- */";
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "probe_point = sup->pp;";
-  s.op->newline() << "if (sup->return_p) {";
-  s.op->newline(1) << "sup->urp.u.pid = sup->process;";
-  s.op->newline() << "sup->urp.u.vaddr = sup->address;";
-  s.op->newline() << "sup->urp.handler = &enter_uretprobe_probe;";
-  s.op->newline() << "rc = register_uretprobe (& sup->urp);";
-  s.op->newline(-1) << "} else {";
-  s.op->newline(1) << "sup->up.pid = sup->process;";
-  s.op->newline() << "sup->up.vaddr = sup->address;";
-  s.op->newline() << "sup->up.handler = &enter_uprobe_probe;";
-  s.op->newline() << "rc = register_uprobe (& sup->up);";
+  s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
+  s.op->newline() << "probe_point = sups->pp;"; // for error messages
+  s.op->newline() << "mutex_init (&sups->probes_lock);";
+  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = &sups->probes[j];";
+  s.op->newline() << "sup->spec_index = -1;"; // free slot
   s.op->newline(-1) << "}";
+  s.op->newline() << "sups->finder.callback = & stap_uprobe_process_found;";
+  s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
   s.op->newline() << "if (rc) {";
-  s.op->newline(1) << "for (j=i-1; j>=0; j--) {"; // partial rollback
-  s.op->newline(1) << "struct stap_uprobe *sup2 = & stap_uprobes[j];";
-  s.op->newline() << "if (sup2->return_p) unregister_uretprobe (&sup2->urp);";
-  s.op->newline() << "else unregister_uprobe (&sup2->up);";
-  // NB: we don't have to clear sup2->registered_p, since the module_exit code is
-  // not run for this early-abort case.
+  s.op->newline(1) << "for (j=i-1; j>=0; j--) {";
+  // NB: there is no need (XXX: nor any way) to clean up any finders
+  // already registered, since mere registration does not cause any
+  // utrace or memory allocation actions.  That happens only later,
+  // once the task finder engine starts running.  So, for a partial
+  // initialization requiring unwind, we need do only this:
+  s.op->newline(1) << "mutex_destroy (&sups->probes_lock);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "break;"; // don't attempt to register any more probes
   s.op->newline(-1) << "}";
-  s.op->newline() << "else sup->registered_p = 1;";
   s.op->newline(-1) << "}";
 }
 
@@ -6239,13 +6453,20 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   s.op->newline() << "/* ---- user probes ---- */";
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
-  s.op->newline() << "if (! sup->registered_p) continue;";
+  s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
+  // NB: there is no stap_unregister_task_finder_target call;
+  // important stuff like utrace cleanups are done by
+  // __stp_task_finder_cleanup()
+  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = &sups->probes[j];";
+  s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
+  s.op->newline() << "if (sups->return_p) unregister_uretprobe (&sup->urp);";
+  s.op->newline() << "else unregister_uprobe (&sup->up);";
+  s.op->newline() << "sup->spec_index = -1;";
   // s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
   // s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
-  s.op->newline() << "if (sup->return_p) unregister_uretprobe (&sup->urp);";
-  s.op->newline() << "else unregister_uprobe (&sup->up);";
-  s.op->newline() << "sup->registered_p = 0;";
+  s.op->newline(-1) << "}";
+  s.op->newline() << "mutex_destroy (&sups->probes_lock);";
   s.op->newline(-1) << "}";
 }
 
