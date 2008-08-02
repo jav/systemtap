@@ -4713,6 +4713,7 @@ translate_pass (systemtap_session& s)
           s.up->emit_global_init (s.globals[i]);
         }
       s.op->newline(-1) << "};";
+      s.op->assert_0_indent();
 
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
@@ -4720,6 +4721,7 @@ translate_pass (systemtap_session& s)
 	  s.op->newline();
 	  s.up->emit_functionsig (s.functions[i]);
 	}
+      s.op->assert_0_indent();
 
       for (unsigned i=0; i<s.functions.size(); i++)
 	{
@@ -4727,6 +4729,7 @@ translate_pass (systemtap_session& s)
 	  s.op->newline();
 	  s.up->emit_function (s.functions[i]);
 	}
+      s.op->assert_0_indent();
 
       // Run a varuse_collecting_visitor over probes that need global
       // variable locks.  We'll use this information later in
@@ -4737,18 +4740,21 @@ translate_pass (systemtap_session& s)
         if (s.probes[i]->needs_global_locks())
 	    s.probes[i]->body->visit (&cup.vcv_needs_global_locks);
 	}
+      s.op->assert_0_indent();
 
       for (unsigned i=0; i<s.probes.size(); i++)
         {
           if (pending_interrupts) return 1;
           s.up->emit_probe (s.probes[i]);
         }
+      s.op->assert_0_indent();
 
       s.op->newline();
       s.up->emit_module_init ();
+      s.op->assert_0_indent();
       s.op->newline();
       s.up->emit_module_exit ();
-
+      s.op->assert_0_indent();
       s.op->newline();
 
       // XXX impedance mismatch
@@ -4759,17 +4765,20 @@ translate_pass (systemtap_session& s)
       s.op->newline() << "void probe_exit () {";
       s.op->newline(1) << "systemtap_module_exit ();";
       s.op->newline(-1) << "}";
+      s.op->assert_0_indent();
 
       for (unsigned i=0; i<s.globals.size(); i++)
         {
           s.op->newline();
           s.up->emit_global_param (s.globals[i]);
         }
+      s.op->assert_0_indent();
 
       emit_symbol_data (s);
 
       s.op->newline() << "MODULE_DESCRIPTION(\"systemtap-generated probe\");";
       s.op->newline() << "MODULE_LICENSE(\"GPL\");";
+      s.op->assert_0_indent();
     }
   catch (const semantic_error& e)
     {
