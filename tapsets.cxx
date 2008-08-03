@@ -6278,16 +6278,18 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#ifndef MAXUPROBES";
   s.op->newline() << "#define MAXUPROBES 16"; // maximum possible armed uprobes per process() probe point
   s.op->newline() << "#endif";
+  s.op->newline() << "#define NUMUPROBES (MAXUPROBES*" << probes.size() << ")";
 
+  // In .bss, the shared pool of uprobe/uretprobe structs.  These are
+  // too big to embed in the initialized .data stap_uprobe_spec array.
   s.op->newline() << "struct stap_uprobe {";
   s.op->newline(1) << "union { struct uprobe up; struct uretprobe urp; };";
   s.op->newline() << "int spec_index;"; // index into stap_uprobe_specs; <0 == free && unregistered
-  s.op->newline(-1) << "};"; // kept in per-uprobe_spec pointer arrays
+  s.op->newline(-1) << "} stap_uprobes [NUMUPROBES];";
+  s.op->newline() << "DEFINE_MUTEX(stap_uprobes_lock);"; // protects against concurrent registration/unregistration
 
   s.op->newline() << "struct stap_uprobe_spec {";
-  s.op->newline(1) << "struct stap_uprobe probes [MAXUPROBES];"; // XXX: make dynamic or .maxactive(NN)
-  s.op->newline() << "struct mutex probes_lock;";
-  s.op->newline() << "struct stap_task_finder_target finder;";
+  s.op->newline(1) << "struct stap_task_finder_target finder;";
   s.op->newline() << "unsigned long address;";
   s.op->newline() << "const char *pp;";
   s.op->newline() << "void (*ph) (struct context*);";
@@ -6358,10 +6360,10 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "int i;";
   // s.op->newline() << "printk (KERN_EMERG \"probe %d %d %d %p\\n\", tsk->tgid, register_p, process_p, tgt);";
   s.op->newline() << "if (! process_p) return 0;"; // we don't care about threads
-  s.op->newline() << "mutex_lock (& sups->probes_lock);";
+  s.op->newline() << "mutex_lock (& stap_uprobes_lock);";
 
-  s.op->newline() << "for (i=0; i<MAXUPROBES; i++) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = & sups->probes[i];";
+  s.op->newline() << "for (i=0; i<NUMUPROBES; i++) {"; // XXX: slow linear search
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[i];";
 
   // register new uprobe
   s.op->newline() << "if (register_p && sup->spec_index < 0) {";
@@ -6383,12 +6385,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(-1) << "} else {";
   s.op->newline(1) << "handled_p = 1;"; // success
   s.op->newline(-1) << "}";
-  s.op->newline() << "break;";
+  s.op->newline() << "break;"; // exit free slot search whether or not handled_p
 
   // unregister old uprobe
   s.op->newline(-1) << "} else if (!register_p && "
                     << "((sups->return_p && sup->urp.u.pid == tsk->tgid) ||" // dying uretprobe
                     << "(!sups->return_p && sup->up.pid == tsk->tgid))) {"; // dying uprobe
+  // XXX: or just check sup->spec_index == spec_index?
   s.op->newline(1) << "sup->spec_index = -1;";
   s.op->newline() << "if (sups->return_p) {";
   s.op->newline(1) << "unregister_uretprobe (& sup->urp);";
@@ -6396,11 +6399,13 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline(1) << "unregister_uprobe (& sup->up);";
   s.op->newline(-1) << "}";
   s.op->newline() << "handled_p = 1;";
+  // XXX: Do we need to keep searching the array for other processes, or
+  // can we break just like for the register-new case?
 
   s.op->newline(-1) << "}"; // if/else
 
-  s.op->newline(-1) << "}"; // for-over-sups->probes[] loop
-  s.op->newline() << "mutex_unlock (& sups->probes_lock);";
+  s.op->newline(-1) << "}"; // stap_uprobes[] loop
+  s.op->newline() << "mutex_unlock (& stap_uprobes_lock);";
   s.op->newline() << "if (! handled_p) {";
   s.op->newline(1) << "if (unlikely (atomic_inc_return (& skipped_count) > MAXSKIPPED)) {";
   s.op->newline(1) << "atomic_set (& session_state, STAP_SESSION_ERROR);";
@@ -6420,28 +6425,27 @@ void
 uprobe_derived_probe_group::emit_module_init (systemtap_session& s)
 {
   if (probes.empty()) return;
-  s.op->newline() << "/* ---- " << probes.size() << " user probes ---- */";
+  s.op->newline() << "/* ---- user probes ---- */";
+
+  s.op->newline() << "for (j=0; j<NUMUPROBES; j++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
+  s.op->newline() << "sup->spec_index = -1;"; // free slot
+  s.op->newline(-1) << "}";
+  s.op->newline() << "mutex_init (& stap_uprobes_lock);";
 
   s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   s.op->newline() << "probe_point = sups->pp;"; // for error messages
-  s.op->newline() << "mutex_init (&sups->probes_lock);";
-  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = &sups->probes[j];";
-  s.op->newline() << "sup->spec_index = -1;"; // free slot
-  s.op->newline(-1) << "}";
   s.op->newline() << "sups->finder.callback = & stap_uprobe_process_found;";
   s.op->newline() << "rc = stap_register_task_finder_target (& sups->finder);";
-  s.op->newline() << "if (rc) {";
-  s.op->newline(1) << "for (j=i-1; j>=0; j--) {";
-  // NB: there is no need (XXX: nor any way) to clean up any finders
-  // already registered, since mere registration does not cause any
-  // utrace or memory allocation actions.  That happens only later,
-  // once the task finder engine starts running.  So, for a partial
-  // initialization requiring unwind, we need do only this:
-  s.op->newline(1) << "mutex_destroy (&sups->probes_lock);";
-  s.op->newline(-1) << "}";
-  s.op->newline(-1) << "}";
+
+  // NB: if (rc), there is no need (XXX: nor any way) to clean up any
+  // finders already registered, since mere registration does not
+  // cause any utrace or memory allocation actions.  That happens only
+  // later, once the task finder engine starts running.  So, for a
+  // partial initialization requiring unwind, we need do nothing.
+  s.op->newline() << "if (rc) break;";
+
   s.op->newline(-1) << "}";
 }
 
@@ -6452,13 +6456,13 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   if (probes.empty()) return;
   s.op->newline() << "/* ---- user probes ---- */";
 
-  s.op->newline() << "for (i=0; i<" << probes.size() << "; i++) {";
-  s.op->newline(1) << "struct stap_uprobe_spec *sups = & stap_uprobe_specs[i];";
   // NB: there is no stap_unregister_task_finder_target call;
   // important stuff like utrace cleanups are done by
   // __stp_task_finder_cleanup()
-  s.op->newline() << "for (j=0; j<MAXUPROBES; j++) {";
-  s.op->newline(1) << "struct stap_uprobe *sup = &sups->probes[j];";
+
+  s.op->newline() << "for (j=0; j<NUMUPROBES; j++) {";
+  s.op->newline(1) << "struct stap_uprobe *sup = & stap_uprobes[j];";
+  s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   s.op->newline() << "if (sup->spec_index < 0) continue;"; // free slot
   s.op->newline() << "if (sups->return_p) unregister_uretprobe (&sup->urp);";
   s.op->newline() << "else unregister_uprobe (&sup->up);";
@@ -6466,8 +6470,8 @@ uprobe_derived_probe_group::emit_module_exit (systemtap_session& s)
   // s.op->newline() << "atomic_add (sdp->u.krp.nmissed, & skipped_count);";
   // s.op->newline() << "atomic_add (sdp->u.krp.kp.nmissed, & skipped_count);";
   s.op->newline(-1) << "}";
-  s.op->newline() << "mutex_destroy (&sups->probes_lock);";
-  s.op->newline(-1) << "}";
+
+  s.op->newline() << "mutex_destroy (& stap_uprobes_lock);";
 }
 
 
