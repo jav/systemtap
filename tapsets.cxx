@@ -6276,7 +6276,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   s.op->newline() << "#include \"task_finder.c\"";
 
   s.op->newline() << "#ifndef MAXUPROBES";
-  s.op->newline() << "#define MAXUPROBES 100"; // maximum possible armed uprobes per process() probe point
+  s.op->newline() << "#define MAXUPROBES 16"; // maximum possible armed uprobes per process() probe point
   s.op->newline() << "#endif";
 
   s.op->newline() << "struct stap_uprobe {";
@@ -6309,7 +6309,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
     }
   s.op->newline(-1) << "};";
 
-  s.op->newline() << "void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
+  s.op->newline() << "static void enter_uprobe_probe (struct uprobe *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst, struct stap_uprobe, up);";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
@@ -6321,7 +6321,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   common_probe_entryfn_epilogue (s.op);
   s.op->newline(-1) << "}";
 
-  s.op->newline() << "void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
+  s.op->newline() << "static void enter_uretprobe_probe (struct uretprobe_instance *inst, struct pt_regs *regs) {";
   s.op->newline(1) << "struct stap_uprobe *sup = container_of(inst->rp, struct stap_uprobe, urp);";
   s.op->newline() << "struct stap_uprobe_spec *sups = &stap_uprobe_specs [sup->spec_index];";
   common_probe_entryfn_prologue (s.op, "STAP_SESSION_RUNNING");
@@ -6350,7 +6350,7 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
   // calls occur outside the critical section.
 
   s.op->newline();
-  s.op->newline() << "int stap_uprobe_process_found (struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
+  s.op->newline() << "static int stap_uprobe_process_found (struct task_struct *tsk, int register_p, int process_p, struct stap_task_finder_target *tgt) {";
   s.op->newline(1) << "struct stap_uprobe_spec *sups = container_of(tgt, struct stap_uprobe_spec, finder);";
   s.op->newline() << "int spec_index = (sups - stap_uprobe_specs);";
   s.op->newline() << "int handled_p = 0;";
