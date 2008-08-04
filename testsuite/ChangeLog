@@ -1,3 +1,9 @@
+
+2008-08-03  Wenji Huang <wenji.huang@oracle.com>
+
+	* buildok/seven.stp: Correct for 2.6.27.
+	* buildok/seventeen.stp: Ditto.
+
 2008-07-29  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (SYSTEMTAP_PATH): Add $(EXTRA_SYSTEMTAP_PATH).

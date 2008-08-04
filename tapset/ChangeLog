@@ -1,3 +1,7 @@
+2008-08-03  Wenji Huang <wenji.huang@oracle.com>
+
+        * vfs.stp(add_to_page_cache): Correct for 2.6.27.
+
 2008-07-25  Zhaolei  <zhaolei@cn.fujitsu.com>
 
 	* syscalls2.stp: Add sys_unlinkat.
