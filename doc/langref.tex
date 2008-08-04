@@ -779,6 +779,17 @@ may be repeated to follow additional levels of pointers.
 \texttt{\$var{[}N]} indexes into an array. The index is given with a literal
 number.
 
+\texttt{\$\$vars} expands to a character string that is equivalent to
+sprintf("parm1=\%x ... parmN=\%x var1=\%x ... varN=\%x", parm1, ..., parmN,
+var1, ..., varN)
+
+\texttt{\$\$locals} expands to a character string that is equivalent to
+sprintf("var1=\%x ... varN=\%x", var1, ..., varN)
+
+\texttt{\$\$parms} expands to a character string that is equivalent to
+sprintf("parm1=\%x ... parmN=\%x", parm1, ..., parmN)
+
+
 \subsubsection{kernel.function, module().function}
 \index{kernel.function}
 \index{module().function}

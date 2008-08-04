@@ -1,3 +1,10 @@
+2008-08-04  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 
+	Add support for $$vars, $$parms, and $$locals.
+	* stapprobes.5.in: Likewise.
+	* doc/langref.tex: Likewise.
+
 2008-08-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.h (translator_output::assert_0_indent): New function.

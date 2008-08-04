@@ -2534,7 +2534,7 @@ struct dwarf_query : public base_query
 // It arises because we sometimes try to fix up slightly-off
 // .statement() probes (something we find out in fairly low-level).
 //
-// An alternative would be to put some more intellgence into query_cu(),
+// An alternative would be to put some more intelligence into query_cu(),
 // and have it print additional suggestions after finding that
 // q->dw.iterate_over_srcfile_lines resulted in no new finished_results.
 
@@ -4245,6 +4245,83 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
       // it later if the same return probe references this target
       // symbol again.
       return_ts_map[ts_name] = tmpsym;
+      return;
+    }
+
+  if (e->base_name == "$$vars"
+      || e->base_name == "$$parms"
+      || e->base_name == "$$locals")
+    {
+      Dwarf_Die *scopes;
+      if (dwarf_getscopes_die (scope_die, &scopes) == 0)
+	return;
+	
+      target_symbol *tsym = new target_symbol;
+      print_format* pf = new print_format;
+
+      // Convert $$parms to sprintf of a list of parms and active local vars
+      // which we recursively evaluate
+      token* tmp_tok = new token;
+      tmp_tok->type = tok_identifier;
+      tmp_tok->content = "sprintf";
+      pf->tok = tmp_tok;
+      pf->print_to_stream = false;
+      pf->print_with_format = true;
+      pf->print_with_delim = false;
+      pf->print_with_newline = false;
+      pf->print_char = false;
+
+      Dwarf_Die result;
+      if (dwarf_child (&scopes[0], &result) == 0)
+	do
+	  {
+	    switch (dwarf_tag (&result))
+	      {
+	      case DW_TAG_variable:
+		if (e->base_name == "$$parms")
+		  continue;
+	      case DW_TAG_formal_parameter:
+		if (e->base_name == "$$locals")
+		  continue;
+		break;
+
+	      default:
+		continue;
+	      }
+
+	    const char *diename = dwarf_diename (&result);
+	    token* sym_tok = new token;
+	    sym_tok->location = e->get_tok()->location;
+	    sym_tok->type = tok_identifier;
+	    sym_tok->content = diename;
+	    tsym->tok = sym_tok;
+	    tsym->base_name = "$";
+	    tsym->base_name += diename;
+	    Dwarf_Attribute attr_mem;
+
+	    // Ignore any variable that isn't accessible.
+	    // dwarf_attr_integrate is checked by literal_stmt_for_local
+	    // dwarf_getlocation_addr is checked by translate_location
+	    // but if those fail we cannot catch semantic_error.
+	    if (dwarf_attr_integrate (&result, DW_AT_location, &attr_mem) != NULL)
+	      {
+		Dwarf_Op *expr;
+		size_t len;
+		if (dwarf_getlocation_addr (&attr_mem, addr - q.dw.module_bias,
+					    &expr, &len, 1) == 0)
+		  continue;
+		this->visit_target_symbol(tsym);
+		pf->raw_components += diename;
+		pf->raw_components += "=%#x ";
+		pf->args.push_back(*(expression**)this->targets.top());
+	      }
+	  }
+	while (dwarf_siblingof (&result, &result) == 0);
+
+      pf->raw_components += "\\n";
+      pf->components = print_format::string_to_components(pf->raw_components);
+      provide <print_format*> (this, pf);
+
       return;
     }
 
