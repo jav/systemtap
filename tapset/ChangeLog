@@ -1,3 +1,9 @@
+
+2008-08-04  Wenji Huang <wenji.huang@oracle.com>
+
+        * syscall.stp: Change $path to $pathname for 2.6.27.
+        * syscall2.stp: Ditto.
+
 2008-08-03  Wenji Huang <wenji.huang@oracle.com>
 
         * vfs.stp(add_to_page_cache): Correct for 2.6.27.

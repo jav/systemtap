@@ -1715,13 +1715,21 @@ probe syscall.getuid.return =
 #		void __user *value, size_t size)
 probe syscall.getxattr = kernel.function("sys_getxattr") {
 	name = "getxattr"
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+%:
 	path = user_string($path)
+%)
 	# FIXME
 	name2 = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d", 
+%( kernel_v > "2.6.26" %?
+		user_string_quoted($pathname), 
+%:
 		user_string_quoted($path), 
+%)
 		user_string_quoted($name),
 		value_uaddr, size)
 }
@@ -1754,11 +1762,18 @@ probe syscall.init_module.return = kernel.function("sys_init_module").return ? {
 probe syscall.inotify_add_watch = kernel.function("sys_inotify_add_watch") ? {
 	name = "inotify_add_watch"
 	fd = $fd
+	mask = $mask
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($pathname), $mask)
+%:
 	path_uaddr = $path
 	path = user_string($path)
-	mask = $mask
 	argstr = sprintf("%d, %s, %d", $fd, user_string_quoted($path), $mask)
+%)
 }
+
 probe syscall.inotify_add_watch.return = kernel.function("sys_inotify_add_watch").return ? {
 	name = "inotify_add_watch"
 	retstr = returnstr(1)
@@ -2081,13 +2096,21 @@ probe syscall.lchown16.return = kernel.function("sys_lchown16").return ? {
 #
 probe syscall.lgetxattr = kernel.function("sys_lgetxattr") {
 	name = "lgetxattr"
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+%:
 	path = user_string($path)
+%)
 	# FIXME
 	name2 = user_string($name)
 	value_uaddr = $value
 	size = $size
 	argstr = sprintf("%s, %s, %p, %d", 
+%( kernel_v > "2.6.26" %?
+		user_string_quoted($pathname), 
+%:
 		user_string_quoted($path), 
+%)
 		user_string_quoted($name),
 		value_uaddr, size)
 }
@@ -2156,11 +2179,17 @@ probe syscall.listen.return = kernel.function("sys_listen").return ? {
 #
 probe syscall.listxattr = kernel.function("sys_listxattr") {
 	name = "listxattr"
-	path_uaddr = $path
-	path = user_string($path)
 	list_uaddr = $list
 	size = $size
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
+%:
+	path_uaddr = $path
+	path = user_string($path)
 	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
+%)
 }
 probe syscall.listxattr.return = kernel.function("sys_listxattr").return {
 	name = "listxattr"
@@ -2172,11 +2201,17 @@ probe syscall.listxattr.return = kernel.function("sys_listxattr").return {
 #
 probe syscall.llistxattr = kernel.function("sys_llistxattr") {
 	name = "llistxattr"
-	path_uaddr = $path
-	path = user_string($path)
 	list_uaddr = $list
 	size = $size
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+	argstr = sprintf("%s, %p, %d", user_string_quoted($pathname), $list, $size)
+%:
+	path_uaddr = $path
+	path = user_string($path)
 	argstr = sprintf("%s, %p, %d", user_string_quoted($path), $list, $size)
+%)
 }
 probe syscall.llistxattr.return = kernel.function("sys_llistxattr").return {
 	name = "llistxattr"
@@ -2225,11 +2260,17 @@ probe syscall.lookup_dcookie.return = kernel.function("sys_lookup_dcookie").retu
 #
 probe syscall.lremovexattr = kernel.function("sys_lremovexattr") {
 	name = "lremovexattr"
-	path_uaddr = $path
-	path = user_string($path)
 	name_uaddr = $name
 	name2 = user_string($name)
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+	argstr = sprintf("%s, %s", user_string_quoted($pathname), user_string_quoted($name)) 
+%:
+	path_uaddr = $path
+	path = user_string($path)
 	argstr = sprintf("%s, %s", user_string_quoted($path), user_string_quoted($name)) 
+%)
 }
 probe syscall.lremovexattr.return = kernel.function("sys_lremovexattr").return {
 	name = "lremovexattr"
@@ -2261,15 +2302,24 @@ probe syscall.lseek.return = kernel.function("sys_lseek").return {
 #
 probe syscall.lsetxattr = kernel.function("sys_lsetxattr") {
 	name = "lsetxattr"
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+%:
 	path_uaddr = $path
 	path = user_string($path)
+%)
 	name_uaddr = $name
 	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
 	argstr = sprintf("%s, %s, %p, %d, %d", 
+%( kernel_v > "2.6.26" %?
+			user_string_quoted($pathname), 
+%:
 			user_string_quoted($path), 
+%)
 			user_string_quoted($name),
 			value_uaddr, $size, $flags)
 }

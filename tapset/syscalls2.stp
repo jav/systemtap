@@ -623,12 +623,17 @@ probe syscall.readlink.return = kernel.function("sys_readlink").return {
 probe syscall.readlinkat = kernel.function("sys_readlinkat") ? {
 	name = "readlinkat"
 	dfd = $dfd
-	path = user_string($path)
 	buf_uaddr = $buf
 	bufsiz = $bufsiz
-	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($path), 
-			$buf, $bufsiz)
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($pathname), $buf, $bufsiz)
+%:
+	path = user_string($path)
+	argstr = sprintf("%s, %s, %p, %d", _dfd_str($dfd), user_string_quoted($path), $buf, $bufsiz)
+%)
 }
+
 probe syscall.readlinkat.return = kernel.function("sys_readlinkat").return ? {
 	name = "readlinkat"
 	retstr = returnstr(1)
@@ -806,10 +811,17 @@ probe syscall.remap_file_pages.return =
 #
 probe syscall.removexattr = kernel.function("sys_removexattr") {
 	name = "removexattr"
-	path = user_string($path)
 	name_str = user_string($name)
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+	argstr = sprintf("%s, %s", user_string_quoted($pathname), 
+		user_string_quoted($name))
+%:
+	path = user_string($path)
 	argstr = sprintf("%s, %s", user_string_quoted($path), 
 		user_string_quoted($name))
+%)
+
 }
 probe syscall.removexattr.return = kernel.function("sys_removexattr").return {
 	name = "removexattr"
@@ -1978,15 +1990,24 @@ probe syscall.setuid.return =
 #
 probe syscall.setxattr = kernel.function("sys_setxattr") {
 	name = "setxattr"
+%( kernel_v > "2.6.26" %?
+	path_uaddr = $pathname
+	path = user_string($pathname)
+%:
 	path_uaddr = $path
 	path = user_string($path)
+%)
 	name_uaddr = $name
 	name_str = user_string($name)
 	value_uaddr = $value
 	size = $size
 	flags = $flags
 	argstr = sprintf("%s, %s, %p, %d, %d", 
+%( kernel_v > "2.6.26" %?
+			user_string_quoted($pathname), 
+%:
 			user_string_quoted($path), 
+%)
 			user_string_quoted($name),
 			value_uaddr, $size, $flags)
 }
@@ -2376,10 +2397,16 @@ probe syscall.statfs =
 		kernel.function("compat_sys_statfs") ?
 {
 	name = "statfs"
-	path = user_string($path)
 	buf_uaddr = $buf
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+	argstr = sprintf("%s, %p", user_string_quoted($pathname), $buf)
+%:
+	path = user_string($path)
 	argstr = sprintf("%s, %p", user_string_quoted($path), $buf)
+%)
 }
+
 probe syscall.statfs.return = 
 		kernel.function("sys_statfs").return,
 		kernel.function("compat_sys_statfs").return ?
@@ -2398,11 +2425,17 @@ probe syscall.statfs64 =
 		kernel.function("compat_sys_statfs64") ?
 {
 	name = "statfs"
-	path = user_string($path)
 	sz = $sz
 	buf_uaddr = $buf
+%( kernel_v > "2.6.26" %?
+	path = user_string($pathname)
+	argstr = sprintf("%s, %d, %p", user_string_quoted($pathname), $sz, $buf) 
+%:
+	path = user_string($path)
 	argstr = sprintf("%s, %d, %p", user_string_quoted($path), $sz, $buf) 
+%)
 }
+
 probe syscall.statfs64.return =
 		kernel.function("sys_statfs64").return ?,
 		kernel.function("compat_sys_statfs64").return ?
