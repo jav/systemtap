@@ -113,16 +113,13 @@
    kernel mode, it is not saved in the trap frame (struct pt_regs).
    The `esp' (and `xss') fields are valid only for a user-mode trap.
    For a kernel mode trap, the interrupted state's esp is actually an
-   address inside where the `struct pt_regs' on the kernel trap stack points.
-
-   For now we assume all traps are from kprobes in kernel-mode code.
-   For extra paranoia, could do BUG_ON((regs->xcs & 3) == 3).  */
+   address inside where the `struct pt_regs' on the kernel trap stack points. */
 
 #define dwarf_register_0(regs)	regs->eax
 #define dwarf_register_1(regs)	regs->ecx
 #define dwarf_register_2(regs)	regs->edx
 #define dwarf_register_3(regs)	regs->ebx
-#define dwarf_register_4(regs)	((long) &regs->esp)
+#define dwarf_register_4(regs)	(user_mode(regs) ? regs->esp : (long)&regs->esp)
 #define dwarf_register_5(regs)	regs->ebp
 #define dwarf_register_6(regs)	regs->esi
 #define dwarf_register_7(regs)	regs->edi
