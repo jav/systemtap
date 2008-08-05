@@ -1,11 +1,10 @@
 * What's new
 
-
-* What's new in version 0.7
-
 - A formatted string representation of the variables, parameters, or local
   variables at a probe point is now supported via the special $$vars,
   $$parms, and $$locals context variables.
+
+* What's new in version 0.7
 
 - .statement("func@file:*") and .statement("func@file:M-N") probes are now
   supported to allow matching a range of lines in a function.  This allows
