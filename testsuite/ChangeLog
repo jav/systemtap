@@ -1,5 +1,6 @@
 2008-08-05  Stan Cox  <scox@redhat.com>
 
+	* systemtap.base/warnings.stp: Use relative instead of absolute line.
 	* systemtap.base/vars.exp: New test.
 
 2008-08-03  Wenji Huang <wenji.huang@oracle.com>
