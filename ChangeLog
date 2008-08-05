@@ -1,3 +1,8 @@
+2008-08-05  Stan Cox  <scox@redhat.com>
+
+	* NEWS: Updated $$vars, $$parms, $$locals.
+	* tapsets.cxx (visit_target_symbol): Missing break typo.
+
 2008-08-04  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 

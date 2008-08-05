@@ -1,3 +1,6 @@
+2008-08-05  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/vars.exp: New test.
 
 2008-08-03  Wenji Huang <wenji.huang@oracle.com>
 

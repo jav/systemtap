@@ -4280,6 +4280,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	      case DW_TAG_variable:
 		if (e->base_name == "$$parms")
 		  continue;
+		break;
 	      case DW_TAG_formal_parameter:
 		if (e->base_name == "$$locals")
 		  continue;
