@@ -169,8 +169,13 @@ function parse_options {
 
     # If the script file was given and it's not '-', then replace it with its
     # client-temp-name in the command string.
-    if test "X$script_file" != "X" -a "$script_file" != "-"; then
-	local local_name=`generate_client_temp_name $script_file`
+    if test "X$script_file" != "X"; then
+	local local_name
+	if test "$script_file" != "-"; then
+	    local_name=`generate_client_temp_name $script_file`
+	else
+	    local_name=$script_file
+	fi
 	cmdline=`echo $cmdline | sed s,$script_file,script/$local_name,`
     fi
 }
@@ -257,7 +262,7 @@ function process_R {
 # Include the given file or directory in the client's temporary
 # tree to be sent to the server.
 function include_file_or_directory {
-    # Add a symbolic link of the named directory to our temporary directory
+    # Add a symbolic link of the named file or directory to our temporary directory
     local local_name=`generate_client_temp_name $2`
     mkdir -p $tmpdir_client/$1/`dirname $local_name` || \
 	fatal "ERROR: could not create $tmpdir_client/$1/`dirname $local_name`"
@@ -291,22 +296,16 @@ function create_request {
     if test "X$script_file" != "X"; then
 	if test "$script_file" = "-"; then
 	    mkdir -p $tmpdir_client/script || \
-		fatal "ERROR: cannot create temporary diectory " $tmpdir_client/script
-	    cat > $tmpdir_client/script/-
+		fatal "ERROR: cannot create temporary directory " $tmpdir_client/script
+	    cat > $tmpdir_client/script/$script_file
 	else
 	    include_file_or_directory script $script_file > /dev/null
 	fi
     fi
 
-    # Add the necessary info to special files in our temporary directory. Do this
-    # after linking in -I and -R directories in order to guarantee no name clashes.
-    tmpfile=`mktemp cmdline.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file "
-    echo "cmdline: $cmdline" > $tmpfile
-
-    tmpfile=`mktemp sysinfo.XXXXXX` || \
-	fatal "ERROR: cannot create temporary file " $tmpfile
-    echo "sysinfo: `client_sysinfo`" > $tmpfile
+    # Add the necessary info to special files in our temporary directory.
+    echo "cmdline: $cmdline" > cmdline
+    echo "sysinfo: `client_sysinfo`" > sysinfo
 }
 
 # function client_sysinfo
@@ -343,9 +342,6 @@ function package_request {
 #   client -> "request:"
 #   server -> "ready:"
 #   client -> $tar_client
-#
-# $tmpdir_client is provided on the request so that the server knows what
-# the tar file will expand to.
 function send_request {
     echo "request:" >&3
     # Get the server's response.
@@ -404,7 +400,7 @@ function unpack_response {
     tar -xzf $tar_server || \
 	fatal "ERROR: Unpacking of server response, $tar_server, failed"
 
-    # Identify the server's request tree. The tar file should have expanded
+    # Identify the server's response tree. The tar file should have expanded
     # into a single directory named to match $tmpdir_prefix_server.??????
     # which should now be the only item in the current directory.
     test "`ls | wc -l`" = 1 || \
@@ -419,34 +415,39 @@ function unpack_response {
     # Check the contents of the expanded directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
-    # 3) a directory named to match stap??????
-    test "`ls $tmpdir_server | wc -l`" = 3 || \
-	fatal "ERROR: Wrong number of files after expansion of server's tar file"
+    # 3) optionally a directory named to match stap??????
+    local num_files=`ls $tmpdir_server | wc -l`
+    test $num_files = 3 -o $num_files = 2 || \
+	fatal "ERROR: Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
 	fatal "ERROR: `pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
     test -f $tmpdir_server/stderr || \
 	fatal "ERROR: `pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
 
+    # See if there is a systemtap temp directory
     tmpdir_stap=`ls $tmpdir_server | grep stap`
     tmpdir_stap=`expr "$tmpdir_stap" : "\\\(stap......\\\)"`
-    test "X$tmpdir_stap" = "X" && \
-	fatal "ERROR: `pwd`/$tmpdir_server/stap?????? does not exist"
-    test -d $tmpdir_server/$tmpdir_stap || \
-	fatal "ERROR: `pwd`/$tmpdir_server/$tmpdir_stap is not a directory"
+    if test "X$tmpdir_stap" != "X"; then
+	test -d $tmpdir_server/$tmpdir_stap || \
+	    fatal "ERROR: `pwd`/$tmpdir_server/$tmpdir_stap is not a directory"
 
-    # Move the systemtap temp directory to a local temp location, if -k
-    # was specified.
-    if test $keep_temps = 1; then
-	local local_tmpdir_stap=`mktemp -dt stapXXXXXX` || \
-	    fatal "ERROR: cannot create temporary directory " $local_tmpdir_stap
-	mv $tmpdir_server/$tmpdir_stap/* $local_tmpdir_stap 2>/dev/null
-	rm -fr $tmpdir_server/$tmpdir_stap
+        # Move the systemtap temp directory to a local temp location, if -k
+        # was specified.
+	if test $keep_temps = 1; then
+	    local local_tmpdir_stap=`mktemp -dt stapXXXXXX` || \
+		fatal "ERROR: cannot create temporary directory " $local_tmpdir_stap
+	    mv $tmpdir_server/$tmpdir_stap/* $local_tmpdir_stap 2>/dev/null
+	    rm -fr $tmpdir_server/$tmpdir_stap
 
-	# Correct the name of the temp directory in the server's stderr output
-	sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
-	tmpdir_stap=$local_tmpdir_stap
-    else
-	tmpdir_stap=`pwd`/$tmpdir_stap
+	    # Correct the name of the temp directory in the server's stderr output
+	    sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
+	    tmpdir_stap=$local_tmpdir_stap
+	else
+	    tmpdir_stap=`pwd`/$tmpdir_stap
+	fi
+
+        # Make sure we own the systemtap temp directory if we are root.
+	test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
     fi
 
     # Move the contents of the server's tmpdir down one level to the
@@ -454,95 +455,57 @@ function unpack_response {
     mv $tmpdir_server/* . 2>/dev/null
     rm -fr $tmpdir_server
     tmpdir_server=`pwd`
-
-    # Make sure we own the systemtap temp directory if we are root.
-    test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
 }
 
 # function: find_and_connect_to_server
 #
-# Find and establish connection with a compatibale stap server.
+# Find and establish connection with a compatible stap server.
 function find_and_connect_to_server {
-    # Find a server
-    server=`avahi-browse $avahi_service_tag --terminate -r 2>/dev/null | match_server`
-    port=`expr "$server" : '[^/]*/\(.*\)'`
-    server=`expr "$server" : '\([^/]*\)/.*'`
-
-    test "X$server" != "X" || \
-	fatal "ERROR: cannot find a server"
-
-    test "X$port" != "X" || \
-	fatal "ERROR: server port not provided"
-
-    # Open a connection to the server
-    if ! exec 3<> /dev/tcp/$server/$port; then
-	fatal "ERROR: cannot connect to server at /dev/tcp/$server/$port"
-    fi
+    # Use a temp file here instead of a pipeline so that the side effects
+    # of choose_server are seen by the rest of this script.
+    cd $tmpdir_client
+    stap-find-servers > servers
+    choose_server < servers
+    rm -fr servers
 }
 
-# function: match_server
+# function: choose_server
 #
-# Find a suitable server using the avahi-browse output provided on stdin.
-function match_server {
-    local server_ip
-
-    # Loop over the avahi service descriptors.
-    while read
+# Examine each line from stdin and attempt to connect to each server
+# specified until successful.
+function choose_server {
+    local num_servers=0
+    local name
+    while read name server port remain
     do
-	# Examine the next service descriptor
-	# Is it a stap server?
-	(echo $REPLY | grep -q "^=.*_stap") || continue
-	
-	# Get the details of the service
-	local service_tag equal data
-	while read service_tag equal service_data
-	do
-	    case $service_tag in
-		'=' )
-		    break ;;
-		hostname )
-		    server_name=`expr "$service_data" : '\[\([^]]*\)\]'`
-		    ;;
-		address )
-		    # Sometimes (seems random), avahi-resolve-host-name resolves a local server to its
-		    # hardware address rather its ip address. Keep trying until we get
-		    # an ip address.
-		    server_ip=`expr "$service_data" : '\[\([^]]*\)\]'`
-		    local attempt
-		    for ((attempt=0; $attempt < 5; ++attempt))
-		    do
-			server_ip=`expr "$server_ip" : '^\([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\)$'`
-			if test "X$server_ip" != "X"; then
-			    break
-			fi
-		        # Resolve the server.domain to an ip address.
-			server_ip=`avahi-resolve-host-name $hostname`
-			server_ip=`expr "$server_ip" : '.*	\(.*\)$'`
-		    done
-		    ;;
-		port )
-		    port=`expr "$service_data" : '\[\([^]]*\)\]'`
-		    ;;
-		txt )
-		    sysinfo_server=`expr "$service_data" : '\[\"\([^]]*\)\"\]'`
-		    ;;
-		* )
-		    break ;;
-	    esac
-	done
+	num_servers=$(($num_servers + 1))
 
-	# It is a stap server, but is it compatible?
-	if test "$sysinfo_server" != "`client_sysinfo`"; then
-	    server_ip=
-	    continue
+	if test "X$server" = "X"; then
+	    fatal "ERROR: server ip address not provided"
 	fi
 
-	if test "X$server_ip" != "X"; then
-	    break
+	if test "X$port" = "X"; then
+	    fatal "ERROR: server port not provided"
+	fi
+
+	if connect_to_server $server $port; then
+	    return 0
 	fi
     done
 
-    echo $server_ip/$port
+    if test num_servers = 0; then
+	fatal "ERROR: cannot find a server"
+    fi
+
+    fatal "ERROR: unable to connect to a server"
+}
+
+# function: connect_to_server IP PORT
+#
+# Establish connection with the given server
+function connect_to_server {
+    # Open a connection to the server
+    exec 3<> /dev/tcp/$1/$2
 }
 
 # function: disconnect_from_server
@@ -568,13 +531,38 @@ function stream_output {
 # Call staprun using the module returned from the server, if requested.
 function maybe_call_staprun {
     if test $p_phase = 5; then
+        # Can't call staprun without a module.
+	test "X$tmpdir_stap" = "X" && return
+
+	local mod_name=`ls $tmpdir_stap | grep '.ko$'`
+	test "X$mod_name" != "X" || \
+	    fatal "ERROR: no module to run in $tmpdir_stap"
+
+	# We have a module. Try to run it
 	for ((--v_level; $v_level > 0; --v_level))
 	do
 	    staprun_opts="$staprun_opts -v"
 	done
-	staprun $staprun_opts \
+	PATH=`staprun_PATH` staprun $staprun_opts \
 	    $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
     fi
+}
+
+# function: staprun_PATH
+#
+# Compute a PATH suitable for running staprun.
+function staprun_PATH {
+    # staprun may invoke 'stap'. So we can use the current PATH if we were
+    # not invoked as 'stap' or we are not the first 'stap' on the PATH.
+    local first_stap=`which stap 2>/dev/null`
+    if test `which $0 2>/dev/null` != $first_stap; then
+	echo "$PATH"
+	return
+    fi
+
+    # Otherwise, remove the PATH component where we live from the PATH
+    local PATH_component=`dirname $first_stap`
+    echo $PATH | sed "s,$PATH_component,,g"
 }
 
 # function: check_server_error SERVER_RESPONSE
@@ -591,6 +579,7 @@ function check_server_error {
 # Prints its arguments to stderr and exits
 function fatal {
     echo $0: "$@" >&2
+    disconnect_from_server
     cleanup
     exit 1
 }
@@ -602,6 +591,7 @@ function fatal {
 function server_fatal {
     echo $0: "$@" >&2
     cat <&3 >&2
+    disconnect_from_server
     cleanup
     exit 1
 }

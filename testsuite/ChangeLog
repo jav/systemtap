@@ -1,3 +1,28 @@
+2008-08-05  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/warnings.stp: Use relative instead of absolute line.
+	* systemtap.base/vars.exp: New test.
+
+2008-08-03  Wenji Huang <wenji.huang@oracle.com>
+
+	* buildok/seven.stp: Correct for 2.6.27.
+	* buildok/seventeen.stp: Ditto.
+
+2008-07-29  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (SYSTEMTAP_PATH): Add $(EXTRA_SYSTEMTAP_PATH).
+	* lib/stap_compile.exp: Revert previous change.
+	* lib/stap_run.exp: Likewise.
+	* lib/stap_run2.exp: Likewise.
+	* lib/stap_run_binary.exp: Likewise.
+	* lib/stap_run_exact.exp: Likewise.
+	* lib/systemtap.exp (stap_exec): Removed.
+	* Makefile.in: Regenerated.
+
+2008-07-24  Dave Nomura  <dcnltc@us.ibm.com>
+
+	* systemtap.base/itrace.stp: Added simple tests of itrace probe.
+
 2008-07-14  Dave Brolley  <brolley@redhat.com>
 
 	* Makefile.am (TOOL_OPTS): New variable.

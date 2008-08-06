@@ -1,8 +1,87 @@
+2008-08-05  Stan Cox  <scox@redhat.com>
+
+	* NEWS: Updated $$vars, $$parms, $$locals.
+	* tapsets.cxx (visit_target_symbol): Missing break typo.
+
+2008-08-04  Stan Cox  <scox@redhat.com>
+
+	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 
+	Add support for $$vars, $$parms, and $$locals.
+	* stapprobes.5.in: Likewise.
+	* doc/langref.tex: Likewise.
+
 2008-08-02  Frank Ch. Eigler  <fche@elastic.org>
 
 	* translate.h (translator_output::assert_0_indent): New function.
 	* translate.cxx (emit_*): Add a couple of calls to confirm
 	newline(1)/(-1) nest matching.
+
+2008-07-30  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (create_request): No need for random suffix for
+	cmdline and sysinfo files.
+	* stap-server (read_data_file): File name is exactly as specified.
+	Check that it exists.
+
+2008-07-29  Dave Brolley  <brolley@redhat.com>
+
+	* Makefile.am (bin_SCRIPTS): add stap-find-servers, stap-start-server,
+	stap-find-or-start-server, stap-stop-server.
+	(EXTRA_DIST): Likewise.
+	(check): Ensure that a compatible systemtap server is running before
+	running the tests, if requested. If we start a sterver, stop it after
+	running the tests.
+	(installcheck): Likewise.
+	* stap-client (parse_options): Specify stdin as 'scripts/-' on the
+	generated command line.
+	(create_request): Use $script_file instead of '-'.
+	(unpack_response): Existence of the systemtap temp directory is
+	optional.
+	(find_and_connect_to_server): Use stap-find-servers and choose_server.
+	(choose_server): Rewritten from match_server. Examine multiple
+	servers.
+	(connect_to_server): New function.
+	(maybe_call_staprun): Check for existence of a module.
+	Use staprun_PATH.
+	(staprun_PATH): New function.
+	(fatal): Call disconnect_from_server.
+	(server_fatal): Likewise.
+	* stap-server: Catch SIGTERM and SIGINT.
+	(create_response): Check for the existence of $tmpdir_stap.
+	(terminate): New function.
+	* stap-serverd: Catch SIGTERM and SIGINT.
+	(listen): Run 'nc | stap-server' in the background and wait for them
+	to finish.
+	(terminate): Renamed from handle_sigint. Kill avahi-publish-service
+	and nc.
+	* systemtap.spec: Add stap-find-servers, stap-start-server,
+	stap-find-or-start-server, stap-stop-server.
+	* Makefile.in: Regenerated.
+
+2008-07-28  Dave Nomura  <dcnltc@us.ibm.com>
+
+	* session.h (struct systemtap_session): Added itrace_derived_probe
+	group.
+	* elaborate.cxx (systemtap_session::systemtap_session): Added
+	initialization of itrace_derived_probes.
+	* tapsets.cxx (struct itrace_derived_probe): Add derived_probe
+	struct for holding info needed by itrace probes.
+	(struct itrace_derived_probe_group): New derived_probe_group
+	to handle itrace probes.
+	(itrace_derived_probe::itrace_derived_probe): Needed for use with
+	task_finder.
+	(itrace_derived_probe_group::join_group): Ditto.
+	(itrace_derived_probe_group::enroll): Ditto.
+	(itrace_derived_probe_group::emit_probe_decl): Ditto.
+	(itrace_derived_probe_group::emit_module_decls): Ditto.
+	(itrace_derived_probe_group::emit_module_init): Ditto.
+	(itrace_derived_probe_group::emit_module_exit): Ditto.
+	* stapprobes.5.in : Added documentation of itrace probe.
+
+2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
+
+	* buildrun.cxx (compile_pass): Remove STAPCONF_MODULE_NSECTIONS,
+	and add STAPCONF_ONEACHCPU_RETRY
 
 2008-07-23  Frank Ch. Eigler  <fche@elastic.org>
 

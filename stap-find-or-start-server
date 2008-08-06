@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Find or start a systemtap server
+#
+# Copyright (C) 2008 Red Hat Inc.
+#
+# This file is part of systemtap, and is free software.  You can
+# redistribute it and/or modify it under the terms of the GNU General
+# Public License (GPL); either version 2, or (at your option) any
+# later version.
+
+# This script attempts to find a systemtap server. If one is found, it
+# simply exits with 0.
+#
+# Otherwise, it attempts to start a server. If succesful, it echoes the
+# process id and exits with 0.
+#
+# Otherwise, it exits with 1
+
+# Is there a server available?
+stap-find-servers >/dev/null 2>&1 && exit 0
+
+# No server available, try to start one.
+pid=`stap-start-server`
+if test $? = 0; then
+  echo $pid
+  # Make sure the server is started
+  for ((attempt=0; $attempt < 5; ++attempt))
+  do
+    stap-find-servers >/dev/null 2>&1 && exit 0
+    sleep 1
+  done
+fi
+
+# Could not find or start a server
+exit 1

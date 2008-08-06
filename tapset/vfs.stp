@@ -744,7 +744,11 @@ probe vfs.do_mpage_readpage.return = kernel.function ("do_mpage_readpage").retur
 	units = "pages"
 }
 
+%( kernel_v > "2.6.26" %?
+probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache_locked")
+%:
 probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache")
+%)
 {
 	dev = $mapping->host->i_sb->s_dev
 	devname = __find_bdevname(dev, $mapping->host->i_sb->s_bdev)
@@ -756,7 +760,12 @@ probe vfs.add_to_page_cache = kernel.function ("add_to_page_cache")
 	name = "vfs.add_to_page_cache"
 	argstr = sprintf("%d, %d", ino, index)
 }
+
+%( kernel_v > "2.6.26" %?
+probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache_locked").return
+%:
 probe vfs.add_to_page_cache.return = kernel.function ("add_to_page_cache").return
+%)
 {
 	name = "vfs.add_to_page_cache"
 	retstr = sprintf("%d", $return)

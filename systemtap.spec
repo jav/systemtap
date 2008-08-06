@@ -178,6 +178,10 @@ exit 0
 %{_bindir}/stap
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
+%{_bindir}/stap-find-servers
+%{_bindir}/stap-start-server
+%{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-stop-server
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 

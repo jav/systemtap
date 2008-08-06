@@ -6,6 +6,7 @@
 
 # first: enums and ints
 
+%( kernel_v <= "2.6.26" %?
 probe kernel.function("find_pid") 
 {
 %( kernel_v >= "2.6.17" %?
@@ -15,6 +16,7 @@ probe kernel.function("find_pid")
                     . sprint($nr) . ")")
 %)
 }
+%)
 
 # second: opaque pointers and enums
 

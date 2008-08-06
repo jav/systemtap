@@ -10,4 +10,4 @@ output: trace
 scope: system-wide
 description: Print out the executable name and process number as reads and writes to the specified device occur.
 test_check: stap -p4 traceio2.stp 0x0801
-test_installcheck: /bin/sh eval stap traceio2.stp 0x0801 -c "sleep 1"
+test_installcheck: stap traceio2.stp 0x0801 -c "sleep 1"
