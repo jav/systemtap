@@ -99,8 +99,7 @@ to compile a script.  The
 .I stap
 program will report the pathname to the resulting module.
 .PP
-.Vb 1
-\& $ stap \-p4 \-e 'probe begin { printf("Hello World!\\n"); exit() }'
+\& $ stap \-p4 \-e \[aq]probe begin { printf("Hello World!\\n"); exit() }\[aq]
 .br
 \& /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
 .PP
@@ -108,7 +107,6 @@ Run
 .I staprun
 with the pathname to the module as an argument.
 .PP
-.Vb 1
 \& $ staprun /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
 .br
 \& Hello World!
@@ -161,6 +159,6 @@ user and not be world writable.
 .SH BUGS
 Use the Bugzilla link off of the project web page or our mailing list.
 .nh
-.BR http://sources.redhat.com/systemtap/ , <systemtap@sources.redhat.com> .
+.BR http://sources.redhat.com/systemtap/ ", " <systemtap@sources.redhat.com> .
 .hy
 
