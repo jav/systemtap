@@ -1,12 +1,17 @@
 2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* *index.txt, *index.html: New generated files.
+	* .gitignore: Zap it.
 	* html/*, examples-index-gen.pl: Adapt to html/ boilerplate subdir.
 
 2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
 
 	* small_demos: Unique parts kept, others dropped.
 	* all other samples: Moved into new subdirectories.
+
+2008-08-07  David Smith  <dsmith@redhat.com>
+
+	* .gitignore: New file.
 
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
