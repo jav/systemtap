@@ -1,3 +1,9 @@
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsetes.cxx
+	(utrace_var_expanding_copy_visitor::visit_target_symbol):
+	Defer to new tapset function instead of synthesized embedded-c.
+
 2008-08-05  Stan Cox  <scox@redhat.com>
 
 	* NEWS: Updated $$vars, $$parms, $$locals.

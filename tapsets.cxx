@@ -5799,13 +5799,10 @@ struct utrace_var_expanding_copy_visitor: public var_expanding_copy_visitor
   string probe_name;
   enum utrace_derived_probe_flags flags;
   bool target_symbol_seen;
-  static bool syscall_function_added;
 
   void visit_target_symbol (target_symbol* e);
 };
 
-
-bool utrace_var_expanding_copy_visitor::syscall_function_added = false;
 
 
 utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
@@ -5874,27 +5871,11 @@ utrace_var_expanding_copy_visitor::visit_target_symbol (target_symbol* e)
   // Remember that we've seen a target variable.
   target_symbol_seen = true;
 
-  // Synthesize a function to grab the syscall .
-  if (! syscall_function_added)
-    {
-      functiondecl *fdecl = new functiondecl;
-      fdecl->tok = e->tok;
-      embeddedcode *ec = new embeddedcode;
-      ec->tok = e->tok;
-      ec->code = string("THIS->__retvalue = __stp_user_syscall_nr(CONTEXT->regs); /* pure */");
-
-      fdecl->name = string("_syscall_nr_get");
-      fdecl->body = ec;
-      fdecl->type = pe_long;
-      sess.functions.push_back(fdecl);
-      syscall_function_added = true;
-    }
-
   // We're going to substitute a synthesized '_syscall_nr_get'
   // function call for the '$syscall' reference.
   functioncall* n = new functioncall;
   n->tok = e->tok;
-  n->function = "_syscall_nr_get";
+  n->function = "_utrace_syscall_nr";
   n->referent = 0; // NB: must not resolve yet, to ensure inclusion in session
 
   provide <functioncall*> (this, n);
