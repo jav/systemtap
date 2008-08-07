@@ -26,6 +26,11 @@ function initialization {
     avahi_type=_stap._tcp
     port=$1
     test "X$port" = "X" && port=65000
+    port2=$(($port + 1))
+    if netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^($port|$port2)\$"; then
+        # Whoops, the port is busy; try another one.
+        initialization $((1024+($port + $RANDOM)%64000))
+    fi
 }
 
 # function: advertise_presence
@@ -35,7 +40,7 @@ function advertise_presence {
     # Build up a string representing our server's properties.
     # TODO: this needs fleshing out.
     local sysinfo=`uname -rvm`
-    local txt="$sysinfo"
+    local txt="sysinfo=$sysinfo"
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
@@ -65,6 +70,9 @@ function listen {
 	# received (i.e. SIGTERM) will be processed.
 	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
 	wait %nc
+        if [ $? -ne 0 ]; then
+            fatal "ERROR: cannot listen on port $port"
+        fi
     done
 }
 
