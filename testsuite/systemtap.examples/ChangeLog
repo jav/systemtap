@@ -1,3 +1,7 @@
+2008-08-07  David Smith  <dsmith@redhat.com>
+
+	* .gitignore: New file.
+
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
 	* examples-index-gen.pl: New file.
