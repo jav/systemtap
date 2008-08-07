@@ -140,10 +140,12 @@ STAPLOG=staplog.so
 $(STAPLOG): staplog.c
 	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
 		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
-all-local: $(STAPLOG)
+all-local: $(STAPLOG) example_index
 install-exec-local: $(STAPLOG)
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
+else
+all-local: example_index
 endif
 
 # Get extra libs as needed
@@ -169,7 +171,11 @@ EXAMPLE_SRC = $(EXAMPLE_SOURCE_DIR)/ChangeLog \
 	$(EXAMPLE_SOURCE_DIR)/README \
 	$(EXAMPLE_SOURCE_DIR)/*.stp \
 	$(EXAMPLE_SOURCE_DIR)/*.txt \
-	$(EXAMPLE_SOURCE_DIR)/*.meta
+	$(EXAMPLE_SOURCE_DIR)/*.meta \
+	$(EXAMPLE_SOURCE_DIR)/*.html \
+	$(EXAMPLE_SOURCE_DIR)/*.css \
+	$(EXAMPLE_SOURCE_DIR)/*.gif \
+	$(EXAMPLE_SOURCE_DIR)/*.png
 
 DEMO_SRC = \
 	$(EXAMPLE_SOURCE_DIR)/small_demos/*.stp \
@@ -184,7 +190,20 @@ SAMPLE_SRC = $(SAMPLE_SOURCE_DIR)/iotask.stp \
 	$(SAMPLE_SOURCE_DIR)/tcp_connections.stp \
 	$(SAMPLE_SOURCE_DIR)/topsys.stp
 
-dist-hook: dist-gitversion
+EXAMPLE_INDEXES = \
+	$(EXAMPLE_SOURCE_DIR)/index.txt \
+	$(EXAMPLE_SOURCE_DIR)/index.html \
+	$(EXAMPLE_SOURCE_DIR)/subsystem-index.txt \
+	$(EXAMPLE_SOURCE_DIR)/subsystem-index.html \
+	$(EXAMPLE_SOURCE_DIR)/keyword-index.txt \
+	$(EXAMPLE_SOURCE_DIR)/keyword-index.html
+
+example_index: $(EXAMPLE_SOURCE_DIR)/index.html
+
+$(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_SOURCE_DIR)/*.meta
+	perl $(EXAMPLE_SOURCE_DIR)/examples-index-gen.pl $(EXAMPLE_SOURCE_DIR)
+
+dist-hook: dist-gitversion example_index
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
 	find $(distdir) -name '*.o' -o -name '*.ko' -o -name '*.cmd' -o -name '*.mod.c' -o -name '.??*' | xargs rm -rf
 	find $(distdir) -name 'stap' -o -name '*.log' -o -name '*.sum' -o -name 'site.exp' | xargs rm -rf
@@ -226,6 +245,7 @@ clean-local:
 	rm -rf $(TEST_COV_DIR)
 	rm -rf stap.info
 	rm -rf staplog.so
+	rm -rf $(EXAMPLE_INDEXES)
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(pkgdatadir)

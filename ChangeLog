@@ -1,5 +1,15 @@
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
+	* Makefile.am (all-local): Add example_index.
+	(dist-hook): Likewise.
+	(EXAMPLE_SRC): Add index and support files.
+	(EXAMPLE_INDEXES): New file list.
+	(example_index): New target.
+	(clean-local): Remove generated indexes.
+	* Makefile.in: Regenerated.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
 	* systemtap.spec: Add comment about versioned vs unversioned docs.
 
 2008-08-06  Frank Ch. Eigler  <fche@elastic.org>
