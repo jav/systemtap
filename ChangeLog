@@ -1,3 +1,11 @@
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (all-local): Don't run indexing code, since $srcdir
+	may be read-only.
+	(install-data): Simplify sample script installation; limit sources
+	to systemtap.examples directory only.
+	* Makefile.in: Regenerated.
+
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
 	* Makefile.am (all-local): Add example_index.
