@@ -1,3 +1,7 @@
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* futexes.meta: Correct name: entry.
+
 2008-08-01  William Cohen  <wcohen@redhat.com>
 
 	* helloworld.meta, traceio2.meta: Tweak test_installcheck.
