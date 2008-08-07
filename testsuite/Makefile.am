@@ -32,7 +32,14 @@ EXTRA_DIST = execrc config lib systemtap \
 	parseok parseko semok semko transok transko buildok buildok \
 	systemtap.syscall systemtap.stress systemtap.string \
 	systemtap.pass1-4 systemtap.samples systemtap.printf \
-	systemtap.maps systemtap.base
+	systemtap.maps systemtap.base \
+	systemtap.examples/examples-index-gen.pl \
+        systemtap.examples/systemtap.css \
+        systemtap.examples/systemtapcorner.gif \
+        systemtap.examples/systemtaplogo.png \
+        systemtap.examples/html_footer.tmpl \
+        systemtap.examples/html_header.tmpl
+
 
 # $(srcdir)/These values point the test suite to the install tree, and 
 # are overridden by "make check" from full source/build tree

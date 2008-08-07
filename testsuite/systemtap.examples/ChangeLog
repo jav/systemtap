@@ -1,5 +1,15 @@
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
+	* examples-index-gen.pl: New file.
+	* systemtap.css: Likewise.
+	* systemtapcorner.gif: Likewise.
+	* systemtaplogo.png: Likewise.
+	* html_footer.tmpl: Likewise.
+	* html_header.tmpl: Likewise.
+	* Makefile.am (EXTRA_DIST): Add new support files.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
 	* futexes.meta: Correct name: entry.
 
 2008-08-01  William Cohen  <wcohen@redhat.com>
