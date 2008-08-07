@@ -1,3 +1,10 @@
+2008-08-07  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p4.exp: Uses lib/stap_compile.exp instead
+	of its own stap_compile procedure.
+	* systemtap.base/cache.exp (stap_compile): Ignores warnings.
+	* lib/stap_compile.exp: Ignores warnings.
+
 2008-08-05  Mark Wielaard  <mwielaard@redhat.com>
 
 	* systemtap.examples/README: Add meta file tag descriptions.

@@ -30,6 +30,7 @@ proc stap_compile { TEST_NAME flags script args } {
 	-timeout 180
 	-re {^Pass\ [1234]:[^\r]*\ in\ [^\r]*\ ms\.\r\n} {exp_continue}
 	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {incr cached 1; exp_continue}
+	-re "^WARNING" {exp_continue}
         # pass-4 output
 	-re {^/[^\r\n]+\.ko\r\n} {exp_continue}
 	-re "compilation failed" {incr compile_errors 1; exp_continue}
