@@ -1,3 +1,4 @@
+#! /usr/bin/perl
 # Generates index files from examples .meta file info.
 # Copyright (C) 2008 Red Hat Inc.
 #
@@ -78,12 +79,12 @@ sub add_meta_html(*;$) {
 my $HEADER = "SYSTEMTAP EXAMPLES INDEX\n"
     . "(see also subsystem-index.txt, keyword-index.txt)\n\n";
 
-my $header_tmpl = "$inputdir/html_header.tmpl";
+my $header_tmpl = "$inputdir/html/html_header.tmpl";
 open(TEMPLATE, "<$header_tmpl")
     || die "couldn't open $header_tmpl, $!";
 my $HTMLHEADER = do { local $/;  <TEMPLATE> };
 close(TEMPLATE);
-my $footer_tmpl = "$inputdir/html_footer.tmpl";
+my $footer_tmpl = "$inputdir/html/html_footer.tmpl";
 open(TEMPLATE, "<$footer_tmpl")
     || die "couldn't open $footer_tmpl, $!";
 my $HTMLFOOTER = do { local $/;  <TEMPLATE> };
