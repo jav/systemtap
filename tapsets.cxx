@@ -6118,6 +6118,8 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
 
   s.op->newline();
   s.op->newline() << "/* ---- utrace probes ---- */";
+  s.op->newline() << "#include \"task_finder.c\"";
+
   s.op->newline() << "enum utrace_derived_probe_flags {";
   s.op->indent(1);
   s.op->newline() << "UDPF_NONE,";
