@@ -1,3 +1,7 @@
+2008-08-08  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/stmt_rel.stp: Lower wildcard matching count.
+
 2008-08-07  David Smith  <dsmith@redhat.com>
 
 	* systemtap.base/utrace_p4.exp: Uses lib/stap_compile.exp instead

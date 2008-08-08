@@ -55,11 +55,11 @@ probe kernel.statement("bio_put@fs/bio.c:*") {
   #   printf ("FAIL address %s %s\n", stack2, stack3)
   # }
   
-  # Did wildcard probe hit at least 5 different statements?
+  # Did wildcard probe hit at least 4 different statements?
   foreach ([i] in wildcardpp) {
      statement_count += 1
   }
-  if (statement_count >= 5) {
+  if (statement_count >= 4) {
      printf ("PASS wildcard\n")
   }
   else
