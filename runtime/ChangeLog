@@ -1,3 +1,13 @@
+2008-08-08  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_tf_vm_cb): Added calls to save/delete vma
+	information.
+	* task_finder_vma.c (__stp_tf_vma_map_hash): New function.
+	(__stp_tf_get_vma_map_entry_internal): Ditto.
+	(stap_add_vma_map_info): Ditto.
+	(stap_remove_vma_map_info): Ditto.
+	(stap_find_vma_map_info): Ditto.
+
 2008-07-24  Josh Stone  <joshua.i.stone@intel.com>
 
 	* runtime/autoconf-module-nsections.c: removed

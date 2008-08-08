@@ -47,6 +47,15 @@ int __stp_tf_vm_cb(struct task_struct *tsk,
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n",
 		  tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
+	if (map_p) {
+		// FIXME: What should we do with vm_path?  We can't save
+		// the vm_path pointer itself, but we don't have any
+		// storage space allocated to save it in...
+		stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	}
+	else {
+		stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	}
 	return 0;
 }
 #endif
