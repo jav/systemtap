@@ -1,5 +1,10 @@
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
+	* systemtap.spec: Disable chmodding of samples/kmalloc-top.
+	It is currently not installed.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
 	* Makefile.am (all-local): Depend on example_index, which now
 	doesn't generate anything in $srcdir anymore, only $builddir.
 	(EXAMPLE_SOURCE_DIR): New var.

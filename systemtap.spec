@@ -145,7 +145,7 @@ mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
 # To avoid perl dependency, make perl sample script non-executable
-chmod -x examples/samples/kmalloc-top
+#chmod -x examples/samples/kmalloc-top
 
 # Because "make install" may install staprun with mode 04111, the
 # post-processing programs rpmbuild runs won't be able to read it.
