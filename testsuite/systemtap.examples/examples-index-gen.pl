@@ -48,11 +48,12 @@ sub add_meta_txt(*;$) {
 
     print $file "$scripts{$meta}{name} - $scripts{$meta}{title}\n";
 
-    print $file "output: $scripts{$meta}{output}, ";
-    print $file "exits: $scripts{$meta}{exit}, ";
-    print $file "status: $scripts{$meta}{status}\n";
+    # Don't output these, the description mentions all these in general.
+    #print $file "output: $scripts{$meta}{output}, ";
+    #print $file "exits: $scripts{$meta}{exit}, ";
+    #print $file "status: $scripts{$meta}{status}\n";
 
-    print $file "subsystem: $scripts{$meta}{subsystem}, ";
+    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}\n\n";
 
     $Text::Wrap::columns = 72;
@@ -68,11 +69,12 @@ sub add_meta_html(*;$) {
     print $file "<li><a href=\"$name\">$name</a> ";
     print $file "- $scripts{$meta}{title}<br>\n";
 
-    print $file "output: $scripts{$meta}{output}, ";
-    print $file "exits: $scripts{$meta}{exit}, ";
-    print $file "status: $scripts{$meta}{status}<br>\n";
+    # Don't output these, the description mentions all these in general.
+    #print $file "output: $scripts{$meta}{output}, ";
+    #print $file "exits: $scripts{$meta}{exit}, ";
+    #print $file "status: $scripts{$meta}{status}<br>\n";
 
-    print $file "subsystem: $scripts{$meta}{subsystem}, ";
+    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}<br>\n";
 
     print $file "<p>$scripts{$meta}{description}";

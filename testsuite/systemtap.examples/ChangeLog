@@ -1,5 +1,13 @@
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
+	* examples-index-gen.pl (add_meta_txt): Don't output output, exits,
+	status line.
+	(add_meta_html): Likewise.
+	* *index.html: Regenerated.
+	* *index.txt: Likewise.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
 	* examples-index-gen.pl (inputdir): Make absolute.
 	(outputdir): Likewise.
 	(supportfiles): Copy from new html dir. Add README. Make sure

@@ -4,8 +4,7 @@ SYSTEMTAP EXAMPLES INDEX BY KEYWORD
 = BACKTRACE =
 
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
-output: sorted on-exit, exits: user-controlled, status: production
-subsystem: io, keywords: io backtrace
+subsystems: io, keywords: io backtrace
 
   When a reschedule occurs during an AIO io_submit call, accumulate the
   traceback in a histogram. When the script exits prints out a sorted
@@ -15,8 +14,7 @@ subsystem: io, keywords: io backtrace
 = CALLGRAPH =
 
 general/para-callgraph.stp - Tracing Calls for Sections of Code
-output: trace, exits: user-controlled, status: production
-subsystem: kernel, keywords: trace callgraph
+subsystems: kernel, keywords: trace callgraph
 
   The script takes two arguments: the first argument is the function to
   starts/stops the per thread call graph traces and the second argument
@@ -28,8 +26,7 @@ subsystem: kernel, keywords: trace callgraph
 = CPU =
 
 general/graphs.stp - Graphing Disk and CPU Utilization
-output: plot data, exits: user-controlled, status: production
-subsystem: disk cpu, keywords: disk cpu use graph
+subsystems: disk cpu, keywords: disk cpu use graph
 
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
@@ -39,8 +36,7 @@ subsystem: disk cpu, keywords: disk cpu use graph
 = DISK =
 
 general/graphs.stp - Graphing Disk and CPU Utilization
-output: plot data, exits: user-controlled, status: production
-subsystem: disk cpu, keywords: disk cpu use graph
+subsystems: disk cpu, keywords: disk cpu use graph
 
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
@@ -48,8 +44,7 @@ subsystem: disk cpu, keywords: disk cpu use graph
 
 
 io/disktop.stp - Summarize Disk Read/Write Traffic
-output: timed, exits: user-controlled, status: production
-subsystem: disk, keywords: disk
+subsystems: disk, keywords: disk
 
   Get the status of reading/writing disk every 5 seconds, output top
   ten entries during that period.
@@ -58,8 +53,7 @@ subsystem: disk, keywords: disk
 = FUNCTIONS =
 
 profiling/functioncallcount.stp - Count Times Functions Called
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: kernel, keywords: profiling functions
+subsystems: kernel, keywords: profiling functions
 
   The functioncallcount.stp script takes one argument, a list of
   functions to probe. The script will run and count the number of times
@@ -71,8 +65,7 @@ subsystem: kernel, keywords: profiling functions
 = FUTEX =
 
 process/futexes.stp - System-Wide Futex Contention
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: locking, keywords: syscall locking futex
+subsystems: locking, keywords: syscall locking futex
 
   The script watches the futex syscall on the system. On exit the
   futexes address, the number of contentions, and the average time for
@@ -83,8 +76,7 @@ subsystem: locking, keywords: syscall locking futex
 = GRAPH =
 
 general/graphs.stp - Graphing Disk and CPU Utilization
-output: plot data, exits: user-controlled, status: production
-subsystem: disk cpu, keywords: disk cpu use graph
+subsystems: disk cpu, keywords: disk cpu use graph
 
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
@@ -94,8 +86,7 @@ subsystem: disk cpu, keywords: disk cpu use graph
 = IO =
 
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
-output: sorted on-exit, exits: user-controlled, status: production
-subsystem: io, keywords: io backtrace
+subsystems: io, keywords: io backtrace
 
   When a reschedule occurs during an AIO io_submit call, accumulate the
   traceback in a histogram. When the script exits prints out a sorted
@@ -103,8 +94,7 @@ subsystem: io, keywords: io backtrace
 
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall read write time io
+subsystems: syscall, keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
@@ -120,32 +110,28 @@ subsystem: syscall, keywords: syscall read write time io
 
 
 io/iotop.stp - Periodically Print I/O Activity by Process Name
-output: timed, exits: user-controlled, status: production
-subsystem: io, keywords: io
+subsystems: io, keywords: io
 
   Every five seconds print out the top ten executables generating I/O
   traffic during that interval sorted in descending order.
 
 
 io/traceio.stp - Track Cumulative I/O Activity by Process Name
-output: timed, exits: user-controlled, status: production
-subsystem: io, keywords: io
+subsystems: io, keywords: io
 
   Every second print out the top ten executables sorted in descending
   order based on cumulative I/O traffic observed.
 
 
 io/traceio2.stp - Watch I/O Activity on a Particular Device
-output: trace, exits: user-controlled, status: production
-subsystem: io, keywords: io
+subsystems: io, keywords: io
 
   Print out the executable name and process number as reads and writes
   to the specified device occur.
 
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
-output: trace, exits: user-controlled, status: production
-subsystem: scheduler, keywords: io scheduler
+subsystems: scheduler, keywords: io scheduler
 
   The script monitor time threads spend waiting for IO operations (in
   "D" state) in the wait_for_completion function. If a thread spends
@@ -158,8 +144,7 @@ subsystem: scheduler, keywords: io scheduler
 = LOCKING =
 
 process/futexes.stp - System-Wide Futex Contention
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: locking, keywords: syscall locking futex
+subsystems: locking, keywords: syscall locking futex
 
   The script watches the futex syscall on the system. On exit the
   futexes address, the number of contentions, and the average time for
@@ -170,8 +155,7 @@ subsystem: locking, keywords: syscall locking futex
 = NETWORK =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-output: timed, exits: user-controlled, status: production
-subsystem: network, keywords: network traffic per-process
+subsystems: network, keywords: network traffic per-process
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -180,8 +164,7 @@ subsystem: network, keywords: network traffic per-process
 
 
 network/socket-trace.stp - Trace Functions called in Network Socket Code
-output: trace, exits: user-controlled, status: production
-subsystem: network, keywords: network socket
+subsystems: network, keywords: network socket
 
   The script instrument each of the functions inn the Linux kernel's
   net/socket.c file. The script prints out trace. The first element of
@@ -194,8 +177,7 @@ subsystem: network, keywords: network socket
 = PER-PROCESS =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-output: timed, exits: user-controlled, status: production
-subsystem: network, keywords: network traffic per-process
+subsystems: network, keywords: network traffic per-process
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -206,8 +188,7 @@ subsystem: network, keywords: network traffic per-process
 = PROFILING =
 
 process/pf2.stp - Profile kernel functions
-output: sorted-list, exits: user-controlled, status: production
-subsystem: kernel, keywords: profiling
+subsystems: kernel, keywords: profiling
 
   The pf2.stp script sets up time-based sampling. Every five seconds it
   prints out a sorted list with the top ten kernel functions with
@@ -215,8 +196,7 @@ subsystem: kernel, keywords: profiling
 
 
 profiling/functioncallcount.stp - Count Times Functions Called
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: kernel, keywords: profiling functions
+subsystems: kernel, keywords: profiling functions
 
   The functioncallcount.stp script takes one argument, a list of
   functions to probe. The script will run and count the number of times
@@ -226,8 +206,7 @@ subsystem: kernel, keywords: profiling functions
 
 
 profiling/thread-times.stp - Profile kernel functions
-output: sorted-list, exits: user-controlled, status: production
-subsystem: kernel, keywords: profiling
+subsystems: kernel, keywords: profiling
 
   The thread-times.stp script sets up time-based sampling. Every five
   seconds it prints out a sorted list with the top twenty processes
@@ -238,8 +217,7 @@ subsystem: kernel, keywords: profiling
 = READ =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall read write time io
+subsystems: syscall, keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
@@ -257,8 +235,7 @@ subsystem: syscall, keywords: syscall read write time io
 = SCHEDULER =
 
 process/sleepingBeauties.stp - Generating Backtraces of Threads Waiting for IO Operations
-output: trace, exits: user-controlled, status: production
-subsystem: scheduler, keywords: io scheduler
+subsystems: scheduler, keywords: io scheduler
 
   The script monitor time threads spend waiting for IO operations (in
   "D" state) in the wait_for_completion function. If a thread spends
@@ -271,22 +248,19 @@ subsystem: scheduler, keywords: io scheduler
 = SIGNALS =
 
 process/sig_by_pid.stp -  Signal Counts by Process ID
-output: sorted-list on-exit, exits: user-controlled, status: experimental
-subsystem: signals, keywords: signals
+subsystems: signals, keywords: signals
 
   Print signal counts by process ID in descending order.
 
 
 process/sig_by_proc.stp -  Signal Counts by Process Name
-output: sorted-list on-exit, exits: user-controlled, status: experimental
-subsystem: signals, keywords: signals
+subsystems: signals, keywords: signals
 
   Print signal counts by process name in descending order.
 
 
 process/sigkill.stp - Track SIGKILL Signals
-output: trace, exits: user-controlled, status: production
-subsystem: signals, keywords: signals
+subsystems: signals, keywords: signals
 
   The script traces any SIGKILL signals. When that SIGKILL signal is
   sent to a process, the script prints out the signal name, the
@@ -295,8 +269,7 @@ subsystem: signals, keywords: signals
 
 
 process/syscalls_by_pid.stp - System-Wide Count of Syscalls by PID
-output: trace, exits: user-controlled, status: experimental
-subsystem: signals, keywords: signals
+subsystems: signals, keywords: signals
 
   The script watches for a particular signal sent to a specific
   process. When that signal is sent to the specified process, the
@@ -308,8 +281,7 @@ subsystem: signals, keywords: signals
 = SIMPLE =
 
 general/helloworld.stp - SystemTap "Hello World" Program
-output: text, exits: fixed, status: production
-subsystem: none, keywords: simple
+subsystems: none, keywords: simple
 
   A basic "Hello World" program implemented in SystemTap script. It
   prints out "hello world" message and then immediately exits.
@@ -318,8 +290,7 @@ subsystem: none, keywords: simple
 = SLEEP =
 
 process/sleeptime.stp - Trace Time Spent in nanosleep Syscalls
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall sleep
+subsystems: syscall, keywords: syscall sleep
 
   The script watches each nanosleep syscall on the system. At the end
   of each nanosleep syscall the script prints out a line with a
@@ -331,8 +302,7 @@ subsystem: syscall, keywords: syscall sleep
 = SOCKET =
 
 network/socket-trace.stp - Trace Functions called in Network Socket Code
-output: trace, exits: user-controlled, status: production
-subsystem: network, keywords: network socket
+subsystems: network, keywords: network socket
 
   The script instrument each of the functions inn the Linux kernel's
   net/socket.c file. The script prints out trace. The first element of
@@ -345,8 +315,7 @@ subsystem: network, keywords: network socket
 = SYSCALL =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall read write time io
+subsystems: syscall, keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
@@ -362,8 +331,7 @@ subsystem: syscall, keywords: syscall read write time io
 
 
 process/futexes.stp - System-Wide Futex Contention
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: locking, keywords: syscall locking futex
+subsystems: locking, keywords: syscall locking futex
 
   The script watches the futex syscall on the system. On exit the
   futexes address, the number of contentions, and the average time for
@@ -372,8 +340,7 @@ subsystem: locking, keywords: syscall locking futex
 
 
 process/sleeptime.stp - Trace Time Spent in nanosleep Syscalls
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall sleep
+subsystems: syscall, keywords: syscall sleep
 
   The script watches each nanosleep syscall on the system. At the end
   of each nanosleep syscall the script prints out a line with a
@@ -383,8 +350,7 @@ subsystem: syscall, keywords: syscall sleep
 
 
 process/syscalls_by_pid.stp - System-Wide Count of Syscalls by PID
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall
+subsystems: syscall, keywords: syscall
 
   The script watches all syscall on the system. On exit the script
   prints a list showing the number of systemcalls executed by each PID
@@ -392,8 +358,7 @@ subsystem: syscall, keywords: syscall
 
 
 process/syscalls_by_proc.stp - System-Wide Count of Syscalls by Executable
-output: sorted-list on-exit, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall
+subsystems: syscall, keywords: syscall
 
   The script watches all syscall on the system. On exit the script
   prints a list showing the number of systemcalls executed by each
@@ -401,8 +366,7 @@ subsystem: syscall, keywords: syscall
 
 
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall wait4
+subsystems: syscall, keywords: syscall wait4
 
   The script watches each wait4 syscall on the system. At the end of
   each wait4 syscall the script prints out a line with a timestamp in
@@ -414,8 +378,7 @@ subsystem: syscall, keywords: syscall wait4
 = TIME =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall read write time io
+subsystems: syscall, keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the
@@ -433,8 +396,7 @@ subsystem: syscall, keywords: syscall read write time io
 = TRACE =
 
 general/para-callgraph.stp - Tracing Calls for Sections of Code
-output: trace, exits: user-controlled, status: production
-subsystem: kernel, keywords: trace callgraph
+subsystems: kernel, keywords: trace callgraph
 
   The script takes two arguments: the first argument is the function to
   starts/stops the per thread call graph traces and the second argument
@@ -446,8 +408,7 @@ subsystem: kernel, keywords: trace callgraph
 = TRAFFIC =
 
 network/nettop.stp - Periodic Listing of Processes Using Network Interfaces
-output: timed, exits: user-controlled, status: production
-subsystem: network, keywords: network traffic per-process
+subsystems: network, keywords: network traffic per-process
 
   Every five seconds the nettop.stp script prints out a list of
   processed (PID and command) with the number of packets sent/received
@@ -458,8 +419,7 @@ subsystem: network, keywords: network traffic per-process
 = USE =
 
 general/graphs.stp - Graphing Disk and CPU Utilization
-output: plot data, exits: user-controlled, status: production
-subsystem: disk cpu, keywords: disk cpu use graph
+subsystems: disk cpu, keywords: disk cpu use graph
 
   The script tracks the disk and CPU utilization. The resulting output
   of the script can be piped into gnuplot to generate a graph of disk
@@ -469,8 +429,7 @@ subsystem: disk cpu, keywords: disk cpu use graph
 = WAIT4 =
 
 process/wait4time.stp - Trace Time Spent in wait4 Syscalls
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall wait4
+subsystems: syscall, keywords: syscall wait4
 
   The script watches each wait4 syscall on the system. At the end of
   each wait4 syscall the script prints out a line with a timestamp in
@@ -482,8 +441,7 @@ subsystem: syscall, keywords: syscall wait4
 = WRITE =
 
 io/iotime.stp - Trace Time Spent in Read and Write for Files 
-output: trace, exits: user-controlled, status: production
-subsystem: syscall, keywords: syscall read write time io
+subsystems: syscall, keywords: syscall read write time io
 
   The script watches each open, close, read, and write syscalls on the
   system. For each file the scripts observes opened it accumulates the

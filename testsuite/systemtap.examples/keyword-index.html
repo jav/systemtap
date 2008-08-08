@@ -43,244 +43,202 @@
 <h3>BACKTRACE</h3>
 <ul>
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
-output: sorted on-exit, exits: user-controlled, status: production<br>
-subsystem: io, keywords: io backtrace<br>
+subsystems: io, keywords: io backtrace<br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.</p></li>
 </ul>
 <h3>CALLGRAPH</h3>
 <ul>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: trace callgraph<br>
+subsystems: kernel, keywords: trace callgraph<br>
 <p>The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.</p></li>
 </ul>
 <h3>CPU</h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
-output: plot data, exits: user-controlled, status: production<br>
-subsystem: disk cpu, keywords: disk cpu use graph<br>
+subsystems: disk cpu, keywords: disk cpu use graph<br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
 </ul>
 <h3>DISK</h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
-output: plot data, exits: user-controlled, status: production<br>
-subsystem: disk cpu, keywords: disk cpu use graph<br>
+subsystems: disk cpu, keywords: disk cpu use graph<br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: disk, keywords: disk<br>
+subsystems: disk, keywords: disk<br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
 </ul>
 <h3>FUNCTIONS</h3>
 <ul>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: profiling functions<br>
+subsystems: kernel, keywords: profiling functions<br>
 <p>The functioncallcount.stp script takes one argument, a list of functions to probe. The script will run and count the number of times that each of the functions on the list is called. On exit the script will print a sorted list from most frequently to least frequently called function.</p></li>
 </ul>
 <h3>FUTEX</h3>
 <ul>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: locking, keywords: syscall locking futex<br>
+subsystems: locking, keywords: syscall locking futex<br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
 </ul>
 <h3>GRAPH</h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
-output: plot data, exits: user-controlled, status: production<br>
-subsystem: disk cpu, keywords: disk cpu use graph<br>
+subsystems: disk cpu, keywords: disk cpu use graph<br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
 </ul>
 <h3>IO</h3>
 <ul>
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
-output: sorted on-exit, exits: user-controlled, status: production<br>
-subsystem: io, keywords: io backtrace<br>
+subsystems: io, keywords: io backtrace<br>
 <p>When a reschedule occurs during an AIO io_submit call, accumulate the traceback in a histogram. When the script exits prints out a sorted list from most common to least common backtrace.</p></li>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall read write time io<br>
+subsystems: syscall, keywords: syscall read write time io<br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
 <li><a href="io/iotop.stp">io/iotop.stp</a> - Periodically Print I/O Activity by Process Name<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: io, keywords: io<br>
+subsystems: io, keywords: io<br>
 <p>Every five seconds print out the top ten executables generating I/O traffic during that interval sorted in descending order.</p></li>
 <li><a href="io/traceio.stp">io/traceio.stp</a> - Track Cumulative I/O Activity by Process Name<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: io, keywords: io<br>
+subsystems: io, keywords: io<br>
 <p>Every second print out the top ten executables sorted in descending order based on cumulative I/O traffic observed.</p></li>
 <li><a href="io/traceio2.stp">io/traceio2.stp</a> - Watch I/O Activity on a Particular Device<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: io, keywords: io<br>
+subsystems: io, keywords: io<br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: scheduler, keywords: io scheduler<br>
+subsystems: scheduler, keywords: io scheduler<br>
 <p>The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.</p></li>
 </ul>
 <h3>LOCKING</h3>
 <ul>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: locking, keywords: syscall locking futex<br>
+subsystems: locking, keywords: syscall locking futex<br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
 </ul>
 <h3>NETWORK</h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: network, keywords: network traffic per-process<br>
+subsystems: network, keywords: network traffic per-process<br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: network, keywords: network socket<br>
+subsystems: network, keywords: network socket<br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
 </ul>
 <h3>PER-PROCESS</h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: network, keywords: network traffic per-process<br>
+subsystems: network, keywords: network traffic per-process<br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
 </ul>
 <h3>PROFILING</h3>
 <ul>
 <li><a href="process/pf2.stp">process/pf2.stp</a> - Profile kernel functions<br>
-output: sorted-list, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: profiling<br>
+subsystems: kernel, keywords: profiling<br>
 <p>The pf2.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top ten kernel functions with samples.</p></li>
 <li><a href="profiling/functioncallcount.stp">profiling/functioncallcount.stp</a> - Count Times Functions Called<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: profiling functions<br>
+subsystems: kernel, keywords: profiling functions<br>
 <p>The functioncallcount.stp script takes one argument, a list of functions to probe. The script will run and count the number of times that each of the functions on the list is called. On exit the script will print a sorted list from most frequently to least frequently called function.</p></li>
 <li><a href="profiling/thread-times.stp">profiling/thread-times.stp</a> - Profile kernel functions<br>
-output: sorted-list, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: profiling<br>
+subsystems: kernel, keywords: profiling<br>
 <p>The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.</p></li>
 </ul>
 <h3>READ</h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall read write time io<br>
+subsystems: syscall, keywords: syscall read write time io<br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
 </ul>
 <h3>SCHEDULER</h3>
 <ul>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: scheduler, keywords: io scheduler<br>
+subsystems: scheduler, keywords: io scheduler<br>
 <p>The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.</p></li>
 </ul>
 <h3>SIGNALS</h3>
 <ul>
 <li><a href="process/sig_by_pid.stp">process/sig_by_pid.stp</a> -  Signal Counts by Process ID<br>
-output: sorted-list on-exit, exits: user-controlled, status: experimental<br>
-subsystem: signals, keywords: signals<br>
+subsystems: signals, keywords: signals<br>
 <p>Print signal counts by process ID in descending order.</p></li>
 <li><a href="process/sig_by_proc.stp">process/sig_by_proc.stp</a> -  Signal Counts by Process Name<br>
-output: sorted-list on-exit, exits: user-controlled, status: experimental<br>
-subsystem: signals, keywords: signals<br>
+subsystems: signals, keywords: signals<br>
 <p>Print signal counts by process name in descending order.</p></li>
 <li><a href="process/sigkill.stp">process/sigkill.stp</a> - Track SIGKILL Signals<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: signals, keywords: signals<br>
+subsystems: signals, keywords: signals<br>
 <p>The script traces any SIGKILL signals. When that SIGKILL signal is sent to a process, the script prints out the signal name, the desination executable and process ID, the executable name user ID that sent the signal.</p></li>
 <li><a href="process/syscalls_by_pid.stp">process/syscalls_by_pid.stp</a> - System-Wide Count of Syscalls by PID<br>
-output: trace, exits: user-controlled, status: experimental<br>
-subsystem: signals, keywords: signals<br>
+subsystems: signals, keywords: signals<br>
 <p>The script watches for a particular signal sent to a specific process. When that signal is sent to the specified process, the script prints out the PID and executable of the process sending the signal, the PID and executable name of the process receiving the signal, and the signal number and name.</p></li>
 </ul>
 <h3>SIMPLE</h3>
 <ul>
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
-output: text, exits: fixed, status: production<br>
-subsystem: none, keywords: simple<br>
+subsystems: none, keywords: simple<br>
 <p>A basic "Hello World" program implemented in SystemTap script. It prints out "hello world" message and then immediately exits.</p></li>
 </ul>
 <h3>SLEEP</h3>
 <ul>
 <li><a href="process/sleeptime.stp">process/sleeptime.stp</a> - Trace Time Spent in nanosleep Syscalls<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall sleep<br>
+subsystems: syscall, keywords: syscall sleep<br>
 <p>The script watches each nanosleep syscall on the system. At the end of each nanosleep syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "nanosleep:" key, and the duration of the sleep in microseconds.</p></li>
 </ul>
 <h3>SOCKET</h3>
 <ul>
 <li><a href="network/socket-trace.stp">network/socket-trace.stp</a> - Trace Functions called in Network Socket Code<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: network, keywords: network socket<br>
+subsystems: network, keywords: network socket<br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
 </ul>
 <h3>SYSCALL</h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall read write time io<br>
+subsystems: syscall, keywords: syscall read write time io<br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: locking, keywords: syscall locking futex<br>
+subsystems: locking, keywords: syscall locking futex<br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
 <li><a href="process/sleeptime.stp">process/sleeptime.stp</a> - Trace Time Spent in nanosleep Syscalls<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall sleep<br>
+subsystems: syscall, keywords: syscall sleep<br>
 <p>The script watches each nanosleep syscall on the system. At the end of each nanosleep syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "nanosleep:" key, and the duration of the sleep in microseconds.</p></li>
 <li><a href="process/syscalls_by_pid.stp">process/syscalls_by_pid.stp</a> - System-Wide Count of Syscalls by PID<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall<br>
+subsystems: syscall, keywords: syscall<br>
 <p>The script watches all syscall on the system. On exit the script prints a list showing the number of systemcalls executed by each PID ordered from greatest to least number of syscalls.</p></li>
 <li><a href="process/syscalls_by_proc.stp">process/syscalls_by_proc.stp</a> - System-Wide Count of Syscalls by Executable<br>
-output: sorted-list on-exit, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall<br>
+subsystems: syscall, keywords: syscall<br>
 <p>The script watches all syscall on the system. On exit the script prints a list showing the number of systemcalls executed by each executable ordered from greates to least number of syscalls.</p></li>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall wait4<br>
+subsystems: syscall, keywords: syscall wait4<br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "wait4:" key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is "-1".</p></li>
 </ul>
 <h3>TIME</h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall read write time io<br>
+subsystems: syscall, keywords: syscall read write time io<br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
 </ul>
 <h3>TRACE</h3>
 <ul>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: kernel, keywords: trace callgraph<br>
+subsystems: kernel, keywords: trace callgraph<br>
 <p>The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.</p></li>
 </ul>
 <h3>TRAFFIC</h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
-output: timed, exits: user-controlled, status: production<br>
-subsystem: network, keywords: network traffic per-process<br>
+subsystems: network, keywords: network traffic per-process<br>
 <p>Every five seconds the nettop.stp script prints out a list of processed (PID and command) with the number of packets sent/received and the amount of data sent/received by the process during that interval.</p></li>
 </ul>
 <h3>USE</h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
-output: plot data, exits: user-controlled, status: production<br>
-subsystem: disk cpu, keywords: disk cpu use graph<br>
+subsystems: disk cpu, keywords: disk cpu use graph<br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
 </ul>
 <h3>WAIT4</h3>
 <ul>
 <li><a href="process/wait4time.stp">process/wait4time.stp</a> - Trace Time Spent in wait4 Syscalls<br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall wait4<br>
+subsystems: syscall, keywords: syscall wait4<br>
 <p>The script watches each wait4 syscall on the system. At the end of each wait4 syscall the script prints out a line with a timestamp in microseconds, the pid, the executable name in paretheses, the "wait4:" key, the duration of the wait and the PID that the wait4 was waiting for. If the waited for PID is not specified , it is "-1".</p></li>
 </ul>
 <h3>WRITE</h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
-output: trace, exits: user-controlled, status: production<br>
-subsystem: syscall, keywords: syscall read write time io<br>
+subsystems: syscall, keywords: syscall read write time io<br>
 <p>The script watches each open, close, read, and write syscalls on the system. For each file the scripts observes opened it accumulates the amount of wall clock time spend in read and write operations and the number of bytes read and written. When a file is closed the script prints out a pair of lines for the file. Both lines begin with a timestamp in microseconds, the PID number, and the executable name in parenthesese. The first line with the "access" keyword lists the file name, the attempted number of bytes for the read and write operations. The second line with the "iotime" keyword list the file name and the number of microseconds accumulated in the read and write syscalls.</p></li>
 </ul>
        	</td>
