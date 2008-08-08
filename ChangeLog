@@ -1,3 +1,43 @@
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (EXAMPLE_BUILD_DIR): Removed. Examples indexes are
+	always in srcdir.
+	(dist-hook): Always install examples from srcdir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (rpm): Refer to srcdir spec file so make rpm works in
+	builddir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec: Disable chmodding of samples/kmalloc-top.
+	It is currently not installed.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (all-local): Depend on example_index, which now
+	doesn't generate anything in $srcdir anymore, only $builddir.
+	(EXAMPLE_SOURCE_DIR): New var.
+	(EXAMPLE_BUILD_DIR): New var.
+	(EXAMPLE_META_FILES): New var.
+	(EXAMPLE_INDEX_GEN): New var.
+	(example_index): New target.
+	($EXAMPLE_BUILD_DIR/index.html): Likewise.
+	(install-data-local): Install examples from $buildir.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (all-local): Don't run indexing code, since $srcdir
+	may be read-only.
+	(install-data): Simplify sample script installation; limit sources
+	to systemtap.examples directory only.
+	* Makefile.in: Regenerated.
+
 2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
 
 	* Makefile.am (all-local): Add example_index.

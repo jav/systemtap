@@ -1,3 +1,4 @@
+#! /usr/bin/perl
 # Generates index files from examples .meta file info.
 # Copyright (C) 2008 Red Hat Inc.
 #
@@ -9,6 +10,7 @@
 use strict;
 use warnings;
 
+use Cwd 'abs_path';
 use File::Copy;
 use File::Find;
 use File::Path;
@@ -20,6 +22,7 @@ if ($#ARGV >= 0) {
 } else {
     $inputdir = ".";
 }
+$inputdir = abs_path($inputdir);
 
 my $outputdir;
 if ($#ARGV >= 1) {
@@ -27,6 +30,7 @@ if ($#ARGV >= 1) {
 } else {
     $outputdir = $inputdir;
 }
+$outputdir = abs_path($outputdir);
 
 my %scripts = ();
 print "Parsing .meta files in $inputdir...\n";
@@ -44,11 +48,12 @@ sub add_meta_txt(*;$) {
 
     print $file "$scripts{$meta}{name} - $scripts{$meta}{title}\n";
 
-    print $file "output: $scripts{$meta}{output}, ";
-    print $file "exits: $scripts{$meta}{exit}, ";
-    print $file "status: $scripts{$meta}{status}\n";
+    # Don't output these, the description mentions all these in general.
+    #print $file "output: $scripts{$meta}{output}, ";
+    #print $file "exits: $scripts{$meta}{exit}, ";
+    #print $file "status: $scripts{$meta}{status}\n";
 
-    print $file "subsystem: $scripts{$meta}{subsystem}, ";
+    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}\n\n";
 
     $Text::Wrap::columns = 72;
@@ -64,11 +69,12 @@ sub add_meta_html(*;$) {
     print $file "<li><a href=\"$name\">$name</a> ";
     print $file "- $scripts{$meta}{title}<br>\n";
 
-    print $file "output: $scripts{$meta}{output}, ";
-    print $file "exits: $scripts{$meta}{exit}, ";
-    print $file "status: $scripts{$meta}{status}<br>\n";
+    # Don't output these, the description mentions all these in general.
+    #print $file "output: $scripts{$meta}{output}, ";
+    #print $file "exits: $scripts{$meta}{exit}, ";
+    #print $file "status: $scripts{$meta}{status}<br>\n";
 
-    print $file "subsystem: $scripts{$meta}{subsystem}, ";
+    print $file "subsystems: $scripts{$meta}{subsystem}, ";
     print $file "keywords: $scripts{$meta}{keywords}<br>\n";
 
     print $file "<p>$scripts{$meta}{description}";
@@ -78,12 +84,12 @@ sub add_meta_html(*;$) {
 my $HEADER = "SYSTEMTAP EXAMPLES INDEX\n"
     . "(see also subsystem-index.txt, keyword-index.txt)\n\n";
 
-my $header_tmpl = "$inputdir/html_header.tmpl";
+my $header_tmpl = "$inputdir/html/html_header.tmpl";
 open(TEMPLATE, "<$header_tmpl")
     || die "couldn't open $header_tmpl, $!";
 my $HTMLHEADER = do { local $/;  <TEMPLATE> };
 close(TEMPLATE);
-my $footer_tmpl = "$inputdir/html_footer.tmpl";
+my $footer_tmpl = "$inputdir/html/html_footer.tmpl";
 open(TEMPLATE, "<$footer_tmpl")
     || die "couldn't open $footer_tmpl, $!";
 my $HTMLFOOTER = do { local $/;  <TEMPLATE> };
@@ -149,9 +155,18 @@ print "Creating $subhtml...\n";
 print SUBHTML $HTMLHEADER;
 print SUBHTML "<h2>Examples by Subsystem</h2>\n";
 
+# On top link list
+print SUBHTML "<p><tt>";
+foreach $subsystem (sort keys %subsystems) {
+    print SUBHTML '<a href="#' . (uc $subsystem) . '">'
+		  . (uc $subsystem) . "</a> ";
+}
+print SUBHTML "</tt></p>\n";
+
 foreach $subsystem (sort keys %subsystems) {
     print SUBINDEX "= " . (uc $subsystem) . " =\n\n";
-    print SUBHTML "<h3>" . (uc $subsystem) . "</h3>\n";
+    print SUBHTML "<h3>" . '<a name="' . (uc $subsystem) . '">'
+		  . (uc $subsystem) . "</a></h3>\n";
     print SUBHTML "<ul>\n";
 
     foreach $meta (sort @{$subsystems{$subsystem}}) {
@@ -181,9 +196,18 @@ print "Creating $keyhtml...\n";
 print KEYHTML $HTMLHEADER;
 print KEYHTML "<h2>Examples by Keyword</h2>\n";
 
+# On top link list
+print KEYHTML "<p><tt>";
+foreach $keyword (sort keys %keywords) {
+    print KEYHTML '<a href="#' . (uc $keyword) . '">'
+		  . (uc $keyword) . "</a> ";
+}
+print KEYHTML "</tt></p>\n";
+
 foreach $keyword (sort keys %keywords) {
     print KEYINDEX "= " . (uc $keyword) . " =\n\n";
-    print KEYHTML "<h3>" . (uc $keyword) . "</h3>\n";
+    print KEYHTML "<h3>" . '<a name="' . (uc $keyword) . '">'
+		  . (uc $keyword) . "</a></h3>\n";
     print KEYHTML "<ul>\n";
 
     foreach $meta (sort @{$keywords{$keyword}}) {
@@ -197,17 +221,21 @@ close (KEYINDEX);
 close (KEYHTML);
 
 my @supportfiles
-    = ("systemtapcorner.gif",
-       "systemtap.css",
-       "systemtaplogo.png");
+    = ("html/systemtapcorner.gif",
+       "html/systemtap.css",
+       "html/systemtaplogo.png",
+       "README");
 if ($inputdir ne $outputdir) {
     my $file;
     print "Copying support files...\n";
+    if (! -d "$outputdir/html") {
+	mkpath("$outputdir/html", 1, 0711);
+    }
     foreach $file (@supportfiles) {
 	my $orig = "$inputdir/$file";
 	my $dest = "$outputdir/$file";
 	print "Copying $file to $dest...\n";
-	copy("$orig", $dest) or die "$file cannot be copied to $dest, $!";
+	copy($orig, $dest) or die "$file cannot be copied to $dest, $!";
     }
 }
 
