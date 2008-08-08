@@ -9,7 +9,7 @@ probe never { print(elide+me1) bar () }
 
 # PR 6611
 
-probe probea = kernel.statement("bio_init@fs/bio.c:135")
+probe probea = kernel.statement("bio_init@fs/bio.c+3")
                { printf("%d", funca(2)); elide_me6="foo" }
 probe probea { printf("%d", funcb(2,3)); printf("%s",var) }
 

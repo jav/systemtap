@@ -1,5 +1,8 @@
 * What's new
 
+- A formatted string representation of the variables, parameters, or local
+  variables at a probe point is now supported via the special $$vars,
+  $$parms, and $$locals context variables.
 
 * What's new in version 0.7
 

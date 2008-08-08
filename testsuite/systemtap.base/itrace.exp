@@ -1,5 +1,9 @@
 # itrace test
 
+# temporarily disabled
+return
+
+
 # Initialize variables
 set utrace_support_found 0
 set exepath "[pwd]/ls_[pid]"
@@ -81,7 +85,7 @@ set TEST_NAME "itrace1"
 if {$utrace_support_found == 0} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
-    untested "$TEST_NAME : not installtest_p"
+    untested $TEST_NAME
 } else {
     set script [format $itrace1_script $exepath]
     stap_run $TEST_NAME run_ls_5_sec $itrace1_script_output -e $script
@@ -92,7 +96,7 @@ set TEST_NAME "itrace2"
 if {$utrace_support_found == 0} {
     untested "$TEST_NAME : no kernel utrace support found"
 } elseif {![installtest_p]} {
-    untested "$TEST_NAME : not installtest_p"
+    untested $TEST_NAME
 } else {
     set script [format $itrace2_script $exepath]
     stap_run $TEST_NAME run_ls_5_sec $itrace2_script_output -e $script

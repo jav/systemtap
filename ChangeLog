@@ -32,6 +32,84 @@
 	testsuite/lib/systemtap.exp.
 	* Makefile.in: Regenerated.
 
+2008-08-08  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Calls stap_utrace_detach() to perform detach.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (EXAMPLE_BUILD_DIR): Removed. Examples indexes are
+	always in srcdir.
+	(dist-hook): Always install examples from srcdir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (rpm): Refer to srcdir spec file so make rpm works in
+	builddir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec: Disable chmodding of samples/kmalloc-top.
+	It is currently not installed.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (all-local): Depend on example_index, which now
+	doesn't generate anything in $srcdir anymore, only $builddir.
+	(EXAMPLE_SOURCE_DIR): New var.
+	(EXAMPLE_BUILD_DIR): New var.
+	(EXAMPLE_META_FILES): New var.
+	(EXAMPLE_INDEX_GEN): New var.
+	(example_index): New target.
+	($EXAMPLE_BUILD_DIR/index.html): Likewise.
+	(install-data-local): Install examples from $buildir.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
+
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (all-local): Don't run indexing code, since $srcdir
+	may be read-only.
+	(install-data): Simplify sample script installation; limit sources
+	to systemtap.examples directory only.
+	* Makefile.in: Regenerated.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (all-local): Add example_index.
+	(dist-hook): Likewise.
+	(EXAMPLE_SRC): Add index and support files.
+	(EXAMPLE_INDEXES): New file list.
+	(example_index): New target.
+	(clean-local): Remove generated indexes.
+	* Makefile.in: Regenerated.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec: Add comment about versioned vs unversioned docs.
+
+2008-08-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap-find-servers (match_server, client_sysinfo):
+	Use "sysinfo=...." keyword in mdns TXT record.
+	* stap-serverd (advertise_presence): Ditto.
+	(initialization): Locate random usable server port if needed.
+	(listen): Complain if port turns out to be unusable after all.
+
+2008-08-06  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6820
+	From Eugeniy Meshcheryakov eugen@debian.org:
+	* staprun.8.in: fix minor formatting problems
+
+2008-08-05  Stan Cox  <scox@redhat.com>
+
+	* NEWS: Updated $$vars, $$parms, $$locals.
+	* tapsets.cxx (visit_target_symbol): Missing break typo.
+
 2008-08-04  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 

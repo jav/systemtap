@@ -140,10 +140,12 @@ STAPLOG=staplog.so
 $(STAPLOG): staplog.c
 	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
 		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
-all-local: $(STAPLOG)
+all-local: $(STAPLOG) example_index
 install-exec-local: $(STAPLOG)
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
+else
+all-local: example_index
 endif
 
 # Get extra libs as needed
@@ -159,30 +161,13 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     systemtap.spec
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
-EXAMPLE_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples
-DEMO_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples/small_demos
-DEMO_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples/small_demos
-SAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.samples
-SAMPLE_INSTALL_DIR = $(EXAMPLE_INSTALL_DIR)/samples
+EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
+EXAMPLE_INDEX_GEN = $(EXAMPLE_SOURCE_DIR)/examples-index-gen.pl
 
-EXAMPLE_SRC = $(EXAMPLE_SOURCE_DIR)/ChangeLog \
-	$(EXAMPLE_SOURCE_DIR)/README \
-	$(EXAMPLE_SOURCE_DIR)/*.stp \
-	$(EXAMPLE_SOURCE_DIR)/*.txt \
-	$(EXAMPLE_SOURCE_DIR)/*.meta
+example_index: $(EXAMPLE_SOURCE_DIR)/index.html
 
-DEMO_SRC = \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.stp \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.txt \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.wav
-
-SAMPLE_SRC = $(SAMPLE_SOURCE_DIR)/iotask.stp \
-	$(SAMPLE_SOURCE_DIR)/kmalloc-stacks.stp \
-	$(SAMPLE_SOURCE_DIR)/kmalloc-top \
-	$(SAMPLE_SOURCE_DIR)/pfaults.stp \
-	$(SAMPLE_SOURCE_DIR)/profile.stp \
-	$(SAMPLE_SOURCE_DIR)/tcp_connections.stp \
-	$(SAMPLE_SOURCE_DIR)/topsys.stp
+$(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
+	perl $(EXAMPLE_INDEX_GEN) $(EXAMPLE_SOURCE_DIR)
 
 dist-hook: dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
@@ -199,12 +184,9 @@ install-data-local:
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
-	$(MKDIR_P) $(EXAMPLE_INSTALL_DIR)
-	$(INSTALL_DATA) $(EXAMPLE_SRC) $(EXAMPLE_INSTALL_DIR)
-	$(MKDIR_P) $(DEMO_INSTALL_DIR)
-	$(INSTALL_DATA) $(DEMO_SRC) $(DEMO_INSTALL_DIR)
-	$(MKDIR_P) $(SAMPLE_INSTALL_DIR)
-	$(INSTALL_DATA) $(SAMPLE_SRC) $(SAMPLE_INSTALL_DIR)
+	(cd $(srcdir)/testsuite/systemtap.examples; find . -type f -print \
+		| egrep -v 'check.exp|ChangeLog|examples-index-gen.pl' \
+		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 
 TEST_COV_DIR = coverage
 
@@ -264,4 +246,4 @@ installcheck:
 	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)"
 
 rpm:	systemtap.spec dist
-	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec
+	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec

@@ -4280,6 +4280,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	      case DW_TAG_variable:
 		if (e->base_name == "$$parms")
 		  continue;
+		break;
 	      case DW_TAG_formal_parameter:
 		if (e->base_name == "$$locals")
 		  continue;
@@ -6289,13 +6290,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "case UDPF_SYSCALL:";
       s.op->newline() << "case UDPF_SYSCALL_RETURN:";
       s.op->indent(1);
-      s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS, &p->ops, 0);";
-      s.op->newline() << "if (! IS_ERR(engine) && engine != NULL) {";
-      s.op->indent(1);
-      s.op->newline() << "utrace_detach(tsk, engine);";
-      s.op->newline() << "debug_task_finder_detach();";
-
-      s.op->newline(-1) << "}";
+      s.op->newline() << "stap_utrace_detach(tsk, &p->ops);";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }

@@ -87,7 +87,7 @@ function match_server {
 		    server_port=`expr "$service_data" : '\[\([^]]*\)\]'`
 		    ;;
 		txt )
-		    server_sysinfo=`expr "$service_data" : '\[\"\([^]]*\)\"\]'`
+		    server_sysinfo=`expr "$service_data" : '\[.*\"\(sysinfo=[^]]*\)\"\]'`
 		    ;;
 		* )
 		    break ;;
@@ -115,7 +115,7 @@ function client_sysinfo {
 	# Add some info from uname
 	sysinfo_client="`uname -rvm`"
     fi
-    echo $sysinfo_client
+    echo sysinfo=$sysinfo_client
 }
 
 #-----------------------------------------------------------------------------
