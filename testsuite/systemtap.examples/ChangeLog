@@ -1,5 +1,12 @@
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
+	* examples-index-gen.pl: Add index of subsystem and keywords at top of
+	HTML indexes.
+	* *index.html: Regenerated.
+	* *index.txt: Likewise.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
 	* examples-index-gen.pl (add_meta_txt): Don't output output, exits,
 	status line.
 	(add_meta_html): Likewise.

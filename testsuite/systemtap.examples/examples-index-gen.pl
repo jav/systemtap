@@ -155,9 +155,18 @@ print "Creating $subhtml...\n";
 print SUBHTML $HTMLHEADER;
 print SUBHTML "<h2>Examples by Subsystem</h2>\n";
 
+# On top link list
+print SUBHTML "<p><tt>";
+foreach $subsystem (sort keys %subsystems) {
+    print SUBHTML '<a href="#' . (uc $subsystem) . '">'
+		  . (uc $subsystem) . "</a> ";
+}
+print SUBHTML "</tt></p>\n";
+
 foreach $subsystem (sort keys %subsystems) {
     print SUBINDEX "= " . (uc $subsystem) . " =\n\n";
-    print SUBHTML "<h3>" . (uc $subsystem) . "</h3>\n";
+    print SUBHTML "<h3>" . '<a name="' . (uc $subsystem) . '">'
+		  . (uc $subsystem) . "</a></h3>\n";
     print SUBHTML "<ul>\n";
 
     foreach $meta (sort @{$subsystems{$subsystem}}) {
@@ -187,9 +196,18 @@ print "Creating $keyhtml...\n";
 print KEYHTML $HTMLHEADER;
 print KEYHTML "<h2>Examples by Keyword</h2>\n";
 
+# On top link list
+print KEYHTML "<p><tt>";
+foreach $keyword (sort keys %keywords) {
+    print KEYHTML '<a href="#' . (uc $keyword) . '">'
+		  . (uc $keyword) . "</a> ";
+}
+print KEYHTML "</tt></p>\n";
+
 foreach $keyword (sort keys %keywords) {
     print KEYINDEX "= " . (uc $keyword) . " =\n\n";
-    print KEYHTML "<h3>" . (uc $keyword) . "</h3>\n";
+    print KEYHTML "<h3>" . '<a name="' . (uc $keyword) . '">'
+		  . (uc $keyword) . "</a></h3>\n";
     print KEYHTML "<ul>\n";
 
     foreach $meta (sort @{$keywords{$keyword}}) {

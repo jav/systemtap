@@ -40,13 +40,14 @@
          	</ul>
 
 <h2>Examples by Subsystem</h2>
-<h3>CPU</h3>
+<p><tt><a href="#CPU">CPU</a> <a href="#DISK">DISK</a> <a href="#IO">IO</a> <a href="#KERNEL">KERNEL</a> <a href="#LOCKING">LOCKING</a> <a href="#NETWORK">NETWORK</a> <a href="#NONE">NONE</a> <a href="#SCHEDULER">SCHEDULER</a> <a href="#SIGNALS">SIGNALS</a> <a href="#SYSCALL">SYSCALL</a> </tt></p>
+<h3><a name="CPU">CPU</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 subsystems: disk cpu, keywords: disk cpu use graph<br>
 <p>The script tracks the disk and CPU utilization. The resulting output of the script can be piped into gnuplot to generate a graph of disk and CPU USE.</p></li>
 </ul>
-<h3>DISK</h3>
+<h3><a name="DISK">DISK</a></h3>
 <ul>
 <li><a href="general/graphs.stp">general/graphs.stp</a> - Graphing Disk and CPU Utilization<br>
 subsystems: disk cpu, keywords: disk cpu use graph<br>
@@ -55,7 +56,7 @@ subsystems: disk cpu, keywords: disk cpu use graph<br>
 subsystems: disk, keywords: disk<br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
 </ul>
-<h3>IO</h3>
+<h3><a name="IO">IO</a></h3>
 <ul>
 <li><a href="io/io_submit.stp">io/io_submit.stp</a> - Tally Reschedule Reason During AIO io_submit Call<br>
 subsystems: io, keywords: io backtrace<br>
@@ -70,7 +71,7 @@ subsystems: io, keywords: io<br>
 subsystems: io, keywords: io<br>
 <p>Print out the executable name and process number as reads and writes to the specified device occur.</p></li>
 </ul>
-<h3>KERNEL</h3>
+<h3><a name="KERNEL">KERNEL</a></h3>
 <ul>
 <li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
 subsystems: kernel, keywords: trace callgraph<br>
@@ -85,13 +86,13 @@ subsystems: kernel, keywords: profiling functions<br>
 subsystems: kernel, keywords: profiling<br>
 <p>The thread-times.stp script sets up time-based sampling. Every five seconds it prints out a sorted list with the top twenty processes with samples broken down into percentage total time spent in user-space and kernel-space.</p></li>
 </ul>
-<h3>LOCKING</h3>
+<h3><a name="LOCKING">LOCKING</a></h3>
 <ul>
 <li><a href="process/futexes.stp">process/futexes.stp</a> - System-Wide Futex Contention<br>
 subsystems: locking, keywords: syscall locking futex<br>
 <p>The script watches the futex syscall on the system. On exit the futexes address, the number of contentions, and the average time for each contention on the futex are printed from lowest pid number to highest.</p></li>
 </ul>
-<h3>NETWORK</h3>
+<h3><a name="NETWORK">NETWORK</a></h3>
 <ul>
 <li><a href="network/nettop.stp">network/nettop.stp</a> - Periodic Listing of Processes Using Network Interfaces<br>
 subsystems: network, keywords: network traffic per-process<br>
@@ -100,19 +101,19 @@ subsystems: network, keywords: network traffic per-process<br>
 subsystems: network, keywords: network socket<br>
 <p>The script instrument each of the functions inn the Linux kernel's net/socket.c file. The script prints out trace. The first element of a line is  time delta in microseconds from the previous entry. This is followed by the command name and the PID. The "->" and "<-" indicates function entry and  function exit, respectively. The last element of the line is the function name.</p></li>
 </ul>
-<h3>NONE</h3>
+<h3><a name="NONE">NONE</a></h3>
 <ul>
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
 subsystems: none, keywords: simple<br>
 <p>A basic "Hello World" program implemented in SystemTap script. It prints out "hello world" message and then immediately exits.</p></li>
 </ul>
-<h3>SCHEDULER</h3>
+<h3><a name="SCHEDULER">SCHEDULER</a></h3>
 <ul>
 <li><a href="process/sleepingBeauties.stp">process/sleepingBeauties.stp</a> - Generating Backtraces of Threads Waiting for IO Operations<br>
 subsystems: scheduler, keywords: io scheduler<br>
 <p>The script monitor time threads spend waiting for IO operations (in "D" state) in the wait_for_completion function. If a thread spends over 10ms wall-clock time waiting, information is printed out describing the thread number and executable name. When slow the wait_for_completion function complete, backtraces for the long duration calls are printed out.</p></li>
 </ul>
-<h3>SIGNALS</h3>
+<h3><a name="SIGNALS">SIGNALS</a></h3>
 <ul>
 <li><a href="process/sig_by_pid.stp">process/sig_by_pid.stp</a> -  Signal Counts by Process ID<br>
 subsystems: signals, keywords: signals<br>
@@ -127,7 +128,7 @@ subsystems: signals, keywords: signals<br>
 subsystems: signals, keywords: signals<br>
 <p>The script watches for a particular signal sent to a specific process. When that signal is sent to the specified process, the script prints out the PID and executable of the process sending the signal, the PID and executable name of the process receiving the signal, and the signal number and name.</p></li>
 </ul>
-<h3>SYSCALL</h3>
+<h3><a name="SYSCALL">SYSCALL</a></h3>
 <ul>
 <li><a href="io/iotime.stp">io/iotime.stp</a> - Trace Time Spent in Read and Write for Files <br>
 subsystems: syscall, keywords: syscall read write time io<br>
