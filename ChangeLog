@@ -1,5 +1,12 @@
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
+	* Makefile.am (EXAMPLE_BUILD_DIR): Removed. Examples indexes are
+	always in srcdir.
+	(dist-hook): Always install examples from srcdir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
 	* Makefile.am (rpm): Refer to srcdir spec file so make rpm works in
 	builddir.
 	* Makefile.in: Regenerated.

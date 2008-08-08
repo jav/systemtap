@@ -161,14 +161,13 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     systemtap.spec
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
-EXAMPLE_BUILD_DIR = $(builddir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 EXAMPLE_INDEX_GEN = $(EXAMPLE_SOURCE_DIR)/examples-index-gen.pl
 
-example_index: $(EXAMPLE_BUILD_DIR)/index.html
+example_index: $(EXAMPLE_SOURCE_DIR)/index.html
 
-$(EXAMPLE_BUILD_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
-	perl $(EXAMPLE_INDEX_GEN) $(EXAMPLE_SOURCE_DIR) $(EXAMPLE_BUILD_DIR)
+$(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
+	perl $(EXAMPLE_INDEX_GEN) $(EXAMPLE_SOURCE_DIR)
 
 dist-hook: dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
@@ -185,7 +184,7 @@ install-data-local:
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
-	(cd $(builddir)/testsuite/systemtap.examples; find . -type f -print \
+	(cd $(srcdir)/testsuite/systemtap.examples; find . -type f -print \
 		| egrep -v 'check.exp|ChangeLog|examples-index-gen.pl' \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 
