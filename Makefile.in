@@ -1672,7 +1672,7 @@ installcheck:
 	fi
 
 rpm:	systemtap.spec dist
-	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec
+	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

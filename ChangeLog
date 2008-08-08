@@ -1,5 +1,11 @@
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
+	* Makefile.am (rpm): Refer to srcdir spec file so make rpm works in
+	builddir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
 	* systemtap.spec: Disable chmodding of samples/kmalloc-top.
 	It is currently not installed.
 

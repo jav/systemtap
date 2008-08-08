@@ -283,4 +283,4 @@ installcheck:
 	fi
 
 rpm:	systemtap.spec dist
-	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec
+	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec
