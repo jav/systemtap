@@ -10,6 +10,7 @@
 use strict;
 use warnings;
 
+use Cwd 'abs_path';
 use File::Copy;
 use File::Find;
 use File::Path;
@@ -21,6 +22,7 @@ if ($#ARGV >= 0) {
 } else {
     $inputdir = ".";
 }
+$inputdir = abs_path($inputdir);
 
 my $outputdir;
 if ($#ARGV >= 1) {
@@ -28,6 +30,7 @@ if ($#ARGV >= 1) {
 } else {
     $outputdir = $inputdir;
 }
+$outputdir = abs_path($outputdir);
 
 my %scripts = ();
 print "Parsing .meta files in $inputdir...\n";
@@ -198,17 +201,21 @@ close (KEYINDEX);
 close (KEYHTML);
 
 my @supportfiles
-    = ("systemtapcorner.gif",
-       "systemtap.css",
-       "systemtaplogo.png");
+    = ("html/systemtapcorner.gif",
+       "html/systemtap.css",
+       "html/systemtaplogo.png",
+       "README");
 if ($inputdir ne $outputdir) {
     my $file;
     print "Copying support files...\n";
+    if (! -d "$outputdir/html") {
+	mkpath("$outputdir/html", 1, 0711);
+    }
     foreach $file (@supportfiles) {
 	my $orig = "$inputdir/$file";
 	my $dest = "$outputdir/$file";
 	print "Copying $file to $dest...\n";
-	copy("$orig", $dest) or die "$file cannot be copied to $dest, $!";
+	copy($orig, $dest) or die "$file cannot be copied to $dest, $!";
     }
 }
 

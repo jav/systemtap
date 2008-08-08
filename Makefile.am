@@ -140,10 +140,12 @@ STAPLOG=staplog.so
 $(STAPLOG): staplog.c
 	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
 		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
-all-local: $(STAPLOG)
+all-local: $(STAPLOG) example_index
 install-exec-local: $(STAPLOG)
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
+else
+all-local: example_index
 endif
 
 # Get extra libs as needed
@@ -158,6 +160,15 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     stap-client stap-server stap-serverd stap-find-servers stap-start-server stap-find-or-start-server stap-stop-server \
 	     systemtap.spec
 
+EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
+EXAMPLE_BUILD_DIR = $(builddir)/testsuite/systemtap.examples
+EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
+EXAMPLE_INDEX_GEN = $(EXAMPLE_SOURCE_DIR)/examples-index-gen.pl
+
+example_index: $(EXAMPLE_BUILD_DIR)/index.html
+
+$(EXAMPLE_BUILD_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
+	perl $(EXAMPLE_INDEX_GEN) $(EXAMPLE_SOURCE_DIR) $(EXAMPLE_BUILD_DIR)
 
 dist-hook: dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
@@ -174,7 +185,7 @@ install-data-local:
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
-	(cd $(srcdir)/testsuite/systemtap.examples; find . -type f -print \
+	(cd $(builddir)/testsuite/systemtap.examples; find . -type f -print \
 		| egrep -v 'check.exp|ChangeLog|examples-index-gen.pl' \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 
