@@ -1,5 +1,9 @@
 2008-08-08  David Smith  <dsmith@redhat.com>
 
+	* task_finder.c (stap_utrace_detach): New function.
+	(stap_utrace_detach_ops): Calls stap_utrace_detach().
+	(__stp_utrace_attach_match_filename): Ditto.
+
 	* task_finder.c (__stp_tf_vm_cb): Added calls to save/delete vma
 	information.
 	* task_finder_vma.c (__stp_tf_vma_map_hash): New function.

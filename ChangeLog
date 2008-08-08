@@ -1,3 +1,8 @@
+2008-08-08  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Calls stap_utrace_detach() to perform detach.
+
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
 	* Makefile.am (EXAMPLE_BUILD_DIR): Removed. Examples indexes are

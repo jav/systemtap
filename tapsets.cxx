@@ -6290,13 +6290,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "case UDPF_SYSCALL:";
       s.op->newline() << "case UDPF_SYSCALL_RETURN:";
       s.op->indent(1);
-      s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS, &p->ops, 0);";
-      s.op->newline() << "if (! IS_ERR(engine) && engine != NULL) {";
-      s.op->indent(1);
-      s.op->newline() << "utrace_detach(tsk, engine);";
-      s.op->newline() << "debug_task_finder_detach();";
-
-      s.op->newline(-1) << "}";
+      s.op->newline() << "stap_utrace_detach(tsk, &p->ops);";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }
