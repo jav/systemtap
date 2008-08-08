@@ -134,7 +134,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = dejagnu
 DEJAZILLA = @dejazilla@
-TOOL_OPTS = $(EXTRA_TOOL_OPTS)
+TOOL_OPTS = 
 SRCDIR = $(shell cd $(srcdir); pwd)
 EXTRA_DIST = execrc config lib systemtap \
 	parseok parseko semok semko transok transko buildok buildok \
@@ -149,7 +149,7 @@ SYSTEMTAP_RUNTIME = $(DESTDIR)$(pkgdatadir)/runtime
 SYSTEMTAP_TAPSET = $(DESTDIR)$(pkgdatadir)/tapset
 LD_LIBRARY_PATH = $(DESTDIR)$(libdir)/systemtap
 CRASH_LIBDIR = $(DESTDIR)$(libdir)/systemtap
-SYSTEMTAP_PATH = $(EXTRA_SYSTEMTAP_PATH):$(DESTDIR)$(bindir)
+SYSTEMTAP_PATH = $(DESTDIR)$(bindir)
 RUNTESTDEFAULTFLAGS = --tool $$tool --tool_opts \'$(TOOL_OPTS)\' --srcdir $$srcdir
 EXPECT = expect
 RUNTEST = "env SYSTEMTAP_RUNTIME=$(SYSTEMTAP_RUNTIME) SYSTEMTAP_TAPSET=$(SYSTEMTAP_TAPSET) LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) CRASH_LIBDIR=$(CRASH_LIBDIR) PATH=$(SYSTEMTAP_PATH):$$PATH $(srcdir)/execrc runtest"

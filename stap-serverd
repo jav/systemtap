@@ -59,11 +59,17 @@ function listen {
 	fatal "ERROR: cannot create temporary fifo " $tmpdir/$fifo_name
 
     # Loop forever accepting requests
+    first=1
     while true
     do
 	# Run this in the background and wait for it. This way any signals
-	# received (i.e. SIGTERM) will be processed.
+	# received (i.e. SIGTERM) will be processed. Make sure we don't
+	# advertise our presence until we're actually listening.
 	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
+	if test $first = 1; then
+	    advertise_presence
+	    first=0
+	fi
 	wait %nc
     done
 }
@@ -102,5 +108,4 @@ function terminate {
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
 initialization "$@"
-advertise_presence
 listen

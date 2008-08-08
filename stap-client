@@ -28,6 +28,7 @@ function configuration {
 
 # function: initialization
 function initialization {
+    rc=0
     wd=`pwd`
     umask 0
 
@@ -53,6 +54,8 @@ function initialization {
 #
 function parse_options {
     cmdline=
+    cmdline1=
+    cmdline2=
     while test $# != 0
     do
 	advance_p=0
@@ -64,26 +67,38 @@ function parse_options {
 	do
             # Identify the next option
 	    first_char=`expr "$first_token" : '\(.\).*'`
+	    second_char=
 	    if test $dash_seen = 0; then
 		if test "$first_char" = "-"; then
 		    if test "$first_token" != "-"; then
-	                # It's not a lone dash, so it's an option. Remove the dash.
-			first_token=`expr "$first_token" : '-\(.*\)'`
-			dash_seen=1
-			first_char=`expr "$first_token" : '\(.\).*'`
-			cmdline="$cmdline -"
+	                # It's not a lone dash, so it's an option.
+			# Is it a long option (i.e. --option)?
+			second_char=`expr "$first_token" : '.\(.\).*'`
+			if test "$second_char" != "-"; then
+	                    # It's not a lone dash, or a long option, so it's a short option string.
+			    # Remove the dash.
+			    first_token=`expr "$first_token" : '-\(.*\)'`
+			    dash_seen=1
+			    first_char=`expr "$first_token" : '\(.\).*'`
+			    cmdline2="$cmdline2 -"
+			fi
 		    fi
 		fi
 		if test $dash_seen = 0; then
 	            # The dash has not been seen. This is either the script file
-	            # name or an arument to be passed to the probe module.
+	            # name, a long argument or an argument to be passed to the probe module.
 	            # If this is the first time, and -e has not been specified,
 	            # then it could be the name of the script file.
-		    if test "X$e_script" = "X" -a "X$script_file" = "X"; then
+		    if test "X$second_char" = "X-"; then
+			cmdline2="$cmdline2 $first_token"
+		    elif test "X$e_script" = "X" -a "X$script_file" = "X"; then
 			script_file=$first_token
+			cmdline1="$cmdline2"
+			cmdline2=
+		    else
+			cmdline2="$cmdline2 '$first_token'"
 		    fi
 		    advance_p=$(($advance_p + 1))
-		    cmdline="$cmdline $first_token"
 		    break
 		fi
 	    fi
@@ -96,7 +111,7 @@ function parse_options {
 		    ;;
 		D)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}D '$stap_arg'"
+		    cmdline2="${cmdline2}D '$stap_arg'"
 		    ;;
 		e)
 		    get_arg $first_token "$2"
@@ -111,11 +126,11 @@ function parse_options {
 		    ;;
 		l)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}l '$stap_arg'"
+		    cmdline2="${cmdline2}l '$stap_arg'"
 		    ;;
 		m)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}m $stap_arg"
+		    cmdline2="${cmdline2}m $stap_arg"
 		    ;;
 		o)
 		    get_arg $first_token $2
@@ -127,7 +142,7 @@ function parse_options {
 		    ;;
 		r)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}r $stap_arg"
+		    cmdline2="${cmdline2}r $stap_arg"
 		    ;;	
 		R)
 		    get_arg $first_token $2
@@ -135,14 +150,14 @@ function parse_options {
 		    ;;	
 		s)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}s $stap_arg"
+		    cmdline2="${cmdline2}s $stap_arg"
 		    ;;	
 		v)
 		    v_level=$(($v_level + 1))
 		    ;;
 		x)
 		    get_arg $first_token $2
-		    cmdline="${cmdline}x $stap_arg"
+		    cmdline2="${cmdline2}x $stap_arg"
 		    ;;
 		*)
 		    # An unknown or unimportant flag. Ignore it, but pass it on to the server.
@@ -151,7 +166,7 @@ function parse_options {
 
 	    if test $advance_p = 0; then
 	        # Just another flag character. Consume it.
-		cmdline="$cmdline$first_char"
+		cmdline2="$cmdline2$first_char"
 		first_token=`expr "$first_token" : '.\(.*\)'`
 		if test "X$first_token" = "X"; then
 		    advance_p=$(($advance_p + 1))
@@ -176,7 +191,9 @@ function parse_options {
 	else
 	    local_name=$script_file
 	fi
-	cmdline=`echo $cmdline | sed s,$script_file,script/$local_name,`
+	cmdline="$cmdline1 script/$local_name $cmdline2"
+    else
+	cmdline="$cmdline1 $cmdline2"
     fi
 }
 
@@ -207,7 +224,7 @@ function get_arg {
 # Process the -c flag.
 function process_c {
     c_cmd="$1"
-    cmdline="${cmdline}c '$1'"
+    cmdline2="${cmdline2}c '$1'"
 }
 
 # function: process_e ARGUMENT
@@ -218,9 +235,13 @@ function process_e {
     # which may have already been identified.
     if test "X$e_script" = "X"; then
 	e_script="$1"
-	script_file=
+	if test "X$script_file" != "X"; then
+	    cmdline1="$cmdline1 $script_file $cmdline2"
+	    cmdline2=
+	    script_file=
+	fi
     fi
-    cmdline="${cmdline}e '$1'"
+    cmdline2="${cmdline2}e '$1'"
 }
 
 # function: process_I ARGUMENT
@@ -229,7 +250,7 @@ function process_e {
 function process_I {
     local local_name=`include_file_or_directory tapsets $1`
     test "X$local_name" != "X" || return
-    cmdline="${cmdline}I $local_name"
+    cmdline2="${cmdline2}I 'tapsets/$local_name'"
 }
 
 # function: process_o ARGUMENT
@@ -237,7 +258,7 @@ function process_I {
 # Process the -o flag.
 function process_o {
     stdout_redirection="> $1"
-    cmdline="${cmdline}o $1"
+    cmdline2="${cmdline2}o '$1'"
 }
 
 # function: process_p ARGUMENT
@@ -245,7 +266,7 @@ function process_o {
 # Process the -p flag.
 function process_p {
     p_phase=$1
-    cmdline="${cmdline}p '$1'"
+    cmdline2="${cmdline2}p '$1'"
 }
 
 # function: process_R ARGUMENT
@@ -254,7 +275,7 @@ function process_p {
 function process_R {
     local local_name=`include_file_or_directory runtime $1`
     test "X$local_name" != "X" || return
-    cmdline="${cmdline}R $local_name"
+    cmdline2="${cmdline2}R 'runtime/$local_name'"
 }
 
 # function: include_file_or_directory PREFIX NAME
@@ -268,7 +289,7 @@ function include_file_or_directory {
 	fatal "ERROR: could not create $tmpdir_client/$1/`dirname $local_name`"
     ln -s /$local_name $tmpdir_client/$1/$local_name || \
 	fatal "ERROR: could not link $tmpdir_client/$1/$local_name to /$local_name"
-    echo $local_name
+    echo "$local_name"
 }
 
 # function: generate_client_temp_name NAME
@@ -277,12 +298,12 @@ function include_file_or_directory {
 # client's temporary directory.
 function generate_client_temp_name {
     # Transform the name into a fully qualified path name
-    local full_name=`echo $1 | sed "s,^\\\([^/]\\\),$wd/\\\\1,"`
+    local full_name=`echo "$1" | sed "s,^\\\([^/]\\\),$wd/\\\\1,"`
 
     # The same name without the initial / or trailing /
-    local local_name=`echo $full_name | sed 's,^/\(.*\),\1,'`
-    local_name=`echo $local_name | sed 's,\(.*\)/$,\1,'`
-    echo $local_name
+    local local_name=`echo "$full_name" | sed 's,^/\(.*\),\1,'`
+    local_name=`echo "$local_name" | sed 's,\(.*\)/$,\1,'`
+    echo "$local_name"
 }
 
 # function: create_request
@@ -316,7 +337,7 @@ function client_sysinfo {
 	# Add some info from uname
 	sysinfo_client="`uname -rvm`"
     fi
-    echo $sysinfo_client
+    echo "$sysinfo_client"
 }
 
 # function: package_request
@@ -353,8 +374,10 @@ function send_request {
     test "$line" = "ready:" || \
 	fatal "ERROR: server response, '$line', is incorrect"
 
-    # Send the request file.
-    until nc $server $(($port + 1)) < $tar_client
+    # Send the request file. We need to redirect to /dev/null
+    # in order to workaround a nc bug. It closes the connection
+    # early if stdin from the other side is not provided.
+    until nc $server $(($port + 1)) < $tar_client > /dev/null
     do
 	sleep 1
     done
@@ -364,7 +387,7 @@ function send_request {
 #
 # Wait for a response from the server indicating the results of our request.
 # protocol is:
-# server -> "done:"
+# server -> "{done,failed}:"
 # server -> $tar_server
 function receive_response {
     # Get the server's response.
@@ -373,15 +396,21 @@ function receive_response {
     check_server_error $line
 
     # Check for the proper response.
-    test "$line" = "done:" || \
-	fatal "ERROR: server response, '$line', is incorrect"
+    if test "$line" != "done:"; then
+	if test "$line" != "failed:"; then
+	    fatal "ERROR: server response, '$line', is incorrect"
+	fi
+	rc=1
+    fi
 
     # Make a place to receive the response file.
     tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $tar_server
 
-    # Retrieve the file
-    until nc $server $(($port + 1)) > $tar_server
+    # Retrieve the file. We need to redirect stdin from /dev/zero to work
+    # around a bug in nc. It closes the connection early is stdin is not
+    # provided.
+    until nc $server $(($port + 1)) < /dev/zero > $tar_server
     do
 	sleep 1
     done
@@ -530,21 +559,37 @@ function stream_output {
 #
 # Call staprun using the module returned from the server, if requested.
 function maybe_call_staprun {
-    if test $p_phase = 5; then
-        # Can't call staprun without a module.
-	test "X$tmpdir_stap" = "X" && return
+    if test $rc != 0; then
+	# stap run on the server failed, so don't bother
+	return
+    fi
 
+    if test $p_phase -ge 4; then
+        # There should be a systemtap temporary directory.
+	if test "X$tmpdir_stap" = "X"; then
+	    # OK if no script specified
+	    if test "X$script_file" != "X"; then
+		fatal "ERROR: systemtap temporary directory is missing in server response"
+	    fi
+	    return
+	fi
+
+        # There should be a module.
 	local mod_name=`ls $tmpdir_stap | grep '.ko$'`
-	test "X$mod_name" != "X" || \
-	    fatal "ERROR: no module to run in $tmpdir_stap"
+	if test "X$mod_name" = "X"; then
+	    fatal "ERROR: no module was found in $tmpdir_stap"
+	fi
 
-	# We have a module. Try to run it
-	for ((--v_level; $v_level > 0; --v_level))
-	do
-	    staprun_opts="$staprun_opts -v"
-	done
-	PATH=`staprun_PATH` staprun $staprun_opts \
-	    $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
+	if test $p_phase = 5; then
+	    # We have a module. Try to run it
+	    for ((--v_level; $v_level > 0; --v_level))
+	    do
+		staprun_opts="$staprun_opts -v"
+	    done
+	    PATH=`staprun_PATH` staprun $staprun_opts \
+		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
+	    rc=$?
+	fi
     fi
 }
 
@@ -562,14 +607,14 @@ function staprun_PATH {
 
     # Otherwise, remove the PATH component where we live from the PATH
     local PATH_component=`dirname $first_stap`
-    echo $PATH | sed "s,$PATH_component,,g"
+    echo "$PATH" | sed "s,$PATH_component,,g"
 }
 
 # function: check_server_error SERVER_RESPONSE
 #
 # Check the given server response for an error message.
 function check_server_error {
-    echo $1 | grep -q "^ERROR:" && \
+    echo "$1" | grep -q "^ERROR:" && \
 	server_fatal "Server:" "$@"
 }
 
@@ -578,7 +623,7 @@ function check_server_error {
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo $0: "$@" >&2
+    echo "$0:" "$@" >&2
     disconnect_from_server
     cleanup
     exit 1
@@ -589,7 +634,7 @@ function fatal {
 # Fatal error
 # Prints its arguments to stderr and exits
 function server_fatal {
-    echo $0: "$@" >&2
+    echo "$0:" "$@" >&2
     cat <&3 >&2
     disconnect_from_server
     cleanup
@@ -627,4 +672,4 @@ stream_output
 maybe_call_staprun
 cleanup
 
-exit 0
+exit $rc

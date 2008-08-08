@@ -16,9 +16,11 @@
 stap-serverd </dev/null >/dev/null 2>&1 &
 server_pid=$!
 
-# Exit if the server did not start ok
-(ps | grep -q $server_pid) || exit 1
+# Make sure the server is started
+for ((attempt=0; $attempt < 5; ++attempt))
+do
+  stap-find-servers >/dev/null 2>&1 && echo $server_pid && exit 0
+  sleep 1
+done
 
-# The server started ok. Echo its process id.
-echo $server_pid
-exit 0
+exit 1 # server did not start

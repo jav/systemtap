@@ -13,7 +13,7 @@ clean-local:
 
 DEJAZILLA=@dejazilla@
 
-TOOL_OPTS=$(EXTRA_TOOL_OPTS)
+TOOL_OPTS=
 
 # automake's dejagnu library already runs check-DEJAGNU before check-local
 # That's why we need to add "execrc" to $(RUNTEST) - to ensure that this
@@ -40,7 +40,7 @@ SYSTEMTAP_RUNTIME=$(DESTDIR)$(pkgdatadir)/runtime
 SYSTEMTAP_TAPSET=$(DESTDIR)$(pkgdatadir)/tapset
 LD_LIBRARY_PATH=$(DESTDIR)$(libdir)/systemtap
 CRASH_LIBDIR=$(DESTDIR)$(libdir)/systemtap
-SYSTEMTAP_PATH=$(EXTRA_SYSTEMTAP_PATH):$(DESTDIR)$(bindir)
+SYSTEMTAP_PATH=$(DESTDIR)$(bindir)
 
 RUNTESTDEFAULTFLAGS = --tool $$tool --tool_opts \'$(TOOL_OPTS)\' --srcdir $$srcdir
 EXPECT = expect

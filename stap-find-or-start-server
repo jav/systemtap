@@ -10,27 +10,23 @@
 # later version.
 
 # This script attempts to find a systemtap server. If one is found, it
-# simply exits with 0.
+# echoes 0 and exits with 0.
 #
 # Otherwise, it attempts to start a server. If succesful, it echoes the
 # process id and exits with 0.
 #
-# Otherwise, it exits with 1
+# Otherwise, it echoes -1 and exits with 1
 
 # Is there a server available?
-stap-find-servers >/dev/null 2>&1 && exit 0
+stap-find-servers >/dev/null 2>&1 && echo 0 && exit 0
 
 # No server available, try to start one.
 pid=`stap-start-server`
 if test $? = 0; then
-  echo $pid
-  # Make sure the server is started
-  for ((attempt=0; $attempt < 5; ++attempt))
-  do
-    stap-find-servers >/dev/null 2>&1 && exit 0
-    sleep 1
-  done
+    echo $pid
+    exit 0
 fi
 
 # Could not find or start a server
+echo -1
 exit 1

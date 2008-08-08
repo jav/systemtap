@@ -1,3 +1,11 @@
+2008-08-08  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp (setup_systemtap_environment): If use_server_p,
+	start or find a systemtap server.
+	(systemtap_exit): If we started a server, stop it.
+	* Makefile.am (EXTRA_SYSTEMTAP_PATH): Removed.
+	(EXTRA_TOOL_OPTS): Removed.
+	* Makefile.in: Regenerated.
 
 2008-08-03  Wenji Huang <wenji.huang@oracle.com>
 

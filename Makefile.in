@@ -1636,28 +1636,9 @@ uninstall-local:
 
 check:
 	SRCDIR=`cd $(srcdir); pwd`; \
-	BUILDDIR=`cd $(builddir); pwd`; \
-	need_server=0; \
-	(echo "X$(EXTRA_TOOL_OPTS)" | grep -q server) && need_server=1; \
-	if test $$need_server = 1; then \
-	  echo "Testing using a systemtap server"; \
-	  need_server=0; \
-	  server_pid=`stap-find-or-start-server` || need_server=1; \
-	  if test $$need_server = 1; then \
-	      echo "Cannot find or start a systemtap server"; \
-	      exit -1; \
-	  fi; \
-	  client_path="$$BUILDDIR/testsuite/net"; \
-	  mkdir -p $$BUILDDIR/testsuite/net; \
-	  cp -p $$SRCDIR/stap-client $$BUILDDIR/testsuite/net/stap; \
-	fi; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$$client_path:$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)"; \
-	if test "X$$server_pid" != "X"; then \
-	  stap-stop-server $$server_pid; \
-	fi
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)";
 
 installcheck:
-	BUILDDIR=`cd $(builddir); pwd`; \
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
 	  echo $(DESTDIR)$(bindir)/stap doesn\'t exist, run make install; \
 	  exit -1; \
@@ -1665,25 +1646,8 @@ installcheck:
 	if test $(builddir)/stap -nt $(DESTDIR)$(bindir)/stap; then \
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
-	fi; \
-	need_server=0; \
-	(echo "X$(EXTRA_TOOL_OPTS)" | grep -q server) && need_server=1; \
-	if test $$need_server = 1; then \
-	  echo "Testing using a systemtap server"; \
-	  need_server=0; \
-	  server_pid=`stap-find-or-start-server` || need_server=1; \
-	  if test $$need_server = 1; then \
-	      echo "Cannot find or start a systemtap server"; \
-	      exit -1; \
-	  fi; \
-	  client_path=":$$BUILDDIR/testsuite/net"; \
-	  mkdir -p $$BUILDDIR/testsuite/net; \
-	  cp -p $(DESTDIR)$(bindir)/stap-client $$BUILDDIR/testsuite/net/stap; \
-	fi; \
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)$$client_path"; \
-	if test "X$$server_pid" != "X"; then \
-	  stap-stop-server $$server_pid; \
-	fi
+	fi;
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)"
 
 rpm:	systemtap.spec dist
 	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec

@@ -31,6 +31,7 @@ function configuration {
 # function: initialization
 function initialization {
     # Initialization
+    rc=0
     wd=`pwd`
 
     # Default options settings
@@ -58,11 +59,14 @@ function receive_request {
     tar_client=`mktemp -t $tmpdir_prefix_server.client.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary tar file " $tar_client
 
+    # Receive the file. We need to redirect stdin from /dev/zero to work
+    # around a bug in nc. It closes the connection early is stdin is not
+    # provided.
+    nc -l $port < /dev/zero > $tar_client &
+
     # Request that the file be sent.
     echo "ready:"
-
-    # Receive the file.
-    nc -l $port < /dev/null > $tar_client
+    wait %nc
 }
 
 # function: unpack_request
@@ -125,7 +129,7 @@ function server_sysinfo {
 	# Add some info from uname
 	sysinfo_server="`uname -rvm`"
     fi
-    echo $sysinfo_server
+    echo "$sysinfo_server"
 }
 
 # function check_compaibility SYSINFO1 SYSINFO2
@@ -152,14 +156,30 @@ function read_data_file {
     test -f $1 || \
 	fatal "ERROR: Data file $1 not found"
 
-    read < $1
+    # Open the file
+    exec 3< $1
+
+    # Verify the first line of the file.
+    read <&3
     line=$REPLY
     data=`expr "$line" : "$1: \\\(.*\\\)"`
-    if test "X$data" != "X"; then
-	echo $data
+    if test "X$data" = "X"; then
+	fatal "ERROR: Data in file $1 is incorrect"
 	return
     fi
-    fatal "ERROR: Data in file $1 is incorrect"
+
+    # Add any additional lines of data
+    while read <&3
+    do
+	data="$data
+$REPLY"
+    done
+
+    # Close the file
+    exec 3<&-
+
+    # Echo the result
+    echo "$data"
 }
 
 # function: parse_options [ STAP-OPTIONS ]
@@ -316,9 +336,11 @@ function call_stap {
 	server_p_phase=$p_phase
     fi
 
-    eval stap $cmdline -k -p $server_p_phase \
+    eval stap "$cmdline" -k -p $server_p_phase \
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
+
+    rc=$?
 }
 
 # function: create_response
@@ -371,12 +393,20 @@ function package_response {
 # Notify the client that $tar_server is ready and wait for the client to take
 # it.
 # The protocol is:
-#   server -> "done:"
+#   server -> "{done,failed}:"
 #   server -> $tar_server
 function send_response {
-    echo "done:"
-    # Now send it
-    nc -l $port < $tar_server > /dev/null
+    # Now send it. We need to redirect to /dev/null
+    # in order to workaround a nc bug. It closes the connection
+    # early if stdin from the other side is not provided.
+    nc -l $port < $tar_server > /dev/null &
+
+    if test $rc = 0; then
+	echo "done:"
+    else
+	echo "failed:"
+    fi
+    wait %nc
 }
 
 # function: fatal [ MESSAGE ]
@@ -408,6 +438,9 @@ function cleanup {
 	rm -fr $tmpdir_server
 	rm -fr $tmpdir_stap
     fi
+    
+    # Kill any nc job that may be running
+    kill -s SIGTERM %nc 2> /dev/null
 }
 
 # function: terminate
@@ -416,7 +449,7 @@ function cleanup {
 function terminate {
     # Clean up
     cleanup
-    exit
+    exit $rc
 }
 
 #-----------------------------------------------------------------------------
@@ -427,11 +460,11 @@ initialization
 receive_request
 unpack_request
 check_request
-eval parse_options $cmdline
+eval parse_options "$cmdline"
 call_stap
 create_response
 package_response
 send_response 
 cleanup
 
-exit 0
+exit $rc

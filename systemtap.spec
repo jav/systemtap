@@ -46,6 +46,7 @@ Requires: crash
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 %endif
+Requires: avahi-tools nc
 
 %description
 SystemTap is an instrumentation system for systems running Linux 2.6.
@@ -59,6 +60,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: kernel >= 2.6.9-11
 Requires(pre): shadow-utils
+Requires: avahi-tools nc
 
 %description runtime
 SystemTap runtime is the runtime component of an instrumentation
@@ -178,10 +180,6 @@ exit 0
 %{_bindir}/stap
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
-%{_bindir}/stap-find-servers
-%{_bindir}/stap-start-server
-%{_bindir}/stap-find-or-start-server
-%{_bindir}/stap-stop-server
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
@@ -203,6 +201,10 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-client
+%{_bindir}/stap-find-servers
+%{_bindir}/stap-start-server
+%{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-stop-server
 %{_libexecdir}/%{name}
 %{_mandir}/man8/*
 

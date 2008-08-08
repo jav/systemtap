@@ -1,3 +1,37 @@
+2008-08-08  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Use quotes when echoing. Exit with $rc.
+	(initialization): Initialize 'rc'.
+	(parse_options): Manage the command line in three pieces:
+	pre-script name, script name, post-script name.
+	(process_*): Likewise.
+	(send_request): Redirect stdout of 'nc' to /dev/null.
+	(receive_response): Handle "failed:" response. Redirect stdin of 'nc'
+	from /dev/zero.
+	(maybe_call_staprun): Check $rc. Check the requested phase limit
+	before looking for the module.
+	* stap-server: Use quotes when echoing. Exit with $rc.
+	(initialization): Initialize 'rc'.
+	(receive_request): Start 'nc' in the background before sending the
+	"ready:" message. Redirect stdin of 'nc' from /dev/zero.
+	(read_data_file): Allow for multiple lines of data.
+	(call_stap): Quoet $cmdline. Set 'rc'.
+	(send_response): Send "failed:" if stap is unsuccessful. Start 'nc'
+	in the background before sending the response.
+	(cleanup): Kill any running 'nc' job.
+	(terminate): Exit with $rc.
+	* stap-serverd: Start the server before advertising our presence.
+	* stap-find-or-start-server: Echo 0 if a server is already running.
+	Echo -1 if no server is running and one can't be started.
+	* stap-start-server: Wait until the server starts before exiting. Exit
+	with 1 if the server does not start.
+	* systemtap.spec: Move client side script to the runtime sub package.
+	The main package and the runtime sub package both depend on avahi-tools
+	and nc.
+	* Makefile.am: Revert previous changes. Now done in
+	testsuite/lib/systemtap.exp.
+	* Makefile.in: Regenerated.
+
 2008-08-04  Stan Cox  <scox@redhat.com>
 
 	* tapsets.cxx (dwarf_var_expanding_copy_visitor::visit_target_symbol): 
