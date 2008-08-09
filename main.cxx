@@ -696,25 +696,11 @@ main (int argc, char * const argv [])
 
   int rc = 0;
 
-  // override PATH and LC_ALL
-  const char *path = "/bin:/sbin:/usr/bin:/usr/sbin";
-  rc = setenv("PATH", path, 1) || setenv("LC_ALL", "C", 1);
-  if (rc)
-    {
-      const char* e = strerror (errno);
-      cerr << "setenv (\"PATH=" << path << "\" + \"LC_ALL=C\"): "
-           << e << endl;
-    }
-
-  // Get rid of a few standard environment variables (which might
-  // cause us to do unintended things).
-  rc = unsetenv("IFS") || unsetenv("CDPATH") || unsetenv("ENV")
-      || unsetenv("BASH_ENV");
-  if (rc)
-    {
-      const char* e = strerror (errno);
-      cerr << "unsetenv failed: " << e << endl;
-    }
+  // For PR1477, we used to override $PATH and $LC_ALL and other stuff
+  // here.  We seem to use complete pathnames in
+  // buildrun.cxx/tapsets.cxx now, so this is not necessary.  Further,
+  // it interferes with util.cxx:find_executable(), used for $PATH
+  // resolution.
 
   s.kernel_base_release.assign(s.kernel_release, 0, s.kernel_release.find('-'));
 
@@ -993,6 +979,7 @@ main (int argc, char * const argv [])
   if (rc || s.last_pass == 3 || pending_interrupts) goto cleanup;
 
   // PASS 4: COMPILATION
+
   times (& tms_before);
   gettimeofday (&tv_before, NULL);
   rc = compile_pass (s);

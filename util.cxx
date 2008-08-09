@@ -154,7 +154,10 @@ tokenize(const string& str, vector<string>& tokens,
 }
 
 
-//  Find an executable by name in $PATH.
+// Resolve an executable name to a canonical full path name, with the
+// same policy as execvp().  A program name not containing a slash
+// will be searched along the $PATH.
+
 string find_executable(const string& name)
 {
   string retpath;
@@ -162,9 +165,13 @@ string find_executable(const string& name)
   if (name.size() == 0)
     return name;
 
-  if (name[0] == '/') // already fully qualified
-    retpath = name;
-  else // need to search along $PATH
+  struct stat st;
+
+  if (name.find('/') != string::npos) // slash in the path already?
+    {
+      retpath = name;
+    }
+  else // Nope, search $PATH.
     {
       char *path = getenv("PATH");
       if (path)
@@ -178,13 +185,11 @@ string find_executable(const string& name)
             {
               string fname = *i + "/" + name;
               const char *f = fname.c_str();
-              struct stat st1, st2;
               
               // Look for a normal executable file.
               if (access(f, X_OK) == 0
-                  && lstat(f, &st1) == 0
-                  && stat(f, &st2) == 0
-                  && S_ISREG(st2.st_mode))
+                  && stat(f, &st) == 0
+                  && S_ISREG(st.st_mode))
                 {
                   retpath = fname;
                   break;
@@ -192,6 +197,12 @@ string find_executable(const string& name)
             }
         }
     }
+
+  
+  // Could not find the program on the $PATH.  We'll just fall back to
+  // the unqualified name, which our caller will probably fail with.
+  if (retpath == "")
+    retpath = name;
 
   // Canonicalize the path name.
   char *cf = canonicalize_file_name (retpath.c_str());

@@ -2357,7 +2357,11 @@ base_query::base_query(systemtap_session & sess,
   if (has_module)
     has_process = false;
   else
-    has_process = get_string_param(params, TOK_PROCESS, module_val);
+    {
+      has_process = get_string_param(params, TOK_PROCESS, module_val);
+      if (has_process) 
+        module_val = find_executable (module_val);
+    }
 
   assert (has_kernel || has_process || has_module);
 }
@@ -5001,6 +5005,8 @@ dwarf_builder::build(systemtap_session & sess,
     }
   else if (get_param (parameters, TOK_PROCESS, module_name))
     {
+      module_name = find_executable (module_name); // canonicalize it
+
       // user-space target; we use one dwflpp instance per module name
       // (= program or shared library)
       if (user_dw.find(module_name) == user_dw.end())
@@ -5536,41 +5542,11 @@ struct itrace_builder: public derived_probe_builder
 
     // If we have a path, we need to validate it.
     if (has_path)
-    {
-	string::size_type start_pos, end_pos;
-	string component;
-
-	// Make sure it starts with '/'.
-	if (path[0] != '/')
-	    throw semantic_error ("process path must start with a '/'",
-				  location->tok);
-
-	start_pos = 1;			// get past the initial '/'
-	while ((end_pos = path.find('/', start_pos)) != string::npos)
-        {
-	    component = path.substr(start_pos, end_pos - start_pos);
-	    // Make sure it isn't empty.
-	    if (component.size() == 0)
-		throw semantic_error ("process path component cannot be empty",
-				      location->tok);
-	    // Make sure it isn't relative.
-	    else if (component == "." || component == "..")
-		throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
-
-	    start_pos = end_pos + 1;
-	}
-	component = path.substr(start_pos);
-	// Make sure it doesn't end with '/'.
-	if (component.size() == 0)
-	    throw semantic_error ("process path cannot end with a '/'", location->tok);
-	// Make sure it isn't relative.
-	else if (component == "." || component == "..")
-	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
-    }
+      path = find_executable (path);
 
     finished_results.push_back(new itrace_derived_probe(sess, base, location,
                                                         has_path, path, pid,
-																	single_step
+                                                        single_step
 							));
   }
 };
@@ -5809,13 +5785,54 @@ utrace_derived_probe::utrace_derived_probe (systemtap_session &s,
                                             probe* p, probe_point* l,
                                             bool hp, string &pn, int64_t pd,
 					    enum utrace_derived_probe_flags f):
-  derived_probe(p, l), has_path(hp), path(pn), pid(pd), flags(f),
+  derived_probe (p, new probe_point (*l) /* .components soon rewritten */ ),
+  has_path(hp), path(pn), pid(pd), flags(f),
   target_symbol_seen(false)
 {
   // Make a local-variable-expanded copy of the probe body
   utrace_var_expanding_copy_visitor v (s, name, flags);
   require <statement*> (&v, &(this->body), base->body);
   target_symbol_seen = v.target_symbol_seen;
+
+  // Reset the sole element of the "locations" vector as a
+  // "reverse-engineered" form of the incoming (q.base_loc) probe
+  // point.  This allows a user to see what program etc.
+  // number any particular match of the wildcards.
+
+  vector<probe_point::component*> comps;
+  if (hp)
+    comps.push_back (new probe_point::component(TOK_PROCESS, new literal_string(path)));
+  else
+    comps.push_back (new probe_point::component(TOK_PROCESS, new literal_number(pid)));    
+  switch (flags)
+    {
+    case UDPF_THREAD_BEGIN:
+      comps.push_back (new probe_point::component(TOK_THREAD));
+      comps.push_back (new probe_point::component(TOK_BEGIN));
+      break;
+    case UDPF_THREAD_END:
+      comps.push_back (new probe_point::component(TOK_THREAD));
+      comps.push_back (new probe_point::component(TOK_END));
+      break;
+    case UDPF_SYSCALL:
+      comps.push_back (new probe_point::component(TOK_SYSCALL));
+      break;
+    case UDPF_SYSCALL_RETURN:
+      comps.push_back (new probe_point::component(TOK_SYSCALL));
+      comps.push_back (new probe_point::component(TOK_RETURN));
+      break;
+    case UDPF_BEGIN:
+      comps.push_back (new probe_point::component(TOK_BEGIN));
+      break;
+    case UDPF_END:
+      comps.push_back (new probe_point::component(TOK_END));
+      break;
+    default: 
+      assert (0);
+    }
+
+  // Overwrite it.
+  this->sole_location()->components = comps;
 }
 
 
@@ -5897,6 +5914,7 @@ struct utrace_builder: public derived_probe_builder
     bool has_path = get_param (parameters, TOK_PROCESS, path);
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
     enum utrace_derived_probe_flags flags = UDPF_NONE;
+
     assert (has_path || has_pid);
 
     if (has_null_param (parameters, TOK_THREAD))
@@ -5921,39 +5939,7 @@ struct utrace_builder: public derived_probe_builder
     // If we have a path, we need to validate it.
     if (has_path)
     {
-	string::size_type start_pos, end_pos;
-	string component;
-
-        // XXX: these checks should be done in terms of filesystem
-        // operations.
-
-	// Make sure it starts with '/'.
-	if (path[0] != '/')
-	    throw semantic_error ("process path must start with a '/'",
-				  location->tok);
-
-	start_pos = 1;			// get past the initial '/'
-	while ((end_pos = path.find('/', start_pos)) != string::npos)
-        {
-	    component = path.substr(start_pos, end_pos - start_pos);
-	    // Make sure it isn't empty.
-	    if (component.size() == 0)
-		throw semantic_error ("process path component cannot be empty",
-				      location->tok);
-	    // Make sure it isn't relative.
-	    else if (component == "." || component == "..")
-		throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
-
-	    start_pos = end_pos + 1;
-	}
-	component = path.substr(start_pos);
-	// Make sure it doesn't end with '/'.
-	if (component.size() == 0)
-	    throw semantic_error ("process path cannot end with a '/'", location->tok);
-	// Make sure it isn't relative.
-	else if (component == "." || component == "..")
-	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
-
+      path = find_executable (path);
       sess.unwindsym_modules.insert (path);
     }
 
