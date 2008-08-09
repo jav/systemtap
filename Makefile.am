@@ -162,12 +162,14 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
 EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
-EXAMPLE_INDEX_GEN = $(EXAMPLE_SOURCE_DIR)/examples-index-gen.pl
 
 example_index: $(EXAMPLE_SOURCE_DIR)/index.html
 
 $(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
-	perl $(EXAMPLE_INDEX_GEN) $(EXAMPLE_SOURCE_DIR)
+	@echo "The script example index is outdated, run"
+	@echo "    cd $(EXAMPLE_SOURCE_DIR) && \\ "
+	@echo "    perl examples-index-gen.pl"
+	@echo "to regenerate it."
 
 dist-hook: dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
