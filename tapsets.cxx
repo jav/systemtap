@@ -2272,6 +2272,7 @@ struct uprobe_derived_probe: public derived_probe
   Dwarf_Addr address;
   // bool has_maxactive;
   // long maxactive_val;
+
   uprobe_derived_probe (const string& function,
                         const string& filename,
                         int line,
@@ -2282,6 +2283,13 @@ struct uprobe_derived_probe: public derived_probe
                         Dwarf_Addr addr,
                         dwarf_query & q,
                         Dwarf_Die* scope_die);
+
+  // alternate constructor for process(PID).statement(ADDR).absolute
+  uprobe_derived_probe (probe *base,
+                        probe_point *location,
+                        int pid,
+                        Dwarf_Addr addr,
+                        bool return_p);
 
   void printsig (std::ostream &o) const;
   void join_group (systemtap_session& s);
@@ -6534,6 +6542,17 @@ uprobe_derived_probe::uprobe_derived_probe (const string& function,
 }
 
 
+uprobe_derived_probe::uprobe_derived_probe (probe *base,
+                                            probe_point *location,
+                                            int pid,
+                                            Dwarf_Addr addr,
+                                            bool has_return):
+  derived_probe (base, location), // location is not rewritten here
+  return_p (has_return), pid (pid), address (addr)
+{
+}
+
+
 void
 uprobe_derived_probe::printsig (ostream& o) const
 {
@@ -6563,7 +6582,6 @@ struct uprobe_builder: public derived_probe_builder
 		     literal_map_t const & parameters,
 		     vector<derived_probe *> & finished_results)
   {
-#if 0
     int64_t process, address;
 
     bool b1 = get_param (parameters, TOK_PROCESS, process);
@@ -6573,9 +6591,7 @@ struct uprobe_builder: public derived_probe_builder
     bool rr = has_null_param (parameters, TOK_RETURN);
     assert (b1 && b2); // by pattern_root construction
 
-    finished_results.push_back(new uprobe_derived_probe(sess, base, location,
-                                                        process, address, rr));
-#endif
+    finished_results.push_back(new uprobe_derived_probe(base, location, process, address, rr));
   }
 };
 
@@ -6621,9 +6637,12 @@ uprobe_derived_probe_group::emit_module_decls (systemtap_session& s)
     {
       uprobe_derived_probe* p = probes[i];
       s.op->newline() << "{";
-      s.op->line() << " .finder = {"
-                   << " .pathname=" << lex_cast_qstring(p->module) << ", "
-                   << "},";
+      s.op->line() << " .finder = {";
+      if (p->pid != 0)
+        s.op->line() << " .pid=" << p->pid << ", ";
+      else
+        s.op->line() << " .pathname=" << lex_cast_qstring(p->module) << ", ";
+      s.op->line() << "},";
       s.op->line() << " .address=0x" << hex << p->address << dec << "UL,";
       s.op->line() << " .pp=" << lex_cast_qstring (*p->sole_location()) << ",";
       s.op->line() << " .ph=&" << p->name << ",";
