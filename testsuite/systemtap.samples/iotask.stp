@@ -1,3 +1,4 @@
+#! /usr/bin/env stap
 # iotask.stp
 # A reimplementation of user script: iotask.stp given at OLS 2005
 # in the current language.

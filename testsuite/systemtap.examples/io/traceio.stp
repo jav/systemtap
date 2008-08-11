@@ -1,4 +1,4 @@
-#!/usr/bin/env stap
+#! /usr/bin/env stap
 # traceio.stp
 # Copyright (C) 2007 Red Hat, Inc., Eugene Teo <eteo@redhat.com>
 #

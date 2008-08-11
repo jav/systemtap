@@ -1,3 +1,17 @@
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR2895. Reported by Eugeniy Meshcheryakov <eugen@debian.org>
+	*  general/graphs.stp: Add proper #! /usr/bin/env stap line.
+	* general/para-callgraph.stp: Likewise.
+	* io/io_submit.stp: Likewise.
+	* io/iotop.stp: Likewise.
+	* io/traceio.stp: Likewise.
+	* process/proc_snoop.stp: Likewise.
+	* process/sigkill.stp: Likewise.
+	* iotask.stp: Likewise.
+	* pfaults.stp: Likewise.
+	* profile.stp: Likewise.
+
 2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
 
 	* examples-index-gen.pl: Add index of subsystem and keywords at top of

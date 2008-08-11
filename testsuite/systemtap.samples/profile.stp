@@ -1,4 +1,4 @@
-#! stap
+#! /usr/bin/env stap
 
 global command, syscall_count, syscall_times, this_syscall_time, this_syscall
 
