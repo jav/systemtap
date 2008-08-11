@@ -188,7 +188,10 @@ install-data-local:
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
 	(cd $(srcdir)/testsuite/systemtap.examples; find . -type f -print \
 		| egrep -v 'check.exp|ChangeLog|examples-index-gen.pl' \
-		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
+		| while read f; do if test -x $$f; then \
+			i_cmd="$(INSTALL_PROGRAM)"; else \
+			i_cmd="$(INSTALL_DATA)"; fi; \
+			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 
 TEST_COV_DIR = coverage
 

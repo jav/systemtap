@@ -1,3 +1,9 @@
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (install-data-local): Use INSTALL_PROGRAM for executable
+	stp scripts.
+	* Makefile.in: Regenerated.
+
 2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* Makefile.am (example index): Only warn and instruct on index
