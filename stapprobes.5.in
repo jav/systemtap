@@ -292,9 +292,10 @@ operators to match multiple names.
 The second part is optional and begins with the "@" character. 
 It is followed by the path to the source file containing the function,
 which may include a wildcard pattern, such as mm/slab*.
-In most cases, the path should be relative to the top of the
-linux source directory, although an absolute path may be necessary for some kernels.
-If a relative pathname doesn't work, try absolute.
+An implicit "*" is added
+.I before
+the name, so that a script need only name the last few components of
+a possibly long source directory path.
 .IP \(bu 4
 Finally, the third part is optional if the file name part was given,
 and identifies the line number in the source file preceded by a ":"
@@ -305,9 +306,16 @@ All the lines in the function can be matched with ":*".
 A range of lines x through y can be matched with ":x-y".
 .PP
 As an alternative, PATTERN may be a numeric constant, indicating an
-(module-relative or kernel-_stext-relative) address.  In guru mode
-only, absolute kernel addresses may be specified with the ".absolute"
-suffix.
+address.  Such an address may be found from symbol tables of the
+appropriate kernel / module object file.  It is verified against
+known statement code boundaries, and will be relocated for use at
+run time.
+.PP
+In guru mode only, absolute kernel-space addresses may be specified with
+the ".absolute" suffix.  Such an address is considered already relocated,
+as if it came from 
+.BR /proc/kallsyms ,
+so it cannot be checked against statement/instruction boundaries.
 .PP
 Some of the source-level context variables, such as function parameters,
 locals, globals visible in the compilation unit, may be visible to
@@ -412,7 +420,9 @@ probe gets called for every single step of the process described by PID or PATH.
 .PP
 Note that
 .I PATH
-pathnames must be absolute.
+names refer to executables that are searched the same way shells do: relative
+to the working directory if they contain a "/" character, otherwise in 
+.BR $PATH .
 
 .SS PROCFS
 
