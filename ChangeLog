@@ -1,3 +1,12 @@
+2008-08-11  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (disconnect_from_server): Call after receive_response.
+	* stap-server (stap_rc): Renamed from 'rc'. Don't use it as an exit
+	code.
+	* stap-serverd (listen): Set pipefail so that we get the rc of nc
+	if it fails. Make multiple attempts to establish a server.
+	(fatal): Call 'terminate'.
+
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR5049

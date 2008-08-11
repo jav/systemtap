@@ -666,8 +666,8 @@ package_request
 find_and_connect_to_server
 send_request
 receive_response
-unpack_response
 disconnect_from_server
+unpack_response
 stream_output
 maybe_call_staprun
 cleanup

@@ -31,7 +31,7 @@ function configuration {
 # function: initialization
 function initialization {
     # Initialization
-    rc=0
+    stap_rc=0
     wd=`pwd`
 
     # Default options settings
@@ -340,7 +340,7 @@ function call_stap {
 	>>  $tmpdir_server/stdout \
 	2>> $tmpdir_server/stderr
 
-    rc=$?
+    stap_rc=$?
 }
 
 # function: create_response
@@ -401,7 +401,7 @@ function send_response {
     # early if stdin from the other side is not provided.
     nc -l $port < $tar_server > /dev/null &
 
-    if test $rc = 0; then
+    if test $stap_rc = 0; then
 	echo "done:"
     else
 	echo "failed:"
@@ -449,7 +449,7 @@ function cleanup {
 function terminate {
     # Clean up
     cleanup
-    exit $rc
+    exit 1
 }
 
 #-----------------------------------------------------------------------------
@@ -467,4 +467,4 @@ package_response
 send_response 
 cleanup
 
-exit $rc
+exit 0
