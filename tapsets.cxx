@@ -858,11 +858,12 @@ struct dwflpp
 
     // PR 5049: implicit * in front of given path pattern.
     // NB: fnmatch() is used without FNM_PATHNAME.
-    string prefixed_pattern = string("*") + pattern;
+    string prefixed_pattern = string("*/") + pattern;
 
-    bool t = (fnmatch(prefixed_pattern.c_str(), cu_name.c_str(), 0) == 0);
+    bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0 ||
+              fnmatch(prefixed_pattern.c_str(), cu_name.c_str(), 0) == 0);
     if (t && sess.verbose>3)
-      clog << "pattern '" << prefixed_pattern << "' "
+      clog << "pattern '" << pattern << "' "
 	   << "matches "
 	   << "CU '" << cu_name << "'" << "\n";
     return t;
@@ -1372,7 +1373,7 @@ struct dwflpp
 
     // PR 5049: implicit * in front of given path pattern.
     // NB: fnmatch() is used without FNM_PATHNAME.
-    string prefixed_pattern = string("*") + pattern;
+    string prefixed_pattern = string("*/") + pattern;
 
     dwarf_assert ("dwarf_getsrcfiles",
 		  dwarf_getsrcfiles (cu, &srcfiles, &nfiles));
@@ -1380,7 +1381,8 @@ struct dwflpp
     for (size_t i = 0; i < nfiles; ++i)
       {
 	char const * fname = dwarf_filesrc (srcfiles, i, NULL, NULL);
-	if (fnmatch (prefixed_pattern.c_str(), fname, 0) == 0)
+	if (fnmatch (pattern.c_str(), fname, 0) == 0 ||
+            fnmatch (prefixed_pattern.c_str(), fname, 0) == 0)
 	  {
 	    filtered_srcfiles.insert (fname);
 	    if (sess.verbose>2)

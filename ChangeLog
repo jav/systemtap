@@ -1,3 +1,11 @@
+2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5049
+	PR5049
+	* tapsets.cxx (cu_name_matches, collect_srcfiles_matching):
+	Implicitly but optionally prefix probe source filenames with "*/".
+	* stapprobes.5.in: Document this.
+
 2008-08-11  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client (disconnect_from_server): Call after receive_response.

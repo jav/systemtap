@@ -292,10 +292,10 @@ operators to match multiple names.
 The second part is optional and begins with the "@" character. 
 It is followed by the path to the source file containing the function,
 which may include a wildcard pattern, such as mm/slab*.
-An implicit "*" is added
+If it does not match as is, an implicit "*/" is optionally added
 .I before
-the name, so that a script need only name the last few components of
-a possibly long source directory path.
+the pattern, so that a script need only name the last few components
+of a possibly long source directory path.
 .IP \(bu 4
 Finally, the third part is optional if the file name part was given,
 and identifies the line number in the source file preceded by a ":"
