@@ -5905,7 +5905,7 @@ struct utrace_builder: public derived_probe_builder
 
     // If we have a path, we need to validate it.
     if (has_path)
-    {
+      {
 	string::size_type start_pos, end_pos;
 	string component;
 
@@ -5914,33 +5914,33 @@ struct utrace_builder: public derived_probe_builder
 
 	// Make sure it starts with '/'.
 	if (path[0] != '/')
-	    throw semantic_error ("process path must start with a '/'",
-				  location->tok);
+	  throw semantic_error ("process path must start with a '/'",
+				location->tok);
 
 	start_pos = 1;			// get past the initial '/'
 	while ((end_pos = path.find('/', start_pos)) != string::npos)
-        {
+          {
 	    component = path.substr(start_pos, end_pos - start_pos);
 	    // Make sure it isn't empty.
 	    if (component.size() == 0)
-		throw semantic_error ("process path component cannot be empty",
-				      location->tok);
+	      throw semantic_error ("process path component cannot be empty",
+				    location->tok);
 	    // Make sure it isn't relative.
 	    else if (component == "." || component == "..")
-		throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+	      throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
 
 	    start_pos = end_pos + 1;
-	}
+	  }
 	component = path.substr(start_pos);
 	// Make sure it doesn't end with '/'.
 	if (component.size() == 0)
-	    throw semantic_error ("process path cannot end with a '/'", location->tok);
+	  throw semantic_error ("process path cannot end with a '/'", location->tok);
 	// Make sure it isn't relative.
 	else if (component == "." || component == "..")
-	    throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
+	  throw semantic_error ("process path cannot be relative (and contain '.' or '..')", location->tok);
 
-      sess.unwindsym_modules.insert (path);
-    }
+	sess.unwindsym_modules.insert (path);
+      }
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
                                                         has_path, path, pid,
