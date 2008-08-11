@@ -1,5 +1,12 @@
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (translate_final_fetch_or_store): Reject some
+	unhandleable types such as floats.
+	(dwarf_var...visit_target_symbol): Tweak logic of $$var expansion
+	to quietly skip over any $context variables that cause exceptions.
+
+2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
 	* tapsets.cxx (dwarf_var_expanding...visit_target_symbol):
 	Don't add a \n at the end of $$vars/$$parms/$$locals.
 
