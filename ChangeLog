@@ -1,5 +1,10 @@
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
+	* tapsets.cxx (dwarf_var_expanding...visit_target_symbol):
+	Don't add a \n at the end of $$vars/$$parms/$$locals.
+
+2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR5049
 	* tapsets.cxx (cu_name_matches, collect_srcfiles_matching):
 	Implicitly but optionally prefix probe source filenames with "*/".

@@ -4379,7 +4379,6 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	  }
 	while (dwarf_siblingof (&result, &result) == 0);
 
-      pf->raw_components += "\\n";
       pf->components = print_format::string_to_components(pf->raw_components);
       provide <print_format*> (this, pf);
 
