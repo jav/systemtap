@@ -1987,6 +1987,33 @@ struct dwflpp
 
       case DW_TAG_enumeration_type:
       case DW_TAG_base_type:
+
+        // Reject types we can't handle in systemtap
+        {
+          dname = dwarf_diename(die);
+          diestr = (dname != NULL) ? dname : "<unknown>";
+
+          Dwarf_Attribute encoding_attr;
+          Dwarf_Word encoding = -1;
+          dwarf_formudata (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr),
+                           & encoding);
+          if (encoding < 0)
+            {
+              // clog << "bad type1 " << encoding << " diestr" << endl;
+              throw semantic_error ("unsupported type (mystery encoding " + lex_cast<string>(encoding) + ")" +
+                                    " for " + diestr);
+            }
+
+          if (encoding == DW_ATE_float
+              || encoding == DW_ATE_complex_float
+              /* XXX || many others? */)
+            {
+              // clog << "bad type " << encoding << " diestr" << endl;
+              throw semantic_error ("unsupported type (encoding " + lex_cast<string>(encoding) + ")" +
+                                    " for " + diestr);
+            }
+        }
+
 	ty = pe_long;
 	if (lvalue)
 	  c_translate_store (pool, 1, module_bias, die, typedie, tail,
@@ -2124,7 +2151,6 @@ struct dwflpp
     if (dwarf_attr_integrate (&vardie, DW_AT_type, &attr_mem) == NULL)
       throw semantic_error("failed to retrieve type "
 			   "attribute for local '" + local + "'");
-
 
     /* Translate the ->bar->baz[NN] parts. */
 
@@ -4358,24 +4384,16 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 	    tsym->tok = sym_tok;
 	    tsym->base_name = "$";
 	    tsym->base_name += diename;
-	    Dwarf_Attribute attr_mem;
 
 	    // Ignore any variable that isn't accessible.
-	    // dwarf_attr_integrate is checked by literal_stmt_for_local
-	    // dwarf_getlocation_addr is checked by translate_location
-	    // but if those fail we cannot catch semantic_error.
-	    if (dwarf_attr_integrate (&result, DW_AT_location, &attr_mem) != NULL)
-	      {
-		Dwarf_Op *expr;
-		size_t len;
-		if (dwarf_getlocation_addr (&attr_mem, addr - q.dw.module_bias,
-					    &expr, &len, 1) == 0)
-		  continue;
-		this->visit_target_symbol(tsym);
-		pf->raw_components += diename;
-		pf->raw_components += "=%#x ";
-		pf->args.push_back(*(expression**)this->targets.top());
-	      }
+            tsym->saved_conversion_error = 0;
+            this->visit_target_symbol(tsym); // NB: throws nothing ...
+            if (! tsym->saved_conversion_error) // ... but this is how we know it happened.
+              {
+                pf->raw_components += diename;
+                pf->raw_components += "=%#x ";
+                pf->args.push_back(*(expression**)this->targets.top());
+              }
 	  }
 	while (dwarf_siblingof (&result, &result) == 0);
 
