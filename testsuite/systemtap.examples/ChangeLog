@@ -1,5 +1,10 @@
 2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
 
+	* check.exp: Make sure that stderr gets redircted so warnings don't
+	make example script run fail.
+
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
 	PR6835. Reported by Eugeniy Meshcheryakov <eugen@debian.org>
 	* io/io_submit.stp: Fix #! start. Convert to normal line-ending.
 
