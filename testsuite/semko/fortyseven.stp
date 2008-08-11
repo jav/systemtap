@@ -1,0 +1,5 @@
+#! stap -p2
+
+# PR5049
+
+probe kernel.function("*@ket.c") {} # must not match "....packet.c"

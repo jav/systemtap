@@ -1,5 +1,5 @@
 title: System-Wide Futex Contention
-name: futex.stp
+name: futexes.stp
 version: 1.0
 author: anonymous
 keywords: syscall locking futex

@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 global reads, writes, total_io
 
 probe kernel.function("vfs_read") {

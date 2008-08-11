@@ -1,4 +1,4 @@
-#! stap
+#! /usr/bin/env stap
 
 global pidnames, faults, fault_types
 

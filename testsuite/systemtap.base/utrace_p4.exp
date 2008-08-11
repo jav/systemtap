@@ -6,47 +6,6 @@
 # If utrace exists in the kernel, it tries some compile tests.  If
 # utrace doesn't exist in the kernel, marks the tests as 'untested'.
 
-# stap_compile TEST_NAME flags script args
-# - TEST_NAME is the name of the current test
-# - compile indicates whether the script is supposed to compile
-# - script is the script to compile
-# Additional arguments are passed to stap as-is.
-proc stap_compile { TEST_NAME compile script args } {
-    set cmd [concat {stap -v -p4 -e} $script $args]
-    
-    verbose -log "running $cmd" 
-    eval spawn $cmd
-    set compile_errors 0
-    expect {
-	-re {^Pass\ [1234]:[^\r]*\ in\ .*\ ms.\r\n} {exp_continue}
-	-re {^Pass\ [34]: using cached [^\r\n]+\r\n} {exp_continue}
-        # pass-4 output
-	-re {^/[^\r\n]+.ko\r\n} {exp_continue}
-	-re "parse error" { incr compile_errors 1; exp_continue}
-	-re "compilation failed" {incr compile_errors 1; exp_continue}
-	-re "semantic error:" {incr compile_errors 1; exp_continue}
-	-re "terminate called" {incr compile_errors 1; exp_continue}
-    }
-    catch close
-    wait
-
-    # If we've got compile errors and the script was supposed to
-    # compile, fail.
-    if {$compile_errors > 0} {
-	if {$compile == 1} {
-	    fail "$TEST_NAME compilation failed"
-	} else {
-	    pass "$TEST_NAME compilation failed correctly"
-	}
-    } else {
-	if {$compile == 1} {
-	    pass "$TEST_NAME compilation succeeded"
-	} else {
-	    fail "$TEST_NAME compilation succeeded unexpectedly"
-	}
-    }
-}
-
 # Initialize variables
 set utrace_support_found 0
 

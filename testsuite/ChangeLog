@@ -3,6 +3,30 @@
 	PR5049
 	* semok/thirtyone.stp: New test.
 
+2008-08-08  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp (setup_systemtap_environment): If use_server_p,
+	start or find a systemtap server.
+	(systemtap_exit): If we started a server, stop it.
+	* Makefile.am (EXTRA_SYSTEMTAP_PATH): Removed.
+	(EXTRA_TOOL_OPTS): Removed.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Stan Cox  <scox@redhat.com>
+
+	* systemtap.base/stmt_rel.stp: Lower wildcard matching count.
+
+2008-08-07  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p4.exp: Uses lib/stap_compile.exp instead
+	of its own stap_compile procedure.
+	* systemtap.base/cache.exp (stap_compile): Ignores warnings.
+	* lib/stap_compile.exp: Ignores warnings.
+
+2008-08-05  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.examples/README: Add meta file tag descriptions.
+
 2008-08-05  Stan Cox  <scox@redhat.com>
 
 	* systemtap.base/warnings.stp: Use relative instead of absolute line.

@@ -1,3 +1,78 @@
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* check.exp: Make sure that stderr gets redircted so warnings don't
+	make example script run fail.
+
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR6835. Reported by Eugeniy Meshcheryakov <eugen@debian.org>
+	* io/io_submit.stp: Fix #! start. Convert to normal line-ending.
+
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	PR2895. Reported by Eugeniy Meshcheryakov <eugen@debian.org>
+	*  general/graphs.stp: Add proper #! /usr/bin/env stap line.
+	* general/para-callgraph.stp: Likewise.
+	* io/io_submit.stp: Likewise.
+	* io/iotop.stp: Likewise.
+	* io/traceio.stp: Likewise.
+	* process/proc_snoop.stp: Likewise.
+	* process/sigkill.stp: Likewise.
+	* iotask.stp: Likewise.
+	* pfaults.stp: Likewise.
+	* profile.stp: Likewise.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* examples-index-gen.pl: Add index of subsystem and keywords at top of
+	HTML indexes.
+	* *index.html: Regenerated.
+	* *index.txt: Likewise.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* examples-index-gen.pl (add_meta_txt): Don't output output, exits,
+	status line.
+	(add_meta_html): Likewise.
+	* *index.html: Regenerated.
+	* *index.txt: Likewise.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* examples-index-gen.pl (inputdir): Make absolute.
+	(outputdir): Likewise.
+	(supportfiles): Copy from new html dir. Add README. Make sure
+	new html subdir is created in outputdir.
+
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* *index.txt, *index.html: New generated files.
+	* .gitignore: Zap it.
+	* html/*, examples-index-gen.pl: Adapt to html/ boilerplate subdir.
+
+2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
+
+	* small_demos: Unique parts kept, others dropped.
+	* all other samples: Moved into new subdirectories.
+
+2008-08-07  David Smith  <dsmith@redhat.com>
+
+	* .gitignore: New file.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* examples-index-gen.pl: New file.
+	* systemtap.css: Likewise.
+	* systemtapcorner.gif: Likewise.
+	* systemtaplogo.png: Likewise.
+	* html_footer.tmpl: Likewise.
+	* html_header.tmpl: Likewise.
+	* Makefile.am (EXTRA_DIST): Add new support files.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* futexes.meta: Correct name: entry.
+
 2008-08-01  William Cohen  <wcohen@redhat.com>
 
 	* helloworld.meta, traceio2.meta: Tweak test_installcheck.

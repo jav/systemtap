@@ -26,6 +26,11 @@ function initialization {
     avahi_type=_stap._tcp
     port=$1
     test "X$port" = "X" && port=65000
+    port2=$(($port + 1))
+    if netstat -atn | awk '{print $4}' | cut -f2 -d: | egrep -q "^($port|$port2)\$"; then
+        # Whoops, the port is busy; try another one.
+        initialization $((1024+($port + $RANDOM)%64000))
+    fi
 }
 
 # function: advertise_presence
@@ -35,7 +40,7 @@ function advertise_presence {
     # Build up a string representing our server's properties.
     # TODO: this needs fleshing out.
     local sysinfo=`uname -rvm`
-    local txt="$sysinfo"
+    local txt="sysinfo=$sysinfo"
 
     # Call avahi-publish-service to advertise our presence.
     avahi-publish-service "Systemtap Compile Server on `uname -n`" \
@@ -59,13 +64,32 @@ function listen {
 	fatal "ERROR: cannot create temporary fifo " $tmpdir/$fifo_name
 
     # Loop forever accepting requests
+    first=1
+    set -o pipefail # We want the status of 'nc' not 'stap-server'.
     while true
     do
 	# Run this in the background and wait for it. This way any signals
-	# received (i.e. SIGTERM) will be processed.
-	nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
-	wait %nc
+	# received (i.e. SIGTERM) will be processed. Make sure we don't
+	# advertise our presence until we're actually listening.
+	for ((attempt=0; $attempt < 5; ++attempt))
+	do
+	    nc -l $port < $fifo_name | stap-server $((port + 1)) > $fifo_name 2>&1 &
+	    if test $first = 1; then
+		advertise_presence
+		first=0
+	    fi
+	    wait %nc
+	    rc=$?
+            if test $rc = 127 -o $rc = 0; then
+		break; # success
+            fi
+	    sleep 1
+	done
+	if test $attempt = 10; then
+	    fatal "ERROR: cannot listen on port $port. rc==$rc"
+	fi
     done
+    set +o pipefail # restore
 }
 
 # function: fatal [ MESSAGE ]
@@ -74,6 +98,7 @@ function listen {
 # Prints its arguments to stderr and exits
 function fatal {
     echo "$@" >&2
+    terminate
     exit 1
 }
 
@@ -102,5 +127,4 @@ function terminate {
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
 initialization "$@"
-advertise_presence
 listen

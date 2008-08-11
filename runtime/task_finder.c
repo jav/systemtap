@@ -57,6 +57,15 @@ int __stp_tf_vm_cb(struct task_struct *tsk,
 	_stp_dbug(__FUNCTION__, __LINE__,
 		  "vm_cb: tsk %d:%d path %s, start 0x%08lx, end 0x%08lx, offset 0x%lx\n",
 		  tsk->pid, map_p, vm_path, vm_start, vm_end, vm_pgoff);
+	if (map_p) {
+		// FIXME: What should we do with vm_path?  We can't save
+		// the vm_path pointer itself, but we don't have any
+		// storage space allocated to save it in...
+		stap_add_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	}
+	else {
+		stap_remove_vma_map_info(tsk, vm_start, vm_end, vm_pgoff);
+	}
 	return 0;
 }
 #endif
@@ -151,12 +160,72 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 	return 0;
 }
 
+static int
+stap_utrace_detach(struct task_struct *tsk,
+		   const struct utrace_engine_ops *ops)
+{
+	struct utrace_attached_engine *engine;
+	struct mm_struct *mm;
+	int rc = 0;
+
+	// Ignore init
+	if (tsk == NULL || tsk->pid <= 1)
+		return 0;
+
+	// Notice we're not calling get_task_mm() here.  Normally we
+	// avoid tasks with no mm, because those are kernel threads.
+	// So, why is this function different?  When a thread is in
+	// the process of dying, its mm gets freed.  Then, later the
+	// thread gets in the dying state and the thread's DEATH event
+	// handler gets called (if any).
+	//
+	// If a thread is in this "mortally wounded" state - no mm
+	// but not dead - and at that moment this function is called,
+	// we'd miss detaching from it if we were checking to see if
+	// it had an mm.
+
+	engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS, ops, 0);
+	if (IS_ERR(engine)) {
+		rc = -PTR_ERR(engine);
+		if (rc != ENOENT) {
+			_stp_error("utrace_attach returned error %d on pid %d",
+				   rc, tsk->pid);
+		}
+		else {
+			rc = 0;
+		}
+	}
+	else if (unlikely(engine == NULL)) {
+		_stp_error("utrace_attach returned NULL on pid %d",
+			   (int)tsk->pid);
+		rc = EFAULT;
+	}
+	else {
+		rc = utrace_detach(tsk, engine);
+		switch (rc) {
+		case 0:			/* success */
+			debug_task_finder_detach();
+			break;
+		case -ESRCH:	    /* REAP callback already begun */
+		case -EALREADY:	    /* DEATH callback already begun */
+			rc = 0;	    /* ignore these errors*/
+			break;
+		default:
+			rc = -rc;
+			_stp_error("utrace_detach returned error %d on pid %d",
+				   rc, tsk->pid);
+			break;
+		}
+	}
+	return rc;
+}
+
 static void
 stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 {
 	struct task_struct *grp, *tsk;
 	struct utrace_attached_engine *engine;
-	long error = 0;
+	int rc = 0;
 	pid_t pid = 0;
 
 	// Notice we're not calling get_task_mm() in this loop. In
@@ -174,31 +243,12 @@ stap_utrace_detach_ops(struct utrace_engine_ops *ops)
 
 	rcu_read_lock();
 	do_each_thread(grp, tsk) {
-		if (tsk == NULL || tsk->pid <= 1)
-			continue;
-
-		engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS,
-				       ops, 0);
-		if (IS_ERR(engine)) {
-			error = -PTR_ERR(engine);
-			if (error != ENOENT) {
-				pid = tsk->pid;
-				goto udo_err;
-			}
-			error = 0;
-		}
-		else if (engine != NULL) {
-			utrace_detach(tsk, engine);
-			debug_task_finder_detach();
-		}
+		rc = stap_utrace_detach(tsk, ops);
+		if (rc != 0)
+			goto udo_err;
 	} while_each_thread(grp, tsk);
 udo_err:
 	rcu_read_unlock();
-
-	if (error != 0) {
-		_stp_error("utrace_attach returned error %d on pid %d",
-			   error, pid);
-	}
 	debug_task_finder_report();
 }
 
@@ -382,14 +432,10 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 				cb_tgt->engine_attached = 1;
 			}
 			else {
-				struct utrace_attached_engine *engine;
-				engine = utrace_attach(tsk,
-						       UTRACE_ATTACH_MATCH_OPS,
-						       &cb_tgt->ops, 0);
-				if (! IS_ERR(engine) && engine != NULL) {
-					utrace_detach(tsk, engine);
-					debug_task_finder_detach();
-				}
+				rc = stap_utrace_detach(tsk, &cb_tgt->ops);
+				if (rc != 0)
+					break;
+				cb_tgt->engine_attached = 0;
 			}
 		}
 	}

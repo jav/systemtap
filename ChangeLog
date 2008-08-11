@@ -2,26 +2,160 @@
 
 	PR5049
 	* tapsets.cxx (cu_name_matches, collect_srcfiles_matching):
+	Implicitly but optionally prefix probe source filenames with "*/".
+	* stapprobes.5.in: Document this.
+
+2008-08-11  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client (disconnect_from_server): Call after receive_response.
+	* stap-server (stap_rc): Renamed from 'rc'. Don't use it as an exit
+	code.
+	* stap-serverd (listen): Set pipefail so that we get the rc of nc
+	if it fails. Make multiple attempts to establish a server.
+	(fatal): Call 'terminate'.
+
+2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR5049
+	* tapsets.cxx (cu_name_matches, collect_srcfiles_matching):
 	Implicitly prefix probe source filenames with "*".
 
-2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
+2008-08-11  David Smith  <dsmith@redhat.com>
 
-	* main.cxx (main): Don't override $PATH etc.
-	* tapsets.cxx (base_query ctor, dwarf_builder::build,
-	itrace_builder, utrace_derived_probe): Use find_executable()
-	to resolve FOO path in process("FOO").
-	* util.cxx (find_executable): Duplicate execvp logic.
+	* tapsets.cxx (utrace_builder::build): Fixed indentation.
+
+2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (install-data-local): Use INSTALL_PROGRAM for executable
+	stp scripts.
+	* Makefile.in: Regenerated.
+
+2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
+	 
+       * main.cxx (main): Don't override $PATH etc.
+       * tapsets.cxx (base_query ctor, dwarf_builder::build,
+       itrace_builder, utrace_derived_probe): Use find_executable()
+       to resolve FOO path in process("FOO").
+       * util.cxx (find_executable): Duplicate execvp logic.
 
 2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
 
 	* util.cxx (find_executable): Reorganize, simplify, canonicalize.
 	* util.h, hash.cxx: Corresponding changes.
+	
+2008-08-09  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (example index): Only warn and instruct on index
+	regeneration.  Do not actually perform it as the source tree
+	should be considered (and can really be) read-only.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Use quotes when echoing. Exit with $rc.
+	(initialization): Initialize 'rc'.
+	(parse_options): Manage the command line in three pieces:
+	pre-script name, script name, post-script name.
+	(process_*): Likewise.
+	(send_request): Redirect stdout of 'nc' to /dev/null.
+	(receive_response): Handle "failed:" response. Redirect stdin of 'nc'
+	from /dev/zero.
+	(maybe_call_staprun): Check $rc. Check the requested phase limit
+	before looking for the module.
+	* stap-server: Use quotes when echoing. Exit with $rc.
+	(initialization): Initialize 'rc'.
+	(receive_request): Start 'nc' in the background before sending the
+	"ready:" message. Redirect stdin of 'nc' from /dev/zero.
+	(read_data_file): Allow for multiple lines of data.
+	(call_stap): Quoet $cmdline. Set 'rc'.
+	(send_response): Send "failed:" if stap is unsuccessful. Start 'nc'
+	in the background before sending the response.
+	(cleanup): Kill any running 'nc' job.
+	(terminate): Exit with $rc.
+	* stap-serverd: Start the server before advertising our presence.
+	* stap-find-or-start-server: Echo 0 if a server is already running.
+	Echo -1 if no server is running and one can't be started.
+	* stap-start-server: Wait until the server starts before exiting. Exit
+	with 1 if the server does not start.
+	* systemtap.spec: Move client side script to the runtime sub package.
+	The main package and the runtime sub package both depend on avahi-tools
+	and nc.
+	* Makefile.am: Revert previous changes. Now done in
+	testsuite/lib/systemtap.exp.
+	* Makefile.in: Regenerated.
+
+2008-08-08  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_derived_probe_group::emit_module_decls):
+	Calls stap_utrace_detach() to perform detach.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (EXAMPLE_BUILD_DIR): Removed. Examples indexes are
+	always in srcdir.
+	(dist-hook): Always install examples from srcdir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (rpm): Refer to srcdir spec file so make rpm works in
+	builddir.
+	* Makefile.in: Regenerated.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec: Disable chmodding of samples/kmalloc-top.
+	It is currently not installed.
+
+2008-08-08  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (all-local): Depend on example_index, which now
+	doesn't generate anything in $srcdir anymore, only $builddir.
+	(EXAMPLE_SOURCE_DIR): New var.
+	(EXAMPLE_BUILD_DIR): New var.
+	(EXAMPLE_META_FILES): New var.
+	(EXAMPLE_INDEX_GEN): New var.
+	(example_index): New target.
+	($EXAMPLE_BUILD_DIR/index.html): Likewise.
+	(install-data-local): Install examples from $buildir.
+	* Makefile.in: Regenerated.
+	* aclocal.m4: Likewise.
 
 2008-08-07  Frank Ch. Eigler  <fche@elastic.org>
 
-	* tapsetes.cxx
-	(utrace_var_expanding_copy_visitor::visit_target_symbol):
-	Defer to new tapset function instead of synthesized embedded-c.
+	* Makefile.am (all-local): Don't run indexing code, since $srcdir
+	may be read-only.
+	(install-data): Simplify sample script installation; limit sources
+	to systemtap.examples directory only.
+	* Makefile.in: Regenerated.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* Makefile.am (all-local): Add example_index.
+	(dist-hook): Likewise.
+	(EXAMPLE_SRC): Add index and support files.
+	(EXAMPLE_INDEXES): New file list.
+	(example_index): New target.
+	(clean-local): Remove generated indexes.
+	* Makefile.in: Regenerated.
+
+2008-08-07  Mark Wielaard  <mwielaard@redhat.com>
+
+	* systemtap.spec: Add comment about versioned vs unversioned docs.
+
+2008-08-06  Frank Ch. Eigler  <fche@elastic.org>
+
+	* stap-find-servers (match_server, client_sysinfo):
+	Use "sysinfo=...." keyword in mdns TXT record.
+	* stap-serverd (advertise_presence): Ditto.
+	(initialization): Locate random usable server port if needed.
+	(listen): Complain if port turns out to be unusable after all.
+
+2008-08-06  Josh Stone  <joshua.i.stone@intel.com>
+
+	PR 6820
+	From Eugeniy Meshcheryakov eugen@debian.org:
+	* staprun.8.in: fix minor formatting problems
 
 2008-08-05  Stan Cox  <scox@redhat.com>
 

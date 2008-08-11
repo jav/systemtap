@@ -853,9 +853,10 @@ struct dwflpp
 
     // PR 5049: implicit * in front of given path pattern.
     // NB: fnmatch() is used without FNM_PATHNAME.
-    string prefixed_pattern = string("*") + pattern;
+    string prefixed_pattern = string("*/") + pattern;
 
-    bool t = (fnmatch(prefixed_pattern.c_str(), cu_name.c_str(), 0) == 0);
+    bool t = (fnmatch(pattern.c_str(), cu_name.c_str(), 0) == 0 ||
+              fnmatch(prefixed_pattern.c_str(), cu_name.c_str(), 0) == 0);
     if (t && sess.verbose>3)
       clog << "pattern '" << prefixed_pattern << "' "
 	   << "matches "
@@ -1299,7 +1300,7 @@ struct dwflpp
 
     // PR 5049: implicit * in front of given path pattern.
     // NB: fnmatch() is used without FNM_PATHNAME.
-    string prefixed_pattern = string("*") + pattern;
+    string prefixed_pattern = string("*/") + pattern;
 
     dwarf_assert ("dwarf_getsrcfiles",
 		  dwarf_getsrcfiles (cu, &srcfiles, &nfiles));
@@ -1307,7 +1308,8 @@ struct dwflpp
     for (size_t i = 0; i < nfiles; ++i)
       {
 	char const * fname = dwarf_filesrc (srcfiles, i, NULL, NULL);
-	if (fnmatch (prefixed_pattern.c_str(), fname, 0) == 0)
+	if (fnmatch (pattern.c_str(), fname, 0) == 0 ||
+            fnmatch (prefixed_pattern.c_str(), fname, 0) == 0)
 	  {
 	    filtered_srcfiles.insert (fname);
 	    if (sess.verbose>2)
@@ -6310,13 +6312,7 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
       s.op->newline() << "case UDPF_SYSCALL:";
       s.op->newline() << "case UDPF_SYSCALL_RETURN:";
       s.op->indent(1);
-      s.op->newline() << "engine = utrace_attach(tsk, UTRACE_ATTACH_MATCH_OPS, &p->ops, 0);";
-      s.op->newline() << "if (! IS_ERR(engine) && engine != NULL) {";
-      s.op->indent(1);
-      s.op->newline() << "utrace_detach(tsk, engine);";
-      s.op->newline() << "debug_task_finder_detach();";
-
-      s.op->newline(-1) << "}";
+      s.op->newline() << "stap_utrace_detach(tsk, &p->ops);";
       s.op->newline() << "break;";
       s.op->indent(-1);
     }

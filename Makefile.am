@@ -140,10 +140,12 @@ STAPLOG=staplog.so
 $(STAPLOG): staplog.c
 	$(CC) $(staplog_CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -shared -rdynamic \
 		$(AM_LDFLAGS) $(LDFLAGS) -fPIC -o $@ $<
-all-local: $(STAPLOG)
+all-local: $(STAPLOG) example_index
 install-exec-local: $(STAPLOG)
 	$(MKDIR_P) $(DESTDIR)$(pkglibdir)
 	$(INSTALL) $(STAPLOG) $(DESTDIR)$(pkglibdir)
+else
+all-local: example_index
 endif
 
 # Get extra libs as needed
@@ -159,30 +161,15 @@ EXTRA_DIST = auto_free.h buildrun.h elaborate.h loc2c.h session.h \
 	     systemtap.spec
 
 EXAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples
-EXAMPLE_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples
-DEMO_SOURCE_DIR = $(srcdir)/testsuite/systemtap.examples/small_demos
-DEMO_INSTALL_DIR = $(DESTDIR)$(datadir)/doc/systemtap/examples/small_demos
-SAMPLE_SOURCE_DIR = $(srcdir)/testsuite/systemtap.samples
-SAMPLE_INSTALL_DIR = $(EXAMPLE_INSTALL_DIR)/samples
+EXAMPLE_META_FILES = $(EXAMPLE_SOURCE_DIR)/*/*.meta
 
-EXAMPLE_SRC = $(EXAMPLE_SOURCE_DIR)/ChangeLog \
-	$(EXAMPLE_SOURCE_DIR)/README \
-	$(EXAMPLE_SOURCE_DIR)/*.stp \
-	$(EXAMPLE_SOURCE_DIR)/*.txt \
-	$(EXAMPLE_SOURCE_DIR)/*.meta
+example_index: $(EXAMPLE_SOURCE_DIR)/index.html
 
-DEMO_SRC = \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.stp \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.txt \
-	$(EXAMPLE_SOURCE_DIR)/small_demos/*.wav
-
-SAMPLE_SRC = $(SAMPLE_SOURCE_DIR)/iotask.stp \
-	$(SAMPLE_SOURCE_DIR)/kmalloc-stacks.stp \
-	$(SAMPLE_SOURCE_DIR)/kmalloc-top \
-	$(SAMPLE_SOURCE_DIR)/pfaults.stp \
-	$(SAMPLE_SOURCE_DIR)/profile.stp \
-	$(SAMPLE_SOURCE_DIR)/tcp_connections.stp \
-	$(SAMPLE_SOURCE_DIR)/topsys.stp
+$(EXAMPLE_SOURCE_DIR)/index.html: $(EXAMPLE_META_FILES) $(EXAMPLE_INDEX_GEN)
+	@echo "The script example index is outdated, run"
+	@echo "    cd $(EXAMPLE_SOURCE_DIR) && \\ "
+	@echo "    perl examples-index-gen.pl"
+	@echo "to regenerate it."
 
 dist-hook: dist-gitversion
 	find $(distdir) -name CVS -o -name '*~' -o -name '.#*' | xargs rm -rf
@@ -199,12 +186,12 @@ install-data-local:
 		do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/runtime/uprobes/$$f; done)
 	(cd $(srcdir)/tapset; find . \( -name '*.stp' -o -name README \) -print \
 		| while read f; do $(INSTALL_DATA) -D $$f $(DESTDIR)$(pkgdatadir)/tapset/$$f; done)
-	$(MKDIR_P) $(EXAMPLE_INSTALL_DIR)
-	$(INSTALL_DATA) $(EXAMPLE_SRC) $(EXAMPLE_INSTALL_DIR)
-	$(MKDIR_P) $(DEMO_INSTALL_DIR)
-	$(INSTALL_DATA) $(DEMO_SRC) $(DEMO_INSTALL_DIR)
-	$(MKDIR_P) $(SAMPLE_INSTALL_DIR)
-	$(INSTALL_DATA) $(SAMPLE_SRC) $(SAMPLE_INSTALL_DIR)
+	(cd $(srcdir)/testsuite/systemtap.examples; find . -type f -print \
+		| egrep -v 'check.exp|ChangeLog|examples-index-gen.pl' \
+		| while read f; do if test -x $$f; then \
+			i_cmd="$(INSTALL_PROGRAM)"; else \
+			i_cmd="$(INSTALL_DATA)"; fi; \
+			$$i_cmd -D $$f $(DESTDIR)$(docdir)/examples/$$f; done)
 
 TEST_COV_DIR = coverage
 
@@ -250,28 +237,9 @@ SUBDIRS = testsuite doc
 
 check:
 	SRCDIR=`cd $(srcdir); pwd`; \
-	BUILDDIR=`cd $(builddir); pwd`; \
-	need_server=0; \
-	(echo "X$(EXTRA_TOOL_OPTS)" | grep -q server) && need_server=1; \
-	if test $$need_server = 1; then \
-	  echo "Testing using a systemtap server"; \
-	  need_server=0; \
-	  server_pid=`stap-find-or-start-server` || need_server=1; \
-	  if test $$need_server = 1; then \
-	      echo "Cannot find or start a systemtap server"; \
-	      exit -1; \
-	  fi; \
-	  client_path="$$BUILDDIR/testsuite/net"; \
-	  mkdir -p $$BUILDDIR/testsuite/net; \
-	  cp -p $$SRCDIR/stap-client $$BUILDDIR/testsuite/net/stap; \
-	fi; \
-	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$$client_path:$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)"; \
-	if test "X$$server_pid" != "X"; then \
-	  stap-stop-server $$server_pid; \
-	fi
+	$(MAKE) -C testsuite check SYSTEMTAP_RUNTIME=$$SRCDIR/runtime SYSTEMTAP_TAPSET=$$SRCDIR/tapset LD_LIBRARY_PATH=$(PWD)/lib-elfutils:$(PWD)/lib-elfutils/systemtap SYSTEMTAP_PATH="$(PWD)" RUNTESTFLAGS="$(RUNTESTFLAGS)";
 
 installcheck:
-	BUILDDIR=`cd $(builddir); pwd`; \
 	if test \! -e $(DESTDIR)$(bindir)/stap; then \
 	  echo $(DESTDIR)$(bindir)/stap doesn\'t exist, run make install; \
 	  exit -1; \
@@ -279,25 +247,8 @@ installcheck:
 	if test $(builddir)/stap -nt $(DESTDIR)$(bindir)/stap; then \
 	  echo "$(DESTDIR)$(bindir)/stap is not recent, run make install"; \
 	  exit -1; \
-	fi; \
-	need_server=0; \
-	(echo "X$(EXTRA_TOOL_OPTS)" | grep -q server) && need_server=1; \
-	if test $$need_server = 1; then \
-	  echo "Testing using a systemtap server"; \
-	  need_server=0; \
-	  server_pid=`stap-find-or-start-server` || need_server=1; \
-	  if test $$need_server = 1; then \
-	      echo "Cannot find or start a systemtap server"; \
-	      exit -1; \
-	  fi; \
-	  client_path=":$$BUILDDIR/testsuite/net"; \
-	  mkdir -p $$BUILDDIR/testsuite/net; \
-	  cp -p $(DESTDIR)$(bindir)/stap-client $$BUILDDIR/testsuite/net/stap; \
-	fi; \
-	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)$$client_path"; \
-	if test "X$$server_pid" != "X"; then \
-	  stap-stop-server $$server_pid; \
-	fi
+	fi;
+	$(MAKE) -C testsuite installcheck RUNTESTFLAGS="$(RUNTESTFLAGS)" EXTRA_SYSTEMTAP_PATH="$(EXTRA_SYSTEMTAP_PATH)"
 
 rpm:	systemtap.spec dist
-	rpmbuild --define "_sourcedir $(PWD)/" -ba systemtap.spec
+	rpmbuild --define "_sourcedir $(PWD)/" -ba $(srcdir)/systemtap.spec

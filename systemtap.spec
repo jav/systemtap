@@ -46,6 +46,7 @@ Requires: crash
 %if %{with_docs}
 BuildRequires: /usr/bin/latex /usr/bin/dvips /usr/bin/ps2pdf latex2html
 %endif
+Requires: avahi-tools nc
 
 %description
 SystemTap is an instrumentation system for systems running Linux 2.6.
@@ -59,6 +60,7 @@ License: GPLv2+
 URL: http://sourceware.org/systemtap/
 Requires: kernel >= 2.6.9-11
 Requires(pre): shadow-utils
+Requires: avahi-tools nc
 
 %description runtime
 SystemTap runtime is the runtime component of an instrumentation
@@ -135,14 +137,17 @@ make %{?_smp_mflags}
 rm -rf ${RPM_BUILD_ROOT}
 make DESTDIR=$RPM_BUILD_ROOT install
 
-# We want the examples in the special doc dir, not the generoc doc install dir.
+# We want the examples in the special doc dir, not the build install dir.
+# We build it in place and then move it away so it doesn't get installed
+# twice. rpm can specify itself where the (versioned) docs go with the
+# %doc directive.
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/examples examples
 
 # Fix paths in the example & testsuite scripts
 find examples testsuite -type f -name '*.stp' -print0 | xargs -0 sed -i -r -e '1s@^#!.+stap@#!%{_bindir}/stap@'
 
 # To avoid perl dependency, make perl sample script non-executable
-chmod -x examples/samples/kmalloc-top
+#chmod -x examples/samples/kmalloc-top
 
 # Because "make install" may install staprun with mode 04111, the
 # post-processing programs rpmbuild runs won't be able to read it.
@@ -155,6 +160,9 @@ cp -rp testsuite $RPM_BUILD_ROOT%{_datadir}/systemtap
 
 #%if %{with_docs}
 # We want the manuals in the special doc dir, not the generic doc install dir.
+# We build it in place and then move it away so it doesn't get installed
+# twice. rpm can specify itself where the (versioned) docs go with the
+# %doc directive.
 mkdir docs.installed
 mv $RPM_BUILD_ROOT%{_datadir}/doc/systemtap/*.pdf docs.installed/
 #%endif
@@ -178,10 +186,6 @@ exit 0
 %{_bindir}/stap
 %{_bindir}/stap-server
 %{_bindir}/stap-serverd
-%{_bindir}/stap-find-servers
-%{_bindir}/stap-start-server
-%{_bindir}/stap-find-or-start-server
-%{_bindir}/stap-stop-server
 %{_mandir}/man1/*
 %{_mandir}/man5/*
 
@@ -203,6 +207,10 @@ exit 0
 %defattr(-,root,root)
 %attr(4111,root,root) %{_bindir}/staprun
 %{_bindir}/stap-client
+%{_bindir}/stap-find-servers
+%{_bindir}/stap-start-server
+%{_bindir}/stap-find-or-start-server
+%{_bindir}/stap-stop-server
 %{_libexecdir}/%{name}
 %{_mandir}/man8/*
 

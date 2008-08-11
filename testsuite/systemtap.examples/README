@@ -5,5 +5,53 @@ Each script should be checked in as executable.
 The first line should be
 #! /usr/bin/env stap
 
-There should be an accompanying ".txt" file describing what the
-script does and how to use it.
+There should be an accompanying ".meta" file describing what the
+script does and how to use it, and how the testsuite should compile
+and run it. The meta files are also used to create a txt and html
+index (by keyword and subsystem) of all the examples by the
+examples-index-gen.pl script.
+
+The meta file contains the following elements. Each element (key and
+value) are on one line. If a key can have a list of values, the list
+elements are separated by spaces.
+
+title: Descriptive title for the script (required)
+name: the file name for the script, e.g. iotime.stp (required)
+version: versioning if any fixes and developed can be identified (required)
+author: name of author(s), "anonymous" if unknown (required)
+exclusivearch: Stated if the script can only run on some arches
+	       this concept borrowed from rpm, matches types for rpm:
+	       x86 i386 x86_64 ppc ppc64, s390 (optional)
+requires: Some scripts may require software to be available. In some cases
+	  may need version numbering, e.g. kernel >= 2.6
+    	  Can have multiple "requires:" tags. (optional)
+keywords: List of likely words to categorize the script (required)
+	  keywords are separated by spaces.
+          #FIXME have list of keyword
+subsystem: List what part of the kernel the instrumentation probes (required)
+	   audit cpu blockio file filesystem locking memory numa network
+	   process scheduler or user-space (probes are in the user-space)
+application: when user-space probing becomes available (optional)
+             a script might probe a particular application
+	     this tag indicates the applicaton
+status: describes the state of development for the script (required)
+	proposed    	just an idea
+	experimental	an implemented idea, but use at own risk
+	alpha		   
+	beta
+	production	should be safe to use
+exit: how long do the script run? (required)
+      fixed	    	exits in a fixed amount of time
+      user-controlled	      exits with "cntrl-c"
+      event-ended	      	    exits with some arbitrary event
+output: what kind of output does the script generate? (required)
+	trace histogram graph sorted batch timed
+scope: How much of the processes on the machine does the script watch?
+       system-wide or pid
+arg_[0-9]+: Describe what the arguments into the script are. (optional)
+description: A text description what the script does. (required)
+test_check: How to check that the example compiles.
+	    (e.g. stap -p4 iotime.stp)
+test_installcheck: How to check that the example runs.
+		   (e.g. stap iotime.stp -c "sleep 1")
+

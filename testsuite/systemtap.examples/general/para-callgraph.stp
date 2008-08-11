@@ -1,3 +1,5 @@
+#! /usr/bin/env stap
+
 function trace(entry_p) {
    if(tid() in trace)
        printf("%s%s%s\n",thread_indent(entry_p),

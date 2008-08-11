@@ -36,7 +36,10 @@ proc run_command { test command } {
     #FIXME tcl says that single quotes not dealt with
     if { $command != "" } then {
 	verbose -log "attempting command $command"
-	set res [catch {eval exec $command} value]
+	# Pipe both stdout and stderr to cat, otherwise any stderr
+	# output results in res being set to 1 (TCL_ERROR). This breaks
+	# scripts that have WARNINGS about for example skipped probes.
+	set res [catch {eval exec "$command |& cat"} value]
 	verbose -log "OUT $value"
 	verbose -log "RC $res"
 	if {$res != 0 } {
