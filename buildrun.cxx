@@ -87,6 +87,14 @@ compile_pass (systemtap_session& s)
 
   string module_cflags = "EXTRA_CFLAGS";
   o << module_cflags << " :=" << endl;
+
+  // XXX: This gruesome hack is needed on some kernels built with separate O=directory,
+  // where files like 2.6.27 x86's asm/mach-*/mach_mpspec.h are not found on the cpp path.
+  // This could be a bug in arch/x86/Makefile that names
+  //      mflags-y += -Iinclude/asm-x86/mach-default
+  // but that path does not exist in an O= build tree.
+  o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
+
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;
