@@ -5931,8 +5931,25 @@ struct utrace_builder: public derived_probe_builder
     else if (has_null_param (parameters, TOK_END))
       flags = UDPF_END;
 
-    // If we have a path, we need to validate it.
-    if (has_path)
+    // Validate pid.
+    if (has_pid)
+      {
+	// We can't probe 'init' (pid 1).
+	if (pid < 2)
+	  throw semantic_error ("process pid must be greater than 1",
+				location->tok);
+      }
+    // If we have a path whose value is "*", this means to probe
+    // everything.  Convert this to a pid-based probe.
+    else if (has_path && path == "*")
+      {
+	has_path = false;
+	path.clear();
+	has_pid = true;
+	pid = 0;
+      }
+    // If we have a regular path, we need to validate it.
+    else if (has_path)
       {
 	string::size_type start_pos, end_pos;
 	string component;

@@ -130,8 +130,10 @@ stap_register_task_finder_target(struct stap_task_finder_target *new_tgt)
 		    && ((new_tgt->pathlen > 0
 			 && tgt->pathlen == new_tgt->pathlen
 			 && strcmp(tgt->pathname, new_tgt->pathname) == 0)
-			/* pid-based target */
-			|| (new_tgt->pid != 0 && tgt->pid == new_tgt->pid))) {
+			/* pid-based target (a specific pid or all
+			 * pids) */
+			|| (new_tgt->pathlen == 0
+			    && tgt->pid == new_tgt->pid))) {
 			found_node = 1;
 			break;
 		}
@@ -375,23 +377,29 @@ __stp_utrace_attach_match_filename(struct task_struct *tsk,
 	size_t filelen;
 	struct list_head *tgt_node;
 	struct stap_task_finder_target *tgt;
-	int found_node = 0;
 
 	filelen = strlen(filename);
 	list_for_each(tgt_node, &__stp_task_finder_list) {
+		struct list_head *cb_node;
+
 		tgt = list_entry(tgt_node, struct stap_task_finder_target,
 				 list);
-		// Note that we don't bother with looking for pids
-		// here, since they are handled at startup.
-		if (tgt != NULL && tgt->pathlen > 0
-		    && tgt->pathlen == filelen
-		    && strcmp(tgt->pathname, filename) == 0) {
-			found_node = 1;
-			break;
-		}
-	}
-	if (found_node) {
-		struct list_head *cb_node;
+		// If we've got a matching pathname or we're probing
+		// all threads, we've got a match.  We've got to keep
+		// matching since a single thread could match a
+		// pathname and match an "all thread" probe.
+		if (tgt == NULL)
+			continue;
+		else if (tgt->pathlen > 0
+			 && (tgt->pathlen != filelen
+			     || strcmp(tgt->pathname, filename) != 0))
+			continue;
+		/* Ignore pid-based target, they were handled at startup. */
+		else if (tgt->pid != 0)
+			continue;
+		/* Notice that "pid == 0" (which means to probe all
+		 * threads) falls through. */ 
+
 		list_for_each(cb_node, &tgt->callback_list_head) {
 			struct stap_task_finder_target *cb_tgt;
 			int rc;
@@ -1030,6 +1038,8 @@ stap_start_task_finder(void)
 			/* pid-based target */
 			else if (tgt->pid != 0 && tgt->pid != tsk->pid)
 				continue;
+			/* Notice that "pid == 0" (which means to
+			 * probe all threads) falls through. */
 
 			list_for_each(cb_node, &tgt->callback_list_head) {
 				struct stap_task_finder_target *cb_tgt;

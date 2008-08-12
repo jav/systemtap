@@ -423,6 +423,9 @@ Note that
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
+A
+.I PATH
+of "*" means to probe all threads.
 
 .SS PROCFS
 

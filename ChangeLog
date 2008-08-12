@@ -1,3 +1,11 @@
+2008-08-12  David Smith  <dsmith@redhat.com>
+
+	PR 6445 (partial)
+	* tapsets.cxx (utrace_builder::build): Validates pid and allows
+	probing of "*" to mean all threads.
+	* stapprobes.5.in: Added note about a process path of "*" means to
+	probe all threads.
+
 2008-08-11  Wenji Huang  <wenji.huang@oracle.com>
 
 	* tapsets.cxx : Fixed compilation warning on gcc 3.x.
