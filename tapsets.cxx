@@ -2067,7 +2067,7 @@ struct dwflpp
           diestr = (dname != NULL) ? dname : "<unknown>";
 
           Dwarf_Attribute encoding_attr;
-          Dwarf_Word encoding = -1;
+          Dwarf_Word encoding = (Dwarf_Word) -1;
           dwarf_formudata (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr),
                            & encoding);
           if (encoding < 0)
