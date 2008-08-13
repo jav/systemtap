@@ -37,7 +37,7 @@ proc print_systemtap_version {} {
 
 
 proc setup_systemtap_environment {} {
-    global srcdir prefix env server_pid
+    global srcdir prefix env server_pid client_path
 
     # need an absolute SRCDIR for the top-level src/ tree
     # XXX: or, we could change nearby uses of ${SRCDIR}/testsuite to ${SRCDIR}
@@ -121,7 +121,7 @@ proc systemtap_init {args} {}
 proc systemtap_version {} {}
 
 proc systemtap_exit {} {
-    global server_pid
+    global server_pid client_path
 
     # Stop the stap server, if we started it.
     if {[use_server_p]} then {
@@ -129,6 +129,9 @@ proc systemtap_exit {} {
 	    print "Stopping the systemtap server with PID==$server_pid"
 	    exec stap-stop-server $server_pid
 	}
+
+	# Remove the temporary stap script
+	exec /bin/rm -fr $client_path
     }
 }
 

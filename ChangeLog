@@ -1,3 +1,13 @@
+2008-08-13  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Trap SIGTERM and SIGINT.
+	(unpack_response): chown of the systemtap temp directory before
+	we move it and only if we didn't create it.
+	(maybe_call_staprun): Check $e_script when determining whether a
+	script was specified. Provide the -c option to staprun. Run staprun
+	in the background and wait for it.
+	(terminate,interupt): New functions.
+
 2008-08-11  Wenji Huang  <wenji.huang@oracle.com>
 
 	* tapsets.cxx : Fixed compilation warning on gcc 3.x.

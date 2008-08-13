@@ -16,6 +16,10 @@
 # request. If a kernel module is generated, this script will load the module
 # and execute it using 'staprun', if requested.
 
+# Catch ctrl-c and other termination signals
+trap 'terminate' SIGTERM
+trap 'interrupt' SIGINT
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
@@ -472,11 +476,11 @@ function unpack_response {
 	    sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
 	    tmpdir_stap=$local_tmpdir_stap
 	else
+            # Make sure we own the systemtap temp directory if we are root.
+	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_server/$tmpdir_stap
+	    # The temp directory will be moved to here below.
 	    tmpdir_stap=`pwd`/$tmpdir_stap
 	fi
-
-        # Make sure we own the systemtap temp directory if we are root.
-	test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
     fi
 
     # Move the contents of the server's tmpdir down one level to the
@@ -568,7 +572,7 @@ function maybe_call_staprun {
         # There should be a systemtap temporary directory.
 	if test "X$tmpdir_stap" = "X"; then
 	    # OK if no script specified
-	    if test "X$script_file" != "X"; then
+	    if test "X$e_script" != "X" -o "X$script_file" != "X"; then
 		fatal "ERROR: systemtap temporary directory is missing in server response"
 	    fi
 	    return
@@ -582,13 +586,26 @@ function maybe_call_staprun {
 
 	if test $p_phase = 5; then
 	    # We have a module. Try to run it
+	    # If a -c command was specified, pass it along.
+	    if test "X$c_cmd" != "X"; then
+		staprun_opts="-c '$c_cmd'"
+	    fi
+
+	    # The -v level will be one less than what was specified
+	    # for us.
 	    for ((--v_level; $v_level > 0; --v_level))
 	    do
 		staprun_opts="$staprun_opts -v"
 	    done
-	    PATH=`staprun_PATH` staprun $staprun_opts \
-		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
+
+	    # Run it in the background and wait for it. This
+	    # way any signals send to us can be caught.
+	    PATH=`staprun_PATH` eval staprun "$staprun_opts" \
+		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'` &
+	    wait %?staprun
 	    rc=$?
+	    # 127 from wait means that the job was already finished.
+	    test $rc=127 && rc=0
 	fi
     fi
 }
@@ -653,6 +670,28 @@ function cleanup {
 	rm -f  $tar_server
 	rm -fr $tmpdir_server
     fi
+}
+
+# function: terminate
+#
+# Terminate gracefully.
+function terminate {
+    # Clean up
+    echo "$0: terminated by signal"
+    cleanup
+
+    # Kill any running staprun job
+    kill -s SIGTERM %?staprun
+
+    exit 1
+}
+
+# function: interrupt
+#
+# Pass an interrupt (ctrl-C) to staprun
+function interrupt {
+    # Pass the signal on to any running staprun job
+    kill -s SIGINT %?staprun
 }
 
 #-----------------------------------------------------------------------------

@@ -1,3 +1,9 @@
+2008-08-13  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp (setup_systemtap_environment): client_path is now
+	global.
+	(systemtap_exit): Remove the directory named by $client_path.
+
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/vars.exp: Adjust to loss of "\n" at end of $$vars
