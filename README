@@ -13,27 +13,26 @@ Prerequisites:
 - kernel module build environment (kernel-devel or kernel-smp-devel rpm)
 - kernel debugging information (kernel-debuginfo rpm)
 - C compiler (same as what kernel was compiled with)
-- elfutils with libdwfl (possible to reuse system elfutils if new and
-  complete enough, otherwise download source snapshot and build
-  together with systemtap as follows)
+- elfutils with libdwfl for debugging informatin parsing
 - root privileges
 
 Installation steps:
 
-- Install the kernel-debuginfo, kernel-[smp-]devel, gcc packages.
+- Install the kernel-debuginfo, kernel-devel, gcc packages.
 - Install the systemtap package, if one already exists.
 
 Build steps:
 
 - Install the kernel-debuginfo, kernel-[smp-]devel, gcc and libcap-devel
   packages (or see below if you are building your own kernels from source).
+  If avaialable, install your distribution's copy of elfutils and its
+  development headers/libraries.
 
-- If desired, download a recent elfutils snapshot to build in "bundled mode".
-  If desired, build it separately one time, and install it to /usr/local.
-
-  ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-NNNN.tar.gz
-  ftp://sources.redhat.com/pub/systemtap/elfutils/elfutils-portability.patch
-- Untar the snapshot in some new directory; apply patch (don't ask, long story)
+- Or if desired, download an elfutils source release to build in
+  "bundled mode" (below), and untar it into some new directory.
+  Or if desired, build elfutils separately one time, and install
+  it to /usr/local.
+  See http://fedorahosted.org/elfutils/
 
 - Download systemtap sources:
   http://sources.redhat.com/systemtap/ftp/releases/
@@ -42,11 +41,16 @@ Build steps:
   git clone git://sources.redhat.com/git/systemtap.git
       (or) http://sources.redhat.com/git/systemtap.git
 
-- Build it:
-  .../configure [--with-elfutils=PATCHED-ELFUTILS-DIR] [other autoconf options]
-  make all check
-  sudo make install
-  sudo make installcheck
+- Build systemtap normally:
+  % .../configure [other autoconf options]
+  Or, with build it with a bundled internal copy of elfutils:
+  % .../configure --with-elfutils=ELFUTILS-SOURCE-DIR [other autoconf options]
+  Consider configuring with "--enable-dejazilla" to automatically
+  contribute to our public test result database.
+
+  % make all check
+  % sudo make install
+  % sudo make installcheck
 
 Tips:
 
@@ -54,6 +58,7 @@ Tips:
   /boot/vmlinux-`uname -r`
   /usr/lib/debug/lib/modules/`uname -r`/vmlinux
   /lib/modules/`uname -r`/vmlinux
+  /lib/modules/`uname -r`/build/vmlinux
 
 Building a kernel.org kernel:
 

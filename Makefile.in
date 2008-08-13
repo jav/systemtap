@@ -1530,9 +1530,9 @@ cscope:
 	(echo -q ; git ls-files '*.cxx' '*.c' '*.h' | grep -v '^testsuite' ) > cscope.files && \
 	cscope -b -q
 @BUILD_ELFUTILS_TRUE@stamp-elfutils: config.status
-@BUILD_ELFUTILS_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all
+@BUILD_ELFUTILS_TRUE@	$(MAKE) $(AM_MAKEFLAGS) -C build-elfutils all bin_PROGRAMS=
 @BUILD_ELFUTILS_TRUE@	for dir in libelf libebl libdw libdwfl backends; do \
-@BUILD_ELFUTILS_TRUE@	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir install; \
+@BUILD_ELFUTILS_TRUE@	  $(MAKE) $(AM_MAKEFLAGS) -C build-elfutils/$$dir bin_PROGRAMS= install; \
 @BUILD_ELFUTILS_TRUE@	done
 @BUILD_ELFUTILS_TRUE@	touch $@
 @BUILD_ELFUTILS_TRUE@lib-elfutils/libdw.so: stamp-elfutils ;
