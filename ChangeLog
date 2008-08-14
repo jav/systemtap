@@ -1,3 +1,27 @@
+2008-08-14  Dave Brolley  <brolley@redhat.com>
+
+	PR 6834
+	* stap-client (initialization): initialize staprun_running.
+	(send_request): No server response message required.
+	(receive_response): No server response message required. Simply
+	receive the tar file. The tar file should contain a file called 'rc'.
+	(connect_to_server): Use 'nc'.
+	(disconnect_from_server): No action required.
+	(process_response): Renamed from 'stream_output'. Obtain the exit
+	code from the 'rc' file.
+	(maybe_call_staprun): set 'staprun_running' while staprun is running.
+	(check_server_error): Removed.
+	(server_fatal): Removed.
+	(cleanup): Redirect stderr of 'kill' to /dev/null.
+	(interrupt): Pass SIGINT on to staprun, if it is running. Otherwise,
+	exit.
+	* stap-server (initialization): Create the server temp directory here...
+	(unpack_request): ... not here.
+	(receive_request): Don't send a ready message.
+	(create_response): Write the exit code of 'stap' to the 'rc' file.
+	(send_response): Don't send a status message.
+	(fatal,error): Redirect to $tmpdir_server/stderr.
+
 2008-08-13  Dave Brolley  <brolley@redhat.com>
 
 	* stap-client: Trap SIGTERM and SIGINT.
