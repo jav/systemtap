@@ -591,7 +591,7 @@ __stp_utrace_task_finder_target_death(struct utrace_attached_engine *engine,
 
 		// Call the callback
 		rc = tgt->callback(tsk, 0,
-				   (atomic_read(&tsk->signal->live) == 0),
+				   (tsk->signal == NULL) || (atomic_read(&tsk->signal->live) == 0),
 				   tgt);
 		if (rc != 0) {
 			_stp_error("death callback for %d failed: %d",
