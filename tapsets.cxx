@@ -4333,7 +4333,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
             }
           else
             {
-              pf->raw_components += "$return";
+              pf->raw_components += "return";
               pf->raw_components += "=%#x ";
               pf->args.push_back(*(expression**)this->targets.top());
             }
