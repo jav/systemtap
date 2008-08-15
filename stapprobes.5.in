@@ -386,16 +386,22 @@ Additional user-space probing is available in the following forms:
 .SAMPLE
 process(PID).begin
 process("PATH").begin
+process.begin
 process(PID).thread.begin
 process("PATH").thread.begin
+process.thread.begin
 process(PID).end
 process("PATH").end
+process.end
 process(PID).thread.end
 process("PATH").thread.end
+process.thread.end
 process(PID).syscall
 process("PATH").syscall
+process.syscall
 process(PID).syscall.return
 process("PATH").syscall.return
+process.syscall.return
 process(PID).itrace
 process("PATH").itrace
 .ESAMPLE
@@ -431,9 +437,8 @@ Note that
 names refer to executables that are searched the same way shells do: relative
 to the working directory if they contain a "/" character, otherwise in 
 .BR $PATH .
-A
-.I PATH
-of "*" means to probe all threads.
+If a process probe is specified without a PID or PATH, all user
+threads are probed.
 
 .SS PROCFS
 

@@ -1,3 +1,8 @@
+2008-08-15  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p4.exp: Change system-wide probes from
+	'process("*").begin' to 'process.begin'.
+
 2008-08-13  Dave Brolley  <brolley@redhat.com>
 
 	* lib/systemtap.exp (setup_systemtap_environment): client_path is now

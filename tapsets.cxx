@@ -5945,7 +5945,6 @@ struct utrace_builder: public derived_probe_builder
     bool has_path = get_param (parameters, TOK_PROCESS, path);
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
     enum utrace_derived_probe_flags flags = UDPF_NONE;
-    assert (has_path || has_pid);
 
     if (has_null_param (parameters, TOK_THREAD))
       {
@@ -5966,22 +5965,22 @@ struct utrace_builder: public derived_probe_builder
     else if (has_null_param (parameters, TOK_END))
       flags = UDPF_END;
 
-    // Validate pid.
-    if (has_pid)
-      {
-	// We can't probe 'init' (pid 1).
-	if (pid < 2)
-	  throw semantic_error ("process pid must be greater than 1",
-				location->tok);
-      }
-    // If we have a path whose value is "*", this means to probe
-    // everything.  Convert this to a pid-based probe.
-    else if (has_path && path == "*")
+    // If we didn't get a path or pid, this means to probe everything.
+    // Convert this to a pid-based probe.
+    if (! has_path && ! has_pid)
       {
 	has_path = false;
 	path.clear();
 	has_pid = true;
 	pid = 0;
+      }
+    // Validate pid.
+    else if (has_pid)
+      {
+	// We can't probe 'init' (pid 1).
+	if (pid < 2)
+	  throw semantic_error ("process pid must be greater than 1",
+				location->tok);
       }
     // If we have a regular path, we need to validate it.
     else if (has_path)
@@ -8897,17 +8896,25 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes

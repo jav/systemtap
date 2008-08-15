@@ -1,3 +1,11 @@
+2008-08-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_builder::build): Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+	(register_standard_tapsets): Add new 'process' binding.
+	* stapprobes.5.in: Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+
 2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6836.
