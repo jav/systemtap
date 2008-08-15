@@ -1,3 +1,11 @@
+2008-08-15  Michael Meeks  <michael.meeks@novell.com>
+
+	* configure.ac: suggest (SUSE) package name for dwfl.
+
+	* buildrun.cxx (compile_pass): if extremely verbose, pass through
+	output from stap checks - helps to debug generic test compile
+	problems.
+
 2008-08-14  Dave Brolley  <brolley@redhat.com>
 
 	PR 6834
