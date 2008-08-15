@@ -1,3 +1,8 @@
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	* general/para-callgraph*: Extend.
+	* indexes: Regenerated.
+
 2008-08-11  Mark Wielaard  <mwielaard@redhat.com>
 
 	* check.exp: Make sure that stderr gets redircted so warnings don't

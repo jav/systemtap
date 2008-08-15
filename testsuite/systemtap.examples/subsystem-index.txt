@@ -28,6 +28,19 @@ subsystems: disk, keywords: disk
   ten entries during that period.
 
 
+= GENERAL =
+
+general/para-callgraph.stp - Callgraph tracing with arguments
+subsystems: general, keywords: trace callgraph
+
+  Print a timed per-thread callgraph, complete with function parameters
+  and return values.  The first parameter names the function probe
+  points to trace.  The optional second parameter names the probe
+  points for trigger functions, which acts to enable tracing for only
+  those functions that occur while the current thread is nested within
+  the trigger.
+
+
 = IO =
 
 io/io_submit.stp - Tally Reschedule Reason During AIO io_submit Call
@@ -60,16 +73,6 @@ subsystems: io, keywords: io
 
 
 = KERNEL =
-
-general/para-callgraph.stp - Tracing Calls for Sections of Code
-subsystems: kernel, keywords: trace callgraph
-
-  The script takes two arguments: the first argument is the function to
-  starts/stops the per thread call graph traces and the second argument
-  is the list of functions to generate trace information on. The script
-  prints out a timestap for the thread, the function name and pid,
-  followed by entry or exit symboly and function name.
-
 
 process/pf2.stp - Profile kernel functions
 subsystems: kernel, keywords: profiling

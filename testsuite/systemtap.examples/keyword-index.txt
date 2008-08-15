@@ -13,14 +13,15 @@ subsystems: io, keywords: io backtrace
 
 = CALLGRAPH =
 
-general/para-callgraph.stp - Tracing Calls for Sections of Code
-subsystems: kernel, keywords: trace callgraph
+general/para-callgraph.stp - Callgraph tracing with arguments
+subsystems: general, keywords: trace callgraph
 
-  The script takes two arguments: the first argument is the function to
-  starts/stops the per thread call graph traces and the second argument
-  is the list of functions to generate trace information on. The script
-  prints out a timestap for the thread, the function name and pid,
-  followed by entry or exit symboly and function name.
+  Print a timed per-thread callgraph, complete with function parameters
+  and return values.  The first parameter names the function probe
+  points to trace.  The optional second parameter names the probe
+  points for trigger functions, which acts to enable tracing for only
+  those functions that occur while the current thread is nested within
+  the trigger.
 
 
 = CPU =
@@ -395,14 +396,15 @@ subsystems: syscall, keywords: syscall read write time io
 
 = TRACE =
 
-general/para-callgraph.stp - Tracing Calls for Sections of Code
-subsystems: kernel, keywords: trace callgraph
+general/para-callgraph.stp - Callgraph tracing with arguments
+subsystems: general, keywords: trace callgraph
 
-  The script takes two arguments: the first argument is the function to
-  starts/stops the per thread call graph traces and the second argument
-  is the list of functions to generate trace information on. The script
-  prints out a timestap for the thread, the function name and pid,
-  followed by entry or exit symboly and function name.
+  Print a timed per-thread callgraph, complete with function parameters
+  and return values.  The first parameter names the function probe
+  points to trace.  The optional second parameter names the probe
+  points for trigger functions, which acts to enable tracing for only
+  those functions that occur while the current thread is nested within
+  the trigger.
 
 
 = TRAFFIC =
