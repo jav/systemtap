@@ -8,6 +8,14 @@
 
 2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
 
+	PR 6836
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Emit
+	"return=0xf00" instead of "$return=0xf00" for $$return,
+	for consistency with other variables.
+	* NEWS, stapprobes.5.in: Update.
+
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
 	PR 6836.
 	* tapsets.cxx (dwarf_var...visit_target_symbol): Show
 	"var=?" for unlocatable variables.  Support $$return.

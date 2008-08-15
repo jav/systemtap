@@ -356,7 +356,7 @@ expands to a subset of $$vars for only function parameters.
 .TP
 $$return
 is available in return probes only.  It expands to a string that
-is equivalent to sprintf("$return=%x", $return)
+is equivalent to sprintf("return=%x", $return)
 if the probed function has a return value, or else an empty string.
 .PP
 For ".return" probes, context variables other than the "$return"

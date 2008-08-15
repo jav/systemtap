@@ -47,9 +47,9 @@ subsystems: disk cpu, keywords: disk cpu use graph<br>
 <li><a href="general/helloworld.stp">general/helloworld.stp</a> - SystemTap "Hello World" Program<br>
 subsystems: none, keywords: simple<br>
 <p>A basic "Hello World" program implemented in SystemTap script. It prints out "hello world" message and then immediately exits.</p></li>
-<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
-subsystems: kernel, keywords: trace callgraph<br>
-<p>The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.</p></li>
+<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
+subsystems: general, keywords: trace callgraph<br>
+<p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
 <li><a href="io/disktop.stp">io/disktop.stp</a> - Summarize Disk Read/Write Traffic<br>
 subsystems: disk, keywords: disk<br>
 <p>Get the status of reading/writing disk every 5 seconds, output top ten entries during that period.</p></li>
