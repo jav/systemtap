@@ -1,3 +1,12 @@
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6836.
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Show
+	"var=?" for unlocatable variables.  Support $$return.
+	Make sure $$parms/etc. work in .return probes too.
+	* testsuite/semok/thirtytwo.stp: New test.
+	* NEWS, stapprobes.5.in: Document them.
+
 2008-08-15  Michael Meeks  <michael.meeks@novell.com>
 
 	* configure.ac: suggest (SUSE) package name for dwfl.

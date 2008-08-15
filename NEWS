@@ -2,7 +2,10 @@
 
 - A formatted string representation of the variables, parameters, or local
   variables at a probe point is now supported via the special $$vars,
-  $$parms, and $$locals context variables.
+  $$parms, and $$locals context variables, which expand to a string
+  containing a list "var1=0xdead var2=0xbeef var3=?".  (Here, var3 exists
+  but is for some reason unavailable.)  In return probes only, $$return
+  expands to an empty string for a void function, or "$return=0xf00".
 
 * What's new in version 0.7
 
