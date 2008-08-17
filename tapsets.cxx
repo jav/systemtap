@@ -1994,7 +1994,7 @@ struct dwflpp
           diestr = (dname != NULL) ? dname : "<unknown>";
 
           Dwarf_Attribute encoding_attr;
-          Dwarf_Word encoding = -1;
+          Dwarf_Word encoding = (Dwarf_Word) -1;
           dwarf_formudata (dwarf_attr_integrate (typedie, DW_AT_encoding, &encoding_attr),
                            & encoding);
           if (encoding < 0)
@@ -4051,7 +4051,11 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   if (lvalue && !q.sess.guru_mode)
     throw semantic_error("write to target variable not permitted", e->tok);
 
-  if (q.has_return && e->base_name != "$return")
+  // See if we need to generate a new probe to save/access function
+  // parameters from a return probe.  PR 1382.
+  if (q.has_return
+      && e->base_name != "$return" // not the special return-value variable handled below
+      && e->base_name != "$$return") // nor the other special variable handled below
     {
       if (lvalue)
 	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
@@ -4336,7 +4340,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   if (e->base_name == "$$vars"
       || e->base_name == "$$parms"
-      || e->base_name == "$$locals")
+      || e->base_name == "$$locals"
+      || (q.has_return && (e->base_name == "$$return")))
     {
       Dwarf_Die *scopes;
       if (dwarf_getscopes_die (scope_die, &scopes) == 0)
@@ -4347,55 +4352,85 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
       // Convert $$parms to sprintf of a list of parms and active local vars
       // which we recursively evaluate
-      token* tmp_tok = new token;
-      tmp_tok->type = tok_identifier;
-      tmp_tok->content = "sprintf";
-      pf->tok = tmp_tok;
+
+      // NB: we synthesize a new token here rather than reusing
+      // e->tok, because print_format::print likes to use
+      // its tok->content.
+      token* pf_tok = new token;
+      pf_tok->location = e->tok->location;
+      pf_tok->type = tok_identifier;
+      pf_tok->content = "sprint";
+
+      pf->tok = pf_tok;
       pf->print_to_stream = false;
       pf->print_with_format = true;
       pf->print_with_delim = false;
       pf->print_with_newline = false;
       pf->print_char = false;
 
-      Dwarf_Die result;
-      if (dwarf_child (&scopes[0], &result) == 0)
-	do
-	  {
-	    switch (dwarf_tag (&result))
-	      {
-	      case DW_TAG_variable:
-		if (e->base_name == "$$parms")
-		  continue;
-		break;
-	      case DW_TAG_formal_parameter:
-		if (e->base_name == "$$locals")
-		  continue;
-		break;
+      if (q.has_return && (e->base_name == "$$return"))
+        {
+          tsym->tok = e->tok;
+          tsym->base_name = "$return";
+          
+          // Ignore any variable that isn't accessible.
+          tsym->saved_conversion_error = 0;
+          this->visit_target_symbol(tsym); // NB: throws nothing ...
+          if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+            {
 
-	      default:
-		continue;
-	      }
-
-	    const char *diename = dwarf_diename (&result);
-	    token* sym_tok = new token;
-	    sym_tok->location = e->get_tok()->location;
-	    sym_tok->type = tok_identifier;
-	    sym_tok->content = diename;
-	    tsym->tok = sym_tok;
-	    tsym->base_name = "$";
-	    tsym->base_name += diename;
-
-	    // Ignore any variable that isn't accessible.
-            tsym->saved_conversion_error = 0;
-            this->visit_target_symbol(tsym); // NB: throws nothing ...
-            if (! tsym->saved_conversion_error) // ... but this is how we know it happened.
+            }
+          else
+            {
+              pf->raw_components += "return";
+              pf->raw_components += "=%#x ";
+              pf->args.push_back(*(expression**)this->targets.top());
+            }
+        }
+      else
+        {
+          // non-.return probe: support $$parms, $$vars, $$locals
+          Dwarf_Die result;
+          if (dwarf_child (&scopes[0], &result) == 0)
+            do
               {
-                pf->raw_components += diename;
-                pf->raw_components += "=%#x ";
-                pf->args.push_back(*(expression**)this->targets.top());
+                switch (dwarf_tag (&result))
+                  {
+                  case DW_TAG_variable:
+                    if (e->base_name == "$$parms")
+                      continue;
+                    break;
+                  case DW_TAG_formal_parameter:
+                    if (e->base_name == "$$locals")
+                      continue;
+                    break;
+                    
+                  default:
+                    continue;
+                  }
+                
+                const char *diename = dwarf_diename (&result);
+                tsym->tok = e->tok;
+                tsym->base_name = "$";
+                tsym->base_name += diename;
+                
+                // Ignore any variable that isn't accessible.
+                tsym->saved_conversion_error = 0;
+                this->visit_target_symbol(tsym); // NB: throws nothing ...
+                if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+                  {
+                    pf->raw_components += diename;
+                    pf->raw_components += "=? ";
+                  }
+                else
+                  {
+                    pf->raw_components += diename;
+                    pf->raw_components += "=%#x ";
+                    pf->args.push_back(*(expression**)this->targets.top());
+                  }
               }
-	  }
-	while (dwarf_siblingof (&result, &result) == 0);
+            while (dwarf_siblingof (&result, &result) == 0);
+        }
 
       pf->components = print_format::string_to_components(pf->raw_components);
       provide <print_format*> (this, pf);
@@ -4415,7 +4450,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   try
     {
-      if (q.has_return && e->base_name == "$return")
+      if (q.has_return && (e->base_name == "$return"))
         {
 	  ec->code = q.dw.literal_stmt_for_return (scope_die,
 						   addr,
@@ -5972,12 +6007,27 @@ struct utrace_builder: public derived_probe_builder
     else if (has_null_param (parameters, TOK_END))
       flags = UDPF_END;
 
-    // If we have a path, we need to validate it.
-    if (has_path)
-    {
-      path = find_executable (path);
-      sess.unwindsym_modules.insert (path);
-    }
+    // If we didn't get a path or pid, this means to probe everything.
+    // Convert this to a pid-based probe.
+    if (! has_path && ! has_pid)
+      {
+	has_path = false;
+	path.clear();
+	has_pid = true;
+	pid = 0;
+      }
+    else if (has_path)
+      {
+        path = find_executable (path);
+        sess.unwindsym_modules.insert (path);
+      }
+    else if (has_pid)
+      {
+	// We can't probe 'init' (pid 1).  XXX: where does this limitation come from?
+	if (pid < 2)
+	  throw semantic_error ("process pid must be greater than 1",
+				location->tok);
+      }
 
     finished_results.push_back(new utrace_derived_probe(sess, base, location,
                                                         has_path, path, pid,
@@ -9073,17 +9123,25 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes

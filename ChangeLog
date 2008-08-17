@@ -1,3 +1,106 @@
+2008-08-16  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (build_elfutils): Mention possible distro
+	specific elfutils development sub-packages needed when not found.
+
+2008-08-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_builder::build): Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+	(register_standard_tapsets): Add new 'process' binding.
+	* stapprobes.5.in: Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6836
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Emit
+	"return=0xf00" instead of "$return=0xf00" for $$return,
+	for consistency with other variables.
+	* NEWS, stapprobes.5.in: Update.
+
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6836.
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Show
+	"var=?" for unlocatable variables.  Support $$return.
+	Make sure $$parms/etc. work in .return probes too.
+	* testsuite/semok/thirtytwo.stp: New test.
+	* NEWS, stapprobes.5.in: Document them.
+
+2008-08-15  Michael Meeks  <michael.meeks@novell.com>
+
+	* configure.ac: suggest (SUSE) package name for dwfl.
+
+	* buildrun.cxx (compile_pass): if extremely verbose, pass through
+	output from stap checks - helps to debug generic test compile
+	problems.
+
+2008-08-14  Dave Brolley  <brolley@redhat.com>
+
+	PR 6834
+	* stap-client (initialization): initialize staprun_running.
+	(send_request): No server response message required.
+	(receive_response): No server response message required. Simply
+	receive the tar file. The tar file should contain a file called 'rc'.
+	(connect_to_server): Use 'nc'.
+	(disconnect_from_server): No action required.
+	(process_response): Renamed from 'stream_output'. Obtain the exit
+	code from the 'rc' file.
+	(maybe_call_staprun): set 'staprun_running' while staprun is running.
+	(check_server_error): Removed.
+	(server_fatal): Removed.
+	(cleanup): Redirect stderr of 'kill' to /dev/null.
+	(interrupt): Pass SIGINT on to staprun, if it is running. Otherwise,
+	exit.
+	* stap-server (initialization): Create the server temp directory here...
+	(unpack_request): ... not here.
+	(receive_request): Don't send a ready message.
+	(create_response): Write the exit code of 'stap' to the 'rc' file.
+	(send_response): Don't send a status message.
+	(fatal,error): Redirect to $tmpdir_server/stderr.
+
+2008-08-13  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Trap SIGTERM and SIGINT.
+	(unpack_response): chown of the systemtap temp directory before
+	we move it and only if we didn't create it.
+	(maybe_call_staprun): Check $e_script when determining whether a
+	script was specified. Provide the -c option to staprun. Run staprun
+	in the background and wait for it.
+	(terminate,interupt): New functions.
+
+2008-08-13  Frank Ch. Eigler  <fche@elastic.org>
+
+	* Makefile.am (stamp-elfutils): Override build-elfutils'
+	bin_PROGRAMS to not bother build binaries we're not using.
+	* Makefile.in: Regenerated.
+
+2008-08-12  Frank Ch. Eigler  <fche@elastic.org>
+
+	* buildrun.cxx (compile_pass): Add ugly kbuild hack for hand-built
+	x86 kernels that are made with O= (separate object/module-building
+	directory).
+
+2008-08-12  David Smith  <dsmith@redhat.com>
+
+	PR 6445 (partial)
+	* tapsets.cxx (utrace_builder::build): Validates pid and allows
+	probing of "*" to mean all threads.
+	* stapprobes.5.in: Added note about a process path of "*" means to
+	probe all threads.
+
+2008-08-11  Wenji Huang  <wenji.huang@oracle.com>
+
+	* tapsets.cxx : Fixed compilation warning on gcc 3.x.
+
+2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
+
+	* tapsets.cxx (translate_final_fetch_or_store): Reject some
+	unhandleable types such as floats.
+	(dwarf_var...visit_target_symbol): Tweak logic of $$var expansion
+	to quietly skip over any $context variables that cause exceptions.
+
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* tapsets.cxx (translate_final_fetch_or_store): Reject some

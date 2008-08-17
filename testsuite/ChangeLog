@@ -1,3 +1,20 @@
+2008-08-15  David Smith  <dsmith@redhat.com>
+
+	* systemtap.base/utrace_p4.exp: Change system-wide probes from
+	'process("*").begin' to 'process.begin'.
+
+2008-08-13  Dave Brolley  <brolley@redhat.com>
+
+	* lib/systemtap.exp (setup_systemtap_environment): client_path is now
+	global.
+	(systemtap_exit): Remove the directory named by $client_path.
+
+2008-08-12  David Smith  <dsmith@redhat.com>
+
+	PR 6445 (partial)
+	* systemtap.base/utrace_p4.exp: Added test that probes all threads.
+	* semko/utrace14.stp: New test.
+
 2008-08-11  Frank Ch. Eigler  <fche@elastic.org>
 
 	* systemtap.base/vars.exp: Adjust to loss of "\n" at end of $$vars

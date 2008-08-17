@@ -78,8 +78,12 @@ compile_pass (systemtap_session& s)
   if (s.verbose > 3)
     superverbose = "set -x;";
 
+  string redirecterrors = "> /dev/null 2>&1";
+  if (s.verbose > 6)
+    redirecterrors = "";
+
   o << "stap_check_gcc = $(shell " << superverbose << " if $(CC) $(1) -S -o /dev/null -xc /dev/null > /dev/null 2>&1; then echo \"$(1)\"; else echo \"$(2)\"; fi)" << endl;
-  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) > /dev/null 2>&1 ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
+  o << "stap_check_build = $(shell " << superverbose << " if $(CC) $(KBUILD_CPPFLAGS) $(CPPFLAGS) $(KBUILD_CFLAGS) $(CFLAGS_KERNEL) $(EXTRA_CFLAGS) $(CFLAGS) -DKBUILD_BASENAME=\\\"" << s.module_name << "\\\" -Werror -S -o /dev/null -xc $(1) " << redirecterrors << " ; then echo \"$(2)\"; else echo \"$(3)\"; fi)" << endl;
 
   o << "SYSTEMTAP_RUNTIME = \"" << s.runtime_path << "\"" << endl;
 
@@ -87,6 +91,14 @@ compile_pass (systemtap_session& s)
 
   string module_cflags = "EXTRA_CFLAGS";
   o << module_cflags << " :=" << endl;
+
+  // XXX: This gruesome hack is needed on some kernels built with separate O=directory,
+  // where files like 2.6.27 x86's asm/mach-*/mach_mpspec.h are not found on the cpp path.
+  // This could be a bug in arch/x86/Makefile that names
+  //      mflags-y += -Iinclude/asm-x86/mach-default
+  // but that path does not exist in an O= build tree.
+  o << module_cflags << " += -Iinclude2/asm/mach-default" << endl;
+
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-hrtimer-rel.c, -DSTAPCONF_HRTIMER_REL,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-inode-private.c, -DSTAPCONF_INODE_PRIVATE,)" << endl;
   o << module_cflags << " += $(call stap_check_build, $(SYSTEMTAP_RUNTIME)/autoconf-constant-tsc.c, -DSTAPCONF_CONSTANT_TSC,)" << endl;

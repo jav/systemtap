@@ -16,6 +16,10 @@
 # request. If a kernel module is generated, this script will load the module
 # and execute it using 'staprun', if requested.
 
+# Catch ctrl-c and other termination signals
+trap 'terminate' SIGTERM
+trap 'interrupt' SIGINT
+
 #-----------------------------------------------------------------------------
 # Helper functions.
 #-----------------------------------------------------------------------------
@@ -31,6 +35,7 @@ function initialization {
     rc=0
     wd=`pwd`
     umask 0
+    staprun_running=0
 
     # Default options settings
     p_phase=5
@@ -361,19 +366,8 @@ function package_request {
 # Notify the server and then send $tar_client to the server
 # The protocol is:
 #   client -> "request:"
-#   server -> "ready:"
 #   client -> $tar_client
 function send_request {
-    echo "request:" >&3
-    # Get the server's response.
-    read <&3
-    local line=$REPLY
-    check_server_error $line
-
-    # Check for the proper response.
-    test "$line" = "ready:" || \
-	fatal "ERROR: server response, '$line', is incorrect"
-
     # Send the request file. We need to redirect to /dev/null
     # in order to workaround a nc bug. It closes the connection
     # early if stdin from the other side is not provided.
@@ -386,23 +380,7 @@ function send_request {
 # function: receive_response
 #
 # Wait for a response from the server indicating the results of our request.
-# protocol is:
-# server -> "{done,failed}:"
-# server -> $tar_server
 function receive_response {
-    # Get the server's response.
-    read <&3
-    local line=$REPLY
-    check_server_error $line
-
-    # Check for the proper response.
-    if test "$line" != "done:"; then
-	if test "$line" != "failed:"; then
-	    fatal "ERROR: server response, '$line', is incorrect"
-	fi
-	rc=1
-    fi
-
     # Make a place to receive the response file.
     tar_server=`mktemp -t $tmpdir_prefix_client.server.tgz.XXXXXX` || \
 	fatal "ERROR: cannot create temporary file " $tar_server
@@ -444,14 +422,17 @@ function unpack_response {
     # Check the contents of the expanded directory. It should contain:
     # 1) a file called stdout
     # 2) a file called stderr
-    # 3) optionally a directory named to match stap??????
+    # 3) a file called rc
+    # 4) optionally a directory named to match stap??????
     local num_files=`ls $tmpdir_server | wc -l`
-    test $num_files = 3 -o $num_files = 2 || \
+    test $num_files = 4 -o $num_files = 3 || \
 	fatal "ERROR: Wrong number of files in server's temp directory"
     test -f $tmpdir_server/stdout || \
 	fatal "ERROR: `pwd`/$tmpdir_server/stdout does not exist or is not a regular file"
     test -f $tmpdir_server/stderr || \
 	fatal "ERROR: `pwd`/$tmpdir_server/stderr does not exist or is not a regular file"
+    test -f $tmpdir_server/rc || \
+	fatal "ERROR: `pwd`/$tmpdir_server/rc does not exist or is not a regular file"
 
     # See if there is a systemtap temp directory
     tmpdir_stap=`ls $tmpdir_server | grep stap`
@@ -472,11 +453,11 @@ function unpack_response {
 	    sed -i "s,^Keeping temporary directory.*,Keeping temporary directory \"$local_tmpdir_stap\"," $tmpdir_server/stderr
 	    tmpdir_stap=$local_tmpdir_stap
 	else
+            # Make sure we own the systemtap temp directory if we are root.
+	    test $EUID = 0 && chown $EUID:$EUID $tmpdir_server/$tmpdir_stap
+	    # The temp directory will be moved to here below.
 	    tmpdir_stap=`pwd`/$tmpdir_stap
 	fi
-
-        # Make sure we own the systemtap temp directory if we are root.
-	test $EUID = 0 && chown $EUID:$EUID $tmpdir_stap
     fi
 
     # Move the contents of the server's tmpdir down one level to the
@@ -533,26 +514,30 @@ function choose_server {
 #
 # Establish connection with the given server
 function connect_to_server {
-    # Open a connection to the server
-    exec 3<> /dev/tcp/$1/$2
+    until echo "request:" | nc $1 $2 > /dev/null
+    do
+	sleep 1
+    done
 }
 
 # function: disconnect_from_server
 #
 # Disconnect from the server.
 function disconnect_from_server {
-    # Close the connection to the server.
-    exec 3<&-
+    :
 }
 
-# function: stream_output
+# function: process_response
 #
 # Write the stdout and stderr from the server to stdout and stderr respectively.
-function stream_output {
+function process_response {
     # Output stdout and stderr as directed
     cd $tmpdir_server
     cat stderr >&2
     eval cat stdout $stdout_redirection
+
+    # Pick up the results of running stap on the server.
+    rc=`cat rc`
 }
 
 # function: maybe_call_staprun
@@ -568,7 +553,7 @@ function maybe_call_staprun {
         # There should be a systemtap temporary directory.
 	if test "X$tmpdir_stap" = "X"; then
 	    # OK if no script specified
-	    if test "X$script_file" != "X"; then
+	    if test "X$e_script" != "X" -o "X$script_file" != "X"; then
 		fatal "ERROR: systemtap temporary directory is missing in server response"
 	    fi
 	    return
@@ -582,13 +567,28 @@ function maybe_call_staprun {
 
 	if test $p_phase = 5; then
 	    # We have a module. Try to run it
+	    # If a -c command was specified, pass it along.
+	    if test "X$c_cmd" != "X"; then
+		staprun_opts="-c '$c_cmd'"
+	    fi
+
+	    # The -v level will be one less than what was specified
+	    # for us.
 	    for ((--v_level; $v_level > 0; --v_level))
 	    do
 		staprun_opts="$staprun_opts -v"
 	    done
-	    PATH=`staprun_PATH` staprun $staprun_opts \
-		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
+
+	    # Run it in the background and wait for it. This
+	    # way any signals send to us can be caught.
+	    PATH=`staprun_PATH` eval staprun "$staprun_opts" \
+		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'` &
+	    staprun_running=1
+	    wait %?staprun
 	    rc=$?
+	    staprun_running=0
+	    # 127 from wait means that the job was already finished.
+	    test $rc=127 && rc=0
 	fi
     fi
 }
@@ -610,32 +610,12 @@ function staprun_PATH {
     echo "$PATH" | sed "s,$PATH_component,,g"
 }
 
-# function: check_server_error SERVER_RESPONSE
-#
-# Check the given server response for an error message.
-function check_server_error {
-    echo "$1" | grep -q "^ERROR:" && \
-	server_fatal "Server:" "$@"
-}
-
 # function: fatal [ MESSAGE ]
 #
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
     echo "$0:" "$@" >&2
-    disconnect_from_server
-    cleanup
-    exit 1
-}
-
-# function: server_fatal [ MESSAGE ]
-#
-# Fatal error
-# Prints its arguments to stderr and exits
-function server_fatal {
-    echo "$0:" "$@" >&2
-    cat <&3 >&2
     disconnect_from_server
     cleanup
     exit 1
@@ -655,6 +635,32 @@ function cleanup {
     fi
 }
 
+# function: terminate
+#
+# Terminate gracefully.
+function terminate {
+    # Clean up
+    echo "$0: terminated by signal"
+    cleanup
+
+    # Kill any running staprun job
+    kill -s SIGTERM %?staprun 2>/dev/null
+
+    exit 1
+}
+
+# function: interrupt
+#
+# Pass an interrupt (ctrl-C) to staprun
+function interrupt {
+    # Pass the signal on to any running staprun job
+    kill -s SIGINT %?staprun 2>/dev/null
+
+    # If staprun was running, then just interrupt it. Otherwise
+    # we exit.
+    test $staprun_running = 0 && exit 1
+}
+
 #-----------------------------------------------------------------------------
 # Beginning of main line execution.
 #-----------------------------------------------------------------------------
@@ -668,7 +674,7 @@ send_request
 receive_response
 disconnect_from_server
 unpack_response
-stream_output
+process_response
 maybe_call_staprun
 cleanup
 

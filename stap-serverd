@@ -85,7 +85,7 @@ function listen {
             fi
 	    sleep 1
 	done
-	if test $attempt = 10; then
+	if test $attempt = 5; then
 	    fatal "ERROR: cannot listen on port $port. rc==$rc"
 	fi
     done

@@ -49,9 +49,9 @@ subsystems: io, keywords: io backtrace<br>
 </ul>
 <h3><a name="CALLGRAPH">CALLGRAPH</a></h3>
 <ul>
-<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
-subsystems: kernel, keywords: trace callgraph<br>
-<p>The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.</p></li>
+<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
+subsystems: general, keywords: trace callgraph<br>
+<p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
 </ul>
 <h3><a name="CPU">CPU</a></h3>
 <ul>
@@ -214,9 +214,9 @@ subsystems: syscall, keywords: syscall read write time io<br>
 </ul>
 <h3><a name="TRACE">TRACE</a></h3>
 <ul>
-<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Tracing Calls for Sections of Code<br>
-subsystems: kernel, keywords: trace callgraph<br>
-<p>The script takes two arguments: the first argument is the function to starts/stops the per thread call graph traces and the second argument is the list of functions to generate trace information on. The script prints out a timestap for the thread, the function name and pid, followed by entry or exit symboly and function name.</p></li>
+<li><a href="general/para-callgraph.stp">general/para-callgraph.stp</a> - Callgraph tracing with arguments<br>
+subsystems: general, keywords: trace callgraph<br>
+<p>Print a timed per-thread callgraph, complete with function parameters and return values.  The first parameter names the function probe points to trace.  The optional second parameter names the probe points for trigger functions, which acts to enable tracing for only those functions that occur while the current thread is nested within the trigger.</p></li>
 </ul>
 <h3><a name="TRAFFIC">TRAFFIC</a></h3>
 <ul>

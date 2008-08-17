@@ -37,6 +37,11 @@ function initialization {
     # Default options settings
     p_phase=5
     keep_temps=0
+
+    # Make a temp directory to work in.
+    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
+	fatal "ERROR: cannot create temporary directory " $tmpdir_server
+    tmpdir_env=`dirname $tmpdir_server`
 }
 
 # function: receive_request
@@ -44,7 +49,6 @@ function initialization {
 # Receive a tar file representing the request from the client:
 # The protocol is:
 #   client -> "request:"
-#   server -> "ready:"
 #   client -> $tar_client
 function receive_request {
     # Request from the client is on stdin
@@ -64,8 +68,7 @@ function receive_request {
     # provided.
     nc -l $port < /dev/zero > $tar_client &
 
-    # Request that the file be sent.
-    echo "ready:"
+    # Wait for the transfer to complete.
     wait %nc
 }
 
@@ -74,11 +77,6 @@ function receive_request {
 # Unpack the tar file received from the client and make the contents
 # available for use when running 'stap'
 function unpack_request {
-    # Make a temp directory to work in.
-    tmpdir_server=`mktemp -dt $tmpdir_prefix_server.XXXXXX` || \
-	fatal "ERROR: cannot create temporary directory " $tmpdir_server
-    tmpdir_env=`dirname $tmpdir_server`
-
     cd $tmpdir_server
 
     # Unpack the tar file.
@@ -151,7 +149,7 @@ function check_compatibility {
 # function: read_data_file PREFIX
 #
 # Find a file whose name is '$1' and whose first line
-# contents are '$1: .*'. Read and echo the first line.
+# contents are '$1: .*'. Read and echo the data.
 function read_data_file {
     test -f $1 || \
 	fatal "ERROR: Data file $1 not found"
@@ -369,6 +367,9 @@ function create_response {
     if test $p_phase = 5; then
 	sed -i '/\.ko$/d' stdout
     fi
+
+    # The return status of the stap command.
+    echo -n $stap_rc > rc
 }
 
 # function: package_response
@@ -390,22 +391,12 @@ function package_response {
 
 # function: send_response
 #
-# Notify the client that $tar_server is ready and wait for the client to take
-# it.
-# The protocol is:
-#   server -> "{done,failed}:"
-#   server -> $tar_server
+# Wait for the client to take the response file.
 function send_response {
     # Now send it. We need to redirect to /dev/null
     # in order to workaround a nc bug. It closes the connection
     # early if stdin from the other side is not provided.
     nc -l $port < $tar_server > /dev/null &
-
-    if test $stap_rc = 0; then
-	echo "done:"
-    else
-	echo "failed:"
-    fi
     wait %nc
 }
 
@@ -414,7 +405,7 @@ function send_response {
 # Fatal error
 # Prints its arguments to stderr and exits
 function fatal {
-    echo "$@" >&2
+    echo "`basename $0`:" "$@" >> $tmpdir_server/stderr
     cleanup
     exit 1
 }
@@ -422,7 +413,7 @@ function fatal {
 # Non fatal error
 # Prints its arguments to stderr but does not exit
 function error {
-    echo "$@" >&2
+    echo "`basename $0`:" "$@" >> $tmpdir_server/stderr
 }
 
 # function cleanup
