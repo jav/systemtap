@@ -8916,21 +8916,24 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
 
   // itrace user-space probes
   s.pattern_root->bind_str(TOK_PROCESS)->bind("itrace")
     ->bind(new itrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
     ->bind(new itrace_builder ());
-
-  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->bind(new utrace_builder ());
 
   // marker-based parts
   s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)

@@ -1,3 +1,8 @@
+2008-08-18  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (register_standard_tapsets): Add missing
+	'process.syscall' and 'process.syscall.return' bindings.
+
 2008-08-16  Mark Wielaard  <mjw@redhat.com>
 
 	* configure.ac (build_elfutils): Mention possible distro
