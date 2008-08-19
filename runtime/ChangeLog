@@ -1,3 +1,9 @@
+2008-08-19  David Smith  <dsmith@redhat.com>
+
+	PR 6841
+	* task_finder.c (__stp_utrace_task_finder_target_quiesce):
+	Quiesces thread before turning on syscall tracing.
+
 2008-08-14  Frank Ch. Eigler  <fche@elastic.org>
 
 	PR 6842.

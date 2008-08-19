@@ -317,7 +317,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 					    | UTRACE_EVENT(SYSCALL_ENTRY) \
 					    | UTRACE_EVENT(SYSCALL_EXIT))
 
-#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_VM_BASE_EVENTS \
+#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
 				       | UTRACE_ACTION_QUIESCE	\
 				       | UTRACE_EVENT(QUIESCE))
 
@@ -608,7 +608,7 @@ __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
 {
 	struct stap_task_finder_target *tgt = engine->data;
 
-	// Turn off quiesce handling.
+	// Turn off quiesce handling (and turn on syscall handling).
 	utrace_set_flags(tsk, engine, __STP_ATTACHED_TASK_VM_BASE_EVENTS);
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
