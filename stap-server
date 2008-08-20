@@ -69,7 +69,7 @@ function receive_request {
     nc -l $port < /dev/zero > $tar_client &
 
     # Wait for the transfer to complete.
-    wait %nc
+    wait '%nc' >/dev/null 2>&1
 }
 
 # function: unpack_request
@@ -159,25 +159,18 @@ function read_data_file {
 
     # Verify the first line of the file.
     read <&3
-    line=$REPLY
+    line="$REPLY"
     data=`expr "$line" : "$1: \\\(.*\\\)"`
     if test "X$data" = "X"; then
 	fatal "ERROR: Data in file $1 is incorrect"
 	return
     fi
 
-    # Add any additional lines of data
-    while read <&3
-    do
-	data="$data
-$REPLY"
-    done
-
     # Close the file
     exec 3<&-
 
-    # Echo the result
-    echo "$data"
+    # Now read the entire file.
+    cat $1 | sed "s/$1: //"
 }
 
 # function: parse_options [ STAP-OPTIONS ]
@@ -397,7 +390,7 @@ function send_response {
     # in order to workaround a nc bug. It closes the connection
     # early if stdin from the other side is not provided.
     nc -l $port < $tar_server > /dev/null &
-    wait %nc
+    wait '%nc' >/dev/null 2>&1
 }
 
 # function: fatal [ MESSAGE ]

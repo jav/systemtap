@@ -19,6 +19,7 @@
 # Catch ctrl-c and other termination signals
 trap 'terminate' SIGTERM
 trap 'interrupt' SIGINT
+trap 'ignore_signal' SIGHUP SIGPIPE
 
 #-----------------------------------------------------------------------------
 # Helper functions.
@@ -41,6 +42,7 @@ function initialization {
     p_phase=5
     v_level=0
     keep_temps=0
+    b_specified=0
 
     # Create a temporary directory to package things in
     # Do this before parsing the command line so that there is a place
@@ -110,6 +112,9 @@ function parse_options {
 
             # We are at the start of an option. Look at the first character.
 	    case $first_char in
+		b)
+		    b_specified=1
+		    ;;
 		c)
 		    get_arg $first_token "$2"
 		    process_c "$stap_arg"
@@ -135,7 +140,7 @@ function parse_options {
 		    ;;
 		m)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}m $stap_arg"
+		    process_m $stap_arg
 		    ;;
 		o)
 		    get_arg $first_token $2
@@ -147,7 +152,7 @@ function parse_options {
 		    ;;
 		r)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}r $stap_arg"
+		    cmdline2="${cmdline2}r '$stap_arg'"
 		    ;;	
 		R)
 		    get_arg $first_token $2
@@ -155,14 +160,14 @@ function parse_options {
 		    ;;	
 		s)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}s $stap_arg"
+		    cmdline2="${cmdline2}s '$stap_arg'"
 		    ;;	
 		v)
 		    v_level=$(($v_level + 1))
 		    ;;
 		x)
 		    get_arg $first_token $2
-		    cmdline2="${cmdline2}x $stap_arg"
+		    cmdline2="${cmdline2}x '$stap_arg'"
 		    ;;
 		*)
 		    # An unknown or unimportant flag. Ignore it, but pass it on to the server.
@@ -258,11 +263,19 @@ function process_I {
     cmdline2="${cmdline2}I 'tapsets/$local_name'"
 }
 
+# function: process_m ARGUMENT
+#
+# Process the -m flag.
+function process_m {
+    m_name="$1"
+    cmdline2="${cmdline2}m '$1'"
+}
+
 # function: process_o ARGUMENT
 #
 # Process the -o flag.
 function process_o {
-    stdout_redirection="> $1"
+    stdout_redirection="$1"
     cmdline2="${cmdline2}o '$1'"
 }
 
@@ -531,13 +544,30 @@ function disconnect_from_server {
 #
 # Write the stdout and stderr from the server to stdout and stderr respectively.
 function process_response {
-    # Output stdout and stderr as directed
-    cd $tmpdir_server
-    cat stderr >&2
-    eval cat stdout $stdout_redirection
-
     # Pick up the results of running stap on the server.
     rc=`cat rc`
+
+    # Copy the module to the current directory, if -m was specified
+    if test "X$m_name" != "X"; then
+	if test -f $tmpdir_stap/$m_name.ko; then
+	    cp $tmpdir_stap/$m_name.ko $wd
+	else
+	    stream_output
+	    fatal "module $tmpdir_stap/$m_name.ko does not exist"
+	fi
+    fi
+
+    # Output stdout and stderr as directed
+    stream_output
+}
+
+# function: stream_output
+#
+# Output stdout and stderr as directed
+function stream_output {
+    cd $tmpdir_server
+    cat stderr >&2
+    cat stdout
 }
 
 # function: maybe_call_staprun
@@ -566,6 +596,8 @@ function maybe_call_staprun {
 	fi
 
 	if test $p_phase = 5; then
+	    test $v_level -gt 0 && echo "Pass 5: starting run." >&2
+
 	    # We have a module. Try to run it
 	    # If a -c command was specified, pass it along.
 	    if test "X$c_cmd" != "X"; then
@@ -574,21 +606,37 @@ function maybe_call_staprun {
 
 	    # The -v level will be one less than what was specified
 	    # for us.
-	    for ((--v_level; $v_level > 0; --v_level))
+	    for ((vl=$((v_level - 1)); $vl > 0; --vl))
 	    do
 		staprun_opts="$staprun_opts -v"
 	    done
 
+	    # if -o was specified, pass it along
+	    if test "X$stdout_redirection" != "X"; then
+		staprun_opts="$staprun_opts -o $stdout_redirection"
+	    fi
+
 	    # Run it in the background and wait for it. This
 	    # way any signals send to us can be caught.
+	    if test $v_level -ge 2; then
+		echo "running `which staprun` $staprun_opts $tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`" >&2
+	    fi
 	    PATH=`staprun_PATH` eval staprun "$staprun_opts" \
-		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'` &
+		$tmpdir_stap/`ls $tmpdir_stap | grep '.ko$'`
 	    staprun_running=1
-	    wait %?staprun
+	    wait '%?staprun' > /dev/null 2>&1
 	    rc=$?
 	    staprun_running=0
 	    # 127 from wait means that the job was already finished.
 	    test $rc=127 && rc=0
+
+	    # Wait until the job actually disappears so that its output is complete.
+	    while jobs '%?staprun' >/dev/null 2>&1
+	    do
+		sleep 1
+	    done
+
+	    test $v_level -gt 0 && echo "Pass 5: run completed in 0usr/0sys/0real ms." >&2
 	fi
     fi
 }
@@ -640,11 +688,11 @@ function cleanup {
 # Terminate gracefully.
 function terminate {
     # Clean up
-    echo "$0: terminated by signal"
+    echo "$0: terminated by signal" >&2
     cleanup
 
     # Kill any running staprun job
-    kill -s SIGTERM %?staprun 2>/dev/null
+    kill -s SIGTERM '%?staprun' 2>/dev/null
 
     exit 1
 }
@@ -654,11 +702,21 @@ function terminate {
 # Pass an interrupt (ctrl-C) to staprun
 function interrupt {
     # Pass the signal on to any running staprun job
-    kill -s SIGINT %?staprun 2>/dev/null
+    if test $staprun_running = 1; then
+	kill -s SIGINT '%?staprun' 2>/dev/null
+	return
+    fi
 
-    # If staprun was running, then just interrupt it. Otherwise
-    # we exit.
-    test $staprun_running = 0 && exit 1
+    # If staprun was not running, then exit.
+    cleanup
+    exit 1
+}
+
+# function: ignore_signal
+#
+# Called in order to ignore a signal
+function ignore_signal {
+    :
 }
 
 #-----------------------------------------------------------------------------
