@@ -1,3 +1,10 @@
+2008-08-20  David Smith  <dsmith@redhat.com>
+
+	* task_finder.c (__stp_utrace_task_finder_target_syscall_entry):
+	Handles mmap2 (as well as mmap).
+	(__stp_utrace_task_finder_target_syscall_exit): Ditto.
+	* syscall.h: Added defines for mmap and mmap2.
+
 2008-08-19  David Smith  <dsmith@redhat.com>
 
 	PR 6841

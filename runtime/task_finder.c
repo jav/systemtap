@@ -717,6 +717,7 @@ __stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *eng
 	// FIXME: do we need to handle mremap()?
 	syscall_no = __stp_user_syscall_nr(regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
+	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_ACTION_RESUME;
@@ -815,6 +816,7 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 	// FIXME: do we need to handle mremap()?
 	syscall_no = __stp_user_syscall_nr(regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
+	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_ACTION_RESUME;
@@ -841,10 +843,11 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 		  "tsk %d found %s(0x%lx), returned 0x%lx\n",
 		  tsk->pid,
 		  ((syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
-		   : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
-		      : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
-			 : "UNKNOWN"))),
-		  arg0, rv);
+		   : ((syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
+		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
+			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
+			    : "UNKNOWN"))),
+		   arg0, rv);
 #endif
 
 	// Try to find the vma info we might have saved.
