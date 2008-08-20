@@ -1,3 +1,28 @@
+2008-08-20  Dave Brolley  <brolley@redhat.com>
+
+	* stap-client: Ignore SIGHUP and SIGPIPE.
+	(initialization): Set b_specified.: 
+	(parse_options): Handle the -b option. Quote $stap_arg. Use process_m.
+	(process_m): New function.
+	(process_o): Set stdout_redirection to simply the filename.
+	(process_response): Obtain the exit code from stap on the server side.
+	Copy the module to the current directory if -m was specified.
+	Call stream_output.
+	(stream_output): It's back.
+	(maybe_call_staprun): Print status messages for -v. Leave v_level
+	unchanged. Pass -o option to staprun. Wait until the staprun job
+	disappears.
+	(terminate): Redirect message to stderr.
+	(interrupt): Only kill staprun if it's still running. Call cleanup
+	if exiting.
+	(ignore_signal): New function.
+	* stap-server (receive_request): Quote the job specifier.
+	(send_response): Likewise.
+	(read_data_file): Use read to check the first line. Use cat the read
+	the entire file.
+	* stap-serverd (listen): Quote job specifier.
+	(terminate): Likewise.
+
 2008-08-19  David Smith  <dsmith@redhat.com>
 
 	PR 6841
