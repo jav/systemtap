@@ -4002,7 +4002,11 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
   if (lvalue && !q.sess.guru_mode)
     throw semantic_error("write to target variable not permitted", e->tok);
 
-  if (q.has_return && e->base_name != "$return")
+  // See if we need to generate a new probe to save/access function
+  // parameters from a return probe.  PR 1382.
+  if (q.has_return
+      && e->base_name != "$return" // not the special return-value variable handled below
+      && e->base_name != "$$return") // nor the other special variable handled below
     {
       if (lvalue)
 	throw semantic_error("write to target variable not permitted in .return probes", e->tok);
@@ -4287,7 +4291,8 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   if (e->base_name == "$$vars"
       || e->base_name == "$$parms"
-      || e->base_name == "$$locals")
+      || e->base_name == "$$locals"
+      || (q.has_return && (e->base_name == "$$return")))
     {
       Dwarf_Die *scopes;
       if (dwarf_getscopes_die (scope_die, &scopes) == 0)
@@ -4298,55 +4303,85 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
       // Convert $$parms to sprintf of a list of parms and active local vars
       // which we recursively evaluate
-      token* tmp_tok = new token;
-      tmp_tok->type = tok_identifier;
-      tmp_tok->content = "sprintf";
-      pf->tok = tmp_tok;
+
+      // NB: we synthesize a new token here rather than reusing
+      // e->tok, because print_format::print likes to use
+      // its tok->content.
+      token* pf_tok = new token;
+      pf_tok->location = e->tok->location;
+      pf_tok->type = tok_identifier;
+      pf_tok->content = "sprint";
+
+      pf->tok = pf_tok;
       pf->print_to_stream = false;
       pf->print_with_format = true;
       pf->print_with_delim = false;
       pf->print_with_newline = false;
       pf->print_char = false;
 
-      Dwarf_Die result;
-      if (dwarf_child (&scopes[0], &result) == 0)
-	do
-	  {
-	    switch (dwarf_tag (&result))
-	      {
-	      case DW_TAG_variable:
-		if (e->base_name == "$$parms")
-		  continue;
-		break;
-	      case DW_TAG_formal_parameter:
-		if (e->base_name == "$$locals")
-		  continue;
-		break;
+      if (q.has_return && (e->base_name == "$$return"))
+        {
+          tsym->tok = e->tok;
+          tsym->base_name = "$return";
+          
+          // Ignore any variable that isn't accessible.
+          tsym->saved_conversion_error = 0;
+          this->visit_target_symbol(tsym); // NB: throws nothing ...
+          if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+            {
 
-	      default:
-		continue;
-	      }
-
-	    const char *diename = dwarf_diename (&result);
-	    token* sym_tok = new token;
-	    sym_tok->location = e->get_tok()->location;
-	    sym_tok->type = tok_identifier;
-	    sym_tok->content = diename;
-	    tsym->tok = sym_tok;
-	    tsym->base_name = "$";
-	    tsym->base_name += diename;
-
-	    // Ignore any variable that isn't accessible.
-            tsym->saved_conversion_error = 0;
-            this->visit_target_symbol(tsym); // NB: throws nothing ...
-            if (! tsym->saved_conversion_error) // ... but this is how we know it happened.
+            }
+          else
+            {
+              pf->raw_components += "return";
+              pf->raw_components += "=%#x ";
+              pf->args.push_back(*(expression**)this->targets.top());
+            }
+        }
+      else
+        {
+          // non-.return probe: support $$parms, $$vars, $$locals
+          Dwarf_Die result;
+          if (dwarf_child (&scopes[0], &result) == 0)
+            do
               {
-                pf->raw_components += diename;
-                pf->raw_components += "=%#x ";
-                pf->args.push_back(*(expression**)this->targets.top());
+                switch (dwarf_tag (&result))
+                  {
+                  case DW_TAG_variable:
+                    if (e->base_name == "$$parms")
+                      continue;
+                    break;
+                  case DW_TAG_formal_parameter:
+                    if (e->base_name == "$$locals")
+                      continue;
+                    break;
+                    
+                  default:
+                    continue;
+                  }
+                
+                const char *diename = dwarf_diename (&result);
+                tsym->tok = e->tok;
+                tsym->base_name = "$";
+                tsym->base_name += diename;
+                
+                // Ignore any variable that isn't accessible.
+                tsym->saved_conversion_error = 0;
+                this->visit_target_symbol(tsym); // NB: throws nothing ...
+                if (tsym->saved_conversion_error) // ... but this is how we know it happened.
+                  {
+                    pf->raw_components += diename;
+                    pf->raw_components += "=? ";
+                  }
+                else
+                  {
+                    pf->raw_components += diename;
+                    pf->raw_components += "=%#x ";
+                    pf->args.push_back(*(expression**)this->targets.top());
+                  }
               }
-	  }
-	while (dwarf_siblingof (&result, &result) == 0);
+            while (dwarf_siblingof (&result, &result) == 0);
+        }
 
       pf->components = print_format::string_to_components(pf->raw_components);
       provide <print_format*> (this, pf);
@@ -4366,7 +4401,7 @@ dwarf_var_expanding_copy_visitor::visit_target_symbol (target_symbol *e)
 
   try
     {
-      if (q.has_return && e->base_name == "$return")
+      if (q.has_return && (e->base_name == "$return"))
         {
 	  ec->code = q.dw.literal_stmt_for_return (scope_die,
 						   addr,
@@ -5910,7 +5945,6 @@ struct utrace_builder: public derived_probe_builder
     bool has_path = get_param (parameters, TOK_PROCESS, path);
     bool has_pid = get_param (parameters, TOK_PROCESS, pid);
     enum utrace_derived_probe_flags flags = UDPF_NONE;
-    assert (has_path || has_pid);
 
     if (has_null_param (parameters, TOK_THREAD))
       {
@@ -5931,22 +5965,22 @@ struct utrace_builder: public derived_probe_builder
     else if (has_null_param (parameters, TOK_END))
       flags = UDPF_END;
 
-    // Validate pid.
-    if (has_pid)
-      {
-	// We can't probe 'init' (pid 1).
-	if (pid < 2)
-	  throw semantic_error ("process pid must be greater than 1",
-				location->tok);
-      }
-    // If we have a path whose value is "*", this means to probe
-    // everything.  Convert this to a pid-based probe.
-    else if (has_path && path == "*")
+    // If we didn't get a path or pid, this means to probe everything.
+    // Convert this to a pid-based probe.
+    if (! has_path && ! has_pid)
       {
 	has_path = false;
 	path.clear();
 	has_pid = true;
 	pid = 0;
+      }
+    // Validate pid.
+    else if (has_pid)
+      {
+	// We can't probe 'init' (pid 1).
+	if (pid < 2)
+	  throw semantic_error ("process pid must be greater than 1",
+				location->tok);
       }
     // If we have a regular path, we need to validate it.
     else if (has_path)
@@ -6062,17 +6096,19 @@ utrace_derived_probe_group::emit_probe_decl (systemtap_session& s,
 
     // For UDPF_SYSCALL/UDPF_SYSCALL_RETURN probes, the .report_death
     // handler isn't strictly necessary.  However, it helps to keep
-    // our attaches/detaches symmetrical.
+    // our attaches/detaches symmetrical.  Notice we're using quiesce
+    // as a workaround for bug 6841.
     case UDPF_SYSCALL:
       s.op->line() << " .flags=(UDPF_SYSCALL),";
-      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death },";
-      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH)),";
+      s.op->line() << " .ops={ .report_syscall_entry=stap_utrace_probe_syscall,  .report_death=stap_utrace_task_finder_report_death, .report_quiesce=stap_utrace_probe_syscall_quiesce },";
+      s.op->line() << " .events=(UTRACE_ACTION_QUIESCE|UTRACE_EVENT(QUIESCE)|UTRACE_EVENT(DEATH)),";
       break;
     case UDPF_SYSCALL_RETURN:
       s.op->line() << " .flags=(UDPF_SYSCALL_RETURN),";
-      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death },";
-      s.op->line() << " .events=(UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH)),";
+      s.op->line() << " .ops={ .report_syscall_exit=stap_utrace_probe_syscall, .report_death=stap_utrace_task_finder_report_death, .report_quiesce=stap_utrace_probe_syscall_quiesce },";
+      s.op->line() << " .events=(UTRACE_ACTION_QUIESCE|UTRACE_EVENT(QUIESCE)|UTRACE_EVENT(DEATH)),";
       break;
+
     case UDPF_NONE:
       s.op->line() << " .flags=(UDPF_NONE),";
       s.op->line() << " .ops={ },";
@@ -6194,6 +6230,24 @@ utrace_derived_probe_group::emit_module_decls (systemtap_session& s)
   // Output handler function for SYSCALL_ENTRY and SYSCALL_EXIT events
   if (flags_seen[UDPF_SYSCALL] || flags_seen[UDPF_SYSCALL_RETURN])
     {
+      s.op->newline() << "static u32 stap_utrace_probe_syscall_quiesce(struct utrace_attached_engine *engine, struct task_struct *tsk) {";
+      s.op->indent(1);
+      s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
+
+      // Turn off quiesce handling and turn on either syscall entry
+      // or exit events.
+      s.op->newline() << "if (p->flags == UDPF_SYSCALL)";
+      s.op->indent(1);
+      s.op->newline() << "utrace_set_flags(tsk, engine, UTRACE_EVENT(SYSCALL_ENTRY)|UTRACE_EVENT(DEATH));";
+      s.op->indent(-1);
+      s.op->newline() << "else if (p->flags == UDPF_SYSCALL_RETURN)";
+      s.op->indent(1);
+      s.op->newline() << "utrace_set_flags(tsk, engine, UTRACE_EVENT(SYSCALL_EXIT)|UTRACE_EVENT(DEATH));";
+      s.op->indent(-1);
+
+      s.op->newline() << "return (UTRACE_ACTION_NEWSTATE | UTRACE_ACTION_RESUME);";
+      s.op->newline(-1) << "}";
+
       s.op->newline() << "static u32 stap_utrace_probe_syscall(struct utrace_attached_engine *engine, struct task_struct *tsk, struct pt_regs *regs) {";
       s.op->indent(1);
       s.op->newline() << "struct stap_utrace_probe *p = (struct stap_utrace_probe *)engine->data;";
@@ -8862,17 +8916,37 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
     ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_BEGIN)
+    ->bind(new utrace_builder ());
   s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
     ->bind(new utrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_THREAD)->bind(TOK_END)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
+    ->bind(new utrace_builder ());
+  s.pattern_root->bind(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
     ->bind(new utrace_builder ());
 
   // itrace user-space probes
@@ -8880,15 +8954,6 @@ register_standard_tapsets(systemtap_session & s)
     ->bind(new itrace_builder ());
   s.pattern_root->bind_num(TOK_PROCESS)->bind("itrace")
     ->bind(new itrace_builder ());
-
-  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_str(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->bind(new utrace_builder ());
-  s.pattern_root->bind_num(TOK_PROCESS)->bind(TOK_SYSCALL)->bind(TOK_RETURN)
-    ->bind(new utrace_builder ());
 
   // marker-based parts
   s.pattern_root->bind(TOK_KERNEL)->bind_str(TOK_MARK)

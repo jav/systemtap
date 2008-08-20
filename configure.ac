@@ -181,10 +181,10 @@ AC_SUBST(elfutils_abs_srcdir, `AS_IF([test $build_elfutils = yes],
 				     [cd $with_elfutils && pwd])`)
 
 if test $build_elfutils = no; then
-  # Need libdwfl-capable recent elfutils from Fedora
+  # Need libdwfl-capable recent elfutils http://elfutils.fedorahosted.org/
   save_LIBS="$LIBS"
   AC_CHECK_LIB(dw, dwfl_module_getsym,[],[
-    AC_MSG_ERROR([missing elfutils development headers/libraries (dw 0.123+)])],
+    AC_MSG_ERROR([missing elfutils development headers/libraries (install elfutils-devel, libebl-dev, libdw-dev and/or libebl-devel)])],
     [-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf])
   stap_LIBS="-Wl,--start-group -ldw -lebl -Wl,--end-group -lelf"
   LIBS="$save_LIBS"

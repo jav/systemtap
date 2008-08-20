@@ -11,12 +11,14 @@
 #define _SYSCALL_H_
 
 #if defined(__i386__) || defined(CONFIG_IA32_EMULATION)
-#define __MMAP_SYSCALL_NO_IA32		192 /* mmap2 */
+#define __MMAP_SYSCALL_NO_IA32		90
+#define __MMAP2_SYSCALL_NO_IA32		192
 #define __MPROTECT_SYSCALL_NO_IA32	125
 #define __MUNMAP_SYSCALL_NO_IA32	91
 #define __MREMAP_SYSCALL_NO_IA32	163
 # if !defined(CONFIG_IA32_EMULATION)
 #define MMAP_SYSCALL_NO(tsk) __MMAP_SYSCALL_NO_IA32
+#define MMAP2_SYSCALL_NO(tsk) __MMAP2_SYSCALL_NO_IA32
 #define MPROTECT_SYSCALL_NO(tsk) __MPROTECT_SYSCALL_NO_IA32
 #define MUNMAP_SYSCALL_NO(tsk) __MUNMAP_SYSCALL_NO_IA32
 #define MREMAP_SYSCALL_NO(tsk) __MREMAP_SYSCALL_NO_IA32
@@ -25,13 +27,19 @@
 
 #if defined(__x86_64__)
 #define __MMAP_SYSCALL_NO_X86_64	9
+/* x86_64 doesn't have a mmap2 system call.  So, we'll use a number
+ * that doesn't map to a real system call. */
+#define __MMAP2_SYSCALL_NO_X86_64	((unsigned long)-1)
 #define __MPROTECT_SYSCALL_NO_X86_64	10
 #define __MUNMAP_SYSCALL_NO_X86_64	11
 #define __MREMAP_SYSCALL_NO_X86_64	25
 # if defined(CONFIG_IA32_EMULATION)
-#define MMAP_SYSCALL_NO(tsk) ((test_tsk_thread_flag((tsk), TIF_IA32)) \
-			      ? __MMAP_SYSCALL_NO_IA32 \
+#define MMAP_SYSCALL_NO(tsk) ((test_tsk_thread_flag((tsk), TIF_IA32))	\
+			      ? __MMAP_SYSCALL_NO_IA32			\
 			      : __MMAP_SYSCALL_NO_X86_64)
+#define MMAP2_SYSCALL_NO(tsk) ((test_tsk_thread_flag((tsk), TIF_IA32))	\
+			       ? __MMAP2_SYSCALL_NO_IA32		\
+			       : __MMAP2_SYSCALL_NO_X86_64)
 #define MPROTECT_SYSCALL_NO(tsk) ((test_tsk_thread_flag((tsk), TIF_IA32)) \
 				  ? __MPROTECT_SYSCALL_NO_IA32		\
 				  : __MPROTECT_SYSCALL_NO_X86_64)
@@ -51,13 +59,17 @@
 
 #if defined(__powerpc__)
 #define MMAP_SYSCALL_NO(tsk)		90
+/* MMAP2 only exists on a 32-bit kernel.  On a 64-bit kernel, we'll
+ * never see mmap2 (but that's OK). */
+#define MMAP2_SYSCALL_NO(tsk)		192
 #define MPROTECT_SYSCALL_NO(tsk)	125
 #define MUNMAP_SYSCALL_NO(tsk)		91
 #define MREMAP_SYSCALL_NO(tsk)		163
 #endif
  
-#if !defined(MMAP_SYSCALL_NO) || !defined(MPROTECT_SYSCALL_NO) \
-	|| !defined(MUNMAP_SYSCALL_NO) || !defined(MREMAP_SYSCALL_NO)
+#if !defined(MMAP_SYSCALL_NO) || !defined(MMAP2_SYSCALL_NO)		\
+	|| !defined(MPROTECT_SYSCALL_NO) || !defined(MUNMAP_SYSCALL_NO)	\
+	|| !defined(MREMAP_SYSCALL_NO)
 #error "Unimplemented architecture"
 #endif
 

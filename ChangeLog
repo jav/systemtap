@@ -1,3 +1,55 @@
+2008-08-19  David Smith  <dsmith@redhat.com>
+
+	PR 6841
+	* tapsets.cxx (utrace_derived_probe_group::emit_probe_decl):
+	Workaround utrace bug by quiescing threads before attaching a
+	utrace syscall engine to them.
+	(utrace_derived_probe_group::emit_module_decls): Emit quiesce
+	handler.
+
+2008-08-18  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (register_standard_tapsets): Add missing
+	'process.syscall' and 'process.syscall.return' bindings.
+
+2008-08-16  Mark Wielaard  <mjw@redhat.com>
+
+	* configure.ac (build_elfutils): Mention possible distro
+	specific elfutils development sub-packages needed when not found.
+
+2008-08-15  David Smith  <dsmith@redhat.com>
+
+	* tapsets.cxx (utrace_builder::build): Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+	(register_standard_tapsets): Add new 'process' binding.
+	* stapprobes.5.in: Change system-wide probes
+	from 'process("*").begin' to 'process.begin'.
+
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6836
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Emit
+	"return=0xf00" instead of "$return=0xf00" for $$return,
+	for consistency with other variables.
+	* NEWS, stapprobes.5.in: Update.
+
+2008-08-15  Frank Ch. Eigler  <fche@elastic.org>
+
+	PR 6836.
+	* tapsets.cxx (dwarf_var...visit_target_symbol): Show
+	"var=?" for unlocatable variables.  Support $$return.
+	Make sure $$parms/etc. work in .return probes too.
+	* testsuite/semok/thirtytwo.stp: New test.
+	* NEWS, stapprobes.5.in: Document them.
+
+2008-08-15  Michael Meeks  <michael.meeks@novell.com>
+
+	* configure.ac: suggest (SUSE) package name for dwfl.
+
+	* buildrun.cxx (compile_pass): if extremely verbose, pass through
+	output from stap checks - helps to debug generic test compile
+	problems.
+
 2008-08-14  Dave Brolley  <brolley@redhat.com>
 
 	PR 6834

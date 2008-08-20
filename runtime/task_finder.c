@@ -317,7 +317,7 @@ __stp_get_mm_path(struct mm_struct *mm, char *buf, int buflen)
 					    | UTRACE_EVENT(SYSCALL_ENTRY) \
 					    | UTRACE_EVENT(SYSCALL_EXIT))
 
-#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_VM_BASE_EVENTS \
+#define __STP_ATTACHED_TASK_VM_EVENTS (__STP_ATTACHED_TASK_BASE_EVENTS \
 				       | UTRACE_ACTION_QUIESCE	\
 				       | UTRACE_EVENT(QUIESCE))
 
@@ -608,7 +608,7 @@ __stp_utrace_task_finder_target_quiesce(struct utrace_attached_engine *engine,
 {
 	struct stap_task_finder_target *tgt = engine->data;
 
-	// Turn off quiesce handling.
+	// Turn off quiesce handling (and turn on syscall handling).
 	utrace_set_flags(tsk, engine, __STP_ATTACHED_TASK_VM_BASE_EVENTS);
 
 	if (atomic_read(&__stp_task_finder_state) != __STP_TF_RUNNING) {
@@ -717,6 +717,7 @@ __stp_utrace_task_finder_target_syscall_entry(struct utrace_attached_engine *eng
 	// FIXME: do we need to handle mremap()?
 	syscall_no = __stp_user_syscall_nr(regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
+	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_ACTION_RESUME;
@@ -815,6 +816,7 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 	// FIXME: do we need to handle mremap()?
 	syscall_no = __stp_user_syscall_nr(regs);
 	if (syscall_no != MMAP_SYSCALL_NO(tsk)
+	    && syscall_no != MMAP2_SYSCALL_NO(tsk)
 	    && syscall_no != MPROTECT_SYSCALL_NO(tsk)
 	    && syscall_no != MUNMAP_SYSCALL_NO(tsk))
 		return UTRACE_ACTION_RESUME;
@@ -841,10 +843,11 @@ __stp_utrace_task_finder_target_syscall_exit(struct utrace_attached_engine *engi
 		  "tsk %d found %s(0x%lx), returned 0x%lx\n",
 		  tsk->pid,
 		  ((syscall_no == MMAP_SYSCALL_NO(tsk)) ? "mmap"
-		   : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
-		      : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
-			 : "UNKNOWN"))),
-		  arg0, rv);
+		   : ((syscall_no == MMAP2_SYSCALL_NO(tsk)) ? "mmap2"
+		      : ((syscall_no == MPROTECT_SYSCALL_NO(tsk)) ? "mprotect"
+			 : ((syscall_no == MUNMAP_SYSCALL_NO(tsk)) ? "munmap"
+			    : "UNKNOWN"))),
+		   arg0, rv);
 #endif
 
 	// Try to find the vma info we might have saved.
