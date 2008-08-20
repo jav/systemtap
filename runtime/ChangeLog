@@ -1,5 +1,9 @@
 2008-08-20  David Smith  <dsmith@redhat.com>
 
+	* task_finder.c: Supports original and new utrace interfaces.
+	* utrace_compatibility.h (utrace_attach_task): Compatibility layer
+	for original utrace interface.
+
 	* task_finder.c (__stp_utrace_task_finder_target_syscall_entry):
 	Handles mmap2 (as well as mmap).
 	(__stp_utrace_task_finder_target_syscall_exit): Ditto.
